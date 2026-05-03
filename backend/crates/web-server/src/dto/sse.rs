@@ -1,11 +1,18 @@
-use model_gateway_rs::model::llm::ChatMessage;
 use serde::Deserialize;
 use validator::Validate;
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
-pub struct LlmChatStreamRequest {
+pub struct AgentStreamRequest {
     #[validate(length(min = 1, max = 64))]
-    pub llm_name: Option<String>,
-    pub messages: Vec<ChatMessage>,
+    pub agent_id: Option<String>,
+
+    #[validate(length(min = 1, max = 128))]
+    pub session_id: Option<String>,
+
+    #[validate(length(min = 1, max = 128))]
+    pub workspace_id: Option<String>,
+
+    #[validate(length(min = 1, max = 20000))]
+    pub input: String,
 }

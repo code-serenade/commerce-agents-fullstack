@@ -17,7 +17,7 @@ use toolcraft_axum_kit::http_server;
 use crate::{
     logging::init_tracing_to_file,
     statics::{
-        db_manager::init_db, llm_client::init_llm_clients, request_client::init_request_client,
+        agent_manager::init_agent_manager, db_manager::init_db, request_client::init_request_client,
     },
 };
 
@@ -39,7 +39,8 @@ async fn main() {
     init_db(settings.db.clone())
         .await
         .expect("DatabaseManager initialization failed");
-    init_llm_clients(settings.llm.clone()).expect("LLM client initialization failed");
+    init_agent_manager(agent::api::AgentRuntimeCfg::from_llm(settings.llm.clone()))
+        .expect("Agent manager initialization failed");
     let jwt = Arc::new(
         fetch_verify_jwt()
             .await

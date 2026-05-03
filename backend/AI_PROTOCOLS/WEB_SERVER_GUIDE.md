@@ -13,7 +13,7 @@
 4. **强类型约束**：请求参数需通过 `validator` 和 `serde` 在进入 Handler 前完成校验。
 5. **统一认证来源**：如果接口需要登录态，请按 `AUTH_INTEGRATION_GUIDE.md` 集成 `auth` 服务，不要在当前业务服务内重复实现登录或 JWT 签发。
 6. **先确认接口设计**：如果“服务端开发文档”还没有被用户确认，不要直接开始写 Handler 和路由。
-7. **LLM client 统一入口**：如果接口需要调用大模型，只能通过 `statics::llm_client` 获取已初始化的 client，不要在 handler 中直接创建模型 client。
+7. **Agent 统一入口**：如果接口需要调用大模型，只能通过 `agent` crate 和 `statics::agent_manager` 运行 agent session，不要在 handler 中直接创建模型 client。
 
 ---
 
@@ -101,29 +101,28 @@ pub async fn my_handler(
 }
 ```
 
-如果接口需要 LLM 调用，应从静态 client 获取：
+如果接口需要 AI/LLM 调用，应运行 agent session：
 
 ```rust
-use model_gateway_rs::model::llm::{ChatMessage, LlmInput};
-use crate::statics::llm_client;
+use crate::statics::agent_manager::run_agent_stream;
 
-let output = llm_client::chat_once(
-    Some("ollama-gemma4"),
-    LlmInput {
-        messages: vec![ChatMessage::user("hello")],
-    },
-)
-.await?;
+let events = run_agent_stream(
+    auth_user.user_id,
+    req.workspace_id,
+    req.agent_id,
+    req.session_id,
+    req.input,
+)?;
 ```
 
 LLM 配置和调用规则见 `AI_PROTOCOLS/LLM_CLIENT_GUIDE.md`。
 
-如果接口是 LLM 流式输出，应使用 Axum SSE，并遵守：
+如果接口是 agent 流式输出，应使用 Axum SSE，并遵守：
 
-- 只在 LLM stream 场景使用 SSE
+- 只在 agent session stream 场景使用 SSE
 - WebSocket 继续只做通知和业务推送
 - SSE endpoint 优先使用 `POST + fetch stream`
-- SSE 事件保持为 `delta` / `reasoning` / `done` / `error`
+- SSE 事件来自 `agent::api::SessionEvent::event_name()`
 
 ### Step 3: 注册 Routes (`routes/xxx.rs`)
 
@@ -192,4 +191,4 @@ pub mod user_biz;
 - [ ] `../API_DOCS/` 中对应的 Markdown 文档是否已经同步更新？
 - [ ] `routes/mod.rs` 中是否已经正确挂载实际路由前缀？
 - [ ] 数据结构的参数验证是否完整使用了 `validator` 标签？
-- [ ] 如果接口调用 LLM，是否通过 `statics::llm_client`，并同步更新了配置文档和验证命令？
+- [ ] 如果接口调用 AI/LLM，是否通过 `statics::agent_manager`，并同步更新了配置文档和验证命令？

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{core::protocol::WorkerProfile, roles::RoleProfile};
 
-const DEFAULT_ROLES_PATH: &str = "config/roles.json";
+const DEFAULT_ROLES_PATH: &str = "config/json/agent/roles.json";
 const ROLES_CONFIG_ENV: &str = "CM_AGENT_ROLES";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -15,8 +15,10 @@ pub struct RoleCatalog {
 impl RoleCatalog {
     pub fn builtin() -> Self {
         Self {
-            roles: parse_configured_roles(include_str!("../../../../config/roles-default.json"))
-                .expect("embedded backend/config/roles-default.json must be valid"),
+            roles: parse_configured_roles(include_str!(
+                "../../../../config/json/agent/roles-example.json"
+            ))
+            .expect("embedded backend/config/json/agent/roles-example.json must be valid"),
         }
     }
 

@@ -4,7 +4,7 @@
 
 说明：本 WebSocket 主要用于后台向前端推送小铃铛通知。连接必须通过 JWT 鉴权，没有 token 或 token 校验失败时不会建立 WebSocket 连接。前端暂时不需要发送业务消息，只需要建立连接并监听服务端消息。当前保留 `ping/pong` 用于连通性测试。
 
-LLM 流式输出不使用 WebSocket，统一使用 `POST /api/sse/llm/chat/stream` 的 SSE 协议；见 `API_DOCS/sse.md`。
+Agent session 流式输出不使用 WebSocket，统一使用 `POST /api/sse/agent/session/stream` 的 SSE 协议；见 `API_DOCS/sse.md`。
 
 ## 1. 连接方式
 

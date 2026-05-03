@@ -2,64 +2,80 @@ use std::{
     collections::{HashMap, HashSet},
     env,
     sync::Arc,
-    time::Duration,
 };
 
 use agent::api::{
-    AgentId, AgentManager, AgentManagerConfig, AgentRequest, Cognition, CognitionEngine,
-    CognitionInput, CognitionResult, RoleCognitionFactory, RoleProfile, SessionEvent, SessionId,
-    UserId,
+    AgentId, AgentLlmCfg, AgentManager, AgentRequest, AgentRuntimeCfg, SessionEvent, SessionId,
+    UserId, build_agent_manager,
 };
-use async_trait::async_trait;
-use model_gateway_rs::{
-    llm::{Llm, chat_completions::ChatCompletionsLlm},
-    model::llm::{ChatMessage, LlmInput},
-};
-use serde_json::{Value, json};
+use serde::Deserialize;
+use toolcraft_config::load_settings;
 
-const DEFAULT_OLLAMA_BASE_URL: &str = "http://127.0.0.1:11434";
-const DEFAULT_OLLAMA_MODEL: &str = "gemma4:26b";
+const DEFAULT_CONFIG_PATH: &str = "config/services.toml";
 const DEFAULT_TASK: &str = "基于数据诊断做详情页设计和预算风险评估，并给运营调整方案";
+
+#[derive(Debug, Deserialize)]
+struct SmokeSettings {
+    #[serde(default)]
+    llm: Vec<AgentLlmCfg>,
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let base_url = env::var("OLLAMA_BASE_URL").unwrap_or_else(|_| DEFAULT_OLLAMA_BASE_URL.into());
-    let model = env::var("OLLAMA_MODEL").unwrap_or_else(|_| DEFAULT_OLLAMA_MODEL.into());
     let args = env::args().skip(1).collect::<Vec<_>>();
     let matrix_mode = args.iter().any(|arg| arg == "--matrix");
-    let task = args
-        .iter()
-        .filter(|arg| arg.as_str() != "--matrix")
-        .cloned()
-        .collect::<Vec<_>>()
-        .join(" ");
+    let config_path = option_value(&args, "--config")
+        .or_else(|| env::var("CONFIG_PATH").ok())
+        .unwrap_or_else(|| DEFAULT_CONFIG_PATH.to_string());
+    let default_llm = option_value(&args, "--llm").or_else(|| env::var("AGENT_LLM").ok());
+    let task = task_args(&args).join(" ");
     let task = if task.trim().is_empty() {
         DEFAULT_TASK.to_string()
     } else {
         task
     };
 
-    println!("ollama_base_url={base_url}");
-    println!("ollama_model={model}");
+    let settings = load_smoke_settings(&config_path)?;
+    let llm_names = settings
+        .llm
+        .iter()
+        .map(|llm| llm.name.as_str())
+        .collect::<Vec<_>>()
+        .join(",");
+    println!("config_path={config_path}");
+    println!("llm_names=[{llm_names}]");
+    println!(
+        "selected_llm={}",
+        default_llm.as_deref().unwrap_or("<first [[llm]]>")
+    );
+    println!(
+        "roles_path={}",
+        env_or_default("CM_AGENT_ROLES", "config/json/agent/roles.json")
+    );
+    println!(
+        "task_graph_rules_path={}",
+        env_or_default(
+            "CM_AGENT_TASK_GRAPH_RULES",
+            "config/json/agent/task-graph-rules.json"
+        )
+    );
     println!("task={task}");
     println!();
 
-    let llm = Arc::new(
-        ChatCompletionsLlm::new(&base_url, &model, None)?
-            .with_temperature(Some(0.2))
-            .with_max_tokens(Some(2048)),
-    );
-    let manager = Arc::new(build_ollama_agent_manager(llm)?);
+    let manager = Arc::new(build_agent_manager(AgentRuntimeCfg {
+        llm: settings.llm,
+        default_llm,
+    })?);
     if matrix_mode {
         run_matrix(manager).await?;
         return Ok(());
     }
 
     let mut events = manager.run_stream(AgentRequest {
-        user_id: Some(UserId("ollama-user".to_string())),
+        user_id: Some(UserId("config-smoke-user".to_string())),
         workspace_id: None,
-        agent_id: AgentId("ollama-agent".to_string()),
-        session_id: SessionId("ollama-task-graph-smoke".to_string()),
+        agent_id: AgentId("config-smoke-agent".to_string()),
+        session_id: SessionId("config-task-graph-smoke".to_string()),
         input: task,
     })?;
 
@@ -75,6 +91,43 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("active_sessions={}", manager.active_session_count());
     Ok(())
+}
+
+fn load_smoke_settings(path: &str) -> Result<SmokeSettings, Box<dyn std::error::Error>> {
+    let settings: SmokeSettings = load_settings(path)?;
+    if settings.llm.is_empty() {
+        return Err(format!("config '{path}' does not contain any [[llm]] entries").into());
+    }
+    Ok(settings)
+}
+
+fn option_value(args: &[String], name: &str) -> Option<String> {
+    args.windows(2)
+        .find_map(|window| (window[0] == name).then(|| window[1].clone()))
+        .filter(|value| !value.trim().is_empty())
+}
+
+fn task_args(args: &[String]) -> Vec<String> {
+    let mut output = Vec::new();
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--matrix" => index += 1,
+            "--config" | "--llm" => index += 2,
+            _ => {
+                output.push(args[index].clone());
+                index += 1;
+            }
+        }
+    }
+    output
+}
+
+fn env_or_default(env_name: &str, default: &str) -> String {
+    env::var(env_name)
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| default.to_string())
 }
 
 #[derive(Debug, Clone)]
@@ -170,10 +223,10 @@ async fn run_matrix_case(
     index: usize,
 ) -> Result<MatrixResult, Box<dyn std::error::Error>> {
     let mut events = manager.run_stream(AgentRequest {
-        user_id: Some(UserId("ollama-matrix-user".to_string())),
+        user_id: Some(UserId("config-matrix-user".to_string())),
         workspace_id: None,
-        agent_id: AgentId("ollama-matrix-agent".to_string()),
-        session_id: SessionId(format!("ollama-task-graph-matrix-{index}")),
+        agent_id: AgentId("config-matrix-agent".to_string()),
+        session_id: SessionId(format!("config-task-graph-matrix-{index}")),
         input: case.task.to_string(),
     })?;
 
@@ -263,431 +316,6 @@ fn sorted_set(values: &HashSet<String>) -> Vec<String> {
     let mut values = values.iter().cloned().collect::<Vec<_>>();
     values.sort();
     values
-}
-
-fn build_ollama_agent_manager(llm: Arc<ChatCompletionsLlm>) -> agent::api::Result<AgentManager> {
-    let commander_llm = Arc::clone(&llm);
-    let commander = Arc::new(move || {
-        Ok(Box::new(CognitionEngine::new(
-            Arc::clone(&commander_llm),
-            "prompts/zh/cognition/commander_routing.md",
-        )?) as Box<dyn Cognition + Send>)
-    });
-
-    let worker_llm = Arc::clone(&llm);
-    let worker: RoleCognitionFactory = Arc::new(move |role: &RoleProfile| {
-        Ok(Box::new(OllamaRoleWorkerCognition {
-            llm: Arc::clone(&worker_llm),
-            role: role.clone(),
-        }) as Box<dyn Cognition + Send>)
-    });
-
-    let mut config = AgentManagerConfig::new_role_aware(commander, worker);
-    config.runtime.response_timeout = Duration::from_secs(900);
-    config.runtime.commander_fast_route = true;
-    config.runtime.commander_fast_route_min_score = 2.0;
-
-    Ok(AgentManager::new(config))
-}
-
-struct OllamaRoleWorkerCognition {
-    llm: Arc<ChatCompletionsLlm>,
-    role: RoleProfile,
-}
-
-#[async_trait]
-impl Cognition for OllamaRoleWorkerCognition {
-    async fn evaluate(&self, input: CognitionInput) -> CognitionResult {
-        let system = format!(
-            r#"你是 cm-agent 里的专用角色 worker。
-
-当前角色：
-- id: {}
-- name: {}
-- runtime_role: {}
-
-你只负责完成当前 assignment 的本节点产物，不调度其他 worker。
-如果 Context facts 中包含 upstream report，请把它们作为输入。
-
-你必须只返回合法 JSON，不要 Markdown，不要代码块：
-{{
-  "decision": {{"kind": "NoAction"}},
-  "role_output": {{
-    "summary": "本角色一句话结论",
-    "findings": ["本角色关键发现"],
-    "recommendations": ["本角色建议或动作"],
-    "evidence": ["你实际使用了哪些上游事实"],
-    "risks": ["风险、边界或失败条件"],
-    "open_questions": []
-  }}
-}}
-
-除非确实无法继续，否则 role_output.open_questions 必须为空数组。
-"#,
-            self.role.id.0, self.role.name, self.role.runtime_role
-        );
-        let user = render_worker_input(&input);
-
-        let raw = match self
-            .llm
-            .chat_once(LlmInput {
-                messages: vec![ChatMessage::system(system), ChatMessage::user(user)],
-            })
-            .await
-        {
-            Ok(output) => output.get_content().trim().to_string(),
-            Err(err) => {
-                return CognitionResult::Success(json!({
-                    "decision": { "kind": "NoAction" },
-                    "role_output": {
-                        "summary": format!("LLM 调用失败：{err}"),
-                        "findings": [],
-                        "recommendations": [],
-                        "evidence": [],
-                        "risks": [format!("LLM 调用失败：{err}")],
-                        "open_questions": [format!("LLM 调用失败：{err}")]
-                    }
-                }));
-            }
-        };
-
-        println!(
-            "worker_raw role={} output={}",
-            self.role.runtime_role,
-            truncate_for_log(&raw, 1200)
-        );
-        if let Some(parsed) = parse_role_json(&raw)
-            && has_role_output_content(&parsed)
-        {
-            return CognitionResult::Success(parsed);
-        }
-
-        let repair_system = r#"你必须把上一条 worker 输出修正为合法 JSON。
-只能返回 JSON，不能返回 Markdown。
-必须包含非空 role_output.summary。
-role_output 必须包含 findings、recommendations、evidence、risks、open_questions 数组。
-如果上一条输出无法完成任务，也要在 role_output.summary 说明失败原因，并在 risks 或 open_questions 写明边界。"#;
-        let repair_user = format!(
-            "当前角色：{}\n原始任务输入：\n{}\n\n上一条输出：\n{}",
-            self.role.runtime_role,
-            render_worker_input(&input),
-            raw
-        );
-        let repaired = match self
-            .llm
-            .chat_once(LlmInput {
-                messages: vec![
-                    ChatMessage::system(repair_system.to_string()),
-                    ChatMessage::user(repair_user),
-                ],
-            })
-            .await
-        {
-            Ok(output) => {
-                let repaired_raw = output.get_content().trim().to_string();
-                println!(
-                    "worker_repair_raw role={} output={}",
-                    self.role.runtime_role,
-                    truncate_for_log(&repaired_raw, 1200)
-                );
-                parse_or_wrap_role_output(&repaired_raw)
-            }
-            Err(_) => parse_or_wrap_role_output(&raw),
-        };
-
-        CognitionResult::Success(repaired)
-    }
-}
-
-fn render_worker_input(input: &CognitionInput) -> String {
-    let facts = if input.context.facts.is_empty() {
-        "- none".to_string()
-    } else {
-        input
-            .context
-            .facts
-            .iter()
-            .map(|fact| {
-                format!(
-                    "- source: {}\n  reliability: {}\n  content: {}",
-                    fact.source, fact.reliability, fact.content
-                )
-            })
-            .collect::<Vec<_>>()
-            .join("\n")
-    };
-
-    let metadata = if input.context.metadata.is_empty() {
-        "- none".to_string()
-    } else {
-        input
-            .context
-            .metadata
-            .iter()
-            .map(|(key, value)| format!("- {key}: {value}"))
-            .collect::<Vec<_>>()
-            .join("\n")
-    };
-
-    format!(
-        "Intent:\n- id: {}\n- kind: {:?}\n- description: {}\n\nContext metadata:\n{}\n\nContext \
-         facts:\n{}",
-        input.intent.id, input.intent.kind, input.intent.description, metadata, facts
-    )
-}
-
-fn parse_or_wrap_role_output(raw: &str) -> Value {
-    let parsed = parse_role_json(raw).or_else(|| salvage_role_output_from_text(raw));
-    match parsed {
-        Some(value) if has_role_output_content(&value) => value,
-        Some(value) => json!({
-            "decision": value.get("decision").cloned().unwrap_or_else(|| json!({ "kind": "NoAction" })),
-            "role_output": {
-                "summary": format!("模型未按契约返回有效 role_output，原始输出：{}", raw),
-                "findings": [],
-                "recommendations": [],
-                "evidence": [],
-                "risks": ["模型输出缺少结构化 role_output"],
-                "open_questions": ["需要 worker 重新提交结构化 role_output"]
-            }
-        }),
-        None => json!({
-            "decision": { "kind": "NoAction" },
-            "role_output": {
-                "summary": raw,
-                "findings": [],
-                "recommendations": [],
-                "evidence": [],
-                "risks": [],
-                "open_questions": []
-            }
-        }),
-    }
-}
-
-fn parse_role_json(raw: &str) -> Option<Value> {
-    parse_json_value_lenient(raw)
-        .or_else(|| extract_json_object(raw).and_then(parse_json_value_lenient))
-}
-
-fn parse_json_value_lenient(raw: &str) -> Option<Value> {
-    serde_json::from_str(raw)
-        .ok()
-        .or_else(|| serde_json::from_str(&escape_newlines_inside_json_strings(raw)).ok())
-}
-
-fn salvage_role_output_from_text(raw: &str) -> Option<Value> {
-    if !raw.contains("role_output") {
-        return None;
-    }
-
-    let summary = extract_json_string_field(raw, "summary").unwrap_or_default();
-    let findings = extract_json_string_array_field(raw, "findings");
-    let recommendations = extract_json_string_array_field(raw, "recommendations");
-    let evidence = extract_json_string_array_field(raw, "evidence");
-    let risks = extract_json_string_array_field(raw, "risks");
-    let open_questions = extract_json_string_array_field(raw, "open_questions");
-    if summary.trim().is_empty()
-        && findings.is_empty()
-        && recommendations.is_empty()
-        && evidence.is_empty()
-        && risks.is_empty()
-        && open_questions.is_empty()
-    {
-        return None;
-    }
-
-    Some(json!({
-        "decision": { "kind": "NoAction" },
-        "role_output": {
-            "summary": summary,
-            "findings": findings,
-            "recommendations": recommendations,
-            "evidence": evidence,
-            "risks": risks,
-            "open_questions": open_questions
-        }
-    }))
-}
-
-fn extract_json_string_field(raw: &str, key: &str) -> Option<String> {
-    let key_pos = raw.find(&format!("\"{key}\""))?;
-    let after_key = &raw[key_pos ..];
-    let colon_pos = after_key.find(':')?;
-    let after_colon = after_key[colon_pos + 1 ..].trim_start();
-    let mut chars = after_colon.chars();
-    if chars.next()? != '"' {
-        return None;
-    }
-
-    let mut value = String::new();
-    let mut escape = false;
-    for ch in chars {
-        if escape {
-            value.push(ch);
-            escape = false;
-            continue;
-        }
-        match ch {
-            '\\' => escape = true,
-            '"' => return Some(value),
-            _ => value.push(ch),
-        }
-    }
-
-    None
-}
-
-fn extract_json_string_array_field(raw: &str, key: &str) -> Vec<String> {
-    let Some(key_pos) = raw.find(&format!("\"{key}\"")) else {
-        return Vec::new();
-    };
-    let after_key = &raw[key_pos ..];
-    let Some(colon_pos) = after_key.find(':') else {
-        return Vec::new();
-    };
-    let after_colon = after_key[colon_pos + 1 ..].trim_start();
-    let Some(array_start) = after_colon.find('[') else {
-        return Vec::new();
-    };
-    let mut items = Vec::new();
-    let mut in_string = false;
-    let mut escape = false;
-    let mut current = String::new();
-
-    for ch in after_colon[array_start + 1 ..].chars() {
-        if in_string {
-            if escape {
-                current.push(ch);
-                escape = false;
-                continue;
-            }
-            match ch {
-                '\\' => escape = true,
-                '"' => {
-                    let item = current.trim();
-                    if !item.is_empty() {
-                        items.push(item.to_string());
-                    }
-                    current.clear();
-                    in_string = false;
-                }
-                _ => current.push(ch),
-            }
-            continue;
-        }
-
-        match ch {
-            '"' => in_string = true,
-            ']' => break,
-            _ => {}
-        }
-    }
-
-    items
-}
-
-fn escape_newlines_inside_json_strings(raw: &str) -> String {
-    let mut output = String::with_capacity(raw.len());
-    let mut in_string = false;
-    let mut escape = false;
-
-    for ch in raw.chars() {
-        if in_string {
-            if escape {
-                output.push(ch);
-                escape = false;
-                continue;
-            }
-            match ch {
-                '\\' => {
-                    output.push(ch);
-                    escape = true;
-                }
-                '"' => {
-                    output.push(ch);
-                    in_string = false;
-                }
-                '\n' => output.push_str("\\n"),
-                '\r' => {}
-                _ => output.push(ch),
-            }
-            continue;
-        }
-
-        output.push(ch);
-        if ch == '"' {
-            in_string = true;
-        }
-    }
-
-    output
-}
-
-fn has_role_output_content(value: &Value) -> bool {
-    let Some(role_output) = value.get("role_output") else {
-        return false;
-    };
-    if let Some(text) = role_output.as_str() {
-        return !text.trim().is_empty();
-    }
-    let Some(role_output) = role_output.as_object() else {
-        return false;
-    };
-    role_output
-        .get("summary")
-        .and_then(|summary| summary.as_str())
-        .map(str::trim)
-        .is_some_and(|summary| !summary.is_empty())
-}
-
-fn truncate_for_log(value: &str, max_chars: usize) -> String {
-    let mut truncated = value.chars().take(max_chars).collect::<String>();
-    if value.chars().count() > max_chars {
-        truncated.push_str("...");
-    }
-    truncated
-}
-
-fn extract_json_object(input: &str) -> Option<&str> {
-    let mut in_string = false;
-    let mut escape = false;
-    let mut depth = 0usize;
-    let mut start = None;
-
-    for (index, ch) in input.char_indices() {
-        if in_string {
-            if escape {
-                escape = false;
-                continue;
-            }
-            match ch {
-                '\\' => escape = true,
-                '"' => in_string = false,
-                _ => {}
-            }
-            continue;
-        }
-
-        match ch {
-            '"' => in_string = true,
-            '{' => {
-                if depth == 0 {
-                    start = Some(index);
-                }
-                depth += 1;
-            }
-            '}' if depth > 0 => {
-                depth -= 1;
-                if depth == 0 {
-                    return start.map(|start_index| &input[start_index ..= index]);
-                }
-            }
-            _ => {}
-        }
-    }
-
-    None
 }
 
 fn print_event(event: &SessionEvent) {

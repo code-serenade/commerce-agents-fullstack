@@ -4,10 +4,10 @@
 
 ## 文档目录
 
-- `common.md`: 通用约定，包括鉴权、LLM 配置、统一响应格式、错误码
+- `common.md`: 通用约定，包括鉴权、agent LLM 配置、统一响应格式、错误码
 - `admin.md`: 后台 RBAC 相关接口
 - `app.md`: 普通客户端接口
-- `sse.md`: LLM 流式输出 SSE 协议
+- `sse.md`: Agent session SSE 事件流协议
 - `ws.md`: WebSocket 连接与小铃铛通知推送协议
 
 ## 路由前缀
@@ -59,7 +59,7 @@
 
 ### SSE
 
-1. `POST /api/sse/llm/chat/stream` LLM stream
+1. `POST /api/sse/agent/session/stream` Agent session stream
 
 ### WebSocket
 

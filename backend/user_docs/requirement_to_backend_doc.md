@@ -94,7 +94,7 @@ AI 先用自己的话复述用户需求，确认理解没有偏差。
 - 输入是文本、图片 URL、base64 data URL，还是文件上传
 - 输出是纯文本、结构化 JSON，还是需要落库
 - 模型调用失败时接口如何返回错误
-- 是否需要运行 `cargo run -p web-server --example llm_vision_smoke` 做验证
+- 是否需要运行 `cargo run -p agent --bin ollama_task_graph_smoke` 做验证
 
 ### 6. HTTP 接口设计
 

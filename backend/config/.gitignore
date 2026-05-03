@@ -1,8 +1,10 @@
 # Local runtime config. Commit *-example.* templates instead.
 /services.toml
-/roles.json
-/task-graph-rules.json
+/**/*.json
+!/json/
+!/json/agent/
+/json/agent/roles.json
+/json/agent/task-graph-rules.json
 
 !/*-example.toml
-!/*-example.json
-!/roles-default.json
+!/**/*-example.json

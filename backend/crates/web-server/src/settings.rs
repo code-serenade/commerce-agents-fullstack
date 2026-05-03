@@ -1,3 +1,4 @@
+use agent::api::AgentLlmCfg;
 use db_core::DatabaseConfig;
 use serde::Deserialize;
 use toolcraft_config::load_settings;
@@ -10,7 +11,7 @@ pub struct Settings {
     pub jwt_verify: JwtVerifyRemoteCfg,
     pub db: Vec<DatabaseConfig>,
     #[serde(default)]
-    pub llm: Vec<LlmCfg>,
+    pub llm: Vec<AgentLlmCfg>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -23,18 +24,6 @@ pub struct JwtVerifyRemoteCfg {
     pub url: String,
     pub header: String,
     pub token: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct LlmCfg {
-    pub name: String,
-    pub base_url: String,
-    pub model: String,
-    pub api_key: Option<String>,
-    pub max_tokens: Option<u32>,
-    pub temperature: Option<f32>,
-    pub reasoning_effort: Option<String>,
-    pub chat_completions_endpoint: Option<String>,
 }
 
 impl Settings {

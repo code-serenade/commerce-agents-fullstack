@@ -145,12 +145,12 @@ AI 需要先提炼出：
 
 必须遵守：
 
-1. LLM client 统一通过 `crates/web-server/src/statics/llm_client.rs` 初始化和获取。
+1. LLM client 统一由 `agent` crate 初始化和持有，web-server 通过 `statics::agent_manager` 运行 agent session。
 2. 不允许在 handler 中临时创建 LLM client。
 3. 模型、base URL、API key 只能来自 `config/services.toml`。
 4. 服务端开发文档必须写清使用哪个 `llm.name`。
-5. 开发完成后优先运行 `cargo check --workspace --examples`，涉及图片识别时运行 `cargo run -p web-server --example llm_vision_smoke`。
-6. LLM 流式输出使用 SSE，普通业务通知继续使用 WebSocket。
+5. 开发完成后优先运行 `cargo check --workspace --examples`，涉及 agent/LLM 时运行 `cargo run -p agent --bin ollama_task_graph_smoke`。
+6. Agent session 流式输出使用 SSE，普通业务通知继续使用 WebSocket。
 
 ---
 

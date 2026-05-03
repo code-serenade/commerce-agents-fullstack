@@ -26,5 +26,6 @@ pub use crate::{
         RoleProfile, RolePromptBuilder, RolePromptInput, RoleRoute, RoleRouteInput, RoleRouter,
         RoleScore,
     },
+    runtime::{AgentLlmCfg, AgentRuntimeCfg, build_agent_manager},
     web_error::{code_for_error, to_biz_error},
 };

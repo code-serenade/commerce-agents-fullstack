@@ -111,7 +111,7 @@ postgres://username:password@host:5432/database_name
 6. 检查 auth 服务是否可访问
 7. 运行数据库初始化和迁移
 8. 启动当前服务
-9. 如果配置了 `[[llm]]`，检查模型服务是否可访问；如果是本地 Ollama，可运行 `cargo run -p web-server --example llm_vision_smoke`
+9. 如果配置了 `[[llm]]`，检查模型服务是否可访问；如果是本地 Ollama，可运行 `cargo run -p agent --bin ollama_task_graph_smoke`
 10. 核对 `../API_DOCS/` 下的 Markdown 接口文档是否与当前代码一致
 11. 告诉我当前环境是否已经可以开始开发
 
@@ -122,7 +122,7 @@ postgres://username:password@host:5432/database_name
 
 ## 六、如果 LLM 或 Ollama 不可用
 
-当前项目支持通过 `config/services.toml` 配置多个 LLM client：
+当前项目支持通过 `config/services.toml` 配置多个 agent LLM：
 
 ```toml
 [[llm]]
@@ -138,7 +138,7 @@ temperature = 0.2
 1. `curl http://127.0.0.1:11434/api/tags` 是否可访问
 2. 目标模型是否存在，例如 `gemma4:26b`
 3. `config/services.toml` 中 `base_url` 和 `model` 是否正确
-4. `cargo run -p web-server --example llm_vision_smoke` 是否可以识别测试图片
+4. `cargo run -p agent --bin ollama_task_graph_smoke` 是否可以运行 agent smoke
 
 如果用户改用远程模型服务，AI 应让用户提供：
 

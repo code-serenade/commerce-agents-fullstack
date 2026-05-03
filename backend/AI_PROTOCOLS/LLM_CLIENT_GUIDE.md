@@ -6,26 +6,21 @@
 
 ## 一、当前项目约定
 
-项目通过 `model-gateway-rs` 接入 OpenAI-compatible Chat Completions 服务。
-
-当前依赖：
-
-```toml
-model-gateway-rs = { version = "0.2.4" }
-```
+项目通过 `agent` crate 接入 OpenAI-compatible Chat Completions 服务。`model-gateway-rs` 是 `agent` crate 的内部依赖，`web-server` 不直接依赖或初始化模型 client。
 
 LLM client 统一初始化在：
 
 ```text
-crates/web-server/src/statics/llm_client.rs
+crates/agent/src/runtime.rs
 ```
 
-不要在 handler 里临时 new LLM client。业务代码应通过 `statics::llm_client` 获取已初始化的 client。
+`web-server` 只负责读取 `config/services.toml`，把 `[[llm]]` 配置传给 `agent::api::build_agent_manager`，并通过 `statics::agent_manager` 运行 agent session。
 
 前端实时通信边界：
 
 - WebSocket 只用于小铃铛通知、任务状态等业务推送。
-- SSE 只用于 LLM 单次流式响应。
+- SSE 用于 agent session 事件流。
+- 不再提供裸 LLM chat stream HTTP 接口。
 
 ---
 
@@ -46,7 +41,7 @@ temperature = 0.2
 
 | 字段 | 必填 | 说明 |
 | --- | --- | --- |
-| `name` | 是 | 当前 LLM client 名称，必须唯一 |
+| `name` | 是 | 当前 LLM 配置名称，必须唯一 |
 | `base_url` | 是 | OpenAI-compatible 服务地址，可以是服务根地址，也可以是带 `/v1` 的 API base |
 | `model` | 是 | 模型名，例如 `gemma4:26b` |
 | `api_key` | 否 | 需要鉴权的 provider 使用 |
@@ -55,93 +50,69 @@ temperature = 0.2
 | `reasoning_effort` | 否 | 支持 reasoning effort 的 provider 使用 |
 | `chat_completions_endpoint` | 否 | 特殊 provider 才需要覆盖，普通情况不要配置 |
 
-`base_url` 不需要用户手动拼完整 `/v1/chat/completions`。`model-gateway-rs` 会按 OpenAI-compatible 规则自动选择 endpoint。
+当前 agent runtime 默认使用第一个 `[[llm]]`。如果后续需要 commander、worker 或不同 role 使用不同模型，应先扩展 `agent::api::AgentRuntimeCfg`，不要在 `web-server` 重新维护 LLM registry。
 
 ---
 
 ## 三、代码使用方式
 
-优先使用封装好的静态入口：
+HTTP handler 不直接调用 LLM。需要 AI 能力时，从 agent manager 运行 session：
 
 ```rust
-use model_gateway_rs::model::llm::{ChatMessage, LlmInput};
-use crate::statics::llm_client;
+use crate::statics::agent_manager::run_agent_stream;
 
-let output = llm_client::chat_once(
-    Some("ollama-gemma4"),
-    LlmInput {
-        messages: vec![ChatMessage::user("hello")],
-    },
-)
-.await?;
+let events = run_agent_stream(
+    auth_user.user_id,
+    req.workspace_id,
+    req.agent_id,
+    req.session_id,
+    req.input,
+)?;
 ```
 
-如果不传名称，默认使用配置中的第一个 `[[llm]]`：
-
-```rust
-llm_client::chat_once(None, input).await?;
-```
+agent crate 内部如需新增 cognition，可继续通过 `CognitionEngine` 或 `model-gateway-rs` 实现，但对外只暴露 agent runtime API。
 
 ---
 
 ## 四、图片识别
 
-图片识别使用 `ChatMessage::user_with_image(...)` 或 content parts。
+图片识别也应作为 agent 能力进入 runtime。新增图片输入时，必须先设计 agent request 的输入协议，例如 multipart 上传、资源 URL 或 data URL，再由 agent 内部构造 vision message。
 
-示例：
-
-```rust
-use model_gateway_rs::model::llm::{ChatMessage, LlmInput};
-
-let input = LlmInput {
-    messages: vec![ChatMessage::user_with_image(
-        "Describe the image briefly.",
-        "data:image/png;base64,...",
-    )],
-};
-```
-
-模型必须本身支持 vision。若 provider 返回 `{ "error": ... }`，`model-gateway-rs` 会返回清晰的 API error。
+不要在 `web-server` handler 中临时创建 vision LLM client。
 
 ---
 
 ## 五、验证命令
 
-本项目提供本地 Ollama 图片识别 smoke example：
+本项目提供本地 Ollama agent smoke example：
 
 ```bash
-cargo run -p web-server --example llm_vision_smoke
+cargo run -p agent --bin ollama_task_graph_smoke
 ```
 
 默认测试：
 
 ```text
-LLM_BASE_URL=http://127.0.0.1:11434
-LLM_MODEL=gemma4:26b
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=gemma4:26b
 ```
 
 也可以覆盖：
 
 ```bash
-LLM_BASE_URL=http://127.0.0.1:11434 \
-LLM_MODEL=gemma4:26b \
-cargo run -p web-server --example llm_vision_smoke
-```
-
-预期输出类似：
-
-```text
-The image features a red circle.
+OLLAMA_BASE_URL=http://127.0.0.1:11434 \
+OLLAMA_MODEL=gemma4:26b \
+cargo run -p agent --bin ollama_task_graph_smoke
 ```
 
 ---
 
 ## 六、前端 SSE 协议
 
-LLM 流式输出使用 Axum SSE：
+Agent session 使用 Axum SSE：
 
 ```http
-POST /api/sse/llm/chat/stream
+POST /api/sse/agent/session/stream
 Authorization: Bearer <access_token>
 Content-Type: application/json
 Accept: text/event-stream
@@ -151,56 +122,53 @@ Accept: text/event-stream
 
 ```json
 {
-  "llmName": "ollama-gemma4",
-  "messages": [
-    {
-      "role": "user",
-      "content": "hello"
-    }
-  ]
+  "input": "hello agent",
+  "agentId": "web-agent",
+  "sessionId": "session-001",
+  "workspaceId": "workspace-001"
 }
 ```
 
-服务端事件：
+服务端事件直接来自 `agent::api::SessionEvent`：
 
 ```text
-event: delta
-data: {"content":"hello"}
+event: started
+data: {"type":"started",...}
 
-event: reasoning
-data: {"content":"optional reasoning text"}
+event: worker_started
+data: {"type":"worker_started",...}
 
-event: done
-data: {}
+event: output
+data: {"type":"output",...}
 
-event: error
-data: {"message":"model unavailable"}
+event: finished
+data: {"type":"finished",...}
 ```
 
 约束：
 
-1. SSE 只用于 LLM stream，不用于普通通知。
+1. SSE 用于 agent session stream，不用于普通通知。
 2. 前端普通通知继续使用 `/api/ws`。
-3. LLM SSE 使用 `POST + fetch stream`，不使用 `GET EventSource`。
-4. 如果 provider 返回 OpenAI-compatible stream，web-server 负责归一成 `delta` / `reasoning` / `done` / `error`。
+3. Agent SSE 使用 `POST + fetch stream`，不使用 `GET EventSource`。
+4. web-server 只把 `SessionEvent` 映射为 SSE event，不解析 provider 原始 stream。
 
 ---
 
 ## 七、开发规则
 
-1. 新增 AI/LLM 功能前，服务端开发文档必须写清楚使用哪个 `llm.name`。
+1. 新增 AI/LLM 功能前，服务端开发文档必须写清楚使用哪个 agent 能力和 `llm.name`。
 2. 如果需要图片识别，必须说明图片来源、格式、大小限制和错误处理方式。
 3. 不要把 API key 写死在代码里，只允许从配置读取。
-4. 不要在业务 handler 中重复创建 LLM client。
+4. 不要在 `web-server` 中重复创建 LLM client。
 5. 修改 LLM 配置结构后，必须同步更新：
    - `config/services-example.toml`
    - `README.md`
    - `../API_DOCS/common.md`
    - 相关 `user_docs/`
-6. 如果新增或修改 LLM stream 接口，必须同步更新 `../API_DOCS/sse.md`。
+6. 如果新增或修改 agent SSE 接口，必须同步更新 `../API_DOCS/sse.md`。
 7. 修改 LLM 调用能力后，至少运行：
 
 ```bash
 cargo check --workspace --examples
-cargo run -p web-server --example llm_vision_smoke
+cargo run -p agent --bin ollama_task_graph_smoke
 ```

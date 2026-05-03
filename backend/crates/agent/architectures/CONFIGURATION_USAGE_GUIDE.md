@@ -16,8 +16,8 @@
 
 配置文件：
 
-- `config/roles.json`
-- `config/roles-example.json`
+- `config/json/agent/roles.json`
+- `config/json/agent/roles-example.json`
 
 roles 配置定义系统有哪些角色。一个 role 至少包含：
 
@@ -39,14 +39,14 @@ roles 配置定义系统有哪些角色。一个 role 至少包含：
 - 调整角色能力边界。
 - 让 graph 可以引用新的 `runtime_role`。
 
-注意：`config/roles.json` 是完整角色目录，不是增量扩展文件。启用自定义 roles 时，需要包含系统希望可用的全部角色。
+注意：`config/json/agent/roles.json` 是完整角色目录，不是增量扩展文件。启用自定义 roles 时，需要包含系统希望可用的全部角色。
 
 ### Task Graph
 
 配置文件：
 
-- `config/task-graph-rules.json`
-- `config/task-graph-rules-example.json`
+- `config/json/agent/task-graph-rules.json`
+- `config/json/agent/task-graph-rules-example.json`
 
 graph 配置定义某类任务应该调用哪些 roles，以及这些 roles 的依赖关系。一个 graph rule 通常包含：
 
@@ -157,7 +157,7 @@ cognition prompt 用来控制 commander 路由、worker 执行、最终总结等
 用户提出需求时，AI 应按这个顺序处理：
 
 1. 判断是 role、graph、prompt，还是 Rust runtime 能力问题。
-2. 优先修改 `config/*.json` 或 `prompts/**/*.md`。
+2. 优先修改 `config/json/agent/*.json` 或 `prompts/**/*.md`。
 3. 只有配置无法表达时，才修改 Rust 代码。
 4. 修改后用真实任务输入做 smoke test。
 5. 对比用户预期或旧项目效果。
@@ -199,8 +199,8 @@ cognition prompt 用来控制 commander 路由、worker 执行、最终总结等
 
 roles/graph/prompt 这一层可以冻结的最低标准：
 
-- `config/roles.json` 能完整定义默认角色目录。
-- `config/task-graph-rules.json` 能定义常见任务的角色编排。
+- `config/json/agent/roles.json` 能完整定义默认角色目录。
+- `config/json/agent/task-graph-rules.json` 能定义常见任务的角色编排。
 - `prompts/zh/roles/*.md` 能按 `runtime_role` 覆盖每个角色的业务边界。
 - 修改 roles、graph、prompt 后不需要改 Rust 代码即可改变业务行为。
 - 测试能验证角色选择、graph 编排、worker 输出、rework 和最终总结。

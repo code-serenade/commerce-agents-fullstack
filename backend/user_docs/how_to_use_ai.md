@@ -219,7 +219,7 @@ AI 输出文档后，用户需要先确认：
 - Ollama
 - 多模型切换
 
-当前项目的 LLM client 统一配置在 `config/services.toml` 的 `[[llm]]`，并通过 `crates/web-server/src/statics/llm_client.rs` 获取。
+当前项目的 LLM client 统一配置在 `config/services.toml` 的 `[[llm]]`，并由 `agent` crate 初始化和持有；web-server 通过 `statics::agent_manager` 运行 agent session。
 
 ---
 

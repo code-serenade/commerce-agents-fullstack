@@ -13,7 +13,7 @@ use crate::{
     roles::{RoleCatalog, RoleRoute},
 };
 
-const DEFAULT_TASK_GRAPH_RULES_PATH: &str = "config/task-graph-rules.json";
+const DEFAULT_TASK_GRAPH_RULES_PATH: &str = "config/json/agent/task-graph-rules.json";
 const TASK_GRAPH_RULES_ENV: &str = "CM_AGENT_TASK_GRAPH_RULES";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
