@@ -9,3 +9,10 @@
 .claude
 .serana
 /sh_test
+
+!/crates/agent/src/action/output/
+!/crates/agent/src/action/output/**
+!/crates/agent/src/cognition/output/
+!/crates/agent/src/cognition/output/**
+!/crates/agent/src/perception/output/
+!/crates/agent/src/perception/output/**

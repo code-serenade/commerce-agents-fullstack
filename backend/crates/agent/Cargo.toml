@@ -1,0 +1,42 @@
+[package]
+name = "agent"
+version = "0.1.0"
+edition = "2024"
+license-file = "LICENSE"
+authors = ["Ancient"]
+description = "Commerce agents runtime crate."
+include = [
+    "Cargo.toml",
+    "LICENSE",
+    "src/**",
+    "benches/**",
+    "prompts/**",
+    "config/**",
+    "architectures/**",
+]
+
+[lib]
+name = "agent"
+path = "src/lib.rs"
+
+[dependencies]
+async-trait = "0.1"
+db-core.workspace = true
+error-code.workspace = true
+futures = "0.3"
+model-gateway-rs = "0.2.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tokio = { version = "1.50", features = ["macros", "rt-multi-thread", "sync", "time"] }
+toolcraft-config = { version = "0.2.0" }
+toolcraft-request = { version = "0.2.3" }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
+
+[dev-dependencies]
+criterion = "0.8"
+
+[[bench]]
+name = "session_runtime"
+harness = false

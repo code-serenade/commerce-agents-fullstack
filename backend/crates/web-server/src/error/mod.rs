@@ -1,7 +1,6 @@
 use axum::http::StatusCode;
 use db_core::error::{BIZ_INTERNAL_ERROR, BizError};
-use error_code::app as app_error;
-use error_code::admin as admin_error;
+use error_code::{admin as admin_error, agent as agent_error, app as app_error};
 use thiserror::Error;
 use toolcraft_axum_kit::{ApiError, CommonError};
 
@@ -42,6 +41,13 @@ pub fn from_biz_error(err: BizError) -> ApiError {
     let status = match err.code() {
         app_error::APP_USER_NOT_FOUND => StatusCode::NOT_FOUND,
         app_error::APP_USER_DISABLED => StatusCode::FORBIDDEN,
+        agent_error::AGENT_PROMPT_ERROR | agent_error::AGENT_SETTINGS_ERROR => {
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
+        agent_error::AGENT_LLM_ERROR | agent_error::AGENT_EXTERNAL_ERROR => StatusCode::BAD_GATEWAY,
+        agent_error::AGENT_COGNITION_ERROR
+        | agent_error::AGENT_PERCEPTION_ERROR
+        | agent_error::AGENT_INTERNAL_ERROR => StatusCode::INTERNAL_SERVER_ERROR,
         admin_error::ADMIN_USER_NOT_FOUND
         | admin_error::ADMIN_USER_DISABLED
         | admin_error::ADMIN_PERMISSION_DENIED
