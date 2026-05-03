@@ -2,7 +2,7 @@
 port = 19878
 
 [jwt_verify]
-url = "http://127.0.0.1:29001/internal/jwt_verify_config"
+url = "http://1.85.61.130:29001/internal/jwt_verify_config"
 header = "x-internal-token"
 token = "dev-internal-token-change-me"
 
