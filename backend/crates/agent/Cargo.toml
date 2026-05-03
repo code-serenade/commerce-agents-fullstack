@@ -2,12 +2,11 @@
 name = "agent"
 version = "0.1.0"
 edition = "2024"
-license-file = "LICENSE"
+license-file.workspace = true
 authors = ["Ancient"]
 description = "Commerce agents runtime crate."
 include = [
     "Cargo.toml",
-    "LICENSE",
     "src/**",
     "benches/**",
     "config/**",

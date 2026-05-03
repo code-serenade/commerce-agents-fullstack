@@ -2,6 +2,7 @@
 name = "web-server"
 edition.workspace = true
 version.workspace = true
+license-file.workspace = true
 
 [dependencies]
 # internal dependencies
