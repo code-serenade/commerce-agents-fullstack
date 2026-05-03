@@ -17,17 +17,17 @@
 最低必需门禁：
 
 ```bash
-rtk pnpm rules
+pnpm rules
 ```
 
 `pnpm rules` 是代码改动后的强制门禁，因为它检查仓库架构和 AI-facing 边界。除非用户明确限制范围并接受更窄验证，否则不能用临时 `vitest`、`tsc` 或 package-only 检查替代它。
 
 还要根据实际改动运行最近相关脚本：
 
-- TypeScript / React / package API 改动：`rtk pnpm typecheck` 或 `rtk pnpm -C <dir> typecheck`
-- UI / Tailwind / TSX 改动：`rtk pnpm lint` 或 `rtk pnpm -C <dir> lint`
-- 行为或可测试逻辑改动：`rtk pnpm test` 或 `rtk pnpm -C <dir> test`
-- 构建或 app 运行时改动：`rtk pnpm build` 或 `rtk pnpm -C <dir> build`
+- TypeScript / React / package API 改动：`pnpm typecheck` 或 `pnpm -C <dir> typecheck`
+- UI / Tailwind / TSX 改动：`pnpm lint` 或 `pnpm -C <dir> lint`
+- 行为或可测试逻辑改动：`pnpm test` 或 `pnpm -C <dir> test`
+- 构建或 app 运行时改动：`pnpm build` 或 `pnpm -C <dir> build`
 
 如果必需脚本因为已有无关问题失败，要报告具体失败文件和命令，然后在可用时运行下一个最接近的非临时脚本。不要悄悄用 raw command 替代 package script。
 
@@ -61,13 +61,13 @@ eslint
 - admin UI 工作使用：
 
 ```bash
-rtk pnpm -C apps/admin run lint
+pnpm -C apps/admin run lint
 ```
 
 - workspace 级验证使用：
 
 ```bash
-rtk pnpm lint
+pnpm lint
 ```
 
 - 修复 canonical class 问题，例如 `rounded-[var(--ui-radius-lg)]` -> `rounded-(--ui-radius-lg)`，再认为任务完成。
@@ -76,11 +76,11 @@ rtk pnpm lint
 ## 示例
 
 ```bash
-rtk pnpm build
-rtk pnpm -C apps/admin build
-rtk pnpm -C apps/web test
-rtk pnpm typecheck
-rtk pnpm rules
+pnpm build
+pnpm -C apps/admin build
+pnpm -C apps/web test
+pnpm typecheck
+pnpm rules
 ```
 
 ## 构建前检查
@@ -88,6 +88,6 @@ rtk pnpm rules
 运行构建相关命令前，先确认脚本来源：
 
 ```bash
-rtk cat package.json
-rtk cat apps/admin/package.json
+cat package.json
+cat apps/admin/package.json
 ```
