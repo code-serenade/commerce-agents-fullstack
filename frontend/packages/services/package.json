@@ -1,0 +1,35 @@
+{
+  "name": "@workspace/services",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "rules": "vitest run -c vitest.config.ts tests/rules"
+  },
+  "dependencies": {
+    "@workspace/locales": "workspace:*",
+    "@tanstack/react-query": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "exports": {
+    "./api/auth": "./src/api/auth.ts",
+    "./api/base": "./src/api/base.ts",
+    "./api/file": "./src/api/file.ts",
+    "./errors/request-error": "./src/errors/request-error.ts",
+    "./errors/error-message": "./src/errors/error-message.ts",
+    "./http-client": "./src/http-client.ts",
+    "./query/client": "./src/query/client.ts",
+    "./query/create-resource-query": "./src/query/create-resource-query.ts",
+    "./query/keys": "./src/query/keys.ts",
+    "./query/types": "./src/query/types.ts",
+    "./realtime/admin-notification-socket": "./src/realtime/admin-notification-socket.ts",
+    "./realtime/ws-client": "./src/realtime/ws-client.ts",
+    "./realtime/ws-types": "./src/realtime/ws-types.ts",
+    "./url": "./src/url.ts"
+  }
+}

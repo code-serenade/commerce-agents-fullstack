@@ -1,0 +1,60 @@
+{
+  "name": "@workspace/ui-core",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "lint": "eslint",
+    "format": "prettier --write \"**/*.{ts,tsx}\"",
+    "rules": "vitest run -c vitest.config.ts tests/rules",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@workspace/locales": "workspace:*",
+    "@base-ui/react": "catalog:",
+    "@fontsource-variable/geist": "catalog:",
+    "class-variance-authority": "catalog:",
+    "clsx": "catalog:",
+    "cmdk": "catalog:",
+    "date-fns": "catalog:",
+    "embla-carousel-react": "catalog:",
+    "input-otp": "catalog:",
+    "next-themes": "catalog:",
+    "radix-ui": "catalog:",
+    "react": "catalog:",
+    "react-day-picker": "catalog:",
+    "react-dom": "catalog:",
+    "react-resizable-panels": "catalog:",
+    "recharts": "catalog:",
+    "sonner": "catalog:",
+    "tailwind-merge": "catalog:",
+    "tw-animate-css": "catalog:",
+    "vaul": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@workspace/eslint-config": "workspace:*",
+    "@eslint/js": "catalog:",
+    "@tailwindcss/vite": "catalog:",
+    "@turbo/gen": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-react-hooks": "catalog:",
+    "eslint-plugin-react-refresh": "catalog:",
+    "shadcn": "catalog:",
+    "globals": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "typescript-eslint": "catalog:",
+    "vitest": "catalog:"
+  },
+  "exports": {
+    "./styles.css": "./src/styles/index.css",
+    "./lib/*": "./src/lib/*",
+    "./components/*": "./src/primitives/*/index.ts",
+    "./primitives/*": "./src/primitives/*/index.ts",
+    "./hooks/*": "./src/hooks/*.ts"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.react.json",
+  "compilerOptions": {
+    "paths": {
+      "@workspace/locales": ["../locales/src/index.ts"],
+      "@workspace/locales/*": ["../locales/src/*"],
+      "@workspace/ui-core/*": ["./src/*"]
+    }
+  },
+  "include": ["src/**/*", "vitest.config.ts"],
+  "exclude": ["node_modules", "dist"]
+}

@@ -1,0 +1,29 @@
+html[data-theme="dark"],
+:root.dark {
+  /* Core semantic tokens */
+  --background: oklch(0.2 0.012 255);
+  --foreground: oklch(0.95 0.008 250);
+  --surface: color(display-p3 0.163 0.17 0.167);
+  --surface-foreground: color(display-p3 0.878 0.879 0.879);
+  --surface-component: color(display-p3 0.213 0.22 0.217);
+  --card: color(display-p3 0.163 0.17 0.167);
+  --card-foreground: color(display-p3 0.878 0.879 0.879);
+  --popover: color(display-p3 0.163 0.17 0.167);
+  --popover-foreground: color(display-p3 0.878 0.879 0.879);
+  --primary: color(display-p3 0.142 0.343 0.791);
+  --primary-outline: color(display-p3 0.1 0.55 1);
+  --primary-foreground: white;
+  --secondary: color(display-p3 0.22 0.25 0.29);
+  --secondary-foreground: oklch(0.93 0.01 258);
+  --muted: oklch(0.26 0.012 255);
+  --muted-foreground: oklch(0.74 0.012 250);
+  --accent: oklch(0.31 0.02 255);
+  --accent-foreground: oklch(0.95 0.008 250);
+  --destructive: oklch(0.71 0.18 24);
+  --border: oklch(0.38 0.01 252 / 65%);
+
+  --info: color(display-p3 0.242 0.543 0.991);
+  --success: color(display-p3 0.3954 0.7694 0.4);
+  --warning: color(display-p3 0.9404 0.5755 0.2617);
+  --error: color(display-p3 0.9209 0.2964 0.2741);
+}

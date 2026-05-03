@@ -1,0 +1,28 @@
+:root {
+  /* Core semantic tokens */
+  --background: oklch(0.99 0.002 247);
+  --foreground: oklch(0.27 0.02 256);
+  --surface: color(display-p3 0.925 0.925 0.925);
+  --surface-foreground: oklch(0.27 0.02 256);
+  --surface-component: color(display-p3 0.825 0.825 0.825);
+  --card: color(display-p3 0.925 0.925 0.925);
+  --card-foreground: oklch(0.27 0.02 256);
+  --popover: color(display-p3 0.925 0.925 0.925);
+  --popover-foreground: oklch(0.27 0.02 256);
+  --primary: color(display-p3 0.142 0.343 0.791);
+  --primary-outline: color(display-p3 0.151 0.394 0.652);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: color(display-p3 0.88 0.9 0.94);
+  --secondary-foreground: color(display-p3 0.25 0.28 0.32);
+  --muted: oklch(0.96 0.008 247);
+  --muted-foreground: oklch(0.54 0.02 254);
+  --accent: oklch(0.94 0.015 250);
+  --accent-foreground: oklch(0.31 0.02 256);
+  --border: oklch(0.89 0.01 250);
+  --destructive: oklch(0.62 0.22 28);
+
+  --info: color(display-p3 0.3 0.52 0.9);
+  --success: color(display-p3 0.42 0.7 0.35);
+  --warning: color(display-p3 0.7 0.45 0.22);
+  --error: color(display-p3 0.7 0.35 0.33);
+}

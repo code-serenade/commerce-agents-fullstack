@@ -1,0 +1,36 @@
+[workspace]
+members = [
+    "crates/*",
+]
+
+resolver = "3"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+description = "A clean, layered Rust application based on db-core-rs"
+authors = ["Atlas Form"]
+
+[workspace.dependencies]
+tokio = { version = "1" }
+thiserror = "2.0"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3", features = [
+    "env-filter",
+    "fmt",
+    "time",
+] }
+tracing-appender = "0.2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+dotenvy = "0.15"
+validator = { version = "0.20", features = ["derive"] }
+time = { version = "0.3", features = ["macros", "serde", "formatting", "parsing"] }
+async-trait = "0.1"
+uuid = { version = "1", features = ["serde", "v4"] }
+db-core = { package = "db-core-rs", version = "0.1" }
+
+# individual crates
+repo = { path = "crates/repo" }
+service = { path = "crates/service" }
+error-code = { path = "crates/error-code" }

@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.vite-app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "paths": {
+      "@/*": ["./src/*"],
+      "react-router": ["./node_modules/react-router"],
+      "@workspace/app-kit": ["../../packages/app-kit/src/index.ts"],
+      "@workspace/ui-components": ["../../packages/ui-components/src/index.ts"],
+      "@workspace/ui-components/stable/*": ["../../packages/ui-components/src/components/stable/*"],
+      "@workspace/ui-components/*": ["../../packages/ui-components/src/*"],
+      "@workspace/locales": ["../../packages/locales/src/index.ts"],
+      "@workspace/locales/*": ["../../packages/locales/src/*"]
+    }
+  },
+  "include": ["src"]
+}

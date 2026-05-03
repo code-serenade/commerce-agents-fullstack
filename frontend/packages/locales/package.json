@@ -1,0 +1,21 @@
+{
+  "name": "@workspace/locales",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "i18next": "catalog:",
+    "i18next-browser-languagedetector": "catalog:",
+    "react-i18next": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./i18n": "./src/i18n.ts"
+  }
+}

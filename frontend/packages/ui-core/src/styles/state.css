@@ -1,0 +1,98 @@
+@layer base {
+  :root {
+    --_interactive-mix: black;
+    --_disabled-surface: var(--background, #f7f8fb);
+
+    --surface-hover: color-mix(
+      in oklab,
+      var(--surface) 80%,
+      var(--_interactive-mix)
+    );
+    --surface-active: color-mix(
+      in oklab,
+      var(--surface) 76%,
+      var(--_interactive-mix)
+    );
+    --surface-disabled: color-mix(
+      in oklab,
+      var(--surface) 35%,
+      var(--_disabled-surface)
+    );
+
+    --primary-hover: color-mix(
+      in oklab,
+      var(--primary) 80%,
+      var(--_interactive-mix)
+    );
+    --primary-active: color-mix(
+      in oklab,
+      var(--primary) 76%,
+      var(--_interactive-mix)
+    );
+    --primary-disabled: color-mix(
+      in oklab,
+      var(--primary) 35%,
+      var(--_disabled-surface)
+    );
+
+    --secondary-hover: color-mix(
+      in oklab,
+      var(--secondary) 80%,
+      var(--_interactive-mix)
+    );
+    --secondary-active: color-mix(
+      in oklab,
+      var(--secondary) 76%,
+      var(--_interactive-mix)
+    );
+    --secondary-disabled: color-mix(
+      in oklab,
+      var(--secondary) 35%,
+      var(--_disabled-surface)
+    );
+
+    --destructive-hover: color-mix(
+      in oklab,
+      var(--destructive) 88%,
+      var(--_interactive-mix)
+    );
+    --destructive-active: color-mix(
+      in oklab,
+      var(--destructive) 76%,
+      var(--_interactive-mix)
+    );
+    --destructive-disabled: color-mix(
+      in oklab,
+      var(--destructive) 35%,
+      var(--_disabled-surface)
+    );
+
+    --accent-hover: color-mix(
+      in oklab,
+      var(--accent) 88%,
+      var(--_interactive-mix)
+    );
+    --accent-active: color-mix(
+      in oklab,
+      var(--accent, var(--app-info)) 76%,
+      var(--_interactive-mix)
+    );
+
+    --overlay-scrim: color-mix(
+      in oklab,
+      var(--foreground, var(--app-fg)) 10%,
+      transparent
+    );
+  }
+
+  [data-theme="dark"],
+  .dark {
+    --_interactive-mix: white;
+    --_disabled-surface: var(--background, #0b1220);
+  }
+
+  [data-theme="light"] {
+    --_interactive-mix: black;
+    --_disabled-surface: var(--background, #f7f8fb);
+  }
+}

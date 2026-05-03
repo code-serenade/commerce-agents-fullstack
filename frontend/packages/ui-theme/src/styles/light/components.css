@@ -1,0 +1,19 @@
+:root {
+  /* Component-level tokens */
+  --input: oklch(0.9 0.012 250);
+  --ring: oklch(0.62 0.18 258);
+  --chart-1: oklch(0.63 0.2 258);
+  --chart-2: oklch(0.72 0.16 200);
+  --chart-3: oklch(0.69 0.18 145);
+  --chart-4: oklch(0.73 0.17 85);
+  --chart-5: oklch(0.65 0.2 20);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.975 0.006 250);
+  --sidebar-foreground: oklch(0.27 0.02 256);
+  --sidebar-primary: oklch(0.57 0.19 258);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.94 0.015 250);
+  --sidebar-accent-foreground: oklch(0.31 0.02 256);
+  --sidebar-border: oklch(0.89 0.01 250);
+  --sidebar-ring: oklch(0.62 0.18 258);
+}

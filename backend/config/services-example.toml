@@ -1,0 +1,24 @@
+[http]
+port = 19878
+
+[jwt_verify]
+url = "http://127.0.0.1:29001/internal/jwt_verify_config"
+header = "x-internal-token"
+token = "dev-internal-token-change-me"
+
+
+[[db]]
+name = "app"
+url = "postgres://postgres:123456@localhost:15432/app"
+max_connections = 10
+min_connections = 1
+connect_timeout = 30
+idle_timeout = 600
+sql_logging = false
+
+[[llm]]
+name = "ollama-gemma4"
+base_url = "http://127.0.0.1:11434"
+model = "gemma4:26b"
+max_tokens = 20000
+temperature = 0.2

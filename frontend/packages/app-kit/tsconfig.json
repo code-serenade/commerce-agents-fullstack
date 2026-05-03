@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.react.json",
+  "compilerOptions": {
+    "types": ["vitest/globals"],
+    "paths": {
+      "react-router": ["../../apps/admin/node_modules/react-router"],
+      "@workspace/app-kit/*": ["./src/*"],
+      "@workspace/services": ["../services/src/index.ts"],
+      "@workspace/services/*": ["../services/src/*"],
+      "@workspace/locales": ["../locales/src/index.ts"],
+      "@workspace/locales/*": ["../locales/src/*"],
+      "@workspace/ui-components": ["../ui-components/src/index.ts"],
+      "@workspace/ui-components/*": ["../ui-components/src/*"],
+      "@workspace/ui-core": ["../ui-core/src/index.ts"],
+      "@workspace/ui-core/*": ["../ui-core/src/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

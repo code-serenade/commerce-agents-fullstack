@@ -1,0 +1,19 @@
+{
+  "name": "@workspace/vite-config",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "exports": {
+    "./react-app": "./src/react-app/index.ts",
+    "./showcase": "./src/showcase/index.ts"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

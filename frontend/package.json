@@ -1,0 +1,31 @@
+{
+  "name": "vite-monorepo",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "turbo build --filter=admin --filter=web",
+    "clean": "node scripts/clean.mjs",
+    "dev": "node scripts/dev.mjs",
+    "env:init": "node scripts/init-env.mjs",
+    "show": "node scripts/dev.mjs",
+    "showcase": "node scripts/dev.mjs",
+    "preview": "pnpm -C apps/web preview",
+    "dev:all": "turbo dev",
+    "lint": "turbo lint",
+    "format": "turbo format",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test --filter=admin --filter=guide --filter=web",
+    "rules": "turbo rules",
+    "test:watch": "turbo test:watch --filter=admin --filter=guide --filter=web"
+  },
+  "devDependencies": {
+    "prettier": "catalog:",
+    "prettier-plugin-tailwindcss": "catalog:",
+    "turbo": "catalog:",
+    "typescript": "catalog:"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20"
+  }
+}

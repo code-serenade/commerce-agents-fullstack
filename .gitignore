@@ -1,0 +1,8 @@
+.DS_Store
+.idea/
+.vscode/
+.claude/
+.serena/
+
+output/
+temp/
