@@ -1,10 +1,4 @@
-# Local runtime config. Commit *-example.* templates instead.
+# Local service config. Runtime JSON and prompts are committed assets.
 /services.toml
-/**/*.json
-!/json/
-!/json/agent/
-/json/agent/roles.json
-/json/agent/task-graph-rules.json
 
 !/*-example.toml
-!/**/*-example.json

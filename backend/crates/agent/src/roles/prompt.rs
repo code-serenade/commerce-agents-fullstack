@@ -33,14 +33,16 @@ impl RolePromptBuilder {
     }
 
     pub fn prompt_path_for(role: &RoleProfile) -> PathBuf {
-        PathBuf::from("prompts")
+        PathBuf::from("config")
+            .join("prompts")
             .join("zh")
             .join("roles")
             .join(format!("{}.md", safe_runtime_role(&role.runtime_role)))
     }
 
     pub fn final_synthesis_prompt_path() -> PathBuf {
-        PathBuf::from("prompts")
+        PathBuf::from("config")
+            .join("prompts")
             .join("zh")
             .join("cognition")
             .join("final_synthesis.md")
@@ -188,7 +190,7 @@ mod tests {
 
         assert!(prompt.contains("数据分析师"));
         assert!(prompt.contains("runtime_role: data"));
-        assert!(prompt.contains("prompt_source: prompts/zh/roles/data.md"));
+        assert!(prompt.contains("prompt_source: config/prompts/zh/roles/data.md"));
         assert!(prompt.contains("可申请技能"));
         assert!(prompt.contains("data_funnel_analysis"));
         assert!(prompt.contains("分析转化率下降"));
@@ -207,7 +209,7 @@ mod tests {
 
         assert!(prompt.contains("内容创意师"));
         assert!(prompt.contains("runtime_role: creative"));
-        assert!(prompt.contains("prompt_source: prompts/zh/roles/creative.md"));
+        assert!(prompt.contains("prompt_source: config/prompts/zh/roles/creative.md"));
     }
 
     #[test]
@@ -221,7 +223,7 @@ mod tests {
 
         let path = RolePromptBuilder::prompt_path_for(&role);
 
-        assert_eq!(path.to_string_lossy(), "prompts/zh/roles/chat.md");
+        assert_eq!(path.to_string_lossy(), "config/prompts/zh/roles/chat.md");
     }
 
     #[test]

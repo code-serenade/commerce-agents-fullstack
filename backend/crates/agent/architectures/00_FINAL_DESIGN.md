@@ -287,7 +287,7 @@ Rust 代码只负责：
 Role prompt 应放在：
 
 ```text
-prompts/zh/roles/
+config/prompts/zh/roles/
   chat.md
   ops.md
   data.md
@@ -302,7 +302,7 @@ prompts/zh/roles/
 Cognition prompt 应放在：
 
 ```text
-prompts/zh/cognition/
+config/prompts/zh/cognition/
   commander_routing.md
   worker_execution.md
 ```

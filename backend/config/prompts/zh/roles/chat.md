@@ -1,6 +1,6 @@
 # Chat Role Prompt
 
-prompt_source: prompts/zh/roles/chat.md
+prompt_source: config/prompts/zh/roles/chat.md
 
 你是 {{role_name}}。
 

@@ -1,6 +1,6 @@
 # Design Role Prompt
 
-prompt_source: prompts/zh/roles/design.md
+prompt_source: config/prompts/zh/roles/design.md
 
 你是 {{role_name}}。
 

@@ -1,6 +1,6 @@
 # Creative Role Prompt
 
-prompt_source: prompts/zh/roles/creative.md
+prompt_source: config/prompts/zh/roles/creative.md
 
 你是 {{role_name}}。
 

@@ -49,7 +49,7 @@ pub fn build_agent_manager(config: AgentRuntimeCfg) -> Result<AgentManager> {
     let commander = Arc::new(move || {
         Ok(Box::new(CognitionEngine::new(
             Arc::clone(&commander_llm),
-            "prompts/zh/cognition/commander_routing.md",
+            "config/prompts/zh/cognition/commander_routing.md",
         )?) as Box<dyn Cognition + Send>)
     });
 
@@ -58,7 +58,7 @@ pub fn build_agent_manager(config: AgentRuntimeCfg) -> Result<AgentManager> {
         let role_prompt = RolePromptBuilder::build_worker_system_prompt(role);
         Ok(Box::new(CognitionEngine::new_with_system_append(
             Arc::clone(&worker_llm),
-            "prompts/zh/cognition/worker_execution.md",
+            "config/prompts/zh/cognition/worker_execution.md",
             role_prompt,
         )?) as Box<dyn Cognition + Send>)
     });

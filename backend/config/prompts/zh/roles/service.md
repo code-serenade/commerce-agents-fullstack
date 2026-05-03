@@ -1,6 +1,6 @@
 # Service Role Prompt
 
-prompt_source: prompts/zh/roles/service.md
+prompt_source: config/prompts/zh/roles/service.md
 
 你是 {{role_name}}。
 

@@ -65,7 +65,7 @@ fn build_manager(llm: Arc<ChatCompletionsLlm>) -> agent::api::Result<AgentManage
     let commander = Arc::new(move || {
         Ok(Box::new(CognitionEngine::new(
             Arc::clone(&commander_llm),
-            "prompts/zh/cognition/commander_routing.md",
+            "config/prompts/zh/cognition/commander_routing.md",
         )?) as Box<dyn Cognition + Send>)
     });
 

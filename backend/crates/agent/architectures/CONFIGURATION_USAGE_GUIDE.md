@@ -17,7 +17,6 @@
 配置文件：
 
 - `config/json/agent/roles.json`
-- `config/json/agent/roles-example.json`
 
 roles 配置定义系统有哪些角色。一个 role 至少包含：
 
@@ -46,7 +45,6 @@ roles 配置定义系统有哪些角色。一个 role 至少包含：
 配置文件：
 
 - `config/json/agent/task-graph-rules.json`
-- `config/json/agent/task-graph-rules-example.json`
 
 graph 配置定义某类任务应该调用哪些 roles，以及这些 roles 的依赖关系。一个 graph rule 通常包含：
 
@@ -81,13 +79,13 @@ ops depends_on=accounting,creative
 
 配置目录：
 
-- `prompts/zh/roles/*.md`
+- `config/prompts/zh/roles/*.md`
 
 每个 role 的 prompt 文件名来自 `runtime_role`：
 
 ```text
 runtime_role = ops
-prompt file = prompts/zh/roles/ops.md
+prompt file = config/prompts/zh/roles/ops.md
 ```
 
 role prompt 用来定义：
@@ -111,8 +109,8 @@ role prompt 用来定义：
 
 配置目录：
 
-- `prompts/zh/cognition/*.md`
-- `prompts/en/cognition/*.md`
+- `config/prompts/zh/cognition/*.md`
+- `config/prompts/en/cognition/*.md`
 
 cognition prompt 用来控制 commander 路由、worker 执行、最终总结等通用推理行为。
 
@@ -157,7 +155,7 @@ cognition prompt 用来控制 commander 路由、worker 执行、最终总结等
 用户提出需求时，AI 应按这个顺序处理：
 
 1. 判断是 role、graph、prompt，还是 Rust runtime 能力问题。
-2. 优先修改 `config/json/agent/*.json` 或 `prompts/**/*.md`。
+2. 优先修改 `config/json/agent/*.json` 或 `config/prompts/**/*.md`。
 3. 只有配置无法表达时，才修改 Rust 代码。
 4. 修改后用真实任务输入做 smoke test。
 5. 对比用户预期或旧项目效果。
@@ -201,7 +199,7 @@ roles/graph/prompt 这一层可以冻结的最低标准：
 
 - `config/json/agent/roles.json` 能完整定义默认角色目录。
 - `config/json/agent/task-graph-rules.json` 能定义常见任务的角色编排。
-- `prompts/zh/roles/*.md` 能按 `runtime_role` 覆盖每个角色的业务边界。
+- `config/prompts/zh/roles/*.md` 能按 `runtime_role` 覆盖每个角色的业务边界。
 - 修改 roles、graph、prompt 后不需要改 Rust 代码即可改变业务行为。
 - 测试能验证角色选择、graph 编排、worker 输出、rework 和最终总结。
 - 用户真实业务输入能跑出稳定、可解释的多角色协作结果。

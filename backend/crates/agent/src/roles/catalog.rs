@@ -15,10 +15,8 @@ pub struct RoleCatalog {
 impl RoleCatalog {
     pub fn builtin() -> Self {
         Self {
-            roles: parse_configured_roles(include_str!(
-                "../../../../config/json/agent/roles-example.json"
-            ))
-            .expect("embedded backend/config/json/agent/roles-example.json must be valid"),
+            roles: parse_configured_roles(include_str!("../../../../config/json/agent/roles.json"))
+                .expect("embedded backend/config/json/agent/roles.json must be valid"),
         }
     }
 

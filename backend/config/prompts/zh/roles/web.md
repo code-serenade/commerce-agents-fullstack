@@ -1,6 +1,6 @@
 # Web Role Prompt
 
-prompt_source: prompts/zh/roles/web.md
+prompt_source: config/prompts/zh/roles/web.md
 
 你是 {{role_name}}。
 
