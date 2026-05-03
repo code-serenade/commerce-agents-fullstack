@@ -1,5 +1,6 @@
 use std::{convert::Infallible, time::Duration};
 
+use agent::api::SessionEvent;
 use axum::{
     Extension, Json,
     response::{
@@ -8,6 +9,7 @@ use axum::{
     },
 };
 use futures_util::Stream;
+use serde_json::json;
 use service::api::app::AppApi;
 use toolcraft_axum_kit::{ApiError, CommonError, middleware::auth_mw::AuthUser};
 use validator::Validate;
@@ -44,14 +46,22 @@ pub async fn stream_agent_session(
     let stream = async_stream::stream! {
         let mut events = events;
         while let Some(event) = events.recv().await {
-            let event_name = event.event_name();
-            match serde_json::to_string(&event) {
-                Ok(data) => yield Ok(Event::default().event(event_name).data(data)),
-                Err(err) => {
-                    let data = serde_json::json!({ "message": format!("encode agent event failed: {err}") });
-                    yield Ok(Event::default().event("error").data(data.to_string()));
+            match event {
+                SessionEvent::LlmChunk { content, .. } => {
+                    yield Ok(json_event("delta", json!({ "content": content })));
+                }
+                SessionEvent::Output { content, .. } => {
+                    yield Ok(json_event("delta", json!({ "content": content })));
+                }
+                SessionEvent::Failed { reason, .. } => {
+                    yield Ok(json_event("error", json!({ "message": reason })));
                     return;
                 }
+                SessionEvent::Finished { .. } => {
+                    yield Ok(json_event("done", json!({})));
+                    return;
+                }
+                _ => {}
             }
         }
     };
@@ -61,6 +71,10 @@ pub async fn stream_agent_session(
             .interval(Duration::from_secs(15))
             .text("keep-alive"),
     ))
+}
+
+fn json_event(event: &'static str, value: serde_json::Value) -> Event {
+    Event::default().event(event).data(value.to_string())
 }
 
 fn bad_request(message: impl Into<String>) -> ApiError {

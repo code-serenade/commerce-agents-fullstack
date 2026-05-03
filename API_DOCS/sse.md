@@ -2,9 +2,9 @@
 
 接口前缀：`/api/sse`
 
-说明：本文件只记录服务端使用 SSE 向前端返回的流式接口。当前 SSE 用于 agent session 事件流；普通业务通知仍然使用 WebSocket `/api/ws`。
+说明：SSE 用于把 agent 回复以文本流形式返回给前端；普通业务通知仍然使用 WebSocket `/api/ws`。
 
-## 1. Agent Session 流
+## 1. Agent 回复流
 
 - 方法：`POST`
 - 路径：`/api/sse/agent/session/stream`
@@ -15,7 +15,7 @@
 
 ```json
 {
-  "input": "基于数据诊断做详情页设计和预算风险评估，并给运营调整方案",
+  "input": "请用一句话解释 agent session 是什么",
   "agentId": "web-agent",
   "sessionId": "session-001",
   "workspaceId": "workspace-001"
@@ -34,40 +34,30 @@
 SSE 事件：
 
 ```text
-event: started
-data: {"type":"started","session_id":{"0":"session-001"}}
+event: delta
+data: {"content":"Agent session 是..."}
 
-event: task_graph_planned
-data: {"type":"task_graph_planned","session_id":{"0":"session-001"},"graph":{...}}
-
-event: worker_started
-data: {"type":"worker_started","session_id":{"0":"session-001"},"worker_id":{"0":"worker.data"},"task_id":{"0":"task-001"}}
-
-event: output
-data: {"type":"output","session_id":{"0":"session-001"},"content":"..."}
-
-event: finished
-data: {"type":"finished","session_id":{"0":"session-001"}}
+event: done
+data: {}
 ```
 
-事件说明：
+失败事件：
 
-| 事件 | 说明 |
-| --- | --- |
-| `started` | agent session 已启动 |
-| `memory_loaded` / `memory_persisted` / `memory_compacted` | 记忆加载、写入或压缩事件 |
-| `commander_thinking` | commander 正在规划或路由 |
-| `task_graph_planned` | 已规划任务图 |
-| `task_node_ready` / `task_node_started` / `task_node_reported` / `task_node_evaluated` / `task_node_passed` / `task_node_failed` | 任务节点生命周期事件 |
-| `worker_started` / `worker_finished` | worker 生命周期事件 |
-| `collaboration_started` / `collaboration_worker_started` / `collaboration_worker_finished` / `collaboration_finished` | 多角色协作事件 |
-| `llm_chunk` | LLM token 增量；当前仅在 agent runtime 支持 token streaming 时出现 |
-| `output` | agent 最终或阶段性输出 |
-| `failed` | agent session 失败 |
-| `finished` | agent session 结束 |
+```text
+event: error
+data: {"message":"agent failed"}
+```
+
+前端消费规则：
+
+- 只需要监听 `delta` / `done` / `error`
+- 收到 `delta` 后把 `data.content` 追加到当前回复文本
+- 收到 `done` 后结束本次回复
+- 收到 `error` 后展示错误信息并结束本次回复
+- 前端使用 `POST + fetch stream` 调用，不使用 `GET EventSource`
 
 补充说明：
 
 - 当前用户必须存在于 `app_users`，且状态为 `enabled`
-- 服务端直接转发 agent `SessionEvent`，`event` 名称来自 `SessionEvent::event_name()`
-- 前端使用 `POST + fetch stream` 调用，不使用 `GET EventSource`
+- 当前 agent runtime 如果只产生最终 `Output`，服务端会把最终内容作为一个 `delta` 发出
+- 后续 agent 支持 token 级 `LlmChunk` 后，服务端会把每个 chunk 映射为 `delta`
