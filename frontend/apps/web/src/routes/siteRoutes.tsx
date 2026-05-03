@@ -2,7 +2,12 @@ import { Suspense, type ReactNode } from "react"
 import type { RouteObject } from "react-router"
 import { PageLoading, RouteErrorBoundary } from "@workspace/app-kit"
 import AppLayout from "@/layouts/AppLayout"
-import { HomePage, ProfilePage } from "@/routes/lazy/sitePages"
+import {
+  AgentChatPage,
+  AgentOutputPage,
+  HomePage,
+  ProfilePage,
+} from "@/routes/lazy/sitePages"
 import { RequireAuth } from "@/routes/RequireAuth"
 
 function withSuspense(node: ReactNode) {
@@ -23,8 +28,16 @@ export const siteRoutes: RouteObject = {
       element: withSuspense(<HomePage />),
     },
     {
+      path: "agent-output",
+      element: withSuspense(<AgentOutputPage />),
+    },
+    {
       element: <RequireAuth />,
       children: [
+        {
+          path: "agent",
+          element: withSuspense(<AgentChatPage />),
+        },
         {
           path: "profile",
           element: withSuspense(<ProfilePage />),

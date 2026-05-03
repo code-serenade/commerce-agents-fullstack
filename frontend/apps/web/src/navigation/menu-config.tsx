@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { House } from "lucide-react"
+import { Bot, FileText, House } from "lucide-react"
 
 export interface WebNavigationItemConfig {
   id: string
@@ -26,6 +26,18 @@ export const webNavigationSections: WebNavigationSectionConfig[] = [
         path: "/home",
         icon: <House />,
         matcher: (pathname) => pathname === "/" || pathname === "/home",
+      },
+      {
+        id: "agent",
+        labelKey: "web.shell.navigation.agent",
+        path: "/agent",
+        icon: <Bot />,
+      },
+      {
+        id: "agent-output",
+        labelKey: "web.shell.navigation.agentOutput",
+        path: "/agent-output",
+        icon: <FileText />,
       },
     ],
   },

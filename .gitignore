@@ -3,6 +3,7 @@
 .vscode/
 .claude/
 .serena/
+.playwright-cli/
 
 output/
 temp/

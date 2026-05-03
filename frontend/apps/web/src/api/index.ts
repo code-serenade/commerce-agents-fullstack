@@ -29,6 +29,12 @@ export {
 } from "./app"
 
 export {
+  streamAgentSessionApi,
+  type AgentStreamHandlers,
+  type AgentStreamRequest,
+} from "./agent"
+
+export {
   deleteWithSignedUrlApi,
   getAccessSignApi,
   getDeleteSignApi,

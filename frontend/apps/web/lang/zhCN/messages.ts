@@ -10,6 +10,8 @@ const messages = {
         mobileLabel: "主导航",
         workspace: "工作区",
         home: "首页",
+        agent: "Agent",
+        agentOutput: "方案展示",
         profile: "个人资料",
       },
       topbar: {
@@ -55,6 +57,148 @@ const messages = {
     publicProfile: {
       title: "个人功能",
       description: "登录后可以管理个人资料、头像、邮箱和密码。",
+    },
+  },
+  agentChat: {
+    welcomeMessage: "你好，我是当前项目里的 Agent。你可以直接输入问题，我会用流式回复把结果显示在这里。",
+    streaming: "正在思考...",
+    error: "Agent 回复失败，请稍后重试。",
+    errorBadge: "回复失败",
+    composer: {
+      placeholder: "给 Agent 发送消息...",
+      loginPlaceholder: "请先登录后再调用 Agent",
+      hint: "Enter 发送，Shift + Enter 换行",
+      send: "发送",
+      stop: "停止",
+    },
+  },
+  agentOutput: {
+    prompt:
+      "我是做咖啡运营的，主要营销平台是抖音，现在马上就五一了，可以帮我像一个运营方案吗提升我的转化率",
+    sectionsNavigation: "阅读导航",
+    hero: {
+      badges: {
+        output: "Agent 输出页面",
+        category: "咖啡运营",
+        platform: "抖音五一转化",
+      },
+      title: "五一抖音咖啡转化率提升方案",
+      description:
+        "将 Agent 的回复直接组织成业务页面：先看结论和指标，再看执行路径、内容脚本、财务护栏和风险回滚。",
+      promptLabel: "用户输入",
+      dispatchTitle: "智能调度",
+      dispatchDescription:
+        "主 Agent：运营专家；协作角色：内容创作者、财务分析师。",
+      export: "导出方案",
+    },
+    metrics: {
+      target: {
+        label: "目标转化率",
+        value: "+35%",
+        description: "直播间商品点击到下单转化率",
+      },
+      budget: {
+        label: "建议预算",
+        value: "1.8 万",
+        description: "短视频加热 + 千川测试预算",
+      },
+      period: {
+        label: "执行周期",
+        value: "10 天",
+        description: "4 月 24 日到 5 月 3 日",
+      },
+      guardrail: {
+        label: "止损线",
+        value: "ROI 1.2",
+        description: "连续 2 小时低于阈值停投",
+      },
+    },
+    plan: {
+      eyebrow: "执行工作流",
+      title: "从引流到复盘的 4 步路径",
+      actionsTitle: "24 小时内动作",
+    },
+    steps: {
+      sku: {
+        title: "引流 SKU",
+        owner: "运营",
+        timing: "4 月 24 日前",
+        detail:
+          "上线 9.9 元 3 袋尝鲜装和 19.9 元 5 袋冷萃冻干，限购 1 份，承接五一出行和宅家咖啡场景。",
+      },
+      content: {
+        title: "内容蓄水",
+        owner: "内容",
+        timing: "4 月 25-28 日",
+        detail:
+          "发布 10 条五一主题短视频，每条 500 元随心推加热，5 秒完播率低于 35% 的素材当天替换。",
+      },
+      live: {
+        title: "直播承接",
+        owner: "直播",
+        timing: "4 月 29-5 月 3 日",
+        detail:
+          "每 20 分钟切一次出行、宅家、值班场景，配合满 3 件减 20、满 5 件送随行杯福利。",
+      },
+      traffic: {
+        title: "投流放大",
+        owner: "投放",
+        timing: "活动全程",
+        detail:
+          "千川锁定 18-35 岁一二线城市通勤、旅行、美食兴趣人群，按转化率和真实 ROI 做小时级调价。",
+      },
+    },
+    actions: {
+      inventory: "今天先确认咖啡品类、客单价和库存，避免引流 SKU 拉低整体毛利。",
+      benefit: "把直播间首屏福利统一成一句话：五一囤咖啡，今天拍 3 件立减 20。",
+      hook: "短视频前三秒只讲场景钩子，不先讲品牌，例如“五一爬山景区咖啡 30 一杯，我带这个 3 元一杯”。",
+      comment: "评论区置顶“晒出你的五一安排，抽 3 位送整月咖啡”，同时收集用户场景。",
+    },
+    sections: {
+      summary: {
+        title: "30 秒结论",
+        eyebrow: "执行导向",
+        content:
+          "五一前不要只做泛折扣，核心是用低价尝鲜装承接抖音节日流量，再用直播间组合购提升客单。先用 10 条场景短视频测出高完播素材，再把预算集中到能带来直播间点击和下单的内容上。",
+        bullets: [
+          "引流款占整体 SKU 不超过 15%，避免利润被低价款吃掉。",
+          "直播间主推组合购，单品尝鲜只负责拉新。",
+          "每 2 小时复盘转化率、ROI、退货率，低于阈值立刻回滚。",
+        ],
+      },
+      diagnosis: {
+        title: "转化瓶颈判断",
+        eyebrow: "当前假设",
+        content:
+          "咖啡在五一期间有明确消费场景，但用户不是被“便宜咖啡”打动，而是被“出行、宅家、值班都能马上用”的具体画面打动。抖音链路的瓶颈大概率不在曝光，而在内容钩子和直播间承接不一致。",
+        bullets: [
+          "短视频讲假期场景，直播间却只讲产品参数，会造成跳失。",
+          "福利不够具体时，用户没有立即下单理由。",
+          "没有限购和组合购设计，引流款容易变成亏损款。",
+        ],
+      },
+      script: {
+        title: "可直接复制的短视频脚本",
+        eyebrow: "内容创作者补位",
+        content:
+          "开场：五一出去玩，景区咖啡 30 一杯，我现在包里放这个。正文：一袋冷水也能冲，车上、帐篷、酒店都能喝，平均 3 元一杯。结尾：今天直播间 9.9 元尝鲜，拍 3 件还减 20，五一前囤够。",
+        bullets: [
+          "画面 1：景区咖啡价签和背包咖啡形成对比。",
+          "画面 2：冷水冲泡，展示 10 秒内完成。",
+          "画面 3：直播间福利弹窗，强调限时限量。",
+        ],
+      },
+      finance: {
+        title: "财务护栏",
+        eyebrow: "财务分析师补位",
+        content:
+          "9.9 元引流款必须设置单客亏损上限，不能按 GMV ROI 直接判断。建议用真实 ROI：扣除退货、佣金、商品成本、物流和赠品成本后再看投流效率。",
+        bullets: [
+          "投流总费用不超过预估营收的 18%。",
+          "退货率超过 42% 时下调引流款曝光。",
+          "随行杯赠品只给高客单组合，避免赠品吃掉毛利。",
+        ],
+      },
     },
   },
   login: {
