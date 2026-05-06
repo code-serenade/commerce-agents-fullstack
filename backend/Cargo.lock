@@ -2974,7 +2974,42 @@ dependencies = [
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
- "wasm-streams",
+ "wasm-streams 0.4.2",
+ "web-sys",
+]
+
+[[package]]
+name = "reqwest"
+version = "0.13.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "62e0021ea2c22aed41653bc7e1419abb2c97e038ff2c33d0e1309e49a97deec0"
+dependencies = [
+ "base64",
+ "bytes",
+ "futures-core",
+ "futures-util",
+ "http",
+ "http-body",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "js-sys",
+ "log",
+ "mime_guess",
+ "percent-encoding",
+ "pin-project-lite",
+ "serde",
+ "serde_json",
+ "sync_wrapper",
+ "tokio",
+ "tokio-util",
+ "tower",
+ "tower-http",
+ "tower-service",
+ "url",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "wasm-streams 0.5.0",
  "web-sys",
 ]
 
@@ -3846,6 +3881,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
+name = "storage"
+version = "0.1.0"
+dependencies = [
+ "bytes",
+ "serde",
+ "sha2",
+ "thiserror",
+ "toolcraft-s3-kit",
+ "toolcraft-utils",
+ "uuid",
+]
+
+[[package]]
 name = "stringprep"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4240,11 +4288,26 @@ checksum = "df2d207979ec2c680f00deaf695d7365382c92aef053ddbc241deaf8b3bd0b71"
 dependencies = [
  "bytes",
  "futures-util",
- "reqwest",
+ "reqwest 0.12.28",
  "serde",
  "serde_json",
  "thiserror",
  "tokio",
+ "url",
+]
+
+[[package]]
+name = "toolcraft-s3-kit"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ef4d2b7fc75d1cd23616044d476d1ef20311ea337581bffc8c1fd25ababff878"
+dependencies = [
+ "bytes",
+ "reqwest 0.13.3",
+ "thiserror",
+ "tokio",
+ "toolcraft-request",
+ "toolcraft-utils",
  "url",
 ]
 
@@ -4702,6 +4765,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "wasm-streams"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9d1ec4f6517c9e11ae630e200b2b65d193279042e28edd4a2cda233e46670bbb"
+dependencies = [
+ "futures-util",
+ "js-sys",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
 name = "wasmparser"
 version = "0.244.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4726,6 +4802,7 @@ dependencies = [
  "serde",
  "serde_json",
  "service",
+ "storage",
  "thiserror",
  "time",
  "tokio",

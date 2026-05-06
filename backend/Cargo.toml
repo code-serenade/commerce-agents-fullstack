@@ -30,9 +30,13 @@ time = { version = "0.3", features = ["macros", "serde", "formatting", "parsing"
 async-trait = "0.1"
 uuid = { version = "1", features = ["serde", "v4"] }
 db-core = { package = "db-core-rs", version = "0.1.4" }
+bytes = "1"
+toolcraft-s3-kit = "0.2.1"
+toolcraft-utils = "0.2.3"
 
 # individual crates
 agent = { path = "crates/agent" }
 repo = { path = "crates/repo" }
 service = { path = "crates/service" }
 error-code = { path = "crates/error-code" }
+storage = { path = "crates/storage" }

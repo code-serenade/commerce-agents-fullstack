@@ -1,6 +1,7 @@
 use agent::api::AgentLlmCfg;
 use db_core::DatabaseConfig;
 use serde::Deserialize;
+use storage::StorageConfig;
 use toolcraft_config::load_settings;
 
 use crate::error::Result;
@@ -10,6 +11,7 @@ pub struct Settings {
     pub http: HttpCfg,
     pub jwt_verify: JwtVerifyRemoteCfg,
     pub db: Vec<DatabaseConfig>,
+    pub s3: StorageConfig,
     #[serde(default)]
     pub llm: Vec<AgentLlmCfg>,
 }

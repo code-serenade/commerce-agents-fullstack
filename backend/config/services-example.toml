@@ -16,6 +16,15 @@ connect_timeout = 30
 idle_timeout = 600
 sql_logging = false
 
+[s3]
+endpoint = "http://127.0.0.1:9000"
+public_bucket = "public"
+private_bucket = "private"
+region = "us-east-1"
+access_key = "CHANGE_ME"
+secret_key = "CHANGE_ME"
+user_key_salt = "please-change-to-random-long-string"
+
 [[llm]]
 name = "ollama-gemma4"
 base_url = "http://127.0.0.1:11434"

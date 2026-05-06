@@ -10,6 +10,7 @@ db-core.workspace = true
 service.workspace = true
 error-code.workspace = true
 agent.workspace = true
+storage.workspace = true
 
 # external dependencies
 tracing.workspace = true
