@@ -178,7 +178,7 @@ function AgentProgressCard({ content }: { content?: string }) {
       <span>
         {content
           ? "正在接收业务执行输出"
-          : "正在等待执行工作台事件"}
+          : "正在等待经营工作区事件"}
       </span>
     </div>
   )
@@ -588,14 +588,14 @@ function getInlineSteps(
     [
       "分配任务",
       hasNodeStarted
-        ? "角色任务正在执行"
+        ? "任务正在执行"
         : isStreaming
           ? "等待执行状态同步"
           : "检查模型、预算与投放约束",
     ],
     [
       "补充资料",
-      hasNodeStarted ? "按角色补充平台资料" : "补充行业与平台场景资料",
+      hasNodeStarted ? "按任务补充平台资料" : "补充行业与平台场景资料",
     ],
   ]
 }
@@ -644,7 +644,7 @@ function getCommerceHandoffItems() {
     {
       icon: ListChecks,
       label: "执行",
-      detail: "营销活动、执行清单、工作台任务",
+      detail: "营销活动、执行清单、工作区任务",
     },
     {
       icon: FileText,
@@ -669,7 +669,7 @@ function getInlineProcessStage({
   runtimeEvents: AgentRuntimeEvent[]
 }) {
   if (runtimeEvents.some((event) => event.type === "task_node_failed")) {
-    return "执行受阻，展开工作台查看待处理项"
+    return "执行受阻，展开经营工作区查看待处理项"
   }
   if (runtimeEvents.some((event) => event.type === "task_graph_finished")) {
     return "方案已汇总，可查看过程和业务落点"
@@ -677,7 +677,7 @@ function getInlineProcessStage({
   if (isStreaming) {
     return hasRuntime ? "执行计划推进中" : "正在规划执行计划"
   }
-  return hasRuntime ? "本轮过程已同步" : "历史会话，展开工作台查看本轮过程"
+  return hasRuntime ? "本轮过程已同步" : "历史会话，展开经营工作区查看本轮过程"
 }
 
 function getInlineArtifactStateLabel(state: InlineAgentState) {

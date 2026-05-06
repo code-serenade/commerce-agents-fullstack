@@ -89,9 +89,9 @@ function CollapsedWorkbenchHandle({
     <button
       type="button"
       onClick={onExpand}
-      className="absolute right-3 top-3 z-30 flex items-center gap-2 rounded-full border border-border bg-background/95 px-3 py-2 text-sm font-medium text-foreground shadow-lg shadow-black/10 backdrop-blur transition-colors hover:bg-muted"
-      title="展开工作台"
-      aria-label="展开工作台"
+      className="absolute right-2 top-1/2 z-30 flex -translate-y-1/2 flex-col items-center gap-2 rounded-full border border-border bg-background/95 px-2.5 py-3 text-sm font-medium text-foreground shadow-lg shadow-black/10 backdrop-blur transition-colors hover:bg-muted min-[1280px]:right-3"
+      title="展开经营工作区"
+      aria-label="展开经营工作区"
     >
       <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
         {isStreaming ? (
@@ -102,8 +102,11 @@ function CollapsedWorkbenchHandle({
           <MonitorCog className={hasFailure ? "size-4 text-destructive" : "size-4"} />
         )}
       </span>
-      <span className="hidden sm:inline">
-        工作台 {progress}
+      <span className="[writing-mode:vertical-rl] text-xs">
+        工作区
+      </span>
+      <span className="font-mono text-[11px] text-muted-foreground">
+        {progress}
       </span>
       <PanelRightOpen className="size-4 shrink-0 text-muted-foreground" />
     </button>

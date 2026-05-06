@@ -2,7 +2,6 @@ import {
   Activity,
   BarChart3,
   Bot,
-  ChevronRight,
   CheckCircle2,
   ClipboardCheck,
   Database,
@@ -16,7 +15,6 @@ import {
   Search,
   SearchCheck,
   ShieldAlert,
-  ShoppingBag,
   Sparkles,
   TerminalSquare,
   WalletCards,
@@ -86,13 +84,6 @@ interface ComputerScreenContext {
   mode: string
   request: string
   lines: string[]
-}
-
-interface WorkspaceCapability {
-  title: string
-  detail: string
-  icon: ComponentType<SVGProps<SVGSVGElement>>
-  lane: string
 }
 
 const WORKSPACE_LANES = [
@@ -179,51 +170,12 @@ const FALLBACK_PHASES = [
   {
     nodeId: "ops",
     title: "阶段三：交叉校验",
-    detail: "合并上游角色结果，交叉校验预算、素材和投放节奏",
+    detail: "合并上游结论，交叉校验预算、素材和投放节奏",
   },
   {
     nodeId: "delivery",
     title: "阶段四：交付汇总",
     detail: "合成最终策略、执行清单和交付文件",
-  },
-]
-
-const WORKSPACE_CAPABILITIES: WorkspaceCapability[] = [
-  {
-    title: "商品看板",
-    detail: "商品、卖点、素材、竞品",
-    icon: ShoppingBag,
-    lane: "上下文",
-  },
-  {
-    title: "营销活动",
-    detail: "活动策划、执行节奏、复盘结果",
-    icon: Megaphone,
-    lane: "执行",
-  },
-  {
-    title: "平台连接",
-    detail: "抖音、千川、淘宝、京东同步",
-    icon: PlugZap,
-    lane: "上下文",
-  },
-  {
-    title: "智能洞察",
-    detail: "知识检索、记忆、证据沉淀",
-    icon: SearchCheck,
-    lane: "上下文",
-  },
-  {
-    title: "每日简报",
-    detail: "重点进展、异常和待办摘要",
-    icon: Activity,
-    lane: "交付",
-  },
-  {
-    title: "预警中心",
-    detail: "预算、转化、库存异常",
-    icon: ShieldAlert,
-    lane: "治理",
   },
 ]
 
@@ -311,18 +263,18 @@ export function AgentChatSwarmPanel({
     selectedLlmLabel: selectedLlm?.model,
   })
   return (
-    <aside className="h-full min-h-[31rem] min-w-0 overflow-hidden rounded-2xl bg-[#f0f0ed] p-2 dark:bg-muted/30 min-[1440px]:p-3 2xl:min-h-0">
-      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl bg-[#f6f6f3] dark:bg-card">
-        <header className="sticky top-0 z-10 shrink-0 border-b border-[#d8d8d3] bg-[#f6f6f3]/95 px-3 py-3 backdrop-blur dark:border-border dark:bg-card/95 min-[1440px]:px-5 min-[1440px]:py-4">
+    <aside className="h-full min-h-[31rem] min-w-0 overflow-hidden rounded-[1.75rem] bg-[#eeeeeb] p-2 dark:bg-muted/30 min-[1440px]:p-3 2xl:min-h-0">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[1.45rem] bg-[#f6f6f3] dark:bg-card">
+        <header className="sticky top-0 z-10 shrink-0 border-b border-[#d8d8d3] bg-[#f6f6f3]/95 px-3 py-3 backdrop-blur dark:border-border dark:bg-card/95 min-[1440px]:px-5">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex size-11 shrink-0 items-center justify-center rounded-md border border-foreground/20 bg-background text-foreground shadow-sm min-[1500px]:size-14">
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-md border border-foreground/20 bg-background text-foreground shadow-sm min-[1500px]:size-12">
                   <MonitorCog className="size-6 min-[1500px]:size-7" />
                 </div>
                 <div className="min-w-0">
-                  <h2 className="truncate font-mono text-xl font-semibold tracking-wide min-[1500px]:text-3xl">
-                    执行工作台
+                  <h2 className="truncate font-mono text-xl font-semibold tracking-wide min-[1500px]:text-2xl">
+                    经营工作区
                   </h2>
                   <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-2 text-sm text-muted-foreground min-[1500px]:text-base">
                     <span
@@ -337,7 +289,7 @@ export function AgentChatSwarmPanel({
                       }`}
                     />
                     <span className="text-foreground">
-                      当前进度 {progress}
+                      进度 {progress}
                     </span>
                     <span className="hidden sm:inline">|</span>
                     <span className="min-w-0 truncate">
@@ -353,15 +305,15 @@ export function AgentChatSwarmPanel({
                 <span className="max-w-32 truncate min-[1500px]:max-w-40 min-[1800px]:max-w-52">
                   {selectedLlm
                     ? `${selectedLlm.model} · ${selectedLlm.name}`
-                    : "模型通道加载中"}
+                    : "服务加载中"}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={onCollapse}
                 className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground min-[1500px]:size-10"
-                title="收起工作台"
-                aria-label="收起工作台"
+                title="收起经营工作区"
+                aria-label="收起经营工作区"
               >
                 <PanelRightClose className="size-4" />
               </button>
@@ -369,8 +321,8 @@ export function AgentChatSwarmPanel({
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 min-[1440px]:px-5 min-[1440px]:py-4">
-          <section className="overflow-hidden rounded-xl border border-[#dcdcd7] bg-[#fbfbfa] shadow-sm dark:border-border dark:bg-background">
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2 min-[1440px]:px-4 min-[1440px]:py-4">
+          <section className="overflow-hidden rounded-[1.25rem] border border-[#dcdcd7] bg-[#fbfbfa] shadow-sm dark:border-border dark:bg-background">
             <div className="flex items-center justify-between gap-3 border-b border-border bg-[#fbfbfa] px-4 py-3 dark:bg-background">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-border bg-card">
@@ -379,7 +331,7 @@ export function AgentChatSwarmPanel({
                 <div className="min-w-0">
                   <p className="truncate font-mono text-sm font-semibold tracking-wide">
                     {hasRuntime
-                      ? `角色 ${formatAgentNumber(agents.indexOf(activeAgent))} | ${activeAgent.name}`
+                      ? `任务 ${formatAgentNumber(agents.indexOf(activeAgent))} | ${activeAgent.name}`
                       : isStreaming
                         ? "任务规划 | 经营规则"
                         : "等待业务目标"}
@@ -389,13 +341,13 @@ export function AgentChatSwarmPanel({
                       ? activeAgent.name
                       : isStreaming
                         ? "正在拆解目标并准备业务执行"
-                        : "发送新任务后展示本轮工作台"}
+                        : "发送新任务后展示本轮过程"}
                   </p>
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-3">
                 <span className="hidden text-xs text-muted-foreground xl:inline">
-                  活动轨迹
+                  本轮记录
                 </span>
                 <StatePill state={activeNode?.state ?? activeState} />
               </div>
@@ -423,50 +375,7 @@ export function AgentChatSwarmPanel({
             </div>
           </section>
 
-          <section className="mt-4 rounded-xl border border-border bg-background p-3 shadow-sm">
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <ClipboardCheck className="size-4 text-muted-foreground" />
-                任务队列
-                <span className="text-xs font-normal text-muted-foreground">
-                  {runtimeNodeStates.size > 0
-                    ? `${agents.length} 个任务节点`
-                    : "等待本轮任务"}
-                </span>
-              </div>
-              <span className="text-xs text-muted-foreground">
-                {hasRuntime ? "实时更新" : "历史会话不计入进度"}
-              </span>
-            </div>
-
-            <div className="grid gap-2 min-[1500px]:grid-cols-2 min-[1800px]:grid-cols-3">
-              {agents.map((agent, index) => {
-                const snapshot = runtimeNodeStates.get(agent.nodeId)
-                const state = getAgentState({
-                  agent,
-                  fallbackIndex: index,
-                  hasTask,
-                  isStreaming,
-                  runtimeNodeStates,
-                })
-                return (
-                  <SwarmAgentQueueRow
-                    key={agent.nodeId}
-                    agent={agent}
-                    index={index}
-                    isActive={
-                      Boolean(hasRuntime || isStreaming) &&
-                      agent.nodeId === activeAgent.nodeId
-                    }
-                    state={state}
-                    attempt={snapshot?.attempt}
-                  />
-                )
-              })}
-            </div>
-          </section>
-
-          <section className="mt-4 grid gap-3 min-[1800px]:grid-cols-[minmax(0,1fr)_17rem]">
+          <section className="mt-3 grid gap-3 min-[1800px]:grid-cols-[minmax(0,1fr)_17rem]">
             <WorkspaceHandoffRail />
             <CompactInfoBlock
               icon={Activity}
@@ -824,34 +733,18 @@ function SwarmIdleDetail({
   const description = isStreaming
     ? "已接收输入，正在匹配商品、活动、数据和交付步骤。"
     : hasTask
-      ? "执行工作台只显示本轮过程，历史消息不会计入当前进度。"
+      ? "经营工作区只显示本轮过程，历史消息不会计入当前进度。"
       : "输入运营目标后，将按商品、活动、平台数据、预警和交付资料组织处理。"
 
   return (
-    <div className="grid gap-3 p-3 min-[1500px]:grid-cols-[13.5rem_minmax(0,1fr)] min-[1500px]:gap-4 min-[1500px]:p-4">
-      <div className="space-y-2 rounded-lg bg-[#f0f0ed] p-2 dark:bg-muted/30">
-        <div className="flex items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
-          <span>业务模块</span>
-          <span>{WORKSPACE_CAPABILITIES.length} 项</span>
-        </div>
-        {WORKSPACE_CAPABILITIES.slice(0, 6).map((capability) => (
-          <ComputerPreviewCard
-            key={capability.title}
-            icon={capability.icon}
-            title={capability.title}
-            detail={capability.detail}
-            lane={capability.lane}
-          />
-        ))}
-      </div>
-
+    <div className="p-3 min-[1500px]:p-4">
       <div className="min-w-0 overflow-hidden rounded-xl border border-[#d8d8d3] bg-white shadow-sm dark:border-border dark:bg-background">
         <div className="flex items-center justify-between gap-3 border-b border-border bg-white px-5 py-3 dark:bg-background">
           <div className="flex min-w-0 items-center gap-2">
             <MonitorCog className="size-4 shrink-0 text-muted-foreground" />
             <div className="min-w-0">
               <p className="truncate font-mono text-sm font-semibold">
-                工作台 01 | 经营闭环
+                01 | 经营闭环
               </p>
               <p className="truncate text-xs text-muted-foreground">
                 本轮任务预览
@@ -936,103 +829,6 @@ function SwarmIdleDetail({
   )
 }
 
-function ComputerPreviewCard({
-  detail,
-  icon: Icon,
-  lane,
-  title,
-}: {
-  detail: string
-  icon: ComponentType<SVGProps<SVGSVGElement>>
-  lane: string
-  title: string
-}) {
-  return (
-    <div className="rounded-md border border-border bg-card p-2.5">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <Icon className="size-4 shrink-0 text-muted-foreground" />
-          <div className="min-w-0">
-            <p className="text-sm font-medium">{title}</p>
-            <p className="truncate text-xs text-muted-foreground">{detail}</p>
-          </div>
-        </div>
-        <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-      </div>
-      <div className="mt-2 inline-flex rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-        {lane}
-      </div>
-    </div>
-  )
-}
-
-function SwarmAgentQueueRow({
-  agent,
-  attempt,
-  index,
-  isActive,
-  state,
-}: {
-  agent: SwarmAgent
-  attempt?: number
-  index: number
-  isActive: boolean
-  state: SwarmState
-}) {
-  const Icon = agent.icon
-
-  return (
-    <article
-      className={`min-w-0 rounded-lg border p-2.5 transition-colors ${
-        isActive
-          ? "border-foreground bg-background shadow-sm"
-          : "border-border bg-[#f5f5f3] hover:border-border/80"
-      }`}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div
-          className={`flex size-8 shrink-0 items-center justify-center rounded-full ${agent.tone}`}
-        >
-          <Icon className="size-4" />
-        </div>
-        <span className="font-mono text-sm font-semibold">
-          {formatAgentNumber(index)}
-        </span>
-      </div>
-      <div className="mt-2 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <p className="truncate text-sm font-medium">{agent.name}</p>
-          <StatePill state={state} />
-        </div>
-        <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
-          {agent.summary}
-        </p>
-      </div>
-      <div className="mt-2 flex items-center gap-1">
-        {Array.from({ length: 10 }).map((_, barIndex) => (
-          <span
-            key={barIndex}
-            className={`h-1.5 flex-1 rounded-[1px] ${
-              shouldLightPixel(state, barIndex)
-                ? state === "failed"
-                  ? "bg-destructive"
-                  : state === "reworking"
-                    ? "bg-amber-500"
-                    : "bg-emerald-500"
-                : "bg-background"
-            }`}
-          />
-        ))}
-      </div>
-      {attempt ? (
-        <p className="mt-2 text-[11px] text-muted-foreground">
-          第 {attempt} 次执行
-        </p>
-      ) : null}
-    </article>
-  )
-}
-
 function StatePill({ state }: { state: SwarmState }) {
   const label =
     state === "done"
@@ -1108,7 +904,7 @@ function getPhases(graphNodes: AgentTaskNode[]) {
     {
       nodeId: "delivery",
       title: `阶段 ${graphNodes.length + 1}：交付汇总`,
-      detail: "将各角色结果汇总为可交付方案、清单和文档。",
+      detail: "将各任务结果汇总为可交付方案、清单和文档。",
     },
   ]
 }
@@ -1268,7 +1064,7 @@ function getTimeline(
     if (isStreaming) {
       return [
         { label: "已收到任务，正在规划执行计划。", tone: "default" },
-        { label: "处理步骤、依赖和验收规则生成后会同步到工作台。", tone: "default" },
+        { label: "处理步骤、依赖和验收规则生成后会同步到经营工作区。", tone: "default" },
       ]
     }
     if (hasTask) {
@@ -1279,8 +1075,8 @@ function getTimeline(
     }
     return [
       { label: "等待客户输入任务，随后会规划处理步骤。", tone: "default" },
-      { label: "数据诊断先行，财务/千川/创意角色并行。", tone: "default" },
-      { label: "运营角色负责交叉校验并汇总最终交付。", tone: "default" },
+      { label: "数据诊断先行，预算、投放和创意任务并行。", tone: "default" },
+      { label: "运营方案负责交叉校验并汇总最终交付。", tone: "default" },
     ]
   }
 
@@ -1386,7 +1182,7 @@ function getComputerCards({
       : "正在准备处理步骤、依赖和验收规则。",
     icon: TerminalSquare,
     lines: [
-      `当前角色：${activeAgent.name}`,
+      `当前任务：${activeAgent.name}`,
       `执行状态：${getDockStateLabel(activeNode?.state ?? "working")}`,
       latestNodeEvent ? `最近动作：${getRuntimeActionLabel(latestNodeEvent.type)}` : "最近动作：正在拆解任务",
     ],
@@ -1396,11 +1192,11 @@ function getComputerCards({
   const reportLines = readReportLines(activeNode?.report)
   cards.push({
     id: "agent-output",
-    title: activeNode?.report ? "角色输出" : "补充资料",
+    title: activeNode?.report ? "任务输出" : "补充资料",
     meta: activeNode?.report ? activeAgent.name : "补充行业与平台场景资料",
     description: activeNode?.report
       ? getFallbackResponse(activeAgent, activeNode.state)
-      : "角色开始输出后，这里会切换为真实的报告摘要、证据和风险。",
+      : "任务开始输出后，这里会切换为真实的报告摘要、证据和风险。",
     icon: activeNode?.report ? Bot : Search,
     lines: reportLines.length
       ? reportLines
@@ -1456,8 +1252,8 @@ function getComputerScreenContext({
     []
   const lines = compactPreviewLines([
     `# ${activeAgent.name}`,
-    `角色职责：${activeAgent.summary}`,
-    selectedLlmLabel ? `模型通道：${selectedLlmLabel}` : "模型通道：等待选择",
+    `处理职责：${activeAgent.summary}`,
+    selectedLlmLabel ? `服务通道：${selectedLlmLabel}` : "服务通道：等待选择",
     `任务目标：${request}`,
     ...acceptanceLines,
     ...reportLines,
@@ -1564,9 +1360,9 @@ function formatRuntimeEventDescription(
 function getRuntimeActionLabel(eventType: AgentRuntimeEvent["type"]) {
   if (eventType === "commander_thinking") return "正在拆解任务"
   if (eventType === "task_graph_planned") return "执行计划已生成"
-  if (eventType === "task_node_ready") return "角色已排队"
-  if (eventType === "task_node_started") return "角色开始执行"
-  if (eventType === "task_node_reported") return "角色提交结果"
+  if (eventType === "task_node_ready") return "任务已排队"
+  if (eventType === "task_node_started") return "任务开始执行"
+  if (eventType === "task_node_reported") return "任务提交结果"
   if (eventType === "task_node_evaluated") return "结果已复核"
   if (eventType === "task_node_rework_requested") return "触发返工"
   if (eventType === "task_node_passed") return "通过验收"
@@ -1594,12 +1390,12 @@ function getAgentName(nodeId: string, agents: SwarmAgent[]) {
 
 function getFallbackResponse(agent: SwarmAgent, state: SwarmState) {
   if (state === "failed") {
-    return "该角色执行失败，通常是模型服务、工具或上游依赖不可用导致。"
+    return "该任务执行失败，通常是模型服务、工具或上游依赖不可用导致。"
   }
-  if (state === "reworking") return "验收未通过，正在按反馈重新组织角色输出。"
+  if (state === "reworking") return "验收未通过，正在按反馈重新组织任务输出。"
   if (state === "working") return `${agent.name} 正在处理请求，结果会在这里更新。`
   if (state === "done") return `${agent.name} 已完成，等待最终汇总。`
-  return "任务开始后，这里会展示当前角色的请求、推理结果和产物摘要。"
+  return "任务开始后，这里会展示当前请求、处理结果和产物摘要。"
 }
 
 function getDockStateLabel(state: SwarmState) {
@@ -1630,14 +1426,6 @@ function hasFailedNode(runtimeNodeStates: Map<string, RuntimeNodeSnapshot>) {
   return Array.from(runtimeNodeStates.values()).some(
     (snapshot) => snapshot.state === "failed"
   )
-}
-
-function shouldLightPixel(state: SwarmState, index: number) {
-  if (state === "done") return index < 10
-  if (state === "working" || state === "reworking") return index < 6
-  if (state === "failed") return index < 4
-  if (state === "queued" || state === "skipped") return index < 2
-  return false
 }
 
 function formatAgentNumber(index: number) {
