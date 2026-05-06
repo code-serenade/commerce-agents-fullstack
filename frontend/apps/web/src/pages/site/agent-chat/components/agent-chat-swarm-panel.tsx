@@ -240,7 +240,6 @@ export function AgentChatSwarmPanel({
     isStreaming,
     runtimeNodeStates,
   })
-  const ActiveAgentIcon = hasRuntime ? activeAgent.icon : MonitorCog
   const activeNode = runtimeNodeStates.get(activeAgent.nodeId)
   const completedCount = getCompletedCount(agents, runtimeNodeStates)
   const progress = `${completedCount}/${agents.length}`
@@ -322,58 +321,24 @@ export function AgentChatSwarmPanel({
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2 min-[1440px]:px-4 min-[1440px]:py-4">
-          <section className="overflow-hidden rounded-[1.25rem] border border-[#dcdcd7] bg-[#fbfbfa] shadow-sm dark:border-border dark:bg-background">
-            <div className="flex items-center justify-between gap-3 border-b border-border bg-[#fbfbfa] px-4 py-3 dark:bg-background">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-border bg-card">
-                  <ActiveAgentIcon className="size-5" />
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate font-mono text-sm font-semibold tracking-wide">
-                    {hasRuntime
-                      ? `任务 ${formatAgentNumber(agents.indexOf(activeAgent))} | ${activeAgent.name}`
-                      : isStreaming
-                        ? "任务规划 | 经营规则"
-                        : "等待业务目标"}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {hasRuntime
-                      ? activeAgent.name
-                      : isStreaming
-                        ? "正在拆解目标并准备业务执行"
-                        : "发送新任务后展示本轮过程"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex shrink-0 items-center gap-3">
-                <span className="hidden text-xs text-muted-foreground xl:inline">
-                  本轮记录
-                </span>
-                <StatePill state={activeNode?.state ?? activeState} />
-              </div>
-            </div>
-
-            <div className="min-h-[18rem] bg-[#fbfbfa]">
-              {hasRuntime ? (
-                <ComputerRuntimeDetail
-                  activeAgent={activeAgent}
-                  activeAgentIndex={activeAgentIndex}
-                  activeNode={activeNode}
-                  activeState={activeNode?.state ?? activeState}
-                  cards={computerCards}
-                  runtimeEvents={runtimeEvents}
-                  selectedLlmLabel={selectedLlm?.model}
-                />
-              ) : (
-                <SwarmIdleDetail
-                  hasTask={hasTask}
-                  isStreaming={isStreaming}
-                  lastTask={lastTask}
-                  selectedLlmLabel={selectedLlm?.model}
-                />
-              )}
-            </div>
-          </section>
+          {hasRuntime ? (
+            <ComputerRuntimeDetail
+              activeAgent={activeAgent}
+              activeAgentIndex={activeAgentIndex}
+              activeNode={activeNode}
+              activeState={activeNode?.state ?? activeState}
+              cards={computerCards}
+              runtimeEvents={runtimeEvents}
+              selectedLlmLabel={selectedLlm?.model}
+            />
+          ) : (
+            <SwarmIdleDetail
+              hasTask={hasTask}
+              isStreaming={isStreaming}
+              lastTask={lastTask}
+              selectedLlmLabel={selectedLlm?.model}
+            />
+          )}
 
           <section className="mt-3 grid gap-3 min-[1800px]:grid-cols-[minmax(0,1fr)_17rem]">
             <WorkspaceHandoffRail />
@@ -427,19 +392,21 @@ function ComputerRuntimeDetail({
   const activityCards = cards.slice(-4)
 
   return (
-    <div className="grid gap-3 p-3 min-[1500px]:grid-cols-[13.5rem_minmax(0,1fr)] min-[1500px]:gap-4 min-[1500px]:p-4">
-      <div className="min-w-0 space-y-2 rounded-lg bg-[#f0f0ed] p-2 dark:bg-muted/30">
-        <div className="flex items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
-          <span>工作记录</span>
+    <section className="grid min-h-[31rem] overflow-hidden rounded-[1.25rem] border border-[#dcdcd7] bg-white shadow-sm dark:border-border dark:bg-background min-[1500px]:grid-cols-[12.75rem_minmax(0,1fr)]">
+      <div className="min-w-0 border-b border-border bg-[#f7f7f4] p-3 dark:bg-card min-[1500px]:border-b-0 min-[1500px]:border-r">
+        <div className="mb-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+          <span>本轮记录</span>
           <span>{activityCards.length} 条</span>
         </div>
-        {activityCards.map((card) => (
-          <ComputerRuntimeCard key={card.id} card={card} />
-        ))}
+        <div className="grid gap-2 sm:grid-cols-2 min-[1500px]:grid-cols-1">
+          {activityCards.map((card) => (
+            <ComputerRuntimeCard key={card.id} card={card} />
+          ))}
+        </div>
       </div>
 
-      <section className="min-w-0 overflow-hidden rounded-xl border border-[#d8d8d3] bg-white shadow-sm dark:border-border dark:bg-background">
-        <div className="flex items-center justify-between gap-3 border-b border-border bg-white px-5 py-3 dark:bg-background">
+      <div className="min-w-0 bg-white dark:bg-background">
+        <div className="flex items-center justify-between gap-3 border-b border-border bg-white px-4 py-3 dark:bg-background min-[1500px]:px-5">
           <div className="flex min-w-0 items-center gap-2">
             <div className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background">
               <ActiveIcon className="size-4" />
@@ -456,8 +423,8 @@ function ComputerRuntimeDetail({
           <StatePill state={activeState} />
         </div>
 
-        <div className="grid min-h-[25rem] grid-rows-[auto_minmax(0,1fr)_auto]">
-          <div className="border-b border-border bg-white px-5 py-3 dark:bg-background">
+        <div className="grid min-h-[28rem] grid-rows-[auto_minmax(0,1fr)_auto]">
+          <div className="border-b border-border bg-white px-4 py-3 dark:bg-background min-[1500px]:px-5">
             <div className="flex items-center justify-between gap-3">
               <span className="text-xs font-medium text-muted-foreground">业务输入</span>
               {selectedLlmLabel ? (
@@ -471,7 +438,7 @@ function ComputerRuntimeDetail({
             </p>
           </div>
 
-          <div className="min-h-0 bg-white p-3 dark:bg-background min-[1500px]:p-5">
+          <div className="min-h-0 bg-white p-3 dark:bg-background min-[1500px]:p-4">
             <div className="flex h-full min-h-[18rem] flex-col overflow-hidden rounded-lg border border-border bg-[#fbfbfa] dark:bg-card">
               <div className="flex items-center justify-between gap-3 border-b border-border bg-[#f7f7f4] px-4 py-2.5 dark:bg-card">
                 <div className="flex min-w-0 items-center gap-2">
@@ -528,8 +495,8 @@ function ComputerRuntimeDetail({
             </div>
           </div>
         </div>
-      </section>
-    </div>
+      </div>
+    </section>
   )
 }
 
@@ -537,7 +504,7 @@ function ComputerRuntimeCard({ card }: { card: ComputerCard }) {
   const Icon = card.icon
 
   return (
-    <article className="rounded-lg border border-transparent bg-background p-2.5 shadow-sm">
+    <article className="rounded-lg border border-border/70 bg-background p-2.5 shadow-sm min-[1500px]:border-transparent">
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-start gap-2">
           <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">

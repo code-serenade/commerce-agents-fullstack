@@ -87,7 +87,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     },
     {
       key: "workspace",
-      label: "运营工作台",
+      label: "运营中枢",
       items: [
         {
           key: "smart-ops",
@@ -199,12 +199,12 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       }
       brandEyebrow="Commerce Agent"
       brandTitle="运营中枢"
-      brandDescription="电商智能体工作台"
+      brandDescription="电商智能体经营闭环"
       sections={sections}
       header={
         <TopBar
           title={activeConversation?.title ?? "输入运营目标"}
-          meta="Commerce 运营智能体 · 经营闭环工作台"
+          meta="Commerce 运营智能体 · 经营闭环"
           leading={<GitBranch className="size-5" />}
           trailing={trailing}
         />

@@ -347,7 +347,7 @@ function formatAgentUiMessage(content: string) {
   const text = content.trim()
   if (!text || text === "missing") return ""
   if (/structured role output is missing/i.test(text)) {
-    return "上一轮任务未产出完整结构化结果。可以直接重新发送任务，我会重新规划执行计划，并把过程同步到执行工作台。"
+    return "上一轮任务未产出完整结构化结果。可以直接重新发送任务，我会重新规划执行计划，并把过程同步到经营工作区。"
   }
   return text
 }

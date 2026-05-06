@@ -15,7 +15,7 @@ export default function AgentChatPage() {
     "relative grid min-h-0 w-full flex-1 grid-cols-1 gap-3 p-2 sm:p-3",
     isProcessPanelOpen
       ? "overflow-hidden min-[1280px]:grid-cols-[minmax(31rem,0.52fr)_minmax(28rem,0.48fr)] min-[1440px]:grid-cols-[minmax(35rem,0.94fr)_minmax(38rem,1.06fr)] min-[1680px]:grid-cols-[minmax(39rem,0.92fr)_minmax(46rem,1.08fr)]"
-      : "overflow-hidden",
+      : "overflow-hidden pr-14 min-[1280px]:pr-16",
   ].join(" ")
 
   const chatPanelClassName = [
@@ -89,11 +89,11 @@ function CollapsedWorkbenchHandle({
     <button
       type="button"
       onClick={onExpand}
-      className="absolute right-2 top-1/2 z-30 flex -translate-y-1/2 flex-col items-center gap-2 rounded-full border border-border bg-background/95 px-2.5 py-3 text-sm font-medium text-foreground shadow-lg shadow-black/10 backdrop-blur transition-colors hover:bg-muted min-[1280px]:right-3"
+      className="absolute inset-y-2 right-2 z-30 flex w-12 flex-col items-center justify-between overflow-hidden rounded-[1.35rem] border border-border bg-[#f6f6f3]/95 px-1.5 py-3 text-sm font-medium text-foreground shadow-xl shadow-black/10 backdrop-blur transition-colors hover:bg-[#eeeeeb] dark:bg-card/95 dark:hover:bg-muted min-[1280px]:right-3 min-[1280px]:w-14"
       title="展开经营工作区"
       aria-label="展开经营工作区"
     >
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground shadow-sm">
         {isStreaming ? (
           <Loader2 className="size-4 animate-spin text-emerald-600" />
         ) : isDone ? (
@@ -102,13 +102,29 @@ function CollapsedWorkbenchHandle({
           <MonitorCog className={hasFailure ? "size-4 text-destructive" : "size-4"} />
         )}
       </span>
-      <span className="[writing-mode:vertical-rl] text-xs">
-        工作区
+      <span className="flex min-h-0 flex-1 items-center justify-center [writing-mode:vertical-rl] text-xs tracking-[0.18em]">
+        经营工作区
       </span>
-      <span className="font-mono text-[11px] text-muted-foreground">
-        {progress}
+      <span className="grid gap-1">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <span
+            key={index}
+            className={`h-1 w-5 rounded-full ${
+              isStreaming && index < 2
+                ? "bg-emerald-500"
+                : isDone
+                  ? "bg-emerald-500"
+                  : hasFailure && index === 0
+                    ? "bg-destructive"
+                    : "bg-muted-foreground/20"
+            }`}
+          />
+        ))}
       </span>
-      <PanelRightOpen className="size-4 shrink-0 text-muted-foreground" />
+      <span className="font-mono text-[11px] text-muted-foreground">{progress}</span>
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-background text-muted-foreground shadow-sm">
+        <PanelRightOpen className="size-4" />
+      </span>
     </button>
   )
 }

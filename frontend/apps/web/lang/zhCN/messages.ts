@@ -4,7 +4,7 @@ const messages = {
       brand: {
         eyebrow: "Commerce AI",
         title: "运营中枢",
-        description: "电商智能体工作台",
+        description: "电商智能体经营闭环",
       },
       navigation: {
         mobileLabel: "主导航",
@@ -61,7 +61,7 @@ const messages = {
   },
   agentChat: {
     welcomeMessage:
-      "你好，我是 Commerce 运营智能体。你可以输入一个电商运营目标，我会用数据、预算、千川投放、创意和运营角色拆解执行，并在右侧展示任务图、进度、活动轨迹和产物。",
+      "你好，我是 Commerce 运营智能体。你可以输入一个电商运营目标，我会围绕数据、预算、千川投放、创意和运营方案拆解执行，并在右侧展示进度、过程轨迹和产物。",
     streaming: "正在思考...",
     error: "Agent 回复失败，请稍后重试。",
     errorBadge: "回复失败",
@@ -95,9 +95,9 @@ const messages = {
       description:
         "将 Agent 的回复直接组织成业务页面：先看结论和指标，再看执行路径、内容脚本、财务护栏和风险回滚。",
       promptLabel: "用户输入",
-      dispatchTitle: "智能调度",
+      dispatchTitle: "方案协同",
       dispatchDescription:
-        "主 Agent：运营专家；协作角色：内容创作者、财务分析师。",
+        "主线：运营方案；协同支持：内容创意、财务测算。",
       export: "导出方案",
     },
     metrics: {
