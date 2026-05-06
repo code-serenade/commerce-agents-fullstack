@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import {
+  type Dispatch,
+  type SetStateAction,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react"
 import { useTranslation } from "react-i18next"
 import { useSelector } from "react-redux"
 import {
@@ -16,6 +23,7 @@ import type {
   AgentActivityItem,
   AgentChatConversationItem,
   AgentChatMessage,
+  AgentMemoryTestState,
 } from "./types"
 
 const AGENT_ID = "web-agent"
@@ -36,6 +44,9 @@ export function useAgentChatPage() {
   const [conversations, setConversations] = useState<AgentChatConversationItem[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [memoryTest, setMemoryTest] = useState<AgentMemoryTestState>(() =>
+    createMemoryTestState()
+  )
   const abortRef = useRef<AbortController | null>(null)
   const sessionIdRef = useRef(createSessionId())
 
@@ -61,6 +72,7 @@ export function useAgentChatPage() {
         setConversationId(null)
         setConversations([])
         sessionIdRef.current = createSessionId()
+        setMemoryTest(createMemoryTestState())
         setMessages([createWelcomeMessage()])
       })
       return
@@ -77,6 +89,7 @@ export function useAgentChatPage() {
           if (!cancelled) {
             setConversationId(null)
             sessionIdRef.current = createSessionId()
+            setMemoryTest(createMemoryTestState())
             setMessages([createWelcomeMessage()])
           }
           return
@@ -109,6 +122,7 @@ export function useAgentChatPage() {
     abortRef.current = null
     setConversationId(null)
     sessionIdRef.current = createSessionId()
+    setMemoryTest(createMemoryTestState())
     setInput("")
     setError(null)
     setIsStreaming(false)
@@ -124,6 +138,7 @@ export function useAgentChatPage() {
         const detail = await getConversationApi(nextConversationId)
         setConversationId(detail.conversation.id)
         sessionIdRef.current = detail.conversation.id
+        setMemoryTest(createMemoryTestState(detail.conversation.id))
         setMessages(mapConversationMessages(detail, createWelcomeMessage()))
       } catch (err) {
         const message = err instanceof Error ? err.message : t("agentChat.error")
@@ -208,6 +223,7 @@ export function useAgentChatPage() {
           },
           onEvent: (event) => {
             const activity = createActivityItem(event)
+            updateMemoryTestState(event, setMemoryTest)
             if (!activity) return
             assistantActivities = [...assistantActivities, activity]
             setMessages((current) =>
@@ -280,6 +296,22 @@ export function useAgentChatPage() {
     )
   }, [])
 
+  const prepareMemorySavePrompt = useCallback(() => {
+    setInput(
+      `请记住这条测试记忆：我的 memory 测试暗号是 ${memoryTest.testKey}。请只回复“已记住”。`
+    )
+  }, [memoryTest.testKey])
+
+  const prepareMemoryRecallPrompt = useCallback(() => {
+    setInput(
+      `请根据你已经加载的记忆回答：我的 memory 测试暗号是什么？如果你能看到记忆，应该回答 ${memoryTest.testKey}。`
+    )
+  }, [memoryTest.testKey])
+
+  const resetMemoryTestKey = useCallback(() => {
+    setMemoryTest(createMemoryTestState(conversationId ?? undefined))
+  }, [conversationId])
+
   return {
     canSend,
     conversationId,
@@ -289,6 +321,10 @@ export function useAgentChatPage() {
     isLoggedIn: Boolean(user),
     isStreaming,
     messages,
+    memoryTest,
+    prepareMemoryRecallPrompt,
+    prepareMemorySavePrompt,
+    resetMemoryTestKey,
     sendMessage,
     selectConversation,
     setInput,
@@ -344,6 +380,49 @@ function createSessionId() {
 
 function createMessageId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+}
+
+function createMemoryTestState(seed?: string): AgentMemoryTestState {
+  const suffix = (seed ?? Math.random().toString(36))
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .slice(-6)
+    .toUpperCase()
+  return {
+    testKey: `MEM-${suffix || "TEST"}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+    loadedCount: 0,
+    persistedCount: 0,
+    compactedCount: 0,
+  }
+}
+
+function updateMemoryTestState(
+  event: AgentSessionEvent,
+  setMemoryTest: Dispatch<SetStateAction<AgentMemoryTestState>>
+) {
+  if (
+    event.event !== "memory_loaded" &&
+    event.event !== "memory_persisted" &&
+    event.event !== "memory_compacted"
+  ) {
+    return
+  }
+
+  const data = isRecord(event.data) ? event.data : {}
+  setMemoryTest((current) => ({
+    ...current,
+    loadedCount:
+      event.event === "memory_loaded"
+        ? readNumber(data, "count")
+        : current.loadedCount,
+    persistedCount:
+      event.event === "memory_persisted"
+        ? readNumber(data, "count")
+        : current.persistedCount,
+    compactedCount:
+      event.event === "memory_compacted"
+        ? current.compactedCount + 1
+        : current.compactedCount,
+  }))
 }
 
 function createActivityItem(event: AgentSessionEvent): AgentActivityItem | null {

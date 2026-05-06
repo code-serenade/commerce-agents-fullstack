@@ -14,6 +14,13 @@ export interface AgentChatConversationItem {
   updatedAt: string
 }
 
+export interface AgentMemoryTestState {
+  testKey: string
+  loadedCount: number
+  persistedCount: number
+  compactedCount: number
+}
+
 export type AgentActivityKind =
   | "session"
   | "memory"

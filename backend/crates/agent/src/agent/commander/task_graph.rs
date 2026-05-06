@@ -1496,6 +1496,18 @@ mod tests {
     }
 
     #[test]
+    fn configured_chat_quick_reply_uses_single_chat_node() {
+        let graph = plan_configured_task_graph(&TaskId("task-chat".to_string()), "hi")
+            .expect("hi should match configured chat quick reply graph");
+
+        assert_eq!(graph.nodes.len(), 1);
+        assert_eq!(graph.nodes[0].id.0, "chat");
+        assert_eq!(graph.nodes[0].role, "chat");
+        assert!(graph.nodes[0].input_refs.is_empty());
+        assert_eq!(graph.nodes[0].max_attempts, 1);
+    }
+
+    #[test]
     fn configurable_planner_returns_none_when_no_rule_matches() {
         let rules = parse_task_graph_rules(
             r#"{

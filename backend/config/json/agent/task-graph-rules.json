@@ -1,6 +1,36 @@
 {
   "rules": [
     {
+      "id": "chat_quick_reply",
+      "description": "普通寒暄、轻量问候和快速对话，不启动多智能体协作",
+      "match_any": [
+        "hi",
+        "hello",
+        "hey",
+        "你好",
+        "您好",
+        "嗨",
+        "哈喽",
+        "在吗",
+        "早上好",
+        "中午好",
+        "下午好",
+        "晚上好"
+      ],
+      "nodes": [
+        {
+          "id": "chat",
+          "role": "chat",
+          "title": "快速对话",
+          "objective": "以对话助手身份快速、自然地回应用户，不启动多角色分析或业务编排：{{task}}",
+          "max_attempts": 1,
+          "acceptance": [
+            "reply should be brief, natural, and directly address the greeting or lightweight chat"
+          ]
+        }
+      ]
+    },
+    {
       "id": "douyin_holiday_conversion",
       "description": "抖音节日转化率提升方案",
       "match_any": ["抖音", "直播", "短视频", "五一", "节日", "营销", "活动", "促销", "投流", "千川", "引流"],

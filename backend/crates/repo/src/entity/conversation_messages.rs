@@ -28,6 +28,8 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(has_many = "super::agent_memories::Entity")]
+    AgentMemories,
     #[sea_orm(
         belongs_to = "super::app_users::Entity",
         from = "Column::UserId",
@@ -46,6 +48,12 @@ pub enum Relation {
         on_delete = "Cascade"
     )]
     Conversations,
+}
+
+impl Related<super::agent_memories::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::AgentMemories.def()
+    }
 }
 
 impl Related<super::app_users::Entity> for Entity {

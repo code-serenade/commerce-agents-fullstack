@@ -1,6 +1,7 @@
 import { AgentChatComposer } from "./components/agent-chat-composer"
 import { AgentChatStatus } from "./components/agent-chat-status"
 import { AgentChatThread } from "./components/agent-chat-thread"
+import { AgentMemoryTestPanel } from "./components/agent-memory-test-panel"
 import { useAgentChatContext } from "./context/use-agent-chat-context"
 
 export default function AgentChatPage() {
@@ -9,6 +10,14 @@ export default function AgentChatPage() {
   return (
     <div className="flex size-full min-h-0 flex-col overflow-hidden bg-(--app-bg)">
       <AgentChatStatus error={chat.error} />
+      <AgentMemoryTestPanel
+        disabled={!chat.isLoggedIn}
+        isStreaming={chat.isStreaming}
+        memoryTest={chat.memoryTest}
+        onPrepareRecall={chat.prepareMemoryRecallPrompt}
+        onPrepareSave={chat.prepareMemorySavePrompt}
+        onResetKey={chat.resetMemoryTestKey}
+      />
       <AgentChatThread messages={chat.messages} />
       <AgentChatComposer
         canSend={chat.canSend}

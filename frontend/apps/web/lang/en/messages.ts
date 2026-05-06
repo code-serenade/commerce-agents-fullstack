@@ -112,6 +112,15 @@ const messages = {
         other: "Agent event",
       },
     },
+    memoryTest: {
+      title: "Memory test",
+      loaded: "loaded {{count}}",
+      persisted: "saved {{count}}",
+      compacted: "compacted {{count}}",
+      savePrompt: "Fill save prompt",
+      recallPrompt: "Fill recall prompt",
+      reset: "New key",
+    },
     sidebar: {
       newChat: "New chat",
       search: "Search history",

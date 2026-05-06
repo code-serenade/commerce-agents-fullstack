@@ -107,6 +107,15 @@ const messages = {
         other: "智能体事件",
       },
     },
+    memoryTest: {
+      title: "记忆测试",
+      loaded: "加载 {{count}}",
+      persisted: "保存 {{count}}",
+      compacted: "压缩 {{count}}",
+      savePrompt: "填入记忆",
+      recallPrompt: "填入回忆",
+      reset: "换暗号",
+    },
     sidebar: {
       newChat: "新对话",
       search: "搜索历史记录",
