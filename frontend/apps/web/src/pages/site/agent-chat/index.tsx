@@ -14,14 +14,14 @@ export default function AgentChatPage() {
   const layoutClassName = [
     "relative grid min-h-0 w-full flex-1 grid-cols-1 gap-3 p-2 sm:p-3",
     isProcessPanelOpen
-      ? "overflow-hidden min-[1440px]:grid-cols-[minmax(35rem,0.94fr)_minmax(38rem,1.06fr)] min-[1680px]:grid-cols-[minmax(39rem,0.92fr)_minmax(46rem,1.08fr)]"
+      ? "overflow-hidden min-[1280px]:grid-cols-[minmax(31rem,0.52fr)_minmax(28rem,0.48fr)] min-[1440px]:grid-cols-[minmax(35rem,0.94fr)_minmax(38rem,1.06fr)] min-[1680px]:grid-cols-[minmax(39rem,0.92fr)_minmax(46rem,1.08fr)]"
       : "overflow-hidden",
   ].join(" ")
 
   const chatPanelClassName = [
     "flex min-w-0 flex-col overflow-hidden rounded-lg bg-background",
     isProcessPanelOpen
-      ? "min-h-[31rem] min-[1440px]:min-h-0"
+      ? "min-h-[31rem] min-[1280px]:min-h-0"
       : "mx-auto min-h-0 w-full max-w-5xl",
   ].join(" ")
 
@@ -50,7 +50,7 @@ export default function AgentChatPage() {
           />
         </section>
         {isProcessPanelOpen ? (
-          <div className="absolute inset-y-2 right-2 z-20 w-[min(46rem,calc(100%_-_1rem))] shadow-2xl shadow-black/20 min-[1440px]:static min-[1440px]:h-full min-[1440px]:max-h-full min-[1440px]:min-h-0 min-[1440px]:w-auto min-[1440px]:shadow-none">
+          <div className="absolute inset-y-2 right-2 z-20 w-[min(46rem,calc(100%_-_1rem))] shadow-2xl shadow-black/20 min-[1280px]:static min-[1280px]:h-full min-[1280px]:max-h-full min-[1280px]:min-h-0 min-[1280px]:w-auto min-[1280px]:shadow-none">
             <AgentChatSwarmPanel
               isStreaming={chat.isStreaming}
               llmConfig={chat.llmConfig}

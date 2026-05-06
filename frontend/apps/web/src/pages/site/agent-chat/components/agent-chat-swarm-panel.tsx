@@ -311,17 +311,17 @@ export function AgentChatSwarmPanel({
     selectedLlmLabel: selectedLlm?.model,
   })
   return (
-    <aside className="h-full min-h-[31rem] min-w-0 overflow-hidden rounded-2xl bg-[#f0f0ed] p-3 dark:bg-muted/30 2xl:min-h-0">
+    <aside className="h-full min-h-[31rem] min-w-0 overflow-hidden rounded-2xl bg-[#f0f0ed] p-2 dark:bg-muted/30 min-[1440px]:p-3 2xl:min-h-0">
       <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl bg-[#f6f6f3] dark:bg-card">
-        <header className="sticky top-0 z-10 shrink-0 border-b border-[#d8d8d3] bg-[#f6f6f3]/95 px-5 py-4 backdrop-blur dark:border-border dark:bg-card/95">
+        <header className="sticky top-0 z-10 shrink-0 border-b border-[#d8d8d3] bg-[#f6f6f3]/95 px-3 py-3 backdrop-blur dark:border-border dark:bg-card/95 min-[1440px]:px-5 min-[1440px]:py-4">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex size-12 shrink-0 items-center justify-center rounded-md border border-foreground/20 bg-background text-foreground shadow-sm min-[1500px]:size-14">
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-md border border-foreground/20 bg-background text-foreground shadow-sm min-[1500px]:size-14">
                   <MonitorCog className="size-6 min-[1500px]:size-7" />
                 </div>
                 <div className="min-w-0">
-                  <h2 className="truncate font-mono text-2xl font-semibold tracking-wide min-[1500px]:text-3xl">
+                  <h2 className="truncate font-mono text-xl font-semibold tracking-wide min-[1500px]:text-3xl">
                     执行工作台
                   </h2>
                   <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-2 text-sm text-muted-foreground min-[1500px]:text-base">
@@ -369,7 +369,7 @@ export function AgentChatSwarmPanel({
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 min-[1440px]:px-5 min-[1440px]:py-4">
           <section className="overflow-hidden rounded-xl border border-[#dcdcd7] bg-[#fbfbfa] shadow-sm dark:border-border dark:bg-background">
             <div className="flex items-center justify-between gap-3 border-b border-border bg-[#fbfbfa] px-4 py-3 dark:bg-background">
               <div className="flex min-w-0 items-center gap-3">
@@ -439,7 +439,7 @@ export function AgentChatSwarmPanel({
               </span>
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-2 min-[1500px]:grid-cols-2 min-[1800px]:grid-cols-3">
               {agents.map((agent, index) => {
                 const snapshot = runtimeNodeStates.get(agent.nodeId)
                 const state = getAgentState({
@@ -466,7 +466,7 @@ export function AgentChatSwarmPanel({
             </div>
           </section>
 
-          <section className="mt-4 grid gap-3 2xl:grid-cols-[minmax(0,1fr)_17rem]">
+          <section className="mt-4 grid gap-3 min-[1800px]:grid-cols-[minmax(0,1fr)_17rem]">
             <WorkspaceHandoffRail />
             <CompactInfoBlock
               icon={Activity}
@@ -518,7 +518,7 @@ function ComputerRuntimeDetail({
   const activityCards = cards.slice(-4)
 
   return (
-    <div className="grid gap-4 p-4 xl:grid-cols-[13.5rem_minmax(0,1fr)]">
+    <div className="grid gap-3 p-3 min-[1500px]:grid-cols-[13.5rem_minmax(0,1fr)] min-[1500px]:gap-4 min-[1500px]:p-4">
       <div className="min-w-0 space-y-2 rounded-lg bg-[#f0f0ed] p-2 dark:bg-muted/30">
         <div className="flex items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
           <span>工作记录</span>
@@ -562,7 +562,7 @@ function ComputerRuntimeDetail({
             </p>
           </div>
 
-          <div className="min-h-0 bg-white p-5 dark:bg-background">
+          <div className="min-h-0 bg-white p-3 dark:bg-background min-[1500px]:p-5">
             <div className="flex h-full min-h-[18rem] flex-col overflow-hidden rounded-lg border border-border bg-[#fbfbfa] dark:bg-card">
               <div className="flex items-center justify-between gap-3 border-b border-border bg-[#f7f7f4] px-4 py-2.5 dark:bg-card">
                 <div className="flex min-w-0 items-center gap-2">
@@ -591,7 +591,7 @@ function ComputerRuntimeDetail({
             </div>
           </div>
 
-          <div className="grid gap-2 border-t border-border bg-[#f5f5f2] p-3 sm:grid-cols-[minmax(0,1fr)_9rem] dark:bg-card">
+          <div className="grid gap-2 border-t border-border bg-[#f5f5f2] p-3 min-[1500px]:grid-cols-[minmax(0,1fr)_9rem] dark:bg-card">
             <div className="rounded-md border border-border bg-background px-3 py-2">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 {activeState === "working" || activeState === "reworking" ? (
@@ -682,7 +682,7 @@ function AgentDock({
 }) {
   return (
     <div className="shrink-0 border-t border-[#d8d8d3] bg-[#f8f8f6] px-4 py-3 dark:border-border dark:bg-card">
-      <div className="grid grid-cols-6 gap-2">
+      <div className="grid grid-cols-3 gap-2 min-[1500px]:grid-cols-6">
         {agents.map((agent, index) => {
           const state = getAgentState({
             agent,
@@ -752,7 +752,7 @@ function WorkspaceHandoffRail() {
         </div>
         <span className="text-xs text-muted-foreground">后续接真实模块</span>
       </div>
-      <div className="grid gap-2 sm:grid-cols-2 min-[1800px]:grid-cols-4">
+      <div className="grid gap-2 min-[1500px]:grid-cols-2 min-[1800px]:grid-cols-4">
         {WORKSPACE_HANDOFFS.map((handoff) => {
           const Icon = handoff.icon
 
@@ -828,7 +828,7 @@ function SwarmIdleDetail({
       : "输入运营目标后，将按商品、活动、平台数据、预警和交付资料组织处理。"
 
   return (
-    <div className="grid gap-4 p-4 xl:grid-cols-[13.5rem_minmax(0,1fr)]">
+    <div className="grid gap-3 p-3 min-[1500px]:grid-cols-[13.5rem_minmax(0,1fr)] min-[1500px]:gap-4 min-[1500px]:p-4">
       <div className="space-y-2 rounded-lg bg-[#f0f0ed] p-2 dark:bg-muted/30">
         <div className="flex items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
           <span>业务模块</span>
@@ -874,7 +874,7 @@ function SwarmIdleDetail({
               {lastTask ?? description}
             </p>
           </div>
-          <div className="min-h-0 bg-white p-5 dark:bg-background">
+          <div className="min-h-0 bg-white p-3 dark:bg-background min-[1500px]:p-5">
             <div className="flex h-full min-h-[18rem] flex-col overflow-hidden rounded-lg border border-border bg-[#fbfbfa] dark:bg-card">
               <div className="flex items-center justify-between gap-2 border-b border-border bg-[#f7f7f4] px-4 py-2.5 dark:bg-card">
                 <div className="flex min-w-0 items-center gap-2">
@@ -917,7 +917,7 @@ function SwarmIdleDetail({
               </div>
             </div>
           </div>
-          <div className="grid gap-2 border-t border-border bg-[#f5f5f2] p-3 sm:grid-cols-4 dark:bg-card">
+          <div className="grid gap-2 border-t border-border bg-[#f5f5f2] p-3 min-[1500px]:grid-cols-4 dark:bg-card">
             {WORKSPACE_LANES.map((lane) => (
               <div
                 key={lane.label}
