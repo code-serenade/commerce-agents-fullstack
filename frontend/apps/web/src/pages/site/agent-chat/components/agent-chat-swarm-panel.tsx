@@ -88,6 +88,13 @@ interface ComputerScreenContext {
   lines: string[]
 }
 
+interface WorkspaceCapability {
+  title: string
+  detail: string
+  icon: ComponentType<SVGProps<SVGSVGElement>>
+  lane: string
+}
+
 const AGENTS: SwarmAgent[] = [
   {
     nodeId: "data",
@@ -174,22 +181,66 @@ const FALLBACK_PHASES = [
   },
 ]
 
-const BUSINESS_CONTEXTS = [
-  "商品看板：商品组、卖点、素材、竞品",
-  "营销活动：活动目标、预算、节奏、复盘",
-  "平台连接：抖音、千川、淘宝、京东同步",
-  "智能洞察：知识检索、记忆、证据沉淀",
-  "预警中心：预算、转化、库存异常",
-  "能力包管理：岗位、技能、流程启停回滚",
+const WORKSPACE_CAPABILITIES: WorkspaceCapability[] = [
+  {
+    title: "商品看板",
+    detail: "商品、卖点、素材、竞品",
+    icon: ShoppingBag,
+    lane: "上下文",
+  },
+  {
+    title: "营销活动",
+    detail: "活动策划、执行节奏、复盘结果",
+    icon: Megaphone,
+    lane: "执行",
+  },
+  {
+    title: "平台连接",
+    detail: "抖音、千川、淘宝、京东同步",
+    icon: PlugZap,
+    lane: "上下文",
+  },
+  {
+    title: "智能洞察",
+    detail: "知识检索、记忆、证据沉淀",
+    icon: SearchCheck,
+    lane: "上下文",
+  },
+  {
+    title: "预警中心",
+    detail: "预算、转化、库存异常",
+    icon: ShieldAlert,
+    lane: "治理",
+  },
+  {
+    title: "能力包管理",
+    detail: "岗位、技能、流程启停回滚",
+    icon: MonitorCog,
+    lane: "治理",
+  },
 ]
 
-const COMMERCE_OUTCOMES = [
-  "创建营销活动",
-  "同步商品知识",
-  "生成预警规则",
-  "沉淀每日简报",
-  "生成执行清单",
-  "输出能力配置建议",
+const WORKSPACE_HANDOFFS = [
+  {
+    title: "上下文",
+    detail: "商品看板、平台连接、智能洞察会作为任务输入",
+    icon: Database,
+  },
+  {
+    title: "执行",
+    detail: "营销活动、执行清单和工作区任务承接动作",
+    icon: ClipboardCheck,
+  },
+  {
+    title: "交付",
+    detail: "交付资料、每日简报和复盘历史沉淀结果",
+    icon: FileText,
+  },
+  {
+    title: "治理",
+    detail: "预警中心、能力包管理和审批回滚处理风险",
+    icon: ShieldAlert,
+  },
 ]
 
 export function AgentChatSwarmPanel({
@@ -302,7 +353,7 @@ export function AgentChatSwarmPanel({
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
-          <section className="overflow-hidden rounded-lg border border-border bg-background shadow-sm">
+          <section className="overflow-hidden rounded-lg border border-border bg-[#fbfbfa] shadow-sm dark:bg-background">
             <div className="flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-3">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-border bg-card">
@@ -398,26 +449,15 @@ export function AgentChatSwarmPanel({
             </div>
           </section>
 
-          <section className="mt-3 grid gap-2 lg:grid-cols-2 2xl:grid-cols-1 min-[1800px]:grid-cols-4">
+          <section className="mt-3 grid gap-3 2xl:grid-cols-[minmax(0,1fr)_17rem]">
+            <WorkspaceHandoffRail />
             <CompactInfoBlock
               icon={Activity}
-              title="活动轨迹"
-              items={timeline.slice(0, 2).map((item) => item.label)}
-            />
-            <CompactInfoBlock
-              icon={Database}
-              title="业务上下文"
-              items={BUSINESS_CONTEXTS}
-            />
-            <CompactInfoBlock
-              icon={SearchCheck}
-              title="执行清单"
-              items={phases.slice(0, 2).map((phase) => phase.title)}
-            />
-            <CompactInfoBlock
-              icon={FileText}
-              title="业务落点"
-              items={COMMERCE_OUTCOMES}
+              title="本轮动态"
+              items={[
+                ...timeline.slice(0, 2).map((item) => item.label),
+                ...phases.slice(0, 1).map((phase) => phase.title),
+              ]}
             />
           </section>
         </div>
@@ -462,9 +502,9 @@ function ComputerRuntimeDetail({
 
   return (
     <div className="grid gap-3 p-3 xl:grid-cols-[13rem_minmax(0,1fr)]">
-      <div className="min-w-0 space-y-2">
+      <div className="min-w-0 space-y-2 rounded-md border border-border bg-background/80 p-2">
         <div className="flex items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
-          <span>活动轨迹</span>
+          <span>本轮任务</span>
           <span>{activityCards.length} 条</span>
         </div>
         {activityCards.map((card) => (
@@ -473,7 +513,7 @@ function ComputerRuntimeDetail({
       </div>
 
       <section className="min-w-0 overflow-hidden rounded-lg border border-border bg-[#f7f7f4] shadow-sm dark:bg-background">
-        <div className="flex items-center justify-between gap-3 border-b border-border bg-card px-3 py-2">
+        <div className="flex items-center justify-between gap-3 border-b border-border bg-background px-3 py-2">
           <div className="flex min-w-0 items-center gap-2">
             <div className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background">
               <ActiveIcon className="size-4" />
@@ -490,49 +530,51 @@ function ComputerRuntimeDetail({
           <StatePill state={activeState} />
         </div>
 
-        <div className="border-b border-border bg-background px-3 py-2.5">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-xs font-medium text-muted-foreground">任务输入</span>
-            {selectedLlmLabel ? (
-              <span className="min-w-0 truncate rounded-full bg-secondary px-2 py-1 text-[11px] text-secondary-foreground">
-                {selectedLlmLabel}
-              </span>
-            ) : null}
-          </div>
-          <p className="mt-1 line-clamp-2 text-sm/6 text-foreground">
-            {screen.request}
-          </p>
-        </div>
-
-        <div className="p-3">
-          <div className="overflow-hidden rounded-md border border-border bg-background">
-            <div className="flex items-center justify-between gap-3 border-b border-border bg-card px-3 py-2">
-              <div className="flex min-w-0 items-center gap-2">
-                <FileText className="size-4 shrink-0 text-muted-foreground" />
-                <span className="truncate text-sm font-medium">{screen.filename}</span>
-              </div>
-              <span className="shrink-0 text-[11px] text-muted-foreground">
-                预览
-              </span>
+        <div className="grid min-h-[25rem] grid-rows-[auto_minmax(0,1fr)_auto]">
+          <div className="border-b border-border bg-background/80 px-3 py-2.5">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs font-medium text-muted-foreground">任务输入</span>
+              {selectedLlmLabel ? (
+                <span className="min-w-0 truncate rounded-full bg-secondary px-2 py-1 text-[11px] text-secondary-foreground">
+                  {selectedLlmLabel}
+                </span>
+              ) : null}
             </div>
-            <div className="max-h-[18rem] overflow-hidden py-2 font-mono text-[11px]/5">
-              {screen.lines.slice(0, 14).map((line, index) => (
-                <div
-                  key={`${index}-${line}`}
-                  className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3 px-3 py-0.5"
-                >
-                  <span className="select-none text-right tabular-nums text-muted-foreground/70">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <span className="min-w-0 break-words text-foreground/85">
-                    {line}
-                  </span>
+            <p className="mt-1 line-clamp-2 text-sm/6 text-foreground">
+              {screen.request}
+            </p>
+          </div>
+
+          <div className="min-h-0 p-3">
+            <div className="flex h-full min-h-[17rem] flex-col overflow-hidden rounded-md border border-border bg-background">
+              <div className="flex items-center justify-between gap-3 border-b border-border bg-card px-3 py-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <FileText className="size-4 shrink-0 text-muted-foreground" />
+                  <span className="truncate text-sm font-medium">{screen.filename}</span>
                 </div>
-              ))}
+                <span className="shrink-0 rounded-full bg-secondary px-2 py-1 text-[11px] text-secondary-foreground">
+                  当前预览
+                </span>
+              </div>
+              <div className="min-h-0 flex-1 overflow-hidden py-2 font-mono text-[11px]/5">
+                {screen.lines.slice(0, 14).map((line, index) => (
+                  <div
+                    key={`${index}-${line}`}
+                    className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3 px-3 py-0.5"
+                  >
+                    <span className="select-none text-right tabular-nums text-muted-foreground/70">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <span className="min-w-0 break-words text-foreground/85">
+                      {line}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
-          <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_9rem]">
+          <div className="grid gap-2 border-t border-border bg-[#f1f1ee] p-3 sm:grid-cols-[minmax(0,1fr)_9rem] dark:bg-card">
             <div className="rounded-md border border-border bg-background px-3 py-2">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 {activeState === "working" || activeState === "reworking" ? (
@@ -623,7 +665,7 @@ function AgentDock({
 }) {
   return (
     <div className="shrink-0 border-t border-[#d8d8d3] bg-[#f8f8f6] px-3 py-2 dark:border-border dark:bg-card">
-      <div className="grid grid-cols-3 gap-2 lg:grid-cols-6 2xl:grid-cols-3 min-[1800px]:grid-cols-6">
+      <div className="flex gap-2 overflow-x-auto pb-1">
         {agents.map((agent, index) => {
           const state = getAgentState({
             agent,
@@ -638,27 +680,27 @@ function AgentDock({
           return (
             <article
               key={agent.nodeId}
-              className={`flex min-w-0 flex-col gap-2 rounded-lg border px-3 py-2.5 transition-colors ${
+              className={`flex min-w-[7.25rem] items-center gap-2 rounded-md border px-2.5 py-2 transition-colors ${
                 isActive
                   ? "border-foreground bg-background shadow-sm"
                   : "border-transparent bg-[#eeeeeb] text-muted-foreground"
               }`}
             >
-              <div className="flex items-start justify-between gap-3">
-                <div
-                  className={`flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-background ${
-                    isActive ? "text-foreground" : "text-muted-foreground"
-                  }`}
-                >
-                  <Icon className="size-4" />
-                </div>
-                <span className="font-mono text-sm font-semibold">
-                  {formatAgentNumber(index)}
-                </span>
+              <div
+                className={`flex size-8 shrink-0 items-center justify-center rounded-full border border-border bg-background ${
+                  isActive ? "text-foreground" : "text-muted-foreground"
+                }`}
+              >
+                <Icon className="size-4" />
               </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{agent.name}</p>
-                <div className="mt-2 flex items-center gap-2 text-xs">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-mono text-[11px] font-semibold text-muted-foreground">
+                    {formatAgentNumber(index)}
+                  </span>
+                  <p className="truncate text-xs font-medium">{agent.name}</p>
+                </div>
+                <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
                   <DockStateIcon state={state} />
                   <span className="truncate">{getDockStateLabel(state)}</span>
                 </div>
@@ -678,6 +720,42 @@ function DockStateIcon({ state }: { state: SwarmState }) {
   }
   if (state === "failed") return <span className="size-2.5 rounded-full bg-destructive" />
   return <span className="size-2.5 rounded-full bg-muted-foreground/35" />
+}
+
+function WorkspaceHandoffRail() {
+  return (
+    <div className="rounded-lg border border-border bg-background p-3 shadow-sm">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <PlugZap className="size-4 text-muted-foreground" />
+          业务承接
+        </div>
+        <span className="text-xs text-muted-foreground">后续接真实模块</span>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2 min-[1800px]:grid-cols-4">
+        {WORKSPACE_HANDOFFS.map((handoff) => {
+          const Icon = handoff.icon
+
+          return (
+            <div
+              key={handoff.title}
+              className="flex min-w-0 items-start gap-2 rounded-md border border-border bg-card px-3 py-2"
+            >
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                <Icon className="size-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{handoff.title}</p>
+                <p className="mt-1 line-clamp-2 text-xs/5 text-muted-foreground">
+                  {handoff.detail}
+                </p>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 function CompactInfoBlock({
@@ -731,35 +809,24 @@ function SwarmIdleDetail({
 
   return (
     <div className="grid gap-3 p-3 xl:grid-cols-[13rem_minmax(0,1fr)]">
-      <div className="space-y-2">
-        <ComputerPreviewCard
-          icon={ShoppingBag}
-          title="商品看板"
-          detail="商品、卖点、素材、竞品"
-          lines={["咖啡商品组", "同步商品知识"]}
-        />
-        <ComputerPreviewCard
-          icon={Megaphone}
-          title="营销活动"
-          detail="活动策划与执行跟踪"
-          lines={["五一转化活动", "千川投放复盘"]}
-        />
-        <ComputerPreviewCard
-          icon={PlugZap}
-          title="数据接入"
-          detail={selectedLlmLabel ? `模型通道 ${selectedLlmLabel}` : "等待模型通道"}
-          lines={["抖音/千川数据", "平台同步状态"]}
-        />
-        <ComputerPreviewCard
-          icon={ShieldAlert}
-          title="预警中心"
-          detail="异常、风险和待确认项"
-          lines={["预算风险", "转化异常"]}
-        />
+      <div className="space-y-2 rounded-md border border-border bg-background/80 p-2">
+        <div className="flex items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
+          <span>业务入口</span>
+          <span>{WORKSPACE_CAPABILITIES.length} 项</span>
+        </div>
+        {WORKSPACE_CAPABILITIES.slice(0, 4).map((capability) => (
+          <ComputerPreviewCard
+            key={capability.title}
+            icon={capability.icon}
+            title={capability.title}
+            detail={capability.detail}
+            lane={capability.lane}
+          />
+        ))}
       </div>
 
       <div className="min-w-0 overflow-hidden rounded-lg border border-border bg-[#f7f7f4] shadow-sm dark:bg-background">
-        <div className="flex items-center justify-between gap-3 border-b border-border bg-card px-3 py-2">
+        <div className="flex items-center justify-between gap-3 border-b border-border bg-background px-3 py-2">
           <div className="flex min-w-0 items-center gap-2">
             <MonitorCog className="size-4 shrink-0 text-muted-foreground" />
             <div className="min-w-0">
@@ -773,47 +840,71 @@ function SwarmIdleDetail({
           </div>
           <StatePill state={isStreaming ? "working" : "idle"} />
         </div>
-        <div className="border-b border-border bg-background px-3 py-2.5">
-          <span className="text-xs font-medium text-muted-foreground">任务输入</span>
-          <p className="mt-1 line-clamp-2 text-sm/6 text-foreground">
-            {lastTask ?? description}
-          </p>
-        </div>
-        <div className="p-3">
-          <div className="overflow-hidden rounded-md border border-border bg-background">
-            <div className="flex items-center gap-2 border-b border-border bg-card px-3 py-2">
-              <FileText className="size-4 text-muted-foreground" />
-              <span className="truncate text-sm font-medium">
-                运营协作预览
-              </span>
+        <div className="grid min-h-[25rem] grid-rows-[auto_minmax(0,1fr)_auto]">
+          <div className="border-b border-border bg-background/80 px-3 py-2.5">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs font-medium text-muted-foreground">任务输入</span>
+              {selectedLlmLabel ? (
+                <span className="min-w-0 truncate rounded-full bg-secondary px-2 py-1 text-[11px] text-secondary-foreground">
+                  {selectedLlmLabel}
+                </span>
+              ) : null}
             </div>
-            <div className="py-2 font-mono text-[11px]/5">
-              {[
-                `# ${title}`,
-                description,
-                "数据诊断识别指标、归因和经营约束",
-                "商品看板提供商品知识、卖点素材和竞品线索",
-                "营销活动承接活动策划、执行节奏和复盘结果",
-                "平台连接提供抖音、千川等同步状态",
-                "预算评估、投放优化、创意产出并行处理",
-                "运营方案汇总预算、素材、投放节奏",
-                "交付资料沉淀方案、清单和复盘口径",
-                "预警中心沉淀预算、投放和转化异常规则",
-                "每日简报汇总重点进展和待办事项",
-                "能力包管理承接后续流程启停与回滚",
-              ].map((line, index) => (
-                <div
-                  key={`${index}-${line}`}
-                  className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3 px-3 py-0.5"
-                >
-                  <span className="select-none text-right tabular-nums text-muted-foreground/70">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <span className="min-w-0 break-words text-foreground/85">
-                    {line}
+            <p className="mt-1 line-clamp-2 text-sm/6 text-foreground">
+              {lastTask ?? description}
+            </p>
+          </div>
+          <div className="min-h-0 p-3">
+            <div className="flex h-full min-h-[17rem] flex-col overflow-hidden rounded-md border border-border bg-background">
+              <div className="flex items-center justify-between gap-2 border-b border-border bg-card px-3 py-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <FileText className="size-4 text-muted-foreground" />
+                  <span className="truncate text-sm font-medium">
+                    运营协作预览
                   </span>
                 </div>
-              ))}
+                <span className="shrink-0 rounded-full bg-secondary px-2 py-1 text-[11px] text-secondary-foreground">
+                  待执行
+                </span>
+              </div>
+              <div className="min-h-0 flex-1 overflow-hidden py-2 font-mono text-[11px]/5">
+                {[
+                  `# ${title}`,
+                  description,
+                  "数据诊断识别指标、归因和经营约束",
+                  "商品看板提供商品知识、卖点素材和竞品线索",
+                  "营销活动承接活动策划、执行节奏和复盘结果",
+                  "平台连接提供抖音、千川等同步状态",
+                  "预算评估、投放优化、创意产出并行处理",
+                  "运营方案汇总预算、素材、投放节奏",
+                  "交付资料沉淀方案、清单和复盘口径",
+                  "预警中心沉淀预算、投放和转化异常规则",
+                  "每日简报汇总重点进展和待办事项",
+                  "能力包管理承接后续流程启停与回滚",
+                ].map((line, index) => (
+                  <div
+                    key={`${index}-${line}`}
+                    className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3 px-3 py-0.5"
+                  >
+                    <span className="select-none text-right tabular-nums text-muted-foreground/70">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <span className="min-w-0 break-words text-foreground/85">
+                      {line}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="grid gap-2 border-t border-border bg-[#f1f1ee] p-3 sm:grid-cols-2 dark:bg-card">
+            <div className="rounded-md border border-border bg-background px-3 py-2">
+              <p className="text-xs text-muted-foreground">业务闭环</p>
+              <p className="mt-1 truncate text-sm font-medium">上下文 · 执行 · 交付 · 治理</p>
+            </div>
+            <div className="rounded-md border border-border bg-background px-3 py-2">
+              <p className="text-xs text-muted-foreground">后续承接</p>
+              <p className="mt-1 truncate text-sm font-medium">商品、活动、预警、简报</p>
             </div>
           </div>
         </div>
@@ -825,16 +916,16 @@ function SwarmIdleDetail({
 function ComputerPreviewCard({
   detail,
   icon: Icon,
-  lines,
+  lane,
   title,
 }: {
   detail: string
   icon: ComponentType<SVGProps<SVGSVGElement>>
-  lines: string[]
+  lane: string
   title: string
 }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-3">
+    <div className="rounded-md border border-border bg-card p-2.5">
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <Icon className="size-4 shrink-0 text-muted-foreground" />
@@ -845,15 +936,8 @@ function ComputerPreviewCard({
         </div>
         <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
       </div>
-      <div className="mt-3 space-y-1">
-        {lines.map((line) => (
-          <div
-            key={line}
-            className="truncate rounded-md bg-muted/70 px-2 py-1 text-[11px] text-muted-foreground"
-          >
-            {line}
-          </div>
-        ))}
+      <div className="mt-2 inline-flex rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+        {lane}
       </div>
     </div>
   )
