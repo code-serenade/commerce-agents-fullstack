@@ -10,7 +10,11 @@ import {
   ListChecks,
   Loader2,
   MonitorCog,
+  PackageCheck,
+  PanelRightOpen,
+  PlugZap,
   Search,
+  ShieldAlert,
   ThumbsDown,
   ThumbsUp,
   TerminalSquare,
@@ -24,6 +28,8 @@ import type { AgentChatMessage } from "../types"
 export interface AgentChatThreadProps {
   isStreaming: boolean
   messages: AgentChatMessage[]
+  onExpandProcessPanel?: () => void
+  processPanelOpen: boolean
   runtimeEvents: AgentRuntimeEvent[]
 }
 
@@ -48,6 +54,8 @@ interface InlineArtifact {
 export function AgentChatThread({
   isStreaming,
   messages,
+  onExpandProcessPanel,
+  processPanelOpen,
   runtimeEvents,
 }: AgentChatThreadProps) {
   const { t } = useTranslation()
@@ -118,9 +126,13 @@ export function AgentChatThread({
             isStreaming={
               isStreaming || messages.some((message) => message.status === "streaming")
             }
+            onExpandProcessPanel={onExpandProcessPanel}
+            processPanelOpen={processPanelOpen}
             runtimeEvents={runtimeEvents}
             task={latestUserTask}
           />
+        ) : !processPanelOpen ? (
+          <InlineProcessExpandRow onExpandProcessPanel={onExpandProcessPanel} />
         ) : null}
         <div ref={endRef} />
       </div>
@@ -171,10 +183,14 @@ function AgentProgressCard({ content }: { content?: string }) {
 
 function InlineSwarmTaskCard({
   isStreaming,
+  onExpandProcessPanel,
+  processPanelOpen,
   runtimeEvents,
   task,
 }: {
   isStreaming: boolean
+  onExpandProcessPanel?: () => void
+  processPanelOpen: boolean
   runtimeEvents: AgentRuntimeEvent[]
   task: string
 }) {
@@ -186,6 +202,7 @@ function InlineSwarmTaskCard({
     agent.state === "working" || agent.state === "reworking" || agent.state === "failed"
   )
   const artifacts = getInlineArtifacts(agents, hasRuntime, isStreaming)
+  const handoffItems = getCommerceHandoffItems()
   const progressLabel = hasRuntime
     ? `${completedCount}/${agents.length} 个任务完成`
     : isStreaming
@@ -257,6 +274,58 @@ function InlineSwarmTaskCard({
                   : "等待新一轮调度"}
             </span>
           </div>
+
+          {!processPanelOpen ? (
+            <div className="mt-3 rounded-lg border border-border bg-background/75 px-3 py-2">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 items-center gap-2 text-sm">
+                    <CheckCircle2
+                      className={`size-4 shrink-0 text-emerald-600 ${
+                        isStreaming ? "animate-pulse" : ""
+                      }`}
+                    />
+                    <span className="shrink-0 font-medium text-foreground">
+                      当前进度 {completedCount}/{agents.length}
+                    </span>
+                    <span className="hidden text-muted-foreground sm:inline">|</span>
+                    <span className="min-w-0 truncate text-muted-foreground">
+                      {getInlineProcessStage({
+                        hasRuntime,
+                        isStreaming,
+                        runtimeEvents,
+                      })}
+                    </span>
+                  </div>
+                  <div className="mt-2 h-1 overflow-hidden rounded-full bg-muted">
+                    <span
+                      className={`block h-full rounded-full ${
+                        agents.some((agent) => agent.state === "failed")
+                          ? "bg-destructive"
+                          : "bg-emerald-500"
+                      }`}
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          Math.round((completedCount / agents.length) * 100)
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={onExpandProcessPanel}
+                  className="flex h-9 shrink-0 items-center justify-center gap-2 rounded-full bg-foreground px-3.5 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
+                  title="展开执行视窗"
+                  aria-label="展开执行视窗"
+                >
+                  展开视窗
+                  <PanelRightOpen className="size-4" />
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
             {agents.slice(0, 6).map((agent, index) => (
@@ -334,16 +403,54 @@ function InlineSwarmTaskCard({
             </div>
           </div>
 
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            {["目标拆解", "并行处理", "方案汇总"].map((item) => (
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {handoffItems.map((item) => {
+              const Icon = item.icon
+              return (
               <div
-                key={item}
-                className="rounded-md border border-border bg-background px-3 py-2 text-xs text-muted-foreground"
+                key={item.label}
+                className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-xs text-muted-foreground"
               >
-                {item}
+                <Icon className="size-3.5 shrink-0" />
+                <span className="min-w-0 truncate">{item.label}</span>
               </div>
-            ))}
+              )
+            })}
           </div>
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function InlineProcessExpandRow({
+  onExpandProcessPanel,
+}: {
+  onExpandProcessPanel?: () => void
+}) {
+  return (
+    <article className="flex justify-start gap-3">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-card text-foreground">
+        <MonitorCog className="size-5" />
+      </div>
+      <div className="min-w-0 max-w-[min(43rem,92%)] rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">业务执行视窗已收起</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              输入经营目标后，会在这里显示本轮进度和产物落点。
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onExpandProcessPanel}
+            className="flex h-9 shrink-0 items-center justify-center gap-2 rounded-full bg-foreground px-3.5 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
+            title="展开执行视窗"
+            aria-label="展开执行视窗"
+          >
+            展开视窗
+            <PanelRightOpen className="size-4" />
+          </button>
         </div>
       </div>
     </article>
@@ -551,6 +658,38 @@ function getInlineArtifacts(
     ...artifact,
     state: stateByNode.get(artifact.nodeId) ?? fallbackState,
   }))
+}
+
+function getCommerceHandoffItems() {
+  return [
+    { icon: FileText, label: "交付资料" },
+    { icon: ListChecks, label: "执行清单" },
+    { icon: PlugZap, label: "平台连接" },
+    { icon: ShieldAlert, label: "预警中心" },
+    { icon: Activity, label: "每日简报" },
+    { icon: PackageCheck, label: "能力包管理" },
+  ]
+}
+
+function getInlineProcessStage({
+  hasRuntime,
+  isStreaming,
+  runtimeEvents,
+}: {
+  hasRuntime: boolean
+  isStreaming: boolean
+  runtimeEvents: AgentRuntimeEvent[]
+}) {
+  if (runtimeEvents.some((event) => event.type === "task_node_failed")) {
+    return "执行受阻，展开视窗查看待处理项"
+  }
+  if (runtimeEvents.some((event) => event.type === "task_graph_finished")) {
+    return "方案已汇总，可查看过程和业务落点"
+  }
+  if (isStreaming) {
+    return hasRuntime ? "协作流程执行中" : "正在规划协作流程"
+  }
+  return hasRuntime ? "本轮过程已同步" : "历史会话，展开视窗查看本轮过程"
 }
 
 function getInlineArtifactStateLabel(state: InlineAgentState) {
