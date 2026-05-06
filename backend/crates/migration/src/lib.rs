@@ -2,6 +2,7 @@ pub use sea_orm_migration::prelude::*;
 
 mod m20260414_000001_create_admin_rbac_tables;
 mod m20260414_000002_create_app_rbac_tables;
+mod m20260506_000001_create_conversation_tables;
 
 pub struct Migrator;
 
@@ -11,6 +12,7 @@ impl MigratorTrait for Migrator {
         vec![
             Box::new(m20260414_000001_create_admin_rbac_tables::Migration),
             Box::new(m20260414_000002_create_app_rbac_tables::Migration),
+            Box::new(m20260506_000001_create_conversation_tables::Migration),
         ]
     }
 }

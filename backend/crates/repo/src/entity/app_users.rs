@@ -21,11 +21,35 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(has_many = "super::app_user_roles::Entity")]
     AppUserRoles,
+    #[sea_orm(has_many = "super::conversation_files::Entity")]
+    ConversationFiles,
+    #[sea_orm(has_many = "super::conversation_messages::Entity")]
+    ConversationMessages,
+    #[sea_orm(has_many = "super::conversations::Entity")]
+    Conversations,
 }
 
 impl Related<super::app_user_roles::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::AppUserRoles.def()
+    }
+}
+
+impl Related<super::conversation_files::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ConversationFiles.def()
+    }
+}
+
+impl Related<super::conversation_messages::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ConversationMessages.def()
+    }
+}
+
+impl Related<super::conversations::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Conversations.def()
     }
 }
 

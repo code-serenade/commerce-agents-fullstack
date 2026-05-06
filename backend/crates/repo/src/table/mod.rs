@@ -9,4 +9,7 @@ pub mod app_role_permissions;
 pub mod app_roles;
 pub mod app_user_roles;
 pub mod app_users;
+pub mod conversation_files;
+pub mod conversation_messages;
+pub mod conversations;
 pub mod dto;

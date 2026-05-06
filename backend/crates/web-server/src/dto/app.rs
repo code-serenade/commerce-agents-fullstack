@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use time::OffsetDateTime;
 use validator::Validate;
 
@@ -178,4 +179,130 @@ pub struct CurrentUserPermissionsResponse {
     pub user_id: String,
     pub role_codes: Vec<String>,
     pub permission_codes: Vec<String>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateConversationRequest {
+    #[validate(length(max = 255))]
+    pub title: Option<String>,
+    #[validate(length(max = 20000))]
+    pub first_message: Option<String>,
+    #[validate(length(max = 128))]
+    pub agent_id: Option<String>,
+    #[validate(length(max = 128))]
+    pub model_name: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct AddConversationMessageRequest {
+    #[validate(length(min = 1, max = 32))]
+    pub role: String,
+    #[validate(length(max = 20000))]
+    pub content_text: Option<String>,
+    pub content_json: Option<Value>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct RegisterConversationFileRequest {
+    #[validate(length(min = 1, max = 128))]
+    pub message_id: Option<String>,
+    #[validate(length(min = 1, max = 1024))]
+    pub object_key: String,
+    #[validate(length(max = 255))]
+    pub file_name: Option<String>,
+    #[validate(length(max = 128))]
+    pub mime_type: Option<String>,
+    pub file_size: Option<i64>,
+    #[validate(length(max = 128))]
+    pub sha256: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct PresignConversationFileUploadRequest {
+    #[validate(length(min = 1, max = 32))]
+    pub extension: String,
+    #[validate(length(max = 128))]
+    pub content_type: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PresignConversationFileUploadResponse {
+    pub method: String,
+    pub upload_url: String,
+    pub bucket: String,
+    pub object_key: String,
+    pub content_type: Option<String>,
+    pub expires_secs: Option<u64>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConversationResponse {
+    pub id: String,
+    pub user_id: String,
+    pub title: Option<String>,
+    pub status: String,
+    pub source: String,
+    pub agent_id: Option<String>,
+    pub model_name: Option<String>,
+    #[serde(with = "time::serde::rfc3339")]
+    pub created_at: OffsetDateTime,
+    #[serde(with = "time::serde::rfc3339")]
+    pub updated_at: OffsetDateTime,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConversationDetailResponse {
+    pub conversation: ConversationResponse,
+    pub messages: Vec<ConversationMessageResponse>,
+    pub files: Vec<ConversationFileResponse>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConversationMessageResponse {
+    pub id: String,
+    pub conversation_id: String,
+    pub user_id: String,
+    pub role: String,
+    pub content_text: Option<String>,
+    pub content_json: Option<Value>,
+    pub status: String,
+    pub sequence: i64,
+    #[serde(with = "time::serde::rfc3339")]
+    pub created_at: OffsetDateTime,
+    #[serde(with = "time::serde::rfc3339")]
+    pub updated_at: OffsetDateTime,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConversationFileResponse {
+    pub id: String,
+    pub conversation_id: String,
+    pub message_id: Option<String>,
+    pub bucket: String,
+    pub object_key: String,
+    pub file_name: Option<String>,
+    pub mime_type: Option<String>,
+    pub file_size: Option<i64>,
+    pub sha256: Option<String>,
+    pub status: String,
+    #[serde(with = "time::serde::rfc3339")]
+    pub created_at: OffsetDateTime,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConversationFileAccessResponse {
+    pub file: ConversationFileResponse,
+    pub method: String,
+    pub download_url: String,
+    pub expires_secs: u64,
 }

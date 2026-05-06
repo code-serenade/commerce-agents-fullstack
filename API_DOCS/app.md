@@ -69,3 +69,159 @@
 - 返回权限码来自该用户绑定的 App 角色
 - 如果当前 Auth 用户尚未初始化为 App 用户，返回 `404`，错误码为 `-12000`
 - 如果当前 App 用户已被禁用，返回 `403`，错误码为 `-12001`
+
+## 3. 查询我的会话列表
+
+- 方法：`GET`
+- 路径：`/api/app/conversations`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`ConversationResponse[]`。
+
+## 4. 创建会话
+
+- 方法：`POST`
+- 路径：`/api/app/conversations`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "title": "New chat",
+  "firstMessage": "hello",
+  "agentId": "default-agent",
+  "modelName": "default-model"
+}
+```
+
+成功响应 `data`：`ConversationDetailResponse`。
+
+## 5. 查询会话详情
+
+- 方法：`GET`
+- 路径：`/api/app/conversations/{conversationId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`ConversationDetailResponse`，包含 `conversation`、`messages`、`files`。
+
+## 6. 添加会话消息
+
+- 方法：`POST`
+- 路径：`/api/app/conversations/{conversationId}/messages`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "role": "user",
+  "contentText": "hello",
+  "contentJson": null
+}
+```
+
+成功响应 `data`：`ConversationMessageResponse`。
+
+补充说明：
+
+- `role` 只能是 `user`、`assistant`、`system`、`tool`
+- `contentText` 和 `contentJson` 至少需要一个有值
+
+## 7. 获取会话附件上传签名
+
+- 方法：`POST`
+- 路径：`/api/app/conversations/{conversationId}/files/presign-upload`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "extension": "png",
+  "contentType": "image/png"
+}
+```
+
+成功响应 `data`：
+
+```json
+{
+  "method": "PUT",
+  "uploadUrl": "http://s3.example/private/chat/...",
+  "bucket": "private",
+  "objectKey": "chat/userScope/conversationId/file.png",
+  "contentType": "image/png",
+  "expiresSecs": 600
+}
+```
+
+补充说明：
+
+- 聊天附件固定使用 private bucket
+- 前端使用 `uploadUrl` 上传成功后，再调用注册附件接口写入业务表
+
+## 8. 注册会话附件
+
+- 方法：`POST`
+- 路径：`/api/app/conversations/{conversationId}/files`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "messageId": null,
+  "objectKey": "chat/userScope/conversationId/file.png",
+  "fileName": "file.png",
+  "mimeType": "image/png",
+  "fileSize": 12345,
+  "sha256": "optional"
+}
+```
+
+成功响应 `data`：`ConversationFileResponse`。
+
+补充说明：
+
+- `bucket` 不由前端传入，服务端固定写入 `private`
+- `objectKey` 必须来自当前用户当前会话的上传签名路径
+
+## 9. 获取会话附件下载签名
+
+- 方法：`GET`
+- 路径：`/api/app/conversation-files/{fileId}/access`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：
+
+```json
+{
+  "file": {
+    "id": "file-uuid",
+    "conversationId": "conversation-uuid",
+    "messageId": null,
+    "bucket": "private",
+    "objectKey": "chat/userScope/conversationId/file.png",
+    "fileName": "file.png",
+    "mimeType": "image/png",
+    "fileSize": 12345,
+    "sha256": null,
+    "status": "active",
+    "createdAt": "2026-05-06T00:00:00Z"
+  },
+  "method": "GET",
+  "downloadUrl": "http://s3.example/private/chat/...",
+  "expiresSecs": 600
+}
+```
+
+## 会话接口权限与错误
+
+- 所有会话接口都只允许访问当前 JWT 用户自己的数据
+- 当前用户必须存在于 `app_users`，且状态为 `enabled`
+- 会话不存在返回 `404`，错误码 `-12002`
+- 会话不属于当前用户返回 `403`，错误码 `-12003`
+- 文件不存在返回 `404`，错误码 `-12004`
+- 文件不属于当前用户返回 `403`，错误码 `-12005`
+- 请求参数不合法返回 `400`，错误码 `-12006`

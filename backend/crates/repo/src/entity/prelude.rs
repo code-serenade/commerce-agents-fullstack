@@ -6,5 +6,6 @@ pub use super::{
     admin_user_roles::Entity as AdminUserRoles, admin_users::Entity as AdminUsers,
     app_permissions::Entity as AppPermissions, app_role_permissions::Entity as AppRolePermissions,
     app_roles::Entity as AppRoles, app_user_roles::Entity as AppUserRoles,
-    app_users::Entity as AppUsers,
+    app_users::Entity as AppUsers, conversation_files::Entity as ConversationFiles,
+    conversation_messages::Entity as ConversationMessages, conversations::Entity as Conversations,
 };

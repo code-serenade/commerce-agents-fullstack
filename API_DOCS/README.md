@@ -56,6 +56,13 @@
 
 1. `POST /api/app/register`
 2. `GET /api/app/me/permissions`
+3. `GET /api/app/conversations`
+4. `POST /api/app/conversations`
+5. `GET /api/app/conversations/{conversationId}`
+6. `POST /api/app/conversations/{conversationId}/messages`
+7. `POST /api/app/conversations/{conversationId}/files/presign-upload`
+8. `POST /api/app/conversations/{conversationId}/files`
+9. `GET /api/app/conversation-files/{fileId}/access`
 
 ### SSE
 

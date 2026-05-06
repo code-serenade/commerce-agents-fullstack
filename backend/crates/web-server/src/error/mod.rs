@@ -41,6 +41,13 @@ pub fn from_biz_error(err: BizError) -> ApiError {
     let status = match err.code() {
         app_error::APP_USER_NOT_FOUND => StatusCode::NOT_FOUND,
         app_error::APP_USER_DISABLED => StatusCode::FORBIDDEN,
+        app_error::CONVERSATION_NOT_FOUND | app_error::CONVERSATION_FILE_NOT_FOUND => {
+            StatusCode::NOT_FOUND
+        }
+        app_error::CONVERSATION_FORBIDDEN | app_error::CONVERSATION_FILE_FORBIDDEN => {
+            StatusCode::FORBIDDEN
+        }
+        app_error::CONVERSATION_REQUEST_INVALID => StatusCode::BAD_REQUEST,
         agent_error::AGENT_PROMPT_ERROR | agent_error::AGENT_SETTINGS_ERROR => {
             StatusCode::INTERNAL_SERVER_ERROR
         }

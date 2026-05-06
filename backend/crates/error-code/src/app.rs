@@ -1,3 +1,8 @@
-// App route business error codes: -12000..-12009
+// App route business error codes: -12000..-12019
 pub const APP_USER_NOT_FOUND: i16 = -12000;
 pub const APP_USER_DISABLED: i16 = -12001;
+pub const CONVERSATION_NOT_FOUND: i16 = -12002;
+pub const CONVERSATION_FORBIDDEN: i16 = -12003;
+pub const CONVERSATION_FILE_NOT_FOUND: i16 = -12004;
+pub const CONVERSATION_FILE_FORBIDDEN: i16 = -12005;
+pub const CONVERSATION_REQUEST_INVALID: i16 = -12006;
