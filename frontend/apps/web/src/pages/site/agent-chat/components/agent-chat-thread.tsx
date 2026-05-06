@@ -10,7 +10,6 @@ import {
   ListChecks,
   Loader2,
   MonitorCog,
-  PackageCheck,
   PanelRightOpen,
   PlugZap,
   Search,
@@ -66,7 +65,7 @@ export function AgentChatThread({
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
-  }, [messages])
+  }, [messages, processPanelOpen])
 
   return (
     <section className="min-h-0 flex-1 overflow-y-auto bg-background px-4 py-5 sm:px-6">
@@ -122,15 +121,25 @@ export function AgentChatThread({
           )
         })}
         {latestUserTask ? (
-          <InlineSwarmTaskCard
-            isStreaming={
-              isStreaming || messages.some((message) => message.status === "streaming")
-            }
-            onExpandProcessPanel={onExpandProcessPanel}
-            processPanelOpen={processPanelOpen}
-            runtimeEvents={runtimeEvents}
-            task={latestUserTask}
-          />
+          <>
+            <InlineSwarmTaskCard
+              isStreaming={
+                isStreaming || messages.some((message) => message.status === "streaming")
+              }
+              runtimeEvents={runtimeEvents}
+              task={latestUserTask}
+            />
+            {!processPanelOpen ? (
+              <InlineProcessRestoreNode
+                isStreaming={
+                  isStreaming ||
+                  messages.some((message) => message.status === "streaming")
+                }
+                onExpandProcessPanel={onExpandProcessPanel}
+                runtimeEvents={runtimeEvents}
+              />
+            ) : null}
+          </>
         ) : !processPanelOpen ? (
           <InlineProcessExpandRow onExpandProcessPanel={onExpandProcessPanel} />
         ) : null}
@@ -183,14 +192,10 @@ function AgentProgressCard({ content }: { content?: string }) {
 
 function InlineSwarmTaskCard({
   isStreaming,
-  onExpandProcessPanel,
-  processPanelOpen,
   runtimeEvents,
   task,
 }: {
   isStreaming: boolean
-  onExpandProcessPanel?: () => void
-  processPanelOpen: boolean
   runtimeEvents: AgentRuntimeEvent[]
   task: string
 }) {
@@ -275,58 +280,6 @@ function InlineSwarmTaskCard({
             </span>
           </div>
 
-          {!processPanelOpen ? (
-            <div className="mt-3 rounded-lg border border-border bg-background/75 px-3 py-2">
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex min-w-0 items-center gap-2 text-sm">
-                    <CheckCircle2
-                      className={`size-4 shrink-0 text-emerald-600 ${
-                        isStreaming ? "animate-pulse" : ""
-                      }`}
-                    />
-                    <span className="shrink-0 font-medium text-foreground">
-                      当前进度 {completedCount}/{agents.length}
-                    </span>
-                    <span className="hidden text-muted-foreground sm:inline">|</span>
-                    <span className="min-w-0 truncate text-muted-foreground">
-                      {getInlineProcessStage({
-                        hasRuntime,
-                        isStreaming,
-                        runtimeEvents,
-                      })}
-                    </span>
-                  </div>
-                  <div className="mt-2 h-1 overflow-hidden rounded-full bg-muted">
-                    <span
-                      className={`block h-full rounded-full ${
-                        agents.some((agent) => agent.state === "failed")
-                          ? "bg-destructive"
-                          : "bg-emerald-500"
-                      }`}
-                      style={{
-                        width: `${Math.min(
-                          100,
-                          Math.round((completedCount / agents.length) * 100)
-                        )}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={onExpandProcessPanel}
-                  className="flex h-9 shrink-0 items-center justify-center gap-2 rounded-full bg-foreground px-3.5 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
-                  title="展开执行视窗"
-                  aria-label="展开执行视窗"
-                >
-                  展开视窗
-                  <PanelRightOpen className="size-4" />
-                </button>
-              </div>
-            </div>
-          ) : null}
-
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
             {agents.slice(0, 6).map((agent, index) => (
               <div
@@ -403,7 +356,7 @@ function InlineSwarmTaskCard({
             </div>
           </div>
 
-          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {handoffItems.map((item) => {
               const Icon = item.icon
               return (
@@ -412,10 +365,83 @@ function InlineSwarmTaskCard({
                 className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-xs text-muted-foreground"
               >
                 <Icon className="size-3.5 shrink-0" />
-                <span className="min-w-0 truncate">{item.label}</span>
+                <span className="shrink-0 font-medium text-foreground">
+                  {item.label}
+                </span>
+                <span className="min-w-0 truncate">{item.detail}</span>
               </div>
               )
             })}
+          </div>
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function InlineProcessRestoreNode({
+  isStreaming,
+  onExpandProcessPanel,
+  runtimeEvents,
+}: {
+  isStreaming: boolean
+  onExpandProcessPanel?: () => void
+  runtimeEvents: AgentRuntimeEvent[]
+}) {
+  const agents = getInlineAgents(runtimeEvents, isStreaming)
+  const completedCount = agents.filter((agent) => agent.state === "done").length
+  const hasRuntime = runtimeEvents.length > 0
+  const progressPercent = agents.length
+    ? Math.min(100, Math.round((completedCount / agents.length) * 100))
+    : 0
+  const hasFailedAgent = agents.some((agent) => agent.state === "failed")
+
+  return (
+    <article className="flex justify-start gap-3">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-card text-foreground">
+        <MonitorCog className="size-5" />
+      </div>
+      <div className="min-w-0 max-w-[min(43rem,92%)]">
+        <div className="rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex min-w-0 items-center gap-2 text-sm">
+                <CheckCircle2
+                  className={`size-4 shrink-0 text-emerald-600 ${
+                    isStreaming ? "animate-pulse" : ""
+                  }`}
+                />
+                <span className="shrink-0 font-medium text-foreground">
+                  当前进度 {completedCount}/{agents.length}
+                </span>
+                <span className="hidden text-muted-foreground sm:inline">|</span>
+                <span className="min-w-0 truncate text-muted-foreground">
+                  {getInlineProcessStage({
+                    hasRuntime,
+                    isStreaming,
+                    runtimeEvents,
+                  })}
+                </span>
+              </div>
+              <div className="mt-2 h-1 overflow-hidden rounded-full bg-muted">
+                <span
+                  className={`block h-full rounded-full ${
+                    hasFailedAgent ? "bg-destructive" : "bg-emerald-500"
+                  }`}
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onExpandProcessPanel}
+              className="flex h-9 shrink-0 items-center justify-center gap-2 rounded-full bg-foreground px-3.5 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
+              title="展开执行视窗"
+              aria-label="展开执行视窗"
+            >
+              展开视窗
+              <PanelRightOpen className="size-4" />
+            </button>
           </div>
         </div>
       </div>
@@ -662,12 +688,26 @@ function getInlineArtifacts(
 
 function getCommerceHandoffItems() {
   return [
-    { icon: FileText, label: "交付资料" },
-    { icon: ListChecks, label: "执行清单" },
-    { icon: PlugZap, label: "平台连接" },
-    { icon: ShieldAlert, label: "预警中心" },
-    { icon: Activity, label: "每日简报" },
-    { icon: PackageCheck, label: "能力包管理" },
+    {
+      icon: PlugZap,
+      label: "上下文",
+      detail: "商品看板、平台连接、智能洞察",
+    },
+    {
+      icon: ListChecks,
+      label: "执行",
+      detail: "营销活动、执行清单、工作区任务",
+    },
+    {
+      icon: FileText,
+      label: "交付",
+      detail: "交付资料、每日简报、复盘历史",
+    },
+    {
+      icon: ShieldAlert,
+      label: "治理",
+      detail: "预警中心、能力包管理、审批回滚",
+    },
   ]
 }
 
