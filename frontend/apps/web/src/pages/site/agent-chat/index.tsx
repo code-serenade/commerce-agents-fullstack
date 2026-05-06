@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Activity, ChevronLeft, PanelRightOpen } from "lucide-react"
+import { MonitorCog, PanelRightOpen } from "lucide-react"
 import { AgentChatComposer } from "./components/agent-chat-composer"
 import { AgentChatStatus } from "./components/agent-chat-status"
 import { AgentChatSwarmPanel } from "./components/agent-chat-swarm-panel"
@@ -14,7 +14,7 @@ export default function AgentChatPage() {
     "relative grid min-h-0 flex-1 grid-cols-1 gap-3 p-2 sm:p-3",
     isProcessPanelOpen
       ? "overflow-hidden min-[1500px]:grid-cols-[minmax(30rem,0.9fr)_minmax(42rem,1.1fr)]"
-      : "overflow-hidden",
+      : "overflow-hidden min-[1100px]:grid-cols-[minmax(0,1fr)_5rem]",
   ].join(" ")
 
   const chatPanelClassName = [
@@ -69,27 +69,53 @@ export default function AgentChatPage() {
 
 function CollapsedProcessHandle({ onExpand }: { onExpand: () => void }) {
   return (
-    <aside className="pointer-events-none absolute inset-y-0 right-0 z-30 flex items-center">
+    <>
+      <aside className="hidden min-h-0 border-l border-border/80 bg-[#f7f7f5]/90 pl-2 dark:bg-card/40 min-[1100px]:flex">
+        <button
+          type="button"
+          onClick={onExpand}
+          className="group mt-1 flex h-[calc(100%-0.5rem)] w-full flex-col items-center rounded-lg border border-border bg-background/95 px-2 py-3 text-center text-xs text-muted-foreground shadow-sm shadow-black/5 backdrop-blur transition-colors hover:bg-card hover:text-foreground"
+          title="展开过程面板"
+          aria-label="展开过程面板"
+        >
+          <span className="relative flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-card text-foreground">
+            <MonitorCog className="size-4" />
+            <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.14)]" />
+          </span>
+          <span className="mt-3 whitespace-nowrap text-[11px] font-medium text-foreground">
+            展开视窗
+          </span>
+          <span className="mt-1 whitespace-nowrap text-[10px] text-muted-foreground">
+            执行台
+          </span>
+          <span className="mt-3 h-px w-8 bg-border" />
+          <span className="mt-3 flex size-8 items-center justify-center rounded-full border border-border bg-card transition-colors group-hover:border-foreground/30">
+            <PanelRightOpen className="size-4" />
+          </span>
+          <span className="mt-auto hidden text-[10px] leading-4 text-muted-foreground min-[1300px]:block">
+            过程视窗已收起
+          </span>
+        </button>
+      </aside>
+      <aside className="pointer-events-none absolute right-2 top-4 z-30 flex justify-end min-[1100px]:hidden">
       <button
         type="button"
         onClick={onExpand}
-        className="group pointer-events-auto flex min-h-28 w-10 flex-col items-center justify-center gap-2 rounded-l-xl border border-r-0 border-border bg-card/95 py-3 text-muted-foreground shadow-lg shadow-black/10 backdrop-blur transition-all hover:w-24 hover:bg-background hover:text-foreground"
-        title="展开过程面板"
-        aria-label="展开过程面板"
+        className="pointer-events-auto flex items-center gap-2 rounded-full border border-border bg-background/95 px-2.5 py-2 text-xs text-muted-foreground shadow-lg shadow-black/10 backdrop-blur transition-colors hover:bg-card hover:text-foreground"
+        title="展开过程面板（小屏）"
+        aria-label="展开过程面板（小屏）"
       >
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-card">
+          <MonitorCog className="size-3.5" />
+        </span>
+        <span className="hidden min-w-0 flex-col items-start leading-none sm:flex">
+          <span className="font-medium text-foreground">展开视窗</span>
+          <span className="mt-1 text-[10px] text-muted-foreground">执行台</span>
+        </span>
+        <span className="size-2 rounded-full bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.14)]" />
         <PanelRightOpen className="size-4 shrink-0" />
-        <span className="hidden whitespace-nowrap text-xs font-medium [writing-mode:vertical-rl] sm:block group-hover:hidden">
-          过程
-        </span>
-        <span className="hidden whitespace-nowrap text-xs font-medium group-hover:block">
-          展开过程
-        </span>
-        <div className="relative">
-          <Activity className="size-4" />
-          <span className="absolute -right-0.5 -top-0.5 size-1.5 rounded-full bg-emerald-500" />
-        </div>
-        <ChevronLeft className="hidden size-4 group-hover:block" />
       </button>
-    </aside>
+      </aside>
+    </>
   )
 }

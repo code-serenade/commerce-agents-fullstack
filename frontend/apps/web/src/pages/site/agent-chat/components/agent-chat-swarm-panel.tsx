@@ -5,14 +5,18 @@ import {
   ChevronRight,
   CheckCircle2,
   ClipboardCheck,
+  Database,
   FileText,
   Loader2,
   Megaphone,
   MonitorCog,
   PanelRightClose,
   PenLine,
+  PlugZap,
   Search,
   SearchCheck,
+  ShieldAlert,
+  ShoppingBag,
   Sparkles,
   TerminalSquare,
   WalletCards,
@@ -170,10 +174,16 @@ const FALLBACK_PHASES = [
   },
 ]
 
-const DELIVERABLES = [
-  "运营全流程执行方案.docx",
-  "数据诊断与归因报告.md",
-  "千川投放计划表.xlsx",
+const BUSINESS_CONTEXTS = [
+  "商品看板：咖啡商品组、卖点、素材和竞品",
+  "营销活动：五一转化活动、预算和执行节奏",
+  "数据接入：抖音/千川数据、平台同步状态",
+]
+
+const COMMERCE_OUTCOMES = [
+  "创建营销活动",
+  "同步商品知识",
+  "生成预警规则",
 ]
 
 export function AgentChatSwarmPanel({
@@ -382,11 +392,16 @@ export function AgentChatSwarmPanel({
             </div>
           </section>
 
-          <section className="mt-3 grid gap-2 lg:grid-cols-3 2xl:grid-cols-1 min-[1800px]:grid-cols-[1fr_1fr_1.2fr]">
+          <section className="mt-3 grid gap-2 lg:grid-cols-2 2xl:grid-cols-1 min-[1800px]:grid-cols-4">
             <CompactInfoBlock
               icon={Activity}
               title="活动轨迹"
               items={timeline.slice(0, 2).map((item) => item.label)}
+            />
+            <CompactInfoBlock
+              icon={Database}
+              title="业务上下文"
+              items={BUSINESS_CONTEXTS.slice(0, 2)}
             />
             <CompactInfoBlock
               icon={SearchCheck}
@@ -395,8 +410,8 @@ export function AgentChatSwarmPanel({
             />
             <CompactInfoBlock
               icon={FileText}
-              title="产物预览"
-              items={DELIVERABLES.slice(0, 2)}
+              title="业务落点"
+              items={COMMERCE_OUTCOMES.slice(0, 2)}
             />
           </section>
         </div>
@@ -712,22 +727,28 @@ function SwarmIdleDetail({
     <div className="grid gap-3 p-3 xl:grid-cols-[13rem_minmax(0,1fr)]">
       <div className="space-y-2">
         <ComputerPreviewCard
-          icon={FileText}
-          title="读取目标"
-          detail="经营目标与角色规则"
-          lines={["数据诊断 / 预算评估 / 投放优化", "先诊断，再并行，再汇总"]}
+          icon={ShoppingBag}
+          title="商品看板"
+          detail="商品、卖点、素材、竞品"
+          lines={["咖啡商品组", "同步商品知识"]}
         />
         <ComputerPreviewCard
-          icon={TerminalSquare}
-          title="调度角色"
+          icon={Megaphone}
+          title="营销活动"
+          detail="活动策划与执行跟踪"
+          lines={["五一转化活动", "千川投放复盘"]}
+        />
+        <ComputerPreviewCard
+          icon={PlugZap}
+          title="数据接入"
           detail={selectedLlmLabel ? `模型通道 ${selectedLlmLabel}` : "等待模型通道"}
-          lines={["模型通道已连接", "执行器待命"]}
+          lines={["抖音/千川数据", "平台同步状态"]}
         />
         <ComputerPreviewCard
-          icon={Search}
-          title="补充资料"
-          detail="补充行业与平台场景资料"
-          lines={["咖啡转化", "千川投放复盘"]}
+          icon={ShieldAlert}
+          title="预警中心"
+          detail="异常、风险和待确认项"
+          lines={["预算风险", "转化异常"]}
         />
       </div>
 
@@ -765,9 +786,13 @@ function SwarmIdleDetail({
                 `# ${title}`,
                 description,
                 "数据诊断先识别指标、归因和经营约束",
+                "商品看板提供商品知识、卖点素材和竞品线索",
+                "营销活动承接活动策划、执行节奏和复盘结果",
+                "数据接入提供抖音/千川等平台同步状态",
                 "预算评估、千川投放、创意产出并行处理",
                 "运营方案汇总预算、素材、投放节奏",
                 "交付文档沉淀方案、执行清单和复盘口径",
+                "预警中心沉淀预算、投放和转化异常规则",
               ].map((line, index) => (
                 <div
                   key={`${index}-${line}`}

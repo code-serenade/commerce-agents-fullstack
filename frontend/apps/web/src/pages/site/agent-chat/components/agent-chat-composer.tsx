@@ -1,4 +1,14 @@
-import { Bot, Coffee, Loader2, Megaphone, Plus, Send, Square } from "lucide-react"
+import {
+  Bot,
+  Coffee,
+  Database,
+  Loader2,
+  Megaphone,
+  Plus,
+  Send,
+  ShoppingBag,
+  Square,
+} from "lucide-react"
 import { type KeyboardEvent } from "react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@workspace/ui-components/stable/button"
@@ -16,6 +26,24 @@ const SAMPLE_PROMPTS = [
     icon: Megaphone,
     prompt:
       "帮我复盘一个抖音直播间千川投放问题：点击率可以但下单转化低，请按数据诊断、预算、创意、投放和运营执行拆成多智能体任务",
+  },
+]
+
+const CONTEXT_CHIPS = [
+  {
+    label: "咖啡商品组",
+    icon: ShoppingBag,
+    title: "后续接商品看板和商品知识",
+  },
+  {
+    label: "五一营销活动",
+    icon: Megaphone,
+    title: "后续接营销活动策划和执行跟踪",
+  },
+  {
+    label: "抖音/千川数据",
+    icon: Database,
+    title: "后续接平台连接、数据导入和投放数据",
   },
 ]
 
@@ -76,6 +104,22 @@ export function AgentChatComposer({
               >
                 <Icon className="size-3.5" />
                 {sample.label}
+              </button>
+            )
+          })}
+          <span className="hidden h-7 w-px bg-border sm:block" />
+          {CONTEXT_CHIPS.map((chip) => {
+            const Icon = chip.icon
+            return (
+              <button
+                key={chip.label}
+                type="button"
+                disabled={disabled || isStreaming}
+                className="flex items-center gap-2 rounded-full border border-border bg-background/70 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                title={chip.title}
+              >
+                <Icon className="size-3.5" />
+                {chip.label}
               </button>
             )
           })}
