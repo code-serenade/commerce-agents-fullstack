@@ -1,7 +1,6 @@
 import { type ReactNode } from "react"
 import {
   ClipboardList,
-  Code2,
   Database,
   Edit3,
   FileText,
@@ -16,7 +15,6 @@ import {
   ShoppingBag,
   UserPlus,
   UserRound,
-  WalletCards,
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useDispatch, useSelector } from "react-redux"
@@ -92,9 +90,9 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       label: "运营工作台",
       items: [
         {
-          key: "agent-swarm",
+          key: "smart-ops",
           icon: <GitBranch />,
-          label: "多智能体调度",
+          label: "智能运营",
           active: Boolean(chat.conversationId),
         },
         {
@@ -108,6 +106,32 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           label: "营销活动",
         },
         {
+          key: "platform",
+          icon: <PlugZap />,
+          label: "平台连接",
+        },
+        {
+          key: "market-research",
+          icon: <Search />,
+          label: "智能洞察",
+        },
+        {
+          key: "briefing",
+          icon: <FileText />,
+          label: "每日简报",
+        },
+        {
+          key: "alerts",
+          icon: <ShieldAlert />,
+          label: "预警中心",
+        },
+      ],
+    },
+    {
+      key: "governance",
+      label: "管理与复盘",
+      items: [
+        {
           key: "deliverables",
           icon: <FileText />,
           label: "交付资料",
@@ -118,55 +142,19 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           label: "执行清单",
         },
         {
-          key: "market-research",
-          icon: <Search />,
-          label: "智能洞察",
-        },
-      ],
-    },
-    {
-      key: "commerce-capabilities",
-      label: "Commerce 能力",
-      items: [
-        {
-          key: "douyin-ads",
-          icon: <Megaphone />,
-          label: "千川投放",
-        },
-        {
-          key: "budget",
-          icon: <WalletCards />,
-          label: "预算核算",
-        },
-        {
-          key: "ops-plan",
-          icon: <ClipboardList />,
-          label: "运营方案",
-        },
-        {
-          key: "data-diagnosis",
-          icon: <Database />,
-          label: "数据诊断",
-        },
-        {
-          key: "data-import",
-          icon: <PlugZap />,
-          label: "数据接入",
-        },
-        {
-          key: "alerts",
-          icon: <ShieldAlert />,
-          label: "预警中心",
-        },
-        {
           key: "packages",
           icon: <PackageCheck />,
-          label: "能力包管理",
+          label: "通用化管理",
         },
         {
-          key: "more",
-          icon: <Code2 />,
-          label: t("agentChat.sidebar.more"),
+          key: "system-dashboard",
+          icon: <Database />,
+          label: "系统看板",
+        },
+        {
+          key: "team",
+          icon: <UserRound />,
+          label: "AI 团队介绍",
         },
       ],
     },
@@ -216,7 +204,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       header={
         <TopBar
           title={activeConversation?.title ?? "输入运营目标"}
-          meta="Commerce 运营智能体 · 协作流程调度"
+          meta="Commerce 运营智能体 · 经营闭环工作台"
           leading={<GitBranch className="size-5" />}
           trailing={trailing}
         />

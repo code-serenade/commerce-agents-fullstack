@@ -163,8 +163,8 @@ function WelcomeCard({ content }: { content: string }) {
       </div>
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
         {[
-          "拆解协作流程",
-          "并行处理任务",
+          "拆解经营目标",
+          "组织业务执行",
           "沉淀交付产物",
         ].map((item) => (
           <div key={item} className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
@@ -183,8 +183,8 @@ function AgentProgressCard({ content }: { content?: string }) {
       <Loader2 className="size-4 animate-spin" />
       <span>
         {content
-          ? "正在接收多角色协作输出"
-          : "正在等待协作流程和执行事件"}
+          ? "正在接收业务执行输出"
+          : "正在等待执行工作台事件"}
       </span>
     </div>
   )
@@ -211,7 +211,7 @@ function InlineSwarmTaskCard({
   const progressLabel = hasRuntime
     ? `${completedCount}/${agents.length} 个任务完成`
     : isStreaming
-      ? "正在生成协作流程"
+      ? "正在生成执行计划"
       : "历史消息未执行"
 
   return (
@@ -258,7 +258,7 @@ function InlineSwarmTaskCard({
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 text-sm font-semibold">
                 <Activity className="size-4 text-muted-foreground" />
-                智能体协作
+                业务执行
                 <span className="text-xs font-normal text-muted-foreground">
                   {progressLabel}
                 </span>
@@ -272,11 +272,11 @@ function InlineSwarmTaskCard({
             <span className="rounded-full bg-secondary px-2 py-1 text-[11px] font-medium text-secondary-foreground">
               {runtimeEvents.length
                 ? isStreaming
-                  ? "正在调度"
-                  : "本轮调度已同步"
+                  ? "正在执行"
+                  : "本轮执行已同步"
                 : isStreaming
                   ? "正在规划"
-                  : "等待新一轮调度"}
+                  : "等待新一轮执行"}
             </span>
           </div>
 
@@ -346,7 +346,7 @@ function InlineSwarmTaskCard({
                 </span>
               </div>
               <span className="rounded-full bg-secondary px-2 py-1 text-[11px] text-secondary-foreground">
-                {hasRuntime ? "随调度更新" : isStreaming ? "准备生成" : "待生成"}
+                {hasRuntime ? "随执行更新" : isStreaming ? "准备生成" : "待生成"}
               </span>
             </div>
             <div className="mt-3 grid gap-2">
@@ -436,10 +436,10 @@ function InlineProcessRestoreNode({
               type="button"
               onClick={onExpandProcessPanel}
               className="flex h-8 shrink-0 items-center justify-center gap-2 rounded-full bg-foreground px-3 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
-              title="展开执行视窗"
-              aria-label="展开执行视窗"
+              title="展开执行工作台"
+              aria-label="展开执行工作台"
             >
-              展开视窗
+              展开工作台
               <PanelRightOpen className="size-4" />
             </button>
           </div>
@@ -462,7 +462,7 @@ function InlineProcessExpandRow({
       <div className="min-w-0 max-w-[min(43rem,92%)] rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
         <div className="flex flex-wrap items-center gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium">业务执行视窗已收起</p>
+            <p className="text-sm font-medium">执行工作台已收起</p>
             <p className="mt-1 text-xs text-muted-foreground">
               输入经营目标后，会在这里显示本轮进度和产物落点。
             </p>
@@ -471,10 +471,10 @@ function InlineProcessExpandRow({
             type="button"
             onClick={onExpandProcessPanel}
             className="flex h-9 shrink-0 items-center justify-center gap-2 rounded-full bg-foreground px-3.5 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
-            title="展开执行视窗"
-            aria-label="展开执行视窗"
+            title="展开执行工作台"
+            aria-label="展开执行工作台"
           >
-            展开视窗
+            展开工作台
             <PanelRightOpen className="size-4" />
           </button>
         </div>
@@ -632,13 +632,13 @@ function getInlineSteps(
     [
       "读取目标",
       hasGraph
-        ? "协作流程已生成"
+        ? "执行计划已生成"
         : isStreaming
           ? "正在读取经营目标与业务规则"
           : "经营目标与业务规则",
     ],
     [
-      "调度角色",
+      "分配任务",
       hasNodeStarted
         ? "角色任务正在执行"
         : isStreaming
@@ -696,7 +696,7 @@ function getCommerceHandoffItems() {
     {
       icon: ListChecks,
       label: "执行",
-      detail: "营销活动、执行清单、工作区任务",
+      detail: "营销活动、执行清单、工作台任务",
     },
     {
       icon: FileText,
@@ -721,15 +721,15 @@ function getInlineProcessStage({
   runtimeEvents: AgentRuntimeEvent[]
 }) {
   if (runtimeEvents.some((event) => event.type === "task_node_failed")) {
-    return "执行受阻，展开视窗查看待处理项"
+    return "执行受阻，展开工作台查看待处理项"
   }
   if (runtimeEvents.some((event) => event.type === "task_graph_finished")) {
     return "方案已汇总，可查看过程和业务落点"
   }
   if (isStreaming) {
-    return hasRuntime ? "协作流程执行中" : "正在规划协作流程"
+    return hasRuntime ? "执行计划推进中" : "正在规划执行计划"
   }
-  return hasRuntime ? "本轮过程已同步" : "历史会话，展开视窗查看本轮过程"
+  return hasRuntime ? "本轮过程已同步" : "历史会话，展开工作台查看本轮过程"
 }
 
 function getInlineArtifactStateLabel(state: InlineAgentState) {
