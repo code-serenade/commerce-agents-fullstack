@@ -6,3 +6,9 @@ export interface AgentChatMessage {
   content: string
   status?: "streaming" | "error"
 }
+
+export interface AgentChatConversationItem {
+  id: string
+  title: string
+  updatedAt: string
+}

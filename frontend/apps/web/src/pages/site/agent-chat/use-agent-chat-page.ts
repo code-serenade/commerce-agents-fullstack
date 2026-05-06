@@ -1,9 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useSelector } from "react-redux"
-import { streamAgentSessionApi } from "@/api"
+import {
+  addConversationMessageApi,
+  createConversationApi,
+  getConversationApi,
+  listConversationsApi,
+  streamAgentSessionApi,
+  type ConversationDetailResponse,
+  type ConversationMessageResponse,
+} from "@/api"
 import type { RootState } from "@/store"
-import type { AgentChatMessage } from "./types"
+import type { AgentChatConversationItem, AgentChatMessage } from "./types"
 
 const AGENT_ID = "web-agent"
 const WORKSPACE_ID = "workspace-001"
@@ -19,16 +27,106 @@ export function useAgentChatPage() {
       content: t("agentChat.welcomeMessage"),
     },
   ])
+  const [conversationId, setConversationId] = useState<string | null>(null)
+  const [conversations, setConversations] = useState<AgentChatConversationItem[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const sessionIdRef = useRef(createSessionId())
 
+  const createWelcomeMessage = useCallback(
+    (): AgentChatMessage => ({
+      id: "welcome",
+      role: "assistant",
+      content: t("agentChat.welcomeMessage"),
+    }),
+    [t]
+  )
+
   useEffect(() => {
     return () => abortRef.current?.abort()
   }, [])
 
+  useEffect(() => {
+    let cancelled = false
+
+    if (!user) {
+      queueMicrotask(() => {
+        if (cancelled) return
+        setConversationId(null)
+        setConversations([])
+        sessionIdRef.current = createSessionId()
+        setMessages([createWelcomeMessage()])
+      })
+      return
+    }
+
+    async function loadLatestConversation() {
+      try {
+        const conversations = await listConversationsApi()
+        if (cancelled) return
+
+        setConversations(conversations.map(mapConversationItem))
+        const latest = conversations[0]
+        if (!latest) {
+          if (!cancelled) {
+            setConversationId(null)
+            sessionIdRef.current = createSessionId()
+            setMessages([createWelcomeMessage()])
+          }
+          return
+        }
+
+        const detail = await getConversationApi(latest.id)
+        if (cancelled) return
+
+        setConversationId(detail.conversation.id)
+        sessionIdRef.current = detail.conversation.id
+        setMessages(mapConversationMessages(detail, createWelcomeMessage()))
+      } catch (err) {
+        if (cancelled) return
+        const message = err instanceof Error ? err.message : t("agentChat.error")
+        setError(message)
+      }
+    }
+
+    void loadLatestConversation()
+
+    return () => {
+      cancelled = true
+    }
+  }, [createWelcomeMessage, t, user])
+
   const canSend = Boolean(user) && input.trim().length > 0 && !isStreaming
+
+  const startNewConversation = useCallback(() => {
+    abortRef.current?.abort()
+    abortRef.current = null
+    setConversationId(null)
+    sessionIdRef.current = createSessionId()
+    setInput("")
+    setError(null)
+    setIsStreaming(false)
+    setMessages([createWelcomeMessage()])
+  }, [createWelcomeMessage])
+
+  const selectConversation = useCallback(
+    async (nextConversationId: string) => {
+      if (!user || nextConversationId === conversationId || isStreaming) return
+
+      setError(null)
+      try {
+        const detail = await getConversationApi(nextConversationId)
+        setConversationId(detail.conversation.id)
+        sessionIdRef.current = detail.conversation.id
+        setMessages(mapConversationMessages(detail, createWelcomeMessage()))
+      } catch (err) {
+        const message = err instanceof Error ? err.message : t("agentChat.error")
+        setError(message)
+      }
+    },
+    [conversationId, createWelcomeMessage, isStreaming, t, user]
+  )
 
   const sendMessage = useCallback(async () => {
     const content = input.trim()
@@ -57,6 +155,32 @@ export function useAgentChatPage() {
     abortRef.current = controller
 
     try {
+      let activeConversationId = conversationId
+      if (!activeConversationId) {
+        const detail = await createConversationApi({
+          title: createConversationTitle(content),
+          firstMessage: content,
+          agentId: AGENT_ID,
+          modelName: null,
+        })
+        activeConversationId = detail.conversation.id
+        setConversationId(activeConversationId)
+        setConversations((current) => [
+          mapConversationItem(detail.conversation),
+          ...current.filter((item) => item.id !== detail.conversation.id),
+        ])
+        sessionIdRef.current = activeConversationId
+      } else {
+        await addConversationMessageApi(activeConversationId, {
+          role: "user",
+          contentText: content,
+          contentJson: null,
+        })
+      }
+
+      let assistantContent = ""
+      let persistAssistant: Promise<void> | null = null
+
       await streamAgentSessionApi(
         {
           input: content,
@@ -67,6 +191,7 @@ export function useAgentChatPage() {
         {
           signal: controller.signal,
           onDelta: (chunk) => {
+            assistantContent += chunk
             setMessages((current) =>
               current.map((message) =>
                 message.id === assistantId
@@ -85,6 +210,13 @@ export function useAgentChatPage() {
             )
             setIsStreaming(false)
             abortRef.current = null
+            if (assistantContent) {
+              persistAssistant = addConversationMessageApi(activeConversationId, {
+                role: "assistant",
+                contentText: assistantContent,
+                contentJson: null,
+              }).then(() => undefined)
+            }
           },
           onError: (message) => {
             setError(message)
@@ -104,6 +236,7 @@ export function useAgentChatPage() {
           },
         }
       )
+      await persistAssistant
     } catch (err) {
       if (controller.signal.aborted) return
       const message = err instanceof Error ? err.message : t("agentChat.error")
@@ -111,7 +244,7 @@ export function useAgentChatPage() {
       setIsStreaming(false)
       abortRef.current = null
     }
-  }, [input, isStreaming, t, user])
+  }, [conversationId, input, isStreaming, t, user])
 
   const stopStreaming = useCallback(() => {
     abortRef.current?.abort()
@@ -128,15 +261,59 @@ export function useAgentChatPage() {
 
   return {
     canSend,
+    conversationId,
+    conversations,
     error,
     input,
     isLoggedIn: Boolean(user),
     isStreaming,
     messages,
     sendMessage,
+    selectConversation,
     setInput,
+    startNewConversation,
     stopStreaming,
   }
+}
+
+function mapConversationItem(conversation: {
+  id: string
+  title: string | null
+  updatedAt: string
+}): AgentChatConversationItem {
+  return {
+    id: conversation.id,
+    title: conversation.title || "New chat",
+    updatedAt: conversation.updatedAt,
+  }
+}
+
+function mapConversationMessages(
+  detail: ConversationDetailResponse,
+  fallback: AgentChatMessage
+): AgentChatMessage[] {
+  const messages = detail.messages
+    .filter(isVisibleMessage)
+    .map((message) => ({
+      id: message.id,
+      role: message.role,
+      content: message.contentText ?? "",
+    }))
+
+  return messages.length > 0 ? messages : [fallback]
+}
+
+function isVisibleMessage(
+  message: ConversationMessageResponse
+): message is ConversationMessageResponse & { role: "user" | "assistant" } {
+  return (
+    (message.role === "user" || message.role === "assistant") &&
+    Boolean(message.contentText)
+  )
+}
+
+function createConversationTitle(content: string) {
+  return content.length > 40 ? `${content.slice(0, 40)}...` : content
 }
 
 function createSessionId() {

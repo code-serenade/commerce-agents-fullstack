@@ -1,6 +1,10 @@
 import { Outlet } from "react-router"
-import { WebAppShell } from "@/shell"
+import { AgentChatShell } from "@/shell"
 
 export default function AppLayout() {
-  return <WebAppShell><Outlet /></WebAppShell>
+  return (
+    <AgentChatShell>
+      <Outlet />
+    </AgentChatShell>
+  )
 }

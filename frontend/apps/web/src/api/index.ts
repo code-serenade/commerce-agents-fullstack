@@ -35,6 +35,19 @@ export {
 } from "./agent"
 
 export {
+  addConversationMessageApi,
+  createConversationApi,
+  getConversationApi,
+  listConversationsApi,
+  type AddConversationMessageRequest,
+  type ConversationDetailResponse,
+  type ConversationFileResponse,
+  type ConversationMessageResponse,
+  type ConversationResponse,
+  type CreateConversationRequest,
+} from "./conversation"
+
+export {
   deleteWithSignedUrlApi,
   getAccessSignApi,
   getDeleteSignApi,

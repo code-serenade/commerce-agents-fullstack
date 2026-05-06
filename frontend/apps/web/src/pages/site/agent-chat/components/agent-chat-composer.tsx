@@ -32,9 +32,9 @@ export function AgentChatComposer({
   }
 
   return (
-    <footer className="border-t border-(--app-border) bg-(--app-bg) p-4 sm:px-6">
+    <footer className="shrink-0 bg-(--app-bg) p-4 sm:px-6">
       <div
-        className="mx-auto flex w-full max-w-3xl flex-col gap-3 rounded-lg border border-(--app-border) bg-(--app-surface) p-3 shadow-(--ui-shadow-soft)"
+        className="mx-auto flex w-full max-w-3xl flex-col gap-3 rounded-2xl border border-(--app-border) bg-(--app-surface) p-3 shadow-(--ui-shadow-soft)"
         onKeyDown={handleKeyDown}
       >
         <Textarea

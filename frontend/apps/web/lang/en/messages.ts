@@ -69,6 +69,14 @@ const messages = {
     streaming: "Thinking...",
     error: "Agent reply failed. Please try again later.",
     errorBadge: "Reply failed",
+    sidebar: {
+      newChat: "New chat",
+      search: "Search history",
+      recents: "Recents",
+      chat: "Chat",
+      more: "More",
+      empty: "No conversations yet",
+    },
     composer: {
       placeholder: "Message the agent...",
       loginPlaceholder: "Sign in before calling the agent",

@@ -64,6 +64,14 @@ const messages = {
     streaming: "正在思考...",
     error: "Agent 回复失败，请稍后重试。",
     errorBadge: "回复失败",
+    sidebar: {
+      newChat: "新对话",
+      search: "搜索历史记录",
+      recents: "最近",
+      chat: "聊天",
+      more: "更多",
+      empty: "还没有历史对话",
+    },
     composer: {
       placeholder: "给 Agent 发送消息...",
       loginPlaceholder: "请先登录后再调用 Agent",

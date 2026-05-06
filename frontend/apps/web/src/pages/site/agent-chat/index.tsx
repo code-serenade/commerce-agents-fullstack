@@ -1,13 +1,13 @@
 import { AgentChatComposer } from "./components/agent-chat-composer"
 import { AgentChatStatus } from "./components/agent-chat-status"
 import { AgentChatThread } from "./components/agent-chat-thread"
-import { useAgentChatPage } from "./use-agent-chat-page"
+import { useAgentChatContext } from "./context/use-agent-chat-context"
 
 export default function AgentChatPage() {
-  const chat = useAgentChatPage()
+  const chat = useAgentChatContext()
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] min-h-136 w-full flex-col overflow-hidden rounded-lg border border-(--app-border) bg-(--app-bg)">
+    <div className="flex size-full min-h-0 flex-col overflow-hidden bg-(--app-bg)">
       <AgentChatStatus error={chat.error} />
       <AgentChatThread messages={chat.messages} />
       <AgentChatComposer
