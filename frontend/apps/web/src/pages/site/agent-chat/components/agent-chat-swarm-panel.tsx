@@ -311,20 +311,20 @@ export function AgentChatSwarmPanel({
     selectedLlmLabel: selectedLlm?.model,
   })
   return (
-    <aside className="h-full min-h-[31rem] min-w-0 overflow-hidden rounded-lg bg-[#efefec] p-3 dark:bg-muted/30 2xl:min-h-0">
-      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg bg-[#efefec] dark:bg-card">
-        <header className="sticky top-0 z-10 shrink-0 border-b border-[#d8d8d3] bg-[#efefec]/95 px-3 py-3 backdrop-blur dark:border-border dark:bg-card/95">
+    <aside className="h-full min-h-[31rem] min-w-0 overflow-hidden rounded-2xl bg-[#f0f0ed] p-3 dark:bg-muted/30 2xl:min-h-0">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl bg-[#f6f6f3] dark:bg-card">
+        <header className="sticky top-0 z-10 shrink-0 border-b border-[#d8d8d3] bg-[#f6f6f3]/95 px-5 py-4 backdrop-blur dark:border-border dark:bg-card/95">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex size-11 shrink-0 items-center justify-center rounded-md border border-foreground/20 bg-background text-foreground shadow-sm min-[1500px]:size-14">
+                <div className="flex size-12 shrink-0 items-center justify-center rounded-md border border-foreground/20 bg-background text-foreground shadow-sm min-[1500px]:size-14">
                   <MonitorCog className="size-6 min-[1500px]:size-7" />
                 </div>
                 <div className="min-w-0">
-                  <h2 className="truncate font-mono text-xl font-semibold tracking-wide min-[1500px]:text-2xl">
+                  <h2 className="truncate font-mono text-2xl font-semibold tracking-wide min-[1500px]:text-3xl">
                     执行工作台
                   </h2>
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                  <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-2 text-sm text-muted-foreground min-[1500px]:text-base">
                     <span
                       className={`size-2.5 rounded-full border-2 border-white shadow-sm ${
                         isStreaming
@@ -336,11 +336,11 @@ export function AgentChatSwarmPanel({
                             : "bg-muted-foreground/40"
                       }`}
                     />
-                    <span className="text-sm text-foreground min-[1500px]:text-base">
+                    <span className="text-foreground">
                       当前进度 {progress}
                     </span>
                     <span className="hidden sm:inline">|</span>
-                    <span className="line-clamp-1 text-sm min-[1500px]:text-base">
+                    <span className="min-w-0 truncate">
                       {stage}
                     </span>
                   </div>
@@ -361,6 +361,7 @@ export function AgentChatSwarmPanel({
                 onClick={onCollapse}
                 className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground min-[1500px]:size-10"
                 title="收起工作台"
+                aria-label="收起工作台"
               >
                 <PanelRightClose className="size-4" />
               </button>
@@ -368,9 +369,9 @@ export function AgentChatSwarmPanel({
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
-          <section className="overflow-hidden rounded-lg border border-border bg-[#fbfbfa] shadow-sm dark:bg-background">
-            <div className="flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-3">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          <section className="overflow-hidden rounded-xl border border-[#dcdcd7] bg-[#fbfbfa] shadow-sm dark:border-border dark:bg-background">
+            <div className="flex items-center justify-between gap-3 border-b border-border bg-[#fbfbfa] px-4 py-3 dark:bg-background">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-border bg-card">
                   <ActiveAgentIcon className="size-5" />
@@ -422,7 +423,7 @@ export function AgentChatSwarmPanel({
             </div>
           </section>
 
-          <section className="mt-3 rounded-lg border border-border bg-background p-3 shadow-sm">
+          <section className="mt-4 rounded-xl border border-border bg-background p-3 shadow-sm">
             <div className="mb-2 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <ClipboardCheck className="size-4 text-muted-foreground" />
@@ -465,7 +466,7 @@ export function AgentChatSwarmPanel({
             </div>
           </section>
 
-          <section className="mt-3 grid gap-3 2xl:grid-cols-[minmax(0,1fr)_17rem]">
+          <section className="mt-4 grid gap-3 2xl:grid-cols-[minmax(0,1fr)_17rem]">
             <WorkspaceHandoffRail />
             <CompactInfoBlock
               icon={Activity}
@@ -517,8 +518,8 @@ function ComputerRuntimeDetail({
   const activityCards = cards.slice(-4)
 
   return (
-    <div className="grid gap-3 p-3 xl:grid-cols-[12.5rem_minmax(0,1fr)]">
-      <div className="min-w-0 space-y-2 rounded-md border border-border bg-background/80 p-2">
+    <div className="grid gap-4 p-4 xl:grid-cols-[13.5rem_minmax(0,1fr)]">
+      <div className="min-w-0 space-y-2 rounded-lg bg-[#f0f0ed] p-2 dark:bg-muted/30">
         <div className="flex items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
           <span>工作记录</span>
           <span>{activityCards.length} 条</span>
@@ -528,15 +529,15 @@ function ComputerRuntimeDetail({
         ))}
       </div>
 
-      <section className="min-w-0 overflow-hidden rounded-lg border border-border bg-[#f7f7f4] shadow-sm dark:bg-background">
-        <div className="flex items-center justify-between gap-3 border-b border-border bg-background px-3 py-2">
+      <section className="min-w-0 overflow-hidden rounded-xl border border-[#d8d8d3] bg-white shadow-sm dark:border-border dark:bg-background">
+        <div className="flex items-center justify-between gap-3 border-b border-border bg-white px-5 py-3 dark:bg-background">
           <div className="flex min-w-0 items-center gap-2">
             <div className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background">
               <ActiveIcon className="size-4" />
             </div>
             <div className="min-w-0">
               <p className="truncate font-mono text-sm font-semibold">
-                角色 {formatAgentNumber(activeAgentIndex)} | {activeAgent.name}
+                {formatAgentNumber(activeAgentIndex)} | {activeAgent.name}
               </p>
               <p className="truncate text-xs text-muted-foreground">
                 {screen.mode} · {screen.filename}
@@ -547,7 +548,7 @@ function ComputerRuntimeDetail({
         </div>
 
         <div className="grid min-h-[25rem] grid-rows-[auto_minmax(0,1fr)_auto]">
-          <div className="border-b border-border bg-background/80 px-3 py-2.5">
+          <div className="border-b border-border bg-white px-5 py-3 dark:bg-background">
             <div className="flex items-center justify-between gap-3">
               <span className="text-xs font-medium text-muted-foreground">业务输入</span>
               {selectedLlmLabel ? (
@@ -561,9 +562,9 @@ function ComputerRuntimeDetail({
             </p>
           </div>
 
-          <div className="min-h-0 p-3">
-            <div className="flex h-full min-h-[17rem] flex-col overflow-hidden rounded-md border border-border bg-background">
-              <div className="flex items-center justify-between gap-3 border-b border-border bg-card px-3 py-2">
+          <div className="min-h-0 bg-white p-5 dark:bg-background">
+            <div className="flex h-full min-h-[18rem] flex-col overflow-hidden rounded-lg border border-border bg-[#fbfbfa] dark:bg-card">
+              <div className="flex items-center justify-between gap-3 border-b border-border bg-[#f7f7f4] px-4 py-2.5 dark:bg-card">
                 <div className="flex min-w-0 items-center gap-2">
                   <FileText className="size-4 shrink-0 text-muted-foreground" />
                   <span className="truncate text-sm font-medium">{screen.filename}</span>
@@ -590,7 +591,7 @@ function ComputerRuntimeDetail({
             </div>
           </div>
 
-          <div className="grid gap-2 border-t border-border bg-[#f1f1ee] p-3 sm:grid-cols-[minmax(0,1fr)_9rem] dark:bg-card">
+          <div className="grid gap-2 border-t border-border bg-[#f5f5f2] p-3 sm:grid-cols-[minmax(0,1fr)_9rem] dark:bg-card">
             <div className="rounded-md border border-border bg-background px-3 py-2">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 {activeState === "working" || activeState === "reworking" ? (
@@ -627,7 +628,7 @@ function ComputerRuntimeCard({ card }: { card: ComputerCard }) {
   const Icon = card.icon
 
   return (
-    <article className="rounded-lg border border-border bg-background p-2.5 shadow-sm">
+    <article className="rounded-lg border border-transparent bg-background p-2.5 shadow-sm">
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-start gap-2">
           <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
@@ -680,8 +681,8 @@ function AgentDock({
   runtimeNodeStates: Map<string, RuntimeNodeSnapshot>
 }) {
   return (
-    <div className="shrink-0 border-t border-[#d8d8d3] bg-[#f8f8f6] px-3 py-2 dark:border-border dark:bg-card">
-      <div className="grid grid-cols-6 gap-1.5">
+    <div className="shrink-0 border-t border-[#d8d8d3] bg-[#f8f8f6] px-4 py-3 dark:border-border dark:bg-card">
+      <div className="grid grid-cols-6 gap-2">
         {agents.map((agent, index) => {
           const state = getAgentState({
             agent,
@@ -697,7 +698,7 @@ function AgentDock({
               <article
                 key={agent.nodeId}
                 title={`${formatAgentNumber(index)} ${agent.name} ${getDockStateLabel(state)}`}
-                className={`flex min-w-0 items-center gap-1.5 rounded-md border px-2 py-2 transition-colors ${
+                className={`flex min-w-0 items-center gap-1.5 rounded-xl border px-3 py-2.5 transition-colors ${
                   isActive
                     ? "border-foreground bg-background shadow-sm"
                     : "border-transparent bg-[#eeeeeb] text-muted-foreground"
@@ -743,7 +744,7 @@ function DockStateIcon({ state }: { state: SwarmState }) {
 
 function WorkspaceHandoffRail() {
   return (
-    <div className="rounded-lg border border-border bg-background p-3 shadow-sm">
+    <div className="rounded-xl border border-border bg-background p-3 shadow-sm">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm font-medium">
           <PlugZap className="size-4 text-muted-foreground" />
@@ -758,7 +759,7 @@ function WorkspaceHandoffRail() {
           return (
             <div
               key={handoff.title}
-              className="flex min-w-0 items-start gap-2 rounded-md border border-border bg-card px-3 py-2"
+              className="flex min-w-0 items-start gap-2 rounded-lg border border-border bg-card px-3 py-2"
             >
               <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
                 <Icon className="size-4" />
@@ -787,7 +788,7 @@ function CompactInfoBlock({
   title: string
 }) {
   return (
-    <div className="rounded-lg border border-border bg-background p-3">
+    <div className="rounded-xl border border-border bg-background p-3 shadow-sm">
       <div className="mb-2 flex items-center gap-2 text-sm font-medium">
         <Icon className="size-4 text-muted-foreground" />
         {title}
@@ -827,8 +828,8 @@ function SwarmIdleDetail({
       : "输入运营目标后，将按商品、活动、平台数据、预警和交付资料组织处理。"
 
   return (
-    <div className="grid gap-3 p-3 xl:grid-cols-[12.5rem_minmax(0,1fr)]">
-      <div className="space-y-2 rounded-md border border-border bg-background/80 p-2">
+    <div className="grid gap-4 p-4 xl:grid-cols-[13.5rem_minmax(0,1fr)]">
+      <div className="space-y-2 rounded-lg bg-[#f0f0ed] p-2 dark:bg-muted/30">
         <div className="flex items-center justify-between gap-2 px-1 text-xs text-muted-foreground">
           <span>业务模块</span>
           <span>{WORKSPACE_CAPABILITIES.length} 项</span>
@@ -844,8 +845,8 @@ function SwarmIdleDetail({
         ))}
       </div>
 
-      <div className="min-w-0 overflow-hidden rounded-lg border border-border bg-[#f7f7f4] shadow-sm dark:bg-background">
-        <div className="flex items-center justify-between gap-3 border-b border-border bg-background px-3 py-2">
+      <div className="min-w-0 overflow-hidden rounded-xl border border-[#d8d8d3] bg-white shadow-sm dark:border-border dark:bg-background">
+        <div className="flex items-center justify-between gap-3 border-b border-border bg-white px-5 py-3 dark:bg-background">
           <div className="flex min-w-0 items-center gap-2">
             <MonitorCog className="size-4 shrink-0 text-muted-foreground" />
             <div className="min-w-0">
@@ -860,7 +861,7 @@ function SwarmIdleDetail({
           <StatePill state={isStreaming ? "working" : "idle"} />
         </div>
         <div className="grid min-h-[25rem] grid-rows-[auto_minmax(0,1fr)_auto]">
-          <div className="border-b border-border bg-background/80 px-3 py-2.5">
+          <div className="border-b border-border bg-white px-5 py-3 dark:bg-background">
             <div className="flex items-center justify-between gap-3">
               <span className="text-xs font-medium text-muted-foreground">业务输入</span>
               {selectedLlmLabel ? (
@@ -873,9 +874,9 @@ function SwarmIdleDetail({
               {lastTask ?? description}
             </p>
           </div>
-          <div className="min-h-0 p-3">
-            <div className="flex h-full min-h-[17rem] flex-col overflow-hidden rounded-md border border-border bg-background">
-              <div className="flex items-center justify-between gap-2 border-b border-border bg-card px-3 py-2">
+          <div className="min-h-0 bg-white p-5 dark:bg-background">
+            <div className="flex h-full min-h-[18rem] flex-col overflow-hidden rounded-lg border border-border bg-[#fbfbfa] dark:bg-card">
+              <div className="flex items-center justify-between gap-2 border-b border-border bg-[#f7f7f4] px-4 py-2.5 dark:bg-card">
                 <div className="flex min-w-0 items-center gap-2">
                   <FileText className="size-4 text-muted-foreground" />
                   <span className="truncate text-sm font-medium">
@@ -916,7 +917,7 @@ function SwarmIdleDetail({
               </div>
             </div>
           </div>
-          <div className="grid gap-2 border-t border-border bg-[#f1f1ee] p-3 sm:grid-cols-4 dark:bg-card">
+          <div className="grid gap-2 border-t border-border bg-[#f5f5f2] p-3 sm:grid-cols-4 dark:bg-card">
             {WORKSPACE_LANES.map((lane) => (
               <div
                 key={lane.label}

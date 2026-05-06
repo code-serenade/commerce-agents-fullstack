@@ -10,7 +10,6 @@ import {
   ListChecks,
   Loader2,
   MonitorCog,
-  PanelRightOpen,
   PlugZap,
   Search,
   ShieldAlert,
@@ -27,7 +26,6 @@ import type { AgentChatMessage } from "../types"
 export interface AgentChatThreadProps {
   isStreaming: boolean
   messages: AgentChatMessage[]
-  onExpandProcessPanel?: () => void
   processPanelOpen: boolean
   runtimeEvents: AgentRuntimeEvent[]
 }
@@ -53,7 +51,6 @@ interface InlineArtifact {
 export function AgentChatThread({
   isStreaming,
   messages,
-  onExpandProcessPanel,
   processPanelOpen,
   runtimeEvents,
 }: AgentChatThreadProps) {
@@ -130,18 +127,15 @@ export function AgentChatThread({
               task={latestUserTask}
             />
             {!processPanelOpen ? (
-              <InlineProcessRestoreNode
+              <InlineProcessStatusNode
                 isStreaming={
                   isStreaming ||
                   messages.some((message) => message.status === "streaming")
                 }
-                onExpandProcessPanel={onExpandProcessPanel}
                 runtimeEvents={runtimeEvents}
               />
             ) : null}
           </>
-        ) : !processPanelOpen ? (
-          <InlineProcessExpandRow onExpandProcessPanel={onExpandProcessPanel} />
         ) : null}
         <div ref={endRef} />
       </div>
@@ -379,13 +373,11 @@ function InlineSwarmTaskCard({
   )
 }
 
-function InlineProcessRestoreNode({
+function InlineProcessStatusNode({
   isStreaming,
-  onExpandProcessPanel,
   runtimeEvents,
 }: {
   isStreaming: boolean
-  onExpandProcessPanel?: () => void
   runtimeEvents: AgentRuntimeEvent[]
 }) {
   const agents = getInlineAgents(runtimeEvents, isStreaming)
@@ -403,7 +395,7 @@ function InlineProcessRestoreNode({
       </div>
       <div className="min-w-0 max-w-[min(43rem,92%)] flex-1">
         <div className="border-y border-border/80 bg-background/95 py-2">
-          <div className="flex flex-wrap items-center gap-3 px-1">
+          <div className="flex min-w-0 items-center gap-3 px-1">
             <div className="min-w-0 flex-1">
               <div className="flex min-w-0 items-center gap-2 text-sm">
                 <CheckCircle2
@@ -432,51 +424,7 @@ function InlineProcessRestoreNode({
                 />
               </div>
             </div>
-            <button
-              type="button"
-              onClick={onExpandProcessPanel}
-              className="flex h-8 shrink-0 items-center justify-center gap-2 rounded-full bg-foreground px-3 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
-              title="展开执行工作台"
-              aria-label="展开执行工作台"
-            >
-              展开工作台
-              <PanelRightOpen className="size-4" />
-            </button>
           </div>
-        </div>
-      </div>
-    </article>
-  )
-}
-
-function InlineProcessExpandRow({
-  onExpandProcessPanel,
-}: {
-  onExpandProcessPanel?: () => void
-}) {
-  return (
-    <article className="flex justify-start gap-3">
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-card text-foreground">
-        <MonitorCog className="size-5" />
-      </div>
-      <div className="min-w-0 max-w-[min(43rem,92%)] rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium">执行工作台已收起</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              输入经营目标后，会在这里显示本轮进度和产物落点。
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onExpandProcessPanel}
-            className="flex h-9 shrink-0 items-center justify-center gap-2 rounded-full bg-foreground px-3.5 text-sm font-medium text-background transition-colors hover:bg-foreground/90"
-            title="展开执行工作台"
-            aria-label="展开执行工作台"
-          >
-            展开工作台
-            <PanelRightOpen className="size-4" />
-          </button>
         </div>
       </div>
     </article>
