@@ -55,6 +55,7 @@ export interface SidebarShellSection {
 
 export interface SidebarShellProps {
   brandEyebrow?: ReactNode
+  brandLogo?: ReactNode
   brandTitle: ReactNode
   brandDescription?: ReactNode
   sections: SidebarShellSection[]
@@ -83,6 +84,7 @@ export interface SidebarShellProps {
 
 export function SidebarShell({
   brandEyebrow,
+  brandLogo,
   brandTitle,
   brandDescription,
   sections,
@@ -99,9 +101,13 @@ export function SidebarShell({
             <Sidebar collapsible="icon">
               <SidebarHeader>
                 <div className="flex items-center gap-2 group-data-[collapsible=icon]:gap-0">
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground">
-                    {typeof brandTitle === "string" ? brandTitle.charAt(0).toUpperCase() : "W"}
-                  </div>
+                  {brandLogo ? (
+                    <div className="shrink-0">{brandLogo}</div>
+                  ) : (
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground">
+                      {typeof brandTitle === "string" ? brandTitle.charAt(0).toUpperCase() : "W"}
+                    </div>
+                  )}
                   <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
                     <div>{brandTitle}</div>
                     {(brandDescription ?? brandEyebrow) ? (

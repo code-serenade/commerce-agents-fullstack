@@ -105,10 +105,10 @@
       "runtime_role": "douyin_ads",
       "priority": 25,
       "domains": ["domain.ecommerce"],
-      "keywords": ["千川", "投流", "ROI", "CPC", "计划", "人群包"],
+      "keywords": ["千川", "投流", "投放", "巨量千川", "ROI", "ROAS", "CPC", "CPA", "计划", "人群包", "短视频引流", "直播间转化"],
       "preferred_actions": ["analyze", "optimize", "execute"],
-      "required_capabilities": ["ads.optimization", "roi.control"],
-      "optional_capabilities": ["data.analysis", "creative.content"]
+      "required_capabilities": ["ads.optimization", "roi.control", "audience.segmentation", "campaign.pacing"],
+      "optional_capabilities": ["data.analysis", "creative.content", "budget.planning", "conversion.optimization"]
     }
   ]
 }

@@ -19,8 +19,11 @@ export {
 
 export {
   ensureCurrentAppUserPermissions,
+  getAgentLlmConfigApi,
   getCurrentAppUserPermissionsApi,
   registerAppUserApi,
+  type AgentLlmConfigItemResponse,
+  type AgentLlmConfigResponse,
   type AppRoleResponse,
   type CurrentAppUserPermissionsResponse,
   type AppUserResponse,
@@ -30,8 +33,13 @@ export {
 
 export {
   streamAgentSessionApi,
+  type AgentRuntimeEvent,
   type AgentStreamHandlers,
   type AgentStreamRequest,
+  type AgentTaskEvaluation,
+  type AgentTaskGraph,
+  type AgentTaskNode,
+  type AgentWorkerReport,
 } from "./agent"
 
 export {

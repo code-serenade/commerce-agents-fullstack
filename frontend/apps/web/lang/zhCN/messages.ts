@@ -2,15 +2,15 @@ const messages = {
   web: {
     shell: {
       brand: {
-        eyebrow: "Web App",
-        title: "Web",
-        description: "用户工作台",
+        eyebrow: "Commerce AI",
+        title: "运营中枢",
+        description: "电商智能体工作台",
       },
       navigation: {
         mobileLabel: "主导航",
         workspace: "工作区",
         home: "首页",
-        agent: "Agent",
+        agent: "运营智能体",
         agentOutput: "方案展示",
         profile: "个人资料",
       },
@@ -60,20 +60,21 @@ const messages = {
     },
   },
   agentChat: {
-    welcomeMessage: "你好，我是当前项目里的 Agent。你可以直接输入问题，我会用流式回复把结果显示在这里。",
+    welcomeMessage:
+      "你好，我是 Commerce 运营智能体。你可以输入一个电商运营目标，我会用数据、预算、千川投放、创意和运营角色拆解执行，并在右侧展示任务图、进度、活动轨迹和产物。",
     streaming: "正在思考...",
     error: "Agent 回复失败，请稍后重试。",
     errorBadge: "回复失败",
     sidebar: {
-      newChat: "新对话",
+      newChat: "新任务",
       search: "搜索历史记录",
       recents: "最近",
-      chat: "聊天",
+      chat: "运营智能体",
       more: "更多",
       empty: "还没有历史对话",
     },
     composer: {
-      placeholder: "给 Agent 发送消息...",
+      placeholder: "输入运营目标，例如：五一咖啡抖音转化方案、千川投放复盘、活动预算与创意拆解...",
       loginPlaceholder: "请先登录后再调用 Agent",
       hint: "Enter 发送，Shift + Enter 换行",
       send: "发送",

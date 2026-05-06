@@ -1,12 +1,19 @@
 import { type ReactNode } from "react"
 import {
+  ClipboardList,
+  Code2,
+  Database,
   Edit3,
+  FileText,
+  GitBranch,
   LogIn,
+  Megaphone,
   MessageSquareText,
   MoreHorizontal,
   Search,
   UserPlus,
   UserRound,
+  WalletCards,
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useDispatch, useSelector } from "react-redux"
@@ -47,6 +54,9 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   const displayId = user
     ? user.display_id || user.email || t("web.shell.account.defaultId")
     : t("web.shell.account.guestId")
+  const activeConversation = chat.conversations.find(
+    (conversation) => conversation.id === chat.conversationId
+  )
 
   const handleLogout = () => {
     localStorage.removeItem("token")
@@ -62,20 +72,73 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   ]
   const sections: SidebarShellSection[] = [
     {
-      key: "chat",
-      label: t("agentChat.sidebar.chat"),
+      key: "create",
+      label: "",
       items: [
         {
           key: "new-chat",
           icon: <Edit3 />,
-          label: t("agentChat.sidebar.newChat"),
+          label: "新建会话",
           active: !chat.conversationId,
           onSelect: chat.startNewConversation,
         },
+      ],
+    },
+    {
+      key: "workspace",
+      label: "运营工作台",
+      items: [
         {
-          key: "search-chats",
+          key: "agent-swarm",
+          icon: <GitBranch />,
+          label: "多智能体调度",
+          active: Boolean(chat.conversationId),
+        },
+        {
+          key: "deliverables",
+          icon: <FileText />,
+          label: "交付资料",
+        },
+        {
+          key: "task-board",
+          icon: <ClipboardList />,
+          label: "执行清单",
+        },
+        {
+          key: "market-research",
           icon: <Search />,
-          label: t("agentChat.sidebar.search"),
+          label: "市场洞察",
+        },
+      ],
+    },
+    {
+      key: "commerce-capabilities",
+      label: "Commerce 能力",
+      items: [
+        {
+          key: "douyin-ads",
+          icon: <Megaphone />,
+          label: "千川投放",
+        },
+        {
+          key: "budget",
+          icon: <WalletCards />,
+          label: "预算核算",
+        },
+        {
+          key: "ops-plan",
+          icon: <ClipboardList />,
+          label: "运营方案",
+        },
+        {
+          key: "data-diagnosis",
+          icon: <Database />,
+          label: "数据诊断",
+        },
+        {
+          key: "code",
+          icon: <Code2 />,
+          label: "工具执行",
         },
         {
           key: "more",
@@ -86,35 +149,52 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     },
     {
       key: "recents",
-      label: t("agentChat.sidebar.recents"),
-      items: chat.conversations.length
-        ? chat.conversations.map((conversation) => ({
-            key: conversation.id,
-            icon: <MessageSquareText />,
-            label: conversation.title,
-            active: conversation.id === chat.conversationId,
-            onSelect: () => chat.selectConversation(conversation.id),
-          }))
-        : [
-            {
-              key: "empty-recents",
-              icon: <MessageSquareText />,
-              label: t("agentChat.sidebar.empty"),
-            },
-          ],
+      label: "历史会话",
+      items: [
+        {
+          key: "history",
+          icon: <MessageSquareText />,
+          label: "历史会话",
+          active: chat.conversations.some(
+            (conversation) => conversation.id === chat.conversationId
+          ),
+          subItems: chat.conversations.length
+            ? chat.conversations.slice(0, 8).map((conversation) => ({
+                key: conversation.id,
+                href: "#",
+                label: conversation.title,
+                active: conversation.id === chat.conversationId,
+                onSelect: () => chat.selectConversation(conversation.id),
+              }))
+            : [
+                {
+                  key: "empty-recents",
+                  href: "#",
+                  label: t("agentChat.sidebar.empty"),
+                },
+              ],
+        },
+      ],
     },
   ]
 
   return (
     <SidebarShell
-      brandEyebrow={t("web.shell.brand.eyebrow")}
-      brandTitle={t("web.shell.brand.title")}
-      brandDescription={t("web.shell.brand.description")}
+      brandLogo={
+        <div className="relative flex size-10 items-center justify-center rounded-xl bg-foreground font-mono text-base font-semibold text-background shadow-sm">
+          CA
+          <span className="absolute right-1 top-1 size-1.5 rounded-full bg-blue-500" />
+        </div>
+      }
+      brandEyebrow="Commerce Agent"
+      brandTitle="运营中枢"
+      brandDescription="电商智能体工作台"
       sections={sections}
       header={
         <TopBar
-          title={t("web.shell.navigation.agent")}
-          meta={t("agentChat.sidebar.chat")}
+          title={activeConversation?.title ?? "输入运营目标"}
+          meta="Commerce 运营智能体 · 角色任务图调度"
+          leading={<GitBranch className="size-5" />}
           trailing={trailing}
         />
       }

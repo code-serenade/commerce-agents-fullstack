@@ -3,6 +3,7 @@ const AGENT_STREAM_URL = "/api/sse/agent/session/stream"
 export interface AgentStreamRequest {
   input: string
   agentId?: string
+  modelName?: string
   sessionId?: string
   workspaceId?: string
 }
@@ -11,12 +12,121 @@ export interface AgentStreamHandlers {
   onDelta: (content: string) => void
   onDone: () => void
   onError: (message: string) => void
+  onAgentEvent?: (event: AgentRuntimeEvent) => void
   signal?: AbortSignal
 }
 
 interface SseMessage {
   event: string
   data: string
+}
+
+export type AgentRuntimeEvent =
+  | { type: "commander_thinking" }
+  | { type: "worker_started"; workerId: string; taskId: string }
+  | { type: "worker_finished"; workerId: string; taskId: string }
+  | {
+      type: "collaboration_started"
+      primaryWorkerId: string
+      supportWorkerIds: string[]
+    }
+  | { type: "collaboration_worker_started"; workerId: string; taskId: string }
+  | {
+      type: "collaboration_worker_finished"
+      workerId: string
+      taskId: string
+      content?: string | null
+    }
+  | { type: "collaboration_finished" }
+  | { type: "task_graph_planned"; graph: AgentTaskGraph }
+  | {
+      type: "task_node_ready"
+      graphId: string
+      nodeId: string
+      workerId: string
+    }
+  | {
+      type: "task_node_started"
+      graphId: string
+      nodeId: string
+      workerId: string
+      attempt: number
+    }
+  | {
+      type: "task_node_reported"
+      graphId: string
+      nodeId: string
+      workerId: string
+      report: AgentWorkerReport
+    }
+  | {
+      type: "task_node_evaluated"
+      graphId: string
+      evaluation: AgentTaskEvaluation
+    }
+  | {
+      type: "task_node_rework_requested"
+      graphId: string
+      nodeId: string
+      workerId: string
+      attempt: number
+      instruction: string
+    }
+  | { type: "task_node_passed"; graphId: string; nodeId: string }
+  | {
+      type: "task_node_failed"
+      graphId: string
+      nodeId: string
+      reason: string
+    }
+  | { type: "task_graph_finished"; graphId: string }
+
+type AgentWrappedId = string | [string] | { 0: string }
+
+export interface AgentTaskGraph {
+  graph_id: AgentWrappedId
+  root_task: string
+  nodes: AgentTaskNode[]
+}
+
+export interface AgentTaskNode {
+  id: AgentWrappedId
+  role: string
+  worker_id: AgentWrappedId
+  title: string
+  objective: string
+  input_refs: AgentWrappedId[]
+  acceptance: string[]
+  max_attempts: number
+}
+
+export interface AgentWorkerReport {
+  graph_id: AgentWrappedId
+  node_id: AgentWrappedId
+  task_id: AgentWrappedId
+  worker_id: AgentWrappedId
+  role: string
+  content: string
+  role_output?: {
+    summary: string
+    findings: string[]
+    recommendations: string[]
+    evidence: string[]
+    risks: string[]
+    open_questions: string[]
+  } | null
+  evidence: string[]
+  risks: string[]
+  open_questions: string[]
+  status: string
+}
+
+export interface AgentTaskEvaluation {
+  node_id: AgentWrappedId
+  passed: boolean
+  score: number
+  reasons: string[]
+  rework_instruction?: string | null
 }
 
 export async function streamAgentSessionApi(
@@ -108,6 +218,11 @@ function handleSseMessage(
     if (content) handlers.onDelta(content)
   }
 
+  if (message.event === "agent_event") {
+    const event = readAgentRuntimeEvent(message.data)
+    if (event) handlers.onAgentEvent?.(event)
+  }
+
   return false
 }
 
@@ -119,4 +234,22 @@ function readJsonField(data: string, field: string): string {
   } catch {
     return ""
   }
+}
+
+function readAgentRuntimeEvent(data: string): AgentRuntimeEvent | null {
+  try {
+    const parsed = JSON.parse(data)
+    return isAgentRuntimeEvent(parsed) ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function isAgentRuntimeEvent(value: unknown): value is AgentRuntimeEvent {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "type" in value &&
+    typeof (value as { type?: unknown }).type === "string"
+  )
 }

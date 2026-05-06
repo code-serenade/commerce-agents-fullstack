@@ -6,14 +6,18 @@ use validator::Validate;
 
 use crate::{
     dto::app::{
-        AddConversationMessageRequest, AppUserResponse, ConversationDetailResponse,
-        ConversationFileAccessResponse, ConversationFileResponse, ConversationMessageResponse,
-        ConversationResponse, CreateConversationRequest, CurrentUserPermissionsResponse,
+        AddConversationMessageRequest, AgentLlmConfigItemResponse, AgentLlmConfigResponse,
+        AppUserResponse, ConversationDetailResponse, ConversationFileAccessResponse,
+        ConversationFileResponse, ConversationMessageResponse, ConversationResponse,
+        CreateConversationRequest, CurrentUserPermissionsResponse,
         PresignConversationFileUploadRequest, PresignConversationFileUploadResponse,
         RegisterAppUserRequest, RegisterConversationFileRequest,
     },
     error::{Error, from_biz_error},
-    statics::{db_manager::get_app_ctx, storage_manager::get_storage},
+    statics::{
+        agent_manager::get_agent_runtime_config, db_manager::get_app_ctx,
+        storage_manager::get_storage,
+    },
 };
 
 const FILE_UPLOAD_EXPIRES_SECS: u64 = 600;
@@ -77,6 +81,37 @@ pub async fn current_user_permissions(
         user_id: resp.user_id,
         role_codes: resp.role_codes,
         permission_codes: resp.permission_codes,
+    }
+    .into_common_response()
+    .to_json())
+}
+
+pub async fn agent_llm_config() -> ResponseResult<AgentLlmConfigResponse> {
+    let config = get_agent_runtime_config().map_err(|err| Error::Custom(err.to_string()))?;
+    let selected_name = config
+        .default_llm
+        .as_ref()
+        .or_else(|| config.llm.first().map(|llm| &llm.name));
+    let items = config
+        .llm
+        .iter()
+        .map(|llm| AgentLlmConfigItemResponse {
+            name: llm.name.clone(),
+            base_url: llm.base_url.clone(),
+            model: llm.model.clone(),
+            max_tokens: llm.max_tokens,
+            temperature: llm.temperature,
+            reasoning_effort: llm.reasoning_effort.clone(),
+            chat_completions_endpoint: llm.chat_completions_endpoint.clone(),
+            has_api_key: llm.api_key.as_deref().is_some_and(|key| !key.is_empty()),
+            selected: selected_name.is_some_and(|name| name == &llm.name),
+        })
+        .collect();
+
+    Ok(AgentLlmConfigResponse {
+        default_llm: config.default_llm.clone(),
+        selected_llm: selected_name.cloned(),
+        items,
     }
     .into_common_response()
     .to_json())

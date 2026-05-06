@@ -2,15 +2,15 @@ const messages = {
   web: {
     shell: {
       brand: {
-        eyebrow: "Web App",
-        title: "Web",
-        description: "Member workspace",
+        eyebrow: "Commerce AI",
+        title: "Ops Center",
+        description: "Commerce agent workspace",
       },
       navigation: {
         mobileLabel: "Primary navigation",
         workspace: "Workspace",
         home: "Home",
-        agent: "Agent",
+        agent: "Ops Agent",
         agentOutput: "Plan view",
         profile: "Profile",
       },
@@ -65,20 +65,21 @@ const messages = {
   },
   agentChat: {
     welcomeMessage:
-      "Hi, I am the project agent. Send a question and I will stream the reply back here.",
+      "Hi, I am the Commerce Ops Agent. Send an ecommerce operations goal and I will split it across data, budget, Douyin ads, creative, and operations roles, with the task graph, progress, activity trail, and deliverables on the right.",
     streaming: "Thinking...",
     error: "Agent reply failed. Please try again later.",
     errorBadge: "Reply failed",
     sidebar: {
-      newChat: "New chat",
+      newChat: "New task",
       search: "Search history",
       recents: "Recents",
-      chat: "Chat",
+      chat: "Ops Agent",
       more: "More",
       empty: "No conversations yet",
     },
     composer: {
-      placeholder: "Message the agent...",
+      placeholder:
+        "Enter an operations goal, such as a May Day coffee conversion plan, Qianchuan ads review, campaign budget, or creative breakdown...",
       loginPlaceholder: "Sign in before calling the agent",
       hint: "Enter to send, Shift + Enter for a new line",
       send: "Send",
