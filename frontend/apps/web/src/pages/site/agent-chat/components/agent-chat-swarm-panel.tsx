@@ -207,15 +207,15 @@ const WORKSPACE_CAPABILITIES: WorkspaceCapability[] = [
     lane: "上下文",
   },
   {
+    title: "每日简报",
+    detail: "重点进展、异常和待办摘要",
+    icon: Activity,
+    lane: "交付",
+  },
+  {
     title: "预警中心",
     detail: "预算、转化、库存异常",
     icon: ShieldAlert,
-    lane: "治理",
-  },
-  {
-    title: "能力包管理",
-    detail: "岗位、技能、流程启停回滚",
-    icon: MonitorCog,
     lane: "治理",
   },
 ]
@@ -240,6 +240,11 @@ const WORKSPACE_HANDOFFS = [
     title: "治理",
     detail: "预警中心、能力包管理和审批回滚处理风险",
     icon: ShieldAlert,
+  },
+  {
+    title: "复盘",
+    detail: "对话历史、执行记录和团队能力说明留作复用",
+    icon: Bot,
   },
 ]
 
@@ -299,22 +304,22 @@ export function AgentChatSwarmPanel({
     selectedLlmLabel: selectedLlm?.model,
   })
   return (
-    <aside className="min-h-[31rem] min-w-0 overflow-hidden rounded-lg bg-[#efefec] p-3 dark:bg-muted/30 2xl:min-h-0">
+    <aside className="h-full min-h-[31rem] min-w-0 overflow-hidden rounded-lg bg-[#efefec] p-3 dark:bg-muted/30 2xl:min-h-0">
       <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg bg-[#efefec] dark:bg-card">
-        <header className="shrink-0 border-b border-[#d8d8d3] bg-transparent px-3 py-4 dark:border-border">
-          <div className="flex items-start justify-between gap-4">
+        <header className="sticky top-0 z-10 shrink-0 border-b border-[#d8d8d3] bg-[#efefec]/95 px-3 py-3 backdrop-blur dark:border-border dark:bg-card/95">
+          <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex size-14 shrink-0 items-center justify-center rounded-md border border-foreground/20 bg-background text-foreground shadow-sm">
-                  <MonitorCog className="size-7" />
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-md border border-foreground/20 bg-background text-foreground shadow-sm min-[1500px]:size-14">
+                  <MonitorCog className="size-6 min-[1500px]:size-7" />
                 </div>
                 <div className="min-w-0">
-                  <h2 className="truncate font-mono text-2xl font-semibold tracking-wide">
+                  <h2 className="truncate font-mono text-xl font-semibold tracking-wide min-[1500px]:text-2xl">
                     业务执行视窗
                   </h2>
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                     <span
-                      className={`size-3 rounded-full border-2 border-white shadow-sm ${
+                      className={`size-2.5 rounded-full border-2 border-white shadow-sm ${
                         isStreaming
                           ? "animate-pulse bg-emerald-500"
                           : runtimeNodeStates.size > 0
@@ -324,17 +329,21 @@ export function AgentChatSwarmPanel({
                             : "bg-muted-foreground/40"
                       }`}
                     />
-                    <span className="text-base text-foreground">当前进度 {progress}</span>
+                    <span className="text-sm text-foreground min-[1500px]:text-base">
+                      当前进度 {progress}
+                    </span>
                     <span className="hidden sm:inline">|</span>
-                    <span className="text-base">{stage}</span>
+                    <span className="line-clamp-1 text-sm min-[1500px]:text-base">
+                      {stage}
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <div className="hidden min-w-0 items-center gap-2 rounded-full border border-border bg-background px-3 py-2 text-xs font-medium text-muted-foreground shadow-sm sm:flex">
+              <div className="hidden min-w-0 items-center gap-2 rounded-full border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-muted-foreground shadow-sm min-[1320px]:flex">
                 <Sparkles className="size-4 shrink-0 text-blue-500" />
-                <span className="max-w-40 truncate min-[1800px]:max-w-52">
+                <span className="max-w-32 truncate min-[1500px]:max-w-40 min-[1800px]:max-w-52">
                   {selectedLlm
                     ? `${selectedLlm.model} · ${selectedLlm.name}`
                     : "模型通道加载中"}
@@ -343,7 +352,7 @@ export function AgentChatSwarmPanel({
               <button
                 type="button"
                 onClick={onCollapse}
-                className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground"
+                className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground min-[1500px]:size-10"
                 title="收起过程面板"
               >
                 <PanelRightClose className="size-4" />
@@ -665,7 +674,7 @@ function AgentDock({
 }) {
   return (
     <div className="shrink-0 border-t border-[#d8d8d3] bg-[#f8f8f6] px-3 py-2 dark:border-border dark:bg-card">
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className="grid grid-cols-6 gap-1.5">
         {agents.map((agent, index) => {
           const state = getAgentState({
             agent,
@@ -677,35 +686,38 @@ function AgentDock({
           const Icon = agent.icon
           const isActive = agent.nodeId === activeNodeId && (hasTask || isStreaming)
 
-          return (
-            <article
-              key={agent.nodeId}
-              className={`flex min-w-[7.25rem] items-center gap-2 rounded-md border px-2.5 py-2 transition-colors ${
-                isActive
-                  ? "border-foreground bg-background shadow-sm"
-                  : "border-transparent bg-[#eeeeeb] text-muted-foreground"
-              }`}
-            >
-              <div
-                className={`flex size-8 shrink-0 items-center justify-center rounded-full border border-border bg-background ${
-                  isActive ? "text-foreground" : "text-muted-foreground"
+            return (
+              <article
+                key={agent.nodeId}
+                title={`${formatAgentNumber(index)} ${agent.name} ${getDockStateLabel(state)}`}
+                className={`flex min-w-0 items-center gap-1.5 rounded-md border px-2 py-2 transition-colors ${
+                  isActive
+                    ? "border-foreground bg-background shadow-sm"
+                    : "border-transparent bg-[#eeeeeb] text-muted-foreground"
                 }`}
               >
-                <Icon className="size-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-mono text-[11px] font-semibold text-muted-foreground">
-                    {formatAgentNumber(index)}
-                  </span>
-                  <p className="truncate text-xs font-medium">{agent.name}</p>
+                <div
+                  className={`flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-background ${
+                    isActive ? "text-foreground" : "text-muted-foreground"
+                  }`}
+                >
+                  <Icon className="size-3.5" />
                 </div>
-                <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                  <DockStateIcon state={state} />
-                  <span className="truncate">{getDockStateLabel(state)}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 items-center gap-1">
+                    <span className="shrink-0 font-mono text-[10px] font-semibold text-muted-foreground">
+                      {formatAgentNumber(index)}
+                    </span>
+                    <p className="truncate text-[11px] font-medium">{agent.name}</p>
+                  </div>
+                  <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <DockStateIcon state={state} />
+                    <span className="hidden truncate min-[1500px]:inline">
+                      {getDockStateLabel(state)}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </article>
+              </article>
           )
         })}
       </div>
@@ -714,12 +726,12 @@ function AgentDock({
 }
 
 function DockStateIcon({ state }: { state: SwarmState }) {
-  if (state === "done") return <CheckCircle2 className="size-4 text-emerald-600" />
+  if (state === "done") return <CheckCircle2 className="size-3 text-emerald-600" />
   if (state === "working" || state === "reworking") {
-    return <Loader2 className="size-4 animate-spin text-emerald-600" />
+    return <Loader2 className="size-3 animate-spin text-emerald-600" />
   }
-  if (state === "failed") return <span className="size-2.5 rounded-full bg-destructive" />
-  return <span className="size-2.5 rounded-full bg-muted-foreground/35" />
+  if (state === "failed") return <span className="size-2 rounded-full bg-destructive" />
+  return <span className="size-2 rounded-full bg-muted-foreground/35" />
 }
 
 function WorkspaceHandoffRail() {
@@ -814,7 +826,7 @@ function SwarmIdleDetail({
           <span>业务入口</span>
           <span>{WORKSPACE_CAPABILITIES.length} 项</span>
         </div>
-        {WORKSPACE_CAPABILITIES.slice(0, 4).map((capability) => (
+        {WORKSPACE_CAPABILITIES.slice(0, 6).map((capability) => (
           <ComputerPreviewCard
             key={capability.title}
             icon={capability.icon}
