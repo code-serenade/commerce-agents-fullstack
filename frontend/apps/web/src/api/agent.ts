@@ -11,7 +11,13 @@ export interface AgentStreamHandlers {
   onDelta: (content: string) => void
   onDone: () => void
   onError: (message: string) => void
+  onEvent?: (event: AgentSessionEvent) => void
   signal?: AbortSignal
+}
+
+export interface AgentSessionEvent {
+  event: string
+  data: unknown
 }
 
 interface SseMessage {
@@ -93,30 +99,40 @@ function handleSseMessage(
 ): boolean {
   if (!message.data) return false
 
+  const parsedData = parseJson(message.data)
+
   if (message.event === "done") {
+    handlers.onEvent?.({ event: message.event, data: parsedData })
     handlers.onDone()
     return true
   }
 
   if (message.event === "error") {
-    handlers.onError(readJsonField(message.data, "message") || "Agent failed")
+    handlers.onEvent?.({ event: message.event, data: parsedData })
+    handlers.onError(readJsonField(parsedData, "message") || "Agent failed")
     return true
   }
 
+  handlers.onEvent?.({ event: message.event, data: parsedData })
+
   if (message.event === "delta") {
-    const content = readJsonField(message.data, "content")
+    const content = readJsonField(parsedData, "content")
     if (content) handlers.onDelta(content)
   }
 
   return false
 }
 
-function readJsonField(data: string, field: string): string {
+function parseJson(data: string): unknown {
   try {
-    const parsed = JSON.parse(data)
-    const value = parsed?.[field]
-    return typeof value === "string" ? value : ""
+    return JSON.parse(data)
   } catch {
-    return ""
+    return data
   }
+}
+
+function readJsonField(data: unknown, field: string): string {
+  if (!data || typeof data !== "object") return ""
+  const value = (data as Record<string, unknown>)[field]
+  return typeof value === "string" ? value : ""
 }

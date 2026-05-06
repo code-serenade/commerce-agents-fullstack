@@ -2,6 +2,7 @@ import { Bot, UserRound } from "lucide-react"
 import { useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import type { AgentChatMessage } from "../types"
+import { AgentActivityPanel } from "./agent-activity-panel"
 
 export interface AgentChatThreadProps {
   messages: AgentChatMessage[]
@@ -38,6 +39,9 @@ export function AgentChatThread({ messages }: AgentChatThreadProps) {
                     : "border border-(--app-border) bg-(--app-surface) text-(--app-text)"
                 }`}
               >
+                {!isUser ? (
+                  <AgentActivityPanel activities={message.activities} />
+                ) : null}
                 {message.content ? (
                   <p className="whitespace-pre-wrap wrap-break-word">{message.content}</p>
                 ) : (

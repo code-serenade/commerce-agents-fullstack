@@ -46,6 +46,11 @@ pub async fn stream_agent_session(
     let stream = async_stream::stream! {
         let mut events = events;
         while let Some(event) = events.recv().await {
+            let event_name = event.event_name();
+            let event_value = serde_json::to_value(&event)
+                .unwrap_or_else(|_| json!({ "type": event_name }));
+            yield Ok(json_event(event_name, event_value));
+
             match event {
                 SessionEvent::LlmChunk { content, .. } => {
                     yield Ok(json_event("delta", json!({ "content": content })));

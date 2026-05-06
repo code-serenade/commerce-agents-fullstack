@@ -30,6 +30,7 @@ export {
 
 export {
   streamAgentSessionApi,
+  type AgentSessionEvent,
   type AgentStreamHandlers,
   type AgentStreamRequest,
 } from "./agent"

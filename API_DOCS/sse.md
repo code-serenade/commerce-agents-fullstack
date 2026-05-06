@@ -31,7 +31,46 @@
 | `sessionId` | `string` | 否 | 会话 ID，不传时服务端生成 |
 | `workspaceId` | `string` | 否 | 工作区 ID |
 
-SSE 事件：
+SSE 事件分为两类：
+
+1. 原始 agent 过程事件，事件名来自 `agent::api::SessionEvent::event_name()`。
+2. 兼容旧前端的文本事件：`delta` / `done` / `error`。
+
+原始过程事件示例：
+
+```text
+event: started
+data: {"type":"started","session_id":"session-001"}
+
+event: worker_started
+data: {"type":"worker_started","session_id":"session-001","worker_id":"worker-001","task_id":"task-001"}
+
+event: task_graph_planned
+data: {"type":"task_graph_planned","session_id":"session-001","graph":{...}}
+
+event: task_node_reported
+data: {"type":"task_node_reported","session_id":"session-001","graph_id":"graph-001","node_id":"node-001","worker_id":"worker-001","report":{...}}
+
+event: finished
+data: {"type":"finished","session_id":"session-001"}
+```
+
+常见原始事件：
+
+| 事件名 | 说明 |
+| --- | --- |
+| `started` | agent session 已开始 |
+| `memory_loaded` / `memory_persisted` / `memory_compacted` | 记忆加载、保存或压缩 |
+| `commander_thinking` | commander 正在规划或调度 |
+| `worker_started` / `worker_finished` | 单个 worker 开始或完成 |
+| `collaboration_started` / `collaboration_worker_started` / `collaboration_worker_finished` / `collaboration_finished` | 多 worker 协作过程 |
+| `task_graph_planned` / `task_graph_finished` | 任务图规划或完成 |
+| `task_node_ready` / `task_node_started` / `task_node_reported` / `task_node_evaluated` / `task_node_rework_requested` / `task_node_passed` / `task_node_failed` | 任务节点生命周期 |
+| `output` | agent 产生最终输出 |
+| `failed` | agent session 失败 |
+| `finished` | agent session 完成 |
+
+兼容文本事件：
 
 ```text
 event: delta
@@ -50,7 +89,8 @@ data: {"message":"agent failed"}
 
 前端消费规则：
 
-- 只需要监听 `delta` / `done` / `error`
+- 新前端应监听所有原始过程事件，用于展示 agent、worker、任务图和任务节点过程
+- 文本回复仍然监听 `delta`，把 `data.content` 追加到当前回复文本
 - 收到 `delta` 后把 `data.content` 追加到当前回复文本
 - 收到 `done` 后结束本次回复
 - 收到 `error` 后展示错误信息并结束本次回复
