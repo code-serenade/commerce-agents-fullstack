@@ -216,7 +216,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       header={
         <TopBar
           title={activeConversation?.title ?? "输入运营目标"}
-          meta="Commerce 运营智能体 · 角色任务图调度"
+          meta="Commerce 运营智能体 · 协作流程调度"
           leading={<GitBranch className="size-5" />}
           trailing={trailing}
         />

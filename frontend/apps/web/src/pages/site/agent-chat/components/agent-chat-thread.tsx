@@ -142,8 +142,8 @@ function WelcomeCard({ content }: { content: string }) {
       </div>
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
         {[
-          "拆解任务图",
-          "并行调度角色",
+          "拆解协作流程",
+          "并行处理任务",
           "沉淀交付产物",
         ].map((item) => (
           <div key={item} className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
@@ -163,7 +163,7 @@ function AgentProgressCard({ content }: { content?: string }) {
       <span>
         {content
           ? "正在接收多角色协作输出"
-          : "正在等待任务图和角色执行事件"}
+          : "正在等待协作流程和执行事件"}
       </span>
     </div>
   )
@@ -189,7 +189,7 @@ function InlineSwarmTaskCard({
   const progressLabel = hasRuntime
     ? `${completedCount}/${agents.length} 个任务完成`
     : isStreaming
-      ? "正在生成任务图"
+      ? "正在生成协作流程"
       : "历史消息未执行"
 
   return (
@@ -335,7 +335,7 @@ function InlineSwarmTaskCard({
           </div>
 
           <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            {["任务拆图", "角色并行", "方案汇总"].map((item) => (
+            {["目标拆解", "并行处理", "方案汇总"].map((item) => (
               <div
                 key={item}
                 className="rounded-md border border-border bg-background px-3 py-2 text-xs text-muted-foreground"
@@ -499,10 +499,10 @@ function getInlineSteps(
     [
       "读取目标",
       hasGraph
-        ? "角色任务图已生成"
+        ? "协作流程已生成"
         : isStreaming
-          ? "正在读取经营目标与角色规则"
-          : "经营目标与角色规则",
+          ? "正在读取经营目标与业务规则"
+          : "经营目标与业务规则",
     ],
     [
       "调度角色",

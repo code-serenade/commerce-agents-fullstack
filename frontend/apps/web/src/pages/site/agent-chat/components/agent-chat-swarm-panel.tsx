@@ -175,15 +175,21 @@ const FALLBACK_PHASES = [
 ]
 
 const BUSINESS_CONTEXTS = [
-  "商品看板：咖啡商品组、卖点、素材和竞品",
-  "营销活动：五一转化活动、预算和执行节奏",
-  "数据接入：抖音/千川数据、平台同步状态",
+  "商品看板：商品组、卖点、素材、竞品",
+  "营销活动：活动目标、预算、节奏、复盘",
+  "平台连接：抖音、千川、淘宝、京东同步",
+  "智能洞察：知识检索、记忆、证据沉淀",
+  "预警中心：预算、转化、库存异常",
+  "能力包管理：岗位、技能、流程启停回滚",
 ]
 
 const COMMERCE_OUTCOMES = [
   "创建营销活动",
   "同步商品知识",
   "生成预警规则",
+  "沉淀每日简报",
+  "生成执行清单",
+  "输出能力配置建议",
 ]
 
 export function AgentChatSwarmPanel({
@@ -253,7 +259,7 @@ export function AgentChatSwarmPanel({
                 </div>
                 <div className="min-w-0">
                   <h2 className="truncate font-mono text-2xl font-semibold tracking-wide">
-                    智能体执行台
+                    业务执行视窗
                   </h2>
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                     <span
@@ -307,15 +313,15 @@ export function AgentChatSwarmPanel({
                     {hasRuntime
                       ? `角色 ${formatAgentNumber(agents.indexOf(activeAgent))} | ${activeAgent.name}`
                       : isStreaming
-                        ? "任务规划 | 角色规则"
-                        : "调度待命"}
+                        ? "任务规划 | 业务规则"
+                        : "等待业务目标"}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">
                     {hasRuntime
                       ? activeAgent.name
                       : isStreaming
                         ? "正在拆解任务并准备分配角色"
-                        : "等待新任务触发本轮调度"}
+                        : "发送新任务后展示本轮过程"}
                   </p>
                 </div>
               </div>
@@ -353,7 +359,7 @@ export function AgentChatSwarmPanel({
             <div className="mb-2 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <ClipboardCheck className="size-4 text-muted-foreground" />
-                角色任务图
+                协作流程
                 <span className="text-xs font-normal text-muted-foreground">
                   {runtimeNodeStates.size > 0
                     ? `${agents.length} 个任务节点`
@@ -361,7 +367,7 @@ export function AgentChatSwarmPanel({
                 </span>
               </div>
               <span className="text-xs text-muted-foreground">
-                {hasRuntime ? "实时调度" : "历史会话不计入进度"}
+                {hasRuntime ? "实时更新" : "历史会话不计入进度"}
               </span>
             </div>
 
@@ -401,7 +407,7 @@ export function AgentChatSwarmPanel({
             <CompactInfoBlock
               icon={Database}
               title="业务上下文"
-              items={BUSINESS_CONTEXTS.slice(0, 2)}
+              items={BUSINESS_CONTEXTS}
             />
             <CompactInfoBlock
               icon={SearchCheck}
@@ -411,7 +417,7 @@ export function AgentChatSwarmPanel({
             <CompactInfoBlock
               icon={FileText}
               title="业务落点"
-              items={COMMERCE_OUTCOMES.slice(0, 2)}
+              items={COMMERCE_OUTCOMES}
             />
           </section>
         </div>
@@ -713,15 +719,15 @@ function SwarmIdleDetail({
   selectedLlmLabel?: string
 }) {
   const title = isStreaming
-    ? "正在规划任务图"
+    ? "正在规划协作流程"
     : hasTask
       ? "历史会话，等待新任务"
       : "等待业务目标"
   const description = isStreaming
-    ? "调度器已接收输入，正在匹配角色、依赖和验收规则。"
+    ? "已接收输入，正在匹配商品、活动、数据和交付步骤。"
     : hasTask
-      ? "右侧执行台只显示本轮实时调度，历史消息不会计入当前进度。"
-      : "输入运营目标后，将按数据、预算、投放、创意和运营方案拆成多角色协作。"
+      ? "业务执行视窗只显示本轮过程，历史消息不会计入当前进度。"
+      : "输入运营目标后，将按商品、活动、平台数据、预警和交付资料组织协作。"
 
   return (
     <div className="grid gap-3 p-3 xl:grid-cols-[13rem_minmax(0,1fr)]">
@@ -758,10 +764,10 @@ function SwarmIdleDetail({
             <MonitorCog className="size-4 shrink-0 text-muted-foreground" />
             <div className="min-w-0">
               <p className="truncate font-mono text-sm font-semibold">
-                规划节点 01 | 任务图
+                规划节点 01 | 协作流程
               </p>
               <p className="truncate text-xs text-muted-foreground">
-                运营任务拆解预览
+                运营协作预览
               </p>
             </div>
           </div>
@@ -778,21 +784,23 @@ function SwarmIdleDetail({
             <div className="flex items-center gap-2 border-b border-border bg-card px-3 py-2">
               <FileText className="size-4 text-muted-foreground" />
               <span className="truncate text-sm font-medium">
-                运营任务拆解预览
+                运营协作预览
               </span>
             </div>
             <div className="py-2 font-mono text-[11px]/5">
               {[
                 `# ${title}`,
                 description,
-                "数据诊断先识别指标、归因和经营约束",
+                "数据诊断识别指标、归因和经营约束",
                 "商品看板提供商品知识、卖点素材和竞品线索",
                 "营销活动承接活动策划、执行节奏和复盘结果",
-                "数据接入提供抖音/千川等平台同步状态",
-                "预算评估、千川投放、创意产出并行处理",
+                "平台连接提供抖音、千川等同步状态",
+                "预算评估、投放优化、创意产出并行处理",
                 "运营方案汇总预算、素材、投放节奏",
-                "交付文档沉淀方案、执行清单和复盘口径",
+                "交付资料沉淀方案、清单和复盘口径",
                 "预警中心沉淀预算、投放和转化异常规则",
+                "每日简报汇总重点进展和待办事项",
+                "能力包管理承接后续流程启停与回滚",
               ].map((line, index) => (
                 <div
                   key={`${index}-${line}`}
@@ -1013,7 +1021,7 @@ function getStageLabel({
 }) {
   if (!hasTask) return "等待任务输入"
   if (!hasRuntime) {
-    return isStreaming ? "正在规划任务图" : "历史会话，等待新任务"
+    return isStreaming ? "正在规划协作流程" : "历史会话，等待新任务"
   }
   const failedAgent = agents.find(
     (agent) => runtimeNodeStates.get(agent.nodeId)?.state === "failed"
@@ -1152,18 +1160,18 @@ function getTimeline(
   if (!runtimeEvents.length) {
     if (isStreaming) {
       return [
-        { label: "调度器已收到任务，正在规划任务图。", tone: "default" },
-        { label: "角色、依赖和验收规则生成后会同步到执行台。", tone: "default" },
+        { label: "已收到任务，正在规划协作流程。", tone: "default" },
+        { label: "处理步骤、依赖和验收规则生成后会同步到视窗。", tone: "default" },
       ]
     }
     if (hasTask) {
       return [
-        { label: "当前展示的是历史对话，本轮执行台尚未开始。", tone: "default" },
-        { label: "发送新任务后会重新规划角色与依赖。", tone: "default" },
+        { label: "当前展示的是历史对话，本轮过程尚未开始。", tone: "default" },
+        { label: "发送新任务后会重新规划协作步骤。", tone: "default" },
       ]
     }
     return [
-      { label: "等待客户输入任务，随后会规划角色与依赖。", tone: "default" },
+      { label: "等待客户输入任务，随后会规划协作步骤。", tone: "default" },
       { label: "数据诊断先行，财务/千川/创意角色并行。", tone: "default" },
       { label: "运营角色负责交叉校验并汇总最终交付。", tone: "default" },
     ]
@@ -1172,11 +1180,11 @@ function getTimeline(
   return runtimeEvents
     .map((event): SwarmTimelineItem | null => {
       if (event.type === "commander_thinking") {
-        return { label: "调度器正在分析任务并准备拆图。", tone: "default" }
+        return { label: "正在分析任务并准备协作流程。", tone: "default" }
       }
       if (event.type === "task_graph_planned") {
         return {
-          label: `已规划 ${event.graph.nodes.length} 个角色任务。`,
+          label: `已规划 ${event.graph.nodes.length} 个处理步骤。`,
           tone: "success",
         }
       }
@@ -1205,7 +1213,7 @@ function getTimeline(
         }
       }
       if (event.type === "task_graph_finished") {
-        return { label: "任务图执行结束，进入汇总输出。", tone: "success" }
+        return { label: "协作流程已结束，进入汇总输出。", tone: "success" }
       }
       return null
     })
@@ -1238,8 +1246,8 @@ function getComputerCards({
     cards.push({
       id: "graph-planned",
       title: "读取目标",
-      meta: "角色任务图",
-      description: `已将任务拆成 ${graphEvent.graph.nodes.length} 个角色节点。`,
+      meta: "协作流程",
+      description: `已将任务拆成 ${graphEvent.graph.nodes.length} 个处理步骤。`,
       icon: FileText,
       lines: [
         graphEvent.graph.root_task,
@@ -1254,7 +1262,7 @@ function getComputerCards({
       id: "task-input",
       title: "读取目标",
       meta: "用户任务",
-      description: "读取用户目标并准备生成任务图。",
+      description: "读取用户目标并准备生成协作流程。",
       icon: FileText,
       lines: [lastTask || "等待客户输入业务目标。"],
       state: "working",
@@ -1264,11 +1272,11 @@ function getComputerCards({
   const latestNodeEvent = findLatestNodeEvent(runtimeEvents)
   cards.push({
     id: "runtime-terminal",
-    title: "调度角色",
-    meta: selectedLlmLabel ? `模型 ${selectedLlmLabel}` : "调度器待命",
+    title: "分配任务",
+    meta: selectedLlmLabel ? `模型 ${selectedLlmLabel}` : "等待分配",
     description: latestNodeEvent
       ? formatRuntimeEventDescription(latestNodeEvent, agents)
-      : "调度器正在准备角色、依赖和验收规则。",
+      : "正在准备处理步骤、依赖和验收规则。",
     icon: TerminalSquare,
     lines: [
       `当前角色：${activeAgent.name}`,
@@ -1448,7 +1456,7 @@ function formatRuntimeEventDescription(
 
 function getRuntimeActionLabel(eventType: AgentRuntimeEvent["type"]) {
   if (eventType === "commander_thinking") return "正在拆解任务"
-  if (eventType === "task_graph_planned") return "任务图已生成"
+  if (eventType === "task_graph_planned") return "协作流程已生成"
   if (eventType === "task_node_ready") return "角色已排队"
   if (eventType === "task_node_started") return "角色开始执行"
   if (eventType === "task_node_reported") return "角色提交结果"
@@ -1456,7 +1464,7 @@ function getRuntimeActionLabel(eventType: AgentRuntimeEvent["type"]) {
   if (eventType === "task_node_rework_requested") return "触发返工"
   if (eventType === "task_node_passed") return "通过验收"
   if (eventType === "task_node_failed") return "执行受阻"
-  if (eventType === "task_graph_finished") return "任务图结束"
+  if (eventType === "task_graph_finished") return "协作流程结束"
   return "状态已同步"
 }
 
