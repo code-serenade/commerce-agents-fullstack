@@ -93,6 +93,42 @@
   dialogs/
 ```
 
+### 复杂交互页
+
+例如 agent、chat、workbench、editor、builder、canvas、flow、console 等页面：
+
+```txt
+<page>/
+  index.tsx
+  types.ts
+  constants.ts
+  use-<page>-page.ts
+  <page>-data.ts
+  domain/
+    logic.ts
+  view-model/
+    panel-view-model.ts
+    event-handlers.ts
+  components/
+    page-header.tsx
+    primary-panel.tsx
+    activity-panel.tsx
+    detail-panel.tsx
+```
+
+说明：
+
+- `index.tsx` 只拼接 `<PageHeader />`、`<PrimaryPanel />`、`<ActivityPanel />` 等主模块。
+- `use-<page>-page.ts` 只调用数据入口、维护页面级状态、组合 view model、暴露 handlers。
+- `<page>-data.ts` 只处理 API/query/mutation 或演示数据入口。
+- `domain/logic.ts` 放纯函数和可测试业务计算。
+- `view-model/` 放事件、数据到组件 props 的转换。
+- `components/` 只渲染已经准备好的 props，不重新计算业务模型。
+
+复杂交互页必须继续遵守：
+
+- `AGENT_PROTOCOL/protocols/page-types/complex-interaction-page.md`
+
 ### 非 DataTable 配置页
 
 例如授权、菜单配置、设置页：
@@ -126,6 +162,8 @@
 - 超过 120 行必须重新评估
 - 超过 160 行默认视为违反协议
 
+注意：把 160 行以上的内容从 `index.tsx` 挪到一个巨大的 `components/<panel>.tsx` 或 `use-<page>-page.ts` 不算完成拆分。拆分的目标是职责边界清楚，而不是只移动代码。
+
 例外：
 
 - 页面本身极简单，没有拆分价值
@@ -151,5 +189,7 @@
 - `index.tsx` 不包含复杂数据转换。
 - `index.tsx` 不包含大段表格、树、弹窗、表单 JSX。
 - 页面级状态和派生值集中在 hook 中。
+- 大型展示模型、事件映射和纯逻辑继续拆到 `view-model/` 与 `domain/`。
+- 页面组件文件只接收 props 并渲染局部 UI，不混合 API、reducer 和复杂派生逻辑。
 - 页面子模块职责能从文件名看出来。
 - 后续 AI 能通过 `index.tsx` 先理解页面结构，再进入对应模块修改细节。
