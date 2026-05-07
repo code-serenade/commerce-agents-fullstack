@@ -24,7 +24,7 @@ const SAMPLE_PROMPTS = [
     label: "千川投放复盘",
     icon: Megaphone,
     prompt:
-  "帮我复盘一个抖音直播间千川投放问题：点击率可以但下单转化低，请按数据诊断、预算、创意、投放和运营执行拆成处理任务",
+      "帮我复盘一个抖音直播间千川投放问题：点击率可以但下单转化低，请按数据诊断、预算、创意、投放和运营执行拆成处理任务",
   },
 ]
 
@@ -68,7 +68,12 @@ export function AgentChatComposer({
   const { t } = useTranslation()
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return
+    if (
+      event.key !== "Enter" ||
+      event.shiftKey ||
+      event.nativeEvent.isComposing
+    )
+      return
     event.preventDefault()
     if (canSend) onSend()
   }
@@ -123,9 +128,9 @@ export function AgentChatComposer({
           )}
           disabled={disabled || isStreaming}
           rows={2}
-          className="max-h-32 min-h-14 w-full resize-none rounded-md border-0 bg-transparent px-2 py-2 text-sm/6 outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60"
+          className="max-h-32 min-h-14 w-full resize-none rounded-md border-0 bg-transparent p-2 text-sm/6 outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60"
         />
-        <div className="flex min-w-0 items-center justify-between gap-2 rounded-full bg-background px-2 py-2 shadow-sm">
+        <div className="flex min-w-0 items-center justify-between gap-2 rounded-full bg-background p-2 shadow-sm">
           <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
             <button
               type="button"
@@ -136,7 +141,7 @@ export function AgentChatComposer({
             </button>
             <button
               type="button"
-              className="flex min-w-0 max-w-[14rem] shrink items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+              className="flex max-w-56 min-w-0 shrink items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
               title="切换运营智能体"
             >
               <Bot className="size-4 shrink-0 text-blue-500" />
@@ -158,7 +163,11 @@ export function AgentChatComposer({
               className="flex size-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-colors hover:bg-foreground/90 disabled:cursor-not-allowed disabled:opacity-45"
               title={t("agentChat.composer.send")}
             >
-              {canSend ? <Send className="size-4" /> : <Loader2 className="size-4" />}
+              {canSend ? (
+                <Send className="size-4" />
+              ) : (
+                <Loader2 className="size-4" />
+              )}
             </button>
           )}
         </div>

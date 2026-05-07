@@ -19,11 +19,7 @@ import {
   WalletCards,
 } from "lucide-react"
 import type { ComponentType, SVGProps } from "react"
-import type {
-  AgentRuntimeEvent,
-  AgentTaskNode,
-  AgentWorkerReport,
-} from "@/api"
+import type { AgentRuntimeEvent, AgentTaskNode, AgentWorkerReport } from "@/api"
 import type { AgentChatMessage } from "../types"
 
 type SwarmState =
@@ -117,7 +113,8 @@ const AGENTS: SwarmAgent[] = [
     summary: "计划结构、人群包、预算节奏和 ROI 止损",
     icon: Megaphone,
     tone: "bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-200",
-    objective: "拆解巨量千川计划结构、人群包、出价预算、ROI 止损线和直播/短视频承接",
+    objective:
+      "拆解巨量千川计划结构、人群包、出价预算、ROI 止损线和直播/短视频承接",
     dependsOn: ["data"],
   },
   {
@@ -221,9 +218,15 @@ export function AgentChatSwarmPanel({
     (agent) => runtimeNodeStates.get(agent.nodeId)?.state === "done"
   )
   const activeAgent =
-    agents.find((agent) => runtimeNodeStates.get(agent.nodeId)?.state === "working") ??
-    agents.find((agent) => runtimeNodeStates.get(agent.nodeId)?.state === "reworking") ??
-    agents.find((agent) => runtimeNodeStates.get(agent.nodeId)?.state === "failed") ??
+    agents.find(
+      (agent) => runtimeNodeStates.get(agent.nodeId)?.state === "working"
+    ) ??
+    agents.find(
+      (agent) => runtimeNodeStates.get(agent.nodeId)?.state === "reworking"
+    ) ??
+    agents.find(
+      (agent) => runtimeNodeStates.get(agent.nodeId)?.state === "failed"
+    ) ??
     doneAgents.at(-1) ??
     agents[0]
   const activeAgentIndex = agents.indexOf(activeAgent)
@@ -254,9 +257,9 @@ export function AgentChatSwarmPanel({
     runtimeEvents,
   })
   return (
-    <aside className="h-full min-h-[31rem] min-w-0 overflow-hidden rounded-[1.75rem] bg-[#eeeeeb] p-2 dark:bg-muted/30 min-[1440px]:p-3 2xl:min-h-0">
+    <aside className="h-full min-h-124 min-w-0 overflow-hidden rounded-[1.75rem] bg-[#eeeeeb] p-2 min-[1440px]:p-3 2xl:min-h-0 dark:bg-muted/30">
       <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[1.45rem] bg-[#f6f6f3] dark:bg-card">
-        <header className="sticky top-0 z-10 shrink-0 border-b border-[#d8d8d3] bg-[#f6f6f3]/95 px-3 py-3 backdrop-blur dark:border-border dark:bg-card/95 min-[1440px]:px-5">
+        <header className="sticky top-0 z-10 shrink-0 border-b border-[#d8d8d3] bg-[#f6f6f3]/95 p-3 backdrop-blur min-[1440px]:px-5 dark:border-border dark:bg-card/95">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex min-w-0 items-center gap-3">
@@ -279,13 +282,9 @@ export function AgentChatSwarmPanel({
                             : "bg-muted-foreground/40"
                       }`}
                     />
-                    <span className="text-foreground">
-                      进度 {progress}
-                    </span>
+                    <span className="text-foreground">进度 {progress}</span>
                     <span className="hidden sm:inline">|</span>
-                    <span className="min-w-0 truncate">
-                      {stage}
-                    </span>
+                    <span className="min-w-0 truncate">{stage}</span>
                   </div>
                 </div>
               </div>
@@ -304,7 +303,7 @@ export function AgentChatSwarmPanel({
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2 min-[1440px]:px-4 min-[1440px]:py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto p-2 min-[1440px]:p-4">
           {hasRuntime ? (
             <ComputerRuntimeDetail
               activeAgent={activeAgent}
@@ -371,13 +370,13 @@ function ComputerRuntimeDetail({
   const activityCards = cards.slice(-4)
 
   return (
-    <section className="grid min-h-[31rem] overflow-hidden rounded-[1.25rem] border border-[#dcdcd7] bg-white shadow-sm dark:border-border dark:bg-background min-[1500px]:grid-cols-[12.75rem_minmax(0,1fr)]">
-      <div className="min-w-0 border-b border-border bg-[#f7f7f4] p-3 dark:bg-card min-[1500px]:border-b-0 min-[1500px]:border-r">
+    <section className="grid min-h-124 overflow-hidden rounded-[1.25rem] border border-[#dcdcd7] bg-white shadow-sm min-[1500px]:grid-cols-[12.75rem_minmax(0,1fr)] dark:border-border dark:bg-background">
+      <div className="min-w-0 border-b border-border bg-[#f7f7f4] p-3 min-[1500px]:border-r min-[1500px]:border-b-0 dark:bg-card">
         <div className="mb-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
           <span>本轮记录</span>
           <span>{activityCards.length} 条</span>
         </div>
-        <div className="grid gap-2 sm:grid-cols-2 min-[1500px]:grid-cols-1">
+        <div className="grid gap-2 min-[1500px]:grid-cols-1 sm:grid-cols-2">
           {activityCards.map((card) => (
             <ComputerRuntimeCard key={card.id} card={card} />
           ))}
@@ -385,7 +384,7 @@ function ComputerRuntimeDetail({
       </div>
 
       <div className="min-w-0 bg-white dark:bg-background">
-        <div className="flex items-center justify-between gap-3 border-b border-border bg-white px-4 py-3 dark:bg-background min-[1500px]:px-5">
+        <div className="flex items-center justify-between gap-3 border-b border-border bg-white px-4 py-3 min-[1500px]:px-5 dark:bg-background">
           <div className="flex min-w-0 items-center gap-2">
             <div className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background">
               <ActiveIcon className="size-4" />
@@ -402,22 +401,26 @@ function ComputerRuntimeDetail({
           <StatePill state={activeState} />
         </div>
 
-        <div className="grid min-h-[28rem] grid-rows-[auto_minmax(0,1fr)_auto]">
-          <div className="border-b border-border bg-white px-4 py-3 dark:bg-background min-[1500px]:px-5">
+        <div className="grid min-h-112 grid-rows-[auto_minmax(0,1fr)_auto]">
+          <div className="border-b border-border bg-white px-4 py-3 min-[1500px]:px-5 dark:bg-background">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-xs font-medium text-muted-foreground">业务输入</span>
+              <span className="text-xs font-medium text-muted-foreground">
+                业务输入
+              </span>
             </div>
             <p className="mt-1 line-clamp-2 text-sm/6 text-foreground">
               {screen.request}
             </p>
           </div>
 
-          <div className="min-h-0 bg-white p-3 dark:bg-background min-[1500px]:p-4">
-            <div className="flex h-full min-h-[18rem] flex-col overflow-hidden rounded-lg border border-border bg-[#fbfbfa] dark:bg-card">
+          <div className="min-h-0 bg-white p-3 min-[1500px]:p-4 dark:bg-background">
+            <div className="flex h-full min-h-72 flex-col overflow-hidden rounded-lg border border-border bg-[#fbfbfa] dark:bg-card">
               <div className="flex items-center justify-between gap-3 border-b border-border bg-[#f7f7f4] px-4 py-2.5 dark:bg-card">
                 <div className="flex min-w-0 items-center gap-2">
                   <FileText className="size-4 shrink-0 text-muted-foreground" />
-                  <span className="truncate text-sm font-medium">{screen.filename}</span>
+                  <span className="truncate text-sm font-medium">
+                    {screen.filename}
+                  </span>
                 </div>
                 <span className="shrink-0 rounded-full bg-secondary px-2 py-1 text-[11px] text-secondary-foreground">
                   工作预览
@@ -429,10 +432,10 @@ function ComputerRuntimeDetail({
                     key={`${index}-${line}`}
                     className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3 px-3 py-0.5"
                   >
-                    <span className="select-none text-right tabular-nums text-muted-foreground/70">
+                    <span className="text-right text-muted-foreground/70 tabular-nums select-none">
                       {String(index + 1).padStart(2, "0")}
                     </span>
-                    <span className="min-w-0 break-words text-foreground/85">
+                    <span className="min-w-0 wrap-break-word text-foreground/85">
                       {line}
                     </span>
                   </div>
@@ -542,40 +545,43 @@ function AgentDock({
             runtimeNodeStates,
           })
           const Icon = agent.icon
-          const isActive = agent.nodeId === activeNodeId && (hasTask || isStreaming)
+          const isActive =
+            agent.nodeId === activeNodeId && (hasTask || isStreaming)
 
-            return (
-              <article
-                key={agent.nodeId}
-                title={`${formatAgentNumber(index)} ${agent.name} ${getDockStateLabel(state)}`}
-                className={`flex min-w-0 items-center gap-1.5 rounded-xl border px-3 py-2.5 transition-colors ${
-                  isActive
-                    ? "border-foreground bg-background shadow-sm"
-                    : "border-transparent bg-[#eeeeeb] text-muted-foreground"
+          return (
+            <article
+              key={agent.nodeId}
+              title={`${formatAgentNumber(index)} ${agent.name} ${getDockStateLabel(state)}`}
+              className={`flex min-w-0 items-center gap-1.5 rounded-xl border px-3 py-2.5 transition-colors ${
+                isActive
+                  ? "border-foreground bg-background shadow-sm"
+                  : "border-transparent bg-[#eeeeeb] text-muted-foreground"
+              }`}
+            >
+              <div
+                className={`flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-background ${
+                  isActive ? "text-foreground" : "text-muted-foreground"
                 }`}
               >
-                <div
-                  className={`flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-background ${
-                    isActive ? "text-foreground" : "text-muted-foreground"
-                  }`}
-                >
-                  <Icon className="size-3.5" />
+                <Icon className="size-3.5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 items-center gap-1">
+                  <span className="shrink-0 font-mono text-[10px] font-semibold text-muted-foreground">
+                    {formatAgentNumber(index)}
+                  </span>
+                  <p className="truncate text-[11px] font-medium">
+                    {agent.name}
+                  </p>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex min-w-0 items-center gap-1">
-                    <span className="shrink-0 font-mono text-[10px] font-semibold text-muted-foreground">
-                      {formatAgentNumber(index)}
-                    </span>
-                    <p className="truncate text-[11px] font-medium">{agent.name}</p>
-                  </div>
-                  <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
-                    <DockStateIcon state={state} />
-                    <span className="hidden truncate min-[1500px]:inline">
-                      {getDockStateLabel(state)}
-                    </span>
-                  </div>
+                <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <DockStateIcon state={state} />
+                  <span className="hidden truncate min-[1500px]:inline">
+                    {getDockStateLabel(state)}
+                  </span>
                 </div>
-              </article>
+              </div>
+            </article>
           )
         })}
       </div>
@@ -584,11 +590,13 @@ function AgentDock({
 }
 
 function DockStateIcon({ state }: { state: SwarmState }) {
-  if (state === "done") return <CheckCircle2 className="size-3 text-emerald-600" />
+  if (state === "done")
+    return <CheckCircle2 className="size-3 text-emerald-600" />
   if (state === "working" || state === "reworking") {
     return <Loader2 className="size-3 animate-spin text-emerald-600" />
   }
-  if (state === "failed") return <span className="size-2 rounded-full bg-destructive" />
+  if (state === "failed")
+    return <span className="size-2 rounded-full bg-destructive" />
   return <span className="size-2 rounded-full bg-muted-foreground/35" />
 }
 
@@ -645,7 +653,10 @@ function CompactInfoBlock({
       </div>
       <div className="space-y-1.5">
         {items.map((item) => (
-          <div key={item} className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div
+            key={item}
+            className="flex items-center gap-2 text-xs text-muted-foreground"
+          >
             <span className="size-1.5 shrink-0 rounded-full bg-muted-foreground/35" />
             <span className="truncate">{item}</span>
           </div>
@@ -692,17 +703,19 @@ function SwarmIdleDetail({
           </div>
           <StatePill state={isStreaming ? "working" : "idle"} />
         </div>
-        <div className="grid min-h-[25rem] grid-rows-[auto_minmax(0,1fr)_auto]">
+        <div className="grid min-h-100 grid-rows-[auto_minmax(0,1fr)_auto]">
           <div className="border-b border-border bg-white px-5 py-3 dark:bg-background">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-xs font-medium text-muted-foreground">业务输入</span>
+              <span className="text-xs font-medium text-muted-foreground">
+                业务输入
+              </span>
             </div>
             <p className="mt-1 line-clamp-2 text-sm/6 text-foreground">
               {lastTask ?? description}
             </p>
           </div>
-          <div className="min-h-0 bg-white p-3 dark:bg-background min-[1500px]:p-5">
-            <div className="flex h-full min-h-[18rem] flex-col overflow-hidden rounded-lg border border-border bg-[#fbfbfa] dark:bg-card">
+          <div className="min-h-0 bg-white p-3 min-[1500px]:p-5 dark:bg-background">
+            <div className="flex h-full min-h-72 flex-col overflow-hidden rounded-lg border border-border bg-[#fbfbfa] dark:bg-card">
               <div className="flex items-center justify-between gap-2 border-b border-border bg-[#f7f7f4] px-4 py-2.5 dark:bg-card">
                 <div className="flex min-w-0 items-center gap-2">
                   <FileText className="size-4 text-muted-foreground" />
@@ -733,10 +746,10 @@ function SwarmIdleDetail({
                     key={`${index}-${line}`}
                     className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3 px-3 py-0.5"
                   >
-                    <span className="select-none text-right tabular-nums text-muted-foreground/70">
+                    <span className="text-right text-muted-foreground/70 tabular-nums select-none">
                       {String(index + 1).padStart(2, "0")}
                     </span>
-                    <span className="min-w-0 break-words text-foreground/85">
+                    <span className="min-w-0 wrap-break-word text-foreground/85">
                       {line}
                     </span>
                   </div>
@@ -998,7 +1011,10 @@ function getTimeline(
     if (isStreaming) {
       return [
         { label: "已收到任务，正在规划执行计划。", tone: "default" },
-        { label: "处理步骤、依赖和验收规则生成后会同步到经营工作区。", tone: "default" },
+        {
+          label: "处理步骤、依赖和验收规则生成后会同步到经营工作区。",
+          tone: "default",
+        },
       ]
     }
     if (hasTask) {
@@ -1073,7 +1089,9 @@ function getComputerCards({
 }): ComputerCard[] {
   const cards: ComputerCard[] = []
   const graphEvent = runtimeEvents.find(
-    (event): event is Extract<AgentRuntimeEvent, { type: "task_graph_planned" }> =>
+    (
+      event
+    ): event is Extract<AgentRuntimeEvent, { type: "task_graph_planned" }> =>
       event.type === "task_graph_planned"
   )
 
@@ -1116,7 +1134,9 @@ function getComputerCards({
     lines: [
       `当前任务：${activeAgent.name}`,
       `执行状态：${getDockStateLabel(activeNode?.state ?? "working")}`,
-      latestNodeEvent ? `最近动作：${getRuntimeActionLabel(latestNodeEvent.type)}` : "最近动作：正在拆解任务",
+      latestNodeEvent
+        ? `最近动作：${getRuntimeActionLabel(latestNodeEvent.type)}`
+        : "最近动作：正在拆解任务",
     ],
     state: activeNode?.state ?? "working",
   })
@@ -1178,15 +1198,18 @@ function getComputerScreenContext({
   const reportLines = readReportDocumentLines(activeNode?.report)
   const request = graphNode?.objective ?? activeAgent.objective
   const acceptanceLines =
-    graphNode?.acceptance.map((item, index) => `验收规则 ${index + 1}：${item}`) ??
-    []
+    graphNode?.acceptance.map(
+      (item, index) => `验收规则 ${index + 1}：${item}`
+    ) ?? []
   const lines = compactPreviewLines([
     `# ${activeAgent.name}`,
     `处理职责：${activeAgent.summary}`,
     `任务目标：${request}`,
     ...acceptanceLines,
     ...reportLines,
-    ...((activeNode?.evaluationReasons ?? []).map((reason) => `复核意见：${reason}`)),
+    ...(activeNode?.evaluationReasons ?? []).map(
+      (reason) => `复核意见：${reason}`
+    ),
   ])
 
   return {
@@ -1322,7 +1345,8 @@ function getFallbackResponse(agent: SwarmAgent, state: SwarmState) {
     return "该任务执行失败，通常是模型服务、工具或上游依赖不可用导致。"
   }
   if (state === "reworking") return "验收未通过，正在按反馈重新组织任务输出。"
-  if (state === "working") return `${agent.name} 正在处理请求，结果会在这里更新。`
+  if (state === "working")
+    return `${agent.name} 正在处理请求，结果会在这里更新。`
   if (state === "done") return `${agent.name} 已完成，等待最终汇总。`
   return "任务开始后，这里会展示当前请求、处理结果和产物摘要。"
 }

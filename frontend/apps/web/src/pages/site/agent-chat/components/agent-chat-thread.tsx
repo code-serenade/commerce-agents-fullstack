@@ -30,7 +30,13 @@ export interface AgentChatThreadProps {
   runtimeEvents: AgentRuntimeEvent[]
 }
 
-type InlineAgentState = "idle" | "queued" | "working" | "done" | "failed" | "reworking"
+type InlineAgentState =
+  | "idle"
+  | "queued"
+  | "working"
+  | "done"
+  | "failed"
+  | "reworking"
 
 interface InlineAgent {
   nodeId: string
@@ -82,7 +88,7 @@ export function AgentChatThread({
                 </div>
               ) : null}
               <div
-                className={`min-w-0 max-w-[min(43rem,88%)] text-sm/6 ${
+                className={`max-w-[min(43rem,88%)] min-w-0 text-sm/6 ${
                   isUser
                     ? "rounded-2xl bg-foreground px-4 py-3 text-background"
                     : "text-foreground"
@@ -91,7 +97,9 @@ export function AgentChatThread({
                 {isWelcome ? (
                   <WelcomeCard content={message.content} />
                 ) : message.content ? (
-                  <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                  <p className="wrap-break-word whitespace-pre-wrap">
+                    {message.content}
+                  </p>
                 ) : (
                   <p className="text-muted-foreground">
                     {t("agentChat.streaming")}
@@ -121,7 +129,8 @@ export function AgentChatThread({
           <>
             <InlineSwarmTaskCard
               isStreaming={
-                isStreaming || messages.some((message) => message.status === "streaming")
+                isStreaming ||
+                messages.some((message) => message.status === "streaming")
               }
               runtimeEvents={runtimeEvents}
               task={latestUserTask}
@@ -156,12 +165,11 @@ function WelcomeCard({ content }: { content: string }) {
         </div>
       </div>
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
-        {[
-          "拆解经营目标",
-          "组织业务执行",
-          "沉淀交付产物",
-        ].map((item) => (
-          <div key={item} className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+        {["拆解经营目标", "组织业务执行", "沉淀交付产物"].map((item) => (
+          <div
+            key={item}
+            className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground"
+          >
             <ListChecks className="size-3.5" />
             {item}
           </div>
@@ -175,11 +183,7 @@ function AgentProgressCard({ content }: { content?: string }) {
   return (
     <div className="mt-4 flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs text-muted-foreground">
       <Loader2 className="size-4 animate-spin" />
-      <span>
-        {content
-          ? "正在接收业务执行输出"
-          : "正在等待经营工作区事件"}
-      </span>
+      <span>{content ? "正在接收业务执行输出" : "正在等待经营工作区事件"}</span>
     </div>
   )
 }
@@ -197,8 +201,11 @@ function InlineSwarmTaskCard({
   const steps = getInlineSteps(runtimeEvents, isStreaming)
   const completedCount = agents.filter((agent) => agent.state === "done").length
   const hasRuntime = runtimeEvents.length > 0
-  const activeAgent = agents.find((agent) =>
-    agent.state === "working" || agent.state === "reworking" || agent.state === "failed"
+  const activeAgent = agents.find(
+    (agent) =>
+      agent.state === "working" ||
+      agent.state === "reworking" ||
+      agent.state === "failed"
   )
   const artifacts = getInlineArtifacts(agents, hasRuntime, isStreaming)
   const handoffItems = getCommerceHandoffItems()
@@ -213,7 +220,7 @@ function InlineSwarmTaskCard({
       <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-card text-foreground">
         <GitBranch className="size-5" />
       </div>
-      <div className="min-w-0 max-w-[min(43rem,92%)] space-y-4">
+      <div className="max-w-[min(43rem,92%)] min-w-0 space-y-4">
         <div className="space-y-2">
           {steps.map(([label, detail], index) => {
             const Icon =
@@ -224,7 +231,7 @@ function InlineSwarmTaskCard({
                 className="relative rounded-xl border border-border bg-card px-4 py-3 shadow-sm"
               >
                 {index < steps.length - 1 ? (
-                  <span className="absolute left-6 top-11 h-5 border-l border-dashed border-border" />
+                  <span className="absolute top-11 left-6 h-5 border-l border-dashed border-border" />
                 ) : null}
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
@@ -335,17 +342,27 @@ function InlineSwarmTaskCard({
                 <FileText className="size-4 shrink-0 text-muted-foreground" />
                 <span>阶段资料</span>
                 <span className="truncate text-xs font-normal text-muted-foreground">
-                  {artifacts.filter((artifact) => artifact.state === "done").length}/
-                  {artifacts.length}
+                  {
+                    artifacts.filter((artifact) => artifact.state === "done")
+                      .length
+                  }
+                  /{artifacts.length}
                 </span>
               </div>
               <span className="rounded-full bg-secondary px-2 py-1 text-[11px] text-secondary-foreground">
-                {hasRuntime ? "随执行更新" : isStreaming ? "准备生成" : "待生成"}
+                {hasRuntime
+                  ? "随执行更新"
+                  : isStreaming
+                    ? "准备生成"
+                    : "待生成"}
               </span>
             </div>
             <div className="mt-3 grid gap-2">
               {artifacts.map((artifact) => (
-                <InlineArtifactCard key={artifact.filename} artifact={artifact} />
+                <InlineArtifactCard
+                  key={artifact.filename}
+                  artifact={artifact}
+                />
               ))}
             </div>
           </div>
@@ -354,16 +371,16 @@ function InlineSwarmTaskCard({
             {handoffItems.map((item) => {
               const Icon = item.icon
               return (
-              <div
-                key={item.label}
-                className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-xs text-muted-foreground"
-              >
-                <Icon className="size-3.5 shrink-0" />
-                <span className="shrink-0 font-medium text-foreground">
-                  {item.label}
-                </span>
-                <span className="min-w-0 truncate">{item.detail}</span>
-              </div>
+                <div
+                  key={item.label}
+                  className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-xs text-muted-foreground"
+                >
+                  <Icon className="size-3.5 shrink-0" />
+                  <span className="shrink-0 font-medium text-foreground">
+                    {item.label}
+                  </span>
+                  <span className="min-w-0 truncate">{item.detail}</span>
+                </div>
               )
             })}
           </div>
@@ -393,7 +410,7 @@ function InlineProcessStatusNode({
       <div className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-card text-foreground">
         <MonitorCog className="size-5" />
       </div>
-      <div className="min-w-0 max-w-[min(43rem,92%)] flex-1">
+      <div className="max-w-[min(43rem,92%)] min-w-0 flex-1">
         <div className="border-y border-border/80 bg-background/95 py-2">
           <div className="flex min-w-0 items-center gap-3 px-1">
             <div className="min-w-0 flex-1">
@@ -406,7 +423,9 @@ function InlineProcessStatusNode({
                 <span className="shrink-0 font-medium text-foreground">
                   当前进度 {completedCount}/{agents.length}
                 </span>
-                <span className="hidden text-muted-foreground sm:inline">|</span>
+                <span className="hidden text-muted-foreground sm:inline">
+                  |
+                </span>
                 <span className="min-w-0 truncate text-muted-foreground">
                   {getInlineProcessStage({
                     hasRuntime,
@@ -560,7 +579,8 @@ function getInlineAgents(
   const stateMap = getInlineNodeStates(runtimeEvents)
 
   return baseAgents.map((agent, index) => {
-    const state = stateMap.get(agent.nodeId) ?? getFallbackInlineState(index, isStreaming)
+    const state =
+      stateMap.get(agent.nodeId) ?? getFallbackInlineState(index, isStreaming)
     return {
       ...agent,
       state,
@@ -573,8 +593,12 @@ function getInlineSteps(
   runtimeEvents: AgentRuntimeEvent[],
   isStreaming: boolean
 ) {
-  const hasGraph = runtimeEvents.some((event) => event.type === "task_graph_planned")
-  const hasNodeStarted = runtimeEvents.some((event) => event.type === "task_node_started")
+  const hasGraph = runtimeEvents.some(
+    (event) => event.type === "task_graph_planned"
+  )
+  const hasNodeStarted = runtimeEvents.some(
+    (event) => event.type === "task_node_started"
+  )
 
   return [
     [
@@ -605,7 +629,9 @@ function getInlineArtifacts(
   hasRuntime: boolean,
   isStreaming: boolean
 ): InlineArtifact[] {
-  const stateByNode = new Map(agents.map((agent) => [agent.nodeId, agent.state]))
+  const stateByNode = new Map(
+    agents.map((agent) => [agent.nodeId, agent.state])
+  )
   const fallbackState = hasRuntime ? "queued" : isStreaming ? "working" : "idle"
   const specs = [
     {
@@ -688,7 +714,9 @@ function getInlineArtifactStateLabel(state: InlineAgentState) {
   return "待生成"
 }
 
-function getInlineGraphNodes(runtimeEvents: AgentRuntimeEvent[]): AgentTaskNode[] {
+function getInlineGraphNodes(
+  runtimeEvents: AgentRuntimeEvent[]
+): AgentTaskNode[] {
   for (let index = runtimeEvents.length - 1; index >= 0; index -= 1) {
     const event = runtimeEvents[index]
     if (event.type === "task_graph_planned") return event.graph.nodes
@@ -713,7 +741,9 @@ function getInlineNodeStates(runtimeEvents: AgentRuntimeEvent[]) {
 
   runtimeEvents.forEach((event) => {
     if (event.type === "task_graph_planned") {
-      event.graph.nodes.forEach((node) => states.set(readInlineId(node.id), "queued"))
+      event.graph.nodes.forEach((node) =>
+        states.set(readInlineId(node.id), "queued")
+      )
       return
     }
     if (event.type === "task_node_ready") {
@@ -725,7 +755,10 @@ function getInlineNodeStates(runtimeEvents: AgentRuntimeEvent[]) {
       return
     }
     if (event.type === "task_node_reported") {
-      states.set(event.nodeId, event.report.status === "failed" ? "failed" : "done")
+      states.set(
+        event.nodeId,
+        event.report.status === "failed" ? "failed" : "done"
+      )
       return
     }
     if (event.type === "task_node_evaluated") {
