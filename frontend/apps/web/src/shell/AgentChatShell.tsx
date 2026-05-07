@@ -348,7 +348,7 @@ function ConversationActionMenu({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger>
+      <DropdownMenuTrigger asChild>
         <button
           type="button"
           disabled={disabled}

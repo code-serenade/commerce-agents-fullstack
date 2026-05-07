@@ -26,6 +26,8 @@ export interface DropdownMenuProps {
 }
 
 export interface DropdownMenuTriggerProps {
+  asChild?: boolean
+  className?: string
   children: ReactNode
 }
 
@@ -104,8 +106,16 @@ export function DropdownMenu({ open, onOpenChange, children }: DropdownMenuProps
   )
 }
 
-export function DropdownMenuTrigger({ children }: DropdownMenuTriggerProps) {
-  return <CoreDropdownMenuTrigger>{children}</CoreDropdownMenuTrigger>
+export function DropdownMenuTrigger({
+  asChild,
+  children,
+  className,
+}: DropdownMenuTriggerProps) {
+  return (
+    <CoreDropdownMenuTrigger asChild={asChild} className={className}>
+      {children}
+    </CoreDropdownMenuTrigger>
+  )
 }
 
 export function DropdownMenuPortal({ children }: DropdownMenuPortalProps) {
