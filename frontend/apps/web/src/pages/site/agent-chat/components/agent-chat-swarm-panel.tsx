@@ -15,13 +15,11 @@ import {
   Search,
   SearchCheck,
   ShieldAlert,
-  Sparkles,
   TerminalSquare,
   WalletCards,
 } from "lucide-react"
 import type { ComponentType, SVGProps } from "react"
 import type {
-  AgentLlmConfigResponse,
   AgentRuntimeEvent,
   AgentTaskNode,
   AgentWorkerReport,
@@ -39,11 +37,9 @@ type SwarmState =
 
 interface AgentChatSwarmPanelProps {
   isStreaming: boolean
-  llmConfig: AgentLlmConfigResponse | null
   messages: AgentChatMessage[]
   onCollapse: () => void
   runtimeEvents: AgentRuntimeEvent[]
-  selectedModelName: string | null
 }
 
 interface SwarmAgent {
@@ -209,11 +205,9 @@ const WORKSPACE_HANDOFFS = [
 
 export function AgentChatSwarmPanel({
   isStreaming,
-  llmConfig,
   messages,
   onCollapse,
   runtimeEvents,
-  selectedModelName,
 }: AgentChatSwarmPanelProps) {
   const userMessages = messages.filter((message) => message.role === "user")
   const hasTask = userMessages.length > 0
@@ -252,14 +246,12 @@ export function AgentChatSwarmPanel({
   })
   const phases = getPhases(graphNodes)
   const timeline = getTimeline(runtimeEvents, agents, hasTask, isStreaming)
-  const selectedLlm = getSelectedLlm(llmConfig, selectedModelName)
   const computerCards = getComputerCards({
     activeAgent,
     activeNode,
     agents,
     lastTask,
     runtimeEvents,
-    selectedLlmLabel: selectedLlm?.model,
   })
   return (
     <aside className="h-full min-h-[31rem] min-w-0 overflow-hidden rounded-[1.75rem] bg-[#eeeeeb] p-2 dark:bg-muted/30 min-[1440px]:p-3 2xl:min-h-0">
@@ -299,14 +291,6 @@ export function AgentChatSwarmPanel({
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <div className="hidden min-w-0 items-center gap-2 rounded-full border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-muted-foreground shadow-sm min-[1320px]:flex">
-                <Sparkles className="size-4 shrink-0 text-blue-500" />
-                <span className="max-w-32 truncate min-[1500px]:max-w-40 min-[1800px]:max-w-52">
-                  {selectedLlm
-                    ? `${selectedLlm.model} · ${selectedLlm.name}`
-                    : "服务加载中"}
-                </span>
-              </div>
               <button
                 type="button"
                 onClick={onCollapse}
@@ -329,14 +313,12 @@ export function AgentChatSwarmPanel({
               activeState={activeNode?.state ?? activeState}
               cards={computerCards}
               runtimeEvents={runtimeEvents}
-              selectedLlmLabel={selectedLlm?.model}
             />
           ) : (
             <SwarmIdleDetail
               hasTask={hasTask}
               isStreaming={isStreaming}
               lastTask={lastTask}
-              selectedLlmLabel={selectedLlm?.model}
             />
           )}
 
@@ -372,7 +354,6 @@ function ComputerRuntimeDetail({
   activeState,
   cards,
   runtimeEvents,
-  selectedLlmLabel,
 }: {
   activeAgent: SwarmAgent
   activeAgentIndex: number
@@ -380,13 +361,11 @@ function ComputerRuntimeDetail({
   activeState: SwarmState
   cards: ComputerCard[]
   runtimeEvents: AgentRuntimeEvent[]
-  selectedLlmLabel?: string
 }) {
   const screen = getComputerScreenContext({
     activeAgent,
     activeNode,
     runtimeEvents,
-    selectedLlmLabel,
   })
   const ActiveIcon = activeAgent.icon
   const activityCards = cards.slice(-4)
@@ -427,11 +406,6 @@ function ComputerRuntimeDetail({
           <div className="border-b border-border bg-white px-4 py-3 dark:bg-background min-[1500px]:px-5">
             <div className="flex items-center justify-between gap-3">
               <span className="text-xs font-medium text-muted-foreground">业务输入</span>
-              {selectedLlmLabel ? (
-                <span className="min-w-0 truncate rounded-full bg-secondary px-2 py-1 text-[11px] text-secondary-foreground">
-                  {selectedLlmLabel}
-                </span>
-              ) : null}
             </div>
             <p className="mt-1 line-clamp-2 text-sm/6 text-foreground">
               {screen.request}
@@ -685,12 +659,10 @@ function SwarmIdleDetail({
   hasTask,
   isStreaming,
   lastTask,
-  selectedLlmLabel,
 }: {
   hasTask: boolean
   isStreaming: boolean
   lastTask?: string
-  selectedLlmLabel?: string
 }) {
   const title = isStreaming
     ? "正在规划执行计划"
@@ -724,11 +696,6 @@ function SwarmIdleDetail({
           <div className="border-b border-border bg-white px-5 py-3 dark:bg-background">
             <div className="flex items-center justify-between gap-3">
               <span className="text-xs font-medium text-muted-foreground">业务输入</span>
-              {selectedLlmLabel ? (
-                <span className="min-w-0 truncate rounded-full bg-secondary px-2 py-1 text-[11px] text-secondary-foreground">
-                  {selectedLlmLabel}
-                </span>
-              ) : null}
             </div>
             <p className="mt-1 line-clamp-2 text-sm/6 text-foreground">
               {lastTask ?? description}
@@ -1097,14 +1064,12 @@ function getComputerCards({
   agents,
   lastTask,
   runtimeEvents,
-  selectedLlmLabel,
 }: {
   activeAgent: SwarmAgent
   activeNode?: RuntimeNodeSnapshot
   agents: SwarmAgent[]
   lastTask?: string
   runtimeEvents: AgentRuntimeEvent[]
-  selectedLlmLabel?: string
 }): ComputerCard[] {
   const cards: ComputerCard[] = []
   const graphEvent = runtimeEvents.find(
@@ -1143,7 +1108,7 @@ function getComputerCards({
   cards.push({
     id: "runtime-terminal",
     title: "分配任务",
-    meta: selectedLlmLabel ? `模型 ${selectedLlmLabel}` : "等待分配",
+    meta: "等待分配",
     description: latestNodeEvent
       ? formatRuntimeEventDescription(latestNodeEvent, agents)
       : "正在准备处理步骤、依赖和验收规则。",
@@ -1204,12 +1169,10 @@ function getComputerScreenContext({
   activeAgent,
   activeNode,
   runtimeEvents,
-  selectedLlmLabel,
 }: {
   activeAgent: SwarmAgent
   activeNode?: RuntimeNodeSnapshot
   runtimeEvents: AgentRuntimeEvent[]
-  selectedLlmLabel?: string
 }): ComputerScreenContext {
   const graphNode = getActiveGraphNode(runtimeEvents, activeAgent.nodeId)
   const reportLines = readReportDocumentLines(activeNode?.report)
@@ -1220,7 +1183,6 @@ function getComputerScreenContext({
   const lines = compactPreviewLines([
     `# ${activeAgent.name}`,
     `处理职责：${activeAgent.summary}`,
-    selectedLlmLabel ? `服务通道：${selectedLlmLabel}` : "服务通道：等待选择",
     `任务目标：${request}`,
     ...acceptanceLines,
     ...reportLines,
@@ -1373,20 +1335,6 @@ function getDockStateLabel(state: SwarmState) {
   if (state === "queued") return "等待执行"
   if (state === "skipped") return "已跳过"
   return "等待任务"
-}
-
-function getSelectedLlm(
-  llmConfig: AgentLlmConfigResponse | null,
-  selectedModelName: string | null
-) {
-  if (!llmConfig) return null
-  return (
-    llmConfig.items.find((item) => item.name === selectedModelName) ??
-    llmConfig.items.find((item) => item.selected) ??
-    llmConfig.items.find((item) => item.name === llmConfig.selectedLlm) ??
-    llmConfig.items[0] ??
-    null
-  )
 }
 
 function hasFailedNode(runtimeNodeStates: Map<string, RuntimeNodeSnapshot>) {

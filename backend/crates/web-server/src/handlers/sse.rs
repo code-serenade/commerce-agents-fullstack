@@ -39,7 +39,6 @@ pub async fn stream_agent_session(
         req.workspace_id,
         req.agent_id,
         req.session_id,
-        req.model_name,
         req.input,
     )
     .map_err(Into::<ApiError>::into)?;
@@ -48,177 +47,16 @@ pub async fn stream_agent_session(
         let mut events = events;
         while let Some(event) = events.recv().await {
             let event_name = event.event_name();
+            let event_value = serde_json::to_value(&event)
+                .unwrap_or_else(|_| json!({ "type": event_name }));
+            yield Ok(json_event(event_name, event_value));
+
             match event {
                 SessionEvent::LlmChunk { content, .. } => {
                     yield Ok(json_event("delta", json!({ "content": content })));
                 }
                 SessionEvent::Output { content, .. } => {
                     yield Ok(json_event("delta", json!({ "content": content })));
-                }
-                SessionEvent::CommanderThinking { .. } => {
-                    yield Ok(json_event("agent_event", json!({
-                        "type": event_name
-                    })));
-                }
-                SessionEvent::WorkerStarted { worker_id, task_id, .. } => {
-                    yield Ok(json_event("agent_event", json!({
-                        "type": event_name,
-                        "workerId": worker_id.0,
-                        "taskId": task_id.0
-                    })));
-                }
-                SessionEvent::WorkerFinished { worker_id, task_id, .. } => {
-                    yield Ok(json_event("agent_event", json!({
-                        "type": event_name,
-                        "workerId": worker_id.0,
-                        "taskId": task_id.0
-                    })));
-                }
-                SessionEvent::CollaborationStarted {
-                    primary_worker_id,
-                    support_worker_ids,
-                    ..
-                } => {
-                    yield Ok(json_event("agent_event", json!({
-                        "type": event_name,
-                        "primaryWorkerId": primary_worker_id.0,
-                        "supportWorkerIds": support_worker_ids
-                            .into_iter()
-                            .map(|worker_id| worker_id.0)
-                            .collect::<Vec<_>>()
-                    })));
-                }
-                SessionEvent::CollaborationWorkerStarted { worker_id, task_id, .. } => {
-                    yield Ok(json_event("agent_event", json!({
-                        "type": event_name,
-                        "workerId": worker_id.0,
-                        "taskId": task_id.0
-                    })));
-                }
-                SessionEvent::CollaborationWorkerFinished {
-                    worker_id,
-                    task_id,
-                    content,
-                    ..
-                } => {
-                    yield Ok(json_event("agent_event", json!({
-                        "type": event_name,
-                        "workerId": worker_id.0,
-                        "taskId": task_id.0,
-                        "content": content
-                    })));
-                }
-                SessionEvent::CollaborationFinished { .. } => {
-                    yield Ok(json_event("agent_event", json!({
-                        "type": event_name
-                    })));
-                }
-                SessionEvent::TaskGraphPlanned { graph, .. } => {
-                    yield Ok(json_event("agent_event", json!({
-                        "type": event_name,
-                        "graph": graph
-                    })));
-                }
-                SessionEvent::TaskNodeReady {
-                    graph_id,
-                    node_id,
-                    worker_id,
-                    ..
-                } => {
-                    yield Ok(json_event("agent_event", json!({
-                        "type": event_name,
-                        "graphId": graph_id.0,
-                        "nodeId": node_id.0,
-                        "workerId": worker_id.0
-                    })));
-                }
-                SessionEvent::TaskNodeStarted {
-                    graph_id,
-                    node_id,
-                    worker_id,
-                    attempt,
-                    ..
-                } => {
-                    yield Ok(json_event("agent_event", json!({
-                        "type": event_name,
-                        "graphId": graph_id.0,
-                        "nodeId": node_id.0,
-                        "workerId": worker_id.0,
-                        "attempt": attempt
-                    })));
-                }
-                SessionEvent::TaskNodeReported {
-                    graph_id,
-                    node_id,
-                    worker_id,
-                    report,
-                    ..
-                } => {
-                    yield Ok(json_event("agent_event", json!({
-                        "type": event_name,
-                        "graphId": graph_id.0,
-                        "nodeId": node_id.0,
-                        "workerId": worker_id.0,
-                        "report": report
-                    })));
-                }
-                SessionEvent::TaskNodeEvaluated {
-                    graph_id,
-                    evaluation,
-                    ..
-                } => {
-                    yield Ok(json_event("agent_event", json!({
-                        "type": event_name,
-                        "graphId": graph_id.0,
-                        "evaluation": evaluation
-                    })));
-                }
-                SessionEvent::TaskNodeReworkRequested {
-                    graph_id,
-                    node_id,
-                    worker_id,
-                    attempt,
-                    instruction,
-                    ..
-                } => {
-                    yield Ok(json_event("agent_event", json!({
-                        "type": event_name,
-                        "graphId": graph_id.0,
-                        "nodeId": node_id.0,
-                        "workerId": worker_id.0,
-                        "attempt": attempt,
-                        "instruction": instruction
-                    })));
-                }
-                SessionEvent::TaskNodePassed {
-                    graph_id,
-                    node_id,
-                    ..
-                } => {
-                    yield Ok(json_event("agent_event", json!({
-                        "type": event_name,
-                        "graphId": graph_id.0,
-                        "nodeId": node_id.0
-                    })));
-                }
-                SessionEvent::TaskNodeFailed {
-                    graph_id,
-                    node_id,
-                    reason,
-                    ..
-                } => {
-                    yield Ok(json_event("agent_event", json!({
-                        "type": event_name,
-                        "graphId": graph_id.0,
-                        "nodeId": node_id.0,
-                        "reason": reason
-                    })));
-                }
-                SessionEvent::TaskGraphFinished { graph_id, .. } => {
-                    yield Ok(json_event("agent_event", json!({
-                        "type": event_name,
-                        "graphId": graph_id.0
-                    })));
                 }
                 SessionEvent::Failed { reason, .. } => {
                     yield Ok(json_event("error", json!({ "message": reason })));

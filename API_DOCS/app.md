@@ -90,8 +90,7 @@
 {
   "title": "New chat",
   "firstMessage": "hello",
-  "agentId": "default-agent",
-  "modelName": "default-model"
+  "agentId": "default-agent"
 }
 ```
 
@@ -105,7 +104,41 @@
 
 成功响应 `data`：`ConversationDetailResponse`，包含 `conversation`、`messages`、`files`。
 
-## 6. 添加会话消息
+## 6. 更新会话标题
+
+- 方法：`PATCH`
+- 路径：`/api/app/conversations/{conversationId}`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "title": "新的对话名称"
+}
+```
+
+成功响应 `data`：`ConversationResponse`。
+
+补充说明：
+
+- 只能更新当前用户自己的会话
+- `title` 最长 255 个字符，空字符串会按 `null` 处理
+
+## 7. 删除会话
+
+- 方法：`DELETE`
+- 路径：`/api/app/conversations/{conversationId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`null`。
+
+补充说明：
+
+- 只能删除当前用户自己的会话
+- 当前实现为软删除，删除后不会再出现在会话列表中
+
+## 8. 添加会话消息
 
 - 方法：`POST`
 - 路径：`/api/app/conversations/{conversationId}/messages`
@@ -128,7 +161,7 @@
 - `role` 只能是 `user`、`assistant`、`system`、`tool`
 - `contentText` 和 `contentJson` 至少需要一个有值
 
-## 7. 获取会话附件上传签名
+## 9. 获取会话附件上传签名
 
 - 方法：`POST`
 - 路径：`/api/app/conversations/{conversationId}/files/presign-upload`
@@ -161,7 +194,7 @@
 - 聊天附件固定使用 private bucket
 - 前端使用 `uploadUrl` 上传成功后，再调用注册附件接口写入业务表
 
-## 8. 注册会话附件
+## 10. 注册会话附件
 
 - 方法：`POST`
 - 路径：`/api/app/conversations/{conversationId}/files`
@@ -187,7 +220,7 @@
 - `bucket` 不由前端传入，服务端固定写入 `private`
 - `objectKey` 必须来自当前用户当前会话的上传签名路径
 
-## 9. 获取会话附件下载签名
+## 11. 获取会话附件下载签名
 
 - 方法：`GET`
 - 路径：`/api/app/conversation-files/{fileId}/access`

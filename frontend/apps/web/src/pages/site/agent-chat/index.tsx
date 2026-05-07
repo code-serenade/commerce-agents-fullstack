@@ -41,23 +41,18 @@ export default function AgentChatPage() {
             disabled={!chat.isLoggedIn}
             input={chat.input}
             isStreaming={chat.isStreaming}
-            llmConfig={chat.llmConfig}
             onInputChange={chat.setInput}
-            onModelChange={chat.setSelectedModelName}
             onSend={chat.sendMessage}
             onStop={chat.stopStreaming}
-            selectedModelName={chat.selectedModelName}
           />
         </section>
         {isProcessPanelOpen ? (
           <div className="absolute inset-y-2 right-2 z-20 w-[min(46rem,calc(100%_-_1rem))] shadow-2xl shadow-black/20 min-[1280px]:static min-[1280px]:h-full min-[1280px]:max-h-full min-[1280px]:min-h-0 min-[1280px]:w-auto min-[1280px]:shadow-none">
             <AgentChatSwarmPanel
               isStreaming={chat.isStreaming}
-              llmConfig={chat.llmConfig}
               messages={chat.messages}
               onCollapse={() => setIsProcessPanelOpen(false)}
               runtimeEvents={chat.runtimeEvents}
-              selectedModelName={chat.selectedModelName}
             />
           </div>
         ) : (

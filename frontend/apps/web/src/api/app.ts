@@ -35,24 +35,6 @@ export interface CurrentAppUserPermissionsResponse {
   permissionCodes: string[]
 }
 
-export interface AgentLlmConfigItemResponse {
-  name: string
-  baseUrl: string
-  model: string
-  maxTokens?: number | null
-  temperature?: number | null
-  reasoningEffort?: string | null
-  chatCompletionsEndpoint?: string | null
-  hasApiKey: boolean
-  selected: boolean
-}
-
-export interface AgentLlmConfigResponse {
-  defaultLlm?: string | null
-  selectedLlm?: string | null
-  items: AgentLlmConfigItemResponse[]
-}
-
 export const registerAppUserApi = async (
   body: RegisterAppUserRequest
 ): Promise<AppUserResponse> => {
@@ -71,14 +53,6 @@ export const getCurrentAppUserPermissionsApi =
       method: "GET",
       url: "/api/app/me/permissions",
       suppressGlobalError: options?.suppressGlobalError,
-    })
-  }
-
-export const getAgentLlmConfigApi =
-  async (): Promise<AgentLlmConfigResponse> => {
-    return request<undefined, AgentLlmConfigResponse>({
-      method: "GET",
-      url: "/api/app/agent/llm-config",
     })
   }
 

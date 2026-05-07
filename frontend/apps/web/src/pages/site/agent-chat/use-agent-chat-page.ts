@@ -4,11 +4,9 @@ import { useSelector } from "react-redux"
 import {
   addConversationMessageApi,
   createConversationApi,
-  getAgentLlmConfigApi,
   getConversationApi,
   listConversationsApi,
   streamAgentSessionApi,
-  type AgentLlmConfigResponse,
   type AgentRuntimeEvent,
   type ConversationDetailResponse,
   type ConversationMessageResponse,
@@ -33,8 +31,6 @@ export function useAgentChatPage() {
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [conversations, setConversations] = useState<AgentChatConversationItem[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
-  const [llmConfig, setLlmConfig] = useState<AgentLlmConfigResponse | null>(null)
-  const [selectedModelName, setSelectedModelName] = useState<string | null>(null)
   const [runtimeEvents, setRuntimeEvents] = useState<AgentRuntimeEvent[]>([])
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
@@ -61,8 +57,6 @@ export function useAgentChatPage() {
         if (cancelled) return
         setConversationId(null)
         setConversations([])
-        setLlmConfig(null)
-        setSelectedModelName(null)
         sessionIdRef.current = createSessionId()
         setMessages([createWelcomeMessage()])
       })
@@ -72,14 +66,9 @@ export function useAgentChatPage() {
     async function loadLatestConversation() {
       try {
         const conversations = await listConversationsApi()
-        const llmConfig = await getAgentLlmConfigApi()
         if (cancelled) return
 
         setConversations(conversations.map(mapConversationItem))
-        setLlmConfig(llmConfig)
-        setSelectedModelName(
-          llmConfig.selectedLlm ?? llmConfig.items.find((item) => item.selected)?.name ?? null
-        )
         const latest = conversations[0]
         if (!latest) {
           if (!cancelled) {
@@ -180,7 +169,6 @@ export function useAgentChatPage() {
           title: createConversationTitle(content),
           firstMessage: content,
           agentId: AGENT_ID,
-          modelName: selectedModelName,
         })
         activeConversationId = detail.conversation.id
         setConversationId(activeConversationId)
@@ -204,7 +192,6 @@ export function useAgentChatPage() {
         {
           input: content,
           agentId: AGENT_ID,
-          modelName: selectedModelName ?? undefined,
           sessionId: sessionIdRef.current,
           workspaceId: WORKSPACE_ID,
         },
@@ -270,7 +257,7 @@ export function useAgentChatPage() {
       setIsStreaming(false)
       abortRef.current = null
     }
-  }, [conversationId, input, isStreaming, selectedModelName, t, user])
+  }, [conversationId, input, isStreaming, t, user])
 
   const stopStreaming = useCallback(() => {
     abortRef.current?.abort()
@@ -293,13 +280,10 @@ export function useAgentChatPage() {
     input,
     isLoggedIn: Boolean(user),
     isStreaming,
-    llmConfig,
     messages,
     runtimeEvents,
-    selectedModelName,
     sendMessage,
     selectConversation,
-    setSelectedModelName,
     setInput,
     startNewConversation,
     stopStreaming,

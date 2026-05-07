@@ -6,18 +6,14 @@ use validator::Validate;
 
 use crate::{
     dto::app::{
-        AddConversationMessageRequest, AgentLlmConfigItemResponse, AgentLlmConfigResponse,
-        AppUserResponse, ConversationDetailResponse, ConversationFileAccessResponse,
-        ConversationFileResponse, ConversationMessageResponse, ConversationResponse,
-        CreateConversationRequest, CurrentUserPermissionsResponse,
+        AddConversationMessageRequest, AppUserResponse, ConversationDetailResponse,
+        ConversationFileAccessResponse, ConversationFileResponse, ConversationMessageResponse,
+        ConversationResponse, CreateConversationRequest, CurrentUserPermissionsResponse,
         PresignConversationFileUploadRequest, PresignConversationFileUploadResponse,
-        RegisterAppUserRequest, RegisterConversationFileRequest,
+        RegisterAppUserRequest, RegisterConversationFileRequest, UpdateConversationRequest,
     },
     error::{Error, from_biz_error},
-    statics::{
-        agent_manager::get_agent_runtime_config, db_manager::get_app_ctx,
-        storage_manager::get_storage,
-    },
+    statics::{db_manager::get_app_ctx, storage_manager::get_storage},
 };
 
 const FILE_UPLOAD_EXPIRES_SECS: u64 = 600;
@@ -86,37 +82,6 @@ pub async fn current_user_permissions(
     .to_json())
 }
 
-pub async fn agent_llm_config() -> ResponseResult<AgentLlmConfigResponse> {
-    let config = get_agent_runtime_config().map_err(|err| Error::Custom(err.to_string()))?;
-    let selected_name = config
-        .default_llm
-        .as_ref()
-        .or_else(|| config.llm.first().map(|llm| &llm.name));
-    let items = config
-        .llm
-        .iter()
-        .map(|llm| AgentLlmConfigItemResponse {
-            name: llm.name.clone(),
-            base_url: llm.base_url.clone(),
-            model: llm.model.clone(),
-            max_tokens: llm.max_tokens,
-            temperature: llm.temperature,
-            reasoning_effort: llm.reasoning_effort.clone(),
-            chat_completions_endpoint: llm.chat_completions_endpoint.clone(),
-            has_api_key: llm.api_key.as_deref().is_some_and(|key| !key.is_empty()),
-            selected: selected_name.is_some_and(|name| name == &llm.name),
-        })
-        .collect();
-
-    Ok(AgentLlmConfigResponse {
-        default_llm: config.default_llm.clone(),
-        selected_llm: selected_name.cloned(),
-        items,
-    }
-    .into_common_response()
-    .to_json())
-}
-
 pub async fn list_conversations(
     Extension(auth_user): Extension<AuthUser>,
 ) -> ResponseResult<Vec<ConversationResponse>> {
@@ -144,7 +109,7 @@ pub async fn create_conversation(
             title: req.title,
             first_message: req.first_message,
             agent_id: req.agent_id,
-            model_name: req.model_name,
+            model_name: None,
         })
         .await
         .map_err(from_biz_error)?;
@@ -190,6 +155,42 @@ pub async fn add_conversation_message(
     Ok(map_message_response(message)
         .into_common_response()
         .to_json())
+}
+
+pub async fn update_conversation(
+    Extension(auth_user): Extension<AuthUser>,
+    Path(conversation_id): Path<String>,
+    Json(req): Json<UpdateConversationRequest>,
+) -> ResponseResult<ConversationResponse> {
+    req.validate().map_err(Error::from)?;
+    let api = ConversationApi::new(get_app_ctx());
+    let conversation = api
+        .update_conversation(service::dto::conversation::UpdateConversationRequest {
+            user_id: auth_user.user_id,
+            conversation_id,
+            title: req.title,
+        })
+        .await
+        .map_err(from_biz_error)?;
+
+    Ok(map_conversation_response(conversation)
+        .into_common_response()
+        .to_json())
+}
+
+pub async fn delete_conversation(
+    Extension(auth_user): Extension<AuthUser>,
+    Path(conversation_id): Path<String>,
+) -> ResponseResult<()> {
+    let api = ConversationApi::new(get_app_ctx());
+    api.delete_conversation(service::dto::conversation::DeleteConversationRequest {
+        user_id: auth_user.user_id,
+        conversation_id,
+    })
+    .await
+    .map_err(from_biz_error)?;
+
+    Ok(().into_common_response().to_json())
 }
 
 pub async fn presign_conversation_file_upload(

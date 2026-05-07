@@ -13,9 +13,6 @@ pub struct AgentStreamRequest {
     #[validate(length(min = 1, max = 128))]
     pub workspace_id: Option<String>,
 
-    #[validate(length(min = 1, max = 128))]
-    pub model_name: Option<String>,
-
     #[validate(length(min = 1, max = 20000))]
     pub input: String,
 }

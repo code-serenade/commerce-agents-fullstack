@@ -223,13 +223,7 @@ mod tests {
 
         let path = RolePromptBuilder::prompt_path_for(&role);
 
-        assert_eq!(
-            path.iter()
-                .map(|part| part.to_string_lossy())
-                .collect::<Vec<_>>()
-                .join("/"),
-            "config/prompts/zh/roles/chat.md"
-        );
+        assert_eq!(path.to_string_lossy(), "config/prompts/zh/roles/chat.md");
     }
 
     #[test]

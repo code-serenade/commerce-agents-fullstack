@@ -25,27 +25,9 @@ access_key = "CHANGE_ME"
 secret_key = "CHANGE_ME"
 user_key_salt = "please-change-to-random-long-string"
 
-# Agent runtime uses the first [[llm]] entry by default.
-# Set default_llm to switch between an external provider and local Ollama.
-# default_llm = "doubao-external"
-
 [[llm]]
 name = "ollama-gemma4"
 base_url = "http://127.0.0.1:11434"
 model = "gemma4:26b"
 max_tokens = 20000
 temperature = 0.2
-
-# OpenAI-compatible external provider example. Fill this with the public
-# base URL and model that can be reached from the deployment machine.
-#
-# [[llm]]
-# name = "doubao-external"
-# base_url = "https://CHANGE_ME_PUBLIC_OPENAI_COMPATIBLE_BASE_URL"
-# model = "CHANGE_ME_MODEL_NAME"
-# api_key = "CHANGE_ME"
-# max_tokens = 20000
-# temperature = 0.2
-#
-# If the provider exposes chat completions at a non-standard path, set:
-# chat_completions_endpoint = "/v1/chat/completions"

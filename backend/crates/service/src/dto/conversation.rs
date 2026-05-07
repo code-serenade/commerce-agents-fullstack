@@ -22,6 +22,19 @@ pub struct AddConversationMessageRequest {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct UpdateConversationRequest {
+    pub user_id: String,
+    pub conversation_id: String,
+    pub title: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct DeleteConversationRequest {
+    pub user_id: String,
+    pub conversation_id: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct RegisterConversationFileRequest {
     pub user_id: String,
     pub conversation_id: String,

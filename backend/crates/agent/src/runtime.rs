@@ -55,6 +55,13 @@ pub fn build_agent_manager(config: AgentRuntimeCfg) -> Result<AgentManager> {
 
     let worker_llm = Arc::clone(&llm);
     let worker: RoleCognitionFactory = Arc::new(move |role: &RoleProfile| {
+        if role.runtime_role == "chat" {
+            return Ok(Box::new(CognitionEngine::new(
+                Arc::clone(&worker_llm),
+                "config/prompts/zh/cognition/chat_worker.md",
+            )?) as Box<dyn Cognition + Send>);
+        }
+
         let role_prompt = RolePromptBuilder::build_worker_system_prompt(role);
         Ok(Box::new(CognitionEngine::new_with_system_append(
             Arc::clone(&worker_llm),

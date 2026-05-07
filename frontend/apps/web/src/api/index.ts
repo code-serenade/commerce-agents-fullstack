@@ -19,11 +19,8 @@ export {
 
 export {
   ensureCurrentAppUserPermissions,
-  getAgentLlmConfigApi,
   getCurrentAppUserPermissionsApi,
   registerAppUserApi,
-  type AgentLlmConfigItemResponse,
-  type AgentLlmConfigResponse,
   type AppRoleResponse,
   type CurrentAppUserPermissionsResponse,
   type AppUserResponse,

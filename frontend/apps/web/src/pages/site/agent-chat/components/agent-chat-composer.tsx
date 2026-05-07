@@ -12,7 +12,6 @@ import {
 import { type KeyboardEvent } from "react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@workspace/ui-components/stable/button"
-import type { AgentLlmConfigResponse } from "@/api"
 
 const SAMPLE_PROMPTS = [
   {
@@ -52,12 +51,9 @@ export interface AgentChatComposerProps {
   disabled: boolean
   input: string
   isStreaming: boolean
-  llmConfig: AgentLlmConfigResponse | null
   onInputChange: (value: string) => void
-  onModelChange: (value: string | null) => void
   onSend: () => void
   onStop: () => void
-  selectedModelName: string | null
 }
 
 export function AgentChatComposer({
@@ -65,18 +61,11 @@ export function AgentChatComposer({
   disabled,
   input,
   isStreaming,
-  llmConfig,
   onInputChange,
-  onModelChange,
   onSend,
   onStop,
-  selectedModelName,
 }: AgentChatComposerProps) {
   const { t } = useTranslation()
-  const selectedModel =
-    llmConfig?.items.find((item) => item.name === selectedModelName) ??
-    llmConfig?.items.find((item) => item.selected) ??
-    llmConfig?.items[0]
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return
@@ -153,24 +142,6 @@ export function AgentChatComposer({
               <Bot className="size-4 shrink-0 text-blue-500" />
               <span className="truncate">Commerce 运营智能体</span>
             </button>
-            {llmConfig?.items.length ? (
-              <label className="flex min-w-[7.5rem] shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-xs text-foreground">
-                <span className="hidden text-xs text-muted-foreground sm:inline">模型</span>
-                <select
-                  value={selectedModel?.name ?? ""}
-                  onChange={(event) => onModelChange(event.target.value || null)}
-                  disabled={disabled || isStreaming}
-                  className="min-w-0 max-w-32 bg-transparent text-xs outline-none disabled:cursor-not-allowed"
-                  title={selectedModel ? `${selectedModel.baseUrl} · ${selectedModel.model}` : "选择模型"}
-                >
-                  {llmConfig.items.map((item) => (
-                    <option key={item.name} value={item.name}>
-                      {item.model}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
             <p className="hidden shrink-0 text-xs text-muted-foreground min-[1700px]:block">
               {t("agentChat.composer.hint")}
             </p>

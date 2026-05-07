@@ -49,7 +49,6 @@ export interface CreateConversationRequest {
   title?: string | null
   firstMessage?: string | null
   agentId?: string | null
-  modelName?: string | null
 }
 
 export interface AddConversationMessageRequest {

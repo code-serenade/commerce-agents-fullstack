@@ -10,6 +10,9 @@ use agent::api::{
 use async_trait::async_trait;
 use serde_json::json;
 
+const CONFIGURED_DOUYIN_CONVERSION_INPUT: &str =
+    "我是做咖啡运营的，主要营销平台是抖音，现在马上就五一了，请给提升转化率的运营方案";
+
 struct CapturingCommanderCognition {
     available_workers: Arc<Mutex<Option<String>>>,
 }
@@ -93,6 +96,36 @@ impl Cognition for NoopWorkerCognition {
                 "kind": "NoAction"
             },
             "role_output": test_role_output(&input)
+        }))
+    }
+}
+
+struct CapabilityIntroWorkerCognition;
+
+#[async_trait]
+impl Cognition for CapabilityIntroWorkerCognition {
+    async fn evaluate(&self, input: CognitionInput) -> CognitionResult {
+        let task = input.intent.description;
+        let summary = if task.contains("能帮我完成什么任务") || task.contains("你能做什么")
+        {
+            "我可以帮你完成普通问答、需求澄清、方案整理、文案草拟，以及数据、运营、设计、\
+             技术等方向的初步分析。复杂任务我会交给更合适的专业角色协作处理。"
+        } else {
+            "我在，可以直接告诉我你的问题或目标。"
+        };
+
+        CognitionResult::Success(json!({
+            "decision": {
+                "kind": "NoAction"
+            },
+            "role_output": {
+                "summary": summary,
+                "findings": ["这是普通聊天能力介绍，不需要启动多智能体"],
+                "recommendations": ["用户可以继续描述具体任务"],
+                "evidence": ["原始任务"],
+                "risks": [],
+                "open_questions": []
+            }
         }))
     }
 }
@@ -217,16 +250,10 @@ async fn manager_initializes_selected_roles_for_each_session() {
 
 #[tokio::test]
 async fn role_worker_receives_role_context() {
-    let available_workers = Arc::new(Mutex::new(None));
     let runtime_role = Arc::new(Mutex::new(None));
-    let commander_capture = Arc::clone(&available_workers);
     let worker_capture = Arc::clone(&runtime_role);
     let manager = AgentManager::new(AgentManagerConfig::new(
-        Arc::new(move || {
-            Ok(Box::new(CapturingCommanderCognition {
-                available_workers: Arc::clone(&commander_capture),
-            }))
-        }),
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
         Arc::new(move || {
             Ok(Box::new(CapturingWorkerCognition {
                 runtime_role: Arc::clone(&worker_capture),
@@ -247,7 +274,7 @@ async fn role_worker_receives_role_context() {
 
     assert_eq!(
         runtime_role.lock().expect("lock role capture").as_deref(),
-        Some("ops")
+        Some("chat")
     );
     assert_eq!(manager.active_session_count(), 0);
 }
@@ -279,8 +306,7 @@ async fn role_aware_worker_factory_receives_selected_roles() {
             workspace_id: None,
             agent_id: AgentId("role-agent".to_string()),
             session_id: SessionId("role-session-factory".to_string()),
-            input: "我是做咖啡运营的，主要营销平台是抖音，现在马上就五一了，请给提升转化率的方案"
-                .to_string(),
+            input: CONFIGURED_DOUYIN_CONVERSION_INPUT.to_string(),
         })
         .await
         .expect("request should complete");
@@ -326,6 +352,55 @@ async fn commander_routes_plain_question_to_chat_role() {
 }
 
 #[tokio::test]
+async fn quick_chat_output_is_direct_reply() {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(|| Ok(Box::new(NoopWorkerCognition))),
+    ));
+
+    let result = manager
+        .run_request(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-hi".to_string()),
+            input: "hi".to_string(),
+        })
+        .await
+        .expect("request should complete");
+
+    assert!(result.output.contains("测试 worker 已完成当前角色节点"));
+    assert!(!result.output.contains("多智能体任务图已完成"));
+    assert!(!result.output.contains("通过的角色产物"));
+}
+
+#[tokio::test]
+async fn capability_question_returns_complete_chat_summary_without_internal_sections() {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(|| Ok(Box::new(CapabilityIntroWorkerCognition))),
+    ));
+
+    let result = manager
+        .run_request(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-capability".to_string()),
+            input: "你能帮我完成什么任务呢".to_string(),
+        })
+        .await
+        .expect("request should complete");
+
+    assert!(result.output.contains("普通问答"));
+    assert!(result.output.contains("需求澄清"));
+    assert!(result.output.contains("专业角色协作处理"));
+    assert!(!result.output.contains("发现："));
+    assert!(!result.output.contains("建议："));
+    assert!(!result.output.contains("多智能体任务图已完成"));
+}
+
+#[tokio::test]
 async fn commander_uses_role_router_when_target_worker_is_missing() {
     let runtime_roles = Arc::new(Mutex::new(HashSet::new()));
     let worker_capture = Arc::clone(&runtime_roles);
@@ -350,7 +425,8 @@ async fn commander_uses_role_router_when_target_worker_is_missing() {
         .expect("request should complete");
 
     let runtime_roles = runtime_roles.lock().expect("lock role set capture");
-    assert!(runtime_roles.contains("data"));
+    assert!(runtime_roles.contains("chat"));
+    assert!(!runtime_roles.contains("data"));
 }
 
 #[tokio::test]
@@ -372,17 +448,20 @@ async fn commander_dispatches_task_graph_roles_after_upstream_role() {
             workspace_id: None,
             agent_id: AgentId("role-agent".to_string()),
             session_id: SessionId("role-session-support".to_string()),
-            input: "帮我分析数据指标归因漏斗，并写一版直播脚本文案".to_string(),
+            input: CONFIGURED_DOUYIN_CONVERSION_INPUT.to_string(),
         })
         .await
         .expect("request should complete");
 
     let runtime_roles = runtime_roles.lock().expect("lock role set capture");
     assert!(runtime_roles.contains("data"));
+    assert!(runtime_roles.contains("accounting"));
     assert!(runtime_roles.contains("creative"));
     assert!(result.output.contains("多智能体任务图已完成"));
     assert!(result.output.contains("数据诊断(data)"));
+    assert!(result.output.contains("预算评估(accounting)"));
     assert!(result.output.contains("创意产出(creative)"));
+    assert!(result.output.contains("运营方案(ops)"));
 }
 
 #[tokio::test]
@@ -398,7 +477,7 @@ async fn task_graph_result_carries_memory_snapshot_fields() {
             workspace_id: None,
             agent_id: AgentId("role-agent".to_string()),
             session_id: SessionId("role-session-memory-snapshot".to_string()),
-            input: "帮我分析数据指标归因漏斗，并写一版直播脚本文案".to_string(),
+            input: CONFIGURED_DOUYIN_CONVERSION_INPUT.to_string(),
         })
         .await
         .expect("request should complete");
@@ -464,7 +543,7 @@ async fn task_graph_memory_persists_structured_output_without_prompt_leaks() {
             workspace_id: None,
             agent_id: AgentId("role-agent".to_string()),
             session_id: SessionId("role-session-memory-persist".to_string()),
-            input: "帮我分析数据指标归因漏斗，并写一版直播脚本文案".to_string(),
+            input: CONFIGURED_DOUYIN_CONVERSION_INPUT.to_string(),
         })
         .await
         .expect("request should complete");
@@ -515,7 +594,7 @@ async fn stream_emits_task_graph_events() {
             workspace_id: None,
             agent_id: AgentId("role-agent".to_string()),
             session_id: SessionId("role-session-collab-stream".to_string()),
-            input: "帮我分析数据指标归因漏斗，并写一版直播脚本文案".to_string(),
+            input: CONFIGURED_DOUYIN_CONVERSION_INPUT.to_string(),
         })
         .expect("stream should start");
 
@@ -555,5 +634,61 @@ async fn stream_emits_task_graph_events() {
         events
             .iter()
             .any(|event| matches!(event, SessionEvent::TaskGraphFinished { .. }))
+    );
+}
+
+#[tokio::test]
+async fn stream_bypasses_commander_for_quick_chat() {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(|| Ok(Box::new(NoopWorkerCognition))),
+    ));
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-hi-stream".to_string()),
+            input: "hi".to_string(),
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    while let Some(event) = rx.recv().await {
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+
+    assert!(
+        events
+            .iter()
+            .any(|event| matches!(event, SessionEvent::WorkerStarted { .. }))
+    );
+    assert!(
+        events
+            .iter()
+            .any(|event| matches!(event, SessionEvent::WorkerFinished { .. }))
+    );
+    assert!(
+        events
+            .iter()
+            .any(|event| matches!(event, SessionEvent::Output { .. }))
+    );
+    assert!(
+        !events
+            .iter()
+            .any(|event| matches!(event, SessionEvent::CommanderThinking { .. }))
+    );
+    assert!(
+        !events
+            .iter()
+            .any(|event| matches!(event, SessionEvent::TaskGraphPlanned { .. }))
     );
 }

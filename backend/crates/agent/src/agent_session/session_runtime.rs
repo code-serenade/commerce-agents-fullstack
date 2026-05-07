@@ -6,7 +6,10 @@ use tokio::sync::mpsc as tokio_mpsc;
 use crate::{
     MemoryBundle, SessionContext, TaskGraphMemorySummary,
     agent::{
-        commander::{Commander, CommanderChannels, CommanderOptions},
+        commander::{
+            Commander, CommanderChannels, CommanderOptions, CommanderSessionContext,
+            TaskGraphRuntime, plan_task_graph,
+        },
         worker::Worker,
     },
     agent_error::{Result, SettingsError},
@@ -14,8 +17,8 @@ use crate::{
     core::{
         messaging::MessageRx,
         protocol::{
-            AgentId, Message, MessageContext, MessageId, Payload, SessionEvent, SessionId, TaskId,
-            TaskSpec,
+            AgentId, Message, MessageContext, MessageId, Payload, SessionEvent, SessionId,
+            TaskGraph, TaskId, TaskSpec, WorkerId,
         },
     },
     roles::{RoleCatalog, RoleProfile, RoleRouter},
@@ -82,6 +85,7 @@ pub struct SessionRuntime {
     commander_loop: tokio::task::JoinHandle<()>,
     worker_loops: Vec<tokio::task::JoinHandle<()>>,
     response_timeout: Duration,
+    commander_fast_route: bool,
     event_tx: Option<SessionEventTx>,
 }
 
@@ -167,6 +171,7 @@ impl SessionRuntime {
             commander_loop,
             worker_loops,
             response_timeout: input.config.response_timeout,
+            commander_fast_route: input.config.commander_fast_route,
             event_tx: input.event_tx,
         })
     }
@@ -199,27 +204,31 @@ impl SessionRuntime {
         context.session_id = Some(self.session_id.clone());
         context.task_id = Some(task_id.clone());
 
-        let message = Message::new_with_context(
-            MessageId(next_id("msg")),
-            context,
-            AgentId("external-host".to_string()),
-            AgentId("commander".to_string()),
-            Payload::HumanCommand {
-                task: TaskSpec {
-                    id: task_id,
-                    description: self.task_description.clone(),
+        if let Some(graph) = self.chat_bypass_graph(&task_id) {
+            self.dispatch_chat_direct(context.clone(), graph)?;
+        } else {
+            let message = Message::new_with_context(
+                MessageId(next_id("msg")),
+                context,
+                AgentId("external-host".to_string()),
+                AgentId("commander".to_string()),
+                Payload::HumanCommand {
+                    task: TaskSpec {
+                        id: task_id,
+                        description: self.task_description.clone(),
+                    },
                 },
-            },
-        );
+            );
 
-        self.commander_tx
-            .send(message)
-            .map_err(|_| SettingsError::invalid("failed to send task to session commander"))?;
+            self.commander_tx
+                .send(message)
+                .map_err(|_| SettingsError::invalid("failed to send task to session commander"))?;
 
-        self.emit_event(SessionEvent::CommanderThinking {
-            session_id: self.session_id.clone(),
-        })
-        .await;
+            self.emit_event(SessionEvent::CommanderThinking {
+                session_id: self.session_id.clone(),
+            })
+            .await;
+        }
 
         let Some(mut response_rx) = self.response_rx.take() else {
             return Err(SettingsError::invalid("session response receiver already used").into());
@@ -239,6 +248,35 @@ impl SessionRuntime {
 
         let output = match received.payload {
             Payload::Text { content } => content,
+            Payload::WorkerReport { report } => {
+                self.emit_event(SessionEvent::WorkerFinished {
+                    session_id: self.session_id.clone(),
+                    worker_id: report.worker_id.clone(),
+                    task_id: report.task_id.clone(),
+                })
+                .await;
+
+                let mut runtime = TaskGraphRuntime::new(TaskGraph {
+                    graph_id: report.graph_id.clone(),
+                    root_task: self.task_description.clone(),
+                    nodes: vec![
+                        self.chat_bypass_graph(&report.task_id)
+                            .and_then(|graph| graph.nodes.into_iter().next())
+                            .ok_or_else(|| {
+                                SettingsError::invalid("chat bypass graph is unavailable")
+                            })?,
+                    ],
+                });
+                let assignment = runtime.build_assignment(&runtime.ready_nodes().remove(0));
+                runtime.mark_running(&assignment);
+                let _ = runtime.apply_report(report);
+                let output = runtime
+                    .direct_chat_output()
+                    .unwrap_or_else(|| runtime.synthesize());
+                self.session_context
+                    .record_task_graph_memory(runtime.memory_summary());
+                output
+            }
             _ => "session returned non-text response".to_string(),
         };
 
@@ -325,6 +363,44 @@ impl SessionRuntime {
 
     pub fn session_context(&self) -> Arc<SessionContext> {
         self.session_context.clone()
+    }
+
+    fn chat_bypass_graph(&self, task_id: &TaskId) -> Option<TaskGraph> {
+        if self.commander_fast_route_disabled() {
+            return None;
+        }
+        let graph = plan_task_graph(task_id, &self.task_description, None);
+        let [node] = graph.nodes.as_slice() else {
+            return None;
+        };
+        (node.role == "chat" && node.input_refs.is_empty()).then_some(graph)
+    }
+
+    fn commander_fast_route_disabled(&self) -> bool {
+        !self.commander_fast_route
+    }
+
+    fn dispatch_chat_direct(&self, context: MessageContext, graph: TaskGraph) -> Result<()> {
+        let runtime = TaskGraphRuntime::new(graph);
+        let Some(node) = runtime.ready_nodes().into_iter().next() else {
+            return Err(SettingsError::invalid("chat bypass graph has no ready node").into());
+        };
+        let assignment = runtime.build_assignment(&node);
+        let chat_worker = WorkerId("worker.chat".to_string());
+        let Some(worker_tx) = self.session_context.directory().get_worker_tx(&chat_worker) else {
+            return Err(SettingsError::invalid("chat worker is not available").into());
+        };
+
+        let message = Message::new_with_context(
+            MessageId(next_id("msg")),
+            context,
+            AgentId("external-host".to_string()),
+            AgentId(chat_worker.0),
+            Payload::WorkerAssignment { assignment },
+        );
+        worker_tx
+            .send(message)
+            .map_err(|_| SettingsError::invalid("failed to send task to chat worker").into())
     }
 
     async fn emit_event(&self, event: SessionEvent) {

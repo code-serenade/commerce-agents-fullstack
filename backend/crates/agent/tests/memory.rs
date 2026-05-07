@@ -676,6 +676,7 @@ async fn manager_loads_memory_bundle_into_commander_context() {
         Arc::new(|| Ok(Box::new(NoopWorker))),
     );
     config.memory_store = store.clone();
+    config.runtime.commander_fast_route = false;
     let manager = AgentManager::new(config);
 
     manager

@@ -3,7 +3,6 @@ const AGENT_STREAM_URL = "/api/sse/agent/session/stream"
 export interface AgentStreamRequest {
   input: string
   agentId?: string
-  modelName?: string
   sessionId?: string
   workspaceId?: string
 }

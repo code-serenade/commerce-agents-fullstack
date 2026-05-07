@@ -181,28 +181,6 @@ pub struct CurrentUserPermissionsResponse {
     pub permission_codes: Vec<String>,
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AgentLlmConfigItemResponse {
-    pub name: String,
-    pub base_url: String,
-    pub model: String,
-    pub max_tokens: Option<u32>,
-    pub temperature: Option<f32>,
-    pub reasoning_effort: Option<String>,
-    pub chat_completions_endpoint: Option<String>,
-    pub has_api_key: bool,
-    pub selected: bool,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AgentLlmConfigResponse {
-    pub default_llm: Option<String>,
-    pub selected_llm: Option<String>,
-    pub items: Vec<AgentLlmConfigItemResponse>,
-}
-
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateConversationRequest {
@@ -212,8 +190,6 @@ pub struct CreateConversationRequest {
     pub first_message: Option<String>,
     #[validate(length(max = 128))]
     pub agent_id: Option<String>,
-    #[validate(length(max = 128))]
-    pub model_name: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Validate)]
@@ -224,6 +200,13 @@ pub struct AddConversationMessageRequest {
     #[validate(length(max = 20000))]
     pub content_text: Option<String>,
     pub content_json: Option<Value>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateConversationRequest {
+    #[validate(length(max = 255))]
+    pub title: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Validate)]

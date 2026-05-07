@@ -25,8 +25,7 @@ Rules:
 - The client calls an OpenAI-compatible chat completions API.
 - If the provider path is not the default, set `chat_completions_endpoint`.
 - `default_llm` selects one entry by `name`. If omitted, the first `[[llm]]` entry is used.
-- A single agent request can override the runtime default by sending `modelName`.
-  The value must match `[[llm]].name`, not the provider model display name.
+- Model selection is server-side only. Frontend requests do not expose or override LLM config.
 - Local Ollama is still supported, for example `base_url = "http://127.0.0.1:11434"`.
 
 The current local config uses:
@@ -116,12 +115,11 @@ Request body:
   "input": "我是做咖啡运营的...",
   "agentId": "web-agent",
   "sessionId": "web-session-001",
-  "workspaceId": "workspace-001",
-  "modelName": "external-main"
+  "workspaceId": "workspace-001"
 }
 ```
 
-`modelName` is optional. When omitted, the backend uses `default_llm`.
+The backend uses `default_llm` from `backend/config/services.toml`.
 
 Important SSE events:
 
