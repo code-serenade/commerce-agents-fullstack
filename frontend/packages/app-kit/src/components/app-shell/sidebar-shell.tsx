@@ -18,6 +18,7 @@ import {
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
@@ -43,6 +44,8 @@ export interface SidebarShellNavEntry {
   href?: string
   active?: boolean
   icon?: ReactNode
+  action?: ReactNode
+  actionLabel?: string
   onSelect?: () => void
   subItems?: SidebarShellSubEntry[]
 }
@@ -201,6 +204,14 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
             {item.label}
           </span>
         </SidebarMenuButton>
+        {item.action ? (
+          <SidebarMenuAction
+            ariaLabel={item.actionLabel ?? "Open menu"}
+            showOnHover
+          >
+            {item.action}
+          </SidebarMenuAction>
+        ) : null}
       </SidebarMenuItem>
     )
   }

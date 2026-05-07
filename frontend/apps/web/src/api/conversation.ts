@@ -58,6 +58,10 @@ export interface AddConversationMessageRequest {
   contentJson?: unknown | null
 }
 
+export interface UpdateConversationRequest {
+  title?: string | null
+}
+
 export const listConversationsApi = async (): Promise<ConversationResponse[]> => {
   return request<undefined, ConversationResponse[]>({
     method: "GET",
@@ -94,5 +98,25 @@ export const addConversationMessageApi = async (
     method: "POST",
     url: `/api/app/conversations/${conversationId}/messages`,
     body,
+  })
+}
+
+export const updateConversationApi = async (
+  conversationId: string,
+  body: UpdateConversationRequest
+): Promise<ConversationResponse> => {
+  return request<UpdateConversationRequest, ConversationResponse>({
+    method: "PATCH",
+    url: `/api/app/conversations/${conversationId}`,
+    body,
+  })
+}
+
+export const deleteConversationApi = async (
+  conversationId: string
+): Promise<void> => {
+  return request<undefined, void>({
+    method: "DELETE",
+    url: `/api/app/conversations/${conversationId}`,
   })
 }

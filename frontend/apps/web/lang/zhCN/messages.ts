@@ -123,6 +123,13 @@ const messages = {
       chat: "聊天",
       more: "更多",
       empty: "还没有历史对话",
+      actions: {
+        open: "打开会话菜单",
+        rename: "重命名",
+        renamePrompt: "输入新的对话名称",
+        delete: "删除",
+        deleteConfirm: "确认删除“{{title}}”？",
+      },
     },
     composer: {
       placeholder: "给 Agent 发送消息...",

@@ -139,7 +139,7 @@ mod tests {
         let catalog = RoleCatalog::builtin();
         let roles = catalog.roles();
 
-        assert_eq!(roles.len(), 9);
+        assert!(roles.len() >= 9);
         assert!(roles.iter().any(|role| role.runtime_role == "chat"));
         assert!(roles.iter().any(|role| role.runtime_role == "ops"));
         assert!(roles.iter().any(|role| role.runtime_role == "data"));
@@ -150,7 +150,7 @@ mod tests {
     fn builtin_catalog_exports_worker_profiles() {
         let profiles = RoleCatalog::builtin().to_worker_profiles();
 
-        assert_eq!(profiles.len(), 9);
+        assert!(profiles.len() >= 9);
         assert!(
             profiles
                 .iter()

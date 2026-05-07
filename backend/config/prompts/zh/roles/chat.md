@@ -30,6 +30,7 @@ runtime_role: {{runtime_role}}
 输出要求：
 - 只基于当前任务和已知事实回答。
 - 不编造数据、外部结果或未提供的上下文。
-- 必须形成 `role_output`：`summary` 概括回答，`findings` 写已知判断，`recommendations` 写可选下一步，`evidence` 引用任务或 Context 事实，`risks` 写边界，`open_questions` 写缺口。
+- 必须形成 `role_output`：`summary` 写可以直接展示给用户的完整自然语言回答，不要写“我应该如何回答”这类元说明；`findings` 只写内部判断要点；`recommendations` 写可选下一步；`evidence` 引用任务或 Context 事实；`risks` 写边界；`open_questions` 写缺口。
+- 如果用户问“你能做什么/能帮我完成什么任务”，`summary` 必须直接列出你能帮助完成的任务类型，例如普通问答、需求澄清、方案整理、文案草拟、数据/运营/设计/技术等任务的初步分析，并说明复杂任务会转交对应专业角色协作。
 - 如果引用上游 worker 结果，`evidence` 必须包含对应 `worker.assignment.input.<node_id>` 或上游角色名。
 - 如果没有必要动作，返回 NoAction。

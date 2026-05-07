@@ -447,6 +447,21 @@ impl Commander {
             worker_id: report.worker_id.clone(),
             task_id: report.task_id.clone(),
         });
+        let Some(mut runtime) = self.active_task_graph.take() else {
+            if report.role == "chat" {
+                let content = direct_chat_report_output(&report);
+                let _ = self.sender.send(Message::new_with_context(
+                    next_message_id(),
+                    context.clone(),
+                    self.id.clone(),
+                    self.host_id.clone(),
+                    Payload::Text { content },
+                ));
+                self.phase = CommanderPhase::Idle;
+                self.state = CommanderState::Idle;
+            }
+            return;
+        };
         self.emit_event(SessionEvent::TaskNodeReported {
             session_id: self.session_id_from_context(context),
             graph_id: report.graph_id.clone(),
@@ -454,10 +469,6 @@ impl Commander {
             worker_id: report.worker_id.clone(),
             report: Box::new(report.clone()),
         });
-
-        let Some(mut runtime) = self.active_task_graph.take() else {
-            return;
-        };
         let graph_id = runtime.graph.graph_id.clone();
         let worker_id = report.worker_id.clone();
         let node_id = report.node_id.clone();
@@ -550,7 +561,9 @@ impl Commander {
     }
 
     async fn finish_task_graph(&mut self, runtime: TaskGraphRuntime) {
-        let content = runtime.synthesize();
+        let content = runtime
+            .direct_chat_output()
+            .unwrap_or_else(|| runtime.synthesize());
         self.session_context
             .record_task_graph_memory(runtime.memory_summary());
         self.emit_event(SessionEvent::TaskGraphFinished {
@@ -1003,6 +1016,20 @@ fn final_worker_message(task_id: &TaskId, output: Option<&str>) -> String {
         .filter(|value| !value.trim().is_empty())
         .map(extract_worker_content)
         .unwrap_or_else(|| format!("任务已完成: {}", task_id.0))
+}
+
+fn direct_chat_report_output(report: &crate::core::protocol::WorkerReport) -> String {
+    report
+        .role_output
+        .as_ref()
+        .map(|output| output.summary.trim())
+        .filter(|summary| !summary.is_empty())
+        .map(ToString::to_string)
+        .or_else(|| {
+            let content = report.content.trim();
+            (!content.is_empty()).then(|| content.to_string())
+        })
+        .unwrap_or_else(|| "我在，可以直接告诉我你想聊什么或需要我帮你做什么。".to_string())
 }
 
 fn build_contribution(

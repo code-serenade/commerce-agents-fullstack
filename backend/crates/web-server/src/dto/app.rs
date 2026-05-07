@@ -206,6 +206,13 @@ pub struct AddConversationMessageRequest {
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
+pub struct UpdateConversationRequest {
+    #[validate(length(max = 255))]
+    pub title: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
 pub struct RegisterConversationFileRequest {
     #[validate(length(min = 1, max = 128))]
     pub message_id: Option<String>,

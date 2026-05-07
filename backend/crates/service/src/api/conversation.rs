@@ -13,12 +13,14 @@ use repo::table::{
 };
 use serde_json::json;
 use storage::{BucketKind, ObjectStorage, PresignDownloadRequest};
+use time::OffsetDateTime;
 use uuid::Uuid;
 
 use crate::dto::conversation::{
     AddConversationMessageRequest, ConversationDetailResponse, ConversationFileAccessResponse,
     ConversationFileResponse, ConversationMessageResponse, ConversationResponse,
-    CreateConversationRequest, RegisterConversationFileRequest, uuid_to_string,
+    CreateConversationRequest, DeleteConversationRequest, RegisterConversationFileRequest,
+    UpdateConversationRequest, uuid_to_string,
 };
 
 const DEFAULT_LIST_LIMIT: u64 = 50;
@@ -174,6 +176,51 @@ impl ConversationApi {
         Ok(Self::map_message(message))
     }
 
+    pub async fn update_conversation(
+        &self,
+        req: UpdateConversationRequest,
+    ) -> BizResult<ConversationResponse> {
+        let user_id = parse_user_id(&req.user_id)?;
+        self.ensure_app_user_enabled(user_id).await?;
+        let conversation_id = parse_uuid(&req.conversation_id, "conversation_id")?;
+        let conversation = self
+            .ensure_active_conversation_owner(user_id, conversation_id)
+            .await?;
+
+        let title = normalize_optional(req.title);
+        let updated = self
+            .conversation_svc
+            .update(repo::table::conversations::UpdateConversation {
+                id: conversation.id,
+                title,
+                status: conversation.status,
+                archived_at: conversation.archived_at,
+            })
+            .await?;
+
+        Ok(Self::map_conversation(updated))
+    }
+
+    pub async fn delete_conversation(&self, req: DeleteConversationRequest) -> BizResult<()> {
+        let user_id = parse_user_id(&req.user_id)?;
+        self.ensure_app_user_enabled(user_id).await?;
+        let conversation_id = parse_uuid(&req.conversation_id, "conversation_id")?;
+        let conversation = self
+            .ensure_active_conversation_owner(user_id, conversation_id)
+            .await?;
+
+        self.conversation_svc
+            .update(repo::table::conversations::UpdateConversation {
+                id: conversation.id,
+                title: conversation.title,
+                status: "deleted".to_string(),
+                archived_at: Some(OffsetDateTime::now_utc()),
+            })
+            .await?;
+
+        Ok(())
+    }
+
     pub async fn register_file(
         &self,
         req: RegisterConversationFileRequest,
@@ -287,6 +334,23 @@ impl ConversationApi {
             return Err(BizError::new(
                 app_error::CONVERSATION_FORBIDDEN,
                 "conversation does not belong to current user".to_string(),
+            ));
+        }
+        Ok(conversation)
+    }
+
+    async fn ensure_active_conversation_owner(
+        &self,
+        user_id: Uuid,
+        conversation_id: Uuid,
+    ) -> BizResult<Conversation> {
+        let conversation = self
+            .ensure_conversation_owner(user_id, conversation_id)
+            .await?;
+        if conversation.status == "deleted" {
+            return Err(BizError::new(
+                app_error::CONVERSATION_NOT_FOUND,
+                "conversation not found".to_string(),
             ));
         }
         Ok(conversation)

@@ -1,15 +1,16 @@
 use axum::{
     Router,
     middleware::from_fn,
-    routing::{get, post},
+    routing::{delete, get, patch, post},
 };
 use toolcraft_axum_kit::middleware::auth_mw::auth;
 use toolcraft_jwt::VerifyJwt;
 
 use crate::handlers::app::{
-    add_conversation_message, create_conversation, current_user_permissions, get_conversation,
-    get_conversation_file_access, list_conversations, presign_conversation_file_upload,
-    register_app_user, register_conversation_file,
+    add_conversation_message, create_conversation, current_user_permissions, delete_conversation,
+    get_conversation, get_conversation_file_access, list_conversations,
+    presign_conversation_file_upload, register_app_user, register_conversation_file,
+    update_conversation,
 };
 
 pub fn app_routes() -> Router {
@@ -21,7 +22,12 @@ pub fn app_routes() -> Router {
                 "/conversations",
                 get(list_conversations).post(create_conversation),
             )
-            .route("/conversations/{conversation_id}", get(get_conversation))
+            .route(
+                "/conversations/{conversation_id}",
+                get(get_conversation)
+                    .patch(update_conversation)
+                    .delete(delete_conversation),
+            )
             .route(
                 "/conversations/{conversation_id}/messages",
                 post(add_conversation_message),

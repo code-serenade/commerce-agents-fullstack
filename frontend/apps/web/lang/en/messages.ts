@@ -128,6 +128,13 @@ const messages = {
       chat: "Chat",
       more: "More",
       empty: "No conversations yet",
+      actions: {
+        open: "Open conversation menu",
+        rename: "Rename",
+        renamePrompt: "Enter a new conversation name",
+        delete: "Delete",
+        deleteConfirm: "Delete \"{{title}}\"?",
+      },
     },
     composer: {
       placeholder: "Message the agent...",

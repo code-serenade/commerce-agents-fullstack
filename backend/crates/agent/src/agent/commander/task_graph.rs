@@ -1,7 +1,7 @@
 use std::{
     collections::{HashMap, HashSet},
     env, fs,
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 use crate::{
@@ -253,6 +253,38 @@ impl TaskGraphRuntime {
         lines.join("\n")
     }
 
+    pub fn direct_chat_output(&self) -> Option<String> {
+        let [node] = self.graph.nodes.as_slice() else {
+            return None;
+        };
+        if node.role != "chat"
+            || !node.input_refs.is_empty()
+            || !matches!(
+                self.states.get(&node.id),
+                Some(TaskNodeRuntimeState::Passed)
+            )
+        {
+            return None;
+        }
+
+        let report = self.reports.get(&node.id)?;
+        if let Some(summary) = report
+            .role_output
+            .as_ref()
+            .map(|output| output.summary.trim())
+            .filter(|summary| !summary.is_empty())
+        {
+            return Some(summary.to_string());
+        }
+
+        let content = report.content.trim();
+        if !content.is_empty() {
+            return Some(content.to_string());
+        }
+
+        None
+    }
+
     pub fn memory_summary(&self) -> TaskGraphMemorySummary {
         let worker_details = self
             .graph
@@ -410,13 +442,29 @@ pub enum EvaluationOutcome {
     Failed(Evaluation),
 }
 
-pub fn plan_task_graph(task_id: &TaskId, task: &str, route: Option<&RoleRoute>) -> TaskGraph {
+pub fn plan_task_graph(task_id: &TaskId, task: &str, _route: Option<&RoleRoute>) -> TaskGraph {
     if let Some(graph) = plan_configured_task_graph(task_id, task) {
         return graph;
     }
-    plan_builtin_task_graph(task_id, task, route)
+    plan_fallback_chat_graph(task_id, task)
 }
 
+fn plan_fallback_chat_graph(task_id: &TaskId, task: &str) -> TaskGraph {
+    TaskGraph {
+        graph_id: TaskGraphId(format!("graph-{}", task_id.0)),
+        root_task: task.to_string(),
+        nodes: vec![node(
+            "chat",
+            "chat",
+            "通用对话",
+            format!("以对话助手身份回答用户问题；如果用户意图不清，先澄清，不启动多智能体：{task}"),
+            Vec::new(),
+            1,
+        )],
+    }
+}
+
+#[allow(dead_code)]
 fn plan_builtin_task_graph(task_id: &TaskId, task: &str, route: Option<&RoleRoute>) -> TaskGraph {
     let lower = task.to_lowercase();
     let graph_id = TaskGraphId(format!("graph-{}", task_id.0));
@@ -701,20 +749,34 @@ fn plan_configured_task_graph(task_id: &TaskId, task: &str) -> Option<TaskGraph>
         .ok()
         .filter(|path| !path.trim().is_empty())
         .unwrap_or_else(|| DEFAULT_TASK_GRAPH_RULES_PATH.to_string());
-    if !Path::new(&path).exists() {
-        return None;
-    }
+    let path = resolve_task_graph_rules_path(&path)?;
 
     let rules = match load_task_graph_rules(&path) {
         Ok(rules) => rules,
         Err(error) => {
             crate::log_error_msg!(&format!(
-                "task graph rules ignored: path={path}, error={error}"
+                "task graph rules ignored: path={}, error={error}",
+                path.display()
             ));
             return None;
         }
     };
     plan_task_graph_from_rules(task_id, task, &rules)
+}
+
+fn resolve_task_graph_rules_path(path: &str) -> Option<PathBuf> {
+    let candidate = Path::new(path);
+    if candidate.exists() {
+        return Some(candidate.to_path_buf());
+    }
+    if path != DEFAULT_TASK_GRAPH_RULES_PATH {
+        return None;
+    }
+
+    let repo_config_path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../")
+        .join(DEFAULT_TASK_GRAPH_RULES_PATH);
+    repo_config_path.exists().then_some(repo_config_path)
 }
 
 fn load_task_graph_rules(path: impl AsRef<Path>) -> Result<TaskGraphRuleSet, String> {
@@ -1320,103 +1382,31 @@ mod tests {
     }
 
     #[test]
-    fn planner_creates_serial_data_to_ops_graph() {
+    fn planner_falls_back_to_chat_when_no_configured_graph_matches() {
         let graph = plan_task_graph(
             &TaskId("task-2".to_string()),
             "分析转化率下降并给运营调整方案",
             None,
         );
 
-        let data = graph.nodes.iter().find(|node| node.role == "data").unwrap();
-        let ops = graph.nodes.iter().find(|node| node.role == "ops").unwrap();
-        assert!(data.input_refs.is_empty());
-        assert_eq!(ops.input_refs, vec![data.id.clone()]);
-    }
-
-    #[test]
-    fn planner_creates_parallel_design_and_accounting_after_data() {
-        let graph = plan_task_graph(
-            &TaskId("task-3".to_string()),
-            "基于数据诊断做详情页优化和预算风险评估",
-            None,
-        );
-
-        let data = graph.nodes.iter().find(|node| node.role == "data").unwrap();
-        let design = graph
-            .nodes
-            .iter()
-            .find(|node| node.role == "design")
-            .unwrap();
-        let accounting = graph
-            .nodes
-            .iter()
-            .find(|node| node.role == "accounting")
-            .unwrap();
-        assert_eq!(design.input_refs, vec![data.id.clone()]);
-        assert_eq!(accounting.input_refs, vec![data.id.clone()]);
-
-        let data_node = data.clone();
-        let mut runtime = TaskGraphRuntime::new(graph);
-        assert_eq!(runtime.ready_nodes().len(), 1);
-        let data_assignment = runtime.build_assignment(&data_node);
-        runtime.mark_running(&data_assignment);
-        let outcome = runtime.apply_report(report_from_assignment(&data_assignment, "data ok"));
-        assert!(matches!(outcome, EvaluationOutcome::Passed(_)));
-        let ready_roles = runtime
-            .ready_nodes()
-            .into_iter()
-            .map(|node| node.role)
-            .collect::<Vec<_>>();
-        assert!(ready_roles.contains(&"design".to_string()));
-        assert!(ready_roles.contains(&"accounting".to_string()));
-    }
-
-    #[test]
-    fn planner_creates_serial_data_design_ops_graph() {
-        let graph = plan_task_graph(
-            &TaskId("task-6".to_string()),
-            "基于数据诊断做详情页设计并给运营方案",
-            None,
-        );
-
-        let data = graph.nodes.iter().find(|node| node.role == "data").unwrap();
-        let design = graph
-            .nodes
-            .iter()
-            .find(|node| node.role == "design")
-            .unwrap();
-        let ops = graph.nodes.iter().find(|node| node.role == "ops").unwrap();
-        assert_eq!(design.input_refs, vec![data.id.clone()]);
-        assert_eq!(ops.input_refs, vec![design.id.clone()]);
-    }
-
-    #[test]
-    fn planner_creates_serial_data_accounting_ops_graph() {
-        let graph = plan_task_graph(
-            &TaskId("task-7".to_string()),
-            "分析预算风险并给运营调整方案",
-            None,
-        );
-
-        let data = graph.nodes.iter().find(|node| node.role == "data").unwrap();
-        let accounting = graph
-            .nodes
-            .iter()
-            .find(|node| node.role == "accounting")
-            .unwrap();
-        let ops = graph.nodes.iter().find(|node| node.role == "ops").unwrap();
-        assert_eq!(accounting.input_refs, vec![data.id.clone()]);
-        assert_eq!(ops.input_refs, vec![accounting.id.clone()]);
+        assert_eq!(graph.nodes.len(), 1);
+        assert_eq!(graph.nodes[0].role, "chat");
+        assert_eq!(graph.nodes[0].max_attempts, 1);
+        assert!(graph.nodes[0].input_refs.is_empty());
     }
 
     #[test]
     fn planner_adds_finance_and_creative_for_douyin_holiday_conversion_plan() {
-        let graph = plan_task_graph(
+        let rules_path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../config/json/agent/task-graph-rules.json");
+        let rules = load_task_graph_rules(rules_path).expect("configured graph rules should load");
+        let graph = plan_task_graph_from_rules(
             &TaskId("task-coffee".to_string()),
             "我是做咖啡运营的，主要营销平台是抖音，现在马上就五一了，\
              可以帮我想一个运营方案吗提升我的转化率",
-            None,
-        );
+            &rules,
+        )
+        .expect("douyin conversion task should match configured graph");
 
         let data = graph.nodes.iter().find(|node| node.role == "data").unwrap();
         let accounting = graph
@@ -1497,7 +1487,10 @@ mod tests {
 
     #[test]
     fn configured_chat_quick_reply_uses_single_chat_node() {
-        let graph = plan_configured_task_graph(&TaskId("task-chat".to_string()), "hi")
+        let rules_path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../config/json/agent/task-graph-rules.json");
+        let rules = load_task_graph_rules(rules_path).expect("configured graph rules should load");
+        let graph = plan_task_graph_from_rules(&TaskId("task-chat".to_string()), "hi", &rules)
             .expect("hi should match configured chat quick reply graph");
 
         assert_eq!(graph.nodes.len(), 1);
@@ -1642,7 +1635,7 @@ mod tests {
         );
 
         assert_eq!(graph.nodes.len(), 1);
-        assert_eq!(graph.nodes[0].role, "service");
+        assert_eq!(graph.nodes[0].role, "chat");
     }
 
     #[test]
@@ -1654,7 +1647,7 @@ mod tests {
         );
 
         assert_eq!(graph.nodes.len(), 1);
-        assert_eq!(graph.nodes[0].role, "engineering");
+        assert_eq!(graph.nodes[0].role, "chat");
     }
 
     #[test]
@@ -1666,7 +1659,7 @@ mod tests {
         );
 
         assert_eq!(graph.nodes.len(), 1);
-        assert_eq!(graph.nodes[0].role, "web");
+        assert_eq!(graph.nodes[0].role, "chat");
     }
 
     #[test]
@@ -1712,7 +1705,18 @@ mod tests {
 
     #[test]
     fn runtime_requests_rework_for_empty_report() {
-        let graph = plan_task_graph(&TaskId("task-4".to_string()), "解释一下 agent", None);
+        let graph = TaskGraph {
+            graph_id: TaskGraphId("graph-task-4".to_string()),
+            root_task: "解释一下 agent".to_string(),
+            nodes: vec![node(
+                "chat",
+                "chat",
+                "通用对话",
+                "解释一下 agent".to_string(),
+                Vec::new(),
+                2,
+            )],
+        };
         let mut runtime = TaskGraphRuntime::new(graph);
         let node = runtime.ready_nodes().remove(0);
         let assignment = runtime.build_assignment(&node);
@@ -1748,7 +1752,18 @@ mod tests {
 
     #[test]
     fn runtime_requests_rework_when_open_questions_remain() {
-        let graph = plan_task_graph(&TaskId("task-8".to_string()), "解释一下 agent", None);
+        let graph = TaskGraph {
+            graph_id: TaskGraphId("graph-task-8".to_string()),
+            root_task: "解释一下 agent".to_string(),
+            nodes: vec![node(
+                "chat",
+                "chat",
+                "通用对话",
+                "解释一下 agent".to_string(),
+                Vec::new(),
+                2,
+            )],
+        };
         let mut runtime = TaskGraphRuntime::new(graph);
         let node = runtime.ready_nodes().remove(0);
         let assignment = runtime.build_assignment(&node);
@@ -1795,7 +1810,18 @@ mod tests {
 
     #[test]
     fn evaluator_rejects_incomplete_role_output_for_data_role() {
-        let graph = plan_task_graph(&TaskId("task-10".to_string()), "分析转化率下降", None);
+        let graph = TaskGraph {
+            graph_id: TaskGraphId("graph-task-10".to_string()),
+            root_task: "分析转化率下降".to_string(),
+            nodes: vec![node(
+                "data",
+                "data",
+                "数据诊断",
+                "分析转化率下降".to_string(),
+                Vec::new(),
+                2,
+            )],
+        };
         let mut runtime = TaskGraphRuntime::new(graph);
         let node = runtime.ready_nodes().remove(0);
         let assignment = runtime.build_assignment(&node);
@@ -1821,7 +1847,18 @@ mod tests {
 
     #[test]
     fn evaluator_rejects_missing_structured_role_output() {
-        let graph = plan_task_graph(&TaskId("task-15".to_string()), "分析转化率下降", None);
+        let graph = TaskGraph {
+            graph_id: TaskGraphId("graph-task-15".to_string()),
+            root_task: "分析转化率下降".to_string(),
+            nodes: vec![node(
+                "data",
+                "data",
+                "数据诊断",
+                "分析转化率下降".to_string(),
+                Vec::new(),
+                2,
+            )],
+        };
         let mut runtime = TaskGraphRuntime::new(graph);
         let node = runtime.ready_nodes().remove(0);
         let assignment = runtime.build_assignment(&node);
@@ -1913,6 +1950,49 @@ mod tests {
         assert!(output.contains("发现: 首屏承接弱"));
         assert!(output.contains("建议: P1 优化首屏"));
         assert!(output.contains("风险: 不要同时改太多变量"));
+    }
+
+    #[test]
+    fn direct_chat_output_returns_summary_without_graph_synthesis() {
+        let graph = TaskGraph {
+            graph_id: TaskGraphId("graph-chat-direct".to_string()),
+            root_task: "hi".to_string(),
+            nodes: vec![node(
+                "chat",
+                "chat",
+                "快速对话",
+                "自然回复 hi".to_string(),
+                Vec::new(),
+                1,
+            )],
+        };
+        let mut runtime = TaskGraphRuntime::new(graph);
+        let node = runtime.ready_nodes().remove(0);
+        let assignment = runtime.build_assignment(&node);
+        runtime.mark_running(&assignment);
+        let mut report = report_from_assignment(
+            &assignment,
+            "你好！有什么我可以帮你的吗？\n建议: 直接告诉我你的目标或问题。",
+        );
+        report.role_output = Some(RoleWorkOutput {
+            summary: "你好！有什么我可以帮你的吗？".to_string(),
+            findings: vec!["用户是简单问候".to_string()],
+            recommendations: vec!["等待用户提出具体问题".to_string()],
+            evidence: vec!["原始任务".to_string()],
+            risks: Vec::new(),
+            open_questions: Vec::new(),
+        });
+
+        assert!(matches!(
+            runtime.apply_report(report),
+            EvaluationOutcome::Passed(_)
+        ));
+
+        let output = runtime.direct_chat_output().expect("direct chat output");
+
+        assert_eq!(output, "你好！有什么我可以帮你的吗？");
+        assert!(!output.contains("建议: 直接告诉我你的目标或问题。"));
+        assert!(!output.contains("多智能体任务图已完成"));
     }
 
     #[test]
@@ -2213,11 +2293,52 @@ mod tests {
 
     #[test]
     fn planner_can_make_ops_depend_on_design_and_accounting() {
-        let graph = plan_task_graph(
+        let rules = parse_task_graph_rules(
+            r#"{
+              "rules": [
+                {
+                  "id": "design_budget_ops",
+                  "match_all": ["详情页", "预算", "运营方案"],
+                  "nodes": [
+                    {
+                      "id": "data",
+                      "role": "data",
+                      "title": "数据诊断",
+                      "objective": "分析数据"
+                    },
+                    {
+                      "id": "design",
+                      "role": "design",
+                      "title": "体验设计",
+                      "depends_on": ["data"],
+                      "objective": "设计方案"
+                    },
+                    {
+                      "id": "accounting",
+                      "role": "accounting",
+                      "title": "预算评估",
+                      "depends_on": ["data"],
+                      "objective": "预算评估"
+                    },
+                    {
+                      "id": "ops",
+                      "role": "ops",
+                      "title": "运营方案",
+                      "depends_on": ["design", "accounting"],
+                      "objective": "整合运营方案"
+                    }
+                  ]
+                }
+              ]
+            }"#,
+        )
+        .expect("valid configured rules");
+        let graph = plan_task_graph_from_rules(
             &TaskId("task-9".to_string()),
             "基于数据诊断做详情页设计和预算风险评估，并给运营方案",
-            None,
-        );
+            &rules,
+        )
+        .expect("task should match configured graph");
 
         let design = graph
             .nodes

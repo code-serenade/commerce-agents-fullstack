@@ -11,9 +11,11 @@ import { useSelector } from "react-redux"
 import {
   addConversationMessageApi,
   createConversationApi,
+  deleteConversationApi,
   getConversationApi,
   listConversationsApi,
   streamAgentSessionApi,
+  updateConversationApi,
   type AgentSessionEvent,
   type ConversationDetailResponse,
   type ConversationMessageResponse,
@@ -140,6 +142,54 @@ export function useAgentChatPage() {
         sessionIdRef.current = detail.conversation.id
         setMemoryTest(createMemoryTestState(detail.conversation.id))
         setMessages(mapConversationMessages(detail, createWelcomeMessage()))
+      } catch (err) {
+        const message = err instanceof Error ? err.message : t("agentChat.error")
+        setError(message)
+      }
+    },
+    [conversationId, createWelcomeMessage, isStreaming, t, user]
+  )
+
+  const renameConversation = useCallback(
+    async (targetConversationId: string, title: string) => {
+      if (!user || isStreaming) return
+      const nextTitle = title.trim()
+      if (!nextTitle) return
+
+      setError(null)
+      try {
+        const conversation = await updateConversationApi(targetConversationId, {
+          title: nextTitle,
+        })
+        setConversations((current) =>
+          current.map((item) =>
+            item.id === targetConversationId ? mapConversationItem(conversation) : item
+          )
+        )
+      } catch (err) {
+        const message = err instanceof Error ? err.message : t("agentChat.error")
+        setError(message)
+      }
+    },
+    [isStreaming, t, user]
+  )
+
+  const deleteConversation = useCallback(
+    async (targetConversationId: string) => {
+      if (!user || isStreaming) return
+
+      setError(null)
+      try {
+        await deleteConversationApi(targetConversationId)
+        setConversations((current) =>
+          current.filter((item) => item.id !== targetConversationId)
+        )
+        if (targetConversationId === conversationId) {
+          setConversationId(null)
+          sessionIdRef.current = createSessionId()
+          setMemoryTest(createMemoryTestState())
+          setMessages([createWelcomeMessage()])
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : t("agentChat.error")
         setError(message)
@@ -322,8 +372,10 @@ export function useAgentChatPage() {
     isStreaming,
     messages,
     memoryTest,
+    deleteConversation,
     prepareMemoryRecallPrompt,
     prepareMemorySavePrompt,
+    renameConversation,
     resetMemoryTestKey,
     sendMessage,
     selectConversation,

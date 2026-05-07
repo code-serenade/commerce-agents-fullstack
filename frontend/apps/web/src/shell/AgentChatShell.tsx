@@ -1,6 +1,8 @@
 import { type ReactNode } from "react"
 import {
+  Edit2,
   Edit3,
+  Trash2,
   LogIn,
   MessageSquareText,
   MoreHorizontal,
@@ -19,6 +21,12 @@ import {
   ThemeToggle,
   TopBar,
 } from "@workspace/app-kit"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@workspace/ui-components"
 import type { RootState } from "@/store"
 import { logout } from "@/store/authSlice"
 import { resetAccess } from "@/store/accessSlice"
@@ -54,6 +62,31 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     dispatch(resetAccess())
     dispatch(logout())
     navigate("/home", { replace: true })
+  }
+
+  const handleRenameConversation = (conversation: {
+    id: string
+    title: string
+  }) => {
+    const nextTitle = window.prompt(
+      t("agentChat.sidebar.actions.renamePrompt"),
+      conversation.title
+    )
+    if (nextTitle === null) return
+    void chat.renameConversation(conversation.id, nextTitle)
+  }
+
+  const handleDeleteConversation = (conversation: {
+    id: string
+    title: string
+  }) => {
+    const confirmed = window.confirm(
+      t("agentChat.sidebar.actions.deleteConfirm", {
+        title: conversation.title,
+      })
+    )
+    if (!confirmed) return
+    void chat.deleteConversation(conversation.id)
   }
 
   const trailing = [
@@ -92,6 +125,14 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
             key: conversation.id,
             icon: <MessageSquareText />,
             label: conversation.title,
+            action: (
+              <ConversationActionsMenu
+                disabled={chat.isStreaming}
+                onDelete={() => handleDeleteConversation(conversation)}
+                onRename={() => handleRenameConversation(conversation)}
+              />
+            ),
+            actionLabel: t("agentChat.sidebar.actions.open"),
             active: conversation.id === chat.conversationId,
             onSelect: () => chat.selectConversation(conversation.id),
           }))
@@ -162,5 +203,48 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     >
       {children}
     </SidebarShell>
+  )
+}
+
+interface ConversationActionsMenuProps {
+  disabled: boolean
+  onDelete: () => void
+  onRename: () => void
+}
+
+function ConversationActionsMenu({
+  disabled,
+  onDelete,
+  onRename,
+}: ConversationActionsMenuProps) {
+  const { t } = useTranslation()
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger>
+        <MoreHorizontal className="size-4" aria-hidden="true" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <DropdownMenuItem
+          disabled={disabled}
+          onSelect={() => {
+            onRename()
+          }}
+        >
+          <Edit2 className="size-4" />
+          {t("agentChat.sidebar.actions.rename")}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          disabled={disabled}
+          variant="destructive"
+          onSelect={() => {
+            onDelete()
+          }}
+        >
+          <Trash2 className="size-4" />
+          {t("agentChat.sidebar.actions.delete")}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

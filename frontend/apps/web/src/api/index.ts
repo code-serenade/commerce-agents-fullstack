@@ -38,14 +38,17 @@ export {
 export {
   addConversationMessageApi,
   createConversationApi,
+  deleteConversationApi,
   getConversationApi,
   listConversationsApi,
+  updateConversationApi,
   type AddConversationMessageRequest,
   type ConversationDetailResponse,
   type ConversationFileResponse,
   type ConversationMessageResponse,
   type ConversationResponse,
   type CreateConversationRequest,
+  type UpdateConversationRequest,
 } from "./conversation"
 
 export {

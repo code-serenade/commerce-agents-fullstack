@@ -10,7 +10,7 @@ use crate::{
         ConversationFileAccessResponse, ConversationFileResponse, ConversationMessageResponse,
         ConversationResponse, CreateConversationRequest, CurrentUserPermissionsResponse,
         PresignConversationFileUploadRequest, PresignConversationFileUploadResponse,
-        RegisterAppUserRequest, RegisterConversationFileRequest,
+        RegisterAppUserRequest, RegisterConversationFileRequest, UpdateConversationRequest,
     },
     error::{Error, from_biz_error},
     statics::{db_manager::get_app_ctx, storage_manager::get_storage},
@@ -155,6 +155,42 @@ pub async fn add_conversation_message(
     Ok(map_message_response(message)
         .into_common_response()
         .to_json())
+}
+
+pub async fn update_conversation(
+    Extension(auth_user): Extension<AuthUser>,
+    Path(conversation_id): Path<String>,
+    Json(req): Json<UpdateConversationRequest>,
+) -> ResponseResult<ConversationResponse> {
+    req.validate().map_err(Error::from)?;
+    let api = ConversationApi::new(get_app_ctx());
+    let conversation = api
+        .update_conversation(service::dto::conversation::UpdateConversationRequest {
+            user_id: auth_user.user_id,
+            conversation_id,
+            title: req.title,
+        })
+        .await
+        .map_err(from_biz_error)?;
+
+    Ok(map_conversation_response(conversation)
+        .into_common_response()
+        .to_json())
+}
+
+pub async fn delete_conversation(
+    Extension(auth_user): Extension<AuthUser>,
+    Path(conversation_id): Path<String>,
+) -> ResponseResult<()> {
+    let api = ConversationApi::new(get_app_ctx());
+    api.delete_conversation(service::dto::conversation::DeleteConversationRequest {
+        user_id: auth_user.user_id,
+        conversation_id,
+    })
+    .await
+    .map_err(from_biz_error)?;
+
+    Ok(().into_common_response().to_json())
 }
 
 pub async fn presign_conversation_file_upload(
