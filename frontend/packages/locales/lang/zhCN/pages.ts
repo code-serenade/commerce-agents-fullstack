@@ -118,6 +118,13 @@ const pages = {
       name: "用户",
     },
   },
+  agentChat: {
+    conversation: {
+      actionLabel: "会话操作",
+      renameTitle: "重命名会话",
+      renamePlaceholder: "会话名称",
+    },
+  },
 } as const
 
 export default pages

@@ -122,6 +122,13 @@ const pages = {
       name: "Member",
     },
   },
+  agentChat: {
+    conversation: {
+      actionLabel: "Conversation actions",
+      renameTitle: "Rename conversation",
+      renamePlaceholder: "Conversation name",
+    },
+  },
 } as const
 
 export default pages

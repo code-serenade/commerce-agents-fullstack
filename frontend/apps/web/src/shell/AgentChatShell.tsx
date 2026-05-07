@@ -1,4 +1,4 @@
-import { type ReactNode } from "react"
+import { type MouseEvent, type ReactNode, useState } from "react"
 import {
   ClipboardList,
   Database,
@@ -7,12 +7,14 @@ import {
   GitBranch,
   LogIn,
   Megaphone,
+  MoreHorizontal,
   MessageSquareText,
   PackageCheck,
   PlugZap,
   Search,
   ShieldAlert,
   ShoppingBag,
+  Trash2,
   UserPlus,
   UserRound,
 } from "lucide-react"
@@ -27,6 +29,19 @@ import {
   ThemeToggle,
   TopBar,
 } from "@workspace/app-kit"
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  Input,
+} from "@workspace/ui-components"
 import type { RootState } from "@/store"
 import { logout } from "@/store/authSlice"
 import { resetAccess } from "@/store/accessSlice"
@@ -50,6 +65,11 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const [renameTarget, setRenameTarget] = useState<{
+    id: string
+    title: string
+  } | null>(null)
+  const [renameValue, setRenameValue] = useState("")
   const user = useSelector((state: RootState) => state.auth.user)
   const displayName = user?.name || t("web.shell.account.guestName")
   const displayId = user
@@ -67,6 +87,22 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     navigate("/home", { replace: true })
   }
 
+  const openRenameDialog = (conversation: { id: string; title: string }) => {
+    setRenameTarget(conversation)
+    setRenameValue(conversation.title)
+  }
+
+  const closeRenameDialog = () => {
+    setRenameTarget(null)
+    setRenameValue("")
+  }
+
+  const submitRename = () => {
+    if (!renameTarget) return
+    void chat.renameConversation(renameTarget.id, renameValue)
+    closeRenameDialog()
+  }
+
   const trailing = [
     <LanguageSwitch key="lang" />,
     <ThemeToggle key="theme" />,
@@ -74,12 +110,12 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   const sections: SidebarShellSection[] = [
     {
       key: "create",
-      label: "",
+      label: t("agentChat.shell.sections.create"),
       items: [
         {
           key: "new-chat",
           icon: <Edit3 />,
-          label: "新建会话",
+          label: t("agentChat.shell.navigation.newChat"),
           active: !chat.conversationId,
           onSelect: chat.startNewConversation,
         },
@@ -87,85 +123,85 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     },
     {
       key: "workspace",
-      label: "运营中枢",
+      label: t("agentChat.shell.sections.workspace"),
       items: [
         {
           key: "smart-ops",
           icon: <GitBranch />,
-          label: "智能运营",
+          label: t("agentChat.shell.navigation.smartOps"),
           active: Boolean(chat.conversationId),
         },
         {
           key: "product-board",
           icon: <ShoppingBag />,
-          label: "商品看板",
+          label: t("agentChat.shell.navigation.productBoard"),
         },
         {
           key: "campaigns",
           icon: <Megaphone />,
-          label: "营销活动",
+          label: t("agentChat.shell.navigation.campaigns"),
         },
         {
           key: "platform",
           icon: <PlugZap />,
-          label: "平台连接",
+          label: t("agentChat.shell.navigation.platform"),
         },
         {
           key: "market-research",
           icon: <Search />,
-          label: "智能洞察",
+          label: t("agentChat.shell.navigation.marketResearch"),
         },
         {
           key: "briefing",
           icon: <FileText />,
-          label: "每日简报",
+          label: t("agentChat.shell.navigation.briefing"),
         },
         {
           key: "alerts",
           icon: <ShieldAlert />,
-          label: "预警中心",
+          label: t("agentChat.shell.navigation.alerts"),
         },
       ],
     },
     {
       key: "governance",
-      label: "管理与复盘",
+      label: t("agentChat.shell.sections.governance"),
       items: [
         {
           key: "deliverables",
           icon: <FileText />,
-          label: "交付资料",
+          label: t("agentChat.shell.navigation.deliverables"),
         },
         {
           key: "task-board",
           icon: <ClipboardList />,
-          label: "执行清单",
+          label: t("agentChat.shell.navigation.taskBoard"),
         },
         {
           key: "packages",
           icon: <PackageCheck />,
-          label: "通用化管理",
+          label: t("agentChat.shell.navigation.packages"),
         },
         {
           key: "system-dashboard",
           icon: <Database />,
-          label: "系统看板",
+          label: t("agentChat.shell.navigation.systemDashboard"),
         },
         {
           key: "team",
           icon: <UserRound />,
-          label: "AI 团队介绍",
+          label: t("agentChat.shell.navigation.team"),
         },
       ],
     },
     {
       key: "recents",
-      label: "历史会话",
+      label: t("agentChat.shell.sections.recents"),
       items: [
         {
           key: "history",
           icon: <MessageSquareText />,
-          label: "历史会话",
+          label: t("agentChat.shell.navigation.history"),
           active: chat.conversations.some(
             (conversation) => conversation.id === chat.conversationId
           ),
@@ -176,6 +212,16 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
                 label: conversation.title,
                 active: conversation.id === chat.conversationId,
                 onSelect: () => chat.selectConversation(conversation.id),
+                action: (
+                  <ConversationActionMenu
+                    actionLabel={t("pages:agentChat.conversation.actionLabel")}
+                    deleteLabel={t("common:actions.delete")}
+                    disabled={chat.isStreaming}
+                    onDelete={() => chat.deleteConversation(conversation.id)}
+                    onRename={() => openRenameDialog(conversation)}
+                    renameLabel={t("common:actions.rename")}
+                  />
+                ),
               }))
             : [
                 {
@@ -190,68 +236,136 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   ]
 
   return (
-    <SidebarShell
-      brandLogo={
-        <div className="relative flex size-10 items-center justify-center rounded-xl bg-foreground font-mono text-base font-semibold text-background shadow-sm">
-          CA
-          <span className="absolute right-1 top-1 size-1.5 rounded-full bg-blue-500" />
-        </div>
-      }
-      brandEyebrow="Commerce Agent"
-      brandTitle="运营中枢"
-      brandDescription="电商智能体经营闭环"
-      sections={sections}
-      header={
-        <TopBar
-          title={activeConversation?.title ?? "输入运营目标"}
-          meta="Commerce 运营智能体 · 经营闭环"
-          leading={<GitBranch className="size-5" />}
-          trailing={trailing}
-        />
-      }
-      footerAccount={{
-        avatarAlt: displayName,
-        avatarSrc: user?.avatar,
-        avatarFallback: user
-          ? displayName.charAt(0).toUpperCase()
-          : t("web.shell.account.guestFallback"),
-        displayName,
-        displayId: user ? (
-          <CopyableText value={displayId} textClassName="block truncate">
-            {displayId}
-          </CopyableText>
-        ) : (
-          <span className="block truncate">{displayId}</span>
-        ),
-        logout: user
-          ? {
-              label: t("web.shell.account.logout"),
-              onSelect: handleLogout,
-            }
-          : undefined,
-        actions: user
-          ? [
-              {
-                icon: <UserRound />,
-                label: t("web.shell.account.actions.profile"),
-                onSelect: () => chat.startNewConversation(),
-              },
-            ]
-          : [
-              {
-                icon: <LogIn />,
-                label: t("web.shell.account.login"),
-                onSelect: () => navigate("/login"),
-              },
-              {
-                icon: <UserPlus />,
-                label: t("web.shell.account.register"),
-                onSelect: () => navigate("/register"),
-              },
-            ],
-      }}
-    >
-      {children}
-    </SidebarShell>
+    <>
+      <SidebarShell
+        brandLogo={
+          <div className="relative flex size-10 items-center justify-center rounded-xl bg-foreground font-mono text-base font-semibold text-background shadow-sm">
+            CA
+            <span className="absolute right-1 top-1 size-1.5 rounded-full bg-blue-500" />
+          </div>
+        }
+        brandEyebrow="Commerce Agent"
+        brandTitle={t("agentChat.shell.brandTitle")}
+        brandDescription={t("agentChat.shell.brandDescription")}
+        sections={sections}
+        header={
+          <TopBar
+            title={activeConversation?.title ?? t("agentChat.shell.topbarTitle")}
+            meta={t("agentChat.shell.topbarMeta")}
+            leading={<GitBranch className="size-5" />}
+            trailing={trailing}
+          />
+        }
+        footerAccount={{
+          avatarAlt: displayName,
+          avatarSrc: user?.avatar,
+          avatarFallback: user
+            ? displayName.charAt(0).toUpperCase()
+            : t("web.shell.account.guestFallback"),
+          displayName,
+          displayId: user ? (
+            <CopyableText value={displayId} textClassName="block truncate">
+              {displayId}
+            </CopyableText>
+          ) : (
+            <span className="block truncate">{displayId}</span>
+          ),
+          logout: user
+            ? {
+                label: t("web.shell.account.logout"),
+                onSelect: handleLogout,
+              }
+            : undefined,
+          actions: user
+            ? [
+                {
+                  icon: <UserRound />,
+                  label: t("web.shell.account.actions.profile"),
+                  onSelect: () => chat.startNewConversation(),
+                },
+              ]
+            : [
+                {
+                  icon: <LogIn />,
+                  label: t("web.shell.account.login"),
+                  onSelect: () => navigate("/login"),
+                },
+                {
+                  icon: <UserPlus />,
+                  label: t("web.shell.account.register"),
+                  onSelect: () => navigate("/register"),
+                },
+              ],
+        }}
+      >
+        {children}
+      </SidebarShell>
+      <Dialog open={Boolean(renameTarget)} onOpenChange={closeRenameDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {t("pages:agentChat.conversation.renameTitle")}
+            </DialogTitle>
+          </DialogHeader>
+          <Input
+            value={renameValue}
+            placeholder={t("pages:agentChat.conversation.renamePlaceholder")}
+            onValueChange={setRenameValue}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={closeRenameDialog}>
+              {t("common:actions.cancel")}
+            </Button>
+            <Button onClick={submitRename} disabled={!renameValue.trim()}>
+              {t("common:actions.save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+function ConversationActionMenu({
+  actionLabel,
+  deleteLabel,
+  disabled,
+  onDelete,
+  onRename,
+  renameLabel,
+}: {
+  actionLabel: string
+  deleteLabel: string
+  disabled: boolean
+  onDelete: () => void
+  onRename: () => void
+  renameLabel: string
+}) {
+  const stopClick = (event: MouseEvent) => {
+    event.preventDefault()
+    event.stopPropagation()
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger>
+        <button
+          type="button"
+          disabled={disabled}
+          className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+          aria-label={actionLabel}
+          onClick={stopClick}
+        >
+          <MoreHorizontal className="size-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <DropdownMenuItem onSelect={onRename}>{renameLabel}</DropdownMenuItem>
+        <DropdownMenuItem variant="destructive" onSelect={onDelete}>
+          <Trash2 className="size-4" />
+          {deleteLabel}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

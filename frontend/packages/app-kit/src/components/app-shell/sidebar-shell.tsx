@@ -35,6 +35,7 @@ export interface SidebarShellSubEntry {
   href: string
   active?: boolean
   onSelect?: () => void
+  action?: ReactNode
 }
 
 export interface SidebarShellNavEntry {
@@ -252,13 +253,30 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
         <SidebarMenuSub>
           {item.subItems?.map((subItem) => (
             <SidebarMenuSubItem key={subItem.key ?? subItem.href}>
-              <SidebarMenuSubButton
-                active={subItem.active}
-                href={subItem.href}
-                onClick={subItem.onSelect}
-              >
-                {subItem.label}
-              </SidebarMenuSubButton>
+              {subItem.action ? (
+                <div className="group/subitem flex min-w-0 items-center gap-1">
+                  <div className="min-w-0 flex-1">
+                    <SidebarMenuSubButton
+                      active={subItem.active}
+                      href={subItem.href}
+                      onClick={subItem.onSelect}
+                    >
+                      {subItem.label}
+                    </SidebarMenuSubButton>
+                  </div>
+                  <div className="shrink-0 opacity-0 transition-opacity group-hover/subitem:opacity-100 focus-within:opacity-100">
+                    {subItem.action}
+                  </div>
+                </div>
+              ) : (
+                <SidebarMenuSubButton
+                  active={subItem.active}
+                  href={subItem.href}
+                  onClick={subItem.onSelect}
+                >
+                  {subItem.label}
+                </SidebarMenuSubButton>
+              )}
             </SidebarMenuSubItem>
           ))}
         </SidebarMenuSub>

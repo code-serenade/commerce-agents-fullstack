@@ -18,7 +18,9 @@ import {
   TerminalSquare,
   WalletCards,
 } from "lucide-react"
+import { type TFunction } from "i18next"
 import type { ComponentType, SVGProps } from "react"
+import { useTranslation } from "react-i18next"
 import type { AgentRuntimeEvent, AgentTaskNode, AgentWorkerReport } from "@/api"
 import type { AgentChatMessage } from "../types"
 
@@ -79,72 +81,71 @@ interface ComputerScreenContext {
 }
 
 const WORKSPACE_LANES = [
-  { label: "上下文", value: "商品/平台/洞察" },
-  { label: "执行", value: "活动/任务/预算" },
-  { label: "交付", value: "资料/简报/复盘" },
-  { label: "治理", value: "预警/审批/回滚" },
+  { labelKey: "agentChat.swarm.lanes.context.label", valueKey: "agentChat.swarm.lanes.context.value" },
+  { labelKey: "agentChat.swarm.lanes.execution.label", valueKey: "agentChat.swarm.lanes.execution.value" },
+  { labelKey: "agentChat.swarm.lanes.delivery.label", valueKey: "agentChat.swarm.lanes.delivery.value" },
+  { labelKey: "agentChat.swarm.lanes.governance.label", valueKey: "agentChat.swarm.lanes.governance.value" },
 ]
 
-const AGENTS: SwarmAgent[] = [
+const AGENTS = [
   {
     nodeId: "data",
-    name: "数据诊断",
+    nameKey: "agentChat.swarm.agents.data.name",
     role: "data",
-    summary: "分析数据、指标、归因和业务约束",
+    summaryKey: "agentChat.swarm.agents.data.summary",
     icon: BarChart3,
     tone: "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-200",
-    objective: "分析任务中的数据、指标、归因和约束",
+    objectiveKey: "agentChat.swarm.agents.data.objective",
     dependsOn: [],
   },
   {
     nodeId: "accounting",
-    name: "预算评估",
+    nameKey: "agentChat.swarm.agents.accounting.name",
     role: "accounting",
-    summary: "评估成本、预算、SKU 和经营风险",
+    summaryKey: "agentChat.swarm.agents.accounting.summary",
     icon: WalletCards,
     tone: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-200",
-    objective: "基于数据诊断评估活动成本、引流 SKU、投流预算和风险",
+    objectiveKey: "agentChat.swarm.agents.accounting.objective",
     dependsOn: ["data"],
   },
   {
     nodeId: "douyin_ads",
-    name: "千川投放优化",
+    nameKey: "agentChat.swarm.agents.douyinAds.name",
     role: "douyin_ads",
-    summary: "计划结构、人群包、预算节奏和 ROI 止损",
+    summaryKey: "agentChat.swarm.agents.douyinAds.summary",
     icon: Megaphone,
     tone: "bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-200",
-    objective:
-      "拆解巨量千川计划结构、人群包、出价预算、ROI 止损线和直播/短视频承接",
+    objectiveKey: "agentChat.swarm.agents.douyinAds.objective",
     dependsOn: ["data"],
   },
   {
     nodeId: "creative",
-    name: "创意产出",
+    nameKey: "agentChat.swarm.agents.creative.name",
     role: "creative",
-    summary: "产出短视频、直播或活动内容创意",
+    summaryKey: "agentChat.swarm.agents.creative.summary",
     icon: PenLine,
     tone: "bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-200",
-    objective: "基于数据诊断产出抖音短视频、直播或活动内容创意",
+    objectiveKey: "agentChat.swarm.agents.creative.objective",
     dependsOn: ["data"],
   },
   {
     nodeId: "ops",
-    name: "运营方案",
+    nameKey: "agentChat.swarm.agents.ops.name",
     role: "ops",
-    summary: "整合财务、千川投放和创意结果，形成可执行方案",
+    summaryKey: "agentChat.swarm.agents.ops.summary",
     icon: MonitorCog,
     tone: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
-    objective: "整合财务、千川投放和创意结果，形成可执行运营方案",
+    objectiveKey: "agentChat.swarm.agents.ops.objective",
     dependsOn: ["accounting", "douyin_ads", "creative"],
   },
   {
     nodeId: "delivery",
-    name: "交付文档",
+    nameKey: "agentChat.swarm.agents.delivery.name",
     role: "delivery",
-    summary: "沉淀方案结构、执行清单和可下载产物",
+    summaryKey: "agentChat.swarm.agents.delivery.summary",
     icon: FileText,
     tone: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200",
-    objective: "将运营方案沉淀为客户可复用文档",
+    objectiveKey: "agentChat.swarm.agents.delivery.objective",
     dependsOn: ["ops"],
   },
 ]
@@ -152,50 +153,50 @@ const AGENTS: SwarmAgent[] = [
 const FALLBACK_PHASES = [
   {
     nodeId: "data",
-    title: "阶段一：数据诊断",
-    detail: "识别指标、归因、平台场景和已知约束",
+    titleKey: "agentChat.swarm.phases.data.title",
+    detailKey: "agentChat.swarm.phases.data.detail",
   },
   {
     nodeId: "parallel",
-    title: "阶段二：并行处理",
-    detail: "财务、千川投放、创意任务并行处理",
+    titleKey: "agentChat.swarm.phases.parallel.title",
+    detailKey: "agentChat.swarm.phases.parallel.detail",
   },
   {
     nodeId: "ops",
-    title: "阶段三：交叉校验",
-    detail: "合并上游结论，交叉校验预算、素材和投放节奏",
+    titleKey: "agentChat.swarm.phases.ops.title",
+    detailKey: "agentChat.swarm.phases.ops.detail",
   },
   {
     nodeId: "delivery",
-    title: "阶段四：交付汇总",
-    detail: "合成最终策略、执行清单和交付文件",
+    titleKey: "agentChat.swarm.phases.delivery.title",
+    detailKey: "agentChat.swarm.phases.delivery.detail",
   },
 ]
 
 const WORKSPACE_HANDOFFS = [
   {
-    title: "上下文",
-    detail: "商品看板、平台连接、智能洞察会作为任务输入",
+    titleKey: "agentChat.swarm.handoffs.context.title",
+    detailKey: "agentChat.swarm.handoffs.context.detail",
     icon: Database,
   },
   {
-    title: "执行",
-    detail: "营销活动、执行清单和工作区任务承接动作",
+    titleKey: "agentChat.swarm.handoffs.execution.title",
+    detailKey: "agentChat.swarm.handoffs.execution.detail",
     icon: ClipboardCheck,
   },
   {
-    title: "交付",
-    detail: "交付资料、每日简报和复盘历史沉淀结果",
+    titleKey: "agentChat.swarm.handoffs.delivery.title",
+    detailKey: "agentChat.swarm.handoffs.delivery.detail",
     icon: FileText,
   },
   {
-    title: "治理",
-    detail: "预警中心、能力包管理和审批回滚处理风险",
+    titleKey: "agentChat.swarm.handoffs.governance.title",
+    detailKey: "agentChat.swarm.handoffs.governance.detail",
     icon: ShieldAlert,
   },
   {
-    title: "复盘",
-    detail: "对话历史、执行记录和团队能力说明留作复用",
+    titleKey: "agentChat.swarm.handoffs.review.title",
+    detailKey: "agentChat.swarm.handoffs.review.detail",
     icon: Bot,
   },
 ]
@@ -206,6 +207,7 @@ export function AgentChatSwarmPanel({
   onCollapse,
   runtimeEvents,
 }: AgentChatSwarmPanelProps) {
+  const { t } = useTranslation()
   const userMessages = messages.filter((message) => message.role === "user")
   const hasTask = userMessages.length > 0
   const lastTask = userMessages.at(-1)?.content
@@ -213,7 +215,7 @@ export function AgentChatSwarmPanel({
   const plannedGraph = getPlannedGraph(runtimeEvents)
   const graphNodes = plannedGraph?.nodes ?? []
   const runtimeNodeStates = getRuntimeNodeStates(runtimeEvents)
-  const agents = getAgents(graphNodes)
+  const agents = getAgents(graphNodes, t)
   const doneAgents = agents.filter(
     (agent) => runtimeNodeStates.get(agent.nodeId)?.state === "done"
   )
@@ -246,16 +248,16 @@ export function AgentChatSwarmPanel({
     isStreaming,
     hasRuntime,
     runtimeNodeStates,
-  })
-  const phases = getPhases(graphNodes)
-  const timeline = getTimeline(runtimeEvents, agents, hasTask, isStreaming)
+  }, t)
+  const phases = getPhases(graphNodes, t)
+  const timeline = getTimeline(runtimeEvents, agents, hasTask, isStreaming, t)
   const computerCards = getComputerCards({
     activeAgent,
     activeNode,
     agents,
     lastTask,
     runtimeEvents,
-  })
+  }, t)
   return (
     <aside className="h-full min-h-124 min-w-0 overflow-hidden rounded-[1.75rem] bg-[#eeeeeb] p-2 min-[1440px]:p-3 2xl:min-h-0 dark:bg-muted/30">
       <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[1.45rem] bg-[#f6f6f3] dark:bg-card">
@@ -268,7 +270,7 @@ export function AgentChatSwarmPanel({
                 </div>
                 <div className="min-w-0">
                   <h2 className="truncate font-mono text-xl font-semibold tracking-wide min-[1500px]:text-2xl">
-                    经营工作区
+                    {t("agentChat.workbench.title")}
                   </h2>
                   <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-2 text-sm text-muted-foreground min-[1500px]:text-base">
                     <span
@@ -282,7 +284,9 @@ export function AgentChatSwarmPanel({
                             : "bg-muted-foreground/40"
                       }`}
                     />
-                    <span className="text-foreground">进度 {progress}</span>
+                    <span className="text-foreground">
+                      {t("agentChat.workbench.progress")} {progress}
+                    </span>
                     <span className="hidden sm:inline">|</span>
                     <span className="min-w-0 truncate">{stage}</span>
                   </div>
@@ -294,8 +298,8 @@ export function AgentChatSwarmPanel({
                 type="button"
                 onClick={onCollapse}
                 className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground min-[1500px]:size-10"
-                title="收起经营工作区"
-                aria-label="收起经营工作区"
+                title={t("agentChat.workbench.collapse")}
+                aria-label={t("agentChat.workbench.collapse")}
               >
                 <PanelRightClose className="size-4" />
               </button>
@@ -312,20 +316,22 @@ export function AgentChatSwarmPanel({
               activeState={activeNode?.state ?? activeState}
               cards={computerCards}
               runtimeEvents={runtimeEvents}
+              t={t}
             />
           ) : (
             <SwarmIdleDetail
               hasTask={hasTask}
               isStreaming={isStreaming}
               lastTask={lastTask}
+              t={t}
             />
           )}
 
           <section className="mt-3 grid gap-3 min-[1800px]:grid-cols-[minmax(0,1fr)_17rem]">
-            <WorkspaceHandoffRail />
+            <WorkspaceHandoffRail t={t} />
             <CompactInfoBlock
               icon={Activity}
-              title="本轮动态"
+              title={t("agentChat.workbench.activity")}
               items={[
                 ...timeline.slice(0, 2).map((item) => item.label),
                 ...phases.slice(0, 1).map((phase) => phase.title),
@@ -340,6 +346,7 @@ export function AgentChatSwarmPanel({
           hasTask={hasTask}
           isStreaming={isStreaming}
           runtimeNodeStates={runtimeNodeStates}
+          t={t}
         />
       </div>
     </aside>
@@ -353,6 +360,7 @@ function ComputerRuntimeDetail({
   activeState,
   cards,
   runtimeEvents,
+  t,
 }: {
   activeAgent: SwarmAgent
   activeAgentIndex: number
@@ -360,12 +368,13 @@ function ComputerRuntimeDetail({
   activeState: SwarmState
   cards: ComputerCard[]
   runtimeEvents: AgentRuntimeEvent[]
+  t: TFunction
 }) {
   const screen = getComputerScreenContext({
     activeAgent,
     activeNode,
     runtimeEvents,
-  })
+  }, t)
   const ActiveIcon = activeAgent.icon
   const activityCards = cards.slice(-4)
 
@@ -373,8 +382,10 @@ function ComputerRuntimeDetail({
     <section className="grid min-h-124 overflow-hidden rounded-[1.25rem] border border-[#dcdcd7] bg-white shadow-sm min-[1500px]:grid-cols-[12.75rem_minmax(0,1fr)] dark:border-border dark:bg-background">
       <div className="min-w-0 border-b border-border bg-[#f7f7f4] p-3 min-[1500px]:border-r min-[1500px]:border-b-0 dark:bg-card">
         <div className="mb-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-          <span>本轮记录</span>
-          <span>{activityCards.length} 条</span>
+          <span>{t("agentChat.workbench.record")}</span>
+          <span>
+            {activityCards.length} {t("agentChat.workbench.recordCountSuffix")}
+          </span>
         </div>
         <div className="grid gap-2 min-[1500px]:grid-cols-1 sm:grid-cols-2">
           {activityCards.map((card) => (
@@ -405,7 +416,7 @@ function ComputerRuntimeDetail({
           <div className="border-b border-border bg-white px-4 py-3 min-[1500px]:px-5 dark:bg-background">
             <div className="flex items-center justify-between gap-3">
               <span className="text-xs font-medium text-muted-foreground">
-                业务输入
+                {t("agentChat.workbench.businessInput")}
               </span>
             </div>
             <p className="mt-1 line-clamp-2 text-sm/6 text-foreground">
@@ -423,7 +434,7 @@ function ComputerRuntimeDetail({
                   </span>
                 </div>
                 <span className="shrink-0 rounded-full bg-secondary px-2 py-1 text-[11px] text-secondary-foreground">
-                  工作预览
+                  {t("agentChat.workbench.preview")}
                 </span>
               </div>
               <div className="min-h-0 flex-1 overflow-hidden py-2 font-mono text-[11px]/5">
@@ -455,17 +466,19 @@ function ComputerRuntimeDetail({
                   <MonitorCog className="size-4" />
                 )}
                 <span className="truncate">
-                  {activeAgent.name} · {getDockStateLabel(activeState)}
+                  {activeAgent.name} · {getDockStateLabel(activeState, t)}
                 </span>
               </div>
               <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
                 {activeNode?.report
-                  ? getFallbackResponse(activeAgent, activeState)
+                  ? getFallbackResponse(activeAgent, activeState, t)
                   : activeAgent.objective}
               </p>
             </div>
             <div className="rounded-md border border-border bg-background px-3 py-2">
-              <p className="text-xs text-muted-foreground">处理轮次</p>
+              <p className="text-xs text-muted-foreground">
+                {t("agentChat.workbench.turns")}
+              </p>
               <p className="mt-1 font-mono text-sm font-semibold">
                 {activeNode?.attempt ?? 1}
               </p>
@@ -526,12 +539,14 @@ function AgentDock({
   hasTask,
   isStreaming,
   runtimeNodeStates,
+  t,
 }: {
   activeNodeId: string
   agents: SwarmAgent[]
   hasTask: boolean
   isStreaming: boolean
   runtimeNodeStates: Map<string, RuntimeNodeSnapshot>
+  t: TFunction
 }) {
   return (
     <div className="shrink-0 border-t border-[#d8d8d3] bg-[#f8f8f6] px-4 py-3 dark:border-border dark:bg-card">
@@ -551,7 +566,7 @@ function AgentDock({
           return (
             <article
               key={agent.nodeId}
-              title={`${formatAgentNumber(index)} ${agent.name} ${getDockStateLabel(state)}`}
+              title={`${formatAgentNumber(index)} ${agent.name} ${getDockStateLabel(state, t)}`}
               className={`flex min-w-0 items-center gap-1.5 rounded-xl border px-3 py-2.5 transition-colors ${
                 isActive
                   ? "border-foreground bg-background shadow-sm"
@@ -577,7 +592,7 @@ function AgentDock({
                 <div className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
                   <DockStateIcon state={state} />
                   <span className="hidden truncate min-[1500px]:inline">
-                    {getDockStateLabel(state)}
+                    {getDockStateLabel(state, t)}
                   </span>
                 </div>
               </div>
@@ -600,32 +615,35 @@ function DockStateIcon({ state }: { state: SwarmState }) {
   return <span className="size-2 rounded-full bg-muted-foreground/35" />
 }
 
-function WorkspaceHandoffRail() {
+function WorkspaceHandoffRail({ t }: { t: TFunction }) {
   return (
     <div className="rounded-xl border border-border bg-background p-3 shadow-sm">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm font-medium">
           <PlugZap className="size-4 text-muted-foreground" />
-          业务承接
+          {t("agentChat.workbench.handoff")}
         </div>
-        <span className="text-xs text-muted-foreground">后续接真实模块</span>
+        <span className="text-xs text-muted-foreground">
+          {t("agentChat.workbench.futureModules")}
+        </span>
       </div>
       <div className="grid gap-2 min-[1500px]:grid-cols-2 min-[1800px]:grid-cols-4">
         {WORKSPACE_HANDOFFS.map((handoff) => {
           const Icon = handoff.icon
+          const title = t(handoff.titleKey)
 
           return (
             <div
-              key={handoff.title}
+              key={handoff.titleKey}
               className="flex min-w-0 items-start gap-2 rounded-lg border border-border bg-card px-3 py-2"
             >
               <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
                 <Icon className="size-4" />
               </div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{handoff.title}</p>
+                <p className="truncate text-sm font-medium">{title}</p>
                 <p className="mt-1 line-clamp-2 text-xs/5 text-muted-foreground">
-                  {handoff.detail}
+                  {t(handoff.detailKey)}
                 </p>
               </div>
             </div>
@@ -670,21 +688,26 @@ function SwarmIdleDetail({
   hasTask,
   isStreaming,
   lastTask,
+  t,
 }: {
   hasTask: boolean
   isStreaming: boolean
   lastTask?: string
+  t: TFunction
 }) {
   const title = isStreaming
-    ? "正在规划执行计划"
+    ? t("agentChat.workbench.idle.planningTitle")
     : hasTask
-      ? "历史会话，等待新任务"
-      : "等待业务目标"
+      ? t("agentChat.workbench.idle.historyTitle")
+      : t("agentChat.workbench.idle.waitingTitle")
   const description = isStreaming
-    ? "已接收输入，正在匹配商品、活动、数据和交付步骤。"
+    ? t("agentChat.workbench.idle.planningDescription")
     : hasTask
-      ? "经营工作区只显示本轮过程，历史消息不会计入当前进度。"
-      : "输入运营目标后，将按商品、活动、平台数据、预警和交付资料组织处理。"
+      ? t("agentChat.workbench.idle.historyDescription")
+      : t("agentChat.workbench.idle.waitingDescription")
+  const lines = t("agentChat.workbench.idle.lines", {
+    returnObjects: true,
+  }) as string[]
 
   return (
     <div className="p-3 min-[1500px]:p-4">
@@ -694,10 +717,10 @@ function SwarmIdleDetail({
             <MonitorCog className="size-4 shrink-0 text-muted-foreground" />
             <div className="min-w-0">
               <p className="truncate font-mono text-sm font-semibold">
-                01 | 经营闭环
+                {t("agentChat.workbench.idle.loopTitle")}
               </p>
               <p className="truncate text-xs text-muted-foreground">
-                本轮任务预览
+                {t("agentChat.workbench.idle.previewTitle")}
               </p>
             </div>
           </div>
@@ -707,7 +730,7 @@ function SwarmIdleDetail({
           <div className="border-b border-border bg-white px-5 py-3 dark:bg-background">
             <div className="flex items-center justify-between gap-3">
               <span className="text-xs font-medium text-muted-foreground">
-                业务输入
+                {t("agentChat.workbench.businessInput")}
               </span>
             </div>
             <p className="mt-1 line-clamp-2 text-sm/6 text-foreground">
@@ -720,27 +743,18 @@ function SwarmIdleDetail({
                 <div className="flex min-w-0 items-center gap-2">
                   <FileText className="size-4 text-muted-foreground" />
                   <span className="truncate text-sm font-medium">
-                    经营闭环预览
+                    {t("agentChat.workbench.idle.previewFile")}
                   </span>
                 </div>
                 <span className="shrink-0 rounded-full bg-secondary px-2 py-1 text-[11px] text-secondary-foreground">
-                  待执行
+                  {t("agentChat.workbench.idle.pending")}
                 </span>
               </div>
               <div className="min-h-0 flex-1 overflow-hidden py-2 font-mono text-[11px]/5">
                 {[
                   `# ${title}`,
                   description,
-                  "数据诊断识别指标、归因和经营约束",
-                  "商品看板提供商品知识、卖点素材和竞品线索",
-                  "营销活动承接活动策划、执行节奏和复盘结果",
-                  "平台连接提供抖音、千川等同步状态",
-                  "预算评估、投放优化、创意产出并行处理",
-                  "运营方案汇总预算、素材、投放节奏",
-                  "交付资料沉淀方案、清单和复盘口径",
-                  "预警中心沉淀预算、投放和转化异常规则",
-                  "每日简报汇总重点进展和待办事项",
-                  "通用化管理承接后续流程启停与回滚",
+                  ...lines,
                 ].map((line, index) => (
                   <div
                     key={`${index}-${line}`}
@@ -760,12 +774,14 @@ function SwarmIdleDetail({
           <div className="grid gap-2 border-t border-border bg-[#f5f5f2] p-3 min-[1500px]:grid-cols-4 dark:bg-card">
             {WORKSPACE_LANES.map((lane) => (
               <div
-                key={lane.label}
+                key={lane.labelKey}
                 className="min-w-0 rounded-md border border-border bg-background px-3 py-2"
               >
-                <p className="text-xs text-muted-foreground">{lane.label}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t(lane.labelKey)}
+                </p>
                 <p className="mt-1 truncate text-xs font-medium min-[1500px]:text-sm">
-                  {lane.value}
+                  {t(lane.valueKey)}
                 </p>
               </div>
             ))}
@@ -777,20 +793,8 @@ function SwarmIdleDetail({
 }
 
 function StatePill({ state }: { state: SwarmState }) {
-  const label =
-    state === "done"
-      ? "已完成"
-      : state === "working"
-        ? "正在处理"
-        : state === "queued"
-          ? "排队"
-          : state === "failed"
-            ? "失败"
-            : state === "reworking"
-              ? "重试"
-              : state === "skipped"
-                ? "跳过"
-                : "待命"
+  const { t } = useTranslation()
+  const label = getStatePillLabel(state, t)
 
   return (
     <span
@@ -813,12 +817,36 @@ function StatePill({ state }: { state: SwarmState }) {
   )
 }
 
-function getAgents(graphNodes: AgentTaskNode[]): SwarmAgent[] {
-  if (!graphNodes.length) return AGENTS
+function getStatePillLabel(state: SwarmState, t: TFunction) {
+  if (state === "done") return t("agentChat.swarm.statePill.done")
+  if (state === "working") return t("agentChat.swarm.statePill.working")
+  if (state === "queued") return t("agentChat.swarm.statePill.queued")
+  if (state === "failed") return t("agentChat.swarm.statePill.failed")
+  if (state === "reworking") return t("agentChat.swarm.statePill.reworking")
+  if (state === "skipped") return t("agentChat.swarm.statePill.skipped")
+  return t("agentChat.swarm.statePill.idle")
+}
+
+function getAgentPresets(t: TFunction): SwarmAgent[] {
+  return AGENTS.map((agent) => ({
+    dependsOn: agent.dependsOn,
+    icon: agent.icon,
+    name: t(agent.nameKey),
+    nodeId: agent.nodeId,
+    objective: t(agent.objectiveKey),
+    role: agent.role,
+    summary: t(agent.summaryKey),
+    tone: agent.tone,
+  }))
+}
+
+function getAgents(graphNodes: AgentTaskNode[], t: TFunction): SwarmAgent[] {
+  const presets = getAgentPresets(t)
+  if (!graphNodes.length) return presets
 
   const dynamicAgents = graphNodes.map((node) => {
     const nodeId = readId(node.id)
-    const preset = AGENTS.find((agent) => agent.nodeId === nodeId)
+    const preset = presets.find((agent) => agent.nodeId === nodeId)
     return {
       nodeId,
       name: node.title,
@@ -835,23 +863,34 @@ function getAgents(graphNodes: AgentTaskNode[]): SwarmAgent[] {
 
   return [
     ...dynamicAgents,
-    AGENTS.find((agent) => agent.nodeId === "delivery") ?? AGENTS.at(-1)!,
+    presets.find((agent) => agent.nodeId === "delivery") ?? presets.at(-1)!,
   ]
 }
 
-function getPhases(graphNodes: AgentTaskNode[]) {
-  if (!graphNodes.length) return FALLBACK_PHASES
+function getPhases(graphNodes: AgentTaskNode[], t: TFunction) {
+  if (!graphNodes.length) {
+    return FALLBACK_PHASES.map((phase) => ({
+      detail: t(phase.detailKey),
+      nodeId: phase.nodeId,
+      title: t(phase.titleKey),
+    }))
+  }
 
   return [
     ...graphNodes.map((node, index) => ({
       nodeId: readId(node.id),
-      title: `阶段 ${index + 1}：${node.title}`,
+      title: t("agentChat.swarm.phases.dynamicTitle", {
+        index: index + 1,
+        title: node.title,
+      }),
       detail: node.objective,
     })),
     {
       nodeId: "delivery",
-      title: `阶段 ${graphNodes.length + 1}：交付汇总`,
-      detail: "将各任务结果汇总为可交付方案、清单和文档。",
+      title: t("agentChat.swarm.phases.dynamicDeliveryTitle", {
+        index: graphNodes.length + 1,
+      }),
+      detail: t("agentChat.swarm.phases.dynamicDeliveryDetail"),
     },
   ]
 }
@@ -868,25 +907,35 @@ function getStageLabel({
   hasRuntime: boolean
   isStreaming: boolean
   runtimeNodeStates: Map<string, RuntimeNodeSnapshot>
-}) {
-  if (!hasTask) return "等待任务输入"
+}, t: TFunction) {
+  if (!hasTask) return t("agentChat.swarm.stage.waitingInput")
   if (!hasRuntime) {
-    return isStreaming ? "正在规划执行计划" : "历史会话，等待新任务"
+    return isStreaming
+      ? t("agentChat.swarm.stage.planning")
+      : t("agentChat.swarm.stage.historyWaiting")
   }
   const failedAgent = agents.find(
     (agent) => runtimeNodeStates.get(agent.nodeId)?.state === "failed"
   )
-  if (failedAgent) return `执行受阻: ${failedAgent.name}`
+  if (failedAgent) {
+    return t("agentChat.swarm.stage.failedAgent", { agent: failedAgent.name })
+  }
   const reworkingAgent = agents.find(
     (agent) => runtimeNodeStates.get(agent.nodeId)?.state === "reworking"
   )
-  if (reworkingAgent) return `正在重试: ${reworkingAgent.name}`
+  if (reworkingAgent) {
+    return t("agentChat.swarm.stage.reworkingAgent", {
+      agent: reworkingAgent.name,
+    })
+  }
   const workingAgent = agents.find(
     (agent) => runtimeNodeStates.get(agent.nodeId)?.state === "working"
   )
-  if (workingAgent) return `正在执行: ${workingAgent.name}`
-  if (isStreaming) return "多任务处理中"
-  return "方案已汇总"
+  if (workingAgent) {
+    return t("agentChat.swarm.stage.workingAgent", { agent: workingAgent.name })
+  }
+  if (isStreaming) return t("agentChat.swarm.stage.multiTasking")
+  return t("agentChat.swarm.stage.finished")
 }
 
 function getAgentState({
@@ -1005,68 +1054,88 @@ function getTimeline(
   runtimeEvents: AgentRuntimeEvent[],
   agents: SwarmAgent[],
   hasTask: boolean,
-  isStreaming: boolean
+  isStreaming: boolean,
+  t: TFunction
 ): SwarmTimelineItem[] {
   if (!runtimeEvents.length) {
     if (isStreaming) {
       return [
-        { label: "已收到任务，正在规划执行计划。", tone: "default" },
+        { label: t("agentChat.swarm.timeline.planning.0"), tone: "default" },
         {
-          label: "处理步骤、依赖和验收规则生成后会同步到经营工作区。",
+          label: t("agentChat.swarm.timeline.planning.1"),
           tone: "default",
         },
       ]
     }
     if (hasTask) {
       return [
-        { label: "当前展示的是历史对话，本轮过程尚未开始。", tone: "default" },
-        { label: "发送新任务后会重新规划处理步骤。", tone: "default" },
+        { label: t("agentChat.swarm.timeline.history.0"), tone: "default" },
+        { label: t("agentChat.swarm.timeline.history.1"), tone: "default" },
       ]
     }
     return [
-      { label: "等待客户输入任务，随后会规划处理步骤。", tone: "default" },
-      { label: "数据诊断先行，预算、投放和创意任务并行。", tone: "default" },
-      { label: "运营方案负责交叉校验并汇总最终交付。", tone: "default" },
+      { label: t("agentChat.swarm.timeline.empty.0"), tone: "default" },
+      { label: t("agentChat.swarm.timeline.empty.1"), tone: "default" },
+      { label: t("agentChat.swarm.timeline.empty.2"), tone: "default" },
     ]
   }
 
   return runtimeEvents
     .map((event): SwarmTimelineItem | null => {
       if (event.type === "commander_thinking") {
-        return { label: "正在分析任务并准备执行计划。", tone: "default" }
+        return {
+          label: t("agentChat.swarm.timeline.events.commanderThinking"),
+          tone: "default",
+        }
       }
       if (event.type === "task_graph_planned") {
         return {
-          label: `已规划 ${event.graph.nodes.length} 个处理步骤。`,
+          label: t("agentChat.swarm.timeline.events.graphPlanned", {
+            count: event.graph.nodes.length,
+          }),
           tone: "success",
         }
       }
       if (event.type === "task_node_started") {
         return {
-          label: `${getAgentName(event.nodeId, agents)} 开始第 ${event.attempt} 次执行。`,
+          label: t("agentChat.swarm.timeline.events.nodeStarted", {
+            agent: getAgentName(event.nodeId, agents),
+            attempt: event.attempt,
+          }),
           tone: "default",
         }
       }
       if (event.type === "task_node_rework_requested") {
         return {
-          label: `${getAgentName(event.nodeId, agents)} 进入重试：${event.instruction}`,
+          label: t("agentChat.swarm.timeline.events.nodeRework", {
+            agent: getAgentName(event.nodeId, agents),
+            instruction: event.instruction,
+          }),
           tone: "warning",
         }
       }
       if (event.type === "task_node_passed") {
         return {
-          label: `${getAgentName(event.nodeId, agents)} 已通过验收。`,
+          label: t("agentChat.swarm.timeline.events.nodePassed", {
+            agent: getAgentName(event.nodeId, agents),
+          }),
           tone: "success",
         }
       }
       if (event.type === "task_node_failed") {
         return {
-          label: `${getAgentName(event.nodeId, agents)} 失败：${event.reason}`,
+          label: t("agentChat.swarm.timeline.events.nodeFailed", {
+            agent: getAgentName(event.nodeId, agents),
+            reason: event.reason,
+          }),
           tone: "error",
         }
       }
       if (event.type === "task_graph_finished") {
-        return { label: "执行计划已结束，进入汇总输出。", tone: "success" }
+        return {
+          label: t("agentChat.swarm.timeline.events.graphFinished"),
+          tone: "success",
+        }
       }
       return null
     })
@@ -1086,7 +1155,7 @@ function getComputerCards({
   agents: SwarmAgent[]
   lastTask?: string
   runtimeEvents: AgentRuntimeEvent[]
-}): ComputerCard[] {
+}, t: TFunction): ComputerCard[] {
   const cards: ComputerCard[] = []
   const graphEvent = runtimeEvents.find(
     (
@@ -1098,9 +1167,11 @@ function getComputerCards({
   if (graphEvent) {
     cards.push({
       id: "graph-planned",
-      title: "读取目标",
-      meta: "执行计划",
-      description: `已将任务拆成 ${graphEvent.graph.nodes.length} 个处理步骤。`,
+      title: t("agentChat.swarm.cards.readTarget.title"),
+      meta: t("agentChat.swarm.cards.readTarget.planMeta"),
+      description: t("agentChat.swarm.cards.readTarget.plannedDescription", {
+        count: graphEvent.graph.nodes.length,
+      }),
       icon: FileText,
       lines: [
         graphEvent.graph.root_task,
@@ -1113,11 +1184,11 @@ function getComputerCards({
   } else {
     cards.push({
       id: "task-input",
-      title: "读取目标",
-      meta: "用户任务",
-      description: "读取用户目标并准备生成执行计划。",
+      title: t("agentChat.swarm.cards.readTarget.title"),
+      meta: t("agentChat.swarm.cards.readTarget.userMeta"),
+      description: t("agentChat.swarm.cards.readTarget.inputDescription"),
       icon: FileText,
-      lines: [lastTask || "等待客户输入业务目标。"],
+      lines: [lastTask || t("agentChat.swarm.cards.readTarget.waitingLine")],
       state: "working",
     })
   }
@@ -1125,34 +1196,46 @@ function getComputerCards({
   const latestNodeEvent = findLatestNodeEvent(runtimeEvents)
   cards.push({
     id: "runtime-terminal",
-    title: "分配任务",
-    meta: "等待分配",
+    title: t("agentChat.swarm.cards.assign.title"),
+    meta: t("agentChat.swarm.cards.assign.meta"),
     description: latestNodeEvent
-      ? formatRuntimeEventDescription(latestNodeEvent, agents)
-      : "正在准备处理步骤、依赖和验收规则。",
+      ? formatRuntimeEventDescription(latestNodeEvent, agents, t)
+      : t("agentChat.swarm.cards.assign.description"),
     icon: TerminalSquare,
     lines: [
-      `当前任务：${activeAgent.name}`,
-      `执行状态：${getDockStateLabel(activeNode?.state ?? "working")}`,
+      t("agentChat.swarm.cards.assign.currentTask", {
+        agent: activeAgent.name,
+      }),
+      t("agentChat.swarm.cards.assign.stateLine", {
+        state: getDockStateLabel(activeNode?.state ?? "working", t),
+      }),
       latestNodeEvent
-        ? `最近动作：${getRuntimeActionLabel(latestNodeEvent.type)}`
-        : "最近动作：正在拆解任务",
+        ? t("agentChat.swarm.cards.assign.latestAction", {
+            action: getRuntimeActionLabel(latestNodeEvent.type, t),
+          })
+        : t("agentChat.swarm.cards.assign.latestPlanning"),
     ],
     state: activeNode?.state ?? "working",
   })
 
-  const reportLines = readReportLines(activeNode?.report)
+  const reportLines = readReportLines(activeNode?.report, t)
   cards.push({
     id: "agent-output",
-    title: activeNode?.report ? "任务输出" : "补充资料",
-    meta: activeNode?.report ? activeAgent.name : "补充行业与平台场景资料",
+    title: activeNode?.report
+      ? t("agentChat.swarm.cards.output.reportTitle")
+      : t("agentChat.swarm.cards.output.materialTitle"),
+    meta: activeNode?.report
+      ? activeAgent.name
+      : t("agentChat.swarm.cards.output.materialMeta"),
     description: activeNode?.report
-      ? getFallbackResponse(activeAgent, activeNode.state)
-      : "任务开始输出后，这里会切换为真实的报告摘要、证据和风险。",
+      ? getFallbackResponse(activeAgent, activeNode.state, t)
+      : t("agentChat.swarm.cards.output.description"),
     icon: activeNode?.report ? Bot : Search,
     lines: reportLines.length
       ? reportLines
-      : ["咖啡转化", "千川投放复盘", "运营预算与投放节奏"],
+      : (t("agentChat.swarm.cards.output.fallbackLines", {
+          returnObjects: true,
+        }) as string[]),
     state: activeNode?.state ?? "queued",
   })
 
@@ -1160,9 +1243,9 @@ function getComputerCards({
   if (reworkEvent) {
     cards.push({
       id: "rework",
-      title: "重新检查",
+      title: t("agentChat.swarm.cards.rework.title"),
       meta: getAgentName(reworkEvent.nodeId, agents),
-      description: "验收未通过，系统已触发返工指令。",
+      description: t("agentChat.swarm.cards.rework.description"),
       icon: SearchCheck,
       lines: [reworkEvent.instruction],
       state: "reworking",
@@ -1173,9 +1256,9 @@ function getComputerCards({
   if (failedEvent) {
     cards.push({
       id: "failed",
-      title: "执行受阻",
+      title: t("agentChat.swarm.cards.failed.title"),
       meta: getAgentName(failedEvent.nodeId, agents),
-      description: "当前节点执行失败，需要检查模型服务或上游依赖。",
+      description: t("agentChat.swarm.cards.failed.description"),
       icon: TerminalSquare,
       lines: [failedEvent.reason],
       state: "failed",
@@ -1193,29 +1276,37 @@ function getComputerScreenContext({
   activeAgent: SwarmAgent
   activeNode?: RuntimeNodeSnapshot
   runtimeEvents: AgentRuntimeEvent[]
-}): ComputerScreenContext {
+}, t: TFunction): ComputerScreenContext {
   const graphNode = getActiveGraphNode(runtimeEvents, activeAgent.nodeId)
-  const reportLines = readReportDocumentLines(activeNode?.report)
+  const reportLines = readReportDocumentLines(activeNode?.report, t)
   const request = graphNode?.objective ?? activeAgent.objective
   const acceptanceLines =
     graphNode?.acceptance.map(
-      (item, index) => `验收规则 ${index + 1}：${item}`
+      (item, index) =>
+        t("agentChat.swarm.screen.acceptanceLine", {
+          index: index + 1,
+          item,
+        })
     ) ?? []
   const lines = compactPreviewLines([
     `# ${activeAgent.name}`,
-    `处理职责：${activeAgent.summary}`,
-    `任务目标：${request}`,
+    t("agentChat.swarm.screen.responsibilityLine", {
+      summary: activeAgent.summary,
+    }),
+    t("agentChat.swarm.screen.objectiveLine", { request }),
     ...acceptanceLines,
     ...reportLines,
     ...(activeNode?.evaluationReasons ?? []).map(
-      (reason) => `复核意见：${reason}`
+      (reason) => t("agentChat.swarm.screen.reviewLine", { reason })
     ),
   ])
 
   return {
-    filename: getComputerFilename(activeAgent),
+    filename: getComputerFilename(activeAgent, t),
     lines,
-    mode: activeNode?.report ? "报告" : "任务",
+    mode: activeNode?.report
+      ? t("agentChat.swarm.screen.reportMode")
+      : t("agentChat.swarm.screen.taskMode"),
     request,
   }
 }
@@ -1229,19 +1320,21 @@ function getActiveGraphNode(
   )
 }
 
-function getComputerFilename(agent: SwarmAgent) {
+function getComputerFilename(agent: SwarmAgent, t: TFunction) {
   if (agent.nodeId === "data") return "research.dimension.report.md"
   if (agent.nodeId === "accounting") return "budget.risk.assessment.xlsx"
   if (agent.nodeId === "douyin_ads") return "douyin.ads.launch.plan.xlsx"
   if (agent.nodeId === "creative") return "content.script.matrix.md"
   if (agent.nodeId === "ops") return "operation.execution.plan.md"
-  if (agent.nodeId === "delivery") return "运营全流程执行方案.docx"
+  if (agent.nodeId === "delivery") {
+    return t("agentChat.swarm.screen.deliveryFilename")
+  }
   return `${agent.role}.agent.output.md`
 }
 
-function readReportDocumentLines(report?: AgentWorkerReport) {
+function readReportDocumentLines(report: AgentWorkerReport | undefined, t: TFunction) {
   if (!report) return []
-  return compactPreviewLines([report.content, ...readReportLines(report)])
+  return compactPreviewLines([report.content, ...readReportLines(report, t)])
 }
 
 function compactPreviewLines(lines: Array<string | undefined | null>) {
@@ -1292,38 +1385,70 @@ function findLatestFailedEvent(runtimeEvents: AgentRuntimeEvent[]) {
 
 function formatRuntimeEventDescription(
   event: NonNullable<ReturnType<typeof findLatestNodeEvent>>,
-  agents: SwarmAgent[]
+  agents: SwarmAgent[],
+  t: TFunction
 ) {
   if (event.type === "task_node_started") {
-    return `${getAgentName(event.nodeId, agents)} 开始执行第 ${event.attempt} 次尝试。`
+    return t("agentChat.swarm.runtimeDescriptions.started", {
+      agent: getAgentName(event.nodeId, agents),
+      attempt: event.attempt,
+    })
   }
   if (event.type === "task_node_reported") {
-    return `${getAgentName(event.nodeId, agents)} 已提交报告，等待验收或汇总。`
+    return t("agentChat.swarm.runtimeDescriptions.reported", {
+      agent: getAgentName(event.nodeId, agents),
+    })
   }
   if (event.type === "task_node_passed") {
-    return `${getAgentName(event.nodeId, agents)} 已通过验收。`
+    return t("agentChat.swarm.runtimeDescriptions.passed", {
+      agent: getAgentName(event.nodeId, agents),
+    })
   }
   if (event.type === "task_node_failed") {
-    return `${getAgentName(event.nodeId, agents)} 执行失败。`
+    return t("agentChat.swarm.runtimeDescriptions.failed", {
+      agent: getAgentName(event.nodeId, agents),
+    })
   }
-  return `${getAgentName(event.nodeId, agents)} 正在按反馈重新组织输出。`
+  return t("agentChat.swarm.runtimeDescriptions.reworking", {
+    agent: getAgentName(event.nodeId, agents),
+  })
 }
 
-function getRuntimeActionLabel(eventType: AgentRuntimeEvent["type"]) {
-  if (eventType === "commander_thinking") return "正在拆解任务"
-  if (eventType === "task_graph_planned") return "执行计划已生成"
-  if (eventType === "task_node_ready") return "任务已排队"
-  if (eventType === "task_node_started") return "任务开始执行"
-  if (eventType === "task_node_reported") return "任务提交结果"
-  if (eventType === "task_node_evaluated") return "结果已复核"
-  if (eventType === "task_node_rework_requested") return "触发返工"
-  if (eventType === "task_node_passed") return "通过验收"
-  if (eventType === "task_node_failed") return "执行受阻"
-  if (eventType === "task_graph_finished") return "执行计划结束"
-  return "状态已同步"
+function getRuntimeActionLabel(eventType: AgentRuntimeEvent["type"], t: TFunction) {
+  if (eventType === "commander_thinking") {
+    return t("agentChat.swarm.runtimeActions.commanderThinking")
+  }
+  if (eventType === "task_graph_planned") {
+    return t("agentChat.swarm.runtimeActions.graphPlanned")
+  }
+  if (eventType === "task_node_ready") {
+    return t("agentChat.swarm.runtimeActions.nodeReady")
+  }
+  if (eventType === "task_node_started") {
+    return t("agentChat.swarm.runtimeActions.nodeStarted")
+  }
+  if (eventType === "task_node_reported") {
+    return t("agentChat.swarm.runtimeActions.nodeReported")
+  }
+  if (eventType === "task_node_evaluated") {
+    return t("agentChat.swarm.runtimeActions.nodeEvaluated")
+  }
+  if (eventType === "task_node_rework_requested") {
+    return t("agentChat.swarm.runtimeActions.nodeRework")
+  }
+  if (eventType === "task_node_passed") {
+    return t("agentChat.swarm.runtimeActions.nodePassed")
+  }
+  if (eventType === "task_node_failed") {
+    return t("agentChat.swarm.runtimeActions.nodeFailed")
+  }
+  if (eventType === "task_graph_finished") {
+    return t("agentChat.swarm.runtimeActions.graphFinished")
+  }
+  return t("agentChat.swarm.runtimeActions.synced")
 }
 
-function readReportLines(report?: AgentWorkerReport) {
+function readReportLines(report: AgentWorkerReport | undefined, t: TFunction) {
   if (!report) return []
   const roleOutput = report.role_output
   return [
@@ -1331,8 +1456,12 @@ function readReportLines(report?: AgentWorkerReport) {
     ...(roleOutput?.findings ?? []),
     ...(roleOutput?.recommendations ?? []),
     ...(roleOutput?.evidence ?? []),
-    ...(report.risks ?? []).map((risk) => `风险: ${risk}`),
-    ...(report.open_questions ?? []).map((question) => `待确认: ${question}`),
+    ...(report.risks ?? []).map((risk) =>
+      t("agentChat.swarm.reportLines.risk", { risk })
+    ),
+    ...(report.open_questions ?? []).map((question) =>
+      t("agentChat.swarm.reportLines.question", { question })
+    ),
   ].filter((line): line is string => Boolean(line))
 }
 
@@ -1340,25 +1469,31 @@ function getAgentName(nodeId: string, agents: SwarmAgent[]) {
   return agents.find((agent) => agent.nodeId === nodeId)?.name ?? nodeId
 }
 
-function getFallbackResponse(agent: SwarmAgent, state: SwarmState) {
+function getFallbackResponse(agent: SwarmAgent, state: SwarmState, t: TFunction) {
   if (state === "failed") {
-    return "该任务执行失败，通常是模型服务、工具或上游依赖不可用导致。"
+    return t("agentChat.swarm.fallbackResponse.failed")
   }
-  if (state === "reworking") return "验收未通过，正在按反馈重新组织任务输出。"
+  if (state === "reworking") {
+    return t("agentChat.swarm.fallbackResponse.reworking")
+  }
   if (state === "working")
-    return `${agent.name} 正在处理请求，结果会在这里更新。`
-  if (state === "done") return `${agent.name} 已完成，等待最终汇总。`
-  return "任务开始后，这里会展示当前请求、处理结果和产物摘要。"
+    return t("agentChat.swarm.fallbackResponse.working", {
+      agent: agent.name,
+    })
+  if (state === "done") {
+    return t("agentChat.swarm.fallbackResponse.done", { agent: agent.name })
+  }
+  return t("agentChat.swarm.fallbackResponse.idle")
 }
 
-function getDockStateLabel(state: SwarmState) {
-  if (state === "done") return "已完成"
-  if (state === "working") return "正在推理"
-  if (state === "reworking") return "正在重试"
-  if (state === "failed") return "执行失败"
-  if (state === "queued") return "等待执行"
-  if (state === "skipped") return "已跳过"
-  return "等待任务"
+function getDockStateLabel(state: SwarmState, t: TFunction) {
+  if (state === "done") return t("agentChat.swarm.dockState.done")
+  if (state === "working") return t("agentChat.swarm.dockState.working")
+  if (state === "reworking") return t("agentChat.swarm.dockState.reworking")
+  if (state === "failed") return t("agentChat.swarm.dockState.failed")
+  if (state === "queued") return t("agentChat.swarm.dockState.queued")
+  if (state === "skipped") return t("agentChat.swarm.dockState.skipped")
+  return t("agentChat.swarm.dockState.idle")
 }
 
 function hasFailedNode(runtimeNodeStates: Map<string, RuntimeNodeSnapshot>) {

@@ -1,6 +1,10 @@
 const common = {
   actions: {
+    cancel: "取消",
     close: "关闭",
+    delete: "删除",
+    rename: "重命名",
+    save: "保存",
   },
   validation: {
     required: "此项必填",

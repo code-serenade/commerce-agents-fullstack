@@ -4,9 +4,11 @@ import { useSelector } from "react-redux"
 import {
   addConversationMessageApi,
   createConversationApi,
+  deleteConversationApi,
   getConversationApi,
   listConversationsApi,
   streamAgentSessionApi,
+  updateConversationApi,
   type AgentRuntimeEvent,
   type ConversationDetailResponse,
   type ConversationMessageResponse,
@@ -19,6 +21,8 @@ const WORKSPACE_ID = "workspace-001"
 
 export function useAgentChatPage() {
   const { t } = useTranslation()
+  const fallbackConversationTitle = t("agentChat.sidebar.newChat")
+  const missingStructuredOutput = t("agentChat.missingStructuredOutput")
   const user = useSelector((state: RootState) => state.auth.user)
   const [input, setInput] = useState("")
   const [messages, setMessages] = useState<AgentChatMessage[]>(() => [
@@ -68,7 +72,11 @@ export function useAgentChatPage() {
         const conversations = await listConversationsApi()
         if (cancelled) return
 
-        setConversations(conversations.map(mapConversationItem))
+        setConversations(
+          conversations.map((conversation) =>
+            mapConversationItem(conversation, fallbackConversationTitle)
+          )
+        )
         const latest = conversations[0]
         if (!latest) {
           if (!cancelled) {
@@ -84,11 +92,18 @@ export function useAgentChatPage() {
 
         setConversationId(detail.conversation.id)
         sessionIdRef.current = detail.conversation.id
-        setMessages(mapConversationMessages(detail, createWelcomeMessage()))
+        setMessages(
+          mapConversationMessages(
+            detail,
+            createWelcomeMessage(),
+            missingStructuredOutput
+          )
+        )
       } catch (err) {
         if (cancelled) return
         const message = formatAgentUiMessage(
-          err instanceof Error ? err.message : t("agentChat.error")
+          err instanceof Error ? err.message : t("agentChat.error"),
+          missingStructuredOutput
         )
         setError(message)
       }
@@ -99,7 +114,13 @@ export function useAgentChatPage() {
     return () => {
       cancelled = true
     }
-  }, [createWelcomeMessage, t, user])
+  }, [
+    createWelcomeMessage,
+    fallbackConversationTitle,
+    missingStructuredOutput,
+    t,
+    user,
+  ])
 
   const canSend = Boolean(user) && input.trim().length > 0 && !isStreaming
 
@@ -124,15 +145,94 @@ export function useAgentChatPage() {
         const detail = await getConversationApi(nextConversationId)
         setConversationId(detail.conversation.id)
         sessionIdRef.current = detail.conversation.id
-        setMessages(mapConversationMessages(detail, createWelcomeMessage()))
+        setMessages(
+          mapConversationMessages(
+            detail,
+            createWelcomeMessage(),
+            missingStructuredOutput
+          )
+        )
       } catch (err) {
         const message = formatAgentUiMessage(
-          err instanceof Error ? err.message : t("agentChat.error")
+          err instanceof Error ? err.message : t("agentChat.error"),
+          missingStructuredOutput
         )
         setError(message)
       }
     },
-    [conversationId, createWelcomeMessage, isStreaming, t, user]
+    [
+      conversationId,
+      createWelcomeMessage,
+      isStreaming,
+      missingStructuredOutput,
+      t,
+      user,
+    ]
+  )
+
+  const renameConversation = useCallback(
+    async (targetConversationId: string, title: string) => {
+      if (!user || isStreaming) return
+      const nextTitle = title.trim()
+      if (!nextTitle) return
+
+      setError(null)
+      try {
+        const conversation = await updateConversationApi(targetConversationId, {
+          title: nextTitle,
+        })
+        setConversations((current) =>
+          current.map((item) =>
+            item.id === targetConversationId
+              ? mapConversationItem(conversation, fallbackConversationTitle)
+              : item
+          )
+        )
+      } catch (err) {
+        const message = formatAgentUiMessage(
+          err instanceof Error ? err.message : t("agentChat.error"),
+          missingStructuredOutput
+        )
+        setError(message)
+      }
+    },
+    [fallbackConversationTitle, isStreaming, missingStructuredOutput, t, user]
+  )
+
+  const deleteConversation = useCallback(
+    async (targetConversationId: string) => {
+      if (!user || isStreaming) return
+
+      setError(null)
+      try {
+        await deleteConversationApi(targetConversationId)
+        setConversations((current) =>
+          current.filter((item) => item.id !== targetConversationId)
+        )
+
+        if (targetConversationId === conversationId) {
+          setConversationId(null)
+          sessionIdRef.current = createSessionId()
+          setMessages([createWelcomeMessage()])
+          setRuntimeEvents([])
+          setInput("")
+        }
+      } catch (err) {
+        const message = formatAgentUiMessage(
+          err instanceof Error ? err.message : t("agentChat.error"),
+          missingStructuredOutput
+        )
+        setError(message)
+      }
+    },
+    [
+      conversationId,
+      createWelcomeMessage,
+      isStreaming,
+      missingStructuredOutput,
+      t,
+      user,
+    ]
   )
 
   const sendMessage = useCallback(async () => {
@@ -173,7 +273,7 @@ export function useAgentChatPage() {
         activeConversationId = detail.conversation.id
         setConversationId(activeConversationId)
         setConversations((current) => [
-          mapConversationItem(detail.conversation),
+          mapConversationItem(detail.conversation, fallbackConversationTitle),
           ...current.filter((item) => item.id !== detail.conversation.id),
         ])
         sessionIdRef.current = activeConversationId
@@ -229,7 +329,10 @@ export function useAgentChatPage() {
             }
           },
           onError: (message) => {
-            const displayMessage = formatAgentUiMessage(message)
+            const displayMessage = formatAgentUiMessage(
+              message,
+              missingStructuredOutput
+            )
             setError(displayMessage)
             setMessages((current) =>
               current.map((item) =>
@@ -251,13 +354,22 @@ export function useAgentChatPage() {
     } catch (err) {
       if (controller.signal.aborted) return
       const message = formatAgentUiMessage(
-        err instanceof Error ? err.message : t("agentChat.error")
+        err instanceof Error ? err.message : t("agentChat.error"),
+        missingStructuredOutput
       )
       setError(message)
       setIsStreaming(false)
       abortRef.current = null
     }
-  }, [conversationId, input, isStreaming, t, user])
+  }, [
+    conversationId,
+    fallbackConversationTitle,
+    input,
+    isStreaming,
+    missingStructuredOutput,
+    t,
+    user,
+  ])
 
   const stopStreaming = useCallback(() => {
     abortRef.current?.abort()
@@ -276,12 +388,14 @@ export function useAgentChatPage() {
     canSend,
     conversationId,
     conversations,
+    deleteConversation,
     error,
     input,
     isLoggedIn: Boolean(user),
     isStreaming,
     messages,
     runtimeEvents,
+    renameConversation,
     sendMessage,
     selectConversation,
     setInput,
@@ -294,44 +408,54 @@ function mapConversationItem(conversation: {
   id: string
   title: string | null
   updatedAt: string
-}): AgentChatConversationItem {
+}, fallbackTitle: string): AgentChatConversationItem {
   return {
     id: conversation.id,
-    title: conversation.title || "New chat",
+    title: conversation.title || fallbackTitle,
     updatedAt: conversation.updatedAt,
   }
 }
 
 function mapConversationMessages(
   detail: ConversationDetailResponse,
-  fallback: AgentChatMessage
+  fallback: AgentChatMessage,
+  missingStructuredOutput: string
 ): AgentChatMessage[] {
   const messages = detail.messages
-    .filter(isVisibleMessage)
+    .filter((message): message is ConversationMessageResponse & {
+      role: "user" | "assistant"
+    } => isVisibleMessage(message, missingStructuredOutput))
     .map((message) => ({
       id: message.id,
       role: message.role,
-      content: formatAgentUiMessage(message.contentText ?? ""),
+      content: formatAgentUiMessage(
+        message.contentText ?? "",
+        missingStructuredOutput
+      ),
     }))
 
   return messages.length > 0 ? messages : [fallback]
 }
 
 function isVisibleMessage(
-  message: ConversationMessageResponse
+  message: ConversationMessageResponse,
+  missingStructuredOutput: string
 ): message is ConversationMessageResponse & { role: "user" | "assistant" } {
-  const content = formatAgentUiMessage(message.contentText ?? "")
+  const content = formatAgentUiMessage(
+    message.contentText ?? "",
+    missingStructuredOutput
+  )
   return (
     (message.role === "user" || message.role === "assistant") &&
     Boolean(content)
   )
 }
 
-function formatAgentUiMessage(content: string) {
+function formatAgentUiMessage(content: string, missingStructuredOutput: string) {
   const text = content.trim()
   if (!text || text === "missing") return ""
   if (/structured role output is missing/i.test(text)) {
-    return "上一轮任务未产出完整结构化结果。可以直接重新发送任务，我会重新规划执行计划，并把过程同步到经营工作区。"
+    return missingStructuredOutput
   }
   return text
 }

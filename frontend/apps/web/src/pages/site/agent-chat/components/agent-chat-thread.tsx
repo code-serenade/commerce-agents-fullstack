@@ -19,6 +19,7 @@ import {
   UserRound,
 } from "lucide-react"
 import { useEffect, useRef } from "react"
+import { type TFunction } from "i18next"
 import { useTranslation } from "react-i18next"
 import type { AgentRuntimeEvent, AgentTaskNode } from "@/api"
 import type { AgentChatMessage } from "../types"
@@ -53,6 +54,10 @@ interface InlineArtifact {
   status: string
   state: InlineAgentState
 }
+
+const ARTIFACT_META_MD = "MD"
+const ARTIFACT_META_XLSX = "XLSX"
+const ARTIFACT_META_DOCX = "DOCX"
 
 export function AgentChatThread({
   isStreaming,
@@ -153,6 +158,11 @@ export function AgentChatThread({
 }
 
 function WelcomeCard({ content }: { content: string }) {
+  const { t } = useTranslation()
+  const capabilities = t("agentChat.thread.welcomeCapabilities", {
+    returnObjects: true,
+  }) as string[]
+
   return (
     <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
       <div className="flex items-start gap-3">
@@ -160,12 +170,14 @@ function WelcomeCard({ content }: { content: string }) {
           <BrainCircuit className="size-5" />
         </div>
         <div className="min-w-0">
-          <p className="text-base font-semibold">Commerce 运营智能体</p>
+          <p className="text-base font-semibold">
+            {t("agentChat.thread.agentName")}
+          </p>
           <p className="mt-1 text-sm/6 text-muted-foreground">{content}</p>
         </div>
       </div>
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
-        {["拆解经营目标", "组织业务执行", "沉淀交付产物"].map((item) => (
+        {capabilities.map((item) => (
           <div
             key={item}
             className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground"
@@ -180,10 +192,16 @@ function WelcomeCard({ content }: { content: string }) {
 }
 
 function AgentProgressCard({ content }: { content?: string }) {
+  const { t } = useTranslation()
+
   return (
     <div className="mt-4 flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs text-muted-foreground">
       <Loader2 className="size-4 animate-spin" />
-      <span>{content ? "正在接收业务执行输出" : "正在等待经营工作区事件"}</span>
+      <span>
+        {content
+          ? t("agentChat.thread.receivingOutput")
+          : t("agentChat.thread.waitingEvents")}
+      </span>
     </div>
   )
 }
@@ -197,8 +215,9 @@ function InlineSwarmTaskCard({
   runtimeEvents: AgentRuntimeEvent[]
   task: string
 }) {
-  const agents = getInlineAgents(runtimeEvents, isStreaming)
-  const steps = getInlineSteps(runtimeEvents, isStreaming)
+  const { t } = useTranslation()
+  const agents = getInlineAgents(runtimeEvents, isStreaming, t)
+  const steps = getInlineSteps(runtimeEvents, isStreaming, t)
   const completedCount = agents.filter((agent) => agent.state === "done").length
   const hasRuntime = runtimeEvents.length > 0
   const activeAgent = agents.find(
@@ -207,13 +226,16 @@ function InlineSwarmTaskCard({
       agent.state === "reworking" ||
       agent.state === "failed"
   )
-  const artifacts = getInlineArtifacts(agents, hasRuntime, isStreaming)
-  const handoffItems = getCommerceHandoffItems()
+  const artifacts = getInlineArtifacts(agents, hasRuntime, isStreaming, t)
+  const handoffItems = getCommerceHandoffItems(t)
   const progressLabel = hasRuntime
-    ? `${completedCount}/${agents.length} 个任务完成`
+    ? t("agentChat.thread.completedTasks", {
+        completed: completedCount,
+        total: agents.length,
+      })
     : isStreaming
-      ? "正在生成执行计划"
-      : "历史消息未执行"
+      ? t("agentChat.thread.planning")
+      : t("agentChat.thread.historyNotExecuted")
 
   return (
     <article className="flex justify-start gap-3">
@@ -259,7 +281,7 @@ function InlineSwarmTaskCard({
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 text-sm font-semibold">
                 <Activity className="size-4 text-muted-foreground" />
-                业务执行
+                {t("agentChat.thread.executionTitle")}
                 <span className="text-xs font-normal text-muted-foreground">
                   {progressLabel}
                 </span>
@@ -273,11 +295,11 @@ function InlineSwarmTaskCard({
             <span className="rounded-full bg-secondary px-2 py-1 text-[11px] font-medium text-secondary-foreground">
               {runtimeEvents.length
                 ? isStreaming
-                  ? "正在执行"
-                  : "本轮执行已同步"
+                  ? t("agentChat.thread.statuses.executing")
+                  : t("agentChat.thread.statuses.synced")
                 : isStreaming
-                  ? "正在规划"
-                  : "等待新一轮执行"}
+                  ? t("agentChat.thread.statuses.planning")
+                  : t("agentChat.thread.statuses.waiting")}
             </span>
           </div>
 
@@ -340,7 +362,7 @@ function InlineSwarmTaskCard({
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex min-w-0 items-center gap-2 text-sm font-medium">
                 <FileText className="size-4 shrink-0 text-muted-foreground" />
-                <span>阶段资料</span>
+                <span>{t("agentChat.thread.artifactsTitle")}</span>
                 <span className="truncate text-xs font-normal text-muted-foreground">
                   {
                     artifacts.filter((artifact) => artifact.state === "done")
@@ -351,10 +373,10 @@ function InlineSwarmTaskCard({
               </div>
               <span className="rounded-full bg-secondary px-2 py-1 text-[11px] text-secondary-foreground">
                 {hasRuntime
-                  ? "随执行更新"
+                  ? t("agentChat.thread.artifacts.updating")
                   : isStreaming
-                    ? "准备生成"
-                    : "待生成"}
+                    ? t("agentChat.thread.artifacts.preparing")
+                    : t("agentChat.thread.artifacts.pending")}
               </span>
             </div>
             <div className="mt-3 grid gap-2">
@@ -397,7 +419,8 @@ function InlineProcessStatusNode({
   isStreaming: boolean
   runtimeEvents: AgentRuntimeEvent[]
 }) {
-  const agents = getInlineAgents(runtimeEvents, isStreaming)
+  const { t } = useTranslation()
+  const agents = getInlineAgents(runtimeEvents, isStreaming, t)
   const completedCount = agents.filter((agent) => agent.state === "done").length
   const hasRuntime = runtimeEvents.length > 0
   const progressPercent = agents.length
@@ -421,7 +444,10 @@ function InlineProcessStatusNode({
                   }`}
                 />
                 <span className="shrink-0 font-medium text-foreground">
-                  当前进度 {completedCount}/{agents.length}
+                  {t("agentChat.thread.currentProgress", {
+                    completed: completedCount,
+                    total: agents.length,
+                  })}
                 </span>
                 <span className="hidden text-muted-foreground sm:inline">
                   |
@@ -431,7 +457,7 @@ function InlineProcessStatusNode({
                     hasRuntime,
                     isStreaming,
                     runtimeEvents,
-                  })}
+                  }, t)}
                 </span>
               </div>
               <div className="mt-1.5 h-px overflow-hidden rounded-full bg-muted">
@@ -451,6 +477,8 @@ function InlineProcessStatusNode({
 }
 
 function InlineArtifactCard({ artifact }: { artifact: InlineArtifact }) {
+  const { t } = useTranslation()
+
   return (
     <div
       className={`flex min-w-0 items-center gap-3 rounded-lg border px-3 py-2 ${
@@ -484,7 +512,7 @@ function InlineArtifactCard({ artifact }: { artifact: InlineArtifact }) {
         </p>
       </div>
       <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
-        {getInlineArtifactStateLabel(artifact.state)}
+        {getInlineArtifactStateLabel(artifact.state, t)}
       </span>
     </div>
   )
@@ -495,10 +523,11 @@ function FileCardIcon({ className }: { className?: string }) {
 }
 
 function MessageActions() {
+  const { t } = useTranslation()
   const actions = [
-    { label: "复制", icon: Copy },
-    { label: "有用", icon: ThumbsUp },
-    { label: "无用", icon: ThumbsDown },
+    { label: t("agentChat.thread.actions.copy"), icon: Copy },
+    { label: t("agentChat.thread.actions.useful"), icon: ThumbsUp },
+    { label: t("agentChat.thread.actions.useless"), icon: ThumbsDown },
   ]
 
   return (
@@ -520,62 +549,58 @@ function MessageActions() {
   )
 }
 
-const INLINE_AGENT_PRESETS: InlineAgent[] = [
+const INLINE_AGENT_PRESETS = [
   {
     nodeId: "data",
-    name: "数据诊断",
-    summary: "先识别指标、归因和经营约束",
-    status: "待命",
+    nameKey: "agentChat.thread.agents.data.name",
+    summaryKey: "agentChat.thread.agents.data.summary",
     state: "idle",
   },
   {
     nodeId: "accounting",
-    name: "预算评估",
-    summary: "核算预算、SKU 和风险边界",
-    status: "待命",
+    nameKey: "agentChat.thread.agents.accounting.name",
+    summaryKey: "agentChat.thread.agents.accounting.summary",
     state: "idle",
   },
   {
     nodeId: "douyin_ads",
-    name: "千川投放",
-    summary: "拆解计划结构、人群包和 ROI 止损",
-    status: "待命",
+    nameKey: "agentChat.thread.agents.douyinAds.name",
+    summaryKey: "agentChat.thread.agents.douyinAds.summary",
     state: "idle",
   },
   {
     nodeId: "creative",
-    name: "创意产出",
-    summary: "生成短视频、直播和活动内容方向",
-    status: "待命",
+    nameKey: "agentChat.thread.agents.creative.name",
+    summaryKey: "agentChat.thread.agents.creative.summary",
     state: "idle",
   },
   {
     nodeId: "ops",
-    name: "运营方案",
-    summary: "整合上游结论形成执行节奏",
-    status: "待命",
+    nameKey: "agentChat.thread.agents.ops.name",
+    summaryKey: "agentChat.thread.agents.ops.summary",
     state: "idle",
   },
   {
     nodeId: "delivery",
-    name: "交付文档",
-    summary: "沉淀方案、清单和后续产物",
-    status: "待命",
+    nameKey: "agentChat.thread.agents.delivery.name",
+    summaryKey: "agentChat.thread.agents.delivery.summary",
     state: "idle",
   },
 ]
 
 function getInlineAgents(
   runtimeEvents: AgentRuntimeEvent[],
-  isStreaming: boolean
+  isStreaming: boolean,
+  t: TFunction
 ): InlineAgent[] {
   const graphNodes = getInlineGraphNodes(runtimeEvents)
+  const presets = getInlineAgentPresets(t)
   const baseAgents = graphNodes.length
     ? [
-        ...graphNodes.map(mapGraphNodeToInlineAgent),
-        INLINE_AGENT_PRESETS.find((agent) => agent.nodeId === "delivery")!,
+        ...graphNodes.map((node) => mapGraphNodeToInlineAgent(node, presets, t)),
+        presets.find((agent) => agent.nodeId === "delivery")!,
       ]
-    : INLINE_AGENT_PRESETS
+    : presets
   const stateMap = getInlineNodeStates(runtimeEvents)
 
   return baseAgents.map((agent, index) => {
@@ -584,14 +609,25 @@ function getInlineAgents(
     return {
       ...agent,
       state,
-      status: getInlineStateLabel(state),
+      status: getInlineStateLabel(state, t),
     }
   })
 }
 
+function getInlineAgentPresets(t: TFunction): InlineAgent[] {
+  return INLINE_AGENT_PRESETS.map((agent) => ({
+    nodeId: agent.nodeId,
+    name: t(agent.nameKey),
+    summary: t(agent.summaryKey),
+    status: t("agentChat.thread.agents.standby"),
+    state: agent.state as InlineAgentState,
+  }))
+}
+
 function getInlineSteps(
   runtimeEvents: AgentRuntimeEvent[],
-  isStreaming: boolean
+  isStreaming: boolean,
+  t: TFunction
 ) {
   const hasGraph = runtimeEvents.some(
     (event) => event.type === "task_graph_planned"
@@ -602,24 +638,26 @@ function getInlineSteps(
 
   return [
     [
-      "读取目标",
+      t("agentChat.thread.steps.readTarget"),
       hasGraph
-        ? "执行计划已生成"
+        ? t("agentChat.thread.steps.planReady")
         : isStreaming
-          ? "正在读取经营目标与业务规则"
-          : "经营目标与业务规则",
+          ? t("agentChat.thread.steps.readingRules")
+          : t("agentChat.thread.steps.targetRules"),
     ],
     [
-      "分配任务",
+      t("agentChat.thread.steps.assignTask"),
       hasNodeStarted
-        ? "任务正在执行"
+        ? t("agentChat.thread.steps.taskRunning")
         : isStreaming
-          ? "等待执行状态同步"
-          : "检查模型、预算与投放约束",
+          ? t("agentChat.thread.steps.waitingSync")
+          : t("agentChat.thread.steps.checkingConstraints"),
     ],
     [
-      "补充资料",
-      hasNodeStarted ? "按任务补充平台资料" : "补充行业与平台场景资料",
+      t("agentChat.thread.steps.enrichMaterial"),
+      hasNodeStarted
+        ? t("agentChat.thread.steps.enrichByTask")
+        : t("agentChat.thread.steps.enrichFallback"),
     ],
   ]
 }
@@ -627,7 +665,8 @@ function getInlineSteps(
 function getInlineArtifacts(
   agents: InlineAgent[],
   hasRuntime: boolean,
-  isStreaming: boolean
+  isStreaming: boolean,
+  t: TFunction
 ): InlineArtifact[] {
   const stateByNode = new Map(
     agents.map((agent) => [agent.nodeId, agent.state])
@@ -636,21 +675,21 @@ function getInlineArtifacts(
   const specs = [
     {
       filename: "research.dimension.report.md",
-      meta: "MD",
+      meta: ARTIFACT_META_MD,
       nodeId: "data",
-      status: "数据诊断、指标归因、平台场景资料",
+      status: t("agentChat.thread.artifactSpecs.dataStatus"),
     },
     {
       filename: "douyin.ads.launch.plan.xlsx",
-      meta: "XLSX",
+      meta: ARTIFACT_META_XLSX,
       nodeId: "douyin_ads",
-      status: "千川计划结构、人群包、预算节奏",
+      status: t("agentChat.thread.artifactSpecs.adsStatus"),
     },
     {
-      filename: "运营全流程执行方案.docx",
-      meta: "DOCX",
+      filename: t("agentChat.thread.artifactSpecs.deliveryFile"),
+      meta: ARTIFACT_META_DOCX,
       nodeId: "delivery",
-      status: "最终方案、执行清单、复盘口径",
+      status: t("agentChat.thread.artifactSpecs.deliveryStatus"),
     },
   ]
 
@@ -660,27 +699,27 @@ function getInlineArtifacts(
   }))
 }
 
-function getCommerceHandoffItems() {
+function getCommerceHandoffItems(t: TFunction) {
   return [
     {
       icon: PlugZap,
-      label: "上下文",
-      detail: "商品看板、平台连接、智能洞察",
+      label: t("agentChat.thread.handoff.context.label"),
+      detail: t("agentChat.thread.handoff.context.detail"),
     },
     {
       icon: ListChecks,
-      label: "执行",
-      detail: "营销活动、执行清单、工作区任务",
+      label: t("agentChat.thread.handoff.execution.label"),
+      detail: t("agentChat.thread.handoff.execution.detail"),
     },
     {
       icon: FileText,
-      label: "交付",
-      detail: "交付资料、每日简报、复盘历史",
+      label: t("agentChat.thread.handoff.delivery.label"),
+      detail: t("agentChat.thread.handoff.delivery.detail"),
     },
     {
       icon: ShieldAlert,
-      label: "治理",
-      detail: "预警中心、能力包管理、审批回滚",
+      label: t("agentChat.thread.handoff.governance.label"),
+      detail: t("agentChat.thread.handoff.governance.detail"),
     },
   ]
 }
@@ -693,25 +732,31 @@ function getInlineProcessStage({
   hasRuntime: boolean
   isStreaming: boolean
   runtimeEvents: AgentRuntimeEvent[]
-}) {
+}, t: TFunction) {
   if (runtimeEvents.some((event) => event.type === "task_node_failed")) {
-    return "执行受阻，展开经营工作区查看待处理项"
+    return t("agentChat.thread.processStage.failed")
   }
   if (runtimeEvents.some((event) => event.type === "task_graph_finished")) {
-    return "方案已汇总，可查看过程和业务落点"
+    return t("agentChat.thread.processStage.finished")
   }
   if (isStreaming) {
-    return hasRuntime ? "执行计划推进中" : "正在规划执行计划"
+    return hasRuntime
+      ? t("agentChat.thread.processStage.running")
+      : t("agentChat.thread.processStage.planning")
   }
-  return hasRuntime ? "本轮过程已同步" : "历史会话，展开经营工作区查看本轮过程"
+  return hasRuntime
+    ? t("agentChat.thread.processStage.synced")
+    : t("agentChat.thread.processStage.history")
 }
 
-function getInlineArtifactStateLabel(state: InlineAgentState) {
-  if (state === "done") return "已生成"
-  if (state === "working" || state === "reworking") return "生成中"
-  if (state === "failed") return "受阻"
-  if (state === "queued") return "排队"
-  return "待生成"
+function getInlineArtifactStateLabel(state: InlineAgentState, t: TFunction) {
+  if (state === "done") return t("agentChat.thread.artifactState.done")
+  if (state === "working" || state === "reworking") {
+    return t("agentChat.thread.artifactState.working")
+  }
+  if (state === "failed") return t("agentChat.thread.artifactState.failed")
+  if (state === "queued") return t("agentChat.thread.artifactState.queued")
+  return t("agentChat.thread.artifactState.idle")
 }
 
 function getInlineGraphNodes(
@@ -724,14 +769,18 @@ function getInlineGraphNodes(
   return []
 }
 
-function mapGraphNodeToInlineAgent(node: AgentTaskNode): InlineAgent {
+function mapGraphNodeToInlineAgent(
+  node: AgentTaskNode,
+  presets: InlineAgent[],
+  t: TFunction
+): InlineAgent {
   const nodeId = readInlineId(node.id)
-  const preset = INLINE_AGENT_PRESETS.find((agent) => agent.nodeId === nodeId)
+  const preset = presets.find((agent) => agent.nodeId === nodeId)
   return {
     nodeId,
     name: node.title || preset?.name || node.role,
     summary: preset?.summary || node.objective,
-    status: "排队中",
+    status: t("agentChat.thread.inlineState.queued"),
     state: "queued",
   }
 }
@@ -792,13 +841,13 @@ function getFallbackInlineState(
   return "idle"
 }
 
-function getInlineStateLabel(state: InlineAgentState) {
-  if (state === "done") return "已完成"
-  if (state === "working") return "处理中"
-  if (state === "reworking") return "重试中"
-  if (state === "failed") return "失败"
-  if (state === "queued") return "排队中"
-  return "待命"
+function getInlineStateLabel(state: InlineAgentState, t: TFunction) {
+  if (state === "done") return t("agentChat.thread.inlineState.done")
+  if (state === "working") return t("agentChat.thread.inlineState.working")
+  if (state === "reworking") return t("agentChat.thread.inlineState.reworking")
+  if (state === "failed") return t("agentChat.thread.inlineState.failed")
+  if (state === "queued") return t("agentChat.thread.inlineState.queued")
+  return t("agentChat.thread.inlineState.idle")
 }
 
 function shouldLightInlinePixel(state: InlineAgentState, index: number) {
