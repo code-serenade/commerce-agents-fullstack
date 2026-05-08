@@ -19,9 +19,6 @@ import { resetAccess, setAccess } from "./store/accessSlice"
 
 export default function App() {
   const { t } = useTranslation()
-  const isLogin = useSelector(
-    (state: { auth: { isLogin: boolean } }) => state.auth.isLogin
-  )
   const requestErrorMessage = useSelector(
     (state: { requestError: { message: string | null } }) =>
       state.requestError.message
@@ -70,20 +67,18 @@ export default function App() {
   }, [dispatch])
 
   const isRestored = !token || restoreQuery.status !== "pending"
-  const isAuthenticated =
-    isLogin || (Boolean(token) && restoreQuery.status === "success")
-
   const router = useMemo(() => {
     if (!isRestored) return null
 
     return createBrowserRouter([
-      isAuthenticated ? siteRoutes : authRoutes,
+      siteRoutes,
+      authRoutes,
       {
         path: "*",
-        element: <Navigate to={isAuthenticated ? "/home" : "/login"} replace />,
+        element: <Navigate to="/" replace />,
       },
     ])
-  }, [isAuthenticated, isRestored])
+  }, [isRestored])
 
   if (!router) return <PageLoading fullscreen />
 

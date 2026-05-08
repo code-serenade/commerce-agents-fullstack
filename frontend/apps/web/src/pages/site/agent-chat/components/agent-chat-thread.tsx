@@ -7,15 +7,18 @@ import { InlineProcessStatusNode } from "./inline-process-status-node"
 import { InlineSwarmTaskCard } from "./inline-swarm-task-card"
 import {
   AgentProgressCard,
+  StrategyStatusPill,
   MessageActions,
   WelcomeCard,
 } from "./thread-message-blocks"
+import type { AgentChatStrategy } from "../domain/agent-chat-strategy"
 
 export interface AgentChatThreadProps {
   isStreaming: boolean
   messages: AgentChatMessage[]
   processPanelOpen: boolean
   runtimeEvents: AgentRuntimeEvent[]
+  selectedStrategy: AgentChatStrategy
 }
 
 export function AgentChatThread({
@@ -23,6 +26,7 @@ export function AgentChatThread({
   messages,
   processPanelOpen,
   runtimeEvents,
+  selectedStrategy,
 }: AgentChatThreadProps) {
   const { t } = useTranslation()
   const endRef = useRef<HTMLDivElement>(null)
@@ -41,6 +45,9 @@ export function AgentChatThread({
   return (
     <section className="min-h-0 flex-1 overflow-y-auto bg-background px-4 py-5 sm:px-6">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+        <div className="flex justify-center">
+          <StrategyStatusPill strategy={selectedStrategy} />
+        </div>
         {messages.map((message) => {
           const isUser = message.role === "user"
           const isWelcome = message.id === "welcome" && !isUser
@@ -82,7 +89,7 @@ export function AgentChatThread({
                   </p>
                 ) : null}
                 {!isUser && message.content && !isWelcome ? (
-                  <MessageActions />
+                  <MessageActions content={message.content} />
                 ) : null}
               </div>
               {isUser ? (

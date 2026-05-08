@@ -3,10 +3,9 @@ import {
   Copy,
   ListChecks,
   Loader2,
-  ThumbsDown,
-  ThumbsUp,
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import type { AgentChatStrategy } from "../domain/agent-chat-strategy"
 
 export function WelcomeCard({ content }: { content: string }) {
   const { t } = useTranslation()
@@ -57,29 +56,40 @@ export function AgentProgressCard({ content }: { content?: string }) {
   )
 }
 
-export function MessageActions() {
+export function StrategyStatusPill({
+  strategy,
+}: {
+  strategy: AgentChatStrategy
+}) {
   const { t } = useTranslation()
-  const actions = [
-    { label: t("agentChat.thread.actions.copy"), icon: Copy },
-    { label: t("agentChat.thread.actions.useful"), icon: ThumbsUp },
-    { label: t("agentChat.thread.actions.useless"), icon: ThumbsDown },
-  ]
+
+  return (
+    <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground shadow-sm">
+      <BrainCircuit className="size-3.5 shrink-0 text-blue-500" />
+      <span className="shrink-0 font-medium text-foreground">
+        {t("agentChat.strategy.current")}
+      </span>
+      <span className="min-w-0 truncate">{t(strategy.labelKey)}</span>
+    </div>
+  )
+}
+
+export function MessageActions({ content }: { content: string }) {
+  const { t } = useTranslation()
+  const copyAnswer = () => {
+    void navigator.clipboard?.writeText(content)
+  }
 
   return (
     <div className="mt-3 flex items-center gap-1 text-muted-foreground">
-      {actions.map((action) => {
-        const Icon = action.icon
-        return (
-          <button
-            key={action.label}
-            type="button"
-            className="flex size-7 items-center justify-center rounded-md transition-colors hover:bg-muted hover:text-foreground"
-            title={action.label}
-          >
-            <Icon className="size-4" />
-          </button>
-        )
-      })}
+      <button
+        type="button"
+        className="flex size-7 items-center justify-center rounded-md transition-colors hover:bg-muted hover:text-foreground"
+        title={t("agentChat.thread.actions.copy")}
+        onClick={copyAnswer}
+      >
+        <Copy className="size-4" />
+      </button>
     </div>
   )
 }

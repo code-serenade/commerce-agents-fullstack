@@ -59,6 +59,7 @@ export function useProductsPage() {
   return {
     ...actions,
     ...queries,
+    assetFile,
     dialog,
     keyword,
     metricCards,

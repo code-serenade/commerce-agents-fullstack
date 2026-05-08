@@ -25,6 +25,10 @@ export interface ProductResponse extends JsonRecord {
   updatedAt?: string
 }
 
+interface ProductDetailResponse extends JsonRecord {
+  product: ProductResponse
+}
+
 export interface ProductDashboardResponse extends JsonRecord {
   total: number
   active: number
@@ -541,11 +545,13 @@ export const listProductsApi = async (
 
 export const getProductApi = async (
   productId: string
-): Promise<ProductResponse> =>
-  request<undefined, ProductResponse>({
+): Promise<ProductResponse> => {
+  const detail = await request<undefined, ProductDetailResponse>({
     method: "GET",
     url: `/api/app/products/${productId}`,
   })
+  return detail.product
+}
 
 export const createProductApi = async (
   body: JsonRecord

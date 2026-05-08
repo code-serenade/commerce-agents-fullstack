@@ -80,11 +80,22 @@ function ControlledDialog({
 
 function packageFields(t: CommerceTranslate): SimpleField[] {
   return [
-    { key: "packageType", label: t("commerce.fields.packageType"), required: true },
+    {
+      key: "packageType",
+      label: t("commerce.fields.packageType"),
+      options: packageTypeOptions,
+      required: true,
+      type: "select",
+    },
     { key: "packageId", label: t("commerce.fields.packageId"), required: true },
     { key: "packageName", label: t("commerce.fields.packageName"), required: true },
     { key: "version", label: t("commerce.common.version") },
-    { key: "status", label: t("commerce.common.status") },
+    {
+      key: "status",
+      label: t("commerce.common.status"),
+      options: packageStatusOptions,
+      type: "select",
+    },
     { key: "manifestPath", label: t("commerce.fields.manifestPath") },
     { key: "reason", label: t("commerce.common.reason"), type: "textarea" },
   ]
@@ -92,7 +103,13 @@ function packageFields(t: CommerceTranslate): SimpleField[] {
 
 function lockFields(t: CommerceTranslate): SimpleField[] {
   return [
-    { key: "packageType", label: t("commerce.fields.packageType"), required: true },
+    {
+      key: "packageType",
+      label: t("commerce.fields.packageType"),
+      options: packageTypeOptions,
+      required: true,
+      type: "select",
+    },
     { key: "packageId", label: t("commerce.fields.packageId"), required: true },
     { key: "packageName", label: t("commerce.fields.packageName") },
     {
@@ -100,10 +117,38 @@ function lockFields(t: CommerceTranslate): SimpleField[] {
       label: t("commerce.fields.lockedVersion"),
       required: true,
     },
-    { key: "lockedStatus", label: t("commerce.fields.lockedStatus") },
-    { key: "required", label: t("commerce.fields.required") },
+    {
+      key: "lockedStatus",
+      label: t("commerce.fields.lockedStatus"),
+      options: packageStatusOptions,
+      type: "select",
+    },
+    {
+      key: "required",
+      label: t("commerce.fields.required"),
+      options: booleanOptions,
+      type: "select",
+    },
     { key: "lockSource", label: t("commerce.fields.lockSource") },
     { key: "manifestPath", label: t("commerce.fields.manifestPath") },
     { key: "notes", label: t("commerce.fields.notes"), type: "textarea" },
   ]
 }
+
+const packageTypeOptions = [
+  { label: String("domain"), value: "domain" },
+  { label: String("role"), value: "role" },
+  { label: String("skill"), value: "skill" },
+  { label: String("capability"), value: "capability" },
+]
+
+const packageStatusOptions = [
+  { label: String("active"), value: "active" },
+  { label: String("disabled"), value: "disabled" },
+  { label: String("deprecated"), value: "deprecated" },
+]
+
+const booleanOptions = [
+  { label: String("true"), value: "true" },
+  { label: String("false"), value: "false" },
+]

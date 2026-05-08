@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run --passWithNoTests",
-    "rules": "APP_ROOT=$PWD vitest run --root .. rules",
+    "rules": "node ../../scripts/run-app-rules.mjs",
     "test:watch": "vitest --passWithNoTests"
   },
   "dependencies": {

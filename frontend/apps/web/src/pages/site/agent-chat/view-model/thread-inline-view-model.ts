@@ -1,6 +1,7 @@
 import { FileText, ListChecks, PlugZap, ShieldAlert } from "lucide-react"
 import type { TFunction } from "i18next"
 import type { AgentRuntimeEvent, AgentTaskNode } from "@/api"
+import { resolveWorkerNodeId } from "./agent-runtime-event-mapping"
 
 export type InlineAgentState =
   | "idle"
@@ -232,6 +233,14 @@ function getInlineNodeStates(runtimeEvents: AgentRuntimeEvent[]) {
       states.set(event.nodeId, "done")
     } else if (event.type === "task_node_failed") {
       states.set(event.nodeId, "failed")
+    } else if (event.type === "worker_started") {
+      states.set(resolveWorkerNodeId(event), "working")
+    } else if (event.type === "worker_finished") {
+      states.set(resolveWorkerNodeId(event), "done")
+    } else if (event.type === "failed") {
+      states.set("ops", "failed")
+    } else if (event.type === "finished") {
+      states.set("delivery", "done")
     }
   })
 

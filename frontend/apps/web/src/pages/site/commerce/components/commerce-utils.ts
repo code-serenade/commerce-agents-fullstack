@@ -8,14 +8,14 @@ export function notifyError(message: string) {
   toast.error(message)
 }
 
-export function toNumberOrNull(value: string): number | null {
-  if (!value.trim()) return null
+export function toNumberOrNull(value?: string | null): number | null {
+  if (!value?.trim()) return null
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : null
 }
 
-export function toOptionalString(value: string): string | null {
-  const trimmed = value.trim()
+export function toOptionalString(value?: string | null): string | null {
+  const trimmed = value?.trim() ?? ""
   return trimmed ? trimmed : null
 }
 

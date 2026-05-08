@@ -3,8 +3,8 @@ const messages = {
     shell: {
       brand: {
         eyebrow: "Commerce AI",
-        title: "运营中枢",
-        description: "电商智能体经营闭环",
+        title: "电商多智能体",
+        description: "电商虚拟员工工作区",
       },
       navigation: {
         mobileLabel: "主导航",
@@ -19,7 +19,7 @@ const messages = {
         approvals: "审批审计",
         operations: "运营状态",
         packages: "能力包治理",
-        agent: "运营智能体",
+        agent: "电商多智能体",
         agentOutput: "方案展示",
         profile: "个人资料",
       },
@@ -731,34 +731,43 @@ const messages = {
   },
   agentChat: {
     welcomeMessage:
-      "你好，我是 Commerce 运营智能体。你可以输入一个电商运营目标，我会围绕数据、预算、千川投放、创意和运营方案拆解执行，并在右侧展示进度、过程轨迹和产物。",
+      "你好，我是电商多智能体。你可以输入一个电商问题或业务目标，我会按商品、数据、客服、内容、投放、运营、财务、供应链和交付等虚拟员工岗位协作处理，并在右侧展示过程轨迹和产物。",
     streaming: "正在思考...",
     error: "Agent 回复失败，请稍后重试。",
     errorBadge: "回复失败",
     missingStructuredOutput:
-      "上一轮任务未产出完整结构化结果。可以直接重新发送任务，我会重新规划执行计划，并把过程同步到经营工作区。",
+      "上一轮任务未产出完整结构化结果。可以直接重新发送任务，我会重新规划执行计划，并把过程同步到虚拟员工工作区。",
+    loginRequired: {
+      title: "登录后运行云端智能体",
+      description:
+        "你可以先整理电商问题并选择回答策略。准备调用云端模型和保存会话时，再登录继续。",
+      message:
+        "请先登录后再调用云端智能体并保存会话。你仍然可以先在这里整理问题和选择回答策略。",
+      inline: "登录后运行云端智能体并保存历史",
+      action: "去登录",
+    },
     sidebar: {
       newChat: "新任务",
       search: "搜索历史记录",
       recents: "最近",
-      chat: "运营智能体",
+      chat: "电商多智能体",
       more: "更多",
       empty: "还没有历史对话",
     },
     shell: {
-      brandTitle: "运营中枢",
-      brandDescription: "电商智能体经营闭环",
-      topbarTitle: "输入运营目标",
-      topbarMeta: "Commerce 运营智能体 · 经营闭环",
+      brandTitle: "电商多智能体",
+      brandDescription: "电商虚拟员工工作区",
+      topbarTitle: "输入电商问题",
+      topbarMeta: "Commerce Agents · 虚拟员工协作",
       sections: {
         create: "",
-        workspace: "运营中枢",
+        workspace: "虚拟员工",
         governance: "管理与复盘",
         recents: "历史会话",
       },
       navigation: {
         newChat: "新建会话",
-        smartOps: "智能运营",
+        smartOps: "多智能体问答",
         productBoard: "商品看板",
         campaigns: "营销活动",
         platform: "平台连接",
@@ -773,15 +782,34 @@ const messages = {
         history: "历史会话",
       },
     },
+    strategy: {
+      current: "当前策略",
+      options: {
+        execution: {
+          label: "快速回答",
+          hint: "先给可用结果",
+        },
+        learning: {
+          label: "边讲边教",
+          hint: "解释逻辑和步骤",
+        },
+        collab: {
+          label: "Agent 集群",
+          hint: "规划后多角色完善",
+        },
+      },
+    },
     composer: {
-      placeholder: "输入运营目标，例如：五一咖啡抖音转化方案、千川投放复盘、活动预算与创意拆解...",
-      loginPlaceholder: "请先登录后再调用 Agent",
+      placeholder: "输入电商问题，例如：五一咖啡抖音转化方案、千川投放复盘、活动预算与创意拆解...",
+      loginPlaceholder: "可以先整理你的电商问题，准备调用云端智能体时再登录...",
       hint: "Enter 发送，Shift + Enter 换行",
       send: "发送",
       stop: "停止",
       attachTitle: "添加文件",
-      agentTitle: "切换运营智能体",
-      agentName: "Commerce 运营智能体",
+      attachPrompt:
+        "请在这里补充文件或数据约束，例如商品价格、预算、库存、目标人群、当前转化率和平台账号状态。",
+      agentTitle: "切换虚拟员工模式",
+      agentName: "电商多智能体",
       samples: {
         coffee: {
           label: "五一咖啡转化",
@@ -797,22 +825,28 @@ const messages = {
       chips: {
         products: {
           label: "咖啡商品组",
-          title: "后续接商品看板和商品知识",
+          title: "把商品上下文加入问题",
+          prompt:
+            "商品上下文：请考虑咖啡 SKU 组合、价格带、卖点、库存、毛利、商品知识和竞品线索。",
         },
         campaign: {
           label: "五一营销活动",
-          title: "后续接营销活动策划和执行跟踪",
+          title: "把活动上下文加入问题",
+          prompt:
+            "活动上下文：请考虑五一活动目标、预算、周期、创意方向、直播间执行和复盘指标。",
         },
         platform: {
           label: "抖音/千川数据",
-          title: "后续接平台连接、数据导入和投放数据",
+          title: "把平台数据上下文加入问题",
+          prompt:
+            "平台数据上下文：请考虑抖音直播间漏斗、千川点击率、转化率、ROI、人群包、预算节奏和异常信号。",
         },
       },
     },
     workbench: {
-      title: "经营工作区",
-      expand: "展开经营工作区",
-      collapse: "收起经营工作区",
+      title: "虚拟员工工作区",
+      expand: "展开虚拟员工工作区",
+      collapse: "收起虚拟员工工作区",
       progress: "进度",
       activity: "本轮动态",
       record: "本轮记录",
@@ -829,9 +863,9 @@ const messages = {
         planningDescription:
           "已接收输入，正在匹配商品、活动、数据和交付步骤。",
         historyDescription:
-          "经营工作区只显示本轮过程，历史消息不会计入当前进度。",
+          "虚拟员工工作区只显示本轮过程，历史消息不会计入当前进度。",
         waitingDescription:
-          "输入运营目标后，将按商品、活动、平台数据、预警和交付资料组织处理。",
+          "输入电商问题后，将按商品、活动、平台数据、预警和交付资料组织处理。",
         loopTitle: "01 | 经营闭环",
         previewTitle: "本轮任务预览",
         previewFile: "经营闭环预览",
@@ -851,10 +885,10 @@ const messages = {
       },
     },
     thread: {
-      agentName: "Commerce 运营智能体",
-      welcomeCapabilities: ["拆解经营目标", "组织业务执行", "沉淀交付产物"],
+      agentName: "电商多智能体",
+      welcomeCapabilities: ["电商问答", "虚拟员工协作", "沉淀交付产物"],
       receivingOutput: "正在接收业务执行输出",
-      waitingEvents: "正在等待经营工作区事件",
+      waitingEvents: "正在等待虚拟员工工作区事件",
       completedTasks: "{{completed}}/{{total}} 个任务完成",
       planning: "正在生成执行计划",
       historyNotExecuted: "历史消息未执行",
@@ -907,8 +941,8 @@ const messages = {
       steps: {
         readTarget: "读取目标",
         planReady: "执行计划已生成",
-        readingRules: "正在读取经营目标与业务规则",
-        targetRules: "经营目标与业务规则",
+        readingRules: "正在读取电商问题与业务规则",
+        targetRules: "电商问题与业务规则",
         assignTask: "分配任务",
         taskRunning: "任务正在执行",
         waitingSync: "等待执行状态同步",
@@ -942,12 +976,12 @@ const messages = {
         },
       },
       processStage: {
-        failed: "执行受阻，展开经营工作区查看待处理项",
+        failed: "执行受阻，展开虚拟员工工作区查看待处理项",
         finished: "方案已汇总，可查看过程和业务落点",
         running: "执行计划推进中",
         planning: "正在规划执行计划",
         synced: "本轮过程已同步",
-        history: "历史会话，展开经营工作区查看本轮过程",
+        history: "历史会话，展开虚拟员工工作区查看本轮过程",
       },
       artifactState: {
         done: "已生成",
@@ -1079,7 +1113,7 @@ const messages = {
       timeline: {
         planning: [
           "已收到任务，正在规划执行计划。",
-          "处理步骤、依赖和验收规则生成后会同步到经营工作区。",
+          "处理步骤、依赖和验收规则生成后会同步到虚拟员工工作区。",
         ],
         history: [
           "当前展示的是历史对话，本轮过程尚未开始。",
@@ -1097,6 +1131,10 @@ const messages = {
           nodeRework: "{{agent}} 进入重试：{{instruction}}",
           nodePassed: "{{agent}} 已通过验收。",
           nodeFailed: "{{agent}} 失败：{{reason}}",
+          workerStarted: "{{agent}} 开始处理。",
+          workerFinished: "{{agent}} 已完成处理。",
+          finished: "本轮回答已结束。",
+          failed: "本轮回答失败：{{reason}}",
           graphFinished: "执行计划已结束，进入汇总输出。",
         },
       },

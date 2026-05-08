@@ -11,6 +11,10 @@ import {
   formatAgentUiMessage,
   mapConversationItem,
 } from "../domain/agent-chat-message-mapping"
+import {
+  buildAgentStrategyInput,
+  type AgentChatStrategy,
+} from "../domain/agent-chat-strategy"
 import type { AgentChatConversationItem, AgentChatMessage } from "../types"
 
 interface SendAgentChatMessageInput {
@@ -27,6 +31,7 @@ interface SendAgentChatMessageInput {
   setIsStreaming: Dispatch<SetStateAction<boolean>>
   setMessages: Dispatch<SetStateAction<AgentChatMessage[]>>
   setRuntimeEvents: Dispatch<SetStateAction<AgentRuntimeEvent[]>>
+  strategy: AgentChatStrategy
   tError: string
 }
 
@@ -48,6 +53,11 @@ export async function sendAgentChatMessage(
   input.onController(controller)
 
   try {
+    const strategyMeta = {
+      strategyId: input.strategy.id,
+      responseMode: input.strategy.responseMode,
+      collaborationMode: input.strategy.collaborationMode,
+    }
     let activeConversationId = input.conversationId
     if (!activeConversationId) {
       const detail = await agentChatData.createConversation({
@@ -66,16 +76,17 @@ export async function sendAgentChatMessage(
       await agentChatData.addConversationMessage(activeConversationId, {
         role: "user",
         contentText: input.content,
-        contentJson: null,
+        contentJson: { strategy: strategyMeta },
       })
     }
 
     let assistantContent = ""
     let persistAssistant: Promise<void> | null = null
+    const agentInput = buildAgentStrategyInput(input.content, input.strategy)
 
     await agentChatData.streamAgentSession(
       {
-        input: input.content,
+        input: agentInput,
         agentId: AGENT_ID,
         sessionId: input.sessionIdRef.current,
         workspaceId: WORKSPACE_ID,
@@ -144,6 +155,17 @@ export async function sendAgentChatMessage(
     )
     input.setError(message)
     input.setIsStreaming(false)
+    input.setMessages((current) =>
+      current.map((item) =>
+        item.id === assistantId
+          ? {
+              ...item,
+              content: item.content || message,
+              status: "error",
+            }
+          : item
+      )
+    )
   }
 
   return controller

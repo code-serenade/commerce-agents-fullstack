@@ -221,6 +221,8 @@ fn terminate_process(pid: u32) -> AppResult<()> {
     if cfg!(windows) {
         let _ = Command::new("taskkill")
             .args(["/PID", &pid.to_string(), "/T"])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
             .status()?;
     } else {
         let _ = Command::new("kill").arg(pid.to_string()).status()?;
@@ -232,6 +234,8 @@ fn kill_process(pid: u32) -> AppResult<()> {
     if cfg!(windows) {
         let _ = Command::new("taskkill")
             .args(["/PID", &pid.to_string(), "/T", "/F"])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
             .status()?;
     } else {
         let _ = Command::new("kill")

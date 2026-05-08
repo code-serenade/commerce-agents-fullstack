@@ -2,6 +2,7 @@ import {
   Bot,
   Coffee,
   Database,
+  LockKeyhole,
   Loader2,
   Megaphone,
   Plus,
@@ -12,6 +13,8 @@ import {
 import { type KeyboardEvent } from "react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@workspace/ui-components/stable/button"
+import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
+import { AgentChatStrategyBar } from "./agent-chat-strategy-bar"
 
 const SAMPLE_PROMPTS = [
   {
@@ -31,39 +34,50 @@ const CONTEXT_CHIPS = [
     labelKey: "agentChat.composer.chips.products.label",
     icon: ShoppingBag,
     titleKey: "agentChat.composer.chips.products.title",
+    promptKey: "agentChat.composer.chips.products.prompt",
   },
   {
     labelKey: "agentChat.composer.chips.campaign.label",
     icon: Megaphone,
     titleKey: "agentChat.composer.chips.campaign.title",
+    promptKey: "agentChat.composer.chips.campaign.prompt",
   },
   {
     labelKey: "agentChat.composer.chips.platform.label",
     icon: Database,
     titleKey: "agentChat.composer.chips.platform.title",
+    promptKey: "agentChat.composer.chips.platform.prompt",
   },
 ]
 
 export interface AgentChatComposerProps {
   canSend: boolean
-  disabled: boolean
   input: string
+  isLoggedIn: boolean
   isStreaming: boolean
   onInputChange: (value: string) => void
   onSend: () => void
   onStop: () => void
+  onStrategyChange: (strategyId: AgentChatStrategyId) => void
+  strategyId: AgentChatStrategyId
 }
 
 export function AgentChatComposer({
   canSend,
-  disabled,
   input,
+  isLoggedIn,
   isStreaming,
   onInputChange,
   onSend,
   onStop,
+  onStrategyChange,
+  strategyId,
 }: AgentChatComposerProps) {
   const { t } = useTranslation()
+
+  const appendComposerText = (text: string) => {
+    onInputChange(input.trim() ? `${input.trim()}\n${text}` : text)
+  }
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (
@@ -82,6 +96,11 @@ export function AgentChatComposer({
         className="mx-auto flex w-full max-w-3xl flex-col gap-3 rounded-[1.65rem] border border-border bg-[#f1f1ef] p-3 shadow-xl shadow-black/10 dark:bg-card"
         onKeyDown={handleKeyDown}
       >
+        <AgentChatStrategyBar
+          disabled={isStreaming}
+          onStrategyChange={onStrategyChange}
+          strategyId={strategyId}
+        />
         <div className="flex flex-wrap gap-2">
           {SAMPLE_PROMPTS.map((sample) => {
             const Icon = sample.icon
@@ -91,7 +110,7 @@ export function AgentChatComposer({
               <button
                 key={sample.labelKey}
                 type="button"
-                disabled={disabled || isStreaming}
+                disabled={isStreaming}
                 onClick={() => onInputChange(prompt)}
                 className="flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
                 title={prompt}
@@ -105,13 +124,15 @@ export function AgentChatComposer({
           {CONTEXT_CHIPS.map((chip) => {
             const Icon = chip.icon
             const label = t(chip.labelKey)
+            const prompt = t(chip.promptKey)
             return (
               <button
                 key={chip.labelKey}
                 type="button"
-                disabled={disabled || isStreaming}
+                disabled={isStreaming}
+                onClick={() => appendComposerText(prompt)}
                 className="flex items-center gap-2 rounded-full border border-border bg-background/70 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                title={t(chip.titleKey)}
+                title={`${t(chip.titleKey)} ${prompt}`}
               >
                 <Icon className="size-3.5" />
                 {label}
@@ -123,11 +144,11 @@ export function AgentChatComposer({
           value={input}
           onChange={(event) => onInputChange(event.target.value)}
           placeholder={t(
-            disabled
+            !isLoggedIn
               ? "agentChat.composer.loginPlaceholder"
               : "agentChat.composer.placeholder"
           )}
-          disabled={disabled || isStreaming}
+          disabled={isStreaming}
           rows={2}
           className="max-h-32 min-h-14 w-full resize-none rounded-md border-0 bg-transparent p-2 text-sm/6 outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60"
         />
@@ -136,6 +157,7 @@ export function AgentChatComposer({
             <button
               type="button"
               className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:text-foreground"
+              onClick={() => appendComposerText(t("agentChat.composer.attachPrompt"))}
               title={t("agentChat.composer.attachTitle")}
             >
               <Plus className="size-5" />
@@ -149,7 +171,9 @@ export function AgentChatComposer({
               <span className="truncate">{t("agentChat.composer.agentName")}</span>
             </button>
             <p className="hidden shrink-0 text-xs text-muted-foreground min-[1700px]:block">
-              {t("agentChat.composer.hint")}
+              {isLoggedIn
+                ? t("agentChat.composer.hint")
+                : t("agentChat.loginRequired.inline")}
             </p>
           </div>
           {isStreaming ? (
@@ -165,7 +189,11 @@ export function AgentChatComposer({
               title={t("agentChat.composer.send")}
             >
               {canSend ? (
-                <Send className="size-4" />
+                isLoggedIn ? (
+                  <Send className="size-4" />
+                ) : (
+                  <LockKeyhole className="size-4" />
+                )
               ) : (
                 <Loader2 className="size-4" />
               )}

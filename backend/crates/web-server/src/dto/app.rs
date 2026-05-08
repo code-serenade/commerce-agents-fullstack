@@ -1254,7 +1254,7 @@ pub struct SavePlatformConnectionRequest {
     pub access_token: Option<String>,
     #[validate(length(max = 40000))]
     pub refresh_token: Option<String>,
-    #[serde(with = "time::serde::rfc3339::option")]
+    #[serde(default, with = "time::serde::rfc3339::option")]
     pub token_expires_at: Option<OffsetDateTime>,
     #[validate(length(max = 255))]
     pub shop_id: Option<String>,
@@ -1262,7 +1262,7 @@ pub struct SavePlatformConnectionRequest {
     pub shop_name: Option<String>,
     pub enabled: Option<bool>,
     pub test_result: Option<Value>,
-    #[serde(with = "time::serde::rfc3339::option")]
+    #[serde(default, with = "time::serde::rfc3339::option")]
     pub last_synced_at: Option<OffsetDateTime>,
     #[validate(length(max = 32))]
     pub sync_status: Option<String>,
@@ -1284,7 +1284,7 @@ pub struct UpdatePlatformConnectionRequest {
     pub access_token: Option<String>,
     #[validate(length(max = 40000))]
     pub refresh_token: Option<String>,
-    #[serde(with = "time::serde::rfc3339::option")]
+    #[serde(default, with = "time::serde::rfc3339::option")]
     pub token_expires_at: Option<OffsetDateTime>,
     #[validate(length(max = 255))]
     pub shop_id: Option<String>,
@@ -1292,7 +1292,7 @@ pub struct UpdatePlatformConnectionRequest {
     pub shop_name: Option<String>,
     pub enabled: Option<bool>,
     pub test_result: Option<Value>,
-    #[serde(with = "time::serde::rfc3339::option")]
+    #[serde(default, with = "time::serde::rfc3339::option")]
     pub last_synced_at: Option<OffsetDateTime>,
     #[validate(length(max = 32))]
     pub sync_status: Option<String>,

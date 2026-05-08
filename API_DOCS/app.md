@@ -1698,6 +1698,7 @@
 
 - `platform` 必须是 `taobao`、`jd`、`pdd`、`douyin`
 - 同一用户同一平台重复保存时更新原连接
+- `tokenExpiresAt`、`lastSyncedAt` 可省略，也可传 `null` 或 RFC3339 时间字符串
 - `syncStatus` 可为 `idle`、`syncing`、`success`、`failed`
 
 ## 71. 查询平台连接详情

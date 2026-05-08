@@ -1,4 +1,4 @@
-import { Activity, MonitorCog, X } from "lucide-react"
+import { Activity, PanelRightClose, MonitorCog } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type { AgentRuntimeEvent } from "@/api"
 import type { AgentChatMessage } from "../types"
@@ -69,8 +69,8 @@ export function AgentChatSwarmPanel({
   const timeline = getTimeline(runtimeEvents, agents, hasTask, isStreaming, t)
 
   return (
-    <aside className="h-full min-h-124 min-w-0 overflow-hidden rounded-[1.75rem] bg-[#eeeeeb] p-2 min-[1440px]:p-3 2xl:min-h-0 dark:bg-muted/30">
-      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[1.45rem] bg-[#f6f6f3] dark:bg-card">
+    <aside className="h-full min-h-124 min-w-0 overflow-hidden rounded-xl border border-border bg-[#eeeeeb] p-2 min-[1440px]:p-3 2xl:min-h-0 dark:bg-muted/30">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg bg-[#f6f6f3] dark:bg-card">
         <header className="sticky top-0 z-10 shrink-0 border-b border-[#d8d8d3] bg-[#f6f6f3]/95 p-3 backdrop-blur min-[1440px]:px-5 dark:border-border dark:bg-card/95">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
@@ -101,15 +101,15 @@ export function AgentChatSwarmPanel({
                 </div>
               </div>
             </div>
-            <div className="rounded-full border border-border bg-background/90 p-1 shadow-sm">
+            <div className="rounded-md border border-border bg-background/90 p-1 shadow-sm">
               <button
                 type="button"
                 onClick={onCollapse}
-                className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground min-[1500px]:size-10"
+                className="flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground min-[1500px]:size-10"
                 title={t("agentChat.workbench.collapse")}
                 aria-label={t("agentChat.workbench.collapse")}
               >
-                <X className="size-5" />
+                <PanelRightClose className="size-4" />
               </button>
             </div>
           </div>

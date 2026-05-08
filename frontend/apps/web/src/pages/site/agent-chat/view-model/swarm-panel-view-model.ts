@@ -2,6 +2,9 @@ import { BarChart3, Bot, FileText, Megaphone, MonitorCog, PenLine, WalletCards }
 import type { TFunction } from "i18next"
 import type { ComponentType, SVGProps } from "react"
 import type { AgentRuntimeEvent, AgentTaskNode, AgentWorkerReport } from "@/api"
+import { resolveWorkerNodeId } from "./agent-runtime-event-mapping"
+import { formatTimelineEvent } from "./swarm-timeline-view-model"
+export { resolveWorkerNodeId } from "./agent-runtime-event-mapping"
 export {
   getComputerCards,
   getComputerScreenContext,
@@ -215,6 +218,17 @@ export function getRuntimeNodeStates(runtimeEvents: AgentRuntimeEvent[]) {
         state: "failed",
         evaluationReasons: [event.reason],
       })
+    } else if (event.type === "worker_started") {
+      ensureNode(resolveWorkerNodeId(event)).state = "working"
+    } else if (event.type === "worker_finished") {
+      ensureNode(resolveWorkerNodeId(event)).state = "done"
+    } else if (event.type === "failed") {
+      Object.assign(ensureNode("ops"), {
+        state: "failed",
+        evaluationReasons: [event.reason],
+      })
+    } else if (event.type === "finished") {
+      ensureNode("delivery").state = "done"
     }
   })
   return states
@@ -293,27 +307,3 @@ export function readId(value: string | [string] | { 0: string }) {
   return value[0]
 }
 
-function formatTimelineEvent(event: AgentRuntimeEvent, agents: SwarmAgent[], t: TFunction) {
-  if (event.type === "commander_thinking") {
-    return { label: t("agentChat.swarm.timeline.events.commanderThinking"), tone: "default" as const }
-  }
-  if (event.type === "task_graph_planned") {
-    return { label: t("agentChat.swarm.timeline.events.graphPlanned", { count: event.graph.nodes.length }), tone: "success" as const }
-  }
-  if (event.type === "task_node_started") {
-    return { label: t("agentChat.swarm.timeline.events.nodeStarted", { agent: getAgentName(event.nodeId, agents), attempt: event.attempt }), tone: "default" as const }
-  }
-  if (event.type === "task_node_rework_requested") {
-    return { label: t("agentChat.swarm.timeline.events.nodeRework", { agent: getAgentName(event.nodeId, agents), instruction: event.instruction }), tone: "warning" as const }
-  }
-  if (event.type === "task_node_passed") {
-    return { label: t("agentChat.swarm.timeline.events.nodePassed", { agent: getAgentName(event.nodeId, agents) }), tone: "success" as const }
-  }
-  if (event.type === "task_node_failed") {
-    return { label: t("agentChat.swarm.timeline.events.nodeFailed", { agent: getAgentName(event.nodeId, agents), reason: event.reason }), tone: "error" as const }
-  }
-  if (event.type === "task_graph_finished") {
-    return { label: t("agentChat.swarm.timeline.events.graphFinished"), tone: "success" as const }
-  }
-  return null
-}

@@ -12,3 +12,9 @@ export interface AgentChatConversationItem {
   title: string
   updatedAt: string
 }
+
+export interface AgentChatMessageStrategy {
+  id: string
+  responseMode: string
+  collaborationMode: string
+}

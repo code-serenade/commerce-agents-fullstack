@@ -114,7 +114,12 @@ function taskFields(t: CommerceTranslate): SimpleField[] {
   return [
     { key: "title", label: t("commerce.fields.title"), required: true },
     { key: "ownerRole", label: t("commerce.fields.ownerRole") },
-    { key: "status", label: t("commerce.common.status") },
+    {
+      key: "status",
+      label: t("commerce.common.status"),
+      options: taskStatusOptions,
+      type: "select",
+    },
     { key: "priority", label: t("commerce.fields.priority"), type: "number" },
     {
       key: "acceptanceCriteria",
@@ -132,7 +137,12 @@ function taskFields(t: CommerceTranslate): SimpleField[] {
 function runFields(t: CommerceTranslate): SimpleField[] {
   return [
     { key: "goal", label: t("commerce.fields.goal"), required: true },
-    { key: "status", label: t("commerce.common.status") },
+    {
+      key: "status",
+      label: t("commerce.common.status"),
+      options: runStatusOptions,
+      type: "select",
+    },
     { key: "source", label: t("commerce.common.source") },
     {
       key: "requirements",
@@ -148,14 +158,24 @@ function runTaskFields(t: CommerceTranslate): SimpleField[] {
     { key: "workspaceTaskId", label: t("commerce.fields.workspaceTaskId") },
     { key: "seq", label: t("commerce.fields.seq"), type: "number" },
     { key: "ownerRole", label: t("commerce.fields.role") },
-    { key: "status", label: t("commerce.common.status") },
+    {
+      key: "status",
+      label: t("commerce.common.status"),
+      options: runTaskStatusOptions,
+      type: "select",
+    },
     { key: "attempts", label: t("commerce.fields.attempts"), type: "number" },
     {
       key: "acceptanceScore",
       label: t("commerce.fields.acceptanceScore"),
       type: "number",
     },
-    { key: "acceptancePassed", label: t("commerce.fields.acceptancePassed") },
+    {
+      key: "acceptancePassed",
+      label: t("commerce.fields.acceptancePassed"),
+      options: booleanOptions,
+      type: "select",
+    },
     {
       key: "acceptanceNotes",
       label: t("commerce.fields.acceptanceNotes"),
@@ -187,3 +207,33 @@ function executionFields(t: CommerceTranslate): SimpleField[] {
     },
   ]
 }
+
+const taskStatusOptions = [
+  { label: String("pending"), value: "pending" },
+  { label: String("in_progress"), value: "in_progress" },
+  { label: String("done"), value: "done" },
+  { label: String("blocked"), value: "blocked" },
+  { label: String("cancelled"), value: "cancelled" },
+]
+
+const runStatusOptions = [
+  { label: String("planned"), value: "planned" },
+  { label: String("running"), value: "running" },
+  { label: String("succeeded"), value: "succeeded" },
+  { label: String("failed"), value: "failed" },
+  { label: String("cancelled"), value: "cancelled" },
+]
+
+const runTaskStatusOptions = [
+  { label: String("pending"), value: "pending" },
+  { label: String("running"), value: "running" },
+  { label: String("succeeded"), value: "succeeded" },
+  { label: String("failed"), value: "failed" },
+  { label: String("skipped"), value: "skipped" },
+  { label: String("cancelled"), value: "cancelled" },
+]
+
+const booleanOptions = [
+  { label: String("false"), value: "false" },
+  { label: String("true"), value: "true" },
+]

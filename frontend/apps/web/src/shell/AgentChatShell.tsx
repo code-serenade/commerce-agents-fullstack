@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useDispatch, useSelector } from "react-redux"
+import { useLocation } from "react-router"
 import { useNavigate } from "react-router"
 import {
   CopyableText,
@@ -63,6 +64,7 @@ export function AgentChatShell({ children }: AgentChatShellProps) {
 function AgentChatShellContent({ children }: AgentChatShellProps) {
   const chat = useAgentChatContext()
   const dispatch = useDispatch()
+  const location = useLocation()
   const navigate = useNavigate()
   const { t } = useTranslation()
   const [renameTarget, setRenameTarget] = useState<{
@@ -90,6 +92,22 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   const openRenameDialog = (conversation: { id: string; title: string }) => {
     setRenameTarget(conversation)
     setRenameValue(conversation.title)
+  }
+
+  const navigateTo = (path: string) => {
+    navigate(path)
+  }
+
+  const isRouteActive = (path: string) => {
+    if (path === "/commerce") {
+      return (
+        location.pathname === "/" ||
+        location.pathname === "/commerce" ||
+        location.pathname === "/agent"
+      )
+    }
+
+    return location.pathname === path
   }
 
   const closeRenameDialog = () => {
@@ -129,37 +147,50 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           key: "smart-ops",
           icon: <GitBranch />,
           label: t("agentChat.shell.navigation.smartOps"),
-          active: Boolean(chat.conversationId),
+          active: isRouteActive("/commerce"),
+          onSelect: () => navigateTo("/commerce"),
         },
         {
           key: "product-board",
           icon: <ShoppingBag />,
           label: t("agentChat.shell.navigation.productBoard"),
+          active: isRouteActive("/products"),
+          onSelect: () => navigateTo("/products"),
         },
         {
           key: "campaigns",
           icon: <Megaphone />,
           label: t("agentChat.shell.navigation.campaigns"),
+          active: isRouteActive("/campaigns"),
+          onSelect: () => navigateTo("/campaigns"),
         },
         {
           key: "platform",
           icon: <PlugZap />,
           label: t("agentChat.shell.navigation.platform"),
+          active: isRouteActive("/platform-connect"),
+          onSelect: () => navigateTo("/platform-connect"),
         },
         {
           key: "market-research",
           icon: <Search />,
           label: t("agentChat.shell.navigation.marketResearch"),
+          active: isRouteActive("/overview"),
+          onSelect: () => navigateTo("/overview"),
         },
         {
           key: "briefing",
           icon: <FileText />,
           label: t("agentChat.shell.navigation.briefing"),
+          active: isRouteActive("/operations"),
+          onSelect: () => navigateTo("/operations"),
         },
         {
           key: "alerts",
           icon: <ShieldAlert />,
           label: t("agentChat.shell.navigation.alerts"),
+          active: isRouteActive("/operations"),
+          onSelect: () => navigateTo("/operations"),
         },
       ],
     },
@@ -171,26 +202,36 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           key: "deliverables",
           icon: <FileText />,
           label: t("agentChat.shell.navigation.deliverables"),
+          active: isRouteActive("/agent-output"),
+          onSelect: () => navigateTo("/agent-output"),
         },
         {
           key: "task-board",
           icon: <ClipboardList />,
           label: t("agentChat.shell.navigation.taskBoard"),
+          active: isRouteActive("/workspaces"),
+          onSelect: () => navigateTo("/workspaces"),
         },
         {
           key: "packages",
           icon: <PackageCheck />,
           label: t("agentChat.shell.navigation.packages"),
+          active: isRouteActive("/packages"),
+          onSelect: () => navigateTo("/packages"),
         },
         {
           key: "system-dashboard",
           icon: <Database />,
           label: t("agentChat.shell.navigation.systemDashboard"),
+          active: isRouteActive("/overview"),
+          onSelect: () => navigateTo("/overview"),
         },
         {
           key: "team",
           icon: <UserRound />,
           label: t("agentChat.shell.navigation.team"),
+          active: isRouteActive("/agent"),
+          onSelect: () => navigateTo("/agent"),
         },
       ],
     },
@@ -348,16 +389,14 @@ function ConversationActionMenu({
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          disabled={disabled}
-          className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50"
-          aria-label={actionLabel}
-          onClick={stopClick}
-        >
-          <MoreHorizontal className="size-4" />
-        </button>
+      <DropdownMenuTrigger
+        disabled={disabled}
+        label={actionLabel}
+        size="compactIcon"
+        variant="muted"
+        onClick={stopClick}
+      >
+        <MoreHorizontal className="size-4" />
       </DropdownMenuTrigger>
       <DropdownMenuContent>
         <DropdownMenuItem onSelect={onRename}>{renameLabel}</DropdownMenuItem>

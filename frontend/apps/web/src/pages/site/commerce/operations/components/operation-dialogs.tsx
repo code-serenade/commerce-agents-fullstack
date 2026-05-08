@@ -99,7 +99,12 @@ function longTaskFields(t: CommerceTranslate): SimpleField[] {
     { key: "taskType", label: t("commerce.fields.taskType") },
     { key: "workspaceId", label: t("commerce.fields.workspaceId") },
     { key: "runId", label: t("commerce.fields.runId") },
-    { key: "status", label: t("commerce.common.status") },
+    {
+      key: "status",
+      label: t("commerce.common.status"),
+      options: longTaskStatusOptions,
+      type: "select",
+    },
     { key: "progress", label: t("commerce.fields.progress"), type: "number" },
     { key: "totalSteps", label: t("commerce.fields.totalSteps"), type: "number" },
     { key: "currentStep", label: t("commerce.fields.currentStep") },
@@ -128,7 +133,12 @@ function notificationFields(t: CommerceTranslate): SimpleField[] {
     { key: "eventType", label: t("commerce.fields.eventType"), required: true },
     { key: "title", label: t("commerce.fields.title"), required: true },
     { key: "conversationId", label: t("commerce.fields.conversationId") },
-    { key: "consumed", label: t("commerce.fields.consumed") },
+    {
+      key: "consumed",
+      label: t("commerce.fields.consumed"),
+      options: booleanOptions,
+      type: "select",
+    },
   ]
 }
 
@@ -149,3 +159,16 @@ function alertFields(t: CommerceTranslate): SimpleField[] {
     },
   ]
 }
+
+const longTaskStatusOptions = [
+  { label: String("pending"), value: "pending" },
+  { label: String("running"), value: "running" },
+  { label: String("completed"), value: "completed" },
+  { label: String("failed"), value: "failed" },
+  { label: String("cancelled"), value: "cancelled" },
+]
+
+const booleanOptions = [
+  { label: String("false"), value: "false" },
+  { label: String("true"), value: "true" },
+]

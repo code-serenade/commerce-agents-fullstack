@@ -6,6 +6,11 @@ import type { AgentRuntimeEvent } from "./agent-chat-data"
 import {
   createSessionId,
 } from "./domain/agent-chat-message-mapping"
+import {
+  DEFAULT_AGENT_CHAT_STRATEGY_ID,
+  getAgentChatStrategy,
+  type AgentChatStrategyId,
+} from "./domain/agent-chat-strategy"
 import type { AgentChatConversationItem, AgentChatMessage } from "./types"
 import {
   deleteAgentConversation,
@@ -13,14 +18,23 @@ import {
   renameAgentConversation,
   selectAgentConversation,
 } from "./view-model/agent-chat-conversation-actions"
+import {
+  resetGuestAgentChatState,
+  startNewAgentConversation,
+  stopAgentStreaming,
+} from "./view-model/agent-chat-page-actions"
 import { sendAgentChatMessage } from "./view-model/agent-chat-send-message"
 
 export function useAgentChatPage() {
   const { t } = useTranslation()
   const fallbackConversationTitle = t("agentChat.sidebar.newChat")
+  const loginRequiredMessage = t("agentChat.loginRequired.message")
   const missingStructuredOutput = t("agentChat.missingStructuredOutput")
   const user = useSelector((state: RootState) => state.auth.user)
   const [input, setInput] = useState("")
+  const [strategyId, setStrategyId] = useState<AgentChatStrategyId>(
+    DEFAULT_AGENT_CHAT_STRATEGY_ID
+  )
   const [messages, setMessages] = useState<AgentChatMessage[]>(() => [
     {
       id: "welcome",
@@ -46,6 +60,7 @@ export function useAgentChatPage() {
   )
   const actionState = useMemo(
     () => ({
+      abortRef,
       createWelcomeMessage,
       fallbackConversationTitle,
       missingStructuredOutput,
@@ -54,6 +69,7 @@ export function useAgentChatPage() {
       setConversations,
       setError,
       setInput,
+      setIsStreaming,
       setMessages,
       setRuntimeEvents,
       tError: t("agentChat.error"),
@@ -69,13 +85,7 @@ export function useAgentChatPage() {
     let cancelled = false
 
     if (!user) {
-      queueMicrotask(() => {
-        if (cancelled) return
-        setConversationId(null)
-        setConversations([])
-        sessionIdRef.current = createSessionId()
-        setMessages([createWelcomeMessage()])
-      })
+      resetGuestAgentChatState(actionState, () => cancelled)
       return
     }
 
@@ -90,19 +100,15 @@ export function useAgentChatPage() {
     user,
   ])
 
-  const canSend = Boolean(user) && input.trim().length > 0 && !isStreaming
+  const canSend = input.trim().length > 0 && !isStreaming
+  const selectedStrategy = useMemo(
+    () => getAgentChatStrategy(strategyId),
+    [strategyId]
+  )
 
   const startNewConversation = useCallback(() => {
-    abortRef.current?.abort()
-    abortRef.current = null
-    setConversationId(null)
-    sessionIdRef.current = createSessionId()
-    setInput("")
-    setError(null)
-    setIsStreaming(false)
-    setRuntimeEvents([])
-    setMessages([createWelcomeMessage()])
-  }, [createWelcomeMessage])
+    startNewAgentConversation(actionState)
+  }, [actionState])
 
   const selectConversation = useCallback(
     async (nextConversationId: string) => {
@@ -130,7 +136,11 @@ export function useAgentChatPage() {
 
   const sendMessage = useCallback(async () => {
     const content = input.trim()
-    if (!content || !user || isStreaming) return
+    if (!content || isStreaming) return
+    if (!user) {
+      setError(loginRequiredMessage)
+      return
+    }
 
     const controller = await sendAgentChatMessage({
       content,
@@ -148,6 +158,7 @@ export function useAgentChatPage() {
       setIsStreaming,
       setMessages,
       setRuntimeEvents,
+      strategy: selectedStrategy,
       tError: t("agentChat.error"),
     })
 
@@ -159,23 +170,16 @@ export function useAgentChatPage() {
     fallbackConversationTitle,
     input,
     isStreaming,
+    loginRequiredMessage,
     missingStructuredOutput,
+    selectedStrategy,
     t,
     user,
   ])
 
   const stopStreaming = useCallback(() => {
-    abortRef.current?.abort()
-    abortRef.current = null
-    setIsStreaming(false)
-    setMessages((current) =>
-      current.map((message) =>
-        message.status === "streaming"
-          ? { ...message, status: undefined }
-          : message
-      )
-    )
-  }, [])
+    stopAgentStreaming(actionState)
+  }, [actionState])
 
   return {
     canSend,
@@ -191,8 +195,11 @@ export function useAgentChatPage() {
     renameConversation,
     sendMessage,
     selectConversation,
+    selectedStrategy,
     setInput,
+    setStrategyId,
     startNewConversation,
     stopStreaming,
+    strategyId,
   }
 }

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import type { MouseEventHandler, ReactNode } from "react"
 import {
   DropdownMenu as CoreDropdownMenu,
   DropdownMenuCheckboxItem as CoreDropdownMenuCheckboxItem,
@@ -16,8 +16,13 @@ import {
   DropdownMenuSubTrigger as CoreDropdownMenuSubTrigger,
   DropdownMenuTrigger as CoreDropdownMenuTrigger,
 } from "@workspace/ui-core/components/dropdown-menu"
+import { cn } from "../../../lib/utils"
 
 export type DropdownMenuItemVariant = "default" | "destructive"
+export type DropdownMenuTriggerSize = "default" | "sm" | "icon" | "compactIcon"
+export type DropdownMenuTriggerVariant = "default" | "muted"
+
+export type DropdownMenuTriggerType = "button" | "submit" | "reset"
 
 export interface DropdownMenuProps {
   open?: boolean
@@ -26,9 +31,13 @@ export interface DropdownMenuProps {
 }
 
 export interface DropdownMenuTriggerProps {
-  asChild?: boolean
-  className?: string
   children: ReactNode
+  disabled?: boolean
+  label?: ReactNode
+  size?: DropdownMenuTriggerSize
+  type?: DropdownMenuTriggerType
+  variant?: DropdownMenuTriggerVariant
+  onClick?: MouseEventHandler<HTMLButtonElement>
 }
 
 export interface DropdownMenuPortalProps {
@@ -107,13 +116,33 @@ export function DropdownMenu({ open, onOpenChange, children }: DropdownMenuProps
 }
 
 export function DropdownMenuTrigger({
-  asChild,
   children,
-  className,
+  disabled = false,
+  label,
+  size = "default",
+  type = "button",
+  variant = "default",
+  onClick,
 }: DropdownMenuTriggerProps) {
   return (
-    <CoreDropdownMenuTrigger asChild={asChild} className={className}>
+    <CoreDropdownMenuTrigger
+      type={type}
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center justify-center gap-2 rounded-md outline-none transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 data-[state=open]:bg-accent data-[state=open]:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        variant === "default" &&
+          "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground",
+        variant === "muted" &&
+          "bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+        size === "default" && "min-h-9 px-3 py-2 text-sm",
+        size === "sm" && "min-h-8 px-2.5 py-1.5 text-sm",
+        size === "icon" && "size-9 p-0",
+        size === "compactIcon" && "size-7 p-0"
+      )}
+    >
       {children}
+      {label ? <span className="sr-only">{label}</span> : null}
     </CoreDropdownMenuTrigger>
   )
 }

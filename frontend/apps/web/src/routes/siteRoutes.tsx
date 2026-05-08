@@ -28,18 +28,26 @@ export const siteRoutes: RouteObject = {
   errorElement: <RouteErrorBoundary />,
   children: [
     {
+      index: true,
+      element: withSuspense(<AgentChatPage />),
+    },
+    {
+      path: "home",
+      element: withSuspense(<HomePage />),
+    },
+    {
+      path: "commerce",
+      element: withSuspense(<AgentChatPage />),
+    },
+    {
+      path: "agent",
+      element: withSuspense(<AgentChatPage />),
+    },
+    {
       element: <RequireAuth />,
       children: [
         {
-          index: true,
-          element: withSuspense(<CommerceOverviewPage />),
-        },
-        {
-          path: "home",
-          element: withSuspense(<HomePage />),
-        },
-        {
-          path: "commerce",
+          path: "overview",
           element: withSuspense(<CommerceOverviewPage />),
         },
         {
@@ -69,10 +77,6 @@ export const siteRoutes: RouteObject = {
         {
           path: "packages",
           element: withSuspense(<PackagesPage />),
-        },
-        {
-          path: "agent",
-          element: withSuspense(<AgentChatPage />),
         },
         {
           path: "agent-output",

@@ -5,7 +5,7 @@ import {
   Boxes,
   ClipboardCheck,
   FileText,
-  House,
+  LayoutDashboard,
   Megaphone,
   PackageCheck,
   PlugZap,
@@ -33,10 +33,16 @@ export const webNavigationSections: WebNavigationSectionConfig[] = [
     items: [
       {
         id: "home",
-        labelKey: "web.shell.navigation.home",
+        labelKey: "web.shell.navigation.agent",
         path: "/commerce",
-        icon: <House />,
+        icon: <Bot />,
         matcher: (pathname) => pathname === "/" || pathname === "/commerce",
+      },
+      {
+        id: "overview",
+        labelKey: "web.shell.navigation.home",
+        path: "/overview",
+        icon: <LayoutDashboard />,
       },
       {
         id: "products",
@@ -92,12 +98,6 @@ export const webNavigationSections: WebNavigationSectionConfig[] = [
     id: "agent",
     labelKey: "web.shell.navigation.agentSection",
     items: [
-      {
-        id: "agent",
-        labelKey: "web.shell.navigation.agent",
-        path: "/agent",
-        icon: <Bot />,
-      },
       {
         id: "agent-output",
         labelKey: "web.shell.navigation.agentOutput",

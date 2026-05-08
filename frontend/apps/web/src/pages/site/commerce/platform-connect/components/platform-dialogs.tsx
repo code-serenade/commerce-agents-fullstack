@@ -17,8 +17,12 @@ export function PlatformDialogs({ page }: { page: PlatformConnectPageState }) {
       {page.dialog === "platform" ? (
         <ControlledDialog
           title={t("commerce.platform.dialogs.platform")}
-          fields={platformFields(t)}
-          initialValues={{ enabled: "true", platform: "douyin", syncStatus: "idle" }}
+          fields={platformFields(page, t)}
+          initialValues={{
+            enabled: "true",
+            platform: platformOptions(page)[0]?.value ?? "douyin",
+            syncStatus: "idle",
+          }}
           onClose={() => page.setDialog(null)}
           onSubmit={page.savePlatform}
         />
@@ -26,8 +30,11 @@ export function PlatformDialogs({ page }: { page: PlatformConnectPageState }) {
       {page.dialog === "channel" ? (
         <ControlledDialog
           title={t("commerce.platform.dialogs.channel")}
-          fields={channelFields(t)}
-          initialValues={{ channel: "wecom", enabled: "true" }}
+          fields={channelFields(page, t)}
+          initialValues={{
+            channel: channelOptions(page)[0]?.value ?? "wecom",
+            enabled: "true",
+          }}
           onClose={() => page.setDialog(null)}
           onSubmit={page.saveChannel}
         />
@@ -35,11 +42,11 @@ export function PlatformDialogs({ page }: { page: PlatformConnectPageState }) {
       {page.dialog === "metric" ? (
         <ControlledDialog
           title={t("commerce.platform.dialogs.metric")}
-          fields={metricFields(t)}
+          fields={metricFields(page, t)}
           initialValues={{
             metricDate: todayDateString(),
             metricKey: "gmv",
-            platform: "douyin",
+            platform: platformOptions(page)[0]?.value ?? "douyin",
             source: "import",
           }}
           onClose={() => page.setDialog(null)}
@@ -80,9 +87,18 @@ function ControlledDialog({
   )
 }
 
-function platformFields(t: CommerceTranslate): SimpleField[] {
+function platformFields(
+  page: PlatformConnectPageState,
+  t: CommerceTranslate
+): SimpleField[] {
   return [
-    { key: "platform", label: t("commerce.common.platform"), required: true },
+    {
+      key: "platform",
+      label: t("commerce.common.platform"),
+      options: platformOptions(page),
+      required: true,
+      type: "select",
+    },
     { key: "appKey", label: t("commerce.fields.appKey"), required: true },
     { key: "appSecret", label: t("commerce.fields.appSecret"), required: true },
     { key: "accessToken", label: t("commerce.fields.accessToken") },
@@ -90,26 +106,59 @@ function platformFields(t: CommerceTranslate): SimpleField[] {
     { key: "tokenExpiresAt", label: t("commerce.fields.tokenExpiresAt") },
     { key: "shopId", label: t("commerce.fields.shopId") },
     { key: "shopName", label: t("commerce.fields.shopName") },
-    { key: "enabled", label: t("commerce.fields.enabled") },
-    { key: "syncStatus", label: t("commerce.fields.syncStatus") },
+    {
+      key: "enabled",
+      label: t("commerce.fields.enabled"),
+      options: booleanOptions,
+      type: "select",
+    },
+    {
+      key: "syncStatus",
+      label: t("commerce.fields.syncStatus"),
+      options: syncStatusOptions,
+      type: "select",
+    },
     { key: "syncMessage", label: t("commerce.fields.syncMessage") },
   ]
 }
 
-function channelFields(t: CommerceTranslate): SimpleField[] {
+function channelFields(
+  page: PlatformConnectPageState,
+  t: CommerceTranslate
+): SimpleField[] {
   return [
-    { key: "channel", label: t("commerce.common.channel"), required: true },
+    {
+      key: "channel",
+      label: t("commerce.common.channel"),
+      options: channelOptions(page),
+      required: true,
+      type: "select",
+    },
     { key: "webhookUrl", label: t("commerce.fields.webhookUrl") },
     { key: "botToken", label: t("commerce.fields.botToken") },
     { key: "chatId", label: t("commerce.fields.chatId") },
     { key: "secret", label: t("commerce.fields.secret") },
-    { key: "enabled", label: t("commerce.fields.enabled") },
+    {
+      key: "enabled",
+      label: t("commerce.fields.enabled"),
+      options: booleanOptions,
+      type: "select",
+    },
   ]
 }
 
-function metricFields(t: CommerceTranslate): SimpleField[] {
+function metricFields(
+  page: PlatformConnectPageState,
+  t: CommerceTranslate
+): SimpleField[] {
   return [
-    { key: "platform", label: t("commerce.common.platform"), required: true },
+    {
+      key: "platform",
+      label: t("commerce.common.platform"),
+      options: platformOptions(page),
+      required: true,
+      type: "select",
+    },
     { key: "metricDate", label: t("commerce.fields.metricDate"), required: true },
     { key: "metricKey", label: t("commerce.fields.metricKey"), required: true },
     {
@@ -123,3 +172,45 @@ function metricFields(t: CommerceTranslate): SimpleField[] {
     { key: "source", label: t("commerce.common.source") },
   ]
 }
+
+const booleanOptions = [
+  { label: String("true"), value: "true" },
+  { label: String("false"), value: "false" },
+]
+
+const syncStatusOptions = [
+  { label: String("idle"), value: "idle" },
+  { label: String("syncing"), value: "syncing" },
+  { label: String("success"), value: "success" },
+  { label: String("failed"), value: "failed" },
+]
+
+function platformOptions(page: PlatformConnectPageState) {
+  const options = page.supportedPlatforms.map((item) => ({
+    label: item.display || item.platform,
+    value: item.platform,
+  }))
+  return options.length ? options : fallbackPlatformOptions
+}
+
+function channelOptions(page: PlatformConnectPageState) {
+  const options = page.supportedChannels.map((item) => ({
+    label: item.display || item.channel,
+    value: item.channel,
+  }))
+  return options.length ? options : fallbackChannelOptions
+}
+
+const fallbackPlatformOptions = [
+  { label: String("taobao"), value: "taobao" },
+  { label: String("jd"), value: "jd" },
+  { label: String("pdd"), value: "pdd" },
+  { label: String("douyin"), value: "douyin" },
+]
+
+const fallbackChannelOptions = [
+  { label: String("wecom"), value: "wecom" },
+  { label: String("feishu"), value: "feishu" },
+  { label: String("telegram"), value: "telegram" },
+  { label: String("discord"), value: "discord" },
+]

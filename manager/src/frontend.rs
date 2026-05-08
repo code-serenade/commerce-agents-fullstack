@@ -87,7 +87,7 @@ fn print_frontend_url(
 }
 
 fn read_frontend_url(log_file: &std::path::Path) -> Option<String> {
-    let content = fs::read_to_string(log_file).ok()?;
+    let content = strip_ansi_control_sequences(&fs::read_to_string(log_file).ok()?);
     content
         .split_whitespace()
         .find(|part| {
@@ -102,4 +102,27 @@ fn read_frontend_url(log_file: &std::path::Path) -> Option<String> {
             part.trim_end_matches(|ch: char| matches!(ch, ',' | ';' | ')' | ']' | '"' | '\''))
                 .to_owned()
         })
+}
+
+fn strip_ansi_control_sequences(value: &str) -> String {
+    let mut output = String::with_capacity(value.len());
+    let mut chars = value.chars().peekable();
+
+    while let Some(ch) = chars.next() {
+        if ch != '\u{1b}' {
+            output.push(ch);
+            continue;
+        }
+
+        if chars.peek() == Some(&'[') {
+            chars.next();
+            for next in chars.by_ref() {
+                if ('@'..='~').contains(&next) {
+                    break;
+                }
+            }
+        }
+    }
+
+    output
 }

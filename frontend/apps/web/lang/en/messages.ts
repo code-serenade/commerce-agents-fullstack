@@ -3,8 +3,8 @@ const messages = {
     shell: {
       brand: {
         eyebrow: "Commerce AI",
-        title: "Ops Center",
-        description: "Commerce agent workspace",
+        title: "Commerce Agents",
+        description: "Virtual employee workspace",
       },
       navigation: {
         mobileLabel: "Primary navigation",
@@ -19,7 +19,7 @@ const messages = {
         approvals: "Approvals",
         operations: "Operations",
         packages: "Packages",
-        agent: "Ops Agent",
+        agent: "Commerce Agents",
         agentOutput: "Plan view",
         profile: "Profile",
       },
@@ -735,34 +735,43 @@ const messages = {
   },
   agentChat: {
     welcomeMessage:
-      "Hi, I am the Commerce Ops Agent. Send an ecommerce operations goal and I will split it across data, budget, Douyin ads, creative, and operations roles, with the task graph, progress, activity trail, and deliverables on the right.",
+      "Hi, I am the ecommerce multi-agent workspace. Send an ecommerce question or business goal and I will coordinate virtual employee roles across product, data, support, content, ads, operations, finance, supply chain, and delivery, with process and artifacts on the right.",
     streaming: "Thinking...",
     error: "Agent reply failed. Please try again later.",
     errorBadge: "Reply failed",
     missingStructuredOutput:
       "The previous run did not produce complete structured output. Send the task again and I will rebuild the execution plan and sync the process to the workspace.",
+    loginRequired: {
+      title: "Sign in to run the cloud agent",
+      description:
+        "You can draft the ecommerce question and choose a strategy first. Sign in when you are ready to call the cloud model and save the conversation.",
+      message:
+        "Sign in to call the cloud agent and save the conversation. You can still draft the question and choose a strategy here.",
+      inline: "Sign in to run the cloud agent and save history",
+      action: "Sign in",
+    },
     sidebar: {
       newChat: "New task",
       search: "Search history",
       recents: "Recents",
-      chat: "Ops Agent",
+      chat: "Commerce Agents",
       more: "More",
       empty: "No conversations yet",
     },
     shell: {
-      brandTitle: "Ops Center",
-      brandDescription: "Commerce agent workspace",
-      topbarTitle: "Enter an operations goal",
-      topbarMeta: "Commerce Ops Agent · operating loop",
+      brandTitle: "Commerce Agents",
+      brandDescription: "Virtual employee workspace",
+      topbarTitle: "Enter an ecommerce question",
+      topbarMeta: "Commerce Agents · virtual employee collaboration",
       sections: {
         create: "",
-        workspace: "Ops Center",
+        workspace: "Virtual employees",
         governance: "Management and Review",
         recents: "History",
       },
       navigation: {
         newChat: "New chat",
-        smartOps: "Smart Ops",
+        smartOps: "Multi-agent Q&A",
         productBoard: "Product board",
         campaigns: "Campaigns",
         platform: "Platform connections",
@@ -777,16 +786,36 @@ const messages = {
         history: "History",
       },
     },
+    strategy: {
+      current: "Current strategy",
+      options: {
+        execution: {
+          label: "Quick answer",
+          hint: "Usable result first",
+        },
+        learning: {
+          label: "Teach along",
+          hint: "Explain logic and steps",
+        },
+        collab: {
+          label: "Agent cluster",
+          hint: "Plan, split, improve",
+        },
+      },
+    },
     composer: {
       placeholder:
-        "Enter an operations goal, such as a May Day coffee conversion plan, Qianchuan ads review, campaign budget, or creative breakdown...",
-      loginPlaceholder: "Sign in before calling the agent",
+        "Enter an ecommerce question, such as a May Day coffee conversion plan, Qianchuan ads review, campaign budget, or creative breakdown...",
+      loginPlaceholder:
+        "Draft your ecommerce question here. Sign in when you are ready to run the cloud agent...",
       hint: "Enter to send, Shift + Enter for a new line",
       send: "Send",
       stop: "Stop",
       attachTitle: "Attach file",
-      agentTitle: "Switch ops agent",
-      agentName: "Commerce Ops Agent",
+      attachPrompt:
+        "Add the file or data constraints here, for example: product price, budget, inventory, target audience, current conversion rate, and platform account status.",
+      agentTitle: "Switch virtual employee mode",
+      agentName: "Commerce Agents",
       samples: {
         coffee: {
           label: "May Day coffee conversion",
@@ -802,22 +831,28 @@ const messages = {
       chips: {
         products: {
           label: "Coffee products",
-          title: "Later connects to product board and product knowledge.",
+          title: "Add product context to the question.",
+          prompt:
+            "Product context: coffee SKU group, price band, selling points, inventory, gross margin, product knowledge, and competitor clues should be considered.",
         },
         campaign: {
           label: "May Day campaign",
-          title: "Later connects to campaign planning and execution tracking.",
+          title: "Add campaign context to the question.",
+          prompt:
+            "Campaign context: May Day campaign goal, budget, schedule, creative direction, live room execution, and review metrics should be considered.",
         },
         platform: {
           label: "Douyin/Qianchuan data",
-          title: "Later connects to platform integrations and imported ads data.",
+          title: "Add platform data context to the question.",
+          prompt:
+            "Platform data context: Douyin live room funnel, Qianchuan click-through rate, conversion rate, ROI, audience package, budget pace, and anomaly signals should be considered.",
         },
       },
     },
     workbench: {
-      title: "Ops workspace",
-      expand: "Expand ops workspace",
-      collapse: "Collapse ops workspace",
+      title: "Virtual employee workspace",
+      expand: "Expand virtual employee workspace",
+      collapse: "Collapse virtual employee workspace",
       progress: "Progress",
       activity: "Run activity",
       record: "Run records",
@@ -836,7 +871,7 @@ const messages = {
         historyDescription:
           "The workspace only shows the current run; historical messages are not counted in progress.",
         waitingDescription:
-          "After you enter an operations goal, it will organize products, campaigns, platform data, alerts, and deliverables.",
+          "After you enter an ecommerce question, it will organize products, campaigns, platform data, alerts, and deliverables.",
         loopTitle: "01 | Operating loop",
         previewTitle: "Run preview",
         previewFile: "Operating loop preview",
@@ -856,8 +891,8 @@ const messages = {
       },
     },
     thread: {
-      agentName: "Commerce Ops Agent",
-      welcomeCapabilities: ["Break down goals", "Organize execution", "Store deliverables"],
+      agentName: "Commerce Agents",
+      welcomeCapabilities: ["Ecommerce Q&A", "Virtual employee collaboration", "Store deliverables"],
       receivingOutput: "Receiving business execution output",
       waitingEvents: "Waiting for workspace events",
       completedTasks: "{{completed}}/{{total}} tasks completed",
@@ -912,8 +947,8 @@ const messages = {
       steps: {
         readTarget: "Read target",
         planReady: "Execution plan generated",
-        readingRules: "Reading operating goal and business rules",
-        targetRules: "Operating goal and business rules",
+        readingRules: "Reading ecommerce question and business rules",
+        targetRules: "Ecommerce question and business rules",
         assignTask: "Assign task",
         taskRunning: "Task is running",
         waitingSync: "Waiting for execution status sync",
@@ -1102,6 +1137,10 @@ const messages = {
           nodeRework: "{{agent}} entered retry: {{instruction}}",
           nodePassed: "{{agent}} passed acceptance.",
           nodeFailed: "{{agent}} failed: {{reason}}",
+          workerStarted: "{{agent}} started processing.",
+          workerFinished: "{{agent}} finished processing.",
+          finished: "This answer finished.",
+          failed: "This answer failed: {{reason}}",
           graphFinished: "Execution graph finished and summary output started.",
         },
       },

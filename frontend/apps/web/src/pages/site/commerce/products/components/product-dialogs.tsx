@@ -184,7 +184,6 @@ function AssetDialog({ page }: { page: ProductsPageState }) {
     fileName: "",
     fileSize: "",
     mimeType: "",
-    objectKey: "",
     ["description"]: "",
   })
   const updateValue = (key: string, value: string) => {
@@ -227,7 +226,9 @@ function AssetDialog({ page }: { page: ProductsPageState }) {
               onChange={handleFile}
             />
           </label>
-          {assetFields(t).map((field) => (
+          {assetFields(t)
+            .filter((field) => field.key !== "objectKey")
+            .map((field) => (
             <label key={field.key} className="block space-y-1.5">
               <span className="text-sm font-medium">{field.label}</span>
               <Input
@@ -243,7 +244,7 @@ function AssetDialog({ page }: { page: ProductsPageState }) {
             {t("commerce.common.cancel")}
           </Button>
           <Button
-            disabled={!values.fileName.trim()}
+            disabled={!page.assetFile || !values.fileName.trim()}
             onClick={() => page.createAsset(values)}
           >
             {t("commerce.common.save")}
