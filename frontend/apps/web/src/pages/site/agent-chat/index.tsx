@@ -3,10 +3,19 @@ import { AgentChatComposer } from "./components/agent-chat-composer"
 import { AgentChatStatus } from "./components/agent-chat-status"
 import { AgentChatSwarmPanel } from "./components/agent-chat-swarm-panel"
 import { AgentChatThread } from "./components/agent-chat-thread"
+import { AgentChatProvider } from "./components/agent-chat-provider"
 import { CollapsedWorkbenchHandle } from "./components/collapsed-workbench-handle"
 import { useAgentChatContext } from "./context/use-agent-chat-context"
 
 export default function AgentChatPage() {
+  return (
+    <AgentChatProvider>
+      <AgentChatSurface />
+    </AgentChatProvider>
+  )
+}
+
+function AgentChatSurface() {
   const chat = useAgentChatContext()
   const [isProcessPanelOpen, setIsProcessPanelOpen] = useState(true)
 
@@ -14,7 +23,7 @@ export default function AgentChatPage() {
     "relative grid min-h-0 w-full flex-1 grid-cols-1 gap-3 p-2 sm:p-3",
     isProcessPanelOpen
       ? "overflow-hidden min-[1280px]:grid-cols-[minmax(31rem,0.52fr)_minmax(28rem,0.48fr)] min-[1440px]:grid-cols-[minmax(35rem,0.94fr)_minmax(38rem,1.06fr)] min-[1680px]:grid-cols-[minmax(39rem,0.92fr)_minmax(46rem,1.08fr)]"
-      : "overflow-hidden pr-14 min-[1280px]:pr-16",
+      : "overflow-hidden",
   ].join(" ")
 
   const chatPanelClassName = [

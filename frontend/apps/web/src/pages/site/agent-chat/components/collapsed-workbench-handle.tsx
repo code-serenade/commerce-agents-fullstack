@@ -1,4 +1,4 @@
-import { CheckCircle2, Loader2, MonitorCog, PanelRightOpen } from "lucide-react"
+import { CheckCircle2, Loader2, MonitorCog, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type { AgentRuntimeEvent } from "@/api"
 
@@ -23,42 +23,23 @@ export function CollapsedWorkbenchHandle({
     <button
       type="button"
       onClick={onExpand}
-      className="absolute inset-y-2 right-2 z-30 flex w-12 flex-col items-center justify-between overflow-hidden rounded-[1.35rem] border border-border bg-[#f6f6f3]/95 px-1.5 py-3 text-sm font-medium text-foreground shadow-xl shadow-black/10 backdrop-blur transition-colors hover:bg-[#eeeeeb] dark:bg-card/95 dark:hover:bg-muted min-[1280px]:right-3 min-[1280px]:w-14"
+      className="absolute right-3 top-3 z-30 flex size-12 items-center justify-center rounded-full border border-border bg-[#f6f6f3]/95 text-foreground shadow-xl shadow-black/10 backdrop-blur transition-colors hover:bg-[#eeeeeb] dark:bg-card/95 dark:hover:bg-muted min-[1280px]:right-4 min-[1280px]:top-4 min-[1500px]:size-14"
       title={label}
       aria-label={label}
     >
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground shadow-sm">
+      <span className="absolute -bottom-0.5 -left-0.5 flex size-5 items-center justify-center rounded-full border border-background bg-background shadow-sm min-[1500px]:size-6">
         {isStreaming ? (
-          <Loader2 className="size-4 animate-spin text-emerald-600" />
+          <Loader2 className="size-3.5 animate-spin text-emerald-600" />
         ) : isDone ? (
-          <CheckCircle2 className="size-4 text-emerald-600" />
+          <CheckCircle2 className="size-3.5 text-emerald-600" />
         ) : (
-          <MonitorCog className={hasFailure ? "size-4 text-destructive" : "size-4"} />
+          <MonitorCog className={hasFailure ? "size-3.5 text-destructive" : "size-3.5 text-muted-foreground"} />
         )}
       </span>
-      <span className="flex min-h-0 flex-1 items-center justify-center [writing-mode:vertical-rl] text-xs tracking-[0.18em]">
-        {t("agentChat.workbench.title")}
+      <span className="absolute -bottom-1 -right-1 rounded-full border border-background bg-background px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground shadow-sm">
+        {progress}
       </span>
-      <span className="grid gap-1">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <span
-            key={index}
-            className={`h-1 w-5 rounded-full ${
-              isStreaming && index < 2
-                ? "bg-emerald-500"
-                : isDone
-                  ? "bg-emerald-500"
-                  : hasFailure && index === 0
-                    ? "bg-destructive"
-                    : "bg-muted-foreground/20"
-            }`}
-          />
-        ))}
-      </span>
-      <span className="font-mono text-[11px] text-muted-foreground">{progress}</span>
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-background text-muted-foreground shadow-sm">
-        <PanelRightOpen className="size-4" />
-      </span>
+      <Plus className="size-5 text-muted-foreground min-[1500px]:size-6" />
     </button>
   )
 }

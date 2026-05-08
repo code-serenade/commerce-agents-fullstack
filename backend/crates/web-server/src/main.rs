@@ -41,8 +41,11 @@ async fn main() {
         .await
         .expect("DatabaseManager initialization failed");
     init_storage(settings.s3.clone()).expect("Storage initialization failed");
-    init_agent_manager(agent::api::AgentRuntimeCfg::from_llm(settings.llm.clone()))
-        .expect("Agent manager initialization failed");
+    init_agent_manager(agent::api::AgentRuntimeCfg {
+        llm: settings.llm.clone(),
+        default_llm: settings.default_llm.clone(),
+    })
+    .expect("Agent manager initialization failed");
     let jwt = Arc::new(
         fetch_verify_jwt()
             .await

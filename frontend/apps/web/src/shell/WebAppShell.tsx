@@ -90,7 +90,7 @@ export function WebAppShell({ children }: WebAppShellProps) {
     localStorage.removeItem("refreshToken")
     dispatch(resetAccess())
     dispatch(logout())
-    navigate("/home", { replace: true })
+    navigate("/commerce", { replace: true })
   }
 
   const isGuest = !user
@@ -134,6 +134,7 @@ export function WebAppShell({ children }: WebAppShellProps) {
         <TopBar
           title={topBarTitle}
           meta={t("web.shell.topbar.meta")}
+          showSidebarTrigger={false}
           trailing={trailing}
         />
       }

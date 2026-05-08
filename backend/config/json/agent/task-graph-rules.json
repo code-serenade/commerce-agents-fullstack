@@ -53,6 +53,13 @@
           "objective": "基于上游数据诊断，评估活动成本、引流SKU、投流预算和经营风险。"
         },
         {
+          "id": "douyin_ads",
+          "role": "douyin_ads",
+          "title": "千川投放优化",
+          "depends_on": ["data"],
+          "objective": "基于上游数据诊断，拆解巨量千川计划结构、人群包、出价预算、ROI止损线和直播/短视频承接。"
+        },
+        {
           "id": "creative",
           "role": "creative",
           "title": "创意产出",
@@ -63,8 +70,8 @@
           "id": "ops",
           "role": "ops",
           "title": "运营方案",
-          "depends_on": ["accounting", "creative"],
-          "objective": "整合财务和创意结果，形成可执行运营方案。"
+          "depends_on": ["accounting", "douyin_ads", "creative"],
+          "objective": "整合财务、千川投放和创意结果，形成可执行运营方案。"
         }
       ]
     }

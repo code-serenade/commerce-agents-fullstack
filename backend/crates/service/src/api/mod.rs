@@ -1,3 +1,14 @@
 pub mod admin;
 pub mod app;
+pub mod approval_audit;
+pub mod briefing_ops;
+pub mod campaign;
 pub mod conversation;
+pub mod package_governance;
+pub mod platform_connect;
+pub mod product;
+pub mod product_asset;
+pub mod product_competitor;
+pub mod product_knowledge;
+pub mod product_material;
+pub mod workspace;

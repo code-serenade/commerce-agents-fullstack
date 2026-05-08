@@ -249,6 +249,2480 @@
 }
 ```
 
+## 12. 查询我的商品列表
+
+- 方法：`GET`
+- 路径：`/api/app/products`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `status` | `active \| archived` | 否 | 不传时默认查询 `active` |
+| `keyword` | `string` | 否 | 匹配商品名称、平台、平台商品 ID、类目、品牌 |
+
+成功响应 `data`：`ProductResponse[]`。
+
+示例：
+
+```json
+[
+  {
+    "id": "product-uuid",
+    "userId": "user-uuid",
+    "name": "五一咖啡组合",
+    "platform": "douyin",
+    "externalId": "123",
+    "category": "coffee",
+    "brand": "Atlas",
+    "status": "active",
+    "description": "节日活动主推组合",
+    "price": "99.00",
+    "currency": "CNY",
+    "metadata": {},
+    "createdAt": "2026-05-07T00:00:00Z",
+    "updatedAt": "2026-05-07T00:00:00Z"
+  }
+]
+```
+
+## 13. 创建商品
+
+- 方法：`POST`
+- 路径：`/api/app/products`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "name": "五一咖啡组合",
+  "platform": "douyin",
+  "externalId": "123",
+  "category": "coffee",
+  "brand": "Atlas",
+  "description": "节日活动主推组合",
+  "price": "99.00",
+  "currency": "CNY",
+  "metadata": {}
+}
+```
+
+成功响应 `data`：`ProductResponse`。
+
+补充说明：
+
+- `name` 必填，最长 255 个字符
+- `price` 当前按字符串保存，避免前端浮点精度问题；后续如需财务级金额计算，可单独迁移为金额规范
+- `metadata` 不传时默认 `{}`，用于承接旧产品里的扩展业务字段
+
+## 14. 查询商品详情
+
+- 方法：`GET`
+- 路径：`/api/app/products/{productId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：
+
+```json
+{
+  "product": {
+    "id": "product-uuid",
+    "userId": "user-uuid",
+    "name": "五一咖啡组合",
+    "platform": "douyin",
+    "externalId": "123",
+    "category": "coffee",
+    "brand": "Atlas",
+    "status": "active",
+    "description": "节日活动主推组合",
+    "price": "99.00",
+    "currency": "CNY",
+    "metadata": {},
+    "createdAt": "2026-05-07T00:00:00Z",
+    "updatedAt": "2026-05-07T00:00:00Z"
+  }
+}
+```
+
+## 15. 更新商品
+
+- 方法：`PATCH`
+- 路径：`/api/app/products/{productId}`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "name": "五一咖啡组合升级版",
+  "platform": "douyin",
+  "externalId": "123",
+  "category": "coffee",
+  "brand": "Atlas",
+  "description": "更新后的商品说明",
+  "price": "109.00",
+  "currency": "CNY",
+  "metadata": {}
+}
+```
+
+成功响应 `data`：`ProductResponse`。
+
+补充说明：
+
+- 只能更新当前用户自己的商品
+- 省略字段表示保持原值
+- 字符串字段传空字符串时会按清空处理
+- 已归档商品不能更新
+
+## 16. 归档商品
+
+- 方法：`DELETE`
+- 路径：`/api/app/products/{productId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`null`。
+
+补充说明：
+
+- 当前实现为软删除，设置 `status = archived`
+- 默认商品列表不会返回已归档商品
+
+## 17. 查询商品看板指标
+
+- 方法：`GET`
+- 路径：`/api/app/products/dashboard`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：
+
+```json
+{
+  "total": 12,
+  "active": 10,
+  "archived": 2
+}
+```
+
+## 18. 查询商品知识列表
+
+- 方法：`GET`
+- 路径：`/api/app/products/{productId}/knowledge`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `status` | `active \| archived` | 否 | 不传时默认查询 `active` |
+| `contentType` | `string` | 否 | 例如 `text`、`spec`、`selling_point`、`competitive`、`faq` |
+| `keyword` | `string` | 否 | 匹配标题、内容、来源类型、来源 ID |
+
+成功响应 `data`：`ProductKnowledgeResponse[]`。
+
+示例：
+
+```json
+[
+  {
+    "id": "knowledge-uuid",
+    "userId": "user-uuid",
+    "productId": "product-uuid",
+    "title": "核心卖点",
+    "contentType": "selling_point",
+    "content": "轻量、防晒、通勤户外双场景。",
+    "sourceType": "manual",
+    "sourceId": null,
+    "confidence": 0.8,
+    "status": "active",
+    "metadata": {},
+    "createdAt": "2026-05-07T00:00:00Z",
+    "updatedAt": "2026-05-07T00:00:00Z"
+  }
+]
+```
+
+补充说明：
+
+- 只能查询当前用户自己的商品知识
+- 商品已归档时返回商品不存在
+- 默认按 `confidence`、`updatedAt` 倒序返回
+
+## 19. 创建商品知识
+
+- 方法：`POST`
+- 路径：`/api/app/products/{productId}/knowledge`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "title": "核心卖点",
+  "contentType": "selling_point",
+  "content": "轻量、防晒、通勤户外双场景。",
+  "sourceType": "manual",
+  "sourceId": null,
+  "confidence": 0.8,
+  "metadata": {}
+}
+```
+
+成功响应 `data`：`ProductKnowledgeResponse`。
+
+补充说明：
+
+- `content` 必填，最长 20000 个字符
+- `contentType` 不传时默认 `text`
+- `sourceType` 不传时默认 `manual`
+- `confidence` 不传时默认 `0.8`，有效范围为 `0..1`
+- `metadata` 不传时默认 `{}`
+
+## 20. 更新商品知识
+
+- 方法：`PATCH`
+- 路径：`/api/app/products/{productId}/knowledge/{knowledgeId}`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "title": "更新后的卖点",
+  "contentType": "selling_point",
+  "content": "更新后的知识内容",
+  "sourceType": "manual",
+  "sourceId": null,
+  "confidence": 0.9,
+  "metadata": {}
+}
+```
+
+成功响应 `data`：`ProductKnowledgeResponse`。
+
+补充说明：
+
+- 只能更新当前用户自己商品下的知识条目
+- 省略字段表示保持原值
+- `content` 传空字符串会返回请求非法
+- 已归档商品或已归档知识不能更新
+
+## 21. 归档商品知识
+
+- 方法：`DELETE`
+- 路径：`/api/app/products/{productId}/knowledge/{knowledgeId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`null`。
+
+补充说明：
+
+- 当前实现为软删除，设置 `status = archived`
+- 默认商品知识列表不会返回已归档知识
+
+## 22. 获取商品资产上传签名
+
+- 方法：`POST`
+- 路径：`/api/app/products/{productId}/assets/presign-upload`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "extension": "png",
+  "contentType": "image/png"
+}
+```
+
+成功响应 `data`：
+
+```json
+{
+  "method": "PUT",
+  "uploadUrl": "http://s3.example/private/products/user/product/assets/file.png",
+  "bucket": "private",
+  "objectKey": "products/user/product/assets/file.png",
+  "contentType": "image/png",
+  "expiresSecs": 600
+}
+```
+
+补充说明：
+
+- 商品资产固定使用 private bucket
+- 前端先使用 `uploadUrl` 上传对象，再调用资产登记接口写入业务表
+- `objectKey` 必须使用服务端签发的当前用户当前商品路径
+
+## 23. 查询商品资产列表
+
+- 方法：`GET`
+- 路径：`/api/app/products/{productId}/assets`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `status` | `active \| archived` | 否 | 不传时默认查询 `active` |
+| `assetType` | `docs \| images \| videos \| other` | 否 | 资产类型 |
+| `keyword` | `string` | 否 | 匹配文件名、对象 key、描述 |
+
+成功响应 `data`：`ProductAssetResponse[]`。
+
+## 24. 登记商品资产
+
+- 方法：`POST`
+- 路径：`/api/app/products/{productId}/assets`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "bucket": "private",
+  "objectKey": "products/user/product/assets/file.png",
+  "assetType": "images",
+  "fileName": "main.png",
+  "mimeType": "image/png",
+  "fileSize": 12345,
+  "description": "主图素材",
+  "metadata": {}
+}
+```
+
+成功响应 `data`：`ProductAssetResponse`。
+
+补充说明：
+
+- 服务端会校验 `objectKey` 是否位于当前用户当前商品路径下
+- `assetType` 不传时默认 `docs`
+- 只登记对象元数据，不直接接收文件二进制
+
+## 25. 获取商品资产下载签名
+
+- 方法：`GET`
+- 路径：`/api/app/products/{productId}/assets/{assetId}/access`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：
+
+```json
+{
+  "asset": {
+    "id": "asset-uuid",
+    "productId": "product-uuid",
+    "assetType": "images",
+    "fileName": "main.png",
+    "status": "active"
+  },
+  "method": "GET",
+  "downloadUrl": "http://s3.example/private/products/...",
+  "expiresSecs": 600
+}
+```
+
+## 26. 更新商品资产
+
+- 方法：`PATCH`
+- 路径：`/api/app/products/{productId}/assets/{assetId}`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "assetType": "docs",
+  "fileName": "卖点说明.md",
+  "mimeType": "text/markdown",
+  "fileSize": 2048,
+  "description": "更新后的说明",
+  "metadata": {}
+}
+```
+
+成功响应 `data`：`ProductAssetResponse`。
+
+## 27. 归档商品资产
+
+- 方法：`DELETE`
+- 路径：`/api/app/products/{productId}/assets/{assetId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`null`。
+
+补充说明：
+
+- 当前实现为软删除，设置 `status = archived`
+- 不在本接口直接删除对象存储里的物理文件
+
+## 28. 查询商品素材列表
+
+- 方法：`GET`
+- 路径：`/api/app/products/{productId}/materials`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `status` | `active \| archived` | 否 | 不传时默认查询 `active` |
+| `materialType` | `string` | 否 | 例如 `main_image`、`detail_page`、`copy`、`video_script` |
+| `keyword` | `string` | 否 | 匹配标题和内容 |
+
+成功响应 `data`：`ProductMaterialResponse[]`。
+
+## 29. 创建商品素材
+
+- 方法：`POST`
+- 路径：`/api/app/products/{productId}/materials`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "materialType": "copy",
+  "title": "五一活动文案",
+  "content": "限时活动文案内容",
+  "metadata": {}
+}
+```
+
+成功响应 `data`：`ProductMaterialResponse`。
+
+补充说明：
+
+- `materialType` 必填
+- `version` 由服务端按同商品同素材类型自动递增
+
+## 30. 查询商品素材详情
+
+- 方法：`GET`
+- 路径：`/api/app/products/{productId}/materials/{materialId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`ProductMaterialResponse`。
+
+## 31. 更新商品素材
+
+- 方法：`PATCH`
+- 路径：`/api/app/products/{productId}/materials/{materialId}`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "title": "更新后的活动文案",
+  "content": "更新后的内容",
+  "metadata": {}
+}
+```
+
+成功响应 `data`：`ProductMaterialResponse`。
+
+补充说明：
+
+- 更新 `content` 时 `version` 自动加 1
+- 仅更新 `title` 或 `metadata` 时版本号保持不变
+
+## 32. 归档商品素材
+
+- 方法：`DELETE`
+- 路径：`/api/app/products/{productId}/materials/{materialId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`null`。
+
+## 33. 查询同类型素材版本
+
+- 方法：`GET`
+- 路径：`/api/app/products/{productId}/materials/{materialId}/versions`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`ProductMaterialResponse[]`。
+
+补充说明：
+
+- 返回当前素材所属 `materialType` 在该商品下的所有版本，按 `version` 倒序
+
+## 34. 查询商品竞品列表
+
+- 方法：`GET`
+- 路径：`/api/app/products/{productId}/competitors`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `status` | `active \| archived` | 否 | 不传时默认查询 `active` |
+| `platform` | `string` | 否 | 竞品所在平台 |
+| `keyword` | `string` | 否 | 匹配竞品名称、平台、URL、月销量、备注 |
+
+成功响应 `data`：`ProductCompetitorResponse[]`。
+
+示例：
+
+```json
+[
+  {
+    "id": "competitor-uuid",
+    "userId": "user-uuid",
+    "productId": "product-uuid",
+    "name": "同类咖啡组合",
+    "platform": "douyin",
+    "url": "https://example.com/item",
+    "price": 89.9,
+    "rating": 4.8,
+    "monthlySales": "1000+",
+    "notes": "主打低价组合",
+    "searchResults": {},
+    "status": "active",
+    "metadata": {},
+    "lastSearchedAt": null,
+    "createdAt": "2026-05-07T00:00:00Z",
+    "updatedAt": "2026-05-07T00:00:00Z"
+  }
+]
+```
+
+## 35. 创建商品竞品
+
+- 方法：`POST`
+- 路径：`/api/app/products/{productId}/competitors`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "name": "同类咖啡组合",
+  "platform": "douyin",
+  "url": "https://example.com/item",
+  "price": 89.9,
+  "rating": 4.8,
+  "monthlySales": "1000+",
+  "notes": "主打低价组合",
+  "searchResults": {},
+  "metadata": {},
+  "lastSearchedAt": null
+}
+```
+
+成功响应 `data`：`ProductCompetitorResponse`。
+
+补充说明：
+
+- `name` 必填，最长 255 个字符
+- `searchResults` 用于承接旧产品自动搜索返回摘要；本阶段不触发自动搜索
+- `metadata` 不传时默认 `{}`
+
+## 36. 查询商品竞品详情
+
+- 方法：`GET`
+- 路径：`/api/app/products/{productId}/competitors/{competitorId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`ProductCompetitorResponse`。
+
+## 37. 更新商品竞品
+
+- 方法：`PATCH`
+- 路径：`/api/app/products/{productId}/competitors/{competitorId}`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "name": "更新后的竞品名称",
+  "platform": "douyin",
+  "url": "https://example.com/item",
+  "price": 79.9,
+  "rating": 4.7,
+  "monthlySales": "2000+",
+  "notes": "价格下降",
+  "searchResults": {},
+  "metadata": {},
+  "lastSearchedAt": "2026-05-07T00:00:00Z"
+}
+```
+
+成功响应 `data`：`ProductCompetitorResponse`。
+
+补充说明：
+
+- 只能更新当前用户自己商品下的竞品
+- 省略字段表示保持原值
+- 已归档商品或已归档竞品不能更新
+
+## 38. 归档商品竞品
+
+- 方法：`DELETE`
+- 路径：`/api/app/products/{productId}/competitors/{competitorId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`null`。
+
+补充说明：
+
+- 当前实现为软删除，设置 `status = archived`
+- 默认竞品列表不会返回已归档竞品
+
+## 39. 查询商品竞品变化历史
+
+- 方法：`GET`
+- 路径：`/api/app/products/{productId}/competitors/changes`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `competitorId` | `uuid` | 否 | 只看某个竞品 |
+| `changeType` | `string` | 否 | 例如 `price_drop`、`price_rise`、`rating_change`、`manual_note` |
+| `limit` | `number` | 否 | 默认 100，最大 500 |
+
+成功响应 `data`：`CompetitorChangeResponse[]`。
+
+示例：
+
+```json
+[
+  {
+    "id": "change-uuid",
+    "userId": "user-uuid",
+    "productId": "product-uuid",
+    "competitorId": "competitor-uuid",
+    "competitorName": "同类咖啡组合",
+    "competitorPlatform": "douyin",
+    "changeType": "price_drop",
+    "oldValue": "89.9",
+    "newValue": "79.9",
+    "summary": "竞品价格下降",
+    "sourceType": "manual",
+    "metadata": {},
+    "detectedAt": "2026-05-07T00:00:00Z",
+    "createdAt": "2026-05-07T00:00:00Z"
+  }
+]
+```
+
+## 40. 创建竞品变化记录
+
+- 方法：`POST`
+- 路径：`/api/app/products/{productId}/competitors/{competitorId}/changes`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "changeType": "price_drop",
+  "oldValue": "89.9",
+  "newValue": "79.9",
+  "summary": "竞品价格下降",
+  "sourceType": "manual",
+  "metadata": {},
+  "detectedAt": "2026-05-07T00:00:00Z"
+}
+```
+
+成功响应 `data`：`CompetitorChangeResponse`。
+
+补充说明：
+
+- 本阶段提供手动记录能力，不调用 Agent 或搜索技能
+- `sourceType` 不传时默认 `manual`
+- `detectedAt` 不传时由数据库使用当前时间
+
+## 41. 查询营销活动列表
+
+- 方法：`GET`
+- 路径：`/api/app/campaigns`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `status` | `draft \| active \| paused \| ended \| archived` | 否 | 活动状态 |
+| `productId` | `uuid` | 否 | 只查询某个商品关联的活动 |
+| `campaignType` | `string` | 否 | 例如 `promotion`、`launch`、`seasonal` |
+| `keyword` | `string` | 否 | 匹配活动名称、类型、描述 |
+| `page` | `number` | 否 | 默认 1 |
+| `pageSize` | `number` | 否 | 默认 20，最大 100 |
+
+成功响应 `data`：
+
+```json
+{
+  "campaigns": [
+    {
+      "id": "campaign-uuid",
+      "userId": "user-uuid",
+      "productId": "product-uuid",
+      "name": "新品上市活动",
+      "campaignType": "launch",
+      "description": "新品首发推广",
+      "budget": 5000,
+      "startDate": "2026-05-01",
+      "endDate": "2026-05-31",
+      "status": "draft",
+      "metadata": {},
+      "output": {},
+      "actionMetadata": {},
+      "createdAt": "2026-05-07T00:00:00Z",
+      "updatedAt": "2026-05-07T00:00:00Z"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+## 42. 创建营销活动
+
+- 方法：`POST`
+- 路径：`/api/app/campaigns`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "productId": "product-uuid",
+  "name": "新品上市活动",
+  "campaignType": "launch",
+  "description": "新品首发推广",
+  "budget": 5000,
+  "startDate": "2026-05-01",
+  "endDate": "2026-05-31",
+  "status": "draft",
+  "metadata": {},
+  "output": {},
+  "actionMetadata": {}
+}
+```
+
+成功响应 `data`：`CampaignResponse`。
+
+补充说明：
+
+- `name` 必填，最长 255 个字符
+- `productId` 可为空；不为空时必须属于当前用户且商品未归档
+- `status` 不传时默认 `draft`
+- `metadata`、`output`、`actionMetadata` 不传时默认 `{}`
+- 本阶段只存储活动记录、生成结果和建议动作，不触发 Agent 自动生成或平台执行
+
+## 43. 查询营销活动详情
+
+- 方法：`GET`
+- 路径：`/api/app/campaigns/{campaignId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`CampaignResponse`。
+
+## 44. 更新营销活动
+
+- 方法：`PATCH`
+- 路径：`/api/app/campaigns/{campaignId}`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "productId": "product-uuid",
+  "name": "更新后的活动名称",
+  "campaignType": "promotion",
+  "description": "更新后的活动描述",
+  "budget": 8000,
+  "startDate": "2026-06-01",
+  "endDate": "2026-06-30",
+  "status": "active",
+  "metadata": {},
+  "output": {},
+  "actionMetadata": {}
+}
+```
+
+成功响应 `data`：`CampaignResponse`。
+
+补充说明：
+
+- 只能更新当前用户自己的活动
+- 省略字段表示保持原值
+- 如更新 `productId`，新商品必须属于当前用户且未归档
+
+## 45. 归档营销活动
+
+- 方法：`DELETE`
+- 路径：`/api/app/campaigns/{campaignId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`null`。
+
+补充说明：
+
+- 当前实现为软删除，设置 `status = archived`
+
+## 46. 查询工作区列表
+
+- 方法：`GET`
+- 路径：`/api/app/workspaces`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `status` | `active \| archived` | 否 | 工作区状态 |
+| `productId` | `uuid` | 否 | 只查询某个商品关联的工作区 |
+| `campaignId` | `uuid` | 否 | 只查询某个活动关联的工作区 |
+| `workspaceType` | `string` | 否 | 工作区类型，例如 `general`、`campaign` |
+| `keyword` | `string` | 否 | 匹配标题或类型 |
+| `page` | `number` | 否 | 默认 1 |
+| `pageSize` | `number` | 否 | 默认 20，最大 100 |
+
+成功响应 `data`：
+
+```json
+{
+  "workspaces": [
+    {
+      "id": "workspace-uuid",
+      "userId": "user-uuid",
+      "productId": "product-uuid",
+      "campaignId": "campaign-uuid",
+      "title": "新品上市执行工作区",
+      "workspaceType": "campaign",
+      "status": "active",
+      "config": {},
+      "createdAt": "2026-05-07T00:00:00Z",
+      "updatedAt": "2026-05-07T00:00:00Z"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+## 47. 创建工作区
+
+- 方法：`POST`
+- 路径：`/api/app/workspaces`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "productId": "product-uuid",
+  "campaignId": "campaign-uuid",
+  "title": "新品上市执行工作区",
+  "workspaceType": "campaign",
+  "config": {}
+}
+```
+
+成功响应 `data`：`WorkspaceResponse`。
+
+补充说明：
+
+- `title` 必填，最长 255 个字符
+- `productId` 可为空；不为空时必须属于当前用户且商品未归档
+- `campaignId` 可为空；不为空时必须属于当前用户
+- `workspaceType` 不传时默认 `general`
+- `config` 不传时默认 `{}`
+
+## 48. 查询工作区详情
+
+- 方法：`GET`
+- 路径：`/api/app/workspaces/{workspaceId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`WorkspaceResponse`。
+
+## 49. 更新工作区
+
+- 方法：`PATCH`
+- 路径：`/api/app/workspaces/{workspaceId}`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "productId": "product-uuid",
+  "campaignId": "campaign-uuid",
+  "title": "更新后的工作区标题",
+  "workspaceType": "campaign",
+  "status": "active",
+  "config": {}
+}
+```
+
+成功响应 `data`：`WorkspaceResponse`。
+
+补充说明：
+
+- 只能更新当前用户自己的工作区
+- 省略字段表示保持原值
+- 如更新 `productId` 或 `campaignId`，目标资源必须属于当前用户
+
+## 50. 归档工作区
+
+- 方法：`DELETE`
+- 路径：`/api/app/workspaces/{workspaceId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`null`。
+
+补充说明：
+
+- 当前实现为软删除，设置 `status = archived`
+
+## 51. 查询工作区任务列表
+
+- 方法：`GET`
+- 路径：`/api/app/workspaces/{workspaceId}/tasks`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `status` | `pending \| in_progress \| done \| blocked \| cancelled \| archived` | 否 | 任务状态 |
+| `ownerRole` | `string` | 否 | 负责人角色 |
+| `keyword` | `string` | 否 | 匹配标题或描述 |
+| `page` | `number` | 否 | 默认 1 |
+| `pageSize` | `number` | 否 | 默认 20，最大 100 |
+
+成功响应 `data`：
+
+```json
+{
+  "tasks": [
+    {
+      "id": "task-uuid",
+      "workspaceId": "workspace-uuid",
+      "userId": "user-uuid",
+      "title": "整理投放素材",
+      "description": "准备首轮投放素材",
+      "ownerRole": "planner",
+      "status": "pending",
+      "priority": 3,
+      "dependsOn": [],
+      "acceptanceCriteria": "素材通过人工确认",
+      "result": null,
+      "metadata": {},
+      "createdAt": "2026-05-07T00:00:00Z",
+      "updatedAt": "2026-05-07T00:00:00Z"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+## 52. 创建工作区任务
+
+- 方法：`POST`
+- 路径：`/api/app/workspaces/{workspaceId}/tasks`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "title": "整理投放素材",
+  "description": "准备首轮投放素材",
+  "ownerRole": "planner",
+  "status": "pending",
+  "priority": 3,
+  "dependsOn": [],
+  "acceptanceCriteria": "素材通过人工确认",
+  "result": null,
+  "metadata": {}
+}
+```
+
+成功响应 `data`：`WorkspaceTaskResponse`。
+
+补充说明：
+
+- `title` 必填
+- `status` 不传时默认 `pending`
+- `priority` 范围为 0 到 10，不传时默认 0
+- `dependsOn` 不传时默认 `[]`
+- 本阶段只存储任务记录，不触发 Agent 执行
+
+## 53. 查询工作区任务详情
+
+- 方法：`GET`
+- 路径：`/api/app/workspaces/{workspaceId}/tasks/{taskId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`WorkspaceTaskResponse`。
+
+## 54. 更新工作区任务
+
+- 方法：`PATCH`
+- 路径：`/api/app/workspaces/{workspaceId}/tasks/{taskId}`
+- 鉴权：有效 App 用户 JWT
+
+请求体字段同创建任务，所有字段均可省略。
+
+成功响应 `data`：`WorkspaceTaskResponse`。
+
+## 55. 归档工作区任务
+
+- 方法：`DELETE`
+- 路径：`/api/app/workspaces/{workspaceId}/tasks/{taskId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`null`。
+
+补充说明：
+
+- 当前实现为软删除，设置 `status = archived`
+
+## 56. 查询工作区运行记录列表
+
+- 方法：`GET`
+- 路径：`/api/app/workspaces/{workspaceId}/runs`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `status` | `planned \| running \| succeeded \| failed \| cancelled \| archived` | 否 | 运行状态 |
+| `source` | `string` | 否 | 来源，例如 `manual`、`agent_output` |
+| `keyword` | `string` | 否 | 匹配目标、来源或摘要 |
+| `page` | `number` | 否 | 默认 1 |
+| `pageSize` | `number` | 否 | 默认 20，最大 100 |
+
+成功响应 `data`：
+
+```json
+{
+  "runs": [
+    {
+      "id": "run-uuid",
+      "workspaceId": "workspace-uuid",
+      "userId": "user-uuid",
+      "goal": "完成新品上市投放准备",
+      "requirements": [],
+      "status": "planned",
+      "source": "manual",
+      "summary": null,
+      "report": {},
+      "metadata": {},
+      "createdAt": "2026-05-07T00:00:00Z",
+      "updatedAt": "2026-05-07T00:00:00Z"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+## 57. 创建工作区运行记录
+
+- 方法：`POST`
+- 路径：`/api/app/workspaces/{workspaceId}/runs`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "goal": "完成新品上市投放准备",
+  "requirements": [],
+  "status": "planned",
+  "source": "manual",
+  "summary": null,
+  "report": {},
+  "metadata": {}
+}
+```
+
+成功响应 `data`：`WorkspaceRunResponse`。
+
+补充说明：
+
+- `goal` 必填
+- `status` 不传时默认 `planned`
+- `source` 不传时默认 `manual`
+- `requirements` 不传时默认 `[]`
+- `report` 和 `metadata` 不传时默认 `{}`
+- 本阶段不创建 Agent TaskGraph，只保存运行/报告记录
+
+## 58. 查询工作区运行记录详情
+
+- 方法：`GET`
+- 路径：`/api/app/workspaces/{workspaceId}/runs/{runId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`WorkspaceRunResponse`。
+
+## 59. 更新工作区运行记录
+
+- 方法：`PATCH`
+- 路径：`/api/app/workspaces/{workspaceId}/runs/{runId}`
+- 鉴权：有效 App 用户 JWT
+
+请求体字段同创建运行记录，所有字段均可省略。
+
+成功响应 `data`：`WorkspaceRunResponse`。
+
+## 60. 查询运行任务快照列表
+
+- 方法：`GET`
+- 路径：`/api/app/workspaces/{workspaceId}/runs/{runId}/tasks`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `status` | `pending \| running \| succeeded \| failed \| skipped \| cancelled` | 否 | 运行任务状态 |
+
+成功响应 `data`：`WorkspaceRunTaskResponse[]`。
+
+## 61. 创建运行任务快照
+
+- 方法：`POST`
+- 路径：`/api/app/workspaces/{workspaceId}/runs/{runId}/tasks`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "workspaceTaskId": "task-uuid",
+  "seq": 1,
+  "ownerRole": "planner",
+  "status": "pending",
+  "attempts": 0,
+  "acceptanceScore": 0,
+  "acceptancePassed": false,
+  "acceptanceNotes": null,
+  "executionNotes": null,
+  "metadata": {}
+}
+```
+
+成功响应 `data`：
+
+```json
+{
+  "id": "run-task-uuid",
+  "runId": "run-uuid",
+  "workspaceId": "workspace-uuid",
+  "workspaceTaskId": "task-uuid",
+  "userId": "user-uuid",
+  "seq": 1,
+  "ownerRole": "planner",
+  "status": "pending",
+  "attempts": 0,
+  "acceptanceScore": 0,
+  "acceptancePassed": false,
+  "acceptanceNotes": null,
+  "executionNotes": null,
+  "metadata": {},
+  "createdAt": "2026-05-07T00:00:00Z",
+  "updatedAt": "2026-05-07T00:00:00Z"
+}
+```
+
+## 62. 更新运行任务快照
+
+- 方法：`PATCH`
+- 路径：`/api/app/workspaces/{workspaceId}/runs/{runId}/tasks/{runTaskId}`
+- 鉴权：有效 App 用户 JWT
+
+请求体可包含 `seq`、`ownerRole`、`status`、`attempts`、`acceptanceScore`、`acceptancePassed`、`acceptanceNotes`、`executionNotes`、`metadata`，所有字段均可省略。
+
+成功响应 `data`：`WorkspaceRunTaskResponse`。
+
+## 63. 查询执行建议队列
+
+- 方法：`GET`
+- 路径：`/api/app/execution-queue`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `workspaceId` | `uuid` | 否 | 只查询某个工作区 |
+| `runId` | `uuid` | 否 | 只查询某个运行记录 |
+| `status` | `pending \| approved \| rejected \| executed \| failed \| cancelled` | 否 | 建议状态 |
+| `actionType` | `string` | 否 | 动作类型 |
+| `page` | `number` | 否 | 默认 1 |
+| `pageSize` | `number` | 否 | 默认 20，最大 100 |
+
+成功响应 `data`：
+
+```json
+{
+  "items": [
+    {
+      "id": "execution-uuid",
+      "userId": "user-uuid",
+      "workspaceId": "workspace-uuid",
+      "runId": "run-uuid",
+      "workspaceTaskId": "task-uuid",
+      "actionType": "publish_campaign",
+      "description": "建议发布新品上市活动",
+      "platform": "douyin",
+      "payload": {},
+      "expectedImpact": "提升新品曝光",
+      "status": "pending",
+      "decisionReason": null,
+      "result": {},
+      "createdAt": "2026-05-07T00:00:00Z",
+      "decidedAt": null
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+## 64. 创建执行建议
+
+- 方法：`POST`
+- 路径：`/api/app/execution-queue`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "workspaceId": "workspace-uuid",
+  "runId": "run-uuid",
+  "workspaceTaskId": "task-uuid",
+  "actionType": "publish_campaign",
+  "description": "建议发布新品上市活动",
+  "platform": "douyin",
+  "payload": {},
+  "expectedImpact": "提升新品曝光"
+}
+```
+
+成功响应 `data`：`ExecutionQueueResponse`。
+
+补充说明：
+
+- `actionType` 和 `description` 必填
+- `workspaceId`、`runId`、`workspaceTaskId` 可为空
+- 如果传 `runId` 或 `workspaceTaskId`，必须同时传 `workspaceId`
+- 当前阶段只记录建议和审批结果，不执行真实平台动作
+
+## 65. 查询执行建议详情
+
+- 方法：`GET`
+- 路径：`/api/app/execution-queue/{executionId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`ExecutionQueueResponse`。
+
+## 66. 批准执行建议
+
+- 方法：`POST`
+- 路径：`/api/app/execution-queue/{executionId}/approve`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "reason": "人工确认可以执行",
+  "result": {}
+}
+```
+
+成功响应 `data`：`ExecutionQueueResponse`。
+
+补充说明：
+
+- 只有 `pending` 状态的建议可以批准
+- 批准后设置 `status = approved`，并写入 `decidedAt`
+- 批准后会写入一条 `execution_queue.approve` 审计日志
+- 本阶段批准不等于真实执行平台动作，也不会调用 Agent 工具重放
+
+## 67. 拒绝执行建议
+
+- 方法：`POST`
+- 路径：`/api/app/execution-queue/{executionId}/reject`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "reason": "预算或素材未确认",
+  "result": {}
+}
+```
+
+成功响应 `data`：`ExecutionQueueResponse`。
+
+补充说明：
+
+- 只有 `pending` 状态的建议可以拒绝
+- 拒绝后设置 `status = rejected`，并写入 `decidedAt`
+- 拒绝后会写入一条 `execution_queue.reject` 审计日志
+
+## 68. 查询支持的平台列表
+
+- 方法：`GET`
+- 路径：`/api/app/platform-connect/platforms`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：
+
+```json
+{
+  "platforms": [
+    {
+      "platform": "douyin",
+      "display": "抖音电商",
+      "requiredFields": [
+        {
+          "key": "app_key",
+          "label": "App ID",
+          "secret": false,
+          "required": true
+        }
+      ],
+      "docUrl": "https://op.jinritemai.com/"
+    }
+  ]
+}
+```
+
+## 69. 查询平台连接列表
+
+- 方法：`GET`
+- 路径：`/api/app/platform-connect/connections`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `platform` | `taobao \| jd \| pdd \| douyin` | 否 | 平台 |
+| `enabled` | `boolean` | 否 | 是否启用 |
+
+成功响应 `data`：
+
+```json
+{
+  "connections": [
+    {
+      "id": "connection-uuid",
+      "userId": "user-uuid",
+      "platform": "douyin",
+      "display": "抖音电商",
+      "appKey": "abcd****wxyz",
+      "appSecret": "****",
+      "accessToken": "****",
+      "refreshToken": null,
+      "tokenExpiresAt": null,
+      "shopId": "shop-001",
+      "shopName": "示例店铺",
+      "enabled": true,
+      "status": "configured",
+      "lastTestedAt": null,
+      "testResult": {},
+      "lastSyncedAt": null,
+      "syncStatus": "idle",
+      "syncMessage": null,
+      "extra": {},
+      "createdAt": "2026-05-07T00:00:00Z",
+      "updatedAt": "2026-05-07T00:00:00Z"
+    }
+  ]
+}
+```
+
+补充说明：
+
+- 敏感字段只返回脱敏值
+- 本阶段只保存连接记录，不验证真实平台凭证
+
+## 70. 保存平台连接
+
+- 方法：`POST`
+- 路径：`/api/app/platform-connect/connections`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "platform": "douyin",
+  "appKey": "app-id",
+  "appSecret": "app-secret",
+  "accessToken": "access-token",
+  "refreshToken": "refresh-token",
+  "tokenExpiresAt": null,
+  "shopId": "shop-001",
+  "shopName": "示例店铺",
+  "enabled": true,
+  "testResult": {},
+  "lastSyncedAt": null,
+  "syncStatus": "idle",
+  "syncMessage": null,
+  "extra": {}
+}
+```
+
+成功响应 `data`：`PlatformConnectionResponse`。
+
+补充说明：
+
+- `platform` 必须是 `taobao`、`jd`、`pdd`、`douyin`
+- 同一用户同一平台重复保存时更新原连接
+- `syncStatus` 可为 `idle`、`syncing`、`success`、`failed`
+
+## 71. 查询平台连接详情
+
+- 方法：`GET`
+- 路径：`/api/app/platform-connect/connections/{connectionId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`PlatformConnectionResponse`。
+
+## 72. 更新平台连接
+
+- 方法：`PATCH`
+- 路径：`/api/app/platform-connect/connections/{connectionId}`
+- 鉴权：有效 App 用户 JWT
+
+请求体字段同保存平台连接，所有字段均可省略。
+
+成功响应 `data`：`PlatformConnectionResponse`。
+
+## 73. 禁用平台连接
+
+- 方法：`DELETE`
+- 路径：`/api/app/platform-connect/connections/{connectionId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`null`。
+
+补充说明：
+
+- 当前实现为软禁用，设置 `enabled = false`、`status = disabled`
+
+## 74. 查询支持的触达渠道列表
+
+- 方法：`GET`
+- 路径：`/api/app/platform-connect/channels`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：
+
+```json
+{
+  "channels": [
+    {
+      "channel": "wecom",
+      "display": "企业微信机器人",
+      "requiredFields": [
+        {
+          "key": "webhook_url",
+          "label": "Webhook URL",
+          "secret": false,
+          "required": true
+        }
+      ],
+      "docUrl": "https://developer.work.weixin.qq.com/document/path/91770"
+    }
+  ]
+}
+```
+
+## 75. 查询触达渠道连接列表
+
+- 方法：`GET`
+- 路径：`/api/app/platform-connect/channels/connections`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `channel` | `wecom \| feishu \| telegram \| discord` | 否 | 触达渠道 |
+| `enabled` | `boolean` | 否 | 是否启用 |
+
+成功响应 `data`：`ChannelConnectionListResponse`。
+
+## 76. 保存触达渠道连接
+
+- 方法：`POST`
+- 路径：`/api/app/platform-connect/channels/connections`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "channel": "wecom",
+  "webhookUrl": "https://example.com/webhook",
+  "botToken": null,
+  "chatId": null,
+  "secret": "secret",
+  "extraCredentials": {},
+  "enabled": true,
+  "lastError": null
+}
+```
+
+成功响应 `data`：`ChannelConnectionResponse`。
+
+补充说明：
+
+- `channel` 必须是 `wecom`、`feishu`、`telegram`、`discord`
+- 同一用户同一渠道重复保存时更新原连接
+- 本阶段只保存连接记录，不发送真实消息
+
+## 77. 查询触达渠道连接详情
+
+- 方法：`GET`
+- 路径：`/api/app/platform-connect/channels/connections/{connectionId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`ChannelConnectionResponse`。
+
+## 78. 更新触达渠道连接
+
+- 方法：`PATCH`
+- 路径：`/api/app/platform-connect/channels/connections/{connectionId}`
+- 鉴权：有效 App 用户 JWT
+
+请求体字段同保存触达渠道连接，所有字段均可省略。
+
+成功响应 `data`：`ChannelConnectionResponse`。
+
+## 79. 禁用触达渠道连接
+
+- 方法：`DELETE`
+- 路径：`/api/app/platform-connect/channels/connections/{connectionId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`null`。
+
+补充说明：
+
+- 当前实现为软禁用，设置 `enabled = false`、`status = disabled`
+
+## 80. 查询本地店铺指标
+
+- 方法：`GET`
+- 路径：`/api/app/platform-connect/metrics`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `platform` | `string` | 否 | 平台 |
+| `metricKey` | `string` | 否 | 指标键，例如 `gmv`、`orders`、`uv`、`ad_spend` |
+| `metricDateFrom` | `string` | 否 | 起始日期，格式 `YYYY-MM-DD` |
+| `metricDateTo` | `string` | 否 | 结束日期，格式 `YYYY-MM-DD` |
+| `source` | `string` | 否 | 来源，例如 `import` |
+| `page` | `number` | 否 | 默认 1 |
+| `pageSize` | `number` | 否 | 默认 20，最大 100 |
+
+成功响应 `data`：
+
+```json
+{
+  "metrics": [
+    {
+      "id": "metric-uuid",
+      "userId": "user-uuid",
+      "platform": "douyin",
+      "metricDate": "2026-05-07",
+      "metricKey": "gmv",
+      "metricValue": 1000,
+      "dimensionKey": "",
+      "dimensionValue": "",
+      "source": "import",
+      "createdAt": "2026-05-07T00:00:00Z"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+## 81. 保存本地店铺指标
+
+- 方法：`POST`
+- 路径：`/api/app/platform-connect/metrics`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "platform": "douyin",
+  "metricDate": "2026-05-07",
+  "metricKey": "gmv",
+  "metricValue": 1000,
+  "dimensionKey": "",
+  "dimensionValue": "",
+  "source": "import"
+}
+```
+
+成功响应 `data`：`StoreMetricResponse`。
+
+补充说明：
+
+- 同一用户下 `(platform, metricDate, metricKey, dimensionKey, dimensionValue)` 重复时更新指标值
+- 本阶段指标来自本地写入或外部同步后的入库，不直接拉取平台 API
+
+## 82. 查询平台同步状态
+
+- 方法：`GET`
+- 路径：`/api/app/platform-connect/sync-status`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：
+
+```json
+{
+  "platforms": [
+    {
+      "platform": "douyin",
+      "display": "抖音电商",
+      "connected": true,
+      "enabled": true,
+      "syncStatus": "idle",
+      "syncMessage": null,
+      "lastTestedAt": null,
+      "lastSyncedAt": null,
+      "latestMetricDate": "2026-05-07"
+    }
+  ]
+}
+```
+
+## 83. 查询平台只读汇总
+
+- 方法：`GET`
+- 路径：`/api/app/platform-connect/summary`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：
+
+```json
+{
+  "platforms": [
+    {
+      "platform": "douyin",
+      "display": "抖音电商",
+      "connected": true,
+      "enabled": true,
+      "lastTestedAt": null,
+      "gmv7d": 1000,
+      "orders7d": 20,
+      "gmv30d": 5000,
+      "orders30d": 90,
+      "uv30d": 10000,
+      "adRoi30d": 2.5
+    }
+  ]
+}
+```
+
+补充说明：
+
+- 汇总只读取 `store_metrics` 本地指标
+- `adRoi30d = gmv_30d / ad_spend_30d`，没有广告花费时为 `null`
+
+## 84. 查询工具审批请求列表
+
+- 方法：`GET`
+- 路径：`/api/app/approvals/tool-requests`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `workspaceId` | `uuid` | 否 | 只查询某个工作区 |
+| `runId` | `uuid` | 否 | 只查询某个运行记录，传入时必须同时传 `workspaceId` |
+| `status` | `pending \| approved \| executed \| failed \| rejected \| cancelled` | 否 | 审批状态 |
+| `skillName` | `string` | 否 | 工具或能力名称 |
+| `riskLevel` | `string` | 否 | 风险等级，例如 `L1`、`L2` |
+| `page` | `number` | 否 | 默认 1 |
+| `pageSize` | `number` | 否 | 默认 20，最大 100 |
+
+成功响应 `data`：
+
+```json
+{
+  "items": [
+    {
+      "id": "approval-uuid",
+      "userId": "user-uuid",
+      "workspaceId": "workspace-uuid",
+      "runId": "run-uuid",
+      "conversationId": "conversation-uuid",
+      "requestRole": "operator",
+      "skillName": "publish_campaign",
+      "toolCallId": "tool-call-001",
+      "riskLevel": "L2",
+      "args": {},
+      "status": "pending",
+      "reason": "发布前需要人工确认",
+      "actionKey": "publish:campaign-001",
+      "result": {},
+      "approvedBy": null,
+      "approvedAt": null,
+      "executedAt": null,
+      "createdAt": "2026-05-07T00:00:00Z",
+      "updatedAt": "2026-05-07T00:00:00Z"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+## 85. 创建工具审批请求
+
+- 方法：`POST`
+- 路径：`/api/app/approvals/tool-requests`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "workspaceId": "workspace-uuid",
+  "runId": "run-uuid",
+  "conversationId": "conversation-uuid",
+  "requestRole": "operator",
+  "skillName": "publish_campaign",
+  "toolCallId": "tool-call-001",
+  "riskLevel": "L2",
+  "args": {},
+  "actionKey": "publish:campaign-001",
+  "reason": "发布前需要人工确认"
+}
+```
+
+成功响应 `data`：`ToolApprovalResponse`。
+
+补充说明：
+
+- `skillName` 必填
+- `riskLevel` 不传时默认 `L1`
+- `args` 不传时默认 `{}`
+- `actionKey` 不为空时会做去重；同一用户重复提交返回原审批记录
+- 当前阶段只创建审批记录，不暂停 Agent，也不执行真实工具
+
+## 86. 查询工具审批请求详情
+
+- 方法：`GET`
+- 路径：`/api/app/approvals/tool-requests/{approvalId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`ToolApprovalResponse`。
+
+## 87. 通过工具审批请求
+
+- 方法：`POST`
+- 路径：`/api/app/approvals/tool-requests/{approvalId}/approve`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "reason": "人工确认可以继续",
+  "result": {}
+}
+```
+
+成功响应 `data`：`ToolApprovalResponse`。
+
+补充说明：
+
+- 只有 `pending` 状态的审批请求可以通过
+- 通过后设置 `status = approved`，写入 `approvedBy`、`approvedAt`，并写入 `tool_approval.approve` 审计日志
+- 当前阶段通过不等于真实执行工具，也不会调用 Agent 工具重放
+
+## 88. 拒绝工具审批请求
+
+- 方法：`POST`
+- 路径：`/api/app/approvals/tool-requests/{approvalId}/reject`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "reason": "素材或预算未确认",
+  "result": {}
+}
+```
+
+成功响应 `data`：`ToolApprovalResponse`。
+
+补充说明：
+
+- 只有 `pending` 状态的审批请求可以拒绝
+- 拒绝后设置 `status = rejected`，写入 `approvedBy`、`approvedAt`，并写入 `tool_approval.reject` 审计日志
+
+## 89. 查询审计日志
+
+- 方法：`GET`
+- 路径：`/api/app/approvals/audit-logs`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `actorUserId` | `uuid` | 否 | 操作人用户 ID |
+| `workspaceId` | `uuid` | 否 | 工作区 ID |
+| `runId` | `uuid` | 否 | 运行记录 ID，传入时必须同时传 `workspaceId` |
+| `executionQueueId` | `uuid` | 否 | 执行建议 ID |
+| `toolApprovalId` | `uuid` | 否 | 工具审批 ID |
+| `action` | `string` | 否 | 动作名，例如 `execution_queue.approve` |
+| `targetType` | `string` | 否 | 目标类型，例如 `execution_queue`、`tool_approval` |
+| `status` | `string` | 否 | 审计状态，默认业务写入为 `success` |
+| `page` | `number` | 否 | 默认 1 |
+| `pageSize` | `number` | 否 | 默认 20，最大 100 |
+
+成功响应 `data`：
+
+```json
+{
+  "logs": [
+    {
+      "id": "audit-uuid",
+      "userId": "user-uuid",
+      "actorUserId": "user-uuid",
+      "workspaceId": "workspace-uuid",
+      "runId": "run-uuid",
+      "executionQueueId": "execution-uuid",
+      "toolApprovalId": null,
+      "action": "execution_queue.approve",
+      "targetType": "execution_queue",
+      "targetId": "execution-uuid",
+      "status": "success",
+      "reason": "人工确认可以执行",
+      "requestId": null,
+      "traceId": null,
+      "metadata": {},
+      "createdAt": "2026-05-07T00:00:00Z"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+## 90. 创建审计日志
+
+- 方法：`POST`
+- 路径：`/api/app/approvals/audit-logs`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "actorUserId": "user-uuid",
+  "workspaceId": "workspace-uuid",
+  "runId": "run-uuid",
+  "executionQueueId": "execution-uuid",
+  "toolApprovalId": null,
+  "action": "manual.review",
+  "targetType": "campaign",
+  "targetId": "campaign-uuid",
+  "status": "success",
+  "reason": "人工复核记录",
+  "requestId": "request-id",
+  "traceId": "trace-id",
+  "metadata": {}
+}
+```
+
+成功响应 `data`：`AuditLogResponse`。
+
+补充说明：
+
+- `action`、`targetType` 必填
+- `actorUserId` 不传时默认为当前 JWT 用户
+- `status` 不传时默认 `success`
+- 审计日志从业务 API 视角只新增，不提供更新或删除接口
+
+## 91. 查询长任务列表
+
+- 方法：`GET`
+- 路径：`/api/app/long-tasks`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `workspaceId` | `uuid` | 否 | 只查询某个工作区 |
+| `runId` | `uuid` | 否 | 只查询某个运行记录，传入时必须同时传 `workspaceId` |
+| `status` | `pending \| running \| completed \| failed \| cancelled` | 否 | 任务状态 |
+| `taskType` | `string` | 否 | 任务类型 |
+| `page` | `number` | 否 | 默认 1 |
+| `pageSize` | `number` | 否 | 默认 20，最大 100 |
+
+成功响应 `data`：`LongTaskListResponse`。
+
+## 92. 创建长任务记录
+
+- 方法：`POST`
+- 路径：`/api/app/long-tasks`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "workspaceId": "uuid",
+  "runId": "uuid",
+  "taskType": "daily_briefing",
+  "title": "生成日报",
+  "status": "pending",
+  "progress": 0,
+  "totalSteps": 100,
+  "currentStep": "queued",
+  "role": "ops",
+  "inputParams": {},
+  "result": {},
+  "errorMessage": null
+}
+```
+
+成功响应 `data`：`LongTaskResponse`。
+
+补充说明：
+
+- 当前阶段只创建任务记录，不启动真实异步执行器
+- `runId` 不为空时必须同时传 `workspaceId`
+
+## 93. 查询长任务详情
+
+- 方法：`GET`
+- 路径：`/api/app/long-tasks/{taskId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`LongTaskResponse`。
+
+## 94. 更新长任务记录
+
+- 方法：`PATCH`
+- 路径：`/api/app/long-tasks/{taskId}`
+- 鉴权：有效 App 用户 JWT
+
+请求体字段均可选：`status`、`title`、`progress`、`totalSteps`、`currentStep`、`role`、`result`、`errorMessage`、`startedAt`、`completedAt`。
+
+成功响应 `data`：`LongTaskResponse`。
+
+## 95. 取消长任务记录
+
+- 方法：`POST`
+- 路径：`/api/app/long-tasks/{taskId}/cancel`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "errorMessage": "用户取消"
+}
+```
+
+成功响应 `data`：`LongTaskResponse`。
+
+## 96. 查询今日简报摘要
+
+- 方法：`GET`
+- 路径：`/api/app/briefing/daily`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `date` | `YYYY-MM-DD` | 否 | 不传时按服务端当前日期 |
+
+成功响应 `data`：`DailyBriefingSummaryResponse`。
+
+补充说明：
+
+- 如果当天已有未归档日报记录，直接返回该记录
+- 如果没有日报记录，返回从告警数量和长任务状态派生的摘要
+- 当前阶段不调用 LLM 生成日报正文
+
+## 97. 查询日报记录列表
+
+- 方法：`GET`
+- 路径：`/api/app/briefing/daily-records`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：`archived`、`status`、`dateFrom`、`dateTo`、`page`、`pageSize`。
+
+成功响应 `data`：`DailyBriefingListResponse`。
+
+## 98. 新增或更新日报记录
+
+- 方法：`POST`
+- 路径：`/api/app/briefing/daily-records`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "briefingDate": "2026-05-07",
+  "title": "2026-05-07 daily briefing",
+  "summary": "今日摘要",
+  "sections": [],
+  "productSummary": {},
+  "alertSummary": {},
+  "taskSummary": {},
+  "source": "manual",
+  "status": "ready",
+  "archived": false
+}
+```
+
+成功响应 `data`：`DailyBriefingResponse`。
+
+补充说明：
+
+- 同一用户同一 `briefingDate` 只保留一条记录，重复提交会更新原记录
+
+## 99. 查询日报记录详情
+
+- 方法：`GET`
+- 路径：`/api/app/briefing/daily-records/{briefingId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`DailyBriefingResponse`。
+
+## 100. 归档日报记录
+
+- 方法：`POST`
+- 路径：`/api/app/briefing/daily-records/{briefingId}/archive`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`DailyBriefingResponse`。
+
+## 101. 查询后台通知列表
+
+- 方法：`GET`
+- 路径：`/api/app/briefing/notifications`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：`conversationId`、`eventType`、`consumed`、`page`、`pageSize`。
+
+成功响应 `data`：`BackgroundEventListResponse`。
+
+## 102. 创建后台通知
+
+- 方法：`POST`
+- 路径：`/api/app/briefing/notifications`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "conversationId": "uuid",
+  "eventType": "task.completed",
+  "title": "任务完成",
+  "data": {},
+  "consumed": false
+}
+```
+
+成功响应 `data`：`BackgroundEventResponse`。
+
+## 103. 标记单条后台通知已读
+
+- 方法：`POST`
+- 路径：`/api/app/briefing/notifications/{eventId}/consume`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`BackgroundEventResponse`。
+
+## 104. 批量标记后台通知已读
+
+- 方法：`POST`
+- 路径：`/api/app/briefing/notifications/consume-all`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "conversationId": "uuid",
+  "eventType": "task.completed"
+}
+```
+
+成功响应 `data`：`BatchUpdateResponse`，其中 `updated` 表示本次更新数量。
+
+## 105. 查询告警列表
+
+- 方法：`GET`
+- 路径：`/api/app/briefing/alerts`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `workspaceId` | `uuid` | 否 | 只查询某个工作区 |
+| `runId` | `uuid` | 否 | 只查询某个运行记录，传入时必须同时传 `workspaceId` |
+| `alertType` | `string` | 否 | 告警类型 |
+| `severity` | `info \| warning \| critical` | 否 | 严重程度，业务可扩展 |
+| `status` | `active \| snoozed \| dismissed \| acted` | 否 | 告警状态 |
+| `includeSnoozed` | `boolean` | 否 | 默认 false |
+| `page` | `number` | 否 | 默认 1 |
+| `pageSize` | `number` | 否 | 默认 20，最大 100 |
+
+成功响应 `data`：`AlertListResponse`。
+
+## 106. 创建告警
+
+- 方法：`POST`
+- 路径：`/api/app/briefing/alerts`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "workspaceId": "uuid",
+  "runId": "uuid",
+  "alertType": "policy_risk",
+  "severity": "warning",
+  "message": "素材可能触发平台规则",
+  "role": "compliance",
+  "dedupKey": "policy_risk:asset:123",
+  "snoozedUntil": null,
+  "payload": {}
+}
+```
+
+成功响应 `data`：`AlertResponse`。
+
+补充说明：
+
+- `dedupKey` 不为空时，同一用户重复创建 active 告警会返回原记录
+- 当前阶段只创建告警记录，不触发 Agent 处理链路
+
+## 107. 查询告警摘要
+
+- 方法：`GET`
+- 路径：`/api/app/briefing/alerts/summary`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`AlertSummaryResponse`，包含 `active`、`bySeverity`、`byType`。
+
+## 108. 批量关闭告警
+
+- 方法：`POST`
+- 路径：`/api/app/briefing/alerts/dismiss-all`
+- 鉴权：有效 App 用户 JWT
+
+请求体字段均可选：`workspaceId`、`runId`、`alertType`、`severity`。
+
+成功响应 `data`：`BatchUpdateResponse`。
+
+## 109. 查询告警详情
+
+- 方法：`GET`
+- 路径：`/api/app/briefing/alerts/{alertId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`AlertResponse`。
+
+## 110. 暂停告警
+
+- 方法：`POST`
+- 路径：`/api/app/briefing/alerts/{alertId}/snooze`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "snoozedUntil": "2026-05-07T12:00:00Z"
+}
+```
+
+成功响应 `data`：`AlertResponse`。
+
+## 111. 关闭告警
+
+- 方法：`POST`
+- 路径：`/api/app/briefing/alerts/{alertId}/dismiss`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "reason": "已人工确认"
+}
+```
+
+成功响应 `data`：`AlertResponse`。
+
+## 112. 标记告警已处理
+
+- 方法：`POST`
+- 路径：`/api/app/briefing/alerts/{alertId}/act`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "result": {}
+}
+```
+
+成功响应 `data`：`AlertResponse`。
+
+补充说明：
+
+- 当前阶段只标记告警状态，不触发 Agent 执行动作
+- SSE 长任务进度流、真实后台执行器、LLM 简报生成、Agent 告警处理均未在本阶段实现
+
+## 113. 查询能力包目录
+
+- 方法：`GET`
+- 路径：`/api/app/packages/catalog`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `packageType` | `domain \| role \| skill \| capability` | 否 | 只查询某类能力包 |
+| `status` | `active \| disabled \| deprecated` | 否 | 只查询某个状态 |
+| `includeDisabled` | `boolean` | 否 | 默认 false |
+| `keyword` | `string` | 否 | 按包 ID 或名称搜索 |
+| `page` | `number` | 否 | 默认 1 |
+| `pageSize` | `number` | 否 | 默认 20，最大 100 |
+
+成功响应 `data`：`PackageCatalogResponse`，包含分页 `packages` 和按类型分组的 `sections`。
+
+## 114. 创建或更新能力包
+
+- 方法：`POST`
+- 路径：`/api/app/packages`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "packageType": "skill",
+  "packageId": "listing_writer",
+  "packageName": "Listing Writer",
+  "version": "0.1.0",
+  "status": "active",
+  "manifestPath": "skills/listing_writer/manifest.json",
+  "dependencies": {},
+  "compatibility": {},
+  "metadata": {},
+  "reason": "initial import"
+}
+```
+
+成功响应 `data`：`PackageResponse`。
+
+## 115. 查询能力包详情
+
+- 方法：`GET`
+- 路径：`/api/app/packages/{packageType}/{packageId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`PackageResponse`。
+
+## 116. 修改能力包
+
+- 方法：`PATCH`
+- 路径：`/api/app/packages/{packageType}/{packageId}`
+- 鉴权：有效 App 用户 JWT
+
+请求体字段均可选：`packageName`、`version`、`status`、`manifestPath`、`dependencies`、`compatibility`、`metadata`、`reason`。
+
+成功响应 `data`：`PackageResponse`。
+
+## 117. 校验能力包
+
+- 方法：`GET`
+- 路径：`/api/app/packages/{packageType}/{packageId}/validate`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`PackageValidationResponse`，包含：
+
+- `valid`：是否通过
+- `errors`：阻断性问题
+- `warnings`：非阻断提醒
+- `dependencies`：依赖包检查结果
+
+补充说明：
+
+- 当前阶段基于数据库记录校验状态、依赖、兼容性
+- 不扫描或写入 manifest 文件，不接入 Agent 动态目录加载
+
+## 118. 启用能力包
+
+- 方法：`POST`
+- 路径：`/api/app/packages/{packageType}/{packageId}/activate`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "reason": "resume package"
+}
+```
+
+成功响应 `data`：`PackageResponse`。
+
+## 119. 停用能力包
+
+- 方法：`POST`
+- 路径：`/api/app/packages/{packageType}/{packageId}/deactivate`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "reason": "temporarily disabled"
+}
+```
+
+成功响应 `data`：`PackageResponse`。
+
+## 120. 回滚能力包状态
+
+- 方法：`POST`
+- 路径：`/api/app/packages/{packageType}/{packageId}/rollback`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "reason": "rollback last status change"
+}
+```
+
+成功响应 `data`：`PackageResponse`。
+
+补充说明：回滚只恢复上一条状态历史中的 `fromStatus`，不修改 Agent runtime。
+
+## 121. 查询能力包状态历史
+
+- 方法：`GET`
+- 路径：`/api/app/packages/{packageType}/{packageId}/history`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `limit` | `number` | 否 | 默认 50，最大 500 |
+
+成功响应 `data`：`PackageHistoryListResponse`。
+
+## 122. 查询运行能力包锁
+
+- 方法：`GET`
+- 路径：`/api/app/workspaces/{workspaceId}/runs/{runId}/package-locks`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`PackageLockListResponse`。
+
+## 123. 保存运行能力包锁
+
+- 方法：`POST`
+- 路径：`/api/app/workspaces/{workspaceId}/runs/{runId}/package-locks`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "entries": [
+    {
+      "packageType": "skill",
+      "packageId": "listing_writer",
+      "packageName": "Listing Writer",
+      "lockedVersion": "0.1.0",
+      "lockedStatus": "active",
+      "required": true,
+      "lockSource": "manual",
+      "manifestPath": "skills/listing_writer/manifest.json",
+      "notes": "",
+      "metadata": {}
+    }
+  ]
+}
+```
+
+成功响应 `data`：`PackageLockListResponse`。
+
+补充说明：保存时会替换该 `runId` 下既有锁记录。
+
+## 124. 检查运行能力包锁漂移
+
+- 方法：`GET`
+- 路径：`/api/app/workspaces/{workspaceId}/runs/{runId}/package-locks/drift`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`PackageLockDriftResponse`，包含当前锁、漂移列表和摘要统计。
+
+补充说明：
+
+- 漂移类型包括包缺失、版本变化、状态变化、必需包未启用
+- 当前阶段只做治理和审计，不强制 Agent 执行链路按锁运行
+
 ## 会话接口权限与错误
 
 - 所有会话接口都只允许访问当前 JWT 用户自己的数据
@@ -258,3 +2732,96 @@
 - 文件不存在返回 `404`，错误码 `-12004`
 - 文件不属于当前用户返回 `403`，错误码 `-12005`
 - 请求参数不合法返回 `400`，错误码 `-12006`
+
+## 商品接口权限与错误
+
+- 所有商品接口都只允许访问当前 JWT 用户自己的数据
+- 当前用户必须存在于 `app_users`，且状态为 `enabled`
+- 商品不存在或已归档商品被更新时返回 `404`，错误码 `-12007`
+- 商品不属于当前用户返回 `403`，错误码 `-12008`
+- 请求参数不合法返回 `400`，错误码 `-12009`
+- 商品知识不存在或已归档商品知识被更新时返回 `404`，错误码 `-12010`
+- 商品知识不属于当前商品或当前用户时返回 `403`，错误码 `-12011`
+- 商品知识请求参数不合法返回 `400`，错误码 `-12012`
+- 商品资产不存在或已归档商品资产被更新时返回 `404`，错误码 `-12013`
+- 商品资产不属于当前商品或当前用户时返回 `403`，错误码 `-12014`
+- 商品资产请求参数不合法返回 `400`，错误码 `-12015`
+- 商品素材不存在或已归档商品素材被更新时返回 `404`，错误码 `-12016`
+- 商品素材不属于当前商品或当前用户时返回 `403`，错误码 `-12017`
+- 商品素材请求参数不合法返回 `400`，错误码 `-12018`
+- 商品竞品不存在或已归档商品竞品被更新时返回 `404`，错误码 `-12019`
+- 商品竞品不属于当前商品或当前用户时返回 `403`，错误码 `-12020`
+- 商品竞品请求参数不合法返回 `400`，错误码 `-12021`
+
+## 营销活动接口权限与错误
+
+- 所有营销活动接口都只允许访问当前 JWT 用户自己的数据
+- 当前用户必须存在于 `app_users`，且状态为 `enabled`
+- 营销活动不存在返回 `404`，错误码 `-12022`
+- 营销活动不属于当前用户返回 `403`，错误码 `-12023`
+- 营销活动请求参数不合法返回 `400`，错误码 `-12024`
+- 活动绑定商品不存在、已归档或不属于当前用户时，复用商品相关错误码 `-12007` 或 `-12008`
+
+## 工作区与执行队列接口权限与错误
+
+- 所有工作区、任务、运行记录、运行任务快照、执行建议接口都只允许访问当前 JWT 用户自己的数据
+- 当前用户必须存在于 `app_users`，且状态为 `enabled`
+- 工作区不存在或已归档工作区被继续操作时返回 `404`，错误码 `-12025`
+- 工作区不属于当前用户返回 `403`，错误码 `-12026`
+- 工作区请求参数不合法返回 `400`，错误码 `-12027`
+- 工作区任务不存在返回 `404`，错误码 `-12028`
+- 工作区任务不属于当前工作区或当前用户返回 `403`，错误码 `-12029`
+- 工作区运行记录不存在返回 `404`，错误码 `-12030`
+- 运行任务快照不存在返回 `404`，错误码 `-12031`
+- 执行建议不存在返回 `404`，错误码 `-12032`
+- 执行建议不属于当前用户返回 `403`，错误码 `-12033`
+- 执行建议请求参数不合法返回 `400`，错误码 `-12034`
+- 工作区绑定商品或活动时，复用商品/活动相关错误码 `-12007`、`-12008`、`-12022`、`-12023`
+
+## 平台连接接口权限与错误
+
+- 所有平台连接、触达渠道连接、本地指标接口都只允许访问当前 JWT 用户自己的数据
+- 当前用户必须存在于 `app_users`，且状态为 `enabled`
+- 平台连接不存在返回 `404`，错误码 `-12035`
+- 平台连接不属于当前用户返回 `403`，错误码 `-12036`
+- 触达渠道连接不存在返回 `404`，错误码 `-12037`
+- 触达渠道连接不属于当前用户返回 `403`，错误码 `-12038`
+- 平台连接请求参数不合法、平台或渠道不支持、ID 格式错误时返回 `400`，错误码 `-12039`
+
+## 审批与审计接口权限与错误
+
+- 所有工具审批请求和审计日志接口都只允许访问当前 JWT 用户自己的数据
+- 当前用户必须存在于 `app_users`，且状态为 `enabled`
+- 工具审批请求不存在返回 `404`，错误码 `-12040`
+- 工具审批请求不属于当前用户返回 `403`，错误码 `-12041`
+- 审批与审计请求参数不合法、ID 格式错误、状态不允许流转时返回 `400`，错误码 `-12042`
+- 审计日志不存在返回 `404`，错误码 `-12043`
+- 关联工作区、运行记录、会话、执行建议时，复用对应模块的归属校验和错误码
+
+## 长任务、简报、通知与告警接口权限与错误
+
+- 所有长任务、日报记录、后台通知、告警接口都只允许访问当前 JWT 用户自己的数据
+- 当前用户必须存在于 `app_users`，且状态为 `enabled`
+- 长任务不存在返回 `404`，错误码 `-12044`
+- 长任务不属于当前用户返回 `403`，错误码 `-12045`
+- 日报记录不存在返回 `404`，错误码 `-12046`
+- 日报记录不属于当前用户返回 `403`，错误码 `-12047`
+- 后台通知不存在返回 `404`，错误码 `-12048`
+- 后台通知不属于当前用户返回 `403`，错误码 `-12049`
+- 告警不存在返回 `404`，错误码 `-12050`
+- 告警不属于当前用户返回 `403`，错误码 `-12051`
+- 请求参数不合法、ID 格式错误、日期格式错误、`runId` 缺少 `workspaceId` 时返回 `400`，错误码 `-12052`
+- 关联工作区、运行记录、会话时，复用对应模块的归属校验和错误码
+
+## 能力包治理接口权限与错误
+
+- 所有能力包注册表、状态历史、运行能力包锁接口都只允许访问当前 JWT 用户自己的数据
+- 当前用户必须存在于 `app_users`，且状态为 `enabled`
+- 能力包不存在返回 `404`，错误码 `-12053`
+- 能力包不属于当前用户返回 `403`，错误码 `-12054`
+- 请求参数不合法、包类型不支持、状态不支持、ID 格式错误时返回 `400`，错误码 `-12055`
+- 能力包校验失败如需作为阻断错误返回 `409`，错误码 `-12056`
+- 能力包锁不存在返回 `404`，错误码 `-12057`
+- 能力包锁不属于当前用户、工作区或运行记录返回 `403`，错误码 `-12058`
+- 关联工作区、运行记录时，复用对应模块的归属校验和错误码
+- 动态 Agent 目录加载、manifest 写入、Agent runtime 锁强制执行未在本阶段实现

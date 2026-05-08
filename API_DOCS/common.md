@@ -42,10 +42,13 @@ token = "dev-internal-token-change-me"
 配置样例：
 
 ```toml
+default_llm = "ollama-gpt-oss-20b"
+
 [[llm]]
-name = "ollama-gemma4"
-base_url = "http://127.0.0.1:11434"
-model = "gemma4:26b"
+name = "ollama-gpt-oss-20b"
+base_url = "http://127.0.0.1:11434/v1"
+model = "gpt-oss:20b"
+api_key = "sk-local"
 max_tokens = 20000
 temperature = 0.2
 ```
@@ -62,6 +65,8 @@ temperature = 0.2
 | `temperature` | 否 | 默认温度 |
 | `reasoning_effort` | 否 | 支持 reasoning effort 的 provider 使用 |
 | `chat_completions_endpoint` | 否 | 特殊 provider 覆盖 endpoint 时使用，普通情况不需要配置 |
+
+顶层 `default_llm` 可选，用于指定默认使用哪个 `[[llm]].name`。如果不配置，默认使用第一个 `[[llm]]`。
 
 本地 Ollama agent smoke 测试：
 

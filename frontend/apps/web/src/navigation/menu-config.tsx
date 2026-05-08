@@ -1,5 +1,16 @@
 import type { ReactNode } from "react"
-import { Bot, FileText, House } from "lucide-react"
+import {
+  BellRing,
+  Bot,
+  Boxes,
+  ClipboardCheck,
+  FileText,
+  House,
+  Megaphone,
+  PackageCheck,
+  PlugZap,
+  ShoppingBag,
+} from "lucide-react"
 
 export interface WebNavigationItemConfig {
   id: string
@@ -23,10 +34,64 @@ export const webNavigationSections: WebNavigationSectionConfig[] = [
       {
         id: "home",
         labelKey: "web.shell.navigation.home",
-        path: "/home",
+        path: "/commerce",
         icon: <House />,
-        matcher: (pathname) => pathname === "/" || pathname === "/home",
+        matcher: (pathname) => pathname === "/" || pathname === "/commerce",
       },
+      {
+        id: "products",
+        labelKey: "web.shell.navigation.products",
+        path: "/products",
+        icon: <ShoppingBag />,
+      },
+      {
+        id: "campaigns",
+        labelKey: "web.shell.navigation.campaigns",
+        path: "/campaigns",
+        icon: <Megaphone />,
+      },
+      {
+        id: "workspaces",
+        labelKey: "web.shell.navigation.workspaces",
+        path: "/workspaces",
+        icon: <Boxes />,
+      },
+      {
+        id: "platform-connect",
+        labelKey: "web.shell.navigation.platformConnect",
+        path: "/platform-connect",
+        icon: <PlugZap />,
+      },
+    ],
+  },
+  {
+    id: "governance",
+    labelKey: "web.shell.navigation.governance",
+    items: [
+      {
+        id: "approvals",
+        labelKey: "web.shell.navigation.approvals",
+        path: "/approvals",
+        icon: <ClipboardCheck />,
+      },
+      {
+        id: "operations",
+        labelKey: "web.shell.navigation.operations",
+        path: "/operations",
+        icon: <BellRing />,
+      },
+      {
+        id: "packages",
+        labelKey: "web.shell.navigation.packages",
+        path: "/packages",
+        icon: <PackageCheck />,
+      },
+    ],
+  },
+  {
+    id: "agent",
+    labelKey: "web.shell.navigation.agentSection",
+    items: [
       {
         id: "agent",
         labelKey: "web.shell.navigation.agent",

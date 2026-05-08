@@ -29,10 +29,13 @@ crates/agent/src/runtime.rs
 `config/services.toml` 支持多个 `[[llm]]` 配置块：
 
 ```toml
+default_llm = "ollama-gpt-oss-20b"
+
 [[llm]]
-name = "ollama-gemma4"
-base_url = "http://127.0.0.1:11434"
-model = "gemma4:26b"
+name = "ollama-gpt-oss-20b"
+base_url = "http://127.0.0.1:11434/v1"
+model = "gpt-oss:20b"
+api_key = "sk-local"
 max_tokens = 20000
 temperature = 0.2
 ```
@@ -50,7 +53,7 @@ temperature = 0.2
 | `reasoning_effort` | 否 | 支持 reasoning effort 的 provider 使用 |
 | `chat_completions_endpoint` | 否 | 特殊 provider 才需要覆盖，普通情况不要配置 |
 
-当前 agent runtime 默认使用第一个 `[[llm]]`。如果后续需要 commander、worker 或不同 role 使用不同模型，应先扩展 `agent::api::AgentRuntimeCfg`，不要在 `web-server` 重新维护 LLM registry。
+顶层 `default_llm` 可选，用于指定默认使用哪个 `[[llm]].name`。如果不配置，agent runtime 默认使用第一个 `[[llm]]`。如果后续需要 commander、worker 或不同 role 使用不同模型，应先扩展 `agent::api::AgentRuntimeCfg`，不要在 `web-server` 重新维护 LLM registry。
 
 ---
 

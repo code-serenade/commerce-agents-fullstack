@@ -25,9 +25,11 @@ import {
   SidebarMenuSubItem,
   SidebarProvider,
   SidebarRail,
+  SidebarTrigger,
   useSidebar,
 } from "@workspace/ui-components"
 import { TooltipProvider } from "../tooltip"
+import { useTranslation } from "react-i18next"
 
 export interface SidebarShellSubEntry {
   key?: string
@@ -94,6 +96,8 @@ export function SidebarShell({
   footerAccount,
   children,
 }: SidebarShellProps) {
+  const { t } = useTranslation("components")
+
   return (
     <div className="h-svh overflow-hidden [&_[data-sidebar=trigger]]:max-md:hidden">
       <TooltipProvider>
@@ -101,19 +105,24 @@ export function SidebarShell({
           <div className="hidden md:contents">
             <Sidebar collapsible="icon">
               <SidebarHeader>
-                <div className="flex items-center gap-2 group-data-[collapsible=icon]:gap-0">
-                  {brandLogo ? (
-                    <div className="shrink-0">{brandLogo}</div>
-                  ) : (
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground">
-                      {typeof brandTitle === "string" ? brandTitle.charAt(0).toUpperCase() : "W"}
+                <div className="flex min-h-10 items-center gap-2 group-data-[collapsible=icon]:min-h-20 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:justify-center">
+                  <div className="flex min-w-0 flex-1 items-center gap-2 group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:justify-center">
+                    {brandLogo ? (
+                      <div className="shrink-0">{brandLogo}</div>
+                    ) : (
+                      <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground">
+                        {typeof brandTitle === "string" ? brandTitle.charAt(0).toUpperCase() : "W"}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
+                      <div>{brandTitle}</div>
+                      {(brandDescription ?? brandEyebrow) ? (
+                        <div>{brandDescription ?? brandEyebrow}</div>
+                      ) : null}
                     </div>
-                  )}
-                  <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-                    <div>{brandTitle}</div>
-                    {(brandDescription ?? brandEyebrow) ? (
-                      <div>{brandDescription ?? brandEyebrow}</div>
-                    ) : null}
+                  </div>
+                  <div className="shrink-0 rounded-md border border-sidebar-border bg-background shadow-sm transition-colors hover:bg-sidebar-accent [&_[data-sidebar=trigger]]:size-8">
+                    <SidebarTrigger ariaLabel={t("header.common.toggleSidebar")} />
                   </div>
                 </div>
               </SidebarHeader>

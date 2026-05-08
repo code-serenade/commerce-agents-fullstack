@@ -1,5 +1,5 @@
 import { Suspense, type ReactNode } from "react"
-import type { RouteObject } from "react-router"
+import { Navigate, type RouteObject } from "react-router"
 import { PageLoading, RouteErrorBoundary } from "@workspace/app-kit"
 import AuthLayout from "@/layouts/AuthLayout"
 import { LoginPage, RegisterPage } from "@/routes/lazy/authPages"
@@ -13,6 +13,10 @@ export const authRoutes: RouteObject = {
   element: <AuthLayout />,
   errorElement: <RouteErrorBoundary />,
   children: [
+    {
+      index: true,
+      element: <Navigate to="/login" replace />,
+    },
     {
       path: "login",
       element: withSuspense(<LoginPage />),

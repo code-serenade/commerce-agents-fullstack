@@ -1,4 +1,4 @@
-import { Activity, MonitorCog, PanelRightClose } from "lucide-react"
+import { Activity, MonitorCog, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type { AgentRuntimeEvent } from "@/api"
 import type { AgentChatMessage } from "../types"
@@ -101,15 +101,17 @@ export function AgentChatSwarmPanel({
                 </div>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={onCollapse}
-              className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground min-[1500px]:size-10"
-              title={t("agentChat.workbench.collapse")}
-              aria-label={t("agentChat.workbench.collapse")}
-            >
-              <PanelRightClose className="size-4" />
-            </button>
+            <div className="rounded-full border border-border bg-background/90 p-1 shadow-sm">
+              <button
+                type="button"
+                onClick={onCollapse}
+                className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground min-[1500px]:size-10"
+                title={t("agentChat.workbench.collapse")}
+                aria-label={t("agentChat.workbench.collapse")}
+              >
+                <X className="size-5" />
+              </button>
+            </div>
           </div>
         </header>
 

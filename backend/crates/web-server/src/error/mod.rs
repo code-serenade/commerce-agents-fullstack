@@ -47,7 +47,62 @@ pub fn from_biz_error(err: BizError) -> ApiError {
         app_error::CONVERSATION_FORBIDDEN | app_error::CONVERSATION_FILE_FORBIDDEN => {
             StatusCode::FORBIDDEN
         }
-        app_error::CONVERSATION_REQUEST_INVALID => StatusCode::BAD_REQUEST,
+        app_error::PRODUCT_NOT_FOUND => StatusCode::NOT_FOUND,
+        app_error::PRODUCT_FORBIDDEN => StatusCode::FORBIDDEN,
+        app_error::PRODUCT_KNOWLEDGE_NOT_FOUND => StatusCode::NOT_FOUND,
+        app_error::PRODUCT_KNOWLEDGE_FORBIDDEN => StatusCode::FORBIDDEN,
+        app_error::PRODUCT_ASSET_NOT_FOUND | app_error::PRODUCT_MATERIAL_NOT_FOUND => {
+            StatusCode::NOT_FOUND
+        }
+        app_error::PRODUCT_ASSET_FORBIDDEN | app_error::PRODUCT_MATERIAL_FORBIDDEN => {
+            StatusCode::FORBIDDEN
+        }
+        app_error::PRODUCT_COMPETITOR_NOT_FOUND => StatusCode::NOT_FOUND,
+        app_error::PRODUCT_COMPETITOR_FORBIDDEN => StatusCode::FORBIDDEN,
+        app_error::CAMPAIGN_NOT_FOUND => StatusCode::NOT_FOUND,
+        app_error::CAMPAIGN_FORBIDDEN => StatusCode::FORBIDDEN,
+        app_error::WORKSPACE_NOT_FOUND
+        | app_error::WORKSPACE_TASK_NOT_FOUND
+        | app_error::WORKSPACE_RUN_NOT_FOUND
+        | app_error::WORKSPACE_RUN_TASK_NOT_FOUND
+        | app_error::EXECUTION_QUEUE_NOT_FOUND
+        | app_error::PLATFORM_CONNECTION_NOT_FOUND
+        | app_error::CHANNEL_CONNECTION_NOT_FOUND
+        | app_error::TOOL_APPROVAL_NOT_FOUND
+        | app_error::AUDIT_LOG_NOT_FOUND
+        | app_error::LONG_TASK_NOT_FOUND
+        | app_error::BRIEFING_NOT_FOUND
+        | app_error::BACKGROUND_EVENT_NOT_FOUND
+        | app_error::ALERT_NOT_FOUND
+        | app_error::PACKAGE_NOT_FOUND
+        | app_error::PACKAGE_LOCK_NOT_FOUND => StatusCode::NOT_FOUND,
+        app_error::WORKSPACE_FORBIDDEN
+        | app_error::WORKSPACE_TASK_FORBIDDEN
+        | app_error::EXECUTION_QUEUE_FORBIDDEN
+        | app_error::PLATFORM_CONNECTION_FORBIDDEN
+        | app_error::CHANNEL_CONNECTION_FORBIDDEN
+        | app_error::TOOL_APPROVAL_FORBIDDEN
+        | app_error::LONG_TASK_FORBIDDEN
+        | app_error::BRIEFING_FORBIDDEN
+        | app_error::BACKGROUND_EVENT_FORBIDDEN
+        | app_error::ALERT_FORBIDDEN
+        | app_error::PACKAGE_FORBIDDEN
+        | app_error::PACKAGE_LOCK_FORBIDDEN => StatusCode::FORBIDDEN,
+        app_error::CONVERSATION_REQUEST_INVALID | app_error::PRODUCT_REQUEST_INVALID => {
+            StatusCode::BAD_REQUEST
+        }
+        app_error::PRODUCT_KNOWLEDGE_REQUEST_INVALID
+        | app_error::PRODUCT_ASSET_REQUEST_INVALID
+        | app_error::PRODUCT_MATERIAL_REQUEST_INVALID
+        | app_error::PRODUCT_COMPETITOR_REQUEST_INVALID
+        | app_error::CAMPAIGN_REQUEST_INVALID
+        | app_error::WORKSPACE_REQUEST_INVALID
+        | app_error::EXECUTION_QUEUE_REQUEST_INVALID
+        | app_error::PLATFORM_CONNECT_REQUEST_INVALID
+        | app_error::APPROVAL_AUDIT_REQUEST_INVALID
+        | app_error::BRIEFING_OPS_REQUEST_INVALID
+        | app_error::PACKAGE_REQUEST_INVALID => StatusCode::BAD_REQUEST,
+        app_error::PACKAGE_VALIDATION_FAILED => StatusCode::CONFLICT,
         agent_error::AGENT_PROMPT_ERROR | agent_error::AGENT_SETTINGS_ERROR => {
             StatusCode::INTERNAL_SERVER_ERROR
         }
