@@ -10,7 +10,7 @@
 - `API_DOCS/`：项目唯一 API 文档入口
 - `frontend/`：前端项目
 - `backend/`：后端项目
-- `manage.sh`：本地启动、停止前后端服务的脚本
+- `cargo manage`：跨平台管理前后端服务的 Rust CLI
 - `AGENTS.md`：AI 统一入口，负责指向前端和后端子项目规则
 
 ## 快速开始
@@ -49,43 +49,64 @@ AI 负责：
 
 ## 常用命令
 
+本项目使用 `cargo manage` 管理本地前后端服务。
+
 初始化前后端 env：
 
 ```bash
-./manage.sh init_env
+cargo manage init-env
 ```
 
 这个命令会同时初始化后端 env，并先执行前端 `pnpm install`，再生成前端 env 文件。
+它不会启动 Docker，也不会执行数据库迁移。
 
 也可以只初始化其中一端：
 
 ```bash
-./manage.sh init_env backend
-./manage.sh init_env frontend
+cargo manage init-env backend
+cargo manage init-env frontend
+```
+
+启动后端 Docker PostgreSQL 并确认数据库：
+
+```bash
+cargo manage backend db-up
+```
+
+执行后端数据库迁移：
+
+```bash
+cargo manage backend migrate
+```
+
+如果想一次完成数据库启动和迁移：
+
+```bash
+cargo manage backend setup-db
 ```
 
 启动后端：
 
 ```bash
-./manage.sh backend start
+cargo manage backend start
 ```
 
 停止后端：
 
 ```bash
-./manage.sh backend stop
+cargo manage backend stop
 ```
 
 安装前端依赖：
 
 ```bash
-./manage.sh frontend install
+cargo manage frontend install
 ```
 
 启动前端 app：
 
 ```bash
-./manage.sh frontend admin start
+cargo manage frontend admin start
 ```
 
 启动成功后会输出访问地址，例如 `http://localhost:5173/`。如果端口被占用，Vite 会自动顺延到下一个可用端口，实际地址以脚本输出为准。
@@ -93,14 +114,14 @@ AI 负责：
 停止前端 app：
 
 ```bash
-./manage.sh frontend admin stop
+cargo manage frontend admin stop
 ```
 
 查看状态：
 
 ```bash
-./manage.sh backend status
-./manage.sh frontend admin status
+cargo manage backend status
+cargo manage frontend admin status
 ```
 
 日志放在：
@@ -138,7 +159,7 @@ temp/logs/
 1. `temp/REQUIREMENTS/`：放需求文档，也可以不用，直接在聊天里描述需求
 2. `temp/DEVELOPMENT_DOCS/`：AI 写前后端开发文档
 3. `API_DOCS/`：AI 写 API 文档，框架已有 API 和新业务 API 都放这里
-4. `manage.sh`：启动、停止、查看服务状态
+4. `cargo manage`：启动、停止、查看服务状态
 5. `frontend/`：前端代码
 6. `backend/`：后端代码
 
