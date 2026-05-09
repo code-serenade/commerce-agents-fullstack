@@ -2,6 +2,7 @@ import { Activity, PanelRightClose, MonitorCog } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type { AgentRuntimeEvent } from "@/api"
 import type { AgentChatMessage } from "../types"
+import type { AgentRunFeedbackState } from "../view-model/use-agent-run-feedback"
 import {
   getAgents,
   getAgentState,
@@ -20,8 +21,10 @@ import {
   SwarmIdleDetail,
   WorkspaceHandoffRail,
 } from "./swarm-support-panels"
+import { AgentRunFeedbackPanel } from "./agent-run-feedback-panel"
 
 interface AgentChatSwarmPanelProps {
+  feedback: AgentRunFeedbackState
   isStreaming: boolean
   messages: AgentChatMessage[]
   onCollapse: () => void
@@ -29,6 +32,7 @@ interface AgentChatSwarmPanelProps {
 }
 
 export function AgentChatSwarmPanel({
+  feedback,
   isStreaming,
   messages,
   onCollapse,
@@ -135,7 +139,10 @@ export function AgentChatSwarmPanel({
           )}
 
           <section className="mt-3 grid gap-3 min-[1800px]:grid-cols-[minmax(0,1fr)_17rem]">
-            <WorkspaceHandoffRail />
+            <div className="grid gap-3">
+              <WorkspaceHandoffRail />
+              <AgentRunFeedbackPanel feedback={feedback} />
+            </div>
             <CompactInfoBlock
               icon={Activity}
               title={t("agentChat.workbench.activity")}

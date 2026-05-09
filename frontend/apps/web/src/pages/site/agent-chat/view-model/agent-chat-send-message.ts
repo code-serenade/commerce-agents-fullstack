@@ -1,10 +1,5 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react"
-import {
-  AGENT_ID,
-  WORKSPACE_ID,
-  agentChatData,
-  type AgentRuntimeEvent,
-} from "../agent-chat-data"
+import { AGENT_ID, agentChatData, type AgentRuntimeEvent } from "../agent-chat-data"
 import {
   createConversationTitle,
   createMessageId,
@@ -101,7 +96,6 @@ export async function sendAgentChatMessage(
           },
         },
         sessionId: input.sessionIdRef.current,
-        workspaceId: WORKSPACE_ID,
       },
       {
         signal: controller.signal,

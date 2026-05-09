@@ -142,6 +142,16 @@ export function getInlineProcessStage(
   if (runtimeEvents.some((event) => event.type === "task_node_failed")) {
     return t("agentChat.thread.processStage.failed")
   }
+  if (runtimeEvents.some((event) => event.type === "workspace_run_failed")) {
+    return t("agentChat.thread.processStage.failed")
+  }
+  if (
+    runtimeEvents.some(
+      (event) => event.type === "workspace_artifact_created" || event.type === "workspace_run_completed"
+    )
+  ) {
+    return t("agentChat.thread.processStage.saved")
+  }
   if (runtimeEvents.some((event) => event.type === "task_graph_finished")) {
     return t("agentChat.thread.processStage.finished")
   }
@@ -254,6 +264,10 @@ function getInlineNodeStates(runtimeEvents: AgentRuntimeEvent[]) {
       states.set(resolveWorkerNodeId(event), "working")
     } else if (event.type === "worker_finished") {
       states.set(resolveWorkerNodeId(event), "done")
+    } else if (event.type === "workspace_artifact_created" || event.type === "workspace_run_completed") {
+      states.set("delivery", "done")
+    } else if (event.type === "workspace_run_failed") {
+      states.set("delivery", "failed")
     } else if (event.type === "failed") {
       states.set("ops", "failed")
     } else if (event.type === "finished") {

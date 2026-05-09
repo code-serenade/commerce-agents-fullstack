@@ -1,6 +1,7 @@
 import type { MetricCardsItem } from "@workspace/app-kit"
 import type {
   ExecutionQueueResponse,
+  WorkspaceArtifactResponse,
   WorkspaceResponse,
   WorkspaceRunResponse,
   WorkspaceTaskResponse,
@@ -10,6 +11,7 @@ import type { CommerceTranslate } from "../components/commerce-types"
 export function buildWorkspaceMetricCards(
   t: CommerceTranslate,
   data: {
+    artifacts: WorkspaceArtifactResponse[]
     executions: ExecutionQueueResponse[]
     runs: WorkspaceRunResponse[]
     tasks: WorkspaceTaskResponse[]
@@ -39,6 +41,17 @@ export function buildWorkspaceMetricCards(
       value: data.runs.length,
       tail: t("commerce.workspaces.metrics.runsTail"),
       variant: "default",
+    },
+    {
+      key: "artifacts",
+      label: t("commerce.workspaces.metrics.artifacts"),
+      value: data.artifacts.length,
+      tail: t("commerce.workspaces.metrics.artifactsTail", {
+        count: data.artifacts.filter(
+          (item) => item.validationStatus === "passed"
+        ).length,
+      }),
+      variant: "accent",
     },
     {
       key: "executions",

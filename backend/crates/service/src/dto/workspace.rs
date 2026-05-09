@@ -192,6 +192,81 @@ pub struct UpdateWorkspaceRunTaskRequest {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct ListWorkspaceArtifactsRequest {
+    pub user_id: String,
+    pub workspace_id: String,
+    pub run_id: Option<String>,
+    pub workspace_task_id: Option<String>,
+    pub run_task_id: Option<String>,
+    pub artifact_type: Option<String>,
+    pub status: Option<String>,
+    pub keyword: Option<String>,
+    pub page: Option<u64>,
+    pub page_size: Option<u64>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct CreateWorkspaceArtifactRequest {
+    pub user_id: String,
+    pub workspace_id: String,
+    pub run_id: Option<String>,
+    pub workspace_task_id: Option<String>,
+    pub run_task_id: Option<String>,
+    pub artifact_type: String,
+    pub title: String,
+    pub content: Option<String>,
+    pub preview: Option<String>,
+    pub mime_type: Option<String>,
+    pub format: Option<String>,
+    pub storage_kind: Option<String>,
+    pub bucket: Option<String>,
+    pub object_key: Option<String>,
+    pub file_name: Option<String>,
+    pub file_size: Option<i64>,
+    pub sha256: Option<String>,
+    pub source: Option<String>,
+    pub validation_status: Option<String>,
+    pub validation_report: Option<Value>,
+    pub metadata: Option<Value>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct GetWorkspaceArtifactRequest {
+    pub user_id: String,
+    pub workspace_id: String,
+    pub artifact_id: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct UpdateWorkspaceArtifactRequest {
+    pub user_id: String,
+    pub workspace_id: String,
+    pub artifact_id: String,
+    pub title: Option<String>,
+    pub content: Option<String>,
+    pub preview: Option<String>,
+    pub mime_type: Option<String>,
+    pub format: Option<String>,
+    pub storage_kind: Option<String>,
+    pub bucket: Option<String>,
+    pub object_key: Option<String>,
+    pub file_name: Option<String>,
+    pub file_size: Option<i64>,
+    pub sha256: Option<String>,
+    pub status: Option<String>,
+    pub validation_status: Option<String>,
+    pub validation_report: Option<Value>,
+    pub metadata: Option<Value>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct DeleteWorkspaceArtifactRequest {
+    pub user_id: String,
+    pub workspace_id: String,
+    pub artifact_id: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct ListExecutionQueueRequest {
     pub user_id: String,
     pub workspace_id: Option<String>,
@@ -229,6 +304,272 @@ pub struct DecideExecutionQueueRequest {
     pub result: Option<Value>,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+pub struct LinkAgentWorkspaceRunRequest {
+    pub user_id: String,
+    pub requested_workspace_id: Option<String>,
+    pub session_id: String,
+    pub agent_id: Option<String>,
+    pub input: String,
+    pub metadata: Value,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct AgentWorkspaceTaskNode {
+    pub graph_id: String,
+    pub node_id: String,
+    pub worker_id: String,
+    pub role: String,
+    pub title: String,
+    pub objective: String,
+    pub input_refs: Vec<String>,
+    pub acceptance: Vec<String>,
+    pub max_attempts: u8,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct LinkAgentWorkspaceTasksRequest {
+    pub user_id: String,
+    pub workspace_id: String,
+    pub run_id: String,
+    pub session_id: String,
+    pub root_task: String,
+    pub nodes: Vec<AgentWorkspaceTaskNode>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct MarkAgentWorkspaceTaskStartedRequest {
+    pub user_id: String,
+    pub workspace_id: String,
+    pub run_id: String,
+    pub graph_id: String,
+    pub node_id: String,
+    pub worker_id: String,
+    pub attempt: u8,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct RecordAgentWorkspaceTaskReportRequest {
+    pub user_id: String,
+    pub workspace_id: String,
+    pub run_id: String,
+    pub graph_id: String,
+    pub node_id: String,
+    pub task_id: String,
+    pub worker_id: String,
+    pub role: String,
+    pub content: String,
+    pub role_output: Option<Value>,
+    pub evidence: Vec<String>,
+    pub risks: Vec<String>,
+    pub open_questions: Vec<String>,
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct RecordAgentWorkspaceTaskEvaluationRequest {
+    pub user_id: String,
+    pub workspace_id: String,
+    pub run_id: String,
+    pub graph_id: String,
+    pub node_id: String,
+    pub passed: bool,
+    pub score: f64,
+    pub reasons: Vec<String>,
+    pub rework_instruction: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct CompleteAgentWorkspaceRunRequest {
+    pub user_id: String,
+    pub workspace_id: String,
+    pub run_id: String,
+    pub output: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CompleteAgentWorkspaceRunResponse {
+    pub run: WorkspaceRunResponse,
+    pub artifact: Option<WorkspaceArtifactResponse>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct EvaluateAgentWorkspaceRunRequest {
+    pub user_id: String,
+    pub workspace_id: String,
+    pub run_id: String,
+    pub artifact_id: Option<String>,
+    pub output: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ListAgentQualityChecksRequest {
+    pub user_id: String,
+    pub workspace_id: String,
+    pub run_id: String,
+    pub page: Option<u64>,
+    pub page_size: Option<u64>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct SubmitAgentRunFeedbackRequest {
+    pub user_id: String,
+    pub workspace_id: String,
+    pub run_id: String,
+    pub rating: i32,
+    pub comment: Option<String>,
+    pub metadata: Option<Value>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ListAgentLearningRecordsRequest {
+    pub user_id: String,
+    pub workspace_id: String,
+    pub run_id: Option<String>,
+    pub role: Option<String>,
+    pub category: Option<String>,
+    pub page: Option<u64>,
+    pub page_size: Option<u64>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ListAgentTrustScoresRequest {
+    pub user_id: String,
+    pub role: Option<String>,
+    pub page: Option<u64>,
+    pub page_size: Option<u64>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct BuildAgentLearningContextRequest {
+    pub user_id: String,
+    pub role: Option<String>,
+    pub limit: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AgentQualityCheckListResponse {
+    pub checks: Vec<AgentQualityCheckResponse>,
+    pub total: u64,
+    pub page: u64,
+    pub page_size: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AgentLearningRecordListResponse {
+    pub records: Vec<AgentLearningRecordResponse>,
+    pub total: u64,
+    pub page: u64,
+    pub page_size: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AgentTrustScoreListResponse {
+    pub scores: Vec<AgentTrustScoreResponse>,
+    pub total: u64,
+    pub page: u64,
+    pub page_size: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AgentQualityEvaluationResponse {
+    pub quality_check: AgentQualityCheckResponse,
+    pub trust_update: AgentTrustUpdateResponse,
+    pub learning_records: Vec<AgentLearningRecordResponse>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AgentRunFeedbackResponse {
+    pub learning_record: AgentLearningRecordResponse,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AgentLearningContextResponse {
+    pub trust_summary: Value,
+    pub learning_summary: String,
+    pub records: Vec<AgentLearningRecordResponse>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AgentQualityCheckResponse {
+    pub id: String,
+    pub workspace_id: String,
+    pub run_id: String,
+    pub artifact_id: Option<String>,
+    pub user_id: String,
+    pub role: String,
+    pub score: f64,
+    pub passed: bool,
+    pub dimensions: Value,
+    pub issues: Value,
+    pub suggestions: Value,
+    pub source: String,
+    pub metadata: Value,
+    #[serde(with = "time::serde::rfc3339")]
+    pub created_at: OffsetDateTime,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AgentTrustScoreResponse {
+    pub id: String,
+    pub user_id: String,
+    pub role: String,
+    pub skill_id: Option<String>,
+    pub score: f64,
+    pub trust_level: String,
+    pub previous_score: Option<f64>,
+    pub previous_level: Option<String>,
+    pub delta: f64,
+    pub reason: Option<String>,
+    pub source: String,
+    pub quality_check_id: Option<String>,
+    pub metadata: Value,
+    #[serde(with = "time::serde::rfc3339")]
+    pub updated_at: OffsetDateTime,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AgentTrustUpdateResponse {
+    pub role: String,
+    pub skill_id: Option<String>,
+    pub previous_score: f64,
+    pub new_score: f64,
+    pub previous_level: String,
+    pub new_level: String,
+    pub delta: f64,
+    pub reason: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AgentLearningRecordResponse {
+    pub id: String,
+    pub user_id: String,
+    pub workspace_id: Option<String>,
+    pub run_id: Option<String>,
+    pub quality_check_id: Option<String>,
+    pub role: String,
+    pub category: String,
+    pub content: String,
+    pub confidence: f64,
+    pub source_action: String,
+    pub feedback_rating: Option<i32>,
+    pub feedback_comment: Option<String>,
+    pub status: String,
+    pub metadata: Value,
+    #[serde(with = "time::serde::rfc3339")]
+    pub created_at: OffsetDateTime,
+    #[serde(with = "time::serde::rfc3339")]
+    pub updated_at: OffsetDateTime,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct FailAgentWorkspaceRunRequest {
+    pub user_id: String,
+    pub workspace_id: String,
+    pub run_id: String,
+    pub reason: String,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct WorkspaceListResponse {
     pub workspaces: Vec<WorkspaceResponse>,
@@ -254,11 +595,31 @@ pub struct WorkspaceRunListResponse {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct WorkspaceArtifactListResponse {
+    pub artifacts: Vec<WorkspaceArtifactResponse>,
+    pub total: u64,
+    pub page: u64,
+    pub page_size: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct ExecutionQueueListResponse {
     pub items: Vec<ExecutionQueueResponse>,
     pub total: u64,
     pub page: u64,
     pub page_size: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LinkedAgentWorkspaceRunResponse {
+    pub workspace: WorkspaceResponse,
+    pub run: WorkspaceRunResponse,
+    pub created_workspace: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LinkedAgentWorkspaceTasksResponse {
+    pub tasks: Vec<WorkspaceRunTaskResponse>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -330,6 +691,37 @@ pub struct WorkspaceRunTaskResponse {
     pub acceptance_passed: bool,
     pub acceptance_notes: Option<String>,
     pub execution_notes: Option<String>,
+    pub metadata: Value,
+    #[serde(with = "time::serde::rfc3339")]
+    pub created_at: OffsetDateTime,
+    #[serde(with = "time::serde::rfc3339")]
+    pub updated_at: OffsetDateTime,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct WorkspaceArtifactResponse {
+    pub id: String,
+    pub workspace_id: String,
+    pub run_id: Option<String>,
+    pub workspace_task_id: Option<String>,
+    pub run_task_id: Option<String>,
+    pub user_id: String,
+    pub artifact_type: String,
+    pub title: String,
+    pub content: Option<String>,
+    pub preview: Option<String>,
+    pub mime_type: Option<String>,
+    pub format: String,
+    pub storage_kind: String,
+    pub bucket: Option<String>,
+    pub object_key: Option<String>,
+    pub file_name: Option<String>,
+    pub file_size: Option<i64>,
+    pub sha256: Option<String>,
+    pub source: String,
+    pub status: String,
+    pub validation_status: String,
+    pub validation_report: Value,
     pub metadata: Value,
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,

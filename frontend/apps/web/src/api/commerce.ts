@@ -211,6 +211,40 @@ export interface WorkspaceRunTaskResponse extends JsonRecord {
   updatedAt?: string
 }
 
+export interface WorkspaceArtifactResponse extends JsonRecord {
+  id: string
+  workspaceId: string
+  runId?: string | null
+  workspaceTaskId?: string | null
+  runTaskId?: string | null
+  artifactType: string
+  title: string
+  content?: string | null
+  preview?: string | null
+  mimeType?: string | null
+  format: string
+  storageKind: string
+  bucket?: string | null
+  objectKey?: string | null
+  fileName?: string | null
+  fileSize?: number | null
+  sha256?: string | null
+  source: string
+  status: string
+  validationStatus: string
+  validationReport?: JsonRecord | null
+  metadata?: JsonRecord | null
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface WorkspaceArtifactListResponse extends JsonRecord {
+  artifacts: WorkspaceArtifactResponse[]
+  total: number
+  page: number
+  pageSize: number
+}
+
 export interface ExecutionQueueResponse extends JsonRecord {
   id: string
   workspaceId?: string | null
@@ -528,11 +562,91 @@ export interface PackageLockDriftResponse extends JsonRecord {
   summary: JsonRecord
 }
 
+export interface AgentLearningRecordResponse extends JsonRecord {
+  id: string
+  userId?: string
+  user_id?: string
+  workspaceId?: string | null
+  workspace_id?: string | null
+  runId?: string | null
+  run_id?: string | null
+  qualityCheckId?: string | null
+  quality_check_id?: string | null
+  role: string
+  category: string
+  content: string
+  confidence: number
+  sourceAction?: string
+  source_action?: string
+  feedbackRating?: number | null
+  feedback_rating?: number | null
+  feedbackComment?: string | null
+  feedback_comment?: string | null
+  status: string
+  metadata?: JsonRecord
+  createdAt?: string
+  created_at?: string
+  updatedAt?: string
+  updated_at?: string
+}
+
+interface AgentRunFeedbackWireResponse extends JsonRecord {
+  learningRecord?: AgentLearningRecordResponse
+  learning_record?: AgentLearningRecordResponse
+}
+
+export interface AgentRunFeedbackResponse extends JsonRecord {
+  learningRecord: AgentLearningRecordResponse
+  learning_record?: AgentLearningRecordResponse
+}
+
+export interface CommerceAgentPlaybookResponse extends JsonRecord {
+  id: string
+  title: string
+  description: string
+  category: string
+  recommendedStrategy: string
+  prompt: string
+  requiredContext: string[]
+  expectedOutputs: string[]
+  roles: string[]
+}
+
+export interface CommerceAgentPlaybookListResponse extends JsonRecord {
+  playbooks: CommerceAgentPlaybookResponse[]
+}
+
 const defaultListQuery = (query?: ListQuery): ListQuery => ({
   page: 1,
   pageSize: 100,
   ...query,
 })
+
+const normalizeAgentLearningRecord = (
+  record: AgentLearningRecordResponse
+): AgentLearningRecordResponse => {
+  const normalized = { ...record }
+  copyIfMissing(normalized, "userId", "user_id")
+  copyIfMissing(normalized, "workspaceId", "workspace_id")
+  copyIfMissing(normalized, "runId", "run_id")
+  copyIfMissing(normalized, "qualityCheckId", "quality_check_id")
+  copyIfMissing(normalized, "sourceAction", "source_action")
+  copyIfMissing(normalized, "feedbackRating", "feedback_rating")
+  copyIfMissing(normalized, "feedbackComment", "feedback_comment")
+  copyIfMissing(normalized, "createdAt", "created_at")
+  copyIfMissing(normalized, "updatedAt", "updated_at")
+  return normalized
+}
+
+const copyIfMissing = (
+  target: JsonRecord,
+  camelKey: string,
+  snakeKey: string
+) => {
+  if (target[camelKey] === undefined && target[snakeKey] !== undefined) {
+    target[camelKey] = target[snakeKey]
+  }
+}
 
 export const listProductsApi = async (
   query?: ListQuery
@@ -584,6 +698,15 @@ export const getProductDashboardApi =
       method: "GET",
       url: "/api/app/products/dashboard",
     })
+
+export const listCommerceAgentPlaybooksApi =
+  async (): Promise<CommerceAgentPlaybookResponse[]> => {
+    const response = await request<undefined, CommerceAgentPlaybookListResponse>({
+      method: "GET",
+      url: "/api/app/agent/playbooks",
+    })
+    return response.playbooks
+  }
 
 export const listProductKnowledgeApi = async (
   productId: string,
@@ -1010,6 +1133,28 @@ export const updateWorkspaceRunApi = async (
     body,
   })
 
+export const submitAgentRunFeedbackApi = async (
+  workspaceId: string,
+  runId: string,
+  body: JsonRecord
+): Promise<AgentRunFeedbackResponse> => {
+  const response = await request<JsonRecord, AgentRunFeedbackWireResponse>({
+    method: "POST",
+    url: `/api/app/workspaces/${workspaceId}/runs/${runId}/feedback`,
+    body,
+  })
+  const learningRecord = response.learningRecord ?? response.learning_record
+
+  if (!learningRecord) {
+    throw new Error("Missing learning record in feedback response")
+  }
+
+  return {
+    ...response,
+    learningRecord: normalizeAgentLearningRecord(learningRecord),
+  }
+}
+
 export const listWorkspaceRunTasksApi = async (
   workspaceId: string,
   runId: string,
@@ -1042,6 +1187,25 @@ export const updateWorkspaceRunTaskApi = async (
     method: "PATCH",
     url: `/api/app/workspaces/${workspaceId}/runs/${runId}/tasks/${runTaskId}`,
     body,
+  })
+
+export const listWorkspaceArtifactsApi = async (
+  workspaceId: string,
+  query?: ListQuery
+): Promise<WorkspaceArtifactListResponse> =>
+  request<ListQuery, WorkspaceArtifactListResponse>({
+    method: "GET",
+    url: `/api/app/workspaces/${workspaceId}/artifacts`,
+    body: defaultListQuery(query),
+  })
+
+export const getWorkspaceArtifactApi = async (
+  workspaceId: string,
+  artifactId: string
+): Promise<WorkspaceArtifactResponse> =>
+  request<undefined, WorkspaceArtifactResponse>({
+    method: "GET",
+    url: `/api/app/workspaces/${workspaceId}/artifacts/${artifactId}`,
   })
 
 export const listExecutionQueueApi = async (

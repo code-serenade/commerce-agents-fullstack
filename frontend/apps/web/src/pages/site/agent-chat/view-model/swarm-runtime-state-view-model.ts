@@ -51,8 +51,10 @@ export function getRuntimeNodeStates(runtimeEvents: AgentRuntimeEvent[]) {
       event.graph.nodes.forEach((node) => {
         ensureNode(readRuntimeId(node.id)).state = "queued"
       })
-    } else if (event.type === "context_loaded") {
-      ensureNode("ops").state = "working"
+    } else if (event.type === "context_loaded" || event.type === "rag_context_loaded") {
+      ensureNode("ops").state = event.type === "rag_context_loaded" && event.degraded
+        ? "reworking"
+        : "working"
     } else if (event.type === "task_node_ready") {
       ensureNode(readRuntimeNodeId(event)).state = "queued"
     } else if (event.type === "task_node_started") {
@@ -96,6 +98,17 @@ export function getRuntimeNodeStates(runtimeEvents: AgentRuntimeEvent[]) {
       ensureNode(resolveWorkerNodeId(event)).state = "working"
     } else if (event.type === "worker_finished") {
       ensureNode(resolveWorkerNodeId(event)).state = "done"
+    } else if (
+      event.type === "workspace_artifact_created" ||
+      event.type === "workspace_run_completed" ||
+      event.type === "quality_checked"
+    ) {
+      ensureNode("delivery").state = "done"
+    } else if (event.type === "workspace_run_failed") {
+      Object.assign(ensureNode("delivery"), {
+        evaluationReasons: [event.summary ?? event.status],
+        state: "failed",
+      })
     } else if (event.type === "failed") {
       Object.assign(ensureNode("ops"), {
         evaluationReasons: [event.reason],

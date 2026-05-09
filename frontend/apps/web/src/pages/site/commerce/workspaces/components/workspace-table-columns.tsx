@@ -1,5 +1,6 @@
 import { Button, NativeSelect } from "@workspace/ui-components"
 import type {
+  WorkspaceArtifactResponse,
   WorkspaceResponse,
   WorkspaceRunResponse,
   WorkspaceRunTaskResponse,
@@ -156,6 +157,42 @@ export function createRunTaskColumns(
             page.updateRunTaskStatus({ runTask: item, status })
           }
         />
+      ),
+    },
+  ]
+}
+
+export function createArtifactColumns(
+  page: WorkspacesPageState,
+  t: CommerceTranslate
+): CommerceColumn<WorkspaceArtifactResponse>[] {
+  return [
+    {
+      key: "artifact",
+      header: t("commerce.workspaces.columns.artifact"),
+      render: (item) => (
+        <button
+          type="button"
+          className="block min-w-0 text-left"
+          onClick={() => page.setSelectedArtifactId(item.id)}
+        >
+          <span className="block truncate font-medium">{item.title}</span>
+          <MutedText>{item.preview || item.fileName || item.id}</MutedText>
+        </button>
+      ),
+    },
+    {
+      key: "type",
+      header: t("commerce.common.type"),
+      render: (item) => item.artifactType,
+    },
+    {
+      key: "validation",
+      header: t("commerce.workspaces.columns.validation"),
+      render: (item) => (
+        <StatusBadge tone={toneForStatus(item.validationStatus)}>
+          {item.validationStatus}
+        </StatusBadge>
       ),
     },
   ]

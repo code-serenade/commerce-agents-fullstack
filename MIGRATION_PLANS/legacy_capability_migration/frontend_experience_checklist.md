@@ -12,10 +12,12 @@
 
 ## 问答主体验
 
-- [ ] 第一屏突出电商多智能体问答。
+- [x] 第一屏突出电商多智能体问答。
 - [x] 回答策略选择可用，并传给后端 metadata。
 - [x] 策略切换产生的差异来自后端 route/worker/SSE event。
 - [x] 商品上下文选择可用，并传给后端 metadata。
+- [x] 商业场景入口来自后端 playbook。
+- [x] 用户反馈入口可对真实 workspace run 提交评分和评论。
 - [ ] 用户问题、助手回答、过程面板布局清晰。
 - [ ] 未登录状态提示清楚。
 - [ ] 发送中、停止、错误、超时状态完整。
@@ -34,22 +36,25 @@
 - [ ] task graph 可视化，数据来自后端 SSE。
 - [ ] skill requested/result 可视化，数据来自后端 SSE。
 - [x] context loaded 可视化，数据来自后端 SSE。
-- [ ] quality check 可视化，数据来自后端 SSE/API。
-- [ ] approval required 可视化，数据来自后端 SSE/API。
-- [ ] workspace artifact 可视化，数据来自后端 API。
+- [x] workspace run/task 沉淀状态可视化，数据来自后端 SSE。
+- [x] quality check 可视化，数据来自后端 SSE/API。
+- [x] approval required 可视化，数据来自后端 SSE/API。
+- [x] workspace artifact 可视化，数据来自后端 SSE。
+- [x] RAG 来源和降级原因可视化，数据来自后端 SSE。
+- [x] 用户反馈提交，数据写入后端 learning record。
 
 ## 业务页面联动
 
 - [ ] 产品页可带入问答，后端能读取真实产品上下文。
 - [ ] 活动页可让 Agent 优化/复盘，后端已有对应业务 API。
-- [ ] 工作区页展示 agent run，后端已有 workspace run/artifact。
-- [ ] 审批页承接高风险工具，后端已有 approval record。
+- [x] 工作区页刷新后展示 agent run 和 artifact 列表，后端已有 workspace run/artifact。
+- [x] 审批页承接高风险工具，后端已有 approval record。
 - [ ] 历史会话可恢复上下文，后端已有 conversation/session 数据。
 
 ## 设计原则
 
 - [ ] 不新增第二套 UI 基础组件。
 - [ ] 优先使用 `@workspace/app-kit`。
-- [ ] 优先使用 `@workspace/ui-components`。
+- [x] 优先使用 `@workspace/ui-components`。
 - [ ] app 本地只做业务装配。
 - [ ] 页面文案不写功能说明式长篇教程。

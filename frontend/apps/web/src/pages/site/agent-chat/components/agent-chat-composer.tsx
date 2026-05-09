@@ -1,70 +1,52 @@
 import {
+  BadgeDollarSign,
+  BarChart3,
   Bot,
-  Coffee,
-  Database,
+  ClipboardList,
   LockKeyhole,
   Loader2,
-  Megaphone,
   Plus,
+  PenLine,
+  Rocket,
   Send,
-  ShoppingBag,
+  ShieldAlert,
   Square,
+  type LucideIcon,
 } from "lucide-react"
 import { type KeyboardEvent, type MouseEvent, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@workspace/ui-components/stable/button"
 import type { AgentChatProductContextSelection } from "../domain/agent-chat-context-selection"
+import type { AgentChatPlaybookSelection } from "../domain/agent-chat-playbook"
 import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
 import { AgentChatProductContextBar } from "./agent-chat-product-context-bar"
 import { AgentChatStrategyBar } from "./agent-chat-strategy-bar"
 
-const SAMPLE_PROMPTS = [
-  {
-    labelKey: "agentChat.composer.samples.coffee.label",
-    icon: Coffee,
-    promptKey: "agentChat.composer.samples.coffee.prompt",
-  },
-  {
-    labelKey: "agentChat.composer.samples.qianchuan.label",
-    icon: Megaphone,
-    promptKey: "agentChat.composer.samples.qianchuan.prompt",
-  },
-]
-
-const CONTEXT_CHIPS = [
-  {
-    labelKey: "agentChat.composer.chips.products.label",
-    icon: ShoppingBag,
-    titleKey: "agentChat.composer.chips.products.title",
-    promptKey: "agentChat.composer.chips.products.prompt",
-  },
-  {
-    labelKey: "agentChat.composer.chips.campaign.label",
-    icon: Megaphone,
-    titleKey: "agentChat.composer.chips.campaign.title",
-    promptKey: "agentChat.composer.chips.campaign.prompt",
-  },
-  {
-    labelKey: "agentChat.composer.chips.platform.label",
-    icon: Database,
-    titleKey: "agentChat.composer.chips.platform.title",
-    promptKey: "agentChat.composer.chips.platform.prompt",
-  },
-]
+const PLAYBOOK_ICONS: Record<string, LucideIcon> = {
+  briefing: ClipboardList,
+  creative: PenLine,
+  launch: Rocket,
+  pricing: BadgeDollarSign,
+  review: BarChart3,
+  service: ShieldAlert,
+}
 
 export interface AgentChatComposerProps {
   availableProducts: AgentChatProductContextSelection[]
   canSend: boolean
   input: string
   isLoggedIn: boolean
+  isLoadingPlaybooks: boolean
   isLoadingProducts: boolean
   isStreaming: boolean
   onInputChange: (value: string) => void
+  onSelectPlaybook: (playbook: AgentChatPlaybookSelection) => void
   onSend: () => void
   onStop: () => void
   onStrategyChange: (strategyId: AgentChatStrategyId) => void
   onToggleProductContext: (product: AgentChatProductContextSelection) => void
   selectedProducts: AgentChatProductContextSelection[]
+  playbooks: AgentChatPlaybookSelection[]
   strategyId: AgentChatStrategyId
 }
 
@@ -73,14 +55,17 @@ export function AgentChatComposer({
   canSend,
   input,
   isLoggedIn,
+  isLoadingPlaybooks,
   isLoadingProducts,
   isStreaming,
   onInputChange,
+  onSelectPlaybook,
   onSend,
   onStop,
   onStrategyChange,
   onToggleProductContext,
   selectedProducts,
+  playbooks,
   strategyId,
 }: AgentChatComposerProps) {
   const { t } = useTranslation()
@@ -130,43 +115,33 @@ export function AgentChatComposer({
           selectedProducts={selectedProducts}
         />
         <div className="flex flex-wrap gap-2">
-          {SAMPLE_PROMPTS.map((sample) => {
-            const Icon = sample.icon
-            const label = t(sample.labelKey)
-            const prompt = t(sample.promptKey)
+          {isLoadingPlaybooks ? (
+            <span className="flex h-7 items-center gap-2 rounded-full border border-border bg-background/70 px-3 text-xs text-muted-foreground">
+              <Loader2 className="size-3.5 animate-spin" />
+              {t("agentChat.composer.playbooks.loading")}
+            </span>
+          ) : null}
+          {!isLoadingPlaybooks && playbooks.length === 0 ? (
+            <span className="flex h-7 items-center rounded-full border border-border bg-background/70 px-3 text-xs text-muted-foreground">
+              {t("agentChat.composer.playbooks.empty")}
+            </span>
+          ) : null}
+          {playbooks.map((playbook) => {
+            const Icon = PLAYBOOK_ICONS[playbook.category] ?? ClipboardList
             return (
               <button
-                key={sample.labelKey}
+                key={playbook.id}
                 type="button"
                 disabled={isStreaming}
                 onClick={() => {
-                  onInputChange(prompt)
+                  onSelectPlaybook(playbook)
                   queueMicrotask(() => textareaRef.current?.focus())
                 }}
-                className="flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                title={prompt}
+                className="flex max-w-44 items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                title={`${playbook.description} ${playbook.expectedOutputs.join(" / ")}`}
               >
                 <Icon className="size-3.5" />
-                {label}
-              </button>
-            )
-          })}
-          <span className="hidden h-7 w-px bg-border sm:block" />
-          {CONTEXT_CHIPS.map((chip) => {
-            const Icon = chip.icon
-            const label = t(chip.labelKey)
-            const prompt = t(chip.promptKey)
-            return (
-              <button
-                key={chip.labelKey}
-                type="button"
-                disabled={isStreaming}
-                onClick={() => appendComposerText(prompt)}
-                className="flex items-center gap-2 rounded-full border border-border bg-background/70 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                title={`${t(chip.titleKey)} ${prompt}`}
-              >
-                <Icon className="size-3.5" />
-                {label}
+                <span className="truncate">{playbook.title}</span>
               </button>
             )
           })}

@@ -9,6 +9,7 @@ import {
 } from "./swarm-report-lines-view-model"
 import { getContextCard } from "./swarm-context-card-view-model"
 import { getSkillCard } from "./swarm-skill-card-view-model"
+import { getWorkspacePersistenceCard } from "./swarm-workspace-view-model"
 import {
   getDockStateLabel,
   getFallbackResponse,
@@ -32,6 +33,8 @@ export function getComputerCards(input: {
   const cards = [getTaskCard(runtimeEvents, lastTask, t)]
   const contextCard = getContextCard(runtimeEvents, t)
   if (contextCard) cards.push(contextCard)
+  const workspaceCard = getWorkspacePersistenceCard(runtimeEvents, t)
+  if (workspaceCard) cards.push(workspaceCard)
   const latestNodeEvent = findLatestNodeEvent(runtimeEvents)
   cards.push(getRuntimeCard(latestNodeEvent, activeAgent, activeNode, agents, t))
   const skillCard = getSkillCard(activeNode, t)

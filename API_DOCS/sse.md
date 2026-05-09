@@ -40,7 +40,7 @@
 | `input` | `string` | 是 | 用户输入，不能为空，最大 20000 字符 |
 | `agentId` | `string` | 否 | agent ID，不传时使用 `web-agent` |
 | `sessionId` | `string` | 否 | 会话 ID，不传时服务端生成 |
-| `workspaceId` | `string` | 否 | 工作区 ID |
+| `workspaceId` | `string` | 否 | 工作区 ID；不传时后端会创建或复用当前用户默认 `agent_chat` 工作区 |
 | `metadata.context.productIds` | `string[]` | 否 | 绑定到本轮问答的商品 ID，最多 5 个；后端会校验当前用户权限并读取真实商品/知识 |
 | `metadata.context.contextRefs` | `string[]` | 否 | 上下文引用，当前支持 `product:{productId}`，最多 20 个 |
 | `metadata.strategy.id` | `string` | 否 | 回答策略 ID，当前前端使用 `execution` / `learning` / `collab` |
@@ -51,10 +51,13 @@
 
 `metadata.strategy.*` 仅允许小写字母、数字、`_`、`-`，单字段最大 64 字符。后端会把这些字段转换为 agent runtime metadata：`strategy.id`、`strategy.response_mode`、`strategy.collaboration_mode`。前端不得把策略说明拼进 `input` 来伪造后端策略行为。
 
-SSE 事件分为两类：
+每次 SSE Agent 调用都会先在 service 层绑定工作区运行记录：如果 `workspaceId` 合法且属于当前用户，则写入该工作区；如果不传 `workspaceId`，后端会创建或复用当前用户的默认 `agent_chat` 工作区。绑定成功后，agent runtime metadata 会追加 `workspace.workspace_id`、`workspace.run_id` 和 `workspace.source=agent_session`。如果绑定失败，SSE 不会启动，接口直接返回业务错误，避免前端误以为本次结果已沉淀。
+
+SSE 事件分为三类：
 
 1. 原始 agent 过程事件，事件名来自 `agent::api::SessionEvent::event_name()`。
-2. 兼容旧前端的文本事件：`delta` / `done` / `error`。
+2. 工作区沉淀事件，由 web-server 调用 service 层写入真实 `workspaces`、`workspace_runs`、`workspace_tasks`、`workspace_run_tasks`、`workspace_artifacts` 后产生。
+3. 兼容旧前端的文本事件：`delta` / `done` / `error`。
 
 原始过程事件示例：
 
@@ -68,6 +71,9 @@ data: {"type":"route_decided","session_id":"session-001","strategy_id":"collab",
 event: context_loaded
 data: {"type":"context_loaded","session_id":"session-001","product_ids":["product-uuid"],"refs":["product:product-uuid"],"product_count":1,"knowledge_count":3,"source_count":4,"summary":"Product source product:...","sources_json":"[...]"}
 
+event: rag_context_loaded
+data: {"type":"rag_context_loaded","mode":"local_product_knowledge","queryTerms":["咖啡","转化"],"productIds":["product-uuid"],"knowledgeCount":3,"sourceCount":4,"summary":"Local commerce RAG context...","sources":[{"sourceType":"product_knowledge","id":"knowledge-uuid","productId":"product-uuid","title":"核心卖点"}],"degraded":false,"degradedReason":null,"externalSearchAvailable":false}
+
 event: worker_started
 data: {"type":"worker_started","session_id":"session-001","worker_id":"worker-001","task_id":"task-001"}
 
@@ -80,11 +86,29 @@ data: {"type":"skill_result","session_id":"session-001","worker_id":"worker.chat
 event: task_graph_planned
 data: {"type":"task_graph_planned","session_id":"session-001","graph":{...}}
 
+event: workspace_run_tasks_linked
+data: {"tasks":[{"id":"run-task-uuid","runId":"run-uuid","workspaceId":"workspace-uuid","status":"pending"}]}
+
 event: task_node_reported
 data: {"type":"task_node_reported","session_id":"session-001","graph_id":"graph-001","node_id":"node-001","worker_id":"worker-001","report":{...}}
 
+event: workspace_run_task_updated
+data: {"id":"run-task-uuid","runId":"run-uuid","workspaceId":"workspace-uuid","status":"succeeded","metadata":{...}}
+
 event: finished
 data: {"type":"finished","session_id":"session-001"}
+
+event: workspace_run_completed
+data: {"id":"run-uuid","workspaceId":"workspace-uuid","status":"succeeded","source":"agent_session","report":{...}}
+
+event: workspace_artifact_created
+data: {"id":"artifact-uuid","workspaceId":"workspace-uuid","runId":"run-uuid","artifactType":"final_report","title":"Agent final report","storageKind":"inline","format":"markdown","status":"active"}
+
+event: quality_checked
+data: {"qualityCheck":{"id":"quality-check-uuid","workspaceId":"workspace-uuid","runId":"run-uuid","artifactId":"artifact-uuid","role":"agent","score":0.82,"passed":true,"dimensions":{},"issues":[],"suggestions":[]},"trustUpdate":{"role":"agent","previousScore":0.5,"newScore":0.596,"previousLevel":"moderate","newLevel":"moderate","delta":0.096,"reason":"quality check passed; trust score moved toward the answer quality"},"learningRecords":[]}
+
+event: approval_required
+data: {"type":"approval_required","approval":{"id":"approval-uuid","workspaceId":"workspace-uuid","runId":"run-uuid","skillName":"platform_update_price","toolCallId":"task-001-skill-1","riskLevel":"L3","status":"pending","reason":"平台写操作需要审批","actionKey":"agent:run:..."},"alert":{"id":"alert-uuid","workspaceId":"workspace-uuid","runId":"run-uuid","alertType":"agent_approval_required","severity":"warning","message":"Agent skill platform_update_price requires approval before execution.","status":"active"},"skillId":"platform_update_price","requestId":"task-001-skill-1","role":"ops","riskLevel":"L3","reason":"平台写操作需要审批"}
 ```
 
 常见原始事件：
@@ -94,6 +118,7 @@ data: {"type":"finished","session_id":"session-001"}
 | `started` | agent session 已开始 |
 | `memory_loaded` / `memory_persisted` / `memory_compacted` | 记忆加载、保存或压缩 |
 | `context_loaded` | 后端已读取并注入真实业务上下文，当前包含商品 ID、context refs、商品数量、知识数量、来源数量、摘要和来源 JSON |
+| `rag_context_loaded` | 后端已根据用户问题检索当前用户自己的本地商品知识，返回检索模式、关键词、来源、摘要、是否降级和外部搜索可用状态 |
 | `commander_thinking` | commander 正在规划或调度 |
 | `route_decided` | 后端已识别策略和路由模式，包含策略、主角色和支持角色 |
 | `worker_started` / `worker_finished` | 单个 worker 开始或完成 |
@@ -107,6 +132,28 @@ data: {"type":"finished","session_id":"session-001"}
 | `finished` | agent session 完成 |
 
 `skill_result.status` 当前使用：`success`、`deferred`、`pending_approval`、`not_found`、`validation_error`、`failed`。其中 `pending_approval` 和 `approval_required=true` 表示后端没有直接执行平台写操作，需要进入审批或人工确认链路；`deferred` 表示 skill 已被识别但依赖搜索、外部数据、数据库或平台适配器，当前不会伪造结果。
+
+`rag_context_loaded` 当前使用本地 RAG：来源只来自当前用户自己的 active `products` 和 active `product_knowledge`。如果命中本地商品知识，服务端会把摘要追加到 agent runtime `context.summary`，让模型可在回答中使用这些事实。如果没有命中，事件会返回 `degraded=true` 和 `degradedReason="No matching local product knowledge was found; external search adapter is not configured."`。当前不会伪造外部搜索结果，`externalSearchAvailable=false` 表示外部搜索适配器尚未接入。
+
+工作区沉淀事件：
+
+| 事件名 | 说明 |
+| --- | --- |
+| `workspace_run_linked` | SSE 启动前已创建或绑定 `workspace_run`，返回 `workspace`、`run` 和 `createdWorkspace` |
+| `workspace_run_tasks_linked` | `task_graph_planned` 已沉淀为 `workspace_tasks` 和 `workspace_run_tasks`，返回运行任务快照列表 |
+| `workspace_run_task_updated` | 节点开始、worker report 或 evaluation 已写入对应运行任务快照 |
+| `workspace_run_completed` | agent session 正常完成，`workspace_run.status=succeeded`，最终输出写入 `report.output` |
+| `workspace_artifact_created` | agent session 正常完成后已创建工作区交付物，通常为 `artifactType=final_report` 的 markdown 报告 |
+| `quality_checked` | agent session 正常完成并创建交付物后，后端已完成回答质量检查、信任分更新和学习记录沉淀 |
+| `approval_required` | `skill_result.status=pending_approval` 或 `approval_required=true` 时，后端已创建或复用工具审批记录，并尝试创建告警 |
+| `workspace_run_failed` | agent session 失败，`workspace_run.status=failed`，失败原因写入 `report.reason` |
+| `workspace_run_persistence_error` | agent 流运行过程中某次沉淀失败，返回 `action`、`code`、`message`；该事件不截断原始 LLM 回答 |
+
+`workspace_run_linked` 的 `run.source` 固定为 `agent_session`。`workspace_run_tasks_linked` 与 `workspace_run_task_updated` 返回的数据结构等同于 `API_DOCS/app.md` 中的 `WorkspaceRunTaskResponse`，字段使用 camelCase。`workspace_run_completed` / `workspace_run_failed` 返回的数据结构等同于 `WorkspaceRunResponse`。`workspace_artifact_created` 返回的数据结构等同于 `WorkspaceArtifactResponse`。`quality_checked` 返回的数据结构等同于 `API_DOCS/app.md` 中 `POST /api/app/workspaces/{workspaceId}/runs/{runId}/quality-checks` 的成功响应，字段使用 camelCase。
+
+`quality_checked` 当前由 web-server 在 `workspace_run_completed` 和 `workspace_artifact_created` 后自动触发。质量检查失败不会截断 LLM 回答；如果质量检查自身写入失败，服务端会继续发 `workspace_run_persistence_error`，其中 `action` 为 `evaluate_agent_run`。
+
+`approval_required` 当前由 web-server 在收到高风险 `skill_result` 后自动触发。服务端会复用现有 `tool_approval_queue`、`audit_logs`、`alerts`，不新增第二套审批表。审批记录用 `actionKey` 去重，告警用 `dedupKey` 去重；重复的同一平台写操作会返回既有 active 记录。Agent 风险等级会映射为业务审批等级：`low -> L1`、`medium -> L2`、`high -> L3`。如果审批写入失败，服务端会继续发 `workspace_run_persistence_error`，其中 `action` 为 `create_tool_approval`；如果审计或告警写入失败，`action` 分别为 `create_tool_approval_audit`、`create_approval_alert`。
 
 兼容文本事件：
 
@@ -128,6 +175,7 @@ data: {"message":"agent failed"}
 前端消费规则：
 
 - 新前端应监听所有原始过程事件，用于展示 agent、worker、任务图和任务节点过程
+- 新前端应监听工作区沉淀事件，用于展示“本轮回答已保存到哪个工作区、哪些岗位任务已沉淀、最终报告和交付物是否可刷新后查看”
 - 文本回复仍然监听 `delta`，把 `data.content` 追加到当前回复文本
 - 收到 `delta` 后把 `data.content` 追加到当前回复文本
 - 收到 `done` 后结束本次回复

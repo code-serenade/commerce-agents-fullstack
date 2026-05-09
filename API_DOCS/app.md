@@ -70,6 +70,64 @@
 - 如果当前 Auth 用户尚未初始化为 App 用户，返回 `404`，错误码为 `-12000`
 - 如果当前 App 用户已被禁用，返回 `403`，错误码为 `-12001`
 
+## 2.1 查询电商智能体场景 Playbook
+
+- 方法：`GET`
+- 路径：`/api/app/agent/playbooks`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：
+
+```json
+{
+  "playbooks": [
+    {
+      "id": "new_product_launch",
+      "title": "新品冷启动",
+      "description": "从商品事实、首批人群、内容种草、投放测试和复盘节奏生成冷启动方案。",
+      "category": "launch",
+      "recommendedStrategy": "collab",
+      "prompt": "请以电商多智能体虚拟员工方式...",
+      "requiredContext": [
+        "product_knowledge",
+        "product_material",
+        "campaign",
+        "platform_metrics"
+      ],
+      "expectedOutputs": [
+        "定位诊断",
+        "首批动作清单",
+        "预算与止损线",
+        "复盘指标"
+      ],
+      "roles": [
+        "product",
+        "data",
+        "creative",
+        "ads",
+        "operations"
+      ]
+    }
+  ]
+}
+```
+
+当前内置场景：
+
+- `new_product_launch`：新品冷启动，推荐 `collab`
+- `ad_review`：投放复盘，推荐 `collab`
+- `customer_complaint_crisis`：客诉危机，推荐 `execution`
+- `selection_pricing`：选品定价，推荐 `learning`
+- `creative_optimization`：素材优化，推荐 `collab`
+- `daily_business_review`：日报复盘，推荐 `execution`
+
+补充说明：
+
+- 当前用户必须存在于 `app_users`，且状态为 `enabled`
+- 该接口是问答页商业场景入口的后端契约，前端不应再硬编码替代样例
+- 本阶段 playbook 为 service 层内置目录，暂不支持用户自定义
+- `recommendedStrategy` 对齐问答策略：`execution`、`learning`、`collab`
+
 ## 3. 查询我的会话列表
 
 - 方法：`GET`
@@ -1366,7 +1424,8 @@
 - `source` 不传时默认 `manual`
 - `requirements` 不传时默认 `[]`
 - `report` 和 `metadata` 不传时默认 `{}`
-- 本阶段不创建 Agent TaskGraph，只保存运行/报告记录
+- 普通 HTTP 创建接口不启动 Agent TaskGraph，只保存运行/报告记录
+- Agent SSE 会自动创建 `source=agent_session` 的运行记录；这类记录由 `/api/sse/agent/session/stream` 绑定或创建，最终输出写入 `report.output`，任务图节点写入 `workspace_run_tasks`，完成时同步创建 `artifactType=final_report` 的工作区交付物
 
 ## 58. 查询工作区运行记录详情
 
@@ -1399,6 +1458,13 @@
 | `status` | `pending \| running \| succeeded \| failed \| skipped \| cancelled` | 否 | 运行任务状态 |
 
 成功响应 `data`：`WorkspaceRunTaskResponse[]`。
+
+补充说明：
+
+- Agent SSE 产生的任务快照会写入 `metadata.kind=agent_task_node`
+- `metadata.graphId`、`metadata.nodeId`、`metadata.workerId` 可用于把运行任务快照和原始 agent SSE 事件对齐
+- Agent SSE 会在启动 agent runtime 前执行本地 RAG 检索：后端按当前登录用户检索 active 商品和 active 商品知识，发出 `rag_context_loaded` 事件，并把检索摘要注入 agent metadata。当前不伪造外部搜索；未命中本地知识时会返回明确降级原因。
+- worker report 会写入 `metadata.report`，evaluation 会写入 `metadata.evaluation`
 
 ## 61. 创建运行任务快照
 
@@ -1455,6 +1521,370 @@
 请求体可包含 `seq`、`ownerRole`、`status`、`attempts`、`acceptanceScore`、`acceptancePassed`、`acceptanceNotes`、`executionNotes`、`metadata`，所有字段均可省略。
 
 成功响应 `data`：`WorkspaceRunTaskResponse`。
+
+## 工作区交付物接口
+
+工作区交付物用于保存 Agent 运行或人工流程产生的最终报告、岗位交付件、文件引用等结果。Agent SSE 正常完成时会自动创建一个 `artifactType=final_report`、`storageKind=inline`、`format=markdown` 的交付物；普通 HTTP 接口可用于查询、人工登记、更新或归档交付物。
+
+### 查询工作区交付物列表
+
+- 方法：`GET`
+- 路径：`/api/app/workspaces/{workspaceId}/artifacts`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `runId` | `uuid` | 否 | 只查询某次运行产生的交付物 |
+| `workspaceTaskId` | `uuid` | 否 | 只查询某个工作区任务关联的交付物 |
+| `runTaskId` | `uuid` | 否 | 只查询某个运行任务快照关联的交付物 |
+| `artifactType` | `string` | 否 | 交付物类型，例如 `final_report`、`role_report`、`file` |
+| `status` | `active \| archived` | 否 | 不传时默认查询 `active` |
+| `keyword` | `string` | 否 | 匹配标题、预览、文件名、对象 key |
+| `page` | `number` | 否 | 默认 1 |
+| `pageSize` | `number` | 否 | 默认 20，最大 100 |
+
+成功响应 `data`：
+
+```json
+{
+  "artifacts": [
+    {
+      "id": "artifact-uuid",
+      "workspaceId": "workspace-uuid",
+      "runId": "run-uuid",
+      "workspaceTaskId": null,
+      "runTaskId": null,
+      "userId": "user-uuid",
+      "artifactType": "final_report",
+      "title": "Agent final report",
+      "content": "最终回答正文",
+      "preview": "最终回答正文",
+      "mimeType": "text/markdown",
+      "format": "markdown",
+      "storageKind": "inline",
+      "bucket": null,
+      "objectKey": null,
+      "fileName": null,
+      "fileSize": null,
+      "sha256": null,
+      "source": "agent_session",
+      "status": "active",
+      "validationStatus": "unchecked",
+      "validationReport": {},
+      "metadata": {},
+      "createdAt": "2026-05-09T00:00:00Z",
+      "updatedAt": "2026-05-09T00:00:00Z"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+### 创建工作区交付物
+
+- 方法：`POST`
+- 路径：`/api/app/workspaces/{workspaceId}/artifacts`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "runId": "run-uuid",
+  "workspaceTaskId": null,
+  "runTaskId": null,
+  "artifactType": "role_report",
+  "title": "投放岗位分析报告",
+  "content": "报告正文",
+  "preview": "报告摘要",
+  "mimeType": "text/markdown",
+  "format": "markdown",
+  "storageKind": "inline",
+  "bucket": null,
+  "objectKey": null,
+  "fileName": null,
+  "fileSize": null,
+  "sha256": null,
+  "source": "manual",
+  "validationStatus": "unchecked",
+  "validationReport": {},
+  "metadata": {}
+}
+```
+
+成功响应 `data`：`WorkspaceArtifactResponse`。
+
+补充说明：
+
+- `artifactType` 和 `title` 必填
+- `runId`、`workspaceTaskId`、`runTaskId` 可为空；不为空时必须属于当前用户当前工作区
+- `storageKind=inline` 时主要使用 `content` 保存正文；`storageKind=object` 时主要使用 `bucket`、`objectKey`、`fileName` 等对象存储字段
+- `status` 创建时固定为 `active`
+
+### 查询工作区交付物详情
+
+- 方法：`GET`
+- 路径：`/api/app/workspaces/{workspaceId}/artifacts/{artifactId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`WorkspaceArtifactResponse`。
+
+### 更新工作区交付物
+
+- 方法：`PATCH`
+- 路径：`/api/app/workspaces/{workspaceId}/artifacts/{artifactId}`
+- 鉴权：有效 App 用户 JWT
+
+请求体字段均可选：`title`、`content`、`preview`、`mimeType`、`format`、`storageKind`、`bucket`、`objectKey`、`fileName`、`fileSize`、`sha256`、`status`、`validationStatus`、`validationReport`、`metadata`。
+
+成功响应 `data`：`WorkspaceArtifactResponse`。
+
+### 归档工作区交付物
+
+- 方法：`DELETE`
+- 路径：`/api/app/workspaces/{workspaceId}/artifacts/{artifactId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`null`。
+
+补充说明：
+
+- 当前实现为软删除，设置 `status = archived`
+- 只归档业务记录，不直接删除对象存储里的物理文件
+
+## 工作区 Agent 质量、信任与学习接口
+
+这些接口用于查询或触发 Agent run 的质量检查、保存用户反馈、查询学习记录和信任分。SSE Agent 正常完成时也会自动触发一次质量检查，并发出 `quality_checked` 事件。
+
+### 查询运行质量检查
+
+- 方法：`GET`
+- 路径：`/api/app/workspaces/{workspaceId}/runs/{runId}/quality-checks`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `page` | `number` | 否 | 默认 1 |
+| `pageSize` | `number` | 否 | 默认 20，最大 100 |
+
+成功响应 `data`：
+
+```json
+{
+  "checks": [
+    {
+      "id": "quality-check-uuid",
+      "workspaceId": "workspace-uuid",
+      "runId": "run-uuid",
+      "artifactId": "artifact-uuid",
+      "userId": "user-uuid",
+      "role": "agent",
+      "score": 0.82,
+      "passed": true,
+      "dimensions": {
+        "completeness": 0.82,
+        "actionability": 0.76,
+        "relevance": 0.9,
+        "clarity": 0.8,
+        "riskAwareness": 0.62,
+        "valueDensity": 0.71,
+        "confidenceMarking": 0.62,
+        "roleDelivery": 0.72,
+        "fabricationGuard": 0.86
+      },
+      "issues": [],
+      "suggestions": [],
+      "source": "agent_session",
+      "metadata": {},
+      "createdAt": "2026-05-09T00:00:00Z"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+### 触发运行质量检查
+
+- 方法：`POST`
+- 路径：`/api/app/workspaces/{workspaceId}/runs/{runId}/quality-checks`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "artifactId": "artifact-uuid",
+  "output": "可选。为空时后端优先读取 artifact.content/preview，再读取 run.report.output"
+}
+```
+
+成功响应 `data`：
+
+```json
+{
+  "qualityCheck": {
+    "id": "quality-check-uuid",
+    "workspaceId": "workspace-uuid",
+    "runId": "run-uuid",
+    "artifactId": "artifact-uuid",
+    "role": "agent",
+    "score": 0.82,
+    "passed": true,
+    "dimensions": {},
+    "issues": [],
+    "suggestions": [],
+    "source": "agent_session",
+    "metadata": {},
+    "createdAt": "2026-05-09T00:00:00Z"
+  },
+  "trustUpdate": {
+    "role": "agent",
+    "skillId": null,
+    "previousScore": 0.5,
+    "newScore": 0.596,
+    "previousLevel": "moderate",
+    "newLevel": "moderate",
+    "delta": 0.096,
+    "reason": "quality check passed; trust score moved toward the answer quality"
+  },
+  "learningRecords": [
+    {
+      "id": "learning-record-uuid",
+      "workspaceId": "workspace-uuid",
+      "runId": "run-uuid",
+      "qualityCheckId": "quality-check-uuid",
+      "role": "agent",
+      "category": "success",
+      "content": "High quality answer pattern for similar tasks: ...",
+      "confidence": 0.82,
+      "sourceAction": "quality_check_success",
+      "feedbackRating": null,
+      "feedbackComment": null,
+      "status": "active",
+      "metadata": {},
+      "createdAt": "2026-05-09T00:00:00Z",
+      "updatedAt": "2026-05-09T00:00:00Z"
+    }
+  ]
+}
+```
+
+补充说明：
+
+- `artifactId` 可为空；不为空时必须属于当前用户、当前工作区和当前运行。
+- 质量检查当前为后端确定性规则评分，不额外调用 LLM。
+- 评分会写入 `agent_quality_checks`，同时更新 `agent_trust_scores`，并写入 `agent_learning_records`。
+- 若绑定了交付物，后端会同步更新交付物的 `validationStatus` 与 `validationReport`。
+
+### 提交运行反馈
+
+- 方法：`POST`
+- 路径：`/api/app/workspaces/{workspaceId}/runs/{runId}/feedback`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "rating": 5,
+  "comment": "回答可直接执行，后续继续保持这种结构。",
+  "metadata": {}
+}
+```
+
+成功响应 `data`：`AgentRunFeedbackResponse`，包含新创建的 `learningRecord`。
+
+补充说明：
+
+- `rating` 范围为 1 到 5。
+- 4 到 5 分写入 `feedback_positive`，3 分写入 `feedback_neutral`，1 到 2 分写入 `feedback_negative`。
+- 反馈只写入当前用户、当前工作区、当前运行下的学习记录。
+
+### 查询工作区学习记录
+
+- 方法：`GET`
+- 路径：`/api/app/workspaces/{workspaceId}/learnings`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `runId` | `uuid` | 否 | 只查询某次运行 |
+| `role` | `string` | 否 | 只查询某个角色，当前自动评估写入 `agent` |
+| `category` | `string` | 否 | 例如 `success`、`blindspot`、`improvement`、`feedback_positive` |
+| `page` | `number` | 否 | 默认 1 |
+| `pageSize` | `number` | 否 | 默认 20，最大 100 |
+
+成功响应 `data`：
+
+```json
+{
+  "records": [],
+  "total": 0,
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+### 查询 Agent 信任分
+
+- 方法：`GET`
+- 路径：`/api/app/trust-scores`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `role` | `string` | 否 | 只查询某个角色，当前自动评估写入 `agent` |
+| `page` | `number` | 否 | 默认 1 |
+| `pageSize` | `number` | 否 | 默认 20，最大 100 |
+
+成功响应 `data`：
+
+```json
+{
+  "scores": [
+    {
+      "id": "trust-score-uuid",
+      "userId": "user-uuid",
+      "role": "agent",
+      "skillId": null,
+      "score": 0.596,
+      "trustLevel": "moderate",
+      "previousScore": 0.5,
+      "previousLevel": "moderate",
+      "delta": 0.096,
+      "reason": "quality check passed; trust score moved toward the answer quality",
+      "source": "quality_check",
+      "qualityCheckId": "quality-check-uuid",
+      "metadata": {},
+      "updatedAt": "2026-05-09T00:00:00Z"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+## Agent 质量、信任与学习接口权限与错误
+
+- 所有接口只允许访问当前 JWT 用户自己的工作区、运行、交付物、质量记录、学习记录和信任分。
+- 质量检查不存在返回 `404`，错误码 `-12062`。
+- 质量检查归属不合法返回 `403`，错误码 `-12063`。
+- 质量检查请求参数或关联关系不合法返回 `400`，错误码 `-12064`。
+- 学习记录不存在返回 `404`，错误码 `-12065`。
+- 信任分不存在返回 `404`，错误码 `-12066`。
 
 ## 63. 查询执行建议队列
 
@@ -2043,7 +2473,8 @@
 - `riskLevel` 不传时默认 `L1`
 - `args` 不传时默认 `{}`
 - `actionKey` 不为空时会做去重；同一用户重复提交返回原审批记录
-- 当前阶段只创建审批记录，不暂停 Agent，也不执行真实工具
+- 当前阶段只创建审批记录，不执行真实工具
+- Agent SSE 收到高风险平台写 skill 结果时，也会通过本服务能力自动创建或复用审批记录；该记录的 `actionKey` 由 `runId`、`skillName`、`toolCallId` 生成，并会同步写入 `tool_approval.create` 审计日志和 `agent_approval_required` 告警
 
 ## 86. 查询工具审批请求详情
 
@@ -2765,7 +3196,7 @@
 
 ## 工作区与执行队列接口权限与错误
 
-- 所有工作区、任务、运行记录、运行任务快照、执行建议接口都只允许访问当前 JWT 用户自己的数据
+- 所有工作区、任务、运行记录、运行任务快照、工作区交付物、执行建议接口都只允许访问当前 JWT 用户自己的数据
 - 当前用户必须存在于 `app_users`，且状态为 `enabled`
 - 工作区不存在或已归档工作区被继续操作时返回 `404`，错误码 `-12025`
 - 工作区不属于当前用户返回 `403`，错误码 `-12026`
@@ -2777,6 +3208,9 @@
 - 执行建议不存在返回 `404`，错误码 `-12032`
 - 执行建议不属于当前用户返回 `403`，错误码 `-12033`
 - 执行建议请求参数不合法返回 `400`，错误码 `-12034`
+- 工作区交付物不存在返回 `404`，错误码 `-12059`
+- 工作区交付物不属于当前用户、当前工作区、运行记录或任务时返回 `403`，错误码 `-12060`
+- 工作区交付物请求参数不合法返回 `400`，错误码 `-12061`
 - 工作区绑定商品或活动时，复用商品/活动相关错误码 `-12007`、`-12008`、`-12022`、`-12023`
 
 ## 平台连接接口权限与错误

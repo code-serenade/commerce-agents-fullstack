@@ -51,20 +51,24 @@ export default function AgentChatPage() {
             canSend={chat.canSend}
             input={chat.input}
             isLoggedIn={chat.isLoggedIn}
+            isLoadingPlaybooks={chat.isLoadingPlaybooks}
             isLoadingProducts={chat.isLoadingProducts}
             isStreaming={chat.isStreaming}
             onInputChange={chat.setInput}
+            onSelectPlaybook={chat.selectPlaybook}
             onSend={chat.sendMessage}
             onStop={chat.stopStreaming}
             onStrategyChange={chat.setStrategyId}
             onToggleProductContext={chat.toggleProductContext}
             selectedProducts={chat.selectedProducts}
+            playbooks={chat.playbooks}
             strategyId={chat.strategyId}
           />
         </section>
         {shouldShowProcessPanel ? (
           <div className="absolute inset-y-2 right-2 z-20 w-[min(42rem,calc(100%-1rem))] shadow-2xl shadow-black/20 min-[1280px]:static min-[1280px]:h-full min-[1280px]:max-h-full min-[1280px]:min-h-0 min-[1280px]:w-auto min-[1280px]:shadow-none">
             <AgentChatSwarmPanel
+              feedback={chat.feedback}
               isStreaming={chat.isStreaming}
               messages={chat.messages}
               onCollapse={() => setIsProcessPanelOpen(false)}

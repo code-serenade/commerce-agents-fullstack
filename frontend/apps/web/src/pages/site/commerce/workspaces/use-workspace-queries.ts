@@ -2,9 +2,11 @@ import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import {
   getExecutionQueueApi,
+  getWorkspaceArtifactApi,
   getWorkspaceApi,
   getWorkspaceRunApi,
   listExecutionQueueApi,
+  listWorkspaceArtifactsApi,
   listWorkspaceRunsApi,
   listWorkspaceRunTasksApi,
   listWorkspacesApi,
@@ -15,10 +17,12 @@ export const workspacesQueryKey = ["commerce", "workspaces"]
 
 export function useWorkspaceQueries({
   keyword,
+  selectedArtifactId,
   selectedRunId,
   selectedWorkspaceId,
 }: {
   keyword: string
+  selectedArtifactId: string | null
   selectedRunId: string | null
   selectedWorkspaceId: string | null
 }) {
@@ -89,6 +93,41 @@ export function useWorkspaceQueries({
     enabled: Boolean(workspaceId && selectedRun?.id),
     queryFn: () => listWorkspaceRunTasksApi(workspaceId!, selectedRun!.id),
   })
+  const artifactsQuery = useQuery({
+    queryKey: [...workspacesQueryKey, workspaceId, "artifacts"],
+    enabled: Boolean(workspaceId),
+    queryFn: () =>
+      listWorkspaceArtifactsApi(workspaceId!, {
+        pageSize: 100,
+        status: "active",
+      }),
+  })
+  const artifacts = useMemo(
+    () => artifactsQuery.data?.artifacts ?? [],
+    [artifactsQuery.data?.artifacts]
+  )
+  const selectedArtifactSnapshot = useMemo(() => {
+    if (!artifacts.length) return null
+
+    return (
+      artifacts.find((artifact) => artifact.id === selectedArtifactId) ??
+      artifacts[0]
+    )
+  }, [artifacts, selectedArtifactId])
+  const artifactDetailQuery = useQuery({
+    queryKey: [
+      ...workspacesQueryKey,
+      workspaceId,
+      "artifacts",
+      selectedArtifactSnapshot?.id,
+      "detail",
+    ],
+    enabled: Boolean(workspaceId && selectedArtifactSnapshot?.id),
+    queryFn: () =>
+      getWorkspaceArtifactApi(workspaceId!, selectedArtifactSnapshot!.id),
+  })
+  const selectedArtifact =
+    artifactDetailQuery.data ?? selectedArtifactSnapshot
   const selectedExecutionSnapshot =
     executionQueueQuery.data?.items.find((item) => item.status === "pending") ??
     executionQueueQuery.data?.items[0] ??
@@ -105,6 +144,7 @@ export function useWorkspaceQueries({
   })
 
   return {
+    artifacts,
     executionQueue: executionQueueQuery.data?.items ?? [],
     focusedExecution:
       executionDetailQuery.data ?? selectedExecutionSnapshot,
@@ -116,9 +156,12 @@ export function useWorkspaceQueries({
       runDetailQuery.isLoading ||
       executionQueueQuery.isLoading ||
       executionDetailQuery.isLoading ||
-      runTasksQuery.isLoading,
+      runTasksQuery.isLoading ||
+      artifactsQuery.isLoading ||
+      artifactDetailQuery.isLoading,
     runTasks: runTasksQuery.data ?? [],
     runs,
+    selectedArtifact,
     selectedRun,
     selectedWorkspace,
     tasks: tasksQuery.data?.tasks ?? [],

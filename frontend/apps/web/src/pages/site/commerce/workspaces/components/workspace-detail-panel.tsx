@@ -14,6 +14,7 @@ import {
   createRunTaskColumns,
   createTaskColumns,
 } from "./workspace-table-columns"
+import { WorkspaceArtifactsTab } from "./workspace-artifacts-tab"
 
 export function WorkspaceDetailPanel({ page }: { page: WorkspacesPageState }) {
   const { t } = useTranslation()
@@ -54,12 +55,16 @@ export function WorkspaceDetailPanel({ page }: { page: WorkspacesPageState }) {
           <TabsTrigger value="runs">
             {t("commerce.workspaces.panels.runsTab")}
           </TabsTrigger>
+          <TabsTrigger value="artifacts">
+            {t("commerce.workspaces.panels.artifactsTab")}
+          </TabsTrigger>
           <TabsTrigger value="executions">
             {t("commerce.workspaces.panels.executionsTab")}
           </TabsTrigger>
         </TabsList>
         <WorkspaceTasksTab page={page} />
         <WorkspaceRunsTab page={page} />
+        <WorkspaceArtifactsTab page={page} />
         <WorkspaceExecutionsTab page={page} />
       </Tabs>
     </CommercePanel>

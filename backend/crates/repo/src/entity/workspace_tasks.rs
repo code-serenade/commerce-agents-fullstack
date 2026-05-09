@@ -40,6 +40,8 @@ pub enum Relation {
     AppUsers,
     #[sea_orm(has_many = "super::execution_queue::Entity")]
     ExecutionQueue,
+    #[sea_orm(has_many = "super::workspace_artifacts::Entity")]
+    WorkspaceArtifacts,
     #[sea_orm(has_many = "super::workspace_run_tasks::Entity")]
     WorkspaceRunTasks,
     #[sea_orm(
@@ -61,6 +63,12 @@ impl Related<super::app_users::Entity> for Entity {
 impl Related<super::execution_queue::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::ExecutionQueue.def()
+    }
+}
+
+impl Related<super::workspace_artifacts::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::WorkspaceArtifacts.def()
     }
 }
 

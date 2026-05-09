@@ -65,6 +65,10 @@ pub fn from_biz_error(err: BizError) -> ApiError {
         | app_error::WORKSPACE_TASK_NOT_FOUND
         | app_error::WORKSPACE_RUN_NOT_FOUND
         | app_error::WORKSPACE_RUN_TASK_NOT_FOUND
+        | app_error::WORKSPACE_ARTIFACT_NOT_FOUND
+        | app_error::AGENT_QUALITY_CHECK_NOT_FOUND
+        | app_error::AGENT_LEARNING_NOT_FOUND
+        | app_error::AGENT_TRUST_NOT_FOUND
         | app_error::EXECUTION_QUEUE_NOT_FOUND
         | app_error::PLATFORM_CONNECTION_NOT_FOUND
         | app_error::CHANNEL_CONNECTION_NOT_FOUND
@@ -78,6 +82,8 @@ pub fn from_biz_error(err: BizError) -> ApiError {
         | app_error::PACKAGE_LOCK_NOT_FOUND => StatusCode::NOT_FOUND,
         app_error::WORKSPACE_FORBIDDEN
         | app_error::WORKSPACE_TASK_FORBIDDEN
+        | app_error::WORKSPACE_ARTIFACT_FORBIDDEN
+        | app_error::AGENT_QUALITY_FORBIDDEN
         | app_error::EXECUTION_QUEUE_FORBIDDEN
         | app_error::PLATFORM_CONNECTION_FORBIDDEN
         | app_error::CHANNEL_CONNECTION_FORBIDDEN
@@ -97,6 +103,8 @@ pub fn from_biz_error(err: BizError) -> ApiError {
         | app_error::PRODUCT_COMPETITOR_REQUEST_INVALID
         | app_error::CAMPAIGN_REQUEST_INVALID
         | app_error::WORKSPACE_REQUEST_INVALID
+        | app_error::WORKSPACE_ARTIFACT_REQUEST_INVALID
+        | app_error::AGENT_QUALITY_REQUEST_INVALID
         | app_error::EXECUTION_QUEUE_REQUEST_INVALID
         | app_error::PLATFORM_CONNECT_REQUEST_INVALID
         | app_error::APPROVAL_AUDIT_REQUEST_INVALID

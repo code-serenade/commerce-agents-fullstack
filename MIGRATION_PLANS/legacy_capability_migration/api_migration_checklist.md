@@ -21,10 +21,15 @@ API 是后端能力和前端适配之间的唯一契约。任何前端适配开�
 - [x] 增加或确认事件：`context_loaded`。
 - [x] 增加或确认事件：`skill_requested`。
 - [x] 增加或确认事件：`skill_result`。
-- [ ] 增加或确认事件：`quality_checked`。
-- [ ] 增加或确认事件：`approval_required`。
-- [ ] 增加或确认事件：`workspace_artifact_created`。
-- [x] 前端 `AgentRuntimeEvent` 同步类型。
+- [x] 增加或确认事件：`workspace_run_linked`。
+- [x] 增加或确认事件：`workspace_run_tasks_linked`。
+- [x] 增加或确认事件：`workspace_run_task_updated`。
+- [x] 增加或确认事件：`workspace_run_completed` / `workspace_run_failed`。
+- [x] 增加或确认事件：`workspace_artifact_created`。
+- [x] 前端 `AgentRuntimeEvent` 同步 workspace 事件类型。
+- [x] 增加或确认事件：`quality_checked`。
+- [x] 增加或确认事件：`approval_required`。
+- [x] 增加或确认事件：`rag_context_loaded`。
 
 ## 业务 API
 
@@ -33,15 +38,17 @@ API 是后端能力和前端适配之间的唯一契约。任何前端适配开�
 - [ ] 附件摘要状态 API。
 - [ ] 竞品分析读取 API。
 - [ ] Campaign draft 创建 API。
-- [ ] Workspace run 与 agent session 对齐 API。
+- [x] Commerce agent playbook 场景入口 API。
+- [x] Workspace run 与 agent session 对齐 API。
+- [x] Workspace artifact 创建、查询、更新、归档 API。
 - [ ] Skill run 记录查询 API。
-- [ ] Quality check 查询 API。
-- [ ] Trust/learning feedback API。
-- [ ] Approval 执行高风险 skill API。
+- [x] Quality check 查询 API。
+- [x] Trust/learning feedback API。
+- [x] Approval 承接高风险 skill API/SSE。
 
 ## 文档
 
 - [x] `API_DOCS/sse.md`
-- [ ] `API_DOCS/app.md`
+- [x] `API_DOCS/app.md`
 - [ ] `API_DOCS/common.md`
 - [ ] 如新增：`API_DOCS/agent-capabilities.md`

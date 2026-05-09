@@ -19,8 +19,14 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(has_many = "super::agent_learning_records::Entity")]
+    AgentLearningRecords,
     #[sea_orm(has_many = "super::agent_memories::Entity")]
     AgentMemories,
+    #[sea_orm(has_many = "super::agent_quality_checks::Entity")]
+    AgentQualityChecks,
+    #[sea_orm(has_many = "super::agent_trust_scores::Entity")]
+    AgentTrustScores,
     #[sea_orm(has_many = "super::alerts::Entity")]
     Alerts,
     #[sea_orm(has_many = "super::app_user_roles::Entity")]
@@ -59,6 +65,8 @@ pub enum Relation {
     Products,
     #[sea_orm(has_many = "super::store_metrics::Entity")]
     StoreMetrics,
+    #[sea_orm(has_many = "super::workspace_artifacts::Entity")]
+    WorkspaceArtifacts,
     #[sea_orm(has_many = "super::workspace_run_package_locks::Entity")]
     WorkspaceRunPackageLocks,
     #[sea_orm(has_many = "super::workspace_run_tasks::Entity")]
@@ -71,9 +79,27 @@ pub enum Relation {
     Workspaces,
 }
 
+impl Related<super::agent_learning_records::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::AgentLearningRecords.def()
+    }
+}
+
 impl Related<super::agent_memories::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::AgentMemories.def()
+    }
+}
+
+impl Related<super::agent_quality_checks::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::AgentQualityChecks.def()
+    }
+}
+
+impl Related<super::agent_trust_scores::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::AgentTrustScores.def()
     }
 }
 
@@ -188,6 +214,12 @@ impl Related<super::products::Entity> for Entity {
 impl Related<super::store_metrics::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::StoreMetrics.def()
+    }
+}
+
+impl Related<super::workspace_artifacts::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::WorkspaceArtifacts.def()
     }
 }
 

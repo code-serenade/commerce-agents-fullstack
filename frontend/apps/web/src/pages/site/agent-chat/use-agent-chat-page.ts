@@ -3,28 +3,22 @@ import { useTranslation } from "react-i18next"
 import { useSelector } from "react-redux"
 import type { RootState } from "@/store"
 import type { AgentRuntimeEvent } from "./agent-chat-data"
-import {
-  createSessionId,
-} from "./domain/agent-chat-message-mapping"
+import { createSessionId } from "./domain/agent-chat-message-mapping"
 import {
   DEFAULT_AGENT_CHAT_STRATEGY_ID,
   getAgentChatStrategy,
   type AgentChatStrategyId,
 } from "./domain/agent-chat-strategy"
 import type { AgentChatConversationItem, AgentChatMessage } from "./types"
-import {
-  deleteAgentConversation,
-  loadLatestAgentConversation,
-  renameAgentConversation,
-  selectAgentConversation,
-} from "./view-model/agent-chat-conversation-actions"
+import { loadLatestAgentConversation } from "./view-model/agent-chat-conversation-actions"
 import {
   resetGuestAgentChatState,
-  startNewAgentConversation,
-  stopAgentStreaming,
 } from "./view-model/agent-chat-page-actions"
 import { sendAgentChatMessage } from "./view-model/agent-chat-send-message"
+import { useAgentChatPageCommands } from "./view-model/use-agent-chat-page-commands"
+import { useAgentChatPlaybooks } from "./view-model/use-agent-chat-playbooks"
 import { useAgentChatProductContext } from "./view-model/use-agent-chat-product-context"
+import { useAgentRunFeedback } from "./view-model/use-agent-run-feedback"
 
 export function useAgentChatPage() {
   const { t } = useTranslation()
@@ -53,6 +47,14 @@ export function useAgentChatPage() {
   const productContext = useAgentChatProductContext({
     enabled: Boolean(user),
     isStreaming,
+  })
+  const playbookContext = useAgentChatPlaybooks({
+    enabled: Boolean(user),
+  })
+  const feedback = useAgentRunFeedback({
+    isLoggedIn: Boolean(user),
+    isStreaming,
+    runtimeEvents,
   })
 
   const createWelcomeMessage = useCallback(
@@ -110,34 +112,14 @@ export function useAgentChatPage() {
     () => getAgentChatStrategy(strategyId),
     [strategyId]
   )
-
-  const startNewConversation = useCallback(() => {
-    startNewAgentConversation(actionState)
-  }, [actionState])
-
-  const selectConversation = useCallback(
-    async (nextConversationId: string) => {
-      if (!user || nextConversationId === conversationId || isStreaming) return
-      await selectAgentConversation(nextConversationId, actionState)
-    },
-    [actionState, conversationId, isStreaming, user]
-  )
-
-  const renameConversation = useCallback(
-    async (targetConversationId: string, title: string) => {
-      if (!user || isStreaming) return
-      await renameAgentConversation(targetConversationId, title, actionState)
-    },
-    [actionState, isStreaming, user]
-  )
-
-  const deleteConversation = useCallback(
-    async (targetConversationId: string) => {
-      if (!user || isStreaming) return
-      await deleteAgentConversation(targetConversationId, conversationId, actionState)
-    },
-    [actionState, conversationId, isStreaming, user]
-  )
+  const commands = useAgentChatPageCommands({
+    actionState,
+    conversationId,
+    isLoggedIn: Boolean(user),
+    isStreaming,
+    setInput,
+    setStrategyId,
+  })
 
   const sendMessage = useCallback(async () => {
     const content = input.trim()
@@ -184,32 +166,32 @@ export function useAgentChatPage() {
     user,
   ])
 
-  const stopStreaming = useCallback(() => {
-    stopAgentStreaming(actionState)
-  }, [actionState])
-
   return {
     availableProducts: productContext.availableProducts,
     canSend,
     conversationId,
     conversations,
-    deleteConversation,
+    deleteConversation: commands.deleteConversation,
     error,
+    feedback,
     input,
     isLoggedIn: Boolean(user),
+    isLoadingPlaybooks: playbookContext.isLoadingPlaybooks,
     isLoadingProducts: productContext.isLoadingProducts,
     isStreaming,
     messages,
+    playbooks: playbookContext.playbooks,
     runtimeEvents,
+    selectPlaybook: commands.selectPlaybook,
     selectedProducts: productContext.selectedProducts,
-    renameConversation,
+    renameConversation: commands.renameConversation,
     sendMessage,
-    selectConversation,
+    selectConversation: commands.selectConversation,
     selectedStrategy,
     setInput,
     setStrategyId,
-    startNewConversation,
-    stopStreaming,
+    startNewConversation: commands.startNewConversation,
+    stopStreaming: commands.stopStreaming,
     strategyId,
     toggleProductContext: productContext.toggleProductContext,
   }
