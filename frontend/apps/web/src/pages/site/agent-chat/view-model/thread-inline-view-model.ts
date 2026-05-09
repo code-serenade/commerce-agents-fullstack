@@ -1,7 +1,7 @@
 import { FileText, ListChecks, PlugZap, ShieldAlert } from "lucide-react"
 import type { TFunction } from "i18next"
 import type { AgentRuntimeEvent, AgentTaskNode } from "@/api"
-import { resolveWorkerNodeId } from "./agent-runtime-event-mapping"
+import { readRuntimeNodeId, resolveWorkerNodeId } from "./agent-runtime-event-mapping"
 
 export type InlineAgentState =
   | "idle"
@@ -227,20 +227,29 @@ function getInlineNodeStates(runtimeEvents: AgentRuntimeEvent[]) {
         states.set(readInlineId(node.id), "queued")
       )
     } else if (event.type === "task_node_ready") {
-      states.set(event.nodeId, "queued")
+      states.set(readRuntimeNodeId(event), "queued")
     } else if (event.type === "task_node_started") {
-      states.set(event.nodeId, "working")
+      states.set(readRuntimeNodeId(event), "working")
     } else if (event.type === "task_node_reported") {
-      states.set(event.nodeId, event.report.status === "failed" ? "failed" : "done")
+      states.set(readRuntimeNodeId(event), event.report.status === "failed" ? "failed" : "done")
     } else if (event.type === "task_node_evaluated") {
       const nodeId = readInlineId(event.evaluation.node_id)
       if (event.evaluation.passed) states.set(nodeId, "done")
     } else if (event.type === "task_node_rework_requested") {
-      states.set(event.nodeId, "reworking")
+      states.set(readRuntimeNodeId(event), "reworking")
     } else if (event.type === "task_node_passed") {
-      states.set(event.nodeId, "done")
+      states.set(readRuntimeNodeId(event), "done")
     } else if (event.type === "task_node_failed") {
-      states.set(event.nodeId, "failed")
+      states.set(readRuntimeNodeId(event), "failed")
+    } else if (event.type === "skill_requested") {
+      states.set(resolveWorkerNodeId(event), "working")
+    } else if (event.type === "skill_result") {
+      states.set(
+        resolveWorkerNodeId(event),
+        event.status === "failed" || event.status === "not_found" || event.status === "validation_error"
+          ? "failed"
+          : "working"
+      )
     } else if (event.type === "worker_started") {
       states.set(resolveWorkerNodeId(event), "working")
     } else if (event.type === "worker_finished") {

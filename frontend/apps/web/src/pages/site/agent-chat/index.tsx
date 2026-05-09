@@ -47,14 +47,18 @@ export default function AgentChatPage() {
             selectedStrategy={chat.selectedStrategy}
           />
           <AgentChatComposer
+            availableProducts={chat.availableProducts}
             canSend={chat.canSend}
             input={chat.input}
             isLoggedIn={chat.isLoggedIn}
+            isLoadingProducts={chat.isLoadingProducts}
             isStreaming={chat.isStreaming}
             onInputChange={chat.setInput}
             onSend={chat.sendMessage}
             onStop={chat.stopStreaming}
             onStrategyChange={chat.setStrategyId}
+            onToggleProductContext={chat.toggleProductContext}
+            selectedProducts={chat.selectedProducts}
             strategyId={chat.strategyId}
           />
         </section>

@@ -1,5 +1,5 @@
 use std::{
-    collections::HashSet,
+    collections::{BTreeMap, HashSet},
     sync::{Arc, Mutex},
 };
 
@@ -130,6 +130,38 @@ impl Cognition for CapabilityIntroWorkerCognition {
     }
 }
 
+struct SkillRequestWorkerCognition;
+
+#[async_trait]
+impl Cognition for SkillRequestWorkerCognition {
+    async fn evaluate(&self, _input: CognitionInput) -> CognitionResult {
+        CognitionResult::Success(json!({
+            "decision": {
+                "kind": "NoAction"
+            },
+            "skill_requests": [
+                {
+                    "skill_id": "coordination_agent_handoff",
+                    "input": {
+                        "current_agent": "chat",
+                        "task_description": "需要运营角色继续拆解咖啡转化方案",
+                        "context": "测试 skill SSE 事件"
+                    },
+                    "reason": "需要把普通问答交接给更合适的角色"
+                }
+            ],
+            "role_output": {
+                "summary": "已请求协同交接技能",
+                "findings": [],
+                "recommendations": [],
+                "evidence": [],
+                "risks": [],
+                "open_questions": []
+            }
+        }))
+    }
+}
+
 struct CapturingWorkerCognition {
     runtime_role: Arc<Mutex<Option<String>>>,
 }
@@ -139,6 +171,35 @@ impl Cognition for CapturingWorkerCognition {
     async fn evaluate(&self, input: CognitionInput) -> CognitionResult {
         *self.runtime_role.lock().expect("lock role capture") =
             input.context.metadata.get("role.runtime_role").cloned();
+
+        CognitionResult::Success(json!({
+            "decision": {
+                "kind": "NoAction"
+            },
+            "role_output": test_role_output(&input)
+        }))
+    }
+}
+
+struct CapturingContextWorkerCognition {
+    metadata_value: Arc<Mutex<Option<String>>>,
+    fact_value: Arc<Mutex<Option<String>>>,
+}
+
+#[async_trait]
+impl Cognition for CapturingContextWorkerCognition {
+    async fn evaluate(&self, input: CognitionInput) -> CognitionResult {
+        *self.metadata_value.lock().expect("lock metadata capture") = input
+            .context
+            .metadata
+            .get("request.context.summary")
+            .cloned();
+        *self.fact_value.lock().expect("lock fact capture") = input
+            .context
+            .facts
+            .iter()
+            .find(|fact| fact.source == "commerce.product_context")
+            .map(|fact| fact.content.clone());
 
         CognitionResult::Success(json!({
             "decision": {
@@ -241,6 +302,7 @@ async fn manager_initializes_selected_roles_for_each_session() {
             agent_id: AgentId("role-agent".to_string()),
             session_id: SessionId("role-session".to_string()),
             input: "你能解释一下这个 agent 是什么吗".to_string(),
+            metadata: Default::default(),
         })
         .await
         .expect("request should complete");
@@ -268,6 +330,7 @@ async fn role_worker_receives_role_context() {
             agent_id: AgentId("role-agent".to_string()),
             session_id: SessionId("role-session-context".to_string()),
             input: "帮我做一个运营增长方案".to_string(),
+            metadata: Default::default(),
         })
         .await
         .expect("request should complete");
@@ -307,6 +370,7 @@ async fn role_aware_worker_factory_receives_selected_roles() {
             agent_id: AgentId("role-agent".to_string()),
             session_id: SessionId("role-session-factory".to_string()),
             input: CONFIGURED_DOUYIN_CONVERSION_INPUT.to_string(),
+            metadata: Default::default(),
         })
         .await
         .expect("request should complete");
@@ -341,6 +405,7 @@ async fn commander_routes_plain_question_to_chat_role() {
             agent_id: AgentId("role-agent".to_string()),
             session_id: SessionId("role-session-chat".to_string()),
             input: "你能解释一下这个 agent 是什么吗".to_string(),
+            metadata: Default::default(),
         })
         .await
         .expect("request should complete");
@@ -365,6 +430,7 @@ async fn quick_chat_output_is_direct_reply() {
             agent_id: AgentId("role-agent".to_string()),
             session_id: SessionId("role-session-hi".to_string()),
             input: "hi".to_string(),
+            metadata: Default::default(),
         })
         .await
         .expect("request should complete");
@@ -388,6 +454,7 @@ async fn capability_question_returns_complete_chat_summary_without_internal_sect
             agent_id: AgentId("role-agent".to_string()),
             session_id: SessionId("role-session-capability".to_string()),
             input: "你能帮我完成什么任务呢".to_string(),
+            metadata: Default::default(),
         })
         .await
         .expect("request should complete");
@@ -420,6 +487,7 @@ async fn commander_uses_role_router_when_target_worker_is_missing() {
             agent_id: AgentId("role-agent".to_string()),
             session_id: SessionId("role-session-router".to_string()),
             input: "帮我分析漏斗指标和归因口径".to_string(),
+            metadata: Default::default(),
         })
         .await
         .expect("request should complete");
@@ -449,6 +517,7 @@ async fn commander_dispatches_task_graph_roles_after_upstream_role() {
             agent_id: AgentId("role-agent".to_string()),
             session_id: SessionId("role-session-support".to_string()),
             input: CONFIGURED_DOUYIN_CONVERSION_INPUT.to_string(),
+            metadata: Default::default(),
         })
         .await
         .expect("request should complete");
@@ -478,6 +547,7 @@ async fn task_graph_result_carries_memory_snapshot_fields() {
             agent_id: AgentId("role-agent".to_string()),
             session_id: SessionId("role-session-memory-snapshot".to_string()),
             input: CONFIGURED_DOUYIN_CONVERSION_INPUT.to_string(),
+            metadata: Default::default(),
         })
         .await
         .expect("request should complete");
@@ -544,6 +614,7 @@ async fn task_graph_memory_persists_structured_output_without_prompt_leaks() {
             agent_id: AgentId("role-agent".to_string()),
             session_id: SessionId("role-session-memory-persist".to_string()),
             input: CONFIGURED_DOUYIN_CONVERSION_INPUT.to_string(),
+            metadata: Default::default(),
         })
         .await
         .expect("request should complete");
@@ -595,6 +666,7 @@ async fn stream_emits_task_graph_events() {
             agent_id: AgentId("role-agent".to_string()),
             session_id: SessionId("role-session-collab-stream".to_string()),
             input: CONFIGURED_DOUYIN_CONVERSION_INPUT.to_string(),
+            metadata: Default::default(),
         })
         .expect("stream should start");
 
@@ -638,6 +710,66 @@ async fn stream_emits_task_graph_events() {
 }
 
 #[tokio::test]
+async fn collab_strategy_metadata_emits_route_decision_and_task_graph() {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(|| Ok(Box::new(NoopWorkerCognition))),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert("strategy.id".to_string(), "collab".to_string());
+    metadata.insert(
+        "strategy.response_mode".to_string(),
+        "execution".to_string(),
+    );
+    metadata.insert(
+        "strategy.collaboration_mode".to_string(),
+        "manual".to_string(),
+    );
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-collab-metadata".to_string()),
+            input: "帮我分析漏斗指标、预算风险和创意方向".to_string(),
+            metadata,
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    while let Some(event) = rx.recv().await {
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::RouteDecided {
+                strategy_id,
+                collaboration_mode,
+                route_mode,
+                ..
+            } if strategy_id.as_deref() == Some("collab")
+                && collaboration_mode.as_deref() == Some("manual")
+                && route_mode == "task_graph"
+        )
+    }));
+    assert!(
+        events
+            .iter()
+            .any(|event| matches!(event, SessionEvent::TaskGraphPlanned { .. }))
+    );
+}
+
+#[tokio::test]
 async fn stream_bypasses_commander_for_quick_chat() {
     let manager = AgentManager::new(AgentManagerConfig::new(
         Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
@@ -651,6 +783,7 @@ async fn stream_bypasses_commander_for_quick_chat() {
             agent_id: AgentId("role-agent".to_string()),
             session_id: SessionId("role-session-hi-stream".to_string()),
             input: "hi".to_string(),
+            metadata: Default::default(),
         })
         .expect("stream should start");
 
@@ -690,5 +823,185 @@ async fn stream_bypasses_commander_for_quick_chat() {
         !events
             .iter()
             .any(|event| matches!(event, SessionEvent::TaskGraphPlanned { .. }))
+    );
+}
+
+#[tokio::test]
+async fn stream_emits_skill_execution_events() {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(|| Ok(Box::new(SkillRequestWorkerCognition))),
+    ));
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-skill-stream".to_string()),
+            input: "hi".to_string(),
+            metadata: Default::default(),
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    while let Some(event) = rx.recv().await {
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::SkillRequested {
+                skill_id,
+                role,
+                reason,
+                ..
+            } if skill_id == "coordination_agent_handoff"
+                && role == "chat"
+                && reason.as_deref() == Some("需要把普通问答交接给更合适的角色")
+        )
+    }));
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::SkillResult {
+                skill_id,
+                role,
+                status,
+                summary,
+                execution_mode,
+                risk_level,
+                approval_required,
+                ..
+            } if skill_id == "coordination_agent_handoff"
+                && role == "chat"
+                && status == "success"
+                && summary.as_deref() == Some("Agent交接建议已生成")
+                && execution_mode.as_deref() == Some("native")
+                && risk_level.as_deref() == Some("low")
+                && approval_required == &Some(false)
+        )
+    }));
+}
+
+#[tokio::test]
+async fn stream_emits_context_loaded_event_from_request_metadata() {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(|| Ok(Box::new(NoopWorkerCognition))),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert(
+        "context.product_ids".to_string(),
+        "11111111-1111-1111-1111-111111111111".to_string(),
+    );
+    metadata.insert("context.product_count".to_string(), "1".to_string());
+    metadata.insert("context.knowledge_count".to_string(), "2".to_string());
+    metadata.insert("context.source_count".to_string(), "3".to_string());
+    metadata.insert(
+        "context.summary".to_string(),
+        "Product source product:111 | name=五一咖啡组合".to_string(),
+    );
+    metadata.insert(
+        "context.sources_json".to_string(),
+        r#"[{"source_type":"product","id":"111","title":"五一咖啡组合"}]"#.to_string(),
+    );
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-context-loaded".to_string()),
+            input: "hi".to_string(),
+            metadata,
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    while let Some(event) = rx.recv().await {
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::ContextLoaded {
+                product_ids,
+                product_count,
+                knowledge_count,
+                source_count,
+                summary,
+                ..
+            } if product_ids == &vec!["11111111-1111-1111-1111-111111111111".to_string()]
+                && product_count == &1
+                && knowledge_count == &2
+                && source_count == &3
+                && summary.as_deref().is_some_and(|value| value.contains("五一咖啡组合"))
+        )
+    }));
+}
+
+#[tokio::test]
+async fn worker_cognition_receives_product_context_metadata_and_fact() {
+    let metadata_value = Arc::new(Mutex::new(None));
+    let fact_value = Arc::new(Mutex::new(None));
+    let metadata_capture = Arc::clone(&metadata_value);
+    let fact_capture = Arc::clone(&fact_value);
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(move || {
+            Ok(Box::new(CapturingContextWorkerCognition {
+                metadata_value: Arc::clone(&metadata_capture),
+                fact_value: Arc::clone(&fact_capture),
+            }))
+        }),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert(
+        "context.summary".to_string(),
+        "Product source product:111 | name=五一咖啡组合".to_string(),
+    );
+
+    manager
+        .run_request(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-worker-context".to_string()),
+            input: "hi".to_string(),
+            metadata,
+        })
+        .await
+        .expect("request should complete");
+
+    assert!(
+        metadata_value
+            .lock()
+            .expect("lock metadata result")
+            .as_deref()
+            .is_some_and(|value| value.contains("五一咖啡组合"))
+    );
+    assert!(
+        fact_value
+            .lock()
+            .expect("lock fact result")
+            .as_deref()
+            .is_some_and(|value| value.contains("五一咖啡组合"))
     );
 }

@@ -24,6 +24,7 @@ import {
   stopAgentStreaming,
 } from "./view-model/agent-chat-page-actions"
 import { sendAgentChatMessage } from "./view-model/agent-chat-send-message"
+import { useAgentChatProductContext } from "./view-model/use-agent-chat-product-context"
 
 export function useAgentChatPage() {
   const { t } = useTranslation()
@@ -49,6 +50,10 @@ export function useAgentChatPage() {
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const sessionIdRef = useRef(createSessionId())
+  const productContext = useAgentChatProductContext({
+    enabled: Boolean(user),
+    isStreaming,
+  })
 
   const createWelcomeMessage = useCallback(
     (): AgentChatMessage => ({
@@ -158,6 +163,7 @@ export function useAgentChatPage() {
       setIsStreaming,
       setMessages,
       setRuntimeEvents,
+      selectedProducts: productContext.selectedProducts,
       strategy: selectedStrategy,
       tError: t("agentChat.error"),
     })
@@ -172,6 +178,7 @@ export function useAgentChatPage() {
     isStreaming,
     loginRequiredMessage,
     missingStructuredOutput,
+    productContext.selectedProducts,
     selectedStrategy,
     t,
     user,
@@ -182,6 +189,7 @@ export function useAgentChatPage() {
   }, [actionState])
 
   return {
+    availableProducts: productContext.availableProducts,
     canSend,
     conversationId,
     conversations,
@@ -189,9 +197,11 @@ export function useAgentChatPage() {
     error,
     input,
     isLoggedIn: Boolean(user),
+    isLoadingProducts: productContext.isLoadingProducts,
     isStreaming,
     messages,
     runtimeEvents,
+    selectedProducts: productContext.selectedProducts,
     renameConversation,
     sendMessage,
     selectConversation,
@@ -201,5 +211,6 @@ export function useAgentChatPage() {
     startNewConversation,
     stopStreaming,
     strategyId,
+    toggleProductContext: productContext.toggleProductContext,
   }
 }

@@ -128,6 +128,7 @@ impl SessionRuntime {
                 worker_input.cognition,
                 worker_rx,
                 commander_tx.clone(),
+                input.event_tx.clone(),
             );
             let worker_loop = tokio::spawn(async move {
                 let mut worker = worker;
@@ -198,6 +199,9 @@ impl SessionRuntime {
             kinds: memory_kinds,
         })
         .await;
+        if let Some(event) = context_loaded_event(&self.session_id, &self.context) {
+            self.emit_event(event).await;
+        }
 
         let task_id = TaskId(next_id("task"));
         let mut context = self.context.clone();
@@ -205,6 +209,11 @@ impl SessionRuntime {
         context.task_id = Some(task_id.clone());
 
         if let Some(graph) = self.chat_bypass_graph(&task_id) {
+            self.emit_route_decided(
+                "chat_bypass",
+                Some(graph.nodes.iter().map(|node| node.role.clone()).collect()),
+            )
+            .await;
             self.dispatch_chat_direct(context.clone(), graph)?;
         } else {
             let message = Message::new_with_context(
@@ -366,6 +375,9 @@ impl SessionRuntime {
     }
 
     fn chat_bypass_graph(&self, task_id: &TaskId) -> Option<TaskGraph> {
+        if self.force_collaboration() {
+            return None;
+        }
         if self.commander_fast_route_disabled() {
             return None;
         }
@@ -374,6 +386,41 @@ impl SessionRuntime {
             return None;
         };
         (node.role == "chat" && node.input_refs.is_empty()).then_some(graph)
+    }
+
+    async fn emit_route_decided(&self, route_mode: &str, roles: Option<Vec<String>>) {
+        let strategy_id = self.context.metadata.get("strategy.id").cloned();
+        let response_mode = self.context.metadata.get("strategy.response_mode").cloned();
+        let collaboration_mode = self
+            .context
+            .metadata
+            .get("strategy.collaboration_mode")
+            .cloned();
+        let roles = roles.unwrap_or_default();
+        let primary_runtime_role = roles.first().cloned();
+        let support_runtime_roles = roles.into_iter().skip(1).collect();
+        self.emit_event(SessionEvent::RouteDecided {
+            session_id: self.session_id.clone(),
+            strategy_id,
+            response_mode,
+            collaboration_mode,
+            route_mode: route_mode.to_string(),
+            primary_runtime_role,
+            support_runtime_roles,
+        })
+        .await;
+    }
+
+    fn force_collaboration(&self) -> bool {
+        self.context
+            .metadata
+            .get("strategy.collaboration_mode")
+            .is_some_and(|value| value == "manual")
+            || self
+                .context
+                .metadata
+                .get("strategy.id")
+                .is_some_and(|value| value == "collab")
     }
 
     fn commander_fast_route_disabled(&self) -> bool {
@@ -433,4 +480,66 @@ fn unique_strings(items: Vec<String>) -> Vec<String> {
         }
         unique
     })
+}
+
+fn context_loaded_event(session_id: &SessionId, context: &MessageContext) -> Option<SessionEvent> {
+    let product_ids = split_metadata_list(context.metadata.get("context.product_ids"));
+    let refs = split_metadata_list(context.metadata.get("context.refs"));
+    let product_count = parse_usize_metadata(context.metadata.get("context.product_count"));
+    let knowledge_count = parse_usize_metadata(context.metadata.get("context.knowledge_count"));
+    let source_count = parse_usize_metadata(context.metadata.get("context.source_count"));
+    let summary = context
+        .metadata
+        .get("context.summary")
+        .map(|value| compact_event_text(value, 600));
+    let sources_json = context.metadata.get("context.sources_json").cloned();
+
+    if product_ids.is_empty()
+        && refs.is_empty()
+        && product_count == 0
+        && knowledge_count == 0
+        && summary.is_none()
+    {
+        return None;
+    }
+
+    Some(SessionEvent::ContextLoaded {
+        session_id: session_id.clone(),
+        product_ids,
+        refs,
+        product_count,
+        knowledge_count,
+        source_count,
+        summary,
+        sources_json,
+    })
+}
+
+fn split_metadata_list(value: Option<&String>) -> Vec<String> {
+    value
+        .map(|value| {
+            value
+                .split(',')
+                .map(str::trim)
+                .filter(|item| !item.is_empty())
+                .map(ToString::to_string)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn parse_usize_metadata(value: Option<&String>) -> usize {
+    value
+        .and_then(|value| value.parse::<usize>().ok())
+        .unwrap_or_default()
+}
+
+fn compact_event_text(value: &str, max_chars: usize) -> String {
+    let trimmed = value.trim();
+    if trimmed.chars().count() <= max_chars {
+        return trimmed.to_string();
+    }
+    let mut output = trimmed.chars().take(max_chars).collect::<String>();
+    output.push_str("...");
+    output
 }

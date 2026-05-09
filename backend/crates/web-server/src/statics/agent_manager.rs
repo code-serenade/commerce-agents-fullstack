@@ -1,4 +1,5 @@
 use std::{
+    collections::BTreeMap,
     sync::{Arc, OnceLock},
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -28,6 +29,7 @@ pub fn run_agent_stream(
     agent_id: Option<String>,
     session_id: Option<String>,
     input: String,
+    metadata: BTreeMap<String, String>,
 ) -> Result<SessionEventRx> {
     let manager = AGENT_MANAGER
         .get()
@@ -40,6 +42,7 @@ pub fn run_agent_stream(
             agent_id: AgentId(agent_id.unwrap_or_else(|| "web-agent".to_string())),
             session_id: SessionId(session_id),
             input,
+            metadata,
         })
         .map_err(|err| Error::Custom(format!("agent stream failed: {err}")))
 }

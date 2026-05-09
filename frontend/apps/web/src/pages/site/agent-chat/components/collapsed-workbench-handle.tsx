@@ -1,6 +1,7 @@
 import { CheckCircle2, Loader2, MonitorCog, PanelRightOpen } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type { AgentRuntimeEvent } from "@/api"
+import { readRuntimeNodeId } from "../view-model/agent-runtime-event-mapping"
 
 export interface CollapsedWorkbenchHandleProps {
   isStreaming: boolean
@@ -60,7 +61,7 @@ function getCollapsedWorkbenchProgress(runtimeEvents: AgentRuntimeEvent[]) {
 
   runtimeEvents.forEach((event) => {
     if (event.type === "task_node_reported" && event.report.status !== "failed") {
-      doneNodes.add(event.nodeId)
+      doneNodes.add(readRuntimeNodeId(event))
       return
     }
     if (event.type === "task_node_evaluated" && event.evaluation.passed) {
@@ -68,7 +69,7 @@ function getCollapsedWorkbenchProgress(runtimeEvents: AgentRuntimeEvent[]) {
       return
     }
     if (event.type === "task_node_passed") {
-      doneNodes.add(event.nodeId)
+      doneNodes.add(readRuntimeNodeId(event))
       return
     }
     if (event.type === "task_graph_finished") {

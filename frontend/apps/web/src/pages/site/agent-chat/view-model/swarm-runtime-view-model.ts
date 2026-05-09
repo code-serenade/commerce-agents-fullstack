@@ -1,6 +1,14 @@
 import { Bot, FileText, Search, SearchCheck, TerminalSquare } from "lucide-react"
 import type { TFunction } from "i18next"
-import type { AgentRuntimeEvent, AgentWorkerReport } from "@/api"
+import type { AgentRuntimeEvent } from "@/api"
+import { readRuntimeNodeId } from "./agent-runtime-event-mapping"
+import {
+  compactPreviewLines,
+  readReportDocumentLines,
+  readReportLines,
+} from "./swarm-report-lines-view-model"
+import { getContextCard } from "./swarm-context-card-view-model"
+import { getSkillCard } from "./swarm-skill-card-view-model"
 import {
   getDockStateLabel,
   getFallbackResponse,
@@ -22,15 +30,19 @@ export function getComputerCards(input: {
 }, t: TFunction): ComputerCard[] {
   const { activeAgent, activeNode, agents, lastTask, runtimeEvents } = input
   const cards = [getTaskCard(runtimeEvents, lastTask, t)]
+  const contextCard = getContextCard(runtimeEvents, t)
+  if (contextCard) cards.push(contextCard)
   const latestNodeEvent = findLatestNodeEvent(runtimeEvents)
   cards.push(getRuntimeCard(latestNodeEvent, activeAgent, activeNode, agents, t))
+  const skillCard = getSkillCard(activeNode, t)
+  if (skillCard) cards.push(skillCard)
   cards.push(getOutputCard(activeAgent, activeNode, t))
   const reworkEvent = findLatestReworkEvent(runtimeEvents)
   if (reworkEvent) {
     cards.push({
       id: "rework",
       title: t("agentChat.swarm.cards.rework.title"),
-      meta: getAgentName(reworkEvent.nodeId, agents),
+      meta: getAgentName(readRuntimeNodeId(reworkEvent), agents),
       description: t("agentChat.swarm.cards.rework.description"),
       icon: SearchCheck,
       lines: [reworkEvent.instruction],
@@ -42,7 +54,7 @@ export function getComputerCards(input: {
     cards.push({
       id: "failed",
       title: t("agentChat.swarm.cards.failed.title"),
-      meta: getAgentName(failedEvent.nodeId, agents),
+      meta: getAgentName(readRuntimeNodeId(failedEvent), agents),
       description: t("agentChat.swarm.cards.failed.description"),
       icon: TerminalSquare,
       lines: [failedEvent.reason],
@@ -187,24 +199,6 @@ function getOutputCard(
   }
 }
 
-function readReportDocumentLines(report: AgentWorkerReport | undefined, t: TFunction) {
-  if (!report) return []
-  return compactPreviewLines([report.content, ...readReportLines(report, t)])
-}
-
-function compactPreviewLines(lines: Array<string | undefined | null>) {
-  const seen = new Set<string>()
-  return lines
-    .flatMap((line) => String(line ?? "").split(/\r?\n/))
-    .map((line) => line.trim())
-    .filter((line) => {
-      if (!line || seen.has(line)) return false
-      seen.add(line)
-      return true
-    })
-    .slice(0, 18)
-}
-
 function findLatestNodeEvent(runtimeEvents: AgentRuntimeEvent[]) {
   for (let index = runtimeEvents.length - 1; index >= 0; index -= 1) {
     const event = runtimeEvents[index]
@@ -213,7 +207,9 @@ function findLatestNodeEvent(runtimeEvents: AgentRuntimeEvent[]) {
       event.type === "task_node_reported" ||
       event.type === "task_node_passed" ||
       event.type === "task_node_failed" ||
-      event.type === "task_node_rework_requested"
+      event.type === "task_node_rework_requested" ||
+      event.type === "skill_requested" ||
+      event.type === "skill_result"
     ) {
       return event
     }
@@ -236,27 +232,38 @@ function formatRuntimeEventDescription(
 ) {
   if (event.type === "task_node_started") {
     return t("agentChat.swarm.runtimeDescriptions.started", {
-      agent: getAgentName(event.nodeId, agents),
+      agent: getAgentName(readRuntimeNodeId(event), agents),
       attempt: event.attempt,
     })
   }
   if (event.type === "task_node_reported") {
     return t("agentChat.swarm.runtimeDescriptions.reported", {
-      agent: getAgentName(event.nodeId, agents),
+      agent: getAgentName(readRuntimeNodeId(event), agents),
     })
   }
   if (event.type === "task_node_passed") {
     return t("agentChat.swarm.runtimeDescriptions.passed", {
-      agent: getAgentName(event.nodeId, agents),
+      agent: getAgentName(readRuntimeNodeId(event), agents),
     })
   }
   if (event.type === "task_node_failed") {
     return t("agentChat.swarm.runtimeDescriptions.failed", {
-      agent: getAgentName(event.nodeId, agents),
+      agent: getAgentName(readRuntimeNodeId(event), agents),
+    })
+  }
+  if (event.type === "skill_requested") {
+    return t("agentChat.swarm.runtimeDescriptions.skillRequested", {
+      skill: event.skill_id,
+    })
+  }
+  if (event.type === "skill_result") {
+    return t("agentChat.swarm.runtimeDescriptions.skillResult", {
+      skill: event.skill_id,
+      status: event.status,
     })
   }
   return t("agentChat.swarm.runtimeDescriptions.reworking", {
-    agent: getAgentName(event.nodeId, agents),
+    agent: getAgentName(readRuntimeNodeId(event), agents),
   })
 }
 
@@ -274,25 +281,10 @@ function runtimeActionKey(eventType: AgentRuntimeEvent["type"]) {
   if (eventType === "task_node_rework_requested") return "nodeRework"
   if (eventType === "task_node_passed") return "nodePassed"
   if (eventType === "task_node_failed") return "nodeFailed"
+  if (eventType === "skill_requested") return "skillRequested"
+  if (eventType === "skill_result") return "skillResult"
   if (eventType === "task_graph_finished") return "graphFinished"
   return "synced"
-}
-
-function readReportLines(report: AgentWorkerReport | undefined, t: TFunction) {
-  if (!report) return []
-  const roleOutput = report.role_output
-  return [
-    roleOutput?.summary,
-    ...(roleOutput?.findings ?? []),
-    ...(roleOutput?.recommendations ?? []),
-    ...(roleOutput?.evidence ?? []),
-    ...(report.risks ?? []).map((risk) =>
-      t("agentChat.swarm.reportLines.risk", { risk })
-    ),
-    ...(report.open_questions ?? []).map((question) =>
-      t("agentChat.swarm.reportLines.question", { question })
-    ),
-  ].filter((line): line is string => Boolean(line))
 }
 
 function getComputerFilename(agent: SwarmAgent, t: TFunction) {

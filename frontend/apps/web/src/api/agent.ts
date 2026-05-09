@@ -5,6 +5,17 @@ const AUTH_REFRESH_URL = "/auth/session/refresh_token"
 export interface AgentStreamRequest {
   input: string
   agentId?: string
+  metadata?: {
+    context?: {
+      contextRefs?: string[]
+      productIds?: string[]
+    }
+    strategy?: {
+      collaborationMode?: string
+      id?: string
+      responseMode?: string
+    }
+  }
   sessionId?: string
   workspaceId?: string
 }
@@ -25,11 +36,33 @@ interface SseMessage {
 export type AgentRuntimeEvent =
   | { type: "started"; session_id?: string }
   | { type: "memory_loaded"; count?: number; kinds?: string[]; session_id?: string }
+  | {
+      type: "context_loaded"
+      contextRefs?: string[]
+      knowledge_count?: number
+      product_count?: number
+      product_ids?: string[]
+      productIds?: string[]
+      refs?: string[]
+      session_id?: string
+      source_count?: number
+      sources_json?: string | null
+      summary?: string | null
+    }
   | { type: "finished"; session_id?: string }
   | { type: "failed"; reason: string; session_id?: string }
   | { type: "output"; content: string; session_id?: string }
   | { type: "llm_chunk"; content: string; session_id?: string }
   | { type: "commander_thinking" }
+  | {
+      type: "route_decided"
+      collaboration_mode?: string | null
+      primary_runtime_role?: string | null
+      response_mode?: string | null
+      route_mode: string
+      strategy_id?: string | null
+      support_runtime_roles: string[]
+    }
   | {
       type: "worker_started"
       workerId?: string
@@ -45,73 +78,137 @@ export type AgentRuntimeEvent =
       task_id?: string
     }
   | {
-      type: "collaboration_started"
-      primaryWorkerId: string
-      supportWorkerIds: string[]
+      type: "skill_requested"
+      workerId?: string
+      worker_id?: string
+      taskId?: string
+      task_id?: string
+      request_id: string
+      skill_id: string
+      role: string
+      reason?: string | null
+      session_id?: string
     }
-  | { type: "collaboration_worker_started"; workerId: string; taskId: string }
+  | {
+      type: "skill_result"
+      workerId?: string
+      worker_id?: string
+      taskId?: string
+      task_id?: string
+      request_id: string
+      skill_id: string
+      role: string
+      status: string
+      summary?: string | null
+      error?: string | null
+      execution_mode?: string | null
+      risk_level?: string | null
+      approval_required?: boolean | null
+      session_id?: string
+    }
+  | {
+      type: "collaboration_started"
+      primaryWorkerId?: string
+      primary_worker_id?: string
+      supportWorkerIds?: string[]
+      support_worker_ids?: string[]
+    }
+  | {
+      type: "collaboration_worker_started"
+      workerId?: string
+      worker_id?: string
+      taskId?: string
+      task_id?: string
+    }
   | {
       type: "collaboration_worker_finished"
-      workerId: string
-      taskId: string
+      workerId?: string
+      worker_id?: string
+      taskId?: string
+      task_id?: string
       content?: string | null
     }
   | { type: "collaboration_finished" }
   | { type: "task_graph_planned"; graph: AgentTaskGraph }
   | {
       type: "task_node_ready"
-      graphId: string
-      nodeId: string
-      workerId: string
+      graphId?: string
+      graph_id?: string
+      nodeId?: string
+      node_id?: string
+      workerId?: string
+      worker_id?: string
     }
   | {
       type: "task_node_started"
-      graphId: string
-      nodeId: string
-      workerId: string
+      graphId?: string
+      graph_id?: string
+      nodeId?: string
+      node_id?: string
+      workerId?: string
+      worker_id?: string
       attempt: number
     }
   | {
       type: "task_node_reported"
-      graphId: string
-      nodeId: string
-      workerId: string
+      graphId?: string
+      graph_id?: string
+      nodeId?: string
+      node_id?: string
+      workerId?: string
+      worker_id?: string
       report: AgentWorkerReport
     }
   | {
       type: "task_node_evaluated"
-      graphId: string
+      graphId?: string
+      graph_id?: string
       evaluation: AgentTaskEvaluation
     }
   | {
       type: "task_node_rework_requested"
-      graphId: string
-      nodeId: string
-      workerId: string
+      graphId?: string
+      graph_id?: string
+      nodeId?: string
+      node_id?: string
+      workerId?: string
+      worker_id?: string
       attempt: number
       instruction: string
     }
-  | { type: "task_node_passed"; graphId: string; nodeId: string }
+  | {
+      type: "task_node_passed"
+      graphId?: string
+      graph_id?: string
+      nodeId?: string
+      node_id?: string
+    }
   | {
       type: "task_node_failed"
-      graphId: string
-      nodeId: string
+      graphId?: string
+      graph_id?: string
+      nodeId?: string
+      node_id?: string
       reason: string
     }
-  | { type: "task_graph_finished"; graphId: string }
+  | { type: "task_graph_finished"; graphId?: string; graph_id?: string }
 
 type AgentWrappedId = string | [string] | { 0: string }
 
 const AGENT_RUNTIME_EVENT_TYPES = new Set<string>([
   "started",
   "memory_loaded",
+  "context_loaded",
   "finished",
   "failed",
   "output",
   "llm_chunk",
   "commander_thinking",
+  "route_decided",
   "worker_started",
   "worker_finished",
+  "skill_requested",
+  "skill_result",
   "collaboration_started",
   "collaboration_worker_started",
   "collaboration_worker_finished",
@@ -408,9 +505,36 @@ function readJsonField(data: string, field: string): string {
 function readAgentRuntimeEvent(data: string): AgentRuntimeEvent | null {
   try {
     const parsed = JSON.parse(data)
-    return isAgentRuntimeEvent(parsed) ? parsed : null
+    return isAgentRuntimeEvent(parsed) ? normalizeAgentRuntimeEvent(parsed) : null
   } catch {
     return null
+  }
+}
+
+function normalizeAgentRuntimeEvent(event: AgentRuntimeEvent): AgentRuntimeEvent {
+  const normalized = { ...event } as AgentRuntimeEvent & Record<string, unknown>
+  const raw = event as AgentRuntimeEvent & Record<string, unknown>
+
+  copyIfMissing(normalized, raw, "workerId", "worker_id")
+  copyIfMissing(normalized, raw, "taskId", "task_id")
+  copyIfMissing(normalized, raw, "graphId", "graph_id")
+  copyIfMissing(normalized, raw, "nodeId", "node_id")
+  copyIfMissing(normalized, raw, "primaryWorkerId", "primary_worker_id")
+  copyIfMissing(normalized, raw, "supportWorkerIds", "support_worker_ids")
+  copyIfMissing(normalized, raw, "productIds", "product_ids")
+  copyIfMissing(normalized, raw, "contextRefs", "refs")
+
+  return normalized
+}
+
+function copyIfMissing(
+  target: Record<string, unknown>,
+  source: Record<string, unknown>,
+  camelKey: string,
+  snakeKey: string
+) {
+  if (target[camelKey] === undefined && source[snakeKey] !== undefined) {
+    target[camelKey] = source[snakeKey]
   }
 }
 

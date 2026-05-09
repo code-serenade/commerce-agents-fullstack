@@ -810,6 +810,11 @@ const messages = {
         "请在这里补充文件或数据约束，例如商品价格、预算、库存、目标人群、当前转化率和平台账号状态。",
       agentTitle: "切换虚拟员工模式",
       agentName: "电商多智能体",
+      productContext: {
+        label: "后端商品上下文",
+        loading: "正在读取商品",
+        empty: "暂无可用商品",
+      },
       samples: {
         coffee: {
           label: "五一咖啡转化",
@@ -1126,13 +1131,18 @@ const messages = {
         ],
         events: {
           commanderThinking: "正在分析任务并准备执行计划。",
+          routeDecided: "后端已采用 {{strategy}} 策略，路由模式 {{mode}}，主角色 {{role}}。",
           graphPlanned: "已规划 {{count}} 个处理步骤。",
           nodeStarted: "{{agent}} 开始第 {{attempt}} 次执行。",
           nodeRework: "{{agent}} 进入重试：{{instruction}}",
           nodePassed: "{{agent}} 已通过验收。",
           nodeFailed: "{{agent}} 失败：{{reason}}",
+          skillRequested: "{{role}} 调用能力 {{skill}}。",
+          skillResult: "能力 {{skill}} 返回状态：{{status}}。",
           workerStarted: "{{agent}} 开始处理。",
           workerFinished: "{{agent}} 已完成处理。",
+          contextLoaded:
+            "已从后端读取 {{products}} 个商品和 {{knowledge}} 条商品知识。",
           finished: "本轮回答已结束。",
           failed: "本轮回答失败：{{reason}}",
           graphFinished: "执行计划已结束，进入汇总输出。",
@@ -1163,6 +1173,20 @@ const messages = {
           description: "任务开始输出后，这里会切换为真实的报告摘要、证据和风险。",
           fallbackLines: ["咖啡转化", "千川投放复盘", "运营预算与投放节奏"],
         },
+        contextLoaded: {
+          title: "商品上下文",
+          meta: "{{products}} 个商品 / {{knowledge}} 条知识",
+          description: "后端已在回答前读取当前用户自己的商品事实。",
+          productLine: "商品 ID：{{id}}",
+        },
+        skill: {
+          title: "能力调用",
+          statusLine: "状态：{{status}}",
+          requested: "后端已收到真实 skill 请求，正在执行或等待适配器。",
+          completed: "能力调用已返回结果。",
+          deferred: "该能力需要外部数据或适配器，当前已明确延后执行。",
+          approvalRequired: "该能力涉及高风险或平台写操作，需要审批后执行。",
+        },
         rework: {
           title: "重新检查",
           description: "验收未通过，系统已触发返工指令。",
@@ -1187,6 +1211,8 @@ const messages = {
         passed: "{{agent}} 已通过验收。",
         failed: "{{agent}} 执行失败。",
         reworking: "{{agent}} 正在按反馈重新组织输出。",
+        skillRequested: "已请求执行能力 {{skill}}。",
+        skillResult: "能力 {{skill}} 返回 {{status}}。",
       },
       runtimeActions: {
         commanderThinking: "正在拆解任务",
@@ -1198,6 +1224,8 @@ const messages = {
         nodeRework: "触发返工",
         nodePassed: "通过验收",
         nodeFailed: "执行受阻",
+        skillRequested: "请求能力",
+        skillResult: "能力返回",
         graphFinished: "执行计划结束",
         synced: "状态已同步",
       },

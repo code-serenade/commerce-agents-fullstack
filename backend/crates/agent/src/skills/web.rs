@@ -165,7 +165,7 @@ impl Skill for WebTitleSeoScorer {
             _ => (24, 34),
         };
         let mut deductions = Vec::new();
-        let len_score = if (lo ..= hi).contains(&len) {
+        let len_score = if (lo..=hi).contains(&len) {
             25
         } else if len < lo {
             let score = (25 - (lo - len) * 2).max(0);
@@ -538,7 +538,7 @@ fn keyword_position_score(title: &str, keyword: &str) -> i64 {
     let Some(byte_idx) = title.to_lowercase().find(&keyword.to_lowercase()) else {
         return -20;
     };
-    let char_idx = title[.. byte_idx].chars().count() as f64;
+    let char_idx = title[..byte_idx].chars().count() as f64;
     let relative = char_idx / title.chars().count().max(1) as f64;
     if relative < 0.20 {
         30

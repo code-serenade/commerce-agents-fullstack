@@ -31,6 +31,7 @@ pub struct AgentSessionScope {
     pub workspace_id: Option<WorkspaceId>,
     pub agent_id: AgentId,
     pub session_id: SessionId,
+    pub metadata: BTreeMap<String, String>,
 }
 
 pub struct AgentSession {
@@ -157,6 +158,7 @@ impl AgentSession {
             agent_id: Some(self.scope.agent_id.clone()),
             session_id: Some(self.scope.session_id.clone()),
             task_id: None,
+            metadata: self.scope.metadata.clone(),
         }
     }
 

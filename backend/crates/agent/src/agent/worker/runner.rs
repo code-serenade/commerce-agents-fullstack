@@ -5,10 +5,11 @@ use tracing::warn;
 use super::{Task, TaskMemory, WorkerPhase, WorkerState, action_bridge::decision_to_action};
 use crate::{
     action::{Action, ActionResult, ActionState},
+    agent_session::SessionEventTx,
     cognition::{Cognition, CognitionInput, CognitionResult, Context, Fact, Intent, IntentKind},
     core::{
         messaging::{MessageRx, MessageTx},
-        protocol::{AgentId, Message, MessageId, Payload, TaskId, WorkerId},
+        protocol::{AgentId, Message, MessageId, Payload, SessionEvent, TaskId, WorkerId},
     },
     roles::{RoleProfile, RolePromptBuilder, RolePromptInput, RoleSkillCatalog},
     skills::{
@@ -31,6 +32,7 @@ pub struct Worker {
     sender: MessageTx,
     memory: TaskMemory,
     skill_executor: Option<SkillExecutorSet>,
+    event_tx: Option<SessionEventTx>,
 }
 
 impl Worker {
@@ -39,6 +41,7 @@ impl Worker {
         cognition: Box<dyn Cognition + Send>,
         receiver: MessageRx,
         sender: MessageTx,
+        event_tx: Option<SessionEventTx>,
     ) -> Self {
         let id = AgentId(format!("worker.{}", role.runtime_role));
         let skill_executor = SkillExecutorSet::staged()
@@ -60,6 +63,7 @@ impl Worker {
             sender,
             memory: TaskMemory::default(),
             skill_executor,
+            event_tx,
         }
     }
 
@@ -343,32 +347,42 @@ impl Worker {
         }
 
         let Some(executor) = self.skill_executor.clone() else {
+            let mut results = Vec::new();
+            for (index, request) in requests.into_iter().enumerate() {
+                let request_id = format!("{}-skill-{}", task.id, index + 1);
+                self.emit_skill_requested(task, &request_id, &request);
+                let result = skill_executor_unavailable_result(request_id, request.skill_id);
+                self.emit_skill_result(task, &result);
+                results.push(result);
+            }
+            if let Ok(serialized) = serde_json::to_string(&results) {
+                self.memory.set_state("last_skill_results", serialized);
+            }
             self.memory
-                .set_state("last_skill_results", "[]".to_string());
-            self.memory
-                .push_progress("skill requests skipped: executor unavailable");
+                .push_progress("skill requests failed: executor unavailable");
             return;
         };
 
         let mut results = Vec::new();
         for (index, request) in requests.into_iter().enumerate() {
             let request_id = format!("{}-skill-{}", task.id, index + 1);
+            self.emit_skill_requested(task, &request_id, &request);
             if !RoleSkillCatalog::staged().can_role_use_skill(&self.role, &request.skill_id) {
                 self.memory.push_progress(format!(
                     "skill {} rejected for role {}",
                     request.skill_id, self.role.runtime_role
                 ));
-                results.push(skill_not_allowed_result(
-                    request_id,
-                    request.skill_id,
-                    &self.role.runtime_role,
-                ));
+                let result =
+                    skill_not_allowed_result(request_id, request.skill_id, &self.role.runtime_role);
+                self.emit_skill_result(task, &result);
+                results.push(result);
                 continue;
             }
             let context = build_skill_context(&self.id, &self.role, task, &request, &request_id);
             let runtime_request = SkillRequest::new(request_id, request.skill_id, request.input)
                 .with_context(context);
             let result = executor.execute(runtime_request).await;
+            self.emit_skill_result(task, &result);
             self.memory.push_progress(format!(
                 "skill {} completed with {:?}",
                 result.skill_id.as_str(),
@@ -379,6 +393,50 @@ impl Worker {
 
         if let Ok(serialized) = serde_json::to_string(&results) {
             self.memory.set_state("last_skill_results", serialized);
+        }
+    }
+
+    fn emit_skill_requested(&self, task: &Task, request_id: &str, request: &ParsedSkillRequest) {
+        let Some(session_id) = &task.context.session_id else {
+            return;
+        };
+        self.emit_event(SessionEvent::SkillRequested {
+            session_id: session_id.clone(),
+            worker_id: WorkerId(self.id.0.clone()),
+            task_id: TaskId(task.id.clone()),
+            request_id: request_id.to_string(),
+            skill_id: request.skill_id.clone(),
+            role: self.role.runtime_role.clone(),
+            reason: request.reason.clone(),
+        });
+    }
+
+    fn emit_skill_result(&self, task: &Task, result: &SkillExecutionResult) {
+        let Some(session_id) = &task.context.session_id else {
+            return;
+        };
+        self.emit_event(SessionEvent::SkillResult {
+            session_id: session_id.clone(),
+            worker_id: WorkerId(self.id.0.clone()),
+            task_id: TaskId(task.id.clone()),
+            request_id: result.request_id.clone(),
+            skill_id: result.skill_id.as_str().to_string(),
+            role: self.role.runtime_role.clone(),
+            status: skill_status_name(result.status).to_string(),
+            summary: result.summary.clone().map(compact_event_text),
+            error: result.error.clone().map(compact_event_text),
+            execution_mode: metadata_string(&result.metadata, "execution_mode"),
+            risk_level: metadata_string(&result.metadata, "risk_level"),
+            approval_required: result
+                .metadata
+                .get("approval_required")
+                .and_then(serde_json::Value::as_bool),
+        });
+    }
+
+    fn emit_event(&self, event: SessionEvent) {
+        if let Some(event_tx) = &self.event_tx {
+            let _ = event_tx.try_send(event);
         }
     }
 }
@@ -415,6 +473,10 @@ fn build_context(
     metadata.insert("role.runtime_role".to_string(), role.runtime_role.clone());
     metadata.insert("phase".to_string(), format!("{phase:?}"));
 
+    for (key, value) in &task.context.metadata {
+        metadata.insert(format!("request.{key}"), value.clone());
+    }
+
     for (key, value) in &memory.state {
         metadata.insert(format!("memory.{key}"), value.clone());
     }
@@ -446,6 +508,7 @@ fn build_context(
     }
 
     let mut facts = Vec::new();
+    extend_context_facts(&task.context.metadata, &mut facts);
     if let Some(assignment) = &task.assignment {
         facts.push(Fact {
             source: "worker.assignment".to_string(),
@@ -488,6 +551,34 @@ fn build_context(
     );
 
     Context { facts, metadata }
+}
+
+fn extend_context_facts(
+    metadata: &std::collections::BTreeMap<String, String>,
+    facts: &mut Vec<Fact>,
+) {
+    if let Some(summary) = metadata
+        .get("context.summary")
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
+    {
+        facts.push(Fact {
+            source: "commerce.product_context".to_string(),
+            content: summary.to_string(),
+            reliability: 1.0,
+        });
+    }
+    if let Some(sources) = metadata
+        .get("context.sources_json")
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
+    {
+        facts.push(Fact {
+            source: "commerce.product_context.sources".to_string(),
+            content: sources.to_string(),
+            reliability: 1.0,
+        });
+    }
 }
 
 fn extract_worker_content(output: &str) -> String {
@@ -740,6 +831,52 @@ fn compact_json_preview(value: &serde_json::Value) -> String {
         text.push_str("...");
     }
     text
+}
+
+fn skill_executor_unavailable_result(request_id: String, skill_id: String) -> SkillExecutionResult {
+    SkillExecutionResult {
+        request_id,
+        skill_id: SkillId::new(skill_id),
+        status: SkillExecutionStatus::Failed,
+        output: None,
+        summary: None,
+        metadata: serde_json::Map::new(),
+        error: Some("skill executor unavailable".to_string()),
+    }
+}
+
+fn compact_event_text(value: String) -> String {
+    let trimmed = value.trim();
+    const MAX_LEN: usize = 240;
+    if trimmed.chars().count() <= MAX_LEN {
+        return trimmed.to_string();
+    }
+    let mut output = trimmed.chars().take(MAX_LEN).collect::<String>();
+    output.push_str("...");
+    output
+}
+
+fn metadata_string(
+    metadata: &serde_json::Map<String, serde_json::Value>,
+    key: &str,
+) -> Option<String> {
+    metadata.get(key).and_then(|value| {
+        value
+            .as_str()
+            .map(ToString::to_string)
+            .or_else(|| value.as_object().map(|_| value.to_string()))
+    })
+}
+
+fn skill_status_name(status: SkillExecutionStatus) -> &'static str {
+    match status {
+        SkillExecutionStatus::Success => "success",
+        SkillExecutionStatus::Deferred => "deferred",
+        SkillExecutionStatus::PendingApproval => "pending_approval",
+        SkillExecutionStatus::NotFound => "not_found",
+        SkillExecutionStatus::ValidationError => "validation_error",
+        SkillExecutionStatus::Failed => "failed",
+    }
 }
 
 fn push_unique(items: &mut Vec<String>, value: String) {

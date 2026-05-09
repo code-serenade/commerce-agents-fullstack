@@ -861,7 +861,7 @@ fn seasonal_decompose(input: &Value) -> Value {
         .unwrap_or(*series.last().unwrap_or(&series[0]));
     let trend_growth = pct(trend_end - trend_start, trend_start);
     let mut indices = Vec::new();
-    for p in 0 .. period {
+    for p in 0..period {
         let vals = series
             .iter()
             .enumerate()
@@ -944,7 +944,7 @@ fn demand_forecast(input: &Value) -> Value {
     let mut best_mape = f64::INFINITY;
     for alpha in alphas {
         let preds = ses_fitted(&values, alpha);
-        let score = mape(&values[1 ..], &preds);
+        let score = mape(&values[1..], &preds);
         if score < best_mape {
             best_mape = score;
             best_alpha = alpha;
@@ -1044,7 +1044,7 @@ fn linear_fit(values: &[f64]) -> (f64, f64) {
         .enumerate()
         .map(|(idx, value)| (idx as f64 - x_mean) * (value - y_mean))
         .sum::<f64>();
-    let denominator = (0 .. values.len())
+    let denominator = (0..values.len())
         .map(|idx| (idx as f64 - x_mean).powi(2))
         .sum::<f64>();
     let slope = if denominator.abs() > 1e-9 {
@@ -1059,10 +1059,10 @@ fn moving_average(values: &[f64], window: usize) -> Vec<f64> {
     if values.is_empty() {
         return Vec::new();
     }
-    (0 .. values.len())
+    (0..values.len())
         .map(|idx| {
             let start = (idx + 1).saturating_sub(window);
-            round2(average(&values[start ..= idx]))
+            round2(average(&values[start..=idx]))
         })
         .collect()
 }
@@ -1079,7 +1079,7 @@ fn avg_growth(values: &[f64]) -> f64 {
 
 fn ses_level(values: &[f64], alpha: f64) -> f64 {
     let mut level = values[0];
-    for value in &values[1 ..] {
+    for value in &values[1..] {
         level = alpha * *value + (1.0 - alpha) * level;
     }
     level
@@ -1088,7 +1088,7 @@ fn ses_level(values: &[f64], alpha: f64) -> f64 {
 fn ses_fitted(values: &[f64], alpha: f64) -> Vec<f64> {
     let mut level = values[0];
     let mut fitted = Vec::with_capacity(values.len().saturating_sub(1));
-    for value in &values[1 ..] {
+    for value in &values[1..] {
         fitted.push(level);
         level = alpha * *value + (1.0 - alpha) * level;
     }

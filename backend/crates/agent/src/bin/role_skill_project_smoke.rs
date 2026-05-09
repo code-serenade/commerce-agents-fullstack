@@ -47,6 +47,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         agent_id: AgentId("role-skill-agent".to_string()),
         session_id: SessionId("role-skill-project-smoke".to_string()),
         input: task,
+        metadata: Default::default(),
     })?;
 
     let mut task_finished = false;
@@ -630,7 +631,7 @@ fn extract_json_object(input: &str) -> Option<&str> {
             '}' if depth > 0 => {
                 depth -= 1;
                 if depth == 0 {
-                    return start.map(|start_index| &input[start_index ..= index]);
+                    return start.map(|start_index| &input[start_index..=index]);
                 }
             }
             _ => {}

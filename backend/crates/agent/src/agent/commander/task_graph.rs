@@ -442,11 +442,81 @@ pub enum EvaluationOutcome {
     Failed(Evaluation),
 }
 
-pub fn plan_task_graph(task_id: &TaskId, task: &str, _route: Option<&RoleRoute>) -> TaskGraph {
+pub fn plan_task_graph(task_id: &TaskId, task: &str, route: Option<&RoleRoute>) -> TaskGraph {
     if let Some(graph) = plan_configured_task_graph(task_id, task) {
         return graph;
     }
+    if let Some(graph) = plan_route_task_graph(task_id, task, route) {
+        return graph;
+    }
     plan_fallback_chat_graph(task_id, task)
+}
+
+fn plan_route_task_graph(
+    task_id: &TaskId,
+    task: &str,
+    route: Option<&RoleRoute>,
+) -> Option<TaskGraph> {
+    let route = route?;
+    let mut roles = Vec::new();
+    roles.push(route.primary_runtime_role.clone());
+    roles.extend(route.support_runtime_roles.iter().cloned());
+    roles.retain(|role| role != "chat");
+    roles.dedup();
+    if roles.len() < 2 {
+        return None;
+    }
+
+    let max_attempts = 2;
+    let primary = roles.first()?.clone();
+    let nodes = roles
+        .iter()
+        .enumerate()
+        .map(|(index, role)| {
+            let dependencies = if index == 0 {
+                Vec::new()
+            } else {
+                vec![primary.as_str()]
+            };
+            node(
+                role,
+                role,
+                &route_node_title(role),
+                route_node_objective(role, task, index == 0),
+                dependencies,
+                max_attempts,
+            )
+        })
+        .collect();
+
+    Some(TaskGraph {
+        graph_id: TaskGraphId(format!("graph-{}", task_id.0)),
+        root_task: task.to_string(),
+        nodes,
+    })
+}
+
+fn route_node_title(role: &str) -> String {
+    match role {
+        "ops" => "运营方案",
+        "data" => "数据诊断",
+        "service" => "服务方案",
+        "design" => "体验设计",
+        "accounting" => "预算评估",
+        "engineering" => "工程判断",
+        "web" => "Web/SEO方案",
+        "creative" => "创意产出",
+        "douyin_ads" => "千川投放优化",
+        _ => "角色判断",
+    }
+    .to_string()
+}
+
+fn route_node_objective(role: &str, task: &str, primary: bool) -> String {
+    if primary {
+        return format!("作为主角色 {role}，先完成本岗位对用户问题的核心判断：{task}");
+    }
+    format!("作为支持角色 {role}，基于主角色输入补充本岗位判断，并指出证据、风险和下一步：{task}")
 }
 
 fn plan_fallback_chat_graph(task_id: &TaskId, task: &str) -> TaskGraph {

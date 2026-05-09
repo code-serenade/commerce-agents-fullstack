@@ -1276,7 +1276,7 @@ fn deterministic_risk_samples(
     fixed_cost: f64,
 ) -> Vec<f64> {
     let mut samples = Vec::with_capacity(1000);
-    for i in 0 .. 1000 {
+    for i in 0..1000 {
         let t = i as f64;
         let gmv_factor = (1.0 + 0.15 * (t * 12.9898).sin()).max(0.1);
         let margin = (base_margin + 0.04 * (t * 78.233).cos()).max(0.01);

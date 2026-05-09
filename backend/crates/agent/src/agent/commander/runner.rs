@@ -400,9 +400,10 @@ impl Commander {
         let Some(current_task) = self.current_task.clone() else {
             return false;
         };
-        if role_route
-            .map(primary_route_score)
-            .is_some_and(|score| score < self.fast_route_min_score)
+        if !self.force_collaboration()
+            && role_route
+                .map(primary_route_score)
+                .is_some_and(|score| score < self.fast_route_min_score)
         {
             return false;
         }
@@ -419,6 +420,16 @@ impl Commander {
 
         self.memory
             .push_progress(format!("task graph planned: {} nodes", graph.nodes.len()));
+        self.emit_route_decided(
+            "task_graph",
+            graph.nodes.first().map(|node| node.role.clone()),
+            graph
+                .nodes
+                .iter()
+                .skip(1)
+                .map(|node| node.role.clone())
+                .collect(),
+        );
         self.emit_event(SessionEvent::TaskGraphPlanned {
             session_id: self.session_id_from_context(&self.current_context),
             graph: graph.clone(),
@@ -431,6 +442,18 @@ impl Commander {
         let runtime = TaskGraphRuntime::new(graph);
         self.schedule_task_graph_runtime(runtime).await;
         true
+    }
+
+    fn force_collaboration(&self) -> bool {
+        self.current_context
+            .metadata
+            .get("strategy.collaboration_mode")
+            .is_some_and(|value| value == "manual")
+            || self
+                .current_context
+                .metadata
+                .get("strategy.id")
+                .is_some_and(|value| value == "collab")
     }
 
     async fn handle_task_graph_report(
@@ -603,6 +626,11 @@ impl Commander {
             description: current_task.description,
         };
         self.prepare_collaboration(Some(role_route), Some(&target_worker));
+        self.emit_route_decided(
+            "fast_worker",
+            Some(role_route.primary_runtime_role.clone()),
+            role_route.support_runtime_roles.clone(),
+        );
         if !self.dispatch_task_to_worker(task, Some(target_worker)) {
             let _ = self.sender.send(Message::new_with_context(
                 next_message_id(),
@@ -799,6 +827,31 @@ impl Commander {
         self.state = CommanderState::Idle;
     }
 
+    fn emit_route_decided(
+        &self,
+        route_mode: &str,
+        primary_runtime_role: Option<String>,
+        support_runtime_roles: Vec<String>,
+    ) {
+        self.emit_event(SessionEvent::RouteDecided {
+            session_id: self.session_id_from_context(&self.current_context),
+            strategy_id: self.current_context.metadata.get("strategy.id").cloned(),
+            response_mode: self
+                .current_context
+                .metadata
+                .get("strategy.response_mode")
+                .cloned(),
+            collaboration_mode: self
+                .current_context
+                .metadata
+                .get("strategy.collaboration_mode")
+                .cloned(),
+            route_mode: route_mode.to_string(),
+            primary_runtime_role,
+            support_runtime_roles,
+        });
+    }
+
     fn format_collaboration_outputs(&self) -> String {
         let Some(plan) = &self.active_collaboration else {
             return "角色贡献：none".to_string();
@@ -898,7 +951,12 @@ impl Commander {
                 .unwrap_or_else(|| "evaluate current situation".to_string()),
         };
 
-        let mut metadata = HashMap::new();
+        let mut metadata = self
+            .current_context
+            .metadata
+            .iter()
+            .map(|(key, value)| (format!("request.{key}"), value.clone()))
+            .collect::<HashMap<_, _>>();
         metadata.insert("state".to_string(), format!("{:?}", self.state));
         metadata.insert("phase".to_string(), format!("{:?}", self.phase));
         if let Some(role_route) = role_route {
@@ -961,6 +1019,7 @@ impl Commander {
                 reliability: 1.0,
             })
             .collect::<Vec<_>>();
+        extend_context_facts(&self.current_context.metadata, &mut facts);
         facts.extend(worker_profiles.iter().map(|profile| Fact {
             source: "session_context.worker_catalog".to_string(),
             content: profile.summary_line(),
@@ -995,6 +1054,34 @@ impl Commander {
             action: None,
             max_roles: 3,
         }))
+    }
+}
+
+fn extend_context_facts(
+    metadata: &std::collections::BTreeMap<String, String>,
+    facts: &mut Vec<Fact>,
+) {
+    if let Some(summary) = metadata
+        .get("context.summary")
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
+    {
+        facts.push(Fact {
+            source: "commerce.product_context".to_string(),
+            content: summary.to_string(),
+            reliability: 1.0,
+        });
+    }
+    if let Some(sources) = metadata
+        .get("context.sources_json")
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
+    {
+        facts.push(Fact {
+            source: "commerce.product_context.sources".to_string(),
+            content: sources.to_string(),
+            reliability: 1.0,
+        });
     }
 }
 

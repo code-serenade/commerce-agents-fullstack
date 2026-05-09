@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use crate::protocol::{AgentId, MessageId, Payload, SessionId, TaskId, UserId, WorkspaceId};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -7,6 +9,7 @@ pub struct MessageContext {
     pub agent_id: Option<AgentId>,
     pub session_id: Option<SessionId>,
     pub task_id: Option<TaskId>,
+    pub metadata: BTreeMap<String, String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

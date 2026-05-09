@@ -12,9 +12,10 @@ import {
   mapConversationItem,
 } from "../domain/agent-chat-message-mapping"
 import {
-  buildAgentStrategyInput,
-  type AgentChatStrategy,
-} from "../domain/agent-chat-strategy"
+  createContextRefs,
+  type AgentChatProductContextSelection,
+} from "../domain/agent-chat-context-selection"
+import type { AgentChatStrategy } from "../domain/agent-chat-strategy"
 import type { AgentChatConversationItem, AgentChatMessage } from "../types"
 
 interface SendAgentChatMessageInput {
@@ -31,6 +32,7 @@ interface SendAgentChatMessageInput {
   setIsStreaming: Dispatch<SetStateAction<boolean>>
   setMessages: Dispatch<SetStateAction<AgentChatMessage[]>>
   setRuntimeEvents: Dispatch<SetStateAction<AgentRuntimeEvent[]>>
+  selectedProducts: AgentChatProductContextSelection[]
   strategy: AgentChatStrategy
   tError: string
 }
@@ -58,6 +60,10 @@ export async function sendAgentChatMessage(
       responseMode: input.strategy.responseMode,
       collaborationMode: input.strategy.collaborationMode,
     }
+    const contextMeta = {
+      contextRefs: createContextRefs(input.selectedProducts),
+      productIds: input.selectedProducts.map((product) => product.id),
+    }
     let activeConversationId = input.conversationId
     if (!activeConversationId) {
       const detail = await agentChatData.createConversation({
@@ -76,18 +82,24 @@ export async function sendAgentChatMessage(
       await agentChatData.addConversationMessage(activeConversationId, {
         role: "user",
         contentText: input.content,
-        contentJson: { strategy: strategyMeta },
+        contentJson: { context: contextMeta, strategy: strategyMeta },
       })
     }
 
     let assistantContent = ""
     let persistAssistant: Promise<void> | null = null
-    const agentInput = buildAgentStrategyInput(input.content, input.strategy)
-
     await agentChatData.streamAgentSession(
       {
-        input: agentInput,
+        input: input.content,
         agentId: AGENT_ID,
+        metadata: {
+          context: contextMeta,
+          strategy: {
+            id: input.strategy.id,
+            responseMode: input.strategy.responseMode,
+            collaborationMode: input.strategy.collaborationMode,
+          },
+        },
         sessionId: input.sessionIdRef.current,
         workspaceId: WORKSPACE_ID,
       },

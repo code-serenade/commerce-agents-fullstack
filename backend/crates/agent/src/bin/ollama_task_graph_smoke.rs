@@ -77,6 +77,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         agent_id: AgentId("config-smoke-agent".to_string()),
         session_id: SessionId("config-task-graph-smoke".to_string()),
         input: task,
+        metadata: Default::default(),
     })?;
 
     while let Some(event) = events.recv().await {
@@ -228,6 +229,7 @@ async fn run_matrix_case(
         agent_id: AgentId("config-matrix-agent".to_string()),
         session_id: SessionId(format!("config-task-graph-matrix-{index}")),
         input: case.task.to_string(),
+        metadata: Default::default(),
     })?;
 
     let mut result = MatrixResult::default();

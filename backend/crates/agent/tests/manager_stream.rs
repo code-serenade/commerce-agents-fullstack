@@ -66,6 +66,7 @@ async fn manager_stream_finishes_and_cleans_active_session() {
             agent_id: AgentId("test-agent".to_string()),
             session_id: SessionId("test-session".to_string()),
             input: "run stream integration".to_string(),
+            metadata: Default::default(),
         })
         .expect("stream should start");
 

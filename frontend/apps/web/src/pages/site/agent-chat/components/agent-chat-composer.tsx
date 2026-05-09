@@ -13,7 +13,9 @@ import {
 import { type KeyboardEvent, type MouseEvent, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@workspace/ui-components/stable/button"
+import type { AgentChatProductContextSelection } from "../domain/agent-chat-context-selection"
 import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
+import { AgentChatProductContextBar } from "./agent-chat-product-context-bar"
 import { AgentChatStrategyBar } from "./agent-chat-strategy-bar"
 
 const SAMPLE_PROMPTS = [
@@ -51,26 +53,34 @@ const CONTEXT_CHIPS = [
 ]
 
 export interface AgentChatComposerProps {
+  availableProducts: AgentChatProductContextSelection[]
   canSend: boolean
   input: string
   isLoggedIn: boolean
+  isLoadingProducts: boolean
   isStreaming: boolean
   onInputChange: (value: string) => void
   onSend: () => void
   onStop: () => void
   onStrategyChange: (strategyId: AgentChatStrategyId) => void
+  onToggleProductContext: (product: AgentChatProductContextSelection) => void
+  selectedProducts: AgentChatProductContextSelection[]
   strategyId: AgentChatStrategyId
 }
 
 export function AgentChatComposer({
+  availableProducts,
   canSend,
   input,
   isLoggedIn,
+  isLoadingProducts,
   isStreaming,
   onInputChange,
   onSend,
   onStop,
   onStrategyChange,
+  onToggleProductContext,
+  selectedProducts,
   strategyId,
 }: AgentChatComposerProps) {
   const { t } = useTranslation()
@@ -111,6 +121,13 @@ export function AgentChatComposer({
           disabled={isStreaming}
           onStrategyChange={onStrategyChange}
           strategyId={strategyId}
+        />
+        <AgentChatProductContextBar
+          availableProducts={availableProducts}
+          disabled={isStreaming}
+          isLoadingProducts={isLoadingProducts}
+          onToggleProductContext={onToggleProductContext}
+          selectedProducts={selectedProducts}
         />
         <div className="flex flex-wrap gap-2">
           {SAMPLE_PROMPTS.map((sample) => {

@@ -816,6 +816,11 @@ const messages = {
         "Add the file or data constraints here, for example: product price, budget, inventory, target audience, current conversion rate, and platform account status.",
       agentTitle: "Switch virtual employee mode",
       agentName: "Commerce Agents",
+      productContext: {
+        label: "Backend product context",
+        loading: "Loading products",
+        empty: "No active products",
+      },
       samples: {
         coffee: {
           label: "May Day coffee conversion",
@@ -1132,13 +1137,18 @@ const messages = {
         ],
         events: {
           commanderThinking: "Analyzing the task and preparing the execution plan.",
+          routeDecided: "Backend applied {{strategy}} strategy, route mode {{mode}}, primary role {{role}}.",
           graphPlanned: "Planned {{count}} processing steps.",
           nodeStarted: "{{agent}} started attempt {{attempt}}.",
           nodeRework: "{{agent}} entered retry: {{instruction}}",
           nodePassed: "{{agent}} passed acceptance.",
           nodeFailed: "{{agent}} failed: {{reason}}",
+          skillRequested: "{{role}} called capability {{skill}}.",
+          skillResult: "Capability {{skill}} returned status: {{status}}.",
           workerStarted: "{{agent}} started processing.",
           workerFinished: "{{agent}} finished processing.",
+          contextLoaded:
+            "Loaded {{products}} product(s) and {{knowledge}} knowledge record(s) from backend context.",
           finished: "This answer finished.",
           failed: "This answer failed: {{reason}}",
           graphFinished: "Execution graph finished and summary output started.",
@@ -1169,6 +1179,20 @@ const messages = {
           description: "After task output starts, this switches to real report summary, evidence, and risks.",
           fallbackLines: ["Coffee conversion", "Qianchuan ads review", "Ops budget and launch cadence"],
         },
+        contextLoaded: {
+          title: "Product context",
+          meta: "{{products}} products / {{knowledge}} knowledge",
+          description: "Backend resolved user-owned product facts before the agent answered.",
+          productLine: "Product id: {{id}}",
+        },
+        skill: {
+          title: "Capability call",
+          statusLine: "Status: {{status}}",
+          requested: "The backend received a real skill request and is executing it or waiting for an adapter.",
+          completed: "The capability call returned a result.",
+          deferred: "This capability needs external data or an adapter and has been explicitly deferred.",
+          approvalRequired: "This capability is high-risk or writes to a platform, so approval is required before execution.",
+        },
         rework: {
           title: "Recheck",
           description: "Acceptance failed and the system triggered a rework instruction.",
@@ -1193,6 +1217,8 @@ const messages = {
         passed: "{{agent}} passed acceptance.",
         failed: "{{agent}} failed.",
         reworking: "{{agent}} is reorganizing output from feedback.",
+        skillRequested: "Requested capability {{skill}}.",
+        skillResult: "Capability {{skill}} returned {{status}}.",
       },
       runtimeActions: {
         commanderThinking: "Breaking down task",
@@ -1204,6 +1230,8 @@ const messages = {
         nodeRework: "Rework triggered",
         nodePassed: "Accepted",
         nodeFailed: "Execution blocked",
+        skillRequested: "Capability requested",
+        skillResult: "Capability returned",
         graphFinished: "Execution plan finished",
         synced: "State synced",
       },
