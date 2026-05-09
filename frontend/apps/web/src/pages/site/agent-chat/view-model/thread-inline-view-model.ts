@@ -194,6 +194,14 @@ function getInlineGraphNodes(runtimeEvents: AgentRuntimeEvent[]): AgentTaskNode[
   return []
 }
 
+export function isChatOnlyRuntime(runtimeEvents: AgentRuntimeEvent[]) {
+  const graphNodes = getInlineGraphNodes(runtimeEvents)
+  if (graphNodes.length !== 1) return false
+
+  const [node] = graphNodes
+  return node.role === "chat" || readInlineId(node.id) === "chat"
+}
+
 function mapGraphNodeToInlineAgent(
   node: AgentTaskNode,
   presets: InlineAgent[],

@@ -6,22 +6,26 @@ import { AgentChatSwarmPanel } from "./components/agent-chat-swarm-panel"
 import { AgentChatThread } from "./components/agent-chat-thread"
 import { CollapsedWorkbenchHandle } from "./components/collapsed-workbench-handle"
 import { useAgentChatContext } from "./context/use-agent-chat-context"
+import { isChatOnlyRuntime } from "./view-model/thread-inline-view-model"
 
 export default function AgentChatPage() {
   const chat = useAgentChatContext()
   const navigate = useNavigate()
   const [isProcessPanelOpen, setIsProcessPanelOpen] = useState(true)
+  const hasProcessRuntime = chat.runtimeEvents.length > 0
+  const isChatOnly = isChatOnlyRuntime(chat.runtimeEvents)
+  const shouldShowProcessPanel = isProcessPanelOpen && hasProcessRuntime && !isChatOnly
 
   const layoutClassName = [
     "relative grid min-h-0 w-full flex-1 grid-cols-1 gap-3 p-2 sm:p-3",
-    isProcessPanelOpen
+    shouldShowProcessPanel
       ? "overflow-hidden min-[1280px]:grid-cols-[minmax(34rem,1fr)_minmax(25rem,0.68fr)] min-[1440px]:grid-cols-[minmax(40rem,1.12fr)_minmax(32rem,0.88fr)] min-[1680px]:grid-cols-[minmax(48rem,1.18fr)_minmax(36rem,0.82fr)]"
       : "overflow-hidden",
   ].join(" ")
 
   const chatPanelClassName = [
     "flex min-w-0 flex-col overflow-hidden rounded-lg bg-background",
-    isProcessPanelOpen
+    shouldShowProcessPanel
       ? "min-h-[31rem] min-[1280px]:min-h-0"
       : "mx-auto min-h-0 w-full max-w-5xl",
   ].join(" ")
@@ -38,7 +42,7 @@ export default function AgentChatPage() {
           <AgentChatThread
             isStreaming={chat.isStreaming}
             messages={chat.messages}
-            processPanelOpen={isProcessPanelOpen}
+            processPanelOpen={shouldShowProcessPanel}
             runtimeEvents={chat.runtimeEvents}
             selectedStrategy={chat.selectedStrategy}
           />
@@ -54,7 +58,7 @@ export default function AgentChatPage() {
             strategyId={chat.strategyId}
           />
         </section>
-        {isProcessPanelOpen ? (
+        {shouldShowProcessPanel ? (
           <div className="absolute inset-y-2 right-2 z-20 w-[min(42rem,calc(100%-1rem))] shadow-2xl shadow-black/20 min-[1280px]:static min-[1280px]:h-full min-[1280px]:max-h-full min-[1280px]:min-h-0 min-[1280px]:w-auto min-[1280px]:shadow-none">
             <AgentChatSwarmPanel
               isStreaming={chat.isStreaming}
@@ -63,13 +67,13 @@ export default function AgentChatPage() {
               runtimeEvents={chat.runtimeEvents}
             />
           </div>
-        ) : (
+        ) : hasProcessRuntime && !isChatOnly ? (
           <CollapsedWorkbenchHandle
             isStreaming={chat.isStreaming}
             onExpand={() => setIsProcessPanelOpen(true)}
             runtimeEvents={chat.runtimeEvents}
           />
-        )}
+        ) : null}
       </div>
     </div>
   )

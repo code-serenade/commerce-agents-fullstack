@@ -58,6 +58,8 @@ export function buildAgentStrategyInput(
   content: string,
   strategy: AgentChatStrategy
 ) {
+  if (isQuickChatInput(content)) return content
+
   return [
     "Answer as an ecommerce multi-agent virtual employee workspace.",
     `Response strategy: ${strategy.id}.`,
@@ -71,4 +73,10 @@ export function buildAgentStrategyInput(
     "User question:",
     content,
   ].join("\n")
+}
+
+export function isQuickChatInput(content: string) {
+  return /^(hi|hello|hey|你好|您好|嗨|哈喽|在吗|早上好|中午好|下午好|晚上好)[.!。！?？\s]*$/i.test(
+    content.trim()
+  )
 }

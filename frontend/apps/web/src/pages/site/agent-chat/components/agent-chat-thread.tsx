@@ -5,6 +5,7 @@ import type { AgentRuntimeEvent } from "@/api"
 import type { AgentChatMessage } from "../types"
 import { InlineProcessStatusNode } from "./inline-process-status-node"
 import { InlineSwarmTaskCard } from "./inline-swarm-task-card"
+import { isChatOnlyRuntime } from "../view-model/thread-inline-view-model"
 import {
   AgentProgressCard,
   StrategyStatusPill,
@@ -37,6 +38,8 @@ export function AgentChatThread({
     (message) => message.status === "streaming"
   )
   const inlineIsStreaming = isStreaming || hasStreamingMessage
+  const shouldShowSwarmInline =
+    latestUserTask && runtimeEvents.length > 0 && !isChatOnlyRuntime(runtimeEvents)
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
@@ -100,7 +103,7 @@ export function AgentChatThread({
             </article>
           )
         })}
-        {latestUserTask ? (
+        {shouldShowSwarmInline ? (
           <>
             <InlineSwarmTaskCard
               isStreaming={inlineIsStreaming}
