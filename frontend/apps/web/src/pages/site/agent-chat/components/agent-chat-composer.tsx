@@ -10,7 +10,7 @@ import {
   ShoppingBag,
   Square,
 } from "lucide-react"
-import { type KeyboardEvent } from "react"
+import { type KeyboardEvent, type MouseEvent, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@workspace/ui-components/stable/button"
 import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
@@ -74,9 +74,11 @@ export function AgentChatComposer({
   strategyId,
 }: AgentChatComposerProps) {
   const { t } = useTranslation()
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const appendComposerText = (text: string) => {
     onInputChange(input.trim() ? `${input.trim()}\n${text}` : text)
+    queueMicrotask(() => textareaRef.current?.focus())
   }
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -90,10 +92,19 @@ export function AgentChatComposer({
     if (canSend) onSend()
   }
 
+  const focusComposer = (event: MouseEvent<HTMLDivElement>) => {
+    if (isStreaming) return
+    const target = event.target
+    if (!(target instanceof HTMLElement)) return
+    if (target.closest("button, textarea")) return
+    textareaRef.current?.focus()
+  }
+
   return (
-    <footer className="shrink-0 bg-background/95 p-3 sm:px-5">
+    <footer className="relative z-30 shrink-0 bg-background/95 p-3 sm:px-5">
       <div
         className="mx-auto flex w-full max-w-3xl flex-col gap-3 rounded-[1.65rem] border border-border bg-[#f1f1ef] p-3 shadow-xl shadow-black/10 dark:bg-card"
+        onMouseDown={focusComposer}
         onKeyDown={handleKeyDown}
       >
         <AgentChatStrategyBar
@@ -111,7 +122,10 @@ export function AgentChatComposer({
                 key={sample.labelKey}
                 type="button"
                 disabled={isStreaming}
-                onClick={() => onInputChange(prompt)}
+                onClick={() => {
+                  onInputChange(prompt)
+                  queueMicrotask(() => textareaRef.current?.focus())
+                }}
                 className="flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
                 title={prompt}
               >
@@ -140,20 +154,8 @@ export function AgentChatComposer({
             )
           })}
         </div>
-        <textarea
-          value={input}
-          onChange={(event) => onInputChange(event.target.value)}
-          placeholder={t(
-            !isLoggedIn
-              ? "agentChat.composer.loginPlaceholder"
-              : "agentChat.composer.placeholder"
-          )}
-          disabled={isStreaming}
-          rows={2}
-          className="max-h-32 min-h-14 w-full resize-none rounded-md border-0 bg-transparent p-2 text-sm/6 outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60"
-        />
-        <div className="flex min-w-0 items-center justify-between gap-2 rounded-full bg-background p-2 shadow-sm">
-          <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+        <div className="flex min-w-0 items-end justify-between gap-2 rounded-3xl bg-background p-2 shadow-sm">
+          <div className="flex min-w-0 flex-1 items-end gap-2 overflow-hidden">
             <button
               type="button"
               className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:text-foreground"
@@ -162,19 +164,36 @@ export function AgentChatComposer({
             >
               <Plus className="size-5" />
             </button>
-            <button
-              type="button"
-              className="flex max-w-56 min-w-0 shrink items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
-              title={t("agentChat.composer.agentTitle")}
-            >
-              <Bot className="size-4 shrink-0 text-blue-500" />
-              <span className="truncate">{t("agentChat.composer.agentName")}</span>
-            </button>
-            <p className="hidden shrink-0 text-xs text-muted-foreground min-[1700px]:block">
-              {isLoggedIn
-                ? t("agentChat.composer.hint")
-                : t("agentChat.loginRequired.inline")}
-            </p>
+            <div className="flex min-w-0 flex-1 flex-col gap-1 rounded-2xl p-1">
+              <div className="flex min-w-0 items-center gap-2">
+                <button
+                  type="button"
+                  className="flex max-w-48 min-w-0 shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+                  title={t("agentChat.composer.agentTitle")}
+                >
+                  <Bot className="size-4 shrink-0 text-blue-500" />
+                  <span className="truncate">{t("agentChat.composer.agentName")}</span>
+                </button>
+                <p className="hidden shrink-0 text-xs text-muted-foreground lg:block">
+                  {isLoggedIn
+                    ? t("agentChat.composer.hint")
+                    : t("agentChat.loginRequired.inline")}
+                </p>
+              </div>
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(event) => onInputChange(event.target.value)}
+                placeholder={t(
+                  !isLoggedIn
+                    ? "agentChat.composer.loginPlaceholder"
+                    : "agentChat.composer.placeholder"
+                )}
+                disabled={isStreaming}
+                rows={1}
+                className="max-h-32 min-h-7 w-full resize-none border-0 bg-transparent px-2 py-1 text-sm/6 outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60"
+              />
+            </div>
           </div>
           {isStreaming ? (
             <Button variant="outline" size="icon" onClick={onStop}>
