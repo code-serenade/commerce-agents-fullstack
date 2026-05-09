@@ -1,7 +1,8 @@
 import type { ReactNode } from "react"
 import { Badge } from "@workspace/ui-components"
+import type { StatusTone } from "./commerce-status-utils"
 
-export type StatusTone = "default" | "success" | "warning" | "danger" | "muted"
+export type { StatusTone } from "./commerce-status-utils"
 
 export function StatusBadge({
   children,
@@ -20,57 +21,6 @@ export function StatusBadge({
           : "default"
 
   return <Badge variant={variant}>{children}</Badge>
-}
-
-export function toneForStatus(status?: string | null): StatusTone {
-  if (!status) return "muted"
-  if (
-    [
-      "active",
-      "enabled",
-      "configured",
-      "success",
-      "succeeded",
-      "completed",
-      "done",
-      "approved",
-      "executed",
-      "acted",
-      "ready",
-    ].includes(status)
-  ) {
-    return "success"
-  }
-  if (
-    [
-      "pending",
-      "draft",
-      "planned",
-      "running",
-      "syncing",
-      "in_progress",
-      "snoozed",
-    ].includes(status)
-  ) {
-    return "warning"
-  }
-  if (
-    [
-      "failed",
-      "cancelled",
-      "rejected",
-      "critical",
-      "dismissed",
-      "archived",
-      "disabled",
-      "deprecated",
-      "blocked",
-    ].includes(status)
-  ) {
-    return "danger"
-  }
-
-  return "default"
 }
 
 export function MutedText({ children }: { children: ReactNode }) {
