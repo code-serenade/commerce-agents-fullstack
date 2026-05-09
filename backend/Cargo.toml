@@ -41,3 +41,6 @@ repo = { path = "crates/repo" }
 service = { path = "crates/service" }
 error-code = { path = "crates/error-code" }
 storage = { path = "crates/storage" }
+
+[patch.crates-io]
+proc-macro-error2 = { path = "patches/proc-macro-error2" }
