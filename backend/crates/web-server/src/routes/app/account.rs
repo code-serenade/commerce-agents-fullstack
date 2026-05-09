@@ -1,0 +1,43 @@
+use axum::{
+    Router,
+    routing::{get, post},
+};
+
+use crate::handlers::app::{
+    add_conversation_message, create_conversation, current_user_permissions, delete_conversation,
+    get_conversation, get_conversation_file_access, list_conversations,
+    presign_conversation_file_upload, register_app_user, register_conversation_file,
+    update_conversation,
+};
+
+pub fn account_routes() -> Router {
+    Router::new()
+        .route("/register", post(register_app_user))
+        .route("/me/permissions", get(current_user_permissions))
+        .route(
+            "/conversations",
+            get(list_conversations).post(create_conversation),
+        )
+        .route(
+            "/conversations/{conversation_id}",
+            get(get_conversation)
+                .patch(update_conversation)
+                .delete(delete_conversation),
+        )
+        .route(
+            "/conversations/{conversation_id}/messages",
+            post(add_conversation_message),
+        )
+        .route(
+            "/conversations/{conversation_id}/files/presign-upload",
+            post(presign_conversation_file_upload),
+        )
+        .route(
+            "/conversations/{conversation_id}/files",
+            post(register_conversation_file),
+        )
+        .route(
+            "/conversation-files/{file_id}/access",
+            get(get_conversation_file_access),
+        )
+}
