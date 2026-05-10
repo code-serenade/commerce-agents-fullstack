@@ -41,7 +41,10 @@ use validator::Validate;
 use crate::{
     dto::sse::AgentStreamRequest,
     error::{Error, from_biz_error},
-    statics::{agent_manager::run_agent_stream, db_manager::get_app_ctx},
+    statics::{
+        agent_manager::{run_agent_stream, select_agent_runtime_model},
+        db_manager::get_app_ctx,
+    },
 };
 
 pub async fn stream_agent_session(
@@ -60,12 +63,15 @@ pub async fn stream_agent_session(
     let session_id = req.session_id.clone().unwrap_or_else(new_session_id);
     let requested_workspace_id = req.workspace_id.clone();
     let input = req.input.clone();
-    let (mut metadata, context_selection) = req.metadata.into_parts().map_err(bad_request)?;
+    let (mut metadata, context_selection, model_selection) =
+        req.metadata.into_parts().map_err(bad_request)?;
 
     let api = AppApi::new(get_app_ctx());
     api.get_current_user_permissions(user_id.clone())
         .await
         .map_err(from_biz_error)?;
+    select_agent_runtime_model(model_selection.name.as_deref())
+        .map_err(|err| bad_request(err.to_string()))?;
     let context_api = AgentContextApi::new(get_app_ctx());
     if !context_selection.is_empty() {
         let context = context_api
@@ -144,6 +150,7 @@ pub async fn stream_agent_session(
         agent_id,
         Some(session_id.clone()),
         input,
+        model_selection.name,
         metadata,
     )
     .map_err(Into::<ApiError>::into)?;

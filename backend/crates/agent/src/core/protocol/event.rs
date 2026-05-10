@@ -47,6 +47,8 @@ pub enum SessionEvent {
         strategy_id: Option<String>,
         response_mode: Option<String>,
         collaboration_mode: Option<String>,
+        learning_level: Option<String>,
+        model_name: Option<String>,
         route_mode: String,
         primary_runtime_role: Option<String>,
         support_runtime_roles: Vec<String>,

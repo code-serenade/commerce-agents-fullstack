@@ -130,6 +130,48 @@ impl Cognition for CapabilityIntroWorkerCognition {
     }
 }
 
+struct ShortAnswerWorkerCognition;
+
+#[async_trait]
+impl Cognition for ShortAnswerWorkerCognition {
+    async fn evaluate(&self, _input: CognitionInput) -> CognitionResult {
+        CognitionResult::Success(json!({
+            "decision": {
+                "kind": "NoAction"
+            },
+            "role_output": {
+                "summary": "42",
+                "findings": [],
+                "recommendations": [],
+                "evidence": [],
+                "risks": [],
+                "open_questions": []
+            }
+        }))
+    }
+}
+
+struct StructuredSummaryWorkerCognition;
+
+#[async_trait]
+impl Cognition for StructuredSummaryWorkerCognition {
+    async fn evaluate(&self, _input: CognitionInput) -> CognitionResult {
+        CognitionResult::Success(json!({
+            "decision": {
+                "kind": "NoAction"
+            },
+            "role_output": {
+                "summary": "已经接入问答模型。",
+                "findings": [],
+                "recommendations": [],
+                "evidence": [],
+                "risks": [],
+                "open_questions": []
+            }
+        }))
+    }
+}
+
 struct SkillRequestWorkerCognition;
 
 #[async_trait]
@@ -489,6 +531,222 @@ async fn capability_question_returns_complete_chat_summary_without_internal_sect
 }
 
 #[tokio::test]
+async fn task_graph_chat_short_answer_returns_direct_output() {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(|| Ok(Box::new(ShortAnswerWorkerCognition))),
+    ));
+
+    let mut metadata = BTreeMap::new();
+    metadata.insert("strategy.id".to_string(), "execution".to_string());
+    metadata.insert(
+        "strategy.response_mode".to_string(),
+        "execution".to_string(),
+    );
+    metadata.insert(
+        "strategy.collaboration_mode".to_string(),
+        "auto".to_string(),
+    );
+
+    let result = manager
+        .run_request(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-short-answer".to_string()),
+            input: "只输出 17+25 的计算结果，不要解释。".to_string(),
+            metadata,
+        })
+        .await
+        .expect("request should complete");
+
+    assert_eq!(result.output, "42");
+    assert!(
+        !result
+            .output
+            .contains("quality completeness: summary is too thin")
+    );
+    assert!(!result.output.contains("多智能体任务图已完成"));
+    assert!(result.evaluation_summary.is_none());
+    assert!(result.task_graphs.is_empty());
+}
+
+#[tokio::test]
+async fn collab_strategy_direct_answer_bypasses_task_graph() {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(|| Ok(Box::new(ShortAnswerWorkerCognition))),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert("strategy.id".to_string(), "collab".to_string());
+    metadata.insert(
+        "strategy.response_mode".to_string(),
+        "execution".to_string(),
+    );
+    metadata.insert(
+        "strategy.collaboration_mode".to_string(),
+        "manual".to_string(),
+    );
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-collab-short-answer".to_string()),
+            input: "只输出 17+25 的计算结果，不要解释。".to_string(),
+            metadata,
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    while let Some(event) = rx.recv().await {
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::RouteDecided {
+                strategy_id,
+                collaboration_mode,
+                route_mode,
+                ..
+            } if strategy_id.as_deref() == Some("collab")
+                && collaboration_mode.as_deref() == Some("manual")
+                && route_mode == "chat_bypass"
+        )
+    }));
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::Output { content, .. } if content == "42"
+        )
+    }));
+    assert!(
+        !events
+            .iter()
+            .any(|event| matches!(event, SessionEvent::CommanderThinking { .. }))
+    );
+    assert!(
+        !events
+            .iter()
+            .any(|event| matches!(event, SessionEvent::TaskGraphPlanned { .. }))
+    );
+}
+
+#[tokio::test]
+async fn explicit_manual_roles_do_not_use_direct_answer_chat_bypass() {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(|| Ok(Box::new(NoopWorkerCognition))),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert("strategy.id".to_string(), "collab".to_string());
+    metadata.insert(
+        "strategy.response_mode".to_string(),
+        "execution".to_string(),
+    );
+    metadata.insert(
+        "strategy.collaboration_mode".to_string(),
+        "manual".to_string(),
+    );
+    metadata.insert("strategy.primary_role".to_string(), "data".to_string());
+    metadata.insert(
+        "strategy.selected_roles".to_string(),
+        "data,ops".to_string(),
+    );
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-manual-direct-answer".to_string()),
+            input: "answer only 17+25, no explanation.".to_string(),
+            metadata,
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    while let Some(event) = rx.recv().await {
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::RouteDecided {
+                strategy_id,
+                collaboration_mode,
+                route_mode,
+                primary_runtime_role,
+                support_runtime_roles,
+                ..
+            } if strategy_id.as_deref() == Some("collab")
+                && collaboration_mode.as_deref() == Some("manual")
+                && route_mode == "task_graph"
+                && primary_runtime_role.as_deref() == Some("data")
+                && support_runtime_roles == &vec!["ops".to_string()]
+        )
+    }));
+    assert!(
+        events
+            .iter()
+            .any(|event| matches!(event, SessionEvent::CommanderThinking { .. }))
+    );
+    assert!(
+        events
+            .iter()
+            .any(|event| matches!(event, SessionEvent::TaskGraphPlanned { .. }))
+    );
+    assert!(!events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::RouteDecided { route_mode, .. } if route_mode == "chat_bypass"
+        )
+    }));
+}
+
+#[tokio::test]
+async fn fast_worker_structured_output_returns_summary_not_json() {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(|| Ok(Box::new(StructuredSummaryWorkerCognition))),
+    ));
+
+    let result = manager
+        .run_request(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-fast-summary".to_string()),
+            input: "你能解释一下这个 agent 是什么吗".to_string(),
+            metadata: Default::default(),
+        })
+        .await
+        .expect("request should complete");
+
+    assert_eq!(result.output, "已经接入问答模型。");
+    assert!(!result.output.contains("\"role_output\""));
+    assert!(!result.output.contains("\"decision\""));
+}
+
+#[tokio::test]
 async fn commander_uses_role_router_when_target_worker_is_missing() {
     let runtime_roles = Arc::new(Mutex::new(HashSet::new()));
     let worker_capture = Arc::clone(&runtime_roles);
@@ -788,6 +1046,141 @@ async fn collab_strategy_metadata_emits_route_decision_and_task_graph() {
             .iter()
             .any(|event| matches!(event, SessionEvent::TaskGraphPlanned { .. }))
     );
+}
+
+#[tokio::test]
+async fn manual_strategy_metadata_routes_requested_roles() {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(|| Ok(Box::new(NoopWorkerCognition))),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert("strategy.id".to_string(), "collab".to_string());
+    metadata.insert("strategy.response_mode".to_string(), "learning".to_string());
+    metadata.insert(
+        "strategy.learning_level".to_string(),
+        "professional".to_string(),
+    );
+    metadata.insert(
+        "strategy.collaboration_mode".to_string(),
+        "manual".to_string(),
+    );
+    metadata.insert("strategy.primary_role".to_string(), "creative".to_string());
+    metadata.insert(
+        "strategy.selected_roles".to_string(),
+        "data,creative,ops".to_string(),
+    );
+    metadata.insert("model.name".to_string(), "ollama-gpt-oss-20b".to_string());
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-manual-roles".to_string()),
+            input: "请让创意、数据和运营协同优化直播素材".to_string(),
+            metadata,
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    while let Some(event) = rx.recv().await {
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::RouteDecided {
+                response_mode,
+                collaboration_mode,
+                learning_level,
+                model_name,
+                route_mode,
+                primary_runtime_role,
+                support_runtime_roles,
+                ..
+            } if response_mode.as_deref() == Some("learning")
+                && collaboration_mode.as_deref() == Some("manual")
+                && learning_level.as_deref() == Some("professional")
+                && model_name.as_deref() == Some("ollama-gpt-oss-20b")
+                && route_mode == "task_graph"
+                && primary_runtime_role.as_deref() == Some("creative")
+                && support_runtime_roles == &vec!["data".to_string(), "ops".to_string()]
+        )
+    }));
+}
+
+#[tokio::test]
+async fn single_strategy_metadata_routes_only_requested_primary_role() {
+    let runtime_roles = Arc::new(Mutex::new(HashSet::new()));
+    let worker_capture = Arc::clone(&runtime_roles);
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(move || {
+            Ok(Box::new(CapturingWorkerSetCognition {
+                runtime_roles: Arc::clone(&worker_capture),
+            }))
+        }),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert(
+        "strategy.collaboration_mode".to_string(),
+        "single".to_string(),
+    );
+    metadata.insert("strategy.primary_role".to_string(), "data".to_string());
+    metadata.insert(
+        "strategy.selected_roles".to_string(),
+        "data,creative,ops".to_string(),
+    );
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-single-role".to_string()),
+            input: "请只让数据角色分析漏斗".to_string(),
+            metadata,
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    while let Some(event) = rx.recv().await {
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::RouteDecided {
+                collaboration_mode,
+                primary_runtime_role,
+                support_runtime_roles,
+                ..
+            } if collaboration_mode.as_deref() == Some("single")
+                && primary_runtime_role.as_deref() == Some("data")
+                && support_runtime_roles.is_empty()
+        )
+    }));
+    let runtime_roles = runtime_roles.lock().expect("lock role set capture");
+    assert!(runtime_roles.contains("data"));
+    assert!(!runtime_roles.contains("creative"));
+    assert!(!runtime_roles.contains("ops"));
 }
 
 #[tokio::test]

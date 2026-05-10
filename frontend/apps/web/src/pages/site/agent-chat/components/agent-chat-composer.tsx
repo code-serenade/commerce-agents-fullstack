@@ -18,8 +18,13 @@ import { useTranslation } from "react-i18next"
 import { Button } from "@workspace/ui-components/stable/button"
 import type { AgentChatProductContextSelection } from "../domain/agent-chat-context-selection"
 import type { AgentChatPlaybookSelection } from "../domain/agent-chat-playbook"
+import type {
+  AgentChatRuntimeSelection,
+  AgentRuntimeOptions,
+} from "../domain/agent-runtime-options"
 import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
 import { AgentChatProductContextBar } from "./agent-chat-product-context-bar"
+import { AgentChatRuntimeOptionsBar } from "./agent-chat-runtime-options-bar"
 import { AgentChatStrategyBar } from "./agent-chat-strategy-bar"
 
 const PLAYBOOK_ICONS: Record<string, LucideIcon> = {
@@ -38,8 +43,14 @@ export interface AgentChatComposerProps {
   isLoggedIn: boolean
   isLoadingPlaybooks: boolean
   isLoadingProducts: boolean
+  isLoadingRuntimeOptions: boolean
   isStreaming: boolean
   onInputChange: (value: string) => void
+  onRuntimeCollaborationModeChange: (value: string) => void
+  onRuntimeLearningLevelChange: (value: string) => void
+  onRuntimeModelChange: (value: string) => void
+  onRuntimePrimaryRoleChange: (value: string) => void
+  onToggleRuntimeRole: (value: string) => void
   onSelectPlaybook: (playbook: AgentChatPlaybookSelection) => void
   onSend: () => void
   onStop: () => void
@@ -47,6 +58,8 @@ export interface AgentChatComposerProps {
   onToggleProductContext: (product: AgentChatProductContextSelection) => void
   selectedProducts: AgentChatProductContextSelection[]
   playbooks: AgentChatPlaybookSelection[]
+  runtimeOptions: AgentRuntimeOptions | null
+  runtimeSelection: AgentChatRuntimeSelection
   strategyId: AgentChatStrategyId
 }
 
@@ -57,8 +70,14 @@ export function AgentChatComposer({
   isLoggedIn,
   isLoadingPlaybooks,
   isLoadingProducts,
+  isLoadingRuntimeOptions,
   isStreaming,
   onInputChange,
+  onRuntimeCollaborationModeChange,
+  onRuntimeLearningLevelChange,
+  onRuntimeModelChange,
+  onRuntimePrimaryRoleChange,
+  onToggleRuntimeRole,
   onSelectPlaybook,
   onSend,
   onStop,
@@ -66,6 +85,8 @@ export function AgentChatComposer({
   onToggleProductContext,
   selectedProducts,
   playbooks,
+  runtimeOptions,
+  runtimeSelection,
   strategyId,
 }: AgentChatComposerProps) {
   const { t } = useTranslation()
@@ -113,6 +134,17 @@ export function AgentChatComposer({
           isLoadingProducts={isLoadingProducts}
           onToggleProductContext={onToggleProductContext}
           selectedProducts={selectedProducts}
+        />
+        <AgentChatRuntimeOptionsBar
+          disabled={isStreaming}
+          isLoadingRuntimeOptions={isLoadingRuntimeOptions}
+          onCollaborationModeChange={onRuntimeCollaborationModeChange}
+          onLearningLevelChange={onRuntimeLearningLevelChange}
+          onModelChange={onRuntimeModelChange}
+          onPrimaryRoleChange={onRuntimePrimaryRoleChange}
+          onToggleRole={onToggleRuntimeRole}
+          runtimeOptions={runtimeOptions}
+          runtimeSelection={runtimeSelection}
         />
         <div className="flex flex-wrap gap-2">
           {isLoadingPlaybooks ? (

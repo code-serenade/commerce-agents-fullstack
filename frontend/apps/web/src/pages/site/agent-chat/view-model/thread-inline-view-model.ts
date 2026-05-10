@@ -205,6 +205,15 @@ function getInlineGraphNodes(runtimeEvents: AgentRuntimeEvent[]): AgentTaskNode[
 }
 
 export function isChatOnlyRuntime(runtimeEvents: AgentRuntimeEvent[]) {
+  if (
+    runtimeEvents.some(
+      (event) =>
+        event.type === "route_decided" && event.route_mode === "chat_bypass"
+    )
+  ) {
+    return true
+  }
+
   const graphNodes = getInlineGraphNodes(runtimeEvents)
   if (graphNodes.length !== 1) return false
 

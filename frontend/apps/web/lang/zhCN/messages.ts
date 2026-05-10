@@ -833,6 +833,15 @@ const messages = {
         loading: "正在读取场景",
         empty: "暂无场景",
       },
+      runtime: {
+        label: "运行配置",
+        loading: "正在读取运行配置",
+        model: "模型",
+        learning: "层级",
+        collaboration: "协作",
+        roles: "岗位",
+        primary: "主",
+      },
       samples: {
         coffee: {
           label: "五一咖啡转化",

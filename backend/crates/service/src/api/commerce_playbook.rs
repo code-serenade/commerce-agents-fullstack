@@ -32,6 +32,11 @@ impl CommercePlaybookApi {
         })
     }
 
+    pub async fn ensure_current_user_enabled(&self, user_id: String) -> BizResult<()> {
+        let user_id = parse_user_id(&user_id)?;
+        self.ensure_app_user_enabled(user_id).await
+    }
+
     async fn ensure_app_user_enabled(&self, user_id: Uuid) -> BizResult<()> {
         let user = self
             .app_user_svc

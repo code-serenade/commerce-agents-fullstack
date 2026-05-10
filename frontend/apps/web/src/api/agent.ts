@@ -10,10 +10,16 @@ export interface AgentStreamRequest {
       contextRefs?: string[]
       productIds?: string[]
     }
+    model?: {
+      name?: string
+    }
     strategy?: {
       collaborationMode?: string
       id?: string
+      learningLevel?: string
+      primaryRole?: string
       responseMode?: string
+      selectedRoles?: string[]
     }
   }
   sessionId?: string
@@ -58,11 +64,21 @@ export type AgentRuntimeEvent =
   | {
       type: "route_decided"
       collaboration_mode?: string | null
+      collaborationMode?: string | null
+      learning_level?: string | null
+      learningLevel?: string | null
+      model_name?: string | null
+      modelName?: string | null
       primary_runtime_role?: string | null
+      primaryRuntimeRole?: string | null
       response_mode?: string | null
+      responseMode?: string | null
       route_mode: string
+      routeMode?: string
       strategy_id?: string | null
+      strategyId?: string | null
       support_runtime_roles: string[]
+      supportRuntimeRoles?: string[]
     }
   | {
       type: "worker_started"
@@ -812,6 +828,14 @@ function normalizeAgentRuntimeEvent(event: AgentRuntimeEvent): AgentRuntimeEvent
   copyIfMissing(normalized, raw, "taskId", "task_id")
   copyIfMissing(normalized, raw, "graphId", "graph_id")
   copyIfMissing(normalized, raw, "nodeId", "node_id")
+  copyIfMissing(normalized, raw, "collaborationMode", "collaboration_mode")
+  copyIfMissing(normalized, raw, "learningLevel", "learning_level")
+  copyIfMissing(normalized, raw, "modelName", "model_name")
+  copyIfMissing(normalized, raw, "primaryRuntimeRole", "primary_runtime_role")
+  copyIfMissing(normalized, raw, "responseMode", "response_mode")
+  copyIfMissing(normalized, raw, "routeMode", "route_mode")
+  copyIfMissing(normalized, raw, "strategyId", "strategy_id")
+  copyIfMissing(normalized, raw, "supportRuntimeRoles", "support_runtime_roles")
   copyIfMissing(normalized, raw, "primaryWorkerId", "primary_worker_id")
   copyIfMissing(normalized, raw, "supportWorkerIds", "support_worker_ids")
   copyIfMissing(normalized, raw, "productIds", "product_ids")

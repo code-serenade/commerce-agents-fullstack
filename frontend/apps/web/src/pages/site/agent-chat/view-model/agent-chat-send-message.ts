@@ -10,6 +10,7 @@ import {
   createContextRefs,
   type AgentChatProductContextSelection,
 } from "../domain/agent-chat-context-selection"
+import type { AgentChatRuntimeSelection } from "../domain/agent-runtime-options"
 import type { AgentChatStrategy } from "../domain/agent-chat-strategy"
 import type { AgentChatConversationItem, AgentChatMessage } from "../types"
 
@@ -28,6 +29,7 @@ interface SendAgentChatMessageInput {
   setMessages: Dispatch<SetStateAction<AgentChatMessage[]>>
   setRuntimeEvents: Dispatch<SetStateAction<AgentRuntimeEvent[]>>
   selectedProducts: AgentChatProductContextSelection[]
+  runtimeSelection: AgentChatRuntimeSelection
   strategy: AgentChatStrategy
   tError: string
 }
@@ -53,7 +55,11 @@ export async function sendAgentChatMessage(
     const strategyMeta = {
       strategyId: input.strategy.id,
       responseMode: input.strategy.responseMode,
-      collaborationMode: input.strategy.collaborationMode,
+      collaborationMode: input.runtimeSelection.collaborationMode,
+      learningLevel: input.runtimeSelection.learningLevel,
+      primaryRole: input.runtimeSelection.primaryRole,
+      selectedRoles: input.runtimeSelection.selectedRoles,
+      modelName: input.runtimeSelection.modelName,
     }
     const contextMeta = {
       contextRefs: createContextRefs(input.selectedProducts),
@@ -89,10 +95,16 @@ export async function sendAgentChatMessage(
         agentId: AGENT_ID,
         metadata: {
           context: contextMeta,
+          model: input.runtimeSelection.modelName
+            ? { name: input.runtimeSelection.modelName }
+            : undefined,
           strategy: {
             id: input.strategy.id,
             responseMode: input.strategy.responseMode,
-            collaborationMode: input.strategy.collaborationMode,
+            collaborationMode: input.runtimeSelection.collaborationMode,
+            learningLevel: input.runtimeSelection.learningLevel,
+            primaryRole: input.runtimeSelection.primaryRole,
+            selectedRoles: input.runtimeSelection.selectedRoles,
           },
         },
         sessionId: input.sessionIdRef.current,

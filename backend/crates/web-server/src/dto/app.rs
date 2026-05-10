@@ -184,6 +184,45 @@ pub struct CurrentUserPermissionsResponse {
 pub type CommerceAgentPlaybookListResponse =
     service::dto::commerce_playbook::CommerceAgentPlaybookListResponse;
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentRuntimeOptionsResponse {
+    pub default_model_name: Option<String>,
+    pub models: Vec<AgentRuntimeModelOptionResponse>,
+    pub strategies: Vec<AgentRuntimeChoiceResponse>,
+    pub response_modes: Vec<AgentRuntimeChoiceResponse>,
+    pub learning_levels: Vec<AgentRuntimeChoiceResponse>,
+    pub collaboration_modes: Vec<AgentRuntimeChoiceResponse>,
+    pub roles: Vec<AgentRuntimeRoleOptionResponse>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentRuntimeModelOptionResponse {
+    pub name: String,
+    pub model: String,
+    pub is_default: bool,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentRuntimeChoiceResponse {
+    pub id: String,
+    pub label: String,
+    pub description: String,
+    pub is_default: bool,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentRuntimeRoleOptionResponse {
+    pub id: String,
+    pub name: String,
+    pub runtime_role: String,
+    pub capabilities: Vec<String>,
+    pub is_default: bool,
+}
+
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateConversationRequest {

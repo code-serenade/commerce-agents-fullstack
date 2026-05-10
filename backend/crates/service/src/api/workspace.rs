@@ -2859,8 +2859,11 @@ fn evaluate_output_quality(
     let output_chars = output.chars().count();
     let input_chars = input.chars().count();
     let lower = output.to_ascii_lowercase();
+    let direct_answer = is_direct_answer_quality_case(input, output, output_chars);
     let completeness = if output_chars == 0 {
         0.0
+    } else if direct_answer {
+        0.9
     } else if output_chars >= 800 {
         0.95
     } else if output_chars >= 300 {
@@ -2870,75 +2873,100 @@ fn evaluate_output_quality(
     } else {
         0.35
     };
-    let actionability = keyword_score(
-        output,
-        &[
-            "建议",
-            "步骤",
-            "执行",
-            "下一步",
-            "可以",
-            "优先",
-            "方案",
-            "checklist",
-            "todo",
-        ],
-    );
-    let relevance = relevance_score(input, output);
-    let clarity = {
-        let has_structure = output.contains('\n') || output.contains("1.") || output.contains("- ");
-        let sentence_count = output.matches('。').count()
-            + output.matches('.').count()
-            + output.matches('\n').count();
-        let base: f64 = if has_structure { 0.78 } else { 0.55 };
-        (base + (sentence_count as f64 * 0.025)).clamp(0.2_f64, 1.0_f64)
-    };
-    let risk_awareness = keyword_score(
-        output,
-        &[
-            "风险",
-            "边界",
-            "假设",
-            "注意",
-            "需确认",
-            "验证",
-            "不确定",
-            "限制",
-        ],
-    );
-    let value_density = {
-        let business_hits = keyword_hits(
+    let actionability = if direct_answer {
+        0.82
+    } else {
+        keyword_score(
             output,
             &[
-                "用户",
-                "业务",
-                "运营",
-                "电商",
-                "转化",
-                "成本",
-                "效率",
-                "数据",
-                "策略",
+                "建议",
+                "步骤",
                 "执行",
-                "岗位",
-                "智能体",
+                "下一步",
+                "可以",
+                "优先",
+                "方案",
+                "checklist",
+                "todo",
             ],
-        );
-        let density = business_hits as f64 / (output_chars.max(1) as f64 / 240.0).max(1.0);
-        (0.45 + density * 0.13).clamp(0.2_f64, 1.0_f64)
+        )
     };
-    let confidence_marking = keyword_score(
-        output,
-        &[
-            "基于",
-            "现有信息",
-            "可能",
-            "建议",
-            "需要确认",
-            "我会",
-            "可以先",
-        ],
-    );
+    let relevance = if direct_answer {
+        0.88
+    } else {
+        relevance_score(input, output)
+    };
+    let clarity = {
+        if direct_answer {
+            0.88
+        } else {
+            let has_structure =
+                output.contains('\n') || output.contains("1.") || output.contains("- ");
+            let sentence_count = output.matches('。').count()
+                + output.matches('.').count()
+                + output.matches('\n').count();
+            let base: f64 = if has_structure { 0.78 } else { 0.55 };
+            (base + (sentence_count as f64 * 0.025)).clamp(0.2_f64, 1.0_f64)
+        }
+    };
+    let risk_awareness = if direct_answer {
+        0.82
+    } else {
+        keyword_score(
+            output,
+            &[
+                "风险",
+                "边界",
+                "假设",
+                "注意",
+                "需确认",
+                "验证",
+                "不确定",
+                "限制",
+            ],
+        )
+    };
+    let value_density = {
+        if direct_answer {
+            0.78
+        } else {
+            let business_hits = keyword_hits(
+                output,
+                &[
+                    "用户",
+                    "业务",
+                    "运营",
+                    "电商",
+                    "转化",
+                    "成本",
+                    "效率",
+                    "数据",
+                    "策略",
+                    "执行",
+                    "岗位",
+                    "智能体",
+                ],
+            );
+            let density = business_hits as f64 / (output_chars.max(1) as f64 / 240.0).max(1.0);
+            (0.45 + density * 0.13).clamp(0.2_f64, 1.0_f64)
+        }
+    };
+    let confidence_marking = if direct_answer {
+        0.82
+    } else {
+        keyword_score(
+            output,
+            &[
+                "基于",
+                "现有信息",
+                "可能",
+                "建议",
+                "需要确认",
+                "我会",
+                "可以先",
+            ],
+        )
+    };
     let role_delivery = if tasks.is_empty() {
         0.72
     } else {
@@ -2952,19 +2980,23 @@ fn evaluate_output_quality(
         (avg * 0.7 + passed_ratio * 0.3).clamp(0.0, 1.0)
     };
     let fabrication = {
-        let numeric_claims = lower
-            .split_whitespace()
-            .filter(|part| part.chars().any(|ch| ch.is_ascii_digit()))
-            .count();
-        let has_caution = ["约", "大概", "估算", "需验证", "来源", "基于"]
-            .iter()
-            .any(|word| output.contains(word));
-        if numeric_claims > 8 && !has_caution {
-            0.45
-        } else if numeric_claims > 3 && !has_caution {
-            0.65
-        } else {
+        if direct_answer {
             0.86
+        } else {
+            let numeric_claims = lower
+                .split_whitespace()
+                .filter(|part| part.chars().any(|ch| ch.is_ascii_digit()))
+                .count();
+            let has_caution = ["约", "大概", "估算", "需验证", "来源", "基于"]
+                .iter()
+                .any(|word| output.contains(word));
+            if numeric_claims > 8 && !has_caution {
+                0.45
+            } else if numeric_claims > 3 && !has_caution {
+                0.65
+            } else {
+                0.86
+            }
         }
     };
     let dimensions = json!({
@@ -2977,6 +3009,7 @@ fn evaluate_output_quality(
         "confidenceMarking": confidence_marking,
         "roleDelivery": role_delivery,
         "fabricationGuard": fabrication,
+        "directAnswer": direct_answer,
         "inputChars": input_chars,
         "outputChars": output_chars,
     });
@@ -3051,6 +3084,48 @@ fn push_quality_issue(
         issues.push(issue.to_string());
         suggestions.push(suggestion.to_string());
     }
+}
+
+fn is_direct_answer_quality_case(input: &str, output: &str, output_chars: usize) -> bool {
+    if output.trim().is_empty() || output_chars > 120 {
+        return false;
+    }
+
+    let input_lower = input.to_ascii_lowercase();
+    let explicit_direct = [
+        "只输出",
+        "只给",
+        "只回答",
+        "只回复",
+        "不要解释",
+        "不用解释",
+        "无需解释",
+        "直接回答",
+        "直接给",
+        "简短回答",
+        "简要回答",
+        "一句话",
+        "only output",
+        "answer only",
+        "no explanation",
+    ]
+    .iter()
+    .any(|term| input.contains(term) || input_lower.contains(term));
+
+    let has_input_digit = input.chars().any(|ch| ch.is_ascii_digit());
+    let arithmetic_request = has_input_digit
+        && [
+            "+", "-", "*", "/", "×", "÷", "加", "减", "乘", "除", "计算", "等于", "结果",
+        ]
+        .iter()
+        .any(|term| input.contains(term));
+    let short_question = ["是多少", "多少", "几个", "几"]
+        .iter()
+        .any(|term| input.contains(term));
+    let concise_output = output.matches('\n').count() <= 1
+        && output.matches('。').count() + output.matches('.').count() <= 2;
+
+    (explicit_direct || arithmetic_request || short_question) && concise_output
 }
 
 fn keyword_score(text: &str, keywords: &[&str]) -> f64 {
@@ -3280,6 +3355,26 @@ mod tests {
         assert!(!quality.passed);
         assert!(quality.score < 0.7);
         assert!(quality.issues.iter().any(|issue| issue == "回答完整度偏低"));
+    }
+
+    #[test]
+    fn quality_checker_accepts_explicit_short_direct_answer() {
+        let quality = evaluate_output_quality(
+            "只输出 17+25 的计算结果，不要解释。",
+            "17 + 25 等于 42。",
+            &[],
+        );
+
+        assert!(quality.passed);
+        assert!(quality.score >= 0.7);
+        assert!(quality.issues.is_empty());
+        assert_eq!(
+            quality
+                .dimensions
+                .get("directAnswer")
+                .and_then(Value::as_bool),
+            Some(true)
+        );
     }
 
     #[test]

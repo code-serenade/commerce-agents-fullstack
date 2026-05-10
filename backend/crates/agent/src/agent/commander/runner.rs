@@ -448,7 +448,7 @@ impl Commander {
         self.current_context
             .metadata
             .get("strategy.collaboration_mode")
-            .is_some_and(|value| value == "manual")
+            .is_some_and(|value| value == "manual" || value == "single")
             || self
                 .current_context
                 .metadata
@@ -846,6 +846,12 @@ impl Commander {
                 .metadata
                 .get("strategy.collaboration_mode")
                 .cloned(),
+            learning_level: self
+                .current_context
+                .metadata
+                .get("strategy.learning_level")
+                .cloned(),
+            model_name: self.current_context.metadata.get("model.name").cloned(),
             route_mode: route_mode.to_string(),
             primary_runtime_role,
             support_runtime_roles,
@@ -1048,6 +1054,9 @@ impl Commander {
 
     fn current_role_route(&self) -> Option<RoleRoute> {
         let task = self.current_task.as_ref()?;
+        if let Some(route) = self.manual_role_route() {
+            return Some(route);
+        }
         Some(self.role_router.route(RoleRouteInput {
             message: task.description.clone(),
             domain_id: Some("domain.general".to_string()),
@@ -1055,6 +1064,53 @@ impl Commander {
             max_roles: 3,
         }))
     }
+
+    fn manual_role_route(&self) -> Option<RoleRoute> {
+        let collaboration_mode = self
+            .current_context
+            .metadata
+            .get("strategy.collaboration_mode")
+            .map(String::as_str)?;
+        if !matches!(collaboration_mode, "manual" | "single") {
+            return None;
+        }
+
+        let selected_roles = selected_runtime_roles(&self.current_context.metadata);
+        if selected_roles.is_empty() {
+            return None;
+        }
+        let primary = self
+            .current_context
+            .metadata
+            .get("strategy.primary_role")
+            .filter(|role| selected_roles.iter().any(|item| item == *role))
+            .cloned()
+            .unwrap_or_else(|| selected_roles[0].clone());
+        let support = if collaboration_mode == "single" {
+            Vec::new()
+        } else {
+            selected_roles
+                .into_iter()
+                .filter(|role| role != &primary)
+                .collect()
+        };
+
+        self.role_router.route_for_runtime_roles(&primary, &support)
+    }
+}
+
+fn selected_runtime_roles(metadata: &std::collections::BTreeMap<String, String>) -> Vec<String> {
+    metadata
+        .get("strategy.selected_roles")
+        .map(|value| {
+            value
+                .split(',')
+                .map(str::trim)
+                .filter(|item| !item.is_empty())
+                .map(ToString::to_string)
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 fn extend_context_facts(
@@ -1090,6 +1146,14 @@ fn primary_worker_id(role_route: &RoleRoute) -> WorkerId {
 }
 
 fn primary_route_score(role_route: &RoleRoute) -> f32 {
+    if !role_route.scores.is_empty() && role_route.scores.iter().all(|score| score.score >= 90.0) {
+        return role_route
+            .scores
+            .iter()
+            .find(|score| score.role_id == role_route.primary_role)
+            .map(|score| score.score)
+            .unwrap_or(0.0);
+    }
     role_route
         .scores
         .iter()
@@ -1136,6 +1200,11 @@ fn extract_worker_content(output: &str) -> String {
     value
         .pointer("/decision/action/parameters/answer")
         .and_then(|value| value.as_str())
+        .or_else(|| {
+            value
+                .pointer("/role_output/summary")
+                .and_then(|value| value.as_str())
+        })
         .or_else(|| {
             value
                 .pointer("/role_output")

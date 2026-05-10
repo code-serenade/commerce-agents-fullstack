@@ -375,13 +375,16 @@ impl SessionRuntime {
     }
 
     fn chat_bypass_graph(&self, task_id: &TaskId) -> Option<TaskGraph> {
-        if self.force_collaboration() {
-            return None;
-        }
         if self.commander_fast_route_disabled() {
             return None;
         }
         let graph = plan_quick_chat_graph(task_id, &self.task_description)?;
+        if self.has_explicit_non_chat_role_selection() {
+            return None;
+        }
+        if self.force_collaboration() && !is_direct_answer_chat_graph(&graph) {
+            return None;
+        }
         let [node] = graph.nodes.as_slice() else {
             return None;
         };
@@ -404,6 +407,12 @@ impl SessionRuntime {
             strategy_id,
             response_mode,
             collaboration_mode,
+            learning_level: self
+                .context
+                .metadata
+                .get("strategy.learning_level")
+                .cloned(),
+            model_name: self.context.metadata.get("model.name").cloned(),
             route_mode: route_mode.to_string(),
             primary_runtime_role,
             support_runtime_roles,
@@ -415,12 +424,34 @@ impl SessionRuntime {
         self.context
             .metadata
             .get("strategy.collaboration_mode")
-            .is_some_and(|value| value == "manual")
+            .is_some_and(|value| value == "manual" || value == "single")
             || self
                 .context
                 .metadata
                 .get("strategy.id")
                 .is_some_and(|value| value == "collab")
+    }
+
+    fn has_explicit_non_chat_role_selection(&self) -> bool {
+        let collaboration_mode = self
+            .context
+            .metadata
+            .get("strategy.collaboration_mode")
+            .map(String::as_str)
+            .unwrap_or_default();
+        if !matches!(collaboration_mode, "manual" | "single") {
+            return false;
+        }
+
+        let selected_roles =
+            split_metadata_list(self.context.metadata.get("strategy.selected_roles"));
+        selected_roles.iter().any(|role| role != "chat")
+            || self
+                .context
+                .metadata
+                .get("strategy.primary_role")
+                .map(|role| role.trim())
+                .is_some_and(|role| !role.is_empty() && role != "chat")
     }
 
     fn commander_fast_route_disabled(&self) -> bool {
@@ -480,6 +511,13 @@ fn unique_strings(items: Vec<String>) -> Vec<String> {
         }
         unique
     })
+}
+
+fn is_direct_answer_chat_graph(graph: &TaskGraph) -> bool {
+    let [node] = graph.nodes.as_slice() else {
+        return false;
+    };
+    node.role == "chat" && node.title == "直接回答"
 }
 
 fn context_loaded_event(session_id: &SessionId, context: &MessageContext) -> Option<SessionEvent> {

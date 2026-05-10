@@ -626,6 +626,37 @@ export interface CommerceAgentPlaybookListResponse extends JsonRecord {
   playbooks: CommerceAgentPlaybookResponse[]
 }
 
+export interface AgentRuntimeChoiceResponse extends JsonRecord {
+  id: string
+  label: string
+  description: string
+  isDefault: boolean
+}
+
+export interface AgentRuntimeModelOptionResponse extends JsonRecord {
+  name: string
+  model: string
+  isDefault: boolean
+}
+
+export interface AgentRuntimeRoleOptionResponse extends JsonRecord {
+  id: string
+  name: string
+  runtimeRole: string
+  capabilities: string[]
+  isDefault: boolean
+}
+
+export interface AgentRuntimeOptionsResponse extends JsonRecord {
+  defaultModelName?: string | null
+  models: AgentRuntimeModelOptionResponse[]
+  strategies: AgentRuntimeChoiceResponse[]
+  responseModes: AgentRuntimeChoiceResponse[]
+  learningLevels: AgentRuntimeChoiceResponse[]
+  collaborationModes: AgentRuntimeChoiceResponse[]
+  roles: AgentRuntimeRoleOptionResponse[]
+}
+
 const defaultListQuery = (query?: ListQuery): ListQuery => ({
   page: 1,
   pageSize: 100,
@@ -717,6 +748,13 @@ export const listCommerceAgentPlaybooksApi =
     })
     return response.playbooks
   }
+
+export const getAgentRuntimeOptionsApi =
+  async (): Promise<AgentRuntimeOptionsResponse> =>
+    request<undefined, AgentRuntimeOptionsResponse>({
+      method: "GET",
+      url: "/api/app/agent/runtime-options",
+    })
 
 export const listProductKnowledgeApi = async (
   productId: string,

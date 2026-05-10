@@ -839,6 +839,15 @@ const messages = {
         loading: "Loading scenarios",
         empty: "No scenarios",
       },
+      runtime: {
+        label: "Runtime",
+        loading: "Loading runtime",
+        model: "Model",
+        learning: "Level",
+        collaboration: "Mode",
+        roles: "Roles",
+        primary: "Lead",
+      },
       samples: {
         coffee: {
           label: "May Day coffee conversion",

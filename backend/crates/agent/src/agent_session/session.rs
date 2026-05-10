@@ -84,8 +84,12 @@ impl AgentSession {
         let event_tx_for_persist = event_tx.clone();
         let input = input.into();
         let commander_cognition = (self.config.commander_cognition)()?;
-        let selected_roles =
-            select_roles_for_task(&self.config.roles, &self.config.runtime, &input);
+        let selected_roles = select_roles_for_task(
+            &self.config.roles,
+            &self.config.runtime,
+            &input,
+            &self.scope.metadata,
+        );
         let workers = selected_roles
             .iter()
             .map(|role| {
@@ -201,8 +205,10 @@ fn select_roles_for_task<'a>(
     catalog: &'a RoleCatalog,
     runtime: &SessionRuntimeConfig,
     input: &str,
+    metadata: &BTreeMap<String, String>,
 ) -> Vec<&'a RoleProfile> {
     let mut runtime_roles = Vec::new();
+    runtime_roles.extend(selected_runtime_roles(metadata));
 
     let role_router = RoleRouter::new(catalog.clone());
     let role_route = role_router.route(RoleRouteInput {
@@ -212,7 +218,7 @@ fn select_roles_for_task<'a>(
         max_roles: 3,
     });
 
-    if runtime.commander_fast_route {
+    if runtime_roles.is_empty() && runtime.commander_fast_route {
         let graph = crate::agent::commander::plan_task_graph(
             &TaskId("preselect".to_string()),
             input,
@@ -253,9 +259,43 @@ fn select_roles_for_task<'a>(
     selected
 }
 
+fn selected_runtime_roles(metadata: &BTreeMap<String, String>) -> Vec<String> {
+    let collaboration_mode = metadata
+        .get("strategy.collaboration_mode")
+        .map(String::as_str)
+        .unwrap_or_default();
+    if !matches!(collaboration_mode, "manual" | "single") {
+        return Vec::new();
+    }
+    let roles = metadata
+        .get("strategy.selected_roles")
+        .map(|value| {
+            value
+                .split(',')
+                .map(str::trim)
+                .filter(|item| !item.is_empty())
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    let primary = metadata
+        .get("strategy.primary_role")
+        .filter(|role| roles.iter().any(|item| item == *role))
+        .cloned()
+        .or_else(|| roles.first().cloned());
+    let Some(primary) = primary else {
+        return Vec::new();
+    };
+    let mut selected = vec![primary.clone()];
+    if collaboration_mode == "manual" {
+        selected.extend(roles.into_iter().filter(|role| role != &primary));
+    }
+    selected
+}
+
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
+    use std::{collections::BTreeMap, time::Duration};
 
     use super::select_roles_for_task;
     use crate::{RoleCatalog, SessionRuntimeConfig};
@@ -272,6 +312,7 @@ mod tests {
                 commander_fast_route_min_score: 2.0,
             },
             "我是做咖啡运营的，主要营销平台是抖音，现在马上就五一了，请给提升转化率的方案",
+            &BTreeMap::new(),
         )
         .into_iter()
         .map(|role| role.runtime_role.clone())
@@ -283,5 +324,65 @@ mod tests {
         assert!(selected.contains(&"ops".to_string()));
         assert!(selected.contains(&"chat".to_string()));
         assert!(!selected.contains(&"engineering".to_string()));
+    }
+
+    #[test]
+    fn selects_manual_roles_from_request_metadata() {
+        let roles = RoleCatalog::builtin();
+        let mut metadata = BTreeMap::new();
+        metadata.insert(
+            "strategy.collaboration_mode".to_string(),
+            "manual".to_string(),
+        );
+        metadata.insert("strategy.primary_role".to_string(), "creative".to_string());
+        metadata.insert(
+            "strategy.selected_roles".to_string(),
+            "data,creative,ops".to_string(),
+        );
+
+        let selected = select_roles_for_task(
+            &roles,
+            &SessionRuntimeConfig::default(),
+            "请协同分析直播素材和转化问题",
+            &metadata,
+        )
+        .into_iter()
+        .map(|role| role.runtime_role.clone())
+        .collect::<Vec<_>>();
+
+        assert_eq!(selected[0], "creative");
+        assert!(selected.contains(&"data".to_string()));
+        assert!(selected.contains(&"ops".to_string()));
+        assert!(selected.contains(&"chat".to_string()));
+    }
+
+    #[test]
+    fn selects_single_role_from_request_metadata() {
+        let roles = RoleCatalog::builtin();
+        let mut metadata = BTreeMap::new();
+        metadata.insert(
+            "strategy.collaboration_mode".to_string(),
+            "single".to_string(),
+        );
+        metadata.insert("strategy.primary_role".to_string(), "data".to_string());
+        metadata.insert(
+            "strategy.selected_roles".to_string(),
+            "data,creative,ops".to_string(),
+        );
+
+        let selected = select_roles_for_task(
+            &roles,
+            &SessionRuntimeConfig::default(),
+            "请只让数据角色分析漏斗",
+            &metadata,
+        )
+        .into_iter()
+        .map(|role| role.runtime_role.clone())
+        .collect::<Vec<_>>();
+
+        assert!(selected.contains(&"data".to_string()));
+        assert!(selected.contains(&"chat".to_string()));
+        assert!(!selected.contains(&"creative".to_string()));
+        assert!(!selected.contains(&"ops".to_string()));
     }
 }

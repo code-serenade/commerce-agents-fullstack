@@ -128,6 +128,81 @@
 - 本阶段 playbook 为 service 层内置目录，暂不支持用户自定义
 - `recommendedStrategy` 对齐问答策略：`execution`、`learning`、`collab`
 
+## 2.2 查询 Agent 运行选项
+
+- 方法：`GET`
+- 路径：`/api/app/agent/runtime-options`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：
+
+```json
+{
+  "defaultModelName": "ollama-gpt-oss-20b",
+  "models": [
+    {
+      "name": "ollama-gpt-oss-20b",
+      "model": "gpt-oss:20b",
+      "isDefault": true
+    }
+  ],
+  "strategies": [
+    {
+      "id": "collab",
+      "label": "Agent 集群",
+      "description": "调度多个电商虚拟员工分工处理并汇总。",
+      "isDefault": true
+    }
+  ],
+  "responseModes": [
+    {
+      "id": "execution",
+      "label": "执行导向",
+      "description": "先输出业务答案和动作清单。",
+      "isDefault": true
+    }
+  ],
+  "learningLevels": [
+    {
+      "id": "higher_vocational",
+      "label": "实操",
+      "description": "按电商岗位实操标准解释。",
+      "isDefault": true
+    }
+  ],
+  "collaborationModes": [
+    {
+      "id": "manual",
+      "label": "指定多岗",
+      "description": "用户指定多个岗位协同执行。",
+      "isDefault": true
+    }
+  ],
+  "roles": [
+    {
+      "id": "role.ops",
+      "name": "运营",
+      "runtimeRole": "ops",
+      "capabilities": ["campaign_planning", "execution"],
+      "isDefault": false
+    }
+  ]
+}
+```
+
+字段说明：
+
+- `models` 来自 `backend/config/services.toml` 的 `[[llm]]` 配置，只返回 `name`、`model`、`isDefault`，不返回 `base_url` 或 `api_key`
+- `defaultModelName` 是后端实际默认 `llm.name`
+- `strategies`、`responseModes`、`learningLevels`、`collaborationModes` 是后端认可的运行枚举，前端不应自行硬编码替代
+- `roles` 来自 Agent `RoleCatalog::configured()`，`runtimeRole` 用于 SSE `metadata.strategy.primaryRole` 和 `selectedRoles`
+
+补充说明：
+
+- 当前用户必须存在于 `app_users`，且状态为 `enabled`
+- 该接口只暴露问答工作台可选择的运行契约，不会动态修改模型配置或角色目录
+- 前端发送 SSE 时应把用户选择映射到 `metadata.model.name` 与 `metadata.strategy.*`
+
 ## 3. 查询我的会话列表
 
 - 方法：`GET`

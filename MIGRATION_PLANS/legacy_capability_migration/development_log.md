@@ -478,3 +478,152 @@
 - 外部搜索实时趋势 adapter 未接入。
 - creative skill 尚未按真实 `product_id` 自动读取商品详情。
 - 素材文件、视频、图片、导出报告仍是后续阶段。
+
+## Post 8-3：问答短答链路与前端 chat_bypass 对齐
+
+状态：done
+
+本次目标：
+
+- 修复新产品核心问答中“短答问题被默认 Agent 集群带偏”的问题。
+- 让前端尊重后端 `route_decided.route_mode=chat_bypass`，短答场景不再展示多角色业务执行流程。
+- 用 Edge 同时抽样新产品和旧产品，确认用户真实操作差异。
+
+涉及范围：
+
+- 产品内核：直接问答/短答成为一等路径；明确短答不启动任务图，不伪装成多智能体业务执行。
+- 后端：chat 角色允许短摘要通过质量门禁；fast worker structured output 优先取 `role_output.summary`；显式短答在默认 `collab/manual` 下可走 `chat_bypass`；质量检查接受明确短答；含“转化、漏斗、曝光、点击、加购、下单、付款”等数字业务题仍走业务任务图。
+- 前端：`apps/web` 问答 view-model 识别 `chat_bypass`，隐藏右侧虚拟员工工作区和内联 6 阶段流程；补充 `thread-inline-view-model` 单测和 web 测试 setup。
+- 旧产品对照：旧产品真实存在模型选择、回答风格、自动/单岗/多岗协作、附件、商品上下文、导出原文/报告、左侧折叠等入口；这些仍是后续迁移和前端适配重点。
+
+用户可感知变化：
+
+- 用户登录新产品 `/commerce` 后，使用默认 “Agent 集群” 策略提问 `只输出 2+3 的计算结果，不要解释。`，页面直接回答 `5`。
+- 页面不会再把这种短答展示成“数据诊断、预算评估、千川投放、创意产出、运营方案、交付文档”的多角色流程。
+- 不再出现 raw JSON、`role_output`、`summary is too thin` 或 “请问您需要我帮您做什么？”。
+- 真正的业务分析题仍会显示多智能体过程；短答和业务任务在体验上被区分开。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p service quality_checker`
+- [x] `cargo test -p agent --test default_roles`
+- [x] `cargo test -p agent`
+- [x] `cargo check`
+- [x] `cargo clippy -p agent`
+- [x] `cargo clippy -p service`
+- [x] 默认前端 metadata 的真实 SSE smoke：`route_mode=chat_bypass`，输出 `5`，质量检查通过。
+- [x] Edge 新产品真实登录 smoke：`/commerce` 发送短答问题，页面只显示欢迎语、用户问题、回答 `5` 三条消息，无右侧流程面板。
+- [x] Edge 旧产品抽样：确认策略面板、模型选择、附件、商品上下文、导出、左侧折叠入口存在；旧产品短答仍会输出较重的策略补齐文本。
+- [x] `pnpm -C apps/web test`
+- [x] `pnpm -C apps/web rules`
+- [x] `pnpm -C apps/web lint`
+
+后续缺口：
+
+- 旧产品的显式模型选择、回答策略细分、附件上传、商品上下文弹层、导出原文/报告等入口，新产品还没有完整迁移到同等可用水平。
+- 外部搜索 adapter 未接入，短答 smoke 仍会记录本地 RAG 未命中和外部搜索不可用。
+- 新产品需要继续以后端能力为准，逐步把旧产品 skill 生态、平台执行、教学/导出/素材能力迁移到 Rust 框架里。
+
+## Post 8-4：模型、策略和岗位运行契约迁移
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 4 个问答补强项：`Post 8-4`。
+
+本次目标：
+
+- 把旧产品问答工作台里的模型选择、回答策略、学习层级、协作模式和岗位选择迁移为新产品后端运行契约。
+- 前端只从后端读取可用选项并随 SSE 传参，不再靠前端文案或 prompt 拼接伪造策略能力。
+- 保持前面已经迁移的 Agent skill、工作区沉淀、质量反馈、短答链路继续可用。
+
+涉及范围：
+
+- 产品内核：问答运行从“前端固定策略按钮”升级为“后端声明运行能力，前端提交结构化选择，Agent runtime 按选择调度”。
+- 后端：新增 `GET /api/app/agent/runtime-options`，从 `services.toml` 暴露安全模型选项，从 `RoleCatalog` 暴露岗位选项；SSE metadata 支持 `model.name`、`learningLevel`、`primaryRole`、`selectedRoles`；Agent manager 支持按模型名选择不同 LLM manager；manual/single 协作模式会真实影响角色路由和任务图。
+- 前端：问答 composer 新增运行配置条，展示模型、层级、协作模式和岗位；发送消息时把当前选择写入 SSE metadata 和会话消息 JSON。
+- API：同步更新 `API_DOCS/app.md` 和 `API_DOCS/sse.md`。
+- 设计文档：新增 `temp/DEVELOPMENT_DOCS/backend/agent_runtime_options_and_strategy_contract.md` 和 `temp/DEVELOPMENT_DOCS/frontend/agent_chat_runtime_options_adaptation.md`。
+
+用户可感知变化：
+
+- 用户登录 `/commerce` 后，输入框上方可以看到后端当前支持的模型、讲解层级、协作模式和虚拟员工岗位。
+- 用户切换模型后，本轮 SSE 会把 `metadata.model.name` 发给后端，后端会使用对应的 `llm.name`，非法模型会直接返回 400，不会创建半截运行记录。
+- 用户选择“指定单岗”时，本轮只让主岗位参与；选择“指定多岗”时，后端会按用户选中的岗位生成多角色任务图。
+- 右侧过程事件里的 `route_decided` 会带出学习层级和实际模型名，便于用户确认本轮调度是否按选择执行。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p agent --test default_roles manual_strategy_metadata_routes_requested_roles`
+- [x] `cargo test -p agent --test default_roles single_strategy_metadata_routes_only_requested_primary_role`
+- [x] `cargo test -p agent --test default_roles`
+- [x] `cargo test -p web-server sse`
+- [x] `cargo check -p web-server`
+- [x] `cargo check`
+- [x] `cargo clippy`
+- [x] `pnpm -C apps/web test`
+- [x] `pnpm -C apps/web rules`
+- [x] `pnpm -C apps/web lint`
+- [x] `pnpm -C apps/web build`
+- [x] 真实 HTTP smoke：`GET /api/app/agent/runtime-options` 返回默认模型 `ollama-gpt-oss-20b`，模型列表包含 `ollama-gpt-oss-20b`、`ollama-gemma4`，岗位列表包含 `chat`、`ops`、`data`、`service`、`creative`。
+- [x] 真实 HTTP smoke：非法 `metadata.model.name=not-configured-model` 返回 `400`，未启动 SSE。
+- [x] 真实 SSE smoke：指定 `model.name=ollama-gpt-oss-20b`、`collaborationMode=manual`、`primaryRole=data`、`selectedRoles=[data,ops]` 后，`route_decided` 返回 `model_name=ollama-gpt-oss-20b`、主岗位 `data`、支持岗位 `ops`，并正常输出和完成。
+- [x] Edge 页面 smoke：登录后进入 `/commerce`，页面可见“运行配置”、模型名和岗位选项。
+
+后续缺口：
+
+- 本轮解决的是问答运行契约，不是附件上传、导出报告、外部搜索 adapter 或真实平台写执行。
+- 外部搜索仍未接入，实时趋势、竞品外部检索等旧产品能力还需要后端 adapter 继续迁移。
+- 附件、素材文件和导出能力还需要继续以后端文件/交付物能力为主设计，再让前端适配。
+
+## Post 8-5：显式岗位选择优先级与前端运行配置稳定性
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 5 个问答补强项：`Post 8-5`。
+
+本次目标：
+
+- 修复用户在前端选择“指定多岗/指定单岗”后，后端仍可能因为短答判断走 `chat_bypass` 的断点。
+- 保留前一轮已经修好的轻问答能力：没有显式岗位选择的短答仍然可以快速直接回答。
+- 让前端的岗位操作更接近后端真实契约：主岗位和参与岗位分开控制，避免用户以为选中了岗位但 metadata 不稳定。
+
+涉及范围：
+
+- 产品内核：显式岗位选择的优先级高于短答旁路；用户主动选择虚拟员工时，后端按岗位进入 commander/任务图。
+- 后端：`SessionRuntime` 增加显式非 `chat` 岗位选择识别；`manual/single + primaryRole/selectedRoles` 会阻止 `chat_bypass` 抢先返回；`collab/manual` 且未选具体岗位的短答仍允许 `chat_bypass`。
+- 前端：多岗模式下新增独立主岗位选择，岗位按钮只控制参与/不参与；手动多岗时不允许把仍被其他岗位依赖的主岗位误切掉。
+- API：`API_DOCS/sse.md` 补充显式岗位选择优先级说明。
+
+用户可感知变化：
+
+- 用户在 `/commerce` 的问答输入区选择“指定多岗”，把主岗位设为“数据”，参与岗位选“运营”后，本轮后端会按 `data + ops` 生成任务图，而不是显示成普通聊天旁路。
+- 用户仍然可以问简单短答，例如“只输出 2+3 的结果”，如果没有明确指定非 `chat` 岗位，页面会继续直接给出短答，不会强行启动多智能体流程。
+- 运行配置条里“主岗位”和“岗位参与”含义更清楚，右侧过程区的 `route_decided` 更容易和用户刚才的选择对应起来。
+
+当前验证：
+
+- [x] `cargo fmt`（在 `backend/` 下执行；仓库根目录无 `Cargo.toml`）
+- [x] `cargo test -p agent --test default_roles explicit_manual_roles_do_not_use_direct_answer_chat_bypass`
+- [x] `cargo test -p agent --test default_roles collab_strategy_direct_answer_bypasses_task_graph`
+- [x] `cargo test -p agent --test default_roles`
+- [x] `cargo check -p agent`
+- [x] `cargo clippy -p agent`
+- [x] `pnpm -C apps/web test`
+- [x] `pnpm -C apps/web rules`
+- [x] `pnpm -C apps/web lint`
+- [x] `pnpm -C apps/web build`
+- [x] 真实 HTTP SSE smoke：`collaborationMode=manual`、`primaryRole=data`、`selectedRoles=[data,ops]`、业务漏斗问题返回 `route_mode=task_graph`，任务图角色为 `data,ops`，并触发 `data_funnel_analysis` 与 `ops_promo_planning` 两个 native skill。
+- [x] Edge 页面 smoke：登录 `/commerce` 后可见独立“主”岗位选择；页面真实发出的 SSE body 包含 `model.name=ollama-gpt-oss-20b`、`strategy.id=collab`、`collaborationMode=manual`、`primaryRole=data`，`selectedRoles` 包含 `data` 和 `ops`。
+
+后续缺口：
+
+- 外部搜索、附件上传、导出报告、平台执行 adapter 仍未在本轮迁移。
+- 旧产品更完整的回答策略选择和教学/导出控制面仍需继续以后端能力为主迁移。

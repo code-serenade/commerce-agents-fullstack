@@ -9,6 +9,7 @@ import {
   getAgentChatStrategy,
   type AgentChatStrategyId,
 } from "./domain/agent-chat-strategy"
+import { runtimeSelectionForStrategy } from "./domain/agent-runtime-options"
 import type { AgentChatConversationItem, AgentChatMessage } from "./types"
 import { loadLatestAgentConversation } from "./view-model/agent-chat-conversation-actions"
 import {
@@ -18,6 +19,7 @@ import { sendAgentChatMessage } from "./view-model/agent-chat-send-message"
 import { useAgentChatPageCommands } from "./view-model/use-agent-chat-page-commands"
 import { useAgentChatPlaybooks } from "./view-model/use-agent-chat-playbooks"
 import { useAgentChatProductContext } from "./view-model/use-agent-chat-product-context"
+import { useAgentRuntimeOptions } from "./view-model/use-agent-runtime-options"
 import { useAgentRunFeedback } from "./view-model/use-agent-run-feedback"
 
 export function useAgentChatPage() {
@@ -49,6 +51,9 @@ export function useAgentChatPage() {
     isStreaming,
   })
   const playbookContext = useAgentChatPlaybooks({
+    enabled: Boolean(user),
+  })
+  const runtimeContext = useAgentRuntimeOptions({
     enabled: Boolean(user),
   })
   const feedback = useAgentRunFeedback({
@@ -112,6 +117,10 @@ export function useAgentChatPage() {
     () => getAgentChatStrategy(strategyId),
     [strategyId]
   )
+  const selectedRuntime = useMemo(
+    () => runtimeSelectionForStrategy(runtimeContext.runtimeSelection, strategyId),
+    [runtimeContext.runtimeSelection, strategyId]
+  )
   const commands = useAgentChatPageCommands({
     actionState,
     conversationId,
@@ -146,6 +155,7 @@ export function useAgentChatPage() {
       setMessages,
       setRuntimeEvents,
       selectedProducts: productContext.selectedProducts,
+      runtimeSelection: selectedRuntime,
       strategy: selectedStrategy,
       tError: t("agentChat.error"),
     })
@@ -161,6 +171,7 @@ export function useAgentChatPage() {
     loginRequiredMessage,
     missingStructuredOutput,
     productContext.selectedProducts,
+    selectedRuntime,
     selectedStrategy,
     t,
     user,
@@ -178,9 +189,12 @@ export function useAgentChatPage() {
     isLoggedIn: Boolean(user),
     isLoadingPlaybooks: playbookContext.isLoadingPlaybooks,
     isLoadingProducts: productContext.isLoadingProducts,
+    isLoadingRuntimeOptions: runtimeContext.isLoadingRuntimeOptions,
     isStreaming,
     messages,
     playbooks: playbookContext.playbooks,
+    runtimeOptions: runtimeContext.runtimeOptions,
+    runtimeSelection: selectedRuntime,
     runtimeEvents,
     selectPlaybook: commands.selectPlaybook,
     selectedProducts: productContext.selectedProducts,
@@ -189,10 +203,15 @@ export function useAgentChatPage() {
     selectConversation: commands.selectConversation,
     selectedStrategy,
     setInput,
+    setRuntimeCollaborationMode: runtimeContext.setCollaborationMode,
+    setRuntimeLearningLevel: runtimeContext.setLearningLevel,
+    setRuntimeModelName: runtimeContext.setModelName,
+    setRuntimePrimaryRole: runtimeContext.setPrimaryRole,
     setStrategyId,
     startNewConversation: commands.startNewConversation,
     stopStreaming: commands.stopStreaming,
     strategyId,
     toggleProductContext: productContext.toggleProductContext,
+    toggleRuntimeRole: runtimeContext.toggleRole,
   }
 }

@@ -26,6 +26,7 @@ pub struct AgentStreamRequest {
 #[serde(rename_all = "camelCase")]
 pub struct AgentStreamMetadata {
     pub context: Option<AgentStreamContextMetadata>,
+    pub model: Option<AgentStreamModelMetadata>,
     pub strategy: Option<AgentStreamStrategyMetadata>,
 }
 
@@ -40,10 +41,20 @@ pub struct AgentStreamContextMetadata {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct AgentStreamModelMetadata {
+    pub name: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentStreamStrategyMetadata {
     pub id: Option<String>,
     pub response_mode: Option<String>,
     pub collaboration_mode: Option<String>,
+    pub learning_level: Option<String>,
+    pub primary_role: Option<String>,
+    #[serde(default)]
+    pub selected_roles: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -52,12 +63,25 @@ pub struct AgentStreamContextSelection {
     pub context_refs: Vec<String>,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct AgentStreamModelSelection {
+    pub name: Option<String>,
+}
+
 impl AgentStreamMetadata {
     pub fn into_parts(
         self,
-    ) -> Result<(BTreeMap<String, String>, AgentStreamContextSelection), String> {
+    ) -> Result<
+        (
+            BTreeMap<String, String>,
+            AgentStreamContextSelection,
+            AgentStreamModelSelection,
+        ),
+        String,
+    > {
         let mut metadata = BTreeMap::new();
         let context = self.context_selection()?;
+        let model = self.model_selection()?;
 
         if let Some(strategy) = self.strategy {
             if let Some(id) = validate_strategy_value("strategy.id", strategy.id)? {
@@ -76,9 +100,27 @@ impl AgentStreamMetadata {
                     collaboration_mode,
                 );
             }
+            if let Some(learning_level) =
+                validate_strategy_value("strategy.learningLevel", strategy.learning_level)?
+            {
+                metadata.insert("strategy.learning_level".to_string(), learning_level);
+            }
+            if let Some(primary_role) =
+                validate_strategy_value("strategy.primaryRole", strategy.primary_role)?
+            {
+                metadata.insert("strategy.primary_role".to_string(), primary_role);
+            }
+            let selected_roles =
+                validate_strategy_values("strategy.selectedRoles", &strategy.selected_roles, 6)?;
+            if !selected_roles.is_empty() {
+                metadata.insert(
+                    "strategy.selected_roles".to_string(),
+                    selected_roles.join(","),
+                );
+            }
         }
 
-        Ok((metadata, context))
+        Ok((metadata, context, model))
     }
 
     fn context_selection(&self) -> Result<AgentStreamContextSelection, String> {
@@ -99,6 +141,15 @@ impl AgentStreamMetadata {
                 20,
                 160,
             )?,
+        })
+    }
+
+    fn model_selection(&self) -> Result<AgentStreamModelSelection, String> {
+        let Some(model) = &self.model else {
+            return Ok(AgentStreamModelSelection::default());
+        };
+        Ok(AgentStreamModelSelection {
+            name: validate_strategy_value("model.name", model.name.clone())?,
         })
     }
 }
@@ -158,9 +209,32 @@ fn validate_strategy_value(field: &str, value: Option<String>) -> Result<Option<
     Ok(Some(value.to_string()))
 }
 
+fn validate_strategy_values(
+    field: &str,
+    values: &[String],
+    max_count: usize,
+) -> Result<Vec<String>, String> {
+    if values.len() > max_count {
+        return Err(format!("{field} must contain at most {max_count} items"));
+    }
+
+    let mut normalized = Vec::new();
+    for value in values {
+        if let Some(value) = validate_strategy_value(field, Some(value.clone()))?
+            && !normalized.iter().any(|item| item == &value)
+        {
+            normalized.push(value);
+        }
+    }
+    Ok(normalized)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{AgentStreamContextMetadata, AgentStreamMetadata, AgentStreamStrategyMetadata};
+    use super::{
+        AgentStreamContextMetadata, AgentStreamMetadata, AgentStreamModelMetadata,
+        AgentStreamStrategyMetadata,
+    };
 
     #[test]
     fn metadata_parts_include_strategy_and_context_selection() {
@@ -170,19 +244,33 @@ mod tests {
                 product_ids: vec![product_id.clone(), product_id.clone()],
                 context_refs: vec![format!("product:{product_id}")],
             }),
+            model: Some(AgentStreamModelMetadata {
+                name: Some("ollama-gpt-oss-20b".to_string()),
+            }),
             strategy: Some(AgentStreamStrategyMetadata {
                 id: Some("collab".to_string()),
                 response_mode: Some("execution".to_string()),
                 collaboration_mode: Some("manual".to_string()),
+                learning_level: Some("higher_vocational".to_string()),
+                primary_role: Some("data".to_string()),
+                selected_roles: vec!["data".to_string(), "ops".to_string(), "data".to_string()],
             }),
         };
 
-        let (agent_metadata, context) = metadata.into_parts().expect("metadata should parse");
+        let (agent_metadata, context, model) =
+            metadata.into_parts().expect("metadata should parse");
 
         assert_eq!(
             agent_metadata.get("strategy.id").map(String::as_str),
             Some("collab")
         );
+        assert_eq!(
+            agent_metadata
+                .get("strategy.selected_roles")
+                .map(String::as_str),
+            Some("data,ops")
+        );
+        assert_eq!(model.name.as_deref(), Some("ollama-gpt-oss-20b"));
         assert_eq!(context.product_ids, vec![product_id.clone()]);
         assert_eq!(context.context_refs, vec![format!("product:{product_id}")]);
     }
@@ -194,6 +282,7 @@ mod tests {
                 product_ids: (0..6).map(|index| format!("product-{index}")).collect(),
                 context_refs: Vec::new(),
             }),
+            model: None,
             strategy: None,
         };
 

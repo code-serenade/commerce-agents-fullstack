@@ -53,8 +53,14 @@ export default function AgentChatPage() {
             isLoggedIn={chat.isLoggedIn}
             isLoadingPlaybooks={chat.isLoadingPlaybooks}
             isLoadingProducts={chat.isLoadingProducts}
+            isLoadingRuntimeOptions={chat.isLoadingRuntimeOptions}
             isStreaming={chat.isStreaming}
             onInputChange={chat.setInput}
+            onRuntimeCollaborationModeChange={chat.setRuntimeCollaborationMode}
+            onRuntimeLearningLevelChange={chat.setRuntimeLearningLevel}
+            onRuntimeModelChange={chat.setRuntimeModelName}
+            onRuntimePrimaryRoleChange={chat.setRuntimePrimaryRole}
+            onToggleRuntimeRole={chat.toggleRuntimeRole}
             onSelectPlaybook={chat.selectPlaybook}
             onSend={chat.sendMessage}
             onStop={chat.stopStreaming}
@@ -62,6 +68,8 @@ export default function AgentChatPage() {
             onToggleProductContext={chat.toggleProductContext}
             selectedProducts={chat.selectedProducts}
             playbooks={chat.playbooks}
+            runtimeOptions={chat.runtimeOptions}
+            runtimeSelection={chat.runtimeSelection}
             strategyId={chat.strategyId}
           />
         </section>

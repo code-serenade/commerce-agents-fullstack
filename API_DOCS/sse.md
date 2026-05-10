@@ -27,7 +27,13 @@
     "strategy": {
       "id": "collab",
       "responseMode": "execution",
-      "collaborationMode": "manual"
+      "collaborationMode": "manual",
+      "learningLevel": "higher_vocational",
+      "primaryRole": "data",
+      "selectedRoles": ["data", "ops", "creative"]
+    },
+    "model": {
+      "name": "ollama-gpt-oss-20b"
     }
   }
 }
@@ -43,13 +49,21 @@
 | `workspaceId` | `string` | 否 | 工作区 ID；不传时后端会创建或复用当前用户默认 `agent_chat` 工作区 |
 | `metadata.context.productIds` | `string[]` | 否 | 绑定到本轮问答的商品 ID，最多 5 个；后端会校验当前用户权限并读取真实商品/知识 |
 | `metadata.context.contextRefs` | `string[]` | 否 | 上下文引用，当前支持 `product:{productId}`，最多 20 个 |
+| `metadata.model.name` | `string` | 否 | 指定本轮使用的后端 `llm.name`；不传时使用后端默认模型 |
 | `metadata.strategy.id` | `string` | 否 | 回答策略 ID，当前前端使用 `execution` / `learning` / `collab` |
 | `metadata.strategy.responseMode` | `string` | 否 | 回答模式，当前前端使用 `execution` / `learning` |
 | `metadata.strategy.collaborationMode` | `string` | 否 | 协作模式，当前前端使用 `single` / `manual`；`manual` 会要求后端优先进入多角色任务图 |
+| `metadata.strategy.learningLevel` | `string` | 否 | 学习/讲解层级，例如 `beginner` / `higher_vocational` / `professional` |
+| `metadata.strategy.primaryRole` | `string` | 否 | 用户指定的主岗位 runtime role，例如 `data`、`ops`、`creative` |
+| `metadata.strategy.selectedRoles` | `string[]` | 否 | 用户指定参与本轮协作的岗位 runtime role，最多 6 个，服务端去重 |
 
 `metadata.context.*` 只作为引用入口，不允许前端直接塞商品事实。后端会通过 service 层读取当前用户自己的 active 商品和 active 商品知识，压缩成 agent runtime metadata：`context.product_ids`、`context.refs`、`context.summary`、`context.sources_json` 等。商品不存在、已归档、不属于当前用户或 ID 非法时返回商品相关错误码。
 
-`metadata.strategy.*` 仅允许小写字母、数字、`_`、`-`，单字段最大 64 字符。后端会把这些字段转换为 agent runtime metadata：`strategy.id`、`strategy.response_mode`、`strategy.collaboration_mode`。前端不得把策略说明拼进 `input` 来伪造后端策略行为。
+`metadata.model.name` 必须是 `GET /api/app/agent/runtime-options` 返回的 `models[].name`。如果模型名不存在，服务端返回 `400`，不会启动 Agent，也不会创建工作区运行记录。后端只把模型配置名和模型名写入 runtime metadata，不向前端暴露 `base_url` 或 `api_key`。
+
+`metadata.strategy.*` 仅允许小写字母、数字、`_`、`-`，单字段最大 64 字符。后端会把这些字段转换为 agent runtime metadata：`strategy.id`、`strategy.response_mode`、`strategy.collaboration_mode`、`strategy.learning_level`、`strategy.primary_role`、`strategy.selected_roles`。前端不得把策略说明拼进 `input` 来伪造后端策略行为。
+
+当 `metadata.strategy.collaborationMode` 为 `manual` 或 `single`，且 `primaryRole` 或 `selectedRoles` 中包含非 `chat` 岗位时，后端会优先尊重这次显式岗位选择并进入 commander/任务图路由；即使用户输入文本本身像“只输出/answer only”这类短答请求，也不会被 `chat_bypass` 吞掉。没有显式非 `chat` 岗位选择的短答请求仍可走 `route_decided.route_mode=chat_bypass`，用于普通轻问答。
 
 每次 SSE Agent 调用都会先在 service 层绑定工作区运行记录：如果 `workspaceId` 合法且属于当前用户，则写入该工作区；如果不传 `workspaceId`，后端会创建或复用当前用户的默认 `agent_chat` 工作区。绑定成功后，agent runtime metadata 会追加 `workspace.workspace_id`、`workspace.run_id` 和 `workspace.source=agent_session`。如果绑定失败，SSE 不会启动，接口直接返回业务错误，避免前端误以为本次结果已沉淀。
 
@@ -66,7 +80,7 @@ event: started
 data: {"type":"started","session_id":"session-001"}
 
 event: route_decided
-data: {"type":"route_decided","session_id":"session-001","strategy_id":"collab","response_mode":"execution","collaboration_mode":"manual","route_mode":"task_graph","primary_runtime_role":"data","support_runtime_roles":["accounting","creative","ops"]}
+data: {"type":"route_decided","session_id":"session-001","strategy_id":"collab","response_mode":"execution","collaboration_mode":"manual","learning_level":"higher_vocational","model_name":"ollama-gpt-oss-20b","route_mode":"task_graph","primary_runtime_role":"data","support_runtime_roles":["ops","creative"]}
 
 event: context_loaded
 data: {"type":"context_loaded","session_id":"session-001","product_ids":["product-uuid"],"refs":["product:product-uuid"],"product_count":1,"knowledge_count":3,"source_count":4,"summary":"Product source product:...","sources_json":"[...]"}
@@ -120,7 +134,7 @@ data: {"type":"approval_required","approval":{"id":"approval-uuid","workspaceId"
 | `context_loaded` | 后端已读取并注入真实业务上下文，当前包含商品 ID、context refs、商品数量、知识数量、来源数量、摘要和来源 JSON |
 | `rag_context_loaded` | 后端已根据用户问题检索当前用户自己的本地商品知识，返回检索模式、关键词、来源、摘要、是否降级和外部搜索可用状态 |
 | `commander_thinking` | commander 正在规划或调度 |
-| `route_decided` | 后端已识别策略和路由模式，包含策略、主角色和支持角色 |
+| `route_decided` | 后端已识别策略和路由模式，包含策略、学习层级、实际模型、主角色和支持角色 |
 | `worker_started` / `worker_finished` | 单个 worker 开始或完成 |
 | `skill_requested` | worker 请求调用某个 skill，包含请求 ID、skill ID、角色和原因；请求来源可能是模型显式 `skill_requests`，也可能是后端按岗位/任务自动补偿的代表 skill |
 | `skill_result` | skill 已返回执行结果，包含状态、摘要、错误、执行模式、风险等级和是否需要审批 |

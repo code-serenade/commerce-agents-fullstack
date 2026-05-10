@@ -443,6 +443,11 @@ pub enum EvaluationOutcome {
 }
 
 pub fn plan_task_graph(task_id: &TaskId, task: &str, route: Option<&RoleRoute>) -> TaskGraph {
+    if route.is_some_and(is_request_selected_route)
+        && let Some(graph) = plan_route_task_graph(task_id, task, route)
+    {
+        return graph;
+    }
     if let Some(graph) = plan_configured_task_graph(task_id, task) {
         return graph;
     }
@@ -452,7 +457,15 @@ pub fn plan_task_graph(task_id: &TaskId, task: &str, route: Option<&RoleRoute>) 
     plan_fallback_chat_graph(task_id, task)
 }
 
+fn is_request_selected_route(route: &RoleRoute) -> bool {
+    !route.scores.is_empty() && route.scores.iter().all(|score| score.score >= 90.0)
+}
+
 pub fn plan_quick_chat_graph(task_id: &TaskId, task: &str) -> Option<TaskGraph> {
+    if is_direct_answer_task(task) {
+        return Some(plan_direct_answer_chat_graph(task_id, task));
+    }
+
     let graph = plan_configured_task_graph(task_id, task)?;
     let [node] = graph.nodes.as_slice() else {
         return None;
@@ -468,7 +481,7 @@ fn plan_route_task_graph(
     let route = route?;
     let mut roles = Vec::new();
     roles.push(route.primary_runtime_role.clone());
-    if should_include_route_support_roles(task, route) {
+    if is_request_selected_route(route) || should_include_route_support_roles(task, route) {
         roles.extend(route.support_runtime_roles.iter().cloned());
     }
     roles.retain(|role| role != "chat");
@@ -562,6 +575,23 @@ fn plan_fallback_chat_graph(task_id: &TaskId, task: &str) -> TaskGraph {
             "chat",
             "通用对话",
             format!("以对话助手身份回答用户问题；如果用户意图不清，先澄清，不启动多智能体：{task}"),
+            Vec::new(),
+            1,
+        )],
+    }
+}
+
+fn plan_direct_answer_chat_graph(task_id: &TaskId, task: &str) -> TaskGraph {
+    TaskGraph {
+        graph_id: TaskGraphId(format!("graph-{}", task_id.0)),
+        root_task: task.to_string(),
+        nodes: vec![node(
+            "chat",
+            "chat",
+            "直接回答",
+            format!(
+                "直接回答用户原始问题，必须遵守用户对简短、只输出、不要解释的要求，不启动多智能体：{task}"
+            ),
             Vec::new(),
             1,
         )],
@@ -920,6 +950,9 @@ fn is_quick_chat_task(task: &str) -> bool {
     if task.is_empty() {
         return false;
     }
+    if is_direct_answer_task(&task) {
+        return true;
+    }
     let exact = [
         "hi",
         "hello",
@@ -938,6 +971,55 @@ fn is_quick_chat_task(task: &str) -> bool {
         return true;
     }
     task.chars().count() <= 8 && exact.iter().any(|value| task.contains(value))
+}
+
+fn is_direct_answer_task(task: &str) -> bool {
+    let trimmed = task.trim();
+    if trimmed.is_empty() {
+        return false;
+    }
+    let lower = trimmed.to_ascii_lowercase();
+    let explicit_direct = [
+        "只输出",
+        "只给",
+        "只回答",
+        "只回复",
+        "不要解释",
+        "不用解释",
+        "无需解释",
+        "直接回答",
+        "直接给",
+        "简短回答",
+        "简要回答",
+        "一句话",
+        "only output",
+        "answer only",
+        "no explanation",
+    ]
+    .iter()
+    .any(|term| trimmed.contains(term) || lower.contains(term));
+    let has_digit = trimmed.chars().any(|ch| ch.is_ascii_digit());
+    let char_count = trimmed.chars().count();
+    let arithmetic_request = has_digit
+        && [
+            "+", "-", "*", "/", "×", "÷", "加", "减", "乘", "除", "计算", "等于", "结果",
+        ]
+        .iter()
+        .any(|term| trimmed.contains(term))
+        && char_count <= 40
+        && !contains_any(
+            trimmed,
+            &[
+                "分析", "方案", "策略", "运营", "电商", "漏斗", "转化", "点击", "曝光", "加购",
+                "下单", "付款",
+            ],
+        );
+    let short_question = ["是多少", "多少", "几个", "几"]
+        .iter()
+        .any(|term| trimmed.contains(term))
+        && char_count <= 40;
+
+    explicit_direct || arithmetic_request || short_question
 }
 
 impl TaskGraphRule {
@@ -1207,7 +1289,7 @@ fn evaluate_quality_contract(report: &WorkerReport, output: &RoleWorkOutput) -> 
     );
     let lower = content.to_lowercase();
 
-    if output.summary.chars().count() < 8 {
+    if output.summary.chars().count() < 8 && report.role != "chat" {
         reasons.push("quality completeness: summary is too thin".to_string());
     }
     if report.role != "chat" && output.findings.is_empty() && output.recommendations.is_empty() {
@@ -2500,6 +2582,40 @@ mod tests {
         let evaluation = evaluate_report(&report, None, &HashMap::new());
 
         assert!(evaluation.passed, "{:?}", evaluation.reasons);
+    }
+
+    #[test]
+    fn chat_role_allows_concise_direct_answer() {
+        let role_output = RoleWorkOutput {
+            summary: "42".to_string(),
+            findings: Vec::new(),
+            recommendations: Vec::new(),
+            evidence: Vec::new(),
+            risks: Vec::new(),
+            open_questions: Vec::new(),
+        };
+        let report = WorkerReport {
+            graph_id: TaskGraphId("graph-chat-short-answer".to_string()),
+            node_id: TaskNodeId("chat".to_string()),
+            task_id: TaskId("task-chat-short-answer".to_string()),
+            worker_id: WorkerId("worker.chat".to_string()),
+            role: "chat".to_string(),
+            content: role_output.summary.clone(),
+            role_output: Some(role_output),
+            evidence: Vec::new(),
+            risks: Vec::new(),
+            open_questions: Vec::new(),
+            status: WorkerReportStatus::Completed,
+        };
+
+        let evaluation = evaluate_report(&report, None, &HashMap::new());
+
+        assert!(evaluation.passed, "{:?}", evaluation.reasons);
+        assert!(
+            !evaluation
+                .reasons
+                .contains(&"quality completeness: summary is too thin".to_string())
+        );
     }
 
     #[test]
