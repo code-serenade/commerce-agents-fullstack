@@ -1156,3 +1156,52 @@
 
 - 还需要实现 OCR/文档解析 adapter，把文件读取、解析、状态队列和失败重试接入本 API。
 - 还需要做前端附件解析入口和解析状态展示。
+
+## Post 8-17：竞品分析读取 API
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 17 个补强项：`Post 8-17`。
+
+本次目标：
+
+- 把旧产品竞品分析能力迁成新产品后端聚合读取 API。
+- 让前端和 Agent 不再只能消费竞品散列表，而是能读取价格位置、平台分布、评分、近期变化和上下文引用。
+
+涉及范围：
+
+- 产品内核：竞品数据从 CRUD 推进到结构化分析能力。
+- 后端 service：新增 `ProductCompetitorApi::competitor_analysis`。
+- Web-server：新增 `GET /api/app/products/{productId}/competitors/analysis`。
+- API：同步 `API_DOCS/app.md`。
+- 前端：同步 `getProductCompetitorAnalysisApi` 和响应类型。
+
+用户可感知变化：
+
+- 后续前端接入后，用户可在商品竞品区看到分析摘要、价格位置、平台分布和近期变化。
+- Agent 后续可用 `agentContext` 回答竞品和定价问题。
+- 当前不会假装已自动搜索竞品，也不会自动生成报告。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo fmt --check`
+- [x] `cargo test -p service competitor_analysis`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo check`
+- [x] `cargo clippy`
+- [x] `pnpm -C apps/web rules`
+- [x] `pnpm -C apps/web lint`
+- [x] `pnpm -C apps/web test`
+- [x] `pnpm -C apps/web build`
+- [x] `pnpm rules`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 还需要实现竞品自动搜索/监控 adapter。
+- 还需要将竞品分析结果沉淀为 workspace artifact。

@@ -119,6 +119,74 @@ export interface CompetitorChangeResponse extends JsonRecord {
   createdAt?: string
 }
 
+export interface ProductCompetitorAnalysisCounts extends JsonRecord {
+  competitors: number
+  pricedCompetitors: number
+  ratedCompetitors: number
+  monthlySalesCompetitors: number
+  recentChanges: number
+}
+
+export interface ProductCompetitorPriceAnalysisResponse extends JsonRecord {
+  productPrice?: number | null
+  minCompetitorPrice?: number | null
+  maxCompetitorPrice?: number | null
+  avgCompetitorPrice?: number | null
+  pricePosition?: string | null
+  gapToAvg?: number | null
+  gapPercentToAvg?: number | null
+  lowerPricedCompetitors: number
+  higherPricedCompetitors: number
+}
+
+export interface ProductCompetitorRatingAnalysisResponse extends JsonRecord {
+  minRating?: number | null
+  maxRating?: number | null
+  avgRating?: number | null
+  ratedCompetitors: number
+}
+
+export interface ProductCompetitorPlatformAnalysisResponse extends JsonRecord {
+  platform: string
+  competitors: number
+  avgPrice?: number | null
+  avgRating?: number | null
+}
+
+export interface ProductCompetitorAnalysisRefResponse extends JsonRecord {
+  refType: string
+  id: string
+  title: string
+  refKey: string
+}
+
+export interface ProductCompetitorAnalysisProductResponse extends JsonRecord {
+  id: string
+  name: string
+  platform?: string | null
+  category?: string | null
+  brand?: string | null
+  price?: string | null
+  numericPrice?: number | null
+  currency?: string | null
+}
+
+export interface ProductCompetitorAnalysisResponse extends JsonRecord {
+  product: ProductCompetitorAnalysisProductResponse
+  readiness: string
+  summary: string
+  counts: ProductCompetitorAnalysisCounts
+  price: ProductCompetitorPriceAnalysisResponse
+  rating: ProductCompetitorRatingAnalysisResponse
+  platforms: ProductCompetitorPlatformAnalysisResponse[]
+  topCompetitors: ProductCompetitorResponse[]
+  recentChanges: CompetitorChangeResponse[]
+  refs: ProductCompetitorAnalysisRefResponse[]
+  signals: string[]
+  warnings: string[]
+  agentContext: JsonRecord
+}
+
 export interface CampaignResponse extends JsonRecord {
   id: string
   productId?: string | null
@@ -954,6 +1022,16 @@ export const listProductCompetitorsApi = async (
   request<ListQuery, ProductCompetitorResponse[]>({
     method: "GET",
     url: `/api/app/products/${productId}/competitors`,
+    body: query,
+  })
+
+export const getProductCompetitorAnalysisApi = async (
+  productId: string,
+  query?: ListQuery
+): Promise<ProductCompetitorAnalysisResponse> =>
+  request<ListQuery, ProductCompetitorAnalysisResponse>({
+    method: "GET",
+    url: `/api/app/products/${productId}/competitors/analysis`,
     body: query,
   })
 

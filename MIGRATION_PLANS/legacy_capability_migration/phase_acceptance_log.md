@@ -487,3 +487,27 @@
 - 本阶段解决的是“附件可读正文如何进入新产品上下文体系”的后端入口。
 - 本阶段不实现 OCR、PDF/Office 解析、图片识别或 object storage 读取。
 - 后续解析器、OCR worker 或附件管理 UI 都应通过该 API 登记抽取结果。
+
+## Post 8-17：竞品分析读取 API
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Service：新增 `ProductCompetitorApi::competitor_analysis`。
+- [x] Service：复用已有商品、竞品、竞品变化记录表，不新增 migration。
+- [x] Service：按当前用户和商品归属校验权限，已归档商品不可分析。
+- [x] Service：返回竞品数量、价格覆盖、评分覆盖、销量字段覆盖和近期变化数量。
+- [x] Service：返回价格带、竞品均价、商品价格相对竞品均价的位置。
+- [x] Service：返回平台分布、Top 竞品、近期变化、refs、signals、warnings。
+- [x] Service：返回 `agentContext`，供后续 Agent 问答和 skill 复用。
+- [x] Web-server：新增 `GET /api/app/products/{productId}/competitors/analysis`。
+- [x] API：`API_DOCS/app.md` 已同步。
+- [x] 前端：API adapter 类型已同步，但本阶段不新增页面入口。
+
+当前说明：
+
+- 本阶段解决的是“竞品散数据可被统一分析读取”。
+- 本阶段不调用 LLM，不触发外部搜索，不自动创建 artifact。
+- 后续可继续做自动搜索竞品、立即监控竞品、分析结果沉淀和前端展示。

@@ -1235,7 +1235,87 @@
 ]
 ```
 
-## 40. 创建竞品变化记录
+## 40. 查询商品竞品分析
+
+- 方法：`GET`
+- 路径：`/api/app/products/{productId}/competitors/analysis`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `status` | `active \| archived` | 否 | 不传时默认分析 `active` 竞品 |
+| `platform` | `string` | 否 | 只分析某个平台的竞品 |
+| `changeLimit` | `number` | 否 | 近期变化数量，默认 100，最大 500 |
+
+成功响应 `data`：`ProductCompetitorAnalysisResponse`。
+
+示例：
+
+```json
+{
+  "product": {
+    "id": "product-uuid",
+    "name": "咖啡组合",
+    "platform": "douyin",
+    "category": "coffee",
+    "brand": "brand",
+    "price": "99",
+    "numericPrice": 99,
+    "currency": "CNY"
+  },
+  "readiness": "ready",
+  "summary": "Competitor analysis is ready: 3 competitor(s), 3 priced, 2 rated, 1 recent change(s), product price is +10.0% vs competitor avg (premium).",
+  "counts": {
+    "competitors": 3,
+    "pricedCompetitors": 3,
+    "ratedCompetitors": 2,
+    "monthlySalesCompetitors": 2,
+    "recentChanges": 1
+  },
+  "price": {
+    "productPrice": 99,
+    "minCompetitorPrice": 79,
+    "maxCompetitorPrice": 109,
+    "avgCompetitorPrice": 90,
+    "pricePosition": "premium",
+    "gapToAvg": 9,
+    "gapPercentToAvg": 10,
+    "lowerPricedCompetitors": 2,
+    "higherPricedCompetitors": 1
+  },
+  "rating": {
+    "minRating": 4.5,
+    "maxRating": 4.8,
+    "avgRating": 4.65,
+    "ratedCompetitors": 2
+  },
+  "platforms": [
+    {
+      "platform": "douyin",
+      "competitors": 2,
+      "avgPrice": 89,
+      "avgRating": 4.6
+    }
+  ],
+  "topCompetitors": [],
+  "recentChanges": [],
+  "refs": [],
+  "signals": ["price_position:premium", "recent_price_change"],
+  "warnings": [],
+  "agentContext": {}
+}
+```
+
+补充说明：
+
+- 本接口只读取当前用户当前商品下的竞品和变化记录
+- 本接口不调用 LLM，不触发外部搜索，不自动创建工作区 artifact
+- `readiness` 可能为 `ready`、`partial`、`empty`
+- `agentContext` 可供后续 Agent 问答、竞品分析 skill、定价策略 skill 复用
+
+## 41. 创建竞品变化记录
 
 - 方法：`POST`
 - 路径：`/api/app/products/{productId}/competitors/{competitorId}/changes`
@@ -1263,7 +1343,7 @@
 - `sourceType` 不传时默认 `manual`
 - `detectedAt` 不传时由数据库使用当前时间
 
-## 41. 查询营销活动列表
+## 42. 查询营销活动列表
 
 - 方法：`GET`
 - 路径：`/api/app/campaigns`
@@ -1309,7 +1389,7 @@
 }
 ```
 
-## 42. 创建营销活动
+## 43. 创建营销活动
 
 - 方法：`POST`
 - 路径：`/api/app/campaigns`
@@ -1343,7 +1423,7 @@
 - `metadata`、`output`、`actionMetadata` 不传时默认 `{}`
 - 本阶段只存储活动记录、生成结果和建议动作，不触发 Agent 自动生成或平台执行
 
-## 43. 查询营销活动详情
+## 44. 查询营销活动详情
 
 - 方法：`GET`
 - 路径：`/api/app/campaigns/{campaignId}`
@@ -1351,7 +1431,7 @@
 
 成功响应 `data`：`CampaignResponse`。
 
-## 44. 更新营销活动
+## 45. 更新营销活动
 
 - 方法：`PATCH`
 - 路径：`/api/app/campaigns/{campaignId}`
@@ -1383,7 +1463,7 @@
 - 省略字段表示保持原值
 - 如更新 `productId`，新商品必须属于当前用户且未归档
 
-## 45. 归档营销活动
+## 46. 归档营销活动
 
 - 方法：`DELETE`
 - 路径：`/api/app/campaigns/{campaignId}`

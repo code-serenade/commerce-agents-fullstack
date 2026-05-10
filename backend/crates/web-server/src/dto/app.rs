@@ -2044,6 +2044,17 @@ pub struct ListProductCompetitorsQuery {
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
+pub struct ProductCompetitorAnalysisQuery {
+    #[validate(length(max = 32))]
+    pub status: Option<String>,
+    #[validate(length(max = 64))]
+    pub platform: Option<String>,
+    #[validate(range(min = 1, max = 500))]
+    pub change_limit: Option<u64>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateProductCompetitorRequest {
     #[validate(length(min = 1, max = 255))]
     pub name: String,
@@ -2161,3 +2172,6 @@ pub struct CompetitorChangeResponse {
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
 }
+
+pub type ProductCompetitorAnalysisResponse =
+    service::dto::product_competitor::ProductCompetitorAnalysisResponse;
