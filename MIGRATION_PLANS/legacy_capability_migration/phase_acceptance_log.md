@@ -252,3 +252,25 @@
 - 本阶段是问答调度契约补强，不新增数据库表，也不新增 HTTP/SSE 字段。
 - 前端只适配后端运行契约，不伪造 skill、任务图或岗位执行结果。
 - 本阶段不包含外部搜索、附件、导出报告或平台执行 adapter 迁移。
+
+## Post 8-6：设计与 Web 增长 Skill Native 迁移
+
+状态：done
+
+验收项：
+
+- [x] 后端：`design_main_image`、`design_detail_page`、`design_color_scheme`、`design_material_spec`、`design_campaign_poster` 返回 native success。
+- [x] 后端：`web_seo_optimize`、`web_title_generator`、`web_page_conversion`、`web_store_design`、`web_keyword_research`、`web_product_description` 返回 native success。
+- [x] 后端：design/web 岗位自动补偿能按用户意图命中不同设计和增长 skill。
+- [x] 后端：结果通过既有 `SkillExecutorSet`、角色白名单和 SSE skill 事件链路输出。
+- [x] 验证：agent skill 执行测试通过。
+- [x] 验证：autosuggest 规则测试通过。
+- [x] 验证：`cargo test -p agent` 通过。
+- [x] 验证：`cargo check -p agent` 通过。
+- [x] 验证：`cargo clippy -p agent` 通过。
+
+当前说明：
+
+- 本阶段把旧产品设计/Web 岗位的内容方案类能力迁到新产品 Rust Agent runtime，当前以本地结构化文本产物为主。
+- 结果包括设计 brief、平台规格、配色 HEX、SEO 提排路径、关键词矩阵、标题候选、详情文案和页面转化 AB 测试清单。
+- 图片/长图文件生成、实时搜索量、CPC、店铺真实指标和素材文件化仍是后续阶段。

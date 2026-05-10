@@ -627,3 +627,48 @@
 
 - 外部搜索、附件上传、导出报告、平台执行 adapter 仍未在本轮迁移。
 - 旧产品更完整的回答策略选择和教学/导出控制面仍需继续以后端能力为主迁移。
+
+## Post 8-6：设计与 Web 增长 Skill Native 迁移
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 6 个问答补强项：`Post 8-6`。
+
+本次目标：
+
+- 把旧产品设计岗位和 Web 增长岗位里仍返回 deferred 的主图、详情页、配色、海报、SEO、标题、关键词、店铺装修、详情文案能力迁为新产品 Rust Agent runtime 的 native 结构化文本产物。
+- 保持前端不造假：仍沿用真实 `skill_requested` / `skill_result` SSE 事件展示。
+- 用户自然提问时，后端自动补偿能按意图命中对应 skill。
+
+涉及范围：
+
+- 产品内核：设计/Web 岗位从“能力壳 + 待接入提示”升级为“可直接输出电商设计 brief、SEO 方案和页面增长建议”的 native 能力。
+- 后端：`backend/crates/agent/src/skills/design.rs`、`backend/crates/agent/src/skills/web.rs`、`backend/crates/agent/src/agent/worker/runner.rs`、`backend/crates/agent/src/skills/runtime.rs`。
+- API：不新增接口，不修改 SSE 请求结构；沿用 `skill_requested` / `skill_result`。
+- 前端：本阶段不改前端，继续展示后端真实 SSE 事件和最终回答。
+- 文档：新增 Post 8-6 后端设计归档，更新 skill 迁移矩阵。
+
+用户可感知变化：
+
+- 用户问“做主图设计方案”“规划详情页长图”“做品牌配色”“做活动海报”“生成标题”“做 SEO 优化”“关键词研究”“店铺装修”“详情页文案”“页面转化优化”时，后端更稳定触发对应设计/Web skill。
+- 过程区看到的 `skill_result` 状态应为 `success/native`，不再是“设计内容引擎未接入”或“Web 技能骨架已返回”的 deferred。
+- 当前结果是结构化文本产物：设计 brief、平台规格、配色 HEX、SEO 提排路径、关键词矩阵、标题候选、店铺首页模块、详情页文案和 AB 测试清单。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p agent executor_runs_native_design_and_web_growth_skills`
+- [x] `cargo test -p agent autosuggests_web_growth_skill_by_intent`
+- [x] `cargo test -p agent autosuggests_design_skill_by_intent`
+- [x] `cargo test -p agent`
+- [x] `cargo check -p agent`
+- [x] `cargo clippy -p agent`
+
+后续缺口：
+
+- 图片、海报、长图文件生成未做。
+- 实时搜索量、CPC、竞品排名和店铺真实指标仍待外部搜索/平台数据 adapter。
+- 素材上传、导出报告和 workspace artifact 文件化仍需后续阶段补齐。

@@ -47,10 +47,10 @@
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
 | --- | --- | --- | --- | --- |
 | `design_main_image` | `design_main_image` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已纳入岗位自动补偿规则，当前生成主图方案不生成图片文件 |
-| `design_detail_page` | `design_detail_page` | pending_review | `backend/crates/agent/src/skills/design.rs` | 详情页结构 |
-| `design_color_scheme` | `design_color_scheme` | pending_review | `backend/crates/agent/src/skills/design.rs` | 配色 |
+| `design_detail_page` | `design_detail_page` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已迁为 Rust native 详情页模块方案，尚不生成长图文件 |
+| `design_color_scheme` | `design_color_scheme` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已迁为 Rust native HEX 配色、比例和变量命名 |
 | `design_material_spec` | `design_material_spec` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已纳入岗位自动补偿规则 |
-| `design_campaign_poster` | `design_campaign_poster` | pending_review | `backend/crates/agent/src/skills/design.rs` | 活动海报 |
+| `design_campaign_poster` | `design_campaign_poster` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已迁为 Rust native 活动海报 brief，尚不生成图片文件 |
 
 ## 财务 accounting
 
@@ -76,11 +76,11 @@
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
 | --- | --- | --- | --- | --- |
-| `web_seo_optimize` | `web_seo_optimize` | pending_review | `backend/crates/agent/src/skills/web.rs` | SEO |
-| `web_title_generator` | `web_title_generator` | native_ready | `backend/crates/agent/src/skills/web.rs` | Rust native 已存在；本次自动补偿优先走 SEO scorer |
+| `web_seo_optimize` | `web_seo_optimize` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native SEO 优化方案；实时搜索量仍待 adapter |
+| `web_title_generator` | `web_title_generator` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native 多标题候选，并纳入自动补偿 |
 | `web_page_conversion` | `web_page_conversion` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已纳入岗位自动补偿规则 |
-| `web_store_design` | `web_store_design` | pending_review | `backend/crates/agent/src/skills/web.rs` | 店铺装修 |
-| `web_keyword_research` | `web_keyword_research` | pending_review | `backend/crates/agent/src/skills/web.rs` | 关键词 |
+| `web_store_design` | `web_store_design` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native 店铺装修方案；真实店铺指标仍待 adapter |
+| `web_keyword_research` | `web_keyword_research` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native 关键词矩阵；实时热度/CPC仍待 adapter |
 
 ## 创意 creative
 

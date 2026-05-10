@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 
 use crate::skills::{
     Skill, SkillCategory, SkillContext, SkillError, SkillInputField, SkillOutcome, SkillPriority,
@@ -24,7 +24,7 @@ pub fn specs() -> Vec<SkillSpec> {
 }
 
 pub fn web_seo_optimize_spec() -> SkillSpec {
-    deferred_spec(
+    native_spec(
         "web_seo_optimize",
         "SEO优化方案",
         "AI生成完整SEO方案（关键词矩阵/标题优化/内容改写清单/技术SEO检查/提排路径），\
@@ -55,7 +55,7 @@ pub fn web_seo_optimize_spec() -> SkillSpec {
 }
 
 pub fn web_title_generator_spec() -> SkillSpec {
-    deferred_spec(
+    native_spec(
         "web_title_generator",
         "标题生成",
         "根据商品信息生成多种风格的SEO友好标题；传入product_id可自动加载真实商品",
@@ -285,11 +285,12 @@ pub fn web_page_conversion_spec() -> SkillSpec {
         "平均停留时间(秒)",
         json!({"type": "number"}),
     ))
-    .with_tag("deferred")
+    .with_tag("deterministic")
+    .with_tag("p1")
 }
 
 pub fn web_store_design_spec() -> SkillSpec {
-    deferred_spec(
+    native_spec(
         "web_store_design",
         "店铺装修方案",
         "AI生成完整店铺装修设计方案（视觉定位/模块结构/尺寸规格/文案方向/素材清单/验收标准），\
@@ -308,7 +309,7 @@ pub fn web_store_design_spec() -> SkillSpec {
 }
 
 pub fn web_keyword_research_spec() -> SkillSpec {
-    deferred_spec(
+    native_spec(
         "web_keyword_research",
         "关键词研究",
         "AI拓展关键词矩阵（核心词/长尾词/蓝海词/场景词），分析搜索意图、竞争度和出价策略，\
@@ -335,7 +336,7 @@ pub fn web_keyword_research_spec() -> SkillSpec {
 }
 
 pub fn web_product_description_spec() -> SkillSpec {
-    deferred_spec(
+    native_spec(
         "web_product_description",
         "详情页文案",
         "生成完整的详情页营销文案（首屏卖点/痛点/解决方案/亮点/行动号召）；\
@@ -365,24 +366,19 @@ pub fn web_product_description_spec() -> SkillSpec {
     )
 }
 
-fn deferred_spec(
-    id: &str,
-    name: &str,
-    description: &str,
-    inputs: Vec<SkillInputField>,
-) -> SkillSpec {
+fn native_spec(id: &str, name: &str, description: &str, inputs: Vec<SkillInputField>) -> SkillSpec {
     inputs.into_iter().fold(
         SkillSpec::new(id, name, description)
             .with_category(category())
             .with_priority(SkillPriority::High)
-            .with_tag("deferred")
-            .with_tag("content_engine"),
+            .with_tag("deterministic")
+            .with_tag("p1"),
         SkillSpec::with_input,
     )
 }
 
-macro_rules! deferred_web_skill {
-    ($type_name:ident, $spec_fn:ident, required [$($required:literal),*], defaults {$($key:literal => $value:expr),* $(,)?}, deps [$($dep:literal),* $(,)?]) => {
+macro_rules! native_web_skill {
+    ($type_name:ident, $spec_fn:ident, required [$($required:literal),*], defaults {$($key:literal => $value:expr),* $(,)?}) => {
         pub struct $type_name {
             spec: SkillSpec,
         }
@@ -408,22 +404,16 @@ macro_rules! deferred_web_skill {
             async fn run(&self, params: Value, _context: SkillContext) -> SkillResult {
                 object_params(&params)?;
                 $(let _ = string_param(&params, $required)?;)*
-                let mut normalized = serde_json::Map::new();
+                let mut normalized = Map::new();
                 $(normalized.insert($key.to_owned(), json!($value(&params)?));)*
-                Ok(SkillOutcome::new(json!({
-                    "status": "deferred",
-                    "deferred_reason": "Web/SEO技能需要内容引擎、商品数据、搜索数据或店铺指标接入",
-                    "skill": self.spec.id,
-                    "normalized_inputs": normalized,
-                    "deferred_dependencies": [$($dep),*],
-                    "expected_outputs": ["关键词/内容策略", "页面结构建议", "实验清单", "复盘指标"]
-                })).with_summary("Web技能骨架已返回"))
+                Ok(SkillOutcome::new(web_native_output(&self.spec.id, &normalized))
+                    .with_summary(web_summary(&self.spec.id)))
             }
         }
     };
 }
 
-deferred_web_skill!(
+native_web_skill!(
     WebSeoOptimize,
     web_seo_optimize_spec,
     required [],
@@ -432,10 +422,9 @@ deferred_web_skill!(
         "current_rank" => |p: &Value| Ok(optional_i64_param(p, "current_rank")?.unwrap_or(0)),
         "product_id" => |p: &Value| optional_i64_param(p, "product_id"),
         "platform" => |p: &Value| Ok(optional_string_param(p, "platform")?.unwrap_or_else(|| "淘宝".to_owned())),
-    },
-    deps ["content_engine", "product_profile", "fresh_search_data"]
+    }
 );
-deferred_web_skill!(
+native_web_skill!(
     WebTitleGenerator,
     web_title_generator_spec,
     required [],
@@ -445,10 +434,9 @@ deferred_web_skill!(
         "style" => |p: &Value| Ok(optional_string_param(p, "style")?.unwrap_or_else(|| "营销型".to_owned())),
         "product_id" => |p: &Value| optional_i64_param(p, "product_id"),
         "platform" => |p: &Value| Ok(optional_string_param(p, "platform")?.unwrap_or_else(|| "淘宝".to_owned())),
-    },
-    deps ["content_engine", "product_profile"]
+    }
 );
-deferred_web_skill!(
+native_web_skill!(
     WebStoreDesign,
     web_store_design_spec,
     required ["store_type"],
@@ -457,10 +445,9 @@ deferred_web_skill!(
         "category" => |p: &Value| Ok(optional_string_param(p, "category")?.unwrap_or_else(|| "通用".to_owned())),
         "platform" => |p: &Value| Ok(optional_string_param(p, "platform")?.unwrap_or_else(|| "淘宝".to_owned())),
         "brand_tone" => |p: &Value| Ok(optional_string_param(p, "brand_tone")?.unwrap_or_else(|| "专业".to_owned())),
-    },
-    deps ["store_metrics", "design_engine"]
+    }
 );
-deferred_web_skill!(
+native_web_skill!(
     WebKeywordResearch,
     web_keyword_research_spec,
     required [],
@@ -469,10 +456,9 @@ deferred_web_skill!(
         "category" => |p: &Value| Ok(optional_string_param(p, "category")?.unwrap_or_else(|| "通用".to_owned())),
         "platform" => |p: &Value| Ok(optional_string_param(p, "platform")?.unwrap_or_else(|| "淘宝".to_owned())),
         "product_id" => |p: &Value| optional_i64_param(p, "product_id"),
-    },
-    deps ["fresh_search_data", "product_profile", "content_engine"]
+    }
 );
-deferred_web_skill!(
+native_web_skill!(
     WebProductDescription,
     web_product_description_spec,
     required [],
@@ -481,8 +467,7 @@ deferred_web_skill!(
         "product_id" => |p: &Value| optional_i64_param(p, "product_id"),
         "platform" => |p: &Value| Ok(optional_string_param(p, "platform")?.unwrap_or_else(|| "淘宝".to_owned())),
         "style" => |p: &Value| Ok(optional_string_param(p, "style")?.unwrap_or_else(|| "营销型".to_owned())),
-    },
-    deps ["content_engine", "product_profile"]
+    }
 );
 
 pub struct WebPageConversion {
@@ -522,15 +507,333 @@ impl Skill for WebPageConversion {
             "列表页" => 8.0,
             _ => 5.0,
         };
+        let gap = conv - benchmark;
         Ok(SkillOutcome::new(json!({
-            "status": "deferred",
-            "deferred_reason": "完整页面转化方案需要内容引擎、真实指标或搜索增强接入",
+            "has_data": true,
+            "执行模式": "native_conversion_audit",
+            "数据来源": "用户输入 + 页面转化基准规则",
             "页面类型": page_type,
             "当前数据": {"转化率": format!("{conv}%"), "跳出率": format!("{bounce}%"), "停留时间": format!("{stay}秒")},
             "行业基准转化率": format!("{benchmark}%"),
+            "转化差距": format!("{gap:+.2}%"),
             "初步判断": if conv >= benchmark { "当前转化率达到或超过基准，优先做AB测试微调" } else { "当前转化率低于基准，优先检查首屏信息、信任背书、CTA和价格呈现" },
-            "建议后续": ["接入近30天漏斗数据", "按页面模块拆分点击与流失", "生成可执行AB测试清单"]
-        })).with_summary("页面转化优化骨架已返回"))
+            "瓶颈诊断": conversion_findings(conv, bounce, stay, benchmark),
+            "优化动作": conversion_actions(&page_type, conv, bounce, stay, benchmark),
+            "AB测试清单": [
+                {"实验": "首屏卖点顺序", "变量": "价格利益点 vs 使用场景", "指标": "点击/加购"},
+                {"实验": "CTA文案", "变量": "立即购买 vs 领取优惠", "指标": "按钮点击率"},
+                {"实验": "信任背书位置", "变量": "首屏展示 vs 参数后展示", "指标": "停留和转化"}
+            ],
+            "后续数据需求": ["近30天PV/UV", "点击热区", "加购率", "支付转化率", "渠道来源"]
+        })).with_summary("页面转化优化方案已生成"))
+    }
+}
+
+fn web_native_output(skill_id: &str, input: &Map<String, Value>) -> Value {
+    match skill_id {
+        "web_seo_optimize" => seo_optimize(input),
+        "web_title_generator" => title_generator(input),
+        "web_store_design" => store_design(input),
+        "web_keyword_research" => keyword_research(input),
+        "web_product_description" => product_description(input),
+        _ => json!({"has_data": false, "error": format!("unknown web skill: {skill_id}")}),
+    }
+}
+
+fn web_summary(skill_id: &str) -> &'static str {
+    match skill_id {
+        "web_seo_optimize" => "SEO优化方案已生成",
+        "web_title_generator" => "标题候选已生成",
+        "web_store_design" => "店铺装修方案已生成",
+        "web_keyword_research" => "关键词矩阵已生成",
+        "web_product_description" => "详情页文案已生成",
+        _ => "Web增长方案已生成",
+    }
+}
+
+fn seo_optimize(input: &Map<String, Value>) -> Value {
+    let platform = str_field(input, "platform", "淘宝");
+    let mut keywords = string_vec_field(input, "target_keywords");
+    if keywords.is_empty() {
+        keywords = vec!["电商".to_owned(), "高性价比".to_owned(), "新品".to_owned()];
+    }
+    let current_rank = i64_field(input, "current_rank").unwrap_or(0);
+    json!({
+        "has_data": true,
+        "执行模式": "native_seo_plan",
+        "数据来源": "用户输入 + 平台SEO规则",
+        "平台": platform,
+        "目标关键词": keywords,
+        "当前排名": if current_rank > 0 { json!(current_rank) } else { json!("未提供") },
+        "关键词分层": keyword_layers(&keywords),
+        "标题优化": {
+            "结构": "{主关键词}+{核心卖点}+{场景/人群}+{信任背书}",
+            "规则": title_rules(&platform),
+            "示例": format!("{} 官方优选 高性价比 新品现货", keywords.first().cloned().unwrap_or_else(|| "商品".to_owned()))
+        },
+        "内容改写清单": [
+            {"位置": "标题前半段", "动作": "放入主关键词和最强卖点"},
+            {"位置": "详情页首屏", "动作": "补充使用场景、痛点和核心承诺"},
+            {"位置": "FAQ", "动作": "覆盖尺码、材质、发货、售后等搜索问题"},
+            {"位置": "图片alt/素材命名", "动作": "加入核心关键词，方便内部检索和复用"}
+        ],
+        "技术检查": ["移动端首屏加载", "图片体积", "标题字符数", "重复词", "核心词是否靠前"],
+        "提排路径": ["先改标题和首屏", "7天观察点击率/搜索曝光", "再扩展长尾词", "沉淀高转化词到商品知识"]
+    })
+}
+
+fn title_generator(input: &Map<String, Value>) -> Value {
+    let product = display_product(input);
+    let platform = str_field(input, "platform", "淘宝");
+    let style = str_field(input, "style", "营销型");
+    let mut keywords = string_vec_field(input, "keywords");
+    if keywords.is_empty() {
+        keywords = vec![product.clone(), "新品".to_owned(), "高性价比".to_owned()];
+    }
+    let primary = keywords.first().cloned().unwrap_or_else(|| product.clone());
+    json!({
+        "has_data": true,
+        "执行模式": "native_title_generation",
+        "数据来源": "用户输入 + 平台标题规则",
+        "商品": product,
+        "平台": platform,
+        "风格": style,
+        "关键词": keywords,
+        "标题候选": [
+            {"类型": "搜索承接型", "标题": format!("{primary} {} 官方优选 高性价比 现货速发", product), "适用": "平台搜索和货架流量"},
+            {"类型": "利益点型", "标题": format!("{} 新品升级 {} 日常家用送礼优选", product, primary), "适用": "促销和新品冷启动"},
+            {"类型": "人群场景型", "标题": format!("{} 适合通勤/家用 {} 品质保障", product, primary), "适用": "内容种草后的搜索承接"},
+            {"类型": "品牌信任型", "标题": format!("{} 官方旗舰品质 {} 售后无忧", product, primary), "适用": "高客单或礼赠场景"}
+        ],
+        "标题规则": title_rules(&platform),
+        "避坑": ["不要堆砌无关热词", "同义词不要重复超过2次", "促销词需与实际权益一致"]
+    })
+}
+
+fn keyword_research(input: &Map<String, Value>) -> Value {
+    let seed = opt_str_field(input, "seed_keyword")
+        .or_else(|| i64_field(input, "product_id").map(|id| format!("商品{id}")))
+        .unwrap_or_else(|| str_field(input, "category", "电商消费品"));
+    let category = str_field(input, "category", "通用");
+    let platform = str_field(input, "platform", "淘宝");
+    json!({
+        "has_data": true,
+        "执行模式": "native_keyword_matrix",
+        "数据来源": "用户输入 + 确定性关键词拓展规则；未包含实时搜索量",
+        "种子词": seed,
+        "类目": category,
+        "平台": platform,
+        "关键词矩阵": [
+            {"类型": "核心词", "词": [seed.clone(), category.clone()], "意图": "明确找商品", "竞争度": "高", "出价建议": "小预算精准匹配"},
+            {"类型": "长尾词", "词": [format!("{seed} 推荐"), format!("{seed} 怎么选"), format!("{seed} 性价比")], "意图": "比较和决策", "竞争度": "中", "出价建议": "内容页和FAQ承接"},
+            {"类型": "场景词", "词": [format!("{seed} 家用"), format!("{seed} 送礼"), format!("{seed} 通勤")], "意图": "场景触发", "竞争度": "中低", "出价建议": "详情页首屏加入场景图"},
+            {"类型": "蓝海词", "词": [format!("{seed} 小众高质"), format!("{seed} 新品"), format!("{seed} 官方同款")], "意图": "低竞争探索", "竞争度": "低", "出价建议": "测试CTR后再放量"}
+        ],
+        "内容落点": [
+            {"位置": "标题", "放置": "核心词+1个高转化长尾词"},
+            {"位置": "详情首屏", "放置": "场景词和核心痛点"},
+            {"位置": "FAQ", "放置": "怎么选/适合谁/售后等问题词"},
+            {"位置": "素材命名", "放置": "核心词+场景词"}
+        ],
+        "缺口说明": "当前版本不读取实时搜索量和竞价数据，接入外部搜索/平台数据后可补充热度、趋势和CPC。"
+    })
+}
+
+fn store_design(input: &Map<String, Value>) -> Value {
+    let store_type = str_field(input, "store_type", "旗舰店");
+    let category = str_field(input, "category", "通用");
+    let platform = str_field(input, "platform", "淘宝");
+    let tone = str_field(input, "brand_tone", "专业");
+    json!({
+        "has_data": true,
+        "执行模式": "native_store_design_brief",
+        "数据来源": "用户输入 + 店铺装修结构规则",
+        "店铺类型": store_type,
+        "主营类目": category,
+        "平台": platform,
+        "品牌调性": tone,
+        "首页模块": [
+            {"模块": "首屏品牌区", "目标": "让用户知道卖什么、为什么可信", "内容": ["品牌口号", "主推商品", "核心权益"]},
+            {"模块": "爆款/新品区", "目标": "承接点击和转化", "内容": ["主推SKU", "价格权益", "评价背书"]},
+            {"模块": "场景解决方案", "目标": "从商品陈列升级到需求解决", "内容": ["人群/场景", "组合推荐", "使用效果"]},
+            {"模块": "信任与服务", "目标": "降低售后疑虑", "内容": ["发货时效", "退换承诺", "客服保障"]},
+            {"模块": "内容种草", "目标": "提高停留和复购", "内容": ["教程", "测评", "买家秀"]}
+        ],
+        "视觉策略": {
+            "配色方向": palette_name(&tone),
+            "图片风格": "商品实拍 + 场景图 + 统一角标",
+            "信息密度": if platform == "抖音" { "短屏强转化，单屏只讲一个动作" } else { "货架页面强调分类、权益和信任" }
+        },
+        "素材清单": ["店招", "首屏Banner", "分类入口", "爆款卡片", "服务承诺图", "活动腰封"],
+        "验收指标": ["首页点击率", "商品详情点击率", "加购率", "客服咨询率", "店铺停留时长"]
+    })
+}
+
+fn product_description(input: &Map<String, Value>) -> Value {
+    let product = display_product(input);
+    let platform = str_field(input, "platform", "淘宝");
+    let style = str_field(input, "style", "营销型");
+    json!({
+        "has_data": true,
+        "执行模式": "native_product_description",
+        "数据来源": "用户输入 + 详情页文案结构规则",
+        "商品": product,
+        "平台": platform,
+        "文案风格": style,
+        "首屏文案": {
+            "标题": format!("{}，把核心需求一次解决", product),
+            "副标题": "围绕真实使用场景设计，兼顾品质、效率和售后保障",
+            "行动提示": "立即查看规格与优惠"
+        },
+        "痛点与解决": [
+            {"痛点": "用户难以判断是否适合自己", "解决文案": "用场景图和人群标签说明适用边界"},
+            {"痛点": "担心品质和售后", "解决文案": "明确材质/服务承诺/退换规则"},
+            {"痛点": "同类商品难区分", "解决文案": "突出1-2个真正不同的卖点，不堆砌空话"}
+        ],
+        "卖点段落": [
+            format!("{} 适合日常高频使用，主打稳定体验和省心选择。", product),
+            "关键参数和使用步骤放在同一屏，让用户不用反复询问客服。",
+            "售后、发货和使用限制前置说明，减少下单前顾虑。"
+        ],
+        "FAQ": [
+            {"问": "适合什么人？", "答": "适合关注品质、效率和售后保障的用户，具体以规格参数为准。"},
+            {"问": "和普通款有什么区别？", "答": "建议突出材质、功能、服务或场景中的一个核心差异。"},
+            {"问": "售后如何处理？", "答": "在详情页明确退换条件、时效和客服响应方式。"}
+        ],
+        "CTA": ["领取优惠后下单", "查看规格参数", "咨询客服确认适配"]
+    })
+}
+
+fn keyword_layers(keywords: &[String]) -> Vec<Value> {
+    let primary = keywords
+        .first()
+        .cloned()
+        .unwrap_or_else(|| "商品".to_owned());
+    vec![
+        json!({"层级": "主关键词", "关键词": primary, "用途": "标题前半段和首屏"}),
+        json!({"层级": "长尾关键词", "关键词": keywords.iter().skip(1).take(3).cloned().collect::<Vec<_>>(), "用途": "详情页模块和FAQ"}),
+        json!({"层级": "场景关键词", "关键词": ["家用", "送礼", "通勤", "新品"], "用途": "素材和内容种草"}),
+    ]
+}
+
+fn title_rules(platform: &str) -> Value {
+    match platform {
+        "拼多多" => {
+            json!({"推荐字数": "20-28字", "重点": "价格权益、包邮、场景词", "避免": "过度品牌化"})
+        }
+        "抖音" => {
+            json!({"推荐字数": "15-22字", "重点": "短利益点、场景、人群", "避免": "长标题堆词"})
+        }
+        "京东" => {
+            json!({"推荐字数": "28-36字", "重点": "品牌、型号、规格、服务", "避免": "缺少参数"})
+        }
+        _ => {
+            json!({"推荐字数": "28-34字", "重点": "核心词靠前、卖点明确、场景补充", "避免": "无关热词堆砌"})
+        }
+    }
+}
+
+fn conversion_findings(conv: f64, bounce: f64, stay: f64, benchmark: f64) -> Vec<String> {
+    let mut findings = Vec::new();
+    if conv < benchmark {
+        findings.push("转化率低于基准，首屏利益点、价格承诺或信任背书可能不足".to_owned());
+    }
+    if bounce >= 60.0 {
+        findings.push("跳出率偏高，入口承诺和落地页内容可能不一致".to_owned());
+    }
+    if stay < 30.0 {
+        findings.push("停留时间偏短，页面首屏需要更快说明商品价值".to_owned());
+    }
+    if findings.is_empty() {
+        findings.push("核心指标未见明显异常，适合做小步AB测试提升效率".to_owned());
+    }
+    findings
+}
+
+fn conversion_actions(
+    page_type: &str,
+    conv: f64,
+    bounce: f64,
+    stay: f64,
+    benchmark: f64,
+) -> Vec<Value> {
+    let mut actions = Vec::new();
+    if conv < benchmark {
+        actions.push(
+            json!({"优先级": "P0", "动作": "重排首屏卖点和CTA", "目标": "提高首屏理解和加购点击"}),
+        );
+    }
+    if bounce >= 60.0 {
+        actions.push(json!({"优先级": "P0", "动作": "核对流量入口文案与页面承诺", "目标": "降低无效点击和跳出"}));
+    }
+    if stay < 30.0 {
+        actions.push(json!({"优先级": "P1", "动作": "压缩首屏文字、增加场景图和对比图", "目标": "提升继续浏览率"}));
+    }
+    actions.push(json!({
+        "优先级": "P1",
+        "动作": match page_type {
+            "商品详情" => "补充评价背书、参数表和FAQ",
+            "购物车" => "强化优惠、凑单和库存提醒",
+            "结算" => "减少表单阻力并突出支付安全",
+            "列表页" => "优化筛选、排序和商品卡片卖点",
+            _ => "明确主行动路径和分类入口",
+        },
+        "目标": "减少决策阻力"
+    }));
+    actions
+}
+
+fn display_product(input: &Map<String, Value>) -> String {
+    opt_str_field(input, "product_name")
+        .filter(|value| !value.trim().is_empty())
+        .or_else(|| i64_field(input, "product_id").map(|id| format!("商品ID {id}")))
+        .unwrap_or_else(|| "主推商品".to_owned())
+}
+
+fn str_field(input: &Map<String, Value>, key: &str, default: &str) -> String {
+    opt_str_field(input, key).unwrap_or_else(|| default.to_owned())
+}
+
+fn opt_str_field(input: &Map<String, Value>, key: &str) -> Option<String> {
+    input
+        .get(key)
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToString::to_string)
+}
+
+fn string_vec_field(input: &Map<String, Value>, key: &str) -> Vec<String> {
+    input
+        .get(key)
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(ToString::to_string)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn i64_field(input: &Map<String, Value>, key: &str) -> Option<i64> {
+    input.get(key).and_then(Value::as_i64)
+}
+
+fn palette_name(tone: &str) -> &'static str {
+    if tone.contains("高端") || tone.contains("奢华") {
+        "深色底 + 金色强调 + 大留白"
+    } else if tone.contains("年轻") || tone.contains("活力") {
+        "高明度主色 + 暖色CTA + 轻量插画"
+    } else if tone.contains("科技") {
+        "蓝绿科技色 + 参数模块化排版"
+    } else if tone.contains("国潮") {
+        "低饱和红绿 + 节庆金色点缀"
+    } else {
+        "蓝绿可信配色 + 橙色行动提示"
     }
 }
 

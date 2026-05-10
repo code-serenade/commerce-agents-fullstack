@@ -825,6 +825,68 @@ fn autosuggest_creative(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
 }
 
 fn autosuggest_web(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
+    if contains_any(text, &["keyword", "关键词", "搜索词", "长尾词", "蓝海词"]) {
+        return Some(autosuggest_request(
+            "web_keyword_research",
+            serde_json::json!({
+                "seed_keyword": extract_keyword_candidates(text).first().cloned().unwrap_or_else(|| infer_category(text).to_owned()),
+                "category": infer_category(text),
+                "platform": infer_platform(text),
+            }),
+            "根据关键词/SEO研究意图自动补偿关键词矩阵 skill",
+        ));
+    }
+
+    if contains_any(text, &["seo", "SEO", "搜索优化", "排名", "提排"]) {
+        return Some(autosuggest_request(
+            "web_seo_optimize",
+            serde_json::json!({
+                "target_keywords": extract_keyword_candidates(text),
+                "current_rank": numbers_in_text(text).first().copied().map(|value| value.round() as i64),
+                "platform": infer_platform(text),
+            }),
+            "根据 SEO/提排意图自动补偿 SEO 优化 skill",
+        ));
+    }
+
+    if contains_any(text, &["标题", "title", "标题生成", "起标题"]) {
+        return Some(autosuggest_request(
+            "web_title_generator",
+            serde_json::json!({
+                "product_name": compact_task_text(&task.description),
+                "keywords": extract_keyword_candidates(text),
+                "platform": infer_platform(text),
+                "style": if contains_any(text, &["品牌"]) { "品牌型" } else if contains_any(text, &["信息"]) { "信息型" } else { "营销型" },
+            }),
+            "根据标题生成意图自动补偿标题生成 skill",
+        ));
+    }
+
+    if contains_any(text, &["店铺", "装修", "store"]) {
+        return Some(autosuggest_request(
+            "web_store_design",
+            serde_json::json!({
+                "store_type": if contains_any(text, &["旗舰"]) { "旗舰店" } else if contains_any(text, &["专营"]) { "专营店" } else { "电商店铺" },
+                "category": infer_category(text),
+                "platform": infer_platform(text),
+                "brand_tone": if contains_any(text, &["高端"]) { "高端奢华" } else if contains_any(text, &["年轻"]) { "年轻活力" } else { "专业可信" },
+            }),
+            "根据店铺装修意图自动补偿店铺设计 skill",
+        ));
+    }
+
+    if contains_any(text, &["详情文案", "产品文案", "卖点文案", "description"]) {
+        return Some(autosuggest_request(
+            "web_product_description",
+            serde_json::json!({
+                "product_name": compact_task_text(&task.description),
+                "platform": infer_platform(text),
+                "style": if contains_any(text, &["故事"]) { "故事型" } else if contains_any(text, &["信息"]) { "信息型" } else { "营销型" },
+            }),
+            "根据详情页文案意图自动补偿产品描述 skill",
+        ));
+    }
+
     if contains_any(
         text,
         &["page", "conversion", "页面", "转化", "详情页", "落地页"],
@@ -859,6 +921,43 @@ fn autosuggest_design(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
                 "platforms": [infer_platform(text)],
             }),
             "根据素材/规格意图自动补偿素材规范 skill",
+        ));
+    }
+
+    if contains_any(text, &["详情页", "详情", "长图"]) {
+        return Some(autosuggest_request(
+            "design_detail_page",
+            serde_json::json!({
+                "product_name": compact_task_text(&task.description),
+                "platform": infer_platform(text),
+                "style": infer_design_style(text),
+            }),
+            "根据详情页设计意图自动补偿详情页设计 skill",
+        ));
+    }
+
+    if contains_any(text, &["配色", "色彩", "品牌色", "颜色"]) {
+        return Some(autosuggest_request(
+            "design_color_scheme",
+            serde_json::json!({
+                "brand_tone": infer_design_style(text),
+                "category": infer_category(text),
+                "platform": infer_platform(text),
+            }),
+            "根据配色/品牌色意图自动补偿配色方案 skill",
+        ));
+    }
+
+    if contains_any(text, &["海报", "banner", "Banner", "活动图", "活动海报"]) {
+        return Some(autosuggest_request(
+            "design_campaign_poster",
+            serde_json::json!({
+                "campaign_name": if contains_any(text, &["618"]) { "618大促" } else if contains_any(text, &["双11", "双十一"]) { "双11大促" } else { "营销活动" },
+                "discount_info": extract_discount_hint(text),
+                "platform": infer_platform(text),
+                "style": infer_design_style(text),
+            }),
+            "根据活动海报意图自动补偿海报设计 skill",
         ));
     }
 
@@ -1021,6 +1120,34 @@ fn infer_design_usage(text: &str) -> &'static str {
         "直播封面"
     } else {
         "主图套组"
+    }
+}
+
+fn infer_design_style(text: &str) -> &'static str {
+    if contains_any(text, &["高端", "奢华", "质感"]) {
+        "高端奢华"
+    } else if contains_any(text, &["年轻", "活力", "可爱"]) {
+        "年轻活力"
+    } else if contains_any(text, &["国潮", "复古"]) {
+        "国潮复古"
+    } else if contains_any(text, &["科技", "数码"]) {
+        "科技感"
+    } else if contains_any(text, &["清新", "自然"]) {
+        "清新自然"
+    } else {
+        "简约现代"
+    }
+}
+
+fn extract_discount_hint(text: &str) -> &'static str {
+    if contains_any(text, &["满减", "满"]) {
+        "满减优惠"
+    } else if contains_any(text, &["折", "折扣"]) {
+        "限时折扣"
+    } else if contains_any(text, &["赠", "赠品"]) {
+        "下单赠礼"
+    } else {
+        "限时优惠"
     }
 }
 
@@ -1771,6 +1898,41 @@ mod tests {
 
         for (prompt, expected_skill) in cases {
             let requests = autosuggest_skill_requests(&role("creative"), &task(prompt), "{}");
+            assert_eq!(requests.len(), 1, "{prompt}");
+            assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
+        }
+    }
+
+    #[test]
+    fn autosuggests_web_growth_skill_by_intent() {
+        let cases = [
+            ("给冷萃咖啡做关键词研究和长尾词矩阵", "web_keyword_research"),
+            ("帮这个商品做SEO搜索优化和提排方案", "web_seo_optimize"),
+            ("给保温杯生成淘宝标题", "web_title_generator"),
+            ("规划一个淘宝旗舰店店铺装修方案", "web_store_design"),
+            ("写商品详情文案和卖点文案", "web_product_description"),
+            ("分析商品详情页转化率低的问题", "web_page_conversion"),
+        ];
+
+        for (prompt, expected_skill) in cases {
+            let requests = autosuggest_skill_requests(&role("web"), &task(prompt), "{}");
+            assert_eq!(requests.len(), 1, "{prompt}");
+            assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
+        }
+    }
+
+    #[test]
+    fn autosuggests_design_skill_by_intent() {
+        let cases = [
+            ("给新品做主图设计方案", "design_main_image"),
+            ("规划商品详情页长图设计", "design_detail_page"),
+            ("做品牌配色方案，想要高端质感", "design_color_scheme"),
+            ("做618活动海报banner", "design_campaign_poster"),
+            ("整理抖音信息流广告素材尺寸规格", "design_material_spec"),
+        ];
+
+        for (prompt, expected_skill) in cases {
+            let requests = autosuggest_skill_requests(&role("design"), &task(prompt), "{}");
             assert_eq!(requests.len(), 1, "{prompt}");
             assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
         }

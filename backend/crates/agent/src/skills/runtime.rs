@@ -795,6 +795,76 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn executor_runs_native_design_and_web_growth_skills() {
+        let executor = SkillExecutorSet::staged().expect("executor should load");
+        let cases = [
+            (
+                "design_main_image",
+                json!({"product_name": "冷萃咖啡", "platform": "抖音", "style": "年轻活力"}),
+            ),
+            (
+                "design_detail_page",
+                json!({"product_name": "冷萃咖啡", "platform": "淘宝"}),
+            ),
+            (
+                "design_color_scheme",
+                json!({"brand_tone": "高端奢华", "category": "咖啡饮品"}),
+            ),
+            (
+                "design_material_spec",
+                json!({"usage": "信息流广告", "platforms": ["抖音", "小红书"]}),
+            ),
+            (
+                "design_campaign_poster",
+                json!({"campaign_name": "618大促", "discount_info": "满300减50"}),
+            ),
+            (
+                "web_seo_optimize",
+                json!({"target_keywords": ["冷萃咖啡", "低糖"], "platform": "淘宝"}),
+            ),
+            (
+                "web_title_generator",
+                json!({"product_name": "冷萃咖啡", "keywords": ["冷萃咖啡", "低糖"]}),
+            ),
+            ("web_page_conversion", json!({"page_type": "商品详情"})),
+            (
+                "web_store_design",
+                json!({"store_type": "旗舰店", "category": "咖啡饮品"}),
+            ),
+            (
+                "web_keyword_research",
+                json!({"seed_keyword": "冷萃咖啡", "category": "咖啡饮品"}),
+            ),
+            (
+                "web_product_description",
+                json!({"product_name": "冷萃咖啡", "style": "营销型"}),
+            ),
+        ];
+
+        for (index, (skill_id, input)) in cases.into_iter().enumerate() {
+            let result = executor
+                .execute(SkillRequest::new(
+                    format!("req-design-web-native-{index}"),
+                    skill_id,
+                    input,
+                ))
+                .await;
+            assert_eq!(
+                result.status,
+                SkillExecutionStatus::Success,
+                "{skill_id} failed: {:?}",
+                result.error
+            );
+            assert_eq!(
+                result.metadata.get("execution_mode"),
+                Some(&json!(SkillExecutionMode::Native)),
+                "{skill_id} used unexpected execution mode"
+            );
+            assert!(result.output.is_some(), "{skill_id} returned no output");
+        }
+    }
+
+    #[tokio::test]
     async fn executor_validates_required_input() {
         let executor = SkillExecutorSet::staged().expect("executor should load");
         let result = executor
