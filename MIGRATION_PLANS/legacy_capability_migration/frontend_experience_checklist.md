@@ -34,7 +34,7 @@
 - [ ] route decision 可视化，数据来自后端 SSE。
 - [ ] worker started/finished 可视化，数据来自后端 SSE。
 - [ ] task graph 可视化，数据来自后端 SSE。
-- [ ] skill requested/result 可视化，数据来自后端 SSE。
+- [x] skill requested/result 可视化，数据来自后端 SSE。
 - [x] context loaded 可视化，数据来自后端 SSE。
 - [x] workspace run/task 沉淀状态可视化，数据来自后端 SSE。
 - [x] quality check 可视化，数据来自后端 SSE/API。
@@ -49,6 +49,7 @@
 - [ ] 活动页可让 Agent 优化/复盘，后端已有对应业务 API。
 - [x] 工作区页刷新后展示 agent run 和 artifact 列表，后端已有 workspace run/artifact。
 - [x] 审批页承接高风险工具，后端已有 approval record。
+- [x] 能力包页可同步旧产品内置 domain/role/skill/capability 治理记录。
 - [ ] 历史会话可恢复上下文，后端已有 conversation/session 数据。
 
 ## 设计原则

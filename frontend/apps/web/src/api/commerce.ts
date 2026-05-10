@@ -562,6 +562,16 @@ export interface PackageLockDriftResponse extends JsonRecord {
   summary: JsonRecord
 }
 
+export interface SyncLegacyBuiltinPackagesResponse extends JsonRecord {
+  packages: PackageResponse[]
+  createdCount: number
+  updatedCount: number
+  totalCount: number
+  manifestBackedCount: number
+  derivedCapabilityCount: number
+  resetStatus: boolean
+}
+
 export interface AgentLearningRecordResponse extends JsonRecord {
   id: string
   userId?: string
@@ -1673,6 +1683,15 @@ export const savePackageApi = async (
   request<JsonRecord, PackageResponse>({
     method: "POST",
     url: "/api/app/packages",
+    body,
+  })
+
+export const syncLegacyBuiltinPackagesApi = async (
+  body: JsonRecord = {}
+): Promise<SyncLegacyBuiltinPackagesResponse> =>
+  request<JsonRecord, SyncLegacyBuiltinPackagesResponse>({
+    method: "POST",
+    url: "/api/app/packages/sync-legacy-builtins",
     body,
   })
 

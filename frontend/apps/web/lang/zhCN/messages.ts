@@ -677,6 +677,7 @@ const messages = {
       panels: {
         catalog: "能力包目录",
         catalogDesc: "数据库治理目录，不直接改 Agent runtime catalog",
+        syncLegacy: "同步旧产品能力包",
         savePackage: "保存能力包",
         search: "搜索包 ID 或名称",
         packageType: "包类型",
@@ -711,6 +712,7 @@ const messages = {
         rolledBack: "能力包已回滚",
         lockSaved: "运行能力包锁已保存",
         driftChecked: "漂移检查完成",
+        legacySynced: "已同步 {{count}} 个旧产品能力包记录",
       },
     },
   },

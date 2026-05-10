@@ -1622,6 +1622,12 @@ pub struct PackageStatusChangeRequest {
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
+pub struct SyncLegacyBuiltinPackagesRequest {
+    pub reset_status: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
 pub struct ListPackageHistoryQuery {
     #[validate(range(min = 1, max = 500))]
     pub limit: Option<u64>,
@@ -1662,6 +1668,8 @@ pub type PackageValidationResponse = service::dto::package_governance::PackageVa
 pub type PackageHistoryListResponse = service::dto::package_governance::PackageHistoryListResponse;
 pub type PackageLockListResponse = service::dto::package_governance::PackageLockListResponse;
 pub type PackageLockDriftResponse = service::dto::package_governance::PackageLockDriftResponse;
+pub type SyncLegacyBuiltinPackagesResponse =
+    service::dto::package_governance::SyncLegacyBuiltinPackagesResponse;
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]

@@ -677,6 +677,7 @@ const messages = {
       panels: {
         catalog: "Package catalog",
         catalogDesc: "Database governance catalog, not direct Agent runtime catalog changes",
+        syncLegacy: "Sync legacy packages",
         savePackage: "Save package",
         search: "Search package ID or name",
         packageType: "Package type",
@@ -711,6 +712,7 @@ const messages = {
         rolledBack: "Package rolled back",
         lockSaved: "Run package lock saved",
         driftChecked: "Drift check completed",
+        legacySynced: "{{count}} legacy package records synced",
       },
     },
   },

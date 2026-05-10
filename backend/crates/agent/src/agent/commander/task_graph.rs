@@ -452,6 +452,14 @@ pub fn plan_task_graph(task_id: &TaskId, task: &str, route: Option<&RoleRoute>) 
     plan_fallback_chat_graph(task_id, task)
 }
 
+pub fn plan_quick_chat_graph(task_id: &TaskId, task: &str) -> Option<TaskGraph> {
+    let graph = plan_configured_task_graph(task_id, task)?;
+    let [node] = graph.nodes.as_slice() else {
+        return None;
+    };
+    (node.role == "chat" && node.input_refs.is_empty()).then_some(graph)
+}
+
 fn plan_route_task_graph(
     task_id: &TaskId,
     task: &str,
@@ -460,10 +468,12 @@ fn plan_route_task_graph(
     let route = route?;
     let mut roles = Vec::new();
     roles.push(route.primary_runtime_role.clone());
-    roles.extend(route.support_runtime_roles.iter().cloned());
+    if should_include_route_support_roles(task, route) {
+        roles.extend(route.support_runtime_roles.iter().cloned());
+    }
     roles.retain(|role| role != "chat");
     roles.dedup();
-    if roles.len() < 2 {
+    if roles.is_empty() {
         return None;
     }
 
@@ -494,6 +504,30 @@ fn plan_route_task_graph(
         root_task: task.to_string(),
         nodes,
     })
+}
+
+fn should_include_route_support_roles(task: &str, route: &RoleRoute) -> bool {
+    if route.support_runtime_roles.is_empty() {
+        return false;
+    }
+    if route.primary_runtime_role == "data" {
+        return true;
+    }
+
+    let lower = task.to_lowercase();
+    contains_any(
+        &lower,
+        &[
+            "多智能体",
+            "多岗位",
+            "多角色",
+            "协作",
+            "协同",
+            "一起",
+            "分工",
+            "虚拟员工",
+        ],
+    )
 }
 
 fn route_node_title(role: &str) -> String {
@@ -831,7 +865,11 @@ fn plan_configured_task_graph(task_id: &TaskId, task: &str) -> Option<TaskGraph>
             return None;
         }
     };
-    plan_task_graph_from_rules(task_id, task, &rules)
+    let graph = plan_task_graph_from_rules(task_id, task, &rules)?;
+    if is_quick_chat_graph(&graph) && !is_quick_chat_task(task) {
+        return None;
+    }
+    Some(graph)
 }
 
 fn resolve_task_graph_rules_path(path: &str) -> Option<PathBuf> {
@@ -868,6 +906,38 @@ fn plan_task_graph_from_rules(
 ) -> Option<TaskGraph> {
     let rule = rules.rules.iter().find(|rule| rule.matches(task))?;
     Some(build_configured_task_graph(task_id, task, rule))
+}
+
+fn is_quick_chat_graph(graph: &TaskGraph) -> bool {
+    let [node] = graph.nodes.as_slice() else {
+        return false;
+    };
+    node.role == "chat" && node.input_refs.is_empty()
+}
+
+fn is_quick_chat_task(task: &str) -> bool {
+    let task = task.trim().to_lowercase();
+    if task.is_empty() {
+        return false;
+    }
+    let exact = [
+        "hi",
+        "hello",
+        "hey",
+        "你好",
+        "您好",
+        "嗨",
+        "哈喽",
+        "在吗",
+        "早上好",
+        "中午好",
+        "下午好",
+        "晚上好",
+    ];
+    if exact.iter().any(|value| task == *value) {
+        return true;
+    }
+    task.chars().count() <= 8 && exact.iter().any(|value| task.contains(value))
 }
 
 impl TaskGraphRule {
@@ -1140,7 +1210,7 @@ fn evaluate_quality_contract(report: &WorkerReport, output: &RoleWorkOutput) -> 
     if output.summary.chars().count() < 8 {
         reasons.push("quality completeness: summary is too thin".to_string());
     }
-    if output.findings.is_empty() && output.recommendations.is_empty() {
+    if report.role != "chat" && output.findings.is_empty() && output.recommendations.is_empty() {
         reasons.push("quality completeness: no findings or recommendations".to_string());
     }
     if contains_any(
@@ -1258,7 +1328,7 @@ fn evaluate_role_output(role: &str, output: &RoleWorkOutput) -> Vec<String> {
     if output.summary.trim().is_empty() {
         reasons.push("role output summary is empty".to_string());
     }
-    if open_questions_are_blocking(Some(output), &output.open_questions) {
+    if role != "chat" && open_questions_are_blocking(Some(output), &output.open_questions) {
         reasons.push("role output has open questions".to_string());
     }
     if output.summary.contains("已调用")
@@ -1452,20 +1522,6 @@ mod tests {
     }
 
     #[test]
-    fn planner_falls_back_to_chat_when_no_configured_graph_matches() {
-        let graph = plan_task_graph(
-            &TaskId("task-2".to_string()),
-            "分析转化率下降并给运营调整方案",
-            None,
-        );
-
-        assert_eq!(graph.nodes.len(), 1);
-        assert_eq!(graph.nodes[0].role, "chat");
-        assert_eq!(graph.nodes[0].max_attempts, 1);
-        assert!(graph.nodes[0].input_refs.is_empty());
-    }
-
-    #[test]
     fn planner_adds_finance_and_creative_for_douyin_holiday_conversion_plan() {
         let rules_path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../config/json/agent/task-graph-rules.json");
@@ -1495,6 +1551,38 @@ mod tests {
         assert_eq!(creative.input_refs, vec![data.id.clone()]);
         assert!(ops.input_refs.contains(&accounting.id));
         assert!(ops.input_refs.contains(&creative.id));
+    }
+
+    #[test]
+    fn role_split_task_matches_ops_data_creative_rule() {
+        let rules_path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../config/json/agent/task-graph-rules.json");
+        let rules = load_task_graph_rules(rules_path).expect("configured graph rules should load");
+        let graph = plan_task_graph_from_rules(
+            &TaskId("task-role-split".to_string()),
+            "请按运营、数据、内容三个虚拟员工分工，说明咖啡新品首周该怎么启动。",
+            &rules,
+        )
+        .expect("role split task should match configured graph");
+
+        let roles = graph
+            .nodes
+            .iter()
+            .map(|node| node.role.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(roles, vec!["ops", "data", "creative"]);
+
+        let ops = graph.nodes.iter().find(|node| node.role == "ops").unwrap();
+        let data = graph.nodes.iter().find(|node| node.role == "data").unwrap();
+        let creative = graph
+            .nodes
+            .iter()
+            .find(|node| node.role == "creative")
+            .unwrap();
+
+        assert!(data.input_refs.contains(&ops.id));
+        assert!(creative.input_refs.contains(&ops.id));
+        assert!(ops.objective.contains("咖啡新品首周"));
     }
 
     #[test]
@@ -1568,6 +1656,26 @@ mod tests {
         assert_eq!(graph.nodes[0].role, "chat");
         assert!(graph.nodes[0].input_refs.is_empty());
         assert_eq!(graph.nodes[0].max_attempts, 1);
+    }
+
+    #[test]
+    fn quick_chat_helper_only_matches_configured_chat_rules() {
+        let chat_graph = plan_quick_chat_graph(&TaskId("task-chat".to_string()), "hi")
+            .expect("hi should use quick chat graph");
+        assert_eq!(chat_graph.nodes.len(), 1);
+        assert_eq!(chat_graph.nodes[0].role, "chat");
+
+        let business_graph = plan_quick_chat_graph(
+            &TaskId("task-business".to_string()),
+            "请分析转化漏斗：曝光10000 点击500 加购120 下单60 付款54",
+        );
+        assert!(business_graph.is_none());
+
+        let greeting_business_graph = plan_quick_chat_graph(
+            &TaskId("task-greeting-business".to_string()),
+            "你好，请分析转化漏斗：曝光10000 点击500 加购120 下单60 付款54",
+        );
+        assert!(greeting_business_graph.is_none());
     }
 
     #[test]
@@ -1698,38 +1806,76 @@ mod tests {
 
     #[test]
     fn planner_prioritizes_service_role_for_support_workflows() {
+        let route = crate::roles::RoleRouter::default().route(crate::roles::RoleRouteInput {
+            message: "客服团队近期投诉和退款增加，请设计一套售后SOP".to_string(),
+            domain_id: Some("domain.general".to_string()),
+            action: None,
+            max_roles: 3,
+        });
         let graph = plan_task_graph(
             &TaskId("task-service".to_string()),
             "客服团队近期投诉和退款增加，请设计一套售后SOP",
-            None,
+            Some(&route),
         );
 
         assert_eq!(graph.nodes.len(), 1);
-        assert_eq!(graph.nodes[0].role, "chat");
+        assert_eq!(graph.nodes[0].role, "service");
     }
 
     #[test]
     fn planner_prioritizes_engineering_role_for_sla_incidents() {
+        let route = crate::roles::RoleRouter::default().route(crate::roles::RoleRouteInput {
+            message: "系统接口延迟升高并影响SLA，请给出架构排查和回滚方案".to_string(),
+            domain_id: Some("domain.general".to_string()),
+            action: None,
+            max_roles: 3,
+        });
         let graph = plan_task_graph(
             &TaskId("task-engineering".to_string()),
             "系统接口延迟升高并影响SLA，请给出架构排查和回滚方案",
-            None,
+            Some(&route),
         );
 
         assert_eq!(graph.nodes.len(), 1);
-        assert_eq!(graph.nodes[0].role, "chat");
+        assert_eq!(graph.nodes[0].role, "engineering");
     }
 
     #[test]
     fn planner_prioritizes_web_role_for_seo_workflows() {
+        let route = crate::roles::RoleRouter::default().route(crate::roles::RoleRouteInput {
+            message: "为跨境电商独立站制定SEO关键词集群、标题优化和收录策略".to_string(),
+            domain_id: Some("domain.general".to_string()),
+            action: None,
+            max_roles: 3,
+        });
         let graph = plan_task_graph(
             &TaskId("task-web".to_string()),
             "为跨境电商独立站制定SEO关键词集群、标题优化和收录策略",
-            None,
+            Some(&route),
         );
 
         assert_eq!(graph.nodes.len(), 1);
-        assert_eq!(graph.nodes[0].role, "chat");
+        assert_eq!(graph.nodes[0].role, "web");
+    }
+
+    #[test]
+    fn planner_routes_single_data_funnel_task_to_data_role() {
+        let task = "请分析转化漏斗：曝光10000 点击500 加购120 下单60 付款54";
+        let route = crate::roles::RoleRouter::default().route(crate::roles::RoleRouteInput {
+            message: task.to_string(),
+            domain_id: Some("domain.general".to_string()),
+            action: None,
+            max_roles: 3,
+        });
+        let graph = plan_task_graph(&TaskId("task-funnel".to_string()), task, Some(&route));
+
+        assert_eq!(graph.nodes[0].role, "data");
+        assert_eq!(
+            graph.nodes[0].worker_id,
+            WorkerId("worker.data".to_string())
+        );
+        assert!(graph.nodes[0].input_refs.is_empty());
+        assert!(graph.nodes.iter().any(|node| node.role == "ops"));
     }
 
     #[test]
@@ -2314,6 +2460,35 @@ mod tests {
             task_id: TaskId("task-web-seo".to_string()),
             worker_id: WorkerId("worker.web".to_string()),
             role: "web".to_string(),
+            content: role_output.summary.clone(),
+            role_output: Some(role_output),
+            evidence: Vec::new(),
+            risks: Vec::new(),
+            open_questions: Vec::new(),
+            status: WorkerReportStatus::Completed,
+        };
+
+        let evaluation = evaluate_report(&report, None, &HashMap::new());
+
+        assert!(evaluation.passed, "{:?}", evaluation.reasons);
+    }
+
+    #[test]
+    fn chat_role_allows_direct_answer_without_findings() {
+        let role_output = RoleWorkOutput {
+            summary: "可以回答。本轮建议由运营、数据和内容创意三个虚拟员工参与。".to_string(),
+            findings: Vec::new(),
+            recommendations: Vec::new(),
+            evidence: Vec::new(),
+            risks: Vec::new(),
+            open_questions: vec!["还需要补充首周预算、目标平台和库存边界。".to_string()],
+        };
+        let report = WorkerReport {
+            graph_id: TaskGraphId("graph-chat-direct".to_string()),
+            node_id: TaskNodeId("chat".to_string()),
+            task_id: TaskId("task-chat-direct".to_string()),
+            worker_id: WorkerId("worker.chat".to_string()),
+            role: "chat".to_string(),
             content: role_output.summary.clone(),
             role_output: Some(role_output),
             evidence: Vec::new(),

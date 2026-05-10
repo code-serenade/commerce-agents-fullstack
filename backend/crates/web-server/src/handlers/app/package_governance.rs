@@ -60,14 +60,16 @@ use crate::{
         ProductMaterialResponse, ProductResponse, RegisterAppUserRequest,
         RegisterConversationFileRequest, RegisterProductAssetRequest, SaveChannelConnectionRequest,
         SavePackageLocksRequest, SavePlatformConnectionRequest, SaveStoreMetricRequest,
-        SnoozeAlertRequest, StoreMetricListResponse, StoreMetricResponse, ToolApprovalListResponse,
-        ToolApprovalResponse, UpdateCampaignRequest, UpdateChannelConnectionRequest,
-        UpdateConversationRequest, UpdateLongTaskRequest, UpdatePackageRequest,
-        UpdatePlatformConnectionRequest, UpdateProductAssetRequest, UpdateProductCompetitorRequest,
-        UpdateProductKnowledgeRequest, UpdateProductMaterialRequest, UpdateProductRequest,
-        UpdateWorkspaceRequest, UpdateWorkspaceRunRequest, UpdateWorkspaceRunTaskRequest,
-        UpdateWorkspaceTaskRequest, UpsertDailyBriefingRecordRequest, UpsertPackageRequest,
-        WorkspaceListResponse, WorkspaceResponse, WorkspaceRunListResponse, WorkspaceRunResponse,
+        SnoozeAlertRequest, StoreMetricListResponse, StoreMetricResponse,
+        SyncLegacyBuiltinPackagesRequest, SyncLegacyBuiltinPackagesResponse,
+        ToolApprovalListResponse, ToolApprovalResponse, UpdateCampaignRequest,
+        UpdateChannelConnectionRequest, UpdateConversationRequest, UpdateLongTaskRequest,
+        UpdatePackageRequest, UpdatePlatformConnectionRequest, UpdateProductAssetRequest,
+        UpdateProductCompetitorRequest, UpdateProductKnowledgeRequest,
+        UpdateProductMaterialRequest, UpdateProductRequest, UpdateWorkspaceRequest,
+        UpdateWorkspaceRunRequest, UpdateWorkspaceRunTaskRequest, UpdateWorkspaceTaskRequest,
+        UpsertDailyBriefingRecordRequest, UpsertPackageRequest, WorkspaceListResponse,
+        WorkspaceResponse, WorkspaceRunListResponse, WorkspaceRunResponse,
         WorkspaceRunTaskResponse, WorkspaceTaskListResponse, WorkspaceTaskResponse,
     },
     error::{Error, from_biz_error},
@@ -118,6 +120,25 @@ pub async fn upsert_package(
             metadata: req.metadata,
             reason: req.reason,
         })
+        .await
+        .map_err(from_biz_error)?;
+
+    Ok(response.into_common_response().to_json())
+}
+
+pub async fn sync_legacy_builtin_packages(
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<SyncLegacyBuiltinPackagesRequest>,
+) -> ResponseResult<SyncLegacyBuiltinPackagesResponse> {
+    req.validate().map_err(Error::from)?;
+    let api = PackageGovernanceApi::new(get_app_ctx());
+    let response = api
+        .sync_legacy_builtin_packages(
+            service::dto::package_governance::SyncLegacyBuiltinPackagesRequest {
+                user_id: auth_user.user_id,
+                reset_status: req.reset_status,
+            },
+        )
         .await
         .map_err(from_biz_error)?;
 

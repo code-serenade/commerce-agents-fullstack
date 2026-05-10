@@ -8,7 +8,7 @@ use crate::{
     agent::{
         commander::{
             Commander, CommanderChannels, CommanderOptions, CommanderSessionContext,
-            TaskGraphRuntime, plan_task_graph,
+            TaskGraphRuntime, plan_quick_chat_graph,
         },
         worker::Worker,
     },
@@ -381,7 +381,7 @@ impl SessionRuntime {
         if self.commander_fast_route_disabled() {
             return None;
         }
-        let graph = plan_task_graph(task_id, &self.task_description, None);
+        let graph = plan_quick_chat_graph(task_id, &self.task_description)?;
         let [node] = graph.nodes.as_slice() else {
             return None;
         };

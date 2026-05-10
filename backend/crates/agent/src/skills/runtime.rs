@@ -738,6 +738,63 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn executor_runs_native_creative_content_skills() {
+        let executor = SkillExecutorSet::staged().expect("executor should load");
+        let cases = [
+            (
+                "creative_video_script",
+                json!({"product_name": "冷萃咖啡", "video_type": "种草", "duration": 30, "platform": "抖音"}),
+            ),
+            (
+                "creative_seeding_copy",
+                json!({"product_name": "冷萃咖啡", "target_audience": "通勤白领"}),
+            ),
+            (
+                "creative_ip_branding",
+                json!({"brand_name": "千乐咖啡", "category": "咖啡饮品"}),
+            ),
+            (
+                "creative_content_calendar",
+                json!({"period": "周", "weekly_posts": 5}),
+            ),
+            (
+                "creative_trend_catch",
+                json!({"category": "咖啡饮品", "platform": "抖音"}),
+            ),
+            (
+                "creative_live_script",
+                json!({"duration_hours": 2.0, "product_count": 4, "platform": "抖音"}),
+            ),
+            (
+                "creative_product_article",
+                json!({"product_name": "冷萃咖啡", "article_type": "测评软文"}),
+            ),
+        ];
+
+        for (index, (skill_id, input)) in cases.into_iter().enumerate() {
+            let result = executor
+                .execute(SkillRequest::new(
+                    format!("req-creative-native-{index}"),
+                    skill_id,
+                    input,
+                ))
+                .await;
+            assert_eq!(
+                result.status,
+                SkillExecutionStatus::Success,
+                "{skill_id} failed: {:?}",
+                result.error
+            );
+            assert_eq!(
+                result.metadata.get("execution_mode"),
+                Some(&json!(SkillExecutionMode::Native)),
+                "{skill_id} used unexpected execution mode"
+            );
+            assert!(result.output.is_some(), "{skill_id} returned no output");
+        }
+    }
+
+    #[tokio::test]
     async fn executor_validates_required_input() {
         let executor = SkillExecutorSet::staged().expect("executor should load");
         let result = executor

@@ -162,6 +162,27 @@ impl Cognition for SkillRequestWorkerCognition {
     }
 }
 
+struct AutosuggestSkillWorkerCognition;
+
+#[async_trait]
+impl Cognition for AutosuggestSkillWorkerCognition {
+    async fn evaluate(&self, _input: CognitionInput) -> CognitionResult {
+        CognitionResult::Success(json!({
+            "decision": {
+                "kind": "NoAction"
+            },
+            "role_output": {
+                "summary": "需要先分析转化漏斗，但本轮模型没有显式输出 skill_requests。",
+                "findings": ["曝光到点击存在待验证断点", "点击到加购需要拆分承接"],
+                "recommendations": ["先跑漏斗分析", "再判断页面和投放动作"],
+                "evidence": ["原始任务"],
+                "risks": ["缺少真实口径时只能做初步判断"],
+                "open_questions": []
+            }
+        }))
+    }
+}
+
 struct CapturingWorkerCognition {
     runtime_role: Arc<Mutex<Option<String>>>,
 }
@@ -329,7 +350,7 @@ async fn role_worker_receives_role_context() {
             workspace_id: None,
             agent_id: AgentId("role-agent".to_string()),
             session_id: SessionId("role-session-context".to_string()),
-            input: "帮我做一个运营增长方案".to_string(),
+            input: "你能解释一下这个 agent 是什么吗".to_string(),
             metadata: Default::default(),
         })
         .await
@@ -493,8 +514,8 @@ async fn commander_uses_role_router_when_target_worker_is_missing() {
         .expect("request should complete");
 
     let runtime_roles = runtime_roles.lock().expect("lock role set capture");
-    assert!(runtime_roles.contains("chat"));
-    assert!(!runtime_roles.contains("data"));
+    assert!(runtime_roles.contains("data"));
+    assert!(!runtime_roles.contains("chat"));
 }
 
 #[tokio::test]
@@ -888,6 +909,143 @@ async fn stream_emits_skill_execution_events() {
                 && execution_mode.as_deref() == Some("native")
                 && risk_level.as_deref() == Some("low")
                 && approval_required == &Some(false)
+        )
+    }));
+}
+
+#[tokio::test]
+async fn stream_emits_autosuggested_skill_events_when_worker_omits_tool_json() {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(|| Ok(Box::new(AutosuggestSkillWorkerCognition))),
+    ));
+
+    let mut metadata = BTreeMap::new();
+    metadata.insert("strategy.id".to_string(), "collab".to_string());
+    metadata.insert(
+        "strategy.collaboration_mode".to_string(),
+        "manual".to_string(),
+    );
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-autosuggest-skill".to_string()),
+            input: "请分析转化漏斗：曝光10000 点击500 加购120 下单60 付款54".to_string(),
+            metadata,
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    while let Some(event) = rx.recv().await {
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::SkillRequested {
+                skill_id,
+                role,
+                reason,
+                ..
+            } if skill_id == "data_funnel_analysis"
+                && role == "data"
+                && reason
+                    .as_deref()
+                    .is_some_and(|value| value.contains("自动补偿漏斗分析"))
+        )
+    }));
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::SkillResult {
+                skill_id,
+                role,
+                status,
+                execution_mode,
+                risk_level,
+                ..
+            } if skill_id == "data_funnel_analysis"
+                && role == "data"
+                && status == "success"
+                && execution_mode.as_deref() == Some("native")
+                && risk_level.as_deref() == Some("low")
+        )
+    }));
+}
+
+#[tokio::test]
+async fn stream_routes_default_funnel_question_to_data_skill_without_manual_collab() {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(|| Ok(Box::new(AutosuggestSkillWorkerCognition))),
+    ));
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-default-funnel-skill".to_string()),
+            input: "请分析转化漏斗：曝光10000 点击500 加购120 下单60 付款54".to_string(),
+            metadata: Default::default(),
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    while let Some(event) = rx.recv().await {
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::RouteDecided {
+                route_mode,
+                primary_runtime_role,
+                ..
+            } if route_mode == "task_graph"
+                && primary_runtime_role.as_deref() == Some("data")
+        )
+    }));
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::SkillRequested {
+                skill_id,
+                role,
+                ..
+            } if skill_id == "data_funnel_analysis" && role == "data"
+        )
+    }));
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::SkillResult {
+                skill_id,
+                role,
+                status,
+                ..
+            } if skill_id == "data_funnel_analysis"
+                && role == "data"
+                && status == "success"
         )
     }));
 }

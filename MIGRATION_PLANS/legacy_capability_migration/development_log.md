@@ -1,5 +1,76 @@
 # 迁移开发记录
 
+## 9/12：登录态恢复与旧产品内置能力包治理同步
+
+状态：done
+
+本次目标：
+
+- 修复登录后刷新或直接访问受保护页面误跳 `/login` 的问题。
+- 把旧产品 `server/packages` 中的内置 domain、role、skill manifest 同步到新产品能力包治理目录。
+- 为后续迁移旧产品 skill runtime、外部搜索、平台执行、教学/导出/素材能力建立可治理的 package/capability 台账。
+
+涉及范围：
+
+- 产品内核：能力包治理目录开始承接旧产品 skill 生态，不再只能手动录入。
+- 后端：新增 `POST /api/app/packages/sync-legacy-builtins`；复用 `package_registry` 和 `package_state_history`；批量同步使用事务。
+- API：更新 `API_DOCS/app.md`，记录同步接口、请求、响应和运行边界。
+- 前端：修复 auth restore 与 `RequireAuth` 的时序；能力包页增加同步旧产品能力包按钮。
+
+用户可感知变化：
+
+- 登录后刷新 `/packages`、`/products` 等页面不会再误跳登录。
+- 能力包治理页点击“同步旧产品能力包”后，会出现旧产品内置能力包目录，例如 `Builtin Ops Skill Pack`。
+- 同步后的能力包可以继续被搜索、筛选、校验、启停、回滚和保存运行锁。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo check`
+- [x] `cargo clippy`
+- [x] `pnpm -C frontend/apps/web rules`
+- [x] `pnpm -C frontend/apps/web lint`
+- [x] `pnpm -C frontend/apps/web test`
+- [x] `pnpm -C frontend/apps/web build`
+- [x] 测试账号真实 HTTP smoke：首次同步创建 52 条记录，其中 20 条来自旧 manifest，32 条为派生 capability；`builtin.ops` 和 `role.ops-strategist` 校验通过。
+- [x] 浏览器自动化：登录后直达/刷新 `/packages`、`/products` 均不跳登录；能力包页可见同步按钮和 `Builtin Ops Skill Pack`。
+- [x] LLM 分层验证：云端 `/v1/models` 可访问，`gpt-oss:20b` 直接 chat/completions 返回 `LLM_OK`。
+- [x] Agent 验证：`ollama_task_graph_smoke` 和真实 `/api/sse/agent/session/stream` 协同任务均跑通，真实 SSE 包含 `task_graph_planned`、`output`、`finished`。
+
+## 10/12：Agent 代表 Skill 自动补偿触发
+
+状态：done
+
+本次目标：
+
+- 解决真实问答中过度依赖 LLM 主动输出 `skill_requests` JSON 的问题。
+- 当模型没有显式请求 skill 时，由后端按岗位、任务文本、上下文和上游结果自动补偿一个代表 skill。
+- 保持补偿请求仍走角色白名单、`SkillExecutorSet`、SSE 事件和 worker report 合并链路。
+
+涉及范围：
+
+- 产品内核：skill 触发从“只依赖模型显式 JSON”升级为“模型显式请求优先 + 后端岗位自动补偿”。
+- 后端：修改 Agent worker runtime；新增 ops/data/accounting/service/creative/web/design/engineering 岗位补偿规则；收紧 chat bypass，只让短问候绕过 commander；新增 stream 级测试。
+- API：更新 `API_DOCS/sse.md`，说明 `skill_requested` 可能来自模型显式请求或后端自动补偿。
+- 前端：本阶段不改前端；沿用既有 `skill_requested` / `skill_result` 展示链路。
+
+用户可感知变化：
+
+- 用户在问答页提出数据漏斗、运营计划、ROI、退换货、标题优化、素材规格等问题时，即使模型没有主动写工具调用 JSON，过程面板也更稳定出现真实能力调用。
+- 例如“请分析转化漏斗：曝光10000 点击500 加购120 下单60 付款54”默认会进入 data/ops 岗位任务图，并触发 `data_funnel_analysis`。
+- “hi/你好”仍保持快速聊天，不启动多岗位流程。
+- 外部搜索、内容生成、平台执行等未接 adapter 的能力仍会明确返回 `deferred` 或 `pending_approval`，不会伪造结果。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p agent autosuggest`
+- [x] `cargo test -p agent stream_emits_autosuggested_skill_events_when_worker_omits_tool_json`
+- [x] `cargo test -p agent --test default_roles`
+- [x] 真实云端 Ollama smoke：默认漏斗问题已输出 `task_graph_planned`、`skill_requested`、`skill_result`、`output`
+
 ## 1/8：问答策略 metadata 与后端路由事件
 
 状态：done
@@ -369,3 +440,41 @@
 
 - 冒烟测试确认 workspace run 状态应使用 `succeeded`，不能使用 `completed`。
 - 后端反馈响应中的学习记录嵌套字段可能是 snake_case，前端 API client 已归一化。
+
+## 12/12：创意内容类 Skill Native 迁移
+
+状态：done
+
+本次目标：
+
+- 把旧产品创意岗位的短视频脚本、种草文案、IP 定位、内容排期、趋势捕捉、直播脚本、产品软文迁移为新产品 Agent runtime 的 Rust native skill。
+- 解决这些 skill 只返回 `deferred` 骨架、用户看不到可用内容产物的问题。
+- 扩展 creative 岗位自动补偿规则，让模型没显式输出 `skill_requests` 时，后端也能按创意意图命中对应 skill。
+
+涉及范围：
+
+- 产品内核：创意虚拟员工从“标题 CTR 评分为主”升级为“可直接生成内容方案、脚本、话术、排期和软文”的岗位能力。
+- 后端：`backend/crates/agent/src/skills/creative.rs`、`backend/crates/agent/src/agent/worker/runner.rs`、`backend/crates/agent/src/skills/runtime.rs`。
+- API：不新增接口，不修改 SSE 请求结构；沿用 `skill_requested` / `skill_result`。
+- 前端：本阶段不改前端，继续展示后端真实 SSE 事件和最终回答。
+- 文档：新增 Phase 12 后端设计和迁移归档，更新 skill 迁移矩阵。
+
+用户可感知变化：
+
+- 用户在问答里说“写抖音短视频脚本”“生成小红书种草文案”“做品牌 IP 定位”“排一周内容日历”“写直播带货话术”“写产品软文”“分析内容趋势”时，后端会更稳定触发对应 creative skill。
+- 过程区能看到真实 skill 调用结果，结果状态是 success/native，而不是“内容引擎未接入”的 deferred。
+- 当前结果是结构化文本产物：脚本结构、文案标题、正文草稿、直播阶段话术、内容排期和趋势方向；暂不生成图片、视频或 docx 文件。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p agent executor_runs_native_creative_content_skills`
+- [x] `cargo test -p agent autosuggests_creative_content_skill_by_intent`
+- [x] `cargo test -p agent`
+- [x] `cargo check -p agent`
+
+后续缺口：
+
+- 外部搜索实时趋势 adapter 未接入。
+- creative skill 尚未按真实 `product_id` 自动读取商品详情。
+- 素材文件、视频、图片、导出报告仍是后续阶段。

@@ -122,7 +122,7 @@ data: {"type":"approval_required","approval":{"id":"approval-uuid","workspaceId"
 | `commander_thinking` | commander 正在规划或调度 |
 | `route_decided` | 后端已识别策略和路由模式，包含策略、主角色和支持角色 |
 | `worker_started` / `worker_finished` | 单个 worker 开始或完成 |
-| `skill_requested` | worker 已按模型结构化输出请求调用某个 skill，包含请求 ID、skill ID、角色和原因 |
+| `skill_requested` | worker 请求调用某个 skill，包含请求 ID、skill ID、角色和原因；请求来源可能是模型显式 `skill_requests`，也可能是后端按岗位/任务自动补偿的代表 skill |
 | `skill_result` | skill 已返回执行结果，包含状态、摘要、错误、执行模式、风险等级和是否需要审批 |
 | `collaboration_started` / `collaboration_worker_started` / `collaboration_worker_finished` / `collaboration_finished` | 多 worker 协作过程 |
 | `task_graph_planned` / `task_graph_finished` | 任务图规划或完成 |
@@ -130,6 +130,14 @@ data: {"type":"approval_required","approval":{"id":"approval-uuid","workspaceId"
 | `output` | agent 产生最终输出 |
 | `failed` | agent session 失败 |
 | `finished` | agent session 完成 |
+
+`skill_requested` 的触发来源：
+
+- 模型显式输出 `skill_requests` 时，后端优先执行模型请求，不再追加自动补偿。
+- 模型没有输出 `skill_requests` 时，后端可根据当前 worker 岗位、任务文本、上下文摘要和上游结果，自动补偿一个代表 skill 请求。
+- 自动补偿仍走角色白名单、`SkillExecutorSet`、真实 `skill_result` 和结果合并链路，不绕过权限，也不伪造前端事件。
+- 自动补偿不会直接执行高风险平台写操作；平台写操作仍返回 `pending_approval` 并进入审批链路。
+- 需要外部搜索、内容引擎、平台数据或未接 adapter 的能力会返回 `deferred`，不会伪造外部资料或平台执行结果。
 
 `skill_result.status` 当前使用：`success`、`deferred`、`pending_approval`、`not_found`、`validation_error`、`failed`。其中 `pending_approval` 和 `approval_required=true` 表示后端没有直接执行平台写操作，需要进入审批或人工确认链路；`deferred` 表示 skill 已被识别但依赖搜索、外部数据、数据库或平台适配器，当前不会伪造结果。
 

@@ -341,7 +341,7 @@ impl Worker {
     }
 
     async fn execute_requested_skills(&mut self, task: &Task, output: &str) {
-        let requests = parse_skill_requests(output);
+        let requests = resolve_skill_requests(&self.role, task, output);
         if requests.is_empty() {
             return;
         }
@@ -457,6 +457,650 @@ fn skill_not_allowed_result(
             "skill '{skill_id}' is not allowed for role '{runtime_role}'"
         )),
     }
+}
+
+fn resolve_skill_requests(
+    role: &RoleProfile,
+    task: &Task,
+    output: &str,
+) -> Vec<ParsedSkillRequest> {
+    let requests = parse_skill_requests(output);
+    if !requests.is_empty() {
+        return requests;
+    }
+    autosuggest_skill_requests(role, task, output)
+}
+
+fn autosuggest_skill_requests(
+    role: &RoleProfile,
+    task: &Task,
+    output: &str,
+) -> Vec<ParsedSkillRequest> {
+    let text = autosuggest_text(task, output);
+    let Some(request) = autosuggest_for_role(role.runtime_role.as_str(), &text, task) else {
+        return Vec::new();
+    };
+    vec![request]
+}
+
+fn autosuggest_for_role(runtime_role: &str, text: &str, task: &Task) -> Option<ParsedSkillRequest> {
+    match runtime_role {
+        "ops" => autosuggest_ops(text, task),
+        "data" => autosuggest_data(text, task),
+        "accounting" => autosuggest_accounting(text, task),
+        "service" => autosuggest_service(text, task),
+        "creative" => autosuggest_creative(text, task),
+        "web" => autosuggest_web(text, task),
+        "design" => autosuggest_design(text, task),
+        "engineering" => autosuggest_engineering(text, task),
+        _ => None,
+    }
+}
+
+fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
+    if contains_any(
+        text,
+        &["price", "pricing", "cost", "定价", "价格", "售价", "成本"],
+    ) {
+        let numbers = numbers_in_text(text);
+        if text.contains("成本") || text.to_ascii_lowercase().contains("cost") {
+            let cost = numbers.first().copied().unwrap_or(1.0).max(0.01);
+            return Some(autosuggest_request(
+                "ops_pricing_strategy",
+                serde_json::json!({
+                    "cost": cost,
+                    "competitor_prices": numbers.iter().copied().skip(1).collect::<Vec<_>>(),
+                    "platform": infer_platform(text),
+                }),
+                "根据运营定价意图自动补偿定价策略 skill",
+            ));
+        }
+    }
+
+    if contains_any(text, &["inventory", "stock", "库存", "补货", "备货"]) {
+        let numbers = numbers_in_text(text);
+        if numbers.len() >= 2 {
+            return Some(autosuggest_request(
+                "ops_inventory_planning",
+                serde_json::json!({
+                    "avg_daily_demand": numbers[0].max(0.0),
+                    "lead_time_days": numbers[1].round().max(1.0) as i64,
+                    "platform": infer_platform(text),
+                }),
+                "根据库存/补货意图自动补偿库存规划 skill",
+            ));
+        }
+    }
+
+    if contains_any(
+        text,
+        &[
+            "campaign",
+            "promotion",
+            "promo",
+            "活动",
+            "促销",
+            "大促",
+            "五一",
+            "618",
+            "双11",
+        ],
+    ) {
+        let numbers = numbers_in_text(text);
+        if let Some(budget) = numbers.first().copied().filter(|value| *value >= 100.0) {
+            return Some(autosuggest_request(
+                "ops_promo_planning",
+                serde_json::json!({
+                    "product": compact_task_text(&task.description),
+                    "budget": budget,
+                    "platform": infer_platform(text),
+                }),
+                "根据活动/促销意图自动补偿促销策划 skill",
+            ));
+        }
+    }
+
+    Some(autosuggest_request(
+        "ops_execution_plan",
+        serde_json::json!({
+            "goal": compact_task_text(&task.description),
+            "stage": infer_stage(text),
+        }),
+        "根据运营岗位任务自动补偿执行计划 skill",
+    ))
+}
+
+fn autosuggest_data(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
+    if contains_any(text, &["anomaly", "异常", "波动", "下滑", "暴涨", "暴跌"]) {
+        let values = numbers_in_text(text);
+        return Some(autosuggest_request(
+            "data_anomaly_diagnosis",
+            serde_json::json!({
+                "metric_name": infer_metric(text),
+                "values": values,
+            }),
+            "根据异常诊断意图自动补偿数据异常 skill",
+        ));
+    }
+
+    if contains_any(text, &["trend", "forecast", "预测", "趋势"]) {
+        let values = numbers_in_text(text);
+        return Some(autosuggest_request(
+            "data_trend_forecast",
+            serde_json::json!({
+                "metric_name": infer_metric(text),
+                "values": values,
+                "forecast_periods": 7,
+            }),
+            "根据趋势/预测意图自动补偿趋势预测 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
+        &["customer", "segment", "rfm", "客户", "人群", "分层"],
+    ) {
+        return Some(autosuggest_request(
+            "data_customer_segmentation",
+            serde_json::json!({}),
+            "根据客户分层意图自动补偿 RFM skill",
+        ));
+    }
+
+    let numbers = numbers_in_text(text);
+    let mut input = serde_json::Map::new();
+    if numbers.len() >= 5 {
+        input.insert(
+            "impressions".to_string(),
+            serde_json::json!(numbers[0].round() as i64),
+        );
+        input.insert(
+            "clicks".to_string(),
+            serde_json::json!(numbers[1].round() as i64),
+        );
+        input.insert(
+            "add_to_cart".to_string(),
+            serde_json::json!(numbers[2].round() as i64),
+        );
+        input.insert(
+            "orders".to_string(),
+            serde_json::json!(numbers[3].round() as i64),
+        );
+        input.insert(
+            "payments".to_string(),
+            serde_json::json!(numbers[4].round() as i64),
+        );
+    }
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(infer_platform(text)),
+    );
+    Some(autosuggest_request(
+        "data_funnel_analysis",
+        serde_json::Value::Object(input),
+        "根据数据/转化意图自动补偿漏斗分析 skill",
+    ))
+}
+
+fn autosuggest_accounting(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
+    let numbers = numbers_in_text(text);
+    if contains_any(text, &["roi", "roas", "投产", "投入产出", "回报"]) {
+        return Some(autosuggest_request(
+            "accounting_roi_calc",
+            serde_json::json!({
+                "investment": numbers.first().copied(),
+                "revenue_generated": numbers.get(1).copied(),
+            }),
+            "根据 ROI/投产意图自动补偿 ROI 计算 skill",
+        ));
+    }
+
+    if contains_any(text, &["cost", "margin", "成本", "毛利"]) && numbers.len() >= 2 {
+        return Some(autosuggest_request(
+            "accounting_cost_calc",
+            serde_json::json!({
+                "purchase_cost": numbers[0],
+                "selling_price": numbers[1],
+            }),
+            "根据成本/毛利意图自动补偿成本核算 skill",
+        ));
+    }
+
+    if contains_any(text, &["profit", "利润", "盈利", "亏损"]) {
+        return Some(autosuggest_request(
+            "accounting_profit_analysis",
+            serde_json::json!({
+                "revenue": numbers.first().copied().unwrap_or(0.0),
+            }),
+            "根据利润分析意图自动补偿利润分析 skill",
+        ));
+    }
+
+    Some(autosuggest_request(
+        "accounting_budget_plan",
+        serde_json::json!({}),
+        "根据财务岗位任务自动补偿预算编制 skill",
+    ))
+}
+
+fn autosuggest_service(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
+    if contains_any(text, &["return", "refund", "退款", "退货", "换货", "售后"]) {
+        return Some(autosuggest_request(
+            "service_return_handler",
+            serde_json::json!({
+                "reason": infer_return_reason(text),
+                "days_since_receipt": numbers_in_text(text).first().copied().map(|value| value.round() as i64),
+            }),
+            "根据退换货/售后意图自动补偿退换货处理 skill",
+        ));
+    }
+
+    Some(autosuggest_request(
+        "service_dsr_improvement",
+        serde_json::json!({}),
+        "根据客服岗位任务自动补偿 DSR 提升 skill",
+    ))
+}
+
+fn autosuggest_creative(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
+    if contains_any(text, &["live", "直播"]) {
+        return Some(autosuggest_request(
+            "creative_live_script",
+            serde_json::json!({
+                "duration_hours": numbers_in_text(text).first().copied().unwrap_or(3.0).clamp(0.5, 12.0),
+                "product_count": 6,
+                "live_type": if contains_any(text, &["new", "新品"]) { "新品首发" } else { "日常带货" },
+                "platform": infer_platform(text),
+            }),
+            "根据直播/内容任务自动补偿直播脚本 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
+        &[
+            "video",
+            "short video",
+            "短视频",
+            "视频脚本",
+            "拍摄脚本",
+            "开箱",
+            "测评",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "creative_video_script",
+            serde_json::json!({
+                "product_name": compact_task_text(&task.description),
+                "video_type": infer_video_type(text),
+                "duration": numbers_in_text(text).first().copied().unwrap_or(30.0).round().clamp(10.0, 180.0) as i64,
+                "platform": infer_platform(text),
+            }),
+            "根据短视频/脚本意图自动补偿短视频脚本 skill",
+        ));
+    }
+
+    if contains_any(text, &["seeding", "种草", "笔记", "小红书", "分享文案"]) {
+        return Some(autosuggest_request(
+            "creative_seeding_copy",
+            serde_json::json!({
+                "product_name": compact_task_text(&task.description),
+                "target_audience": infer_audience(text),
+                "tone": if contains_any(text, &["测评", "专业"]) { "专业测评" } else { "闺蜜分享" },
+            }),
+            "根据种草/笔记意图自动补偿种草文案 skill",
+        ));
+    }
+
+    if contains_any(text, &["ip", "IP", "人设", "定位", "账号定位", "品牌定位"]) {
+        return Some(autosuggest_request(
+            "creative_ip_branding",
+            serde_json::json!({
+                "brand_name": compact_task_text(&task.description),
+                "category": infer_category(text),
+                "target_audience": infer_audience(text),
+                "differentiator": "专业+有温度",
+                "platform": infer_platform(text),
+            }),
+            "根据 IP/品牌定位意图自动补偿 IP 定位 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
+        &["calendar", "schedule", "排期", "日历", "内容计划", "选题"],
+    ) {
+        return Some(autosuggest_request(
+            "creative_content_calendar",
+            serde_json::json!({
+                "period": if contains_any(text, &["月", "monthly", "month"]) { "月" } else { "周" },
+                "platforms": [infer_platform(text), "小红书"],
+                "weekly_posts": numbers_in_text(text).first().copied().unwrap_or(5.0).round().clamp(1.0, 14.0) as i64,
+            }),
+            "根据内容排期/选题意图自动补偿内容排期 skill",
+        ));
+    }
+
+    if contains_any(text, &["trend", "hot", "趋势", "热点", "爆款", "流行"]) {
+        return Some(autosuggest_request(
+            "creative_trend_catch",
+            serde_json::json!({
+                "category": infer_category(text),
+                "platform": infer_platform(text),
+            }),
+            "根据趋势/热点意图自动补偿趋势捕捉 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
+        &[
+            "article",
+            "soft article",
+            "软文",
+            "长文",
+            "推广文章",
+            "公众号",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "creative_product_article",
+            serde_json::json!({
+                "product_name": compact_task_text(&task.description),
+                "article_type": if contains_any(text, &["对比"]) { "对比评测" } else if contains_any(text, &["攻略"]) { "使用攻略" } else { "测评软文" },
+                "platform": if text.contains("小红书") { "小红书" } else { "微信公众号" },
+            }),
+            "根据软文/推广文章意图自动补偿产品软文 skill",
+        ));
+    }
+
+    Some(autosuggest_request(
+        "creative_title_ctr_scorer",
+        serde_json::json!({
+            "title": extract_title_candidate(text).unwrap_or_else(|| compact_task_text(&task.description)),
+            "platform": infer_platform(text),
+        }),
+        "根据创意岗位任务自动补偿标题 CTR 评分 skill",
+    ))
+}
+
+fn autosuggest_web(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
+    if contains_any(
+        text,
+        &["page", "conversion", "页面", "转化", "详情页", "落地页"],
+    ) {
+        return Some(autosuggest_request(
+            "web_page_conversion",
+            serde_json::json!({
+                "page_type": infer_page_type(text),
+                "platform": infer_platform(text),
+            }),
+            "根据页面转化意图自动补偿页面转化 skill",
+        ));
+    }
+
+    Some(autosuggest_request(
+        "web_title_seo_scorer",
+        serde_json::json!({
+            "title": extract_title_candidate(text).unwrap_or_else(|| compact_task_text(&task.description)),
+            "target_keywords": extract_keyword_candidates(text),
+            "platform": infer_platform(text),
+        }),
+        "根据 Web/SEO 岗位任务自动补偿标题 SEO 评分 skill",
+    ))
+}
+
+fn autosuggest_design(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
+    if contains_any(text, &["material", "asset", "素材", "规格", "尺寸"]) {
+        return Some(autosuggest_request(
+            "design_material_spec",
+            serde_json::json!({
+                "usage": infer_design_usage(text),
+                "platforms": [infer_platform(text)],
+            }),
+            "根据素材/规格意图自动补偿素材规范 skill",
+        ));
+    }
+
+    Some(autosuggest_request(
+        "design_main_image",
+        serde_json::json!({
+            "product_name": compact_task_text(&task.description),
+            "platform": infer_platform(text),
+        }),
+        "根据设计岗位任务自动补偿主图设计 skill",
+    ))
+}
+
+fn autosuggest_engineering(_text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
+    Some(autosuggest_request(
+        "engineering_sla_monitor",
+        serde_json::json!({}),
+        "根据工程岗位任务自动补偿 SLA 监控 skill",
+    ))
+}
+
+fn autosuggest_request(
+    skill_id: impl Into<String>,
+    input: serde_json::Value,
+    reason: impl Into<String>,
+) -> ParsedSkillRequest {
+    ParsedSkillRequest {
+        skill_id: skill_id.into(),
+        input,
+        reason: Some(reason.into()),
+    }
+}
+
+fn autosuggest_text(task: &Task, output: &str) -> String {
+    let mut parts = vec![task.description.clone(), output.to_string()];
+    for key in [
+        "context.summary",
+        "context.source_titles",
+        "rag.summary",
+        "rag.source_titles",
+    ] {
+        if let Some(value) = task.context.metadata.get(key) {
+            parts.push(value.clone());
+        }
+    }
+    if let Some(assignment) = &task.assignment {
+        parts.push(assignment.objective.clone());
+        parts.extend(assignment.inputs.iter().map(|input| input.content.clone()));
+    }
+    parts.join("\n")
+}
+
+fn contains_any(text: &str, needles: &[&str]) -> bool {
+    let lower = text.to_ascii_lowercase();
+    needles
+        .iter()
+        .any(|needle| text.contains(needle) || lower.contains(&needle.to_ascii_lowercase()))
+}
+
+fn numbers_in_text(text: &str) -> Vec<f64> {
+    let mut values = Vec::new();
+    let mut current = String::new();
+    for ch in text.chars() {
+        if ch.is_ascii_digit() || ch == '.' {
+            current.push(ch);
+            continue;
+        }
+        push_parsed_number(&mut values, &mut current);
+    }
+    push_parsed_number(&mut values, &mut current);
+    values
+}
+
+fn push_parsed_number(values: &mut Vec<f64>, current: &mut String) {
+    if current.is_empty() {
+        return;
+    }
+    if let Ok(value) = current.parse::<f64>()
+        && value.is_finite()
+    {
+        values.push(value);
+    }
+    current.clear();
+}
+
+fn infer_platform(text: &str) -> &'static str {
+    let lower = text.to_ascii_lowercase();
+    if text.contains("抖音") || lower.contains("douyin") || lower.contains("tiktok") {
+        "抖音"
+    } else if text.contains("京东") || lower.contains("jd") {
+        "京东"
+    } else if text.contains("拼多多") || lower.contains("pdd") {
+        "拼多多"
+    } else if text.contains("快手") {
+        "快手"
+    } else {
+        "淘宝"
+    }
+}
+
+fn infer_stage(text: &str) -> &'static str {
+    if contains_any(text, &["cold start", "new product", "冷启动", "新品"]) {
+        "冷启动"
+    } else if contains_any(text, &["mature", "成熟"]) {
+        "成熟期"
+    } else if contains_any(text, &["decline", "衰退"]) {
+        "衰退期"
+    } else {
+        "成长期"
+    }
+}
+
+fn infer_metric(text: &str) -> &'static str {
+    let lower = text.to_ascii_lowercase();
+    if text.contains("转化") || lower.contains("conversion") || lower.contains("cvr") {
+        "conversion_rate"
+    } else if lower.contains("order") || text.contains("订单") {
+        "orders"
+    } else if lower.contains("uv") || text.contains("访客") {
+        "uv"
+    } else {
+        "gmv"
+    }
+}
+
+fn infer_return_reason(text: &str) -> &'static str {
+    if text.contains("质量") {
+        "质量问题"
+    } else if text.contains("发错") {
+        "发错货"
+    } else if text.contains("破损") {
+        "破损"
+    } else if text.contains("尺码") || text.contains("大小") {
+        "尺码不合"
+    } else {
+        "不喜欢"
+    }
+}
+
+fn infer_page_type(text: &str) -> &'static str {
+    if text.contains("详情") || text.to_ascii_lowercase().contains("detail") {
+        "商品详情"
+    } else if text.contains("购物车") || text.to_ascii_lowercase().contains("cart") {
+        "购物车"
+    } else if text.contains("结算") || text.to_ascii_lowercase().contains("checkout") {
+        "结算"
+    } else if text.contains("列表") || text.to_ascii_lowercase().contains("listing") {
+        "列表页"
+    } else {
+        "首页"
+    }
+}
+
+fn infer_design_usage(text: &str) -> &'static str {
+    if text.contains("详情") {
+        "详情页"
+    } else if text.contains("信息流") || text.contains("广告") {
+        "信息流广告"
+    } else if text.contains("直播") {
+        "直播封面"
+    } else {
+        "主图套组"
+    }
+}
+
+fn infer_video_type(text: &str) -> &'static str {
+    if contains_any(text, &["review", "测评"]) {
+        "测评"
+    } else if contains_any(text, &["tutorial", "教程", "教学", "怎么用"]) {
+        "教程"
+    } else if contains_any(text, &["plot", "story", "剧情"]) {
+        "剧情"
+    } else if contains_any(text, &["unbox", "开箱"]) {
+        "开箱"
+    } else {
+        "种草"
+    }
+}
+
+fn infer_audience(text: &str) -> &'static str {
+    if contains_any(text, &["student", "学生"]) {
+        "学生用户"
+    } else if contains_any(text, &["office", "commute", "通勤", "白领", "上班"]) {
+        "通勤白领"
+    } else if contains_any(text, &["mom", "妈妈", "宝妈", "家庭"]) {
+        "家庭消费人群"
+    } else if contains_any(text, &["young", "年轻", "女生", "女性"]) {
+        "年轻女性"
+    } else {
+        "目标消费者"
+    }
+}
+
+fn infer_category(text: &str) -> &'static str {
+    if contains_any(text, &["coffee", "咖啡", "饮品"]) {
+        "咖啡饮品"
+    } else if contains_any(text, &["beauty", "美妆", "护肤"]) {
+        "美妆护肤"
+    } else if contains_any(text, &["food", "食品", "零食"]) {
+        "食品零食"
+    } else if contains_any(text, &["clothes", "服饰", "穿搭"]) {
+        "服饰穿搭"
+    } else if contains_any(text, &["home", "家居", "家电"]) {
+        "家居生活"
+    } else {
+        "电商消费品"
+    }
+}
+
+fn extract_title_candidate(text: &str) -> Option<String> {
+    for quote in ['"', '\'', '“', '”', '「', '」'] {
+        let mut parts = text.split(quote);
+        let _ = parts.next();
+        if let Some(candidate) = parts
+            .next()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            return Some(compact_task_text(candidate));
+        }
+    }
+    None
+}
+
+fn extract_keyword_candidates(text: &str) -> Vec<String> {
+    ["SEO", "关键词", "标题", "转化", "新品", "直播", "抖音"]
+        .iter()
+        .filter(|keyword| text.contains(**keyword))
+        .map(|keyword| (*keyword).to_string())
+        .take(4)
+        .collect()
+}
+
+fn compact_task_text(value: &str) -> String {
+    let trimmed = value.trim();
+    const MAX_CHARS: usize = 80;
+    if trimmed.chars().count() <= MAX_CHARS {
+        return trimmed.to_string();
+    }
+    let mut output = trimmed.chars().take(MAX_CHARS).collect::<String>();
+    output.push_str("...");
+    output
 }
 
 fn build_context(
@@ -1036,8 +1680,101 @@ fn next_message_id() -> MessageId {
 
 #[cfg(test)]
 mod tests {
-    use super::{merge_skill_results, parse_skill_requests, parse_worker_role_output};
-    use crate::skills::{SkillExecutionResult, SkillExecutionStatus, SkillId};
+    use super::{
+        autosuggest_skill_requests, merge_skill_results, parse_skill_requests,
+        parse_worker_role_output, resolve_skill_requests,
+    };
+    use crate::{
+        core::protocol::MessageContext,
+        roles::{RoleCatalog, RoleProfile},
+        skills::{SkillExecutionResult, SkillExecutionStatus, SkillId},
+    };
+
+    fn role(runtime_role: &str) -> RoleProfile {
+        RoleCatalog::builtin()
+            .roles()
+            .iter()
+            .find(|role| role.runtime_role == runtime_role)
+            .expect("role should exist")
+            .clone()
+    }
+
+    fn task(description: &str) -> super::Task {
+        super::Task {
+            id: "task-autosuggest".to_string(),
+            context: MessageContext::default(),
+            description: description.to_string(),
+            requester: crate::core::protocol::AgentId("test".to_string()),
+            assignment: None,
+        }
+    }
+
+    #[test]
+    fn explicit_skill_requests_are_not_overridden_by_autosuggest() {
+        let requests = resolve_skill_requests(
+            &role("accounting"),
+            &task("calculate ROI"),
+            r#"{
+              "skill_requests": [
+                {
+                  "skill_id": "accounting_cost_calc",
+                  "input": {"purchase_cost": 20, "selling_price": 49}
+                }
+              ]
+            }"#,
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "accounting_cost_calc");
+    }
+
+    #[test]
+    fn autosuggests_ops_execution_plan_without_llm_tool_json() {
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task("help plan a new product launch and conversion improvement"),
+            r#"{"role_output":{"summary":"Need an operations plan."}}"#,
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_execution_plan");
+        assert_eq!(requests[0].input["stage"], "冷启动");
+    }
+
+    #[test]
+    fn autosuggests_data_funnel_analysis_from_metric_task() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task(
+                "analyze conversion funnel: impressions 10000 clicks 500 cart 120 orders 60 payments 54",
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_funnel_analysis");
+        assert_eq!(requests[0].input["impressions"], 10000);
+        assert_eq!(requests[0].input["clicks"], 500);
+    }
+
+    #[test]
+    fn autosuggests_creative_content_skill_by_intent() {
+        let cases = [
+            ("帮冷萃咖啡写一条抖音短视频脚本", "creative_video_script"),
+            ("生成小红书种草笔记文案", "creative_seeding_copy"),
+            ("给千乐咖啡做品牌IP人设定位", "creative_ip_branding"),
+            ("排一周内容日历和选题", "creative_content_calendar"),
+            ("分析咖啡饮品在抖音的内容趋势", "creative_trend_catch"),
+            ("写一篇冷萃咖啡产品软文", "creative_product_article"),
+            ("写直播带货开场话术", "creative_live_script"),
+        ];
+
+        for (prompt, expected_skill) in cases {
+            let requests = autosuggest_skill_requests(&role("creative"), &task(prompt), "{}");
+            assert_eq!(requests.len(), 1, "{prompt}");
+            assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
+        }
+    }
 
     #[test]
     fn parses_structured_role_work_output() {

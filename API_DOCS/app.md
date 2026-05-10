@@ -3003,6 +3003,69 @@
 
 成功响应 `data`：`PackageResponse`。
 
+## 114.1 同步旧产品内置能力包
+
+- 方法：`POST`
+- 路径：`/api/app/packages/sync-legacy-builtins`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "resetStatus": false
+}
+```
+
+成功响应 `data`：
+
+```json
+{
+  "packages": [
+    {
+      "packageType": "skill",
+      "packageId": "builtin.ops",
+      "packageName": "Builtin Ops Skill Pack",
+      "version": "1.0.0",
+      "status": "active",
+      "manifestPath": "server/packages/skills/ops/manifest.yaml",
+      "dependencies": {
+        "capability": [
+          "ops.strategy",
+          "campaign.orchestration",
+          "inventory.optimization",
+          "pricing.optimization"
+        ]
+      },
+      "compatibility": {
+        "compatible": true,
+        "target": "commerce-agents-fullstack"
+      },
+      "metadata": {
+        "source": "legacy_builtin",
+        "legacyKind": "skill",
+        "runtimeStatus": "adapter_required",
+        "requiresAgentRuntimeAdapter": true
+      }
+    }
+  ],
+  "createdCount": 52,
+  "updatedCount": 0,
+  "totalCount": 52,
+  "manifestBackedCount": 20,
+  "derivedCapabilityCount": 32,
+  "resetStatus": false
+}
+```
+
+补充说明：
+
+- 本接口把旧产品 `server/packages` 中 4 个 domain、6 个 role、10 个 skill manifest 同步为当前用户的能力包治理记录。
+- 服务端还会从旧 manifest 的能力字段派生 `capability` 记录，用于后续能力矩阵、校验和运行锁治理。
+- 已存在包会更新名称、版本、manifest 路径、依赖、兼容性和 metadata；默认保留用户当前 `status`。
+- 只有传 `resetStatus=true` 时，已有包状态才会按旧 manifest 重置。
+- 该接口只同步治理目录，不动态修改 Agent runtime catalog，也不执行旧 Python skill。
+
 ## 115. 查询能力包详情
 
 - 方法：`GET`
