@@ -672,3 +672,50 @@
 - 图片、海报、长图文件生成未做。
 - 实时搜索量、CPC、竞品排名和店铺真实指标仍待外部搜索/平台数据 adapter。
 - 素材上传、导出报告和 workspace artifact 文件化仍需后续阶段补齐。
+
+## Post 8-7：客服处理 Skill Native 迁移
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 7 个问答补强项：`Post 8-7`。
+
+本次目标：
+
+- 把旧产品客服岗位中仍停留在 deferred 壳的工单处理、FAQ 话术库、升级流程迁为新产品 Rust Agent runtime 的 native 结构化能力。
+- 保持客服能力不伪造实时平台政策：本地 SOP 能给具体处理方案和话术，赔付标准、平台投诉口径、特殊类目规则仍明确需要后续 adapter 校验。
+- 扩展 service 岗位自动补偿规则，让自然语言客服任务能命中更准确的客服 skill。
+
+涉及范围：
+
+- 产品内核：客服虚拟员工从“DSR/退换货为主”升级为“能处理工单、FAQ、投诉升级、DSR、NPS和情绪识别”的岗位能力。
+- 后端：`backend/crates/agent/src/skills/service.rs`、`backend/crates/agent/src/agent/worker/runner.rs`、`backend/crates/agent/src/skills/runtime.rs`。
+- API：不新增接口，不修改 SSE 请求结构；沿用 `skill_requested` / `skill_result`。
+- 前端：本阶段不改前端，继续展示后端真实 SSE 事件和最终回答。
+- 文档：新增 Post 8-7 后端设计归档，更新 skill 迁移矩阵。
+
+用户可感知变化：
+
+- 用户问“客户投诉物流延迟很生气，生成工单处理话术”时，后端会触发 `service_ticket_handler`，输出优先级、SLA、处理策略、客服话术和升级条件。
+- 用户问“生成客服常见 FAQ 话术库”时，后端会触发 `service_faq_playbook`，输出简短版、详细版和处理指引。
+- 用户问“客户威胁投诉平台，需要主管升级处理流程”时，后端会触发 `service_escalation_flow`，输出严重度、升级路径、主管接管话术、赔偿建议和复核要求。
+- DSR 提升不再只是“骨架”，会给出对应维度的具体改善动作；真实店铺指标和实时平台政策仍会明确标注需要后续 adapter。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p agent executor_runs_native_service_support_skills`
+- [x] `cargo test -p agent autosuggests_service_support_skill_by_intent`
+- [x] `cargo test -p agent`
+- [x] `cargo check -p agent`
+- [x] `cargo clippy -p agent`
+- [x] `cargo check`
+- [x] `cargo clippy`
+
+后续缺口：
+
+- `service_query_product` 仍需要真实商品数据库/商品画像 adapter。
+- 平台最新退换货、投诉、赔付规则仍需要 `search_platform_policy` 或 `shop_policy` adapter。
+- 客服处理方案当前仍是结构化文本产物，尚未生成可下载客服 SOP 文档或工单 artifact 文件。

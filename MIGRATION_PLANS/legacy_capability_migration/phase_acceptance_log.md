@@ -274,3 +274,30 @@
 - 本阶段把旧产品设计/Web 岗位的内容方案类能力迁到新产品 Rust Agent runtime，当前以本地结构化文本产物为主。
 - 结果包括设计 brief、平台规格、配色 HEX、SEO 提排路径、关键词矩阵、标题候选、详情文案和页面转化 AB 测试清单。
 - 图片/长图文件生成、实时搜索量、CPC、店铺真实指标和素材文件化仍是后续阶段。
+
+## Post 8-7：客服处理 Skill Native 迁移
+
+状态：done
+
+验收项：
+
+- [x] 后端：`service_ticket_handler` 返回 native success，输出工单优先级、SLA、处理策略、客服话术和升级条件。
+- [x] 后端：`service_faq_playbook` 返回 native success，输出 FAQ 简短版、详细版和处理指引。
+- [x] 后端：`service_escalation_flow` 返回 native success，输出严重度、升级路径、主管话术、赔偿建议和复核模板。
+- [x] 后端：`service_dsr_improvement` 不再返回 deferred dependencies，输出 native DSR 改善方案。
+- [x] 后端：service 岗位自动补偿能按用户意图命中工单、FAQ、升级、退换货、DSR、NPS等客服 skill。
+- [x] 后端：结果通过既有 `SkillExecutorSet`、角色白名单和 SSE skill 事件链路输出。
+- [x] 前端：不新增假展示，沿用现有 `skill_requested` / `skill_result` / 最终回答。
+- [x] 验证：agent skill 执行测试通过。
+- [x] 验证：autosuggest 规则测试通过。
+- [x] 验证：`cargo test -p agent` 通过。
+- [x] 验证：`cargo check -p agent` 通过。
+- [x] 验证：`cargo clippy -p agent` 通过。
+- [x] 验证：`cargo check` 通过。
+- [x] 验证：`cargo clippy` 通过。
+
+当前说明：
+
+- 本阶段把旧产品客服岗位的工单、FAQ和升级处理能力迁到新产品 Rust Agent runtime，当前以本地结构化 SOP 和话术产物为主。
+- 结果包括优先级、SLA、客服话术、升级条件、FAQ答案、处理指引、主管接管话术、赔偿建议和 DSR 改善动作。
+- 实时平台政策、店铺真实售后规则、商品画像自动读取和客服 SOP 文档导出仍是后续阶段。

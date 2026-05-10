@@ -865,6 +865,66 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn executor_runs_native_service_support_skills() {
+        let executor = SkillExecutorSet::staged().expect("executor should load");
+        let cases = [
+            (
+                "service_ticket_handler",
+                json!({
+                    "issue_type": "物流延迟",
+                    "customer_message": "客户很生气，说快递三天没动，准备投诉平台",
+                    "customer_emotion": "威胁投诉"
+                }),
+            ),
+            (
+                "service_faq_playbook",
+                json!({
+                    "questions": ["什么时候发货？", "支持退货退款吗？怎么操作？"],
+                    "platform": "淘宝"
+                }),
+            ),
+            (
+                "service_escalation_flow",
+                json!({
+                    "issue_description": "客户威胁投诉平台，已经联系3次还没解决退款",
+                    "customer_emotion": "威胁投诉",
+                    "previous_contacts": 3
+                }),
+            ),
+            (
+                "service_dsr_improvement",
+                json!({
+                    "description_score": 4.5,
+                    "service_score": 4.3,
+                    "logistics_score": 4.7
+                }),
+            ),
+        ];
+
+        for (index, (skill_id, input)) in cases.into_iter().enumerate() {
+            let result = executor
+                .execute(SkillRequest::new(
+                    format!("req-service-native-{index}"),
+                    skill_id,
+                    input,
+                ))
+                .await;
+            assert_eq!(
+                result.status,
+                SkillExecutionStatus::Success,
+                "{skill_id} failed: {:?}",
+                result.error
+            );
+            assert_eq!(
+                result.metadata.get("execution_mode"),
+                Some(&json!(SkillExecutionMode::Native)),
+                "{skill_id} used unexpected execution mode"
+            );
+            assert!(result.output.is_some(), "{skill_id} returned no output");
+        }
+    }
+
+    #[tokio::test]
     async fn executor_validates_required_input() {
         let executor = SkillExecutorSet::staged().expect("executor should load");
         let result = executor

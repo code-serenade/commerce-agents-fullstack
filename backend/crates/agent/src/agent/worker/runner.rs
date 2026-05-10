@@ -683,7 +683,75 @@ fn autosuggest_accounting(text: &str, _task: &Task) -> Option<ParsedSkillRequest
     ))
 }
 
-fn autosuggest_service(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
+fn autosuggest_service(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
+    if contains_any(
+        text,
+        &["faq", "FAQ", "常见问题", "问答库", "标准话术", "话术库"],
+    ) {
+        return Some(autosuggest_request(
+            "service_faq_playbook",
+            serde_json::json!({
+                "questions": infer_faq_questions(text),
+                "platform": infer_platform(text),
+            }),
+            "根据FAQ/标准话术意图自动补偿FAQ话术库 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
+        &[
+            "ticket",
+            "工单",
+            "话术",
+            "客服话术",
+            "安抚",
+            "客户投诉",
+            "生气",
+            "很气",
+            "物流延迟",
+            "发错",
+            "质量问题",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "service_ticket_handler",
+            serde_json::json!({
+                "issue_type": infer_service_issue_type(text),
+                "customer_message": compact_task_text(&task.description),
+                "customer_emotion": infer_service_emotion(text),
+                "platform": infer_platform(text),
+            }),
+            "根据客服工单/话术意图自动补偿工单处理 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
+        &[
+            "upgrade",
+            "escalation",
+            "升级",
+            "主管",
+            "投诉平台",
+            "平台介入",
+            "曝光",
+            "举报",
+            "维权",
+            "威胁投诉",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "service_escalation_flow",
+            serde_json::json!({
+                "issue_description": compact_task_text(&task.description),
+                "customer_emotion": infer_service_emotion(text),
+                "previous_contacts": numbers_in_text(text).first().copied().map(|value| value.round() as i64),
+            }),
+            "根据客服升级/投诉意图自动补偿升级处理 skill",
+        ));
+    }
+
     if contains_any(text, &["return", "refund", "退款", "退货", "换货", "售后"]) {
         return Some(autosuggest_request(
             "service_return_handler",
@@ -695,9 +763,32 @@ fn autosuggest_service(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
         ));
     }
 
+    if contains_any(text, &["nps", "NPS", "满意度", "推荐值", "客户忠诚"]) {
+        return Some(autosuggest_request(
+            "service_nps_analyzer",
+            serde_json::json!({
+                "platform": infer_platform(text),
+            }),
+            "根据NPS/满意度意图自动补偿NPS分析 skill",
+        ));
+    }
+
+    if contains_any(text, &["情绪", "情感", "差评", "不满意", "愤怒", "投诉"]) {
+        return Some(autosuggest_request(
+            "service_sentiment_analyzer",
+            serde_json::json!({
+                "customer_text": compact_task_text(&task.description),
+                "platform": infer_platform(text),
+            }),
+            "根据客服情绪识别意图自动补偿情感分析 skill",
+        ));
+    }
+
     Some(autosuggest_request(
         "service_dsr_improvement",
-        serde_json::json!({}),
+        serde_json::json!({
+            "platform": infer_platform(text),
+        }),
         "根据客服岗位任务自动补偿 DSR 提升 skill",
     ))
 }
@@ -1095,6 +1186,72 @@ fn infer_return_reason(text: &str) -> &'static str {
     } else {
         "不喜欢"
     }
+}
+
+fn infer_service_issue_type(text: &str) -> &'static str {
+    if contains_any(text, &["物流", "快递", "未到", "延迟", "没收到"]) {
+        "物流延迟"
+    } else if contains_any(text, &["质量", "破损", "坏了", "假货", "描述不符"]) {
+        "质量问题"
+    } else if contains_any(text, &["退款", "退货", "换货", "售后"]) {
+        "退款退货"
+    } else if contains_any(text, &["发错", "少发", "漏发"]) {
+        "发错货"
+    } else if contains_any(text, &["投诉", "差评", "曝光", "维权", "举报"]) {
+        "投诉"
+    } else {
+        "售后咨询"
+    }
+}
+
+fn infer_service_emotion(text: &str) -> &'static str {
+    if contains_any(
+        text,
+        &["威胁投诉", "投诉平台", "曝光", "举报", "维权", "骗子"],
+    ) {
+        "威胁投诉"
+    } else if contains_any(text, &["愤怒", "生气", "气死", "垃圾", "太差"]) {
+        "愤怒"
+    } else if contains_any(text, &["着急", "急", "催", "怎么还", "等了"]) {
+        "焦虑"
+    } else if contains_any(text, &["满意", "好评", "谢谢"]) {
+        "满意"
+    } else {
+        "普通"
+    }
+}
+
+fn infer_faq_questions(text: &str) -> Vec<String> {
+    let mut questions = Vec::new();
+    if contains_any(text, &["发货", "物流", "时效"]) {
+        questions.push("什么时候发货？".to_owned());
+    }
+    if contains_any(text, &["退", "换", "退款", "售后"]) {
+        questions.push("支持退货退款吗？怎么操作？".to_owned());
+    }
+    if contains_any(text, &["质量", "正品"]) {
+        questions.push("质量有保障吗？".to_owned());
+    }
+    if contains_any(text, &["优惠", "价格", "活动"]) {
+        questions.push("有优惠活动吗？".to_owned());
+    }
+    if contains_any(text, &["尺码", "规格"]) {
+        questions.push("怎么选尺码/规格？".to_owned());
+    }
+    if questions.is_empty() {
+        questions.extend(
+            [
+                "什么时候发货？",
+                "支持退货退款吗？怎么操作？",
+                "质量有保障吗？",
+                "有优惠活动吗？",
+                "怎么选尺码/规格？",
+            ]
+            .iter()
+            .map(|value| (*value).to_owned()),
+        );
+    }
+    questions
 }
 
 fn infer_page_type(text: &str) -> &'static str {
@@ -1933,6 +2090,30 @@ mod tests {
 
         for (prompt, expected_skill) in cases {
             let requests = autosuggest_skill_requests(&role("design"), &task(prompt), "{}");
+            assert_eq!(requests.len(), 1, "{prompt}");
+            assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
+        }
+    }
+
+    #[test]
+    fn autosuggests_service_support_skill_by_intent() {
+        let cases = [
+            (
+                "客户投诉物流延迟很生气，生成工单处理话术",
+                "service_ticket_handler",
+            ),
+            ("生成客服常见FAQ话术库", "service_faq_playbook"),
+            (
+                "客户威胁投诉平台，需要主管升级处理流程",
+                "service_escalation_flow",
+            ),
+            ("客户要求退款退货，帮我处理售后", "service_return_handler"),
+            ("DSR下降，服务评分低，给提升方案", "service_dsr_improvement"),
+            ("分析客户NPS满意度和推荐值", "service_nps_analyzer"),
+        ];
+
+        for (prompt, expected_skill) in cases {
+            let requests = autosuggest_skill_requests(&role("service"), &task(prompt), "{}");
             assert_eq!(requests.len(), 1, "{prompt}");
             assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
         }
