@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import {
+  exportWorkspaceArtifactApi,
   getExecutionQueueApi,
   getWorkspaceArtifactApi,
   getWorkspaceApi,
@@ -128,6 +129,20 @@ export function useWorkspaceQueries({
   })
   const selectedArtifact =
     artifactDetailQuery.data ?? selectedArtifactSnapshot
+  const artifactExportQuery = useQuery({
+    queryKey: [
+      ...workspacesQueryKey,
+      workspaceId,
+      "artifacts",
+      selectedArtifact?.id,
+      "export",
+    ],
+    enabled: Boolean(workspaceId && selectedArtifact?.id),
+    queryFn: () =>
+      exportWorkspaceArtifactApi(workspaceId!, selectedArtifact!.id, {
+        format: selectedArtifact?.format,
+      }),
+  })
   const selectedExecutionSnapshot =
     executionQueueQuery.data?.items.find((item) => item.status === "pending") ??
     executionQueueQuery.data?.items[0] ??
@@ -145,6 +160,7 @@ export function useWorkspaceQueries({
 
   return {
     artifacts,
+    artifactExport: artifactExportQuery.data ?? null,
     executionQueue: executionQueueQuery.data?.items ?? [],
     focusedExecution:
       executionDetailQuery.data ?? selectedExecutionSnapshot,
@@ -158,7 +174,8 @@ export function useWorkspaceQueries({
       executionDetailQuery.isLoading ||
       runTasksQuery.isLoading ||
       artifactsQuery.isLoading ||
-      artifactDetailQuery.isLoading,
+      artifactDetailQuery.isLoading ||
+      artifactExportQuery.isLoading,
     runTasks: runTasksQuery.data ?? [],
     runs,
     selectedArtifact,

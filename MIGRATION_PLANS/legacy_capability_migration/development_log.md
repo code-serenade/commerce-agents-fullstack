@@ -1056,3 +1056,52 @@
 
 - 附件正文抽取/OCR/文档解析还没有实现，需要后续作为独立 adapter 接入。
 - 可读内容包已经进入 Agent metadata，但还可以继续做前端来源详情面板和 artifact 复用入口。
+
+## Post 8-15：工作区交付物导出能力
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 15 个补强项：`Post 8-15`。
+
+本次目标：
+
+- 把旧产品“回答原文 / 报告导出”迁到新产品 `workspace_artifacts` 后端体系。
+- 导出结果必须来自后端真实交付物，不由前端临时拼假文件。
+
+涉及范围：
+
+- 产品内核：交付物从“可查询详情”推进到“可复制、可下载、可治理导出”。
+- 后端 service：新增 `WorkspaceApi::export_artifact`。
+- Web-server：新增 `GET /api/app/workspaces/{workspaceId}/artifacts/{artifactId}/export`。
+- API：同步 `API_DOCS/app.md`。
+- 前端：工作区交付物详情接入导出 API，新增复制导出和下载导出。
+
+用户可感知变化：
+
+- 用户进入“执行工作区 -> 交付物”，选中报告或搜索证据后，可以复制后端导出的完整内容。
+- 用户可以下载 `.md`、`.txt` 或 `.json` 交付文件。
+- 如果交付物只有预览或对象存储引用，前端会显示后端 warning，说明当前导出限制。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo fmt --check`
+- [x] `cargo test -p service artifact_export`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo check`
+- [x] `cargo clippy`
+- [x] `pnpm -C apps/web rules`
+- [x] `pnpm -C apps/web lint`
+- [x] `pnpm -C apps/web test`
+- [x] `pnpm -C apps/web build`
+- [x] `pnpm rules`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 本轮不读取 object storage，不做 OCR、PDF、图片或视频解析。
+- 后续需要继续做附件正文抽取 adapter，以及导出历史/批量导出/正式文件服务。

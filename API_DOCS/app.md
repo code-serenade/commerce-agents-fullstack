@@ -1838,6 +1838,46 @@
 
 成功响应 `data`：`WorkspaceArtifactResponse`。
 
+### 导出工作区交付物
+
+- 方法：`GET`
+- 路径：`/api/app/workspaces/{workspaceId}/artifacts/{artifactId}/export`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `format` | `markdown \| text \| json` | 否 | 导出格式；不传时优先使用交付物原 `format`，无法识别时回退 `markdown` |
+| `includeMetadata` | `boolean` | 否 | 是否在导出内容和响应 `metadata` 中包含来源、校验、存储等元信息，默认 `false` |
+
+成功响应 `data`：
+
+```json
+{
+  "artifactId": "artifact-uuid",
+  "workspaceId": "workspace-uuid",
+  "title": "Agent final report",
+  "fileName": "Agent_final_report.md",
+  "mimeType": "text/markdown; charset=utf-8",
+  "format": "markdown",
+  "content": "# Agent final report\n\n最终回答正文",
+  "contentChars": 32,
+  "sourceFormat": "markdown",
+  "sourceStorageKind": "inline",
+  "metadata": {},
+  "warnings": []
+}
+```
+
+补充说明：
+
+- 导出接口只读取当前数据库里已经沉淀的 `content` 或 `preview`，不会读取 `bucket/objectKey` 对应的对象存储文件。
+- `content` 为空但 `preview` 有值时会导出 `preview`，并在 `warnings` 中说明。
+- `content` 和 `preview` 都为空时返回空内容和 warning，不伪造导出结果。
+- `storageKind` 不是 `inline` 时会给出 warning，提示对象存储正文未读取。
+- archived artifact 不允许导出，按不存在处理。
+
 ### 更新工作区交付物
 
 - 方法：`PATCH`

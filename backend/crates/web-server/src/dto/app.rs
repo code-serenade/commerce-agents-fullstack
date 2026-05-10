@@ -737,6 +737,14 @@ pub struct ListWorkspaceArtifactsQuery {
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
+pub struct ExportWorkspaceArtifactQuery {
+    #[validate(length(max = 32))]
+    pub format: Option<String>,
+    pub include_metadata: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
 pub struct ListAgentQualityChecksQuery {
     #[validate(range(min = 1))]
     pub page: Option<u64>,
@@ -1341,6 +1349,7 @@ pub type AgentQualityEvaluationResponse = service::dto::workspace::AgentQualityE
 pub type AgentRunFeedbackResponse = service::dto::workspace::AgentRunFeedbackResponse;
 pub type AgentLearningRecordListResponse = service::dto::workspace::AgentLearningRecordListResponse;
 pub type AgentTrustScoreListResponse = service::dto::workspace::AgentTrustScoreListResponse;
+pub type WorkspaceArtifactExportResponse = service::dto::workspace::WorkspaceArtifactExportResponse;
 pub type WorkspaceContextSummaryResponse = service::dto::workspace::WorkspaceContextSummaryResponse;
 pub type WorkspaceContextPackResponse = service::dto::workspace::WorkspaceContextPackResponse;
 

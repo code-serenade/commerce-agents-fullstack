@@ -245,6 +245,21 @@ export interface WorkspaceArtifactListResponse extends JsonRecord {
   pageSize: number
 }
 
+export interface WorkspaceArtifactExportResponse extends JsonRecord {
+  artifactId: string
+  workspaceId: string
+  title: string
+  fileName: string
+  mimeType: string
+  format: string
+  content: string
+  contentChars: number
+  sourceFormat: string
+  sourceStorageKind: string
+  metadata?: JsonRecord | null
+  warnings: string[]
+}
+
 export interface ExecutionQueueResponse extends JsonRecord {
   id: string
   workspaceId?: string | null
@@ -1254,6 +1269,17 @@ export const getWorkspaceArtifactApi = async (
   request<undefined, WorkspaceArtifactResponse>({
     method: "GET",
     url: `/api/app/workspaces/${workspaceId}/artifacts/${artifactId}`,
+  })
+
+export const exportWorkspaceArtifactApi = async (
+  workspaceId: string,
+  artifactId: string,
+  query?: { format?: string; includeMetadata?: boolean }
+): Promise<WorkspaceArtifactExportResponse> =>
+  request<{ format?: string; includeMetadata?: boolean }, WorkspaceArtifactExportResponse>({
+    method: "GET",
+    url: `/api/app/workspaces/${workspaceId}/artifacts/${artifactId}/export`,
+    body: query,
   })
 
 export const listExecutionQueueApi = async (

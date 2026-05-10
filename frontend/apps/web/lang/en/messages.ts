@@ -467,6 +467,12 @@ const messages = {
         artifactStorage: "Storage",
         artifactFile: "File",
         artifactRun: "Run",
+        artifactExport: "Export format",
+        artifactExportSize: "Export chars",
+      },
+      actions: {
+        copyExport: "Copy export",
+        downloadExport: "Download export",
       },
       columns: {
         workspace: "Workspace",

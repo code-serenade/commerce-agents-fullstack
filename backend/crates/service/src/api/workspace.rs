@@ -69,6 +69,7 @@ const MAX_CONTEXT_PACK_MAX_ITEMS: usize = 50;
 const DEFAULT_CONTEXT_PACK_MAX_CHARS: usize = 12_000;
 const MAX_CONTEXT_PACK_MAX_CHARS: usize = 24_000;
 const DEFAULT_CONTEXT_PACK_ITEM_CHARS: usize = 2_400;
+const DEFAULT_ARTIFACT_EXPORT_FORMAT: &str = "markdown";
 
 pub struct WorkspaceApi {
     db: DbContext,
@@ -843,6 +844,20 @@ impl WorkspaceApi {
             })
             .await?;
         Ok(())
+    }
+
+    pub async fn export_artifact(
+        &self,
+        req: ExportWorkspaceArtifactRequest,
+    ) -> BizResult<WorkspaceArtifactExportResponse> {
+        let (user_id, workspace_id) = self
+            .ensure_request_workspace(&req.user_id, &req.workspace_id)
+            .await?;
+        let artifact_id = parse_uuid(&req.artifact_id, "artifact_id")?;
+        let artifact = self
+            .ensure_active_artifact_owner(user_id, workspace_id, artifact_id)
+            .await?;
+        build_artifact_export(artifact, req.format, req.include_metadata.unwrap_or(false))
     }
 
     pub async fn context_summary(
@@ -2875,6 +2890,24 @@ impl WorkspaceApi {
         Ok(artifact)
     }
 
+    async fn ensure_active_artifact_owner(
+        &self,
+        user_id: Uuid,
+        workspace_id: Uuid,
+        artifact_id: Uuid,
+    ) -> BizResult<WorkspaceArtifact> {
+        let artifact = self
+            .ensure_artifact_owner(user_id, workspace_id, artifact_id)
+            .await?;
+        if artifact.status == WorkspaceArtifactStatus::Archived {
+            return Err(BizError::new(
+                app_error::WORKSPACE_ARTIFACT_NOT_FOUND,
+                "workspace artifact not found".to_string(),
+            ));
+        }
+        Ok(artifact)
+    }
+
     async fn resolve_artifact_links(
         &self,
         user_id: Uuid,
@@ -3419,6 +3452,242 @@ fn metadata_text_field(metadata: &Value, keys: &[&str]) -> Option<String> {
             .and_then(Value::as_str)
             .and_then(|value| normalize_string(value.to_string()))
     })
+}
+
+fn build_artifact_export(
+    artifact: WorkspaceArtifact,
+    requested_format: Option<String>,
+    include_metadata: bool,
+) -> BizResult<WorkspaceArtifactExportResponse> {
+    let source_format = normalize_export_label(&artifact.format)
+        .unwrap_or_else(|| DEFAULT_ARTIFACT_EXPORT_FORMAT.to_string());
+    let format = resolve_artifact_export_format(requested_format, &source_format)?;
+    let mut warnings = Vec::new();
+    let source_text = artifact
+        .content
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToString::to_string)
+        .or_else(|| {
+            artifact
+                .preview
+                .as_deref()
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(|value| {
+                    warnings
+                        .push("artifact content is empty; exported preview instead".to_string());
+                    value.to_string()
+                })
+        })
+        .unwrap_or_else(|| {
+            warnings.push("artifact has no inline content or preview".to_string());
+            String::new()
+        });
+    if artifact.storage_kind.trim() != "inline" {
+        warnings.push(format!(
+            "artifact storage kind is {}; object storage content was not read",
+            artifact.storage_kind
+        ));
+    }
+
+    let metadata = build_artifact_export_metadata(&artifact, include_metadata);
+    let content = match format.as_str() {
+        "markdown" => build_artifact_markdown_export(&artifact, &source_text, &metadata),
+        "text" => build_artifact_text_export(&artifact, &source_text, &metadata),
+        "json" => build_artifact_json_export(&artifact, &source_text, &metadata)?,
+        _ => unreachable!("export format should be validated before rendering"),
+    };
+    let file_name = build_artifact_export_file_name(&artifact, &format);
+    let mime_type = artifact_export_mime_type(&format).to_string();
+    let content_chars = content.chars().count();
+
+    Ok(WorkspaceArtifactExportResponse {
+        artifact_id: artifact.id.to_string(),
+        workspace_id: artifact.workspace_id.to_string(),
+        title: artifact.title,
+        file_name,
+        mime_type,
+        format,
+        content,
+        content_chars,
+        source_format,
+        source_storage_kind: artifact.storage_kind,
+        metadata,
+        warnings,
+    })
+}
+
+fn resolve_artifact_export_format(
+    requested_format: Option<String>,
+    source_format: &str,
+) -> BizResult<String> {
+    let requested_format = requested_format
+        .and_then(normalize_string)
+        .or_else(|| normalize_export_label(source_format))
+        .unwrap_or_else(|| DEFAULT_ARTIFACT_EXPORT_FORMAT.to_string());
+    let format = match requested_format.to_ascii_lowercase().as_str() {
+        "md" | "markdown" => "markdown",
+        "txt" | "text" | "plain" | "plaintext" => "text",
+        "json" => "json",
+        _ => {
+            return Err(BizError::new(
+                app_error::WORKSPACE_ARTIFACT_REQUEST_INVALID,
+                format!("unsupported artifact export format: {requested_format}"),
+            ));
+        }
+    };
+    Ok(format.to_string())
+}
+
+fn normalize_export_label(value: &str) -> Option<String> {
+    let value = value.trim().to_ascii_lowercase();
+    (!value.is_empty()).then_some(value)
+}
+
+fn build_artifact_export_metadata(artifact: &WorkspaceArtifact, include_metadata: bool) -> Value {
+    if !include_metadata {
+        return json!({});
+    }
+    json!({
+        "artifactId": artifact.id,
+        "workspaceId": artifact.workspace_id,
+        "runId": artifact.run_id,
+        "workspaceTaskId": artifact.workspace_task_id,
+        "runTaskId": artifact.run_task_id,
+        "artifactType": artifact.artifact_type,
+        "source": artifact.source,
+        "sourceFormat": artifact.format,
+        "sourceStorageKind": artifact.storage_kind,
+        "validationStatus": artifact.validation_status.as_str(),
+        "validationReport": artifact.validation_report,
+        "metadata": artifact.metadata,
+        "createdAt": artifact.created_at,
+        "updatedAt": artifact.updated_at,
+    })
+}
+
+fn build_artifact_markdown_export(
+    artifact: &WorkspaceArtifact,
+    source_text: &str,
+    metadata: &Value,
+) -> String {
+    let mut sections = vec![format!("# {}", artifact.title.trim())];
+    if !metadata
+        .as_object()
+        .map(|item| item.is_empty())
+        .unwrap_or(true)
+    {
+        sections.push(format!(
+            "```json\n{}\n```",
+            serde_json::to_string_pretty(metadata).unwrap_or_else(|_| "{}".to_string())
+        ));
+    }
+    if !source_text.trim().is_empty() {
+        sections.push(source_text.trim().to_string());
+    }
+    sections.join("\n\n")
+}
+
+fn build_artifact_text_export(
+    artifact: &WorkspaceArtifact,
+    source_text: &str,
+    metadata: &Value,
+) -> String {
+    let mut sections = vec![artifact.title.trim().to_string()];
+    if !metadata
+        .as_object()
+        .map(|item| item.is_empty())
+        .unwrap_or(true)
+    {
+        sections.push(serde_json::to_string_pretty(metadata).unwrap_or_else(|_| "{}".to_string()));
+    }
+    if !source_text.trim().is_empty() {
+        sections.push(source_text.trim().to_string());
+    }
+    sections.join("\n\n")
+}
+
+fn build_artifact_json_export(
+    artifact: &WorkspaceArtifact,
+    source_text: &str,
+    metadata: &Value,
+) -> BizResult<String> {
+    serde_json::to_string_pretty(&json!({
+        "artifactId": artifact.id,
+        "workspaceId": artifact.workspace_id,
+        "title": artifact.title,
+        "artifactType": artifact.artifact_type,
+        "sourceFormat": artifact.format,
+        "sourceStorageKind": artifact.storage_kind,
+        "content": source_text,
+        "metadata": metadata,
+    }))
+    .map_err(|err| {
+        BizError::new(
+            app_error::WORKSPACE_ARTIFACT_REQUEST_INVALID,
+            format!("failed to render artifact json export: {err}"),
+        )
+    })
+}
+
+fn build_artifact_export_file_name(artifact: &WorkspaceArtifact, format: &str) -> String {
+    let extension = artifact_export_extension(format);
+    if let Some(file_name) = artifact
+        .file_name
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        return replace_file_extension(file_name, extension);
+    }
+    let stem = artifact
+        .title
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' {
+                ch
+            } else {
+                '_'
+            }
+        })
+        .collect::<String>()
+        .trim_matches('_')
+        .to_string();
+    let stem = if stem.is_empty() {
+        artifact.id.to_string()
+    } else {
+        compact_text(&stem, 80)
+    };
+    format!("{stem}.{extension}")
+}
+
+fn replace_file_extension(file_name: &str, extension: &str) -> String {
+    let trimmed = file_name.trim();
+    let Some((stem, _)) = trimmed.rsplit_once('.') else {
+        return format!("{trimmed}.{extension}");
+    };
+    if stem.trim().is_empty() {
+        return format!("{trimmed}.{extension}");
+    }
+    format!("{stem}.{extension}")
+}
+
+fn artifact_export_extension(format: &str) -> &'static str {
+    match format {
+        "json" => "json",
+        "text" => "txt",
+        _ => "md",
+    }
+}
+
+fn artifact_export_mime_type(format: &str) -> &'static str {
+    match format {
+        "json" => "application/json; charset=utf-8",
+        "text" => "text/plain; charset=utf-8",
+        _ => "text/markdown; charset=utf-8",
+    }
 }
 
 fn build_context_pack_items(
@@ -4468,6 +4737,111 @@ mod tests {
         };
 
         assert!(build_search_evidence_artifact(&req).is_none());
+    }
+
+    #[test]
+    fn artifact_export_renders_markdown_and_metadata() {
+        let artifact = test_artifact(WorkspaceArtifactDraft {
+            title: "投放复盘报告",
+            content: Some("## 结论\n继续保留高 ROI 计划。"),
+            preview: Some("报告摘要"),
+            format: "markdown",
+            storage_kind: "inline",
+            file_name: Some("report.txt"),
+        });
+
+        let export = build_artifact_export(artifact, Some("markdown".to_string()), true).unwrap();
+
+        assert_eq!(export.format, "markdown");
+        assert_eq!(export.file_name, "report.md");
+        assert_eq!(export.mime_type, "text/markdown; charset=utf-8");
+        assert!(export.content.starts_with("# 投放复盘报告"));
+        assert!(export.content.contains("## 结论"));
+        assert_eq!(
+            export.metadata.get("artifactType").and_then(Value::as_str),
+            Some("final_report")
+        );
+        assert!(export.warnings.is_empty());
+    }
+
+    #[test]
+    fn artifact_export_uses_preview_when_content_is_empty() {
+        let artifact = test_artifact(WorkspaceArtifactDraft {
+            title: "search evidence",
+            content: None,
+            preview: Some("Sources: 3"),
+            format: "json",
+            storage_kind: "object",
+            file_name: None,
+        });
+
+        let export = build_artifact_export(artifact, Some("text".to_string()), false).unwrap();
+
+        assert_eq!(export.format, "text");
+        assert_eq!(export.file_name, "search_evidence.txt");
+        assert!(export.content.contains("Sources: 3"));
+        assert!(
+            export
+                .warnings
+                .iter()
+                .any(|warning| warning.contains("preview"))
+        );
+        assert!(
+            export
+                .warnings
+                .iter()
+                .any(|warning| warning.contains("object storage content was not read"))
+        );
+        assert_eq!(export.metadata, json!({}));
+    }
+
+    #[test]
+    fn artifact_export_rejects_unsupported_format() {
+        let err = resolve_artifact_export_format(Some("docx".to_string()), "markdown")
+            .expect_err("unsupported format should fail");
+
+        assert_eq!(err.code(), app_error::WORKSPACE_ARTIFACT_REQUEST_INVALID);
+    }
+
+    #[derive(Debug, Clone)]
+    struct WorkspaceArtifactDraft {
+        title: &'static str,
+        content: Option<&'static str>,
+        preview: Option<&'static str>,
+        format: &'static str,
+        storage_kind: &'static str,
+        file_name: Option<&'static str>,
+    }
+
+    fn test_artifact(draft: WorkspaceArtifactDraft) -> WorkspaceArtifact {
+        let now = OffsetDateTime::from_unix_timestamp(1_762_646_400).unwrap();
+        WorkspaceArtifact {
+            id: Uuid::parse_str("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa").unwrap(),
+            workspace_id: Uuid::parse_str("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb").unwrap(),
+            run_id: Some(Uuid::parse_str("cccccccc-cccc-cccc-cccc-cccccccccccc").unwrap()),
+            workspace_task_id: None,
+            run_task_id: None,
+            user_id: Uuid::parse_str("dddddddd-dddd-dddd-dddd-dddddddddddd").unwrap(),
+            artifact_type: "final_report".to_string(),
+            title: draft.title.to_string(),
+            content: draft.content.map(ToString::to_string),
+            preview: draft.preview.map(ToString::to_string),
+            mime_type: Some("text/markdown".to_string()),
+            format: draft.format.to_string(),
+            storage_kind: draft.storage_kind.to_string(),
+            bucket: None,
+            object_key: None,
+            file_name: draft.file_name.map(ToString::to_string),
+            file_size: None,
+            sha256: None,
+            source: "agent_session".to_string(),
+            status: WorkspaceArtifactStatus::Active,
+            validation_status: WorkspaceArtifactValidationStatus::Unchecked,
+            validation_report: json!({}),
+            metadata: json!({ "kind": "test" }),
+            created_at: now,
+            updated_at: now,
+        }
     }
 
     #[test]

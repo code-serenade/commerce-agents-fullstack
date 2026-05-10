@@ -267,6 +267,15 @@ pub struct DeleteWorkspaceArtifactRequest {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct ExportWorkspaceArtifactRequest {
+    pub user_id: String,
+    pub workspace_id: String,
+    pub artifact_id: String,
+    pub format: Option<String>,
+    pub include_metadata: Option<bool>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct GetWorkspaceContextSummaryRequest {
     pub user_id: String,
     pub workspace_id: String,
@@ -636,6 +645,23 @@ pub struct WorkspaceArtifactListResponse {
     pub total: u64,
     pub page: u64,
     pub page_size: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceArtifactExportResponse {
+    pub artifact_id: String,
+    pub workspace_id: String,
+    pub title: String,
+    pub file_name: String,
+    pub mime_type: String,
+    pub format: String,
+    pub content: String,
+    pub content_chars: usize,
+    pub source_format: String,
+    pub source_storage_kind: String,
+    pub metadata: Value,
+    pub warnings: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]

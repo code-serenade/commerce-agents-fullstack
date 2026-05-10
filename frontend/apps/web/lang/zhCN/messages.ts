@@ -467,6 +467,12 @@ const messages = {
         artifactStorage: "存储",
         artifactFile: "文件",
         artifactRun: "运行",
+        artifactExport: "导出格式",
+        artifactExportSize: "导出字数",
+      },
+      actions: {
+        copyExport: "复制导出",
+        downloadExport: "下载导出",
       },
       columns: {
         workspace: "工作区",

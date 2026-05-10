@@ -445,3 +445,23 @@
 - 本阶段解决的是“已有可读文本进入 Agent 问答链路”。
 - PDF/图片/视频等附件正文抽取仍未实现，需要后续独立 adapter。
 - 前端不会展示假读取状态，只展示后端返回的 `contentKind`、可读数量和警告。
+
+## Post 8-15：工作区交付物导出能力
+
+状态：done
+
+验收项：
+
+- [x] 后端：新增 `WorkspaceApi::export_artifact`。
+- [x] 后端：导出接口复用工作区和 artifact 归属校验，只允许当前用户导出自己的 active 交付物。
+- [x] 后端：支持 `markdown`、`text`、`json`，不支持的格式返回 `WORKSPACE_ARTIFACT_REQUEST_INVALID`。
+- [x] 后端：只导出 `workspace_artifacts.content` 或 `preview`，不读取 object storage，不伪造文件内容。
+- [x] Web-server：新增 `GET /api/app/workspaces/{workspaceId}/artifacts/{artifactId}/export`。
+- [x] API：`API_DOCS/app.md` 已同步。
+- [x] 前端：工作区交付物详情接入后端导出接口。
+- [x] 前端：用户可复制或下载后端导出的交付物内容。
+
+当前说明：
+
+- 本阶段解决的是旧产品“报告/原文导出”在新产品里的后端真实落点。
+- 对象存储文件下载、附件解析、OCR 和批量导出仍是后续独立能力。

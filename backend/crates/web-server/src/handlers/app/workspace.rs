@@ -43,9 +43,9 @@ use crate::{
         DailyBriefingListResponse, DailyBriefingQuery, DailyBriefingResponse,
         DailyBriefingSummaryResponse, DecideExecutionQueueRequest, DecideToolApprovalRequest,
         DismissAlertRequest, DismissAllAlertsRequest, EvaluateAgentRunQualityRequest,
-        ExecutionQueueListResponse, ExecutionQueueResponse, ListAgentLearningRecordsQuery,
-        ListAgentQualityChecksQuery, ListAgentTrustScoresQuery, ListAlertsQuery,
-        ListAuditLogsQuery, ListBackgroundEventsQuery, ListCampaignsQuery,
+        ExecutionQueueListResponse, ExecutionQueueResponse, ExportWorkspaceArtifactQuery,
+        ListAgentLearningRecordsQuery, ListAgentQualityChecksQuery, ListAgentTrustScoresQuery,
+        ListAlertsQuery, ListAuditLogsQuery, ListBackgroundEventsQuery, ListCampaignsQuery,
         ListChannelConnectionsQuery, ListCompetitorChangesQuery, ListDailyBriefingRecordsQuery,
         ListExecutionQueueQuery, ListLongTasksQuery, ListPackageCatalogQuery,
         ListPackageHistoryQuery, ListPlatformConnectionsQuery, ListProductAssetsQuery,
@@ -72,8 +72,8 @@ use crate::{
         UpdateProductMaterialRequest, UpdateProductRequest, UpdateWorkspaceArtifactRequest,
         UpdateWorkspaceRequest, UpdateWorkspaceRunRequest, UpdateWorkspaceRunTaskRequest,
         UpdateWorkspaceTaskRequest, UpsertDailyBriefingRecordRequest, UpsertPackageRequest,
-        WorkspaceArtifactListResponse, WorkspaceArtifactResponse, WorkspaceContextPackQuery,
-        WorkspaceContextPackResponse, WorkspaceContextSummaryQuery,
+        WorkspaceArtifactExportResponse, WorkspaceArtifactListResponse, WorkspaceArtifactResponse,
+        WorkspaceContextPackQuery, WorkspaceContextPackResponse, WorkspaceContextSummaryQuery,
         WorkspaceContextSummaryResponse, WorkspaceListResponse, WorkspaceResponse,
         WorkspaceRunListResponse, WorkspaceRunResponse, WorkspaceRunTaskResponse,
         WorkspaceTaskListResponse, WorkspaceTaskResponse,
@@ -606,6 +606,26 @@ pub async fn delete_workspace_artifact(
     .await
     .map_err(from_biz_error)?;
     Ok(().into_common_response().to_json())
+}
+
+pub async fn export_workspace_artifact(
+    Extension(auth_user): Extension<AuthUser>,
+    Path((workspace_id, artifact_id)): Path<(String, String)>,
+    Query(req): Query<ExportWorkspaceArtifactQuery>,
+) -> ResponseResult<WorkspaceArtifactExportResponse> {
+    req.validate().map_err(Error::from)?;
+    let api = WorkspaceApi::new(get_app_ctx());
+    let response = api
+        .export_artifact(service::dto::workspace::ExportWorkspaceArtifactRequest {
+            user_id: auth_user.user_id,
+            workspace_id,
+            artifact_id,
+            format: req.format,
+            include_metadata: req.include_metadata,
+        })
+        .await
+        .map_err(from_biz_error)?;
+    Ok(response.into_common_response().to_json())
 }
 
 pub async fn get_workspace_context_summary(

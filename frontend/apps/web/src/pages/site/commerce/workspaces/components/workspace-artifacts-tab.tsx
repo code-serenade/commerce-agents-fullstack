@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next"
-import { TabsContent } from "@workspace/ui-components"
+import { Copy, Download } from "lucide-react"
+import { Button, TabsContent } from "@workspace/ui-components"
 import {
   CommerceTable,
   MutedText,
@@ -12,7 +13,24 @@ import { createArtifactColumns } from "./workspace-table-columns"
 export function WorkspaceArtifactsTab({ page }: { page: WorkspacesPageState }) {
   const { t } = useTranslation()
   const artifact = page.selectedArtifact
-  const content = artifact?.content || artifact?.preview
+  const artifactExport = page.artifactExport
+  const content = artifactExport?.content || artifact?.content || artifact?.preview
+  const copyExport = () => {
+    if (!artifactExport?.content) return
+    void navigator.clipboard?.writeText(artifactExport.content)
+  }
+  const downloadExport = () => {
+    if (!artifactExport?.content) return
+    const blob = new Blob([artifactExport.content], {
+      type: artifactExport.mimeType || "text/plain;charset=utf-8",
+    })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement("a")
+    anchor.href = url
+    anchor.download = artifactExport.fileName
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <TabsContent value="artifacts">
@@ -43,6 +61,31 @@ export function WorkspaceArtifactsTab({ page }: { page: WorkspacesPageState }) {
                 </StatusBadge>
               </div>
               <ArtifactMetaGrid page={page} />
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!artifactExport?.content}
+                  onClick={copyExport}
+                >
+                  <Copy className="size-4" />
+                  {t("commerce.workspaces.actions.copyExport")}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={!artifactExport?.content}
+                  onClick={downloadExport}
+                >
+                  <Download className="size-4" />
+                  {t("commerce.workspaces.actions.downloadExport")}
+                </Button>
+                {artifactExport?.warnings?.length ? (
+                  <MutedText>{artifactExport.warnings.join(" / ")}</MutedText>
+                ) : null}
+              </div>
               <div className="max-h-112 overflow-auto rounded-lg border border-(--app-border) bg-muted/30 p-3">
                 <pre className="whitespace-pre-wrap wrap-break-word text-sm/6 text-foreground">
                   {content || t("commerce.workspaces.empty.artifactContent")}
@@ -78,11 +121,19 @@ function ArtifactMetaGrid({ page }: { page: WorkspacesPageState }) {
       />
       <ArtifactMeta
         label={t("commerce.workspaces.panels.artifactFile")}
-        value={artifact.fileName || artifact.mimeType || "-"}
+        value={page.artifactExport?.fileName || artifact.fileName || artifact.mimeType || "-"}
       />
       <ArtifactMeta
         label={t("commerce.workspaces.panels.artifactRun")}
         value={artifact.runId || "-"}
+      />
+      <ArtifactMeta
+        label={t("commerce.workspaces.panels.artifactExport")}
+        value={page.artifactExport?.format || "-"}
+      />
+      <ArtifactMeta
+        label={t("commerce.workspaces.panels.artifactExportSize")}
+        value={String(page.artifactExport?.contentChars ?? "-")}
       />
     </div>
   )
