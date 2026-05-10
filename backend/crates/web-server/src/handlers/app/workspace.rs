@@ -72,7 +72,8 @@ use crate::{
         UpdateProductMaterialRequest, UpdateProductRequest, UpdateWorkspaceArtifactRequest,
         UpdateWorkspaceRequest, UpdateWorkspaceRunRequest, UpdateWorkspaceRunTaskRequest,
         UpdateWorkspaceTaskRequest, UpsertDailyBriefingRecordRequest, UpsertPackageRequest,
-        WorkspaceArtifactListResponse, WorkspaceArtifactResponse, WorkspaceContextSummaryQuery,
+        WorkspaceArtifactListResponse, WorkspaceArtifactResponse, WorkspaceContextPackQuery,
+        WorkspaceContextPackResponse, WorkspaceContextSummaryQuery,
         WorkspaceContextSummaryResponse, WorkspaceListResponse, WorkspaceResponse,
         WorkspaceRunListResponse, WorkspaceRunResponse, WorkspaceRunTaskResponse,
         WorkspaceTaskListResponse, WorkspaceTaskResponse,
@@ -621,6 +622,28 @@ pub async fn get_workspace_context_summary(
             conversation_id: req.conversation_id,
             product_id: req.product_id,
             run_id: req.run_id,
+        })
+        .await
+        .map_err(from_biz_error)?;
+    Ok(response.into_common_response().to_json())
+}
+
+pub async fn get_workspace_context_pack(
+    Extension(auth_user): Extension<AuthUser>,
+    Path(workspace_id): Path<String>,
+    Query(req): Query<WorkspaceContextPackQuery>,
+) -> ResponseResult<WorkspaceContextPackResponse> {
+    req.validate().map_err(Error::from)?;
+    let api = WorkspaceApi::new(get_app_ctx());
+    let response = api
+        .context_pack(service::dto::workspace::GetWorkspaceContextPackRequest {
+            user_id: auth_user.user_id,
+            workspace_id,
+            conversation_id: req.conversation_id,
+            product_id: req.product_id,
+            run_id: req.run_id,
+            max_items: req.max_items,
+            max_chars: req.max_chars,
         })
         .await
         .map_err(from_biz_error)?;

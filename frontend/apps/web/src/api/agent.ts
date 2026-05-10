@@ -58,6 +58,7 @@ export type AgentRuntimeEvent =
     }
   | ({ type: "rag_context_loaded" } & AgentRagContextLoaded)
   | ({ type: "workspace_context_loaded" } & AgentWorkspaceContextLoaded)
+  | ({ type: "workspace_context_pack_loaded" } & AgentWorkspaceContextPackLoaded)
   | { type: "finished"; session_id?: string }
   | { type: "failed"; reason: string; session_id?: string }
   | { type: "output"; content: string; session_id?: string }
@@ -240,6 +241,7 @@ const AGENT_RUNTIME_EVENT_TYPES = new Set<string>([
   "context_loaded",
   "rag_context_loaded",
   "workspace_context_loaded",
+  "workspace_context_pack_loaded",
   "finished",
   "failed",
   "output",
@@ -579,6 +581,50 @@ export interface AgentWorkspaceContextSource {
   source_type?: string
   status: string
   title?: string | null
+}
+
+export interface AgentWorkspaceContextPackLoaded {
+  agentContext?: Record<string, unknown>
+  agent_context?: Record<string, unknown>
+  conversationId?: string | null
+  conversation_id?: string | null
+  counts?: {
+    conversationFiles?: number
+    conversation_files?: number
+    productAssets?: number
+    product_assets?: number
+    productMaterials?: number
+    product_materials?: number
+    workspaceArtifacts?: number
+    workspace_artifacts?: number
+  }
+  items?: AgentWorkspaceContextPackItem[]
+  omitted?: string[]
+  productId?: string | null
+  product_id?: string | null
+  readiness?: string
+  runId?: string | null
+  run_id?: string | null
+  summary?: string | null
+  warnings?: string[]
+  workspaceId?: string
+  workspace_id?: string
+}
+
+export interface AgentWorkspaceContextPackItem {
+  contentKind?: string
+  content_kind?: string
+  id: string
+  metadata?: Record<string, unknown>
+  refKey?: string
+  ref_key?: string
+  sourceType?: string
+  source_type?: string
+  text?: string | null
+  textChars?: number
+  text_chars?: number
+  title?: string | null
+  truncated?: boolean
 }
 
 export interface AgentApprovalRequired {

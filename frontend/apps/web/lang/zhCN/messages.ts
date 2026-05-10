@@ -1198,6 +1198,8 @@ const messages = {
           ragContextDegraded: "知识检索降级：{{reason}}",
           workspaceContextLoaded:
             "工作区上下文已加载：{{sources}} 个来源，状态 {{readiness}}。",
+          workspaceContextPackLoaded:
+            "可读上下文已接入：{{readable}}/{{total}} 个来源可直接用于回答。",
           workspaceRunLinked: "已绑定工作区：{{title}}。",
           workspaceTasksLinked: "已沉淀 {{count}} 个工作区任务。",
           workspaceTaskUpdated: "工作区任务状态已更新：{{status}}。",
@@ -1256,11 +1258,17 @@ const messages = {
         workspaceContext: {
           title: "工作区上下文",
           meta: "{{total}} 个来源 / {{readiness}}",
+          packTitle: "可读上下文",
+          packMeta: "{{readable}}/{{total}} 个来源可读",
           readyDescription: "后端已把附件、素材和交付物作为本轮问答上下文。",
           partialDescription: "后端已读取部分附件、素材或交付物，仍有上下文缺失。",
           emptyDescription: "当前工作区没有可用于问答的附件、素材或交付物。",
+          packReadyDescription: "后端已把数据库中已有的素材正文、交付物正文和附件抽取文本注入回答链路。",
+          packPartialDescription: "当前来源只有部分可读文本，二进制附件不会被伪装成已读取。",
           compactLine: "工作区来源：{{total}} 个",
+          readableLine: "可读文本：{{count}} 个",
           sourceLine: "{{type}}：{{title}}",
+          packItemLine: "{{kind}}：{{title}}",
           warningLine: "提示：{{warning}}",
         },
         skill: {

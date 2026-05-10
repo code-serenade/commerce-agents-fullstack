@@ -54,11 +54,14 @@ export function getRuntimeNodeStates(runtimeEvents: AgentRuntimeEvent[]) {
     } else if (
       event.type === "context_loaded" ||
       event.type === "rag_context_loaded" ||
-      event.type === "workspace_context_loaded"
+      event.type === "workspace_context_loaded" ||
+      event.type === "workspace_context_pack_loaded"
     ) {
       const degraded =
         (event.type === "rag_context_loaded" && event.degraded) ||
-        (event.type === "workspace_context_loaded" && event.readiness === "empty")
+        (event.type === "workspace_context_loaded" && event.readiness === "empty") ||
+        (event.type === "workspace_context_pack_loaded" &&
+          (event.readiness === "empty" || !(event.items ?? []).some((item) => Boolean(item.text))))
       ensureNode("ops").state = degraded ? "reworking" : "working"
     } else if (event.type === "task_node_ready") {
       ensureNode(readRuntimeNodeId(event)).state = "queued"

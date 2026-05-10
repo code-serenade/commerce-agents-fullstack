@@ -1342,6 +1342,7 @@ pub type AgentRunFeedbackResponse = service::dto::workspace::AgentRunFeedbackRes
 pub type AgentLearningRecordListResponse = service::dto::workspace::AgentLearningRecordListResponse;
 pub type AgentTrustScoreListResponse = service::dto::workspace::AgentTrustScoreListResponse;
 pub type WorkspaceContextSummaryResponse = service::dto::workspace::WorkspaceContextSummaryResponse;
+pub type WorkspaceContextPackResponse = service::dto::workspace::WorkspaceContextPackResponse;
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
@@ -1352,6 +1353,21 @@ pub struct WorkspaceContextSummaryQuery {
     pub product_id: Option<String>,
     #[validate(length(max = 64))]
     pub run_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceContextPackQuery {
+    #[validate(length(max = 64))]
+    pub conversation_id: Option<String>,
+    #[validate(length(max = 64))]
+    pub product_id: Option<String>,
+    #[validate(length(max = 64))]
+    pub run_id: Option<String>,
+    #[validate(range(min = 1, max = 50))]
+    pub max_items: Option<usize>,
+    #[validate(range(min = 1, max = 24000))]
+    pub max_chars: Option<usize>,
 }
 
 #[derive(Debug, Serialize)]

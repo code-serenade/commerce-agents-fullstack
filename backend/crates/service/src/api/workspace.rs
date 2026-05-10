@@ -64,6 +64,11 @@ const MAX_PAGE_SIZE: u64 = 100;
 const AGENT_WORKSPACE_TYPE: &str = "agent_chat";
 const AGENT_RUN_SOURCE: &str = "agent_session";
 const AGENT_RUN_TITLE: &str = "Agent chat workspace";
+const DEFAULT_CONTEXT_PACK_MAX_ITEMS: usize = 20;
+const MAX_CONTEXT_PACK_MAX_ITEMS: usize = 50;
+const DEFAULT_CONTEXT_PACK_MAX_CHARS: usize = 12_000;
+const MAX_CONTEXT_PACK_MAX_CHARS: usize = 24_000;
+const DEFAULT_CONTEXT_PACK_ITEM_CHARS: usize = 2_400;
 
 pub struct WorkspaceApi {
     db: DbContext,
@@ -1005,6 +1010,213 @@ impl WorkspaceApi {
             product_material_sources,
             artifact_sources,
             missing,
+            warnings,
+            agent_context,
+        })
+    }
+
+    pub async fn context_pack(
+        &self,
+        req: GetWorkspaceContextPackRequest,
+    ) -> BizResult<WorkspaceContextPackResponse> {
+        let (user_id, workspace_id) = self
+            .ensure_request_workspace(&req.user_id, &req.workspace_id)
+            .await?;
+        let workspace = self.ensure_workspace_owner(user_id, workspace_id).await?;
+        let conversation_id = parse_optional_uuid(req.conversation_id, "conversation_id")?;
+        if let Some(conversation_id) = conversation_id {
+            self.ensure_conversation_owner(user_id, conversation_id)
+                .await?;
+        }
+        let product_id =
+            parse_optional_uuid(req.product_id, "product_id")?.or(workspace.product_id);
+        if let Some(product_id) = product_id {
+            self.ensure_active_product_owner(user_id, product_id)
+                .await?;
+        }
+        let run_id = parse_optional_uuid(req.run_id, "run_id")?;
+        if let Some(run_id) = run_id {
+            self.ensure_run_owner(user_id, workspace_id, run_id).await?;
+        }
+
+        let conversation_files = if let Some(conversation_id) = conversation_id {
+            self.conversation_file_svc
+                .list_by_conversation_id(conversation_id)
+                .await?
+        } else {
+            Vec::new()
+        };
+
+        let product_assets = if let Some(product_id) = product_id {
+            self.product_asset_svc
+                .list(ProductAssetFilter {
+                    user_id,
+                    product_id,
+                    status: Some(ProductAssetStatus::Active),
+                    asset_type: None,
+                    keyword: None,
+                    limit: Some(200),
+                })
+                .await?
+        } else {
+            Vec::new()
+        };
+
+        let product_materials = if let Some(product_id) = product_id {
+            self.product_material_svc
+                .list(ProductMaterialFilter {
+                    user_id,
+                    product_id,
+                    status: Some(ProductMaterialStatus::Active),
+                    material_type: None,
+                    keyword: None,
+                    limit: Some(200),
+                })
+                .await?
+        } else {
+            Vec::new()
+        };
+
+        let workspace_artifacts = self
+            .artifact_svc
+            .list(WorkspaceArtifactFilter {
+                workspace_id: Some(workspace_id),
+                run_id,
+                workspace_task_id: None,
+                run_task_id: None,
+                user_id,
+                artifact_type: None,
+                status: Some(WorkspaceArtifactStatus::Active),
+                keyword: None,
+                limit: Some(200),
+                offset: Some(0),
+            })
+            .await?;
+
+        let counts = WorkspaceContextSummaryCounts {
+            conversation_files: conversation_files.len(),
+            product_assets: product_assets.len(),
+            product_materials: product_materials.len(),
+            workspace_artifacts: workspace_artifacts.len(),
+        };
+        let max_items = req
+            .max_items
+            .unwrap_or(DEFAULT_CONTEXT_PACK_MAX_ITEMS)
+            .clamp(1, MAX_CONTEXT_PACK_MAX_ITEMS);
+        let max_chars = req
+            .max_chars
+            .unwrap_or(DEFAULT_CONTEXT_PACK_MAX_CHARS)
+            .clamp(1, MAX_CONTEXT_PACK_MAX_CHARS);
+        let candidates = conversation_files
+            .into_iter()
+            .map(context_pack_conversation_file_candidate)
+            .chain(
+                product_assets
+                    .into_iter()
+                    .map(context_pack_product_asset_candidate),
+            )
+            .chain(
+                product_materials
+                    .into_iter()
+                    .map(context_pack_product_material_candidate),
+            )
+            .chain(
+                workspace_artifacts
+                    .into_iter()
+                    .map(context_pack_artifact_candidate),
+            )
+            .collect::<Vec<_>>();
+        let pack = build_context_pack_items(candidates, max_items, max_chars);
+        let mut warnings = Vec::new();
+        if counts.total() == 0 {
+            warnings.push("no active workspace context sources were found".to_string());
+        }
+        if counts.conversation_files > 0 {
+            let metadata_only_attachments = pack
+                .items
+                .iter()
+                .filter(|item| {
+                    item.source_type == "conversation_file" && item.content_kind == "metadata_only"
+                })
+                .count();
+            if metadata_only_attachments > 0 {
+                warnings.push(format!(
+                    "{metadata_only_attachments} conversation file(s) only have metadata; binary content was not read"
+                ));
+            }
+        }
+        if pack.readable_items == 0 && counts.total() > 0 {
+            warnings.push(
+                "workspace context sources exist, but no readable text content is available"
+                    .to_string(),
+            );
+        }
+        if pack.truncated {
+            warnings.push("workspace context pack text was truncated by safety limits".to_string());
+        }
+        if !pack.omitted.is_empty() {
+            warnings.push(format!(
+                "{} workspace context source(s) were omitted by item or character limits",
+                pack.omitted.len()
+            ));
+        }
+        let readiness = if counts.total() == 0 {
+            "empty"
+        } else if pack.readable_items == 0 || !pack.omitted.is_empty() {
+            "partial"
+        } else {
+            "ready"
+        }
+        .to_string();
+        let summary = build_context_pack_summary_text(
+            &counts,
+            &readiness,
+            pack.readable_items,
+            pack.text_chars,
+            pack.omitted.len(),
+        );
+        let refs = pack
+            .items
+            .iter()
+            .map(|item| item.ref_key.clone())
+            .collect::<Vec<_>>();
+        let content_refs = pack
+            .items
+            .iter()
+            .filter(|item| item.text.is_some())
+            .map(|item| item.ref_key.clone())
+            .collect::<Vec<_>>();
+        let agent_context = json!({
+            "kind": "workspace_context_pack",
+            "readiness": readiness,
+            "workspaceId": workspace_id,
+            "conversationId": conversation_id,
+            "productId": product_id,
+            "runId": run_id,
+            "summary": summary,
+            "counts": {
+                "conversationFiles": counts.conversation_files,
+                "productAssets": counts.product_assets,
+                "productMaterials": counts.product_materials,
+                "workspaceArtifacts": counts.workspace_artifacts,
+            },
+            "refs": refs,
+            "contentRefs": content_refs,
+            "items": pack.items,
+            "omitted": pack.omitted,
+            "warnings": warnings,
+        });
+
+        Ok(WorkspaceContextPackResponse {
+            workspace_id: workspace_id.to_string(),
+            conversation_id: conversation_id.map(|id| id.to_string()),
+            product_id: product_id.map(|id| id.to_string()),
+            run_id: run_id.map(|id| id.to_string()),
+            readiness,
+            summary,
+            counts,
+            items: pack.items,
+            omitted: pack.omitted,
             warnings,
             agent_context,
         })
@@ -3019,12 +3231,292 @@ fn map_context_artifact(item: WorkspaceArtifact) -> WorkspaceContextSourceRespon
     }
 }
 
+#[derive(Debug, Clone)]
+struct WorkspaceContextPackCandidate {
+    source_type: String,
+    id: String,
+    title: Option<String>,
+    ref_key: String,
+    content_kind: String,
+    text: Option<String>,
+    metadata: Value,
+}
+
+#[derive(Debug, Clone, Default)]
+struct BuiltWorkspaceContextPack {
+    items: Vec<WorkspaceContextPackItemResponse>,
+    omitted: Vec<String>,
+    readable_items: usize,
+    text_chars: usize,
+    truncated: bool,
+}
+
+fn context_pack_conversation_file_candidate(
+    item: ConversationFile,
+) -> WorkspaceContextPackCandidate {
+    let id = item.id.to_string();
+    let text = conversation_file_extracted_text(&item.metadata);
+    WorkspaceContextPackCandidate {
+        source_type: "conversation_file".to_string(),
+        id: id.clone(),
+        title: item
+            .file_name
+            .clone()
+            .or_else(|| Some(item.object_key.clone())),
+        ref_key: format!("conversation_file:{id}"),
+        content_kind: if text.is_some() {
+            "extracted_text".to_string()
+        } else {
+            "metadata_only".to_string()
+        },
+        text,
+        metadata: json!({
+            "conversationId": item.conversation_id,
+            "messageId": item.message_id,
+            "bucket": item.bucket,
+            "objectKey": item.object_key,
+            "fileName": item.file_name,
+            "mimeType": item.mime_type,
+            "fileSize": item.file_size,
+            "sha256": item.sha256,
+            "visibility": item.visibility,
+            "storageProvider": item.storage_provider,
+            "status": item.status,
+            "metadata": item.metadata,
+        }),
+    }
+}
+
+fn context_pack_product_asset_candidate(item: ProductAsset) -> WorkspaceContextPackCandidate {
+    let id = item.id.to_string();
+    let text = item.description.clone().and_then(normalize_string);
+    WorkspaceContextPackCandidate {
+        source_type: "product_asset".to_string(),
+        id: id.clone(),
+        title: item.file_name.clone().or_else(|| item.description.clone()),
+        ref_key: format!("product_asset:{id}"),
+        content_kind: if text.is_some() {
+            "description".to_string()
+        } else {
+            "unavailable".to_string()
+        },
+        text,
+        metadata: json!({
+            "productId": item.product_id,
+            "assetType": item.asset_type,
+            "bucket": item.bucket,
+            "objectKey": item.object_key,
+            "fileName": item.file_name,
+            "mimeType": item.mime_type,
+            "fileSize": item.file_size,
+            "metadata": item.metadata,
+        }),
+    }
+}
+
+fn context_pack_product_material_candidate(item: ProductMaterial) -> WorkspaceContextPackCandidate {
+    let id = item.id.to_string();
+    WorkspaceContextPackCandidate {
+        source_type: "product_material".to_string(),
+        id: id.clone(),
+        title: item.title.clone(),
+        ref_key: format!("product_material:{id}"),
+        content_kind: "content".to_string(),
+        text: normalize_string(item.content),
+        metadata: json!({
+            "productId": item.product_id,
+            "materialType": item.material_type,
+            "version": item.version,
+            "metadata": item.metadata,
+        }),
+    }
+}
+
+fn context_pack_artifact_candidate(item: WorkspaceArtifact) -> WorkspaceContextPackCandidate {
+    let id = item.id.to_string();
+    let (content_kind, text) = match item.content.clone().and_then(normalize_string) {
+        Some(content) => ("content".to_string(), Some(content)),
+        None => match item.preview.clone().and_then(normalize_string) {
+            Some(preview) => ("preview".to_string(), Some(preview)),
+            None => ("unavailable".to_string(), None),
+        },
+    };
+    WorkspaceContextPackCandidate {
+        source_type: "workspace_artifact".to_string(),
+        id: id.clone(),
+        title: Some(item.title),
+        ref_key: format!("workspace_artifact:{id}"),
+        content_kind,
+        text,
+        metadata: json!({
+            "workspaceId": item.workspace_id,
+            "runId": item.run_id,
+            "workspaceTaskId": item.workspace_task_id,
+            "runTaskId": item.run_task_id,
+            "artifactType": item.artifact_type,
+            "format": item.format,
+            "storageKind": item.storage_kind,
+            "bucket": item.bucket,
+            "objectKey": item.object_key,
+            "fileName": item.file_name,
+            "mimeType": item.mime_type,
+            "fileSize": item.file_size,
+            "sha256": item.sha256,
+            "source": item.source,
+            "validationStatus": item.validation_status.as_str(),
+            "validationReport": item.validation_report,
+            "metadata": item.metadata,
+        }),
+    }
+}
+
+fn conversation_file_extracted_text(metadata: &Value) -> Option<String> {
+    metadata_text_field(
+        metadata,
+        &[
+            "extractedText",
+            "extracted_text",
+            "textContent",
+            "text_content",
+            "plainText",
+            "plain_text",
+            "markdown",
+            "text",
+            "content",
+            "preview",
+            "summary",
+        ],
+    )
+    .or_else(|| metadata_nested_text_field(metadata, "extraction"))
+    .or_else(|| metadata_nested_text_field(metadata, "parsed"))
+}
+
+fn metadata_nested_text_field(metadata: &Value, key: &str) -> Option<String> {
+    metadata.get(key).and_then(|value| {
+        metadata_text_field(
+            value,
+            &[
+                "extractedText",
+                "extracted_text",
+                "textContent",
+                "text_content",
+                "plainText",
+                "plain_text",
+                "markdown",
+                "text",
+                "content",
+                "preview",
+                "summary",
+            ],
+        )
+    })
+}
+
+fn metadata_text_field(metadata: &Value, keys: &[&str]) -> Option<String> {
+    keys.iter().find_map(|key| {
+        metadata
+            .get(*key)
+            .and_then(Value::as_str)
+            .and_then(|value| normalize_string(value.to_string()))
+    })
+}
+
+fn build_context_pack_items(
+    candidates: Vec<WorkspaceContextPackCandidate>,
+    max_items: usize,
+    max_chars: usize,
+) -> BuiltWorkspaceContextPack {
+    let mut pack = BuiltWorkspaceContextPack::default();
+    let mut ordered = candidates
+        .iter()
+        .filter(|candidate| candidate.text.is_some())
+        .chain(
+            candidates
+                .iter()
+                .filter(|candidate| candidate.text.is_none()),
+        )
+        .collect::<Vec<_>>();
+    ordered.dedup_by(|left, right| left.ref_key == right.ref_key);
+
+    for candidate in ordered {
+        if pack.items.len() >= max_items {
+            pack.omitted.push(candidate.ref_key.clone());
+            continue;
+        }
+        if pack.text_chars >= max_chars && candidate.text.is_some() {
+            pack.omitted.push(candidate.ref_key.clone());
+            pack.truncated = true;
+            continue;
+        }
+        let (text, text_chars, truncated) = candidate
+            .text
+            .as_deref()
+            .map(|text| truncate_context_pack_text(text, max_chars - pack.text_chars))
+            .unwrap_or((None, 0, false));
+        if truncated {
+            pack.truncated = true;
+        }
+        if text.is_some() {
+            pack.readable_items += 1;
+            pack.text_chars += text_chars;
+        }
+        pack.items.push(WorkspaceContextPackItemResponse {
+            source_type: candidate.source_type.clone(),
+            id: candidate.id.clone(),
+            title: candidate.title.clone(),
+            ref_key: candidate.ref_key.clone(),
+            content_kind: candidate.content_kind.clone(),
+            text,
+            text_chars,
+            truncated,
+            metadata: candidate.metadata.clone(),
+        });
+    }
+    pack
+}
+
+fn truncate_context_pack_text(
+    value: &str,
+    remaining_chars: usize,
+) -> (Option<String>, usize, bool) {
+    let item_limit = remaining_chars.min(DEFAULT_CONTEXT_PACK_ITEM_CHARS);
+    if item_limit == 0 {
+        return (None, 0, true);
+    }
+    let value = value.trim();
+    let value_chars = value.chars().count();
+    if value_chars <= item_limit {
+        return (Some(value.to_string()), value_chars, false);
+    }
+    let truncated = value.chars().take(item_limit).collect::<String>();
+    (Some(format!("{truncated}...")), item_limit, true)
+}
+
 fn build_context_summary_text(counts: &WorkspaceContextSummaryCounts, readiness: &str) -> String {
     if counts.total() == 0 {
         return "No active workspace context sources are ready for agent use.".to_string();
     }
     format!(
         "Workspace context is {readiness}: {} conversation files, {} product assets, {} product materials, {} workspace artifacts are available for agent grounding and delivery.",
+        counts.conversation_files,
+        counts.product_assets,
+        counts.product_materials,
+        counts.workspace_artifacts
+    )
+}
+
+fn build_context_pack_summary_text(
+    counts: &WorkspaceContextSummaryCounts,
+    readiness: &str,
+    readable_items: usize,
+    text_chars: usize,
+    omitted_items: usize,
+) -> String {
+    if counts.total() == 0 {
+        return "No active workspace context text is ready for agent use.".to_string();
+    }
+    format!(
+        "Workspace context pack is {readiness}: {readable_items} readable item(s), {text_chars} text chars, {omitted_items} omitted item(s), from {} conversation files, {} product assets, {} product materials, {} workspace artifacts.",
         counts.conversation_files,
         counts.product_assets,
         counts.product_materials,
@@ -4027,5 +4519,74 @@ mod tests {
                 "workspace_artifact:d".to_string(),
             ]
         );
+    }
+
+    #[test]
+    fn context_pack_prefers_readable_items_and_truncates_text() {
+        let candidates = vec![
+            WorkspaceContextPackCandidate {
+                source_type: "conversation_file".to_string(),
+                id: "file-1".to_string(),
+                title: Some("brief.pdf".to_string()),
+                ref_key: "conversation_file:file-1".to_string(),
+                content_kind: "metadata_only".to_string(),
+                text: None,
+                metadata: json!({}),
+            },
+            WorkspaceContextPackCandidate {
+                source_type: "product_material".to_string(),
+                id: "material-1".to_string(),
+                title: Some("卖点".to_string()),
+                ref_key: "product_material:material-1".to_string(),
+                content_kind: "content".to_string(),
+                text: Some("咖啡新品主打低糖和冷萃场景。".repeat(20)),
+                metadata: json!({}),
+            },
+        ];
+
+        let pack = build_context_pack_items(candidates, 2, 24);
+
+        assert_eq!(pack.items[0].ref_key, "product_material:material-1");
+        assert_eq!(pack.readable_items, 1);
+        assert!(pack.truncated);
+        assert!(
+            pack.items[0]
+                .text
+                .as_deref()
+                .is_some_and(|text| text.ends_with("..."))
+        );
+        assert_eq!(pack.items[1].content_kind, "metadata_only");
+        assert!(pack.items[1].text.is_none());
+    }
+
+    #[test]
+    fn context_pack_uses_attachment_text_only_from_safe_metadata() {
+        let metadata = json!({
+            "extraction": {
+                "summary": "附件里写了活动预算和目标 ROI。"
+            }
+        });
+
+        assert_eq!(
+            conversation_file_extracted_text(&metadata),
+            Some("附件里写了活动预算和目标 ROI。".to_string())
+        );
+        assert!(conversation_file_extracted_text(&json!({"objectKey": "raw.pdf"})).is_none());
+    }
+
+    #[test]
+    fn context_pack_summary_reports_readable_and_omitted_counts() {
+        let counts = WorkspaceContextSummaryCounts {
+            conversation_files: 1,
+            product_assets: 1,
+            product_materials: 2,
+            workspace_artifacts: 1,
+        };
+
+        let summary = build_context_pack_summary_text(&counts, "partial", 3, 1200, 2);
+
+        assert!(summary.contains("partial"));
+        assert!(summary.contains("3 readable"));
+        assert!(summary.contains("2 omitted"));
     }
 }

@@ -31,6 +31,7 @@ API 是后端能力和前端适配之间的唯一契约。任何前端适配开�
 - [x] 增加或确认事件：`approval_required`。
 - [x] 增加或确认事件：`rag_context_loaded`。
 - [x] 增加或确认事件：`workspace_context_loaded`。
+- [x] 增加或确认事件：`workspace_context_pack_loaded`。
 - [x] 更新 `skill_requested` 触发语义：模型显式请求优先，缺失时后端可按岗位/任务自动补偿代表 skill。
 
 ## 业务 API
@@ -38,6 +39,7 @@ API 是后端能力和前端适配之间的唯一契约。任何前端适配开�
 - [ ] 产品生命周期状态 API。
 - [x] 产品知识查询/绑定到对话 API。
 - [x] 附件摘要状态 API。
+- [x] 附件/素材/交付物可读上下文内容包 API。
 - [ ] 竞品分析读取 API。
 - [ ] Campaign draft 创建 API。
 - [x] Commerce agent playbook 场景入口 API。

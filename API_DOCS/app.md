@@ -2290,6 +2290,93 @@
 - 该接口只做后端状态聚合，不读取文件正文，不伪造 OCR/文档摘要。
 - Agent SSE 会在绑定 `workspace_run` 后自动调用该摘要能力，发送 `workspace_context_loaded` 事件，并把 `agentContext.refs` 与 `summary` 注入 agent runtime metadata。
 
+## 68.1 查询工作区上下文内容包
+
+- 方法：`GET`
+- 路径：`/api/app/workspaces/{workspaceId}/context-pack`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `conversationId` | `uuid` | 否 | 聚合该会话下已注册的 active 附件；只读取 metadata 中已经存在的抽取文本 |
+| `productId` | `uuid` | 否 | 聚合该商品下 active 资产描述和素材正文；为空时优先使用工作区绑定商品 |
+| `runId` | `uuid` | 否 | 只聚合该运行记录下的 active 工作区交付物 |
+| `maxItems` | `number` | 否 | 返回来源上限，默认 20，最大 50 |
+| `maxChars` | `number` | 否 | 返回文本总字符上限，默认 12000，最大 24000 |
+
+成功响应 `data`：
+
+```json
+{
+  "workspaceId": "workspace-uuid",
+  "conversationId": "conversation-uuid",
+  "productId": "product-uuid",
+  "runId": null,
+  "readiness": "ready",
+  "summary": "Workspace context pack is ready: 3 readable item(s), 4800 text chars, 0 omitted item(s), from 1 conversation files, 1 product assets, 1 product materials, 1 workspace artifacts.",
+  "counts": {
+    "conversationFiles": 1,
+    "productAssets": 1,
+    "productMaterials": 1,
+    "workspaceArtifacts": 1
+  },
+  "items": [
+    {
+      "sourceType": "product_material",
+      "id": "material-uuid",
+      "title": "五一咖啡卖点",
+      "refKey": "product_material:material-uuid",
+      "contentKind": "content",
+      "text": "商品素材正文...",
+      "textChars": 120,
+      "truncated": false,
+      "metadata": {
+        "productId": "product-uuid",
+        "materialType": "selling_points",
+        "version": 1
+      }
+    },
+    {
+      "sourceType": "conversation_file",
+      "id": "file-uuid",
+      "title": "brief.pdf",
+      "refKey": "conversation_file:file-uuid",
+      "contentKind": "metadata_only",
+      "text": null,
+      "textChars": 0,
+      "truncated": false,
+      "metadata": {
+        "objectKey": "chat/user/conversation/file.pdf",
+        "mimeType": "application/pdf"
+      }
+    }
+  ],
+  "omitted": [],
+  "warnings": [
+    "1 conversation file(s) only have metadata; binary content was not read"
+  ],
+  "agentContext": {
+    "kind": "workspace_context_pack",
+    "readiness": "ready",
+    "refs": ["product_material:material-uuid", "conversation_file:file-uuid"],
+    "contentRefs": ["product_material:material-uuid"]
+  }
+}
+```
+
+字段说明：
+
+- `contentKind=content` 表示来自商品素材或交付物正文。
+- `contentKind=preview` 表示交付物只有预览文本可用。
+- `contentKind=description` 表示来自商品资产描述。
+- `contentKind=extracted_text` 表示会话附件 metadata 已经有可信抽取文本。
+- `contentKind=metadata_only` 表示附件只有文件名、对象 key、mime 等元数据；服务端没有读取二进制正文。
+- `contentKind=unavailable` 表示该来源没有可读文本。
+- 该接口不会读取 object storage，不做 OCR，不解析 PDF/图片/视频，也不会把二进制附件伪造成已读正文。
+- Agent SSE 会在 `workspace_context_loaded` 后自动调用该内容包能力，发送 `workspace_context_pack_loaded` 事件，并把可读文本追加进 runtime `context.summary`。
+
 ## 69. 查询支持的平台列表
 
 - 方法：`GET`

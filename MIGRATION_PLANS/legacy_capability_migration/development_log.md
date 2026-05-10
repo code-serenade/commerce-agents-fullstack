@@ -1003,3 +1003,56 @@
 - [x] `pnpm -C apps/web build`
 - [x] `pnpm rules`
 - [x] `git diff --check`
+
+## Post 8-14：工作区上下文内容包接入 Agent 问答链路
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 14 个补强项：`Post 8-14`。
+
+本次目标：
+
+- 把旧产品附件/素材/报告作为问答上下文的能力继续迁入新产品。
+- 后端不只给 Agent refs 和来源摘要，还把数据库已有可读文本整理成内容包。
+- 严格避免伪造文件读取：不读 object storage，不做 OCR，不解析 PDF/图片/视频正文。
+
+涉及范围：
+
+- 产品内核：工作区上下文从“来源可见”推进到“可读文本可用于回答”。
+- 后端 service：新增 `WorkspaceApi::context_pack`。
+- Web-server：新增 `GET /api/app/workspaces/{workspaceId}/context-pack`，SSE 新增 `workspace_context_pack_loaded`。
+- Agent metadata：新增 `workspaceContextPack.*`，可读文本追加到 `context.summary`。
+- 前端：同步 SSE 类型、时间线和右侧上下文卡片。
+- API：同步 `API_DOCS/app.md` 与 `API_DOCS/sse.md`。
+
+用户可感知变化：
+
+- 用户发送问答后，右侧过程区会显示“可读上下文”是否接入。
+- 商品素材正文、资产描述、工作区交付物正文/预览、附件 metadata 已抽取文本会真实进入回答链路。
+- 二进制附件没有抽取文本时只显示 metadata-only 和警告，不会让用户误以为 Agent 已经读取正文。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo fmt --check`
+- [x] `cargo test -p service context_pack`
+- [x] `cargo test -p web-server workspace_context_pack`
+- [x] `cargo test -p web-server sse`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo check`
+- [x] `cargo clippy`
+- [x] `pnpm -C apps/web rules`
+- [x] `pnpm -C apps/web lint`
+- [x] `pnpm -C apps/web test`
+- [x] `pnpm -C apps/web build`
+- [x] `pnpm rules`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 附件正文抽取/OCR/文档解析还没有实现，需要后续作为独立 adapter 接入。
+- 可读内容包已经进入 Agent metadata，但还可以继续做前端来源详情面板和 artifact 复用入口。

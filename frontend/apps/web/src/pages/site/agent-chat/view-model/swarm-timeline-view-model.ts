@@ -52,6 +52,16 @@ export function formatTimelineEvent(
       tone: event.readiness === "empty" ? "warning" as const : "success" as const,
     }
   }
+  if (event.type === "workspace_context_pack_loaded") {
+    const readable = (event.items ?? []).filter((item) => Boolean(item.text)).length
+    return {
+      label: t("agentChat.swarm.timeline.events.workspaceContextPackLoaded", {
+        readable,
+        total: event.items?.length ?? 0,
+      }),
+      tone: readable === 0 ? "warning" as const : "success" as const,
+    }
+  }
   if (event.type === "task_graph_planned") {
     return { label: t("agentChat.swarm.timeline.events.graphPlanned", { count: event.graph.nodes.length }), tone: "success" as const }
   }

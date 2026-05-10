@@ -276,6 +276,17 @@ pub struct GetWorkspaceContextSummaryRequest {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct GetWorkspaceContextPackRequest {
+    pub user_id: String,
+    pub workspace_id: String,
+    pub conversation_id: Option<String>,
+    pub product_id: Option<String>,
+    pub run_id: Option<String>,
+    pub max_items: Option<usize>,
+    pub max_chars: Option<usize>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct ListExecutionQueueRequest {
     pub user_id: String,
     pub workspace_id: Option<String>,
@@ -675,6 +686,36 @@ pub struct WorkspaceContextSourceResponse {
     pub status: String,
     pub ref_key: String,
     pub preview: Option<String>,
+    pub metadata: Value,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceContextPackResponse {
+    pub workspace_id: String,
+    pub conversation_id: Option<String>,
+    pub product_id: Option<String>,
+    pub run_id: Option<String>,
+    pub readiness: String,
+    pub summary: String,
+    pub counts: WorkspaceContextSummaryCounts,
+    pub items: Vec<WorkspaceContextPackItemResponse>,
+    pub omitted: Vec<String>,
+    pub warnings: Vec<String>,
+    pub agent_context: Value,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceContextPackItemResponse {
+    pub source_type: String,
+    pub id: String,
+    pub title: Option<String>,
+    pub ref_key: String,
+    pub content_kind: String,
+    pub text: Option<String>,
+    pub text_chars: usize,
+    pub truncated: bool,
     pub metadata: Value,
 }
 

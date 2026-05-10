@@ -15,6 +15,14 @@ export function getContextCard(
       ): item is Extract<AgentRuntimeEvent, { type: "workspace_context_loaded" }> =>
         item.type === "workspace_context_loaded"
     )
+  const workspacePackEvent = [...runtimeEvents]
+    .reverse()
+    .find(
+      (
+        item
+      ): item is Extract<AgentRuntimeEvent, { type: "workspace_context_pack_loaded" }> =>
+        item.type === "workspace_context_pack_loaded"
+    )
   const ragEvent = [...runtimeEvents]
     .reverse()
     .find((item): item is Extract<AgentRuntimeEvent, { type: "rag_context_loaded" }> =>
@@ -52,6 +60,13 @@ export function getContextCard(
               }),
             ]
           : []),
+        ...(workspacePackEvent
+          ? [
+              t("agentChat.swarm.cards.workspaceContext.readableLine", {
+                count: getWorkspaceContextPackReadableCount(workspacePackEvent),
+              }),
+            ]
+          : []),
         ...(queryTerms.length
           ? [
               t("agentChat.swarm.cards.ragContext.queryLine", {
@@ -70,6 +85,43 @@ export function getContextCard(
         ...(ragEvent.summary ? [ragEvent.summary] : []),
       ].slice(0, 4),
       state: ragEvent.degraded ? "reworking" : "done",
+    }
+  }
+
+  if (workspacePackEvent) {
+    const readableCount = getWorkspaceContextPackReadableCount(workspacePackEvent)
+    const warnings = workspacePackEvent.warnings ?? []
+    const readiness = workspacePackEvent.readiness ?? "empty"
+    const itemLines = (workspacePackEvent.items ?? [])
+      .slice(0, 3)
+      .map((item) =>
+        t("agentChat.swarm.cards.workspaceContext.packItemLine", {
+          kind: item.contentKind ?? item.content_kind ?? "metadata",
+          title: item.title ?? item.refKey ?? item.ref_key ?? item.id,
+        })
+      )
+    return {
+      id: "workspace-context-pack-loaded",
+      title: t("agentChat.swarm.cards.workspaceContext.packTitle"),
+      meta: t("agentChat.swarm.cards.workspaceContext.packMeta", {
+        readable: readableCount,
+        total: workspacePackEvent.items?.length ?? 0,
+      }),
+      description:
+        readableCount > 0
+          ? t("agentChat.swarm.cards.workspaceContext.packReadyDescription")
+          : t("agentChat.swarm.cards.workspaceContext.packPartialDescription"),
+      icon: readiness === "empty" || readableCount === 0 ? TriangleAlert : FolderSearch,
+      lines: [
+        ...itemLines,
+        ...warnings.slice(0, 1).map((warning) =>
+          t("agentChat.swarm.cards.workspaceContext.warningLine", {
+            warning,
+          })
+        ),
+        ...(workspacePackEvent.summary ? [workspacePackEvent.summary] : []),
+      ].slice(0, 4),
+      state: readiness === "empty" || readableCount === 0 ? "reworking" : "done",
     }
   }
 
@@ -135,6 +187,12 @@ export function getContextCard(
     ].slice(0, 4),
     state: "done",
   }
+}
+
+function getWorkspaceContextPackReadableCount(
+  event: Extract<AgentRuntimeEvent, { type: "workspace_context_pack_loaded" }>
+) {
+  return (event.items ?? []).filter((item) => Boolean(item.text)).length
 }
 
 function getWorkspaceContextSources(

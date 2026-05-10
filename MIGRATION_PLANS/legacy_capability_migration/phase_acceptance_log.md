@@ -424,3 +424,24 @@
 - 本阶段仍不读取附件正文，不做 OCR，不伪造素材或报告摘要。
 - `readiness=empty` 会作为真实空状态展示，不代表后端已读取文件内容。
 - 验证已通过：`cargo fmt`、`cargo test -p web-server sse`、`cargo check`、`cargo clippy`、`pnpm -C apps/web rules/lint/test/build`、`pnpm rules`、`git diff --check`。
+
+## Post 8-14：工作区上下文内容包接入 Agent 问答链路
+
+状态：done
+
+验收项：
+
+- [x] 后端：新增 `WorkspaceApi::context_pack`。
+- [x] 后端：内容包只读取数据库已有文本字段，不读 object storage，不做 OCR。
+- [x] 后端：会话附件没有抽取文本时返回 `metadata_only`，不伪造正文。
+- [x] Web-server：新增 `GET /api/app/workspaces/{workspaceId}/context-pack`。
+- [x] SSE：新增 `workspace_context_pack_loaded`。
+- [x] Agent metadata：新增 `workspaceContextPack.*`，并把可读文本追加到 `context.summary`。
+- [x] API：`API_DOCS/app.md` 和 `API_DOCS/sse.md` 已同步。
+- [x] 前端：同步事件类型、时间线和右侧上下文卡片。
+
+当前说明：
+
+- 本阶段解决的是“已有可读文本进入 Agent 问答链路”。
+- PDF/图片/视频等附件正文抽取仍未实现，需要后续独立 adapter。
+- 前端不会展示假读取状态，只展示后端返回的 `contentKind`、可读数量和警告。

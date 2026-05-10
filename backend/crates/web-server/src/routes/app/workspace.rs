@@ -3,7 +3,7 @@ use axum::{Router, routing::get};
 use crate::handlers::app::{
     create_workspace, create_workspace_artifact, create_workspace_run, create_workspace_run_task,
     create_workspace_task, delete_workspace, delete_workspace_artifact, delete_workspace_task,
-    evaluate_agent_run_quality, get_workspace, get_workspace_artifact,
+    evaluate_agent_run_quality, get_workspace, get_workspace_artifact, get_workspace_context_pack,
     get_workspace_context_summary, get_workspace_run, get_workspace_task,
     list_agent_learning_records, list_agent_quality_checks, list_agent_trust_scores,
     list_workspace_artifacts, list_workspace_run_tasks, list_workspace_runs, list_workspace_tasks,
@@ -61,6 +61,10 @@ pub fn workspace_routes() -> Router {
         .route(
             "/workspaces/{workspace_id}/context-summary",
             get(get_workspace_context_summary),
+        )
+        .route(
+            "/workspaces/{workspace_id}/context-pack",
+            get(get_workspace_context_pack),
         )
         .route(
             "/workspaces/{workspace_id}/artifacts/{artifact_id}",

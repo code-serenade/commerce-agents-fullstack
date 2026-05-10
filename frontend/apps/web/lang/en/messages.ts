@@ -1205,6 +1205,8 @@ const messages = {
           ragContextDegraded: "Knowledge retrieval degraded: {{reason}}",
           workspaceContextLoaded:
             "Workspace context loaded: {{sources}} source(s), {{readiness}}.",
+          workspaceContextPackLoaded:
+            "Readable context attached: {{readable}}/{{total}} source(s) can be used directly.",
           workspaceRunLinked: "Workspace linked: {{title}}.",
           workspaceTasksLinked: "Persisted {{count}} workspace task(s).",
           workspaceTaskUpdated: "Workspace task status updated: {{status}}.",
@@ -1263,11 +1265,17 @@ const messages = {
         workspaceContext: {
           title: "Workspace context",
           meta: "{{total}} sources / {{readiness}}",
+          packTitle: "Readable context",
+          packMeta: "{{readable}}/{{total}} source(s) readable",
           readyDescription: "Backend attached files, materials, and deliverables as context for this answer.",
           partialDescription: "Backend loaded partial files, materials, or deliverables; some context is missing.",
           emptyDescription: "No files, materials, or deliverables are ready for this workspace.",
+          packReadyDescription: "Backend injected stored material text, deliverable text, and extracted attachment text into the answer path.",
+          packPartialDescription: "Only part of the sources have readable text; binary attachments are not treated as read.",
           compactLine: "Workspace sources: {{total}}",
+          readableLine: "Readable text: {{count}}",
           sourceLine: "{{type}}: {{title}}",
+          packItemLine: "{{kind}}: {{title}}",
           warningLine: "Note: {{warning}}",
         },
         skill: {

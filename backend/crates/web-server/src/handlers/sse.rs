@@ -31,8 +31,8 @@ use service::{
             FailAgentWorkspaceRunRequest, LinkAgentWorkspaceRunRequest,
             LinkAgentWorkspaceTasksRequest, MarkAgentWorkspaceTaskStartedRequest,
             RecordAgentSearchEvidenceRequest, RecordAgentWorkspaceTaskEvaluationRequest,
-            RecordAgentWorkspaceTaskReportRequest, WorkspaceContextSourceResponse,
-            WorkspaceContextSummaryResponse,
+            RecordAgentWorkspaceTaskReportRequest, WorkspaceContextPackResponse,
+            WorkspaceContextSourceResponse, WorkspaceContextSummaryResponse,
         },
     },
 };
@@ -135,6 +135,20 @@ pub async fn stream_agent_session(
         .map_err(from_biz_error)?;
     merge_workspace_context_metadata(&mut metadata, &workspace_context)
         .map_err(|err| Error::Custom(format!("workspace context metadata failed: {err}")))?;
+    let workspace_context_pack = workspace_api
+        .context_pack(service::dto::workspace::GetWorkspaceContextPackRequest {
+            user_id: user_id.clone(),
+            workspace_id: linked_workspace.workspace.id.clone(),
+            conversation_id: workspace_context.conversation_id.clone(),
+            product_id: workspace_context.product_id.clone(),
+            run_id: None,
+            max_items: Some(20),
+            max_chars: Some(12_000),
+        })
+        .await
+        .map_err(from_biz_error)?;
+    merge_workspace_context_pack_metadata(&mut metadata, &workspace_context_pack)
+        .map_err(|err| Error::Custom(format!("workspace context pack metadata failed: {err}")))?;
     if let Ok(learning_context) = workspace_api
         .build_agent_learning_context(BuildAgentLearningContextRequest {
             user_id: user_id.clone(),
@@ -195,6 +209,11 @@ pub async fn stream_agent_session(
             "workspace_context_loaded",
             serde_json::to_value(&workspace_context)
                 .unwrap_or_else(|_| json!({ "type": "workspace_context_loaded" })),
+        ));
+        yield Ok(typed_camel_json_event(
+            "workspace_context_pack_loaded",
+            serde_json::to_value(&workspace_context_pack)
+                .unwrap_or_else(|_| json!({ "type": "workspace_context_pack_loaded" })),
         ));
         yield Ok(typed_camel_json_event(
             "rag_context_loaded",
@@ -952,6 +971,47 @@ fn merge_workspace_context_metadata(
     Ok(())
 }
 
+fn merge_workspace_context_pack_metadata(
+    metadata: &mut std::collections::BTreeMap<String, String>,
+    context: &WorkspaceContextPackResponse,
+) -> Result<(), serde_json::Error> {
+    metadata.insert(
+        "workspaceContextPack.readiness".to_string(),
+        context.readiness.clone(),
+    );
+    metadata.insert(
+        "workspaceContextPack.summary".to_string(),
+        context.summary.clone(),
+    );
+    metadata.insert(
+        "workspaceContextPack.counts_json".to_string(),
+        serde_json::to_string(&context.counts)?,
+    );
+    metadata.insert(
+        "workspaceContextPack.items_json".to_string(),
+        serde_json::to_string(&context.items)?,
+    );
+    metadata.insert(
+        "workspaceContextPack.omitted_json".to_string(),
+        serde_json::to_string(&context.omitted)?,
+    );
+    metadata.insert(
+        "workspaceContextPack.warnings_json".to_string(),
+        serde_json::to_string(&context.warnings)?,
+    );
+    let refs = context
+        .items
+        .iter()
+        .map(|item| item.ref_key.clone())
+        .collect::<Vec<_>>();
+    metadata.insert("workspaceContextPack.refs".to_string(), refs.join(","));
+    if !refs.is_empty() {
+        append_context_refs(metadata, &refs);
+    }
+    append_workspace_context_pack_summary(metadata, context);
+    Ok(())
+}
+
 fn workspace_context_refs(context: &WorkspaceContextSummaryResponse) -> Vec<String> {
     context
         .agent_context
@@ -1022,6 +1082,40 @@ fn append_workspace_context_summary(
         metadata,
         "Workspace file/material/artifact context:",
         &summary,
+    );
+}
+
+fn append_workspace_context_pack_summary(
+    metadata: &mut std::collections::BTreeMap<String, String>,
+    context: &WorkspaceContextPackResponse,
+) {
+    if context.items.is_empty() {
+        return;
+    }
+    let mut lines = vec![context.summary.clone()];
+    for item in context
+        .items
+        .iter()
+        .filter(|item| item.text.is_some())
+        .take(8)
+    {
+        let title = item.title.as_deref().unwrap_or("-");
+        let text = item.text.as_deref().unwrap_or_default();
+        lines.push(format!(
+            "[{}] {} ({})\n{}",
+            item.ref_key, title, item.content_kind, text
+        ));
+    }
+    if !context.omitted.is_empty() {
+        lines.push(format!("Omitted refs: {}", context.omitted.join(",")));
+    }
+    if !context.warnings.is_empty() {
+        lines.push(format!("Warnings: {}", context.warnings.join(" | ")));
+    }
+    append_context_summary_section(
+        metadata,
+        "Workspace readable content pack:",
+        &lines.join("\n\n"),
     );
 }
 
@@ -1253,6 +1347,71 @@ mod tests {
         assert!(metadata["context.summary"].contains("Selected product."));
         assert!(metadata["context.summary"].contains("Workspace file/material/artifact context:"));
         assert!(metadata["workspaceContext.sources_json"].contains("conversation_file"));
+    }
+
+    #[test]
+    fn workspace_context_pack_metadata_appends_readable_text() {
+        let mut metadata = std::collections::BTreeMap::new();
+        metadata.insert(
+            "context.summary".to_string(),
+            "Selected product.".to_string(),
+        );
+        let context = WorkspaceContextPackResponse {
+            workspace_id: "workspace-1".to_string(),
+            conversation_id: Some("conversation-1".to_string()),
+            product_id: Some("product-1".to_string()),
+            run_id: None,
+            readiness: "ready".to_string(),
+            summary: "Workspace context pack is ready.".to_string(),
+            counts: service::dto::workspace::WorkspaceContextSummaryCounts {
+                conversation_files: 1,
+                product_assets: 0,
+                product_materials: 1,
+                workspace_artifacts: 0,
+            },
+            items: vec![
+                service::dto::workspace::WorkspaceContextPackItemResponse {
+                    source_type: "product_material".to_string(),
+                    id: "material-1".to_string(),
+                    title: Some("卖点".to_string()),
+                    ref_key: "product_material:material-1".to_string(),
+                    content_kind: "content".to_string(),
+                    text: Some("主打冷萃低糖。".to_string()),
+                    text_chars: 7,
+                    truncated: false,
+                    metadata: json!({}),
+                },
+                service::dto::workspace::WorkspaceContextPackItemResponse {
+                    source_type: "conversation_file".to_string(),
+                    id: "file-1".to_string(),
+                    title: Some("brief.pdf".to_string()),
+                    ref_key: "conversation_file:file-1".to_string(),
+                    content_kind: "metadata_only".to_string(),
+                    text: None,
+                    text_chars: 0,
+                    truncated: false,
+                    metadata: json!({}),
+                },
+            ],
+            omitted: Vec::new(),
+            warnings: vec![
+                "1 conversation file(s) only have metadata; binary content was not read"
+                    .to_string(),
+            ],
+            agent_context: json!({"kind": "workspace_context_pack"}),
+        };
+
+        merge_workspace_context_pack_metadata(&mut metadata, &context)
+            .expect("workspace context pack should merge");
+
+        assert_eq!(metadata["workspaceContextPack.readiness"], "ready");
+        assert_eq!(
+            metadata["context.refs"],
+            "product_material:material-1,conversation_file:file-1"
+        );
+        assert!(metadata["context.summary"].contains("Workspace readable content pack:"));
+        assert!(metadata["context.summary"].contains("主打冷萃低糖"));
+        assert!(metadata["workspaceContextPack.items_json"].contains("product_material"));
     }
 
     #[test]
