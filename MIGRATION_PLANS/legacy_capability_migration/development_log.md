@@ -954,3 +954,52 @@
 
 - 还需要把该摘要接入 Agent 请求 metadata，让问答真正自动读取可用附件/素材引用。
 - 前端尚未基于该接口做来源面板、附件状态提示和导出/教学入口。
+
+## Post 8-13：工作区上下文摘要接入 Agent 问答主链路
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 13 个补强项：`Post 8-13`。
+
+本次目标：
+
+- 把 `WorkspaceApi::context_summary` 从独立查询 API 接到 Agent SSE 主链路。
+- 让会话附件、商品资产、商品素材、工作区交付物在问答时进入后端 runtime metadata。
+- 前端只做事件消费和过程展示，不造假按钮。
+
+涉及范围：
+
+- 产品内核：问答主链路开始感知工作区附件/素材/交付物来源。
+- 后端 web-server：`metadata.context.conversationId` 进入 SSE DTO；绑定 workspace run 后调用 `context_summary`。
+- Agent metadata：新增 `workspaceContext.*`，并把 workspace refs 追加到 `context.refs`。
+- SSE：新增 `workspace_context_loaded` 事件。
+- 前端：现有右侧上下文卡片和时间线识别 `workspace_context_loaded`。
+- API：同步 `API_DOCS/sse.md` 和 `API_DOCS/app.md`。
+
+用户可感知变化：
+
+- 问答页发送任务后，右侧过程区会显示工作区上下文来源是否已加载。
+- 如果会话附件、商品素材或工作区交付物为空，用户能看到明确 empty/partial 状态。
+- Agent 回答前的上下文来源不再只停留在后台接口里，而是进入问答链路。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo fmt --check`
+- [x] `cargo test -p web-server workspace_context`
+- [x] `cargo test -p web-server metadata_parses_conversation_id_context_selection`
+- [x] `cargo test -p web-server metadata_rejects_too_long_conversation_id`
+- [x] `cargo test -p web-server sse`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo check`
+- [x] `cargo clippy`
+- [x] `pnpm -C apps/web rules`
+- [x] `pnpm -C apps/web lint`
+- [x] `pnpm -C apps/web test`
+- [x] `pnpm -C apps/web build`
+- [x] `pnpm rules`
+- [x] `git diff --check`

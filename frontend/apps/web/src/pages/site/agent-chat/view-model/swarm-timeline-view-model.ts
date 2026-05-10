@@ -43,6 +43,15 @@ export function formatTimelineEvent(
       tone: event.degraded ? "warning" as const : "success" as const,
     }
   }
+  if (event.type === "workspace_context_loaded") {
+    return {
+      label: t("agentChat.swarm.timeline.events.workspaceContextLoaded", {
+        readiness: event.readiness ?? "empty",
+        sources: getWorkspaceContextSourceCount(event),
+      }),
+      tone: event.readiness === "empty" ? "warning" as const : "success" as const,
+    }
+  }
   if (event.type === "task_graph_planned") {
     return { label: t("agentChat.swarm.timeline.events.graphPlanned", { count: event.graph.nodes.length }), tone: "success" as const }
   }
@@ -196,4 +205,17 @@ function readApprovalSkill(event: Extract<AgentRuntimeEvent, { type: "approval_r
 
 function readApprovalRisk(event: Extract<AgentRuntimeEvent, { type: "approval_required" }>) {
   return event.riskLevel ?? event.risk_level ?? event.approval?.riskLevel ?? event.approval?.risk_level ?? "-"
+}
+
+function getWorkspaceContextSourceCount(
+  event: Extract<AgentRuntimeEvent, { type: "workspace_context_loaded" }>
+) {
+  const counts = event.counts
+  if (!counts) return 0
+  return (
+    (counts.conversationFiles ?? counts.conversation_files ?? 0) +
+    (counts.productAssets ?? counts.product_assets ?? 0) +
+    (counts.productMaterials ?? counts.product_materials ?? 0) +
+    (counts.workspaceArtifacts ?? counts.workspace_artifacts ?? 0)
+  )
 }

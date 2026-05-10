@@ -1196,6 +1196,8 @@ const messages = {
             "已从后端读取 {{products}} 个商品和 {{knowledge}} 条商品知识。",
           ragContextLoaded: "知识检索完成：{{sources}} 个来源。",
           ragContextDegraded: "知识检索降级：{{reason}}",
+          workspaceContextLoaded:
+            "工作区上下文已加载：{{sources}} 个来源，状态 {{readiness}}。",
           workspaceRunLinked: "已绑定工作区：{{title}}。",
           workspaceTasksLinked: "已沉淀 {{count}} 个工作区任务。",
           workspaceTaskUpdated: "工作区任务状态已更新：{{status}}。",
@@ -1250,6 +1252,16 @@ const messages = {
           sourceLine: "{{type}}：{{title}}",
           queryLine: "检索词：{{terms}}",
           fallbackLine: "降级：{{reason}}",
+        },
+        workspaceContext: {
+          title: "工作区上下文",
+          meta: "{{total}} 个来源 / {{readiness}}",
+          readyDescription: "后端已把附件、素材和交付物作为本轮问答上下文。",
+          partialDescription: "后端已读取部分附件、素材或交付物，仍有上下文缺失。",
+          emptyDescription: "当前工作区没有可用于问答的附件、素材或交付物。",
+          compactLine: "工作区来源：{{total}} 个",
+          sourceLine: "{{type}}：{{title}}",
+          warningLine: "提示：{{warning}}",
         },
         skill: {
           title: "能力调用",

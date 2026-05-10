@@ -33,8 +33,11 @@ pub struct AgentStreamMetadata {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentStreamContextMetadata {
+    pub conversation_id: Option<String>,
+
     #[serde(default)]
     pub product_ids: Vec<String>,
+
     #[serde(default)]
     pub context_refs: Vec<String>,
 }
@@ -59,6 +62,7 @@ pub struct AgentStreamStrategyMetadata {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct AgentStreamContextSelection {
+    pub conversation_id: Option<String>,
     pub product_ids: Vec<String>,
     pub context_refs: Vec<String>,
 }
@@ -129,6 +133,11 @@ impl AgentStreamMetadata {
         };
 
         Ok(AgentStreamContextSelection {
+            conversation_id: validate_optional_context_value(
+                "context.conversationId",
+                &context.conversation_id,
+                64,
+            )?,
             product_ids: validate_context_values(
                 "context.productIds",
                 &context.product_ids,
@@ -158,6 +167,24 @@ impl AgentStreamContextSelection {
     pub fn is_empty(&self) -> bool {
         self.product_ids.is_empty() && self.context_refs.is_empty()
     }
+}
+
+fn validate_optional_context_value(
+    field: &str,
+    value: &Option<String>,
+    max_len: usize,
+) -> Result<Option<String>, String> {
+    let Some(value) = value else {
+        return Ok(None);
+    };
+    let value = value.trim();
+    if value.is_empty() {
+        return Ok(None);
+    }
+    if value.chars().count() > max_len {
+        return Err(format!("{field} must be at most {max_len} characters"));
+    }
+    Ok(Some(value.to_string()))
 }
 
 fn validate_context_values(
@@ -241,6 +268,7 @@ mod tests {
         let product_id = "11111111-1111-1111-1111-111111111111".to_string();
         let metadata = AgentStreamMetadata {
             context: Some(AgentStreamContextMetadata {
+                conversation_id: Some("conversation-1".to_string()),
                 product_ids: vec![product_id.clone(), product_id.clone()],
                 context_refs: vec![format!("product:{product_id}")],
             }),
@@ -271,6 +299,7 @@ mod tests {
             Some("data,ops")
         );
         assert_eq!(model.name.as_deref(), Some("ollama-gpt-oss-20b"));
+        assert_eq!(context.conversation_id.as_deref(), Some("conversation-1"));
         assert_eq!(context.product_ids, vec![product_id.clone()]);
         assert_eq!(context.context_refs, vec![format!("product:{product_id}")]);
     }
@@ -279,6 +308,7 @@ mod tests {
     fn metadata_rejects_too_many_product_ids() {
         let metadata = AgentStreamMetadata {
             context: Some(AgentStreamContextMetadata {
+                conversation_id: None,
                 product_ids: (0..6).map(|index| format!("product-{index}")).collect(),
                 context_refs: Vec::new(),
             }),
@@ -291,5 +321,45 @@ mod tests {
             .expect_err("too many product ids should fail");
 
         assert!(err.contains("context.productIds"));
+    }
+
+    #[test]
+    fn metadata_parses_conversation_id_context_selection() {
+        let metadata = AgentStreamMetadata {
+            context: Some(AgentStreamContextMetadata {
+                conversation_id: Some("  conversation-uuid  ".to_string()),
+                product_ids: Vec::new(),
+                context_refs: Vec::new(),
+            }),
+            model: None,
+            strategy: None,
+        };
+
+        let (_, context, _) = metadata.into_parts().expect("metadata should parse");
+
+        assert_eq!(
+            context.conversation_id.as_deref(),
+            Some("conversation-uuid")
+        );
+        assert!(context.is_empty());
+    }
+
+    #[test]
+    fn metadata_rejects_too_long_conversation_id() {
+        let metadata = AgentStreamMetadata {
+            context: Some(AgentStreamContextMetadata {
+                conversation_id: Some("x".repeat(65)),
+                product_ids: Vec::new(),
+                context_refs: Vec::new(),
+            }),
+            model: None,
+            strategy: None,
+        };
+
+        let err = metadata
+            .into_parts()
+            .expect_err("too long conversation id should fail");
+
+        assert!(err.contains("context.conversationId"));
     }
 }

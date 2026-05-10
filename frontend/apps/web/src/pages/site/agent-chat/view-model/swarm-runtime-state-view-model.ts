@@ -51,10 +51,15 @@ export function getRuntimeNodeStates(runtimeEvents: AgentRuntimeEvent[]) {
       event.graph.nodes.forEach((node) => {
         ensureNode(readRuntimeId(node.id)).state = "queued"
       })
-    } else if (event.type === "context_loaded" || event.type === "rag_context_loaded") {
-      ensureNode("ops").state = event.type === "rag_context_loaded" && event.degraded
-        ? "reworking"
-        : "working"
+    } else if (
+      event.type === "context_loaded" ||
+      event.type === "rag_context_loaded" ||
+      event.type === "workspace_context_loaded"
+    ) {
+      const degraded =
+        (event.type === "rag_context_loaded" && event.degraded) ||
+        (event.type === "workspace_context_loaded" && event.readiness === "empty")
+      ensureNode("ops").state = degraded ? "reworking" : "working"
     } else if (event.type === "task_node_ready") {
       ensureNode(readRuntimeNodeId(event)).state = "queued"
     } else if (event.type === "task_node_started") {

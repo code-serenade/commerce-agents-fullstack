@@ -404,3 +404,23 @@
 
 - 本阶段不读取文件内容，不做 OCR/文档解析，不伪造附件摘要。
 - 返回的 `agentContext.refs` 是后续 Agent 上下文注入和前端来源面板的稳定桥接字段。
+
+## Post 8-13：工作区上下文摘要接入 Agent 问答主链路
+
+状态：done
+
+验收项：
+
+- [x] 后端：SSE `metadata.context` 支持 `conversationId`。
+- [x] 后端：Agent SSE 绑定工作区运行记录后调用 `WorkspaceApi::context_summary`。
+- [x] 后端：工作区上下文摘要写入 `workspaceContext.*` metadata，并追加到 `context.refs` / `context.summary`。
+- [x] SSE：新增 `workspace_context_loaded` 事件。
+- [x] API：`API_DOCS/sse.md`、`API_DOCS/app.md` 已同步。
+- [x] 前端：问答发送时传入当前 `conversationId`。
+- [x] 前端：右侧过程卡片和时间线识别 `workspace_context_loaded`。
+
+当前说明：
+
+- 本阶段仍不读取附件正文，不做 OCR，不伪造素材或报告摘要。
+- `readiness=empty` 会作为真实空状态展示，不代表后端已读取文件内容。
+- 验证已通过：`cargo fmt`、`cargo test -p web-server sse`、`cargo check`、`cargo clippy`、`pnpm -C apps/web rules/lint/test/build`、`pnpm rules`、`git diff --check`。

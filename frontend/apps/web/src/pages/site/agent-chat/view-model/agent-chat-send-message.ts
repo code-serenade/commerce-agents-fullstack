@@ -94,7 +94,6 @@ export async function sendAgentChatMessage(
         input: input.content,
         agentId: AGENT_ID,
         metadata: {
-          context: contextMeta,
           model: input.runtimeSelection.modelName
             ? { name: input.runtimeSelection.modelName }
             : undefined,
@@ -105,6 +104,10 @@ export async function sendAgentChatMessage(
             learningLevel: input.runtimeSelection.learningLevel,
             primaryRole: input.runtimeSelection.primaryRole,
             selectedRoles: input.runtimeSelection.selectedRoles,
+          },
+          context: {
+            ...contextMeta,
+            conversationId: activeConversationId ?? undefined,
           },
         },
         sessionId: input.sessionIdRef.current,

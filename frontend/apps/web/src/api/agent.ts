@@ -7,6 +7,7 @@ export interface AgentStreamRequest {
   agentId?: string
   metadata?: {
     context?: {
+      conversationId?: string
       contextRefs?: string[]
       productIds?: string[]
     }
@@ -56,6 +57,7 @@ export type AgentRuntimeEvent =
       summary?: string | null
     }
   | ({ type: "rag_context_loaded" } & AgentRagContextLoaded)
+  | ({ type: "workspace_context_loaded" } & AgentWorkspaceContextLoaded)
   | { type: "finished"; session_id?: string }
   | { type: "failed"; reason: string; session_id?: string }
   | { type: "output"; content: string; session_id?: string }
@@ -237,6 +239,7 @@ const AGENT_RUNTIME_EVENT_TYPES = new Set<string>([
   "memory_loaded",
   "context_loaded",
   "rag_context_loaded",
+  "workspace_context_loaded",
   "finished",
   "failed",
   "output",
@@ -525,6 +528,57 @@ export interface AgentRagContextSource {
   sourceType?: string
   source_type?: string
   title: string
+}
+
+export interface AgentWorkspaceContextLoaded {
+  agentContext?: Record<string, unknown>
+  agent_context?: Record<string, unknown>
+  artifactSources?: AgentWorkspaceContextSource[]
+  artifact_sources?: AgentWorkspaceContextSource[]
+  attachmentSources?: AgentWorkspaceContextSource[]
+  attachment_sources?: AgentWorkspaceContextSource[]
+  conversationId?: string | null
+  conversation_id?: string | null
+  counts?: {
+    conversationFiles?: number
+    conversation_files?: number
+    productAssets?: number
+    product_assets?: number
+    productMaterials?: number
+    product_materials?: number
+    workspaceArtifacts?: number
+    workspace_artifacts?: number
+  }
+  missing?: string[]
+  productAssetSources?: AgentWorkspaceContextSource[]
+  product_asset_sources?: AgentWorkspaceContextSource[]
+  productId?: string | null
+  product_id?: string | null
+  productMaterialSources?: AgentWorkspaceContextSource[]
+  product_material_sources?: AgentWorkspaceContextSource[]
+  readiness?: string
+  runId?: string | null
+  run_id?: string | null
+  summary?: string | null
+  warnings?: string[]
+  workspaceId?: string
+  workspace_id?: string
+}
+
+export interface AgentWorkspaceContextSource {
+  fileSize?: number | null
+  file_size?: number | null
+  id: string
+  metadata?: Record<string, unknown>
+  mimeType?: string | null
+  mime_type?: string | null
+  preview?: string | null
+  refKey?: string
+  ref_key?: string
+  sourceType?: string
+  source_type?: string
+  status: string
+  title?: string | null
 }
 
 export interface AgentApprovalRequired {
@@ -866,6 +920,13 @@ function normalizeAgentRuntimeEvent(event: AgentRuntimeEvent): AgentRuntimeEvent
   copyIfMissing(normalized, raw, "sourceCount", "source_count")
   copyIfMissing(normalized, raw, "degradedReason", "degraded_reason")
   copyIfMissing(normalized, raw, "externalSearchAvailable", "external_search_available")
+  copyIfMissing(normalized, raw, "agentContext", "agent_context")
+  copyIfMissing(normalized, raw, "artifactSources", "artifact_sources")
+  copyIfMissing(normalized, raw, "attachmentSources", "attachment_sources")
+  copyIfMissing(normalized, raw, "conversationId", "conversation_id")
+  copyIfMissing(normalized, raw, "productAssetSources", "product_asset_sources")
+  copyIfMissing(normalized, raw, "productMaterialSources", "product_material_sources")
+  copyIfMissing(normalized, raw, "productId", "product_id")
   copyIfMissing(normalized, raw, "skillId", "skill_id")
   copyIfMissing(normalized, raw, "requestId", "request_id")
   copyIfMissing(normalized, raw, "riskLevel", "risk_level")

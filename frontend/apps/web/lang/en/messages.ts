@@ -1203,6 +1203,8 @@ const messages = {
             "Loaded {{products}} product(s) and {{knowledge}} knowledge record(s) from backend context.",
           ragContextLoaded: "Knowledge retrieval complete: {{sources}} source(s).",
           ragContextDegraded: "Knowledge retrieval degraded: {{reason}}",
+          workspaceContextLoaded:
+            "Workspace context loaded: {{sources}} source(s), {{readiness}}.",
           workspaceRunLinked: "Workspace linked: {{title}}.",
           workspaceTasksLinked: "Persisted {{count}} workspace task(s).",
           workspaceTaskUpdated: "Workspace task status updated: {{status}}.",
@@ -1257,6 +1259,16 @@ const messages = {
           sourceLine: "{{type}}: {{title}}",
           queryLine: "Query terms: {{terms}}",
           fallbackLine: "Degraded: {{reason}}",
+        },
+        workspaceContext: {
+          title: "Workspace context",
+          meta: "{{total}} sources / {{readiness}}",
+          readyDescription: "Backend attached files, materials, and deliverables as context for this answer.",
+          partialDescription: "Backend loaded partial files, materials, or deliverables; some context is missing.",
+          emptyDescription: "No files, materials, or deliverables are ready for this workspace.",
+          compactLine: "Workspace sources: {{total}}",
+          sourceLine: "{{type}}: {{title}}",
+          warningLine: "Note: {{warning}}",
         },
         skill: {
           title: "Capability call",

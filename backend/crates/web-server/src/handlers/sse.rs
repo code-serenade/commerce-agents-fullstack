@@ -31,7 +31,8 @@ use service::{
             FailAgentWorkspaceRunRequest, LinkAgentWorkspaceRunRequest,
             LinkAgentWorkspaceTasksRequest, MarkAgentWorkspaceTaskStartedRequest,
             RecordAgentSearchEvidenceRequest, RecordAgentWorkspaceTaskEvaluationRequest,
-            RecordAgentWorkspaceTaskReportRequest,
+            RecordAgentWorkspaceTaskReportRequest, WorkspaceContextSourceResponse,
+            WorkspaceContextSummaryResponse,
         },
     },
 };
@@ -66,6 +67,8 @@ pub async fn stream_agent_session(
     let input = req.input.clone();
     let (mut metadata, context_selection, model_selection) =
         req.metadata.into_parts().map_err(bad_request)?;
+    let conversation_id = context_selection.conversation_id.clone();
+    let selected_product_id = context_selection.product_ids.first().cloned();
 
     let api = AppApi::new(get_app_ctx());
     api.get_current_user_permissions(user_id.clone())
@@ -90,8 +93,8 @@ pub async fn stream_agent_session(
         .build_retrieval_context(BuildAgentRetrievalContextRequest {
             user_id: user_id.clone(),
             query: input.clone(),
-            product_ids: context_selection.product_ids,
-            context_refs: context_selection.context_refs,
+            product_ids: context_selection.product_ids.clone(),
+            context_refs: context_selection.context_refs.clone(),
             limit: Some(8),
         })
         .await
@@ -120,6 +123,18 @@ pub async fn stream_agent_session(
         linked_workspace.run.id.clone(),
     );
     metadata.insert("workspace.source".to_string(), "agent_session".to_string());
+    let workspace_context = workspace_api
+        .context_summary(service::dto::workspace::GetWorkspaceContextSummaryRequest {
+            user_id: user_id.clone(),
+            workspace_id: linked_workspace.workspace.id.clone(),
+            conversation_id,
+            product_id: selected_product_id,
+            run_id: None,
+        })
+        .await
+        .map_err(from_biz_error)?;
+    merge_workspace_context_metadata(&mut metadata, &workspace_context)
+        .map_err(|err| Error::Custom(format!("workspace context metadata failed: {err}")))?;
     if let Ok(learning_context) = workspace_api
         .build_agent_learning_context(BuildAgentLearningContextRequest {
             user_id: user_id.clone(),
@@ -175,6 +190,11 @@ pub async fn stream_agent_session(
             "workspace_run_linked",
             serde_json::to_value(&linked_workspace)
                 .unwrap_or_else(|_| json!({ "type": "workspace_run_linked" })),
+        ));
+        yield Ok(typed_camel_json_event(
+            "workspace_context_loaded",
+            serde_json::to_value(&workspace_context)
+                .unwrap_or_else(|_| json!({ "type": "workspace_context_loaded" })),
         ));
         yield Ok(typed_camel_json_event(
             "rag_context_loaded",
@@ -860,6 +880,14 @@ fn append_context_summary(
     metadata: &mut std::collections::BTreeMap<String, String>,
     summary: &str,
 ) {
+    append_context_summary_section(metadata, "Retrieved local knowledge context:", summary);
+}
+
+fn append_context_summary_section(
+    metadata: &mut std::collections::BTreeMap<String, String>,
+    heading: &str,
+    summary: &str,
+) {
     if summary.trim().is_empty() {
         return;
     }
@@ -869,10 +897,132 @@ fn append_context_summary(
             if !value.trim().is_empty() {
                 value.push_str("\n\n");
             }
-            value.push_str("Retrieved local knowledge context:\n");
+            value.push_str(heading);
+            value.push('\n');
             value.push_str(summary);
         })
         .or_insert_with(|| summary.to_string());
+}
+
+fn merge_workspace_context_metadata(
+    metadata: &mut std::collections::BTreeMap<String, String>,
+    context: &WorkspaceContextSummaryResponse,
+) -> Result<(), serde_json::Error> {
+    metadata.insert(
+        "workspaceContext.readiness".to_string(),
+        context.readiness.clone(),
+    );
+    metadata.insert(
+        "workspaceContext.summary".to_string(),
+        context.summary.clone(),
+    );
+    metadata.insert(
+        "workspaceContext.counts_json".to_string(),
+        serde_json::to_string(&context.counts)?,
+    );
+    metadata.insert(
+        "workspaceContext.missing_json".to_string(),
+        serde_json::to_string(&context.missing)?,
+    );
+    metadata.insert(
+        "workspaceContext.warnings_json".to_string(),
+        serde_json::to_string(&context.warnings)?,
+    );
+    let refs = workspace_context_refs(context);
+    metadata.insert("workspaceContext.refs".to_string(), refs.join(","));
+    if !refs.is_empty() {
+        append_context_refs(metadata, &refs);
+    }
+    let sources = workspace_context_sources(context);
+    if !sources.is_empty() {
+        metadata.insert(
+            "workspaceContext.sources_json".to_string(),
+            serde_json::to_string(&sources)?,
+        );
+        metadata.insert(
+            "workspaceContext.source_titles".to_string(),
+            sources
+                .iter()
+                .map(format_workspace_context_source)
+                .collect::<Vec<_>>()
+                .join(" | "),
+        );
+    }
+    append_workspace_context_summary(metadata, context);
+    Ok(())
+}
+
+fn workspace_context_refs(context: &WorkspaceContextSummaryResponse) -> Vec<String> {
+    context
+        .agent_context
+        .get("refs")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(Value::as_str)
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_else(|| {
+            workspace_context_sources(context)
+                .into_iter()
+                .map(|source| source.ref_key.clone())
+                .collect()
+        })
+}
+
+fn workspace_context_sources(
+    context: &WorkspaceContextSummaryResponse,
+) -> Vec<WorkspaceContextSourceResponse> {
+    context
+        .attachment_sources
+        .iter()
+        .chain(context.product_asset_sources.iter())
+        .chain(context.product_material_sources.iter())
+        .chain(context.artifact_sources.iter())
+        .cloned()
+        .collect()
+}
+
+fn append_context_refs(metadata: &mut std::collections::BTreeMap<String, String>, refs: &[String]) {
+    let mut merged = metadata
+        .get("context.refs")
+        .map(|value| {
+            value
+                .split(',')
+                .map(str::trim)
+                .filter(|item| !item.is_empty())
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    for context_ref in refs {
+        if !merged.iter().any(|item| item == context_ref) {
+            merged.push(context_ref.clone());
+        }
+    }
+    metadata.insert("context.refs".to_string(), merged.join(","));
+}
+
+fn append_workspace_context_summary(
+    metadata: &mut std::collections::BTreeMap<String, String>,
+    context: &WorkspaceContextSummaryResponse,
+) {
+    if context.summary.trim().is_empty() {
+        return;
+    }
+    let refs = workspace_context_refs(context);
+    let summary = if refs.is_empty() {
+        context.summary.clone()
+    } else {
+        format!("{}\nRefs: {}", context.summary, refs.join(","))
+    };
+    append_context_summary_section(
+        metadata,
+        "Workspace file/material/artifact context:",
+        &summary,
+    );
 }
 
 fn merge_context_sources(
@@ -921,6 +1071,11 @@ fn format_context_source(source: &AgentContextSource) -> String {
             source.source_type, source.id, source.title
         ),
     }
+}
+
+fn format_workspace_context_source(source: &WorkspaceContextSourceResponse) -> String {
+    let title = source.title.as_deref().unwrap_or("-");
+    format!("{}:{} title={}", source.source_type, source.id, title)
 }
 
 #[cfg(test)]
@@ -1018,6 +1173,86 @@ mod tests {
         assert!(metadata["context.summary"].contains("no matching product knowledge"));
         assert!(metadata["context.summary"].contains("Do not cite external search results"));
         assert_eq!(metadata["rag.degraded"], "true");
+    }
+
+    #[test]
+    fn workspace_context_metadata_appends_refs_and_summary() {
+        let mut metadata = std::collections::BTreeMap::new();
+        metadata.insert("context.refs".to_string(), "product:product-1".to_string());
+        metadata.insert(
+            "context.summary".to_string(),
+            "Selected product.".to_string(),
+        );
+        let context = WorkspaceContextSummaryResponse {
+            workspace_id: "workspace-1".to_string(),
+            conversation_id: Some("conversation-1".to_string()),
+            product_id: Some("product-1".to_string()),
+            run_id: None,
+            readiness: "ready".to_string(),
+            summary: "Workspace context is ready.".to_string(),
+            counts: service::dto::workspace::WorkspaceContextSummaryCounts {
+                conversation_files: 1,
+                product_assets: 1,
+                product_materials: 0,
+                workspace_artifacts: 1,
+            },
+            attachment_sources: vec![WorkspaceContextSourceResponse {
+                source_type: "conversation_file".to_string(),
+                id: "file-1".to_string(),
+                title: Some("brief.pdf".to_string()),
+                mime_type: Some("application/pdf".to_string()),
+                file_size: Some(1024),
+                status: "active".to_string(),
+                ref_key: "conversation_file:file-1".to_string(),
+                preview: Some("brief.pdf".to_string()),
+                metadata: json!({}),
+            }],
+            product_asset_sources: vec![WorkspaceContextSourceResponse {
+                source_type: "product_asset".to_string(),
+                id: "asset-1".to_string(),
+                title: Some("hero.png".to_string()),
+                mime_type: Some("image/png".to_string()),
+                file_size: Some(2048),
+                status: "active".to_string(),
+                ref_key: "product_asset:asset-1".to_string(),
+                preview: Some("hero.png".to_string()),
+                metadata: json!({}),
+            }],
+            product_material_sources: Vec::new(),
+            artifact_sources: vec![WorkspaceContextSourceResponse {
+                source_type: "workspace_artifact".to_string(),
+                id: "artifact-1".to_string(),
+                title: Some("Agent final report".to_string()),
+                mime_type: Some("text/markdown".to_string()),
+                file_size: None,
+                status: "active".to_string(),
+                ref_key: "workspace_artifact:artifact-1".to_string(),
+                preview: Some("report".to_string()),
+                metadata: json!({}),
+            }],
+            missing: Vec::new(),
+            warnings: Vec::new(),
+            agent_context: json!({
+                "kind": "workspace_context_summary",
+                "refs": [
+                    "conversation_file:file-1",
+                    "product_asset:asset-1",
+                    "workspace_artifact:artifact-1"
+                ]
+            }),
+        };
+
+        merge_workspace_context_metadata(&mut metadata, &context)
+            .expect("workspace context should merge");
+
+        assert_eq!(metadata["workspaceContext.readiness"], "ready");
+        assert_eq!(
+            metadata["context.refs"],
+            "product:product-1,conversation_file:file-1,product_asset:asset-1,workspace_artifact:artifact-1"
+        );
+        assert!(metadata["context.summary"].contains("Selected product."));
+        assert!(metadata["context.summary"].contains("Workspace file/material/artifact context:"));
+        assert!(metadata["workspaceContext.sources_json"].contains("conversation_file"));
     }
 
     #[test]

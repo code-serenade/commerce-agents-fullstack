@@ -21,6 +21,7 @@
   "workspaceId": "workspace-001",
   "metadata": {
     "context": {
+      "conversationId": "conversation-uuid",
       "productIds": ["product-uuid"],
       "contextRefs": ["product:product-uuid"]
     },
@@ -47,6 +48,7 @@
 | `agentId` | `string` | 否 | agent ID，不传时使用 `web-agent` |
 | `sessionId` | `string` | 否 | 会话 ID，不传时服务端生成 |
 | `workspaceId` | `string` | 否 | 工作区 ID；不传时后端会创建或复用当前用户默认 `agent_chat` 工作区 |
+| `metadata.context.conversationId` | `string` | 否 | 绑定到本轮问答的会话 ID；后端会读取该会话下已注册的 active 附件，并注入工作区上下文摘要 |
 | `metadata.context.productIds` | `string[]` | 否 | 绑定到本轮问答的商品 ID，最多 5 个；后端会校验当前用户权限并读取真实商品/知识 |
 | `metadata.context.contextRefs` | `string[]` | 否 | 上下文引用，当前支持 `product:{productId}`，最多 20 个 |
 | `metadata.model.name` | `string` | 否 | 指定本轮使用的后端 `llm.name`；不传时使用后端默认模型 |
@@ -57,7 +59,7 @@
 | `metadata.strategy.primaryRole` | `string` | 否 | 用户指定的主岗位 runtime role，例如 `data`、`ops`、`creative` |
 | `metadata.strategy.selectedRoles` | `string[]` | 否 | 用户指定参与本轮协作的岗位 runtime role，最多 6 个，服务端去重 |
 
-`metadata.context.*` 只作为引用入口，不允许前端直接塞商品事实。后端会通过 service 层读取当前用户自己的 active 商品和 active 商品知识，压缩成 agent runtime metadata：`context.product_ids`、`context.refs`、`context.summary`、`context.sources_json` 等。商品不存在、已归档、不属于当前用户或 ID 非法时返回商品相关错误码。
+`metadata.context.*` 只作为引用入口，不允许前端直接塞商品事实或附件正文。后端会通过 service 层读取当前用户自己的 active 商品、active 商品知识、会话附件、商品素材和工作区交付物，压缩成 agent runtime metadata：`context.product_ids`、`context.refs`、`context.summary`、`context.sources_json`、`workspaceContext.*` 等。商品、会话、工作区不存在、已归档、不属于当前用户或 ID 非法时返回对应业务错误码。
 
 `metadata.model.name` 必须是 `GET /api/app/agent/runtime-options` 返回的 `models[].name`。如果模型名不存在，服务端返回 `400`，不会启动 Agent，也不会创建工作区运行记录。后端只把模型配置名和模型名写入 runtime metadata，不向前端暴露 `base_url` 或 `api_key`。
 
@@ -65,7 +67,7 @@
 
 当 `metadata.strategy.collaborationMode` 为 `manual` 或 `single`，且 `primaryRole` 或 `selectedRoles` 中包含非 `chat` 岗位时，后端会优先尊重这次显式岗位选择并进入 commander/任务图路由；即使用户输入文本本身像“只输出/answer only”这类短答请求，也不会被 `chat_bypass` 吞掉。没有显式非 `chat` 岗位选择的短答请求仍可走 `route_decided.route_mode=chat_bypass`，用于普通轻问答。
 
-每次 SSE Agent 调用都会先在 service 层绑定工作区运行记录：如果 `workspaceId` 合法且属于当前用户，则写入该工作区；如果不传 `workspaceId`，后端会创建或复用当前用户的默认 `agent_chat` 工作区。绑定成功后，agent runtime metadata 会追加 `workspace.workspace_id`、`workspace.run_id` 和 `workspace.source=agent_session`。如果绑定失败，SSE 不会启动，接口直接返回业务错误，避免前端误以为本次结果已沉淀。
+每次 SSE Agent 调用都会先在 service 层绑定工作区运行记录：如果 `workspaceId` 合法且属于当前用户，则写入该工作区；如果不传 `workspaceId`，后端会创建或复用当前用户的默认 `agent_chat` 工作区。绑定成功后，agent runtime metadata 会追加 `workspace.workspace_id`、`workspace.run_id` 和 `workspace.source=agent_session`。随后后端会调用 `WorkspaceApi::context_summary` 聚合会话附件、商品资产、商品素材和工作区 artifact，追加 `workspaceContext.*` metadata，并发送 `workspace_context_loaded` 事件。如果绑定或上下文归属校验失败，SSE 不会启动，接口直接返回业务错误，避免前端误以为本次结果已沉淀或已读取资料。
 
 SSE 事件分为三类：
 
@@ -87,6 +89,9 @@ data: {"type":"context_loaded","session_id":"session-001","product_ids":["produc
 
 event: rag_context_loaded
 data: {"type":"rag_context_loaded","mode":"local_product_knowledge","queryTerms":["咖啡","转化"],"productIds":["product-uuid"],"knowledgeCount":3,"sourceCount":4,"summary":"Local commerce RAG context...","sources":[{"sourceType":"product_knowledge","id":"knowledge-uuid","productId":"product-uuid","title":"核心卖点"}],"degraded":false,"degradedReason":null,"externalSearchAvailable":false}
+
+event: workspace_context_loaded
+data: {"type":"workspace_context_loaded","workspaceId":"workspace-uuid","conversationId":"conversation-uuid","productId":"product-uuid","runId":null,"readiness":"ready","summary":"Workspace context is ready: 1 conversation files, 2 product assets, 3 product materials, 4 workspace artifacts are available for agent grounding and delivery.","counts":{"conversationFiles":1,"productAssets":2,"productMaterials":3,"workspaceArtifacts":4},"attachmentSources":[{"sourceType":"conversation_file","id":"file-uuid","title":"brief.pdf","mimeType":"application/pdf","fileSize":123456,"status":"active","refKey":"conversation_file:file-uuid","preview":"brief.pdf","metadata":{}}],"productAssetSources":[],"productMaterialSources":[],"artifactSources":[],"missing":[],"warnings":[],"agentContext":{"kind":"workspace_context_summary","refs":["conversation_file:file-uuid"]}}
 
 event: worker_started
 data: {"type":"worker_started","session_id":"session-001","worker_id":"worker-001","task_id":"task-001"}
@@ -136,6 +141,7 @@ data: {"type":"approval_required","approval":{"id":"approval-uuid","workspaceId"
 | `memory_loaded` / `memory_persisted` / `memory_compacted` | 记忆加载、保存或压缩 |
 | `context_loaded` | 后端已读取并注入真实业务上下文，当前包含商品 ID、context refs、商品数量、知识数量、来源数量、摘要和来源 JSON |
 | `rag_context_loaded` | 后端已根据用户问题检索当前用户自己的本地商品知识，返回检索模式、关键词、来源、摘要、是否降级和外部搜索可用状态 |
+| `workspace_context_loaded` | 后端已聚合当前工作区的会话附件、商品资产、商品素材和工作区交付物，返回 `ready/partial/empty`、来源计数、引用 key、缺失项和警告，并已把摘要注入 agent metadata |
 | `commander_thinking` | commander 正在规划或调度 |
 | `route_decided` | 后端已识别策略和路由模式，包含策略、学习层级、实际模型、主角色和支持角色 |
 | `worker_started` / `worker_finished` | 单个 worker 开始或完成 |
@@ -161,6 +167,8 @@ data: {"type":"approval_required","approval":{"id":"approval-uuid","workspaceId"
 `skill_result.status` 当前使用：`success`、`deferred`、`pending_approval`、`not_found`、`validation_error`、`failed`。其中 `pending_approval` 和 `approval_required=true` 表示后端没有直接执行平台写操作，需要进入审批或人工确认链路；`deferred` 表示 skill 已被识别但依赖搜索、外部数据、数据库或平台适配器，当前不会伪造结果。搜索类 skill 在 provider 返回可信来源时会以 `success` 承载 `output.status=live`，provider 不可用时仍以 `deferred` 承载明确降级原因。
 
 `rag_context_loaded` 当前使用本地 RAG：来源只来自当前用户自己的 active `products` 和 active `product_knowledge`。如果命中本地商品知识，服务端会把摘要追加到 agent runtime `context.summary`，让模型可在回答中使用这些事实。如果没有命中，事件会返回 `degraded=true` 和 `degradedReason="No matching local product knowledge was found; external search adapter is not configured."`。当前不会伪造外部搜索结果，`externalSearchAvailable=false` 表示外部搜索适配器尚未接入。
+
+`workspace_context_loaded` 当前只聚合来源元数据，不读取文件正文，不做 OCR，不伪造素材总结。服务端会把 `agentContext.refs` 追加到 runtime `context.refs`，把 `summary` 追加到 `context.summary`，并写入 `workspaceContext.readiness`、`workspaceContext.counts_json`、`workspaceContext.refs`、`workspaceContext.sources_json`、`workspaceContext.missing_json`、`workspaceContext.warnings_json`。`readiness=empty` 表示没有可用附件、素材或交付物，前端应展示明确空状态；这不是外部搜索或附件解析结果。
 
 工作区沉淀事件：
 

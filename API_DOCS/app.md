@@ -2288,6 +2288,7 @@
 - `readiness=empty` 表示没有任何 active 附件、素材、资产或交付物来源。
 - `agentContext.refs` 是后续 Agent 上下文注入和前端来源面板可复用的引用 key。
 - 该接口只做后端状态聚合，不读取文件正文，不伪造 OCR/文档摘要。
+- Agent SSE 会在绑定 `workspace_run` 后自动调用该摘要能力，发送 `workspace_context_loaded` 事件，并把 `agentContext.refs` 与 `summary` 注入 agent runtime metadata。
 
 ## 69. 查询支持的平台列表
 
