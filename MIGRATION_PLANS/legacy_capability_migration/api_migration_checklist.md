@@ -36,7 +36,7 @@ API 是后端能力和前端适配之间的唯一契约。任何前端适配开�
 
 - [ ] 产品生命周期状态 API。
 - [x] 产品知识查询/绑定到对话 API。
-- [ ] 附件摘要状态 API。
+- [x] 附件摘要状态 API。
 - [ ] 竞品分析读取 API。
 - [ ] Campaign draft 创建 API。
 - [x] Commerce agent playbook 场景入口 API。

@@ -267,6 +267,15 @@ pub struct DeleteWorkspaceArtifactRequest {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct GetWorkspaceContextSummaryRequest {
+    pub user_id: String,
+    pub workspace_id: String,
+    pub conversation_id: Option<String>,
+    pub product_id: Option<String>,
+    pub run_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct ListExecutionQueueRequest {
     pub user_id: String,
     pub workspace_id: Option<String>,
@@ -616,6 +625,57 @@ pub struct WorkspaceArtifactListResponse {
     pub total: u64,
     pub page: u64,
     pub page_size: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceContextSummaryResponse {
+    pub workspace_id: String,
+    pub conversation_id: Option<String>,
+    pub product_id: Option<String>,
+    pub run_id: Option<String>,
+    pub readiness: String,
+    pub summary: String,
+    pub counts: WorkspaceContextSummaryCounts,
+    pub attachment_sources: Vec<WorkspaceContextSourceResponse>,
+    pub product_asset_sources: Vec<WorkspaceContextSourceResponse>,
+    pub product_material_sources: Vec<WorkspaceContextSourceResponse>,
+    pub artifact_sources: Vec<WorkspaceContextSourceResponse>,
+    pub missing: Vec<String>,
+    pub warnings: Vec<String>,
+    pub agent_context: Value,
+}
+
+#[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceContextSummaryCounts {
+    pub conversation_files: usize,
+    pub product_assets: usize,
+    pub product_materials: usize,
+    pub workspace_artifacts: usize,
+}
+
+impl WorkspaceContextSummaryCounts {
+    pub fn total(&self) -> usize {
+        self.conversation_files
+            + self.product_assets
+            + self.product_materials
+            + self.workspace_artifacts
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceContextSourceResponse {
+    pub source_type: String,
+    pub id: String,
+    pub title: Option<String>,
+    pub mime_type: Option<String>,
+    pub file_size: Option<i64>,
+    pub status: String,
+    pub ref_key: String,
+    pub preview: Option<String>,
+    pub metadata: Value,
 }
 
 #[derive(Debug, Clone, Serialize)]

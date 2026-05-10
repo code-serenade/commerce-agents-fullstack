@@ -72,9 +72,10 @@ use crate::{
         UpdateProductMaterialRequest, UpdateProductRequest, UpdateWorkspaceArtifactRequest,
         UpdateWorkspaceRequest, UpdateWorkspaceRunRequest, UpdateWorkspaceRunTaskRequest,
         UpdateWorkspaceTaskRequest, UpsertDailyBriefingRecordRequest, UpsertPackageRequest,
-        WorkspaceArtifactListResponse, WorkspaceArtifactResponse, WorkspaceListResponse,
-        WorkspaceResponse, WorkspaceRunListResponse, WorkspaceRunResponse,
-        WorkspaceRunTaskResponse, WorkspaceTaskListResponse, WorkspaceTaskResponse,
+        WorkspaceArtifactListResponse, WorkspaceArtifactResponse, WorkspaceContextSummaryQuery,
+        WorkspaceContextSummaryResponse, WorkspaceListResponse, WorkspaceResponse,
+        WorkspaceRunListResponse, WorkspaceRunResponse, WorkspaceRunTaskResponse,
+        WorkspaceTaskListResponse, WorkspaceTaskResponse,
     },
     error::{Error, from_biz_error},
     statics::{db_manager::get_app_ctx, storage_manager::get_storage},
@@ -604,6 +605,26 @@ pub async fn delete_workspace_artifact(
     .await
     .map_err(from_biz_error)?;
     Ok(().into_common_response().to_json())
+}
+
+pub async fn get_workspace_context_summary(
+    Extension(auth_user): Extension<AuthUser>,
+    Path(workspace_id): Path<String>,
+    Query(req): Query<WorkspaceContextSummaryQuery>,
+) -> ResponseResult<WorkspaceContextSummaryResponse> {
+    req.validate().map_err(Error::from)?;
+    let api = WorkspaceApi::new(get_app_ctx());
+    let response = api
+        .context_summary(service::dto::workspace::GetWorkspaceContextSummaryRequest {
+            user_id: auth_user.user_id,
+            workspace_id,
+            conversation_id: req.conversation_id,
+            product_id: req.product_id,
+            run_id: req.run_id,
+        })
+        .await
+        .map_err(from_biz_error)?;
+    Ok(response.into_common_response().to_json())
 }
 
 pub async fn list_agent_quality_checks(

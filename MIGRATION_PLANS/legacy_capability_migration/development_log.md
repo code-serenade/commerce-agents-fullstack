@@ -910,3 +910,47 @@
 - 前端尚未把 `search_evidence` artifact 做成 Kimi Agent 风格的来源面板。
 - 真实 provider 仍需要部署环境配置 `[external_search]`。
 - 后续可把 search adapter 归一化逻辑抽到共享 crate，减少 App API 与 Agent 内部 adapter 的重复。
+
+## Post 8-12：附件与素材上下文摘要 API
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 12 个补强项：`Post 8-12`。
+
+本次目标：
+
+- 让旧产品里的附件、素材、报告交付物，不再只是分散在不同接口中。
+- 先由后端聚合成可被 Agent 和前端共同消费的“上下文就绪摘要”。
+- 为后续问答前上下文注入、右侧来源面板、导出/教学能力打基础。
+
+涉及范围：
+
+- 产品内核：从单独文件/素材 CRUD 继续推进到“Agent 可判断哪些上下文可用”。
+- 后端 service：`WorkspaceApi::context_summary` 聚合 `conversation_files`、`product_assets`、`product_materials`、`workspace_artifacts`。
+- Web-server：新增 `GET /api/app/workspaces/{workspaceId}/context-summary`。
+- API：更新 `API_DOCS/app.md`，记录请求参数、返回结构、权限和降级语义。
+- 前端：本阶段不改前端，不新增假状态。
+
+用户可感知变化：
+
+- 后续前端可以在问答工作台显示“当前有多少附件、商品素材、交付物可用于回答”。
+- 当没有上传附件或没有素材时，产品可以明确提示缺失来源，而不是让用户误以为 Agent 已经读取了资料。
+- 后续 Agent 问答可以基于 `agentContext.refs` 注入真实来源引用。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p service context_summary`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo check`
+- [x] `cargo clippy`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 还需要把该摘要接入 Agent 请求 metadata，让问答真正自动读取可用附件/素材引用。
+- 前端尚未基于该接口做来源面板、附件状态提示和导出/教学入口。

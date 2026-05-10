@@ -1341,6 +1341,18 @@ pub type AgentQualityEvaluationResponse = service::dto::workspace::AgentQualityE
 pub type AgentRunFeedbackResponse = service::dto::workspace::AgentRunFeedbackResponse;
 pub type AgentLearningRecordListResponse = service::dto::workspace::AgentLearningRecordListResponse;
 pub type AgentTrustScoreListResponse = service::dto::workspace::AgentTrustScoreListResponse;
+pub type WorkspaceContextSummaryResponse = service::dto::workspace::WorkspaceContextSummaryResponse;
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceContextSummaryQuery {
+    #[validate(length(max = 64))]
+    pub conversation_id: Option<String>,
+    #[validate(length(max = 64))]
+    pub product_id: Option<String>,
+    #[validate(length(max = 64))]
+    pub run_id: Option<String>,
+}
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]

@@ -19,9 +19,15 @@ use repo::table::{
     app_users::{AppUserService, AppUserStatus},
     audit_logs::{AuditLogService, CreateAuditLog},
     campaigns::CampaignService,
+    conversation_files::{ConversationFile, ConversationFileService},
+    conversations::ConversationService,
     execution_queue::{
         CreateExecutionQueueItem, ExecutionQueueFilter, ExecutionQueueItem, ExecutionQueueService,
         ExecutionQueueStatus, UpdateExecutionQueueItem,
+    },
+    product_assets::{ProductAsset, ProductAssetFilter, ProductAssetService, ProductAssetStatus},
+    product_materials::{
+        ProductMaterial, ProductMaterialFilter, ProductMaterialService, ProductMaterialStatus,
     },
     products::{ProductService, ProductStatus},
     workspace_artifacts::{
@@ -62,7 +68,11 @@ const AGENT_RUN_TITLE: &str = "Agent chat workspace";
 pub struct WorkspaceApi {
     db: DbContext,
     app_user_svc: AppUserService,
+    conversation_svc: ConversationService,
+    conversation_file_svc: ConversationFileService,
     product_svc: ProductService,
+    product_asset_svc: ProductAssetService,
+    product_material_svc: ProductMaterialService,
     campaign_svc: CampaignService,
     workspace_svc: WorkspaceService,
     task_svc: WorkspaceTaskService,
@@ -80,7 +90,11 @@ impl WorkspaceApi {
         Self {
             db: db.clone(),
             app_user_svc: AppUserService::new(db.clone()),
+            conversation_svc: ConversationService::new(db.clone()),
+            conversation_file_svc: ConversationFileService::new(db.clone()),
             product_svc: ProductService::new(db.clone()),
+            product_asset_svc: ProductAssetService::new(db.clone()),
+            product_material_svc: ProductMaterialService::new(db.clone()),
             campaign_svc: CampaignService::new(db.clone()),
             workspace_svc: WorkspaceService::new(db.clone()),
             task_svc: WorkspaceTaskService::new(db.clone()),
@@ -824,6 +838,176 @@ impl WorkspaceApi {
             })
             .await?;
         Ok(())
+    }
+
+    pub async fn context_summary(
+        &self,
+        req: GetWorkspaceContextSummaryRequest,
+    ) -> BizResult<WorkspaceContextSummaryResponse> {
+        let (user_id, workspace_id) = self
+            .ensure_request_workspace(&req.user_id, &req.workspace_id)
+            .await?;
+        let workspace = self.ensure_workspace_owner(user_id, workspace_id).await?;
+        let conversation_id = parse_optional_uuid(req.conversation_id, "conversation_id")?;
+        if let Some(conversation_id) = conversation_id {
+            self.ensure_conversation_owner(user_id, conversation_id)
+                .await?;
+        }
+        let product_id =
+            parse_optional_uuid(req.product_id, "product_id")?.or(workspace.product_id);
+        if let Some(product_id) = product_id {
+            self.ensure_active_product_owner(user_id, product_id)
+                .await?;
+        }
+        let run_id = parse_optional_uuid(req.run_id, "run_id")?;
+        if let Some(run_id) = run_id {
+            self.ensure_run_owner(user_id, workspace_id, run_id).await?;
+        }
+
+        let attachment_sources = if let Some(conversation_id) = conversation_id {
+            self.conversation_file_svc
+                .list_by_conversation_id(conversation_id)
+                .await?
+                .into_iter()
+                .map(map_context_conversation_file)
+                .collect::<Vec<_>>()
+        } else {
+            Vec::new()
+        };
+
+        let product_asset_sources = if let Some(product_id) = product_id {
+            self.product_asset_svc
+                .list(ProductAssetFilter {
+                    user_id,
+                    product_id,
+                    status: Some(ProductAssetStatus::Active),
+                    asset_type: None,
+                    keyword: None,
+                    limit: Some(200),
+                })
+                .await?
+                .into_iter()
+                .map(map_context_product_asset)
+                .collect::<Vec<_>>()
+        } else {
+            Vec::new()
+        };
+
+        let product_material_sources = if let Some(product_id) = product_id {
+            self.product_material_svc
+                .list(ProductMaterialFilter {
+                    user_id,
+                    product_id,
+                    status: Some(ProductMaterialStatus::Active),
+                    material_type: None,
+                    keyword: None,
+                    limit: Some(200),
+                })
+                .await?
+                .into_iter()
+                .map(map_context_product_material)
+                .collect::<Vec<_>>()
+        } else {
+            Vec::new()
+        };
+
+        let artifact_sources = self
+            .artifact_svc
+            .list(WorkspaceArtifactFilter {
+                workspace_id: Some(workspace_id),
+                run_id,
+                workspace_task_id: None,
+                run_task_id: None,
+                user_id,
+                artifact_type: None,
+                status: Some(WorkspaceArtifactStatus::Active),
+                keyword: None,
+                limit: Some(200),
+                offset: Some(0),
+            })
+            .await?
+            .into_iter()
+            .map(map_context_artifact)
+            .collect::<Vec<_>>();
+
+        let counts = WorkspaceContextSummaryCounts {
+            conversation_files: attachment_sources.len(),
+            product_assets: product_asset_sources.len(),
+            product_materials: product_material_sources.len(),
+            workspace_artifacts: artifact_sources.len(),
+        };
+        let mut missing = Vec::new();
+        if conversation_id.is_none() {
+            missing.push("conversation_id".to_string());
+        }
+        if product_id.is_none() {
+            missing.push("product_id".to_string());
+        }
+        if counts.total() == 0 {
+            missing.push("context_sources".to_string());
+        }
+        let mut warnings = Vec::new();
+        if attachment_sources.is_empty() {
+            warnings.push("no active conversation attachments were found".to_string());
+        }
+        if product_asset_sources.is_empty() {
+            warnings.push("no active product assets were found".to_string());
+        }
+        if product_material_sources.is_empty() {
+            warnings.push("no active product materials were found".to_string());
+        }
+        if artifact_sources.is_empty() {
+            warnings.push("no active workspace artifacts were found".to_string());
+        }
+        let readiness = if counts.total() == 0 {
+            "empty"
+        } else if missing.is_empty() {
+            "ready"
+        } else {
+            "partial"
+        }
+        .to_string();
+        let summary = build_context_summary_text(&counts, &readiness);
+        let agent_context = json!({
+            "kind": "workspace_context_summary",
+            "readiness": readiness,
+            "workspaceId": workspace_id,
+            "conversationId": conversation_id,
+            "productId": product_id,
+            "runId": run_id,
+            "summary": summary,
+            "counts": {
+                "conversationFiles": counts.conversation_files,
+                "productAssets": counts.product_assets,
+                "productMaterials": counts.product_materials,
+                "workspaceArtifacts": counts.workspace_artifacts,
+            },
+            "refs": context_ref_keys(
+                &attachment_sources,
+                &product_asset_sources,
+                &product_material_sources,
+                &artifact_sources,
+            ),
+            "missing": missing,
+            "warnings": warnings,
+        });
+
+        Ok(WorkspaceContextSummaryResponse {
+            workspace_id: workspace_id.to_string(),
+            conversation_id: conversation_id.map(|id| id.to_string()),
+            product_id: product_id.map(|id| id.to_string()),
+            run_id: run_id.map(|id| id.to_string()),
+            readiness,
+            summary,
+            counts,
+            attachment_sources,
+            product_asset_sources,
+            product_material_sources,
+            artifact_sources,
+            missing,
+            warnings,
+            agent_context,
+        })
     }
 
     pub async fn link_agent_run(
@@ -2317,6 +2501,36 @@ impl WorkspaceApi {
         Ok(())
     }
 
+    async fn ensure_conversation_owner(
+        &self,
+        user_id: Uuid,
+        conversation_id: Uuid,
+    ) -> BizResult<()> {
+        let conversation = self
+            .conversation_svc
+            .get_by_id(conversation_id)
+            .await?
+            .ok_or_else(|| {
+                BizError::new(
+                    app_error::CONVERSATION_NOT_FOUND,
+                    "conversation not found".to_string(),
+                )
+            })?;
+        if conversation.user_id != user_id {
+            return Err(BizError::new(
+                app_error::CONVERSATION_FORBIDDEN,
+                "conversation does not belong to current user".to_string(),
+            ));
+        }
+        if conversation.status == "deleted" {
+            return Err(BizError::new(
+                app_error::CONVERSATION_NOT_FOUND,
+                "conversation not found".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
     async fn ensure_workspace_owner(
         &self,
         user_id: Uuid,
@@ -2701,6 +2915,136 @@ impl WorkspaceApi {
             "metadata": item.metadata,
         })
     }
+}
+
+fn map_context_conversation_file(item: ConversationFile) -> WorkspaceContextSourceResponse {
+    let id = item.id.to_string();
+    WorkspaceContextSourceResponse {
+        source_type: "conversation_file".to_string(),
+        id: id.clone(),
+        title: item
+            .file_name
+            .clone()
+            .or_else(|| Some(item.object_key.clone())),
+        mime_type: item.mime_type,
+        file_size: item.file_size,
+        status: item.status,
+        ref_key: format!("conversation_file:{id}"),
+        preview: item.file_name,
+        metadata: json!({
+            "conversationId": item.conversation_id,
+            "messageId": item.message_id,
+            "bucket": item.bucket,
+            "objectKey": item.object_key,
+            "sha256": item.sha256,
+            "visibility": item.visibility,
+            "storageProvider": item.storage_provider,
+        }),
+    }
+}
+
+fn map_context_product_asset(item: ProductAsset) -> WorkspaceContextSourceResponse {
+    let id = item.id.to_string();
+    WorkspaceContextSourceResponse {
+        source_type: "product_asset".to_string(),
+        id: id.clone(),
+        title: item.file_name.clone().or_else(|| item.description.clone()),
+        mime_type: item.mime_type,
+        file_size: item.file_size,
+        status: item.status.as_str().to_string(),
+        ref_key: format!("product_asset:{id}"),
+        preview: item.description,
+        metadata: json!({
+            "productId": item.product_id,
+            "assetType": item.asset_type,
+            "bucket": item.bucket,
+            "objectKey": item.object_key,
+            "metadata": item.metadata,
+        }),
+    }
+}
+
+fn map_context_product_material(item: ProductMaterial) -> WorkspaceContextSourceResponse {
+    let id = item.id.to_string();
+    WorkspaceContextSourceResponse {
+        source_type: "product_material".to_string(),
+        id: id.clone(),
+        title: item.title.clone(),
+        mime_type: Some("text/plain".to_string()),
+        file_size: None,
+        status: item.status.as_str().to_string(),
+        ref_key: format!("product_material:{id}"),
+        preview: Some(compact_text(&item.content, 240)),
+        metadata: json!({
+            "productId": item.product_id,
+            "materialType": item.material_type,
+            "version": item.version,
+            "metadata": item.metadata,
+        }),
+    }
+}
+
+fn map_context_artifact(item: WorkspaceArtifact) -> WorkspaceContextSourceResponse {
+    let id = item.id.to_string();
+    WorkspaceContextSourceResponse {
+        source_type: "workspace_artifact".to_string(),
+        id: id.clone(),
+        title: Some(item.title),
+        mime_type: item.mime_type,
+        file_size: item.file_size,
+        status: item.status.as_str().to_string(),
+        ref_key: format!("workspace_artifact:{id}"),
+        preview: item.preview.or_else(|| {
+            item.content
+                .as_deref()
+                .map(|content| compact_text(content, 240))
+        }),
+        metadata: json!({
+            "workspaceId": item.workspace_id,
+            "runId": item.run_id,
+            "workspaceTaskId": item.workspace_task_id,
+            "runTaskId": item.run_task_id,
+            "artifactType": item.artifact_type,
+            "format": item.format,
+            "storageKind": item.storage_kind,
+            "bucket": item.bucket,
+            "objectKey": item.object_key,
+            "fileName": item.file_name,
+            "sha256": item.sha256,
+            "source": item.source,
+            "validationStatus": item.validation_status.as_str(),
+            "validationReport": item.validation_report,
+            "metadata": item.metadata,
+        }),
+    }
+}
+
+fn build_context_summary_text(counts: &WorkspaceContextSummaryCounts, readiness: &str) -> String {
+    if counts.total() == 0 {
+        return "No active workspace context sources are ready for agent use.".to_string();
+    }
+    format!(
+        "Workspace context is {readiness}: {} conversation files, {} product assets, {} product materials, {} workspace artifacts are available for agent grounding and delivery.",
+        counts.conversation_files,
+        counts.product_assets,
+        counts.product_materials,
+        counts.workspace_artifacts
+    )
+}
+
+fn context_ref_keys(
+    attachments: &[WorkspaceContextSourceResponse],
+    assets: &[WorkspaceContextSourceResponse],
+    materials: &[WorkspaceContextSourceResponse],
+    artifacts: &[WorkspaceContextSourceResponse],
+) -> Vec<String> {
+    attachments
+        .iter()
+        .chain(assets.iter())
+        .chain(materials.iter())
+        .chain(artifacts.iter())
+        .map(|source| source.ref_key.clone())
+        .collect()
 }
 
 fn parse_user_id(user_id: &str) -> BizResult<Uuid> {
@@ -3632,5 +3976,56 @@ mod tests {
         };
 
         assert!(build_search_evidence_artifact(&req).is_none());
+    }
+
+    #[test]
+    fn context_summary_counts_total_sources() {
+        let counts = WorkspaceContextSummaryCounts {
+            conversation_files: 1,
+            product_assets: 2,
+            product_materials: 3,
+            workspace_artifacts: 4,
+        };
+
+        assert_eq!(counts.total(), 10);
+    }
+
+    #[test]
+    fn context_summary_text_reports_empty_state() {
+        let counts = WorkspaceContextSummaryCounts::default();
+
+        assert_eq!(
+            build_context_summary_text(&counts, "empty"),
+            "No active workspace context sources are ready for agent use."
+        );
+    }
+
+    #[test]
+    fn context_ref_keys_preserve_source_order() {
+        let source = |source_type: &str, id: &str| WorkspaceContextSourceResponse {
+            source_type: source_type.to_string(),
+            id: id.to_string(),
+            title: None,
+            mime_type: None,
+            file_size: None,
+            status: "active".to_string(),
+            ref_key: format!("{source_type}:{id}"),
+            preview: None,
+            metadata: json!({}),
+        };
+        let attachments = vec![source("conversation_file", "a")];
+        let assets = vec![source("product_asset", "b")];
+        let materials = vec![source("product_material", "c")];
+        let artifacts = vec![source("workspace_artifact", "d")];
+
+        assert_eq!(
+            context_ref_keys(&attachments, &assets, &materials, &artifacts),
+            vec![
+                "conversation_file:a".to_string(),
+                "product_asset:b".to_string(),
+                "product_material:c".to_string(),
+                "workspace_artifact:d".to_string(),
+            ]
+        );
     }
 }

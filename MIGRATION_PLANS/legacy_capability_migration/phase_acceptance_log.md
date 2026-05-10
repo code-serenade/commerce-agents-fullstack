@@ -384,3 +384,23 @@
 - 本阶段解决的是“真实搜索结果可沉淀、可追溯、可被工作区复用”。
 - 如果 `[external_search]` 未配置或 provider 降级，不会创建搜索证据交付物。
 - 前端后续可基于 `workspace_artifact_created` 或 artifact 查询接口，把 `search_evidence` 展示为来源面板。
+
+## Post 8-12：附件与素材上下文摘要 API
+
+状态：done
+
+验收项：
+
+- [x] 后端：新增 `WorkspaceApi::context_summary`。
+- [x] 后端：上下文摘要聚合会话附件、商品资产、商品素材、工作区 artifact。
+- [x] 后端：返回 `ready/partial/empty` 就绪状态、计数、来源 refs、缺失项、警告和 `agentContext`。
+- [x] Web-server：新增 `GET /api/app/workspaces/{workspaceId}/context-summary`。
+- [x] Web-server：接口走 JWT 鉴权，并复用工作区、会话、商品、运行记录归属校验。
+- [x] API：`API_DOCS/app.md` 已同步新增接口。
+- [x] 迁移清单：`附件摘要状态 API` 已标记完成。
+- [x] 前端：本阶段不改前端，不新增假展示。
+
+当前说明：
+
+- 本阶段不读取文件内容，不做 OCR/文档解析，不伪造附件摘要。
+- 返回的 `agentContext.refs` 是后续 Agent 上下文注入和前端来源面板的稳定桥接字段。

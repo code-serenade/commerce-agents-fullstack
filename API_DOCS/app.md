@@ -2222,7 +2222,74 @@
 - 拒绝后设置 `status = rejected`，并写入 `decidedAt`
 - 拒绝后会写入一条 `execution_queue.reject` 审计日志
 
-## 68. 查询支持的平台列表
+## 68. 查询工作区上下文摘要
+
+- 方法：`GET`
+- 路径：`/api/app/workspaces/{workspaceId}/context-summary`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `conversationId` | `uuid` | 否 | 聚合该会话下已注册的 active 附件 |
+| `productId` | `uuid` | 否 | 聚合该商品下 active 资产和素材；为空时优先使用工作区绑定商品 |
+| `runId` | `uuid` | 否 | 只聚合该运行记录下的 active 工作区交付物 |
+
+成功响应 `data`：
+
+```json
+{
+  "workspaceId": "workspace-uuid",
+  "conversationId": "conversation-uuid",
+  "productId": "product-uuid",
+  "runId": "run-uuid",
+  "readiness": "ready",
+  "summary": "Workspace context is ready: 1 conversation files, 2 product assets, 3 product materials, 4 workspace artifacts are available for agent grounding and delivery.",
+  "counts": {
+    "conversationFiles": 1,
+    "productAssets": 2,
+    "productMaterials": 3,
+    "workspaceArtifacts": 4
+  },
+  "attachmentSources": [
+    {
+      "sourceType": "conversation_file",
+      "id": "file-uuid",
+      "title": "brief.pdf",
+      "mimeType": "application/pdf",
+      "fileSize": 123456,
+      "status": "active",
+      "refKey": "conversation_file:file-uuid",
+      "preview": "brief.pdf",
+      "metadata": {
+        "conversationId": "conversation-uuid",
+        "objectKey": "chat/user/conversation/file.pdf"
+      }
+    }
+  ],
+  "productAssetSources": [],
+  "productMaterialSources": [],
+  "artifactSources": [],
+  "missing": [],
+  "warnings": [],
+  "agentContext": {
+    "kind": "workspace_context_summary",
+    "readiness": "ready",
+    "refs": ["conversation_file:file-uuid"]
+  }
+}
+```
+
+字段说明：
+
+- `readiness=ready` 表示传入或工作区绑定的关键上下文存在，且至少有一个真实来源。
+- `readiness=partial` 表示已有部分来源，但缺少会话、商品或其它关键上下文。
+- `readiness=empty` 表示没有任何 active 附件、素材、资产或交付物来源。
+- `agentContext.refs` 是后续 Agent 上下文注入和前端来源面板可复用的引用 key。
+- 该接口只做后端状态聚合，不读取文件正文，不伪造 OCR/文档摘要。
+
+## 69. 查询支持的平台列表
 
 - 方法：`GET`
 - 路径：`/api/app/platform-connect/platforms`
@@ -2250,7 +2317,7 @@
 }
 ```
 
-## 69. 查询平台连接列表
+## 70. 查询平台连接列表
 
 - 方法：`GET`
 - 路径：`/api/app/platform-connect/connections`
@@ -2300,7 +2367,7 @@
 - 敏感字段只返回脱敏值
 - 本阶段只保存连接记录，不验证真实平台凭证
 
-## 70. 保存平台连接
+## 71. 保存平台连接
 
 - 方法：`POST`
 - 路径：`/api/app/platform-connect/connections`
@@ -2336,7 +2403,7 @@
 - `tokenExpiresAt`、`lastSyncedAt` 可省略，也可传 `null` 或 RFC3339 时间字符串
 - `syncStatus` 可为 `idle`、`syncing`、`success`、`failed`
 
-## 71. 查询平台连接详情
+## 72. 查询平台连接详情
 
 - 方法：`GET`
 - 路径：`/api/app/platform-connect/connections/{connectionId}`
@@ -2344,7 +2411,7 @@
 
 成功响应 `data`：`PlatformConnectionResponse`。
 
-## 72. 更新平台连接
+## 73. 更新平台连接
 
 - 方法：`PATCH`
 - 路径：`/api/app/platform-connect/connections/{connectionId}`
@@ -2354,7 +2421,7 @@
 
 成功响应 `data`：`PlatformConnectionResponse`。
 
-## 73. 禁用平台连接
+## 74. 禁用平台连接
 
 - 方法：`DELETE`
 - 路径：`/api/app/platform-connect/connections/{connectionId}`
@@ -2366,7 +2433,7 @@
 
 - 当前实现为软禁用，设置 `enabled = false`、`status = disabled`
 
-## 74. 查询支持的触达渠道列表
+## 75. 查询支持的触达渠道列表
 
 - 方法：`GET`
 - 路径：`/api/app/platform-connect/channels`
@@ -2394,7 +2461,7 @@
 }
 ```
 
-## 75. 查询触达渠道连接列表
+## 76. 查询触达渠道连接列表
 
 - 方法：`GET`
 - 路径：`/api/app/platform-connect/channels/connections`
@@ -2409,7 +2476,7 @@
 
 成功响应 `data`：`ChannelConnectionListResponse`。
 
-## 76. 保存触达渠道连接
+## 77. 保存触达渠道连接
 
 - 方法：`POST`
 - 路径：`/api/app/platform-connect/channels/connections`
@@ -2438,7 +2505,7 @@
 - 同一用户同一渠道重复保存时更新原连接
 - 本阶段只保存连接记录，不发送真实消息
 
-## 77. 查询触达渠道连接详情
+## 78. 查询触达渠道连接详情
 
 - 方法：`GET`
 - 路径：`/api/app/platform-connect/channels/connections/{connectionId}`
@@ -2446,7 +2513,7 @@
 
 成功响应 `data`：`ChannelConnectionResponse`。
 
-## 78. 更新触达渠道连接
+## 79. 更新触达渠道连接
 
 - 方法：`PATCH`
 - 路径：`/api/app/platform-connect/channels/connections/{connectionId}`
@@ -2456,7 +2523,7 @@
 
 成功响应 `data`：`ChannelConnectionResponse`。
 
-## 79. 禁用触达渠道连接
+## 80. 禁用触达渠道连接
 
 - 方法：`DELETE`
 - 路径：`/api/app/platform-connect/channels/connections/{connectionId}`
@@ -2468,7 +2535,7 @@
 
 - 当前实现为软禁用，设置 `enabled = false`、`status = disabled`
 
-## 80. 查询本地店铺指标
+## 81. 查询本地店铺指标
 
 - 方法：`GET`
 - 路径：`/api/app/platform-connect/metrics`
@@ -2510,7 +2577,7 @@
 }
 ```
 
-## 81. 保存本地店铺指标
+## 82. 保存本地店铺指标
 
 - 方法：`POST`
 - 路径：`/api/app/platform-connect/metrics`
@@ -2537,7 +2604,7 @@
 - 同一用户下 `(platform, metricDate, metricKey, dimensionKey, dimensionValue)` 重复时更新指标值
 - 本阶段指标来自本地写入或外部同步后的入库，不直接拉取平台 API
 
-## 82. 查询平台同步状态
+## 83. 查询平台同步状态
 
 - 方法：`GET`
 - 路径：`/api/app/platform-connect/sync-status`
@@ -2563,7 +2630,7 @@
 }
 ```
 
-## 83. 查询平台只读汇总
+## 84. 查询平台只读汇总
 
 - 方法：`GET`
 - 路径：`/api/app/platform-connect/summary`
@@ -2596,7 +2663,7 @@
 - 汇总只读取 `store_metrics` 本地指标
 - `adRoi30d = gmv_30d / ad_spend_30d`，没有广告花费时为 `null`
 
-## 84. 查询工具审批请求列表
+## 85. 查询工具审批请求列表
 
 - 方法：`GET`
 - 路径：`/api/app/approvals/tool-requests`
@@ -2647,7 +2714,7 @@
 }
 ```
 
-## 85. 创建工具审批请求
+## 86. 创建工具审批请求
 
 - 方法：`POST`
 - 路径：`/api/app/approvals/tool-requests`
@@ -2681,7 +2748,7 @@
 - 当前阶段只创建审批记录，不执行真实工具
 - Agent SSE 收到高风险平台写 skill 结果时，也会通过本服务能力自动创建或复用审批记录；该记录的 `actionKey` 由 `runId`、`skillName`、`toolCallId` 生成，并会同步写入 `tool_approval.create` 审计日志和 `agent_approval_required` 告警
 
-## 86. 查询工具审批请求详情
+## 87. 查询工具审批请求详情
 
 - 方法：`GET`
 - 路径：`/api/app/approvals/tool-requests/{approvalId}`
@@ -2689,7 +2756,7 @@
 
 成功响应 `data`：`ToolApprovalResponse`。
 
-## 87. 通过工具审批请求
+## 88. 通过工具审批请求
 
 - 方法：`POST`
 - 路径：`/api/app/approvals/tool-requests/{approvalId}/approve`
@@ -2712,7 +2779,7 @@
 - 通过后设置 `status = approved`，写入 `approvedBy`、`approvedAt`，并写入 `tool_approval.approve` 审计日志
 - 当前阶段通过不等于真实执行工具，也不会调用 Agent 工具重放
 
-## 88. 拒绝工具审批请求
+## 89. 拒绝工具审批请求
 
 - 方法：`POST`
 - 路径：`/api/app/approvals/tool-requests/{approvalId}/reject`
@@ -2734,7 +2801,7 @@
 - 只有 `pending` 状态的审批请求可以拒绝
 - 拒绝后设置 `status = rejected`，写入 `approvedBy`、`approvedAt`，并写入 `tool_approval.reject` 审计日志
 
-## 89. 查询审计日志
+## 90. 查询审计日志
 
 - 方法：`GET`
 - 路径：`/api/app/approvals/audit-logs`
@@ -2785,7 +2852,7 @@
 }
 ```
 
-## 90. 创建审计日志
+## 91. 创建审计日志
 
 - 方法：`POST`
 - 路径：`/api/app/approvals/audit-logs`
@@ -2820,7 +2887,7 @@
 - `status` 不传时默认 `success`
 - 审计日志从业务 API 视角只新增，不提供更新或删除接口
 
-## 91. 查询长任务列表
+## 92. 查询长任务列表
 
 - 方法：`GET`
 - 路径：`/api/app/long-tasks`
@@ -2839,7 +2906,7 @@
 
 成功响应 `data`：`LongTaskListResponse`。
 
-## 92. 创建长任务记录
+## 93. 创建长任务记录
 
 - 方法：`POST`
 - 路径：`/api/app/long-tasks`
@@ -2871,7 +2938,7 @@
 - 当前阶段只创建任务记录，不启动真实异步执行器
 - `runId` 不为空时必须同时传 `workspaceId`
 
-## 93. 查询长任务详情
+## 94. 查询长任务详情
 
 - 方法：`GET`
 - 路径：`/api/app/long-tasks/{taskId}`
@@ -2879,7 +2946,7 @@
 
 成功响应 `data`：`LongTaskResponse`。
 
-## 94. 更新长任务记录
+## 95. 更新长任务记录
 
 - 方法：`PATCH`
 - 路径：`/api/app/long-tasks/{taskId}`
@@ -2889,7 +2956,7 @@
 
 成功响应 `data`：`LongTaskResponse`。
 
-## 95. 取消长任务记录
+## 96. 取消长任务记录
 
 - 方法：`POST`
 - 路径：`/api/app/long-tasks/{taskId}/cancel`
@@ -2905,7 +2972,7 @@
 
 成功响应 `data`：`LongTaskResponse`。
 
-## 96. 查询今日简报摘要
+## 97. 查询今日简报摘要
 
 - 方法：`GET`
 - 路径：`/api/app/briefing/daily`
@@ -2925,7 +2992,7 @@
 - 如果没有日报记录，返回从告警数量和长任务状态派生的摘要
 - 当前阶段不调用 LLM 生成日报正文
 
-## 97. 查询日报记录列表
+## 98. 查询日报记录列表
 
 - 方法：`GET`
 - 路径：`/api/app/briefing/daily-records`
@@ -2935,7 +3002,7 @@
 
 成功响应 `data`：`DailyBriefingListResponse`。
 
-## 98. 新增或更新日报记录
+## 99. 新增或更新日报记录
 
 - 方法：`POST`
 - 路径：`/api/app/briefing/daily-records`
@@ -2964,7 +3031,7 @@
 
 - 同一用户同一 `briefingDate` 只保留一条记录，重复提交会更新原记录
 
-## 99. 查询日报记录详情
+## 100. 查询日报记录详情
 
 - 方法：`GET`
 - 路径：`/api/app/briefing/daily-records/{briefingId}`
@@ -2972,7 +3039,7 @@
 
 成功响应 `data`：`DailyBriefingResponse`。
 
-## 100. 归档日报记录
+## 101. 归档日报记录
 
 - 方法：`POST`
 - 路径：`/api/app/briefing/daily-records/{briefingId}/archive`
@@ -2980,7 +3047,7 @@
 
 成功响应 `data`：`DailyBriefingResponse`。
 
-## 101. 查询后台通知列表
+## 102. 查询后台通知列表
 
 - 方法：`GET`
 - 路径：`/api/app/briefing/notifications`
@@ -2990,7 +3057,7 @@
 
 成功响应 `data`：`BackgroundEventListResponse`。
 
-## 102. 创建后台通知
+## 103. 创建后台通知
 
 - 方法：`POST`
 - 路径：`/api/app/briefing/notifications`
@@ -3010,7 +3077,7 @@
 
 成功响应 `data`：`BackgroundEventResponse`。
 
-## 103. 标记单条后台通知已读
+## 104. 标记单条后台通知已读
 
 - 方法：`POST`
 - 路径：`/api/app/briefing/notifications/{eventId}/consume`
@@ -3018,7 +3085,7 @@
 
 成功响应 `data`：`BackgroundEventResponse`。
 
-## 104. 批量标记后台通知已读
+## 105. 批量标记后台通知已读
 
 - 方法：`POST`
 - 路径：`/api/app/briefing/notifications/consume-all`
@@ -3035,7 +3102,7 @@
 
 成功响应 `data`：`BatchUpdateResponse`，其中 `updated` 表示本次更新数量。
 
-## 105. 查询告警列表
+## 106. 查询告警列表
 
 - 方法：`GET`
 - 路径：`/api/app/briefing/alerts`
@@ -3056,7 +3123,7 @@
 
 成功响应 `data`：`AlertListResponse`。
 
-## 106. 创建告警
+## 107. 创建告警
 
 - 方法：`POST`
 - 路径：`/api/app/briefing/alerts`
@@ -3085,7 +3152,7 @@
 - `dedupKey` 不为空时，同一用户重复创建 active 告警会返回原记录
 - 当前阶段只创建告警记录，不触发 Agent 处理链路
 
-## 107. 查询告警摘要
+## 108. 查询告警摘要
 
 - 方法：`GET`
 - 路径：`/api/app/briefing/alerts/summary`
@@ -3093,7 +3160,7 @@
 
 成功响应 `data`：`AlertSummaryResponse`，包含 `active`、`bySeverity`、`byType`。
 
-## 108. 批量关闭告警
+## 109. 批量关闭告警
 
 - 方法：`POST`
 - 路径：`/api/app/briefing/alerts/dismiss-all`
@@ -3103,7 +3170,7 @@
 
 成功响应 `data`：`BatchUpdateResponse`。
 
-## 109. 查询告警详情
+## 110. 查询告警详情
 
 - 方法：`GET`
 - 路径：`/api/app/briefing/alerts/{alertId}`
@@ -3111,7 +3178,7 @@
 
 成功响应 `data`：`AlertResponse`。
 
-## 110. 暂停告警
+## 111. 暂停告警
 
 - 方法：`POST`
 - 路径：`/api/app/briefing/alerts/{alertId}/snooze`
@@ -3127,7 +3194,7 @@
 
 成功响应 `data`：`AlertResponse`。
 
-## 111. 关闭告警
+## 112. 关闭告警
 
 - 方法：`POST`
 - 路径：`/api/app/briefing/alerts/{alertId}/dismiss`
@@ -3143,7 +3210,7 @@
 
 成功响应 `data`：`AlertResponse`。
 
-## 112. 标记告警已处理
+## 113. 标记告警已处理
 
 - 方法：`POST`
 - 路径：`/api/app/briefing/alerts/{alertId}/act`
@@ -3164,7 +3231,7 @@
 - 当前阶段只标记告警状态，不触发 Agent 执行动作
 - SSE 长任务进度流、真实后台执行器、LLM 简报生成、Agent 告警处理均未在本阶段实现
 
-## 113. 查询能力包目录
+## 114. 查询能力包目录
 
 - 方法：`GET`
 - 路径：`/api/app/packages/catalog`
@@ -3183,7 +3250,7 @@
 
 成功响应 `data`：`PackageCatalogResponse`，包含分页 `packages` 和按类型分组的 `sections`。
 
-## 114. 创建或更新能力包
+## 115. 创建或更新能力包
 
 - 方法：`POST`
 - 路径：`/api/app/packages`
@@ -3208,7 +3275,7 @@
 
 成功响应 `data`：`PackageResponse`。
 
-## 114.1 同步旧产品内置能力包
+## 115.1 同步旧产品内置能力包
 
 - 方法：`POST`
 - 路径：`/api/app/packages/sync-legacy-builtins`
@@ -3271,7 +3338,7 @@
 - 只有传 `resetStatus=true` 时，已有包状态才会按旧 manifest 重置。
 - 该接口只同步治理目录，不动态修改 Agent runtime catalog，也不执行旧 Python skill。
 
-## 115. 查询能力包详情
+## 116. 查询能力包详情
 
 - 方法：`GET`
 - 路径：`/api/app/packages/{packageType}/{packageId}`
@@ -3279,7 +3346,7 @@
 
 成功响应 `data`：`PackageResponse`。
 
-## 116. 修改能力包
+## 117. 修改能力包
 
 - 方法：`PATCH`
 - 路径：`/api/app/packages/{packageType}/{packageId}`
@@ -3289,7 +3356,7 @@
 
 成功响应 `data`：`PackageResponse`。
 
-## 117. 校验能力包
+## 118. 校验能力包
 
 - 方法：`GET`
 - 路径：`/api/app/packages/{packageType}/{packageId}/validate`
@@ -3307,7 +3374,7 @@
 - 当前阶段基于数据库记录校验状态、依赖、兼容性
 - 不扫描或写入 manifest 文件，不接入 Agent 动态目录加载
 
-## 118. 启用能力包
+## 119. 启用能力包
 
 - 方法：`POST`
 - 路径：`/api/app/packages/{packageType}/{packageId}/activate`
@@ -3323,7 +3390,7 @@
 
 成功响应 `data`：`PackageResponse`。
 
-## 119. 停用能力包
+## 120. 停用能力包
 
 - 方法：`POST`
 - 路径：`/api/app/packages/{packageType}/{packageId}/deactivate`
@@ -3339,7 +3406,7 @@
 
 成功响应 `data`：`PackageResponse`。
 
-## 120. 回滚能力包状态
+## 121. 回滚能力包状态
 
 - 方法：`POST`
 - 路径：`/api/app/packages/{packageType}/{packageId}/rollback`
@@ -3357,7 +3424,7 @@
 
 补充说明：回滚只恢复上一条状态历史中的 `fromStatus`，不修改 Agent runtime。
 
-## 121. 查询能力包状态历史
+## 122. 查询能力包状态历史
 
 - 方法：`GET`
 - 路径：`/api/app/packages/{packageType}/{packageId}/history`
@@ -3371,7 +3438,7 @@
 
 成功响应 `data`：`PackageHistoryListResponse`。
 
-## 122. 查询运行能力包锁
+## 123. 查询运行能力包锁
 
 - 方法：`GET`
 - 路径：`/api/app/workspaces/{workspaceId}/runs/{runId}/package-locks`
@@ -3379,7 +3446,7 @@
 
 成功响应 `data`：`PackageLockListResponse`。
 
-## 123. 保存运行能力包锁
+## 124. 保存运行能力包锁
 
 - 方法：`POST`
 - 路径：`/api/app/workspaces/{workspaceId}/runs/{runId}/package-locks`
@@ -3410,7 +3477,7 @@
 
 补充说明：保存时会替换该 `runId` 下既有锁记录。
 
-## 124. 检查运行能力包锁漂移
+## 125. 检查运行能力包锁漂移
 
 - 方法：`GET`
 - 路径：`/api/app/workspaces/{workspaceId}/runs/{runId}/package-locks/drift`
