@@ -1,0 +1,560 @@
+use std::collections::BTreeSet;
+
+use db_core::{
+    DbContext,
+    error::{BizError, BizResult},
+};
+use error_code::app as app_error;
+use repo::table::app_users::{AppUserService, AppUserStatus};
+use serde_json::Value;
+use time::{OffsetDateTime, format_description::well_known::Rfc3339};
+use toolcraft_request::{HeaderMap, Request};
+use uuid::Uuid;
+
+use crate::dto::external_search::{
+    ExternalSearchConfig, ExternalSearchData, ExternalSearchProvenance, ExternalSearchQueryRequest,
+    ExternalSearchResponse, ExternalSearchSource, ExternalSearchSpec, ExternalSearchStatusResponse,
+};
+
+const ADAPTER_NAME: &str = "external_search";
+const REQUIRED_CONFIG: &str =
+    "external_search.enabled=true, base_url and search_endpoint are required";
+const SEARCH_NOT_CONFIGURED_REASON: &str =
+    "External search adapter is not configured; no live sources were queried.";
+const VALID_TOPICS: &[&str] = &["general", "news", "finance"];
+const DEFAULT_TOPIC: &str = "general";
+const DEFAULT_DAYS: u64 = 30;
+const DEFAULT_MAX_RESULTS: u64 = 6;
+const MAX_DAYS: u64 = 365;
+const MAX_RESULTS: u64 = 12;
+
+pub struct ExternalSearchApi {
+    app_user_svc: AppUserService,
+    config: ExternalSearchConfig,
+}
+
+impl ExternalSearchApi {
+    pub fn new(db: DbContext, config: ExternalSearchConfig) -> Self {
+        Self {
+            app_user_svc: AppUserService::new(db),
+            config,
+        }
+    }
+
+    pub async fn status(&self, user_id: String) -> BizResult<ExternalSearchStatusResponse> {
+        let user_id = parse_user_id(&user_id)?;
+        self.ensure_app_user_enabled(user_id).await?;
+        Ok(status_from_config(&self.config))
+    }
+
+    pub async fn query_external_search(
+        &self,
+        req: ExternalSearchQueryRequest,
+    ) -> BizResult<ExternalSearchResponse> {
+        let user_id = parse_user_id(&req.user_id)?;
+        self.ensure_app_user_enabled(user_id).await?;
+        let spec = normalize_query(req, &self.config)?;
+
+        if !self.config.is_configured() {
+            return Ok(degraded_response(
+                &self.config,
+                &spec,
+                SEARCH_NOT_CONFIGURED_REASON,
+            ));
+        }
+
+        match self.query_provider(&spec).await {
+            Ok(response) => Ok(response),
+            Err(reason) => Ok(degraded_response(&self.config, &spec, &reason)),
+        }
+    }
+
+    async fn query_provider(
+        &self,
+        spec: &ExternalSearchSpec,
+    ) -> Result<ExternalSearchResponse, String> {
+        let base_url = self
+            .config
+            .base_url
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .ok_or_else(|| REQUIRED_CONFIG.to_string())?;
+        let endpoint = self
+            .config
+            .search_endpoint
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .ok_or_else(|| REQUIRED_CONFIG.to_string())?;
+
+        let mut client = Request::with_timeout(self.config.timeout_sec.unwrap_or(10).max(1))
+            .map_err(|err| format!("init search request client failed: {err}"))?;
+        client
+            .set_base_url(base_url)
+            .map_err(|err| format!("invalid search base_url: {err}"))?;
+
+        let headers = build_provider_headers(&self.config).map_err(|err| err.to_string())?;
+        let query = vec![
+            ("q".to_string(), spec.query.clone()),
+            ("topic".to_string(), spec.topic.clone()),
+            ("days".to_string(), spec.days.to_string()),
+            ("max_results".to_string(), spec.max_results.to_string()),
+            ("bypass_cache".to_string(), spec.bypass_cache.to_string()),
+        ];
+        let response = client
+            .get(endpoint, Some(query), headers)
+            .await
+            .map_err(|err| format!("external search provider request failed: {err}"))?;
+        let status = response.status();
+        if !status.is_success() {
+            let body = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "<unreadable body>".to_string());
+            return Err(format!(
+                "external search provider returned status {}: {}",
+                status.as_u16(),
+                compact_text(&body, 240)
+            ));
+        }
+        let payload = response
+            .json::<Value>()
+            .await
+            .map_err(|err| format!("decode external search provider response failed: {err}"))?;
+        Ok(normalize_provider_response(&self.config, spec, &payload))
+    }
+
+    async fn ensure_app_user_enabled(&self, user_id: Uuid) -> BizResult<()> {
+        let user = self
+            .app_user_svc
+            .get_by_user_id(user_id)
+            .await?
+            .ok_or_else(|| {
+                BizError::new(
+                    app_error::APP_USER_NOT_FOUND,
+                    "app user not found".to_string(),
+                )
+            })?;
+        if user.status != AppUserStatus::Enabled {
+            return Err(BizError::new(
+                app_error::APP_USER_DISABLED,
+                "app user is disabled".to_string(),
+            ));
+        }
+        Ok(())
+    }
+}
+
+fn status_from_config(config: &ExternalSearchConfig) -> ExternalSearchStatusResponse {
+    let configured = config.is_configured();
+    ExternalSearchStatusResponse {
+        adapter: ADAPTER_NAME.to_string(),
+        enabled: config.enabled,
+        configured,
+        provider: configured.then(|| config.provider_name()),
+        required_config: (!configured).then(|| REQUIRED_CONFIG.to_string()),
+        status: if configured {
+            "configured".to_string()
+        } else {
+            "degraded".to_string()
+        },
+    }
+}
+
+fn normalize_query(
+    req: ExternalSearchQueryRequest,
+    config: &ExternalSearchConfig,
+) -> BizResult<ExternalSearchSpec> {
+    let query = req.q.trim().to_string();
+    if query.is_empty() {
+        return Err(BizError::new(
+            app_error::EXTERNAL_SEARCH_REQUEST_INVALID,
+            "q cannot be empty".to_string(),
+        ));
+    }
+    if query.chars().count() > 500 {
+        return Err(BizError::new(
+            app_error::EXTERNAL_SEARCH_REQUEST_INVALID,
+            "q is too long; max 500 characters".to_string(),
+        ));
+    }
+
+    let topic = req
+        .topic
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .or(config.default_topic.as_deref())
+        .unwrap_or(DEFAULT_TOPIC)
+        .to_ascii_lowercase();
+    if !VALID_TOPICS.contains(&topic.as_str()) {
+        return Err(BizError::new(
+            app_error::EXTERNAL_SEARCH_REQUEST_INVALID,
+            format!("invalid topic: {topic}"),
+        ));
+    }
+
+    let days = req.days.unwrap_or_else(|| {
+        config
+            .default_days
+            .unwrap_or(DEFAULT_DAYS)
+            .clamp(1, MAX_DAYS)
+    });
+    if !(1..=MAX_DAYS).contains(&days) {
+        return Err(BizError::new(
+            app_error::EXTERNAL_SEARCH_REQUEST_INVALID,
+            format!("days must be between 1 and {MAX_DAYS}"),
+        ));
+    }
+
+    let max_results = req.max_results.unwrap_or_else(|| {
+        config
+            .default_max_results
+            .unwrap_or(DEFAULT_MAX_RESULTS)
+            .clamp(1, MAX_RESULTS)
+    });
+    if !(1..=MAX_RESULTS).contains(&max_results) {
+        return Err(BizError::new(
+            app_error::EXTERNAL_SEARCH_REQUEST_INVALID,
+            format!("maxResults must be between 1 and {MAX_RESULTS}"),
+        ));
+    }
+
+    Ok(ExternalSearchSpec {
+        query,
+        topic,
+        days,
+        max_results,
+        bypass_cache: req.bypass_cache.unwrap_or(false),
+    })
+}
+
+fn degraded_response(
+    config: &ExternalSearchConfig,
+    spec: &ExternalSearchSpec,
+    reason: &str,
+) -> ExternalSearchResponse {
+    ExternalSearchResponse {
+        adapter: ADAPTER_NAME.to_string(),
+        key: "search".to_string(),
+        status: "degraded".to_string(),
+        query: spec.query.clone(),
+        engine: config.enabled.then(|| config.provider_name()),
+        requested_at: utc_now_rfc3339(),
+        topic: spec.topic.clone(),
+        freshness_days: spec.days,
+        confidence: 0.0,
+        provenance: build_provenance(&[]),
+        data: ExternalSearchData { items: Vec::new() },
+        notice: Some("未获取到可靠公开来源，当前不能伪造实时搜索结果。".to_string()),
+        degraded: true,
+        degraded_reason: Some(reason.to_string()),
+    }
+}
+
+fn normalize_provider_response(
+    config: &ExternalSearchConfig,
+    spec: &ExternalSearchSpec,
+    payload: &Value,
+) -> ExternalSearchResponse {
+    let sources = normalize_sources(payload);
+    let provenance = build_provenance(&sources);
+    let confidence = payload
+        .get("confidence")
+        .and_then(Value::as_f64)
+        .map(|value| (value * 1000.0).round() / 1000.0)
+        .unwrap_or_else(|| estimate_confidence(&sources));
+    let engine = payload
+        .get("engine")
+        .or_else(|| payload.get("_search_engine"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned)
+        .or_else(|| Some(config.provider_name()));
+    let status = if sources.is_empty() {
+        "degraded"
+    } else {
+        payload
+            .get("status")
+            .and_then(Value::as_str)
+            .filter(|value| *value == "live")
+            .unwrap_or("live")
+    };
+
+    ExternalSearchResponse {
+        adapter: ADAPTER_NAME.to_string(),
+        key: payload
+            .get("key")
+            .and_then(Value::as_str)
+            .unwrap_or("search")
+            .to_string(),
+        status: status.to_string(),
+        query: spec.query.clone(),
+        engine,
+        requested_at: payload
+            .get("requested_at")
+            .and_then(Value::as_str)
+            .map(ToOwned::to_owned)
+            .unwrap_or_else(utc_now_rfc3339),
+        topic: spec.topic.clone(),
+        freshness_days: spec.days,
+        confidence,
+        provenance,
+        data: ExternalSearchData {
+            items: sources.clone(),
+        },
+        notice: sources
+            .is_empty()
+            .then(|| "Provider returned no normalized sources.".to_string()),
+        degraded: sources.is_empty(),
+        degraded_reason: sources
+            .is_empty()
+            .then(|| "External search provider returned no normalized sources.".to_string()),
+    }
+}
+
+fn normalize_sources(payload: &Value) -> Vec<ExternalSearchSource> {
+    let Some(items) = payload
+        .pointer("/data/items")
+        .and_then(Value::as_array)
+        .or_else(|| payload.get("sources").and_then(Value::as_array))
+        .or_else(|| payload.get("results").and_then(Value::as_array))
+    else {
+        return Vec::new();
+    };
+
+    items
+        .iter()
+        .enumerate()
+        .filter_map(|(index, item)| normalize_source(index as u64 + 1, item))
+        .take(MAX_RESULTS as usize)
+        .collect()
+}
+
+fn normalize_source(rank: u64, item: &Value) -> Option<ExternalSearchSource> {
+    let title = string_field(item, &["title", "name"])
+        .map(|value| compact_text(&value, 180))
+        .unwrap_or_else(|| "未命名来源".to_string());
+    let url = string_field(item, &["url", "link"]).unwrap_or_default();
+    if title.trim().is_empty() && url.trim().is_empty() {
+        return None;
+    }
+    let snippet = string_field(item, &["snippet", "body", "summary", "content"])
+        .map(|value| compact_text(&value, 320))
+        .unwrap_or_default();
+    let published_at = string_field(item, &["published_at", "publishedAt", "pubDate"])
+        .map(|value| compact_text(&value, 64))
+        .filter(|value| !value.is_empty());
+    let domain = extract_domain(&url);
+
+    Some(ExternalSearchSource {
+        rank,
+        title,
+        snippet,
+        url: compact_text(&url, 400),
+        domain,
+        published_at,
+    })
+}
+
+fn build_provenance(sources: &[ExternalSearchSource]) -> ExternalSearchProvenance {
+    let domains = sources
+        .iter()
+        .filter_map(|item| {
+            let domain = item.domain.trim();
+            (!domain.is_empty()).then(|| domain.to_string())
+        })
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .take(12)
+        .collect::<Vec<_>>();
+    let published = sources
+        .iter()
+        .filter_map(|item| item.published_at.as_ref())
+        .filter(|value| !value.trim().is_empty())
+        .cloned()
+        .collect::<Vec<_>>();
+    let latest_published_at = published.iter().max().cloned();
+
+    ExternalSearchProvenance {
+        source_count: sources.len(),
+        domain_count: domains.len(),
+        domains,
+        published_count: published.len(),
+        latest_published_at,
+    }
+}
+
+fn estimate_confidence(sources: &[ExternalSearchSource]) -> f64 {
+    if sources.is_empty() {
+        return 0.0;
+    }
+    let source_score = (sources.len() as f64 / DEFAULT_MAX_RESULTS as f64).min(1.0) * 0.55;
+    let domains = sources
+        .iter()
+        .filter(|item| !item.domain.trim().is_empty())
+        .map(|item| item.domain.as_str())
+        .collect::<BTreeSet<_>>();
+    let diversity_score = (domains.len() as f64 / sources.len() as f64).min(1.0) * 0.25;
+    let freshness_score = if sources.iter().any(|item| item.published_at.is_some()) {
+        0.2
+    } else {
+        0.08
+    };
+    ((source_score + diversity_score + freshness_score).min(1.0) * 1000.0).round() / 1000.0
+}
+
+fn build_provider_headers(config: &ExternalSearchConfig) -> Result<Option<HeaderMap>, String> {
+    let Some(api_key) = config
+        .api_key
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    else {
+        return Ok(None);
+    };
+    let mut headers = HeaderMap::new();
+    headers
+        .insert("Authorization", format!("Bearer {api_key}"))
+        .map_err(|err| format!("invalid search auth header: {err}"))?;
+    Ok(Some(headers))
+}
+
+fn parse_user_id(user_id: &str) -> BizResult<Uuid> {
+    Uuid::parse_str(user_id).map_err(|_| {
+        BizError::new(
+            app_error::EXTERNAL_SEARCH_REQUEST_INVALID,
+            "invalid user_id: must be uuid".to_string(),
+        )
+    })
+}
+
+fn string_field(item: &Value, keys: &[&str]) -> Option<String> {
+    keys.iter()
+        .find_map(|key| item.get(*key).and_then(Value::as_str))
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned)
+}
+
+fn extract_domain(url: &str) -> String {
+    let text = url.trim();
+    if text.is_empty() {
+        return String::new();
+    }
+    let without_scheme = text
+        .strip_prefix("https://")
+        .or_else(|| text.strip_prefix("http://"))
+        .unwrap_or(text);
+    without_scheme
+        .split(['/', '?', '#'])
+        .next()
+        .unwrap_or_default()
+        .trim()
+        .trim_start_matches("www.")
+        .to_ascii_lowercase()
+}
+
+fn compact_text(value: &str, max_chars: usize) -> String {
+    let trimmed = value.trim();
+    if trimmed.chars().count() <= max_chars {
+        return trimmed.to_string();
+    }
+    trimmed.chars().take(max_chars).collect()
+}
+
+fn utc_now_rfc3339() -> String {
+    OffsetDateTime::now_utc()
+        .format(&Rfc3339)
+        .unwrap_or_else(|_| "1970-01-01T00:00:00Z".to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::*;
+
+    #[test]
+    fn disabled_config_reports_degraded_status() {
+        let config = ExternalSearchConfig::default();
+        let status = status_from_config(&config);
+
+        assert_eq!(status.adapter, ADAPTER_NAME);
+        assert!(!status.enabled);
+        assert!(!status.configured);
+        assert_eq!(status.status, "degraded");
+        assert!(status.required_config.is_some());
+    }
+
+    #[test]
+    fn normalize_query_uses_safe_defaults() {
+        let req = ExternalSearchQueryRequest {
+            user_id: Uuid::new_v4().to_string(),
+            q: " 咖啡 趋势 ".to_string(),
+            topic: None,
+            days: None,
+            max_results: None,
+            bypass_cache: None,
+        };
+        let spec = normalize_query(req, &ExternalSearchConfig::default()).expect("valid query");
+
+        assert_eq!(spec.query, "咖啡 趋势");
+        assert_eq!(spec.topic, DEFAULT_TOPIC);
+        assert_eq!(spec.days, DEFAULT_DAYS);
+        assert_eq!(spec.max_results, DEFAULT_MAX_RESULTS);
+        assert!(!spec.bypass_cache);
+    }
+
+    #[test]
+    fn provider_payload_is_normalized_into_sources_and_provenance() {
+        let config = ExternalSearchConfig {
+            enabled: true,
+            provider: Some("legacy".to_string()),
+            base_url: Some("http://example.test".to_string()),
+            search_endpoint: Some("/search".to_string()),
+            ..ExternalSearchConfig::default()
+        };
+        let spec = ExternalSearchSpec {
+            query: "咖啡".to_string(),
+            topic: "news".to_string(),
+            days: 14,
+            max_results: 6,
+            bypass_cache: false,
+        };
+        let payload = json!({
+            "status": "live",
+            "engine": "free_web",
+            "confidence": 0.72,
+            "data": {
+                "items": [
+                    {
+                        "title": "咖啡消费趋势",
+                        "snippet": "冷萃咖啡增长",
+                        "url": "https://www.example.com/a",
+                        "published_at": "2026-05-01T00:00:00Z"
+                    },
+                    {
+                        "title": "咖啡行业报告",
+                        "body": "即饮咖啡继续增长",
+                        "url": "https://report.example.cn/b"
+                    }
+                ]
+            }
+        });
+
+        let response = normalize_provider_response(&config, &spec, &payload);
+
+        assert_eq!(response.status, "live");
+        assert!(!response.degraded);
+        assert_eq!(response.engine.as_deref(), Some("free_web"));
+        assert_eq!(response.confidence, 0.72);
+        assert_eq!(response.data.items.len(), 2);
+        assert_eq!(response.data.items[0].domain, "example.com");
+        assert_eq!(response.provenance.source_count, 2);
+        assert_eq!(response.provenance.domain_count, 2);
+        assert_eq!(response.provenance.published_count, 1);
+    }
+}

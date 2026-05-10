@@ -1,6 +1,7 @@
 use agent::api::AgentLlmCfg;
 use db_core::DatabaseConfig;
 use serde::Deserialize;
+use service::dto::external_search::ExternalSearchConfig;
 use storage::StorageConfig;
 use toolcraft_config::load_settings;
 
@@ -16,6 +17,8 @@ pub struct Settings {
     pub default_llm: Option<String>,
     #[serde(default)]
     pub llm: Vec<AgentLlmCfg>,
+    #[serde(default)]
+    pub external_search: ExternalSearchConfig,
 }
 
 #[derive(Debug, Deserialize)]

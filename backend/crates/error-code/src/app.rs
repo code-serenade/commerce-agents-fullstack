@@ -1,4 +1,4 @@
-// App route business error codes: -12000..-12066
+// App route business error codes: -12000..-12067
 pub const APP_USER_NOT_FOUND: i16 = -12000;
 pub const APP_USER_DISABLED: i16 = -12001;
 pub const CONVERSATION_NOT_FOUND: i16 = -12002;
@@ -66,3 +66,4 @@ pub const AGENT_QUALITY_FORBIDDEN: i16 = -12063;
 pub const AGENT_QUALITY_REQUEST_INVALID: i16 = -12064;
 pub const AGENT_LEARNING_NOT_FOUND: i16 = -12065;
 pub const AGENT_TRUST_NOT_FOUND: i16 = -12066;
+pub const EXTERNAL_SEARCH_REQUEST_INVALID: i16 = -12067;

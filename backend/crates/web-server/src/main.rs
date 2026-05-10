@@ -18,7 +18,8 @@ use crate::{
     logging::init_tracing_to_file,
     statics::{
         agent_manager::init_agent_manager, db_manager::init_db,
-        request_client::init_request_client, storage_manager::init_storage,
+        external_search::init_external_search, request_client::init_request_client,
+        storage_manager::init_storage,
     },
 };
 
@@ -46,6 +47,8 @@ async fn main() {
         default_llm: settings.default_llm.clone(),
     })
     .expect("Agent manager initialization failed");
+    init_external_search(settings.external_search.clone())
+        .expect("External search config initialization failed");
     let jwt = Arc::new(
         fetch_verify_jwt()
             .await

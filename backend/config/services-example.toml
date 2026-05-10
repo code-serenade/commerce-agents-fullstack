@@ -25,6 +25,17 @@ access_key = "CHANGE_ME"
 secret_key = "CHANGE_ME"
 user_key_salt = "please-change-to-random-long-string"
 
+[external_search]
+enabled = false
+provider = "custom"
+base_url = "https://CHANGE_ME_SEARCH_PROVIDER_BASE_URL"
+search_endpoint = "/api/external/search"
+api_key = "CHANGE_ME"
+timeout_sec = 10
+default_topic = "general"
+default_days = 30
+default_max_results = 6
+
 # Agent runtime uses the first [[llm]] entry by default.
 # Set default_llm to switch between an external provider and local Ollama.
 # default_llm = "doubao-external"

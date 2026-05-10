@@ -324,3 +324,24 @@
 - 本阶段没有接入真实互联网搜索，不声明 provider，不返回 `_search_engine`。
 - 本阶段解决的是新产品后端搜索能力的稳定输出契约，给后续真实 search provider/API/SSE 展示铺路。
 - 外部实时搜索、来源展示、置信度展示和前端搜索来源面板仍是后续阶段。
+
+## Post 8-9：Rust 外部搜索 Adapter API
+
+状态：done
+
+验收项：
+
+- [x] 后端：新增 `GET /api/app/external-search/status`，返回 adapter 启用和配置状态。
+- [x] 后端：新增 `GET /api/app/external-search/search`，查询参数包含 `q/topic/days/maxResults/bypassCache`。
+- [x] 后端：未配置 adapter 时返回 `status=degraded`，不伪造来源。
+- [x] 后端：provider payload 可归一化为 `data.items`、`provenance`、`confidence`。
+- [x] 后端：当前 App 用户鉴权与 enabled 校验沿用现有 `app_users`。
+- [x] API：`API_DOCS/app.md` 已同步新增接口。
+- [x] 配置：`services-example.toml` 新增 `[external_search]` 示例并默认关闭。
+- [x] 前端：本阶段不新增假展示。
+
+当前说明：
+
+- 本阶段完成的是 Rust web/service 层的搜索 adapter API 入口，不是 Agent skill 的 live 调用。
+- 当前 `services.toml` 未配置 `[external_search]` 时，产品启动不受影响，接口会返回明确 degraded。
+- 下一阶段可以把 Agent `search_*` skill 接入该 adapter 契约，或先做前端来源展示。

@@ -766,3 +766,48 @@
 - 真实 search provider 配置和执行器未接入。
 - 尚未新增 Rust 外部搜索 API 或 service adapter。
 - 前端尚未展示 search output 中的 `query/sources/provenance/confidence/degraded_reason` 细节。
+
+## Post 8-9：Rust 外部搜索 Adapter API
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 9 个补强项：`Post 8-9`。
+
+本次目标：
+
+- 在新产品 Rust 后端补出外部搜索 adapter 的真实 API 入口。
+- 配置未开启时返回标准降级结构，不伪造外部来源。
+- 配置开启且 provider 可用时，按统一参数请求 provider，并归一化来源、provenance、confidence 和降级原因。
+
+涉及范围：
+
+- 产品内核：外部搜索从 Agent 内部 deferred 契约，向 service/web-server 可调用 adapter 入口推进。
+- 后端：新增 `ExternalSearchApi`、外部搜索 DTO、web-server 静态配置、handler 和 routes。
+- API：新增 `GET /api/app/external-search/status` 与 `GET /api/app/external-search/search`，同步 `API_DOCS/app.md`。
+- 配置：`backend/config/services-example.toml` 新增 `[external_search]` 示例，默认关闭。
+- 前端：本阶段不改前端，不新增假展示。
+
+用户可感知变化：
+
+- 当前产品后端已经可以回答“外部搜索 adapter 是否配置”。
+- 未配置时，用户不会看到假的互联网搜索来源；后端会返回 `status=degraded`、`sources/items=[]` 和明确降级原因。
+- 后续配置真实 provider 后，前端和 Agent skill 可以复用该 API 的 `data.items`、`provenance` 和 `confidence` 字段展示实时来源。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p service external_search`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo check`
+- [x] `cargo clippy`
+- [x] `git diff --check`
+
+后续缺口：
+
+- Agent `search_*` skill 尚未直接调用该 API 或共享 adapter client。
+- 前端尚未接入 `/api/app/external-search/*` 展示来源、置信度和降级原因。
+- 真实 provider 需要后续在部署环境配置 `[external_search]`。

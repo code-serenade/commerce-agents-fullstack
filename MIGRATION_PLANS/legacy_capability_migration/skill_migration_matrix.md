@@ -43,6 +43,8 @@
 | `search_platform_policy` | `search_platform_policy` | adapter_required | `backend/crates/agent/src/skills/search.rs` | Post 8-8：已形成统一 search adapter 降级契约；平台官方规则/公告来源待接入 |
 | `search_industry_benchmarks` | `search_industry_benchmarks` | adapter_required | `backend/crates/agent/src/skills/search.rs` | Post 8-8：已形成统一 search adapter 降级契约；行业基准数据来源待接入 |
 
+Post 8-9 补充：Rust 后端已新增 `/api/app/external-search/status` 和 `/api/app/external-search/search` 作为统一外部搜索 adapter API。上述 Agent `search_*` skill 当前仍为 `adapter_required`，下一阶段需要接入该 API 或抽取共享 adapter client 后，才能从 deferred 升级为 live/adapter 执行。
+
 ## 客服 service
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |

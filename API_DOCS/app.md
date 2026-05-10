@@ -203,6 +203,128 @@
 - 该接口只暴露问答工作台可选择的运行契约，不会动态修改模型配置或角色目录
 - 前端发送 SSE 时应把用户选择映射到 `metadata.model.name` 与 `metadata.strategy.*`
 
+## 2.3 查询外部搜索 Adapter 状态
+
+- 方法：`GET`
+- 路径：`/api/app/external-search/status`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：
+
+```json
+{
+  "adapter": "external_search",
+  "enabled": false,
+  "configured": false,
+  "provider": null,
+  "requiredConfig": "external_search.enabled=true, base_url and search_endpoint are required",
+  "status": "degraded"
+}
+```
+
+字段说明：
+
+- `enabled` 来自 `backend/config/services.toml` 的 `[external_search].enabled`
+- `configured=true` 需要 `enabled=true` 且配置了 `base_url`、`search_endpoint`
+- `provider` 仅在配置完整时返回 provider 名称
+- `status=configured` 表示后端具备向外部搜索 provider 发起请求的配置；`status=degraded` 表示当前不会查询外部搜索
+
+补充说明：
+
+- 当前用户必须存在于 `app_users`，且状态为 `enabled`
+- 该接口只暴露搜索 adapter 可用状态，不返回 `api_key`
+- 未配置时前端必须展示“外部搜索未接入”，不能伪造来源
+
+## 2.4 查询外部搜索
+
+- 方法：`GET`
+- 路径：`/api/app/external-search/search`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 必填 | 说明 |
+| --- | --- | --- |
+| `q` | 是 | 查询词，1 到 500 字符 |
+| `topic` | 否 | `general`、`news`、`finance`，默认 `general` |
+| `days` | 否 | 最近 N 天，1 到 365，默认 30 |
+| `maxResults` | 否 | 最大结果数，1 到 12，默认 6 |
+| `bypassCache` | 否 | 是否要求 provider 绕过缓存，默认 false |
+
+未配置 adapter 时成功响应 `data`：
+
+```json
+{
+  "adapter": "external_search",
+  "key": "search",
+  "status": "degraded",
+  "query": "咖啡 趋势",
+  "engine": null,
+  "requestedAt": "2026-05-10T00:00:00Z",
+  "topic": "general",
+  "freshnessDays": 30,
+  "confidence": 0.0,
+  "provenance": {
+    "sourceCount": 0,
+    "domainCount": 0,
+    "domains": [],
+    "publishedCount": 0,
+    "latestPublishedAt": null
+  },
+  "data": {
+    "items": []
+  },
+  "notice": "未获取到可靠公开来源，当前不能伪造实时搜索结果。",
+  "degraded": true,
+  "degradedReason": "External search adapter is not configured; no live sources were queried."
+}
+```
+
+配置 adapter 且 provider 返回来源时成功响应 `data`：
+
+```json
+{
+  "adapter": "external_search",
+  "key": "search",
+  "status": "live",
+  "query": "咖啡 趋势",
+  "engine": "custom",
+  "requestedAt": "2026-05-10T00:00:00Z",
+  "topic": "news",
+  "freshnessDays": 14,
+  "confidence": 0.72,
+  "provenance": {
+    "sourceCount": 2,
+    "domainCount": 2,
+    "domains": ["example.com", "report.example.cn"],
+    "publishedCount": 1,
+    "latestPublishedAt": "2026-05-01T00:00:00Z"
+  },
+  "data": {
+    "items": [
+      {
+        "rank": 1,
+        "title": "咖啡消费趋势",
+        "snippet": "冷萃咖啡增长",
+        "url": "https://www.example.com/a",
+        "domain": "example.com",
+        "publishedAt": "2026-05-01T00:00:00Z"
+      }
+    ]
+  },
+  "notice": null,
+  "degraded": false,
+  "degradedReason": null
+}
+```
+
+补充说明：
+
+- 当前用户必须存在于 `app_users`，且状态为 `enabled`
+- provider HTTP 失败、返回结构无法解析或没有可归一化来源时，接口返回 200 + `status=degraded`
+- 该接口是 Rust 后端外部搜索 adapter 的统一入口；Agent `search_*` skill 后续接入时应复用相同字段语义
+- 当前不会在前端伪造搜索结果；只有 `status=live` 且 `data.items` 非空时，前端才可展示为实时来源
+
 ## 3. 查询我的会话列表
 
 - 方法：`GET`

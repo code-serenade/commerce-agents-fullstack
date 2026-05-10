@@ -107,6 +107,7 @@ pub fn from_biz_error(err: BizError) -> ApiError {
         | app_error::AGENT_QUALITY_REQUEST_INVALID
         | app_error::EXECUTION_QUEUE_REQUEST_INVALID
         | app_error::PLATFORM_CONNECT_REQUEST_INVALID
+        | app_error::EXTERNAL_SEARCH_REQUEST_INVALID
         | app_error::APPROVAL_AUDIT_REQUEST_INVALID
         | app_error::BRIEFING_OPS_REQUEST_INVALID
         | app_error::PACKAGE_REQUEST_INVALID => StatusCode::BAD_REQUEST,
