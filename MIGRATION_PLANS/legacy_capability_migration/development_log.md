@@ -860,3 +860,53 @@
 - 真实部署仍需要配置可访问的 `[external_search]` provider。
 - 前端尚未把搜索来源、置信度和降级原因整理成专门来源面板。
 - App API 和 Agent adapter 目前共享字段语义，但实现仍各自归一化，后续可抽共享 crate。
+
+## Post 8-11：Agent 搜索证据沉淀为 Workspace Artifact
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 11 个补强项：`Post 8-11`。
+
+本次目标：
+
+- 让 Agent `search_*` skill 的真实 live 搜索结果不只停留在 SSE 过程事件里。
+- 当搜索输出有可信来源时，把完整搜索输出沉淀为 `artifactType=search_evidence` 的工作区交付物。
+- 未配置、降级或无来源时不创建假证据。
+
+涉及范围：
+
+- 产品内核：搜索能力从“可实时调用”继续推进到“可沉淀、可追溯、可被后续任务复用”。
+- Agent：`skill_result` 事件增加可选结构化 `output` 字段。
+- 后端 service：`WorkspaceApi::record_agent_search_evidence` 复用 `workspace_artifacts` 创建搜索证据交付物。
+- Web-server：SSE 收到 live 搜索结果后自动写入 `search_evidence`，并发送 `workspace_artifact_created`。
+- API/SSE：更新 `API_DOCS/sse.md` 与 `API_DOCS/app.md`，说明 `search_evidence` artifact 契约。
+- 前端：本阶段不改前端；前端后续可直接查询 artifact 或监听 SSE 事件展示来源面板。
+
+用户可感知变化：
+
+- 用户发起需要实时搜索的电商问题时，如果 provider 返回真实来源，工作区里会多出“搜索证据”交付物。
+- 前端后续可在右侧来源面板、工作区历史或任务详情里展示这些来源、域名、置信度和 freshness。
+- 如果搜索 adapter 不可用，用户不会看到假的搜索证据。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p service search_evidence_artifact`
+- [x] `cargo test -p web-server skill_result_output_is_camelized_for_sse_consumers`
+- [x] `cargo test -p agent successful_skill_results_become_report_evidence`
+- [x] `cargo test -p agent`
+- [x] `cargo check -p agent`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo check`
+- [x] `cargo clippy`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 前端尚未把 `search_evidence` artifact 做成 Kimi Agent 风格的来源面板。
+- 真实 provider 仍需要部署环境配置 `[external_search]`。
+- 后续可把 search adapter 归一化逻辑抽到共享 crate，减少 App API 与 Agent 内部 adapter 的重复。

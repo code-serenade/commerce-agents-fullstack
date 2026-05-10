@@ -30,7 +30,8 @@ use service::{
             CompleteAgentWorkspaceRunRequest, EvaluateAgentWorkspaceRunRequest,
             FailAgentWorkspaceRunRequest, LinkAgentWorkspaceRunRequest,
             LinkAgentWorkspaceTasksRequest, MarkAgentWorkspaceTaskStartedRequest,
-            RecordAgentWorkspaceTaskEvaluationRequest, RecordAgentWorkspaceTaskReportRequest,
+            RecordAgentSearchEvidenceRequest, RecordAgentWorkspaceTaskEvaluationRequest,
+            RecordAgentWorkspaceTaskReportRequest,
         },
     },
 };
@@ -323,11 +324,42 @@ pub async fn stream_agent_session(
                     status,
                     summary,
                     error,
+                    output,
                     execution_mode,
                     risk_level,
                     approval_required,
                     ..
                 } => {
+                    if let Some(output) = output.clone() {
+                        let response = workspace_api
+                            .record_agent_search_evidence(RecordAgentSearchEvidenceRequest {
+                                user_id: link_state.user_id.clone(),
+                                workspace_id: link_state.workspace_id.clone(),
+                                run_id: link_state.run_id.clone(),
+                                worker_id: worker_id.0.clone(),
+                                task_id: task_id.0.clone(),
+                                request_id: request_id.clone(),
+                                skill_id: skill_id.clone(),
+                                role: role.clone(),
+                                status: status.clone(),
+                                summary: summary.clone(),
+                                execution_mode: execution_mode.clone(),
+                                output,
+                            })
+                            .await;
+                        match response {
+                            Ok(Some(artifact)) => yield Ok(typed_camel_json_event(
+                                "workspace_artifact_created",
+                                serde_json::to_value(artifact)
+                                    .unwrap_or_else(|_| json!({ "type": "workspace_artifact_created" })),
+                            )),
+                            Ok(None) => {}
+                            Err(err) => {
+                                yield Ok(persistence_error_event("record_agent_search_evidence", err));
+                            }
+                        }
+                    }
+
                     if skill_requires_approval(status, *approval_required) {
                         let risk_level = approval_risk_level(risk_level.as_deref());
                         let reason = approval_reason(summary.as_deref());
@@ -986,5 +1018,48 @@ mod tests {
         assert!(metadata["context.summary"].contains("no matching product knowledge"));
         assert!(metadata["context.summary"].contains("Do not cite external search results"));
         assert_eq!(metadata["rag.degraded"], "true");
+    }
+
+    #[test]
+    fn skill_result_output_is_camelized_for_sse_consumers() {
+        let value = typed_camel_event_value_for_test(
+            "skill_result",
+            json!({
+                "type": "skill_result",
+                "skill_id": "search_competitor",
+                "execution_mode": "adapter",
+                "approval_required": false,
+                "output": {
+                    "adapter_status": "live",
+                    "planned_query": "冷萃咖啡 竞品",
+                    "data": {
+                        "items": [
+                            {"published_at": "2026-05-10T00:00:00Z"}
+                        ]
+                    }
+                }
+            }),
+        );
+
+        assert_eq!(
+            value.get("skillId").and_then(Value::as_str),
+            Some("search_competitor")
+        );
+        assert_eq!(
+            value
+                .pointer("/output/adapterStatus")
+                .and_then(Value::as_str),
+            Some("live")
+        );
+        assert_eq!(
+            value
+                .pointer("/output/data/items/0/publishedAt")
+                .and_then(Value::as_str),
+            Some("2026-05-10T00:00:00Z")
+        );
+    }
+
+    fn typed_camel_event_value_for_test(event: &'static str, value: Value) -> Value {
+        ensure_event_type(event, camelize_json_keys(value))
     }
 }

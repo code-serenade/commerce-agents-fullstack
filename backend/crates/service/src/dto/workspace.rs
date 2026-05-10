@@ -380,6 +380,22 @@ pub struct RecordAgentWorkspaceTaskEvaluationRequest {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct RecordAgentSearchEvidenceRequest {
+    pub user_id: String,
+    pub workspace_id: String,
+    pub run_id: String,
+    pub worker_id: String,
+    pub task_id: String,
+    pub request_id: String,
+    pub skill_id: String,
+    pub role: String,
+    pub status: String,
+    pub summary: Option<String>,
+    pub execution_mode: Option<String>,
+    pub output: Value,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct CompleteAgentWorkspaceRunRequest {
     pub user_id: String,
     pub workspace_id: String,

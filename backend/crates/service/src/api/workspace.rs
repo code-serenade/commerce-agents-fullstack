@@ -1189,6 +1189,52 @@ impl WorkspaceApi {
         Ok(Self::map_run_task(task))
     }
 
+    pub async fn record_agent_search_evidence(
+        &self,
+        req: RecordAgentSearchEvidenceRequest,
+    ) -> BizResult<Option<WorkspaceArtifactResponse>> {
+        let (user_id, workspace_id) = self
+            .ensure_request_workspace(&req.user_id, &req.workspace_id)
+            .await?;
+        let run_id = parse_uuid(&req.run_id, "run_id")?;
+        self.ensure_run_owner(user_id, workspace_id, run_id).await?;
+
+        let Some(draft) = build_search_evidence_artifact(&req) else {
+            return Ok(None);
+        };
+
+        let artifact = self
+            .artifact_svc
+            .create(CreateWorkspaceArtifact {
+                id: Uuid::new_v4(),
+                workspace_id,
+                run_id: Some(run_id),
+                workspace_task_id: None,
+                run_task_id: None,
+                user_id,
+                artifact_type: "search_evidence".to_string(),
+                title: draft.title,
+                content: Some(req.output.to_string()),
+                preview: Some(draft.preview),
+                mime_type: Some("application/json".to_string()),
+                format: "json".to_string(),
+                storage_kind: "inline".to_string(),
+                bucket: None,
+                object_key: None,
+                file_name: None,
+                file_size: None,
+                sha256: None,
+                source: AGENT_RUN_SOURCE.to_string(),
+                status: WorkspaceArtifactStatus::Active,
+                validation_status: WorkspaceArtifactValidationStatus::Unchecked,
+                validation_report: json!({}),
+                metadata: draft.metadata,
+            })
+            .await?;
+
+        Ok(Some(Self::map_artifact(artifact)))
+    }
+
     pub async fn complete_agent_run(
         &self,
         req: CompleteAgentWorkspaceRunRequest,
@@ -2677,6 +2723,132 @@ fn parse_optional_uuid(value: Option<String>, label: &str) -> BizResult<Option<U
         .transpose()
 }
 
+#[derive(Debug, Clone)]
+struct SearchEvidenceArtifactDraft {
+    title: String,
+    preview: String,
+    metadata: Value,
+}
+
+fn build_search_evidence_artifact(
+    req: &RecordAgentSearchEvidenceRequest,
+) -> Option<SearchEvidenceArtifactDraft> {
+    if !req.skill_id.starts_with("search_")
+        || req.status != "success"
+        || req.execution_mode.as_deref() != Some("adapter")
+        || req.output.get("status").and_then(Value::as_str) != Some("live")
+    {
+        return None;
+    }
+    let sources = req.output.get("sources")?.as_array()?;
+    if sources.is_empty() {
+        return None;
+    }
+
+    let source_count = sources.len();
+    let query = req
+        .output
+        .pointer("/query/planned")
+        .and_then(Value::as_str)
+        .or_else(|| req.output.get("planned_query").and_then(Value::as_str))
+        .or_else(|| req.output.pointer("/query/raw").and_then(Value::as_str))
+        .unwrap_or_default()
+        .trim()
+        .to_string();
+    let engine = req
+        .output
+        .get("engine")
+        .and_then(Value::as_str)
+        .or_else(|| {
+            req.output
+                .pointer("/adapter/provider")
+                .and_then(Value::as_str)
+        })
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or("external_search")
+        .to_string();
+    let confidence = req.output.get("confidence").and_then(Value::as_f64);
+    let domains = req
+        .output
+        .pointer("/provenance/domains")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    let title_query = if query.is_empty() {
+        req.skill_id.clone()
+    } else {
+        compact_text(&query, 80)
+    };
+    let title = format!("Search evidence - {title_query}");
+    let preview = format_search_evidence_preview(sources, &query);
+    let metadata = json!({
+        "kind": "agent_search_evidence",
+        "workerId": req.worker_id,
+        "taskId": req.task_id,
+        "requestId": req.request_id,
+        "skillId": req.skill_id,
+        "role": req.role,
+        "status": req.status,
+        "summary": req.summary,
+        "executionMode": req.execution_mode,
+        "adapterStatus": req.output.get("adapter_status").cloned(),
+        "engine": engine,
+        "query": query,
+        "sourceCount": source_count,
+        "domains": domains,
+        "confidence": confidence,
+        "provenance": req.output.get("provenance").cloned(),
+        "freshness": req.output.get("freshness").cloned(),
+    });
+
+    Some(SearchEvidenceArtifactDraft {
+        title,
+        preview,
+        metadata,
+    })
+}
+
+fn format_search_evidence_preview(sources: &[Value], query: &str) -> String {
+    let mut lines = Vec::new();
+    if !query.trim().is_empty() {
+        lines.push(format!("Query: {}", compact_text(query, 160)));
+    }
+    lines.push(format!("Sources: {}", sources.len()));
+    for (index, source) in sources.iter().take(5).enumerate() {
+        let title = source
+            .get("title")
+            .and_then(Value::as_str)
+            .or_else(|| source.get("name").and_then(Value::as_str))
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .unwrap_or("untitled");
+        let domain = source
+            .get("domain")
+            .and_then(Value::as_str)
+            .or_else(|| source.get("url").and_then(Value::as_str))
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .unwrap_or("unknown");
+        lines.push(format!(
+            "{}. {} ({})",
+            index + 1,
+            compact_text(title, 120),
+            compact_text(domain, 80)
+        ));
+    }
+    compact_text(&lines.join("\n"), 1000)
+}
+
 fn parse_workspace_status(value: Option<String>) -> BizResult<Option<WorkspaceStatus>> {
     parse_status(value, |value| match value {
         "active" => Ok(WorkspaceStatus::Active),
@@ -3382,5 +3554,83 @@ mod tests {
         let updated = trust_ema(0.5, 0.8);
 
         assert!((updated - 0.59).abs() < 0.0001);
+    }
+
+    #[test]
+    fn search_evidence_artifact_requires_live_sources() {
+        let req = RecordAgentSearchEvidenceRequest {
+            user_id: "11111111-1111-1111-1111-111111111111".to_string(),
+            workspace_id: "22222222-2222-2222-2222-222222222222".to_string(),
+            run_id: "33333333-3333-3333-3333-333333333333".to_string(),
+            worker_id: "worker.data".to_string(),
+            task_id: "task-1".to_string(),
+            request_id: "task-1-skill-1".to_string(),
+            skill_id: "search_competitor".to_string(),
+            role: "data".to_string(),
+            status: "success".to_string(),
+            summary: Some("外部搜索已返回 1 个可采信来源".to_string()),
+            execution_mode: Some("adapter".to_string()),
+            output: json!({
+                "status": "live",
+                "adapter_status": "live",
+                "query": {
+                    "planned": "冷萃咖啡 竞品 价格"
+                },
+                "engine": "mock-search",
+                "sources": [
+                    {
+                        "title": "冷萃咖啡竞品价格观察",
+                        "url": "https://example.com/a",
+                        "domain": "example.com",
+                        "snippet": "价格区间集中在 19-29 元。"
+                    }
+                ],
+                "provenance": {
+                    "source_count": 1,
+                    "domains": ["example.com"]
+                },
+                "confidence": 0.82,
+                "freshness": {
+                    "requested_at": "2026-05-10T00:00:00Z"
+                }
+            }),
+        };
+
+        let draft = build_search_evidence_artifact(&req).expect("live search should persist");
+
+        assert_eq!(draft.title, "Search evidence - 冷萃咖啡 竞品 价格");
+        assert!(draft.preview.contains("Sources: 1"));
+        assert_eq!(
+            draft.metadata.get("sourceCount").and_then(Value::as_u64),
+            Some(1)
+        );
+        assert_eq!(
+            draft.metadata.get("engine").and_then(Value::as_str),
+            Some("mock-search")
+        );
+    }
+
+    #[test]
+    fn search_evidence_artifact_ignores_degraded_output() {
+        let req = RecordAgentSearchEvidenceRequest {
+            user_id: "11111111-1111-1111-1111-111111111111".to_string(),
+            workspace_id: "22222222-2222-2222-2222-222222222222".to_string(),
+            run_id: "33333333-3333-3333-3333-333333333333".to_string(),
+            worker_id: "worker.data".to_string(),
+            task_id: "task-1".to_string(),
+            request_id: "task-1-skill-1".to_string(),
+            skill_id: "search_trends".to_string(),
+            role: "data".to_string(),
+            status: "deferred".to_string(),
+            summary: Some("adapter 未配置".to_string()),
+            execution_mode: Some("adapter".to_string()),
+            output: json!({
+                "status": "deferred",
+                "adapter_status": "adapter_required",
+                "sources": []
+            }),
+        };
+
+        assert!(build_search_evidence_artifact(&req).is_none());
     }
 }

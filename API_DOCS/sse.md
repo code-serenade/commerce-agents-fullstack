@@ -95,7 +95,7 @@ event: skill_requested
 data: {"type":"skill_requested","session_id":"session-001","worker_id":"worker.chat","task_id":"task-001","request_id":"task-001-skill-1","skill_id":"coordination_agent_handoff","role":"chat","reason":"需要交接给更合适的虚拟员工"}
 
 event: skill_result
-data: {"type":"skill_result","session_id":"session-001","worker_id":"worker.chat","task_id":"task-001","request_id":"task-001-skill-1","skill_id":"coordination_agent_handoff","role":"chat","status":"success","summary":"Agent交接建议已生成","error":null,"execution_mode":"native","risk_level":"low","approval_required":false}
+data: {"type":"skill_result","session_id":"session-001","worker_id":"worker.chat","task_id":"task-001","request_id":"task-001-skill-1","skill_id":"coordination_agent_handoff","role":"chat","status":"success","summary":"Agent交接建议已生成","error":null,"output":{"status":"ready"},"execution_mode":"native","risk_level":"low","approval_required":false}
 
 event: task_graph_planned
 data: {"type":"task_graph_planned","session_id":"session-001","graph":{...}}
@@ -118,6 +118,9 @@ data: {"id":"run-uuid","workspaceId":"workspace-uuid","status":"succeeded","sour
 event: workspace_artifact_created
 data: {"id":"artifact-uuid","workspaceId":"workspace-uuid","runId":"run-uuid","artifactType":"final_report","title":"Agent final report","storageKind":"inline","format":"markdown","status":"active"}
 
+event: workspace_artifact_created
+data: {"id":"search-artifact-uuid","workspaceId":"workspace-uuid","runId":"run-uuid","artifactType":"search_evidence","title":"Search evidence - 冷萃咖啡 竞品","storageKind":"inline","format":"json","source":"agent_session","status":"active","metadata":{"kind":"agent_search_evidence","skillId":"search_competitor","requestId":"task-001-skill-1","sourceCount":3,"confidence":0.82}}
+
 event: quality_checked
 data: {"qualityCheck":{"id":"quality-check-uuid","workspaceId":"workspace-uuid","runId":"run-uuid","artifactId":"artifact-uuid","role":"agent","score":0.82,"passed":true,"dimensions":{},"issues":[],"suggestions":[]},"trustUpdate":{"role":"agent","previousScore":0.5,"newScore":0.596,"previousLevel":"moderate","newLevel":"moderate","delta":0.096,"reason":"quality check passed; trust score moved toward the answer quality"},"learningRecords":[]}
 
@@ -137,7 +140,7 @@ data: {"type":"approval_required","approval":{"id":"approval-uuid","workspaceId"
 | `route_decided` | 后端已识别策略和路由模式，包含策略、学习层级、实际模型、主角色和支持角色 |
 | `worker_started` / `worker_finished` | 单个 worker 开始或完成 |
 | `skill_requested` | worker 请求调用某个 skill，包含请求 ID、skill ID、角色和原因；请求来源可能是模型显式 `skill_requests`，也可能是后端按岗位/任务自动补偿的代表 skill |
-| `skill_result` | skill 已返回执行结果，包含状态、摘要、错误、执行模式、风险等级和是否需要审批 |
+| `skill_result` | skill 已返回执行结果，包含状态、摘要、错误、可选结构化 `output`、执行模式、风险等级和是否需要审批 |
 | `collaboration_started` / `collaboration_worker_started` / `collaboration_worker_finished` / `collaboration_finished` | 多 worker 协作过程 |
 | `task_graph_planned` / `task_graph_finished` | 任务图规划或完成 |
 | `task_node_ready` / `task_node_started` / `task_node_reported` / `task_node_evaluated` / `task_node_rework_requested` / `task_node_passed` / `task_node_failed` | 任务节点生命周期 |
@@ -151,7 +154,8 @@ data: {"type":"approval_required","approval":{"id":"approval-uuid","workspaceId"
 - 模型没有输出 `skill_requests` 时，后端可根据当前 worker 岗位、任务文本、上下文摘要和上游结果，自动补偿一个代表 skill 请求。
 - 自动补偿仍走角色白名单、`SkillExecutorSet`、真实 `skill_result` 和结果合并链路，不绕过权限，也不伪造前端事件。
 - 自动补偿不会直接执行高风险平台写操作；平台写操作仍返回 `pending_approval` 并进入审批链路。
-- 搜索类 `search_*` skill 会读取后端 `[external_search]` 配置：配置完整且 provider 返回可信来源时，`skill_result` 可返回 `status=success`、`execution_mode=adapter`，输出内包含 `status=live`、`sources`、`data.items`、`provenance` 和 `confidence`；未配置、provider 失败或无来源时仍返回 `status=deferred`，输出内带 `adapter_status=adapter_required/degraded` 和 `degraded_reason`。
+- 搜索类 `search_*` skill 会读取后端 `[external_search]` 配置：配置完整且 provider 返回可信来源时，`skill_result` 可返回 `status=success`、`execution_mode=adapter`，`output` 内包含 `status=live`、`sources`、`data.items`、`provenance` 和 `confidence`；未配置、provider 失败或无来源时仍返回 `status=deferred`，`output` 内带 `adapter_status=adapter_required/degraded` 和 `degraded_reason`。
+- 当搜索类 `skill_result` 同时满足 `status=success`、`execution_mode=adapter`、`output.status=live` 且 `output.sources` 非空时，web-server 会把完整搜索输出沉淀为 `artifactType=search_evidence`、`format=json`、`storageKind=inline` 的工作区交付物，并额外发送 `workspace_artifact_created`。未配置、降级或无来源时不会创建搜索证据 artifact。
 - 其它需要内容引擎、平台数据或未接 adapter 的能力会返回 `deferred`，不会伪造外部资料或平台执行结果。
 
 `skill_result.status` 当前使用：`success`、`deferred`、`pending_approval`、`not_found`、`validation_error`、`failed`。其中 `pending_approval` 和 `approval_required=true` 表示后端没有直接执行平台写操作，需要进入审批或人工确认链路；`deferred` 表示 skill 已被识别但依赖搜索、外部数据、数据库或平台适配器，当前不会伪造结果。搜索类 skill 在 provider 返回可信来源时会以 `success` 承载 `output.status=live`，provider 不可用时仍以 `deferred` 承载明确降级原因。
@@ -166,13 +170,13 @@ data: {"type":"approval_required","approval":{"id":"approval-uuid","workspaceId"
 | `workspace_run_tasks_linked` | `task_graph_planned` 已沉淀为 `workspace_tasks` 和 `workspace_run_tasks`，返回运行任务快照列表 |
 | `workspace_run_task_updated` | 节点开始、worker report 或 evaluation 已写入对应运行任务快照 |
 | `workspace_run_completed` | agent session 正常完成，`workspace_run.status=succeeded`，最终输出写入 `report.output` |
-| `workspace_artifact_created` | agent session 正常完成后已创建工作区交付物，通常为 `artifactType=final_report` 的 markdown 报告 |
+| `workspace_artifact_created` | 已创建工作区交付物；正常完成时通常为 `artifactType=final_report` 的 markdown 报告，live 搜索证据会创建 `artifactType=search_evidence` 的 json 交付物 |
 | `quality_checked` | agent session 正常完成并创建交付物后，后端已完成回答质量检查、信任分更新和学习记录沉淀 |
 | `approval_required` | `skill_result.status=pending_approval` 或 `approval_required=true` 时，后端已创建或复用工具审批记录，并尝试创建告警 |
 | `workspace_run_failed` | agent session 失败，`workspace_run.status=failed`，失败原因写入 `report.reason` |
 | `workspace_run_persistence_error` | agent 流运行过程中某次沉淀失败，返回 `action`、`code`、`message`；该事件不截断原始 LLM 回答 |
 
-`workspace_run_linked` 的 `run.source` 固定为 `agent_session`。`workspace_run_tasks_linked` 与 `workspace_run_task_updated` 返回的数据结构等同于 `API_DOCS/app.md` 中的 `WorkspaceRunTaskResponse`，字段使用 camelCase。`workspace_run_completed` / `workspace_run_failed` 返回的数据结构等同于 `WorkspaceRunResponse`。`workspace_artifact_created` 返回的数据结构等同于 `WorkspaceArtifactResponse`。`quality_checked` 返回的数据结构等同于 `API_DOCS/app.md` 中 `POST /api/app/workspaces/{workspaceId}/runs/{runId}/quality-checks` 的成功响应，字段使用 camelCase。
+`workspace_run_linked` 的 `run.source` 固定为 `agent_session`。`workspace_run_tasks_linked` 与 `workspace_run_task_updated` 返回的数据结构等同于 `API_DOCS/app.md` 中的 `WorkspaceRunTaskResponse`，字段使用 camelCase。`workspace_run_completed` / `workspace_run_failed` 返回的数据结构等同于 `WorkspaceRunResponse`。`workspace_artifact_created` 返回的数据结构等同于 `WorkspaceArtifactResponse`。搜索证据 artifact 的 `content` 是完整搜索输出 JSON 字符串，`metadata.kind=agent_search_evidence`，并包含 `skillId`、`requestId`、`role`、`query`、`sourceCount`、`domains`、`confidence`、`provenance` 和 `freshness`。`quality_checked` 返回的数据结构等同于 `API_DOCS/app.md` 中 `POST /api/app/workspaces/{workspaceId}/runs/{runId}/quality-checks` 的成功响应，字段使用 camelCase。
 
 `quality_checked` 当前由 web-server 在 `workspace_run_completed` 和 `workspace_artifact_created` 后自动触发。质量检查失败不会截断 LLM 回答；如果质量检查自身写入失败，服务端会继续发 `workspace_run_persistence_error`，其中 `action` 为 `evaluate_agent_run`。
 

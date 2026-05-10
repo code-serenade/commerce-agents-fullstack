@@ -420,6 +420,7 @@ impl Worker {
             status: skill_status_name(result.status).to_string(),
             summary: result.summary.clone().map(compact_event_text),
             error: result.error.clone().map(compact_event_text),
+            output: result.output.clone(),
             execution_mode: metadata_string(&result.metadata, "execution_mode"),
             risk_level: metadata_string(&result.metadata, "risk_level"),
             approval_required: result

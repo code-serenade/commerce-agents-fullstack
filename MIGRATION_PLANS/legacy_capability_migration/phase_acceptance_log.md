@@ -359,3 +359,28 @@
 - [x] 后端：搜索类 skill 在角色提示目录中标记为 `adapter`，不再只是静态 `deferred`。
 - [x] API/SSE：不新增路由，`API_DOCS/sse.md` 已同步搜索类 `skill_result` 语义。
 - [x] 前端：本阶段不改前端，不新增假搜索展示。
+
+## Post 8-11：Agent 搜索证据沉淀为 Workspace Artifact
+
+状态：done
+
+验收项：
+
+- [x] Agent：`skill_result` 事件增加可选结构化 `output` 字段。
+- [x] 后端 service：新增 `record_agent_search_evidence`，复用现有 `workspace_artifacts` 表写入 `artifactType=search_evidence`。
+- [x] 后端 service：只接受 `search_* + status=success + executionMode=adapter + output.status=live + sources 非空` 的真实搜索结果。
+- [x] Web-server：SSE 收到 live 搜索结果后自动写入 `search_evidence`，并发送 `workspace_artifact_created`。
+- [x] Web-server：搜索证据写入失败时返回 `workspace_run_persistence_error`，不截断原始回答。
+- [x] API/SSE：`API_DOCS/sse.md` 和 `API_DOCS/app.md` 已同步 `search_evidence` artifact 契约。
+- [x] 前端：本阶段不改前端，不新增假来源展示。
+- [x] 验证：`cargo test -p service search_evidence_artifact` 通过。
+- [x] 验证：`cargo test -p web-server skill_result_output_is_camelized_for_sse_consumers` 通过。
+- [x] 验证：`cargo test -p agent` 通过。
+- [x] 验证：`cargo check -p agent/service/web-server` 通过。
+- [x] 验证：`cargo check`、`cargo clippy`、`git diff --check` 通过。
+
+当前说明：
+
+- 本阶段解决的是“真实搜索结果可沉淀、可追溯、可被工作区复用”。
+- 如果 `[external_search]` 未配置或 provider 降级，不会创建搜索证据交付物。
+- 前端后续可基于 `workspace_artifact_created` 或 artifact 查询接口，把 `search_evidence` 展示为来源面板。

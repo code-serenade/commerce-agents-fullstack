@@ -1721,7 +1721,7 @@
 
 ## 工作区交付物接口
 
-工作区交付物用于保存 Agent 运行或人工流程产生的最终报告、岗位交付件、文件引用等结果。Agent SSE 正常完成时会自动创建一个 `artifactType=final_report`、`storageKind=inline`、`format=markdown` 的交付物；普通 HTTP 接口可用于查询、人工登记、更新或归档交付物。
+工作区交付物用于保存 Agent 运行或人工流程产生的最终报告、岗位交付件、文件引用等结果。Agent SSE 正常完成时会自动创建一个 `artifactType=final_report`、`storageKind=inline`、`format=markdown` 的交付物；当搜索类 `search_*` skill 返回真实 live 来源时，还会自动创建 `artifactType=search_evidence`、`storageKind=inline`、`format=json` 的搜索证据交付物。普通 HTTP 接口可用于查询、人工登记、更新或归档交付物。
 
 ### 查询工作区交付物列表
 
@@ -1736,7 +1736,7 @@
 | `runId` | `uuid` | 否 | 只查询某次运行产生的交付物 |
 | `workspaceTaskId` | `uuid` | 否 | 只查询某个工作区任务关联的交付物 |
 | `runTaskId` | `uuid` | 否 | 只查询某个运行任务快照关联的交付物 |
-| `artifactType` | `string` | 否 | 交付物类型，例如 `final_report`、`role_report`、`file` |
+| `artifactType` | `string` | 否 | 交付物类型，例如 `final_report`、`search_evidence`、`role_report`、`file` |
 | `status` | `active \| archived` | 否 | 不传时默认查询 `active` |
 | `keyword` | `string` | 否 | 匹配标题、预览、文件名、对象 key |
 | `page` | `number` | 否 | 默认 1 |
@@ -1780,6 +1780,14 @@
   "pageSize": 20
 }
 ```
+
+`artifactType=search_evidence` 时：
+
+- `content` 是完整搜索输出 JSON 字符串，包含 `status=live`、`sources`、`data.items`、`provenance`、`confidence`、`freshness`
+- `preview` 是后端生成的来源摘要，便于前端列表快速展示
+- `metadata.kind = agent_search_evidence`
+- `metadata` 包含 `skillId`、`requestId`、`role`、`query`、`sourceCount`、`domains`、`confidence`、`provenance`、`freshness`
+- 只有真实 live 来源会创建该交付物；adapter 未配置、provider 失败或无来源时不会创建假搜索证据
 
 ### 创建工作区交付物
 

@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use crate::protocol::{
     Evaluation, SessionId, TaskGraph, TaskGraphId, TaskId, TaskNodeId, WorkerId, WorkerReport,
@@ -77,6 +78,8 @@ pub enum SessionEvent {
         status: String,
         summary: Option<String>,
         error: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        output: Option<Value>,
         execution_mode: Option<String>,
         risk_level: Option<String>,
         approval_required: Option<bool>,
