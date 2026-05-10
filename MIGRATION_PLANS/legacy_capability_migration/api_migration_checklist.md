@@ -41,6 +41,7 @@ API 是后端能力和前端适配之间的唯一契约。任何前端适配开�
 - [x] 附件摘要状态 API。
 - [x] 附件/素材/交付物可读上下文内容包 API。
 - [x] 工作区交付物导出 API。
+- [x] 会话附件抽取文本登记 API。
 - [ ] 竞品分析读取 API。
 - [ ] Campaign draft 创建 API。
 - [x] Commerce agent playbook 场景入口 API。

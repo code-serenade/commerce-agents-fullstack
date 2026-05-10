@@ -465,3 +465,25 @@
 
 - 本阶段解决的是旧产品“报告/原文导出”在新产品里的后端真实落点。
 - 对象存储文件下载、附件解析、OCR 和批量导出仍是后续独立能力。
+
+## Post 8-16：会话附件抽取文本登记 API
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Repo：新增 `ConversationFileService::update_metadata`，只操作 `conversation_files` 单表。
+- [x] Service：新增 `ConversationApi::update_file_extraction`。
+- [x] Service：校验当前用户、附件归属、附件 active 状态、会话归属和会话未删除。
+- [x] Service：抽取文本 trim 后不能为空，最多 100000 字符。
+- [x] Service：写入 `metadata.extractedText`、`metadata.textContent` 和 `metadata.extraction.*`。
+- [x] Web-server：新增 `PUT /api/app/conversation-files/{fileId}/extraction`。
+- [x] API：`API_DOCS/app.md` 已同步。
+- [x] 前端：API adapter 类型已同步，但本阶段不新增页面入口。
+
+当前说明：
+
+- 本阶段解决的是“附件可读正文如何进入新产品上下文体系”的后端入口。
+- 本阶段不实现 OCR、PDF/Office 解析、图片识别或 object storage 读取。
+- 后续解析器、OCR worker 或附件管理 UI 都应通过该 API 登记抽取结果。

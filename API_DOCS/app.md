@@ -470,12 +470,79 @@
 
 成功响应 `data`：`ConversationFileResponse`。
 
+`ConversationFileResponse`：
+
+```json
+{
+  "id": "file-uuid",
+  "conversationId": "conversation-uuid",
+  "messageId": null,
+  "bucket": "private",
+  "objectKey": "chat/userScope/conversationId/file.png",
+  "fileName": "file.png",
+  "mimeType": "image/png",
+  "fileSize": 12345,
+  "sha256": null,
+  "status": "active",
+  "metadata": {},
+  "createdAt": "2026-05-06T00:00:00Z"
+}
+```
+
 补充说明：
 
 - `bucket` 不由前端传入，服务端固定写入 `private`
 - `objectKey` 必须来自当前用户当前会话的上传签名路径
 
-## 11. 获取会话附件下载签名
+## 11. 登记会话附件抽取文本
+
+- 方法：`PUT`
+- 路径：`/api/app/conversation-files/{fileId}/extraction`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "text": "附件抽取出的正文内容，可被 Agent 上下文读取",
+  "contentKind": "text",
+  "source": "manual",
+  "language": "zh-CN",
+  "metadata": {
+    "pageCount": 3
+  }
+}
+```
+
+成功响应 `data`：`ConversationFileResponse`，其中 `metadata` 会包含：
+
+```json
+{
+  "extractedText": "附件抽取出的正文内容，可被 Agent 上下文读取",
+  "textContent": "附件抽取出的正文内容，可被 Agent 上下文读取",
+  "extraction": {
+    "status": "ready",
+    "contentKind": "text",
+    "source": "manual",
+    "language": "zh-CN",
+    "text": "附件抽取出的正文内容，可被 Agent 上下文读取",
+    "textChars": 23,
+    "updatedAt": "2026-05-10T00:00:00Z",
+    "metadata": {
+      "pageCount": 3
+    }
+  }
+}
+```
+
+补充说明：
+
+- 本接口只登记可信抽取文本，不负责 OCR、PDF 解析、图片识别或 object storage 文件读取
+- `text` trim 后不能为空，最多 100000 个字符
+- `metadata` 必须是 JSON object
+- 写入后的 `metadata.extractedText` 会被工作区 `context-pack` 读取，并进入 Agent 问答上下文
+
+## 12. 获取会话附件下载签名
 
 - 方法：`GET`
 - 路径：`/api/app/conversation-files/{fileId}/access`
@@ -496,6 +563,7 @@
     "fileSize": 12345,
     "sha256": null,
     "status": "active",
+    "metadata": {},
     "createdAt": "2026-05-06T00:00:00Z"
   },
   "method": "GET",

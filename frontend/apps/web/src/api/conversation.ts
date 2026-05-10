@@ -36,6 +36,7 @@ export interface ConversationFileResponse {
   fileSize: number | null
   sha256: string | null
   status: string
+  metadata: Record<string, unknown>
   createdAt: string
 }
 
@@ -59,6 +60,14 @@ export interface AddConversationMessageRequest {
 
 export interface UpdateConversationRequest {
   title?: string | null
+}
+
+export interface UpdateConversationFileExtractionRequest {
+  text: string
+  contentKind?: string | null
+  source?: string | null
+  language?: string | null
+  metadata?: Record<string, unknown> | null
 }
 
 export const listConversationsApi = async (): Promise<ConversationResponse[]> => {
@@ -117,5 +126,19 @@ export const deleteConversationApi = async (
   return request<undefined, void>({
     method: "DELETE",
     url: `/api/app/conversations/${conversationId}`,
+  })
+}
+
+export const updateConversationFileExtractionApi = async (
+  fileId: string,
+  body: UpdateConversationFileExtractionRequest
+): Promise<ConversationFileResponse> => {
+  return request<
+    UpdateConversationFileExtractionRequest,
+    ConversationFileResponse
+  >({
+    method: "PUT",
+    url: `/api/app/conversation-files/${fileId}/extraction`,
+    body,
   })
 }

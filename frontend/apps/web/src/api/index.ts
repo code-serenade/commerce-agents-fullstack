@@ -47,6 +47,7 @@ export {
   deleteConversationApi,
   getConversationApi,
   listConversationsApi,
+  updateConversationFileExtractionApi,
   updateConversationApi,
   type AddConversationMessageRequest,
   type ConversationDetailResponse,
@@ -54,6 +55,7 @@ export {
   type ConversationMessageResponse,
   type ConversationResponse,
   type CreateConversationRequest,
+  type UpdateConversationFileExtractionRequest,
   type UpdateConversationRequest,
 } from "./conversation"
 

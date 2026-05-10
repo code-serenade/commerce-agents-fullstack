@@ -1,10 +1,15 @@
 use db_core::{DbContext, Repository, error::BizResult};
-use sea_orm::{ActiveValue::Set, ColumnTrait, QueryFilter, QueryOrder};
+use sea_orm::{
+    ActiveValue::{Set, Unchanged},
+    ColumnTrait, QueryFilter, QueryOrder,
+};
 use uuid::Uuid;
 
 use crate::{
     entity::conversation_files,
-    table::conversation_files::dto::{ConversationFile, CreateConversationFile},
+    table::conversation_files::dto::{
+        ConversationFile, CreateConversationFile, UpdateConversationFileMetadata,
+    },
 };
 
 db_core::impl_repository!(
@@ -67,6 +72,19 @@ impl ConversationFileService {
             .into_iter()
             .map(Self::from_model)
             .collect())
+    }
+
+    pub async fn update_metadata(
+        &self,
+        input: UpdateConversationFileMetadata,
+    ) -> BizResult<ConversationFile> {
+        let model = conversation_files::ActiveModel {
+            id: Unchanged(input.id),
+            metadata: Set(input.metadata),
+            ..Default::default()
+        };
+
+        Ok(Self::from_model(self.repo.update(model).await?))
     }
 
     fn from_model(model: conversation_files::Model) -> ConversationFile {

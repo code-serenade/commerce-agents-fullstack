@@ -5,26 +5,30 @@ use db_core::{
 use error_code::app as app_error;
 use repo::table::{
     app_users::{AppUserService, AppUserStatus},
-    conversation_files::{ConversationFile, ConversationFileService, CreateConversationFile},
+    conversation_files::{
+        ConversationFile, ConversationFileService, CreateConversationFile,
+        UpdateConversationFileMetadata,
+    },
     conversation_messages::{
         ConversationMessage, ConversationMessageService, CreateConversationMessage,
     },
     conversations::{Conversation, ConversationService, CreateConversation},
 };
-use serde_json::json;
+use serde_json::{Map, Value, json};
 use storage::{BucketKind, ObjectStorage, PresignDownloadRequest};
-use time::OffsetDateTime;
+use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use uuid::Uuid;
 
 use crate::dto::conversation::{
     AddConversationMessageRequest, ConversationDetailResponse, ConversationFileAccessResponse,
     ConversationFileResponse, ConversationMessageResponse, ConversationResponse,
     CreateConversationRequest, DeleteConversationRequest, RegisterConversationFileRequest,
-    UpdateConversationRequest, uuid_to_string,
+    UpdateConversationFileExtractionRequest, UpdateConversationRequest, uuid_to_string,
 };
 
 const DEFAULT_LIST_LIMIT: u64 = 50;
 const FILE_ACCESS_EXPIRES_SECS: u64 = 600;
+const MAX_EXTRACTED_TEXT_CHARS: usize = 100_000;
 
 pub struct ConversationApi {
     db: DbContext,
@@ -295,6 +299,57 @@ impl ConversationApi {
         })
     }
 
+    pub async fn update_file_extraction(
+        &self,
+        req: UpdateConversationFileExtractionRequest,
+    ) -> BizResult<ConversationFileResponse> {
+        let user_id = parse_user_id(&req.user_id)?;
+        self.ensure_app_user_enabled(user_id).await?;
+        let file_id = parse_uuid(&req.file_id, "file_id")?;
+        let file = self.ensure_active_file_owner(user_id, file_id).await?;
+        self.ensure_active_conversation_owner(user_id, file.conversation_id)
+            .await?;
+
+        let text = normalize_required_text(req.text, "text")?;
+        let text_chars = text.chars().count();
+        if text_chars > MAX_EXTRACTED_TEXT_CHARS {
+            return Err(BizError::new(
+                app_error::CONVERSATION_REQUEST_INVALID,
+                format!("text is too long: max {MAX_EXTRACTED_TEXT_CHARS} chars"),
+            ));
+        }
+
+        let content_kind = normalize_optional(req.content_kind).unwrap_or_else(|| "text".into());
+        let source = normalize_optional(req.source).unwrap_or_else(|| "manual".into());
+        let language = normalize_optional(req.language);
+        let extra_metadata = req.metadata.unwrap_or_else(|| json!({}));
+        if !extra_metadata.is_object() {
+            return Err(BizError::new(
+                app_error::CONVERSATION_REQUEST_INVALID,
+                "metadata must be a JSON object".to_string(),
+            ));
+        }
+
+        let metadata = build_file_extraction_metadata(
+            file.metadata,
+            text,
+            content_kind,
+            source,
+            language,
+            text_chars,
+            extra_metadata,
+        );
+        let updated = self
+            .file_svc
+            .update_metadata(UpdateConversationFileMetadata {
+                id: file.id,
+                metadata,
+            })
+            .await?;
+
+        Ok(Self::map_file(updated))
+    }
+
     async fn ensure_app_user_enabled(&self, user_id: Uuid) -> BizResult<()> {
         let user = self
             .app_user_svc
@@ -356,6 +411,32 @@ impl ConversationApi {
         Ok(conversation)
     }
 
+    async fn ensure_active_file_owner(
+        &self,
+        user_id: Uuid,
+        file_id: Uuid,
+    ) -> BizResult<ConversationFile> {
+        let file = self.file_svc.get_by_id(file_id).await?.ok_or_else(|| {
+            BizError::new(
+                app_error::CONVERSATION_FILE_NOT_FOUND,
+                "file not found".to_string(),
+            )
+        })?;
+        if file.user_id != user_id {
+            return Err(BizError::new(
+                app_error::CONVERSATION_FILE_FORBIDDEN,
+                "file does not belong to current user".to_string(),
+            ));
+        }
+        if file.status != "active" {
+            return Err(BizError::new(
+                app_error::CONVERSATION_FILE_NOT_FOUND,
+                "file not found".to_string(),
+            ));
+        }
+        Ok(file)
+    }
+
     fn map_conversation(item: Conversation) -> ConversationResponse {
         ConversationResponse {
             id: uuid_to_string(item.id),
@@ -397,6 +478,7 @@ impl ConversationApi {
             file_size: item.file_size,
             sha256: item.sha256,
             status: item.status,
+            metadata: item.metadata,
             created_at: item.created_at,
         }
     }
@@ -417,6 +499,63 @@ fn normalize_role(value: &str) -> BizResult<String> {
             format!("invalid message role: {value}"),
         )),
     }
+}
+
+fn normalize_required_text(value: String, label: &str) -> BizResult<String> {
+    let value = value.trim().to_string();
+    if value.is_empty() {
+        return Err(BizError::new(
+            app_error::CONVERSATION_REQUEST_INVALID,
+            format!("{label} is empty"),
+        ));
+    }
+    Ok(value)
+}
+
+fn build_file_extraction_metadata(
+    current: Value,
+    text: String,
+    content_kind: String,
+    source: String,
+    language: Option<String>,
+    text_chars: usize,
+    extra_metadata: Value,
+) -> Value {
+    let mut object = current.as_object().cloned().unwrap_or_default();
+    object.insert("extractedText".to_string(), Value::String(text.clone()));
+    object.insert("textContent".to_string(), Value::String(text.clone()));
+
+    let mut extraction = match object.remove("extraction") {
+        Some(Value::Object(existing)) => existing,
+        _ => Map::new(),
+    };
+    extraction.insert("status".to_string(), Value::String("ready".to_string()));
+    extraction.insert("contentKind".to_string(), Value::String(content_kind));
+    extraction.insert("source".to_string(), Value::String(source));
+    extraction.insert("text".to_string(), Value::String(text));
+    extraction.insert(
+        "textChars".to_string(),
+        Value::Number(serde_json::Number::from(text_chars)),
+    );
+    extraction.insert("updatedAt".to_string(), Value::String(now_rfc3339()));
+    match language {
+        Some(language) => {
+            extraction.insert("language".to_string(), Value::String(language));
+        }
+        None => {
+            extraction.remove("language");
+        }
+    }
+    extraction.insert("metadata".to_string(), extra_metadata);
+    object.insert("extraction".to_string(), Value::Object(extraction));
+
+    Value::Object(object)
+}
+
+fn now_rfc3339() -> String {
+    OffsetDateTime::now_utc()
+        .format(&Rfc3339)
+        .unwrap_or_else(|_| "1970-01-01T00:00:00Z".to_string())
 }
 
 fn parse_user_id(user_id: &str) -> BizResult<Uuid> {
@@ -442,5 +581,44 @@ async fn commit_or_rollback<T>(tx: DbContext, result: BizResult<T>) -> BizResult
             tx.rollback().await?;
             Err(err)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn conversation_file_extraction_metadata_preserves_existing_fields() {
+        let metadata = build_file_extraction_metadata(
+            json!({
+                "objectKey": "chat/u/c/file.pdf",
+                "extraction": {
+                    "status": "pending",
+                    "source": "old-parser"
+                }
+            }),
+            "商品卖点：防晒、轻薄".to_string(),
+            "markdown".to_string(),
+            "manual".to_string(),
+            Some("zh-CN".to_string()),
+            10,
+            json!({"pageCount": 3}),
+        );
+
+        assert_eq!(metadata["objectKey"], "chat/u/c/file.pdf");
+        assert_eq!(metadata["extractedText"], "商品卖点：防晒、轻薄");
+        assert_eq!(metadata["textContent"], "商品卖点：防晒、轻薄");
+        assert_eq!(metadata["extraction"]["status"], "ready");
+        assert_eq!(metadata["extraction"]["contentKind"], "markdown");
+        assert_eq!(metadata["extraction"]["source"], "manual");
+        assert_eq!(metadata["extraction"]["language"], "zh-CN");
+        assert_eq!(metadata["extraction"]["metadata"]["pageCount"], 3);
+    }
+
+    #[test]
+    fn conversation_file_extraction_text_must_not_be_empty() {
+        let err = normalize_required_text("   ".to_string(), "text").unwrap_err();
+        assert_eq!(err.code(), app_error::CONVERSATION_REQUEST_INVALID);
     }
 }

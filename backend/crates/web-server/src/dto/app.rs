@@ -285,6 +285,20 @@ pub struct RegisterConversationFileRequest {
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
+pub struct UpdateConversationFileExtractionRequest {
+    #[validate(length(min = 1, max = 100000))]
+    pub text: String,
+    #[validate(length(max = 32))]
+    pub content_kind: Option<String>,
+    #[validate(length(max = 64))]
+    pub source: Option<String>,
+    #[validate(length(max = 32))]
+    pub language: Option<String>,
+    pub metadata: Option<Value>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
 pub struct PresignConversationFileUploadRequest {
     #[validate(length(min = 1, max = 32))]
     pub extension: String,
@@ -357,6 +371,7 @@ pub struct ConversationFileResponse {
     pub file_size: Option<i64>,
     pub sha256: Option<String>,
     pub status: String,
+    pub metadata: Value,
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
 }

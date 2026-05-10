@@ -1105,3 +1105,54 @@
 
 - 本轮不读取 object storage，不做 OCR、PDF、图片或视频解析。
 - 后续需要继续做附件正文抽取 adapter，以及导出历史/批量导出/正式文件服务。
+
+## Post 8-16：会话附件抽取文本登记 API
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 16 个补强项：`Post 8-16`。
+
+本次目标：
+
+- 为旧产品“附件正文进入问答上下文”的能力补齐新产品后端契约。
+- 后端提供可信抽取文本登记 API，不在本轮读取 object storage，不做 OCR/PDF/图片解析。
+
+涉及范围：
+
+- 产品内核：会话附件从“只有文件元数据”推进到“可登记可读正文，并被上下文包读取”。
+- 后端 repo：新增 `ConversationFileService::update_metadata`。
+- 后端 service：新增 `ConversationApi::update_file_extraction`。
+- Web-server：新增 `PUT /api/app/conversation-files/{fileId}/extraction`。
+- API：同步 `API_DOCS/app.md`。
+- 前端：同步 `ConversationFileResponse.metadata` 和 `updateConversationFileExtractionApi`。
+
+用户可感知变化：
+
+- 用户附件被后续解析器登记正文后，Agent 问答能真实使用附件文本。
+- 工作区上下文内容包会显示附件从 `metadata_only` 变为 `extracted_text`。
+- 当前仍不会假装读取未解析的二进制文件。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo fmt --check`
+- [x] `cargo test -p service conversation_file_extraction`
+- [x] `cargo check -p repo`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo check`
+- [x] `cargo clippy`
+- [x] `pnpm -C apps/web rules`
+- [x] `pnpm -C apps/web lint`
+- [x] `pnpm -C apps/web test`
+- [x] `pnpm -C apps/web build`
+- [x] `pnpm rules`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 还需要实现 OCR/文档解析 adapter，把文件读取、解析、状态队列和失败重试接入本 API。
+- 还需要做前端附件解析入口和解析状态展示。
