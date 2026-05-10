@@ -719,3 +719,50 @@
 - `service_query_product` 仍需要真实商品数据库/商品画像 adapter。
 - 平台最新退换货、投诉、赔付规则仍需要 `search_platform_policy` 或 `shop_policy` adapter。
 - 客服处理方案当前仍是结构化文本产物，尚未生成可下载客服 SOP 文档或工单 artifact 文件。
+
+## Post 8-8：外部搜索 Adapter 契约化
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 8 个补强项：`Post 8-8`。
+
+本次目标：
+
+- 把旧产品趋势、竞品、市场行情、商品评价、平台政策、行业基准搜索能力迁成新产品 Agent runtime 中稳定的后端契约。
+- 当前真实 search provider 尚未接入，因此不伪造联网结果、不返回假 sources、不声明假搜索引擎。
+- 为后续外部搜索/实时数据 adapter 接入提前固定输出结构。
+
+涉及范围：
+
+- 产品内核：搜索 skill 从简单 deferred 占位升级为统一 `adapter_required` fallback。
+- 后端：`backend/crates/agent/src/skills/search.rs`、`backend/crates/agent/src/skills/runtime.rs`。
+- API：本轮不新增 HTTP API，不修改 SSE 事件结构；沿用 `skill_result.status=deferred`。
+- 前端：本轮不改前端，不增加假来源展示。
+- 文档：新增 Post 8-8 后端设计归档和迁移归档，更新 skill 迁移矩阵。
+
+用户可感知变化：
+
+- 用户问“搜索咖啡趋势”“查竞品价格”“看平台最新规则”“找行业 ROI 基准”等问题时，后端会明确识别为搜索类 skill。
+- 当前由于外部搜索 adapter 未接入，过程区仍显示 `deferred`，不会让用户误以为已经获取了实时互联网来源。
+- 后端输出会保留计划搜索词、topic、时间范围、空来源、0 置信度和明确降级原因，后续接入真实 provider 后可直接替换为 live 数据。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p agent executor_returns_deferred_for_search`
+- [x] `cargo test -p agent executor_returns_structured_deferred_for_search_skills`
+- [x] `cargo test -p agent`
+- [x] `cargo check -p agent`
+- [x] `cargo clippy -p agent`
+- [x] `cargo check`
+- [x] `cargo clippy`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 真实 search provider 配置和执行器未接入。
+- 尚未新增 Rust 外部搜索 API 或 service adapter。
+- 前端尚未展示 search output 中的 `query/sources/provenance/confidence/degraded_reason` 细节。

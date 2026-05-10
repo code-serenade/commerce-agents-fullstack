@@ -301,3 +301,26 @@
 - 本阶段把旧产品客服岗位的工单、FAQ和升级处理能力迁到新产品 Rust Agent runtime，当前以本地结构化 SOP 和话术产物为主。
 - 结果包括优先级、SLA、客服话术、升级条件、FAQ答案、处理指引、主管接管话术、赔偿建议和 DSR 改善动作。
 - 实时平台政策、店铺真实售后规则、商品画像自动读取和客服 SOP 文档导出仍是后续阶段。
+
+## Post 8-8：外部搜索 Adapter 契约化
+
+状态：done
+
+验收项：
+
+- [x] 后端：`search_trends` 返回统一 `adapter_required` 降级契约，不伪造 sources。
+- [x] 后端：`search_competitor` 返回统一 `adapter_required` 降级契约，不伪造 sources。
+- [x] 后端：`search_market_info` 返回统一 `adapter_required` 降级契约，不伪造 sources。
+- [x] 后端：`search_product_reviews` 返回统一 `adapter_required` 降级契约，不伪造 sources。
+- [x] 后端：`search_platform_policy` 返回统一 `adapter_required` 降级契约，不伪造 sources。
+- [x] 后端：`search_industry_benchmarks` 返回统一 `adapter_required` 降级契约，不伪造 sources。
+- [x] 后端：六个 search skill 均保留 `status=deferred`，runtime metadata 仍包含 search/LLM adapter requirements。
+- [x] 后端：输出包含 `query`、`data.items=[]`、`sources=[]`、`provenance.source_count=0`、`confidence=0.0`、`degraded=true`。
+- [x] 前端：本阶段不新增假展示，继续沿用真实 `skill_result` 状态。
+- [x] 验证：搜索契约测试通过。
+
+当前说明：
+
+- 本阶段没有接入真实互联网搜索，不声明 provider，不返回 `_search_engine`。
+- 本阶段解决的是新产品后端搜索能力的稳定输出契约，给后续真实 search provider/API/SSE 展示铺路。
+- 外部实时搜索、来源展示、置信度展示和前端搜索来源面板仍是后续阶段。

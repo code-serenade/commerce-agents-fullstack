@@ -987,11 +987,176 @@ mod tests {
             .await;
 
         assert_eq!(result.status, SkillExecutionStatus::Deferred);
+        let output = result.output.as_ref().expect("search output");
+        assert_eq!(output.get("status"), Some(&json!("deferred")));
+        assert_eq!(
+            output.get("adapter_status"),
+            Some(&json!("adapter_required"))
+        );
+        assert_eq!(output.pointer("/adapter/kind"), Some(&json!("search")));
+        assert_eq!(output.pointer("/adapter/configured"), Some(&json!(false)));
+        assert_eq!(output.get("sources"), Some(&json!([])));
+        assert_eq!(output.pointer("/data/items"), Some(&json!([])));
+        assert_eq!(output.get("confidence"), Some(&json!(0.0)));
+        assert_eq!(output.get("degraded"), Some(&json!(true)));
+        assert!(output.get("_search_engine").is_none());
+        assert!(
+            output
+                .pointer("/query/planned")
+                .and_then(Value::as_str)
+                .is_some_and(|query| query.contains("咖啡"))
+        );
         assert_eq!(
             result.metadata.get("risk_level"),
             Some(&json!(SkillRiskLevel::Medium))
         );
         assert!(result.metadata.contains_key("adapter_requirements"));
+    }
+
+    #[tokio::test]
+    async fn executor_returns_structured_deferred_for_search_skills() {
+        let executor = SkillExecutorSet::staged().expect("executor should load");
+        let cases = [
+            (
+                "search_trends",
+                json!({"query": "咖啡", "platform": "抖音", "days": 14}),
+                "general",
+                14,
+            ),
+            (
+                "search_competitor",
+                json!({"query": "冷萃咖啡", "focus": "price"}),
+                "general",
+                60,
+            ),
+            (
+                "search_market_info",
+                json!({"query": "咖啡饮品", "topic": "news"}),
+                "news",
+                7,
+            ),
+            (
+                "search_product_reviews",
+                json!({"query": "冷萃咖啡", "focus": "negative"}),
+                "general",
+                90,
+            ),
+            (
+                "search_platform_policy",
+                json!({"platform": "抖音", "policy_type": "content", "days": 21}),
+                "news",
+                21,
+            ),
+            (
+                "search_industry_benchmarks",
+                json!({"industry": "咖啡饮品", "metric": "roi"}),
+                "general",
+                180,
+            ),
+        ];
+
+        for (index, (skill_id, input, expected_topic, expected_days)) in
+            cases.into_iter().enumerate()
+        {
+            let result = executor
+                .execute(SkillRequest::new(
+                    format!("req-search-contract-{index}"),
+                    skill_id,
+                    input,
+                ))
+                .await;
+
+            assert_eq!(
+                result.status,
+                SkillExecutionStatus::Deferred,
+                "{skill_id} should remain deferred until search adapter exists"
+            );
+            assert_eq!(
+                result.metadata.get("adapter_requirements"),
+                Some(&json!([SkillAdapterKind::Search, SkillAdapterKind::Llm])),
+                "{skill_id} adapter requirements changed"
+            );
+            assert_eq!(
+                result.metadata.get("adapter_status"),
+                Some(&json!("adapter_required")),
+                "{skill_id} adapter status missing"
+            );
+
+            let output = result.output.as_ref().expect("search output");
+            assert_eq!(
+                output.get("adapter_status"),
+                Some(&json!("adapter_required")),
+                "{skill_id} output adapter status missing"
+            );
+            assert_eq!(
+                output.pointer("/query/topic"),
+                Some(&json!(expected_topic)),
+                "{skill_id} topic mismatch"
+            );
+            assert_eq!(
+                output.pointer("/query/days"),
+                Some(&json!(expected_days)),
+                "{skill_id} days mismatch"
+            );
+            assert_eq!(
+                output.pointer("/query/max_results"),
+                Some(&json!(6)),
+                "{skill_id} max_results mismatch"
+            );
+            assert_eq!(
+                output.pointer("/adapter/provider"),
+                Some(&Value::Null),
+                "{skill_id} must not claim a provider"
+            );
+            assert_eq!(
+                output.pointer("/adapter/configured"),
+                Some(&json!(false)),
+                "{skill_id} must report unconfigured adapter"
+            );
+            assert_eq!(
+                output.get("sources"),
+                Some(&json!([])),
+                "{skill_id} must not fake sources"
+            );
+            assert_eq!(
+                output.pointer("/data/items"),
+                Some(&json!([])),
+                "{skill_id} must not fake search items"
+            );
+            assert_eq!(
+                output.pointer("/provenance/source_count"),
+                Some(&json!(0)),
+                "{skill_id} must not fake provenance"
+            );
+            assert_eq!(
+                output.get("confidence"),
+                Some(&json!(0.0)),
+                "{skill_id} confidence must be zero without sources"
+            );
+            assert_eq!(
+                output.get("degraded"),
+                Some(&json!(true)),
+                "{skill_id} must be degraded"
+            );
+            assert!(
+                output
+                    .get("degraded_reason")
+                    .and_then(Value::as_str)
+                    .is_some_and(|reason| reason.contains("Search adapter is not configured")),
+                "{skill_id} missing degraded reason"
+            );
+            assert!(
+                output.get("_search_engine").is_none(),
+                "{skill_id} must not claim a search engine"
+            );
+            assert!(
+                output
+                    .pointer("/query/planned")
+                    .and_then(Value::as_str)
+                    .is_some_and(|query| !query.trim().is_empty()),
+                "{skill_id} planned query missing"
+            );
+        }
     }
 
     #[tokio::test]

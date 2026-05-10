@@ -10,6 +10,12 @@ fn category() -> SkillCategory {
     SkillCategory::Custom("search".to_owned())
 }
 
+const SEARCH_ADAPTER_REQUIRED_CONFIG: &str = "search.provider / search endpoint not configured";
+const SEARCH_DEFERRED_REASON: &str = "外部搜索 adapter 尚未接入，不能伪造实时来源";
+const SEARCH_DEGRADED_REASON: &str =
+    "Search adapter is not configured; planned query is returned for traceability.";
+const DEFAULT_MAX_RESULTS: i64 = 6;
+
 pub fn specs() -> Vec<SkillSpec> {
     vec![
         search_trends_spec(),
@@ -182,6 +188,82 @@ fn search_spec(id: &str, name: &str, description: &str, inputs: Vec<SkillInputFi
     )
 }
 
+#[derive(Debug, Clone)]
+struct SearchPlan {
+    raw: String,
+    planned: String,
+    topic: String,
+    days: i64,
+    max_results: i64,
+}
+
+impl SearchPlan {
+    fn new(
+        raw: impl Into<String>,
+        planned: impl Into<String>,
+        topic: impl Into<String>,
+        days: i64,
+    ) -> Self {
+        Self {
+            raw: raw.into(),
+            planned: planned.into(),
+            topic: topic.into(),
+            days: days.max(1),
+            max_results: DEFAULT_MAX_RESULTS,
+        }
+    }
+}
+
+fn deferred_search_output(
+    skill_id: &str,
+    required_input: String,
+    plan: SearchPlan,
+) -> SkillOutcome {
+    SkillOutcome::new(json!({
+        "status": "deferred",
+        "adapter_status": "adapter_required",
+        "adapter": {
+            "kind": "search",
+            "provider": null,
+            "configured": false,
+            "required_config": SEARCH_ADAPTER_REQUIRED_CONFIG
+        },
+        "deferred_reason": SEARCH_DEFERRED_REASON,
+        "skill": skill_id,
+        "required_input": required_input,
+        "planned_query": plan.planned,
+        "query": {
+            "raw": plan.raw,
+            "planned": plan.planned,
+            "topic": plan.topic,
+            "days": plan.days,
+            "max_results": plan.max_results
+        },
+        "data": {
+            "items": []
+        },
+        "sources": [],
+        "provenance": {
+            "source_count": 0,
+            "domain_count": 0,
+            "domains": [],
+            "published_count": 0,
+            "latest_published_at": null
+        },
+        "confidence": 0.0,
+        "freshness": {
+            "requested_days": plan.days,
+            "requested_at": null
+        },
+        "degraded": true,
+        "degraded_reason": SEARCH_DEGRADED_REASON,
+        "expected_outputs": ["分析摘要", "结构化要点", "sources", "_search_engine"]
+    }))
+    .with_summary("外部搜索 adapter 未接入，已返回结构化降级契约")
+    .with_metadata("adapter_status", json!("adapter_required"))
+    .with_metadata("adapter_kind", json!("search"))
+}
+
 macro_rules! deferred_search_skill {
     ($type_name:ident, $spec_fn:ident, $required:literal, $builder:expr) => {
         pub struct $type_name {
@@ -209,15 +291,8 @@ macro_rules! deferred_search_skill {
             async fn run(&self, params: Value, _context: SkillContext) -> SkillResult {
                 object_params(&params)?;
                 let required_value = string_param(&params, $required)?;
-                let query = $builder(&params, &required_value)?;
-                Ok(SkillOutcome::new(json!({
-                    "status": "deferred",
-                    "deferred_reason": "搜索后端尚未接入Rust skill runtime",
-                    "skill": self.spec.id,
-                    "required_input": required_value,
-                    "planned_query": query,
-                    "expected_outputs": ["分析摘要", "结构化要点", "sources", "_search_engine"]
-                })).with_summary("搜索技能骨架已返回"))
+                let plan = $builder(&params, &required_value)?;
+                Ok(deferred_search_output(&self.spec.id, required_value, plan))
             }
         }
     };
@@ -260,18 +335,20 @@ deferred_search_skill!(
     build_benchmark_query
 );
 
-fn build_trends_query(params: &Value, query: &str) -> Result<String, crate::skills::SkillError> {
+fn build_trends_query(
+    params: &Value,
+    query: &str,
+) -> Result<SearchPlan, crate::skills::SkillError> {
     let platform = optional_string_param(params, "platform")?.unwrap_or_else(|| "电商".to_owned());
     let days = optional_i64_param(params, "days")?.unwrap_or(30);
-    Ok(format!(
-        "{query} {platform} 热销 趋势 爆款 2026 最近{days}天"
-    ))
+    let planned = format!("{query} {platform} 热销 趋势 爆款 2026 最近{days}天");
+    Ok(SearchPlan::new(query, planned, "general", days))
 }
 
 fn build_competitor_query(
     params: &Value,
     query: &str,
-) -> Result<String, crate::skills::SkillError> {
+) -> Result<SearchPlan, crate::skills::SkillError> {
     let platform = optional_string_param(params, "platform")?.unwrap_or_default();
     let focus = optional_string_param(params, "focus")?.unwrap_or_default();
     let focus_text = match focus.as_str() {
@@ -281,23 +358,29 @@ fn build_competitor_query(
         "features" => "卖点 功能特点 优势 核心参数",
         _ => "价格 卖点 评价 优惠 竞品对比",
     };
-    Ok(format!("{query} {platform} {focus_text} 2026"))
+    let planned = format!("{query} {platform} {focus_text} 2026");
+    Ok(SearchPlan::new(query, planned, "general", 60))
 }
 
 fn build_market_info_query(
     params: &Value,
     query: &str,
-) -> Result<String, crate::skills::SkillError> {
+) -> Result<SearchPlan, crate::skills::SkillError> {
     let days = optional_i64_param(params, "days")?.unwrap_or(7);
+    let topic = optional_string_param(params, "topic")?.unwrap_or_else(|| "news".to_owned());
     let recency = if days <= 7 {
         "最新".to_owned()
     } else {
         format!("{days}天内")
     };
-    Ok(format!("{query} {recency} 行业动态 市场分析 2026"))
+    let planned = format!("{query} {recency} 行业动态 市场分析 2026");
+    Ok(SearchPlan::new(query, planned, topic, days))
 }
 
-fn build_reviews_query(params: &Value, query: &str) -> Result<String, crate::skills::SkillError> {
+fn build_reviews_query(
+    params: &Value,
+    query: &str,
+) -> Result<SearchPlan, crate::skills::SkillError> {
     let platform = optional_string_param(params, "platform")?.unwrap_or_default();
     let focus = optional_string_param(params, "focus")?.unwrap_or_else(|| "overall".to_owned());
     let focus_text = match focus.as_str() {
@@ -305,12 +388,17 @@ fn build_reviews_query(params: &Value, query: &str) -> Result<String, crate::ski
         "negative" => "差评 缺点 投诉 退货 踩雷 槽点",
         _ => "用户评价 口碑 真实反馈 购买体验 评测",
     };
-    Ok(format!("{query} {platform} {focus_text} 2026"))
+    let planned = format!("{query} {platform} {focus_text} 2026");
+    Ok(SearchPlan::new(query, planned, "general", 90))
 }
 
-fn build_policy_query(params: &Value, platform: &str) -> Result<String, crate::skills::SkillError> {
+fn build_policy_query(
+    params: &Value,
+    platform: &str,
+) -> Result<SearchPlan, crate::skills::SkillError> {
     let policy_type =
         optional_string_param(params, "policy_type")?.unwrap_or_else(|| "general".to_owned());
+    let days = optional_i64_param(params, "days")?.unwrap_or(30);
     let type_text = match policy_type.as_str() {
         "algorithm" => "搜索算法 流量规则 排名机制 权重调整",
         "fee" => "佣金 费率 扣点 服务费 收费标准",
@@ -318,13 +406,14 @@ fn build_policy_query(params: &Value, platform: &str) -> Result<String, crate::s
         "content" => "内容规范 违禁词 审核标准 发布规定 违规处罚",
         _ => "规则变化 政策更新 新规 公告",
     };
-    Ok(format!("{platform} {type_text} 最新 2026"))
+    let planned = format!("{platform} {type_text} 最新 2026");
+    Ok(SearchPlan::new(platform, planned, "news", days))
 }
 
 fn build_benchmark_query(
     params: &Value,
     industry: &str,
-) -> Result<String, crate::skills::SkillError> {
+) -> Result<SearchPlan, crate::skills::SkillError> {
     let platform = optional_string_param(params, "platform")?.unwrap_or_else(|| "电商".to_owned());
     let metric = optional_string_param(params, "metric")?.unwrap_or_else(|| "general".to_owned());
     let metric_text = match metric.as_str() {
@@ -335,5 +424,6 @@ fn build_benchmark_query(
         "roi" => "广告ROI 投产比 ROAS 营销效率 基准",
         _ => "行业数据 KPI基准 平均水平 运营指标 数据报告",
     };
-    Ok(format!("{industry} {platform} {metric_text} 2025 2026"))
+    let planned = format!("{industry} {platform} {metric_text} 2025 2026");
+    Ok(SearchPlan::new(industry, planned, "general", 180))
 }

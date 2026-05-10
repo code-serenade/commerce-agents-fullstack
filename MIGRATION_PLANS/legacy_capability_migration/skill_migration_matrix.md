@@ -32,6 +32,17 @@
 | `data_competitor_analysis` | `data_competitor_analysis` | pending_review | `backend/crates/agent/src/skills/data.rs` | 接 product_competitor |
 | `data_dashboard` | `data_dashboard` | pending_review | `backend/crates/agent/src/skills/data.rs` | 数据源需明确 |
 
+## 搜索 search
+
+| 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
+| --- | --- | --- | --- | --- |
+| `search_trends` | `search_trends` | adapter_required | `backend/crates/agent/src/skills/search.rs` | Post 8-8：已形成统一 search adapter 降级契约；真实实时趋势 provider 待接入 |
+| `search_competitor` | `search_competitor` | adapter_required | `backend/crates/agent/src/skills/search.rs` | Post 8-8：已形成统一 search adapter 降级契约；竞品外部来源待接入 |
+| `search_market_info` | `search_market_info` | adapter_required | `backend/crates/agent/src/skills/search.rs` | Post 8-8：已形成统一 search adapter 降级契约；市场新闻/行情 provider 待接入 |
+| `search_product_reviews` | `search_product_reviews` | adapter_required | `backend/crates/agent/src/skills/search.rs` | Post 8-8：已形成统一 search adapter 降级契约；平台评价来源待接入 |
+| `search_platform_policy` | `search_platform_policy` | adapter_required | `backend/crates/agent/src/skills/search.rs` | Post 8-8：已形成统一 search adapter 降级契约；平台官方规则/公告来源待接入 |
+| `search_industry_benchmarks` | `search_industry_benchmarks` | adapter_required | `backend/crates/agent/src/skills/search.rs` | Post 8-8：已形成统一 search adapter 降级契约；行业基准数据来源待接入 |
+
 ## 客服 service
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
