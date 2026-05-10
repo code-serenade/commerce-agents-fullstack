@@ -9,6 +9,7 @@ use crate::{
         AgentManager, AgentManagerConfig, Cognition, CognitionEngine, RoleCognitionFactory,
         RoleProfile, RolePromptBuilder,
     },
+    skills::SearchAdapterConfig,
 };
 
 pub type AgentLlmClient = ChatCompletionsLlm;
@@ -31,6 +32,8 @@ pub struct AgentRuntimeCfg {
     pub llm: Vec<AgentLlmCfg>,
     #[serde(default)]
     pub default_llm: Option<String>,
+    #[serde(default)]
+    pub search: SearchAdapterConfig,
 }
 
 impl AgentRuntimeCfg {
@@ -38,11 +41,13 @@ impl AgentRuntimeCfg {
         Self {
             llm,
             default_llm: None,
+            search: SearchAdapterConfig::default(),
         }
     }
 }
 
 pub fn build_agent_manager(config: AgentRuntimeCfg) -> Result<AgentManager> {
+    let search = config.search.clone();
     let llm = Arc::new(build_default_llm(config)?);
 
     let commander_llm = Arc::clone(&llm);
@@ -74,6 +79,7 @@ pub fn build_agent_manager(config: AgentRuntimeCfg) -> Result<AgentManager> {
     manager_config.runtime.response_timeout = Duration::from_secs(900);
     manager_config.runtime.commander_fast_route = true;
     manager_config.runtime.commander_fast_route_min_score = 2.0;
+    manager_config.runtime.search = search;
 
     Ok(AgentManager::new(manager_config))
 }

@@ -1,5 +1,10 @@
+use std::collections::BTreeSet;
+
 use async_trait::async_trait;
+use serde::Deserialize;
 use serde_json::{Value, json};
+use time::{OffsetDateTime, format_description::well_known::Rfc3339};
+use toolcraft_request::{HeaderMap, Request};
 
 use crate::skills::{
     Skill, SkillCategory, SkillContext, SkillInputField, SkillOutcome, SkillPriority, SkillResult,
@@ -14,7 +19,65 @@ const SEARCH_ADAPTER_REQUIRED_CONFIG: &str = "search.provider / search endpoint 
 const SEARCH_DEFERRED_REASON: &str = "外部搜索 adapter 尚未接入，不能伪造实时来源";
 const SEARCH_DEGRADED_REASON: &str =
     "Search adapter is not configured; planned query is returned for traceability.";
+const SEARCH_PROVIDER_EMPTY_REASON: &str =
+    "External search provider returned no normalized sources; live sources were not accepted.";
+const VALID_TOPICS: &[&str] = &["general", "news", "finance"];
+const MAX_DAYS: i64 = 365;
+const MAX_RESULTS: i64 = 12;
 const DEFAULT_MAX_RESULTS: i64 = 6;
+
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct SearchAdapterConfig {
+    pub enabled: bool,
+    pub provider: Option<String>,
+    pub base_url: Option<String>,
+    pub search_endpoint: Option<String>,
+    pub api_key: Option<String>,
+    pub timeout_sec: Option<u64>,
+    pub default_topic: Option<String>,
+    pub default_days: Option<u64>,
+    pub default_max_results: Option<u64>,
+}
+
+impl Default for SearchAdapterConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            provider: None,
+            base_url: None,
+            search_endpoint: None,
+            api_key: None,
+            timeout_sec: Some(10),
+            default_topic: Some("general".to_string()),
+            default_days: Some(30),
+            default_max_results: Some(DEFAULT_MAX_RESULTS as u64),
+        }
+    }
+}
+
+impl SearchAdapterConfig {
+    pub fn is_configured(&self) -> bool {
+        self.enabled
+            && self
+                .base_url
+                .as_deref()
+                .is_some_and(|value| !value.trim().is_empty())
+            && self
+                .search_endpoint
+                .as_deref()
+                .is_some_and(|value| !value.trim().is_empty())
+    }
+
+    pub fn provider_name(&self) -> String {
+        self.provider
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .unwrap_or("external_search")
+            .to_string()
+    }
+}
 
 pub fn specs() -> Vec<SkillSpec> {
     vec![
@@ -183,6 +246,7 @@ fn search_spec(id: &str, name: &str, description: &str, inputs: Vec<SkillInputFi
             .with_category(category())
             .with_priority(SkillPriority::High)
             .with_tag("deferred")
+            .with_tag("adapter")
             .with_tag("fresh_data"),
         SkillSpec::with_input,
     )
@@ -211,6 +275,19 @@ impl SearchPlan {
             days: days.max(1),
             max_results: DEFAULT_MAX_RESULTS,
         }
+    }
+
+    fn with_adapter_defaults(
+        mut self,
+        adapter: &SearchAdapterConfig,
+    ) -> Result<Self, crate::skills::SkillError> {
+        self.topic = normalize_topic(&self.topic, adapter.default_topic.as_deref())?;
+        self.days = self.days.clamp(1, MAX_DAYS);
+        self.max_results = adapter
+            .default_max_results
+            .unwrap_or(DEFAULT_MAX_RESULTS as u64)
+            .clamp(1, MAX_RESULTS as u64) as i64;
+        Ok(self)
     }
 }
 
@@ -257,11 +334,373 @@ fn deferred_search_output(
         },
         "degraded": true,
         "degraded_reason": SEARCH_DEGRADED_REASON,
-        "expected_outputs": ["分析摘要", "结构化要点", "sources", "_search_engine"]
+        "expected_outputs": ["分析摘要", "结构化要点", "sources", "engine"]
     }))
     .with_summary("外部搜索 adapter 未接入，已返回结构化降级契约")
     .with_metadata("adapter_status", json!("adapter_required"))
     .with_metadata("adapter_kind", json!("search"))
+}
+
+fn degraded_search_output(
+    skill_id: &str,
+    required_input: String,
+    plan: SearchPlan,
+    adapter: &SearchAdapterConfig,
+    reason: impl Into<String>,
+) -> SkillOutcome {
+    let reason = reason.into();
+    SkillOutcome::new(json!({
+        "status": "deferred",
+        "adapter_status": "degraded",
+        "adapter": {
+            "kind": "search",
+            "provider": adapter.provider_name(),
+            "configured": adapter.is_configured(),
+            "required_config": if adapter.is_configured() { Value::Null } else { json!(SEARCH_ADAPTER_REQUIRED_CONFIG) }
+        },
+        "deferred_reason": "外部搜索 adapter 已配置但本次未拿到可采信来源，不能伪造实时来源",
+        "skill": skill_id,
+        "required_input": required_input,
+        "planned_query": plan.planned,
+        "query": {
+            "raw": plan.raw,
+            "planned": plan.planned,
+            "topic": plan.topic,
+            "days": plan.days,
+            "max_results": plan.max_results
+        },
+        "engine": adapter.provider_name(),
+        "data": {
+            "items": []
+        },
+        "sources": [],
+        "provenance": {
+            "source_count": 0,
+            "domain_count": 0,
+            "domains": [],
+            "published_count": 0,
+            "latest_published_at": null
+        },
+        "confidence": 0.0,
+        "freshness": {
+            "requested_days": plan.days,
+            "requested_at": utc_now_rfc3339()
+        },
+        "notice": "未获取到可靠公开来源，当前不能伪造实时搜索结果。",
+        "degraded": true,
+        "degraded_reason": reason,
+        "expected_outputs": ["分析摘要", "结构化要点", "sources", "engine"]
+    }))
+    .with_summary("外部搜索 adapter 未返回可采信来源，已按降级结果处理")
+    .with_metadata("adapter_status", json!("degraded"))
+    .with_metadata("adapter_kind", json!("search"))
+    .with_metadata("provider", json!(adapter.provider_name()))
+}
+
+fn live_search_output(
+    skill_id: &str,
+    required_input: String,
+    plan: SearchPlan,
+    adapter: &SearchAdapterConfig,
+    payload: &Value,
+) -> SkillOutcome {
+    let sources = normalize_sources(payload);
+    if sources.is_empty() {
+        return degraded_search_output(
+            skill_id,
+            required_input,
+            plan,
+            adapter,
+            SEARCH_PROVIDER_EMPTY_REASON,
+        );
+    }
+
+    let provenance = build_provenance(&sources);
+    let confidence = payload
+        .get("confidence")
+        .and_then(Value::as_f64)
+        .map(|value| (value * 1000.0).round() / 1000.0)
+        .unwrap_or_else(|| estimate_confidence(&sources));
+    let engine = payload
+        .get("engine")
+        .or_else(|| payload.get("_search_engine"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned)
+        .unwrap_or_else(|| adapter.provider_name());
+    let requested_at = payload
+        .get("requested_at")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned)
+        .unwrap_or_else(utc_now_rfc3339);
+    let source_count = provenance
+        .get("source_count")
+        .and_then(Value::as_u64)
+        .unwrap_or(sources.len() as u64);
+
+    SkillOutcome::new(json!({
+        "status": "live",
+        "adapter_status": "live",
+        "adapter": {
+            "kind": "search",
+            "provider": adapter.provider_name(),
+            "configured": true,
+            "required_config": null
+        },
+        "skill": skill_id,
+        "required_input": required_input,
+        "planned_query": plan.planned,
+        "query": {
+            "raw": plan.raw,
+            "planned": plan.planned,
+            "topic": plan.topic,
+            "days": plan.days,
+            "max_results": plan.max_results
+        },
+        "key": payload.get("key").and_then(Value::as_str).unwrap_or("search"),
+        "engine": engine,
+        "data": {
+            "items": sources
+        },
+        "sources": sources,
+        "provenance": provenance,
+        "confidence": confidence,
+        "freshness": {
+            "requested_days": plan.days,
+            "requested_at": requested_at
+        },
+        "degraded": false,
+        "degraded_reason": null,
+        "expected_outputs": ["分析摘要", "结构化要点", "sources", "engine"]
+    }))
+    .with_summary(format!("外部搜索已返回 {source_count} 个可采信来源"))
+    .with_metadata("adapter_status", json!("live"))
+    .with_metadata("adapter_kind", json!("search"))
+    .with_metadata("provider", json!(adapter.provider_name()))
+    .with_metadata("source_count", json!(source_count))
+}
+
+async fn query_provider(adapter: &SearchAdapterConfig, plan: &SearchPlan) -> Result<Value, String> {
+    let base_url = adapter
+        .base_url
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| SEARCH_ADAPTER_REQUIRED_CONFIG.to_string())?;
+    let endpoint = adapter
+        .search_endpoint
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| SEARCH_ADAPTER_REQUIRED_CONFIG.to_string())?;
+    let mut client = Request::with_timeout(adapter.timeout_sec.unwrap_or(10).max(1))
+        .map_err(|err| format!("init search request client failed: {err}"))?;
+    client
+        .set_base_url(base_url)
+        .map_err(|err| format!("invalid search base_url: {err}"))?;
+
+    let query = vec![
+        ("q".to_string(), plan.planned.clone()),
+        ("topic".to_string(), plan.topic.clone()),
+        ("days".to_string(), plan.days.to_string()),
+        ("max_results".to_string(), plan.max_results.to_string()),
+        ("bypass_cache".to_string(), false.to_string()),
+    ];
+    let response = client
+        .get(endpoint, Some(query), build_provider_headers(adapter)?)
+        .await
+        .map_err(|err| format!("external search provider request failed: {err}"))?;
+    let status = response.status();
+    if !status.is_success() {
+        let body = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "<unreadable body>".to_string());
+        return Err(format!(
+            "external search provider returned status {}: {}",
+            status.as_u16(),
+            compact_text(&body, 240)
+        ));
+    }
+    response
+        .json::<Value>()
+        .await
+        .map_err(|err| format!("decode external search provider response failed: {err}"))
+}
+
+fn normalize_sources(payload: &Value) -> Vec<Value> {
+    let Some(items) = payload
+        .pointer("/data/items")
+        .and_then(Value::as_array)
+        .or_else(|| payload.get("sources").and_then(Value::as_array))
+        .or_else(|| payload.get("results").and_then(Value::as_array))
+    else {
+        return Vec::new();
+    };
+
+    items
+        .iter()
+        .enumerate()
+        .filter_map(|(index, item)| normalize_source(index as u64 + 1, item))
+        .take(MAX_RESULTS as usize)
+        .collect()
+}
+
+fn normalize_source(rank: u64, item: &Value) -> Option<Value> {
+    let title = string_field(item, &["title", "name"])
+        .map(|value| compact_text(&value, 180))
+        .unwrap_or_else(|| "未命名来源".to_string());
+    let url = string_field(item, &["url", "link"]).unwrap_or_default();
+    if title.trim().is_empty() && url.trim().is_empty() {
+        return None;
+    }
+    let snippet = string_field(item, &["snippet", "body", "summary", "content"])
+        .map(|value| compact_text(&value, 320))
+        .unwrap_or_default();
+    let published_at = string_field(item, &["published_at", "publishedAt", "pubDate"])
+        .map(|value| compact_text(&value, 64))
+        .filter(|value| !value.is_empty());
+    let domain = extract_domain(&url);
+
+    Some(json!({
+        "rank": rank,
+        "title": title,
+        "snippet": snippet,
+        "url": compact_text(&url, 400),
+        "domain": domain,
+        "published_at": published_at
+    }))
+}
+
+fn build_provenance(sources: &[Value]) -> Value {
+    let domains = sources
+        .iter()
+        .filter_map(|item| item.get("domain").and_then(Value::as_str))
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .take(12)
+        .collect::<Vec<_>>();
+    let published = sources
+        .iter()
+        .filter_map(|item| item.get("published_at").and_then(Value::as_str))
+        .filter(|value| !value.trim().is_empty())
+        .map(ToOwned::to_owned)
+        .collect::<Vec<_>>();
+    let latest_published_at = published.iter().max().cloned();
+
+    json!({
+        "source_count": sources.len(),
+        "domain_count": domains.len(),
+        "domains": domains,
+        "published_count": published.len(),
+        "latest_published_at": latest_published_at
+    })
+}
+
+fn estimate_confidence(sources: &[Value]) -> f64 {
+    if sources.is_empty() {
+        return 0.0;
+    }
+    let source_score = (sources.len() as f64 / DEFAULT_MAX_RESULTS as f64).min(1.0) * 0.55;
+    let domains = sources
+        .iter()
+        .filter_map(|item| item.get("domain").and_then(Value::as_str))
+        .filter(|value| !value.trim().is_empty())
+        .collect::<BTreeSet<_>>();
+    let diversity_score = (domains.len() as f64 / sources.len() as f64).min(1.0) * 0.25;
+    let freshness_score = if sources
+        .iter()
+        .any(|item| item.get("published_at").and_then(Value::as_str).is_some())
+    {
+        0.2
+    } else {
+        0.08
+    };
+    ((source_score + diversity_score + freshness_score).min(1.0) * 1000.0).round() / 1000.0
+}
+
+fn build_provider_headers(adapter: &SearchAdapterConfig) -> Result<Option<HeaderMap>, String> {
+    let Some(api_key) = adapter
+        .api_key
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    else {
+        return Ok(None);
+    };
+    let mut headers = HeaderMap::new();
+    headers
+        .insert("Authorization", format!("Bearer {api_key}"))
+        .map_err(|err| format!("invalid search auth header: {err}"))?;
+    Ok(Some(headers))
+}
+
+fn normalize_topic(
+    topic: &str,
+    fallback: Option<&str>,
+) -> Result<String, crate::skills::SkillError> {
+    let normalized = topic.trim().to_ascii_lowercase();
+    let normalized = if normalized.is_empty() {
+        fallback
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .unwrap_or("general")
+            .to_ascii_lowercase()
+    } else {
+        normalized
+    };
+    if !VALID_TOPICS.contains(&normalized.as_str()) {
+        return Err(crate::skills::SkillError::invalid_parameter(
+            "topic",
+            "general/news/finance",
+        ));
+    }
+    Ok(normalized)
+}
+
+fn string_field(item: &Value, keys: &[&str]) -> Option<String> {
+    keys.iter()
+        .find_map(|key| item.get(*key).and_then(Value::as_str))
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned)
+}
+
+fn extract_domain(url: &str) -> String {
+    let text = url.trim();
+    if text.is_empty() {
+        return String::new();
+    }
+    let without_scheme = text
+        .strip_prefix("https://")
+        .or_else(|| text.strip_prefix("http://"))
+        .unwrap_or(text);
+    without_scheme
+        .split(['/', '?', '#'])
+        .next()
+        .unwrap_or_default()
+        .trim()
+        .trim_start_matches("www.")
+        .to_ascii_lowercase()
+}
+
+fn compact_text(value: &str, max_chars: usize) -> String {
+    let trimmed = value.trim();
+    if trimmed.chars().count() <= max_chars {
+        return trimmed.to_string();
+    }
+    trimmed.chars().take(max_chars).collect()
+}
+
+fn utc_now_rfc3339() -> String {
+    OffsetDateTime::now_utc()
+        .format(&Rfc3339)
+        .unwrap_or_else(|_| "1970-01-01T00:00:00Z".to_string())
 }
 
 macro_rules! deferred_search_skill {
@@ -273,6 +712,40 @@ macro_rules! deferred_search_skill {
         impl $type_name {
             pub fn new() -> Self {
                 Self { spec: $spec_fn() }
+            }
+
+            pub async fn run_with_adapter(
+                &self,
+                params: Value,
+                _context: SkillContext,
+                adapter: &SearchAdapterConfig,
+            ) -> SkillResult {
+                object_params(&params)?;
+                let required_value = string_param(&params, $required)?;
+                let plan = $builder(&params, &required_value)?.with_adapter_defaults(adapter)?;
+                if !adapter.is_configured() {
+                    return Ok(deferred_search_output(&self.spec.id, required_value, plan));
+                }
+
+                let payload = match query_provider(adapter, &plan).await {
+                    Ok(payload) => payload,
+                    Err(reason) => {
+                        return Ok(degraded_search_output(
+                            &self.spec.id,
+                            required_value,
+                            plan,
+                            adapter,
+                            reason,
+                        ));
+                    }
+                };
+                Ok(live_search_output(
+                    &self.spec.id,
+                    required_value,
+                    plan,
+                    adapter,
+                    &payload,
+                ))
             }
         }
 
@@ -288,11 +761,9 @@ macro_rules! deferred_search_skill {
                 &self.spec
             }
 
-            async fn run(&self, params: Value, _context: SkillContext) -> SkillResult {
-                object_params(&params)?;
-                let required_value = string_param(&params, $required)?;
-                let plan = $builder(&params, &required_value)?;
-                Ok(deferred_search_output(&self.spec.id, required_value, plan))
+            async fn run(&self, params: Value, context: SkillContext) -> SkillResult {
+                self.run_with_adapter(params, context, &SearchAdapterConfig::default())
+                    .await
             }
         }
     };

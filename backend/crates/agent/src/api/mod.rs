@@ -27,5 +27,6 @@ pub use crate::{
         RoleScore,
     },
     runtime::{AgentLlmCfg, AgentRuntimeCfg, build_agent_manager},
+    skills::SearchAdapterConfig,
     web_error::{code_for_error, to_biz_error},
 };

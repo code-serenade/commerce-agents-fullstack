@@ -322,7 +322,7 @@
 
 - 当前用户必须存在于 `app_users`，且状态为 `enabled`
 - provider HTTP 失败、返回结构无法解析或没有可归一化来源时，接口返回 200 + `status=degraded`
-- 该接口是 Rust 后端外部搜索 adapter 的统一入口；Agent `search_*` skill 后续接入时应复用相同字段语义
+- 该接口是 Rust 后端外部搜索 adapter 的 App 侧入口；Agent `search_*` skill 已接入同一份 `[external_search]` 配置，并复用相同字段语义
 - 当前不会在前端伪造搜索结果；只有 `status=live` 且 `data.items` 非空时，前端才可展示为实时来源
 
 ## 3. 查询我的会话列表

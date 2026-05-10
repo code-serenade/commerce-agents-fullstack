@@ -345,3 +345,17 @@
 - 本阶段完成的是 Rust web/service 层的搜索 adapter API 入口，不是 Agent skill 的 live 调用。
 - 当前 `services.toml` 未配置 `[external_search]` 时，产品启动不受影响，接口会返回明确 degraded。
 - 下一阶段可以把 Agent `search_*` skill 接入该 adapter 契约，或先做前端来源展示。
+
+## Post 8-10：Agent 搜索 Skill 接入外部搜索 Adapter
+
+状态：done
+
+验收项：
+
+- [x] 后端：Agent runtime 可接收 `[external_search]` 配置。
+- [x] 后端：worker skill executor 把搜索配置传给 `search_*` skill。
+- [x] 后端：配置完整时，搜索 skill 会请求 provider，并把 provider payload 归一化为 `sources`、`data.items`、`provenance`、`confidence`。
+- [x] 后端：provider 未配置、请求失败或无来源时返回降级状态，不伪造来源。
+- [x] 后端：搜索类 skill 在角色提示目录中标记为 `adapter`，不再只是静态 `deferred`。
+- [x] API/SSE：不新增路由，`API_DOCS/sse.md` 已同步搜索类 `skill_result` 语义。
+- [x] 前端：本阶段不改前端，不新增假搜索展示。

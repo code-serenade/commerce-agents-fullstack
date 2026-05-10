@@ -16,6 +16,7 @@ pub use runtime::{
     SkillExecutionStatus, SkillExecutor, SkillExecutorSet, SkillId, SkillRegistry, SkillRequest,
     SkillRiskLevel, SkillRuntimeError,
 };
+pub use search::SearchAdapterConfig;
 pub use spec::{
     Skill, SkillCategory, SkillContext, SkillError, SkillInputField, SkillOutcome, SkillPriority,
     SkillResult, SkillSpec, bool_param, f64_param, i64_param, object_params, optional_bool_param,

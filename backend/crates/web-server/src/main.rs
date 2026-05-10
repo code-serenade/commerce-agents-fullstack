@@ -11,7 +11,7 @@ mod statics;
 use std::sync::Arc;
 
 use clients::auth_client::fetch_verify_jwt;
-use settings::Settings;
+use settings::{Settings, to_agent_search_config};
 use toolcraft_axum_kit::http_server;
 
 use crate::{
@@ -45,6 +45,7 @@ async fn main() {
     init_agent_manager(agent::api::AgentRuntimeCfg {
         llm: settings.llm.clone(),
         default_llm: settings.default_llm.clone(),
+        search: to_agent_search_config(&settings.external_search),
     })
     .expect("Agent manager initialization failed");
     init_external_search(settings.external_search.clone())

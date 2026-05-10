@@ -811,3 +811,52 @@
 - Agent `search_*` skill 尚未直接调用该 API 或共享 adapter client。
 - 前端尚未接入 `/api/app/external-search/*` 展示来源、置信度和降级原因。
 - 真实 provider 需要后续在部署环境配置 `[external_search]`。
+
+## Post 8-10：Agent 搜索 Skill 接入外部搜索 Adapter
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 10 个补强项：`Post 8-10`。
+
+本次目标：
+
+- 让新产品 Agent runtime 内部的 `search_*` skill 使用 `[external_search]` 配置尝试真实搜索。
+- 有真实 provider 和可归一化来源时返回 `status=live`。
+- provider 未配置、请求失败或无来源时返回 `status=deferred`、`adapter_status=degraded` 或 `adapter_required`，不伪造来源。
+
+涉及范围：
+
+- 产品内核：搜索能力从静态降级契约升级为可配置 adapter 执行。
+- 后端：新增 Agent `SearchAdapterConfig`、搜索 provider 请求、来源/provenance/confidence 归一化、worker skill executor 配置注入。
+- Web-server：启动时把同一份 `[external_search]` 配置传入 Agent runtime。
+- API/SSE：不新增路由；更新 `API_DOCS/sse.md`，说明搜索类 `skill_result` 的 live/degraded 语义。
+- 前端：本阶段不改前端，不新增假搜索展示。
+
+用户可感知变化：
+
+- 用户问“搜索咖啡趋势”“查竞品价格”“看平台最新规则”“找行业 ROI 基准”等问题时，后端现在具备真实调用外部搜索 provider 的路径。
+- 如果部署环境配置了 provider 且返回可信来源，过程区的 `skill_result` 可显示真实来源、provenance 和 confidence。
+- 如果 provider 未配置或失败，过程区仍显示降级原因和空来源，不会让用户误以为已经查到实时资料。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p agent executor_returns_deferred_for_search`
+- [x] `cargo test -p agent executor_returns_structured_deferred_for_search_skills`
+- [x] `cargo test -p agent executor_reports_degraded_when_configured_search_provider_fails`
+- [x] `cargo test -p agent executor_runs_representative_native_categories`
+- [x] `cargo test -p agent`
+- [x] `cargo check -p agent`
+- [x] `cargo check -p web-server`
+- [x] `cargo check`
+- [x] `cargo clippy`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 真实部署仍需要配置可访问的 `[external_search]` provider。
+- 前端尚未把搜索来源、置信度和降级原因整理成专门来源面板。
+- App API 和 Agent adapter 目前共享字段语义，但实现仍各自归一化，后续可抽共享 crate。

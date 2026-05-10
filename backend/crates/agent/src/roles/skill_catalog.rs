@@ -108,7 +108,11 @@ fn format_skill_line(spec: &SkillSpec) -> String {
         .map(|input| input.name.as_str())
         .take(4)
         .collect::<Vec<_>>();
-    let mode = if spec.tags.iter().any(|tag| tag == "deferred") {
+    let mode = if matches!(&spec.category, SkillCategory::Custom(value) if value == "search")
+        || spec.tags.iter().any(|tag| tag == "adapter")
+    {
+        "adapter"
+    } else if spec.tags.iter().any(|tag| tag == "deferred") {
         "deferred"
     } else if spec.tags.iter().any(|tag| tag == "pending_approval")
         || spec.id.starts_with("platform_")

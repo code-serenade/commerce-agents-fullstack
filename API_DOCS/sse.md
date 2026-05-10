@@ -151,9 +151,10 @@ data: {"type":"approval_required","approval":{"id":"approval-uuid","workspaceId"
 - 模型没有输出 `skill_requests` 时，后端可根据当前 worker 岗位、任务文本、上下文摘要和上游结果，自动补偿一个代表 skill 请求。
 - 自动补偿仍走角色白名单、`SkillExecutorSet`、真实 `skill_result` 和结果合并链路，不绕过权限，也不伪造前端事件。
 - 自动补偿不会直接执行高风险平台写操作；平台写操作仍返回 `pending_approval` 并进入审批链路。
-- 需要外部搜索、内容引擎、平台数据或未接 adapter 的能力会返回 `deferred`，不会伪造外部资料或平台执行结果。
+- 搜索类 `search_*` skill 会读取后端 `[external_search]` 配置：配置完整且 provider 返回可信来源时，`skill_result` 可返回 `status=success`、`execution_mode=adapter`，输出内包含 `status=live`、`sources`、`data.items`、`provenance` 和 `confidence`；未配置、provider 失败或无来源时仍返回 `status=deferred`，输出内带 `adapter_status=adapter_required/degraded` 和 `degraded_reason`。
+- 其它需要内容引擎、平台数据或未接 adapter 的能力会返回 `deferred`，不会伪造外部资料或平台执行结果。
 
-`skill_result.status` 当前使用：`success`、`deferred`、`pending_approval`、`not_found`、`validation_error`、`failed`。其中 `pending_approval` 和 `approval_required=true` 表示后端没有直接执行平台写操作，需要进入审批或人工确认链路；`deferred` 表示 skill 已被识别但依赖搜索、外部数据、数据库或平台适配器，当前不会伪造结果。
+`skill_result.status` 当前使用：`success`、`deferred`、`pending_approval`、`not_found`、`validation_error`、`failed`。其中 `pending_approval` 和 `approval_required=true` 表示后端没有直接执行平台写操作，需要进入审批或人工确认链路；`deferred` 表示 skill 已被识别但依赖搜索、外部数据、数据库或平台适配器，当前不会伪造结果。搜索类 skill 在 provider 返回可信来源时会以 `success` 承载 `output.status=live`，provider 不可用时仍以 `deferred` 承载明确降级原因。
 
 `rag_context_loaded` 当前使用本地 RAG：来源只来自当前用户自己的 active `products` 和 active `product_knowledge`。如果命中本地商品知识，服务端会把摘要追加到 agent runtime `context.summary`，让模型可在回答中使用这些事实。如果没有命中，事件会返回 `degraded=true` 和 `degradedReason="No matching local product knowledge was found; external search adapter is not configured."`。当前不会伪造外部搜索结果，`externalSearchAvailable=false` 表示外部搜索适配器尚未接入。
 

@@ -57,7 +57,7 @@
 
 ## 后续缺口
 
-- Rust 外部搜索 API 已在 Post 8-9 建立；Agent `search_*` skill 尚未直接调用该 API。
+- Rust 外部搜索 API 已在 Post 8-9 建立；Agent `search_*` skill 已在 Post 8-10 接入同一份 `[external_search]` 配置，可在配置完整时直接请求 provider。
 - 前端尚未展示 search output 中的 `query/sources/provenance/confidence/degraded_reason` 细节。
 
 ## 当前验证

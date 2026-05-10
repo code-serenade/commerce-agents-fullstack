@@ -6,8 +6,9 @@ use serde_json::{Map, Value, json};
 use thiserror::Error;
 
 use crate::skills::{
-    Skill, SkillCategory, SkillContext, SkillError, SkillOutcome, SkillSpec, accounting,
-    coordination, creative, data, design, engineering, ops, search, service, staged_specs, web,
+    SearchAdapterConfig, Skill, SkillCategory, SkillContext, SkillError, SkillOutcome, SkillSpec,
+    accounting, coordination, creative, data, design, engineering, ops, search, service,
+    staged_specs, web,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -223,15 +224,27 @@ pub trait SkillExecutor: Send + Sync {
 #[derive(Clone, Debug)]
 pub struct LocalSkillExecutor {
     registry: SkillRegistry,
+    search: SearchAdapterConfig,
 }
 
 impl LocalSkillExecutor {
     pub fn new(registry: SkillRegistry) -> Self {
-        Self { registry }
+        Self {
+            registry,
+            search: SearchAdapterConfig::default(),
+        }
+    }
+
+    pub fn new_with_search(registry: SkillRegistry, search: SearchAdapterConfig) -> Self {
+        Self { registry, search }
     }
 
     pub fn staged() -> Result<Self, SkillRuntimeError> {
         Ok(Self::new(SkillRegistry::staged()?))
+    }
+
+    pub fn staged_with_search(search: SearchAdapterConfig) -> Result<Self, SkillRuntimeError> {
+        Ok(Self::new_with_search(SkillRegistry::staged()?, search))
     }
 
     pub fn registry(&self) -> &SkillRegistry {
@@ -271,6 +284,7 @@ impl SkillExecutor for LocalSkillExecutor {
             spec.id.as_str(),
             request.input.clone(),
             request.context.clone(),
+            &self.search,
         )
         .await;
         match outcome {
@@ -293,6 +307,12 @@ impl SkillExecutorSet {
     pub fn staged() -> Result<Self, SkillRuntimeError> {
         Ok(Self {
             local: LocalSkillExecutor::staged()?,
+        })
+    }
+
+    pub fn staged_with_search(search: SearchAdapterConfig) -> Result<Self, SkillRuntimeError> {
+        Ok(Self {
+            local: LocalSkillExecutor::staged_with_search(search)?,
         })
     }
 
@@ -331,7 +351,9 @@ fn validate_request(spec: &SkillSpec, input: &Value) -> Result<(), SkillError> {
 }
 
 fn execution_mode(spec: &SkillSpec) -> SkillExecutionMode {
-    if spec.tags.iter().any(|tag| tag == "deferred") {
+    if custom_category(spec) == Some("search") || spec.tags.iter().any(|tag| tag == "adapter") {
+        SkillExecutionMode::Adapter
+    } else if spec.tags.iter().any(|tag| tag == "deferred") {
         SkillExecutionMode::Deferred
     } else if adapter_kinds(spec).is_empty() {
         SkillExecutionMode::Native
@@ -415,6 +437,7 @@ async fn run_known_skill(
     id: &str,
     input: Value,
     context: SkillContext,
+    search_config: &SearchAdapterConfig,
 ) -> Result<SkillOutcome, SkillError> {
     match custom_category_from_id(id) {
         "ops" => return ops::execute(id, input, &context).await,
@@ -424,22 +447,34 @@ async fn run_known_skill(
     }
 
     match id {
-        "search_trends" => search::SearchTrends::new().run(input, context).await,
-        "search_competitor" => search::SearchCompetitor::new().run(input, context).await,
-        "search_market_info" => search::SearchMarketInfo::new().run(input, context).await,
+        "search_trends" => {
+            search::SearchTrends::new()
+                .run_with_adapter(input, context, search_config)
+                .await
+        }
+        "search_competitor" => {
+            search::SearchCompetitor::new()
+                .run_with_adapter(input, context, search_config)
+                .await
+        }
+        "search_market_info" => {
+            search::SearchMarketInfo::new()
+                .run_with_adapter(input, context, search_config)
+                .await
+        }
         "search_product_reviews" => {
             search::SearchProductReviews::new()
-                .run(input, context)
+                .run_with_adapter(input, context, search_config)
                 .await
         }
         "search_platform_policy" => {
             search::SearchPlatformPolicy::new()
-                .run(input, context)
+                .run_with_adapter(input, context, search_config)
                 .await
         }
         "search_industry_benchmarks" => {
             search::SearchIndustryBenchmarks::new()
-                .run(input, context)
+                .run_with_adapter(input, context, search_config)
                 .await
         }
         "service_ticket_handler" => {
@@ -1010,6 +1045,10 @@ mod tests {
             result.metadata.get("risk_level"),
             Some(&json!(SkillRiskLevel::Medium))
         );
+        assert_eq!(
+            result.metadata.get("execution_mode"),
+            Some(&json!(SkillExecutionMode::Adapter))
+        );
         assert!(result.metadata.contains_key("adapter_requirements"));
     }
 
@@ -1069,7 +1108,12 @@ mod tests {
             assert_eq!(
                 result.status,
                 SkillExecutionStatus::Deferred,
-                "{skill_id} should remain deferred until search adapter exists"
+                "{skill_id} should remain deferred until search adapter is configured"
+            );
+            assert_eq!(
+                result.metadata.get("execution_mode"),
+                Some(&json!(SkillExecutionMode::Adapter)),
+                "{skill_id} should be adapter mode"
             );
             assert_eq!(
                 result.metadata.get("adapter_requirements"),
@@ -1157,6 +1201,56 @@ mod tests {
                 "{skill_id} planned query missing"
             );
         }
+    }
+
+    #[tokio::test]
+    async fn executor_reports_degraded_when_configured_search_provider_fails() {
+        let executor = SkillExecutorSet::staged_with_search(SearchAdapterConfig {
+            enabled: true,
+            provider: Some("mock-search".to_string()),
+            base_url: Some("http://127.0.0.1:9".to_string()),
+            search_endpoint: Some("/search".to_string()),
+            ..SearchAdapterConfig::default()
+        })
+        .expect("executor should load");
+        let result = executor
+            .execute(SkillRequest::new(
+                "req-search-provider-fails",
+                "search_trends",
+                json!({"query": "咖啡"}),
+            ))
+            .await;
+
+        assert_eq!(result.status, SkillExecutionStatus::Deferred);
+        assert_eq!(
+            result.metadata.get("execution_mode"),
+            Some(&json!(SkillExecutionMode::Adapter))
+        );
+        assert_eq!(
+            result.metadata.get("adapter_status"),
+            Some(&json!("degraded"))
+        );
+        let output = result.output.as_ref().expect("search output");
+        assert_eq!(output.get("status"), Some(&json!("deferred")));
+        assert_eq!(output.get("adapter_status"), Some(&json!("degraded")));
+        assert_eq!(output.pointer("/adapter/configured"), Some(&json!(true)));
+        assert_eq!(
+            output.pointer("/adapter/provider"),
+            Some(&json!("mock-search"))
+        );
+        assert_eq!(output.get("sources"), Some(&json!([])));
+        assert_eq!(output.pointer("/data/items"), Some(&json!([])));
+        assert_eq!(output.get("degraded"), Some(&json!(true)));
+        assert!(
+            output
+                .get("degraded_reason")
+                .and_then(Value::as_str)
+                .is_some_and(|reason| reason.contains("provider request failed")
+                    || reason.contains("Connection refused")
+                    || reason.contains("error sending request")),
+            "unexpected degraded reason: {:?}",
+            output.get("degraded_reason")
+        );
     }
 
     #[tokio::test]

@@ -65,6 +65,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let manager = Arc::new(build_agent_manager(AgentRuntimeCfg {
         llm: settings.llm,
         default_llm,
+        search: Default::default(),
     })?);
     if matrix_mode {
         run_matrix(manager).await?;

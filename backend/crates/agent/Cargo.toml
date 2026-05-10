@@ -26,6 +26,7 @@ model-gateway-rs = "0.2.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
+time.workspace = true
 tokio = { version = "1.50", features = ["macros", "rt-multi-thread", "sync", "time"] }
 toolcraft-config = { version = "0.2.0" }
 toolcraft-request = { version = "0.2.3" }

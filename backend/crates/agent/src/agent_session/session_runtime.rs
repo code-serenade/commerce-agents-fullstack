@@ -22,6 +22,7 @@ use crate::{
         },
     },
     roles::{RoleCatalog, RoleProfile, RoleRouter},
+    skills::{SearchAdapterConfig, SkillExecutorSet},
 };
 
 pub type SessionEventTx = tokio_mpsc::Sender<SessionEvent>;
@@ -33,6 +34,7 @@ pub struct SessionRuntimeConfig {
     pub event_buffer: usize,
     pub commander_fast_route: bool,
     pub commander_fast_route_min_score: f32,
+    pub search: SearchAdapterConfig,
 }
 
 impl Default for SessionRuntimeConfig {
@@ -42,6 +44,7 @@ impl Default for SessionRuntimeConfig {
             event_buffer: 1024,
             commander_fast_route: true,
             commander_fast_route_min_score: 2.0,
+            search: SearchAdapterConfig::default(),
         }
     }
 }
@@ -123,12 +126,19 @@ impl SessionRuntime {
                 .register_worker_tx(profile.worker_id.clone(), worker_tx.clone());
             session_context.worker_catalog().register(profile.clone());
 
+            let skill_executor = SkillExecutorSet::staged_with_search(input.config.search.clone())
+                .map_err(|error| {
+                    tracing::warn!(error = %error, "worker skill executor initialization failed");
+                    error
+                })
+                .ok();
             let worker = Worker::new(
                 worker_input.role,
                 worker_input.cognition,
                 worker_rx,
                 commander_tx.clone(),
                 input.event_tx.clone(),
+                skill_executor,
             );
             let worker_loop = tokio::spawn(async move {
                 let mut worker = worker;

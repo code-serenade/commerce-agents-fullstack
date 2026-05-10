@@ -42,14 +42,9 @@ impl Worker {
         receiver: MessageRx,
         sender: MessageTx,
         event_tx: Option<SessionEventTx>,
+        skill_executor: Option<SkillExecutorSet>,
     ) -> Self {
         let id = AgentId(format!("worker.{}", role.runtime_role));
-        let skill_executor = SkillExecutorSet::staged()
-            .map_err(|error| {
-                warn!(error = %error, "worker skill executor initialization failed");
-                error
-            })
-            .ok();
 
         Self {
             id,

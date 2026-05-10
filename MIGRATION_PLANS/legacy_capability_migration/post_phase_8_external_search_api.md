@@ -27,6 +27,8 @@
 - 前端还没有展示 `/api/app/external-search/*` 的来源、置信度和降级原因。
 - 需要运维在部署环境配置真实 `[external_search]` provider。
 
+Post 8-10 更新：Agent `search_*` skill 已接入同一份 `[external_search]` 配置，可在配置完整时直接请求 provider。App API 与 Agent skill 当前共享字段语义，但实现仍各自归一化，后续可抽共享 crate。
+
 ## 当前验证
 
 - [x] `cargo fmt`

@@ -310,6 +310,7 @@ mod tests {
                 event_buffer: 1024,
                 commander_fast_route: true,
                 commander_fast_route_min_score: 2.0,
+                search: Default::default(),
             },
             "我是做咖啡运营的，主要营销平台是抖音，现在马上就五一了，请给提升转化率的方案",
             &BTreeMap::new(),
