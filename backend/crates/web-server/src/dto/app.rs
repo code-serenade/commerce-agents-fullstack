@@ -516,6 +516,44 @@ pub struct CreateCampaignRequest {
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
+pub struct CreateCampaignDraftRequest {
+    #[validate(length(max = 64))]
+    pub product_id: Option<String>,
+    #[validate(length(max = 64))]
+    pub workspace_id: Option<String>,
+    #[validate(length(max = 64))]
+    pub source_artifact_id: Option<String>,
+    #[validate(length(min = 1, max = 255))]
+    pub name: String,
+    #[validate(length(max = 64))]
+    pub campaign_type: Option<String>,
+    #[validate(length(max = 20000))]
+    pub description: Option<String>,
+    #[validate(range(min = 0.0))]
+    pub budget: Option<f64>,
+    #[validate(length(max = 32))]
+    pub start_date: Option<String>,
+    #[validate(length(max = 32))]
+    pub end_date: Option<String>,
+    #[validate(length(max = 2000))]
+    pub goal: Option<String>,
+    #[validate(length(max = 1000))]
+    pub target_audience: Option<String>,
+    #[validate(length(max = 16))]
+    pub channels: Option<Vec<String>>,
+    #[validate(length(max = 20000))]
+    pub strategy: Option<String>,
+    #[validate(length(max = 64))]
+    pub source_type: Option<String>,
+    #[validate(length(max = 20000))]
+    pub source_summary: Option<String>,
+    pub draft: Option<Value>,
+    pub metadata: Option<Value>,
+    pub action_metadata: Option<Value>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateCampaignRequest {
     #[validate(length(max = 64))]
     pub product_id: Option<String>,
@@ -545,6 +583,26 @@ pub struct CampaignListResponse {
     pub total: u64,
     pub page: u64,
     pub page_size: u64,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CampaignDraftResponse {
+    pub campaign: CampaignResponse,
+    pub source: CampaignDraftSourceResponse,
+    pub warnings: Vec<String>,
+    pub agent_context: Value,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CampaignDraftSourceResponse {
+    pub source_type: String,
+    pub product_id: Option<String>,
+    pub workspace_id: Option<String>,
+    pub source_artifact_id: Option<String>,
+    pub source_summary: Option<String>,
+    pub ref_keys: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]

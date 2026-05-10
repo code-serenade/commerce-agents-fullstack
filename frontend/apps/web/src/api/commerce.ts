@@ -208,6 +208,22 @@ export interface CampaignListResponse extends JsonRecord {
   pageSize: number
 }
 
+export interface CampaignDraftSourceResponse extends JsonRecord {
+  sourceType: string
+  productId?: string | null
+  workspaceId?: string | null
+  sourceArtifactId?: string | null
+  sourceSummary?: string | null
+  refKeys: string[]
+}
+
+export interface CampaignDraftResponse extends JsonRecord {
+  campaign: CampaignResponse
+  source: CampaignDraftSourceResponse
+  warnings: string[]
+  agentContext: JsonRecord
+}
+
 export interface WorkspaceResponse extends JsonRecord {
   id: string
   productId?: string | null
@@ -1122,6 +1138,15 @@ export const createCampaignApi = async (
   request<JsonRecord, CampaignResponse>({
     method: "POST",
     url: "/api/app/campaigns",
+    body,
+  })
+
+export const createCampaignDraftApi = async (
+  body: JsonRecord
+): Promise<CampaignDraftResponse> =>
+  request<JsonRecord, CampaignDraftResponse>({
+    method: "POST",
+    url: "/api/app/campaigns/draft",
     body,
   })
 

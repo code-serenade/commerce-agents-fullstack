@@ -511,3 +511,27 @@
 - 本阶段解决的是“竞品散数据可被统一分析读取”。
 - 本阶段不调用 LLM，不触发外部搜索，不自动创建 artifact。
 - 后续可继续做自动搜索竞品、立即监控竞品、分析结果沉淀和前端展示。
+
+## Post 8-18：Campaign draft 创建 API
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Service：新增 `CampaignApi::create_campaign_draft`。
+- [x] Service：复用已有 `campaigns` 表，不新增 migration。
+- [x] Service：支持商品、工作区、交付物来源归属校验。
+- [x] Service：创建活动时强制 `status = draft`。
+- [x] Service：把 source、planning、refs、workspace、artifact 写入 `metadata`。
+- [x] Service：把 draft 和 planning 写入 `output`。
+- [x] Service：把后续执行提示和审批要求写入 `action_metadata`。
+- [x] Web-server：新增 `POST /api/app/campaigns/draft`。
+- [x] API：`API_DOCS/app.md` 已同步。
+- [x] 前端：API adapter 类型已同步，但本阶段不新增页面入口。
+
+当前说明：
+
+- 本阶段解决的是“Agent/工作区输出能保存为营销活动草稿”。
+- 本阶段不调用 LLM，不发布平台活动，不绕过后续审批。
+- 后续可继续做前端交付物入口、审批流和平台执行 adapter。

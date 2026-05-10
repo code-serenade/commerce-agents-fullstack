@@ -43,7 +43,7 @@ API 是后端能力和前端适配之间的唯一契约。任何前端适配开�
 - [x] 工作区交付物导出 API。
 - [x] 会话附件抽取文本登记 API。
 - [x] 竞品分析读取 API。
-- [ ] Campaign draft 创建 API。
+- [x] Campaign draft 创建 API。
 - [x] Commerce agent playbook 场景入口 API。
 - [x] Workspace run 与 agent session 对齐 API。
 - [x] Workspace artifact 创建、查询、更新、归档 API。

@@ -1423,6 +1423,83 @@
 - `metadata`、`output`、`actionMetadata` 不传时默认 `{}`
 - 本阶段只存储活动记录、生成结果和建议动作，不触发 Agent 自动生成或平台执行
 
+## 43.1 创建营销活动草稿
+
+- 方法：`POST`
+- 路径：`/api/app/campaigns/draft`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "productId": "product-uuid",
+  "workspaceId": "workspace-uuid",
+  "sourceArtifactId": "artifact-uuid",
+  "name": "五一新品冷启动草稿",
+  "campaignType": "launch",
+  "description": "围绕新品首发做冷启动投放",
+  "budget": 3000,
+  "startDate": "2026-05-01",
+  "endDate": "2026-05-07",
+  "goal": "验证首批人群和素材方向",
+  "targetAudience": "18-30 岁咖啡兴趣人群",
+  "channels": ["douyin", "xiaohongshu"],
+  "strategy": "先小预算测素材，再放大高转化计划",
+  "sourceType": "agent_output",
+  "sourceSummary": "Agent 生成的冷启动方案",
+  "draft": {
+    "tasks": []
+  },
+  "metadata": {},
+  "actionMetadata": {}
+}
+```
+
+成功响应 `data`：`CampaignDraftResponse`。
+
+```json
+{
+  "campaign": {
+    "id": "campaign-uuid",
+    "productId": "product-uuid",
+    "name": "五一新品冷启动草稿",
+    "campaignType": "launch",
+    "description": "围绕新品首发做冷启动投放",
+    "budget": 3000,
+    "startDate": "2026-05-01",
+    "endDate": "2026-05-07",
+    "status": "draft",
+    "metadata": {},
+    "output": {},
+    "actionMetadata": {}
+  },
+  "source": {
+    "sourceType": "agent_output",
+    "productId": "product-uuid",
+    "workspaceId": "workspace-uuid",
+    "sourceArtifactId": "artifact-uuid",
+    "sourceSummary": "Agent 生成的冷启动方案",
+    "refKeys": [
+      "product:product-uuid",
+      "workspace:workspace-uuid",
+      "workspace_artifact:artifact-uuid"
+    ]
+  },
+  "warnings": [],
+  "agentContext": {}
+}
+```
+
+补充说明：
+
+- 本接口总是创建 `draft` 状态活动，不接受前端传入其它状态
+- 如果传入 `productId`，商品必须属于当前用户且未归档
+- 如果传入 `workspaceId`，工作区必须属于当前用户且未归档
+- 如果传入 `sourceArtifactId`，必须同时传入 `workspaceId`，且交付物必须属于该工作区
+- 本接口不调用 LLM，不发布平台活动，不绕过后续审批
+- `metadata.source`、`metadata.planning`、`output`、`actionMetadata` 会保存草稿来源和后续执行提示
+
 ## 44. 查询营销活动详情
 
 - 方法：`GET`

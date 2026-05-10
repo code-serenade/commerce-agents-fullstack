@@ -28,11 +28,12 @@ use crate::{
         ActAlertRequest, AddConversationMessageRequest, AlertListResponse, AlertResponse,
         AlertSummaryResponse, AppUserResponse, AuditLogListResponse, AuditLogResponse,
         BackgroundEventListResponse, BackgroundEventResponse, BatchUpdateResponse,
-        CampaignListResponse, CampaignResponse, CancelLongTaskRequest, ChannelCatalogResponse,
-        ChannelConnectionListResponse, ChannelConnectionResponse, CompetitorChangeResponse,
-        ConsumeBackgroundEventsRequest, ConversationDetailResponse, ConversationFileAccessResponse,
-        ConversationFileResponse, ConversationMessageResponse, ConversationResponse,
-        CreateAlertRequest, CreateAuditLogRequest, CreateBackgroundEventRequest,
+        CampaignDraftResponse, CampaignDraftSourceResponse, CampaignListResponse, CampaignResponse,
+        CancelLongTaskRequest, ChannelCatalogResponse, ChannelConnectionListResponse,
+        ChannelConnectionResponse, CompetitorChangeResponse, ConsumeBackgroundEventsRequest,
+        ConversationDetailResponse, ConversationFileAccessResponse, ConversationFileResponse,
+        ConversationMessageResponse, ConversationResponse, CreateAlertRequest,
+        CreateAuditLogRequest, CreateBackgroundEventRequest, CreateCampaignDraftRequest,
         CreateCampaignRequest, CreateCompetitorChangeRequest, CreateConversationRequest,
         CreateExecutionQueueRequest, CreateLongTaskRequest, CreateProductCompetitorRequest,
         CreateProductKnowledgeRequest, CreateProductMaterialRequest, CreateProductRequest,
@@ -123,6 +124,42 @@ pub async fn create_campaign(
         .map_err(from_biz_error)?;
 
     Ok(map_campaign_response(campaign)
+        .into_common_response()
+        .to_json())
+}
+
+pub async fn create_campaign_draft(
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<CreateCampaignDraftRequest>,
+) -> ResponseResult<CampaignDraftResponse> {
+    req.validate().map_err(Error::from)?;
+    let api = CampaignApi::new(get_app_ctx());
+    let draft = api
+        .create_campaign_draft(service::dto::campaign::CreateCampaignDraftRequest {
+            user_id: auth_user.user_id,
+            product_id: req.product_id,
+            workspace_id: req.workspace_id,
+            source_artifact_id: req.source_artifact_id,
+            name: req.name,
+            campaign_type: req.campaign_type,
+            description: req.description,
+            budget: req.budget,
+            start_date: req.start_date,
+            end_date: req.end_date,
+            goal: req.goal,
+            target_audience: req.target_audience,
+            channels: req.channels,
+            strategy: req.strategy,
+            source_type: req.source_type,
+            source_summary: req.source_summary,
+            draft: req.draft,
+            metadata: req.metadata,
+            action_metadata: req.action_metadata,
+        })
+        .await
+        .map_err(from_biz_error)?;
+
+    Ok(map_campaign_draft_response(draft)
         .into_common_response()
         .to_json())
 }
@@ -223,5 +260,23 @@ fn map_campaign_response(item: service::dto::campaign::CampaignResponse) -> Camp
         action_metadata: item.action_metadata,
         created_at: item.created_at,
         updated_at: item.updated_at,
+    }
+}
+
+fn map_campaign_draft_response(
+    item: service::dto::campaign::CampaignDraftResponse,
+) -> CampaignDraftResponse {
+    CampaignDraftResponse {
+        campaign: map_campaign_response(item.campaign),
+        source: CampaignDraftSourceResponse {
+            source_type: item.source.source_type,
+            product_id: item.source.product_id,
+            workspace_id: item.source.workspace_id,
+            source_artifact_id: item.source.source_artifact_id,
+            source_summary: item.source.source_summary,
+            ref_keys: item.source.ref_keys,
+        },
+        warnings: item.warnings,
+        agent_context: item.agent_context,
     }
 }

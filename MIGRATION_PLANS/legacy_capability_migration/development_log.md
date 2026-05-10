@@ -1205,3 +1205,52 @@
 
 - 还需要实现竞品自动搜索/监控 adapter。
 - 还需要将竞品分析结果沉淀为 workspace artifact。
+
+## Post 8-18：Campaign draft 创建 API
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 18 个补强项：`Post 8-18`。
+
+本次目标：
+
+- 把旧产品中 Agent 可以创建营销活动草稿的能力迁成新产品后端 API。
+- 让工作区交付物、Agent 输出和商品上下文可以沉淀为真实 campaign draft。
+
+涉及范围：
+
+- 产品内核：营销活动从普通 CRUD 推进到 Agent/工作区可沉淀草稿。
+- 后端 service：新增 `CampaignApi::create_campaign_draft`。
+- Web-server：新增 `POST /api/app/campaigns/draft`。
+- API：同步 `API_DOCS/app.md`。
+- 前端：同步 `createCampaignDraftApi` 和响应类型。
+
+用户可感知变化：
+
+- 后续前端接入后，用户可在 Agent 交付物或工作区里把投放方案保存为营销活动草稿。
+- 草稿会保留商品、工作区、交付物和策略来源，便于后续继续编辑、审批和执行。
+- 当前不会自动发布到抖音、淘宝等平台。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo fmt --check`
+- [x] `cargo test -p service campaign_draft`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo check`
+- [x] `cargo clippy`
+- [x] `pnpm -C apps/web rules`
+- [x] `pnpm -C apps/web lint`
+- [x] `pnpm -C apps/web test`
+- [x] `pnpm -C apps/web build`
+- [x] `pnpm rules`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 还需要前端交付物卡片接入创建活动草稿入口。
+- 还需要草稿审批、平台执行 adapter 和审计日志闭环。
