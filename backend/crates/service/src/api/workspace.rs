@@ -2355,6 +2355,126 @@ impl WorkspaceApi {
         }
     }
 
+    pub async fn materialize_agent_content_artifact(
+        &self,
+        req: MaterializeAgentContentArtifactRequest,
+    ) -> BizResult<Option<WorkspaceArtifactResponse>> {
+        let (user_id, workspace_id) = self
+            .ensure_request_workspace(&req.user_id, &req.workspace_id)
+            .await?;
+        let run_id = parse_uuid(&req.run_id, "run_id")?;
+        self.ensure_run_owner(user_id, workspace_id, run_id).await?;
+
+        let request_id = normalize_required(req.request_id, "request_id")?;
+        let skill_id = normalize_required(req.skill_id, "skill_id")?;
+        let Some(draft) = build_content_artifact_from_skill_output(&skill_id, &req.output) else {
+            return Ok(None);
+        };
+
+        let current_skill_run = match self
+            .skill_run_svc
+            .get_by_request(user_id, workspace_id, run_id, &request_id)
+            .await?
+        {
+            Some(item) => item,
+            None => return Ok(None),
+        };
+
+        if let Some(existing_artifact_id) = current_skill_run
+            .metadata
+            .get("contentArtifactId")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            let artifact_id = parse_uuid(existing_artifact_id, "content_artifact_id")?;
+            let artifact = self
+                .ensure_artifact_owner(user_id, workspace_id, artifact_id)
+                .await?;
+            return Ok(Some(Self::map_artifact(artifact)));
+        }
+
+        let tx = self.db.begin().await?;
+        let artifact_tx_svc = WorkspaceArtifactService::new(tx.clone());
+        let skill_run_tx_svc = AgentSkillRunService::new(tx.clone());
+        let write_result: BizResult<(WorkspaceArtifact, AgentSkillRun)> = async {
+            let artifact = artifact_tx_svc
+                .create(CreateWorkspaceArtifact {
+                    id: Uuid::new_v4(),
+                    workspace_id,
+                    run_id: Some(run_id),
+                    workspace_task_id: None,
+                    run_task_id: None,
+                    user_id,
+                    artifact_type: draft.artifact_type.clone(),
+                    title: draft.title.clone(),
+                    content: Some(draft.content.clone()),
+                    preview: Some(draft.preview.clone()),
+                    mime_type: Some("text/markdown".to_string()),
+                    format: "markdown".to_string(),
+                    storage_kind: "inline".to_string(),
+                    bucket: None,
+                    object_key: None,
+                    file_name: Some(draft.file_name.clone()),
+                    file_size: None,
+                    sha256: None,
+                    source: AGENT_RUN_SOURCE.to_string(),
+                    status: WorkspaceArtifactStatus::Active,
+                    validation_status: WorkspaceArtifactValidationStatus::Unchecked,
+                    validation_report: json!({}),
+                    metadata: json!({
+                        "kind": "agent_generated_content",
+                        "contentCategory": "creative",
+                        "artifactType": draft.artifact_type,
+                        "skillId": skill_id,
+                        "requestId": request_id,
+                        "role": req.role,
+                        "summary": draft.summary,
+                    }),
+                })
+                .await?;
+
+            let skill_run = skill_run_tx_svc
+                .update(UpdateAgentSkillRun {
+                    id: current_skill_run.id,
+                    status: current_skill_run.status,
+                    reason: current_skill_run.reason.clone(),
+                    summary: current_skill_run.summary.clone(),
+                    error: current_skill_run.error.clone(),
+                    input: current_skill_run.input.clone(),
+                    output: current_skill_run.output.clone(),
+                    execution_mode: current_skill_run.execution_mode.clone(),
+                    risk_level: current_skill_run.risk_level.clone(),
+                    approval_required: current_skill_run.approval_required,
+                    metadata: merge_json_object(
+                        current_skill_run.metadata.clone(),
+                        json!({
+                            "contentArtifactId": artifact.id,
+                            "contentArtifactCreated": true,
+                            "contentArtifactType": artifact.artifact_type,
+                            "contentArtifactSource": skill_id,
+                        }),
+                    ),
+                    completed_at: current_skill_run.completed_at,
+                })
+                .await?;
+
+            Ok((artifact, skill_run))
+        }
+        .await;
+
+        match write_result {
+            Ok((artifact, _)) => {
+                tx.commit().await?;
+                Ok(Some(Self::map_artifact(artifact)))
+            }
+            Err(err) => {
+                tx.rollback().await?;
+                Err(err)
+            }
+        }
+    }
+
     pub async fn complete_agent_run(
         &self,
         req: CompleteAgentWorkspaceRunRequest,
@@ -4809,6 +4929,67 @@ fn build_workspace_memory_from_skill_output(
     })
 }
 
+fn build_content_artifact_from_skill_output(
+    skill_id: &str,
+    output: &Value,
+) -> Option<ContentArtifactFromSkillDraft> {
+    if output.get("status").and_then(Value::as_str) != Some("success") {
+        return None;
+    }
+
+    let (artifact_type, title, summary) = match skill_id {
+        "creative_video_script" => (
+            "video_script",
+            "Video script",
+            "creative video script artifact generated",
+        ),
+        "creative_seeding_copy" => (
+            "seeding_copy",
+            "Seeding copy",
+            "creative seeding copy artifact generated",
+        ),
+        "creative_ip_branding" => (
+            "ip_branding",
+            "IP branding brief",
+            "creative IP branding artifact generated",
+        ),
+        "creative_content_calendar" => (
+            "content_calendar",
+            "Content calendar",
+            "creative content calendar artifact generated",
+        ),
+        "creative_live_script" => (
+            "live_script",
+            "Live script",
+            "creative live script artifact generated",
+        ),
+        "creative_product_article" => (
+            "product_article",
+            "Product article",
+            "creative product article artifact generated",
+        ),
+        _ => return None,
+    };
+
+    let json_body = serde_json::to_string_pretty(output).ok()?;
+    let preview = output
+        .get("summary")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| compact_text(value, 500))
+        .unwrap_or_else(|| compact_text(&json_body, 500));
+
+    Some(ContentArtifactFromSkillDraft {
+        artifact_type: artifact_type.to_string(),
+        title: title.to_string(),
+        file_name: format!("{artifact_type}.md"),
+        preview,
+        content: format!("# {title}\n\n```json\n{json_body}\n```"),
+        summary: summary.to_string(),
+    })
+}
+
 fn build_campaign_draft_from_skill_output(output: &Value) -> Option<CampaignDraftFromSkill> {
     if output.get("status").and_then(Value::as_str) != Some("success") {
         return None;
@@ -5330,6 +5511,16 @@ struct WorkspaceMemoryFromSkillDraft {
     content: String,
     memory_type: String,
     confidence: f64,
+}
+
+#[derive(Debug, Clone)]
+struct ContentArtifactFromSkillDraft {
+    artifact_type: String,
+    title: String,
+    file_name: String,
+    preview: String,
+    content: String,
+    summary: String,
 }
 
 fn evaluate_output_quality(
@@ -6069,6 +6260,37 @@ mod tests {
         assert_eq!(draft.memory_type, "decision");
         assert!(draft.content.contains("159-179"));
         assert!((draft.confidence - 0.88).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn content_artifact_builds_from_creative_skill_output() {
+        let output = json!({
+            "status": "success",
+            "summary": "短视频脚本已生成",
+            "脚本结构": [
+                {"阶段": "开场钩子", "话术": "先看结果"}
+            ]
+        });
+
+        let draft = build_content_artifact_from_skill_output("creative_video_script", &output)
+            .expect("creative output should be materializable");
+
+        assert_eq!(draft.artifact_type, "video_script");
+        assert_eq!(draft.title, "Video script");
+        assert_eq!(draft.file_name, "video_script.md");
+        assert!(draft.preview.contains("短视频脚本已生成"));
+        assert!(draft.content.contains("# Video script"));
+        assert!(draft.content.contains("```json"));
+    }
+
+    #[test]
+    fn content_artifact_ignores_non_supported_skill() {
+        let output = json!({
+            "status": "success",
+            "summary": "not supported"
+        });
+
+        assert!(build_content_artifact_from_skill_output("ops_promo_planning", &output).is_none());
     }
 
     #[test]

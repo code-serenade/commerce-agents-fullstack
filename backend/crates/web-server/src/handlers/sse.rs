@@ -30,7 +30,8 @@ use service::{
             CompleteAgentWorkspaceRunRequest, EvaluateAgentWorkspaceRunRequest,
             FailAgentWorkspaceRunRequest, LinkAgentWorkspaceRunRequest,
             LinkAgentWorkspaceTasksRequest, MarkAgentWorkspaceTaskStartedRequest,
-            MaterializeAgentCampaignDraftRequest, MaterializeAgentWorkspaceTaskRequest,
+            MaterializeAgentCampaignDraftRequest, MaterializeAgentContentArtifactRequest,
+            MaterializeAgentWorkspaceTaskRequest,
             RecordAgentSearchEvidenceRequest, RecordAgentSkillRequestedRequest,
             RecordAgentSkillResultRequest, RecordAgentWorkspaceTaskEvaluationRequest,
             RecordAgentWorkspaceTaskReportRequest, WorkspaceContextPackResponse,
@@ -506,6 +507,31 @@ pub async fn stream_agent_session(
                         Ok(None) => {}
                         Err(err) => {
                             yield Ok(persistence_error_event("materialize_agent_campaign_draft", err));
+                        }
+                    }
+
+                    let content_artifact_response = workspace_api
+                        .materialize_agent_content_artifact(
+                            MaterializeAgentContentArtifactRequest {
+                                user_id: link_state.user_id.clone(),
+                                workspace_id: link_state.workspace_id.clone(),
+                                run_id: link_state.run_id.clone(),
+                                request_id: request_id.clone(),
+                                skill_id: skill_id.clone(),
+                                role: role.clone(),
+                                output: output.clone().unwrap_or_else(|| json!({})),
+                            },
+                        )
+                        .await;
+                    match content_artifact_response {
+                        Ok(Some(artifact)) => yield Ok(typed_camel_json_event(
+                            "workspace_artifact_created",
+                            serde_json::to_value(artifact)
+                                .unwrap_or_else(|_| json!({ "type": "workspace_artifact_created" })),
+                        )),
+                        Ok(None) => {}
+                        Err(err) => {
+                            yield Ok(persistence_error_event("materialize_agent_content_artifact", err));
                         }
                     }
 

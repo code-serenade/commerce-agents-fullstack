@@ -505,6 +505,17 @@ pub struct MaterializeAgentCampaignDraftRequest {
     pub output: Value,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+pub struct MaterializeAgentContentArtifactRequest {
+    pub user_id: String,
+    pub workspace_id: String,
+    pub run_id: String,
+    pub request_id: String,
+    pub skill_id: String,
+    pub role: String,
+    pub output: Value,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct MaterializedAgentCampaignDraftResponse {
     pub campaign: CampaignDraftResponse,

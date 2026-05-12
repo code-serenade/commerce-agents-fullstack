@@ -1,5 +1,37 @@
 # 迁移开发记录
 
+## Post 8-27：Creative 内容交付物真实沉淀
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 27 个补强项：`Post 8-27`。
+
+本次目标：
+
+- 把高价值 creative skill 从“只在问答里返回内容”推进到“自动沉淀为真实 workspace artifact”。
+- 继续以后端真实能力为准，不新增前端假入口。
+
+涉及范围：
+
+- 产品内核：创意内容能力从一次性回答推进到可查询、可复用、可导出的工作区交付物。
+- 后端 service：`WorkspaceApi` 新增 `materialize_agent_content_artifact`，支持 `creative_video_script`、`creative_seeding_copy`、`creative_ip_branding`、`creative_content_calendar`、`creative_live_script`、`creative_product_article`。
+- 后端 web-server：SSE 在记录 `skill_result` 后自动尝试沉淀 creative 内容 artifact，并继续复用 `workspace_artifact_created` 回传。
+
+用户可感知变化：
+
+- 用户问“写短视频脚本”“生成种草文案”“做品牌 IP 定位”“排内容日历”“写直播话术”“写产品软文”时，除了当轮 skill 结果，还会在当前 workspace 真实新增对应交付物。
+- 这些内容产物开始进入新产品已有的 artifact 查询、预览和后续导出链路，不再只停留在聊天窗口。
+
+当前验证：
+
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo test -p service content_artifact_builds_from_creative_skill_output -- --nocapture`
+- [x] `cargo test -p service content_artifact_ignores_non_supported_skill -- --nocapture`
+
 ## Post 8-26：Coordination 创建营销活动草稿真实落地
 
 状态：done
