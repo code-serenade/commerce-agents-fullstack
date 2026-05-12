@@ -1254,3 +1254,53 @@
 
 - 还需要前端交付物卡片接入创建活动草稿入口。
 - 还需要草稿审批、平台执行 adapter 和审计日志闭环。
+
+## Post 8-19：产品生命周期状态 API
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 19 个补强项：`Post 8-19`。
+
+本次目标：
+
+- 把旧产品 `draft -> listing -> active -> archived` 商品生命周期迁成新产品后端状态机。
+- 让前端和 Agent 后续从后端读取生命周期阶段、允许流转和上下文，而不是前端硬编码状态。
+
+涉及范围：
+
+- 产品内核：商品从 `active / archived` 粗粒度状态扩展为选品、上架、运营、归档四阶段。
+- Repo：扩展 `ProductStatus`，并让创建商品可写入指定状态。
+- 后端 service：新增 lifecycle options、detail、transition 逻辑和状态机校验。
+- Web-server：新增 `GET /api/app/products/lifecycle/options`、`GET/PATCH /api/app/products/{productId}/lifecycle`。
+- API：同步 `API_DOCS/app.md`。
+- 前端：同步 lifecycle API adapter 和响应类型。
+
+用户可感知变化：
+
+- 后续前端接入后，用户可在商品页看到商品处于选品中、上架中、运营中或已归档。
+- 用户只能按后端允许的路径推进生命周期，例如 `draft -> listing -> active -> archived`。
+- Agent 后续可根据商品当前阶段给出更贴合阶段的电商运营建议。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo fmt --check`
+- [x] `cargo test -p service product_lifecycle`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo check`
+- [x] `cargo clippy`
+- [x] `pnpm -C frontend/apps/web rules`
+- [x] `pnpm -C frontend/apps/web lint`
+- [x] `pnpm -C frontend/apps/web test`
+- [x] `pnpm -C frontend/apps/web build`
+- [x] `pnpm -C frontend rules`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 还需要把商品页 UI 接到 lifecycle API，展示阶段和可执行下一步。
+- 还需要让 Agent task graph 在商品相关任务中消费 lifecycle agentContext。

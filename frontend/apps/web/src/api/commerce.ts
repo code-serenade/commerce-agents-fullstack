@@ -31,8 +31,39 @@ interface ProductDetailResponse extends JsonRecord {
 
 export interface ProductDashboardResponse extends JsonRecord {
   total: number
+  draft: number
+  listing: number
   active: number
   archived: number
+}
+
+export interface ProductLifecycleStatusResponse extends JsonRecord {
+  status: string
+  label: string
+  description: string
+  terminal: boolean
+}
+
+export interface ProductLifecycleTransitionResponse extends JsonRecord {
+  from: string
+  to: string
+  label: string
+  requiresReason: boolean
+}
+
+export interface ProductLifecycleOptionsResponse extends JsonRecord {
+  statuses: ProductLifecycleStatusResponse[]
+  transitions: ProductLifecycleTransitionResponse[]
+  agentContext: JsonRecord
+}
+
+export interface ProductLifecycleResponse extends JsonRecord {
+  product: ProductResponse
+  currentStatus: string
+  allowedNextStatuses: string[]
+  transitions: ProductLifecycleTransitionResponse[]
+  warnings: string[]
+  agentContext: JsonRecord
 }
 
 export interface ProductKnowledgeResponse extends JsonRecord {
@@ -830,6 +861,31 @@ export const archiveProductApi = async (productId: string): Promise<null> =>
   request<undefined, null>({
     method: "DELETE",
     url: `/api/app/products/${productId}`,
+  })
+
+export const getProductLifecycleOptionsApi =
+  async (): Promise<ProductLifecycleOptionsResponse> =>
+    request<undefined, ProductLifecycleOptionsResponse>({
+      method: "GET",
+      url: "/api/app/products/lifecycle/options",
+    })
+
+export const getProductLifecycleApi = async (
+  productId: string
+): Promise<ProductLifecycleResponse> =>
+  request<undefined, ProductLifecycleResponse>({
+    method: "GET",
+    url: `/api/app/products/${productId}/lifecycle`,
+  })
+
+export const transitionProductLifecycleApi = async (
+  productId: string,
+  body: JsonRecord
+): Promise<ProductLifecycleResponse> =>
+  request<JsonRecord, ProductLifecycleResponse>({
+    method: "PATCH",
+    url: `/api/app/products/${productId}/lifecycle`,
+    body,
   })
 
 export const getProductDashboardApi =

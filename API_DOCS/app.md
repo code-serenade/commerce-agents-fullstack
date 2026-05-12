@@ -582,7 +582,7 @@
 
 | 参数 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| `status` | `active \| archived` | 否 | 不传时默认查询 `active` |
+| `status` | `draft \| listing \| active \| archived` | 否 | 不传时默认查询 `active` |
 | `keyword` | `string` | 否 | 匹配商品名称、平台、平台商品 ID、类目、品牌 |
 
 成功响应 `data`：`ProductResponse[]`。
@@ -625,6 +625,7 @@
   "externalId": "123",
   "category": "coffee",
   "brand": "Atlas",
+  "status": "draft",
   "description": "节日活动主推组合",
   "price": "99.00",
   "currency": "CNY",
@@ -637,6 +638,7 @@
 补充说明：
 
 - `name` 必填，最长 255 个字符
+- `status` 可选：`draft`、`listing`、`active`、`archived`；不传时默认 `active`，用于兼容已有商品页
 - `price` 当前按字符串保存，避免前端浮点精度问题；后续如需财务级金额计算，可单独迁移为金额规范
 - `metadata` 不传时默认 `{}`，用于承接旧产品里的扩展业务字段
 
@@ -724,10 +726,179 @@
 ```json
 {
   "total": 12,
+  "draft": 1,
+  "listing": 1,
   "active": 10,
   "archived": 2
 }
 ```
+
+## 17.1 查询商品生命周期选项
+
+- 方法：`GET`
+- 路径：`/api/app/products/lifecycle/options`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：
+
+```json
+{
+  "statuses": [
+    {
+      "status": "draft",
+      "label": "选品中",
+      "description": "商品仍在选品、定位或资料准备阶段。",
+      "terminal": false
+    },
+    {
+      "status": "listing",
+      "label": "上架中",
+      "description": "商品正在准备上架资料、素材、价格和渠道配置。",
+      "terminal": false
+    },
+    {
+      "status": "active",
+      "label": "运营中",
+      "description": "商品已进入日常运营、投放、内容和复盘阶段。",
+      "terminal": false
+    },
+    {
+      "status": "archived",
+      "label": "已归档",
+      "description": "商品已归档，不再参与新的运营动作。",
+      "terminal": true
+    }
+  ],
+  "transitions": [
+    {
+      "from": "draft",
+      "to": "listing",
+      "label": "进入上架准备",
+      "requiresReason": false
+    },
+    {
+      "from": "listing",
+      "to": "active",
+      "label": "进入运营",
+      "requiresReason": false
+    },
+    {
+      "from": "listing",
+      "to": "draft",
+      "label": "退回选品",
+      "requiresReason": true
+    },
+    {
+      "from": "active",
+      "to": "archived",
+      "label": "归档商品",
+      "requiresReason": true
+    }
+  ],
+  "agentContext": {
+    "type": "product_lifecycle_options",
+    "statuses": ["draft", "listing", "active", "archived"],
+    "terminalStatuses": ["archived"]
+  }
+}
+```
+
+补充说明：
+
+- 当前用户必须存在于 `app_users`，且状态为 `enabled`
+- 前端商品生命周期展示和可操作按钮应以本接口返回为准
+
+## 17.2 查询商品生命周期
+
+- 方法：`GET`
+- 路径：`/api/app/products/{productId}/lifecycle`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：
+
+```json
+{
+  "product": {
+    "id": "product-uuid",
+    "userId": "user-uuid",
+    "name": "五一咖啡组合",
+    "platform": "douyin",
+    "externalId": "123",
+    "category": "coffee",
+    "brand": "Atlas",
+    "status": "listing",
+    "description": "节日活动主推组合",
+    "price": "99.00",
+    "currency": "CNY",
+    "metadata": {},
+    "createdAt": "2026-05-07T00:00:00Z",
+    "updatedAt": "2026-05-07T00:00:00Z"
+  },
+  "currentStatus": "listing",
+  "allowedNextStatuses": ["active", "draft"],
+  "transitions": [
+    {
+      "from": "listing",
+      "to": "active",
+      "label": "进入运营",
+      "requiresReason": false
+    },
+    {
+      "from": "listing",
+      "to": "draft",
+      "label": "退回选品",
+      "requiresReason": true
+    }
+  ],
+  "warnings": [],
+  "agentContext": {
+    "type": "product_lifecycle",
+    "productId": "product-uuid",
+    "currentStatus": "listing",
+    "allowedNextStatuses": ["active", "draft"],
+    "terminal": false
+  }
+}
+```
+
+补充说明：
+
+- 只能查询当前用户自己的商品
+- 已归档商品可查询生命周期，但 `allowedNextStatuses` 为空
+
+## 17.3 流转商品生命周期
+
+- 方法：`PATCH`
+- 路径：`/api/app/products/{productId}/lifecycle`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "targetStatus": "active",
+  "reason": "上架资料和首批素材已完成",
+  "metadata": {
+    "source": "operator"
+  }
+}
+```
+
+成功响应 `data`：`ProductLifecycleResponse`，结构同“查询商品生命周期”。
+
+允许流转：
+
+- `draft -> listing`
+- `listing -> active`
+- `listing -> draft`
+- `active -> archived`
+
+补充说明：
+
+- 非法目标状态或非法流转返回 `400`，错误码为 `PRODUCT_REQUEST_INVALID`
+- `archived` 是终态，不能再流转
+- 流转成功后，后端会在 `product.metadata.lifecycle` 写入 `currentStatus`、`lastTransition` 和最近流转 `history`
+- 本接口只负责新产品内部生命周期状态，不会自动执行平台上架、下架或发布动作
 
 ## 18. 查询商品知识列表
 

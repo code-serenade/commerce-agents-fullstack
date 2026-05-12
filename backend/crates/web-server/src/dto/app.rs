@@ -407,6 +407,8 @@ pub struct CreateProductRequest {
     pub category: Option<String>,
     #[validate(length(max = 128))]
     pub brand: Option<String>,
+    #[validate(length(max = 32))]
+    pub status: Option<String>,
     #[validate(length(max = 20000))]
     pub description: Option<String>,
     #[validate(length(max = 64))]
@@ -435,6 +437,16 @@ pub struct UpdateProductRequest {
     pub price: Option<String>,
     #[validate(length(max = 16))]
     pub currency: Option<String>,
+    pub metadata: Option<Value>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct TransitionProductLifecycleRequest {
+    #[validate(length(min = 1, max = 32))]
+    pub target_status: String,
+    #[validate(length(max = 500))]
+    pub reason: Option<String>,
     pub metadata: Option<Value>,
 }
 
@@ -469,9 +481,14 @@ pub struct ProductDetailResponse {
 #[serde(rename_all = "camelCase")]
 pub struct ProductDashboardResponse {
     pub total: u64,
+    pub draft: u64,
+    pub listing: u64,
     pub active: u64,
     pub archived: u64,
 }
+
+pub type ProductLifecycleOptionsResponse = service::dto::product::ProductLifecycleOptionsResponse;
+pub type ProductLifecycleResponse = service::dto::product::ProductLifecycleResponse;
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]

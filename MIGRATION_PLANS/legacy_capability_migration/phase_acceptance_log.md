@@ -535,3 +535,29 @@
 - 本阶段解决的是“Agent/工作区输出能保存为营销活动草稿”。
 - 本阶段不调用 LLM，不发布平台活动，不绕过后续审批。
 - 后续可继续做前端交付物入口、审批流和平台执行 adapter。
+
+## Post 8-19：产品生命周期状态 API
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Repo：扩展 `ProductStatus` 为 `draft`、`listing`、`active`、`archived`。
+- [x] Repo：创建商品支持写入指定生命周期状态，不传仍默认 `active`。
+- [x] Service：新增生命周期状态目录、允许流转和 Agent 上下文。
+- [x] Service：新增商品生命周期查询，已归档商品可查询但没有下一步动作。
+- [x] Service：新增商品生命周期流转，校验 `draft -> listing -> active -> archived` 及 `listing -> draft`。
+- [x] Service：非法状态或非法流转返回 `PRODUCT_REQUEST_INVALID`。
+- [x] Service：流转成功后写入 `metadata.lifecycle.currentStatus`、`lastTransition` 和最近历史。
+- [x] Web-server：新增 `GET /api/app/products/lifecycle/options`。
+- [x] Web-server：新增 `GET /api/app/products/{productId}/lifecycle`。
+- [x] Web-server：新增 `PATCH /api/app/products/{productId}/lifecycle`。
+- [x] API：`API_DOCS/app.md` 已同步。
+- [x] 前端：API adapter 类型已同步，但本阶段不新增页面入口。
+
+当前说明：
+
+- 本阶段解决的是“商品生命周期成为后端真实状态机”。
+- 本阶段不自动执行平台上架、下架或发布动作。
+- 后续可继续做商品页生命周期 UI、Agent 阶段感知和平台执行 adapter。
