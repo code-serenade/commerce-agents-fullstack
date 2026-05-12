@@ -227,10 +227,20 @@ fn output_has_data(map: &serde_json::Map<String, Value>) -> bool {
 
 fn ops_data_readiness(skill_name: &str, input: &Value) -> &'static str {
     match skill_name {
-        "ops_pricing_strategy" if nums(input, "competitor_prices").is_empty() => {
+        "ops_pricing_strategy" | "ops_smart_pricing"
+            if nums(input, "competitor_prices").is_empty() =>
+        {
             "calculated_from_defaults"
         }
         "ops_listing_copy" if strings(input, "features").is_empty() => "calculated_from_defaults",
+        "ops_abc_xyz_classifier"
+            if input["skus"]
+                .as_array()
+                .map(|items| items.is_empty())
+                .unwrap_or(true) =>
+        {
+            "calculated_from_defaults"
+        }
         _ => "user_provided",
     }
 }
@@ -1385,5 +1395,134 @@ mod tests {
             Some("user_provided")
         );
         assert!(output.get("30天执行计划").is_some());
+    }
+
+    #[tokio::test]
+    async fn ops_smart_pricing_marks_success_for_price_inputs() {
+        let outcome = execute(
+            "ops_smart_pricing",
+            json!({
+                "cost": 38.0,
+                "current_price": 99.0,
+                "current_monthly_sales": 820,
+                "competitor_prices": [89.0, 109.0, 119.0],
+                "platform": "淘宝",
+                "elasticity": -1.6,
+                "stock_days": 45
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops smart pricing should run");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "智能定价方案已生成");
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("user_provided")
+        );
+        assert!(output.get("定价方案对比").is_some());
+        assert!(output.get("推荐定价").is_some());
+    }
+
+    #[tokio::test]
+    async fn ops_smart_pricing_discloses_default_competitor_range() {
+        let outcome = execute(
+            "ops_smart_pricing",
+            json!({
+                "cost": 38.0,
+                "current_price": 99.0,
+                "platform": "淘宝"
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops smart pricing should run with default competitor range");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "智能定价方案已生成");
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("calculated_from_defaults")
+        );
+        assert_eq!(
+            output.get("竞品价格区间").and_then(Value::as_str),
+            Some("无竞品数据")
+        );
+    }
+
+    #[tokio::test]
+    async fn ops_inventory_optimizer_defers_without_skus() {
+        let outcome = execute(
+            "ops_inventory_optimizer",
+            json!({}),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops inventory optimizer should return deferred output");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("deferred")
+        );
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("user_input_required")
+        );
+        assert_eq!(output.get("has_data").and_then(Value::as_bool), Some(false));
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("missing_user_input")
+        );
+    }
+
+    #[tokio::test]
+    async fn ops_ad_fatigue_detector_defers_without_channels() {
+        let outcome = execute(
+            "ops_ad_fatigue_detector",
+            json!({}),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops ad fatigue detector should return deferred output");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("deferred")
+        );
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("user_input_required")
+        );
+        assert_eq!(output.get("has_data").and_then(Value::as_bool), Some(false));
+        assert_eq!(
+            output.get("summary").and_then(Value::as_str),
+            Some("广告疲劳检测报告已生成")
+        );
+    }
+
+    #[tokio::test]
+    async fn ops_abc_xyz_classifier_discloses_demo_skus() {
+        let outcome = execute(
+            "ops_abc_xyz_classifier",
+            json!({"platform": "淘宝", "top_n": 8}),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops abc xyz should run with demo SKU data");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "ABC-XYZ库存分类报告已生成");
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("calculated_from_defaults")
+        );
+        assert_eq!(
+            output.get("数据来源").and_then(Value::as_str),
+            Some("演示数据（30个确定性模拟SKU）")
+        );
+        assert!(output.get("9格矩阵").is_some());
     }
 }

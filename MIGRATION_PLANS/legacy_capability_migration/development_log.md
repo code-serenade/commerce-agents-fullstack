@@ -1,5 +1,47 @@
 # 迁移开发记录
 
+## Post 8-36：Ops 高级运营分析交付物真实沉淀
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 36 个补强项：`Post 8-36`。
+
+本次目标：
+
+- 把旧产品运营岗位中已经 native 化的高级分析类能力接入 workspace artifact 体系。
+- 让智能定价、库存优化、广告疲劳检测和 ABC-XYZ 库存分类成为可查询、可预览、可导出的运营分析交付物。
+
+涉及范围：
+
+- 产品内核：运营岗位从核心计划交付物继续推进到高级分析报告交付物。
+- 后端 agent：沿用现有 `ops::execute` 统一出口，补齐高级运营 skill 的 `data_readiness` 语义；缺 SKU/渠道等必要输入时保持 `deferred`。
+- 后端 service：`WorkspaceApi::materialize_agent_content_artifact` 新增支持 `ops_smart_pricing_report`、`ops_inventory_optimization_report`、`ops_ad_fatigue_report`、`ops_abc_xyz_report`。
+- API/SSE 文档：同步高级 ops artifact 类型、默认/演示数据披露和缺输入不创建假交付物的语义。
+
+用户可感知变化：
+
+- 用户让运营岗位做智能定价、库存优化、广告疲劳检测或 ABC-XYZ 库存分类时，成功结果可以在当前 workspace 真实新增对应运营分析交付物。
+- 这些交付物沿用现有 artifact 列表、详情、预览和导出链路。
+- 如果缺少 SKU、渠道、成本或售价等必要输入，后端返回 `deferred`，不会创建看似真实的假运营分析报告。
+- 如果智能定价缺少竞品价格，或 ABC-XYZ 使用确定性演示 SKU，结果会通过 `data_readiness=calculated_from_defaults` 明确告知前端和用户。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p agent ops_smart_pricing_marks_success_for_price_inputs -- --nocapture`
+- [x] `cargo test -p agent ops_smart_pricing_discloses_default_competitor_range -- --nocapture`
+- [x] `cargo test -p agent ops_inventory_optimizer_defers_without_skus -- --nocapture`
+- [x] `cargo test -p agent ops_ad_fatigue_detector_defers_without_channels -- --nocapture`
+- [x] `cargo test -p agent ops_abc_xyz_classifier_discloses_demo_skus -- --nocapture`
+- [x] `cargo test -p service content_artifact_builds_from_ops_advanced_skill_output -- --nocapture`
+- [x] `cargo check -p agent`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo clippy -p agent -p service -p web-server`
+
 ## Post 8-35：Ops 核心运营计划交付物真实沉淀
 
 状态：done

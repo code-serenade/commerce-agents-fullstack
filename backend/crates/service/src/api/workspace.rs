@@ -5142,6 +5142,30 @@ fn build_content_artifact_from_skill_output(
             "Ops execution plan",
             "ops execution plan artifact generated",
         ),
+        "ops_smart_pricing" => (
+            "ops",
+            "ops_smart_pricing_report",
+            "Ops smart pricing report",
+            "ops smart pricing artifact generated",
+        ),
+        "ops_inventory_optimizer" => (
+            "ops",
+            "ops_inventory_optimization_report",
+            "Ops inventory optimization report",
+            "ops inventory optimization artifact generated",
+        ),
+        "ops_ad_fatigue_detector" => (
+            "ops",
+            "ops_ad_fatigue_report",
+            "Ops ad fatigue report",
+            "ops ad fatigue detection artifact generated",
+        ),
+        "ops_abc_xyz_classifier" => (
+            "ops",
+            "ops_abc_xyz_report",
+            "Ops ABC-XYZ report",
+            "ops ABC-XYZ classification artifact generated",
+        ),
         _ => return None,
     };
 
@@ -6670,6 +6694,36 @@ mod tests {
         assert_eq!(draft.file_name, "ops_promo_plan.md");
         assert!(draft.preview.contains("促销策划方案已生成"));
         assert!(draft.content.contains("# Ops promotion plan"));
+        assert!(
+            draft
+                .content
+                .contains("\"adapter_status\": \"manual_input\"")
+        );
+    }
+
+    #[test]
+    fn content_artifact_builds_from_ops_advanced_skill_output() {
+        let output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "data_readiness": "user_provided",
+            "summary": "智能定价方案已生成",
+            "推荐定价": "¥98.00",
+            "定价方案对比": [
+                {"定价": 98.0, "月度总利润": 26000.0}
+            ]
+        });
+
+        let draft = build_content_artifact_from_skill_output("ops_smart_pricing", &output)
+            .expect("ops advanced output should be materializable");
+
+        assert_eq!(draft.content_category, "ops");
+        assert_eq!(draft.artifact_type, "ops_smart_pricing_report");
+        assert_eq!(draft.title, "Ops smart pricing report");
+        assert_eq!(draft.file_name, "ops_smart_pricing_report.md");
+        assert!(draft.preview.contains("智能定价方案已生成"));
+        assert!(draft.content.contains("# Ops smart pricing report"));
         assert!(
             draft
                 .content

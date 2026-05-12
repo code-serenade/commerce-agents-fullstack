@@ -20,6 +20,10 @@
 | `ops_listing_copy` | `ops_listing_copy` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已补强上架文案/标题卖点/上新文案自然问法触达；Post 8-35：成功输出会沉淀为 `ops_listing_copy` artifact，缺商品上下文时 deferred |
 | `ops_assortment_planning` | `ops_assortment_planning` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已补强货盘/SKU组合/选品组合自然问法触达；Post 8-35：成功输出会沉淀为 `ops_assortment_plan` artifact |
 | `ops_execution_plan` | `ops_execution_plan` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已纳入岗位自动补偿规则，并有单测覆盖；Post 8-35：成功输出会沉淀为 `ops_execution_plan` artifact |
+| `ops_smart_pricing` | `ops_smart_pricing` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已可 native 执行；Post 8-36：成功输出会沉淀为 `ops_smart_pricing_report` artifact，缺竞品价格时明示 `calculated_from_defaults` |
+| `ops_inventory_optimizer` | `ops_inventory_optimizer` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已可 native 执行；Post 8-36：成功输出会沉淀为 `ops_inventory_optimization_report` artifact，缺 SKU 明细时 deferred |
+| `ops_ad_fatigue_detector` | `ops_ad_fatigue_detector` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已可 native 执行；Post 8-36：成功输出会沉淀为 `ops_ad_fatigue_report` artifact，缺渠道数据时 deferred |
+| `ops_abc_xyz_classifier` | `ops_abc_xyz_classifier` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已可 native 执行；Post 8-36：成功输出会沉淀为 `ops_abc_xyz_report` artifact，使用确定性演示 SKU 时明示 `calculated_from_defaults` |
 
 ## 数据 data
 

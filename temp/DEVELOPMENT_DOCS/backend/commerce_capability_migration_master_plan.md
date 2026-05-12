@@ -220,24 +220,25 @@ Continue in this order:
 
 ## 9. Current Slice Selection
 
-The current active slice is:
+The latest completed slice is:
 
 ```text
-Post 8-35: ops core artifact materialization
+Post 8-36: ops advanced artifact materialization
 ```
 
 Scope:
 
-- persist successful `ops_promo_planning`, `ops_pricing_strategy`, `ops_channel_strategy`, `ops_inventory_planning`, `ops_listing_copy`, `ops_assortment_planning`, and `ops_execution_plan` outputs as real workspace artifacts
-- standardize core ops outputs through the existing `ops::execute` dispatch path with `status=success/deferred`, `has_data`, `adapter_status`, `data_readiness`, and `summary`
-- keep missing required user input as `deferred` so the product does not create fake operations artifacts
+- persist successful `ops_smart_pricing`, `ops_inventory_optimizer`, `ops_ad_fatigue_detector`, and `ops_abc_xyz_classifier` outputs as real workspace artifacts
+- keep advanced ops output contracts in the existing `ops::execute` dispatch path with `status=success/deferred`, `has_data`, `adapter_status`, `data_readiness`, and `summary`
+- disclose default or demo data through `data_readiness=calculated_from_defaults`
+- keep missing required user input as `deferred` so the product does not create fake advanced operations artifacts
 
 Reason:
 
-- high product value for the operations worker and business planning workflow
+- high product value for the operations worker and analysis workflow
 - backend-first
 - no new fake frontend needed
-- extends the same workspace artifact path from service/accounting/data reports to concrete operations deliverables while preserving honest disclosure when required input is missing
+- extends the same workspace artifact path from core operations plans to advanced pricing, inventory, advertising and classification reports while preserving honest disclosure when required input is missing
 
 ## 10. Validation Standard
 
