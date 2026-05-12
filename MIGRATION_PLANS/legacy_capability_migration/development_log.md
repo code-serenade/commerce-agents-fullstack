@@ -1,5 +1,41 @@
 # 迁移开发记录
 
+## Post 8-29：Data 数据看板 native 化
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 29 个补强项：`Post 8-29`。
+
+本次目标：
+
+- 把 `data_dashboard` 从 pending/deferred 占位升级为新产品 Agent 框架内的 Rust native 数据看板 skill。
+- 让数据岗位能真实输出经营指标看板结构，而不是只告诉用户“待接入”。
+
+涉及范围：
+
+- 产品内核：数据岗位补齐“店铺大盘 / 数据看板 / 经营概览 / 核心指标”能力。
+- 后端 agent：`data_dashboard` 改为 deterministic native skill，输出核心指标、增长/效率/风险分区、健康度、预警和下一步动作。
+- 后端 agent worker：自动补偿规则新增数据看板自然问法触达。
+
+用户可感知变化：
+
+- 用户问“店铺大盘”“数据看板”“经营概览”“核心经营指标”时，数据岗位可以返回结构化看板结果。
+- 如果用户提供 GMV、订单、访客、广告花费、退款、毛利等指标，后端按这些真实入参计算。
+- 如果没有真实指标，也会明确标记 `store_metrics_required` 和 `has_data=false`，前端不能把样例基线当成平台实时数据。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p agent data_dashboard_builds_from_user_metrics -- --nocapture`
+- [x] `cargo test -p agent data_dashboard_marks_sample_when_metrics_missing -- --nocapture`
+- [x] `cargo test -p agent autosuggests_more_specific_data_skills_by_intent -- --nocapture`
+- [x] `cargo test -p agent executor_runs_representative_native_categories -- --nocapture`
+- [x] `cargo check -p agent`
+- [x] `cargo clippy -p agent`
+
 ## Post 8-28：Design 设计交付物真实沉淀
 
 状态：done

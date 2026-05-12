@@ -92,6 +92,7 @@ The following major foundations are already in place:
 - agent skill run persistence and query API
 - multiple native skill migrations across ops / data / service / creative / web / design / accounting
 - creative and design skill outputs can now materialize into reusable workspace artifacts when the skill result is successful
+- data dashboard is now a native deterministic skill with explicit manual-input vs store-metrics-required readiness
 
 ## 5. Current Progress Estimate
 
@@ -222,21 +223,21 @@ Continue in this order:
 The current active slice is:
 
 ```text
-Post 8-28: design deliverable artifact materialization
+Post 8-29: data dashboard native skill
 ```
 
 Scope:
 
-- persist supported design skill success outputs as real markdown workspace artifacts
-- reuse the existing service/SSE artifact persistence chain and `workspace_artifact_created` event
-- keep design image/file generation out of scope until a real asset generation or object storage pipeline exists
+- turn `data_dashboard` from deferred placeholder into a native Agent data skill
+- return dashboard cards, health score, alerts, and next actions from deterministic backend rules
+- keep live platform metrics out of scope until a real store metrics adapter exists
 
 Reason:
 
-- high product value for turning design worker output into reusable deliverables
+- high product value for the data worker and business overview workflow
 - backend-first
 - no new fake frontend needed
-- strengthens the design layer using already migrated workspace artifact foundations
+- strengthens the data layer while preserving honest degradation when live metrics are missing
 
 ## 10. Validation Standard
 

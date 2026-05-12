@@ -85,13 +85,29 @@ pub fn specs() -> Vec<SkillSpec> {
         spec(
             "data_dashboard",
             "数据看板",
-            "生成店铺核心经营指标看板，Rust迁移阶段返回延迟计划",
+            "生成店铺核心经营指标看板，支持手工指标输入和未接数据源时的明确降级说明",
             SkillPriority::High,
             vec![
                 field("days", "integer", "统计天数，默认30", false),
                 field("platform", "string", "平台筛选，留空查全部", false),
+                field("gmv", "number", "本期GMV", false),
+                field("previous_gmv", "number", "上期GMV，用于环比", false),
+                field("orders", "integer", "本期订单数", false),
+                field("previous_orders", "integer", "上期订单数，用于环比", false),
+                field("visitors", "integer", "本期访客数UV", false),
+                field(
+                    "previous_visitors",
+                    "integer",
+                    "上期访客数UV，用于环比",
+                    false,
+                ),
+                field("clicks", "integer", "本期点击数", false),
+                field("ad_spend", "number", "广告花费", false),
+                field("refund_amount", "number", "退款金额", false),
+                field("gross_profit", "number", "毛利额", false),
+                field("target_gmv", "number", "目标GMV，用于完成率", false),
             ],
-            &["deferred"],
+            &["deterministic"],
         ),
         spec(
             "data_customer_segmentation",
@@ -369,11 +385,7 @@ pub async fn execute(skill_name: &str, input: Value, _context: &SkillContext) ->
         "data_funnel_analysis" => funnel_analysis(&input),
         "data_anomaly_diagnosis" => anomaly_diagnosis(&input),
         "data_trend_forecast" => trend_forecast(&input),
-        "data_dashboard" => deferred(
-            skill_name,
-            "需要接入 store_metrics 汇总、环比和异常检测",
-            &input,
-        ),
+        "data_dashboard" => data_dashboard(&input),
         "data_customer_segmentation" => customer_segmentation(&input),
         "data_competitor_analysis" => competitor_analysis(&input)?,
         "data_multi_period_trend" => multi_period_trend(&input),
@@ -587,6 +599,127 @@ fn trend_forecast(input: &Value) -> Value {
         "斜率": round4(slope),
         "预测结果": forecasts,
         "置信说明": "基于线性回归，反映近期趋势，不含季节性因素"
+    })
+}
+
+fn data_dashboard(input: &Value) -> Value {
+    let days = i(input, "days", 30).clamp(1, 365);
+    let platform = s(input, "platform", "all");
+    let (gmv, has_gmv) = number_from_any(input, &["gmv", "revenue"], 128_000.0);
+    let (previous_gmv, has_previous_gmv) =
+        number_from_any(input, &["previous_gmv", "last_gmv"], gmv * 0.92);
+    let (orders, has_orders) = number_from_any(input, &["orders", "order_count"], 1_280.0);
+    let (previous_orders, has_previous_orders) =
+        number_from_any(input, &["previous_orders", "last_orders"], orders * 0.95);
+    let (visitors, has_visitors) = number_from_any(input, &["visitors", "uv"], 32_000.0);
+    let (previous_visitors, has_previous_visitors) = number_from_any(
+        input,
+        &["previous_visitors", "last_visitors"],
+        visitors * 0.96,
+    );
+    let (clicks, has_clicks) = number_from_any(input, &["clicks", "click_count"], visitors * 0.18);
+    let (ad_spend, has_ad_spend) = number_from_any(input, &["ad_spend", "ad_cost"], gmv * 0.12);
+    let (refund_amount, has_refund_amount) =
+        number_from_any(input, &["refund_amount", "refunds"], gmv * 0.035);
+    let (gross_profit, has_gross_profit) =
+        number_from_any(input, &["gross_profit", "profit"], gmv * 0.28);
+    let (target_gmv, has_target_gmv) =
+        number_from_any(input, &["target_gmv", "goal_gmv"], gmv * 1.15);
+
+    let has_user_metrics = [
+        has_gmv,
+        has_previous_gmv,
+        has_orders,
+        has_previous_orders,
+        has_visitors,
+        has_previous_visitors,
+        has_clicks,
+        has_ad_spend,
+        has_refund_amount,
+        has_gross_profit,
+        has_target_gmv,
+    ]
+    .into_iter()
+    .any(|item| item);
+
+    let conversion_rate = pct(orders, visitors.max(1.0));
+    let ctr = pct(clicks, visitors.max(1.0));
+    let aov = gmv / orders.max(1.0);
+    let ad_roi = gmv / ad_spend.max(0.01);
+    let refund_rate = pct(refund_amount, gmv.max(1.0));
+    let gross_margin = pct(gross_profit, gmv.max(1.0));
+    let target_achievement = pct(gmv, target_gmv.max(1.0));
+    let gmv_growth = pct_delta(gmv, previous_gmv);
+    let order_growth = pct_delta(orders, previous_orders);
+    let visitor_growth = pct_delta(visitors, previous_visitors);
+
+    let mut alerts = Vec::new();
+    if gmv_growth < -10.0 {
+        alerts.push(json!({"level": "warning", "metric": "GMV", "message": "GMV环比下滑超过10%，优先排查流量、转化和客单价"}));
+    }
+    if conversion_rate < 2.0 {
+        alerts.push(json!({"level": "warning", "metric": "转化率", "message": "访客到订单转化偏低，建议复核详情页、价格和首屏卖点"}));
+    }
+    if ad_roi < 2.0 {
+        alerts.push(json!({"level": "warning", "metric": "广告ROI", "message": "广告ROI低于2，建议收缩低效计划并复盘素材"}));
+    }
+    if refund_rate > 6.0 {
+        alerts.push(json!({"level": "warning", "metric": "退款率", "message": "退款率偏高，建议拆解售后原因和商品描述一致性"}));
+    }
+    if gross_margin < 20.0 {
+        alerts.push(json!({"level": "warning", "metric": "毛利率", "message": "毛利率偏低，需复核进货成本、优惠力度和平台扣点"}));
+    }
+    if alerts.is_empty() {
+        alerts.push(json!({"level": "info", "metric": "整体", "message": "核心指标未触发高优先级预警，建议继续跟踪趋势和渠道结构"}));
+    }
+
+    let score = dashboard_health_score(
+        gmv_growth,
+        conversion_rate,
+        ad_roi,
+        refund_rate,
+        gross_margin,
+        target_achievement,
+    );
+    let data_readiness = if has_user_metrics {
+        "user_provided"
+    } else {
+        "sample_only"
+    };
+
+    json!({
+        "status": "success",
+        "has_data": has_user_metrics,
+        "data_readiness": data_readiness,
+        "adapter_status": if has_user_metrics { "manual_input" } else { "store_metrics_required" },
+        "数据来源": if has_user_metrics { "用户提供指标" } else { "未接入 store_metrics adapter；以下为样例基线，仅用于展示看板结构和诊断口径" },
+        "周期": format!("{days}天"),
+        "平台": platform,
+        "核心指标": [
+            metric_card("GMV", round2(gmv), "CNY", gmv_growth, "看收入规模和环比动能"),
+            metric_card("订单数", round2(orders), "orders", order_growth, "看成交规模"),
+            metric_card("访客数", round2(visitors), "UV", visitor_growth, "看流量盘子"),
+            metric_card("点击率", round2(ctr), "%", ctr - 15.0, "流量点击效率"),
+            metric_card("转化率", round2(conversion_rate), "%", conversion_rate - 3.0, "访客到订单效率"),
+            metric_card("客单价", round2(aov), "CNY", 0.0, "成交结构和价格带"),
+            metric_card("广告ROI", round2(ad_roi), "x", ad_roi - 2.5, "投放产出效率"),
+            metric_card("退款率", round2(refund_rate), "%", 4.0 - refund_rate, "售后和描述一致性"),
+            metric_card("毛利率", round2(gross_margin), "%", gross_margin - 25.0, "利润安全垫"),
+            metric_card("目标完成率", round2(target_achievement), "%", target_achievement - 100.0, "目标进度")
+        ],
+        "经营健康度": {
+            "总分": score,
+            "等级": if score >= 80 { "健康" } else if score >= 60 { "需关注" } else { "风险" },
+            "评分口径": "GMV动能、转化、ROI、退款、毛利和目标完成率的确定性规则评分"
+        },
+        "看板分区": [
+            {"section": "增长", "metrics": ["GMV", "订单数", "访客数"], "summary": growth_summary(gmv_growth, order_growth, visitor_growth)},
+            {"section": "效率", "metrics": ["转化率", "客单价", "广告ROI"], "summary": efficiency_summary(conversion_rate, ad_roi, aov)},
+            {"section": "风险", "metrics": ["退款率", "毛利率"], "summary": risk_summary(refund_rate, gross_margin)}
+        ],
+        "预警": alerts,
+        "下一步动作": dashboard_actions(gmv_growth, conversion_rate, ad_roi, refund_rate, gross_margin),
+        "说明": if has_user_metrics { "本看板基于本次 skill 入参计算，不代表外部平台实时拉取结果。" } else { "当前没有真实店铺指标入参，也没有 store_metrics adapter；前端应展示为缺数据/样例态，不能当作平台实时数据。" }
     })
 }
 
@@ -966,6 +1099,112 @@ fn demand_forecast(input: &Value) -> Value {
     })
 }
 
+fn number_from_any(input: &Value, keys: &[&str], default: f64) -> (f64, bool) {
+    for key in keys {
+        if let Some(value) = input.get(*key).and_then(Value::as_f64) {
+            return (value.max(0.0), true);
+        }
+        if let Some(value) = input.get(*key).and_then(Value::as_i64) {
+            return ((value as f64).max(0.0), true);
+        }
+    }
+    (default.max(0.0), false)
+}
+
+fn pct_delta(current: f64, previous: f64) -> f64 {
+    pct(current - previous, previous.max(1.0))
+}
+
+fn metric_card(label: &str, value: f64, unit: &str, delta: f64, note: &str) -> Value {
+    json!({
+        "指标": label,
+        "数值": value,
+        "单位": unit,
+        "变化": signed_percent(delta, 2),
+        "状态": if delta >= 0.0 { "改善" } else if delta > -5.0 { "轻微下滑" } else { "需关注" },
+        "说明": note
+    })
+}
+
+fn dashboard_health_score(
+    gmv_growth: f64,
+    conversion_rate: f64,
+    ad_roi: f64,
+    refund_rate: f64,
+    gross_margin: f64,
+    target_achievement: f64,
+) -> i64 {
+    let score = 50.0
+        + gmv_growth.clamp(-20.0, 20.0) * 0.6
+        + (conversion_rate - 3.0).clamp(-3.0, 8.0) * 2.0
+        + (ad_roi - 2.0).clamp(-2.0, 6.0) * 3.0
+        + (gross_margin - 25.0).clamp(-20.0, 30.0) * 0.5
+        + (target_achievement - 80.0).clamp(-40.0, 40.0) * 0.2
+        - (refund_rate - 4.0).clamp(0.0, 12.0) * 2.0;
+    score.round().clamp(0.0, 100.0) as i64
+}
+
+fn growth_summary(gmv_growth: f64, order_growth: f64, visitor_growth: f64) -> &'static str {
+    if gmv_growth >= 5.0 && order_growth >= 3.0 {
+        "收入和成交同步增长，可继续放大有效渠道"
+    } else if visitor_growth >= 5.0 && order_growth < 0.0 {
+        "流量增长但成交未跟上，重点排查转化承接"
+    } else if gmv_growth < -5.0 {
+        "收入动能走弱，优先定位流量、订单和客单价变化"
+    } else {
+        "增长基本平稳，建议持续观察渠道结构"
+    }
+}
+
+fn efficiency_summary(conversion_rate: f64, ad_roi: f64, aov: f64) -> String {
+    if conversion_rate < 2.0 {
+        "转化效率偏弱，先优化详情页和首屏卖点".to_string()
+    } else if ad_roi < 2.0 {
+        "投放效率偏弱，先收缩低ROI计划".to_string()
+    } else {
+        format!("效率稳定，当前客单价约{}", round2(aov))
+    }
+}
+
+fn risk_summary(refund_rate: f64, gross_margin: f64) -> &'static str {
+    if refund_rate > 6.0 {
+        "售后风险偏高，优先拆解退款原因"
+    } else if gross_margin < 20.0 {
+        "利润安全垫不足，需复核成本和优惠"
+    } else {
+        "退款和毛利暂未触发高风险阈值"
+    }
+}
+
+fn dashboard_actions(
+    gmv_growth: f64,
+    conversion_rate: f64,
+    ad_roi: f64,
+    refund_rate: f64,
+    gross_margin: f64,
+) -> Vec<&'static str> {
+    let mut actions = Vec::new();
+    if gmv_growth < -5.0 {
+        actions.push("拆分GMV下滑来源：流量、转化、客单价、退款");
+    }
+    if conversion_rate < 2.0 {
+        actions.push("复核详情页首屏、价格锚点、评价和客服响应");
+    }
+    if ad_roi < 2.0 {
+        actions.push("暂停低ROI计划，保留高转化素材继续A/B测试");
+    }
+    if refund_rate > 6.0 {
+        actions.push("按退款原因做帕累托拆解，优先处理累计80%问题项");
+    }
+    if gross_margin < 20.0 {
+        actions.push("复核进货成本、平台扣点、优惠券和包邮策略");
+    }
+    if actions.is_empty() {
+        actions.push("保持当前节奏，下一轮重点观察渠道结构和复购");
+    }
+    actions
+}
+
 fn json_ok(value: Value) -> Result<Value, SkillError> {
     Ok(value)
 }
@@ -1151,4 +1390,62 @@ fn round2(value: f64) -> f64 {
 
 fn round4(value: f64) -> f64 {
     (value * 10000.0).round() / 10000.0
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn data_dashboard_builds_from_user_metrics() {
+        let output = data_dashboard(&json!({
+            "days": 14,
+            "platform": "douyin",
+            "gmv": 180000.0,
+            "previous_gmv": 150000.0,
+            "orders": 1800,
+            "previous_orders": 1500,
+            "visitors": 36000,
+            "previous_visitors": 33000,
+            "clicks": 7200,
+            "ad_spend": 36000.0,
+            "refund_amount": 5400.0,
+            "gross_profit": 54000.0,
+            "target_gmv": 200000.0
+        }));
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(output.get("has_data").and_then(Value::as_bool), Some(true));
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("manual_input")
+        );
+        assert!(output.get("核心指标").and_then(Value::as_array).is_some());
+        assert!(output.pointer("/经营健康度/总分").is_some());
+    }
+
+    #[test]
+    fn data_dashboard_marks_sample_when_metrics_missing() {
+        let output = data_dashboard(&json!({"days": 30}));
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(output.get("has_data").and_then(Value::as_bool), Some(false));
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("store_metrics_required")
+        );
+        assert!(
+            output
+                .get("说明")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .contains("不能当作平台实时数据")
+        );
+    }
 }

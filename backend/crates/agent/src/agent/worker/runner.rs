@@ -741,6 +741,29 @@ fn autosuggest_data(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
     if contains_any(
         text,
         &[
+            "dashboard",
+            "看板",
+            "数据概览",
+            "经营概览",
+            "经营指标",
+            "核心指标",
+            "店铺大盘",
+            "大盘",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "data_dashboard",
+            serde_json::json!({
+                "days": infer_period_days(text),
+                "platform": infer_platform(text),
+            }),
+            "根据数据看板/经营概览意图自动补偿数据看板 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
+        &[
             "competitor",
             "竞品",
             "对标",
@@ -2782,6 +2805,10 @@ mod tests {
             (
                 "把退款和售后问题做帕累托分析，看看前5大问题",
                 "data_refund_decomposition",
+            ),
+            (
+                "打开店铺大盘，看一下最近30天核心经营指标和预警",
+                "data_dashboard",
             ),
         ];
 

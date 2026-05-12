@@ -734,6 +734,10 @@ mod tests {
                 json!({"purchase_cost": 20.0, "selling_price": 49.0}),
             ),
             ("data_funnel_analysis", json!({})),
+            (
+                "data_dashboard",
+                json!({"gmv": 180000.0, "previous_gmv": 150000.0, "orders": 1800, "visitors": 36000}),
+            ),
             ("service_dsr_improvement", json!({})),
             (
                 "creative_title_ctr_scorer",
