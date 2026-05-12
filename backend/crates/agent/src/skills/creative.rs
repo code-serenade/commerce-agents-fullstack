@@ -209,7 +209,7 @@ impl Skill for CreativeTitleCtrScorer {
             suggestions.push("标题CTR潜力良好，可微调紧迫感词语".to_owned());
         }
 
-        Ok(SkillOutcome::new(json!({
+        let mut output = json!({
             "平台": platform,
             "标题": title,
             "目标受众": audience,
@@ -223,7 +223,9 @@ impl Skill for CreativeTitleCtrScorer {
                 "标题结构": {"得分": format!("{struct_score}/25"), "字数": title_len, "推荐范围": format!("{lo}-{hi}字")}
             },
             "优化建议": suggestions
-        })).with_summary("标题CTR预测评分已完成"))
+        });
+        normalize_creative_output("creative_title_ctr_scorer", &params, &mut output);
+        Ok(SkillOutcome::new(output).with_summary("标题CTR预测评分已完成"))
     }
 }
 
@@ -384,7 +386,9 @@ macro_rules! native_creative_skill {
                 $(let _ = string_param(&params, $required)?;)*
                 let mut normalized = serde_json::Map::new();
                 $(normalized.insert($key.to_owned(), json!($value(&params)?));)*
-                Ok(native_creative_outcome(&self.spec.id, normalized))
+                let mut outcome = native_creative_outcome(&self.spec.id, normalized);
+                normalize_creative_output(&self.spec.id, &params, &mut outcome.output);
+                Ok(outcome)
             }
         }
     };
@@ -457,6 +461,76 @@ native_creative_skill!(
         "platform" => |p: &Value| Ok(optional_string_param(p, "platform")?.unwrap_or_else(|| "微信公众号".to_owned())),
     }
 );
+
+fn normalize_creative_output(skill_id: &str, input: &Value, output: &mut Value) {
+    let Some(map) = output.as_object_mut() else {
+        return;
+    };
+    if map.contains_key("status") {
+        return;
+    }
+    map.insert("status".to_owned(), json!("success"));
+    map.insert("has_data".to_owned(), json!(true));
+    map.insert("adapter_status".to_owned(), json!("manual_input"));
+    map.insert(
+        "data_readiness".to_owned(),
+        json!(creative_data_readiness(skill_id, input)),
+    );
+    map.insert("summary".to_owned(), json!(creative_summary(skill_id)));
+}
+
+fn creative_data_readiness(skill_id: &str, input: &Value) -> &'static str {
+    match skill_id {
+        "creative_video_script" if !has_any_input(input, &["product_name", "product_id"]) => {
+            "calculated_from_defaults"
+        }
+        "creative_seeding_copy"
+            if !has_any_input(input, &["product_name", "selling_points", "product_id"]) =>
+        {
+            "calculated_from_defaults"
+        }
+        "creative_content_calendar"
+            if !has_any_input(input, &["platforms", "content_types", "weekly_posts"]) =>
+        {
+            "calculated_from_defaults"
+        }
+        "creative_live_script"
+            if !has_any_input(input, &["duration_hours", "product_count", "product_ids"]) =>
+        {
+            "calculated_from_defaults"
+        }
+        "creative_product_article" if !has_any_input(input, &["product_name", "product_id"]) => {
+            "calculated_from_defaults"
+        }
+        _ => "user_provided",
+    }
+}
+
+fn has_any_input(input: &Value, keys: &[&str]) -> bool {
+    keys.iter().any(|key| {
+        input.get(*key).is_some_and(|value| match value {
+            Value::Null => false,
+            Value::String(value) => !value.trim().is_empty(),
+            Value::Array(values) => !values.is_empty(),
+            Value::Object(values) => !values.is_empty(),
+            _ => true,
+        })
+    })
+}
+
+fn creative_summary(skill_id: &str) -> &'static str {
+    match skill_id {
+        "creative_video_script" => "短视频脚本已生成",
+        "creative_seeding_copy" => "种草文案已生成",
+        "creative_ip_branding" => "IP定位方案已生成",
+        "creative_content_calendar" => "内容排期已生成",
+        "creative_trend_catch" => "内容趋势方向已生成",
+        "creative_live_script" => "直播话术脚本已生成",
+        "creative_product_article" => "产品软文草稿已生成",
+        "creative_title_ctr_scorer" => "标题CTR预测评分已完成",
+        _ => "创意技能已返回输入摘要",
+    }
+}
 
 fn native_creative_outcome(skill_id: &str, input: Map<String, Value>) -> SkillOutcome {
     match skill_id {
@@ -671,7 +745,7 @@ impl Skill for CreativeContentCalendar {
             .unwrap_or(5)
             .max(1);
         let schedule = build_content_schedule(&platforms, &content_types, weekly_posts);
-        Ok(SkillOutcome::new(json!({
+        let mut output = json!({
             "能力": "内容排期",
             "周期": period,
             "发布平台": platforms,
@@ -680,8 +754,9 @@ impl Skill for CreativeContentCalendar {
             "排期": schedule,
             "选题原则": ["首条给痛点或结果", "中段做测评和对比", "末段承接直播/私域/客服问题", "每周复盘标题CTR和完播率"],
             "复盘字段": ["发布时间", "平台", "选题", "内容形式", "曝光", "点击", "完播", "加购", "评论问题"]
-        }))
-        .with_summary("内容排期已生成"))
+        });
+        normalize_creative_output("creative_content_calendar", &params, &mut output);
+        Ok(SkillOutcome::new(output).with_summary("内容排期已生成"))
     }
 }
 
@@ -941,5 +1016,100 @@ fn ctr_grade(total: i64) -> &'static str {
         "C 待改进"
     } else {
         "D 需重写"
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn assert_success_contract(output: &Value, summary: &str, readiness: &str) {
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(output.get("has_data").and_then(Value::as_bool), Some(true));
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("manual_input")
+        );
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some(readiness)
+        );
+        assert_eq!(output.get("summary").and_then(Value::as_str), Some(summary));
+    }
+
+    #[tokio::test]
+    async fn creative_video_script_discloses_default_inputs() {
+        let outcome = CreativeVideoScript::new()
+            .run(json!({}), SkillContext::default())
+            .await
+            .expect("video script should run with defaults");
+
+        assert_success_contract(
+            &outcome.output,
+            "短视频脚本已生成",
+            "calculated_from_defaults",
+        );
+        assert_eq!(
+            outcome.output.get("商品").and_then(Value::as_str),
+            Some("待推广商品")
+        );
+    }
+
+    #[tokio::test]
+    async fn creative_trend_catch_marks_success_for_category() {
+        let outcome = CreativeTrendCatch::new()
+            .run(json!({"category": "冷萃咖啡"}), SkillContext::default())
+            .await
+            .expect("trend catch should run with category");
+
+        assert_success_contract(&outcome.output, "内容趋势方向已生成", "user_provided");
+        assert_eq!(
+            outcome.output.get("类目").and_then(Value::as_str),
+            Some("冷萃咖啡")
+        );
+    }
+
+    #[tokio::test]
+    async fn creative_title_ctr_scorer_marks_success_for_user_title() {
+        let outcome = CreativeTitleCtrScorer::new()
+            .run(
+                json!({"title": "限时新品冷萃咖啡，通勤党立即加购"}),
+                SkillContext::default(),
+            )
+            .await
+            .expect("title CTR scorer should run with title");
+
+        assert_success_contract(&outcome.output, "标题CTR预测评分已完成", "user_provided");
+        assert!(
+            outcome
+                .output
+                .get("综合CTR评分")
+                .and_then(Value::as_str)
+                .is_some()
+        );
+    }
+
+    #[tokio::test]
+    async fn creative_content_calendar_discloses_default_inputs() {
+        let outcome = CreativeContentCalendar::new()
+            .run(json!({}), SkillContext::default())
+            .await
+            .expect("content calendar should run with defaults");
+
+        assert_success_contract(
+            &outcome.output,
+            "内容排期已生成",
+            "calculated_from_defaults",
+        );
+        assert!(
+            outcome
+                .output
+                .get("排期")
+                .and_then(Value::as_array)
+                .is_some_and(|items| !items.is_empty())
+        );
     }
 }

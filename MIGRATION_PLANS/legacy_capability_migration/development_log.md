@@ -1,5 +1,44 @@
 # 迁移开发记录
 
+## Post 8-40：Creative 高级内容交付物真实沉淀
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 40 个补强项：`Post 8-40`。
+
+本次目标：
+
+- 把已 native 化的创意内容能力从“只返回 skill 输出”推进到“可被 SSE 自动沉淀为 workspace artifact”。
+- 补齐 `creative_trend_catch` 和 `creative_title_ctr_scorer` 的工作区交付物映射。
+- 修正 creative native skill 输出契约，确保已有创意交付物映射真正生效。
+
+涉及范围：
+
+- 产品内核：创意虚拟员工的趋势、脚本、文案、排期、直播话术、软文和标题评分结果能进入工作区交付物体系，便于后续复用、导出和前端展示。
+- 后端 Agent：`backend/crates/agent/src/skills/creative.rs` 统一成功输出字段：`status=success`、`has_data=true`、`adapter_status=manual_input`、`data_readiness`、`summary`。
+- 后端 service：`WorkspaceApi::materialize_agent_content_artifact` 新增支持 `creative_trend_report`、`creative_title_ctr_score`，并让已有 creative artifact 映射依赖的成功状态完整可用。
+- API/SSE：更新 `API_DOCS/app.md` 与 `API_DOCS/sse.md`，说明 creative 内容 skill 的 artifact 类型和默认估算边界。
+- 前端：本阶段不新增页面和假按钮；后续前端只需按已有 workspace artifact / SSE 事件展示真实交付物。
+
+用户可感知变化：
+
+- 用户在问答中触发创意岗位能力后，成功的短视频脚本、种草文案、IP定位、内容排期、直播脚本、产品软文、趋势方向和标题CTR评分，都会更稳定地出现在工作区交付物里。
+- 如果创意 skill 使用默认商品、排期或直播参数，交付物内容会带 `data_readiness=calculated_from_defaults`，前端可以提示“基于默认估算”，不假装读取了真实平台数据。
+- 如果缺少必填参数，例如 IP 定位缺品牌/类目、趋势捕捉缺类目、标题评分缺标题，后端仍返回 validation error，不创建假交付物。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p agent creative_ -- --nocapture`
+- [x] `cargo test -p service content_artifact_builds_from_creative_ -- --nocapture`
+- [x] `cargo check -p agent`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo clippy -p agent -p service -p web-server`
+
 ## Post 8-39：Web 增长交付物真实沉淀
 
 状态：done

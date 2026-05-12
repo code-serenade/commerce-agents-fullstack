@@ -4974,6 +4974,18 @@ fn build_content_artifact_from_skill_output(
             "Product article",
             "creative product article artifact generated",
         ),
+        "creative_trend_catch" => (
+            "creative",
+            "creative_trend_report",
+            "Creative trend report",
+            "creative trend report artifact generated",
+        ),
+        "creative_title_ctr_scorer" => (
+            "creative",
+            "creative_title_ctr_score",
+            "Creative title CTR score",
+            "creative title CTR score artifact generated",
+        ),
         "design_main_image" => (
             "design",
             "design_main_image_brief",
@@ -6590,6 +6602,57 @@ mod tests {
         assert!(draft.preview.contains("短视频脚本已生成"));
         assert!(draft.content.contains("# Video script"));
         assert!(draft.content.contains("```json"));
+    }
+
+    #[test]
+    fn content_artifact_builds_from_creative_advanced_skill_output() {
+        let output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "data_readiness": "user_provided",
+            "summary": "内容趋势方向已生成",
+            "类目": "冷萃咖啡",
+            "趋势方向": [
+                {"方向": "真实测评透明化", "内容切入": "把优缺点讲清楚"}
+            ]
+        });
+
+        let draft = build_content_artifact_from_skill_output("creative_trend_catch", &output)
+            .expect("creative trend output should be materializable");
+
+        assert_eq!(draft.content_category, "creative");
+        assert_eq!(draft.artifact_type, "creative_trend_report");
+        assert_eq!(draft.title, "Creative trend report");
+        assert_eq!(draft.file_name, "creative_trend_report.md");
+        assert!(draft.preview.contains("内容趋势方向已生成"));
+        assert!(draft.content.contains("# Creative trend report"));
+        assert!(
+            draft
+                .content
+                .contains("\"adapter_status\": \"manual_input\"")
+        );
+
+        let score_output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "data_readiness": "user_provided",
+            "summary": "标题CTR预测评分已完成",
+            "标题": "限时新品冷萃咖啡，通勤党立即加购",
+            "综合CTR评分": "82/100"
+        });
+
+        let score_draft =
+            build_content_artifact_from_skill_output("creative_title_ctr_scorer", &score_output)
+                .expect("creative title CTR output should be materializable");
+
+        assert_eq!(score_draft.content_category, "creative");
+        assert_eq!(score_draft.artifact_type, "creative_title_ctr_score");
+        assert_eq!(score_draft.title, "Creative title CTR score");
+        assert_eq!(score_draft.file_name, "creative_title_ctr_score.md");
+        assert!(score_draft.preview.contains("标题CTR预测评分已完成"));
+        assert!(score_draft.content.contains("# Creative title CTR score"));
     }
 
     #[test]

@@ -223,22 +223,23 @@ Continue in this order:
 The latest completed slice is:
 
 ```text
-Post 8-39: web growth artifact materialization
+Post 8-40: creative advanced artifact materialization
 ```
 
 Scope:
 
-- persist successful `web_seo_optimize`, `web_title_generator`, `web_page_conversion`, `web_store_design`, `web_keyword_research`, `web_product_description`, and `web_title_seo_scorer` outputs as real workspace artifacts
-- keep Web growth output contracts in the existing `Skill` / `SkillExecutorSet` path with `status=success`, `has_data`, `adapter_status`, `data_readiness`, and `summary`
-- disclose deterministic default platform rules or benchmark estimates through `data_readiness=calculated_from_defaults`
-- keep missing required parameters as validation errors so the product does not create fake Web growth artifacts
+- normalize creative native output contracts in the existing `Skill` / `SkillExecutorSet` path with `status=success`, `has_data`, `adapter_status`, `data_readiness`, and `summary`
+- make existing creative artifact mappings effective for video scripts, seeding copy, IP branding, content calendars, live scripts, and product articles
+- persist successful `creative_trend_catch` and `creative_title_ctr_scorer` outputs as `creative_trend_report` and `creative_title_ctr_score` workspace artifacts
+- disclose default商品/排期/直播参数 through `data_readiness=calculated_from_defaults`
+- keep missing required creative parameters as validation errors so the product does not create fake creative artifacts
 
 Reason:
 
-- high product value for the Web growth worker and listing/storefront workflow
+- high product value for the creative worker and content production workflow
 - backend-first
 - no new fake frontend needed
-- extends the same workspace artifact path from creative/design/data/ops reports to Web growth deliverables while preserving honest disclosure when required input is missing
+- extends the same workspace artifact path to creative advanced deliverables while preserving honest disclosure when required input is missing
 
 ## 10. Validation Standard
 
