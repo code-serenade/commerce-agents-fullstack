@@ -5058,6 +5058,42 @@ fn build_content_artifact_from_skill_output(
             "Data A/B test report",
             "data A/B test artifact generated",
         ),
+        "data_multi_period_trend" => (
+            "data",
+            "data_multi_period_trend_report",
+            "Data multi-period trend report",
+            "data multi-period trend artifact generated",
+        ),
+        "data_ltv_calculator" => (
+            "data",
+            "data_ltv_report",
+            "Data LTV report",
+            "data LTV calculation artifact generated",
+        ),
+        "data_cohort_analysis" => (
+            "data",
+            "data_cohort_report",
+            "Data cohort report",
+            "data cohort analysis artifact generated",
+        ),
+        "data_seasonal_decompose" => (
+            "data",
+            "data_seasonal_decompose_report",
+            "Data seasonal decomposition report",
+            "data seasonal decomposition artifact generated",
+        ),
+        "data_price_elasticity" => (
+            "data",
+            "data_price_elasticity_report",
+            "Data price elasticity report",
+            "data price elasticity artifact generated",
+        ),
+        "data_demand_forecast" => (
+            "data",
+            "data_demand_forecast_report",
+            "Data demand forecast report",
+            "data demand forecast artifact generated",
+        ),
         "accounting_cost_calc" => (
             "accounting",
             "accounting_cost_report",
@@ -6623,6 +6659,37 @@ mod tests {
         assert_eq!(draft.file_name, "data_anomaly_report.md");
         assert!(draft.preview.contains("异常诊断报告已生成"));
         assert!(draft.content.contains("# Data anomaly report"));
+        assert!(
+            draft
+                .content
+                .contains("\"adapter_status\": \"manual_input\"")
+        );
+    }
+
+    #[test]
+    fn content_artifact_builds_from_data_advanced_skill_output() {
+        let output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "data_readiness": "user_provided",
+            "summary": "Demand forecast report generated",
+            "metric": "orders",
+            "historyPoints": 8,
+            "forecast": [
+                {"days": 7, "total": 1280.0}
+            ]
+        });
+
+        let draft = build_content_artifact_from_skill_output("data_demand_forecast", &output)
+            .expect("data advanced output should be materializable");
+
+        assert_eq!(draft.content_category, "data");
+        assert_eq!(draft.artifact_type, "data_demand_forecast_report");
+        assert_eq!(draft.title, "Data demand forecast report");
+        assert_eq!(draft.file_name, "data_demand_forecast_report.md");
+        assert!(draft.preview.contains("Demand forecast report generated"));
+        assert!(draft.content.contains("# Data demand forecast report"));
         assert!(
             draft
                 .content

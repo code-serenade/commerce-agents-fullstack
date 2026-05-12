@@ -36,6 +36,12 @@
 | `data_competitor_analysis` | `data_competitor_analysis` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已补强竞品/对标/竞对自然问法触达；Post 8-37：成功输出会沉淀为 `data_competitor_report` artifact，缺竞品列表时明示 `calculated_from_defaults` |
 | `data_dashboard` | `data_dashboard` | native_ready | `backend/crates/agent/src/skills/data.rs` | Post 8-29：已迁为 Rust native 经营看板；有入参时按真实入参计算，无入参时明确 `store_metrics_required`，不伪造平台实时数据。Post 8-30：成功输出会沉淀为 `data_dashboard` workspace artifact |
 | `data_ab_test_analyzer` | `data_ab_test_analyzer` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已可 native 执行；Post 8-37：成功输出会沉淀为 `data_ab_test_report` artifact，样本/转化数不合法时返回 validation error |
+| `data_multi_period_trend` | `data_multi_period_trend` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已可 native 执行；Post 8-38：成功输出会沉淀为 `data_multi_period_trend_report` artifact，时序点不足时 deferred |
+| `data_ltv_calculator` | `data_ltv_calculator` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已可 native 执行；Post 8-38：成功输出会沉淀为 `data_ltv_report` artifact，使用默认估算时明示 `calculated_from_defaults` |
+| `data_cohort_analysis` | `data_cohort_analysis` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已可 native 执行；Post 8-38：成功输出会沉淀为 `data_cohort_report` artifact，使用默认新客数时明示 `calculated_from_defaults` |
+| `data_seasonal_decompose` | `data_seasonal_decompose` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已可 native 执行；Post 8-38：成功输出会沉淀为 `data_seasonal_decompose_report` artifact，时序点不足时 deferred |
+| `data_price_elasticity` | `data_price_elasticity` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已可 native 执行；Post 8-38：成功输出会沉淀为 `data_price_elasticity_report` artifact，使用默认价格点时明示 `calculated_from_defaults` |
+| `data_demand_forecast` | `data_demand_forecast` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已可 native 执行；Post 8-38：成功输出会沉淀为 `data_demand_forecast_report` artifact，时序点不足时 deferred |
 
 ## 搜索 search
 

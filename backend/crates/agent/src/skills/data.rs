@@ -1834,6 +1834,142 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn data_multi_period_trend_marks_success_for_user_series() {
+        let outcome = execute(
+            "data_multi_period_trend",
+            json!({
+                "metric": "gmv",
+                "periods": [2, 4],
+                "values": [100.0, 108.0, 115.0, 126.0, 140.0, 152.0, 161.0, 180.0]
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("data multi-period trend should run");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(output.get("has_data").and_then(Value::as_bool), Some(true));
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("user_provided")
+        );
+        assert!(output.get("summary").and_then(Value::as_str).is_some());
+    }
+
+    #[tokio::test]
+    async fn data_ltv_calculator_discloses_default_inputs() {
+        let outcome = execute("data_ltv_calculator", json!({}), &SkillContext::default())
+            .await
+            .expect("data LTV calculator should run with deterministic defaults");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("calculated_from_defaults")
+        );
+        assert!(output.get("summary").and_then(Value::as_str).is_some());
+    }
+
+    #[tokio::test]
+    async fn data_cohort_analysis_discloses_default_inputs() {
+        let outcome = execute("data_cohort_analysis", json!({}), &SkillContext::default())
+            .await
+            .expect("data cohort analysis should run with deterministic defaults");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("calculated_from_defaults")
+        );
+        assert!(output.get("summary").and_then(Value::as_str).is_some());
+    }
+
+    #[tokio::test]
+    async fn data_seasonal_decompose_defers_without_enough_series() {
+        let outcome = execute(
+            "data_seasonal_decompose",
+            json!({
+                "period": 7,
+                "values": [100.0, 108.0, 115.0]
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("data seasonal decomposition should return deferred output");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("deferred")
+        );
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("user_input_required")
+        );
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("missing_user_input")
+        );
+    }
+
+    #[tokio::test]
+    async fn data_price_elasticity_discloses_default_points() {
+        let outcome = execute("data_price_elasticity", json!({}), &SkillContext::default())
+            .await
+            .expect("data price elasticity should run with deterministic defaults");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("calculated_from_defaults")
+        );
+        assert!(output.get("summary").and_then(Value::as_str).is_some());
+    }
+
+    #[tokio::test]
+    async fn data_demand_forecast_marks_success_for_user_series() {
+        let outcome = execute(
+            "data_demand_forecast",
+            json!({
+                "metric": "orders",
+                "forecast_days": [7, 14],
+                "values": [120.0, 128.0, 134.0, 145.0, 151.0, 162.0]
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("data demand forecast should run");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(output.get("has_data").and_then(Value::as_bool), Some(true));
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("user_provided")
+        );
+        assert!(output.get("summary").and_then(Value::as_str).is_some());
+    }
+
+    #[tokio::test]
     async fn data_ab_test_analyzer_marks_success_for_experiment() {
         let outcome = execute(
             "data_ab_test_analyzer",
