@@ -422,7 +422,11 @@ impl Skill for ServiceTicketHandler {
 
         outcome(
             json!({
+                "status": "success",
                 "has_data": true,
+                "adapter_status": "manual_input",
+                "data_readiness": "user_provided",
+                "summary": "客服工单处理方案已生成",
                 "执行模式": "native_service_ticket",
                 "数据来源": "用户输入 + 客服SOP规则；未读取实时平台政策",
                 "平台": platform,
@@ -509,7 +513,11 @@ impl Skill for ServiceFaqPlaybook {
 
         outcome(
             json!({
+                "status": "success",
                 "has_data": true,
+                "adapter_status": "manual_input",
+                "data_readiness": if policies.is_empty() { "general_sop_defaults" } else { "user_policy_provided" },
+                "summary": "客服FAQ话术库已生成",
                 "执行模式": "native_faq_playbook",
                 "数据来源": if policies.is_empty() { "通用客服SOP；未提供店铺政策" } else { "用户提供店铺政策 + 通用客服SOP" },
                 "平台": platform,
@@ -569,7 +577,11 @@ impl Skill for ServiceEscalationFlow {
 
         outcome(
             json!({
+                "status": "success",
                 "has_data": true,
+                "adapter_status": "manual_input",
+                "data_readiness": "user_provided",
+                "summary": "客服升级处理流程已生成",
                 "执行模式": "native_escalation_flow",
                 "数据来源": "用户输入 + 客服升级SOP；未读取实时平台政策",
                 "问题摘要": truncate_chars(&issue_description, 140),
@@ -954,8 +966,16 @@ impl Skill for ServiceDsrImprovement {
             .into_iter()
             .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
             .unwrap_or(("描述相符", desc));
+        let has_user_scores = params.get("description_score").is_some()
+            || params.get("service_score").is_some()
+            || params.get("logistics_score").is_some();
         outcome(
             json!({
+                "status": "success",
+                "has_data": true,
+                "adapter_status": "manual_input",
+                "data_readiness": if has_user_scores { "user_provided" } else { "calculated_from_defaults" },
+                "summary": "DSR提升方案已生成",
                 "平台": platform,
                 "执行模式": "native_dsr_improvement",
                 "数据来源": "用户提供/默认样例；未读取实时店铺指标和行业基准",
@@ -1672,5 +1692,141 @@ fn nps_coefficient(category: &str) -> f64 {
         "商品描述" => -0.20,
         "平台体验" => -0.10,
         _ => -0.15,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::skills::Skill;
+
+    fn assert_success_contract(output: &Value, summary: &str) {
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(output.get("has_data").and_then(Value::as_bool), Some(true));
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("manual_input")
+        );
+        assert_eq!(output.get("summary").and_then(Value::as_str), Some(summary));
+    }
+
+    #[tokio::test]
+    async fn service_ticket_handler_marks_success_for_user_issue() {
+        let outcome = ServiceTicketHandler::new()
+            .run(
+                json!({
+                    "issue_type": "物流延迟",
+                    "customer_message": "包裹还没到，客户很生气并威胁投诉平台",
+                    "customer_emotion": "愤怒",
+                    "platform": "淘宝"
+                }),
+                SkillContext::default(),
+            )
+            .await
+            .expect("service ticket should run");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "客服工单处理方案已生成");
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("user_provided")
+        );
+        assert_eq!(
+            output.get("问题类型").and_then(Value::as_str),
+            Some("物流延迟")
+        );
+        assert!(output.get("客服话术").is_some());
+        assert!(output.get("升级条件").is_some());
+    }
+
+    #[tokio::test]
+    async fn service_faq_playbook_marks_success_for_policy_input() {
+        let outcome = ServiceFaqPlaybook::new()
+            .run(
+                json!({
+                    "platform": "京东",
+                    "questions": ["什么时候发货？", "支持退货吗？"],
+                    "policies": {
+                        "发货时效": "48小时内",
+                        "退货政策": "7天无理由"
+                    }
+                }),
+                SkillContext::default(),
+            )
+            .await
+            .expect("service FAQ should run");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "客服FAQ话术库已生成");
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("user_policy_provided")
+        );
+        assert_eq!(output.get("平台").and_then(Value::as_str), Some("京东"));
+        assert!(
+            output
+                .get("FAQ")
+                .and_then(Value::as_array)
+                .is_some_and(|items| items.len() == 2)
+        );
+    }
+
+    #[tokio::test]
+    async fn service_escalation_flow_marks_success_for_complaint() {
+        let outcome = ServiceEscalationFlow::new()
+            .run(
+                json!({
+                    "issue_description": "客户连续三次反馈质量问题，并表示要投诉平台和曝光",
+                    "customer_emotion": "威胁投诉",
+                    "previous_contacts": 3,
+                    "customer_history": "高价值客户"
+                }),
+                SkillContext::default(),
+            )
+            .await
+            .expect("service escalation should run");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "客服升级处理流程已生成");
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("user_provided")
+        );
+        assert_eq!(output.get("严重度").and_then(Value::as_str), Some("S1"));
+        assert_eq!(
+            output.get("需审批/复核").and_then(Value::as_bool),
+            Some(true)
+        );
+    }
+
+    #[tokio::test]
+    async fn service_dsr_improvement_marks_success_for_scores() {
+        let outcome = ServiceDsrImprovement::new()
+            .run(
+                json!({
+                    "description_score": 4.4,
+                    "service_score": 4.7,
+                    "logistics_score": 4.5,
+                    "platform": "抖音"
+                }),
+                SkillContext::default(),
+            )
+            .await
+            .expect("service DSR should run");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "DSR提升方案已生成");
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("user_provided")
+        );
+        assert_eq!(
+            output.get("优先改善维度").and_then(Value::as_str),
+            Some("描述相符")
+        );
+        assert!(output.get("改善方案").is_some());
     }
 }

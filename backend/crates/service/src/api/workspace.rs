@@ -5052,6 +5052,30 @@ fn build_content_artifact_from_skill_output(
             "Accounting budget plan",
             "accounting budget plan artifact generated",
         ),
+        "service_ticket_handler" => (
+            "service",
+            "service_ticket_playbook",
+            "Service ticket playbook",
+            "service ticket handling artifact generated",
+        ),
+        "service_faq_playbook" => (
+            "service",
+            "service_faq_playbook",
+            "Service FAQ playbook",
+            "service FAQ playbook artifact generated",
+        ),
+        "service_escalation_flow" => (
+            "service",
+            "service_escalation_playbook",
+            "Service escalation playbook",
+            "service escalation flow artifact generated",
+        ),
+        "service_dsr_improvement" => (
+            "service",
+            "service_dsr_improvement_plan",
+            "Service DSR improvement plan",
+            "service DSR improvement artifact generated",
+        ),
         _ => return None,
     };
 
@@ -6482,6 +6506,39 @@ mod tests {
         assert_eq!(draft.file_name, "accounting_profit_report.md");
         assert!(draft.preview.contains("利润分析完成"));
         assert!(draft.content.contains("# Accounting profit report"));
+        assert!(
+            draft
+                .content
+                .contains("\"adapter_status\": \"manual_input\"")
+        );
+    }
+
+    #[test]
+    fn content_artifact_builds_from_service_support_skill_output() {
+        let output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "data_readiness": "user_provided",
+            "summary": "客服升级处理流程已生成",
+            "严重度": "S1",
+            "主管接管话术": "先承认体验问题，明确接管和下一次同步时间",
+            "内部工单模板": {
+                "severity": "S1",
+                "owner": "客服主管",
+                "review_required": true
+            }
+        });
+
+        let draft = build_content_artifact_from_skill_output("service_escalation_flow", &output)
+            .expect("service support output should be materializable");
+
+        assert_eq!(draft.content_category, "service");
+        assert_eq!(draft.artifact_type, "service_escalation_playbook");
+        assert_eq!(draft.title, "Service escalation playbook");
+        assert_eq!(draft.file_name, "service_escalation_playbook.md");
+        assert!(draft.preview.contains("客服升级处理流程已生成"));
+        assert!(draft.content.contains("# Service escalation playbook"));
         assert!(
             draft
                 .content

@@ -223,21 +223,21 @@ Continue in this order:
 The current active slice is:
 
 ```text
-Post 8-32: accounting artifact materialization
+Post 8-33: service support artifact materialization
 ```
 
 Scope:
 
-- persist successful `accounting_cost_calc`, `accounting_profit_analysis`, `accounting_roi_calc`, and `accounting_budget_plan` outputs as real workspace artifacts
-- standardize successful accounting outputs with `status=success`, `has_data=true`, `adapter_status=manual_input`, and `summary`
-- keep missing required finance inputs as `deferred` so the product does not create fake accounting reports
+- persist successful `service_ticket_handler`, `service_faq_playbook`, `service_escalation_flow`, and `service_dsr_improvement` outputs as real workspace artifacts
+- standardize successful service support outputs with `status=success`, `has_data=true`, `adapter_status=manual_input`, `data_readiness`, and `summary`
+- keep DSR default sample scoring explicitly marked with `data_readiness=calculated_from_defaults`
 
 Reason:
 
-- high product value for the accounting worker and business finance workflow
+- high product value for the service worker and customer support workflow
 - backend-first
 - no new fake frontend needed
-- extends the same workspace artifact path from data reports to concrete accounting deliverables while preserving honest degradation when required financial input is missing
+- extends the same workspace artifact path from creative/design/data/accounting reports to concrete service support playbooks while preserving honest disclosure when defaults are used
 
 ## 10. Validation Standard
 

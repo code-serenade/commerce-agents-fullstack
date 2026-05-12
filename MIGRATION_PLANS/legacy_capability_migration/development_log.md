@@ -1,5 +1,45 @@
 # 迁移开发记录
 
+## Post 8-33：Service 客服支持交付物真实沉淀
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 33 个补强项：`Post 8-33`。
+
+本次目标：
+
+- 把旧产品客服岗位中已经 native 化的核心支持能力接入 workspace artifact 体系。
+- 让客服工单处理、FAQ 话术库、投诉升级流程和 DSR 改善方案成为可查询、可预览、可导出的客服支持交付物。
+
+涉及范围：
+
+- 产品内核：客服岗位从“当轮结构化回复”推进到“可沉淀的客服 SOP / playbook 交付物”。
+- 后端 agent：`service_ticket_handler`、`service_faq_playbook`、`service_escalation_flow`、`service_dsr_improvement` 增加 `status=success`、`has_data=true`、`adapter_status=manual_input`、`data_readiness` 和 `summary`。
+- 后端 service：`WorkspaceApi::materialize_agent_content_artifact` 新增支持 `service_ticket_playbook`、`service_faq_playbook`、`service_escalation_playbook`、`service_dsr_improvement_plan`。
+- API/SSE 文档：同步 service artifact 类型和客服 DSR 默认样例需明示的语义。
+
+用户可感知变化：
+
+- 用户让客服岗位处理客诉、生成 FAQ、制定升级流程或输出 DSR 提升方案时，成功结果可以在当前 workspace 真实新增对应客服支持交付物。
+- 这些交付物可以继续走现有工作区 artifact 列表、详情、预览和导出链路，不需要前端先做假按钮。
+- DSR 如果没有用户提供真实评分，会明确标记 `data_readiness=calculated_from_defaults`，前端不能把它展示成实时店铺指标。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p agent service_ticket_handler_marks_success_for_user_issue -- --nocapture`
+- [x] `cargo test -p agent service_faq_playbook_marks_success_for_policy_input -- --nocapture`
+- [x] `cargo test -p agent service_escalation_flow_marks_success_for_complaint -- --nocapture`
+- [x] `cargo test -p agent service_dsr_improvement_marks_success_for_scores -- --nocapture`
+- [x] `cargo test -p service content_artifact_builds_from_service_support_skill_output -- --nocapture`
+- [x] `cargo check -p agent`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo clippy -p agent -p service -p web-server`
+
 ## Post 8-32：Accounting 财务报告交付物真实沉淀
 
 状态：done

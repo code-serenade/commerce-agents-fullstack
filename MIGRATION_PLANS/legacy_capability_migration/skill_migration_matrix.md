@@ -51,10 +51,10 @@ Post 8-10 补充：上述 Agent `search_*` skill 已接入同一份 `[external_s
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
 | --- | --- | --- | --- | --- |
-| `service_ticket_handler` | `service_ticket_handler` | native_ready | `backend/crates/agent/src/skills/service.rs` | Post 8-7：已迁为 native 工单处理、优先级、SLA 和话术包 |
-| `service_faq_playbook` | `service_faq_playbook` | native_ready | `backend/crates/agent/src/skills/service.rs` | Post 8-7：已迁为 native FAQ 话术库和处理指引 |
-| `service_escalation_flow` | `service_escalation_flow` | native_ready | `backend/crates/agent/src/skills/service.rs` | Post 8-7：已迁为 native 升级路径、主管话术和复核模板 |
-| `service_dsr_improvement` | `service_dsr_improvement` | native_ready | `backend/crates/agent/src/skills/service.rs` | Post 8-7：已补强 native 改善方案；已纳入岗位自动补偿规则 |
+| `service_ticket_handler` | `service_ticket_handler` | native_ready | `backend/crates/agent/src/skills/service.rs` | Post 8-7：已迁为 native 工单处理、优先级、SLA 和话术包；Post 8-33：成功输出会沉淀为 `service_ticket_playbook` artifact |
+| `service_faq_playbook` | `service_faq_playbook` | native_ready | `backend/crates/agent/src/skills/service.rs` | Post 8-7：已迁为 native FAQ 话术库和处理指引；Post 8-33：成功输出会沉淀为 `service_faq_playbook` artifact |
+| `service_escalation_flow` | `service_escalation_flow` | native_ready | `backend/crates/agent/src/skills/service.rs` | Post 8-7：已迁为 native 升级路径、主管话术和复核模板；Post 8-33：成功输出会沉淀为 `service_escalation_playbook` artifact |
+| `service_dsr_improvement` | `service_dsr_improvement` | native_ready | `backend/crates/agent/src/skills/service.rs` | Post 8-7：已补强 native 改善方案；已纳入岗位自动补偿规则；Post 8-33：成功输出会沉淀为 `service_dsr_improvement_plan` artifact |
 | `service_return_handler` | `service_return_handler` | native_ready | `backend/crates/agent/src/skills/service.rs` | 已纳入岗位自动补偿规则 |
 | `service_nps_analyzer` | `service_nps_analyzer` | native_ready | `backend/crates/agent/src/skills/service.rs` | 已可 native 执行并可由满意度/NPS自然问法触发 |
 | `service_sentiment_analyzer` | `service_sentiment_analyzer` | native_ready | `backend/crates/agent/src/skills/service.rs` | 已可 native 执行并可由差评/情绪/投诉自然问法触发 |
