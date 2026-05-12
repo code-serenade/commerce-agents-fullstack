@@ -105,11 +105,13 @@ Post 8-10 补充：上述 Agent `search_*` skill 已接入同一份 `[external_s
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
 | --- | --- | --- | --- | --- |
-| `web_seo_optimize` | `web_seo_optimize` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native SEO 优化方案；实时搜索量仍待 adapter |
-| `web_title_generator` | `web_title_generator` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native 多标题候选，并纳入自动补偿 |
-| `web_page_conversion` | `web_page_conversion` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已纳入岗位自动补偿规则 |
-| `web_store_design` | `web_store_design` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native 店铺装修方案；真实店铺指标仍待 adapter |
-| `web_keyword_research` | `web_keyword_research` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native 关键词矩阵；实时热度/CPC仍待 adapter |
+| `web_seo_optimize` | `web_seo_optimize` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native SEO 优化方案；Post 8-39：成功输出会沉淀为 `web_seo_plan` artifact，实时搜索量仍待 adapter |
+| `web_title_generator` | `web_title_generator` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native 多标题候选，并纳入自动补偿；Post 8-39：成功输出会沉淀为 `web_title_candidates` artifact |
+| `web_page_conversion` | `web_page_conversion` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已纳入岗位自动补偿规则；Post 8-39：成功输出会沉淀为 `web_conversion_plan` artifact，使用基准默认值时明示 `calculated_from_defaults` |
+| `web_store_design` | `web_store_design` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native 店铺装修方案；Post 8-39：成功输出会沉淀为 `web_store_design_brief` artifact；真实店铺指标仍待 adapter |
+| `web_keyword_research` | `web_keyword_research` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native 关键词矩阵；Post 8-39：成功输出会沉淀为 `web_keyword_matrix` artifact；实时热度/CPC仍待 adapter |
+| `web_product_description` | `web_product_description` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native 详情页文案；Post 8-39：成功输出会沉淀为 `web_product_description` artifact，缺商品名时明示默认主推商品 |
+| `web_title_seo_scorer` | `web_title_seo_scorer` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native 标题 SEO 评分；Post 8-39：成功输出会沉淀为 `web_title_seo_score` artifact，缺标题时 validation error |
 
 ## 创意 creative
 

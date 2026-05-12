@@ -223,22 +223,22 @@ Continue in this order:
 The latest completed slice is:
 
 ```text
-Post 8-38: data advanced artifact materialization
+Post 8-39: web growth artifact materialization
 ```
 
 Scope:
 
-- persist successful `data_multi_period_trend`, `data_ltv_calculator`, `data_cohort_analysis`, `data_seasonal_decompose`, `data_price_elasticity`, and `data_demand_forecast` outputs as real workspace artifacts
-- keep data advanced output contracts in the existing `data::execute` dispatch path with `status=success/deferred`, `has_data`, `adapter_status`, `data_readiness`, and `summary`
-- disclose deterministic default estimates through `data_readiness=calculated_from_defaults`
-- keep missing required time-series input as `deferred` so the product does not create fake forecast or seasonal artifacts
+- persist successful `web_seo_optimize`, `web_title_generator`, `web_page_conversion`, `web_store_design`, `web_keyword_research`, `web_product_description`, and `web_title_seo_scorer` outputs as real workspace artifacts
+- keep Web growth output contracts in the existing `Skill` / `SkillExecutorSet` path with `status=success`, `has_data`, `adapter_status`, `data_readiness`, and `summary`
+- disclose deterministic default platform rules or benchmark estimates through `data_readiness=calculated_from_defaults`
+- keep missing required parameters as validation errors so the product does not create fake Web growth artifacts
 
 Reason:
 
-- high product value for the data worker and analysis workflow
+- high product value for the Web growth worker and listing/storefront workflow
 - backend-first
 - no new fake frontend needed
-- extends the same workspace artifact path from dashboards and data insight reports to retention, LTV, seasonality, price elasticity and demand forecast reports while preserving honest disclosure when required input is missing
+- extends the same workspace artifact path from creative/design/data/ops reports to Web growth deliverables while preserving honest disclosure when required input is missing
 
 ## 10. Validation Standard
 

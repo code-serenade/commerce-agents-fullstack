@@ -5232,6 +5232,48 @@ fn build_content_artifact_from_skill_output(
             "Ops ABC-XYZ report",
             "ops ABC-XYZ classification artifact generated",
         ),
+        "web_seo_optimize" => (
+            "web",
+            "web_seo_plan",
+            "Web SEO plan",
+            "web SEO optimization artifact generated",
+        ),
+        "web_title_generator" => (
+            "web",
+            "web_title_candidates",
+            "Web title candidates",
+            "web title generation artifact generated",
+        ),
+        "web_page_conversion" => (
+            "web",
+            "web_conversion_plan",
+            "Web conversion plan",
+            "web page conversion artifact generated",
+        ),
+        "web_store_design" => (
+            "web",
+            "web_store_design_brief",
+            "Web store design brief",
+            "web store design artifact generated",
+        ),
+        "web_keyword_research" => (
+            "web",
+            "web_keyword_matrix",
+            "Web keyword matrix",
+            "web keyword research artifact generated",
+        ),
+        "web_product_description" => (
+            "web",
+            "web_product_description",
+            "Web product description",
+            "web product description artifact generated",
+        ),
+        "web_title_seo_scorer" => (
+            "web",
+            "web_title_seo_score",
+            "Web title SEO score",
+            "web title SEO scoring artifact generated",
+        ),
         _ => return None,
     };
 
@@ -6853,6 +6895,36 @@ mod tests {
         assert_eq!(draft.file_name, "ops_smart_pricing_report.md");
         assert!(draft.preview.contains("智能定价方案已生成"));
         assert!(draft.content.contains("# Ops smart pricing report"));
+        assert!(
+            draft
+                .content
+                .contains("\"adapter_status\": \"manual_input\"")
+        );
+    }
+
+    #[test]
+    fn content_artifact_builds_from_web_growth_skill_output() {
+        let output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "data_readiness": "user_provided",
+            "summary": "关键词矩阵已生成",
+            "种子词": "冷萃咖啡",
+            "关键词矩阵": [
+                {"类型": "核心词", "词": ["冷萃咖啡"]}
+            ]
+        });
+
+        let draft = build_content_artifact_from_skill_output("web_keyword_research", &output)
+            .expect("web growth output should be materializable");
+
+        assert_eq!(draft.content_category, "web");
+        assert_eq!(draft.artifact_type, "web_keyword_matrix");
+        assert_eq!(draft.title, "Web keyword matrix");
+        assert_eq!(draft.file_name, "web_keyword_matrix.md");
+        assert!(draft.preview.contains("关键词矩阵已生成"));
+        assert!(draft.content.contains("# Web keyword matrix"));
         assert!(
             draft
                 .content

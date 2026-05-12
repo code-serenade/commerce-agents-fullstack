@@ -239,7 +239,7 @@ impl Skill for WebTitleSeoScorer {
         let total = len_score + position_score + kw_score + readable_score;
         let suggestions = build_seo_suggestions(&primary, pos_bonus, &missing, len, lo, hi);
 
-        Ok(SkillOutcome::new(json!({
+        let mut output = json!({
             "平台": platform,
             "标题": title,
             "综合SEO评分": format!("{total}/100"),
@@ -253,7 +253,9 @@ impl Skill for WebTitleSeoScorer {
             },
             "扣分项": if deductions.is_empty() { vec!["无明显扣分项".to_owned()] } else { deductions },
             "优化建议": suggestions
-        })).with_summary("标题SEO评分已完成"))
+        });
+        normalize_web_output("web_title_seo_scorer", &params, &mut output);
+        Ok(SkillOutcome::new(output).with_summary("标题SEO评分已完成"))
     }
 }
 
@@ -406,8 +408,9 @@ macro_rules! native_web_skill {
                 $(let _ = string_param(&params, $required)?;)*
                 let mut normalized = Map::new();
                 $(normalized.insert($key.to_owned(), json!($value(&params)?));)*
-                Ok(SkillOutcome::new(web_native_output(&self.spec.id, &normalized))
-                    .with_summary(web_summary(&self.spec.id)))
+                let mut output = web_native_output(&self.spec.id, &normalized);
+                normalize_web_output(&self.spec.id, &params, &mut output);
+                Ok(SkillOutcome::new(output).with_summary(web_summary(&self.spec.id)))
             }
         }
     };
@@ -508,7 +511,7 @@ impl Skill for WebPageConversion {
             _ => 5.0,
         };
         let gap = conv - benchmark;
-        Ok(SkillOutcome::new(json!({
+        let mut output = json!({
             "has_data": true,
             "执行模式": "native_conversion_audit",
             "数据来源": "用户输入 + 页面转化基准规则",
@@ -525,8 +528,69 @@ impl Skill for WebPageConversion {
                 {"实验": "信任背书位置", "变量": "首屏展示 vs 参数后展示", "指标": "停留和转化"}
             ],
             "后续数据需求": ["近30天PV/UV", "点击热区", "加购率", "支付转化率", "渠道来源"]
-        })).with_summary("页面转化优化方案已生成"))
+        });
+        normalize_web_output("web_page_conversion", &params, &mut output);
+        Ok(SkillOutcome::new(output).with_summary("页面转化优化方案已生成"))
     }
+}
+
+fn normalize_web_output(skill_id: &str, input: &Value, output: &mut Value) {
+    let Some(map) = output.as_object_mut() else {
+        return;
+    };
+    if map.contains_key("status") {
+        return;
+    }
+    map.insert("status".to_owned(), json!("success"));
+    map.insert("has_data".to_owned(), json!(true));
+    map.insert("adapter_status".to_owned(), json!("manual_input"));
+    map.insert(
+        "data_readiness".to_owned(),
+        json!(web_data_readiness(skill_id, input)),
+    );
+    map.insert("summary".to_owned(), json!(web_summary(skill_id)));
+}
+
+fn web_data_readiness(skill_id: &str, input: &Value) -> &'static str {
+    match skill_id {
+        "web_seo_optimize"
+            if !has_any_input(input, &["target_keywords", "current_rank", "product_id"]) =>
+        {
+            "calculated_from_defaults"
+        }
+        "web_title_generator"
+            if !has_any_input(input, &["product_name", "keywords", "product_id"]) =>
+        {
+            "calculated_from_defaults"
+        }
+        "web_page_conversion"
+            if !has_any_input(
+                input,
+                &["current_conversion", "bounce_rate", "avg_stay_time"],
+            ) =>
+        {
+            "calculated_from_defaults"
+        }
+        "web_keyword_research" if !has_any_input(input, &["seed_keyword", "product_id"]) => {
+            "calculated_from_defaults"
+        }
+        "web_product_description" if !has_any_input(input, &["product_name", "product_id"]) => {
+            "calculated_from_defaults"
+        }
+        _ => "user_provided",
+    }
+}
+
+fn has_any_input(input: &Value, keys: &[&str]) -> bool {
+    keys.iter().any(|key| {
+        input.get(*key).is_some_and(|value| match value {
+            Value::Null => false,
+            Value::String(value) => !value.trim().is_empty(),
+            Value::Array(values) => !values.is_empty(),
+            Value::Object(values) => !values.is_empty(),
+            _ => true,
+        })
+    })
 }
 
 fn web_native_output(skill_id: &str, input: &Map<String, Value>) -> Value {
@@ -544,6 +608,8 @@ fn web_summary(skill_id: &str) -> &'static str {
     match skill_id {
         "web_seo_optimize" => "SEO优化方案已生成",
         "web_title_generator" => "标题候选已生成",
+        "web_title_seo_scorer" => "标题SEO评分已完成",
+        "web_page_conversion" => "页面转化优化方案已生成",
         "web_store_design" => "店铺装修方案已生成",
         "web_keyword_research" => "关键词矩阵已生成",
         "web_product_description" => "详情页文案已生成",
@@ -912,4 +978,117 @@ fn build_seo_suggestions(
         out.push("标题质量良好，维持现有结构".to_owned());
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn web_seo_optimize_discloses_default_inputs() {
+        let outcome = WebSeoOptimize::new()
+            .run(json!({}), SkillContext::default())
+            .await
+            .expect("web SEO optimize should run with deterministic defaults");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("manual_input")
+        );
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("calculated_from_defaults")
+        );
+        assert_eq!(
+            output.get("summary").and_then(Value::as_str),
+            Some("SEO优化方案已生成")
+        );
+    }
+
+    #[tokio::test]
+    async fn web_title_generator_marks_success_for_user_product() {
+        let outcome = WebTitleGenerator::new()
+            .run(
+                json!({
+                    "product_name": "冷萃咖啡",
+                    "keywords": ["冷萃咖啡", "低糖"],
+                    "platform": "淘宝"
+                }),
+                SkillContext::default(),
+            )
+            .await
+            .expect("web title generator should run");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("user_provided")
+        );
+        assert_eq!(
+            output.get("summary").and_then(Value::as_str),
+            Some("标题候选已生成")
+        );
+        assert!(output.get("标题候选").and_then(Value::as_array).is_some());
+    }
+
+    #[tokio::test]
+    async fn web_page_conversion_discloses_benchmark_defaults() {
+        let outcome = WebPageConversion::new()
+            .run(json!({"page_type": "商品详情"}), SkillContext::default())
+            .await
+            .expect("web page conversion should run with deterministic defaults");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("calculated_from_defaults")
+        );
+        assert_eq!(
+            output.get("summary").and_then(Value::as_str),
+            Some("页面转化优化方案已生成")
+        );
+    }
+
+    #[tokio::test]
+    async fn web_title_seo_scorer_marks_success_for_user_title() {
+        let outcome = WebTitleSeoScorer::new()
+            .run(
+                json!({
+                    "title": "冷萃咖啡 低糖 即饮 官方优选 高性价比",
+                    "target_keywords": ["冷萃咖啡", "低糖"],
+                    "platform": "淘宝"
+                }),
+                SkillContext::default(),
+            )
+            .await
+            .expect("web title SEO scorer should run");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("user_provided")
+        );
+        assert_eq!(
+            output.get("summary").and_then(Value::as_str),
+            Some("标题SEO评分已完成")
+        );
+        assert!(output.get("总分").and_then(Value::as_i64).is_some());
+    }
 }
