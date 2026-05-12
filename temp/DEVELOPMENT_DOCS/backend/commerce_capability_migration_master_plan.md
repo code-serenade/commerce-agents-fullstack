@@ -223,23 +223,22 @@ Continue in this order:
 The latest completed slice is:
 
 ```text
-Post 8-41: design artifact contract completion
+Post 8-42: engineering native reports
 ```
 
 Scope:
 
-- normalize design native output contracts in the existing `Skill` / `SkillExecutorSet` path with `status=success`, `has_data`, `adapter_status`, `data_readiness`, and `summary`
-- make existing design artifact mappings reliably effective for main image briefs, detail page briefs, color schemes, material specs, and campaign poster briefs
-- disclose default商品/平台规则 through `data_readiness=calculated_from_defaults`
-- keep missing required design parameters as validation errors so the product does not create fake design artifacts
-- preserve the boundary that this slice creates structured design briefs/specs, not generated image files
+- convert engineering architecture review, bug analysis, performance optimization, and tech selection from skeleton outputs into native structured reports
+- normalize SLA monitor output with `status=success`, `has_data`, `adapter_status`, `data_readiness`, `summary`, and `data_boundary`
+- add workspace artifact mappings for engineering reports through the existing `WorkspaceApi::materialize_agent_content_artifact` path
+- preserve the boundary that this slice uses user input and built-in engineering rules, not real repository/log/APM/monitoring/benchmark adapters
 
 Reason:
 
-- high product value for the design worker and material production workflow
+- high product value for the engineering worker and technical diagnosis workflow
 - backend-first
 - no new fake frontend needed
-- completes the same workspace artifact path for design deliverables while preserving honest disclosure when required input is missing
+- completes the same workspace artifact path for engineering deliverables while preserving honest disclosure when real technical telemetry is missing
 
 ## 10. Validation Standard
 

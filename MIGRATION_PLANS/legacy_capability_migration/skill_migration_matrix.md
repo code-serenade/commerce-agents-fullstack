@@ -95,11 +95,11 @@ Post 8-10 补充：上述 Agent `search_*` skill 已接入同一份 `[external_s
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
 | --- | --- | --- | --- | --- |
-| `engineering_arch_review` | `engineering_arch_review` | adapter_required | `backend/crates/agent/src/skills/engineering.rs` | 当前为 deferred 工程分析骨架；本轮补强了架构/重构/扩展性自然问法触达 |
-| `engineering_bug_analysis` | `engineering_bug_analysis` | adapter_required | `backend/crates/agent/src/skills/engineering.rs` | 当前为 deferred 工程分析骨架；本轮补强了故障/报错/排查自然问法触达 |
-| `engineering_perf_optimize` | `engineering_perf_optimize` | adapter_required | `backend/crates/agent/src/skills/engineering.rs` | 当前为 deferred 工程分析骨架；本轮补强了性能/延迟/QPS自然问法触达 |
-| `engineering_tech_selection` | `engineering_tech_selection` | adapter_required | `backend/crates/agent/src/skills/engineering.rs` | 当前为 deferred 工程分析骨架；本轮补强了技术选型/框架选择自然问法触达 |
-| `engineering_sla_monitor` | `engineering_sla_monitor` | native_ready | `backend/crates/agent/src/skills/engineering.rs` | 已纳入岗位自动补偿规则 |
+| `engineering_arch_review` | `engineering_arch_review` | native_ready | `backend/crates/agent/src/skills/engineering.rs` | Post 8-42：已迁为 Rust native 架构评估报告；成功输出会沉淀为 `engineering_arch_review_report` artifact；真实代码仓库/日志/APM 读取仍待 adapter |
+| `engineering_bug_analysis` | `engineering_bug_analysis` | native_ready | `backend/crates/agent/src/skills/engineering.rs` | Post 8-42：已迁为 Rust native Bug 排查方案；成功输出会沉淀为 `engineering_bug_analysis_report` artifact；真实日志和 trace 读取仍待 adapter |
+| `engineering_perf_optimize` | `engineering_perf_optimize` | native_ready | `backend/crates/agent/src/skills/engineering.rs` | Post 8-42：已迁为 Rust native 性能优化方案；成功输出会沉淀为 `engineering_perf_plan` artifact；真实压测/APM 指标读取仍待 adapter |
+| `engineering_tech_selection` | `engineering_tech_selection` | native_ready | `backend/crates/agent/src/skills/engineering.rs` | Post 8-42：已迁为 Rust native 技术选型报告；成功输出会沉淀为 `engineering_tech_selection_report` artifact；实时 benchmark / 外部资料仍待 search adapter |
+| `engineering_sla_monitor` | `engineering_sla_monitor` | native_ready | `backend/crates/agent/src/skills/engineering.rs` | 已纳入岗位自动补偿规则；Post 8-42：补齐统一输出契约并沉淀为 `engineering_sla_report` artifact，缺监控输入时明示 `calculated_from_defaults` |
 
 ## 网站增长 web
 

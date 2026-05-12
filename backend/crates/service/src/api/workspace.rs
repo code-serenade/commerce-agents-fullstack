@@ -5286,6 +5286,36 @@ fn build_content_artifact_from_skill_output(
             "Web title SEO score",
             "web title SEO scoring artifact generated",
         ),
+        "engineering_arch_review" => (
+            "engineering",
+            "engineering_arch_review_report",
+            "Engineering architecture review",
+            "engineering architecture review artifact generated",
+        ),
+        "engineering_bug_analysis" => (
+            "engineering",
+            "engineering_bug_analysis_report",
+            "Engineering bug analysis report",
+            "engineering bug analysis artifact generated",
+        ),
+        "engineering_perf_optimize" => (
+            "engineering",
+            "engineering_perf_plan",
+            "Engineering performance plan",
+            "engineering performance optimization artifact generated",
+        ),
+        "engineering_tech_selection" => (
+            "engineering",
+            "engineering_tech_selection_report",
+            "Engineering tech selection report",
+            "engineering tech selection artifact generated",
+        ),
+        "engineering_sla_monitor" => (
+            "engineering",
+            "engineering_sla_report",
+            "Engineering SLA report",
+            "engineering SLA monitor artifact generated",
+        ),
         _ => return None,
     };
 
@@ -7023,6 +7053,57 @@ mod tests {
                 .content
                 .contains("\"adapter_status\": \"manual_input\"")
         );
+    }
+
+    #[test]
+    fn content_artifact_builds_from_engineering_skill_output() {
+        let output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "data_readiness": "user_provided",
+            "summary": "工程架构评估报告已生成",
+            "系统类型": "电商平台",
+            "五维评分": [
+                {"维度": "扩展性", "评分": 72}
+            ]
+        });
+
+        let draft = build_content_artifact_from_skill_output("engineering_arch_review", &output)
+            .expect("engineering output should be materializable");
+
+        assert_eq!(draft.content_category, "engineering");
+        assert_eq!(draft.artifact_type, "engineering_arch_review_report");
+        assert_eq!(draft.title, "Engineering architecture review");
+        assert_eq!(draft.file_name, "engineering_arch_review_report.md");
+        assert!(draft.preview.contains("工程架构评估报告已生成"));
+        assert!(draft.content.contains("# Engineering architecture review"));
+        assert!(
+            draft
+                .content
+                .contains("\"adapter_status\": \"manual_input\"")
+        );
+    }
+
+    #[test]
+    fn content_artifact_builds_from_engineering_sla_skill_output() {
+        let output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "data_readiness": "calculated_from_defaults",
+            "summary": "SLA监控分析已完成",
+            "系统": "电商系统"
+        });
+
+        let draft = build_content_artifact_from_skill_output("engineering_sla_monitor", &output)
+            .expect("engineering SLA output should be materializable");
+
+        assert_eq!(draft.content_category, "engineering");
+        assert_eq!(draft.artifact_type, "engineering_sla_report");
+        assert_eq!(draft.title, "Engineering SLA report");
+        assert_eq!(draft.file_name, "engineering_sla_report.md");
+        assert!(draft.preview.contains("SLA监控分析已完成"));
     }
 
     #[test]

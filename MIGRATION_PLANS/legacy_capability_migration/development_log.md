@@ -1,5 +1,40 @@
 # 迁移开发记录
 
+## Post 8-42：Engineering native 工程报告沉淀
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 42 个补强项：`Post 8-42`。
+
+本次目标：
+
+- 把工程岗位中仍是骨架的架构评估、Bug 排查、性能优化、技术选型能力迁成 Rust native 输出。
+- 补齐 SLA 监控的统一输出契约。
+- 让工程岗位成功输出能沉淀为 workspace artifact，而不是只停留在 SSE 过程里。
+
+涉及范围：
+
+- 产品内核：工程虚拟员工现在能生成可审计、可复用的工程报告。
+- 后端 Agent：`backend/crates/agent/src/skills/engineering.rs` 输出 `status=success`、`has_data=true`、`adapter_status=manual_input`、`data_readiness`、`summary` 和 `data_boundary`。
+- 后端 service：`WorkspaceApi::materialize_agent_content_artifact` 新增 `engineering_arch_review_report`、`engineering_bug_analysis_report`、`engineering_perf_plan`、`engineering_tech_selection_report`、`engineering_sla_report`。
+- API/SSE：更新 `API_DOCS/app.md` 与 `API_DOCS/sse.md`。
+- 前端：本阶段不新增页面；后续按现有 artifact / SSE 契约展示真实工程报告。
+
+用户可感知变化：
+
+- 用户向工程岗位提问架构、Bug、性能、选型或 SLA 问题时，成功结果会进入工作区交付物。
+- 当缺少真实上下文时，报告会以 `data_readiness=calculated_from_defaults` 明示是基于默认工程规则生成。
+- 当前不假装读取真实代码仓库、日志、APM、监控系统或实时 benchmark；平台健康检查仍需要 adapter 和审批。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p agent engineering_ -- --nocapture`
+- [x] `cargo test -p service content_artifact_builds_from_engineering_ -- --nocapture`
+
 ## Post 8-41：Design 交付物契约补强
 
 状态：done
