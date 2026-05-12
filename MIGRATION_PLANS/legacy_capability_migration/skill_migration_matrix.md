@@ -64,11 +64,11 @@ Post 8-10 补充：上述 Agent `search_*` skill 已接入同一份 `[external_s
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
 | --- | --- | --- | --- | --- |
-| `design_main_image` | `design_main_image` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已纳入岗位自动补偿规则，当前生成主图方案不生成图片文件 |
-| `design_detail_page` | `design_detail_page` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已迁为 Rust native 详情页模块方案，尚不生成长图文件 |
-| `design_color_scheme` | `design_color_scheme` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已迁为 Rust native HEX 配色、比例和变量命名 |
-| `design_material_spec` | `design_material_spec` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已纳入岗位自动补偿规则 |
-| `design_campaign_poster` | `design_campaign_poster` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已迁为 Rust native 活动海报 brief，尚不生成图片文件 |
+| `design_main_image` | `design_main_image` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已纳入岗位自动补偿规则，成功输出会沉淀为 `design_main_image_brief` artifact；当前不生成图片文件 |
+| `design_detail_page` | `design_detail_page` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已迁为 Rust native 详情页模块方案，成功输出会沉淀为 `design_detail_page_brief` artifact；尚不生成长图文件 |
+| `design_color_scheme` | `design_color_scheme` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已迁为 Rust native HEX 配色、比例和变量命名，成功输出会沉淀为 `design_color_scheme` artifact |
+| `design_material_spec` | `design_material_spec` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已纳入岗位自动补偿规则，成功输出会沉淀为 `design_material_spec` artifact |
+| `design_campaign_poster` | `design_campaign_poster` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已迁为 Rust native 活动海报 brief，成功输出会沉淀为 `design_campaign_poster_brief` artifact；尚不生成图片文件 |
 
 ## 财务 accounting
 

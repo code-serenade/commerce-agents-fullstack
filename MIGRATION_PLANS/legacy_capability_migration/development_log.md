@@ -1,5 +1,39 @@
 # 迁移开发记录
 
+## Post 8-28：Design 设计交付物真实沉淀
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 28 个补强项：`Post 8-28`。
+
+本次目标：
+
+- 把设计类 native skill 从“只在问答过程里返回设计方案”推进到“自动沉淀为真实 workspace artifact”。
+- 继续以后端真实能力为准，不新增前端假入口。
+
+涉及范围：
+
+- 产品内核：设计岗位输出从一次性过程结果推进到可查询、可复用、可导出的工作区交付物。
+- 后端 service：复用 `WorkspaceApi::materialize_agent_content_artifact`，新增支持 `design_main_image`、`design_detail_page`、`design_color_scheme`、`design_material_spec`、`design_campaign_poster`。
+- API/SSE 文档：同步 creative / design 内容交付物的 artifact 类型、metadata 和 `workspace_artifact_created` 语义。
+
+用户可感知变化：
+
+- 用户要求“主图设计方案”“详情页结构”“配色方案”“素材规格”“活动海报 brief”时，成功的设计 skill 输出会在当前 workspace 真实新增对应交付物。
+- 这些设计交付物进入已有 artifact 查询、预览和导出链路；当前仍是结构化 markdown brief，不伪造生成图片文件。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p service content_artifact_builds_from_design_skill_output -- --nocapture`
+- [x] `cargo test -p service content_artifact_builds_from_creative_skill_output -- --nocapture`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo clippy -p service -p web-server`
+
 ## Post 8-27：Creative 内容交付物真实沉淀
 
 状态：done

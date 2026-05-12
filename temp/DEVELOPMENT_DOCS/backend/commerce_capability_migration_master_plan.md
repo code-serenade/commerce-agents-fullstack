@@ -91,6 +91,7 @@ The following major foundations are already in place:
 - search evidence artifact persistence
 - agent skill run persistence and query API
 - multiple native skill migrations across ops / data / service / creative / web / design / accounting
+- creative and design skill outputs can now materialize into reusable workspace artifacts when the skill result is successful
 
 ## 5. Current Progress Estimate
 
@@ -221,21 +222,21 @@ Continue in this order:
 The current active slice is:
 
 ```text
-Post 8-26: coordination create campaign native landing
+Post 8-28: design deliverable artifact materialization
 ```
 
 Scope:
 
-- turn `coordination_create_campaign` from pending skeleton into real native backend capability
-- let agent skill results land real campaign drafts and campaign draft artifacts through the existing service/SSE persistence chain
-- keep campaign draft creation inside the new product workspace/artifact/campaign governance model instead of a detached legacy flow
+- persist supported design skill success outputs as real markdown workspace artifacts
+- reuse the existing service/SSE artifact persistence chain and `workspace_artifact_created` event
+- keep design image/file generation out of scope until a real asset generation or object storage pipeline exists
 
 Reason:
 
-- high product value for turning agent planning output into reusable campaign drafts
+- high product value for turning design worker output into reusable deliverables
 - backend-first
 - no new fake frontend needed
-- strengthens the coordination layer using already migrated workspace/campaign persistence foundations
+- strengthens the design layer using already migrated workspace artifact foundations
 
 ## 10. Validation Standard
 

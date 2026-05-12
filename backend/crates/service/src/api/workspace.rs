@@ -2424,7 +2424,7 @@ impl WorkspaceApi {
                     validation_report: json!({}),
                     metadata: json!({
                         "kind": "agent_generated_content",
-                        "contentCategory": "creative",
+                        "contentCategory": draft.content_category,
                         "artifactType": draft.artifact_type,
                         "skillId": skill_id,
                         "requestId": request_id,
@@ -4937,36 +4937,72 @@ fn build_content_artifact_from_skill_output(
         return None;
     }
 
-    let (artifact_type, title, summary) = match skill_id {
+    let (content_category, artifact_type, title, summary) = match skill_id {
         "creative_video_script" => (
+            "creative",
             "video_script",
             "Video script",
             "creative video script artifact generated",
         ),
         "creative_seeding_copy" => (
+            "creative",
             "seeding_copy",
             "Seeding copy",
             "creative seeding copy artifact generated",
         ),
         "creative_ip_branding" => (
+            "creative",
             "ip_branding",
             "IP branding brief",
             "creative IP branding artifact generated",
         ),
         "creative_content_calendar" => (
+            "creative",
             "content_calendar",
             "Content calendar",
             "creative content calendar artifact generated",
         ),
         "creative_live_script" => (
+            "creative",
             "live_script",
             "Live script",
             "creative live script artifact generated",
         ),
         "creative_product_article" => (
+            "creative",
             "product_article",
             "Product article",
             "creative product article artifact generated",
+        ),
+        "design_main_image" => (
+            "design",
+            "design_main_image_brief",
+            "Main image design brief",
+            "design main image artifact generated",
+        ),
+        "design_detail_page" => (
+            "design",
+            "design_detail_page_brief",
+            "Detail page design brief",
+            "design detail page artifact generated",
+        ),
+        "design_color_scheme" => (
+            "design",
+            "design_color_scheme",
+            "Design color scheme",
+            "design color scheme artifact generated",
+        ),
+        "design_material_spec" => (
+            "design",
+            "design_material_spec",
+            "Design material spec",
+            "design material spec artifact generated",
+        ),
+        "design_campaign_poster" => (
+            "design",
+            "design_campaign_poster_brief",
+            "Campaign poster design brief",
+            "design campaign poster artifact generated",
         ),
         _ => return None,
     };
@@ -4981,6 +5017,7 @@ fn build_content_artifact_from_skill_output(
         .unwrap_or_else(|| compact_text(&json_body, 500));
 
     Some(ContentArtifactFromSkillDraft {
+        content_category: content_category.to_string(),
         artifact_type: artifact_type.to_string(),
         title: title.to_string(),
         file_name: format!("{artifact_type}.md"),
@@ -5515,6 +5552,7 @@ struct WorkspaceMemoryFromSkillDraft {
 
 #[derive(Debug, Clone)]
 struct ContentArtifactFromSkillDraft {
+    content_category: String,
     artifact_type: String,
     title: String,
     file_name: String,
@@ -6276,11 +6314,32 @@ mod tests {
             .expect("creative output should be materializable");
 
         assert_eq!(draft.artifact_type, "video_script");
+        assert_eq!(draft.content_category, "creative");
         assert_eq!(draft.title, "Video script");
         assert_eq!(draft.file_name, "video_script.md");
         assert!(draft.preview.contains("短视频脚本已生成"));
         assert!(draft.content.contains("# Video script"));
         assert!(draft.content.contains("```json"));
+    }
+
+    #[test]
+    fn content_artifact_builds_from_design_skill_output() {
+        let output = json!({
+            "status": "success",
+            "has_data": true,
+            "summary": "主图设计方案已生成",
+            "素材清单": ["商品正面透明底图", "场景背景图"]
+        });
+
+        let draft = build_content_artifact_from_skill_output("design_main_image", &output)
+            .expect("design output should be materializable");
+
+        assert_eq!(draft.content_category, "design");
+        assert_eq!(draft.artifact_type, "design_main_image_brief");
+        assert_eq!(draft.title, "Main image design brief");
+        assert_eq!(draft.file_name, "design_main_image_brief.md");
+        assert!(draft.preview.contains("主图设计方案已生成"));
+        assert!(draft.content.contains("# Main image design brief"));
     }
 
     #[test]
