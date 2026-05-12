@@ -5076,6 +5076,30 @@ fn build_content_artifact_from_skill_output(
             "Service DSR improvement plan",
             "service DSR improvement artifact generated",
         ),
+        "service_return_handler" => (
+            "service",
+            "service_return_plan",
+            "Service return plan",
+            "service return handling artifact generated",
+        ),
+        "service_nps_analyzer" => (
+            "service",
+            "service_nps_report",
+            "Service NPS report",
+            "service NPS analysis artifact generated",
+        ),
+        "service_sentiment_analyzer" => (
+            "service",
+            "service_sentiment_report",
+            "Service sentiment report",
+            "service sentiment analysis artifact generated",
+        ),
+        "service_nps_driver_analysis" => (
+            "service",
+            "service_nps_driver_report",
+            "Service NPS driver report",
+            "service NPS driver analysis artifact generated",
+        ),
         _ => return None,
     };
 
@@ -6539,6 +6563,37 @@ mod tests {
         assert_eq!(draft.file_name, "service_escalation_playbook.md");
         assert!(draft.preview.contains("客服升级处理流程已生成"));
         assert!(draft.content.contains("# Service escalation playbook"));
+        assert!(
+            draft
+                .content
+                .contains("\"adapter_status\": \"manual_input\"")
+        );
+    }
+
+    #[test]
+    fn content_artifact_builds_from_service_insight_skill_output() {
+        let output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "data_readiness": "user_provided",
+            "summary": "NPS与CSAT分析已完成",
+            "NPS净推荐值": 42.0,
+            "CSAT满意度": "86.0%（良好）",
+            "忠诚度洞察": {
+                "转化优先级": "被动者→推荐者成本最低，批评者→中立是当务之急"
+            }
+        });
+
+        let draft = build_content_artifact_from_skill_output("service_nps_analyzer", &output)
+            .expect("service insight output should be materializable");
+
+        assert_eq!(draft.content_category, "service");
+        assert_eq!(draft.artifact_type, "service_nps_report");
+        assert_eq!(draft.title, "Service NPS report");
+        assert_eq!(draft.file_name, "service_nps_report.md");
+        assert!(draft.preview.contains("NPS与CSAT分析已完成"));
+        assert!(draft.content.contains("# Service NPS report"));
         assert!(
             draft
                 .content

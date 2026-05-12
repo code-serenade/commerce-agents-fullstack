@@ -2202,7 +2202,7 @@
 | `runId` | `uuid` | 否 | 只查询某次运行产生的交付物 |
 | `workspaceTaskId` | `uuid` | 否 | 只查询某个工作区任务关联的交付物 |
 | `runTaskId` | `uuid` | 否 | 只查询某个运行任务快照关联的交付物 |
-| `artifactType` | `string` | 否 | 交付物类型，例如 `final_report`、`search_evidence`、`video_script`、`seeding_copy`、`ip_branding`、`content_calendar`、`live_script`、`product_article`、`design_main_image_brief`、`design_detail_page_brief`、`design_color_scheme`、`design_material_spec`、`design_campaign_poster_brief`、`data_dashboard`、`data_funnel_report`、`data_channel_roi_report`、`data_refund_report`、`accounting_cost_report`、`accounting_profit_report`、`accounting_roi_report`、`accounting_budget_plan`、`service_ticket_playbook`、`service_faq_playbook`、`service_escalation_playbook`、`service_dsr_improvement_plan`、`role_report`、`file` |
+| `artifactType` | `string` | 否 | 交付物类型，例如 `final_report`、`search_evidence`、`video_script`、`seeding_copy`、`ip_branding`、`content_calendar`、`live_script`、`product_article`、`design_main_image_brief`、`design_detail_page_brief`、`design_color_scheme`、`design_material_spec`、`design_campaign_poster_brief`、`data_dashboard`、`data_funnel_report`、`data_channel_roi_report`、`data_refund_report`、`accounting_cost_report`、`accounting_profit_report`、`accounting_roi_report`、`accounting_budget_plan`、`service_ticket_playbook`、`service_faq_playbook`、`service_escalation_playbook`、`service_dsr_improvement_plan`、`service_return_plan`、`service_nps_report`、`service_sentiment_report`、`service_nps_driver_report`、`role_report`、`file` |
 | `status` | `active \| archived` | 否 | 不传时默认查询 `active` |
 | `keyword` | `string` | 否 | 匹配标题、预览、文件名、对象 key |
 | `page` | `number` | 否 | 默认 1 |
@@ -2255,7 +2255,7 @@
 - `metadata` 包含 `skillId`、`requestId`、`role`、`query`、`sourceCount`、`domains`、`confidence`、`provenance`、`freshness`
 - 只有真实 live 来源会创建该交付物；adapter 未配置、provider 失败或无来源时不会创建假搜索证据
 
-`artifactType=video_script / seeding_copy / ip_branding / content_calendar / live_script / product_article / design_main_image_brief / design_detail_page_brief / design_color_scheme / design_material_spec / design_campaign_poster_brief / data_dashboard / data_funnel_report / data_channel_roi_report / data_refund_report / accounting_cost_report / accounting_profit_report / accounting_roi_report / accounting_budget_plan / service_ticket_playbook / service_faq_playbook / service_escalation_playbook / service_dsr_improvement_plan` 时：
+`artifactType=video_script / seeding_copy / ip_branding / content_calendar / live_script / product_article / design_main_image_brief / design_detail_page_brief / design_color_scheme / design_material_spec / design_campaign_poster_brief / data_dashboard / data_funnel_report / data_channel_roi_report / data_refund_report / accounting_cost_report / accounting_profit_report / accounting_roi_report / accounting_budget_plan / service_ticket_playbook / service_faq_playbook / service_escalation_playbook / service_dsr_improvement_plan / service_return_plan / service_nps_report / service_sentiment_report / service_nps_driver_report` 时：
 
 - `content` 是后端将对应 creative、design、data、accounting 或 service skill 成功输出包装成 markdown 的结果
 - `preview` 是后端从 skill 输出摘要或正文中截取的预览
@@ -2267,6 +2267,7 @@
 - `data_funnel_report`、`data_channel_roi_report`、`data_refund_report` 只会在对应 data skill 有用户提供数据并返回 `status=success` 时创建；缺少数据时后端返回 `deferred`，不会创建假报告
 - `accounting_profit_report` 和 `accounting_roi_report` 缺少必要财务输入时会返回 `deferred`，不会创建假财务报告；`accounting_cost_report` 和 `accounting_budget_plan` 如使用默认参数，会在输出中以 `data_readiness=calculated_from_defaults` 明示
 - `service_ticket_playbook`、`service_faq_playbook`、`service_escalation_playbook` 和 `service_dsr_improvement_plan` 来自客服支持类 skill 的真实成功输出；DSR 如使用默认样例评分，会在输出中以 `data_readiness=calculated_from_defaults` 明示
+- `service_return_plan`、`service_nps_report`、`service_sentiment_report` 和 `service_nps_driver_report` 来自客服售后/洞察类 skill 的真实成功输出；NPS 或驱动因素分析如使用默认样例数据，会在输出中以 `data_readiness=calculated_from_defaults` 明示
 
 ### 创建工作区交付物
 

@@ -55,10 +55,10 @@ Post 8-10 补充：上述 Agent `search_*` skill 已接入同一份 `[external_s
 | `service_faq_playbook` | `service_faq_playbook` | native_ready | `backend/crates/agent/src/skills/service.rs` | Post 8-7：已迁为 native FAQ 话术库和处理指引；Post 8-33：成功输出会沉淀为 `service_faq_playbook` artifact |
 | `service_escalation_flow` | `service_escalation_flow` | native_ready | `backend/crates/agent/src/skills/service.rs` | Post 8-7：已迁为 native 升级路径、主管话术和复核模板；Post 8-33：成功输出会沉淀为 `service_escalation_playbook` artifact |
 | `service_dsr_improvement` | `service_dsr_improvement` | native_ready | `backend/crates/agent/src/skills/service.rs` | Post 8-7：已补强 native 改善方案；已纳入岗位自动补偿规则；Post 8-33：成功输出会沉淀为 `service_dsr_improvement_plan` artifact |
-| `service_return_handler` | `service_return_handler` | native_ready | `backend/crates/agent/src/skills/service.rs` | 已纳入岗位自动补偿规则 |
-| `service_nps_analyzer` | `service_nps_analyzer` | native_ready | `backend/crates/agent/src/skills/service.rs` | 已可 native 执行并可由满意度/NPS自然问法触发 |
-| `service_sentiment_analyzer` | `service_sentiment_analyzer` | native_ready | `backend/crates/agent/src/skills/service.rs` | 已可 native 执行并可由差评/情绪/投诉自然问法触发 |
-| `service_nps_driver_analysis` | `service_nps_driver_analysis` | native_ready | `backend/crates/agent/src/skills/service.rs` | 本轮补强了满意度驱动因素/投诉分类/NPS拖累等自然问法触达 |
+| `service_return_handler` | `service_return_handler` | native_ready | `backend/crates/agent/src/skills/service.rs` | 已纳入岗位自动补偿规则；Post 8-34：成功输出会沉淀为 `service_return_plan` artifact |
+| `service_nps_analyzer` | `service_nps_analyzer` | native_ready | `backend/crates/agent/src/skills/service.rs` | 已可 native 执行并可由满意度/NPS自然问法触发；Post 8-34：成功输出会沉淀为 `service_nps_report` artifact |
+| `service_sentiment_analyzer` | `service_sentiment_analyzer` | native_ready | `backend/crates/agent/src/skills/service.rs` | 已可 native 执行并可由差评/情绪/投诉自然问法触发；Post 8-34：成功输出会沉淀为 `service_sentiment_report` artifact |
+| `service_nps_driver_analysis` | `service_nps_driver_analysis` | native_ready | `backend/crates/agent/src/skills/service.rs` | 已补强满意度驱动因素/投诉分类/NPS拖累自然问法触达；Post 8-34：成功输出会沉淀为 `service_nps_driver_report` artifact |
 
 ## 设计 design
 

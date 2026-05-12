@@ -1,5 +1,45 @@
 # 迁移开发记录
 
+## Post 8-34：Service 售后与客服洞察交付物真实沉淀
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 34 个补强项：`Post 8-34`。
+
+本次目标：
+
+- 把旧产品客服岗位中已经 native 化的退换货、NPS/CSAT、情绪分析、满意度驱动因素能力接入 workspace artifact 体系。
+- 让售后处理和客服洞察不只停留在当轮问答，而是成为可查询、可预览、可导出的客服分析交付物。
+
+涉及范围：
+
+- 产品内核：客服岗位从“客服 SOP / playbook”继续推进到“售后处理 + 客户满意度洞察”。
+- 后端 agent：`service_return_handler`、`service_nps_analyzer`、`service_sentiment_analyzer`、`service_nps_driver_analysis` 增加 `status=success`、`has_data=true`、`adapter_status=manual_input`、`data_readiness` 和 `summary`。
+- 后端 service：`WorkspaceApi::materialize_agent_content_artifact` 新增支持 `service_return_plan`、`service_nps_report`、`service_sentiment_report`、`service_nps_driver_report`。
+- API/SSE 文档：同步 service insight artifact 类型和默认样例数据必须明示的语义。
+
+用户可感知变化：
+
+- 用户让客服岗位处理退换货、分析 NPS/CSAT、识别客户情绪或诊断满意度驱动因素时，成功结果可以在当前 workspace 真实新增对应客服洞察交付物。
+- 这些交付物沿用现有 artifact 列表、详情、预览和导出链路。
+- NPS 或满意度驱动因素如果使用默认样例数据，会明确标记 `data_readiness=calculated_from_defaults`，前端不能展示成实时平台数据。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p agent service_return_handler_marks_success_for_return_case -- --nocapture`
+- [x] `cargo test -p agent service_nps_analyzer_marks_success_for_score_distribution -- --nocapture`
+- [x] `cargo test -p agent service_sentiment_analyzer_marks_success_for_customer_text -- --nocapture`
+- [x] `cargo test -p agent service_nps_driver_analysis_marks_defaults_disclosed -- --nocapture`
+- [x] `cargo test -p service content_artifact_builds_from_service_insight_skill_output -- --nocapture`
+- [x] `cargo check -p agent`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo clippy -p agent -p service -p web-server`
+
 ## Post 8-33：Service 客服支持交付物真实沉淀
 
 状态：done

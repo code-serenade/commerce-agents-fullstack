@@ -269,7 +269,7 @@ impl Skill for ServiceReturnHandler {
         let seller_fault = matches!(reason.as_str(), "质量问题" | "发错货" | "破损");
         let within_policy = days <= 7;
 
-        let output = if !within_policy && !seller_fault {
+        let mut output = if !within_policy && !seller_fault {
             json!({
                 "退换货原因": reason,
                 "收货天数": days,
@@ -314,6 +314,13 @@ impl Skill for ServiceReturnHandler {
                 "话术": format!("亲，退货已受理，运费由{shipping_bearer}承担。请将商品寄回，我们收到后尽快为您退款~")
             })
         };
+        if let Some(map) = output.as_object_mut() {
+            map.insert("status".to_owned(), json!("success"));
+            map.insert("has_data".to_owned(), json!(true));
+            map.insert("adapter_status".to_owned(), json!("manual_input"));
+            map.insert("data_readiness".to_owned(), json!("user_provided"));
+            map.insert("summary".to_owned(), json!("退换货处理方案已生成"));
+        }
 
         outcome(output, "退换货处理方案已生成")
     }
@@ -1165,8 +1172,18 @@ impl Skill for ServiceNpsAnalyzer {
         let nps = round1(prom_pct - detr_pct);
         let csat_pct = round1((promoters + passives) as f64 / total as f64 * 100.0);
         let top_issues = optional_string_vec_param_or_empty(&params, "top_issues")?;
+        let data_readiness = if data_source == "默认样例" {
+            "calculated_from_defaults"
+        } else {
+            "user_provided"
+        };
 
         let output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "data_readiness": data_readiness,
+            "summary": "NPS与CSAT分析已完成",
             "数据来源": data_source,
             "调查总人数": total,
             "NPS净推荐值": nps,
@@ -1305,6 +1322,11 @@ impl Skill for ServiceSentimentAnalyzer {
                 .count();
             return outcome(
                 json!({
+                    "status": "success",
+                    "has_data": true,
+                    "adapter_status": "manual_input",
+                    "data_readiness": "user_batch_provided",
+                    "summary": "批量情感分析已完成",
                     "分析模式": "批量分析",
                     "消息数量": details.len(),
                     "平台": platform,
@@ -1328,6 +1350,11 @@ impl Skill for ServiceSentimentAnalyzer {
         let scored = score_sentiment(&text);
         outcome(
             json!({
+                "status": "success",
+                "has_data": true,
+                "adapter_status": "manual_input",
+                "data_readiness": "user_text_provided",
+                "summary": "客服情感分析已完成",
                 "平台": platform,
                 "渠道": channel_display,
                 "客户消息摘要": truncate_chars(&text, 80),
@@ -1414,6 +1441,9 @@ impl Skill for ServiceNpsDriverAnalysis {
         let mut promoter = optional_i64_param(&params, "promoter_count")?.unwrap_or(0);
         let mut detractor = optional_i64_param(&params, "detractor_count")?.unwrap_or(0);
         let mut passive = optional_i64_param(&params, "passive_count")?.unwrap_or(0);
+        let has_user_nps_counts = params.get("promoter_count").is_some()
+            || params.get("detractor_count").is_some()
+            || params.get("passive_count").is_some();
         if promoter + detractor + passive == 0 {
             promoter = 45;
             passive = 35;
@@ -1423,6 +1453,7 @@ impl Skill for ServiceNpsDriverAnalysis {
         let platform =
             optional_string_param(&params, "platform")?.unwrap_or_else(|| "淘宝".to_owned());
         let mut dist = parse_string_i64_map(params.get("complaint_distribution"))?;
+        let has_user_complaint_distribution = !dist.is_empty();
         if dist.is_empty() {
             dist.extend([
                 ("物流配送".to_owned(), 38),
@@ -1484,9 +1515,19 @@ impl Skill for ServiceNpsDriverAnalysis {
             .and_then(|row| row.get("问题类别"))
             .cloned()
             .unwrap_or_else(|| json!("无数据"));
+        let data_readiness = if has_user_nps_counts && has_user_complaint_distribution {
+            "user_provided"
+        } else {
+            "calculated_from_defaults"
+        };
 
         outcome(
             json!({
+                "status": "success",
+                "has_data": true,
+                "adapter_status": "manual_input",
+                "data_readiness": data_readiness,
+                "summary": "NPS驱动因素分析已完成",
                 "平台": platform,
                 "NPS分数": format!("{nps_score:+.1}"),
                 "NPS构成": {
@@ -1828,5 +1869,99 @@ mod tests {
             Some("描述相符")
         );
         assert!(output.get("改善方案").is_some());
+    }
+
+    #[tokio::test]
+    async fn service_return_handler_marks_success_for_return_case() {
+        let outcome = ServiceReturnHandler::new()
+            .run(
+                json!({
+                    "reason": "质量问题",
+                    "order_amount": 268.0,
+                    "days_since_receipt": 9
+                }),
+                SkillContext::default(),
+            )
+            .await
+            .expect("service return should run");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "退换货处理方案已生成");
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("user_provided")
+        );
+        assert_eq!(output.get("责任方").and_then(Value::as_str), Some("卖家"));
+        assert!(output.get("处理方案").is_some());
+    }
+
+    #[tokio::test]
+    async fn service_nps_analyzer_marks_success_for_score_distribution() {
+        let outcome = ServiceNpsAnalyzer::new()
+            .run(
+                json!({
+                    "score_distribution": {
+                        "10": 42,
+                        "9": 18,
+                        "8": 20,
+                        "6": 9,
+                        "4": 3
+                    },
+                    "top_issues": ["物流慢", "客服响应慢"]
+                }),
+                SkillContext::default(),
+            )
+            .await
+            .expect("service NPS should run");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "NPS与CSAT分析已完成");
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("user_provided")
+        );
+        assert!(output.get("NPS净推荐值").is_some());
+        assert!(output.get("忠诚度洞察").is_some());
+    }
+
+    #[tokio::test]
+    async fn service_sentiment_analyzer_marks_success_for_customer_text() {
+        let outcome = ServiceSentimentAnalyzer::new()
+            .run(
+                json!({
+                    "customer_text": "物流太慢了，我要投诉并给差评！",
+                    "channel": "complaint",
+                    "platform": "拼多多"
+                }),
+                SkillContext::default(),
+            )
+            .await
+            .expect("service sentiment should run");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "客服情感分析已完成");
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("user_text_provided")
+        );
+        assert_eq!(output.get("渠道").and_then(Value::as_str), Some("投诉中心"));
+        assert!(output.get("处理优先级").is_some());
+    }
+
+    #[tokio::test]
+    async fn service_nps_driver_analysis_marks_defaults_disclosed() {
+        let outcome = ServiceNpsDriverAnalysis::new()
+            .run(json!({}), SkillContext::default())
+            .await
+            .expect("service NPS driver should run");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "NPS驱动因素分析已完成");
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("calculated_from_defaults")
+        );
+        assert!(output.get("驱动因素分析").is_some());
+        assert!(output.get("最大痛点").is_some());
     }
 }

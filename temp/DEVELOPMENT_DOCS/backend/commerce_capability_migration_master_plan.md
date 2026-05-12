@@ -223,21 +223,21 @@ Continue in this order:
 The current active slice is:
 
 ```text
-Post 8-33: service support artifact materialization
+Post 8-34: service insight artifact materialization
 ```
 
 Scope:
 
-- persist successful `service_ticket_handler`, `service_faq_playbook`, `service_escalation_flow`, and `service_dsr_improvement` outputs as real workspace artifacts
-- standardize successful service support outputs with `status=success`, `has_data=true`, `adapter_status=manual_input`, `data_readiness`, and `summary`
-- keep DSR default sample scoring explicitly marked with `data_readiness=calculated_from_defaults`
+- persist successful `service_return_handler`, `service_nps_analyzer`, `service_sentiment_analyzer`, and `service_nps_driver_analysis` outputs as real workspace artifacts
+- standardize successful service insight outputs with `status=success`, `has_data=true`, `adapter_status=manual_input`, `data_readiness`, and `summary`
+- keep NPS and satisfaction driver default samples explicitly marked with `data_readiness=calculated_from_defaults`
 
 Reason:
 
-- high product value for the service worker and customer support workflow
+- high product value for the service worker and customer insight workflow
 - backend-first
 - no new fake frontend needed
-- extends the same workspace artifact path from creative/design/data/accounting reports to concrete service support playbooks while preserving honest disclosure when defaults are used
+- extends the same workspace artifact path from service support playbooks to after-sales and customer insight reports while preserving honest disclosure when defaults are used
 
 ## 10. Validation Standard
 
