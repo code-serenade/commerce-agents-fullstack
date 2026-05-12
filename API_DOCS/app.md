@@ -2115,6 +2115,76 @@
 
 成功响应 `data`：`WorkspaceRunTaskResponse`。
 
+## 63. 查询 Agent Skill Run 记录
+
+- 方法：`GET`
+- 路径：`/api/app/workspaces/{workspaceId}/runs/{runId}/skill-runs`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `status` | `requested \| success \| deferred \| pending_approval \| not_found \| validation_error \| failed` | 否 | Skill 调用状态 |
+| `skillId` | `string` | 否 | 只查询某个 skill |
+| `role` | `string` | 否 | 只查询某个虚拟员工角色 |
+| `page` | `number` | 否 | 默认 1 |
+| `pageSize` | `number` | 否 | 默认 20，最大 100 |
+
+成功响应 `data`：
+
+```json
+{
+  "skillRuns": [
+    {
+      "id": "skill-run-uuid",
+      "userId": "user-uuid",
+      "workspaceId": "workspace-uuid",
+      "runId": "run-uuid",
+      "sessionId": "session-id",
+      "workerId": "worker.ops",
+      "taskId": "task-1",
+      "requestId": "task-1-skill-1",
+      "skillId": "ops_campaign_plan",
+      "role": "ops",
+      "status": "success",
+      "reason": "需要生成运营计划",
+      "summary": "已生成运营计划摘要",
+      "error": null,
+      "input": {},
+      "output": {
+        "plan": "launch"
+      },
+      "executionMode": "native",
+      "riskLevel": "low",
+      "approvalRequired": false,
+      "metadata": {
+        "source": "agent_sse"
+      },
+      "requestedAt": "2026-05-12T00:00:00Z",
+      "completedAt": "2026-05-12T00:00:02Z",
+      "createdAt": "2026-05-12T00:00:00Z",
+      "updatedAt": "2026-05-12T00:00:02Z"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "pageSize": 20,
+  "agentContext": {
+    "kind": "agent_skill_runs",
+    "workspaceId": "workspace-uuid",
+    "runId": "run-uuid"
+  }
+}
+```
+
+补充说明：
+
+- Agent SSE 收到 `skill_requested` 时会写入 `status=requested` 的记录。
+- Agent SSE 收到 `skill_result` 时会按 `requestId` 更新同一条记录；如果缺少请求记录，会补写一条结果记录，避免审计断点。
+- `executionMode`、`riskLevel`、`approvalRequired` 来自后端 Agent runtime 的真实 `skill_result`，前端不应自行推断。
+- 搜索证据 artifact、审批记录和告警仍按各自已有接口查询；本接口提供 skill 调用维度的审计索引。
+
 ## 工作区交付物接口
 
 工作区交付物用于保存 Agent 运行或人工流程产生的最终报告、岗位交付件、文件引用等结果。Agent SSE 正常完成时会自动创建一个 `artifactType=final_report`、`storageKind=inline`、`format=markdown` 的交付物；当搜索类 `search_*` skill 返回真实 live 来源时，还会自动创建 `artifactType=search_evidence`、`storageKind=inline`、`format=json` 的搜索证据交付物。普通 HTTP 接口可用于查询、人工登记、更新或归档交付物。

@@ -425,6 +425,52 @@ pub struct RecordAgentSearchEvidenceRequest {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct ListAgentSkillRunsRequest {
+    pub user_id: String,
+    pub workspace_id: String,
+    pub run_id: String,
+    pub status: Option<String>,
+    pub skill_id: Option<String>,
+    pub role: Option<String>,
+    pub page: Option<u64>,
+    pub page_size: Option<u64>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct RecordAgentSkillRequestedRequest {
+    pub user_id: String,
+    pub workspace_id: String,
+    pub run_id: String,
+    pub session_id: Option<String>,
+    pub worker_id: String,
+    pub task_id: String,
+    pub request_id: String,
+    pub skill_id: String,
+    pub role: String,
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct RecordAgentSkillResultRequest {
+    pub user_id: String,
+    pub workspace_id: String,
+    pub run_id: String,
+    pub session_id: Option<String>,
+    pub worker_id: String,
+    pub task_id: String,
+    pub request_id: String,
+    pub skill_id: String,
+    pub role: String,
+    pub status: String,
+    pub summary: Option<String>,
+    pub error: Option<String>,
+    pub output: Option<Value>,
+    pub execution_mode: Option<String>,
+    pub risk_level: Option<String>,
+    pub approval_required: Option<bool>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct CompleteAgentWorkspaceRunRequest {
     pub user_id: String,
     pub workspace_id: String,
@@ -514,6 +560,49 @@ pub struct AgentTrustScoreListResponse {
     pub total: u64,
     pub page: u64,
     pub page_size: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentSkillRunListResponse {
+    pub skill_runs: Vec<AgentSkillRunResponse>,
+    pub total: u64,
+    pub page: u64,
+    pub page_size: u64,
+    pub agent_context: Value,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentSkillRunResponse {
+    pub id: String,
+    pub user_id: String,
+    pub workspace_id: String,
+    pub run_id: String,
+    pub session_id: Option<String>,
+    pub worker_id: String,
+    pub task_id: String,
+    pub request_id: String,
+    pub skill_id: String,
+    pub role: String,
+    pub status: String,
+    pub reason: Option<String>,
+    pub summary: Option<String>,
+    pub error: Option<String>,
+    pub input: Value,
+    pub output: Value,
+    pub execution_mode: Option<String>,
+    pub risk_level: Option<String>,
+    pub approval_required: bool,
+    pub metadata: Value,
+    #[serde(with = "time::serde::rfc3339")]
+    pub requested_at: OffsetDateTime,
+    #[serde(with = "time::serde::rfc3339::option")]
+    pub completed_at: Option<OffsetDateTime>,
+    #[serde(with = "time::serde::rfc3339")]
+    pub created_at: OffsetDateTime,
+    #[serde(with = "time::serde::rfc3339")]
+    pub updated_at: OffsetDateTime,
 }
 
 #[derive(Debug, Clone, Serialize)]

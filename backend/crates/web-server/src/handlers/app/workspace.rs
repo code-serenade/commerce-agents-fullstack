@@ -27,36 +27,37 @@ use crate::{
     dto::app::{
         ActAlertRequest, AddConversationMessageRequest, AgentLearningRecordListResponse,
         AgentQualityCheckListResponse, AgentQualityEvaluationResponse, AgentRunFeedbackResponse,
-        AgentTrustScoreListResponse, AlertListResponse, AlertResponse, AlertSummaryResponse,
-        AppUserResponse, AuditLogListResponse, AuditLogResponse, BackgroundEventListResponse,
-        BackgroundEventResponse, BatchUpdateResponse, CampaignListResponse, CampaignResponse,
-        CancelLongTaskRequest, ChannelCatalogResponse, ChannelConnectionListResponse,
-        ChannelConnectionResponse, CompetitorChangeResponse, ConsumeBackgroundEventsRequest,
-        ConversationDetailResponse, ConversationFileAccessResponse, ConversationFileResponse,
-        ConversationMessageResponse, ConversationResponse, CreateAlertRequest,
-        CreateAuditLogRequest, CreateBackgroundEventRequest, CreateCampaignRequest,
-        CreateCompetitorChangeRequest, CreateConversationRequest, CreateExecutionQueueRequest,
-        CreateLongTaskRequest, CreateProductCompetitorRequest, CreateProductKnowledgeRequest,
-        CreateProductMaterialRequest, CreateProductRequest, CreateToolApprovalRequest,
-        CreateWorkspaceArtifactRequest, CreateWorkspaceRequest, CreateWorkspaceRunRequest,
-        CreateWorkspaceRunTaskRequest, CreateWorkspaceTaskRequest, CurrentUserPermissionsResponse,
-        DailyBriefingListResponse, DailyBriefingQuery, DailyBriefingResponse,
-        DailyBriefingSummaryResponse, DecideExecutionQueueRequest, DecideToolApprovalRequest,
-        DismissAlertRequest, DismissAllAlertsRequest, EvaluateAgentRunQualityRequest,
-        ExecutionQueueListResponse, ExecutionQueueResponse, ExportWorkspaceArtifactQuery,
-        ListAgentLearningRecordsQuery, ListAgentQualityChecksQuery, ListAgentTrustScoresQuery,
-        ListAlertsQuery, ListAuditLogsQuery, ListBackgroundEventsQuery, ListCampaignsQuery,
-        ListChannelConnectionsQuery, ListCompetitorChangesQuery, ListDailyBriefingRecordsQuery,
-        ListExecutionQueueQuery, ListLongTasksQuery, ListPackageCatalogQuery,
-        ListPackageHistoryQuery, ListPlatformConnectionsQuery, ListProductAssetsQuery,
-        ListProductCompetitorsQuery, ListProductKnowledgeQuery, ListProductMaterialsQuery,
-        ListProductsQuery, ListStoreMetricsQuery, ListToolApprovalsQuery,
-        ListWorkspaceArtifactsQuery, ListWorkspaceRunTasksQuery, ListWorkspaceRunsQuery,
-        ListWorkspaceTasksQuery, ListWorkspacesQuery, LongTaskListResponse, LongTaskResponse,
-        PackageCatalogResponse, PackageHistoryListResponse, PackageLockDriftResponse,
-        PackageLockListResponse, PackageResponse, PackageStatusChangeRequest,
-        PackageValidationResponse, PlatformCatalogResponse, PlatformConnectionListResponse,
-        PlatformConnectionResponse, PlatformSummaryResponse, PlatformSyncStatusListResponse,
+        AgentSkillRunListResponse, AgentTrustScoreListResponse, AlertListResponse, AlertResponse,
+        AlertSummaryResponse, AppUserResponse, AuditLogListResponse, AuditLogResponse,
+        BackgroundEventListResponse, BackgroundEventResponse, BatchUpdateResponse,
+        CampaignListResponse, CampaignResponse, CancelLongTaskRequest, ChannelCatalogResponse,
+        ChannelConnectionListResponse, ChannelConnectionResponse, CompetitorChangeResponse,
+        ConsumeBackgroundEventsRequest, ConversationDetailResponse, ConversationFileAccessResponse,
+        ConversationFileResponse, ConversationMessageResponse, ConversationResponse,
+        CreateAlertRequest, CreateAuditLogRequest, CreateBackgroundEventRequest,
+        CreateCampaignRequest, CreateCompetitorChangeRequest, CreateConversationRequest,
+        CreateExecutionQueueRequest, CreateLongTaskRequest, CreateProductCompetitorRequest,
+        CreateProductKnowledgeRequest, CreateProductMaterialRequest, CreateProductRequest,
+        CreateToolApprovalRequest, CreateWorkspaceArtifactRequest, CreateWorkspaceRequest,
+        CreateWorkspaceRunRequest, CreateWorkspaceRunTaskRequest, CreateWorkspaceTaskRequest,
+        CurrentUserPermissionsResponse, DailyBriefingListResponse, DailyBriefingQuery,
+        DailyBriefingResponse, DailyBriefingSummaryResponse, DecideExecutionQueueRequest,
+        DecideToolApprovalRequest, DismissAlertRequest, DismissAllAlertsRequest,
+        EvaluateAgentRunQualityRequest, ExecutionQueueListResponse, ExecutionQueueResponse,
+        ExportWorkspaceArtifactQuery, ListAgentLearningRecordsQuery, ListAgentQualityChecksQuery,
+        ListAgentSkillRunsQuery, ListAgentTrustScoresQuery, ListAlertsQuery, ListAuditLogsQuery,
+        ListBackgroundEventsQuery, ListCampaignsQuery, ListChannelConnectionsQuery,
+        ListCompetitorChangesQuery, ListDailyBriefingRecordsQuery, ListExecutionQueueQuery,
+        ListLongTasksQuery, ListPackageCatalogQuery, ListPackageHistoryQuery,
+        ListPlatformConnectionsQuery, ListProductAssetsQuery, ListProductCompetitorsQuery,
+        ListProductKnowledgeQuery, ListProductMaterialsQuery, ListProductsQuery,
+        ListStoreMetricsQuery, ListToolApprovalsQuery, ListWorkspaceArtifactsQuery,
+        ListWorkspaceRunTasksQuery, ListWorkspaceRunsQuery, ListWorkspaceTasksQuery,
+        ListWorkspacesQuery, LongTaskListResponse, LongTaskResponse, PackageCatalogResponse,
+        PackageHistoryListResponse, PackageLockDriftResponse, PackageLockListResponse,
+        PackageResponse, PackageStatusChangeRequest, PackageValidationResponse,
+        PlatformCatalogResponse, PlatformConnectionListResponse, PlatformConnectionResponse,
+        PlatformSummaryResponse, PlatformSyncStatusListResponse,
         PresignConversationFileUploadRequest, PresignConversationFileUploadResponse,
         PresignProductAssetUploadRequest, PresignProductAssetUploadResponse,
         ProductAssetAccessResponse, ProductAssetResponse, ProductCompetitorResponse,
@@ -412,6 +413,29 @@ pub async fn list_workspace_run_tasks(
         .into_iter()
         .map(map_workspace_run_task_response)
         .collect::<Vec<_>>();
+    Ok(response.into_common_response().to_json())
+}
+
+pub async fn list_agent_skill_runs(
+    Extension(auth_user): Extension<AuthUser>,
+    Path((workspace_id, run_id)): Path<(String, String)>,
+    Query(req): Query<ListAgentSkillRunsQuery>,
+) -> ResponseResult<AgentSkillRunListResponse> {
+    req.validate().map_err(Error::from)?;
+    let api = WorkspaceApi::new(get_app_ctx());
+    let response = api
+        .list_agent_skill_runs(service::dto::workspace::ListAgentSkillRunsRequest {
+            user_id: auth_user.user_id,
+            workspace_id,
+            run_id,
+            status: req.status,
+            skill_id: req.skill_id,
+            role: req.role,
+            page: req.page,
+            page_size: req.page_size,
+        })
+        .await
+        .map_err(from_biz_error)?;
     Ok(response.into_common_response().to_json())
 }
 

@@ -30,7 +30,8 @@ use service::{
             CompleteAgentWorkspaceRunRequest, EvaluateAgentWorkspaceRunRequest,
             FailAgentWorkspaceRunRequest, LinkAgentWorkspaceRunRequest,
             LinkAgentWorkspaceTasksRequest, MarkAgentWorkspaceTaskStartedRequest,
-            RecordAgentSearchEvidenceRequest, RecordAgentWorkspaceTaskEvaluationRequest,
+            RecordAgentSearchEvidenceRequest, RecordAgentSkillRequestedRequest,
+            RecordAgentSkillResultRequest, RecordAgentWorkspaceTaskEvaluationRequest,
             RecordAgentWorkspaceTaskReportRequest, WorkspaceContextPackResponse,
             WorkspaceContextSourceResponse, WorkspaceContextSummaryResponse,
         },
@@ -354,7 +355,36 @@ pub async fn stream_agent_session(
                         Err(err) => yield Ok(persistence_error_event("record_agent_task_evaluation", err)),
                     }
                 }
+                SessionEvent::SkillRequested {
+                    session_id,
+                    worker_id,
+                    task_id,
+                    request_id,
+                    skill_id,
+                    role,
+                    reason,
+                    ..
+                } => {
+                    let response = workspace_api
+                        .record_agent_skill_requested(RecordAgentSkillRequestedRequest {
+                            user_id: link_state.user_id.clone(),
+                            workspace_id: link_state.workspace_id.clone(),
+                            run_id: link_state.run_id.clone(),
+                            session_id: Some(session_id.0.clone()),
+                            worker_id: worker_id.0.clone(),
+                            task_id: task_id.0.clone(),
+                            request_id: request_id.clone(),
+                            skill_id: skill_id.clone(),
+                            role: role.clone(),
+                            reason: reason.clone(),
+                        })
+                        .await;
+                    if let Err(err) = response {
+                        yield Ok(persistence_error_event("record_agent_skill_requested", err));
+                    }
+                }
                 SessionEvent::SkillResult {
+                    session_id,
                     worker_id,
                     task_id,
                     request_id,
@@ -369,6 +399,30 @@ pub async fn stream_agent_session(
                     approval_required,
                     ..
                 } => {
+                    let response = workspace_api
+                        .record_agent_skill_result(RecordAgentSkillResultRequest {
+                            user_id: link_state.user_id.clone(),
+                            workspace_id: link_state.workspace_id.clone(),
+                            run_id: link_state.run_id.clone(),
+                            session_id: Some(session_id.0.clone()),
+                            worker_id: worker_id.0.clone(),
+                            task_id: task_id.0.clone(),
+                            request_id: request_id.clone(),
+                            skill_id: skill_id.clone(),
+                            role: role.clone(),
+                            status: status.clone(),
+                            summary: summary.clone(),
+                            error: error.clone(),
+                            output: output.clone(),
+                            execution_mode: execution_mode.clone(),
+                            risk_level: risk_level.clone(),
+                            approval_required: *approval_required,
+                        })
+                        .await;
+                    if let Err(err) = response {
+                        yield Ok(persistence_error_event("record_agent_skill_result", err));
+                    }
+
                     if let Some(output) = output.clone() {
                         let response = workspace_api
                             .record_agent_search_evidence(RecordAgentSearchEvidenceRequest {

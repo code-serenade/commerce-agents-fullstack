@@ -561,3 +561,26 @@
 - 本阶段解决的是“商品生命周期成为后端真实状态机”。
 - 本阶段不自动执行平台上架、下架或发布动作。
 - 后续可继续做商品页生命周期 UI、Agent 阶段感知和平台执行 adapter。
+
+## Post 8-20：Skill run 记录查询 API
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Migration：新增 `agent_skill_runs` 表，包含 workspace/run/session/worker/task/request/skill/status/output/risk/approval/time 字段。
+- [x] Repo：新增 `AgentSkillRunService`，支持创建、按 request 查询、分页列表、计数和更新。
+- [x] Service：新增 skill run 查询接口，并复用当前用户、workspace、run 归属校验。
+- [x] Service：新增 `record_agent_skill_requested`，把 `skill_requested` 写为 `requested` 记录。
+- [x] Service：新增 `record_agent_skill_result`，按 `requestId` 更新结果；缺少请求记录时补写结果记录。
+- [x] Web-server：SSE 收到 `SkillRequested` / `SkillResult` 时自动持久化，不截断原始回答流。
+- [x] Web-server：新增 `GET /api/app/workspaces/{workspaceId}/runs/{runId}/skill-runs`。
+- [x] API：`API_DOCS/app.md` 已同步。
+- [x] 前端：API adapter 类型已同步，但本阶段不新增页面入口。
+
+当前说明：
+
+- 本阶段解决的是“skill 调用历史可查询、可审计”。
+- 本阶段不从 LLM 文本反推 skill input，`input` 预留为空对象，避免伪造参数。
+- 搜索证据 artifact、审批记录和告警仍按既有链路沉淀；后续前端可用 `requestId/skillId/runId` 做关联展示。

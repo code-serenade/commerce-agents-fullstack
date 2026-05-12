@@ -9,6 +9,7 @@ pub use super::admin_users::Entity as AdminUsers;
 pub use super::agent_learning_records::Entity as AgentLearningRecords;
 pub use super::agent_memories::Entity as AgentMemories;
 pub use super::agent_quality_checks::Entity as AgentQualityChecks;
+pub use super::agent_skill_runs::Entity as AgentSkillRuns;
 pub use super::agent_trust_scores::Entity as AgentTrustScores;
 pub use super::alerts::Entity as Alerts;
 pub use super::app_permissions::Entity as AppPermissions;

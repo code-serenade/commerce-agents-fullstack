@@ -6,6 +6,7 @@ pub mod admin_user_roles;
 pub mod admin_users;
 pub mod agent_learning_records;
 pub mod agent_quality_checks;
+pub mod agent_skill_runs;
 pub mod agent_trust_scores;
 pub mod alerts;
 pub mod app_permissions;

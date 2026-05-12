@@ -806,6 +806,21 @@ pub struct ListWorkspaceRunTasksQuery {
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
+pub struct ListAgentSkillRunsQuery {
+    #[validate(length(max = 32))]
+    pub status: Option<String>,
+    #[validate(length(max = 128))]
+    pub skill_id: Option<String>,
+    #[validate(length(max = 64))]
+    pub role: Option<String>,
+    #[validate(range(min = 1))]
+    pub page: Option<u64>,
+    #[validate(range(min = 1, max = 100))]
+    pub page_size: Option<u64>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
 pub struct ListWorkspaceArtifactsQuery {
     #[validate(length(max = 64))]
     pub run_id: Option<String>,
@@ -1439,6 +1454,7 @@ pub type AgentQualityEvaluationResponse = service::dto::workspace::AgentQualityE
 pub type AgentRunFeedbackResponse = service::dto::workspace::AgentRunFeedbackResponse;
 pub type AgentLearningRecordListResponse = service::dto::workspace::AgentLearningRecordListResponse;
 pub type AgentTrustScoreListResponse = service::dto::workspace::AgentTrustScoreListResponse;
+pub type AgentSkillRunListResponse = service::dto::workspace::AgentSkillRunListResponse;
 pub type WorkspaceArtifactExportResponse = service::dto::workspace::WorkspaceArtifactExportResponse;
 pub type WorkspaceContextSummaryResponse = service::dto::workspace::WorkspaceContextSummaryResponse;
 pub type WorkspaceContextPackResponse = service::dto::workspace::WorkspaceContextPackResponse;

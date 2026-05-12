@@ -47,7 +47,7 @@ API 是后端能力和前端适配之间的唯一契约。任何前端适配开�
 - [x] Commerce agent playbook 场景入口 API。
 - [x] Workspace run 与 agent session 对齐 API。
 - [x] Workspace artifact 创建、查询、更新、归档 API。
-- [ ] Skill run 记录查询 API。
+- [x] Skill run 记录查询 API。
 - [x] Quality check 查询 API。
 - [x] Trust/learning feedback API。
 - [x] Approval 承接高风险 skill API/SSE。

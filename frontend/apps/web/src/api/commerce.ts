@@ -326,6 +326,41 @@ export interface WorkspaceRunTaskResponse extends JsonRecord {
   updatedAt?: string
 }
 
+export interface AgentSkillRunResponse extends JsonRecord {
+  id: string
+  userId: string
+  workspaceId: string
+  runId: string
+  sessionId?: string | null
+  workerId: string
+  taskId: string
+  requestId: string
+  skillId: string
+  role: string
+  status: string
+  reason?: string | null
+  summary?: string | null
+  error?: string | null
+  input: JsonRecord
+  output: JsonRecord
+  executionMode?: string | null
+  riskLevel?: string | null
+  approvalRequired: boolean
+  metadata?: JsonRecord
+  requestedAt?: string
+  completedAt?: string | null
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface AgentSkillRunListResponse extends JsonRecord {
+  skillRuns: AgentSkillRunResponse[]
+  total: number
+  page: number
+  pageSize: number
+  agentContext?: JsonRecord
+}
+
 export interface WorkspaceArtifactResponse extends JsonRecord {
   id: string
   workspaceId: string
@@ -1386,6 +1421,17 @@ export const listWorkspaceRunTasksApi = async (
     method: "GET",
     url: `/api/app/workspaces/${workspaceId}/runs/${runId}/tasks`,
     body: query,
+  })
+
+export const listAgentSkillRunsApi = async (
+  workspaceId: string,
+  runId: string,
+  query?: ListQuery
+): Promise<AgentSkillRunListResponse> =>
+  request<ListQuery, AgentSkillRunListResponse>({
+    method: "GET",
+    url: `/api/app/workspaces/${workspaceId}/runs/${runId}/skill-runs`,
+    body: defaultListQuery(query),
   })
 
 export const createWorkspaceRunTaskApi = async (

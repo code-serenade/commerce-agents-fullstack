@@ -12,6 +12,10 @@ use repo::table::{
         AgentQualityCheck, AgentQualityCheckFilter, AgentQualityCheckService,
         CreateAgentQualityCheck,
     },
+    agent_skill_runs::{
+        AgentSkillRun, AgentSkillRunFilter, AgentSkillRunService, AgentSkillRunStatus,
+        CreateAgentSkillRun, UpdateAgentSkillRun,
+    },
     agent_trust_scores::{
         AgentTrustLevel, AgentTrustScore, AgentTrustScoreFilter, AgentTrustScoreService,
         CreateAgentTrustScore, UpdateAgentTrustScore,
@@ -87,6 +91,7 @@ pub struct WorkspaceApi {
     artifact_svc: WorkspaceArtifactService,
     execution_svc: ExecutionQueueService,
     quality_svc: AgentQualityCheckService,
+    skill_run_svc: AgentSkillRunService,
     trust_svc: AgentTrustScoreService,
     learning_svc: AgentLearningRecordService,
 }
@@ -109,6 +114,7 @@ impl WorkspaceApi {
             artifact_svc: WorkspaceArtifactService::new(db.clone()),
             execution_svc: ExecutionQueueService::new(db.clone()),
             quality_svc: AgentQualityCheckService::new(db.clone()),
+            skill_run_svc: AgentSkillRunService::new(db.clone()),
             trust_svc: AgentTrustScoreService::new(db.clone()),
             learning_svc: AgentLearningRecordService::new(db),
         }
@@ -1646,6 +1652,208 @@ impl WorkspaceApi {
         Ok(Some(Self::map_artifact(artifact)))
     }
 
+    pub async fn list_agent_skill_runs(
+        &self,
+        req: ListAgentSkillRunsRequest,
+    ) -> BizResult<AgentSkillRunListResponse> {
+        let (user_id, workspace_id) = self
+            .ensure_request_workspace(&req.user_id, &req.workspace_id)
+            .await?;
+        let run_id = parse_uuid(&req.run_id, "run_id")?;
+        self.ensure_run_owner(user_id, workspace_id, run_id).await?;
+        let status = parse_skill_run_status(req.status)?;
+        let skill_id = normalize_optional(req.skill_id);
+        let role = normalize_optional(req.role);
+        let (page, page_size, offset) = pagination(req.page, req.page_size);
+        let filter = AgentSkillRunFilter {
+            user_id,
+            workspace_id: Some(workspace_id),
+            run_id: Some(run_id),
+            status,
+            skill_id,
+            role,
+            limit: Some(page_size),
+            offset: Some(offset),
+        };
+        let count_filter = AgentSkillRunFilter {
+            limit: None,
+            offset: None,
+            ..filter.clone()
+        };
+        let total = self.skill_run_svc.count(count_filter).await?;
+        let skill_runs = self
+            .skill_run_svc
+            .list(filter.clone())
+            .await?
+            .into_iter()
+            .map(Self::map_skill_run)
+            .collect::<Vec<_>>();
+
+        Ok(AgentSkillRunListResponse {
+            skill_runs,
+            total,
+            page,
+            page_size,
+            agent_context: json!({
+                "kind": "agent_skill_runs",
+                "workspaceId": workspace_id,
+                "runId": run_id,
+                "filters": {
+                    "status": filter.status.map(|status| status.as_str()),
+                    "skillId": filter.skill_id,
+                    "role": filter.role,
+                },
+                "capabilities": [
+                    "skill_audit",
+                    "sse_skill_requested",
+                    "sse_skill_result",
+                    "approval_trace"
+                ],
+            }),
+        })
+    }
+
+    pub async fn record_agent_skill_requested(
+        &self,
+        req: RecordAgentSkillRequestedRequest,
+    ) -> BizResult<AgentSkillRunResponse> {
+        let (user_id, workspace_id) = self
+            .ensure_request_workspace(&req.user_id, &req.workspace_id)
+            .await?;
+        let run_id = parse_uuid(&req.run_id, "run_id")?;
+        self.ensure_run_owner(user_id, workspace_id, run_id).await?;
+        let request_id = normalize_required(req.request_id, "request_id")?;
+
+        if let Some(current) = self
+            .skill_run_svc
+            .get_by_request(user_id, workspace_id, run_id, &request_id)
+            .await?
+        {
+            return Ok(Self::map_skill_run(current));
+        }
+
+        let now = OffsetDateTime::now_utc();
+        let skill_run = self
+            .skill_run_svc
+            .create(CreateAgentSkillRun {
+                id: Uuid::new_v4(),
+                user_id,
+                workspace_id,
+                run_id,
+                session_id: normalize_optional(req.session_id),
+                worker_id: normalize_required(req.worker_id, "worker_id")?,
+                task_id: normalize_required(req.task_id, "task_id")?,
+                request_id,
+                skill_id: normalize_required(req.skill_id, "skill_id")?,
+                role: normalize_required(req.role, "role")?,
+                status: AgentSkillRunStatus::Requested,
+                reason: req.reason.map(|value| compact_optional_text(&value)),
+                summary: None,
+                error: None,
+                input: json!({}),
+                output: json!({}),
+                execution_mode: None,
+                risk_level: None,
+                approval_required: false,
+                metadata: json!({
+                    "source": "agent_sse",
+                    "sourceEvent": "skill_requested",
+                    "recordedAt": now,
+                }),
+                requested_at: now,
+                completed_at: None,
+            })
+            .await?;
+
+        Ok(Self::map_skill_run(skill_run))
+    }
+
+    pub async fn record_agent_skill_result(
+        &self,
+        req: RecordAgentSkillResultRequest,
+    ) -> BizResult<AgentSkillRunResponse> {
+        let (user_id, workspace_id) = self
+            .ensure_request_workspace(&req.user_id, &req.workspace_id)
+            .await?;
+        let run_id = parse_uuid(&req.run_id, "run_id")?;
+        self.ensure_run_owner(user_id, workspace_id, run_id).await?;
+        let request_id = normalize_required(req.request_id, "request_id")?;
+        let status = parse_required_skill_run_status(req.status)?;
+        let now = OffsetDateTime::now_utc();
+        let output = req.output.unwrap_or_else(|| json!({}));
+        let summary = req.summary.map(|value| compact_optional_text(&value));
+        let error = req.error.map(|value| compact_optional_text(&value));
+        let execution_mode = normalize_optional(req.execution_mode);
+        let risk_level = normalize_optional(req.risk_level);
+        let approval_required = req.approval_required.unwrap_or(false);
+        let metadata_patch = json!({
+            "source": "agent_sse",
+            "sourceEvent": "skill_result",
+            "recordedAt": now,
+            "executionMode": execution_mode,
+            "riskLevel": risk_level,
+            "approvalRequired": approval_required,
+        });
+
+        let skill_run = if let Some(current) = self
+            .skill_run_svc
+            .get_by_request(user_id, workspace_id, run_id, &request_id)
+            .await?
+        {
+            self.skill_run_svc
+                .update(UpdateAgentSkillRun {
+                    id: current.id,
+                    status,
+                    reason: current.reason,
+                    summary: summary.clone(),
+                    error: error.clone(),
+                    input: current.input,
+                    output,
+                    execution_mode: execution_mode.clone(),
+                    risk_level: risk_level.clone(),
+                    approval_required,
+                    metadata: merge_json_object(current.metadata, metadata_patch),
+                    completed_at: Some(now),
+                })
+                .await?
+        } else {
+            self.skill_run_svc
+                .create(CreateAgentSkillRun {
+                    id: Uuid::new_v4(),
+                    user_id,
+                    workspace_id,
+                    run_id,
+                    session_id: normalize_optional(req.session_id),
+                    worker_id: normalize_required(req.worker_id, "worker_id")?,
+                    task_id: normalize_required(req.task_id, "task_id")?,
+                    request_id,
+                    skill_id: normalize_required(req.skill_id, "skill_id")?,
+                    role: normalize_required(req.role, "role")?,
+                    status,
+                    reason: None,
+                    summary,
+                    error,
+                    input: json!({}),
+                    output,
+                    execution_mode,
+                    risk_level,
+                    approval_required,
+                    metadata: merge_json_object(
+                        json!({
+                            "source": "agent_sse",
+                            "sourceEvent": "skill_result_without_request",
+                        }),
+                        metadata_patch,
+                    ),
+                    requested_at: now,
+                    completed_at: Some(now),
+                })
+                .await?
+        };
+
+        Ok(Self::map_skill_run(skill_run))
+    }
+
     pub async fn complete_agent_run(
         &self,
         req: CompleteAgentWorkspaceRunRequest,
@@ -3035,6 +3243,35 @@ impl WorkspaceApi {
         }
     }
 
+    fn map_skill_run(item: AgentSkillRun) -> AgentSkillRunResponse {
+        AgentSkillRunResponse {
+            id: item.id.to_string(),
+            user_id: item.user_id.to_string(),
+            workspace_id: item.workspace_id.to_string(),
+            run_id: item.run_id.to_string(),
+            session_id: item.session_id,
+            worker_id: item.worker_id,
+            task_id: item.task_id,
+            request_id: item.request_id,
+            skill_id: item.skill_id,
+            role: item.role,
+            status: item.status.as_str().to_string(),
+            reason: item.reason,
+            summary: item.summary,
+            error: item.error,
+            input: item.input,
+            output: item.output,
+            execution_mode: item.execution_mode,
+            risk_level: item.risk_level,
+            approval_required: item.approval_required,
+            metadata: item.metadata,
+            requested_at: item.requested_at,
+            completed_at: item.completed_at,
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+        }
+    }
+
     fn map_artifact(item: WorkspaceArtifact) -> WorkspaceArtifactResponse {
         WorkspaceArtifactResponse {
             id: item.id.to_string(),
@@ -3998,6 +4235,33 @@ fn parse_run_task_status(value: Option<String>) -> BizResult<Option<WorkspaceRun
     })
 }
 
+fn parse_skill_run_status(value: Option<String>) -> BizResult<Option<AgentSkillRunStatus>> {
+    parse_status(value, parse_skill_run_status_value)
+}
+
+fn parse_required_skill_run_status(value: String) -> BizResult<AgentSkillRunStatus> {
+    let value = normalize_required(value, "status")?;
+    parse_skill_run_status_value(value.as_str()).map_err(|_| {
+        BizError::new(
+            app_error::WORKSPACE_REQUEST_INVALID,
+            format!("invalid skill run status: {value}"),
+        )
+    })
+}
+
+fn parse_skill_run_status_value(value: &str) -> Result<AgentSkillRunStatus, ()> {
+    match value {
+        "requested" => Ok(AgentSkillRunStatus::Requested),
+        "success" => Ok(AgentSkillRunStatus::Success),
+        "deferred" => Ok(AgentSkillRunStatus::Deferred),
+        "pending_approval" => Ok(AgentSkillRunStatus::PendingApproval),
+        "not_found" => Ok(AgentSkillRunStatus::NotFound),
+        "validation_error" => Ok(AgentSkillRunStatus::ValidationError),
+        "failed" => Ok(AgentSkillRunStatus::Failed),
+        _ => Err(()),
+    }
+}
+
 fn parse_artifact_status(value: Option<String>) -> BizResult<Option<WorkspaceArtifactStatus>> {
     parse_status(value, |value| match value {
         "active" => Ok(WorkspaceArtifactStatus::Active),
@@ -4737,6 +5001,74 @@ mod tests {
         };
 
         assert!(build_search_evidence_artifact(&req).is_none());
+    }
+
+    #[test]
+    fn skill_run_status_parser_accepts_agent_runtime_statuses() {
+        assert_eq!(
+            parse_skill_run_status(Some("requested".to_string())).unwrap(),
+            Some(AgentSkillRunStatus::Requested)
+        );
+        assert_eq!(
+            parse_skill_run_status(Some("pending_approval".to_string())).unwrap(),
+            Some(AgentSkillRunStatus::PendingApproval)
+        );
+        assert_eq!(
+            parse_required_skill_run_status("validation_error".to_string()).unwrap(),
+            AgentSkillRunStatus::ValidationError
+        );
+    }
+
+    #[test]
+    fn skill_run_status_parser_rejects_unknown_values() {
+        let err = parse_required_skill_run_status("done".to_string())
+            .expect_err("unknown skill run status should fail");
+
+        assert_eq!(err.code(), app_error::WORKSPACE_REQUEST_INVALID);
+    }
+
+    #[test]
+    fn skill_run_mapper_preserves_audit_fields() {
+        let requested_at = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();
+        let completed_at = OffsetDateTime::from_unix_timestamp(1_778_544_002).unwrap();
+        let item = AgentSkillRun {
+            id: Uuid::parse_str("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa").unwrap(),
+            user_id: Uuid::parse_str("11111111-1111-1111-1111-111111111111").unwrap(),
+            workspace_id: Uuid::parse_str("22222222-2222-2222-2222-222222222222").unwrap(),
+            run_id: Uuid::parse_str("33333333-3333-3333-3333-333333333333").unwrap(),
+            session_id: Some("session-1".to_string()),
+            worker_id: "worker.ops".to_string(),
+            task_id: "task-1".to_string(),
+            request_id: "task-1-skill-1".to_string(),
+            skill_id: "ops_campaign_plan".to_string(),
+            role: "ops".to_string(),
+            status: AgentSkillRunStatus::Success,
+            reason: Some("需要生成运营计划".to_string()),
+            summary: Some("已生成计划".to_string()),
+            error: None,
+            input: json!({}),
+            output: json!({ "plan": "launch" }),
+            execution_mode: Some("native".to_string()),
+            risk_level: Some("low".to_string()),
+            approval_required: false,
+            metadata: json!({ "source": "agent_sse" }),
+            requested_at,
+            completed_at: Some(completed_at),
+            created_at: requested_at,
+            updated_at: completed_at,
+        };
+
+        let response = WorkspaceApi::map_skill_run(item);
+
+        assert_eq!(response.skill_id, "ops_campaign_plan");
+        assert_eq!(response.status, "success");
+        assert_eq!(response.execution_mode.as_deref(), Some("native"));
+        assert_eq!(response.risk_level.as_deref(), Some("low"));
+        assert_eq!(
+            response.output.get("plan").and_then(Value::as_str),
+            Some("launch")
+        );
+        assert_eq!(response.completed_at, Some(completed_at));
     }
 
     #[test]

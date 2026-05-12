@@ -1304,3 +1304,54 @@
 
 - 还需要把商品页 UI 接到 lifecycle API，展示阶段和可执行下一步。
 - 还需要让 Agent task graph 在商品相关任务中消费 lifecycle agentContext。
+
+## Post 8-20：Skill run 记录查询 API
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 20 个补强项：`Post 8-20`。
+
+本次目标：
+
+- 把旧产品 skill run audit 能力迁成新产品后端可持久化、可查询的 Agent skill run 记录。
+- 让 `skill_requested` / `skill_result` 不再只停留在 SSE 流式过程里，而是进入 workspace run 的审计轨迹。
+
+涉及范围：
+
+- 产品内核：Skill 调用从“过程可见”推进到“历史可查、可审计、可与审批/搜索证据关联”。
+- 后端 migration/repo：新增 `agent_skill_runs` 表和单表 repo service。
+- 后端 service：新增 skill run 查询、请求落库、结果落库能力。
+- Web-server：SSE 收到 `SkillRequested` / `SkillResult` 时自动写记录；新增 `GET /api/app/workspaces/{workspaceId}/runs/{runId}/skill-runs`。
+- API：同步 `API_DOCS/app.md`。
+- 前端：同步 `listAgentSkillRunsApi` 和响应类型，但本阶段不新增页面入口。
+
+用户可感知变化：
+
+- 后续工作区运行详情页接入后，用户可以看到某次 Agent 运行调用过哪些 skill。
+- 用户能看到 skill 的角色、状态、执行模式、风险等级、是否需要审批、摘要、错误和输出结构。
+- 失败、降级、待审批和成功状态都来自后端真实 Agent runtime，不由前端伪造。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo fmt --check`
+- [x] `cargo test -p service skill_run`
+- [x] `cargo check -p repo`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo check`
+- [x] `cargo clippy`
+- [x] `pnpm -C frontend/apps/web rules`
+- [x] `pnpm -C frontend/apps/web lint`
+- [x] `pnpm -C frontend/apps/web test`
+- [x] `pnpm -C frontend/apps/web build`
+- [x] `pnpm -C frontend rules`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 还需要在工作区运行详情页接入 skill run 历史列表。
+- 还需要把 skill run 与搜索证据 artifact、审批记录、告警做前端关联展示。

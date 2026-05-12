@@ -16,6 +16,7 @@ mod m20260507_173000_create_long_tasks_briefing_alerts;
 mod m20260507_183000_create_package_governance;
 mod m20260509_095358_create_workspace_artifacts;
 mod m20260509_105058_create_agent_quality_learning;
+mod m20260512_090000_create_agent_skill_runs;
 
 pub struct Migrator;
 
@@ -39,6 +40,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260507_183000_create_package_governance::Migration),
             Box::new(m20260509_095358_create_workspace_artifacts::Migration),
             Box::new(m20260509_105058_create_agent_quality_learning::Migration),
+            Box::new(m20260512_090000_create_agent_skill_runs::Migration),
         ]
     }
 }
