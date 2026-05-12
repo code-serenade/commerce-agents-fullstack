@@ -1,5 +1,128 @@
 # 迁移开发记录
 
+## Post 8-23：Coordination 创建任务真实落地
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 23 个补强项：`Post 8-23`。
+
+本次目标：
+
+- 把 `coordination_create_task` 从 `pending_approval` 骨架升级为真实 Rust native skill。
+- 让 Agent 在当前工作区里不只是“建议建任务”，而是能通过现有 service/SSE 持久化链路真实创建 `workspace_task`。
+- 保持新产品分层，不让 `agent` 直接跨层写数据库。
+
+涉及范围：
+
+- 产品内核：协同层从“能提出任务建议”推进到“能把任务落成真实工作区待办”。
+- 后端 agent：`coordination_create_task` 改为 native deterministic skill，并补“创建任务/待办/安排任务”等自然问法触达。
+- 后端 service/web-server：SSE 在记录 `skill_result` 后，调用工作区 service 将任务草案幂等落成真实 `workspace_task`，并回传 `workspace_task_created`。
+
+用户可感知变化：
+
+- 用户提出“帮我建个任务”“安排一个待办”“分派给某岗位处理”时，更容易命中真实后端建任务能力。
+- 命中后，当前工作区会真实新增任务，不再只是返回一段待审批骨架说明。
+- SSE 会出现真实 `workspace_task_created` 事件，刷新后工作区任务列表仍可见。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p agent autosuggest`
+- [x] `cargo test -p service workspace_task_artifact`
+- [x] `cargo check -p agent`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo check`
+- [x] `cargo clippy`
+
+## Post 8-22：Coordination 状态查询真实化
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 22 个补强项：`Post 8-22`。
+
+本次目标：
+
+- 把 `coordination_status_query` 从 deferred 骨架升级为真实 Rust native skill。
+- 让当前新产品的多智能体运行链路具备“可查询会话/任务/工作区状态”的后端原生能力。
+- 不引入新 API、不做数据库变更、不做高风险写操作。
+
+涉及范围：
+
+- 产品内核：协同层状态从“只有事件流”推进到“有真实状态查询 skill”。
+- 后端 agent：扩展 `SkillContext` 透传 session/task/workspace/request metadata；`coordination_status_query` 改为 native 实现。
+- 问答主链路：chat / engineering 状态类自然问法可自动命中 `coordination_status_query`。
+
+用户可感知变化：
+
+- 用户问“当前状态”“任务进度”“workspace 状态”“系统健康”“agent 运行到哪了”时，更容易命中真实后端协调状态查询能力。
+- 返回内容会真实反映当前 session 范围内可见的 worker、task、graph、workspace、run、context readiness 和 blockers。
+- 没有可见信息时会明确说明缺口，不会伪造全局状态。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p agent autosuggest`
+- [x] `cargo test -p agent executor_runs_representative_native_categories`
+- [x] `cargo check -p agent`
+- [x] `cargo check`
+- [x] `cargo clippy`
+
+## Post 8-21：Native skill 可达性补强
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 21 个补强项：`Post 8-21`。
+
+本次目标：
+
+- 不新增假前端入口，继续以后端为主。
+- 把已经迁到 Rust 后端、但真实自然问法命中率还不够高的旧产品能力，补进主问答链路。
+- 通过 autosuggest 补强，让用户更容易触发正确的 native skill 或正确的 deferred engineering skill。
+
+涉及范围：
+
+- 产品内核：问答主链路从“已有 skill”继续推进到“已有 skill 更容易被真实用户问法命中”。
+- 后端 agent：补强 `autosuggest_ops/data/accounting/service/engineering` 的意图覆盖。
+- 文档：重写统一后的迁移主计划，消除已失效的 `backend/crates/agent` 旧硬约束。
+
+计划中的命中补强：
+
+- `ops_channel_strategy`
+- `ops_listing_copy`
+- `ops_assortment_planning`
+- `data_competitor_analysis`
+- `data_channel_roi`
+- `data_refund_decomposition`
+- `accounting_compliance_check`
+- `service_nps_driver_analysis`
+- `engineering_arch_review`
+- `engineering_bug_analysis`
+- `engineering_perf_optimize`
+- `engineering_tech_selection`
+
+用户可感知变化：
+
+- 用户问“渠道分配”“上架文案”“货盘组合”“竞品分析”“退款帕累托”“税务合规”“NPS驱动因素”“架构评审”“性能优化”“技术选型”等问题时，更容易看到后端命中对应能力，而不是落回泛化执行计划。
+- 这些变化都来自后端真实 skill 选择和 SSE 过程事件，不是前端伪造。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p agent autosuggest`
+- [x] `cargo check -p agent`
+- [x] `cargo check`
+- [x] `cargo clippy`
+
 ## 9/12：登录态恢复与旧产品内置能力包治理同步
 
 状态：done

@@ -30,10 +30,11 @@ use service::{
             CompleteAgentWorkspaceRunRequest, EvaluateAgentWorkspaceRunRequest,
             FailAgentWorkspaceRunRequest, LinkAgentWorkspaceRunRequest,
             LinkAgentWorkspaceTasksRequest, MarkAgentWorkspaceTaskStartedRequest,
-            RecordAgentSearchEvidenceRequest, RecordAgentSkillRequestedRequest,
-            RecordAgentSkillResultRequest, RecordAgentWorkspaceTaskEvaluationRequest,
-            RecordAgentWorkspaceTaskReportRequest, WorkspaceContextPackResponse,
-            WorkspaceContextSourceResponse, WorkspaceContextSummaryResponse,
+            MaterializeAgentWorkspaceTaskRequest, RecordAgentSearchEvidenceRequest,
+            RecordAgentSkillRequestedRequest, RecordAgentSkillResultRequest,
+            RecordAgentWorkspaceTaskEvaluationRequest, RecordAgentWorkspaceTaskReportRequest,
+            WorkspaceContextPackResponse, WorkspaceContextSourceResponse,
+            WorkspaceContextSummaryResponse,
         },
     },
 };
@@ -421,6 +422,29 @@ pub async fn stream_agent_session(
                         .await;
                     if let Err(err) = response {
                         yield Ok(persistence_error_event("record_agent_skill_result", err));
+                    }
+
+                    let task_materialize_response = workspace_api
+                        .materialize_agent_workspace_task(MaterializeAgentWorkspaceTaskRequest {
+                            user_id: link_state.user_id.clone(),
+                            workspace_id: link_state.workspace_id.clone(),
+                            run_id: link_state.run_id.clone(),
+                            request_id: request_id.clone(),
+                            skill_id: skill_id.clone(),
+                            role: role.clone(),
+                            output: output.clone().unwrap_or_else(|| json!({})),
+                        })
+                        .await;
+                    match task_materialize_response {
+                        Ok(Some(task)) => yield Ok(typed_camel_json_event(
+                            "workspace_task_created",
+                            serde_json::to_value(task)
+                                .unwrap_or_else(|_| json!({ "type": "workspace_task_created" })),
+                        )),
+                        Ok(None) => {}
+                        Err(err) => {
+                            yield Ok(persistence_error_event("materialize_agent_workspace_task", err));
+                        }
                     }
 
                     if let Some(output) = output.clone() {

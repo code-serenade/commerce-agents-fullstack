@@ -481,6 +481,7 @@ fn autosuggest_skill_requests(
 
 fn autosuggest_for_role(runtime_role: &str, text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     match runtime_role {
+        "chat" => autosuggest_chat(text, task),
         "ops" => autosuggest_ops(text, task),
         "data" => autosuggest_data(text, task),
         "accounting" => autosuggest_accounting(text, task),
@@ -493,7 +494,129 @@ fn autosuggest_for_role(runtime_role: &str, text: &str, task: &Task) -> Option<P
     }
 }
 
+fn autosuggest_chat(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
+    if contains_any(
+        text,
+        &[
+            "当前状态",
+            "任务状态",
+            "运行状态",
+            "session状态",
+            "会话状态",
+            "workspace状态",
+            "工作区状态",
+            "进度怎么样",
+            "现在到哪了",
+            "agent状态",
+            "系统健康",
+            "system health",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "coordination_status_query",
+            serde_json::json!({
+                "query_type": infer_status_query_type_from_text(text),
+            }),
+            "根据状态/进度/会话可见性意图自动补偿协调状态查询 skill",
+        ));
+    }
+    None
+}
+
 fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
+    if contains_any(
+        text,
+        &[
+            "创建任务",
+            "建个任务",
+            "新建任务",
+            "安排任务",
+            "分派任务",
+            "待办",
+            "todo",
+            "to-do",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "coordination_create_task",
+            serde_json::json!({
+                "title": infer_task_title(text, task),
+                "description": compact_task_text(&task.description),
+                "owner_role": infer_task_owner_role(text),
+                "priority": infer_task_priority(text),
+                "acceptance_criteria": infer_task_acceptance(text),
+            }),
+            "根据建任务/待办/任务安排意图自动补偿协调建任务 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
+        &[
+            "channel",
+            "渠道",
+            "投放渠道",
+            "流量渠道",
+            "渠道分配",
+            "渠道策略",
+        ],
+    ) {
+        let numbers = numbers_in_text(text);
+        return Some(autosuggest_request(
+            "ops_channel_strategy",
+            serde_json::json!({
+                "product_type": infer_category(text),
+                "budget": numbers.first().copied().unwrap_or(10_000.0).max(0.0),
+                "target_audience": infer_audience(text),
+            }),
+            "根据渠道分配/渠道策略意图自动补偿渠道策略 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
+        &[
+            "listing",
+            "上架",
+            "上新文案",
+            "上架文案",
+            "标题卖点",
+            "商品标题",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "ops_listing_copy",
+            serde_json::json!({
+                "product_name": compact_task_text(&task.description),
+                "features": infer_feature_list(text),
+                "platform": infer_platform(text),
+            }),
+            "根据上架文案/标题卖点意图自动补偿上架文案 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
+        &[
+            "assortment",
+            "sku组合",
+            "sku 组合",
+            "货盘",
+            "选品组合",
+            "组合规划",
+        ],
+    ) {
+        let numbers = numbers_in_text(text);
+        return Some(autosuggest_request(
+            "ops_assortment_planning",
+            serde_json::json!({
+                "category": infer_category(text),
+                "budget": numbers.first().copied().unwrap_or(50_000.0).max(0.0),
+            }),
+            "根据选品组合/货盘规划意图自动补偿选品规划 skill",
+        ));
+    }
+
     if contains_any(
         text,
         &["price", "pricing", "cost", "定价", "价格", "售价", "成本"],
@@ -567,6 +690,62 @@ fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
 }
 
 fn autosuggest_data(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
+    if contains_any(
+        text,
+        &[
+            "competitor",
+            "竞品",
+            "对标",
+            "竞对",
+            "价格带对比",
+            "竞品分析",
+        ],
+    ) {
+        let numbers = numbers_in_text(text);
+        return Some(autosuggest_request(
+            "data_competitor_analysis",
+            serde_json::json!({
+                "our_product": infer_product_name(text),
+                "our_price": numbers.first().copied().unwrap_or(99.0),
+            }),
+            "根据竞品/对标意图自动补偿竞品分析 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
+        &[
+            "channel roi",
+            "渠道roi",
+            "渠道 roi",
+            "投放渠道",
+            "归因",
+            "渠道投产",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "data_channel_roi",
+            serde_json::json!({
+                "days": infer_period_days(text),
+            }),
+            "根据渠道投产/归因意图自动补偿渠道ROI skill",
+        ));
+    }
+
+    if contains_any(
+        text,
+        &["refund", "退款", "售后占比", "退货率", "帕累托", "退款分解"],
+    ) {
+        return Some(autosuggest_request(
+            "data_refund_decomposition",
+            serde_json::json!({
+                "days": infer_period_days(text),
+                "top_n": 5,
+            }),
+            "根据退款分解/帕累托意图自动补偿退款分析 skill",
+        ));
+    }
+
     if contains_any(text, &["anomaly", "异常", "波动", "下滑", "暴涨", "暴跌"]) {
         let values = numbers_in_text(text);
         return Some(autosuggest_request(
@@ -640,6 +819,30 @@ fn autosuggest_data(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
 
 fn autosuggest_accounting(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
     let numbers = numbers_in_text(text);
+    if contains_any(
+        text,
+        &[
+            "compliance",
+            "合规",
+            "税务",
+            "纳税",
+            "开票",
+            "发票",
+            "现金收款",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "accounting_compliance_check",
+            serde_json::json!({
+                "monthly_revenue": numbers.first().copied().unwrap_or(500_000.0),
+                "tax_type": if contains_any(text, &["一般纳税人"]) { "一般纳税人" } else { "小规模" },
+                "invoice_rate": infer_percent_number(text, 80.0),
+                "cash_ratio": infer_second_percent_number(text, 10.0),
+            }),
+            "根据财税合规意图自动补偿合规检查 skill",
+        ));
+    }
+
     if contains_any(text, &["roi", "roas", "投产", "投入产出", "回报"]) {
         return Some(autosuggest_request(
             "accounting_roi_calc",
@@ -680,6 +883,26 @@ fn autosuggest_accounting(text: &str, _task: &Task) -> Option<ParsedSkillRequest
 }
 
 fn autosuggest_service(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
+    if contains_any(
+        text,
+        &[
+            "driver",
+            "驱动因素",
+            "满意度原因",
+            "投诉分类",
+            "nps驱动",
+            "nps driver",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "service_nps_driver_analysis",
+            serde_json::json!({
+                "platform": infer_platform(text),
+            }),
+            "根据满意度驱动因素意图自动补偿NPS驱动分析 skill",
+        ));
+    }
+
     if contains_any(
         text,
         &["faq", "FAQ", "常见问题", "问答库", "标准话术", "话术库"],
@@ -1058,7 +1281,125 @@ fn autosuggest_design(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     ))
 }
 
-fn autosuggest_engineering(_text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
+fn autosuggest_engineering(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
+    if contains_any(
+        text,
+        &[
+            "状态",
+            "status",
+            "进度",
+            "session",
+            "会话",
+            "workspace",
+            "工作区",
+            "run",
+            "任务节点",
+            "系统健康",
+            "health",
+            "agent运行",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "coordination_status_query",
+            serde_json::json!({
+                "query_type": infer_status_query_type_from_text(text),
+            }),
+            "根据运行状态/系统健康意图自动补偿协调状态查询 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
+        &[
+            "architecture",
+            "架构",
+            "重构",
+            "扩展性",
+            "系统设计",
+            "系统架构",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "engineering_arch_review",
+            serde_json::json!({
+                "system_type": infer_system_type(text),
+                "daily_orders": infer_integer_or_default(text, 1000),
+                "pain_points": infer_pain_points(text),
+            }),
+            "根据架构评估意图自动补偿架构评估 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
+        &[
+            "bug",
+            "故障",
+            "报错",
+            "异常报错",
+            "排查",
+            "白屏",
+            "错误日志",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "engineering_bug_analysis",
+            serde_json::json!({
+                "error_type": infer_bug_type(text),
+                "context": compact_task_text(text),
+                "frequency": infer_bug_frequency(text),
+            }),
+            "根据故障排查意图自动补偿Bug排查 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
+        &[
+            "performance",
+            "性能",
+            "慢",
+            "卡",
+            "延迟",
+            "qps",
+            "吞吐",
+            "优化",
+        ],
+    ) {
+        let numbers = numbers_in_text(text);
+        return Some(autosuggest_request(
+            "engineering_perf_optimize",
+            serde_json::json!({
+                "bottleneck": infer_perf_bottleneck(text),
+                "current_qps": numbers.first().copied().unwrap_or(500.0),
+                "target_qps": numbers.get(1).copied().unwrap_or(2_000.0),
+                "tech_stack": infer_stack_hint(text),
+            }),
+            "根据性能优化意图自动补偿性能优化 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
+        &[
+            "tech selection",
+            "技术选型",
+            "框架选择",
+            "数据库选型",
+            "选型",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "engineering_tech_selection",
+            serde_json::json!({
+                "domain": infer_tech_domain(text),
+                "current_stack": infer_stack_hint(text),
+                "constraints": infer_pain_points(text),
+            }),
+            "根据技术选型意图自动补偿技术选型 skill",
+        ));
+    }
+
     Some(autosuggest_request(
         "engineering_sla_monitor",
         serde_json::json!({}),
@@ -1348,6 +1689,186 @@ fn infer_category(text: &str) -> &'static str {
     }
 }
 
+fn infer_product_name(text: &str) -> String {
+    compact_task_text(text)
+}
+
+fn infer_period_days(text: &str) -> i64 {
+    let numbers = numbers_in_text(text);
+    numbers
+        .iter()
+        .find(|value| **value >= 1.0 && **value <= 365.0)
+        .map(|value| value.round() as i64)
+        .unwrap_or(30)
+}
+
+fn infer_integer_or_default(text: &str, default: i64) -> i64 {
+    numbers_in_text(text)
+        .first()
+        .copied()
+        .map(|value| value.round() as i64)
+        .unwrap_or(default)
+}
+
+fn infer_percent_number(text: &str, default: f64) -> f64 {
+    numbers_in_text(text).first().copied().unwrap_or(default)
+}
+
+fn infer_second_percent_number(text: &str, default: f64) -> f64 {
+    numbers_in_text(text).get(1).copied().unwrap_or(default)
+}
+
+fn infer_feature_list(text: &str) -> Vec<String> {
+    let mut features = Vec::new();
+    for feature in [
+        "高颜值",
+        "高性价比",
+        "便携",
+        "低糖",
+        "耐用",
+        "送礼",
+        "通勤",
+        "防漏",
+    ] {
+        if text.contains(feature) {
+            features.push(feature.to_string());
+        }
+    }
+    if features.is_empty() {
+        features.push("高性价比".to_string());
+        features.push("核心卖点明确".to_string());
+    }
+    features
+}
+
+fn infer_system_type(text: &str) -> &'static str {
+    if contains_any(text, &["erp", "ERP"]) {
+        "ERP"
+    } else if contains_any(text, &["crm", "CRM"]) {
+        "CRM"
+    } else if contains_any(text, &["数据平台", "报表平台", "bi", "BI"]) {
+        "数据平台"
+    } else if contains_any(text, &["小程序", "mini program"]) {
+        "小程序"
+    } else {
+        "电商平台"
+    }
+}
+
+fn infer_bug_type(text: &str) -> &'static str {
+    if contains_any(text, &["timeout", "超时"]) {
+        "接口超时"
+    } else if contains_any(text, &["白屏"]) {
+        "页面白屏"
+    } else if contains_any(text, &["支付失败", "支付"]) {
+        "支付失败"
+    } else if contains_any(text, &["库存不一致", "库存"]) {
+        "库存不一致"
+    } else if contains_any(text, &["oom", "内存"]) {
+        "OOM"
+    } else if contains_any(text, &["死锁"]) {
+        "死锁"
+    } else {
+        "数据异常"
+    }
+}
+
+fn infer_bug_frequency(text: &str) -> &'static str {
+    if contains_any(text, &["必现", "每次"]) {
+        "必现"
+    } else if contains_any(text, &["频繁", "经常"]) {
+        "频繁"
+    } else {
+        "偶发"
+    }
+}
+
+fn infer_perf_bottleneck(text: &str) -> &'static str {
+    if contains_any(text, &["database", "db", "数据库", "sql"]) {
+        "数据库"
+    } else if contains_any(text, &["front", "前端", "页面"]) {
+        "前端"
+    } else if contains_any(text, &["cache", "缓存", "redis"]) {
+        "缓存"
+    } else if contains_any(text, &["network", "网络"]) {
+        "网络"
+    } else if contains_any(text, &["concurrency", "并发"]) {
+        "并发"
+    } else {
+        "接口"
+    }
+}
+
+fn infer_stack_hint(text: &str) -> String {
+    let mut parts = Vec::new();
+    for stack in [
+        "Rust", "Python", "FastAPI", "React", "Postgres", "MySQL", "Redis", "Docker", "Nginx",
+    ] {
+        if text.contains(stack)
+            || text
+                .to_ascii_lowercase()
+                .contains(&stack.to_ascii_lowercase())
+        {
+            parts.push(stack.to_string());
+        }
+    }
+    if parts.is_empty() {
+        "未明确技术栈".to_string()
+    } else {
+        parts.join("/")
+    }
+}
+
+fn infer_tech_domain(text: &str) -> &'static str {
+    if contains_any(text, &["database", "数据库", "mysql", "postgres"]) {
+        "数据库"
+    } else if contains_any(text, &["queue", "mq", "消息队列"]) {
+        "消息队列"
+    } else if contains_any(text, &["cache", "缓存", "redis"]) {
+        "缓存"
+    } else if contains_any(text, &["search", "搜索", "elasticsearch"]) {
+        "搜索引擎"
+    } else if contains_any(text, &["monitor", "监控"]) {
+        "监控"
+    } else {
+        "Web框架"
+    }
+}
+
+fn infer_pain_points(text: &str) -> Vec<String> {
+    let mut pains = Vec::new();
+    for point in [
+        "扩展性不足",
+        "性能瓶颈",
+        "接口超时",
+        "并发压力",
+        "运维复杂",
+        "数据一致性风险",
+    ] {
+        if text.contains(point) {
+            pains.push(point.to_string());
+        }
+    }
+    if pains.is_empty() {
+        pains.push("需要结合业务上下文进一步确认痛点".to_string());
+    }
+    pains
+}
+
+fn infer_status_query_type_from_text(text: &str) -> &'static str {
+    if contains_any(text, &["workspace", "工作区"]) {
+        "workspace_status"
+    } else if contains_any(text, &["session", "会话"]) {
+        "session_status"
+    } else if contains_any(text, &["task", "任务", "节点", "进度"]) {
+        "task_status"
+    } else if contains_any(text, &["agent", "worker"]) {
+        "agent_status"
+    } else {
+        "system_health"
+    }
+}
+
 fn extract_title_candidate(text: &str) -> Option<String> {
     for quote in ['"', '\'', '“', '”', '「', '」'] {
         let mut parts = text.split(quote);
@@ -1381,6 +1902,52 @@ fn compact_task_text(value: &str) -> String {
     let mut output = trimmed.chars().take(MAX_CHARS).collect::<String>();
     output.push_str("...");
     output
+}
+
+fn infer_task_title(text: &str, task: &Task) -> String {
+    extract_title_candidate(text)
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| compact_task_text(&task.description))
+}
+
+fn infer_task_owner_role(text: &str) -> &'static str {
+    if contains_any(text, &["数据", "data", "分析"]) {
+        "data"
+    } else if contains_any(text, &["客服", "售后", "service"]) {
+        "service"
+    } else if contains_any(text, &["设计", "主图", "design"]) {
+        "design"
+    } else if contains_any(text, &["财务", "roi", "accounting"]) {
+        "accounting"
+    } else if contains_any(text, &["技术", "工程", "engineering", "开发"]) {
+        "engineering"
+    } else if contains_any(text, &["seo", "店铺", "web"]) {
+        "web"
+    } else if contains_any(text, &["创意", "视频", "creative", "文案"]) {
+        "creative"
+    } else {
+        "ops"
+    }
+}
+
+fn infer_task_priority(text: &str) -> i64 {
+    if contains_any(text, &["紧急", "立刻", "马上", "高优", "urgent", "asap"]) {
+        8
+    } else if contains_any(text, &["重要", "优先", "priority"]) {
+        6
+    } else {
+        3
+    }
+}
+
+fn infer_task_acceptance(text: &str) -> String {
+    if let Some(index) = text.find("验收") {
+        return compact_task_text(&text[index..]);
+    }
+    if let Some(index) = text.find("目标") {
+        return compact_task_text(&text[index..]);
+    }
+    "产出明确结果并可在工作区复用".to_string()
 }
 
 fn build_context(
@@ -1639,17 +2206,60 @@ fn build_skill_context(
         .with_metadata("role_id", serde_json::json!(role.id.0))
         .with_metadata("role_name", serde_json::json!(role.name))
         .with_metadata("role_runtime", serde_json::json!(role.runtime_role));
+    if let Some(user_id) = &task.context.user_id {
+        context = context.with_metadata("message.user_id", serde_json::json!(user_id.0.clone()));
+    }
+    if let Some(workspace_id) = &task.context.workspace_id {
+        context = context.with_metadata(
+            "message.workspace_id",
+            serde_json::json!(workspace_id.0.clone()),
+        );
+    }
+    if let Some(agent_id) = &task.context.agent_id {
+        context = context.with_metadata("message.agent_id", serde_json::json!(agent_id.0.clone()));
+    }
     if let Some(session_id) = &task.context.session_id {
         context = context.with_session_id(session_id.0.clone());
+        context = context.with_metadata(
+            "message.session_id",
+            serde_json::json!(session_id.0.clone()),
+        );
+    }
+    if let Some(task_id) = &task.context.task_id {
+        context = context.with_metadata("message.task_id", serde_json::json!(task_id.0.clone()));
+    }
+    for (key, value) in &task.context.metadata {
+        context = context.with_metadata(format!("request.{key}"), serde_json::json!(value));
     }
     if let Some(reason) = &request.reason {
         context = context.with_metadata("request_reason", serde_json::json!(reason));
     }
     if let Some(assignment) = &task.assignment {
+        let upstream_roles = assignment
+            .inputs
+            .iter()
+            .map(|input| input.role.as_str())
+            .collect::<Vec<_>>()
+            .join(",");
         context = context
             .with_metadata("graph_id", serde_json::json!(assignment.graph_id.0))
             .with_metadata("node_id", serde_json::json!(assignment.node_id.0))
-            .with_metadata("attempt", serde_json::json!(assignment.attempt));
+            .with_metadata(
+                "assignment_role",
+                serde_json::json!(assignment.role.clone()),
+            )
+            .with_metadata("attempt", serde_json::json!(assignment.attempt))
+            .with_metadata(
+                "assignment_input_count",
+                serde_json::json!(assignment.inputs.len()),
+            )
+            .with_metadata("assignment_input_roles", serde_json::json!(upstream_roles));
+        if let Some(instruction) = &assignment.rework_instruction {
+            context = context.with_metadata(
+                "assignment_rework_instruction",
+                serde_json::json!(instruction),
+            );
+        }
     }
     context
 }
@@ -2022,6 +2632,34 @@ mod tests {
     }
 
     #[test]
+    fn autosuggests_more_specific_ops_skills_by_intent() {
+        let cases = [
+            (
+                "给这个投放复盘建个任务，安排给数据同学，目标是输出问题拆解",
+                "coordination_create_task",
+            ),
+            (
+                "给咖啡新品做渠道分配和渠道策略，预算20000",
+                "ops_channel_strategy",
+            ),
+            (
+                "帮这个保温杯写上架文案和标题卖点，突出便携防漏",
+                "ops_listing_copy",
+            ),
+            (
+                "做一份零食货盘和SKU组合规划，选品预算80000",
+                "ops_assortment_planning",
+            ),
+        ];
+
+        for (prompt, expected_skill) in cases {
+            let requests = autosuggest_skill_requests(&role("ops"), &task(prompt), "{}");
+            assert_eq!(requests.len(), 1, "{prompt}");
+            assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
+        }
+    }
+
+    #[test]
     fn autosuggests_data_funnel_analysis_from_metric_task() {
         let requests = autosuggest_skill_requests(
             &role("data"),
@@ -2035,6 +2673,42 @@ mod tests {
         assert_eq!(requests[0].skill_id, "data_funnel_analysis");
         assert_eq!(requests[0].input["impressions"], 10000);
         assert_eq!(requests[0].input["clicks"], 500);
+    }
+
+    #[test]
+    fn autosuggests_more_specific_data_skills_by_intent() {
+        let cases = [
+            (
+                "请做竞品分析，对标市场上同价位咖啡品牌",
+                "data_competitor_analysis",
+            ),
+            (
+                "复盘投放渠道ROI和归因表现，最近14天看下",
+                "data_channel_roi",
+            ),
+            (
+                "把退款和售后问题做帕累托分析，看看前5大问题",
+                "data_refund_decomposition",
+            ),
+        ];
+
+        for (prompt, expected_skill) in cases {
+            let requests = autosuggest_skill_requests(&role("data"), &task(prompt), "{}");
+            assert_eq!(requests.len(), 1, "{prompt}");
+            assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
+        }
+    }
+
+    #[test]
+    fn autosuggests_accounting_compliance_by_intent() {
+        let requests = autosuggest_skill_requests(
+            &role("accounting"),
+            &task("帮我看下这个店铺的税务合规、开票率和现金收款占比有没有风险"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "accounting_compliance_check");
     }
 
     #[test]
@@ -2106,10 +2780,43 @@ mod tests {
             ("客户要求退款退货，帮我处理售后", "service_return_handler"),
             ("DSR下降，服务评分低，给提升方案", "service_dsr_improvement"),
             ("分析客户NPS满意度和推荐值", "service_nps_analyzer"),
+            (
+                "分析投诉分类和满意度驱动因素，看看NPS是被什么拖累的",
+                "service_nps_driver_analysis",
+            ),
         ];
 
         for (prompt, expected_skill) in cases {
             let requests = autosuggest_skill_requests(&role("service"), &task(prompt), "{}");
+            assert_eq!(requests.len(), 1, "{prompt}");
+            assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
+        }
+    }
+
+    #[test]
+    fn autosuggests_engineering_skill_by_intent() {
+        let cases = [
+            (
+                "评审一下这个电商系统架构的扩展性和重构方向",
+                "engineering_arch_review",
+            ),
+            (
+                "最近支付接口频繁报错，帮我排查bug根因",
+                "engineering_bug_analysis",
+            ),
+            (
+                "大促时接口延迟很高，想做性能优化，目标QPS 5000",
+                "engineering_perf_optimize",
+            ),
+            (
+                "消息队列技术选型怎么做，团队现在主要是Rust和Postgres",
+                "engineering_tech_selection",
+            ),
+            ("看一下这个平台SLA和可用性情况", "engineering_sla_monitor"),
+        ];
+
+        for (prompt, expected_skill) in cases {
+            let requests = autosuggest_skill_requests(&role("engineering"), &task(prompt), "{}");
             assert_eq!(requests.len(), 1, "{prompt}");
             assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
         }

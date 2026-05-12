@@ -64,7 +64,7 @@ pub fn role_can_use_skill(runtime_role: &str, spec: &SkillSpec) -> bool {
     }
 
     match runtime_role {
-        "chat" => spec.id == "coordination_agent_handoff",
+        "chat" => spec.id == "coordination_agent_handoff" || spec.id == "coordination_status_query",
         "ops" => {
             spec.id == "coordination_task_orchestration"
                 || spec.id == "coordination_skill_chain_planner"

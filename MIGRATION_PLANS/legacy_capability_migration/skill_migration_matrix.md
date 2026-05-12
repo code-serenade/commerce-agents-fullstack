@@ -13,12 +13,12 @@
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
 | --- | --- | --- | --- | --- |
-| `ops_promo_planning` | `ops_promo_planning` | pending_review | `backend/crates/agent/src/skills/ops.rs` | 活动方案，后续可联动 campaign |
+| `ops_promo_planning` | `ops_promo_planning` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 当前已可 native 执行；本轮补强了活动/促销自然问法触达 |
 | `ops_pricing_strategy` | `ops_pricing_strategy` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已纳入岗位自动补偿规则，可由 ops 定价意图触发 |
-| `ops_channel_strategy` | `ops_channel_strategy` | pending_review | `backend/crates/agent/src/skills/ops.rs` | 需平台/人群上下文 |
+| `ops_channel_strategy` | `ops_channel_strategy` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 本轮补强了渠道/渠道分配/投放渠道等自然问法触达 |
 | `ops_inventory_planning` | `ops_inventory_planning` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已纳入岗位自动补偿规则，当前基于输入数字做本地规划 |
-| `ops_listing_copy` | `ops_listing_copy` | pending_review | `backend/crates/agent/src/skills/ops.rs` | 可和 web/creative 协同 |
-| `ops_assortment_planning` | `ops_assortment_planning` | pending_review | `backend/crates/agent/src/skills/ops.rs` | 选品组合 |
+| `ops_listing_copy` | `ops_listing_copy` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 本轮补强了上架文案/标题卖点/上新文案自然问法触达 |
+| `ops_assortment_planning` | `ops_assortment_planning` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 本轮补强了货盘/SKU组合/选品组合自然问法触达 |
 | `ops_execution_plan` | `ops_execution_plan` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已纳入岗位自动补偿规则，并有单测覆盖 |
 
 ## 数据 data
@@ -29,7 +29,7 @@
 | `data_anomaly_diagnosis` | `data_anomaly_diagnosis` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已纳入岗位自动补偿规则，输入不足时按本地保守诊断 |
 | `data_trend_forecast` | `data_trend_forecast` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已纳入岗位自动补偿规则 |
 | `data_customer_segmentation` | `data_customer_segmentation` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已纳入岗位自动补偿规则，后续可接真实客户数据 |
-| `data_competitor_analysis` | `data_competitor_analysis` | pending_review | `backend/crates/agent/src/skills/data.rs` | 接 product_competitor |
+| `data_competitor_analysis` | `data_competitor_analysis` | native_ready | `backend/crates/agent/src/skills/data.rs` | 本轮补强了竞品/对标/竞对自然问法触达；后续可继续接 product_competitor 数据 |
 | `data_dashboard` | `data_dashboard` | pending_review | `backend/crates/agent/src/skills/data.rs` | 数据源需明确 |
 
 ## 搜索 search
@@ -56,6 +56,9 @@ Post 8-10 补充：上述 Agent `search_*` skill 已接入同一份 `[external_s
 | `service_escalation_flow` | `service_escalation_flow` | native_ready | `backend/crates/agent/src/skills/service.rs` | Post 8-7：已迁为 native 升级路径、主管话术和复核模板 |
 | `service_dsr_improvement` | `service_dsr_improvement` | native_ready | `backend/crates/agent/src/skills/service.rs` | Post 8-7：已补强 native 改善方案；已纳入岗位自动补偿规则 |
 | `service_return_handler` | `service_return_handler` | native_ready | `backend/crates/agent/src/skills/service.rs` | 已纳入岗位自动补偿规则 |
+| `service_nps_analyzer` | `service_nps_analyzer` | native_ready | `backend/crates/agent/src/skills/service.rs` | 已可 native 执行并可由满意度/NPS自然问法触发 |
+| `service_sentiment_analyzer` | `service_sentiment_analyzer` | native_ready | `backend/crates/agent/src/skills/service.rs` | 已可 native 执行并可由差评/情绪/投诉自然问法触发 |
+| `service_nps_driver_analysis` | `service_nps_driver_analysis` | native_ready | `backend/crates/agent/src/skills/service.rs` | 本轮补强了满意度驱动因素/投诉分类/NPS拖累等自然问法触达 |
 
 ## 设计 design
 
@@ -75,16 +78,16 @@ Post 8-10 补充：上述 Agent `search_*` skill 已接入同一份 `[external_s
 | `accounting_profit_analysis` | `accounting_profit_analysis` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | 已纳入岗位自动补偿规则 |
 | `accounting_budget_plan` | `accounting_budget_plan` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | 已纳入岗位自动补偿规则 |
 | `accounting_roi_calc` | `accounting_roi_calc` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | 已纳入岗位自动补偿规则 |
-| `accounting_compliance_check` | `accounting_compliance_check` | pending_review | `backend/crates/agent/src/skills/accounting.rs` | 合规 |
+| `accounting_compliance_check` | `accounting_compliance_check` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | 本轮补强了税务/开票/纳税/现金收款等自然问法触达 |
 
 ## 工程 engineering
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
 | --- | --- | --- | --- | --- |
-| `engineering_arch_review` | `engineering_arch_review` | pending_review | `backend/crates/agent/src/skills/engineering.rs` | 架构评估 |
-| `engineering_bug_analysis` | `engineering_bug_analysis` | pending_review | `backend/crates/agent/src/skills/engineering.rs` | 排障 |
-| `engineering_perf_optimize` | `engineering_perf_optimize` | pending_review | `backend/crates/agent/src/skills/engineering.rs` | 性能 |
-| `engineering_tech_selection` | `engineering_tech_selection` | pending_review | `backend/crates/agent/src/skills/engineering.rs` | 技术选型 |
+| `engineering_arch_review` | `engineering_arch_review` | adapter_required | `backend/crates/agent/src/skills/engineering.rs` | 当前为 deferred 工程分析骨架；本轮补强了架构/重构/扩展性自然问法触达 |
+| `engineering_bug_analysis` | `engineering_bug_analysis` | adapter_required | `backend/crates/agent/src/skills/engineering.rs` | 当前为 deferred 工程分析骨架；本轮补强了故障/报错/排查自然问法触达 |
+| `engineering_perf_optimize` | `engineering_perf_optimize` | adapter_required | `backend/crates/agent/src/skills/engineering.rs` | 当前为 deferred 工程分析骨架；本轮补强了性能/延迟/QPS自然问法触达 |
+| `engineering_tech_selection` | `engineering_tech_selection` | adapter_required | `backend/crates/agent/src/skills/engineering.rs` | 当前为 deferred 工程分析骨架；本轮补强了技术选型/框架选择自然问法触达 |
 | `engineering_sla_monitor` | `engineering_sla_monitor` | native_ready | `backend/crates/agent/src/skills/engineering.rs` | 已纳入岗位自动补偿规则 |
 
 ## 网站增长 web
@@ -114,6 +117,7 @@ Post 8-10 补充：上述 Agent `search_*` skill 已接入同一份 `[external_s
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
 | --- | --- | --- | --- | --- |
-| `coordination_agent_handoff` | `coordination_agent_handoff` | pending_review | `backend/crates/agent/src/skills/coordination.rs` | 交接 |
-| `coordination_task_orchestration` | `coordination_task_orchestration` | pending_review | `backend/crates/agent/src/skills/coordination.rs` | 任务编排 |
-| `coordination_status_query` | `coordination_status_query` | pending_review | `backend/crates/agent/src/skills/coordination.rs` | 状态查询，需真实化 |
+| `coordination_agent_handoff` | `coordination_agent_handoff` | native_ready | `backend/crates/agent/src/skills/coordination.rs` | 已可 native 输出角色交接建议 |
+| `coordination_task_orchestration` | `coordination_task_orchestration` | native_ready | `backend/crates/agent/src/skills/coordination.rs` | 已可 native 输出多角色任务编排骨架 |
+| `coordination_status_query` | `coordination_status_query` | native_ready | `backend/crates/agent/src/skills/coordination.rs` | 本轮已真实化为 session/task/workspace 可见状态查询，并补强 chat/engineering 自然问法触达 |
+| `coordination_create_task` | `coordination_create_task` | native_ready | `backend/crates/agent/src/skills/coordination.rs` | 本轮已真实化为工作区任务草案 skill，并通过 SSE/service 落成真实 workspace task |

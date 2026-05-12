@@ -471,6 +471,17 @@ pub struct RecordAgentSkillResultRequest {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct MaterializeAgentWorkspaceTaskRequest {
+    pub user_id: String,
+    pub workspace_id: String,
+    pub run_id: String,
+    pub request_id: String,
+    pub skill_id: String,
+    pub role: String,
+    pub output: Value,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct CompleteAgentWorkspaceRunRequest {
     pub user_id: String,
     pub workspace_id: String,

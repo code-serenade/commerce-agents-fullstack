@@ -1854,6 +1854,120 @@ impl WorkspaceApi {
         Ok(Self::map_skill_run(skill_run))
     }
 
+    pub async fn materialize_agent_workspace_task(
+        &self,
+        req: MaterializeAgentWorkspaceTaskRequest,
+    ) -> BizResult<Option<WorkspaceTaskResponse>> {
+        let (user_id, workspace_id) = self
+            .ensure_request_workspace(&req.user_id, &req.workspace_id)
+            .await?;
+        let run_id = parse_uuid(&req.run_id, "run_id")?;
+        self.ensure_run_owner(user_id, workspace_id, run_id).await?;
+
+        let request_id = normalize_required(req.request_id, "request_id")?;
+        let skill_id = normalize_required(req.skill_id, "skill_id")?;
+        if skill_id != "coordination_create_task" {
+            return Ok(None);
+        }
+
+        let Some(draft) = build_workspace_task_from_skill_output(&req.output) else {
+            return Ok(None);
+        };
+
+        let current_skill_run = match self
+            .skill_run_svc
+            .get_by_request(user_id, workspace_id, run_id, &request_id)
+            .await?
+        {
+            Some(item) => item,
+            None => return Ok(None),
+        };
+
+        if let Some(existing_task_id) = current_skill_run
+            .metadata
+            .get("workspaceTaskId")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            let task_id = parse_uuid(existing_task_id, "workspace_task_id")?;
+            let task = self
+                .ensure_task_owner(user_id, workspace_id, task_id)
+                .await?;
+            return Ok(Some(Self::map_task(task)));
+        }
+
+        let tx = self.db.begin().await?;
+        let task_tx_svc = WorkspaceTaskService::new(tx.clone());
+        let skill_run_tx_svc = AgentSkillRunService::new(tx.clone());
+        let write_result: BizResult<(WorkspaceTask, AgentSkillRun)> = async {
+            let task = task_tx_svc
+                .create(CreateWorkspaceTask {
+                    id: Uuid::new_v4(),
+                    workspace_id,
+                    user_id,
+                    title: draft.title.clone(),
+                    description: draft.description.clone(),
+                    owner_role: draft.owner_role.clone(),
+                    status: WorkspaceTaskStatus::Pending,
+                    priority: draft.priority,
+                    depends_on: json!([]),
+                    acceptance_criteria: draft.acceptance_criteria.clone(),
+                    result: None,
+                    metadata: json!({
+                        "kind": "agent_created_workspace_task",
+                        "source": "agent_skill_result",
+                        "runId": run_id,
+                        "requestId": request_id,
+                        "skillId": skill_id,
+                        "role": req.role,
+                        "workspaceId": workspace_id,
+                    }),
+                })
+                .await?;
+
+            let skill_run = skill_run_tx_svc
+                .update(UpdateAgentSkillRun {
+                    id: current_skill_run.id,
+                    status: current_skill_run.status,
+                    reason: current_skill_run.reason.clone(),
+                    summary: current_skill_run.summary.clone(),
+                    error: current_skill_run.error.clone(),
+                    input: current_skill_run.input.clone(),
+                    output: current_skill_run.output.clone(),
+                    execution_mode: current_skill_run.execution_mode.clone(),
+                    risk_level: current_skill_run.risk_level.clone(),
+                    approval_required: current_skill_run.approval_required,
+                    metadata: merge_json_object(
+                        current_skill_run.metadata.clone(),
+                        json!({
+                            "workspaceTaskId": task.id,
+                            "workspaceTaskCreated": true,
+                            "workspaceTaskSource": "coordination_create_task",
+                        }),
+                    ),
+                    completed_at: current_skill_run.completed_at,
+                })
+                .await?;
+
+            Ok((task, skill_run))
+        }
+        .await;
+
+        let (task, _) = match write_result {
+            Ok(value) => {
+                tx.commit().await?;
+                value
+            }
+            Err(err) => {
+                tx.rollback().await?;
+                return Err(err);
+            }
+        };
+
+        Ok(Some(Self::map_task(task)))
+    }
+
     pub async fn complete_agent_run(
         &self,
         req: CompleteAgentWorkspaceRunRequest,
@@ -4072,6 +4186,15 @@ struct SearchEvidenceArtifactDraft {
     metadata: Value,
 }
 
+#[derive(Debug, Clone)]
+struct WorkspaceTaskFromSkillDraft {
+    title: String,
+    description: Option<String>,
+    owner_role: Option<String>,
+    priority: i32,
+    acceptance_criteria: Option<String>,
+}
+
 fn build_search_evidence_artifact(
     req: &RecordAgentSearchEvidenceRequest,
 ) -> Option<SearchEvidenceArtifactDraft> {
@@ -4157,6 +4280,54 @@ fn build_search_evidence_artifact(
         title,
         preview,
         metadata,
+    })
+}
+
+fn build_workspace_task_from_skill_output(output: &Value) -> Option<WorkspaceTaskFromSkillDraft> {
+    if output.get("status").and_then(Value::as_str) != Some("success") {
+        return None;
+    }
+    let task_creation = output.get("task_creation")?.as_object()?;
+    if task_creation.get("should_persist").and_then(Value::as_bool) != Some(true) {
+        return None;
+    }
+
+    let title = task_creation
+        .get("title")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| compact_text(value, 255))?;
+    let description = task_creation
+        .get("description")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| compact_text(value, 2_000));
+    let owner_role = task_creation
+        .get("owner_role")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| compact_text(value, 64));
+    let priority = task_creation
+        .get("priority")
+        .and_then(Value::as_i64)
+        .map(|value| clamp_priority(value as i32))
+        .unwrap_or(3);
+    let acceptance_criteria = task_creation
+        .get("acceptance_criteria")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| compact_text(value, 2_000));
+
+    Some(WorkspaceTaskFromSkillDraft {
+        title,
+        description,
+        owner_role,
+        priority,
+        acceptance_criteria,
     })
 }
 
@@ -5069,6 +5240,45 @@ mod tests {
             Some("launch")
         );
         assert_eq!(response.completed_at, Some(completed_at));
+    }
+
+    #[test]
+    fn workspace_task_artifact_builds_from_coordination_skill_output() {
+        let output = json!({
+            "status": "success",
+            "task_creation": {
+                "should_persist": true,
+                "title": "整理五一咖啡活动复盘任务",
+                "description": "拆出投放、客服、商品三个方向",
+                "owner_role": "ops",
+                "priority": 6,
+                "acceptance_criteria": "输出复盘结论和后续动作"
+            }
+        });
+
+        let draft = build_workspace_task_from_skill_output(&output)
+            .expect("coordination create task output should be materializable");
+
+        assert_eq!(draft.title, "整理五一咖啡活动复盘任务");
+        assert_eq!(draft.owner_role.as_deref(), Some("ops"));
+        assert_eq!(draft.priority, 6);
+        assert_eq!(
+            draft.acceptance_criteria.as_deref(),
+            Some("输出复盘结论和后续动作")
+        );
+    }
+
+    #[test]
+    fn workspace_task_artifact_ignores_non_persistable_output() {
+        let output = json!({
+            "status": "success",
+            "task_creation": {
+                "should_persist": false,
+                "title": "仅建议不落库"
+            }
+        });
+
+        assert!(build_workspace_task_from_skill_output(&output).is_none());
     }
 
     #[test]
