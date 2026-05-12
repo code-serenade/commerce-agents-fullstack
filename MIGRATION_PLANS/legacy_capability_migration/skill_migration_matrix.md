@@ -25,7 +25,7 @@
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
 | --- | --- | --- | --- | --- |
-| `data_funnel_analysis` | `data_funnel_analysis` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已纳入岗位自动补偿规则，并有 stream 级测试覆盖 |
+| `data_funnel_analysis` | `data_funnel_analysis` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已纳入岗位自动补偿规则，并有 stream 级测试覆盖；Post 8-31：有用户数据时成功输出会沉淀为 `data_funnel_report` artifact |
 | `data_anomaly_diagnosis` | `data_anomaly_diagnosis` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已纳入岗位自动补偿规则，输入不足时按本地保守诊断 |
 | `data_trend_forecast` | `data_trend_forecast` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已纳入岗位自动补偿规则 |
 | `data_customer_segmentation` | `data_customer_segmentation` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已纳入岗位自动补偿规则，后续可接真实客户数据 |

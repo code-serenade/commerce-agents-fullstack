@@ -223,21 +223,21 @@ Continue in this order:
 The current active slice is:
 
 ```text
-Post 8-30: data dashboard artifact materialization
+Post 8-31: data analysis artifact materialization
 ```
 
 Scope:
 
-- persist successful `data_dashboard` skill output as a real workspace artifact
-- reuse `WorkspaceApi::materialize_agent_content_artifact` and existing `workspace_artifact_created` SSE event
-- keep live platform metrics, dashboard history tables, and frontend chart rendering out of scope until real adapters are connected
+- persist successful `data_funnel_analysis`, `data_channel_roi`, and `data_refund_decomposition` outputs as real workspace artifacts
+- standardize successful data analysis outputs with `status=success`, `has_data=true`, `adapter_status=manual_input`, and `summary`
+- keep missing-input cases as `deferred` so the product does not create fake data reports
 
 Reason:
 
 - high product value for the data worker and business overview workflow
 - backend-first
 - no new fake frontend needed
-- turns the newly native data dashboard into a reusable workspace deliverable while preserving honest degradation when live metrics are missing
+- extends the same workspace artifact path from data dashboard to concrete data analysis reports while preserving honest degradation when user data is missing
 
 ## 10. Validation Standard
 

@@ -2202,7 +2202,7 @@
 | `runId` | `uuid` | 否 | 只查询某次运行产生的交付物 |
 | `workspaceTaskId` | `uuid` | 否 | 只查询某个工作区任务关联的交付物 |
 | `runTaskId` | `uuid` | 否 | 只查询某个运行任务快照关联的交付物 |
-| `artifactType` | `string` | 否 | 交付物类型，例如 `final_report`、`search_evidence`、`video_script`、`seeding_copy`、`ip_branding`、`content_calendar`、`live_script`、`product_article`、`design_main_image_brief`、`design_detail_page_brief`、`design_color_scheme`、`design_material_spec`、`design_campaign_poster_brief`、`data_dashboard`、`role_report`、`file` |
+| `artifactType` | `string` | 否 | 交付物类型，例如 `final_report`、`search_evidence`、`video_script`、`seeding_copy`、`ip_branding`、`content_calendar`、`live_script`、`product_article`、`design_main_image_brief`、`design_detail_page_brief`、`design_color_scheme`、`design_material_spec`、`design_campaign_poster_brief`、`data_dashboard`、`data_funnel_report`、`data_channel_roi_report`、`data_refund_report`、`role_report`、`file` |
 | `status` | `active \| archived` | 否 | 不传时默认查询 `active` |
 | `keyword` | `string` | 否 | 匹配标题、预览、文件名、对象 key |
 | `page` | `number` | 否 | 默认 1 |
@@ -2255,7 +2255,7 @@
 - `metadata` 包含 `skillId`、`requestId`、`role`、`query`、`sourceCount`、`domains`、`confidence`、`provenance`、`freshness`
 - 只有真实 live 来源会创建该交付物；adapter 未配置、provider 失败或无来源时不会创建假搜索证据
 
-`artifactType=video_script / seeding_copy / ip_branding / content_calendar / live_script / product_article / design_main_image_brief / design_detail_page_brief / design_color_scheme / design_material_spec / design_campaign_poster_brief / data_dashboard` 时：
+`artifactType=video_script / seeding_copy / ip_branding / content_calendar / live_script / product_article / design_main_image_brief / design_detail_page_brief / design_color_scheme / design_material_spec / design_campaign_poster_brief / data_dashboard / data_funnel_report / data_channel_roi_report / data_refund_report` 时：
 
 - `content` 是后端将对应 creative、design 或 data skill 成功输出包装成 markdown 的结果
 - `preview` 是后端从 skill 输出摘要或正文中截取的预览
@@ -2264,6 +2264,7 @@
 - `metadata` 还包含 `artifactType`、`skillId`、`requestId`、`role`、`summary`
 - 只有真实 `success` 的支持名单 skill 才会创建；不会为 deferred/pending_approval 结果伪造内容交付物
 - `data_dashboard` 会保留后端 skill 输出中的 `has_data`、`adapter_status`、指标分区、预警和下一步动作；如果 `adapter_status=store_metrics_required`，前端不能把该结果展示成平台实时数据
+- `data_funnel_report`、`data_channel_roi_report`、`data_refund_report` 只会在对应 data skill 有用户提供数据并返回 `status=success` 时创建；缺少数据时后端返回 `deferred`，不会创建假报告
 
 ### 创建工作区交付物
 

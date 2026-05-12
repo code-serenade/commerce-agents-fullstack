@@ -472,7 +472,11 @@ fn funnel_analysis(input: &Value) -> Value {
     let add_to_cart = i(input, "add_to_cart", (orders as f64 * 2.5).round() as i64);
     let payments = i(input, "payments", (orders as f64 * 0.95).round() as i64);
     if impressions <= 0 && clicks <= 0 {
-        return json!({"error": "暂无数据", "hint": "请提供 impressions/clicks/orders 等漏斗数据"});
+        return deferred(
+            "data_funnel_analysis",
+            "需要曝光、点击、加购、下单或付款等漏斗数据",
+            input,
+        );
     }
 
     let stages = [
@@ -533,6 +537,11 @@ fn funnel_analysis(input: &Value) -> Value {
         .unwrap_or("持续监控各环节");
 
     json!({
+        "status": "success",
+        "has_data": true,
+        "data_readiness": "user_provided",
+        "adapter_status": "manual_input",
+        "summary": format!("漏斗分析完成，瓶颈环节：{bottleneck}"),
         "数据来源": "用户提供",
         "漏斗分析": funnel,
         "整体转化率": percent(pct(payments as f64, impressions.max(1) as f64), 3),
@@ -855,7 +864,15 @@ fn channel_roi(input: &Value) -> Value {
         })
         .collect::<Vec<_>>();
     rows.sort_by(|a, b| n(b, "广告ROI", 0.0).total_cmp(&n(a, "广告ROI", 0.0)));
-    json!({"has_data": true, "渠道ROI排名": rows, "优化建议": ["加码高ROI渠道", "ROI低于2的渠道优先优化创意和人群"]})
+    json!({
+        "status": "success",
+        "has_data": true,
+        "data_readiness": "user_provided",
+        "adapter_status": "manual_input",
+        "summary": "渠道ROI分析完成",
+        "渠道ROI排名": rows,
+        "优化建议": ["加码高ROI渠道", "ROI低于2的渠道优先优化创意和人群"]
+    })
 }
 
 fn ltv_calculator(input: &Value) -> Value {
@@ -977,7 +994,16 @@ fn refund_decomposition(input: &Value) -> Value {
             json!({"项目": s(item, "name", "未知"), "退款金额": round2(*amount), "占总退款比": percent(share, 1), "累计占比": percent(cumulative.min(100.0), 1), "是否80%内": cumulative <= 80.0})
         })
         .collect::<Vec<_>>();
-    json!({"has_data": true, "总退款估算": round2(total), "帕累托分析": pareto, "整改建议": ["优先处理累计80%内的问题项", "复核详情页描述、质检和物流包装"]})
+    json!({
+        "status": "success",
+        "has_data": true,
+        "data_readiness": "user_provided",
+        "adapter_status": "manual_input",
+        "summary": "退款拆解分析完成",
+        "总退款估算": round2(total),
+        "帕累托分析": pareto,
+        "整改建议": ["优先处理累计80%内的问题项", "复核详情页描述、质检和物流包装"]
+    })
 }
 
 fn seasonal_decompose(input: &Value) -> Value {
@@ -1447,5 +1473,95 @@ mod tests {
                 .unwrap_or_default()
                 .contains("不能当作平台实时数据")
         );
+    }
+
+    #[test]
+    fn data_funnel_analysis_marks_success_for_user_data() {
+        let output = funnel_analysis(&json!({
+            "impressions": 10000,
+            "clicks": 620,
+            "add_to_cart": 180,
+            "orders": 82,
+            "payments": 78
+        }));
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(output.get("has_data").and_then(Value::as_bool), Some(true));
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("manual_input")
+        );
+        assert!(
+            output
+                .get("summary")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .contains("漏斗分析完成")
+        );
+    }
+
+    #[test]
+    fn data_funnel_analysis_defers_when_metrics_missing() {
+        let output = funnel_analysis(&json!({}));
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("deferred")
+        );
+        assert_eq!(
+            output.get("skill").and_then(Value::as_str),
+            Some("data_funnel_analysis")
+        );
+    }
+
+    #[test]
+    fn data_channel_roi_marks_success_for_user_channels() {
+        let output = channel_roi(&json!({
+            "channels": [
+                {"name": "douyin", "gmv": 120000.0, "ad_spend": 30000.0, "orders": 600, "uv": 20000},
+                {"name": "taobao", "gmv": 80000.0, "ad_spend": 26000.0, "orders": 420, "uv": 16000}
+            ]
+        }));
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(output.get("has_data").and_then(Value::as_bool), Some(true));
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("manual_input")
+        );
+        assert!(
+            output
+                .get("渠道ROI排名")
+                .and_then(Value::as_array)
+                .is_some()
+        );
+    }
+
+    #[test]
+    fn data_refund_decomposition_marks_success_for_user_items() {
+        let output = refund_decomposition(&json!({
+            "items": [
+                {"name": "尺码不符", "refund_amount": 24000.0},
+                {"name": "物流破损", "refund_amount": 9000.0},
+                {"name": "色差", "gmv": 100000.0, "refund_rate": 0.04}
+            ]
+        }));
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(output.get("has_data").and_then(Value::as_bool), Some(true));
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("manual_input")
+        );
+        assert!(output.get("帕累托分析").and_then(Value::as_array).is_some());
     }
 }

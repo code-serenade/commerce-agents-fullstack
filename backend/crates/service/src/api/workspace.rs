@@ -5010,6 +5010,24 @@ fn build_content_artifact_from_skill_output(
             "Data dashboard",
             "data dashboard artifact generated",
         ),
+        "data_funnel_analysis" => (
+            "data",
+            "data_funnel_report",
+            "Data funnel report",
+            "data funnel analysis artifact generated",
+        ),
+        "data_channel_roi" => (
+            "data",
+            "data_channel_roi_report",
+            "Data channel ROI report",
+            "data channel ROI artifact generated",
+        ),
+        "data_refund_decomposition" => (
+            "data",
+            "data_refund_report",
+            "Data refund decomposition report",
+            "data refund decomposition artifact generated",
+        ),
         _ => return None,
     };
 
@@ -6375,6 +6393,36 @@ mod tests {
         assert_eq!(draft.file_name, "data_dashboard.md");
         assert!(draft.preview.contains("经营看板已生成"));
         assert!(draft.content.contains("# Data dashboard"));
+        assert!(
+            draft
+                .content
+                .contains("\"adapter_status\": \"manual_input\"")
+        );
+    }
+
+    #[test]
+    fn content_artifact_builds_from_data_analysis_skill_output() {
+        let output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "summary": "漏斗分析完成，瓶颈环节：点击到加购",
+            "漏斗分析": [
+                {"阶段": "曝光到点击", "转化率": "6.20%"},
+                {"阶段": "点击到加购", "转化率": "18.00%"}
+            ],
+            "优化建议": "改善详情页"
+        });
+
+        let draft = build_content_artifact_from_skill_output("data_funnel_analysis", &output)
+            .expect("data analysis output should be materializable");
+
+        assert_eq!(draft.content_category, "data");
+        assert_eq!(draft.artifact_type, "data_funnel_report");
+        assert_eq!(draft.title, "Data funnel report");
+        assert_eq!(draft.file_name, "data_funnel_report.md");
+        assert!(draft.preview.contains("漏斗分析完成"));
+        assert!(draft.content.contains("# Data funnel report"));
         assert!(
             draft
                 .content

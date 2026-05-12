@@ -1,5 +1,44 @@
 # 迁移开发记录
 
+## Post 8-31：Data 分析报告交付物真实沉淀
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 31 个补强项：`Post 8-31`。
+
+本次目标：
+
+- 把更多 native data skill 的成功输出接入 workspace artifact 体系。
+- 让漏斗分析、渠道 ROI、退款拆解不只停留在当轮问答，而是成为可查询、可预览、可导出的数据报告交付物。
+
+涉及范围：
+
+- 产品内核：数据岗位从“单次分析输出”继续推进到“可沉淀的数据报告”。
+- 后端 agent：`data_funnel_analysis`、`data_channel_roi`、`data_refund_decomposition` 在有用户数据时明确输出 `status=success`、`has_data=true`、`adapter_status=manual_input` 和 `summary`；缺少数据时继续 `deferred`。
+- 后端 service：`WorkspaceApi::materialize_agent_content_artifact` 新增支持 `data_funnel_report`、`data_channel_roi_report`、`data_refund_report`。
+- API/SSE 文档：同步数据报告 artifact 类型和缺数据不造假报告的语义。
+
+用户可感知变化：
+
+- 用户提供漏斗数据、渠道数据或退款项数据后，数据岗位成功分析结果可以在当前 workspace 真实新增对应报告交付物。
+- 如果用户没有提供必要数据，后端会明确返回 `deferred`，不会创建一个看似真实的数据报告。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p agent data_funnel_analysis_marks_success_for_user_data -- --nocapture`
+- [x] `cargo test -p agent data_funnel_analysis_defers_when_metrics_missing -- --nocapture`
+- [x] `cargo test -p agent data_channel_roi_marks_success_for_user_channels -- --nocapture`
+- [x] `cargo test -p agent data_refund_decomposition_marks_success_for_user_items -- --nocapture`
+- [x] `cargo test -p service content_artifact_builds_from_data_analysis_skill_output -- --nocapture`
+- [x] `cargo check -p agent`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo clippy -p agent -p service -p web-server`
+
 ## Post 8-30：Data 数据看板交付物真实沉淀
 
 状态：done
