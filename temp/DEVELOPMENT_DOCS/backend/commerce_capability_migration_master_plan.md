@@ -223,21 +223,21 @@ Continue in this order:
 The current active slice is:
 
 ```text
-Post 8-31: data analysis artifact materialization
+Post 8-32: accounting artifact materialization
 ```
 
 Scope:
 
-- persist successful `data_funnel_analysis`, `data_channel_roi`, and `data_refund_decomposition` outputs as real workspace artifacts
-- standardize successful data analysis outputs with `status=success`, `has_data=true`, `adapter_status=manual_input`, and `summary`
-- keep missing-input cases as `deferred` so the product does not create fake data reports
+- persist successful `accounting_cost_calc`, `accounting_profit_analysis`, `accounting_roi_calc`, and `accounting_budget_plan` outputs as real workspace artifacts
+- standardize successful accounting outputs with `status=success`, `has_data=true`, `adapter_status=manual_input`, and `summary`
+- keep missing required finance inputs as `deferred` so the product does not create fake accounting reports
 
 Reason:
 
-- high product value for the data worker and business overview workflow
+- high product value for the accounting worker and business finance workflow
 - backend-first
 - no new fake frontend needed
-- extends the same workspace artifact path from data dashboard to concrete data analysis reports while preserving honest degradation when user data is missing
+- extends the same workspace artifact path from data reports to concrete accounting deliverables while preserving honest degradation when required financial input is missing
 
 ## 10. Validation Standard
 

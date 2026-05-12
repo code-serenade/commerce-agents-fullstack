@@ -74,10 +74,10 @@ Post 8-10 补充：上述 Agent `search_*` skill 已接入同一份 `[external_s
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
 | --- | --- | --- | --- | --- |
-| `accounting_cost_calc` | `accounting_cost_calc` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | 已纳入岗位自动补偿规则 |
-| `accounting_profit_analysis` | `accounting_profit_analysis` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | 已纳入岗位自动补偿规则 |
-| `accounting_budget_plan` | `accounting_budget_plan` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | 已纳入岗位自动补偿规则 |
-| `accounting_roi_calc` | `accounting_roi_calc` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | 已纳入岗位自动补偿规则 |
+| `accounting_cost_calc` | `accounting_cost_calc` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | 已纳入岗位自动补偿规则；Post 8-32：成功输出会沉淀为 `accounting_cost_report` artifact |
+| `accounting_profit_analysis` | `accounting_profit_analysis` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | 已纳入岗位自动补偿规则；Post 8-32：成功输出会沉淀为 `accounting_profit_report` artifact，缺少 revenue 时 deferred |
+| `accounting_budget_plan` | `accounting_budget_plan` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | 已纳入岗位自动补偿规则；Post 8-32：成功输出会沉淀为 `accounting_budget_plan` artifact，使用默认参数时明示 `calculated_from_defaults` |
+| `accounting_roi_calc` | `accounting_roi_calc` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | 已纳入岗位自动补偿规则；Post 8-32：成功输出会沉淀为 `accounting_roi_report` artifact，缺少投入产出时 deferred |
 | `accounting_compliance_check` | `accounting_compliance_check` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | 本轮补强了税务/开票/纳税/现金收款等自然问法触达 |
 
 ## 工程 engineering

@@ -5028,6 +5028,30 @@ fn build_content_artifact_from_skill_output(
             "Data refund decomposition report",
             "data refund decomposition artifact generated",
         ),
+        "accounting_cost_calc" => (
+            "accounting",
+            "accounting_cost_report",
+            "Accounting cost report",
+            "accounting cost calculation artifact generated",
+        ),
+        "accounting_profit_analysis" => (
+            "accounting",
+            "accounting_profit_report",
+            "Accounting profit report",
+            "accounting profit analysis artifact generated",
+        ),
+        "accounting_roi_calc" => (
+            "accounting",
+            "accounting_roi_report",
+            "Accounting ROI report",
+            "accounting ROI calculation artifact generated",
+        ),
+        "accounting_budget_plan" => (
+            "accounting",
+            "accounting_budget_plan",
+            "Accounting budget plan",
+            "accounting budget plan artifact generated",
+        ),
         _ => return None,
     };
 
@@ -6423,6 +6447,41 @@ mod tests {
         assert_eq!(draft.file_name, "data_funnel_report.md");
         assert!(draft.preview.contains("漏斗分析完成"));
         assert!(draft.content.contains("# Data funnel report"));
+        assert!(
+            draft
+                .content
+                .contains("\"adapter_status\": \"manual_input\"")
+        );
+    }
+
+    #[test]
+    fn content_artifact_builds_from_accounting_skill_output() {
+        let output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "summary": "利润分析完成，净营收252000元，营业利润92000元",
+            "利润分析": {
+                "毛利润": 154000.0,
+                "营业利润": 92000.0,
+                "营业利润率": "36.51%"
+            },
+            "费用结构": {
+                "商品成本": 98000.0,
+                "运营费用": 26000.0,
+                "广告支出": 36000.0
+            }
+        });
+
+        let draft = build_content_artifact_from_skill_output("accounting_profit_analysis", &output)
+            .expect("accounting output should be materializable");
+
+        assert_eq!(draft.content_category, "accounting");
+        assert_eq!(draft.artifact_type, "accounting_profit_report");
+        assert_eq!(draft.title, "Accounting profit report");
+        assert_eq!(draft.file_name, "accounting_profit_report.md");
+        assert!(draft.preview.contains("利润分析完成"));
+        assert!(draft.content.contains("# Accounting profit report"));
         assert!(
             draft
                 .content

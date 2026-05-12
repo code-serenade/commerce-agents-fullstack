@@ -1,5 +1,45 @@
 # 迁移开发记录
 
+## Post 8-32：Accounting 财务报告交付物真实沉淀
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 32 个补强项：`Post 8-32`。
+
+本次目标：
+
+- 把旧产品矩阵中已有的核心 accounting skill 成功输出接入 workspace artifact 体系。
+- 让成本核算、利润分析、ROI 计算和预算编制成为可查询、可预览、可导出的财务报告交付物。
+
+涉及范围：
+
+- 产品内核：财务岗位从“单次计算输出”推进到“可沉淀的财务报告”。
+- 后端 agent：`accounting_cost_calc`、`accounting_profit_analysis`、`accounting_roi_calc`、`accounting_budget_plan` 增加 `status=success`、`has_data=true`、`adapter_status=manual_input` 和 `summary`；缺少关键输入时返回 `deferred`。
+- 后端 service：`WorkspaceApi::materialize_agent_content_artifact` 新增支持 `accounting_cost_report`、`accounting_profit_report`、`accounting_roi_report`、`accounting_budget_plan`。
+- API/SSE 文档：同步 accounting artifact 类型和缺数据不造假报告的语义。
+
+用户可感知变化：
+
+- 用户让财务岗位做成本核算、利润分析、ROI 计算或预算编制时，成功结果可以在当前 workspace 真实新增对应财务交付物。
+- 如果缺少必要财务输入，后端会明确返回 `deferred`，不会创建一个看似真实的财务报告。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p agent accounting_cost_calc_marks_success_for_user_input -- --nocapture`
+- [x] `cargo test -p agent accounting_profit_analysis_marks_success_for_revenue -- --nocapture`
+- [x] `cargo test -p agent accounting_profit_analysis_defers_without_revenue -- --nocapture`
+- [x] `cargo test -p agent accounting_roi_calc_marks_success_for_investment_and_revenue -- --nocapture`
+- [x] `cargo test -p agent accounting_budget_plan_marks_success_with_defaults_disclosed -- --nocapture`
+- [x] `cargo test -p service content_artifact_builds_from_accounting_skill_output -- --nocapture`
+- [x] `cargo check -p agent`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo clippy -p agent -p service -p web-server`
+
 ## Post 8-31：Data 分析报告交付物真实沉淀
 
 状态：done
