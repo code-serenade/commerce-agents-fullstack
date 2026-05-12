@@ -3341,6 +3341,7 @@
 - `actionKey` 不为空时会做去重；同一用户重复提交返回原审批记录
 - 当前阶段只创建审批记录，不执行真实工具
 - Agent SSE 收到高风险平台写 skill 结果时，也会通过本服务能力自动创建或复用审批记录；该记录的 `actionKey` 由 `runId`、`skillName`、`toolCallId` 生成，并会同步写入 `tool_approval.create` 审计日志和 `agent_approval_required` 告警
+- SSE 自动生成的审批记录会把 skill 输出中的 `normalizedInputs` 和原始 `output` 一并保存到 `args`，供后续审批通过后的自动执行闭环使用
 
 ## 87. 查询工具审批请求详情
 
@@ -3370,8 +3371,11 @@
 补充说明：
 
 - 只有 `pending` 状态的审批请求可以通过
-- 通过后设置 `status = approved`，写入 `approvedBy`、`approvedAt`，并写入 `tool_approval.approve` 审计日志
-- 当前阶段通过不等于真实执行工具，也不会调用 Agent 工具重放
+- 通过后会先写入 `approvedBy`、`approvedAt` 和 `tool_approval.approve` 审计日志
+- 如果该审批对应的是高风险平台动作，后端会自动创建一条 `execution_queue` 记录，并立即尝试进入平台执行闭环
+- 若当前平台连接缺失、连接被禁用、参数缺失或平台 adapter 尚未实现，后端会把真实失败结果写回 `toolApproval.result` 和 `executionQueue.result`，不会伪造成功
+- 因此通过接口返回的最终 `ToolApprovalResponse.status` 可能不只停留在 `approved`，也可能直接变成 `executed` 或 `failed`
+- 当前版本已补齐审批后的执行闭环与审计落库，但远端平台 API adapter 仍未真正接入；因此已连接平台的动作当前会返回 `adapter_not_implemented`
 
 ## 89. 拒绝工具审批请求
 

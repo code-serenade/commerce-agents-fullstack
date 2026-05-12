@@ -22,7 +22,7 @@ use repo::table::{
     },
     app_users::{AppUserService, AppUserStatus},
     audit_logs::{AuditLogService, CreateAuditLog},
-    campaigns::CampaignService,
+    campaigns::{Campaign, CampaignService, CampaignStatus, CreateCampaign},
     conversation_files::{ConversationFile, ConversationFileService},
     conversations::ConversationService,
     execution_queue::{
@@ -60,7 +60,10 @@ use serde_json::{Value, json};
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-use crate::dto::workspace::*;
+use crate::dto::{
+    campaign::{CampaignDraftResponse, CampaignDraftSourceResponse, CampaignResponse},
+    workspace::*,
+};
 
 const DEFAULT_PAGE: u64 = 1;
 const DEFAULT_PAGE_SIZE: u64 = 20;
@@ -2142,6 +2145,216 @@ impl WorkspaceApi {
         }
     }
 
+    pub async fn materialize_agent_campaign_draft(
+        &self,
+        req: MaterializeAgentCampaignDraftRequest,
+    ) -> BizResult<Option<MaterializedAgentCampaignDraftResponse>> {
+        let (user_id, workspace_id) = self
+            .ensure_request_workspace(&req.user_id, &req.workspace_id)
+            .await?;
+        let run_id = parse_uuid(&req.run_id, "run_id")?;
+        self.ensure_run_owner(user_id, workspace_id, run_id).await?;
+
+        let request_id = normalize_required(req.request_id, "request_id")?;
+        let skill_id = normalize_required(req.skill_id, "skill_id")?;
+        if skill_id != "coordination_create_campaign" {
+            return Ok(None);
+        }
+
+        let Some(draft) = build_campaign_draft_from_skill_output(&req.output) else {
+            return Ok(None);
+        };
+        if let Some(product_id) = draft.product_id {
+            self.ensure_active_product_owner(user_id, product_id)
+                .await?;
+        }
+
+        let current_skill_run = match self
+            .skill_run_svc
+            .get_by_request(user_id, workspace_id, run_id, &request_id)
+            .await?
+        {
+            Some(item) => item,
+            None => return Ok(None),
+        };
+
+        if let Some(existing_campaign_id) = current_skill_run
+            .metadata
+            .get("campaignId")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            let campaign_id = parse_uuid(existing_campaign_id, "campaign_id")?;
+            let campaign = self
+                .campaign_svc
+                .get_by_id(campaign_id)
+                .await?
+                .ok_or_else(|| {
+                    BizError::new(
+                        app_error::CAMPAIGN_NOT_FOUND,
+                        "campaign not found".to_string(),
+                    )
+                })?;
+            if campaign.user_id != user_id {
+                return Err(BizError::new(
+                    app_error::CAMPAIGN_FORBIDDEN,
+                    "campaign does not belong to current user".to_string(),
+                ));
+            }
+
+            let artifact = if let Some(artifact_id) = current_skill_run
+                .metadata
+                .get("campaignArtifactId")
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+            {
+                let artifact_id = parse_uuid(artifact_id, "campaign_artifact_id")?;
+                Some(Self::map_artifact(
+                    self.ensure_artifact_owner(user_id, workspace_id, artifact_id)
+                        .await?,
+                ))
+            } else {
+                None
+            };
+
+            return Ok(Some(MaterializedAgentCampaignDraftResponse {
+                campaign: Self::map_materialized_campaign_draft(campaign, &draft),
+                artifact,
+            }));
+        }
+
+        let tx = self.db.begin().await?;
+        let campaign_tx_svc = CampaignService::new(tx.clone());
+        let artifact_tx_svc = WorkspaceArtifactService::new(tx.clone());
+        let skill_run_tx_svc = AgentSkillRunService::new(tx.clone());
+        let write_result: BizResult<(Campaign, WorkspaceArtifact, AgentSkillRun)> = async {
+            let campaign = campaign_tx_svc
+                .create(CreateCampaign {
+                    id: Uuid::new_v4(),
+                    user_id,
+                    product_id: draft.product_id,
+                    name: draft.name.clone(),
+                    campaign_type: Some(draft.campaign_type.clone()),
+                    description: draft.description.clone(),
+                    budget: draft.budget.unwrap_or_default(),
+                    start_date: draft.start_date.clone(),
+                    end_date: draft.end_date.clone(),
+                    status: CampaignStatus::Draft,
+                    metadata: draft.metadata.clone(),
+                    output: draft.output.clone(),
+                    action_metadata: draft.action_metadata.clone(),
+                })
+                .await?;
+
+            let artifact = artifact_tx_svc
+                .create(CreateWorkspaceArtifact {
+                    id: Uuid::new_v4(),
+                    workspace_id,
+                    run_id: Some(run_id),
+                    workspace_task_id: None,
+                    run_task_id: None,
+                    user_id,
+                    artifact_type: "campaign_draft".to_string(),
+                    title: format!("Campaign draft - {}", campaign.name),
+                    content: Some(
+                        serde_json::to_string_pretty(&json!({
+                            "campaign": {
+                                "id": campaign.id,
+                                "name": campaign.name,
+                                "campaignType": campaign.campaign_type,
+                                "description": campaign.description,
+                                "budget": campaign.budget,
+                                "startDate": campaign.start_date,
+                                "endDate": campaign.end_date,
+                                "status": campaign.status.as_str(),
+                            },
+                            "source": draft.source,
+                            "warnings": draft.warnings,
+                            "agentContext": draft.agent_context,
+                            "planning": draft.output.get("planning").cloned().unwrap_or_else(|| json!({})),
+                            "draft": draft.output.get("draft").cloned().unwrap_or_else(|| json!({})),
+                        }))
+                        .unwrap_or_else(|_| "{}".to_string()),
+                    ),
+                    preview: Some(compact_text(
+                        &format!(
+                            "{} | {} | budget={}",
+                            campaign.name, draft.campaign_type, campaign.budget
+                        ),
+                        500,
+                    )),
+                    mime_type: Some("application/json".to_string()),
+                    format: "json".to_string(),
+                    storage_kind: "inline".to_string(),
+                    bucket: None,
+                    object_key: None,
+                    file_name: Some(format!("campaign-draft-{}.json", campaign.id)),
+                    file_size: None,
+                    sha256: None,
+                    source: AGENT_RUN_SOURCE.to_string(),
+                    status: WorkspaceArtifactStatus::Active,
+                    validation_status: WorkspaceArtifactValidationStatus::Unchecked,
+                    validation_report: json!({}),
+                    metadata: json!({
+                        "kind": "agent_campaign_draft",
+                        "campaignId": campaign.id,
+                        "runId": run_id,
+                        "requestId": request_id,
+                        "skillId": skill_id,
+                        "role": req.role,
+                        "workspaceId": workspace_id,
+                        "source": draft.source,
+                        "warnings": draft.warnings,
+                    }),
+                })
+                .await?;
+
+            let skill_run = skill_run_tx_svc
+                .update(UpdateAgentSkillRun {
+                    id: current_skill_run.id,
+                    status: current_skill_run.status,
+                    reason: current_skill_run.reason.clone(),
+                    summary: current_skill_run.summary.clone(),
+                    error: current_skill_run.error.clone(),
+                    input: current_skill_run.input.clone(),
+                    output: current_skill_run.output.clone(),
+                    execution_mode: current_skill_run.execution_mode.clone(),
+                    risk_level: current_skill_run.risk_level.clone(),
+                    approval_required: current_skill_run.approval_required,
+                    metadata: merge_json_object(
+                        current_skill_run.metadata.clone(),
+                        json!({
+                            "campaignId": campaign.id,
+                            "campaignCreated": true,
+                            "campaignSource": "coordination_create_campaign",
+                            "campaignArtifactId": artifact.id,
+                        }),
+                    ),
+                    completed_at: current_skill_run.completed_at,
+                })
+                .await?;
+
+            Ok((campaign, artifact, skill_run))
+        }
+        .await;
+
+        match write_result {
+            Ok((campaign, artifact, _)) => {
+                tx.commit().await?;
+                Ok(Some(MaterializedAgentCampaignDraftResponse {
+                    campaign: Self::map_materialized_campaign_draft(campaign, &draft),
+                    artifact: Some(Self::map_artifact(artifact)),
+                }))
+            }
+            Err(err) => {
+                tx.rollback().await?;
+                Err(err)
+            }
+        }
+    }
+
     pub async fn complete_agent_run(
         &self,
         req: CompleteAgentWorkspaceRunRequest,
@@ -3613,6 +3826,34 @@ impl WorkspaceApi {
         }
     }
 
+    fn map_materialized_campaign_draft(
+        item: Campaign,
+        draft: &CampaignDraftFromSkill,
+    ) -> CampaignDraftResponse {
+        CampaignDraftResponse {
+            campaign: CampaignResponse {
+                id: item.id.to_string(),
+                user_id: item.user_id.to_string(),
+                product_id: item.product_id.map(|id| id.to_string()),
+                name: item.name,
+                campaign_type: item.campaign_type,
+                description: item.description,
+                budget: item.budget,
+                start_date: item.start_date,
+                end_date: item.end_date,
+                status: item.status.as_str().to_string(),
+                metadata: item.metadata,
+                output: item.output,
+                action_metadata: item.action_metadata,
+                created_at: item.created_at,
+                updated_at: item.updated_at,
+            },
+            source: draft.source.clone(),
+            warnings: draft.warnings.clone(),
+            agent_context: draft.agent_context.clone(),
+        }
+    }
+
     fn map_execution(item: ExecutionQueueItem) -> ExecutionQueueResponse {
         ExecutionQueueResponse {
             id: item.id.to_string(),
@@ -4568,6 +4809,207 @@ fn build_workspace_memory_from_skill_output(
     })
 }
 
+fn build_campaign_draft_from_skill_output(output: &Value) -> Option<CampaignDraftFromSkill> {
+    if output.get("status").and_then(Value::as_str) != Some("success") {
+        return None;
+    }
+    let campaign_creation = output.get("campaign_creation")?.as_object()?;
+    if campaign_creation
+        .get("should_persist")
+        .and_then(Value::as_bool)
+        != Some(true)
+    {
+        return None;
+    }
+
+    let name = campaign_creation
+        .get("name")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| compact_text(value, 255))?;
+    let description = campaign_creation
+        .get("description")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| compact_text(value, 2_000));
+    let campaign_type = campaign_creation
+        .get("campaign_type")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| compact_text(value, 64))
+        .unwrap_or_else(|| "agent_draft".to_string());
+    let budget = campaign_creation.get("budget").and_then(Value::as_f64);
+    let product_id = campaign_creation
+        .get("product_id")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| parse_uuid(value, "product_id"))
+        .transpose()
+        .ok()
+        .flatten();
+    let start_date = campaign_creation
+        .get("start_date")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| compact_text(value, 64));
+    let end_date = campaign_creation
+        .get("end_date")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| compact_text(value, 64));
+    let goal = campaign_creation
+        .get("goal")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| compact_text(value, 2_000));
+    let target_audience = campaign_creation
+        .get("target_audience")
+        .or_else(|| campaign_creation.get("targetAudience"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| compact_text(value, 2_000));
+    let channels = campaign_creation
+        .get("channels")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(|value| compact_text(value, 64))
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    let strategy = campaign_creation
+        .get("strategy")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| compact_text(value, 2_000));
+    let source_summary = campaign_creation
+        .get("source_summary")
+        .or_else(|| campaign_creation.get("sourceSummary"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| compact_text(value, 4_000));
+    let workspace_id = campaign_creation
+        .get("workspace_id")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned);
+    let source = CampaignDraftSourceResponse {
+        source_type: "agent_skill_result".to_string(),
+        product_id: product_id.map(|id| id.to_string()),
+        workspace_id: workspace_id.clone(),
+        source_artifact_id: None,
+        source_summary: source_summary.clone(),
+        ref_keys: build_campaign_draft_ref_keys_from_skill(product_id, source_summary.as_deref()),
+    };
+    let warnings = build_campaign_draft_warnings_from_skill(
+        source.product_id.is_some(),
+        budget,
+        start_date.as_deref(),
+        end_date.as_deref(),
+        source_summary.as_deref(),
+    );
+    let planning = json!({
+        "goal": goal,
+        "targetAudience": target_audience,
+        "channels": channels,
+        "strategy": strategy,
+        "budget": budget,
+        "startDate": start_date,
+        "endDate": end_date,
+    });
+    let draft = campaign_creation
+        .get("draft")
+        .cloned()
+        .unwrap_or_else(|| json!({}));
+    let metadata = json!({
+        "source": {
+            "sourceType": source.source_type,
+            "productId": source.product_id,
+            "workspaceId": source.workspace_id,
+            "sourceArtifactId": source.source_artifact_id,
+            "sourceSummary": source.source_summary,
+            "refKeys": source.ref_keys,
+        },
+        "planning": planning.clone(),
+        "refs": source.ref_keys.clone(),
+        "workspace": {
+            "id": workspace_id,
+        },
+        "sourceArtifact": Value::Null,
+        "extra": {
+            "materializedFrom": "coordination_create_campaign",
+        },
+    });
+    let output_json = json!({
+        "kind": "campaign_draft",
+        "draft": draft,
+        "planning": planning.clone(),
+        "sourceSummary": source_summary,
+    });
+    let action_metadata = json!({
+        "action": "create_campaign_draft",
+        "executionStatus": "not_submitted",
+        "requiresApproval": true,
+        "platformExecution": "not_started",
+        "approvalReason": "campaign draft is local only; platform execution must be approved separately",
+        "source": {
+            "sourceType": source.source_type,
+            "productId": source.product_id,
+            "workspaceId": source.workspace_id,
+            "sourceArtifactId": source.source_artifact_id,
+            "sourceSummary": source.source_summary,
+            "refKeys": source.ref_keys,
+        },
+        "extra": {
+            "materializedFrom": "coordination_create_campaign",
+        },
+    });
+    let agent_context = json!({
+        "type": "campaign_draft",
+        "source": {
+            "sourceType": source.source_type,
+            "productId": source.product_id,
+            "workspaceId": source.workspace_id,
+            "sourceArtifactId": source.source_artifact_id,
+            "sourceSummary": source.source_summary,
+            "refKeys": source.ref_keys,
+        },
+        "planning": planning,
+        "warnings": warnings.clone(),
+    });
+
+    Some(CampaignDraftFromSkill {
+        name,
+        description,
+        campaign_type,
+        budget,
+        product_id,
+        start_date,
+        end_date,
+        metadata,
+        output: output_json,
+        action_metadata,
+        source,
+        warnings,
+        agent_context,
+    })
+}
+
 fn format_search_evidence_preview(sources: &[Value], query: &str) -> String {
     let mut lines = Vec::new();
     if !query.trim().is_empty() {
@@ -4780,6 +5222,43 @@ fn learning_record_memory_key(record: &AgentLearningRecord) -> Option<&str> {
         .filter(|value| !value.is_empty())
 }
 
+fn build_campaign_draft_ref_keys_from_skill(
+    product_id: Option<Uuid>,
+    source_summary: Option<&str>,
+) -> Vec<String> {
+    let mut refs = Vec::new();
+    if let Some(product_id) = product_id {
+        refs.push(format!("product:{product_id}"));
+    }
+    if source_summary.is_some() {
+        refs.push("agent_output:coordination_create_campaign".to_string());
+    }
+    refs
+}
+
+fn build_campaign_draft_warnings_from_skill(
+    has_product: bool,
+    budget: Option<f64>,
+    start_date: Option<&str>,
+    end_date: Option<&str>,
+    source_summary: Option<&str>,
+) -> Vec<String> {
+    let mut warnings = Vec::new();
+    if !has_product {
+        warnings.push("campaign draft is not bound to a product".to_string());
+    }
+    if budget.map(|value| value <= 0.0).unwrap_or(true) {
+        warnings.push("campaign draft budget is missing or zero".to_string());
+    }
+    if start_date.is_none() || end_date.is_none() {
+        warnings.push("campaign draft date range is incomplete".to_string());
+    }
+    if source_summary.is_none() {
+        warnings.push("campaign draft has no source artifact".to_string());
+    }
+    warnings
+}
+
 fn non_empty_join(values: &[String]) -> Option<String> {
     let value = values
         .iter()
@@ -4826,6 +5305,23 @@ struct LearningDraft {
     confidence: f64,
     source_action: String,
     metadata: Value,
+}
+
+#[derive(Debug, Clone)]
+struct CampaignDraftFromSkill {
+    name: String,
+    description: Option<String>,
+    campaign_type: String,
+    budget: Option<f64>,
+    product_id: Option<Uuid>,
+    start_date: Option<String>,
+    end_date: Option<String>,
+    metadata: Value,
+    output: Value,
+    action_metadata: Value,
+    source: CampaignDraftSourceResponse,
+    warnings: Vec<String>,
+    agent_context: Value,
 }
 
 #[derive(Debug, Clone)]
@@ -5573,6 +6069,48 @@ mod tests {
         assert_eq!(draft.memory_type, "decision");
         assert!(draft.content.contains("159-179"));
         assert!((draft.confidence - 0.88).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn campaign_draft_builds_from_coordination_skill_output() {
+        let output = json!({
+            "status": "success",
+            "campaign_creation": {
+                "should_persist": true,
+                "name": "五一咖啡促销活动",
+                "description": "提升五一周末转化率",
+                "campaign_type": "promotion",
+                "budget": 5000.0,
+                "product_id": "11111111-1111-1111-1111-111111111111",
+                "goal": "提升五一周末转化率",
+                "target_audience": "通勤咖啡用户",
+                "channels": ["douyin", "taobao"],
+                "strategy": "先小预算测款，再放量高转化素材",
+                "workspace_id": "workspace-1",
+                "source_summary": "Selected product and workspace context...",
+                "draft": {
+                    "executionSteps": ["步骤1", "步骤2"]
+                }
+            }
+        });
+
+        let draft = build_campaign_draft_from_skill_output(&output)
+            .expect("coordination create campaign output should be materializable");
+
+        assert_eq!(draft.name, "五一咖啡促销活动");
+        assert_eq!(draft.campaign_type, "promotion");
+        assert_eq!(draft.budget, Some(5000.0));
+        assert_eq!(
+            draft.source.product_id.as_deref(),
+            Some("11111111-1111-1111-1111-111111111111")
+        );
+        assert!(
+            draft
+                .output
+                .pointer("/planning/channels")
+                .and_then(Value::as_array)
+                .is_some()
+        );
     }
 
     #[test]

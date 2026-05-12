@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use time::OffsetDateTime;
 
+use crate::dto::campaign::CampaignDraftResponse;
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct ListWorkspacesRequest {
     pub user_id: String,
@@ -490,6 +492,23 @@ pub struct MaterializeAgentWorkspaceMemoryRequest {
     pub skill_id: String,
     pub role: String,
     pub output: Value,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct MaterializeAgentCampaignDraftRequest {
+    pub user_id: String,
+    pub workspace_id: String,
+    pub run_id: String,
+    pub request_id: String,
+    pub skill_id: String,
+    pub role: String,
+    pub output: Value,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct MaterializedAgentCampaignDraftResponse {
+    pub campaign: CampaignDraftResponse,
+    pub artifact: Option<WorkspaceArtifactResponse>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

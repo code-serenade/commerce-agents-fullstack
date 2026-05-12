@@ -30,11 +30,11 @@ use service::{
             CompleteAgentWorkspaceRunRequest, EvaluateAgentWorkspaceRunRequest,
             FailAgentWorkspaceRunRequest, LinkAgentWorkspaceRunRequest,
             LinkAgentWorkspaceTasksRequest, MarkAgentWorkspaceTaskStartedRequest,
-            MaterializeAgentWorkspaceTaskRequest, RecordAgentSearchEvidenceRequest,
-            RecordAgentSkillRequestedRequest, RecordAgentSkillResultRequest,
-            RecordAgentWorkspaceTaskEvaluationRequest, RecordAgentWorkspaceTaskReportRequest,
-            WorkspaceContextPackResponse, WorkspaceContextSourceResponse,
-            WorkspaceContextSummaryResponse,
+            MaterializeAgentCampaignDraftRequest, MaterializeAgentWorkspaceTaskRequest,
+            RecordAgentSearchEvidenceRequest, RecordAgentSkillRequestedRequest,
+            RecordAgentSkillResultRequest, RecordAgentWorkspaceTaskEvaluationRequest,
+            RecordAgentWorkspaceTaskReportRequest, WorkspaceContextPackResponse,
+            WorkspaceContextSourceResponse, WorkspaceContextSummaryResponse,
         },
     },
 };
@@ -474,6 +474,41 @@ pub async fn stream_agent_session(
                         }
                     }
 
+                    let campaign_materialize_response = workspace_api
+                        .materialize_agent_campaign_draft(
+                            MaterializeAgentCampaignDraftRequest {
+                                user_id: link_state.user_id.clone(),
+                                workspace_id: link_state.workspace_id.clone(),
+                                run_id: link_state.run_id.clone(),
+                                request_id: request_id.clone(),
+                                skill_id: skill_id.clone(),
+                                role: role.clone(),
+                                output: output.clone().unwrap_or_else(|| json!({})),
+                            },
+                        )
+                        .await;
+                    match campaign_materialize_response {
+                        Ok(Some(value)) => {
+                            yield Ok(typed_camel_json_event(
+                                "campaign_draft_created",
+                                serde_json::to_value(&value.campaign)
+                                    .unwrap_or_else(|_| json!({ "type": "campaign_draft_created" })),
+                            ));
+                            if let Some(artifact) = value.artifact {
+                                yield Ok(typed_camel_json_event(
+                                    "workspace_artifact_created",
+                                    serde_json::to_value(artifact).unwrap_or_else(
+                                        |_| json!({ "type": "workspace_artifact_created" }),
+                                    ),
+                                ));
+                            }
+                        }
+                        Ok(None) => {}
+                        Err(err) => {
+                            yield Ok(persistence_error_event("materialize_agent_campaign_draft", err));
+                        }
+                    }
+
                     if let Some(output) = output.clone() {
                         let response = workspace_api
                             .record_agent_search_evidence(RecordAgentSearchEvidenceRequest {
@@ -516,6 +551,7 @@ pub async fn stream_agent_session(
                             summary: summary.as_deref(),
                             error: error.as_deref(),
                             execution_mode: execution_mode.as_deref(),
+                            output: output.as_ref(),
                         };
                         let args = build_approval_args(&link_state, skill_result_ref);
                         let action_key = approval_action_key(&link_state.run_id, skill_id, request_id);
@@ -731,6 +767,7 @@ struct ApprovalSkillResultRef<'a> {
     summary: Option<&'a str>,
     error: Option<&'a str>,
     execution_mode: Option<&'a str>,
+    output: Option<&'a Value>,
 }
 
 fn json_event(event: &'static str, value: serde_json::Value) -> Event {
@@ -832,6 +869,14 @@ fn build_approval_args(
     link_state: &AgentWorkspaceLinkState,
     skill_result: ApprovalSkillResultRef<'_>,
 ) -> Value {
+    let normalized_inputs = skill_result
+        .output
+        .and_then(|output| output.get("normalized_inputs").cloned())
+        .or_else(|| {
+            skill_result
+                .output
+                .and_then(|output| output.get("normalizedInputs").cloned())
+        });
     json!({
         "source": "agent_sse",
         "sessionId": link_state.session_id,
@@ -845,6 +890,8 @@ fn build_approval_args(
         "summary": skill_result.summary,
         "error": skill_result.error,
         "executionMode": skill_result.execution_mode,
+        "normalizedInputs": normalized_inputs,
+        "output": skill_result.output,
     })
 }
 

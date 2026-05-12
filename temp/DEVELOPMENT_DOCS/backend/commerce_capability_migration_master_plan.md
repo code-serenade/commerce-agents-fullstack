@@ -221,21 +221,21 @@ Continue in this order:
 The current active slice is:
 
 ```text
-Post 8-24: coordination save memory native landing
+Post 8-26: coordination create campaign native landing
 ```
 
 Scope:
 
-- turn `coordination_save_memory` from pending skeleton into real native backend capability
-- let agent skill results land real `agent_learning_records` workspace memory through the existing service/SSE persistence chain
-- make memory-saving natural phrasing reach the coordination memory skill more reliably
+- turn `coordination_create_campaign` from pending skeleton into real native backend capability
+- let agent skill results land real campaign drafts and campaign draft artifacts through the existing service/SSE persistence chain
+- keep campaign draft creation inside the new product workspace/artifact/campaign governance model instead of a detached legacy flow
 
 Reason:
 
-- high product value for turning multi-agent conclusions into reusable workspace memory
+- high product value for turning agent planning output into reusable campaign drafts
 - backend-first
 - no new fake frontend needed
-- strengthens the coordination layer using already migrated learning/workspace persistence foundations
+- strengthens the coordination layer using already migrated workspace/campaign persistence foundations
 
 ## 10. Validation Standard
 

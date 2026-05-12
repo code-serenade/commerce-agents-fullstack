@@ -1,5 +1,75 @@
 # 迁移开发记录
 
+## Post 8-26：Coordination 创建营销活动草稿真实落地
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 26 个补强项：`Post 8-26`。
+
+本次目标：
+
+- 把 `coordination_create_campaign` 从 `pending_approval` 骨架升级为真实 Rust native skill。
+- 让 Agent 在当前工作区里不只是“建议创建营销活动”，而是能通过现有 service/SSE 持久化链路真实创建 `campaign draft`。
+- 继续遵循新产品后端主导，不直接写平台，不绕开审批与治理。
+
+涉及范围：
+
+- 产品内核：协同层从“能提出活动建议”推进到“能把活动方案沉淀成真实 campaign draft 和工作区交付物”。
+- 后端 agent：`coordination_create_campaign` 改为 native deterministic skill，并补商品/工作区/渠道/预算/策略等结构化草稿输出。
+- 后端 service/web-server：SSE 在记录 `skill_result` 后，调用 workspace/campaign 持久化链路，把草稿真实落成 `campaigns` 和 `workspace_artifacts`，并回传 `campaign_draft_created`。
+
+用户可感知变化：
+
+- 用户提出“创建活动草稿”“整理促销方案”“做一个投放复盘活动草稿”时，更容易命中真实后端活动草稿能力。
+- 命中后，当前工作区会真实新增一个 `campaign draft`，不再只是返回一段待审批骨架说明。
+- SSE 会出现真实 `campaign_draft_created` 事件，并同时生成一个 `campaign_draft` artifact，后续前端可直接读取、预览和继续编辑。
+
+当前验证：
+
+- [x] `cargo check -p agent`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+
+## Post 8-25：工具审批通过后的平台执行闭环
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 25 个补强项：`Post 8-25`。
+
+本次目标：
+
+- 把“高风险平台 skill 进入审批后就停住”的链路补成真实执行闭环。
+- 让审批通过后自动创建 `execution_queue`，并把真实执行结果或失败原因写回审批记录与审计日志。
+- 在远端平台 adapter 尚未真正接入前，保持真实失败，不伪造成功。
+
+涉及范围：
+
+- 产品内核：平台执行从“只有审批记录”推进到“审批通过后进入真实执行尝试与审计闭环”。
+- 后端 service：`approve_tool_approval` 增加执行队列创建、连接校验、参数校验、失败结果持久化和审计写入。
+- 后端 web-server：SSE 自动创建审批记录时补存 `normalizedInputs` 和原始 `output`，供审批后的执行闭环读取。
+
+用户可感知变化：
+
+- 用户审批通过平台改价、改库存、同步商品等动作后，后端不会再只停留在 `approved`。
+- 当前如果平台连接缺失、连接被禁用、参数不完整或 adapter 尚未实现，用户会看到真实失败状态与原因。
+- 审批、执行队列、审计记录三者开始真正打通，后续接真实平台 adapter 时不需要再重做闭环骨架。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo clippy`
+- [x] `cargo test -p service approval_execution_params_reads_normalized_inputs_from_skill_output -- --nocapture`
+- [x] `cargo test -p service plan_platform_execution_reports_missing_connection -- --nocapture`
+- [x] `cargo test -p service plan_platform_execution_reports_adapter_not_implemented_when_connected -- --nocapture`
+
 ## Post 8-24：Coordination 保存工作记忆真实落地
 
 状态：done

@@ -132,6 +132,9 @@ data: {"id":"search-artifact-uuid","workspaceId":"workspace-uuid","runId":"run-u
 event: agent_learning_record_created
 data: {"type":"agent_learning_record_created","id":"learning-uuid","workspaceId":"workspace-uuid","runId":"run-uuid","role":"agent","category":"decision","content":"本品定价区间保持在 159-179 元，避免低于核心竞品均价。","confidence":0.88,"sourceAction":"workspace_memory_manual","status":"active","metadata":{"kind":"workspace_memory","memoryKey":"pricing_strategy_2024","memoryType":"decision","source":"agent_skill_result","sourceRole":"ops","requestId":"task-001-skill-2","skillId":"coordination_save_memory","upsertMode":"create"}}
 
+event: campaign_draft_created
+data: {"type":"campaign_draft_created","campaign":{"id":"campaign-uuid","userId":"user-uuid","productId":"product-uuid","name":"五一咖啡促销活动","campaignType":"promotion","description":"提升五一周末转化率","budget":5000.0,"startDate":"2026-05-01","endDate":"2026-05-05","status":"draft","metadata":{},"output":{},"actionMetadata":{},"createdAt":"2026-05-12T08:00:00Z","updatedAt":"2026-05-12T08:00:00Z"},"source":{"sourceType":"agent_skill_result","productId":"product-uuid","workspaceId":"workspace-uuid","sourceArtifactId":null,"sourceSummary":"Selected product and workspace context...","refKeys":["product:product-uuid","agent_output:coordination_create_campaign"]},"warnings":["campaign draft date range is incomplete"],"agentContext":{"type":"campaign_draft","source":{"sourceType":"agent_skill_result","productId":"product-uuid","workspaceId":"workspace-uuid","sourceArtifactId":null,"sourceSummary":"Selected product and workspace context...","refKeys":["product:product-uuid","agent_output:coordination_create_campaign"]},"planning":{"goal":"提升五一周末转化率","channels":["douyin","taobao"]},"warnings":["campaign draft date range is incomplete"]}}
+
 event: quality_checked
 data: {"qualityCheck":{"id":"quality-check-uuid","workspaceId":"workspace-uuid","runId":"run-uuid","artifactId":"artifact-uuid","role":"agent","score":0.82,"passed":true,"dimensions":{},"issues":[],"suggestions":[]},"trustUpdate":{"role":"agent","previousScore":0.5,"newScore":0.596,"previousLevel":"moderate","newLevel":"moderate","delta":0.096,"reason":"quality check passed; trust score moved toward the answer quality"},"learningRecords":[]}
 
@@ -167,6 +170,7 @@ data: {"type":"approval_required","approval":{"id":"approval-uuid","workspaceId"
 - 模型没有输出 `skill_requests` 时，后端可根据当前 worker 岗位、任务文本、上下文摘要和上游结果，自动补偿一个代表 skill 请求。
 - 自动补偿仍走角色白名单、`SkillExecutorSet`、真实 `skill_result` 和结果合并链路，不绕过权限，也不伪造前端事件。
 - 自动补偿不会直接执行高风险平台写操作；平台写操作仍返回 `pending_approval` 并进入审批链路。
+- `coordination_create_campaign` 在返回 `status=success` 且 `campaign_creation.should_persist=true` 时，web-server 会把结构化草稿沉淀成真实 `campaign draft`，并额外发送 `campaign_draft_created` 与对应 `workspace_artifact_created`。
 - 搜索类 `search_*` skill 会读取后端 `[external_search]` 配置：配置完整且 provider 返回可信来源时，`skill_result` 可返回 `status=success`、`execution_mode=adapter`，`output` 内包含 `status=live`、`sources`、`data.items`、`provenance` 和 `confidence`；未配置、provider 失败或无来源时仍返回 `status=deferred`，`output` 内带 `adapter_status=adapter_required/degraded` 和 `degraded_reason`。
 - 当搜索类 `skill_result` 同时满足 `status=success`、`execution_mode=adapter`、`output.status=live` 且 `output.sources` 非空时，web-server 会把完整搜索输出沉淀为 `artifactType=search_evidence`、`format=json`、`storageKind=inline` 的工作区交付物，并额外发送 `workspace_artifact_created`。未配置、降级或无来源时不会创建搜索证据 artifact。
 - 其它需要内容引擎、平台数据或未接 adapter 的能力会返回 `deferred`，不会伪造外部资料或平台执行结果。
@@ -189,12 +193,13 @@ data: {"type":"approval_required","approval":{"id":"approval-uuid","workspaceId"
 | `workspace_run_completed` | agent session 正常完成，`workspace_run.status=succeeded`，最终输出写入 `report.output` |
 | `workspace_artifact_created` | 已创建工作区交付物；正常完成时通常为 `artifactType=final_report` 的 markdown 报告，live 搜索证据会创建 `artifactType=search_evidence` 的 json 交付物 |
 | `agent_learning_record_created` | `coordination_save_memory` 已真实沉淀为学习/工作记忆记录，可在后续工作区问答中复用 |
+| `campaign_draft_created` | `coordination_create_campaign` 已真实沉淀为营销活动草稿，后续可在活动管理、工作区或交付物里继续编辑和治理 |
 | `quality_checked` | agent session 正常完成并创建交付物后，后端已完成回答质量检查、信任分更新和学习记录沉淀 |
 | `approval_required` | `skill_result.status=pending_approval` 或 `approval_required=true` 时，后端已创建或复用工具审批记录，并尝试创建告警 |
 | `workspace_run_failed` | agent session 失败，`workspace_run.status=failed`，失败原因写入 `report.reason` |
 | `workspace_run_persistence_error` | agent 流运行过程中某次沉淀失败，返回 `action`、`code`、`message`；该事件不截断原始 LLM 回答 |
 
-`workspace_run_linked` 的 `run.source` 固定为 `agent_session`。`workspace_run_tasks_linked` 与 `workspace_run_task_updated` 返回的数据结构等同于 `API_DOCS/app.md` 中的 `WorkspaceRunTaskResponse`，字段使用 camelCase。`workspace_run_completed` / `workspace_run_failed` 返回的数据结构等同于 `WorkspaceRunResponse`。`workspace_artifact_created` 返回的数据结构等同于 `WorkspaceArtifactResponse`。`agent_learning_record_created` 返回的数据结构等同于 `API_DOCS/app.md` 中的 `AgentLearningRecordResponse`，字段使用 camelCase。搜索证据 artifact 的 `content` 是完整搜索输出 JSON 字符串，`metadata.kind=agent_search_evidence`，并包含 `skillId`、`requestId`、`role`、`query`、`sourceCount`、`domains`、`confidence`、`provenance` 和 `freshness`。`quality_checked` 返回的数据结构等同于 `API_DOCS/app.md` 中 `POST /api/app/workspaces/{workspaceId}/runs/{runId}/quality-checks` 的成功响应，字段使用 camelCase。
+`workspace_run_linked` 的 `run.source` 固定为 `agent_session`。`workspace_run_tasks_linked` 与 `workspace_run_task_updated` 返回的数据结构等同于 `API_DOCS/app.md` 中的 `WorkspaceRunTaskResponse`，字段使用 camelCase。`workspace_run_completed` / `workspace_run_failed` 返回的数据结构等同于 `WorkspaceRunResponse`。`workspace_artifact_created` 返回的数据结构等同于 `WorkspaceArtifactResponse`。`agent_learning_record_created` 返回的数据结构等同于 `API_DOCS/app.md` 中的 `AgentLearningRecordResponse`，字段使用 camelCase。`campaign_draft_created` 返回的数据结构等同于 `API_DOCS/app.md` 中 `POST /api/app/campaigns/draft` 的成功响应，字段使用 camelCase。搜索证据 artifact 的 `content` 是完整搜索输出 JSON 字符串，`metadata.kind=agent_search_evidence`，并包含 `skillId`、`requestId`、`role`、`query`、`sourceCount`、`domains`、`confidence`、`provenance` 和 `freshness`。`quality_checked` 返回的数据结构等同于 `API_DOCS/app.md` 中 `POST /api/app/workspaces/{workspaceId}/runs/{runId}/quality-checks` 的成功响应，字段使用 camelCase。
 
 `quality_checked` 当前由 web-server 在 `workspace_run_completed` 和 `workspace_artifact_created` 后自动触发。质量检查失败不会截断 LLM 回答；如果质量检查自身写入失败，服务端会继续发 `workspace_run_persistence_error`，其中 `action` 为 `evaluate_agent_run`。
 

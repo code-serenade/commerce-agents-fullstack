@@ -7,6 +7,13 @@ use repo::table::{
     app_users::{AppUserService, AppUserStatus},
     audit_logs::{AuditLog, AuditLogFilter, AuditLogService, CreateAuditLog},
     conversations::ConversationService,
+    execution_queue::{
+        CreateExecutionQueueItem, ExecutionQueueItem, ExecutionQueueService, ExecutionQueueStatus,
+        UpdateExecutionQueueItem,
+    },
+    platform_connections::{
+        PlatformConnection, PlatformConnectionService, PlatformConnectionStatus,
+    },
     tool_approval_queue::{
         CreateToolApproval, ToolApproval, ToolApprovalFilter, ToolApprovalQueueService,
         ToolApprovalStatus, UpdateToolApprovalDecision,
@@ -14,7 +21,7 @@ use repo::table::{
     workspace_runs::WorkspaceRunService,
     workspaces::{WorkspaceService, WorkspaceStatus},
 };
-use serde_json::json;
+use serde_json::{Value, json};
 use time::OffsetDateTime;
 use uuid::Uuid;
 
@@ -333,45 +340,65 @@ impl ApprovalAuditApi {
         };
         let tx = self.db.begin().await?;
         let approval_tx_svc = ToolApprovalQueueService::new(tx.clone());
+        let execution_tx_svc = ExecutionQueueService::new(tx.clone());
+        let platform_tx_svc = PlatformConnectionService::new(tx.clone());
         let audit_tx_svc = AuditLogService::new(tx.clone());
         let update_result: BizResult<ToolApproval> = async {
-            let approval = approval_tx_svc
-                .update_decision(UpdateToolApprovalDecision {
-                    id: current.id,
-                    status,
-                    reason: reason.clone(),
-                    result: result.clone(),
-                    approved_by: Some(user_id),
-                    approved_at: Some(now),
-                    executed_at: None,
-                })
-                .await?;
-            audit_tx_svc
-                .create(CreateAuditLog {
-                    id: Uuid::new_v4(),
-                    user_id: current.user_id,
-                    actor_user_id: user_id,
-                    workspace_id: current.workspace_id,
-                    run_id: current.run_id,
-                    execution_queue_id: None,
-                    tool_approval_id: Some(current.id),
-                    action: action.to_string(),
-                    target_type: "tool_approval".to_string(),
-                    target_id: Some(current.id.to_string()),
-                    status: "success".to_string(),
-                    reason,
-                    request_id: None,
-                    trace_id: None,
-                    metadata: json!({
-                        "skillName": current.skill_name,
-                        "toolCallId": current.tool_call_id,
-                        "riskLevel": current.risk_level,
-                        "actionKey": current.action_key,
-                        "decisionStatus": status.as_str(),
-                        "result": result,
-                    }),
-                })
-                .await?;
+            let approval = if status == ToolApprovalStatus::Approved {
+                self.execute_tool_approval_after_approve(
+                    &approval_tx_svc,
+                    &execution_tx_svc,
+                    &platform_tx_svc,
+                    &audit_tx_svc,
+                    &current,
+                    ApprovalExecutionContext {
+                        actor_user_id: user_id,
+                        now,
+                        decision_reason: reason.clone(),
+                        manual_result: result.clone(),
+                    },
+                )
+                .await?
+            } else {
+                let approval = approval_tx_svc
+                    .update_decision(UpdateToolApprovalDecision {
+                        id: current.id,
+                        status,
+                        reason: reason.clone(),
+                        result: result.clone(),
+                        approved_by: Some(user_id),
+                        approved_at: Some(now),
+                        executed_at: None,
+                    })
+                    .await?;
+                audit_tx_svc
+                    .create(CreateAuditLog {
+                        id: Uuid::new_v4(),
+                        user_id: current.user_id,
+                        actor_user_id: user_id,
+                        workspace_id: current.workspace_id,
+                        run_id: current.run_id,
+                        execution_queue_id: None,
+                        tool_approval_id: Some(current.id),
+                        action: action.to_string(),
+                        target_type: "tool_approval".to_string(),
+                        target_id: Some(current.id.to_string()),
+                        status: "success".to_string(),
+                        reason,
+                        request_id: None,
+                        trace_id: None,
+                        metadata: json!({
+                            "skillName": current.skill_name,
+                            "toolCallId": current.tool_call_id,
+                            "riskLevel": current.risk_level,
+                            "actionKey": current.action_key,
+                            "decisionStatus": status.as_str(),
+                            "result": result,
+                        }),
+                    })
+                    .await?;
+                approval
+            };
             Ok(approval)
         }
         .await;
@@ -526,6 +553,198 @@ impl ApprovalAuditApi {
         }
         Ok(approval)
     }
+
+    async fn execute_tool_approval_after_approve(
+        &self,
+        approval_tx_svc: &ToolApprovalQueueService,
+        execution_tx_svc: &ExecutionQueueService,
+        platform_tx_svc: &PlatformConnectionService,
+        audit_tx_svc: &AuditLogService,
+        current: &ToolApproval,
+        ctx: ApprovalExecutionContext,
+    ) -> BizResult<ToolApproval> {
+        let ApprovalExecutionContext {
+            actor_user_id,
+            now,
+            decision_reason,
+            manual_result,
+        } = ctx;
+        let approved_reason = decision_reason.clone().or_else(|| current.reason.clone());
+        let approved = approval_tx_svc
+            .update_decision(UpdateToolApprovalDecision {
+                id: current.id,
+                status: ToolApprovalStatus::Approved,
+                reason: approved_reason.clone(),
+                result: json!({
+                    "status": "approved",
+                    "source": "tool_approval_approve",
+                    "manualResult": manual_result,
+                }),
+                approved_by: Some(actor_user_id),
+                approved_at: Some(now),
+                executed_at: None,
+            })
+            .await?;
+        audit_tx_svc
+            .create(CreateAuditLog {
+                id: Uuid::new_v4(),
+                user_id: current.user_id,
+                actor_user_id,
+                workspace_id: current.workspace_id,
+                run_id: current.run_id,
+                execution_queue_id: None,
+                tool_approval_id: Some(current.id),
+                action: "tool_approval.approve".to_string(),
+                target_type: "tool_approval".to_string(),
+                target_id: Some(current.id.to_string()),
+                status: "success".to_string(),
+                reason: approved_reason.clone(),
+                request_id: current.tool_call_id.clone(),
+                trace_id: None,
+                metadata: json!({
+                    "skillName": current.skill_name,
+                    "toolCallId": current.tool_call_id,
+                    "riskLevel": current.risk_level,
+                    "actionKey": current.action_key,
+                    "decisionStatus": ToolApprovalStatus::Approved.as_str(),
+                    "manualResult": manual_result,
+                }),
+            })
+            .await?;
+
+        let params = approval_execution_params(&current.args);
+        let execution_item = execution_tx_svc
+            .create(CreateExecutionQueueItem {
+                id: Uuid::new_v4(),
+                user_id: current.user_id,
+                workspace_id: current.workspace_id,
+                run_id: current.run_id,
+                workspace_task_id: None,
+                action_type: current.skill_name.clone(),
+                description: build_execution_description(current, &params),
+                platform: params.platform.clone(),
+                payload: current.args.clone(),
+                expected_impact: None,
+                status: ExecutionQueueStatus::Approved,
+                decision_reason: approved_reason.clone(),
+                result: json!({
+                    "status": "approved",
+                    "source": "tool_approval",
+                    "approvalId": current.id,
+                    "skillName": current.skill_name,
+                }),
+                decided_at: Some(now),
+            })
+            .await?;
+        audit_tx_svc
+            .create(CreateAuditLog {
+                id: Uuid::new_v4(),
+                user_id: current.user_id,
+                actor_user_id,
+                workspace_id: current.workspace_id,
+                run_id: current.run_id,
+                execution_queue_id: Some(execution_item.id),
+                tool_approval_id: Some(current.id),
+                action: "execution_queue.create_from_tool_approval".to_string(),
+                target_type: "execution_queue".to_string(),
+                target_id: Some(execution_item.id.to_string()),
+                status: "success".to_string(),
+                reason: approved_reason.clone(),
+                request_id: current.tool_call_id.clone(),
+                trace_id: None,
+                metadata: json!({
+                    "approvalId": current.id,
+                    "skillName": current.skill_name,
+                    "platform": params.platform,
+                    "actionKey": current.action_key,
+                }),
+            })
+            .await?;
+
+        let attempt = attempt_platform_execution(
+            platform_tx_svc,
+            current,
+            &execution_item,
+            &params,
+            now,
+            &manual_result,
+        )
+        .await?;
+
+        let final_execution = execution_tx_svc
+            .update(UpdateExecutionQueueItem {
+                id: execution_item.id,
+                status: attempt.execution_status,
+                decision_reason: attempt.decision_reason.clone(),
+                result: attempt.result.clone(),
+                decided_at: Some(now),
+            })
+            .await?;
+        audit_tx_svc
+            .create(CreateAuditLog {
+                id: Uuid::new_v4(),
+                user_id: current.user_id,
+                actor_user_id,
+                workspace_id: current.workspace_id,
+                run_id: current.run_id,
+                execution_queue_id: Some(execution_item.id),
+                tool_approval_id: Some(current.id),
+                action: attempt.execution_audit_action.to_string(),
+                target_type: "execution_queue".to_string(),
+                target_id: Some(execution_item.id.to_string()),
+                status: "success".to_string(),
+                reason: attempt.decision_reason.clone(),
+                request_id: current.tool_call_id.clone(),
+                trace_id: None,
+                metadata: json!({
+                    "approvalId": current.id,
+                    "skillName": current.skill_name,
+                    "platform": params.platform,
+                    "executionStatus": attempt.execution_status.as_str(),
+                    "result": final_execution.result,
+                }),
+            })
+            .await?;
+
+        let final_approval = approval_tx_svc
+            .update_decision(UpdateToolApprovalDecision {
+                id: approved.id,
+                status: attempt.approval_status,
+                reason: attempt.decision_reason.clone(),
+                result: attempt.result.clone(),
+                approved_by: Some(actor_user_id),
+                approved_at: Some(now),
+                executed_at: attempt.executed_at,
+            })
+            .await?;
+        audit_tx_svc
+            .create(CreateAuditLog {
+                id: Uuid::new_v4(),
+                user_id: current.user_id,
+                actor_user_id,
+                workspace_id: current.workspace_id,
+                run_id: current.run_id,
+                execution_queue_id: Some(execution_item.id),
+                tool_approval_id: Some(current.id),
+                action: attempt.approval_audit_action.to_string(),
+                target_type: "tool_approval".to_string(),
+                target_id: Some(current.id.to_string()),
+                status: "success".to_string(),
+                reason: attempt.decision_reason,
+                request_id: current.tool_call_id.clone(),
+                trace_id: None,
+                metadata: json!({
+                    "executionQueueId": execution_item.id,
+                    "skillName": current.skill_name,
+                    "platform": params.platform,
+                    "finalApprovalStatus": final_approval.status.as_str(),
+                    "result": final_approval.result,
+                }),
+            })
+            .await?;
+
+        Ok(final_approval)
+    }
 }
 
 pub fn map_audit_log(item: AuditLog) -> AuditLogResponse {
@@ -646,5 +865,522 @@ fn map_tool_approval(item: ToolApproval) -> ToolApprovalResponse {
         executed_at: item.executed_at,
         created_at: item.created_at,
         updated_at: item.updated_at,
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+struct ApprovalExecutionParams {
+    platform: Option<String>,
+    product_id: Option<String>,
+    sku_id: Option<String>,
+    new_price: Option<f64>,
+    quantity: Option<i64>,
+    page: Option<i64>,
+    page_size: Option<i64>,
+}
+
+#[derive(Debug, Clone)]
+struct PlatformExecutionAttempt {
+    approval_status: ToolApprovalStatus,
+    execution_status: ExecutionQueueStatus,
+    decision_reason: Option<String>,
+    result: Value,
+    executed_at: Option<OffsetDateTime>,
+    execution_audit_action: &'static str,
+    approval_audit_action: &'static str,
+}
+
+#[derive(Debug, Clone)]
+struct ApprovalExecutionContext {
+    actor_user_id: Uuid,
+    now: OffsetDateTime,
+    decision_reason: Option<String>,
+    manual_result: Value,
+}
+
+async fn attempt_platform_execution(
+    platform_svc: &PlatformConnectionService,
+    approval: &ToolApproval,
+    execution_item: &ExecutionQueueItem,
+    params: &ApprovalExecutionParams,
+    now: OffsetDateTime,
+    manual_result: &Value,
+) -> BizResult<PlatformExecutionAttempt> {
+    let Some(platform) = params.platform.clone() else {
+        return Ok(platform_execution_failed(
+            approval,
+            execution_item,
+            "validation_error",
+            "Missing platform in tool approval arguments.",
+            params,
+            manual_result,
+            now,
+        ));
+    };
+
+    let connection = platform_svc
+        .get_by_user_platform(approval.user_id, platform.as_str())
+        .await?;
+
+    Ok(plan_platform_execution(
+        approval,
+        execution_item,
+        params,
+        connection.as_ref(),
+        manual_result,
+        now,
+    ))
+}
+
+fn plan_platform_execution(
+    approval: &ToolApproval,
+    execution_item: &ExecutionQueueItem,
+    params: &ApprovalExecutionParams,
+    connection: Option<&PlatformConnection>,
+    manual_result: &Value,
+    now: OffsetDateTime,
+) -> PlatformExecutionAttempt {
+    let Some(_platform) = params.platform.clone() else {
+        return platform_execution_failed(
+            approval,
+            execution_item,
+            "validation_error",
+            "Missing platform in tool approval arguments.",
+            params,
+            manual_result,
+            now,
+        );
+    };
+
+    let Some(connection) = connection else {
+        return platform_execution_failed(
+            approval,
+            execution_item,
+            "connection_missing",
+            "No enabled platform connection was found for this user and platform.",
+            params,
+            manual_result,
+            now,
+        );
+    };
+
+    if !connection.enabled || connection.status == PlatformConnectionStatus::Disabled {
+        return platform_execution_failed(
+            approval,
+            execution_item,
+            "connection_disabled",
+            "Platform connection exists but is disabled.",
+            params,
+            manual_result,
+            now,
+        );
+    }
+
+    let validation_error = match approval.skill_name.as_str() {
+        "platform_update_price" => {
+            if params.product_id.is_none() || params.new_price.is_none() {
+                Some("Missing product_id or new_price for platform price update.")
+            } else {
+                None
+            }
+        }
+        "platform_update_inventory" => {
+            if params.product_id.is_none() || params.quantity.is_none() {
+                Some("Missing product_id or quantity for platform inventory update.")
+            } else {
+                None
+            }
+        }
+        "platform_sync_products" => None,
+        _ => Some("Platform execution action is not supported by the current service adapter."),
+    };
+
+    if let Some(message) = validation_error {
+        let adapter_status = if approval.skill_name.starts_with("platform_") {
+            "validation_error"
+        } else {
+            "unsupported_action"
+        };
+        return platform_execution_failed(
+            approval,
+            execution_item,
+            adapter_status,
+            message,
+            params,
+            manual_result,
+            now,
+        );
+    }
+
+    let adapter_message = match approval.skill_name.as_str() {
+        "platform_update_price" => {
+            "Platform execution adapter is not implemented yet for price update."
+        }
+        "platform_update_inventory" => {
+            "Platform execution adapter is not implemented yet for inventory update."
+        }
+        "platform_sync_products" => {
+            "Platform execution adapter is not implemented yet for product sync."
+        }
+        _ => "Platform execution adapter is not implemented yet for this action.",
+    };
+    platform_execution_failed(
+        approval,
+        execution_item,
+        "adapter_not_implemented",
+        adapter_message,
+        params,
+        manual_result,
+        now,
+    )
+}
+
+fn platform_execution_failed(
+    approval: &ToolApproval,
+    execution_item: &ExecutionQueueItem,
+    adapter_status: &str,
+    message: &str,
+    params: &ApprovalExecutionParams,
+    manual_result: &Value,
+    now: OffsetDateTime,
+) -> PlatformExecutionAttempt {
+    let result = json!({
+        "status": "failed",
+        "source": "tool_approval_execution",
+        "approvalId": approval.id,
+        "executionQueueId": execution_item.id,
+        "approvalStatus": "failed",
+        "executionStatus": "failed",
+        "adapterStatus": adapter_status,
+        "platform": params.platform,
+        "skillName": approval.skill_name,
+        "message": message,
+        "details": {
+            "productId": params.product_id,
+            "skuId": params.sku_id,
+            "newPrice": params.new_price,
+            "quantity": params.quantity,
+            "page": params.page,
+            "pageSize": params.page_size,
+        },
+        "manualResult": manual_result,
+        "attemptedAt": now,
+    });
+    PlatformExecutionAttempt {
+        approval_status: ToolApprovalStatus::Failed,
+        execution_status: ExecutionQueueStatus::Failed,
+        decision_reason: Some(message.to_string()),
+        result,
+        executed_at: Some(now),
+        execution_audit_action: "execution_queue.failed",
+        approval_audit_action: "tool_approval.execute_failed",
+    }
+}
+
+fn build_execution_description(
+    approval: &ToolApproval,
+    params: &ApprovalExecutionParams,
+) -> String {
+    let platform = params.platform.as_deref().unwrap_or("unknown-platform");
+    let target = params
+        .product_id
+        .as_deref()
+        .map(|product_id| format!(" product {product_id}"))
+        .unwrap_or_default();
+    format!(
+        "Approved execution for {} on {}{}",
+        approval.skill_name, platform, target
+    )
+}
+
+fn approval_execution_params(args: &Value) -> ApprovalExecutionParams {
+    ApprovalExecutionParams {
+        platform: value_string(
+            args,
+            &[
+                "platform",
+                "/platform",
+                "/normalized_inputs/platform",
+                "/normalizedInputs/platform",
+                "/output/normalized_inputs/platform",
+                "/output/normalizedInputs/platform",
+            ],
+        )
+        .map(|value| value.to_ascii_lowercase()),
+        product_id: value_string(
+            args,
+            &[
+                "product_id",
+                "productId",
+                "/product_id",
+                "/productId",
+                "/normalized_inputs/product_id",
+                "/normalizedInputs/productId",
+                "/output/normalized_inputs/product_id",
+                "/output/normalizedInputs/productId",
+            ],
+        ),
+        sku_id: value_string(
+            args,
+            &[
+                "sku_id",
+                "skuId",
+                "/sku_id",
+                "/skuId",
+                "/normalized_inputs/sku_id",
+                "/normalizedInputs/skuId",
+                "/output/normalized_inputs/sku_id",
+                "/output/normalizedInputs/skuId",
+            ],
+        ),
+        new_price: value_f64(
+            args,
+            &[
+                "new_price",
+                "newPrice",
+                "/new_price",
+                "/newPrice",
+                "/normalized_inputs/new_price",
+                "/normalizedInputs/newPrice",
+                "/output/normalized_inputs/new_price",
+                "/output/normalizedInputs/newPrice",
+            ],
+        ),
+        quantity: value_i64(
+            args,
+            &[
+                "quantity",
+                "/quantity",
+                "/normalized_inputs/quantity",
+                "/normalizedInputs/quantity",
+                "/output/normalized_inputs/quantity",
+                "/output/normalizedInputs/quantity",
+            ],
+        ),
+        page: value_i64(
+            args,
+            &[
+                "page",
+                "/page",
+                "/normalized_inputs/page",
+                "/normalizedInputs/page",
+                "/output/normalized_inputs/page",
+                "/output/normalizedInputs/page",
+            ],
+        ),
+        page_size: value_i64(
+            args,
+            &[
+                "page_size",
+                "pageSize",
+                "/page_size",
+                "/pageSize",
+                "/normalized_inputs/page_size",
+                "/normalizedInputs/pageSize",
+                "/output/normalized_inputs/page_size",
+                "/output/normalizedInputs/pageSize",
+            ],
+        ),
+    }
+}
+
+fn value_string(value: &Value, paths: &[&str]) -> Option<String> {
+    value_at_paths(value, paths).and_then(|value| match value {
+        Value::String(text) => normalize_string(text.clone()),
+        Value::Number(number) => Some(number.to_string()),
+        _ => None,
+    })
+}
+
+fn value_f64(value: &Value, paths: &[&str]) -> Option<f64> {
+    value_at_paths(value, paths).and_then(|value| match value {
+        Value::Number(number) => number.as_f64(),
+        Value::String(text) => text.trim().parse::<f64>().ok(),
+        _ => None,
+    })
+}
+
+fn value_i64(value: &Value, paths: &[&str]) -> Option<i64> {
+    value_at_paths(value, paths).and_then(|value| match value {
+        Value::Number(number) => number.as_i64(),
+        Value::String(text) => text.trim().parse::<i64>().ok(),
+        _ => None,
+    })
+}
+
+fn value_at_paths<'a>(value: &'a Value, paths: &[&str]) -> Option<&'a Value> {
+    for path in paths {
+        let current = if path.starts_with('/') {
+            value.pointer(path)
+        } else {
+            value.get(*path)
+        };
+        if let Some(current) = current
+            && !current.is_null()
+        {
+            return Some(current);
+        }
+    }
+    None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use repo::table::platform_connections::{
+        PlatformConnection, PlatformConnectionStatus, PlatformSyncStatus,
+    };
+
+    #[test]
+    fn approval_execution_params_reads_normalized_inputs_from_skill_output() {
+        let args = json!({
+            "source": "agent_sse",
+            "skillId": "platform_update_price",
+            "output": {
+                "normalized_inputs": {
+                    "platform": "douyin",
+                    "product_id": "prod-1",
+                    "new_price": 129.5,
+                    "sku_id": "sku-9"
+                }
+            }
+        });
+
+        let params = approval_execution_params(&args);
+        assert_eq!(params.platform.as_deref(), Some("douyin"));
+        assert_eq!(params.product_id.as_deref(), Some("prod-1"));
+        assert_eq!(params.sku_id.as_deref(), Some("sku-9"));
+        assert_eq!(params.new_price, Some(129.5));
+    }
+
+    #[test]
+    fn plan_platform_execution_reports_missing_connection() {
+        let now = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();
+        let approval = test_tool_approval("platform_update_price");
+        let execution = test_execution_queue();
+        let params = ApprovalExecutionParams {
+            platform: Some("taobao".to_string()),
+            product_id: Some("prod-1".to_string()),
+            new_price: Some(99.0),
+            ..Default::default()
+        };
+
+        let attempt =
+            plan_platform_execution(&approval, &execution, &params, None, &json!({}), now);
+
+        assert_eq!(attempt.approval_status, ToolApprovalStatus::Failed);
+        assert_eq!(attempt.execution_status, ExecutionQueueStatus::Failed);
+        assert_eq!(
+            attempt.result.get("adapterStatus").and_then(Value::as_str),
+            Some("connection_missing")
+        );
+    }
+
+    #[test]
+    fn plan_platform_execution_reports_adapter_not_implemented_when_connected() {
+        let now = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();
+        let approval = test_tool_approval("platform_update_inventory");
+        let execution = test_execution_queue();
+        let params = ApprovalExecutionParams {
+            platform: Some("jd".to_string()),
+            product_id: Some("prod-1".to_string()),
+            quantity: Some(12),
+            ..Default::default()
+        };
+        let connection = test_platform_connection("jd");
+
+        let attempt = plan_platform_execution(
+            &approval,
+            &execution,
+            &params,
+            Some(&connection),
+            &json!({"operator": "manual"}),
+            now,
+        );
+
+        assert_eq!(attempt.approval_status, ToolApprovalStatus::Failed);
+        assert_eq!(
+            attempt.result.get("adapterStatus").and_then(Value::as_str),
+            Some("adapter_not_implemented")
+        );
+        assert_eq!(
+            attempt
+                .result
+                .pointer("/details/quantity")
+                .and_then(Value::as_i64),
+            Some(12)
+        );
+    }
+
+    fn test_tool_approval(skill_name: &str) -> ToolApproval {
+        let now = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();
+        ToolApproval {
+            id: Uuid::parse_str("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa").unwrap(),
+            user_id: Uuid::parse_str("11111111-1111-1111-1111-111111111111").unwrap(),
+            workspace_id: Some(Uuid::parse_str("22222222-2222-2222-2222-222222222222").unwrap()),
+            run_id: Some(Uuid::parse_str("33333333-3333-3333-3333-333333333333").unwrap()),
+            conversation_id: None,
+            request_role: Some("ops".to_string()),
+            skill_name: skill_name.to_string(),
+            tool_call_id: Some("tool-call-1".to_string()),
+            risk_level: "L3".to_string(),
+            args: json!({}),
+            status: ToolApprovalStatus::Pending,
+            reason: Some("需要人工确认".to_string()),
+            action_key: Some("agent:run:test".to_string()),
+            result: json!({}),
+            approved_by: None,
+            approved_at: None,
+            executed_at: None,
+            created_at: now,
+            updated_at: now,
+        }
+    }
+
+    fn test_execution_queue() -> ExecutionQueueItem {
+        let now = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();
+        ExecutionQueueItem {
+            id: Uuid::parse_str("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb").unwrap(),
+            user_id: Uuid::parse_str("11111111-1111-1111-1111-111111111111").unwrap(),
+            workspace_id: Some(Uuid::parse_str("22222222-2222-2222-2222-222222222222").unwrap()),
+            run_id: Some(Uuid::parse_str("33333333-3333-3333-3333-333333333333").unwrap()),
+            workspace_task_id: None,
+            action_type: "platform_update_price".to_string(),
+            description: "test execution".to_string(),
+            platform: Some("taobao".to_string()),
+            payload: json!({}),
+            expected_impact: None,
+            status: ExecutionQueueStatus::Approved,
+            decision_reason: None,
+            result: json!({}),
+            created_at: now,
+            decided_at: Some(now),
+        }
+    }
+
+    fn test_platform_connection(platform: &str) -> PlatformConnection {
+        let now = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();
+        PlatformConnection {
+            id: Uuid::parse_str("cccccccc-cccc-cccc-cccc-cccccccccccc").unwrap(),
+            user_id: Uuid::parse_str("11111111-1111-1111-1111-111111111111").unwrap(),
+            platform: platform.to_string(),
+            app_key: Some("ak".to_string()),
+            app_secret_enc: Some("secret".to_string()),
+            access_token_enc: Some("token".to_string()),
+            refresh_token_enc: Some("refresh".to_string()),
+            token_expires_at: None,
+            shop_id: Some("shop-1".to_string()),
+            shop_name: Some("Demo Shop".to_string()),
+            enabled: true,
+            status: PlatformConnectionStatus::Configured,
+            last_tested_at: None,
+            test_result: json!({}),
+            last_synced_at: None,
+            sync_status: PlatformSyncStatus::Idle,
+            sync_message: None,
+            extra: json!({}),
+            created_at: now,
+            updated_at: now,
+        }
     }
 }
