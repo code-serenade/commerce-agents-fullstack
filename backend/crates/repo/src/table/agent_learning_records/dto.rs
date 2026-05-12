@@ -73,6 +73,23 @@ pub struct CreateAgentLearningRecord {
     pub metadata: Value,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+pub struct UpdateAgentLearningRecord {
+    pub id: Uuid,
+    pub workspace_id: Option<Uuid>,
+    pub run_id: Option<Uuid>,
+    pub quality_check_id: Option<Uuid>,
+    pub role: String,
+    pub category: String,
+    pub content: String,
+    pub confidence: f64,
+    pub source_action: String,
+    pub feedback_rating: Option<i32>,
+    pub feedback_comment: Option<String>,
+    pub status: AgentLearningRecordStatus,
+    pub metadata: Value,
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct AgentLearningRecordFilter {
     pub user_id: Uuid,
@@ -81,6 +98,7 @@ pub struct AgentLearningRecordFilter {
     pub quality_check_id: Option<Uuid>,
     pub role: Option<String>,
     pub category: Option<String>,
+    pub source_action: Option<String>,
     pub status: Option<AgentLearningRecordStatus>,
     pub limit: Option<u64>,
     pub offset: Option<u64>,

@@ -482,6 +482,17 @@ pub struct MaterializeAgentWorkspaceTaskRequest {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct MaterializeAgentWorkspaceMemoryRequest {
+    pub user_id: String,
+    pub workspace_id: String,
+    pub run_id: String,
+    pub request_id: String,
+    pub skill_id: String,
+    pub role: String,
+    pub output: Value,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct CompleteAgentWorkspaceRunRequest {
     pub user_id: String,
     pub workspace_id: String,
@@ -545,6 +556,7 @@ pub struct ListAgentTrustScoresRequest {
 #[derive(Debug, Clone, Deserialize)]
 pub struct BuildAgentLearningContextRequest {
     pub user_id: String,
+    pub workspace_id: Option<String>,
     pub role: Option<String>,
     pub limit: Option<u64>,
 }

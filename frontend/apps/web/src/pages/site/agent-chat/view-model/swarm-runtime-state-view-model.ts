@@ -108,6 +108,7 @@ export function getRuntimeNodeStates(runtimeEvents: AgentRuntimeEvent[]) {
       ensureNode(resolveWorkerNodeId(event)).state = "done"
     } else if (
       event.type === "workspace_artifact_created" ||
+      event.type === "agent_learning_record_created" ||
       event.type === "workspace_run_completed" ||
       event.type === "quality_checked"
     ) {

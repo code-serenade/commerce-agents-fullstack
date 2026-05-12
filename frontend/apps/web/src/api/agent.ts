@@ -224,6 +224,7 @@ export type AgentRuntimeEvent =
   | ({ type: "workspace_run_completed" } & AgentWorkspaceRun)
   | ({ type: "workspace_run_failed" } & AgentWorkspaceRun)
   | ({ type: "workspace_artifact_created" } & AgentWorkspaceArtifact)
+  | ({ type: "agent_learning_record_created" } & AgentLearningRecord)
   | ({ type: "quality_checked" } & AgentQualityEvaluation)
   | ({ type: "approval_required" } & AgentApprovalRequired)
   | {
@@ -271,6 +272,7 @@ const AGENT_RUNTIME_EVENT_TYPES = new Set<string>([
   "workspace_run_completed",
   "workspace_run_failed",
   "workspace_artifact_created",
+  "agent_learning_record_created",
   "quality_checked",
   "approval_required",
   "workspace_run_persistence_error",

@@ -1968,6 +1968,180 @@ impl WorkspaceApi {
         Ok(Some(Self::map_task(task)))
     }
 
+    pub async fn materialize_agent_workspace_memory(
+        &self,
+        req: MaterializeAgentWorkspaceMemoryRequest,
+    ) -> BizResult<Option<AgentLearningRecordResponse>> {
+        let (user_id, workspace_id) = self
+            .ensure_request_workspace(&req.user_id, &req.workspace_id)
+            .await?;
+        let run_id = parse_uuid(&req.run_id, "run_id")?;
+        self.ensure_run_owner(user_id, workspace_id, run_id).await?;
+
+        let request_id = normalize_required(req.request_id, "request_id")?;
+        let skill_id = normalize_required(req.skill_id, "skill_id")?;
+        if skill_id != "coordination_save_memory" {
+            return Ok(None);
+        }
+
+        let Some(draft) = build_workspace_memory_from_skill_output(&req.output) else {
+            return Ok(None);
+        };
+
+        let current_skill_run = match self
+            .skill_run_svc
+            .get_by_request(user_id, workspace_id, run_id, &request_id)
+            .await?
+        {
+            Some(item) => item,
+            None => return Ok(None),
+        };
+
+        if let Some(existing_learning_record_id) = current_skill_run
+            .metadata
+            .get("learningRecordId")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            let learning_record_id = parse_uuid(existing_learning_record_id, "learning_record_id")?;
+            if let Some(record) = self.learning_svc.get_by_id(learning_record_id).await? {
+                return Ok(Some(Self::map_learning_record(record)));
+            }
+        }
+
+        let existing_record = self
+            .learning_svc
+            .list(AgentLearningRecordFilter {
+                user_id,
+                workspace_id: Some(workspace_id),
+                run_id: None,
+                quality_check_id: None,
+                role: Some("agent".to_string()),
+                category: Some(draft.memory_type.clone()),
+                source_action: Some("workspace_memory_manual".to_string()),
+                status: Some(AgentLearningRecordStatus::Active),
+                limit: Some(100),
+                offset: Some(0),
+            })
+            .await?
+            .into_iter()
+            .find(|record| learning_record_memory_key(record) == Some(draft.key.as_str()));
+
+        let tx = self.db.begin().await?;
+        let learning_tx_svc = AgentLearningRecordService::new(tx.clone());
+        let skill_run_tx_svc = AgentSkillRunService::new(tx.clone());
+        let write_result: BizResult<(AgentLearningRecord, AgentSkillRun, &'static str)> = async {
+            let upsert_mode = if let Some(existing) = existing_record {
+                let record = learning_tx_svc
+                    .update(
+                        repo::table::agent_learning_records::UpdateAgentLearningRecord {
+                            id: existing.id,
+                            workspace_id: Some(workspace_id),
+                            run_id: Some(run_id),
+                            quality_check_id: existing.quality_check_id,
+                            role: existing.role.clone(),
+                            category: draft.memory_type.clone(),
+                            content: draft.content.clone(),
+                            confidence: draft.confidence,
+                            source_action: "workspace_memory_manual".to_string(),
+                            feedback_rating: existing.feedback_rating,
+                            feedback_comment: existing.feedback_comment.clone(),
+                            status: AgentLearningRecordStatus::Active,
+                            metadata: merge_json_object(
+                                existing.metadata.clone(),
+                                json!({
+                                    "kind": "workspace_memory",
+                                    "memoryKey": draft.key,
+                                    "memoryType": draft.memory_type,
+                                    "source": "agent_skill_result",
+                                    "sourceRole": req.role,
+                                    "requestId": request_id,
+                                    "skillId": skill_id,
+                                    "workspaceId": workspace_id,
+                                    "runId": run_id,
+                                    "upsertMode": "update",
+                                }),
+                            ),
+                        },
+                    )
+                    .await?;
+                (record, current_skill_run.clone(), "update")
+            } else {
+                let record = learning_tx_svc
+                    .create(CreateAgentLearningRecord {
+                        id: Uuid::new_v4(),
+                        user_id,
+                        workspace_id: Some(workspace_id),
+                        run_id: Some(run_id),
+                        quality_check_id: None,
+                        role: "agent".to_string(),
+                        category: draft.memory_type.clone(),
+                        content: draft.content.clone(),
+                        confidence: draft.confidence,
+                        source_action: "workspace_memory_manual".to_string(),
+                        feedback_rating: None,
+                        feedback_comment: None,
+                        status: AgentLearningRecordStatus::Active,
+                        metadata: json!({
+                            "kind": "workspace_memory",
+                            "memoryKey": draft.key,
+                            "memoryType": draft.memory_type,
+                            "source": "agent_skill_result",
+                            "sourceRole": req.role,
+                            "requestId": request_id,
+                            "skillId": skill_id,
+                            "workspaceId": workspace_id,
+                            "runId": run_id,
+                            "upsertMode": "create",
+                        }),
+                    })
+                    .await?;
+                (record, current_skill_run.clone(), "create")
+            };
+
+            let (record, skill_run, upsert_mode) = upsert_mode;
+            let updated_skill_run = skill_run_tx_svc
+                .update(UpdateAgentSkillRun {
+                    id: skill_run.id,
+                    status: skill_run.status,
+                    reason: skill_run.reason.clone(),
+                    summary: skill_run.summary.clone(),
+                    error: skill_run.error.clone(),
+                    input: skill_run.input.clone(),
+                    output: skill_run.output.clone(),
+                    execution_mode: skill_run.execution_mode.clone(),
+                    risk_level: skill_run.risk_level.clone(),
+                    approval_required: skill_run.approval_required,
+                    metadata: merge_json_object(
+                        skill_run.metadata.clone(),
+                        json!({
+                            "learningRecordId": record.id,
+                            "workspaceMemoryKey": draft.key,
+                            "workspaceMemorySaved": true,
+                            "workspaceMemoryUpsertMode": upsert_mode,
+                        }),
+                    ),
+                    completed_at: skill_run.completed_at,
+                })
+                .await?;
+
+            Ok((record, updated_skill_run, upsert_mode))
+        }
+        .await;
+
+        match write_result {
+            Ok((record, _, _)) => {
+                tx.commit().await?;
+                Ok(Some(Self::map_learning_record(record)))
+            }
+            Err(err) => {
+                tx.rollback().await?;
+                Err(err)
+            }
+        }
+    }
+
     pub async fn complete_agent_run(
         &self,
         req: CompleteAgentWorkspaceRunRequest,
@@ -2485,6 +2659,7 @@ impl WorkspaceApi {
             quality_check_id: None,
             role: normalize_optional(req.role),
             category: normalize_optional(req.category),
+            source_action: None,
             status: Some(AgentLearningRecordStatus::Active),
             limit: Some(page_size),
             offset: Some(offset),
@@ -2551,22 +2726,44 @@ impl WorkspaceApi {
     ) -> BizResult<AgentLearningContextResponse> {
         let user_id = parse_user_id(&req.user_id)?;
         self.ensure_app_user_enabled(user_id).await?;
+        let workspace_id = parse_optional_uuid(req.workspace_id, "workspace_id")?;
+        if let Some(workspace_id) = workspace_id {
+            self.ensure_workspace_owner(user_id, workspace_id).await?;
+        }
         let role = normalize_optional(req.role).unwrap_or_else(|| "agent".to_string());
         let limit = req.limit.unwrap_or(5).clamp(1, 10);
-        let records = self
+        let mut records = self
             .learning_svc
             .list(AgentLearningRecordFilter {
                 user_id,
-                workspace_id: None,
+                workspace_id,
                 run_id: None,
                 quality_check_id: None,
                 role: Some(role.clone()),
                 category: None,
+                source_action: None,
                 status: Some(AgentLearningRecordStatus::Active),
                 limit: Some(limit),
                 offset: Some(0),
             })
             .await?;
+        if records.is_empty() && workspace_id.is_some() {
+            records = self
+                .learning_svc
+                .list(AgentLearningRecordFilter {
+                    user_id,
+                    workspace_id: None,
+                    run_id: None,
+                    quality_check_id: None,
+                    role: Some(role.clone()),
+                    category: None,
+                    source_action: None,
+                    status: Some(AgentLearningRecordStatus::Active),
+                    limit: Some(limit),
+                    offset: Some(0),
+                })
+                .await?;
+        }
         let trust_scores = self
             .trust_svc
             .list(AgentTrustScoreFilter {
@@ -4331,6 +4528,46 @@ fn build_workspace_task_from_skill_output(output: &Value) -> Option<WorkspaceTas
     })
 }
 
+fn build_workspace_memory_from_skill_output(
+    output: &Value,
+) -> Option<WorkspaceMemoryFromSkillDraft> {
+    if output.get("status").and_then(Value::as_str) != Some("success") {
+        return None;
+    }
+    let memory_save = output.get("memory_save")?.as_object()?;
+    if memory_save.get("should_persist").and_then(Value::as_bool) != Some(true) {
+        return None;
+    }
+
+    let key = memory_save
+        .get("key")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| compact_text(value, 120))?;
+    let content = memory_save
+        .get("content")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| compact_text(value, 2_000))?;
+    let memory_type = memory_save
+        .get("memory_type")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(normalize_workspace_memory_type)
+        .unwrap_or_else(|| "fact".to_string());
+    let confidence = memory_confidence_for_type(&memory_type);
+
+    Some(WorkspaceMemoryFromSkillDraft {
+        key,
+        content,
+        memory_type,
+        confidence,
+    })
+}
+
 fn format_search_evidence_preview(sources: &[Value], query: &str) -> String {
     let mut lines = Vec::new();
     if !query.trim().is_empty() {
@@ -4515,6 +4752,34 @@ fn compact_text(value: &str, max_chars: usize) -> String {
     output
 }
 
+fn normalize_workspace_memory_type(value: &str) -> String {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "fact" | "事实" => "fact".to_string(),
+        "decision" | "决策" => "decision".to_string(),
+        "insight" | "洞察" => "insight".to_string(),
+        "warning" | "风险" => "warning".to_string(),
+        _ => "fact".to_string(),
+    }
+}
+
+fn memory_confidence_for_type(memory_type: &str) -> f64 {
+    match memory_type {
+        "decision" => 0.88,
+        "warning" => 0.84,
+        "insight" => 0.8,
+        _ => 0.76,
+    }
+}
+
+fn learning_record_memory_key(record: &AgentLearningRecord) -> Option<&str> {
+    record
+        .metadata
+        .get("memoryKey")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+}
+
 fn non_empty_join(values: &[String]) -> Option<String> {
     let value = values
         .iter()
@@ -4561,6 +4826,14 @@ struct LearningDraft {
     confidence: f64,
     source_action: String,
     metadata: Value,
+}
+
+#[derive(Debug, Clone)]
+struct WorkspaceMemoryFromSkillDraft {
+    key: String,
+    content: String,
+    memory_type: String,
+    confidence: f64,
 }
 
 fn evaluate_output_quality(
@@ -5279,6 +5552,41 @@ mod tests {
         });
 
         assert!(build_workspace_task_from_skill_output(&output).is_none());
+    }
+
+    #[test]
+    fn workspace_memory_artifact_builds_from_coordination_skill_output() {
+        let output = json!({
+            "status": "success",
+            "memory_save": {
+                "should_persist": true,
+                "key": "pricing_strategy_2024",
+                "content": "本品定价区间保持在 159-179 元，避免低于核心竞品均价。",
+                "memory_type": "decision"
+            }
+        });
+
+        let draft = build_workspace_memory_from_skill_output(&output)
+            .expect("coordination save memory output should be materializable");
+
+        assert_eq!(draft.key, "pricing_strategy_2024");
+        assert_eq!(draft.memory_type, "decision");
+        assert!(draft.content.contains("159-179"));
+        assert!((draft.confidence - 0.88).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn workspace_memory_artifact_ignores_non_persistable_output() {
+        let output = json!({
+            "status": "success",
+            "memory_save": {
+                "should_persist": false,
+                "key": "temp",
+                "content": "仅建议，不落库"
+            }
+        });
+
+        assert!(build_workspace_memory_from_skill_output(&output).is_none());
     }
 
     #[test]

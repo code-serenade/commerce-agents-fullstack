@@ -1,5 +1,44 @@
 # 迁移开发记录
 
+## Post 8-24：Coordination 保存工作记忆真实落地
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 24 个补强项：`Post 8-24`。
+
+本次目标：
+
+- 把 `coordination_save_memory` 从 `pending_approval` 骨架升级为真实 Rust native skill。
+- 让 Agent 在当前工作区里不只是“建议记住某个结论”，而是能通过现有 service/SSE 持久化链路真实沉淀一条 workspace memory。
+- 保持新产品分层，不让 `agent` 直接跨层写数据库。
+
+涉及范围：
+
+- 产品内核：协同层从“能提出记忆建议”推进到“能把事实/决策/洞察/风险落成真实工作记忆”。
+- 后端 agent：`coordination_save_memory` 改为 native deterministic skill，并补“记住/记下来/保存这个结论”等自然问法触达。
+- 后端 service/web-server：SSE 在记录 `skill_result` 后，调用工作区 service 将记忆草案幂等落成真实 `agent_learning_records`，并回传 `agent_learning_record_created`。
+
+用户可感知变化：
+
+- 用户提出“记住这个结论”“把这个风险记下来”“保存这个决策”时，更容易命中真实后端保存记忆能力。
+- 命中后，当前工作区会真实新增或更新一条工作记忆，不再只是返回一段待审批骨架说明。
+- SSE 会出现真实 `agent_learning_record_created` 事件，后续同工作区问答也可优先加载这些记忆。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p agent autosuggest`
+- [x] `cargo test -p agent coordination_save_memory`
+- [x] `cargo test -p service workspace_memory`
+- [x] `cargo check -p agent`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo check`
+- [x] `cargo clippy`
+
 ## Post 8-23：Coordination 创建任务真实落地
 
 状态：done

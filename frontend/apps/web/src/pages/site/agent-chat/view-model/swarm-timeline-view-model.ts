@@ -103,6 +103,14 @@ export function formatTimelineEvent(
       tone: "success" as const,
     }
   }
+  if (event.type === "agent_learning_record_created") {
+    return {
+      label: t("agentChat.swarm.timeline.events.agentLearningRecordCreated", {
+        category: event.category,
+      }),
+      tone: "success" as const,
+    }
+  }
   if (event.type === "quality_checked") {
     const quality = event.qualityCheck ?? event.quality_check
     return {

@@ -498,6 +498,30 @@ fn autosuggest_chat(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
     if contains_any(
         text,
         &[
+            "记住",
+            "记下来",
+            "保存记忆",
+            "保存这个结论",
+            "记忆一下",
+            "保存这个事实",
+            "记下这个决策",
+            "记住这个风险",
+            "remember this",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "coordination_save_memory",
+            serde_json::json!({
+                "key": infer_memory_key(text),
+                "content": compact_task_text(text),
+                "memory_type": infer_memory_type(text),
+            }),
+            "根据记忆保存意图自动补偿协调保存记忆 skill",
+        ));
+    }
+    if contains_any(
+        text,
+        &[
             "当前状态",
             "任务状态",
             "运行状态",
@@ -524,6 +548,30 @@ fn autosuggest_chat(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
 }
 
 fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
+    if contains_any(
+        text,
+        &[
+            "记住",
+            "记下来",
+            "保存记忆",
+            "保存这个结论",
+            "保存这个事实",
+            "记下这个决策",
+            "记住这个风险",
+            "remember this",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "coordination_save_memory",
+            serde_json::json!({
+                "key": infer_memory_key(text),
+                "content": infer_memory_content(text, task),
+                "memory_type": infer_memory_type(text),
+            }),
+            "根据记忆保存意图自动补偿协调保存记忆 skill",
+        ));
+    }
+
     if contains_any(
         text,
         &[
@@ -1904,6 +1952,47 @@ fn compact_task_text(value: &str) -> String {
     output
 }
 
+fn infer_memory_key(text: &str) -> String {
+    let compact = compact_task_text(text);
+    let mut key = compact
+        .to_ascii_lowercase()
+        .chars()
+        .map(|ch| if ch.is_ascii_alphanumeric() { ch } else { '_' })
+        .collect::<String>();
+    while key.contains("__") {
+        key = key.replace("__", "_");
+    }
+    key = key.trim_matches('_').to_string();
+    if key.is_empty() {
+        "workspace_memory".to_string()
+    } else {
+        key.chars().take(80).collect()
+    }
+}
+
+fn infer_memory_type(text: &str) -> &'static str {
+    if contains_any(text, &["风险", "warning", "隐患"]) {
+        "warning"
+    } else if contains_any(text, &["决策", "决定", "decision"]) {
+        "decision"
+    } else if contains_any(text, &["洞察", "发现", "insight"]) {
+        "insight"
+    } else {
+        "fact"
+    }
+}
+
+fn infer_memory_content(text: &str, task: &Task) -> String {
+    let compact = compact_task_text(text);
+    if compact.chars().count() >= 24 {
+        return compact.chars().take(500).collect();
+    }
+    compact_task_text(&task.description)
+        .chars()
+        .take(500)
+        .collect()
+}
+
 fn infer_task_title(text: &str, task: &Task) -> String {
     extract_title_candidate(text)
         .filter(|value| !value.is_empty())
@@ -2634,6 +2723,10 @@ mod tests {
     #[test]
     fn autosuggests_more_specific_ops_skills_by_intent() {
         let cases = [
+            (
+                "记住这个结论：五一咖啡活动应该优先保留高 ROI 搜索计划",
+                "coordination_save_memory",
+            ),
             (
                 "给这个投放复盘建个任务，安排给数据同学，目标是输出问题拆解",
                 "coordination_create_task",

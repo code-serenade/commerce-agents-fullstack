@@ -1211,6 +1211,7 @@ const messages = {
           workspaceTaskUpdated: "工作区任务状态已更新：{{status}}。",
           workspaceRunCompleted: "最终回答已保存到工作区运行记录。",
           workspaceArtifactCreated: "交付物已生成：{{title}}。",
+          agentLearningRecordCreated: "工作记忆已保存：{{category}}。",
           qualityChecked: "质量检查完成：{{score}} 分，{{status}}。",
           qualityPassed: "通过",
           qualityNeedsWork: "需改进",

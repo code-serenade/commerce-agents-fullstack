@@ -121,3 +121,4 @@ Post 8-10 补充：上述 Agent `search_*` skill 已接入同一份 `[external_s
 | `coordination_task_orchestration` | `coordination_task_orchestration` | native_ready | `backend/crates/agent/src/skills/coordination.rs` | 已可 native 输出多角色任务编排骨架 |
 | `coordination_status_query` | `coordination_status_query` | native_ready | `backend/crates/agent/src/skills/coordination.rs` | 本轮已真实化为 session/task/workspace 可见状态查询，并补强 chat/engineering 自然问法触达 |
 | `coordination_create_task` | `coordination_create_task` | native_ready | `backend/crates/agent/src/skills/coordination.rs` | 本轮已真实化为工作区任务草案 skill，并通过 SSE/service 落成真实 workspace task |
+| `coordination_save_memory` | `coordination_save_memory` | native_ready | `backend/crates/agent/src/skills/coordination.rs` | 本轮已真实化为工作记忆草案 skill，并通过 SSE/service 落成真实 agent learning record / workspace memory |

@@ -1218,6 +1218,7 @@ const messages = {
           workspaceTaskUpdated: "Workspace task status updated: {{status}}.",
           workspaceRunCompleted: "Final answer saved to the workspace run.",
           workspaceArtifactCreated: "Deliverable created: {{title}}.",
+          agentLearningRecordCreated: "Workspace memory saved: {{category}}.",
           qualityChecked: "Quality check complete: {{score}}, {{status}}.",
           qualityPassed: "passed",
           qualityNeedsWork: "needs work",

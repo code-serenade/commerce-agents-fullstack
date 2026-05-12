@@ -221,21 +221,21 @@ Continue in this order:
 The current active slice is:
 
 ```text
-Post 8-23: coordination create task native landing
+Post 8-24: coordination save memory native landing
 ```
 
 Scope:
 
-- turn `coordination_create_task` from pending skeleton into real native backend capability
-- let agent skill results land real `workspace_task` records through the existing service/SSE persistence chain
-- make task-creation natural phrasing reach the coordination task skill more reliably
+- turn `coordination_save_memory` from pending skeleton into real native backend capability
+- let agent skill results land real `agent_learning_records` workspace memory through the existing service/SSE persistence chain
+- make memory-saving natural phrasing reach the coordination memory skill more reliably
 
 Reason:
 
-- high product value for turning multi-agent advice into reusable workspace action items
+- high product value for turning multi-agent conclusions into reusable workspace memory
 - backend-first
 - no new fake frontend needed
-- strengthens the coordination layer using already migrated workspace/task persistence foundations
+- strengthens the coordination layer using already migrated learning/workspace persistence foundations
 
 ## 10. Validation Standard
 

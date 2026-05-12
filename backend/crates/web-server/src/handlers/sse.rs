@@ -154,6 +154,7 @@ pub async fn stream_agent_session(
     if let Ok(learning_context) = workspace_api
         .build_agent_learning_context(BuildAgentLearningContextRequest {
             user_id: user_id.clone(),
+            workspace_id: Some(linked_workspace.workspace.id.clone()),
             role: Some("agent".to_string()),
             limit: Some(5),
         })
@@ -444,6 +445,32 @@ pub async fn stream_agent_session(
                         Ok(None) => {}
                         Err(err) => {
                             yield Ok(persistence_error_event("materialize_agent_workspace_task", err));
+                        }
+                    }
+
+                    let memory_materialize_response = workspace_api
+                        .materialize_agent_workspace_memory(
+                            service::dto::workspace::MaterializeAgentWorkspaceMemoryRequest {
+                                user_id: link_state.user_id.clone(),
+                                workspace_id: link_state.workspace_id.clone(),
+                                run_id: link_state.run_id.clone(),
+                                request_id: request_id.clone(),
+                                skill_id: skill_id.clone(),
+                                role: role.clone(),
+                                output: output.clone().unwrap_or_else(|| json!({})),
+                            },
+                        )
+                        .await;
+                    match memory_materialize_response {
+                        Ok(Some(record)) => yield Ok(typed_camel_json_event(
+                            "agent_learning_record_created",
+                            serde_json::to_value(record).unwrap_or_else(
+                                |_| json!({ "type": "agent_learning_record_created" }),
+                            ),
+                        )),
+                        Ok(None) => {}
+                        Err(err) => {
+                            yield Ok(persistence_error_event("materialize_agent_workspace_memory", err));
                         }
                     }
 

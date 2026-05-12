@@ -159,28 +159,29 @@ pub fn coordination_create_task_spec() -> SkillSpec {
 }
 
 pub fn coordination_save_memory_spec() -> SkillSpec {
-    pending_spec(
+    SkillSpec::new(
         "coordination_save_memory",
         "保存工作记忆",
         "将对话中发现的重要事实、决策或结论保存到工作区记忆，供后续对话使用",
-        vec![
-            SkillInputField::required(
-                "key",
-                "记忆键名，例如：pricing_strategy_2024",
-                json!({"type": "string"}),
-            ),
-            SkillInputField::required(
-                "content",
-                "记忆内容，例如：本品定价区间150-180元，低于竞品均价200元",
-                json!({"type": "string"}),
-            ),
-            SkillInputField::optional(
-                "memory_type",
-                "记忆类型：fact=事实, decision=决策, insight=洞察, warning=风险",
-                json!({"type": "string"}),
-            ),
-        ],
     )
+    .with_category(category())
+    .with_priority(SkillPriority::High)
+    .with_input(SkillInputField::required(
+        "key",
+        "记忆键名，例如：pricing_strategy_2024",
+        json!({"type": "string"}),
+    ))
+    .with_input(SkillInputField::required(
+        "content",
+        "记忆内容，例如：本品定价区间150-180元，低于竞品均价200元",
+        json!({"type": "string"}),
+    ))
+    .with_input(SkillInputField::optional(
+        "memory_type",
+        "记忆类型：fact=事实, decision=决策, insight=洞察, warning=风险",
+        json!({"type": "string"}),
+    ))
+    .with_tag("deterministic")
 }
 
 pub fn platform_update_price_spec() -> SkillSpec {
@@ -565,6 +566,24 @@ pub struct CoordinationCreateTask {
     spec: SkillSpec,
 }
 
+pub struct CoordinationSaveMemory {
+    spec: SkillSpec,
+}
+
+impl CoordinationSaveMemory {
+    pub fn new() -> Self {
+        Self {
+            spec: coordination_save_memory_spec(),
+        }
+    }
+}
+
+impl Default for CoordinationSaveMemory {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CoordinationCreateTask {
     pub fn new() -> Self {
         Self {
@@ -637,17 +656,58 @@ impl Skill for CoordinationCreateTask {
         .with_metadata("task_creation_should_persist", json!(true)))
     }
 }
-deferred_coordination_skill!(
-    CoordinationSaveMemory,
-    coordination_save_memory_spec,
-    "pending_approval",
-    required ["key", "content"],
-    defaults {
-        "key" => |p: &Value| string_param(p, "key").map(Some),
-        "content" => |p: &Value| string_param(p, "content").map(Some),
-        "memory_type" => |p: &Value| Ok(optional_string_param(p, "memory_type")?.unwrap_or_else(|| "fact".to_owned())),
+
+#[async_trait]
+impl Skill for CoordinationSaveMemory {
+    fn spec(&self) -> &SkillSpec {
+        &self.spec
     }
-);
+
+    async fn run(&self, params: Value, context: SkillContext) -> SkillResult {
+        object_params(&params)?;
+        let key = normalize_memory_key(&string_param(&params, "key")?);
+        let content = compact_text_for_task_body(&string_param(&params, "content")?);
+        let memory_type = normalize_memory_type(
+            optional_string_param(&params, "memory_type")?.unwrap_or_else(|| {
+                infer_memory_type_from_text(&content, &context.metadata).to_string()
+            }),
+        );
+        let workspace_id = metadata_string_value(&context.metadata, "workspace_id")
+            .or_else(|| metadata_string_value(&context.metadata, "message.workspace_id"))
+            .or_else(|| metadata_string_value(&context.metadata, "request.workspace.workspace_id"));
+        let role = metadata_string_value(&context.metadata, "role_runtime")
+            .or_else(|| metadata_string_value(&context.metadata, "assignment_role"))
+            .unwrap_or_else(|| "agent".to_string());
+
+        let normalized = json!({
+            "key": key,
+            "content": content,
+            "memory_type": memory_type,
+            "workspace_id": workspace_id,
+            "role": role,
+            "source": "session_skill",
+        });
+
+        Ok(SkillOutcome::new(json!({
+            "status": "success",
+            "memory_save": {
+                "should_persist": true,
+                "key": normalized.get("key").cloned().unwrap_or(Value::Null),
+                "content": normalized.get("content").cloned().unwrap_or(Value::Null),
+                "memory_type": normalized.get("memory_type").cloned().unwrap_or(Value::Null),
+                "workspace_id": normalized.get("workspace_id").cloned().unwrap_or(Value::Null),
+                "role": normalized.get("role").cloned().unwrap_or(Value::Null),
+                "source": "session_skill"
+            },
+            "normalized_inputs": normalized,
+            "no_side_effects": true
+        }))
+        .with_summary(format!("工作记忆草案已生成：{}", key))
+        .with_metadata("memory_save_kind", json!("workspace_learning_record"))
+        .with_metadata("memory_save_should_persist", json!(true)))
+    }
+}
+
 deferred_coordination_skill!(
     PlatformUpdatePrice,
     platform_update_price_spec,
@@ -1156,6 +1216,59 @@ fn compact_task_text_value(value: &str, max_chars: usize) -> String {
     trimmed.chars().take(max_chars).collect()
 }
 
+fn normalize_memory_key(value: &str) -> String {
+    let mut normalized = value
+        .trim()
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() {
+                ch.to_ascii_lowercase()
+            } else if ch.is_ascii() {
+                '_'
+            } else {
+                ch
+            }
+        })
+        .collect::<String>();
+    while normalized.contains("__") {
+        normalized = normalized.replace("__", "_");
+    }
+    normalized = normalized.trim_matches('_').to_string();
+    if normalized.is_empty() {
+        "memory".to_string()
+    } else {
+        compact_task_text_value(&normalized, 120)
+    }
+}
+
+fn normalize_memory_type(value: String) -> String {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "fact" | "事实" => "fact".to_string(),
+        "decision" | "决策" => "decision".to_string(),
+        "insight" | "洞察" => "insight".to_string(),
+        "warning" | "风险" => "warning".to_string(),
+        _ => "fact".to_string(),
+    }
+}
+
+fn infer_memory_type_from_text(value: &str, metadata: &Map<String, Value>) -> &'static str {
+    let text = value.to_ascii_lowercase();
+    if text.contains("风险")
+        || text.contains("warning")
+        || metadata_string_value(metadata, "request_reason")
+            .as_deref()
+            .is_some_and(|reason| reason.contains("风险"))
+    {
+        "warning"
+    } else if text.contains("决策") || text.contains("决定") || text.contains("decision") {
+        "decision"
+    } else if text.contains("洞察") || text.contains("insight") || text.contains("发现") {
+        "insight"
+    } else {
+        "fact"
+    }
+}
+
 fn metadata_string_value(metadata: &Map<String, Value>, key: &str) -> Option<String> {
     metadata
         .get(key)
@@ -1316,6 +1429,46 @@ mod tests {
         assert_eq!(
             result.metadata.get("task_creation_kind"),
             Some(&json!("workspace_task"))
+        );
+    }
+
+    #[tokio::test]
+    async fn coordination_save_memory_returns_native_memory_payload() {
+        let skill = super::CoordinationSaveMemory::new();
+        let context = SkillContext::new()
+            .with_session_id("session-1")
+            .with_agent_id("worker.ops")
+            .with_metadata("message.workspace_id", json!("workspace-1"))
+            .with_metadata("role_runtime", json!("ops"));
+
+        let result = skill
+            .run(
+                json!({
+                    "key": "Pricing Strategy 2024",
+                    "content": "本品定价区间保持在 159-179 元，避免低于核心竞品均价。",
+                    "memory_type": "decision"
+                }),
+                context,
+            )
+            .await
+            .expect("save memory should succeed");
+
+        assert_eq!(result.output.get("status"), Some(&json!("success")));
+        assert_eq!(
+            result.output.pointer("/memory_save/should_persist"),
+            Some(&json!(true))
+        );
+        assert_eq!(
+            result.output.pointer("/memory_save/key"),
+            Some(&json!("pricing_strategy_2024"))
+        );
+        assert_eq!(
+            result.output.pointer("/memory_save/workspace_id"),
+            Some(&json!("workspace-1"))
+        );
+        assert_eq!(
+            result.metadata.get("memory_save_kind"),
+            Some(&json!("workspace_learning_record"))
         );
     }
 }

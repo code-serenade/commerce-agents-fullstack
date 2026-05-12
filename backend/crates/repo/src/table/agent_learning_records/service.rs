@@ -3,7 +3,8 @@ use db_core::{
     error::{BizResult, Error},
 };
 use sea_orm::{
-    ActiveValue::Set, ColumnTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect,
+    ActiveValue::{Set, Unchanged},
+    ColumnTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect,
 };
 use uuid::Uuid;
 
@@ -11,7 +12,7 @@ use crate::{
     entity::agent_learning_records,
     table::agent_learning_records::dto::{
         AgentLearningRecord, AgentLearningRecordFilter, AgentLearningRecordStatus,
-        CreateAgentLearningRecord,
+        CreateAgentLearningRecord, UpdateAgentLearningRecord,
     },
 };
 
@@ -60,6 +61,27 @@ impl AgentLearningRecordService {
             .await?
             .map(Self::from_model)
             .transpose()
+    }
+
+    pub async fn update(&self, input: UpdateAgentLearningRecord) -> BizResult<AgentLearningRecord> {
+        let model = agent_learning_records::ActiveModel {
+            id: Unchanged(input.id),
+            workspace_id: Set(input.workspace_id),
+            run_id: Set(input.run_id),
+            quality_check_id: Set(input.quality_check_id),
+            role: Set(input.role),
+            category: Set(input.category),
+            content: Set(input.content),
+            confidence: Set(input.confidence),
+            source_action: Set(input.source_action),
+            feedback_rating: Set(input.feedback_rating),
+            feedback_comment: Set(input.feedback_comment),
+            status: Set(input.status.as_str().to_string()),
+            metadata: Set(input.metadata),
+            ..Default::default()
+        };
+
+        Self::from_model(self.repo.update(model).await?)
     }
 
     pub async fn list(
@@ -112,6 +134,10 @@ impl AgentLearningRecordService {
 
         if let Some(category) = filter.category {
             query = query.filter(agent_learning_records::Column::Category.eq(category));
+        }
+
+        if let Some(source_action) = filter.source_action {
+            query = query.filter(agent_learning_records::Column::SourceAction.eq(source_action));
         }
 
         if let Some(status) = filter.status {

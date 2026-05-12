@@ -129,6 +129,9 @@ data: {"id":"artifact-uuid","workspaceId":"workspace-uuid","runId":"run-uuid","a
 event: workspace_artifact_created
 data: {"id":"search-artifact-uuid","workspaceId":"workspace-uuid","runId":"run-uuid","artifactType":"search_evidence","title":"Search evidence - 冷萃咖啡 竞品","storageKind":"inline","format":"json","source":"agent_session","status":"active","metadata":{"kind":"agent_search_evidence","skillId":"search_competitor","requestId":"task-001-skill-1","sourceCount":3,"confidence":0.82}}
 
+event: agent_learning_record_created
+data: {"type":"agent_learning_record_created","id":"learning-uuid","workspaceId":"workspace-uuid","runId":"run-uuid","role":"agent","category":"decision","content":"本品定价区间保持在 159-179 元，避免低于核心竞品均价。","confidence":0.88,"sourceAction":"workspace_memory_manual","status":"active","metadata":{"kind":"workspace_memory","memoryKey":"pricing_strategy_2024","memoryType":"decision","source":"agent_skill_result","sourceRole":"ops","requestId":"task-001-skill-2","skillId":"coordination_save_memory","upsertMode":"create"}}
+
 event: quality_checked
 data: {"qualityCheck":{"id":"quality-check-uuid","workspaceId":"workspace-uuid","runId":"run-uuid","artifactId":"artifact-uuid","role":"agent","score":0.82,"passed":true,"dimensions":{},"issues":[],"suggestions":[]},"trustUpdate":{"role":"agent","previousScore":0.5,"newScore":0.596,"previousLevel":"moderate","newLevel":"moderate","delta":0.096,"reason":"quality check passed; trust score moved toward the answer quality"},"learningRecords":[]}
 
@@ -185,12 +188,13 @@ data: {"type":"approval_required","approval":{"id":"approval-uuid","workspaceId"
 | `workspace_run_task_updated` | 节点开始、worker report 或 evaluation 已写入对应运行任务快照 |
 | `workspace_run_completed` | agent session 正常完成，`workspace_run.status=succeeded`，最终输出写入 `report.output` |
 | `workspace_artifact_created` | 已创建工作区交付物；正常完成时通常为 `artifactType=final_report` 的 markdown 报告，live 搜索证据会创建 `artifactType=search_evidence` 的 json 交付物 |
+| `agent_learning_record_created` | `coordination_save_memory` 已真实沉淀为学习/工作记忆记录，可在后续工作区问答中复用 |
 | `quality_checked` | agent session 正常完成并创建交付物后，后端已完成回答质量检查、信任分更新和学习记录沉淀 |
 | `approval_required` | `skill_result.status=pending_approval` 或 `approval_required=true` 时，后端已创建或复用工具审批记录，并尝试创建告警 |
 | `workspace_run_failed` | agent session 失败，`workspace_run.status=failed`，失败原因写入 `report.reason` |
 | `workspace_run_persistence_error` | agent 流运行过程中某次沉淀失败，返回 `action`、`code`、`message`；该事件不截断原始 LLM 回答 |
 
-`workspace_run_linked` 的 `run.source` 固定为 `agent_session`。`workspace_run_tasks_linked` 与 `workspace_run_task_updated` 返回的数据结构等同于 `API_DOCS/app.md` 中的 `WorkspaceRunTaskResponse`，字段使用 camelCase。`workspace_run_completed` / `workspace_run_failed` 返回的数据结构等同于 `WorkspaceRunResponse`。`workspace_artifact_created` 返回的数据结构等同于 `WorkspaceArtifactResponse`。搜索证据 artifact 的 `content` 是完整搜索输出 JSON 字符串，`metadata.kind=agent_search_evidence`，并包含 `skillId`、`requestId`、`role`、`query`、`sourceCount`、`domains`、`confidence`、`provenance` 和 `freshness`。`quality_checked` 返回的数据结构等同于 `API_DOCS/app.md` 中 `POST /api/app/workspaces/{workspaceId}/runs/{runId}/quality-checks` 的成功响应，字段使用 camelCase。
+`workspace_run_linked` 的 `run.source` 固定为 `agent_session`。`workspace_run_tasks_linked` 与 `workspace_run_task_updated` 返回的数据结构等同于 `API_DOCS/app.md` 中的 `WorkspaceRunTaskResponse`，字段使用 camelCase。`workspace_run_completed` / `workspace_run_failed` 返回的数据结构等同于 `WorkspaceRunResponse`。`workspace_artifact_created` 返回的数据结构等同于 `WorkspaceArtifactResponse`。`agent_learning_record_created` 返回的数据结构等同于 `API_DOCS/app.md` 中的 `AgentLearningRecordResponse`，字段使用 camelCase。搜索证据 artifact 的 `content` 是完整搜索输出 JSON 字符串，`metadata.kind=agent_search_evidence`，并包含 `skillId`、`requestId`、`role`、`query`、`sourceCount`、`domains`、`confidence`、`provenance` 和 `freshness`。`quality_checked` 返回的数据结构等同于 `API_DOCS/app.md` 中 `POST /api/app/workspaces/{workspaceId}/runs/{runId}/quality-checks` 的成功响应，字段使用 camelCase。
 
 `quality_checked` 当前由 web-server 在 `workspace_run_completed` 和 `workspace_artifact_created` 后自动触发。质量检查失败不会截断 LLM 回答；如果质量检查自身写入失败，服务端会继续发 `workspace_run_persistence_error`，其中 `action` 为 `evaluate_agent_run`。
 
