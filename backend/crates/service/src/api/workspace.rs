@@ -5028,6 +5028,36 @@ fn build_content_artifact_from_skill_output(
             "Data refund decomposition report",
             "data refund decomposition artifact generated",
         ),
+        "data_anomaly_diagnosis" => (
+            "data",
+            "data_anomaly_report",
+            "Data anomaly report",
+            "data anomaly diagnosis artifact generated",
+        ),
+        "data_trend_forecast" => (
+            "data",
+            "data_trend_forecast_report",
+            "Data trend forecast report",
+            "data trend forecast artifact generated",
+        ),
+        "data_customer_segmentation" => (
+            "data",
+            "data_customer_segmentation_report",
+            "Data customer segmentation report",
+            "data customer segmentation artifact generated",
+        ),
+        "data_competitor_analysis" => (
+            "data",
+            "data_competitor_report",
+            "Data competitor report",
+            "data competitor analysis artifact generated",
+        ),
+        "data_ab_test_analyzer" => (
+            "data",
+            "data_ab_test_report",
+            "Data A/B test report",
+            "data A/B test artifact generated",
+        ),
         "accounting_cost_calc" => (
             "accounting",
             "accounting_cost_report",
@@ -6561,6 +6591,38 @@ mod tests {
         assert_eq!(draft.file_name, "data_funnel_report.md");
         assert!(draft.preview.contains("漏斗分析完成"));
         assert!(draft.content.contains("# Data funnel report"));
+        assert!(
+            draft
+                .content
+                .contains("\"adapter_status\": \"manual_input\"")
+        );
+    }
+
+    #[test]
+    fn content_artifact_builds_from_data_insight_skill_output() {
+        let output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "data_readiness": "user_provided",
+            "summary": "异常诊断报告已生成",
+            "指标": "GMV",
+            "样本数": 7,
+            "异常点数": 1,
+            "异常详情": [
+                {"第几天": 6, "数值": 82000.0, "方向": "激增"}
+            ]
+        });
+
+        let draft = build_content_artifact_from_skill_output("data_anomaly_diagnosis", &output)
+            .expect("data insight output should be materializable");
+
+        assert_eq!(draft.content_category, "data");
+        assert_eq!(draft.artifact_type, "data_anomaly_report");
+        assert_eq!(draft.title, "Data anomaly report");
+        assert_eq!(draft.file_name, "data_anomaly_report.md");
+        assert!(draft.preview.contains("异常诊断报告已生成"));
+        assert!(draft.content.contains("# Data anomaly report"));
         assert!(
             draft
                 .content

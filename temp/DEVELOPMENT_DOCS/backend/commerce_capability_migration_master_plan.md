@@ -223,22 +223,22 @@ Continue in this order:
 The latest completed slice is:
 
 ```text
-Post 8-36: ops advanced artifact materialization
+Post 8-37: data insight artifact materialization
 ```
 
 Scope:
 
-- persist successful `ops_smart_pricing`, `ops_inventory_optimizer`, `ops_ad_fatigue_detector`, and `ops_abc_xyz_classifier` outputs as real workspace artifacts
-- keep advanced ops output contracts in the existing `ops::execute` dispatch path with `status=success/deferred`, `has_data`, `adapter_status`, `data_readiness`, and `summary`
-- disclose default or demo data through `data_readiness=calculated_from_defaults`
-- keep missing required user input as `deferred` so the product does not create fake advanced operations artifacts
+- persist successful `data_anomaly_diagnosis`, `data_trend_forecast`, `data_customer_segmentation`, `data_competitor_analysis`, and `data_ab_test_analyzer` outputs as real workspace artifacts
+- keep data insight output contracts in the existing `data::execute` dispatch path with `status=success/deferred`, `has_data`, `adapter_status`, `data_readiness`, and `summary`
+- disclose deterministic default estimates through `data_readiness=calculated_from_defaults`
+- keep missing required user input as `deferred` or validation error so the product does not create fake data insight artifacts
 
 Reason:
 
-- high product value for the operations worker and analysis workflow
+- high product value for the data worker and analysis workflow
 - backend-first
 - no new fake frontend needed
-- extends the same workspace artifact path from core operations plans to advanced pricing, inventory, advertising and classification reports while preserving honest disclosure when required input is missing
+- extends the same workspace artifact path from dashboards and basic data reports to anomaly, forecast, segmentation, competitor and experiment reports while preserving honest disclosure when required input is missing
 
 ## 10. Validation Standard
 

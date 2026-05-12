@@ -1,5 +1,48 @@
 # 迁移开发记录
 
+## Post 8-37：Data 智能分析报告交付物真实沉淀
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 37 个补强项：`Post 8-37`。
+
+本次目标：
+
+- 把旧产品数据岗位中已经 native 化的智能分析类能力接入 workspace artifact 体系。
+- 让异常诊断、趋势预测、客户分层、竞品分析和 A/B 测试分析成为可查询、可预览、可导出的数据报告交付物。
+
+涉及范围：
+
+- 产品内核：数据岗位从看板/漏斗等基础分析继续推进到诊断、预测、分群、竞品和实验分析报告。
+- 后端 agent：沿用现有 `data::execute` 统一出口，补齐 `status=success/deferred`、`has_data`、`adapter_status`、`data_readiness` 和 `summary`。
+- 后端 service：`WorkspaceApi::materialize_agent_content_artifact` 新增支持 `data_anomaly_report`、`data_trend_forecast_report`、`data_customer_segmentation_report`、`data_competitor_report`、`data_ab_test_report`。
+- API/SSE 文档：同步 data insight artifact 类型、默认数据披露和缺输入不创建假交付物的语义。
+
+用户可感知变化：
+
+- 用户让数据岗位做异常诊断、趋势预测、客户分层、竞品分析或 A/B 测试分析时，成功结果可以在当前 workspace 真实新增对应数据分析交付物。
+- 这些交付物沿用现有 artifact 列表、详情、预览和导出链路。
+- 如果缺少时序数据或实验数据，后端返回 `deferred` 或 validation error，不会创建看似真实的假数据报告。
+- 如果客户分层或竞品分析使用确定性默认数据，结果会通过 `data_readiness=calculated_from_defaults` 明确告知前端和用户。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p agent data_anomaly_diagnosis_marks_success_for_user_series -- --nocapture`
+- [x] `cargo test -p agent data_anomaly_diagnosis_defers_without_enough_series -- --nocapture`
+- [x] `cargo test -p agent data_trend_forecast_marks_success_for_user_series -- --nocapture`
+- [x] `cargo test -p agent data_customer_segmentation_discloses_default_inputs -- --nocapture`
+- [x] `cargo test -p agent data_competitor_analysis_discloses_default_competitors -- --nocapture`
+- [x] `cargo test -p agent data_ab_test_analyzer_marks_success_for_experiment -- --nocapture`
+- [x] `cargo test -p service content_artifact_builds_from_data_insight_skill_output -- --nocapture`
+- [x] `cargo check -p agent`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo clippy -p agent -p service -p web-server`
+
 ## Post 8-36：Ops 高级运营分析交付物真实沉淀
 
 状态：done

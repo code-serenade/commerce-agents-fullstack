@@ -30,11 +30,12 @@
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
 | --- | --- | --- | --- | --- |
 | `data_funnel_analysis` | `data_funnel_analysis` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已纳入岗位自动补偿规则，并有 stream 级测试覆盖；Post 8-31：有用户数据时成功输出会沉淀为 `data_funnel_report` artifact |
-| `data_anomaly_diagnosis` | `data_anomaly_diagnosis` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已纳入岗位自动补偿规则，输入不足时按本地保守诊断 |
-| `data_trend_forecast` | `data_trend_forecast` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已纳入岗位自动补偿规则 |
-| `data_customer_segmentation` | `data_customer_segmentation` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已纳入岗位自动补偿规则，后续可接真实客户数据 |
-| `data_competitor_analysis` | `data_competitor_analysis` | native_ready | `backend/crates/agent/src/skills/data.rs` | 本轮补强了竞品/对标/竞对自然问法触达；后续可继续接 product_competitor 数据 |
+| `data_anomaly_diagnosis` | `data_anomaly_diagnosis` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已纳入岗位自动补偿规则；Post 8-37：成功输出会沉淀为 `data_anomaly_report` artifact，时序点不足时 deferred |
+| `data_trend_forecast` | `data_trend_forecast` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已纳入岗位自动补偿规则；Post 8-37：成功输出会沉淀为 `data_trend_forecast_report` artifact，时序点不足时 deferred |
+| `data_customer_segmentation` | `data_customer_segmentation` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已纳入岗位自动补偿规则；Post 8-37：成功输出会沉淀为 `data_customer_segmentation_report` artifact，使用默认估算时明示 `calculated_from_defaults` |
+| `data_competitor_analysis` | `data_competitor_analysis` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已补强竞品/对标/竞对自然问法触达；Post 8-37：成功输出会沉淀为 `data_competitor_report` artifact，缺竞品列表时明示 `calculated_from_defaults` |
 | `data_dashboard` | `data_dashboard` | native_ready | `backend/crates/agent/src/skills/data.rs` | Post 8-29：已迁为 Rust native 经营看板；有入参时按真实入参计算，无入参时明确 `store_metrics_required`，不伪造平台实时数据。Post 8-30：成功输出会沉淀为 `data_dashboard` workspace artifact |
+| `data_ab_test_analyzer` | `data_ab_test_analyzer` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已可 native 执行；Post 8-37：成功输出会沉淀为 `data_ab_test_report` artifact，样本/转化数不合法时返回 validation error |
 
 ## 搜索 search
 
