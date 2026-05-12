@@ -298,10 +298,13 @@ pub async fn update_conversation_file_extraction(
             service::dto::conversation::UpdateConversationFileExtractionRequest {
                 user_id: auth_user.user_id,
                 file_id,
+                status: req.status,
                 text: req.text,
                 content_kind: req.content_kind,
                 source: req.source,
+                parser: req.parser,
                 language: req.language,
+                failure_reason: req.failure_reason,
                 metadata: req.metadata,
             },
         )

@@ -50,10 +50,13 @@ pub struct RegisterConversationFileRequest {
 pub struct UpdateConversationFileExtractionRequest {
     pub user_id: String,
     pub file_id: String,
-    pub text: String,
+    pub status: Option<String>,
+    pub text: Option<String>,
     pub content_kind: Option<String>,
     pub source: Option<String>,
+    pub parser: Option<String>,
     pub language: Option<String>,
+    pub failure_reason: Option<String>,
     pub metadata: Option<Value>,
 }
 

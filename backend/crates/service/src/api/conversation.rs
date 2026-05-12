@@ -29,6 +29,10 @@ use crate::dto::conversation::{
 const DEFAULT_LIST_LIMIT: u64 = 50;
 const FILE_ACCESS_EXPIRES_SECS: u64 = 600;
 const MAX_EXTRACTED_TEXT_CHARS: usize = 100_000;
+const EXTRACTION_STATUS_PENDING: &str = "pending";
+const EXTRACTION_STATUS_EXTRACTED: &str = "extracted";
+const EXTRACTION_STATUS_FAILED: &str = "failed";
+const EXTRACTION_STATUS_UNSUPPORTED: &str = "unsupported";
 
 pub struct ConversationApi {
     db: DbContext,
@@ -253,7 +257,7 @@ impl ConversationApi {
                 mime_type: normalize_optional(req.mime_type),
                 file_size: req.file_size,
                 sha256: normalize_optional(req.sha256),
-                metadata: json!({}),
+                metadata: build_initial_file_extraction_metadata(),
             })
             .await?;
         Ok(Self::map_file(file))
@@ -310,18 +314,43 @@ impl ConversationApi {
         self.ensure_active_conversation_owner(user_id, file.conversation_id)
             .await?;
 
-        let text = normalize_required_text(req.text, "text")?;
-        let text_chars = text.chars().count();
-        if text_chars > MAX_EXTRACTED_TEXT_CHARS {
-            return Err(BizError::new(
-                app_error::CONVERSATION_REQUEST_INVALID,
-                format!("text is too long: max {MAX_EXTRACTED_TEXT_CHARS} chars"),
-            ));
-        }
+        let status = normalize_extraction_status(req.status)?;
+        let text = if status == EXTRACTION_STATUS_EXTRACTED {
+            let text = req
+                .text
+                .map(|text| normalize_required_text(text, "text"))
+                .transpose()?
+                .ok_or_else(|| {
+                    BizError::new(
+                        app_error::CONVERSATION_REQUEST_INVALID,
+                        "text is required when extraction status is extracted".to_string(),
+                    )
+                })?;
+            let text_chars = text.chars().count();
+            if text_chars > MAX_EXTRACTED_TEXT_CHARS {
+                return Err(BizError::new(
+                    app_error::CONVERSATION_REQUEST_INVALID,
+                    format!("text is too long: max {MAX_EXTRACTED_TEXT_CHARS} chars"),
+                ));
+            }
+            Some(text)
+        } else {
+            None
+        };
+        let text_chars = text.as_deref().map(str::chars).map(Iterator::count);
 
-        let content_kind = normalize_optional(req.content_kind).unwrap_or_else(|| "text".into());
-        let source = normalize_optional(req.source).unwrap_or_else(|| "manual".into());
+        let content_kind =
+            normalize_optional(req.content_kind).unwrap_or_else(|| "plain_text".into());
+        let source = normalize_optional(req.source).unwrap_or_else(|| "trusted_api".into());
+        let parser = normalize_optional(req.parser).unwrap_or_else(|| {
+            if source == "manual" {
+                "manual".into()
+            } else {
+                "external_adapter".into()
+            }
+        });
         let language = normalize_optional(req.language);
+        let failure_reason = normalize_optional(req.failure_reason);
         let extra_metadata = req.metadata.unwrap_or_else(|| json!({}));
         if !extra_metadata.is_object() {
             return Err(BizError::new(
@@ -332,12 +361,17 @@ impl ConversationApi {
 
         let metadata = build_file_extraction_metadata(
             file.metadata,
-            text,
-            content_kind,
-            source,
-            language,
-            text_chars,
-            extra_metadata,
+            FileExtractionMetadataPatch {
+                status,
+                text,
+                content_kind,
+                source,
+                parser,
+                language,
+                failure_reason,
+                text_chars: text_chars.unwrap_or(0),
+                extra_metadata,
+            },
         );
         let updated = self
             .file_svc
@@ -512,33 +546,81 @@ fn normalize_required_text(value: String, label: &str) -> BizResult<String> {
     Ok(value)
 }
 
-fn build_file_extraction_metadata(
-    current: Value,
-    text: String,
+fn normalize_extraction_status(value: Option<String>) -> BizResult<String> {
+    let value =
+        normalize_optional(value).unwrap_or_else(|| EXTRACTION_STATUS_EXTRACTED.to_string());
+    match value.as_str() {
+        "ready" | "success" => Ok(EXTRACTION_STATUS_EXTRACTED.to_string()),
+        EXTRACTION_STATUS_PENDING
+        | EXTRACTION_STATUS_EXTRACTED
+        | EXTRACTION_STATUS_FAILED
+        | EXTRACTION_STATUS_UNSUPPORTED => Ok(value),
+        _ => Err(BizError::new(
+            app_error::CONVERSATION_REQUEST_INVALID,
+            format!("invalid extraction status: {value}"),
+        )),
+    }
+}
+
+fn build_initial_file_extraction_metadata() -> Value {
+    json!({
+        "extractionStatus": EXTRACTION_STATUS_PENDING,
+        "extraction": {
+            "status": EXTRACTION_STATUS_PENDING,
+            "source": "upload",
+            "parser": "unassigned",
+            "updatedAt": now_rfc3339(),
+            "metadata": {}
+        }
+    })
+}
+
+#[derive(Debug, Clone)]
+struct FileExtractionMetadataPatch {
+    status: String,
+    text: Option<String>,
     content_kind: String,
     source: String,
+    parser: String,
     language: Option<String>,
+    failure_reason: Option<String>,
     text_chars: usize,
     extra_metadata: Value,
-) -> Value {
+}
+
+fn build_file_extraction_metadata(current: Value, patch: FileExtractionMetadataPatch) -> Value {
     let mut object = current.as_object().cloned().unwrap_or_default();
-    object.insert("extractedText".to_string(), Value::String(text.clone()));
-    object.insert("textContent".to_string(), Value::String(text.clone()));
+    object.insert(
+        "extractionStatus".to_string(),
+        Value::String(patch.status.clone()),
+    );
+    if let Some(text) = patch.text.as_ref() {
+        object.insert("extractedText".to_string(), Value::String(text.clone()));
+        object.insert("textContent".to_string(), Value::String(text.clone()));
+    } else {
+        object.remove("extractedText");
+        object.remove("textContent");
+    }
 
     let mut extraction = match object.remove("extraction") {
         Some(Value::Object(existing)) => existing,
         _ => Map::new(),
     };
-    extraction.insert("status".to_string(), Value::String("ready".to_string()));
-    extraction.insert("contentKind".to_string(), Value::String(content_kind));
-    extraction.insert("source".to_string(), Value::String(source));
-    extraction.insert("text".to_string(), Value::String(text));
+    extraction.insert("status".to_string(), Value::String(patch.status));
+    extraction.insert("contentKind".to_string(), Value::String(patch.content_kind));
+    extraction.insert("source".to_string(), Value::String(patch.source));
+    extraction.insert("parser".to_string(), Value::String(patch.parser));
+    if let Some(text) = patch.text {
+        extraction.insert("text".to_string(), Value::String(text));
+    } else {
+        extraction.remove("text");
+    }
     extraction.insert(
         "textChars".to_string(),
-        Value::Number(serde_json::Number::from(text_chars)),
+        Value::Number(serde_json::Number::from(patch.text_chars)),
     );
     extraction.insert("updatedAt".to_string(), Value::String(now_rfc3339()));
-    match language {
+    match patch.language {
         Some(language) => {
             extraction.insert("language".to_string(), Value::String(language));
         }
@@ -546,7 +628,15 @@ fn build_file_extraction_metadata(
             extraction.remove("language");
         }
     }
-    extraction.insert("metadata".to_string(), extra_metadata);
+    match patch.failure_reason {
+        Some(failure_reason) => {
+            extraction.insert("failureReason".to_string(), Value::String(failure_reason));
+        }
+        None => {
+            extraction.remove("failureReason");
+        }
+    }
+    extraction.insert("metadata".to_string(), patch.extra_metadata);
     object.insert("extraction".to_string(), Value::Object(extraction));
 
     Value::Object(object)
@@ -598,22 +688,76 @@ mod tests {
                     "source": "old-parser"
                 }
             }),
-            "商品卖点：防晒、轻薄".to_string(),
-            "markdown".to_string(),
-            "manual".to_string(),
-            Some("zh-CN".to_string()),
-            10,
-            json!({"pageCount": 3}),
+            FileExtractionMetadataPatch {
+                status: EXTRACTION_STATUS_EXTRACTED.to_string(),
+                text: Some("商品卖点：防晒、轻薄".to_string()),
+                content_kind: "markdown".to_string(),
+                source: "manual".to_string(),
+                parser: "manual".to_string(),
+                language: Some("zh-CN".to_string()),
+                failure_reason: None,
+                text_chars: 10,
+                extra_metadata: json!({"pageCount": 3}),
+            },
         );
 
         assert_eq!(metadata["objectKey"], "chat/u/c/file.pdf");
+        assert_eq!(metadata["extractionStatus"], EXTRACTION_STATUS_EXTRACTED);
         assert_eq!(metadata["extractedText"], "商品卖点：防晒、轻薄");
         assert_eq!(metadata["textContent"], "商品卖点：防晒、轻薄");
-        assert_eq!(metadata["extraction"]["status"], "ready");
+        assert_eq!(
+            metadata["extraction"]["status"],
+            EXTRACTION_STATUS_EXTRACTED
+        );
         assert_eq!(metadata["extraction"]["contentKind"], "markdown");
         assert_eq!(metadata["extraction"]["source"], "manual");
+        assert_eq!(metadata["extraction"]["parser"], "manual");
         assert_eq!(metadata["extraction"]["language"], "zh-CN");
         assert_eq!(metadata["extraction"]["metadata"]["pageCount"], 3);
+    }
+
+    #[test]
+    fn conversation_file_extraction_failure_clears_readable_text() {
+        let metadata = build_file_extraction_metadata(
+            json!({
+                "extractedText": "旧正文",
+                "textContent": "旧正文",
+                "extraction": {
+                    "status": "extracted",
+                    "text": "旧正文"
+                }
+            }),
+            FileExtractionMetadataPatch {
+                status: EXTRACTION_STATUS_FAILED.to_string(),
+                text: None,
+                content_kind: "markdown".to_string(),
+                source: "adapter".to_string(),
+                parser: "pdf".to_string(),
+                language: None,
+                failure_reason: Some("encrypted pdf".to_string()),
+                text_chars: 0,
+                extra_metadata: json!({"attempt": 1}),
+            },
+        );
+
+        assert_eq!(metadata["extractionStatus"], EXTRACTION_STATUS_FAILED);
+        assert!(metadata.get("extractedText").is_none());
+        assert!(metadata.get("textContent").is_none());
+        assert_eq!(metadata["extraction"]["status"], EXTRACTION_STATUS_FAILED);
+        assert_eq!(metadata["extraction"]["failureReason"], "encrypted pdf");
+        assert!(metadata["extraction"].get("text").is_none());
+    }
+
+    #[test]
+    fn conversation_file_extraction_status_normalizes_legacy_ready() {
+        assert_eq!(
+            normalize_extraction_status(Some("ready".to_string())).unwrap(),
+            EXTRACTION_STATUS_EXTRACTED
+        );
+        assert_eq!(
+            normalize_extraction_status(None).unwrap(),
+            EXTRACTION_STATUS_EXTRACTED
+        );
     }
 
     #[test]

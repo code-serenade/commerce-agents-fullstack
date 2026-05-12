@@ -58,6 +58,13 @@ Post 8-9 补充：Rust 后端已新增 `/api/app/external-search/status` 和 `/a
 
 Post 8-10 补充：上述 Agent `search_*` skill 已接入同一份 `[external_search]` 配置。provider 配置完整且返回可信来源时可返回 `live`；未配置、请求失败或无来源时仍返回 `deferred/degraded`，不伪造结果。
 
+## 附件 / 素材 / 上下文 ingestion
+
+| 旧能力 | 新产品目标 ID | 状态 | 新落点 | 备注 |
+| --- | --- | --- | --- | --- |
+| `conversation_file_context` | `workspace_context_pack` | native_ready | `backend/crates/service/src/api/workspace.rs` | Post 8-14：工作区内容包已读取数据库已有素材正文、资产描述、交付物正文和附件抽取文本；Post 8-43：附件解析状态新增 `pending/extracted/failed/unsupported`，只有 `extracted` 会进入 Agent 可读上下文 |
+| `conversation_file_extraction` | `conversation_file_extraction_status` | adapter_required | `backend/crates/service/src/api/conversation.rs` | Post 8-16：已有可信抽取文本登记 API；Post 8-43：已补状态契约。真实 OCR、PDF/Office 解析、图片识别、object storage 文件读取和后台 parser worker 仍待 adapter |
+
 ## 客服 service
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |

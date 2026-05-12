@@ -286,14 +286,20 @@ pub struct RegisterConversationFileRequest {
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateConversationFileExtractionRequest {
-    #[validate(length(min = 1, max = 100000))]
-    pub text: String,
+    #[validate(length(max = 32))]
+    pub status: Option<String>,
+    #[validate(length(max = 100000))]
+    pub text: Option<String>,
     #[validate(length(max = 32))]
     pub content_kind: Option<String>,
     #[validate(length(max = 64))]
     pub source: Option<String>,
+    #[validate(length(max = 64))]
+    pub parser: Option<String>,
     #[validate(length(max = 32))]
     pub language: Option<String>,
+    #[validate(length(max = 2000))]
+    pub failure_reason: Option<String>,
     pub metadata: Option<Value>,
 }
 

@@ -488,6 +488,28 @@
 - 本阶段不实现 OCR、PDF/Office 解析、图片识别或 object storage 读取。
 - 后续解析器、OCR worker 或附件管理 UI 都应通过该 API 登记抽取结果。
 
+## Post 8-43：会话附件解析状态契约
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Service：新注册会话附件默认写入 `metadata.extractionStatus=pending`。
+- [x] Service：`ConversationApi::update_file_extraction` 支持 `pending/extracted/failed/unsupported`。
+- [x] Service：旧调用不传 `status` 时按 `extracted` 兼容；旧值 `ready/success` 归一为 `extracted`。
+- [x] Service：`status=extracted` 必须有非空 `text`；其它状态会清除旧可读文本，避免 Agent 读取过期正文。
+- [x] Context pack：只在 `extractionStatus=extracted` 时读取附件正文。
+- [x] Context pack：返回 `extraction_pending`、`extraction_failed`、`extraction_unsupported` 作为真实不可读状态。
+- [x] API：`API_DOCS/app.md` 和 `API_DOCS/sse.md` 已同步。
+- [x] 前端：`apps/web` API adapter 类型已同步，但本阶段不新增页面入口。
+
+当前说明：
+
+- 本阶段解决的是“附件解析状态和可读边界”。
+- 本阶段不实现 OCR、PDF/Office 解析、图片识别、object storage 读取或后台 parser worker。
+- 后续解析 adapter 应通过同一个接口登记成功/失败/不支持状态。
+
 ## Post 8-17：竞品分析读取 API
 
 状态：done

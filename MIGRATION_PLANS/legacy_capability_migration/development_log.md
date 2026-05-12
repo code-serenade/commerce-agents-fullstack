@@ -1,5 +1,51 @@
 # 迁移开发记录
 
+## Post 8-43：会话附件解析状态契约
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 43 个补强项：`Post 8-43`。
+
+本次目标：
+
+- 把旧产品“附件/素材可进入问答上下文”的能力继续补齐到新产品后端契约。
+- 在既有会话附件抽取文本 API 上增加 `pending/extracted/failed/unsupported` 状态。
+- 让工作区 `context-pack` 明确区分“已解析正文”“等待解析”“解析失败”“当前不支持”，避免 Agent 误读未解析文件。
+
+涉及范围：
+
+- 产品内核：附件从“只知道有无文本”推进到“有解析状态、失败原因和上下文可读边界”。
+- 后端 service：`ConversationApi::register_file` 新上传附件默认写入 `metadata.extractionStatus=pending`；`update_file_extraction` 支持登记 `extracted/failed/unsupported/pending`。
+- 后端 context：`WorkspaceApi::context_pack` 只在 `extractionStatus=extracted` 时读取附件文本；其它状态分别返回 `extraction_pending`、`extraction_failed`、`extraction_unsupported`。
+- Web-server/API：扩展 `/api/app/conversation-files/{fileId}/extraction` 请求体字段，保持旧调用不传 `status` 时按 `extracted` 兼容。
+- 前端：只同步 `apps/web` API adapter 类型，不新增假解析 UI。
+
+用户可感知变化：
+
+- 用户上传附件后，后端会把附件标记为“等待解析”，后续前端可据此展示真实待处理状态。
+- 如果解析器登记成功，附件会进入 Agent 问答上下文，`context-pack` 显示 `extracted_text`。
+- 如果解析失败或格式不支持，Agent 不会继续读取旧正文，右侧过程区可展示清晰警告和失败原因。
+- 当前仍不实现 OCR、PDF/Office 解析、图片识别或 object storage 读取；这些要后续接 parser adapter。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p service conversation_file_extraction -- --nocapture`
+- [x] `cargo test -p service context_pack_respects_attachment_extraction_status -- --nocapture`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo check -p service -p web-server`
+- [x] `cargo clippy -p service -p web-server`
+- [x] `pnpm -C frontend/apps/web rules`
+- [x] `pnpm -C frontend/apps/web lint`
+- [x] `pnpm -C frontend/apps/web test`
+- [x] `pnpm -C frontend/apps/web build`
+- [x] `pnpm -C frontend rules`
+- [x] `git diff --check`
+
 ## Post 8-42：Engineering native 工程报告沉淀
 
 状态：done

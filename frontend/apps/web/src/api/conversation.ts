@@ -63,10 +63,13 @@ export interface UpdateConversationRequest {
 }
 
 export interface UpdateConversationFileExtractionRequest {
-  text: string
+  status?: "pending" | "extracted" | "failed" | "unsupported" | null
+  text?: string | null
   contentKind?: string | null
   source?: string | null
+  parser?: string | null
   language?: string | null
+  failureReason?: string | null
   metadata?: Record<string, unknown> | null
 }
 

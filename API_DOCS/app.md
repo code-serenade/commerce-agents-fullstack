@@ -494,7 +494,7 @@
 - `bucket` 不由前端传入，服务端固定写入 `private`
 - `objectKey` 必须来自当前用户当前会话的上传签名路径
 
-## 11. 登记会话附件抽取文本
+## 11. 登记会话附件抽取状态 / 文本
 
 - 方法：`PUT`
 - 路径：`/api/app/conversation-files/{fileId}/extraction`
@@ -504,26 +504,44 @@
 
 ```json
 {
+  "status": "extracted",
   "text": "附件抽取出的正文内容，可被 Agent 上下文读取",
-  "contentKind": "text",
-  "source": "manual",
+  "contentKind": "plain_text",
+  "source": "trusted_api",
+  "parser": "external_adapter",
   "language": "zh-CN",
+  "failureReason": null,
   "metadata": {
     "pageCount": 3
   }
 }
 ```
 
+字段说明：
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `status` | `pending \| extracted \| failed \| unsupported` | 否 | 不传时兼容旧调用，按 `extracted` 处理；旧值 `ready/success` 会归一为 `extracted` |
+| `text` | `string` | `status=extracted` 时必填 | 可信抽取正文，trim 后不能为空，最多 100000 字符 |
+| `contentKind` | `string` | 否 | 默认 `plain_text`，用于标记正文类型 |
+| `source` | `string` | 否 | 默认 `trusted_api`；人工登记可传 `manual` |
+| `parser` | `string` | 否 | 默认 `external_adapter`；`source=manual` 时默认 `manual` |
+| `language` | `string` | 否 | 语言标记，例如 `zh-CN` |
+| `failureReason` | `string` | 否 | `failed/unsupported` 时记录失败或不支持原因 |
+| `metadata` | `object` | 否 | 解析器补充信息，必须是 JSON object |
+
 成功响应 `data`：`ConversationFileResponse`，其中 `metadata` 会包含：
 
 ```json
 {
+  "extractionStatus": "extracted",
   "extractedText": "附件抽取出的正文内容，可被 Agent 上下文读取",
   "textContent": "附件抽取出的正文内容，可被 Agent 上下文读取",
   "extraction": {
-    "status": "ready",
-    "contentKind": "text",
-    "source": "manual",
+    "status": "extracted",
+    "contentKind": "plain_text",
+    "source": "trusted_api",
+    "parser": "external_adapter",
     "language": "zh-CN",
     "text": "附件抽取出的正文内容，可被 Agent 上下文读取",
     "textChars": 23,
@@ -535,10 +553,28 @@
 }
 ```
 
+失败或不支持状态示例：
+
+```json
+{
+  "status": "failed",
+  "source": "adapter",
+  "parser": "pdf",
+  "failureReason": "encrypted pdf",
+  "metadata": {
+    "attempt": 1
+  }
+}
+```
+
+该状态会清除旧的 `metadata.extractedText` / `metadata.textContent`，避免 Agent 继续读取过期正文。
+
 补充说明：
 
-- 本接口只登记可信抽取文本，不负责 OCR、PDF 解析、图片识别或 object storage 文件读取
-- `text` trim 后不能为空，最多 100000 个字符
+- 本接口只登记可信抽取状态和文本，不负责 OCR、PDF 解析、图片识别或 object storage 文件读取
+- 新上传会话附件会初始化为 `metadata.extractionStatus=pending`
+- 只有 `status=extracted` 的附件正文会被工作区 `context-pack` 读取
+- `status=pending/failed/unsupported` 不会进入 Agent 可读上下文
 - `metadata` 必须是 JSON object
 - 写入后的 `metadata.extractedText` 会被工作区 `context-pack` 读取，并进入 Agent 问答上下文
 
@@ -2883,7 +2919,7 @@
   ],
   "omitted": [],
   "warnings": [
-    "1 conversation file(s) only have metadata; binary content was not read"
+    "1 conversation file(s) are still pending text extraction"
   ],
   "agentContext": {
     "kind": "workspace_context_pack",
@@ -2900,7 +2936,10 @@
 - `contentKind=preview` 表示交付物只有预览文本可用。
 - `contentKind=description` 表示来自商品资产描述。
 - `contentKind=extracted_text` 表示会话附件 metadata 已经有可信抽取文本。
-- `contentKind=metadata_only` 表示附件只有文件名、对象 key、mime 等元数据；服务端没有读取二进制正文。
+- `contentKind=metadata_only` 表示附件只有文件名、对象 key、mime 等元数据；服务端没有可用抽取正文。
+- `contentKind=extraction_pending` 表示附件已上传但解析仍未完成。
+- `contentKind=extraction_failed` 表示附件解析失败；失败原因位于 `metadata.metadata.extraction.failureReason`。
+- `contentKind=extraction_unsupported` 表示当前解析 adapter 不支持该附件。
 - `contentKind=unavailable` 表示该来源没有可读文本。
 - 该接口不会读取 object storage，不做 OCR，不解析 PDF/图片/视频，也不会把二进制附件伪造成已读正文。
 - Agent SSE 会在 `workspace_context_loaded` 后自动调用该内容包能力，发送 `workspace_context_pack_loaded` 事件，并把可读文本追加进 runtime `context.summary`。

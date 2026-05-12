@@ -88,6 +88,7 @@ The following major foundations are already in place:
 - product lifecycle API
 - conversation file extraction registration API
 - workspace context summary / context pack / artifact export
+- conversation file extraction status contract for pending / extracted / failed / unsupported states
 - search evidence artifact persistence
 - agent skill run persistence and query API
 - multiple native skill migrations across ops / data / service / creative / web / design / accounting
@@ -223,22 +224,23 @@ Continue in this order:
 The latest completed slice is:
 
 ```text
-Post 8-42: engineering native reports
+Post 8-43: conversation file extraction status contract
 ```
 
 Scope:
 
-- convert engineering architecture review, bug analysis, performance optimization, and tech selection from skeleton outputs into native structured reports
-- normalize SLA monitor output with `status=success`, `has_data`, `adapter_status`, `data_readiness`, `summary`, and `data_boundary`
-- add workspace artifact mappings for engineering reports through the existing `WorkspaceApi::materialize_agent_content_artifact` path
-- preserve the boundary that this slice uses user input and built-in engineering rules, not real repository/log/APM/monitoring/benchmark adapters
+- extend the existing conversation file extraction API so it can record `pending`, `extracted`, `failed`, and `unsupported`
+- initialize newly registered conversation files with `metadata.extractionStatus=pending`
+- let `WorkspaceApi::context_pack` read text only from `extractionStatus=extracted`
+- expose `contentKind=extraction_pending/extraction_failed/extraction_unsupported` so Agent and frontend do not confuse unparsed files with readable material
+- keep the boundary that this slice does not implement OCR, PDF/Office parsing, image recognition, object storage reads, or parser workers
 
 Reason:
 
-- high product value for the engineering worker and technical diagnosis workflow
+- high product value for attachment/material ingestion and later OCR/parser adapters
 - backend-first
 - no new fake frontend needed
-- completes the same workspace artifact path for engineering deliverables while preserving honest disclosure when real technical telemetry is missing
+- continues the existing conversation file and workspace context-pack framework while preserving honest disclosure when binary content has not been parsed
 
 ## 10. Validation Standard
 

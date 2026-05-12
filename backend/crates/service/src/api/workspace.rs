@@ -1156,18 +1156,7 @@ impl WorkspaceApi {
             warnings.push("no active workspace context sources were found".to_string());
         }
         if counts.conversation_files > 0 {
-            let metadata_only_attachments = pack
-                .items
-                .iter()
-                .filter(|item| {
-                    item.source_type == "conversation_file" && item.content_kind == "metadata_only"
-                })
-                .count();
-            if metadata_only_attachments > 0 {
-                warnings.push(format!(
-                    "{metadata_only_attachments} conversation file(s) only have metadata; binary content was not read"
-                ));
-            }
+            warnings.extend(conversation_file_context_warnings(&pack.items));
         }
         if pack.readable_items == 0 && counts.total() > 0 {
             warnings.push(
@@ -4181,6 +4170,7 @@ struct WorkspaceContextPackCandidate {
     ref_key: String,
     content_kind: String,
     text: Option<String>,
+    extraction_status: Option<String>,
     metadata: Value,
 }
 
@@ -4197,7 +4187,20 @@ fn context_pack_conversation_file_candidate(
     item: ConversationFile,
 ) -> WorkspaceContextPackCandidate {
     let id = item.id.to_string();
-    let text = conversation_file_extracted_text(&item.metadata);
+    let extraction_status = conversation_file_extraction_status(&item.metadata);
+    let text = if extraction_status == "extracted" {
+        conversation_file_extracted_text(&item.metadata)
+    } else {
+        None
+    };
+    let content_kind = match (extraction_status.as_str(), text.is_some()) {
+        ("extracted", true) => "extracted_text".to_string(),
+        ("extracted", false) => "metadata_only".to_string(),
+        ("failed", _) => "extraction_failed".to_string(),
+        ("unsupported", _) => "extraction_unsupported".to_string(),
+        ("pending", _) => "extraction_pending".to_string(),
+        _ => "metadata_only".to_string(),
+    };
     WorkspaceContextPackCandidate {
         source_type: "conversation_file".to_string(),
         id: id.clone(),
@@ -4206,12 +4209,9 @@ fn context_pack_conversation_file_candidate(
             .clone()
             .or_else(|| Some(item.object_key.clone())),
         ref_key: format!("conversation_file:{id}"),
-        content_kind: if text.is_some() {
-            "extracted_text".to_string()
-        } else {
-            "metadata_only".to_string()
-        },
+        content_kind,
         text,
+        extraction_status: Some(extraction_status),
         metadata: json!({
             "conversationId": item.conversation_id,
             "messageId": item.message_id,
@@ -4243,6 +4243,7 @@ fn context_pack_product_asset_candidate(item: ProductAsset) -> WorkspaceContextP
             "unavailable".to_string()
         },
         text,
+        extraction_status: None,
         metadata: json!({
             "productId": item.product_id,
             "assetType": item.asset_type,
@@ -4265,6 +4266,7 @@ fn context_pack_product_material_candidate(item: ProductMaterial) -> WorkspaceCo
         ref_key: format!("product_material:{id}"),
         content_kind: "content".to_string(),
         text: normalize_string(item.content),
+        extraction_status: None,
         metadata: json!({
             "productId": item.product_id,
             "materialType": item.material_type,
@@ -4290,6 +4292,7 @@ fn context_pack_artifact_candidate(item: WorkspaceArtifact) -> WorkspaceContextP
         ref_key: format!("workspace_artifact:{id}"),
         content_kind,
         text,
+        extraction_status: None,
         metadata: json!({
             "workspaceId": item.workspace_id,
             "runId": item.run_id,
@@ -4331,6 +4334,36 @@ fn conversation_file_extracted_text(metadata: &Value) -> Option<String> {
     )
     .or_else(|| metadata_nested_text_field(metadata, "extraction"))
     .or_else(|| metadata_nested_text_field(metadata, "parsed"))
+}
+
+fn conversation_file_extraction_status(metadata: &Value) -> String {
+    metadata
+        .get("extractionStatus")
+        .and_then(Value::as_str)
+        .or_else(|| {
+            metadata
+                .get("extraction")
+                .and_then(|value| value.get("status"))
+                .and_then(Value::as_str)
+        })
+        .map(normalize_conversation_file_extraction_status)
+        .unwrap_or_else(|| {
+            if conversation_file_extracted_text(metadata).is_some() {
+                "extracted".to_string()
+            } else {
+                "pending".to_string()
+            }
+        })
+}
+
+fn normalize_conversation_file_extraction_status(value: &str) -> String {
+    match value.trim() {
+        "ready" | "success" | "extracted" => "extracted".to_string(),
+        "failed" | "error" => "failed".to_string(),
+        "unsupported" => "unsupported".to_string(),
+        "pending" | "queued" | "processing" => "pending".to_string(),
+        _ => "pending".to_string(),
+    }
 }
 
 fn metadata_nested_text_field(metadata: &Value, key: &str) -> Option<String> {
@@ -4647,10 +4680,58 @@ fn build_context_pack_items(
             text,
             text_chars,
             truncated,
-            metadata: candidate.metadata.clone(),
+            metadata: match &candidate.extraction_status {
+                Some(status) => merge_json_object(
+                    candidate.metadata.clone(),
+                    json!({ "extractionStatus": status }),
+                ),
+                None => candidate.metadata.clone(),
+            },
         });
     }
     pack
+}
+
+fn conversation_file_context_warnings(items: &[WorkspaceContextPackItemResponse]) -> Vec<String> {
+    let mut metadata_only = 0;
+    let mut pending = 0;
+    let mut failed = 0;
+    let mut unsupported = 0;
+    for item in items
+        .iter()
+        .filter(|item| item.source_type == "conversation_file")
+    {
+        match item.content_kind.as_str() {
+            "metadata_only" => metadata_only += 1,
+            "extraction_pending" => pending += 1,
+            "extraction_failed" => failed += 1,
+            "extraction_unsupported" => unsupported += 1,
+            _ => {}
+        }
+    }
+
+    let mut warnings = Vec::new();
+    if metadata_only > 0 {
+        warnings.push(format!(
+            "{metadata_only} conversation file(s) only have metadata; no extracted text was registered"
+        ));
+    }
+    if pending > 0 {
+        warnings.push(format!(
+            "{pending} conversation file(s) are still pending text extraction"
+        ));
+    }
+    if failed > 0 {
+        warnings.push(format!(
+            "{failed} conversation file(s) failed text extraction; see extraction.failureReason"
+        ));
+    }
+    if unsupported > 0 {
+        warnings.push(format!(
+            "{unsupported} conversation file(s) are not supported by the current extraction adapter"
+        ));
+    }
+    warnings
 }
 
 fn truncate_context_pack_text(
@@ -7338,6 +7419,7 @@ mod tests {
                 ref_key: "conversation_file:file-1".to_string(),
                 content_kind: "metadata_only".to_string(),
                 text: None,
+                extraction_status: Some("pending".to_string()),
                 metadata: json!({}),
             },
             WorkspaceContextPackCandidate {
@@ -7347,6 +7429,7 @@ mod tests {
                 ref_key: "product_material:material-1".to_string(),
                 content_kind: "content".to_string(),
                 text: Some("咖啡新品主打低糖和冷萃场景。".repeat(20)),
+                extraction_status: None,
                 metadata: json!({}),
             },
         ];
@@ -7370,6 +7453,7 @@ mod tests {
     fn context_pack_uses_attachment_text_only_from_safe_metadata() {
         let metadata = json!({
             "extraction": {
+                "status": "ready",
                 "summary": "附件里写了活动预算和目标 ROI。"
             }
         });
@@ -7379,6 +7463,89 @@ mod tests {
             Some("附件里写了活动预算和目标 ROI。".to_string())
         );
         assert!(conversation_file_extracted_text(&json!({"objectKey": "raw.pdf"})).is_none());
+    }
+
+    #[test]
+    fn context_pack_respects_attachment_extraction_status() {
+        let pending = context_pack_conversation_file_candidate(ConversationFile {
+            id: Uuid::new_v4(),
+            user_id: Uuid::new_v4(),
+            conversation_id: Uuid::new_v4(),
+            message_id: None,
+            bucket: "private".to_string(),
+            object_key: "chat/u/c/file.pdf".to_string(),
+            file_name: Some("file.pdf".to_string()),
+            mime_type: Some("application/pdf".to_string()),
+            file_size: Some(128),
+            sha256: None,
+            visibility: "private".to_string(),
+            storage_provider: "s3".to_string(),
+            status: "active".to_string(),
+            metadata: json!({
+                "extractionStatus": "pending",
+                "extraction": {
+                    "status": "pending",
+                    "text": "不应被读取"
+                }
+            }),
+            created_at: OffsetDateTime::now_utc(),
+            deleted_at: None,
+        });
+        assert_eq!(pending.content_kind, "extraction_pending");
+        assert!(pending.text.is_none());
+
+        let failed = context_pack_conversation_file_candidate(ConversationFile {
+            id: Uuid::new_v4(),
+            user_id: Uuid::new_v4(),
+            conversation_id: Uuid::new_v4(),
+            message_id: None,
+            bucket: "private".to_string(),
+            object_key: "chat/u/c/file.pdf".to_string(),
+            file_name: Some("file.pdf".to_string()),
+            mime_type: Some("application/pdf".to_string()),
+            file_size: Some(128),
+            sha256: None,
+            visibility: "private".to_string(),
+            storage_provider: "s3".to_string(),
+            status: "active".to_string(),
+            metadata: json!({
+                "extraction": {
+                    "status": "failed",
+                    "failureReason": "encrypted"
+                }
+            }),
+            created_at: OffsetDateTime::now_utc(),
+            deleted_at: None,
+        });
+        assert_eq!(failed.content_kind, "extraction_failed");
+        assert!(failed.text.is_none());
+
+        let extracted = context_pack_conversation_file_candidate(ConversationFile {
+            id: Uuid::new_v4(),
+            user_id: Uuid::new_v4(),
+            conversation_id: Uuid::new_v4(),
+            message_id: None,
+            bucket: "private".to_string(),
+            object_key: "chat/u/c/file.pdf".to_string(),
+            file_name: Some("file.pdf".to_string()),
+            mime_type: Some("application/pdf".to_string()),
+            file_size: Some(128),
+            sha256: None,
+            visibility: "private".to_string(),
+            storage_provider: "s3".to_string(),
+            status: "active".to_string(),
+            metadata: json!({
+                "extractionStatus": "extracted",
+                "extraction": {
+                    "status": "extracted",
+                    "text": "可读正文"
+                }
+            }),
+            created_at: OffsetDateTime::now_utc(),
+            deleted_at: None,
+        });
+        assert_eq!(extracted.content_kind, "extracted_text");
+        assert_eq!(extracted.text, Some("可读正文".to_string()));
     }
 
     #[test]
