@@ -174,7 +174,7 @@ pub async fn execute(
     input: Value,
     _context: &SkillContext,
 ) -> Result<SkillOutcome, SkillError> {
-    let value = match skill_name {
+    let mut value = match skill_name {
         "ops_pricing_strategy" => pricing_strategy(&input),
         "ops_promo_planning" => promo_planning(&input),
         "ops_channel_strategy" => channel_strategy(&input),
@@ -188,7 +188,68 @@ pub async fn execute(
         "ops_abc_xyz_classifier" => abc_xyz_classifier(&input),
         other => return Err(invalid_input(format!("unknown ops skill: {other}"))),
     };
+    normalize_ops_output(skill_name, &input, &mut value);
     Ok(outcome(value))
+}
+
+fn normalize_ops_output(skill_name: &str, input: &Value, output: &mut Value) {
+    let Some(map) = output.as_object_mut() else {
+        return;
+    };
+    if map.contains_key("status") {
+        return;
+    }
+
+    let has_data = output_has_data(map);
+    if !has_data {
+        map.insert("status".to_owned(), json!("deferred"));
+        map.insert("has_data".to_owned(), json!(false));
+        map.insert("adapter_status".to_owned(), json!("user_input_required"));
+        map.insert("data_readiness".to_owned(), json!("missing_user_input"));
+        map.insert("summary".to_owned(), json!(ops_summary(skill_name)));
+        return;
+    }
+
+    map.insert("status".to_owned(), json!("success"));
+    map.insert("has_data".to_owned(), json!(true));
+    map.insert("adapter_status".to_owned(), json!("manual_input"));
+    map.insert(
+        "data_readiness".to_owned(),
+        json!(ops_data_readiness(skill_name, input)),
+    );
+    map.insert("summary".to_owned(), json!(ops_summary(skill_name)));
+}
+
+fn output_has_data(map: &serde_json::Map<String, Value>) -> bool {
+    !matches!(map.get("has_data").and_then(Value::as_bool), Some(false))
+        && !map.contains_key("error")
+}
+
+fn ops_data_readiness(skill_name: &str, input: &Value) -> &'static str {
+    match skill_name {
+        "ops_pricing_strategy" if nums(input, "competitor_prices").is_empty() => {
+            "calculated_from_defaults"
+        }
+        "ops_listing_copy" if strings(input, "features").is_empty() => "calculated_from_defaults",
+        _ => "user_provided",
+    }
+}
+
+fn ops_summary(skill_name: &str) -> &'static str {
+    match skill_name {
+        "ops_promo_planning" => "促销策划方案已生成",
+        "ops_pricing_strategy" => "定价策略已生成",
+        "ops_channel_strategy" => "渠道策略已生成",
+        "ops_inventory_planning" => "库存规划已生成",
+        "ops_listing_copy" => "上架文案已生成",
+        "ops_assortment_planning" => "选品规划已生成",
+        "ops_execution_plan" => "运营执行计划已生成",
+        "ops_smart_pricing" => "智能定价方案已生成",
+        "ops_inventory_optimizer" => "库存优化方案已生成",
+        "ops_ad_fatigue_detector" => "广告疲劳检测报告已生成",
+        "ops_abc_xyz_classifier" => "ABC-XYZ库存分类报告已生成",
+        _ => "运营技能结果已生成",
+    }
 }
 
 fn pricing_strategy(input: &Value) -> Value {
@@ -1221,4 +1282,108 @@ fn demo_skus() -> Vec<Value> {
             json!({"sku_id": format!("SKU{:03}", i + 1), "gmv": round2(gmv), "sales_history": history})
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn assert_success_contract(output: &Value, summary: &str) {
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(output.get("has_data").and_then(Value::as_bool), Some(true));
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("manual_input")
+        );
+        assert_eq!(output.get("summary").and_then(Value::as_str), Some(summary));
+    }
+
+    #[tokio::test]
+    async fn ops_promo_planning_marks_success_for_user_input() {
+        let outcome = execute(
+            "ops_promo_planning",
+            json!({
+                "product": "冷萃咖啡",
+                "budget": 20000.0,
+                "platform": "抖音"
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops promo should run");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "促销策划方案已生成");
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("user_provided")
+        );
+        assert!(output.get("活动阶段").is_some());
+        assert!(output.get("KPI").is_some());
+    }
+
+    #[tokio::test]
+    async fn ops_pricing_strategy_discloses_default_competitor_prices() {
+        let outcome = execute(
+            "ops_pricing_strategy",
+            json!({
+                "cost": 42.0,
+                "platform": "淘宝"
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops pricing should run");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "定价策略已生成");
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("calculated_from_defaults")
+        );
+        assert!(output.get("竞品分析").is_some());
+    }
+
+    #[tokio::test]
+    async fn ops_listing_copy_defers_without_product_context() {
+        let outcome = execute("ops_listing_copy", json!({}), &SkillContext::default())
+            .await
+            .expect("ops listing should return deferred output");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("deferred")
+        );
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("user_input_required")
+        );
+        assert_eq!(output.get("has_data").and_then(Value::as_bool), Some(false));
+    }
+
+    #[tokio::test]
+    async fn ops_execution_plan_marks_success_for_goal() {
+        let outcome = execute(
+            "ops_execution_plan",
+            json!({
+                "goal": "提升新品首月GMV",
+                "stage": "冷启动"
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops execution should run");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "运营执行计划已生成");
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("user_provided")
+        );
+        assert!(output.get("30天执行计划").is_some());
+    }
 }

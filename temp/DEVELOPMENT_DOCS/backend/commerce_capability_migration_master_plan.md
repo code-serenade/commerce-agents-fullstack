@@ -223,21 +223,21 @@ Continue in this order:
 The current active slice is:
 
 ```text
-Post 8-34: service insight artifact materialization
+Post 8-35: ops core artifact materialization
 ```
 
 Scope:
 
-- persist successful `service_return_handler`, `service_nps_analyzer`, `service_sentiment_analyzer`, and `service_nps_driver_analysis` outputs as real workspace artifacts
-- standardize successful service insight outputs with `status=success`, `has_data=true`, `adapter_status=manual_input`, `data_readiness`, and `summary`
-- keep NPS and satisfaction driver default samples explicitly marked with `data_readiness=calculated_from_defaults`
+- persist successful `ops_promo_planning`, `ops_pricing_strategy`, `ops_channel_strategy`, `ops_inventory_planning`, `ops_listing_copy`, `ops_assortment_planning`, and `ops_execution_plan` outputs as real workspace artifacts
+- standardize core ops outputs through the existing `ops::execute` dispatch path with `status=success/deferred`, `has_data`, `adapter_status`, `data_readiness`, and `summary`
+- keep missing required user input as `deferred` so the product does not create fake operations artifacts
 
 Reason:
 
-- high product value for the service worker and customer insight workflow
+- high product value for the operations worker and business planning workflow
 - backend-first
 - no new fake frontend needed
-- extends the same workspace artifact path from service support playbooks to after-sales and customer insight reports while preserving honest disclosure when defaults are used
+- extends the same workspace artifact path from service/accounting/data reports to concrete operations deliverables while preserving honest disclosure when required input is missing
 
 ## 10. Validation Standard
 

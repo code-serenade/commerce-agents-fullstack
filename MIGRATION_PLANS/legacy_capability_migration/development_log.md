@@ -1,5 +1,45 @@
 # 迁移开发记录
 
+## Post 8-35：Ops 核心运营计划交付物真实沉淀
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 35 个补强项：`Post 8-35`。
+
+本次目标：
+
+- 把旧产品运营岗位中已经 native 化的核心计划类能力接入 workspace artifact 体系。
+- 让促销策划、定价策略、渠道策略、库存规划、上架文案、选品规划和运营执行计划成为可查询、可预览、可导出的运营交付物。
+
+涉及范围：
+
+- 产品内核：运营岗位从“当轮 skill 结果”推进到“可复用运营计划交付物”。
+- 后端 agent：在现有 `ops::execute` 统一出口补齐 `status=success/deferred`、`has_data`、`adapter_status`、`data_readiness` 和 `summary`，不另建运营执行器。
+- 后端 service：`WorkspaceApi::materialize_agent_content_artifact` 新增支持 `ops_promo_plan`、`ops_pricing_strategy`、`ops_channel_strategy`、`ops_inventory_plan`、`ops_listing_copy`、`ops_assortment_plan`、`ops_execution_plan`。
+- API/SSE 文档：同步 ops artifact 类型和缺少必要输入不创建假交付物的语义。
+
+用户可感知变化：
+
+- 用户让运营岗位生成促销方案、定价策略、渠道组合、库存规划、上架文案、选品组合或 30 天运营执行计划时，成功结果可以在当前 workspace 真实新增对应运营交付物。
+- 这些交付物沿用现有 artifact 列表、详情、预览和导出链路。
+- 如果缺少商品名称、商品 ID 等必要用户输入，后端返回 `deferred`，不会创建一个看似可用的假运营交付物。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p agent ops_promo_planning_marks_success_for_user_input -- --nocapture`
+- [x] `cargo test -p agent ops_pricing_strategy_discloses_default_competitor_prices -- --nocapture`
+- [x] `cargo test -p agent ops_listing_copy_defers_without_product_context -- --nocapture`
+- [x] `cargo test -p agent ops_execution_plan_marks_success_for_goal -- --nocapture`
+- [x] `cargo test -p service content_artifact_builds_from_ops_core_skill_output -- --nocapture`
+- [x] `cargo check -p agent`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo clippy -p agent -p service -p web-server`
+
 ## Post 8-34：Service 售后与客服洞察交付物真实沉淀
 
 状态：done

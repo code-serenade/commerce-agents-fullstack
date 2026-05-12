@@ -13,13 +13,13 @@
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
 | --- | --- | --- | --- | --- |
-| `ops_promo_planning` | `ops_promo_planning` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 当前已可 native 执行；本轮补强了活动/促销自然问法触达 |
-| `ops_pricing_strategy` | `ops_pricing_strategy` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已纳入岗位自动补偿规则，可由 ops 定价意图触发 |
-| `ops_channel_strategy` | `ops_channel_strategy` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 本轮补强了渠道/渠道分配/投放渠道等自然问法触达 |
-| `ops_inventory_planning` | `ops_inventory_planning` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已纳入岗位自动补偿规则，当前基于输入数字做本地规划 |
-| `ops_listing_copy` | `ops_listing_copy` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 本轮补强了上架文案/标题卖点/上新文案自然问法触达 |
-| `ops_assortment_planning` | `ops_assortment_planning` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 本轮补强了货盘/SKU组合/选品组合自然问法触达 |
-| `ops_execution_plan` | `ops_execution_plan` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已纳入岗位自动补偿规则，并有单测覆盖 |
+| `ops_promo_planning` | `ops_promo_planning` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 当前已可 native 执行；已补强活动/促销自然问法触达；Post 8-35：成功输出会沉淀为 `ops_promo_plan` artifact |
+| `ops_pricing_strategy` | `ops_pricing_strategy` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已纳入岗位自动补偿规则，可由 ops 定价意图触发；Post 8-35：成功输出会沉淀为 `ops_pricing_strategy` artifact |
+| `ops_channel_strategy` | `ops_channel_strategy` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已补强渠道/渠道分配/投放渠道等自然问法触达；Post 8-35：成功输出会沉淀为 `ops_channel_strategy` artifact |
+| `ops_inventory_planning` | `ops_inventory_planning` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已纳入岗位自动补偿规则，当前基于输入数字做本地规划；Post 8-35：成功输出会沉淀为 `ops_inventory_plan` artifact |
+| `ops_listing_copy` | `ops_listing_copy` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已补强上架文案/标题卖点/上新文案自然问法触达；Post 8-35：成功输出会沉淀为 `ops_listing_copy` artifact，缺商品上下文时 deferred |
+| `ops_assortment_planning` | `ops_assortment_planning` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已补强货盘/SKU组合/选品组合自然问法触达；Post 8-35：成功输出会沉淀为 `ops_assortment_plan` artifact |
+| `ops_execution_plan` | `ops_execution_plan` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已纳入岗位自动补偿规则，并有单测覆盖；Post 8-35：成功输出会沉淀为 `ops_execution_plan` artifact |
 
 ## 数据 data
 

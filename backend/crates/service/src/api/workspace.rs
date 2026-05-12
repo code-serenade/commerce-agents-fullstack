@@ -5100,6 +5100,48 @@ fn build_content_artifact_from_skill_output(
             "Service NPS driver report",
             "service NPS driver analysis artifact generated",
         ),
+        "ops_promo_planning" => (
+            "ops",
+            "ops_promo_plan",
+            "Ops promotion plan",
+            "ops promotion planning artifact generated",
+        ),
+        "ops_pricing_strategy" => (
+            "ops",
+            "ops_pricing_strategy",
+            "Ops pricing strategy",
+            "ops pricing strategy artifact generated",
+        ),
+        "ops_channel_strategy" => (
+            "ops",
+            "ops_channel_strategy",
+            "Ops channel strategy",
+            "ops channel strategy artifact generated",
+        ),
+        "ops_inventory_planning" => (
+            "ops",
+            "ops_inventory_plan",
+            "Ops inventory plan",
+            "ops inventory planning artifact generated",
+        ),
+        "ops_listing_copy" => (
+            "ops",
+            "ops_listing_copy",
+            "Ops listing copy",
+            "ops listing copy artifact generated",
+        ),
+        "ops_assortment_planning" => (
+            "ops",
+            "ops_assortment_plan",
+            "Ops assortment plan",
+            "ops assortment planning artifact generated",
+        ),
+        "ops_execution_plan" => (
+            "ops",
+            "ops_execution_plan",
+            "Ops execution plan",
+            "ops execution plan artifact generated",
+        ),
         _ => return None,
     };
 
@@ -6602,13 +6644,47 @@ mod tests {
     }
 
     #[test]
+    fn content_artifact_builds_from_ops_core_skill_output() {
+        let output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "data_readiness": "user_provided",
+            "summary": "促销策划方案已生成",
+            "商品": "冷萃咖啡",
+            "总预算": "¥20000.00",
+            "活动阶段": [
+                {"阶段": "预热期", "预算": "¥3000.00"}
+            ],
+            "KPI": {
+                "目标GMV": "¥100000.00"
+            }
+        });
+
+        let draft = build_content_artifact_from_skill_output("ops_promo_planning", &output)
+            .expect("ops core output should be materializable");
+
+        assert_eq!(draft.content_category, "ops");
+        assert_eq!(draft.artifact_type, "ops_promo_plan");
+        assert_eq!(draft.title, "Ops promotion plan");
+        assert_eq!(draft.file_name, "ops_promo_plan.md");
+        assert!(draft.preview.contains("促销策划方案已生成"));
+        assert!(draft.content.contains("# Ops promotion plan"));
+        assert!(
+            draft
+                .content
+                .contains("\"adapter_status\": \"manual_input\"")
+        );
+    }
+
+    #[test]
     fn content_artifact_ignores_non_supported_skill() {
         let output = json!({
             "status": "success",
             "summary": "not supported"
         });
 
-        assert!(build_content_artifact_from_skill_output("ops_promo_planning", &output).is_none());
+        assert!(build_content_artifact_from_skill_output("ops_unknown_skill", &output).is_none());
     }
 
     #[test]
