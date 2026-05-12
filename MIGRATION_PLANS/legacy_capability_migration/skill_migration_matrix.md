@@ -30,7 +30,7 @@
 | `data_trend_forecast` | `data_trend_forecast` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已纳入岗位自动补偿规则 |
 | `data_customer_segmentation` | `data_customer_segmentation` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已纳入岗位自动补偿规则，后续可接真实客户数据 |
 | `data_competitor_analysis` | `data_competitor_analysis` | native_ready | `backend/crates/agent/src/skills/data.rs` | 本轮补强了竞品/对标/竞对自然问法触达；后续可继续接 product_competitor 数据 |
-| `data_dashboard` | `data_dashboard` | native_ready | `backend/crates/agent/src/skills/data.rs` | Post 8-29：已迁为 Rust native 经营看板；有入参时按真实入参计算，无入参时明确 `store_metrics_required`，不伪造平台实时数据 |
+| `data_dashboard` | `data_dashboard` | native_ready | `backend/crates/agent/src/skills/data.rs` | Post 8-29：已迁为 Rust native 经营看板；有入参时按真实入参计算，无入参时明确 `store_metrics_required`，不伪造平台实时数据。Post 8-30：成功输出会沉淀为 `data_dashboard` workspace artifact |
 
 ## 搜索 search
 

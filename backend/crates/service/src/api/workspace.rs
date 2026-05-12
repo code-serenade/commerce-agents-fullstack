@@ -5004,6 +5004,12 @@ fn build_content_artifact_from_skill_output(
             "Campaign poster design brief",
             "design campaign poster artifact generated",
         ),
+        "data_dashboard" => (
+            "data",
+            "data_dashboard",
+            "Data dashboard",
+            "data dashboard artifact generated",
+        ),
         _ => return None,
     };
 
@@ -6340,6 +6346,40 @@ mod tests {
         assert_eq!(draft.file_name, "design_main_image_brief.md");
         assert!(draft.preview.contains("主图设计方案已生成"));
         assert!(draft.content.contains("# Main image design brief"));
+    }
+
+    #[test]
+    fn content_artifact_builds_from_data_dashboard_skill_output() {
+        let output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "summary": "经营看板已生成",
+            "核心指标": [
+                {"name": "GMV", "value": 128000.0, "unit": "CNY"},
+                {"name": "订单数", "value": 320, "unit": "orders"}
+            ],
+            "经营健康度": {
+                "score": 82,
+                "level": "healthy"
+            },
+            "下一步动作": ["复盘高转化渠道", "关注退款率"]
+        });
+
+        let draft = build_content_artifact_from_skill_output("data_dashboard", &output)
+            .expect("data dashboard output should be materializable");
+
+        assert_eq!(draft.content_category, "data");
+        assert_eq!(draft.artifact_type, "data_dashboard");
+        assert_eq!(draft.title, "Data dashboard");
+        assert_eq!(draft.file_name, "data_dashboard.md");
+        assert!(draft.preview.contains("经营看板已生成"));
+        assert!(draft.content.contains("# Data dashboard"));
+        assert!(
+            draft
+                .content
+                .contains("\"adapter_status\": \"manual_input\"")
+        );
     }
 
     #[test]

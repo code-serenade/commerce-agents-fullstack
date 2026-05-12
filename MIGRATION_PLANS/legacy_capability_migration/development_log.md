@@ -1,5 +1,40 @@
 # 迁移开发记录
 
+## Post 8-30：Data 数据看板交付物真实沉淀
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 30 个补强项：`Post 8-30`。
+
+本次目标：
+
+- 把 `data_dashboard` 的成功 skill 输出接入新产品已有 workspace artifact 体系。
+- 让数据看板不只停留在当轮问答过程里，而是成为可查询、可预览、可导出的工作区交付物。
+
+涉及范围：
+
+- 产品内核：数据岗位输出从一次性 skill 结果推进到可复用交付物。
+- 后端 service：`WorkspaceApi::materialize_agent_content_artifact` 新增支持 `data_dashboard`，生成 `artifactType=data_dashboard`、`contentCategory=data` 的 markdown 交付物。
+- API/SSE 文档：同步 `data_dashboard` 交付物类型、metadata 和 `workspace_artifact_created` 语义。
+
+用户可感知变化：
+
+- 用户要求“店铺大盘”“数据看板”“经营概览”“核心经营指标”并成功得到数据岗位输出后，当前 workspace 可以真实新增一个 `data_dashboard` 交付物。
+- 该交付物保留 `has_data` 和 `adapter_status`，如果缺少真实平台指标，前端仍应展示为“需要接入/补充真实经营数据”，不能伪装成实时平台看板。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p service content_artifact_builds_from_data_dashboard_skill_output -- --nocapture`
+- [x] `cargo test -p service content_artifact_builds_from_design_skill_output -- --nocapture`
+- [x] `cargo test -p service content_artifact_builds_from_creative_skill_output -- --nocapture`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo clippy -p service -p web-server`
+
 ## Post 8-29：Data 数据看板 native 化
 
 状态：done

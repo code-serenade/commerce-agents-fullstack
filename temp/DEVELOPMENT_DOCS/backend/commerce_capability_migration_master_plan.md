@@ -223,21 +223,21 @@ Continue in this order:
 The current active slice is:
 
 ```text
-Post 8-29: data dashboard native skill
+Post 8-30: data dashboard artifact materialization
 ```
 
 Scope:
 
-- turn `data_dashboard` from deferred placeholder into a native Agent data skill
-- return dashboard cards, health score, alerts, and next actions from deterministic backend rules
-- keep live platform metrics out of scope until a real store metrics adapter exists
+- persist successful `data_dashboard` skill output as a real workspace artifact
+- reuse `WorkspaceApi::materialize_agent_content_artifact` and existing `workspace_artifact_created` SSE event
+- keep live platform metrics, dashboard history tables, and frontend chart rendering out of scope until real adapters are connected
 
 Reason:
 
 - high product value for the data worker and business overview workflow
 - backend-first
 - no new fake frontend needed
-- strengthens the data layer while preserving honest degradation when live metrics are missing
+- turns the newly native data dashboard into a reusable workspace deliverable while preserving honest degradation when live metrics are missing
 
 ## 10. Validation Standard
 
