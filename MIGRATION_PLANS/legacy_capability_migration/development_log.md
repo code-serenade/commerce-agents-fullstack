@@ -1,5 +1,44 @@
 # 迁移开发记录
 
+## Post 8-41：Design 交付物契约补强
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 41 个补强项：`Post 8-41`。
+
+本次目标：
+
+- 把已经 native 化的设计类 skill 输出补齐为新产品统一成功契约。
+- 让主图 brief、详情页 brief、配色方案、素材规范和活动海报 brief 的 workspace artifact 物化路径更稳定。
+- 继续遵循新产品框架，不新增图片生成器、不新增前端假入口。
+
+涉及范围：
+
+- 产品内核：设计岗位从“能返回设计方案”进一步稳定为“能沉淀成可复用的设计交付物”。
+- 后端 Agent：`backend/crates/agent/src/skills/design.rs` 统一成功输出字段：`status=success`、`has_data=true`、`adapter_status=manual_input`、`data_readiness`、`summary`。
+- 后端 service：补充 `design_material_spec` artifact 物化测试，继续复用 `WorkspaceApi::materialize_agent_content_artifact`。
+- API/SSE：更新 `API_DOCS/app.md` 与 `API_DOCS/sse.md`，说明设计类 artifact 的输出边界。
+- 前端：本阶段不新增页面和假按钮；后续前端只需按已有 workspace artifact / SSE 事件展示真实设计 brief/spec。
+
+用户可感知变化：
+
+- 用户让设计岗位生成主图、详情页、配色、素材规范或活动海报方案时，成功结果会更稳定地进入当前 workspace 的交付物体系。
+- 如果主图、详情页或素材规范使用默认商品/平台规则，结果会带 `data_readiness=calculated_from_defaults`，前端可以明确提示“基于默认规则”。
+- 本阶段不会让用户误以为已经生成真实图片文件；当前沉淀的是可执行设计 brief 和素材规格。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p agent design_ -- --nocapture`
+- [x] `cargo test -p service content_artifact_builds_from_design_ -- --nocapture`
+- [x] `cargo check -p agent`
+- [x] `cargo check -p service`
+- [x] `cargo check -p web-server`
+- [x] `cargo clippy -p agent -p service -p web-server`
+
 ## Post 8-40：Creative 高级内容交付物真实沉淀
 
 状态：done

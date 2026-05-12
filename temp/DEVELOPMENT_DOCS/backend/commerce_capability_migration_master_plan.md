@@ -223,23 +223,23 @@ Continue in this order:
 The latest completed slice is:
 
 ```text
-Post 8-40: creative advanced artifact materialization
+Post 8-41: design artifact contract completion
 ```
 
 Scope:
 
-- normalize creative native output contracts in the existing `Skill` / `SkillExecutorSet` path with `status=success`, `has_data`, `adapter_status`, `data_readiness`, and `summary`
-- make existing creative artifact mappings effective for video scripts, seeding copy, IP branding, content calendars, live scripts, and product articles
-- persist successful `creative_trend_catch` and `creative_title_ctr_scorer` outputs as `creative_trend_report` and `creative_title_ctr_score` workspace artifacts
-- disclose default商品/排期/直播参数 through `data_readiness=calculated_from_defaults`
-- keep missing required creative parameters as validation errors so the product does not create fake creative artifacts
+- normalize design native output contracts in the existing `Skill` / `SkillExecutorSet` path with `status=success`, `has_data`, `adapter_status`, `data_readiness`, and `summary`
+- make existing design artifact mappings reliably effective for main image briefs, detail page briefs, color schemes, material specs, and campaign poster briefs
+- disclose default商品/平台规则 through `data_readiness=calculated_from_defaults`
+- keep missing required design parameters as validation errors so the product does not create fake design artifacts
+- preserve the boundary that this slice creates structured design briefs/specs, not generated image files
 
 Reason:
 
-- high product value for the creative worker and content production workflow
+- high product value for the design worker and material production workflow
 - backend-first
 - no new fake frontend needed
-- extends the same workspace artifact path to creative advanced deliverables while preserving honest disclosure when required input is missing
+- completes the same workspace artifact path for design deliverables while preserving honest disclosure when required input is missing
 
 ## 10. Validation Standard
 

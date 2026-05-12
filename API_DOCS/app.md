@@ -2263,6 +2263,7 @@
 - `metadata.contentCategory = creative`、`design`、`data`、`accounting`、`service`、`ops` 或 `web`
 - `metadata` 还包含 `artifactType`、`skillId`、`requestId`、`role`、`summary`
 - `creative_video_script`、`creative_seeding_copy`、`creative_ip_branding`、`creative_content_calendar`、`creative_live_script`、`creative_product_article`、`creative_trend_catch`、`creative_title_ctr_scorer` 成功输出会分别创建脚本、种草文案、IP定位、内容排期、直播脚本、产品软文、趋势报告和标题CTR评分交付物；使用默认商品/排期/直播参数时会以 `data_readiness=calculated_from_defaults` 明示，缺少必填参数时返回 validation error，不会创建假创意交付物
+- `design_main_image`、`design_detail_page`、`design_color_scheme`、`design_material_spec`、`design_campaign_poster` 成功输出会分别创建主图 brief、详情页 brief、配色方案、素材规范和活动海报 brief 交付物；主图、详情页或素材规范使用默认商品/平台规则时会以 `data_readiness=calculated_from_defaults` 明示，本阶段不生成真实图片文件，缺少必填参数时返回 validation error
 - 只有真实 `success` 的支持名单 skill 才会创建；不会为 deferred/pending_approval 结果伪造内容交付物
 - `data_dashboard` 会保留后端 skill 输出中的 `has_data`、`adapter_status`、指标分区、预警和下一步动作；如果 `adapter_status=store_metrics_required`，前端不能把该结果展示成平台实时数据
 - `data_funnel_report`、`data_channel_roi_report`、`data_refund_report` 只会在对应 data skill 有用户提供数据并返回 `status=success` 时创建；缺少数据时后端返回 `deferred`，不会创建假报告

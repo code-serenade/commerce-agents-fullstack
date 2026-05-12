@@ -219,8 +219,9 @@ macro_rules! native_design_skill {
                 $(let _ = string_param(&params, $required)?;)*
                 let mut normalized = Map::new();
                 $(normalized.insert($key.to_owned(), json!($value(&params)?));)*
-                Ok(SkillOutcome::new(design_native_output(&self.spec.id, &normalized))
-                    .with_summary(design_summary(&self.spec.id)))
+                let mut output = design_native_output(&self.spec.id, &normalized);
+                normalize_design_output(&self.spec.id, &params, &mut output);
+                Ok(SkillOutcome::new(output).with_summary(design_summary(&self.spec.id)))
             }
         }
     };
@@ -276,6 +277,49 @@ native_design_skill!(
     }
 );
 
+fn normalize_design_output(skill_id: &str, input: &Value, output: &mut Value) {
+    let Some(map) = output.as_object_mut() else {
+        return;
+    };
+    if map.contains_key("status") {
+        return;
+    }
+    map.insert("status".to_owned(), json!("success"));
+    map.insert("has_data".to_owned(), json!(true));
+    map.insert("adapter_status".to_owned(), json!("manual_input"));
+    map.insert(
+        "data_readiness".to_owned(),
+        json!(design_data_readiness(skill_id, input)),
+    );
+    map.insert("summary".to_owned(), json!(design_summary(skill_id)));
+}
+
+fn design_data_readiness(skill_id: &str, input: &Value) -> &'static str {
+    match skill_id {
+        "design_main_image" | "design_detail_page"
+            if !has_any_input(input, &["product_name", "product_id", "extra_requirements"]) =>
+        {
+            "calculated_from_defaults"
+        }
+        "design_material_spec" if !has_any_input(input, &["platforms", "product_id"]) => {
+            "calculated_from_defaults"
+        }
+        _ => "user_provided",
+    }
+}
+
+fn has_any_input(input: &Value, keys: &[&str]) -> bool {
+    keys.iter().any(|key| {
+        input.get(*key).is_some_and(|value| match value {
+            Value::Null => false,
+            Value::String(value) => !value.trim().is_empty(),
+            Value::Array(values) => !values.is_empty(),
+            Value::Object(values) => !values.is_empty(),
+            _ => true,
+        })
+    })
+}
+
 pub struct DesignMaterialSpec {
     spec: SkillSpec,
 }
@@ -305,7 +349,7 @@ impl Skill for DesignMaterialSpec {
         let platforms = optional_string_vec_param(&params, "platforms")?
             .unwrap_or_else(|| vec!["淘宝".to_owned(), "京东".to_owned(), "抖音".to_owned()]);
         let product_id = optional_i64_param(&params, "product_id")?;
-        Ok(SkillOutcome::new(json!({
+        let mut output = json!({
             "has_data": true,
             "执行模式": "native_design_spec",
             "数据来源": "用户输入 + 内置平台素材规格规则",
@@ -316,7 +360,9 @@ impl Skill for DesignMaterialSpec {
             "命名规范": "{platform}_{usage}_{product_or_campaign}_{size}_{version}",
             "交付清单": ["源文件", "平台上传图", "压缩备份", "文案备份", "验收截图"],
             "验收标准": ["画面主体清晰", "关键信息在安全区内", "文案无违规词", "导出文件符合平台体积限制", "移动端首屏可读"]
-        })).with_summary("素材规范已生成"))
+        });
+        normalize_design_output("design_material_spec", &params, &mut output);
+        Ok(SkillOutcome::new(output).with_summary("素材规范已生成"))
     }
 }
 
@@ -335,6 +381,7 @@ fn design_summary(skill_id: &str) -> &'static str {
         "design_main_image" => "主图设计方案已生成",
         "design_detail_page" => "详情页设计方案已生成",
         "design_color_scheme" => "品牌配色方案已生成",
+        "design_material_spec" => "素材规范已生成",
         "design_campaign_poster" => "活动海报设计方案已生成",
         _ => "设计方案已生成",
     }
@@ -585,5 +632,94 @@ fn color_psychology(tone: &str) -> &'static str {
         "蓝绿组合有利于表达效率、参数、理性和可信赖，适合数码、家电和功能型商品。"
     } else {
         "蓝绿橙组合兼顾信任、品质和行动提示，适合通用电商转化页面。"
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn assert_success_contract(output: &Value, summary: &str, readiness: &str) {
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(output.get("has_data").and_then(Value::as_bool), Some(true));
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("manual_input")
+        );
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some(readiness)
+        );
+        assert_eq!(output.get("summary").and_then(Value::as_str), Some(summary));
+    }
+
+    #[tokio::test]
+    async fn design_main_image_discloses_default_product() {
+        let outcome = DesignMainImage::new()
+            .run(json!({}), SkillContext::default())
+            .await
+            .expect("main image plan should run with defaults");
+
+        assert_success_contract(
+            &outcome.output,
+            "主图设计方案已生成",
+            "calculated_from_defaults",
+        );
+        assert_eq!(
+            outcome.output.get("商品").and_then(Value::as_str),
+            Some("主推商品")
+        );
+    }
+
+    #[tokio::test]
+    async fn design_color_scheme_marks_user_provided_tone() {
+        let outcome = DesignColorScheme::new()
+            .run(json!({"brand_tone": "科技感"}), SkillContext::default())
+            .await
+            .expect("color scheme should run with brand tone");
+
+        assert_success_contract(&outcome.output, "品牌配色方案已生成", "user_provided");
+        assert_eq!(
+            outcome.output.get("品牌调性").and_then(Value::as_str),
+            Some("科技感")
+        );
+    }
+
+    #[tokio::test]
+    async fn design_material_spec_discloses_default_platforms() {
+        let outcome = DesignMaterialSpec::new()
+            .run(json!({"usage": "主图套组"}), SkillContext::default())
+            .await
+            .expect("material spec should run with usage");
+
+        assert_success_contract(
+            &outcome.output,
+            "素材规范已生成",
+            "calculated_from_defaults",
+        );
+        assert!(
+            outcome
+                .output
+                .get("平台规格")
+                .and_then(Value::as_array)
+                .is_some_and(|items| items.len() == 3)
+        );
+    }
+
+    #[tokio::test]
+    async fn design_campaign_poster_marks_user_provided_campaign() {
+        let outcome = DesignCampaignPoster::new()
+            .run(json!({"campaign_name": "618大促"}), SkillContext::default())
+            .await
+            .expect("campaign poster should run with campaign name");
+
+        assert_success_contract(&outcome.output, "活动海报设计方案已生成", "user_provided");
+        assert_eq!(
+            outcome.output.get("活动名称").and_then(Value::as_str),
+            Some("618大促")
+        );
     }
 }

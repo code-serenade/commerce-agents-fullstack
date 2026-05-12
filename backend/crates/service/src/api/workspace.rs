@@ -6676,6 +6676,36 @@ mod tests {
     }
 
     #[test]
+    fn content_artifact_builds_from_design_material_skill_output() {
+        let output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "data_readiness": "calculated_from_defaults",
+            "summary": "素材规范已生成",
+            "用途": "主图套组",
+            "平台规格": [
+                {"平台": "淘宝", "建议尺寸": "800x800"}
+            ]
+        });
+
+        let draft = build_content_artifact_from_skill_output("design_material_spec", &output)
+            .expect("design material output should be materializable");
+
+        assert_eq!(draft.content_category, "design");
+        assert_eq!(draft.artifact_type, "design_material_spec");
+        assert_eq!(draft.title, "Design material spec");
+        assert_eq!(draft.file_name, "design_material_spec.md");
+        assert!(draft.preview.contains("素材规范已生成"));
+        assert!(draft.content.contains("# Design material spec"));
+        assert!(
+            draft
+                .content
+                .contains("\"adapter_status\": \"manual_input\"")
+        );
+    }
+
+    #[test]
     fn content_artifact_builds_from_data_dashboard_skill_output() {
         let output = json!({
             "status": "success",
