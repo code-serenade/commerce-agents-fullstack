@@ -7,6 +7,7 @@ import {
   getWorkspaceApi,
   getWorkspaceRunApi,
   listExecutionQueueApi,
+  listAgentSkillRunsApi,
   listWorkspaceArtifactsApi,
   listWorkspaceRunsApi,
   listWorkspaceRunTasksApi,
@@ -94,6 +95,18 @@ export function useWorkspaceQueries({
     enabled: Boolean(workspaceId && selectedRun?.id),
     queryFn: () => listWorkspaceRunTasksApi(workspaceId!, selectedRun!.id),
   })
+  const skillRunsQuery = useQuery({
+    queryKey: [
+      ...workspacesQueryKey,
+      workspaceId,
+      "runs",
+      selectedRun?.id,
+      "skill-runs",
+    ],
+    enabled: Boolean(workspaceId && selectedRun?.id),
+    queryFn: () =>
+      listAgentSkillRunsApi(workspaceId!, selectedRun!.id, { pageSize: 100 }),
+  })
   const artifactsQuery = useQuery({
     queryKey: [...workspacesQueryKey, workspaceId, "artifacts"],
     enabled: Boolean(workspaceId),
@@ -173,6 +186,7 @@ export function useWorkspaceQueries({
       executionQueueQuery.isLoading ||
       executionDetailQuery.isLoading ||
       runTasksQuery.isLoading ||
+      skillRunsQuery.isLoading ||
       artifactsQuery.isLoading ||
       artifactDetailQuery.isLoading ||
       artifactExportQuery.isLoading,
@@ -181,6 +195,7 @@ export function useWorkspaceQueries({
     selectedArtifact,
     selectedRun,
     selectedWorkspace,
+    skillRuns: skillRunsQuery.data?.skillRuns ?? [],
     tasks: tasksQuery.data?.tasks ?? [],
     workspaces,
   }

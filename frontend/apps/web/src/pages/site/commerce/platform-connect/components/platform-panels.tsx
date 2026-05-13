@@ -1,5 +1,6 @@
 export { PlatformConnectionsPanel } from "./platform-connections-panel"
 export { PlatformExecutionAdaptersPanel } from "./platform-execution-adapters-panel"
+export { PlatformExternalSearchPanel } from "./platform-external-search-panel"
 export { PlatformMetrics } from "./platform-metrics"
 export { PlatformMetricsPanel } from "./platform-metrics-panel"
 export { PlatformSupportPanel } from "./platform-support-panel"

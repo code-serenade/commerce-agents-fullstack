@@ -361,6 +361,51 @@ export interface AgentSkillRunListResponse extends JsonRecord {
   agentContext?: JsonRecord
 }
 
+export interface ExternalSearchStatusResponse extends JsonRecord {
+  adapter: string
+  enabled: boolean
+  configured: boolean
+  provider?: string | null
+  requiredConfig?: string | null
+  status: string
+}
+
+export interface ExternalSearchSourceResponse extends JsonRecord {
+  rank: number
+  title: string
+  snippet: string
+  url: string
+  domain: string
+  publishedAt?: string | null
+}
+
+export interface ExternalSearchProvenanceResponse extends JsonRecord {
+  sourceCount: number
+  domainCount: number
+  domains: string[]
+  publishedCount: number
+  latestPublishedAt?: string | null
+}
+
+export interface ExternalSearchResponse extends JsonRecord {
+  adapter: string
+  key: string
+  status: string
+  query: string
+  engine?: string | null
+  requestedAt: string
+  topic: string
+  freshnessDays: number
+  confidence: number
+  provenance: ExternalSearchProvenanceResponse
+  data: {
+    items: ExternalSearchSourceResponse[]
+  }
+  notice?: string | null
+  degraded: boolean
+  degradedReason?: string | null
+}
+
 export interface WorkspaceArtifactResponse extends JsonRecord {
   id: string
   workspaceId: string
@@ -1481,6 +1526,26 @@ export const listAgentSkillRunsApi = async (
     method: "GET",
     url: `/api/app/workspaces/${workspaceId}/runs/${runId}/skill-runs`,
     body: defaultListQuery(query),
+  })
+
+export const getExternalSearchStatusApi =
+  async (): Promise<ExternalSearchStatusResponse> =>
+    request<undefined, ExternalSearchStatusResponse>({
+      method: "GET",
+      url: "/api/app/external-search/status",
+    })
+
+export const queryExternalSearchApi = async (query: {
+  q: string
+  topic?: string
+  days?: number
+  maxResults?: number
+  bypassCache?: boolean
+}): Promise<ExternalSearchResponse> =>
+  request<typeof query, ExternalSearchResponse>({
+    method: "GET",
+    url: "/api/app/external-search/search",
+    body: query,
   })
 
 export const createWorkspaceRunTaskApi = async (

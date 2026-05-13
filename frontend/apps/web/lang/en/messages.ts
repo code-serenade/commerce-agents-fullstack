@@ -470,6 +470,8 @@ const messages = {
         artifactRun: "Run",
         artifactExport: "Export format",
         artifactExportSize: "Export chars",
+        skillRuns: "Skill run records",
+        skillRunsDesc: "Reads Agent skill execution records persisted by the backend, so each run shows which real capabilities were called",
       },
       actions: {
         copyExport: "Copy export",
@@ -485,6 +487,9 @@ const messages = {
         artifact: "Artifact",
         validation: "Validation",
         suggestion: "Suggested action",
+        skill: "Capability",
+        executionMode: "Execution mode",
+        summary: "Summary",
       },
       empty: {
         tasks: "No tasks",
@@ -494,6 +499,7 @@ const messages = {
         artifactDetail: "Select an artifact to view detail",
         artifactContent: "No content or preview saved by backend",
         executions: "No execution suggestions",
+        skillRuns: "No skill run records for the current run",
       },
       dialogs: {
         workspace: "Create workspace",
@@ -547,6 +553,9 @@ const messages = {
         executionAdapters: "Platform execution capabilities",
         executionAdaptersDesc:
           "Readonly backend contract for high-risk platform write adapters and approval readiness",
+        externalSearch: "External search status",
+        externalSearchDesc:
+          "Reads the backend external-search adapter status. If it is not configured, the frontend shows it as unavailable instead of fabricating sources.",
       },
       columns: {
         metric: "Metric",
@@ -566,10 +575,17 @@ const messages = {
         canExecuteNow: "Backend says executable now",
         dispatchPending: "Approval required; no fake success when real adapter is missing",
       },
+      externalSearch: {
+        status: "Status",
+        provider: "Provider",
+        enabled: "Enabled",
+        configured: "Configured",
+      },
       empty: {
         supportedPlatforms: "No supported platform config",
         supportedChannels: "No supported channels",
         executionAdapters: "No platform execution capabilities",
+        externalSearch: "No external search status loaded",
         platformConnections: "No platform connections",
         channelConnections: "No channel connections",
         metrics: "No local metrics",

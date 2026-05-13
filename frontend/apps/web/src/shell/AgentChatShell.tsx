@@ -330,7 +330,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
                 {
                   icon: <UserRound />,
                   label: t("web.shell.account.actions.profile"),
-                  onSelect: () => chat.startNewConversation(),
+                  onSelect: () => navigate("/profile"),
                 },
               ]
             : [

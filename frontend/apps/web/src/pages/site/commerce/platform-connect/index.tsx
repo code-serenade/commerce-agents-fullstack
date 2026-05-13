@@ -9,6 +9,7 @@ import { PlatformDialogs } from "./components/platform-dialogs"
 import {
   PlatformConnectionsPanel,
   PlatformExecutionAdaptersPanel,
+  PlatformExternalSearchPanel,
   PlatformMetrics,
   PlatformMetricsPanel,
   PlatformSupportPanel,
@@ -35,6 +36,7 @@ export default function PlatformConnectPage() {
         />
         <PlatformMetrics items={page.metricCards} />
         <PlatformSupportPanel page={page} />
+        <PlatformExternalSearchPanel page={page} />
         <PlatformExecutionAdaptersPanel page={page} />
         <PlatformConnectionsPanel page={page} />
         <PlatformMetricsPanel page={page} />

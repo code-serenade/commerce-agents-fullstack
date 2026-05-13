@@ -470,6 +470,8 @@ const messages = {
         artifactRun: "运行",
         artifactExport: "导出格式",
         artifactExportSize: "导出字数",
+        skillRuns: "Skill 调用记录",
+        skillRunsDesc: "读取后端已保存的 Agent skill 执行记录，用于解释每次运行实际调用了哪些能力",
       },
       actions: {
         copyExport: "复制导出",
@@ -485,6 +487,9 @@ const messages = {
         artifact: "交付物",
         validation: "校验",
         suggestion: "建议动作",
+        skill: "能力",
+        executionMode: "执行模式",
+        summary: "摘要",
       },
       empty: {
         tasks: "还没有任务",
@@ -494,6 +499,7 @@ const messages = {
         artifactDetail: "选择交付物后查看详情",
         artifactContent: "后端暂未保存正文或预览",
         executions: "还没有执行建议",
+        skillRuns: "当前运行还没有 skill 调用记录",
       },
       dialogs: {
         workspace: "新建工作区",
@@ -546,6 +552,8 @@ const messages = {
         syncDesc: "连接状态和最近指标日期",
         executionAdapters: "平台执行能力",
         executionAdaptersDesc: "只读展示高风险平台写 adapter 和审批可执行边界",
+        externalSearch: "外部搜索状态",
+        externalSearchDesc: "读取后端 external-search adapter 状态；未配置时前端明确显示不可用，不伪造搜索来源",
       },
       columns: {
         metric: "指标",
@@ -565,10 +573,17 @@ const messages = {
         canExecuteNow: "后端判断当前可执行",
         dispatchPending: "需审批，真实 adapter 未接入时不会执行成功",
       },
+      externalSearch: {
+        status: "状态",
+        provider: "服务商",
+        enabled: "已启用",
+        configured: "配置完整",
+      },
       empty: {
         supportedPlatforms: "没有支持的平台配置",
         supportedChannels: "没有支持的触达渠道",
         executionAdapters: "没有平台执行能力",
+        externalSearch: "未读取到外部搜索状态",
         platformConnections: "还没有平台连接",
         channelConnections: "还没有渠道连接",
         metrics: "还没有本地指标",

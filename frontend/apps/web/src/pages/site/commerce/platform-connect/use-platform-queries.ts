@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import {
+  getExternalSearchStatusApi,
   getPlatformSummaryApi,
   getPlatformSyncStatusApi,
   listChannelConnectionsApi,
@@ -45,9 +46,14 @@ export function usePlatformQueries() {
     queryKey: [...platformQueryKey, "summary"],
     queryFn: getPlatformSummaryApi,
   })
+  const externalSearchStatusQuery = useQuery({
+    queryKey: [...platformQueryKey, "external-search-status"],
+    queryFn: getExternalSearchStatusApi,
+  })
 
   return {
     channelConnections: channelConnectionsQuery.data?.connections ?? [],
+    externalSearchStatus: externalSearchStatusQuery.data ?? null,
     loading:
       supportedPlatformsQuery.isLoading ||
       platformConnectionsQuery.isLoading ||
@@ -56,7 +62,8 @@ export function usePlatformQueries() {
       channelConnectionsQuery.isLoading ||
       metricsQuery.isLoading ||
       syncStatusQuery.isLoading ||
-      summaryQuery.isLoading,
+      summaryQuery.isLoading ||
+      externalSearchStatusQuery.isLoading,
     metrics: metricsQuery.data?.metrics ?? [],
     platformExecutionAdapters: executionAdaptersQuery.data?.adapters ?? [],
     platformConnections: platformConnectionsQuery.data?.connections ?? [],
