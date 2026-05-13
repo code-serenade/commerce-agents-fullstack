@@ -18,7 +18,7 @@ export function CollapsedWorkbenchHandle({
   const progress = getCollapsedWorkbenchProgress(runtimeEvents)
   const hasFailure = runtimeEvents.some((event) => event.type === "task_node_failed")
   const isDone = runtimeEvents.some((event) => event.type === "task_graph_finished")
-  const label = t("agentChat.workbench.expand")
+  const label = `${t("agentChat.workbench.expand")} ${progress}`
 
   return (
     <div className="pointer-events-none absolute right-4 top-4 z-20 flex min-h-0 min-w-0 items-start justify-end min-[1180px]:static min-[1180px]:justify-center">
@@ -41,9 +41,6 @@ export function CollapsedWorkbenchHandle({
               }
             />
           )}
-        </span>
-        <span className="hidden font-mono text-[11px] text-muted-foreground min-[1500px]:block">
-          {progress}
         </span>
         <PanelRightOpen className="size-4 text-muted-foreground" />
       </button>
