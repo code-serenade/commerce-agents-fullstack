@@ -303,6 +303,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
             title={activeConversation?.title ?? t("agentChat.shell.topbarTitle")}
             meta={t("agentChat.shell.topbarMeta")}
             leading={<GitBranch className="size-5" />}
+            showSidebarTrigger={false}
             trailing={trailing}
           />
         }

@@ -882,8 +882,12 @@ impl WorkspaceApi {
             self.ensure_conversation_owner(user_id, conversation_id)
                 .await?;
         }
-        let product_id =
-            parse_optional_uuid(req.product_id, "product_id")?.or(workspace.product_id);
+        let requested_product_id = parse_optional_uuid(req.product_id, "product_id")?;
+        let product_id = if req.include_workspace_product_context {
+            requested_product_id.or(workspace.product_id)
+        } else {
+            requested_product_id
+        };
         if let Some(product_id) = product_id {
             self.ensure_active_product_owner(user_id, product_id)
                 .await?;
@@ -1052,8 +1056,12 @@ impl WorkspaceApi {
             self.ensure_conversation_owner(user_id, conversation_id)
                 .await?;
         }
-        let product_id =
-            parse_optional_uuid(req.product_id, "product_id")?.or(workspace.product_id);
+        let requested_product_id = parse_optional_uuid(req.product_id, "product_id")?;
+        let product_id = if req.include_workspace_product_context {
+            requested_product_id.or(workspace.product_id)
+        } else {
+            requested_product_id
+        };
         if let Some(product_id) = product_id {
             self.ensure_active_product_owner(user_id, product_id)
                 .await?;

@@ -1,4 +1,4 @@
-import { ShoppingBag } from "lucide-react"
+import { Check, ShoppingBag } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type { AgentChatProductContextSelection } from "../domain/agent-chat-context-selection"
 
@@ -21,7 +21,7 @@ export function AgentChatProductContextBar({
 
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-2">
-      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <span className="flex items-center gap-1.5 text-xs font-medium text-foreground">
         <ShoppingBag className="size-3.5" />
         {t("agentChat.composer.productContext.label")}
       </span>
@@ -30,15 +30,22 @@ export function AgentChatProductContextBar({
           {t("agentChat.composer.productContext.loading")}
         </span>
       ) : availableProducts.length ? (
-        availableProducts.slice(0, 5).map((product) => (
-          <ProductContextButton
-            key={product.id}
-            disabled={disabled}
-            onToggleProductContext={onToggleProductContext}
-            product={product}
-            selected={selectedProducts.some((item) => item.id === product.id)}
-          />
-        ))
+        <>
+          {selectedProducts.length === 0 ? (
+            <span className="rounded-full border border-dashed border-border bg-background/60 px-3 py-1.5 text-xs text-muted-foreground">
+              {t("agentChat.composer.productContext.noneSelected")}
+            </span>
+          ) : null}
+          {availableProducts.slice(0, 8).map((product) => (
+            <ProductContextButton
+              key={product.id}
+              disabled={disabled}
+              onToggleProductContext={onToggleProductContext}
+              product={product}
+              selected={selectedProducts.some((item) => item.id === product.id)}
+            />
+          ))}
+        </>
       ) : (
         <span className="rounded-full border border-dashed border-border bg-background/60 px-3 py-1.5 text-xs text-muted-foreground">
           {t("agentChat.composer.productContext.empty")}
@@ -71,7 +78,11 @@ function ProductContextButton({
       }`}
       title={product.name}
     >
-      <span className="size-1.5 shrink-0 rounded-full bg-current" />
+      {selected ? (
+        <Check className="size-3.5 shrink-0" />
+      ) : (
+        <span className="size-1.5 shrink-0 rounded-full bg-current" />
+      )}
       <span className="truncate">{product.name}</span>
     </button>
   )

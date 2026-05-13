@@ -1,5 +1,39 @@
 # 阶段验收记录
 
+## Post 8-54：问答商品上下文显式选择与工作台遮挡修正
+
+状态：done
+
+验收项：
+
+- [x] SSE 问答链路未选择商品时，不再通过关键词隐式检索并注入商品上下文。
+- [x] SSE 问答链路不再把工作区绑定商品当作本轮默认商品。
+- [x] 普通工作区 context summary / context pack API 保留原有工作区商品回退能力。
+- [x] API 文档明确“未指定商品”和“显式选择商品”是两条不同链路。
+- [x] 前端商品选择入口显示“未指定商品”，并可读取 `active/listing/draft` 商品。
+- [x] 左上角折叠入口去重。
+- [x] 右侧虚拟员工工作区不再以浮层遮挡正文。
+- [x] 过程卡片显示在用户提问和助手正文之间。
+- [x] 过程卡片运行中展开，结束后默认折叠，用户可手动展开。
+- [x] `cargo fmt`
+- [x] `cargo check`
+- [x] `cargo clippy`
+- [x] `cargo test -p service agent_context`
+- [x] `cargo test -p service workspace::tests::context`
+- [x] `pnpm -C frontend/apps/web lint`
+- [x] `pnpm -C frontend/apps/web rules`
+- [x] `pnpm -C frontend/apps/web test`
+- [x] `pnpm -C frontend/apps/web build`
+- [x] `pnpm -C frontend rules`
+- [x] `git diff --check`
+
+当前说明：
+
+- 本轮重点修正用户已经指出的问答链路和界面遮挡问题。
+- 商品上下文严格改为用户手动选择后才进入回答；未选择商品时按普通电商问题处理。
+- 前端仍基于同事给的 `SidebarShell`、现有 agent-chat 页面组件和 app 页面装配实现，没有新增第二套 UI 框架。
+- Codex 内置浏览器插件本轮因 Windows 会话凭据错误无法截图接管，已打开 Edge 到本地产品页面供人工试用。
+
 ## Post 8-53：问答工作台折叠收纳与演示清爽化
 
 状态：done

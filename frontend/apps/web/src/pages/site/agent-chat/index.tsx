@@ -19,7 +19,9 @@ export default function AgentChatPage() {
   const layoutClassName = [
     "relative grid min-h-0 w-full flex-1 grid-cols-1 gap-3 p-2 sm:p-3",
     shouldShowProcessPanel
-      ? "overflow-hidden min-[1280px]:grid-cols-[minmax(34rem,1fr)_minmax(25rem,0.68fr)] min-[1440px]:grid-cols-[minmax(40rem,1.12fr)_minmax(32rem,0.88fr)] min-[1680px]:grid-cols-[minmax(48rem,1.18fr)_minmax(36rem,0.82fr)]"
+      ? "overflow-hidden min-[1180px]:grid-cols-[minmax(0,1fr)_minmax(24rem,0.52fr)] min-[1440px]:grid-cols-[minmax(0,1.05fr)_minmax(30rem,0.65fr)] min-[1680px]:grid-cols-[minmax(0,1.18fr)_minmax(34rem,0.72fr)]"
+      : canExpandProcessPanel
+        ? "overflow-hidden min-[1180px]:grid-cols-[minmax(0,1fr)_3.75rem]"
       : "overflow-hidden",
   ].join(" ")
 
@@ -74,7 +76,7 @@ export default function AgentChatPage() {
           />
         </section>
         {shouldShowProcessPanel ? (
-          <div className="absolute inset-y-2 right-2 z-20 w-[min(42rem,calc(100%-1rem))] shadow-2xl shadow-black/20 min-[1280px]:static min-[1280px]:h-full min-[1280px]:max-h-full min-[1280px]:min-h-0 min-[1280px]:w-auto min-[1280px]:shadow-none">
+          <div className="min-h-0 min-w-0 overflow-hidden max-[1179px]:min-h-124">
             <AgentChatSwarmPanel
               feedback={chat.feedback}
               isStreaming={chat.isStreaming}

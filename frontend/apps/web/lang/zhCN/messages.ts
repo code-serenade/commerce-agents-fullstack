@@ -898,6 +898,8 @@ const messages = {
         label: "后端商品上下文",
         loading: "正在读取商品",
         empty: "暂无可用商品",
+        noneSelected: "未指定商品",
+        choose: "选择预设商品",
       },
       playbooks: {
         loading: "正在读取场景",
@@ -1034,6 +1036,8 @@ const messages = {
         pending: "待生成",
       },
       currentProgress: "当前进度 {{completed}}/{{total}}",
+      collapseProcess: "折叠执行过程",
+      expandProcess: "展开执行过程",
       actions: {
         copy: "复制",
         useful: "有用",

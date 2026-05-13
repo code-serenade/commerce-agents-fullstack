@@ -80,7 +80,7 @@ export function AgentChatSettingsPanel({
   const selectedProductLabel =
     selectedProducts.length > 0
       ? selectedProducts.map((product) => product.name).join(" / ")
-      : t("agentChat.composer.productContext.empty")
+      : t("agentChat.composer.productContext.noneSelected")
   const runtimeLabel = [
     runtimeSelection.modelName,
     runtimeSelection.primaryRole,
@@ -96,15 +96,30 @@ export function AgentChatSettingsPanel({
   return (
     <>
       <div className="flex min-w-0 items-center justify-between gap-2 rounded-xl bg-background px-3 py-2">
-        <div className="min-w-0 text-xs text-muted-foreground">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
           <span className="font-medium text-foreground">
             {activeStrategyLabel}
           </span>
-          <span className="mx-1.5">·</span>
-          <span className="truncate">{selectedProductLabel}</span>
+          <span>·</span>
+          <button
+            type="button"
+            disabled={isStreaming}
+            onClick={() => {
+              if (!isOpen) onToggleOpen()
+            }}
+            className="inline-flex max-w-56 min-w-0 items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            title={t("agentChat.composer.productContext.choose")}
+          >
+            <span
+              className={`size-1.5 shrink-0 rounded-full ${
+                selectedProducts.length ? "bg-emerald-500" : "bg-muted-foreground/50"
+              }`}
+            />
+            <span className="truncate">{selectedProductLabel}</span>
+          </button>
           {runtimeLabel ? (
             <>
-              <span className="mx-1.5">·</span>
+              <span>·</span>
               <span className="hidden sm:inline">{runtimeLabel}</span>
             </>
           ) : null}
@@ -122,17 +137,17 @@ export function AgentChatSettingsPanel({
       </div>
       {isOpen ? (
         <div className="grid gap-2 rounded-xl border border-border bg-background/80 p-2">
-          <AgentChatStrategyBar
-            disabled={isStreaming}
-            onStrategyChange={onStrategyChange}
-            strategyId={strategyId}
-          />
           <AgentChatProductContextBar
             availableProducts={availableProducts}
             disabled={isStreaming}
             isLoadingProducts={isLoadingProducts}
             onToggleProductContext={onToggleProductContext}
             selectedProducts={selectedProducts}
+          />
+          <AgentChatStrategyBar
+            disabled={isStreaming}
+            onStrategyChange={onStrategyChange}
+            strategyId={strategyId}
           />
           <AgentChatRuntimeOptionsBar
             disabled={isStreaming}

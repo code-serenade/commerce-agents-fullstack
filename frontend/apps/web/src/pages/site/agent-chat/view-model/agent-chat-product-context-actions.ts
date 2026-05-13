@@ -23,11 +23,20 @@ export function loadAgentChatProductContext(
   isCancelled: () => boolean
 ) {
   state.setIsLoadingProducts(true)
-  return agentChatData
-    .listProducts({ status: "active" })
-    .then((products) => {
+  return Promise.all([
+    agentChatData.listProducts({ status: "active" }),
+    agentChatData.listProducts({ status: "listing" }),
+    agentChatData.listProducts({ status: "draft" }),
+  ])
+    .then((productGroups) => {
       if (isCancelled()) return
-      const mapped = products.map(mapProductToContextSelection)
+      const products = productGroups.flat()
+      const mapped = products
+        .map(mapProductToContextSelection)
+        .filter(
+          (product, index, items) =>
+            items.findIndex((item) => item.id === product.id) === index
+        )
       state.setAvailableProducts(mapped)
       state.setSelectedProducts((current) =>
         current.filter((selected) =>

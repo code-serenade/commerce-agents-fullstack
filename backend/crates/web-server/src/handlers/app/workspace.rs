@@ -665,6 +665,7 @@ pub async fn get_workspace_context_summary(
             workspace_id,
             conversation_id: req.conversation_id,
             product_id: req.product_id,
+            include_workspace_product_context: true,
             run_id: req.run_id,
         })
         .await
@@ -685,6 +686,7 @@ pub async fn get_workspace_context_pack(
             workspace_id,
             conversation_id: req.conversation_id,
             product_id: req.product_id,
+            include_workspace_product_context: true,
             run_id: req.run_id,
             max_items: req.max_items,
             max_chars: req.max_chars,

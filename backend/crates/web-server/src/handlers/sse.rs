@@ -98,12 +98,15 @@ pub async fn stream_agent_session(
             query: input.clone(),
             product_ids: context_selection.product_ids.clone(),
             context_refs: context_selection.context_refs.clone(),
+            allow_implicit_products: false,
             limit: Some(8),
         })
         .await
         .map_err(from_biz_error)?;
-    merge_agent_retrieval_metadata(&mut metadata, &retrieval_context)
-        .map_err(|err| Error::Custom(format!("agent retrieval metadata failed: {err}")))?;
+    if !context_selection.is_empty() {
+        merge_agent_retrieval_metadata(&mut metadata, &retrieval_context)
+            .map_err(|err| Error::Custom(format!("agent retrieval metadata failed: {err}")))?;
+    }
 
     let workspace_api = WorkspaceApi::new(get_app_ctx());
     let linked_workspace = workspace_api
@@ -132,6 +135,7 @@ pub async fn stream_agent_session(
             workspace_id: linked_workspace.workspace.id.clone(),
             conversation_id,
             product_id: selected_product_id,
+            include_workspace_product_context: false,
             run_id: None,
         })
         .await
@@ -144,6 +148,7 @@ pub async fn stream_agent_session(
             workspace_id: linked_workspace.workspace.id.clone(),
             conversation_id: workspace_context.conversation_id.clone(),
             product_id: workspace_context.product_id.clone(),
+            include_workspace_product_context: false,
             run_id: None,
             max_items: Some(20),
             max_chars: Some(12_000),

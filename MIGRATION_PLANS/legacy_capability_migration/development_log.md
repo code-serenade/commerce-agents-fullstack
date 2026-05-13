@@ -1,5 +1,67 @@
 # 迁移开发记录
 
+## Post 8-54：问答商品上下文显式选择与工作台遮挡修正
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 54 个补强项：`Post 8-54`。
+
+本次目标：
+
+- 修正问答页里商品上下文可能被误用的问题：用户没有手动选择预设商品时，后端不得把已有商品、商品知识、商品素材或工作区绑定商品当作默认上下文。
+- 让“预设商品 / 未指定商品”的入口在输入区更明显，避免用户找不到商品选择位置。
+- 按 Kimi Agent 集群参考图继续收敛左右折叠体验：左上角避免重复折叠按钮，右侧虚拟员工区不再覆盖正文。
+- 调整任务过程卡片顺序和占位：过程卡片放在用户提问之后、正文回答之前；回答结束后默认折叠，用户需要时再展开。
+
+涉及范围：
+
+- 后端 service：`BuildAgentRetrievalContextRequest` 增加 `allow_implicit_products`，SSE 问答链路固定为 `false`，禁止通过“咖啡”等关键词隐式命中用户已有商品。
+- 后端 workspace：`GetWorkspaceContextSummaryRequest` / `GetWorkspaceContextPackRequest` 增加 `include_workspace_product_context`，普通工作区 API 保持原行为，Agent SSE 问答链路不再回退到工作区绑定商品。
+- SSE：只有本轮显式传入 `metadata.context.productIds` 或 `product:{id}` context ref 时，才把商品 RAG 摘要合入 runtime metadata。
+- API 文档：`API_DOCS/sse.md` 明确“未选择商品 = 不注入任何默认商品上下文”。
+- 前端输入区：任务设置摘要显示“未指定商品”或已选商品名，点击商品 chip 可展开选择。
+- 前端商品加载：问答页商品选择从只查 `active` 扩展为读取 `active/listing/draft`，覆盖预售/上架中/草稿商品。
+- 前端工作台：右侧虚拟员工区改成真实分栏/堆叠区域，收起后是布局内按钮，不再浮在正文上遮挡内容。
+- 前端过程卡片：按最新用户消息挂载，显示在回答正文之前；运行时展开，完成后默认折叠，保留手动展开能力。
+
+用户可感知变化：
+
+- 用户进入问答页时，左上角不会再出现两个功能重叠的侧栏折叠入口。
+- 用户不选择商品时，输入区会明确显示“未指定商品”；此时即使问题里写了“咖啡”，后端也不会自动拿某个已保存咖啡商品来回答。
+- 用户点击“未指定商品 / 已选商品”后，可以看到预售/上架中、草稿、运营中的商品并手动勾选；只有勾选后该商品资料才进入本轮回答。
+- 用户发送复杂问题时，读取目标、分配任务、进度和产物过程会先出现在问题下面，正文回答在后面输出，阅读顺序更清楚。
+- 回答结束后，过程卡片自动收起，主回答正文占据更多空间；需要复盘过程时可以再展开。
+- 右侧虚拟员工工作区不再盖住主问答内容，展开时是独立右栏或窄屏下方区域，收起时保留不遮挡正文的入口。
+
+当前验证：
+
+- [x] `cargo fmt`（现有 nightly-only rustfmt 配置项仅产生警告）
+- [x] `cargo check`
+- [x] `cargo clippy`
+- [x] `cargo test -p service agent_context`
+- [x] `cargo test -p service workspace::tests::context`
+- [x] `pnpm -C frontend/apps/web lint`
+- [x] `pnpm -C frontend/apps/web rules`
+- [x] `pnpm -C frontend/apps/web test`
+- [x] `pnpm -C frontend/apps/web build`
+- [x] `pnpm -C frontend rules`
+- [x] `git diff --check`
+
+浏览器验证说明：
+
+- 本地前端 `http://localhost:5173/commerce` 和后端 `http://localhost:19878` 均在监听。
+- 已用 Edge 打开产品页面供人工试用。
+- Codex 内置浏览器插件本轮因 Windows 会话凭据错误无法接管截图，错误表现为 `CreateProcessWithLogonW failed: 1326`；因此本轮没有自动截图验证，但已完成构建、规则和后端链路验证。
+
+后续缺口：
+
+- 仍建议在 Edge 中用 `test123456 / test123456` 登录后真实发送一轮“不选商品”和“选择预设商品”的对比问题，人工确认回答内容差异。
+- 更完整的 Kimi Agent 集群视觉还可以继续细化，但本轮已先解决遮挡、重复折叠入口和过程卡片阅读顺序。
+- 真实外部搜索 provider、平台写 adapter 和更多旧 skill 生态仍按后端优先计划继续做。
+
 ## Post 8-53：问答工作台折叠收纳与演示清爽化
 
 状态：done

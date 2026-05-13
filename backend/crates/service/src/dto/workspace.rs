@@ -283,6 +283,7 @@ pub struct GetWorkspaceContextSummaryRequest {
     pub workspace_id: String,
     pub conversation_id: Option<String>,
     pub product_id: Option<String>,
+    pub include_workspace_product_context: bool,
     pub run_id: Option<String>,
 }
 
@@ -292,6 +293,7 @@ pub struct GetWorkspaceContextPackRequest {
     pub workspace_id: String,
     pub conversation_id: Option<String>,
     pub product_id: Option<String>,
+    pub include_workspace_product_context: bool,
     pub run_id: Option<String>,
     pub max_items: Option<usize>,
     pub max_chars: Option<usize>,

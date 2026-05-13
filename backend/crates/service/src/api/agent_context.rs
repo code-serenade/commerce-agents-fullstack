@@ -136,24 +136,26 @@ impl AgentContextApi {
             push_unique_product(&mut resolved_products, product);
         }
 
-        for term in &query_terms {
-            if resolved_products.len() >= MAX_RETRIEVAL_PRODUCTS {
-                break;
-            }
-            let products = self
-                .product_svc
-                .list(ProductFilter {
-                    user_id,
-                    status: Some(ProductStatus::Active),
-                    keyword: Some(term.clone()),
-                    limit: Some(MAX_RETRIEVAL_PRODUCTS as u64),
-                })
-                .await?;
-            for product in products {
+        if req.allow_implicit_products {
+            for term in &query_terms {
                 if resolved_products.len() >= MAX_RETRIEVAL_PRODUCTS {
                     break;
                 }
-                push_unique_product(&mut resolved_products, product);
+                let products = self
+                    .product_svc
+                    .list(ProductFilter {
+                        user_id,
+                        status: Some(ProductStatus::Active),
+                        keyword: Some(term.clone()),
+                        limit: Some(MAX_RETRIEVAL_PRODUCTS as u64),
+                    })
+                    .await?;
+                for product in products {
+                    if resolved_products.len() >= MAX_RETRIEVAL_PRODUCTS {
+                        break;
+                    }
+                    push_unique_product(&mut resolved_products, product);
+                }
             }
         }
 
@@ -180,31 +182,33 @@ impl AgentContextApi {
             }
         }
 
-        for term in &query_terms {
-            if resolved_knowledge.len() >= limit {
-                break;
-            }
-            let knowledge = self
-                .knowledge_svc
-                .search_by_user(ProductKnowledgeSearchFilter {
-                    user_id,
-                    status: Some(ProductKnowledgeStatus::Active),
-                    keyword: Some(term.clone()),
-                    limit: Some(limit as u64),
-                })
-                .await?;
-            for item in knowledge {
+        if req.allow_implicit_products {
+            for term in &query_terms {
                 if resolved_knowledge.len() >= limit {
                     break;
                 }
-                let Ok(product) = self
-                    .ensure_active_product_owner(user_id, item.product_id)
-                    .await
-                else {
-                    continue;
-                };
-                push_unique_product(&mut resolved_products, product);
-                push_unique_knowledge(&mut resolved_knowledge, item);
+                let knowledge = self
+                    .knowledge_svc
+                    .search_by_user(ProductKnowledgeSearchFilter {
+                        user_id,
+                        status: Some(ProductKnowledgeStatus::Active),
+                        keyword: Some(term.clone()),
+                        limit: Some(limit as u64),
+                    })
+                    .await?;
+                for item in knowledge {
+                    if resolved_knowledge.len() >= limit {
+                        break;
+                    }
+                    let Ok(product) = self
+                        .ensure_active_product_owner(user_id, item.product_id)
+                        .await
+                    else {
+                        continue;
+                    };
+                    push_unique_product(&mut resolved_products, product);
+                    push_unique_knowledge(&mut resolved_knowledge, item);
+                }
             }
         }
 

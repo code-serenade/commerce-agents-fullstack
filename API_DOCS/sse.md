@@ -59,7 +59,7 @@
 | `metadata.strategy.primaryRole` | `string` | 否 | 用户指定的主岗位 runtime role，例如 `data`、`ops`、`creative` |
 | `metadata.strategy.selectedRoles` | `string[]` | 否 | 用户指定参与本轮协作的岗位 runtime role，最多 6 个，服务端去重 |
 
-`metadata.context.*` 只作为引用入口，不允许前端直接塞商品事实或附件正文。后端会通过 service 层读取当前用户自己的 active 商品、active 商品知识、会话附件、商品素材和工作区交付物，压缩成 agent runtime metadata：`context.product_ids`、`context.refs`、`context.summary`、`context.sources_json`、`workspaceContext.*` 等。商品、会话、工作区不存在、已归档、不属于当前用户或 ID 非法时返回对应业务错误码。
+`metadata.context.*` 只作为引用入口，不允许前端直接塞商品事实或附件正文。后端会通过 service 层读取当前用户自己的 active 商品、active 商品知识、会话附件、商品素材和工作区交付物，压缩成 agent runtime metadata：`context.product_ids`、`context.refs`、`context.summary`、`context.sources_json`、`workspaceContext.*` 等。商品、会话、工作区不存在、已归档、不属于当前用户或 ID 非法时返回对应业务错误码。商品上下文是显式选择能力：只有传入 `metadata.context.productIds` 或 `metadata.context.contextRefs` 中的 `product:{id}` 时，后端才会注入对应商品资料；如果本轮没有选择商品，即使用户问题包含“咖啡”等关键词，也不会自动把某个已有商品或商品知识注入模型上下文。
 
 `metadata.model.name` 必须是 `GET /api/app/agent/runtime-options` 返回的 `models[].name`。如果模型名不存在，服务端返回 `400`，不会启动 Agent，也不会创建工作区运行记录。后端只把模型配置名和模型名写入 runtime metadata，不向前端暴露 `base_url` 或 `api_key`。
 
@@ -67,7 +67,7 @@
 
 当 `metadata.strategy.collaborationMode` 为 `manual` 或 `single`，且 `primaryRole` 或 `selectedRoles` 中包含非 `chat` 岗位时，后端会优先尊重这次显式岗位选择并进入 commander/任务图路由；即使用户输入文本本身像“只输出/answer only”这类短答请求，也不会被 `chat_bypass` 吞掉。没有显式非 `chat` 岗位选择的短答请求仍可走 `route_decided.route_mode=chat_bypass`，用于普通轻问答。
 
-每次 SSE Agent 调用都会先在 service 层绑定工作区运行记录：如果 `workspaceId` 合法且属于当前用户，则写入该工作区；如果不传 `workspaceId`，后端会创建或复用当前用户的默认 `agent_chat` 工作区。绑定成功后，agent runtime metadata 会追加 `workspace.workspace_id`、`workspace.run_id` 和 `workspace.source=agent_session`。随后后端会调用 `WorkspaceApi::context_summary` 聚合会话附件、商品资产、商品素材和工作区 artifact，追加 `workspaceContext.*` metadata，并发送 `workspace_context_loaded` 事件；再调用 `WorkspaceApi::context_pack` 把数据库里已经存在的素材正文、资产描述、交付物正文/预览、以及 `conversation_file.metadata.extractionStatus=extracted` 的附件抽取文本整理成可读内容包，追加 `workspaceContextPack.*` metadata，并发送 `workspace_context_pack_loaded` 事件。如果绑定或上下文归属校验失败，SSE 不会启动，接口直接返回业务错误，避免前端误以为本次结果已沉淀或已读取资料。
+每次 SSE Agent 调用都会先在 service 层绑定工作区运行记录：如果 `workspaceId` 合法且属于当前用户，则写入该工作区；如果不传 `workspaceId`，后端会创建或复用当前用户的默认 `agent_chat` 工作区。绑定成功后，agent runtime metadata 会追加 `workspace.workspace_id`、`workspace.run_id` 和 `workspace.source=agent_session`。随后后端会调用 `WorkspaceApi::context_summary` 聚合会话附件、商品资产、商品素材和工作区 artifact，追加 `workspaceContext.*` metadata，并发送 `workspace_context_loaded` 事件；再调用 `WorkspaceApi::context_pack` 把数据库里已经存在的素材正文、资产描述、交付物正文/预览、以及 `conversation_file.metadata.extractionStatus=extracted` 的附件抽取文本整理成可读内容包，追加 `workspaceContextPack.*` metadata，并发送 `workspace_context_pack_loaded` 事件。Agent SSE 场景下，工作区绑定过商品也不会被当成本轮默认商品；必须由本轮 `metadata.context.productIds/contextRefs` 显式选择后，商品资产和商品素材才会进入本轮上下文。如果绑定或上下文归属校验失败，SSE 不会启动，接口直接返回业务错误，避免前端误以为本次结果已沉淀或已读取资料。
 
 SSE 事件分为三类：
 
@@ -178,7 +178,7 @@ data: {"type":"approval_required","approval":{"id":"approval-uuid","workspaceId"
 
 `skill_result.status` 当前使用：`success`、`deferred`、`pending_approval`、`not_found`、`validation_error`、`failed`。其中 `pending_approval` 和 `approval_required=true` 表示后端没有直接执行平台写操作，需要进入审批或人工确认链路；`deferred` 表示 skill 已被识别但依赖搜索、外部数据、数据库或平台适配器，当前不会伪造结果。搜索类 skill 在 provider 返回可信来源时会以 `success` 承载 `output.status=live`，provider 不可用时仍以 `deferred` 承载明确降级原因。
 
-`rag_context_loaded` 当前使用本地 RAG：来源只来自当前用户自己的 active `products` 和 active `product_knowledge`。如果命中本地商品知识，服务端会把摘要追加到 agent runtime `context.summary`，让模型可在回答中使用这些事实。如果没有命中，事件会返回 `degraded=true` 和 `degradedReason="No matching local product knowledge was found; external search adapter is not configured."`。当前不会伪造外部搜索结果，`externalSearchAvailable=false` 表示外部搜索适配器尚未接入。
+`rag_context_loaded` 当前使用本地 RAG：来源只来自当前用户自己的 active `products` 和 active `product_knowledge`。只有本轮显式选择商品时，服务端才会把检索摘要追加到 agent runtime `context.summary`，让模型可在回答中使用这些事实。如果没有选择商品，事件可返回空检索状态，但不会向模型注入商品知识或“默认商品”提示。如果已选择商品但没有命中知识，事件会返回 `degraded=true` 和 `degradedReason="No matching local product knowledge was found; external search adapter is not configured."`。当前不会伪造外部搜索结果，`externalSearchAvailable=false` 表示外部搜索适配器尚未接入。
 
 `workspace_context_loaded` 当前只聚合来源元数据，不读取文件正文，不做 OCR，不伪造素材总结。服务端会把 `agentContext.refs` 追加到 runtime `context.refs`，把 `summary` 追加到 `context.summary`，并写入 `workspaceContext.readiness`、`workspaceContext.counts_json`、`workspaceContext.refs`、`workspaceContext.sources_json`、`workspaceContext.missing_json`、`workspaceContext.warnings_json`。`readiness=empty` 表示没有可用附件、素材或交付物，前端应展示明确空状态；这不是外部搜索或附件解析结果。
 

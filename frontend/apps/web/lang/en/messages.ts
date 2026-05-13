@@ -906,6 +906,8 @@ const messages = {
         label: "Backend product context",
         loading: "Loading products",
         empty: "No active products",
+        noneSelected: "No product selected",
+        choose: "Choose saved product",
       },
       playbooks: {
         loading: "Loading scenarios",
@@ -1043,6 +1045,8 @@ const messages = {
         pending: "Pending",
       },
       currentProgress: "Current progress {{completed}}/{{total}}",
+      collapseProcess: "Collapse process",
+      expandProcess: "Expand process",
       actions: {
         copy: "Copy",
         useful: "Useful",
