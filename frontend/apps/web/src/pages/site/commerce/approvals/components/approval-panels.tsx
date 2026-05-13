@@ -110,7 +110,12 @@ function approvalColumns(
     {
       key: "reason",
       header: t("commerce.common.reason"),
-      render: (item) => <MutedText>{item.reason || "-"}</MutedText>,
+      render: (item) => (
+        <div className="max-w-96 space-y-1">
+          <MutedText>{item.reason || "-"}</MutedText>
+          <ApprovalReadiness result={item.result} />
+        </div>
+      ),
     },
     {
       key: "actions",
@@ -137,6 +142,48 @@ function approvalColumns(
       ),
     },
   ]
+}
+
+function ApprovalReadiness({
+  result,
+}: {
+  result?: ToolApprovalResponse["result"]
+}) {
+  const readiness = getRecord(result, "executionReadiness")
+  const adapterStatus = getString(readiness, "adapterStatus")
+  const message = getString(readiness, "message")
+
+  if (!adapterStatus && !message) return null
+
+  return (
+    <div className="space-y-1">
+      {adapterStatus ? (
+        <StatusBadge tone={toneForStatus(adapterStatus)}>{adapterStatus}</StatusBadge>
+      ) : null}
+      {message ? <MutedText>{message}</MutedText> : null}
+    </div>
+  )
+}
+
+function getRecord(
+  value: unknown,
+  key: string
+): Record<string, unknown> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined
+  const nested = (value as Record<string, unknown>)[key]
+  return nested && typeof nested === "object" && !Array.isArray(nested)
+    ? (nested as Record<string, unknown>)
+    : undefined
+}
+
+function getString(
+  value: Record<string, unknown> | undefined,
+  key: string
+): string | undefined {
+  const candidate = value?.[key]
+  return typeof candidate === "string" && candidate.trim()
+    ? candidate
+    : undefined
 }
 
 function auditColumns(t: CommerceTranslate): CommerceColumn<AuditLogResponse>[] {

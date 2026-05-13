@@ -89,6 +89,7 @@ The following major foundations are already in place:
 - conversation file extraction registration API
 - workspace context summary / context pack / artifact export
 - conversation file extraction status contract for pending / extracted / failed / unsupported states
+- platform execution readiness diagnostics on tool approval records
 - search evidence artifact persistence
 - agent skill run persistence and query API
 - multiple native skill migrations across ops / data / service / creative / web / design / accounting
@@ -221,26 +222,26 @@ Continue in this order:
 
 ## 9. Current Slice Selection
 
-The latest completed slice is:
+The latest active/completed slice is:
 
 ```text
-Post 8-43: conversation file extraction status contract
+Post 8-44: platform execution readiness diagnostics
 ```
 
 Scope:
 
-- extend the existing conversation file extraction API so it can record `pending`, `extracted`, `failed`, and `unsupported`
-- initialize newly registered conversation files with `metadata.extractionStatus=pending`
-- let `WorkspaceApi::context_pack` read text only from `extractionStatus=extracted`
-- expose `contentKind=extraction_pending/extraction_failed/extraction_unsupported` so Agent and frontend do not confuse unparsed files with readable material
-- keep the boundary that this slice does not implement OCR, PDF/Office parsing, image recognition, object storage reads, or parser workers
+- write `executionReadiness` into `tool_approval_queue.result` when platform execution approvals are created
+- reuse `platform_connections` and the existing approval/execution queue framework
+- distinguish `validation_error`, `connection_missing`, `connection_disabled`, `unsupported_action`, and `adapter_not_implemented`
+- keep the boundary that current platform adapters are not implemented and no platform write success is faked
+- expose the readiness and later execution failure result for frontend display without adding fake actions
 
 Reason:
 
-- high product value for attachment/material ingestion and later OCR/parser adapters
+- high product value for high-risk platform execution governance
 - backend-first
-- no new fake frontend needed
-- continues the existing conversation file and workspace context-pack framework while preserving honest disclosure when binary content has not been parsed
+- keeps approval, execution queue and audit closure honest before real platform adapters are connected
+- lets users see why approving a platform action will currently fail instead of mistaking approval for execution success
 
 ## 10. Validation Standard
 

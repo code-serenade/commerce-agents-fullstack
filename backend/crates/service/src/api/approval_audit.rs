@@ -38,6 +38,7 @@ pub struct ApprovalAuditApi {
     run_svc: WorkspaceRunService,
     conversation_svc: ConversationService,
     approval_svc: ToolApprovalQueueService,
+    platform_svc: PlatformConnectionService,
     audit_svc: AuditLogService,
 }
 
@@ -49,6 +50,7 @@ impl ApprovalAuditApi {
             run_svc: WorkspaceRunService::new(db.clone()),
             conversation_svc: ConversationService::new(db.clone()),
             approval_svc: ToolApprovalQueueService::new(db.clone()),
+            platform_svc: PlatformConnectionService::new(db.clone()),
             audit_svc: AuditLogService::new(db.clone()),
             db,
         }
@@ -145,6 +147,11 @@ impl ApprovalAuditApi {
                 "tool approval action key belongs to another user".to_string(),
             ));
         }
+        let skill_name = normalize_required(req.skill_name, "skill_name")?;
+        let args = req.args.unwrap_or_else(|| json!({}));
+        let initial_result = self
+            .tool_approval_initial_result(user_id, skill_name.as_str(), &args)
+            .await?;
         let approval = self
             .approval_svc
             .create(CreateToolApproval {
@@ -154,16 +161,16 @@ impl ApprovalAuditApi {
                 run_id,
                 conversation_id,
                 request_role: normalize_optional(req.request_role),
-                skill_name: normalize_required(req.skill_name, "skill_name")?,
+                skill_name,
                 tool_call_id: normalize_optional(req.tool_call_id),
                 risk_level: normalize_risk_level(
                     req.risk_level.unwrap_or_else(|| "L1".to_string()),
                 ),
-                args: req.args.unwrap_or_else(|| json!({})),
+                args,
                 status: ToolApprovalStatus::Pending,
                 reason: normalize_optional(req.reason),
                 action_key,
-                result: json!({}),
+                result: initial_result,
                 approved_by: None,
                 approved_at: None,
                 executed_at: None,
@@ -552,6 +559,37 @@ impl ApprovalAuditApi {
             ));
         }
         Ok(approval)
+    }
+
+    async fn tool_approval_initial_result(
+        &self,
+        user_id: Uuid,
+        skill_name: &str,
+        args: &Value,
+    ) -> BizResult<Value> {
+        if !is_platform_execution_skill(skill_name) {
+            return Ok(json!({}));
+        }
+        let now = OffsetDateTime::now_utc();
+        let params = approval_execution_params(args);
+        let connection = match params.platform.as_deref() {
+            Some(platform) if supported_platform_action(skill_name) => {
+                self.platform_svc
+                    .get_by_user_platform(user_id, platform)
+                    .await?
+            }
+            _ => None,
+        };
+        Ok(json!({
+            "status": "pending",
+            "source": "tool_approval_create",
+            "executionReadiness": plan_platform_execution_readiness(
+                skill_name,
+                &params,
+                connection.as_ref(),
+                now,
+            ),
+        }))
     }
 
     async fn execute_tool_approval_after_approve(
@@ -952,6 +990,32 @@ fn plan_platform_execution(
         );
     };
 
+    let Some(validation_error) =
+        platform_execution_validation_error(approval.skill_name.as_str(), params)
+    else {
+        return platform_execution_failed(
+            approval,
+            execution_item,
+            "unsupported_action",
+            "Platform execution action is not supported by the current service adapter.",
+            params,
+            manual_result,
+            now,
+        );
+    };
+
+    if let Some(message) = validation_error {
+        return platform_execution_failed(
+            approval,
+            execution_item,
+            "validation_error",
+            message,
+            params,
+            manual_result,
+            now,
+        );
+    }
+
     let Some(connection) = connection else {
         return platform_execution_failed(
             approval,
@@ -970,42 +1034,6 @@ fn plan_platform_execution(
             execution_item,
             "connection_disabled",
             "Platform connection exists but is disabled.",
-            params,
-            manual_result,
-            now,
-        );
-    }
-
-    let validation_error = match approval.skill_name.as_str() {
-        "platform_update_price" => {
-            if params.product_id.is_none() || params.new_price.is_none() {
-                Some("Missing product_id or new_price for platform price update.")
-            } else {
-                None
-            }
-        }
-        "platform_update_inventory" => {
-            if params.product_id.is_none() || params.quantity.is_none() {
-                Some("Missing product_id or quantity for platform inventory update.")
-            } else {
-                None
-            }
-        }
-        "platform_sync_products" => None,
-        _ => Some("Platform execution action is not supported by the current service adapter."),
-    };
-
-    if let Some(message) = validation_error {
-        let adapter_status = if approval.skill_name.starts_with("platform_") {
-            "validation_error"
-        } else {
-            "unsupported_action"
-        };
-        return platform_execution_failed(
-            approval,
-            execution_item,
-            adapter_status,
-            message,
             params,
             manual_result,
             now,
@@ -1035,6 +1063,150 @@ fn plan_platform_execution(
     )
 }
 
+fn plan_platform_execution_readiness(
+    skill_name: &str,
+    params: &ApprovalExecutionParams,
+    connection: Option<&PlatformConnection>,
+    now: OffsetDateTime,
+) -> Value {
+    let (status, adapter_status, message) =
+        match platform_execution_readiness_status(skill_name, params, connection) {
+            PlatformExecutionReadiness::Blocked {
+                adapter_status,
+                message,
+            } => ("blocked", adapter_status, message),
+            PlatformExecutionReadiness::Unsupported { message } => {
+                ("unsupported", "unsupported_action", message)
+            }
+        };
+
+    json!({
+        "status": status,
+        "adapterStatus": adapter_status,
+        "canApprove": false,
+        "canExecuteNow": false,
+        "willFailIfApproved": true,
+        "platform": params.platform,
+        "skillName": skill_name,
+        "message": message,
+        "details": platform_execution_details(params),
+        "checkedAt": now,
+    })
+}
+
+fn platform_execution_readiness_status<'a>(
+    skill_name: &'a str,
+    params: &'a ApprovalExecutionParams,
+    connection: Option<&PlatformConnection>,
+) -> PlatformExecutionReadiness<'a> {
+    if !is_platform_execution_skill(skill_name) {
+        return PlatformExecutionReadiness::Unsupported {
+            message: "Tool approval is not a platform execution action.",
+        };
+    }
+
+    if params.platform.is_none() {
+        return PlatformExecutionReadiness::Blocked {
+            adapter_status: "validation_error",
+            message: "Missing platform in tool approval arguments.",
+        };
+    }
+
+    let Some(validation_error) = platform_execution_validation_error(skill_name, params) else {
+        return PlatformExecutionReadiness::Unsupported {
+            message: "Platform execution action is not supported by the current service adapter.",
+        };
+    };
+
+    if let Some(message) = validation_error {
+        return PlatformExecutionReadiness::Blocked {
+            adapter_status: "validation_error",
+            message,
+        };
+    }
+
+    let Some(connection) = connection else {
+        return PlatformExecutionReadiness::Blocked {
+            adapter_status: "connection_missing",
+            message: "No enabled platform connection was found for this user and platform.",
+        };
+    };
+
+    if !connection.enabled || connection.status == PlatformConnectionStatus::Disabled {
+        return PlatformExecutionReadiness::Blocked {
+            adapter_status: "connection_disabled",
+            message: "Platform connection exists but is disabled.",
+        };
+    }
+
+    PlatformExecutionReadiness::Blocked {
+        adapter_status: "adapter_not_implemented",
+        message: platform_adapter_not_implemented_message(skill_name),
+    }
+}
+
+fn platform_execution_validation_error(
+    skill_name: &str,
+    params: &ApprovalExecutionParams,
+) -> Option<Option<&'static str>> {
+    let validation_error = match skill_name {
+        "platform_update_price" => {
+            if params.product_id.is_none() || params.new_price.is_none() {
+                Some("Missing product_id or new_price for platform price update.")
+            } else {
+                None
+            }
+        }
+        "platform_update_inventory" => {
+            if params.product_id.is_none() || params.quantity.is_none() {
+                Some("Missing product_id or quantity for platform inventory update.")
+            } else {
+                None
+            }
+        }
+        "platform_sync_products" => None,
+        _ => return None,
+    };
+    Some(validation_error)
+}
+
+fn platform_adapter_not_implemented_message(skill_name: &str) -> &'static str {
+    match skill_name {
+        "platform_update_price" => {
+            "Platform execution adapter is not implemented yet for price update."
+        }
+        "platform_update_inventory" => {
+            "Platform execution adapter is not implemented yet for inventory update."
+        }
+        "platform_sync_products" => {
+            "Platform execution adapter is not implemented yet for product sync."
+        }
+        _ => "Platform execution adapter is not implemented yet for this action.",
+    }
+}
+
+fn is_platform_execution_skill(skill_name: &str) -> bool {
+    skill_name.starts_with("platform_")
+}
+
+fn supported_platform_action(skill_name: &str) -> bool {
+    matches!(
+        skill_name,
+        "platform_update_price" | "platform_update_inventory" | "platform_sync_products"
+    )
+}
+
+fn platform_execution_details(params: &ApprovalExecutionParams) -> Value {
+    json!({
+        "productId": params.product_id,
+        "skuId": params.sku_id,
+        "newPrice": params.new_price,
+        "quantity": params.quantity,
+        "page": params.page,
+        "pageSize": params.page_size,
+    })
+}
+
 fn platform_execution_failed(
     approval: &ToolApproval,
     execution_item: &ExecutionQueueItem,
@@ -1055,14 +1227,7 @@ fn platform_execution_failed(
         "platform": params.platform,
         "skillName": approval.skill_name,
         "message": message,
-        "details": {
-            "productId": params.product_id,
-            "skuId": params.sku_id,
-            "newPrice": params.new_price,
-            "quantity": params.quantity,
-            "page": params.page,
-            "pageSize": params.page_size,
-        },
+        "details": platform_execution_details(params),
         "manualResult": manual_result,
         "attemptedAt": now,
     });
@@ -1075,6 +1240,17 @@ fn platform_execution_failed(
         execution_audit_action: "execution_queue.failed",
         approval_audit_action: "tool_approval.execute_failed",
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+enum PlatformExecutionReadiness<'a> {
+    Blocked {
+        adapter_status: &'a str,
+        message: &'a str,
+    },
+    Unsupported {
+        message: &'a str,
+    },
 }
 
 fn build_execution_description(
@@ -1309,6 +1485,174 @@ mod tests {
                 .pointer("/details/quantity")
                 .and_then(Value::as_i64),
             Some(12)
+        );
+    }
+
+    #[test]
+    fn approval_execution_readiness_reports_missing_platform() {
+        let now = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();
+        let params = ApprovalExecutionParams {
+            product_id: Some("prod-1".to_string()),
+            new_price: Some(99.0),
+            ..Default::default()
+        };
+
+        let readiness =
+            plan_platform_execution_readiness("platform_update_price", &params, None, now);
+
+        assert_eq!(
+            readiness.get("status").and_then(Value::as_str),
+            Some("blocked")
+        );
+        assert_eq!(
+            readiness.get("adapterStatus").and_then(Value::as_str),
+            Some("validation_error")
+        );
+        assert_eq!(
+            readiness.get("willFailIfApproved").and_then(Value::as_bool),
+            Some(true)
+        );
+    }
+
+    #[test]
+    fn approval_execution_readiness_reports_missing_connection() {
+        let now = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();
+        let params = ApprovalExecutionParams {
+            platform: Some("taobao".to_string()),
+            product_id: Some("prod-1".to_string()),
+            new_price: Some(99.0),
+            ..Default::default()
+        };
+
+        let readiness =
+            plan_platform_execution_readiness("platform_update_price", &params, None, now);
+
+        assert_eq!(
+            readiness.get("status").and_then(Value::as_str),
+            Some("blocked")
+        );
+        assert_eq!(
+            readiness.get("adapterStatus").and_then(Value::as_str),
+            Some("connection_missing")
+        );
+        assert_eq!(
+            readiness
+                .pointer("/details/productId")
+                .and_then(Value::as_str),
+            Some("prod-1")
+        );
+    }
+
+    #[test]
+    fn approval_execution_readiness_reports_adapter_not_implemented() {
+        let now = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();
+        let params = ApprovalExecutionParams {
+            platform: Some("jd".to_string()),
+            product_id: Some("prod-1".to_string()),
+            quantity: Some(12),
+            ..Default::default()
+        };
+        let connection = test_platform_connection("jd");
+
+        let readiness = plan_platform_execution_readiness(
+            "platform_update_inventory",
+            &params,
+            Some(&connection),
+            now,
+        );
+
+        assert_eq!(
+            readiness.get("status").and_then(Value::as_str),
+            Some("blocked")
+        );
+        assert_eq!(
+            readiness.get("adapterStatus").and_then(Value::as_str),
+            Some("adapter_not_implemented")
+        );
+        assert_eq!(
+            readiness.get("canExecuteNow").and_then(Value::as_bool),
+            Some(false)
+        );
+    }
+
+    #[test]
+    fn plan_platform_execution_reports_unsupported_platform_action() {
+        let now = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();
+        let approval = test_tool_approval("platform_publish_campaign");
+        let execution = test_execution_queue();
+        let params = ApprovalExecutionParams {
+            platform: Some("douyin".to_string()),
+            product_id: Some("prod-1".to_string()),
+            ..Default::default()
+        };
+        let connection = test_platform_connection("douyin");
+
+        let attempt = plan_platform_execution(
+            &approval,
+            &execution,
+            &params,
+            Some(&connection),
+            &json!({}),
+            now,
+        );
+
+        assert_eq!(attempt.approval_status, ToolApprovalStatus::Failed);
+        assert_eq!(
+            attempt.result.get("adapterStatus").and_then(Value::as_str),
+            Some("unsupported_action")
+        );
+    }
+
+    #[test]
+    fn plan_platform_execution_reports_unsupported_action_before_connection() {
+        let now = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();
+        let approval = test_tool_approval("platform_publish_campaign");
+        let execution = test_execution_queue();
+        let params = ApprovalExecutionParams {
+            platform: Some("douyin".to_string()),
+            product_id: Some("prod-1".to_string()),
+            ..Default::default()
+        };
+
+        let attempt =
+            plan_platform_execution(&approval, &execution, &params, None, &json!({}), now);
+
+        assert_eq!(attempt.approval_status, ToolApprovalStatus::Failed);
+        assert_eq!(
+            attempt.result.get("adapterStatus").and_then(Value::as_str),
+            Some("unsupported_action")
+        );
+    }
+
+    #[test]
+    fn approval_execution_readiness_never_marks_unimplemented_adapter_ready() {
+        let now = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();
+        let params = ApprovalExecutionParams {
+            platform: Some("jd".to_string()),
+            product_id: Some("prod-1".to_string()),
+            new_price: Some(99.0),
+            ..Default::default()
+        };
+        let connection = test_platform_connection("jd");
+
+        let readiness = plan_platform_execution_readiness(
+            "platform_update_price",
+            &params,
+            Some(&connection),
+            now,
+        );
+
+        assert_eq!(
+            readiness.get("adapterStatus").and_then(Value::as_str),
+            Some("adapter_not_implemented")
+        );
+        assert_eq!(
+            readiness.get("canApprove").and_then(Value::as_bool),
+            Some(false)
+        );
+        assert_eq!(
+            readiness.get("willFailIfApproved").and_then(Value::as_bool),
+            Some(true)
         );
     }
 

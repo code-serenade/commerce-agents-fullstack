@@ -421,6 +421,7 @@ export interface ExecutionQueueResponse extends JsonRecord {
   expectedImpact?: string | null
   status: string
   decisionReason?: string | null
+  result?: JsonRecord
   createdAt?: string
   decidedAt?: string | null
 }
@@ -527,6 +528,7 @@ export interface ToolApprovalResponse extends JsonRecord {
   status: string
   reason?: string | null
   actionKey?: string | null
+  result?: JsonRecord
   approvedBy?: string | null
   approvedAt?: string | null
   executedAt?: string | null

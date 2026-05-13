@@ -2690,7 +2690,10 @@
       "expectedImpact": "提升新品曝光",
       "status": "pending",
       "decisionReason": null,
-      "result": {},
+      "result": {
+        "adapterStatus": "adapter_not_implemented",
+        "message": "Platform execution adapter is not implemented yet for price update."
+      },
       "createdAt": "2026-05-07T00:00:00Z",
       "decidedAt": null
     }
@@ -2762,6 +2765,7 @@
 - 批准后设置 `status = approved`，并写入 `decidedAt`
 - 批准后会写入一条 `execution_queue.approve` 审计日志
 - 本阶段批准不等于真实执行平台动作，也不会调用 Agent 工具重放
+- 如果该执行建议来自工具审批后的平台执行尝试，`result.adapterStatus` 和 `result.message` 会记录真实失败原因，例如 `validation_error`、`connection_missing`、`connection_disabled`、`unsupported_action` 或 `adapter_not_implemented`
 
 ## 67. 拒绝执行建议
 
@@ -3348,14 +3352,40 @@
       "runId": "run-uuid",
       "conversationId": "conversation-uuid",
       "requestRole": "operator",
-      "skillName": "publish_campaign",
+      "skillName": "platform_update_price",
       "toolCallId": "tool-call-001",
-      "riskLevel": "L2",
-      "args": {},
+      "riskLevel": "L3",
+      "args": {
+        "platform": "douyin",
+        "product_id": "prod-1",
+        "new_price": 99
+      },
       "status": "pending",
-      "reason": "发布前需要人工确认",
-      "actionKey": "publish:campaign-001",
-      "result": {},
+      "reason": "平台写操作需要审批",
+      "actionKey": "agent:run:...",
+      "result": {
+        "status": "pending",
+        "source": "tool_approval_create",
+        "executionReadiness": {
+          "status": "blocked",
+          "adapterStatus": "adapter_not_implemented",
+          "canApprove": false,
+          "canExecuteNow": false,
+          "willFailIfApproved": true,
+          "platform": "douyin",
+          "skillName": "platform_update_price",
+          "message": "Platform execution adapter is not implemented yet for price update.",
+          "details": {
+            "productId": "prod-1",
+            "skuId": null,
+            "newPrice": 99,
+            "quantity": null,
+            "page": null,
+            "pageSize": null
+          },
+          "checkedAt": "2026-05-13T00:00:00Z"
+        }
+      },
       "approvedBy": null,
       "approvedAt": null,
       "executedAt": null,
@@ -3403,6 +3433,8 @@
 - 当前阶段只创建审批记录，不执行真实工具
 - Agent SSE 收到高风险平台写 skill 结果时，也会通过本服务能力自动创建或复用审批记录；该记录的 `actionKey` 由 `runId`、`skillName`、`toolCallId` 生成，并会同步写入 `tool_approval.create` 审计日志和 `agent_approval_required` 告警
 - SSE 自动生成的审批记录会把 skill 输出中的 `normalizedInputs` 和原始 `output` 一并保存到 `args`，供后续审批通过后的自动执行闭环使用
+- 平台写类审批创建时，`result.executionReadiness` 会前置记录真实可执行性诊断。当前真实平台 adapter 尚未实现，因此不会返回 `ready`；即使平台连接和参数齐全，也会返回 `adapter_not_implemented`，避免把批准误解成可执行成功。
+- `executionReadiness.adapterStatus` 当前可能为 `validation_error`、`connection_missing`、`connection_disabled`、`adapter_not_implemented` 或 `unsupported_action`。
 
 ## 87. 查询工具审批请求详情
 

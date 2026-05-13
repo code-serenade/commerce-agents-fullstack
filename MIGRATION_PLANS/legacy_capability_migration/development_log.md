@@ -1,5 +1,48 @@
 # 迁移开发记录
 
+## Post 8-44：平台执行 Readiness 诊断契约
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 44 个补强项：`Post 8-44`。
+
+本次目标：
+
+- 把高风险平台写操作的“批准后才知道失败”前移为“审批创建时就能看到执行可行性”。
+- 继续使用新产品已有 `tool_approval_queue`、`execution_queue`、`audit_logs`、`platform_connections`，不新增第二套审批或执行系统。
+- 明确当前真实平台 adapter 尚未实现，不伪造平台写成功。
+
+涉及范围：
+
+- 产品内核：平台写操作审批现在带有真实 readiness 诊断，审批不再等同于可执行成功。
+- 后端 service：`ApprovalAuditApi::create_tool_approval` 会为 `platform_*` 审批写入 `result.executionReadiness`。
+- 后端执行规划：未知平台动作优先返回 `unsupported_action`，参数、连接和 adapter 状态分别给出明确失败原因。
+- API/SSE：`ToolApprovalResponse.result.executionReadiness` 和 `ExecutionQueueResponse.result` 已同步文档。
+- 前端：审批列表和工作区执行建议表只展示后端真实 `adapterStatus/message`，不新增假执行入口。
+
+用户可感知变化：
+
+- 用户在审批页可直接看到平台写操作当前能不能执行，以及不能执行的原因。
+- 如果缺平台连接、连接禁用、缺参数或真实 adapter 未实现，页面会用后端返回的诊断提示出来。
+- 用户批准后，执行队列仍会显示真实失败原因，不会把批准误显示成平台执行成功。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p service approval_execution_readiness -- --nocapture`
+- [x] `cargo test -p service plan_platform_execution -- --nocapture`
+- [x] `cargo check -p service -p web-server`
+- [x] `cargo clippy -p service -p web-server`
+- [x] `pnpm -C frontend/apps/web rules`
+- [x] `pnpm -C frontend/apps/web lint`
+- [x] `pnpm -C frontend/apps/web test`
+- [x] `pnpm -C frontend/apps/web build`
+- [x] `pnpm -C frontend rules`
+- [x] `git diff --check`
+
 ## Post 8-43：会话附件解析状态契约
 
 状态：done

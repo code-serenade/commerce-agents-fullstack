@@ -51,6 +51,7 @@ API 是后端能力和前端适配之间的唯一契约。任何前端适配开�
 - [x] Quality check 查询 API。
 - [x] Trust/learning feedback API。
 - [x] Approval 承接高风险 skill API/SSE。
+- [x] Platform execution readiness 诊断写入审批和执行结果。
 - [x] 旧产品内置能力包同步 API。
 
 ## 文档

@@ -510,6 +510,28 @@
 - 本阶段不实现 OCR、PDF/Office 解析、图片识别、object storage 读取或后台 parser worker。
 - 后续解析 adapter 应通过同一个接口登记成功/失败/不支持状态。
 
+## Post 8-44：平台执行 Readiness 诊断契约
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Service：平台写类审批创建时写入 `result.executionReadiness`。
+- [x] Service：readiness 覆盖 `validation_error`、`connection_missing`、`connection_disabled`、`unsupported_action`、`adapter_not_implemented`。
+- [x] Service：当前真实平台 adapter 未实现时不会返回 `ready`。
+- [x] Service：审批通过后的执行规划优先识别未知平台动作为 `unsupported_action`。
+- [x] API：`API_DOCS/app.md` 和 `API_DOCS/sse.md` 已同步。
+- [x] 前端：审批页展示 readiness 的 `adapterStatus/message`。
+- [x] 前端：工作区执行建议展示真实执行结果的 `adapterStatus/message`。
+- [x] 前端：未新增假执行按钮或假成功状态。
+
+当前说明：
+
+- 本阶段解决的是“平台写操作审批前后都能看到真实执行失败原因”。
+- 本阶段不实现淘宝/JD/PDD/抖音等真实平台写 adapter。
+- 后续接入真实 adapter 时，应继续复用当前审批、执行队列和审计闭环。
+
 ## Post 8-17：竞品分析读取 API
 
 状态：done
