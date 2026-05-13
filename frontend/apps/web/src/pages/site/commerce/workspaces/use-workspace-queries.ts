@@ -7,7 +7,10 @@ import {
   getWorkspaceApi,
   getWorkspaceRunApi,
   listExecutionQueueApi,
+  listAgentLearningRecordsApi,
+  listAgentQualityChecksApi,
   listAgentSkillRunsApi,
+  listAgentTrustScoresApi,
   listWorkspaceArtifactsApi,
   listWorkspaceRunsApi,
   listWorkspaceRunTasksApi,
@@ -107,6 +110,33 @@ export function useWorkspaceQueries({
     queryFn: () =>
       listAgentSkillRunsApi(workspaceId!, selectedRun!.id, { pageSize: 100 }),
   })
+  const qualityChecksQuery = useQuery({
+    queryKey: [
+      ...workspacesQueryKey,
+      workspaceId,
+      "runs",
+      selectedRun?.id,
+      "quality-checks",
+    ],
+    enabled: Boolean(workspaceId && selectedRun?.id),
+    queryFn: () =>
+      listAgentQualityChecksApi(workspaceId!, selectedRun!.id, {
+        pageSize: 20,
+      }),
+  })
+  const learningRecordsQuery = useQuery({
+    queryKey: [...workspacesQueryKey, workspaceId, selectedRun?.id, "learnings"],
+    enabled: Boolean(workspaceId),
+    queryFn: () =>
+      listAgentLearningRecordsApi(workspaceId!, {
+        pageSize: 20,
+        runId: selectedRun?.id,
+      }),
+  })
+  const trustScoresQuery = useQuery({
+    queryKey: [...workspacesQueryKey, "trust-scores"],
+    queryFn: () => listAgentTrustScoresApi({ pageSize: 20 }),
+  })
   const artifactsQuery = useQuery({
     queryKey: [...workspacesQueryKey, workspaceId, "artifacts"],
     enabled: Boolean(workspaceId),
@@ -187,6 +217,9 @@ export function useWorkspaceQueries({
       executionDetailQuery.isLoading ||
       runTasksQuery.isLoading ||
       skillRunsQuery.isLoading ||
+      qualityChecksQuery.isLoading ||
+      learningRecordsQuery.isLoading ||
+      trustScoresQuery.isLoading ||
       artifactsQuery.isLoading ||
       artifactDetailQuery.isLoading ||
       artifactExportQuery.isLoading,
@@ -195,8 +228,11 @@ export function useWorkspaceQueries({
     selectedArtifact,
     selectedRun,
     selectedWorkspace,
+    learningRecords: learningRecordsQuery.data?.records ?? [],
+    qualityChecks: qualityChecksQuery.data?.checks ?? [],
     skillRuns: skillRunsQuery.data?.skillRuns ?? [],
     tasks: tasksQuery.data?.tasks ?? [],
+    trustScores: trustScoresQuery.data?.scores ?? [],
     workspaces,
   }
 }

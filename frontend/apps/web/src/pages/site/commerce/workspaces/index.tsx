@@ -9,6 +9,7 @@ import { WorkspaceDialogs } from "./components/workspace-dialogs"
 import {
   WorkspaceDetailPanel,
   WorkspaceMetrics,
+  WorkspaceQualityPanel,
   WorkspaceSkillRunsPanel,
   WorkspacesMasterPanel,
 } from "./components/workspace-panels"
@@ -37,6 +38,7 @@ export default function WorkspacesPage() {
           <WorkspaceDetailPanel page={page} />
         </div>
         <WorkspaceSkillRunsPanel page={page} />
+        <WorkspaceQualityPanel page={page} />
       </CommerceBody>
       <WorkspaceDialogs page={page} />
     </CommerceSurface>

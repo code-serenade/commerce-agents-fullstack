@@ -859,6 +859,61 @@ export interface AgentLearningRecordResponse extends JsonRecord {
   updated_at?: string
 }
 
+export interface AgentLearningRecordListResponse extends JsonRecord {
+  records: AgentLearningRecordResponse[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+export interface AgentQualityCheckResponse extends JsonRecord {
+  id: string
+  workspaceId?: string
+  runId?: string
+  artifactId?: string | null
+  userId?: string
+  role: string
+  score: number
+  passed: boolean
+  dimensions?: JsonRecord
+  issues?: unknown[]
+  suggestions?: unknown[]
+  source?: string
+  metadata?: JsonRecord
+  createdAt?: string
+}
+
+export interface AgentQualityCheckListResponse extends JsonRecord {
+  checks: AgentQualityCheckResponse[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+export interface AgentTrustScoreResponse extends JsonRecord {
+  id: string
+  userId?: string
+  role: string
+  skillId?: string | null
+  score: number
+  trustLevel: string
+  previousScore?: number | null
+  previousLevel?: string | null
+  delta: number
+  reason?: string | null
+  source: string
+  qualityCheckId?: string | null
+  metadata?: JsonRecord
+  updatedAt?: string
+}
+
+export interface AgentTrustScoreListResponse extends JsonRecord {
+  scores: AgentTrustScoreResponse[]
+  total: number
+  page: number
+  pageSize: number
+}
+
 interface AgentRunFeedbackWireResponse extends JsonRecord {
   learningRecord?: AgentLearningRecordResponse
   learning_record?: AgentLearningRecordResponse
@@ -934,6 +989,32 @@ const normalizeAgentLearningRecord = (
   copyIfMissing(normalized, "feedbackRating", "feedback_rating")
   copyIfMissing(normalized, "feedbackComment", "feedback_comment")
   copyIfMissing(normalized, "createdAt", "created_at")
+  copyIfMissing(normalized, "updatedAt", "updated_at")
+  return normalized
+}
+
+const normalizeAgentQualityCheck = (
+  check: AgentQualityCheckResponse
+): AgentQualityCheckResponse => {
+  const normalized = { ...check }
+  copyIfMissing(normalized, "workspaceId", "workspace_id")
+  copyIfMissing(normalized, "runId", "run_id")
+  copyIfMissing(normalized, "artifactId", "artifact_id")
+  copyIfMissing(normalized, "userId", "user_id")
+  copyIfMissing(normalized, "createdAt", "created_at")
+  return normalized
+}
+
+const normalizeAgentTrustScore = (
+  score: AgentTrustScoreResponse
+): AgentTrustScoreResponse => {
+  const normalized = { ...score }
+  copyIfMissing(normalized, "userId", "user_id")
+  copyIfMissing(normalized, "skillId", "skill_id")
+  copyIfMissing(normalized, "trustLevel", "trust_level")
+  copyIfMissing(normalized, "previousScore", "previous_score")
+  copyIfMissing(normalized, "previousLevel", "previous_level")
+  copyIfMissing(normalized, "qualityCheckId", "quality_check_id")
   copyIfMissing(normalized, "updatedAt", "updated_at")
   return normalized
 }
@@ -1503,6 +1584,54 @@ export const submitAgentRunFeedbackApi = async (
   return {
     ...response,
     learningRecord: normalizeAgentLearningRecord(learningRecord),
+  }
+}
+
+export const listAgentQualityChecksApi = async (
+  workspaceId: string,
+  runId: string,
+  query?: ListQuery
+): Promise<AgentQualityCheckListResponse> => {
+  const response = await request<ListQuery, AgentQualityCheckListResponse>({
+    method: "GET",
+    url: `/api/app/workspaces/${workspaceId}/runs/${runId}/quality-checks`,
+    body: defaultListQuery(query),
+  })
+
+  return {
+    ...response,
+    checks: (response.checks ?? []).map(normalizeAgentQualityCheck),
+  }
+}
+
+export const listAgentLearningRecordsApi = async (
+  workspaceId: string,
+  query?: ListQuery
+): Promise<AgentLearningRecordListResponse> => {
+  const response = await request<ListQuery, AgentLearningRecordListResponse>({
+    method: "GET",
+    url: `/api/app/workspaces/${workspaceId}/learnings`,
+    body: defaultListQuery(query),
+  })
+
+  return {
+    ...response,
+    records: (response.records ?? []).map(normalizeAgentLearningRecord),
+  }
+}
+
+export const listAgentTrustScoresApi = async (
+  query?: ListQuery
+): Promise<AgentTrustScoreListResponse> => {
+  const response = await request<ListQuery, AgentTrustScoreListResponse>({
+    method: "GET",
+    url: "/api/app/trust-scores",
+    body: defaultListQuery(query),
+  })
+
+  return {
+    ...response,
+    scores: (response.scores ?? []).map(normalizeAgentTrustScore),
   }
 }
 
