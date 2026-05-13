@@ -50,6 +50,7 @@
 - [x] 工作区页刷新后展示 agent run 和 artifact 列表，后端已有 workspace run/artifact。
 - [x] 审批页承接高风险工具，后端已有 approval record。
 - [x] 审批页可展示平台执行 readiness，工作区执行建议可展示真实失败原因。
+- [x] 平台连接页可展示平台执行 adapter 能力目录和不可执行原因。
 - [x] 能力包页可同步旧产品内置 domain/role/skill/capability 治理记录。
 - [ ] 历史会话可恢复上下文，后端已有 conversation/session 数据。
 

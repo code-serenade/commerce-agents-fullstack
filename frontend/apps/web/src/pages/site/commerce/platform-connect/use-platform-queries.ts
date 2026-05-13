@@ -3,6 +3,7 @@ import {
   getPlatformSummaryApi,
   getPlatformSyncStatusApi,
   listChannelConnectionsApi,
+  listPlatformExecutionAdaptersApi,
   listPlatformConnectionsApi,
   listStoreMetricsApi,
   listSupportedChannelsApi,
@@ -19,6 +20,10 @@ export function usePlatformQueries() {
   const platformConnectionsQuery = useQuery({
     queryKey: [...platformQueryKey, "platform-connections"],
     queryFn: () => listPlatformConnectionsApi(),
+  })
+  const executionAdaptersQuery = useQuery({
+    queryKey: [...platformQueryKey, "execution-adapters"],
+    queryFn: listPlatformExecutionAdaptersApi,
   })
   const supportedChannelsQuery = useQuery({
     queryKey: [...platformQueryKey, "supported-channels"],
@@ -46,12 +51,14 @@ export function usePlatformQueries() {
     loading:
       supportedPlatformsQuery.isLoading ||
       platformConnectionsQuery.isLoading ||
+      executionAdaptersQuery.isLoading ||
       supportedChannelsQuery.isLoading ||
       channelConnectionsQuery.isLoading ||
       metricsQuery.isLoading ||
       syncStatusQuery.isLoading ||
       summaryQuery.isLoading,
     metrics: metricsQuery.data?.metrics ?? [],
+    platformExecutionAdapters: executionAdaptersQuery.data?.adapters ?? [],
     platformConnections: platformConnectionsQuery.data?.connections ?? [],
     summaries: summaryQuery.data?.platforms ?? [],
     supportedChannels: supportedChannelsQuery.data?.channels ?? [],

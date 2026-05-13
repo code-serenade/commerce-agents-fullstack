@@ -456,6 +456,35 @@ export interface PlatformConnectionResponse extends JsonRecord {
   updatedAt?: string
 }
 
+export interface PlatformExecutionAdapterActionResponse extends JsonRecord {
+  skillName: string
+  display: string
+  description: string
+  riskLevel: string
+  approvalRequired: boolean
+  executionMode: string
+  adapterStatus: string
+  canExecuteNow: boolean
+  readiness: string
+  readinessMessage: string
+  requiredParams: string[]
+  optionalParams: string[]
+  idempotencyKeyFields: string[]
+}
+
+export interface PlatformExecutionAdapterSpecResponse extends JsonRecord {
+  platform: string
+  display: string
+  connected: boolean
+  enabled: boolean
+  connectionStatus: string
+  actions: PlatformExecutionAdapterActionResponse[]
+}
+
+export interface PlatformExecutionAdapterCatalogResponse extends JsonRecord {
+  adapters: PlatformExecutionAdapterSpecResponse[]
+}
+
 export interface ChannelSpecResponse extends JsonRecord {
   channel: string
   display: string
@@ -1542,6 +1571,13 @@ export const listSupportedPlatformsApi = async (): Promise<{
     method: "GET",
     url: "/api/app/platform-connect/platforms",
   })
+
+export const listPlatformExecutionAdaptersApi =
+  async (): Promise<PlatformExecutionAdapterCatalogResponse> =>
+    request<undefined, PlatformExecutionAdapterCatalogResponse>({
+      method: "GET",
+      url: "/api/app/platform-connect/execution-adapters",
+    })
 
 export const listPlatformConnectionsApi = async (
   query?: ListQuery

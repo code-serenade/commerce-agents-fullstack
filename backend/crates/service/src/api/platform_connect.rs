@@ -51,6 +51,57 @@ impl PlatformConnectApi {
         }
     }
 
+    pub async fn execution_adapter_catalog(
+        &self,
+        user_id: String,
+    ) -> BizResult<PlatformExecutionAdapterCatalogResponse> {
+        let user_id = parse_user_id(&user_id)?;
+        self.ensure_app_user_enabled(user_id).await?;
+        let connections = self
+            .platform_svc
+            .list(PlatformConnectionFilter {
+                user_id,
+                platform: None,
+                enabled: None,
+            })
+            .await?;
+        let connection_map = connections
+            .into_iter()
+            .map(|item| (item.platform.clone(), item))
+            .collect::<HashMap<_, _>>();
+        let adapters = platform_specs()
+            .into_iter()
+            .map(|spec| {
+                let connection = connection_map.get(spec.platform.as_str());
+                let connected = connection.is_some();
+                let enabled = connection.is_some_and(|item| item.enabled);
+                let connection_status = connection
+                    .map(|item| item.status.as_str().to_string())
+                    .unwrap_or_else(|| "missing".to_string());
+                let actions = platform_execution_action_specs()
+                    .into_iter()
+                    .map(|action| {
+                        map_platform_execution_action(
+                            action,
+                            connected,
+                            enabled,
+                            connection_status.as_str(),
+                        )
+                    })
+                    .collect();
+                PlatformExecutionAdapterSpec {
+                    platform: spec.platform,
+                    display: spec.display,
+                    connected,
+                    enabled,
+                    connection_status,
+                    actions,
+                }
+            })
+            .collect();
+        Ok(PlatformExecutionAdapterCatalogResponse { adapters })
+    }
+
     pub fn channel_catalog(&self) -> ChannelCatalogResponse {
         ChannelCatalogResponse {
             channels: channel_specs(),
@@ -638,6 +689,94 @@ fn platform_specs() -> Vec<PlatformSpec> {
     ]
 }
 
+#[derive(Debug, Clone, Copy)]
+struct PlatformExecutionActionSpec {
+    skill_name: &'static str,
+    display: &'static str,
+    description: &'static str,
+    adapter_message: &'static str,
+    required_params: &'static [&'static str],
+    optional_params: &'static [&'static str],
+    idempotency_key_fields: &'static [&'static str],
+}
+
+fn platform_execution_action_specs() -> Vec<PlatformExecutionActionSpec> {
+    vec![
+        PlatformExecutionActionSpec {
+            skill_name: "platform_update_price",
+            display: "更新商品价格",
+            description: "审批后更新平台商品或 SKU 价格。",
+            adapter_message: "Platform execution adapter is not implemented yet for price update.",
+            required_params: &["platform", "product_id", "new_price"],
+            optional_params: &["sku_id"],
+            idempotency_key_fields: &["platform", "product_id", "sku_id", "new_price"],
+        },
+        PlatformExecutionActionSpec {
+            skill_name: "platform_update_inventory",
+            display: "更新商品库存",
+            description: "审批后更新平台商品或 SKU 库存。",
+            adapter_message: "Platform execution adapter is not implemented yet for inventory update.",
+            required_params: &["platform", "product_id", "quantity"],
+            optional_params: &["sku_id"],
+            idempotency_key_fields: &["platform", "product_id", "sku_id", "quantity"],
+        },
+        PlatformExecutionActionSpec {
+            skill_name: "platform_sync_products",
+            display: "同步平台商品",
+            description: "审批后从平台同步商品资料。",
+            adapter_message: "Platform execution adapter is not implemented yet for product sync.",
+            required_params: &["platform"],
+            optional_params: &["page", "page_size"],
+            idempotency_key_fields: &["platform", "page", "page_size"],
+        },
+    ]
+}
+
+fn map_platform_execution_action(
+    action: PlatformExecutionActionSpec,
+    connected: bool,
+    enabled: bool,
+    connection_status: &str,
+) -> PlatformExecutionAdapterAction {
+    let (readiness, readiness_message) = if !connected {
+        (
+            "blocked",
+            "No enabled platform connection was found for this user and platform.",
+        )
+    } else if !enabled || connection_status == "disabled" {
+        ("blocked", "Platform connection exists but is disabled.")
+    } else {
+        ("blocked", action.adapter_message)
+    };
+    PlatformExecutionAdapterAction {
+        skill_name: action.skill_name.to_string(),
+        display: action.display.to_string(),
+        description: action.description.to_string(),
+        risk_level: "L3".to_string(),
+        approval_required: true,
+        execution_mode: "adapter".to_string(),
+        adapter_status: "adapter_not_implemented".to_string(),
+        can_execute_now: false,
+        readiness: readiness.to_string(),
+        readiness_message: readiness_message.to_string(),
+        required_params: action
+            .required_params
+            .iter()
+            .map(|item| item.to_string())
+            .collect(),
+        optional_params: action
+            .optional_params
+            .iter()
+            .map(|item| item.to_string())
+            .collect(),
+        idempotency_key_fields: action
+            .idempotency_key_fields
+            .iter()
+            .map(|item| item.to_string())
+            .collect(),
+    }
+}
+
 fn channel_specs() -> Vec<ChannelSpec> {
     vec![
         ChannelSpec {
@@ -823,6 +962,68 @@ fn normalize_required(value: String, label: &str) -> BizResult<String> {
 
 fn normalize_optional(value: Option<String>) -> Option<String> {
     value.and_then(normalize_string)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn platform_execution_adapter_catalog_reports_missing_connection() {
+        let action = map_platform_execution_action(
+            platform_execution_action_specs()[0],
+            false,
+            false,
+            "missing",
+        );
+
+        assert_eq!(action.skill_name, "platform_update_price");
+        assert_eq!(action.adapter_status, "adapter_not_implemented");
+        assert_eq!(action.can_execute_now, false);
+        assert_eq!(action.readiness, "blocked");
+        assert_eq!(
+            action.readiness_message,
+            "No enabled platform connection was found for this user and platform."
+        );
+    }
+
+    #[test]
+    fn platform_execution_adapter_catalog_reports_disabled_connection() {
+        let action = map_platform_execution_action(
+            platform_execution_action_specs()[1],
+            true,
+            false,
+            "disabled",
+        );
+
+        assert_eq!(action.skill_name, "platform_update_inventory");
+        assert_eq!(action.can_execute_now, false);
+        assert_eq!(action.readiness, "blocked");
+        assert_eq!(
+            action.readiness_message,
+            "Platform connection exists but is disabled."
+        );
+    }
+
+    #[test]
+    fn platform_execution_adapter_catalog_reports_unimplemented_adapter_when_connected() {
+        let action = map_platform_execution_action(
+            platform_execution_action_specs()[2],
+            true,
+            true,
+            "configured",
+        );
+
+        assert_eq!(action.skill_name, "platform_sync_products");
+        assert_eq!(action.adapter_status, "adapter_not_implemented");
+        assert_eq!(action.can_execute_now, false);
+        assert_eq!(action.readiness, "blocked");
+        assert_eq!(
+            action.readiness_message,
+            "Platform execution adapter is not implemented yet for product sync."
+        );
+        assert_eq!(action.required_params, vec!["platform"]);
+    }
 }
 
 fn normalize_string(value: String) -> Option<String> {

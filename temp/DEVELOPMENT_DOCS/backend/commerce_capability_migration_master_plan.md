@@ -90,6 +90,7 @@ The following major foundations are already in place:
 - workspace context summary / context pack / artifact export
 - conversation file extraction status contract for pending / extracted / failed / unsupported states
 - platform execution readiness diagnostics on tool approval records
+- platform execution adapter capability catalog on platform connection pages
 - search evidence artifact persistence
 - agent skill run persistence and query API
 - multiple native skill migrations across ops / data / service / creative / web / design / accounting
@@ -176,7 +177,7 @@ Need:
 
 ### Phase D: Platform execution closed loop
 
-Status: approval creation exists, actual execution loop incomplete.
+Status: approval creation and adapter catalog exist, actual execution adapter loop incomplete.
 
 Need:
 
@@ -225,23 +226,24 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-44: platform execution readiness diagnostics
+Post 8-45: platform execution adapter catalog
 ```
 
 Scope:
 
-- write `executionReadiness` into `tool_approval_queue.result` when platform execution approvals are created
-- reuse `platform_connections` and the existing approval/execution queue framework
-- distinguish `validation_error`, `connection_missing`, `connection_disabled`, `unsupported_action`, and `adapter_not_implemented`
+- expose a read-only platform execution adapter catalog through `GET /api/app/platform-connect/execution-adapters`
+- reuse `platform_connections` and the existing platform connect framework
+- list governed high-risk actions: `platform_update_price`, `platform_update_inventory`, and `platform_sync_products`
+- include required params, optional params, idempotency fields, readiness, and adapter status
 - keep the boundary that current platform adapters are not implemented and no platform write success is faked
-- expose the readiness and later execution failure result for frontend display without adding fake actions
+- expose the catalog on the platform connection page without adding fake execution actions
 
 Reason:
 
 - high product value for high-risk platform execution governance
 - backend-first
-- keeps approval, execution queue and audit closure honest before real platform adapters are connected
-- lets users see why approving a platform action will currently fail instead of mistaking approval for execution success
+- keeps platform execution discovery honest before real platform adapters are connected
+- lets users see which platform actions are governed and why they cannot execute yet
 
 ## 10. Validation Standard
 

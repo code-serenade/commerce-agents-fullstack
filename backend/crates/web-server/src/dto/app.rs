@@ -1706,6 +1706,8 @@ pub type PlatformCatalogResponse = service::dto::platform_connect::PlatformCatal
 pub type PlatformConnectionListResponse =
     service::dto::platform_connect::PlatformConnectionListResponse;
 pub type PlatformConnectionResponse = service::dto::platform_connect::PlatformConnectionResponse;
+pub type PlatformExecutionAdapterCatalogResponse =
+    service::dto::platform_connect::PlatformExecutionAdapterCatalogResponse;
 pub type PlatformSyncStatusListResponse =
     service::dto::platform_connect::PlatformSyncStatusListResponse;
 pub type PlatformSummaryResponse = service::dto::platform_connect::PlatformSummaryResponse;

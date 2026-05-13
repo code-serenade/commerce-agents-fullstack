@@ -1,5 +1,46 @@
 # 迁移开发记录
 
+## Post 8-45：平台执行 Adapter 能力目录
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 45 个补强项：`Post 8-45`。
+
+本次目标：
+
+- 把高风险平台写操作从“审批记录里才看到失败原因”推进到“平台连接页能先看到所有 adapter 能力目录和可执行边界”。
+- 继续复用新产品已有 `platform_connections`、审批和执行队列体系，不新增第二套平台执行系统。
+- 明确当前真实平台 adapter 尚未实现，不伪造平台写成功，也不提供假执行入口。
+
+涉及范围：
+
+- 产品内核：平台写能力现在有只读能力目录，用户能先知道哪些平台动作受治理、需要哪些参数、为什么当前不能执行。
+- 后端 service：`PlatformConnectApi::execution_adapter_catalog` 返回各平台连接状态和 `platform_update_price`、`platform_update_inventory`、`platform_sync_products` 三类高风险动作目录。
+- Web-server/API：新增 `GET /api/app/platform-connect/execution-adapters`，已同步 `API_DOCS/app.md`。
+- 前端：平台连接页新增只读“平台执行能力”面板，展示连接状态、adapter 状态、readiness 和必要参数，不新增执行按钮。
+
+用户可感知变化：
+
+- 用户进入平台连接页时，可以看到每个平台当前有哪些高风险执行能力。
+- 如果平台连接缺失、连接被禁用或真实 adapter 未实现，页面直接展示后端返回的不可执行原因。
+- 当前所有平台写动作仍不可直接执行，必须等后续真实 adapter 接入后继续走审批、执行队列和审计闭环。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p service platform_execution_adapter_catalog -- --nocapture`
+- [x] `cargo check -p service -p web-server`
+- [x] `cargo clippy -p service -p web-server`
+- [x] `pnpm -C frontend/apps/web rules`
+- [x] `pnpm -C frontend/apps/web lint`
+- [x] `pnpm -C frontend/apps/web test`
+- [x] `pnpm -C frontend/apps/web build`
+- [x] `pnpm -C frontend rules`
+- [x] `git diff --check`
+
 ## Post 8-44：平台执行 Readiness 诊断契约
 
 状态：done

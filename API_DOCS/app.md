@@ -2976,6 +2976,52 @@
 }
 ```
 
+## 69.1 查询平台执行 Adapter 能力目录
+
+- 方法：`GET`
+- 路径：`/api/app/platform-connect/execution-adapters`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：
+
+```json
+{
+  "adapters": [
+    {
+      "platform": "douyin",
+      "display": "抖音电商",
+      "connected": true,
+      "enabled": true,
+      "connectionStatus": "configured",
+      "actions": [
+        {
+          "skillName": "platform_update_price",
+          "display": "更新商品价格",
+          "description": "审批后更新平台商品或 SKU 价格。",
+          "riskLevel": "L3",
+          "approvalRequired": true,
+          "executionMode": "adapter",
+          "adapterStatus": "adapter_not_implemented",
+          "canExecuteNow": false,
+          "readiness": "blocked",
+          "readinessMessage": "Platform execution adapter is not implemented yet for price update.",
+          "requiredParams": ["platform", "product_id", "new_price"],
+          "optionalParams": ["sku_id"],
+          "idempotencyKeyFields": ["platform", "product_id", "sku_id", "new_price"]
+        }
+      ]
+    }
+  ]
+}
+```
+
+补充说明：
+
+- 该接口只读展示当前用户的平台执行 adapter 能力目录和可执行边界，不触发真实平台写操作。
+- `connected`、`enabled`、`connectionStatus` 来自当前用户的 `platform_connections`。
+- 当前真实平台写 adapter 尚未实现，因此 `adapterStatus` 固定为 `adapter_not_implemented`，`canExecuteNow=false`，不会伪造成执行成功。
+- 前端只能展示该目录和不可执行原因，不能基于该接口新增假执行按钮。
+
 ## 70. 查询平台连接列表
 
 - 方法：`GET`

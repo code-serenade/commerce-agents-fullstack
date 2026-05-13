@@ -146,6 +146,7 @@ const messages = {
       suggestionDescription: "Suggestion description",
       skillName: "Tool or capability name",
       riskLevel: "Risk level",
+      params: "Params",
       workspaceId: "Workspace ID",
       runId: "Run ID",
       conversationId: "Conversation ID",
@@ -543,6 +544,9 @@ const messages = {
         summaryDesc: "Readonly summary from store_metrics",
         sync: "Sync status",
         syncDesc: "Connection state and latest metric date",
+        executionAdapters: "Platform execution capabilities",
+        executionAdaptersDesc:
+          "Readonly backend contract for high-risk platform write adapters and approval readiness",
       },
       columns: {
         metric: "Metric",
@@ -550,10 +554,18 @@ const messages = {
         orders30: "Orders30",
         sync: "Sync",
         latestMetric: "Latest metric",
+        connection: "Connection",
+        adapter: "Adapter",
+        readiness: "Readiness",
+      },
+      labels: {
+        connected: "Connected, approval still required",
+        notExecutable: "Not executable now",
       },
       empty: {
         supportedPlatforms: "No supported platform config",
         supportedChannels: "No supported channels",
+        executionAdapters: "No platform execution capabilities",
         platformConnections: "No platform connections",
         channelConnections: "No channel connections",
         metrics: "No local metrics",

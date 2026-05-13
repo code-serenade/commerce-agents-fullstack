@@ -532,6 +532,29 @@
 - 本阶段不实现淘宝/JD/PDD/抖音等真实平台写 adapter。
 - 后续接入真实 adapter 时，应继续复用当前审批、执行队列和审计闭环。
 
+## Post 8-45：平台执行 Adapter 能力目录
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Service：新增 `PlatformConnectApi::execution_adapter_catalog`。
+- [x] Service：能力目录复用当前用户 `platform_connections`，不新增数据库表。
+- [x] Service：目录覆盖 `platform_update_price`、`platform_update_inventory`、`platform_sync_products`。
+- [x] Service：每个动作返回风险等级、审批要求、参数、幂等字段、adapter 状态、readiness 和可执行状态。
+- [x] Service：当前真实平台 adapter 未实现时 `canExecuteNow=false`，不会返回假成功。
+- [x] Web-server：新增 `GET /api/app/platform-connect/execution-adapters`。
+- [x] API：`API_DOCS/app.md` 已同步。
+- [x] 前端：平台连接页展示只读平台执行 adapter 能力目录。
+- [x] 前端：未新增假执行按钮或假成功状态。
+
+当前说明：
+
+- 本阶段解决的是“用户先看清平台写能力目录和当前不可执行原因”。
+- 本阶段不实现淘宝/JD/PDD/抖音等真实平台写 adapter。
+- 后续接入真实 adapter 时，应继续复用该目录、审批、执行队列和审计闭环。
+
 ## Post 8-17：竞品分析读取 API
 
 状态：done

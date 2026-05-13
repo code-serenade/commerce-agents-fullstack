@@ -62,9 +62,9 @@ Post 8-10 补充：上述 Agent `search_*` skill 已接入同一份 `[external_s
 
 | 旧能力 | 新产品目标 ID | 状态 | 新落点 | 备注 |
 | --- | --- | --- | --- | --- |
-| `platform_update_price` | `platform_update_price` | approval_required | `backend/crates/service/src/api/approval_audit.rs` | Post 8-25：审批通过后进入执行队列并写真实失败结果；Post 8-44：审批创建时已有 readiness 诊断。真实平台 adapter 未实现时返回 `adapter_not_implemented`，不会伪造成败 |
-| `platform_update_inventory` | `platform_update_inventory` | approval_required | `backend/crates/service/src/api/approval_audit.rs` | Post 8-25：审批通过后进入执行队列并写真实失败结果；Post 8-44：审批创建时已有 readiness 诊断。缺连接、禁用连接、缺参数或 adapter 未实现都会明确显示 |
-| `platform_sync_products` | `platform_sync_products` | approval_required | `backend/crates/service/src/api/approval_audit.rs` | Post 8-44：已纳入平台执行 readiness 诊断；真实商品同步 adapter 仍待实现 |
+| `platform_update_price` | `platform_update_price` | approval_required | `backend/crates/service/src/api/approval_audit.rs` / `backend/crates/service/src/api/platform_connect.rs` | Post 8-25：审批通过后进入执行队列并写真实失败结果；Post 8-44：审批创建时已有 readiness 诊断；Post 8-45：平台连接页已有只读 adapter 能力目录。真实平台 adapter 未实现时返回 `adapter_not_implemented`，不会伪造成成功 |
+| `platform_update_inventory` | `platform_update_inventory` | approval_required | `backend/crates/service/src/api/approval_audit.rs` / `backend/crates/service/src/api/platform_connect.rs` | Post 8-25：审批通过后进入执行队列并写真实失败结果；Post 8-44：审批创建时已有 readiness 诊断；Post 8-45：平台连接页已有只读 adapter 能力目录。缺连接、禁用连接、缺参数或 adapter 未实现都会明确显示 |
+| `platform_sync_products` | `platform_sync_products` | approval_required | `backend/crates/service/src/api/approval_audit.rs` / `backend/crates/service/src/api/platform_connect.rs` | Post 8-44：已纳入平台执行 readiness 诊断；Post 8-45：已纳入平台执行 adapter 能力目录；真实商品同步 adapter 仍待实现 |
 
 ## 附件 / 素材 / 上下文 ingestion
 
