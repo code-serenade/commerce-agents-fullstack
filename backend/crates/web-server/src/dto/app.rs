@@ -1644,6 +1644,14 @@ pub struct ListPlatformConnectionsQuery {
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
+pub struct PlatformExecutionPreflightRequest {
+    #[validate(length(min = 1, max = 128))]
+    pub skill_name: String,
+    pub args: Option<Value>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
 pub struct SavePlatformConnectionRequest {
     #[validate(length(min = 1, max = 64))]
     pub platform: String,
@@ -1708,6 +1716,8 @@ pub type PlatformConnectionListResponse =
 pub type PlatformConnectionResponse = service::dto::platform_connect::PlatformConnectionResponse;
 pub type PlatformExecutionAdapterCatalogResponse =
     service::dto::platform_connect::PlatformExecutionAdapterCatalogResponse;
+pub type PlatformExecutionPreflightResponse =
+    service::dto::platform_connect::PlatformExecutionPreflightResponse;
 pub type PlatformSyncStatusListResponse =
     service::dto::platform_connect::PlatformSyncStatusListResponse;
 pub type PlatformSummaryResponse = service::dto::platform_connect::PlatformSummaryResponse;

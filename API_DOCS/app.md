@@ -3022,6 +3022,59 @@
 - 当前真实平台写 adapter 尚未实现，因此 `adapterStatus` 固定为 `adapter_not_implemented`，`canExecuteNow=false`，不会伪造成执行成功。
 - 前端只能展示该目录和不可执行原因，不能基于该接口新增假执行按钮。
 
+## 69.2 平台执行 Preflight 预检
+
+- 方法：`POST`
+- 路径：`/api/app/platform-connect/execution-preflight`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "skillName": "platform_update_price",
+  "args": {
+    "platform": "douyin",
+    "product_id": "prod-1",
+    "new_price": 129.5,
+    "sku_id": "sku-9"
+  }
+}
+```
+
+成功响应 `data`：
+
+```json
+{
+  "status": "blocked",
+  "adapterStatus": "adapter_not_implemented",
+  "canApprove": false,
+  "canExecuteNow": false,
+  "willFailIfApproved": true,
+  "platform": "douyin",
+  "skillName": "platform_update_price",
+  "message": "Platform execution adapter is not implemented yet for price update.",
+  "details": {
+    "productId": "prod-1",
+    "skuId": "sku-9",
+    "newPrice": 129.5,
+    "quantity": null,
+    "page": null,
+    "pageSize": null
+  },
+  "checkedAt": "2026-05-13T00:00:00Z"
+}
+```
+
+补充说明：
+
+- 该接口只做创建审批前的只读预检，不创建审批，不创建执行队列，不调用真实平台写接口。
+- `args` 支持顶层字段、`normalized_inputs` / `normalizedInputs`、`output.normalized_inputs` / `output.normalizedInputs`，以兼容 Agent skill 产物和前端表单参数。
+- 非平台动作返回 `status=unsupported`、`adapterStatus=unsupported_action`。
+- 缺平台、缺商品 ID、缺价格或缺库存返回 `adapterStatus=validation_error`。
+- 缺平台连接返回 `connection_missing`，连接禁用返回 `connection_disabled`。
+- 当前真实平台写 adapter 尚未实现，因此参数和连接都齐全时仍返回 `adapter_not_implemented`、`canExecuteNow=false`。
+
 ## 70. 查询平台连接列表
 
 - 方法：`GET`

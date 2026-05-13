@@ -53,6 +53,7 @@ API 是后端能力和前端适配之间的唯一契约。任何前端适配开�
 - [x] Approval 承接高风险 skill API/SSE。
 - [x] Platform execution readiness 诊断写入审批和执行结果。
 - [x] Platform execution adapter 能力目录 API。
+- [x] Platform execution preflight 预检 API。
 - [x] 旧产品内置能力包同步 API。
 
 ## 文档

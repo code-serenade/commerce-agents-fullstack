@@ -91,6 +91,7 @@ The following major foundations are already in place:
 - conversation file extraction status contract for pending / extracted / failed / unsupported states
 - platform execution readiness diagnostics on tool approval records
 - platform execution adapter capability catalog on platform connection pages
+- platform execution preflight diagnostics before tool approval creation
 - search evidence artifact persistence
 - agent skill run persistence and query API
 - multiple native skill migrations across ops / data / service / creative / web / design / accounting
@@ -177,7 +178,7 @@ Need:
 
 ### Phase D: Platform execution closed loop
 
-Status: approval creation and adapter catalog exist, actual execution adapter loop incomplete.
+Status: approval creation, readiness, adapter catalog and preflight exist; actual execution adapter loop incomplete.
 
 Need:
 
@@ -226,24 +227,25 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-45: platform execution adapter catalog
+Post 8-46: platform execution preflight diagnostics
 ```
 
 Scope:
 
-- expose a read-only platform execution adapter catalog through `GET /api/app/platform-connect/execution-adapters`
+- expose a read-only preflight API through `POST /api/app/platform-connect/execution-preflight`
 - reuse `platform_connections` and the existing platform connect framework
-- list governed high-risk actions: `platform_update_price`, `platform_update_inventory`, and `platform_sync_products`
-- include required params, optional params, idempotency fields, readiness, and adapter status
+- validate supported platform execution actions before approval creation
+- parse top-level, `normalized_inputs`, and `output.normalized_inputs` argument shapes
+- return `validation_error`, `connection_missing`, `connection_disabled`, `unsupported_action`, or `adapter_not_implemented`
 - keep the boundary that current platform adapters are not implemented and no platform write success is faked
-- expose the catalog on the platform connection page without adding fake execution actions
+- sync frontend API types without adding fake execution actions
 
 Reason:
 
 - high product value for high-risk platform execution governance
 - backend-first
-- keeps platform execution discovery honest before real platform adapters are connected
-- lets users see which platform actions are governed and why they cannot execute yet
+- lets frontend forms, Agent execution suggestions, and approval creation reuse one readiness contract
+- lets users see why a platform action will fail before creating an approval
 
 ## 10. Validation Standard
 

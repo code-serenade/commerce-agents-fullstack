@@ -485,6 +485,24 @@ export interface PlatformExecutionAdapterCatalogResponse extends JsonRecord {
   adapters: PlatformExecutionAdapterSpecResponse[]
 }
 
+export interface PlatformExecutionPreflightRequest extends JsonRecord {
+  skillName: string
+  args?: JsonRecord
+}
+
+export interface PlatformExecutionPreflightResponse extends JsonRecord {
+  status: string
+  adapterStatus: string
+  canApprove: boolean
+  canExecuteNow: boolean
+  willFailIfApproved: boolean
+  platform?: string | null
+  skillName: string
+  message: string
+  details: JsonRecord
+  checkedAt: string
+}
+
 export interface ChannelSpecResponse extends JsonRecord {
   channel: string
   display: string
@@ -1578,6 +1596,15 @@ export const listPlatformExecutionAdaptersApi =
       method: "GET",
       url: "/api/app/platform-connect/execution-adapters",
     })
+
+export const platformExecutionPreflightApi = async (
+  body: PlatformExecutionPreflightRequest
+): Promise<PlatformExecutionPreflightResponse> =>
+  request<PlatformExecutionPreflightRequest, PlatformExecutionPreflightResponse>({
+    method: "POST",
+    url: "/api/app/platform-connect/execution-preflight",
+    body,
+  })
 
 export const listPlatformConnectionsApi = async (
   query?: ListQuery

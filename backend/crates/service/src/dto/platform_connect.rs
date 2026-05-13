@@ -61,6 +61,29 @@ pub struct PlatformExecutionAdapterCatalogResponse {
     pub adapters: Vec<PlatformExecutionAdapterSpec>,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+pub struct PlatformExecutionPreflightRequest {
+    pub user_id: String,
+    pub skill_name: String,
+    pub args: Option<Value>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlatformExecutionPreflightResponse {
+    pub status: String,
+    pub adapter_status: String,
+    pub can_approve: bool,
+    pub can_execute_now: bool,
+    pub will_fail_if_approved: bool,
+    pub platform: Option<String>,
+    pub skill_name: String,
+    pub message: String,
+    pub details: Value,
+    #[serde(with = "time::serde::rfc3339")]
+    pub checked_at: OffsetDateTime,
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChannelSpec {

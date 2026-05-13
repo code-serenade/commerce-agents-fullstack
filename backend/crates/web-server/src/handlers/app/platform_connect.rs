@@ -53,6 +53,7 @@ use crate::{
         PackageLockListResponse, PackageResponse, PackageStatusChangeRequest,
         PackageValidationResponse, PlatformCatalogResponse, PlatformConnectionListResponse,
         PlatformConnectionResponse, PlatformExecutionAdapterCatalogResponse,
+        PlatformExecutionPreflightRequest, PlatformExecutionPreflightResponse,
         PlatformSummaryResponse, PlatformSyncStatusListResponse,
         PresignConversationFileUploadRequest, PresignConversationFileUploadResponse,
         PresignProductAssetUploadRequest, PresignProductAssetUploadResponse,
@@ -86,6 +87,25 @@ pub async fn list_platform_execution_adapters(
     let api = PlatformConnectApi::new(get_app_ctx());
     let response = api
         .execution_adapter_catalog(auth_user.user_id)
+        .await
+        .map_err(from_biz_error)?;
+    Ok(response.into_common_response().to_json())
+}
+
+pub async fn platform_execution_preflight(
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<PlatformExecutionPreflightRequest>,
+) -> ResponseResult<PlatformExecutionPreflightResponse> {
+    req.validate().map_err(Error::from)?;
+    let api = PlatformConnectApi::new(get_app_ctx());
+    let response = api
+        .execution_preflight(
+            service::dto::platform_connect::PlatformExecutionPreflightRequest {
+                user_id: auth_user.user_id,
+                skill_name: req.skill_name,
+                args: req.args,
+            },
+        )
         .await
         .map_err(from_biz_error)?;
     Ok(response.into_common_response().to_json())

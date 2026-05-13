@@ -555,6 +555,29 @@
 - 本阶段不实现淘宝/JD/PDD/抖音等真实平台写 adapter。
 - 后续接入真实 adapter 时，应继续复用该目录、审批、执行队列和审计闭环。
 
+## Post 8-46：平台执行 Preflight 预检契约
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Service：新增 `PlatformConnectApi::execution_preflight`。
+- [x] Service：preflight 复用当前用户 `platform_connections`，不新增数据库表。
+- [x] Service：参数解析兼容顶层字段、`normalized_inputs`、`normalizedInputs`、`output.normalized_inputs`、`output.normalizedInputs`。
+- [x] Service：预检覆盖 `validation_error`、`connection_missing`、`connection_disabled`、`unsupported_action`、`adapter_not_implemented`。
+- [x] Service：当前真实平台 adapter 未实现时 `canExecuteNow=false`，不会返回假成功。
+- [x] Web-server：新增 `POST /api/app/platform-connect/execution-preflight`。
+- [x] API：`API_DOCS/app.md` 已同步。
+- [x] 前端：`apps/web` API adapter 类型和请求函数已同步。
+- [x] 前端：未新增假执行按钮或假成功状态。
+
+当前说明：
+
+- 本阶段解决的是“创建平台写审批前先做真实预检”。
+- 本阶段不创建审批、不创建执行队列、不调用淘宝/JD/PDD/抖音等真实平台写 adapter。
+- 后续审批表单、Agent 执行建议和真实平台 adapter 接入应复用该 preflight 契约。
+
 ## Post 8-17：竞品分析读取 API
 
 状态：done

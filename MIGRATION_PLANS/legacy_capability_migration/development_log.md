@@ -1,5 +1,46 @@
 # 迁移开发记录
 
+## Post 8-46：平台执行 Preflight 预检契约
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 46 个补强项：`Post 8-46`。
+
+本次目标：
+
+- 把高风险平台写操作从“创建审批后才知道 readiness”继续前移到“创建审批前即可预检参数、连接和 adapter 状态”。
+- 继续复用新产品已有 `platform_connections` 和平台执行治理规则，不新增第二套平台执行系统。
+- 明确当前真实平台 adapter 尚未实现，preflight 只做只读校验，不创建审批、不创建执行队列、不调用平台写接口。
+
+涉及范围：
+
+- 产品内核：平台写动作现在有创建审批前的统一预检入口，可提前返回 `validation_error`、`connection_missing`、`connection_disabled`、`unsupported_action`、`adapter_not_implemented`。
+- 后端 service：`PlatformConnectApi::execution_preflight` 支持读取顶层参数、`normalized_inputs` 和 `output.normalized_inputs`，与 Agent skill 产物和审批参数兼容。
+- Web-server/API：新增 `POST /api/app/platform-connect/execution-preflight`，已同步 `API_DOCS/app.md`。
+- 前端：同步 API 类型和请求函数，但本轮不新增假执行按钮或临时表单。
+
+用户可感知变化：
+
+- 后续前端或 Agent 创建平台写审批前，可以先调用后端预检，直接知道当前是否会因为参数、连接或 adapter 问题失败。
+- 当前如果参数和连接都齐全，仍会明确返回 `adapter_not_implemented`，不会让用户误以为能真实改价、改库存或同步平台商品。
+- 这个能力为后续审批创建表单、Agent 平台执行建议和真实 adapter 接入打底。
+
+当前验证：
+
+- [x] `cargo fmt`
+- [x] `cargo test -p service platform_execution_preflight -- --nocapture`
+- [x] `cargo check -p service -p web-server`
+- [x] `cargo clippy -p service -p web-server`
+- [x] `pnpm -C frontend/apps/web rules`
+- [x] `pnpm -C frontend/apps/web lint`
+- [x] `pnpm -C frontend/apps/web test`
+- [x] `pnpm -C frontend/apps/web build`
+- [x] `pnpm -C frontend rules`
+- [x] `git diff --check`
+
 ## Post 8-45：平台执行 Adapter 能力目录
 
 状态：done
