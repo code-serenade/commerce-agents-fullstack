@@ -20,7 +20,7 @@ const messages = {
         operations: "Operations",
         packages: "Packages",
         agent: "Commerce Agents",
-        agentOutput: "Plan view",
+        agentOutput: "Deliverables",
         profile: "Profile",
       },
       topbar: {
@@ -824,6 +824,7 @@ const messages = {
         briefing: "Daily briefing",
         alerts: "Alerts",
         deliverables: "Deliverables",
+        approvals: "Approvals",
         taskBoard: "Task board",
         packages: "Reusable packages",
         systemDashboard: "System dashboard",
@@ -1417,6 +1418,33 @@ const messages = {
     prompt:
       "I run coffee operations. My main marketing platform is Douyin, and May Day is coming soon. Can you help me write an operations plan to improve conversion rate?",
     sectionsNavigation: "Reading guide",
+    backend: {
+      eyebrow: "Backend Artifacts",
+      title: "Backend deliverables",
+      description:
+        "This reads backend workspaces and artifacts so the page shows deliverables persisted by the Agent Q&A path. If no real records exist yet, the demo plan below remains available for presentation support.",
+      refresh: "Refresh",
+      loading: "Loading backend deliverables",
+      listTitle: "Deliverables",
+      listDesc: "{{artifacts}} artifact(s) / {{workspaces}} workspace(s)",
+      emptyTitle: "No backend deliverables yet",
+      emptyDescription:
+        "Return to multi-agent Q&A and send an ecommerce task. Once the backend writes workspace/artifact records, they will appear here.",
+      errorTitle: "Failed to load deliverables",
+      noSelectionTitle: "No deliverable selected",
+      noSelectionDescription: "Select a deliverable to inspect content, workspace source, and export metadata.",
+      noContent: "No content or preview saved by backend.",
+      copy: "Copy",
+      download: "Download",
+      meta: {
+        workspace: "Workspace",
+        artifactId: "Artifact ID",
+        runId: "Run ID",
+        format: "Format",
+        storage: "Storage",
+        size: "Chars/size",
+      },
+    },
     hero: {
       badges: {
         output: "Agent output page",

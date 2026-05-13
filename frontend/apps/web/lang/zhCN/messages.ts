@@ -20,7 +20,7 @@ const messages = {
         operations: "运营状态",
         packages: "能力包治理",
         agent: "电商多智能体",
-        agentOutput: "方案展示",
+        agentOutput: "交付资料",
         profile: "个人资料",
       },
       topbar: {
@@ -819,6 +819,7 @@ const messages = {
         briefing: "每日简报",
         alerts: "预警中心",
         deliverables: "交付资料",
+        approvals: "审批审计",
         taskBoard: "执行清单",
         packages: "通用化管理",
         systemDashboard: "系统看板",
@@ -1406,6 +1407,33 @@ const messages = {
     prompt:
       "我是做咖啡运营的，主要营销平台是抖音，现在马上就五一了，可以帮我像一个运营方案吗提升我的转化率",
     sectionsNavigation: "阅读导航",
+    backend: {
+      eyebrow: "Backend Artifacts",
+      title: "后端交付资料",
+      description:
+        "这里读取后端工作区和 artifact 能力，展示 Agent 问答已经沉淀下来的真实交付物；没有真实记录时，下方保留一份演示方案作为汇报辅助。",
+      refresh: "刷新",
+      loading: "正在读取后端交付资料",
+      listTitle: "交付物列表",
+      listDesc: "{{artifacts}} 个交付物 / {{workspaces}} 个工作区",
+      emptyTitle: "还没有后端交付物",
+      emptyDescription:
+        "先回到多智能体问答发送一个电商任务，后端完成 workspace/artifact 写入后会出现在这里。",
+      errorTitle: "交付物读取失败",
+      noSelectionTitle: "暂无可查看交付物",
+      noSelectionDescription: "选择左侧交付物后可查看正文、来源工作区和导出信息。",
+      noContent: "后端暂未保存正文或预览。",
+      copy: "复制",
+      download: "下载",
+      meta: {
+        workspace: "工作区",
+        artifactId: "交付物 ID",
+        runId: "运行 ID",
+        format: "格式",
+        storage: "存储",
+        size: "字数/大小",
+      },
+    },
     hero: {
       badges: {
         output: "Agent 输出页面",

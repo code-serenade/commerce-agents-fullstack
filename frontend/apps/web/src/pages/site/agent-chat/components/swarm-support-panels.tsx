@@ -9,19 +9,21 @@ import {
 } from "lucide-react"
 import type { ComponentType, SVGProps } from "react"
 import { useTranslation } from "react-i18next"
+import { useNavigate } from "react-router"
 import { WORKSPACE_LANES } from "../view-model/swarm-panel-view-model"
 import { StatePill } from "./swarm-state-pill"
 
 const WORKSPACE_HANDOFFS = [
-  ["agentChat.swarm.handoffs.context.title", "agentChat.swarm.handoffs.context.detail", Database],
-  ["agentChat.swarm.handoffs.execution.title", "agentChat.swarm.handoffs.execution.detail", ClipboardCheck],
-  ["agentChat.swarm.handoffs.delivery.title", "agentChat.swarm.handoffs.delivery.detail", FileText],
-  ["agentChat.swarm.handoffs.governance.title", "agentChat.swarm.handoffs.governance.detail", ShieldAlert],
-  ["agentChat.swarm.handoffs.review.title", "agentChat.swarm.handoffs.review.detail", Bot],
+  ["agentChat.swarm.handoffs.context.title", "agentChat.swarm.handoffs.context.detail", Database, "/products"],
+  ["agentChat.swarm.handoffs.execution.title", "agentChat.swarm.handoffs.execution.detail", ClipboardCheck, "/workspaces"],
+  ["agentChat.swarm.handoffs.delivery.title", "agentChat.swarm.handoffs.delivery.detail", FileText, "/agent-output"],
+  ["agentChat.swarm.handoffs.governance.title", "agentChat.swarm.handoffs.governance.detail", ShieldAlert, "/approvals"],
+  ["agentChat.swarm.handoffs.review.title", "agentChat.swarm.handoffs.review.detail", Bot, "/overview"],
 ] as const
 
 export function WorkspaceHandoffRail() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
 
   return (
     <div className="rounded-xl border border-border bg-background p-3 shadow-sm">
@@ -35,10 +37,12 @@ export function WorkspaceHandoffRail() {
         </span>
       </div>
       <div className="grid gap-2 min-[1500px]:grid-cols-2 min-[1800px]:grid-cols-4">
-        {WORKSPACE_HANDOFFS.map(([titleKey, detailKey, Icon]) => (
-          <div
+        {WORKSPACE_HANDOFFS.map(([titleKey, detailKey, Icon, path]) => (
+          <button
             key={titleKey}
-            className="flex min-w-0 items-start gap-2 rounded-lg border border-border bg-card px-3 py-2"
+            type="button"
+            className="flex min-w-0 items-start gap-2 rounded-lg border border-border bg-card px-3 py-2 text-left transition-colors hover:bg-muted"
+            onClick={() => navigate(path)}
           >
             <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
               <Icon className="size-4" />
@@ -49,7 +53,7 @@ export function WorkspaceHandoffRail() {
                 {t(detailKey)}
               </p>
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </div>

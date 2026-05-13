@@ -1,6 +1,7 @@
 import { type MouseEvent, type ReactNode, useState } from "react"
 import {
   ClipboardList,
+  ClipboardCheck,
   Database,
   Edit3,
   FileText,
@@ -204,6 +205,13 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           label: t("agentChat.shell.navigation.deliverables"),
           active: isRouteActive("/agent-output"),
           onSelect: () => navigateTo("/agent-output"),
+        },
+        {
+          key: "approvals",
+          icon: <ClipboardCheck />,
+          label: t("agentChat.shell.navigation.approvals"),
+          active: isRouteActive("/approvals"),
+          onSelect: () => navigateTo("/approvals"),
         },
         {
           key: "task-board",
