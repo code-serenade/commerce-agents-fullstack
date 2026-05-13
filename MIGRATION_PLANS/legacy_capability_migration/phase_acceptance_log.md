@@ -1,5 +1,29 @@
 # 阶段验收记录
 
+## Post 8-53：问答工作台折叠收纳与演示清爽化
+
+状态：done
+
+验收项：
+
+- [x] 电商多智能体页左侧导航默认收起，但仍使用同事给的 `SidebarShell` 折叠机制。
+- [x] 右侧虚拟员工工作区默认收起为浮动入口，可点击展开。
+- [x] 输入区策略、商品上下文、模型、岗位和 playbook 入口默认收进“任务设置”，展开后仍可操作。
+- [x] 主问答区保留真实 SSE/Agent 过程展示，不删除已接后端能力。
+- [x] 不新增后端 API，不伪造未完成平台 adapter 或外部搜索能力。
+- [x] `pnpm -C frontend/apps/web lint`
+- [x] `pnpm -C frontend/apps/web rules`
+- [x] `pnpm -C frontend/apps/web test`
+- [x] `pnpm -C frontend/apps/web build`
+- [x] `pnpm -C frontend/packages/app-kit rules`
+- [x] `pnpm -C frontend/packages/app-kit typecheck`
+
+当前说明：
+
+- 本轮解决的是汇报前端可用性和信息密度问题。
+- 核心原则是“默认清爽，按需展开”：左侧导航、右侧过程和高级任务设置都可以展开，但不再默认全部铺开。
+- 本轮只做前端体验收纳和共享 shell 的小配置能力，不改变后端能力边界。
+
 ## Post 8-52：演示可用前端对齐
 
 状态：done

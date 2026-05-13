@@ -911,6 +911,10 @@ const messages = {
         loading: "Loading scenarios",
         empty: "No scenarios",
       },
+      settings: {
+        toggle: "Task settings",
+        rolesCount: "{{count}} roles",
+      },
       runtime: {
         label: "Runtime",
         loading: "Loading runtime",

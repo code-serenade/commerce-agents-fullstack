@@ -1,19 +1,5 @@
-import {
-  BadgeDollarSign,
-  BarChart3,
-  Bot,
-  ClipboardList,
-  LockKeyhole,
-  Loader2,
-  Plus,
-  PenLine,
-  Rocket,
-  Send,
-  ShieldAlert,
-  Square,
-  type LucideIcon,
-} from "lucide-react"
-import { type KeyboardEvent, type MouseEvent, useRef } from "react"
+import { Bot, LockKeyhole, Loader2, Plus, Send, Square } from "lucide-react"
+import { type KeyboardEvent, type MouseEvent, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@workspace/ui-components/stable/button"
 import type { AgentChatProductContextSelection } from "../domain/agent-chat-context-selection"
@@ -23,18 +9,7 @@ import type {
   AgentRuntimeOptions,
 } from "../domain/agent-runtime-options"
 import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
-import { AgentChatProductContextBar } from "./agent-chat-product-context-bar"
-import { AgentChatRuntimeOptionsBar } from "./agent-chat-runtime-options-bar"
-import { AgentChatStrategyBar } from "./agent-chat-strategy-bar"
-
-const PLAYBOOK_ICONS: Record<string, LucideIcon> = {
-  briefing: ClipboardList,
-  creative: PenLine,
-  launch: Rocket,
-  pricing: BadgeDollarSign,
-  review: BarChart3,
-  service: ShieldAlert,
-}
+import { AgentChatSettingsPanel } from "./agent-chat-settings-panel"
 
 export interface AgentChatComposerProps {
   availableProducts: AgentChatProductContextSelection[]
@@ -91,6 +66,7 @@ export function AgentChatComposer({
 }: AgentChatComposerProps) {
   const { t } = useTranslation()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const appendComposerText = (text: string) => {
     onInputChange(input.trim() ? `${input.trim()}\n${text}` : text)
@@ -119,65 +95,35 @@ export function AgentChatComposer({
   return (
     <footer className="relative z-30 shrink-0 bg-background/95 p-3 sm:px-5">
       <div
-        className="mx-auto flex w-full max-w-3xl flex-col gap-3 rounded-[1.65rem] border border-border bg-[#f1f1ef] p-3 shadow-xl shadow-black/10 dark:bg-card"
+        className="mx-auto flex w-full max-w-3xl flex-col gap-2 rounded-2xl border border-border bg-[#f1f1ef] p-2 shadow-xl shadow-black/10 dark:bg-card sm:p-3"
         onMouseDown={focusComposer}
         onKeyDown={handleKeyDown}
       >
-        <AgentChatStrategyBar
-          disabled={isStreaming}
-          onStrategyChange={onStrategyChange}
-          strategyId={strategyId}
-        />
-        <AgentChatProductContextBar
+        <AgentChatSettingsPanel
           availableProducts={availableProducts}
-          disabled={isStreaming}
+          isLoadingPlaybooks={isLoadingPlaybooks}
           isLoadingProducts={isLoadingProducts}
-          onToggleProductContext={onToggleProductContext}
-          selectedProducts={selectedProducts}
-        />
-        <AgentChatRuntimeOptionsBar
-          disabled={isStreaming}
           isLoadingRuntimeOptions={isLoadingRuntimeOptions}
+          isOpen={settingsOpen}
+          isStreaming={isStreaming}
           onCollaborationModeChange={onRuntimeCollaborationModeChange}
           onLearningLevelChange={onRuntimeLearningLevelChange}
           onModelChange={onRuntimeModelChange}
           onPrimaryRoleChange={onRuntimePrimaryRoleChange}
+          onSelectPlaybook={(playbook) => {
+            onSelectPlaybook(playbook)
+            queueMicrotask(() => textareaRef.current?.focus())
+          }}
+          onStrategyChange={onStrategyChange}
+          onToggleOpen={() => setSettingsOpen((open) => !open)}
+          onToggleProductContext={onToggleProductContext}
           onToggleRole={onToggleRuntimeRole}
+          playbooks={playbooks}
           runtimeOptions={runtimeOptions}
           runtimeSelection={runtimeSelection}
+          selectedProducts={selectedProducts}
+          strategyId={strategyId}
         />
-        <div className="flex flex-wrap gap-2">
-          {isLoadingPlaybooks ? (
-            <span className="flex h-7 items-center gap-2 rounded-full border border-border bg-background/70 px-3 text-xs text-muted-foreground">
-              <Loader2 className="size-3.5 animate-spin" />
-              {t("agentChat.composer.playbooks.loading")}
-            </span>
-          ) : null}
-          {!isLoadingPlaybooks && playbooks.length === 0 ? (
-            <span className="flex h-7 items-center rounded-full border border-border bg-background/70 px-3 text-xs text-muted-foreground">
-              {t("agentChat.composer.playbooks.empty")}
-            </span>
-          ) : null}
-          {playbooks.map((playbook) => {
-            const Icon = PLAYBOOK_ICONS[playbook.category] ?? ClipboardList
-            return (
-              <button
-                key={playbook.id}
-                type="button"
-                disabled={isStreaming}
-                onClick={() => {
-                  onSelectPlaybook(playbook)
-                  queueMicrotask(() => textareaRef.current?.focus())
-                }}
-                className="flex max-w-44 items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                title={`${playbook.description} ${playbook.expectedOutputs.join(" / ")}`}
-              >
-                <Icon className="size-3.5" />
-                <span className="truncate">{playbook.title}</span>
-              </button>
-            )
-          })}
-        </div>
         <div className="flex min-w-0 items-end justify-between gap-2 rounded-3xl bg-background p-2 shadow-sm">
           <div className="flex min-w-0 flex-1 items-end gap-2 overflow-hidden">
             <button

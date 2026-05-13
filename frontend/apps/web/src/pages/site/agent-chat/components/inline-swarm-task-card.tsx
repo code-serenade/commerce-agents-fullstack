@@ -1,13 +1,9 @@
 import {
   Activity,
-  ArrowRight,
   CheckCircle2,
   GitBranch,
-  ListChecks,
   Loader2,
   MonitorCog,
-  Search,
-  TerminalSquare,
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type { AgentRuntimeEvent } from "@/api"
@@ -57,7 +53,7 @@ export function InlineSwarmTaskCard({
         <GitBranch className="size-5" />
       </div>
       <div className="max-w-[min(43rem,92%)] min-w-0 space-y-4">
-        <InlineStepList steps={steps} />
+        <InlineStepStrip steps={steps} />
         <div className="rounded-xl border border-border bg-[#f3f3f1] p-4 shadow-sm dark:bg-card">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
@@ -108,35 +104,22 @@ export function InlineSwarmTaskCard({
   )
 }
 
-function InlineStepList({ steps }: { steps: string[][] }) {
+function InlineStepStrip({ steps }: { steps: string[][] }) {
   return (
-    <div className="space-y-2">
+    <div className="flex min-w-0 gap-2 overflow-x-auto pb-1">
       {steps.map(([label, detail], index) => {
-        const Icon = index === 0 ? FileCardIcon : index === 1 ? TerminalSquare : Search
         return (
           <div
             key={label}
-            className="relative rounded-xl border border-border bg-card px-4 py-3 shadow-sm"
+            className="min-w-44 rounded-lg border border-border bg-card px-3 py-2 shadow-sm"
           >
-            {index < steps.length - 1 ? (
-              <span className="absolute top-11 left-6 h-5 border-l border-dashed border-border" />
-            ) : null}
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                  <Icon className="size-4" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium">
-                    {label}
-                    <span className="ml-2 block text-xs font-normal text-muted-foreground sm:inline">
-                      | {detail}
-                    </span>
-                  </p>
-                </div>
-              </div>
-              <ArrowRight className="size-4 shrink-0 text-muted-foreground" />
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="font-mono text-xs font-semibold text-muted-foreground">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <p className="truncate text-sm font-medium">{label}</p>
             </div>
+            <p className="mt-1 truncate text-xs text-muted-foreground">{detail}</p>
           </div>
         )
       })}
@@ -237,8 +220,4 @@ function InlinePixels({
       ))}
     </div>
   )
-}
-
-function FileCardIcon({ className }: { className?: string }) {
-  return <ListChecks className={className} />
 }

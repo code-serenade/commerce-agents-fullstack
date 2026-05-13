@@ -61,6 +61,7 @@ export interface SidebarShellProps {
   brandLogo?: ReactNode
   brandTitle: ReactNode
   brandDescription?: ReactNode
+  defaultSidebarOpen?: boolean
   sections: SidebarShellSection[]
   header?: ReactNode
   mobileNavigation?: {
@@ -90,6 +91,7 @@ export function SidebarShell({
   brandLogo,
   brandTitle,
   brandDescription,
+  defaultSidebarOpen = true,
   sections,
   header,
   mobileNavigation,
@@ -101,7 +103,7 @@ export function SidebarShell({
   return (
     <div className="h-svh overflow-hidden [&_[data-sidebar=trigger]]:max-md:hidden">
       <TooltipProvider>
-        <SidebarProvider defaultOpen>
+        <SidebarProvider defaultOpen={defaultSidebarOpen}>
           <div className="hidden md:contents">
             <Sidebar collapsible="icon">
               <SidebarHeader>

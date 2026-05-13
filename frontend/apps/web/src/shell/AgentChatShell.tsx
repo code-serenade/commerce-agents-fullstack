@@ -287,6 +287,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   return (
     <>
       <SidebarShell
+        defaultSidebarOpen={false}
         brandLogo={
           <div className="relative flex size-10 items-center justify-center rounded-xl bg-foreground font-mono text-base font-semibold text-background shadow-sm">
             CA

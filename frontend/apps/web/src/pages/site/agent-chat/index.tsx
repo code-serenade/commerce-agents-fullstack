@@ -11,7 +11,7 @@ import { isChatOnlyRuntime } from "./view-model/thread-inline-view-model"
 export default function AgentChatPage() {
   const chat = useAgentChatContext()
   const navigate = useNavigate()
-  const [isProcessPanelOpen, setIsProcessPanelOpen] = useState(true)
+  const [isProcessPanelOpen, setIsProcessPanelOpen] = useState(false)
   const isChatOnly = isChatOnlyRuntime(chat.runtimeEvents)
   const shouldShowProcessPanel = isProcessPanelOpen && !isChatOnly
   const canExpandProcessPanel = !isProcessPanelOpen && !isChatOnly

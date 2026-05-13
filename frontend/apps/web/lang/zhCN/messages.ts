@@ -903,6 +903,10 @@ const messages = {
         loading: "正在读取场景",
         empty: "暂无场景",
       },
+      settings: {
+        toggle: "任务设置",
+        rolesCount: "{{count}} 个岗位",
+      },
       runtime: {
         label: "运行配置",
         loading: "正在读取运行配置",
