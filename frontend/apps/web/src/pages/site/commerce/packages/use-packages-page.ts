@@ -43,14 +43,14 @@ export function usePackagesPage() {
     keyword,
     metricCards,
     packageType,
-    runId,
+    runId: queries.effectiveRunId,
     setDialog,
     setKeyword,
     setPackageType,
     setRunId,
     setSelectedPackageKey,
     setWorkspaceId,
-    workspaceId,
+    workspaceId: queries.effectiveWorkspaceId,
   }
 }
 
