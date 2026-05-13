@@ -23,8 +23,9 @@ use time::{Duration, OffsetDateTime};
 use uuid::Uuid;
 
 use super::platform_execution::{
-    PlatformExecutionParams, PlatformExecutionReadiness, platform_execution_details,
-    platform_execution_params, platform_execution_readiness_status,
+    PlatformExecutionActionSpec, PlatformExecutionParams, PlatformExecutionReadiness,
+    platform_execution_action_specs, platform_execution_details, platform_execution_params,
+    platform_execution_readiness_status,
 };
 use crate::dto::platform_connect::*;
 
@@ -83,7 +84,8 @@ impl PlatformConnectApi {
                     .map(|item| item.status.as_str().to_string())
                     .unwrap_or_else(|| "missing".to_string());
                 let actions = platform_execution_action_specs()
-                    .into_iter()
+                    .iter()
+                    .copied()
                     .map(|action| {
                         map_platform_execution_action(
                             action,
@@ -714,49 +716,6 @@ fn platform_specs() -> Vec<PlatformSpec> {
                 field("access_token", "Access Token", true, true),
             ],
             doc_url: Some("https://op.jinritemai.com/".to_string()),
-        },
-    ]
-}
-
-#[derive(Debug, Clone, Copy)]
-struct PlatformExecutionActionSpec {
-    skill_name: &'static str,
-    display: &'static str,
-    description: &'static str,
-    adapter_message: &'static str,
-    required_params: &'static [&'static str],
-    optional_params: &'static [&'static str],
-    idempotency_key_fields: &'static [&'static str],
-}
-
-fn platform_execution_action_specs() -> Vec<PlatformExecutionActionSpec> {
-    vec![
-        PlatformExecutionActionSpec {
-            skill_name: "platform_update_price",
-            display: "更新商品价格",
-            description: "审批后更新平台商品或 SKU 价格。",
-            adapter_message: "Platform execution adapter is not implemented yet for price update.",
-            required_params: &["platform", "product_id", "new_price"],
-            optional_params: &["sku_id"],
-            idempotency_key_fields: &["platform", "product_id", "sku_id", "new_price"],
-        },
-        PlatformExecutionActionSpec {
-            skill_name: "platform_update_inventory",
-            display: "更新商品库存",
-            description: "审批后更新平台商品或 SKU 库存。",
-            adapter_message: "Platform execution adapter is not implemented yet for inventory update.",
-            required_params: &["platform", "product_id", "quantity"],
-            optional_params: &["sku_id"],
-            idempotency_key_fields: &["platform", "product_id", "sku_id", "quantity"],
-        },
-        PlatformExecutionActionSpec {
-            skill_name: "platform_sync_products",
-            display: "同步平台商品",
-            description: "审批后从平台同步商品资料。",
-            adapter_message: "Platform execution adapter is not implemented yet for product sync.",
-            required_params: &["platform"],
-            optional_params: &["page", "page_size"],
-            idempotency_key_fields: &["platform", "page", "page_size"],
         },
     ]
 }

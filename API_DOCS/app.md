@@ -3021,6 +3021,7 @@
 - `connected`、`enabled`、`connectionStatus` 来自当前用户的 `platform_connections`。
 - 当前真实平台写 adapter 尚未实现，因此 `adapterStatus` 固定为 `adapter_not_implemented`，`canExecuteNow=false`，不会伪造成执行成功。
 - 前端只能展示该目录和不可执行原因，不能基于该接口新增假执行按钮。
+- 从 Post 8-48 开始，该目录的动作定义、required/optional 参数、幂等字段和 adapter 未实现文案来自 service 内部平台执行动作规格注册表；本说明不改变外部响应结构。
 
 ## 69.2 平台执行 Preflight 预检
 
@@ -3075,6 +3076,7 @@
 - 缺平台连接返回 `connection_missing`，连接禁用返回 `connection_disabled`。
 - 当前真实平台写 adapter 尚未实现，因此参数和连接都齐全时仍返回 `adapter_not_implemented`、`canExecuteNow=false`。
 - 从 Post 8-47 开始，平台执行 preflight、工具审批 `result.executionReadiness`、审批通过后的执行队列失败详情共用 service 内部平台执行规则模块；本说明不改变外部响应结构。
+- 从 Post 8-48 开始，preflight 支持动作判断和 adapter 未实现文案也复用同一份平台执行动作规格注册表。
 
 ## 70. 查询平台连接列表
 

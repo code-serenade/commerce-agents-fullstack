@@ -599,6 +599,27 @@
 - 本阶段不新增 HTTP API，不调用真实平台写 adapter，不改变 `canExecuteNow=false` 的当前边界。
 - 后续接入真实淘宝/JD/PDD/抖音 adapter 时，应先扩展该共享规则，再接审批和执行队列闭环。
 
+## Post 8-48：平台执行动作规格注册表
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Service：`api::platform_execution` 新增 `PlatformExecutionActionSpec`。
+- [x] Service：共享动作规格覆盖 `platform_update_price`、`platform_update_inventory`、`platform_sync_products`。
+- [x] Service：动作规格包含展示名、描述、required/optional 参数、幂等字段和 adapter 未实现文案。
+- [x] Service：`supported_platform_action`、validation 和 adapter message 复用共享动作规格。
+- [x] Service：`platform_connect` 的 adapter catalog 复用共享动作规格生成 DTO。
+- [x] API：外部响应结构不变，`API_DOCS/app.md` 已补实现说明。
+- [x] 前端：本轮不需要改前端，未新增假执行按钮或假成功状态。
+
+当前说明：
+
+- 本阶段解决的是“平台执行动作定义分散在 catalog 和 preflight/审批规则之间”的问题。
+- 本阶段不新增 HTTP API，不调用真实平台写 adapter，不改变 `canExecuteNow=false` 的当前边界。
+- 后续接入真实平台 adapter 时，应继续扩展该动作规格注册表，再实现实际 adapter 调用。
+
 ## Post 8-17：竞品分析读取 API
 
 状态：done

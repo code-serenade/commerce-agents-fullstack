@@ -23,6 +23,59 @@ pub(super) enum PlatformExecutionReadiness<'a> {
     },
 }
 
+#[derive(Debug, Clone, Copy)]
+pub(super) struct PlatformExecutionActionSpec {
+    pub skill_name: &'static str,
+    pub display: &'static str,
+    pub description: &'static str,
+    pub adapter_message: &'static str,
+    pub required_params: &'static [&'static str],
+    pub optional_params: &'static [&'static str],
+    pub idempotency_key_fields: &'static [&'static str],
+}
+
+const PLATFORM_EXECUTION_ACTION_SPECS: &[PlatformExecutionActionSpec] = &[
+    PlatformExecutionActionSpec {
+        skill_name: "platform_update_price",
+        display: "更新商品价格",
+        description: "审批后更新平台商品或 SKU 价格。",
+        adapter_message: "Platform execution adapter is not implemented yet for price update.",
+        required_params: &["platform", "product_id", "new_price"],
+        optional_params: &["sku_id"],
+        idempotency_key_fields: &["platform", "product_id", "sku_id", "new_price"],
+    },
+    PlatformExecutionActionSpec {
+        skill_name: "platform_update_inventory",
+        display: "更新商品库存",
+        description: "审批后更新平台商品或 SKU 库存。",
+        adapter_message: "Platform execution adapter is not implemented yet for inventory update.",
+        required_params: &["platform", "product_id", "quantity"],
+        optional_params: &["sku_id"],
+        idempotency_key_fields: &["platform", "product_id", "sku_id", "quantity"],
+    },
+    PlatformExecutionActionSpec {
+        skill_name: "platform_sync_products",
+        display: "同步平台商品",
+        description: "审批后从平台同步商品资料。",
+        adapter_message: "Platform execution adapter is not implemented yet for product sync.",
+        required_params: &["platform"],
+        optional_params: &["page", "page_size"],
+        idempotency_key_fields: &["platform", "page", "page_size"],
+    },
+];
+
+pub(super) fn platform_execution_action_specs() -> &'static [PlatformExecutionActionSpec] {
+    PLATFORM_EXECUTION_ACTION_SPECS
+}
+
+pub(super) fn platform_execution_action_spec(
+    skill_name: &str,
+) -> Option<&'static PlatformExecutionActionSpec> {
+    PLATFORM_EXECUTION_ACTION_SPECS
+        .iter()
+        .find(|spec| spec.skill_name == skill_name)
+}
+
 pub(super) fn platform_execution_params(args: &Value) -> PlatformExecutionParams {
     PlatformExecutionParams {
         platform: value_string(
@@ -169,7 +222,8 @@ pub(super) fn platform_execution_validation_error(
     skill_name: &str,
     params: &PlatformExecutionParams,
 ) -> Option<Option<&'static str>> {
-    let validation_error = match skill_name {
+    let spec = platform_execution_action_spec(skill_name)?;
+    let validation_error = match spec.skill_name {
         "platform_update_price" => {
             if params.product_id.is_none() || params.new_price.is_none() {
                 Some("Missing product_id or new_price for platform price update.")
@@ -191,18 +245,9 @@ pub(super) fn platform_execution_validation_error(
 }
 
 pub(super) fn platform_adapter_not_implemented_message(skill_name: &str) -> &'static str {
-    match skill_name {
-        "platform_update_price" => {
-            "Platform execution adapter is not implemented yet for price update."
-        }
-        "platform_update_inventory" => {
-            "Platform execution adapter is not implemented yet for inventory update."
-        }
-        "platform_sync_products" => {
-            "Platform execution adapter is not implemented yet for product sync."
-        }
-        _ => "Platform execution adapter is not implemented yet for this action.",
-    }
+    platform_execution_action_spec(skill_name)
+        .map(|spec| spec.adapter_message)
+        .unwrap_or("Platform execution adapter is not implemented yet for this action.")
 }
 
 pub(super) fn is_platform_execution_skill(skill_name: &str) -> bool {
@@ -210,10 +255,7 @@ pub(super) fn is_platform_execution_skill(skill_name: &str) -> bool {
 }
 
 pub(super) fn supported_platform_action(skill_name: &str) -> bool {
-    matches!(
-        skill_name,
-        "platform_update_price" | "platform_update_inventory" | "platform_sync_products"
-    )
+    platform_execution_action_spec(skill_name).is_some()
 }
 
 pub(super) fn platform_execution_details(params: &PlatformExecutionParams) -> Value {
@@ -270,4 +312,57 @@ fn value_at_paths<'a>(value: &'a Value, paths: &[&str]) -> Option<&'a Value> {
 fn normalize_string(value: String) -> Option<String> {
     let value = value.trim().to_string();
     (!value.is_empty()).then_some(value)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn platform_execution_action_registry_contains_governed_actions() {
+        let specs = platform_execution_action_specs();
+
+        assert_eq!(specs.len(), 3);
+        assert!(supported_platform_action("platform_update_price"));
+        assert!(supported_platform_action("platform_update_inventory"));
+        assert!(supported_platform_action("platform_sync_products"));
+        assert!(!supported_platform_action("platform_publish_campaign"));
+    }
+
+    #[test]
+    fn platform_execution_action_registry_drives_adapter_messages() {
+        assert_eq!(
+            platform_adapter_not_implemented_message("platform_update_price"),
+            "Platform execution adapter is not implemented yet for price update."
+        );
+        assert_eq!(
+            platform_adapter_not_implemented_message("platform_publish_campaign"),
+            "Platform execution adapter is not implemented yet for this action."
+        );
+    }
+
+    #[test]
+    fn platform_execution_action_registry_drives_validation() {
+        let missing_price = PlatformExecutionParams {
+            platform: Some("douyin".to_string()),
+            product_id: Some("prod-1".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(
+            platform_execution_validation_error("platform_update_price", &missing_price),
+            Some(Some(
+                "Missing product_id or new_price for platform price update."
+            ))
+        );
+
+        let unknown = PlatformExecutionParams {
+            platform: Some("douyin".to_string()),
+            product_id: Some("prod-1".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(
+            platform_execution_validation_error("platform_publish_campaign", &unknown),
+            None
+        );
+    }
 }

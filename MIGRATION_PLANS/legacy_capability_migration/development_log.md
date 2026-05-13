@@ -1,5 +1,43 @@
 # 迁移开发记录
 
+## Post 8-48：平台执行动作规格注册表
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 48 个补强项：`Post 8-48`。
+
+本次目标：
+
+- 把平台执行 adapter 能力目录里的动作规格迁入 service 内部共享模块。
+- 让 catalog、preflight、审批 readiness 和执行失败详情继续靠近同一套后端事实来源。
+- 保持当前真实平台 adapter 未实现的边界，不新增平台写执行，不伪造执行成功。
+
+涉及范围：
+
+- 产品内核：`platform_update_price`、`platform_update_inventory`、`platform_sync_products` 的展示名、描述、required/optional 参数、幂等字段和 adapter 未实现文案现在来自共享动作规格注册表。
+- 后端 service：`platform_execution.rs` 新增 `PlatformExecutionActionSpec` 和 `platform_execution_action_specs()`；`platform_connect` 改为消费共享 spec 生成 catalog。
+- Web-server/API：不新增路由，`GET /api/app/platform-connect/execution-adapters` 和 `POST /api/app/platform-connect/execution-preflight` 响应结构保持不变。
+- 前端：本轮未修改前端，也未新增假执行按钮或假成功状态。
+
+用户可感知变化：
+
+- 用户在平台连接页看到的动作目录，和 preflight / 审批链路背后的支持动作判断更一致。
+- 当前仍会明确显示 `adapter_not_implemented`，不会让用户误以为已经能真实改价、改库存或同步平台商品。
+- 这个切片继续为后续真实平台 adapter 接入打基础，避免后续新增动作时多处漏改。
+
+当前验证：
+
+- [x] `cargo fmt --all`（在 `backend/` workspace 下运行；现有 nightly-only rustfmt 配置项仅产生警告）
+- [x] `cargo test -p service platform_execution -- --nocapture`
+- [x] `cargo test -p service platform_execution_adapter_catalog -- --nocapture`
+- [x] `cargo test -p service platform_execution_preflight -- --nocapture`
+- [x] `cargo test -p service approval_execution_readiness -- --nocapture`
+- [x] `cargo check -p service -p web-server`
+- [x] `cargo clippy -p service -p web-server`
+
 ## Post 8-47：平台执行共享规则内核
 
 状态：done

@@ -93,6 +93,7 @@ The following major foundations are already in place:
 - platform execution adapter capability catalog on platform connection pages
 - platform execution preflight diagnostics before tool approval creation
 - shared platform execution rule kernel for preflight, approval readiness, and execution failure details
+- shared platform execution action registry for catalog, validation, idempotency fields, and adapter messages
 - search evidence artifact persistence
 - agent skill run persistence and query API
 - multiple native skill migrations across ops / data / service / creative / web / design / accounting
@@ -179,7 +180,7 @@ Need:
 
 ### Phase D: Platform execution closed loop
 
-Status: approval creation, readiness, adapter catalog, preflight, and shared execution rules exist; actual execution adapter loop incomplete.
+Status: approval creation, readiness, adapter catalog, preflight, shared execution rules, and shared action registry exist; actual execution adapter loop incomplete.
 
 Need:
 
@@ -228,24 +229,24 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-47: shared platform execution rules
+Post 8-48: shared platform execution action registry
 ```
 
 Scope:
 
-- add a service-internal `platform_execution` module
-- share platform execution parameter parsing across approval and preflight paths
-- share readiness status, validation errors, supported action checks, details payload, and adapter-not-implemented messages
+- move platform execution action specs into the service-internal `platform_execution` module
+- share action display copy, descriptions, required/optional params, idempotency fields, and adapter-not-implemented messages
+- make catalog, preflight, approval readiness, and execution failure details closer to one backend fact source
 - keep existing external API response shapes unchanged
 - keep the boundary that current platform adapters are not implemented and no platform write success is faked
 - avoid frontend changes because this is backend rule-kernel hardening
 
 Reason:
 
-- high product value for high-risk platform execution consistency
+- high product value for high-risk platform execution consistency and adapter readiness
 - backend-first
-- prevents preflight, approval readiness, and execution queue failure details from drifting
-- prepares the next platform execution adapter loop to extend one rule source instead of multiple duplicated branches
+- prevents adapter catalog action definitions from drifting away from preflight / approval logic
+- prepares the next platform execution adapter loop to extend one registry instead of multiple duplicated branches
 
 ## 10. Validation Standard
 
