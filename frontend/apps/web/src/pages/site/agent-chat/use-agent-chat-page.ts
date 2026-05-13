@@ -12,9 +12,7 @@ import {
 import { runtimeSelectionForStrategy } from "./domain/agent-runtime-options"
 import type { AgentChatConversationItem, AgentChatMessage } from "./types"
 import { loadLatestAgentConversation } from "./view-model/agent-chat-conversation-actions"
-import {
-  resetGuestAgentChatState,
-} from "./view-model/agent-chat-page-actions"
+import { resetGuestAgentChatState } from "./view-model/agent-chat-page-actions"
 import { sendAgentChatMessage } from "./view-model/agent-chat-send-message"
 import { useAgentChatPageCommands } from "./view-model/use-agent-chat-page-commands"
 import { useAgentChatPlaybooks } from "./view-model/use-agent-chat-playbooks"
@@ -26,7 +24,13 @@ export function useAgentChatPage() {
   const { t } = useTranslation()
   const fallbackConversationTitle = t("agentChat.sidebar.newChat")
   const loginRequiredMessage = t("agentChat.loginRequired.message")
-  const missingStructuredOutput = t("agentChat.missingStructuredOutput")
+  const messageFormatCopy = useMemo(
+    () => ({
+      missingStructuredOutput: t("agentChat.missingStructuredOutput"),
+      streamTimedOut: t("agentChat.streamTimedOut"),
+    }),
+    [t]
+  )
   const user = useSelector((state: RootState) => state.auth.user)
   const [input, setInput] = useState("")
   const [strategyId, setStrategyId] = useState<AgentChatStrategyId>(
@@ -75,7 +79,7 @@ export function useAgentChatPage() {
       abortRef,
       createWelcomeMessage,
       fallbackConversationTitle,
-      missingStructuredOutput,
+      messageFormatCopy,
       sessionIdRef,
       setConversationId,
       setConversations,
@@ -86,7 +90,7 @@ export function useAgentChatPage() {
       setRuntimeEvents,
       tError: t("agentChat.error"),
     }),
-    [createWelcomeMessage, fallbackConversationTitle, missingStructuredOutput, t]
+    [createWelcomeMessage, fallbackConversationTitle, messageFormatCopy, t]
   )
 
   useEffect(() => {
@@ -106,11 +110,7 @@ export function useAgentChatPage() {
     return () => {
       cancelled = true
     }
-  }, [
-    createWelcomeMessage,
-    actionState,
-    user,
-  ])
+  }, [createWelcomeMessage, actionState, user])
 
   const canSend = input.trim().length > 0 && !isStreaming
   const selectedStrategy = useMemo(
@@ -142,7 +142,7 @@ export function useAgentChatPage() {
       content,
       conversationId,
       fallbackConversationTitle,
-      missingStructuredOutput,
+      messageFormatCopy,
       onController: (controller) => {
         abortRef.current = controller
       },
@@ -169,7 +169,7 @@ export function useAgentChatPage() {
     input,
     isStreaming,
     loginRequiredMessage,
-    missingStructuredOutput,
+    messageFormatCopy,
     productContext.selectedProducts,
     selectedRuntime,
     selectedStrategy,

@@ -4,6 +4,11 @@ import type {
 } from "@/api"
 import type { AgentChatConversationItem, AgentChatMessage } from "../types"
 
+export interface AgentChatMessageFormatCopy {
+  missingStructuredOutput: string
+  streamTimedOut: string
+}
+
 export function mapConversationItem(
   conversation: {
     id: string
@@ -22,19 +27,16 @@ export function mapConversationItem(
 export function mapConversationMessages(
   detail: ConversationDetailResponse,
   fallback: AgentChatMessage,
-  missingStructuredOutput: string
+  copy: AgentChatMessageFormatCopy
 ): AgentChatMessage[] {
   const messages = detail.messages
     .filter((message): message is ConversationMessageResponse & {
       role: "user" | "assistant"
-    } => isVisibleMessage(message, missingStructuredOutput))
+    } => isVisibleMessage(message, copy))
     .map((message) => ({
       id: message.id,
       role: message.role,
-      content: formatAgentUiMessage(
-        message.contentText ?? "",
-        missingStructuredOutput
-      ),
+      content: formatAgentUiMessage(message.contentText ?? "", copy),
     }))
 
   return messages.length > 0 ? messages : [fallback]
@@ -42,12 +44,15 @@ export function mapConversationMessages(
 
 export function formatAgentUiMessage(
   content: string,
-  missingStructuredOutput: string
+  copy: AgentChatMessageFormatCopy
 ) {
   const text = content.trim()
   if (!text || text === "missing") return ""
   if (/structured role output is missing/i.test(text)) {
-    return missingStructuredOutput
+    return copy.missingStructuredOutput
+  }
+  if (/Agent stream timed out without backend events/i.test(text)) {
+    return copy.streamTimedOut
   }
   return text
 }
@@ -66,12 +71,9 @@ export function createMessageId(prefix: string) {
 
 function isVisibleMessage(
   message: ConversationMessageResponse,
-  missingStructuredOutput: string
+  copy: AgentChatMessageFormatCopy
 ): message is ConversationMessageResponse & { role: "user" | "assistant" } {
-  const content = formatAgentUiMessage(
-    message.contentText ?? "",
-    missingStructuredOutput
-  )
+  const content = formatAgentUiMessage(message.contentText ?? "", copy)
   return (
     (message.role === "user" || message.role === "assistant") &&
     Boolean(content)

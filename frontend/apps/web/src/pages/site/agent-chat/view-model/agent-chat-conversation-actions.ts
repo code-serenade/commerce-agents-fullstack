@@ -5,13 +5,14 @@ import {
   formatAgentUiMessage,
   mapConversationItem,
   mapConversationMessages,
+  type AgentChatMessageFormatCopy,
 } from "../domain/agent-chat-message-mapping"
 import type { AgentChatConversationItem, AgentChatMessage } from "../types"
 
 interface ConversationActionState {
   createWelcomeMessage: () => AgentChatMessage
   fallbackConversationTitle: string
-  missingStructuredOutput: string
+  messageFormatCopy: AgentChatMessageFormatCopy
   sessionIdRef: MutableRefObject<string>
   setConversationId: Dispatch<SetStateAction<string | null>>
   setConversations: Dispatch<SetStateAction<AgentChatConversationItem[]>>
@@ -49,7 +50,7 @@ export async function loadLatestAgentConversation(
       mapConversationMessages(
         detail,
         state.createWelcomeMessage(),
-        state.missingStructuredOutput
+        state.messageFormatCopy
       )
     )
   } catch (err) {
@@ -71,7 +72,7 @@ export async function selectAgentConversation(
       mapConversationMessages(
         detail,
         state.createWelcomeMessage(),
-        state.missingStructuredOutput
+        state.messageFormatCopy
       )
     )
   } catch (err) {
@@ -136,6 +137,6 @@ function resetActiveConversation(state: ConversationActionState) {
 function formatActionError(err: unknown, state: ConversationActionState) {
   return formatAgentUiMessage(
     err instanceof Error ? err.message : state.tError,
-    state.missingStructuredOutput
+    state.messageFormatCopy
   )
 }

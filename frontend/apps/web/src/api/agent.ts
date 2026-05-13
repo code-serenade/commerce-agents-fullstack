@@ -719,7 +719,6 @@ export async function streamAgentSessionApi(
       const { value, done } = await reader.read()
       if (done) break
 
-      markStreamActivity()
       buffer += decoder.decode(value, { stream: true })
       const boundary = buffer.lastIndexOf("\n\n")
       if (boundary === -1) continue
@@ -728,8 +727,8 @@ export async function streamAgentSessionApi(
       buffer = buffer.slice(boundary + 2)
 
       for (const block of completed.split("\n\n")) {
-        markStreamActivity()
         const result = handleSseMessage(parseSseMessage(block), handlers)
+        if (result.activity) markStreamActivity()
         receivedDelta = receivedDelta || result.receivedDelta
         fallbackOutput += result.fallbackOutput
         if (result.finished) {
@@ -747,6 +746,7 @@ export async function streamAgentSessionApi(
 
     if (buffer.trim()) {
       const result = handleSseMessage(parseSseMessage(buffer), handlers)
+      if (result.activity) markStreamActivity()
       receivedDelta = receivedDelta || result.receivedDelta
       fallbackOutput += result.fallbackOutput
       if (result.finished) {
@@ -838,6 +838,7 @@ function handleSseMessage(
   message: SseMessage,
   handlers: AgentStreamHandlers
 ): {
+  activity: boolean
   completed: boolean
   fallbackOutput: string
   finished: boolean
@@ -847,6 +848,7 @@ function handleSseMessage(
     const event = readAgentRuntimeEvent(message.data)
     if (event) handlers.onAgentEvent?.(event)
     return {
+      activity: true,
       completed: true,
       fallbackOutput: "",
       finished: true,
@@ -858,6 +860,7 @@ function handleSseMessage(
     const event = readAgentRuntimeEvent(message.data)
     if (event) handlers.onAgentEvent?.(event)
     return {
+      activity: Boolean(event),
       completed: false,
       fallbackOutput: "",
       finished: false,
@@ -867,6 +870,7 @@ function handleSseMessage(
 
   if (!message.data) {
     return {
+      activity: false,
       completed: false,
       fallbackOutput: "",
       finished: false,
@@ -877,6 +881,7 @@ function handleSseMessage(
   if (message.event === "error") {
     handlers.onError(readJsonField(message.data, "message") || "Agent failed")
     return {
+      activity: true,
       completed: false,
       fallbackOutput: "",
       finished: true,
@@ -888,6 +893,7 @@ function handleSseMessage(
     const content = readJsonField(message.data, "content")
     if (content) handlers.onDelta(content)
     return {
+      activity: Boolean(content),
       completed: false,
       fallbackOutput: "",
       finished: false,
@@ -898,9 +904,11 @@ function handleSseMessage(
   if (message.event === "output") {
     const event = readAgentRuntimeEvent(message.data)
     if (event) handlers.onAgentEvent?.(event)
+    const fallbackOutput = readJsonField(message.data, "content")
     return {
+      activity: Boolean(event) || Boolean(fallbackOutput),
       completed: false,
-      fallbackOutput: readJsonField(message.data, "content"),
+      fallbackOutput,
       finished: false,
       receivedDelta: false,
     }
@@ -909,9 +917,17 @@ function handleSseMessage(
   if (message.event === "agent_event" || AGENT_RUNTIME_EVENT_TYPES.has(message.event)) {
     const event = readAgentRuntimeEvent(message.data)
     if (event) handlers.onAgentEvent?.(event)
+    return {
+      activity: Boolean(event),
+      completed: false,
+      fallbackOutput: "",
+      finished: false,
+      receivedDelta: false,
+    }
   }
 
   return {
+    activity: false,
     completed: false,
     fallbackOutput: "",
     finished: false,

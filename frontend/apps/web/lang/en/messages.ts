@@ -826,6 +826,8 @@ const messages = {
     errorBadge: "Reply failed",
     missingStructuredOutput:
       "The previous run did not produce complete structured output. Send the task again and I will rebuild the execution plan and sync the process to the workspace.",
+    streamTimedOut:
+      "This run timed out and the process has been collapsed. Review the partial result or send the task again to continue.",
     loginRequired: {
       title: "Sign in to run the cloud agent",
       description:

@@ -820,6 +820,8 @@ const messages = {
     errorBadge: "回复失败",
     missingStructuredOutput:
       "上一轮任务未产出完整结构化结果。可以直接重新发送任务，我会重新规划执行计划，并把过程同步到虚拟员工工作区。",
+    streamTimedOut:
+      "本轮执行响应超时，已收起过程。你可以查看已有结果，或重新发送任务继续执行。",
     loginRequired: {
       title: "登录后运行云端智能体",
       description:

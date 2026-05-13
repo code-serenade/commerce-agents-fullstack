@@ -5,6 +5,7 @@ import {
   createMessageId,
   formatAgentUiMessage,
   mapConversationItem,
+  type AgentChatMessageFormatCopy,
 } from "../domain/agent-chat-message-mapping"
 import {
   createContextRefs,
@@ -18,7 +19,7 @@ interface SendAgentChatMessageInput {
   content: string
   conversationId: string | null
   fallbackConversationTitle: string
-  missingStructuredOutput: string
+  messageFormatCopy: AgentChatMessageFormatCopy
   onController: (controller: AbortController) => void
   sessionIdRef: MutableRefObject<string>
   setConversationId: Dispatch<SetStateAction<string | null>>
@@ -149,7 +150,7 @@ export async function sendAgentChatMessage(
         onError: (message) => {
           const displayMessage = formatAgentUiMessage(
             message,
-            input.missingStructuredOutput
+            input.messageFormatCopy
           )
           input.setError(displayMessage)
           input.setMessages((current) =>
@@ -172,7 +173,7 @@ export async function sendAgentChatMessage(
     if (controller.signal.aborted) return null
     const message = formatAgentUiMessage(
       err instanceof Error ? err.message : input.tError,
-      input.missingStructuredOutput
+      input.messageFormatCopy
     )
     input.setError(message)
     input.setIsStreaming(false)

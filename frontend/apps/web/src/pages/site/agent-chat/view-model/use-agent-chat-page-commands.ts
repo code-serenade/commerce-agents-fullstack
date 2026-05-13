@@ -1,4 +1,5 @@
 import { useCallback, type Dispatch, type SetStateAction } from "react"
+import type { AgentChatMessageFormatCopy } from "../domain/agent-chat-message-mapping"
 import type { AgentChatPlaybookSelection } from "../domain/agent-chat-playbook"
 import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
 import {
@@ -14,7 +15,7 @@ import {
 
 interface AgentChatCommandState extends AgentChatPageStateActions {
   fallbackConversationTitle: string
-  missingStructuredOutput: string
+  messageFormatCopy: AgentChatMessageFormatCopy
   tError: string
 }
 
