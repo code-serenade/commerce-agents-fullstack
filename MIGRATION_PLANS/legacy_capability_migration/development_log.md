@@ -1,5 +1,43 @@
 # 迁移开发记录
 
+## Post 8-47：平台执行共享规则内核
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 47 个补强项：`Post 8-47`。
+
+本次目标：
+
+- 把平台执行 preflight、审批创建 readiness、审批通过后的执行失败详情统一到同一套后端规则来源。
+- 继续复用同事给的新产品 service/API 架构，不新增第二套平台执行系统。
+- 保持当前真实平台 adapter 未实现的边界：只给出真实不可执行原因，不伪造平台写成功。
+
+涉及范围：
+
+- 产品内核：平台写动作的参数解析、支持动作判断、连接状态判断和 adapter 未实现文案现在来自共享规则模块。
+- 后端 service：新增 `backend/crates/service/src/api/platform_execution.rs`，供 `approval_audit` 和 `platform_connect` 复用。
+- Web-server/API：不新增路由，`POST /api/app/platform-connect/execution-preflight`、审批 `executionReadiness` 和执行队列失败详情的外部响应结构保持不变。
+- 前端：本轮未修改前端，也未新增假执行按钮或假成功状态。
+
+用户可感知变化：
+
+- 用户在创建平台写审批前看到的 preflight 结果、审批记录里的 readiness、审批后执行队列里的失败原因会更一致。
+- 当前仍会明确显示缺参数、缺连接、连接禁用、不支持动作或 `adapter_not_implemented`，不会误导用户以为已经能真实改价、改库存或同步平台商品。
+- 这个切片主要提升后端内核一致性，为后续真实平台 adapter 接入打基础。
+
+当前验证：
+
+- [x] `cargo fmt --all`（在 `backend/` workspace 下运行；现有 nightly-only rustfmt 配置项仅产生警告）
+- [x] `cargo test -p service platform_execution -- --nocapture`
+- [x] `cargo test -p service approval_execution_readiness -- --nocapture`
+- [x] `cargo test -p service platform_execution_preflight -- --nocapture`
+- [x] `cargo test -p service plan_platform_execution -- --nocapture`
+- [x] `cargo check -p service -p web-server`
+- [x] `cargo clippy -p service -p web-server`
+
 ## Post 8-46：平台执行 Preflight 预检契约
 
 状态：done

@@ -3074,6 +3074,7 @@
 - 缺平台、缺商品 ID、缺价格或缺库存返回 `adapterStatus=validation_error`。
 - 缺平台连接返回 `connection_missing`，连接禁用返回 `connection_disabled`。
 - 当前真实平台写 adapter 尚未实现，因此参数和连接都齐全时仍返回 `adapter_not_implemented`、`canExecuteNow=false`。
+- 从 Post 8-47 开始，平台执行 preflight、工具审批 `result.executionReadiness`、审批通过后的执行队列失败详情共用 service 内部平台执行规则模块；本说明不改变外部响应结构。
 
 ## 70. 查询平台连接列表
 

@@ -25,6 +25,12 @@ use serde_json::{Value, json};
 use time::OffsetDateTime;
 use uuid::Uuid;
 
+use super::platform_execution::{
+    PlatformExecutionParams, PlatformExecutionReadiness, is_platform_execution_skill,
+    platform_adapter_not_implemented_message, platform_execution_details,
+    platform_execution_params, platform_execution_readiness_status,
+    platform_execution_validation_error, supported_platform_action,
+};
 use crate::dto::approval_audit::*;
 
 const DEFAULT_PAGE: u64 = 1;
@@ -571,7 +577,7 @@ impl ApprovalAuditApi {
             return Ok(json!({}));
         }
         let now = OffsetDateTime::now_utc();
-        let params = approval_execution_params(args);
+        let params = platform_execution_params(args);
         let connection = match params.platform.as_deref() {
             Some(platform) if supported_platform_action(skill_name) => {
                 self.platform_svc
@@ -650,7 +656,7 @@ impl ApprovalAuditApi {
             })
             .await?;
 
-        let params = approval_execution_params(&current.args);
+        let params = platform_execution_params(&current.args);
         let execution_item = execution_tx_svc
             .create(CreateExecutionQueueItem {
                 id: Uuid::new_v4(),
@@ -906,17 +912,6 @@ fn map_tool_approval(item: ToolApproval) -> ToolApprovalResponse {
     }
 }
 
-#[derive(Debug, Clone, Default)]
-struct ApprovalExecutionParams {
-    platform: Option<String>,
-    product_id: Option<String>,
-    sku_id: Option<String>,
-    new_price: Option<f64>,
-    quantity: Option<i64>,
-    page: Option<i64>,
-    page_size: Option<i64>,
-}
-
 #[derive(Debug, Clone)]
 struct PlatformExecutionAttempt {
     approval_status: ToolApprovalStatus,
@@ -940,7 +935,7 @@ async fn attempt_platform_execution(
     platform_svc: &PlatformConnectionService,
     approval: &ToolApproval,
     execution_item: &ExecutionQueueItem,
-    params: &ApprovalExecutionParams,
+    params: &PlatformExecutionParams,
     now: OffsetDateTime,
     manual_result: &Value,
 ) -> BizResult<PlatformExecutionAttempt> {
@@ -973,7 +968,7 @@ async fn attempt_platform_execution(
 fn plan_platform_execution(
     approval: &ToolApproval,
     execution_item: &ExecutionQueueItem,
-    params: &ApprovalExecutionParams,
+    params: &PlatformExecutionParams,
     connection: Option<&PlatformConnection>,
     manual_result: &Value,
     now: OffsetDateTime,
@@ -1040,18 +1035,7 @@ fn plan_platform_execution(
         );
     }
 
-    let adapter_message = match approval.skill_name.as_str() {
-        "platform_update_price" => {
-            "Platform execution adapter is not implemented yet for price update."
-        }
-        "platform_update_inventory" => {
-            "Platform execution adapter is not implemented yet for inventory update."
-        }
-        "platform_sync_products" => {
-            "Platform execution adapter is not implemented yet for product sync."
-        }
-        _ => "Platform execution adapter is not implemented yet for this action.",
-    };
+    let adapter_message = platform_adapter_not_implemented_message(approval.skill_name.as_str());
     platform_execution_failed(
         approval,
         execution_item,
@@ -1065,7 +1049,7 @@ fn plan_platform_execution(
 
 fn plan_platform_execution_readiness(
     skill_name: &str,
-    params: &ApprovalExecutionParams,
+    params: &PlatformExecutionParams,
     connection: Option<&PlatformConnection>,
     now: OffsetDateTime,
 ) -> Value {
@@ -1094,125 +1078,12 @@ fn plan_platform_execution_readiness(
     })
 }
 
-fn platform_execution_readiness_status<'a>(
-    skill_name: &'a str,
-    params: &'a ApprovalExecutionParams,
-    connection: Option<&PlatformConnection>,
-) -> PlatformExecutionReadiness<'a> {
-    if !is_platform_execution_skill(skill_name) {
-        return PlatformExecutionReadiness::Unsupported {
-            message: "Tool approval is not a platform execution action.",
-        };
-    }
-
-    if params.platform.is_none() {
-        return PlatformExecutionReadiness::Blocked {
-            adapter_status: "validation_error",
-            message: "Missing platform in tool approval arguments.",
-        };
-    }
-
-    let Some(validation_error) = platform_execution_validation_error(skill_name, params) else {
-        return PlatformExecutionReadiness::Unsupported {
-            message: "Platform execution action is not supported by the current service adapter.",
-        };
-    };
-
-    if let Some(message) = validation_error {
-        return PlatformExecutionReadiness::Blocked {
-            adapter_status: "validation_error",
-            message,
-        };
-    }
-
-    let Some(connection) = connection else {
-        return PlatformExecutionReadiness::Blocked {
-            adapter_status: "connection_missing",
-            message: "No enabled platform connection was found for this user and platform.",
-        };
-    };
-
-    if !connection.enabled || connection.status == PlatformConnectionStatus::Disabled {
-        return PlatformExecutionReadiness::Blocked {
-            adapter_status: "connection_disabled",
-            message: "Platform connection exists but is disabled.",
-        };
-    }
-
-    PlatformExecutionReadiness::Blocked {
-        adapter_status: "adapter_not_implemented",
-        message: platform_adapter_not_implemented_message(skill_name),
-    }
-}
-
-fn platform_execution_validation_error(
-    skill_name: &str,
-    params: &ApprovalExecutionParams,
-) -> Option<Option<&'static str>> {
-    let validation_error = match skill_name {
-        "platform_update_price" => {
-            if params.product_id.is_none() || params.new_price.is_none() {
-                Some("Missing product_id or new_price for platform price update.")
-            } else {
-                None
-            }
-        }
-        "platform_update_inventory" => {
-            if params.product_id.is_none() || params.quantity.is_none() {
-                Some("Missing product_id or quantity for platform inventory update.")
-            } else {
-                None
-            }
-        }
-        "platform_sync_products" => None,
-        _ => return None,
-    };
-    Some(validation_error)
-}
-
-fn platform_adapter_not_implemented_message(skill_name: &str) -> &'static str {
-    match skill_name {
-        "platform_update_price" => {
-            "Platform execution adapter is not implemented yet for price update."
-        }
-        "platform_update_inventory" => {
-            "Platform execution adapter is not implemented yet for inventory update."
-        }
-        "platform_sync_products" => {
-            "Platform execution adapter is not implemented yet for product sync."
-        }
-        _ => "Platform execution adapter is not implemented yet for this action.",
-    }
-}
-
-fn is_platform_execution_skill(skill_name: &str) -> bool {
-    skill_name.starts_with("platform_")
-}
-
-fn supported_platform_action(skill_name: &str) -> bool {
-    matches!(
-        skill_name,
-        "platform_update_price" | "platform_update_inventory" | "platform_sync_products"
-    )
-}
-
-fn platform_execution_details(params: &ApprovalExecutionParams) -> Value {
-    json!({
-        "productId": params.product_id,
-        "skuId": params.sku_id,
-        "newPrice": params.new_price,
-        "quantity": params.quantity,
-        "page": params.page,
-        "pageSize": params.page_size,
-    })
-}
-
 fn platform_execution_failed(
     approval: &ToolApproval,
     execution_item: &ExecutionQueueItem,
     adapter_status: &str,
     message: &str,
-    params: &ApprovalExecutionParams,
+    params: &PlatformExecutionParams,
     manual_result: &Value,
     now: OffsetDateTime,
 ) -> PlatformExecutionAttempt {
@@ -1242,20 +1113,9 @@ fn platform_execution_failed(
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-enum PlatformExecutionReadiness<'a> {
-    Blocked {
-        adapter_status: &'a str,
-        message: &'a str,
-    },
-    Unsupported {
-        message: &'a str,
-    },
-}
-
 fn build_execution_description(
     approval: &ToolApproval,
-    params: &ApprovalExecutionParams,
+    params: &PlatformExecutionParams,
 ) -> String {
     let platform = params.platform.as_deref().unwrap_or("unknown-platform");
     let target = params
@@ -1267,137 +1127,6 @@ fn build_execution_description(
         "Approved execution for {} on {}{}",
         approval.skill_name, platform, target
     )
-}
-
-fn approval_execution_params(args: &Value) -> ApprovalExecutionParams {
-    ApprovalExecutionParams {
-        platform: value_string(
-            args,
-            &[
-                "platform",
-                "/platform",
-                "/normalized_inputs/platform",
-                "/normalizedInputs/platform",
-                "/output/normalized_inputs/platform",
-                "/output/normalizedInputs/platform",
-            ],
-        )
-        .map(|value| value.to_ascii_lowercase()),
-        product_id: value_string(
-            args,
-            &[
-                "product_id",
-                "productId",
-                "/product_id",
-                "/productId",
-                "/normalized_inputs/product_id",
-                "/normalizedInputs/productId",
-                "/output/normalized_inputs/product_id",
-                "/output/normalizedInputs/productId",
-            ],
-        ),
-        sku_id: value_string(
-            args,
-            &[
-                "sku_id",
-                "skuId",
-                "/sku_id",
-                "/skuId",
-                "/normalized_inputs/sku_id",
-                "/normalizedInputs/skuId",
-                "/output/normalized_inputs/sku_id",
-                "/output/normalizedInputs/skuId",
-            ],
-        ),
-        new_price: value_f64(
-            args,
-            &[
-                "new_price",
-                "newPrice",
-                "/new_price",
-                "/newPrice",
-                "/normalized_inputs/new_price",
-                "/normalizedInputs/newPrice",
-                "/output/normalized_inputs/new_price",
-                "/output/normalizedInputs/newPrice",
-            ],
-        ),
-        quantity: value_i64(
-            args,
-            &[
-                "quantity",
-                "/quantity",
-                "/normalized_inputs/quantity",
-                "/normalizedInputs/quantity",
-                "/output/normalized_inputs/quantity",
-                "/output/normalizedInputs/quantity",
-            ],
-        ),
-        page: value_i64(
-            args,
-            &[
-                "page",
-                "/page",
-                "/normalized_inputs/page",
-                "/normalizedInputs/page",
-                "/output/normalized_inputs/page",
-                "/output/normalizedInputs/page",
-            ],
-        ),
-        page_size: value_i64(
-            args,
-            &[
-                "page_size",
-                "pageSize",
-                "/page_size",
-                "/pageSize",
-                "/normalized_inputs/page_size",
-                "/normalizedInputs/pageSize",
-                "/output/normalized_inputs/page_size",
-                "/output/normalizedInputs/pageSize",
-            ],
-        ),
-    }
-}
-
-fn value_string(value: &Value, paths: &[&str]) -> Option<String> {
-    value_at_paths(value, paths).and_then(|value| match value {
-        Value::String(text) => normalize_string(text.clone()),
-        Value::Number(number) => Some(number.to_string()),
-        _ => None,
-    })
-}
-
-fn value_f64(value: &Value, paths: &[&str]) -> Option<f64> {
-    value_at_paths(value, paths).and_then(|value| match value {
-        Value::Number(number) => number.as_f64(),
-        Value::String(text) => text.trim().parse::<f64>().ok(),
-        _ => None,
-    })
-}
-
-fn value_i64(value: &Value, paths: &[&str]) -> Option<i64> {
-    value_at_paths(value, paths).and_then(|value| match value {
-        Value::Number(number) => number.as_i64(),
-        Value::String(text) => text.trim().parse::<i64>().ok(),
-        _ => None,
-    })
-}
-
-fn value_at_paths<'a>(value: &'a Value, paths: &[&str]) -> Option<&'a Value> {
-    for path in paths {
-        let current = if path.starts_with('/') {
-            value.pointer(path)
-        } else {
-            value.get(*path)
-        };
-        if let Some(current) = current
-            && !current.is_null()
-        {
-            return Some(current);
-        }
-    }
-    None
 }
 
 #[cfg(test)]
@@ -1422,7 +1151,7 @@ mod tests {
             }
         });
 
-        let params = approval_execution_params(&args);
+        let params = platform_execution_params(&args);
         assert_eq!(params.platform.as_deref(), Some("douyin"));
         assert_eq!(params.product_id.as_deref(), Some("prod-1"));
         assert_eq!(params.sku_id.as_deref(), Some("sku-9"));
@@ -1434,7 +1163,7 @@ mod tests {
         let now = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();
         let approval = test_tool_approval("platform_update_price");
         let execution = test_execution_queue();
-        let params = ApprovalExecutionParams {
+        let params = PlatformExecutionParams {
             platform: Some("taobao".to_string()),
             product_id: Some("prod-1".to_string()),
             new_price: Some(99.0),
@@ -1457,7 +1186,7 @@ mod tests {
         let now = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();
         let approval = test_tool_approval("platform_update_inventory");
         let execution = test_execution_queue();
-        let params = ApprovalExecutionParams {
+        let params = PlatformExecutionParams {
             platform: Some("jd".to_string()),
             product_id: Some("prod-1".to_string()),
             quantity: Some(12),
@@ -1491,7 +1220,7 @@ mod tests {
     #[test]
     fn approval_execution_readiness_reports_missing_platform() {
         let now = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();
-        let params = ApprovalExecutionParams {
+        let params = PlatformExecutionParams {
             product_id: Some("prod-1".to_string()),
             new_price: Some(99.0),
             ..Default::default()
@@ -1517,7 +1246,7 @@ mod tests {
     #[test]
     fn approval_execution_readiness_reports_missing_connection() {
         let now = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();
-        let params = ApprovalExecutionParams {
+        let params = PlatformExecutionParams {
             platform: Some("taobao".to_string()),
             product_id: Some("prod-1".to_string()),
             new_price: Some(99.0),
@@ -1546,7 +1275,7 @@ mod tests {
     #[test]
     fn approval_execution_readiness_reports_adapter_not_implemented() {
         let now = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();
-        let params = ApprovalExecutionParams {
+        let params = PlatformExecutionParams {
             platform: Some("jd".to_string()),
             product_id: Some("prod-1".to_string()),
             quantity: Some(12),
@@ -1580,7 +1309,7 @@ mod tests {
         let now = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();
         let approval = test_tool_approval("platform_publish_campaign");
         let execution = test_execution_queue();
-        let params = ApprovalExecutionParams {
+        let params = PlatformExecutionParams {
             platform: Some("douyin".to_string()),
             product_id: Some("prod-1".to_string()),
             ..Default::default()
@@ -1608,7 +1337,7 @@ mod tests {
         let now = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();
         let approval = test_tool_approval("platform_publish_campaign");
         let execution = test_execution_queue();
-        let params = ApprovalExecutionParams {
+        let params = PlatformExecutionParams {
             platform: Some("douyin".to_string()),
             product_id: Some("prod-1".to_string()),
             ..Default::default()
@@ -1627,7 +1356,7 @@ mod tests {
     #[test]
     fn approval_execution_readiness_never_marks_unimplemented_adapter_ready() {
         let now = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();
-        let params = ApprovalExecutionParams {
+        let params = PlatformExecutionParams {
             platform: Some("jd".to_string()),
             product_id: Some("prod-1".to_string()),
             new_price: Some(99.0),

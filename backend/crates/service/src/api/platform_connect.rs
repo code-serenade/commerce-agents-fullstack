@@ -18,10 +18,14 @@ use repo::table::{
     },
     store_metrics::{StoreMetric, StoreMetricFilter, StoreMetricService, UpsertStoreMetric},
 };
-use serde_json::{Value, json};
+use serde_json::json;
 use time::{Duration, OffsetDateTime};
 use uuid::Uuid;
 
+use super::platform_execution::{
+    PlatformExecutionParams, PlatformExecutionReadiness, platform_execution_details,
+    platform_execution_params, platform_execution_readiness_status,
+};
 use crate::dto::platform_connect::*;
 
 const DEFAULT_PAGE: u64 = 1;
@@ -802,17 +806,6 @@ fn map_platform_execution_action(
     }
 }
 
-#[derive(Debug, Clone, Default)]
-struct PlatformExecutionParams {
-    platform: Option<String>,
-    product_id: Option<String>,
-    sku_id: Option<String>,
-    new_price: Option<f64>,
-    quantity: Option<i64>,
-    page: Option<i64>,
-    page_size: Option<i64>,
-}
-
 fn plan_platform_execution_preflight(
     skill_name: &str,
     params: &PlatformExecutionParams,
@@ -842,254 +835,6 @@ fn plan_platform_execution_preflight(
         details: platform_execution_details(params),
         checked_at,
     }
-}
-
-fn platform_execution_readiness_status<'a>(
-    skill_name: &'a str,
-    params: &'a PlatformExecutionParams,
-    connection: Option<&PlatformConnection>,
-) -> PlatformExecutionReadiness<'a> {
-    if !is_platform_execution_skill(skill_name) {
-        return PlatformExecutionReadiness::Unsupported {
-            message: "Tool approval is not a platform execution action.",
-        };
-    }
-
-    if params.platform.is_none() {
-        return PlatformExecutionReadiness::Blocked {
-            adapter_status: "validation_error",
-            message: "Missing platform in tool approval arguments.",
-        };
-    }
-
-    let Some(validation_error) = platform_execution_validation_error(skill_name, params) else {
-        return PlatformExecutionReadiness::Unsupported {
-            message: "Platform execution action is not supported by the current service adapter.",
-        };
-    };
-
-    if let Some(message) = validation_error {
-        return PlatformExecutionReadiness::Blocked {
-            adapter_status: "validation_error",
-            message,
-        };
-    }
-
-    let Some(connection) = connection else {
-        return PlatformExecutionReadiness::Blocked {
-            adapter_status: "connection_missing",
-            message: "No enabled platform connection was found for this user and platform.",
-        };
-    };
-
-    if !connection.enabled || connection.status == PlatformConnectionStatus::Disabled {
-        return PlatformExecutionReadiness::Blocked {
-            adapter_status: "connection_disabled",
-            message: "Platform connection exists but is disabled.",
-        };
-    }
-
-    PlatformExecutionReadiness::Blocked {
-        adapter_status: "adapter_not_implemented",
-        message: platform_adapter_not_implemented_message(skill_name),
-    }
-}
-
-fn platform_execution_validation_error(
-    skill_name: &str,
-    params: &PlatformExecutionParams,
-) -> Option<Option<&'static str>> {
-    let validation_error = match skill_name {
-        "platform_update_price" => {
-            if params.product_id.is_none() || params.new_price.is_none() {
-                Some("Missing product_id or new_price for platform price update.")
-            } else {
-                None
-            }
-        }
-        "platform_update_inventory" => {
-            if params.product_id.is_none() || params.quantity.is_none() {
-                Some("Missing product_id or quantity for platform inventory update.")
-            } else {
-                None
-            }
-        }
-        "platform_sync_products" => None,
-        _ => return None,
-    };
-    Some(validation_error)
-}
-
-fn platform_adapter_not_implemented_message(skill_name: &str) -> &'static str {
-    match skill_name {
-        "platform_update_price" => {
-            "Platform execution adapter is not implemented yet for price update."
-        }
-        "platform_update_inventory" => {
-            "Platform execution adapter is not implemented yet for inventory update."
-        }
-        "platform_sync_products" => {
-            "Platform execution adapter is not implemented yet for product sync."
-        }
-        _ => "Platform execution adapter is not implemented yet for this action.",
-    }
-}
-
-fn is_platform_execution_skill(skill_name: &str) -> bool {
-    skill_name.starts_with("platform_")
-}
-
-fn platform_execution_details(params: &PlatformExecutionParams) -> Value {
-    json!({
-        "productId": params.product_id,
-        "skuId": params.sku_id,
-        "newPrice": params.new_price,
-        "quantity": params.quantity,
-        "page": params.page,
-        "pageSize": params.page_size,
-    })
-}
-
-#[derive(Debug, Clone, Copy)]
-enum PlatformExecutionReadiness<'a> {
-    Blocked {
-        adapter_status: &'a str,
-        message: &'a str,
-    },
-    Unsupported {
-        message: &'a str,
-    },
-}
-
-fn platform_execution_params(args: &Value) -> PlatformExecutionParams {
-    PlatformExecutionParams {
-        platform: value_string(
-            args,
-            &[
-                "platform",
-                "/platform",
-                "/normalized_inputs/platform",
-                "/normalizedInputs/platform",
-                "/output/normalized_inputs/platform",
-                "/output/normalizedInputs/platform",
-            ],
-        )
-        .map(|value| value.to_ascii_lowercase()),
-        product_id: value_string(
-            args,
-            &[
-                "product_id",
-                "productId",
-                "/product_id",
-                "/productId",
-                "/normalized_inputs/product_id",
-                "/normalizedInputs/productId",
-                "/output/normalized_inputs/product_id",
-                "/output/normalizedInputs/productId",
-            ],
-        ),
-        sku_id: value_string(
-            args,
-            &[
-                "sku_id",
-                "skuId",
-                "/sku_id",
-                "/skuId",
-                "/normalized_inputs/sku_id",
-                "/normalizedInputs/skuId",
-                "/output/normalized_inputs/sku_id",
-                "/output/normalizedInputs/skuId",
-            ],
-        ),
-        new_price: value_f64(
-            args,
-            &[
-                "new_price",
-                "newPrice",
-                "/new_price",
-                "/newPrice",
-                "/normalized_inputs/new_price",
-                "/normalizedInputs/newPrice",
-                "/output/normalized_inputs/new_price",
-                "/output/normalizedInputs/newPrice",
-            ],
-        ),
-        quantity: value_i64(
-            args,
-            &[
-                "quantity",
-                "/quantity",
-                "/normalized_inputs/quantity",
-                "/normalizedInputs/quantity",
-                "/output/normalized_inputs/quantity",
-                "/output/normalizedInputs/quantity",
-            ],
-        ),
-        page: value_i64(
-            args,
-            &[
-                "page",
-                "/page",
-                "/normalized_inputs/page",
-                "/normalizedInputs/page",
-                "/output/normalized_inputs/page",
-                "/output/normalizedInputs/page",
-            ],
-        ),
-        page_size: value_i64(
-            args,
-            &[
-                "page_size",
-                "pageSize",
-                "/page_size",
-                "/pageSize",
-                "/normalized_inputs/page_size",
-                "/normalizedInputs/pageSize",
-                "/output/normalized_inputs/page_size",
-                "/output/normalizedInputs/pageSize",
-            ],
-        ),
-    }
-}
-
-fn value_string(value: &Value, paths: &[&str]) -> Option<String> {
-    value_at_paths(value, paths).and_then(|value| match value {
-        Value::String(text) => normalize_string(text.clone()),
-        Value::Number(number) => Some(number.to_string()),
-        _ => None,
-    })
-}
-
-fn value_f64(value: &Value, paths: &[&str]) -> Option<f64> {
-    value_at_paths(value, paths).and_then(|value| match value {
-        Value::Number(number) => number.as_f64(),
-        Value::String(text) => text.trim().parse::<f64>().ok(),
-        _ => None,
-    })
-}
-
-fn value_i64(value: &Value, paths: &[&str]) -> Option<i64> {
-    value_at_paths(value, paths).and_then(|value| match value {
-        Value::Number(number) => number.as_i64(),
-        Value::String(text) => text.trim().parse::<i64>().ok(),
-        _ => None,
-    })
-}
-
-fn value_at_paths<'a>(value: &'a Value, paths: &[&str]) -> Option<&'a Value> {
-    for path in paths {
-        let current = if path.starts_with('/') {
-            value.pointer(path)
-        } else {
-            value.get(*path)
-        };
-        if let Some(current) = current
-            && !current.is_null()
-        {
-            return Some(current);
-        }
-    }
-    None
 }
 
 fn channel_specs() -> Vec<ChannelSpec> {
@@ -1282,6 +1027,7 @@ fn normalize_optional(value: Option<String>) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::Value;
 
     fn test_connection(platform: &str) -> PlatformConnection {
         let now = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();

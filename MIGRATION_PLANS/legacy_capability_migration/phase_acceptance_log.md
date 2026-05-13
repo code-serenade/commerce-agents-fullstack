@@ -578,6 +578,27 @@
 - 本阶段不创建审批、不创建执行队列、不调用淘宝/JD/PDD/抖音等真实平台写 adapter。
 - 后续审批表单、Agent 执行建议和真实平台 adapter 接入应复用该 preflight 契约。
 
+## Post 8-47：平台执行共享规则内核
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Service：新增内部共享模块 `api::platform_execution`。
+- [x] Service：平台执行参数解析兼容顶层字段、`normalized_inputs`、`normalizedInputs`、`output.normalized_inputs`、`output.normalizedInputs`。
+- [x] Service：平台执行 readiness、参数校验、支持动作判断和 adapter 未实现文案由共享模块提供。
+- [x] Service：`approval_audit` 复用共享模块生成审批 readiness 和执行队列失败详情。
+- [x] Service：`platform_connect` 复用共享模块生成 preflight 结果。
+- [x] API：外部响应结构不变，`API_DOCS/app.md` 已补实现说明。
+- [x] 前端：本轮不需要改前端，未新增假执行按钮或假成功状态。
+
+当前说明：
+
+- 本阶段解决的是“同一平台执行动作在预检、审批和执行失败详情里使用同一套后端规则”。
+- 本阶段不新增 HTTP API，不调用真实平台写 adapter，不改变 `canExecuteNow=false` 的当前边界。
+- 后续接入真实淘宝/JD/PDD/抖音 adapter 时，应先扩展该共享规则，再接审批和执行队列闭环。
+
 ## Post 8-17：竞品分析读取 API
 
 状态：done

@@ -92,6 +92,7 @@ The following major foundations are already in place:
 - platform execution readiness diagnostics on tool approval records
 - platform execution adapter capability catalog on platform connection pages
 - platform execution preflight diagnostics before tool approval creation
+- shared platform execution rule kernel for preflight, approval readiness, and execution failure details
 - search evidence artifact persistence
 - agent skill run persistence and query API
 - multiple native skill migrations across ops / data / service / creative / web / design / accounting
@@ -178,7 +179,7 @@ Need:
 
 ### Phase D: Platform execution closed loop
 
-Status: approval creation, readiness, adapter catalog and preflight exist; actual execution adapter loop incomplete.
+Status: approval creation, readiness, adapter catalog, preflight, and shared execution rules exist; actual execution adapter loop incomplete.
 
 Need:
 
@@ -227,25 +228,24 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-46: platform execution preflight diagnostics
+Post 8-47: shared platform execution rules
 ```
 
 Scope:
 
-- expose a read-only preflight API through `POST /api/app/platform-connect/execution-preflight`
-- reuse `platform_connections` and the existing platform connect framework
-- validate supported platform execution actions before approval creation
-- parse top-level, `normalized_inputs`, and `output.normalized_inputs` argument shapes
-- return `validation_error`, `connection_missing`, `connection_disabled`, `unsupported_action`, or `adapter_not_implemented`
+- add a service-internal `platform_execution` module
+- share platform execution parameter parsing across approval and preflight paths
+- share readiness status, validation errors, supported action checks, details payload, and adapter-not-implemented messages
+- keep existing external API response shapes unchanged
 - keep the boundary that current platform adapters are not implemented and no platform write success is faked
-- sync frontend API types without adding fake execution actions
+- avoid frontend changes because this is backend rule-kernel hardening
 
 Reason:
 
-- high product value for high-risk platform execution governance
+- high product value for high-risk platform execution consistency
 - backend-first
-- lets frontend forms, Agent execution suggestions, and approval creation reuse one readiness contract
-- lets users see why a platform action will fail before creating an approval
+- prevents preflight, approval readiness, and execution queue failure details from drifting
+- prepares the next platform execution adapter loop to extend one rule source instead of multiple duplicated branches
 
 ## 10. Validation Standard
 

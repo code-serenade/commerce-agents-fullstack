@@ -9,6 +9,7 @@ pub mod conversation;
 pub mod external_search;
 pub mod package_governance;
 pub mod platform_connect;
+pub mod platform_execution;
 pub mod product;
 pub mod product_asset;
 pub mod product_competitor;
