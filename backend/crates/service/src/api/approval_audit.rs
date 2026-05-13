@@ -27,8 +27,8 @@ use uuid::Uuid;
 
 use super::platform_execution::{
     PlatformExecutionParams, PlatformExecutionReadiness, is_platform_execution_skill,
-    platform_adapter_not_implemented_message, platform_execution_details,
-    platform_execution_params, platform_execution_readiness_status,
+    platform_adapter_not_implemented_message, platform_execution_adapter_request,
+    platform_execution_details, platform_execution_params, platform_execution_readiness_status,
     platform_execution_validation_error, supported_platform_action,
 };
 use crate::dto::approval_audit::*;
@@ -1087,6 +1087,8 @@ fn platform_execution_failed(
     manual_result: &Value,
     now: OffsetDateTime,
 ) -> PlatformExecutionAttempt {
+    let adapter_request =
+        platform_execution_adapter_request(approval.skill_name.as_str(), params, adapter_status);
     let result = json!({
         "status": "failed",
         "source": "tool_approval_execution",
@@ -1099,6 +1101,7 @@ fn platform_execution_failed(
         "skillName": approval.skill_name,
         "message": message,
         "details": platform_execution_details(params),
+        "adapterRequest": adapter_request,
         "manualResult": manual_result,
         "attemptedAt": now,
     });
@@ -1212,6 +1215,20 @@ mod tests {
             attempt
                 .result
                 .pointer("/details/quantity")
+                .and_then(Value::as_i64),
+            Some(12)
+        );
+        assert_eq!(
+            attempt
+                .result
+                .pointer("/adapterRequest/idempotencyKey")
+                .and_then(Value::as_str),
+            Some("platform_update_inventory:platform=jd|product_id=prod-1|sku_id=null|quantity=12")
+        );
+        assert_eq!(
+            attempt
+                .result
+                .pointer("/adapterRequest/args/quantity")
                 .and_then(Value::as_i64),
             Some(12)
         );
@@ -1329,6 +1346,12 @@ mod tests {
         assert_eq!(
             attempt.result.get("adapterStatus").and_then(Value::as_str),
             Some("unsupported_action")
+        );
+        assert!(
+            attempt
+                .result
+                .get("adapterRequest")
+                .is_some_and(Value::is_null)
         );
     }
 

@@ -620,6 +620,28 @@
 - 本阶段不新增 HTTP API，不调用真实平台写 adapter，不改变 `canExecuteNow=false` 的当前边界。
 - 后续接入真实平台 adapter 时，应继续扩展该动作规格注册表，再实现实际 adapter 调用。
 
+## Post 8-49：平台执行 Adapter 请求信封
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Service：`api::platform_execution` 新增 `PlatformExecutionAdapterRequest`。
+- [x] Service：支持平台执行动作可生成规范化 `adapterRequest`。
+- [x] Service：`adapterRequest` 包含 `skillName`、`platform`、`executionMode`、`adapterStatus`、`idempotencyKey`、`idempotencyKeyFields` 和 `args`。
+- [x] Service：幂等键基于共享动作规格的 `idempotency_key_fields` 生成。
+- [x] Service：`approval_audit` 的平台执行失败结果写入 `adapterRequest`。
+- [x] Service：unsupported 动作或缺平台时 `adapterRequest=null`，不伪造可执行请求。
+- [x] API：外部路由不变，`API_DOCS/app.md` 已补结果字段说明。
+- [x] 前端：本轮不需要改前端，未新增假执行按钮或假成功状态。
+
+当前说明：
+
+- 本阶段解决的是“真实 adapter 接入前缺少统一请求信封和幂等键”的问题。
+- 本阶段不调用真实平台写 adapter，不改变 `adapter_not_implemented` 的当前边界。
+- 后续接入真实平台 adapter 时，应直接消费该 request envelope。
+
 ## Post 8-17：竞品分析读取 API
 
 状态：done

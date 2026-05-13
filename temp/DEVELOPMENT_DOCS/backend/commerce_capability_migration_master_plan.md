@@ -94,6 +94,7 @@ The following major foundations are already in place:
 - platform execution preflight diagnostics before tool approval creation
 - shared platform execution rule kernel for preflight, approval readiness, and execution failure details
 - shared platform execution action registry for catalog, validation, idempotency fields, and adapter messages
+- platform execution adapter request envelope with idempotency key in approval execution failure results
 - search evidence artifact persistence
 - agent skill run persistence and query API
 - multiple native skill migrations across ops / data / service / creative / web / design / accounting
@@ -180,7 +181,7 @@ Need:
 
 ### Phase D: Platform execution closed loop
 
-Status: approval creation, readiness, adapter catalog, preflight, shared execution rules, and shared action registry exist; actual execution adapter loop incomplete.
+Status: approval creation, readiness, adapter catalog, preflight, shared execution rules, shared action registry, and adapter request envelope exist; actual execution adapter loop incomplete.
 
 Need:
 
@@ -229,24 +230,25 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-48: shared platform execution action registry
+Post 8-49: platform execution adapter request envelope
 ```
 
 Scope:
 
-- move platform execution action specs into the service-internal `platform_execution` module
-- share action display copy, descriptions, required/optional params, idempotency fields, and adapter-not-implemented messages
-- make catalog, preflight, approval readiness, and execution failure details closer to one backend fact source
+- add a service-internal `PlatformExecutionAdapterRequest`
+- generate normalized adapter request args from `PlatformExecutionParams`
+- generate idempotency keys from shared action spec `idempotency_key_fields`
+- write `adapterRequest` into platform execution failure results
 - keep existing external API response shapes unchanged
 - keep the boundary that current platform adapters are not implemented and no platform write success is faked
 - avoid frontend changes because this is backend rule-kernel hardening
 
 Reason:
 
-- high product value for high-risk platform execution consistency and adapter readiness
+- high product value for high-risk platform execution auditability and adapter readiness
 - backend-first
-- prevents adapter catalog action definitions from drifting away from preflight / approval logic
-- prepares the next platform execution adapter loop to extend one registry instead of multiple duplicated branches
+- makes the approved execution intent auditable before real adapters exist
+- prepares the next platform execution adapter loop to consume a stable request envelope and idempotency key
 
 ## 10. Validation Standard
 

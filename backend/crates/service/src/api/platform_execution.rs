@@ -1,4 +1,5 @@
 use repo::table::platform_connections::{PlatformConnection, PlatformConnectionStatus};
+use serde::Serialize;
 use serde_json::{Value, json};
 
 #[derive(Debug, Clone, Default)]
@@ -32,6 +33,18 @@ pub(super) struct PlatformExecutionActionSpec {
     pub required_params: &'static [&'static str],
     pub optional_params: &'static [&'static str],
     pub idempotency_key_fields: &'static [&'static str],
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct PlatformExecutionAdapterRequest {
+    pub skill_name: String,
+    pub platform: String,
+    pub adapter_status: String,
+    pub execution_mode: String,
+    pub idempotency_key: String,
+    pub idempotency_key_fields: Vec<String>,
+    pub args: Value,
 }
 
 const PLATFORM_EXECUTION_ACTION_SPECS: &[PlatformExecutionActionSpec] = &[
@@ -74,6 +87,29 @@ pub(super) fn platform_execution_action_spec(
     PLATFORM_EXECUTION_ACTION_SPECS
         .iter()
         .find(|spec| spec.skill_name == skill_name)
+}
+
+pub(super) fn platform_execution_adapter_request(
+    skill_name: &str,
+    params: &PlatformExecutionParams,
+    adapter_status: &str,
+) -> Option<PlatformExecutionAdapterRequest> {
+    let spec = platform_execution_action_spec(skill_name)?;
+    let platform = params.platform.clone()?;
+    let args = platform_execution_args(params);
+    Some(PlatformExecutionAdapterRequest {
+        skill_name: spec.skill_name.to_string(),
+        platform,
+        adapter_status: adapter_status.to_string(),
+        execution_mode: "adapter".to_string(),
+        idempotency_key: platform_execution_idempotency_key(spec, params),
+        idempotency_key_fields: spec
+            .idempotency_key_fields
+            .iter()
+            .map(|field| field.to_string())
+            .collect(),
+        args,
+    })
 }
 
 pub(super) fn platform_execution_params(args: &Value) -> PlatformExecutionParams {
@@ -269,6 +305,45 @@ pub(super) fn platform_execution_details(params: &PlatformExecutionParams) -> Va
     })
 }
 
+pub(super) fn platform_execution_args(params: &PlatformExecutionParams) -> Value {
+    json!({
+        "platform": params.platform,
+        "product_id": params.product_id,
+        "sku_id": params.sku_id,
+        "new_price": params.new_price,
+        "quantity": params.quantity,
+        "page": params.page,
+        "page_size": params.page_size,
+    })
+}
+
+fn platform_execution_idempotency_key(
+    spec: &PlatformExecutionActionSpec,
+    params: &PlatformExecutionParams,
+) -> String {
+    let parts = spec
+        .idempotency_key_fields
+        .iter()
+        .map(|field| format!("{field}={}", idempotency_value(field, params)))
+        .collect::<Vec<_>>()
+        .join("|");
+    format!("{}:{parts}", spec.skill_name)
+}
+
+fn idempotency_value(field: &str, params: &PlatformExecutionParams) -> String {
+    match field {
+        "platform" => params.platform.clone(),
+        "product_id" => params.product_id.clone(),
+        "sku_id" => params.sku_id.clone(),
+        "new_price" => params.new_price.map(|value| value.to_string()),
+        "quantity" => params.quantity.map(|value| value.to_string()),
+        "page" => params.page.map(|value| value.to_string()),
+        "page_size" => params.page_size.map(|value| value.to_string()),
+        _ => None,
+    }
+    .unwrap_or_else(|| "null".to_string())
+}
+
 fn value_string(value: &Value, paths: &[&str]) -> Option<String> {
     value_at_paths(value, paths).and_then(|value| match value {
         Value::String(text) => normalize_string(text.clone()),
@@ -363,6 +438,68 @@ mod tests {
         assert_eq!(
             platform_execution_validation_error("platform_publish_campaign", &unknown),
             None
+        );
+    }
+
+    #[test]
+    fn platform_execution_adapter_request_uses_registry_idempotency_fields() {
+        let params = PlatformExecutionParams {
+            platform: Some("douyin".to_string()),
+            product_id: Some("prod-1".to_string()),
+            sku_id: Some("sku-9".to_string()),
+            new_price: Some(129.5),
+            ..Default::default()
+        };
+
+        let request = platform_execution_adapter_request(
+            "platform_update_price",
+            &params,
+            "adapter_not_implemented",
+        )
+        .expect("supported platform action should build adapter request");
+
+        assert_eq!(request.skill_name, "platform_update_price");
+        assert_eq!(request.platform, "douyin");
+        assert_eq!(request.adapter_status, "adapter_not_implemented");
+        assert_eq!(
+            request.idempotency_key,
+            "platform_update_price:platform=douyin|product_id=prod-1|sku_id=sku-9|new_price=129.5"
+        );
+        assert_eq!(
+            request.idempotency_key_fields,
+            vec!["platform", "product_id", "sku_id", "new_price"]
+        );
+        assert_eq!(
+            request.args.get("product_id").and_then(Value::as_str),
+            Some("prod-1")
+        );
+    }
+
+    #[test]
+    fn platform_execution_adapter_request_requires_supported_action_and_platform() {
+        let params = PlatformExecutionParams {
+            product_id: Some("prod-1".to_string()),
+            ..Default::default()
+        };
+
+        assert!(
+            platform_execution_adapter_request(
+                "platform_update_price",
+                &params,
+                "validation_error"
+            )
+            .is_none()
+        );
+        assert!(
+            platform_execution_adapter_request(
+                "platform_publish_campaign",
+                &PlatformExecutionParams {
+                    platform: Some("douyin".to_string()),
+                    ..Default::default()
+                },
+                "unsupported_action"
+            )
+            .is_none()
         );
     }
 }

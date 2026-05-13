@@ -2766,6 +2766,7 @@
 - 批准后会写入一条 `execution_queue.approve` 审计日志
 - 本阶段批准不等于真实执行平台动作，也不会调用 Agent 工具重放
 - 如果该执行建议来自工具审批后的平台执行尝试，`result.adapterStatus` 和 `result.message` 会记录真实失败原因，例如 `validation_error`、`connection_missing`、`connection_disabled`、`unsupported_action` 或 `adapter_not_implemented`
+- 从 Post 8-49 开始，支持的平台执行动作失败结果会额外返回 `result.adapterRequest`，用于记录本次准备调用 adapter 的规范化请求信封，包括 `skillName`、`platform`、`executionMode`、`idempotencyKey`、`idempotencyKeyFields` 和 `args`；该字段只用于审计和后续 adapter 接入，不代表真实平台写操作已经执行
 
 ## 67. 拒绝执行建议
 
@@ -3571,6 +3572,7 @@
 - 若当前平台连接缺失、连接被禁用、参数缺失或平台 adapter 尚未实现，后端会把真实失败结果写回 `toolApproval.result` 和 `executionQueue.result`，不会伪造成功
 - 因此通过接口返回的最终 `ToolApprovalResponse.status` 可能不只停留在 `approved`，也可能直接变成 `executed` 或 `failed`
 - 当前版本已补齐审批后的执行闭环与审计落库，但远端平台 API adapter 仍未真正接入；因此已连接平台的动作当前会返回 `adapter_not_implemented`
+- 从 Post 8-49 开始，支持的平台执行动作失败结果会包含 `result.adapterRequest`，用于记录规范化 adapter 请求和幂等键；unsupported 动作或缺少平台时该字段为 `null`
 
 ## 89. 拒绝工具审批请求
 

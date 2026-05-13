@@ -1,5 +1,44 @@
 # 迁移开发记录
 
+## Post 8-49：平台执行 Adapter 请求信封
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 49 个补强项：`Post 8-49`。
+
+本次目标：
+
+- 在真实平台 adapter 接入前，先补齐平台执行的规范化 adapter request envelope。
+- 让审批通过后的执行队列失败结果清楚记录“本来准备如何调用 adapter”。
+- 保持当前真实平台 adapter 未实现的边界，不新增平台写执行，不伪造执行成功。
+
+涉及范围：
+
+- 产品内核：支持的平台执行动作现在能生成 `adapterRequest`，包含 `skillName`、`platform`、`executionMode`、`idempotencyKey`、`idempotencyKeyFields` 和规范化 `args`。
+- 后端 service：`platform_execution.rs` 新增 `PlatformExecutionAdapterRequest`、`platform_execution_adapter_request()` 和基于 action spec 的幂等键生成。
+- 后端审批闭环：`approval_audit` 的平台执行失败结果会写入 `adapterRequest`；unsupported 动作或缺平台时该字段为 `null`。
+- Web-server/API：不新增路由，`ToolApprovalResponse.result` 和 `ExecutionQueueResponse.result` 只新增可选诊断字段。
+- 前端：本轮未修改前端，也未新增假执行按钮或假成功状态。
+
+用户可感知变化：
+
+- 用户或后续前端查看审批后的执行失败详情时，可以看到更清晰的 adapter 请求边界和幂等键。
+- 当前仍会明确显示 `adapter_not_implemented`，不会让用户误以为已经能真实改价、改库存或同步平台商品。
+- 这个切片为后续真实平台 adapter、重试和审计追踪打基础。
+
+当前验证：
+
+- [x] `cargo fmt --all`（在 `backend/` workspace 下运行；现有 nightly-only rustfmt 配置项仅产生警告）
+- [x] `cargo test -p service platform_execution -- --nocapture`
+- [x] `cargo test -p service plan_platform_execution -- --nocapture`
+- [x] `cargo test -p service approval_execution_readiness -- --nocapture`
+- [x] `cargo test -p service platform_execution_preflight -- --nocapture`
+- [x] `cargo check -p service -p web-server`
+- [x] `cargo clippy -p service -p web-server`
+
 ## Post 8-48：平台执行动作规格注册表
 
 状态：done
