@@ -678,12 +678,26 @@ export async function streamAgentSessionApi(
   let receivedDelta = false
   let fallbackOutput = ""
   let reader: ReadableStreamDefaultReader<Uint8Array> | null = null
-  const idleTimeout = window.setTimeout(() => {
+  let idleTimeout: number | undefined
+  const resetIdleTimeout = () => {
+    if (idleTimeout !== undefined) window.clearTimeout(idleTimeout)
+    idleTimeout = window.setTimeout(() => {
+      if (settled) return
+      settled = true
+      handlers.onError("Agent stream timed out without backend events.")
+      void reader?.cancel()
+    }, AGENT_STREAM_IDLE_TIMEOUT_MS)
+  }
+  resetIdleTimeout()
+  const clearIdleTimeout = () => {
+    if (idleTimeout !== undefined) window.clearTimeout(idleTimeout)
+    idleTimeout = undefined
+  }
+
+  const markStreamActivity = () => {
     if (settled) return
-    settled = true
-    handlers.onError("Agent stream timed out without output.")
-    void reader?.cancel()
-  }, AGENT_STREAM_IDLE_TIMEOUT_MS)
+    resetIdleTimeout()
+  }
 
   let response = await fetchAgentStream(body, handlers.signal)
   if (response.status === 401 && (await refreshAgentStreamToken())) {
@@ -691,7 +705,7 @@ export async function streamAgentSessionApi(
   }
 
   if (!response.ok || !response.body) {
-    window.clearTimeout(idleTimeout)
+    clearIdleTimeout()
     handlers.onError(`Agent stream failed: ${response.status}`)
     return
   }
@@ -705,6 +719,7 @@ export async function streamAgentSessionApi(
       const { value, done } = await reader.read()
       if (done) break
 
+      markStreamActivity()
       buffer += decoder.decode(value, { stream: true })
       const boundary = buffer.lastIndexOf("\n\n")
       if (boundary === -1) continue
@@ -713,6 +728,7 @@ export async function streamAgentSessionApi(
       buffer = buffer.slice(boundary + 2)
 
       for (const block of completed.split("\n\n")) {
+        markStreamActivity()
         const result = handleSseMessage(parseSseMessage(block), handlers)
         receivedDelta = receivedDelta || result.receivedDelta
         fallbackOutput += result.fallbackOutput
@@ -753,7 +769,7 @@ export async function streamAgentSessionApi(
       settled = true
     }
   } finally {
-    window.clearTimeout(idleTimeout)
+    clearIdleTimeout()
     if (!receivedDelta && fallbackOutput && !settled && !handlers.signal?.aborted) {
       handlers.onDelta(fallbackOutput)
     }
