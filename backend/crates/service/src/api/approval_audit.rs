@@ -11,9 +11,7 @@ use repo::table::{
         CreateExecutionQueueItem, ExecutionQueueItem, ExecutionQueueService, ExecutionQueueStatus,
         UpdateExecutionQueueItem,
     },
-    platform_connections::{
-        PlatformConnection, PlatformConnectionService, PlatformConnectionStatus,
-    },
+    platform_connections::{PlatformConnection, PlatformConnectionService},
     tool_approval_queue::{
         CreateToolApproval, ToolApproval, ToolApprovalFilter, ToolApprovalQueueService,
         ToolApprovalStatus, UpdateToolApprovalDecision,
@@ -26,11 +24,9 @@ use time::OffsetDateTime;
 use uuid::Uuid;
 
 use super::platform_execution::{
-    PlatformExecutionParams, PlatformExecutionReadiness, is_platform_execution_skill,
-    platform_adapter_not_implemented_message, platform_execution_adapter_outcome,
-    platform_execution_details, platform_execution_params, platform_execution_readiness_status,
-    platform_execution_unimplemented_outcome, platform_execution_validation_error,
-    supported_platform_action,
+    PlatformExecutionAdapterOutcome, PlatformExecutionParams, PlatformExecutionReadiness,
+    is_platform_execution_skill, platform_execution_details, platform_execution_dispatch_outcome,
+    platform_execution_params, platform_execution_readiness_status, supported_platform_action,
 };
 use crate::dto::approval_audit::*;
 
@@ -940,21 +936,13 @@ async fn attempt_platform_execution(
     now: OffsetDateTime,
     manual_result: &Value,
 ) -> BizResult<PlatformExecutionAttempt> {
-    let Some(platform) = params.platform.clone() else {
-        return Ok(platform_execution_failed(
-            approval,
-            execution_item,
-            "validation_error",
-            "Missing platform in tool approval arguments.",
-            params,
-            manual_result,
-            now,
-        ));
+    let connection = if let Some(platform) = params.platform.as_deref() {
+        platform_svc
+            .get_by_user_platform(approval.user_id, platform)
+            .await?
+    } else {
+        None
     };
-
-    let connection = platform_svc
-        .get_by_user_platform(approval.user_id, platform.as_str())
-        .await?;
 
     Ok(plan_platform_execution(
         approval,
@@ -974,74 +962,12 @@ fn plan_platform_execution(
     manual_result: &Value,
     now: OffsetDateTime,
 ) -> PlatformExecutionAttempt {
-    let Some(_platform) = params.platform.clone() else {
-        return platform_execution_failed(
-            approval,
-            execution_item,
-            "validation_error",
-            "Missing platform in tool approval arguments.",
-            params,
-            manual_result,
-            now,
-        );
-    };
-
-    let Some(validation_error) =
-        platform_execution_validation_error(approval.skill_name.as_str(), params)
-    else {
-        return platform_execution_failed(
-            approval,
-            execution_item,
-            "unsupported_action",
-            "Platform execution action is not supported by the current service adapter.",
-            params,
-            manual_result,
-            now,
-        );
-    };
-
-    if let Some(message) = validation_error {
-        return platform_execution_failed(
-            approval,
-            execution_item,
-            "validation_error",
-            message,
-            params,
-            manual_result,
-            now,
-        );
-    }
-
-    let Some(connection) = connection else {
-        return platform_execution_failed(
-            approval,
-            execution_item,
-            "connection_missing",
-            "No enabled platform connection was found for this user and platform.",
-            params,
-            manual_result,
-            now,
-        );
-    };
-
-    if !connection.enabled || connection.status == PlatformConnectionStatus::Disabled {
-        return platform_execution_failed(
-            approval,
-            execution_item,
-            "connection_disabled",
-            "Platform connection exists but is disabled.",
-            params,
-            manual_result,
-            now,
-        );
-    }
-
-    let adapter_message = platform_adapter_not_implemented_message(approval.skill_name.as_str());
+    let outcome =
+        platform_execution_dispatch_outcome(approval.skill_name.as_str(), params, connection);
     platform_execution_failed(
         approval,
         execution_item,
-        "adapter_not_implemented",
-        adapter_message,
+        outcome,
         params,
         manual_result,
         now,
@@ -1082,23 +1008,12 @@ fn plan_platform_execution_readiness(
 fn platform_execution_failed(
     approval: &ToolApproval,
     execution_item: &ExecutionQueueItem,
-    adapter_status: &str,
-    message: &str,
+    outcome: PlatformExecutionAdapterOutcome,
     params: &PlatformExecutionParams,
     manual_result: &Value,
     now: OffsetDateTime,
 ) -> PlatformExecutionAttempt {
-    let outcome = if adapter_status == "adapter_not_implemented" {
-        platform_execution_unimplemented_outcome(approval.skill_name.as_str(), params, message)
-    } else {
-        platform_execution_adapter_outcome(
-            approval.skill_name.as_str(),
-            params,
-            adapter_status,
-            message,
-            false,
-        )
-    };
+    let decision_reason = outcome.message.clone();
     let result = json!({
         "status": outcome.status,
         "source": "tool_approval_execution",
@@ -1120,7 +1035,7 @@ fn platform_execution_failed(
     PlatformExecutionAttempt {
         approval_status: ToolApprovalStatus::Failed,
         execution_status: ExecutionQueueStatus::Failed,
-        decision_reason: Some(message.to_string()),
+        decision_reason: Some(decision_reason),
         result,
         executed_at: Some(now),
         execution_audit_action: "execution_queue.failed",

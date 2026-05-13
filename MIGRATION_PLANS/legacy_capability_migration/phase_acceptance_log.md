@@ -664,6 +664,28 @@
 - 本阶段不调用真实平台写 adapter，不改变 `adapter_not_implemented` 的当前边界。
 - 后续接入真实平台 adapter 时，应让 adapter 返回 outcome，再写回 execution queue、tool approval 和 audit。
 
+## Post 8-51：平台执行 Adapter 调度边界
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Service：`api::platform_execution` 新增 `platform_execution_dispatch_outcome()`。
+- [x] Service：dispatch 复用既有 `platform_execution_readiness_status()`。
+- [x] Service：dispatch 复用既有 `PlatformExecutionAdapterOutcome`。
+- [x] Service：dispatch 覆盖 `validation_error`、`connection_missing`、`connection_disabled`、`unsupported_action` 和 `adapter_not_implemented`。
+- [x] Service：`approval_audit` 的审批后平台执行规划改为调用统一 dispatch outcome。
+- [x] Service：`approval_audit` 保留事务、execution queue、tool approval 和 audit 写回职责。
+- [x] API：外部路由和响应字段保持兼容，`API_DOCS/app.md` 已补内部 dispatch 说明。
+- [x] 前端：本轮不需要改前端，未新增假执行按钮或假成功状态。
+
+当前说明：
+
+- 本阶段解决的是“审批后平台执行调度边界仍散在审批模块里”的问题。
+- 本阶段仍不调用真实平台写 adapter，不改变 `adapter_not_implemented` 的当前边界。
+- 后续接入真实平台 adapter 时，应挂在该 dispatch 边界之后，并继续返回 `PlatformExecutionAdapterOutcome`。
+
 ## Post 8-17：竞品分析读取 API
 
 状态：done

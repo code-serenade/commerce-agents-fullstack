@@ -1,5 +1,42 @@
 # 迁移开发记录
 
+## Post 8-51：平台执行 Adapter 调度边界
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 51 个补强项：`Post 8-51`。
+
+本次目标：
+
+- 继续基于同事给的新产品框架推进，不引入第二套执行框架，不复制旧产品代码。
+- 把审批通过后“应当调用 adapter 还是降级失败”的判断收敛到 `service::api::platform_execution`。
+- 保持当前真实平台 adapter 未实现的边界，不新增平台写执行，不伪造执行成功。
+
+涉及范围：
+
+- 产品内核：平台执行现在有统一 dispatch outcome 入口，覆盖 `validation_error`、`connection_missing`、`connection_disabled`、`unsupported_action` 和 `adapter_not_implemented`。
+- 后端 service：`platform_execution.rs` 新增 `platform_execution_dispatch_outcome()`，复用 readiness 和 adapter outcome 契约。
+- 后端审批闭环：`approval_audit` 删除重复的平台执行判断分支，改为只调用 dispatch outcome，再负责 execution queue、tool approval 和 audit 写回。
+- Web-server/API：不新增路由，既有响应字段保持兼容。
+- 前端：本轮未修改前端，也未新增假执行按钮或假成功状态。
+
+用户可感知变化：
+
+- 当前页面表现基本不变，已连接平台仍会明确返回 `adapter_not_implemented`。
+- 审批执行详情背后的失败原因来自同一个后端内核入口，后续前端展示会更稳定一致。
+- 这一步是为真实平台 adapter 接入做准备，本轮没有调用淘宝、京东、拼多多或抖音等真实平台写接口。
+
+当前验证：
+
+- [x] `cargo fmt --all`（在 `backend/` workspace 下运行；现有 nightly-only rustfmt 配置项仅产生警告）
+- [x] `cargo test -p service platform_execution -- --nocapture`
+- [x] `cargo test -p service plan_platform_execution -- --nocapture`
+- [x] `cargo test -p service approval_execution_readiness -- --nocapture`
+- [x] `cargo test -p service platform_execution_preflight -- --nocapture`
+
 ## Post 8-50：平台执行 Adapter Outcome 契约
 
 状态：done

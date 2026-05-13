@@ -2768,6 +2768,7 @@
 - 如果该执行建议来自工具审批后的平台执行尝试，`result.adapterStatus` 和 `result.message` 会记录真实失败原因，例如 `validation_error`、`connection_missing`、`connection_disabled`、`unsupported_action` 或 `adapter_not_implemented`
 - 从 Post 8-49 开始，支持的平台执行动作失败结果会额外返回 `result.adapterRequest`，用于记录本次准备调用 adapter 的规范化请求信封，包括 `skillName`、`platform`、`executionMode`、`idempotencyKey`、`idempotencyKeyFields` 和 `args`；该字段只用于审计和后续 adapter 接入，不代表真实平台写操作已经执行
 - 从 Post 8-50 开始，平台执行失败结果由 service 内部 adapter outcome 契约生成，并包含 `result.providerResult` 和 `result.retryable`；当前 adapter 未实现时 `providerResult=null`、`retryable=false`
+- 从 Post 8-51 开始，审批通过后的平台执行尝试会通过 service 内部统一 adapter dispatch outcome 入口生成失败结果；外部响应字段不变，当前仍不会调用真实平台写接口，也不会把 `adapter_not_implemented` 伪造成成功
 
 ## 67. 拒绝执行建议
 
@@ -3575,6 +3576,7 @@
 - 当前版本已补齐审批后的执行闭环与审计落库，但远端平台 API adapter 仍未真正接入；因此已连接平台的动作当前会返回 `adapter_not_implemented`
 - 从 Post 8-49 开始，支持的平台执行动作失败结果会包含 `result.adapterRequest`，用于记录规范化 adapter 请求和幂等键；unsupported 动作或缺少平台时该字段为 `null`
 - 从 Post 8-50 开始，该失败结果还会包含 `result.providerResult` 和 `result.retryable`，用于承接后续真实 adapter 的原始返回和重试语义；当前未实现 adapter 返回 `providerResult=null`、`retryable=false`
+- 从 Post 8-51 开始，`validation_error`、`connection_missing`、`connection_disabled`、`unsupported_action` 和 `adapter_not_implemented` 都由 service 内部统一 dispatch outcome 入口生成，审批模块只负责事务、执行队列、审批状态和审计写回
 
 ## 89. 拒绝工具审批请求
 

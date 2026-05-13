@@ -154,6 +154,38 @@ pub(super) fn platform_execution_unimplemented_outcome(
     )
 }
 
+pub(super) fn platform_execution_dispatch_outcome(
+    skill_name: &str,
+    params: &PlatformExecutionParams,
+    connection: Option<&PlatformConnection>,
+) -> PlatformExecutionAdapterOutcome {
+    match platform_execution_readiness_status(skill_name, params, connection) {
+        PlatformExecutionReadiness::Blocked {
+            adapter_status,
+            message,
+        } => {
+            if adapter_status == "adapter_not_implemented" {
+                platform_execution_unimplemented_outcome(skill_name, params, message)
+            } else {
+                platform_execution_adapter_outcome(
+                    skill_name,
+                    params,
+                    adapter_status,
+                    message,
+                    false,
+                )
+            }
+        }
+        PlatformExecutionReadiness::Unsupported { message } => platform_execution_adapter_outcome(
+            skill_name,
+            params,
+            "unsupported_action",
+            message,
+            false,
+        ),
+    }
+}
+
 pub(super) fn platform_execution_params(args: &Value) -> PlatformExecutionParams {
     PlatformExecutionParams {
         platform: value_string(
@@ -434,6 +466,7 @@ fn normalize_string(value: String) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use repo::table::platform_connections::PlatformSyncStatus;
 
     #[test]
     fn platform_execution_action_registry_contains_governed_actions() {
@@ -571,5 +604,103 @@ mod tests {
                 .map(|request| request.idempotency_key.as_str()),
             Some("platform_update_inventory:platform=jd|product_id=prod-1|sku_id=null|quantity=12")
         );
+    }
+
+    #[test]
+    fn platform_execution_dispatch_outcome_reports_missing_connection() {
+        let params = PlatformExecutionParams {
+            platform: Some("taobao".to_string()),
+            product_id: Some("prod-1".to_string()),
+            new_price: Some(99.0),
+            ..Default::default()
+        };
+
+        let outcome = platform_execution_dispatch_outcome("platform_update_price", &params, None);
+
+        assert_eq!(outcome.status, "failed");
+        assert_eq!(outcome.adapter_status, "connection_missing");
+        assert!(!outcome.retryable);
+        assert_eq!(
+            outcome
+                .adapter_request
+                .as_ref()
+                .map(|request| request.idempotency_key.as_str()),
+            Some(
+                "platform_update_price:platform=taobao|product_id=prod-1|sku_id=null|new_price=99"
+            )
+        );
+    }
+
+    #[test]
+    fn platform_execution_dispatch_outcome_keeps_unimplemented_boundary() {
+        let params = PlatformExecutionParams {
+            platform: Some("douyin".to_string()),
+            product_id: Some("prod-1".to_string()),
+            sku_id: Some("sku-9".to_string()),
+            new_price: Some(129.5),
+            ..Default::default()
+        };
+        let connection = test_platform_connection("douyin");
+
+        let outcome = platform_execution_dispatch_outcome(
+            "platform_update_price",
+            &params,
+            Some(&connection),
+        );
+
+        assert_eq!(outcome.status, "failed");
+        assert_eq!(outcome.adapter_status, "adapter_not_implemented");
+        assert_eq!(
+            outcome.message,
+            "Platform execution adapter is not implemented yet for price update."
+        );
+        assert!(outcome.provider_result.is_none());
+        assert!(!outcome.retryable);
+    }
+
+    #[test]
+    fn platform_execution_dispatch_outcome_reports_unsupported_action() {
+        let params = PlatformExecutionParams {
+            platform: Some("douyin".to_string()),
+            product_id: Some("prod-1".to_string()),
+            ..Default::default()
+        };
+        let connection = test_platform_connection("douyin");
+
+        let outcome = platform_execution_dispatch_outcome(
+            "platform_publish_campaign",
+            &params,
+            Some(&connection),
+        );
+
+        assert_eq!(outcome.status, "failed");
+        assert_eq!(outcome.adapter_status, "unsupported_action");
+        assert!(outcome.adapter_request.is_none());
+        assert!(!outcome.retryable);
+    }
+
+    fn test_platform_connection(platform: &str) -> PlatformConnection {
+        PlatformConnection {
+            id: uuid::Uuid::parse_str("cccccccc-cccc-cccc-cccc-cccccccccccc").unwrap(),
+            user_id: uuid::Uuid::parse_str("11111111-1111-1111-1111-111111111111").unwrap(),
+            platform: platform.to_string(),
+            app_key: Some("ak".to_string()),
+            app_secret_enc: Some("secret".to_string()),
+            access_token_enc: Some("token".to_string()),
+            refresh_token_enc: Some("refresh".to_string()),
+            token_expires_at: None,
+            shop_id: Some("shop-1".to_string()),
+            shop_name: Some("Demo Shop".to_string()),
+            enabled: true,
+            status: PlatformConnectionStatus::Configured,
+            last_tested_at: None,
+            test_result: json!({}),
+            last_synced_at: None,
+            sync_status: PlatformSyncStatus::Idle,
+            sync_message: None,
+            extra: json!({}),
+            created_at: time::OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap(),
+            updated_at: time::OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap(),
+        }
     }
 }

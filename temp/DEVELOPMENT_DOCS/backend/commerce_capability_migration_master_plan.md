@@ -96,6 +96,7 @@ The following major foundations are already in place:
 - shared platform execution action registry for catalog, validation, idempotency fields, and adapter messages
 - platform execution adapter request envelope with idempotency key in approval execution failure results
 - platform execution adapter outcome contract for provider result and retryability
+- platform execution adapter dispatch outcome boundary inside the service framework
 - search evidence artifact persistence
 - agent skill run persistence and query API
 - multiple native skill migrations across ops / data / service / creative / web / design / accounting
@@ -182,7 +183,7 @@ Need:
 
 ### Phase D: Platform execution closed loop
 
-Status: approval creation, readiness, adapter catalog, preflight, shared execution rules, shared action registry, adapter request envelope, and adapter outcome contract exist; actual execution adapter loop incomplete.
+Status: approval creation, readiness, adapter catalog, preflight, shared execution rules, shared action registry, adapter request envelope, adapter outcome contract, and service-internal dispatch outcome boundary exist; actual execution adapter loop incomplete.
 
 Need:
 
@@ -231,25 +232,25 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-50: platform execution adapter outcome contract
+Post 8-51: platform execution adapter dispatch boundary
 ```
 
 Scope:
 
-- add a service-internal `PlatformExecutionAdapterOutcome`
-- generate unimplemented-adapter outcome for the current platform execution boundary
-- write `providerResult` and `retryable` into platform execution failure results
-- keep `adapterRequest` inside the outcome path
+- add a service-internal `platform_execution_dispatch_outcome()`
+- route approval-after-approve platform execution planning through that dispatch boundary
+- keep `validation_error`, `connection_missing`, `connection_disabled`, `unsupported_action`, and `adapter_not_implemented` on one outcome path
+- keep `adapterRequest`, `providerResult`, and `retryable` inside the outcome path
 - keep existing external API response shapes unchanged
 - keep the boundary that current platform adapters are not implemented and no platform write success is faked
 - avoid frontend changes because this is backend rule-kernel hardening
 
 Reason:
 
-- high product value for high-risk platform execution result consistency and adapter readiness
+- high product value for high-risk platform execution dispatch consistency and adapter readiness
 - backend-first
-- gives future adapters a stable success/failure/degraded result contract
-- prepares the next platform execution adapter loop to return one outcome shape into execution queue, approval, and audit
+- keeps approval/audit focused on transaction and persistence
+- prepares the next platform execution adapter loop to attach real providers behind one service-owned dispatch boundary
 
 ## 10. Validation Standard
 
