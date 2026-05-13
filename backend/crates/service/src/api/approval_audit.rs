@@ -27,9 +27,10 @@ use uuid::Uuid;
 
 use super::platform_execution::{
     PlatformExecutionParams, PlatformExecutionReadiness, is_platform_execution_skill,
-    platform_adapter_not_implemented_message, platform_execution_adapter_request,
+    platform_adapter_not_implemented_message, platform_execution_adapter_outcome,
     platform_execution_details, platform_execution_params, platform_execution_readiness_status,
-    platform_execution_validation_error, supported_platform_action,
+    platform_execution_unimplemented_outcome, platform_execution_validation_error,
+    supported_platform_action,
 };
 use crate::dto::approval_audit::*;
 
@@ -1087,21 +1088,32 @@ fn platform_execution_failed(
     manual_result: &Value,
     now: OffsetDateTime,
 ) -> PlatformExecutionAttempt {
-    let adapter_request =
-        platform_execution_adapter_request(approval.skill_name.as_str(), params, adapter_status);
+    let outcome = if adapter_status == "adapter_not_implemented" {
+        platform_execution_unimplemented_outcome(approval.skill_name.as_str(), params, message)
+    } else {
+        platform_execution_adapter_outcome(
+            approval.skill_name.as_str(),
+            params,
+            adapter_status,
+            message,
+            false,
+        )
+    };
     let result = json!({
-        "status": "failed",
+        "status": outcome.status,
         "source": "tool_approval_execution",
         "approvalId": approval.id,
         "executionQueueId": execution_item.id,
         "approvalStatus": "failed",
         "executionStatus": "failed",
-        "adapterStatus": adapter_status,
+        "adapterStatus": outcome.adapter_status,
         "platform": params.platform,
         "skillName": approval.skill_name,
-        "message": message,
+        "message": outcome.message,
         "details": platform_execution_details(params),
-        "adapterRequest": adapter_request,
+        "adapterRequest": outcome.adapter_request,
+        "providerResult": outcome.provider_result,
+        "retryable": outcome.retryable,
         "manualResult": manual_result,
         "attemptedAt": now,
     });
@@ -1231,6 +1243,16 @@ mod tests {
                 .pointer("/adapterRequest/args/quantity")
                 .and_then(Value::as_i64),
             Some(12)
+        );
+        assert_eq!(
+            attempt.result.get("retryable").and_then(Value::as_bool),
+            Some(false)
+        );
+        assert!(
+            attempt
+                .result
+                .get("providerResult")
+                .is_some_and(Value::is_null)
         );
     }
 

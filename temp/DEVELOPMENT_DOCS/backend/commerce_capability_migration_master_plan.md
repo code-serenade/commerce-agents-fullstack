@@ -95,6 +95,7 @@ The following major foundations are already in place:
 - shared platform execution rule kernel for preflight, approval readiness, and execution failure details
 - shared platform execution action registry for catalog, validation, idempotency fields, and adapter messages
 - platform execution adapter request envelope with idempotency key in approval execution failure results
+- platform execution adapter outcome contract for provider result and retryability
 - search evidence artifact persistence
 - agent skill run persistence and query API
 - multiple native skill migrations across ops / data / service / creative / web / design / accounting
@@ -181,7 +182,7 @@ Need:
 
 ### Phase D: Platform execution closed loop
 
-Status: approval creation, readiness, adapter catalog, preflight, shared execution rules, shared action registry, and adapter request envelope exist; actual execution adapter loop incomplete.
+Status: approval creation, readiness, adapter catalog, preflight, shared execution rules, shared action registry, adapter request envelope, and adapter outcome contract exist; actual execution adapter loop incomplete.
 
 Need:
 
@@ -230,25 +231,25 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-49: platform execution adapter request envelope
+Post 8-50: platform execution adapter outcome contract
 ```
 
 Scope:
 
-- add a service-internal `PlatformExecutionAdapterRequest`
-- generate normalized adapter request args from `PlatformExecutionParams`
-- generate idempotency keys from shared action spec `idempotency_key_fields`
-- write `adapterRequest` into platform execution failure results
+- add a service-internal `PlatformExecutionAdapterOutcome`
+- generate unimplemented-adapter outcome for the current platform execution boundary
+- write `providerResult` and `retryable` into platform execution failure results
+- keep `adapterRequest` inside the outcome path
 - keep existing external API response shapes unchanged
 - keep the boundary that current platform adapters are not implemented and no platform write success is faked
 - avoid frontend changes because this is backend rule-kernel hardening
 
 Reason:
 
-- high product value for high-risk platform execution auditability and adapter readiness
+- high product value for high-risk platform execution result consistency and adapter readiness
 - backend-first
-- makes the approved execution intent auditable before real adapters exist
-- prepares the next platform execution adapter loop to consume a stable request envelope and idempotency key
+- gives future adapters a stable success/failure/degraded result contract
+- prepares the next platform execution adapter loop to return one outcome shape into execution queue, approval, and audit
 
 ## 10. Validation Standard
 

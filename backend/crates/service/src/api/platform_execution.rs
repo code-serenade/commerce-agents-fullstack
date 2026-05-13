@@ -47,6 +47,17 @@ pub(super) struct PlatformExecutionAdapterRequest {
     pub args: Value,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub(super) struct PlatformExecutionAdapterOutcome {
+    pub status: String,
+    pub adapter_status: String,
+    pub message: String,
+    pub adapter_request: Option<PlatformExecutionAdapterRequest>,
+    pub provider_result: Option<Value>,
+    pub retryable: bool,
+}
+
 const PLATFORM_EXECUTION_ACTION_SPECS: &[PlatformExecutionActionSpec] = &[
     PlatformExecutionActionSpec {
         skill_name: "platform_update_price",
@@ -110,6 +121,37 @@ pub(super) fn platform_execution_adapter_request(
             .collect(),
         args,
     })
+}
+
+pub(super) fn platform_execution_adapter_outcome(
+    skill_name: &str,
+    params: &PlatformExecutionParams,
+    adapter_status: &str,
+    message: &str,
+    retryable: bool,
+) -> PlatformExecutionAdapterOutcome {
+    PlatformExecutionAdapterOutcome {
+        status: "failed".to_string(),
+        adapter_status: adapter_status.to_string(),
+        message: message.to_string(),
+        adapter_request: platform_execution_adapter_request(skill_name, params, adapter_status),
+        provider_result: None,
+        retryable,
+    }
+}
+
+pub(super) fn platform_execution_unimplemented_outcome(
+    skill_name: &str,
+    params: &PlatformExecutionParams,
+    message: &str,
+) -> PlatformExecutionAdapterOutcome {
+    platform_execution_adapter_outcome(
+        skill_name,
+        params,
+        "adapter_not_implemented",
+        message,
+        false,
+    )
 }
 
 pub(super) fn platform_execution_params(args: &Value) -> PlatformExecutionParams {
@@ -500,6 +542,34 @@ mod tests {
                 "unsupported_action"
             )
             .is_none()
+        );
+    }
+
+    #[test]
+    fn platform_execution_unimplemented_outcome_is_not_retryable() {
+        let params = PlatformExecutionParams {
+            platform: Some("jd".to_string()),
+            product_id: Some("prod-1".to_string()),
+            quantity: Some(12),
+            ..Default::default()
+        };
+
+        let outcome = platform_execution_unimplemented_outcome(
+            "platform_update_inventory",
+            &params,
+            "Platform execution adapter is not implemented yet for inventory update.",
+        );
+
+        assert_eq!(outcome.status, "failed");
+        assert_eq!(outcome.adapter_status, "adapter_not_implemented");
+        assert!(!outcome.retryable);
+        assert!(outcome.provider_result.is_none());
+        assert_eq!(
+            outcome
+                .adapter_request
+                .as_ref()
+                .map(|request| request.idempotency_key.as_str()),
+            Some("platform_update_inventory:platform=jd|product_id=prod-1|sku_id=null|quantity=12")
         );
     }
 }

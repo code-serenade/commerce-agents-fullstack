@@ -1,5 +1,44 @@
 # 迁移开发记录
 
+## Post 8-50：平台执行 Adapter Outcome 契约
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 50 个补强项：`Post 8-50`。
+
+本次目标：
+
+- 在真实平台 adapter 接入前，先补齐平台执行 adapter outcome 契约。
+- 让审批通过后的平台执行失败结果由共享 outcome 结构生成，而不是继续散落 JSON 拼接。
+- 保持当前真实平台 adapter 未实现的边界，不新增平台写执行，不伪造执行成功。
+
+涉及范围：
+
+- 产品内核：平台执行失败结果现在有统一 outcome 语义，包含 `status`、`adapterStatus`、`message`、`adapterRequest`、`providerResult` 和 `retryable`。
+- 后端 service：`platform_execution.rs` 新增 `PlatformExecutionAdapterOutcome`、`platform_execution_adapter_outcome()` 和 `platform_execution_unimplemented_outcome()`。
+- 后端审批闭环：`approval_audit` 的平台执行失败结果改为从 outcome 写入，当前未实现 adapter 返回 `providerResult=null`、`retryable=false`。
+- Web-server/API：不新增路由，`ToolApprovalResponse.result` 和 `ExecutionQueueResponse.result` 只新增可选诊断字段。
+- 前端：本轮未修改前端，也未新增假执行按钮或假成功状态。
+
+用户可感知变化：
+
+- 用户或后续前端查看平台执行失败详情时，可以区分“平台 provider 原始返回”和“当前是否可重试”的语义。
+- 当前仍会明确显示 `adapter_not_implemented`，不会让用户误以为已经能真实改价、改库存或同步平台商品。
+- 这个切片为后续真实平台 adapter 的成功、失败、降级和重试结果打基础。
+
+当前验证：
+
+- [x] `cargo fmt --all`（在 `backend/` workspace 下运行；现有 nightly-only rustfmt 配置项仅产生警告）
+- [x] `cargo test -p service platform_execution -- --nocapture`
+- [x] `cargo test -p service plan_platform_execution -- --nocapture`
+- [x] `cargo test -p service approval_execution_readiness -- --nocapture`
+- [x] `cargo test -p service platform_execution_preflight -- --nocapture`
+- [x] `cargo check -p service -p web-server`
+- [x] `cargo clippy -p service -p web-server`
+
 ## Post 8-49：平台执行 Adapter 请求信封
 
 状态：done

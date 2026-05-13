@@ -642,6 +642,28 @@
 - 本阶段不调用真实平台写 adapter，不改变 `adapter_not_implemented` 的当前边界。
 - 后续接入真实平台 adapter 时，应直接消费该 request envelope。
 
+## Post 8-50：平台执行 Adapter Outcome 契约
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Service：`api::platform_execution` 新增 `PlatformExecutionAdapterOutcome`。
+- [x] Service：新增通用 `platform_execution_adapter_outcome()`。
+- [x] Service：新增 `platform_execution_unimplemented_outcome()` 承载当前 `adapter_not_implemented` 结果。
+- [x] Service：outcome 包含 `status`、`adapterStatus`、`message`、`adapterRequest`、`providerResult` 和 `retryable`。
+- [x] Service：当前真实 adapter 未实现时 `providerResult=null`、`retryable=false`。
+- [x] Service：`approval_audit` 的平台执行失败结果改为从 outcome 写入。
+- [x] API：外部路由不变，`API_DOCS/app.md` 已补结果字段说明。
+- [x] 前端：本轮不需要改前端，未新增假执行按钮或假成功状态。
+
+当前说明：
+
+- 本阶段解决的是“真实 adapter 接入前缺少统一 outcome 契约”的问题。
+- 本阶段不调用真实平台写 adapter，不改变 `adapter_not_implemented` 的当前边界。
+- 后续接入真实平台 adapter 时，应让 adapter 返回 outcome，再写回 execution queue、tool approval 和 audit。
+
 ## Post 8-17：竞品分析读取 API
 
 状态：done
