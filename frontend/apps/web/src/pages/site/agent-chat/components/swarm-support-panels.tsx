@@ -36,7 +36,7 @@ export function WorkspaceHandoffRail() {
           {t("agentChat.workbench.futureModules")}
         </span>
       </div>
-      <div className="grid gap-2 min-[1500px]:grid-cols-2 min-[1800px]:grid-cols-4">
+      <div className="grid gap-2">
         {WORKSPACE_HANDOFFS.map(([titleKey, detailKey, Icon, path]) => (
           <button
             key={titleKey}
@@ -106,7 +106,7 @@ export function SwarmIdleDetail({
   }) as string[]
 
   return (
-    <div className="p-3 min-[1500px]:p-4">
+    <div className="p-3">
       <div className="min-w-0 overflow-hidden rounded-xl border border-[#d8d8d3] bg-white shadow-sm dark:border-border dark:bg-background">
         <div className="flex items-center justify-between gap-3 border-b border-border bg-white px-5 py-3 dark:bg-background">
           <div className="flex min-w-0 items-center gap-2">
@@ -122,7 +122,7 @@ export function SwarmIdleDetail({
           </div>
           <StatePill state={isStreaming ? "working" : "idle"} />
         </div>
-        <div className="grid min-h-100 grid-rows-[auto_minmax(0,1fr)_auto]">
+        <div className="grid min-h-92 grid-rows-[auto_minmax(0,1fr)_auto]">
           <div className="border-b border-border bg-white px-5 py-3 dark:bg-background">
             <span className="text-xs font-medium text-muted-foreground">
               {t("agentChat.workbench.businessInput")}
@@ -132,14 +132,14 @@ export function SwarmIdleDetail({
             </p>
           </div>
           <IdlePreview title={idleState.title} description={idleState.description} lines={lines} />
-          <div className="grid gap-2 border-t border-border bg-[#f5f5f2] p-3 min-[1500px]:grid-cols-4 dark:bg-card">
+          <div className="grid gap-2 border-t border-border bg-[#f5f5f2] p-3 sm:grid-cols-2 dark:bg-card">
             {WORKSPACE_LANES.map(([labelKey, valueKey]) => (
               <div
                 key={labelKey}
                 className="min-w-0 rounded-md border border-border bg-background px-3 py-2"
               >
                 <p className="text-xs text-muted-foreground">{t(labelKey)}</p>
-                <p className="mt-1 truncate text-xs font-medium min-[1500px]:text-sm">
+                <p className="mt-1 truncate text-xs font-medium">
                   {t(valueKey)}
                 </p>
               </div>
@@ -163,8 +163,8 @@ function IdlePreview({
   const { t } = useTranslation()
 
   return (
-    <div className="min-h-0 bg-white p-3 min-[1500px]:p-5 dark:bg-background">
-      <div className="flex h-full min-h-72 flex-col overflow-hidden rounded-lg border border-border bg-[#fbfbfa] dark:bg-card">
+    <div className="min-h-0 bg-white p-3 dark:bg-background">
+      <div className="flex h-full min-h-64 flex-col overflow-hidden rounded-lg border border-border bg-[#fbfbfa] dark:bg-card">
         <div className="flex items-center justify-between gap-2 border-b border-border bg-[#f7f7f4] px-4 py-2.5 dark:bg-card">
           <div className="flex min-w-0 items-center gap-2">
             <FileText className="size-4 text-muted-foreground" />

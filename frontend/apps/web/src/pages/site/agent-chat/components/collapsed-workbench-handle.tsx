@@ -21,11 +21,11 @@ export function CollapsedWorkbenchHandle({
   const label = t("agentChat.workbench.expand")
 
   return (
-    <div className="flex min-h-0 min-w-0 items-start justify-end min-[1180px]:justify-center">
+    <div className="pointer-events-none absolute right-4 top-4 z-20 flex min-h-0 min-w-0 items-start justify-end min-[1180px]:static min-[1180px]:justify-center">
       <button
         type="button"
         onClick={onExpand}
-        className="mr-2 flex min-w-12 items-center gap-2 rounded-lg border border-border bg-[#f6f6f3]/95 px-2.5 py-2 text-foreground shadow-sm transition-colors hover:bg-[#eeeeeb] dark:bg-card/95 dark:hover:bg-muted min-[1180px]:mr-0 min-[1180px]:mt-2"
+        className="pointer-events-auto mr-2 flex min-w-12 items-center gap-2 rounded-full border border-border bg-background/95 px-2.5 py-2 text-foreground shadow-lg shadow-black/10 backdrop-blur transition-colors hover:bg-muted dark:bg-card/95 min-[1180px]:mr-0 min-[1180px]:mt-2 min-[1180px]:rounded-lg"
         title={label}
         aria-label={label}
       >

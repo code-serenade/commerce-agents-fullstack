@@ -900,6 +900,12 @@ const messages = {
         empty: "暂无可用商品",
         noneSelected: "未指定商品",
         choose: "选择预设商品",
+        collapse: "收起商品",
+        noneHint: "本轮不会读取任何已保存商品资料，按普通电商问题回答。",
+        manualHint: "只有手动勾选后，后端才会读取对应商品资料。",
+        selectedHint: "本轮将只读取已勾选商品的后端资料。",
+        selectedCount: "已指定 {{count}} 个商品",
+        moreCount: "另有 {{count}} 个",
       },
       playbooks: {
         loading: "正在读取场景",

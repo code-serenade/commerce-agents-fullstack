@@ -9,6 +9,7 @@ import type {
   AgentRuntimeOptions,
 } from "../domain/agent-runtime-options"
 import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
+import { AgentChatProductContextBar } from "./agent-chat-product-context-bar"
 import { AgentChatSettingsPanel } from "./agent-chat-settings-panel"
 
 export interface AgentChatComposerProps {
@@ -99,10 +100,15 @@ export function AgentChatComposer({
         onMouseDown={focusComposer}
         onKeyDown={handleKeyDown}
       >
-        <AgentChatSettingsPanel
+        <AgentChatProductContextBar
           availableProducts={availableProducts}
-          isLoadingPlaybooks={isLoadingPlaybooks}
+          disabled={isStreaming}
           isLoadingProducts={isLoadingProducts}
+          onToggleProductContext={onToggleProductContext}
+          selectedProducts={selectedProducts}
+        />
+        <AgentChatSettingsPanel
+          isLoadingPlaybooks={isLoadingPlaybooks}
           isLoadingRuntimeOptions={isLoadingRuntimeOptions}
           isOpen={settingsOpen}
           isStreaming={isStreaming}
@@ -116,12 +122,10 @@ export function AgentChatComposer({
           }}
           onStrategyChange={onStrategyChange}
           onToggleOpen={() => setSettingsOpen((open) => !open)}
-          onToggleProductContext={onToggleProductContext}
           onToggleRole={onToggleRuntimeRole}
           playbooks={playbooks}
           runtimeOptions={runtimeOptions}
           runtimeSelection={runtimeSelection}
-          selectedProducts={selectedProducts}
           strategyId={strategyId}
         />
         <div className="flex min-w-0 items-end justify-between gap-2 rounded-3xl bg-background p-2 shadow-sm">

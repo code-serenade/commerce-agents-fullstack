@@ -64,6 +64,7 @@ export interface SidebarShellProps {
   defaultSidebarOpen?: boolean
   sections: SidebarShellSection[]
   header?: ReactNode
+  showSidebarRail?: boolean
   mobileNavigation?: {
     label?: string
     items: MobileBottomNavItem[]
@@ -94,6 +95,7 @@ export function SidebarShell({
   defaultSidebarOpen = true,
   sections,
   header,
+  showSidebarRail = true,
   mobileNavigation,
   footerAccount,
   children,
@@ -174,7 +176,7 @@ export function SidebarShell({
                 </>
               ) : null}
 
-              <SidebarRail />
+              {showSidebarRail ? <SidebarRail /> : null}
             </Sidebar>
           </div>
 

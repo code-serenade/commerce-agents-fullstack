@@ -3,7 +3,6 @@ import { Fragment, useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import type { AgentRuntimeEvent } from "@/api"
 import type { AgentChatMessage } from "../types"
-import { InlineProcessStatusNode } from "./inline-process-status-node"
 import { InlineSwarmTaskCard } from "./inline-swarm-task-card"
 import { isChatOnlyRuntime } from "../view-model/thread-inline-view-model"
 import {
@@ -64,12 +63,6 @@ export function AgentChatThread({
                   runtimeEvents={runtimeEvents}
                   task={latestUserTask}
                 />
-                {!processPanelOpen ? (
-                  <InlineProcessStatusNode
-                    isStreaming={inlineIsStreaming}
-                    runtimeEvents={runtimeEvents}
-                  />
-                ) : null}
               </>
             ) : null}
           </Fragment>
@@ -112,7 +105,7 @@ function ThreadMessage({ message }: { message: AgentChatMessage }) {
             {t("agentChat.streaming")}
           </p>
         )}
-        {message.status === "streaming" ? (
+        {message.status === "streaming" && !message.content ? (
           <AgentProgressCard content={message.content} />
         ) : null}
         {message.status === "error" ? (

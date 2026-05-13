@@ -908,6 +908,12 @@ const messages = {
         empty: "No active products",
         noneSelected: "No product selected",
         choose: "Choose saved product",
+        collapse: "Collapse products",
+        noneHint: "This turn will not read saved product data and will answer as a general ecommerce question.",
+        manualHint: "Backend product data is loaded only after you manually select a saved product.",
+        selectedHint: "This turn will read only the selected product's backend data.",
+        selectedCount: "{{count}} product selected",
+        moreCount: "{{count}} more",
       },
       playbooks: {
         loading: "Loading scenarios",

@@ -43,18 +43,18 @@ export function AgentDock({
             <article
               key={agent.nodeId}
               title={`${formatAgentNumber(index)} ${agent.name} ${getDockStateLabel(state, t)}`}
-              className={`flex min-w-48 shrink-0 items-center gap-3 rounded-xl border px-4 py-3 transition-colors min-[1500px]:min-w-52 ${
+              className={`flex min-w-40 shrink-0 items-center gap-2 rounded-xl border px-3 py-2.5 transition-colors ${
                 isActive
                   ? "border-foreground bg-background shadow-sm"
                   : "border-transparent bg-[#eeeeeb] text-muted-foreground"
               }`}
             >
               <div
-                className={`flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-background ${
+                className={`flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-background ${
                   isActive ? "text-foreground" : "text-muted-foreground"
                 }`}
               >
-                <Icon className="size-5" />
+                <Icon className="size-4" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex min-w-0 items-center gap-1.5">

@@ -298,6 +298,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
         brandTitle={t("agentChat.shell.brandTitle")}
         brandDescription={t("agentChat.shell.brandDescription")}
         sections={sections}
+        showSidebarRail={false}
         header={
           <TopBar
             title={activeConversation?.title ?? t("agentChat.shell.topbarTitle")}

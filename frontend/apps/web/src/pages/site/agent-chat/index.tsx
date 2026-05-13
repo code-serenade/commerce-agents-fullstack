@@ -19,9 +19,9 @@ export default function AgentChatPage() {
   const layoutClassName = [
     "relative grid min-h-0 w-full flex-1 grid-cols-1 gap-3 p-2 sm:p-3",
     shouldShowProcessPanel
-      ? "overflow-hidden min-[1180px]:grid-cols-[minmax(0,1fr)_minmax(24rem,0.52fr)] min-[1440px]:grid-cols-[minmax(0,1.05fr)_minmax(30rem,0.65fr)] min-[1680px]:grid-cols-[minmax(0,1.18fr)_minmax(34rem,0.72fr)]"
+      ? "overflow-hidden min-[1180px]:grid-cols-[minmax(0,1fr)_minmax(22rem,0.42fr)] min-[1440px]:grid-cols-[minmax(0,1.1fr)_minmax(25rem,0.46fr)] min-[1680px]:grid-cols-[minmax(0,1.22fr)_minmax(28rem,0.5fr)]"
       : canExpandProcessPanel
-        ? "overflow-hidden min-[1180px]:grid-cols-[minmax(0,1fr)_3.75rem]"
+        ? "overflow-hidden min-[1180px]:grid-cols-[minmax(0,1fr)_3.25rem]"
       : "overflow-hidden",
   ].join(" ")
 
