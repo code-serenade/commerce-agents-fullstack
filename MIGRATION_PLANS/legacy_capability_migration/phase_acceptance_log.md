@@ -1,5 +1,27 @@
 # 阶段验收记录
 
+## Post 8-52：演示可用前端对齐
+
+状态：done
+
+验收项：
+
+- [x] 问答页默认展示右侧虚拟员工工作区。
+- [x] 右侧虚拟员工工作区可折叠并可重新展开。
+- [x] 审批页展示后端执行结果，不把 `adapter_not_implemented` 伪装成成功。
+- [x] 平台连接页展示 adapter 必填参数、幂等字段和可执行边界。
+- [x] 本轮只修改 `apps/web` 页面装配和语言文案，不新增第二套 UI 体系。
+- [x] `pnpm -C frontend/apps/web rules`
+- [x] `pnpm -C frontend/apps/web lint`
+- [x] `pnpm -C frontend/apps/web test`
+- [x] `pnpm -C frontend/apps/web build`
+
+当前说明：
+
+- 本轮是为了今天公司汇报做的前端可用性对齐。
+- 已完成后端能力在前端更清楚地展示：问答工作台、平台执行 readiness、adapter request/outcome、审批执行结果。
+- 后端未完成的真实平台 adapter 仍明确显示为不可执行或未接入，不做假成功。
+
 ## 总门禁
 
 每个阶段必须先通过后端门禁，再进入前端适配。

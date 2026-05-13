@@ -12,9 +12,9 @@ export default function AgentChatPage() {
   const chat = useAgentChatContext()
   const navigate = useNavigate()
   const [isProcessPanelOpen, setIsProcessPanelOpen] = useState(true)
-  const hasProcessRuntime = chat.runtimeEvents.length > 0
   const isChatOnly = isChatOnlyRuntime(chat.runtimeEvents)
-  const shouldShowProcessPanel = isProcessPanelOpen && hasProcessRuntime && !isChatOnly
+  const shouldShowProcessPanel = isProcessPanelOpen && !isChatOnly
+  const canExpandProcessPanel = !isProcessPanelOpen && !isChatOnly
 
   const layoutClassName = [
     "relative grid min-h-0 w-full flex-1 grid-cols-1 gap-3 p-2 sm:p-3",
@@ -83,7 +83,7 @@ export default function AgentChatPage() {
               runtimeEvents={chat.runtimeEvents}
             />
           </div>
-        ) : hasProcessRuntime && !isChatOnly ? (
+        ) : canExpandProcessPanel ? (
           <CollapsedWorkbenchHandle
             isStreaming={chat.isStreaming}
             onExpand={() => setIsProcessPanelOpen(true)}

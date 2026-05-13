@@ -1,5 +1,48 @@
 # 迁移开发记录
 
+## Post 8-52：演示可用前端对齐
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 52 个补强项：`Post 8-52`。
+
+本次目标：
+
+- 今天需要向公司汇报产品，优先让前端围绕后端已经做好的能力变得可用、可演示。
+- 不新增后端能力，不新增第二套 UI 框架，不伪造未接入平台 adapter 的成功状态。
+- 继续基于同事给的新产品框架，在 `apps/web` 页面装配层消费真实后端契约。
+
+涉及范围：
+
+- 产品体验：问答页默认呈现“主问答区 + 右侧虚拟员工工作区”，避免第一屏退化成普通聊天框。
+- 前端页面：审批页新增后端执行结果列，展示 `executionStatus`、`adapterStatus`、`retryable`、`providerResult` 和幂等键。
+- 前端页面：平台连接页展示执行 adapter 的必填参数、幂等字段和可执行边界。
+- 语言文案：平台和审批页面文案对齐真实后端能力，说明真实平台写 adapter 尚未接入时会显示不可执行。
+- 架构边界：只改 `frontend/apps/web` 页面装配和 lang，不改共享组件包，不新建第二套组件体系。
+
+用户可感知变化：
+
+- 用户进入电商多智能体问答页时，会直接看到右侧虚拟员工工作区。
+- 用户可以折叠/展开右侧工作区，问答主区域和过程区域更适合今天演示。
+- 平台连接页能讲清楚当前后端已有 adapter catalog、readiness、必填参数和幂等字段。
+- 审批页能讲清楚审批后的后端执行 outcome；真实平台 adapter 未接入时显示真实失败边界，不显示假成功。
+
+当前验证：
+
+- [x] `pnpm -C frontend/apps/web rules`
+- [x] `pnpm -C frontend/apps/web lint`
+- [x] `pnpm -C frontend/apps/web test`
+- [x] `pnpm -C frontend/apps/web build`
+
+后续缺口：
+
+- 真实平台写 adapter 仍待后续接入 provider registry / adapter trait。
+- 左侧历史/导航折叠和更完整的 Kimi Agent 集群体验仍可继续优化。
+- 仍需启动产品做浏览器登录、问答、平台连接和审批页面 smoke。
+
 ## Post 8-51：平台执行 Adapter 调度边界
 
 状态：done

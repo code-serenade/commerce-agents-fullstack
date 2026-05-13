@@ -4,6 +4,7 @@ import { MetricCards } from "@workspace/app-kit"
 import { Button, NativeSelect } from "@workspace/ui-components"
 import type { MetricCardsItem } from "@workspace/app-kit"
 import type { AuditLogResponse, ToolApprovalResponse } from "@/api"
+import { ApprovalExecutionOutcome } from "./approval-execution-outcome"
 import {
   CommercePanel,
   CommerceTable,
@@ -116,6 +117,11 @@ function approvalColumns(
           <ApprovalReadiness result={item.result} />
         </div>
       ),
+    },
+    {
+      key: "execution",
+      header: t("commerce.approvals.columns.execution"),
+      render: (item) => <ApprovalExecutionOutcome result={item.result} />,
     },
     {
       key: "actions",

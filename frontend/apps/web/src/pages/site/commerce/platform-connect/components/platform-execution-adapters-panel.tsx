@@ -134,8 +134,20 @@ function executionAdapterColumns(
       key: "params",
       header: t("commerce.fields.params"),
       render: (item) => (
-        <div className="max-w-56">
-          <MutedText>{item.requiredParams.join(", ")}</MutedText>
+        <div className="max-w-64 space-y-1">
+          <MutedText>
+            {t("commerce.platform.labels.requiredParams")}:{" "}
+            {item.requiredParams.join(", ") || "-"}
+          </MutedText>
+          <MutedText>
+            {t("commerce.platform.labels.idempotencyFields")}:{" "}
+            {item.idempotencyKeyFields.join(", ") || "-"}
+          </MutedText>
+          <MutedText>
+            {item.canExecuteNow
+              ? t("commerce.platform.labels.canExecuteNow")
+              : t("commerce.platform.labels.dispatchPending")}
+          </MutedText>
         </div>
       ),
     },

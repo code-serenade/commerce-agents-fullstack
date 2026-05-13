@@ -230,16 +230,16 @@ const messages = {
       platform: {
         eyebrow: "Platform Connect",
         title: "Platform connect",
-        description: "The platform page maps to backend platform, channel, metric, sync status, and business summary capabilities.",
+        description: "The platform page maps to backend platform, channel, metric, sync status, adapter catalog, and platform execution preflight capabilities.",
         boundaryTitle: "Connection boundary",
-        boundaryDescription: "This phase stores connection records and local metrics. It does not validate real platform credentials or start external sync jobs.",
+        boundaryDescription: "The page now exposes backend platform execution readiness, adapter requests, and idempotency fields. When real platform write adapters are not connected, it clearly shows the action as not executable.",
       },
       approvals: {
         eyebrow: "Approvals",
         title: "Approvals and audit",
-        description: "The approval page maps to tool approvals and audit logs for manual approve, reject, and business traceability.",
+        description: "The approval page maps to tool approvals, execution queue failure results, and audit logs for manual approve, reject, and business traceability.",
         boundaryTitle: "Approval boundary",
-        boundaryDescription: "Approval only updates approval records. It does not restore or replay tool calls inside Agent runtime.",
+        boundaryDescription: "Platform write approvals enter the backend execution queue and adapter outcome path. If a real platform adapter is not connected, the backend returns adapter_not_implemented.",
       },
       operations: {
         eyebrow: "Operations",
@@ -561,6 +561,10 @@ const messages = {
       labels: {
         connected: "Connected, approval still required",
         notExecutable: "Not executable now",
+        requiredParams: "Required params",
+        idempotencyFields: "Idempotency fields",
+        canExecuteNow: "Backend says executable now",
+        dispatchPending: "Approval required; no fake success when real adapter is missing",
       },
       empty: {
         supportedPlatforms: "No supported platform config",
@@ -608,6 +612,15 @@ const messages = {
       columns: {
         skill: "Capability/tool",
         risk: "Risk",
+        execution: "Backend execution result",
+      },
+      execution: {
+        retryable: "Retryable",
+        providerResult: "Provider result",
+        yes: "Yes",
+        no: "No",
+        nullValue: "Null result",
+        objectValue: "Structured result",
       },
       dialogs: {
         approval: "Create tool approval",

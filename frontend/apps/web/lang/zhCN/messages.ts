@@ -230,16 +230,16 @@ const messages = {
       platform: {
         eyebrow: "Platform Connect",
         title: "平台连接",
-        description: "平台连接页适配后端平台、触达渠道、指标、同步状态和经营汇总能力。",
+        description: "平台连接页适配后端平台、触达渠道、指标、同步状态、adapter 目录和平台执行预检能力。",
         boundaryTitle: "连接边界",
-        boundaryDescription: "当前阶段保存连接记录和本地指标，不直接校验真实平台凭证或启动外部同步任务。",
+        boundaryDescription: "当前已展示后端平台执行 readiness、adapter request 和幂等字段；真实平台写 adapter 尚未接入时会明确显示不可执行。",
       },
       approvals: {
         eyebrow: "Approvals",
         title: "审批与审计",
-        description: "审批页适配工具审批和审计日志能力，负责人工通过、拒绝和业务动作追溯。",
+        description: "审批页适配工具审批、执行队列失败结果和审计日志能力，负责人工通过、拒绝和业务动作追溯。",
         boundaryTitle: "审批边界",
-        boundaryDescription: "通过审批只更新审批记录，不会恢复或重放 Agent runtime 内的工具调用。",
+        boundaryDescription: "平台写类审批通过后会进入后端执行队列和 adapter outcome；真实平台 adapter 尚未接入时会明确返回 adapter_not_implemented。",
       },
       operations: {
         eyebrow: "Operations",
@@ -560,6 +560,10 @@ const messages = {
       labels: {
         connected: "已连接，仍需审批",
         notExecutable: "当前不可执行",
+        requiredParams: "必填参数",
+        idempotencyFields: "幂等字段",
+        canExecuteNow: "后端判断当前可执行",
+        dispatchPending: "需审批，真实 adapter 未接入时不会执行成功",
       },
       empty: {
         supportedPlatforms: "没有支持的平台配置",
@@ -607,6 +611,15 @@ const messages = {
       columns: {
         skill: "能力/工具",
         risk: "风险",
+        execution: "后端执行结果",
+      },
+      execution: {
+        retryable: "可重试",
+        providerResult: "平台返回",
+        yes: "是",
+        no: "否",
+        nullValue: "空结果",
+        objectValue: "结构化结果",
       },
       dialogs: {
         approval: "新建工具审批",
