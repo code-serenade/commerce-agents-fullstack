@@ -18,6 +18,19 @@ export function resetAgentChatProductContext(state: AgentChatProductContextState
   state.setIsLoadingProducts(false)
 }
 
+export function restoreAgentChatProductContext(
+  state: Pick<AgentChatProductContextState, "setSelectedProducts">,
+  availableProducts: AgentChatProductContextSelection[],
+  productIds: string[]
+) {
+  const uniqueProductIds = Array.from(new Set(productIds))
+  state.setSelectedProducts(
+    availableProducts
+      .filter((product) => uniqueProductIds.includes(product.id))
+      .slice(0, 5)
+  )
+}
+
 export function loadAgentChatProductContext(
   state: AgentChatProductContextState,
   isCancelled: () => boolean

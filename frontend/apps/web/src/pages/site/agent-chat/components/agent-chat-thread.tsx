@@ -16,29 +16,27 @@ import type { AgentChatStrategy } from "../domain/agent-chat-strategy"
 export interface AgentChatThreadProps {
   isStreaming: boolean
   messages: AgentChatMessage[]
+  onOpenProcessPanel: () => void
   processPanelOpen: boolean
   runtimeEvents: AgentRuntimeEvent[]
   selectedStrategy: AgentChatStrategy
+  showProcessPanelAction: boolean
 }
 
 export function AgentChatThread({
   isStreaming,
   messages,
+  onOpenProcessPanel,
   processPanelOpen,
   runtimeEvents,
   selectedStrategy,
+  showProcessPanelAction,
 }: AgentChatThreadProps) {
   const endRef = useRef<HTMLDivElement>(null)
-  const latestUserTask = messages
-    .filter((message) => message.role === "user")
-    .at(-1)?.content
-  const latestUserIndex = findLatestUserMessageIndex(messages)
   const hasStreamingMessage = messages.some(
     (message) => message.status === "streaming"
   )
   const inlineIsStreaming = isStreaming || hasStreamingMessage
-  const shouldShowSwarmInline =
-    latestUserTask && runtimeEvents.length > 0 && !isChatOnlyRuntime(runtimeEvents)
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
@@ -47,24 +45,27 @@ export function AgentChatThread({
   return (
     <section className="min-h-0 flex-1 overflow-y-auto bg-background px-4 py-5 sm:px-6">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-        <div className="flex justify-center">
-          <StrategyStatusPill strategy={selectedStrategy} />
-        </div>
+        {messages.length <= 1 ? (
+          <div className="flex justify-center">
+            <StrategyStatusPill strategy={selectedStrategy} />
+          </div>
+        ) : null}
         {messages.map((message, index) => (
           <Fragment key={message.id}>
+            {shouldRenderInlineProcess(message) ? (
+              <InlineSwarmTaskCard
+                key={`process-${message.id}`}
+                isStreaming={message.status === "streaming" && inlineIsStreaming}
+                onOpenProcessPanel={onOpenProcessPanel}
+                processPanelOpen={processPanelOpen}
+                runtimeEvents={message.runtimeEvents ?? runtimeEvents}
+                showProcessPanelAction={showProcessPanelAction}
+                task={findPreviousUserTask(messages, index)}
+              />
+            ) : null}
             <ThreadMessage
               message={message}
             />
-            {shouldShowSwarmInline && index === latestUserIndex ? (
-              <>
-                <InlineSwarmTaskCard
-                  key={`process-${message.id}`}
-                  isStreaming={inlineIsStreaming}
-                  runtimeEvents={runtimeEvents}
-                  task={latestUserTask}
-                />
-              </>
-            ) : null}
           </Fragment>
         ))}
         <div ref={endRef} />
@@ -126,9 +127,16 @@ function ThreadMessage({ message }: { message: AgentChatMessage }) {
   )
 }
 
-function findLatestUserMessageIndex(messages: AgentChatMessage[]) {
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    if (messages[index]?.role === "user") return index
+function shouldRenderInlineProcess(message: AgentChatMessage) {
+  if (message.role !== "assistant") return false
+  const runtimeEvents = message.runtimeEvents ?? []
+  return runtimeEvents.length > 0 && !isChatOnlyRuntime(runtimeEvents)
+}
+
+function findPreviousUserTask(messages: AgentChatMessage[], fromIndex: number) {
+  for (let index = fromIndex - 1; index >= 0; index -= 1) {
+    const message = messages[index]
+    if (message?.role === "user") return message.content
   }
-  return -1
+  return ""
 }

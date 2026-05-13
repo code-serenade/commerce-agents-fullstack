@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react"
+import { ChevronRight } from "lucide-react"
 import {
   AvatarDropdown,
   AvatarDropdownItem,
@@ -47,6 +48,7 @@ export interface SidebarShellNavEntry {
   active?: boolean
   icon?: ReactNode
   onSelect?: () => void
+  action?: ReactNode
   subItems?: SidebarShellSubEntry[]
 }
 
@@ -54,6 +56,12 @@ export interface SidebarShellSection {
   key?: string
   label: ReactNode
   items: SidebarShellNavEntry[]
+  collapsible?: boolean
+  defaultOpen?: boolean
+  maxContentHeight?: "sm" | "md" | "lg"
+  open?: boolean
+  toggleLabel?: string
+  onOpenChange?: (open: boolean) => void
 }
 
 export interface SidebarShellProps {
@@ -135,16 +143,10 @@ export function SidebarShell({
 
               <SidebarContent>
                 {sections.map((section) => (
-                  <SidebarGroup key={section.key ?? String(section.label)}>
-                    <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
-                    <SidebarGroupContent>
-                      <SidebarMenu>
-                        {section.items.map((item) => (
-                          <SidebarNavRow key={item.key ?? item.href ?? String(item.label)} item={item} />
-                        ))}
-                      </SidebarMenu>
-                    </SidebarGroupContent>
-                  </SidebarGroup>
+                  <SidebarSectionGroup
+                    key={section.key ?? String(section.label)}
+                    section={section}
+                  />
                 ))}
               </SidebarContent>
 
@@ -203,6 +205,81 @@ export function SidebarShell({
   )
 }
 
+function SidebarSectionGroup({ section }: { section: SidebarShellSection }) {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(
+    section.defaultOpen ?? true
+  )
+  const open = section.collapsible
+    ? (section.open ?? uncontrolledOpen)
+    : true
+
+  const setOpen = (nextOpen: boolean) => {
+    if (section.open === undefined) {
+      setUncontrolledOpen(nextOpen)
+    }
+    section.onOpenChange?.(nextOpen)
+  }
+
+  return (
+    <SidebarGroup>
+      {section.collapsible ? (
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-label={section.toggleLabel}
+          className="flex h-8 w-full shrink-0 items-center gap-2 rounded-md px-2 text-xs font-medium text-sidebar-foreground/70 ring-sidebar-ring transition-colors outline-hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 group-data-[collapsible=icon]:hidden"
+          onClick={() => setOpen(!open)}
+        >
+          <span className="min-w-0 flex-1 truncate text-left">
+            {section.label}
+          </span>
+          <ChevronRight
+            className={[
+              "size-3.5 shrink-0 transition-transform",
+              open ? "rotate-90" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            aria-hidden="true"
+          />
+        </button>
+      ) : (
+        <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
+      )}
+      {open ? (
+        <SidebarGroupContent>
+          <div className={getSectionContentClassName(section.maxContentHeight)}>
+            <SidebarMenu>
+              {section.items.map((item) => (
+                <SidebarNavRow
+                  key={item.key ?? item.href ?? String(item.label)}
+                  item={item}
+                />
+              ))}
+            </SidebarMenu>
+          </div>
+        </SidebarGroupContent>
+      ) : null}
+    </SidebarGroup>
+  )
+}
+
+function getSectionContentClassName(
+  maxContentHeight: SidebarShellSection["maxContentHeight"]
+) {
+  const classNames = ["min-w-0"]
+
+  if (maxContentHeight === "sm") {
+    classNames.push("max-h-56 overflow-y-auto pr-1")
+  } else if (maxContentHeight === "md") {
+    classNames.push("max-h-72 overflow-y-auto pr-1")
+  } else if (maxContentHeight === "lg") {
+    classNames.push("max-h-80 overflow-y-auto pr-1")
+  }
+
+  return classNames.join(" ")
+}
+
 function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
   const { state } = useSidebar()
   const hasSubItems = Boolean(item.subItems?.length)
@@ -210,17 +287,38 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
   if (!hasSubItems) {
     return (
       <SidebarMenuItem>
-        <SidebarMenuButton
-          active={item.active}
-          variant="primary"
-          tooltip={typeof item.label === "string" ? item.label : undefined}
-          onClick={item.onSelect}
-        >
-          {item.icon}
-          <span className="truncate group-data-[collapsible=icon]:hidden">
-            {item.label}
-          </span>
-        </SidebarMenuButton>
+        {item.action ? (
+          <div className="group/item flex min-w-0 items-center gap-1">
+            <div className="min-w-0 flex-1">
+              <SidebarMenuButton
+                active={item.active}
+                variant="primary"
+                tooltip={typeof item.label === "string" ? item.label : undefined}
+                onClick={item.onSelect}
+              >
+                {item.icon}
+                <span className="truncate group-data-[collapsible=icon]:hidden">
+                  {item.label}
+                </span>
+              </SidebarMenuButton>
+            </div>
+            <div className="shrink-0 opacity-0 transition-opacity group-hover/item:opacity-100 focus-within:opacity-100 group-data-[collapsible=icon]:hidden">
+              {item.action}
+            </div>
+          </div>
+        ) : (
+          <SidebarMenuButton
+            active={item.active}
+            variant="primary"
+            tooltip={typeof item.label === "string" ? item.label : undefined}
+            onClick={item.onSelect}
+          >
+            {item.icon}
+            <span className="truncate group-data-[collapsible=icon]:hidden">
+              {item.label}
+            </span>
+          </SidebarMenuButton>
+        )}
       </SidebarMenuItem>
     )
   }

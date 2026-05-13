@@ -1,45 +1,22 @@
-import { Bot, LockKeyhole, Loader2, Plus, Send, Square } from "lucide-react"
-import { type KeyboardEvent, type MouseEvent, useRef, useState } from "react"
+import {
+  type ChangeEvent,
+  type KeyboardEvent,
+  type MouseEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react"
 import { useTranslation } from "react-i18next"
-import { Button } from "@workspace/ui-components/stable/button"
-import type { AgentChatProductContextSelection } from "../domain/agent-chat-context-selection"
-import type { AgentChatPlaybookSelection } from "../domain/agent-chat-playbook"
-import type {
-  AgentChatRuntimeSelection,
-  AgentRuntimeOptions,
-} from "../domain/agent-runtime-options"
-import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
-import { AgentChatProductContextBar } from "./agent-chat-product-context-bar"
-import { AgentChatSettingsPanel } from "./agent-chat-settings-panel"
-
-export interface AgentChatComposerProps {
-  availableProducts: AgentChatProductContextSelection[]
-  canSend: boolean
-  input: string
-  isLoggedIn: boolean
-  isLoadingPlaybooks: boolean
-  isLoadingProducts: boolean
-  isLoadingRuntimeOptions: boolean
-  isStreaming: boolean
-  onInputChange: (value: string) => void
-  onRuntimeCollaborationModeChange: (value: string) => void
-  onRuntimeLearningLevelChange: (value: string) => void
-  onRuntimeModelChange: (value: string) => void
-  onRuntimePrimaryRoleChange: (value: string) => void
-  onToggleRuntimeRole: (value: string) => void
-  onSelectPlaybook: (playbook: AgentChatPlaybookSelection) => void
-  onSend: () => void
-  onStop: () => void
-  onStrategyChange: (strategyId: AgentChatStrategyId) => void
-  onToggleProductContext: (product: AgentChatProductContextSelection) => void
-  selectedProducts: AgentChatProductContextSelection[]
-  playbooks: AgentChatPlaybookSelection[]
-  runtimeOptions: AgentRuntimeOptions | null
-  runtimeSelection: AgentChatRuntimeSelection
-  strategyId: AgentChatStrategyId
-}
+import type { AgentChatComposerProps } from "./agent-chat-composer-types"
+import { AgentChatAttachmentStrip } from "./agent-chat-attachment-strip"
+import { AgentChatComposerPanels } from "./agent-chat-composer-panels"
+import {
+  AgentChatComposerSendButton,
+  AgentChatComposerToolbar,
+} from "./agent-chat-composer-toolbar"
 
 export function AgentChatComposer({
+  attachments,
   availableProducts,
   canSend,
   input,
@@ -58,7 +35,9 @@ export function AgentChatComposer({
   onSend,
   onStop,
   onStrategyChange,
+  onClearProductContext,
   onToggleProductContext,
+  onUploadAttachments,
   selectedProducts,
   playbooks,
   runtimeOptions,
@@ -66,15 +45,49 @@ export function AgentChatComposer({
   strategyId,
 }: AgentChatComposerProps) {
   const { t } = useTranslation()
+  const composerRootRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const [productContextOpen, setProductContextOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
-  const appendComposerText = (text: string) => {
-    onInputChange(input.trim() ? `${input.trim()}\n${text}` : text)
-    queueMicrotask(() => textareaRef.current?.focus())
+  useEffect(() => {
+    if (!productContextOpen && !settingsOpen) return
+
+    const closePanelsOnOutsideEvent = (event: Event) => {
+      const target = event.target
+      if (!(target instanceof Node)) return
+      if (composerRootRef.current?.contains(target)) return
+      setProductContextOpen(false)
+      setSettingsOpen(false)
+    }
+
+    document.addEventListener("pointerdown", closePanelsOnOutsideEvent, true)
+    document.addEventListener("click", closePanelsOnOutsideEvent, true)
+    return () => {
+      document.removeEventListener(
+        "pointerdown",
+        closePanelsOnOutsideEvent,
+        true
+      )
+      document.removeEventListener("click", closePanelsOnOutsideEvent, true)
+    }
+  }, [productContextOpen, settingsOpen])
+
+  useEffect(() => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+    textarea.style.height = "auto"
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 180)}px`
+  }, [input])
+
+  const sendAndClosePanels = () => {
+    setProductContextOpen(false)
+    setSettingsOpen(false)
+    onSend()
   }
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (
       event.key !== "Enter" ||
       event.shiftKey ||
@@ -82,82 +95,72 @@ export function AgentChatComposer({
     )
       return
     event.preventDefault()
-    if (canSend) onSend()
+    if (canSend) sendAndClosePanels()
   }
 
   const focusComposer = (event: MouseEvent<HTMLDivElement>) => {
     if (isStreaming) return
     const target = event.target
     if (!(target instanceof HTMLElement)) return
-    if (target.closest("button, textarea")) return
+    if (target.closest("button, select, textarea, [data-composer-interactive='true']"))
+      return
     textareaRef.current?.focus()
   }
 
+  const handleAttachmentChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? [])
+    event.target.value = ""
+    if (!files.length) return
+    onUploadAttachments(files)
+  }
+
   return (
-    <footer className="relative z-30 shrink-0 bg-background/95 p-3 sm:px-5">
+    <footer className="relative z-30 shrink-0 bg-linear-to-t from-background via-background/95 to-background/70 px-3 pb-3 pt-2 sm:px-5">
       <div
-        className="mx-auto flex w-full max-w-3xl flex-col gap-2 rounded-2xl border border-border bg-[#f1f1ef] p-2 shadow-xl shadow-black/10 dark:bg-card sm:p-3"
+        ref={composerRootRef}
+        className="mx-auto flex w-full max-w-4xl flex-col gap-2 rounded-xl border border-border bg-background p-1 shadow-lg shadow-black/10 dark:bg-card"
         onMouseDown={focusComposer}
-        onKeyDown={handleKeyDown}
       >
-        <AgentChatProductContextBar
-          availableProducts={availableProducts}
-          disabled={isStreaming}
-          isLoadingProducts={isLoadingProducts}
-          onToggleProductContext={onToggleProductContext}
-          selectedProducts={selectedProducts}
-        />
-        <AgentChatSettingsPanel
-          isLoadingPlaybooks={isLoadingPlaybooks}
-          isLoadingRuntimeOptions={isLoadingRuntimeOptions}
-          isOpen={settingsOpen}
-          isStreaming={isStreaming}
-          onCollaborationModeChange={onRuntimeCollaborationModeChange}
-          onLearningLevelChange={onRuntimeLearningLevelChange}
-          onModelChange={onRuntimeModelChange}
-          onPrimaryRoleChange={onRuntimePrimaryRoleChange}
-          onSelectPlaybook={(playbook) => {
-            onSelectPlaybook(playbook)
-            queueMicrotask(() => textareaRef.current?.focus())
-          }}
-          onStrategyChange={onStrategyChange}
-          onToggleOpen={() => setSettingsOpen((open) => !open)}
-          onToggleRole={onToggleRuntimeRole}
-          playbooks={playbooks}
-          runtimeOptions={runtimeOptions}
-          runtimeSelection={runtimeSelection}
-          strategyId={strategyId}
-        />
-        <div className="flex min-w-0 items-end justify-between gap-2 rounded-3xl bg-background p-2 shadow-sm">
-          <div className="flex min-w-0 flex-1 items-end gap-2 overflow-hidden">
-            <button
-              type="button"
-              className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:text-foreground"
-              onClick={() => appendComposerText(t("agentChat.composer.attachPrompt"))}
-              title={t("agentChat.composer.attachTitle")}
-            >
-              <Plus className="size-5" />
-            </button>
-            <div className="flex min-w-0 flex-1 flex-col gap-1 rounded-2xl p-1">
-              <div className="flex min-w-0 items-center gap-2">
-                <button
-                  type="button"
-                  className="flex max-w-48 min-w-0 shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
-                  title={t("agentChat.composer.agentTitle")}
-                >
-                  <Bot className="size-4 shrink-0 text-blue-500" />
-                  <span className="truncate">{t("agentChat.composer.agentName")}</span>
-                </button>
-                <p className="hidden shrink-0 text-xs text-muted-foreground lg:block">
-                  {isLoggedIn
-                    ? t("agentChat.composer.hint")
-                    : t("agentChat.loginRequired.inline")}
-                </p>
-              </div>
+        <div className="relative">
+          <AgentChatComposerPanels
+            availableProducts={availableProducts}
+            isLoadingPlaybooks={isLoadingPlaybooks}
+            isLoadingProducts={isLoadingProducts}
+            isLoadingRuntimeOptions={isLoadingRuntimeOptions}
+            isStreaming={isStreaming}
+            onFocusComposer={() => textareaRef.current?.focus()}
+            onRuntimeCollaborationModeChange={onRuntimeCollaborationModeChange}
+            onRuntimeLearningLevelChange={onRuntimeLearningLevelChange}
+            onRuntimeModelChange={onRuntimeModelChange}
+            onRuntimePrimaryRoleChange={onRuntimePrimaryRoleChange}
+            onSelectPlaybook={onSelectPlaybook}
+            onStrategyChange={onStrategyChange}
+            onClearProductContext={onClearProductContext}
+            onToggleProductContext={onToggleProductContext}
+            onToggleRuntimeRole={onToggleRuntimeRole}
+            playbooks={playbooks}
+            productContextOpen={productContextOpen}
+            runtimeOptions={runtimeOptions}
+            runtimeSelection={runtimeSelection}
+            selectedProducts={selectedProducts}
+            settingsOpen={settingsOpen}
+            strategyId={strategyId}
+          />
+
+          <div className="grid gap-1 rounded-lg bg-background p-1.5 shadow-sm">
+            <input
+              ref={fileInputRef}
+              className="hidden"
+              multiple
+              type="file"
+              onChange={handleAttachmentChange}
+            />
+            <div className="grid min-h-10 grid-cols-1 gap-1 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
               <textarea
                 ref={textareaRef}
                 value={input}
                 onChange={(event) => onInputChange(event.target.value)}
+                onKeyDown={handleKeyDown}
                 placeholder={t(
                   !isLoggedIn
                     ? "agentChat.composer.loginPlaceholder"
@@ -165,33 +168,63 @@ export function AgentChatComposer({
                 )}
                 disabled={isStreaming}
                 rows={1}
-                className="max-h-32 min-h-7 w-full resize-none border-0 bg-transparent px-2 py-1 text-sm/6 outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60"
+                className="max-h-44 min-h-10 w-full resize-none border-0 bg-transparent px-3 py-2 text-sm/6 outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60"
               />
+              <div className="hidden min-h-10 items-center sm:flex">
+                <AgentChatComposerSendButton
+                  canSend={canSend}
+                  isLoggedIn={isLoggedIn}
+                  isStreaming={isStreaming}
+                  onSend={sendAndClosePanels}
+                  onStop={onStop}
+                />
+              </div>
             </div>
+
+            <AgentChatAttachmentStrip attachments={attachments} />
+
+            <AgentChatComposerToolbar
+              availableProducts={availableProducts}
+              canSend={canSend}
+              isLoggedIn={isLoggedIn}
+              isLoadingPlaybooks={isLoadingPlaybooks}
+              isLoadingProducts={isLoadingProducts}
+              isLoadingRuntimeOptions={isLoadingRuntimeOptions}
+              isStreaming={isStreaming}
+              onAttach={() => fileInputRef.current?.click()}
+              onRuntimeCollaborationModeChange={onRuntimeCollaborationModeChange}
+              onRuntimeLearningLevelChange={onRuntimeLearningLevelChange}
+              onRuntimeModelChange={onRuntimeModelChange}
+              onRuntimePrimaryRoleChange={onRuntimePrimaryRoleChange}
+              onSelectPlaybook={(playbook) => {
+                onSelectPlaybook(playbook)
+                queueMicrotask(() => textareaRef.current?.focus())
+              }}
+              onSend={sendAndClosePanels}
+              onStop={onStop}
+              onStrategyChange={onStrategyChange}
+              onClearProductContext={onClearProductContext}
+              onToggleProductContext={onToggleProductContext}
+              onToggleProductPanel={(open) => {
+                setProductContextOpen(open)
+                if (open) setSettingsOpen(false)
+              }}
+              onToggleRuntimeRole={onToggleRuntimeRole}
+              onToggleSettingsPanel={() => {
+                setSettingsOpen((open) => {
+                  if (!open) setProductContextOpen(false)
+                  return !open
+                })
+              }}
+              playbooks={playbooks}
+              productContextOpen={productContextOpen}
+              runtimeOptions={runtimeOptions}
+              runtimeSelection={runtimeSelection}
+              selectedProducts={selectedProducts}
+              settingsOpen={settingsOpen}
+              strategyId={strategyId}
+            />
           </div>
-          {isStreaming ? (
-            <Button variant="outline" size="icon" onClick={onStop}>
-              <Square className="size-4" />
-            </Button>
-          ) : (
-            <button
-              type="button"
-              disabled={!canSend}
-              onClick={onSend}
-              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-colors hover:bg-foreground/90 disabled:cursor-not-allowed disabled:opacity-45"
-              title={t("agentChat.composer.send")}
-            >
-              {canSend ? (
-                isLoggedIn ? (
-                  <Send className="size-4" />
-                ) : (
-                  <LockKeyhole className="size-4" />
-                )
-              ) : (
-                <Loader2 className="size-4" />
-              )}
-            </button>
-          )}
         </div>
       </div>
     </footer>

@@ -686,9 +686,10 @@ impl Skill for CoordinationCreateCampaign {
         let role = metadata_string_value(&context.metadata, "role_runtime")
             .or_else(|| metadata_string_value(&context.metadata, "assignment_role"))
             .unwrap_or_else(|| "agent".to_string());
-        let source_summary = metadata_string_value(&context.metadata, "context.summary")
-            .map(|value| compact_text_for_task_body(&value))
-            .or_else(|| description.clone());
+        let source_summary =
+            metadata_string_value(&context.metadata, "request.context.selected_summary")
+                .map(|value| compact_text_for_task_body(&value))
+                .or_else(|| description.clone());
         let draft = build_campaign_draft_blueprint(
             &name,
             &campaign_type,
@@ -1149,11 +1150,6 @@ fn infer_primary_product_id(metadata: &Map<String, Value>) -> Option<String> {
         .into_iter()
         .next()
         .or_else(|| {
-            metadata_csv_list(metadata, "rag.product_ids")
-                .into_iter()
-                .next()
-        })
-        .or_else(|| {
             metadata_csv_list(metadata, "context.refs")
                 .into_iter()
                 .find_map(|item| item.strip_prefix("product:").map(ToOwned::to_owned))
@@ -1369,7 +1365,7 @@ fn workspace_status_summary(context: &SkillContext) -> Value {
 
 fn context_readiness_summary(context: &SkillContext) -> Value {
     json!({
-        "product_context_loaded": metadata_non_empty(&context.metadata, "request.context.summary"),
+        "product_context_loaded": metadata_non_empty(&context.metadata, "request.context.selected_summary"),
         "workspace_context_loaded": metadata_non_empty(&context.metadata, "request.workspaceContext.summary"),
         "workspace_context_pack_loaded": metadata_non_empty(&context.metadata, "request.workspaceContextPack.summary"),
         "product_context_refs": metadata_csv_list(&context.metadata, "request.context.refs"),
@@ -1382,7 +1378,7 @@ fn system_health_summary(context: &SkillContext) -> Value {
     let has_session = context.session_id.is_some();
     let has_agent = context.agent_id.is_some();
     let has_task = metadata_non_empty(&context.metadata, "task_id");
-    let has_context = metadata_non_empty(&context.metadata, "request.context.summary")
+    let has_context = metadata_non_empty(&context.metadata, "request.context.selected_summary")
         || metadata_non_empty(&context.metadata, "request.workspaceContext.summary")
         || metadata_non_empty(&context.metadata, "request.workspaceContextPack.summary");
     let health = if has_session && has_agent && has_task {

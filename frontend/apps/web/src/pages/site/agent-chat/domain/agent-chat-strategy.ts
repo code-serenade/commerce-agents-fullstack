@@ -41,7 +41,7 @@ export const AGENT_CHAT_STRATEGIES = [
 
 export type AgentChatStrategyId = (typeof AGENT_CHAT_STRATEGIES)[number]["id"]
 
-export const DEFAULT_AGENT_CHAT_STRATEGY_ID: AgentChatStrategyId = "collab"
+export const DEFAULT_AGENT_CHAT_STRATEGY_ID: AgentChatStrategyId = "execution"
 
 export function isAgentChatStrategyId(value: string): value is AgentChatStrategyId {
   return AGENT_CHAT_STRATEGIES.some((strategy) => strategy.id === value)

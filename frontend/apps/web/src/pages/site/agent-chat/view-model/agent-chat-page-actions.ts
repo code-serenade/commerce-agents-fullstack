@@ -1,7 +1,11 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react"
 import type { AgentRuntimeEvent } from "../agent-chat-data"
 import { createSessionId } from "../domain/agent-chat-message-mapping"
-import type { AgentChatConversationItem, AgentChatMessage } from "../types"
+import type {
+  AgentChatAttachmentItem,
+  AgentChatConversationItem,
+  AgentChatMessage,
+} from "../types"
 
 export interface AgentChatPageStateActions {
   abortRef: MutableRefObject<AbortController | null>
@@ -14,6 +18,8 @@ export interface AgentChatPageStateActions {
   setIsStreaming: Dispatch<SetStateAction<boolean>>
   setMessages: Dispatch<SetStateAction<AgentChatMessage[]>>
   setRuntimeEvents: Dispatch<SetStateAction<AgentRuntimeEvent[]>>
+  setAttachments?: Dispatch<SetStateAction<AgentChatAttachmentItem[]>>
+  clearSelectedProducts?: () => void
 }
 
 export function resetGuestAgentChatState(
@@ -26,6 +32,8 @@ export function resetGuestAgentChatState(
     state.setConversations([])
     state.sessionIdRef.current = createSessionId()
     state.setMessages([state.createWelcomeMessage()])
+    state.setAttachments?.([])
+    state.clearSelectedProducts?.()
   })
 }
 
@@ -39,6 +47,8 @@ export function startNewAgentConversation(state: AgentChatPageStateActions) {
   state.setIsStreaming(false)
   state.setRuntimeEvents([])
   state.setMessages([state.createWelcomeMessage()])
+  state.setAttachments?.([])
+  state.clearSelectedProducts?.()
 }
 
 export function stopAgentStreaming(state: AgentChatPageStateActions) {

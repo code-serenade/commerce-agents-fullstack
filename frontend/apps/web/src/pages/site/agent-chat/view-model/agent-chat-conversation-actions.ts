@@ -1,25 +1,36 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react"
+import type { ConversationDetailResponse } from "@/api"
 import { agentChatData, type AgentRuntimeEvent } from "../agent-chat-data"
 import {
   createSessionId,
   formatAgentUiMessage,
+  mapConversationAttachments,
   mapConversationItem,
   mapConversationMessages,
+  readConversationRuntimeEvents,
+  readConversationSelectedProductIds,
   type AgentChatMessageFormatCopy,
 } from "../domain/agent-chat-message-mapping"
-import type { AgentChatConversationItem, AgentChatMessage } from "../types"
+import type {
+  AgentChatAttachmentItem,
+  AgentChatConversationItem,
+  AgentChatMessage,
+} from "../types"
 
 interface ConversationActionState {
   createWelcomeMessage: () => AgentChatMessage
   fallbackConversationTitle: string
   messageFormatCopy: AgentChatMessageFormatCopy
   sessionIdRef: MutableRefObject<string>
+  clearSelectedProducts?: () => void
+  restoreSelectedProducts?: (productIds: string[]) => void
   setConversationId: Dispatch<SetStateAction<string | null>>
   setConversations: Dispatch<SetStateAction<AgentChatConversationItem[]>>
   setError: Dispatch<SetStateAction<string | null>>
   setInput: Dispatch<SetStateAction<string>>
   setMessages: Dispatch<SetStateAction<AgentChatMessage[]>>
   setRuntimeEvents: Dispatch<SetStateAction<AgentRuntimeEvent[]>>
+  setAttachments?: Dispatch<SetStateAction<AgentChatAttachmentItem[]>>
   tError: string
 }
 
@@ -53,6 +64,8 @@ export async function loadLatestAgentConversation(
         state.messageFormatCopy
       )
     )
+    state.setRuntimeEvents(readConversationRuntimeEvents(detail))
+    restoreConversationContext(detail, state)
   } catch (err) {
     if (isCancelled()) return
     state.setError(formatActionError(err, state))
@@ -75,6 +88,8 @@ export async function selectAgentConversation(
         state.messageFormatCopy
       )
     )
+    state.setRuntimeEvents(readConversationRuntimeEvents(detail))
+    restoreConversationContext(detail, state)
   } catch (err) {
     state.setError(formatActionError(err, state))
   }
@@ -122,6 +137,7 @@ export async function deleteAgentConversation(
       resetActiveConversation(state)
       state.setRuntimeEvents([])
       state.setInput("")
+      state.clearSelectedProducts?.()
     }
   } catch (err) {
     state.setError(formatActionError(err, state))
@@ -132,6 +148,22 @@ function resetActiveConversation(state: ConversationActionState) {
   state.setConversationId(null)
   state.sessionIdRef.current = createSessionId()
   state.setMessages([state.createWelcomeMessage()])
+  state.setRuntimeEvents([])
+  state.setAttachments?.([])
+  state.clearSelectedProducts?.()
+}
+
+function restoreConversationContext(
+  detail: ConversationDetailResponse,
+  state: ConversationActionState
+) {
+  const productIds = readConversationSelectedProductIds(detail)
+  if (productIds.length > 0) {
+    state.restoreSelectedProducts?.(productIds)
+  } else {
+    state.clearSelectedProducts?.()
+  }
+  state.setAttachments?.(mapConversationAttachments(detail))
 }
 
 function formatActionError(err: unknown, state: ConversationActionState) {

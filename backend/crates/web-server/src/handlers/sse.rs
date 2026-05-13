@@ -16,7 +16,7 @@ use serde_json::{Value, json};
 use service::{
     api::{
         agent_context::AgentContextApi, app::AppApi, approval_audit::ApprovalAuditApi,
-        briefing_ops::BriefingOpsApi, workspace::WorkspaceApi,
+        briefing_ops::BriefingOpsApi, conversation::ConversationApi, workspace::WorkspaceApi,
     },
     dto::{
         agent_context::{
@@ -25,6 +25,7 @@ use service::{
         },
         approval_audit::{CreateAuditLogRequest, CreateToolApprovalRequest},
         briefing_ops::CreateAlertRequest,
+        conversation::ConversationMessageResponse,
         workspace::{
             AgentWorkspaceTaskNode, BuildAgentLearningContextRequest,
             CompleteAgentWorkspaceRunRequest, EvaluateAgentWorkspaceRunRequest,
@@ -79,6 +80,18 @@ pub async fn stream_agent_session(
         .map_err(from_biz_error)?;
     select_agent_runtime_model(model_selection.name.as_deref())
         .map_err(|err| bad_request(err.to_string()))?;
+    if let Some(conversation_id) = conversation_id.as_ref() {
+        let conversation = ConversationApi::new(get_app_ctx())
+            .get_conversation(user_id.clone(), conversation_id.clone())
+            .await
+            .map_err(from_biz_error)?;
+        merge_conversation_history_metadata(
+            &mut metadata,
+            conversation_id,
+            &conversation.messages,
+            &input,
+        );
+    }
     let context_api = AgentContextApi::new(get_app_ctx());
     if !context_selection.is_empty() {
         let context = context_api
@@ -129,6 +142,7 @@ pub async fn stream_agent_session(
         linked_workspace.run.id.clone(),
     );
     metadata.insert("workspace.source".to_string(), "agent_session".to_string());
+    let active_run_id = Some(linked_workspace.run.id.clone());
     let workspace_context = workspace_api
         .context_summary(service::dto::workspace::GetWorkspaceContextSummaryRequest {
             user_id: user_id.clone(),
@@ -136,7 +150,7 @@ pub async fn stream_agent_session(
             conversation_id,
             product_id: selected_product_id,
             include_workspace_product_context: false,
-            run_id: None,
+            run_id: active_run_id.clone(),
         })
         .await
         .map_err(from_biz_error)?;
@@ -149,7 +163,7 @@ pub async fn stream_agent_session(
             conversation_id: workspace_context.conversation_id.clone(),
             product_id: workspace_context.product_id.clone(),
             include_workspace_product_context: false,
-            run_id: None,
+            run_id: active_run_id,
             max_items: Some(20),
             max_chars: Some(12_000),
         })
@@ -998,6 +1012,10 @@ fn merge_agent_context_metadata(
         context.sources.len().to_string(),
     );
     if !context.summary.trim().is_empty() {
+        metadata.insert(
+            "context.selected_summary".to_string(),
+            context.summary.clone(),
+        );
         metadata.insert("context.summary".to_string(), context.summary);
     }
     if !context.sources.is_empty() {
@@ -1085,6 +1103,118 @@ fn append_context_summary(
     append_context_summary_section(metadata, "Retrieved local knowledge context:", summary);
 }
 
+const CONVERSATION_HISTORY_MAX_MESSAGES: usize = 12;
+const CONVERSATION_HISTORY_MAX_CHARS: usize = 6_000;
+const CONVERSATION_MESSAGE_MAX_CHARS: usize = 1_200;
+
+fn merge_conversation_history_metadata(
+    metadata: &mut std::collections::BTreeMap<String, String>,
+    conversation_id: &str,
+    messages: &[ConversationMessageResponse],
+    current_input: &str,
+) {
+    let summary = build_conversation_history_summary(messages, current_input);
+    metadata.insert(
+        "conversation.conversation_id".to_string(),
+        conversation_id.to_string(),
+    );
+    metadata.insert(
+        "conversation.history_message_count".to_string(),
+        summary.message_count.to_string(),
+    );
+    if summary.text.trim().is_empty() {
+        return;
+    }
+    metadata.insert(
+        "conversation.history_summary".to_string(),
+        summary.text.clone(),
+    );
+    append_context_summary_section(
+        metadata,
+        "Same conversation history context:",
+        &summary.text,
+    );
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ConversationHistorySummary {
+    message_count: usize,
+    text: String,
+}
+
+fn build_conversation_history_summary(
+    messages: &[ConversationMessageResponse],
+    current_input: &str,
+) -> ConversationHistorySummary {
+    let current_input = normalize_history_text(current_input);
+    let mut candidates = messages
+        .iter()
+        .filter_map(|message| {
+            let role = conversation_history_role(&message.role)?;
+            let content = normalize_history_text(message.content_text.as_deref()?);
+            if content.is_empty() {
+                return None;
+            }
+            Some((message.sequence, role, content))
+        })
+        .collect::<Vec<_>>();
+
+    candidates.sort_by_key(|(sequence, _, _)| *sequence);
+    if let Some(index) = candidates
+        .iter()
+        .rposition(|(_, role, content)| *role == "User" && *content == current_input)
+    {
+        candidates.remove(index);
+    }
+
+    let mut selected = candidates
+        .into_iter()
+        .rev()
+        .take(CONVERSATION_HISTORY_MAX_MESSAGES)
+        .collect::<Vec<_>>();
+    selected.reverse();
+
+    let mut lines = Vec::new();
+    let mut used_chars = 0usize;
+    for (_, role, content) in selected {
+        let content = truncate_chars(&content, CONVERSATION_MESSAGE_MAX_CHARS);
+        let line = format!("{role}: {content}");
+        let line_chars = line.chars().count();
+        if !lines.is_empty() && used_chars + line_chars > CONVERSATION_HISTORY_MAX_CHARS {
+            break;
+        }
+        used_chars += line_chars;
+        lines.push(line);
+    }
+
+    ConversationHistorySummary {
+        message_count: lines.len(),
+        text: lines.join("\n"),
+    }
+}
+
+fn conversation_history_role(role: &str) -> Option<&'static str> {
+    match role {
+        "user" => Some("User"),
+        "assistant" => Some("Assistant"),
+        _ => None,
+    }
+}
+
+fn normalize_history_text(value: &str) -> String {
+    value.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+fn truncate_chars(value: &str, max_chars: usize) -> String {
+    let mut chars = value.chars();
+    let truncated = chars.by_ref().take(max_chars).collect::<String>();
+    if chars.next().is_some() {
+        format!("{truncated}...")
+    } else {
+        truncated
+    }
+}
+
 fn append_context_summary_section(
     metadata: &mut std::collections::BTreeMap<String, String>,
     heading: &str,
@@ -1094,7 +1224,7 @@ fn append_context_summary_section(
         return;
     }
     metadata
-        .entry("context.summary".to_string())
+        .entry("context.combined_summary".to_string())
         .and_modify(|value| {
             if !value.trim().is_empty() {
                 value.push_str("\n\n");
@@ -1103,7 +1233,7 @@ fn append_context_summary_section(
             value.push('\n');
             value.push_str(summary);
         })
-        .or_insert_with(|| summary.to_string());
+        .or_insert_with(|| format!("{heading}\n{summary}"));
 }
 
 fn merge_workspace_context_metadata(
@@ -1230,7 +1360,8 @@ fn workspace_context_sources(
 
 fn append_context_refs(metadata: &mut std::collections::BTreeMap<String, String>, refs: &[String]) {
     let mut merged = metadata
-        .get("context.refs")
+        .get("context.combined_refs")
+        .or_else(|| metadata.get("context.refs"))
         .map(|value| {
             value
                 .split(',')
@@ -1245,7 +1376,7 @@ fn append_context_refs(metadata: &mut std::collections::BTreeMap<String, String>
             merged.push(context_ref.clone());
         }
     }
-    metadata.insert("context.refs".to_string(), merged.join(","));
+    metadata.insert("context.combined_refs".to_string(), merged.join(","));
 }
 
 fn append_workspace_context_summary(
@@ -1423,7 +1554,7 @@ mod tests {
         merge_agent_retrieval_metadata(&mut metadata, &context).expect("metadata should merge");
 
         assert!(metadata["context.summary"].contains("Selected context."));
-        assert!(metadata["context.summary"].contains("RAG summary."));
+        assert!(metadata["context.combined_summary"].contains("RAG summary."));
         assert_eq!(metadata["rag.source_count"], "1");
         assert_eq!(metadata["context.source_count"], "1");
     }
@@ -1447,9 +1578,60 @@ mod tests {
         merge_agent_retrieval_metadata(&mut metadata, &context)
             .expect("degraded metadata should merge");
 
-        assert!(metadata["context.summary"].contains("no matching product knowledge"));
-        assert!(metadata["context.summary"].contains("Do not cite external search results"));
+        assert!(metadata["context.combined_summary"].contains("no matching product knowledge"));
+        assert!(
+            metadata["context.combined_summary"].contains("Do not cite external search results")
+        );
         assert_eq!(metadata["rag.degraded"], "true");
+    }
+
+    #[test]
+    fn conversation_history_excludes_current_input() {
+        let messages = vec![
+            conversation_message(1, "user", "请分析咖啡类商品的营销方式"),
+            conversation_message(2, "assistant", "请补充商品价格、规格和活动。"),
+            conversation_message(
+                3,
+                "user",
+                "单价100，规格每份10小包，促销活动是劳动节工作套餐",
+            ),
+            conversation_message(4, "user", "请直接根据前面补充的信息完成方案"),
+        ];
+
+        let summary =
+            build_conversation_history_summary(&messages, "请直接根据前面补充的信息完成方案");
+
+        assert_eq!(summary.message_count, 3);
+        assert!(summary.text.contains("单价100"));
+        assert!(!summary.text.contains("请直接根据前面补充的信息完成方案"));
+    }
+
+    #[test]
+    fn conversation_history_metadata_appends_context_summary() {
+        let messages = vec![
+            conversation_message(1, "user", "前面任务"),
+            conversation_message(2, "assistant", "前面回答"),
+            conversation_message(3, "user", "补充：客单价100，10小包"),
+        ];
+        let mut metadata = std::collections::BTreeMap::new();
+        metadata.insert(
+            "context.summary".to_string(),
+            "Selected context.".to_string(),
+        );
+
+        merge_conversation_history_metadata(
+            &mut metadata,
+            "conversation-1",
+            &messages,
+            "继续生成方案",
+        );
+
+        assert_eq!(metadata["conversation.conversation_id"], "conversation-1");
+        assert_eq!(metadata["conversation.history_message_count"], "3");
+        assert!(metadata["conversation.history_summary"].contains("客单价100"));
+        assert!(
+            metadata["context.combined_summary"].contains("Same conversation history context:")
+        );
     }
 
     #[test]
@@ -1524,11 +1706,14 @@ mod tests {
 
         assert_eq!(metadata["workspaceContext.readiness"], "ready");
         assert_eq!(
-            metadata["context.refs"],
+            metadata["context.combined_refs"],
             "product:product-1,conversation_file:file-1,product_asset:asset-1,workspace_artifact:artifact-1"
         );
         assert!(metadata["context.summary"].contains("Selected product."));
-        assert!(metadata["context.summary"].contains("Workspace file/material/artifact context:"));
+        assert!(
+            metadata["context.combined_summary"]
+                .contains("Workspace file/material/artifact context:")
+        );
         assert!(metadata["workspaceContext.sources_json"].contains("conversation_file"));
     }
 
@@ -1589,11 +1774,11 @@ mod tests {
 
         assert_eq!(metadata["workspaceContextPack.readiness"], "ready");
         assert_eq!(
-            metadata["context.refs"],
+            metadata["context.combined_refs"],
             "product_material:material-1,conversation_file:file-1"
         );
-        assert!(metadata["context.summary"].contains("Workspace readable content pack:"));
-        assert!(metadata["context.summary"].contains("主打冷萃低糖"));
+        assert!(metadata["context.combined_summary"].contains("Workspace readable content pack:"));
+        assert!(metadata["context.combined_summary"].contains("主打冷萃低糖"));
         assert!(metadata["workspaceContextPack.items_json"].contains("product_material"));
     }
 
@@ -1638,5 +1823,24 @@ mod tests {
 
     fn typed_camel_event_value_for_test(event: &'static str, value: Value) -> Value {
         ensure_event_type(event, camelize_json_keys(value))
+    }
+
+    fn conversation_message(
+        sequence: i64,
+        role: &str,
+        content: &str,
+    ) -> ConversationMessageResponse {
+        ConversationMessageResponse {
+            id: format!("message-{sequence}"),
+            conversation_id: "conversation-1".to_string(),
+            user_id: "user-1".to_string(),
+            role: role.to_string(),
+            content_text: Some(content.to_string()),
+            content_json: None,
+            status: "active".to_string(),
+            sequence,
+            created_at: time::OffsetDateTime::UNIX_EPOCH,
+            updated_at: time::OffsetDateTime::UNIX_EPOCH,
+        }
     }
 }

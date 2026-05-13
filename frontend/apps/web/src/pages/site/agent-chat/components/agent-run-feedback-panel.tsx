@@ -7,13 +7,62 @@ const RATINGS = [1, 2, 3, 4, 5] as const
 
 export function AgentRunFeedbackPanel({
   feedback,
+  compact = false,
 }: {
   feedback: AgentRunFeedbackState
+  compact?: boolean
 }) {
   const { t } = useTranslation()
   const targetLabel = feedback.target
     ? feedback.target.workspaceTitle ?? feedback.target.workspaceId.slice(0, 8)
     : t("agentChat.feedback.noTarget")
+
+  if (compact) {
+    return (
+      <div className="rounded-lg border border-border bg-background p-2 shadow-sm">
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-1.5 text-xs font-medium">
+            <MessageSquareText className="size-4 shrink-0 text-muted-foreground" />
+            <span className="truncate">{t("agentChat.feedback.title")}</span>
+          </div>
+          <Badge variant={feedback.submitted ? "default" : "outline"}>
+            {feedback.submitted
+              ? t("agentChat.feedback.submitted")
+              : t("agentChat.feedback.pending")}
+          </Badge>
+        </div>
+        <div
+          className="mt-2 flex items-center gap-1"
+          aria-label={t("agentChat.feedback.ratingLabel")}
+        >
+          {RATINGS.map((rating) => {
+            const active = rating <= feedback.rating
+            return (
+              <button
+                key={rating}
+                type="button"
+                disabled={feedback.isSubmitting || feedback.submitted}
+                onClick={() => feedback.setRating(rating)}
+                className={[
+                  "flex size-6 items-center justify-center rounded-md border transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                  active
+                    ? "border-amber-300 bg-amber-50 text-amber-600 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300"
+                    : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
+                ].join(" ")}
+                title={t("agentChat.feedback.ratingTitle", { rating })}
+                aria-label={t("agentChat.feedback.ratingTitle", { rating })}
+              >
+                <Star className={active ? "size-3 fill-current" : "size-3"} />
+              </button>
+            )
+          })}
+        </div>
+        <p className="mt-2 truncate text-[11px] text-muted-foreground">
+          {t("agentChat.feedback.target", { target: targetLabel })}
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="rounded-xl border border-border bg-background p-3 shadow-sm">

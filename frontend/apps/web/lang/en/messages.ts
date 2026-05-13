@@ -825,7 +825,7 @@ const messages = {
     error: "Agent reply failed. Please try again later.",
     errorBadge: "Reply failed",
     missingStructuredOutput:
-      "The previous run did not produce complete structured output. Send the task again and I will rebuild the execution plan and sync the process to the workspace.",
+      "The previous run did not produce complete structured output. Send the task again and I will rebuild the execution plan and sync the process to the task process panel.",
     streamTimedOut:
       "This run timed out and the process has been collapsed. Review the partial result or send the task again to continue.",
     loginRequired: {
@@ -843,6 +843,15 @@ const messages = {
       recents: "Recents",
       chat: "Commerce Agents",
       more: "More",
+      less: "Collapse",
+      moreHistory: "Show {{count}} more",
+      lessHistory: "Collapse to latest 5",
+      expandHistory: "Expand history",
+      collapseHistory: "Collapse history",
+      expandFunctionNav: "Expand function navigation",
+      collapseFunctionNav: "Collapse function navigation",
+      expandGovernance: "Expand management and review",
+      collapseGovernance: "Collapse management and review",
       empty: "No conversations yet",
     },
     shell: {
@@ -852,12 +861,13 @@ const messages = {
       topbarMeta: "Commerce Agents · virtual employee collaboration",
       sections: {
         create: "",
-        workspace: "Virtual employees",
+        workspace: "Function navigation",
         governance: "Management and Review",
         recents: "History",
       },
       navigation: {
         newChat: "New chat",
+        capabilities: "Capabilities",
         smartOps: "Multi-agent Q&A",
         productBoard: "Product board",
         campaigns: "Campaigns",
@@ -893,35 +903,56 @@ const messages = {
     },
     composer: {
       placeholder:
-        "Enter an ecommerce question, such as a May Day coffee conversion plan, Qianchuan ads review, campaign budget, or creative breakdown...",
+        "Enter an ecommerce question, such as live-room conversion diagnosis, Qianchuan ads review, campaign budget, or creative breakdown...",
       loginPlaceholder:
         "Draft your ecommerce question here. Sign in when you are ready to run the cloud agent...",
       hint: "Business context connected",
       send: "Send",
       stop: "Stop",
-      attachTitle: "Attach file",
+      attachTitle: "Upload attachment",
+      attachShort: "Upload",
       attachPrompt:
         "Add the file or data constraints here, for example: product price, budget, inventory, target audience, current conversion rate, and platform account status.",
       agentTitle: "Switch virtual employee mode",
       agentName: "Commerce Agents",
       productContext: {
         label: "Backend product context",
+        compactLabel: "Product",
+        noneCompactLabel: "No product",
+        compactTitle: "Choose product context for this turn",
         loading: "Loading products",
         empty: "No active products",
         noneSelected: "No product selected",
         choose: "Choose saved product",
         collapse: "Collapse products",
+        clear: "Clear products",
         noneHint: "This turn will not read saved product data and will answer as a general ecommerce question.",
         manualHint: "Backend product data is loaded only after you manually select a saved product.",
+        searchPlaceholder: "Search product name, brand, category, platform, or status",
         selectedHint: "This turn will read only the selected product's backend data.",
         selectedCount: "{{count}} product selected",
         moreCount: "{{count}} more",
+        noSearchResult: "No matching product",
+        status: {
+          active: "Active",
+          draft: "Draft",
+          listing: "Presale/listing",
+          archived: "Archived",
+          unknown: "Unknown",
+        },
+      },
+      attachments: {
+        uploading: "Uploading",
+        uploaded: "Attached",
+        failed: "Failed",
       },
       playbooks: {
         loading: "Loading scenarios",
         empty: "No scenarios",
       },
       settings: {
+        compactLabel: "Strategy",
+        compactTitle: "Adjust answer strategy and runtime",
         toggle: "Task settings",
         rolesCount: "{{count}} roles",
       },
@@ -968,9 +999,9 @@ const messages = {
       },
     },
     workbench: {
-      title: "Virtual employee workspace",
-      expand: "Expand virtual employee workspace",
-      collapse: "Collapse virtual employee workspace",
+      title: "Task process",
+      expand: "Expand task process",
+      collapse: "Collapse task process",
       progress: "Progress",
       activity: "Run activity",
       record: "Run records",
@@ -987,7 +1018,7 @@ const messages = {
         planningDescription:
           "Input received. Matching products, campaigns, data, and delivery steps.",
         historyDescription:
-          "The workspace only shows the current run; historical messages are not counted in progress.",
+          "The task process only shows the current run; historical messages are not counted in progress.",
         waitingDescription:
           "After you enter an ecommerce question, it will organize products, campaigns, platform data, alerts, and deliverables.",
         loopTitle: "01 | Operating loop",
@@ -1035,7 +1066,7 @@ const messages = {
       agentName: "Commerce Agents",
       welcomeCapabilities: ["Ecommerce Q&A", "Virtual employee collaboration", "Store deliverables"],
       receivingOutput: "Receiving business execution output",
-      waitingEvents: "Waiting for workspace events",
+      waitingEvents: "Waiting for task process events",
       completedTasks: "{{completed}}/{{total}} tasks completed",
       planning: "Generating execution plan",
       historyNotExecuted: "Historical message not executed",
@@ -1055,6 +1086,7 @@ const messages = {
       currentProgress: "Current progress {{completed}}/{{total}}",
       collapseProcess: "Collapse process",
       expandProcess: "Expand process",
+      openWorkbench: "Open task process",
       actions: {
         copy: "Copy",
         useful: "Useful",
@@ -1125,13 +1157,13 @@ const messages = {
         },
       },
       processStage: {
-        failed: "Execution blocked. Expand workspace to inspect action items.",
+        failed: "Execution blocked. Expand task process to inspect action items.",
         finished: "Plan summarized. Review process and business links.",
         saved: "This answer was saved to the workspace",
         running: "Execution plan is progressing",
         planning: "Planning execution graph",
         synced: "Run process synced",
-        history: "Historical chat. Expand workspace to review this run.",
+        history: "Historical chat. Expand task process to review this run.",
       },
       artifactState: {
         done: "Generated",
@@ -1628,6 +1660,113 @@ const messages = {
           "Reserve cup gifts for high-AOV bundles so gifts do not consume margin.",
         ],
       },
+    },
+  },
+  agentCapabilities: {
+    header: {
+      eyebrow: "Capability Map",
+      title: "Commerce multi-agent capabilities",
+      description:
+        "This page explains how the new product organizes ecommerce capabilities, virtual employee roles, and backend governance into one workspace.",
+      action: "Open Q&A",
+    },
+    principle: {
+      title: "How the product is used",
+      description:
+        "The user is not just using a chat box. They assign ecommerce work in the center, while the backend coordinates context, strategy, roles, skills, workspace records, and approvals.",
+    },
+    capabilities: {
+      title: "Core capabilities",
+      description:
+        "These capabilities are carried by real backend flows first. The frontend selects, displays process, and opens business destinations.",
+      items: [
+        {
+          title: "Product analysis",
+          description:
+            "Uses only products, materials, selling points, and competitors manually selected by the user. Without selection, the flow stays as ordinary ecommerce Q&A.",
+        },
+        {
+          title: "Selection and competitor research",
+          description:
+            "Analyzes categories, price bands, consumer demand, platform trends, and competitor actions.",
+        },
+        {
+          title: "External search and real-time data",
+          description:
+            "Backend adapters return sourced data. When an integration is not configured, the UI states it clearly instead of fabricating results.",
+        },
+        {
+          title: "Content and marketing generation",
+          description:
+            "Generates live scripts, short-video ideas, campaign rhythm, ads review, and operations plans.",
+        },
+        {
+          title: "Customer service handling",
+          description:
+            "Organizes replies, attribution, and follow-up actions from product materials, service rules, and customer questions.",
+        },
+        {
+          title: "Execution workspace",
+          description:
+            "Stores Agent output as tasks, runs, execution suggestions, and traceable business state.",
+        },
+        {
+          title: "Deliverables",
+          description:
+            "Stores plans, checklists, reports, and documents as artifacts for preview, copy, download, and archive.",
+        },
+        {
+          title: "Approval and audit",
+          description:
+            "Platform writes and high-risk actions must go through approval, execution queue, and audit logs.",
+        },
+      ],
+    },
+    flow: {
+      title: "How one task flows",
+      description: "The user-visible main flow should stay clear, continuous, and traceable.",
+      items: [
+        "The user creates a new conversation or opens a historical one, then enters an ecommerce question.",
+        "The user may choose strategy, role mode, and manually selected product materials.",
+        "The backend plans the task, calls model, roles, and skills, and streams process through SSE.",
+        "Process cards appear above the answer and collapse after completion, so they do not block reading.",
+        "Final answers and deliverables are stored in workspace, deliverables, approvals, or operations pages.",
+      ],
+    },
+    lanes: {
+      title: "Business areas in function navigation",
+      description:
+        "The left function navigation is not just a menu. It is where virtual employee abilities enter the backend business system.",
+      items: [
+        {
+          title: "Multi-agent Q&A",
+          description: "The main entry for questions, strategy, product references, and process display.",
+        },
+        {
+          title: "Products and context",
+          description: "Manages products, materials, knowledge, competitors, and manually selected task context.",
+        },
+        {
+          title: "Platforms and operations",
+          description: "Connects platforms, campaigns, metrics, briefings, alerts, and external data adapters.",
+        },
+        {
+          title: "Package governance",
+          description: "Manages skill packages, versions, run locks, validation, enable, disable, and rollback records.",
+        },
+        {
+          title: "Approvals and delivery",
+          description: "Carries high-risk approvals, audit, task lists, and final deliverables.",
+        },
+      ],
+    },
+    boundary: {
+      title: "Current design boundary",
+      description:
+        "The capability map should make clear what is available now and what needs external integrations or later migration.",
+      backend: "The backend is the source of real capability. The frontend does not show fake buttons, fake states, or fake search results.",
+      context: "Product materials are injected only after the user manually selects them. Without a selection, the answer uses ordinary Q&A context.",
+      governance: "Actions such as platform writes, budget changes, publishing, and deletion should enter approval and audit.",
     },
   },
   login: {

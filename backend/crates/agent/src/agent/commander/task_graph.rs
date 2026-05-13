@@ -473,6 +473,10 @@ pub fn plan_quick_chat_graph(task_id: &TaskId, task: &str) -> Option<TaskGraph> 
     (node.role == "chat" && node.input_refs.is_empty()).then_some(graph)
 }
 
+pub fn plan_forced_chat_graph(task_id: &TaskId, task: &str) -> TaskGraph {
+    plan_fallback_chat_graph(task_id, task)
+}
+
 fn plan_route_task_graph(
     task_id: &TaskId,
     task: &str,

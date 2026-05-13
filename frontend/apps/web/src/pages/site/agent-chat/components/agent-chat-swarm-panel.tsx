@@ -73,16 +73,16 @@ export function AgentChatSwarmPanel({
   const timeline = getTimeline(runtimeEvents, agents, hasTask, isStreaming, t)
 
   return (
-    <aside className="h-full min-h-124 min-w-0 overflow-hidden rounded-xl border border-border bg-[#eeeeeb] p-2 2xl:min-h-0 dark:bg-muted/30">
+    <aside className="h-full min-h-124 min-w-0 overflow-hidden rounded-lg border border-border bg-[#eeeeeb] p-1.5 shadow-sm 2xl:min-h-0 dark:bg-muted/30">
       <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg bg-[#f6f6f3] dark:bg-card">
-        <header className="sticky top-0 z-10 shrink-0 border-b border-[#d8d8d3] bg-[#f6f6f3]/95 p-3 backdrop-blur dark:border-border dark:bg-card/95">
+        <header className="sticky top-0 z-10 shrink-0 border-b border-[#d8d8d3] bg-[#f6f6f3]/95 p-2 backdrop-blur dark:border-border dark:bg-card/95">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-foreground/20 bg-background text-foreground shadow-sm">
-                <MonitorCog className="size-5" />
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-foreground/20 bg-background text-foreground shadow-sm">
+                <MonitorCog className="size-4" />
               </div>
               <div className="min-w-0">
-                <h2 className="truncate font-mono text-lg font-semibold tracking-wide">
+                <h2 className="truncate font-mono text-sm font-semibold">
                   {t("agentChat.workbench.title")}
                 </h2>
                 <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -119,7 +119,7 @@ export function AgentChatSwarmPanel({
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-2">
+        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-1.5">
           {hasRuntime ? (
             <ComputerRuntimeDetail
               activeAgent={activeAgent}
@@ -138,11 +138,9 @@ export function AgentChatSwarmPanel({
             />
           )}
 
-          <section className="mt-3 grid gap-3">
-            <div className="grid gap-3">
-              <WorkspaceHandoffRail />
-              <AgentRunFeedbackPanel feedback={feedback} />
-            </div>
+          <section className="mt-2 grid gap-1.5 min-[1500px]:grid-cols-3">
+            <WorkspaceHandoffRail compact />
+            <AgentRunFeedbackPanel compact feedback={feedback} />
             <CompactInfoBlock
               icon={Activity}
               title={t("agentChat.workbench.activity")}

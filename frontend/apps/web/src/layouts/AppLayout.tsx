@@ -6,7 +6,8 @@ export default function AppLayout() {
   const isAgentChatRoute =
     location.pathname === "/" ||
     location.pathname === "/commerce" ||
-    location.pathname === "/agent"
+    location.pathname === "/agent" ||
+    location.pathname === "/agent-capabilities"
 
   if (isAgentChatRoute) {
     return (

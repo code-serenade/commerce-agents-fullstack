@@ -40,6 +40,29 @@ export interface ConversationFileResponse {
   createdAt: string
 }
 
+export interface PresignConversationFileUploadRequest {
+  extension: string
+  contentType?: string | null
+}
+
+export interface PresignConversationFileUploadResponse {
+  method: "PUT"
+  uploadUrl: string
+  bucket: string
+  objectKey: string
+  contentType?: string | null
+  expiresSecs?: number | null
+}
+
+export interface RegisterConversationFileRequest {
+  messageId?: string | null
+  objectKey: string
+  fileName?: string | null
+  mimeType?: string | null
+  fileSize?: number | null
+  sha256?: string | null
+}
+
 export interface ConversationDetailResponse {
   conversation: ConversationResponse
   messages: ConversationMessageResponse[]
@@ -129,6 +152,50 @@ export const deleteConversationApi = async (
   return request<undefined, void>({
     method: "DELETE",
     url: `/api/app/conversations/${conversationId}`,
+  })
+}
+
+export const presignConversationFileUploadApi = async (
+  conversationId: string,
+  body: PresignConversationFileUploadRequest
+): Promise<PresignConversationFileUploadResponse> => {
+  return request<
+    PresignConversationFileUploadRequest,
+    PresignConversationFileUploadResponse
+  >({
+    method: "POST",
+    url: `/api/app/conversations/${conversationId}/files/presign-upload`,
+    body,
+  })
+}
+
+export const uploadConversationFileApi = async (
+  file: File,
+  sign: PresignConversationFileUploadResponse
+): Promise<Response> => {
+  const response = await fetch(sign.uploadUrl, {
+    method: sign.method,
+    headers: {
+      "Content-Type": sign.contentType || file.type || "application/octet-stream",
+    },
+    body: file,
+  })
+
+  if (!response.ok) {
+    throw new Error(`Upload failed: ${response.status}`)
+  }
+
+  return response
+}
+
+export const registerConversationFileApi = async (
+  conversationId: string,
+  body: RegisterConversationFileRequest
+): Promise<ConversationFileResponse> => {
+  return request<RegisterConversationFileRequest, ConversationFileResponse>({
+    method: "POST",
+    url: `/api/app/conversations/${conversationId}/files`,
+    body,
   })
 }
 

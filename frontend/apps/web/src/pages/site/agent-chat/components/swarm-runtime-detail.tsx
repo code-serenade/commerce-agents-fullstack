@@ -43,21 +43,7 @@ export function ComputerRuntimeDetail({
   const ActiveIcon = activeAgent.icon
 
   return (
-    <section className="grid min-h-124 overflow-hidden rounded-[1.25rem] border border-[#dcdcd7] bg-white shadow-sm min-[1500px]:grid-cols-[12.75rem_minmax(0,1fr)] dark:border-border dark:bg-background">
-      <div className="min-w-0 border-b border-border bg-[#f7f7f4] p-3 min-[1500px]:border-r min-[1500px]:border-b-0 dark:bg-card">
-        <div className="mb-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-          <span>{t("agentChat.workbench.record")}</span>
-          <span>
-            {cards.slice(-4).length} {t("agentChat.workbench.recordCountSuffix")}
-          </span>
-        </div>
-        <div className="grid gap-2 min-[1500px]:grid-cols-1 sm:grid-cols-2">
-          {cards.slice(-4).map((card) => (
-            <ComputerRuntimeCard key={card.id} card={card} />
-          ))}
-        </div>
-      </div>
-
+    <section className="grid min-h-0 overflow-hidden rounded-lg border border-[#dcdcd7] bg-white shadow-sm dark:border-border dark:bg-background">
       <div className="min-w-0 bg-white dark:bg-background">
         <div className="flex items-center justify-between gap-3 border-b border-border bg-white px-4 py-3 min-[1500px]:px-5 dark:bg-background">
           <div className="flex min-w-0 items-center gap-2">
@@ -79,6 +65,7 @@ export function ComputerRuntimeDetail({
           activeAgent={activeAgent}
           activeNode={activeNode}
           activeState={activeState}
+          cards={cards}
           screen={screen}
         />
       </div>
@@ -86,64 +73,24 @@ export function ComputerRuntimeDetail({
   )
 }
 
-function ComputerRuntimeCard({ card }: { card: ComputerCard }) {
-  const Icon = card.icon
-
-  return (
-    <article className="rounded-lg border border-border/70 bg-background p-2.5 shadow-sm min-[1500px]:border-transparent">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 items-start gap-2">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-            <Icon className="size-4" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm font-medium">{card.title}</p>
-              {card.meta ? (
-                <span className="max-w-28 truncate text-xs text-muted-foreground">
-                  | {card.meta}
-                </span>
-              ) : null}
-            </div>
-            <p className="mt-1 line-clamp-2 text-xs/5 text-muted-foreground">
-              {card.description}
-            </p>
-          </div>
-        </div>
-        <StatePill state={card.state} />
-      </div>
-      {card.lines.length ? (
-        <div className="mt-2 space-y-1">
-          {card.lines.slice(0, 2).map((line) => (
-            <div
-              key={line}
-              className="line-clamp-1 rounded-md bg-muted/70 px-2 py-1 text-[11px] text-muted-foreground"
-            >
-              {line}
-            </div>
-          ))}
-        </div>
-      ) : null}
-    </article>
-  )
-}
-
 function ComputerScreen({
   activeAgent,
   activeNode,
   activeState,
+  cards,
   screen,
 }: {
   activeAgent: SwarmAgent
   activeNode?: RuntimeNodeSnapshot
   activeState: SwarmState
+  cards: ComputerCard[]
   screen: ReturnType<typeof getComputerScreenContext>
 }) {
   const { t } = useTranslation()
 
   return (
-    <div className="grid min-h-112 grid-rows-[auto_minmax(0,1fr)_auto]">
-      <div className="border-b border-border bg-white px-4 py-3 min-[1500px]:px-5 dark:bg-background">
+    <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto]">
+      <div className="border-b border-border bg-white px-3 py-2.5 min-[1500px]:px-4 dark:bg-background">
         <span className="text-xs font-medium text-muted-foreground">
           {t("agentChat.workbench.businessInput")}
         </span>
@@ -152,8 +99,8 @@ function ComputerScreen({
         </p>
       </div>
       <PreviewDocument filename={screen.filename} lines={screen.lines} />
-      <div className="grid gap-2 border-t border-border bg-[#f5f5f2] p-3 min-[1500px]:grid-cols-[minmax(0,1fr)_9rem] dark:bg-card">
-        <div className="rounded-md border border-border bg-background px-3 py-2">
+      <div className="grid gap-2 border-t border-border bg-[#f5f5f2] p-2 min-[1500px]:grid-cols-[minmax(0,1fr)_8rem] dark:bg-card">
+        <div className="min-w-0 rounded-md border border-border bg-background px-3 py-2">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             {activeState === "working" || activeState === "reworking" ? (
               <Loader2 className="size-4 animate-spin text-emerald-600" />
@@ -166,7 +113,7 @@ function ComputerScreen({
               {activeAgent.name} | {getDockStateLabel(activeState, t)}
             </span>
           </div>
-          <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
+          <p className="mt-1 line-clamp-1 text-[11px] text-muted-foreground">
             {activeNode?.report
               ? getFallbackResponse(activeAgent, activeState, t)
               : activeAgent.objective}
@@ -180,8 +127,39 @@ function ComputerScreen({
             {activeNode?.attempt ?? 1}
           </p>
         </div>
+        {cards.slice(-2).length ? (
+          <div className="min-w-0 min-[1500px]:col-span-2">
+            <div className="grid min-w-0 gap-1.5 min-[1500px]:grid-cols-2">
+              {cards.slice(-2).map((card) => (
+                <ComputerRuntimeChip key={card.id} card={card} />
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
+  )
+}
+
+function ComputerRuntimeChip({ card }: { card: ComputerCard }) {
+  const Icon = card.icon
+
+  return (
+    <article
+      className="flex min-w-0 items-center gap-2 rounded-full border border-border bg-background px-2.5 py-1.5 text-xs"
+      title={`${card.title} ${card.description}`}
+    >
+      <Icon className="size-3.5 shrink-0 text-muted-foreground" />
+      <span className="min-w-0 flex-1 truncate font-medium">
+        {card.title}
+      </span>
+      {card.meta ? (
+        <span className="shrink-0 text-[11px] text-muted-foreground">
+          {card.meta}
+        </span>
+      ) : null}
+      <StatePill state={card.state} />
+    </article>
   )
 }
 
@@ -189,8 +167,8 @@ function PreviewDocument({ filename, lines }: { filename: string; lines: string[
   const { t } = useTranslation()
 
   return (
-    <div className="min-h-0 bg-white p-3 min-[1500px]:p-4 dark:bg-background">
-      <div className="flex h-full min-h-72 flex-col overflow-hidden rounded-lg border border-border bg-[#fbfbfa] dark:bg-card">
+    <div className="min-h-0 bg-white p-2.5 min-[1500px]:p-3 dark:bg-background">
+      <div className="flex h-full min-h-36 flex-col overflow-hidden rounded-lg border border-border bg-[#fbfbfa] dark:bg-card">
         <div className="flex items-center justify-between gap-3 border-b border-border bg-[#f7f7f4] px-4 py-2.5 dark:bg-card">
           <div className="flex min-w-0 items-center gap-2">
             <FileText className="size-4 shrink-0 text-muted-foreground" />
@@ -201,7 +179,7 @@ function PreviewDocument({ filename, lines }: { filename: string; lines: string[
           </span>
         </div>
         <div className="min-h-0 flex-1 overflow-hidden py-2 font-mono text-[11px]/5">
-          {lines.slice(0, 14).map((line, index) => (
+          {lines.slice(0, 7).map((line, index) => (
             <div
               key={`${index}-${line}`}
               className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3 px-3 py-0.5"

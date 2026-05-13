@@ -1,5 +1,6 @@
 import { type MouseEvent, type ReactNode, useState } from "react"
 import {
+  Bot,
   ClipboardList,
   ClipboardCheck,
   Database,
@@ -73,6 +74,10 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     title: string
   } | null>(null)
   const [renameValue, setRenameValue] = useState("")
+  const [visibleConversationCount, setVisibleConversationCount] = useState(5)
+  const [historyOpen, setHistoryOpen] = useState(true)
+  const [functionNavOpen, setFunctionNavOpen] = useState(false)
+  const [governanceOpen, setGovernanceOpen] = useState(false)
   const user = useSelector((state: RootState) => state.auth.user)
   const displayName = user?.name || t("web.shell.account.guestName")
   const displayId = user
@@ -126,6 +131,14 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     <LanguageSwitch key="lang" />,
     <ThemeToggle key="theme" />,
   ]
+  const recentConversations = chat.conversations.slice(
+    0,
+    visibleConversationCount
+  )
+  const hiddenConversationCount = Math.max(
+    chat.conversations.length - recentConversations.length,
+    0
+  )
   const sections: SidebarShellSection[] = [
     {
       key: "create",
@@ -141,9 +154,85 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       ],
     },
     {
+      key: "recents",
+      label: t("agentChat.shell.sections.recents"),
+      collapsible: true,
+      maxContentHeight: "md",
+      open: historyOpen,
+      toggleLabel: historyOpen
+        ? t("agentChat.sidebar.collapseHistory")
+        : t("agentChat.sidebar.expandHistory"),
+      onOpenChange: setHistoryOpen,
+      items: recentConversations.length
+        ? [
+            ...recentConversations.map((conversation) => ({
+              key: conversation.id,
+              icon: <MessageSquareText />,
+              label: conversation.title,
+              active: conversation.id === chat.conversationId,
+              onSelect: () => chat.selectConversation(conversation.id),
+              action: (
+                <ConversationActionMenu
+                  actionLabel={t("pages:agentChat.conversation.actionLabel")}
+                  deleteLabel={t("common:actions.delete")}
+                  disabled={chat.isStreaming}
+                  onDelete={() => chat.deleteConversation(conversation.id)}
+                  onRename={() => openRenameDialog(conversation)}
+                  renameLabel={t("common:actions.rename")}
+                />
+              ),
+            })),
+            ...(hiddenConversationCount > 0
+              ? [
+                  {
+                    key: "more-recents",
+                    icon: <MoreHorizontal />,
+                    label: t("agentChat.sidebar.moreHistory", {
+                      count: Math.min(5, hiddenConversationCount),
+                    }),
+                    onSelect: () =>
+                      setVisibleConversationCount((current) =>
+                        Math.min(current + 5, chat.conversations.length)
+                      ),
+                  },
+                ]
+              : visibleConversationCount > 5 && chat.conversations.length > 5
+                ? [
+                    {
+                      key: "less-recents",
+                      icon: <MoreHorizontal />,
+                      label: t("agentChat.sidebar.lessHistory"),
+                      onSelect: () => setVisibleConversationCount(5),
+                    },
+                  ]
+                : []),
+          ]
+        : [
+            {
+              key: "empty-recents",
+              icon: <MessageSquareText />,
+              label: t("agentChat.sidebar.empty"),
+            },
+          ],
+    },
+    {
       key: "workspace",
       label: t("agentChat.shell.sections.workspace"),
+      collapsible: true,
+      maxContentHeight: "lg",
+      open: functionNavOpen,
+      toggleLabel: functionNavOpen
+        ? t("agentChat.sidebar.collapseFunctionNav")
+        : t("agentChat.sidebar.expandFunctionNav"),
+      onOpenChange: setFunctionNavOpen,
       items: [
+        {
+          key: "capabilities",
+          icon: <Bot />,
+          label: t("agentChat.shell.navigation.capabilities"),
+          active: isRouteActive("/agent-capabilities"),
+          onSelect: () => navigateTo("/agent-capabilities"),
+        },
         {
           key: "smart-ops",
           icon: <GitBranch />,
@@ -198,6 +287,14 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     {
       key: "governance",
       label: t("agentChat.shell.sections.governance"),
+      collapsible: true,
+      defaultOpen: false,
+      maxContentHeight: "sm",
+      open: governanceOpen,
+      toggleLabel: governanceOpen
+        ? t("agentChat.sidebar.collapseGovernance")
+        : t("agentChat.sidebar.expandGovernance"),
+      onOpenChange: setGovernanceOpen,
       items: [
         {
           key: "deliverables",
@@ -234,52 +331,6 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           active: isRouteActive("/overview"),
           onSelect: () => navigateTo("/overview"),
         },
-        {
-          key: "team",
-          icon: <UserRound />,
-          label: t("agentChat.shell.navigation.team"),
-          active: isRouteActive("/agent"),
-          onSelect: () => navigateTo("/agent"),
-        },
-      ],
-    },
-    {
-      key: "recents",
-      label: t("agentChat.shell.sections.recents"),
-      items: [
-        {
-          key: "history",
-          icon: <MessageSquareText />,
-          label: t("agentChat.shell.navigation.history"),
-          active: chat.conversations.some(
-            (conversation) => conversation.id === chat.conversationId
-          ),
-          subItems: chat.conversations.length
-            ? chat.conversations.slice(0, 8).map((conversation) => ({
-                key: conversation.id,
-                href: "#",
-                label: conversation.title,
-                active: conversation.id === chat.conversationId,
-                onSelect: () => chat.selectConversation(conversation.id),
-                action: (
-                  <ConversationActionMenu
-                    actionLabel={t("pages:agentChat.conversation.actionLabel")}
-                    deleteLabel={t("common:actions.delete")}
-                    disabled={chat.isStreaming}
-                    onDelete={() => chat.deleteConversation(conversation.id)}
-                    onRename={() => openRenameDialog(conversation)}
-                    renameLabel={t("common:actions.rename")}
-                  />
-                ),
-              }))
-            : [
-                {
-                  key: "empty-recents",
-                  href: "#",
-                  label: t("agentChat.sidebar.empty"),
-                },
-              ],
-        },
       ],
     },
   ]
@@ -287,7 +338,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   return (
     <>
       <SidebarShell
-        defaultSidebarOpen={false}
+        defaultSidebarOpen
         brandLogo={
           <div className="relative flex size-10 items-center justify-center rounded-xl bg-foreground font-mono text-base font-semibold text-background shadow-sm">
             CA

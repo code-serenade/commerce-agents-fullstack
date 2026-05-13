@@ -21,11 +21,21 @@ describe("agent runtime options", () => {
     )
   })
 
-  it("narrows execution strategy to the primary role", () => {
+  it("uses the chat role for quick execution answers", () => {
     expect(runtimeSelectionForStrategy(manualSelection, "execution")).toEqual({
       ...manualSelection,
       collaborationMode: "single",
-      selectedRoles: ["data"],
+      primaryRole: "chat",
+      selectedRoles: ["chat"],
+    })
+  })
+
+  it("uses the chat role for guided learning answers", () => {
+    expect(runtimeSelectionForStrategy(manualSelection, "learning")).toEqual({
+      ...manualSelection,
+      collaborationMode: "single",
+      primaryRole: "chat",
+      selectedRoles: ["chat"],
     })
   })
 

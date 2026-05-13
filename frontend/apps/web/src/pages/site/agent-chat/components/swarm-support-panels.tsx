@@ -21,37 +21,39 @@ const WORKSPACE_HANDOFFS = [
   ["agentChat.swarm.handoffs.review.title", "agentChat.swarm.handoffs.review.detail", Bot, "/overview"],
 ] as const
 
-export function WorkspaceHandoffRail() {
+export function WorkspaceHandoffRail({ compact = false }: { compact?: boolean }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
 
   return (
-    <div className="rounded-xl border border-border bg-background p-3 shadow-sm">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-sm font-medium">
+    <div className="rounded-lg border border-border bg-background p-2 shadow-sm">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-1.5 text-xs font-medium">
           <PlugZap className="size-4 text-muted-foreground" />
-          {t("agentChat.workbench.handoff")}
+          <span className="truncate">{t("agentChat.workbench.handoff")}</span>
         </div>
-        <span className="text-xs text-muted-foreground">
+        <span className="hidden shrink-0 text-xs text-muted-foreground min-[1500px]:inline">
           {t("agentChat.workbench.futureModules")}
         </span>
       </div>
-      <div className="grid gap-2">
+      <div className="grid gap-1">
         {WORKSPACE_HANDOFFS.map(([titleKey, detailKey, Icon, path]) => (
           <button
             key={titleKey}
             type="button"
-            className="flex min-w-0 items-start gap-2 rounded-lg border border-border bg-card px-3 py-2 text-left transition-colors hover:bg-muted"
+            className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-card px-2 py-1.5 text-left transition-colors hover:bg-muted"
             onClick={() => navigate(path)}
           >
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-              <Icon className="size-4" />
+            <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+              <Icon className="size-3.5" />
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{t(titleKey)}</p>
-              <p className="mt-1 line-clamp-2 text-xs/5 text-muted-foreground">
-                {t(detailKey)}
-              </p>
+              <p className="truncate text-xs font-medium">{t(titleKey)}</p>
+              {compact ? null : (
+                <p className="mt-1 line-clamp-2 text-xs/5 text-muted-foreground">
+                  {t(detailKey)}
+                </p>
+              )}
             </div>
           </button>
         ))}
@@ -70,13 +72,13 @@ export function CompactInfoBlock({
   title: string
 }) {
   return (
-    <div className="rounded-xl border border-border bg-background p-3 shadow-sm">
-      <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+    <div className="rounded-lg border border-border bg-background p-2 shadow-sm">
+      <div className="mb-2 flex min-w-0 items-center gap-1.5 text-xs font-medium">
         <Icon className="size-4 text-muted-foreground" />
-        {title}
+        <span className="truncate">{title}</span>
       </div>
-      <div className="space-y-1.5">
-        {items.map((item) => (
+      <div className="space-y-1">
+        {items.slice(0, 3).map((item) => (
           <div
             key={item}
             className="flex items-center gap-2 text-xs text-muted-foreground"

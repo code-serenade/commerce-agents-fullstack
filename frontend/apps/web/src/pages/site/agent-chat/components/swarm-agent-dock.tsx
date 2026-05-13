@@ -25,8 +25,8 @@ export function AgentDock({
   const { t } = useTranslation()
 
   return (
-    <div className="shrink-0 border-t border-[#d8d8d3] bg-[#f8f8f6] p-3 dark:border-border dark:bg-card">
-      <div className="flex min-w-0 gap-3 overflow-x-auto overscroll-x-contain pb-1 [scrollbar-width:thin]">
+    <div className="shrink-0 border-t border-[#d8d8d3] bg-[#f8f8f6] p-2 dark:border-border dark:bg-card">
+      <div className="grid min-w-0 grid-cols-2 gap-1.5 min-[1500px]:grid-cols-4">
         {agents.map((agent, index) => {
           const state = getAgentState({
             agent,
@@ -43,27 +43,27 @@ export function AgentDock({
             <article
               key={agent.nodeId}
               title={`${formatAgentNumber(index)} ${agent.name} ${getDockStateLabel(state, t)}`}
-              className={`flex min-w-40 shrink-0 items-center gap-2 rounded-xl border px-3 py-2.5 transition-colors ${
+              className={`flex min-w-0 items-center gap-2 rounded-full border px-2 py-1.5 transition-colors ${
                 isActive
                   ? "border-foreground bg-background shadow-sm"
                   : "border-transparent bg-[#eeeeeb] text-muted-foreground"
               }`}
             >
               <div
-                className={`flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-background ${
+                className={`flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-background ${
                   isActive ? "text-foreground" : "text-muted-foreground"
                 }`}
               >
-                <Icon className="size-4" />
+                <Icon className="size-3.5" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex min-w-0 items-center gap-1.5">
-                  <span className="shrink-0 font-mono text-sm font-semibold text-muted-foreground">
+                  <span className="shrink-0 font-mono text-xs font-semibold text-muted-foreground">
                     {formatAgentNumber(index)}
                   </span>
-                  <p className="truncate text-sm font-semibold">{agent.name}</p>
+                  <p className="truncate text-xs font-semibold">{agent.name}</p>
                 </div>
-                <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
                   <DockStateIcon state={state} />
                   <span className="truncate">
                     {getDockStateLabel(state, t)}

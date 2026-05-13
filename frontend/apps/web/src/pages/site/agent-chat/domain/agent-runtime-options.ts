@@ -104,12 +104,11 @@ export function runtimeSelectionForStrategy(
   strategyId: string
 ): AgentChatRuntimeSelection {
   if (strategyId === "execution" || strategyId === "learning") {
-    const primaryRole = selection.primaryRole ?? selection.selectedRoles[0]
     return {
       ...selection,
       collaborationMode: "single",
-      primaryRole,
-      selectedRoles: primaryRole ? [primaryRole] : [],
+      primaryRole: "chat",
+      selectedRoles: ["chat"],
     }
   }
   if (strategyId === "collab") {

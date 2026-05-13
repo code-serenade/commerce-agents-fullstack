@@ -8,7 +8,7 @@ use crate::{
     agent::{
         commander::{
             Commander, CommanderChannels, CommanderOptions, CommanderSessionContext,
-            TaskGraphRuntime, plan_quick_chat_graph,
+            TaskGraphRuntime, plan_forced_chat_graph, plan_quick_chat_graph,
         },
         worker::Worker,
     },
@@ -277,7 +277,7 @@ impl SessionRuntime {
 
                 let mut runtime = TaskGraphRuntime::new(TaskGraph {
                     graph_id: report.graph_id.clone(),
-                    root_task: self.task_description.clone(),
+                    root_task: self.task_description_with_conversation_history(),
                     nodes: vec![
                         self.chat_bypass_graph(&report.task_id)
                             .and_then(|graph| graph.nodes.into_iter().next())
@@ -388,6 +388,10 @@ impl SessionRuntime {
         if self.commander_fast_route_disabled() {
             return None;
         }
+        if self.is_explicit_chat_role_selection() {
+            let task_for_worker = self.task_description_with_conversation_history();
+            return Some(plan_forced_chat_graph(task_id, &task_for_worker));
+        }
         let graph = plan_quick_chat_graph(task_id, &self.task_description)?;
         if self.has_explicit_non_chat_role_selection() {
             return None;
@@ -398,7 +402,32 @@ impl SessionRuntime {
         let [node] = graph.nodes.as_slice() else {
             return None;
         };
-        (node.role == "chat" && node.input_refs.is_empty()).then_some(graph)
+        if node.role != "chat" || !node.input_refs.is_empty() {
+            return None;
+        }
+        let task_for_worker = self.task_description_with_conversation_history();
+        Some(chat_graph_with_task_context(graph, &task_for_worker))
+    }
+
+    fn task_description_with_conversation_history(&self) -> String {
+        let Some(history) = self
+            .context
+            .metadata
+            .get("conversation.history_summary")
+            .map(|value| value.trim())
+            .filter(|value| !value.is_empty())
+        else {
+            return self.task_description.clone();
+        };
+
+        if self.task_description.contains("同一会话历史上下文") {
+            return self.task_description.clone();
+        }
+
+        format!(
+            "同一会话历史上下文（这是同一用户同一会话内此前消息，用于理解“继续、刚才、按前面、补充后、沿用这些数据”等追问；这不代表用户选择了任何预设商品）：\n{history}\n\n当前用户请求：\n{}",
+            self.task_description
+        )
     }
 
     async fn emit_route_decided(&self, route_mode: &str, roles: Option<Vec<String>>) {
@@ -462,6 +491,32 @@ impl SessionRuntime {
                 .get("strategy.primary_role")
                 .map(|role| role.trim())
                 .is_some_and(|role| !role.is_empty() && role != "chat")
+    }
+
+    fn is_explicit_chat_role_selection(&self) -> bool {
+        let collaboration_mode = self
+            .context
+            .metadata
+            .get("strategy.collaboration_mode")
+            .map(String::as_str)
+            .unwrap_or_default();
+        if !matches!(collaboration_mode, "single" | "manual") {
+            return false;
+        }
+        if self.has_explicit_non_chat_role_selection() {
+            return false;
+        }
+
+        let selected_roles =
+            split_metadata_list(self.context.metadata.get("strategy.selected_roles"));
+        let primary_role = self
+            .context
+            .metadata
+            .get("strategy.primary_role")
+            .map(|role| role.trim());
+
+        selected_roles.iter().any(|role| role == "chat")
+            || primary_role.is_some_and(|role| role == "chat")
     }
 
     fn commander_fast_route_disabled(&self) -> bool {
@@ -530,6 +585,20 @@ fn is_direct_answer_chat_graph(graph: &TaskGraph) -> bool {
     node.role == "chat" && node.title == "直接回答"
 }
 
+fn chat_graph_with_task_context(mut graph: TaskGraph, task: &str) -> TaskGraph {
+    if task.trim().is_empty() || graph.root_task == task {
+        return graph;
+    }
+    graph.root_task = task.to_string();
+    for node in &mut graph.nodes {
+        if node.role != "chat" || node.objective.contains(task) {
+            continue;
+        }
+        node.objective = format!("{}\n\n补充任务上下文：\n{task}", node.objective);
+    }
+    graph
+}
+
 fn context_loaded_event(session_id: &SessionId, context: &MessageContext) -> Option<SessionEvent> {
     let product_ids = split_metadata_list(context.metadata.get("context.product_ids"));
     let refs = split_metadata_list(context.metadata.get("context.refs"));
@@ -538,7 +607,8 @@ fn context_loaded_event(session_id: &SessionId, context: &MessageContext) -> Opt
     let source_count = parse_usize_metadata(context.metadata.get("context.source_count"));
     let summary = context
         .metadata
-        .get("context.summary")
+        .get("context.selected_summary")
+        .or_else(|| context.metadata.get("context.summary"))
         .map(|value| compact_event_text(value, 600));
     let sources_json = context.metadata.get("context.sources_json").cloned();
 

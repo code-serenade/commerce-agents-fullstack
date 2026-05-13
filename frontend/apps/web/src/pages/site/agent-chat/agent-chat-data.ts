@@ -7,9 +7,13 @@ import {
   listCommerceAgentPlaybooksApi,
   listProductsApi,
   listConversationsApi,
+  presignConversationFileUploadApi,
+  registerConversationFileApi,
   streamAgentSessionApi,
   submitAgentRunFeedbackApi,
   updateConversationApi,
+  updateConversationFileExtractionApi,
+  uploadConversationFileApi,
 } from "@/api"
 
 export type { AgentRunFeedbackResponse, AgentRuntimeEvent } from "@/api"
@@ -25,7 +29,11 @@ export const agentChatData = {
   listPlaybooks: listCommerceAgentPlaybooksApi,
   listProducts: listProductsApi,
   listConversations: listConversationsApi,
+  presignConversationFileUpload: presignConversationFileUploadApi,
+  registerConversationFile: registerConversationFileApi,
   streamAgentSession: streamAgentSessionApi,
   submitRunFeedback: submitAgentRunFeedbackApi,
   updateConversation: updateConversationApi,
+  updateConversationFileExtraction: updateConversationFileExtractionApi,
+  uploadConversationFile: uploadConversationFileApi,
 }

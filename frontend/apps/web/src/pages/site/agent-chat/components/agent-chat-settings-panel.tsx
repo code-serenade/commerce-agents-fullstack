@@ -1,14 +1,4 @@
-import {
-  BadgeDollarSign,
-  BarChart3,
-  ChevronsUpDown,
-  ClipboardList,
-  Loader2,
-  PenLine,
-  Rocket,
-  ShieldAlert,
-  type LucideIcon,
-} from "lucide-react"
+import { ChevronsUpDown, SlidersHorizontal } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type { AgentChatPlaybookSelection } from "../domain/agent-chat-playbook"
 import type {
@@ -16,17 +6,9 @@ import type {
   AgentRuntimeOptions,
 } from "../domain/agent-runtime-options"
 import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
+import { AgentChatPlaybookButtons } from "./agent-chat-playbook-buttons"
 import { AgentChatRuntimeOptionsBar } from "./agent-chat-runtime-options-bar"
 import { AgentChatStrategyBar } from "./agent-chat-strategy-bar"
-
-const PLAYBOOK_ICONS: Record<string, LucideIcon> = {
-  briefing: ClipboardList,
-  creative: PenLine,
-  launch: Rocket,
-  pricing: BadgeDollarSign,
-  review: BarChart3,
-  service: ShieldAlert,
-}
 
 export interface AgentChatSettingsPanelProps {
   isLoadingPlaybooks: boolean
@@ -45,6 +27,7 @@ export interface AgentChatSettingsPanelProps {
   runtimeOptions: AgentRuntimeOptions | null
   runtimeSelection: AgentChatRuntimeSelection
   strategyId: AgentChatStrategyId
+  variant?: "bar" | "compact" | "panel"
 }
 
 export function AgentChatSettingsPanel({
@@ -64,6 +47,7 @@ export function AgentChatSettingsPanel({
   runtimeOptions,
   runtimeSelection,
   strategyId,
+  variant = "bar",
 }: AgentChatSettingsPanelProps) {
   const { t } = useTranslation()
   const activeStrategyLabel = t(`agentChat.strategy.options.${strategyId}.label`)
@@ -78,6 +62,74 @@ export function AgentChatSettingsPanel({
   ]
     .filter(Boolean)
     .join(" · ")
+
+  if (variant === "panel") {
+    return (
+      <>
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">
+            {activeStrategyLabel}
+          </span>
+          {runtimeLabel ? (
+            <>
+              <span>·</span>
+              <span className="truncate">{runtimeLabel}</span>
+            </>
+          ) : null}
+        </div>
+        <AgentChatSettingsControls
+          isLoadingPlaybooks={isLoadingPlaybooks}
+          isLoadingRuntimeOptions={isLoadingRuntimeOptions}
+          isStreaming={isStreaming}
+          onCollaborationModeChange={onCollaborationModeChange}
+          onLearningLevelChange={onLearningLevelChange}
+          onModelChange={onModelChange}
+          onPrimaryRoleChange={onPrimaryRoleChange}
+          onSelectPlaybook={onSelectPlaybook}
+          onStrategyChange={onStrategyChange}
+          onToggleRole={onToggleRole}
+          playbooks={playbooks}
+          runtimeOptions={runtimeOptions}
+          runtimeSelection={runtimeSelection}
+          strategyId={strategyId}
+        />
+      </>
+    )
+  }
+
+  if (variant === "compact") {
+    const compactTitle = [
+      t("agentChat.composer.settings.compactTitle"),
+      activeStrategyLabel,
+      runtimeLabel,
+    ]
+      .filter(Boolean)
+      .join(" - ")
+
+    return (
+      <div className="relative shrink-0" data-composer-interactive="true">
+        <button
+          type="button"
+          disabled={isStreaming}
+          onClick={onToggleOpen}
+          className={`flex h-7 max-w-36 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+            isOpen
+              ? "border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-700/70 dark:bg-blue-950/40 dark:text-blue-100"
+              : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+          }`}
+          aria-expanded={isOpen}
+          aria-label={compactTitle}
+          title={compactTitle}
+        >
+          <SlidersHorizontal className="size-3.5 shrink-0" />
+          <span className="truncate">
+            {t("agentChat.composer.settings.compactLabel")}
+          </span>
+          <ChevronIndicator open={isOpen} />
+        </button>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -106,27 +158,21 @@ export function AgentChatSettingsPanel({
       </div>
       {isOpen ? (
         <div className="grid gap-2 rounded-xl border border-border bg-background/80 p-2">
-          <AgentChatStrategyBar
-            disabled={isStreaming}
-            onStrategyChange={onStrategyChange}
-            strategyId={strategyId}
-          />
-          <AgentChatRuntimeOptionsBar
-            disabled={isStreaming}
+          <AgentChatSettingsControls
+            isLoadingPlaybooks={isLoadingPlaybooks}
             isLoadingRuntimeOptions={isLoadingRuntimeOptions}
+            isStreaming={isStreaming}
             onCollaborationModeChange={onCollaborationModeChange}
             onLearningLevelChange={onLearningLevelChange}
             onModelChange={onModelChange}
             onPrimaryRoleChange={onPrimaryRoleChange}
+            onSelectPlaybook={onSelectPlaybook}
+            onStrategyChange={onStrategyChange}
             onToggleRole={onToggleRole}
+            playbooks={playbooks}
             runtimeOptions={runtimeOptions}
             runtimeSelection={runtimeSelection}
-          />
-          <PlaybookButtons
-            isLoading={isLoadingPlaybooks}
-            isStreaming={isStreaming}
-            onSelectPlaybook={onSelectPlaybook}
-            playbooks={playbooks}
+            strategyId={strategyId}
           />
         </div>
       ) : null}
@@ -134,48 +180,69 @@ export function AgentChatSettingsPanel({
   )
 }
 
-function PlaybookButtons({
-  isLoading,
+function AgentChatSettingsControls({
+  isLoadingPlaybooks,
+  isLoadingRuntimeOptions,
   isStreaming,
+  onCollaborationModeChange,
+  onLearningLevelChange,
+  onModelChange,
+  onPrimaryRoleChange,
   onSelectPlaybook,
+  onStrategyChange,
+  onToggleRole,
   playbooks,
+  runtimeOptions,
+  runtimeSelection,
+  strategyId,
 }: {
-  isLoading: boolean
+  isLoadingPlaybooks: boolean
+  isLoadingRuntimeOptions: boolean
   isStreaming: boolean
+  onCollaborationModeChange: (value: string) => void
+  onLearningLevelChange: (value: string) => void
+  onModelChange: (value: string) => void
+  onPrimaryRoleChange: (value: string) => void
   onSelectPlaybook: (playbook: AgentChatPlaybookSelection) => void
+  onStrategyChange: (strategyId: AgentChatStrategyId) => void
+  onToggleRole: (value: string) => void
   playbooks: AgentChatPlaybookSelection[]
+  runtimeOptions: AgentRuntimeOptions | null
+  runtimeSelection: AgentChatRuntimeSelection
+  strategyId: AgentChatStrategyId
 }) {
-  const { t } = useTranslation()
-
   return (
-    <div className="flex flex-wrap gap-2">
-      {isLoading ? (
-        <span className="flex h-7 items-center gap-2 rounded-full border border-border bg-background/70 px-3 text-xs text-muted-foreground">
-          <Loader2 className="size-3.5 animate-spin" />
-          {t("agentChat.composer.playbooks.loading")}
-        </span>
-      ) : null}
-      {!isLoading && playbooks.length === 0 ? (
-        <span className="flex h-7 items-center rounded-full border border-border bg-background/70 px-3 text-xs text-muted-foreground">
-          {t("agentChat.composer.playbooks.empty")}
-        </span>
-      ) : null}
-      {playbooks.map((playbook) => {
-        const Icon = PLAYBOOK_ICONS[playbook.category] ?? ClipboardList
-        return (
-          <button
-            key={playbook.id}
-            type="button"
-            disabled={isStreaming}
-            onClick={() => onSelectPlaybook(playbook)}
-            className="flex max-w-44 items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-            title={`${playbook.description} ${playbook.expectedOutputs.join(" / ")}`}
-          >
-            <Icon className="size-3.5" />
-            <span className="truncate">{playbook.title}</span>
-          </button>
-        )
-      })}
-    </div>
+    <>
+      <AgentChatStrategyBar
+        disabled={isStreaming}
+        onStrategyChange={onStrategyChange}
+        strategyId={strategyId}
+      />
+      <AgentChatRuntimeOptionsBar
+        disabled={isStreaming}
+        isLoadingRuntimeOptions={isLoadingRuntimeOptions}
+        onCollaborationModeChange={onCollaborationModeChange}
+        onLearningLevelChange={onLearningLevelChange}
+        onModelChange={onModelChange}
+        onPrimaryRoleChange={onPrimaryRoleChange}
+        onToggleRole={onToggleRole}
+        runtimeOptions={runtimeOptions}
+        runtimeSelection={runtimeSelection}
+      />
+      <AgentChatPlaybookButtons
+        isLoading={isLoadingPlaybooks}
+        isStreaming={isStreaming}
+        onSelectPlaybook={onSelectPlaybook}
+        playbooks={playbooks}
+      />
+    </>
+  )
+}
+
+function ChevronIndicator({ open }: { open: boolean }) {
+  return (
+    <ChevronsUpDown
+      className={`size-3.5 shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
+    />
   )
 }

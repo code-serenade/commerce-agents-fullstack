@@ -169,7 +169,7 @@ impl Worker {
             intent: Intent {
                 id: task.id.clone(),
                 kind: IntentKind::Planning,
-                description: task.description.clone(),
+                description: conversation_aware_task_description(&task),
             },
             context: self.build_cognition_context(&task),
         };
@@ -2156,32 +2156,108 @@ fn build_context(
     Context { facts, metadata }
 }
 
+fn conversation_aware_task_description(task: &Task) -> String {
+    if task.description.contains("同一会话历史上下文") {
+        return task.description.clone();
+    }
+
+    let Some(history) = task
+        .context
+        .metadata
+        .get("conversation.history_summary")
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
+    else {
+        return task.description.clone();
+    };
+
+    format!(
+        "同一会话历史上下文（用于理解追问、继续、补充、按前面数据等表达；这不代表用户选择了任何预设商品）：\n{history}\n\n当前用户请求：\n{}",
+        task.description
+    )
+}
+
 fn extend_context_facts(
     metadata: &std::collections::BTreeMap<String, String>,
     facts: &mut Vec<Fact>,
 ) {
-    if let Some(summary) = metadata
-        .get("context.summary")
+    if let Some(history) = metadata
+        .get("conversation.history_summary")
         .map(|value| value.trim())
         .filter(|value| !value.is_empty())
     {
         facts.push(Fact {
-            source: "commerce.product_context".to_string(),
-            content: summary.to_string(),
+            source: "conversation.history".to_string(),
+            content: format!(
+                "同一会话历史上下文如下。回答追问、补充、继续、按前面数据等问题时，必须优先结合这段历史；不要要求用户重复已经在这里提供的信息。\n{history}"
+            ),
             reliability: 1.0,
         });
     }
-    if let Some(sources) = metadata
-        .get("context.sources_json")
+    extend_named_context_fact(
+        metadata,
+        facts,
+        "context.selected_summary",
+        "commerce.selected_product_context",
+        "用户本轮手动选择的商品/知识上下文如下；只有存在这段事实时，才可按指定商品回答。\n",
+    );
+    extend_named_context_fact(
+        metadata,
+        facts,
+        "context.sources_json",
+        "commerce.selected_product_context.sources",
+        "",
+    );
+    extend_named_context_fact(
+        metadata,
+        facts,
+        "context.combined_summary",
+        "request.combined_context",
+        "本轮合并上下文摘要如下。它可能包含会话历史、工作区资料或 RAG 降级信息；只有 source 为 commerce.selected_product_context 时才代表用户手动指定商品。\n",
+    );
+    extend_named_context_fact(
+        metadata,
+        facts,
+        "workspaceContext.summary",
+        "workspace.context_summary",
+        "本轮工作区上下文可用性摘要如下；它不是用户手动选择的商品资料。\n",
+    );
+    extend_named_context_fact(
+        metadata,
+        facts,
+        "workspaceContextPack.summary",
+        "workspace.context_pack_summary",
+        "本轮工作区可读资料摘要如下；它不是用户手动选择的商品资料。\n",
+    );
+    extend_named_context_fact(
+        metadata,
+        facts,
+        "workspaceContextPack.items_json",
+        "workspace.context_pack.items",
+        "",
+    );
+}
+
+fn extend_named_context_fact(
+    metadata: &std::collections::BTreeMap<String, String>,
+    facts: &mut Vec<Fact>,
+    key: &str,
+    source: &str,
+    prefix: &str,
+) {
+    let Some(value) = metadata
+        .get(key)
         .map(|value| value.trim())
         .filter(|value| !value.is_empty())
-    {
-        facts.push(Fact {
-            source: "commerce.product_context.sources".to_string(),
-            content: sources.to_string(),
-            reliability: 1.0,
-        });
-    }
+    else {
+        return;
+    };
+
+    facts.push(Fact {
+        source: source.to_string(),
+        content: format!("{prefix}{value}"),
+        reliability: 1.0,
+    });
 }
 
 fn extract_worker_content(output: &str) -> String {
@@ -2836,7 +2912,7 @@ mod tests {
         let cases = [
             ("帮冷萃咖啡写一条抖音短视频脚本", "creative_video_script"),
             ("生成小红书种草笔记文案", "creative_seeding_copy"),
-            ("给千乐咖啡做品牌IP人设定位", "creative_ip_branding"),
+            ("给一个咖啡品牌做品牌IP人设定位", "creative_ip_branding"),
             ("排一周内容日历和选题", "creative_content_calendar"),
             ("分析咖啡饮品在抖音的内容趋势", "creative_trend_catch"),
             ("写一篇冷萃咖啡产品软文", "creative_product_article"),

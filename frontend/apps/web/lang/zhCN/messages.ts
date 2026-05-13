@@ -819,7 +819,7 @@ const messages = {
     error: "Agent 回复失败，请稍后重试。",
     errorBadge: "回复失败",
     missingStructuredOutput:
-      "上一轮任务未产出完整结构化结果。可以直接重新发送任务，我会重新规划执行计划，并把过程同步到虚拟员工工作区。",
+      "上一轮任务未产出完整结构化结果。可以直接重新发送任务，我会重新规划执行计划，并把过程同步到任务过程面板。",
     streamTimedOut:
       "本轮执行响应超时，已收起过程。你可以查看已有结果，或重新发送任务继续执行。",
     loginRequired: {
@@ -837,6 +837,15 @@ const messages = {
       recents: "最近",
       chat: "电商多智能体",
       more: "更多",
+      less: "收起",
+      moreHistory: "再显示 {{count}} 个",
+      lessHistory: "收起到最近 5 个",
+      expandHistory: "展开历史会话",
+      collapseHistory: "收起历史会话",
+      expandFunctionNav: "展开功能导航",
+      collapseFunctionNav: "收起功能导航",
+      expandGovernance: "展开管理与复盘",
+      collapseGovernance: "收起管理与复盘",
       empty: "还没有历史对话",
     },
     shell: {
@@ -846,12 +855,13 @@ const messages = {
       topbarMeta: "Commerce Agents · 虚拟员工协作",
       sections: {
         create: "",
-        workspace: "虚拟员工",
+        workspace: "功能导航",
         governance: "管理与复盘",
         recents: "历史会话",
       },
       navigation: {
         newChat: "新建会话",
+        capabilities: "能力介绍",
         smartOps: "多智能体问答",
         productBoard: "商品看板",
         campaigns: "营销活动",
@@ -886,34 +896,55 @@ const messages = {
       },
     },
     composer: {
-      placeholder: "输入电商问题，例如：五一咖啡抖音转化方案、千川投放复盘、活动预算与创意拆解...",
+      placeholder: "输入电商问题，例如：直播间转化诊断、千川投放复盘、活动预算与创意拆解...",
       loginPlaceholder: "可以先整理你的电商问题，准备调用云端智能体时再登录...",
       hint: "已连接业务上下文",
       send: "发送",
       stop: "停止",
-      attachTitle: "添加文件",
+      attachTitle: "上传附件",
+      attachShort: "上传",
       attachPrompt:
         "请在这里补充文件或数据约束，例如商品价格、预算、库存、目标人群、当前转化率和平台账号状态。",
       agentTitle: "切换虚拟员工模式",
       agentName: "电商多智能体",
       productContext: {
         label: "后端商品上下文",
+        compactLabel: "商品",
+        noneCompactLabel: "未选商品",
+        compactTitle: "选择本轮引用商品",
         loading: "正在读取商品",
         empty: "暂无可用商品",
         noneSelected: "未指定商品",
         choose: "选择预设商品",
         collapse: "收起商品",
+        clear: "清空商品",
         noneHint: "本轮不会读取任何已保存商品资料，按普通电商问题回答。",
         manualHint: "只有手动勾选后，后端才会读取对应商品资料。",
+        searchPlaceholder: "搜索商品名称、品牌、品类、平台或状态",
         selectedHint: "本轮将只读取已勾选商品的后端资料。",
         selectedCount: "已指定 {{count}} 个商品",
         moreCount: "另有 {{count}} 个",
+        noSearchResult: "没有匹配的商品",
+        status: {
+          active: "在售",
+          draft: "草稿",
+          listing: "预售/上架",
+          archived: "已归档",
+          unknown: "未知",
+        },
+      },
+      attachments: {
+        uploading: "上传中",
+        uploaded: "已接入",
+        failed: "失败",
       },
       playbooks: {
         loading: "正在读取场景",
         empty: "暂无场景",
       },
       settings: {
+        compactLabel: "策略",
+        compactTitle: "调整回答策略与运行配置",
         toggle: "任务设置",
         rolesCount: "{{count}} 个岗位",
       },
@@ -960,9 +991,9 @@ const messages = {
       },
     },
     workbench: {
-      title: "虚拟员工工作区",
-      expand: "展开虚拟员工工作区",
-      collapse: "收起虚拟员工工作区",
+      title: "任务过程",
+      expand: "展开任务过程",
+      collapse: "收起任务过程",
       progress: "进度",
       activity: "本轮动态",
       record: "本轮记录",
@@ -979,7 +1010,7 @@ const messages = {
         planningDescription:
           "已接收输入，正在匹配商品、活动、数据和交付步骤。",
         historyDescription:
-          "虚拟员工工作区只显示本轮过程，历史消息不会计入当前进度。",
+          "任务过程只显示本轮过程，历史消息不会计入当前进度。",
         waitingDescription:
           "输入电商问题后，将按商品、活动、平台数据、预警和交付资料组织处理。",
         loopTitle: "01 | 经营闭环",
@@ -1026,7 +1057,7 @@ const messages = {
       agentName: "电商多智能体",
       welcomeCapabilities: ["电商问答", "虚拟员工协作", "沉淀交付产物"],
       receivingOutput: "正在接收业务执行输出",
-      waitingEvents: "正在等待虚拟员工工作区事件",
+      waitingEvents: "正在等待任务过程事件",
       completedTasks: "{{completed}}/{{total}} 个任务完成",
       planning: "正在生成执行计划",
       historyNotExecuted: "历史消息未执行",
@@ -1046,6 +1077,7 @@ const messages = {
       currentProgress: "当前进度 {{completed}}/{{total}}",
       collapseProcess: "折叠执行过程",
       expandProcess: "展开执行过程",
+      openWorkbench: "打开任务过程",
       actions: {
         copy: "复制",
         useful: "有用",
@@ -1116,13 +1148,13 @@ const messages = {
         },
       },
       processStage: {
-        failed: "执行受阻，展开虚拟员工工作区查看待处理项",
+        failed: "执行受阻，展开任务过程查看待处理项",
         finished: "方案已汇总，可查看过程和业务落点",
         saved: "本轮回答已保存到工作区",
         running: "执行计划推进中",
         planning: "正在规划执行计划",
         synced: "本轮过程已同步",
-        history: "历史会话，展开虚拟员工工作区查看本轮过程",
+        history: "历史会话，展开任务过程查看本轮过程",
       },
       artifactState: {
         done: "已生成",
@@ -1254,7 +1286,7 @@ const messages = {
       timeline: {
         planning: [
           "已收到任务，正在规划执行计划。",
-          "处理步骤、依赖和验收规则生成后会同步到虚拟员工工作区。",
+          "处理步骤、依赖和验收规则生成后会同步到任务过程面板。",
         ],
         history: [
           "当前展示的是历史对话，本轮过程尚未开始。",
@@ -1612,6 +1644,113 @@ const messages = {
           "随行杯赠品只给高客单组合，避免赠品吃掉毛利。",
         ],
       },
+    },
+  },
+  agentCapabilities: {
+    header: {
+      eyebrow: "Capability Map",
+      title: "电商多智能体能力介绍",
+      description:
+        "这里说明新产品如何把旧产品的电商能力、虚拟员工岗位和后端治理链路组织到同一套工作台里，便于用户理解每个入口能解决什么问题。",
+      action: "进入问答",
+    },
+    principle: {
+      title: "产品使用方式",
+      description:
+        "用户不是只使用一个聊天框，而是在中间发起电商任务，由后端按上下文、策略、岗位、skill、工作区和审批记录组织一组虚拟员工协作完成。",
+    },
+    capabilities: {
+      title: "核心能力",
+      description:
+        "这些能力优先以后端真实链路承接，前端只负责选择、展示过程和打开对应业务入口。",
+      items: [
+        {
+          title: "商品分析",
+          description:
+            "引用用户手动选择的商品、素材、卖点和竞品资料；未选择商品时走普通电商问答链路。",
+        },
+        {
+          title: "选品与竞品研究",
+          description:
+            "围绕品类、价格带、消费者需求、平台趋势和竞品动作形成分析结论。",
+        },
+        {
+          title: "外部搜索与实时数据",
+          description:
+            "通过后端 adapter 返回带来源的数据；未配置接口时明确显示未接入，不伪造结果。",
+        },
+        {
+          title: "内容与营销生成",
+          description:
+            "生成直播脚本、短视频创意、活动节奏、投放复盘和运营计划。",
+        },
+        {
+          title: "客服与用户问题处理",
+          description:
+            "根据商品资料、售后规则和用户问题组织回复、归因和后续动作建议。",
+        },
+        {
+          title: "执行工作区",
+          description:
+            "把 Agent 输出沉淀为任务、运行记录、执行建议和可追踪的业务状态。",
+        },
+        {
+          title: "交付资料",
+          description:
+            "把方案、清单、报告和文档作为 artifact 保存，便于预览、复制、下载和归档。",
+        },
+        {
+          title: "审批与审计",
+          description:
+            "平台写操作和高风险动作必须走审批、执行队列和审计日志，避免自动乱执行。",
+        },
+      ],
+    },
+    flow: {
+      title: "一次任务怎样流转",
+      description: "用户可感知的主链路应该清楚、连续、可追踪。",
+      items: [
+        "用户新建会话或选择历史会话，输入电商问题。",
+        "按需选择回答策略、岗位模式和用户自己勾选的商品资料。",
+        "后端规划任务，调用模型、角色和 skill，并通过 SSE 展示过程。",
+        "过程卡片先显示在正文上方，回答结束后默认折叠，避免挡住正文。",
+        "最终回答和可交付内容沉淀到工作区、交付资料、审批或运营页面。",
+      ],
+    },
+    lanes: {
+      title: "功能导航对应的业务分区",
+      description:
+        "左侧功能导航不只是页面菜单，而是虚拟员工能力进入后端业务系统的入口。",
+      items: [
+        {
+          title: "多智能体问答",
+          description: "统一入口，承接用户问题、策略选择、商品引用和过程展示。",
+        },
+        {
+          title: "商品与上下文",
+          description: "管理商品、素材、知识、竞品和用户手动选择的任务上下文。",
+        },
+        {
+          title: "平台与运营",
+          description: "连接平台、活动、指标、日报、告警和外部数据 adapter。",
+        },
+        {
+          title: "能力包治理",
+          description: "管理 skill 能力包、版本、运行锁、校验、启停和回滚记录。",
+        },
+        {
+          title: "审批与交付",
+          description: "承接高风险动作审批、审计、执行清单和最终交付资料。",
+        },
+      ],
+    },
+    boundary: {
+      title: "当前设计边界",
+      description:
+        "能力介绍要让用户明白哪些是已经可用的后端能力，哪些需要外部接口或后续迁移。",
+      backend: "后端是真实能力来源，前端不放假按钮、假状态或假搜索结果。",
+      context: "商品资料只在用户手动勾选后注入；没有选择商品时保持普通问答上下文。",
+      governance: "涉及平台写入、预算调整、发布和删除的动作都应进入审批和审计。",
     },
   },
   login: {

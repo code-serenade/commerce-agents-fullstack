@@ -28,7 +28,7 @@ export function InlineProgressSummary({
   const { t } = useTranslation()
 
   return (
-    <div className="mt-4 rounded-lg border border-border bg-background px-3 py-2">
+    <div className="rounded-lg border border-border bg-background px-3 py-2">
       <div className="flex min-w-0 items-center gap-2 text-xs">
         <CheckCircle2
           className={`size-4 shrink-0 text-emerald-600 ${
@@ -60,20 +60,20 @@ export function InlineProgressSummary({
 
 export function InlineStepStrip({ steps }: { steps: string[][] }) {
   return (
-    <div className="mt-4 flex min-w-0 gap-2 overflow-x-auto pb-1">
+    <div className="flex min-w-0 flex-wrap gap-1.5">
       {steps.map(([label, detail], index) => {
         return (
           <div
             key={label}
-            className="min-w-44 rounded-lg border border-border bg-card px-3 py-2 shadow-sm"
+            className="flex min-w-0 max-w-full items-center gap-2 rounded-full border border-border bg-card px-2.5 py-1.5 shadow-sm"
           >
-            <div className="flex min-w-0 items-center gap-2">
-              <span className="font-mono text-xs font-semibold text-muted-foreground">
-                {String(index + 1).padStart(2, "0")}
-              </span>
-              <p className="truncate text-sm font-medium">{label}</p>
-            </div>
-            <p className="mt-1 truncate text-xs text-muted-foreground">{detail}</p>
+            <span className="shrink-0 font-mono text-[11px] font-semibold text-muted-foreground">
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <p className="truncate text-xs font-medium">{label}</p>
+            <span className="hidden min-w-0 truncate text-xs text-muted-foreground sm:inline">
+              {detail}
+            </span>
           </div>
         )
       })}
@@ -103,13 +103,21 @@ export function InlineRuntimeBadge({
   )
 }
 
-export function InlineAgentGrid({ agents }: { agents: InlineAgent[] }) {
+export function InlineAgentGrid({
+  agents,
+  compact = false,
+}: {
+  agents: InlineAgent[]
+  compact?: boolean
+}) {
+  const visibleAgents = compact ? agents.slice(0, 3) : agents.slice(0, 6)
+
   return (
-    <div className="mt-4 grid gap-2 sm:grid-cols-2">
-      {agents.slice(0, 6).map((agent, index) => (
+    <div className="grid gap-1.5">
+      {visibleAgents.map((agent, index) => (
         <div
           key={agent.nodeId}
-          className={`flex min-w-0 items-center gap-3 rounded-lg px-3 py-2 ${
+          className={`flex min-w-0 items-center gap-2 rounded-md px-2.5 py-2 ${
             agent.state === "working" || agent.state === "reworking"
               ? "bg-background ring-1 ring-foreground/25"
               : agent.state === "failed"
@@ -117,7 +125,7 @@ export function InlineAgentGrid({ agents }: { agents: InlineAgent[] }) {
                 : "bg-background/80"
           }`}
         >
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border bg-background">
+          <div className="flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-background">
             {agent.state === "working" || agent.state === "reworking" ? (
               <Loader2 className="size-4 animate-spin text-emerald-600" />
             ) : agent.state === "done" ? (
@@ -130,12 +138,12 @@ export function InlineAgentGrid({ agents }: { agents: InlineAgent[] }) {
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <p className="truncate text-sm font-medium">{agent.name}</p>
+              <p className="truncate text-xs font-medium">{agent.name}</p>
               <span className="font-mono text-xs font-semibold text-muted-foreground">
                 {String(index + 1).padStart(2, "0")}
               </span>
             </div>
-            <p className="truncate text-xs text-muted-foreground">
+            <p className="truncate text-[11px] text-muted-foreground">
               {agent.summary}
             </p>
           </div>

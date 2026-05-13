@@ -70,7 +70,6 @@ export async function sendAgentChatMessage(
     if (!activeConversationId) {
       const detail = await agentChatData.createConversation({
         title: createConversationTitle(input.content),
-        firstMessage: input.content,
         agentId: AGENT_ID,
       })
       activeConversationId = detail.conversation.id
@@ -79,17 +78,16 @@ export async function sendAgentChatMessage(
         mapConversationItem(detail.conversation, input.fallbackConversationTitle),
         ...current.filter((item) => item.id !== detail.conversation.id),
       ])
-      input.sessionIdRef.current = activeConversationId
-    } else {
-      await agentChatData.addConversationMessage(activeConversationId, {
-        role: "user",
-        contentText: input.content,
-        contentJson: { context: contextMeta, strategy: strategyMeta },
-      })
     }
+    input.sessionIdRef.current = activeConversationId
+    await agentChatData.addConversationMessage(activeConversationId, {
+      role: "user",
+      contentText: input.content,
+      contentJson: { context: contextMeta, strategy: strategyMeta },
+    })
 
     let assistantContent = ""
-    let persistAssistant: Promise<void> | null = null
+    const runtimeEvents: AgentRuntimeEvent[] = []
     await agentChatData.streamAgentSession(
       {
         input: input.content,
@@ -126,26 +124,31 @@ export async function sendAgentChatMessage(
           )
         },
         onAgentEvent: (event) => {
+          runtimeEvents.push(event)
           input.setRuntimeEvents((current) => [...current, event])
+          input.setMessages((current) =>
+            current.map((message) =>
+              message.id === assistantId
+                ? {
+                    ...message,
+                    runtimeEvents: [...(message.runtimeEvents ?? []), event],
+                  }
+                : message
+            )
+          )
         },
         onDone: () => {
           input.setMessages((current) =>
             current.map((message) =>
               message.id === assistantId
-                ? { ...message, status: undefined }
+                ? {
+                    ...message,
+                    runtimeEvents,
+                    status: undefined,
+                  }
                 : message
             )
           )
-          input.setIsStreaming(false)
-          if (assistantContent) {
-            persistAssistant = agentChatData
-              .addConversationMessage(activeConversationId, {
-                role: "assistant",
-                contentText: assistantContent,
-                contentJson: null,
-              })
-              .then(() => undefined)
-          }
         },
         onError: (message) => {
           const displayMessage = formatAgentUiMessage(
@@ -168,7 +171,15 @@ export async function sendAgentChatMessage(
         },
       }
     )
-    await persistAssistant
+    const finalAssistantContent = assistantContent.trim()
+    if (finalAssistantContent) {
+      await agentChatData.addConversationMessage(activeConversationId, {
+        role: "assistant",
+        contentText: finalAssistantContent,
+        contentJson: runtimeEvents.length ? { runtimeEvents } : null,
+      })
+    }
+    input.setIsStreaming(false)
   } catch (err) {
     if (controller.signal.aborted) return null
     const message = formatAgentUiMessage(

@@ -790,7 +790,7 @@ mod tests {
             ),
             (
                 "creative_ip_branding",
-                json!({"brand_name": "千乐咖啡", "category": "咖啡饮品"}),
+                json!({"brand_name": "示例咖啡品牌", "category": "咖啡饮品"}),
             ),
             (
                 "creative_content_calendar",

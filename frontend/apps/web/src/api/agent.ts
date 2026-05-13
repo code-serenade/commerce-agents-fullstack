@@ -1,5 +1,5 @@
 const AGENT_STREAM_URL = "/api/sse/agent/session/stream"
-const AGENT_STREAM_IDLE_TIMEOUT_MS = 60_000
+const AGENT_STREAM_IDLE_TIMEOUT_MS = 240_000
 const AUTH_REFRESH_URL = "/auth/session/refresh_token"
 
 export interface AgentStreamRequest {
@@ -719,6 +719,7 @@ export async function streamAgentSessionApi(
       const { value, done } = await reader.read()
       if (done) break
 
+      if (value.byteLength > 0) markStreamActivity()
       buffer += decoder.decode(value, { stream: true })
       const boundary = buffer.lastIndexOf("\n\n")
       if (boundary === -1) continue
@@ -730,7 +731,7 @@ export async function streamAgentSessionApi(
         const result = handleSseMessage(parseSseMessage(block), handlers)
         if (result.activity) markStreamActivity()
         receivedDelta = receivedDelta || result.receivedDelta
-        fallbackOutput += result.fallbackOutput
+        fallbackOutput = mergeFallbackOutput(fallbackOutput, result.fallbackOutput)
         if (result.finished) {
           if (!receivedDelta && fallbackOutput) {
             handlers.onDelta(fallbackOutput)
@@ -748,7 +749,7 @@ export async function streamAgentSessionApi(
       const result = handleSseMessage(parseSseMessage(buffer), handlers)
       if (result.activity) markStreamActivity()
       receivedDelta = receivedDelta || result.receivedDelta
-      fallbackOutput += result.fallbackOutput
+      fallbackOutput = mergeFallbackOutput(fallbackOutput, result.fallbackOutput)
       if (result.finished) {
         if (!receivedDelta && fallbackOutput) {
           handlers.onDelta(fallbackOutput)
@@ -917,10 +918,11 @@ function handleSseMessage(
   if (message.event === "agent_event" || AGENT_RUNTIME_EVENT_TYPES.has(message.event)) {
     const event = readAgentRuntimeEvent(message.data)
     if (event) handlers.onAgentEvent?.(event)
+    const fallbackOutput = readAgentRuntimeFallbackOutput(event)
     return {
-      activity: Boolean(event),
+      activity: Boolean(event) || Boolean(fallbackOutput),
       completed: false,
-      fallbackOutput: "",
+      fallbackOutput,
       finished: false,
       receivedDelta: false,
     }
@@ -933,6 +935,44 @@ function handleSseMessage(
     finished: false,
     receivedDelta: false,
   }
+}
+
+function mergeFallbackOutput(current: string, next: string): string {
+  const incoming = next.trim()
+  if (!incoming) return current
+
+  const existing = current.trim()
+  if (!existing) return incoming
+  if (existing === incoming || existing.includes(incoming)) return current
+  if (incoming.includes(existing)) return incoming
+
+  const existingWithoutEllipsis = existing.replace(/\.\.\.$/, "").trim()
+  if (existingWithoutEllipsis && incoming.startsWith(existingWithoutEllipsis)) {
+    return incoming
+  }
+
+  return `${existing}\n\n${incoming}`
+}
+
+function readAgentRuntimeFallbackOutput(event: AgentRuntimeEvent | null): string {
+  if (!event) return ""
+
+  if (event.type === "workspace_run_completed") {
+    const reportOutput = readStringValue(event.report?.output)
+    return reportOutput || readStringValue(event.summary)
+  }
+
+  if (event.type === "workspace_artifact_created") {
+    const artifactType = event.artifactType ?? event.artifact_type
+    if (artifactType && artifactType !== "final_report") return ""
+    return readStringValue(event.content) || readStringValue(event.preview)
+  }
+
+  return ""
+}
+
+function readStringValue(value: unknown): string {
+  return typeof value === "string" ? value : ""
 }
 
 function readJsonField(data: string, field: string): string {

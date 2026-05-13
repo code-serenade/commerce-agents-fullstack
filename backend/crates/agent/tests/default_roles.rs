@@ -255,13 +255,52 @@ impl Cognition for CapturingContextWorkerCognition {
         *self.metadata_value.lock().expect("lock metadata capture") = input
             .context
             .metadata
-            .get("request.context.summary")
+            .get("request.context.selected_summary")
+            .cloned()
+            .or_else(|| {
+                input
+                    .context
+                    .metadata
+                    .get("request.context.summary")
+                    .cloned()
+            });
+        *self.fact_value.lock().expect("lock fact capture") = input
+            .context
+            .facts
+            .iter()
+            .find(|fact| fact.source == "commerce.selected_product_context")
+            .map(|fact| fact.content.clone());
+
+        CognitionResult::Success(json!({
+            "decision": {
+                "kind": "NoAction"
+            },
+            "role_output": test_role_output(&input)
+        }))
+    }
+}
+
+struct CapturingConversationHistoryWorkerCognition {
+    intent_value: Arc<Mutex<Option<String>>>,
+    metadata_value: Arc<Mutex<Option<String>>>,
+    fact_value: Arc<Mutex<Option<String>>>,
+}
+
+#[async_trait]
+impl Cognition for CapturingConversationHistoryWorkerCognition {
+    async fn evaluate(&self, input: CognitionInput) -> CognitionResult {
+        *self.intent_value.lock().expect("lock intent capture") =
+            Some(input.intent.description.clone());
+        *self.metadata_value.lock().expect("lock metadata capture") = input
+            .context
+            .metadata
+            .get("request.conversation.history_summary")
             .cloned();
         *self.fact_value.lock().expect("lock fact capture") = input
             .context
             .facts
             .iter()
-            .find(|fact| fact.source == "commerce.product_context")
+            .find(|fact| fact.source == "conversation.history")
             .map(|fact| fact.content.clone());
 
         CognitionResult::Success(json!({
@@ -640,6 +679,83 @@ async fn collab_strategy_direct_answer_bypasses_task_graph() {
             .iter()
             .any(|event| matches!(event, SessionEvent::TaskGraphPlanned { .. }))
     );
+}
+
+#[tokio::test]
+async fn explicit_chat_role_selection_bypasses_task_graph_for_execution_strategy() {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(|| Ok(Box::new(StructuredSummaryWorkerCognition))),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert("strategy.id".to_string(), "execution".to_string());
+    metadata.insert(
+        "strategy.response_mode".to_string(),
+        "execution".to_string(),
+    );
+    metadata.insert(
+        "strategy.collaboration_mode".to_string(),
+        "single".to_string(),
+    );
+    metadata.insert("strategy.primary_role".to_string(), "chat".to_string());
+    metadata.insert("strategy.selected_roles".to_string(), "chat".to_string());
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-execution-chat".to_string()),
+            input: "璇疯瘖鏂竴涓挅鍟＄洿鎾棿婕忔枟".to_string(),
+            metadata,
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    while let Some(event) = rx.recv().await {
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::RouteDecided {
+                strategy_id,
+                collaboration_mode,
+                route_mode,
+                primary_runtime_role,
+                support_runtime_roles,
+                ..
+            } if strategy_id.as_deref() == Some("execution")
+                && collaboration_mode.as_deref() == Some("single")
+                && route_mode == "chat_bypass"
+                && primary_runtime_role.as_deref() == Some("chat")
+                && support_runtime_roles.is_empty()
+        )
+    }));
+    assert!(
+        !events
+            .iter()
+            .any(|event| matches!(event, SessionEvent::CommanderThinking { .. }))
+    );
+    assert!(
+        !events
+            .iter()
+            .any(|event| matches!(event, SessionEvent::TaskGraphPlanned { .. }))
+    );
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::Output { content, .. } if !content.trim().is_empty()
+        )
+    }));
 }
 
 #[tokio::test]
@@ -1458,7 +1574,7 @@ async fn stream_emits_context_loaded_event_from_request_metadata() {
     metadata.insert("context.knowledge_count".to_string(), "2".to_string());
     metadata.insert("context.source_count".to_string(), "3".to_string());
     metadata.insert(
-        "context.summary".to_string(),
+        "context.selected_summary".to_string(),
         "Product source product:111 | name=五一咖啡组合".to_string(),
     );
     metadata.insert(
@@ -1525,7 +1641,7 @@ async fn worker_cognition_receives_product_context_metadata_and_fact() {
     ));
     let mut metadata = BTreeMap::new();
     metadata.insert(
-        "context.summary".to_string(),
+        "context.selected_summary".to_string(),
         "Product source product:111 | name=五一咖啡组合".to_string(),
     );
 
@@ -1554,5 +1670,79 @@ async fn worker_cognition_receives_product_context_metadata_and_fact() {
             .expect("lock fact result")
             .as_deref()
             .is_some_and(|value| value.contains("五一咖啡组合"))
+    );
+}
+
+#[tokio::test]
+async fn worker_cognition_receives_conversation_history_as_dedicated_fact() {
+    let intent_value = Arc::new(Mutex::new(None));
+    let metadata_value = Arc::new(Mutex::new(None));
+    let fact_value = Arc::new(Mutex::new(None));
+    let intent_capture = Arc::clone(&intent_value);
+    let metadata_capture = Arc::clone(&metadata_value);
+    let fact_capture = Arc::clone(&fact_value);
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(move || {
+            Ok(Box::new(CapturingConversationHistoryWorkerCognition {
+                intent_value: Arc::clone(&intent_capture),
+                metadata_value: Arc::clone(&metadata_capture),
+                fact_value: Arc::clone(&fact_capture),
+            }))
+        }),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert(
+        "conversation.history_summary".to_string(),
+        "User: 直播间曝光8000、点击640、加购160、下单80、付款72。\nAssistant: 已计算各段转化率并给出三个优化动作。"
+            .to_string(),
+    );
+
+    manager
+        .run_request(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-conversation-history".to_string()),
+            input: "继续沿用本会话刚才的漏斗数据，把三个动作排成今天可执行清单。".to_string(),
+            metadata,
+        })
+        .await
+        .expect("request should complete");
+
+    assert!(
+        intent_value
+            .lock()
+            .expect("lock intent result")
+            .as_deref()
+            .is_some_and(|value| {
+                value.contains("同一会话历史上下文")
+                    && value.contains("曝光8000")
+                    && value.contains("当前用户请求")
+            })
+    );
+    assert!(
+        metadata_value
+            .lock()
+            .expect("lock metadata result")
+            .as_deref()
+            .is_some_and(|value| value.contains("曝光8000"))
+    );
+    assert!(
+        fact_value
+            .lock()
+            .expect("lock fact result")
+            .as_deref()
+            .is_some_and(|value| {
+                value.contains("conversation")
+                    || (value.contains("同一会话历史上下文") && value.contains("付款72"))
+            })
+    );
+    assert!(
+        fact_value
+            .lock()
+            .expect("lock fact result")
+            .as_deref()
+            .is_some_and(|value| value.contains("不要要求用户重复"))
     );
 }

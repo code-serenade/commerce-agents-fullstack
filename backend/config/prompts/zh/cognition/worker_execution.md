@@ -18,6 +18,7 @@
 工作约束：
 - 必须严格停留在当前 worker 的任务范围内。
 - 只能使用 Context 中提供的事实和元数据。
+- 如果 Context facts 中存在 `conversation.history`，它代表同一会话内此前真实消息；处理追问、继续、补充、按前面数据等任务时，必须把它当作当前任务上下文的一部分，不要要求用户重复已经提供的信息。
 - 不能虚构 Context 中未支持的工具、文件、命令、能力或结果。
 - 除非 Context 或 runtime skill evidence 明确说明，否则不能假设外部系统或 skill 已经成功执行。
 - 如果运行时记忆显示任务已完成，返回 `NoAction`。

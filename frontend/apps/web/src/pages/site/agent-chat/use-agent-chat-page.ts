@@ -4,21 +4,18 @@ import { useSelector } from "react-redux"
 import type { RootState } from "@/store"
 import type { AgentRuntimeEvent } from "./agent-chat-data"
 import { createSessionId } from "./domain/agent-chat-message-mapping"
-import {
-  DEFAULT_AGENT_CHAT_STRATEGY_ID,
-  getAgentChatStrategy,
-  type AgentChatStrategyId,
-} from "./domain/agent-chat-strategy"
+import { DEFAULT_AGENT_CHAT_STRATEGY_ID, getAgentChatStrategy, type AgentChatStrategyId } from "./domain/agent-chat-strategy"
 import { runtimeSelectionForStrategy } from "./domain/agent-runtime-options"
-import type { AgentChatConversationItem, AgentChatMessage } from "./types"
+import type { AgentChatAttachmentItem, AgentChatConversationItem, AgentChatMessage } from "./types"
 import { loadLatestAgentConversation } from "./view-model/agent-chat-conversation-actions"
 import { resetGuestAgentChatState } from "./view-model/agent-chat-page-actions"
-import { sendAgentChatMessage } from "./view-model/agent-chat-send-message"
+import { useAgentChatAttachmentUploads } from "./view-model/use-agent-chat-attachment-uploads"
 import { useAgentChatPageCommands } from "./view-model/use-agent-chat-page-commands"
 import { useAgentChatPlaybooks } from "./view-model/use-agent-chat-playbooks"
 import { useAgentChatProductContext } from "./view-model/use-agent-chat-product-context"
 import { useAgentRuntimeOptions } from "./view-model/use-agent-runtime-options"
 import { useAgentRunFeedback } from "./view-model/use-agent-run-feedback"
+import { useAgentChatSend } from "./view-model/use-agent-chat-send"
 
 export function useAgentChatPage() {
   const { t } = useTranslation()
@@ -45,21 +42,15 @@ export function useAgentChatPage() {
   ])
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [conversations, setConversations] = useState<AgentChatConversationItem[]>([])
+  const [attachments, setAttachments] = useState<AgentChatAttachmentItem[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [runtimeEvents, setRuntimeEvents] = useState<AgentRuntimeEvent[]>([])
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const sessionIdRef = useRef(createSessionId())
-  const productContext = useAgentChatProductContext({
-    enabled: Boolean(user),
-    isStreaming,
-  })
-  const playbookContext = useAgentChatPlaybooks({
-    enabled: Boolean(user),
-  })
-  const runtimeContext = useAgentRuntimeOptions({
-    enabled: Boolean(user),
-  })
+  const productContext = useAgentChatProductContext({ enabled: Boolean(user), isStreaming })
+  const playbookContext = useAgentChatPlaybooks({ enabled: Boolean(user) })
+  const runtimeContext = useAgentRuntimeOptions({ enabled: Boolean(user) })
   const feedback = useAgentRunFeedback({
     isLoggedIn: Boolean(user),
     isStreaming,
@@ -88,13 +79,24 @@ export function useAgentChatPage() {
       setIsStreaming,
       setMessages,
       setRuntimeEvents,
+      setAttachments,
+      clearSelectedProducts: productContext.clearSelectedProducts,
+      restoreSelectedProducts: productContext.restoreSelectedProducts,
       tError: t("agentChat.error"),
     }),
-    [createWelcomeMessage, fallbackConversationTitle, messageFormatCopy, t]
+    [
+      createWelcomeMessage,
+      fallbackConversationTitle,
+      messageFormatCopy,
+      productContext.clearSelectedProducts,
+      productContext.restoreSelectedProducts,
+      t,
+    ]
   )
 
   useEffect(() => {
-    return () => abortRef.current?.abort()
+    const currentAbortRef = abortRef
+    return () => currentAbortRef.current?.abort()
   }, [])
 
   useEffect(() => {
@@ -129,55 +131,45 @@ export function useAgentChatPage() {
     setInput,
     setStrategyId,
   })
-
-  const sendMessage = useCallback(async () => {
-    const content = input.trim()
-    if (!content || isStreaming) return
-    if (!user) {
-      setError(loginRequiredMessage)
-      return
-    }
-
-    const controller = await sendAgentChatMessage({
-      content,
-      conversationId,
-      fallbackConversationTitle,
-      messageFormatCopy,
-      onController: (controller) => {
-        abortRef.current = controller
-      },
-      sessionIdRef,
-      setConversationId,
-      setConversations,
-      setError,
-      setInput,
-      setIsStreaming,
-      setMessages,
-      setRuntimeEvents,
-      selectedProducts: productContext.selectedProducts,
-      runtimeSelection: selectedRuntime,
-      strategy: selectedStrategy,
-      tError: t("agentChat.error"),
-    })
-
-    if (abortRef.current === controller) {
-      abortRef.current = null
-    }
-  }, [
+  const uploadAttachments = useAgentChatAttachmentUploads({
     conversationId,
     fallbackConversationTitle,
-    input,
+    isLoggedIn: Boolean(user),
+    isStreaming,
+    messageFormatCopy,
+    sessionIdRef,
+    setAttachments,
+    setConversationId,
+    setConversations,
+    setError,
+    tError: t("agentChat.error"),
+  })
+
+  const sendMessage = useAgentChatSend({
+    abortRef,
+    conversationId,
+    fallbackConversationTitle,
+    inputValue: input,
+    isLoggedIn: Boolean(user),
     isStreaming,
     loginRequiredMessage,
     messageFormatCopy,
-    productContext.selectedProducts,
-    selectedRuntime,
-    selectedStrategy,
-    t,
-    user,
-  ])
+    runtimeSelection: selectedRuntime,
+    selectedProducts: productContext.selectedProducts,
+    sessionIdRef,
+    setConversationId,
+    setConversations,
+    setError,
+    setInput,
+    setIsStreaming,
+    setMessages,
+    setRuntimeEvents,
+    strategy: selectedStrategy,
+    tError: t("agentChat.error"),
+  })
 
   return {
+    attachments,
     availableProducts: productContext.availableProducts,
     canSend,
     conversationId,
@@ -198,6 +190,7 @@ export function useAgentChatPage() {
     runtimeEvents,
     selectPlaybook: commands.selectPlaybook,
     selectedProducts: productContext.selectedProducts,
+    clearSelectedProducts: productContext.clearSelectedProducts,
     renameConversation: commands.renameConversation,
     sendMessage,
     selectConversation: commands.selectConversation,
@@ -213,5 +206,6 @@ export function useAgentChatPage() {
     strategyId,
     toggleProductContext: productContext.toggleProductContext,
     toggleRuntimeRole: runtimeContext.toggleRole,
+    uploadAttachments,
   }
 }

@@ -14,21 +14,19 @@ export default function AgentChatPage() {
   const [isProcessPanelOpen, setIsProcessPanelOpen] = useState(false)
   const isChatOnly = isChatOnlyRuntime(chat.runtimeEvents)
   const shouldShowProcessPanel = isProcessPanelOpen && !isChatOnly
-  const canExpandProcessPanel = !isProcessPanelOpen && !isChatOnly
+  const canExpandProcessPanel = !shouldShowProcessPanel && !isChatOnly
 
   const layoutClassName = [
-    "relative grid min-h-0 w-full flex-1 grid-cols-1 gap-3 p-2 sm:p-3",
+    "relative grid min-h-0 w-full flex-1 grid-cols-1 gap-2 p-2 sm:p-3",
     shouldShowProcessPanel
-      ? "overflow-hidden min-[1180px]:grid-cols-[minmax(0,1fr)_minmax(22rem,0.42fr)] min-[1440px]:grid-cols-[minmax(0,1.1fr)_minmax(25rem,0.46fr)] min-[1680px]:grid-cols-[minmax(0,1.22fr)_minmax(28rem,0.5fr)]"
-      : canExpandProcessPanel
-        ? "overflow-hidden min-[1180px]:grid-cols-[minmax(0,1fr)_3.25rem]"
+      ? "overflow-hidden min-[1180px]:grid-cols-[minmax(0,1fr)_minmax(30rem,0.46fr)] min-[1440px]:grid-cols-[minmax(0,1.08fr)_minmax(34rem,0.44fr)] min-[1680px]:grid-cols-[minmax(0,1.22fr)_minmax(38rem,0.4fr)]"
       : "overflow-hidden",
   ].join(" ")
 
   const chatPanelClassName = [
     "flex min-w-0 flex-col overflow-hidden rounded-lg bg-background",
     shouldShowProcessPanel
-      ? "min-h-[31rem] min-[1280px]:min-h-0"
+      ? "mx-auto min-h-[31rem] w-full max-w-4xl min-[1280px]:min-h-0 min-[1440px]:max-w-none"
       : "mx-auto min-h-0 w-full max-w-5xl",
   ].join(" ")
 
@@ -44,11 +42,14 @@ export default function AgentChatPage() {
           <AgentChatThread
             isStreaming={chat.isStreaming}
             messages={chat.messages}
+            onOpenProcessPanel={() => setIsProcessPanelOpen(true)}
             processPanelOpen={shouldShowProcessPanel}
             runtimeEvents={chat.runtimeEvents}
             selectedStrategy={chat.selectedStrategy}
+            showProcessPanelAction={canExpandProcessPanel}
           />
           <AgentChatComposer
+            attachments={chat.attachments}
             availableProducts={chat.availableProducts}
             canSend={chat.canSend}
             input={chat.input}
@@ -67,7 +68,9 @@ export default function AgentChatPage() {
             onSend={chat.sendMessage}
             onStop={chat.stopStreaming}
             onStrategyChange={chat.setStrategyId}
+            onClearProductContext={chat.clearSelectedProducts}
             onToggleProductContext={chat.toggleProductContext}
+            onUploadAttachments={chat.uploadAttachments}
             selectedProducts={chat.selectedProducts}
             playbooks={chat.playbooks}
             runtimeOptions={chat.runtimeOptions}
