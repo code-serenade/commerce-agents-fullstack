@@ -1,5 +1,54 @@
 # 迁移开发记录
 
+## Post 8-60：外部搜索证据契约补强
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 60 个补强项：`Post 8-60`。
+
+本次目标：
+
+- 继续补强旧产品 search skill 生态在新产品里的后端落点。
+- 不接淘宝、抖音、千川官方系统，不伪造实时来源。
+- 把旧产品 `_needs_fresh_data` 实时搜索语义迁入新产品 Rust Agent search adapter。
+- 让 App API、Agent `search_*` skill 和工作区搜索证据 artifact 输出统一证据摘要。
+
+本次修改：
+
+- 后端 agent：`search_*` skill 输出新增 `query.bypass_cache` 和 `evidence`。
+- 后端 agent：支持 `bypass_cache`、`bypassCache`、`_needs_fresh_data`，并转发给外部搜索 provider。
+- 后端 agent：来源归一化增加 URL/标题去重，避免重复来源污染证据。
+- 后端 service：`ExternalSearchResponse` 新增 `maxResults`、`bypassCache` 和 `evidence`。
+- 后端 service：`search_evidence` artifact metadata 新增 `evidence`，便于前端来源面板直接消费。
+- API/SSE：同步新增字段和搜索证据语义。
+- 迁移文档：同步迁移矩阵、阶段验收记录、总计划和本轮归档文件。
+
+用户可感知变化：
+
+- 用户提出需要最新趋势、竞品、评价、平台政策或行业基准的问题时，后端能保留“需要最新数据”的意图并传给 provider。
+- 如果 provider 返回真实来源，系统能输出更清楚的来源标题、来源域名、证据摘要和可复用来源文本。
+- 如果 provider 不可用或没有可信来源，系统仍会明确降级，不会编造搜索结果。
+- 后续前端可以基于这些字段做右侧来源面板，而不是解析杂乱 provider 原始响应。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/external_search_evidence_contract_post_8_60.md`
+- [x] 迁移矩阵：`MIGRATION_PLANS/legacy_capability_migration/skill_migration_matrix.md`
+- [x] API 文档：`API_DOCS/app.md`
+- [x] API 文档：`API_DOCS/sse.md`
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent search -- --nocapture`
+- [x] `cargo test -p service external_search -- --nocapture`
+
+后续缺口：
+
+- 真实部署仍需要配置可访问的 `[external_search]` provider。
+- 前端还需要把 `evidence/sources/provenance/confidence/freshness` 做成 Kimi Agent 风格来源面板。
+- 官方平台直接 API 仍暂缓，不在本阶段接淘宝、抖音、千川官方系统。
+
 ## Post 8-59：综合业务诊断 skill native 编排迁移
 
 状态：done

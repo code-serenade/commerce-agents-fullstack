@@ -1,5 +1,31 @@
 # 阶段验收记录
 
+## Post 8-60：外部搜索证据契约补强
+
+状态：done
+
+验收项：
+
+- [x] 后端：Agent `search_*` skill 输出新增 `query.bypass_cache`。
+- [x] 后端：Agent `search_*` skill 支持 `bypass_cache`、`bypassCache`、`_needs_fresh_data`。
+- [x] 后端：provider 请求会转发 `bypass_cache`。
+- [x] 后端：live/deferred/degraded 搜索输出均包含 `evidence`。
+- [x] 后端：live 搜索来源会去重并重新生成 rank。
+- [x] Service：`ExternalSearchResponse` 新增 `maxResults`、`bypassCache` 和 `evidence`。
+- [x] Service：`search_evidence` artifact metadata 保留 `evidence`。
+- [x] API：`API_DOCS/app.md` 已同步外部搜索响应结构。
+- [x] API：`API_DOCS/sse.md` 已同步 Agent 搜索输出和搜索证据 artifact 说明。
+- [x] 文档：后端设计文档、迁移矩阵、开发记录和本轮归档已同步。
+- [x] 验证：`cargo fmt --all`
+- [x] 验证：`cargo test -p agent search -- --nocapture`
+- [x] 验证：`cargo test -p service external_search -- --nocapture`
+
+当前说明：
+
+- 本轮补强的是通用外部搜索证据契约，不是淘宝、抖音、千川官方 API 对接。
+- 没有可信来源时仍保持 degraded/deferred，不创建假 `search_evidence`。
+- 前端后续应消费 `evidence` 构建来源面板，不要在前端伪造来源。
+
 ## Post 8-59：综合业务诊断 skill native 编排迁移
 
 状态：done

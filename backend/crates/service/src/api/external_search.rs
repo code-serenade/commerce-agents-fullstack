@@ -12,8 +12,9 @@ use toolcraft_request::{HeaderMap, Request};
 use uuid::Uuid;
 
 use crate::dto::external_search::{
-    ExternalSearchConfig, ExternalSearchData, ExternalSearchProvenance, ExternalSearchQueryRequest,
-    ExternalSearchResponse, ExternalSearchSource, ExternalSearchSpec, ExternalSearchStatusResponse,
+    ExternalSearchConfig, ExternalSearchData, ExternalSearchEvidence, ExternalSearchProvenance,
+    ExternalSearchQueryRequest, ExternalSearchResponse, ExternalSearchSource, ExternalSearchSpec,
+    ExternalSearchStatusResponse,
 };
 
 const ADAPTER_NAME: &str = "external_search";
@@ -244,9 +245,12 @@ fn degraded_response(
         requested_at: utc_now_rfc3339(),
         topic: spec.topic.clone(),
         freshness_days: spec.days,
+        max_results: spec.max_results,
+        bypass_cache: spec.bypass_cache,
         confidence: 0.0,
         provenance: build_provenance(&[]),
         data: ExternalSearchData { items: Vec::new() },
+        evidence: build_search_evidence(&[]),
         notice: Some("未获取到可靠公开来源，当前不能伪造实时搜索结果。".to_string()),
         degraded: true,
         degraded_reason: Some(reason.to_string()),
@@ -260,6 +264,7 @@ fn normalize_provider_response(
 ) -> ExternalSearchResponse {
     let sources = normalize_sources(payload);
     let provenance = build_provenance(&sources);
+    let evidence = build_search_evidence(&sources);
     let confidence = payload
         .get("confidence")
         .and_then(Value::as_f64)
@@ -300,11 +305,14 @@ fn normalize_provider_response(
             .unwrap_or_else(utc_now_rfc3339),
         topic: spec.topic.clone(),
         freshness_days: spec.days,
+        max_results: spec.max_results,
+        bypass_cache: spec.bypass_cache,
         confidence,
         provenance,
         data: ExternalSearchData {
             items: sources.clone(),
         },
+        evidence,
         notice: sources
             .is_empty()
             .then(|| "Provider returned no normalized sources.".to_string()),
@@ -325,12 +333,24 @@ fn normalize_sources(payload: &Value) -> Vec<ExternalSearchSource> {
         return Vec::new();
     };
 
-    items
-        .iter()
-        .enumerate()
-        .filter_map(|(index, item)| normalize_source(index as u64 + 1, item))
-        .take(MAX_RESULTS as usize)
-        .collect()
+    let mut seen = BTreeSet::new();
+    let mut sources = Vec::new();
+    for item in items {
+        let rank = sources.len() as u64 + 1;
+        let Some(source) = normalize_source(rank, item) else {
+            continue;
+        };
+        let Some(key) = normalized_source_key(&source) else {
+            continue;
+        };
+        if seen.insert(key) {
+            sources.push(source);
+        }
+        if sources.len() >= MAX_RESULTS as usize {
+            break;
+        }
+    }
+    sources
 }
 
 fn normalize_source(rank: u64, item: &Value) -> Option<ExternalSearchSource> {
@@ -359,6 +379,18 @@ fn normalize_source(rank: u64, item: &Value) -> Option<ExternalSearchSource> {
     })
 }
 
+fn normalized_source_key(source: &ExternalSearchSource) -> Option<String> {
+    let url = source.url.trim();
+    let title = source.title.trim();
+    if !url.is_empty() {
+        Some(url.trim_end_matches('/').to_ascii_lowercase())
+    } else if !title.is_empty() {
+        Some(title.to_ascii_lowercase())
+    } else {
+        None
+    }
+}
+
 fn build_provenance(sources: &[ExternalSearchSource]) -> ExternalSearchProvenance {
     let domains = sources
         .iter()
@@ -385,6 +417,77 @@ fn build_provenance(sources: &[ExternalSearchSource]) -> ExternalSearchProvenanc
         published_count: published.len(),
         latest_published_at,
     }
+}
+
+fn build_search_evidence(sources: &[ExternalSearchSource]) -> ExternalSearchEvidence {
+    if sources.is_empty() {
+        return ExternalSearchEvidence {
+            summary: "没有可采信实时来源；当前结果只能作为降级状态，不可当作联网证据。".to_string(),
+            source_titles: Vec::new(),
+            source_domains: Vec::new(),
+            llm_context: "（本次没有可采信实时来源。回答时必须说明外部搜索未返回来源，不能引用不存在的联网数据。）".to_string(),
+        };
+    }
+
+    let source_titles = sources
+        .iter()
+        .map(|source| compact_text(&source.title, 120))
+        .filter(|value| !value.trim().is_empty())
+        .take(5)
+        .collect::<Vec<_>>();
+    let source_domains = sources
+        .iter()
+        .map(|source| source.domain.trim())
+        .filter(|value| !value.is_empty())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .take(8)
+        .map(ToOwned::to_owned)
+        .collect::<Vec<_>>();
+    let summary = format!(
+        "共 {} 条实时来源，覆盖 {} 个域名；回答应优先引用这些来源，并注明时效性和置信度。",
+        sources.len(),
+        source_domains.len()
+    );
+
+    ExternalSearchEvidence {
+        summary,
+        source_titles,
+        source_domains,
+        llm_context: format_sources_for_llm(sources),
+    }
+}
+
+fn format_sources_for_llm(sources: &[ExternalSearchSource]) -> String {
+    if sources.is_empty() {
+        return "（本次没有可采信实时来源。回答时必须说明外部搜索未返回来源，不能引用不存在的联网数据。）".to_string();
+    }
+
+    let mut lines = vec![format!(
+        "（共{}条实时来源，优先从中提取具体数字、结论和出处；若来源不足，明确说明数据不足。）",
+        sources.len().min(5)
+    )];
+    for (index, source) in sources.iter().take(5).enumerate() {
+        lines.push(format!(
+            "\n[{}] {}",
+            index + 1,
+            compact_text(&source.title, 120)
+        ));
+        if let Some(published_at) = &source.published_at {
+            lines.push(format!("发布时间：{}", compact_text(published_at, 64)));
+        }
+        if !source.snippet.trim().is_empty() {
+            lines.push(compact_text(&source.snippet, 320));
+        }
+        if !source.url.trim().is_empty() {
+            lines.push(format!("来源：{}", compact_text(&source.url, 300)));
+        }
+    }
+    lines.push(
+        "\n注：遇到实时来源与通用经验不一致时，以实时来源为准，并说明来源数量、时效性和不确定性。"
+            .to_string(),
+    );
+    lines.join("\n")
 }
 
 fn estimate_confidence(sources: &[ExternalSearchSource]) -> f64 {
@@ -509,6 +612,26 @@ mod tests {
     }
 
     #[test]
+    fn degraded_response_preserves_request_controls_and_empty_evidence() {
+        let config = ExternalSearchConfig::default();
+        let spec = ExternalSearchSpec {
+            query: "咖啡 趋势".to_string(),
+            topic: "general".to_string(),
+            days: 7,
+            max_results: 3,
+            bypass_cache: true,
+        };
+
+        let response = degraded_response(&config, &spec, SEARCH_NOT_CONFIGURED_REASON);
+
+        assert_eq!(response.status, "degraded");
+        assert_eq!(response.max_results, 3);
+        assert!(response.bypass_cache);
+        assert_eq!(response.evidence.source_titles.len(), 0);
+        assert!(response.evidence.llm_context.contains("没有可采信实时来源"));
+    }
+
+    #[test]
     fn provider_payload_is_normalized_into_sources_and_provenance() {
         let config = ExternalSearchConfig {
             enabled: true,
@@ -549,6 +672,8 @@ mod tests {
 
         assert_eq!(response.status, "live");
         assert!(!response.degraded);
+        assert_eq!(response.max_results, 6);
+        assert!(!response.bypass_cache);
         assert_eq!(response.engine.as_deref(), Some("free_web"));
         assert_eq!(response.confidence, 0.72);
         assert_eq!(response.data.items.len(), 2);
@@ -556,5 +681,38 @@ mod tests {
         assert_eq!(response.provenance.source_count, 2);
         assert_eq!(response.provenance.domain_count, 2);
         assert_eq!(response.provenance.published_count, 1);
+        assert!(response.evidence.summary.contains("2 条实时来源"));
+        assert!(response.evidence.llm_context.contains("咖啡消费趋势"));
+    }
+
+    #[test]
+    fn provider_payload_deduplicates_sources_by_url() {
+        let payload = json!({
+            "results": [
+                {
+                    "title": "咖啡消费趋势",
+                    "snippet": "冷萃咖啡增长",
+                    "url": "https://www.example.com/a"
+                },
+                {
+                    "title": "重复来源",
+                    "snippet": "重复 URL",
+                    "url": "https://www.example.com/a/"
+                },
+                {
+                    "title": "咖啡行业报告",
+                    "body": "即饮咖啡继续增长",
+                    "url": "https://report.example.cn/b"
+                }
+            ]
+        });
+
+        let sources = normalize_sources(&payload);
+
+        assert_eq!(sources.len(), 2);
+        assert_eq!(sources[0].rank, 1);
+        assert_eq!(sources[1].rank, 2);
+        assert_eq!(sources[0].domain, "example.com");
+        assert_eq!(sources[1].domain, "report.example.cn");
     }
 }

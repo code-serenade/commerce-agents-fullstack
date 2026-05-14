@@ -8,7 +8,8 @@ use toolcraft_request::{HeaderMap, Request};
 
 use crate::skills::{
     Skill, SkillCategory, SkillContext, SkillInputField, SkillOutcome, SkillPriority, SkillResult,
-    SkillSpec, object_params, optional_i64_param, optional_string_param, string_param,
+    SkillSpec, object_params, optional_bool_param, optional_i64_param, optional_string_param,
+    string_param,
 };
 
 fn category() -> SkillCategory {
@@ -259,6 +260,7 @@ struct SearchPlan {
     topic: String,
     days: i64,
     max_results: i64,
+    bypass_cache: bool,
 }
 
 impl SearchPlan {
@@ -274,7 +276,13 @@ impl SearchPlan {
             topic: topic.into(),
             days: days.max(1),
             max_results: DEFAULT_MAX_RESULTS,
+            bypass_cache: false,
         }
+    }
+
+    fn with_bypass_cache(mut self, bypass_cache: bool) -> Self {
+        self.bypass_cache = bypass_cache;
+        self
     }
 
     fn with_adapter_defaults(
@@ -314,7 +322,8 @@ fn deferred_search_output(
             "planned": plan.planned,
             "topic": plan.topic,
             "days": plan.days,
-            "max_results": plan.max_results
+            "max_results": plan.max_results,
+            "bypass_cache": plan.bypass_cache
         },
         "data": {
             "items": []
@@ -332,6 +341,7 @@ fn deferred_search_output(
             "requested_days": plan.days,
             "requested_at": null
         },
+        "evidence": build_search_evidence(&[]),
         "degraded": true,
         "degraded_reason": SEARCH_DEGRADED_REASON,
         "expected_outputs": ["分析摘要", "结构化要点", "sources", "engine"]
@@ -367,7 +377,8 @@ fn degraded_search_output(
             "planned": plan.planned,
             "topic": plan.topic,
             "days": plan.days,
-            "max_results": plan.max_results
+            "max_results": plan.max_results,
+            "bypass_cache": plan.bypass_cache
         },
         "engine": adapter.provider_name(),
         "data": {
@@ -386,6 +397,7 @@ fn degraded_search_output(
             "requested_days": plan.days,
             "requested_at": utc_now_rfc3339()
         },
+        "evidence": build_search_evidence(&[]),
         "notice": "未获取到可靠公开来源，当前不能伪造实时搜索结果。",
         "degraded": true,
         "degraded_reason": reason,
@@ -416,6 +428,7 @@ fn live_search_output(
     }
 
     let provenance = build_provenance(&sources);
+    let evidence = build_search_evidence(&sources);
     let confidence = payload
         .get("confidence")
         .and_then(Value::as_f64)
@@ -458,7 +471,8 @@ fn live_search_output(
             "planned": plan.planned,
             "topic": plan.topic,
             "days": plan.days,
-            "max_results": plan.max_results
+            "max_results": plan.max_results,
+            "bypass_cache": plan.bypass_cache
         },
         "key": payload.get("key").and_then(Value::as_str).unwrap_or("search"),
         "engine": engine,
@@ -472,6 +486,7 @@ fn live_search_output(
             "requested_days": plan.days,
             "requested_at": requested_at
         },
+        "evidence": evidence,
         "degraded": false,
         "degraded_reason": null,
         "expected_outputs": ["分析摘要", "结构化要点", "sources", "engine"]
@@ -507,7 +522,7 @@ async fn query_provider(adapter: &SearchAdapterConfig, plan: &SearchPlan) -> Res
         ("topic".to_string(), plan.topic.clone()),
         ("days".to_string(), plan.days.to_string()),
         ("max_results".to_string(), plan.max_results.to_string()),
-        ("bypass_cache".to_string(), false.to_string()),
+        ("bypass_cache".to_string(), plan.bypass_cache.to_string()),
     ];
     let response = client
         .get(endpoint, Some(query), build_provider_headers(adapter)?)
@@ -541,12 +556,24 @@ fn normalize_sources(payload: &Value) -> Vec<Value> {
         return Vec::new();
     };
 
-    items
-        .iter()
-        .enumerate()
-        .filter_map(|(index, item)| normalize_source(index as u64 + 1, item))
-        .take(MAX_RESULTS as usize)
-        .collect()
+    let mut seen = BTreeSet::new();
+    let mut sources = Vec::new();
+    for item in items {
+        let rank = sources.len() as u64 + 1;
+        let Some(source) = normalize_source(rank, item) else {
+            continue;
+        };
+        let Some(key) = normalized_source_key(&source) else {
+            continue;
+        };
+        if seen.insert(key) {
+            sources.push(source);
+        }
+        if sources.len() >= MAX_RESULTS as usize {
+            break;
+        }
+    }
+    sources
 }
 
 fn normalize_source(rank: u64, item: &Value) -> Option<Value> {
@@ -575,6 +602,21 @@ fn normalize_source(rank: u64, item: &Value) -> Option<Value> {
     }))
 }
 
+fn normalized_source_key(source: &Value) -> Option<String> {
+    let url = source
+        .get("url")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+    let title = source
+        .get("title")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+    url.or(title)
+        .map(|value| value.trim_end_matches('/').to_ascii_lowercase())
+}
+
 fn build_provenance(sources: &[Value]) -> Value {
     let domains = sources
         .iter()
@@ -600,6 +642,100 @@ fn build_provenance(sources: &[Value]) -> Value {
         "published_count": published.len(),
         "latest_published_at": latest_published_at
     })
+}
+
+fn build_search_evidence(sources: &[Value]) -> Value {
+    if sources.is_empty() {
+        return json!({
+            "summary": "没有可采信实时来源；当前结果只能作为降级状态，不可当作联网证据。",
+            "source_titles": [],
+            "source_domains": [],
+            "llm_context": "（本次没有可采信实时来源。回答时必须说明外部搜索未返回来源，不能引用不存在的联网数据。）"
+        });
+    }
+
+    let titles = sources
+        .iter()
+        .filter_map(|item| item.get("title").and_then(Value::as_str))
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| compact_text(value, 120))
+        .take(5)
+        .collect::<Vec<_>>();
+    let domains = sources
+        .iter()
+        .filter_map(|item| item.get("domain").and_then(Value::as_str))
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .take(8)
+        .map(ToOwned::to_owned)
+        .collect::<Vec<_>>();
+    let summary = format!(
+        "共 {} 条实时来源，覆盖 {} 个域名；回答应优先引用这些来源，并注明时效性和置信度。",
+        sources.len(),
+        domains.len()
+    );
+
+    json!({
+        "summary": summary,
+        "source_titles": titles,
+        "source_domains": domains,
+        "llm_context": format_sources_for_llm(sources)
+    })
+}
+
+fn format_sources_for_llm(sources: &[Value]) -> String {
+    if sources.is_empty() {
+        return "（本次没有可采信实时来源。回答时必须说明外部搜索未返回来源，不能引用不存在的联网数据。）".to_string();
+    }
+
+    let mut lines = vec![format!(
+        "（共{}条实时来源，优先从中提取具体数字、结论和出处；若来源不足，明确说明数据不足。）",
+        sources.len().min(5)
+    )];
+    for (index, source) in sources.iter().take(5).enumerate() {
+        let title = source
+            .get("title")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .unwrap_or("未命名来源");
+        let snippet = source
+            .get("snippet")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .unwrap_or("");
+        let url = source
+            .get("url")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .unwrap_or("");
+        let published_at = source
+            .get("published_at")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty());
+
+        lines.push(format!("\n[{}] {}", index + 1, compact_text(title, 120)));
+        if let Some(value) = published_at {
+            lines.push(format!("发布时间：{}", compact_text(value, 64)));
+        }
+        if !snippet.is_empty() {
+            lines.push(compact_text(snippet, 320));
+        }
+        if !url.is_empty() {
+            lines.push(format!("来源：{}", compact_text(url, 300)));
+        }
+    }
+    lines.push(
+        "\n注：遇到实时来源与通用经验不一致时，以实时来源为准，并说明来源数量、时效性和不确定性。"
+            .to_string(),
+    );
+    lines.join("\n")
 }
 
 fn estimate_confidence(sources: &[Value]) -> f64 {
@@ -663,6 +799,13 @@ fn normalize_topic(
     Ok(normalized)
 }
 
+fn search_bypass_cache(params: &Value) -> Result<bool, crate::skills::SkillError> {
+    Ok(optional_bool_param(params, "bypass_cache")?
+        .or(optional_bool_param(params, "bypassCache")?)
+        .or(optional_bool_param(params, "_needs_fresh_data")?)
+        .unwrap_or(false))
+}
+
 fn string_field(item: &Value, keys: &[&str]) -> Option<String> {
     keys.iter()
         .find_map(|key| item.get(*key).and_then(Value::as_str))
@@ -722,7 +865,10 @@ macro_rules! deferred_search_skill {
             ) -> SkillResult {
                 object_params(&params)?;
                 let required_value = string_param(&params, $required)?;
-                let plan = $builder(&params, &required_value)?.with_adapter_defaults(adapter)?;
+                let bypass_cache = search_bypass_cache(&params)?;
+                let plan = $builder(&params, &required_value)?
+                    .with_bypass_cache(bypass_cache)
+                    .with_adapter_defaults(adapter)?;
                 if !adapter.is_configured() {
                     return Ok(deferred_search_output(&self.spec.id, required_value, plan));
                 }
@@ -897,4 +1043,90 @@ fn build_benchmark_query(
     };
     let planned = format!("{industry} {platform} {metric_text} 2025 2026");
     Ok(SearchPlan::new(industry, planned, "general", 180))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn normalizes_provider_sources_into_deduped_evidence() {
+        let payload = json!({
+            "data": {
+                "items": [
+                    {
+                        "title": "咖啡消费趋势",
+                        "snippet": "冷萃咖啡增长",
+                        "url": "https://www.example.com/a",
+                        "published_at": "2026-05-01T00:00:00Z"
+                    },
+                    {
+                        "title": "咖啡消费趋势重复",
+                        "summary": "重复 URL 应被去掉",
+                        "url": "https://www.example.com/a/"
+                    },
+                    {
+                        "title": "咖啡行业报告",
+                        "body": "即饮咖啡继续增长",
+                        "url": "https://report.example.cn/b"
+                    }
+                ]
+            }
+        });
+
+        let sources = normalize_sources(&payload);
+        let evidence = build_search_evidence(&sources);
+
+        assert_eq!(sources.len(), 2);
+        assert_eq!(sources[0].get("rank").and_then(Value::as_u64), Some(1));
+        assert_eq!(sources[1].get("rank").and_then(Value::as_u64), Some(2));
+        assert!(
+            evidence
+                .get("summary")
+                .and_then(Value::as_str)
+                .is_some_and(|summary| summary.contains("2 条实时来源"))
+        );
+        assert!(
+            evidence
+                .get("llm_context")
+                .and_then(Value::as_str)
+                .is_some_and(|context| context.contains("咖啡消费趋势")
+                    && context.contains("https://www.example.com/a"))
+        );
+    }
+
+    #[tokio::test]
+    async fn search_skill_preserves_fresh_data_bypass_in_degraded_output() {
+        let adapter = SearchAdapterConfig {
+            enabled: false,
+            ..SearchAdapterConfig::default()
+        };
+        let outcome = SearchTrends::new()
+            .run_with_adapter(
+                json!({
+                    "query": "咖啡",
+                    "_needs_fresh_data": true
+                }),
+                SkillContext::default(),
+                &adapter,
+            )
+            .await
+            .expect("search should return structured deferred output");
+
+        assert_eq!(
+            outcome.output.pointer("/query/bypass_cache"),
+            Some(&json!(true))
+        );
+        assert_eq!(
+            outcome.output.pointer("/evidence/source_titles"),
+            Some(&json!([]))
+        );
+        assert!(
+            outcome
+                .output
+                .pointer("/evidence/llm_context")
+                .and_then(Value::as_str)
+                .is_some_and(|context| context.contains("没有可采信实时来源"))
+        );
+    }
 }

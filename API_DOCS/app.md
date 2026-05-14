@@ -263,6 +263,8 @@
   "requestedAt": "2026-05-10T00:00:00Z",
   "topic": "general",
   "freshnessDays": 30,
+  "maxResults": 6,
+  "bypassCache": false,
   "confidence": 0.0,
   "provenance": {
     "sourceCount": 0,
@@ -273,6 +275,12 @@
   },
   "data": {
     "items": []
+  },
+  "evidence": {
+    "summary": "没有可采信实时来源；当前结果只能作为降级状态，不可当作联网证据。",
+    "sourceTitles": [],
+    "sourceDomains": [],
+    "llmContext": "（本次没有可采信实时来源。回答时必须说明外部搜索未返回来源，不能引用不存在的联网数据。）"
   },
   "notice": "未获取到可靠公开来源，当前不能伪造实时搜索结果。",
   "degraded": true,
@@ -292,6 +300,8 @@
   "requestedAt": "2026-05-10T00:00:00Z",
   "topic": "news",
   "freshnessDays": 14,
+  "maxResults": 6,
+  "bypassCache": true,
   "confidence": 0.72,
   "provenance": {
     "sourceCount": 2,
@@ -312,6 +322,12 @@
       }
     ]
   },
+  "evidence": {
+    "summary": "共 2 条实时来源，覆盖 2 个域名；回答应优先引用这些来源，并注明时效性和置信度。",
+    "sourceTitles": ["咖啡消费趋势", "咖啡行业报告"],
+    "sourceDomains": ["example.com", "report.example.cn"],
+    "llmContext": "（共2条实时来源，优先从中提取具体数字、结论和出处；若来源不足，明确说明数据不足。）"
+  },
   "notice": null,
   "degraded": false,
   "degradedReason": null
@@ -323,6 +339,9 @@
 - 当前用户必须存在于 `app_users`，且状态为 `enabled`
 - provider HTTP 失败、返回结构无法解析或没有可归一化来源时，接口返回 200 + `status=degraded`
 - 该接口是 Rust 后端外部搜索 adapter 的 App 侧入口；Agent `search_*` skill 已接入同一份 `[external_search]` 配置，并复用相同字段语义
+- `maxResults` 和 `bypassCache` 是后端实际使用的搜索控制参数回显；`bypassCache=true` 会转发给 provider，但 provider 是否真的绕过缓存由 provider 自身决定
+- `evidence` 是后端归一化后的搜索证据摘要：`sourceTitles`、`sourceDomains` 用于前端来源面板，`llmContext` 用于 Agent/后端复用来源文本
+- provider 返回重复 URL 或重复标题时，后端会去重并重新生成 `rank`
 - 当前不会在前端伪造搜索结果；只有 `status=live` 且 `data.items` 非空时，前端才可展示为实时来源
 
 ## 3. 查询我的会话列表
@@ -2285,7 +2304,7 @@
 
 `artifactType=search_evidence` 时：
 
-- `content` 是完整搜索输出 JSON 字符串，包含 `status=live`、`sources`、`data.items`、`provenance`、`confidence`、`freshness`
+- `content` 是完整搜索输出 JSON 字符串，包含 `status=live`、`sources`、`data.items`、`provenance`、`confidence`、`freshness`、`evidence`
 - `preview` 是后端生成的来源摘要，便于前端列表快速展示
 - `metadata.kind = agent_search_evidence`
 - `metadata` 包含 `skillId`、`requestId`、`role`、`query`、`sourceCount`、`domains`、`confidence`、`provenance`、`freshness`

@@ -97,7 +97,7 @@ The following major foundations are already in place:
 - platform execution adapter request envelope with idempotency key in approval execution failure results
 - platform execution adapter outcome contract for provider result and retryability
 - platform execution adapter dispatch outcome boundary inside the service framework
-- search evidence artifact persistence
+- search evidence artifact persistence and reusable evidence summary contract
 - agent skill run persistence and query API
 - multiple native skill migrations across ops / data / service / creative / web / design / accounting
 - creative and design skill outputs can now materialize into reusable workspace artifacts when the skill result is successful
@@ -233,25 +233,24 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-59: data_comprehensive_diagnosis native orchestrator skill
+Post 8-60: external search evidence contract hardening
 ```
 
 Scope:
 
-- migrate old product `DataComprehensiveDiagnosis` into a new-product Rust native Agent orchestrator skill
-- compose dashboard, funnel, anomaly, customer, refund, demand forecast, attribution, and LTV sub-diagnoses
-- keep each sub-diagnosis status, data readiness, and missing-data reason visible
-- return `deferred` when no useful user-provided business data exists
-- materialize successful output as `data_comprehensive_diagnosis_report`
-- keep official Taobao / Douyin / Qianchuan / data warehouse direct platform integrations deferred
+- harden the old product search skill migration inside the new Rust Agent/search adapter framework
+- preserve `_needs_fresh_data` / bypass-cache intent for search provider requests
+- add reusable `evidence` summaries to Agent `search_*` skill output and App external search API responses
+- deduplicate normalized live sources before they become Agent output or search evidence artifacts
+- keep official Taobao / Douyin / Qianchuan direct platform integrations deferred
+- avoid fake live sources when the provider is absent, fails, or returns no credible sources
 
 Reason:
 
-- skill migration remains the first backend priority
-- comprehensive diagnosis is the old product data analyst's integrated monthly/quarterly review capability
-- attribution, funnel, anomaly, refund, forecast, and LTV have enough native coverage to be composed inside the new framework
-- new frontend work should consume real backend comprehensive artifacts instead of fake overview cards
-- this slice keeps Kimi-style process transparency grounded in visible sub-skill status, artifact creation, and explicit data readiness
+- external search / real-time data was raised to second priority while official platform APIs remain deferred
+- old product search skills already exist in the new framework, but frontend-friendly evidence reuse was still weak
+- Kimi-style source panels should consume real backend evidence instead of parsing provider payloads or inventing sources
+- this slice improves backend search readiness without changing frontend or pretending provider configuration exists
 
 ## 10. Validation Standard
 

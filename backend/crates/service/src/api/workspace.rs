@@ -4921,6 +4921,7 @@ fn build_search_evidence_artifact(
         "confidence": confidence,
         "provenance": req.output.get("provenance").cloned(),
         "freshness": req.output.get("freshness").cloned(),
+        "evidence": req.output.get("evidence").cloned(),
     });
 
     Some(SearchEvidenceArtifactDraft {
@@ -6591,6 +6592,12 @@ mod tests {
                 "confidence": 0.82,
                 "freshness": {
                     "requested_at": "2026-05-10T00:00:00Z"
+                },
+                "evidence": {
+                    "summary": "共 1 条实时来源，覆盖 1 个域名；回答应优先引用这些来源，并注明时效性和置信度。",
+                    "source_titles": ["冷萃咖啡竞品价格观察"],
+                    "source_domains": ["example.com"],
+                    "llm_context": "实时来源摘要"
                 }
             }),
         };
@@ -6606,6 +6613,15 @@ mod tests {
         assert_eq!(
             draft.metadata.get("engine").and_then(Value::as_str),
             Some("mock-search")
+        );
+        assert!(
+            draft
+                .metadata
+                .get("evidence")
+                .and_then(Value::as_object)
+                .and_then(|value| value.get("summary"))
+                .and_then(Value::as_str)
+                .is_some_and(|summary| summary.contains("1 条实时来源"))
         );
     }
 

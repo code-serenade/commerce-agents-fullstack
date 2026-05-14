@@ -94,9 +94,12 @@ pub struct ExternalSearchResponse {
     pub requested_at: String,
     pub topic: String,
     pub freshness_days: u64,
+    pub max_results: u64,
+    pub bypass_cache: bool,
     pub confidence: f64,
     pub provenance: ExternalSearchProvenance,
     pub data: ExternalSearchData,
+    pub evidence: ExternalSearchEvidence,
     pub notice: Option<String>,
     pub degraded: bool,
     pub degraded_reason: Option<String>,
@@ -117,6 +120,15 @@ pub struct ExternalSearchSource {
     pub url: String,
     pub domain: String,
     pub published_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExternalSearchEvidence {
+    pub summary: String,
+    pub source_titles: Vec<String>,
+    pub source_domains: Vec<String>,
+    pub llm_context: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
