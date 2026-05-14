@@ -5208,6 +5208,12 @@ fn build_content_artifact_from_skill_output(
             "Data comprehensive diagnosis report",
             "data comprehensive diagnosis artifact generated",
         ),
+        "query_store_metrics" => (
+            "data",
+            "data_store_metrics_report",
+            "Data store metrics report",
+            "data store metrics artifact generated",
+        ),
         "query_product_metrics" => (
             "data",
             "data_product_metrics_report",
@@ -7099,6 +7105,70 @@ mod tests {
                 .content
                 .contains("\"adapter_status\": \"partial_manual_input\"")
         );
+    }
+
+    #[test]
+    fn content_artifact_builds_from_store_metrics_skill_output() {
+        let output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "data_readiness": "explicit_metrics",
+            "summary": "店铺指标已从本轮显式输入汇总，GMV=180000，订单=1800",
+            "platform": "douyin",
+            "totals": {
+                "gmv": 180000.0,
+                "orders": 1800.0,
+                "uv": 36000.0,
+                "clicks": 7200.0,
+                "ad_spend": 36000.0,
+                "refund_amount": 5400.0,
+                "gross_profit": 54000.0
+            },
+            "derived_metrics": {
+                "conversion_rate": "5.00%",
+                "ctr": "20.00%",
+                "ad_roi": 5.0,
+                "refund_rate": "3.00%"
+            },
+            "week_over_week": {
+                "gmv": {"current": 180000.0, "previous": 150000.0, "change_rate": "20.00%"}
+            },
+            "anomaly_count": 1
+        });
+
+        let draft = build_content_artifact_from_skill_output("query_store_metrics", &output)
+            .expect("store metrics output should be materializable");
+
+        assert_eq!(draft.content_category, "data");
+        assert_eq!(draft.artifact_type, "data_store_metrics_report");
+        assert_eq!(draft.title, "Data store metrics report");
+        assert_eq!(draft.file_name, "data_store_metrics_report.md");
+        assert!(draft.preview.contains("店铺指标已从本轮显式输入汇总"));
+        assert!(draft.content.contains("# Data store metrics report"));
+        assert!(
+            draft
+                .content
+                .contains("\"data_readiness\": \"explicit_metrics\"")
+        );
+        assert!(
+            draft
+                .content
+                .contains("\"adapter_status\": \"manual_input\"")
+        );
+    }
+
+    #[test]
+    fn content_artifact_ignores_deferred_store_metrics() {
+        let output = json!({
+            "status": "deferred",
+            "has_data": false,
+            "adapter_status": "store_metrics_required",
+            "data_readiness": "missing_user_input",
+            "summary": "店铺指标查询等待真实数据输入"
+        });
+
+        assert!(build_content_artifact_from_skill_output("query_store_metrics", &output).is_none());
     }
 
     #[test]

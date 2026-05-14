@@ -236,21 +236,22 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-66: product and campaign metrics artifact materialization
+Post 8-67: store metrics artifact materialization
 ```
 
 Scope:
 
-- connect successful `query_product_metrics` output to workspace artifact materialization
-- connect successful `query_campaign_metrics` output to workspace artifact materialization
-- create `data_product_metrics_report` and `data_campaign_metrics_report` markdown artifacts through the existing service framework
-- keep missing product/campaign metrics as truthful deferred states that do not create fake artifacts
-- preserve the explicit product-context rule: no default product, no implicit saved product, no fake live platform data
+- connect successful `query_store_metrics` output to workspace artifact materialization
+- create `data_store_metrics_report` markdown artifacts through the existing service framework
+- keep missing store metrics as truthful deferred states that do not create fake artifacts
+- complete the store / product / campaign metrics report trio in the workspace artifact system
+- preserve the data truthfulness rule: no fake live Taobao, Douyin, Qianchuan, or other platform data
 
 Reason:
 
-- product and campaign performance analyses should be reusable workspace deliverables, not only transient SSE events
+- store metrics analysis should be a reusable workspace deliverable, not only a transient SSE event
 - this uses the new product's existing artifact framework instead of adding one-off frontend state
+- it aligns store-level metrics with the product and campaign metric reports added in Post 8-66
 - it improves demo and future frontend usefulness without waiting for official platform adapters
 
 ## 10. Validation Standard

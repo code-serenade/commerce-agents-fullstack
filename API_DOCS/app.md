@@ -2186,7 +2186,7 @@
 | `page` | `number` | 否 | 默认 1 |
 | `pageSize` | `number` | 否 | 默认 20，最大 100 |
 
-补充：`artifactType` 当前还支持 `data_product_metrics_report` 和 `data_campaign_metrics_report`。它们分别来自 `query_product_metrics` 与 `query_campaign_metrics` 的真实成功输出，用于保存商品 / SKU 指标报告和活动 / 投放指标报告。
+补充：`artifactType` 当前还支持 `data_store_metrics_report`、`data_product_metrics_report` 和 `data_campaign_metrics_report`。它们分别来自 `query_store_metrics`、`query_product_metrics` 与 `query_campaign_metrics` 的真实成功输出，用于保存店铺指标报告、商品 / SKU 指标报告和活动 / 投放指标报告。
 
 成功响应 `data`：
 
@@ -2324,7 +2324,7 @@
 - 只有真实 `success` 的支持名单 skill 才会创建；不会为 deferred/pending_approval 结果伪造内容交付物
 - `data_dashboard` 会保留后端 skill 输出中的 `has_data`、`adapter_status`、指标分区、预警和下一步动作；如果 `adapter_status=store_metrics_required`，前端不能把该结果展示成平台实时数据
 - `data_funnel_report`、`data_channel_roi_report`、`data_refund_report` 只会在对应 data skill 有用户提供数据并返回 `status=success` 时创建；缺少数据时后端返回 `deferred`，不会创建假报告
-- `data_product_metrics_report` 和 `data_campaign_metrics_report` 分别来自 `query_product_metrics`、`query_campaign_metrics` 的真实成功输出；只有本轮显式提供商品 / 活动指标并返回 `status=success` 时才会创建，缺商品指标或活动指标的 `deferred` 状态不会创建假报告，也不会把未选择商品、预设商品或平台实时数据当作来源
+- `data_store_metrics_report`、`data_product_metrics_report` 和 `data_campaign_metrics_report` 分别来自 `query_store_metrics`、`query_product_metrics`、`query_campaign_metrics` 的真实成功输出；只有本轮显式提供店铺 / 商品 / 活动指标并返回 `status=success` 时才会创建，缺指标的 `deferred` 状态不会创建假报告，也不会把未选择商品、预设商品或平台实时数据当作来源
 - `data_anomaly_report`、`data_trend_forecast_report`、`data_customer_segmentation_report`、`data_competitor_report` 和 `data_ab_test_report` 来自数据岗位智能分析类 skill 的真实成功输出；异常/趋势缺少必要时序数据时返回 `deferred`，客户分层或竞品分析使用默认估算时会以 `data_readiness=calculated_from_defaults` 明示
 - `data_attribution_report` 来自渠道归因分析 skill 的真实成功输出；缺少多渠道输入、少于两个有效渠道或总 GMV 为 0 时返回 `deferred`，不会伪造平台渠道数据
 - `data_multi_period_trend_report`、`data_ltv_report`、`data_cohort_report`、`data_seasonal_decompose_report`、`data_price_elasticity_report` 和 `data_demand_forecast_report` 来自数据岗位进阶预测、留存、LTV 和价格弹性 skill 的真实成功输出；多周期趋势、季节性分解或需求预测缺少必要时序数据时返回 `deferred`，LTV、队列留存或价格弹性使用默认估算时会以 `data_readiness=calculated_from_defaults` 明示
