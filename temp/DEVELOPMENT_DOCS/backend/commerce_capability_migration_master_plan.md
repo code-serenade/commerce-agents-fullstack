@@ -236,22 +236,22 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-75: query product metrics product_ref contract
+Post 8-76: data competitor analysis product_ref contract
 ```
 
 Scope:
 
-- add `product_ref=product:{uuid}` to `query_product_metrics`
-- echo `query.product_ref` in both success and deferred outputs
-- let worker autosuggest pass selected product refs only from explicit `context.selected_summary`
-- avoid platform adapters and fake real-time metrics in this slice
+- add `product_ref=product:{uuid}` to `data_competitor_analysis`
+- echo the selected product reference in competitor analysis output
+- let data worker autosuggest pass selected product refs only from explicit `context.selected_summary`
+- keep live competitor search separated under `search_competitor` / external adapters
 
 Reason:
 
-- product metric queries are a core data skill from the old product
-- selected-product and unspecified-product paths must stay separate
-- frontend can later show product-bound metric runs using the same product reference contract as content/service skills
-- real platform product metrics remain an adapter concern and must not be faked
+- competitor analysis is a core old-product data skill
+- selected-product and unspecified-product competitor analysis must stay separate
+- frontend artifacts and process panels need a stable product reference for product-bound competitor reports
+- real external competitor facts remain an adapter/search concern and must not be faked
 
 ## 10. Validation Standard
 

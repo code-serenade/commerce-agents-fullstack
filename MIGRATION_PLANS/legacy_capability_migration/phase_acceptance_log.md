@@ -2,6 +2,26 @@
 
 # 阶段验收记录
 
+## Post 8-76：竞品分析 product_ref 契约
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent：`data_competitor_analysis` schema 支持 `product_ref`。
+- [x] Agent：竞品分析输出回显 `商品引用`。
+- [x] Worker autosuggest：本轮显式选品时竞品分析 input 携带 `product_ref` 和选中商品名。
+- [x] Worker autosuggest：未选商品时不写空 `product_ref`。
+- [x] API：`API_DOCS/sse.md` 已同步竞品分析 product_ref 契约。
+- [x] 前端：本轮不新增假入口。
+
+当前说明：
+
+- 本阶段解决的是“本地竞品分析结果无法关联本轮选中商品”的问题。
+- 本阶段不调用外部搜索或官方平台 API。
+- 真实竞品公开资料仍由 `search_competitor` 或后续 adapter 负责。
+
 ## Post 8-75：商品指标查询 product_ref 契约
 
 状态：done

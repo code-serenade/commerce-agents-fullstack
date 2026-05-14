@@ -793,7 +793,10 @@ fn autosuggest_data(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         return Some(autosuggest_request(
             "data_competitor_analysis",
             serde_json::json!({
-                "our_product": infer_product_name(text),
+                "product_ref": selected_product_ref(task),
+                "our_product": first_selected_product(task)
+                    .map(|product| product.name)
+                    .unwrap_or_else(|| infer_product_name(text)),
                 "our_price": numbers.first().copied().unwrap_or(99.0),
             }),
             "根据竞品/对标意图自动补偿竞品分析 skill",
@@ -4500,6 +4503,27 @@ mod tests {
             assert_eq!(requests.len(), 1, "{prompt}");
             assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
         }
+    }
+
+    #[test]
+    fn selected_product_context_feeds_competitor_analysis_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task_with_metadata(
+                "请对这个商品做竞品分析，对标同价位咖啡品牌",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_competitor_analysis");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["our_product"], "五一咖啡组合");
     }
 
     #[test]

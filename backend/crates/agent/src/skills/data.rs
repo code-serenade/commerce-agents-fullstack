@@ -237,6 +237,12 @@ pub fn specs() -> Vec<SkillSpec> {
             "输入竞品信息，输出竞品对比矩阵和策略建议",
             SkillPriority::Critical,
             vec![
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用 product:{uuid}；仅用于标识本轮显式选品",
+                    false,
+                ),
                 field("our_product", "string", "我方商品名称", true),
                 field("our_price", "number", "我方价格", false),
                 field(
@@ -1800,6 +1806,7 @@ fn customer_segmentation(input: &Value) -> Value {
 }
 
 fn competitor_analysis(input: &Value) -> Result<Value, SkillError> {
+    let product_ref = s(input, "product_ref", "");
     let product = required_string(input, "our_product")?;
     let our_price = n(input, "our_price", 100.0).max(0.01);
     let competitors = input
@@ -1837,6 +1844,7 @@ fn competitor_analysis(input: &Value) -> Result<Value, SkillError> {
         })
         .collect::<Vec<_>>();
     json_ok(json!({
+        "商品引用": empty_string_as_null(product_ref),
         "我方商品": product,
         "我方价格": round2(our_price),
         "竞品矩阵": matrix,
@@ -4016,6 +4024,7 @@ mod tests {
         let outcome = execute(
             "data_competitor_analysis",
             json!({
+                "product_ref": "product:11111111-1111-1111-1111-111111111111",
                 "our_product": "冷萃咖啡",
                 "our_price": 99.0
             }),
@@ -4036,6 +4045,10 @@ mod tests {
         assert_eq!(
             output.get("summary").and_then(Value::as_str),
             Some("竞品分析报告已生成")
+        );
+        assert_eq!(
+            output.get("商品引用"),
+            Some(&json!("product:11111111-1111-1111-1111-111111111111"))
         );
         assert!(output.get("竞品矩阵").and_then(Value::as_array).is_some());
     }
