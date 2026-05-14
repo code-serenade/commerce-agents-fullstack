@@ -1,5 +1,46 @@
 # 迁移开发记录
 
+## Post 8-63：店铺指标查询 skill 自然触达补强
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 63 个补强项：`Post 8-63`。
+
+本次目标：
+
+- 继续补强旧产品 data skill 生态在新产品 Agent 里的真实可用性。
+- 让 Post 8-62 已实现的 `query_store_metrics` 可以被自然语言触发。
+- 避免前端做假入口，也避免用户必须懂内部 skill JSON。
+
+本次修改：
+
+- 后端 agent：worker autosuggest 新增 `query_store_metrics` 触达逻辑。
+- 后端 agent：支持从用户文本解析 GMV、订单、UV、点击、广告费、退款、毛利。
+- 后端 agent：支持中文金额单位 `万/千/亿`。
+- 后端 agent：无平台明确输入时使用 `platform=all`，不默认淘宝。
+- 后端 agent：保留 `data_dashboard`、竞品、渠道、退款、异常、趋势等更具体 skill 的优先级。
+- API/SSE：同步说明自然语言可能自动产生 `query_store_metrics` 的 `skill_requested`。
+- 迁移文档：同步阶段验收记录、总计划和本轮归档文件。
+
+用户可感知变化：
+
+- 用户说“查询店铺指标：GMV18万，订单1800，UV3.6万”时，后端能自动进入店铺指标查询 skill。
+- 用户说“先加载店铺指标作为数据基线”时，后端能明确返回缺真实指标或待接 adapter，不会假装读取平台。
+- 没指定平台时不会默认淘宝，避免再次出现系统擅自塞默认商品/平台上下文的问题。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/query_store_metrics_reachability_post_8_63.md`
+- [x] Agent autosuggest 单测覆盖显式指标、缺指标加载意图、平台识别、看板意图不覆盖
+
+后续缺口：
+
+- service 层真实 `store_metrics` adapter 仍待实现。
+- 前端过程面板后续要展示该 skill 的数据加载状态。
+
 ## Post 8-62：店铺指标查询 skill native 显式输入补强
 
 状态：done

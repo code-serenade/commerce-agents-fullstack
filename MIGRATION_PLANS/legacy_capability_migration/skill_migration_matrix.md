@@ -29,7 +29,7 @@
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
 | --- | --- | --- | --- | --- |
-| `query_store_metrics` | `query_store_metrics` | native_ready | `backend/crates/agent/src/skills/data.rs` | Post 8-62：已迁为 Rust native 显式指标查询/汇总；有本轮 GMV、订单、UV、广告费、退款、毛利或 `platforms[]` 输入时返回 `manual_input/explicit_metrics`，无真实指标时返回 `store_metrics_required`，不伪造平台实时数据 |
+| `query_store_metrics` | `query_store_metrics` | native_ready | `backend/crates/agent/src/skills/data.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | Post 8-62：已迁为 Rust native 显式指标查询/汇总；有本轮 GMV、订单、UV、广告费、退款、毛利或 `platforms[]` 输入时返回 `manual_input/explicit_metrics`，无真实指标时返回 `store_metrics_required`，不伪造平台实时数据。Post 8-63：已补自然语言触达，可从“查询/加载店铺指标”和显式指标文本自动补偿该 skill；未明确平台时为 `all` |
 | `data_funnel_analysis` | `data_funnel_analysis` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已纳入岗位自动补偿规则，并有 stream 级测试覆盖；Post 8-31：有用户数据时成功输出会沉淀为 `data_funnel_report` artifact |
 | `data_anomaly_diagnosis` | `data_anomaly_diagnosis` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已纳入岗位自动补偿规则；Post 8-37：成功输出会沉淀为 `data_anomaly_report` artifact，时序点不足时 deferred |
 | `data_trend_forecast` | `data_trend_forecast` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已纳入岗位自动补偿规则；Post 8-37：成功输出会沉淀为 `data_trend_forecast_report` artifact，时序点不足时 deferred |

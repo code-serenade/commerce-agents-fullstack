@@ -727,6 +727,10 @@ fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         }
     }
 
+    if let Some(request) = autosuggest_query_store_metrics(text, false) {
+        return Some(request);
+    }
+
     Some(autosuggest_request(
         "ops_execution_plan",
         serde_json::json!({
@@ -801,6 +805,10 @@ fn autosuggest_data(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
             }),
             "根据渠道投产/归因意图自动补偿渠道ROI skill",
         ));
+    }
+
+    if let Some(request) = autosuggest_query_store_metrics(text, false) {
+        return Some(request);
     }
 
     if contains_any(
@@ -879,7 +887,7 @@ fn autosuggest_data(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
     }
     input.insert(
         "platform".to_string(),
-        serde_json::json!(infer_platform(text)),
+        serde_json::json!(infer_store_metrics_platform(text)),
     );
     Some(autosuggest_request(
         "data_funnel_analysis",
@@ -890,6 +898,7 @@ fn autosuggest_data(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
 
 fn autosuggest_accounting(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
     let numbers = numbers_in_text(text);
+
     if contains_any(
         text,
         &[
@@ -944,6 +953,10 @@ fn autosuggest_accounting(text: &str, _task: &Task) -> Option<ParsedSkillRequest
             }),
             "根据利润分析意图自动补偿利润分析 skill",
         ));
+    }
+
+    if let Some(request) = autosuggest_query_store_metrics(text, false) {
+        return Some(request);
     }
 
     Some(autosuggest_request(
@@ -1478,6 +1491,31 @@ fn autosuggest_engineering(text: &str, _task: &Task) -> Option<ParsedSkillReques
     ))
 }
 
+fn autosuggest_query_store_metrics(
+    text: &str,
+    explicit_metrics_only: bool,
+) -> Option<ParsedSkillRequest> {
+    let input = infer_store_metrics_input(text);
+    let has_explicit_metrics = store_metrics_input_has_metrics(&input);
+    let has_query_intent = has_store_metrics_query_intent(text);
+    if explicit_metrics_only && !has_explicit_metrics {
+        return None;
+    }
+    if !has_query_intent {
+        return None;
+    }
+
+    Some(autosuggest_request(
+        "query_store_metrics",
+        serde_json::Value::Object(input),
+        if has_explicit_metrics {
+            "根据用户显式提供的店铺指标自动补偿店铺指标查询 skill"
+        } else {
+            "根据查询/加载店铺指标意图自动补偿店铺指标查询 skill"
+        },
+    ))
+}
+
 fn autosuggest_request(
     skill_id: impl Into<String>,
     input: serde_json::Value,
@@ -1528,6 +1566,278 @@ fn numbers_in_text(text: &str) -> Vec<f64> {
     }
     push_parsed_number(&mut values, &mut current);
     values
+}
+
+fn infer_store_metrics_input(text: &str) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_period_days(text)),
+    );
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(infer_store_metrics_platform(text)),
+    );
+    input.insert("include_anomalies".to_string(), serde_json::json!(true));
+
+    insert_metric_value(
+        &mut input,
+        "previous_gmv",
+        text,
+        &["previous_gmv", "last_gmv", "上期GMV", "上周GMV", "前期GMV"],
+    );
+    insert_metric_value(
+        &mut input,
+        "gmv",
+        text,
+        &[
+            "本期GMV",
+            "当前GMV",
+            "GMV",
+            "gmv",
+            "销售额",
+            "成交额",
+            "营收",
+        ],
+    );
+    insert_metric_value(
+        &mut input,
+        "previous_orders",
+        text,
+        &[
+            "previous_orders",
+            "last_orders",
+            "上期订单",
+            "上周订单",
+            "前期订单",
+        ],
+    );
+    insert_metric_value(
+        &mut input,
+        "orders",
+        text,
+        &[
+            "本期订单",
+            "当前订单",
+            "订单数",
+            "订单",
+            "成交订单",
+            "支付订单",
+        ],
+    );
+    insert_metric_value(
+        &mut input,
+        "previous_visitors",
+        text,
+        &[
+            "previous_visitors",
+            "last_visitors",
+            "上期UV",
+            "上周UV",
+            "前期UV",
+        ],
+    );
+    insert_metric_value(
+        &mut input,
+        "visitors",
+        text,
+        &["本期UV", "当前UV", "UV", "uv", "访客数", "访客"],
+    );
+    insert_metric_value(
+        &mut input,
+        "clicks",
+        text,
+        &["点击数", "点击", "clicks", "click_count"],
+    );
+    insert_metric_value(
+        &mut input,
+        "ad_spend",
+        text,
+        &[
+            "广告费",
+            "广告花费",
+            "投放费用",
+            "ad_spend",
+            "ad spend",
+            "ad_cost",
+        ],
+    );
+    insert_metric_value(
+        &mut input,
+        "refund_amount",
+        text,
+        &["退款金额", "退款额", "退款", "refund_amount", "refunds"],
+    );
+    insert_metric_value(
+        &mut input,
+        "gross_profit",
+        text,
+        &["毛利额", "毛利", "gross_profit", "profit"],
+    );
+
+    input
+}
+
+fn insert_metric_value(
+    input: &mut serde_json::Map<String, serde_json::Value>,
+    key: &str,
+    text: &str,
+    aliases: &[&str],
+) {
+    if let Some(value) = extract_metric_value(text, aliases) {
+        input.insert(key.to_string(), serde_json::json!(value));
+    }
+}
+
+fn store_metrics_input_has_metrics(input: &serde_json::Map<String, serde_json::Value>) -> bool {
+    [
+        "gmv",
+        "previous_gmv",
+        "orders",
+        "previous_orders",
+        "visitors",
+        "previous_visitors",
+        "clicks",
+        "ad_spend",
+        "refund_amount",
+        "gross_profit",
+    ]
+    .iter()
+    .any(|key| input.contains_key(*key))
+}
+
+fn has_store_metrics_query_intent(text: &str) -> bool {
+    if contains_any(
+        text,
+        &[
+            "query_store_metrics",
+            "store metrics",
+            "store_metrics",
+            "查询店铺指标",
+            "加载店铺指标",
+            "读取店铺指标",
+            "查询店铺数据",
+            "加载店铺数据",
+            "读取店铺数据",
+            "经营数据基线",
+            "数据基线",
+        ],
+    ) {
+        return true;
+    }
+
+    contains_any(text, &["店铺指标", "店铺数据", "经营指标", "经营数据"])
+        && contains_any(
+            text,
+            &[
+                "查询",
+                "加载",
+                "读取",
+                "拉取",
+                "拿一下",
+                "看一下",
+                "先",
+                "作为",
+                "基线",
+                "load",
+                "query",
+                "read",
+            ],
+        )
+}
+
+fn infer_store_metrics_platform(text: &str) -> &'static str {
+    let lower = text.to_ascii_lowercase();
+    if text.contains("抖音") || lower.contains("douyin") || lower.contains("tiktok") {
+        "抖音"
+    } else if text.contains("淘宝") || lower.contains("taobao") {
+        "淘宝"
+    } else if text.contains("天猫") || lower.contains("tmall") {
+        "天猫"
+    } else if text.contains("京东") || lower.contains("jd") {
+        "京东"
+    } else if text.contains("拼多多") || lower.contains("pdd") {
+        "拼多多"
+    } else if text.contains("快手") {
+        "快手"
+    } else {
+        "all"
+    }
+}
+
+fn extract_metric_value(text: &str, aliases: &[&str]) -> Option<f64> {
+    let lower = text.to_ascii_lowercase();
+    for alias in aliases {
+        let alias_lower = alias.to_ascii_lowercase();
+        let Some(index) = lower.find(&alias_lower) else {
+            continue;
+        };
+        let start = index + alias_lower.len();
+        if let Some(value) = parse_metric_number_after_alias(&text[start..]) {
+            return Some(value);
+        }
+    }
+    None
+}
+
+fn parse_metric_number_after_alias(segment: &str) -> Option<f64> {
+    let mut chars = segment.char_indices().peekable();
+    let mut number_start = None;
+    while let Some((index, ch)) = chars.peek().copied() {
+        if ch.is_ascii_digit() || ch == '.' {
+            number_start = Some(index);
+            break;
+        }
+        if matches!(
+            ch,
+            ':' | '：' | '=' | '＝' | ' ' | '\t' | '约' | '为' | '是' | '￥' | '¥'
+        ) {
+            chars.next();
+            continue;
+        }
+        if index > 12 {
+            return None;
+        }
+        chars.next();
+    }
+
+    let start = number_start?;
+    let mut end = start;
+    let mut dot_seen = false;
+    for (index, ch) in segment[start..].char_indices() {
+        if ch.is_ascii_digit() || ch == ',' {
+            end = start + index + ch.len_utf8();
+            continue;
+        }
+        if ch == '.' && !dot_seen {
+            dot_seen = true;
+            end = start + index + ch.len_utf8();
+            continue;
+        }
+        break;
+    }
+
+    let raw_number = segment[start..end].replace(',', "");
+    let mut value = raw_number.parse::<f64>().ok()?;
+    if !value.is_finite() {
+        return None;
+    }
+
+    let unit_tail = segment[end..].trim_start();
+    if unit_tail.starts_with('亿') {
+        value *= 100_000_000.0;
+    } else if unit_tail.starts_with('万')
+        || unit_tail.starts_with('w')
+        || unit_tail.starts_with('W')
+    {
+        value *= 10_000.0;
+    } else if unit_tail.starts_with('千')
+        || unit_tail.starts_with('k')
+        || unit_tail.starts_with('K')
+    {
+        value *= 1_000.0;
+    }
+    Some(value.max(0.0))
 }
 
 fn push_parsed_number(values: &mut Vec<f64>, current: &mut String) {
@@ -2893,6 +3203,70 @@ mod tests {
             assert_eq!(requests.len(), 1, "{prompt}");
             assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
         }
+    }
+
+    #[test]
+    fn autosuggests_query_store_metrics_from_explicit_metric_query() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task(
+                "查询店铺指标：GMV18万，订单1800，UV3.6万，点击7200，广告费3.6万，退款5400，毛利5.4万",
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "query_store_metrics");
+        assert_eq!(requests[0].input["gmv"], 180000.0);
+        assert_eq!(requests[0].input["orders"], 1800.0);
+        assert_eq!(requests[0].input["visitors"], 36000.0);
+        assert_eq!(requests[0].input["clicks"], 7200.0);
+        assert_eq!(requests[0].input["ad_spend"], 36000.0);
+        assert_eq!(requests[0].input["refund_amount"], 5400.0);
+        assert_eq!(requests[0].input["gross_profit"], 54000.0);
+        assert_eq!(requests[0].input["platform"], "all");
+    }
+
+    #[test]
+    fn autosuggests_query_store_metrics_for_metric_loading_without_values() {
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task("先加载店铺指标作为这次运营复盘的数据基线"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "query_store_metrics");
+        assert_eq!(requests[0].input["platform"], "all");
+        assert!(requests[0].input.get("gmv").is_none());
+    }
+
+    #[test]
+    fn autosuggests_query_store_metrics_keeps_explicit_platform() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("查询抖音店铺指标：GMV12万，订单1000，UV2万"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "query_store_metrics");
+        assert_eq!(requests[0].input["platform"], "抖音");
+        assert_eq!(requests[0].input["gmv"], 120000.0);
+        assert_eq!(requests[0].input["orders"], 1000.0);
+        assert_eq!(requests[0].input["visitors"], 20000.0);
+    }
+
+    #[test]
+    fn autosuggest_query_store_metrics_does_not_override_dashboard_intent() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("打开店铺大盘，看一下最近30天核心经营指标和预警，GMV18万"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_dashboard");
     }
 
     #[test]

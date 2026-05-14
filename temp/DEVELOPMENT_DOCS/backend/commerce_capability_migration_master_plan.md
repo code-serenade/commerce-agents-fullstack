@@ -100,7 +100,7 @@ The following major foundations are already in place:
 - search evidence artifact persistence and reusable evidence summary contract
 - agent skill run persistence and query API
 - native coordination skill chain planning with structured phases, dependencies, adapter hints, approval hints, and availability flags
-- native `query_store_metrics` can now summarize explicit user-provided store metrics and clearly defer when store metrics are missing
+- native `query_store_metrics` can now summarize explicit user-provided store metrics, clearly defer when store metrics are missing, and be reached from natural store-metric query language
 - multiple native skill migrations across ops / data / service / creative / web / design / accounting
 - creative and design skill outputs can now materialize into reusable workspace artifacts when the skill result is successful
 - data dashboard is now a native deterministic skill with explicit manual-input vs store-metrics-required readiness
@@ -235,22 +235,22 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-62: query store metrics native explicit input
+Post 8-63: query store metrics natural reachability
 ```
 
 Scope:
 
-- harden the old product `query_store_metrics` capability inside the new Rust Agent framework
-- return structured store metrics when GMV, orders, UV, clicks, ad spend, refund, gross profit, or platform rows are explicitly provided
-- return `store_metrics_required` deferred output when no real metrics are available
-- keep official Taobao / Douyin / Qianchuan adapters out of this slice
-- avoid fake execution: this slice does not read platform backends and does not claim live data
+- harden natural reachability for the old product `query_store_metrics` capability
+- let worker autosuggest produce `query_store_metrics` for clear store-metric query/loading intent
+- parse explicit GMV, orders, UV, clicks, ad spend, refund, and gross profit from user text
+- keep more specific data skills such as dashboard, competitor, refund, channel ROI, anomaly, and forecast ahead of generic metric loading
+- avoid fake execution: this slice does not read platform backends or database metrics
 
 Reason:
 
 - many data / ops / accounting chains depend on `query_store_metrics` as their first data-loading step
-- the new product previously exposed only a fixed deferred placeholder, so downstream chains could not use explicit user-provided store metrics
-- the change makes the backend more usable immediately while still preserving truthful adapter boundaries
+- Post 8-62 made the skill useful from explicit input, but normal users still speak in natural language rather than internal skill JSON
+- the change makes the backend route clearer store-metric requests into the correct skill while still preserving truthful adapter boundaries
 
 ## 10. Validation Standard
 

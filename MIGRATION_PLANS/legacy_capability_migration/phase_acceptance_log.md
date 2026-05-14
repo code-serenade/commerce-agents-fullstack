@@ -2,6 +2,26 @@
 
 # 阶段验收记录
 
+## Post 8-63：店铺指标查询 skill 自然触达补强
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent：用户明确查询/加载店铺指标时，autosuggest 可生成 `query_store_metrics`。
+- [x] Agent：文本中的 GMV、订单、UV、点击、广告费、退款、毛利可进入 skill input。
+- [x] Agent：支持 `万/千/亿` 单位解析。
+- [x] Agent：未明确平台时为 `platform=all`，不默认淘宝。
+- [x] Agent：店铺大盘/看板等更具体意图仍走 `data_dashboard`。
+- [x] API：`API_DOCS/sse.md` 已同步自然触达说明。
+- [x] 前端：本轮不新增假入口。
+
+当前说明：
+
+- 本阶段解决的是“能力已经实现但自然语言不容易触发”的问题。
+- 本阶段只做后端路由/触达补强，不读取真实平台和数据库。
+
 ## Post 8-62：店铺指标查询 skill native 显式输入补强
 
 状态：done
