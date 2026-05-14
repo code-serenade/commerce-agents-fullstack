@@ -1,5 +1,54 @@
 # 迁移开发记录
 
+## Post 8-89：客户分层 product_ref 契约
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 89 个补强项：`Post 8-89`。
+
+本次目标：
+
+- 把 RFM 客户分层 `data_customer_segmentation` 接入新产品 `product_ref=product:{uuid}` 契约。
+- 让用户手动选择商品后，客户 / 人群 / RFM / 分层问法能保留本轮商品引用。
+- 继续保持未选商品时不绑定历史商品或预设商品，也不读取会员系统、订单系统或 CRM 实时人群数据。
+
+本次修改：
+
+- 后端 agent：`data_customer_segmentation` schema 新增 `product_ref`。
+- 后端 agent：成功输出新增 `商品引用`。
+- 后端 worker：客户分层自动补偿改为结构化 input 推断。
+- 后端 worker：本轮显式选品后，客户分层 input 带入 `product_ref`。
+- 后端 worker：解析本轮显式 `客户总数`、`客单价`、`人均订单数`、`平均购买间隔` 等 RFM 聚合指标。
+- 后端 worker：未选商品时不写空 `product_ref`。
+- API/SSE：同步 `API_DOCS/sse.md`。
+- 迁移文档：新增本轮归档，并同步阶段验收、总计划和 skill 矩阵。
+
+用户可感知变化：
+
+- 用户手动勾选商品后，再问“分析这个商品的客户分层 / 人群分层 / RFM”时，后端会把本轮选中商品的 `product:<uuid>` 带进客户分层结果。
+- 用户没有手动选商品时，客户分层仍按普通店铺或泛业务人群问题运行，但不会暗中绑定历史商品或默认商品。
+- 用户在问题里写出客户总数、客单价、人均订单数、购买间隔时，后端会解析成本轮显式 RFM 聚合输入；未提供时继续用 deterministic 默认估算并用 `data_readiness=calculated_from_defaults` 明示。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/data_customer_segmentation_product_ref_post_8_89.md`
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent data_customer_segmentation -- --nocapture`
+- [x] `cargo test -p agent autosuggests_customer_segmentation_with_explicit_rfm_metrics -- --nocapture`
+- [x] `cargo test -p agent selected_product_context_feeds_customer_segmentation_ref -- --nocapture`
+- [x] `cargo test -p agent customer_segmentation_without_selection_has_no_empty_product_ref -- --nocapture`
+- [x] `cargo fmt --all --check`
+- [x] `cargo check -p agent`
+- [x] `cargo clippy -p agent`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 真实会员系统、订单系统、CRM、人群包和平台 DMP 数据仍需要后续 service/adapter/search 注入，不能由本地 native skill 伪造或默认读取。
+
 ## Post 8-88：异常诊断 product_ref 契约
 
 状态：done

@@ -236,24 +236,24 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-88: data anomaly diagnosis product_ref contract
+Post 8-89: data customer segmentation product_ref contract
 ```
 
 Scope:
 
-- add `product_ref=product:{uuid}` to `data_anomaly_diagnosis`
-- echo the selected product reference in successful anomaly diagnosis output
-- route anomaly / fluctuation / decline / spike phrasing to structured `data_anomaly_diagnosis` input
-- parse explicit historical numeric series from the current text into `values`
+- add `product_ref=product:{uuid}` to `data_customer_segmentation`
+- echo the selected product reference in successful RFM customer segmentation output
+- route customer / audience / RFM / segmentation phrasing to structured `data_customer_segmentation` input
+- parse explicit RFM aggregate metrics from the current text into skill input
 - let data worker autosuggest pass selected product refs only from explicit `context.selected_summary`
-- keep insufficient history as deferred rather than fake live platform history, real-time alerts, or campaign-impact data
+- keep missing RFM aggregate metrics disclosed as deterministic defaults rather than fake CRM, DMP, or member-system data
 
 Reason:
 
-- anomaly diagnosis is a high-frequency data skill for GMV, order, UV, conversion, refund, and traffic drops/spikes
-- selected-product and unspecified-product anomaly diagnosis must stay separate
-- frontend artifacts and process panels need a stable product reference for product-bound anomaly reports
-- real platform sales history, real-time alerting, campaign calendars, and activity impact remain adapter/service/search concerns and must not be faked
+- customer segmentation is a high-frequency data skill for product-bound audience operations, retention, and repurchase planning
+- selected-product and unspecified-product customer segmentation must stay separate
+- frontend artifacts and process panels need a stable product reference for product-bound RFM reports
+- real member systems, order systems, CRM, DMP, and platform audience packets remain adapter/service/search concerns and must not be faked
 
 ## 10. Validation Standard
 

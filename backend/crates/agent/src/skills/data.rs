@@ -241,6 +241,12 @@ pub fn specs() -> Vec<SkillSpec> {
             "基于RFM模型输出客户分群、规模和运营策略",
             SkillPriority::Critical,
             vec![
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用 product:{uuid}；仅用于标识本轮显式选品",
+                    false,
+                ),
                 field("total_customers", "integer", "总客户数", false),
                 field("avg_order_value", "number", "平均客单价", false),
                 field("avg_orders_per_customer", "number", "人均订单数", false),
@@ -1861,6 +1867,7 @@ fn empty_string_as_null(value: String) -> Value {
 }
 
 fn customer_segmentation(input: &Value) -> Value {
+    let product_ref = s(input, "product_ref", "");
     let total = i(input, "total_customers", 1000).max(1);
     let aov = n(input, "avg_order_value", 120.0);
     let freq = n(input, "avg_orders_per_customer", 1.8);
@@ -1871,6 +1878,7 @@ fn customer_segmentation(input: &Value) -> Value {
     let lost = (total - high_value - loyal - attention).max(0);
     json!({
         "数据来源": "用户提供/默认估算",
+        "商品引用": empty_string_as_null(product_ref),
         "客户总数": total,
         "RFM输入": {"平均客单价": round2(aov), "人均订单数": round2(freq), "平均购买间隔": round2(recency)},
         "分群": [
@@ -4193,6 +4201,37 @@ mod tests {
             Some("客户分层报告已生成")
         );
         assert!(output.get("分群").and_then(Value::as_array).is_some());
+    }
+
+    #[tokio::test]
+    async fn data_customer_segmentation_echoes_product_ref() {
+        let outcome = execute(
+            "data_customer_segmentation",
+            json!({
+                "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                "total_customers": 1200,
+                "avg_order_value": 168.0,
+                "avg_orders_per_customer": 2.3,
+                "recency_days": 21.0
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("data customer segmentation should echo selected product ref");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("user_provided")
+        );
+        assert_eq!(
+            output.get("商品引用"),
+            Some(&json!("product:11111111-1111-1111-1111-111111111111"))
+        );
     }
 
     #[tokio::test]

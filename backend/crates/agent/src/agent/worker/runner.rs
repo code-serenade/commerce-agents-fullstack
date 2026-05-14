@@ -1042,7 +1042,7 @@ fn autosuggest_data(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     ) {
         return Some(autosuggest_request(
             "data_customer_segmentation",
-            serde_json::json!({}),
+            serde_json::Value::Object(infer_customer_segmentation_input(text, task)),
             "根据客户分层意图自动补偿 RFM skill",
         ));
     }
@@ -2353,6 +2353,59 @@ fn infer_anomaly_diagnosis_input(
     if !values.is_empty() {
         input.insert("values".to_string(), serde_json::json!(values));
     }
+    input
+}
+
+fn infer_customer_segmentation_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_period_days(text)),
+    );
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
+    if let Some(total_customers) = extract_metric_value(
+        text,
+        &[
+            "客户总数",
+            "总客户数",
+            "客户数",
+            "用户数",
+            "total_customers",
+        ],
+    ) {
+        input.insert(
+            "total_customers".to_string(),
+            serde_json::json!(total_customers.round().max(1.0) as i64),
+        );
+    }
+    insert_metric_value(
+        &mut input,
+        "avg_order_value",
+        text,
+        &["客单价", "平均客单价", "AOV", "aov", "avg_order_value"],
+    );
+    insert_metric_value(
+        &mut input,
+        "avg_orders_per_customer",
+        text,
+        &[
+            "人均订单数",
+            "人均购买次数",
+            "平均订单数",
+            "avg_orders_per_customer",
+        ],
+    );
+    insert_metric_value(
+        &mut input,
+        "recency_days",
+        text,
+        &["平均购买间隔", "购买间隔", "最近购买间隔", "recency_days"],
+    );
     input
 }
 
@@ -5249,6 +5302,56 @@ mod tests {
 
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].skill_id, "data_ltv_calculator");
+        assert!(requests[0].input.get("product_ref").is_none());
+    }
+
+    #[test]
+    fn autosuggests_customer_segmentation_with_explicit_rfm_metrics() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("做客户分层RFM：客户总数1200，客单价168，人均订单数2.3，平均购买间隔21"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_customer_segmentation");
+        assert_eq!(requests[0].input["total_customers"], 1200);
+        assert_eq!(requests[0].input["avg_order_value"], 168.0);
+        assert_eq!(requests[0].input["avg_orders_per_customer"], 2.3);
+        assert_eq!(requests[0].input["recency_days"], 21.0);
+    }
+
+    #[test]
+    fn selected_product_context_feeds_customer_segmentation_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task_with_metadata(
+                "分析这个商品的人群分层：客户总数1200，客单价168，人均订单数2.3，平均购买间隔21",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_customer_segmentation");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["total_customers"], 1200);
+    }
+
+    #[test]
+    fn customer_segmentation_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("做客户分层RFM：客户总数1200，客单价168，人均订单数2.3，平均购买间隔21"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_customer_segmentation");
         assert!(requests[0].input.get("product_ref").is_none());
     }
 
