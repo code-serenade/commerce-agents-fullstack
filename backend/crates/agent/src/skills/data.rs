@@ -148,6 +148,12 @@ pub fn specs() -> Vec<SkillSpec> {
             "分析电商转化漏斗各阶段转化率并定位流失环节",
             SkillPriority::Critical,
             vec![
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用 product:{uuid}；仅用于标识本轮显式选品",
+                    false,
+                ),
                 field("impressions", "integer", "曝光量", false),
                 field("clicks", "integer", "点击量", false),
                 field("add_to_cart", "integer", "加购量", false),
@@ -1165,6 +1171,7 @@ fn data_summary(skill_name: &str) -> &'static str {
 }
 
 fn funnel_analysis(input: &Value) -> Value {
+    let product_ref = s(input, "product_ref", "");
     let impressions = i(input, "impressions", 0).max(i(input, "clicks", 0));
     let clicks = i(input, "clicks", 0);
     let orders = i(input, "orders", 0);
@@ -1242,6 +1249,7 @@ fn funnel_analysis(input: &Value) -> Value {
         "adapter_status": "manual_input",
         "summary": format!("漏斗分析完成，瓶颈环节：{bottleneck}"),
         "数据来源": "用户提供",
+        "商品引用": empty_string_as_null(product_ref),
         "漏斗分析": funnel,
         "整体转化率": percent(pct(payments as f64, impressions.max(1) as f64), 3),
         "瓶颈环节": bottleneck,
@@ -3649,6 +3657,7 @@ mod tests {
     #[test]
     fn data_funnel_analysis_marks_success_for_user_data() {
         let output = funnel_analysis(&json!({
+            "product_ref": "product:11111111-1111-1111-1111-111111111111",
             "impressions": 10000,
             "clicks": 620,
             "add_to_cart": 180,
@@ -3664,6 +3673,10 @@ mod tests {
         assert_eq!(
             output.get("adapter_status").and_then(Value::as_str),
             Some("manual_input")
+        );
+        assert_eq!(
+            output.get("商品引用"),
+            Some(&json!("product:11111111-1111-1111-1111-111111111111"))
         );
         assert!(
             output

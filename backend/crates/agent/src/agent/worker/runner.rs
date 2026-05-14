@@ -925,6 +925,9 @@ fn autosuggest_data(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         "platform".to_string(),
         serde_json::json!(infer_store_metrics_platform(text)),
     );
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
     Some(autosuggest_request(
         "data_funnel_analysis",
         serde_json::Value::Object(input),
@@ -4475,6 +4478,41 @@ mod tests {
         assert_eq!(requests[0].skill_id, "data_funnel_analysis");
         assert_eq!(requests[0].input["impressions"], 10000);
         assert_eq!(requests[0].input["clicks"], 500);
+    }
+
+    #[test]
+    fn selected_product_context_feeds_funnel_analysis_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task_with_metadata(
+                "分析这个商品转化漏斗：曝光10000 点击500 加购120 下单60 付款54",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_funnel_analysis");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["impressions"], 10000);
+        assert_eq!(requests[0].input["payments"], 54);
+    }
+
+    #[test]
+    fn funnel_analysis_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("分析商品转化漏斗：曝光10000 点击500 加购120 下单60 付款54"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_funnel_analysis");
+        assert!(requests[0].input.get("product_ref").is_none());
     }
 
     #[test]

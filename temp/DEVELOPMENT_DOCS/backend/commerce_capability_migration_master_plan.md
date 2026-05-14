@@ -236,22 +236,22 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-76: data competitor analysis product_ref contract
+Post 8-77: data funnel analysis product_ref contract
 ```
 
 Scope:
 
-- add `product_ref=product:{uuid}` to `data_competitor_analysis`
-- echo the selected product reference in competitor analysis output
+- add `product_ref=product:{uuid}` to `data_funnel_analysis`
+- echo the selected product reference in successful funnel output
 - let data worker autosuggest pass selected product refs only from explicit `context.selected_summary`
-- keep live competitor search separated under `search_competitor` / external adapters
+- keep missing funnel metrics as deferred rather than fake live platform data
 
 Reason:
 
-- competitor analysis is a core old-product data skill
-- selected-product and unspecified-product competitor analysis must stay separate
-- frontend artifacts and process panels need a stable product reference for product-bound competitor reports
-- real external competitor facts remain an adapter/search concern and must not be faked
+- funnel analysis is a core e-commerce operating skill
+- selected-product and unspecified-product funnel analysis must stay separate
+- frontend artifacts and process panels need a stable product reference for product-bound funnel reports
+- real platform funnel metrics remain an adapter/service concern and must not be faked
 
 ## 10. Validation Standard
 

@@ -2,6 +2,26 @@
 
 # 阶段验收记录
 
+## Post 8-77：漏斗分析 product_ref 契约
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent：`data_funnel_analysis` schema 支持 `product_ref`。
+- [x] Agent：成功漏斗分析输出回显 `商品引用`。
+- [x] Worker autosuggest：本轮显式选品时漏斗分析 input 携带 `product_ref`。
+- [x] Worker autosuggest：未选商品时不写空 `product_ref`。
+- [x] API：`API_DOCS/sse.md` 已同步漏斗分析 product_ref 契约。
+- [x] 前端：本轮不新增假入口。
+
+当前说明：
+
+- 本阶段解决的是“商品级漏斗分析结果无法关联本轮选中商品”的问题。
+- 本阶段只使用本轮显式漏斗指标，不调用外部平台 API。
+- 缺少曝光、点击等漏斗数据时仍返回 deferred，不创建假报告。
+
 ## Post 8-76：竞品分析 product_ref 契约
 
 状态：done
