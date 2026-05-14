@@ -69,9 +69,20 @@ pub fn specs() -> Vec<SkillSpec> {
             "根据商品名称、卖点和平台，生成标题、卖点描述、关键词和问答",
             vec![
                 field("product_name", "string", "商品名称", false),
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用，如 product:{uuid}",
+                    false,
+                ),
                 field("features", "array<string>", "商品卖点列表", false),
                 field("platform", "string", "上架平台，默认淘宝", false),
-                field("product_id", "integer", "商品ID，仅用于透传标识", false),
+                field(
+                    "product_id",
+                    "integer",
+                    "旧整数商品ID，仅用于兼容透传",
+                    false,
+                ),
                 field("competitor_titles", "array<string>", "竞品标题列表", false),
             ],
         ),
@@ -91,7 +102,13 @@ pub fn specs() -> Vec<SkillSpec> {
             vec![
                 field("goal", "string", "运营目标", true),
                 field("stage", "string", "阶段：冷启动/成长期/成熟期/衰退期", true),
-                field("product_id", "integer", "主推商品ID，可选", false),
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品主推商品引用，如 product:{uuid}",
+                    false,
+                ),
+                field("product_id", "integer", "旧整数主推商品ID，可选", false),
             ],
         ),
         spec(
@@ -446,14 +463,19 @@ fn inventory_planning(input: &Value) -> Value {
 
 fn listing_copy(input: &Value) -> Value {
     let product_name = string(input, "product_name", "");
-    if product_name.is_empty() && input.get("product_id").is_none() {
+    let product_ref = string(input, "product_ref", "");
+    if product_name.is_empty() && product_ref.is_empty() && input.get("product_id").is_none() {
         return json!({
             "has_data": false,
-            "提示": "请提供 product_name；纯计算版本不会按 product_id 自动读取商品信息。",
+            "提示": "请提供 product_name 或 product_ref；纯计算版本不会按商品引用自动读取数据库信息。",
         });
     }
     let name = if product_name.is_empty() {
-        format!("商品ID {}", num(input, "product_id", 0.0).round() as i64)
+        if product_ref.is_empty() {
+            format!("商品ID {}", num(input, "product_id", 0.0).round() as i64)
+        } else {
+            product_ref.clone()
+        }
     } else {
         product_name
     };
@@ -472,6 +494,7 @@ fn listing_copy(input: &Value) -> Value {
         "数据来源": "用户输入 + 确定性文案模板",
         "平台": platform,
         "商品": name,
+        "商品引用": if product_ref.is_empty() { Value::Null } else { json!(product_ref) },
         "标题版本": [
             format!("{} {} 官方同款 高性价比", name, features[0]),
             format!("{} {} 新品热卖 现货速发", name, features.join(" ")),

@@ -637,6 +637,7 @@ fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
             "ops_listing_copy",
             serde_json::json!({
                 "product_name": selected_product_name_or_task(task),
+                "product_ref": selected_product_ref(task),
                 "features": selected_product_features_or_infer(task, text),
                 "platform": selected_product_platform_or_infer(task, text),
             }),
@@ -747,6 +748,7 @@ fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         serde_json::json!({
             "goal": compact_task_text(&task.description),
             "stage": infer_stage(text),
+            "product_ref": selected_product_ref(task),
         }),
         "根据运营岗位任务自动补偿执行计划 skill",
     ))
@@ -1147,6 +1149,7 @@ fn autosuggest_creative(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
             serde_json::json!({
                 "duration_hours": numbers_in_text(text).first().copied().unwrap_or(3.0).clamp(0.5, 12.0),
                 "product_count": product_count,
+                "product_refs": selected_product_refs(task),
                 "live_type": if contains_any(text, &["new", "新品"]) { "新品首发" } else { "日常带货" },
                 "platform": selected_product_platform_or_infer(task, text),
             }),
@@ -1170,6 +1173,7 @@ fn autosuggest_creative(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
             "creative_video_script",
             serde_json::json!({
                 "product_name": selected_product_name_or_task(task),
+                "product_ref": selected_product_ref(task),
                 "video_type": infer_video_type(text),
                 "duration": numbers_in_text(text).first().copied().unwrap_or(30.0).round().clamp(10.0, 180.0) as i64,
                 "platform": selected_product_platform_or_infer(task, text),
@@ -1183,6 +1187,7 @@ fn autosuggest_creative(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
             "creative_seeding_copy",
             serde_json::json!({
                 "product_name": selected_product_name_or_task(task),
+                "product_ref": selected_product_ref(task),
                 "selling_points": selected_product_features_or_infer(task, text),
                 "target_audience": infer_audience(text),
                 "tone": if contains_any(text, &["测评", "专业"]) { "专业测评" } else { "闺蜜分享" },
@@ -1246,6 +1251,7 @@ fn autosuggest_creative(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
             "creative_product_article",
             serde_json::json!({
                 "product_name": selected_product_name_or_task(task),
+                "product_ref": selected_product_ref(task),
                 "article_type": if contains_any(text, &["对比"]) { "对比评测" } else if contains_any(text, &["攻略"]) { "使用攻略" } else { "测评软文" },
                 "platform": selected_product_article_platform_or_default(task, text),
             }),
@@ -1282,6 +1288,7 @@ fn autosuggest_web(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
                 "seed_keyword": seed_keyword,
                 "category": selected_product_category_or_infer(task, text),
                 "platform": selected_product_platform_or_infer(task, text),
+                "product_ref": selected_product_ref(task),
             }),
             "根据关键词/SEO研究意图自动补偿关键词矩阵 skill",
         ));
@@ -1294,6 +1301,7 @@ fn autosuggest_web(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
                 "target_keywords": extract_keyword_candidates(text),
                 "current_rank": numbers_in_text(text).first().copied().map(|value| value.round() as i64),
                 "platform": selected_product_platform_or_infer(task, text),
+                "product_ref": selected_product_ref(task),
             }),
             "根据 SEO/提排意图自动补偿 SEO 优化 skill",
         ));
@@ -1304,6 +1312,7 @@ fn autosuggest_web(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
             "web_title_generator",
             serde_json::json!({
                 "product_name": selected_product_name_or_task(task),
+                "product_ref": selected_product_ref(task),
                 "keywords": extract_keyword_candidates(text),
                 "platform": selected_product_platform_or_infer(task, text),
                 "style": if contains_any(text, &["品牌"]) { "品牌型" } else if contains_any(text, &["信息"]) { "信息型" } else { "营销型" },
@@ -1330,6 +1339,7 @@ fn autosuggest_web(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
             "web_product_description",
             serde_json::json!({
                 "product_name": selected_product_name_or_task(task),
+                "product_ref": selected_product_ref(task),
                 "platform": selected_product_platform_or_infer(task, text),
                 "style": if contains_any(text, &["故事"]) { "故事型" } else if contains_any(text, &["信息"]) { "信息型" } else { "营销型" },
             }),
@@ -1379,6 +1389,7 @@ fn autosuggest_design(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
             "design_detail_page",
             serde_json::json!({
                 "product_name": selected_product_name_or_task(task),
+                "product_ref": selected_product_ref(task),
                 "platform": selected_product_platform_or_infer(task, text),
                 "style": infer_design_style(text),
             }),
@@ -1393,6 +1404,7 @@ fn autosuggest_design(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
                 "brand_tone": infer_design_style(text),
                 "category": selected_product_category_or_infer(task, text),
                 "platform": selected_product_platform_or_infer(task, text),
+                "product_ref": selected_product_ref(task),
             }),
             "根据配色/品牌色意图自动补偿配色方案 skill",
         ));
@@ -1405,6 +1417,7 @@ fn autosuggest_design(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
                 "campaign_name": if contains_any(text, &["618"]) { "618大促" } else if contains_any(text, &["双11", "双十一"]) { "双11大促" } else { "营销活动" },
                 "discount_info": extract_discount_hint(text),
                 "platform": selected_product_platform_or_infer(task, text),
+                "product_ref": selected_product_ref(task),
                 "style": infer_design_style(text),
             }),
             "根据活动海报意图自动补偿海报设计 skill",
@@ -1415,6 +1428,7 @@ fn autosuggest_design(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         "design_main_image",
         serde_json::json!({
             "product_name": selected_product_name_or_task(task),
+            "product_ref": selected_product_ref(task),
             "platform": selected_product_platform_or_infer(task, text),
         }),
         "根据设计岗位任务自动补偿主图设计 skill",
@@ -1741,8 +1755,49 @@ fn autosuggest_request(
 ) -> ParsedSkillRequest {
     ParsedSkillRequest {
         skill_id: skill_id.into(),
-        input,
+        input: compact_skill_input(input),
         reason: Some(reason.into()),
+    }
+}
+
+fn compact_skill_input(input: serde_json::Value) -> serde_json::Value {
+    match input {
+        serde_json::Value::Object(values) => serde_json::Value::Object(
+            values
+                .into_iter()
+                .filter_map(|(key, value)| {
+                    compact_skill_input_field(value).map(|value| (key, value))
+                })
+                .collect(),
+        ),
+        value => value,
+    }
+}
+
+fn compact_skill_input_field(value: serde_json::Value) -> Option<serde_json::Value> {
+    match value {
+        serde_json::Value::Null => None,
+        serde_json::Value::Array(values) => {
+            let values = values
+                .into_iter()
+                .filter_map(compact_skill_input_field)
+                .collect::<Vec<_>>();
+            if values.is_empty() {
+                None
+            } else {
+                Some(serde_json::Value::Array(values))
+            }
+        }
+        serde_json::Value::Object(values) => {
+            let values = values
+                .into_iter()
+                .filter_map(|(key, value)| {
+                    compact_skill_input_field(value).map(|value| (key, value))
+                })
+                .collect();
+            Some(serde_json::Value::Object(values))
+        }
+        value => Some(value),
     }
 }
 
@@ -3328,6 +3383,17 @@ fn first_selected_product(task: &Task) -> Option<SelectedProductContext> {
     selected_products_from_task(task).into_iter().next()
 }
 
+fn selected_product_ref(task: &Task) -> Option<String> {
+    first_selected_product(task).map(|product| product.ref_key())
+}
+
+fn selected_product_refs(task: &Task) -> Vec<String> {
+    selected_products_from_task(task)
+        .into_iter()
+        .map(|product| product.ref_key())
+        .collect()
+}
+
 fn selected_product_name_or_task(task: &Task) -> String {
     first_selected_product(task)
         .map(|product| product.name)
@@ -3391,6 +3457,16 @@ fn selected_product_article_platform_or_default(task: &Task, text: &str) -> Stri
                 "微信公众号".to_string()
             }
         })
+}
+
+impl SelectedProductContext {
+    fn ref_key(&self) -> String {
+        if self.id.starts_with("product:") {
+            self.id.clone()
+        } else {
+            format!("product:{}", self.id)
+        }
+    }
 }
 
 fn parse_product_summary_line(line: &str) -> Option<SelectedProductContext> {
@@ -4661,6 +4737,10 @@ mod tests {
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].skill_id, "creative_video_script");
         assert_eq!(requests[0].input["product_name"], "五一咖啡组合");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
         assert_eq!(requests[0].input["platform"], "抖音");
     }
 
@@ -4679,6 +4759,10 @@ mod tests {
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].skill_id, "ops_listing_copy");
         assert_eq!(requests[0].input["product_name"], "五一咖啡组合");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
         assert_eq!(requests[0].input["platform"], "抖音");
         let features = requests[0].input["features"]
             .as_array()
@@ -4705,6 +4789,10 @@ mod tests {
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].skill_id, "web_product_description");
         assert_eq!(requests[0].input["product_name"], "五一咖啡组合");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
         assert_eq!(requests[0].input["platform"], "抖音");
     }
 
@@ -4723,7 +4811,33 @@ mod tests {
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].skill_id, "design_detail_page");
         assert_eq!(requests[0].input["product_name"], "五一咖啡组合");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
         assert_eq!(requests[0].input["platform"], "抖音");
+    }
+
+    #[test]
+    fn selected_product_context_feeds_live_script_product_refs() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("creative"),
+            &task_with_metadata(
+                "写直播带货开场话术",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "creative_live_script");
+        let refs = requests[0].input["product_refs"]
+            .as_array()
+            .expect("product_refs should be an array");
+        assert_eq!(refs.len(), 1);
+        assert_eq!(refs[0], "product:11111111-1111-1111-1111-111111111111");
+        assert_eq!(requests[0].input["product_count"], 1);
     }
 
     #[test]
@@ -4741,6 +4855,7 @@ mod tests {
         assert_eq!(requests[0].skill_id, "creative_video_script");
         assert_ne!(requests[0].input["product_name"], "千乐咖啡");
         assert_eq!(requests[0].input["product_name"], "帮我写一条短视频脚本");
+        assert!(requests[0].input.get("product_ref").is_none());
     }
 
     #[test]

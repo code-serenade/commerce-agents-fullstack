@@ -1081,6 +1081,29 @@
 - 本阶段不调用真实平台写 adapter，不改变 `adapter_not_implemented` 的当前边界。
 - 后续接入真实平台 adapter 时，应让 adapter 返回 outcome，再写回 execution queue、tool approval 和 audit。
 
+## Post 8-71：商品 UUID 引用进入 Skill 契约
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] 新增 `product_ref` / `product_refs` 作为新产品 UUID 商品引用契约。
+- [x] 保留旧 `product_id` integer 兼容字段。
+- [x] worker 显式选品后自动补偿 `product_ref/product_refs`。
+- [x] worker 未选商品时清理 `null` 和空数组，不留下空引用字段。
+- [x] creative 商品型 skill schema 和 data readiness 支持 `product_ref/product_refs`。
+- [x] web 商品型 skill schema 和 data readiness 支持 `product_ref`。
+- [x] design 商品型 skill schema 和 data readiness 支持 `product_ref`。
+- [x] ops 上架文案与执行计划 schema 支持 `product_ref`。
+- [x] API 文档已同步。
+
+当前说明：
+
+- 本阶段解决“新产品 UUID 商品不能安全进入旧整数 product_id skill 字段”的契约问题。
+- 本阶段不新增数据库、不新增 HTTP API、不让 agent crate 直连数据库。
+- 后续应逐步把 data / service / platform 相关 skill 的旧 `product_id` 迁到同一 `product_ref` 契约。
+
 ## Post 8-70：显式选品上下文进入 Skill 输入
 
 状态：done

@@ -42,8 +42,13 @@ pub fn web_seo_optimize_spec() -> SkillSpec {
             ),
             SkillInputField::optional(
                 "product_id",
-                "商品ID，自动加载商品信息生成针对性SEO方案",
+                "旧整数商品ID，兼容旧参数",
                 json!({"type": "integer"}),
+            ),
+            SkillInputField::optional(
+                "product_ref",
+                "新产品商品引用，如 product:{uuid}",
+                json!({"type": "string"}),
             ),
             SkillInputField::optional(
                 "platform",
@@ -58,7 +63,7 @@ pub fn web_title_generator_spec() -> SkillSpec {
     native_spec(
         "web_title_generator",
         "标题生成",
-        "根据商品信息生成多种风格的SEO友好标题；传入product_id可自动加载真实商品",
+        "根据商品信息生成多种风格的SEO友好标题；传入product_ref可关联新产品商品上下文",
         vec![
             SkillInputField::optional(
                 "product_name",
@@ -77,8 +82,13 @@ pub fn web_title_generator_spec() -> SkillSpec {
             ),
             SkillInputField::optional(
                 "product_id",
-                "商品ID，用于自动加载商品信息",
+                "旧整数商品ID，兼容旧参数",
                 json!({"type": "integer"}),
+            ),
+            SkillInputField::optional(
+                "product_ref",
+                "新产品商品引用，如 product:{uuid}",
+                json!({"type": "string"}),
             ),
             SkillInputField::optional(
                 "platform",
@@ -119,8 +129,13 @@ pub fn web_title_seo_scorer_spec() -> SkillSpec {
     ))
     .with_input(SkillInputField::optional(
         "product_id",
-        "商品ID，自动加载标题和关键词",
+        "旧整数商品ID，兼容旧参数",
         json!({"type": "integer"}),
+    ))
+    .with_input(SkillInputField::optional(
+        "product_ref",
+        "新产品商品引用，如 product:{uuid}",
+        json!({"type": "string"}),
     ))
     .with_tag("deterministic")
 }
@@ -330,8 +345,13 @@ pub fn web_keyword_research_spec() -> SkillSpec {
             ),
             SkillInputField::optional(
                 "product_id",
-                "商品ID，自动以商品名为种子词",
+                "旧整数商品ID，兼容旧参数",
                 json!({"type": "integer"}),
+            ),
+            SkillInputField::optional(
+                "product_ref",
+                "新产品商品引用，如 product:{uuid}",
+                json!({"type": "string"}),
             ),
         ],
     )
@@ -342,7 +362,7 @@ pub fn web_product_description_spec() -> SkillSpec {
         "web_product_description",
         "详情页文案",
         "生成完整的详情页营销文案（首屏卖点/痛点/解决方案/亮点/行动号召）；\
-         传入product_id自动加载商品信息",
+         传入product_ref可关联新产品商品上下文",
         vec![
             SkillInputField::optional(
                 "product_name",
@@ -351,8 +371,13 @@ pub fn web_product_description_spec() -> SkillSpec {
             ),
             SkillInputField::optional(
                 "product_id",
-                "商品ID，自动加载商品信息",
+                "旧整数商品ID，兼容旧参数",
                 json!({"type": "integer"}),
+            ),
+            SkillInputField::optional(
+                "product_ref",
+                "新产品商品引用，如 product:{uuid}",
+                json!({"type": "string"}),
             ),
             SkillInputField::optional(
                 "platform",
@@ -424,6 +449,7 @@ native_web_skill!(
         "target_keywords" => |p: &Value| Ok(optional_string_vec_param(p, "target_keywords")?.unwrap_or_else(|| vec!["电商".to_owned()])),
         "current_rank" => |p: &Value| Ok(optional_i64_param(p, "current_rank")?.unwrap_or(0)),
         "product_id" => |p: &Value| optional_i64_param(p, "product_id"),
+        "product_ref" => |p: &Value| optional_string_param(p, "product_ref"),
         "platform" => |p: &Value| Ok(optional_string_param(p, "platform")?.unwrap_or_else(|| "淘宝".to_owned())),
     }
 );
@@ -436,6 +462,7 @@ native_web_skill!(
         "keywords" => |p: &Value| Ok(optional_string_vec_param(p, "keywords")?.unwrap_or_default()),
         "style" => |p: &Value| Ok(optional_string_param(p, "style")?.unwrap_or_else(|| "营销型".to_owned())),
         "product_id" => |p: &Value| optional_i64_param(p, "product_id"),
+        "product_ref" => |p: &Value| optional_string_param(p, "product_ref"),
         "platform" => |p: &Value| Ok(optional_string_param(p, "platform")?.unwrap_or_else(|| "淘宝".to_owned())),
     }
 );
@@ -459,6 +486,7 @@ native_web_skill!(
         "category" => |p: &Value| Ok(optional_string_param(p, "category")?.unwrap_or_else(|| "通用".to_owned())),
         "platform" => |p: &Value| Ok(optional_string_param(p, "platform")?.unwrap_or_else(|| "淘宝".to_owned())),
         "product_id" => |p: &Value| optional_i64_param(p, "product_id"),
+        "product_ref" => |p: &Value| optional_string_param(p, "product_ref"),
     }
 );
 native_web_skill!(
@@ -468,6 +496,7 @@ native_web_skill!(
     defaults {
         "product_name" => |p: &Value| optional_string_param(p, "product_name"),
         "product_id" => |p: &Value| optional_i64_param(p, "product_id"),
+        "product_ref" => |p: &Value| optional_string_param(p, "product_ref"),
         "platform" => |p: &Value| Ok(optional_string_param(p, "platform")?.unwrap_or_else(|| "淘宝".to_owned())),
         "style" => |p: &Value| Ok(optional_string_param(p, "style")?.unwrap_or_else(|| "营销型".to_owned())),
     }
@@ -554,12 +583,23 @@ fn normalize_web_output(skill_id: &str, input: &Value, output: &mut Value) {
 fn web_data_readiness(skill_id: &str, input: &Value) -> &'static str {
     match skill_id {
         "web_seo_optimize"
-            if !has_any_input(input, &["target_keywords", "current_rank", "product_id"]) =>
+            if !has_any_input(
+                input,
+                &[
+                    "target_keywords",
+                    "current_rank",
+                    "product_ref",
+                    "product_id",
+                ],
+            ) =>
         {
             "calculated_from_defaults"
         }
         "web_title_generator"
-            if !has_any_input(input, &["product_name", "keywords", "product_id"]) =>
+            if !has_any_input(
+                input,
+                &["product_name", "product_ref", "keywords", "product_id"],
+            ) =>
         {
             "calculated_from_defaults"
         }
@@ -571,10 +611,14 @@ fn web_data_readiness(skill_id: &str, input: &Value) -> &'static str {
         {
             "calculated_from_defaults"
         }
-        "web_keyword_research" if !has_any_input(input, &["seed_keyword", "product_id"]) => {
+        "web_keyword_research"
+            if !has_any_input(input, &["seed_keyword", "product_ref", "product_id"]) =>
+        {
             "calculated_from_defaults"
         }
-        "web_product_description" if !has_any_input(input, &["product_name", "product_id"]) => {
+        "web_product_description"
+            if !has_any_input(input, &["product_name", "product_ref", "product_id"]) =>
+        {
             "calculated_from_defaults"
         }
         _ => "user_provided",
@@ -1038,6 +1082,30 @@ mod tests {
             Some("标题候选已生成")
         );
         assert!(output.get("标题候选").and_then(Value::as_array).is_some());
+    }
+
+    #[tokio::test]
+    async fn web_product_description_accepts_product_ref_as_user_context() {
+        let outcome = WebProductDescription::new()
+            .run(
+                json!({
+                    "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                    "platform": "抖音"
+                }),
+                SkillContext::default(),
+            )
+            .await
+            .expect("web product description should accept product_ref");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("user_provided")
+        );
     }
 
     #[tokio::test]

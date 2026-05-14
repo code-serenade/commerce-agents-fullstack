@@ -28,11 +28,12 @@ pub fn creative_video_script_spec() -> SkillSpec {
     deferred_spec(
         "creative_video_script",
         "短视频脚本",
-        "根据商品和平台特点，生成短视频脚本框架；传入product_id可自动加载真实商品信息",
+        "根据商品和平台特点，生成短视频脚本框架；传入product_ref可关联新产品商品上下文",
         vec![
+            SkillInputField::optional("product_name", "商品名称", json!({"type": "string"})),
             SkillInputField::optional(
-                "product_name",
-                "商品名称（可从product_id自动加载）",
+                "product_ref",
+                "新产品商品引用，如 product:{uuid}",
                 json!({"type": "string"}),
             ),
             SkillInputField::optional(
@@ -48,7 +49,7 @@ pub fn creative_video_script_spec() -> SkillSpec {
             ),
             SkillInputField::optional(
                 "product_id",
-                "商品ID，自动加载商品信息和卖点",
+                "旧整数商品ID，兼容旧参数",
                 json!({"type": "integer"}),
             ),
         ],
@@ -59,16 +60,17 @@ pub fn creative_seeding_copy_spec() -> SkillSpec {
     deferred_spec(
         "creative_seeding_copy",
         "种草文案",
-        "生成小红书/社交媒体种草文案框架；传入product_id可自动加载商品卖点",
+        "生成小红书/社交媒体种草文案框架；传入product_ref可关联新产品商品卖点",
         vec![
+            SkillInputField::optional("product_name", "商品名称", json!({"type": "string"})),
             SkillInputField::optional(
-                "product_name",
-                "商品名称（可从product_id自动加载）",
+                "product_ref",
+                "新产品商品引用，如 product:{uuid}",
                 json!({"type": "string"}),
             ),
             SkillInputField::optional(
                 "selling_points",
-                "核心卖点（可从product_id自动加载）",
+                "核心卖点",
                 json!({"type": "array", "items": {"type": "string"}}),
             ),
             SkillInputField::optional("target_audience", "目标人群", json!({"type": "string"})),
@@ -79,7 +81,7 @@ pub fn creative_seeding_copy_spec() -> SkillSpec {
             ),
             SkillInputField::optional(
                 "product_id",
-                "商品ID，自动加载商品信息和卖点",
+                "旧整数商品ID，兼容旧参数",
                 json!({"type": "integer"}),
             ),
         ],
@@ -276,7 +278,7 @@ pub fn creative_live_script_spec() -> SkillSpec {
     deferred_spec(
         "creative_live_script",
         "直播脚本",
-        "生成完整直播话术脚本，含每个阶段的真实台词；可传入product_ids自动加载商品列表",
+        "生成完整直播话术脚本，含每个阶段的真实台词；可传入product_refs关联新产品商品列表",
         vec![
             SkillInputField::required(
                 "duration_hours",
@@ -299,8 +301,13 @@ pub fn creative_live_script_spec() -> SkillSpec {
                 json!({"type": "string"}),
             ),
             SkillInputField::optional(
+                "product_refs",
+                "新产品商品引用列表，如 product:{uuid}",
+                json!({"type": "array", "items": {"type": "string"}}),
+            ),
+            SkillInputField::optional(
                 "product_ids",
-                "商品ID列表，自动加载商品信息生成更真实的话术",
+                "旧整数商品ID列表，兼容旧参数",
                 json!({"type": "array", "items": {"type": "integer"}}),
             ),
         ],
@@ -311,16 +318,17 @@ pub fn creative_product_article_spec() -> SkillSpec {
     deferred_spec(
         "creative_product_article",
         "产品软文",
-        "生成完整可发布的产品软文/推广文章，含标题和正文；传入product_id自动加载商品信息",
+        "生成完整可发布的产品软文/推广文章，含标题和正文；传入product_ref可关联新产品商品上下文",
         vec![
+            SkillInputField::optional("product_name", "商品名称", json!({"type": "string"})),
             SkillInputField::optional(
-                "product_name",
-                "商品名称（可从product_id自动加载）",
+                "product_ref",
+                "新产品商品引用，如 product:{uuid}",
                 json!({"type": "string"}),
             ),
             SkillInputField::optional(
                 "product_id",
-                "商品ID，自动加载商品信息",
+                "旧整数商品ID，兼容旧参数",
                 json!({"type": "integer"}),
             ),
             SkillInputField::optional(
@@ -400,6 +408,7 @@ native_creative_skill!(
     required [],
     defaults {
         "product_name" => |p: &Value| optional_string_param(p, "product_name"),
+        "product_ref" => |p: &Value| optional_string_param(p, "product_ref"),
         "video_type" => |p: &Value| Ok(optional_string_param(p, "video_type")?.unwrap_or_else(|| "种草".to_owned())),
         "duration" => |p: &Value| Ok(optional_i64_param(p, "duration")?.unwrap_or(30)),
         "platform" => |p: &Value| Ok(optional_string_param(p, "platform")?.unwrap_or_else(|| "抖音".to_owned())),
@@ -412,6 +421,7 @@ native_creative_skill!(
     required [],
     defaults {
         "product_name" => |p: &Value| optional_string_param(p, "product_name"),
+        "product_ref" => |p: &Value| optional_string_param(p, "product_ref"),
         "selling_points" => |p: &Value| Ok(optional_string_vec_param(p, "selling_points")?.unwrap_or_default()),
         "target_audience" => |p: &Value| Ok(optional_string_param(p, "target_audience")?.unwrap_or_else(|| "年轻女性".to_owned())),
         "tone" => |p: &Value| Ok(optional_string_param(p, "tone")?.unwrap_or_else(|| "闺蜜分享".to_owned())),
@@ -445,6 +455,7 @@ native_creative_skill!(
     defaults {
         "duration_hours" => |p: &Value| Ok(optional_f64_param(p, "duration_hours")?.unwrap_or(3.0)),
         "product_count" => |p: &Value| Ok(optional_i64_param(p, "product_count")?.unwrap_or(6)),
+        "product_refs" => |p: &Value| Ok(optional_string_vec_param(p, "product_refs")?.unwrap_or_default()),
         "live_type" => |p: &Value| Ok(optional_string_param(p, "live_type")?.unwrap_or_else(|| "日常带货".to_owned())),
         "platform" => |p: &Value| Ok(optional_string_param(p, "platform")?.unwrap_or_else(|| "抖音".to_owned())),
     }
@@ -455,6 +466,7 @@ native_creative_skill!(
     required [],
     defaults {
         "product_name" => |p: &Value| optional_string_param(p, "product_name"),
+        "product_ref" => |p: &Value| optional_string_param(p, "product_ref"),
         "product_id" => |p: &Value| optional_i64_param(p, "product_id"),
         "article_type" => |p: &Value| Ok(optional_string_param(p, "article_type")?.unwrap_or_else(|| "测评软文".to_owned())),
         "word_count" => |p: &Value| Ok(optional_i64_param(p, "word_count")?.unwrap_or(800)),
@@ -481,11 +493,21 @@ fn normalize_creative_output(skill_id: &str, input: &Value, output: &mut Value) 
 
 fn creative_data_readiness(skill_id: &str, input: &Value) -> &'static str {
     match skill_id {
-        "creative_video_script" if !has_any_input(input, &["product_name", "product_id"]) => {
+        "creative_video_script"
+            if !has_any_input(input, &["product_name", "product_ref", "product_id"]) =>
+        {
             "calculated_from_defaults"
         }
         "creative_seeding_copy"
-            if !has_any_input(input, &["product_name", "selling_points", "product_id"]) =>
+            if !has_any_input(
+                input,
+                &[
+                    "product_name",
+                    "product_ref",
+                    "selling_points",
+                    "product_id",
+                ],
+            ) =>
         {
             "calculated_from_defaults"
         }
@@ -495,11 +517,21 @@ fn creative_data_readiness(skill_id: &str, input: &Value) -> &'static str {
             "calculated_from_defaults"
         }
         "creative_live_script"
-            if !has_any_input(input, &["duration_hours", "product_count", "product_ids"]) =>
+            if !has_any_input(
+                input,
+                &[
+                    "duration_hours",
+                    "product_count",
+                    "product_refs",
+                    "product_ids",
+                ],
+            ) =>
         {
             "calculated_from_defaults"
         }
-        "creative_product_article" if !has_any_input(input, &["product_name", "product_id"]) => {
+        "creative_product_article"
+            if !has_any_input(input, &["product_name", "product_ref", "product_id"]) =>
+        {
             "calculated_from_defaults"
         }
         _ => "user_provided",
@@ -1056,6 +1088,22 @@ mod tests {
             outcome.output.get("商品").and_then(Value::as_str),
             Some("待推广商品")
         );
+    }
+
+    #[tokio::test]
+    async fn creative_video_script_accepts_product_ref_as_user_context() {
+        let outcome = CreativeVideoScript::new()
+            .run(
+                json!({
+                    "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                    "platform": "抖音"
+                }),
+                SkillContext::default(),
+            )
+            .await
+            .expect("video script should accept product_ref");
+
+        assert_success_contract(&outcome.output, "短视频脚本已生成", "user_provided");
     }
 
     #[tokio::test]

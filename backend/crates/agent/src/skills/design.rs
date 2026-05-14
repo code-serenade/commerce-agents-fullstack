@@ -25,7 +25,7 @@ pub fn design_main_image_spec() -> SkillSpec {
     native_spec(
         "design_main_image",
         "主图设计方案",
-        "AI生成完整主图设计执行方案（色值/构图/文案/素材清单），传入product_id自动加载商品信息",
+        "AI生成完整主图设计执行方案（色值/构图/文案/素材清单），传入product_ref可关联新产品商品上下文",
         vec![
             SkillInputField::optional(
                 "product_name",
@@ -44,8 +44,13 @@ pub fn design_main_image_spec() -> SkillSpec {
             ),
             SkillInputField::optional(
                 "product_id",
-                "商品ID，自动加载商品信息和卖点",
+                "旧整数商品ID，兼容旧参数",
                 json!({"type": "integer"}),
+            ),
+            SkillInputField::optional(
+                "product_ref",
+                "新产品商品引用，如 product:{uuid}",
+                json!({"type": "string"}),
             ),
             SkillInputField::optional(
                 "extra_requirements",
@@ -61,7 +66,7 @@ pub fn design_detail_page_spec() -> SkillSpec {
         "design_detail_page",
         "详情页设计方案",
         "AI生成完整详情页设计执行方案（模块文案/构图/色彩/素材清单），\
-         传入product_id自动加载商品信息",
+         传入product_ref可关联新产品商品上下文",
         vec![
             SkillInputField::optional(
                 "product_name",
@@ -80,8 +85,13 @@ pub fn design_detail_page_spec() -> SkillSpec {
             ),
             SkillInputField::optional(
                 "product_id",
-                "商品ID，自动加载商品信息",
+                "旧整数商品ID，兼容旧参数",
                 json!({"type": "integer"}),
+            ),
+            SkillInputField::optional(
+                "product_ref",
+                "新产品商品引用，如 product:{uuid}",
+                json!({"type": "string"}),
             ),
             SkillInputField::optional("extra_requirements", "额外要求", json!({"type": "string"})),
         ],
@@ -106,8 +116,13 @@ pub fn design_color_scheme_spec() -> SkillSpec {
             ),
             SkillInputField::optional(
                 "product_id",
-                "商品ID，自动加载类目信息",
+                "旧整数商品ID，兼容旧参数",
                 json!({"type": "integer"}),
+            ),
+            SkillInputField::optional(
+                "product_ref",
+                "新产品商品引用，如 product:{uuid}",
+                json!({"type": "string"}),
             ),
             SkillInputField::optional("platform", "目标平台", json!({"type": "string"})),
             SkillInputField::optional(
@@ -139,8 +154,13 @@ pub fn design_material_spec_spec() -> SkillSpec {
     ))
     .with_input(SkillInputField::optional(
         "product_id",
-        "商品ID（提供更精准的素材建议）",
+        "旧整数商品ID，兼容旧参数",
         json!({"type": "integer"}),
+    ))
+    .with_input(SkillInputField::optional(
+        "product_ref",
+        "新产品商品引用，如 product:{uuid}",
+        json!({"type": "string"}),
     ))
     .with_tag("deterministic")
     .with_tag("p1")
@@ -151,7 +171,7 @@ pub fn design_campaign_poster_spec() -> SkillSpec {
         "design_campaign_poster",
         "活动海报设计",
         "AI生成完整活动海报设计方案，含色值/文案/构图/各尺寸版本规格，\
-         传入product_id自动加载商品信息",
+         传入product_ref可关联新产品商品上下文",
         vec![
             SkillInputField::required(
                 "campaign_name",
@@ -172,8 +192,13 @@ pub fn design_campaign_poster_spec() -> SkillSpec {
             SkillInputField::optional("platform", "主要展示平台", json!({"type": "string"})),
             SkillInputField::optional(
                 "product_id",
-                "商品ID，关联主推商品信息",
+                "旧整数商品ID，兼容旧参数",
                 json!({"type": "integer"}),
+            ),
+            SkillInputField::optional(
+                "product_ref",
+                "新产品商品引用，如 product:{uuid}",
+                json!({"type": "string"}),
             ),
         ],
     )
@@ -236,6 +261,7 @@ native_design_skill!(
         "platform" => |p: &Value| Ok(optional_string_param(p, "platform")?.unwrap_or_else(|| "淘宝".to_owned())),
         "style" => |p: &Value| Ok(optional_string_param(p, "style")?.unwrap_or_else(|| "简约现代".to_owned())),
         "product_id" => |p: &Value| optional_i64_param(p, "product_id"),
+        "product_ref" => |p: &Value| optional_string_param(p, "product_ref"),
         "extra_requirements" => |p: &Value| optional_string_param(p, "extra_requirements"),
     }
 );
@@ -248,6 +274,7 @@ native_design_skill!(
         "platform" => |p: &Value| Ok(optional_string_param(p, "platform")?.unwrap_or_else(|| "淘宝".to_owned())),
         "style" => |p: &Value| Ok(optional_string_param(p, "style")?.unwrap_or_else(|| "简约现代".to_owned())),
         "product_id" => |p: &Value| optional_i64_param(p, "product_id"),
+        "product_ref" => |p: &Value| optional_string_param(p, "product_ref"),
         "extra_requirements" => |p: &Value| optional_string_param(p, "extra_requirements"),
     }
 );
@@ -259,6 +286,7 @@ native_design_skill!(
         "brand_tone" => |p: &Value| string_param(p, "brand_tone").map(Some),
         "category" => |p: &Value| optional_string_param(p, "category"),
         "product_id" => |p: &Value| optional_i64_param(p, "product_id"),
+        "product_ref" => |p: &Value| optional_string_param(p, "product_ref"),
         "platform" => |p: &Value| Ok(optional_string_param(p, "platform")?.unwrap_or_else(|| "淘宝".to_owned())),
         "extra_requirements" => |p: &Value| optional_string_param(p, "extra_requirements"),
     }
@@ -274,6 +302,7 @@ native_design_skill!(
         "style" => |p: &Value| Ok(optional_string_param(p, "style")?.unwrap_or_else(|| "热闹促销".to_owned())),
         "platform" => |p: &Value| Ok(optional_string_param(p, "platform")?.unwrap_or_else(|| "淘宝".to_owned())),
         "product_id" => |p: &Value| optional_i64_param(p, "product_id"),
+        "product_ref" => |p: &Value| optional_string_param(p, "product_ref"),
     }
 );
 
@@ -297,11 +326,21 @@ fn normalize_design_output(skill_id: &str, input: &Value, output: &mut Value) {
 fn design_data_readiness(skill_id: &str, input: &Value) -> &'static str {
     match skill_id {
         "design_main_image" | "design_detail_page"
-            if !has_any_input(input, &["product_name", "product_id", "extra_requirements"]) =>
+            if !has_any_input(
+                input,
+                &[
+                    "product_name",
+                    "product_ref",
+                    "product_id",
+                    "extra_requirements",
+                ],
+            ) =>
         {
             "calculated_from_defaults"
         }
-        "design_material_spec" if !has_any_input(input, &["platforms", "product_id"]) => {
+        "design_material_spec"
+            if !has_any_input(input, &["platforms", "product_ref", "product_id"]) =>
+        {
             "calculated_from_defaults"
         }
         _ => "user_provided",
@@ -672,6 +711,22 @@ mod tests {
             outcome.output.get("商品").and_then(Value::as_str),
             Some("主推商品")
         );
+    }
+
+    #[tokio::test]
+    async fn design_detail_page_accepts_product_ref_as_user_context() {
+        let outcome = DesignDetailPage::new()
+            .run(
+                json!({
+                    "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                    "platform": "抖音"
+                }),
+                SkillContext::default(),
+            )
+            .await
+            .expect("detail page should accept product_ref");
+
+        assert_success_contract(&outcome.output, "详情页设计方案已生成", "user_provided");
     }
 
     #[tokio::test]

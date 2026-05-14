@@ -3291,6 +3291,48 @@
 - 还需要前端交付物卡片接入创建活动草稿入口。
 - 还需要草稿审批、平台执行 adapter 和审计日志闭环。
 
+## Post 8-71：商品 UUID 引用进入 Skill 契约
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 71 个补强项：`Post 8-71`。
+
+本次目标：
+
+- 让新产品 UUID 商品引用能进入商品型 skill input。
+- 保留旧 `product_id: integer` 兼容，但不再把 UUID 硬塞进旧字段。
+
+涉及范围：
+
+- 产品内核：新增 `product_ref=product:{uuid}` / `product_refs[]` 作为新产品商品引用契约。
+- 后端 agent worker：显式选品后自动补偿 `product_ref/product_refs`，未选品时清理空字段。
+- 后端 skill schema：creative / web / design / ops 商品型 skill 接受新商品引用字段。
+- 后端 skill 输出契约：creative / web / design 的 `data_readiness` 把 `product_ref/product_refs` 识别为用户提供上下文。
+- API：同步 `API_DOCS/sse.md` 和 `API_DOCS/app.md`。
+
+用户可感知变化：
+
+- 用户手动选中商品后，生成脚本、文案、详情页、设计 brief 等结果时，后端不仅知道商品名称，还保留可追踪的 `product:<uuid>` 引用。
+- 后续前端来源面板、交付物跳转、商品详情联动和 adapter 执行可以基于该引用继续打通。
+- 用户未选商品时，不会出现空商品引用，也不会误把旧历史商品带入本轮。
+
+当前验证：
+
+- [x] `cargo fmt --all`
+- [x] `cargo fmt --all --check`
+- [x] `cargo test -p agent selected_product_context -- --nocapture`
+- [x] `cargo test -p agent product_ref -- --nocapture`
+- [x] `cargo check -p agent`
+- [x] `cargo clippy -p agent`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 后续可继续把更多旧 `product_id` schema 迁成首选 `product_ref`，尤其是 data / service / platform 相关能力。
+
 ## Post 8-70：显式选品上下文进入 Skill 输入
 
 状态：done

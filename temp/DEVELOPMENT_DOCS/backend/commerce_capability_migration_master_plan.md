@@ -236,23 +236,23 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-70: selected product context skill input
+Post 8-71: product_ref skill contract
 ```
 
 Scope:
 
-- parse explicitly selected product context from `MessageContext.metadata["context.selected_summary"]`
-- feed selected product name, platform, category, and selling points into content, ops, web, and design skill autosuggest inputs
-- keep unselected-product Q&A as the normal generic path
-- never infer a selected product from `conversation.history_summary`, `context.summary`, RAG summary, workspace summary, or test/default data
-- do not write UUID product IDs into old integer `product_id` fields until those schemas are migrated
+- keep legacy integer `product_id` fields for compatibility
+- add `product_ref=product:{uuid}` and `product_refs[]` as the new product reference contract
+- feed selected product refs into creative, ops, web, and design skill autosuggest inputs
+- clean empty `product_ref/product_refs` from unselected-product requests
+- make creative, web, and design data readiness treat `product_ref/product_refs` as explicit user-provided product context
 
 Reason:
 
-- user-facing product context must distinguish “manual selected product” from normal open-ended Q&A
-- content and listing skills are much more useful when they receive real selected product facts
-- the previous path could make selected product data visible to the model context but not consistently into structured skill input
-- this directly prevents accidental default product injection such as a previous or test coffee product appearing in an unrelated new question
+- the new product uses UUID product IDs while several migrated skill specs still described `product_id` as integer
+- writing UUIDs into integer fields would break validation and blur old/new product semantics
+- `product_ref` gives later artifact links, source panels, service adapters, and platform execution code a stable reference without forcing DB reads inside the agent crate
+- this continues the backend-first product-context alignment started in Post 8-70
 
 ## 10. Validation Standard
 
