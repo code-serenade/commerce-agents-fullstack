@@ -1,5 +1,55 @@
 # 迁移开发记录
 
+## Post 8-59：综合业务诊断 skill native 编排迁移
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 59 个补强项：`Post 8-59`。
+
+本次目标：
+
+- 将旧产品 `DataComprehensiveDiagnosis` 迁为新产品 Rust Agent native skill。
+- 继续使用同事给的新产品框架，不引入旧产品 Python skill 运行链路。
+- 组合已有 Rust 数据 skill 输出，形成综合诊断，而不是伪造平台指标。
+
+本次修改：
+
+- 后端 agent：`data_comprehensive_diagnosis` 从 deferred spec 改为 deterministic/orchestrator spec，并新增 `values`、`channels`、`items` 等综合输入。
+- 后端 agent：编排经营看板、漏斗、异常、客户分层、退款、需求预测、渠道归因和 LTV 分项。
+- 后端 agent：输出整体健康评分、综合诊断报告、分项诊断、核心发现、风险预警、增长机会、7 天行动计划和缺失数据。
+- 后端 agent：整体无有效用户数据时返回 `status=deferred`，不创建假综合报告。
+- 后端 service：`WorkspaceApi::materialize_agent_content_artifact` 新增 `data_comprehensive_diagnosis_report` artifact 映射。
+- API/SSE：同步 `data_comprehensive_diagnosis` 支持名单和 artifact 类型说明。
+- 迁移文档：同步 `skill_migration_matrix.md`、本开发日志、阶段验收记录和本轮归档文件。
+
+用户可感知变化：
+
+- 用户提供经营、漏斗、时序、渠道、退款或客户数据后，数据分析师可以生成一份综合业务诊断，而不是只返回单个分项报告。
+- 报告会同时说明哪些分项已经基于真实输入计算，哪些分项缺数据，避免误以为系统读取了外部平台后台。
+- 前端后续接入后，该综合诊断可以作为工作区交付物沉淀，便于汇报和复盘。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/data_comprehensive_diagnosis_native_post_8_59.md`
+- [x] 迁移矩阵：`MIGRATION_PLANS/legacy_capability_migration/skill_migration_matrix.md`
+- [x] API 文档：`API_DOCS/app.md`
+- [x] API 文档：`API_DOCS/sse.md`
+- [x] `cargo fmt --all`
+- [x] `cargo fmt --all --check`
+- [x] `cargo test -p agent --lib data_comprehensive_diagnosis -- --nocapture`
+- [x] `cargo test -p service content_artifact_builds_from_data_comprehensive_skill_output -- --nocapture`
+- [x] `cargo check -p agent -p service`
+- [x] `cargo clippy -p agent -p service`
+
+后续缺口：
+
+- 真实店铺指标、淘宝、抖音、千川和数仓 adapter 仍未接入。
+- 前端仍需展示综合诊断 artifact、缺失数据和分项状态。
+- 后续可以继续迁移更细的经营诊断/教学/导出能力。
+
 ## Post 8-58：渠道归因分析 skill native 迁移
 
 状态：done

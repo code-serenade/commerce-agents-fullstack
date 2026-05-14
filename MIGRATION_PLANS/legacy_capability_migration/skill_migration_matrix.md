@@ -43,6 +43,7 @@
 | `data_seasonal_decompose` | `data_seasonal_decompose` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已可 native 执行；Post 8-38：成功输出会沉淀为 `data_seasonal_decompose_report` artifact，时序点不足时 deferred |
 | `data_price_elasticity` | `data_price_elasticity` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已可 native 执行；Post 8-38：成功输出会沉淀为 `data_price_elasticity_report` artifact，使用默认价格点时明示 `calculated_from_defaults` |
 | `data_demand_forecast` | `data_demand_forecast` | native_ready | `backend/crates/agent/src/skills/data.rs` | 已可 native 执行；Post 8-38：成功输出会沉淀为 `data_demand_forecast_report` artifact，时序点不足时 deferred |
+| `data_comprehensive_diagnosis` | `data_comprehensive_diagnosis` | native_ready | `backend/crates/agent/src/skills/data.rs` | Post 8-59：已迁为 Rust native 综合诊断编排器，组合经营看板、漏斗、异常、客户、退款、预测、归因和 LTV 分项；成功输出会沉淀为 `data_comprehensive_diagnosis_report` artifact，整体无有效用户数据时 deferred |
 
 ## 搜索 search
 

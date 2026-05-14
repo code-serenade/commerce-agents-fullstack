@@ -233,23 +233,25 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-58: data_attribution_analysis native channel attribution skill
+Post 8-59: data_comprehensive_diagnosis native orchestrator skill
 ```
 
 Scope:
 
-- migrate old product `DataAttributionAnalysis` into a new-product Rust native Agent skill
-- compute last-touch, linear, time-decay, and position-based channel attribution from explicit `channels` input
-- return `deferred` when channel data is missing, single-channel, or zero-GMV
-- materialize successful output as `data_attribution_report`
+- migrate old product `DataComprehensiveDiagnosis` into a new-product Rust native Agent orchestrator skill
+- compose dashboard, funnel, anomaly, customer, refund, demand forecast, attribution, and LTV sub-diagnoses
+- keep each sub-diagnosis status, data readiness, and missing-data reason visible
+- return `deferred` when no useful user-provided business data exists
+- materialize successful output as `data_comprehensive_diagnosis_report`
 - keep official Taobao / Douyin / Qianchuan / data warehouse direct platform integrations deferred
 
 Reason:
 
 - skill migration remains the first backend priority
-- channel attribution is a core old-product data analyst capability and a dependency for comprehensive diagnosis
-- new frontend work should consume real backend attribution artifacts instead of fake charts
-- this slice keeps Kimi-style process transparency grounded in real skill status, artifact creation, and explicit data readiness
+- comprehensive diagnosis is the old product data analyst's integrated monthly/quarterly review capability
+- attribution, funnel, anomaly, refund, forecast, and LTV have enough native coverage to be composed inside the new framework
+- new frontend work should consume real backend comprehensive artifacts instead of fake overview cards
+- this slice keeps Kimi-style process transparency grounded in visible sub-skill status, artifact creation, and explicit data readiness
 
 ## 10. Validation Standard
 

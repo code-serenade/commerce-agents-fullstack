@@ -5201,6 +5201,12 @@ fn build_content_artifact_from_skill_output(
             "Data demand forecast report",
             "data demand forecast artifact generated",
         ),
+        "data_comprehensive_diagnosis" => (
+            "data",
+            "data_comprehensive_diagnosis_report",
+            "Data comprehensive diagnosis report",
+            "data comprehensive diagnosis artifact generated",
+        ),
         "accounting_cost_calc" => (
             "accounting",
             "accounting_cost_report",
@@ -7026,6 +7032,44 @@ mod tests {
             draft
                 .content
                 .contains("\"adapter_status\": \"manual_input\"")
+        );
+    }
+
+    #[test]
+    fn content_artifact_builds_from_data_comprehensive_skill_output() {
+        let output = json!({
+            "status": "success",
+            "has_data": true,
+            "has_partial_data": true,
+            "adapter_status": "partial_manual_input",
+            "data_readiness": "partial_user_input",
+            "summary": "综合业务诊断完成，健康评分72分，等级需关注",
+            "整体健康评分": {"总分": 72, "等级": "需关注"},
+            "核心发现": ["经营看板：经营健康度72分，等级需关注"],
+            "风险预警": ["广告ROI低于2，建议收缩低效计划并复盘素材"],
+            "7天行动计划": [
+                {"优先级": "P0", "动作": "补齐缺失数据并重新运行综合诊断"}
+            ]
+        });
+
+        let draft =
+            build_content_artifact_from_skill_output("data_comprehensive_diagnosis", &output)
+                .expect("data comprehensive diagnosis output should be materializable");
+
+        assert_eq!(draft.content_category, "data");
+        assert_eq!(draft.artifact_type, "data_comprehensive_diagnosis_report");
+        assert_eq!(draft.title, "Data comprehensive diagnosis report");
+        assert_eq!(draft.file_name, "data_comprehensive_diagnosis_report.md");
+        assert!(draft.preview.contains("综合业务诊断完成"));
+        assert!(
+            draft
+                .content
+                .contains("# Data comprehensive diagnosis report")
+        );
+        assert!(
+            draft
+                .content
+                .contains("\"adapter_status\": \"partial_manual_input\"")
         );
     }
 

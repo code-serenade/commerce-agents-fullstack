@@ -1,5 +1,27 @@
 # 阶段验收记录
 
+## Post 8-59：综合业务诊断 skill native 编排迁移
+
+状态：done
+
+验收项：
+
+- [x] 后端：`data_comprehensive_diagnosis` 不再是 deferred 宏占位，已改为 Agent native orchestrator skill。
+- [x] 后端：可编排经营看板、漏斗、异常、客户分层、退款、需求预测、渠道归因和 LTV 分项。
+- [x] 后端：输出整体健康评分、综合诊断报告、分项诊断、核心发现、风险预警、增长机会、7 天行动计划和缺失数据。
+- [x] 后端：整体无有效用户数据时返回 `status=deferred`。
+- [x] 后端：不读取、不伪造淘宝/抖音/千川/数仓实时数据。
+- [x] Service：成功输出可沉淀为 `data_comprehensive_diagnosis_report` workspace artifact。
+- [x] API：`API_DOCS/app.md` 已同步 artifact 类型。
+- [x] API：`API_DOCS/sse.md` 已同步 `workspace_artifact_created` 支持名单和数据说明。
+- [x] 文档：后端设计文档、迁移矩阵、开发记录和本轮归档已同步。
+- [x] 验证：`cargo fmt --all`
+- [x] 验证：`cargo fmt --all --check`
+- [x] 验证：`cargo test -p agent --lib data_comprehensive_diagnosis -- --nocapture`
+- [x] 验证：`cargo test -p service content_artifact_builds_from_data_comprehensive_skill_output -- --nocapture`
+- [x] 验证：`cargo check -p agent -p service`
+- [x] 验证：`cargo clippy -p agent -p service`
+
 ## Post 8-58：渠道归因分析 skill native 迁移
 
 状态：done
