@@ -13,7 +13,7 @@
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
 | --- | --- | --- | --- | --- |
-| `ops_promo_planning` | `ops_promo_planning` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 当前已可 native 执行；已补强活动/促销自然问法触达；Post 8-35：成功输出会沉淀为 `ops_promo_plan` artifact |
+| `ops_promo_planning` | `ops_promo_planning` | native_ready | `backend/crates/agent/src/skills/ops.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | 当前已可 native 执行；Post 8-35：成功输出会沉淀为 `ops_promo_plan` artifact。Post 8-97：支持 `product_ref=product:{uuid}` 作为本轮显式选品引用，成功输出回显 `商品引用`；`促销/活动/大促/618/双11` 自然问法可触达并解析本轮显式预算，预算解析优先读取 `预算/活动预算/总预算/budget` 标签，未选商品时不写空引用 |
 | `ops_pricing_strategy` | `ops_pricing_strategy` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已纳入岗位自动补偿规则，可由 ops 定价意图触发；Post 8-35：成功输出会沉淀为 `ops_pricing_strategy` artifact |
 | `ops_channel_strategy` | `ops_channel_strategy` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已补强渠道/渠道分配/投放渠道等自然问法触达；Post 8-35：成功输出会沉淀为 `ops_channel_strategy` artifact |
 | `ops_inventory_planning` | `ops_inventory_planning` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已纳入岗位自动补偿规则，当前基于输入数字做本地规划；Post 8-35：成功输出会沉淀为 `ops_inventory_plan` artifact |

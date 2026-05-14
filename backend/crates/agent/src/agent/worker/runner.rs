@@ -823,15 +823,15 @@ fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         ],
     ) {
         let numbers = numbers_in_text(text);
-        if let Some(budget) = numbers.first().copied().filter(|value| *value >= 100.0) {
-            let product = selected_product_name_or_task(task);
+        if let Some(budget) = infer_promo_budget(text).or_else(|| {
+            numbers
+                .into_iter()
+                .filter(|value| !matches!(*value as i64, 618 | 11))
+                .find(|value| *value >= 100.0)
+        }) {
             return Some(autosuggest_request(
                 "ops_promo_planning",
-                serde_json::json!({
-                    "product": product,
-                    "budget": budget,
-                    "platform": selected_product_platform_or_infer(task, text),
-                }),
+                serde_json::Value::Object(infer_promo_planning_input(text, task, budget)),
                 "根据活动/促销意图自动补偿促销策划 skill",
             ));
         }
@@ -3115,6 +3115,32 @@ fn infer_smart_pricing_input(
         );
     }
     input
+}
+
+fn infer_promo_planning_input(
+    text: &str,
+    task: &Task,
+    budget: f64,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    input.insert(
+        "product".to_string(),
+        serde_json::json!(selected_product_name_or_task(task)),
+    );
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
+    input.insert("budget".to_string(), serde_json::json!(budget));
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(selected_product_platform_or_infer(task, text)),
+    );
+    input
+}
+
+fn infer_promo_budget(text: &str) -> Option<f64> {
+    extract_metric_value(text, &["活动预算", "总预算", "预算", "budget"])
+        .filter(|value| *value >= 100.0)
 }
 
 fn infer_competitor_prices(text: &str) -> Vec<f64> {
@@ -5926,6 +5952,7 @@ mod tests {
                 "给咖啡新品做渠道分配和渠道策略，预算20000",
                 "ops_channel_strategy",
             ),
+            ("给咖啡新品做618促销活动，预算20000", "ops_promo_planning"),
             (
                 "帮这个保温杯写上架文案和标题卖点，突出便携防漏",
                 "ops_listing_copy",
@@ -5980,6 +6007,61 @@ mod tests {
             .as_array()
             .expect("competitor prices should be parsed");
         assert_eq!(prices, &[89.0, 109.0, 119.0]);
+    }
+
+    #[test]
+    fn autosuggests_promo_planning_with_labeled_budget_not_campaign_number() {
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task("给冷萃咖啡做618大促活动方案，活动预算2万"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_promo_planning");
+        assert_eq!(requests[0].input["budget"], 20000.0);
+        assert!(
+            requests[0].input["product"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("冷萃咖啡")
+        );
+    }
+
+    #[test]
+    fn selected_product_context_feeds_promo_planning_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task_with_metadata(
+                "给这个商品做618促销活动，预算20000",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_promo_planning");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["product"], "五一咖啡组合");
+        assert_eq!(requests[0].input["platform"], "抖音");
+        assert_eq!(requests[0].input["budget"], 20000.0);
+    }
+
+    #[test]
+    fn promo_planning_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task("给冷萃咖啡做618促销活动，预算20000"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_promo_planning");
+        assert!(requests[0].input.get("product_ref").is_none());
     }
 
     #[test]

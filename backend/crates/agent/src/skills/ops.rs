@@ -23,6 +23,12 @@ pub fn specs() -> Vec<SkillSpec> {
             "根据商品、预算和平台，生成促销活动阶段、KPI和预算分配",
             vec![
                 field("product", "string", "商品名称或类目", true),
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用，如 product:{uuid}",
+                    false,
+                ),
                 field("budget", "number", "总预算（元）", true),
                 field(
                     "platform",
@@ -346,6 +352,7 @@ fn pricing_strategy(input: &Value) -> Value {
 
 fn promo_planning(input: &Value) -> Value {
     let product = string(input, "product", "通用商品");
+    let product_ref = string(input, "product_ref", "");
     let budget = num(input, "budget", 10_000.0).max(0.0);
     let platform = string(input, "platform", "淘宝");
     let phases = vec![
@@ -387,6 +394,7 @@ fn promo_planning(input: &Value) -> Value {
         "has_data": true,
         "数据来源": "用户输入 + 确定性预算模型",
         "商品": product,
+        "商品引用": if product_ref.is_empty() { Value::Null } else { json!(product_ref) },
         "平台": platform,
         "总预算": currency(budget),
         "活动阶段": phases,
@@ -1388,6 +1396,33 @@ mod tests {
         );
         assert!(output.get("活动阶段").is_some());
         assert!(output.get("KPI").is_some());
+    }
+
+    #[tokio::test]
+    async fn ops_promo_planning_echoes_product_ref() {
+        let outcome = execute(
+            "ops_promo_planning",
+            json!({
+                "product": "五一咖啡组合",
+                "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                "budget": 20000.0,
+                "platform": "抖音"
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops promo should echo product_ref");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "促销策划方案已生成");
+        assert_eq!(
+            output.get("商品引用").and_then(Value::as_str),
+            Some("product:11111111-1111-1111-1111-111111111111")
+        );
+        assert_eq!(
+            output.get("商品").and_then(Value::as_str),
+            Some("五一咖啡组合")
+        );
     }
 
     #[tokio::test]

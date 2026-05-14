@@ -236,24 +236,24 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-96: ops ABC-XYZ classifier product_ref contract
+Post 8-97: ops promo planning product_ref contract
 ```
 
 Scope:
 
-- add `product_ref=product:{uuid}` to `ops_abc_xyz_classifier`
-- echo the selected product reference in successful ABC-XYZ output
-- route ABC-XYZ / ABC classification / XYZ classification / 9-cell inventory matrix / SKU tiering phrasing to structured `ops_abc_xyz_classifier` input
-- parse explicit SKU rows, GMV, sales history, and top_n from the current text into skill input
+- add `product_ref=product:{uuid}` to `ops_promo_planning`
+- echo the selected product reference in successful promo planning output
+- route promotion / campaign / 活动 / 促销 / 大促 / 618 / 双11 phrasing to structured `ops_promo_planning` input
+- parse explicit labeled budget from the current text and avoid treating `618` / `双11` campaign numbers as budget
 - let ops worker autosuggest pass selected product refs only from explicit `context.selected_summary`
-- keep missing SKU rows as deterministic demo data with `calculated_from_defaults` rather than fake platform inventory data
+- keep promotion planning based on user input plus deterministic budget model rather than fake platform campaign data
 
 Reason:
 
-- ABC-XYZ inventory classification is a high-value old-product operations capability and needs to be reachable by natural language, not only explicit skill JSON
-- selected-product and unspecified ABC-XYZ classification must stay separate
-- frontend artifacts and process panels need a stable product reference for product-bound inventory classification reports
-- real Taobao, Douyin, WMS, ERP, platform inventory, and data warehouses remain adapter/service/search concerns and must not be faked
+- promo planning is a high-frequency old-product operations capability and needs to preserve selected-product provenance
+- selected-product and unspecified promotion planning must stay separate
+- activity names contain numeric tokens (`618`, `双11`) that should not pollute budget parsing
+- real Taobao, Douyin, Qianchuan, platform campaign, and advertising data remain adapter/service/search concerns and must not be faked
 
 ## 10. Validation Standard
 
