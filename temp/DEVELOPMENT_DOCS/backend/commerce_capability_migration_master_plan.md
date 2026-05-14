@@ -236,23 +236,23 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-71: product_ref skill contract
+Post 8-72: service query product_ref contract
 ```
 
 Scope:
 
-- keep legacy integer `product_id` fields for compatibility
-- add `product_ref=product:{uuid}` and `product_refs[]` as the new product reference contract
-- feed selected product refs into creative, ops, web, and design skill autosuggest inputs
-- clean empty `product_ref/product_refs` from unselected-product requests
-- make creative, web, and design data readiness treat `product_ref/product_refs` as explicit user-provided product context
+- add `product_ref=product:{uuid}` to `service_query_product`
+- keep legacy `product_id` and `product_name` filters compatible
+- match `product_ref` against explicit `context.refs`, `context.product_ids`, `sources_json.product_id`, and `selected_summary`
+- let service-role product info queries naturally trigger `service_query_product`
+- clean empty product refs when no product was selected
 
 Reason:
 
-- the new product uses UUID product IDs while several migrated skill specs still described `product_id` as integer
-- writing UUIDs into integer fields would break validation and blur old/new product semantics
-- `product_ref` gives later artifact links, source panels, service adapters, and platform execution code a stable reference without forcing DB reads inside the agent crate
-- this continues the backend-first product-context alignment started in Post 8-70
+- customer service and after-sales tasks need to confirm the exact product context before answering users
+- the product must distinguish manual product selection from generic Q&A with no selected product
+- the new UUID product reference contract should be used consistently across creative, ops, web, design, and service skills
+- the agent crate still must not query the database directly; it only consumes metadata already validated by web-server/service
 
 ## 10. Validation Standard
 

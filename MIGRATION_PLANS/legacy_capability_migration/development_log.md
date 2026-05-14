@@ -1,5 +1,52 @@
 # 迁移开发记录
 
+## Post 8-72：客服商品查询 product_ref 契约
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 72 个补强项：`Post 8-72`。
+
+本次目标：
+
+- 把客服商品查询 `service_query_product` 接入 Post 8-71 建立的 `product_ref=product:{uuid}` 契约。
+- 让客服 / 售后岗位能自然触发“查询本轮选中商品资料”的后端 skill。
+- 继续保持未显式选品时不默认读取历史商品、预设商品或测试商品。
+
+本次修改：
+
+- 后端 agent：`service_query_product` schema 新增 `product_ref`。
+- 后端 agent：`service_query_product` 匹配优先级为 `product_ref` -> 旧 `product_id` -> `product_name`。
+- 后端 agent：`product_ref` 可匹配 `context.refs`、`context.product_ids`、`sources_json.product_id` 和 `selected_summary`。
+- 后端 worker：客服岗位“查询商品 / 商品信息 / 商品资料 / 引用商品 / 选中商品”等自然问法可自动补偿 `service_query_product`。
+- 后端 worker：显式选品后 autosuggest input 带入 `product_ref` 和商品名，未选商品时清理空字段。
+- API/SSE：同步 `API_DOCS/sse.md`。
+- 迁移文档：新增本轮归档，并同步阶段验收、总计划和矩阵。
+
+用户可感知变化：
+
+- 用户在客服 / 售后岗位问“查一下这个引用商品资料，客服回复客户前确认商品信息”时，后端能进入商品上下文查询 skill。
+- 如果用户手动勾选了商品，系统按 `product:<uuid>` 精确查询这次选中的商品上下文。
+- 如果用户没有勾选商品，系统仍明确返回缺显式上下文，不会把历史商品或默认商品塞进回答。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/service_query_product_ref_post_8_72.md`
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent service_query_product -- --nocapture`
+- [x] `cargo test -p agent selected_product_context_feeds_service_query_product_ref -- --nocapture`
+- [x] `cargo test -p agent service_query_product_without_selection_has_no_empty_product_ref -- --nocapture`
+- [x] `cargo fmt --all --check`
+- [x] `cargo check -p agent`
+- [x] `cargo clippy -p agent`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 其它客服 skill 的可选商品字段后续也应逐步支持 `product_ref`，例如工单、FAQ、退换货等场景的关联记录。
+
 ## Post 8-69：平台接口健康检查自然触达
 
 状态：done

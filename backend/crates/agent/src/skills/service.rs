@@ -203,8 +203,13 @@ pub fn service_query_product_spec() -> SkillSpec {
     .with_category(category())
     .with_priority(SkillPriority::High)
     .with_input(SkillInputField::optional(
+        "product_ref",
+        "新产品商品引用，如 product:{uuid}；只匹配已显式注入的商品上下文",
+        string_schema(),
+    ))
+    .with_input(SkillInputField::optional(
         "product_id",
-        "商品ID，可为旧产品整数ID或新产品字符串ID；只匹配已显式注入的商品上下文",
+        "旧商品ID兼容字段，可为整数或字符串；只匹配已显式注入的商品上下文",
         product_id_schema(),
     ))
     .with_input(SkillInputField::optional(
@@ -599,6 +604,7 @@ impl Skill for ServiceQueryProduct {
 
     async fn run(&self, params: Value, context: SkillContext) -> SkillResult {
         object_params(&params)?;
+        let query_product_ref = optional_string_param(&params, "product_ref")?;
         let query_product_id = optional_product_id_param(&params, "product_id")?;
         let query_product_name = optional_string_param(&params, "product_name")?;
         let product_context = explicit_product_context(&context.metadata);
@@ -613,6 +619,7 @@ impl Skill for ServiceQueryProduct {
                     "summary": "未发现本轮显式选择的商品上下文",
                     "skill": self.spec.id,
                     "query": {
+                        "product_ref": query_product_ref,
                         "product_id": query_product_id,
                         "product_name": query_product_name,
                     },
@@ -628,8 +635,11 @@ impl Skill for ServiceQueryProduct {
             );
         }
 
-        let match_result =
-            product_context.match_query(query_product_id.as_deref(), query_product_name.as_deref());
+        let match_result = product_context.match_query(
+            query_product_ref.as_deref(),
+            query_product_id.as_deref(),
+            query_product_name.as_deref(),
+        );
         if !match_result.matched {
             return outcome(
                 json!({
@@ -640,6 +650,7 @@ impl Skill for ServiceQueryProduct {
                     "summary": "已读取商品上下文，但没有匹配请求的商品条件",
                     "skill": self.spec.id,
                     "query": {
+                        "product_ref": query_product_ref,
                         "product_id": query_product_id,
                         "product_name": query_product_name,
                     },
@@ -684,6 +695,7 @@ impl Skill for ServiceQueryProduct {
                 "summary": "商品上下文查询已完成",
                 "skill": self.spec.id,
                 "query": {
+                    "product_ref": query_product_ref,
                     "product_id": query_product_id,
                     "product_name": query_product_name,
                 },
@@ -728,9 +740,22 @@ impl ExplicitProductContext {
 
     fn match_query(
         &self,
+        product_ref: Option<&str>,
         product_id: Option<&str>,
         product_name: Option<&str>,
     ) -> ProductContextMatch {
+        if let Some(product_ref) = product_ref.filter(|value| !value.trim().is_empty()) {
+            if !self.matches_product_ref(product_ref) {
+                return ProductContextMatch::default();
+            }
+            return ProductContextMatch {
+                matched: true,
+                product_ids: matching_product_ids_by_ref(&self.product_ids, product_ref),
+                refs: matching_refs(&self.refs, product_ref),
+                sources: matching_sources_by_product_ref(&self.sources, product_ref),
+            };
+        }
+
         if let Some(product_id) = product_id.filter(|value| !value.trim().is_empty()) {
             if !self.matches_product_id(product_id) {
                 return ProductContextMatch::default();
@@ -761,6 +786,31 @@ impl ExplicitProductContext {
             refs: self.refs.clone(),
             sources: self.sources.clone(),
         }
+    }
+
+    fn matches_product_ref(&self, product_ref: &str) -> bool {
+        let product_ref = product_ref.trim();
+        let product_id = strip_product_ref_prefix(product_ref).unwrap_or(product_ref);
+        self.product_ids
+            .iter()
+            .any(|item| eq_ignore_ascii_case_trimmed(item, product_id))
+            || self
+                .refs
+                .iter()
+                .any(|item| eq_ignore_ascii_case_trimmed(item, product_ref))
+            || self.sources.iter().any(|source| {
+                source_product_id(source)
+                    .as_deref()
+                    .is_some_and(|value| eq_ignore_ascii_case_trimmed(value, product_id))
+                    || text_contains_case_insensitive(&source.to_string(), product_ref)
+                    || text_contains_case_insensitive(&source.to_string(), product_id)
+            })
+            || text_contains_case_insensitive(&self.summary, product_ref)
+            || text_contains_case_insensitive(&self.summary, product_id)
+            || self.source_titles.iter().any(|item| {
+                text_contains_case_insensitive(item, product_ref)
+                    || text_contains_case_insensitive(item, product_id)
+            })
     }
 
     fn matches_product_id(&self, product_id: &str) -> bool {
@@ -980,9 +1030,29 @@ fn matching_product_ids(product_ids: &[String], product_id: &str) -> Vec<String>
         .collect()
 }
 
+fn matching_product_ids_by_ref(product_ids: &[String], product_ref: &str) -> Vec<String> {
+    let product_id = strip_product_ref_prefix(product_ref).unwrap_or(product_ref);
+    matching_product_ids(product_ids, product_id)
+}
+
 fn matching_refs(refs: &[String], product_id: &str) -> Vec<String> {
     refs.iter()
         .filter(|item| text_contains_case_insensitive(item, product_id))
+        .cloned()
+        .collect()
+}
+
+fn matching_sources_by_product_ref(sources: &[Value], product_ref: &str) -> Vec<Value> {
+    let product_id = strip_product_ref_prefix(product_ref).unwrap_or(product_ref);
+    sources
+        .iter()
+        .filter(|source| {
+            source_product_id(source)
+                .as_deref()
+                .is_some_and(|value| eq_ignore_ascii_case_trimmed(value, product_id))
+                || text_contains_case_insensitive(&source.to_string(), product_ref)
+                || text_contains_case_insensitive(&source.to_string(), product_id)
+        })
         .cloned()
         .collect()
 }
@@ -1017,6 +1087,13 @@ fn source_product_id(source: &Value) -> Option<String> {
             Value::Number(number) => Some(number.to_string()),
             _ => None,
         })
+}
+
+fn strip_product_ref_prefix(value: &str) -> Option<&str> {
+    value
+        .strip_prefix("product:")
+        .or_else(|| value.strip_prefix("product/"))
+        .filter(|value| !value.trim().is_empty())
 }
 
 fn metadata_string_value(metadata: &Map<String, Value>, key: &str) -> Option<String> {
@@ -2358,6 +2435,95 @@ mod tests {
         assert_eq!(
             output.pointer("/answerPolicy/no_default_product"),
             Some(&json!(true))
+        );
+    }
+
+    #[tokio::test]
+    async fn service_query_product_accepts_product_ref_filter() {
+        let product_id = "11111111-1111-1111-1111-111111111111";
+        let context = SkillContext::new()
+            .with_metadata("request.context.product_ids", json!(product_id))
+            .with_metadata(
+                "request.context.refs",
+                json!("product:11111111-1111-1111-1111-111111111111"),
+            )
+            .with_metadata(
+                "request.context.selected_summary",
+                json!("Product source product:11111111-1111-1111-1111-111111111111 | name=五一咖啡组合 | platform=抖音 | category=咖啡 | brand=千乐 | price=59 CNY | status=active | description=低糖便携"),
+            )
+            .with_metadata(
+                "request.context.sources_json",
+                json!(
+                    json!([
+                        {
+                            "source_type": "product",
+                            "id": product_id,
+                            "product_id": product_id,
+                            "title": "五一咖啡组合"
+                        }
+                    ])
+                    .to_string()
+                ),
+            );
+        let outcome = ServiceQueryProduct::new()
+            .run(
+                json!({"product_ref": "product:11111111-1111-1111-1111-111111111111"}),
+                context,
+            )
+            .await
+            .expect("service query product should accept product_ref");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(
+            output.pointer("/query/product_ref").and_then(Value::as_str),
+            Some("product:11111111-1111-1111-1111-111111111111")
+        );
+        assert_eq!(
+            output
+                .pointer("/matchedProductIds/0")
+                .and_then(Value::as_str),
+            Some(product_id)
+        );
+        assert_eq!(
+            output.pointer("/refs/0").and_then(Value::as_str),
+            Some("product:11111111-1111-1111-1111-111111111111")
+        );
+        assert_eq!(
+            output.pointer("/answerPolicy/no_default_product"),
+            Some(&json!(true))
+        );
+    }
+
+    #[tokio::test]
+    async fn service_query_product_defers_when_product_ref_misses_selected_context() {
+        let context = SkillContext::new()
+            .with_metadata("request.context.product_ids", json!("product-1"))
+            .with_metadata("request.context.refs", json!("product:product-1"))
+            .with_metadata(
+                "request.context.selected_summary",
+                json!("Product source product:product-1 | name=冷萃咖啡 | platform=抖音"),
+            );
+        let outcome = ServiceQueryProduct::new()
+            .run(json!({"product_ref": "product:product-2"}), context)
+            .await
+            .expect("service query product should run");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("deferred")
+        );
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("context_filter_not_matched")
+        );
+        assert_eq!(
+            output.pointer("/query/product_ref").and_then(Value::as_str),
+            Some("product:product-2")
         );
     }
 

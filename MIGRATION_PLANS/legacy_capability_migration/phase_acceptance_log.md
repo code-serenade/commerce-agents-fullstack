@@ -1104,6 +1104,27 @@
 - 本阶段不新增数据库、不新增 HTTP API、不让 agent crate 直连数据库。
 - 后续应逐步把 data / service / platform 相关 skill 的旧 `product_id` 迁到同一 `product_ref` 契约。
 
+## Post 8-72：客服商品查询 product_ref 契约
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] `service_query_product` schema 新增 `product_ref`。
+- [x] `service_query_product` 优先按 `product_ref=product:{uuid}` 匹配本轮显式商品上下文。
+- [x] 旧 `product_id` 和 `product_name` 筛选继续兼容。
+- [x] 客服岗位自然语言“查询商品 / 商品信息 / 商品资料 / 引用商品”可触发 `service_query_product`。
+- [x] 显式选品后 autosuggest input 会带入 `product_ref` 和商品名。
+- [x] 未选商品时 autosuggest input 不留下空 `product_ref/product_name`。
+- [x] API 文档已同步。
+
+当前说明：
+
+- 本阶段解决的是客服和售后场景无法使用新产品商品引用精确查询显式选品上下文的问题。
+- 本阶段不新增数据库、不新增 HTTP API、不让 agent crate 直连数据库。
+- `service_query_product` 仍只读取 web-server/service 已校验后注入的 Agent metadata，不会默认读取历史商品或预设商品。
+
 ## Post 8-70：显式选品上下文进入 Skill 输入
 
 状态：done

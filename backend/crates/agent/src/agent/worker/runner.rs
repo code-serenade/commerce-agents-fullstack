@@ -1045,6 +1045,30 @@ fn autosuggest_service(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     if contains_any(
         text,
         &[
+            "查询商品",
+            "查商品",
+            "商品信息",
+            "商品资料",
+            "商品上下文",
+            "商品详情",
+            "商品知识",
+            "引用商品",
+            "选中商品",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "service_query_product",
+            serde_json::json!({
+                "product_ref": selected_product_ref(task),
+                "product_name": first_selected_product(task).map(|product| product.name),
+            }),
+            "根据客服商品查询意图自动补偿商品上下文查询 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
+        &[
             "ticket",
             "工单",
             "话术",
@@ -4838,6 +4862,41 @@ mod tests {
         assert_eq!(refs.len(), 1);
         assert_eq!(refs[0], "product:11111111-1111-1111-1111-111111111111");
         assert_eq!(requests[0].input["product_count"], 1);
+    }
+
+    #[test]
+    fn selected_product_context_feeds_service_query_product_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("service"),
+            &task_with_metadata(
+                "查询商品资料，客服回复客户前确认这个商品信息",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "service_query_product");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["product_name"], "五一咖啡组合");
+    }
+
+    #[test]
+    fn service_query_product_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("service"),
+            &task("查询商品资料，客服回复客户前确认这个商品信息"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "service_query_product");
+        assert!(requests[0].input.get("product_ref").is_none());
+        assert!(requests[0].input.get("product_name").is_none());
     }
 
     #[test]
