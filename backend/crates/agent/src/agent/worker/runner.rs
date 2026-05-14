@@ -758,6 +758,29 @@ fn autosuggest_data(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     if contains_any(
         text,
         &[
+            "comprehensive diagnosis",
+            "comprehensive_diagnosis",
+            "综合诊断",
+            "全面诊断",
+            "业务诊断",
+            "经营诊断",
+            "经营体检",
+            "业务体检",
+            "一体化诊断",
+            "整体诊断",
+            "全链路诊断",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "data_comprehensive_diagnosis",
+            serde_json::Value::Object(infer_comprehensive_diagnosis_input(text, task)),
+            "根据综合诊断/经营体检意图自动补偿综合业务诊断 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
+        &[
             "dashboard",
             "看板",
             "数据概览",
@@ -2176,6 +2199,77 @@ fn infer_dashboard_input(text: &str, task: &Task) -> serde_json::Map<String, ser
         ],
     );
     input
+}
+
+fn infer_comprehensive_diagnosis_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = infer_dashboard_input(text, task);
+    input.insert(
+        "focus".to_string(),
+        serde_json::json!(infer_diagnosis_focus(text)),
+    );
+
+    let channels = infer_channel_roi_rows(text);
+    if !channels.is_empty() {
+        input.insert("channels".to_string(), serde_json::json!(channels));
+    }
+
+    let items = infer_refund_items(text);
+    if !items.is_empty() {
+        input.insert("items".to_string(), serde_json::json!(items));
+    }
+
+    let values = numbers_in_text(text);
+    if values.len() >= 3 {
+        input.insert("values".to_string(), serde_json::json!(values.clone()));
+    }
+    if values.len() >= 5 {
+        input
+            .entry("impressions".to_string())
+            .or_insert_with(|| serde_json::json!(values[0].round().max(0.0) as i64));
+        input
+            .entry("clicks".to_string())
+            .or_insert_with(|| serde_json::json!(values[1].round().max(0.0) as i64));
+        input
+            .entry("add_to_cart".to_string())
+            .or_insert_with(|| serde_json::json!(values[2].round().max(0.0) as i64));
+        input
+            .entry("orders".to_string())
+            .or_insert_with(|| serde_json::json!(values[3].round().max(0.0) as i64));
+        input
+            .entry("payments".to_string())
+            .or_insert_with(|| serde_json::json!(values[4].round().max(0.0) as i64));
+    }
+
+    input
+}
+
+fn infer_diagnosis_focus(text: &str) -> &'static str {
+    if contains_any(
+        text,
+        &[
+            "重点看增长",
+            "重点分析增长",
+            "聚焦增长",
+            "增长为主",
+            "增长优先",
+            "focus growth",
+        ],
+    ) {
+        "growth"
+    } else if contains_any(text, &["profit", "利润", "毛利", "盈利", "ROI", "roi"]) {
+        "profit"
+    } else if contains_any(text, &["retention", "留存", "复购", "客户", "会员"]) {
+        "retention"
+    } else if contains_any(text, &["risk", "风险", "异常", "退款", "下滑"]) {
+        "risk"
+    } else if contains_any(text, &["growth", "增长", "放量", "规模", "GMV", "gmv"]) {
+        "growth"
+    } else {
+        "all"
+    }
 }
 
 fn infer_product_metrics_input(
@@ -5298,6 +5392,65 @@ mod tests {
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].skill_id, "data_funnel_analysis");
         assert!(requests[0].input.get("product_ref").is_none());
+    }
+
+    #[test]
+    fn autosuggests_comprehensive_diagnosis_with_explicit_metrics() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task(
+                "做一次综合诊断，重点看增长：GMV26万，上期GMV23万，订单2100，UV6.2万，广告费7.2万，退款1.56万，毛利6.8万，目标GMV30万",
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_comprehensive_diagnosis");
+        assert_eq!(requests[0].input["focus"], "growth");
+        assert_eq!(requests[0].input["gmv"], 260000.0);
+        assert_eq!(requests[0].input["previous_gmv"], 230000.0);
+        assert_eq!(requests[0].input["orders"], 2100.0);
+        assert_eq!(requests[0].input["visitors"], 62000.0);
+        assert_eq!(requests[0].input["ad_spend"], 72000.0);
+        assert_eq!(requests[0].input["refund_amount"], 15600.0);
+        assert_eq!(requests[0].input["gross_profit"], 68000.0);
+        assert_eq!(requests[0].input["target_gmv"], 300000.0);
+    }
+
+    #[test]
+    fn selected_product_context_feeds_comprehensive_diagnosis_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task_with_metadata(
+                "对这个商品做综合业务诊断：GMV26万，上期GMV23万，订单2100，UV6.2万，广告费7.2万，退款1.56万",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_comprehensive_diagnosis");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["gmv"], 260000.0);
+        assert_eq!(requests[0].input["orders"], 2100.0);
+    }
+
+    #[test]
+    fn comprehensive_diagnosis_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("做综合业务诊断：GMV26万，上期GMV23万，订单2100，UV6.2万"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_comprehensive_diagnosis");
+        assert!(requests[0].input.get("product_ref").is_none());
+        assert_eq!(requests[0].input["gmv"], 260000.0);
     }
 
     #[test]

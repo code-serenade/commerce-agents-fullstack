@@ -546,6 +546,12 @@ pub fn specs() -> Vec<SkillSpec> {
             "编排经营看板、漏斗、异常、退款、预测、归因和LTV，输出综合业务诊断",
             SkillPriority::Critical,
             vec![
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用 product:{uuid}；仅用于标识本轮显式选品",
+                    false,
+                ),
                 field("days", "integer", "分析周期，默认30", false),
                 field(
                     "focus",
@@ -2467,6 +2473,7 @@ fn demand_forecast(input: &Value) -> Value {
 }
 
 fn comprehensive_diagnosis(input: &Value) -> Value {
+    let product_ref = s(input, "product_ref", "");
     let days = i(input, "days", 30).clamp(1, 365);
     let focus = normalize_focus(&s(input, "focus", "all"));
     if !has_comprehensive_diagnosis_input(input) {
@@ -2566,6 +2573,7 @@ fn comprehensive_diagnosis(input: &Value) -> Value {
         "adapter_status": if has_partial_data { "partial_manual_input" } else { "manual_input" },
         "data_readiness": if has_partial_data { "partial_user_input" } else { "user_provided" },
         "summary": format!("综合业务诊断完成，健康评分{}分，等级{}", health_score, grade),
+        "商品引用": empty_string_as_null(product_ref),
         "分析天数": days,
         "重点方向": focus,
         "分析口径": focus_instruction(&focus),
@@ -3925,6 +3933,7 @@ mod tests {
         let outcome = execute(
             "data_comprehensive_diagnosis",
             json!({
+                "product_ref": "product:11111111-1111-1111-1111-111111111111",
                 "days": 30,
                 "focus": "growth",
                 "gmv": 260000.0,
@@ -3968,6 +3977,10 @@ mod tests {
         assert_eq!(
             output.get("status").and_then(Value::as_str),
             Some("success")
+        );
+        assert_eq!(
+            output.get("商品引用"),
+            Some(&json!("product:11111111-1111-1111-1111-111111111111"))
         );
         assert_eq!(output.get("has_data").and_then(Value::as_bool), Some(true));
         assert_eq!(

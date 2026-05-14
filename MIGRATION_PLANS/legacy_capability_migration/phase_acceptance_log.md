@@ -2,6 +2,28 @@
 
 # 阶段验收记录
 
+## Post 8-92：综合业务诊断 product_ref 契约
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent：`data_comprehensive_diagnosis` schema 支持 `product_ref`。
+- [x] Agent：成功综合诊断输出回显 `商品引用`。
+- [x] Worker autosuggest：综合诊断 / 全面诊断 / 业务诊断 / 经营体检问法触发 `data_comprehensive_diagnosis` 时使用结构化 input。
+- [x] Worker autosuggest：本轮显式选品时综合诊断 input 携带 `product_ref`。
+- [x] Worker autosuggest：本轮显式经营指标、渠道指标、退款项和数字序列会进入综合诊断 input。
+- [x] Worker autosuggest：未选商品时不写空 `product_ref`。
+- [x] API：`API_DOCS/sse.md` 已同步综合诊断 product_ref 契约。
+- [x] 前端：本轮不新增假入口。
+
+当前说明：
+
+- 本阶段解决的是“综合诊断无法自然触发、也无法关联本轮选中商品”的问题。
+- 本阶段只使用本轮显式业务输入或继续明确 missing/deferred 状态。
+- 本阶段不调用淘宝、抖音、千川、CRM、ERP、WMS、DMP、会员系统或实时数仓数据，也不把历史商品当作默认商品。
+
 ## Post 8-91：数据看板 product_ref 契约
 
 状态：done

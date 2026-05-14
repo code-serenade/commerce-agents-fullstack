@@ -1,5 +1,55 @@
 # 迁移开发记录
 
+## Post 8-92：综合业务诊断 product_ref 契约
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 92 个补强项：`Post 8-92`。
+
+本次目标：
+
+- 把综合业务诊断 `data_comprehensive_diagnosis` 接入新产品 `product_ref=product:{uuid}` 契约。
+- 让用户手动选择商品后，综合诊断 / 全面诊断 / 业务诊断 / 经营体检等问法能保留本轮商品引用。
+- 让用户本轮文本里提供的 GMV、订单、UV、广告费、退款、毛利、目标 GMV、渠道、退款项和数字序列进入真实综合诊断编排。
+- 继续保持未选商品时不绑定历史商品或预设商品，也不读取淘宝、抖音、千川、CRM、ERP、WMS、DMP、会员系统或实时数仓数据。
+
+本次修改：
+
+- 后端 agent：`data_comprehensive_diagnosis` schema 新增 `product_ref`。
+- 后端 agent：成功输出新增 `商品引用`。
+- 后端 worker：新增综合诊断自然语言自动补偿。
+- 后端 worker：解析本轮显式经营指标、渠道指标、退款项和数字序列进入综合诊断 input。
+- 后端 worker：本轮显式选品后，综合诊断 input 带入 `product_ref`。
+- 后端 worker：未选商品时不写空 `product_ref`。
+- API/SSE：同步 `API_DOCS/sse.md`。
+- 迁移文档：新增本轮归档，并同步阶段验收、总计划和 skill 矩阵。
+
+用户可感知变化：
+
+- 用户手动勾选商品后，再问“对这个商品做综合业务诊断 / 经营体检 / 全链路诊断”时，后端会把本轮选中商品的 `product:<uuid>` 带进综合诊断结果。
+- 用户没有手动选商品时，综合诊断仍按普通店铺或泛业务问题运行，但不会暗中绑定历史商品或默认商品。
+- 用户在问题里写出 GMV、订单、UV、广告费、退款、毛利、目标 GMV 等指标时，后端会解析成本轮显式综合诊断输入；未提供足够输入时继续明确 `missing_user_input` / `deferred`，不能当作平台实时数据。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/data_comprehensive_product_ref_post_8_92.md`
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent data_comprehensive_diagnosis -- --nocapture`
+- [x] `cargo test -p agent autosuggests_comprehensive_diagnosis_with_explicit_metrics -- --nocapture`
+- [x] `cargo test -p agent selected_product_context_feeds_comprehensive_diagnosis_ref -- --nocapture`
+- [x] `cargo test -p agent comprehensive_diagnosis_without_selection_has_no_empty_product_ref -- --nocapture`
+- [x] `cargo fmt --all --check`
+- [x] `cargo check -p agent`
+- [x] `cargo clippy -p agent`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 真实淘宝、抖音、千川、CRM、ERP、WMS、DMP、会员系统和实时数仓数据仍需要后续 service/adapter/search 注入，不能由本地 native orchestrator 伪造或默认读取。
+
 ## Post 8-91：数据看板 product_ref 契约
 
 状态：done

@@ -236,24 +236,24 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-91: data dashboard product_ref contract
+Post 8-92: data comprehensive diagnosis product_ref contract
 ```
 
 Scope:
 
-- add `product_ref=product:{uuid}` to `data_dashboard`
-- echo the selected product reference in successful dashboard output
-- route dashboard / overview / core metrics / store dashboard phrasing to structured `data_dashboard` input
-- parse explicit GMV, orders, UV, clicks, ad spend, refund, gross profit, and target GMV metrics from the current text into skill input
+- add `product_ref=product:{uuid}` to `data_comprehensive_diagnosis`
+- echo the selected product reference in successful comprehensive diagnosis output
+- route comprehensive diagnosis / business diagnosis / operating checkup phrasing to structured `data_comprehensive_diagnosis` input
+- parse explicit GMV, orders, UV, ad spend, refund, gross profit, target GMV, channels, refund items, and numeric series from the current text into skill input
 - let data worker autosuggest pass selected product refs only from explicit `context.selected_summary`
-- keep missing dashboard metrics as explicit `store_metrics_required` / sample-only state rather than fake platform data
+- keep missing comprehensive diagnosis inputs as explicit `missing_user_input` / deferred state rather than fake platform data
 
 Reason:
 
-- dashboard / store overview is a high-frequency entry point for product demos and daily operations
-- selected-product and unspecified store dashboard analysis must stay separate
-- frontend artifacts and process panels need a stable product reference for product-bound dashboard reports
-- real Taobao, Douyin, Qianchuan, CRM, ERP, WMS, and store metrics remain adapter/service/search concerns and must not be faked
+- comprehensive diagnosis is the primary orchestrator for product demos and the "ecommerce virtual employee" experience
+- selected-product and unspecified business diagnosis must stay separate
+- frontend artifacts and process panels need a stable product reference for product-bound comprehensive diagnosis reports
+- real Taobao, Douyin, Qianchuan, CRM, ERP, WMS, DMP, member systems, and data warehouses remain adapter/service/search concerns and must not be faked
 
 ## 10. Validation Standard
 
