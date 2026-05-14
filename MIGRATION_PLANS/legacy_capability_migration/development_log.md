@@ -1,5 +1,49 @@
 # 迁移开发记录
 
+## Post 8-74：营销活动草稿 product_ref 契约
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 74 个补强项：`Post 8-74`。
+
+本次目标：
+
+- 把协同层营销活动草稿能力接入新产品 `product_ref=product:{uuid}` 契约。
+- 保持旧 `product_id` 兼容现有 campaign draft 持久化链路。
+- 不触碰平台改价、改库存、同步商品等审批型平台写动作。
+
+本次修改：
+
+- 后端 agent：`coordination_create_campaign` schema 新增 `product_ref`。
+- 后端 agent：输出新增 `campaign_creation.product_ref` 和 `normalized_inputs.product_ref`。
+- 后端 agent：未显式传入 `product_ref` 时，从 `context.refs` 或 `context.product_ids` 推断。
+- 后端 agent：未显式传入 `product_id` 时，优先从 `product_ref` 派生 UUID 字符串，再回退 `context.product_ids`。
+- API/SSE：同步 `API_DOCS/sse.md`。
+- 迁移文档：新增本轮归档，并同步阶段验收和 skill 矩阵。
+
+用户可感知变化：
+
+- 用户手动选择商品后，让 Agent 把活动方案保存为营销活动草稿时，草稿输出会带 `product:<uuid>` 商品引用。
+- 后续活动管理、工作区交付物和来源面板可以基于该引用继续对齐商品。
+- 这不是平台执行动作，不会改价、改库存或同步平台商品。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/coordination_campaign_product_ref_post_8_74.md`
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent coordination_create_campaign -- --nocapture`
+- [x] `cargo fmt --all --check`
+- [x] `cargo check -p agent`
+- [x] `cargo clippy -p agent`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 平台写动作里的平台商品 ID 与新产品商品引用需要后续单独设计，不能和草稿引用混用。
+
 ## Post 8-73：客服支持类 Skill 商品引用契约补齐
 
 状态：done

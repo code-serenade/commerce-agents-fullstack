@@ -1147,6 +1147,26 @@
 - 本阶段不新增数据库、不新增 HTTP API、不让 agent crate 直连数据库。
 - `product_ref` 仅表示本轮用户显式选择的商品关联，不代表已查询实时平台商品库。
 
+## Post 8-74：营销活动草稿 product_ref 契约
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] `coordination_create_campaign` schema 新增 `product_ref`。
+- [x] 输出新增 `campaign_creation.product_ref` 和 `normalized_inputs.product_ref`。
+- [x] 未显式传入时可从 `context.refs/context.product_ids` 推断 `product_ref`。
+- [x] 旧 `product_id` 继续保留并可从 `product_ref` 派生，兼容现有 campaign draft 持久化链路。
+- [x] 不触碰平台改价、改库存、同步商品等审批型平台写操作。
+- [x] API 文档已同步。
+
+当前说明：
+
+- 本阶段解决营销活动草稿缺少新产品商品引用字段的问题。
+- 本阶段不新增数据库、不新增 HTTP API、不让 agent crate 直连数据库。
+- 本阶段只处理草稿沉淀，不执行平台动作、不创建审批。
+
 ## Post 8-70：显式选品上下文进入 Skill 输入
 
 状态：done

@@ -236,23 +236,22 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-73: service support product_ref contract
+Post 8-74: coordination campaign product_ref contract
 ```
 
 Scope:
 
-- add `product_ref=product:{uuid}` to service support skills
-- cover `service_ticket_handler`, `service_faq_playbook`, `service_escalation_flow`, and `service_return_handler`
-- keep legacy integer `product_id` fields for compatibility
-- feed selected product refs into service support autosuggest inputs
-- clean empty `product_ref` when no product was selected
+- add `product_ref=product:{uuid}` to `coordination_create_campaign`
+- infer product refs from explicit `context.refs/context.product_ids`
+- keep legacy `product_id` output for the existing campaign draft persistence path
+- avoid platform write actions in this slice
 
 Reason:
 
-- customer service workflows often need to associate a generated response or playbook with the product selected in the current turn
-- the association should use the new product reference contract instead of writing UUIDs into legacy integer fields
-- unselected customer service questions should remain generic and must not inherit a previous product
-- the agent crate still must not query the database directly; it only records references already validated by web-server/service
+- campaign drafts often need to remain linked to the product selected in the current turn
+- the new product reference contract should be visible in coordination outputs, not only content/service skills
+- campaign draft persistence still expects the legacy `product_id` string, so both fields are kept until that path is upgraded
+- high-risk platform write skills remain out of scope and must keep their approval/adapter boundary
 
 ## 10. Validation Standard
 

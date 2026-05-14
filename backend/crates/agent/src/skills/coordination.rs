@@ -121,8 +121,13 @@ pub fn coordination_create_campaign_spec() -> SkillSpec {
         json!({"type": "number"}),
     ))
     .with_input(SkillInputField::optional(
+        "product_ref",
+        "新产品商品引用，如 product:{uuid}；不传时优先使用当前上下文商品引用",
+        json!({"type": "string"}),
+    ))
+    .with_input(SkillInputField::optional(
         "product_id",
-        "关联产品ID（UUID，可选；不传时优先使用当前上下文商品）",
+        "旧商品ID兼容字段（UUID字符串，可选；不传时优先使用当前上下文商品）",
         json!({"type": "string"}),
     ))
     .with_input(SkillInputField::optional(
@@ -658,7 +663,15 @@ impl Skill for CoordinationCreateCampaign {
                 .unwrap_or_else(|| infer_campaign_type(&name, description.as_deref())),
         );
         let budget = optional_f64_param(&params, "budget")?;
+        let product_ref = optional_string_param(&params, "product_ref")?
+            .or_else(|| infer_primary_product_ref(&context.metadata));
         let product_id = optional_string_param(&params, "product_id")?
+            .or_else(|| {
+                product_ref
+                    .as_deref()
+                    .and_then(product_id_from_ref)
+                    .map(ToOwned::to_owned)
+            })
             .or_else(|| infer_primary_product_id(&context.metadata));
         let goal = optional_string_param(&params, "goal")?
             .map(|value| compact_text_for_task_body(&value))
@@ -705,6 +718,7 @@ impl Skill for CoordinationCreateCampaign {
             "description": description,
             "campaign_type": campaign_type,
             "budget": budget,
+            "product_ref": product_ref,
             "product_id": product_id,
             "goal": goal,
             "target_audience": target_audience,
@@ -727,6 +741,7 @@ impl Skill for CoordinationCreateCampaign {
                 "description": normalized.get("description").cloned().unwrap_or(Value::Null),
                 "campaign_type": normalized.get("campaign_type").cloned().unwrap_or(Value::Null),
                 "budget": normalized.get("budget").cloned().unwrap_or(Value::Null),
+                "product_ref": normalized.get("product_ref").cloned().unwrap_or(Value::Null),
                 "product_id": normalized.get("product_id").cloned().unwrap_or(Value::Null),
                 "goal": normalized.get("goal").cloned().unwrap_or(Value::Null),
                 "target_audience": normalized.get("target_audience").cloned().unwrap_or(Value::Null),
@@ -1649,8 +1664,27 @@ fn infer_primary_product_id(metadata: &Map<String, Value>) -> Option<String> {
         .or_else(|| {
             metadata_csv_list(metadata, "context.refs")
                 .into_iter()
-                .find_map(|item| item.strip_prefix("product:").map(ToOwned::to_owned))
+                .find_map(|item| product_id_from_ref(&item).map(ToOwned::to_owned))
         })
+}
+
+fn infer_primary_product_ref(metadata: &Map<String, Value>) -> Option<String> {
+    metadata_csv_list(metadata, "context.refs")
+        .into_iter()
+        .find(|item| product_id_from_ref(item).is_some())
+        .or_else(|| {
+            metadata_csv_list(metadata, "context.product_ids")
+                .into_iter()
+                .next()
+                .map(|product_id| format!("product:{product_id}"))
+        })
+}
+
+fn product_id_from_ref(value: &str) -> Option<&str> {
+    value
+        .strip_prefix("product:")
+        .or_else(|| value.strip_prefix("product/"))
+        .filter(|value| !value.trim().is_empty())
 }
 
 fn normalize_campaign_type(value: String) -> String {
@@ -2293,7 +2327,8 @@ mod tests {
             .with_agent_id("worker.ops")
             .with_metadata("message.workspace_id", json!("workspace-1"))
             .with_metadata("role_runtime", json!("ops"))
-            .with_metadata("context.product_ids", json!("product-1"));
+            .with_metadata("context.product_ids", json!("product-1"))
+            .with_metadata("context.refs", json!("product:product-1"));
 
         let result = skill
             .run(
@@ -2316,6 +2351,10 @@ mod tests {
             Some(&json!(true))
         );
         assert_eq!(
+            result.output.pointer("/campaign_creation/product_ref"),
+            Some(&json!("product:product-1"))
+        );
+        assert_eq!(
             result.output.pointer("/campaign_creation/product_id"),
             Some(&json!("product-1"))
         );
@@ -2334,6 +2373,38 @@ mod tests {
         assert_eq!(
             result.metadata.get("campaign_creation_kind"),
             Some(&json!("campaign_draft"))
+        );
+    }
+
+    #[tokio::test]
+    async fn coordination_create_campaign_prefers_explicit_product_ref() {
+        let skill = super::CoordinationCreateCampaign::new();
+        let context = SkillContext::new()
+            .with_metadata("context.product_ids", json!("product-1"))
+            .with_metadata("context.refs", json!("product:product-1"));
+
+        let result = skill
+            .run(
+                json!({
+                    "name": "新品咖啡冷启动",
+                    "product_ref": "product:11111111-1111-1111-1111-111111111111"
+                }),
+                context,
+            )
+            .await
+            .expect("create campaign should accept product_ref");
+
+        assert_eq!(
+            result.output.pointer("/campaign_creation/product_ref"),
+            Some(&json!("product:11111111-1111-1111-1111-111111111111"))
+        );
+        assert_eq!(
+            result.output.pointer("/campaign_creation/product_id"),
+            Some(&json!("11111111-1111-1111-1111-111111111111"))
+        );
+        assert_eq!(
+            result.output.pointer("/normalized_inputs/product_ref"),
+            Some(&json!("product:11111111-1111-1111-1111-111111111111"))
         );
     }
 
