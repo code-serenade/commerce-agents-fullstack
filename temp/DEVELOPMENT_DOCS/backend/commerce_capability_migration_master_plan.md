@@ -236,23 +236,23 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-92: data comprehensive diagnosis product_ref contract
+Post 8-93: ops smart pricing product_ref contract
 ```
 
 Scope:
 
-- add `product_ref=product:{uuid}` to `data_comprehensive_diagnosis`
-- echo the selected product reference in successful comprehensive diagnosis output
-- route comprehensive diagnosis / business diagnosis / operating checkup phrasing to structured `data_comprehensive_diagnosis` input
-- parse explicit GMV, orders, UV, ad spend, refund, gross profit, target GMV, channels, refund items, and numeric series from the current text into skill input
-- let data worker autosuggest pass selected product refs only from explicit `context.selected_summary`
-- keep missing comprehensive diagnosis inputs as explicit `missing_user_input` / deferred state rather than fake platform data
+- add `product_ref=product:{uuid}` to `ops_smart_pricing`
+- echo the selected product reference in successful smart pricing output
+- route smart pricing / dynamic pricing / price optimization / pricing adjustment phrasing to structured `ops_smart_pricing` input
+- parse explicit cost, current price, monthly sales, competitor prices, stock days, elasticity, and platform from the current text into skill input
+- let ops worker autosuggest pass selected product refs only from explicit `context.selected_summary`
+- keep missing required smart pricing inputs as validation errors and missing competitor prices as explicit `calculated_from_defaults` rather than fake platform data
 
 Reason:
 
-- comprehensive diagnosis is the primary orchestrator for product demos and the "ecommerce virtual employee" experience
-- selected-product and unspecified business diagnosis must stay separate
-- frontend artifacts and process panels need a stable product reference for product-bound comprehensive diagnosis reports
+- smart pricing is a high-value old-product operations capability and needs to be reachable by natural language, not only explicit skill JSON
+- selected-product and unspecified pricing analysis must stay separate
+- frontend artifacts and process panels need a stable product reference for product-bound smart pricing reports
 - real Taobao, Douyin, Qianchuan, CRM, ERP, WMS, DMP, member systems, and data warehouses remain adapter/service/search concerns and must not be faked
 
 ## 10. Validation Standard

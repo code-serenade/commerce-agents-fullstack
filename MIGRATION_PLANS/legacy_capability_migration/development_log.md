@@ -1,5 +1,57 @@
 # 迁移开发记录
 
+## Post 8-93：智能定价 product_ref 契约
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 93 个补强项：`Post 8-93`。
+
+本次目标：
+
+- 把智能定价 `ops_smart_pricing` 接入新产品 `product_ref=product:{uuid}` 契约。
+- 让用户手动选择商品后，智能定价 / 动态定价 / 调价建议 / 价格优化等问法能保留本轮商品引用。
+- 让用户本轮文本里提供的成本、当前售价、月销量、竞品价、库存天数、价格弹性进入真实智能定价 skill input。
+- 继续保持未选商品时不绑定历史商品或预设商品，也不读取淘宝、抖音、千川、CRM、ERP、WMS、DMP、会员系统或实时数仓数据。
+
+本次修改：
+
+- 后端 agent：`ops_smart_pricing` schema 新增 `product_ref`。
+- 后端 agent：成功输出新增 `商品引用`。
+- 后端 worker：新增智能定价自然语言自动补偿。
+- 后端 worker：解析本轮显式成本、当前售价、月销量、竞品价、库存天数和价格弹性进入智能定价 input。
+- 后端 worker：正数价格弹性自动归一为负弹性，匹配需求曲线计算。
+- 后端 worker：本轮显式选品后，智能定价 input 带入 `product_ref`。
+- 后端 worker：未选商品时不写空 `product_ref`。
+- API/SSE：同步 `API_DOCS/sse.md`。
+- 迁移文档：新增本轮归档，并同步阶段验收、总计划和 skill 矩阵。
+
+用户可感知变化：
+
+- 用户手动勾选商品后，再问“给这个商品做智能定价 / 动态定价 / 调价建议”时，后端会把本轮选中商品的 `product:<uuid>` 带进智能定价结果。
+- 用户没有手动选商品时，智能定价仍按普通定价问题运行，但不会暗中绑定历史商品或默认商品。
+- 用户在问题里写出成本、当前售价、月销量、竞品价、库存天数等指标时，后端会解析成本轮显式智能定价输入；缺成本或当前售价时继续 validation error，缺竞品价格时明确 `calculated_from_defaults`，不能当作平台实时数据。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/ops_smart_pricing_product_ref_post_8_93.md`
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent ops_smart_pricing -- --nocapture`
+- [x] `cargo test -p agent autosuggests_smart_pricing_with_explicit_price_inputs -- --nocapture`
+- [x] `cargo test -p agent selected_product_context_feeds_smart_pricing_ref -- --nocapture`
+- [x] `cargo test -p agent smart_pricing_without_selection_has_no_empty_product_ref -- --nocapture`
+- [x] `cargo test -p agent autosuggests_more_specific_ops_skills_by_intent -- --nocapture`
+- [x] `cargo fmt --all --check`
+- [x] `cargo check -p agent`
+- [x] `cargo clippy -p agent`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 真实淘宝、抖音、千川、CRM、ERP、WMS、DMP、会员系统和实时数仓竞品/库存数据仍需要后续 service/adapter/search 注入，不能由本地 native skill 伪造或默认读取。
+
 ## Post 8-92：综合业务诊断 product_ref 契约
 
 状态：done

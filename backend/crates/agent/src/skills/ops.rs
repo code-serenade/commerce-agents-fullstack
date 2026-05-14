@@ -128,6 +128,12 @@ pub fn specs() -> Vec<SkillSpec> {
                 field("platform", "string", "平台，默认淘宝", false),
                 field("elasticity", "number", "价格弹性系数，默认-1.5", false),
                 field("stock_days", "integer", "当前库存天数", false),
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用，如 product:{uuid}",
+                    false,
+                ),
             ],
         ),
         spec(
@@ -577,6 +583,7 @@ fn smart_pricing(input: &Value) -> Value {
     let current_sales = num(input, "current_monthly_sales", 500.0).max(1.0);
     let competitors = nums(input, "competitor_prices");
     let platform = string(input, "platform", "淘宝");
+    let product_ref = string(input, "product_ref", "");
     let elasticity = num(input, "elasticity", -1.5);
     let stock_days = num(input, "stock_days", 0.0);
     let commission_rate = commission_rate(&platform);
@@ -698,6 +705,7 @@ fn smart_pricing(input: &Value) -> Value {
         "推荐定价": currency(best_price),
         "推荐理由": format!("在当前弹性({elasticity})和竞品约束下，{}预期月利润最大化", currency(best_price)),
         "竞品价格区间": if competitors.is_empty() { json!("无竞品数据") } else { json!({"最低": currency(min_comp), "均价": currency(avg_comp), "最高": currency(max_comp)}) },
+        "商品引用": if product_ref.is_empty() { Value::Null } else { json!(product_ref) },
     });
 
     if let Some(sp) = stock_pressure_price {
@@ -1471,6 +1479,29 @@ mod tests {
         assert_eq!(
             output.get("竞品价格区间").and_then(Value::as_str),
             Some("无竞品数据")
+        );
+    }
+
+    #[tokio::test]
+    async fn ops_smart_pricing_echoes_product_ref() {
+        let outcome = execute(
+            "ops_smart_pricing",
+            json!({
+                "cost": 38.0,
+                "current_price": 99.0,
+                "competitor_prices": [89.0, 109.0, 119.0],
+                "product_ref": "product:11111111-1111-1111-1111-111111111111"
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops smart pricing should echo product_ref");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "智能定价方案已生成");
+        assert_eq!(
+            output.get("商品引用").and_then(Value::as_str),
+            Some("product:11111111-1111-1111-1111-111111111111")
         );
     }
 

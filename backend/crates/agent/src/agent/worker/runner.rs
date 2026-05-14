@@ -670,6 +670,30 @@ fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
 
     if contains_any(
         text,
+        &[
+            "smart pricing",
+            "dynamic pricing",
+            "智能定价",
+            "动态定价",
+            "价格优化",
+            "利润定价",
+            "最优定价",
+            "调价建议",
+            "涨价建议",
+            "降价建议",
+            "清仓定价",
+            "库存压力价",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "ops_smart_pricing",
+            serde_json::Value::Object(infer_smart_pricing_input(text, task)),
+            "根据智能定价/动态调价意图自动补偿智能定价 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
         &["price", "pricing", "cost", "定价", "价格", "售价", "成本"],
     ) {
         let numbers = numbers_in_text(text);
@@ -2944,6 +2968,106 @@ fn infer_price_elasticity_input(
         &["当前售价", "当前价格", "现价", "current_price"],
     );
     input
+}
+
+fn infer_smart_pricing_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(selected_product_platform_or_infer(task, text)),
+    );
+    insert_metric_value(
+        &mut input,
+        "cost",
+        text,
+        &["单位成本", "单品成本", "成本", "cost"],
+    );
+    insert_metric_value(
+        &mut input,
+        "current_price",
+        text,
+        &[
+            "当前售价",
+            "当前价格",
+            "现价",
+            "售价",
+            "current_price",
+            "price",
+        ],
+    );
+    insert_metric_value(
+        &mut input,
+        "current_monthly_sales",
+        text,
+        &[
+            "当前月销量",
+            "月销量",
+            "monthly_sales",
+            "current_monthly_sales",
+        ],
+    );
+    insert_metric_value(
+        &mut input,
+        "stock_days",
+        text,
+        &["库存天数", "可售天数", "stock_days"],
+    );
+    insert_metric_value(
+        &mut input,
+        "elasticity",
+        text,
+        &["弹性系数", "价格弹性", "elasticity"],
+    );
+    if let Some(value) = input.get("elasticity").and_then(serde_json::Value::as_f64)
+        && value > 0.0
+    {
+        input.insert("elasticity".to_string(), serde_json::json!(-value));
+    }
+    let competitor_prices = infer_competitor_prices(text);
+    if !competitor_prices.is_empty() {
+        input.insert(
+            "competitor_prices".to_string(),
+            serde_json::json!(competitor_prices),
+        );
+    }
+    input
+}
+
+fn infer_competitor_prices(text: &str) -> Vec<f64> {
+    let mut prices = text
+        .split(['，', ',', '；', ';', '、', '\n'])
+        .filter_map(|segment| {
+            let trimmed = segment.trim();
+            if !contains_any(
+                trimmed,
+                &["竞品", "对手", "竞对", "同行", "competitor", "competing"],
+            ) {
+                return None;
+            }
+            extract_last_metric_value(
+                trimmed,
+                &[
+                    "竞品价格",
+                    "竞品价",
+                    "对手价格",
+                    "竞对价格",
+                    "同行价格",
+                    "价格",
+                    "售价",
+                    "price",
+                ],
+            )
+        })
+        .collect::<Vec<_>>();
+    prices.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    prices.dedup_by(|a, b| (*a - *b).abs() < 0.01);
+    prices
 }
 
 fn infer_demand_forecast_input(
@@ -5334,6 +5458,10 @@ mod tests {
                 "做一份零食货盘和SKU组合规划，选品预算80000",
                 "ops_assortment_planning",
             ),
+            (
+                "给咖啡新品做智能定价：成本38，当前售价99，月销量820，竞品价89，竞品价109，库存天数45",
+                "ops_smart_pricing",
+            ),
         ];
 
         for (prompt, expected_skill) in cases {
@@ -5341,6 +5469,65 @@ mod tests {
             assert_eq!(requests.len(), 1, "{prompt}");
             assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
         }
+    }
+
+    #[test]
+    fn autosuggests_smart_pricing_with_explicit_price_inputs() {
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task(
+                "给咖啡新品做动态定价和调价建议：成本38，当前售价99，月销量820，竞品价89，竞品价109，竞品价119，库存天数45，价格弹性1.6",
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_smart_pricing");
+        assert_eq!(requests[0].input["cost"], 38.0);
+        assert_eq!(requests[0].input["current_price"], 99.0);
+        assert_eq!(requests[0].input["current_monthly_sales"], 820.0);
+        assert_eq!(requests[0].input["stock_days"], 45.0);
+        assert_eq!(requests[0].input["elasticity"], -1.6);
+        let prices = requests[0].input["competitor_prices"]
+            .as_array()
+            .expect("competitor prices should be parsed");
+        assert_eq!(prices, &[89.0, 109.0, 119.0]);
+    }
+
+    #[test]
+    fn selected_product_context_feeds_smart_pricing_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task_with_metadata(
+                "给这个商品做智能定价：成本38，当前售价99，月销量820，竞品价89，竞品价109，库存天数45",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_smart_pricing");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["platform"], "抖音");
+        assert_eq!(requests[0].input["cost"], 38.0);
+        assert_eq!(requests[0].input["current_price"], 99.0);
+    }
+
+    #[test]
+    fn smart_pricing_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task("给咖啡新品做智能定价：成本38，当前售价99，竞品价89，竞品价109"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_smart_pricing");
+        assert!(requests[0].input.get("product_ref").is_none());
     }
 
     #[test]
