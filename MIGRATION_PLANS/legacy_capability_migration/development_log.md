@@ -1,5 +1,54 @@
 # 迁移开发记录
 
+## Post 8-80：渠道归因 product_ref 契约
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 80 个补强项：`Post 8-80`。
+
+本次目标：
+
+- 把数据层渠道归因接入新产品 `product_ref=product:{uuid}` 契约。
+- 让用户手动选择商品后，渠道归因 skill 能保留本轮商品引用。
+- 让 `渠道归因 / 多触点归因 / 归因模型` 问法触发 `data_attribution_analysis`，并和 `渠道ROI / 渠道投产` 做边界区分。
+- 继续保持缺多渠道输入时 deferred，不伪造平台实时归因数据。
+
+本次修改：
+
+- 后端 agent：`data_attribution_analysis` schema 新增 `product_ref`。
+- 后端 agent：成功输出新增 `商品引用`。
+- 后端 worker：本轮显式选品后，渠道归因自动补偿 input 带入 `product_ref`。
+- 后端 worker：新增归因模型识别，支持 `last_touch`、`linear`、`time_decay`、`position` 和默认 `all`。
+- 后端 worker：明确归因问法触发 `data_attribution_analysis`，渠道 ROI 问法仍触发 `data_channel_roi`。
+- API/SSE：同步 `API_DOCS/sse.md`。
+- 迁移文档：新增本轮归档，并同步阶段验收、总计划和 skill 矩阵。
+
+用户可感知变化：
+
+- 用户手动勾选商品后，再问“对这个商品做渠道归因 / 多触点归因 / 归因模型分析”时，后端会把本轮选中商品的 `product:<uuid>` 带进渠道归因结果。
+- 用户没有手动选商品时，渠道归因仍按普通多渠道问题运行，但不会暗中绑定历史商品或默认商品。
+- 用户问“渠道 ROI / 渠道投产”仍会进入 ROI 复盘，不会被误判成多模型归因。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/data_attribution_product_ref_post_8_80.md`
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent data_attribution_analysis -- --nocapture`
+- [x] `cargo test -p agent autosuggests_attribution_analysis_with_explicit_channel_metrics -- --nocapture`
+- [x] `cargo test -p agent selected_product_context_feeds_attribution_analysis_ref -- --nocapture`
+- [x] `cargo test -p agent attribution_analysis_without_selection_has_no_empty_product_ref -- --nocapture`
+- [x] `cargo fmt --all --check`
+- [x] `cargo check -p agent`
+- [x] `cargo clippy -p agent`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 真实平台归因数据仍需要后续 service/adapter 注入，不能由本地 native skill 伪造。
+
 ## Post 8-79：退款拆解 product_ref 契约
 
 状态：done

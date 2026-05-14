@@ -370,6 +370,12 @@ pub fn specs() -> Vec<SkillSpec> {
             "多触点渠道归因模型，比较末次、线性、时间衰减和位置归因",
             SkillPriority::Critical,
             vec![
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用 product:{uuid}；仅用于标识本轮显式选品",
+                    false,
+                ),
                 field("days", "integer", "分析天数，默认30", false),
                 field(
                     "attribution_model",
@@ -1950,6 +1956,7 @@ fn channel_roi(input: &Value) -> Value {
 }
 
 fn attribution_analysis(input: &Value) -> Value {
+    let product_ref = s(input, "product_ref", "");
     let channels = input
         .get("channels")
         .and_then(Value::as_array)
@@ -2099,6 +2106,7 @@ fn attribution_analysis(input: &Value) -> Value {
         "adapter_status": "manual_input",
         "summary": format!("渠道归因分析完成，{}归因贡献最高", rows[best_idx].name),
         "数据来源": "用户提供渠道数据",
+        "商品引用": empty_string_as_null(product_ref),
         "分析周期": format!("{}天", i(input, "days", 30).max(1)),
         "归因模型": if requested_model == "all" { "all" } else { requested_model.as_str() },
         "分析说明": "末次归因=成交最高渠道；线性=等权分配；时间衰减=以广告花费或转化信号代理近期触点；位置归因=首末各40%中间20%",
@@ -3754,6 +3762,7 @@ mod tests {
             "data_attribution_analysis",
             json!({
                 "days": 30,
+                "product_ref": "product:11111111-1111-1111-1111-111111111111",
                 "channels": [
                     {"name": "抖音", "gmv": 180000.0, "uv": 50000.0, "conversion_rate": 3.2, "ad_spend": 48000.0},
                     {"name": "淘宝", "gmv": 120000.0, "uv": 42000.0, "conversion_rate": 2.4, "ad_spend": 22000.0},
@@ -3774,6 +3783,10 @@ mod tests {
         assert_eq!(
             output.get("adapter_status").and_then(Value::as_str),
             Some("manual_input")
+        );
+        assert_eq!(
+            output.get("商品引用"),
+            Some(&json!("product:11111111-1111-1111-1111-111111111111"))
         );
         assert_eq!(
             output.get("summary").and_then(Value::as_str).map(|value| {

@@ -805,14 +805,7 @@ fn autosuggest_data(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
 
     if contains_any(
         text,
-        &[
-            "channel roi",
-            "渠道roi",
-            "渠道 roi",
-            "投放渠道",
-            "归因",
-            "渠道投产",
-        ],
+        &["channel roi", "渠道roi", "渠道 roi", "投放渠道", "渠道投产"],
     ) {
         let channels = infer_channel_roi_rows(text);
         return Some(autosuggest_request(
@@ -826,6 +819,34 @@ fn autosuggest_data(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
                 "根据渠道投产/归因意图自动补偿渠道ROI skill"
             } else {
                 "根据用户显式提供的渠道指标自动补偿渠道ROI skill"
+            },
+        ));
+    }
+
+    if contains_any(
+        text,
+        &[
+            "attribution",
+            "归因模型",
+            "多触点归因",
+            "渠道归因",
+            "投放归因",
+            "归因分析",
+        ],
+    ) {
+        let channels = infer_channel_roi_rows(text);
+        return Some(autosuggest_request(
+            "data_attribution_analysis",
+            serde_json::json!({
+                "days": infer_period_days(text),
+                "attribution_model": infer_attribution_model(text),
+                "channels": channels,
+                "product_ref": selected_product_ref(task),
+            }),
+            if channels.is_empty() {
+                "根据渠道归因/多触点归因意图自动补偿渠道归因 skill"
+            } else {
+                "根据用户显式提供的渠道指标自动补偿渠道归因 skill"
             },
         ));
     }
@@ -2325,6 +2346,20 @@ fn canonical_channel_name(label: &str) -> &'static str {
         "快手"
     } else {
         "未知渠道"
+    }
+}
+
+fn infer_attribution_model(text: &str) -> &'static str {
+    if contains_any(text, &["last_touch", "末次", "最后触点", "末次归因"]) {
+        "last_touch"
+    } else if contains_any(text, &["linear", "线性", "线性归因"]) {
+        "linear"
+    } else if contains_any(text, &["time_decay", "时间衰减", "衰减归因"]) {
+        "time_decay"
+    } else if contains_any(text, &["position", "位置归因", "u形", "U形", "首末"]) {
+        "position"
+    } else {
+        "all"
     }
 }
 
@@ -4593,6 +4628,30 @@ mod tests {
     }
 
     #[test]
+    fn autosuggests_attribution_analysis_with_explicit_channel_metrics() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task(
+                "做渠道归因分析，用时间衰减模型：抖音GMV18万，广告费4.8万，UV5万，转化率3.2；淘宝GMV12万，广告费2.2万，UV4.2万，转化率2.4",
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_attribution_analysis");
+        assert_eq!(requests[0].input["attribution_model"], "time_decay");
+        let channels = requests[0].input["channels"]
+            .as_array()
+            .expect("channels should be parsed");
+        assert_eq!(channels.len(), 2);
+        assert_eq!(channels[0]["name"], "抖音");
+        assert_eq!(channels[0]["gmv"], 180000.0);
+        assert_eq!(channels[0]["ad_spend"], 48000.0);
+        assert_eq!(channels[0]["uv"], 50000);
+        assert_eq!(channels[0]["conversion_rate"], 3.2);
+    }
+
+    #[test]
     fn selected_product_context_feeds_channel_roi_ref() {
         let summary = selected_product_summary();
         let requests = autosuggest_skill_requests(
@@ -4615,6 +4674,46 @@ mod tests {
             .expect("channels should be parsed");
         assert_eq!(channels[0]["name"], "抖音");
         assert_eq!(channels[0]["gmv"], 120000.0);
+    }
+
+    #[test]
+    fn selected_product_context_feeds_attribution_analysis_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task_with_metadata(
+                "对这个商品做渠道归因分析：抖音GMV18万，广告费4.8万，UV5万；淘宝GMV12万，广告费2.2万，UV4.2万",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_attribution_analysis");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        let channels = requests[0].input["channels"]
+            .as_array()
+            .expect("channels should be parsed");
+        assert_eq!(channels[0]["name"], "抖音");
+        assert_eq!(channels[0]["gmv"], 180000.0);
+    }
+
+    #[test]
+    fn attribution_analysis_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task(
+                "渠道归因分析：抖音GMV18万，广告费4.8万，UV5万；淘宝GMV12万，广告费2.2万，UV4.2万",
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_attribution_analysis");
+        assert!(requests[0].input.get("product_ref").is_none());
     }
 
     #[test]

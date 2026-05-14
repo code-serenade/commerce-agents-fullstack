@@ -236,22 +236,24 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-79: data refund decomposition product_ref contract
+Post 8-80: data attribution analysis product_ref contract
 ```
 
 Scope:
 
-- add `product_ref=product:{uuid}` to `data_refund_decomposition`
-- echo the selected product reference in successful refund decomposition output
+- add `product_ref=product:{uuid}` to `data_attribution_analysis`
+- echo the selected product reference in successful attribution output
+- route explicit channel attribution / multi-touch attribution phrasing to `data_attribution_analysis`
 - let data worker autosuggest pass selected product refs only from explicit `context.selected_summary`
-- keep missing refund items as deferred rather than fake live platform data
+- keep missing multi-channel metrics as deferred rather than fake live platform data
 
 Reason:
 
-- refund decomposition is a core e-commerce after-sales and product quality review skill
-- selected-product and unspecified-product refund analysis must stay separate
-- frontend artifacts and process panels need a stable product reference for product-bound refund reports
-- real platform refund metrics remain an adapter/service concern and must not be faked
+- channel attribution is a core e-commerce paid-channel and growth review skill
+- selected-product and unspecified-product attribution analysis must stay separate
+- ROI review and multi-touch attribution should route to distinct native skills
+- frontend artifacts and process panels need a stable product reference for product-bound attribution reports
+- real platform attribution metrics remain an adapter/service concern and must not be faked
 
 ## 10. Validation Standard
 
