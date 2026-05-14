@@ -806,12 +806,18 @@ fn autosuggest_data(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
             "渠道投产",
         ],
     ) {
+        let channels = infer_channel_roi_rows(text);
         return Some(autosuggest_request(
             "data_channel_roi",
             serde_json::json!({
                 "days": infer_period_days(text),
+                "channels": channels,
             }),
-            "根据渠道投产/归因意图自动补偿渠道ROI skill",
+            if channels.is_empty() {
+                "根据渠道投产/归因意图自动补偿渠道ROI skill"
+            } else {
+                "根据用户显式提供的渠道指标自动补偿渠道ROI skill"
+            },
         ));
     }
 
@@ -831,13 +837,19 @@ fn autosuggest_data(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
         text,
         &["refund", "退款", "售后占比", "退货率", "帕累托", "退款分解"],
     ) {
+        let items = infer_refund_items(text);
         return Some(autosuggest_request(
             "data_refund_decomposition",
             serde_json::json!({
                 "days": infer_period_days(text),
                 "top_n": 5,
+                "items": items,
             }),
-            "根据退款分解/帕累托意图自动补偿退款分析 skill",
+            if items.is_empty() {
+                "根据退款分解/帕累托意图自动补偿退款分析 skill"
+            } else {
+                "根据用户显式提供的退款项自动补偿退款分析 skill"
+            },
         ));
     }
 
@@ -2057,6 +2069,166 @@ fn metric_query_input_has_metrics(input: &serde_json::Map<String, serde_json::Va
     ]
     .iter()
     .any(|key| input.contains_key(*key))
+}
+
+fn infer_channel_roi_rows(text: &str) -> Vec<serde_json::Value> {
+    const PLATFORM_LABELS: &[&str] = &[
+        "抖音",
+        "douyin",
+        "tiktok",
+        "淘宝",
+        "taobao",
+        "天猫",
+        "tmall",
+        "京东",
+        "jd",
+        "拼多多",
+        "pdd",
+        "小红书",
+        "xiaohongshu",
+        "快手",
+        "kuaishou",
+    ];
+
+    let mut rows = Vec::new();
+    let mut seen = Vec::<String>::new();
+    for label in PLATFORM_LABELS {
+        let Some(segment) = segment_after_label(text, label, PLATFORM_LABELS) else {
+            continue;
+        };
+        let name = canonical_channel_name(label);
+        if seen.iter().any(|value| value == name) {
+            continue;
+        }
+
+        let gmv = extract_metric_value(&segment, &["GMV", "gmv", "销售额", "成交额", "营收"]);
+        let ad_spend = extract_metric_value(
+            &segment,
+            &[
+                "广告花费",
+                "广告费",
+                "投放花费",
+                "投放消耗",
+                "消耗",
+                "花费",
+                "ad_spend",
+                "ad cost",
+            ],
+        );
+        let orders = extract_metric_value(&segment, &["订单数", "订单", "支付订单", "orders"]);
+        let uv = extract_metric_value(&segment, &["访客数", "访客", "UV", "uv"]);
+        let conversion_rate = extract_metric_value(
+            &segment,
+            &["转化率", "成交转化率", "conversion_rate", "cvr"],
+        );
+
+        if [gmv, ad_spend, orders, uv, conversion_rate]
+            .iter()
+            .all(Option::is_none)
+        {
+            continue;
+        }
+
+        let mut row = serde_json::Map::new();
+        row.insert("name".to_string(), serde_json::json!(name));
+        if let Some(value) = gmv {
+            row.insert("gmv".to_string(), serde_json::json!(value));
+        }
+        if let Some(value) = ad_spend {
+            row.insert("ad_spend".to_string(), serde_json::json!(value));
+        }
+        if let Some(value) = orders {
+            row.insert(
+                "orders".to_string(),
+                serde_json::json!(value.round() as i64),
+            );
+        }
+        if let Some(value) = uv {
+            row.insert("uv".to_string(), serde_json::json!(value.round() as i64));
+        }
+        if let Some(value) = conversion_rate {
+            row.insert("conversion_rate".to_string(), serde_json::json!(value));
+        }
+        seen.push(name.to_string());
+        rows.push(serde_json::Value::Object(row));
+    }
+    rows
+}
+
+fn segment_after_label(text: &str, label: &str, labels: &[&str]) -> Option<String> {
+    let lower = text.to_ascii_lowercase();
+    let label_lower = label.to_ascii_lowercase();
+    let index = lower.find(&label_lower)?;
+    let start = index + label.len();
+    let mut end = text.len();
+
+    for other in labels {
+        if *other == label {
+            continue;
+        }
+        let other_lower = other.to_ascii_lowercase();
+        if let Some(offset) = lower[start..].find(&other_lower) {
+            let candidate = start + offset;
+            if candidate > start && candidate < end {
+                end = candidate;
+            }
+        }
+    }
+
+    Some(text[start..end].trim().to_string())
+}
+
+fn canonical_channel_name(label: &str) -> &'static str {
+    let lower = label.to_ascii_lowercase();
+    if matches!(label, "抖音") || matches!(lower.as_str(), "douyin" | "tiktok") {
+        "抖音"
+    } else if matches!(label, "天猫") || lower == "tmall" {
+        "天猫"
+    } else if matches!(label, "淘宝") || lower == "taobao" {
+        "淘宝"
+    } else if matches!(label, "京东") || lower == "jd" {
+        "京东"
+    } else if matches!(label, "拼多多") || lower == "pdd" {
+        "拼多多"
+    } else if matches!(label, "小红书") || lower == "xiaohongshu" {
+        "小红书"
+    } else if matches!(label, "快手") || lower == "kuaishou" {
+        "快手"
+    } else {
+        "未知渠道"
+    }
+}
+
+fn infer_refund_items(text: &str) -> Vec<serde_json::Value> {
+    text.split(['，', ',', '；', ';', '、', '\n'])
+        .filter_map(parse_refund_item_segment)
+        .collect()
+}
+
+fn parse_refund_item_segment(segment: &str) -> Option<serde_json::Value> {
+    let trimmed = segment.rsplit(['：', ':']).next().unwrap_or(segment).trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    let amount =
+        extract_metric_value(trimmed, &["退款金额", "退款额", "退款", "退货金额", "退货"])?;
+    let name = refund_item_name(trimmed).unwrap_or("综合退款");
+    Some(serde_json::json!({
+        "name": name,
+        "refund_amount": amount,
+    }))
+}
+
+fn refund_item_name(segment: &str) -> Option<&str> {
+    for alias in ["退款金额", "退款额", "退款", "退货金额", "退货"] {
+        if let Some(index) = segment.find(alias) {
+            let name = segment[..index]
+                .trim()
+                .trim_matches(['：', ':', '-', '，', ',', '；', ';', ' ']);
+            return if name.is_empty() { None } else { Some(name) };
+        }
+    }
+    None
 }
 
 fn has_store_metrics_query_intent(text: &str) -> bool {
@@ -3947,6 +4119,54 @@ mod tests {
             assert_eq!(requests.len(), 1, "{prompt}");
             assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
         }
+    }
+
+    #[test]
+    fn autosuggests_channel_roi_with_explicit_channel_metrics() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task(
+                "复盘投放渠道ROI：抖音GMV12万，广告费3万，订单600，UV2万；淘宝GMV8万，广告费2.6万，订单420，UV1.6万",
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_channel_roi");
+        let channels = requests[0].input["channels"]
+            .as_array()
+            .expect("channels should be parsed");
+        assert_eq!(channels.len(), 2);
+        assert_eq!(channels[0]["name"], "抖音");
+        assert_eq!(channels[0]["gmv"], 120000.0);
+        assert_eq!(channels[0]["ad_spend"], 30000.0);
+        assert_eq!(channels[0]["orders"], 600);
+        assert_eq!(channels[0]["uv"], 20000);
+        assert_eq!(channels[1]["name"], "淘宝");
+        assert_eq!(channels[1]["gmv"], 80000.0);
+        assert_eq!(channels[1]["ad_spend"], 26000.0);
+    }
+
+    #[test]
+    fn autosuggests_refund_decomposition_with_explicit_refund_items() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("把退款做帕累托分析：质量问题退款2.4万，物流破损退款9000，色差退款4000"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_refund_decomposition");
+        let items = requests[0].input["items"]
+            .as_array()
+            .expect("refund items should be parsed");
+        assert_eq!(items.len(), 3);
+        assert_eq!(items[0]["name"], "质量问题");
+        assert_eq!(items[0]["refund_amount"], 24000.0);
+        assert_eq!(items[1]["name"], "物流破损");
+        assert_eq!(items[1]["refund_amount"], 9000.0);
+        assert_eq!(items[2]["name"], "色差");
+        assert_eq!(items[2]["refund_amount"], 4000.0);
     }
 
     #[test]

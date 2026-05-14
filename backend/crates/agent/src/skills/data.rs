@@ -285,7 +285,7 @@ pub fn specs() -> Vec<SkillSpec> {
                     false,
                 ),
             ],
-            &["deferred", "deterministic_fallback"],
+            &["deterministic"],
         ),
         spec(
             "data_ltv_calculator",
@@ -377,7 +377,7 @@ pub fn specs() -> Vec<SkillSpec> {
                     false,
                 ),
             ],
-            &["deferred", "deterministic_fallback"],
+            &["deterministic"],
         ),
         spec(
             "data_seasonal_decompose",

@@ -2,6 +2,27 @@
 
 # 阶段验收记录
 
+## Post 8-68：渠道 ROI / 退款拆解 native 契约修正
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent：`data_channel_roi` 在显式 `channels[]` 输入下返回 success。
+- [x] Agent：`data_refund_decomposition` 在显式 `items[]` 输入下返回 success。
+- [x] Agent runtime：两个 skill 在成功执行时标记为 `execution_mode=native`、`risk_level=low`。
+- [x] Worker autosuggest：渠道 ROI 问法可解析本轮显式渠道指标。
+- [x] Worker autosuggest：退款帕累托 / 退款拆解问法可解析本轮显式退款项。
+- [x] API：`API_DOCS/sse.md` 已同步 native / deferred 边界。
+- [x] 前端：本轮不新增假入口。
+
+当前说明：
+
+- 本阶段解决的是“渠道 ROI / 退款拆解已有 Rust 执行，但 runtime 契约仍像 deferred/adapter 能力”的问题。
+- 本阶段只使用本轮用户显式输入的数据，不接官方平台 API，也不读取默认商品或历史商品。
+- 缺少渠道或退款项数据时仍返回 deferred，不创建假报告。
+
 ## Post 8-67：店铺指标报告 artifact 沉淀
 
 状态：done

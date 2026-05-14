@@ -1,5 +1,49 @@
 # 迁移开发记录
 
+## Post 8-68：渠道 ROI / 退款拆解 native 契约修正
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 68 个补强项：`Post 8-68`。
+
+本次目标：
+
+- 把旧产品数据能力里的渠道 ROI 和退款帕累托拆解修正为新产品 Agent runtime 的真实 native skill。
+- 让用户在同一轮问题里给出渠道指标或退款项时，后端可直接结构化解析并执行计算。
+- 继续保持缺数据不造假、不默认读取预设商品、不伪造淘宝 / 抖音 / 千川等平台实时数据。
+
+本次修改：
+
+- 后端 agent：`data_channel_roi` 的 skill spec 改为 `deterministic`，有 `channels[]` 输入时 runtime metadata 为 `execution_mode=native`。
+- 后端 agent：`data_refund_decomposition` 的 skill spec 改为 `deterministic`，有 `items[]` 输入时 runtime metadata 为 `execution_mode=native`。
+- 后端 worker：渠道 ROI autosuggest 可从本轮文本解析 `抖音GMV12万，广告费3万，订单600，UV2万` 等显式渠道指标。
+- 后端 worker：退款拆解 autosuggest 可从本轮文本解析 `质量问题退款2.4万`、`物流破损退款9000` 等显式退款项。
+- API/SSE：同步 `API_DOCS/sse.md`，说明这两个 skill 的 native / deferred 边界和自然触达规则。
+- 迁移文档：新增本轮归档文件，并同步验收记录、总计划和 skill 迁移矩阵。
+
+用户可感知变化：
+
+- 用户直接给渠道指标时，后端能立即计算渠道 ROI，而不是只返回缺数据。
+- 用户直接给退款原因和退款金额时，后端能立即生成退款帕累托拆解。
+- 用户没有提供明细时，系统仍返回 deferred，不会创建假报告，也不会暗中使用默认商品或平台实时数据。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/data_channel_refund_native_contract_post_8_68.md`
+- [x] Agent 单测覆盖渠道 ROI 显式数据成功。
+- [x] Agent 单测覆盖退款拆解显式数据成功。
+- [x] Agent 单测覆盖渠道 ROI 自然语言显式指标解析。
+- [x] Agent 单测覆盖退款拆解自然语言显式退款项解析。
+- [x] Runtime 单测覆盖两个 skill 的 native metadata。
+
+后续缺口：
+
+- 前端过程面板还需要更清楚展示这两个 skill 的 `execution_mode=native`、输入来源和 artifact。
+- 真实平台渠道费用、退款明细、售后原因读取仍待正式 adapter 设计后实现。
+
 ## Post 8-67：店铺指标报告 artifact 沉淀
 
 状态：done

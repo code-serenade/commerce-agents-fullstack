@@ -782,6 +782,61 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn executor_runs_native_data_channel_and_refund_skills() {
+        let executor = SkillExecutorSet::staged().expect("executor should load");
+        let cases = [
+            (
+                "data_channel_roi",
+                json!({
+                    "channels": [
+                        {"name": "抖音", "gmv": 120000.0, "ad_spend": 30000.0, "orders": 600, "uv": 20000},
+                        {"name": "淘宝", "gmv": 80000.0, "ad_spend": 26000.0, "orders": 420, "uv": 16000}
+                    ]
+                }),
+            ),
+            (
+                "data_refund_decomposition",
+                json!({
+                    "items": [
+                        {"name": "质量问题", "refund_amount": 24000.0},
+                        {"name": "物流破损", "refund_amount": 9000.0}
+                    ]
+                }),
+            ),
+        ];
+
+        for (index, (skill_id, input)) in cases.into_iter().enumerate() {
+            let result = executor
+                .execute(SkillRequest::new(
+                    format!("req-native-data-contract-{index}"),
+                    skill_id,
+                    input,
+                ))
+                .await;
+            assert_eq!(
+                result.status,
+                SkillExecutionStatus::Success,
+                "{skill_id} failed: {:?}",
+                result.error
+            );
+            assert_eq!(
+                result.metadata.get("execution_mode"),
+                Some(&json!(SkillExecutionMode::Native)),
+                "{skill_id} used unexpected execution mode"
+            );
+            assert_eq!(
+                result.metadata.get("risk_level"),
+                Some(&json!(SkillRiskLevel::Low)),
+                "{skill_id} used unexpected risk level"
+            );
+            assert!(
+                !result.metadata.contains_key("adapter_requirements"),
+                "{skill_id} should not report adapter requirements when using explicit user data"
+            );
+        }
+    }
+
+    #[tokio::test]
     async fn executor_runs_native_creative_content_skills() {
         let executor = SkillExecutorSet::staged().expect("executor should load");
         let cases = [
