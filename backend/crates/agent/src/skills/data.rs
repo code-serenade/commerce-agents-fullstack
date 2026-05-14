@@ -170,6 +170,12 @@ pub fn specs() -> Vec<SkillSpec> {
             "基于Z-Score检测指标时序异常点",
             SkillPriority::Critical,
             vec![
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用 product:{uuid}；仅用于标识本轮显式选品",
+                    false,
+                ),
                 field("metric_name", "string", "指标名称，默认未知指标", false),
                 field("days", "integer", "分析天数，默认14", false),
                 field("values", "array<number>", "手动提供的时序数据", false),
@@ -1318,6 +1324,7 @@ fn funnel_analysis(input: &Value) -> Value {
 }
 
 fn anomaly_diagnosis(input: &Value) -> Value {
+    let product_ref = s(input, "product_ref", "");
     let values = nums(input, "values");
     if values.len() < 3 {
         return json!({"error": "无真实数据且未提供足够时序数据", "required": "values至少3个数字"});
@@ -1337,6 +1344,7 @@ fn anomaly_diagnosis(input: &Value) -> Value {
         .collect::<Vec<_>>();
     json!({
         "数据来源": "用户提供",
+        "商品引用": empty_string_as_null(product_ref),
         "指标": s(input, "metric_name", "未知指标"),
         "样本数": values.len(),
         "均值": round2(mean),
@@ -4044,6 +4052,36 @@ mod tests {
             Some("异常诊断报告已生成")
         );
         assert!(output.get("异常详情").and_then(Value::as_array).is_some());
+    }
+
+    #[tokio::test]
+    async fn data_anomaly_diagnosis_echoes_product_ref() {
+        let outcome = execute(
+            "data_anomaly_diagnosis",
+            json!({
+                "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                "metric_name": "orders",
+                "values": [120.0, 121.0, 119.0, 122.0, 188.0],
+                "threshold": 1.5
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("data anomaly diagnosis should echo selected product ref");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("user_provided")
+        );
+        assert_eq!(
+            output.get("商品引用"),
+            Some(&json!("product:11111111-1111-1111-1111-111111111111"))
+        );
     }
 
     #[tokio::test]

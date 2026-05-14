@@ -999,13 +999,9 @@ fn autosuggest_data(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     }
 
     if contains_any(text, &["anomaly", "异常", "波动", "下滑", "暴涨", "暴跌"]) {
-        let values = numbers_in_text(text);
         return Some(autosuggest_request(
             "data_anomaly_diagnosis",
-            serde_json::json!({
-                "metric_name": infer_metric(text),
-                "values": values,
-            }),
+            serde_json::Value::Object(infer_anomaly_diagnosis_input(text, task)),
             "根据异常诊断意图自动补偿数据异常 skill",
         ));
     }
@@ -2330,6 +2326,25 @@ fn infer_trend_forecast_input(
     input.insert(
         "platform".to_string(),
         serde_json::json!(selected_product_platform_or_infer(task, text)),
+    );
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
+    let values = numbers_in_text(text);
+    if !values.is_empty() {
+        input.insert("values".to_string(), serde_json::json!(values));
+    }
+    input
+}
+
+fn infer_anomaly_diagnosis_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    input.insert(
+        "metric_name".to_string(),
+        serde_json::json!(infer_metric(text)),
     );
     if let Some(product_ref) = selected_product_ref(task) {
         input.insert("product_ref".to_string(), serde_json::json!(product_ref));
@@ -5282,6 +5297,59 @@ mod tests {
 
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].skill_id, "data_cohort_analysis");
+        assert!(requests[0].input.get("product_ref").is_none());
+    }
+
+    #[test]
+    fn autosuggests_anomaly_diagnosis_with_explicit_series() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("诊断GMV异常波动：12000 12100 11950 12200 18800"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_anomaly_diagnosis");
+        assert_eq!(requests[0].input["metric_name"], "gmv");
+        let values = requests[0].input["values"]
+            .as_array()
+            .expect("values should be parsed");
+        assert_eq!(values.len(), 5);
+        assert_eq!(values[0], 12000.0);
+        assert_eq!(values[4], 18800.0);
+    }
+
+    #[test]
+    fn selected_product_context_feeds_anomaly_diagnosis_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task_with_metadata(
+                "诊断这个商品订单异常下滑：120 121 119 122 88",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_anomaly_diagnosis");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["metric_name"], "orders");
+    }
+
+    #[test]
+    fn anomaly_diagnosis_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("诊断GMV异常波动：12000 12100 11950 12200 18800"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_anomaly_diagnosis");
         assert!(requests[0].input.get("product_ref").is_none());
     }
 

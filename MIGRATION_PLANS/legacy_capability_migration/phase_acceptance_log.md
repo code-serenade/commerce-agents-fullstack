@@ -2,6 +2,27 @@
 
 # 阶段验收记录
 
+## Post 8-88：异常诊断 product_ref 契约
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent：`data_anomaly_diagnosis` schema 支持 `product_ref`。
+- [x] Agent：成功异常诊断输出回显 `商品引用`。
+- [x] Worker autosuggest：异常 / 波动 / 下滑 / 暴涨 / 暴跌问法触发 `data_anomaly_diagnosis` 时使用结构化 input。
+- [x] Worker autosuggest：本轮显式选品时异常诊断 input 携带 `product_ref`。
+- [x] Worker autosuggest：未选商品时不写空 `product_ref`。
+- [x] API：`API_DOCS/sse.md` 已同步异常诊断 product_ref 契约。
+- [x] 前端：本轮不新增假入口。
+
+当前说明：
+
+- 本阶段解决的是“商品级异常诊断结果无法关联本轮选中商品”的问题。
+- 本阶段只使用本轮显式历史序列；少于 3 个历史数据点时继续 deferred。
+- 本阶段不调用平台历史销售、实时告警或活动外部数据，也不把历史商品当作默认商品。
+
 ## Post 8-87：通用趋势预测 product_ref 契约
 
 状态：done

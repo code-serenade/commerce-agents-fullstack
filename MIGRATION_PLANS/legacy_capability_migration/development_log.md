@@ -1,5 +1,53 @@
 # 迁移开发记录
 
+## Post 8-88：异常诊断 product_ref 契约
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 88 个补强项：`Post 8-88`。
+
+本次目标：
+
+- 把异常诊断 `data_anomaly_diagnosis` 接入新产品 `product_ref=product:{uuid}` 契约。
+- 让用户手动选择商品后，异常 / 波动 / 下滑 / 暴涨 / 暴跌问法能保留本轮商品引用。
+- 继续保持未选商品时不绑定历史商品或预设商品，也不读取平台历史销售或实时异常数据。
+
+本次修改：
+
+- 后端 agent：`data_anomaly_diagnosis` schema 新增 `product_ref`。
+- 后端 agent：成功输出新增 `商品引用`。
+- 后端 worker：异常诊断自动补偿改为结构化 input 推断。
+- 后端 worker：本轮显式选品后，异常诊断 input 带入 `product_ref`。
+- 后端 worker：未选商品时不写空 `product_ref`。
+- API/SSE：同步 `API_DOCS/sse.md`。
+- 迁移文档：新增本轮归档，并同步阶段验收、总计划和 skill 矩阵。
+
+用户可感知变化：
+
+- 用户手动勾选商品后，再问“诊断这个商品 GMV / 订单 / UV 异常波动、下滑、暴涨、暴跌”时，后端会把本轮选中商品的 `product:<uuid>` 带进异常诊断结果。
+- 用户没有手动选商品时，异常诊断仍按普通时序问题运行，但不会暗中绑定历史商品或默认商品。
+- 用户在问题里写出一串历史 GMV / 订单 / UV 数字时，后端会解析成本轮显式时序数据；数据不足时继续要求补充，不会生成假异常诊断。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/data_anomaly_product_ref_post_8_88.md`
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent data_anomaly_diagnosis -- --nocapture`
+- [x] `cargo test -p agent autosuggests_anomaly_diagnosis_with_explicit_series -- --nocapture`
+- [x] `cargo test -p agent selected_product_context_feeds_anomaly_diagnosis_ref -- --nocapture`
+- [x] `cargo test -p agent anomaly_diagnosis_without_selection_has_no_empty_product_ref -- --nocapture`
+- [x] `cargo fmt --all --check`
+- [x] `cargo check -p agent`
+- [x] `cargo clippy -p agent`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 真实平台历史异常、实时告警、活动影响和跨平台异常解释仍需要后续 service/adapter/search 注入，不能由本地 native skill 伪造或默认读取。
+
 ## Post 8-87：通用趋势预测 product_ref 契约
 
 状态：done
