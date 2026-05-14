@@ -105,7 +105,14 @@ Post 8-10 补充：上述 Agent `search_*` skill 已接入同一份 `[external_s
 | `accounting_profit_analysis` | `accounting_profit_analysis` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | 已纳入岗位自动补偿规则；Post 8-32：成功输出会沉淀为 `accounting_profit_report` artifact，缺少 revenue 时 deferred |
 | `accounting_budget_plan` | `accounting_budget_plan` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | 已纳入岗位自动补偿规则；Post 8-32：成功输出会沉淀为 `accounting_budget_plan` artifact，使用默认参数时明示 `calculated_from_defaults` |
 | `accounting_roi_calc` | `accounting_roi_calc` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | 已纳入岗位自动补偿规则；Post 8-32：成功输出会沉淀为 `accounting_roi_report` artifact，缺少投入产出时 deferred |
-| `accounting_compliance_check` | `accounting_compliance_check` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | 本轮补强了税务/开票/纳税/现金收款等自然问法触达 |
+| `accounting_break_even_calc` | `accounting_break_even_calc` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | Post 8-57：补齐统一输出契约；成功输出会沉淀为 `accounting_break_even_report` artifact，贡献利润为负时 deferred |
+| `accounting_compliance_check` | `accounting_compliance_check` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | 已补强税务/开票/纳税/现金收款等自然问法触达；Post 8-57：成功输出会沉淀为 `accounting_compliance_report` artifact，缺少 monthly_revenue 时 deferred |
+| `accounting_pl_statement` | `accounting_pl_statement` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | Post 8-57：成功输出会沉淀为 `accounting_pl_statement` artifact，缺少 gmv 时 deferred |
+| `accounting_budget_vs_actual` | `accounting_budget_vs_actual` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | Post 8-57：成功输出会沉淀为 `accounting_budget_vs_actual_report` artifact，缺少 actual_gmv 时 deferred |
+| `accounting_gmv_waterfall` | `accounting_gmv_waterfall` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | Post 8-57：成功输出会沉淀为 `accounting_gmv_waterfall_report` artifact，缺少 gmv 时 deferred |
+| `accounting_scenario_analysis` | `accounting_scenario_analysis` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | Post 8-57：成功输出会沉淀为 `accounting_scenario_report` artifact，缺少 base_gmv 时 deferred |
+| `accounting_cash_flow_forecast` | `accounting_cash_flow_forecast` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | Post 8-57：成功输出会沉淀为 `accounting_cash_flow_forecast_report` artifact，缺少输入时以默认假设明示 `calculated_from_defaults` |
+| `accounting_financial_narrative` | `accounting_financial_narrative` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | Post 8-57：成功输出会沉淀为 `accounting_financial_narrative_report` artifact，缺少输入时以默认样例明示 `calculated_from_defaults` |
 
 ## 工程 engineering
 

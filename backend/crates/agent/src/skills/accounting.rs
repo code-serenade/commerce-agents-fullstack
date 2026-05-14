@@ -480,10 +480,11 @@ fn break_even_calc(input: &Value) -> Value {
     let fixed = num(input, "fixed_costs", round2(price * 200.0 * 0.13));
     let contribution_per_unit = price - unit_var;
     if contribution_per_unit <= 0.0 {
-        return json!({
-            "error": "单品变动成本高于售价，无法达到盈亏平衡",
-            "建议": "降低成本或提高售价",
-        });
+        return deferred_accounting(
+            "accounting_break_even_calc",
+            "单品变动成本高于售价，无法达到盈亏平衡；请降低成本或提高售价后重新计算。",
+            input,
+        );
     }
 
     let bep_units = (fixed / contribution_per_unit).round();
@@ -514,8 +515,16 @@ fn break_even_calc(input: &Value) -> Value {
             Value::Object(row)
         })
         .collect();
+    let uses_defaults = input.get("selling_price").is_none()
+        || input.get("unit_variable_cost").is_none()
+        || input.get("fixed_costs").is_none();
 
     json!({
+        "status": "success",
+        "has_data": true,
+        "data_readiness": if uses_defaults { "calculated_from_defaults" } else { "user_provided" },
+        "adapter_status": "manual_input",
+        "summary": format!("盈亏平衡分析完成，需销售{}单，需实现营收{}，贡献利润率{}", bep_units as i64, currency(bep_revenue), percent(pct(contribution_per_unit, price), 1)),
         "数据来源": "用户提供/默认参数",
         "定价": price,
         "单品变动成本": unit_var,
@@ -535,10 +544,11 @@ fn break_even_calc(input: &Value) -> Value {
 fn compliance_check(input: &Value) -> Value {
     let revenue = num(input, "monthly_revenue", 0.0);
     if revenue <= 0.0 {
-        return json!({
-            "has_data": false,
-            "提示": "请传入 monthly_revenue；纯计算版本不会自动读取店铺营收。",
-        });
+        return deferred_accounting(
+            "accounting_compliance_check",
+            "请传入 monthly_revenue；纯计算版本不会自动读取店铺营收。",
+            input,
+        );
     }
     let tax_type = string(input, "tax_type", "小规模");
     let invoice_rate = num(input, "invoice_rate", 80.0);
@@ -566,7 +576,11 @@ fn compliance_check(input: &Value) -> Value {
     let surcharge = round2(vat * 0.12);
     let income_tax = round2(revenue * 0.05 * 0.25);
     json!({
+        "status": "success",
         "has_data": true,
+        "data_readiness": if input.get("invoice_rate").is_none() || input.get("cash_ratio").is_none() { "calculated_from_defaults" } else { "user_provided" },
+        "adapter_status": "manual_input",
+        "summary": format!("合规检查完成，预估税额合计{}，发现{}个风险点", currency(vat + surcharge + income_tax), risks.len()),
         "数据来源": "用户提供",
         "月营收": currency(revenue),
         "纳税类型": tax_type,
@@ -589,10 +603,11 @@ fn compliance_check(input: &Value) -> Value {
 fn pl_statement(input: &Value) -> Value {
     let gmv = num(input, "gmv", 0.0);
     if gmv <= 0.0 {
-        return json!({
-            "has_data": false,
-            "提示": "请传入 gmv；纯计算版本不会自动读取店铺数据。",
-        });
+        return deferred_accounting(
+            "accounting_pl_statement",
+            "请传入 gmv；纯计算版本不会自动读取店铺数据。",
+            input,
+        );
     }
     let days = num(input, "days", 30.0).round();
     let ad_spend = num(input, "ad_spend", 0.0);
@@ -622,9 +637,19 @@ fn pl_statement(input: &Value) -> Value {
     let gross_margin = pct(gross_profit, net_revenue);
     let cm_rate = pct(contribution, net_revenue);
     let net_margin = pct(net_profit, net_revenue);
+    let uses_defaults = input.get("refund_rate").is_none()
+        || input.get("cogs_rate").is_none()
+        || input.get("variable_cost_rate").is_none()
+        || input.get("fixed_costs").is_none()
+        || input.get("tax_rate").is_none()
+        || input.get("depreciation").is_none();
 
     json!({
+        "status": "success",
         "has_data": true,
+        "data_readiness": if uses_defaults { "calculated_from_defaults" } else { "user_provided" },
+        "adapter_status": "manual_input",
+        "summary": format!("完整利润表已生成，净营收{}，税后净利润{}，净利率{}", currency(net_revenue), currency(net_profit), percent(net_margin, 2)),
         "统计周期": format!("最近{}天", days),
         "数据来源": "用户提供 + 参数估算",
         "利润表": {
@@ -664,10 +689,11 @@ fn pl_statement(input: &Value) -> Value {
 fn budget_vs_actual(input: &Value) -> Value {
     let actual_gmv = num(input, "actual_gmv", 0.0);
     if actual_gmv <= 0.0 {
-        return json!({
-            "has_data": false,
-            "提示": "纯计算版本需要手动传入 actual_gmv；budget_gmv 不传时会按 actual_gmv×120%生成。",
-        });
+        return deferred_accounting(
+            "accounting_budget_vs_actual",
+            "纯计算版本需要手动传入 actual_gmv；budget_gmv 不传时会按 actual_gmv×120%生成。",
+            input,
+        );
     }
     let budget_gmv = num(input, "budget_gmv", round2(actual_gmv * 1.20));
     let actual_ad = num(input, "actual_ad_spend", 0.0);
@@ -740,7 +766,17 @@ fn budget_vs_actual(input: &Value) -> Value {
     }
 
     json!({
+        "status": "success",
         "has_data": true,
+        "data_readiness": if input.get("budget_gmv").is_none()
+            || input.get("budget_ad_spend").is_none()
+            || input.get("budget_cogs_rate").is_none()
+            || input.get("actual_cogs_rate").is_none()
+            || input.get("budget_opex_rate").is_none()
+            || input.get("actual_opex_rate").is_none()
+            || input.get("actual_refund_rate").is_none() { "calculated_from_defaults" } else { "user_provided" },
+        "adapter_status": "manual_input",
+        "summary": format!("预算vs实际分析完成，GMV完成率{}，执行质量评分{:.1}/100", percent(gmv_ach * 100.0, 1), exec_score),
         "数据说明": if input.get("budget_gmv").is_some() { "用户提供预算" } else { "预算自动生成：actual_gmv×120%" },
         "执行质量评分": format!("{:.1}/100", exec_score),
         "GMV完成率": percent(gmv_ach * 100.0, 1),
@@ -816,8 +852,18 @@ fn cash_flow_forecast(input: &Value) -> Value {
             )
         })
         .collect();
+    let uses_defaults = input.get("base_gmv").is_none()
+        || input.get("base_ad_spend").is_none()
+        || input.get("growth_assumptions").is_none()
+        || input.get("capex").is_none()
+        || input.get("loan_repayment").is_none()
+        || input.get("opening_cash").is_none();
     json!({
+        "status": "success",
         "has_data": true,
+        "data_readiness": if uses_defaults { "calculated_from_defaults" } else { "user_provided" },
+        "adapter_status": "manual_input",
+        "summary": format!("3个月现金流预测完成，累计净现金流{}，期末现金余额{}", currency(total_net_cf), currency(running_cash)),
         "数据来源": if input.get("base_gmv").is_some() { "用户提供基期数据 + 增长假设" } else { "默认基期数据 + 增长假设" },
         "基期月GMV": currency(monthly_gmv),
         "期初现金余额": currency(opening_cash),
@@ -866,8 +912,15 @@ fn financial_narrative(input: &Value) -> Value {
     if net_margin < 5.0 {
         risks.push("净利率偏低，抗促销和退款波动能力弱");
     }
+    let uses_defaults = input.get("gmv").is_none()
+        || input.get("ad_spend").is_none()
+        || input.get("orders").is_none();
     json!({
+        "status": "success",
         "has_data": true,
+        "data_readiness": if uses_defaults { "calculated_from_defaults" } else { "user_provided" },
+        "adapter_status": "manual_input",
+        "summary": format!("财务健康诊断完成，评级{}，净利率{}，广告ROI{}", rating, percent(net_margin, 2), if ad_spend > 0.0 { ad_roi.to_string() } else { "无广告数据".to_owned() }),
         "统计周期": format!("近{}天", days),
         "数据来源": if input.get("gmv").is_some() { "用户提供 + 确定性诊断" } else { "默认样例 + 确定性诊断" },
         "背景": if context.is_empty() { "无额外背景" } else { context.as_str() },
@@ -895,10 +948,11 @@ fn financial_narrative(input: &Value) -> Value {
 fn gmv_waterfall(input: &Value) -> Value {
     let gmv = num(input, "gmv", 0.0);
     if gmv <= 0.0 {
-        return json!({
-            "has_data": false,
-            "提示": "纯计算版本需要手动传入 gmv。",
-        });
+        return deferred_accounting(
+            "accounting_gmv_waterfall",
+            "纯计算版本需要手动传入 gmv。",
+            input,
+        );
     }
     let ad_spend = num(input, "ad_spend", 0.0);
     let orders = num(input, "orders", 0.0);
@@ -998,9 +1052,19 @@ fn gmv_waterfall(input: &Value) -> Value {
     let net_margin = pct(step13_net_profit, step1_gmv);
     let gross_margin = pct(step5_gross_profit, step1_gmv);
     let cm_margin = pct(step9_contribution, step1_gmv);
+    let uses_defaults = input.get("refund_rate").is_none()
+        || input.get("cogs_rate").is_none()
+        || input.get("logistics_rate").is_none()
+        || input.get("platform_fee_rate").is_none()
+        || input.get("fixed_opex").is_none()
+        || input.get("tax_rate").is_none();
 
     json!({
+        "status": "success",
         "has_data": true,
+        "data_readiness": if uses_defaults { "calculated_from_defaults" } else { "user_provided" },
+        "adapter_status": "manual_input",
+        "summary": format!("GMV利润瀑布分析完成，税后净利润{}，净利率{}，最大漏损项{}", currency(step13_net_profit), percent(net_margin, 2), top_leak.0),
         "数据来源": "用户提供 + 参数估算",
         "GMV利润瀑布": waterfall,
         "核心利润率": {
@@ -1022,7 +1086,11 @@ fn gmv_waterfall(input: &Value) -> Value {
 fn scenario_analysis(input: &Value) -> Value {
     let base_gmv = num(input, "base_gmv", 0.0);
     if base_gmv <= 0.0 {
-        return json!({"error": "请提供基准GMV（月销售额）"});
+        return deferred_accounting(
+            "accounting_scenario_analysis",
+            "请提供基准GMV（月销售额）。",
+            input,
+        );
     }
     let base_margin = num(input, "base_margin_pct", 30.0) / 100.0;
     let base_ad = num(input, "base_ad_pct", 8.0) / 100.0;
@@ -1113,6 +1181,16 @@ fn scenario_analysis(input: &Value) -> Value {
     });
 
     json!({
+        "status": "success",
+        "has_data": true,
+        "data_readiness": if input.get("base_margin_pct").is_none()
+            || input.get("base_ad_pct").is_none()
+            || input.get("base_refund_pct").is_none()
+            || input.get("fixed_cost").is_none()
+            || input.get("optimistic_growth").is_none()
+            || input.get("pessimistic_growth").is_none() { "calculated_from_defaults" } else { "user_provided" },
+        "adapter_status": "manual_input",
+        "summary": format!("情景财务分析完成，基准GMV{}，盈亏平衡GMV{}，亏损概率{}", currency(base_gmv), currency(bep_gmv), mc_summary["亏损概率"].as_str().unwrap_or("N/A")),
         "三情景P&L对比": scenarios,
         "盈亏平衡GMV": bep_gmv.round(),
         "敏感性矩阵（价格×流量）": sensitivity_matrix,
@@ -1445,5 +1523,104 @@ mod tests {
             Some("calculated_from_defaults")
         );
         assert!(output.get("预算明细").is_some());
+    }
+
+    #[test]
+    fn accounting_break_even_calc_marks_success_with_defaults_disclosed() {
+        let output = break_even_calc(&json!({
+            "selling_price": 128.0,
+            "unit_variable_cost": 68.0
+        }));
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("calculated_from_defaults")
+        );
+        assert!(output.get("盈亏平衡点").is_some());
+    }
+
+    #[test]
+    fn accounting_compliance_check_defers_without_revenue() {
+        let output = compliance_check(&json!({}));
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("deferred")
+        );
+        assert_eq!(
+            output.get("skill").and_then(Value::as_str),
+            Some("accounting_compliance_check")
+        );
+    }
+
+    #[test]
+    fn accounting_gmv_waterfall_marks_success_for_gmv() {
+        let output = gmv_waterfall(&json!({
+            "gmv": 520000.0,
+            "ad_spend": 56000.0,
+            "orders": 3600.0
+        }));
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("manual_input")
+        );
+        assert!(output.get("GMV利润瀑布").is_some());
+    }
+
+    #[test]
+    fn accounting_scenario_analysis_defers_without_base_gmv() {
+        let output = scenario_analysis(&json!({}));
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("deferred")
+        );
+        assert_eq!(
+            output.get("skill").and_then(Value::as_str),
+            Some("accounting_scenario_analysis")
+        );
+    }
+
+    #[test]
+    fn accounting_cash_flow_forecast_marks_success_with_defaults_disclosed() {
+        let output = cash_flow_forecast(&json!({}));
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("calculated_from_defaults")
+        );
+        assert!(output.get("3个月现金流预测").is_some());
+    }
+
+    #[test]
+    fn accounting_financial_narrative_marks_success_with_defaults_disclosed() {
+        let output = financial_narrative(&json!({}));
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("manual_input")
+        );
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("calculated_from_defaults")
+        );
+        assert!(output.get("财务健康评级").is_some());
     }
 }

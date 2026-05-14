@@ -5219,6 +5219,54 @@ fn build_content_artifact_from_skill_output(
             "Accounting budget plan",
             "accounting budget plan artifact generated",
         ),
+        "accounting_break_even_calc" => (
+            "accounting",
+            "accounting_break_even_report",
+            "Accounting break-even report",
+            "accounting break-even artifact generated",
+        ),
+        "accounting_compliance_check" => (
+            "accounting",
+            "accounting_compliance_report",
+            "Accounting compliance report",
+            "accounting compliance artifact generated",
+        ),
+        "accounting_pl_statement" => (
+            "accounting",
+            "accounting_pl_statement",
+            "Accounting P&L statement",
+            "accounting P&L statement artifact generated",
+        ),
+        "accounting_budget_vs_actual" => (
+            "accounting",
+            "accounting_budget_vs_actual_report",
+            "Accounting budget vs actual report",
+            "accounting budget vs actual artifact generated",
+        ),
+        "accounting_gmv_waterfall" => (
+            "accounting",
+            "accounting_gmv_waterfall_report",
+            "Accounting GMV waterfall report",
+            "accounting GMV waterfall artifact generated",
+        ),
+        "accounting_scenario_analysis" => (
+            "accounting",
+            "accounting_scenario_report",
+            "Accounting scenario report",
+            "accounting scenario analysis artifact generated",
+        ),
+        "accounting_cash_flow_forecast" => (
+            "accounting",
+            "accounting_cash_flow_forecast_report",
+            "Accounting cash flow forecast",
+            "accounting cash flow forecast artifact generated",
+        ),
+        "accounting_financial_narrative" => (
+            "accounting",
+            "accounting_financial_narrative_report",
+            "Accounting financial narrative",
+            "accounting financial narrative artifact generated",
+        ),
         "service_ticket_handler" => (
             "service",
             "service_ticket_playbook",
@@ -6984,6 +7032,76 @@ mod tests {
                 .content
                 .contains("\"adapter_status\": \"manual_input\"")
         );
+
+        let break_even_output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "data_readiness": "calculated_from_defaults",
+            "summary": "盈亏平衡分析完成，需销售433单，需实现营收55424元",
+            "盈亏平衡点": {
+                "需销售订单数": 433,
+                "需实现营收": "¥55424.00"
+            }
+        });
+
+        let break_even_draft = build_content_artifact_from_skill_output(
+            "accounting_break_even_calc",
+            &break_even_output,
+        )
+        .expect("break-even output should be materializable");
+
+        assert_eq!(break_even_draft.content_category, "accounting");
+        assert_eq!(
+            break_even_draft.artifact_type,
+            "accounting_break_even_report"
+        );
+        assert_eq!(break_even_draft.title, "Accounting break-even report");
+        assert_eq!(
+            break_even_draft.file_name,
+            "accounting_break_even_report.md"
+        );
+        assert!(break_even_draft.preview.contains("盈亏平衡分析完成"));
+
+        let waterfall_output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "data_readiness": "calculated_from_defaults",
+            "summary": "GMV利润瀑布分析完成，税后净利润¥68000.00",
+            "GMV利润瀑布": []
+        });
+
+        let waterfall_draft =
+            build_content_artifact_from_skill_output("accounting_gmv_waterfall", &waterfall_output)
+                .expect("GMV waterfall output should be materializable");
+
+        assert_eq!(
+            waterfall_draft.artifact_type,
+            "accounting_gmv_waterfall_report"
+        );
+        assert_eq!(waterfall_draft.title, "Accounting GMV waterfall report");
+
+        let cash_flow_output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "data_readiness": "calculated_from_defaults",
+            "summary": "3个月现金流预测完成，累计净现金流¥96000.00",
+            "3个月现金流预测": []
+        });
+
+        let cash_flow_draft = build_content_artifact_from_skill_output(
+            "accounting_cash_flow_forecast",
+            &cash_flow_output,
+        )
+        .expect("cash flow output should be materializable");
+
+        assert_eq!(
+            cash_flow_draft.artifact_type,
+            "accounting_cash_flow_forecast_report"
+        );
+        assert_eq!(cash_flow_draft.title, "Accounting cash flow forecast");
     }
 
     #[test]

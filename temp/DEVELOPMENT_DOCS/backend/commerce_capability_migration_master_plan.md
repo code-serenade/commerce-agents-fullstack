@@ -233,27 +233,30 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-56: service_query_product native explicit product context skill
+Post 8-57: advanced accounting skill contract and artifact materialization
 ```
 
 Scope:
 
-- migrate old product `ServiceQueryProduct` into a new-product Rust native Agent skill
-- keep the new framework boundary: agent skill reads existing runtime metadata, not database tables directly
-- preserve explicit selected-product semantics:
-  - selected product context can be queried by the skill
-  - no selected product keeps the normal unspecified-product answer path
-  - no default product is injected
-- return `status=success` only for explicit context hits
-- return `status=deferred` when context is missing or the requested product filter does not match
-- keep official Taobao / Douyin / Qianchuan direct platform integrations deferred
+- normalize advanced accounting and operating finance skill outputs to the new Agent skill contract
+- keep service/web-server artifact materialization driven by `status=success`, not frontend assumptions
+- add workspace artifact mappings for advanced accounting deliverables:
+  - break-even report
+  - compliance report
+  - P&L statement
+  - budget vs actual report
+  - GMV waterfall report
+  - scenario report
+  - cash-flow forecast report
+  - financial narrative report
+- keep official Taobao / Douyin / Qianchuan / ERP / accounting system direct platform integrations deferred
 
 Reason:
 
 - skill migration remains the first backend priority
-- the user repeatedly identified product context leakage/default-product behavior as a high-risk UX and trust issue
-- this slice strengthens the backend contract before frontend "引用商品" and process panel refinement
-- it keeps Kimi-style frontend process transparency grounded in real backend skill status, not fake UI state
+- advanced financial analysis is part of the old product skill value, and new frontend work should consume durable backend artifacts
+- this slice prevents frontend from inventing report state for finance outputs
+- it keeps Kimi-style frontend process transparency grounded in real skill status, artifact creation, and disclosed data readiness
 
 ## 10. Validation Standard
 

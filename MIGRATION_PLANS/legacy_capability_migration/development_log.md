@@ -1,5 +1,54 @@
 # 迁移开发记录
 
+## Post 8-57：高级财务 skill 输出契约与 artifact 沉淀
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 57 个补强项：`Post 8-57`。
+
+本次目标：
+
+- 把已经迁入新产品 Agent 框架的高级财务/经营分析 skill，从“能计算”推进到“能按统一后端契约返回，并能沉淀为 workspace artifact”。
+- 继续以后端为主，不新增前端假入口，不接淘宝、抖音、千川等官方平台 API。
+- 保持新产品架构：skill 输出统一由 Agent runtime 产生，service 层只在 `status=success` 且命中支持名单时创建交付物。
+
+本次修改：
+
+- 后端 agent：`accounting_break_even_calc`、`accounting_compliance_check`、`accounting_pl_statement`、`accounting_budget_vs_actual`、`accounting_gmv_waterfall`、`accounting_scenario_analysis`、`accounting_cash_flow_forecast`、`accounting_financial_narrative` 补齐 `status`、`has_data`、`data_readiness`、`adapter_status`、`summary`。
+- 后端 agent：缺少必要核心输入的高级财务 skill 返回 `status=deferred`，不会创建假财务报告。
+- 后端 service：`WorkspaceApi::materialize_agent_content_artifact` 新增高级财务 artifact 映射。
+- API/SSE：同步高级财务 artifact 类型和 `workspace_artifact_created` 契约说明。
+- 迁移文档：同步 `skill_migration_matrix.md`、本开发日志、阶段验收记录和本轮归档文件。
+
+用户可感知变化：
+
+- 用户让财务岗位做盈亏平衡、合规检查、利润表、预算执行、GMV瀑布、情景分析、现金流预测或财务健康诊断时，后端成功结果可以沉淀为工作区交付物。
+- 前端后续接入后，可以在交付物/过程区看到这些报告，而不是只在流式回答里一闪而过。
+- 如果用户没有提供必要财务数据，后端会明确返回 `deferred`，不会伪造平台财务数据或默认生成看似真实的报告。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/accounting_advanced_artifact_materialization_post_8_57.md`
+- [x] 迁移矩阵：`MIGRATION_PLANS/legacy_capability_migration/skill_migration_matrix.md`
+- [x] API 文档：`API_DOCS/app.md`
+- [x] API 文档：`API_DOCS/sse.md`
+- [x] `cargo fmt --all`
+- [x] `cargo fmt --all --check`
+- [x] `cargo test -p agent accounting_ -- --nocapture`
+- [x] `cargo test -p service content_artifact_builds_from_accounting_skill_output -- --nocapture`
+- [x] `cargo check -p agent -p service`
+- [x] `cargo clippy -p agent -p service`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 当前高级财务 skill 仍基于用户输入和内置确定性规则计算，不读取真实店铺账务、广告账户、平台订单或 ERP 数据。
+- 若要接入真实淘宝、抖音、千川、ERP 或财务系统，需要后续设计 adapter、权限、审批和审计链路。
+- 前端仍需把财务岗位的报告类 artifact 展示到工作区、过程面板和历史运行详情里。
+
 ## Post 8-56：客服商品查询 skill 读取显式商品上下文
 
 状态：done

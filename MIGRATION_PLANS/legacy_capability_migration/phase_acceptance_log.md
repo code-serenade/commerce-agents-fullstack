@@ -1,5 +1,31 @@
 # 阶段验收记录
 
+## Post 8-57：高级财务 skill 输出契约与 artifact 沉淀
+
+状态：done
+
+验收项：
+
+- [x] 后端：高级财务/经营分析 skill 已补齐统一输出契约。
+- [x] 后端：`accounting_break_even_calc` 成功时返回 `status=success`、`adapter_status=manual_input` 和 `summary`。
+- [x] 后端：`accounting_compliance_check` 缺少 `monthly_revenue` 时返回 `status=deferred`，不创建假合规报告。
+- [x] 后端：`accounting_pl_statement` 缺少 `gmv` 时返回 `status=deferred`，成功时明示默认参数使用情况。
+- [x] 后端：`accounting_budget_vs_actual` 缺少 `actual_gmv` 时返回 `status=deferred`。
+- [x] 后端：`accounting_gmv_waterfall` 缺少 `gmv` 时返回 `status=deferred`，成功时可沉淀报告。
+- [x] 后端：`accounting_scenario_analysis` 缺少 `base_gmv` 时返回 `status=deferred`。
+- [x] 后端：`accounting_cash_flow_forecast` 和 `accounting_financial_narrative` 成功时明示 `data_readiness`。
+- [x] Service：高级财务成功输出可沉淀为 workspace markdown artifact。
+- [x] API：`API_DOCS/app.md` 已同步 artifact 类型。
+- [x] API：`API_DOCS/sse.md` 已同步 `workspace_artifact_created` 支持名单和财务说明。
+- [x] 文档：后端设计文档、迁移矩阵、开发记录和本轮归档已同步。
+- [x] 验证：`cargo fmt --all`
+- [x] 验证：`cargo fmt --all --check`
+- [x] 验证：`cargo test -p agent accounting_ -- --nocapture`
+- [x] 验证：`cargo test -p service content_artifact_builds_from_accounting_skill_output -- --nocapture`
+- [x] 验证：`cargo check -p agent -p service`
+- [x] 验证：`cargo clippy -p agent -p service`
+- [x] 验证：`git diff --check`
+
 ## Post 8-56：客服商品查询 skill 读取显式商品上下文
 
 状态：done
