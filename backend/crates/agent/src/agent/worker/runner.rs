@@ -921,6 +921,32 @@ fn autosuggest_data(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         ));
     }
 
+    if contains_any(
+        text,
+        &[
+            "multi period",
+            "multi-period",
+            "multi_period",
+            "multi period trend",
+            "multi-period trend",
+            "多周期",
+            "多周期趋势",
+            "多周期环比",
+            "多周期对比",
+            "多周期分析",
+            "环比趋势",
+            "同比环比",
+            "移动平均",
+            "趋势动能",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "data_multi_period_trend",
+            serde_json::Value::Object(infer_multi_period_trend_input(text, task)),
+            "根据多周期趋势/环比/移动平均意图自动补偿多周期趋势 skill",
+        ));
+    }
+
     if let Some(request) = autosuggest_product_or_campaign_metrics(text, task) {
         return Some(request);
     }
@@ -2388,6 +2414,34 @@ fn infer_seasonal_decompose_input(
         input.insert("values".to_string(), serde_json::json!(values));
     }
     input
+}
+
+fn infer_multi_period_trend_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    input.insert("metric".to_string(), serde_json::json!(infer_metric(text)));
+    input.insert(
+        "periods".to_string(),
+        serde_json::json!(infer_multi_periods(text)),
+    );
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
+    let values = numbers_in_text(text);
+    if !values.is_empty() {
+        input.insert("values".to_string(), serde_json::json!(values));
+    }
+    input
+}
+
+fn infer_multi_periods(text: &str) -> Vec<i64> {
+    if contains_any(text, &["周内", "周度", "每周", "weekly", "week"]) {
+        vec![7, 14, 28]
+    } else {
+        vec![7, 14, 30]
+    }
 }
 
 fn infer_price_elasticity_input(
@@ -5258,6 +5312,63 @@ mod tests {
 
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].skill_id, "data_price_elasticity");
+        assert!(requests[0].input.get("product_ref").is_none());
+    }
+
+    #[test]
+    fn autosuggests_multi_period_trend_with_explicit_series() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("做GMV多周期趋势和移动平均分析：100 108 115 126 140 152 161 180"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_multi_period_trend");
+        assert_eq!(requests[0].input["metric"], "gmv");
+        let periods = requests[0].input["periods"]
+            .as_array()
+            .expect("periods should be parsed");
+        assert_eq!(periods, &[7, 14, 30]);
+        let values = requests[0].input["values"]
+            .as_array()
+            .expect("values should be parsed");
+        assert_eq!(values.len(), 8);
+        assert_eq!(values[0], 100.0);
+        assert_eq!(values[7], 180.0);
+    }
+
+    #[test]
+    fn selected_product_context_feeds_multi_period_trend_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task_with_metadata(
+                "分析这个商品的订单多周期环比和趋势动能：100 108 115 126 140 152 161 180",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_multi_period_trend");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["metric"], "orders");
+    }
+
+    #[test]
+    fn multi_period_trend_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("做多周期趋势分析：100 108 115 126 140 152 161 180"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_multi_period_trend");
         assert!(requests[0].input.get("product_ref").is_none());
     }
 

@@ -236,25 +236,25 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-85: data seasonal decomposition product_ref contract
+Post 8-86: data multi-period trend product_ref contract
 ```
 
 Scope:
 
-- add `product_ref=product:{uuid}` to `data_seasonal_decompose`
-- echo the selected product reference in successful seasonal decomposition output
-- route explicit seasonality / periodic trend / intra-week fluctuation phrasing to `data_seasonal_decompose`
+- add `product_ref=product:{uuid}` to `data_multi_period_trend`
+- echo the selected product reference in successful multi-period trend output
+- route explicit multi-period trend / period comparison / moving-average / trend-momentum phrasing to `data_multi_period_trend`
 - parse explicit historical numeric series from the current text into `values`
 - let data worker autosuggest pass selected product refs only from explicit `context.selected_summary`
-- keep insufficient history as deferred rather than fake live platform history, campaign calendar, or industry seasonality data
+- keep insufficient history as deferred rather than fake live platform history, industry cycle, or campaign-impact data
 
 Reason:
 
-- seasonal decomposition is a core e-commerce demand-rhythm skill from the old product
-- selected-product and unspecified-product seasonal analysis must stay separate
-- users should reach the native seasonal decomposition skill directly instead of falling through to generic trend forecasting
-- frontend artifacts and process panels need a stable product reference for product-bound seasonality reports
-- real platform sales history, activity calendars, holidays, and industry seasonality remain adapter/service/search concerns and must not be faked
+- multi-period trend is a core old-product data diagnosis skill used for GMV, order, UV, and conversion momentum review
+- selected-product and unspecified-product trend analysis must stay separate
+- users should reach the native multi-period trend skill directly instead of falling through to generic trend forecasting
+- frontend artifacts and process panels need a stable product reference for product-bound trend reports
+- real platform sales history, industry cycles, campaign calendars, and activity impact remain adapter/service/search concerns and must not be faked
 
 ## 10. Validation Standard
 

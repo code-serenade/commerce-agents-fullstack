@@ -2,6 +2,27 @@
 
 # 阶段验收记录
 
+## Post 8-86：多周期趋势 product_ref 契约
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent：`data_multi_period_trend` schema 支持 `product_ref`。
+- [x] Agent：成功多周期趋势输出回显 `商品引用`。
+- [x] Worker autosuggest：`多周期趋势` / `多周期环比` / `多周期对比` / `环比趋势` / `同比环比` / `移动平均` / `趋势动能` 问法触发 `data_multi_period_trend`。
+- [x] Worker autosuggest：本轮显式选品时多周期趋势 input 携带 `product_ref`。
+- [x] Worker autosuggest：未选商品时不写空 `product_ref`。
+- [x] API：`API_DOCS/sse.md` 已同步多周期趋势 product_ref 契约。
+- [x] 前端：本轮不新增假入口。
+
+当前说明：
+
+- 本阶段解决的是“商品级多周期趋势 / 环比 / 移动平均结果无法关联本轮选中商品”的问题。
+- 本阶段只使用本轮显式历史序列；少于 4 个历史数据点时继续 deferred。
+- 本阶段不调用平台历史销售、行业周期或活动外部数据，也不把历史商品当作默认商品。
+
 ## Post 8-85：季节性分解 product_ref 契约
 
 状态：done
