@@ -1,5 +1,54 @@
 # 迁移开发记录
 
+## Post 8-81：LTV 客户价值 product_ref 契约
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 81 个补强项：`Post 8-81`。
+
+本次目标：
+
+- 把数据层 LTV 客户价值计算接入新产品 `product_ref=product:{uuid}` 契约。
+- 让用户手动选择商品后，LTV / 客户价值 / 获客成本回收 skill 能保留本轮商品引用。
+- 让 `LTV / 客户价值 / 生命周期价值 / 获客成本 / 回收周期` 问法触发 `data_ltv_calculator`。
+- 继续保持未选商品时不绑定历史商品或预设商品。
+
+本次修改：
+
+- 后端 agent：`data_ltv_calculator` schema 新增 `product_ref`。
+- 后端 agent：成功输出新增 `商品引用`。
+- 后端 worker：本轮显式选品后，LTV 客户价值自动补偿 input 带入 `product_ref`。
+- 后端 worker：新增 LTV 显式参数解析，支持 `CAC`、客单价、月购买频次、毛利率、月留存率。
+- 后端 worker：未选商品时不写空 `product_ref`。
+- API/SSE：同步 `API_DOCS/sse.md`。
+- 迁移文档：新增本轮归档，并同步阶段验收、总计划和 skill 矩阵。
+
+用户可感知变化：
+
+- 用户手动勾选商品后，再问“分析这个商品 LTV / 客户价值 / 获客成本回收周期”时，后端会把本轮选中商品的 `product:<uuid>` 带进 LTV 结果。
+- 用户没有手动选商品时，LTV 仍按普通客户价值问题运行，但不会暗中绑定历史商品或默认商品。
+- 用户在问题里写出 `CAC35、客单价128、月购买频次1.8、毛利率42、月留存率38` 等参数时，后端会解析成本轮显式输入。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/data_ltv_product_ref_post_8_81.md`
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent data_ltv_calculator -- --nocapture`
+- [x] `cargo test -p agent autosuggests_ltv_calculator_with_explicit_value_metrics -- --nocapture`
+- [x] `cargo test -p agent selected_product_context_feeds_ltv_calculator_ref -- --nocapture`
+- [x] `cargo test -p agent ltv_calculator_without_selection_has_no_empty_product_ref -- --nocapture`
+- [x] `cargo fmt --all --check`
+- [x] `cargo check -p agent`
+- [x] `cargo clippy -p agent`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 真实会员、人群和复购明细数据仍需要后续 service/adapter 注入，不能由本地 native skill 伪造。
+
 ## Post 8-80：渠道归因 product_ref 契约
 
 状态：done

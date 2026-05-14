@@ -2,6 +2,27 @@
 
 # 阶段验收记录
 
+## Post 8-81：LTV 客户价值 product_ref 契约
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent：`data_ltv_calculator` schema 支持 `product_ref`。
+- [x] Agent：成功 LTV 输出回显 `商品引用`。
+- [x] Worker autosuggest：`LTV` / `客户价值` / `生命周期价值` / `获客成本回收` 问法触发 `data_ltv_calculator`。
+- [x] Worker autosuggest：本轮显式选品时 LTV input 携带 `product_ref`。
+- [x] Worker autosuggest：未选商品时不写空 `product_ref`。
+- [x] API：`API_DOCS/sse.md` 已同步 LTV product_ref 契约。
+- [x] 前端：本轮不新增假入口。
+
+当前说明：
+
+- 本阶段解决的是“商品级 LTV / 客户价值结果无法关联本轮选中商品”的问题。
+- 本阶段只使用本轮显式 CAC、客单价、复购频次、毛利率、留存率等输入；缺少参数时继续明示默认估算。
+- 本阶段不调用外部平台或会员系统 API，也不绑定历史商品或默认商品。
+
 ## Post 8-80：渠道归因 product_ref 契约
 
 状态：done

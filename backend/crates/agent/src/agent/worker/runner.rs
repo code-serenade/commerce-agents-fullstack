@@ -855,6 +855,25 @@ fn autosuggest_data(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         return Some(request);
     }
 
+    if contains_any(
+        text,
+        &[
+            "ltv",
+            "LTV",
+            "客户价值",
+            "生命周期价值",
+            "获客成本",
+            "回收周期",
+            "复购价值",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "data_ltv_calculator",
+            serde_json::Value::Object(infer_ltv_calculator_input(text, task)),
+            "根据LTV/客户价值/获客成本回收意图自动补偿 LTV 客户价值 skill",
+        ));
+    }
+
     if let Some(request) = autosuggest_product_or_campaign_metrics(text, task) {
         return Some(request);
     }
@@ -2181,6 +2200,51 @@ fn insert_metric_value(
     if let Some(value) = extract_metric_value(text, aliases) {
         input.insert(key.to_string(), serde_json::json!(value));
     }
+}
+
+fn infer_ltv_calculator_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_period_days(text)),
+    );
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
+    insert_metric_value(
+        &mut input,
+        "cac",
+        text,
+        &["CAC", "cac", "获客成本", "获客成本CAC"],
+    );
+    insert_metric_value(
+        &mut input,
+        "avg_order_value",
+        text,
+        &["客单价", "AOV", "aov", "avg_order_value"],
+    );
+    insert_metric_value(
+        &mut input,
+        "purchase_frequency",
+        text,
+        &["购买频次", "月购买频次", "复购频次", "purchase_frequency"],
+    );
+    insert_metric_value(
+        &mut input,
+        "gross_margin",
+        text,
+        &["毛利率", "gross_margin"],
+    );
+    insert_metric_value(
+        &mut input,
+        "monthly_retention",
+        text,
+        &["月留存率", "留存率", "monthly_retention"],
+    );
+    input
 }
 
 fn store_metrics_input_has_metrics(input: &serde_json::Map<String, serde_json::Value>) -> bool {
@@ -4786,6 +4850,58 @@ mod tests {
 
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].skill_id, "data_refund_decomposition");
+        assert!(requests[0].input.get("product_ref").is_none());
+    }
+
+    #[test]
+    fn autosuggests_ltv_calculator_with_explicit_value_metrics() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("分析客户LTV：CAC35，客单价128，月购买频次1.8，毛利率42，月留存率38"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_ltv_calculator");
+        assert_eq!(requests[0].input["cac"], 35.0);
+        assert_eq!(requests[0].input["avg_order_value"], 128.0);
+        assert_eq!(requests[0].input["purchase_frequency"], 1.8);
+        assert_eq!(requests[0].input["gross_margin"], 42.0);
+        assert_eq!(requests[0].input["monthly_retention"], 38.0);
+    }
+
+    #[test]
+    fn selected_product_context_feeds_ltv_calculator_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task_with_metadata(
+                "分析这个商品客户价值：CAC35，客单价128，月购买频次1.8，毛利率42，月留存率38",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_ltv_calculator");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["cac"], 35.0);
+        assert_eq!(requests[0].input["avg_order_value"], 128.0);
+    }
+
+    #[test]
+    fn ltv_calculator_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("分析客户LTV：CAC35，客单价128，月购买频次1.8，毛利率42，月留存率38"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_ltv_calculator");
         assert!(requests[0].input.get("product_ref").is_none());
     }
 

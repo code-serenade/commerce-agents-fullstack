@@ -317,6 +317,12 @@ pub fn specs() -> Vec<SkillSpec> {
             "计算客户生命周期价值、CAC健康度和回收周期",
             SkillPriority::Critical,
             vec![
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用 product:{uuid}；仅用于标识本轮显式选品",
+                    false,
+                ),
                 field("days", "integer", "分析天数，默认90", false),
                 field(
                     "churn_period_days",
@@ -2127,6 +2133,7 @@ fn attribution_deferred(skill: &str, reason: &str, input: &Value) -> Value {
 }
 
 fn ltv_calculator(input: &Value) -> Value {
+    let product_ref = s(input, "product_ref", "");
     let aov = n(input, "avg_order_value", 120.0);
     let freq = n(input, "purchase_frequency", 1.6);
     let margin = n(input, "gross_margin", 35.0) / 100.0;
@@ -2135,6 +2142,7 @@ fn ltv_calculator(input: &Value) -> Value {
     let ltv = aov * freq * margin / (1.0 - retention);
     json!({
         "数据来源": "用户提供/默认估算",
+        "商品引用": empty_string_as_null(product_ref),
         "LTV": round2(ltv),
         "月贡献毛利": round2(aov * freq * margin),
         "CAC": round2(cac),
@@ -4148,6 +4156,39 @@ mod tests {
             Some("calculated_from_defaults")
         );
         assert!(output.get("summary").and_then(Value::as_str).is_some());
+    }
+
+    #[tokio::test]
+    async fn data_ltv_calculator_echoes_product_ref() {
+        let outcome = execute(
+            "data_ltv_calculator",
+            json!({
+                "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                "cac": 35.0,
+                "avg_order_value": 128.0,
+                "purchase_frequency": 1.8,
+                "gross_margin": 42.0,
+                "monthly_retention": 38.0
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("data LTV calculator should echo selected product ref");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("user_provided")
+        );
+        assert_eq!(
+            output.get("商品引用"),
+            Some(&json!("product:11111111-1111-1111-1111-111111111111"))
+        );
+        assert!(output.get("LTV/CAC").and_then(Value::as_f64).is_some());
     }
 
     #[tokio::test]

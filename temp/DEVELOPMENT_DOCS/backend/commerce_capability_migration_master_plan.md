@@ -236,24 +236,25 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-80: data attribution analysis product_ref contract
+Post 8-81: data LTV calculator product_ref contract
 ```
 
 Scope:
 
-- add `product_ref=product:{uuid}` to `data_attribution_analysis`
-- echo the selected product reference in successful attribution output
-- route explicit channel attribution / multi-touch attribution phrasing to `data_attribution_analysis`
+- add `product_ref=product:{uuid}` to `data_ltv_calculator`
+- echo the selected product reference in successful LTV output
+- route explicit LTV / customer value / lifecycle value / CAC payback phrasing to `data_ltv_calculator`
+- parse explicit CAC, average order value, purchase frequency, gross margin, and monthly retention from the current text
 - let data worker autosuggest pass selected product refs only from explicit `context.selected_summary`
-- keep missing multi-channel metrics as deferred rather than fake live platform data
+- keep missing LTV metrics as disclosed deterministic defaults rather than fake live member or platform data
 
 Reason:
 
-- channel attribution is a core e-commerce paid-channel and growth review skill
-- selected-product and unspecified-product attribution analysis must stay separate
-- ROI review and multi-touch attribution should route to distinct native skills
-- frontend artifacts and process panels need a stable product reference for product-bound attribution reports
-- real platform attribution metrics remain an adapter/service concern and must not be faked
+- LTV / customer value is a core e-commerce retention and acquisition payback skill from the old product
+- selected-product and unspecified-product LTV analysis must stay separate
+- users should reach the native LTV skill directly instead of falling through to generic funnel analysis
+- frontend artifacts and process panels need a stable product reference for product-bound LTV reports
+- real member, CRM, and platform retention data remain an adapter/service concern and must not be faked
 
 ## 10. Validation Standard
 
