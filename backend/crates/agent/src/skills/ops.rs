@@ -15,6 +15,12 @@ pub fn specs() -> Vec<SkillSpec> {
                 field("cost", "number", "单位成本（元）", true),
                 field("competitor_prices", "array<number>", "竞品价格列表", true),
                 field("platform", "string", "销售平台，默认淘宝", false),
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用，如 product:{uuid}",
+                    false,
+                ),
             ],
         ),
         spec(
@@ -331,6 +337,7 @@ fn pricing_strategy(input: &Value) -> Value {
     let cost = num(input, "cost", 0.0);
     let competitors = nums(input, "competitor_prices");
     let platform = string(input, "platform", "淘宝");
+    let product_ref = string(input, "product_ref", "");
     let avg_comp = if competitors.is_empty() {
         cost * 3.0
     } else {
@@ -355,6 +362,7 @@ fn pricing_strategy(input: &Value) -> Value {
     json!({
         "成本": cost,
         "平台": platform,
+        "商品引用": if product_ref.is_empty() { Value::Null } else { json!(product_ref) },
         "建议零售价": recommended,
         "平台佣金": commission,
         "单品利润": profit,
@@ -1420,6 +1428,31 @@ mod tests {
         );
         assert!(output.get("活动阶段").is_some());
         assert!(output.get("KPI").is_some());
+    }
+
+    #[tokio::test]
+    async fn ops_pricing_strategy_echoes_product_ref() {
+        let outcome = execute(
+            "ops_pricing_strategy",
+            json!({
+                "cost": 42.0,
+                "competitor_prices": [89.0, 99.0, 109.0],
+                "platform": "抖音",
+                "product_ref": "product:11111111-1111-1111-1111-111111111111"
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops pricing should echo product_ref");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "定价策略已生成");
+        assert_eq!(
+            output.get("商品引用").and_then(Value::as_str),
+            Some("product:11111111-1111-1111-1111-111111111111")
+        );
+        assert_eq!(output.get("平台").and_then(Value::as_str), Some("抖音"));
+        assert!(output.get("建议零售价").is_some());
     }
 
     #[tokio::test]

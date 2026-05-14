@@ -768,11 +768,7 @@ fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
             let cost = numbers.first().copied().unwrap_or(1.0).max(0.01);
             return Some(autosuggest_request(
                 "ops_pricing_strategy",
-                serde_json::json!({
-                    "cost": cost,
-                    "competitor_prices": numbers.iter().copied().skip(1).collect::<Vec<_>>(),
-                    "platform": infer_platform(text),
-                }),
+                serde_json::Value::Object(infer_pricing_strategy_input(text, task, cost)),
                 "根据运营定价意图自动补偿定价策略 skill",
             ));
         }
@@ -3105,6 +3101,49 @@ fn infer_smart_pricing_input(
         );
     }
     input
+}
+
+fn infer_pricing_strategy_input(
+    text: &str,
+    task: &Task,
+    fallback_cost: f64,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
+    input.insert(
+        "cost".to_string(),
+        serde_json::json!(
+            extract_metric_value(text, &["单位成本", "单品成本", "成本", "cost"])
+                .unwrap_or(fallback_cost)
+                .max(0.01)
+        ),
+    );
+    input.insert(
+        "competitor_prices".to_string(),
+        serde_json::json!(infer_pricing_strategy_competitor_prices(
+            text,
+            fallback_cost
+        )),
+    );
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(selected_product_platform_or_infer(task, text)),
+    );
+    input
+}
+
+fn infer_pricing_strategy_competitor_prices(text: &str, fallback_cost: f64) -> Vec<f64> {
+    let prices = infer_competitor_prices(text);
+    if prices.is_empty() {
+        numbers_in_text(text)
+            .into_iter()
+            .filter(|value| (*value - fallback_cost).abs() > 0.01)
+            .collect()
+    } else {
+        prices
+    }
 }
 
 fn infer_promo_planning_input(
@@ -6080,6 +6119,46 @@ mod tests {
             assert_eq!(requests.len(), 1, "{prompt}");
             assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
         }
+    }
+
+    #[test]
+    fn selected_product_context_feeds_pricing_strategy_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task_with_metadata(
+                "给这个商品做定价策略：成本42，竞品价89，竞品价99，竞品价109",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_pricing_strategy");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["platform"], "抖音");
+        assert_eq!(requests[0].input["cost"], 42.0);
+        let prices = requests[0].input["competitor_prices"]
+            .as_array()
+            .expect("competitor prices should be parsed");
+        assert_eq!(prices, &[89.0, 99.0, 109.0]);
+    }
+
+    #[test]
+    fn pricing_strategy_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task("给咖啡新品做定价策略：成本42，竞品价89，竞品价99，竞品价109"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_pricing_strategy");
+        assert!(requests[0].input.get("product_ref").is_none());
+        assert_eq!(requests[0].input["cost"], 42.0);
     }
 
     #[test]

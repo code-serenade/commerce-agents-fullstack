@@ -236,24 +236,24 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-100: ops inventory planning product_ref contract
+Post 8-101: ops pricing strategy product_ref contract
 ```
 
 Scope:
 
-- add `product_ref=product:{uuid}` to `ops_inventory_planning`
-- echo the selected product reference in successful inventory planning output
-- route inventory / stock / 库存 / 补货 / 备货 phrasing to structured `ops_inventory_planning` input
-- parse explicit labeled average daily demand and lead time from the current text before falling back to number order
+- add `product_ref=product:{uuid}` to `ops_pricing_strategy`
+- echo the selected product reference in successful pricing strategy output
+- route price / pricing / cost / 定价 / 价格 / 售价 / 成本 phrasing to structured `ops_pricing_strategy` input
+- parse explicit labeled cost and competitor prices from the current text before falling back to number order
 - let ops worker autosuggest pass selected product refs only from explicit `context.selected_summary`
-- keep inventory planning based on user input plus deterministic inventory rules rather than fake platform, ERP, WMS, supply-chain, or live stock data
+- keep pricing strategy based on user input plus deterministic pricing rules rather than fake platform, ERP, WMS, supply-chain, or live competitor price data
 
 Reason:
 
-- inventory planning is a high-frequency old-product operations capability and needs to preserve selected-product provenance
-- selected-product and unspecified inventory planning must stay separate
-- user phrasing often mixes demand and lead-time numbers, so explicit labels should take priority over raw number order
-- real Taobao, Douyin, Qianchuan, ERP, WMS, supply-chain, platform inventory, supplier quote, and live stock data remain adapter/service/search concerns and must not be faked
+- pricing strategy is a high-frequency old-product operations capability and needs to preserve selected-product provenance
+- selected-product and unspecified pricing strategy must stay separate
+- user phrasing often mixes cost and competitor prices, so explicit labels should take priority over raw number order
+- real Taobao, Douyin, Qianchuan, ERP, WMS, supply-chain, platform price, supplier quote, and live competitor price data remain adapter/service/search concerns and must not be faked
 
 ## 10. Validation Standard
 

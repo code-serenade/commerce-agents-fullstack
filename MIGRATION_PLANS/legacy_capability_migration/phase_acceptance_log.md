@@ -2,6 +2,28 @@
 
 # 阶段验收记录
 
+## Post 8-101：定价策略 product_ref 契约
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent：`ops_pricing_strategy` schema 支持 `product_ref`。
+- [x] Agent：成功定价策略输出回显 `商品引用`。
+- [x] Worker autosuggest：定价 / 价格 / 售价 / 成本问法触发 `ops_pricing_strategy` 时使用结构化 input。
+- [x] Worker autosuggest：本轮显式选品时定价策略 input 携带 `product_ref`。
+- [x] Worker autosuggest：未选商品时不写空 `product_ref`。
+- [x] Worker autosuggest：成本和竞品价格优先读取本轮显式标签。
+- [x] API：`API_DOCS/sse.md` 已同步定价策略 product_ref 契约。
+- [x] 前端：本轮不新增假入口。
+
+当前说明：
+
+- 本阶段解决的是“定价策略已可 native 执行，但商品引用和参数解析不够稳”的问题。
+- 本阶段只使用用户本轮显式输入的商品选择、成本和竞品价格；未选商品时不会从历史摘要、预设商品或测试商品补默认引用。
+- 本阶段不读取或伪造淘宝、抖音、千川、ERP、WMS、供应链或实时竞品价格数据。
+
 ## Post 8-100：库存规划 product_ref 契约
 
 状态：done
