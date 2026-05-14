@@ -31,6 +31,7 @@ const MAX_RETRIEVAL_SUMMARY_CHARS: usize = 5000;
 const LOCAL_RAG_MODE: &str = "local_product_knowledge";
 const EXTERNAL_SEARCH_UNAVAILABLE_REASON: &str =
     "No matching local product knowledge was found; external search adapter is not configured.";
+const EXTERNAL_SEARCH_AVAILABLE_REASON: &str = "No matching local product knowledge was found; external search adapter is configured and search skills may request live sources when the task needs real-time market data.";
 
 pub struct AgentContextApi {
     app_user_svc: AppUserService,
@@ -217,6 +218,7 @@ impl AgentContextApi {
             build_retrieval_summary(&resolved_products, &resolved_knowledge, &query_terms);
         let source_count = sources.len();
         let degraded = source_count == 0;
+        let external_search_available = req.external_search_available;
 
         Ok(AgentRetrievalContextResponse {
             mode: LOCAL_RAG_MODE.to_string(),
@@ -230,8 +232,8 @@ impl AgentContextApi {
             summary,
             sources,
             degraded,
-            degraded_reason: degraded.then(|| EXTERNAL_SEARCH_UNAVAILABLE_REASON.to_string()),
-            external_search_available: false,
+            degraded_reason: degraded.then(|| retrieval_degraded_reason(external_search_available)),
+            external_search_available,
         })
     }
 
@@ -486,6 +488,14 @@ fn build_retrieval_summary(
     compact_text(&lines.join("\n"), MAX_RETRIEVAL_SUMMARY_CHARS)
 }
 
+fn retrieval_degraded_reason(external_search_available: bool) -> String {
+    if external_search_available {
+        EXTERNAL_SEARCH_AVAILABLE_REASON.to_string()
+    } else {
+        EXTERNAL_SEARCH_UNAVAILABLE_REASON.to_string()
+    }
+}
+
 fn extract_query_terms(query: &str) -> Vec<String> {
     let mut terms = Vec::new();
     let normalized = query.trim();
@@ -659,6 +669,7 @@ mod tests {
     use super::{
         build_context_summary, build_retrieval_sources, build_retrieval_summary,
         extract_query_terms, normalize_context_refs, normalize_product_ids,
+        retrieval_degraded_reason,
     };
 
     #[test]
@@ -787,6 +798,16 @@ mod tests {
         assert!(summary.contains("Local commerce RAG context"));
         assert!(summary.contains("直播卖点"));
         assert!(summary.contains(&format!("product_knowledge:{knowledge_id}")));
+    }
+
+    #[test]
+    fn degraded_reason_reflects_external_search_availability() {
+        let unavailable = retrieval_degraded_reason(false);
+        let available = retrieval_degraded_reason(true);
+
+        assert!(unavailable.contains("not configured"));
+        assert!(available.contains("configured"));
+        assert!(available.contains("search skills may request live sources"));
     }
 }
 

@@ -50,6 +50,7 @@ use crate::{
     statics::{
         agent_manager::{run_agent_stream, select_agent_runtime_model},
         db_manager::get_app_ctx,
+        external_search::get_external_search_config,
     },
 };
 
@@ -93,6 +94,7 @@ pub async fn stream_agent_session(
         );
     }
     let context_api = AgentContextApi::new(get_app_ctx());
+    let external_search_available = get_external_search_config().is_configured();
     if !context_selection.is_empty() {
         let context = context_api
             .build_product_context(BuildAgentProductContextRequest {
@@ -112,6 +114,7 @@ pub async fn stream_agent_session(
             product_ids: context_selection.product_ids.clone(),
             context_refs: context_selection.context_refs.clone(),
             allow_implicit_products: false,
+            external_search_available,
             limit: Some(8),
         })
         .await
@@ -1089,7 +1092,7 @@ fn retrieval_summary_for_agent(context: &AgentRetrievalContextResponse) -> Optio
     if context.degraded {
         return context.degraded_reason.as_ref().map(|reason| {
             format!(
-                "Local commerce RAG retrieval found no matching product knowledge. {reason} Do not cite external search results for this turn."
+                "Local commerce RAG retrieval found no matching product knowledge. {reason} Do not cite external search results unless a same-run search skill returns live sources."
             )
         });
     }
@@ -1548,7 +1551,7 @@ mod tests {
             sources: vec![source],
             degraded: false,
             degraded_reason: None,
-            external_search_available: false,
+            external_search_available: true,
         };
 
         merge_agent_retrieval_metadata(&mut metadata, &context).expect("metadata should merge");
@@ -1556,6 +1559,7 @@ mod tests {
         assert!(metadata["context.summary"].contains("Selected context."));
         assert!(metadata["context.combined_summary"].contains("RAG summary."));
         assert_eq!(metadata["rag.source_count"], "1");
+        assert_eq!(metadata["rag.external_search_available"], "true");
         assert_eq!(metadata["context.source_count"], "1");
     }
 
@@ -1583,6 +1587,33 @@ mod tests {
             metadata["context.combined_summary"].contains("Do not cite external search results")
         );
         assert_eq!(metadata["rag.degraded"], "true");
+        assert_eq!(metadata["rag.external_search_available"], "false");
+    }
+
+    #[test]
+    fn degraded_retrieval_metadata_allows_same_run_live_search_sources() {
+        let mut metadata = std::collections::BTreeMap::new();
+        let context = AgentRetrievalContextResponse {
+            mode: "local_product_knowledge".to_string(),
+            query_terms: vec!["竞品".to_string()],
+            product_ids: Vec::new(),
+            knowledge_count: 0,
+            source_count: 0,
+            summary: String::new(),
+            sources: Vec::new(),
+            degraded: true,
+            degraded_reason: Some("No matching local product knowledge was found; external search adapter is configured and search skills may request live sources when the task needs real-time market data.".to_string()),
+            external_search_available: true,
+        };
+
+        merge_agent_retrieval_metadata(&mut metadata, &context)
+            .expect("degraded metadata should merge");
+
+        assert_eq!(metadata["rag.external_search_available"], "true");
+        assert!(
+            metadata["context.combined_summary"]
+                .contains("unless a same-run search skill returns live sources")
+        );
     }
 
     #[test]

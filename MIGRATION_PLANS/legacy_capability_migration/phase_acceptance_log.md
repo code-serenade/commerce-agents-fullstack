@@ -1,5 +1,32 @@
 # 阶段验收记录
 
+## Post 8-55：外部搜索提升为第 2 优先级后的 RAG/SSE 可用性契约
+
+状态：done
+
+验收项：
+
+- [x] 迁移总计划已把外部搜索 / 实时信息增强提升为第 2 优先级。
+- [x] 官方平台直接 API 集成仍明确暂缓，不在本轮接淘宝、抖音、千川等平台。
+- [x] `BuildAgentRetrievalContextRequest` 增加 `external_search_available`。
+- [x] Agent SSE 从真实 `[external_search]` 配置读取可用性。
+- [x] `rag_context_loaded.externalSearchAvailable` 和 `rag.external_search_available` 不再固定为 `false`。
+- [x] 本地 RAG 未命中时，降级原因区分外部搜索未配置和已配置两种状态。
+- [x] 未选择商品时仍不注入默认商品知识，保持显式商品上下文原则。
+- [x] API 文档同步 `API_DOCS/sse.md`。
+- [x] `cargo fmt`
+- [x] `cargo test -p service agent_context`
+- [x] `cargo test -p web-server retrieval_metadata`
+- [x] `cargo check -p service -p web-server`
+- [x] `cargo clippy -p service -p web-server`
+- [x] `git diff --check`
+
+当前说明：
+
+- 本轮是后端契约增强，不做前端假来源面板。
+- 外部搜索已进入第二优先级，但仍坚持“真实来源才展示”：只有同一轮 `search_*` skill 返回 live 来源后，才会有搜索证据。
+- 官方平台写/读 adapter 仍暂缓，避免影响当前内部问答和 skill 生态迁移主线。
+
 ## Post 8-54：问答商品上下文显式选择与工作台遮挡修正
 
 状态：done

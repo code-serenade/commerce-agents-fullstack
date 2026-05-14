@@ -221,36 +221,39 @@ Target layout:
 Continue in this order:
 
 1. backend skill reachability and remaining old-product native skill migration
-2. platform execution closure
+2. external search / real-time data productization
 3. attachment / parsing / richer context ingestion
 4. frontend adaptation to real backend slices
 5. Kimi-style workbench reorganization
-6. full browser-driven product verification
+6. platform execution closure after official platform adapter decisions
+7. full browser-driven product verification
 
 ## 9. Current Slice Selection
 
 The latest active/completed slice is:
 
 ```text
-Post 8-51: platform execution adapter dispatch boundary
+Post 8-55: external search priority-2 RAG/SSE availability contract
 ```
 
 Scope:
 
-- add a service-internal `platform_execution_dispatch_outcome()`
-- route approval-after-approve platform execution planning through that dispatch boundary
-- keep `validation_error`, `connection_missing`, `connection_disabled`, `unsupported_action`, and `adapter_not_implemented` on one outcome path
-- keep `adapterRequest`, `providerResult`, and `retryable` inside the outcome path
-- keep existing external API response shapes unchanged
-- keep the boundary that current platform adapters are not implemented and no platform write success is faked
-- avoid frontend changes because this is backend rule-kernel hardening
+- raise external search / real-time information enhancement from later work to priority 2
+- keep official Taobao / Douyin / Qianchuan direct platform integrations deferred
+- pass the configured `[external_search]` availability into the Agent RAG context builder
+- make `rag_context_loaded.externalSearchAvailable` and `rag.external_search_available` reflect backend config
+- improve degraded RAG wording so the frontend and agent can distinguish:
+  - no local product knowledge and no external search adapter
+  - no local product knowledge but external search skill adapter is configured
+- keep selected-product behavior explicit: no selected product means no default product knowledge is injected
+- avoid frontend changes until the backend contract is validated
 
 Reason:
 
-- high product value for high-risk platform execution dispatch consistency and adapter readiness
-- backend-first
-- keeps approval/audit focused on transaction and persistence
-- prepares the next platform execution adapter loop to attach real providers behind one service-owned dispatch boundary
+- external search is now the second priority after core skill reachability
+- this is a backend-first contract slice that makes the live/degraded search boundary truthful to the frontend
+- it improves product explainability without pretending to have official platform write integrations
+- it prepares the later Kimi-style source/evidence panel to consume real backend status
 
 ## 10. Validation Standard
 

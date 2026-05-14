@@ -1,5 +1,52 @@
 # 迁移开发记录
 
+## Post 8-55：外部搜索提升为第 2 优先级后的 RAG/SSE 可用性契约
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 55 个补强项：`Post 8-55`。
+
+本次目标：
+
+- 按最新要求，把“外部搜索 / 实时信息增强”从后续第 5 优先级提升到第 2 优先级。
+- 先补后端主链路契约，让前端后续能按真实状态展示来源和降级原因。
+- 不接淘宝、抖音、千川等官方平台直接 API，不伪造外部搜索结果。
+
+涉及范围：
+
+- 后端 service：`BuildAgentRetrievalContextRequest` 增加 `external_search_available`。
+- 后端 service：本地 RAG 未命中时，降级原因会区分外部搜索 adapter 未配置和已配置。
+- 后端 web-server：Agent SSE 从 `[external_search]` 配置读取 `is_configured()`，并写入 RAG response 和 runtime metadata。
+- API 文档：`API_DOCS/sse.md` 更新 `rag_context_loaded.externalSearchAvailable` 语义。
+- 迁移计划：总计划把外部搜索提升为第 2 优先级，平台官方直接集成暂缓。
+
+用户可感知变化：
+
+- 用户问实时趋势、竞品、平台政策等问题时，系统能更准确说明当前是否具备外部搜索 adapter。
+- 如果本地商品知识没有命中，前端后续可以明确展示“没有本地来源但可请求实时搜索”或“没有本地来源且外部搜索未配置”。
+- 系统仍不会假装已经搜到外部资料；只有同一轮 `search_*` skill 返回 live 来源时，才可展示搜索证据。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/agent_external_search_priority_post_8_55.md`
+- [x] 迁移总计划：`temp/DEVELOPMENT_DOCS/backend/commerce_capability_migration_master_plan.md`
+- [x] API 文档：`API_DOCS/sse.md`
+- [x] `cargo fmt`
+- [x] `cargo test -p service agent_context`
+- [x] `cargo test -p web-server retrieval_metadata`
+- [x] `cargo check -p service -p web-server`
+- [x] `cargo clippy -p service -p web-server`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 前端还需要把外部搜索可用性、搜索证据 artifact、来源、域名、发布时间、置信度整理成右侧来源面板。
+- 真实部署仍需要配置 `[external_search]` provider。
+- 官方平台直接 API 仍暂缓，等内部问答、skill 和外部搜索体验更稳定后再做。
+
 ## Post 8-54：问答商品上下文显式选择与工作台遮挡修正
 
 状态：done

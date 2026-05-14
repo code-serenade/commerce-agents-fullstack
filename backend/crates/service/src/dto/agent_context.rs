@@ -14,6 +14,7 @@ pub struct BuildAgentRetrievalContextRequest {
     pub product_ids: Vec<String>,
     pub context_refs: Vec<String>,
     pub allow_implicit_products: bool,
+    pub external_search_available: bool,
     pub limit: Option<usize>,
 }
 
