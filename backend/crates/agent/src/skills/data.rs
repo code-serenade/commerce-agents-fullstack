@@ -391,6 +391,12 @@ pub fn specs() -> Vec<SkillSpec> {
             "计算A/B测试转化率差异、卡方值、置信度和推全建议",
             SkillPriority::Critical,
             vec![
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用 product:{uuid}；仅用于标识本轮显式选品",
+                    false,
+                ),
                 field("control_visitors", "integer", "对照组访客数", true),
                 field("control_conversions", "integer", "对照组转化数", true),
                 field("test_visitors", "integer", "实验组访客数", true),
@@ -2236,6 +2242,7 @@ fn cohort_analysis(input: &Value) -> Value {
 }
 
 fn ab_test_analyzer(input: &Value) -> Result<Value, SkillError> {
+    let product_ref = s(input, "product_ref", "");
     let ctrl_n = required_i(input, "control_visitors")?;
     let ctrl_c = required_i(input, "control_conversions")?;
     let test_n = required_i(input, "test_visitors")?;
@@ -2264,6 +2271,7 @@ fn ab_test_analyzer(input: &Value) -> Result<Value, SkillError> {
     let confidence = normal_confidence(z.abs());
     json_ok(json!({
         "测试名称": s(input, "test_name", "A/B测试"),
+        "商品引用": empty_string_as_null(product_ref),
         "指标": s(input, "metric_name", "转化率"),
         "对照组转化率": percent(ctrl_rate * 100.0, 2),
         "实验组转化率": percent(test_rate * 100.0, 2),
@@ -4629,5 +4637,33 @@ mod tests {
             Some("A/B测试分析报告已生成")
         );
         assert!(output.get("置信度").and_then(Value::as_str).is_some());
+    }
+
+    #[tokio::test]
+    async fn data_ab_test_analyzer_echoes_product_ref() {
+        let outcome = execute(
+            "data_ab_test_analyzer",
+            json!({
+                "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                "test_name": "详情页首屏改版",
+                "control_visitors": 10000,
+                "control_conversions": 320,
+                "test_visitors": 9800,
+                "test_conversions": 390
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("data A/B test analyzer should echo selected product ref");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(
+            output.get("商品引用"),
+            Some(&json!("product:11111111-1111-1111-1111-111111111111"))
+        );
     }
 }

@@ -2,6 +2,27 @@
 
 # 阶段验收记录
 
+## Post 8-90：A/B 测试 product_ref 契约
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent：`data_ab_test_analyzer` schema 支持 `product_ref`。
+- [x] Agent：成功 A/B 测试输出回显 `商品引用`。
+- [x] Worker autosuggest：A/B / AB测试 / 对照组 / 实验组 / 推全问法触发 `data_ab_test_analyzer`。
+- [x] Worker autosuggest：本轮显式选品时 A/B 测试 input 携带 `product_ref`。
+- [x] Worker autosuggest：未选商品时不写空 `product_ref`。
+- [x] API：`API_DOCS/sse.md` 已同步 A/B 测试 product_ref 契约。
+- [x] 前端：本轮不新增假入口。
+
+当前说明：
+
+- 本阶段解决的是“商品级 A/B 测试报告无法关联本轮选中商品”的问题。
+- 本阶段只使用本轮显式对照组/实验组访客和转化输入。
+- 本阶段不调用实验平台、淘宝、抖音、千川、CRM、DMP 或平台实时实验数据，也不把历史商品当作默认商品。
+
 ## Post 8-89：客户分层 product_ref 契约
 
 状态：done

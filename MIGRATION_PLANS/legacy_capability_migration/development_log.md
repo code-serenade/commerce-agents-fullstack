@@ -1,5 +1,54 @@
 # 迁移开发记录
 
+## Post 8-90：A/B 测试 product_ref 契约
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 90 个补强项：`Post 8-90`。
+
+本次目标：
+
+- 把 A/B 测试分析 `data_ab_test_analyzer` 接入新产品 `product_ref=product:{uuid}` 契约。
+- 让用户手动选择商品后，A/B / AB测试 / 对照组 / 实验组 / 推全等问法能保留本轮商品引用。
+- 继续保持未选商品时不绑定历史商品或预设商品，也不读取实验平台、淘宝、抖音、千川或 CRM/DMP 实时数据。
+
+本次修改：
+
+- 后端 agent：`data_ab_test_analyzer` schema 新增 `product_ref`。
+- 后端 agent：成功输出新增 `商品引用`。
+- 后端 worker：新增 A/B 测试自然语言自动补偿。
+- 后端 worker：解析本轮显式 `对照组/实验组` 访客数和转化数。
+- 后端 worker：本轮显式选品后，A/B 测试 input 带入 `product_ref`。
+- 后端 worker：未选商品时不写空 `product_ref`。
+- API/SSE：同步 `API_DOCS/sse.md`。
+- 迁移文档：新增本轮归档，并同步阶段验收、总计划和 skill 矩阵。
+
+用户可感知变化：
+
+- 用户手动勾选商品后，再问“分析这个商品的 A/B 测试 / 对照实验 / 实验组能否推全”时，后端会把本轮选中商品的 `product:<uuid>` 带进 A/B 测试结果。
+- 用户没有手动选商品时，A/B 测试仍按普通实验分析运行，但不会暗中绑定历史商品或默认商品。
+- 用户在问题里写出对照组/实验组访客和转化数时，后端会解析成本轮显式实验输入；未提供样本和转化数据时不会伪造实验结果。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/data_ab_test_product_ref_post_8_90.md`
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent data_ab_test_analyzer -- --nocapture`
+- [x] `cargo test -p agent autosuggests_ab_test_analyzer_with_explicit_experiment_terms -- --nocapture`
+- [x] `cargo test -p agent selected_product_context_feeds_ab_test_analyzer_ref -- --nocapture`
+- [x] `cargo test -p agent ab_test_analyzer_without_selection_has_no_empty_product_ref -- --nocapture`
+- [x] `cargo fmt --all --check`
+- [x] `cargo check -p agent`
+- [x] `cargo clippy -p agent`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 真实实验平台、CRM、DMP、人群包、淘宝/抖音/千川实验结果仍需要后续 service/adapter/search 注入，不能由本地 native skill 伪造或默认读取。
+
 ## Post 8-89：客户分层 product_ref 契约
 
 状态：done

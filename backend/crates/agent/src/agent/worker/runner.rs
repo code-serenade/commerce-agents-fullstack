@@ -924,6 +924,32 @@ fn autosuggest_data(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     if contains_any(
         text,
         &[
+            "a/b",
+            "ab test",
+            "ab_test",
+            "a b test",
+            "AB测试",
+            "A/B测试",
+            "A B测试",
+            "对照组",
+            "控制组",
+            "实验组",
+            "测试组",
+            "转化对比",
+            "实验显著",
+            "推全",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "data_ab_test_analyzer",
+            serde_json::Value::Object(infer_ab_test_analyzer_input(text, task)),
+            "根据A/B测试/对照组/实验组意图自动补偿 A/B 测试分析 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
+        &[
             "multi period",
             "multi-period",
             "multi_period",
@@ -2407,6 +2433,247 @@ fn infer_customer_segmentation_input(
         &["平均购买间隔", "购买间隔", "最近购买间隔", "recency_days"],
     );
     input
+}
+
+fn infer_ab_test_analyzer_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    input.insert(
+        "test_name".to_string(),
+        serde_json::json!(infer_ab_test_name(text)),
+    );
+    input.insert(
+        "metric_name".to_string(),
+        serde_json::json!(infer_ab_metric(text)),
+    );
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
+
+    if let Some(segment) = ab_group_segment(text, AB_CONTROL_LABELS, AB_TEST_LABELS) {
+        insert_ab_group_metrics(&mut input, "control", &segment);
+    }
+    if let Some(segment) = ab_group_segment(text, AB_TEST_LABELS, AB_CONTROL_LABELS) {
+        insert_ab_group_metrics(&mut input, "test", &segment);
+    }
+    insert_ab_direct_metrics(&mut input, text);
+
+    let required_keys = [
+        "control_visitors",
+        "control_conversions",
+        "test_visitors",
+        "test_conversions",
+    ];
+    if required_keys.iter().any(|key| !input.contains_key(*key)) {
+        let numbers = numbers_in_text(text);
+        if numbers.len() >= 4 {
+            for (key, value) in required_keys.iter().zip(numbers.into_iter().take(4)) {
+                input
+                    .entry((*key).to_string())
+                    .or_insert_with(|| serde_json::json!(value.round().max(0.0) as i64));
+            }
+        }
+    }
+
+    input
+}
+
+const AB_CONTROL_LABELS: &[&str] = &[
+    "对照组",
+    "控制组",
+    "control group",
+    "control",
+    "A组",
+    "A 组",
+    "A版",
+    "A 版",
+];
+const AB_TEST_LABELS: &[&str] = &[
+    "实验组",
+    "测试组",
+    "test group",
+    "variant",
+    "B组",
+    "B 组",
+    "B版",
+    "B 版",
+];
+
+fn ab_group_segment(text: &str, labels: &[&str], other_labels: &[&str]) -> Option<String> {
+    let combined = labels
+        .iter()
+        .chain(other_labels.iter())
+        .copied()
+        .collect::<Vec<_>>();
+    labels
+        .iter()
+        .find_map(|label| segment_after_label(text, label, &combined))
+        .filter(|segment| !segment.trim().is_empty())
+}
+
+fn insert_ab_group_metrics(
+    input: &mut serde_json::Map<String, serde_json::Value>,
+    prefix: &str,
+    segment: &str,
+) {
+    if let Some(value) = extract_metric_value(
+        segment,
+        &[
+            "访客数",
+            "访客",
+            "UV",
+            "uv",
+            "样本量",
+            "样本",
+            "人数",
+            "visitors",
+            "visitor",
+            "users",
+            "traffic",
+        ],
+    ) {
+        input.insert(
+            format!("{prefix}_visitors"),
+            serde_json::json!(value.round().max(0.0) as i64),
+        );
+    }
+    let conversions = extract_metric_value(
+        segment,
+        &[
+            "转化数",
+            "转化人数",
+            "支付人数",
+            "成交人数",
+            "成交数",
+            "订单数",
+            "订单",
+            "conversions",
+            "conversion_count",
+            "orders",
+        ],
+    )
+    .or_else(|| {
+        if contains_any(segment, &["转化率", "conversion rate", "cvr"]) {
+            None
+        } else {
+            extract_metric_value(segment, &["转化", "成交", "支付"])
+        }
+    });
+    if let Some(value) = conversions {
+        input.insert(
+            format!("{prefix}_conversions"),
+            serde_json::json!(value.round().max(0.0) as i64),
+        );
+    }
+}
+
+fn insert_ab_direct_metrics(input: &mut serde_json::Map<String, serde_json::Value>, text: &str) {
+    insert_ab_integer(
+        input,
+        "control_visitors",
+        text,
+        &[
+            "control_visitors",
+            "control visitors",
+            "对照组访客数",
+            "对照组访客",
+            "控制组访客数",
+            "控制组访客",
+            "A组访客数",
+            "A组访客",
+            "A版访客",
+        ],
+    );
+    insert_ab_integer(
+        input,
+        "control_conversions",
+        text,
+        &[
+            "control_conversions",
+            "control conversions",
+            "对照组转化数",
+            "对照组转化",
+            "控制组转化数",
+            "控制组转化",
+            "A组转化数",
+            "A组转化",
+            "A版转化",
+        ],
+    );
+    insert_ab_integer(
+        input,
+        "test_visitors",
+        text,
+        &[
+            "test_visitors",
+            "test visitors",
+            "实验组访客数",
+            "实验组访客",
+            "测试组访客数",
+            "测试组访客",
+            "B组访客数",
+            "B组访客",
+            "B版访客",
+        ],
+    );
+    insert_ab_integer(
+        input,
+        "test_conversions",
+        text,
+        &[
+            "test_conversions",
+            "test conversions",
+            "实验组转化数",
+            "实验组转化",
+            "测试组转化数",
+            "测试组转化",
+            "B组转化数",
+            "B组转化",
+            "B版转化",
+        ],
+    );
+}
+
+fn insert_ab_integer(
+    input: &mut serde_json::Map<String, serde_json::Value>,
+    key: &str,
+    text: &str,
+    aliases: &[&str],
+) {
+    if let Some(value) = extract_metric_value(text, aliases) {
+        input.insert(
+            key.to_string(),
+            serde_json::json!(value.round().max(0.0) as i64),
+        );
+    }
+}
+
+fn infer_ab_test_name(text: &str) -> &'static str {
+    if contains_any(text, &["首屏", "详情首屏", "详情页首屏", "above the fold"]) {
+        "详情页首屏A/B测试"
+    } else if contains_any(text, &["主图", "封面", "image"]) {
+        "主图A/B测试"
+    } else if contains_any(text, &["标题", "title"]) {
+        "标题A/B测试"
+    } else if contains_any(text, &["详情页", "详情", "detail"]) {
+        "详情页A/B测试"
+    } else if contains_any(text, &["直播", "live"]) {
+        "直播间A/B测试"
+    } else {
+        "A/B测试"
+    }
+}
+
+fn infer_ab_metric(text: &str) -> &'static str {
+    if contains_any(text, &["点击", "ctr", "CTR", "click"]) {
+        "点击率"
+    } else if contains_any(text, &["支付", "成交", "订单", "purchase", "order"]) {
+        "支付转化率"
+    } else {
+        "转化率"
+    }
 }
 
 fn infer_forecast_periods(text: &str) -> i64 {
@@ -5352,6 +5619,60 @@ mod tests {
 
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].skill_id, "data_customer_segmentation");
+        assert!(requests[0].input.get("product_ref").is_none());
+    }
+
+    #[test]
+    fn autosuggests_ab_test_analyzer_with_explicit_experiment_terms() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("做A/B测试：对照组访客10000转化320，实验组访客9800转化390，看看能不能推全"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_ab_test_analyzer");
+        assert_eq!(requests[0].input["test_name"], "A/B测试");
+        assert_eq!(requests[0].input["metric_name"], "转化率");
+        assert_eq!(requests[0].input["control_visitors"], 10000);
+        assert_eq!(requests[0].input["control_conversions"], 320);
+        assert_eq!(requests[0].input["test_visitors"], 9800);
+        assert_eq!(requests[0].input["test_conversions"], 390);
+    }
+
+    #[test]
+    fn selected_product_context_feeds_ab_test_analyzer_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task_with_metadata(
+                "分析这个商品详情页首屏A/B测试：对照组访客10000转化320，实验组访客9800转化390",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_ab_test_analyzer");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["test_name"], "详情页首屏A/B测试");
+        assert_eq!(requests[0].input["control_visitors"], 10000);
+        assert_eq!(requests[0].input["test_conversions"], 390);
+    }
+
+    #[test]
+    fn ab_test_analyzer_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("做A/B测试：对照组访客10000转化320，实验组访客9800转化390"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_ab_test_analyzer");
         assert!(requests[0].input.get("product_ref").is_none());
     }
 

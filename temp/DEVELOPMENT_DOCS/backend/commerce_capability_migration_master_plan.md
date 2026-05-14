@@ -236,24 +236,24 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-89: data customer segmentation product_ref contract
+Post 8-90: data A/B test product_ref contract
 ```
 
 Scope:
 
-- add `product_ref=product:{uuid}` to `data_customer_segmentation`
-- echo the selected product reference in successful RFM customer segmentation output
-- route customer / audience / RFM / segmentation phrasing to structured `data_customer_segmentation` input
-- parse explicit RFM aggregate metrics from the current text into skill input
+- add `product_ref=product:{uuid}` to `data_ab_test_analyzer`
+- echo the selected product reference in successful A/B test output
+- route A/B / AB test / control group / test group / rollout phrasing to structured `data_ab_test_analyzer` input
+- parse explicit control/test visitor and conversion metrics from the current text into skill input
 - let data worker autosuggest pass selected product refs only from explicit `context.selected_summary`
-- keep missing RFM aggregate metrics disclosed as deterministic defaults rather than fake CRM, DMP, or member-system data
+- keep missing A/B sample metrics as real validation gaps rather than fake experiment platform data
 
 Reason:
 
-- customer segmentation is a high-frequency data skill for product-bound audience operations, retention, and repurchase planning
-- selected-product and unspecified-product customer segmentation must stay separate
-- frontend artifacts and process panels need a stable product reference for product-bound RFM reports
-- real member systems, order systems, CRM, DMP, and platform audience packets remain adapter/service/search concerns and must not be faked
+- A/B testing is a high-frequency data skill for product detail pages, creatives, titles, and rollout decisions
+- selected-product and unspecified-product experiment analysis must stay separate
+- frontend artifacts and process panels need a stable product reference for product-bound A/B reports
+- real experiment platforms, Taobao, Douyin, Qianchuan, CRM, DMP, and audience packets remain adapter/service/search concerns and must not be faked
 
 ## 10. Validation Standard
 
