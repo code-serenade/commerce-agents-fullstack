@@ -289,6 +289,12 @@ pub fn specs() -> Vec<SkillSpec> {
             "分析各渠道广告ROI、流量效率和GMV贡献",
             SkillPriority::High,
             vec![
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用 product:{uuid}；仅用于标识本轮显式选品",
+                    false,
+                ),
                 field("days", "integer", "分析天数，默认30", false),
                 field(
                     "include_organic",
@@ -1893,6 +1899,7 @@ fn multi_period_trend(input: &Value) -> Value {
 }
 
 fn channel_roi(input: &Value) -> Value {
+    let product_ref = s(input, "product_ref", "");
     let channels = input
         .get("channels")
         .and_then(Value::as_array)
@@ -1930,6 +1937,7 @@ fn channel_roi(input: &Value) -> Value {
         "data_readiness": "user_provided",
         "adapter_status": "manual_input",
         "summary": "渠道ROI分析完成",
+        "商品引用": empty_string_as_null(product_ref),
         "渠道ROI排名": rows,
         "优化建议": ["加码高ROI渠道", "ROI低于2的渠道优先优化创意和人群"]
     })
@@ -3704,6 +3712,7 @@ mod tests {
     #[test]
     fn data_channel_roi_marks_success_for_user_channels() {
         let output = channel_roi(&json!({
+            "product_ref": "product:11111111-1111-1111-1111-111111111111",
             "channels": [
                 {"name": "douyin", "gmv": 120000.0, "ad_spend": 30000.0, "orders": 600, "uv": 20000},
                 {"name": "taobao", "gmv": 80000.0, "ad_spend": 26000.0, "orders": 420, "uv": 16000}
@@ -3718,6 +3727,10 @@ mod tests {
         assert_eq!(
             output.get("adapter_status").and_then(Value::as_str),
             Some("manual_input")
+        );
+        assert_eq!(
+            output.get("商品引用"),
+            Some(&json!("product:11111111-1111-1111-1111-111111111111"))
         );
         assert!(
             output

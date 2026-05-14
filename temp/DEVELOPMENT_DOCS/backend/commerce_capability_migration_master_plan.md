@@ -236,22 +236,22 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-77: data funnel analysis product_ref contract
+Post 8-78: data channel ROI product_ref contract
 ```
 
 Scope:
 
-- add `product_ref=product:{uuid}` to `data_funnel_analysis`
-- echo the selected product reference in successful funnel output
+- add `product_ref=product:{uuid}` to `data_channel_roi`
+- echo the selected product reference in successful channel ROI output
 - let data worker autosuggest pass selected product refs only from explicit `context.selected_summary`
-- keep missing funnel metrics as deferred rather than fake live platform data
+- keep missing channel metrics as deferred rather than fake live platform data
 
 Reason:
 
-- funnel analysis is a core e-commerce operating skill
-- selected-product and unspecified-product funnel analysis must stay separate
-- frontend artifacts and process panels need a stable product reference for product-bound funnel reports
-- real platform funnel metrics remain an adapter/service concern and must not be faked
+- channel ROI is a core e-commerce operating and paid-channel review skill
+- selected-product and unspecified-product channel ROI analysis must stay separate
+- frontend artifacts and process panels need a stable product reference for product-bound ROI reports
+- real platform channel metrics remain an adapter/service concern and must not be faked
 
 ## 10. Validation Standard
 

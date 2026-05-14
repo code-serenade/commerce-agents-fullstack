@@ -1,5 +1,51 @@
 # 迁移开发记录
 
+## Post 8-78：渠道 ROI product_ref 契约
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 78 个补强项：`Post 8-78`。
+
+本次目标：
+
+- 把数据层渠道 ROI 接入新产品 `product_ref=product:{uuid}` 契约。
+- 让用户手动选择商品后，渠道 ROI skill 能保留本轮商品引用。
+- 继续保持缺渠道指标时 deferred，不伪造平台实时投放数据。
+
+本次修改：
+
+- 后端 agent：`data_channel_roi` schema 新增 `product_ref`。
+- 后端 agent：成功输出新增 `商品引用`。
+- 后端 worker：本轮显式选品后，渠道 ROI 自动补偿 input 带入 `product_ref`。
+- 后端 worker：未选商品时不写空 `product_ref`。
+- API/SSE：同步 `API_DOCS/sse.md`。
+- 迁移文档：新增本轮归档，并同步阶段验收、总计划和 skill 矩阵。
+
+用户可感知变化：
+
+- 用户手动勾选商品后，再问“复盘这个商品的渠道 ROI / 投放渠道效果 / 渠道投产”时，后端会把本轮选中商品的 `product:<uuid>` 带进渠道 ROI 分析结果。
+- 用户没有手动选商品时，渠道 ROI 仍按普通渠道指标问题运行，但不会暗中绑定历史商品或默认商品。
+- 缺少渠道 GMV、广告费、订单、UV 等数据时仍会明确缺数据，不会创建假报告。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/data_channel_roi_product_ref_post_8_78.md`
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent data_channel_roi -- --nocapture`
+- [x] `cargo test -p agent selected_product_context_feeds_channel_roi_ref -- --nocapture`
+- [x] `cargo test -p agent channel_roi_without_selection_has_no_empty_product_ref -- --nocapture`
+- [x] `cargo fmt --all --check`
+- [x] `cargo check -p agent`
+- [x] `cargo clippy -p agent`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 真实平台渠道 ROI 指标仍需要后续 service/adapter 注入，不能由本地 native skill 伪造。
+
 ## Post 8-77：漏斗分析 product_ref 契约
 
 状态：done

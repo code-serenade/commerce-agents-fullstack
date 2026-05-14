@@ -2,6 +2,26 @@
 
 # 阶段验收记录
 
+## Post 8-78：渠道 ROI product_ref 契约
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent：`data_channel_roi` schema 支持 `product_ref`。
+- [x] Agent：成功渠道 ROI 输出回显 `商品引用`。
+- [x] Worker autosuggest：本轮显式选品时渠道 ROI input 携带 `product_ref`。
+- [x] Worker autosuggest：未选商品时不写空 `product_ref`。
+- [x] API：`API_DOCS/sse.md` 已同步渠道 ROI product_ref 契约。
+- [x] 前端：本轮不新增假入口。
+
+当前说明：
+
+- 本阶段解决的是“商品级渠道 ROI 结果无法关联本轮选中商品”的问题。
+- 本阶段只使用本轮显式渠道 GMV、广告费、订单、UV 等指标，不调用外部平台 API。
+- 缺少渠道数据时仍返回 deferred，不创建假报告，也不绑定历史商品或默认商品。
+
 ## Post 8-77：漏斗分析 product_ref 契约
 
 状态：done

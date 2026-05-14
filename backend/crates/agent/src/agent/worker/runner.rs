@@ -820,6 +820,7 @@ fn autosuggest_data(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
             serde_json::json!({
                 "days": infer_period_days(text),
                 "channels": channels,
+                "product_ref": selected_product_ref(task),
             }),
             if channels.is_empty() {
                 "根据渠道投产/归因意图自动补偿渠道ROI skill"
@@ -4588,6 +4589,44 @@ mod tests {
         assert_eq!(channels[1]["name"], "淘宝");
         assert_eq!(channels[1]["gmv"], 80000.0);
         assert_eq!(channels[1]["ad_spend"], 26000.0);
+    }
+
+    #[test]
+    fn selected_product_context_feeds_channel_roi_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task_with_metadata(
+                "复盘这个商品渠道ROI：抖音GMV12万，广告费3万，订单600，UV2万",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_channel_roi");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        let channels = requests[0].input["channels"]
+            .as_array()
+            .expect("channels should be parsed");
+        assert_eq!(channels[0]["name"], "抖音");
+        assert_eq!(channels[0]["gmv"], 120000.0);
+    }
+
+    #[test]
+    fn channel_roi_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("复盘渠道ROI：抖音GMV12万，广告费3万，订单600，UV2万"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_channel_roi");
+        assert!(requests[0].input.get("product_ref").is_none());
     }
 
     #[test]
