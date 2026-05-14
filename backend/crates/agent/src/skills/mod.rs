@@ -60,12 +60,14 @@ mod tests {
         assert!(ids.contains(&"accounting_cost_calc"));
         assert!(ids.contains(&"accounting_scenario_analysis"));
         assert!(ids.contains(&"search_trends"));
+        assert!(ids.contains(&"query_product_metrics"));
+        assert!(ids.contains(&"query_campaign_metrics"));
         assert!(ids.contains(&"data_funnel_analysis"));
         assert!(ids.contains(&"data_ab_test_analyzer"));
         assert!(ids.contains(&"creative_title_ctr_scorer"));
         assert!(ids.contains(&"web_title_seo_scorer"));
         assert!(ids.contains(&"engineering_sla_monitor"));
         assert!(ids.contains(&"coordination_agent_handoff"));
-        assert_eq!(specs.len(), 93);
+        assert_eq!(specs.len(), 95);
     }
 }

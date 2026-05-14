@@ -236,22 +236,22 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-64: search skill natural reachability
+Post 8-65: product and campaign metrics native skills
 ```
 
 Scope:
 
-- harden natural reachability for the old product search / external data capability
-- let worker autosuggest produce `search_trends`, `search_competitor`, `search_market_info`, `search_product_reviews`, `search_platform_policy`, or `search_industry_benchmarks` for clear external-search intent
-- parse query, platform, focus, topic, policy type, metric, days, and fresh-data preference from user language
-- keep native local analysis skills such as competitor analysis, trend forecast, keyword research, and creative trend catch ahead of search unless the user explicitly asks for external/live/source-backed data
-- avoid fake execution: this slice does not configure providers and does not fabricate search sources
+- add `query_product_metrics` and `query_campaign_metrics` into the new product Rust Agent data skill set
+- compute product/SKU and campaign/ad activity metrics from explicit user-provided numbers
+- return truthful deferred states when product/campaign metrics are missing and no adapter is available
+- add worker autosuggest reachability for natural product metrics and campaign metrics questions
+- preserve the explicit product-context rule: no default product, no implicit saved product, no fake live platform data
 
 Reason:
 
-- external search is a high-value old-product capability, but users should not need to know internal `search_*` IDs
-- the search adapter contract already preserves live/degraded/deferred truthfulness; the missing piece was natural routing into that contract
-- the change improves real use and demos without pretending Taobao, Douyin, Qianchuan, or public web data is available when provider config is missing
+- old-product metrics-store capability should not stop at store-level summaries
+- product and campaign performance are core commerce workflows for virtual employees
+- this improves backend skill usefulness without waiting for Taobao/Douyin/Qianchuan official adapters or adding fake frontend state
 
 ## 10. Validation Standard
 

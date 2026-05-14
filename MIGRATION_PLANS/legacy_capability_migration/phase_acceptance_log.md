@@ -2,6 +2,29 @@
 
 # 阶段验收记录
 
+## Post 8-65：商品 / 活动指标查询 native skill
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent：新增 `query_product_metrics`。
+- [x] Agent：新增 `query_campaign_metrics`。
+- [x] Agent：显式指标输入时返回 `status=success`、`adapter_status=manual_input`。
+- [x] Agent：缺指标输入时返回 `status=deferred`、`product_metrics_required` / `campaign_metrics_required`。
+- [x] Agent：商品指标输出包含 totals、derived_metrics、week_over_week、risks、next_actions。
+- [x] Agent：活动指标输出包含预算使用率、CTR、转化率、ROAS、ROI、退款率、风险和动作建议。
+- [x] Agent：自然语言可触达商品指标和活动指标查询。
+- [x] API：`API_DOCS/sse.md` 已同步新 skill 契约。
+- [x] 前端：本轮不新增假入口。
+
+当前说明：
+
+- 本阶段解决的是“旧产品指标仓能力只覆盖店铺级，不覆盖商品/活动级”的问题。
+- 本阶段只消费本轮明确提供的指标，不读取数据库，不调用官方平台 API。
+- 商品指标不会默认读取任何预设商品或历史商品，保持显式商品通路原则。
+
 ## Post 8-64：搜索类 skill 自然触达补强
 
 状态：done

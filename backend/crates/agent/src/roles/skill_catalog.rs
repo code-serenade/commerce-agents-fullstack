@@ -45,7 +45,7 @@ impl RoleSkillCatalog {
 
         specs
             .into_iter()
-            .take(8)
+            .take(16)
             .map(format_skill_line)
             .collect::<Vec<_>>()
             .join("\n")
@@ -70,6 +70,8 @@ pub fn role_can_use_skill(runtime_role: &str, spec: &SkillSpec) -> bool {
                 || spec.id == "coordination_skill_chain_planner"
                 || spec.id == "coordination_create_task"
                 || spec.id == "query_store_metrics"
+                || spec.id == "query_product_metrics"
+                || spec.id == "query_campaign_metrics"
                 || spec.id == "search_trends"
                 || spec.id == "search_competitor"
                 || spec.id == "search_market_info"
@@ -96,7 +98,12 @@ pub fn role_can_use_skill(runtime_role: &str, spec: &SkillSpec) -> bool {
                 || spec.id == "search_industry_benchmarks"
         }
         "design" => spec.id == "creative_title_ctr_scorer",
-        "accounting" => spec.id == "data_channel_roi" || spec.id == "query_store_metrics",
+        "accounting" => {
+            spec.id == "data_channel_roi"
+                || spec.id == "query_store_metrics"
+                || spec.id == "query_product_metrics"
+                || spec.id == "query_campaign_metrics"
+        }
         "engineering" => spec.id == "coordination_status_query",
         _ => false,
     }

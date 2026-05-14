@@ -699,6 +699,10 @@ fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         }
     }
 
+    if let Some(request) = autosuggest_product_or_campaign_metrics(text) {
+        return Some(request);
+    }
+
     if contains_any(
         text,
         &[
@@ -812,6 +816,10 @@ fn autosuggest_data(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
     }
 
     if let Some(request) = autosuggest_search(text) {
+        return Some(request);
+    }
+
+    if let Some(request) = autosuggest_product_or_campaign_metrics(text) {
         return Some(request);
     }
 
@@ -1654,6 +1662,38 @@ fn autosuggest_query_store_metrics(
     ))
 }
 
+fn autosuggest_product_or_campaign_metrics(text: &str) -> Option<ParsedSkillRequest> {
+    if has_campaign_metrics_query_intent(text) {
+        let input = infer_campaign_metrics_input(text);
+        let has_explicit_metrics = metric_query_input_has_metrics(&input);
+        return Some(autosuggest_request(
+            "query_campaign_metrics",
+            serde_json::Value::Object(input),
+            if has_explicit_metrics {
+                "根据用户显式提供的活动指标自动补偿活动指标查询 skill"
+            } else {
+                "根据查询/加载活动指标意图自动补偿活动指标查询 skill"
+            },
+        ));
+    }
+
+    if has_product_metrics_query_intent(text) {
+        let input = infer_product_metrics_input(text);
+        let has_explicit_metrics = metric_query_input_has_metrics(&input);
+        return Some(autosuggest_request(
+            "query_product_metrics",
+            serde_json::Value::Object(input),
+            if has_explicit_metrics {
+                "根据用户显式提供的商品指标自动补偿商品指标查询 skill"
+            } else {
+                "根据查询/加载商品指标意图自动补偿商品指标查询 skill"
+            },
+        ));
+    }
+
+    None
+}
+
 fn autosuggest_request(
     skill_id: impl Into<String>,
     input: serde_json::Value,
@@ -1816,6 +1856,160 @@ fn infer_store_metrics_input(text: &str) -> serde_json::Map<String, serde_json::
     input
 }
 
+fn infer_product_metrics_input(text: &str) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = infer_common_metrics_input(text);
+    let product_name = infer_product_name(text);
+    if !product_name.trim().is_empty() {
+        input.insert("product_name".to_string(), serde_json::json!(product_name));
+    }
+    if let Some(product_id) = extract_labeled_token(text, &["商品ID", "product_id", "product id"])
+    {
+        input.insert("product_id".to_string(), serde_json::json!(product_id));
+    }
+    if let Some(sku_id) = extract_labeled_token(text, &["SKU", "sku_id", "sku id", "规格ID"]) {
+        input.insert("sku_id".to_string(), serde_json::json!(sku_id));
+    }
+    insert_metric_value(
+        &mut input,
+        "inventory",
+        text,
+        &["库存", "剩余库存", "inventory", "stock"],
+    );
+    insert_metric_value(
+        &mut input,
+        "stockout_count",
+        text,
+        &["缺货次数", "断货次数", "stockout_count", "stockout"],
+    );
+    input
+}
+
+fn infer_campaign_metrics_input(text: &str) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = infer_common_metrics_input(text);
+    let campaign_name = infer_campaign_name(text);
+    if !campaign_name.trim().is_empty() {
+        input.insert(
+            "campaign_name".to_string(),
+            serde_json::json!(campaign_name),
+        );
+    }
+    if let Some(campaign_id) =
+        extract_labeled_token(text, &["活动ID", "campaign_id", "campaign id"])
+    {
+        input.insert("campaign_id".to_string(), serde_json::json!(campaign_id));
+    }
+    input.insert(
+        "campaign_type".to_string(),
+        serde_json::json!(infer_campaign_type(text)),
+    );
+    insert_metric_value(&mut input, "budget", text, &["预算", "budget", "活动预算"]);
+    insert_metric_value(
+        &mut input,
+        "spend",
+        text,
+        &["活动花费", "实际花费", "已花费", "消耗", "spend", "cost"],
+    );
+    insert_metric_value(
+        &mut input,
+        "impressions",
+        text,
+        &[
+            "曝光",
+            "曝光量",
+            "展现",
+            "展现量",
+            "impressions",
+            "exposure",
+        ],
+    );
+    insert_metric_value(
+        &mut input,
+        "coupon_cost",
+        text,
+        &["优惠券成本", "券成本", "让利成本", "coupon_cost"],
+    );
+    input
+}
+
+fn infer_common_metrics_input(text: &str) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_period_days(text)),
+    );
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(infer_store_metrics_platform(text)),
+    );
+    insert_metric_value(
+        &mut input,
+        "previous_gmv",
+        text,
+        &["previous_gmv", "last_gmv", "上期GMV", "上周GMV", "前期GMV"],
+    );
+    insert_metric_value(
+        &mut input,
+        "gmv",
+        text,
+        &[
+            "本期GMV",
+            "当前GMV",
+            "活动GMV",
+            "商品GMV",
+            "GMV",
+            "gmv",
+            "销售额",
+            "成交额",
+            "营收",
+        ],
+    );
+    insert_metric_value(
+        &mut input,
+        "orders",
+        text,
+        &["订单数", "订单", "销量", "成交单", "orders", "order_count"],
+    );
+    insert_metric_value(
+        &mut input,
+        "visitors",
+        text,
+        &["访客数", "访客", "UV", "uv", "visitors"],
+    );
+    insert_metric_value(
+        &mut input,
+        "clicks",
+        text,
+        &["点击数", "点击", "clicks", "click_count"],
+    );
+    insert_metric_value(
+        &mut input,
+        "ad_spend",
+        text,
+        &[
+            "广告费",
+            "广告花费",
+            "投放费用",
+            "投放花费",
+            "ad_spend",
+            "ad spend",
+            "ad_cost",
+        ],
+    );
+    insert_metric_value(
+        &mut input,
+        "refund_amount",
+        text,
+        &["退款金额", "退款额", "退款", "refund_amount", "refunds"],
+    );
+    insert_metric_value(
+        &mut input,
+        "gross_profit",
+        text,
+        &["毛利额", "毛利", "gross_profit", "profit"],
+    );
+    input
+}
+
 fn insert_metric_value(
     input: &mut serde_json::Map<String, serde_json::Value>,
     key: &str,
@@ -1839,6 +2033,27 @@ fn store_metrics_input_has_metrics(input: &serde_json::Map<String, serde_json::V
         "ad_spend",
         "refund_amount",
         "gross_profit",
+    ]
+    .iter()
+    .any(|key| input.contains_key(*key))
+}
+
+fn metric_query_input_has_metrics(input: &serde_json::Map<String, serde_json::Value>) -> bool {
+    [
+        "gmv",
+        "previous_gmv",
+        "orders",
+        "visitors",
+        "clicks",
+        "ad_spend",
+        "refund_amount",
+        "gross_profit",
+        "inventory",
+        "stockout_count",
+        "budget",
+        "spend",
+        "impressions",
+        "coupon_cost",
     ]
     .iter()
     .any(|key| input.contains_key(*key))
@@ -1882,6 +2097,105 @@ fn has_store_metrics_query_intent(text: &str) -> bool {
                 "read",
             ],
         )
+}
+
+fn has_product_metrics_query_intent(text: &str) -> bool {
+    if contains_any(
+        text,
+        &[
+            "query_product_metrics",
+            "product metrics",
+            "product_metrics",
+            "查询商品指标",
+            "加载商品指标",
+            "读取商品指标",
+            "查询商品数据",
+            "加载商品数据",
+            "读取商品数据",
+            "商品表现",
+            "单品表现",
+            "SKU表现",
+            "sku表现",
+            "商品数据基线",
+        ],
+    ) {
+        return true;
+    }
+
+    contains_any(
+        text,
+        &[
+            "商品指标",
+            "商品数据",
+            "单品指标",
+            "单品数据",
+            "SKU指标",
+            "sku指标",
+        ],
+    ) && contains_any(
+        text,
+        &[
+            "查询",
+            "加载",
+            "读取",
+            "拉取",
+            "看一下",
+            "复盘",
+            "分析",
+            "基线",
+            "load",
+            "query",
+            "read",
+        ],
+    )
+}
+
+fn has_campaign_metrics_query_intent(text: &str) -> bool {
+    if contains_any(
+        text,
+        &[
+            "query_campaign_metrics",
+            "campaign metrics",
+            "campaign_metrics",
+            "查询活动指标",
+            "加载活动指标",
+            "读取活动指标",
+            "查询活动数据",
+            "加载活动数据",
+            "读取活动数据",
+            "活动表现",
+            "活动数据基线",
+            "投放活动数据",
+        ],
+    ) {
+        return true;
+    }
+
+    contains_any(
+        text,
+        &[
+            "活动指标",
+            "活动数据",
+            "活动复盘",
+            "campaign指标",
+            "campaign数据",
+        ],
+    ) && contains_any(
+        text,
+        &[
+            "查询",
+            "加载",
+            "读取",
+            "拉取",
+            "看一下",
+            "复盘",
+            "分析",
+            "基线",
+            "load",
+            "query",
+            "read",
+        ],
+    )
 }
 
 fn has_external_search_intent(text: &str) -> bool {
@@ -2426,6 +2740,82 @@ fn infer_category(text: &str) -> &'static str {
 
 fn infer_product_name(text: &str) -> String {
     compact_task_text(text)
+}
+
+fn infer_campaign_name(text: &str) -> String {
+    if contains_any(text, &["618"]) {
+        "618大促".to_string()
+    } else if contains_any(text, &["双11", "双十一"]) {
+        "双11大促".to_string()
+    } else if contains_any(text, &["五一"]) {
+        "五一活动".to_string()
+    } else {
+        compact_task_text(text)
+    }
+}
+
+fn infer_campaign_type(text: &str) -> &'static str {
+    if contains_any(text, &["投放", "广告", "ad", "paid"]) {
+        "ad"
+    } else if contains_any(text, &["直播", "live"]) {
+        "live"
+    } else if contains_any(text, &["新品", "上新", "冷启动", "launch"]) {
+        "launch"
+    } else if contains_any(text, &["促销", "大促", "满减", "优惠", "promotion"]) {
+        "promotion"
+    } else {
+        "general"
+    }
+}
+
+fn extract_labeled_token(text: &str, labels: &[&str]) -> Option<String> {
+    let lower = text.to_ascii_lowercase();
+    for label in labels {
+        let label_lower = label.to_ascii_lowercase();
+        let Some(index) = lower.find(&label_lower) else {
+            continue;
+        };
+        let start = index + label_lower.len();
+        if let Some(token) = parse_token_after_label(&text[start..]) {
+            return Some(token);
+        }
+    }
+    None
+}
+
+fn parse_token_after_label(segment: &str) -> Option<String> {
+    let mut chars = segment.char_indices().peekable();
+    let mut token_start = None;
+    while let Some((index, ch)) = chars.peek().copied() {
+        if ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-') {
+            token_start = Some(index);
+            break;
+        }
+        if matches!(ch, ':' | '：' | '=' | '＝' | ' ' | '\t' | '#' | '号') {
+            chars.next();
+            continue;
+        }
+        if index > 12 {
+            return None;
+        }
+        chars.next();
+    }
+
+    let start = token_start?;
+    let mut end = start;
+    for (index, ch) in segment[start..].char_indices() {
+        if ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-') {
+            end = start + index + ch.len_utf8();
+            continue;
+        }
+        break;
+    }
+    let token = segment[start..end].trim();
+    if token.is_empty() {
+        None
+    } else {
+        Some(token.to_string())
+    }
 }
 
 fn infer_period_days(text: &str) -> i64 {
@@ -3621,6 +4011,41 @@ mod tests {
 
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].skill_id, "data_dashboard");
+    }
+
+    #[test]
+    fn autosuggests_product_and_campaign_metrics_by_intent() {
+        let product_requests = autosuggest_skill_requests(
+            &role("data"),
+            &task(
+                "查询商品指标：冷萃咖啡 GMV9.6万，订单1200，UV2.4万，广告费2.4万，库存8，缺货次数1",
+            ),
+            "{}",
+        );
+
+        assert_eq!(product_requests.len(), 1);
+        assert_eq!(product_requests[0].skill_id, "query_product_metrics");
+        assert_eq!(product_requests[0].input["gmv"], 96000.0);
+        assert_eq!(product_requests[0].input["orders"], 1200.0);
+        assert_eq!(product_requests[0].input["visitors"], 24000.0);
+        assert_eq!(product_requests[0].input["ad_spend"], 24000.0);
+        assert_eq!(product_requests[0].input["inventory"], 8.0);
+        assert_eq!(product_requests[0].input["stockout_count"], 1.0);
+
+        let campaign_requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task("复盘618活动数据：预算5万，活动花费4.2万，GMV21万，订单1800，曝光18万，点击7200"),
+            "{}",
+        );
+
+        assert_eq!(campaign_requests.len(), 1);
+        assert_eq!(campaign_requests[0].skill_id, "query_campaign_metrics");
+        assert_eq!(campaign_requests[0].input["budget"], 50000.0);
+        assert_eq!(campaign_requests[0].input["spend"], 42000.0);
+        assert_eq!(campaign_requests[0].input["gmv"], 210000.0);
+        assert_eq!(campaign_requests[0].input["orders"], 1800.0);
+        assert_eq!(campaign_requests[0].input["impressions"], 180000.0);
+        assert_eq!(campaign_requests[0].input["clicks"], 7200.0);
     }
 
     #[test]

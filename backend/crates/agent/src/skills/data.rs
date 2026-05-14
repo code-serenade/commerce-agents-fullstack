@@ -57,6 +57,86 @@ pub fn specs() -> Vec<SkillSpec> {
             &["deterministic"],
         ),
         spec(
+            "query_product_metrics",
+            "查询商品指标",
+            "查询单个商品或SKU经营指标；支持本轮显式指标输入，未接数据源时明确降级",
+            SkillPriority::High,
+            vec![
+                field(
+                    "product_id",
+                    "string",
+                    "商品ID；只作为本轮显式筛选条件",
+                    false,
+                ),
+                field(
+                    "product_name",
+                    "string",
+                    "商品名称；只作为本轮显式筛选条件",
+                    false,
+                ),
+                field("sku_id", "string", "SKU ID；只作为本轮显式筛选条件", false),
+                field("days", "integer", "查询最近N天，默认30", false),
+                field("platform", "string", "平台筛选，留空查全部", false),
+                field("gmv", "number", "商品GMV", false),
+                field("previous_gmv", "number", "上期商品GMV，用于环比", false),
+                field("orders", "integer", "商品订单数", false),
+                field(
+                    "previous_orders",
+                    "integer",
+                    "上期商品订单数，用于环比",
+                    false,
+                ),
+                field("visitors", "integer", "商品访客数UV", false),
+                field("clicks", "integer", "商品点击数", false),
+                field("ad_spend", "number", "商品广告花费", false),
+                field("refund_amount", "number", "商品退款金额", false),
+                field("gross_profit", "number", "商品毛利额", false),
+                field("inventory", "integer", "当前库存", false),
+                field("stockout_count", "integer", "缺货次数", false),
+            ],
+            &["deterministic"],
+        ),
+        spec(
+            "query_campaign_metrics",
+            "查询活动指标",
+            "查询营销活动或投放活动指标；支持本轮显式指标输入，未接数据源时明确降级",
+            SkillPriority::High,
+            vec![
+                field(
+                    "campaign_id",
+                    "string",
+                    "活动ID；只作为本轮显式筛选条件",
+                    false,
+                ),
+                field(
+                    "campaign_name",
+                    "string",
+                    "活动名称；只作为本轮显式筛选条件",
+                    false,
+                ),
+                field(
+                    "campaign_type",
+                    "string",
+                    "活动类型：promotion/ad/live/launch等",
+                    false,
+                ),
+                field("days", "integer", "查询最近N天，默认30", false),
+                field("platform", "string", "平台筛选，留空查全部", false),
+                field("budget", "number", "活动预算", false),
+                field("spend", "number", "活动实际花费", false),
+                field("ad_spend", "number", "广告花费", false),
+                field("gmv", "number", "活动GMV", false),
+                field("previous_gmv", "number", "上期活动GMV，用于环比", false),
+                field("orders", "integer", "活动订单数", false),
+                field("visitors", "integer", "活动访客数UV", false),
+                field("clicks", "integer", "活动点击数", false),
+                field("impressions", "integer", "活动曝光量", false),
+                field("coupon_cost", "number", "优惠券/让利成本", false),
+                field("refund_amount", "number", "退款金额", false),
+            ],
+            &["deterministic"],
+        ),
+        spec(
             "data_funnel_analysis",
             "漏斗分析",
             "分析电商转化漏斗各阶段转化率并定位流失环节",
@@ -424,6 +504,8 @@ pub async fn execute(skill_name: &str, input: Value, _context: &SkillContext) ->
     ensure_object(&input)?;
     let mut output = match skill_name {
         "query_store_metrics" => query_store_metrics(&input),
+        "query_product_metrics" => query_product_metrics(&input),
+        "query_campaign_metrics" => query_campaign_metrics(&input),
         "data_funnel_analysis" => funnel_analysis(&input),
         "data_anomaly_diagnosis" => anomaly_diagnosis(&input),
         "data_trend_forecast" => trend_forecast(&input),
@@ -632,6 +714,330 @@ fn query_store_metrics(input: &Value) -> Value {
     })
 }
 
+fn query_product_metrics(input: &Value) -> Value {
+    let days = i(input, "days", 30).clamp(1, 365);
+    let platform = normalize_metric_platform(input);
+    let product_id = s(input, "product_id", "");
+    let product_name = s(input, "product_name", "");
+    let sku_id = s(input, "sku_id", "");
+    let metric_keys = [
+        "gmv",
+        "revenue",
+        "previous_gmv",
+        "last_gmv",
+        "orders",
+        "order_count",
+        "previous_orders",
+        "last_orders",
+        "visitors",
+        "uv",
+        "clicks",
+        "click_count",
+        "ad_spend",
+        "ad_cost",
+        "refund_amount",
+        "refunds",
+        "gross_profit",
+        "profit",
+        "inventory",
+        "stock",
+        "stockout_count",
+    ];
+    let has_explicit_metrics = has_any_input(input, &metric_keys);
+    if !has_explicit_metrics {
+        return json!({
+            "status": "deferred",
+            "skill": "query_product_metrics",
+            "has_data": false,
+            "adapter_status": "product_metrics_required",
+            "data_readiness": "missing_user_input",
+            "deferred_reason": "当前没有本轮显式商品指标输入，也没有 product_metrics adapter；不会默认读取任何预设商品或伪造平台实时商品数据",
+            "side_effects": "none",
+            "query": {
+                "product_id": empty_string_as_null(product_id),
+                "product_name": empty_string_as_null(product_name),
+                "sku_id": empty_string_as_null(sku_id),
+                "platform": platform,
+                "days": days
+            },
+            "expected_inputs": [
+                "product_id/product_name/sku_id",
+                "gmv/revenue",
+                "orders/order_count",
+                "visitors/uv",
+                "clicks/click_count",
+                "ad_spend/ad_cost",
+                "refund_amount/refunds",
+                "gross_profit/profit",
+                "inventory/stock",
+                "stockout_count"
+            ],
+            "next_actions": [
+                "在本轮输入中提供商品或SKU经营指标",
+                "或先通过前端引用商品并由后续 service adapter 注入真实商品指标",
+                "前端展示为缺商品指标状态，不要当作已读取平台实时商品数据"
+            ],
+            "answerPolicy": {
+                "no_default_product": true,
+                "live_platform_lookup": false,
+                "source": "explicit_product_metrics_required"
+            },
+            "summary": "商品指标查询等待真实数据输入"
+        });
+    }
+
+    let (gmv, _) = number_from_any(input, &["gmv", "revenue"], 0.0);
+    let (orders, _) = number_from_any(input, &["orders", "order_count"], 0.0);
+    let (visitors, _) = number_from_any(input, &["visitors", "uv"], 0.0);
+    let (clicks, _) = number_from_any(input, &["clicks", "click_count"], 0.0);
+    let (ad_spend, _) = number_from_any(input, &["ad_spend", "ad_cost"], 0.0);
+    let (refund_amount, _) = number_from_any(input, &["refund_amount", "refunds"], 0.0);
+    let (gross_profit, _) = number_from_any(input, &["gross_profit", "profit"], 0.0);
+    let (inventory, _) = number_from_any(input, &["inventory", "stock"], 0.0);
+    let (stockout_count, _) = number_from_any(input, &["stockout_count"], 0.0);
+    let previous = store_metric_previous(input);
+    let conversion_rate = pct(orders, visitors.max(1.0));
+    let ctr = pct(clicks, visitors.max(1.0));
+    let aov = if orders > 0.0 { gmv / orders } else { 0.0 };
+    let ad_roi = if ad_spend > 0.0 {
+        Some(round2(gmv / ad_spend))
+    } else {
+        None
+    };
+    let refund_rate = pct(refund_amount, gmv.max(1.0));
+    let gross_margin = pct(gross_profit, gmv.max(1.0));
+    let sell_through_pressure = if inventory > 0.0 {
+        round2(orders / inventory)
+    } else {
+        0.0
+    };
+    let risks = product_metric_risks(
+        gmv,
+        conversion_rate,
+        ad_roi,
+        refund_rate,
+        inventory,
+        stockout_count,
+    );
+
+    json!({
+        "status": "success",
+        "skill": "query_product_metrics",
+        "has_data": true,
+        "adapter_status": "manual_input",
+        "data_readiness": "explicit_product_metrics",
+        "数据来源": "用户提供商品指标",
+        "days": days,
+        "date_range": {
+            "mode": "relative",
+            "days": days
+        },
+        "query": {
+            "product_id": empty_string_as_null(product_id),
+            "product_name": empty_string_as_null(product_name),
+            "sku_id": empty_string_as_null(sku_id),
+            "platform": platform
+        },
+        "totals": {
+            "gmv": round2(gmv),
+            "orders": round2(orders),
+            "uv": round2(visitors),
+            "clicks": round2(clicks),
+            "ad_spend": round2(ad_spend),
+            "refund_amount": round2(refund_amount),
+            "gross_profit": round2(gross_profit),
+            "inventory": round2(inventory),
+            "stockout_count": round2(stockout_count)
+        },
+        "derived_metrics": {
+            "conversion_rate": percent(conversion_rate, 2),
+            "ctr": percent(ctr, 2),
+            "aov": round2(aov),
+            "ad_roi": ad_roi,
+            "refund_rate": percent(refund_rate, 2),
+            "gross_margin": percent(gross_margin, 2),
+            "sell_through_pressure": sell_through_pressure
+        },
+        "week_over_week": store_metric_week_over_week(gmv, orders, visitors, &previous),
+        "risks": risks,
+        "next_actions": product_metric_actions(conversion_rate, ad_roi, refund_rate, inventory, stockout_count),
+        "answerPolicy": {
+            "no_default_product": true,
+            "live_platform_lookup": false,
+            "source": "user_explicit_product_metrics"
+        },
+        "summary": format!("商品指标已从本轮显式输入汇总，GMV={}，订单={}", round2(gmv), round2(orders)),
+        "side_effects": "none",
+        "说明": "本结果只基于本轮明确提供的商品指标，不代表已读取淘宝、抖音、千川或其它平台实时商品数据。"
+    })
+}
+
+fn query_campaign_metrics(input: &Value) -> Value {
+    let days = i(input, "days", 30).clamp(1, 365);
+    let platform = normalize_metric_platform(input);
+    let campaign_id = s(input, "campaign_id", "");
+    let campaign_name = s(input, "campaign_name", "");
+    let campaign_type = s(input, "campaign_type", "general");
+    let metric_keys = [
+        "budget",
+        "spend",
+        "ad_spend",
+        "gmv",
+        "revenue",
+        "previous_gmv",
+        "last_gmv",
+        "orders",
+        "order_count",
+        "visitors",
+        "uv",
+        "clicks",
+        "click_count",
+        "impressions",
+        "exposure",
+        "coupon_cost",
+        "refund_amount",
+        "refunds",
+    ];
+    let has_explicit_metrics = has_any_input(input, &metric_keys);
+    if !has_explicit_metrics {
+        return json!({
+            "status": "deferred",
+            "skill": "query_campaign_metrics",
+            "has_data": false,
+            "adapter_status": "campaign_metrics_required",
+            "data_readiness": "missing_user_input",
+            "deferred_reason": "当前没有本轮显式活动指标输入，也没有 campaign_metrics adapter；不会伪造活动、投放或平台实时数据",
+            "side_effects": "none",
+            "query": {
+                "campaign_id": empty_string_as_null(campaign_id),
+                "campaign_name": empty_string_as_null(campaign_name),
+                "campaign_type": campaign_type,
+                "platform": platform,
+                "days": days
+            },
+            "expected_inputs": [
+                "campaign_id/campaign_name/campaign_type",
+                "budget",
+                "spend/ad_spend",
+                "gmv/revenue",
+                "orders/order_count",
+                "visitors/uv",
+                "clicks/click_count",
+                "impressions/exposure",
+                "coupon_cost",
+                "refund_amount/refunds"
+            ],
+            "next_actions": [
+                "在本轮输入中提供活动预算、花费、GMV、曝光、点击或订单等指标",
+                "后续通过 service 层接入已鉴权的 campaign_metrics adapter",
+                "前端展示为缺活动指标状态，不要当作平台实时活动复盘结果"
+            ],
+            "answerPolicy": {
+                "live_platform_lookup": false,
+                "source": "explicit_campaign_metrics_required"
+            },
+            "summary": "活动指标查询等待真实数据输入"
+        });
+    }
+
+    let (budget, _) = number_from_any(input, &["budget"], 0.0);
+    let (spend, has_spend) = number_from_any(input, &["spend", "ad_spend"], 0.0);
+    let (gmv, _) = number_from_any(input, &["gmv", "revenue"], 0.0);
+    let (orders, _) = number_from_any(input, &["orders", "order_count"], 0.0);
+    let (visitors, _) = number_from_any(input, &["visitors", "uv"], 0.0);
+    let (clicks, _) = number_from_any(input, &["clicks", "click_count"], 0.0);
+    let (impressions, _) = number_from_any(input, &["impressions", "exposure"], 0.0);
+    let (coupon_cost, _) = number_from_any(input, &["coupon_cost"], 0.0);
+    let (refund_amount, _) = number_from_any(input, &["refund_amount", "refunds"], 0.0);
+    let total_cost = spend + coupon_cost;
+    let conversion_rate = pct(orders, visitors.max(1.0));
+    let ctr = pct(clicks, impressions.max(1.0));
+    let cpc = if clicks > 0.0 {
+        Some(round2(spend / clicks))
+    } else {
+        None
+    };
+    let cpm = if impressions > 0.0 {
+        Some(round2(spend / impressions * 1000.0))
+    } else {
+        None
+    };
+    let roas = if spend > 0.0 {
+        Some(round2(gmv / spend))
+    } else {
+        None
+    };
+    let roi = if total_cost > 0.0 {
+        Some(round2((gmv - total_cost) / total_cost))
+    } else {
+        None
+    };
+    let budget_usage = pct(spend, budget.max(1.0));
+    let refund_rate = pct(refund_amount, gmv.max(1.0));
+    let previous = store_metric_previous(input);
+    let risks = campaign_metric_risks(
+        budget,
+        spend,
+        gmv,
+        conversion_rate,
+        roas,
+        refund_rate,
+        has_spend,
+    );
+
+    json!({
+        "status": "success",
+        "skill": "query_campaign_metrics",
+        "has_data": true,
+        "adapter_status": "manual_input",
+        "data_readiness": "explicit_campaign_metrics",
+        "数据来源": "用户提供活动指标",
+        "days": days,
+        "date_range": {
+            "mode": "relative",
+            "days": days
+        },
+        "query": {
+            "campaign_id": empty_string_as_null(campaign_id),
+            "campaign_name": empty_string_as_null(campaign_name),
+            "campaign_type": campaign_type,
+            "platform": platform
+        },
+        "totals": {
+            "budget": round2(budget),
+            "spend": round2(spend),
+            "coupon_cost": round2(coupon_cost),
+            "total_cost": round2(total_cost),
+            "gmv": round2(gmv),
+            "orders": round2(orders),
+            "uv": round2(visitors),
+            "clicks": round2(clicks),
+            "impressions": round2(impressions),
+            "refund_amount": round2(refund_amount)
+        },
+        "derived_metrics": {
+            "budget_usage": percent(budget_usage, 2),
+            "ctr": percent(ctr, 2),
+            "conversion_rate": percent(conversion_rate, 2),
+            "cpc": cpc,
+            "cpm": cpm,
+            "roas": roas,
+            "roi": roi,
+            "refund_rate": percent(refund_rate, 2)
+        },
+        "week_over_week": store_metric_week_over_week(gmv, orders, visitors, &previous),
+        "risks": risks,
+        "next_actions": campaign_metric_actions(budget_usage, conversion_rate, roas, refund_rate),
+        "answerPolicy": {
+            "live_platform_lookup": false,
+            "source": "user_explicit_campaign_metrics"
+        },
+        "summary": format!("活动指标已从本轮显式输入汇总，GMV={}，花费={}", round2(gmv), round2(spend)),
+        "side_effects": "none",
+        "说明": "本结果只基于本轮明确提供的活动指标，不代表已读取淘宝、抖音、千川或其它平台实时活动数据。"
+    })
+}
+
 fn normalize_data_output(skill_name: &str, input: &Value, output: &mut Value) {
     let Some(map) = output.as_object_mut() else {
         return;
@@ -724,6 +1130,8 @@ fn data_readiness(skill_name: &str, input: &Value) -> &'static str {
 fn data_summary(skill_name: &str) -> &'static str {
     match skill_name {
         "query_store_metrics" => "店铺指标查询结果已生成",
+        "query_product_metrics" => "商品指标查询结果已生成",
+        "query_campaign_metrics" => "活动指标查询结果已生成",
         "data_anomaly_diagnosis" => "异常诊断报告已生成",
         "data_trend_forecast" => "趋势预测报告已生成",
         "data_customer_segmentation" => "客户分层报告已生成",
@@ -1205,6 +1613,158 @@ fn store_metric_anomalies(
         }));
     }
     anomalies
+}
+
+fn product_metric_risks(
+    gmv: f64,
+    conversion_rate: f64,
+    ad_roi: Option<f64>,
+    refund_rate: f64,
+    inventory: f64,
+    stockout_count: f64,
+) -> Vec<Value> {
+    let mut risks = store_metric_anomalies(gmv, conversion_rate, ad_roi, refund_rate, 0.0);
+    if inventory > 0.0 && inventory < 10.0 {
+        risks.push(json!({
+            "metric": "inventory",
+            "level": "warning",
+            "message": "库存低于10件，若仍有投放或活动承接，需检查补货和售罄风险"
+        }));
+    }
+    if stockout_count > 0.0 {
+        risks.push(json!({
+            "metric": "stockout_count",
+            "level": "warning",
+            "message": "本轮输入存在缺货次数，建议评估缺货对转化和投放浪费的影响"
+        }));
+    }
+    risks
+}
+
+fn product_metric_actions(
+    conversion_rate: f64,
+    ad_roi: Option<f64>,
+    refund_rate: f64,
+    inventory: f64,
+    stockout_count: f64,
+) -> Vec<&'static str> {
+    let mut actions = Vec::new();
+    if conversion_rate > 0.0 && conversion_rate < 2.0 {
+        actions.push("优先复核商品详情页卖点、价格带、评价区和客服承接，先提高商品转化率");
+    }
+    if matches!(ad_roi, Some(value) if value > 0.0 && value < 2.0) {
+        actions.push("收缩低ROI商品投放计划，检查素材疲劳和关键词/人群匹配");
+    }
+    if refund_rate > 6.0 {
+        actions.push("拆解退款原因，检查商品描述、规格、物流和售后口径是否一致");
+    }
+    if inventory > 0.0 && inventory < 10.0 {
+        actions.push("低库存商品暂停大额加码，先确认补货周期和安全库存");
+    }
+    if stockout_count > 0.0 {
+        actions.push("把缺货时段与广告消耗、访客和客服咨询量对齐，评估损失并补库存策略");
+    }
+    if actions.is_empty() {
+        actions.push("维持当前商品节奏，下一轮重点观察转化率、ROI、退款率和库存周转");
+    }
+    actions
+}
+
+fn campaign_metric_risks(
+    budget: f64,
+    spend: f64,
+    gmv: f64,
+    conversion_rate: f64,
+    roas: Option<f64>,
+    refund_rate: f64,
+    has_spend: bool,
+) -> Vec<Value> {
+    let mut risks = Vec::new();
+    if has_spend && spend <= 0.0 {
+        risks.push(json!({
+            "metric": "spend",
+            "level": "warning",
+            "message": "活动花费为0，投放效率和ROI判断可信度不足"
+        }));
+    }
+    if budget > 0.0 && spend > budget {
+        risks.push(json!({
+            "metric": "budget_usage",
+            "level": "warning",
+            "message": "活动花费已超过预算，建议检查预算控制和投放节奏"
+        }));
+    }
+    if gmv <= 0.0 {
+        risks.push(json!({
+            "metric": "gmv",
+            "level": "warning",
+            "message": "活动GMV为0或未提供，无法判断活动产出"
+        }));
+    }
+    if conversion_rate > 0.0 && conversion_rate < 1.0 {
+        risks.push(json!({
+            "metric": "conversion_rate",
+            "level": "warning",
+            "message": "活动转化率低于1%，需复核人群、价格、落地页和优惠承接"
+        }));
+    }
+    if matches!(roas, Some(value) if value > 0.0 && value < 2.0) {
+        risks.push(json!({
+            "metric": "roas",
+            "level": "warning",
+            "message": "活动ROAS低于2，建议压缩低效计划或调整优惠机制"
+        }));
+    }
+    if refund_rate > 8.0 {
+        risks.push(json!({
+            "metric": "refund_rate",
+            "level": "warning",
+            "message": "活动退款率偏高，可能存在冲动购买、描述不符或履约问题"
+        }));
+    }
+    risks
+}
+
+fn campaign_metric_actions(
+    budget_usage: f64,
+    conversion_rate: f64,
+    roas: Option<f64>,
+    refund_rate: f64,
+) -> Vec<&'static str> {
+    let mut actions = Vec::new();
+    if budget_usage > 100.0 {
+        actions.push("先冻结超预算活动单元，复核预算分配和出价策略");
+    }
+    if conversion_rate > 0.0 && conversion_rate < 1.5 {
+        actions.push("优化活动落地页、利益点表达和客服承接，优先修正转化漏斗");
+    }
+    if matches!(roas, Some(value) if value > 0.0 && value < 2.0) {
+        actions.push("按计划/素材/人群拆ROAS，保留高产出单元，暂停低效单元");
+    }
+    if refund_rate > 8.0 {
+        actions.push("把活动订单按SKU和退款原因拆解，避免用高退款活动继续放量");
+    }
+    if actions.is_empty() {
+        actions.push("活动指标未见明显高危信号，下一轮继续按预算消耗、ROAS和转化率复盘");
+    }
+    actions
+}
+
+fn normalize_metric_platform(input: &Value) -> String {
+    let platform = s(input, "platform", "all");
+    if platform.trim().is_empty() {
+        "all".to_owned()
+    } else {
+        platform
+    }
+}
+
+fn empty_string_as_null(value: String) -> Value {
+    if value.trim().is_empty() {
+        Value::Null
+    } else {
+        json!(value)
+    }
 }
 
 fn customer_segmentation(input: &Value) -> Value {
@@ -2858,6 +3418,155 @@ mod tests {
                 .and_then(Value::as_array)
                 .map(Vec::len),
             Some(1)
+        );
+    }
+
+    #[tokio::test]
+    async fn query_product_metrics_marks_success_for_explicit_metrics() {
+        let outcome = execute(
+            "query_product_metrics",
+            json!({
+                "product_id": "prod-001",
+                "product_name": "冷萃咖啡",
+                "sku_id": "sku-a",
+                "platform": "抖音",
+                "gmv": 96000.0,
+                "previous_gmv": 80000.0,
+                "orders": 1200,
+                "visitors": 24000,
+                "clicks": 4800,
+                "ad_spend": 24000.0,
+                "refund_amount": 2800.0,
+                "gross_profit": 32000.0,
+                "inventory": 8,
+                "stockout_count": 1
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("query_product_metrics should run from explicit metrics");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("manual_input")
+        );
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("explicit_product_metrics")
+        );
+        assert_eq!(output.pointer("/totals/gmv"), Some(&json!(96000.0)));
+        assert_eq!(
+            output.pointer("/query/product_id"),
+            Some(&json!("prod-001"))
+        );
+        assert_eq!(
+            output.pointer("/answerPolicy/no_default_product"),
+            Some(&json!(true))
+        );
+        assert!(output.pointer("/risks/0/metric").is_some());
+    }
+
+    #[tokio::test]
+    async fn query_product_metrics_defers_without_explicit_metrics() {
+        let outcome = execute(
+            "query_product_metrics",
+            json!({"product_name": "冷萃咖啡", "days": 30}),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("query_product_metrics should return structured deferred");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("deferred")
+        );
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("product_metrics_required")
+        );
+        assert!(
+            output
+                .get("deferred_reason")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .contains("不会默认读取任何预设商品")
+        );
+    }
+
+    #[tokio::test]
+    async fn query_campaign_metrics_marks_success_for_explicit_metrics() {
+        let outcome = execute(
+            "query_campaign_metrics",
+            json!({
+                "campaign_id": "camp-618",
+                "campaign_name": "618大促",
+                "campaign_type": "promotion",
+                "platform": "天猫",
+                "budget": 50000.0,
+                "spend": 42000.0,
+                "gmv": 210000.0,
+                "previous_gmv": 160000.0,
+                "orders": 1800,
+                "visitors": 36000,
+                "clicks": 7200,
+                "impressions": 180000,
+                "coupon_cost": 12000.0,
+                "refund_amount": 6000.0
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("query_campaign_metrics should run from explicit metrics");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("manual_input")
+        );
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("explicit_campaign_metrics")
+        );
+        assert_eq!(output.pointer("/totals/gmv"), Some(&json!(210000.0)));
+        assert_eq!(output.pointer("/totals/total_cost"), Some(&json!(54000.0)));
+        assert_eq!(output.pointer("/derived_metrics/roas"), Some(&json!(5.0)));
+    }
+
+    #[tokio::test]
+    async fn query_campaign_metrics_defers_without_explicit_metrics() {
+        let outcome = execute(
+            "query_campaign_metrics",
+            json!({"campaign_name": "五一活动", "days": 30}),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("query_campaign_metrics should return structured deferred");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("deferred")
+        );
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("campaign_metrics_required")
+        );
+        assert!(
+            output
+                .get("deferred_reason")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .contains("不会伪造活动")
         );
     }
 

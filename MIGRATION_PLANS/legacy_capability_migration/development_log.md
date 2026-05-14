@@ -1,5 +1,51 @@
 # 迁移开发记录
 
+## Post 8-65：商品 / 活动指标查询 native skill
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 65 个补强项：`Post 8-65`。
+
+本次目标：
+
+- 继续补强旧产品指标仓能力在新产品 Agent 里的可用性。
+- 在店铺指标之外，补齐商品 / SKU 指标查询和活动 / 投放活动指标查询。
+- 不新增假前端入口，不伪造平台实时指标，不默认读取任何预设商品。
+
+本次修改：
+
+- 后端 agent：新增 `query_product_metrics` deterministic native skill。
+- 后端 agent：新增 `query_campaign_metrics` deterministic native skill。
+- 后端 agent：有显式指标时返回 `status=success`、`adapter_status=manual_input`，输出 totals、derived_metrics、week_over_week、risks 和 next_actions。
+- 后端 agent：缺显式指标时返回 `status=deferred`，分别标记 `product_metrics_required` / `campaign_metrics_required`。
+- 后端 worker：新增商品指标和活动指标自然语言触达。
+- 后端 role catalog：补齐 ops/accounting 对新 query skill 的跨角色使用白名单；data 角色按自身类别天然可用。
+- 协同 skill chain：把 `query_product_metrics` / `query_campaign_metrics` 纳入数据加载阶段和前置依赖说明。
+- API/SSE：同步说明新 skill 的 `skill_result.output` 契约和自然触达规则。
+- 迁移文档：同步阶段验收记录、总计划、矩阵和本轮归档文件。
+
+用户可感知变化：
+
+- 用户说“查询商品指标：冷萃咖啡 GMV9.6万，订单1200，UV2.4万，广告费2.4万，库存8”时，后端能自动进入 `query_product_metrics`。
+- 用户说“复盘618活动数据：预算5万，活动花费4.2万，GMV21万，订单1800，曝光18万，点击7200”时，后端能自动进入 `query_campaign_metrics`。
+- 没有显式商品或活动指标时，系统会明确返回缺数据/待接 adapter，不会假装读取平台或预设商品。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/product_campaign_metrics_native_post_8_65.md`
+- [x] Agent skill 单测覆盖商品指标成功和缺数据 deferred。
+- [x] Agent skill 单测覆盖活动指标成功和缺数据 deferred。
+- [x] Agent autosuggest 单测覆盖商品/活动指标自然触达。
+
+后续缺口：
+
+- 真实 `product_metrics` / `campaign_metrics` service adapter 仍待实现。
+- 前端过程面板后续应把 `product_metrics_required` / `campaign_metrics_required` 展示成清晰缺数据状态。
+- 若未来要从用户商品库、活动库或平台连接读取，应通过 service/repo/web-server 正式设计，不在 agent crate 直连数据库。
+
 ## Post 8-64：搜索类 skill 自然触达补强
 
 状态：done

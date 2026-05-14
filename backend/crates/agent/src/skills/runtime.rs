@@ -672,8 +672,10 @@ mod tests {
     #[test]
     fn staged_registry_loads_all_specs() {
         let registry = SkillRegistry::staged().expect("registry should load");
-        assert_eq!(registry.len(), 93);
+        assert_eq!(registry.len(), 95);
         assert!(registry.get("ops_pricing_strategy").is_some());
+        assert!(registry.get("query_product_metrics").is_some());
+        assert!(registry.get("query_campaign_metrics").is_some());
         assert!(registry.get("missing_skill").is_none());
     }
 
@@ -733,7 +735,10 @@ mod tests {
                 "accounting_cost_calc",
                 json!({"purchase_cost": 20.0, "selling_price": 49.0}),
             ),
-            ("data_funnel_analysis", json!({})),
+            (
+                "data_funnel_analysis",
+                json!({"impressions": 120000, "clicks": 9600, "add_to_cart": 1800, "orders": 860, "payments": 790}),
+            ),
             (
                 "data_dashboard",
                 json!({"gmv": 180000.0, "previous_gmv": 150000.0, "orders": 1800, "visitors": 36000}),

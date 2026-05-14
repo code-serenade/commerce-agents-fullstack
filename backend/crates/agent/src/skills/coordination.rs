@@ -1196,6 +1196,8 @@ fn normalize_available_skills(values: Vec<String>) -> BTreeSet<String> {
 fn normalize_skill_id(skill: &str) -> &str {
     match skill.trim() {
         "data_query_store_metrics" => "query_store_metrics",
+        "data_query_product_metrics" => "query_product_metrics",
+        "data_query_campaign_metrics" => "query_campaign_metrics",
         "service_response_templates" => "service_faq_playbook",
         value => value,
     }
@@ -1288,8 +1290,15 @@ fn skill_chain_prerequisites(skill: &str) -> Vec<&'static str> {
         | "service_nps_analyzer"
         | "service_nps_driver_analysis"
         | "creative_content_calendar" => vec!["query_store_metrics"],
+        "ops_listing_copy"
+        | "design_main_image"
+        | "design_detail_page"
+        | "web_product_description" => {
+            vec!["query_product_metrics"]
+        }
         "accounting_budget_vs_actual" => vec!["query_store_metrics", "accounting_budget_plan"],
-        "coordination_create_campaign" => vec!["ops_promo_planning"],
+        "ops_promo_planning" => vec!["query_campaign_metrics"],
+        "coordination_create_campaign" => vec!["query_campaign_metrics", "ops_promo_planning"],
         "coordination_create_task" => vec!["ops_execution_plan"],
         "coordination_save_memory" => vec!["data_customer_segmentation"],
         _ => Vec::new(),
@@ -1297,7 +1306,10 @@ fn skill_chain_prerequisites(skill: &str) -> Vec<&'static str> {
 }
 
 fn skill_chain_phase(skill: &str) -> &'static str {
-    if skill == "query_store_metrics" {
+    if matches!(
+        skill,
+        "query_store_metrics" | "query_product_metrics" | "query_campaign_metrics"
+    ) {
         "data_loading"
     } else if skill.starts_with("search_") {
         "evidence_gathering"
@@ -1327,7 +1339,11 @@ fn skill_chain_phase(skill: &str) -> &'static str {
 }
 
 fn skill_owner_role(skill: &str) -> &'static str {
-    if skill == "query_store_metrics" || skill.starts_with("data_") || skill.starts_with("search_")
+    if matches!(
+        skill,
+        "query_store_metrics" | "query_product_metrics" | "query_campaign_metrics"
+    ) || skill.starts_with("data_")
+        || skill.starts_with("search_")
     {
         "data"
     } else if skill.starts_with("ops_") {
@@ -1355,7 +1371,11 @@ fn skill_chain_execution_mode(skill: &str) -> &'static str {
         || skill == "engineering_system_check"
     {
         "pending_approval"
-    } else if skill == "query_store_metrics" || skill.starts_with("search_") {
+    } else if matches!(
+        skill,
+        "query_store_metrics" | "query_product_metrics" | "query_campaign_metrics"
+    ) || skill.starts_with("search_")
+    {
         "adapter_required"
     } else {
         "native"
