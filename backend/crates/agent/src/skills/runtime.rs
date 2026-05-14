@@ -351,7 +351,11 @@ fn validate_request(spec: &SkillSpec, input: &Value) -> Result<(), SkillError> {
 }
 
 fn execution_mode(spec: &SkillSpec) -> SkillExecutionMode {
-    if custom_category(spec) == Some("search") || spec.tags.iter().any(|tag| tag == "adapter") {
+    if custom_category(spec) == Some("search")
+        || spec.tags.iter().any(|tag| tag == "adapter")
+        || spec.tags.iter().any(|tag| tag == "pending_approval")
+        || spec.id.starts_with("platform_")
+    {
         SkillExecutionMode::Adapter
     } else if spec.tags.iter().any(|tag| tag == "deferred") {
         SkillExecutionMode::Deferred
@@ -1384,6 +1388,33 @@ mod tests {
         assert_eq!(
             result.metadata.get("risk_level"),
             Some(&json!(SkillRiskLevel::High))
+        );
+    }
+
+    #[tokio::test]
+    async fn executor_marks_engineering_system_check_as_platform_boundary() {
+        let executor = SkillExecutorSet::staged().expect("executor should load");
+        let result = executor
+            .execute(SkillRequest::new(
+                "req-engineering-system-check",
+                "engineering_system_check",
+                json!({"platform": "淘宝", "test_live": true}),
+            ))
+            .await;
+
+        assert_eq!(result.status, SkillExecutionStatus::PendingApproval);
+        assert_eq!(
+            result.metadata.get("execution_mode"),
+            Some(&json!(SkillExecutionMode::Adapter))
+        );
+        assert_eq!(
+            result.metadata.get("risk_level"),
+            Some(&json!(SkillRiskLevel::High))
+        );
+        assert_eq!(result.metadata.get("approval_required"), Some(&json!(true)));
+        assert_eq!(
+            result.metadata.get("adapter_requirements"),
+            Some(&json!([SkillAdapterKind::Platform]))
         );
     }
 }

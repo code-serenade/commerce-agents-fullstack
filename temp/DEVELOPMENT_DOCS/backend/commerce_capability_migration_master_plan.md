@@ -236,23 +236,23 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-68: data channel ROI and refund native contract
+Post 8-69: engineering system check reachability
 ```
 
 Scope:
 
-- correct `data_channel_roi` and `data_refund_decomposition` runtime metadata to native deterministic skill behavior
-- parse explicit same-turn channel metrics into `channels[]` for `data_channel_roi`
-- parse explicit same-turn refund causes and amounts into `items[]` for `data_refund_decomposition`
-- keep missing channel/refund data as truthful deferred states that do not create fake artifacts
-- preserve the data truthfulness rule: no default product injection and no fake live Taobao, Douyin, Qianchuan, or other platform data
+- auto-suggest `engineering_system_check` from explicit platform API connectivity / interface health language
+- parse target platform names such as Taobao, Tmall, Douyin, JD, and PDD from the current user text
+- keep real live connection testing as `pending_approval` with platform adapter requirement
+- keep generic system status questions routed to `coordination_status_query`
+- preserve the platform truthfulness rule: no fake platform health result and no direct Agent database reads
 
 Reason:
 
-- these two old-product data skills already had Rust execution, but their spec still made them look like deferred/adapter-style capability
-- user-provided channel and refund data should calculate immediately inside the new Agent runtime
-- frontend and audit consumers need truthful `execution_mode=native` metadata instead of guessing from labels
-- it improves core data skill usability without waiting for official platform adapters
+- the old product had `EngineeringSystemCheck`; the new product had the backend skill boundary but poor natural reachability
+- platform API health checks are high-risk/adapter-dependent and must not be presented as local native success
+- users should see a truthful deferred or approval boundary when asking for Taobao/Douyin/Qianchuan connectivity
+- this improves backend skill routing without waiting for official platform adapters or adding fake frontend controls
 
 ## 10. Validation Standard
 

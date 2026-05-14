@@ -1,5 +1,49 @@
 # 迁移开发记录
 
+## Post 8-69：平台接口健康检查自然触达
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 69 个补强项：`Post 8-69`。
+
+本次目标：
+
+- 把旧产品 `EngineeringSystemCheck` 的平台 API 健康检查意图接入新产品工程 worker 的自然触达。
+- 让用户明确问平台接口健康、API 连通性、授权或同步状态时，后端能命中 `engineering_system_check`。
+- 保持平台健康检查的真实边界：未接 adapter 时不伪造成功，真实测试连接必须进入审批。
+
+本次修改：
+
+- 后端 worker：新增平台健康检查 intent 识别。
+- 后端 worker：自动解析淘宝、天猫、抖音、京东、拼多多等平台名。
+- 后端 worker：用户要求真实 / 实际 / 测试 / 连通时自动传入 `test_live=true`。
+- 后端 runtime：`pending_approval` 类 skill 的 execution mode 优先识别为 `adapter`，使 `engineering_system_check` 显示为平台 adapter / 审批边界。
+- 角色 skill catalog：`pending_approval` 展示优先于 `deferred`。
+- API/SSE：同步 `engineering_system_check` 的自然触达和 pending approval 边界。
+
+用户可感知变化：
+
+- 用户问“检查一下淘宝平台 API 连通性和接口健康情况”时，后端会命中平台健康检查 skill。
+- 当前没有真实平台 adapter 时，系统会清楚说明缺平台连接配置读取或需要审批，不会假装已经检测成功。
+- 泛化的“系统健康 / 当前状态 / 任务进度”仍走 `coordination_status_query`，不会误触发平台 API 检查。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/engineering_system_check_reachability_post_8_69.md`
+- [x] Agent 单测覆盖平台健康检查自然语言触达。
+- [x] Agent 单测覆盖工程岗位意图路由。
+- [x] Runtime 单测覆盖 `engineering_system_check` 的平台 adapter / 审批边界。
+- [x] Role skill catalog 单测覆盖工程岗位可用该 skill。
+
+后续缺口：
+
+- 真实平台连接配置读取仍需通过 service/repo 边界设计，不能在 agent crate 直连数据库。
+- 真实淘宝 / 抖音 / 千川等平台连通性测试仍需官方 adapter、审批、审计和告警闭环。
+- 前端还需要把 `pending_approval` 的健康检查过程展示得更清楚。
+
 ## Post 8-68：渠道 ROI / 退款拆解 native 契约修正
 
 状态：done

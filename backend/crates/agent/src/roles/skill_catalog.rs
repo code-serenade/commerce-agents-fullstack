@@ -135,12 +135,12 @@ fn format_skill_line(spec: &SkillSpec) -> String {
         || spec.tags.iter().any(|tag| tag == "adapter")
     {
         "adapter"
-    } else if spec.tags.iter().any(|tag| tag == "deferred") {
-        "deferred"
     } else if spec.tags.iter().any(|tag| tag == "pending_approval")
         || spec.id.starts_with("platform_")
     {
         "pending_approval"
+    } else if spec.tags.iter().any(|tag| tag == "deferred") {
+        "deferred"
     } else {
         "local"
     };
@@ -202,5 +202,6 @@ mod tests {
         assert!(catalog.can_role_use_skill(&role("accounting"), "accounting_roi_calc"));
         assert!(!catalog.can_role_use_skill(&role("accounting"), "creative_video_script"));
         assert!(catalog.can_role_use_skill(&role("creative"), "web_title_seo_scorer"));
+        assert!(catalog.can_role_use_skill(&role("engineering"), "engineering_system_check"));
     }
 }

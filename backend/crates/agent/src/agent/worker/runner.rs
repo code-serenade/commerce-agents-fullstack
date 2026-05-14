@@ -1410,6 +1410,22 @@ fn autosuggest_design(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
 }
 
 fn autosuggest_engineering(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
+    if has_platform_health_check_intent(text) {
+        let test_live = contains_any(text, &["实际", "真实", "连通", "连通性", "测试", "live"]);
+        return Some(autosuggest_request(
+            "engineering_system_check",
+            serde_json::json!({
+                "platform": infer_platform_health_check_platform(text),
+                "test_live": test_live,
+            }),
+            if test_live {
+                "根据平台接口连通性意图自动补偿平台健康检查 skill，实际检测需审批"
+            } else {
+                "根据平台连接配置检查意图自动补偿平台健康检查 skill"
+            },
+        ));
+    }
+
     if contains_any(
         text,
         &[
@@ -3166,6 +3182,57 @@ fn infer_status_query_type_from_text(text: &str) -> &'static str {
     }
 }
 
+fn has_platform_health_check_intent(text: &str) -> bool {
+    let mentions_platform = contains_any(
+        text,
+        &[
+            "淘宝",
+            "天猫",
+            "抖音",
+            "千川",
+            "京东",
+            "拼多多",
+            "pdd",
+            "jd",
+            "taobao",
+            "tmall",
+            "douyin",
+            "tiktok",
+            "api",
+            "API",
+            "平台",
+        ],
+    );
+    let mentions_health = contains_any(
+        text,
+        &[
+            "接口健康",
+            "健康检查",
+            "连接状态",
+            "连接配置",
+            "连通性",
+            "连通",
+            "测试连接",
+            "API健康",
+            "api健康",
+            "同步状态",
+            "凭证",
+            "密钥",
+            "授权",
+        ],
+    );
+    mentions_platform && mentions_health
+}
+
+fn infer_platform_health_check_platform(text: &str) -> String {
+    let platform = infer_search_platform(text);
+    if platform == "电商" {
+        String::new()
+    } else {
+        platform.to_string()
+    }
+}
+
 fn extract_title_candidate(text: &str) -> Option<String> {
     for quote in ['"', '\'', '“', '”', '「', '」'] {
         let mut parts = text.split(quote);
@@ -4461,6 +4528,10 @@ mod tests {
                 "消息队列技术选型怎么做，团队现在主要是Rust和Postgres",
                 "engineering_tech_selection",
             ),
+            (
+                "检查一下抖音平台API连通性和接口健康情况",
+                "engineering_system_check",
+            ),
             ("看一下这个平台SLA和可用性情况", "engineering_sla_monitor"),
         ];
 
@@ -4469,6 +4540,26 @@ mod tests {
             assert_eq!(requests.len(), 1, "{prompt}");
             assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
         }
+    }
+
+    #[test]
+    fn autosuggests_engineering_system_check_with_platform_boundary() {
+        let requests = autosuggest_skill_requests(
+            &role("engineering"),
+            &task("检查一下淘宝平台API连通性和接口健康情况，需要真实测试连接"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "engineering_system_check");
+        assert_eq!(requests[0].input["platform"], "淘宝");
+        assert_eq!(requests[0].input["test_live"], true);
+        assert!(
+            requests[0]
+                .reason
+                .as_deref()
+                .is_some_and(|reason| reason.contains("需审批"))
+        );
     }
 
     #[test]

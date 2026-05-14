@@ -131,6 +131,7 @@ Post 8-60 补充：App API 和 Agent `search_*` skill 均已回显 `bypassCache/
 | `engineering_bug_analysis` | `engineering_bug_analysis` | native_ready | `backend/crates/agent/src/skills/engineering.rs` | Post 8-42：已迁为 Rust native Bug 排查方案；成功输出会沉淀为 `engineering_bug_analysis_report` artifact；真实日志和 trace 读取仍待 adapter |
 | `engineering_perf_optimize` | `engineering_perf_optimize` | native_ready | `backend/crates/agent/src/skills/engineering.rs` | Post 8-42：已迁为 Rust native 性能优化方案；成功输出会沉淀为 `engineering_perf_plan` artifact；真实压测/APM 指标读取仍待 adapter |
 | `engineering_tech_selection` | `engineering_tech_selection` | native_ready | `backend/crates/agent/src/skills/engineering.rs` | Post 8-42：已迁为 Rust native 技术选型报告；成功输出会沉淀为 `engineering_tech_selection_report` artifact；实时 benchmark / 外部资料仍待 search adapter |
+| `engineering_system_check` | `engineering_system_check` | approval_required | `backend/crates/agent/src/skills/engineering.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | Post 8-69：已补平台 API 连通性 / 接口健康 / 授权 / 同步状态自然触达；真实测试连接时返回 `pending_approval`、`execution_mode=adapter`、`risk_level=high`，不伪造平台健康检查结果；真实平台配置读取和官方 adapter 仍待实现 |
 | `engineering_sla_monitor` | `engineering_sla_monitor` | native_ready | `backend/crates/agent/src/skills/engineering.rs` | 已纳入岗位自动补偿规则；Post 8-42：补齐统一输出契约并沉淀为 `engineering_sla_report` artifact，缺监控输入时明示 `calculated_from_defaults` |
 
 ## 网站增长 web

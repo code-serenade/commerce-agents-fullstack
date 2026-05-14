@@ -2336,7 +2336,7 @@
 - `ops_promo_plan`、`ops_pricing_strategy`、`ops_channel_strategy`、`ops_inventory_plan`、`ops_listing_copy`、`ops_assortment_plan` 和 `ops_execution_plan` 来自运营岗位核心计划类 skill 的真实成功输出；缺少必要用户输入时后端返回 `deferred`，不会创建假运营交付物
 - `ops_smart_pricing_report`、`ops_inventory_optimization_report`、`ops_ad_fatigue_report` 和 `ops_abc_xyz_report` 来自运营岗位高级分析类 skill 的真实成功输出；智能定价缺少竞品价格或 ABC-XYZ 使用演示 SKU 时会以 `data_readiness=calculated_from_defaults` 明示，库存优化和广告疲劳检测缺少必要 SKU/渠道输入时返回 `deferred`，不会创建假高级运营交付物
 - `web_seo_plan`、`web_title_candidates`、`web_conversion_plan`、`web_store_design_brief`、`web_keyword_matrix`、`web_product_description` 和 `web_title_seo_score` 来自 Web 增长岗位 skill 的真实成功输出；使用平台规则、通用主推商品或页面基准默认值时会以 `data_readiness=calculated_from_defaults` 明示，缺少必填参数时返回 validation error，不会创建假 Web 增长交付物
-- `engineering_arch_review_report`、`engineering_bug_analysis_report`、`engineering_perf_plan`、`engineering_tech_selection_report` 和 `engineering_sla_report` 来自工程岗位 skill 的真实成功输出；当前基于用户输入和内置工程规则生成，不读取真实代码仓库、日志、APM、监控系统或实时外部 benchmark，缺少关键上下文时会以 `data_readiness=calculated_from_defaults` 明示；`engineering_system_check` 仍需平台 adapter 和审批，不会创建假健康检查交付物
+- `engineering_arch_review_report`、`engineering_bug_analysis_report`、`engineering_perf_plan`、`engineering_tech_selection_report` 和 `engineering_sla_report` 来自工程岗位 skill 的真实成功输出；当前基于用户输入和内置工程规则生成，不读取真实代码仓库、日志、APM、监控系统或实时外部 benchmark，缺少关键上下文时会以 `data_readiness=calculated_from_defaults` 明示；`engineering_system_check` 可由平台 API 连通性 / 接口健康 / 授权 / 同步状态问法触发，但仍需平台 adapter 和审批，真实测试连接时返回 `pending_approval`，不会创建假健康检查交付物
 
 ### 创建工作区交付物
 

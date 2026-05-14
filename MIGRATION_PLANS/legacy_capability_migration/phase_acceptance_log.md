@@ -2,6 +2,27 @@
 
 # 阶段验收记录
 
+## Post 8-69：平台接口健康检查自然触达
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent：工程 worker 可从平台 API 连通性 / 接口健康问法触达 `engineering_system_check`。
+- [x] Agent：可解析目标平台，并在真实测试连接意图下传入 `test_live=true`。
+- [x] Runtime：真实测试连接返回 `pending_approval`。
+- [x] Runtime：metadata 标记为 `execution_mode=adapter`、`risk_level=high`、`approval_required=true`。
+- [x] Role skill catalog：工程岗位允许使用 `engineering_system_check`。
+- [x] API：`API_DOCS/sse.md` 已同步自然触达和审批边界。
+- [x] 前端：本轮不新增假入口。
+
+当前说明：
+
+- 本阶段解决的是“旧产品平台健康检查能力在新产品里不容易自然触达”的问题。
+- 本阶段不读取平台连接数据库，不调用淘宝、抖音、千川等官方 API。
+- 真实连通性测试仍必须走 adapter 和审批闭环。
+
 ## Post 8-68：渠道 ROI / 退款拆解 native 契约修正
 
 状态：done
