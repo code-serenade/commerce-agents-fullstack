@@ -178,6 +178,12 @@ pub fn specs() -> Vec<SkillSpec> {
                 ),
                 field("total_budget", "number", "总广告预算", false),
                 field("platform", "string", "平台，默认淘宝", false),
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用，如 product:{uuid}",
+                    false,
+                ),
             ],
         ),
         spec(
@@ -860,6 +866,7 @@ fn inventory_optimizer(input: &Value) -> Value {
 
 fn ad_fatigue_detector(input: &Value) -> Value {
     let channels = input["channels"].as_array().cloned().unwrap_or_default();
+    let product_ref = string(input, "product_ref", "");
     if channels.is_empty() {
         return json!({
             "has_data": false,
@@ -938,6 +945,7 @@ fn ad_fatigue_detector(input: &Value) -> Value {
         "数据来源": "用户提供",
         "总广告预算": if total_budget > 0.0 { currency(total_budget) } else { "未知".to_owned() },
         "平台": platform,
+        "商品引用": if product_ref.is_empty() { Value::Null } else { json!(product_ref) },
         "行业疲劳基准": "CTR衰减>15%（连续7天）= 疲劳信号；频次≥8次/用户 = 受众疲劳",
         "渠道疲劳分析": channel_results,
         "疲劳渠道数": format!("{}/{}", fatigued_count, channels.len()),
@@ -1588,6 +1596,38 @@ mod tests {
             output.get("summary").and_then(Value::as_str),
             Some("广告疲劳检测报告已生成")
         );
+    }
+
+    #[tokio::test]
+    async fn ops_ad_fatigue_detector_echoes_product_ref() {
+        let outcome = execute(
+            "ops_ad_fatigue_detector",
+            json!({
+                "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                "platform": "抖音",
+                "channels": [
+                    {
+                        "name": "千川",
+                        "ctr_baseline": 3.2,
+                        "ctr_recent": 2.1,
+                        "impressions_per_user": 9,
+                        "budget": 5000,
+                        "roas": 2.4
+                    }
+                ]
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops ad fatigue detector should echo product_ref");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "广告疲劳检测报告已生成");
+        assert_eq!(
+            output.get("商品引用").and_then(Value::as_str),
+            Some("product:11111111-1111-1111-1111-111111111111")
+        );
+        assert!(output.get("渠道疲劳分析").is_some());
     }
 
     #[tokio::test]

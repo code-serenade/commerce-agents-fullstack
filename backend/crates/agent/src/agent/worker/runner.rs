@@ -718,6 +718,32 @@ fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
 
     if contains_any(
         text,
+        &[
+            "ad fatigue",
+            "fatigue",
+            "ctr decay",
+            "click-through decay",
+            "click rate decay",
+            "广告疲劳",
+            "素材疲劳",
+            "创意疲劳",
+            "CTR衰减",
+            "点击率衰减",
+            "频次过高",
+            "曝光频次",
+            "ROAS健康",
+            "roas健康",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "ops_ad_fatigue_detector",
+            serde_json::Value::Object(infer_ad_fatigue_input(text, task)),
+            "根据广告疲劳/CTR衰减/曝光频次意图自动补偿广告疲劳检测 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
         &["price", "pricing", "cost", "定价", "价格", "售价", "成本"],
     ) {
         let numbers = numbers_in_text(text);
@@ -3137,6 +3163,130 @@ fn infer_inventory_skus(text: &str) -> Vec<serde_json::Value> {
     text.split(['；', ';', '\n'])
         .filter_map(parse_inventory_sku_segment)
         .collect()
+}
+
+fn infer_ad_fatigue_input(text: &str, task: &Task) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(selected_product_platform_or_infer(task, text)),
+    );
+    let channels = infer_ad_fatigue_channels(text);
+    if !channels.is_empty() {
+        input.insert("channels".to_string(), serde_json::json!(channels));
+    }
+    insert_metric_value(
+        &mut input,
+        "total_budget",
+        text,
+        &["总预算", "广告总预算", "total_budget"],
+    );
+    input
+}
+
+fn infer_ad_fatigue_channels(text: &str) -> Vec<serde_json::Value> {
+    const PLATFORM_LABELS: &[&str] = &[
+        "抖音",
+        "douyin",
+        "tiktok",
+        "淘宝",
+        "taobao",
+        "天猫",
+        "tmall",
+        "京东",
+        "jd",
+        "拼多多",
+        "pdd",
+        "小红书",
+        "xiaohongshu",
+        "快手",
+        "kuaishou",
+        "直通车",
+        "千川",
+    ];
+
+    let mut rows = Vec::new();
+    let mut seen = Vec::<String>::new();
+    for label in PLATFORM_LABELS {
+        let Some(segment) = segment_after_label(text, label, PLATFORM_LABELS) else {
+            continue;
+        };
+        let name = canonical_ad_channel_name(label);
+        if seen.iter().any(|value| value == name) {
+            continue;
+        }
+        let ctr_baseline = extract_metric_value(
+            &segment,
+            &[
+                "CTR基准",
+                "基准CTR",
+                "历史CTR",
+                "baseline_ctr",
+                "ctr_baseline",
+            ],
+        );
+        let ctr_recent = extract_metric_value(
+            &segment,
+            &["近期CTR", "当前CTR", "最近CTR", "recent_ctr", "ctr_recent"],
+        );
+        let impressions_per_user = extract_metric_value(
+            &segment,
+            &[
+                "曝光频次",
+                "频次",
+                "人均曝光",
+                "impressions_per_user",
+                "frequency",
+            ],
+        );
+        let budget = extract_metric_value(
+            &segment,
+            &["预算", "广告预算", "投放预算", "budget", "ad_budget"],
+        );
+        let roas = extract_metric_value(&segment, &["ROAS", "roas", "投产", "roi", "ROI"]);
+
+        if [ctr_baseline, ctr_recent, impressions_per_user, budget, roas]
+            .iter()
+            .all(Option::is_none)
+        {
+            continue;
+        }
+
+        let mut row = serde_json::Map::new();
+        row.insert("name".to_string(), serde_json::json!(name));
+        if let Some(value) = ctr_baseline {
+            row.insert("ctr_baseline".to_string(), serde_json::json!(value));
+        }
+        if let Some(value) = ctr_recent {
+            row.insert("ctr_recent".to_string(), serde_json::json!(value));
+        }
+        if let Some(value) = impressions_per_user {
+            row.insert("impressions_per_user".to_string(), serde_json::json!(value));
+        }
+        if let Some(value) = budget {
+            row.insert("budget".to_string(), serde_json::json!(value));
+        }
+        if let Some(value) = roas {
+            row.insert("roas".to_string(), serde_json::json!(value));
+        }
+        seen.push(name.to_string());
+        rows.push(serde_json::Value::Object(row));
+    }
+    rows
+}
+
+fn canonical_ad_channel_name(label: &str) -> &'static str {
+    let lower = label.to_ascii_lowercase();
+    if matches!(label, "直通车") {
+        "直通车"
+    } else if matches!(label, "千川") {
+        "千川"
+    } else {
+        canonical_channel_name(lower.as_str())
+    }
 }
 
 fn parse_inventory_sku_segment(segment: &str) -> Option<serde_json::Value> {
@@ -5648,6 +5798,10 @@ mod tests {
                 "做SKU库存优化和EOQ：SKU冷萃A 月销量300 成本40 库存500；SKU拿铁B 月销量180 成本35 库存160",
                 "ops_inventory_optimizer",
             ),
+            (
+                "检测广告疲劳和CTR衰减：抖音CTR基准3.2，近期CTR2.4，频次6，预算5000，ROAS3.2",
+                "ops_ad_fatigue_detector",
+            ),
         ];
 
         for (prompt, expected_skill) in cases {
@@ -5793,6 +5947,76 @@ mod tests {
         assert_eq!(requests[0].skill_id, "ops_inventory_planning");
         assert_eq!(requests[0].input["avg_daily_demand"], 120.0);
         assert_eq!(requests[0].input["lead_time_days"], 7);
+    }
+
+    #[test]
+    fn autosuggests_ad_fatigue_detector_with_explicit_channel_rows() {
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task(
+                "检测广告疲劳和素材疲劳：抖音CTR基准3.2，近期CTR2.4，频次6，预算5000，ROAS3.2；淘宝CTR基准2.8，近期CTR1.7，曝光频次9，预算3000，ROAS2.1，总预算9000",
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_ad_fatigue_detector");
+        assert_eq!(requests[0].input["total_budget"], 9000.0);
+        let channels = requests[0].input["channels"]
+            .as_array()
+            .expect("ad fatigue channels should be parsed");
+        assert_eq!(channels.len(), 2);
+        assert_eq!(channels[0]["name"], "抖音");
+        assert_eq!(channels[0]["ctr_baseline"], 3.2);
+        assert_eq!(channels[0]["ctr_recent"], 2.4);
+        assert_eq!(channels[0]["impressions_per_user"], 6.0);
+        assert_eq!(channels[0]["budget"], 5000.0);
+        assert_eq!(channels[0]["roas"], 3.2);
+        assert_eq!(channels[1]["name"], "淘宝");
+        assert_eq!(channels[1]["ctr_baseline"], 2.8);
+        assert_eq!(channels[1]["ctr_recent"], 1.7);
+        assert_eq!(channels[1]["impressions_per_user"], 9.0);
+        assert_eq!(channels[1]["budget"], 3000.0);
+        assert_eq!(channels[1]["roas"], 2.1);
+    }
+
+    #[test]
+    fn selected_product_context_feeds_ad_fatigue_detector_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task_with_metadata(
+                "给这个商品检测广告疲劳：抖音CTR基准3.2，近期CTR2.4，频次6，预算5000，ROAS3.2",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_ad_fatigue_detector");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["platform"], "抖音");
+        let channels = requests[0].input["channels"]
+            .as_array()
+            .expect("ad fatigue channels should be parsed");
+        assert_eq!(channels[0]["name"], "抖音");
+        assert_eq!(channels[0]["ctr_recent"], 2.4);
+    }
+
+    #[test]
+    fn ad_fatigue_detector_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task("检测广告疲劳：抖音CTR基准3.2，近期CTR2.4，频次6，预算5000，ROAS3.2"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_ad_fatigue_detector");
+        assert!(requests[0].input.get("product_ref").is_none());
     }
 
     #[test]
