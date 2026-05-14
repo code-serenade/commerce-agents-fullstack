@@ -199,6 +199,12 @@ pub fn specs() -> Vec<SkillSpec> {
                 ),
                 field("platform", "string", "平台，默认淘宝", false),
                 field("top_n", "integer", "展示前N个高价值SKU，默认20", false),
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用，如 product:{uuid}",
+                    false,
+                ),
             ],
         ),
     ]
@@ -976,6 +982,7 @@ fn ad_fatigue_detector(input: &Value) -> Value {
 
 fn abc_xyz_classifier(input: &Value) -> Value {
     let mut skus = input["skus"].as_array().cloned().unwrap_or_default();
+    let product_ref = string(input, "product_ref", "");
     if skus.is_empty() {
         skus = demo_skus();
     }
@@ -1077,6 +1084,7 @@ fn abc_xyz_classifier(input: &Value) -> Value {
     json!({
         "数据来源": data_source,
         "平台": platform,
+        "商品引用": if product_ref.is_empty() { Value::Null } else { json!(product_ref) },
         "分析SKU总数": classified.len(),
         "9格矩阵": matrix_display,
         "矩阵说明": "ABC: A=前80%GMV / B=80-95% / C=尾部; XYZ: X=CV<0.2稳定 / Y=CV0.2-0.5 / Z=CV>0.5高波动",
@@ -1651,5 +1659,36 @@ mod tests {
             Some("演示数据（30个确定性模拟SKU）")
         );
         assert!(output.get("9格矩阵").is_some());
+    }
+
+    #[tokio::test]
+    async fn ops_abc_xyz_classifier_echoes_product_ref() {
+        let outcome = execute(
+            "ops_abc_xyz_classifier",
+            json!({
+                "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                "platform": "抖音",
+                "skus": [
+                    {"sku_id": "SKU冷萃A", "gmv": 120000, "sales_history": [100, 102, 98, 101]},
+                    {"sku_id": "SKU拿铁B", "gmv": 60000, "sales_history": [60, 88, 44, 96]}
+                ],
+                "top_n": 2
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops abc xyz should echo product_ref");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "ABC-XYZ库存分类报告已生成");
+        assert_eq!(
+            output.get("商品引用").and_then(Value::as_str),
+            Some("product:11111111-1111-1111-1111-111111111111")
+        );
+        assert_eq!(
+            output.get("数据来源").and_then(Value::as_str),
+            Some("用户输入")
+        );
+        assert_eq!(output.get("分析SKU总数").and_then(Value::as_u64), Some(2));
     }
 }

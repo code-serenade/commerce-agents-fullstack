@@ -2,6 +2,28 @@
 
 # 阶段验收记录
 
+## Post 8-96：ABC-XYZ 库存分类 product_ref 契约
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent：`ops_abc_xyz_classifier` schema 支持 `product_ref`。
+- [x] Agent：成功 ABC-XYZ 库存分类输出回显 `商品引用`。
+- [x] Worker autosuggest：ABC-XYZ / ABC分类 / XYZ分类 / 九宫格库存分类 / SKU分层问法触发 `ops_abc_xyz_classifier` 时使用结构化 input。
+- [x] Worker autosuggest：本轮显式选品时 ABC-XYZ input 携带 `product_ref`。
+- [x] Worker autosuggest：本轮显式 SKU GMV 和历史销量会进入 ABC-XYZ input。
+- [x] Worker autosuggest：未选商品时不写空 `product_ref`。
+- [x] API：`API_DOCS/sse.md` 已同步 ABC-XYZ product_ref 契约。
+- [x] 前端：本轮不新增假入口。
+
+当前说明：
+
+- 本阶段解决的是“ABC-XYZ 已可 native 执行，但自然语言触达和商品引用没有打通”的问题。
+- 本阶段只使用用户本轮显式输入的 SKU / GMV / 历史销量；缺 SKU 明细时仍使用确定性演示数据并明示 `calculated_from_defaults`。
+- 本阶段不读取或伪造淘宝、抖音、WMS、ERP、平台库存或实时数仓数据。
+
 ## Post 8-95：广告疲劳检测 product_ref 契约
 
 状态：done

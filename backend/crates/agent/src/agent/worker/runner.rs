@@ -719,6 +719,34 @@ fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     if contains_any(
         text,
         &[
+            "ABC-XYZ",
+            "abc-xyz",
+            "ABCXYZ",
+            "abcxyz",
+            "ABC分类",
+            "abc分类",
+            "XYZ分类",
+            "xyz分类",
+            "ABC库存",
+            "XYZ库存",
+            "9格矩阵",
+            "九宫格库存",
+            "库存分类矩阵",
+            "SKU分层",
+            "sku分层",
+            "高价值SKU",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "ops_abc_xyz_classifier",
+            serde_json::Value::Object(infer_abc_xyz_classifier_input(text, task)),
+            "根据ABC-XYZ库存分类/九宫格矩阵意图自动补偿ABC-XYZ库存分类 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
+        &[
             "ad fatigue",
             "fatigue",
             "ctr decay",
@@ -3289,6 +3317,122 @@ fn canonical_ad_channel_name(label: &str) -> &'static str {
     }
 }
 
+fn infer_abc_xyz_classifier_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(selected_product_platform_or_infer(task, text)),
+    );
+    let skus = infer_abc_xyz_skus(text);
+    if !skus.is_empty() {
+        input.insert("skus".to_string(), serde_json::json!(skus));
+    }
+    if let Some(top_n) = extract_metric_value(text, &["top_n", "前N", "前n", "展示前"]) {
+        input.insert(
+            "top_n".to_string(),
+            serde_json::json!(top_n.round().clamp(1.0, 100.0) as i64),
+        );
+    }
+    input
+}
+
+fn infer_abc_xyz_skus(text: &str) -> Vec<serde_json::Value> {
+    text.split(['；', ';', '\n'])
+        .filter_map(parse_abc_xyz_sku_segment)
+        .collect()
+}
+
+fn parse_abc_xyz_sku_segment(segment: &str) -> Option<serde_json::Value> {
+    let trimmed = segment.trim();
+    if !contains_any(trimmed, &["sku", "SKU", "款", "货品", "商品"]) {
+        return None;
+    }
+    let gmv = extract_last_metric_value(trimmed, &["GMV", "gmv", "销售额", "成交额", "营收"])?;
+    let history = infer_abc_xyz_sales_history(trimmed);
+    let mut row = serde_json::Map::new();
+    row.insert(
+        "sku_id".to_string(),
+        serde_json::json!(infer_abc_xyz_sku_id(trimmed)),
+    );
+    row.insert("gmv".to_string(), serde_json::json!(gmv));
+    if !history.is_empty() {
+        row.insert("sales_history".to_string(), serde_json::json!(history));
+    }
+    Some(serde_json::Value::Object(row))
+}
+
+fn infer_abc_xyz_sales_history(segment: &str) -> Vec<f64> {
+    let Some(history_segment) =
+        segment_after_abc_history_label(segment, &["历史销量", "销量历史", "sales_history"])
+    else {
+        return Vec::new();
+    };
+    numbers_in_text(&history_segment)
+}
+
+fn segment_after_abc_history_label(text: &str, labels: &[&str]) -> Option<String> {
+    let lower = text.to_ascii_lowercase();
+    let mut best: Option<(usize, &str)> = None;
+    for label in labels {
+        let label_lower = label.to_ascii_lowercase();
+        if let Some(index) = lower.find(&label_lower)
+            && best
+                .map(|(best_index, _)| index < best_index)
+                .unwrap_or(true)
+        {
+            best = Some((index, *label));
+        }
+    }
+    let (index, label) = best?;
+    let start = index + label.len();
+    let tail = text[start..].trim();
+    let end = tail.find(['；', ';', '\n']).unwrap_or(tail.len());
+    Some(tail[..end].trim().to_string())
+}
+
+fn infer_abc_xyz_sku_id(segment: &str) -> String {
+    let trimmed = segment
+        .trim()
+        .trim_start_matches(['-', '•', '*', ' '])
+        .trim();
+    let lower = trimmed.to_ascii_lowercase();
+    let trimmed = lower
+        .rfind("sku")
+        .map(|index| trimmed[index..].trim())
+        .unwrap_or(trimmed);
+    let metric_markers = [
+        "GMV",
+        "gmv",
+        "销售额",
+        "成交额",
+        "营收",
+        "历史销量",
+        "销量历史",
+        "sales_history",
+    ];
+    let lower = trimmed.to_ascii_lowercase();
+    let end = metric_markers
+        .iter()
+        .filter_map(|marker| lower.find(&marker.to_ascii_lowercase()))
+        .min()
+        .unwrap_or(trimmed.len());
+    let raw = trimmed[..end]
+        .trim()
+        .trim_matches(['：', ':', ',', '，', ';', '；', ' '])
+        .trim();
+    if raw.is_empty() {
+        "SKU".to_string()
+    } else {
+        raw.to_string()
+    }
+}
+
 fn parse_inventory_sku_segment(segment: &str) -> Option<serde_json::Value> {
     let trimmed = segment.trim();
     if !contains_any(trimmed, &["sku", "SKU", "款", "货品", "商品"]) {
@@ -5799,6 +5943,10 @@ mod tests {
                 "ops_inventory_optimizer",
             ),
             (
+                "做ABC-XYZ库存分类：SKU冷萃A GMV12万 历史销量100 102 98 101；SKU拿铁B GMV6万 历史销量60 88 44 96",
+                "ops_abc_xyz_classifier",
+            ),
+            (
                 "检测广告疲劳和CTR衰减：抖音CTR基准3.2，近期CTR2.4，频次6，预算5000，ROAS3.2",
                 "ops_ad_fatigue_detector",
             ),
@@ -5932,6 +6080,73 @@ mod tests {
 
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].skill_id, "ops_inventory_optimizer");
+        assert!(requests[0].input.get("product_ref").is_none());
+    }
+
+    #[test]
+    fn autosuggests_abc_xyz_classifier_with_explicit_sku_rows() {
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task(
+                "做ABC-XYZ库存分类和九宫格库存矩阵：SKU冷萃A GMV12万 历史销量100 102 98 101；SKU拿铁B GMV6万 历史销量60 88 44 96，展示前2",
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_abc_xyz_classifier");
+        assert_eq!(requests[0].input["top_n"], 2);
+        let skus = requests[0].input["skus"]
+            .as_array()
+            .expect("abc xyz skus should be parsed");
+        assert_eq!(skus.len(), 2);
+        assert_eq!(skus[0]["sku_id"], "SKU冷萃A");
+        assert_eq!(skus[0]["gmv"], 120000.0);
+        assert_eq!(
+            skus[0]["sales_history"]
+                .as_array()
+                .expect("sales history should be parsed"),
+            &[100.0, 102.0, 98.0, 101.0]
+        );
+        assert_eq!(skus[1]["sku_id"], "SKU拿铁B");
+        assert_eq!(skus[1]["gmv"], 60000.0);
+    }
+
+    #[test]
+    fn selected_product_context_feeds_abc_xyz_classifier_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task_with_metadata(
+                "给这个商品做ABC-XYZ库存分类：SKU冷萃A GMV12万 历史销量100 102 98 101",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_abc_xyz_classifier");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["platform"], "抖音");
+        let skus = requests[0].input["skus"]
+            .as_array()
+            .expect("abc xyz skus should be parsed");
+        assert_eq!(skus[0]["sku_id"], "SKU冷萃A");
+    }
+
+    #[test]
+    fn abc_xyz_classifier_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task("做ABC-XYZ库存分类：SKU冷萃A GMV12万 历史销量100 102 98 101"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_abc_xyz_classifier");
         assert!(requests[0].input.get("product_ref").is_none());
     }
 
