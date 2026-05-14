@@ -964,6 +964,57 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn executor_runs_service_query_product_with_context() {
+        let executor = SkillExecutorSet::staged().expect("executor should load");
+        let context = SkillContext::new()
+            .with_metadata("request.context.product_ids", json!("product-1"))
+            .with_metadata("request.context.refs", json!("product:product-1"))
+            .with_metadata(
+                "request.context.selected_summary",
+                json!("商品：冷萃咖啡。规格：12瓶装。卖点：低糖、即饮、适合办公室囤货。"),
+            )
+            .with_metadata(
+                "request.context.sources_json",
+                json!(
+                    json!([
+                        {
+                            "source_type": "product",
+                            "id": "product-1",
+                            "product_id": "product-1",
+                            "title": "冷萃咖啡"
+                        }
+                    ])
+                    .to_string()
+                ),
+            );
+        let result = executor
+            .execute(
+                SkillRequest::new(
+                    "req-service-query-product-context",
+                    "service_query_product",
+                    json!({"product_name": "冷萃咖啡"}),
+                )
+                .with_context(context),
+            )
+            .await;
+
+        assert_eq!(result.status, SkillExecutionStatus::Success);
+        assert_eq!(
+            result.metadata.get("execution_mode"),
+            Some(&json!(SkillExecutionMode::Native))
+        );
+        let output = result.output.as_ref().expect("skill output");
+        assert_eq!(
+            output.get("adapter_status"),
+            Some(&json!("context_metadata"))
+        );
+        assert_eq!(
+            output.get("data_readiness"),
+            Some(&json!("explicit_product_context"))
+        );
+    }
+
+    #[tokio::test]
     async fn executor_validates_required_input() {
         let executor = SkillExecutorSet::staged().expect("executor should load");
         let result = executor

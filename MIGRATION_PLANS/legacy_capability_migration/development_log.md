@@ -1,5 +1,54 @@
 # 迁移开发记录
 
+## Post 8-56：客服商品查询 skill 读取显式商品上下文
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 56 个补强项：`Post 8-56`。
+
+本次目标：
+
+- 将旧产品 `server/src/skills/customer_service.py::ServiceQueryProduct` 迁为新产品 Agent 框架内的 native skill。
+- 保持新产品架构边界：`agent` crate 不直接查询数据库，不新增第二套商品查询服务。
+- 保持用户前面强调的商品通路规则：只有本轮手动选择/引用的商品上下文才能用于指定商品回答；未指定商品时不默认注入任何商品。
+
+本次修改：
+
+- 后端 agent：`service_query_product` 从 `deferred` spec 改为 `deterministic + data_source` native spec。
+- 后端 agent：新增 `ServiceQueryProduct` 独立实现，读取 `SkillContext.metadata` 中的 `request.context.*` / `context.*` 商品 ID、refs、summary、sources。
+- 后端 agent：支持旧产品整数商品 ID 和新产品字符串商品 ID。
+- 后端 agent：有显式商品上下文且筛选命中时返回 `status=success`、`adapter_status=context_metadata`、`data_readiness=explicit_product_context`。
+- 后端 agent：无显式商品上下文或商品 ID/名称筛选不命中时返回 `status=deferred`，明确说明不会改用默认商品或隐式搜索其它商品。
+- API/SSE：不新增事件类型；更新 `API_DOCS/sse.md`，说明该 skill 通过既有 `skill_result` 承载上下文查询结果。
+- 迁移文档：同步 `skill_migration_matrix.md`、本开发日志、阶段验收记录和本轮归档文件。
+
+用户可感知变化：
+
+- 当用户在前端“引用商品”里手动勾选某个商品后，客服/运营/内容 Agent 调用 `service_query_product` 时可以读取该商品资料，过程区会看到真实 `success/native` skill 结果。
+- 当用户没有勾选商品时，系统不会再把某个默认商品当作上下文；商品查询 skill 会明确返回“需要显式商品上下文”。
+- 当用户勾选了 A 商品却询问 B 商品名时，后端不会把 A 商品强行当成 B 商品回答，而是返回筛选不命中。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/service_query_product_native_post_8_56.md`
+- [x] 迁移矩阵：`MIGRATION_PLANS/legacy_capability_migration/skill_migration_matrix.md`
+- [x] API 文档：`API_DOCS/sse.md`
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent service_query_product`
+- [x] `cargo test -p agent executor_runs_service_query_product_with_context`
+- [x] `cargo check -p agent`
+- [x] `cargo clippy -p agent`
+- [x] `git diff --check`
+
+后续缺口：
+
+- `service_query_product` 当前只读取 Agent 显式上下文，不做实时平台商品库查询；如果未来要按商品 ID 直接查用户商品库，应在 service/repo/web-server 层设计正式 adapter 或上下文注入链路，而不是在 agent crate 里直连数据库。
+- 平台最新退换货、投诉、赔付规则仍需要 `search_platform_policy` 或 `shop_policy` adapter。
+- 前端仍需把“引用商品/未引用商品”的状态和 skill 结果清楚展示，避免用户误以为系统用了默认商品。
+
 ## Post 8-55：外部搜索提升为第 2 优先级后的 RAG/SSE 可用性契约
 
 状态：done

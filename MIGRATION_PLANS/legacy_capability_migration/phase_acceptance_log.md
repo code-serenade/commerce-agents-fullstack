@@ -1,5 +1,27 @@
 # 阶段验收记录
 
+## Post 8-56：客服商品查询 skill 读取显式商品上下文
+
+状态：done
+
+验收项：
+
+- [x] 后端：`service_query_product` 不再是 deferred 宏占位，已改为 Agent native skill。
+- [x] 后端：有本轮显式商品上下文时返回 `status=success`。
+- [x] 后端：输出包含 `adapter_status=context_metadata`、`data_readiness=explicit_product_context`。
+- [x] 后端：无商品上下文时返回 `status=deferred`，不伪造商品信息。
+- [x] 后端：商品 ID/名称筛选不命中时返回 `status=deferred`，不改用默认商品。
+- [x] 后端：兼容旧产品整数商品 ID 与新产品字符串商品 ID。
+- [x] 架构：不在 `agent` crate 直连数据库，不新增 HTTP API，不新增 SSE 事件类型。
+- [x] API：`API_DOCS/sse.md` 已补充 `service_query_product` 的 `skill_result` 契约。
+- [x] 文档：迁移矩阵、开发记录和本轮归档已同步。
+- [x] 验证：`cargo fmt --all`
+- [x] 验证：`cargo test -p agent service_query_product`
+- [x] 验证：`cargo test -p agent executor_runs_service_query_product_with_context`
+- [x] 验证：`cargo check -p agent`
+- [x] 验证：`cargo clippy -p agent`
+- [x] 验证：`git diff --check`
+
 ## Post 8-55：外部搜索提升为第 2 优先级后的 RAG/SSE 可用性契约
 
 状态：done

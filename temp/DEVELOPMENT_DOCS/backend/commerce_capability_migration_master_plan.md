@@ -233,27 +233,27 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-55: external search priority-2 RAG/SSE availability contract
+Post 8-56: service_query_product native explicit product context skill
 ```
 
 Scope:
 
-- raise external search / real-time information enhancement from later work to priority 2
+- migrate old product `ServiceQueryProduct` into a new-product Rust native Agent skill
+- keep the new framework boundary: agent skill reads existing runtime metadata, not database tables directly
+- preserve explicit selected-product semantics:
+  - selected product context can be queried by the skill
+  - no selected product keeps the normal unspecified-product answer path
+  - no default product is injected
+- return `status=success` only for explicit context hits
+- return `status=deferred` when context is missing or the requested product filter does not match
 - keep official Taobao / Douyin / Qianchuan direct platform integrations deferred
-- pass the configured `[external_search]` availability into the Agent RAG context builder
-- make `rag_context_loaded.externalSearchAvailable` and `rag.external_search_available` reflect backend config
-- improve degraded RAG wording so the frontend and agent can distinguish:
-  - no local product knowledge and no external search adapter
-  - no local product knowledge but external search skill adapter is configured
-- keep selected-product behavior explicit: no selected product means no default product knowledge is injected
-- avoid frontend changes until the backend contract is validated
 
 Reason:
 
-- external search is now the second priority after core skill reachability
-- this is a backend-first contract slice that makes the live/degraded search boundary truthful to the frontend
-- it improves product explainability without pretending to have official platform write integrations
-- it prepares the later Kimi-style source/evidence panel to consume real backend status
+- skill migration remains the first backend priority
+- the user repeatedly identified product context leakage/default-product behavior as a high-risk UX and trust issue
+- this slice strengthens the backend contract before frontend "引用商品" and process panel refinement
+- it keeps Kimi-style frontend process transparency grounded in real backend skill status, not fake UI state
 
 ## 10. Validation Standard
 
