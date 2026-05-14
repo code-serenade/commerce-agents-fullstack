@@ -783,11 +783,12 @@ fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         if numbers.len() >= 2 {
             return Some(autosuggest_request(
                 "ops_inventory_planning",
-                serde_json::json!({
-                    "avg_daily_demand": numbers[0].max(0.0),
-                    "lead_time_days": numbers[1].round().max(1.0) as i64,
-                    "platform": infer_platform(text),
-                }),
+                serde_json::Value::Object(infer_inventory_planning_input(
+                    text,
+                    task,
+                    numbers[0],
+                    numbers[1].round().max(1.0) as i64,
+                )),
                 "根据库存/补货意图自动补偿库存规划 skill",
             ));
         }
@@ -3190,6 +3191,45 @@ fn infer_assortment_planning_input(
             .unwrap_or(50_000.0)
             .max(0.0)
         ),
+    );
+    input
+}
+
+fn infer_inventory_planning_input(
+    text: &str,
+    task: &Task,
+    avg_daily_demand: f64,
+    lead_time_days: i64,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
+    input.insert(
+        "avg_daily_demand".to_string(),
+        serde_json::json!(
+            extract_metric_value(
+                text,
+                &["日均销量", "日均需求", "日销量", "avg_daily_demand"]
+            )
+            .unwrap_or(avg_daily_demand)
+            .max(0.0)
+        ),
+    );
+    input.insert(
+        "lead_time_days".to_string(),
+        serde_json::json!(
+            extract_metric_value(
+                text,
+                &["供货周期", "补货周期", "交货周期", "lead_time_days"]
+            )
+            .map(|value| value.round().max(1.0) as i64)
+            .unwrap_or(lead_time_days.max(1))
+        ),
+    );
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(selected_product_platform_or_infer(task, text)),
     );
     input
 }
@@ -6190,6 +6230,44 @@ mod tests {
         assert_eq!(requests[0].skill_id, "ops_assortment_planning");
         assert!(requests[0].input.get("product_ref").is_none());
         assert_eq!(requests[0].input["budget"], 80000.0);
+    }
+
+    #[test]
+    fn selected_product_context_feeds_inventory_planning_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task_with_metadata(
+                "给这个商品做库存和补货规划：日均销量120，供货周期7天",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_inventory_planning");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["avg_daily_demand"], 120.0);
+        assert_eq!(requests[0].input["lead_time_days"], 7);
+        assert_eq!(requests[0].input["platform"], "抖音");
+    }
+
+    #[test]
+    fn inventory_planning_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task("日均销量120，供货周期7天，帮冷萃咖啡算库存和补货点"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_inventory_planning");
+        assert!(requests[0].input.get("product_ref").is_none());
+        assert_eq!(requests[0].input["avg_daily_demand"], 120.0);
+        assert_eq!(requests[0].input["lead_time_days"], 7);
     }
 
     #[test]

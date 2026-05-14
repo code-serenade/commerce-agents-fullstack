@@ -236,24 +236,24 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-99: ops assortment planning product_ref contract
+Post 8-100: ops inventory planning product_ref contract
 ```
 
 Scope:
 
-- add `product_ref=product:{uuid}` to `ops_assortment_planning`
-- echo the selected product reference in successful assortment planning output
-- route assortment / SKU组合 / 货盘 / 选品组合 / 组合规划 phrasing to structured `ops_assortment_planning` input
-- parse explicit labeled budget from the current text and avoid treating `618` / `双11` campaign numbers as assortment budget
+- add `product_ref=product:{uuid}` to `ops_inventory_planning`
+- echo the selected product reference in successful inventory planning output
+- route inventory / stock / 库存 / 补货 / 备货 phrasing to structured `ops_inventory_planning` input
+- parse explicit labeled average daily demand and lead time from the current text before falling back to number order
 - let ops worker autosuggest pass selected product refs only from explicit `context.selected_summary`
-- keep assortment planning based on user input plus deterministic category assortment rules rather than fake platform or supply-chain data
+- keep inventory planning based on user input plus deterministic inventory rules rather than fake platform, ERP, WMS, supply-chain, or live stock data
 
 Reason:
 
-- assortment planning is a high-frequency old-product operations capability and needs to preserve selected-product provenance
-- selected-product and unspecified assortment planning must stay separate
-- activity names contain numeric tokens (`618`, `双11`) that should not pollute budget parsing
-- real Taobao, Douyin, Qianchuan, ERP, WMS, supply-chain, supplier quote, platform hot-sale, and live inventory data remain adapter/service/search concerns and must not be faked
+- inventory planning is a high-frequency old-product operations capability and needs to preserve selected-product provenance
+- selected-product and unspecified inventory planning must stay separate
+- user phrasing often mixes demand and lead-time numbers, so explicit labels should take priority over raw number order
+- real Taobao, Douyin, Qianchuan, ERP, WMS, supply-chain, platform inventory, supplier quote, and live stock data remain adapter/service/search concerns and must not be faked
 
 ## 10. Validation Standard
 

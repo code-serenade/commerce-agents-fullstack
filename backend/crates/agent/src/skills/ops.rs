@@ -66,6 +66,12 @@ pub fn specs() -> Vec<SkillSpec> {
             vec![
                 field("avg_daily_demand", "number", "日均销量（件）", true),
                 field("lead_time_days", "integer", "供货周期（天）", true),
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用，如 product:{uuid}",
+                    false,
+                ),
                 field("demand_std", "number", "需求标准差，默认日均需求20%", false),
                 field(
                     "service_level",
@@ -483,6 +489,7 @@ fn channel_strategy(input: &Value) -> Value {
 fn inventory_planning(input: &Value) -> Value {
     let avg_demand = num(input, "avg_daily_demand", 100.0);
     let lead_time = num(input, "lead_time_days", 7.0).max(0.0);
+    let product_ref = string(input, "product_ref", "");
     let demand_std = num(input, "demand_std", avg_demand * 0.2).max(0.0);
     let service_level = num(input, "service_level", 0.95);
     let z = z_score(service_level);
@@ -498,6 +505,7 @@ fn inventory_planning(input: &Value) -> Value {
     json!({
         "日均销量": avg_demand,
         "供货周期": format!("{}天", lead_time.round()),
+        "商品引用": if product_ref.is_empty() { Value::Null } else { json!(product_ref) },
         "安全库存": safety_stock,
         "补货点": reorder_point,
         "建议订货量": eoq,
@@ -1606,6 +1614,30 @@ mod tests {
             Some("咖啡饮品")
         );
         assert!(output.get("渠道组合").is_some());
+    }
+
+    #[tokio::test]
+    async fn ops_inventory_planning_echoes_product_ref() {
+        let outcome = execute(
+            "ops_inventory_planning",
+            json!({
+                "avg_daily_demand": 120.0,
+                "lead_time_days": 7,
+                "product_ref": "product:11111111-1111-1111-1111-111111111111"
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops inventory planning should echo product_ref");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "库存规划已生成");
+        assert_eq!(
+            output.get("商品引用").and_then(Value::as_str),
+            Some("product:11111111-1111-1111-1111-111111111111")
+        );
+        assert_eq!(output.get("日均销量").and_then(Value::as_f64), Some(120.0));
+        assert!(output.get("补货点").is_some());
     }
 
     #[tokio::test]
