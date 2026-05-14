@@ -236,25 +236,25 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-81: data LTV calculator product_ref contract
+Post 8-82: data price elasticity product_ref contract
 ```
 
 Scope:
 
-- add `product_ref=product:{uuid}` to `data_ltv_calculator`
-- echo the selected product reference in successful LTV output
-- route explicit LTV / customer value / lifecycle value / CAC payback phrasing to `data_ltv_calculator`
-- parse explicit CAC, average order value, purchase frequency, gross margin, and monthly retention from the current text
+- add `product_ref=product:{uuid}` to `data_price_elasticity`
+- echo the selected product reference in successful price elasticity output
+- route explicit price elasticity / price sensitivity / pricing test / price-change impact phrasing to `data_price_elasticity`
+- parse explicit price-quantity points, cost, and current price from the current text
 - let data worker autosuggest pass selected product refs only from explicit `context.selected_summary`
-- keep missing LTV metrics as disclosed deterministic defaults rather than fake live member or platform data
+- keep missing price points as disclosed deterministic defaults rather than fake live pricing or platform data
 
 Reason:
 
-- LTV / customer value is a core e-commerce retention and acquisition payback skill from the old product
-- selected-product and unspecified-product LTV analysis must stay separate
-- users should reach the native LTV skill directly instead of falling through to generic funnel analysis
-- frontend artifacts and process panels need a stable product reference for product-bound LTV reports
-- real member, CRM, and platform retention data remain an adapter/service concern and must not be faked
+- price elasticity is a core e-commerce pricing and promotion skill from the old product
+- selected-product and unspecified-product price elasticity analysis must stay separate
+- users should reach the native price elasticity skill directly instead of falling through to generic pricing or metrics analysis
+- frontend artifacts and process panels need a stable product reference for product-bound pricing reports
+- real SKU price history, platform sales, and pricing execution remain adapter/service/approval concerns and must not be faked
 
 ## 10. Validation Standard
 

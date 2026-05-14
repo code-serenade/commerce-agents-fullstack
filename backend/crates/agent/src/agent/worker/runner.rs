@@ -874,6 +874,26 @@ fn autosuggest_data(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         ));
     }
 
+    if contains_any(
+        text,
+        &[
+            "price elasticity",
+            "elasticity",
+            "价格弹性",
+            "价格敏感",
+            "需求弹性",
+            "调价测试",
+            "涨价影响",
+            "降价影响",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "data_price_elasticity",
+            serde_json::Value::Object(infer_price_elasticity_input(text, task)),
+            "根据价格弹性/价格敏感/调价影响意图自动补偿价格弹性 skill",
+        ));
+    }
+
     if let Some(request) = autosuggest_product_or_campaign_metrics(text, task) {
         return Some(request);
     }
@@ -2245,6 +2265,73 @@ fn infer_ltv_calculator_input(
         &["月留存率", "留存率", "monthly_retention"],
     );
     input
+}
+
+fn infer_price_elasticity_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_period_days(text)),
+    );
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
+    let price_points = infer_price_quantity_points(text);
+    if !price_points.is_empty() {
+        input.insert("price_points".to_string(), serde_json::json!(price_points));
+    }
+    insert_metric_value(&mut input, "cost", text, &["成本", "单品成本", "cost"]);
+    insert_metric_value(
+        &mut input,
+        "current_price",
+        text,
+        &["当前售价", "当前价格", "现价", "current_price"],
+    );
+    input
+}
+
+fn infer_price_quantity_points(text: &str) -> Vec<serde_json::Value> {
+    text.split(['，', ',', '；', ';', '、', '\n'])
+        .filter_map(parse_price_quantity_segment)
+        .collect()
+}
+
+fn parse_price_quantity_segment(segment: &str) -> Option<serde_json::Value> {
+    let trimmed = segment.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    let price = extract_last_metric_value(trimmed, &["价格点", "售价", "单价", "price", "价格"])?;
+    let quantity = extract_metric_value(
+        trimmed,
+        &["销量", "销售量", "件数", "销量件数", "quantity", "qty"],
+    )?;
+    Some(serde_json::json!({
+        "price": price,
+        "quantity": quantity,
+    }))
+}
+
+fn extract_last_metric_value(text: &str, aliases: &[&str]) -> Option<f64> {
+    let lower = text.to_ascii_lowercase();
+    for alias in aliases {
+        let alias_lower = alias.to_ascii_lowercase();
+        let index = lower
+            .rmatch_indices(&alias_lower)
+            .next()
+            .map(|(index, _)| index);
+        let Some(index) = index else {
+            continue;
+        };
+        let start = index + alias_lower.len();
+        if let Some(value) = parse_metric_number_after_alias(&text[start..]) {
+            return Some(value);
+        }
+    }
+    None
 }
 
 fn store_metrics_input_has_metrics(input: &serde_json::Map<String, serde_json::Value>) -> bool {
@@ -4902,6 +4989,66 @@ mod tests {
 
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].skill_id, "data_ltv_calculator");
+        assert!(requests[0].input.get("product_ref").is_none());
+    }
+
+    #[test]
+    fn autosuggests_price_elasticity_with_explicit_price_points() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("做价格弹性分析：价格90销量560，价格110销量440，成本42，当前售价99"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_price_elasticity");
+        let points = requests[0].input["price_points"]
+            .as_array()
+            .expect("price points should be parsed");
+        assert_eq!(points.len(), 2);
+        assert_eq!(points[0]["price"], 90.0);
+        assert_eq!(points[0]["quantity"], 560.0);
+        assert_eq!(points[1]["price"], 110.0);
+        assert_eq!(points[1]["quantity"], 440.0);
+        assert_eq!(requests[0].input["cost"], 42.0);
+        assert_eq!(requests[0].input["current_price"], 99.0);
+    }
+
+    #[test]
+    fn selected_product_context_feeds_price_elasticity_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task_with_metadata(
+                "分析这个商品价格弹性：价格90销量560，价格110销量440，成本42，当前售价99",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_price_elasticity");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        let points = requests[0].input["price_points"]
+            .as_array()
+            .expect("price points should be parsed");
+        assert_eq!(points[0]["price"], 90.0);
+        assert_eq!(points[0]["quantity"], 560.0);
+    }
+
+    #[test]
+    fn price_elasticity_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("做价格弹性分析：价格90销量560，价格110销量440"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_price_elasticity");
         assert!(requests[0].input.get("product_ref").is_none());
     }
 

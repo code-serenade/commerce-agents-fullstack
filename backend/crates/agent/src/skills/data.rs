@@ -446,6 +446,12 @@ pub fn specs() -> Vec<SkillSpec> {
             SkillPriority::Critical,
             vec![
                 field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用 product:{uuid}；仅用于标识本轮显式选品",
+                    false,
+                ),
+                field(
                     "price_points",
                     "array<object>",
                     "历史价格-销量对：{price,quantity}",
@@ -2301,6 +2307,7 @@ fn seasonal_decompose(input: &Value) -> Value {
 }
 
 fn price_elasticity(input: &Value) -> Value {
+    let product_ref = s(input, "product_ref", "");
     let points = input
         .get("price_points")
         .and_then(Value::as_array)
@@ -2345,6 +2352,7 @@ fn price_elasticity(input: &Value) -> Value {
         current
     };
     json!({
+        "商品引用": empty_string_as_null(product_ref),
         "价格弹性系数": round4(e),
         "敏感度分类": if e.abs() > 1.5 { "高弹性" } else if e.abs() > 0.8 { "中弹性" } else { "低弹性" },
         "当前售价": round2(current),
@@ -4253,6 +4261,40 @@ mod tests {
             Some("calculated_from_defaults")
         );
         assert!(output.get("summary").and_then(Value::as_str).is_some());
+    }
+
+    #[tokio::test]
+    async fn data_price_elasticity_echoes_product_ref() {
+        let outcome = execute(
+            "data_price_elasticity",
+            json!({
+                "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                "price_points": [
+                    {"price": 90.0, "quantity": 560.0},
+                    {"price": 110.0, "quantity": 440.0}
+                ],
+                "cost": 42.0,
+                "current_price": 99.0
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("data price elasticity should echo selected product ref");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("user_provided")
+        );
+        assert_eq!(
+            output.get("商品引用"),
+            Some(&json!("product:11111111-1111-1111-1111-111111111111"))
+        );
+        assert!(output.get("价格弹性系数").and_then(Value::as_f64).is_some());
     }
 
     #[tokio::test]

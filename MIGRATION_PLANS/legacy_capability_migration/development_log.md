@@ -1,5 +1,54 @@
 # 迁移开发记录
 
+## Post 8-82：价格弹性 product_ref 契约
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 82 个补强项：`Post 8-82`。
+
+本次目标：
+
+- 把数据层价格弹性分析接入新产品 `product_ref=product:{uuid}` 契约。
+- 让用户手动选择商品后，价格弹性 / 价格敏感 / 调价影响 skill 能保留本轮商品引用。
+- 让 `价格弹性 / 价格敏感 / 需求弹性 / 调价测试 / 涨价影响 / 降价影响` 问法触发 `data_price_elasticity`。
+- 继续保持未选商品时不绑定历史商品或预设商品，也不执行真实调价。
+
+本次修改：
+
+- 后端 agent：`data_price_elasticity` schema 新增 `product_ref`。
+- 后端 agent：成功输出新增 `商品引用`。
+- 后端 worker：本轮显式选品后，价格弹性自动补偿 input 带入 `product_ref`。
+- 后端 worker：新增价格弹性显式参数解析，支持 `价格-销量` 点、成本和当前售价。
+- 后端 worker：未选商品时不写空 `product_ref`。
+- API/SSE：同步 `API_DOCS/sse.md`。
+- 迁移文档：新增本轮归档，并同步阶段验收、总计划和 skill 矩阵。
+
+用户可感知变化：
+
+- 用户手动勾选商品后，再问“分析这个商品价格弹性 / 调价影响 / 涨价降价影响”时，后端会把本轮选中商品的 `product:<uuid>` 带进价格弹性结果。
+- 用户没有手动选商品时，价格弹性仍按普通价格问题运行，但不会暗中绑定历史商品或默认商品。
+- 用户在问题里写出 `价格90销量560，价格110销量440，成本42，当前售价99` 等参数时，后端会解析成本轮显式输入。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/data_price_elasticity_product_ref_post_8_82.md`
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent data_price_elasticity -- --nocapture`
+- [x] `cargo test -p agent autosuggests_price_elasticity_with_explicit_price_points -- --nocapture`
+- [x] `cargo test -p agent selected_product_context_feeds_price_elasticity_ref -- --nocapture`
+- [x] `cargo test -p agent price_elasticity_without_selection_has_no_empty_product_ref -- --nocapture`
+- [x] `cargo fmt --all --check`
+- [x] `cargo check -p agent`
+- [x] `cargo clippy -p agent`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 真实成交价格、SKU 维度销量和平台调价执行仍需要后续 service/adapter/approval 注入，不能由本地 native skill 伪造或直接执行。
+
 ## Post 8-81：LTV 客户价值 product_ref 契约
 
 状态：done
