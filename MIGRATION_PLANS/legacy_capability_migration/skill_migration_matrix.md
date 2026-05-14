@@ -163,3 +163,5 @@ Post 8-60 补充：App API 和 Agent `search_*` skill 均已回显 `bypassCache/
 | `coordination_create_campaign` | `coordination_create_campaign` | native_ready | `backend/crates/agent/src/skills/coordination.rs` | 本轮已真实化为营销活动草稿 skill，并通过 SSE/service 落成真实 campaign draft 与 campaign_draft artifact |
 | `coordination_create_task` | `coordination_create_task` | native_ready | `backend/crates/agent/src/skills/coordination.rs` | 本轮已真实化为工作区任务草案 skill，并通过 SSE/service 落成真实 workspace task |
 | `coordination_save_memory` | `coordination_save_memory` | native_ready | `backend/crates/agent/src/skills/coordination.rs` | 本轮已真实化为工作记忆草案 skill，并通过 SSE/service 落成真实 agent learning record / workspace memory |
+| `coordination_skill_chain_planner` | `coordination_skill_chain_planner` | native_ready | `backend/crates/agent/src/skills/coordination.rs` | Post 8-61：已补强为 Rust native 结构化技能链规划，输出阶段、负责角色、执行模式、风险、前置依赖、不可用技能、adapter提示和审批提示；只做规划，不执行外部 Agent 或平台写操作 |
+| `coordination_external_agent_call` | `coordination_external_agent_call` | approval_required | `backend/crates/agent/src/skills/coordination.rs` | 保持 pending approval；真实外部 Agent/A2A 调用需要白名单、审计和安全策略后再接，不在当前阶段伪造执行 |

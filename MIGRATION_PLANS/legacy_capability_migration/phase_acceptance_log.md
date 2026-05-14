@@ -1,5 +1,29 @@
 # 阶段验收记录
 
+# 阶段验收记录
+
+## Post 8-61：技能链规划 skill native 补强
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent：`coordination_skill_chain_planner` 返回 `status=success` 和结构化 `推荐执行链`。
+- [x] Agent：每个步骤包含阶段、负责角色、执行模式、风险等级、前置依赖、可用状态和说明。
+- [x] Agent：旧产品 `data_query_store_metrics` 已规范为新产品真实 `query_store_metrics`。
+- [x] Agent：输出 `前置依赖说明`、`前置依赖缺口`、`不可用技能`、`审批提示` 和 `adapter提示`。
+- [x] Agent：`skills_available` 只用于标记可用性，不伪造执行。
+- [x] API：`API_DOCS/sse.md` 已同步该 skill 的 `skill_result.output` 契约。
+- [x] 前端：本轮不新增假入口；后续可用真实 `skill_result.output` 接过程面板。
+- [x] 验证：`cargo test -p agent coordination_skill_chain -- --nocapture` 通过。
+
+当前说明：
+
+- 本阶段解决的是“旧产品技能链规划只迁了名字，过程信息不足”的问题。
+- 本阶段只规划，不自动批量执行，不调用外部 Agent，不执行平台写操作。
+- 后续 Kimi Agent 风格右侧过程面板应直接消费这些结构化字段。
+
 ## Post 8-60：外部搜索证据契约补强
 
 状态：done

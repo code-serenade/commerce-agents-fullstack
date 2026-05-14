@@ -99,6 +99,7 @@ The following major foundations are already in place:
 - platform execution adapter dispatch outcome boundary inside the service framework
 - search evidence artifact persistence and reusable evidence summary contract
 - agent skill run persistence and query API
+- native coordination skill chain planning with structured phases, dependencies, adapter hints, approval hints, and availability flags
 - multiple native skill migrations across ops / data / service / creative / web / design / accounting
 - creative and design skill outputs can now materialize into reusable workspace artifacts when the skill result is successful
 - data dashboard is now a native deterministic skill with explicit manual-input vs store-metrics-required readiness
@@ -233,24 +234,22 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-60: external search evidence contract hardening
+Post 8-61: coordination skill chain planner native hardening
 ```
 
 Scope:
 
-- harden the old product search skill migration inside the new Rust Agent/search adapter framework
-- preserve `_needs_fresh_data` / bypass-cache intent for search provider requests
-- add reusable `evidence` summaries to Agent `search_*` skill output and App external search API responses
-- deduplicate normalized live sources before they become Agent output or search evidence artifacts
-- keep official Taobao / Douyin / Qianchuan direct platform integrations deferred
-- avoid fake live sources when the provider is absent, fails, or returns no credible sources
+- harden the old product `coordination_skill_chain_planner` capability inside the new Rust Agent framework
+- return structured skill chain steps for phases, owner roles, execution mode, risk, prerequisites, availability, adapter hints, and approval hints
+- normalize old product `data_query_store_metrics` references to the new product `query_store_metrics` skill ID
+- keep `coordination_external_agent_call` and platform write actions behind approval/safety boundaries
+- avoid fake execution: this slice plans the chain only and does not run external Agent calls or official platform writes
 
 Reason:
 
-- external search / real-time data was raised to second priority while official platform APIs remain deferred
-- old product search skills already exist in the new framework, but frontend-friendly evidence reuse was still weak
-- Kimi-style source panels should consume real backend evidence instead of parsing provider payloads or inventing sources
-- this slice improves backend search readiness without changing frontend or pretending provider configuration exists
+- old product skill chain planning existed as an important coordination ability, but the new Rust output was too static for real process panels
+- Kimi-style workbench process cards should consume backend-provided stages, dependencies, adapter/approval state, and availability instead of guessing in the frontend
+- the change improves backend coordination realism without introducing frontend fake flows or unsafe external execution
 
 ## 10. Validation Standard
 

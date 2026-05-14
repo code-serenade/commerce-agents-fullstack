@@ -1,5 +1,50 @@
 # 迁移开发记录
 
+## Post 8-61：技能链规划 skill native 补强
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 61 个补强项：`Post 8-61`。
+
+本次目标：
+
+- 继续迁移旧产品 coordination skill 生态。
+- 把 `coordination_skill_chain_planner` 从静态建议补强为新产品 Rust Agent 内的结构化技能链规划能力。
+- 为后续 Kimi Agent 风格过程面板提供真实后端数据，而不是让前端猜测步骤、状态和风险。
+
+本次修改：
+
+- 后端 agent：`coordination_skill_chain_planner` 输出新增 `status=success`、`角色`、`动作`、`前置依赖缺口`、`不可用技能`、`审批提示`、`adapter提示` 和 `可用技能过滤`。
+- 后端 agent：每个推荐步骤新增 `阶段`、`负责角色`、`执行模式`、`风险等级`、`前置依赖`、`可用` 和说明。
+- 后端 agent：把旧产品常见 `data_query_store_metrics` 规范为新产品真实 `query_store_metrics`，避免推荐不存在的旧 ID。
+- 后端 agent：补强 NPS、SLA、CTR、ABC-XYZ、广告疲劳、RFM、SEO、财务、预测、库存、大促、新品、数据、客服、创意等电商场景模板。
+- API/SSE：同步 `coordination_skill_chain_planner` 的 `skill_result.output` 契约说明。
+- 迁移文档：同步迁移矩阵、阶段验收记录、总计划和本轮归档文件。
+
+用户可感知变化：
+
+- 后续前端接入后，用户能看到一条任务应该先加载数据、再分析、再生成内容或进入审批的清晰路径。
+- 每个步骤都能显示负责的虚拟员工、执行阶段、是否需要 adapter、是否需要审批、当前是否可用。
+- 外部数据和审批步骤会被明确标出，不会被展示成已经完成。
+- 这轮不新增前端入口，不执行外部 Agent，也不发布平台动作。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/skill_chain_planner_native_post_8_61.md`
+- [x] 迁移矩阵：`MIGRATION_PLANS/legacy_capability_migration/skill_migration_matrix.md`
+- [x] API 文档：`API_DOCS/sse.md`
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent coordination_skill_chain -- --nocapture`
+
+后续缺口：
+
+- 前端仍需把结构化技能链接入右侧过程面板，并做成可折叠的过程卡片。
+- 当前只做 deterministic planning，不自动批量执行技能链。
+- `coordination_external_agent_call` 仍需要白名单、鉴权、审批、审计和失败降级后再真实接入。
+
 ## Post 8-60：外部搜索证据契约补强
 
 状态：done

@@ -173,6 +173,7 @@ data: {"type":"approval_required","approval":{"id":"approval-uuid","workspaceId"
 - 自动补偿仍走角色白名单、`SkillExecutorSet`、真实 `skill_result` 和结果合并链路，不绕过权限，也不伪造前端事件。
 - 自动补偿不会直接执行高风险平台写操作；平台写操作仍返回 `pending_approval` 并进入审批链路。
 - `coordination_create_campaign` 在返回 `status=success` 且 `campaign_creation.should_persist=true` 时，web-server 会把结构化草稿沉淀成真实 `campaign draft`，并额外发送 `campaign_draft_created` 与对应 `workspace_artifact_created`。
+- `coordination_skill_chain_planner` 通过既有 `skill_result` 返回结构化技能链规划；`output` 包含 `status=success`、`角色`、`动作`、`推荐执行链`、`前置依赖说明`、`前置依赖缺口`、`不可用技能`、`审批提示`、`adapter提示` 和 `可用技能过滤`。每个步骤会标明 `技能`、`阶段`、`负责角色`、`执行模式`、`风险等级`、`前置依赖` 和 `可用`，供前端过程面板展示真实计划状态；它只做规划，不执行平台写操作，不调用外部 Agent，也不把 adapter-required 步骤伪装成已完成。
 - 搜索类 `search_*` skill 会读取后端 `[external_search]` 配置：配置完整且 provider 返回可信来源时，`skill_result` 可返回 `status=success`、`execution_mode=adapter`，`output` 内包含 `status=live`、`sources`、`data.items`、`provenance`、`confidence`、`freshness`、`evidence` 和 `query.bypass_cache`；未配置、provider 失败或无来源时仍返回 `status=deferred`，`output` 内带 `adapter_status=adapter_required/degraded`、空 `evidence` 和 `degraded_reason`。
 - 搜索类 skill 会兼容旧产品 `_needs_fresh_data` 语义，也接受 `bypass_cache` / `bypassCache`，并把结果写入 `query.bypass_cache` 后转发给 provider；这只表示请求实时性偏好，不代表 provider 一定绕过缓存。
 - 当搜索类 `skill_result` 同时满足 `status=success`、`execution_mode=adapter`、`output.status=live` 且 `output.sources` 非空时，web-server 会把完整搜索输出沉淀为 `artifactType=search_evidence`、`format=json`、`storageKind=inline` 的工作区交付物，并额外发送 `workspace_artifact_created`。未配置、降级或无来源时不会创建搜索证据 artifact。
