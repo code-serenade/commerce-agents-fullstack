@@ -236,24 +236,24 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-98: ops channel strategy product_ref contract
+Post 8-99: ops assortment planning product_ref contract
 ```
 
 Scope:
 
-- add `product_ref=product:{uuid}` to `ops_channel_strategy`
-- echo the selected product reference in successful channel strategy output
-- route channel / 渠道 / 投放渠道 / 流量渠道 / 渠道分配 / 渠道策略 phrasing to structured `ops_channel_strategy` input
-- parse explicit labeled budget from the current text and avoid treating `618` / `双11` campaign numbers as channel budget
+- add `product_ref=product:{uuid}` to `ops_assortment_planning`
+- echo the selected product reference in successful assortment planning output
+- route assortment / SKU组合 / 货盘 / 选品组合 / 组合规划 phrasing to structured `ops_assortment_planning` input
+- parse explicit labeled budget from the current text and avoid treating `618` / `双11` campaign numbers as assortment budget
 - let ops worker autosuggest pass selected product refs only from explicit `context.selected_summary`
-- keep channel strategy based on user input plus deterministic category channel rules rather than fake platform channel data
+- keep assortment planning based on user input plus deterministic category assortment rules rather than fake platform or supply-chain data
 
 Reason:
 
-- channel strategy is a high-frequency old-product operations capability and needs to preserve selected-product provenance
-- selected-product and unspecified channel planning must stay separate
+- assortment planning is a high-frequency old-product operations capability and needs to preserve selected-product provenance
+- selected-product and unspecified assortment planning must stay separate
 - activity names contain numeric tokens (`618`, `双11`) that should not pollute budget parsing
-- real Taobao, Douyin, Qianchuan, platform channel, advertising account, and live ROI data remain adapter/service/search concerns and must not be faked
+- real Taobao, Douyin, Qianchuan, ERP, WMS, supply-chain, supplier quote, platform hot-sale, and live inventory data remain adapter/service/search concerns and must not be faked
 
 ## 10. Validation Standard
 

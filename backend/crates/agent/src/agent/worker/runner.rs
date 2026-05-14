@@ -650,14 +650,9 @@ fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
             "组合规划",
         ],
     ) {
-        let numbers = numbers_in_text(text);
-        let category = selected_product_category_or_infer(task, text);
         return Some(autosuggest_request(
             "ops_assortment_planning",
-            serde_json::json!({
-                "category": category,
-                "budget": numbers.first().copied().unwrap_or(50_000.0).max(0.0),
-            }),
+            serde_json::Value::Object(infer_assortment_planning_input(text, task)),
             "根据选品组合/货盘规划意图自动补偿选品规划 skill",
         ));
     }
@@ -3162,6 +3157,39 @@ fn infer_channel_strategy_input(
     input.insert(
         "target_audience".to_string(),
         serde_json::json!(infer_audience(text)),
+    );
+    input
+}
+
+fn infer_assortment_planning_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let numbers = numbers_in_text(text);
+    let mut input = serde_json::Map::new();
+    input.insert(
+        "category".to_string(),
+        serde_json::json!(selected_product_category_or_infer(task, text)),
+    );
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
+    input.insert(
+        "budget".to_string(),
+        serde_json::json!(
+            extract_metric_value(
+                text,
+                &["选品预算", "货盘预算", "采购预算", "预算", "budget"]
+            )
+            .or_else(|| {
+                numbers
+                    .into_iter()
+                    .filter(|value| !matches!(*value as i64, 618 | 11))
+                    .find(|value| *value >= 100.0)
+            })
+            .unwrap_or(50_000.0)
+            .max(0.0)
+        ),
     );
     input
 }
@@ -6126,6 +6154,42 @@ mod tests {
         assert_eq!(requests[0].skill_id, "ops_channel_strategy");
         assert!(requests[0].input.get("product_ref").is_none());
         assert_eq!(requests[0].input["budget"], 20000.0);
+    }
+
+    #[test]
+    fn selected_product_context_feeds_assortment_planning_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task_with_metadata(
+                "给这个商品做货盘和SKU组合规划，选品预算80000",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_assortment_planning");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["category"], "咖啡饮品");
+        assert_eq!(requests[0].input["budget"], 80000.0);
+    }
+
+    #[test]
+    fn assortment_planning_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task("做一份零食货盘和SKU组合规划，选品预算80000"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_assortment_planning");
+        assert!(requests[0].input.get("product_ref").is_none());
+        assert_eq!(requests[0].input["budget"], 80000.0);
     }
 
     #[test]

@@ -104,6 +104,12 @@ pub fn specs() -> Vec<SkillSpec> {
             "根据类目和选品预算，输出商品组合、测品预算和风险控制",
             vec![
                 field("category", "string", "商品类目", true),
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用，如 product:{uuid}",
+                    false,
+                ),
                 field("budget", "number", "选品预算（元）", true),
             ],
         ),
@@ -553,6 +559,7 @@ fn listing_copy(input: &Value) -> Value {
 
 fn assortment_planning(input: &Value) -> Value {
     let category = string(input, "category", "通用");
+    let product_ref = string(input, "product_ref", "");
     let budget = num(input, "budget", 50_000.0).max(0.0);
     let hero = round2(budget * 0.45);
     let test = round2(budget * 0.30);
@@ -562,6 +569,7 @@ fn assortment_planning(input: &Value) -> Value {
         "has_data": true,
         "数据来源": "用户输入 + 确定性选品组合模型",
         "类目": category,
+        "商品引用": if product_ref.is_empty() { Value::Null } else { json!(product_ref) },
         "选品预算": currency(budget),
         "商品组合": [
             {"角色": "引流款", "预算": currency(hero), "SKU数": 2, "目标": "获取曝光与搜索权重", "毛利要求": "15%-25%"},
@@ -1598,6 +1606,30 @@ mod tests {
             Some("咖啡饮品")
         );
         assert!(output.get("渠道组合").is_some());
+    }
+
+    #[tokio::test]
+    async fn ops_assortment_planning_echoes_product_ref() {
+        let outcome = execute(
+            "ops_assortment_planning",
+            json!({
+                "category": "咖啡饮品",
+                "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                "budget": 80000.0
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops assortment planning should echo product_ref");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "选品规划已生成");
+        assert_eq!(
+            output.get("商品引用").and_then(Value::as_str),
+            Some("product:11111111-1111-1111-1111-111111111111")
+        );
+        assert_eq!(output.get("类目").and_then(Value::as_str), Some("咖啡饮品"));
+        assert!(output.get("商品组合").is_some());
     }
 
     #[tokio::test]
