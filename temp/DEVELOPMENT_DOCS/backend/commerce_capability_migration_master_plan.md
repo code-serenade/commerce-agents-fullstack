@@ -236,24 +236,24 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-97: ops promo planning product_ref contract
+Post 8-98: ops channel strategy product_ref contract
 ```
 
 Scope:
 
-- add `product_ref=product:{uuid}` to `ops_promo_planning`
-- echo the selected product reference in successful promo planning output
-- route promotion / campaign / 活动 / 促销 / 大促 / 618 / 双11 phrasing to structured `ops_promo_planning` input
-- parse explicit labeled budget from the current text and avoid treating `618` / `双11` campaign numbers as budget
+- add `product_ref=product:{uuid}` to `ops_channel_strategy`
+- echo the selected product reference in successful channel strategy output
+- route channel / 渠道 / 投放渠道 / 流量渠道 / 渠道分配 / 渠道策略 phrasing to structured `ops_channel_strategy` input
+- parse explicit labeled budget from the current text and avoid treating `618` / `双11` campaign numbers as channel budget
 - let ops worker autosuggest pass selected product refs only from explicit `context.selected_summary`
-- keep promotion planning based on user input plus deterministic budget model rather than fake platform campaign data
+- keep channel strategy based on user input plus deterministic category channel rules rather than fake platform channel data
 
 Reason:
 
-- promo planning is a high-frequency old-product operations capability and needs to preserve selected-product provenance
-- selected-product and unspecified promotion planning must stay separate
+- channel strategy is a high-frequency old-product operations capability and needs to preserve selected-product provenance
+- selected-product and unspecified channel planning must stay separate
 - activity names contain numeric tokens (`618`, `双11`) that should not pollute budget parsing
-- real Taobao, Douyin, Qianchuan, platform campaign, and advertising data remain adapter/service/search concerns and must not be faked
+- real Taobao, Douyin, Qianchuan, platform channel, advertising account, and live ROI data remain adapter/service/search concerns and must not be faked
 
 ## 10. Validation Standard
 

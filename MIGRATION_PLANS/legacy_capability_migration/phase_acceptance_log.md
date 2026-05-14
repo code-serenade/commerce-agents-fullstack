@@ -2,6 +2,28 @@
 
 # 阶段验收记录
 
+## Post 8-98：渠道策略 product_ref 契约
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent：`ops_channel_strategy` schema 支持 `product_ref`。
+- [x] Agent：成功渠道策略输出回显 `商品引用`。
+- [x] Worker autosuggest：渠道 / 投放渠道 / 流量渠道 / 渠道分配 / 渠道策略问法触发 `ops_channel_strategy` 时使用结构化 input。
+- [x] Worker autosuggest：本轮显式选品时渠道策略 input 携带 `product_ref`。
+- [x] Worker autosuggest：未选商品时不写空 `product_ref`。
+- [x] Worker autosuggest：预算解析优先读取预算标签，避免把 `618`、`双11` 当预算。
+- [x] API：`API_DOCS/sse.md` 已同步渠道策略 product_ref 契约。
+- [x] 前端：本轮不新增假入口。
+
+当前说明：
+
+- 本阶段解决的是“渠道策略已可 native 执行，但商品引用和预算解析不够稳”的问题。
+- 本阶段只使用用户本轮显式输入的商品选择、类目和预算；未选商品时不会从历史摘要、预设商品或测试商品补默认引用。
+- 本阶段不读取或伪造淘宝、抖音、千川、平台渠道、广告账户或实时投放数据。
+
 ## Post 8-97：促销策划 product_ref 契约
 
 状态：done

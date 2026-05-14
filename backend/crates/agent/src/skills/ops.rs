@@ -49,6 +49,12 @@ pub fn specs() -> Vec<SkillSpec> {
                     "商品类型：美妆/食品/数码/服饰/家居",
                     true,
                 ),
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用，如 product:{uuid}",
+                    false,
+                ),
                 field("budget", "number", "月预算（元）", true),
                 field("target_audience", "string", "目标人群描述", false),
             ],
@@ -415,6 +421,7 @@ fn promo_planning(input: &Value) -> Value {
 
 fn channel_strategy(input: &Value) -> Value {
     let product_type = string(input, "product_type", "通用");
+    let product_ref = string(input, "product_ref", "");
     let budget = num(input, "budget", 10_000.0).max(0.0);
     let audience = string(input, "target_audience", "泛兴趣人群");
     let weights = if product_type.contains("美妆") || product_type.contains("服饰") {
@@ -455,6 +462,7 @@ fn channel_strategy(input: &Value) -> Value {
         "has_data": true,
         "数据来源": "用户输入 + 类目渠道规则",
         "商品类型": product_type,
+        "商品引用": if product_ref.is_empty() { Value::Null } else { json!(product_ref) },
         "目标人群": audience,
         "月预算": currency(budget),
         "渠道组合": mix,
@@ -1562,6 +1570,34 @@ mod tests {
             output.get("商品引用").and_then(Value::as_str),
             Some("product:11111111-1111-1111-1111-111111111111")
         );
+    }
+
+    #[tokio::test]
+    async fn ops_channel_strategy_echoes_product_ref() {
+        let outcome = execute(
+            "ops_channel_strategy",
+            json!({
+                "product_type": "咖啡饮品",
+                "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                "budget": 20000.0,
+                "target_audience": "一二线城市通勤白领"
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops channel strategy should echo product_ref");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "渠道策略已生成");
+        assert_eq!(
+            output.get("商品引用").and_then(Value::as_str),
+            Some("product:11111111-1111-1111-1111-111111111111")
+        );
+        assert_eq!(
+            output.get("商品类型").and_then(Value::as_str),
+            Some("咖啡饮品")
+        );
+        assert!(output.get("渠道组合").is_some());
     }
 
     #[tokio::test]

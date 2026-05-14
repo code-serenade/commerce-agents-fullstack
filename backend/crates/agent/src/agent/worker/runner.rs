@@ -609,15 +609,9 @@ fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
             "渠道策略",
         ],
     ) {
-        let numbers = numbers_in_text(text);
-        let product_type = selected_product_category_or_infer(task, text);
         return Some(autosuggest_request(
             "ops_channel_strategy",
-            serde_json::json!({
-                "product_type": product_type,
-                "budget": numbers.first().copied().unwrap_or(10_000.0).max(0.0),
-                "target_audience": infer_audience(text),
-            }),
+            serde_json::Value::Object(infer_channel_strategy_input(text, task)),
             "根据渠道分配/渠道策略意图自动补偿渠道策略 skill",
         ));
     }
@@ -3134,6 +3128,40 @@ fn infer_promo_planning_input(
     input.insert(
         "platform".to_string(),
         serde_json::json!(selected_product_platform_or_infer(task, text)),
+    );
+    input
+}
+
+fn infer_channel_strategy_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let numbers = numbers_in_text(text);
+    let mut input = serde_json::Map::new();
+    input.insert(
+        "product_type".to_string(),
+        serde_json::json!(selected_product_category_or_infer(task, text)),
+    );
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
+    input.insert(
+        "budget".to_string(),
+        serde_json::json!(
+            extract_metric_value(text, &["渠道预算", "月预算", "预算", "budget"])
+                .or_else(|| {
+                    numbers
+                        .into_iter()
+                        .filter(|value| !matches!(*value as i64, 618 | 11))
+                        .find(|value| *value >= 100.0)
+                })
+                .unwrap_or(10_000.0)
+                .max(0.0)
+        ),
+    );
+    input.insert(
+        "target_audience".to_string(),
+        serde_json::json!(infer_audience(text)),
     );
     input
 }
@@ -6062,6 +6090,42 @@ mod tests {
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].skill_id, "ops_promo_planning");
         assert!(requests[0].input.get("product_ref").is_none());
+    }
+
+    #[test]
+    fn selected_product_context_feeds_channel_strategy_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task_with_metadata(
+                "给这个商品做渠道分配和渠道策略，渠道预算20000",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_channel_strategy");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["product_type"], "咖啡饮品");
+        assert_eq!(requests[0].input["budget"], 20000.0);
+    }
+
+    #[test]
+    fn channel_strategy_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task("给冷萃咖啡做618渠道分配和渠道策略，预算20000"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_channel_strategy");
+        assert!(requests[0].input.get("product_ref").is_none());
+        assert_eq!(requests[0].input["budget"], 20000.0);
     }
 
     #[test]
