@@ -236,23 +236,23 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-72: service query product_ref contract
+Post 8-73: service support product_ref contract
 ```
 
 Scope:
 
-- add `product_ref=product:{uuid}` to `service_query_product`
-- keep legacy `product_id` and `product_name` filters compatible
-- match `product_ref` against explicit `context.refs`, `context.product_ids`, `sources_json.product_id`, and `selected_summary`
-- let service-role product info queries naturally trigger `service_query_product`
-- clean empty product refs when no product was selected
+- add `product_ref=product:{uuid}` to service support skills
+- cover `service_ticket_handler`, `service_faq_playbook`, `service_escalation_flow`, and `service_return_handler`
+- keep legacy integer `product_id` fields for compatibility
+- feed selected product refs into service support autosuggest inputs
+- clean empty `product_ref` when no product was selected
 
 Reason:
 
-- customer service and after-sales tasks need to confirm the exact product context before answering users
-- the product must distinguish manual product selection from generic Q&A with no selected product
-- the new UUID product reference contract should be used consistently across creative, ops, web, design, and service skills
-- the agent crate still must not query the database directly; it only consumes metadata already validated by web-server/service
+- customer service workflows often need to associate a generated response or playbook with the product selected in the current turn
+- the association should use the new product reference contract instead of writing UUIDs into legacy integer fields
+- unselected customer service questions should remain generic and must not inherit a previous product
+- the agent crate still must not query the database directly; it only records references already validated by web-server/service
 
 ## 10. Validation Standard
 

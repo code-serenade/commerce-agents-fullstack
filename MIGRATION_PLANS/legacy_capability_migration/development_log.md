@@ -1,5 +1,52 @@
 # 迁移开发记录
 
+## Post 8-73：客服支持类 Skill 商品引用契约补齐
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 73 个补强项：`Post 8-73`。
+
+本次目标：
+
+- 继续把客服能力接入新产品 `product_ref=product:{uuid}` 契约。
+- 让客服工单、FAQ、升级处理和退换货处理能记录本轮手动选中的商品引用。
+- 继续保持未选商品时不绑定历史商品、默认商品或测试商品。
+
+本次修改：
+
+- 后端 agent：`service_ticket_handler` schema 新增 `product_ref`，输出到 `内部工单字段.product_ref`。
+- 后端 agent：`service_faq_playbook` schema 新增 `product_ref`，输出 `商品引用`。
+- 后端 agent：`service_escalation_flow` schema 新增 `product_ref`，输出 `商品引用`。
+- 后端 agent：`service_return_handler` schema 新增 `product_ref`，输出 `商品引用`。
+- 后端 worker：显式选品后客服工单、FAQ、升级、退换货 autosuggest input 自动带入 `product_ref`。
+- 后端 worker：未选商品时不留下空商品引用字段。
+- API/SSE：同步 `API_DOCS/sse.md`。
+- 迁移文档：新增本轮归档，并同步阶段验收和 skill 矩阵。
+
+用户可感知变化：
+
+- 用户手动选择商品后，再让客服岗位生成工单话术、FAQ、主管升级流程或退换货处理方案时，结果会带着这次选中商品的 `product:<uuid>` 引用。
+- 用户没有选择商品时，这些客服能力仍可按普通客服问题运行，但不会暗中绑定历史商品或默认商品。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/service_support_product_ref_post_8_73.md`
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent service -- --nocapture`
+- [x] `cargo test -p agent service_support -- --nocapture`
+- [x] `cargo test -p agent selected_product_context_feeds_service_support_product_refs -- --nocapture`
+- [x] `cargo fmt --all --check`
+- [x] `cargo check -p agent`
+- [x] `cargo clippy -p agent`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 其它非客服岗位里仍保留旧 `product_id` 的协调 / 平台类能力后续也应按风险分批迁到 `product_ref`。
+
 ## Post 8-72：客服商品查询 product_ref 契约
 
 状态：done

@@ -84,8 +84,13 @@ pub fn service_ticket_handler_spec() -> SkillSpec {
         string_schema(),
     ))
     .with_input(SkillInputField::optional(
+        "product_ref",
+        "新产品商品引用，如 product:{uuid}；仅作为工单关联记录",
+        string_schema(),
+    ))
+    .with_input(SkillInputField::optional(
         "product_id",
-        "涉及商品ID（可选，用于工单字段记录）",
+        "旧整数商品ID（可选，用于工单字段记录）",
         integer_schema(),
     ))
     .with_input(SkillInputField::optional(
@@ -105,8 +110,13 @@ pub fn service_faq_playbook_spec() -> SkillSpec {
     .with_category(category())
     .with_priority(SkillPriority::High)
     .with_input(SkillInputField::optional(
+        "product_ref",
+        "新产品商品引用，如 product:{uuid}；作为FAQ适用范围记录",
+        string_schema(),
+    ))
+    .with_input(SkillInputField::optional(
         "product_id",
-        "商品ID，作为FAQ适用范围记录",
+        "旧整数商品ID，作为FAQ适用范围记录",
         integer_schema(),
     ))
     .with_input(SkillInputField::optional(
@@ -151,8 +161,13 @@ pub fn service_escalation_flow_spec() -> SkillSpec {
         integer_schema(),
     ))
     .with_input(SkillInputField::optional(
+        "product_ref",
+        "新产品商品引用，如 product:{uuid}",
+        string_schema(),
+    ))
+    .with_input(SkillInputField::optional(
         "product_id",
-        "涉及商品ID（可选）",
+        "旧整数商品ID（可选）",
         integer_schema(),
     ))
     .with_input(SkillInputField::optional(
@@ -245,8 +260,13 @@ pub fn service_return_handler_spec() -> SkillSpec {
         integer_schema(),
     ))
     .with_input(SkillInputField::optional(
+        "product_ref",
+        "新产品商品引用，如 product:{uuid}；用于关联商品信息",
+        string_schema(),
+    ))
+    .with_input(SkillInputField::optional(
         "product_id",
-        "商品ID（可选，用于关联商品信息）",
+        "旧整数商品ID（可选，用于关联商品信息）",
         integer_schema(),
     ))
     .with_tag("deterministic")
@@ -280,6 +300,8 @@ impl Skill for ServiceReturnHandler {
         let reason = string_param(&params, "reason")?;
         let amount = optional_f64_param(&params, "order_amount")?.unwrap_or(100.0);
         let days = optional_i64_param(&params, "days_since_receipt")?.unwrap_or(3);
+        let product_ref = optional_string_param(&params, "product_ref")?;
+        let product_id = optional_i64_param(&params, "product_id")?;
         let seller_fault = matches!(reason.as_str(), "质量问题" | "发错货" | "破损");
         let within_policy = days <= 7;
 
@@ -334,6 +356,8 @@ impl Skill for ServiceReturnHandler {
             map.insert("adapter_status".to_owned(), json!("manual_input"));
             map.insert("data_readiness".to_owned(), json!("user_provided"));
             map.insert("summary".to_owned(), json!("退换货处理方案已生成"));
+            map.insert("商品引用".to_owned(), option_string_json(product_ref));
+            map.insert("商品ID".to_owned(), option_i64_json(product_id));
         }
 
         outcome(output, "退换货处理方案已生成")
@@ -375,6 +399,7 @@ impl Skill for ServiceTicketHandler {
             });
         let platform =
             optional_string_param(&params, "platform")?.unwrap_or_else(|| "淘宝".to_owned());
+        let product_ref = optional_string_param(&params, "product_ref")?;
         let product_id = optional_i64_param(&params, "product_id")?;
         let order_no = optional_string_param(&params, "order_no")?;
         let priority = service_priority(&issue_type, &customer_emotion, &customer_message);
@@ -416,6 +441,7 @@ impl Skill for ServiceTicketHandler {
                     "issue_type": issue_type,
                     "priority": priority,
                     "sla": sla,
+                    "product_ref": product_ref,
                     "product_id": product_id,
                     "order_no": order_no,
                     "seller_fault_likely": seller_fault
@@ -461,6 +487,7 @@ impl Skill for ServiceFaqPlaybook {
         object_params(&params)?;
         let platform =
             optional_string_param(&params, "platform")?.unwrap_or_else(|| "淘宝".to_owned());
+        let product_ref = optional_string_param(&params, "product_ref")?;
         let product_id = optional_i64_param(&params, "product_id")?;
         let questions =
             optional_string_vec_param(&params, "questions")?.unwrap_or_else(default_faq_questions);
@@ -485,6 +512,7 @@ impl Skill for ServiceFaqPlaybook {
                 "执行模式": "native_faq_playbook",
                 "数据来源": if policies.is_empty() { "通用客服SOP；未提供店铺政策" } else { "用户提供店铺政策 + 通用客服SOP" },
                 "平台": platform,
+                "商品引用": product_ref,
                 "商品ID": product_id,
                 "FAQ": faq,
                 "政策来源说明": "用户输入政策优先；未提供时采用保守通用话术，不冒充实时平台政策。",
@@ -532,6 +560,7 @@ impl Skill for ServiceEscalationFlow {
         let customer_emotion = optional_string_param(&params, "customer_emotion")?
             .unwrap_or_else(|| infer_customer_emotion(&issue_description).to_owned());
         let previous_contacts = optional_i64_param(&params, "previous_contacts")?.unwrap_or(0);
+        let product_ref = optional_string_param(&params, "product_ref")?;
         let product_id = optional_i64_param(&params, "product_id")?;
         let customer_history = optional_string_param(&params, "customer_history")?
             .unwrap_or_else(|| "普通客户".to_owned());
@@ -552,6 +581,7 @@ impl Skill for ServiceEscalationFlow {
                 "客户情绪": customer_emotion,
                 "此前联系次数": previous_contacts,
                 "客户历史": customer_history,
+                "商品引用": product_ref,
                 "商品ID": product_id,
                 "严重度": severity,
                 "升级路径": escalation_path(severity),
@@ -1087,6 +1117,17 @@ fn source_product_id(source: &Value) -> Option<String> {
             Value::Number(number) => Some(number.to_string()),
             _ => None,
         })
+}
+
+fn option_string_json(value: Option<String>) -> Value {
+    value
+        .filter(|value| !value.trim().is_empty())
+        .map(Value::String)
+        .unwrap_or(Value::Null)
+}
+
+fn option_i64_json(value: Option<i64>) -> Value {
+    value.map(|value| json!(value)).unwrap_or(Value::Null)
 }
 
 fn strip_product_ref_prefix(value: &str) -> Option<&str> {
@@ -2251,7 +2292,8 @@ mod tests {
                     "issue_type": "物流延迟",
                     "customer_message": "包裹还没到，客户很生气并威胁投诉平台",
                     "customer_emotion": "愤怒",
-                    "platform": "淘宝"
+                    "platform": "淘宝",
+                    "product_ref": "product:11111111-1111-1111-1111-111111111111"
                 }),
                 SkillContext::default(),
             )
@@ -2270,6 +2312,12 @@ mod tests {
         );
         assert!(output.get("客服话术").is_some());
         assert!(output.get("升级条件").is_some());
+        assert_eq!(
+            output
+                .pointer("/内部工单字段/product_ref")
+                .and_then(Value::as_str),
+            Some("product:11111111-1111-1111-1111-111111111111")
+        );
     }
 
     #[tokio::test]
@@ -2278,6 +2326,7 @@ mod tests {
             .run(
                 json!({
                     "platform": "京东",
+                    "product_ref": "product:11111111-1111-1111-1111-111111111111",
                     "questions": ["什么时候发货？", "支持退货吗？"],
                     "policies": {
                         "发货时效": "48小时内",
@@ -2296,6 +2345,10 @@ mod tests {
             Some("user_policy_provided")
         );
         assert_eq!(output.get("平台").and_then(Value::as_str), Some("京东"));
+        assert_eq!(
+            output.get("商品引用").and_then(Value::as_str),
+            Some("product:11111111-1111-1111-1111-111111111111")
+        );
         assert!(
             output
                 .get("FAQ")
@@ -2312,7 +2365,8 @@ mod tests {
                     "issue_description": "客户连续三次反馈质量问题，并表示要投诉平台和曝光",
                     "customer_emotion": "威胁投诉",
                     "previous_contacts": 3,
-                    "customer_history": "高价值客户"
+                    "customer_history": "高价值客户",
+                    "product_ref": "product:11111111-1111-1111-1111-111111111111"
                 }),
                 SkillContext::default(),
             )
@@ -2329,6 +2383,10 @@ mod tests {
         assert_eq!(
             output.get("需审批/复核").and_then(Value::as_bool),
             Some(true)
+        );
+        assert_eq!(
+            output.get("商品引用").and_then(Value::as_str),
+            Some("product:11111111-1111-1111-1111-111111111111")
         );
     }
 
@@ -2367,7 +2425,8 @@ mod tests {
                 json!({
                     "reason": "质量问题",
                     "order_amount": 268.0,
-                    "days_since_receipt": 9
+                    "days_since_receipt": 9,
+                    "product_ref": "product:11111111-1111-1111-1111-111111111111"
                 }),
                 SkillContext::default(),
             )
@@ -2382,6 +2441,10 @@ mod tests {
         );
         assert_eq!(output.get("责任方").and_then(Value::as_str), Some("卖家"));
         assert!(output.get("处理方案").is_some());
+        assert_eq!(
+            output.get("商品引用").and_then(Value::as_str),
+            Some("product:11111111-1111-1111-1111-111111111111")
+        );
     }
 
     #[tokio::test]

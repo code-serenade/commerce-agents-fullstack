@@ -1037,6 +1037,7 @@ fn autosuggest_service(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
             serde_json::json!({
                 "questions": infer_faq_questions(text),
                 "platform": infer_platform(text),
+                "product_ref": selected_product_ref(task),
             }),
             "根据FAQ/标准话术意图自动补偿FAQ话术库 skill",
         ));
@@ -1089,6 +1090,7 @@ fn autosuggest_service(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
                 "customer_message": compact_task_text(&task.description),
                 "customer_emotion": infer_service_emotion(text),
                 "platform": infer_platform(text),
+                "product_ref": selected_product_ref(task),
             }),
             "根据客服工单/话术意图自动补偿工单处理 skill",
         ));
@@ -1115,6 +1117,7 @@ fn autosuggest_service(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
                 "issue_description": compact_task_text(&task.description),
                 "customer_emotion": infer_service_emotion(text),
                 "previous_contacts": numbers_in_text(text).first().copied().map(|value| value.round() as i64),
+                "product_ref": selected_product_ref(task),
             }),
             "根据客服升级/投诉意图自动补偿升级处理 skill",
         ));
@@ -1126,6 +1129,7 @@ fn autosuggest_service(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
             serde_json::json!({
                 "reason": infer_return_reason(text),
                 "days_since_receipt": numbers_in_text(text).first().copied().map(|value| value.round() as i64),
+                "product_ref": selected_product_ref(task),
             }),
             "根据退换货/售后意图自动补偿退换货处理 skill",
         ));
@@ -4897,6 +4901,60 @@ mod tests {
         assert_eq!(requests[0].skill_id, "service_query_product");
         assert!(requests[0].input.get("product_ref").is_none());
         assert!(requests[0].input.get("product_name").is_none());
+    }
+
+    #[test]
+    fn selected_product_context_feeds_service_support_product_refs() {
+        let summary = selected_product_summary();
+        let cases = [
+            (
+                "客户投诉物流延迟很生气，生成工单处理话术",
+                "service_ticket_handler",
+            ),
+            ("生成客服常见FAQ话术库", "service_faq_playbook"),
+            (
+                "客户威胁投诉平台，需要主管升级处理流程",
+                "service_escalation_flow",
+            ),
+            ("客户要求退款退货，帮我处理售后", "service_return_handler"),
+        ];
+
+        for (prompt, expected_skill) in cases {
+            let requests = autosuggest_skill_requests(
+                &role("service"),
+                &task_with_metadata(prompt, &[("context.selected_summary", &summary)]),
+                "{}",
+            );
+            assert_eq!(requests.len(), 1, "{prompt}");
+            assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
+            assert_eq!(
+                requests[0].input["product_ref"], "product:11111111-1111-1111-1111-111111111111",
+                "{prompt}"
+            );
+        }
+    }
+
+    #[test]
+    fn service_support_without_selection_has_no_empty_product_ref() {
+        let cases = [
+            (
+                "客户投诉物流延迟很生气，生成工单处理话术",
+                "service_ticket_handler",
+            ),
+            ("生成客服常见FAQ话术库", "service_faq_playbook"),
+            (
+                "客户威胁投诉平台，需要主管升级处理流程",
+                "service_escalation_flow",
+            ),
+            ("客户要求退款退货，帮我处理售后", "service_return_handler"),
+        ];
+
+        for (prompt, expected_skill) in cases {
+            let requests = autosuggest_skill_requests(&role("service"), &task(prompt), "{}");
+            assert_eq!(requests.len(), 1, "{prompt}");
+            assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
+            assert!(requests[0].input.get("product_ref").is_none(), "{prompt}");
+        }
     }
 
     #[test]

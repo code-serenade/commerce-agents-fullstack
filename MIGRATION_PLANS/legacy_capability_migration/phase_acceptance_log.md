@@ -1125,6 +1125,28 @@
 - 本阶段不新增数据库、不新增 HTTP API、不让 agent crate 直连数据库。
 - `service_query_product` 仍只读取 web-server/service 已校验后注入的 Agent metadata，不会默认读取历史商品或预设商品。
 
+## Post 8-73：客服支持类 Skill 商品引用契约补齐
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] `service_ticket_handler` schema 和输出支持 `product_ref`。
+- [x] `service_faq_playbook` schema 和输出支持 `product_ref`。
+- [x] `service_escalation_flow` schema 和输出支持 `product_ref`。
+- [x] `service_return_handler` schema 和输出支持 `product_ref`。
+- [x] worker 显式选品后自动给客服支持类 skill 补偿 `product_ref`。
+- [x] worker 未选商品时不留下空 `product_ref`。
+- [x] 旧 `product_id` 兼容字段保留。
+- [x] API 文档已同步。
+
+当前说明：
+
+- 本阶段解决客服支持类 skill 无法记录新产品 UUID 商品引用的问题。
+- 本阶段不新增数据库、不新增 HTTP API、不让 agent crate 直连数据库。
+- `product_ref` 仅表示本轮用户显式选择的商品关联，不代表已查询实时平台商品库。
+
 ## Post 8-70：显式选品上下文进入 Skill 输入
 
 状态：done
