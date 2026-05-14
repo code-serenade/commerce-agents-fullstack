@@ -470,6 +470,12 @@ pub fn specs() -> Vec<SkillSpec> {
             SkillPriority::Critical,
             vec![
                 field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用 product:{uuid}；仅用于标识本轮显式选品",
+                    false,
+                ),
+                field(
                     "metric",
                     "string",
                     "预测指标：gmv/orders/uv，默认orders",
@@ -2362,6 +2368,7 @@ fn price_elasticity(input: &Value) -> Value {
 }
 
 fn demand_forecast(input: &Value) -> Value {
+    let product_ref = s(input, "product_ref", "");
     let values = nums(input, "values");
     if values.len() < 3 {
         return json!({"error": "数据不足", "hint": "请提供 values 至少3个数据点"});
@@ -2385,6 +2392,7 @@ fn demand_forecast(input: &Value) -> Value {
         .map(|days| json!({"未来天数": days, "预测总量": round2(level * days as f64), "日均预测": round2(level), "置信区间": [round2((level - 1.96 * sigma).max(0.0)), round2(level + 1.96 * sigma)]}))
         .collect::<Vec<_>>();
     json!({
+        "商品引用": empty_string_as_null(product_ref),
         "指标": metric_display(&s(input, "metric", "orders")),
         "历史数据点数": values.len(),
         "最优alpha": best_alpha,
@@ -4322,6 +4330,37 @@ mod tests {
             Some("user_provided")
         );
         assert!(output.get("summary").and_then(Value::as_str).is_some());
+    }
+
+    #[tokio::test]
+    async fn data_demand_forecast_echoes_product_ref() {
+        let outcome = execute(
+            "data_demand_forecast",
+            json!({
+                "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                "metric": "orders",
+                "forecast_days": [7, 14],
+                "values": [120.0, 128.0, 134.0, 145.0, 151.0, 162.0]
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("data demand forecast should echo selected product ref");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("user_provided")
+        );
+        assert_eq!(
+            output.get("商品引用"),
+            Some(&json!("product:11111111-1111-1111-1111-111111111111"))
+        );
+        assert!(output.get("预测结果").and_then(Value::as_array).is_some());
     }
 
     #[tokio::test]

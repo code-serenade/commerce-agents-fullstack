@@ -1,5 +1,54 @@
 # 迁移开发记录
 
+## Post 8-83：需求预测 product_ref 契约
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 83 个补强项：`Post 8-83`。
+
+本次目标：
+
+- 把数据层需求预测接入新产品 `product_ref=product:{uuid}` 契约。
+- 让用户手动选择商品后，需求预测 / 备货预测 / 补货预测 skill 能保留本轮商品引用。
+- 让 `需求预测 / 销量预测 / 订单预测 / 备货预测 / 补货预测 / 库存预测` 问法触发 `data_demand_forecast`。
+- 继续保持未选商品时不绑定历史商品或预设商品，也不生成真实补货动作。
+
+本次修改：
+
+- 后端 agent：`data_demand_forecast` schema 新增 `product_ref`。
+- 后端 agent：成功输出新增 `商品引用`。
+- 后端 worker：本轮显式选品后，需求预测自动补偿 input 带入 `product_ref`。
+- 后端 worker：新增需求预测显式序列解析，把本轮文本中的数字序列写入 `values`。
+- 后端 worker：未选商品时不写空 `product_ref`。
+- API/SSE：同步 `API_DOCS/sse.md`。
+- 迁移文档：新增本轮归档，并同步阶段验收、总计划和 skill 矩阵。
+
+用户可感知变化：
+
+- 用户手动勾选商品后，再问“预测这个商品需求 / 销量 / 订单 / 备货量 / 补货量”时，后端会把本轮选中商品的 `product:<uuid>` 带进需求预测结果。
+- 用户没有手动选商品时，需求预测仍按普通预测问题运行，但不会暗中绑定历史商品或默认商品。
+- 用户在问题里写出 `最近订单120 128 134 145 151 162` 等序列时，后端会解析成本轮显式历史数据。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/data_demand_forecast_product_ref_post_8_83.md`
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent data_demand_forecast -- --nocapture`
+- [x] `cargo test -p agent autosuggests_demand_forecast_with_explicit_series -- --nocapture`
+- [x] `cargo test -p agent selected_product_context_feeds_demand_forecast_ref -- --nocapture`
+- [x] `cargo test -p agent demand_forecast_without_selection_has_no_empty_product_ref -- --nocapture`
+- [x] `cargo fmt --all --check`
+- [x] `cargo check -p agent`
+- [x] `cargo clippy -p agent`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 真实 SKU 销量、库存、WMS/ERP 和平台补货执行仍需要后续 service/adapter/approval 注入，不能由本地 native skill 伪造或直接执行。
+
 ## Post 8-82：价格弹性 product_ref 契约
 
 状态：done

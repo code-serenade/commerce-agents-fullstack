@@ -236,25 +236,25 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-82: data price elasticity product_ref contract
+Post 8-83: data demand forecast product_ref contract
 ```
 
 Scope:
 
-- add `product_ref=product:{uuid}` to `data_price_elasticity`
-- echo the selected product reference in successful price elasticity output
-- route explicit price elasticity / price sensitivity / pricing test / price-change impact phrasing to `data_price_elasticity`
-- parse explicit price-quantity points, cost, and current price from the current text
+- add `product_ref=product:{uuid}` to `data_demand_forecast`
+- echo the selected product reference in successful demand forecast output
+- route explicit demand / sales / order / stocking / replenishment forecast phrasing to `data_demand_forecast`
+- parse explicit historical numeric series from the current text into `values`
 - let data worker autosuggest pass selected product refs only from explicit `context.selected_summary`
-- keep missing price points as disclosed deterministic defaults rather than fake live pricing or platform data
+- keep insufficient history as deferred rather than fake live demand, inventory, WMS, ERP, or platform data
 
 Reason:
 
-- price elasticity is a core e-commerce pricing and promotion skill from the old product
-- selected-product and unspecified-product price elasticity analysis must stay separate
-- users should reach the native price elasticity skill directly instead of falling through to generic pricing or metrics analysis
-- frontend artifacts and process panels need a stable product reference for product-bound pricing reports
-- real SKU price history, platform sales, and pricing execution remain adapter/service/approval concerns and must not be faked
+- demand forecast is a core e-commerce stocking and replenishment skill from the old product
+- selected-product and unspecified-product demand forecasting must stay separate
+- users should reach the native demand forecast skill directly instead of falling through to generic trend forecasting
+- frontend artifacts and process panels need a stable product reference for product-bound demand reports
+- real SKU sales, inventory, WMS/ERP, and replenishment execution remain adapter/service/approval concerns and must not be faked
 
 ## 10. Validation Standard
 

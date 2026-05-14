@@ -935,6 +935,28 @@ fn autosuggest_data(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         ));
     }
 
+    if contains_any(
+        text,
+        &[
+            "demand forecast",
+            "demand_forecast",
+            "需求预测",
+            "销量预测",
+            "订单预测",
+            "备货预测",
+            "补货预测",
+            "库存预测",
+            "补货量",
+            "备货量",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "data_demand_forecast",
+            serde_json::Value::Object(infer_demand_forecast_input(text, task)),
+            "根据需求预测/备货预测/补货预测意图自动补偿需求预测 skill",
+        ));
+    }
+
     if contains_any(text, &["trend", "forecast", "预测", "趋势"]) {
         let values = numbers_in_text(text);
         return Some(autosuggest_request(
@@ -2290,6 +2312,26 @@ fn infer_price_elasticity_input(
         text,
         &["当前售价", "当前价格", "现价", "current_price"],
     );
+    input
+}
+
+fn infer_demand_forecast_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_period_days(text)),
+    );
+    input.insert("metric".to_string(), serde_json::json!(infer_metric(text)));
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
+    let values = numbers_in_text(text);
+    if !values.is_empty() {
+        input.insert("values".to_string(), serde_json::json!(values));
+    }
     input
 }
 
@@ -5049,6 +5091,63 @@ mod tests {
 
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].skill_id, "data_price_elasticity");
+        assert!(requests[0].input.get("product_ref").is_none());
+    }
+
+    #[test]
+    fn autosuggests_demand_forecast_with_explicit_series() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("做需求预测和备货建议：最近订单120 128 134 145 151 162"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_demand_forecast");
+        assert_eq!(requests[0].input["metric"], "orders");
+        let values = requests[0].input["values"]
+            .as_array()
+            .expect("values should be parsed");
+        assert_eq!(values.len(), 6);
+        assert_eq!(values[0], 120.0);
+        assert_eq!(values[5], 162.0);
+    }
+
+    #[test]
+    fn selected_product_context_feeds_demand_forecast_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task_with_metadata(
+                "预测这个商品需求和补货量：最近订单120 128 134 145 151 162",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_demand_forecast");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["metric"], "orders");
+        let values = requests[0].input["values"]
+            .as_array()
+            .expect("values should be parsed");
+        assert_eq!(values[0], 120.0);
+    }
+
+    #[test]
+    fn demand_forecast_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("做需求预测：最近订单120 128 134 145 151 162"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_demand_forecast");
         assert!(requests[0].input.get("product_ref").is_none());
     }
 

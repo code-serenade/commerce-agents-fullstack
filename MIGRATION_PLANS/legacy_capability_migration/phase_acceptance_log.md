@@ -2,6 +2,27 @@
 
 # 阶段验收记录
 
+## Post 8-83：需求预测 product_ref 契约
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent：`data_demand_forecast` schema 支持 `product_ref`。
+- [x] Agent：成功需求预测输出回显 `商品引用`。
+- [x] Worker autosuggest：`需求预测` / `销量预测` / `订单预测` / `备货预测` / `补货预测` / `库存预测` 问法触发 `data_demand_forecast`。
+- [x] Worker autosuggest：本轮显式选品时需求预测 input 携带 `product_ref`。
+- [x] Worker autosuggest：未选商品时不写空 `product_ref`。
+- [x] API：`API_DOCS/sse.md` 已同步需求预测 product_ref 契约。
+- [x] 前端：本轮不新增假入口。
+
+当前说明：
+
+- 本阶段解决的是“商品级需求预测 / 备货预测结果无法关联本轮选中商品”的问题。
+- 本阶段只使用本轮显式历史序列；少于 3 个历史数据点时继续 deferred。
+- 本阶段不调用外部平台、WMS 或 ERP，也不执行真实补货。
+
 ## Post 8-82：价格弹性 product_ref 契约
 
 状态：done
