@@ -236,23 +236,23 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-93: ops smart pricing product_ref contract
+Post 8-94: ops inventory optimizer product_ref contract
 ```
 
 Scope:
 
-- add `product_ref=product:{uuid}` to `ops_smart_pricing`
-- echo the selected product reference in successful smart pricing output
-- route smart pricing / dynamic pricing / price optimization / pricing adjustment phrasing to structured `ops_smart_pricing` input
-- parse explicit cost, current price, monthly sales, competitor prices, stock days, elasticity, and platform from the current text into skill input
+- add `product_ref=product:{uuid}` to `ops_inventory_optimizer`
+- echo the selected product reference in successful inventory optimization output
+- route inventory optimization / inventory health / safety stock / reorder point / EOQ / ROP phrasing to structured `ops_inventory_optimizer` input
+- parse explicit SKU rows, monthly sales, unit cost, stock quantity, lead time, and service level from the current text into skill input
 - let ops worker autosuggest pass selected product refs only from explicit `context.selected_summary`
-- keep missing required smart pricing inputs as validation errors and missing competitor prices as explicit `calculated_from_defaults` rather than fake platform data
+- keep missing SKU rows as explicit `missing_user_input` / deferred state rather than fake platform data
 
 Reason:
 
-- smart pricing is a high-value old-product operations capability and needs to be reachable by natural language, not only explicit skill JSON
-- selected-product and unspecified pricing analysis must stay separate
-- frontend artifacts and process panels need a stable product reference for product-bound smart pricing reports
+- inventory optimization is a high-value old-product operations capability and needs to be reachable by natural language, not only explicit skill JSON
+- selected-product and unspecified inventory optimization must stay separate
+- frontend artifacts and process panels need a stable product reference for product-bound inventory optimization reports
 - real Taobao, Douyin, Qianchuan, CRM, ERP, WMS, DMP, member systems, and data warehouses remain adapter/service/search concerns and must not be faked
 
 ## 10. Validation Standard

@@ -156,6 +156,12 @@ pub fn specs() -> Vec<SkillSpec> {
                     "服务水平：90%/95%/98%/99%，默认95%",
                     false,
                 ),
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用，如 product:{uuid}",
+                    false,
+                ),
             ],
         ),
         spec(
@@ -721,6 +727,7 @@ fn smart_pricing(input: &Value) -> Value {
 
 fn inventory_optimizer(input: &Value) -> Value {
     let skus = input["skus"].as_array().cloned().unwrap_or_default();
+    let product_ref = string(input, "product_ref", "");
     if skus.is_empty() {
         return json!({
             "has_data": false,
@@ -831,6 +838,7 @@ fn inventory_optimizer(input: &Value) -> Value {
     json!({
         "has_data": true,
         "数据来源": "用户提供",
+        "商品引用": if product_ref.is_empty() { Value::Null } else { json!(product_ref) },
         "服务水平": service_level,
         "供应商交货期": format!("{}天", lead_time.round()),
         "SKU库存优化明细": sku_results,
@@ -1529,6 +1537,31 @@ mod tests {
             output.get("data_readiness").and_then(Value::as_str),
             Some("missing_user_input")
         );
+    }
+
+    #[tokio::test]
+    async fn ops_inventory_optimizer_echoes_product_ref() {
+        let outcome = execute(
+            "ops_inventory_optimizer",
+            json!({
+                "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                "skus": [
+                    {"name": "冷萃A", "monthly_sales": 300, "cost": 40, "stock_qty": 500}
+                ],
+                "lead_time_days": 14
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops inventory optimizer should echo product_ref");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "库存优化方案已生成");
+        assert_eq!(
+            output.get("商品引用").and_then(Value::as_str),
+            Some("product:11111111-1111-1111-1111-111111111111")
+        );
+        assert!(output.get("SKU库存优化明细").is_some());
     }
 
     #[tokio::test]

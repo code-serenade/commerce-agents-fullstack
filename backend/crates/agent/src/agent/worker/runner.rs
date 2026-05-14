@@ -694,6 +694,30 @@ fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
 
     if contains_any(
         text,
+        &[
+            "inventory optimizer",
+            "inventory optimization",
+            "库存优化",
+            "库存健康",
+            "安全库存",
+            "再订货点",
+            "经济订货量",
+            "周转天数",
+            "EOQ",
+            "eoq",
+            "ROP",
+            "rop",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "ops_inventory_optimizer",
+            serde_json::Value::Object(infer_inventory_optimizer_input(text, task)),
+            "根据库存优化/EOQ/再订货点意图自动补偿库存优化 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
         &["price", "pricing", "cost", "定价", "价格", "售价", "成本"],
     ) {
         let numbers = numbers_in_text(text);
@@ -3068,6 +3092,164 @@ fn infer_competitor_prices(text: &str) -> Vec<f64> {
     prices.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
     prices.dedup_by(|a, b| (*a - *b).abs() < 0.01);
     prices
+}
+
+fn infer_inventory_optimizer_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
+    let skus = infer_inventory_skus(text);
+    if !skus.is_empty() {
+        input.insert("skus".to_string(), serde_json::json!(skus));
+    }
+    insert_metric_value(
+        &mut input,
+        "ordering_cost",
+        text,
+        &["订货成本", "下单成本", "ordering_cost"],
+    );
+    insert_metric_value(
+        &mut input,
+        "holding_rate",
+        text,
+        &["持有成本率", "库存持有成本率", "holding_rate"],
+    );
+    insert_metric_value(
+        &mut input,
+        "lead_time_days",
+        text,
+        &["交货周期", "供货周期", "补货周期", "lead_time_days"],
+    );
+    if let Some(service_level) = infer_service_level(text) {
+        input.insert(
+            "service_level".to_string(),
+            serde_json::json!(service_level),
+        );
+    }
+    input
+}
+
+fn infer_inventory_skus(text: &str) -> Vec<serde_json::Value> {
+    text.split(['；', ';', '\n'])
+        .filter_map(parse_inventory_sku_segment)
+        .collect()
+}
+
+fn parse_inventory_sku_segment(segment: &str) -> Option<serde_json::Value> {
+    let trimmed = segment.trim();
+    if !contains_any(trimmed, &["sku", "SKU", "款", "货品", "商品"]) {
+        return None;
+    }
+    let monthly_sales = extract_last_metric_value(
+        trimmed,
+        &["月销量", "月销", "monthly_sales", "monthly sales", "销量"],
+    )?;
+    let cost = extract_last_metric_value(
+        trimmed,
+        &["单位成本", "单品成本", "成本", "cost", "unit_cost"],
+    )?;
+    let stock_qty = extract_last_metric_value(
+        trimmed,
+        &[
+            "当前库存",
+            "库存数量",
+            "库存",
+            "stock_qty",
+            "stock",
+            "inventory",
+        ],
+    )?;
+    Some(serde_json::json!({
+        "name": infer_inventory_sku_name(trimmed),
+        "monthly_sales": monthly_sales,
+        "cost": cost,
+        "stock_qty": stock_qty,
+    }))
+}
+
+fn infer_inventory_sku_name(segment: &str) -> String {
+    let trimmed = segment
+        .trim()
+        .trim_start_matches(['-', '•', '*', ' '])
+        .trim();
+    let lower = trimmed.to_ascii_lowercase();
+    let trimmed = lower
+        .rfind("sku")
+        .map(|index| trimmed[index..].trim())
+        .unwrap_or(trimmed);
+    let metric_markers = [
+        "月销量",
+        "月销",
+        "monthly_sales",
+        "monthly sales",
+        "销量",
+        "单位成本",
+        "单品成本",
+        "成本",
+        "cost",
+        "unit_cost",
+        "当前库存",
+        "库存数量",
+        "库存",
+        "stock_qty",
+        "stock",
+        "inventory",
+    ];
+    let lower = trimmed.to_ascii_lowercase();
+    let end = metric_markers
+        .iter()
+        .filter_map(|marker| {
+            let marker_lower = marker.to_ascii_lowercase();
+            lower.find(&marker_lower)
+        })
+        .min()
+        .unwrap_or(trimmed.len());
+    let raw = trimmed[..end]
+        .trim()
+        .trim_matches(['：', ':', ',', '，', ';', '；', ' '])
+        .trim();
+    let raw = raw
+        .rfind(['：', ':'])
+        .map(|index| raw[index + 1..].trim())
+        .unwrap_or(raw);
+    let lower_raw = raw.to_ascii_lowercase();
+    let raw = lower_raw
+        .rfind("sku")
+        .map(|index| raw[index..].trim())
+        .unwrap_or(raw);
+    if raw.is_empty() {
+        "SKU".to_string()
+    } else {
+        raw.to_string()
+    }
+}
+
+fn infer_service_level(text: &str) -> Option<String> {
+    for level in ["99%", "98%", "95%", "90%"] {
+        if text.contains(level) {
+            return Some(level.to_string());
+        }
+    }
+    let lower = text.to_ascii_lowercase();
+    for (needle, level) in [
+        ("service_level99", "99%"),
+        ("service_level98", "98%"),
+        ("service_level95", "95%"),
+        ("service_level90", "90%"),
+        ("service level 99", "99%"),
+        ("service level 98", "98%"),
+        ("service level 95", "95%"),
+        ("service level 90", "90%"),
+    ] {
+        if lower.contains(needle) {
+            return Some(level.to_string());
+        }
+    }
+    None
 }
 
 fn infer_demand_forecast_input(
@@ -5462,6 +5644,10 @@ mod tests {
                 "给咖啡新品做智能定价：成本38，当前售价99，月销量820，竞品价89，竞品价109，库存天数45",
                 "ops_smart_pricing",
             ),
+            (
+                "做SKU库存优化和EOQ：SKU冷萃A 月销量300 成本40 库存500；SKU拿铁B 月销量180 成本35 库存160",
+                "ops_inventory_optimizer",
+            ),
         ];
 
         for (prompt, expected_skill) in cases {
@@ -5528,6 +5714,85 @@ mod tests {
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].skill_id, "ops_smart_pricing");
         assert!(requests[0].input.get("product_ref").is_none());
+    }
+
+    #[test]
+    fn autosuggests_inventory_optimizer_with_explicit_sku_rows() {
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task(
+                "做库存优化和安全库存：SKU冷萃A 月销量300 成本40 库存500；SKU拿铁B 月销量180 成本35 库存160，供货周期14，服务水平98%",
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_inventory_optimizer");
+        assert_eq!(requests[0].input["lead_time_days"], 14.0);
+        assert_eq!(requests[0].input["service_level"], "98%");
+        let skus = requests[0].input["skus"]
+            .as_array()
+            .expect("skus should be parsed");
+        assert_eq!(skus.len(), 2);
+        assert_eq!(skus[0]["name"], "SKU冷萃A");
+        assert_eq!(skus[0]["monthly_sales"], 300.0);
+        assert_eq!(skus[0]["cost"], 40.0);
+        assert_eq!(skus[0]["stock_qty"], 500.0);
+        assert_eq!(skus[1]["name"], "SKU拿铁B");
+        assert_eq!(skus[1]["monthly_sales"], 180.0);
+        assert_eq!(skus[1]["cost"], 35.0);
+        assert_eq!(skus[1]["stock_qty"], 160.0);
+    }
+
+    #[test]
+    fn selected_product_context_feeds_inventory_optimizer_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task_with_metadata(
+                "给这个商品做库存健康和再订货点优化：SKU冷萃A 月销量300 成本40 库存500",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_inventory_optimizer");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        let skus = requests[0].input["skus"]
+            .as_array()
+            .expect("skus should be parsed");
+        assert_eq!(skus[0]["name"], "SKU冷萃A");
+    }
+
+    #[test]
+    fn inventory_optimizer_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task("做库存优化：SKU冷萃A 月销量300 成本40 库存500"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_inventory_optimizer");
+        assert!(requests[0].input.get("product_ref").is_none());
+    }
+
+    #[test]
+    fn basic_replenishment_still_routes_to_inventory_planning() {
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task("日均销量120，供货周期7天，帮我算补货点"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_inventory_planning");
+        assert_eq!(requests[0].input["avg_daily_demand"], 120.0);
+        assert_eq!(requests[0].input["lead_time_days"], 7);
     }
 
     #[test]

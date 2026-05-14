@@ -2,6 +2,29 @@
 
 # 阶段验收记录
 
+## Post 8-94：库存优化 product_ref 契约
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent：`ops_inventory_optimizer` schema 支持 `product_ref`。
+- [x] Agent：成功库存优化输出回显 `商品引用`。
+- [x] Worker autosuggest：库存优化 / 库存健康 / 安全库存 / 再订货点 / EOQ / ROP 问法触发 `ops_inventory_optimizer` 时使用结构化 input。
+- [x] Worker autosuggest：本轮显式选品时库存优化 input 携带 `product_ref`。
+- [x] Worker autosuggest：本轮显式 SKU 月销量、成本、库存数量、供货周期和服务水平会进入库存优化 input。
+- [x] Worker autosuggest：未选商品时不写空 `product_ref`。
+- [x] Worker autosuggest：普通补货点问题仍触发 `ops_inventory_planning`。
+- [x] API：`API_DOCS/sse.md` 已同步库存优化 product_ref 契约。
+- [x] 前端：本轮不新增假入口。
+
+当前说明：
+
+- 本阶段解决的是“库存优化无法自然触发、也无法关联本轮选中商品”的问题。
+- 本阶段只使用本轮显式 SKU 输入或继续明确 `missing_user_input` / `deferred` 状态。
+- 本阶段不调用淘宝、抖音、千川、CRM、ERP、WMS、DMP、会员系统或实时数仓数据，也不把历史商品当作默认商品。
+
 ## Post 8-93：智能定价 product_ref 契约
 
 状态：done

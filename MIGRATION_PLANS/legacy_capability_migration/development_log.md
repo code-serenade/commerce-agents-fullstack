@@ -1,5 +1,53 @@
 # 迁移开发记录
 
+## Post 8-94：库存优化 product_ref 契约
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 94 个补强项：`Post 8-94`。
+
+本次目标：
+
+- 把库存优化 `ops_inventory_optimizer` 接入新产品 `product_ref=product:{uuid}` 契约。
+- 让用户手动选择商品后，库存优化 / 库存健康 / 安全库存 / 再订货点 / EOQ / ROP 等问法能保留本轮商品引用。
+- 让用户本轮文本里提供的 SKU 月销量、成本、库存数量、供货周期、服务水平进入真实库存优化 skill input。
+- 继续保持未选商品时不绑定历史商品或预设商品，也不读取淘宝、抖音、千川、CRM、ERP、WMS、DMP、会员系统或实时数仓数据。
+
+本次修改：
+
+- 后端 agent：`ops_inventory_optimizer` schema 新增 `product_ref`。
+- 后端 agent：成功输出新增 `商品引用`。
+- 后端 worker：新增库存优化自然语言自动补偿。
+- 后端 worker：解析本轮显式 SKU 月销量、成本、库存数量、供货周期和服务水平进入库存优化 input。
+- 后端 worker：本轮显式选品后，库存优化 input 带入 `product_ref`。
+- 后端 worker：未选商品时不写空 `product_ref`。
+- 后端 worker：普通“日均销量 + 供货周期”的补货问题继续走 `ops_inventory_planning`，避免误路由。
+- API/SSE：同步 `API_DOCS/sse.md`。
+- 迁移文档：新增本轮归档，并同步阶段验收、总计划和 skill 矩阵。
+
+用户可感知变化：
+
+- 用户手动勾选商品后，再问“给这个商品做库存健康 / 库存优化 / 再订货点 / EOQ”时，后端会把本轮选中商品的 `product:<uuid>` 带进库存优化结果。
+- 用户没有手动选商品时，库存优化仍按普通库存问题运行，但不会暗中绑定历史商品或默认商品。
+- 用户在问题里写出 SKU 月销量、成本、库存数量、供货周期、服务水平时，后端会解析成本轮显式库存优化输入；缺 SKU 明细时继续 `missing_user_input` / `deferred`，不能当作平台实时库存数据。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/ops_inventory_optimizer_product_ref_post_8_94.md`
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent ops_inventory_optimizer -- --nocapture`
+- [x] `cargo test -p agent autosuggests_inventory_optimizer_with_explicit_sku_rows -- --nocapture`
+- [x] `cargo test -p agent selected_product_context_feeds_inventory_optimizer_ref -- --nocapture`
+- [x] `cargo test -p agent inventory_optimizer_without_selection_has_no_empty_product_ref -- --nocapture`
+- [x] `cargo test -p agent basic_replenishment_still_routes_to_inventory_planning -- --nocapture`
+
+后续缺口：
+
+- 真实淘宝、抖音、千川、CRM、ERP、WMS、DMP、会员系统和实时数仓库存数据仍需要后续 service/adapter/search 注入，不能由本地 native skill 伪造或默认读取。
+
 ## Post 8-93：智能定价 product_ref 契约
 
 状态：done
