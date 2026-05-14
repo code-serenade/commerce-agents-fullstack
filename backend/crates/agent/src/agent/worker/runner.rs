@@ -1033,14 +1033,9 @@ fn autosuggest_data(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     }
 
     if contains_any(text, &["trend", "forecast", "预测", "趋势"]) {
-        let values = numbers_in_text(text);
         return Some(autosuggest_request(
             "data_trend_forecast",
-            serde_json::json!({
-                "metric_name": infer_metric(text),
-                "values": values,
-                "forecast_periods": 7,
-            }),
+            serde_json::Value::Object(infer_trend_forecast_input(text, task)),
             "根据趋势/预测意图自动补偿趋势预测 skill",
         ));
     }
@@ -2316,6 +2311,41 @@ fn insert_metric_value(
 ) {
     if let Some(value) = extract_metric_value(text, aliases) {
         input.insert(key.to_string(), serde_json::json!(value));
+    }
+}
+
+fn infer_trend_forecast_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    input.insert(
+        "metric_name".to_string(),
+        serde_json::json!(infer_metric(text)),
+    );
+    input.insert(
+        "forecast_periods".to_string(),
+        serde_json::json!(infer_forecast_periods(text)),
+    );
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(selected_product_platform_or_infer(task, text)),
+    );
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
+    let values = numbers_in_text(text);
+    if !values.is_empty() {
+        input.insert("values".to_string(), serde_json::json!(values));
+    }
+    input
+}
+
+fn infer_forecast_periods(text: &str) -> i64 {
+    if let Some(days) = extract_metric_value(text, &["未来", "预测", "forecast_periods"]) {
+        days.round().clamp(1.0, 90.0) as i64
+    } else {
+        7
     }
 }
 
@@ -5369,6 +5399,59 @@ mod tests {
 
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].skill_id, "data_multi_period_trend");
+        assert!(requests[0].input.get("product_ref").is_none());
+    }
+
+    #[test]
+    fn autosuggests_trend_forecast_with_explicit_series() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("预测GMV未来3天趋势：100 112 124 141"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_trend_forecast");
+        assert_eq!(requests[0].input["metric_name"], "gmv");
+        assert_eq!(requests[0].input["forecast_periods"], 3);
+        let values = requests[0].input["values"]
+            .as_array()
+            .expect("values should be parsed");
+        assert_eq!(values.len(), 5);
+        assert_eq!(values[0], 3.0);
+        assert_eq!(values[1], 100.0);
+        assert_eq!(values[4], 141.0);
+    }
+
+    #[test]
+    fn selected_product_context_feeds_trend_forecast_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task_with_metadata(
+                "预测这个商品订单未来3天趋势：100 112 124 141",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_trend_forecast");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["metric_name"], "orders");
+        assert_eq!(requests[0].input["forecast_periods"], 3);
+    }
+
+    #[test]
+    fn trend_forecast_without_selection_has_no_empty_product_ref() {
+        let requests =
+            autosuggest_skill_requests(&role("data"), &task("预测GMV趋势：100 112 124 141"), "{}");
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_trend_forecast");
         assert!(requests[0].input.get("product_ref").is_none());
     }
 

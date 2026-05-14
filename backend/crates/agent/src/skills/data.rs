@@ -184,6 +184,12 @@ pub fn specs() -> Vec<SkillSpec> {
             SkillPriority::Critical,
             vec![
                 field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用 product:{uuid}；仅用于标识本轮显式选品",
+                    false,
+                ),
+                field(
                     "metric_name",
                     "string",
                     "指标：gmv/orders/uv/conversion_rate，默认gmv",
@@ -1342,6 +1348,7 @@ fn anomaly_diagnosis(input: &Value) -> Value {
 }
 
 fn trend_forecast(input: &Value) -> Value {
+    let product_ref = s(input, "product_ref", "");
     let values = nums(input, "values");
     if values.len() < 2 {
         return json!({"error": "数据不足，无法预测", "hint": "请提供 values 至少2个数据点"});
@@ -1361,6 +1368,7 @@ fn trend_forecast(input: &Value) -> Value {
     };
     json!({
         "数据来源": "用户提供",
+        "商品引用": empty_string_as_null(product_ref),
         "指标": metric_display(&s(input, "metric_name", "gmv")),
         "历史数据点数": values.len(),
         "最新值": round2(*values.last().unwrap_or(&0.0)),
@@ -4091,6 +4099,36 @@ mod tests {
             Some("趋势预测报告已生成")
         );
         assert!(output.get("预测结果").and_then(Value::as_array).is_some());
+    }
+
+    #[tokio::test]
+    async fn data_trend_forecast_echoes_product_ref() {
+        let outcome = execute(
+            "data_trend_forecast",
+            json!({
+                "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                "metric_name": "orders",
+                "values": [100.0, 112.0, 124.0, 141.0],
+                "forecast_periods": 3
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("data trend forecast should echo selected product ref");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("user_provided")
+        );
+        assert_eq!(
+            output.get("商品引用"),
+            Some(&json!("product:11111111-1111-1111-1111-111111111111"))
+        );
     }
 
     #[tokio::test]

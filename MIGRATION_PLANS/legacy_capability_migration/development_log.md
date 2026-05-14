@@ -1,5 +1,53 @@
 # 迁移开发记录
 
+## Post 8-87：通用趋势预测 product_ref 契约
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 87 个补强项：`Post 8-87`。
+
+本次目标：
+
+- 把通用趋势预测 `data_trend_forecast` 接入新产品 `product_ref=product:{uuid}` 契约。
+- 让用户手动选择商品后，普通趋势 / 预测问法也能保留本轮商品引用。
+- 继续保持未选商品时不绑定历史商品或预设商品，也不读取平台历史销售或实时趋势数据。
+
+本次修改：
+
+- 后端 agent：`data_trend_forecast` schema 新增 `product_ref`。
+- 后端 agent：成功输出新增 `商品引用`。
+- 后端 worker：趋势 / 预测兜底自动补偿改为结构化 input 推断。
+- 后端 worker：本轮显式选品后，趋势预测 input 带入 `product_ref`。
+- 后端 worker：未选商品时不写空 `product_ref`。
+- API/SSE：同步 `API_DOCS/sse.md`。
+- 迁移文档：新增本轮归档，并同步阶段验收、总计划和 skill 矩阵。
+
+用户可感知变化：
+
+- 用户手动勾选商品后，再问“预测这个商品 GMV / 订单 / UV 未来趋势”时，后端会把本轮选中商品的 `product:<uuid>` 带进趋势预测结果。
+- 用户没有手动选商品时，趋势预测仍按普通时序问题运行，但不会暗中绑定历史商品或默认商品。
+- 用户在问题里写出一串历史 GMV / 订单 / UV 数字时，后端会解析成本轮显式时序数据；数据不足时继续要求补充，不会生成假趋势预测。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/data_trend_forecast_product_ref_post_8_87.md`
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent data_trend_forecast -- --nocapture`
+- [x] `cargo test -p agent autosuggests_trend_forecast_with_explicit_series -- --nocapture`
+- [x] `cargo test -p agent selected_product_context_feeds_trend_forecast_ref -- --nocapture`
+- [x] `cargo test -p agent trend_forecast_without_selection_has_no_empty_product_ref -- --nocapture`
+- [x] `cargo fmt --all --check`
+- [x] `cargo check -p agent`
+- [x] `cargo clippy -p agent`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 真实平台历史趋势、行业周期、活动影响和跨平台趋势仍需要后续 service/adapter/search 注入，不能由本地 native skill 伪造或默认读取。
+
 ## Post 8-86：多周期趋势 product_ref 契约
 
 状态：done
