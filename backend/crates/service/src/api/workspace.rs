@@ -5208,6 +5208,18 @@ fn build_content_artifact_from_skill_output(
             "Data comprehensive diagnosis report",
             "data comprehensive diagnosis artifact generated",
         ),
+        "query_product_metrics" => (
+            "data",
+            "data_product_metrics_report",
+            "Data product metrics report",
+            "data product metrics artifact generated",
+        ),
+        "query_campaign_metrics" => (
+            "data",
+            "data_campaign_metrics_report",
+            "Data campaign metrics report",
+            "data campaign metrics artifact generated",
+        ),
         "accounting_cost_calc" => (
             "accounting",
             "accounting_cost_report",
@@ -7086,6 +7098,143 @@ mod tests {
             draft
                 .content
                 .contains("\"adapter_status\": \"partial_manual_input\"")
+        );
+    }
+
+    #[test]
+    fn content_artifact_builds_from_product_and_campaign_metrics_skill_output() {
+        let product_output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "data_readiness": "explicit_product_metrics",
+            "summary": "商品指标已从本轮显式输入汇总，GMV=96000，订单=1200",
+            "query": {
+                "product_id": "prod-001",
+                "product_name": "冷萃咖啡",
+                "sku_id": "sku-a",
+                "platform": "抖音"
+            },
+            "totals": {
+                "gmv": 96000.0,
+                "orders": 1200.0,
+                "uv": 24000.0,
+                "ad_spend": 24000.0
+            },
+            "derived_metrics": {
+                "conversion_rate": "5.00%",
+                "ad_roi": 4.0
+            },
+            "answerPolicy": {
+                "no_default_product": true,
+                "live_platform_lookup": false
+            }
+        });
+        let product_draft =
+            build_content_artifact_from_skill_output("query_product_metrics", &product_output)
+                .expect("product metrics output should be materializable");
+
+        assert_eq!(product_draft.content_category, "data");
+        assert_eq!(product_draft.artifact_type, "data_product_metrics_report");
+        assert_eq!(product_draft.title, "Data product metrics report");
+        assert_eq!(product_draft.file_name, "data_product_metrics_report.md");
+        assert!(
+            product_draft
+                .preview
+                .contains("商品指标已从本轮显式输入汇总")
+        );
+        assert!(
+            product_draft
+                .content
+                .contains("# Data product metrics report")
+        );
+        assert!(
+            product_draft
+                .content
+                .contains("\"data_readiness\": \"explicit_product_metrics\"")
+        );
+        assert!(
+            product_draft
+                .content
+                .contains("\"no_default_product\": true")
+        );
+
+        let campaign_output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "data_readiness": "explicit_campaign_metrics",
+            "summary": "活动指标已从本轮显式输入汇总，GMV=210000，花费=42000",
+            "query": {
+                "campaign_id": "camp-618",
+                "campaign_name": "618大促",
+                "campaign_type": "promotion",
+                "platform": "天猫"
+            },
+            "totals": {
+                "budget": 50000.0,
+                "spend": 42000.0,
+                "gmv": 210000.0,
+                "orders": 1800.0,
+                "impressions": 180000.0
+            },
+            "derived_metrics": {
+                "ctr": "4.00%",
+                "roas": 5.0
+            },
+            "answerPolicy": {
+                "live_platform_lookup": false
+            }
+        });
+        let campaign_draft =
+            build_content_artifact_from_skill_output("query_campaign_metrics", &campaign_output)
+                .expect("campaign metrics output should be materializable");
+
+        assert_eq!(campaign_draft.content_category, "data");
+        assert_eq!(campaign_draft.artifact_type, "data_campaign_metrics_report");
+        assert_eq!(campaign_draft.title, "Data campaign metrics report");
+        assert_eq!(campaign_draft.file_name, "data_campaign_metrics_report.md");
+        assert!(
+            campaign_draft
+                .preview
+                .contains("活动指标已从本轮显式输入汇总")
+        );
+        assert!(
+            campaign_draft
+                .content
+                .contains("# Data campaign metrics report")
+        );
+        assert!(
+            campaign_draft
+                .content
+                .contains("\"data_readiness\": \"explicit_campaign_metrics\"")
+        );
+    }
+
+    #[test]
+    fn content_artifact_ignores_deferred_product_and_campaign_metrics() {
+        let product_output = json!({
+            "status": "deferred",
+            "has_data": false,
+            "adapter_status": "product_metrics_required",
+            "data_readiness": "missing_user_input",
+            "summary": "商品指标查询等待真实数据输入"
+        });
+        assert!(
+            build_content_artifact_from_skill_output("query_product_metrics", &product_output)
+                .is_none()
+        );
+
+        let campaign_output = json!({
+            "status": "deferred",
+            "has_data": false,
+            "adapter_status": "campaign_metrics_required",
+            "data_readiness": "missing_user_input",
+            "summary": "活动指标查询等待真实数据输入"
+        });
+        assert!(
+            build_content_artifact_from_skill_output("query_campaign_metrics", &campaign_output)
+                .is_none()
         );
     }
 

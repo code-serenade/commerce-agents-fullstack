@@ -1,5 +1,46 @@
 # 迁移开发记录
 
+## Post 8-66：商品 / 活动指标报告 artifact 沉淀
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 66 个补强项：`Post 8-66`。
+
+本次目标：
+
+- 把 Post 8-65 新增的商品 / 活动指标 skill 接入 workspace artifact 体系。
+- 让用户显式提供指标并成功分析后，工作区能保存可复用报告。
+- 继续保持缺数据不造假、不默认读取预设商品、不伪造平台实时数据。
+
+本次修改：
+
+- 后端 service：`WorkspaceApi::materialize_agent_content_artifact` 新增支持 `query_product_metrics`。
+- 后端 service：`query_product_metrics` 成功输出会沉淀为 `artifactType=data_product_metrics_report`。
+- 后端 service：`WorkspaceApi::materialize_agent_content_artifact` 新增支持 `query_campaign_metrics`。
+- 后端 service：`query_campaign_metrics` 成功输出会沉淀为 `artifactType=data_campaign_metrics_report`。
+- API 文档：同步 `API_DOCS/app.md` 和 `API_DOCS/sse.md`。
+- 迁移文档：同步阶段验收记录、总计划、矩阵和本轮归档文件。
+
+用户可感知变化：
+
+- 用户提供商品 / SKU 指标并成功分析后，后端能创建商品指标报告交付物。
+- 用户提供活动 / 投放指标并成功分析后，后端能创建活动指标报告交付物。
+- 缺商品指标或活动指标时仍只返回 deferred，不会创建假报告。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/product_campaign_metrics_artifact_post_8_66.md`
+- [x] Service 单测覆盖商品 / 活动指标成功物化。
+- [x] Service 单测覆盖商品 / 活动指标 deferred 不物化。
+
+后续缺口：
+
+- 前端还需要在 artifact 面板、历史运行详情和过程面板展示 `data_product_metrics_report` / `data_campaign_metrics_report`。
+- 真实 `product_metrics` / `campaign_metrics` service adapter 仍待正式设计后实现。
+
 ## Post 8-65：商品 / 活动指标查询 native skill
 
 状态：done

@@ -2,6 +2,27 @@
 
 # 阶段验收记录
 
+## Post 8-66：商品 / 活动指标报告 artifact 沉淀
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Service：`query_product_metrics` 成功输出可沉淀为 `data_product_metrics_report`。
+- [x] Service：`query_campaign_metrics` 成功输出可沉淀为 `data_campaign_metrics_report`。
+- [x] Service：商品指标 deferred 输出不会创建 artifact。
+- [x] Service：活动指标 deferred 输出不会创建 artifact。
+- [x] API：`API_DOCS/app.md` 已同步新 artifact 类型。
+- [x] API：`API_DOCS/sse.md` 已同步 `workspace_artifact_created` 边界。
+- [x] 前端：本轮不新增假入口。
+
+当前说明：
+
+- 本阶段解决的是“商品 / 活动指标分析能回答但不能沉淀为工作区交付物”的问题。
+- 本阶段不接官方平台 API，也不从数据库读取默认商品或默认活动。
+- 只有本轮显式指标触发的成功输出才会生成报告。
+
 ## Post 8-65：商品 / 活动指标查询 native skill
 
 状态：done

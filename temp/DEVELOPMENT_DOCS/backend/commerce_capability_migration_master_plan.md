@@ -236,22 +236,22 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-65: product and campaign metrics native skills
+Post 8-66: product and campaign metrics artifact materialization
 ```
 
 Scope:
 
-- add `query_product_metrics` and `query_campaign_metrics` into the new product Rust Agent data skill set
-- compute product/SKU and campaign/ad activity metrics from explicit user-provided numbers
-- return truthful deferred states when product/campaign metrics are missing and no adapter is available
-- add worker autosuggest reachability for natural product metrics and campaign metrics questions
+- connect successful `query_product_metrics` output to workspace artifact materialization
+- connect successful `query_campaign_metrics` output to workspace artifact materialization
+- create `data_product_metrics_report` and `data_campaign_metrics_report` markdown artifacts through the existing service framework
+- keep missing product/campaign metrics as truthful deferred states that do not create fake artifacts
 - preserve the explicit product-context rule: no default product, no implicit saved product, no fake live platform data
 
 Reason:
 
-- old-product metrics-store capability should not stop at store-level summaries
-- product and campaign performance are core commerce workflows for virtual employees
-- this improves backend skill usefulness without waiting for Taobao/Douyin/Qianchuan official adapters or adding fake frontend state
+- product and campaign performance analyses should be reusable workspace deliverables, not only transient SSE events
+- this uses the new product's existing artifact framework instead of adding one-off frontend state
+- it improves demo and future frontend usefulness without waiting for official platform adapters
 
 ## 10. Validation Standard
 
