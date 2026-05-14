@@ -344,6 +344,12 @@ pub fn specs() -> Vec<SkillSpec> {
             "生成队列留存曲线并识别关键流失节点",
             SkillPriority::Critical,
             vec![
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用 product:{uuid}；仅用于标识本轮显式选品",
+                    false,
+                ),
                 field("days", "integer", "分析总天数，默认90", false),
                 field(
                     "cohort_unit",
@@ -2165,6 +2171,7 @@ fn ltv_calculator(input: &Value) -> Value {
 }
 
 fn cohort_analysis(input: &Value) -> Value {
+    let product_ref = s(input, "product_ref", "");
     let unit = s(input, "cohort_unit", "week");
     let label = if unit == "month" { "月" } else { "周" };
     let new_customers = i(input, "new_customers", 120).max(1);
@@ -2183,6 +2190,7 @@ fn cohort_analysis(input: &Value) -> Value {
         .collect::<Vec<_>>();
     json!({
         "数据来源": "指数留存模型",
+        "商品引用": empty_string_as_null(product_ref),
         "队列留存矩阵": cohorts,
         "关键流失节点": [{"节点": format!("第1{label}后"), "流失率": "约65%", "原因": "首次体验不满意或无复购触点"}],
         "关键发现": {"首期留存率": "约35%", "最高价值窗口": format!("首次购买后第1-2{label}")}
@@ -4223,6 +4231,41 @@ mod tests {
             Some("calculated_from_defaults")
         );
         assert!(output.get("summary").and_then(Value::as_str).is_some());
+    }
+
+    #[tokio::test]
+    async fn data_cohort_analysis_echoes_product_ref() {
+        let outcome = execute(
+            "data_cohort_analysis",
+            json!({
+                "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                "cohort_unit": "week",
+                "new_customers": 180
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("data cohort analysis should echo selected product ref");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("user_provided")
+        );
+        assert_eq!(
+            output.get("商品引用"),
+            Some(&json!("product:11111111-1111-1111-1111-111111111111"))
+        );
+        assert!(
+            output
+                .get("队列留存矩阵")
+                .and_then(Value::as_array)
+                .is_some()
+        );
     }
 
     #[tokio::test]

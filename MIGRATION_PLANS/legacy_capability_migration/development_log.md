@@ -1,5 +1,54 @@
 # 迁移开发记录
 
+## Post 8-84：队列留存 product_ref 契约
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 84 个补强项：`Post 8-84`。
+
+本次目标：
+
+- 把数据层队列留存 / 同期群分析接入新产品 `product_ref=product:{uuid}` 契约。
+- 让用户手动选择商品后，留存分析 / 复购留存 / 新客留存 skill 能保留本轮商品引用。
+- 让 `队列留存 / 同期群 / 留存分析 / 复购留存 / 新客留存 / 流失节点` 问法触发 `data_cohort_analysis`。
+- 继续保持未选商品时不绑定历史商品或预设商品，也不读取会员系统、订单系统或平台实时留存数据。
+
+本次修改：
+
+- 后端 agent：`data_cohort_analysis` schema 新增 `product_ref`。
+- 后端 agent：成功输出新增 `商品引用`。
+- 后端 worker：本轮显式选品后，队列留存自动补偿 input 带入 `product_ref`。
+- 后端 worker：新增留存意图路由和 `cohort_unit` / `new_customers` 显式输入解析。
+- 后端 worker：未选商品时不写空 `product_ref`。
+- API/SSE：同步 `API_DOCS/sse.md`。
+- 迁移文档：新增本轮归档，并同步阶段验收、总计划和 skill 矩阵。
+
+用户可感知变化：
+
+- 用户手动勾选商品后，再问“分析这个商品的新客留存 / 复购留存 / 队列留存 / 流失节点”时，后端会把本轮选中商品的 `product:<uuid>` 带进队列留存结果。
+- 用户没有手动选商品时，队列留存仍按普通留存分析运行，但不会暗中绑定历史商品或默认商品。
+- 用户在问题里写出 `首期新客180` 等输入时，后端会解析为本轮显式留存基线。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/data_cohort_product_ref_post_8_84.md`
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent data_cohort_analysis -- --nocapture`
+- [x] `cargo test -p agent autosuggests_cohort_analysis_with_explicit_retention_terms -- --nocapture`
+- [x] `cargo test -p agent selected_product_context_feeds_cohort_analysis_ref -- --nocapture`
+- [x] `cargo test -p agent cohort_analysis_without_selection_has_no_empty_product_ref -- --nocapture`
+- [x] `cargo fmt --all --check`
+- [x] `cargo check -p agent`
+- [x] `cargo clippy -p agent`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 真实会员 cohort、订单复购、分层人群和跨平台留存仍需要后续 service/adapter 注入，不能由本地 native skill 伪造或默认读取。
+
 ## Post 8-83：需求预测 product_ref 契约
 
 状态：done

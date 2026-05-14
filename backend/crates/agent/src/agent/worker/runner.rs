@@ -877,6 +877,33 @@ fn autosuggest_data(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     if contains_any(
         text,
         &[
+            "cohort",
+            "cohort analysis",
+            "retention",
+            "留存",
+            "留存率",
+            "复购率",
+            "队列留存",
+            "同期群",
+            "留存队列",
+            "留存分析",
+            "复购留存",
+            "新客留存",
+            "用户留存",
+            "客户留存",
+            "流失节点",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "data_cohort_analysis",
+            serde_json::Value::Object(infer_cohort_analysis_input(text, task)),
+            "根据队列留存/同期群/复购留存意图自动补偿队列留存 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
+        &[
             "price elasticity",
             "elasticity",
             "价格弹性",
@@ -2289,6 +2316,34 @@ fn infer_ltv_calculator_input(
     input
 }
 
+fn infer_cohort_analysis_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_period_days(text)),
+    );
+    input.insert(
+        "cohort_unit".to_string(),
+        serde_json::json!(infer_cohort_unit(text)),
+    );
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
+    if let Some(new_customers) = extract_metric_value(
+        text,
+        &["首期新客", "新客数", "新增客户", "新客", "new_customers"],
+    ) {
+        input.insert(
+            "new_customers".to_string(),
+            serde_json::json!(new_customers.round().max(1.0) as i64),
+        );
+    }
+    input
+}
+
 fn infer_price_elasticity_input(
     text: &str,
     task: &Task,
@@ -3061,6 +3116,15 @@ fn infer_platform(text: &str) -> &'static str {
         "快手"
     } else {
         "淘宝"
+    }
+}
+
+fn infer_cohort_unit(text: &str) -> &'static str {
+    let lower = text.to_ascii_lowercase();
+    if text.contains("月") || lower.contains("month") || lower.contains("monthly") {
+        "month"
+    } else {
+        "week"
     }
 }
 
@@ -5031,6 +5095,54 @@ mod tests {
 
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].skill_id, "data_ltv_calculator");
+        assert!(requests[0].input.get("product_ref").is_none());
+    }
+
+    #[test]
+    fn autosuggests_cohort_analysis_with_explicit_retention_terms() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("做月度队列留存分析：首期新客180，看看第1月后的流失节点"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_cohort_analysis");
+        assert_eq!(requests[0].input["cohort_unit"], "month");
+        assert_eq!(requests[0].input["new_customers"], 180);
+    }
+
+    #[test]
+    fn selected_product_context_feeds_cohort_analysis_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task_with_metadata(
+                "分析这个商品的新客留存和复购留存：首期新客180",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_cohort_analysis");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["new_customers"], 180);
+    }
+
+    #[test]
+    fn cohort_analysis_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("做周度队列留存分析：首期新客180"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_cohort_analysis");
         assert!(requests[0].input.get("product_ref").is_none());
     }
 

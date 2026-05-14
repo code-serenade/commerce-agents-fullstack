@@ -2,6 +2,27 @@
 
 # 阶段验收记录
 
+## Post 8-84：队列留存 product_ref 契约
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent：`data_cohort_analysis` schema 支持 `product_ref`。
+- [x] Agent：成功队列留存输出回显 `商品引用`。
+- [x] Worker autosuggest：`队列留存` / `同期群` / `留存分析` / `复购留存` / `新客留存` / `流失节点` 问法触发 `data_cohort_analysis`。
+- [x] Worker autosuggest：本轮显式选品时队列留存 input 携带 `product_ref`。
+- [x] Worker autosuggest：未选商品时不写空 `product_ref`。
+- [x] API：`API_DOCS/sse.md` 已同步队列留存 product_ref 契约。
+- [x] 前端：本轮不新增假入口。
+
+当前说明：
+
+- 本阶段解决的是“商品级队列留存 / 复购留存结果无法关联本轮选中商品”的问题。
+- 本阶段只使用本轮显式新客基线或 deterministic 默认估算，并用 `data_readiness` 明示。
+- 本阶段不调用会员系统、订单系统、CRM 或平台实时数据，也不把历史商品当作默认商品。
+
 ## Post 8-83：需求预测 product_ref 契约
 
 状态：done
