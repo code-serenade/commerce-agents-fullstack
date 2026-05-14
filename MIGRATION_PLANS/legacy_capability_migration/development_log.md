@@ -1,5 +1,50 @@
 # 迁移开发记录
 
+## Post 8-64：搜索类 skill 自然触达补强
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 64 个补强项：`Post 8-64`。
+
+本次目标：
+
+- 继续补强旧产品外部搜索 / 实时资料能力在新产品 Agent 里的真实可用性。
+- 让已有 `search_*` adapter 契约能被自然语言触发。
+- 不新增假前端入口，不伪造联网搜索结果。
+
+本次修改：
+
+- 后端 agent：worker autosuggest 新增搜索类 skill 触达逻辑。
+- 后端 agent：覆盖趋势、竞品、市场行情、商品评价、平台政策、行业基准 6 类搜索 skill。
+- 后端 agent：识别“搜索/联网/实时/最新/公开来源/公开资料/真实评价”等外部搜索意图。
+- 后端 agent：保留普通竞品分析、趋势预测、关键词研究、创意趋势捕捉等 native skill 的优先级。
+- 后端角色目录：补齐 ops/data/service/creative/web 角色对相关搜索 skill 的白名单权限。
+- API/SSE：同步说明自然语言可能自动产生 `search_*` 的 `skill_requested`。
+- 迁移文档：同步阶段验收记录、总计划、矩阵和本轮归档文件。
+
+用户可感知变化：
+
+- 用户说“联网搜一下咖啡饮品最近趋势”时，后端能自动进入 `search_trends`。
+- 用户说“查抖音最新平台规则”时，后端能自动进入 `search_platform_policy`。
+- 用户说“搜冷萃咖啡用户差评和真实口碑”时，后端能自动进入 `search_product_reviews`。
+- 如果外部搜索 provider 没配置，系统会明确返回未接入/降级状态，不会编造实时来源。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/search_skill_reachability_post_8_64.md`
+- [x] Agent autosuggest 单测覆盖 6 类搜索自然触达
+- [x] Agent autosuggest 单测覆盖 native skill 不被搜索覆盖
+- [x] Agent 搜索执行器 deferred/degraded 契约回归
+- [x] 角色白名单回归
+
+后续缺口：
+
+- 真实搜索 provider 配置和线上稳定性仍待环境侧完成。
+- 前端来源面板后续应更清楚展示 live/degraded/deferred 三种状态。
+
 ## Post 8-63：店铺指标查询 skill 自然触达补强
 
 状态：done

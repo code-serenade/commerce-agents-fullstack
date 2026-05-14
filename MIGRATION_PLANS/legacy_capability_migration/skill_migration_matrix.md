@@ -50,12 +50,12 @@
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
 | --- | --- | --- | --- | --- |
-| `search_trends` | `search_trends` | adapter_required | `backend/crates/agent/src/skills/search.rs` | Post 8-8：已形成统一 search adapter 降级契约；Post 8-60：输出补齐 `evidence`、去重来源和 fresh-data/bypass-cache 语义；真实实时趋势 provider 待配置 |
-| `search_competitor` | `search_competitor` | adapter_required | `backend/crates/agent/src/skills/search.rs` | Post 8-8：已形成统一 search adapter 降级契约；Post 8-60：输出补齐 `evidence`、去重来源和 fresh-data/bypass-cache 语义；竞品外部来源待配置 |
-| `search_market_info` | `search_market_info` | adapter_required | `backend/crates/agent/src/skills/search.rs` | Post 8-8：已形成统一 search adapter 降级契约；Post 8-60：输出补齐 `evidence`、去重来源和 fresh-data/bypass-cache 语义；市场新闻/行情 provider 待配置 |
-| `search_product_reviews` | `search_product_reviews` | adapter_required | `backend/crates/agent/src/skills/search.rs` | Post 8-8：已形成统一 search adapter 降级契约；Post 8-60：输出补齐 `evidence`、去重来源和 fresh-data/bypass-cache 语义；平台评价来源待配置 |
-| `search_platform_policy` | `search_platform_policy` | adapter_required | `backend/crates/agent/src/skills/search.rs` | Post 8-8：已形成统一 search adapter 降级契约；Post 8-60：输出补齐 `evidence`、去重来源和 fresh-data/bypass-cache 语义；平台官方规则/公告来源待配置 |
-| `search_industry_benchmarks` | `search_industry_benchmarks` | adapter_required | `backend/crates/agent/src/skills/search.rs` | Post 8-8：已形成统一 search adapter 降级契约；Post 8-60：输出补齐 `evidence`、去重来源和 fresh-data/bypass-cache 语义；行业基准数据来源待配置 |
+| `search_trends` | `search_trends` | adapter_required | `backend/crates/agent/src/skills/search.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | Post 8-8：已形成统一 search adapter 降级契约；Post 8-60：输出补齐 `evidence`、去重来源和 fresh-data/bypass-cache 语义；Post 8-64：已补“联网/实时/最新/搜索趋势”自然触达；真实实时趋势 provider 待配置 |
+| `search_competitor` | `search_competitor` | adapter_required | `backend/crates/agent/src/skills/search.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | Post 8-8：已形成统一 search adapter 降级契约；Post 8-60：输出补齐 `evidence`、去重来源和 fresh-data/bypass-cache 语义；Post 8-64：已补“搜竞品公开资料”自然触达；竞品外部来源待配置 |
+| `search_market_info` | `search_market_info` | adapter_required | `backend/crates/agent/src/skills/search.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | Post 8-8：已形成统一 search adapter 降级契约；Post 8-60：输出补齐 `evidence`、去重来源和 fresh-data/bypass-cache 语义；Post 8-64：已补“搜索市场报告/公开来源”自然触达；市场新闻/行情 provider 待配置 |
+| `search_product_reviews` | `search_product_reviews` | adapter_required | `backend/crates/agent/src/skills/search.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | Post 8-8：已形成统一 search adapter 降级契约；Post 8-60：输出补齐 `evidence`、去重来源和 fresh-data/bypass-cache 语义；Post 8-64：已补“搜用户评价/口碑/差评”自然触达；平台评价来源待配置 |
+| `search_platform_policy` | `search_platform_policy` | adapter_required | `backend/crates/agent/src/skills/search.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | Post 8-8：已形成统一 search adapter 降级契约；Post 8-60：输出补齐 `evidence`、去重来源和 fresh-data/bypass-cache 语义；Post 8-64：已补“查平台最新规则/政策”自然触达；平台官方规则/公告来源待配置 |
+| `search_industry_benchmarks` | `search_industry_benchmarks` | adapter_required | `backend/crates/agent/src/skills/search.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | Post 8-8：已形成统一 search adapter 降级契约；Post 8-60：输出补齐 `evidence`、去重来源和 fresh-data/bypass-cache 语义；Post 8-64：已补“查行业基准/均值”自然触达；行业基准数据来源待配置 |
 
 Post 8-9 补充：Rust 后端已新增 `/api/app/external-search/status` 和 `/api/app/external-search/search` 作为统一外部搜索 adapter API。
 

@@ -727,6 +727,10 @@ fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         }
     }
 
+    if let Some(request) = autosuggest_search(text) {
+        return Some(request);
+    }
+
     if let Some(request) = autosuggest_query_store_metrics(text, false) {
         return Some(request);
     }
@@ -805,6 +809,10 @@ fn autosuggest_data(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
             }),
             "根据渠道投产/归因意图自动补偿渠道ROI skill",
         ));
+    }
+
+    if let Some(request) = autosuggest_search(text) {
+        return Some(request);
     }
 
     if let Some(request) = autosuggest_query_store_metrics(text, false) {
@@ -899,6 +907,10 @@ fn autosuggest_data(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
 fn autosuggest_accounting(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
     let numbers = numbers_in_text(text);
 
+    if let Some(request) = autosuggest_search(text) {
+        return Some(request);
+    }
+
     if contains_any(
         text,
         &[
@@ -967,6 +979,10 @@ fn autosuggest_accounting(text: &str, _task: &Task) -> Option<ParsedSkillRequest
 }
 
 fn autosuggest_service(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
+    if let Some(request) = autosuggest_search(text) {
+        return Some(request);
+    }
+
     if contains_any(
         text,
         &[
@@ -1097,6 +1113,10 @@ fn autosuggest_service(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
 }
 
 fn autosuggest_creative(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
+    if let Some(request) = autosuggest_search(text) {
+        return Some(request);
+    }
+
     if contains_any(text, &["live", "直播"]) {
         return Some(autosuggest_request(
             "creative_live_script",
@@ -1219,6 +1239,10 @@ fn autosuggest_creative(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
 }
 
 fn autosuggest_web(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
+    if let Some(request) = autosuggest_search(text) {
+        return Some(request);
+    }
+
     if contains_any(text, &["keyword", "关键词", "搜索词", "长尾词", "蓝海词"]) {
         return Some(autosuggest_request(
             "web_keyword_research",
@@ -1491,6 +1515,120 @@ fn autosuggest_engineering(text: &str, _task: &Task) -> Option<ParsedSkillReques
     ))
 }
 
+fn autosuggest_search(text: &str) -> Option<ParsedSkillRequest> {
+    if is_platform_policy_search_intent(text) {
+        return Some(autosuggest_request(
+            "search_platform_policy",
+            serde_json::json!({
+                "platform": infer_search_platform(text),
+                "policy_type": infer_search_policy_type(text),
+                "days": infer_period_days(text),
+                "_needs_fresh_data": infer_search_bypass_cache(text),
+            }),
+            "根据平台规则/政策实时查询意图自动补偿外部搜索 skill",
+        ));
+    }
+
+    if is_product_review_search_intent(text) {
+        return Some(autosuggest_request(
+            "search_product_reviews",
+            serde_json::json!({
+                "query": infer_search_query(text),
+                "platform": infer_search_platform(text),
+                "focus": infer_search_review_focus(text),
+                "_needs_fresh_data": infer_search_bypass_cache(text),
+            }),
+            "根据用户评价/口碑实时查询意图自动补偿外部搜索 skill",
+        ));
+    }
+
+    if is_industry_benchmark_search_intent(text) {
+        return Some(autosuggest_request(
+            "search_industry_benchmarks",
+            serde_json::json!({
+                "industry": infer_search_industry(text),
+                "metric": infer_search_benchmark_metric(text),
+                "platform": infer_search_platform(text),
+                "_needs_fresh_data": infer_search_bypass_cache(text),
+            }),
+            "根据行业基准/均值查询意图自动补偿外部搜索 skill",
+        ));
+    }
+
+    if !has_external_search_intent(text) {
+        return None;
+    }
+
+    if contains_any(
+        text,
+        &["competitor", "竞品", "竞对", "竞争对手", "对标", "同类商品"],
+    ) {
+        return Some(autosuggest_request(
+            "search_competitor",
+            serde_json::json!({
+                "query": infer_search_query(text),
+                "platform": infer_search_platform(text),
+                "focus": infer_search_competitor_focus(text),
+                "_needs_fresh_data": infer_search_bypass_cache(text),
+            }),
+            "根据竞品外部资料查询意图自动补偿外部搜索 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
+        &[
+            "trend",
+            "hot",
+            "趋势",
+            "热点",
+            "热卖",
+            "爆款",
+            "流行",
+            "消费趋势",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "search_trends",
+            serde_json::json!({
+                "query": infer_search_query(text),
+                "platform": infer_search_platform(text),
+                "days": infer_period_days(text),
+                "_needs_fresh_data": infer_search_bypass_cache(text),
+            }),
+            "根据趋势/热点实时查询意图自动补偿外部搜索 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
+        &[
+            "market",
+            "市场",
+            "行业",
+            "新闻",
+            "资讯",
+            "报告",
+            "行情",
+            "资料",
+            "公开来源",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "search_market_info",
+            serde_json::json!({
+                "query": infer_search_query(text),
+                "topic": infer_search_topic(text),
+                "days": infer_period_days(text),
+                "_needs_fresh_data": infer_search_bypass_cache(text),
+            }),
+            "根据市场行情/公开资料查询意图自动补偿外部搜索 skill",
+        ));
+    }
+
+    None
+}
+
 fn autosuggest_query_store_metrics(
     text: &str,
     explicit_metrics_only: bool,
@@ -1744,6 +1882,222 @@ fn has_store_metrics_query_intent(text: &str) -> bool {
                 "read",
             ],
         )
+}
+
+fn has_external_search_intent(text: &str) -> bool {
+    contains_any(
+        text,
+        &[
+            "search",
+            "google",
+            "搜",
+            "搜索",
+            "搜一下",
+            "搜搜",
+            "查一下",
+            "查查",
+            "联网",
+            "实时",
+            "最新",
+            "公开来源",
+            "公开资料",
+            "外部资料",
+            "网上",
+            "资料来源",
+            "来源",
+            "不要缓存",
+            "fresh",
+            "live",
+            "source",
+        ],
+    )
+}
+
+fn is_platform_policy_search_intent(text: &str) -> bool {
+    contains_any(
+        text,
+        &[
+            "平台规则",
+            "平台政策",
+            "政策变化",
+            "最新规则",
+            "平台公告",
+            "算法调整",
+            "流量规则",
+            "佣金",
+            "费率",
+            "违规",
+            "违禁词",
+            "大促规则",
+            "报名规则",
+            "policy",
+        ],
+    ) && (has_external_search_intent(text) || contains_any(text, &["最新", "规则", "政策"]))
+}
+
+fn is_product_review_search_intent(text: &str) -> bool {
+    contains_any(
+        text,
+        &[
+            "用户评价",
+            "真实评价",
+            "商品评价",
+            "买家评价",
+            "口碑",
+            "差评",
+            "好评",
+            "吐槽",
+            "真实反馈",
+            "review",
+            "reviews",
+        ],
+    ) && has_external_search_intent(text)
+}
+
+fn is_industry_benchmark_search_intent(text: &str) -> bool {
+    contains_any(
+        text,
+        &[
+            "行业基准",
+            "行业均值",
+            "行业平均",
+            "基准数据",
+            "benchmark",
+            "benchmarks",
+            "平均转化率",
+            "平均客单价",
+            "行业roi",
+            "行业 ROI",
+            "行业退款率",
+        ],
+    ) && (has_external_search_intent(text) || contains_any(text, &["行业", "基准", "均值"]))
+}
+
+fn infer_search_platform(text: &str) -> &'static str {
+    let lower = text.to_ascii_lowercase();
+    if text.contains("抖音") || lower.contains("douyin") || lower.contains("tiktok") {
+        "抖音"
+    } else if text.contains("淘宝") || lower.contains("taobao") {
+        "淘宝"
+    } else if text.contains("天猫") || lower.contains("tmall") {
+        "天猫"
+    } else if text.contains("京东") || lower.contains("jd") {
+        "京东"
+    } else if text.contains("拼多多") || lower.contains("pdd") {
+        "拼多多"
+    } else if text.contains("小红书") || lower.contains("xiaohongshu") || lower.contains("red") {
+        "小红书"
+    } else if text.contains("快手") {
+        "快手"
+    } else {
+        "电商"
+    }
+}
+
+fn infer_search_query(text: &str) -> String {
+    let category = infer_category(text);
+    if category != "电商消费品" {
+        return category.to_string();
+    }
+    let keywords = extract_keyword_candidates(text);
+    if let Some(keyword) = keywords.first() {
+        return keyword.clone();
+    }
+    compact_task_text(text)
+}
+
+fn infer_search_industry(text: &str) -> String {
+    infer_category(text).to_string()
+}
+
+fn infer_search_bypass_cache(text: &str) -> bool {
+    contains_any(
+        text,
+        &[
+            "实时",
+            "最新",
+            "刚刚",
+            "今天",
+            "联网",
+            "公开来源",
+            "公开资料",
+            "外部资料",
+            "真实",
+            "真实评价",
+            "真实口碑",
+            "真实反馈",
+            "不要缓存",
+            "fresh",
+            "live",
+            "_needs_fresh_data",
+            "bypass_cache",
+        ],
+    )
+}
+
+fn infer_search_policy_type(text: &str) -> &'static str {
+    if contains_any(text, &["算法", "搜索", "流量", "排名", "权重", "algorithm"]) {
+        "algorithm"
+    } else if contains_any(text, &["佣金", "费率", "扣点", "服务费", "fee"]) {
+        "fee"
+    } else if contains_any(text, &["大促", "活动", "618", "双11", "报名", "promotion"]) {
+        "promotion"
+    } else if contains_any(text, &["内容", "违禁词", "审核", "违规", "发布", "content"])
+    {
+        "content"
+    } else {
+        "general"
+    }
+}
+
+fn infer_search_review_focus(text: &str) -> &'static str {
+    if contains_any(text, &["差评", "负面", "吐槽", "投诉", "踩雷", "negative"]) {
+        "negative"
+    } else if contains_any(text, &["好评", "正面", "优点", "满意", "positive"]) {
+        "positive"
+    } else {
+        "overall"
+    }
+}
+
+fn infer_search_competitor_focus(text: &str) -> &'static str {
+    if contains_any(text, &["价格", "定价", "售价", "price"]) {
+        "price"
+    } else if contains_any(text, &["促销", "活动", "优惠", "promotion"]) {
+        "promotion"
+    } else if contains_any(text, &["评价", "口碑", "差评", "reviews"]) {
+        "reviews"
+    } else if contains_any(text, &["卖点", "功能", "特点", "features"]) {
+        "features"
+    } else {
+        "general"
+    }
+}
+
+fn infer_search_benchmark_metric(text: &str) -> &'static str {
+    if contains_any(text, &["转化", "转化率", "conversion", "cvr"]) {
+        "conversion"
+    } else if contains_any(text, &["客单价", "aov"]) {
+        "aov"
+    } else if contains_any(text, &["nps", "NPS", "满意度"]) {
+        "nps"
+    } else if contains_any(text, &["退款", "退货", "refund"]) {
+        "refund"
+    } else if contains_any(text, &["roi", "ROI", "roas", "ROAS", "投产"]) {
+        "roi"
+    } else {
+        "general"
+    }
+}
+
+fn infer_search_topic(text: &str) -> &'static str {
+    if contains_any(text, &["融资", "财报", "金融", "finance"]) {
+        "finance"
+    } else if contains_any(text, &["新闻", "资讯", "公告", "news"]) {
+        "news"
+    } else {
+        "general"
+    }
 }
 
 fn infer_store_metrics_platform(text: &str) -> &'static str {
@@ -3267,6 +3621,86 @@ mod tests {
 
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].skill_id, "data_dashboard");
+    }
+
+    #[test]
+    fn autosuggests_search_skills_from_external_search_intent() {
+        let cases = [
+            (
+                "联网搜一下咖啡饮品最近30天抖音消费趋势和爆款",
+                "data",
+                "search_trends",
+                true,
+            ),
+            (
+                "搜冷萃咖啡竞品公开资料，重点看价格",
+                "web",
+                "search_competitor",
+                true,
+            ),
+            (
+                "查抖音最新平台规则和内容违规政策",
+                "service",
+                "search_platform_policy",
+                true,
+            ),
+            (
+                "搜冷萃咖啡用户差评和真实口碑",
+                "service",
+                "search_product_reviews",
+                true,
+            ),
+            (
+                "查咖啡饮品行业基准数据，重点看ROI",
+                "data",
+                "search_industry_benchmarks",
+                false,
+            ),
+            (
+                "搜索咖啡行业最新市场报告和公开来源",
+                "ops",
+                "search_market_info",
+                true,
+            ),
+        ];
+
+        for (prompt, runtime_role, expected_skill, expected_fresh) in cases {
+            let requests = autosuggest_skill_requests(&role(runtime_role), &task(prompt), "{}");
+            assert_eq!(requests.len(), 1, "{prompt}");
+            assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
+            assert_eq!(
+                requests[0].input["_needs_fresh_data"], expected_fresh,
+                "{prompt}"
+            );
+        }
+    }
+
+    #[test]
+    fn autosuggest_search_preserves_native_analysis_without_external_intent() {
+        let cases = [
+            (
+                "请做竞品分析，对标市场上同价位咖啡品牌",
+                "data",
+                "data_competitor_analysis",
+            ),
+            ("预测咖啡GMV未来7天趋势", "data", "data_trend_forecast"),
+            (
+                "给冷萃咖啡做关键词研究和长尾词矩阵",
+                "web",
+                "web_keyword_research",
+            ),
+            (
+                "分析咖啡饮品在抖音的内容趋势",
+                "creative",
+                "creative_trend_catch",
+            ),
+        ];
+
+        for (prompt, runtime_role, expected_skill) in cases {
+            let requests = autosuggest_skill_requests(&role(runtime_role), &task(prompt), "{}");
+            assert_eq!(requests.len(), 1, "{prompt}");
+            assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
+        }
     }
 
     #[test]

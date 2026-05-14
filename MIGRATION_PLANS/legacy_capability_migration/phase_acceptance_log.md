@@ -2,6 +2,27 @@
 
 # 阶段验收记录
 
+## Post 8-64：搜索类 skill 自然触达补强
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent：用户明确搜索/联网/最新/公开来源意图时，autosuggest 可生成对应 `search_*` skill。
+- [x] Agent：趋势、竞品、市场行情、商品评价、平台政策、行业基准 6 类搜索均有自然触达覆盖。
+- [x] Agent：搜索输入包含 query/platform/focus/topic/policy_type/metric/days 等结构化字段。
+- [x] Agent：保留 `_needs_fresh_data` / `bypass_cache` 语义。
+- [x] Agent：普通 native 分析意图不会被搜索 skill 抢走。
+- [x] 角色目录：被 autosuggest 的搜索 skill 在对应角色白名单内。
+- [x] API：`API_DOCS/sse.md` 已同步自然触达说明。
+- [x] 前端：本轮不新增假入口。
+
+当前说明：
+
+- 本阶段解决的是“已有搜索 adapter 契约但用户自然语言不容易触发”的问题。
+- 本阶段不接淘宝、抖音、千川官方接口；provider 未配置时仍返回真实 deferred/degraded。
+
 ## Post 8-63：店铺指标查询 skill 自然触达补强
 
 状态：done

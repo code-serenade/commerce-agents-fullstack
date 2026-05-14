@@ -101,6 +101,7 @@ The following major foundations are already in place:
 - agent skill run persistence and query API
 - native coordination skill chain planning with structured phases, dependencies, adapter hints, approval hints, and availability flags
 - native `query_store_metrics` can now summarize explicit user-provided store metrics, clearly defer when store metrics are missing, and be reached from natural store-metric query language
+- search adapter skills can now be reached from natural external-search language while preserving live/degraded/deferred evidence boundaries
 - multiple native skill migrations across ops / data / service / creative / web / design / accounting
 - creative and design skill outputs can now materialize into reusable workspace artifacts when the skill result is successful
 - data dashboard is now a native deterministic skill with explicit manual-input vs store-metrics-required readiness
@@ -235,22 +236,22 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-63: query store metrics natural reachability
+Post 8-64: search skill natural reachability
 ```
 
 Scope:
 
-- harden natural reachability for the old product `query_store_metrics` capability
-- let worker autosuggest produce `query_store_metrics` for clear store-metric query/loading intent
-- parse explicit GMV, orders, UV, clicks, ad spend, refund, and gross profit from user text
-- keep more specific data skills such as dashboard, competitor, refund, channel ROI, anomaly, and forecast ahead of generic metric loading
-- avoid fake execution: this slice does not read platform backends or database metrics
+- harden natural reachability for the old product search / external data capability
+- let worker autosuggest produce `search_trends`, `search_competitor`, `search_market_info`, `search_product_reviews`, `search_platform_policy`, or `search_industry_benchmarks` for clear external-search intent
+- parse query, platform, focus, topic, policy type, metric, days, and fresh-data preference from user language
+- keep native local analysis skills such as competitor analysis, trend forecast, keyword research, and creative trend catch ahead of search unless the user explicitly asks for external/live/source-backed data
+- avoid fake execution: this slice does not configure providers and does not fabricate search sources
 
 Reason:
 
-- many data / ops / accounting chains depend on `query_store_metrics` as their first data-loading step
-- Post 8-62 made the skill useful from explicit input, but normal users still speak in natural language rather than internal skill JSON
-- the change makes the backend route clearer store-metric requests into the correct skill while still preserving truthful adapter boundaries
+- external search is a high-value old-product capability, but users should not need to know internal `search_*` IDs
+- the search adapter contract already preserves live/degraded/deferred truthfulness; the missing piece was natural routing into that contract
+- the change improves real use and demos without pretending Taobao, Douyin, Qianchuan, or public web data is available when provider config is missing
 
 ## 10. Validation Standard
 

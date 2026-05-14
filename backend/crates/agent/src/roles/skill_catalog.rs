@@ -70,14 +70,30 @@ pub fn role_can_use_skill(runtime_role: &str, spec: &SkillSpec) -> bool {
                 || spec.id == "coordination_skill_chain_planner"
                 || spec.id == "coordination_create_task"
                 || spec.id == "query_store_metrics"
+                || spec.id == "search_trends"
+                || spec.id == "search_competitor"
+                || spec.id == "search_market_info"
+                || spec.id == "search_platform_policy"
+                || spec.id == "search_industry_benchmarks"
         }
-        "data" => spec.id.starts_with("search_industry_"),
-        "service" => spec.id == "search_platform_policy",
-        "creative" => spec.id == "web_title_seo_scorer",
+        "data" => {
+            spec.id.starts_with("search_industry_")
+                || spec.id == "search_trends"
+                || spec.id == "search_competitor"
+                || spec.id == "search_market_info"
+                || spec.id == "search_product_reviews"
+                || spec.id == "search_platform_policy"
+        }
+        "service" => spec.id == "search_platform_policy" || spec.id == "search_product_reviews",
+        "creative" => spec.id == "web_title_seo_scorer" || spec.id == "search_trends",
         "web" => {
             spec.id == "creative_title_ctr_scorer"
                 || spec.id == "search_trends"
                 || spec.id == "search_competitor"
+                || spec.id == "search_market_info"
+                || spec.id == "search_product_reviews"
+                || spec.id == "search_platform_policy"
+                || spec.id == "search_industry_benchmarks"
         }
         "design" => spec.id == "creative_title_ctr_scorer",
         "accounting" => spec.id == "data_channel_roi" || spec.id == "query_store_metrics",
