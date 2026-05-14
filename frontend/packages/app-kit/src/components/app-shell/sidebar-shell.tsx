@@ -142,12 +142,14 @@ export function SidebarShell({
               <div aria-hidden="true" className="h-px bg-sidebar-border" />
 
               <SidebarContent>
-                {sections.map((section) => (
-                  <SidebarSectionGroup
-                    key={section.key ?? String(section.label)}
-                    section={section}
-                  />
-                ))}
+                <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto pr-1 [scrollbar-gutter:stable] group-data-[collapsible=icon]:overflow-hidden group-data-[collapsible=icon]:pr-0">
+                  {sections.map((section) => (
+                    <SidebarSectionGroup
+                      key={section.key ?? String(section.label)}
+                      section={section}
+                    />
+                  ))}
+                </div>
               </SidebarContent>
 
               {footerAccount ? (
@@ -186,7 +188,7 @@ export function SidebarShell({
             <div className="flex h-svh min-h-0 min-w-0 flex-col overflow-hidden">
               {header}
               <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden p-0 pb-[calc(4.25rem+env(safe-area-inset-bottom))] md:p-3">
-                <div className="flex min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto md:pr-1">
+                <div className="flex min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable] md:pr-1">
                   {children}
                 </div>
               </div>

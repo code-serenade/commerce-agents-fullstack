@@ -178,8 +178,8 @@ function PreviewDocument({ filename, lines }: { filename: string; lines: string[
             {t("agentChat.workbench.preview")}
           </span>
         </div>
-        <div className="min-h-0 flex-1 overflow-hidden py-2 font-mono text-[11px]/5">
-          {lines.slice(0, 7).map((line, index) => (
+        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto py-2 font-mono text-[11px]/5 [scrollbar-gutter:stable]">
+          {lines.map((line, index) => (
             <div
               key={`${index}-${line}`}
               className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3 px-3 py-0.5"

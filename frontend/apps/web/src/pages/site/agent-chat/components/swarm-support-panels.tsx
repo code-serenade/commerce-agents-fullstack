@@ -178,7 +178,7 @@ function IdlePreview({
             {t("agentChat.workbench.idle.pending")}
           </span>
         </div>
-        <div className="min-h-0 flex-1 overflow-hidden py-2 font-mono text-[11px]/5">
+        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto py-2 font-mono text-[11px]/5 [scrollbar-gutter:stable]">
           {[`# ${title}`, description, ...lines].map((line, index) => (
             <div
               key={`${index}-${line}`}

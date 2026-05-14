@@ -119,7 +119,7 @@ export function AgentChatSwarmPanel({
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-1.5">
+        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-1.5 [scrollbar-gutter:stable]">
           {hasRuntime ? (
             <ComputerRuntimeDetail
               activeAgent={activeAgent}
@@ -152,13 +152,15 @@ export function AgentChatSwarmPanel({
           </section>
         </div>
 
-        <AgentDock
-          activeNodeId={activeAgent.nodeId}
-          agents={agents}
-          hasTask={hasTask}
-          isStreaming={isStreaming}
-          runtimeNodeStates={runtimeNodeStates}
-        />
+        <div className="shrink-0 overflow-x-auto [scrollbar-gutter:stable]">
+          <AgentDock
+            activeNodeId={activeAgent.nodeId}
+            agents={agents}
+            hasTask={hasTask}
+            isStreaming={isStreaming}
+            runtimeNodeStates={runtimeNodeStates}
+          />
+        </div>
       </div>
     </aside>
   )
