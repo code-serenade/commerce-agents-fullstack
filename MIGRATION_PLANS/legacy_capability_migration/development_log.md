@@ -3291,6 +3291,48 @@
 - 还需要前端交付物卡片接入创建活动草稿入口。
 - 还需要草稿审批、平台执行 adapter 和审计日志闭环。
 
+## Post 8-70：显式选品上下文进入 Skill 输入
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 70 个补强项：`Post 8-70`。
+
+本次目标：
+
+- 让用户手动选择的商品上下文真实进入商品型 skill input。
+- 保证未选择商品时不从历史摘要、RAG 摘要、工作区摘要或测试样例中注入默认商品。
+
+涉及范围：
+
+- 产品内核：明确“指定商品”和“未指定商品”是两条不同链路。
+- 后端 agent worker：新增 `context.selected_summary` 解析逻辑。
+- 后端 skill autosuggest：内容、运营、Web、设计类商品型 skill 优先使用显式选品名称、平台、类目和卖点。
+- API：同步 `API_DOCS/sse.md` 和 `API_DOCS/app.md`，明确自动 skill 输入只认本轮显式选品。
+- 前端：本轮不改；现有前端继续传 `productIds/contextRefs` 即可。
+
+用户可感知变化：
+
+- 用户在输入区手动引用商品后，短视频脚本、种草文案、上架文案、标题、详情页文案、主图/详情页设计会围绕选中商品生成。
+- 用户没有引用商品时，系统不会把上一次历史对话里的商品或默认测试商品当作本轮商品。
+- 如果用户只是泛泛问“咖啡类商品怎么做营销”，后端不会自动套用某个预设咖啡商品。
+
+当前验证：
+
+- [x] `cargo fmt --all`
+- [x] `cargo fmt --all --check`
+- [x] `cargo test -p agent selected_product_context -- --nocapture`
+- [x] `cargo test -p agent selected_product_context_feeds_ops_listing_copy_features -- --nocapture`
+- [x] `cargo check -p agent`
+- [x] `cargo clippy -p agent`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 后续可继续把旧 integer `product_id` skill schema 迁为兼容 UUID 的商品引用契约。
+
 ## Post 8-19：产品生命周期状态 API
 
 状态：done

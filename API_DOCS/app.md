@@ -2112,6 +2112,7 @@
 - Agent SSE 产生的任务快照会写入 `metadata.kind=agent_task_node`
 - `metadata.graphId`、`metadata.nodeId`、`metadata.workerId` 可用于把运行任务快照和原始 agent SSE 事件对齐
 - Agent SSE 会在启动 agent runtime 前执行本地 RAG 检索：后端按当前登录用户检索 active 商品和 active 商品知识，发出 `rag_context_loaded` 事件，并把检索摘要注入 agent metadata。当前不伪造外部搜索；未命中本地知识时会返回明确降级原因。
+- Agent SSE 的商品指定只认本轮显式 `metadata.context.productIds` / `metadata.context.contextRefs`。显式选择后，web-server 会写入 `context.selected_summary`，worker 自动补偿 `creative_video_script`、`ops_listing_copy`、`web_product_description`、`design_detail_page` 等商品型 skill input 时会从这里解析商品名称、平台、类目和卖点。未选择商品时，不会从会话历史、RAG 摘要、工作区摘要或测试样例中注入默认商品。
 - worker report 会写入 `metadata.report`，evaluation 会写入 `metadata.evaluation`
 
 ## 61. 创建运行任务快照

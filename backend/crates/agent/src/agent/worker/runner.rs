@@ -610,10 +610,11 @@ fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         ],
     ) {
         let numbers = numbers_in_text(text);
+        let product_type = selected_product_category_or_infer(task, text);
         return Some(autosuggest_request(
             "ops_channel_strategy",
             serde_json::json!({
-                "product_type": infer_category(text),
+                "product_type": product_type,
                 "budget": numbers.first().copied().unwrap_or(10_000.0).max(0.0),
                 "target_audience": infer_audience(text),
             }),
@@ -635,9 +636,9 @@ fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         return Some(autosuggest_request(
             "ops_listing_copy",
             serde_json::json!({
-                "product_name": compact_task_text(&task.description),
-                "features": infer_feature_list(text),
-                "platform": infer_platform(text),
+                "product_name": selected_product_name_or_task(task),
+                "features": selected_product_features_or_infer(task, text),
+                "platform": selected_product_platform_or_infer(task, text),
             }),
             "根据上架文案/标题卖点意图自动补偿上架文案 skill",
         ));
@@ -655,10 +656,11 @@ fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         ],
     ) {
         let numbers = numbers_in_text(text);
+        let category = selected_product_category_or_infer(task, text);
         return Some(autosuggest_request(
             "ops_assortment_planning",
             serde_json::json!({
-                "category": infer_category(text),
+                "category": category,
                 "budget": numbers.first().copied().unwrap_or(50_000.0).max(0.0),
             }),
             "根据选品组合/货盘规划意图自动补偿选品规划 skill",
@@ -719,12 +721,13 @@ fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     ) {
         let numbers = numbers_in_text(text);
         if let Some(budget) = numbers.first().copied().filter(|value| *value >= 100.0) {
+            let product = selected_product_name_or_task(task);
             return Some(autosuggest_request(
                 "ops_promo_planning",
                 serde_json::json!({
-                    "product": compact_task_text(&task.description),
+                    "product": product,
                     "budget": budget,
-                    "platform": infer_platform(text),
+                    "platform": selected_product_platform_or_infer(task, text),
                 }),
                 "根据活动/促销意图自动补偿促销策划 skill",
             ));
@@ -1138,13 +1141,14 @@ fn autosuggest_creative(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     }
 
     if contains_any(text, &["live", "直播"]) {
+        let product_count = selected_product_count_or_default(task, 6);
         return Some(autosuggest_request(
             "creative_live_script",
             serde_json::json!({
                 "duration_hours": numbers_in_text(text).first().copied().unwrap_or(3.0).clamp(0.5, 12.0),
-                "product_count": 6,
+                "product_count": product_count,
                 "live_type": if contains_any(text, &["new", "新品"]) { "新品首发" } else { "日常带货" },
-                "platform": infer_platform(text),
+                "platform": selected_product_platform_or_infer(task, text),
             }),
             "根据直播/内容任务自动补偿直播脚本 skill",
         ));
@@ -1165,10 +1169,10 @@ fn autosuggest_creative(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         return Some(autosuggest_request(
             "creative_video_script",
             serde_json::json!({
-                "product_name": compact_task_text(&task.description),
+                "product_name": selected_product_name_or_task(task),
                 "video_type": infer_video_type(text),
                 "duration": numbers_in_text(text).first().copied().unwrap_or(30.0).round().clamp(10.0, 180.0) as i64,
-                "platform": infer_platform(text),
+                "platform": selected_product_platform_or_infer(task, text),
             }),
             "根据短视频/脚本意图自动补偿短视频脚本 skill",
         ));
@@ -1178,7 +1182,8 @@ fn autosuggest_creative(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         return Some(autosuggest_request(
             "creative_seeding_copy",
             serde_json::json!({
-                "product_name": compact_task_text(&task.description),
+                "product_name": selected_product_name_or_task(task),
+                "selling_points": selected_product_features_or_infer(task, text),
                 "target_audience": infer_audience(text),
                 "tone": if contains_any(text, &["测评", "专业"]) { "专业测评" } else { "闺蜜分享" },
             }),
@@ -1190,11 +1195,11 @@ fn autosuggest_creative(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         return Some(autosuggest_request(
             "creative_ip_branding",
             serde_json::json!({
-                "brand_name": compact_task_text(&task.description),
-                "category": infer_category(text),
+                "brand_name": selected_product_brand_name_or_task(task),
+                "category": selected_product_category_or_infer(task, text),
                 "target_audience": infer_audience(text),
                 "differentiator": "专业+有温度",
-                "platform": infer_platform(text),
+                "platform": selected_product_platform_or_infer(task, text),
             }),
             "根据 IP/品牌定位意图自动补偿 IP 定位 skill",
         ));
@@ -1219,8 +1224,8 @@ fn autosuggest_creative(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         return Some(autosuggest_request(
             "creative_trend_catch",
             serde_json::json!({
-                "category": infer_category(text),
-                "platform": infer_platform(text),
+                "category": selected_product_category_or_infer(task, text),
+                "platform": selected_product_platform_or_infer(task, text),
             }),
             "根据趋势/热点意图自动补偿趋势捕捉 skill",
         ));
@@ -1240,9 +1245,9 @@ fn autosuggest_creative(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         return Some(autosuggest_request(
             "creative_product_article",
             serde_json::json!({
-                "product_name": compact_task_text(&task.description),
+                "product_name": selected_product_name_or_task(task),
                 "article_type": if contains_any(text, &["对比"]) { "对比评测" } else if contains_any(text, &["攻略"]) { "使用攻略" } else { "测评软文" },
-                "platform": if text.contains("小红书") { "小红书" } else { "微信公众号" },
+                "platform": selected_product_article_platform_or_default(task, text),
             }),
             "根据软文/推广文章意图自动补偿产品软文 skill",
         ));
@@ -1264,12 +1269,19 @@ fn autosuggest_web(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     }
 
     if contains_any(text, &["keyword", "关键词", "搜索词", "长尾词", "蓝海词"]) {
+        let product_name = first_selected_product(task).map(|product| product.name);
+        let seed_keyword = product_name.unwrap_or_else(|| {
+            extract_keyword_candidates(text)
+                .first()
+                .cloned()
+                .unwrap_or_else(|| infer_category(text).to_owned())
+        });
         return Some(autosuggest_request(
             "web_keyword_research",
             serde_json::json!({
-                "seed_keyword": extract_keyword_candidates(text).first().cloned().unwrap_or_else(|| infer_category(text).to_owned()),
-                "category": infer_category(text),
-                "platform": infer_platform(text),
+                "seed_keyword": seed_keyword,
+                "category": selected_product_category_or_infer(task, text),
+                "platform": selected_product_platform_or_infer(task, text),
             }),
             "根据关键词/SEO研究意图自动补偿关键词矩阵 skill",
         ));
@@ -1281,7 +1293,7 @@ fn autosuggest_web(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
             serde_json::json!({
                 "target_keywords": extract_keyword_candidates(text),
                 "current_rank": numbers_in_text(text).first().copied().map(|value| value.round() as i64),
-                "platform": infer_platform(text),
+                "platform": selected_product_platform_or_infer(task, text),
             }),
             "根据 SEO/提排意图自动补偿 SEO 优化 skill",
         ));
@@ -1291,9 +1303,9 @@ fn autosuggest_web(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         return Some(autosuggest_request(
             "web_title_generator",
             serde_json::json!({
-                "product_name": compact_task_text(&task.description),
+                "product_name": selected_product_name_or_task(task),
                 "keywords": extract_keyword_candidates(text),
-                "platform": infer_platform(text),
+                "platform": selected_product_platform_or_infer(task, text),
                 "style": if contains_any(text, &["品牌"]) { "品牌型" } else if contains_any(text, &["信息"]) { "信息型" } else { "营销型" },
             }),
             "根据标题生成意图自动补偿标题生成 skill",
@@ -1305,8 +1317,8 @@ fn autosuggest_web(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
             "web_store_design",
             serde_json::json!({
                 "store_type": if contains_any(text, &["旗舰"]) { "旗舰店" } else if contains_any(text, &["专营"]) { "专营店" } else { "电商店铺" },
-                "category": infer_category(text),
-                "platform": infer_platform(text),
+                "category": selected_product_category_or_infer(task, text),
+                "platform": selected_product_platform_or_infer(task, text),
                 "brand_tone": if contains_any(text, &["高端"]) { "高端奢华" } else if contains_any(text, &["年轻"]) { "年轻活力" } else { "专业可信" },
             }),
             "根据店铺装修意图自动补偿店铺设计 skill",
@@ -1317,8 +1329,8 @@ fn autosuggest_web(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         return Some(autosuggest_request(
             "web_product_description",
             serde_json::json!({
-                "product_name": compact_task_text(&task.description),
-                "platform": infer_platform(text),
+                "product_name": selected_product_name_or_task(task),
+                "platform": selected_product_platform_or_infer(task, text),
                 "style": if contains_any(text, &["故事"]) { "故事型" } else if contains_any(text, &["信息"]) { "信息型" } else { "营销型" },
             }),
             "根据详情页文案意图自动补偿产品描述 skill",
@@ -1333,7 +1345,7 @@ fn autosuggest_web(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
             "web_page_conversion",
             serde_json::json!({
                 "page_type": infer_page_type(text),
-                "platform": infer_platform(text),
+                "platform": selected_product_platform_or_infer(task, text),
             }),
             "根据页面转化意图自动补偿页面转化 skill",
         ));
@@ -1356,7 +1368,7 @@ fn autosuggest_design(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
             "design_material_spec",
             serde_json::json!({
                 "usage": infer_design_usage(text),
-                "platforms": [infer_platform(text)],
+                "platforms": [selected_product_platform_or_infer(task, text)],
             }),
             "根据素材/规格意图自动补偿素材规范 skill",
         ));
@@ -1366,8 +1378,8 @@ fn autosuggest_design(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         return Some(autosuggest_request(
             "design_detail_page",
             serde_json::json!({
-                "product_name": compact_task_text(&task.description),
-                "platform": infer_platform(text),
+                "product_name": selected_product_name_or_task(task),
+                "platform": selected_product_platform_or_infer(task, text),
                 "style": infer_design_style(text),
             }),
             "根据详情页设计意图自动补偿详情页设计 skill",
@@ -1379,8 +1391,8 @@ fn autosuggest_design(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
             "design_color_scheme",
             serde_json::json!({
                 "brand_tone": infer_design_style(text),
-                "category": infer_category(text),
-                "platform": infer_platform(text),
+                "category": selected_product_category_or_infer(task, text),
+                "platform": selected_product_platform_or_infer(task, text),
             }),
             "根据配色/品牌色意图自动补偿配色方案 skill",
         ));
@@ -1392,7 +1404,7 @@ fn autosuggest_design(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
             serde_json::json!({
                 "campaign_name": if contains_any(text, &["618"]) { "618大促" } else if contains_any(text, &["双11", "双十一"]) { "双11大促" } else { "营销活动" },
                 "discount_info": extract_discount_hint(text),
-                "platform": infer_platform(text),
+                "platform": selected_product_platform_or_infer(task, text),
                 "style": infer_design_style(text),
             }),
             "根据活动海报意图自动补偿海报设计 skill",
@@ -1402,8 +1414,8 @@ fn autosuggest_design(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     Some(autosuggest_request(
         "design_main_image",
         serde_json::json!({
-            "product_name": compact_task_text(&task.description),
-            "platform": infer_platform(text),
+            "product_name": selected_product_name_or_task(task),
+            "platform": selected_product_platform_or_infer(task, text),
         }),
         "根据设计岗位任务自动补偿主图设计 skill",
     ))
@@ -3268,6 +3280,175 @@ fn compact_task_text(value: &str) -> String {
     output
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct SelectedProductContext {
+    id: String,
+    name: String,
+    platform: Option<String>,
+    category: Option<String>,
+    brand: Option<String>,
+    description: Option<String>,
+    selling_points: Vec<String>,
+}
+
+fn selected_products_from_task(task: &Task) -> Vec<SelectedProductContext> {
+    let Some(summary) = task
+        .context
+        .metadata
+        .get("context.selected_summary")
+        .map(String::as_str)
+    else {
+        return Vec::new();
+    };
+
+    let mut products = Vec::new();
+    let mut pending_selling_points: Vec<(String, String)> = Vec::new();
+    for line in summary.lines() {
+        if let Some(product) = parse_product_summary_line(line) {
+            products.push(product);
+            continue;
+        }
+        if let Some(point) = parse_knowledge_summary_line(line) {
+            pending_selling_points.push(point);
+        }
+    }
+
+    for (product_id, point) in pending_selling_points {
+        if let Some(product) = products.iter_mut().find(|product| product.id == product_id)
+            && !product.selling_points.contains(&point)
+        {
+            product.selling_points.push(point);
+        }
+    }
+
+    products
+}
+
+fn first_selected_product(task: &Task) -> Option<SelectedProductContext> {
+    selected_products_from_task(task).into_iter().next()
+}
+
+fn selected_product_name_or_task(task: &Task) -> String {
+    first_selected_product(task)
+        .map(|product| product.name)
+        .unwrap_or_else(|| compact_task_text(&task.description))
+}
+
+fn selected_product_brand_name_or_task(task: &Task) -> String {
+    first_selected_product(task)
+        .and_then(|product| {
+            product
+                .brand
+                .filter(|brand| !brand.is_empty())
+                .or(Some(product.name))
+        })
+        .unwrap_or_else(|| compact_task_text(&task.description))
+}
+
+fn selected_product_platform_or_infer(task: &Task, text: &str) -> String {
+    first_selected_product(task)
+        .and_then(|product| product.platform)
+        .filter(|platform| !platform.is_empty())
+        .unwrap_or_else(|| infer_platform(text).to_string())
+}
+
+fn selected_product_category_or_infer(task: &Task, text: &str) -> String {
+    first_selected_product(task)
+        .and_then(|product| product.category)
+        .filter(|category| !category.is_empty())
+        .unwrap_or_else(|| infer_category(text).to_string())
+}
+
+fn selected_product_features_or_infer(task: &Task, text: &str) -> Vec<String> {
+    let mut features = first_selected_product(task)
+        .map(|product| {
+            let mut values = product.selling_points;
+            if let Some(description) = product.description.filter(|value| !value.is_empty()) {
+                values.push(description);
+            }
+            values
+        })
+        .unwrap_or_default();
+    if features.is_empty() {
+        features = infer_feature_list(text);
+    }
+    features
+}
+
+fn selected_product_count_or_default(task: &Task, default: i64) -> i64 {
+    let count = selected_products_from_task(task).len();
+    if count == 0 { default } else { count as i64 }
+}
+
+fn selected_product_article_platform_or_default(task: &Task, text: &str) -> String {
+    first_selected_product(task)
+        .and_then(|product| product.platform)
+        .filter(|platform| !platform.is_empty())
+        .unwrap_or_else(|| {
+            if text.contains("小红书") {
+                "小红书".to_string()
+            } else {
+                "微信公众号".to_string()
+            }
+        })
+}
+
+fn parse_product_summary_line(line: &str) -> Option<SelectedProductContext> {
+    let line = line.trim();
+    let rest = line.strip_prefix("Product source product:")?;
+    let mut parts = rest.splitn(2, '|');
+    let id = parts.next()?.trim();
+    let fields = parse_pipe_fields(parts.next().unwrap_or_default());
+    let name = fields.get("name")?.trim();
+    if id.is_empty() || name.is_empty() {
+        return None;
+    }
+    Some(SelectedProductContext {
+        id: id.to_string(),
+        name: name.to_string(),
+        platform: non_empty_field(&fields, "platform"),
+        category: non_empty_field(&fields, "category"),
+        brand: non_empty_field(&fields, "brand"),
+        description: non_empty_field(&fields, "description"),
+        selling_points: Vec::new(),
+    })
+}
+
+fn parse_knowledge_summary_line(line: &str) -> Option<(String, String)> {
+    let line = line.trim();
+    let rest = line.strip_prefix("Knowledge source product_knowledge:")?;
+    let mut parts = rest.splitn(2, '|');
+    let _knowledge_id = parts.next()?;
+    let fields = parse_pipe_fields(parts.next().unwrap_or_default());
+    let product_id = fields.get("product")?.trim();
+    let content = fields.get("content")?.trim();
+    if product_id.is_empty() || content.is_empty() {
+        return None;
+    }
+    Some((product_id.to_string(), content.to_string()))
+}
+
+fn parse_pipe_fields(value: &str) -> std::collections::BTreeMap<String, String> {
+    value
+        .split('|')
+        .filter_map(|part| {
+            let (key, value) = part.trim().split_once('=')?;
+            Some((key.trim().to_string(), value.trim().to_string()))
+        })
+        .collect()
+}
+
+fn non_empty_field(
+    fields: &std::collections::BTreeMap<String, String>,
+    key: &str,
+) -> Option<String> {
+    fields
+        .get(key)
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned)
+}
+
 fn infer_memory_key(text: &str) -> String {
     let compact = compact_task_text(text);
     let mut key = compact
@@ -4080,6 +4261,25 @@ mod tests {
         }
     }
 
+    fn task_with_metadata(description: &str, metadata: &[(&str, &str)]) -> super::Task {
+        let mut task = task(description);
+        for (key, value) in metadata {
+            task.context
+                .metadata
+                .insert((*key).to_string(), (*value).to_string());
+        }
+        task
+    }
+
+    fn selected_product_summary() -> String {
+        [
+            "Commerce product context for selected user products.",
+            "Product source product:11111111-1111-1111-1111-111111111111 | name=五一咖啡组合 | platform=抖音 | category=咖啡饮品 | brand=Atlas | price=99 CNY | status=active | description=节日主推组合",
+            "Knowledge source product_knowledge:22222222-2222-2222-2222-222222222222 | product=11111111-1111-1111-1111-111111111111 | title=核心卖点 | type=selling_point | source=manual | confidence=0.90 | content=低糖、便携、适合五一出游",
+        ]
+        .join("\n")
+    }
+
     #[test]
     fn explicit_skill_requests_are_not_overridden_by_autosuggest() {
         let requests = resolve_skill_requests(
@@ -4444,6 +4644,103 @@ mod tests {
             assert_eq!(requests.len(), 1, "{prompt}");
             assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
         }
+    }
+
+    #[test]
+    fn selected_product_context_feeds_creative_skill_input() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("creative"),
+            &task_with_metadata(
+                "帮我写一条短视频脚本",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "creative_video_script");
+        assert_eq!(requests[0].input["product_name"], "五一咖啡组合");
+        assert_eq!(requests[0].input["platform"], "抖音");
+    }
+
+    #[test]
+    fn selected_product_context_feeds_ops_listing_copy_features() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task_with_metadata(
+                "写上架文案和标题卖点",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_listing_copy");
+        assert_eq!(requests[0].input["product_name"], "五一咖啡组合");
+        assert_eq!(requests[0].input["platform"], "抖音");
+        let features = requests[0].input["features"]
+            .as_array()
+            .expect("features should be an array");
+        assert!(
+            features
+                .iter()
+                .any(|value| value == "低糖、便携、适合五一出游")
+        );
+    }
+
+    #[test]
+    fn selected_product_context_feeds_web_description_input() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("web"),
+            &task_with_metadata(
+                "写商品详情文案和卖点文案",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "web_product_description");
+        assert_eq!(requests[0].input["product_name"], "五一咖啡组合");
+        assert_eq!(requests[0].input["platform"], "抖音");
+    }
+
+    #[test]
+    fn selected_product_context_feeds_design_detail_page_input() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("design"),
+            &task_with_metadata(
+                "规划商品详情页长图设计",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "design_detail_page");
+        assert_eq!(requests[0].input["product_name"], "五一咖啡组合");
+        assert_eq!(requests[0].input["platform"], "抖音");
+    }
+
+    #[test]
+    fn selected_product_context_is_not_inferred_from_history_summary() {
+        let requests = autosuggest_skill_requests(
+            &role("creative"),
+            &task_with_metadata(
+                "帮我写一条短视频脚本",
+                &[("conversation.history_summary", "上一次用户分析过千乐咖啡")],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "creative_video_script");
+        assert_ne!(requests[0].input["product_name"], "千乐咖啡");
+        assert_eq!(requests[0].input["product_name"], "帮我写一条短视频脚本");
     }
 
     #[test]

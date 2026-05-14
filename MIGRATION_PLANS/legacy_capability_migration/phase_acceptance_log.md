@@ -1081,6 +1081,29 @@
 - 本阶段不调用真实平台写 adapter，不改变 `adapter_not_implemented` 的当前边界。
 - 后续接入真实平台 adapter 时，应让 adapter 返回 outcome，再写回 execution queue、tool approval 和 audit。
 
+## Post 8-70：显式选品上下文进入 Skill 输入
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent worker 只从 `context.selected_summary` 解析本轮显式选中商品。
+- [x] 商品行解析支持商品 ID、名称、平台、类目、品牌和描述。
+- [x] 商品知识行解析支持按 product ID 把 `content` 写入卖点。
+- [x] creative 商品型 skill 自动补偿 input 优先使用显式选品。
+- [x] ops 商品型 skill 自动补偿 input 优先使用显式选品。
+- [x] web 商品型 skill 自动补偿 input 优先使用显式选品。
+- [x] design 商品型 skill 自动补偿 input 优先使用显式选品。
+- [x] 未选择商品时，不从 `conversation.history_summary` 注入历史商品。
+- [x] API 文档已明确 `context.selected_summary` 是商品型 skill input 的唯一选品来源。
+
+当前说明：
+
+- 本阶段解决“用户手动选品后 skill input 没有稳定使用选中商品”和“未选商品时可能误用历史/测试商品”的问题。
+- 本阶段不新增 API、不新增数据库表、不改前端。
+- 当前旧 skill 的 `product_id` 字段仍偏 integer 语义，本阶段暂不写 UUID，后续需要统一商品引用 schema。
+
 ## Post 8-51：平台执行 Adapter 调度边界
 
 状态：done

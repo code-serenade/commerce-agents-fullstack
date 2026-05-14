@@ -17,7 +17,7 @@
 | `ops_pricing_strategy` | `ops_pricing_strategy` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已纳入岗位自动补偿规则，可由 ops 定价意图触发；Post 8-35：成功输出会沉淀为 `ops_pricing_strategy` artifact |
 | `ops_channel_strategy` | `ops_channel_strategy` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已补强渠道/渠道分配/投放渠道等自然问法触达；Post 8-35：成功输出会沉淀为 `ops_channel_strategy` artifact |
 | `ops_inventory_planning` | `ops_inventory_planning` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已纳入岗位自动补偿规则，当前基于输入数字做本地规划；Post 8-35：成功输出会沉淀为 `ops_inventory_plan` artifact |
-| `ops_listing_copy` | `ops_listing_copy` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已补强上架文案/标题卖点/上新文案自然问法触达；Post 8-35：成功输出会沉淀为 `ops_listing_copy` artifact，缺商品上下文时 deferred |
+| `ops_listing_copy` | `ops_listing_copy` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已补强上架文案/标题卖点/上新文案自然问法触达；Post 8-35：成功输出会沉淀为 `ops_listing_copy` artifact，缺商品上下文时 deferred；Post 8-70：自动补偿 input 优先读取本轮显式 `context.selected_summary` 的商品名、平台和卖点，未选商品时不从历史摘要注入默认商品 |
 | `ops_assortment_planning` | `ops_assortment_planning` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已补强货盘/SKU组合/选品组合自然问法触达；Post 8-35：成功输出会沉淀为 `ops_assortment_plan` artifact |
 | `ops_execution_plan` | `ops_execution_plan` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已纳入岗位自动补偿规则，并有单测覆盖；Post 8-35：成功输出会沉淀为 `ops_execution_plan` artifact |
 | `ops_smart_pricing` | `ops_smart_pricing` | native_ready | `backend/crates/agent/src/skills/ops.rs` | 已可 native 执行；Post 8-36：成功输出会沉淀为 `ops_smart_pricing_report` artifact，缺竞品价格时明示 `calculated_from_defaults` |
@@ -100,8 +100,8 @@ Post 8-60 补充：App API 和 Agent `search_*` skill 均已回显 `bypassCache/
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
 | --- | --- | --- | --- | --- |
-| `design_main_image` | `design_main_image` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已纳入岗位自动补偿规则；Post 8-41：成功输出会沉淀为 `design_main_image_brief` artifact，缺商品上下文时明示 `calculated_from_defaults`；当前不生成图片文件 |
-| `design_detail_page` | `design_detail_page` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已迁为 Rust native 详情页模块方案；Post 8-41：成功输出会沉淀为 `design_detail_page_brief` artifact，缺商品上下文时明示 `calculated_from_defaults`；尚不生成长图文件 |
+| `design_main_image` | `design_main_image` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已纳入岗位自动补偿规则；Post 8-41：成功输出会沉淀为 `design_main_image_brief` artifact，缺商品上下文时明示 `calculated_from_defaults`；Post 8-70：显式选品时自动补偿 input 使用选中商品和平台；当前不生成图片文件 |
+| `design_detail_page` | `design_detail_page` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已迁为 Rust native 详情页模块方案；Post 8-41：成功输出会沉淀为 `design_detail_page_brief` artifact，缺商品上下文时明示 `calculated_from_defaults`；Post 8-70：显式选品时自动补偿 input 使用选中商品和平台；尚不生成长图文件 |
 | `design_color_scheme` | `design_color_scheme` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已迁为 Rust native HEX 配色、比例和变量命名；Post 8-41：成功输出会沉淀为 `design_color_scheme` artifact，缺品牌调性时 validation error |
 | `design_material_spec` | `design_material_spec` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已纳入岗位自动补偿规则；Post 8-41：成功输出会沉淀为 `design_material_spec` artifact，缺平台/商品上下文时明示 `calculated_from_defaults` |
 | `design_campaign_poster` | `design_campaign_poster` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已迁为 Rust native 活动海报 brief；Post 8-41：成功输出会沉淀为 `design_campaign_poster_brief` artifact，缺活动名时 validation error；尚不生成图片文件 |
@@ -139,24 +139,24 @@ Post 8-60 补充：App API 和 Agent `search_*` skill 均已回显 `bypassCache/
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
 | --- | --- | --- | --- | --- |
 | `web_seo_optimize` | `web_seo_optimize` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native SEO 优化方案；Post 8-39：成功输出会沉淀为 `web_seo_plan` artifact，实时搜索量仍待 adapter |
-| `web_title_generator` | `web_title_generator` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native 多标题候选，并纳入自动补偿；Post 8-39：成功输出会沉淀为 `web_title_candidates` artifact |
+| `web_title_generator` | `web_title_generator` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native 多标题候选，并纳入自动补偿；Post 8-39：成功输出会沉淀为 `web_title_candidates` artifact；Post 8-70：显式选品时自动补偿 input 使用选中商品和平台 |
 | `web_page_conversion` | `web_page_conversion` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已纳入岗位自动补偿规则；Post 8-39：成功输出会沉淀为 `web_conversion_plan` artifact，使用基准默认值时明示 `calculated_from_defaults` |
 | `web_store_design` | `web_store_design` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native 店铺装修方案；Post 8-39：成功输出会沉淀为 `web_store_design_brief` artifact；真实店铺指标仍待 adapter |
-| `web_keyword_research` | `web_keyword_research` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native 关键词矩阵；Post 8-39：成功输出会沉淀为 `web_keyword_matrix` artifact；实时热度/CPC仍待 adapter |
-| `web_product_description` | `web_product_description` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native 详情页文案；Post 8-39：成功输出会沉淀为 `web_product_description` artifact，缺商品名时明示默认主推商品 |
+| `web_keyword_research` | `web_keyword_research` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native 关键词矩阵；Post 8-39：成功输出会沉淀为 `web_keyword_matrix` artifact；Post 8-70：显式选品时以选中商品作为 seed keyword；实时热度/CPC仍待 adapter |
+| `web_product_description` | `web_product_description` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native 详情页文案；Post 8-39：成功输出会沉淀为 `web_product_description` artifact，缺商品名时明示默认主推商品；Post 8-70：显式选品时自动补偿 input 使用选中商品和平台，未选商品时不从历史摘要注入默认商品 |
 | `web_title_seo_scorer` | `web_title_seo_scorer` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native 标题 SEO 评分；Post 8-39：成功输出会沉淀为 `web_title_seo_score` artifact，缺标题时 validation error |
 
 ## 创意 creative
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
 | --- | --- | --- | --- | --- |
-| `creative_video_script` | `creative_video_script` | native_ready | `backend/crates/agent/src/skills/creative.rs` | 已迁为 Rust native 结构化脚本产物，并纳入创意岗位自动补偿；Post 8-40：成功输出会沉淀为 `video_script` artifact |
-| `creative_seeding_copy` | `creative_seeding_copy` | native_ready | `backend/crates/agent/src/skills/creative.rs` | 已迁为 Rust native 种草文案产物，并纳入创意岗位自动补偿；Post 8-40：成功输出会沉淀为 `seeding_copy` artifact |
+| `creative_video_script` | `creative_video_script` | native_ready | `backend/crates/agent/src/skills/creative.rs` | 已迁为 Rust native 结构化脚本产物，并纳入创意岗位自动补偿；Post 8-40：成功输出会沉淀为 `video_script` artifact；Post 8-70：显式选品时自动补偿 input 使用选中商品和平台，未选商品时不从历史摘要注入默认商品 |
+| `creative_seeding_copy` | `creative_seeding_copy` | native_ready | `backend/crates/agent/src/skills/creative.rs` | 已迁为 Rust native 种草文案产物，并纳入创意岗位自动补偿；Post 8-40：成功输出会沉淀为 `seeding_copy` artifact；Post 8-70：显式选品时自动补偿 input 使用选中商品、平台和知识卖点 |
 | `creative_ip_branding` | `creative_ip_branding` | native_ready | `backend/crates/agent/src/skills/creative.rs` | 已迁为 Rust native IP 定位方案，并纳入创意岗位自动补偿；Post 8-40：成功输出会沉淀为 `ip_branding` artifact，缺品牌/类目时 validation error |
 | `creative_content_calendar` | `creative_content_calendar` | native_ready | `backend/crates/agent/src/skills/creative.rs` | 已迁为 Rust native 内容排期产物，并纳入创意岗位自动补偿；Post 8-40：成功输出会沉淀为 `content_calendar` artifact，默认排期会明示 `calculated_from_defaults` |
 | `creative_trend_catch` | `creative_trend_catch` | native_ready | `backend/crates/agent/src/skills/creative.rs` | 已迁为 Rust native 趋势方向产物；Post 8-40：成功输出会沉淀为 `creative_trend_report` artifact；实时外部搜索仍待后续 adapter |
-| `creative_live_script` | `creative_live_script` | native_ready | `backend/crates/agent/src/skills/creative.rs` | 已迁为 Rust native 直播话术产物，并纳入岗位自动补偿规则；Post 8-40：成功输出会沉淀为 `live_script` artifact，默认直播参数会明示 `calculated_from_defaults` |
-| `creative_product_article` | `creative_product_article` | native_ready | `backend/crates/agent/src/skills/creative.rs` | 已迁为 Rust native 产品软文产物，并纳入创意岗位自动补偿；Post 8-40：成功输出会沉淀为 `product_article` artifact |
+| `creative_live_script` | `creative_live_script` | native_ready | `backend/crates/agent/src/skills/creative.rs` | 已迁为 Rust native 直播话术产物，并纳入岗位自动补偿规则；Post 8-40：成功输出会沉淀为 `live_script` artifact，默认直播参数会明示 `calculated_from_defaults`；Post 8-70：显式选品时 product_count 和平台来自选中商品上下文 |
+| `creative_product_article` | `creative_product_article` | native_ready | `backend/crates/agent/src/skills/creative.rs` | 已迁为 Rust native 产品软文产物，并纳入创意岗位自动补偿；Post 8-40：成功输出会沉淀为 `product_article` artifact；Post 8-70：显式选品时自动补偿 input 使用选中商品和平台 |
 | `creative_title_ctr_scorer` | `creative_title_ctr_scorer` | native_ready | `backend/crates/agent/src/skills/creative.rs` | 已纳入岗位自动补偿规则；Post 8-40：成功输出会沉淀为 `creative_title_ctr_score` artifact，缺标题时 validation error |
 
 ## 协同 coordination

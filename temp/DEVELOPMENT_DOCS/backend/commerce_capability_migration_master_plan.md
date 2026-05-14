@@ -236,23 +236,23 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-69: engineering system check reachability
+Post 8-70: selected product context skill input
 ```
 
 Scope:
 
-- auto-suggest `engineering_system_check` from explicit platform API connectivity / interface health language
-- parse target platform names such as Taobao, Tmall, Douyin, JD, and PDD from the current user text
-- keep real live connection testing as `pending_approval` with platform adapter requirement
-- keep generic system status questions routed to `coordination_status_query`
-- preserve the platform truthfulness rule: no fake platform health result and no direct Agent database reads
+- parse explicitly selected product context from `MessageContext.metadata["context.selected_summary"]`
+- feed selected product name, platform, category, and selling points into content, ops, web, and design skill autosuggest inputs
+- keep unselected-product Q&A as the normal generic path
+- never infer a selected product from `conversation.history_summary`, `context.summary`, RAG summary, workspace summary, or test/default data
+- do not write UUID product IDs into old integer `product_id` fields until those schemas are migrated
 
 Reason:
 
-- the old product had `EngineeringSystemCheck`; the new product had the backend skill boundary but poor natural reachability
-- platform API health checks are high-risk/adapter-dependent and must not be presented as local native success
-- users should see a truthful deferred or approval boundary when asking for Taobao/Douyin/Qianchuan connectivity
-- this improves backend skill routing without waiting for official platform adapters or adding fake frontend controls
+- user-facing product context must distinguish “manual selected product” from normal open-ended Q&A
+- content and listing skills are much more useful when they receive real selected product facts
+- the previous path could make selected product data visible to the model context but not consistently into structured skill input
+- this directly prevents accidental default product injection such as a previous or test coffee product appearing in an unrelated new question
 
 ## 10. Validation Standard
 
