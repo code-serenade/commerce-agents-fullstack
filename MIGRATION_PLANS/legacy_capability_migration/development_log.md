@@ -1,5 +1,51 @@
 # 迁移开发记录
 
+## Post 8-79：退款拆解 product_ref 契约
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 79 个补强项：`Post 8-79`。
+
+本次目标：
+
+- 把数据层退款拆解接入新产品 `product_ref=product:{uuid}` 契约。
+- 让用户手动选择商品后，退款拆解 skill 能保留本轮商品引用。
+- 继续保持缺退款项时 deferred，不伪造平台实时退款数据。
+
+本次修改：
+
+- 后端 agent：`data_refund_decomposition` schema 新增 `product_ref`。
+- 后端 agent：成功输出新增 `商品引用`。
+- 后端 worker：本轮显式选品后，退款拆解自动补偿 input 带入 `product_ref`。
+- 后端 worker：未选商品时不写空 `product_ref`。
+- API/SSE：同步 `API_DOCS/sse.md`。
+- 迁移文档：新增本轮归档，并同步阶段验收、总计划和 skill 矩阵。
+
+用户可感知变化：
+
+- 用户手动勾选商品后，再问“拆解这个商品的退款原因 / 退款帕累托 / 售后退款问题”时，后端会把本轮选中商品的 `product:<uuid>` 带进退款拆解结果。
+- 用户没有手动选商品时，退款拆解仍按普通退款项问题运行，但不会暗中绑定历史商品或默认商品。
+- 缺少退款原因和金额等数据时仍会明确缺数据，不会创建假报告。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/data_refund_product_ref_post_8_79.md`
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent data_refund_decomposition -- --nocapture`
+- [x] `cargo test -p agent selected_product_context_feeds_refund_decomposition_ref -- --nocapture`
+- [x] `cargo test -p agent refund_decomposition_without_selection_has_no_empty_product_ref -- --nocapture`
+- [x] `cargo fmt --all --check`
+- [x] `cargo check -p agent`
+- [x] `cargo clippy -p agent`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 真实平台退款明细仍需要后续 service/adapter 注入，不能由本地 native skill 伪造。
+
 ## Post 8-78：渠道 ROI product_ref 契约
 
 状态：done

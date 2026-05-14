@@ -852,6 +852,7 @@ fn autosuggest_data(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
             serde_json::json!({
                 "days": infer_period_days(text),
                 "top_n": 5,
+                "product_ref": selected_product_ref(task),
                 "items": items,
             }),
             if items.is_empty() {
@@ -4649,6 +4650,44 @@ mod tests {
         assert_eq!(items[1]["refund_amount"], 9000.0);
         assert_eq!(items[2]["name"], "色差");
         assert_eq!(items[2]["refund_amount"], 4000.0);
+    }
+
+    #[test]
+    fn selected_product_context_feeds_refund_decomposition_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task_with_metadata(
+                "拆解这个商品退款：质量问题退款2.4万，物流破损退款9000",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_refund_decomposition");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        let items = requests[0].input["items"]
+            .as_array()
+            .expect("refund items should be parsed");
+        assert_eq!(items[0]["name"], "质量问题");
+        assert_eq!(items[0]["refund_amount"], 24000.0);
+    }
+
+    #[test]
+    fn refund_decomposition_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("拆解退款：质量问题退款2.4万，物流破损退款9000"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_refund_decomposition");
+        assert!(requests[0].input.get("product_ref").is_none());
     }
 
     #[test]

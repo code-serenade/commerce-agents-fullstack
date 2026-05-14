@@ -392,6 +392,12 @@ pub fn specs() -> Vec<SkillSpec> {
             "按渠道/类目/原因分解退款来源并识别关键问题项",
             SkillPriority::High,
             vec![
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用 product:{uuid}；仅用于标识本轮显式选品",
+                    false,
+                ),
                 field("days", "integer", "分析天数，默认30", false),
                 field("top_n", "integer", "展示前N个问题项，默认5", false),
                 field(
@@ -2195,6 +2201,7 @@ fn ab_test_analyzer(input: &Value) -> Result<Value, SkillError> {
 }
 
 fn refund_decomposition(input: &Value) -> Value {
+    let product_ref = s(input, "product_ref", "");
     let items = input
         .get("items")
         .and_then(Value::as_array)
@@ -2237,6 +2244,7 @@ fn refund_decomposition(input: &Value) -> Value {
         "data_readiness": "user_provided",
         "adapter_status": "manual_input",
         "summary": "退款拆解分析完成",
+        "商品引用": empty_string_as_null(product_ref),
         "总退款估算": round2(total),
         "帕累托分析": pareto,
         "整改建议": ["优先处理累计80%内的问题项", "复核详情页描述、质检和物流包装"]
@@ -3914,6 +3922,7 @@ mod tests {
     #[test]
     fn data_refund_decomposition_marks_success_for_user_items() {
         let output = refund_decomposition(&json!({
+            "product_ref": "product:11111111-1111-1111-1111-111111111111",
             "items": [
                 {"name": "尺码不符", "refund_amount": 24000.0},
                 {"name": "物流破损", "refund_amount": 9000.0},
@@ -3929,6 +3938,10 @@ mod tests {
         assert_eq!(
             output.get("adapter_status").and_then(Value::as_str),
             Some("manual_input")
+        );
+        assert_eq!(
+            output.get("商品引用"),
+            Some(&json!("product:11111111-1111-1111-1111-111111111111"))
         );
         assert!(output.get("帕累托分析").and_then(Value::as_array).is_some());
     }

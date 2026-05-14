@@ -236,22 +236,22 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-78: data channel ROI product_ref contract
+Post 8-79: data refund decomposition product_ref contract
 ```
 
 Scope:
 
-- add `product_ref=product:{uuid}` to `data_channel_roi`
-- echo the selected product reference in successful channel ROI output
+- add `product_ref=product:{uuid}` to `data_refund_decomposition`
+- echo the selected product reference in successful refund decomposition output
 - let data worker autosuggest pass selected product refs only from explicit `context.selected_summary`
-- keep missing channel metrics as deferred rather than fake live platform data
+- keep missing refund items as deferred rather than fake live platform data
 
 Reason:
 
-- channel ROI is a core e-commerce operating and paid-channel review skill
-- selected-product and unspecified-product channel ROI analysis must stay separate
-- frontend artifacts and process panels need a stable product reference for product-bound ROI reports
-- real platform channel metrics remain an adapter/service concern and must not be faked
+- refund decomposition is a core e-commerce after-sales and product quality review skill
+- selected-product and unspecified-product refund analysis must stay separate
+- frontend artifacts and process panels need a stable product reference for product-bound refund reports
+- real platform refund metrics remain an adapter/service concern and must not be faked
 
 ## 10. Validation Standard
 
