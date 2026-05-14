@@ -2,6 +2,26 @@
 
 # 阶段验收记录
 
+## Post 8-75：商品指标查询 product_ref 契约
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent：`query_product_metrics` schema 支持 `product_ref`。
+- [x] Agent：成功输出和 deferred 输出都会在 `query.product_ref` 回显显式商品引用或 null。
+- [x] Worker autosuggest：本轮显式选品时商品指标查询 input 携带 `product_ref` 和商品名。
+- [x] Worker autosuggest：未选商品时不写空 `product_ref`，不从历史摘要或默认商品推断。
+- [x] API：`API_DOCS/sse.md` 已同步商品指标 product_ref 契约。
+- [x] 前端：本轮不新增假入口。
+
+当前说明：
+
+- 本阶段解决的是“商品指标 skill 已有显式指标能力，但没有接入新产品商品引用契约”的问题。
+- 本阶段只消费用户本轮显式商品引用和显式指标，不接淘宝、抖音、千川官方 API。
+- 没有指标时仍返回 deferred，不创建假商品指标报告。
+
 ## Post 8-69：平台接口健康检查自然触达
 
 状态：done

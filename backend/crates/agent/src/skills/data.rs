@@ -63,6 +63,12 @@ pub fn specs() -> Vec<SkillSpec> {
             SkillPriority::High,
             vec![
                 field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用 product:{uuid}；仅来自本轮显式选品或显式输入",
+                    false,
+                ),
+                field(
                     "product_id",
                     "string",
                     "商品ID；只作为本轮显式筛选条件",
@@ -717,6 +723,7 @@ fn query_store_metrics(input: &Value) -> Value {
 fn query_product_metrics(input: &Value) -> Value {
     let days = i(input, "days", 30).clamp(1, 365);
     let platform = normalize_metric_platform(input);
+    let product_ref = s(input, "product_ref", "");
     let product_id = s(input, "product_id", "");
     let product_name = s(input, "product_name", "");
     let sku_id = s(input, "sku_id", "");
@@ -754,6 +761,7 @@ fn query_product_metrics(input: &Value) -> Value {
             "deferred_reason": "当前没有本轮显式商品指标输入，也没有 product_metrics adapter；不会默认读取任何预设商品或伪造平台实时商品数据",
             "side_effects": "none",
             "query": {
+                "product_ref": empty_string_as_null(product_ref),
                 "product_id": empty_string_as_null(product_id),
                 "product_name": empty_string_as_null(product_name),
                 "sku_id": empty_string_as_null(sku_id),
@@ -761,7 +769,7 @@ fn query_product_metrics(input: &Value) -> Value {
                 "days": days
             },
             "expected_inputs": [
-                "product_id/product_name/sku_id",
+                "product_ref/product_id/product_name/sku_id",
                 "gmv/revenue",
                 "orders/order_count",
                 "visitors/uv",
@@ -833,6 +841,7 @@ fn query_product_metrics(input: &Value) -> Value {
             "days": days
         },
         "query": {
+            "product_ref": empty_string_as_null(product_ref),
             "product_id": empty_string_as_null(product_id),
             "product_name": empty_string_as_null(product_name),
             "sku_id": empty_string_as_null(sku_id),
@@ -3426,6 +3435,7 @@ mod tests {
         let outcome = execute(
             "query_product_metrics",
             json!({
+                "product_ref": "product:11111111-1111-1111-1111-111111111111",
                 "product_id": "prod-001",
                 "product_name": "冷萃咖啡",
                 "sku_id": "sku-a",
@@ -3460,6 +3470,10 @@ mod tests {
             Some("explicit_product_metrics")
         );
         assert_eq!(output.pointer("/totals/gmv"), Some(&json!(96000.0)));
+        assert_eq!(
+            output.pointer("/query/product_ref"),
+            Some(&json!("product:11111111-1111-1111-1111-111111111111"))
+        );
         assert_eq!(
             output.pointer("/query/product_id"),
             Some(&json!("prod-001"))
@@ -3497,6 +3511,7 @@ mod tests {
                 .unwrap_or_default()
                 .contains("不会默认读取任何预设商品")
         );
+        assert_eq!(output.pointer("/query/product_ref"), Some(&Value::Null));
     }
 
     #[tokio::test]

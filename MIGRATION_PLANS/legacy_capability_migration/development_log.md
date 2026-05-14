@@ -1,5 +1,51 @@
 # 迁移开发记录
 
+## Post 8-75：商品指标查询 product_ref 契约
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 75 个补强项：`Post 8-75`。
+
+本次目标：
+
+- 把数据层商品指标查询接入新产品 `product_ref=product:{uuid}` 契约。
+- 让用户手动选择商品后，商品指标 skill 能保留本轮商品引用。
+- 继续保持未选商品时不读取默认商品、预设商品、历史商品或测试商品。
+
+本次修改：
+
+- 后端 agent：`query_product_metrics` schema 新增 `product_ref`。
+- 后端 agent：成功和 deferred 输出的 `query.product_ref` 都会回显显式商品引用或 null。
+- 后端 worker：商品指标查询自动补偿在本轮显式选品时带入 `product_ref` 和商品名。
+- 后端 worker：未选商品时不写空 `product_ref`，不从历史摘要推断商品引用。
+- API/SSE：同步 `API_DOCS/sse.md`。
+- 迁移文档：新增本轮归档，并同步阶段验收、总计划和 skill 矩阵。
+
+用户可感知变化：
+
+- 用户手动勾选商品后，再问“查询这个商品指标 / 单品数据 / SKU 表现”时，后端会把本轮选中商品的 `product:<uuid>` 带进 skill input 和结果。
+- 用户没有手动选商品时，商品指标查询仍可按普通显式指标问题运行，但不会暗中绑定历史商品或默认商品。
+- 本阶段不读取淘宝、抖音、千川等平台实时商品数据，也不会创建假商品指标报告。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/query_product_metrics_product_ref_post_8_75.md`
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent query_product_metrics -- --nocapture`
+- [x] `cargo test -p agent selected_product_context_feeds_product_metrics_ref -- --nocapture`
+- [x] `cargo test -p agent product_metrics_without_selection_has_no_empty_product_ref -- --nocapture`
+- [x] `cargo fmt --all --check`
+- [x] `cargo check -p agent`
+- [x] `cargo clippy -p agent`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 真实平台商品指标读取仍需要后续 product metrics adapter 注入，不能在 agent crate 内直连平台或伪造实时数据。
+
 ## Post 8-74：营销活动草稿 product_ref 契约
 
 状态：done

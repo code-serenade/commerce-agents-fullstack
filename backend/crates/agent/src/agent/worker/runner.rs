@@ -702,7 +702,7 @@ fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         }
     }
 
-    if let Some(request) = autosuggest_product_or_campaign_metrics(text) {
+    if let Some(request) = autosuggest_product_or_campaign_metrics(text, task) {
         return Some(request);
     }
 
@@ -754,7 +754,7 @@ fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     ))
 }
 
-fn autosuggest_data(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
+fn autosuggest_data(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     if contains_any(
         text,
         &[
@@ -830,7 +830,7 @@ fn autosuggest_data(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
         return Some(request);
     }
 
-    if let Some(request) = autosuggest_product_or_campaign_metrics(text) {
+    if let Some(request) = autosuggest_product_or_campaign_metrics(text, task) {
         return Some(request);
     }
 
@@ -1744,7 +1744,7 @@ fn autosuggest_query_store_metrics(
     ))
 }
 
-fn autosuggest_product_or_campaign_metrics(text: &str) -> Option<ParsedSkillRequest> {
+fn autosuggest_product_or_campaign_metrics(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     if has_campaign_metrics_query_intent(text) {
         let input = infer_campaign_metrics_input(text);
         let has_explicit_metrics = metric_query_input_has_metrics(&input);
@@ -1760,7 +1760,7 @@ fn autosuggest_product_or_campaign_metrics(text: &str) -> Option<ParsedSkillRequ
     }
 
     if has_product_metrics_query_intent(text) {
-        let input = infer_product_metrics_input(text);
+        let input = infer_product_metrics_input(text, task);
         let has_explicit_metrics = metric_query_input_has_metrics(&input);
         return Some(autosuggest_request(
             "query_product_metrics",
@@ -1979,11 +1979,21 @@ fn infer_store_metrics_input(text: &str) -> serde_json::Map<String, serde_json::
     input
 }
 
-fn infer_product_metrics_input(text: &str) -> serde_json::Map<String, serde_json::Value> {
+fn infer_product_metrics_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
     let mut input = infer_common_metrics_input(text);
-    let product_name = infer_product_name(text);
-    if !product_name.trim().is_empty() {
-        input.insert("product_name".to_string(), serde_json::json!(product_name));
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
+    if let Some(product) = first_selected_product(task) {
+        input.insert("product_name".to_string(), serde_json::json!(product.name));
+    } else {
+        let product_name = infer_product_name(text);
+        if !product_name.trim().is_empty() {
+            input.insert("product_name".to_string(), serde_json::json!(product_name));
+        }
     }
     if let Some(product_id) = extract_labeled_token(text, &["商品ID", "product_id", "product id"])
     {
@@ -4887,6 +4897,49 @@ mod tests {
             "product:11111111-1111-1111-1111-111111111111"
         );
         assert_eq!(requests[0].input["product_name"], "五一咖啡组合");
+    }
+
+    #[test]
+    fn selected_product_context_feeds_product_metrics_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task_with_metadata(
+                "查询这个商品指标：GMV9.6万，订单1200，UV2.4万，广告费2.4万，库存8",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "query_product_metrics");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["product_name"], "五一咖啡组合");
+        assert_eq!(requests[0].input["gmv"], 96000.0);
+        assert_eq!(requests[0].input["orders"], 1200.0);
+        assert_eq!(requests[0].input["visitors"], 24000.0);
+    }
+
+    #[test]
+    fn product_metrics_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("查询商品指标：冷萃咖啡 GMV9.6万，订单1200，UV2.4万，广告费2.4万，库存8"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "query_product_metrics");
+        assert!(requests[0].input.get("product_ref").is_none());
+        assert!(
+            requests[0].input["product_name"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("冷萃咖啡")
+        );
     }
 
     #[test]

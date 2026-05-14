@@ -236,22 +236,22 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-74: coordination campaign product_ref contract
+Post 8-75: query product metrics product_ref contract
 ```
 
 Scope:
 
-- add `product_ref=product:{uuid}` to `coordination_create_campaign`
-- infer product refs from explicit `context.refs/context.product_ids`
-- keep legacy `product_id` output for the existing campaign draft persistence path
-- avoid platform write actions in this slice
+- add `product_ref=product:{uuid}` to `query_product_metrics`
+- echo `query.product_ref` in both success and deferred outputs
+- let worker autosuggest pass selected product refs only from explicit `context.selected_summary`
+- avoid platform adapters and fake real-time metrics in this slice
 
 Reason:
 
-- campaign drafts often need to remain linked to the product selected in the current turn
-- the new product reference contract should be visible in coordination outputs, not only content/service skills
-- campaign draft persistence still expects the legacy `product_id` string, so both fields are kept until that path is upgraded
-- high-risk platform write skills remain out of scope and must keep their approval/adapter boundary
+- product metric queries are a core data skill from the old product
+- selected-product and unspecified-product paths must stay separate
+- frontend can later show product-bound metric runs using the same product reference contract as content/service skills
+- real platform product metrics remain an adapter concern and must not be faked
 
 ## 10. Validation Standard
 
