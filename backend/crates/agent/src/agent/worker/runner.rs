@@ -950,6 +950,28 @@ fn autosuggest_data(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         ));
     }
 
+    if contains_any(
+        text,
+        &[
+            "seasonal",
+            "seasonality",
+            "seasonal decompose",
+            "季节性",
+            "周期性",
+            "周期分解",
+            "季节分解",
+            "周内波动",
+            "周期波动",
+            "周期趋势",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "data_seasonal_decompose",
+            serde_json::Value::Object(infer_seasonal_decompose_input(text, task)),
+            "根据季节性/周期性/周内波动意图自动补偿季节性分解 skill",
+        ));
+    }
+
     if contains_any(text, &["anomaly", "异常", "波动", "下滑", "暴涨", "暴跌"]) {
         let values = numbers_in_text(text);
         return Some(autosuggest_request(
@@ -2344,6 +2366,30 @@ fn infer_cohort_analysis_input(
     input
 }
 
+fn infer_seasonal_decompose_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_period_days(text)),
+    );
+    input.insert("metric".to_string(), serde_json::json!(infer_metric(text)));
+    input.insert(
+        "period".to_string(),
+        serde_json::json!(infer_seasonal_period(text)),
+    );
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
+    let values = numbers_in_text(text);
+    if !values.is_empty() {
+        input.insert("values".to_string(), serde_json::json!(values));
+    }
+    input
+}
+
 fn infer_price_elasticity_input(
     text: &str,
     task: &Task,
@@ -3125,6 +3171,15 @@ fn infer_cohort_unit(text: &str) -> &'static str {
         "month"
     } else {
         "week"
+    }
+}
+
+fn infer_seasonal_period(text: &str) -> i64 {
+    let lower = text.to_ascii_lowercase();
+    if text.contains("月") || lower.contains("monthly") {
+        30
+    } else {
+        7
     }
 }
 
@@ -5260,6 +5315,62 @@ mod tests {
 
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].skill_id, "data_demand_forecast");
+        assert!(requests[0].input.get("product_ref").is_none());
+    }
+
+    #[test]
+    fn autosuggests_seasonal_decompose_with_explicit_series() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task(
+                "做订单季节性分解，分析周内波动：120 132 141 150 168 181 190 128 139 149 158 176 188 201",
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_seasonal_decompose");
+        assert_eq!(requests[0].input["metric"], "orders");
+        assert_eq!(requests[0].input["period"], 7);
+        let values = requests[0].input["values"]
+            .as_array()
+            .expect("values should be parsed");
+        assert_eq!(values.len(), 14);
+        assert_eq!(values[0], 120.0);
+        assert_eq!(values[13], 201.0);
+    }
+
+    #[test]
+    fn selected_product_context_feeds_seasonal_decompose_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task_with_metadata(
+                "分析这个商品的订单季节性和周期波动：120 132 141 150 168 181 190 128 139 149 158 176 188 201",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_seasonal_decompose");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["metric"], "orders");
+    }
+
+    #[test]
+    fn seasonal_decompose_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("做订单季节性分解：120 132 141 150 168 181 190 128 139 149 158 176 188 201"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_seasonal_decompose");
         assert!(requests[0].input.get("product_ref").is_none());
     }
 

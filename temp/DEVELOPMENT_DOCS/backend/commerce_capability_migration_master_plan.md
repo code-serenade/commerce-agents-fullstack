@@ -236,25 +236,25 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-84: data cohort analysis product_ref contract
+Post 8-85: data seasonal decomposition product_ref contract
 ```
 
 Scope:
 
-- add `product_ref=product:{uuid}` to `data_cohort_analysis`
-- echo the selected product reference in successful cohort retention output
-- route explicit cohort / retention / repurchase retention / churn node phrasing to `data_cohort_analysis`
-- parse explicit new-customer baseline from the current text into `new_customers`
+- add `product_ref=product:{uuid}` to `data_seasonal_decompose`
+- echo the selected product reference in successful seasonal decomposition output
+- route explicit seasonality / periodic trend / intra-week fluctuation phrasing to `data_seasonal_decompose`
+- parse explicit historical numeric series from the current text into `values`
 - let data worker autosuggest pass selected product refs only from explicit `context.selected_summary`
-- keep missing cohort source data as deterministic defaults with `data_readiness=calculated_from_defaults` rather than fake live membership, order, CRM, or platform retention data
+- keep insufficient history as deferred rather than fake live platform history, campaign calendar, or industry seasonality data
 
 Reason:
 
-- cohort retention is a core e-commerce repeat-purchase and customer-value skill from the old product
-- selected-product and unspecified-product retention analysis must stay separate
-- users should reach the native cohort analysis skill directly instead of falling through to generic customer segmentation
-- frontend artifacts and process panels need a stable product reference for product-bound retention reports
-- real member cohorts, order repurchase history, CRM segments, and platform retention data remain adapter/service concerns and must not be faked
+- seasonal decomposition is a core e-commerce demand-rhythm skill from the old product
+- selected-product and unspecified-product seasonal analysis must stay separate
+- users should reach the native seasonal decomposition skill directly instead of falling through to generic trend forecasting
+- frontend artifacts and process panels need a stable product reference for product-bound seasonality reports
+- real platform sales history, activity calendars, holidays, and industry seasonality remain adapter/service/search concerns and must not be faked
 
 ## 10. Validation Standard
 

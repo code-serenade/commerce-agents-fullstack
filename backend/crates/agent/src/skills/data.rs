@@ -434,6 +434,12 @@ pub fn specs() -> Vec<SkillSpec> {
             SkillPriority::Critical,
             vec![
                 field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用 product:{uuid}；仅用于标识本轮显式选品",
+                    false,
+                ),
+                field(
                     "metric",
                     "string",
                     "分解指标：gmv/orders/uv，默认gmv",
@@ -2288,6 +2294,7 @@ fn refund_decomposition(input: &Value) -> Value {
 }
 
 fn seasonal_decompose(input: &Value) -> Value {
+    let product_ref = s(input, "product_ref", "");
     let series = nums(input, "values");
     let period = i(input, "period", 7).max(2) as usize;
     if series.len() < period * 2 {
@@ -2312,6 +2319,7 @@ fn seasonal_decompose(input: &Value) -> Value {
     let strength = stddev(&indices) * 100.0;
     json!({
         "has_data": true,
+        "商品引用": empty_string_as_null(product_ref),
         "指标": metric_display(&s(input, "metric", "gmv")),
         "季节周期": format!("{period}天"),
         "趋势分析": {"趋势起点": round2(trend_start), "趋势终点": round2(trend_end), "趋势增长率": signed_percent(trend_growth, 2)},
@@ -4293,6 +4301,42 @@ mod tests {
         assert_eq!(
             output.get("data_readiness").and_then(Value::as_str),
             Some("missing_user_input")
+        );
+    }
+
+    #[tokio::test]
+    async fn data_seasonal_decompose_echoes_product_ref() {
+        let outcome = execute(
+            "data_seasonal_decompose",
+            json!({
+                "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                "metric": "orders",
+                "period": 7,
+                "values": [120.0, 132.0, 141.0, 150.0, 168.0, 181.0, 190.0, 128.0, 139.0, 149.0, 158.0, 176.0, 188.0, 201.0]
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("data seasonal decomposition should echo selected product ref");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("user_provided")
+        );
+        assert_eq!(
+            output.get("商品引用"),
+            Some(&json!("product:11111111-1111-1111-1111-111111111111"))
+        );
+        assert!(
+            output
+                .get("季节性分析")
+                .and_then(Value::as_object)
+                .is_some()
         );
     }
 
