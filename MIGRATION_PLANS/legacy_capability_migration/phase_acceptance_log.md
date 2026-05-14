@@ -1,5 +1,27 @@
 # 阶段验收记录
 
+## Post 8-58：渠道归因分析 skill native 迁移
+
+状态：done
+
+验收项：
+
+- [x] 后端：`data_attribution_analysis` 不再是 deferred 宏占位，已改为 Agent native skill。
+- [x] 后端：支持 `channels` 输入，每个渠道可包含 GMV、UV、转化率和广告花费。
+- [x] 后端：输出末次归因、线性归因、时间衰减归因、位置归因。
+- [x] 后端：缺渠道、少于两个有效渠道或总 GMV 为 0 时返回 `status=deferred`。
+- [x] 后端：不读取、不伪造淘宝/抖音/千川/数仓实时数据。
+- [x] Service：成功输出可沉淀为 `data_attribution_report` workspace artifact。
+- [x] API：`API_DOCS/app.md` 已同步 artifact 类型。
+- [x] API：`API_DOCS/sse.md` 已同步 `workspace_artifact_created` 支持名单和数据说明。
+- [x] 文档：后端设计文档、迁移矩阵、开发记录和本轮归档已同步。
+- [x] 验证：`cargo fmt --all`
+- [x] 验证：`cargo fmt --all --check`
+- [x] 验证：`cargo test -p agent --lib data_attribution_analysis -- --nocapture`
+- [x] 验证：`cargo test -p service content_artifact_builds_from_data_advanced_skill_output -- --nocapture`
+- [x] 验证：`cargo check -p agent -p service`
+- [x] 验证：`cargo clippy -p agent -p service`
+
 ## Post 8-57：高级财务 skill 输出契约与 artifact 沉淀
 
 状态：done

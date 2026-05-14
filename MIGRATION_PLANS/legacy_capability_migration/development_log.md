@@ -1,5 +1,54 @@
 # 迁移开发记录
 
+## Post 8-58：渠道归因分析 skill native 迁移
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 58 个补强项：`Post 8-58`。
+
+本次目标：
+
+- 将旧产品 `DataAttributionAnalysis` 迁为新产品 Rust Agent native skill。
+- 继续使用同事给的新产品框架，不引入第二套 Python skill 运行链路。
+- 不接淘宝、抖音、千川或数据仓库官方接口；只基于用户或未来 adapter 显式提供的渠道数据计算。
+
+本次修改：
+
+- 后端 agent：`data_attribution_analysis` 从 deferred spec 改为 deterministic native spec，并新增 `channels` 入参。
+- 后端 agent：实现末次归因、线性归因、时间衰减归因、位置归因四种模型。
+- 后端 agent：缺渠道、少于两个有效渠道或总 GMV 为 0 时返回 `status=deferred`，不伪造平台指标。
+- 后端 service：`WorkspaceApi::materialize_agent_content_artifact` 新增 `data_attribution_report` artifact 映射。
+- API/SSE：同步 `data_attribution_analysis` 支持名单和 artifact 类型说明。
+- 迁移文档：同步 `skill_migration_matrix.md`、本开发日志、阶段验收记录和本轮归档文件。
+
+用户可感知变化：
+
+- 用户提供多渠道 GMV、UV、转化率、广告花费后，数据分析师可以输出多模型渠道归因、关键洞察和预算再分配建议。
+- 前端后续接入后，该结果可以作为工作区交付物查看，不只停留在一次流式回答里。
+- 如果用户没有提供渠道数据，系统会明确提示缺数据，而不是假装读取了淘宝/抖音后台。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/data_attribution_native_post_8_58.md`
+- [x] 迁移矩阵：`MIGRATION_PLANS/legacy_capability_migration/skill_migration_matrix.md`
+- [x] API 文档：`API_DOCS/app.md`
+- [x] API 文档：`API_DOCS/sse.md`
+- [x] `cargo fmt --all`
+- [x] `cargo fmt --all --check`
+- [x] `cargo test -p agent --lib data_attribution_analysis -- --nocapture`
+- [x] `cargo test -p service content_artifact_builds_from_data_advanced_skill_output -- --nocapture`
+- [x] `cargo check -p agent -p service`
+- [x] `cargo clippy -p agent -p service`
+
+后续缺口：
+
+- 真实平台/数仓 adapter 仍未接入；未来应通过 adapter 注入 `channels`，不要在 agent crate 直连数据库或平台。
+- `data_comprehensive_diagnosis` 仍待迁移，它可以在后续组合归因、漏斗、异常、退款和预测结果。
+- 前端仍需展示归因明细和 artifact 链接。
+
 ## Post 8-57：高级财务 skill 输出契约与 artifact 沉淀
 
 状态：done

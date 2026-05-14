@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use serde_json::Map;
 use serde_json::{Value, json};
 
 use crate::skills::{
@@ -241,8 +242,8 @@ pub fn specs() -> Vec<SkillSpec> {
         spec(
             "data_attribution_analysis",
             "渠道归因分析",
-            "多触点渠道归因模型，Rust迁移阶段返回延迟计划",
-            SkillPriority::High,
+            "多触点渠道归因模型，比较末次、线性、时间衰减和位置归因",
+            SkillPriority::Critical,
             vec![
                 field("days", "integer", "分析天数，默认30", false),
                 field(
@@ -251,8 +252,14 @@ pub fn specs() -> Vec<SkillSpec> {
                     "last_touch/linear/time_decay/position/all，默认all",
                     false,
                 ),
+                field(
+                    "channels",
+                    "array<object>",
+                    "渠道列表：{name,gmv,uv,conversion_rate,ad_spend}",
+                    false,
+                ),
             ],
-            &["deferred"],
+            &["deterministic"],
         ),
         spec(
             "data_refund_decomposition",
@@ -393,9 +400,7 @@ pub async fn execute(skill_name: &str, input: Value, _context: &SkillContext) ->
         "data_ltv_calculator" => ltv_calculator(&input),
         "data_cohort_analysis" => cohort_analysis(&input),
         "data_ab_test_analyzer" => ab_test_analyzer(&input)?,
-        "data_attribution_analysis" => {
-            deferred(skill_name, "需要真实多平台触点和渠道路径数据", &input)
-        }
+        "data_attribution_analysis" => attribution_analysis(&input),
         "data_refund_decomposition" => refund_decomposition(&input),
         "data_seasonal_decompose" => seasonal_decompose(&input),
         "data_price_elasticity" => price_elasticity(&input),
@@ -562,6 +567,7 @@ fn data_summary(skill_name: &str) -> &'static str {
         "data_customer_segmentation" => "客户分层报告已生成",
         "data_competitor_analysis" => "竞品分析报告已生成",
         "data_multi_period_trend" => "多周期趋势分析报告已生成",
+        "data_attribution_analysis" => "渠道归因分析报告已生成",
         "data_ltv_calculator" => "LTV客户价值报告已生成",
         "data_cohort_analysis" => "队列留存分析报告已生成",
         "data_ab_test_analyzer" => "A/B测试分析报告已生成",
@@ -982,6 +988,175 @@ fn channel_roi(input: &Value) -> Value {
     })
 }
 
+fn attribution_analysis(input: &Value) -> Value {
+    let channels = input
+        .get("channels")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    if channels.is_empty() {
+        return attribution_deferred(
+            "data_attribution_analysis",
+            "需要多渠道GMV、UV、转化率和广告花费数据",
+            input,
+        );
+    }
+
+    let mut rows = channels
+        .iter()
+        .filter_map(|channel| {
+            let name = s(channel, "name", "");
+            let gmv = n(channel, "gmv", 0.0).max(0.0);
+            let uv = n(channel, "uv", 0.0).max(0.0);
+            let conversion_rate =
+                normalized_rate(n(channel, "conversion_rate", n(channel, "conv", 0.0)));
+            let ad_spend = n(channel, "ad_spend", 0.0).max(0.0);
+            ((gmv > 0.0 || uv > 0.0) && !name.trim().is_empty()).then_some(AttributionChannel {
+                name,
+                gmv,
+                uv,
+                conversion_rate,
+                ad_spend,
+            })
+        })
+        .collect::<Vec<_>>();
+
+    if rows.len() < 2 {
+        return attribution_deferred(
+            "data_attribution_analysis",
+            "归因分析至少需要2个有效渠道",
+            input,
+        );
+    }
+    rows.sort_by(|a, b| b.gmv.total_cmp(&a.gmv));
+
+    let total_gmv = rows.iter().map(|channel| channel.gmv).sum::<f64>();
+    if total_gmv <= 0.0 {
+        return attribution_deferred(
+            "data_attribution_analysis",
+            "总GMV为0，无法计算渠道归因",
+            input,
+        );
+    }
+
+    let n_channels = rows.len();
+    let last_touch_weights = one_hot(n_channels, 0);
+    let linear_weights = normalize(vec![1.0; n_channels]);
+    let decay_signals = rows
+        .iter()
+        .map(|channel| {
+            if channel.ad_spend > 0.0 {
+                channel.ad_spend
+            } else {
+                channel.conversion_rate * channel.uv
+            }
+        })
+        .collect::<Vec<_>>();
+    let time_decay_weights = if decay_signals.iter().all(|value| value.abs() < 1e-9) {
+        linear_weights.clone()
+    } else {
+        normalize(decay_signals)
+    };
+    let position_weights = position_based_weights(n_channels);
+    let requested_model = s(input, "attribution_model", "all");
+    let selected_models = attribution_models_to_show(&requested_model);
+    let model_map = [
+        ("last_touch", "末次归因", last_touch_weights),
+        ("linear", "线性归因", linear_weights),
+        ("time_decay", "时间衰减归因", time_decay_weights.clone()),
+        ("position", "位置归因(U形)", position_weights),
+    ];
+
+    let channel_details = rows
+        .iter()
+        .enumerate()
+        .map(|(idx, channel)| {
+            let actual_share = channel.gmv / total_gmv;
+            let mut attributed = Map::new();
+            for (key, display, weights) in &model_map {
+                if !selected_models.iter().any(|model| model == key) {
+                    continue;
+                }
+                let weight = weights[idx];
+                let attributed_gmv = total_gmv * weight;
+                let vs_actual = pct(weight - actual_share, actual_share.max(0.001));
+                attributed.insert(
+                    (*display).to_owned(),
+                    json!({
+                        "归因GMV": round2(attributed_gmv),
+                        "归因权重": percent(weight * 100.0, 1),
+                        "vs实际占比": signed_percent(vs_actual, 1),
+                    }),
+                );
+            }
+            json!({
+                "渠道": channel.name,
+                "实际GMV": round2(channel.gmv),
+                "实际GMV占比": percent(actual_share * 100.0, 1),
+                "UV": round2(channel.uv),
+                "转化率": percent(channel.conversion_rate * 100.0, 2),
+                "广告花费": round2(channel.ad_spend),
+                "归因GMV对比": Value::Object(attributed),
+            })
+        })
+        .collect::<Vec<_>>();
+
+    let mut insights = Vec::new();
+    for (idx, channel) in rows.iter().enumerate() {
+        let actual_share = channel.gmv / total_gmv;
+        let contribution = time_decay_weights[idx];
+        let gap = contribution - actual_share;
+        if gap > 0.10 {
+            insights.push(format!(
+                "{}：归因权重比实际GMV占比高{}，可能被低估，建议增加预算或资源",
+                channel.name,
+                percent(gap * 100.0, 1)
+            ));
+        } else if gap < -0.10 {
+            insights.push(format!(
+                "{}：归因权重比实际GMV占比低{}，可能被高估，需复核预算效率",
+                channel.name,
+                percent(gap.abs() * 100.0, 1)
+            ));
+        }
+    }
+    if insights.is_empty() {
+        insights.push("各渠道贡献相对均衡，暂无明显高估/低估".to_owned());
+    }
+
+    let best_idx = time_decay_weights
+        .iter()
+        .enumerate()
+        .max_by(|a, b| a.1.total_cmp(b.1))
+        .map(|(idx, _)| idx)
+        .unwrap_or(0);
+
+    json!({
+        "status": "success",
+        "has_data": true,
+        "data_readiness": "user_provided",
+        "adapter_status": "manual_input",
+        "summary": format!("渠道归因分析完成，{}归因贡献最高", rows[best_idx].name),
+        "数据来源": "用户提供渠道数据",
+        "分析周期": format!("{}天", i(input, "days", 30).max(1)),
+        "归因模型": if requested_model == "all" { "all" } else { requested_model.as_str() },
+        "分析说明": "末次归因=成交最高渠道；线性=等权分配；时间衰减=以广告花费或转化信号代理近期触点；位置归因=首末各40%中间20%",
+        "总GMV": round2(total_gmv),
+        "渠道数": rows.len(),
+        "各渠道归因明细": channel_details,
+        "关键洞察": insights,
+        "预算再分配建议": format!("时间衰减模型下，{}归因贡献最高，建议优先保障该渠道预算，同时复核低归因高花费渠道。", rows[best_idx].name),
+    })
+}
+
+fn attribution_deferred(skill: &str, reason: &str, input: &Value) -> Value {
+    let mut output = deferred(skill, reason, input);
+    if let Some(map) = output.as_object_mut() {
+        map.insert("summary".to_owned(), json!(data_summary(skill)));
+    }
+    output
+}
+
 fn ltv_calculator(input: &Value) -> Value {
     let aov = n(input, "avg_order_value", 120.0);
     let freq = n(input, "purchase_frequency", 1.6);
@@ -1242,6 +1417,66 @@ fn number_from_any(input: &Value, keys: &[&str], default: f64) -> (f64, bool) {
         }
     }
     (default.max(0.0), false)
+}
+
+#[derive(Debug, Clone)]
+struct AttributionChannel {
+    name: String,
+    gmv: f64,
+    uv: f64,
+    conversion_rate: f64,
+    ad_spend: f64,
+}
+
+fn normalized_rate(value: f64) -> f64 {
+    if value > 1.0 {
+        value / 100.0
+    } else {
+        value.max(0.0)
+    }
+}
+
+fn normalize(values: Vec<f64>) -> Vec<f64> {
+    let total = values.iter().sum::<f64>();
+    if total.abs() < 1e-9 {
+        let len = values.len().max(1);
+        vec![1.0 / len as f64; len]
+    } else {
+        values.into_iter().map(|value| value / total).collect()
+    }
+}
+
+fn one_hot(len: usize, active_idx: usize) -> Vec<f64> {
+    (0..len)
+        .map(|idx| if idx == active_idx { 1.0 } else { 0.0 })
+        .collect()
+}
+
+fn position_based_weights(len: usize) -> Vec<f64> {
+    match len {
+        0 => Vec::new(),
+        1 => vec![1.0],
+        2 => vec![0.5, 0.5],
+        3 => vec![0.4, 0.2, 0.4],
+        _ => {
+            let middle = 0.20 / (len - 2) as f64;
+            let mut weights = Vec::with_capacity(len);
+            weights.push(0.4);
+            weights.extend(std::iter::repeat_n(middle, len - 2));
+            weights.push(0.4);
+            normalize(weights)
+        }
+    }
+}
+
+fn attribution_models_to_show(model: &str) -> Vec<&'static str> {
+    match model {
+        "last_touch" => vec!["last_touch"],
+        "linear" => vec!["linear"],
+        "time_decay" => vec!["time_decay"],
+        "position" => vec!["position"],
+        _ => vec!["last_touch", "linear", "time_decay", "position"],
+    }
 }
 
 fn pct_delta(current: f64, previous: f64) -> f64 {
@@ -1667,6 +1902,72 @@ mod tests {
                 .get("渠道ROI排名")
                 .and_then(Value::as_array)
                 .is_some()
+        );
+    }
+
+    #[tokio::test]
+    async fn data_attribution_analysis_marks_success_for_user_channels() {
+        let outcome = execute(
+            "data_attribution_analysis",
+            json!({
+                "days": 30,
+                "channels": [
+                    {"name": "抖音", "gmv": 180000.0, "uv": 50000.0, "conversion_rate": 3.2, "ad_spend": 48000.0},
+                    {"name": "淘宝", "gmv": 120000.0, "uv": 42000.0, "conversion_rate": 2.4, "ad_spend": 22000.0},
+                    {"name": "小红书", "gmv": 70000.0, "uv": 38000.0, "conversion_rate": 1.6, "ad_spend": 18000.0}
+                ]
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("data attribution analysis should run");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(output.get("has_data").and_then(Value::as_bool), Some(true));
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("manual_input")
+        );
+        assert_eq!(
+            output.get("summary").and_then(Value::as_str).map(|value| {
+                value.contains("渠道归因分析完成") && value.contains("归因贡献最高")
+            }),
+            Some(true)
+        );
+        assert!(
+            output
+                .get("各渠道归因明细")
+                .and_then(Value::as_array)
+                .is_some()
+        );
+    }
+
+    #[tokio::test]
+    async fn data_attribution_analysis_defers_without_channels() {
+        let outcome = execute(
+            "data_attribution_analysis",
+            json!({}),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("data attribution analysis should return deferred output");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("deferred")
+        );
+        assert_eq!(
+            output.get("skill").and_then(Value::as_str),
+            Some("data_attribution_analysis")
+        );
+        assert_eq!(
+            output.get("summary").and_then(Value::as_str),
+            Some("渠道归因分析报告已生成")
         );
     }
 

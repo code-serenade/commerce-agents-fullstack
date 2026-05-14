@@ -233,30 +233,23 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-57: advanced accounting skill contract and artifact materialization
+Post 8-58: data_attribution_analysis native channel attribution skill
 ```
 
 Scope:
 
-- normalize advanced accounting and operating finance skill outputs to the new Agent skill contract
-- keep service/web-server artifact materialization driven by `status=success`, not frontend assumptions
-- add workspace artifact mappings for advanced accounting deliverables:
-  - break-even report
-  - compliance report
-  - P&L statement
-  - budget vs actual report
-  - GMV waterfall report
-  - scenario report
-  - cash-flow forecast report
-  - financial narrative report
-- keep official Taobao / Douyin / Qianchuan / ERP / accounting system direct platform integrations deferred
+- migrate old product `DataAttributionAnalysis` into a new-product Rust native Agent skill
+- compute last-touch, linear, time-decay, and position-based channel attribution from explicit `channels` input
+- return `deferred` when channel data is missing, single-channel, or zero-GMV
+- materialize successful output as `data_attribution_report`
+- keep official Taobao / Douyin / Qianchuan / data warehouse direct platform integrations deferred
 
 Reason:
 
 - skill migration remains the first backend priority
-- advanced financial analysis is part of the old product skill value, and new frontend work should consume durable backend artifacts
-- this slice prevents frontend from inventing report state for finance outputs
-- it keeps Kimi-style frontend process transparency grounded in real skill status, artifact creation, and disclosed data readiness
+- channel attribution is a core old-product data analyst capability and a dependency for comprehensive diagnosis
+- new frontend work should consume real backend attribution artifacts instead of fake charts
+- this slice keeps Kimi-style process transparency grounded in real skill status, artifact creation, and explicit data readiness
 
 ## 10. Validation Standard
 

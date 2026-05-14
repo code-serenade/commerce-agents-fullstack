@@ -5159,6 +5159,12 @@ fn build_content_artifact_from_skill_output(
             "Data A/B test report",
             "data A/B test artifact generated",
         ),
+        "data_attribution_analysis" => (
+            "data",
+            "data_attribution_report",
+            "Data attribution report",
+            "data attribution analysis artifact generated",
+        ),
         "data_multi_period_trend" => (
             "data",
             "data_multi_period_trend_report",
@@ -6870,6 +6876,30 @@ mod tests {
                 .content
                 .contains("\"adapter_status\": \"manual_input\"")
         );
+
+        let attribution_output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "data_readiness": "user_provided",
+            "summary": "渠道归因分析完成，抖音归因贡献最高",
+            "各渠道归因明细": [
+                {"渠道": "抖音", "实际GMV": 120000.0},
+                {"渠道": "淘宝", "实际GMV": 80000.0}
+            ]
+        });
+
+        let attribution_draft = build_content_artifact_from_skill_output(
+            "data_attribution_analysis",
+            &attribution_output,
+        )
+        .expect("data attribution output should be materializable");
+
+        assert_eq!(attribution_draft.content_category, "data");
+        assert_eq!(attribution_draft.artifact_type, "data_attribution_report");
+        assert_eq!(attribution_draft.title, "Data attribution report");
+        assert_eq!(attribution_draft.file_name, "data_attribution_report.md");
+        assert!(attribution_draft.preview.contains("渠道归因分析完成"));
     }
 
     #[test]
