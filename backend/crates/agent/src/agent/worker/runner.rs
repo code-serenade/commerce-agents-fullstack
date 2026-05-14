@@ -770,10 +770,7 @@ fn autosuggest_data(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     ) {
         return Some(autosuggest_request(
             "data_dashboard",
-            serde_json::json!({
-                "days": infer_period_days(text),
-                "platform": infer_platform(text),
-            }),
+            serde_json::Value::Object(infer_dashboard_input(text, task)),
             "根据数据看板/经营概览意图自动补偿数据看板 skill",
         ));
     }
@@ -2158,6 +2155,26 @@ fn infer_store_metrics_input(text: &str) -> serde_json::Map<String, serde_json::
         &["毛利额", "毛利", "gross_profit", "profit"],
     );
 
+    input
+}
+
+fn infer_dashboard_input(text: &str, task: &Task) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = infer_store_metrics_input(text);
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
+    insert_metric_value(
+        &mut input,
+        "target_gmv",
+        text,
+        &[
+            "目标GMV",
+            "目标销售额",
+            "目标成交额",
+            "target_gmv",
+            "goal_gmv",
+        ],
+    );
     input
 }
 
@@ -5333,6 +5350,46 @@ mod tests {
     }
 
     #[test]
+    fn selected_product_context_feeds_dashboard_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task_with_metadata(
+                "打开这个商品经营看板：GMV18万，订单1800，UV3.6万，广告费3.6万，目标GMV20万",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_dashboard");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["gmv"], 180000.0);
+        assert_eq!(requests[0].input["orders"], 1800.0);
+        assert_eq!(requests[0].input["visitors"], 36000.0);
+        assert_eq!(requests[0].input["ad_spend"], 36000.0);
+        assert_eq!(requests[0].input["target_gmv"], 200000.0);
+    }
+
+    #[test]
+    fn dashboard_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("打开经营看板：GMV18万，订单1800，UV3.6万，广告费3.6万"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "data_dashboard");
+        assert!(requests[0].input.get("product_ref").is_none());
+        assert_eq!(requests[0].input["gmv"], 180000.0);
+        assert_eq!(requests[0].input["orders"], 1800.0);
+    }
+
+    #[test]
     fn autosuggests_channel_roi_with_explicit_channel_metrics() {
         let requests = autosuggest_skill_requests(
             &role("data"),
@@ -6122,6 +6179,7 @@ mod tests {
 
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].skill_id, "data_dashboard");
+        assert_eq!(requests[0].input["gmv"], 180000.0);
     }
 
     #[test]

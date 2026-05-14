@@ -214,6 +214,12 @@ pub fn specs() -> Vec<SkillSpec> {
             "生成店铺核心经营指标看板，支持手工指标输入和未接数据源时的明确降级说明",
             SkillPriority::High,
             vec![
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用 product:{uuid}；仅用于标识本轮显式选品",
+                    false,
+                ),
                 field("days", "integer", "统计天数，默认30", false),
                 field("platform", "string", "平台筛选，留空查全部", false),
                 field("gmv", "number", "本期GMV", false),
@@ -1401,6 +1407,7 @@ fn trend_forecast(input: &Value) -> Value {
 }
 
 fn data_dashboard(input: &Value) -> Value {
+    let product_ref = s(input, "product_ref", "");
     let days = i(input, "days", 30).clamp(1, 365);
     let platform = s(input, "platform", "all");
     let (gmv, has_gmv) = number_from_any(input, &["gmv", "revenue"], 128_000.0);
@@ -1491,6 +1498,7 @@ fn data_dashboard(input: &Value) -> Value {
         "data_readiness": data_readiness,
         "adapter_status": if has_user_metrics { "manual_input" } else { "store_metrics_required" },
         "数据来源": if has_user_metrics { "用户提供指标" } else { "未接入 store_metrics adapter；以下为样例基线，仅用于展示看板结构和诊断口径" },
+        "商品引用": empty_string_as_null(product_ref),
         "周期": format!("{days}天"),
         "平台": platform,
         "核心指标": [
@@ -3708,6 +3716,7 @@ mod tests {
     #[test]
     fn data_dashboard_builds_from_user_metrics() {
         let output = data_dashboard(&json!({
+            "product_ref": "product:11111111-1111-1111-1111-111111111111",
             "days": 14,
             "platform": "douyin",
             "gmv": 180000.0,
@@ -3731,6 +3740,10 @@ mod tests {
         assert_eq!(
             output.get("adapter_status").and_then(Value::as_str),
             Some("manual_input")
+        );
+        assert_eq!(
+            output.get("商品引用"),
+            Some(&json!("product:11111111-1111-1111-1111-111111111111"))
         );
         assert!(output.get("核心指标").and_then(Value::as_array).is_some());
         assert!(output.pointer("/经营健康度/总分").is_some());

@@ -236,24 +236,24 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-90: data A/B test product_ref contract
+Post 8-91: data dashboard product_ref contract
 ```
 
 Scope:
 
-- add `product_ref=product:{uuid}` to `data_ab_test_analyzer`
-- echo the selected product reference in successful A/B test output
-- route A/B / AB test / control group / test group / rollout phrasing to structured `data_ab_test_analyzer` input
-- parse explicit control/test visitor and conversion metrics from the current text into skill input
+- add `product_ref=product:{uuid}` to `data_dashboard`
+- echo the selected product reference in successful dashboard output
+- route dashboard / overview / core metrics / store dashboard phrasing to structured `data_dashboard` input
+- parse explicit GMV, orders, UV, clicks, ad spend, refund, gross profit, and target GMV metrics from the current text into skill input
 - let data worker autosuggest pass selected product refs only from explicit `context.selected_summary`
-- keep missing A/B sample metrics as real validation gaps rather than fake experiment platform data
+- keep missing dashboard metrics as explicit `store_metrics_required` / sample-only state rather than fake platform data
 
 Reason:
 
-- A/B testing is a high-frequency data skill for product detail pages, creatives, titles, and rollout decisions
-- selected-product and unspecified-product experiment analysis must stay separate
-- frontend artifacts and process panels need a stable product reference for product-bound A/B reports
-- real experiment platforms, Taobao, Douyin, Qianchuan, CRM, DMP, and audience packets remain adapter/service/search concerns and must not be faked
+- dashboard / store overview is a high-frequency entry point for product demos and daily operations
+- selected-product and unspecified store dashboard analysis must stay separate
+- frontend artifacts and process panels need a stable product reference for product-bound dashboard reports
+- real Taobao, Douyin, Qianchuan, CRM, ERP, WMS, and store metrics remain adapter/service/search concerns and must not be faked
 
 ## 10. Validation Standard
 
