@@ -100,6 +100,7 @@ The following major foundations are already in place:
 - search evidence artifact persistence and reusable evidence summary contract
 - agent skill run persistence and query API
 - native coordination skill chain planning with structured phases, dependencies, adapter hints, approval hints, and availability flags
+- native `query_store_metrics` can now summarize explicit user-provided store metrics and clearly defer when store metrics are missing
 - multiple native skill migrations across ops / data / service / creative / web / design / accounting
 - creative and design skill outputs can now materialize into reusable workspace artifacts when the skill result is successful
 - data dashboard is now a native deterministic skill with explicit manual-input vs store-metrics-required readiness
@@ -234,22 +235,22 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-61: coordination skill chain planner native hardening
+Post 8-62: query store metrics native explicit input
 ```
 
 Scope:
 
-- harden the old product `coordination_skill_chain_planner` capability inside the new Rust Agent framework
-- return structured skill chain steps for phases, owner roles, execution mode, risk, prerequisites, availability, adapter hints, and approval hints
-- normalize old product `data_query_store_metrics` references to the new product `query_store_metrics` skill ID
-- keep `coordination_external_agent_call` and platform write actions behind approval/safety boundaries
-- avoid fake execution: this slice plans the chain only and does not run external Agent calls or official platform writes
+- harden the old product `query_store_metrics` capability inside the new Rust Agent framework
+- return structured store metrics when GMV, orders, UV, clicks, ad spend, refund, gross profit, or platform rows are explicitly provided
+- return `store_metrics_required` deferred output when no real metrics are available
+- keep official Taobao / Douyin / Qianchuan adapters out of this slice
+- avoid fake execution: this slice does not read platform backends and does not claim live data
 
 Reason:
 
-- old product skill chain planning existed as an important coordination ability, but the new Rust output was too static for real process panels
-- Kimi-style workbench process cards should consume backend-provided stages, dependencies, adapter/approval state, and availability instead of guessing in the frontend
-- the change improves backend coordination realism without introducing frontend fake flows or unsafe external execution
+- many data / ops / accounting chains depend on `query_store_metrics` as their first data-loading step
+- the new product previously exposed only a fixed deferred placeholder, so downstream chains could not use explicit user-provided store metrics
+- the change makes the backend more usable immediately while still preserving truthful adapter boundaries
 
 ## 10. Validation Standard
 

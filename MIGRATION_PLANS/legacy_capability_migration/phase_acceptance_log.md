@@ -2,6 +2,28 @@
 
 # 阶段验收记录
 
+## Post 8-62：店铺指标查询 skill native 显式输入补强
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent：`query_store_metrics` 不再固定返回 deferred。
+- [x] Agent：有显式指标时返回 `status=success`、`adapter_status=manual_input`、`data_readiness=explicit_metrics`。
+- [x] Agent：输出 `totals`、`derived_metrics`、`week_over_week`、`anomalies` 和 `platforms`。
+- [x] Agent：无显式指标时返回 `status=deferred`、`adapter_status=store_metrics_required`。
+- [x] Agent：多平台输入支持按 `platform` 过滤。
+- [x] API：`API_DOCS/sse.md` 已同步该 skill 的 `skill_result.output` 契约。
+- [x] 前端：本轮不新增假入口；后续过程面板应按 `adapter_status/data_readiness` 展示真实状态。
+- [x] 验证：已补显式指标、缺指标和多平台过滤单测。
+
+当前说明：
+
+- 本阶段解决的是“旧产品店铺指标查询能力在新产品里只有占位”的问题。
+- 本阶段只消费本轮明确提供的指标，不读取数据库，不调用官方平台 API。
+- 后续真实 store_metrics 读取必须通过已鉴权 service/adapter 注入 Agent。
+
 ## Post 8-61：技能链规划 skill native 补强
 
 状态：done

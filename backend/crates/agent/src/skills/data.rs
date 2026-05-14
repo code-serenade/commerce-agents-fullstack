@@ -16,7 +16,7 @@ pub fn specs() -> Vec<SkillSpec> {
         spec(
             "query_store_metrics",
             "查询店铺指标",
-            "查询店铺经营指标，Rust迁移阶段返回确定性延迟计划",
+            "查询店铺经营指标；支持本轮显式指标输入，未接数据源时明确降级",
             SkillPriority::High,
             vec![
                 field("days", "integer", "查询最近N天，默认30", false),
@@ -32,8 +32,29 @@ pub fn specs() -> Vec<SkillSpec> {
                     "是否同时检测异常，默认true",
                     false,
                 ),
+                field("gmv", "number", "本期GMV", false),
+                field("previous_gmv", "number", "上期GMV，用于环比", false),
+                field("orders", "integer", "本期订单数", false),
+                field("previous_orders", "integer", "上期订单数，用于环比", false),
+                field("visitors", "integer", "本期访客数UV", false),
+                field(
+                    "previous_visitors",
+                    "integer",
+                    "上期访客数UV，用于环比",
+                    false,
+                ),
+                field("clicks", "integer", "本期点击数", false),
+                field("ad_spend", "number", "广告花费", false),
+                field("refund_amount", "number", "退款金额", false),
+                field("gross_profit", "number", "毛利额", false),
+                field(
+                    "platforms",
+                    "array<object>",
+                    "平台指标列表：{platform,gmv,orders,uv,clicks}",
+                    false,
+                ),
             ],
-            &["deferred"],
+            &["deterministic"],
         ),
         spec(
             "data_funnel_analysis",
@@ -402,11 +423,7 @@ impl Skill for DataSkill {
 pub async fn execute(skill_name: &str, input: Value, _context: &SkillContext) -> SkillResult {
     ensure_object(&input)?;
     let mut output = match skill_name {
-        "query_store_metrics" => deferred(
-            skill_name,
-            "需要接入 store_metrics 读取真实店铺指标",
-            &input,
-        ),
+        "query_store_metrics" => query_store_metrics(&input),
         "data_funnel_analysis" => funnel_analysis(&input),
         "data_anomaly_diagnosis" => anomaly_diagnosis(&input),
         "data_trend_forecast" => trend_forecast(&input),
@@ -484,6 +501,134 @@ fn deferred(skill: &str, reason: &str, input: &Value) -> Value {
         "received_params": input,
         "side_effects": "none",
         "expected_outputs": ["结构化指标", "诊断摘要", "可执行建议"]
+    })
+}
+
+fn query_store_metrics(input: &Value) -> Value {
+    let days = i(input, "days", 30).clamp(1, 365);
+    let platform_filter = {
+        let value = s(input, "platform", "all");
+        if value.trim().is_empty() {
+            "all".to_owned()
+        } else {
+            value
+        }
+    };
+    let include_anomalies = input
+        .get("include_anomalies")
+        .and_then(Value::as_bool)
+        .unwrap_or(true);
+    let metric_keys = [
+        "gmv",
+        "revenue",
+        "previous_gmv",
+        "last_gmv",
+        "orders",
+        "order_count",
+        "previous_orders",
+        "last_orders",
+        "visitors",
+        "uv",
+        "previous_visitors",
+        "last_visitors",
+        "clicks",
+        "click_count",
+        "ad_spend",
+        "ad_cost",
+        "refund_amount",
+        "refunds",
+        "gross_profit",
+        "profit",
+    ];
+    let platform_rows = store_metric_platform_rows(input, &platform_filter);
+    let has_explicit_metrics = has_any_input(input, &metric_keys) || !platform_rows.is_empty();
+
+    if !has_explicit_metrics {
+        return json!({
+            "status": "deferred",
+            "skill": "query_store_metrics",
+            "has_data": false,
+            "adapter_status": "store_metrics_required",
+            "data_readiness": "missing_user_input",
+            "deferred_reason": "当前没有真实店铺指标输入，也没有 store_metrics adapter；不会伪造平台实时数据",
+            "side_effects": "none",
+            "received_params": input,
+            "expected_inputs": [
+                "gmv/revenue",
+                "orders/order_count",
+                "visitors/uv",
+                "clicks/click_count",
+                "ad_spend/ad_cost",
+                "refund_amount/refunds",
+                "gross_profit/profit",
+                "platforms[]"
+            ],
+            "next_actions": [
+                "在本轮输入中提供店铺经营指标",
+                "后续通过 service 层接入已鉴权的 store_metrics adapter",
+                "前端展示为缺数据状态，不要当作平台实时读取结果"
+            ],
+            "summary": "店铺指标查询等待真实数据输入"
+        });
+    }
+
+    let totals = store_metric_totals(input, &platform_rows);
+    let previous = store_metric_previous(input);
+    let gmv = value_pointer_number(&totals, "/gmv").unwrap_or_default();
+    let orders = value_pointer_number(&totals, "/orders").unwrap_or_default();
+    let visitors = value_pointer_number(&totals, "/uv").unwrap_or_default();
+    let clicks = value_pointer_number(&totals, "/clicks").unwrap_or_default();
+    let ad_spend = value_pointer_number(&totals, "/ad_spend").unwrap_or_default();
+    let refund_amount = value_pointer_number(&totals, "/refund_amount").unwrap_or_default();
+    let gross_profit = value_pointer_number(&totals, "/gross_profit").unwrap_or_default();
+
+    let conversion_rate = pct(orders, visitors.max(1.0));
+    let ctr = pct(clicks, visitors.max(1.0));
+    let aov = if orders > 0.0 { gmv / orders } else { 0.0 };
+    let ad_roi = if ad_spend > 0.0 {
+        Some(round2(gmv / ad_spend))
+    } else {
+        None
+    };
+    let refund_rate = pct(refund_amount, gmv.max(1.0));
+    let gross_margin = pct(gross_profit, gmv.max(1.0));
+    let week_over_week = store_metric_week_over_week(gmv, orders, visitors, &previous);
+    let anomalies = if include_anomalies {
+        store_metric_anomalies(gmv, conversion_rate, ad_roi, refund_rate, gross_margin)
+    } else {
+        Vec::new()
+    };
+    let anomaly_count = anomalies.len();
+
+    json!({
+        "status": "success",
+        "skill": "query_store_metrics",
+        "has_data": true,
+        "adapter_status": "manual_input",
+        "data_readiness": "explicit_metrics",
+        "数据来源": "用户提供指标",
+        "days": days,
+        "date_range": {
+            "mode": "relative",
+            "days": days
+        },
+        "platform": platform_filter,
+        "platforms": platform_rows,
+        "totals": totals,
+        "derived_metrics": {
+            "conversion_rate": percent(conversion_rate, 2),
+            "ctr": percent(ctr, 2),
+            "aov": round2(aov),
+            "ad_roi": ad_roi,
+            "refund_rate": percent(refund_rate, 2),
+            "gross_margin": percent(gross_margin, 2)
+        },
+        "week_over_week": week_over_week,
+        "anomalies": anomalies,
+        "anomaly_count": anomaly_count,
+        "summary": format!("店铺指标已从本轮显式输入汇总，GMV={}，订单={}", round2(gmv), round2(orders)),
+        "side_effects": "none",
+        "说明": "本结果只基于本轮明确提供的指标，不代表已读取淘宝、抖音或其它平台实时数据。"
     })
 }
 
@@ -578,6 +723,7 @@ fn data_readiness(skill_name: &str, input: &Value) -> &'static str {
 
 fn data_summary(skill_name: &str) -> &'static str {
     match skill_name {
+        "query_store_metrics" => "店铺指标查询结果已生成",
         "data_anomaly_diagnosis" => "异常诊断报告已生成",
         "data_trend_forecast" => "趋势预测报告已生成",
         "data_customer_segmentation" => "客户分层报告已生成",
@@ -860,6 +1006,205 @@ fn data_dashboard(input: &Value) -> Value {
         "下一步动作": dashboard_actions(gmv_growth, conversion_rate, ad_roi, refund_rate, gross_margin),
         "说明": if has_user_metrics { "本看板基于本次 skill 入参计算，不代表外部平台实时拉取结果。" } else { "当前没有真实店铺指标入参，也没有 store_metrics adapter；前端应展示为缺数据/样例态，不能当作平台实时数据。" }
     })
+}
+
+fn store_metric_platform_rows(input: &Value, platform_filter: &str) -> Vec<Value> {
+    input
+        .get("platforms")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter(|item| {
+                    platform_filter == "all"
+                        || platform_filter.trim().is_empty()
+                        || value_string(item, "platform", "")
+                            .eq_ignore_ascii_case(platform_filter.trim())
+                })
+                .filter_map(|item| {
+                    let platform = value_string(item, "platform", "unknown");
+                    let (gmv, has_gmv) = number_from_any(item, &["gmv", "revenue"], 0.0);
+                    let (orders, has_orders) =
+                        number_from_any(item, &["orders", "order_count"], 0.0);
+                    let (uv, has_uv) = number_from_any(item, &["visitors", "uv"], 0.0);
+                    let (clicks, has_clicks) =
+                        number_from_any(item, &["clicks", "click_count"], 0.0);
+                    let (ad_spend, has_ad_spend) =
+                        number_from_any(item, &["ad_spend", "ad_cost"], 0.0);
+                    let (refund_amount, has_refund) =
+                        number_from_any(item, &["refund_amount", "refunds"], 0.0);
+                    let (gross_profit, has_profit) =
+                        number_from_any(item, &["gross_profit", "profit"], 0.0);
+
+                    if [
+                        has_gmv,
+                        has_orders,
+                        has_uv,
+                        has_clicks,
+                        has_ad_spend,
+                        has_refund,
+                        has_profit,
+                    ]
+                    .into_iter()
+                    .any(|value| value)
+                    {
+                        Some(json!({
+                            "platform": platform,
+                            "gmv": round2(gmv),
+                            "orders": round2(orders),
+                            "uv": round2(uv),
+                            "clicks": round2(clicks),
+                            "ad_spend": round2(ad_spend),
+                            "refund_amount": round2(refund_amount),
+                            "gross_profit": round2(gross_profit),
+                            "conversion_rate": percent(pct(orders, uv.max(1.0)), 2)
+                        }))
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default()
+}
+
+fn store_metric_totals(input: &Value, platform_rows: &[Value]) -> Value {
+    if !platform_rows.is_empty() {
+        let sum = |key: &str| {
+            platform_rows
+                .iter()
+                .filter_map(|row| value_pointer_number(row, &format!("/{key}")))
+                .sum::<f64>()
+        };
+        return json!({
+            "gmv": round2(sum("gmv")),
+            "orders": round2(sum("orders")),
+            "uv": round2(sum("uv")),
+            "clicks": round2(sum("clicks")),
+            "ad_spend": round2(sum("ad_spend")),
+            "refund_amount": round2(sum("refund_amount")),
+            "gross_profit": round2(sum("gross_profit"))
+        });
+    }
+
+    let (gmv, _) = number_from_any(input, &["gmv", "revenue"], 0.0);
+    let (orders, _) = number_from_any(input, &["orders", "order_count"], 0.0);
+    let (uv, _) = number_from_any(input, &["visitors", "uv"], 0.0);
+    let (clicks, _) = number_from_any(input, &["clicks", "click_count"], 0.0);
+    let (ad_spend, _) = number_from_any(input, &["ad_spend", "ad_cost"], 0.0);
+    let (refund_amount, _) = number_from_any(input, &["refund_amount", "refunds"], 0.0);
+    let (gross_profit, _) = number_from_any(input, &["gross_profit", "profit"], 0.0);
+
+    json!({
+        "gmv": round2(gmv),
+        "orders": round2(orders),
+        "uv": round2(uv),
+        "clicks": round2(clicks),
+        "ad_spend": round2(ad_spend),
+        "refund_amount": round2(refund_amount),
+        "gross_profit": round2(gross_profit)
+    })
+}
+
+fn store_metric_previous(input: &Value) -> Value {
+    let (previous_gmv, has_previous_gmv) =
+        number_from_any(input, &["previous_gmv", "last_gmv"], 0.0);
+    let (previous_orders, has_previous_orders) =
+        number_from_any(input, &["previous_orders", "last_orders"], 0.0);
+    let (previous_visitors, has_previous_visitors) =
+        number_from_any(input, &["previous_visitors", "last_visitors"], 0.0);
+
+    json!({
+        "gmv": if has_previous_gmv { json!(round2(previous_gmv)) } else { Value::Null },
+        "orders": if has_previous_orders { json!(round2(previous_orders)) } else { Value::Null },
+        "uv": if has_previous_visitors { json!(round2(previous_visitors)) } else { Value::Null }
+    })
+}
+
+fn store_metric_week_over_week(gmv: f64, orders: f64, visitors: f64, previous: &Value) -> Value {
+    let mut entries = Map::new();
+    if let Some(previous_gmv) = value_pointer_number(previous, "/gmv").filter(|value| *value > 0.0)
+    {
+        entries.insert(
+            "gmv".to_owned(),
+            json!({
+                "current": round2(gmv),
+                "previous": round2(previous_gmv),
+                "change_rate": signed_percent(pct_delta(gmv, previous_gmv), 2)
+            }),
+        );
+    }
+    if let Some(previous_orders) =
+        value_pointer_number(previous, "/orders").filter(|value| *value > 0.0)
+    {
+        entries.insert(
+            "orders".to_owned(),
+            json!({
+                "current": round2(orders),
+                "previous": round2(previous_orders),
+                "change_rate": signed_percent(pct_delta(orders, previous_orders), 2)
+            }),
+        );
+    }
+    if let Some(previous_visitors) =
+        value_pointer_number(previous, "/uv").filter(|value| *value > 0.0)
+    {
+        entries.insert(
+            "uv".to_owned(),
+            json!({
+                "current": round2(visitors),
+                "previous": round2(previous_visitors),
+                "change_rate": signed_percent(pct_delta(visitors, previous_visitors), 2)
+            }),
+        );
+    }
+    Value::Object(entries)
+}
+
+fn store_metric_anomalies(
+    gmv: f64,
+    conversion_rate: f64,
+    ad_roi: Option<f64>,
+    refund_rate: f64,
+    gross_margin: f64,
+) -> Vec<Value> {
+    let mut anomalies = Vec::new();
+    if gmv <= 0.0 {
+        anomalies.push(json!({
+            "metric": "gmv",
+            "level": "warning",
+            "message": "GMV为0或未提供，后续收入分析可信度不足"
+        }));
+    }
+    if conversion_rate > 0.0 && conversion_rate < 1.0 {
+        anomalies.push(json!({
+            "metric": "conversion_rate",
+            "level": "warning",
+            "message": "转化率低于1%，建议优先复核商品详情页、价格和客服承接"
+        }));
+    }
+    if matches!(ad_roi, Some(value) if value > 0.0 && value < 1.5) {
+        anomalies.push(json!({
+            "metric": "ad_roi",
+            "level": "warning",
+            "message": "广告ROI低于1.5，建议检查低效计划和素材疲劳"
+        }));
+    }
+    if refund_rate > 8.0 {
+        anomalies.push(json!({
+            "metric": "refund_rate",
+            "level": "warning",
+            "message": "退款率高于8%，建议拆解售后原因"
+        }));
+    }
+    if gross_margin > 0.0 && gross_margin < 15.0 {
+        anomalies.push(json!({
+            "metric": "gross_margin",
+            "level": "warning",
+            "message": "毛利率低于15%，需复核成本、优惠和平台扣点"
+        }));
+    }
+    anomalies
 }
 
 fn customer_segmentation(input: &Value) -> Value {
@@ -2410,6 +2755,111 @@ fn round4(value: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn query_store_metrics_marks_success_for_explicit_metrics() {
+        let outcome = execute(
+            "query_store_metrics",
+            json!({
+                "days": 14,
+                "platform": "douyin",
+                "gmv": 180000.0,
+                "previous_gmv": 150000.0,
+                "orders": 1800,
+                "previous_orders": 1500,
+                "visitors": 36000,
+                "previous_visitors": 33000,
+                "clicks": 7200,
+                "ad_spend": 36000.0,
+                "refund_amount": 5400.0,
+                "gross_profit": 54000.0
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("query_store_metrics should run from explicit metrics");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(output.get("has_data").and_then(Value::as_bool), Some(true));
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("manual_input")
+        );
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("explicit_metrics")
+        );
+        assert_eq!(output.pointer("/totals/gmv"), Some(&json!(180000.0)));
+        assert_eq!(
+            output.pointer("/derived_metrics/conversion_rate"),
+            Some(&json!("5.00%"))
+        );
+        assert!(output.pointer("/week_over_week/gmv/change_rate").is_some());
+    }
+
+    #[tokio::test]
+    async fn query_store_metrics_defers_without_metrics() {
+        let outcome = execute(
+            "query_store_metrics",
+            json!({"days": 30}),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("query_store_metrics should return structured deferred");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("deferred")
+        );
+        assert_eq!(output.get("has_data").and_then(Value::as_bool), Some(false));
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("store_metrics_required")
+        );
+        assert!(
+            output
+                .get("deferred_reason")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .contains("不会伪造平台实时数据")
+        );
+    }
+
+    #[tokio::test]
+    async fn query_store_metrics_filters_platform_items() {
+        let outcome = execute(
+            "query_store_metrics",
+            json!({
+                "platform": "douyin",
+                "platforms": [
+                    {"platform": "douyin", "gmv": 120000.0, "orders": 1000, "uv": 20000, "clicks": 5000},
+                    {"platform": "taobao", "gmv": 80000.0, "orders": 700, "uv": 15000, "clicks": 2600}
+                ]
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("query_store_metrics should filter platform rows");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(output.pointer("/totals/gmv"), Some(&json!(120000.0)));
+        assert_eq!(
+            output
+                .get("platforms")
+                .and_then(Value::as_array)
+                .map(Vec::len),
+            Some(1)
+        );
+    }
 
     #[test]
     fn data_dashboard_builds_from_user_metrics() {

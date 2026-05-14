@@ -1,5 +1,49 @@
 # 迁移开发记录
 
+## Post 8-62：店铺指标查询 skill native 显式输入补强
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 62 个补强项：`Post 8-62`。
+
+本次目标：
+
+- 继续迁移旧产品 data skill 生态。
+- 把 `query_store_metrics` 从固定 deferred 占位补强为新产品 Rust Agent 内的显式指标查询/汇总能力。
+- 不接淘宝、抖音、千川官方系统，不伪造平台实时数据。
+
+本次修改：
+
+- 后端 agent：`query_store_metrics` spec 改为 deterministic native skill，并补充 GMV、订单、UV、点击、广告费、退款、毛利和多平台输入字段。
+- 后端 agent：有本轮显式指标时返回 `status=success`、`adapter_status=manual_input`、`data_readiness=explicit_metrics`。
+- 后端 agent：输出 `totals`、`derived_metrics`、`week_over_week`、`anomalies`、`platforms` 和明确数据来源。
+- 后端 agent：没有显式指标时返回 `status=deferred`、`adapter_status=store_metrics_required`，并说明不会伪造平台实时数据。
+- 后端 agent：多平台指标支持按 `platform` 过滤和汇总。
+- API/SSE：同步该 skill 的 `skill_result.output` 语义。
+- 迁移文档：同步迁移矩阵、阶段验收记录、总计划和本轮归档文件。
+
+用户可感知变化：
+
+- 如果用户提供“GMV、订单、UV、广告费”等真实指标，Agent 可以先生成结构化店铺指标摘要，后续运营、数据、财务分析链路可以继续使用。
+- 如果没有指标，系统会明确告诉用户缺少数据或 adapter，不会给出假平台大盘。
+- 前端后续可以在过程面板中区分“本轮显式输入已读取”和“等待 store_metrics adapter”。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/query_store_metrics_native_post_8_62.md`
+- [x] 迁移矩阵：`MIGRATION_PLANS/legacy_capability_migration/skill_migration_matrix.md`
+- [x] API 文档：`API_DOCS/sse.md`
+- [x] Agent 单测：显式指标成功、无指标 deferred、多平台过滤
+
+后续缺口：
+
+- service 层真实 `store_metrics` adapter 仍待实现。
+- 官方平台数据 API 仍待后续 adapter 决策。
+- 该 skill 当前不直接创建工作区 artifact，主要作为数据加载/过程 skill 服务后续链路。
+
 ## Post 8-61：技能链规划 skill native 补强
 
 状态：done
