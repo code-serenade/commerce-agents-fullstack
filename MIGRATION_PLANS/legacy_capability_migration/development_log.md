@@ -1,5 +1,47 @@
 # 迁移开发记录
 
+## Post 8-131：Agent Chat 移动端真实导航与滚动治理
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 131 个补强项：`Post 8-131`。
+
+本次目标：
+
+- 把 Agent Chat 已有的真实历史会话、功能导航和治理入口接入移动端底部导航。
+- 让移动端默认收起左侧大导航，通过底部入口展开，不挤压问答正文和输入区。
+- 给移动端二级弹出导航增加高度限制和滚动，避免历史 / 功能入口过多时遮挡页面。
+
+涉及范围：
+
+- Agent Chat 壳层：移动端新增新建会话、最近历史、功能导航、管理与复盘四个真实入口。
+- 历史会话：最近历史来自真实 `chat.conversations`，最多展示最近 5 个，选择时调用真实 `chat.selectConversation`。
+- app-kit 框架件：`MobileBottomNav` 二级弹层支持内部滚动。
+- 架构边界：继续使用同事给的 `SidebarShell` / `MobileBottomNav` 框架，不新增第二套导航体系。
+
+用户可感知变化：
+
+- 手机或窄屏上也能直接进入最近历史和功能导航，不再只依赖桌面左侧栏。
+- 历史或功能入口较多时，弹层内部滚动，不会大面积挡住主问答。
+- 桌面端左侧历史 / 功能导航仍可折叠，移动端默认以底部导航承接，界面更清爽。
+
+验证：
+
+- [x] `pnpm -C packages/app-kit typecheck`
+- [x] `pnpm -C packages/app-kit rules`
+- [x] `pnpm -C apps/web lint`
+- [x] `pnpm -C apps/web test`
+- [x] `pnpm -C apps/web build`
+- [x] `pnpm -C apps/web rules`
+- [x] `pnpm rules`
+
+归档：
+
+- [x] `MIGRATION_PLANS/legacy_capability_migration/post_phase_8_131_frontend_mobile_navigation_scroll.md`
+
 ## Post 8-130：问答上下文引用明细
 
 状态：done

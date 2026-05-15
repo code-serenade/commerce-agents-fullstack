@@ -27,6 +27,7 @@ import { useNavigate } from "react-router"
 import {
   CopyableText,
   LanguageSwitch,
+  type MobileBottomNavItem,
   SidebarShell,
   type SidebarShellSection,
   ThemeToggle,
@@ -334,6 +335,134 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       ],
     },
   ]
+  const mobileConversationItems = chat.conversations.slice(0, 5).map(
+    (conversation) => ({
+      key: conversation.id,
+      label: conversation.title,
+      href: "/commerce",
+      active: conversation.id === chat.conversationId,
+      onSelect: () => {
+        void chat.selectConversation(conversation.id)
+        navigateTo("/commerce")
+      },
+    })
+  )
+  const mobileNavigationItems: MobileBottomNavItem[] = [
+    {
+      key: "new-chat",
+      icon: <Edit3 />,
+      label: t("agentChat.shell.navigation.newChat"),
+      active: !chat.conversationId && isRouteActive("/commerce"),
+      onSelect: () => {
+        chat.startNewConversation()
+        navigateTo("/commerce")
+      },
+    },
+    {
+      key: "recents",
+      icon: <MessageSquareText />,
+      label: t("agentChat.shell.sections.recents"),
+      active: chat.conversationId !== null,
+      subItems: mobileConversationItems.length
+        ? mobileConversationItems
+        : [
+            {
+              key: "empty-recents",
+              label: t("agentChat.sidebar.empty"),
+              href: "/commerce",
+              onSelect: () => navigateTo("/commerce"),
+            },
+          ],
+    },
+    {
+      key: "workspace",
+      icon: <Bot />,
+      label: t("agentChat.shell.sections.workspace"),
+      active:
+        isRouteActive("/agent-capabilities") ||
+        isRouteActive("/commerce") ||
+        isRouteActive("/products") ||
+        isRouteActive("/campaigns") ||
+        isRouteActive("/platform-connect"),
+      subItems: [
+        {
+          key: "capabilities",
+          label: t("agentChat.shell.navigation.capabilities"),
+          href: "/agent-capabilities",
+          active: isRouteActive("/agent-capabilities"),
+          onSelect: () => navigateTo("/agent-capabilities"),
+        },
+        {
+          key: "smart-ops",
+          label: t("agentChat.shell.navigation.smartOps"),
+          href: "/commerce",
+          active: isRouteActive("/commerce"),
+          onSelect: () => navigateTo("/commerce"),
+        },
+        {
+          key: "product-board",
+          label: t("agentChat.shell.navigation.productBoard"),
+          href: "/products",
+          active: isRouteActive("/products"),
+          onSelect: () => navigateTo("/products"),
+        },
+        {
+          key: "campaigns",
+          label: t("agentChat.shell.navigation.campaigns"),
+          href: "/campaigns",
+          active: isRouteActive("/campaigns"),
+          onSelect: () => navigateTo("/campaigns"),
+        },
+        {
+          key: "platform",
+          label: t("agentChat.shell.navigation.platform"),
+          href: "/platform-connect",
+          active: isRouteActive("/platform-connect"),
+          onSelect: () => navigateTo("/platform-connect"),
+        },
+      ],
+    },
+    {
+      key: "governance",
+      icon: <ClipboardCheck />,
+      label: t("agentChat.shell.sections.governance"),
+      active:
+        isRouteActive("/agent-output") ||
+        isRouteActive("/approvals") ||
+        isRouteActive("/workspaces") ||
+        isRouteActive("/packages"),
+      subItems: [
+        {
+          key: "deliverables",
+          label: t("agentChat.shell.navigation.deliverables"),
+          href: "/agent-output",
+          active: isRouteActive("/agent-output"),
+          onSelect: () => navigateTo("/agent-output"),
+        },
+        {
+          key: "approvals",
+          label: t("agentChat.shell.navigation.approvals"),
+          href: "/approvals",
+          active: isRouteActive("/approvals"),
+          onSelect: () => navigateTo("/approvals"),
+        },
+        {
+          key: "task-board",
+          label: t("agentChat.shell.navigation.taskBoard"),
+          href: "/workspaces",
+          active: isRouteActive("/workspaces"),
+          onSelect: () => navigateTo("/workspaces"),
+        },
+        {
+          key: "packages",
+          label: t("agentChat.shell.navigation.packages"),
+          href: "/packages",
+          active: isRouteActive("/packages"),
+          onSelect: () => navigateTo("/packages"),
+        },
+      ],
+    },
+  ]
 
   return (
     <>
@@ -349,6 +478,10 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
         brandTitle={t("agentChat.shell.brandTitle")}
         brandDescription={t("agentChat.shell.brandDescription")}
         sections={sections}
+        mobileNavigation={{
+          label: t("web.shell.navigation.mobileLabel"),
+          items: mobileNavigationItems,
+        }}
         showSidebarRail={false}
         header={
           <TopBar
