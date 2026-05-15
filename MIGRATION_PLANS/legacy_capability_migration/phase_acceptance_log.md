@@ -1,5 +1,21 @@
 # 阶段验收记录
 
+## Post 8-118：Web/SEO 增长搜索链路
+
+结论：通过。
+
+验收点：
+
+- Web 岗位 SEO 优化 / 关键词研究 / 页面转化分析在普通问法下仍只进入 native skill。
+- 用户明确要求最新 / 实时 / 联网 / 搜索 / 搜索算法 / 流量规则 / 关键词竞争 / 搜索量 / CPC / 行业转化率基准时，会返回两个 skill 请求。
+- 第一个请求保持 Web native skill，第二个请求为 `search_platform_policy`、`search_market_info` 或 `search_industry_benchmarks`。
+- SEO 算法 / 流量规则搜索链路使用 `search_platform_policy(policy_type=algorithm)`。
+- 关键词竞争 / 搜索量 / CPC 搜索链路使用 `search_market_info`。
+- 页面转化率基准搜索链路使用 `search_industry_benchmarks(metric=conversion)`。
+- 搜索步骤通过既有 `skill_requested` / `skill_result` 可见，失败或未配置时仍降级，不伪造来源。
+- 显式商品上下文只来自本轮选择，未选择商品时不写空引用、不注入默认商品。
+- Agent web / search 测试、设计文档、API 文档和迁移归档已同步。
+
 ## Post 8-117：创意内容趋势搜索链路
 
 结论：通过。

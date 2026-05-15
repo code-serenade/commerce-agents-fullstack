@@ -1,5 +1,39 @@
 # 迁移开发记录
 
+## Post 8-118：Web/SEO 增长搜索链路
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 118 个补强项：`Post 8-118`。
+
+本轮完成：
+
+- 参考旧产品 `D:\github\commerce-agents崩了之后重新做\server\src\skills\web.py` 中 Web/SEO 类 skill 内部 `_web_search` 逻辑。
+- 新产品不再把外部搜索隐藏在 Web native skill 内部，而是生成可见双 skill 链路。
+- Web 岗位普通 SEO、关键词研究、页面转化任务仍只触发 native skill。
+- 当用户明确要求最新 / 实时 / 联网 / 搜索 / 公开来源 / 搜索算法 / 流量规则 / 关键词竞争 / 搜索量 / CPC / 行业转化率基准时，会追加搜索 skill：
+  - `web_seo_optimize -> search_platform_policy(policy_type=algorithm)`
+  - `web_seo_optimize -> search_market_info`
+  - `web_keyword_research -> search_market_info`
+  - `web_page_conversion -> search_industry_benchmarks(metric=conversion)`
+- 显式商品上下文保持不变：只有本轮手动选中商品时才给 native/search skill 写入 `product_ref/product_name/product_category`。
+
+用户可感知变化：
+
+- 用户说“给商品做 SEO 优化，联网查最新搜索算法和流量规则”时，过程区能看到“SEO 优化”和“平台搜索算法/流量规则检索”两个真实步骤。
+- 用户说“做关键词研究，查最新搜索量、CPC 和竞争热度”时，过程区能看到“关键词矩阵”和“外部市场资料搜索”两个真实步骤。
+- 用户说“分析详情页转化率低，查最新行业转化率基准”时，过程区能看到“页面转化分析”和“行业基准搜索”两个真实步骤。
+- 如果外部搜索 provider 没接好，会清楚显示待接入或降级状态，不会伪造实时 SEO、关键词或行业基准来源。
+
+文档：
+
+- [x] 后端设计：`temp/DEVELOPMENT_DOCS/backend/web_seo_search_chain_post_8_118.md`
+- [x] API 文档：`API_DOCS/sse.md`
+- [x] 迁移归档：`MIGRATION_PLANS/legacy_capability_migration/post_phase_8_118_web_seo_search_chain.md`
+
 ## Post 8-117：创意内容趋势搜索链路
 
 状态：done

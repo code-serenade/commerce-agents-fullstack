@@ -158,11 +158,11 @@ Post 8-115 补充：客服岗位在 DSR、店铺评分、服务评分、NPS、�
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
 | --- | --- | --- | --- | --- |
-| `web_seo_optimize` | `web_seo_optimize` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native SEO 优化方案；Post 8-39：成功输出会沉淀为 `web_seo_plan` artifact；Post 8-71：支持 `product_ref=product:{uuid}`；实时搜索量仍待 adapter |
+| `web_seo_optimize` | `web_seo_optimize` | native_ready | `backend/crates/agent/src/skills/web.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | 已迁为 Rust native SEO 优化方案；Post 8-39：成功输出会沉淀为 `web_seo_plan` artifact；Post 8-71：支持 `product_ref=product:{uuid}`；Post 8-118：用户明确要求最新/实时/联网 SEO 算法、流量规则、关键词竞争或搜索量时，会追加可见 `search_platform_policy` 或 `search_market_info` |
 | `web_title_generator` | `web_title_generator` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native 多标题候选，并纳入自动补偿；Post 8-39：成功输出会沉淀为 `web_title_candidates` artifact；Post 8-70：显式选品时自动补偿 input 使用选中商品和平台；Post 8-71：支持 `product_ref=product:{uuid}` |
-| `web_page_conversion` | `web_page_conversion` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已纳入岗位自动补偿规则；Post 8-39：成功输出会沉淀为 `web_conversion_plan` artifact，使用基准默认值时明示 `calculated_from_defaults` |
+| `web_page_conversion` | `web_page_conversion` | native_ready | `backend/crates/agent/src/skills/web.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | 已纳入岗位自动补偿规则；Post 8-39：成功输出会沉淀为 `web_conversion_plan` artifact，使用基准默认值时明示 `calculated_from_defaults`；Post 8-118：用户明确要求行业转化率基准/最新 CVR benchmark 时，会追加可见 `search_industry_benchmarks(metric=conversion)` |
 | `web_store_design` | `web_store_design` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native 店铺装修方案；Post 8-39：成功输出会沉淀为 `web_store_design_brief` artifact；真实店铺指标仍待 adapter |
-| `web_keyword_research` | `web_keyword_research` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native 关键词矩阵；Post 8-39：成功输出会沉淀为 `web_keyword_matrix` artifact；Post 8-70：显式选品时以选中商品作为 seed keyword；Post 8-71：支持 `product_ref=product:{uuid}`；实时热度/CPC仍待 adapter |
+| `web_keyword_research` | `web_keyword_research` | native_ready | `backend/crates/agent/src/skills/web.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | 已迁为 Rust native 关键词矩阵；Post 8-39：成功输出会沉淀为 `web_keyword_matrix` artifact；Post 8-70：显式选品时以选中商品作为 seed keyword；Post 8-71：支持 `product_ref=product:{uuid}`；Post 8-118：用户明确要求最新搜索量、CPC、竞争热度或联网资料时，会追加可见 `search_market_info` |
 | `web_product_description` | `web_product_description` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native 详情页文案；Post 8-39：成功输出会沉淀为 `web_product_description` artifact，缺商品名时明示默认主推商品；Post 8-70：显式选品时自动补偿 input 使用选中商品和平台，未选商品时不从历史摘要注入默认商品；Post 8-71：支持 `product_ref=product:{uuid}` |
 | `web_title_seo_scorer` | `web_title_seo_scorer` | native_ready | `backend/crates/agent/src/skills/web.rs` | 已迁为 Rust native 标题 SEO 评分；Post 8-39：成功输出会沉淀为 `web_title_seo_score` artifact，缺标题时 validation error |
 
@@ -180,6 +180,8 @@ Post 8-115 补充：客服岗位在 DSR、店铺评分、服务评分、NPS、�
 | `creative_title_ctr_scorer` | `creative_title_ctr_scorer` | native_ready | `backend/crates/agent/src/skills/creative.rs` | 已纳入岗位自动补偿规则；Post 8-40：成功输出会沉淀为 `creative_title_ctr_score` artifact，缺标题时 validation error |
 
 Post 8-117 补充：创意岗位在短视频脚本、种草文案、内容排期、趋势捕捉中，如果用户同时要求最新 / 实时 / 联网 / 搜索 / 爆款 / 热门风格 / 热门话题 / 营销节点，会生成可见 skill 链路：先运行创意 native skill，再追加 `search_trends` 或 `search_market_info`。这对应旧产品 creative skill 内部 `_web_search` 能力，但新产品按统一搜索 adapter 和 SSE 过程展示，不在 native 输出里隐藏搜索；未显式选品时不注入默认商品。
+
+Post 8-118 补充：Web 岗位在 SEO 优化、关键词研究、页面转化分析中，如果用户同时要求最新 / 实时 / 联网 / 搜索 / 公开来源 / 搜索算法 / 流量规则 / 关键词竞争 / 搜索量 / CPC / 行业转化率基准，会生成可见 skill 链路：先运行 Web native skill，再追加 `search_platform_policy`、`search_market_info` 或 `search_industry_benchmarks`。这对应旧产品 Web skill 内部 `_web_search` 能力，但新产品按统一搜索 adapter 和 SSE 过程展示，不在 native 输出里隐藏搜索；未显式选品时不注入默认商品。
 
 ## 协同 coordination
 

@@ -89,6 +89,15 @@ Kimi Agent 集群 = 前端交互和视觉体验参考
 - Result-count language such as `最多4条来源` is kept as search `max_results` and no longer changes video-script duration.
 - Selected product context remains explicit-only: no product ref/name/category is injected unless the current turn selected a product.
 
+## Post 8-118 Update
+
+- Web-role SEO optimization, keyword research, and page conversion prompts can now surface visible two-step chains when the user explicitly asks for latest, realtime, online, SEO algorithm, traffic-rule, keyword-competition, search-volume, CPC, or conversion-benchmark data.
+- `web_seo_optimize` can be followed by `search_platform_policy(policy_type=algorithm)` for platform algorithm / traffic-rule requests or by `search_market_info` for keyword-competition / search-volume requests.
+- `web_keyword_research` can be followed by `search_market_info` when the user asks for realtime keyword competition, search volume, CPC, or heat.
+- `web_page_conversion` can be followed by `search_industry_benchmarks(metric=conversion)` when the user asks for industry conversion-rate benchmarks.
+- The new product no longer hides old-product Web `_web_search` behavior inside native Web outputs; the search step is visible through the existing `skill_requested` / `skill_result` SSE contract.
+- Selected product context remains explicit-only: no product ref/name/category is injected unless the current turn selected a product.
+
 ## Post 8-108 Update
 
 - Agent Chat frontend now exposes explicit current-conversation file sources after upload.

@@ -482,6 +482,9 @@ fn autosuggest_skill_requests(
     if role.runtime_role == "creative" {
         return autosuggest_creative_requests(&text, task);
     }
+    if role.runtime_role == "web" {
+        return autosuggest_web_requests(&text, task);
+    }
     let Some(request) = autosuggest_for_role(role.runtime_role.as_str(), &text, task) else {
         return Vec::new();
     };
@@ -1924,19 +1927,43 @@ fn infer_creative_search_days(text: &str, default: i64) -> i64 {
     }
 }
 
-fn autosuggest_web(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
+fn autosuggest_web_requests(text: &str, task: &Task) -> Vec<ParsedSkillRequest> {
+    if let Some(primary) = autosuggest_web_native(text, task) {
+        if is_web_search_chain_intent(text, &primary.skill_id) {
+            let search = autosuggest_web_search(text, task, &primary.skill_id);
+            return vec![primary, search];
+        }
+        return vec![primary];
+    }
+
     if let Some(request) = autosuggest_search(text, task) {
-        return Some(request);
+        return vec![request];
+    }
+
+    vec![autosuggest_web_title_seo(text, task)]
+}
+
+fn autosuggest_web(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
+    autosuggest_web_requests(text, task).into_iter().next()
+}
+
+fn autosuggest_web_native(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
+    if contains_any(text, &["seo", "SEO", "搜索优化", "排名", "提排"]) {
+        return Some(autosuggest_request(
+            "web_seo_optimize",
+            serde_json::json!({
+                "target_keywords": extract_keyword_candidates(text),
+                "current_rank": infer_web_current_rank(text),
+                "platform": selected_product_platform_or_infer(task, text),
+                "product_ref": selected_product_ref(task),
+            }),
+            "根据 SEO/提排意图自动补偿 SEO 优化 skill",
+        ));
     }
 
     if contains_any(text, &["keyword", "关键词", "搜索词", "长尾词", "蓝海词"]) {
         let product_name = first_selected_product(task).map(|product| product.name);
-        let seed_keyword = product_name.unwrap_or_else(|| {
-            extract_keyword_candidates(text)
-                .first()
-                .cloned()
-                .unwrap_or_else(|| infer_category(text).to_owned())
-        });
+        let seed_keyword = product_name.unwrap_or_else(|| web_search_subject(text, task));
         return Some(autosuggest_request(
             "web_keyword_research",
             serde_json::json!({
@@ -1946,19 +1973,6 @@ fn autosuggest_web(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
                 "product_ref": selected_product_ref(task),
             }),
             "根据关键词/SEO研究意图自动补偿关键词矩阵 skill",
-        ));
-    }
-
-    if contains_any(text, &["seo", "SEO", "搜索优化", "排名", "提排"]) {
-        return Some(autosuggest_request(
-            "web_seo_optimize",
-            serde_json::json!({
-                "target_keywords": extract_keyword_candidates(text),
-                "current_rank": numbers_in_text(text).first().copied().map(|value| value.round() as i64),
-                "platform": selected_product_platform_or_infer(task, text),
-                "product_ref": selected_product_ref(task),
-            }),
-            "根据 SEO/提排意图自动补偿 SEO 优化 skill",
         ));
     }
 
@@ -2016,7 +2030,11 @@ fn autosuggest_web(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         ));
     }
 
-    Some(autosuggest_request(
+    None
+}
+
+fn autosuggest_web_title_seo(text: &str, task: &Task) -> ParsedSkillRequest {
+    autosuggest_request(
         "web_title_seo_scorer",
         serde_json::json!({
             "title": extract_title_candidate(text).unwrap_or_else(|| compact_task_text(&task.description)),
@@ -2024,7 +2042,257 @@ fn autosuggest_web(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
             "platform": infer_platform(text),
         }),
         "根据 Web/SEO 岗位任务自动补偿标题 SEO 评分 skill",
-    ))
+    )
+}
+
+fn is_web_search_chain_intent(text: &str, native_skill_id: &str) -> bool {
+    let has_fresh_or_external = has_web_external_search_intent(text);
+    match native_skill_id {
+        "web_seo_optimize" => {
+            has_fresh_or_external
+                || contains_any(
+                    text,
+                    &[
+                        "算法",
+                        "搜索算法",
+                        "平台规则",
+                        "平台政策",
+                        "算法调整",
+                        "流量规则",
+                        "排名机制",
+                        "关键词竞争",
+                        "搜索量",
+                        "流量趋势",
+                        "权重",
+                        "CPC",
+                        "cpc",
+                    ],
+                )
+        }
+        "web_keyword_research" => {
+            has_fresh_or_external
+                && contains_any(
+                    text,
+                    &[
+                        "关键词竞争",
+                        "搜索量",
+                        "CPC",
+                        "cpc",
+                        "热度",
+                        "流量",
+                        "竞争",
+                        "出价",
+                    ],
+                )
+        }
+        "web_page_conversion" => {
+            is_industry_benchmark_search_intent(text)
+                || contains_any(
+                    text,
+                    &[
+                        "转化率基准",
+                        "行业转化率",
+                        "行业均值",
+                        "行业平均",
+                        "平均转化率",
+                        "实时基准",
+                        "最新基准",
+                        "benchmark",
+                        "CVR",
+                        "cvr",
+                    ],
+                )
+        }
+        _ => false,
+    }
+}
+
+fn has_web_external_search_intent(text: &str) -> bool {
+    contains_any(
+        text,
+        &[
+            "google",
+            "搜一下",
+            "搜搜",
+            "查一下",
+            "查查",
+            "联网",
+            "实时",
+            "最新",
+            "公开来源",
+            "公开资料",
+            "外部资料",
+            "网上",
+            "资料来源",
+            "来源",
+            "不要缓存",
+            "当前",
+            "近期",
+            "今年",
+            "今日",
+            "今天",
+            "站外",
+            "fresh",
+            "live",
+            "source",
+        ],
+    )
+}
+
+fn autosuggest_web_search(text: &str, task: &Task, native_skill_id: &str) -> ParsedSkillRequest {
+    match native_skill_id {
+        "web_page_conversion" => autosuggest_request(
+            "search_industry_benchmarks",
+            serde_json::Value::Object(web_conversion_benchmark_search_input(text, task)),
+            "根据页面转化分析中的行业转化率基准需求自动追加外部搜索 skill",
+        ),
+        "web_seo_optimize" if is_web_platform_policy_search_intent(text) => autosuggest_request(
+            "search_platform_policy",
+            serde_json::Value::Object(web_platform_policy_search_input(text, task)),
+            "根据 SEO 优化中的平台搜索算法/流量规则需求自动追加平台政策搜索 skill",
+        ),
+        "web_seo_optimize" | "web_keyword_research" => autosuggest_request(
+            "search_market_info",
+            serde_json::Value::Object(web_seo_market_search_input(text, task, native_skill_id)),
+            "根据 Web 增长中的关键词竞争/搜索量/SEO实时资料需求自动追加外部市场搜索 skill",
+        ),
+        _ => autosuggest_request(
+            "search_market_info",
+            serde_json::Value::Object(web_seo_market_search_input(text, task, native_skill_id)),
+            "根据 Web 增长实时资料需求自动追加外部市场搜索 skill",
+        ),
+    }
+}
+
+fn is_web_platform_policy_search_intent(text: &str) -> bool {
+    contains_any(
+        text,
+        &[
+            "算法",
+            "搜索算法",
+            "平台规则",
+            "平台政策",
+            "算法调整",
+            "流量规则",
+            "排名机制",
+            "权重",
+            "规则",
+            "policy",
+            "algorithm",
+        ],
+    )
+}
+
+fn web_seo_market_search_input(
+    text: &str,
+    task: &Task,
+    native_skill_id: &str,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = search_market_info_input(text, task);
+    input.insert(
+        "query".to_string(),
+        serde_json::json!(web_seo_market_query(text, task, native_skill_id)),
+    );
+    input.insert("topic".to_string(), serde_json::json!("general"));
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_web_search_days(text, 30)),
+    );
+    input.insert("_needs_fresh_data".to_string(), serde_json::json!(true));
+    input
+}
+
+fn web_platform_policy_search_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = search_platform_policy_input(text, task);
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(selected_product_platform_or_infer(task, text)),
+    );
+    input.insert("policy_type".to_string(), serde_json::json!("algorithm"));
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_web_search_days(text, 30)),
+    );
+    input.insert("_needs_fresh_data".to_string(), serde_json::json!(true));
+    input
+}
+
+fn web_conversion_benchmark_search_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = search_industry_benchmarks_input(text, task);
+    input.insert(
+        "industry".to_string(),
+        serde_json::json!(selected_product_category_or_infer(task, text)),
+    );
+    input.insert("metric".to_string(), serde_json::json!("conversion"));
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(selected_product_platform_or_infer(task, text)),
+    );
+    input.insert("_needs_fresh_data".to_string(), serde_json::json!(true));
+    input
+}
+
+fn web_seo_market_query(text: &str, task: &Task, native_skill_id: &str) -> String {
+    let platform = selected_product_platform_or_infer(task, text);
+    let subject = web_search_subject(text, task);
+    match native_skill_id {
+        "web_keyword_research" => {
+            format!("{platform} {subject} 关键词竞争 搜索量 CPC 流量热度 2026")
+        }
+        _ => format!("{platform} SEO 搜索优化 {subject} 关键词竞争 流量 2026"),
+    }
+}
+
+fn web_search_subject(text: &str, task: &Task) -> String {
+    if let Some(product) = first_selected_product(task) {
+        return product.name;
+    }
+    extract_keyword_candidates(text)
+        .into_iter()
+        .find(|keyword| !matches!(keyword.as_str(), "SEO" | "关键词" | "标题" | "转化"))
+        .unwrap_or_else(|| infer_category(text).to_owned())
+}
+
+fn infer_web_search_days(text: &str, default: i64) -> i64 {
+    if !numbers_in_text(text).is_empty()
+        && contains_any(
+            text,
+            &["最近", "近", "过去", "天内", "日内", "周内", "月内"],
+        )
+    {
+        infer_period_days(text)
+    } else {
+        default
+    }
+}
+
+fn infer_web_current_rank(text: &str) -> Option<i64> {
+    if !contains_any(
+        text,
+        &[
+            "当前排名",
+            "现在排名",
+            "排名第",
+            "第",
+            "名",
+            "排第",
+            "提排到",
+            "rank",
+            "ranking",
+        ],
+    ) {
+        return None;
+    }
+    numbers_in_text(text)
+        .first()
+        .copied()
+        .map(|value| value.round().max(1.0) as i64)
 }
 
 fn autosuggest_design(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
@@ -9003,6 +9271,139 @@ mod tests {
             assert_eq!(requests.len(), 1, "{prompt}");
             assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
         }
+    }
+
+    #[test]
+    fn autosuggests_web_seo_search_chain_when_requested() {
+        let policy_requests = autosuggest_skill_requests(
+            &role("web"),
+            &task("给冷萃咖啡做SEO优化，联网查最新搜索算法和流量规则，最多4条来源"),
+            "{}",
+        );
+
+        assert_eq!(policy_requests.len(), 2);
+        assert_eq!(policy_requests[0].skill_id, "web_seo_optimize");
+        assert_eq!(policy_requests[0].input["platform"], "淘宝");
+        assert!(policy_requests[0].input.get("current_rank").is_none());
+        assert_eq!(policy_requests[1].skill_id, "search_platform_policy");
+        assert_eq!(policy_requests[1].input["platform"], "淘宝");
+        assert_eq!(policy_requests[1].input["policy_type"], "algorithm");
+        assert_eq!(policy_requests[1].input["days"], 30);
+        assert_eq!(policy_requests[1].input["max_results"], 4);
+        assert_eq!(policy_requests[1].input["_needs_fresh_data"], true);
+        assert!(policy_requests[1].input.get("product_ref").is_none());
+        assert!(policy_requests[1].input.get("product_name").is_none());
+        assert!(
+            policy_requests[1]
+                .reason
+                .as_deref()
+                .is_some_and(|reason| reason.contains("平台搜索算法"))
+        );
+
+        let market_requests = autosuggest_skill_requests(
+            &role("web"),
+            &task("给冷萃咖啡做SEO优化，联网查最新关键词竞争和搜索量，最多3条来源"),
+            "{}",
+        );
+
+        assert_eq!(market_requests.len(), 2);
+        assert_eq!(market_requests[0].skill_id, "web_seo_optimize");
+        assert_eq!(market_requests[1].skill_id, "search_market_info");
+        assert_eq!(market_requests[1].input["topic"], "general");
+        assert_eq!(market_requests[1].input["days"], 30);
+        assert_eq!(market_requests[1].input["max_results"], 3);
+        assert_eq!(market_requests[1].input["_needs_fresh_data"], true);
+        assert!(market_requests[1].input["query"].as_str().is_some_and(
+            |query| query.contains("SEO")
+                && query.contains("关键词竞争")
+                && query.contains("咖啡饮品")
+        ));
+    }
+
+    #[test]
+    fn autosuggests_web_keyword_and_conversion_search_chains_when_requested() {
+        let keyword_requests = autosuggest_skill_requests(
+            &role("web"),
+            &task("给冷萃咖啡做关键词研究，联网查最新搜索量、CPC和竞争热度，最多5条来源"),
+            "{}",
+        );
+
+        assert_eq!(keyword_requests.len(), 2);
+        assert_eq!(keyword_requests[0].skill_id, "web_keyword_research");
+        assert_eq!(keyword_requests[0].input["seed_keyword"], "咖啡饮品");
+        assert_eq!(keyword_requests[1].skill_id, "search_market_info");
+        assert_eq!(keyword_requests[1].input["max_results"], 5);
+        assert_eq!(keyword_requests[1].input["_needs_fresh_data"], true);
+        assert!(
+            keyword_requests[1].input["query"]
+                .as_str()
+                .is_some_and(|query| query.contains("关键词竞争")
+                    && query.contains("搜索量")
+                    && query.contains("CPC"))
+        );
+
+        let conversion_requests = autosuggest_skill_requests(
+            &role("web"),
+            &task("分析商品详情页转化率低的问题，查最新行业转化率基准"),
+            "{}",
+        );
+
+        assert_eq!(conversion_requests.len(), 2);
+        assert_eq!(conversion_requests[0].skill_id, "web_page_conversion");
+        assert_eq!(conversion_requests[0].input["page_type"], "商品详情");
+        assert_eq!(
+            conversion_requests[1].skill_id,
+            "search_industry_benchmarks"
+        );
+        assert_eq!(conversion_requests[1].input["industry"], "电商消费品");
+        assert_eq!(conversion_requests[1].input["metric"], "conversion");
+        assert_eq!(conversion_requests[1].input["platform"], "淘宝");
+        assert_eq!(conversion_requests[1].input["_needs_fresh_data"], true);
+    }
+
+    #[test]
+    fn web_search_chain_preserves_selected_product_context_only_when_selected() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("web"),
+            &task_with_metadata(
+                "帮这个商品做SEO优化，联网查最新关键词竞争和搜索量",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 2);
+        assert_eq!(requests[0].skill_id, "web_seo_optimize");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["platform"], "抖音");
+        assert_eq!(requests[1].skill_id, "search_market_info");
+        assert_eq!(
+            requests[1].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[1].input["product_name"], "五一咖啡组合");
+        assert_eq!(requests[1].input["product_category"], "咖啡饮品");
+        assert!(
+            requests[1].input["query"]
+                .as_str()
+                .is_some_and(|query| query.contains("五一咖啡组合"))
+        );
+
+        let plain_requests = autosuggest_skill_requests(
+            &role("web"),
+            &task("给冷萃咖啡做SEO优化，联网查最新关键词竞争和搜索量"),
+            "{}",
+        );
+
+        assert_eq!(plain_requests.len(), 2);
+        assert_eq!(plain_requests[1].skill_id, "search_market_info");
+        assert!(plain_requests[1].input.get("product_ref").is_none());
+        assert!(plain_requests[1].input.get("product_name").is_none());
+        assert!(plain_requests[1].input.get("product_category").is_none());
     }
 
     #[test]
