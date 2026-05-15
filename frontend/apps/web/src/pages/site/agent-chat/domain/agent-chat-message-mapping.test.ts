@@ -5,8 +5,10 @@ import {
   mapConversationAttachments,
   mapConversationMessages,
   readConversationRuntimeEvents,
+  readConversationRuntimeSelection,
   readConversationSelectedProductIds,
   readConversationSelectedSourceRefs,
+  readConversationStrategyId,
 } from "./agent-chat-message-mapping"
 import type { AgentChatMessage } from "../types"
 
@@ -148,6 +150,36 @@ describe("agent chat message mapping", () => {
     ])
 
     expect(readConversationSelectedSourceRefs(detail)).toEqual([fileRef])
+  })
+
+  it("restores strategy and runtime selection from the latest persisted user context", () => {
+    const detail = conversationDetail([
+      {
+        id: "m1",
+        role: "user",
+        contentText: "first question",
+        contentJson: {
+          strategy: {
+            collaborationMode: "manual",
+            learningLevel: "higher_vocational",
+            modelName: "ollama-gpt-oss-20b",
+            primaryRole: "data",
+            selectedRoles: ["data", "creative"],
+            strategyId: "collab",
+          },
+        },
+        sequence: 1,
+      },
+    ])
+
+    expect(readConversationStrategyId(detail)).toBe("collab")
+    expect(readConversationRuntimeSelection(detail)).toEqual({
+      collaborationMode: "manual",
+      learningLevel: "higher_vocational",
+      modelName: "ollama-gpt-oss-20b",
+      primaryRole: "data",
+      selectedRoles: ["data", "creative"],
+    })
   })
 
   it("maps persisted conversation files into composer attachments", () => {

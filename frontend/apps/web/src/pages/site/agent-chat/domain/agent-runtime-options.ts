@@ -37,6 +37,12 @@ export interface AgentChatRuntimeSelection {
   selectedRoles: string[]
 }
 
+export type AgentChatRuntimeSelectionRestore = Partial<
+  Omit<AgentChatRuntimeSelection, "selectedRoles">
+> & {
+  selectedRoles?: string[]
+}
+
 export function defaultRuntimeSelection(
   options: AgentRuntimeOptions | null
 ): AgentChatRuntimeSelection {
@@ -97,6 +103,26 @@ export function normalizeRuntimeSelection(
     primaryRole,
     selectedRoles: selectedRoles.length ? selectedRoles : fallback.selectedRoles,
   }
+}
+
+export function restoreRuntimeSelection(
+  current: AgentChatRuntimeSelection,
+  restored: AgentChatRuntimeSelectionRestore,
+  options: AgentRuntimeOptions | null
+): AgentChatRuntimeSelection {
+  const nextSelection: AgentChatRuntimeSelection = {
+    ...current,
+    collaborationMode: restored.collaborationMode ?? current.collaborationMode,
+    learningLevel: restored.learningLevel ?? current.learningLevel,
+    modelName: restored.modelName ?? current.modelName,
+    primaryRole: restored.primaryRole ?? current.primaryRole,
+    selectedRoles:
+      restored.selectedRoles && restored.selectedRoles.length > 0
+        ? restored.selectedRoles
+        : current.selectedRoles,
+  }
+
+  return normalizeRuntimeSelection(nextSelection, options)
 }
 
 export function runtimeSelectionForStrategy(

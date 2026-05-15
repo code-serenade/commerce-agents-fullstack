@@ -59,7 +59,6 @@ export function useAgentChatPage() {
     isStreaming,
     runtimeEvents,
   })
-
   const createWelcomeMessage = useCallback(
     (): AgentChatMessage => ({
       id: "welcome",
@@ -85,8 +84,10 @@ export function useAgentChatPage() {
       setAttachments,
       clearSelectedProducts: productContext.clearSelectedProducts,
       clearSelectedSources: sourceContext.clearSelectedSources,
+      restoreRuntimeSelection: runtimeContext.restoreSelection,
       restoreSelectedProducts: productContext.restoreSelectedProducts,
       restoreSelectedSources: sourceContext.restoreSelectedSources,
+      restoreStrategyId: setStrategyId,
       tError: t("agentChat.error"),
     }),
     [
@@ -95,6 +96,7 @@ export function useAgentChatPage() {
       messageFormatCopy,
       productContext.clearSelectedProducts,
       productContext.restoreSelectedProducts,
+      runtimeContext.restoreSelection,
       sourceContext.clearSelectedSources,
       sourceContext.restoreSelectedSources,
       t,
@@ -175,7 +177,6 @@ export function useAgentChatPage() {
     strategy: selectedStrategy,
     tError: t("agentChat.error"),
   })
-
   return createAgentChatPageViewModel({
     attachments,
     availableProducts: productContext.availableProducts,

@@ -1,12 +1,14 @@
 import type { Dispatch, SetStateAction } from "react"
 import { useEffect, useMemo, useState } from "react"
 import type {
+  AgentChatRuntimeSelectionRestore,
   AgentChatRuntimeSelection,
   AgentRuntimeOptions,
 } from "../domain/agent-runtime-options"
 import {
   defaultRuntimeSelection,
   normalizeRuntimeSelection,
+  restoreRuntimeSelection,
   setRuntimePrimaryRole,
   toggleRuntimeRole,
 } from "../domain/agent-runtime-options"
@@ -72,11 +74,16 @@ export function useAgentRuntimeOptions(input: { enabled: boolean }) {
           setRuntimePrimaryRole(current, primaryRole)
         )
       },
+      restoreSelection: (selection: AgentChatRuntimeSelectionRestore) => {
+        setRuntimeSelection((current) =>
+          restoreRuntimeSelection(current, selection, runtimeOptions)
+        )
+      },
       toggleRole: (runtimeRole: string) => {
         setRuntimeSelection((current) => toggleRuntimeRole(current, runtimeRole))
       },
     }),
-    []
+    [runtimeOptions]
   )
 
   return {

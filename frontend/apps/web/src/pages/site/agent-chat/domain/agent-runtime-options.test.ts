@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  restoreRuntimeSelection,
   runtimeSelectionForStrategy,
   setRuntimePrimaryRole,
   toggleRuntimeRole,
@@ -13,6 +14,8 @@ const manualSelection: AgentChatRuntimeSelection = {
   primaryRole: "data",
   selectedRoles: ["data", "ops"],
 }
+const manualCopy = "Manual"
+const higherVocationalCopy = "Higher vocational"
 
 describe("agent runtime options", () => {
   it("keeps explicit collab role selections for backend metadata", () => {
@@ -55,6 +58,71 @@ describe("agent runtime options", () => {
     expect(toggleRuntimeRole(manualSelection, "ops")).toEqual({
       ...manualSelection,
       selectedRoles: ["data"],
+    })
+  })
+
+  it("restores persisted runtime selection through available backend options", () => {
+    expect(
+      restoreRuntimeSelection(
+        manualSelection,
+        {
+          collaborationMode: "manual",
+          learningLevel: "higher_vocational",
+          modelName: "ollama-gpt-oss-20b",
+          primaryRole: "creative",
+          selectedRoles: ["creative", "missing"],
+        },
+        {
+          collaborationModes: [
+            {
+              id: "manual",
+              label: manualCopy,
+              description: manualCopy,
+              isDefault: true,
+            },
+          ],
+          defaultModelName: "ollama-gpt-oss-20b",
+          learningLevels: [
+            {
+              id: "higher_vocational",
+              label: higherVocationalCopy,
+              description: higherVocationalCopy,
+              isDefault: true,
+            },
+          ],
+          models: [
+            {
+              name: "ollama-gpt-oss-20b",
+              model: "gpt-oss:20b",
+              isDefault: true,
+            },
+          ],
+          responseModes: [],
+          roles: [
+            {
+              id: "role-data",
+              name: "Data",
+              runtimeRole: "data",
+              capabilities: [],
+              isDefault: true,
+            },
+            {
+              id: "role-creative",
+              name: "Creative",
+              runtimeRole: "creative",
+              capabilities: [],
+              isDefault: false,
+            },
+          ],
+          strategies: [],
+        }
+      )
+    ).toEqual({
+      collaborationMode: "manual",
+      learningLevel: "higher_vocational",
+      modelName: "ollama-gpt-oss-20b",
+      primaryRole: "creative",
+      selectedRoles: ["creative"],
     })
   })
 })

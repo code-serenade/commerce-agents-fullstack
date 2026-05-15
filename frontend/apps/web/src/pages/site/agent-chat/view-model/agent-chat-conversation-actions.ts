@@ -8,10 +8,14 @@ import {
   mapConversationItem,
   mapConversationMessages,
   readConversationRuntimeEvents,
+  readConversationRuntimeSelection,
   readConversationSelectedProductIds,
   readConversationSelectedSourceRefs,
+  readConversationStrategyId,
   type AgentChatMessageFormatCopy,
 } from "../domain/agent-chat-message-mapping"
+import type { AgentChatRuntimeSelectionRestore } from "../domain/agent-runtime-options"
+import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
 import type {
   AgentChatAttachmentItem,
   AgentChatConversationItem,
@@ -25,8 +29,10 @@ interface ConversationActionState {
   sessionIdRef: MutableRefObject<string>
   clearSelectedProducts?: () => void
   clearSelectedSources?: () => void
+  restoreRuntimeSelection?: (selection: AgentChatRuntimeSelectionRestore) => void
   restoreSelectedProducts?: (productIds: string[]) => void
   restoreSelectedSources?: (sourceRefs: string[]) => void
+  restoreStrategyId?: (strategyId: AgentChatStrategyId) => void
   setConversationId: Dispatch<SetStateAction<string | null>>
   setConversations: Dispatch<SetStateAction<AgentChatConversationItem[]>>
   setError: Dispatch<SetStateAction<string | null>>
@@ -164,6 +170,8 @@ function restoreConversationContext(
 ) {
   const productIds = readConversationSelectedProductIds(detail)
   const sourceRefs = readConversationSelectedSourceRefs(detail)
+  const runtimeSelection = readConversationRuntimeSelection(detail)
+  const strategyId = readConversationStrategyId(detail)
   if (productIds.length > 0) {
     state.restoreSelectedProducts?.(productIds)
   } else {
@@ -175,6 +183,8 @@ function restoreConversationContext(
   } else {
     state.clearSelectedSources?.()
   }
+  state.restoreStrategyId?.(strategyId)
+  if (runtimeSelection) state.restoreRuntimeSelection?.(runtimeSelection)
 }
 
 function formatActionError(err: unknown, state: ConversationActionState) {
