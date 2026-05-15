@@ -322,23 +322,23 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-121: accounting finance search chain
+Post 8-122: design visual trend search chain
 ```
 
 Scope:
 
-- make accounting autosuggest produce visible native + `search_market_info(topic=finance)` chains for finance benchmark questions
-- keep ordinary accounting calculations and diagnoses on native skills only when no external finance benchmark is requested
-- keep pure finance benchmark search as one search skill, not a fake budget plan or fake diagnosis
+- make design autosuggest produce visible native + `search_trends` chains for visual trend, design trend, high-click main image, campaign poster, and detail page trend questions
+- keep ordinary design main image, detail page, color scheme, campaign poster, and material spec tasks on native skills only when no external visual trend evidence is requested
+- keep pure visual trend search as one search skill, not a fake design brief
 - preserve explicit selected-product context only; never infer product context from history or defaults
-- keep search provider failures as transparent degraded search results rather than fabricated finance benchmark data
+- keep search provider failures as transparent degraded search results rather than fabricated visual trend data
 
 Reason:
 
-- financial health analysis needs industry margin, net margin, and ad ROI benchmarks when the user explicitly asks for finance comparison
-- old-product hidden accounting web search should become visible and auditable in new-product SSE skill events
-- natural-language limits such as "max 4 sources" must map to search parameters while default finance benchmark lookback remains 60 days
-- real financial data providers, Taobao, Douyin, Qianchuan, policy announcements, market data, and live external sources remain adapter/search concerns and must not be faked
+- main image and campaign poster planning often needs current visual references when the user explicitly asks for latest design trends
+- old-product hidden design web search should become visible and auditable in new-product SSE skill events
+- natural-language limits such as "max 4 sources" must map to search parameters while default lookback remains 60 days for main image/detail page and 30 days for campaign posters
+- real image generation, marketplace material libraries, Taobao, Douyin, Qianchuan, policy announcements, market data, and live external sources remain adapter/search concerns and must not be faked
 
 ## 10. Validation Standard
 

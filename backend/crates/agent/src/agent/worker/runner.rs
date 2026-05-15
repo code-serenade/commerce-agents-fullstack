@@ -491,6 +491,9 @@ fn autosuggest_skill_requests(
     if role.runtime_role == "accounting" {
         return autosuggest_accounting_requests(&text, task);
     }
+    if role.runtime_role == "design" {
+        return autosuggest_design_requests(&text, task);
+    }
     let Some(request) = autosuggest_for_role(role.runtime_role.as_str(), &text, task) else {
         return Vec::new();
     };
@@ -3142,7 +3145,32 @@ fn infer_web_current_rank(text: &str) -> Option<i64> {
         .map(|value| value.round().max(1.0) as i64)
 }
 
+fn autosuggest_design_requests(text: &str, task: &Task) -> Vec<ParsedSkillRequest> {
+    if is_design_pure_visual_search_intent(text) {
+        return vec![autosuggest_design_visual_search(
+            text,
+            task,
+            infer_design_visual_search_skill_id(text),
+        )];
+    }
+
+    let Some(primary) = autosuggest_design_native(text, task) else {
+        return Vec::new();
+    };
+
+    if is_design_visual_trend_search_chain_intent(text, &primary.skill_id) {
+        let search = autosuggest_design_visual_search(text, task, &primary.skill_id);
+        return vec![primary, search];
+    }
+
+    vec![primary]
+}
+
 fn autosuggest_design(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
+    autosuggest_design_requests(text, task).into_iter().next()
+}
+
+fn autosuggest_design_native(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     if contains_any(text, &["material", "asset", "素材", "规格", "尺寸"]) {
         return Some(autosuggest_request(
             "design_material_spec",
@@ -3203,6 +3231,181 @@ fn autosuggest_design(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         }),
         "根据设计岗位任务自动补偿主图设计 skill",
     ))
+}
+
+fn is_design_visual_trend_search_chain_intent(text: &str, native_skill_id: &str) -> bool {
+    matches!(
+        native_skill_id,
+        "design_main_image" | "design_campaign_poster" | "design_detail_page"
+    ) && has_design_visual_trend_search_intent(text)
+}
+
+fn has_design_visual_trend_search_intent(text: &str) -> bool {
+    let has_design_signal = contains_any(
+        text,
+        &[
+            "视觉趋势",
+            "设计趋势",
+            "主图趋势",
+            "详情页趋势",
+            "海报趋势",
+            "爆款主图",
+            "爆款海报",
+            "高点击率",
+            "高转化详情页",
+            "竞品视觉",
+            "热门视觉",
+            "流行视觉",
+            "风格趋势",
+            "素材趋势",
+            "设计参考",
+            "视觉参考",
+        ],
+    );
+    let has_fresh_or_evidence = has_external_search_intent(text)
+        || contains_any(
+            text,
+            &[
+                "最新",
+                "近期",
+                "当前",
+                "今年",
+                "2026",
+                "公开来源",
+                "公开资料",
+                "参考",
+                "对标",
+                "竞品",
+                "爆款",
+            ],
+        );
+
+    has_design_signal && has_fresh_or_evidence
+}
+
+fn is_design_pure_visual_search_intent(text: &str) -> bool {
+    has_design_visual_trend_search_intent(text)
+        && contains_any(
+            text,
+            &["查", "查一下", "搜索", "搜", "联网", "公开来源", "公开资料"],
+        )
+        && !contains_any(
+            text,
+            &[
+                "做",
+                "生成",
+                "规划",
+                "输出",
+                "设计方案",
+                "设计一版",
+                "制作",
+                "创建",
+                "给方案",
+                "出方案",
+                "优化",
+                "改版",
+            ],
+        )
+}
+
+fn infer_design_visual_search_skill_id(text: &str) -> &'static str {
+    if contains_any(text, &["海报", "banner", "Banner", "活动图", "活动海报"]) {
+        "design_campaign_poster"
+    } else if contains_any(text, &["详情页", "详情", "长图"]) {
+        "design_detail_page"
+    } else {
+        "design_main_image"
+    }
+}
+
+fn autosuggest_design_visual_search(
+    text: &str,
+    task: &Task,
+    native_skill_id: &str,
+) -> ParsedSkillRequest {
+    autosuggest_request(
+        "search_trends",
+        serde_json::Value::Object(design_visual_trend_search_input(
+            text,
+            task,
+            native_skill_id,
+        )),
+        "根据设计任务中的最新视觉趋势/爆款参考需求自动追加外部趋势搜索 skill",
+    )
+}
+
+fn design_visual_trend_search_input(
+    text: &str,
+    task: &Task,
+    native_skill_id: &str,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = search_trends_input(text, task);
+    input.insert(
+        "query".to_string(),
+        serde_json::json!(design_visual_trend_search_query(
+            text,
+            task,
+            native_skill_id
+        )),
+    );
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(selected_product_platform_or_infer(task, text)),
+    );
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_design_search_days(
+            text,
+            design_visual_trend_default_days(native_skill_id),
+        )),
+    );
+    input.insert("_needs_fresh_data".to_string(), serde_json::json!(true));
+    input
+}
+
+fn design_visual_trend_search_query(text: &str, task: &Task, native_skill_id: &str) -> String {
+    let platform = selected_product_platform_or_infer(task, text);
+    let subject = design_visual_search_subject(text, task);
+
+    match native_skill_id {
+        "design_campaign_poster" => {
+            format!(
+                "{} {platform} {subject} 活动海报 设计趋势 爆款 2026",
+                infer_campaign_name(text)
+            )
+        }
+        "design_detail_page" => {
+            format!("{platform} {subject} 详情页设计 高转化 视觉趋势 2026")
+        }
+        _ => format!("{platform} {subject} 主图设计 爆款 高点击率 视觉趋势 2026"),
+    }
+}
+
+fn design_visual_search_subject(text: &str, task: &Task) -> String {
+    first_selected_product(task)
+        .map(|product| product.name)
+        .unwrap_or_else(|| selected_product_category_or_infer(task, text))
+}
+
+fn design_visual_trend_default_days(native_skill_id: &str) -> i64 {
+    match native_skill_id {
+        "design_campaign_poster" => 30,
+        "design_detail_page" => 60,
+        _ => 60,
+    }
+}
+
+fn infer_design_search_days(text: &str, default: i64) -> i64 {
+    if !numbers_in_text(text).is_empty()
+        && contains_any(
+            text,
+            &["最近", "近", "过去", "天内", "日内", "周内", "月内"],
+        )
+    {
+        infer_period_days(text)
+    } else {
+        default
+    }
 }
 
 fn autosuggest_engineering(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
@@ -10465,6 +10668,125 @@ mod tests {
             assert_eq!(requests.len(), 1, "{prompt}");
             assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
         }
+    }
+
+    #[test]
+    fn autosuggests_design_visual_trend_search_chain_when_requested() {
+        let main_image_requests = autosuggest_skill_requests(
+            &role("design"),
+            &task("给冷萃咖啡做主图设计方案，联网查最新爆款主图和高点击率视觉趋势，最多4条来源"),
+            "{}",
+        );
+
+        assert_eq!(main_image_requests.len(), 2);
+        assert_eq!(main_image_requests[0].skill_id, "design_main_image");
+        assert_eq!(main_image_requests[0].input["platform"], "淘宝");
+        assert_eq!(main_image_requests[1].skill_id, "search_trends");
+        assert_eq!(main_image_requests[1].input["platform"], "淘宝");
+        assert_eq!(main_image_requests[1].input["days"], 60);
+        assert_eq!(main_image_requests[1].input["max_results"], 4);
+        assert_eq!(main_image_requests[1].input["_needs_fresh_data"], true);
+        assert!(
+            main_image_requests[1].input["query"]
+                .as_str()
+                .is_some_and(|query| query.contains("主图设计")
+                    && query.contains("高点击率")
+                    && query.contains("视觉趋势"))
+        );
+        assert!(main_image_requests[1].input.get("product_ref").is_none());
+        assert!(main_image_requests[1].input.get("product_name").is_none());
+        assert!(
+            main_image_requests[1]
+                .input
+                .get("product_category")
+                .is_none()
+        );
+
+        let poster_requests = autosuggest_skill_requests(
+            &role("design"),
+            &task("做618活动海报banner，查最新活动海报设计趋势，最多3条来源"),
+            "{}",
+        );
+
+        assert_eq!(poster_requests.len(), 2);
+        assert_eq!(poster_requests[0].skill_id, "design_campaign_poster");
+        assert_eq!(poster_requests[1].skill_id, "search_trends");
+        assert_eq!(poster_requests[1].input["days"], 30);
+        assert_eq!(poster_requests[1].input["max_results"], 3);
+        assert!(
+            poster_requests[1].input["query"]
+                .as_str()
+                .is_some_and(|query| query.contains("618大促")
+                    && query.contains("活动海报")
+                    && query.contains("设计趋势"))
+        );
+    }
+
+    #[test]
+    fn design_visual_search_chain_preserves_selected_product_context_only_when_selected() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("design"),
+            &task_with_metadata(
+                "给这个商品做主图设计方案，联网查最新爆款视觉趋势",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 2);
+        assert_eq!(requests[0].skill_id, "design_main_image");
+        assert_eq!(requests[0].input["product_name"], "五一咖啡组合");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["platform"], "抖音");
+        assert_eq!(requests[1].skill_id, "search_trends");
+        assert_eq!(
+            requests[1].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[1].input["product_name"], "五一咖啡组合");
+        assert_eq!(requests[1].input["product_category"], "咖啡饮品");
+        assert_eq!(requests[1].input["platform"], "抖音");
+        assert!(
+            requests[1].input["query"]
+                .as_str()
+                .is_some_and(|query| query.contains("五一咖啡组合"))
+        );
+
+        let plain_requests = autosuggest_skill_requests(
+            &role("design"),
+            &task("给冷萃咖啡做主图设计方案，联网查最新爆款视觉趋势"),
+            "{}",
+        );
+
+        assert_eq!(plain_requests.len(), 2);
+        assert_eq!(plain_requests[1].skill_id, "search_trends");
+        assert!(plain_requests[1].input.get("product_ref").is_none());
+        assert!(plain_requests[1].input.get("product_name").is_none());
+        assert!(plain_requests[1].input.get("product_category").is_none());
+    }
+
+    #[test]
+    fn pure_design_visual_trend_search_does_not_force_native_design() {
+        let requests = autosuggest_skill_requests(
+            &role("design"),
+            &task("查一下淘宝咖啡类目最新爆款主图视觉趋势，最多5条来源"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "search_trends");
+        assert_eq!(requests[0].input["platform"], "淘宝");
+        assert_eq!(requests[0].input["days"], 60);
+        assert_eq!(requests[0].input["max_results"], 5);
+        assert!(requests[0].input["query"].as_str().is_some_and(
+            |query| query.contains("咖啡饮品")
+                && query.contains("主图设计")
+                && query.contains("视觉趋势")
+        ));
     }
 
     #[test]

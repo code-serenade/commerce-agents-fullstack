@@ -5644,3 +5644,47 @@
 
 - 真实财务行业数据 provider 和搜索 provider 配置仍是外部搜索能力的后续事项。
 - 前端可继续把 native + search 双 skill 链路展示为可折叠过程卡片和来源面板。
+
+## Post 8-122：设计岗位视觉趋势搜索链路
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 122 个补强项：`Post 8-122`。
+
+本次目标：
+
+- 把旧产品主图设计、活动海报设计中隐藏的视觉趋势搜索能力，迁成新产品可见、可审计、可降级的 skill 链路。
+- 让主图、活动海报、详情页设计在用户明确要求视觉趋势 / 设计趋势 / 爆款主图 / 高点击率 / 竞品视觉 / 最新 / 联网 / 公开来源时，先跑 design native skill，再追加 `search_trends`。
+
+涉及范围：
+
+- 产品内核：设计岗位从“只生成设计 brief”增强为“native 设计 brief + 可见视觉趋势检索”的双 skill 链路。
+- 后端 Agent：新增 `autosuggest_design_requests` 链式编排；普通设计任务仍只触发 native skill。
+- 搜索参数：主图/详情页视觉趋势默认 `days=60`，活动海报默认 `days=30`，并支持解析“最多4条来源”等自然语言限制。
+- SSE/API 文档：同步说明 design 视觉趋势双 skill 链路。
+- 迁移归档：新增 Post 8-122 独立归档和后端设计文档。
+
+用户可感知变化：
+
+- 用户要求“主图设计并联网查最新爆款主图和高点击率视觉趋势”时，过程区会看到主图设计和趋势搜索两个步骤。
+- 用户要求“618活动海报并查最新活动海报设计趋势”时，过程区会看到海报 brief 和趋势搜索两个步骤。
+- 用户只要求“查淘宝咖啡类目最新爆款主图视觉趋势”时，只进入 `search_trends`，不会误生成设计 brief。
+- 用户没有显式选择商品时，后端不会注入历史里的默认商品或演示商品；用户选中商品后，视觉趋势搜索才携带 `product_ref/product_name/product_category`。
+
+当前验证：
+
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent design`
+- [x] `cargo test -p agent search`
+- [x] `cargo test -p agent keeps_roles_from_requesting_unowned_skills`
+- [x] `cargo check -p agent -p web-server`
+- [x] `cargo clippy -p agent -p web-server`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 真实搜索 provider 配置和部署仍是外部搜索能力的后续事项。
+- 前端可继续把 native + search 双 skill 链路展示为可折叠过程卡片和来源面板。

@@ -124,11 +124,13 @@ Post 8-120 补充：客服岗位在情绪分析、工单处理、退换货处理
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
 | --- | --- | --- | --- | --- |
-| `design_main_image` | `design_main_image` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已纳入岗位自动补偿规则；Post 8-41：成功输出会沉淀为 `design_main_image_brief` artifact，缺商品上下文时明示 `calculated_from_defaults`；Post 8-70：显式选品时自动补偿 input 使用选中商品和平台；Post 8-71：支持 `product_ref=product:{uuid}`；当前不生成图片文件 |
-| `design_detail_page` | `design_detail_page` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已迁为 Rust native 详情页模块方案；Post 8-41：成功输出会沉淀为 `design_detail_page_brief` artifact，缺商品上下文时明示 `calculated_from_defaults`；Post 8-70：显式选品时自动补偿 input 使用选中商品和平台；Post 8-71：支持 `product_ref=product:{uuid}`；尚不生成长图文件 |
+| `design_main_image` | `design_main_image` | native_ready | `backend/crates/agent/src/skills/design.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | 已纳入岗位自动补偿规则；Post 8-41：成功输出会沉淀为 `design_main_image_brief` artifact，缺商品上下文时明示 `calculated_from_defaults`；Post 8-70：显式选品时自动补偿 input 使用选中商品和平台；Post 8-71：支持 `product_ref=product:{uuid}`；Post 8-122：用户明确要求最新/联网/爆款主图/高点击率/视觉趋势时，会追加可见 `search_trends`；当前不生成图片文件 |
+| `design_detail_page` | `design_detail_page` | native_ready | `backend/crates/agent/src/skills/design.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | 已迁为 Rust native 详情页模块方案；Post 8-41：成功输出会沉淀为 `design_detail_page_brief` artifact，缺商品上下文时明示 `calculated_from_defaults`；Post 8-70：显式选品时自动补偿 input 使用选中商品和平台；Post 8-71：支持 `product_ref=product:{uuid}`；Post 8-122：用户明确要求最新/联网/详情页设计趋势/高转化详情页时，会追加可见 `search_trends`；尚不生成长图文件 |
 | `design_color_scheme` | `design_color_scheme` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已迁为 Rust native HEX 配色、比例和变量命名；Post 8-41：成功输出会沉淀为 `design_color_scheme` artifact，缺品牌调性时 validation error；Post 8-71：支持 `product_ref=product:{uuid}` |
 | `design_material_spec` | `design_material_spec` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已纳入岗位自动补偿规则；Post 8-41：成功输出会沉淀为 `design_material_spec` artifact，缺平台/商品上下文时明示 `calculated_from_defaults`；Post 8-71：支持 `product_ref=product:{uuid}` |
-| `design_campaign_poster` | `design_campaign_poster` | native_ready | `backend/crates/agent/src/skills/design.rs` | 已迁为 Rust native 活动海报 brief；Post 8-41：成功输出会沉淀为 `design_campaign_poster_brief` artifact，缺活动名时 validation error；Post 8-71：支持 `product_ref=product:{uuid}`；尚不生成图片文件 |
+| `design_campaign_poster` | `design_campaign_poster` | native_ready | `backend/crates/agent/src/skills/design.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | 已迁为 Rust native 活动海报 brief；Post 8-41：成功输出会沉淀为 `design_campaign_poster_brief` artifact，缺活动名时 validation error；Post 8-71：支持 `product_ref=product:{uuid}`；Post 8-122：用户明确要求最新/联网/活动海报设计趋势/爆款海报时，会追加可见 `search_trends`；尚不生成图片文件 |
+
+Post 8-122 补充：设计岗位在主图设计、活动海报设计、详情页设计中，如果用户同时要求视觉趋势 / 设计趋势 / 爆款主图 / 高点击率 / 爆款海报 / 竞品视觉 / 最新 / 联网 / 搜索 / 公开资料，会生成可见 skill 链路：先运行对应 design native skill，再追加 `search_trends`。纯“查最新爆款主图视觉趋势”只触发搜索，不会误触发设计 brief；未显式选品时不注入默认商品。
 
 ## 财务 accounting
 
