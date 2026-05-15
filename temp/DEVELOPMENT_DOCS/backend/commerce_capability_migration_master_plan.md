@@ -322,23 +322,22 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-122: design visual trend search chain
+Post 8-123: engineering external knowledge search chain
 ```
 
 Scope:
 
-- make design autosuggest produce visible native + `search_trends` chains for visual trend, design trend, high-click main image, campaign poster, and detail page trend questions
-- keep ordinary design main image, detail page, color scheme, campaign poster, and material spec tasks on native skills only when no external visual trend evidence is requested
-- keep pure visual trend search as one search skill, not a fake design brief
-- preserve explicit selected-product context only; never infer product context from history or defaults
-- keep search provider failures as transparent degraded search results rather than fabricated visual trend data
+- make engineering autosuggest produce visible native + `search_market_info(topic=general)` chains for bug known-solution, tech-selection benchmark, performance benchmark, and architecture best-practice questions
+- keep ordinary engineering bug analysis, tech selection, performance optimization, architecture review, system check, and SLA tasks on native skills only when no external knowledge is requested
+- keep platform health checks behind the existing approval/platform adapter boundary
+- keep search provider failures as transparent degraded search results rather than fabricated benchmarks, community cases, or technical comparisons
 
 Reason:
 
-- main image and campaign poster planning often needs current visual references when the user explicitly asks for latest design trends
-- old-product hidden design web search should become visible and auditable in new-product SSE skill events
-- natural-language limits such as "max 4 sources" must map to search parameters while default lookback remains 60 days for main image/detail page and 30 days for campaign posters
-- real image generation, marketplace material libraries, Taobao, Douyin, Qianchuan, policy announcements, market data, and live external sources remain adapter/search concerns and must not be faked
+- old-product engineering bug analysis and tech selection used hidden web search for known solutions and benchmark comparisons
+- those searches should become visible and auditable in new-product SSE skill events
+- natural-language limits such as "max 4 sources" must map to search parameters while default engineering knowledge lookback remains 90 days
+- real code repository analysis, logs, APM, Taobao, Douyin, Qianchuan, platform health checks, and live external sources remain adapter/search/approval concerns and must not be faked
 
 ## 10. Validation Standard
 

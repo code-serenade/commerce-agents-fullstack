@@ -2232,3 +2232,24 @@
 - 本阶段解决的是“设计岗位视觉趋势诉求可见化”，不是直接生成图片文件，也不是直接接通淘宝、抖音或第三方素材平台。
 - 搜索 provider 未配置、失败或无可信来源时仍按搜索 skill 降级，不伪造 live 设计趋势。
 - 前端后续应把该双 skill 链路展示为过程卡片和来源面板。
+
+## Post 8-123：工程岗位外部资料搜索链路
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent worker 新增工程岗位 native + `search_market_info(topic=general)` 双 skill 编排。
+- [x] 普通 Bug 排查、技术选型、性能优化、架构评估仍只触发 native skill。
+- [x] 用户明确要求联网 / 搜索 / 公开资料 / 已知解决方案 / 最佳实践 / 最新对比 / 性能 benchmark 时，才追加外部资料搜索。
+- [x] Bug 排查搜索 query 包含错误类型、技术栈、解决方案、排查和最佳实践。
+- [x] 技术选型搜索 query 包含选型领域、技术选型、对比、性能和 benchmark。
+- [x] 工程搜索默认 `days=90`，并支持解析 `max_results`。
+- [x] API/SSE 文档已同步。
+
+当前说明：
+
+- 本阶段解决的是“工程岗位外部资料诉求可见化”，不是直接读取代码仓库、日志、APM 或平台 API。
+- 搜索 provider 未配置、失败或无可信来源时仍按搜索 skill 降级，不伪造 live benchmark 或社区案例。
+- 前端后续应把该双 skill 链路展示为过程卡片和来源面板。

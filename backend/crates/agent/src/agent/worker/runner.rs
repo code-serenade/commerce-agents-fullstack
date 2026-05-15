@@ -494,6 +494,9 @@ fn autosuggest_skill_requests(
     if role.runtime_role == "design" {
         return autosuggest_design_requests(&text, task);
     }
+    if role.runtime_role == "engineering" {
+        return autosuggest_engineering_requests(&text, task);
+    }
     let Some(request) = autosuggest_for_role(role.runtime_role.as_str(), &text, task) else {
         return Vec::new();
     };
@@ -3408,7 +3411,31 @@ fn infer_design_search_days(text: &str, default: i64) -> i64 {
     }
 }
 
-fn autosuggest_engineering(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
+fn autosuggest_engineering_requests(text: &str, task: &Task) -> Vec<ParsedSkillRequest> {
+    if let Some(primary) = autosuggest_engineering_native(text) {
+        if is_engineering_external_knowledge_search_chain_intent(text, &primary.skill_id) {
+            return vec![
+                primary,
+                autosuggest_engineering_knowledge_search(text, task),
+            ];
+        }
+        return vec![primary];
+    }
+
+    if let Some(request) = autosuggest_search(text, task) {
+        return vec![request];
+    }
+
+    Vec::new()
+}
+
+fn autosuggest_engineering(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
+    autosuggest_engineering_requests(text, task)
+        .into_iter()
+        .next()
+}
+
+fn autosuggest_engineering_native(text: &str) -> Option<ParsedSkillRequest> {
     if has_platform_health_check_intent(text) {
         let test_live = contains_any(text, &["实际", "真实", "连通", "连通性", "测试", "live"]);
         return Some(autosuggest_request(
@@ -3508,7 +3535,8 @@ fn autosuggest_engineering(text: &str, _task: &Task) -> Option<ParsedSkillReques
             "吞吐",
             "优化",
         ],
-    ) {
+    ) && !has_tech_selection_intent(text)
+    {
         let numbers = numbers_in_text(text);
         return Some(autosuggest_request(
             "engineering_perf_optimize",
@@ -3522,16 +3550,7 @@ fn autosuggest_engineering(text: &str, _task: &Task) -> Option<ParsedSkillReques
         ));
     }
 
-    if contains_any(
-        text,
-        &[
-            "tech selection",
-            "技术选型",
-            "框架选择",
-            "数据库选型",
-            "选型",
-        ],
-    ) {
+    if has_tech_selection_intent(text) {
         return Some(autosuggest_request(
             "engineering_tech_selection",
             serde_json::json!({
@@ -3548,6 +3567,160 @@ fn autosuggest_engineering(text: &str, _task: &Task) -> Option<ParsedSkillReques
         serde_json::json!({}),
         "根据工程岗位任务自动补偿 SLA 监控 skill",
     ))
+}
+
+fn has_tech_selection_intent(text: &str) -> bool {
+    contains_any(
+        text,
+        &[
+            "tech selection",
+            "技术选型",
+            "框架选择",
+            "数据库选型",
+            "选型",
+        ],
+    )
+}
+
+fn is_engineering_external_knowledge_search_chain_intent(
+    text: &str,
+    native_skill_id: &str,
+) -> bool {
+    match native_skill_id {
+        "engineering_bug_analysis" => {
+            has_external_search_intent(text)
+                || contains_any(
+                    text,
+                    &[
+                        "已知解决方案",
+                        "解决方案",
+                        "最佳实践",
+                        "公开资料",
+                        "公开来源",
+                        "社区案例",
+                        "案例",
+                    ],
+                )
+        }
+        "engineering_tech_selection" => {
+            has_external_search_intent(text)
+                || contains_any(
+                    text,
+                    &[
+                        "benchmark",
+                        "Benchmark",
+                        "基准测试",
+                        "性能对比",
+                        "最新对比",
+                        "技术对比",
+                        "公开资料",
+                        "公开来源",
+                    ],
+                )
+        }
+        "engineering_perf_optimize" | "engineering_arch_review" => {
+            has_external_search_intent(text)
+                && contains_any(
+                    text,
+                    &[
+                        "benchmark",
+                        "Benchmark",
+                        "基准",
+                        "最佳实践",
+                        "公开资料",
+                        "公开来源",
+                        "性能资料",
+                        "架构案例",
+                        "案例",
+                    ],
+                )
+        }
+        _ => false,
+    }
+}
+
+fn autosuggest_engineering_knowledge_search(text: &str, task: &Task) -> ParsedSkillRequest {
+    autosuggest_request(
+        "search_market_info",
+        serde_json::Value::Object(engineering_knowledge_search_input(text, task)),
+        "根据工程任务中的外部资料/benchmark/最佳实践需求自动追加外部市场资料搜索 skill",
+    )
+}
+
+fn engineering_knowledge_search_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = search_market_info_input(text, task);
+    input.insert(
+        "query".to_string(),
+        serde_json::json!(engineering_knowledge_search_query(text)),
+    );
+    input.insert("topic".to_string(), serde_json::json!("general"));
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_engineering_search_days(text, 90)),
+    );
+    input.insert("_needs_fresh_data".to_string(), serde_json::json!(true));
+    input
+}
+
+fn engineering_knowledge_search_query(text: &str) -> String {
+    if contains_any(
+        text,
+        &[
+            "bug",
+            "故障",
+            "报错",
+            "异常报错",
+            "排查",
+            "白屏",
+            "错误日志",
+        ],
+    ) {
+        return format!(
+            "{} {} 解决方案 排查 最佳实践 2026",
+            infer_bug_type(text),
+            infer_stack_hint(text)
+        );
+    }
+
+    if has_tech_selection_intent(text) {
+        return format!(
+            "{} 技术选型 对比 性能 benchmark 2026",
+            infer_tech_domain(text)
+        );
+    }
+
+    if contains_any(
+        text,
+        &[
+            "performance",
+            "性能",
+            "慢",
+            "卡",
+            "延迟",
+            "qps",
+            "吞吐",
+            "优化",
+        ],
+    ) {
+        return format!(
+            "{} {} 性能优化 benchmark 最佳实践 2026",
+            infer_stack_hint(text),
+            infer_perf_bottleneck(text)
+        );
+    }
+
+    format!(
+        "{} {} 架构 benchmark 最佳实践 2026",
+        infer_system_type(text),
+        infer_stack_hint(text)
+    )
+}
+
+fn infer_engineering_search_days(text: &str, default: i64) -> i64 {
+    infer_explicit_period_days(text).unwrap_or(default)
 }
 
 fn autosuggest_search(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
@@ -6778,6 +6951,79 @@ fn infer_period_days(text: &str) -> i64 {
         .unwrap_or(30)
 }
 
+fn infer_explicit_period_days(text: &str) -> Option<i64> {
+    for (start, ch) in text.char_indices() {
+        if !ch.is_ascii_digit() {
+            continue;
+        }
+        if start > 0
+            && text[..start]
+                .chars()
+                .last()
+                .is_some_and(|prev| prev.is_ascii_digit() || prev == '.')
+        {
+            continue;
+        }
+
+        let mut end = start + ch.len_utf8();
+        let suffix_start = end;
+        for (offset, next) in text[suffix_start..].char_indices() {
+            if next.is_ascii_digit() {
+                end = suffix_start + offset + next.len_utf8();
+                continue;
+            }
+            break;
+        }
+
+        let Ok(value) = text[start..end].parse::<i64>() else {
+            continue;
+        };
+        if !(1..=365).contains(&value) {
+            continue;
+        }
+
+        let unit_tail = text[end..].trim_start();
+        let Some(multiplier) = explicit_period_multiplier(unit_tail) else {
+            continue;
+        };
+
+        let before = text[..start]
+            .chars()
+            .rev()
+            .take(10)
+            .collect::<Vec<_>>()
+            .into_iter()
+            .rev()
+            .collect::<String>();
+        if contains_any(
+            &before,
+            &["最近", "近", "过去", "天内", "日内", "周内", "月内"],
+        ) || unit_tail.starts_with("天内")
+            || unit_tail.starts_with("日内")
+            || unit_tail.starts_with("周内")
+            || unit_tail.starts_with("月内")
+        {
+            return Some((value * multiplier).clamp(1, 365));
+        }
+    }
+    None
+}
+
+fn explicit_period_multiplier(unit_tail: &str) -> Option<i64> {
+    let lower = unit_tail.to_ascii_lowercase();
+    if unit_tail.starts_with('天') || unit_tail.starts_with('日') || lower.starts_with("day") {
+        Some(1)
+    } else if unit_tail.starts_with('周') || lower.starts_with("week") {
+        Some(7)
+    } else if unit_tail.starts_with('月') || lower.starts_with("month") {
+        Some(30)
+    } else if unit_tail.starts_with('年') || lower.starts_with("year") {
+        Some(365)
+    } else {
+        None
+    }
+}
+
 fn infer_integer_or_default(text: &str, default: i64) -> i64 {
     numbers_in_text(text)
         .first()
@@ -6896,10 +7142,10 @@ fn infer_stack_hint(text: &str) -> String {
 }
 
 fn infer_tech_domain(text: &str) -> &'static str {
-    if contains_any(text, &["database", "数据库", "mysql", "postgres"]) {
-        "数据库"
-    } else if contains_any(text, &["queue", "mq", "消息队列"]) {
+    if contains_any(text, &["queue", "mq", "消息队列"]) {
         "消息队列"
+    } else if contains_any(text, &["database", "数据库", "mysql", "postgres"]) {
+        "数据库"
     } else if contains_any(text, &["cache", "缓存", "redis"]) {
         "缓存"
     } else if contains_any(text, &["search", "搜索", "elasticsearch"]) {
@@ -10983,6 +11229,68 @@ mod tests {
                 .as_deref()
                 .is_some_and(|reason| reason.contains("需审批"))
         );
+    }
+
+    #[test]
+    fn autosuggests_engineering_knowledge_search_chain_when_requested() {
+        let bug_requests = autosuggest_skill_requests(
+            &role("engineering"),
+            &task(
+                "最近支付接口频繁报错，帮我排查bug根因，并联网查已知解决方案和最佳实践，最多4条来源",
+            ),
+            "{}",
+        );
+
+        assert_eq!(bug_requests.len(), 2);
+        assert_eq!(bug_requests[0].skill_id, "engineering_bug_analysis");
+        assert_eq!(bug_requests[1].skill_id, "search_market_info");
+        assert_eq!(bug_requests[1].input["topic"], "general");
+        assert_eq!(bug_requests[1].input["days"], 90);
+        assert_eq!(bug_requests[1].input["max_results"], 4);
+        assert_eq!(bug_requests[1].input["_needs_fresh_data"], true);
+        assert!(
+            bug_requests[1].input["query"]
+                .as_str()
+                .is_some_and(|query| query.contains("支付失败")
+                    && query.contains("解决方案")
+                    && query.contains("最佳实践"))
+        );
+
+        let tech_requests = autosuggest_skill_requests(
+            &role("engineering"),
+            &task(
+                "消息队列技术选型怎么做，团队现在主要是Rust和Postgres，查最新对比和性能benchmark，最多5条来源",
+            ),
+            "{}",
+        );
+
+        assert_eq!(tech_requests.len(), 2);
+        assert_eq!(tech_requests[0].skill_id, "engineering_tech_selection");
+        assert_eq!(tech_requests[1].skill_id, "search_market_info");
+        assert_eq!(tech_requests[1].input["days"], 90);
+        assert_eq!(tech_requests[1].input["max_results"], 5);
+        assert!(
+            tech_requests[1].input["query"]
+                .as_str()
+                .is_some_and(|query| query.contains("消息队列")
+                    && query.contains("技术选型")
+                    && query.contains("benchmark"))
+        );
+    }
+
+    #[test]
+    fn engineering_search_chain_preserves_native_without_external_intent() {
+        let cases = [
+            "最近支付接口频繁报错，帮我排查bug根因",
+            "消息队列技术选型怎么做，团队现在主要是Rust和Postgres",
+            "大促时接口延迟很高，想做性能优化，目标QPS 5000",
+        ];
+
+        for prompt in cases {
+            let requests = autosuggest_skill_requests(&role("engineering"), &task(prompt), "{}");
+            assert_eq!(requests.len(), 1, "{prompt}");
+            assert!(requests[0].skill_id.starts_with("engineering_"), "{prompt}");
+        }
     }
 
     #[test]

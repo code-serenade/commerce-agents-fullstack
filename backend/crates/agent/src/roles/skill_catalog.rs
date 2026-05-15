@@ -114,7 +114,7 @@ pub fn role_can_use_skill(runtime_role: &str, spec: &SkillSpec) -> bool {
                 || spec.id == "search_market_info"
                 || spec.id == "search_industry_benchmarks"
         }
-        "engineering" => spec.id == "coordination_status_query",
+        "engineering" => spec.id == "coordination_status_query" || spec.id == "search_market_info",
         _ => false,
     }
 }
@@ -215,6 +215,7 @@ mod tests {
         assert!(catalog.can_role_use_skill(&role("creative"), "web_title_seo_scorer"));
         assert!(catalog.can_role_use_skill(&role("creative"), "search_market_info"));
         assert!(catalog.can_role_use_skill(&role("design"), "search_trends"));
+        assert!(catalog.can_role_use_skill(&role("engineering"), "search_market_info"));
         assert!(catalog.can_role_use_skill(&role("engineering"), "engineering_system_check"));
         assert!(catalog.can_role_use_skill(&role("service"), "search_industry_benchmarks"));
     }

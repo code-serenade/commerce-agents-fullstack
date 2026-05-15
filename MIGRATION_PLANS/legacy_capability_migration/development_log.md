@@ -5688,3 +5688,47 @@
 
 - 真实搜索 provider 配置和部署仍是外部搜索能力的后续事项。
 - 前端可继续把 native + search 双 skill 链路展示为可折叠过程卡片和来源面板。
+
+## Post 8-123：工程岗位外部资料搜索链路
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 123 个补强项：`Post 8-123`。
+
+本次目标：
+
+- 把旧产品工程岗位 Bug 排查和技术选型中隐藏的外部搜索能力，迁成新产品可见、可审计、可降级的 skill 链路。
+- 让 Bug 排查、技术选型、性能优化和架构评估在用户明确要求外部资料 / 已知解决方案 / 最佳实践 / 最新对比 / 性能 benchmark 时，先跑 engineering native skill，再追加 `search_market_info(topic=general)`。
+
+涉及范围：
+
+- 产品内核：工程岗位从“只生成工程报告”增强为“native 工程分析 + 可见外部技术资料检索”的双 skill 链路。
+- 后端 Agent：新增 `autosuggest_engineering_requests` 链式编排；普通工程任务仍只触发 native skill。
+- 搜索参数：工程资料搜索默认 `days=90`，并支持解析“最多4条来源”等自然语言限制。
+- SSE/API 文档：同步说明 engineering 外部资料双 skill 链路。
+- 迁移归档：新增 Post 8-123 独立归档和后端设计文档。
+
+用户可感知变化：
+
+- 用户要求“支付接口频繁报错，并联网查已知解决方案和最佳实践”时，过程区会看到 Bug 排查和外部资料搜索两个步骤。
+- 用户要求“消息队列技术选型，并查最新性能 benchmark”时，过程区会看到技术选型和外部资料搜索两个步骤。
+- 用户没有明确外部资料诉求时，普通 Bug 排查 / 技术选型 / 性能优化仍只走 native skill。
+- 搜索 provider 没配置或无可信来源时，后端仍会明确降级，不伪造 benchmark、社区案例或技术对比。
+
+当前验证：
+
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent engineering`
+- [x] `cargo test -p agent search`
+- [x] `cargo test -p agent keeps_roles_from_requesting_unowned_skills`
+- [x] `cargo check -p agent -p web-server`
+- [x] `cargo clippy -p agent -p web-server`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 真实搜索 provider 配置和部署仍是外部搜索能力的后续事项。
+- 工程平台健康检查里的真实平台 API 连通性仍需按审批和平台 adapter 后续闭环，不在本轮伪造执行。

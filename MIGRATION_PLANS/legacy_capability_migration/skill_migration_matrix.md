@@ -155,12 +155,14 @@ Post 8-121 补充：财务岗位在财务健康诊断、P&L、GMV利润瀑布或
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
 | --- | --- | --- | --- | --- |
-| `engineering_arch_review` | `engineering_arch_review` | native_ready | `backend/crates/agent/src/skills/engineering.rs` | Post 8-42：已迁为 Rust native 架构评估报告；成功输出会沉淀为 `engineering_arch_review_report` artifact；真实代码仓库/日志/APM 读取仍待 adapter |
-| `engineering_bug_analysis` | `engineering_bug_analysis` | native_ready | `backend/crates/agent/src/skills/engineering.rs` | Post 8-42：已迁为 Rust native Bug 排查方案；成功输出会沉淀为 `engineering_bug_analysis_report` artifact；真实日志和 trace 读取仍待 adapter |
-| `engineering_perf_optimize` | `engineering_perf_optimize` | native_ready | `backend/crates/agent/src/skills/engineering.rs` | Post 8-42：已迁为 Rust native 性能优化方案；成功输出会沉淀为 `engineering_perf_plan` artifact；真实压测/APM 指标读取仍待 adapter |
-| `engineering_tech_selection` | `engineering_tech_selection` | native_ready | `backend/crates/agent/src/skills/engineering.rs` | Post 8-42：已迁为 Rust native 技术选型报告；成功输出会沉淀为 `engineering_tech_selection_report` artifact；实时 benchmark / 外部资料仍待 search adapter |
+| `engineering_arch_review` | `engineering_arch_review` | native_ready | `backend/crates/agent/src/skills/engineering.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | Post 8-42：已迁为 Rust native 架构评估报告；成功输出会沉淀为 `engineering_arch_review_report` artifact；Post 8-123：用户明确要求 benchmark / 最佳实践 / 公开资料时，会追加可见 `search_market_info`；真实代码仓库/日志/APM 读取仍待 adapter |
+| `engineering_bug_analysis` | `engineering_bug_analysis` | native_ready | `backend/crates/agent/src/skills/engineering.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | Post 8-42：已迁为 Rust native Bug 排查方案；成功输出会沉淀为 `engineering_bug_analysis_report` artifact；Post 8-123：用户明确要求已知解决方案 / 最佳实践 / 联网 / 搜索时，会追加可见 `search_market_info`；真实日志和 trace 读取仍待 adapter |
+| `engineering_perf_optimize` | `engineering_perf_optimize` | native_ready | `backend/crates/agent/src/skills/engineering.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | Post 8-42：已迁为 Rust native 性能优化方案；成功输出会沉淀为 `engineering_perf_plan` artifact；Post 8-123：用户明确要求 benchmark / 性能资料 / 最佳实践 / 公开资料时，会追加可见 `search_market_info`；真实压测/APM 指标读取仍待 adapter |
+| `engineering_tech_selection` | `engineering_tech_selection` | native_ready | `backend/crates/agent/src/skills/engineering.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | Post 8-42：已迁为 Rust native 技术选型报告；成功输出会沉淀为 `engineering_tech_selection_report` artifact；Post 8-123：用户明确要求最新对比 / 性能 benchmark / 公开资料时，会追加可见 `search_market_info` |
 | `engineering_system_check` | `engineering_system_check` | approval_required | `backend/crates/agent/src/skills/engineering.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | Post 8-69：已补平台 API 连通性 / 接口健康 / 授权 / 同步状态自然触达；真实测试连接时返回 `pending_approval`、`execution_mode=adapter`、`risk_level=high`，不伪造平台健康检查结果；真实平台配置读取和官方 adapter 仍待实现 |
 | `engineering_sla_monitor` | `engineering_sla_monitor` | native_ready | `backend/crates/agent/src/skills/engineering.rs` | 已纳入岗位自动补偿规则；Post 8-42：补齐统一输出契约并沉淀为 `engineering_sla_report` artifact，缺监控输入时明示 `calculated_from_defaults` |
+
+Post 8-123 补充：工程岗位在 Bug 排查、技术选型、性能优化或架构评估中，如果用户同时要求联网 / 搜索 / 公开资料 / 已知解决方案 / 最佳实践 / 最新对比 / 性能 benchmark，会生成可见 skill 链路：先运行对应 engineering native skill，再追加 `search_market_info(topic=general)`。普通工程任务没有外部资料诉求时仍只进入 native skill；搜索 provider 未配置或失败时按统一搜索降级，不伪造 benchmark、社区案例或技术对比。
 
 ## 网站增长 web
 
