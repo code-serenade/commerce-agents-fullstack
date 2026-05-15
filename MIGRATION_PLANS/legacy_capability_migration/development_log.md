@@ -1,5 +1,45 @@
 # 迁移开发记录
 
+## Post 8-130：问答上下文引用明细
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 130 个补强项：`Post 8-130`。
+
+本次目标：
+
+- 在 Post 8-129 的消息级上下文摘要基础上，继续让用户能查看本轮真实引用的商品和资料明细。
+- 保持默认界面清爽，避免把引用明细一直铺开挤占正文空间。
+
+涉及范围：
+
+- 前端消息模型：`contextSummary` 增加 `products` 和 `sources` 引用明细。
+- 发送链路：新发送消息保留当前已选商品名、品牌、平台、品类、状态和资料标题。
+- 历史链路：历史消息如果后端只保存 ID/ref，则只展示 ID/ref，不编造商品名或资料名。
+- 线程 UI：消息上下文摘要拆成独立 `MessageContextSummary` 组件，明细默认折叠，可手动展开。
+
+用户可感知变化：
+
+- 用户能在每条提问下面确认本轮是否未选商品。
+- 如果本轮选了商品，可以展开查看具体引用了哪些商品。
+- 如果本轮引用资料，可以展开查看具体引用了哪些会话资料。
+- 默认对话流仍保持紧凑，不把引用明细一直铺开。
+
+验证：
+
+- [x] `pnpm -C apps/web test`
+- [x] `pnpm -C apps/web lint`
+- [x] `pnpm -C apps/web build`
+- [x] `pnpm -C apps/web rules`
+- [x] `pnpm rules`
+
+归档：
+
+- [x] `MIGRATION_PLANS/legacy_capability_migration/post_phase_8_130_frontend_context_reference_details.md`
+
 ## Post 8-129：问答消息级后端上下文摘要
 
 状态：done

@@ -1107,6 +1107,9 @@ const messages = {
         strategy: "策略：{{strategy}}",
         roles: "岗位：{{role}} / {{count}} 个",
         model: "模型：{{model}}",
+        details: "引用明细",
+        productDetails: "引用商品",
+        sourceDetails: "引用资料",
       },
       actions: {
         copy: "复制",

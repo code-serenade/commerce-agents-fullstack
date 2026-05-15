@@ -61,7 +61,12 @@ export async function sendAgentChatMessage(
     learningLevel: strategyMeta.learningLevel,
     modelName: strategyMeta.modelName,
     primaryRole: strategyMeta.primaryRole,
+    products: input.selectedProducts,
     selectedRoles: strategyMeta.selectedRoles,
+    sources: input.selectedSources.map((source) => ({
+      ref: source.ref,
+      title: source.title,
+    })),
     strategyId: strategyMeta.strategyId,
   })
   input.setInput("")

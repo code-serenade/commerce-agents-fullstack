@@ -1,6 +1,20 @@
 import type { AgentChatMessageContextSummary } from "../types"
 import { isAgentChatStrategyId } from "./agent-chat-strategy"
 
+export interface MessageContextSummaryProductInput {
+  brand?: string | null
+  category?: string | null
+  id: string
+  name?: string | null
+  platform?: string | null
+  status?: string | null
+}
+
+export interface MessageContextSummarySourceInput {
+  ref: string
+  title?: string | null
+}
+
 export function createMessageContextSummary(input: {
   collaborationMode?: string
   contextRefs: string[]
@@ -8,7 +22,9 @@ export function createMessageContextSummary(input: {
   modelName?: string
   primaryRole?: string
   productIds: string[]
+  products?: MessageContextSummaryProductInput[]
   selectedRoles?: string[]
+  sources?: MessageContextSummarySourceInput[]
   strategyId?: string
 }): AgentChatMessageContextSummary | undefined {
   const productIds = uniqueStrings([
@@ -21,14 +37,31 @@ export function createMessageContextSummary(input: {
     input.contextRefs.filter((ref) => ref.startsWith("conversation_file:"))
   )
   const selectedRoles = uniqueStrings(input.selectedRoles ?? [])
+  const products = productIds.map((id) => {
+    const product = input.products?.find((item) => item.id === id)
+    return {
+      id,
+      ...(product?.name ? { label: product.name } : {}),
+      ...getProductSecondary(product),
+    }
+  })
+  const sources = sourceRefs.map((ref) => {
+    const source = input.sources?.find((item) => item.ref === ref)
+    return {
+      id: ref,
+      ...(source?.title ? { label: source.title } : {}),
+    }
+  })
   const strategyId =
     input.strategyId && isAgentChatStrategyId(input.strategyId)
       ? input.strategyId
       : undefined
   const summary: AgentChatMessageContextSummary = {
     productIds,
+    products,
     selectedRoles,
     sourceRefs,
+    sources,
   }
 
   if (strategyId) summary.strategyId = strategyId
@@ -84,6 +117,20 @@ function uniqueStrings(values: string[]) {
     if (normalized && !result.includes(normalized)) result.push(normalized)
   })
   return result
+}
+
+function getProductSecondary(
+  product: MessageContextSummaryProductInput | undefined
+) {
+  if (!product) return {}
+  const secondary = uniqueStrings([
+    product.brand ?? "",
+    product.platform ?? "",
+    product.category ?? "",
+    product.status ?? "",
+  ]).join(" / ")
+
+  return secondary ? { secondary } : {}
 }
 
 function summaryHasContent(summary: AgentChatMessageContextSummary) {

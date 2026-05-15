@@ -4,12 +4,12 @@ import { useTranslation } from "react-i18next"
 import type { AgentRuntimeEvent } from "@/api"
 import type { AgentChatMessage } from "../types"
 import { InlineSwarmTaskCard } from "./inline-swarm-task-card"
+import { MessageContextSummary } from "./message-context-summary"
 import { isChatOnlyRuntime } from "../view-model/thread-inline-view-model"
 import {
   AgentProgressCard,
   StrategyStatusPill,
   MessageActions,
-  MessageContextSummary,
   WelcomeCard,
 } from "./thread-message-blocks"
 import type { AgentChatStrategy } from "../domain/agent-chat-strategy"

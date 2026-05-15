@@ -214,8 +214,10 @@ describe("agent chat message mapping", () => {
       modelName: "ollama-gpt-oss-20b",
       primaryRole: "data",
       productIds: ["product-a"],
+      products: [{ id: "product-a" }],
       selectedRoles: ["data", "creative"],
       sourceRefs: [fileRef],
+      sources: [{ id: fileRef }],
       strategyId: "collab",
     }
 

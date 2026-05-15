@@ -1116,6 +1116,9 @@ const messages = {
         strategy: "Strategy: {{strategy}}",
         roles: "Role: {{role}} / {{count}}",
         model: "Model: {{model}}",
+        details: "Context details",
+        productDetails: "Referenced products",
+        sourceDetails: "Referenced files",
       },
       actions: {
         copy: "Copy",
