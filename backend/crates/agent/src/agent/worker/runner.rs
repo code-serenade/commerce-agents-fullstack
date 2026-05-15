@@ -833,11 +833,7 @@ fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
 
     Some(autosuggest_request(
         "ops_execution_plan",
-        serde_json::json!({
-            "goal": compact_task_text(&task.description),
-            "stage": infer_stage(text),
-            "product_ref": selected_product_ref(task),
-        }),
+        serde_json::Value::Object(infer_execution_plan_input(text, task)),
         "根据运营岗位任务自动补偿执行计划 skill",
     ))
 }
@@ -3164,6 +3160,22 @@ fn infer_promo_planning_input(
         "platform".to_string(),
         serde_json::json!(selected_product_platform_or_infer(task, text)),
     );
+    input
+}
+
+fn infer_execution_plan_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    input.insert(
+        "goal".to_string(),
+        serde_json::json!(compact_task_text(&task.description)),
+    );
+    input.insert("stage".to_string(), serde_json::json!(infer_stage(text)));
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
     input
 }
 
@@ -6070,6 +6082,7 @@ mod tests {
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].skill_id, "ops_execution_plan");
         assert_eq!(requests[0].input["stage"], "冷启动");
+        assert!(requests[0].input.get("product_ref").is_none());
     }
 
     #[test]
@@ -6347,6 +6360,41 @@ mod tests {
         assert!(requests[0].input.get("product_ref").is_none());
         assert_eq!(requests[0].input["avg_daily_demand"], 120.0);
         assert_eq!(requests[0].input["lead_time_days"], 7);
+    }
+
+    #[test]
+    fn selected_product_context_feeds_execution_plan_ref() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task_with_metadata(
+                "给这个商品做新品冷启动运营执行计划",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_execution_plan");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["stage"], "冷启动");
+    }
+
+    #[test]
+    fn execution_plan_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task("帮冷萃咖啡做新品冷启动运营执行计划"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_execution_plan");
+        assert!(requests[0].input.get("product_ref").is_none());
+        assert_eq!(requests[0].input["stage"], "冷启动");
     }
 
     #[test]

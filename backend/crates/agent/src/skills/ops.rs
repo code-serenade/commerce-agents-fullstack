@@ -605,11 +605,13 @@ fn assortment_planning(input: &Value) -> Value {
 fn execution_plan(input: &Value) -> Value {
     let goal = string(input, "goal", "提升GMV");
     let stage = string(input, "stage", "成长期");
+    let product_ref = string(input, "product_ref", "");
     json!({
         "has_data": true,
         "数据来源": "用户输入 + 确定性执行框架",
         "目标": goal,
         "阶段": stage,
+        "商品引用": if product_ref.is_empty() { Value::Null } else { json!(product_ref) },
         "30天执行计划": [
             {"周期": "第1周", "主题": "诊断与基线", "行动": ["确认GMV/转化/ROI基线", "梳理主推SKU和库存", "搭建日更看板"], "交付物": "基线表+问题清单"},
             {"周期": "第2周", "主题": "素材与流量测试", "行动": ["上线3组价格/利益点测试", "投放小预算渠道实验", "优化标题和详情首屏"], "交付物": "测试结论+预算调整表"},
@@ -1541,6 +1543,30 @@ mod tests {
             output.get("data_readiness").and_then(Value::as_str),
             Some("user_provided")
         );
+        assert!(output.get("30天执行计划").is_some());
+    }
+
+    #[tokio::test]
+    async fn ops_execution_plan_echoes_product_ref() {
+        let outcome = execute(
+            "ops_execution_plan",
+            json!({
+                "goal": "提升五一咖啡组合首月GMV",
+                "stage": "冷启动",
+                "product_ref": "product:11111111-1111-1111-1111-111111111111"
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops execution should echo product_ref");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "运营执行计划已生成");
+        assert_eq!(
+            output.get("商品引用").and_then(Value::as_str),
+            Some("product:11111111-1111-1111-1111-111111111111")
+        );
+        assert_eq!(output.get("阶段").and_then(Value::as_str), Some("冷启动"));
         assert!(output.get("30天执行计划").is_some());
     }
 

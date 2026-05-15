@@ -236,24 +236,23 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-101: ops pricing strategy product_ref contract
+Post 8-102: ops execution plan product_ref contract
 ```
 
 Scope:
 
-- add `product_ref=product:{uuid}` to `ops_pricing_strategy`
-- echo the selected product reference in successful pricing strategy output
-- route price / pricing / cost / 定价 / 价格 / 售价 / 成本 phrasing to structured `ops_pricing_strategy` input
-- parse explicit labeled cost and competitor prices from the current text before falling back to number order
+- echo `product_ref=product:{uuid}` in successful `ops_execution_plan` output as `商品引用`
+- route the ops worker fallback execution-plan autosuggest through structured input construction
 - let ops worker autosuggest pass selected product refs only from explicit `context.selected_summary`
-- keep pricing strategy based on user input plus deterministic pricing rules rather than fake platform, ERP, WMS, supply-chain, or live competitor price data
+- avoid writing empty or null `product_ref` when no product is selected
+- keep execution planning based on user input plus deterministic execution framework rather than fake platform, ERP, WMS, supply-chain, or live platform data
 
 Reason:
 
-- pricing strategy is a high-frequency old-product operations capability and needs to preserve selected-product provenance
-- selected-product and unspecified pricing strategy must stay separate
-- user phrasing often mixes cost and competitor prices, so explicit labels should take priority over raw number order
-- real Taobao, Douyin, Qianchuan, ERP, WMS, supply-chain, platform price, supplier quote, and live competitor price data remain adapter/service/search concerns and must not be faked
+- execution plan is the ops fallback capability and must preserve selected-product provenance when a user manually selects a product
+- selected-product and unspecified execution planning must stay separate
+- the frontend can use `skill_result.output.商品引用` to distinguish product-bound plans from generic ops plans
+- real Taobao, Douyin, Qianchuan, ERP, WMS, supply-chain, platform action, and live platform data remain adapter/service/search concerns and must not be faked
 
 ## 10. Validation Standard
 

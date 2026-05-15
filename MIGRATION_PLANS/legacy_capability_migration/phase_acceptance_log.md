@@ -2,6 +2,26 @@
 
 # 阶段验收记录
 
+## Post 8-102：运营执行计划 product_ref 契约
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent：`ops_execution_plan` 成功输出回显 `商品引用`。
+- [x] Worker autosuggest：运营岗位兜底执行计划使用结构化 input。
+- [x] Worker autosuggest：本轮显式选品时执行计划 input 携带 `product_ref`。
+- [x] Worker autosuggest：未选商品时不写空 `product_ref`。
+- [x] API：`API_DOCS/sse.md` 已同步执行计划 product_ref 契约。
+- [x] 前端：本轮不新增假入口。
+
+当前说明：
+
+- 本阶段解决的是“运营执行计划已可 native 执行，但商品引用回显和未选商品空引用控制不完整”的问题。
+- 本阶段只使用用户本轮显式输入的商品选择和运营目标；未选商品时不会从历史摘要、预设商品或测试商品补默认引用。
+- 本阶段不读取或伪造淘宝、抖音、千川、ERP、WMS、供应链或实时平台数据。
+
 ## Post 8-101：定价策略 product_ref 契约
 
 状态：done
