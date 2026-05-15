@@ -473,6 +473,9 @@ fn autosuggest_skill_requests(
     output: &str,
 ) -> Vec<ParsedSkillRequest> {
     let text = autosuggest_text(task, output);
+    if role.runtime_role == "ops" {
+        return autosuggest_ops_requests(&text, task);
+    }
     if role.runtime_role == "service" {
         return autosuggest_service_requests(&text, task);
     }
@@ -559,7 +562,31 @@ fn autosuggest_chat(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
     None
 }
 
+fn autosuggest_ops_requests(text: &str, task: &Task) -> Vec<ParsedSkillRequest> {
+    if let Some(primary) = autosuggest_ops_native(text, task) {
+        if is_ops_search_chain_intent(text, &primary.skill_id) {
+            let search = autosuggest_ops_search(text, task, &primary.skill_id);
+            return vec![primary, search];
+        }
+        return vec![primary];
+    }
+
+    if let Some(request) = autosuggest_search(text, task) {
+        return vec![request];
+    }
+
+    vec![autosuggest_request(
+        "ops_execution_plan",
+        serde_json::Value::Object(infer_execution_plan_input(text, task)),
+        "根据运营岗位任务自动补偿执行计划 skill",
+    )]
+}
+
 fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
+    autosuggest_ops_requests(text, task).into_iter().next()
+}
+
+fn autosuggest_ops_native(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     if contains_any(
         text,
         &[
@@ -835,19 +862,301 @@ fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         }
     }
 
-    if let Some(request) = autosuggest_search(text, task) {
-        return Some(request);
-    }
-
     if let Some(request) = autosuggest_query_store_metrics(text, false) {
         return Some(request);
     }
 
-    Some(autosuggest_request(
-        "ops_execution_plan",
-        serde_json::Value::Object(infer_execution_plan_input(text, task)),
-        "根据运营岗位任务自动补偿执行计划 skill",
-    ))
+    None
+}
+
+fn is_ops_search_chain_intent(text: &str, native_skill_id: &str) -> bool {
+    match native_skill_id {
+        "ops_pricing_strategy" | "ops_smart_pricing" => {
+            has_external_search_intent(text)
+                || contains_any(
+                    text,
+                    &[
+                        "市场定价",
+                        "竞品价格区间",
+                        "实时价格",
+                        "最新价格",
+                        "最新竞品价",
+                        "当前竞品价",
+                        "公开竞品价",
+                    ],
+                )
+        }
+        "ops_promo_planning" => {
+            has_external_search_intent(text)
+                || contains_any(
+                    text,
+                    &[
+                        "大促规则",
+                        "报名规则",
+                        "平台活动规则",
+                        "活动节点",
+                        "营销节点",
+                        "热门玩法",
+                        "促销玩法",
+                        "平台玩法",
+                    ],
+                )
+        }
+        "ops_channel_strategy" => {
+            has_external_search_intent(text)
+                || contains_any(
+                    text,
+                    &[
+                        "渠道趋势",
+                        "流量趋势",
+                        "获客成本",
+                        "投放趋势",
+                        "平台流量",
+                        "渠道基准",
+                        "ROI基准",
+                        "roi基准",
+                    ],
+                )
+        }
+        "ops_assortment_planning" => {
+            has_external_search_intent(text)
+                || contains_any(
+                    text,
+                    &[
+                        "品类趋势",
+                        "选品趋势",
+                        "热卖趋势",
+                        "爆款趋势",
+                        "蓝海品类",
+                        "市场机会",
+                    ],
+                )
+        }
+        _ => false,
+    }
+}
+
+fn autosuggest_ops_search(text: &str, task: &Task, native_skill_id: &str) -> ParsedSkillRequest {
+    match native_skill_id {
+        "ops_pricing_strategy" | "ops_smart_pricing" => autosuggest_request(
+            "search_competitor",
+            serde_json::Value::Object(ops_competitor_price_search_input(text, task)),
+            "根据运营定价中的实时竞品价/市场定价需求自动追加外部竞品搜索 skill",
+        ),
+        "ops_promo_planning" if is_ops_platform_policy_search_intent(text) => autosuggest_request(
+            "search_platform_policy",
+            serde_json::Value::Object(ops_promotion_policy_search_input(text, task)),
+            "根据运营促销中的平台活动规则/报名规则需求自动追加平台政策搜索 skill",
+        ),
+        "ops_promo_planning" => autosuggest_request(
+            "search_market_info",
+            serde_json::Value::Object(ops_promotion_market_search_input(text, task)),
+            "根据运营促销中的最新活动节点/热门玩法需求自动追加外部市场搜索 skill",
+        ),
+        "ops_channel_strategy" if is_industry_benchmark_search_intent(text) => autosuggest_request(
+            "search_industry_benchmarks",
+            serde_json::Value::Object(ops_channel_benchmark_search_input(text, task)),
+            "根据运营渠道策略中的行业投放基准需求自动追加行业基准搜索 skill",
+        ),
+        "ops_channel_strategy" => autosuggest_request(
+            "search_market_info",
+            serde_json::Value::Object(ops_channel_market_search_input(text, task)),
+            "根据运营渠道策略中的实时渠道/流量趋势需求自动追加外部市场搜索 skill",
+        ),
+        "ops_assortment_planning" => autosuggest_request(
+            "search_trends",
+            serde_json::Value::Object(ops_assortment_trend_search_input(text, task)),
+            "根据运营选品/货盘中的实时品类趋势需求自动追加外部趋势搜索 skill",
+        ),
+        _ => autosuggest_request(
+            "search_market_info",
+            serde_json::Value::Object(ops_market_search_input(text, task)),
+            "根据运营实时资料需求自动追加外部市场搜索 skill",
+        ),
+    }
+}
+
+fn is_ops_platform_policy_search_intent(text: &str) -> bool {
+    contains_any(
+        text,
+        &[
+            "平台规则",
+            "平台政策",
+            "平台活动规则",
+            "大促规则",
+            "报名规则",
+            "活动规则",
+            "活动政策",
+            "平台公告",
+            "佣金",
+            "费率",
+        ],
+    )
+}
+
+fn ops_competitor_price_search_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = search_competitor_input(text, task);
+    input.insert(
+        "query".to_string(),
+        serde_json::json!(ops_search_subject(text, task)),
+    );
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(selected_product_platform_or_infer(task, text)),
+    );
+    input.insert("focus".to_string(), serde_json::json!("price"));
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_ops_search_days(text, 14)),
+    );
+    input.insert("_needs_fresh_data".to_string(), serde_json::json!(true));
+    input
+}
+
+fn ops_promotion_policy_search_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = search_platform_policy_input(text, task);
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(selected_product_platform_or_infer(task, text)),
+    );
+    input.insert("policy_type".to_string(), serde_json::json!("promotion"));
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_ops_search_days(text, 30)),
+    );
+    input.insert("_needs_fresh_data".to_string(), serde_json::json!(true));
+    input
+}
+
+fn ops_promotion_market_search_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = search_market_info_input(text, task);
+    input.insert(
+        "query".to_string(),
+        serde_json::json!(format!(
+            "{} {} 促销活动 热门玩法 活动节点 2026",
+            selected_product_platform_or_infer(task, text),
+            ops_search_subject(text, task)
+        )),
+    );
+    input.insert("topic".to_string(), serde_json::json!("news"));
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_ops_search_days(text, 30)),
+    );
+    input.insert("_needs_fresh_data".to_string(), serde_json::json!(true));
+    input
+}
+
+fn ops_channel_market_search_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = search_market_info_input(text, task);
+    input.insert(
+        "query".to_string(),
+        serde_json::json!(format!(
+            "{} {} 渠道趋势 流量趋势 获客成本 投放ROI 2026",
+            selected_product_platform_or_infer(task, text),
+            selected_product_category_or_infer(task, text)
+        )),
+    );
+    input.insert("topic".to_string(), serde_json::json!("general"));
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_ops_search_days(text, 30)),
+    );
+    input.insert("_needs_fresh_data".to_string(), serde_json::json!(true));
+    input
+}
+
+fn ops_channel_benchmark_search_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = search_industry_benchmarks_input(text, task);
+    input.insert(
+        "industry".to_string(),
+        serde_json::json!(selected_product_category_or_infer(task, text)),
+    );
+    input.insert("metric".to_string(), serde_json::json!("roi"));
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(selected_product_platform_or_infer(task, text)),
+    );
+    input.insert("_needs_fresh_data".to_string(), serde_json::json!(true));
+    input
+}
+
+fn ops_assortment_trend_search_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = search_trends_input(text, task);
+    input.insert(
+        "query".to_string(),
+        serde_json::json!(format!(
+            "{} {} 热卖趋势 爆款趋势 选品机会 2026",
+            selected_product_platform_or_infer(task, text),
+            selected_product_category_or_infer(task, text)
+        )),
+    );
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(selected_product_platform_or_infer(task, text)),
+    );
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_ops_search_days(text, 30)),
+    );
+    input.insert("_needs_fresh_data".to_string(), serde_json::json!(true));
+    input
+}
+
+fn ops_market_search_input(text: &str, task: &Task) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = search_market_info_input(text, task);
+    input.insert(
+        "query".to_string(),
+        serde_json::json!(format!(
+            "{} {} 电商运营 市场情报 2026",
+            selected_product_platform_or_infer(task, text),
+            ops_search_subject(text, task)
+        )),
+    );
+    input.insert("topic".to_string(), serde_json::json!("general"));
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_ops_search_days(text, 30)),
+    );
+    input.insert("_needs_fresh_data".to_string(), serde_json::json!(true));
+    input
+}
+
+fn ops_search_subject(text: &str, task: &Task) -> String {
+    first_selected_product(task)
+        .map(|product| product.name)
+        .unwrap_or_else(|| infer_search_query_for_task(text, task))
+}
+
+fn infer_ops_search_days(text: &str, default: i64) -> i64 {
+    if !numbers_in_text(text).is_empty()
+        && contains_any(
+            text,
+            &["最近", "近", "过去", "天内", "日内", "周内", "月内"],
+        )
+    {
+        infer_period_days(text)
+    } else {
+        default
+    }
 }
 
 fn autosuggest_data(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
@@ -7359,6 +7668,105 @@ mod tests {
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].skill_id, "ops_smart_pricing");
         assert!(requests[0].input.get("product_ref").is_none());
+    }
+
+    #[test]
+    fn autosuggests_ops_pricing_search_chain_when_realtime_requested() {
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task(
+                "给咖啡新品做智能定价：成本38，当前售价99，并联网查最新竞品价格区间，最多5条来源",
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 2);
+        assert_eq!(requests[0].skill_id, "ops_smart_pricing");
+        assert_eq!(requests[1].skill_id, "search_competitor");
+        assert_eq!(requests[1].input["focus"], "price");
+        assert_eq!(requests[1].input["platform"], "淘宝");
+        assert_eq!(requests[1].input["days"], 14);
+        assert_eq!(requests[1].input["max_results"], 5);
+        assert_eq!(requests[1].input["_needs_fresh_data"], true);
+        assert!(requests[1].input.get("product_ref").is_none());
+        assert!(requests[1].input.get("product_name").is_none());
+    }
+
+    #[test]
+    fn autosuggests_ops_promo_policy_search_chain_when_rules_requested() {
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task(
+                "给冷萃咖啡做618促销活动，活动预算2万，查抖音最新大促规则和报名规则，最多4条来源",
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 2);
+        assert_eq!(requests[0].skill_id, "ops_promo_planning");
+        assert_eq!(requests[0].input["budget"], 20000.0);
+        assert_eq!(requests[1].skill_id, "search_platform_policy");
+        assert_eq!(requests[1].input["platform"], "抖音");
+        assert_eq!(requests[1].input["policy_type"], "promotion");
+        assert_eq!(requests[1].input["max_results"], 4);
+        assert_eq!(requests[1].input["_needs_fresh_data"], true);
+    }
+
+    #[test]
+    fn autosuggests_ops_channel_and_assortment_search_chains() {
+        let channel_requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task("给咖啡新品做渠道分配和渠道策略，预算20000，查最新行业ROI基准"),
+            "{}",
+        );
+
+        assert_eq!(channel_requests.len(), 2);
+        assert_eq!(channel_requests[0].skill_id, "ops_channel_strategy");
+        assert_eq!(channel_requests[1].skill_id, "search_industry_benchmarks");
+        assert_eq!(channel_requests[1].input["metric"], "roi");
+        assert_eq!(channel_requests[1].input["industry"], "咖啡饮品");
+        assert_eq!(channel_requests[1].input["_needs_fresh_data"], true);
+
+        let assortment_requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task("做一份零食货盘和SKU组合规划，选品预算80000，联网查最近30天热卖趋势"),
+            "{}",
+        );
+
+        assert_eq!(assortment_requests.len(), 2);
+        assert_eq!(assortment_requests[0].skill_id, "ops_assortment_planning");
+        assert_eq!(assortment_requests[1].skill_id, "search_trends");
+        assert_eq!(assortment_requests[1].input["platform"], "淘宝");
+        assert_eq!(assortment_requests[1].input["days"], 30);
+        assert_eq!(assortment_requests[1].input["_needs_fresh_data"], true);
+    }
+
+    #[test]
+    fn ops_search_chain_keeps_selected_product_explicit() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task_with_metadata(
+                "给这个商品做定价策略：成本42，并联网查最新竞品价格区间",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 2);
+        assert_eq!(requests[0].skill_id, "ops_pricing_strategy");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[1].skill_id, "search_competitor");
+        assert_eq!(
+            requests[1].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[1].input["product_name"], "五一咖啡组合");
+        assert_eq!(requests[1].input["product_category"], "咖啡饮品");
+        assert_eq!(requests[1].input["platform"], "抖音");
     }
 
     #[test]

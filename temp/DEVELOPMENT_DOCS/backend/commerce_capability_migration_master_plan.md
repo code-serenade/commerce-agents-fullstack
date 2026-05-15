@@ -322,23 +322,25 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-106: explicit artifact context refs for Agent SSE
+Post 8-119: ops search chain
 ```
 
 Scope:
 
-- extend workspace context summary / pack requests with explicit `context_refs`
-- support `workspace_artifact:{artifactUuid}` and `artifact:{artifactUuid}` refs
-- pass SSE `metadata.context.contextRefs` into workspace context aggregation
-- validate current user, current workspace, and active artifact status before reuse
-- keep current-run-only default behavior when no artifact ref is explicitly selected
-- keep search evidence readable summary behavior from Post 8-105
+- make ops autosuggest produce visible native + search chains for realtime operations questions
+- keep ordinary ops questions on native skills only
+- map realtime pricing to `search_competitor(focus=price)`
+- map promotion rules to `search_platform_policy(policy_type=promotion)`
+- map promotion trends to `search_market_info(topic=news)`
+- map channel benchmarks to `search_industry_benchmarks(metric=roi)`
+- map assortment trends to `search_trends`
+- preserve explicit selected-product context only; never infer product context from history or defaults
 
 Reason:
 
-- external search has been raised in priority, but evidence must also be reusable in later Q&A turns
-- raw search JSON is too noisy for Agent context and front-end source preview
-- readable evidence summaries let the product preserve source traceability while improving follow-up answer quality
+- ops is the core e-commerce operator role and must not return static plans when the user explicitly asks for current market evidence
+- old-product hidden `_web_search` behavior should become visible and auditable in new-product SSE skill events
+- search provider failure must degrade transparently rather than producing fake realtime competitor prices, platform rules, or market trends
 - real Taobao, Douyin, Qianchuan, platform reviews, policy announcements, market data, and live external sources remain adapter/search concerns and must not be faked
 
 ## 10. Validation Standard

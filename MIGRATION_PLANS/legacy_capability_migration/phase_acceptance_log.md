@@ -2144,3 +2144,27 @@
 - 本阶段解决的是“skill 调用历史可查询、可审计”。
 - 本阶段不从 LLM 文本反推 skill input，`input` 预留为空对象，避免伪造参数。
 - 搜索证据 artifact、审批记录和告警仍按既有链路沉淀；后续前端可用 `requestId/skillId/runId` 做关联展示。
+
+## Post 8-119：运营岗位实时搜索链路
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent worker 新增 ops 岗位 native + search 双 skill 编排。
+- [x] 普通运营定价、促销、渠道、货盘规划任务仍只触发 native skill。
+- [x] 智能定价 / 定价策略在用户要求实时竞品价、市场定价或竞品价格区间时追加 `search_competitor(focus=price)`。
+- [x] 促销策划在用户要求平台活动规则、大促规则或报名规则时追加 `search_platform_policy(policy_type=promotion)`。
+- [x] 促销策划在用户要求热门玩法或营销节点时追加 `search_market_info(topic=news)`。
+- [x] 渠道策略在用户要求行业 ROI 基准时追加 `search_industry_benchmarks(metric=roi)`。
+- [x] 渠道策略在用户要求渠道趋势、流量趋势或获客成本时追加 `search_market_info(topic=general)`。
+- [x] 货盘 / 选品规划在用户要求热卖趋势、品类趋势或选品机会时追加 `search_trends`。
+- [x] 未显式选择商品时，不从历史摘要或默认演示商品注入 `product_ref/product_name/product_category`。
+- [x] API/SSE 文档已同步。
+
+当前说明：
+
+- 本阶段解决的是“运营岗位实时资料诉求可见化”，不是直接接通淘宝、抖音或其它官方平台。
+- 搜索 provider 未配置、失败或无可信来源时仍按搜索 skill 降级，不伪造 live 结果。
+- 前端后续应把该双 skill 链路展示为过程卡片和来源面板。

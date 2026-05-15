@@ -5512,3 +5512,47 @@
 
 - 还需要在工作区运行详情页接入 skill run 历史列表。
 - 还需要把 skill run 与搜索证据 artifact、审批记录、告警做前端关联展示。
+
+## Post 8-119：运营岗位实时搜索链路
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 119 个补强项：`Post 8-119`。
+
+本次目标：
+
+- 把旧产品运营 skill 内部依赖外部搜索的能力，迁成新产品可见、可审计、可降级的 skill 链路。
+- 让定价、智能调价、促销、渠道和货盘规划在用户明确要求实时资料时，先跑 ops native skill，再追加搜索类 skill。
+
+涉及范围：
+
+- 产品内核：运营岗位从“静态方案”增强为“native 方案 + 可见外部证据检索”的双 skill 链路。
+- 后端 Agent：新增 `autosuggest_ops_requests` 链式编排；普通运营任务仍只触发 native skill。
+- SSE/API 文档：同步说明 ops 双 skill 链路。
+- 迁移归档：新增 Post 8-119 独立归档和后端设计文档。
+
+用户可感知变化：
+
+- 用户要求“智能定价并联网查最新竞品价格区间”时，过程区会看到智能定价和竞品搜索两个步骤。
+- 用户要求“促销活动并查最新大促规则/报名规则”时，过程区会看到促销策划和平台规则搜索两个步骤。
+- 用户要求“渠道策略并查行业 ROI 基准”时，过程区会看到渠道策略和行业基准搜索两个步骤。
+- 用户要求“货盘规划并查热卖趋势”时，过程区会看到选品规划和趋势搜索两个步骤。
+- 搜索 provider 没配置或无可信来源时，后端仍会明确降级，不伪造实时市场资料。
+
+当前验证：
+
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent ops`
+- [x] `cargo test -p agent search`
+- [x] `cargo test -p agent keeps_roles_from_requesting_unowned_skills`
+- [x] `cargo check -p agent -p web-server`
+- [x] `cargo clippy -p agent -p web-server`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 真实搜索 provider 配置和部署仍是外部搜索能力的后续事项。
+- 前端可继续把 native + search 双 skill 链路展示为可折叠过程卡片和来源面板。

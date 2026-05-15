@@ -25,6 +25,8 @@
 | `ops_ad_fatigue_detector` | `ops_ad_fatigue_detector` | native_ready | `backend/crates/agent/src/skills/ops.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | 已可 native 执行；Post 8-36：成功输出会沉淀为 `ops_ad_fatigue_report` artifact，缺渠道数据时 deferred。Post 8-95：支持 `product_ref=product:{uuid}` 作为本轮显式选品引用，成功输出回显 `商品引用`；`广告疲劳/素材疲劳/CTR衰减/点击率衰减/曝光频次/ROAS健康` 自然问法可触达并解析本轮显式渠道 CTR 基准、近期 CTR、频次、预算和 ROAS，未选商品时不写空引用 |
 | `ops_abc_xyz_classifier` | `ops_abc_xyz_classifier` | native_ready | `backend/crates/agent/src/skills/ops.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | 已可 native 执行；Post 8-36：成功输出会沉淀为 `ops_abc_xyz_report` artifact，使用确定性演示 SKU 时明示 `calculated_from_defaults`。Post 8-96：支持 `product_ref=product:{uuid}` 作为本轮显式选品引用，成功输出回显 `商品引用`；`ABC-XYZ/ABC分类/XYZ分类/九宫格库存分类/SKU分层` 自然问法可触达并解析本轮显式 SKU GMV 和历史销量，未选商品时不写空引用 |
 
+Post 8-119 补充：运营岗位在定价策略、智能定价、促销策划、渠道策略或货盘/选品规划中，如果用户同时要求最新 / 实时 / 联网 / 搜索 / 公开资料 / 市场定价 / 竞品价格区间 / 平台活动规则 / 大促规则 / 渠道趋势 / 行业 ROI 基准 / 热卖趋势，会生成可见 skill 链路：先运行对应 ops native skill，再追加 `search_competitor`、`search_platform_policy`、`search_market_info`、`search_industry_benchmarks` 或 `search_trends`。定价链路搜索 `focus=price`；平台活动规则搜索 `policy_type=promotion`；渠道基准搜索 `metric=roi`。普通运营任务没有实时资料诉求时仍只进入 native skill；未显式选品时不注入默认商品。
+
 ## 数据 data
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
