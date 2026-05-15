@@ -4286,13 +4286,7 @@ fn context_pack_product_material_candidate(item: ProductMaterial) -> WorkspaceCo
 
 fn context_pack_artifact_candidate(item: WorkspaceArtifact) -> WorkspaceContextPackCandidate {
     let id = item.id.to_string();
-    let (content_kind, text) = match item.content.clone().and_then(normalize_string) {
-        Some(content) => ("content".to_string(), Some(content)),
-        None => match item.preview.clone().and_then(normalize_string) {
-            Some(preview) => ("preview".to_string(), Some(preview)),
-            None => ("unavailable".to_string(), None),
-        },
-    };
+    let (content_kind, text) = context_pack_artifact_text(&item);
     WorkspaceContextPackCandidate {
         source_type: "workspace_artifact".to_string(),
         id: id.clone(),
@@ -4321,6 +4315,214 @@ fn context_pack_artifact_candidate(item: WorkspaceArtifact) -> WorkspaceContextP
             "metadata": item.metadata,
         }),
     }
+}
+
+fn context_pack_artifact_text(item: &WorkspaceArtifact) -> (String, Option<String>) {
+    if item.artifact_type == "search_evidence"
+        && metadata_str_eq(&item.metadata, "kind", "agent_search_evidence")
+        && let Some(summary) = search_evidence_context_pack_text(item)
+    {
+        return ("search_evidence_summary".to_string(), Some(summary));
+    }
+    match item.content.clone().and_then(normalize_string) {
+        Some(content) => ("content".to_string(), Some(content)),
+        None => match item.preview.clone().and_then(normalize_string) {
+            Some(preview) => ("preview".to_string(), Some(preview)),
+            None => ("unavailable".to_string(), None),
+        },
+    }
+}
+
+fn search_evidence_context_pack_text(item: &WorkspaceArtifact) -> Option<String> {
+    let output = item
+        .content
+        .as_deref()
+        .and_then(|content| serde_json::from_str::<Value>(content).ok());
+    let output = output.as_ref();
+    let mut lines = Vec::new();
+    lines.push("Search evidence summary".to_string());
+    if let Some(query) = search_evidence_context_query(output, &item.metadata) {
+        lines.push(format!("Query: {}", compact_text(&query, 220)));
+    }
+    if let Some(product_line) = search_evidence_context_product_line(output, &item.metadata) {
+        lines.push(product_line);
+    }
+    if let Some(summary) = search_evidence_context_text_field(output, "/evidence/summary")
+        .or_else(|| search_evidence_context_text_field(output, "/evidence/llm_context"))
+    {
+        lines.push(format!("Evidence: {}", compact_text(&summary, 700)));
+    }
+    let confidence = search_evidence_context_f64(output, "/confidence")
+        .or_else(|| item.metadata.get("confidence").and_then(Value::as_f64));
+    let source_count = search_evidence_context_u64(output, "/provenance/source_count")
+        .or_else(|| item.metadata.get("sourceCount").and_then(Value::as_u64));
+    let domains = search_evidence_context_string_array(output, "/provenance/domains")
+        .or_else(|| {
+            item.metadata.get("domains").and_then(|value| {
+                value.as_array().map(|items| {
+                    items
+                        .iter()
+                        .filter_map(Value::as_str)
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>()
+                })
+            })
+        })
+        .unwrap_or_default();
+    let mut metrics = Vec::new();
+    if let Some(source_count) = source_count {
+        metrics.push(format!("sources={source_count}"));
+    }
+    if let Some(confidence) = confidence {
+        metrics.push(format!("confidence={confidence:.2}"));
+    }
+    if !domains.is_empty() {
+        metrics.push(format!("domains={}", domains.join(", ")));
+    }
+    if !metrics.is_empty() {
+        lines.push(format!("Metrics: {}", metrics.join("; ")));
+    }
+    let sources = search_evidence_context_sources(output);
+    for (index, source) in sources.iter().take(5).enumerate() {
+        let title = source
+            .get("title")
+            .and_then(Value::as_str)
+            .unwrap_or("Untitled source");
+        let domain = source
+            .get("domain")
+            .and_then(Value::as_str)
+            .or_else(|| source.get("url").and_then(Value::as_str))
+            .unwrap_or("-");
+        let url = source.get("url").and_then(Value::as_str).unwrap_or("-");
+        let snippet = source
+            .get("snippet")
+            .and_then(Value::as_str)
+            .map(|value| format!(" - {}", compact_text(value, 260)))
+            .unwrap_or_default();
+        lines.push(format!(
+            "Source {}: {} ({}) {}{}",
+            index + 1,
+            compact_text(title, 180),
+            compact_text(domain, 120),
+            compact_text(url, 240),
+            snippet
+        ));
+    }
+    if lines.len() > 1 {
+        return Some(lines.join("\n"));
+    }
+    item.preview.clone().and_then(normalize_string)
+}
+
+fn search_evidence_context_query(output: Option<&Value>, metadata: &Value) -> Option<String> {
+    search_evidence_context_text_field(output, "/query/planned")
+        .or_else(|| search_evidence_context_text_field(output, "/query/query"))
+        .or_else(|| search_evidence_context_text_field(output, "/query"))
+        .or_else(|| {
+            metadata
+                .get("query")
+                .and_then(Value::as_str)
+                .map(ToString::to_string)
+        })
+}
+
+fn search_evidence_context_product_line(
+    output: Option<&Value>,
+    metadata: &Value,
+) -> Option<String> {
+    let product_ref = search_evidence_context_text_field(output, "/query/product_ref")
+        .or_else(|| {
+            metadata
+                .pointer("/productContext/productRef")
+                .and_then(Value::as_str)
+                .map(ToString::to_string)
+        })
+        .or_else(|| {
+            metadata
+                .get("productRef")
+                .and_then(Value::as_str)
+                .map(ToString::to_string)
+        });
+    let product_name = search_evidence_context_text_field(output, "/query/product_name")
+        .or_else(|| {
+            metadata
+                .pointer("/productContext/productName")
+                .and_then(Value::as_str)
+                .map(ToString::to_string)
+        })
+        .or_else(|| {
+            metadata
+                .get("productName")
+                .and_then(Value::as_str)
+                .map(ToString::to_string)
+        });
+    let product_category = search_evidence_context_text_field(output, "/query/product_category")
+        .or_else(|| {
+            metadata
+                .pointer("/productContext/productCategory")
+                .and_then(Value::as_str)
+                .map(ToString::to_string)
+        })
+        .or_else(|| {
+            metadata
+                .get("productCategory")
+                .and_then(Value::as_str)
+                .map(ToString::to_string)
+        });
+    let parts = [product_name, product_category, product_ref]
+        .into_iter()
+        .flatten()
+        .filter_map(normalize_string)
+        .collect::<Vec<_>>();
+    (!parts.is_empty()).then(|| format!("Product: {}", compact_text(&parts.join(" / "), 220)))
+}
+
+fn search_evidence_context_text_field(output: Option<&Value>, pointer: &str) -> Option<String> {
+    output
+        .and_then(|value| value.pointer(pointer))
+        .and_then(Value::as_str)
+        .map(ToString::to_string)
+        .and_then(normalize_string)
+}
+
+fn search_evidence_context_f64(output: Option<&Value>, pointer: &str) -> Option<f64> {
+    output
+        .and_then(|value| value.pointer(pointer))
+        .and_then(Value::as_f64)
+}
+
+fn search_evidence_context_u64(output: Option<&Value>, pointer: &str) -> Option<u64> {
+    output
+        .and_then(|value| value.pointer(pointer))
+        .and_then(Value::as_u64)
+}
+
+fn search_evidence_context_string_array(
+    output: Option<&Value>,
+    pointer: &str,
+) -> Option<Vec<String>> {
+    output
+        .and_then(|value| value.pointer(pointer))
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(Value::as_str)
+                .filter_map(|value| normalize_string(value.to_string()))
+                .collect::<Vec<_>>()
+        })
+}
+
+fn search_evidence_context_sources(output: Option<&Value>) -> Vec<Value> {
+    output
+        .and_then(|value| {
+            value
+                .get("sources")
+                .or_else(|| value.pointer("/data/items"))
+                .and_then(Value::as_array)
+        })
+        .map(|items| items.iter().take(5).cloned().collect::<Vec<_>>())
+        .unwrap_or_default()
 }
 
 fn conversation_file_extracted_text(metadata: &Value) -> Option<String> {
@@ -7999,6 +8201,89 @@ mod tests {
                 "product_material:c".to_string(),
                 "workspace_artifact:d".to_string(),
             ]
+        );
+    }
+
+    #[test]
+    fn context_pack_search_evidence_uses_readable_summary() {
+        let mut artifact = test_artifact(WorkspaceArtifactDraft {
+            title: "Search evidence - 五一咖啡组合",
+            content: Some(
+                r#"{
+                    "status": "live",
+                    "query": {
+                        "planned": "五一咖啡组合 竞品",
+                        "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                        "product_name": "五一咖啡组合",
+                        "product_category": "咖啡饮品"
+                    },
+                    "sources": [
+                        {
+                            "title": "竞品价格观察",
+                            "url": "https://example.com/a",
+                            "domain": "example.com",
+                            "snippet": "同类组合装集中在 89-129 元。"
+                        }
+                    ],
+                    "provenance": {
+                        "source_count": 1,
+                        "domains": ["example.com"]
+                    },
+                    "confidence": 0.82,
+                    "evidence": {
+                        "summary": "共 1 条实时来源，覆盖 1 个域名。",
+                        "llm_context": "实时来源摘要"
+                    }
+                }"#,
+            ),
+            preview: Some("Query: 五一咖啡组合 竞品"),
+            format: "json",
+            storage_kind: "inline",
+            file_name: Some("search_evidence.json"),
+        });
+        artifact.artifact_type = "search_evidence".to_string();
+        artifact.metadata = json!({
+            "kind": "agent_search_evidence",
+            "sourceCount": 1,
+            "confidence": 0.82
+        });
+
+        let candidate = context_pack_artifact_candidate(artifact);
+
+        assert_eq!(candidate.content_kind, "search_evidence_summary");
+        let text = candidate
+            .text
+            .expect("search evidence summary should be readable");
+        assert!(text.contains("Search evidence summary"));
+        assert!(text.contains("Query: 五一咖啡组合 竞品"));
+        assert!(text.contains(
+            "Product: 五一咖啡组合 / 咖啡饮品 / product:11111111-1111-1111-1111-111111111111"
+        ));
+        assert!(text.contains("Evidence: 共 1 条实时来源"));
+        assert!(text.contains("Metrics: sources=1; confidence=0.82; domains=example.com"));
+        assert!(text.contains("Source 1: 竞品价格观察"));
+        assert!(!text.contains("\"sources\""));
+    }
+
+    #[test]
+    fn context_pack_search_evidence_falls_back_to_preview_when_json_invalid() {
+        let mut artifact = test_artifact(WorkspaceArtifactDraft {
+            title: "Search evidence - invalid".into(),
+            content: Some("{not json"),
+            preview: Some("Query: fallback preview\nSources: 1"),
+            format: "json",
+            storage_kind: "inline",
+            file_name: Some("search_evidence.json"),
+        });
+        artifact.artifact_type = "search_evidence".to_string();
+        artifact.metadata = json!({ "kind": "agent_search_evidence" });
+
+        let candidate = context_pack_artifact_candidate(artifact);
+
+        assert_eq!(candidate.content_kind, "search_evidence_summary");
+        assert_eq!(
+            candidate.text.as_deref(),
+            Some("Query: fallback preview\nSources: 1")
         );
     }
 

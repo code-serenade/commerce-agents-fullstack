@@ -2968,6 +2968,7 @@
 字段说明：
 
 - `contentKind=content` 表示来自商品素材或交付物正文。
+- `contentKind=search_evidence_summary` 表示来自 `artifactType=search_evidence` 的真实 live 搜索证据摘要；后端会从搜索 JSON 中整理 query、显式商品上下文、证据摘要、来源数量、置信度、域名和 Top sources，不会触发新搜索。
 - `contentKind=preview` 表示交付物只有预览文本可用。
 - `contentKind=description` 表示来自商品资产描述。
 - `contentKind=extracted_text` 表示会话附件 metadata 已经有可信抽取文本。

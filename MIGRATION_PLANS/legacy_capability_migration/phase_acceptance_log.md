@@ -2,6 +2,27 @@
 
 # 阶段验收记录
 
+## Post 8-105：搜索证据进入上下文内容包的可读摘要
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Service：`workspace_context_pack` 能识别 `search_evidence` artifact。
+- [x] Service：搜索证据进入内容包时使用 `contentKind=search_evidence_summary`。
+- [x] Service：摘要包含 query、显式商品上下文、evidence summary、source count、confidence、domains 和 Top sources。
+- [x] Service：JSON 解析失败时回退到 artifact preview。
+- [x] Service：不从 query 文本、历史或工作区摘要推断商品。
+- [x] API：`API_DOCS/app.md` 与 `API_DOCS/sse.md` 已同步。
+- [x] 前端：本轮不新增假入口。
+
+当前说明：
+
+- 本阶段解决的是“搜索证据可沉淀，但后续上下文复用时完整 JSON 太重、太吵”的问题。
+- 本阶段只整理已存在的真实 live 搜索证据，不触发新搜索，不访问外部 provider。
+- 本阶段让 Agent 连续追问更容易消费搜索证据，同时保留来源和降级边界。
+
 ## Post 8-104：搜索证据 Artifact 商品上下文沉淀
 
 状态：done

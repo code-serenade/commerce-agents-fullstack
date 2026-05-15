@@ -103,6 +103,7 @@ The following major foundations are already in place:
 - native `query_store_metrics` can now summarize explicit user-provided store metrics, clearly defer when store metrics are missing, and be reached from natural store-metric query language
 - search adapter skills can now be reached from natural external-search language while preserving live/degraded/deferred evidence boundaries
 - search evidence artifacts now preserve explicit selected-product context in metadata and preview when live `search_*` results are product-bound
+- search evidence artifacts now enter `workspace_context_pack` as readable evidence summaries instead of raw JSON
 - multiple native skill migrations across ops / data / service / creative / web / design / accounting
 - creative and design skill outputs can now materialize into reusable workspace artifacts when the skill result is successful
 - data dashboard is now a native deterministic skill with explicit manual-input vs store-metrics-required readiness
@@ -237,23 +238,23 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-104: search evidence product context
+Post 8-105: search evidence context pack summary
 ```
 
 Scope:
 
-- persist `output.query.product_ref/product_name/product_category` from live `search_*` results into `search_evidence` workspace artifact metadata
-- write nested `metadata.productContext.productRef/productName/productCategory`
-- also write top-level `metadata.productRef/productName/productCategory` for fast frontend list/history reads
-- add a `Product:` line to search evidence preview when explicit selected-product context exists
-- avoid writing empty product context when no product is selected
-- keep existing live-only artifact creation rules: degraded, deferred, unconfigured, failed, or source-less searches do not create fake evidence
+- detect `artifactType=search_evidence` with `metadata.kind=agent_search_evidence` inside `workspace_context_pack`
+- render readable `contentKind=search_evidence_summary` text for Agent reuse
+- include query, explicit product context, evidence summary, confidence, source count, domains, and Top sources
+- fall back to artifact preview when stored search JSON is invalid or not readable
+- avoid inferring product context from query text, history, or workspace summaries
+- keep existing live-only artifact creation rules unchanged
 
 Reason:
 
-- external search has been raised in priority, but the selected-product boundary must survive beyond the live SSE event
-- selected-product search and generic market search are different user paths and must remain distinguishable in workspace history
-- the frontend can use `artifact.metadata.productContext` to distinguish product-bound search evidence from ordinary search evidence after refresh
+- external search has been raised in priority, but evidence must also be reusable in later Q&A turns
+- raw search JSON is too noisy for Agent context and front-end source preview
+- readable evidence summaries let the product preserve source traceability while improving follow-up answer quality
 - real Taobao, Douyin, Qianchuan, platform reviews, policy announcements, market data, and live external sources remain adapter/search concerns and must not be faked
 
 ## 10. Validation Standard

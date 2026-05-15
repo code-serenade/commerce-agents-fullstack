@@ -67,6 +67,8 @@ Post 8-10 补充：上述 Agent `search_*` skill 已接入同一份 `[external_s
 
 Post 8-60 补充：App API 和 Agent `search_*` skill 均已回显 `bypassCache/query.bypass_cache`，兼容旧产品 `_needs_fresh_data` 实时性意图；live/degraded 输出均包含 `evidence` 结构，live 来源会去重并生成可供前端来源面板和 Agent 复用的证据摘要。
 
+Post 8-105 补充：`search_evidence` 工作区交付物进入 `workspace_context_pack` 时会生成 `contentKind=search_evidence_summary` 的可读摘要，包含 query、显式商品上下文、证据摘要、来源数量、置信度、域名和 Top sources；不会把完整搜索 JSON 直接塞进 Agent 上下文，也不会触发新搜索或推断默认商品。
+
 ## 平台执行 / 审批治理
 
 | 旧能力 | 新产品目标 ID | 状态 | 新落点 | 备注 |

@@ -1,5 +1,52 @@
 # 迁移开发记录
 
+## Post 8-105：搜索证据进入上下文内容包的可读摘要
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 105 个补强项：`Post 8-105`。
+
+本次目标：
+
+- 让 `workspace_context_pack` 读取 `search_evidence` artifact 时生成可读搜索证据摘要。
+- 避免后续 Agent 连续追问时把完整 JSON 原样注入上下文。
+- 保留真实来源、query、商品上下文、证据摘要和 Top sources，不伪造任何外部来源。
+
+本次修改：
+
+- 后端 service：`context_pack_artifact_candidate` 针对搜索证据 artifact 走专用摘要逻辑。
+- 后端 service：新增 `contentKind=search_evidence_summary`。
+- 后端 service：摘要包含 query、Product、Evidence、Metrics 和 Top sources。
+- 后端 service：搜索证据 JSON 解析失败时回退到 artifact preview。
+- API/SSE：同步 `API_DOCS/app.md` 与 `API_DOCS/sse.md`。
+- 迁移文档：新增本轮归档，并同步阶段验收和总计划。
+
+用户可感知变化：
+
+- 用户后续围绕已有搜索证据继续追问时，Agent 更容易复用“可信来源摘要”，而不是处理一大段原始 JSON。
+- 前端后续在上下文内容包里可以明确展示搜索证据摘要。
+- 指定商品搜索证据仍会显示商品名、类目和 `product:<uuid>`；未指定商品的普通搜索证据不会被绑定到历史商品。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/search_evidence_context_pack_summary_post_8_105.md`
+- [x] 迁移归档：`MIGRATION_PLANS/legacy_capability_migration/post_phase_8_105_search_evidence_context_pack_summary.md`
+- [x] `cargo fmt --all`
+- [x] `cargo test -p service context_pack_search_evidence_uses_readable_summary -- --nocapture`
+- [x] `cargo test -p service context_pack_search_evidence_falls_back_to_preview_when_json_invalid -- --nocapture`
+- [x] `cargo fmt --all --check`
+- [x] `cargo check -p service`
+- [x] `cargo clippy -p service`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 前端后续应在工作区内容包、来源面板和历史任务详情里展示 `search_evidence_summary`。
+- 真实外部搜索 provider 的部署、密钥、来源质量治理和实时数据覆盖仍属于后续 adapter/service 配置工作。
+
 ## Post 8-104：搜索证据 Artifact 商品上下文沉淀
 
 状态：done
