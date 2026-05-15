@@ -322,24 +322,23 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-120: service review search chain
+Post 8-121: accounting finance search chain
 ```
 
 Scope:
 
-- make service autosuggest produce visible native + `search_product_reviews` chains for real review/reputation questions
-- keep ordinary service support questions on native skills only
-- map negative review / complaint / dissatisfaction language to `search_product_reviews(focus=negative)`
-- map positive review / satisfaction language to `search_product_reviews(focus=positive)`
+- make accounting autosuggest produce visible native + `search_market_info(topic=finance)` chains for finance benchmark questions
+- keep ordinary accounting calculations and diagnoses on native skills only when no external finance benchmark is requested
+- keep pure finance benchmark search as one search skill, not a fake budget plan or fake diagnosis
 - preserve explicit selected-product context only; never infer product context from history or defaults
-- keep search provider failures as transparent degraded search results rather than fabricated platform reviews
+- keep search provider failures as transparent degraded search results rather than fabricated finance benchmark data
 
 Reason:
 
-- customer service quality depends on real complaint/review evidence when the user explicitly asks for reputation, bad reviews, or buyer feedback
-- old-product hidden review/search behavior should become visible and auditable in new-product SSE skill events
-- natural-language limits such as "recent 30 days" and "max 5 sources" must map to distinct search parameters
-- real Taobao, Douyin, Qianchuan, platform reviews, policy announcements, market data, and live external sources remain adapter/search concerns and must not be faked
+- financial health analysis needs industry margin, net margin, and ad ROI benchmarks when the user explicitly asks for finance comparison
+- old-product hidden accounting web search should become visible and auditable in new-product SSE skill events
+- natural-language limits such as "max 4 sources" must map to search parameters while default finance benchmark lookback remains 60 days
+- real financial data providers, Taobao, Douyin, Qianchuan, policy announcements, market data, and live external sources remain adapter/search concerns and must not be faked
 
 ## 10. Validation Standard
 

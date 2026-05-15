@@ -5600,3 +5600,47 @@
 
 - 真实评价搜索 provider 配置和部署仍是外部搜索能力的后续事项。
 - 前端可继续把 native + search 双 skill 链路展示为可折叠过程卡片和来源面板。
+
+## Post 8-121：财务健康/财务基准搜索链路
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 121 个补强项：`Post 8-121`。
+
+本次目标：
+
+- 把旧产品财务健康诊断中隐藏的行业财务基准搜索能力，迁成新产品可见、可审计、可降级的 skill 链路。
+- 让财务健康诊断、P&L、GMV利润瀑布和预算执行分析在用户明确要求行业财务基准/财务对标/最新毛利率/净利率/广告ROI基准时，先跑 accounting native skill，再追加 `search_market_info(topic=finance)`。
+
+涉及范围：
+
+- 产品内核：财务岗位从“只做本地财务测算”增强为“native 财务分析 + 可见行业财务基准检索”的双 skill 链路。
+- 后端 Agent：新增 `autosuggest_accounting_requests` 链式编排；普通财务计算仍只触发 native skill。
+- 搜索参数：财务基准搜索固定使用 `topic=finance`，默认查询最近 60 天，可解析“最多4条来源”等自然语言限制。
+- SSE/API 文档：同步说明 accounting 财务基准搜索双 skill 链路。
+- 迁移归档：新增 Post 8-121 独立归档和后端设计文档。
+
+用户可感知变化：
+
+- 用户要求“做财务健康诊断，并联网查最新行业财务基准”时，过程区会看到财务健康诊断和财务基准搜索两个步骤。
+- 用户只要求“查最新电商行业财务基准、毛利率和净利率公开来源”时，只进入 `search_market_info(topic=finance)`，不会误生成预算编制。
+- 用户没有显式选择商品时，后端不会注入历史里的默认商品或演示商品；用户选中商品后，财务基准搜索才携带 `product_ref/product_name/product_category`。
+- 搜索 provider 没配置或无可信来源时，后端仍会明确降级，不伪造行业财务资料。
+
+当前验证：
+
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent accounting`
+- [x] `cargo test -p agent search`
+- [x] `cargo test -p agent keeps_roles_from_requesting_unowned_skills`
+- [x] `cargo check -p agent -p web-server`
+- [x] `cargo clippy -p agent -p web-server`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 真实财务行业数据 provider 和搜索 provider 配置仍是外部搜索能力的后续事项。
+- 前端可继续把 native + search 双 skill 链路展示为可折叠过程卡片和来源面板。

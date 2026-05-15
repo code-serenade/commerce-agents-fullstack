@@ -2190,3 +2190,24 @@
 - 本阶段解决的是“客服岗位真实评价/口碑诉求可见化”，不是直接接通淘宝、抖音或其它官方评价 API。
 - 搜索 provider 未配置、失败或无可信来源时仍按搜索 skill 降级，不伪造 live 评价。
 - 前端后续应把该双 skill 链路展示为过程卡片和来源面板。
+
+## Post 8-121：财务健康/财务基准搜索链路
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent worker 新增财务岗位 native + `search_market_info(topic=finance)` 双 skill 编排。
+- [x] 财务健康诊断、P&L、GMV利润瀑布、预算执行分析可由自然语言触发对应 native skill。
+- [x] 用户明确要求行业财务基准 / 财务对标 / 毛利率基准 / 净利率基准 / 广告 ROI 基准 / 联网 / 搜索 / 最新时，才追加财务搜索。
+- [x] 纯搜索类“查最新电商行业财务基准”不会误触发预算编制或财务诊断。
+- [x] 财务基准搜索固定写入 `topic=finance`，默认 `days=60`，并支持解析 `max_results`。
+- [x] 未显式选择商品时，不从历史摘要或默认演示商品注入 `product_ref/product_name/product_category`。
+- [x] API/SSE 文档已同步。
+
+当前说明：
+
+- 本阶段解决的是“财务诊断行业基准诉求可见化”，不是直接接通财报数据库、淘宝、抖音或第三方财务数据 API。
+- 搜索 provider 未配置、失败或无可信来源时仍按搜索 skill 降级，不伪造 live 财务基准。
+- 前端后续应把该双 skill 链路展示为过程卡片和来源面板。

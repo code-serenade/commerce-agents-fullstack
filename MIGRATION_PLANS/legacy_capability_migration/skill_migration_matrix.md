@@ -147,6 +147,8 @@ Post 8-120 补充：客服岗位在情绪分析、工单处理、退换货处理
 | `accounting_cash_flow_forecast` | `accounting_cash_flow_forecast` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | Post 8-57：成功输出会沉淀为 `accounting_cash_flow_forecast_report` artifact，缺少输入时以默认假设明示 `calculated_from_defaults` |
 | `accounting_financial_narrative` | `accounting_financial_narrative` | native_ready | `backend/crates/agent/src/skills/accounting.rs` | Post 8-57：成功输出会沉淀为 `accounting_financial_narrative_report` artifact，缺少输入时以默认样例明示 `calculated_from_defaults` |
 
+Post 8-121 补充：财务岗位在财务健康诊断、P&L、GMV利润瀑布或预算执行分析中，如果用户同时要求行业财务基准 / 财务对标 / 最新毛利率 / 净利率 / 广告ROI基准 / 财务benchmark / 联网 / 搜索 / 最新，会生成可见 skill 链路：先运行对应 accounting native skill，再追加 `search_market_info(topic=finance)`。纯“查最新电商行业财务基准”只触发搜索，不会误触发财务诊断或预算编制；未显式选品时不注入默认商品。
+
 ## 工程 engineering
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |

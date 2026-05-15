@@ -111,6 +111,8 @@ pub fn role_can_use_skill(runtime_role: &str, spec: &SkillSpec) -> bool {
                 || spec.id == "query_store_metrics"
                 || spec.id == "query_product_metrics"
                 || spec.id == "query_campaign_metrics"
+                || spec.id == "search_market_info"
+                || spec.id == "search_industry_benchmarks"
         }
         "engineering" => spec.id == "coordination_status_query",
         _ => false,
@@ -208,6 +210,7 @@ mod tests {
         let catalog = RoleSkillCatalog::staged();
 
         assert!(catalog.can_role_use_skill(&role("accounting"), "accounting_roi_calc"));
+        assert!(catalog.can_role_use_skill(&role("accounting"), "search_market_info"));
         assert!(!catalog.can_role_use_skill(&role("accounting"), "creative_video_script"));
         assert!(catalog.can_role_use_skill(&role("creative"), "web_title_seo_scorer"));
         assert!(catalog.can_role_use_skill(&role("creative"), "search_market_info"));
