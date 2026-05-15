@@ -5732,3 +5732,50 @@
 
 - 真实搜索 provider 配置和部署仍是外部搜索能力的后续事项。
 - 工程平台健康检查里的真实平台 API 连通性仍需按审批和平台 adapter 后续闭环，不在本轮伪造执行。
+
+## Post 8-124：数据岗位外部趋势 / 基准搜索链路
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 124 个补强项：`Post 8-124`。
+
+本次目标：
+
+- 把旧产品数据分析里隐藏的外部趋势、行业基准、市场资料检索能力，迁成新产品可见、可审计、可降级的 skill 链路。
+- 让渠道 ROI、渠道归因、退款分解、趋势预测、需求预测、多周期趋势、季节性分解、异常诊断、综合诊断和数据看板在用户明确要求最新 / 实时 / 联网 / 公开资料 / 行业基准 / 市场趋势时，先跑 data native skill，再追加对应 `search_*` skill。
+
+涉及范围：
+
+- 产品内核：数据岗位从“只做本地分析”增强为“native 数据分析 + 可见外部趋势 / 基准检索”的双 skill 链路。
+- 后端 Agent：新增数据岗位 native + search 编排；普通数据分析仍只触发 native skill。
+- 搜索参数：ROI / 归因基准搜索使用 `metric=roi`，退款基准搜索使用 `metric=refund`，趋势 / 需求 / 多周期 / 季节性搜索使用 `search_trends`，异常外部原因使用 `topic=news`，综合诊断 / 看板使用 `topic=general`。
+- SSE/API 文档：同步说明数据岗位外部搜索双 skill 链路和 artifact 沉淀关系。
+- 迁移归档：新增 Post 8-124 独立归档和后端设计文档。
+
+用户可感知变化：
+
+- 用户要求“做需求预测并联网查最新市场趋势”时，过程区会看到数据预测和趋势搜索两个步骤。
+- 用户要求“复盘渠道 ROI 并查行业 ROI 基准”时，过程区会看到渠道 ROI 和行业基准搜索两个步骤。
+- 用户要求“做综合诊断并查最新市场报告和行业动态”时，过程区会看到综合诊断和市场资料搜索两个步骤。
+- 用户没有明确外部资料诉求时，普通数据分析仍只走 native skill；用户没有显式选择商品时，后端不会注入默认商品或历史商品。
+
+当前验证：
+
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent autosuggests_data_trend_search_chains_when_external_context_requested`
+- [x] `cargo test -p agent data_trend_search_chain_preserves_selected_product_context_only_when_selected`
+- [x] `cargo test -p agent autosuggests_data_benchmark_search_chains_when_requested`
+- [x] `cargo test -p agent autosuggests_data_market_context_search_chain_for_diagnosis`
+- [x] `cargo test -p agent search`
+- [x] `cargo test -p agent keeps_roles_from_requesting_unowned_skills`
+- [x] `cargo check -p agent -p web-server`
+- [x] `cargo clippy -p agent -p web-server`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 真实搜索 provider 配置和部署仍是外部搜索能力的后续事项。
+- 前端可继续把 native + search 双 skill 链路展示为可折叠过程卡片和来源面板。

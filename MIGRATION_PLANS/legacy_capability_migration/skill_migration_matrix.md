@@ -54,6 +54,8 @@ Post 8-119 补充：运营岗位在定价策略、智能定价、促销策划、
 
 Post 8-116 补充：数据岗位在竞品分析或价格弹性分析中，如果用户同时要求最新 / 实时 / 联网 / 搜索 / 公开资料 / 市场定价 / 竞品价格区间，会生成可见 skill 链路：先运行 `data_competitor_analysis` 或 `data_price_elasticity`，再追加 `search_competitor`。普通分析仍只走 native skill；价格弹性链路的搜索 focus 为 `price`。外部搜索仍按统一 adapter 降级规则执行，未显式选品时不注入默认商品。
 
+Post 8-124 补充：数据岗位在渠道 ROI、渠道归因、退款分解、趋势预测、需求预测、多周期趋势、季节性分解、异常诊断、综合诊断和数据看板中，如果用户同时要求最新 / 实时 / 联网 / 搜索 / 公开资料 / 行业基准 / 市场趋势 / 行业动态，会生成可见 skill 链路：先运行对应 `data_*` native skill，再按场景追加 `search_industry_benchmarks(metric=roi/refund)`、`search_trends` 或 `search_market_info(topic=news/general)`。普通数据分析仍只走 native skill；搜索失败或 provider 未配置时按统一 adapter 降级，不伪造行业基准、市场报告或趋势来源；未显式选品时不注入默认商品。
+
 ## 搜索 search
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |

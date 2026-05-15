@@ -322,22 +322,22 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-123: engineering external knowledge search chain
+Post 8-124: data external trend and benchmark search chain
 ```
 
 Scope:
 
-- make engineering autosuggest produce visible native + `search_market_info(topic=general)` chains for bug known-solution, tech-selection benchmark, performance benchmark, and architecture best-practice questions
-- keep ordinary engineering bug analysis, tech selection, performance optimization, architecture review, system check, and SLA tasks on native skills only when no external knowledge is requested
-- keep platform health checks behind the existing approval/platform adapter boundary
-- keep search provider failures as transparent degraded search results rather than fabricated benchmarks, community cases, or technical comparisons
+- make data autosuggest produce visible native + search chains for channel ROI, attribution, refund decomposition, trend forecast, demand forecast, multi-period trend, seasonality, anomaly diagnosis, comprehensive diagnosis, and dashboard questions when the user asks for latest / realtime / online / public / benchmark / trend context
+- route ROI and attribution benchmarks to `search_industry_benchmarks(metric=roi)`, refund benchmarks to `search_industry_benchmarks(metric=refund)`, trend and demand contexts to `search_trends`, anomaly external causes to `search_market_info(topic=news)`, and diagnosis/dashboard market context to `search_market_info(topic=general)`
+- keep ordinary data analysis on native skills only when no external search context is requested
+- keep selected product context explicit-only; do not inject default, preset, history, or test product context into data search chains
 
 Reason:
 
-- old-product engineering bug analysis and tech selection used hidden web search for known solutions and benchmark comparisons
-- those searches should become visible and auditable in new-product SSE skill events
-- natural-language limits such as "max 4 sources" must map to search parameters while default engineering knowledge lookback remains 90 days
-- real code repository analysis, logs, APM, Taobao, Douyin, Qianchuan, platform health checks, and live external sources remain adapter/search/approval concerns and must not be faked
+- old-product data analysis often mixed market trends, industry benchmarks, and public context into one answer
+- new-product architecture should expose those external information needs as auditable `search_*` skill events instead of hiding sources in native outputs
+- natural-language limits such as "max 4 sources" must map to search parameters while explicit time windows such as "recent 14 days" map to `days`
+- real external sources remain adapter/search concerns and must not be faked when providers are missing, failing, stale, or source-less
 
 ## 10. Validation Standard
 

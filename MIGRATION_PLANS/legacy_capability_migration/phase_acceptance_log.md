@@ -2253,3 +2253,27 @@
 - 本阶段解决的是“工程岗位外部资料诉求可见化”，不是直接读取代码仓库、日志、APM 或平台 API。
 - 搜索 provider 未配置、失败或无可信来源时仍按搜索 skill 降级，不伪造 live benchmark 或社区案例。
 - 前端后续应把该双 skill 链路展示为过程卡片和来源面板。
+
+## Post 8-124：数据岗位外部趋势 / 基准搜索链路
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent worker 新增数据岗位 native + search 双 skill 编排。
+- [x] 普通渠道 ROI、归因、退款、趋势、需求预测、多周期、季节性、异常、综合诊断和看板任务仍只触发 native skill。
+- [x] 用户明确要求最新 / 实时 / 联网 / 公开资料 / 行业基准 / 市场趋势时，才追加外部搜索。
+- [x] 渠道 ROI / 归因外部基准追加 `search_industry_benchmarks(metric=roi)`。
+- [x] 退款外部基准追加 `search_industry_benchmarks(metric=refund)`。
+- [x] 趋势预测 / 需求预测 / 多周期趋势 / 季节性分解追加 `search_trends`。
+- [x] 异常诊断追加 `search_market_info(topic=news)`，综合诊断 / 看板追加 `search_market_info(topic=general)`。
+- [x] `max_results` 和 `days` 分别从来源数量和明确时间窗口解析，不把“最多4条来源”误当作 `days=4`。
+- [x] 未显式选择商品时，不从历史摘要、预设商品或默认演示商品注入 `product_ref/product_name/product_category`。
+- [x] API/SSE 文档已同步。
+
+当前说明：
+
+- 本阶段解决的是“数据岗位外部趋势 / 基准诉求可见化”，不是直接接通淘宝、抖音、千川或第三方行业数据库。
+- 搜索 provider 未配置、失败或无可信来源时仍按搜索 skill 降级，不伪造 live 行业基准、市场趋势或公开报告。
+- 前端后续应把该双 skill 链路展示为过程卡片和来源面板。
