@@ -77,6 +77,8 @@ Post 8-109 补充：搜索类 `search_trends` / `search_competitor` / `search_ma
 
 Post 8-111 补充：App 外部搜索 API 和 Agent `search_*` skill 在 provider 返回后会继续按本次 `maxResults` / `query.max_results` 截断可信来源；`sources`、`data.items`、`provenance`、`evidence` 和搜索证据 artifact 都只基于截断后的来源生成，避免 provider 返回过多结果影响回答和前端来源面板。
 
+Post 8-112 补充：六个搜索类 skill 都已声明可选 `max_results` 输入，并在 runtime 兼容 `max_results` / `maxResults`；显式输入优先于 `[external_search].default_max_results`，最终会 clamp 到 `1..=12`，让旧产品搜索策略里的“来源数量控制”进入新产品 Agent skill 契约。
+
 ## 平台执行 / 审批治理
 
 | 旧能力 | 新产品目标 ID | 状态 | 新落点 | 备注 |

@@ -43,6 +43,13 @@ Kimi Agent 集群 = 前端交互和视觉体验参考
 - The provider may return more raw items, but the new product backend exposes only the configured strategy limit, still capped by the global hard limit of 12.
 - Degraded behavior is unchanged: missing provider, provider failure, or zero trusted traceable sources still never creates fake live evidence.
 
+## Post 8-112 Update
+
+- All six Agent search skills now declare optional `max_results` input.
+- Runtime accepts both `max_results` and `maxResults`, giving explicit skill input priority over `[external_search].default_max_results`.
+- Search plan result counts are clamped to `1..=12`, then reused consistently by provider requests, live source normalization, provenance, evidence, and search evidence artifacts.
+- This moves old product search strategy controls further into the new product's Agent skill contract without adding frontend-only controls.
+
 ## Post 8-108 Update
 
 - Agent Chat frontend now exposes explicit current-conversation file sources after upload.

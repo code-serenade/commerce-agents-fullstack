@@ -1,5 +1,34 @@
 # 迁移开发记录
 
+## Post 8-112：搜索 Skill 结果数量输入契约
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 112 个补强项：`Post 8-112`。
+
+本轮完成：
+
+- 六个搜索 skill 都声明可选输入 `max_results`。
+- Runtime 兼容 `max_results` 和 `maxResults`。
+- 显式 skill 输入会覆盖 `[external_search].default_max_results`。
+- 超出范围的整数会被 clamp 到 `1..=12`。
+- `output.query.max_results`、provider 请求、live 来源归一化、证据摘要和搜索证据 artifact 使用同一个数量契约。
+
+用户可感知变化：
+
+- 后续前端或 Agent 策略可以明确要求“最多返回几条搜索来源”。
+- 搜索来源数量更可控，不会只能依赖全局默认值。
+- 来源面板和搜索证据交付物会更清爽，也更符合用户或策略设置。
+
+文档：
+
+- [x] 后端设计：`temp/DEVELOPMENT_DOCS/backend/search_skill_max_results_input_post_8_112.md`
+- [x] API 文档：`API_DOCS/sse.md`
+- [x] 迁移归档：`MIGRATION_PLANS/legacy_capability_migration/post_phase_8_112_search_skill_max_results_input.md`
+
 ## Post 8-111：外部搜索结果数量约束
 
 状态：done

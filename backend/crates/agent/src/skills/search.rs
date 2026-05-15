@@ -242,7 +242,7 @@ pub fn search_industry_benchmarks_spec() -> SkillSpec {
 }
 
 fn search_spec(id: &str, name: &str, description: &str, inputs: Vec<SkillInputField>) -> SkillSpec {
-    inputs.into_iter().fold(
+    inputs.into_iter().chain([max_results_input()]).fold(
         SkillSpec::new(id, name, description)
             .with_category(category())
             .with_priority(SkillPriority::High)
@@ -250,6 +250,14 @@ fn search_spec(id: &str, name: &str, description: &str, inputs: Vec<SkillInputFi
             .with_tag("adapter")
             .with_tag("fresh_data"),
         SkillSpec::with_input,
+    )
+}
+
+fn max_results_input() -> SkillInputField {
+    SkillInputField::optional(
+        "max_results",
+        "最大可信来源数量，默认使用 external_search.default_max_results，允许 1-12",
+        json!({"type": "integer", "minimum": 1, "maximum": MAX_RESULTS}),
     )
 }
 
@@ -314,6 +322,13 @@ impl SearchPlan {
             .unwrap_or(DEFAULT_MAX_RESULTS as u64)
             .clamp(1, MAX_RESULTS as u64) as i64;
         Ok(self)
+    }
+
+    fn with_max_results(mut self, max_results: Option<i64>) -> Self {
+        if let Some(value) = max_results {
+            self.max_results = value.clamp(1, MAX_RESULTS);
+        }
+        self
     }
 }
 
@@ -855,6 +870,10 @@ fn search_bypass_cache(params: &Value) -> Result<bool, crate::skills::SkillError
         .unwrap_or(false))
 }
 
+fn search_max_results(params: &Value) -> Result<Option<i64>, crate::skills::SkillError> {
+    Ok(optional_i64_param(params, "max_results")?.or(optional_i64_param(params, "maxResults")?))
+}
+
 fn optional_search_string_param(
     params: &Value,
     field: &str,
@@ -953,13 +972,15 @@ macro_rules! deferred_search_skill {
                 object_params(&params)?;
                 let required_value = string_param(&params, $required)?;
                 let bypass_cache = search_bypass_cache(&params)?;
+                let max_results = search_max_results(&params)?;
                 let product_ref = optional_search_string_param(&params, "product_ref")?;
                 let product_name = optional_search_string_param(&params, "product_name")?;
                 let product_category = optional_search_string_param(&params, "product_category")?;
                 let plan = $builder(&params, &required_value)?
                     .with_bypass_cache(bypass_cache)
                     .with_product_context(product_ref, product_name, product_category)
-                    .with_adapter_defaults(adapter)?;
+                    .with_adapter_defaults(adapter)?
+                    .with_max_results(max_results);
                 if !adapter.is_configured() {
                     return Ok(deferred_search_output(&self.spec.id, required_value, plan));
                 }
@@ -1141,6 +1162,22 @@ mod tests {
     use super::*;
 
     #[test]
+    fn search_specs_expose_max_results_input() {
+        for spec in specs() {
+            let field = spec
+                .inputs
+                .iter()
+                .find(|field| field.name == "max_results")
+                .unwrap_or_else(|| panic!("{} should declare max_results", spec.id));
+
+            assert!(!field.required);
+            assert_eq!(field.schema.get("type"), Some(&json!("integer")));
+            assert_eq!(field.schema.get("minimum"), Some(&json!(1)));
+            assert_eq!(field.schema.get("maximum"), Some(&json!(MAX_RESULTS)));
+        }
+    }
+
+    #[test]
     fn normalizes_provider_sources_into_deduped_evidence() {
         let payload = json!({
             "data": {
@@ -1228,6 +1265,46 @@ mod tests {
                 .is_some_and(|context| context.contains("https://news.example.cn/coffee")
                     && !context.contains("无 URL 弱来源"))
         );
+    }
+
+    #[test]
+    fn search_plan_uses_explicit_max_results_over_adapter_default() {
+        let adapter = SearchAdapterConfig {
+            default_max_results: Some(8),
+            ..SearchAdapterConfig::default()
+        };
+        let params = json!({
+            "query": "咖啡",
+            "max_results": 3
+        });
+        let max_results = search_max_results(&params).expect("max_results should parse");
+        let plan = build_trends_query(&params, "咖啡")
+            .expect("trend query should build")
+            .with_adapter_defaults(&adapter)
+            .expect("adapter defaults should apply")
+            .with_max_results(max_results);
+
+        assert_eq!(plan.max_results, 3);
+    }
+
+    #[test]
+    fn search_plan_accepts_camel_case_max_results_and_clamps() {
+        let adapter = SearchAdapterConfig {
+            default_max_results: Some(4),
+            ..SearchAdapterConfig::default()
+        };
+        let params = json!({
+            "query": "咖啡",
+            "maxResults": 100
+        });
+        let max_results = search_max_results(&params).expect("maxResults should parse");
+        let plan = build_trends_query(&params, "咖啡")
+            .expect("trend query should build")
+            .with_adapter_defaults(&adapter)
+            .expect("adapter defaults should apply")
+            .with_max_results(max_results);
+
+        assert_eq!(plan.max_results, MAX_RESULTS);
     }
 
     #[test]

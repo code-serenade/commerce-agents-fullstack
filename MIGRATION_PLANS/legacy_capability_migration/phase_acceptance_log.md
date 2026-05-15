@@ -1,5 +1,18 @@
 # 阶段验收记录
 
+## Post 8-112：搜索 Skill 结果数量输入契约
+
+结论：通过。
+
+验收点：
+
+- 六个搜索类 skill 均声明可选 `max_results` 输入。
+- Runtime 同时兼容 `max_results` 和 `maxResults`。
+- 显式输入优先于 adapter 默认结果数。
+- 结果数会 clamp 到 `1..=12`。
+- `output.query.max_results` 与 provider 请求、live 来源截断、provenance、evidence 和搜索证据 artifact 保持一致。
+- Agent 搜索测试、设计文档、API 文档和迁移归档已同步。
+
 ## Post 8-111：外部搜索结果数量约束
 
 结论：通过。
