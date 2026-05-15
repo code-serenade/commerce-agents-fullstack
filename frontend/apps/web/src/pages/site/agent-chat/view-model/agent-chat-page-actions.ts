@@ -1,6 +1,8 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react"
 import type { AgentRuntimeEvent } from "../agent-chat-data"
 import { createSessionId } from "../domain/agent-chat-message-mapping"
+import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
+import { DEFAULT_AGENT_CHAT_STRATEGY_ID } from "../domain/agent-chat-strategy"
 import type {
   AgentChatAttachmentItem,
   AgentChatConversationItem,
@@ -21,6 +23,8 @@ export interface AgentChatPageStateActions {
   setAttachments?: Dispatch<SetStateAction<AgentChatAttachmentItem[]>>
   clearSelectedProducts?: () => void
   clearSelectedSources?: () => void
+  resetRuntimeSelection?: () => void
+  restoreStrategyId?: (strategyId: AgentChatStrategyId) => void
 }
 
 export function resetGuestAgentChatState(
@@ -36,6 +40,7 @@ export function resetGuestAgentChatState(
     state.setAttachments?.([])
     state.clearSelectedProducts?.()
     state.clearSelectedSources?.()
+    resetAgentChatConversationContext(state)
   })
 }
 
@@ -52,6 +57,17 @@ export function startNewAgentConversation(state: AgentChatPageStateActions) {
   state.setAttachments?.([])
   state.clearSelectedProducts?.()
   state.clearSelectedSources?.()
+  resetAgentChatConversationContext(state)
+}
+
+export function resetAgentChatConversationContext(
+  state: Pick<
+    AgentChatPageStateActions,
+    "resetRuntimeSelection" | "restoreStrategyId"
+  >
+) {
+  state.restoreStrategyId?.(DEFAULT_AGENT_CHAT_STRATEGY_ID)
+  state.resetRuntimeSelection?.()
 }
 
 export function stopAgentStreaming(state: AgentChatPageStateActions) {

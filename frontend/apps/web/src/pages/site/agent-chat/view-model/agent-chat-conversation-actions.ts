@@ -16,6 +16,7 @@ import {
 } from "../domain/agent-chat-message-mapping"
 import type { AgentChatRuntimeSelectionRestore } from "../domain/agent-runtime-options"
 import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
+import { resetAgentChatConversationContext } from "./agent-chat-page-actions"
 import type {
   AgentChatAttachmentItem,
   AgentChatConversationItem,
@@ -29,6 +30,7 @@ interface ConversationActionState {
   sessionIdRef: MutableRefObject<string>
   clearSelectedProducts?: () => void
   clearSelectedSources?: () => void
+  resetRuntimeSelection?: () => void
   restoreRuntimeSelection?: (selection: AgentChatRuntimeSelectionRestore) => void
   restoreSelectedProducts?: (productIds: string[]) => void
   restoreSelectedSources?: (sourceRefs: string[]) => void
@@ -144,10 +146,6 @@ export async function deleteAgentConversation(
 
     if (targetConversationId === activeConversationId) {
       resetActiveConversation(state)
-      state.setRuntimeEvents([])
-      state.setInput("")
-      state.clearSelectedProducts?.()
-      state.clearSelectedSources?.()
     }
   } catch (err) {
     state.setError(formatActionError(err, state))
@@ -162,6 +160,7 @@ function resetActiveConversation(state: ConversationActionState) {
   state.setAttachments?.([])
   state.clearSelectedProducts?.()
   state.clearSelectedSources?.()
+  resetAgentChatConversationContext(state)
 }
 
 function restoreConversationContext(

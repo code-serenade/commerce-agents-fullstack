@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useSelector } from "react-redux"
 import type { RootState } from "@/store"
@@ -11,6 +11,7 @@ import { loadLatestAgentConversation } from "./view-model/agent-chat-conversatio
 import { resetGuestAgentChatState } from "./view-model/agent-chat-page-actions"
 import { useAgentChatAttachmentUploads } from "./view-model/use-agent-chat-attachment-uploads"
 import { createAgentChatPageViewModel } from "./view-model/agent-chat-page-view-model"
+import { useAgentChatActionState } from "./view-model/use-agent-chat-action-state"
 import { useAgentChatPageCommands } from "./view-model/use-agent-chat-page-commands"
 import { useAgentChatPlaybooks } from "./view-model/use-agent-chat-playbooks"
 import { useAgentChatProductContext } from "./view-model/use-agent-chat-product-context"
@@ -59,49 +60,29 @@ export function useAgentChatPage() {
     isStreaming,
     runtimeEvents,
   })
-  const createWelcomeMessage = useCallback(
-    (): AgentChatMessage => ({
-      id: "welcome",
-      role: "assistant",
-      content: t("agentChat.welcomeMessage"),
-    }),
-    [t]
-  )
-  const actionState = useMemo(
-    () => ({
-      abortRef,
-      createWelcomeMessage,
-      fallbackConversationTitle,
-      messageFormatCopy,
-      sessionIdRef,
-      setConversationId,
-      setConversations,
-      setError,
-      setInput,
-      setIsStreaming,
-      setMessages,
-      setRuntimeEvents,
-      setAttachments,
-      clearSelectedProducts: productContext.clearSelectedProducts,
-      clearSelectedSources: sourceContext.clearSelectedSources,
-      restoreRuntimeSelection: runtimeContext.restoreSelection,
-      restoreSelectedProducts: productContext.restoreSelectedProducts,
-      restoreSelectedSources: sourceContext.restoreSelectedSources,
-      restoreStrategyId: setStrategyId,
-      tError: t("agentChat.error"),
-    }),
-    [
-      createWelcomeMessage,
-      fallbackConversationTitle,
-      messageFormatCopy,
-      productContext.clearSelectedProducts,
-      productContext.restoreSelectedProducts,
-      runtimeContext.restoreSelection,
-      sourceContext.clearSelectedSources,
-      sourceContext.restoreSelectedSources,
-      t,
-    ]
-  )
+  const { actionState, createWelcomeMessage } = useAgentChatActionState({
+    abortRef,
+    clearSelectedProducts: productContext.clearSelectedProducts,
+    clearSelectedSources: sourceContext.clearSelectedSources,
+    fallbackConversationTitle,
+    messageFormatCopy,
+    resetRuntimeSelection: runtimeContext.resetSelection,
+    restoreRuntimeSelection: runtimeContext.restoreSelection,
+    restoreSelectedProducts: productContext.restoreSelectedProducts,
+    restoreSelectedSources: sourceContext.restoreSelectedSources,
+    sessionIdRef,
+    setAttachments,
+    setConversationId,
+    setConversations,
+    setError,
+    setInput,
+    setIsStreaming,
+    setMessages,
+    setRuntimeEvents,
+    setStrategyId,
+    tError: t("agentChat.error"),
+    welcomeMessage: t("agentChat.welcomeMessage"),
+  })
 
   useEffect(() => {
     const currentAbortRef = abortRef

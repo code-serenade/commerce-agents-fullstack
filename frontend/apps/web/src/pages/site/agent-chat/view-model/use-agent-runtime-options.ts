@@ -79,6 +79,9 @@ export function useAgentRuntimeOptions(input: { enabled: boolean }) {
           restoreRuntimeSelection(current, selection, runtimeOptions)
         )
       },
+      resetSelection: () => {
+        setRuntimeSelection(defaultRuntimeSelection(runtimeOptions))
+      },
       toggleRole: (runtimeRole: string) => {
         setRuntimeSelection((current) => toggleRuntimeRole(current, runtimeRole))
       },
