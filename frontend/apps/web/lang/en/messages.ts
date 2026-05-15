@@ -1107,6 +1107,16 @@ const messages = {
       collapseProcess: "Collapse process",
       expandProcess: "Expand process",
       openWorkbench: "Open task process",
+      contextSummary: {
+        label: "Backend context for this turn",
+        productNone: "No product",
+        productCount: "{{count}} products",
+        sourceNone: "No files",
+        sourceCount: "{{count}} files",
+        strategy: "Strategy: {{strategy}}",
+        roles: "Role: {{role}} / {{count}}",
+        model: "Model: {{model}}",
+      },
       actions: {
         copy: "Copy",
         useful: "Useful",

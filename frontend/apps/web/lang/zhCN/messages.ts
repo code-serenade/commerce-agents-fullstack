@@ -1098,6 +1098,16 @@ const messages = {
       collapseProcess: "折叠执行过程",
       expandProcess: "展开执行过程",
       openWorkbench: "打开任务过程",
+      contextSummary: {
+        label: "本轮后端上下文",
+        productNone: "未选商品",
+        productCount: "{{count}} 个商品",
+        sourceNone: "未选资料",
+        sourceCount: "{{count}} 份资料",
+        strategy: "策略：{{strategy}}",
+        roles: "岗位：{{role}} / {{count}} 个",
+        model: "模型：{{model}}",
+      },
       actions: {
         copy: "复制",
         useful: "有用",

@@ -15,6 +15,7 @@ import type {
   AgentChatConversationItem,
   AgentChatMessage,
 } from "../types"
+import { readMessageContextSummary } from "./agent-chat-message-context-summary"
 
 export interface AgentChatMessageFormatCopy {
   missingStructuredOutput: string
@@ -45,12 +46,7 @@ export function mapConversationMessages(
     .filter((message): message is ConversationMessageResponse & {
       role: "user" | "assistant"
     } => isVisibleMessage(message, copy))
-    .map((message) => ({
-      id: message.id,
-      role: message.role,
-      content: formatAgentUiMessage(message.contentText ?? "", copy),
-      runtimeEvents: readRuntimeEvents(message.contentJson),
-    }))
+    .map((message) => mapConversationMessage(message, copy))
 
   return messages.length > 0 ? messages : [fallback]
 }
@@ -144,6 +140,24 @@ export function mapConversationAttachments(
   detail: ConversationDetailResponse
 ): AgentChatAttachmentItem[] {
   return detail.files.map(mapConversationFile)
+}
+
+function mapConversationMessage(
+  message: ConversationMessageResponse & { role: "user" | "assistant" },
+  copy: AgentChatMessageFormatCopy
+): AgentChatMessage {
+  const contextSummary =
+    message.role === "user"
+      ? readMessageContextSummary(message.contentJson)
+      : undefined
+
+  return {
+    id: message.id,
+    role: message.role,
+    content: formatAgentUiMessage(message.contentText ?? "", copy),
+    runtimeEvents: readRuntimeEvents(message.contentJson),
+    ...(contextSummary ? { contextSummary } : {}),
+  }
 }
 
 function isVisibleMessage(

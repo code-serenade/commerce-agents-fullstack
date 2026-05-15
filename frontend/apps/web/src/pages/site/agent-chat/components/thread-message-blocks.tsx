@@ -1,11 +1,16 @@
 import {
   BrainCircuit,
   Copy,
+  Cpu,
+  FileText,
   ListChecks,
   Loader2,
+  ShoppingBag,
+  UsersRound,
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type { AgentChatStrategy } from "../domain/agent-chat-strategy"
+import type { AgentChatMessageContextSummary } from "../types"
 
 export function WelcomeCard({ content }: { content: string }) {
   const { t } = useTranslation()
@@ -74,6 +79,83 @@ export function StrategyStatusPill({
   )
 }
 
+export function MessageContextSummary({
+  summary,
+}: {
+  summary?: AgentChatMessageContextSummary
+}) {
+  const { t } = useTranslation()
+  if (!summary) return null
+
+  const chips = [
+    {
+      icon: <ShoppingBag className="size-3.5" />,
+      label:
+        summary.productIds.length > 0
+          ? t("agentChat.thread.contextSummary.productCount", {
+              count: summary.productIds.length,
+            })
+          : t("agentChat.thread.contextSummary.productNone"),
+    },
+    {
+      icon: <FileText className="size-3.5" />,
+      label:
+        summary.sourceRefs.length > 0
+          ? t("agentChat.thread.contextSummary.sourceCount", {
+              count: summary.sourceRefs.length,
+            })
+          : t("agentChat.thread.contextSummary.sourceNone"),
+    },
+  ]
+
+  if (summary.strategyId) {
+    chips.push({
+      icon: <BrainCircuit className="size-3.5" />,
+      label: t("agentChat.thread.contextSummary.strategy", {
+        strategy: t(`agentChat.strategy.options.${summary.strategyId}.label`),
+      }),
+    })
+  }
+
+  if (summary.primaryRole || summary.selectedRoles.length > 0) {
+    chips.push({
+      icon: <UsersRound className="size-3.5" />,
+      label: t("agentChat.thread.contextSummary.roles", {
+        count: summary.selectedRoles.length,
+        role: formatContextValue(
+          summary.primaryRole ?? summary.selectedRoles[0] ?? ""
+        ),
+      }),
+    })
+  }
+
+  if (summary.modelName) {
+    chips.push({
+      icon: <Cpu className="size-3.5" />,
+      label: t("agentChat.thread.contextSummary.model", {
+        model: summary.modelName,
+      }),
+    })
+  }
+
+  return (
+    <div
+      className="mt-1 flex max-w-full flex-wrap justify-end gap-1.5 text-[11px] text-muted-foreground"
+      aria-label={t("agentChat.thread.contextSummary.label")}
+    >
+      {chips.map((chip) => (
+        <span
+          key={chip.label}
+          className="inline-flex max-w-full items-center gap-1 rounded-full border border-border bg-card px-2 py-1 shadow-sm"
+        >
+          <span className="shrink-0">{chip.icon}</span>
+          <span className="truncate">{chip.label}</span>
+        </span>
+      ))}
+    </div>
+  )
+}
+
 export function MessageActions({ content }: { content: string }) {
   const { t } = useTranslation()
   const copyAnswer = () => {
@@ -92,4 +174,8 @@ export function MessageActions({ content }: { content: string }) {
       </button>
     </div>
   )
+}
+
+function formatContextValue(value: string) {
+  return value.replace(/_/g, " ")
 }

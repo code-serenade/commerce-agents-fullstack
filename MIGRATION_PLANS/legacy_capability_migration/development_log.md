@@ -1,5 +1,46 @@
 # 迁移开发记录
 
+## Post 8-129：问答消息级后端上下文摘要
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 129 个补强项：`Post 8-129`。
+
+本次目标：
+
+- 把 Agent Chat 每条用户提问当时真实发送/保存的后端上下文展示出来。
+- 让用户能直接判断本轮是否引用了商品、资料、策略、岗位和模型。
+- 保持“未手动选择商品 = 不注入默认商品”的前后端一致体验。
+
+涉及范围：
+
+- 前端消息模型：新增 `contextSummary`。
+- 前端 domain：新增消息级上下文摘要读取/构建逻辑。
+- 发送链路：新发送消息会从当前商品、资料、策略、岗位和模型选择生成摘要。
+- 历史链路：历史消息会从后端已保存的 `contentJson.context` 和 `contentJson.strategy` 还原摘要。
+- 线程 UI：用户消息下方新增紧凑上下文 chip，展示商品、资料、策略、岗位和模型。
+
+用户可感知变化：
+
+- 用户现在能在每条提问下面看到“未选商品”或“已选商品数量”。
+- 如果没有手动选择商品，前端不会暗示本轮引用了某个默认商品。
+- 如果历史消息只有 ID/ref，前端只展示数量，不编造商品名或资料名。
+
+验证：
+
+- [x] `pnpm -C apps/web test`
+- [x] `pnpm -C apps/web lint`
+- [x] `pnpm -C apps/web build`
+- [x] `pnpm -C apps/web rules`
+- [x] `pnpm rules`
+
+归档：
+
+- [x] `MIGRATION_PLANS/legacy_capability_migration/post_phase_8_129_frontend_message_context_summary.md`
+
 ## Post 8-128：设计配色 / 素材规范搜索链路
 
 状态：done

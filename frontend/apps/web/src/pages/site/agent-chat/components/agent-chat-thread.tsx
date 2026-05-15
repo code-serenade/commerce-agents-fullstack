@@ -9,6 +9,7 @@ import {
   AgentProgressCard,
   StrategyStatusPill,
   MessageActions,
+  MessageContextSummary,
   WelcomeCard,
 } from "./thread-message-blocks"
 import type { AgentChatStrategy } from "../domain/agent-chat-strategy"
@@ -88,34 +89,39 @@ function ThreadMessage({ message }: { message: AgentChatMessage }) {
           <Bot className="size-5" />
         </div>
       ) : null}
-      <div
-        className={`max-w-[min(43rem,88%)] min-w-0 text-sm/6 ${
-          isUser
-            ? "rounded-2xl bg-foreground px-4 py-3 text-background"
-            : "text-foreground"
-        }`}
-      >
-        {isWelcome ? (
-          <WelcomeCard content={message.content} />
-        ) : message.content ? (
-          <p className="wrap-break-word whitespace-pre-wrap">
-            {message.content}
-          </p>
-        ) : (
-          <p className="text-muted-foreground">
-            {t("agentChat.streaming")}
-          </p>
-        )}
-        {message.status === "streaming" && !message.content ? (
-          <AgentProgressCard content={message.content} />
-        ) : null}
-        {message.status === "error" ? (
-          <p className="mt-2 text-xs font-medium text-destructive">
-            {t("agentChat.errorBadge")}
-          </p>
-        ) : null}
-        {!isUser && message.content && !isWelcome ? (
-          <MessageActions content={message.content} />
+      <div className="flex max-w-[min(43rem,88%)] min-w-0 flex-col items-end">
+        <div
+          className={`min-w-0 text-sm/6 ${
+            isUser
+              ? "rounded-2xl bg-foreground px-4 py-3 text-background"
+              : "text-foreground"
+          }`}
+        >
+          {isWelcome ? (
+            <WelcomeCard content={message.content} />
+          ) : message.content ? (
+            <p className="wrap-break-word whitespace-pre-wrap">
+              {message.content}
+            </p>
+          ) : (
+            <p className="text-muted-foreground">
+              {t("agentChat.streaming")}
+            </p>
+          )}
+          {message.status === "streaming" && !message.content ? (
+            <AgentProgressCard content={message.content} />
+          ) : null}
+          {message.status === "error" ? (
+            <p className="mt-2 text-xs font-medium text-destructive">
+              {t("agentChat.errorBadge")}
+            </p>
+          ) : null}
+          {!isUser && message.content && !isWelcome ? (
+            <MessageActions content={message.content} />
+          ) : null}
+        </div>
+        {isUser ? (
+          <MessageContextSummary summary={message.contextSummary} />
         ) : null}
       </div>
       {isUser ? (

@@ -7,6 +7,7 @@ import {
   mapConversationItem,
   type AgentChatMessageFormatCopy,
 } from "../domain/agent-chat-message-mapping"
+import { createMessageContextSummary } from "../domain/agent-chat-message-context-summary"
 import {
   createContextRefs,
   type AgentChatProductContextSelection,
@@ -41,13 +42,40 @@ export async function sendAgentChatMessage(
   input: SendAgentChatMessageInput
 ): Promise<AbortController | null> {
   const assistantId = createMessageId("assistant")
+  const strategyMeta = {
+    strategyId: input.strategy.id,
+    responseMode: input.strategy.responseMode,
+    collaborationMode: input.runtimeSelection.collaborationMode,
+    learningLevel: input.runtimeSelection.learningLevel,
+    primaryRole: input.runtimeSelection.primaryRole,
+    selectedRoles: input.runtimeSelection.selectedRoles,
+    modelName: input.runtimeSelection.modelName,
+  }
+  const contextMeta = {
+    contextRefs: createContextRefs(input.selectedProducts, input.selectedSources),
+    productIds: input.selectedProducts.map((product) => product.id),
+  }
+  const contextSummary = createMessageContextSummary({
+    ...contextMeta,
+    collaborationMode: strategyMeta.collaborationMode,
+    learningLevel: strategyMeta.learningLevel,
+    modelName: strategyMeta.modelName,
+    primaryRole: strategyMeta.primaryRole,
+    selectedRoles: strategyMeta.selectedRoles,
+    strategyId: strategyMeta.strategyId,
+  })
   input.setInput("")
   input.setError(null)
   input.setIsStreaming(true)
   input.setRuntimeEvents([])
   input.setMessages((current) => [
     ...current,
-    { id: createMessageId("user"), role: "user", content: input.content },
+    {
+      id: createMessageId("user"),
+      role: "user",
+      content: input.content,
+      ...(contextSummary ? { contextSummary } : {}),
+    },
     { id: assistantId, role: "assistant", content: "", status: "streaming" },
   ])
 
@@ -55,22 +83,6 @@ export async function sendAgentChatMessage(
   input.onController(controller)
 
   try {
-    const strategyMeta = {
-      strategyId: input.strategy.id,
-      responseMode: input.strategy.responseMode,
-      collaborationMode: input.runtimeSelection.collaborationMode,
-      learningLevel: input.runtimeSelection.learningLevel,
-      primaryRole: input.runtimeSelection.primaryRole,
-      selectedRoles: input.runtimeSelection.selectedRoles,
-      modelName: input.runtimeSelection.modelName,
-    }
-    const contextMeta = {
-      contextRefs: createContextRefs(
-        input.selectedProducts,
-        input.selectedSources
-      ),
-      productIds: input.selectedProducts.map((product) => product.id),
-    }
     let activeConversationId = input.conversationId
     if (!activeConversationId) {
       const detail = await agentChatData.createConversation({

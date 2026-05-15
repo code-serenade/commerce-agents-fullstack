@@ -10,6 +10,7 @@ import {
   readConversationSelectedSourceRefs,
   readConversationStrategyId,
 } from "./agent-chat-message-mapping"
+import { readMessageContextSummary } from "./agent-chat-message-context-summary"
 import type { AgentChatMessage } from "../types"
 
 const fallback: AgentChatMessage = {
@@ -179,6 +180,52 @@ describe("agent chat message mapping", () => {
       modelName: "ollama-gpt-oss-20b",
       primaryRole: "data",
       selectedRoles: ["data", "creative"],
+    })
+  })
+
+  it("maps message-level context summaries from persisted user metadata", () => {
+    const fileRef = "conversation_file:file-a"
+    const contentJson = {
+      context: {
+        contextRefs: ["product:product-a", fileRef],
+        productIds: ["product-a"],
+      },
+      strategy: {
+        collaborationMode: "manual",
+        learningLevel: "higher_vocational",
+        modelName: "ollama-gpt-oss-20b",
+        primaryRole: "data",
+        selectedRoles: ["data", "creative"],
+        strategyId: "collab",
+      },
+    }
+    const detail = conversationDetail([
+      {
+        id: "m1",
+        role: "user",
+        contentText: "diagnose conversion",
+        contentJson,
+        sequence: 1,
+      },
+    ])
+    const expectedSummary = {
+      collaborationMode: "manual",
+      learningLevel: "higher_vocational",
+      modelName: "ollama-gpt-oss-20b",
+      primaryRole: "data",
+      productIds: ["product-a"],
+      selectedRoles: ["data", "creative"],
+      sourceRefs: [fileRef],
+      strategyId: "collab",
+    }
+
+    expect(readMessageContextSummary(contentJson)).toEqual(expectedSummary)
+    expect(mapConversationMessages(detail, fallback, copy)[0]).toEqual({
+      id: "m1",
+      role: "user",
+      content: "diagnose conversion",
+      contextSummary: expectedSummary,
+      runtimeEvents: [],
     })
   })
 
