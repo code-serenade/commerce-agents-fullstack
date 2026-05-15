@@ -102,6 +102,7 @@ The following major foundations are already in place:
 - native coordination skill chain planning with structured phases, dependencies, adapter hints, approval hints, and availability flags
 - native `query_store_metrics` can now summarize explicit user-provided store metrics, clearly defer when store metrics are missing, and be reached from natural store-metric query language
 - search adapter skills can now be reached from natural external-search language while preserving live/degraded/deferred evidence boundaries
+- search evidence artifacts now preserve explicit selected-product context in metadata and preview when live `search_*` results are product-bound
 - multiple native skill migrations across ops / data / service / creative / web / design / accounting
 - creative and design skill outputs can now materialize into reusable workspace artifacts when the skill result is successful
 - data dashboard is now a native deterministic skill with explicit manual-input vs store-metrics-required readiness
@@ -236,23 +237,23 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-103: search selected product context
+Post 8-104: search evidence product context
 ```
 
 Scope:
 
-- route `search_*` autosuggest through the current `Task`, so it can read explicit selected product metadata
-- detect selected-product references such as “这个商品 / 本品 / 当前商品 / 所选商品 / selected product”
-- add optional `product_ref`, `product_name`, and `product_category` to search skill input and output query echo
-- use selected product name/category/platform for search query construction only when the user explicitly refers to the selected product
+- persist `output.query.product_ref/product_name/product_category` from live `search_*` results into `search_evidence` workspace artifact metadata
+- write nested `metadata.productContext.productRef/productName/productCategory`
+- also write top-level `metadata.productRef/productName/productCategory` for fast frontend list/history reads
+- add a `Product:` line to search evidence preview when explicit selected-product context exists
 - avoid writing empty product context when no product is selected
-- keep external search provider behavior unchanged: configured providers can return live sources; unconfigured, failed, or source-less searches remain deferred/degraded
+- keep existing live-only artifact creation rules: degraded, deferred, unconfigured, failed, or source-less searches do not create fake evidence
 
 Reason:
 
-- external search has been raised in priority, but it must still respect the product context boundary
-- selected-product search and generic market search are different user paths
-- the frontend can use `skill_result.output.query.product_ref/product_name/product_category` to distinguish product-bound search from ordinary search
+- external search has been raised in priority, but the selected-product boundary must survive beyond the live SSE event
+- selected-product search and generic market search are different user paths and must remain distinguishable in workspace history
+- the frontend can use `artifact.metadata.productContext` to distinguish product-bound search evidence from ordinary search evidence after refresh
 - real Taobao, Douyin, Qianchuan, platform reviews, policy announcements, market data, and live external sources remain adapter/search concerns and must not be faked
 
 ## 10. Validation Standard

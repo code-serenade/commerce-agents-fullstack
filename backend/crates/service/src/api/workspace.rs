@@ -4834,6 +4834,13 @@ struct SearchEvidenceArtifactDraft {
 }
 
 #[derive(Debug, Clone)]
+struct SearchEvidenceProductContext {
+    product_ref: Option<String>,
+    product_name: Option<String>,
+    product_category: Option<String>,
+}
+
+#[derive(Debug, Clone)]
 struct WorkspaceTaskFromSkillDraft {
     title: String,
     description: Option<String>,
@@ -4901,9 +4908,10 @@ fn build_search_evidence_artifact(
     } else {
         compact_text(&query, 80)
     };
+    let product_context = search_evidence_product_context(&req.output);
     let title = format!("Search evidence - {title_query}");
-    let preview = format_search_evidence_preview(sources, &query);
-    let metadata = json!({
+    let preview = format_search_evidence_preview(sources, &query, product_context.as_ref());
+    let mut metadata = json!({
         "kind": "agent_search_evidence",
         "workerId": req.worker_id,
         "taskId": req.task_id,
@@ -4923,6 +4931,18 @@ fn build_search_evidence_artifact(
         "freshness": req.output.get("freshness").cloned(),
         "evidence": req.output.get("evidence").cloned(),
     });
+    if let (Some(context), Some(metadata)) = (product_context, metadata.as_object_mut()) {
+        metadata.insert("productContext".to_string(), context.to_json());
+        if let Some(product_ref) = context.product_ref {
+            metadata.insert("productRef".to_string(), json!(product_ref));
+        }
+        if let Some(product_name) = context.product_name {
+            metadata.insert("productName".to_string(), json!(product_name));
+        }
+        if let Some(product_category) = context.product_category {
+            metadata.insert("productCategory".to_string(), json!(product_category));
+        }
+    }
 
     Some(SearchEvidenceArtifactDraft {
         title,
@@ -5708,10 +5728,68 @@ fn build_campaign_draft_from_skill_output(output: &Value) -> Option<CampaignDraf
     })
 }
 
-fn format_search_evidence_preview(sources: &[Value], query: &str) -> String {
+fn search_evidence_product_context(output: &Value) -> Option<SearchEvidenceProductContext> {
+    let product_ref = normalized_json_string(output.pointer("/query/product_ref"));
+    let product_name = normalized_json_string(output.pointer("/query/product_name"));
+    let product_category = normalized_json_string(output.pointer("/query/product_category"));
+    if product_ref.is_none() && product_name.is_none() && product_category.is_none() {
+        return None;
+    }
+    Some(SearchEvidenceProductContext {
+        product_ref,
+        product_name,
+        product_category,
+    })
+}
+
+fn normalized_json_string(value: Option<&Value>) -> Option<String> {
+    value
+        .and_then(Value::as_str)
+        .and_then(|value| normalize_string(value.to_string()))
+}
+
+impl SearchEvidenceProductContext {
+    fn to_json(&self) -> Value {
+        let mut value = serde_json::Map::new();
+        if let Some(product_ref) = &self.product_ref {
+            value.insert("productRef".to_string(), json!(product_ref));
+        }
+        if let Some(product_name) = &self.product_name {
+            value.insert("productName".to_string(), json!(product_name));
+        }
+        if let Some(product_category) = &self.product_category {
+            value.insert("productCategory".to_string(), json!(product_category));
+        }
+        Value::Object(value)
+    }
+
+    fn preview_line(&self) -> Option<String> {
+        let mut parts = Vec::new();
+        if let Some(product_name) = &self.product_name {
+            parts.push(product_name.as_str());
+        }
+        if let Some(product_category) = &self.product_category {
+            parts.push(product_category.as_str());
+        }
+        if let Some(product_ref) = &self.product_ref {
+            parts.push(product_ref.as_str());
+        }
+        (!parts.is_empty()).then(|| format!("Product: {}", compact_text(&parts.join(" / "), 180)))
+    }
+}
+
+fn format_search_evidence_preview(
+    sources: &[Value],
+    query: &str,
+    product_context: Option<&SearchEvidenceProductContext>,
+) -> String {
     let mut lines = Vec::new();
     if !query.trim().is_empty() {
         lines.push(format!("Query: {}", compact_text(query, 160)));
+    }
+    if let Some(product_line) = product_context.and_then(SearchEvidenceProductContext::preview_line)
+    {
+        lines.push(product_line);
     }
     lines.push(format!("Sources: {}", sources.len()));
     for (index, source) in sources.iter().take(5).enumerate() {
@@ -6640,6 +6718,86 @@ mod tests {
                 .and_then(|value| value.get("summary"))
                 .and_then(Value::as_str)
                 .is_some_and(|summary| summary.contains("1 条实时来源"))
+        );
+    }
+
+    #[test]
+    fn search_evidence_artifact_preserves_product_context() {
+        let req = RecordAgentSearchEvidenceRequest {
+            user_id: "11111111-1111-1111-1111-111111111111".to_string(),
+            workspace_id: "22222222-2222-2222-2222-222222222222".to_string(),
+            run_id: "33333333-3333-3333-3333-333333333333".to_string(),
+            worker_id: "worker.data".to_string(),
+            task_id: "task-1".to_string(),
+            request_id: "task-1-skill-1".to_string(),
+            skill_id: "search_competitor".to_string(),
+            role: "data".to_string(),
+            status: "success".to_string(),
+            summary: Some("外部搜索已返回 1 个可采信来源".to_string()),
+            execution_mode: Some("adapter".to_string()),
+            output: json!({
+                "status": "live",
+                "adapter_status": "live",
+                "query": {
+                    "planned": "五一咖啡组合 咖啡饮品",
+                    "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                    "product_name": "五一咖啡组合",
+                    "product_category": "咖啡饮品"
+                },
+                "engine": "mock-search",
+                "sources": [
+                    {
+                        "title": "五一咖啡组合竞品价格观察",
+                        "url": "https://example.com/a",
+                        "domain": "example.com",
+                        "snippet": "同类组合装集中在 89-129 元。"
+                    }
+                ],
+                "provenance": {
+                    "source_count": 1,
+                    "domains": ["example.com"]
+                },
+                "confidence": 0.82,
+                "freshness": {
+                    "requested_at": "2026-05-10T00:00:00Z"
+                },
+                "evidence": {
+                    "summary": "共 1 条实时来源，覆盖 1 个域名。",
+                    "source_titles": ["五一咖啡组合竞品价格观察"],
+                    "source_domains": ["example.com"],
+                    "llm_context": "实时来源摘要"
+                }
+            }),
+        };
+
+        let draft = build_search_evidence_artifact(&req).expect("live search should persist");
+
+        assert!(draft.preview.contains(
+            "Product: 五一咖啡组合 / 咖啡饮品 / product:11111111-1111-1111-1111-111111111111"
+        ));
+        assert_eq!(
+            draft.metadata.pointer("/productContext/productRef"),
+            Some(&json!("product:11111111-1111-1111-1111-111111111111"))
+        );
+        assert_eq!(
+            draft.metadata.pointer("/productContext/productName"),
+            Some(&json!("五一咖啡组合"))
+        );
+        assert_eq!(
+            draft.metadata.pointer("/productContext/productCategory"),
+            Some(&json!("咖啡饮品"))
+        );
+        assert_eq!(
+            draft.metadata.get("productRef"),
+            Some(&json!("product:11111111-1111-1111-1111-111111111111"))
+        );
+        assert_eq!(
+            draft.metadata.get("productName"),
+            Some(&json!("五一咖啡组合"))
+        );
+        assert_eq!(
+            draft.metadata.get("productCategory"),
+            Some(&json!("咖啡饮品"))
         );
     }
 

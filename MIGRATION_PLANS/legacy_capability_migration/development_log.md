@@ -1,5 +1,53 @@
 # 迁移开发记录
 
+## Post 8-104：搜索证据 Artifact 商品上下文沉淀
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 104 个补强项：`Post 8-104`。
+
+本次目标：
+
+- 把上一轮 `search_*` skill 输出中的显式商品上下文继续沉淀到 `search_evidence` 工作区交付物。
+- 让刷新后的工作区、历史任务、来源面板仍能识别某条 live 搜索证据是否绑定本轮手动选中的商品。
+- 未选商品时保持普通搜索证据链路，不写空商品字段，不从 query、历史、预设或测试商品里推断默认商品。
+
+本次修改：
+
+- 后端 service：`build_search_evidence_artifact` 读取 `output.query.product_ref/product_name/product_category`。
+- 后端 service：`search_evidence` artifact 的 `metadata.productContext` 写入 `productRef/productName/productCategory`。
+- 后端 service：`metadata` 顶层冗余写入 `productRef/productName/productCategory`，便于前端列表快速读取。
+- 后端 service：搜索证据 `preview` 增加 `Product:` 行。
+- API：同步 `API_DOCS/app.md` 与 `API_DOCS/sse.md`。
+- 迁移文档：新增本轮归档，并同步阶段验收和总计划。
+
+用户可感知变化：
+
+- 用户手动勾选商品后，再触发“搜这个商品竞品 / 查本品口碑 / 看所选商品趋势”等外部搜索类任务，搜索证据交付物会保留商品引用、商品名和类目。
+- 用户查看历史搜索证据时，可以区分“指定商品搜索证据”和“普通市场搜索证据”。
+- 用户没有手动选商品时，搜索证据不会暗中绑定千乐咖啡、历史商品、预设商品或测试商品。
+
+当前验证：
+
+- [x] 后端设计文档：`temp/DEVELOPMENT_DOCS/backend/search_evidence_product_context_post_8_104.md`
+- [x] 迁移归档：`MIGRATION_PLANS/legacy_capability_migration/post_phase_8_104_search_evidence_product_context.md`
+- [x] `cargo fmt --all`
+- [x] `cargo test -p service search_evidence_artifact_requires_live_sources -- --nocapture`
+- [x] `cargo test -p service search_evidence_artifact_preserves_product_context -- --nocapture`
+- [x] `cargo test -p service search_evidence_artifact_ignores_degraded_output -- --nocapture`
+- [x] `cargo fmt --all --check`
+- [x] `cargo check -p service`
+- [x] `cargo clippy -p service`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 前端后续应在工作区交付物列表、来源面板和历史任务详情里展示 `productContext`，并用它区分商品绑定搜索与普通搜索。
+- 真实外部搜索 provider 的部署、密钥、来源质量治理和实时数据覆盖仍属于后续 adapter/service 配置工作。
+
 ## Post 8-103：搜索 skill 显式选品上下文
 
 状态：done

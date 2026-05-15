@@ -243,6 +243,8 @@ data: {"type":"approval_required","approval":{"id":"approval-uuid","workspaceId"
 
 补充：`search_trends`、`search_competitor`、`search_market_info`、`search_product_reviews`、`search_platform_policy`、`search_industry_benchmarks` 支持在 input 和 `output.query` 中携带 `product_ref=product:{uuid}`、`product_name`、`product_category`，用于标记本轮显式选中商品触发的外部搜索。该标记只来自 `context.selected_summary`，不会由搜索 skill 自行查询商品库，也不会把未选商品的普通搜索强行绑定到历史商品。搜索 provider 未配置、失败或无来源时仍返回 `deferred/degraded`，不会创建假 live 来源或假搜索证据 artifact。
 
+补充：当上述 `search_*` skill 返回真实 live 来源并创建 `search_evidence` artifact 时，后端会把 `output.query.product_ref/product_name/product_category` 沉淀到 artifact 的 `metadata.productContext`，并冗余到 `metadata.productRef/productName/productCategory`，preview 也会出现 `Product:` 行。没有显式商品上下文时不会写空字段，也不会从 query 文本、历史对话或工作区摘要推断商品。
+
 补充：engineering 内容 artifact 也使用 `metadata.kind=agent_generated_content`，`metadata.contentCategory=engineering`。`engineering_arch_review`、`engineering_bug_analysis`、`engineering_perf_optimize`、`engineering_tech_selection`、`engineering_sla_monitor` 成功输出会分别创建架构评估、Bug排查、性能优化、技术选型和SLA监控报告；当前基于用户输入和内置工程规则生成，不读取真实代码仓库、日志、APM、监控系统或实时外部 benchmark，缺少关键上下文时会以 `data_readiness=calculated_from_defaults` 明示。`engineering_system_check` 可由“平台 API 连通性 / 接口健康 / 授权 / 同步状态”等自然语言触发；仅查看配置时返回 `deferred`，要求真实测试连接时返回 `pending_approval`、`execution_mode=adapter`、`risk_level=high`、`approval_required=true`，仍需平台 adapter 和审批，不会创建假平台健康检查交付物。
 
 `quality_checked` 当前由 web-server 在 `workspace_run_completed` 和 `workspace_artifact_created` 后自动触发。质量检查失败不会截断 LLM 回答；如果质量检查自身写入失败，服务端会继续发 `workspace_run_persistence_error`，其中 `action` 为 `evaluate_agent_run`。

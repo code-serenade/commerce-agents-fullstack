@@ -2,6 +2,28 @@
 
 # 阶段验收记录
 
+## Post 8-104：搜索证据 Artifact 商品上下文沉淀
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Service：`search_evidence` artifact 从 `output.query` 读取 `product_ref/product_name/product_category`。
+- [x] Service：商品上下文存在时写入 `metadata.productContext.productRef/productName/productCategory`。
+- [x] Service：商品上下文存在时冗余写入顶层 `metadata.productRef/productName/productCategory`。
+- [x] Service：`preview` 增加 `Product:` 行，便于前端和用户区分指定商品搜索证据。
+- [x] Service：未显式选商品时不写空商品字段，不从 query、历史或工作区摘要推断商品。
+- [x] Service：仍只为真实 live 搜索来源创建 `search_evidence`，degraded/deferred 不创建假证据。
+- [x] API：`API_DOCS/app.md` 与 `API_DOCS/sse.md` 已同步。
+- [x] 前端：本轮不新增假入口。
+
+当前说明：
+
+- 本阶段解决的是“搜索 skill 已知道本轮选中商品，但搜索证据 artifact 刷新后丢失商品绑定关系”的问题。
+- 本阶段只沉淀 `search_*` skill 已输出的显式商品上下文；不查询商品库、不跨用户读取商品资料、不从文本猜默认商品。
+- 本阶段不改变外部搜索 provider 边界；未配置、失败或无来源时仍明确降级，不伪造联网结果。
+
 ## Post 8-103：搜索 skill 显式选品上下文
 
 状态：done
