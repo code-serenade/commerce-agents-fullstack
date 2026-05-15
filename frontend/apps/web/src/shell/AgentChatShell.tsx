@@ -170,6 +170,16 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     navigate(path)
   }
 
+  const openNewConversation = () => {
+    chat.startNewConversation()
+    navigateTo("/commerce")
+  }
+
+  const openConversation = (conversationId: string) => {
+    void chat.selectConversation(conversationId)
+    navigateTo("/commerce")
+  }
+
   const isRouteActive = (path: string) => {
     return isAgentChatRouteActive(location.pathname, path)
   }
@@ -206,8 +216,8 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           key: "new-chat",
           icon: <Edit3 />,
           label: t("agentChat.shell.navigation.newChat"),
-          active: !chat.conversationId,
-          onSelect: chat.startNewConversation,
+          active: !chat.conversationId && isQuestionRoute,
+          onSelect: openNewConversation,
         },
       ],
     },
@@ -227,8 +237,9 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
               key: conversation.id,
               icon: <MessageSquareText />,
               label: conversation.title,
-              active: conversation.id === chat.conversationId,
-              onSelect: () => chat.selectConversation(conversation.id),
+              active:
+                isQuestionRoute && conversation.id === chat.conversationId,
+              onSelect: () => openConversation(conversation.id),
               action: (
                 <ConversationActionMenu
                   actionLabel={t("pages:agentChat.conversation.actionLabel")}
@@ -397,11 +408,8 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       key: conversation.id,
       label: conversation.title,
       href: "/commerce",
-      active: conversation.id === chat.conversationId,
-      onSelect: () => {
-        void chat.selectConversation(conversation.id)
-        navigateTo("/commerce")
-      },
+      active: isQuestionRoute && conversation.id === chat.conversationId,
+      onSelect: () => openConversation(conversation.id),
     })
   )
   const mobileNavigationItems: MobileBottomNavItem[] = [
@@ -410,10 +418,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       icon: <Edit3 />,
       label: t("agentChat.shell.navigation.newChat"),
       active: !chat.conversationId && isRouteActive("/commerce"),
-      onSelect: () => {
-        chat.startNewConversation()
-        navigateTo("/commerce")
-      },
+      onSelect: openNewConversation,
     },
     {
       key: "recents",
