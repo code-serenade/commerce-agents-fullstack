@@ -1,5 +1,35 @@
 # 迁移开发记录
 
+## Post 8-115：客服满意度行业基准搜索链路
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 115 个补强项：`Post 8-115`。
+
+本轮完成：
+
+- 客服岗位在用户要求 DSR / NPS / 满意度分析且同时要求行业基准、实时、联网或最新资料时，会生成可见 skill 链路。
+- 链路先触发客服 native skill，例如 `service_dsr_improvement` 或 `service_nps_driver_analysis`。
+- 链路再追加 `search_industry_benchmarks`，把行业基准搜索作为独立 skill 暴露到 SSE 和 skill run 记录。
+- 客服岗位已放开 `search_industry_benchmarks` 权限，避免自动补偿后被 role catalog 拒绝。
+- 行业基准搜索新增 `dsr` metric 支持，搜索 query 会覆盖 DSR、店铺评分、描述相符、服务态度和物流服务。
+- 仍然保持显式商品原则：只有本轮手动选择商品时才携带 `product_ref/product_name/product_category`，未选商品不注入默认商品。
+
+用户可感知变化：
+
+- 用户让客服虚拟员工分析 DSR / NPS 并要求最新行业基准时，前端过程区能看到“客服分析”和“行业基准搜索”两个真实步骤。
+- 外部搜索不可用、失败或无可信来源时，会按搜索 skill 既有规则明确降级，不会假装查到了实时行业资料。
+- 回答过程更接近 Kimi Agent 集群式透明协作：本地分析和联网证据分开显示，用户能看清每一步来自哪里。
+
+文档：
+
+- [x] 后端设计：`temp/DEVELOPMENT_DOCS/backend/service_benchmark_search_chain_post_8_115.md`
+- [x] API 文档：`API_DOCS/sse.md`
+- [x] 迁移归档：`MIGRATION_PLANS/legacy_capability_migration/post_phase_8_115_service_benchmark_search_chain.md`
+
 ## Post 8-114：外部搜索来源时效过滤
 
 状态：done

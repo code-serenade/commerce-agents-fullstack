@@ -64,6 +64,14 @@ Kimi Agent 集群 = 前端交互和视觉体验参考
 - `provenance.staleFilteredCount` on App API and `provenance.stale_filtered_count` / `freshness.stale_filtered_count` on Agent output expose how many stale sources were removed.
 - If every traceable source is stale, search degrades instead of creating fake live evidence or a `search_evidence` artifact.
 
+## Post 8-115 Update
+
+- Service-role DSR / shop score / service score / NPS / satisfaction-driver prompts can now surface a visible two-step skill chain when the user asks for latest, realtime, online, or industry benchmark data.
+- The first step remains a native service skill such as `service_dsr_improvement` or `service_nps_driver_analysis`; the second step is `search_industry_benchmarks`.
+- `service` is allowed to use `search_industry_benchmarks` through the role skill catalog, so the chain is not rejected after autosuggest.
+- Industry benchmark search now supports `metric=dsr` in addition to existing NPS and KPI metrics.
+- Selected product context is still explicit-only: no product ref/name/category is injected unless the current turn selected a product.
+
 ## Post 8-108 Update
 
 - Agent Chat frontend now exposes explicit current-conversation file sources after upload.

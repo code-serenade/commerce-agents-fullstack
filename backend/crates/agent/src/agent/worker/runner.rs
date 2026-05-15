@@ -473,6 +473,9 @@ fn autosuggest_skill_requests(
     output: &str,
 ) -> Vec<ParsedSkillRequest> {
     let text = autosuggest_text(task, output);
+    if role.runtime_role == "service" {
+        return autosuggest_service_requests(&text, task);
+    }
     let Some(request) = autosuggest_for_role(role.runtime_role.as_str(), &text, task) else {
         return Vec::new();
     };
@@ -1289,11 +1292,25 @@ fn autosuggest_accounting(text: &str, task: &Task) -> Option<ParsedSkillRequest>
     ))
 }
 
-fn autosuggest_service(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
-    if let Some(request) = autosuggest_search(text, task) {
-        return Some(request);
+fn autosuggest_service_requests(text: &str, task: &Task) -> Vec<ParsedSkillRequest> {
+    if is_service_benchmark_chain_intent(text)
+        && let Some(primary) = autosuggest_service_native(text, task)
+    {
+        return vec![primary, autosuggest_service_benchmark_search(text, task)];
     }
 
+    if let Some(request) = autosuggest_search(text, task) {
+        return vec![request];
+    }
+
+    autosuggest_service_native(text, task).into_iter().collect()
+}
+
+fn autosuggest_service(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
+    autosuggest_service_requests(text, task).into_iter().next()
+}
+
+fn autosuggest_service_native(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     if contains_any(
         text,
         &[
@@ -1449,6 +1466,42 @@ fn autosuggest_service(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         }),
         "根据客服岗位任务自动补偿 DSR 提升 skill",
     ))
+}
+
+fn is_service_benchmark_chain_intent(text: &str) -> bool {
+    let has_service_metric = contains_any(
+        text,
+        &[
+            "dsr",
+            "DSR",
+            "服务评分",
+            "店铺评分",
+            "评分低",
+            "满意度",
+            "nps",
+            "NPS",
+            "推荐值",
+            "客户忠诚",
+            "驱动因素",
+            "投诉分类",
+            "客服响应",
+        ],
+    );
+    has_service_metric
+        && (is_industry_benchmark_search_intent(text)
+            || contains_any(
+                text,
+                &["行业基准", "行业均值", "行业平均", "实时基准", "最新基准"],
+            ))
+}
+
+fn autosuggest_service_benchmark_search(text: &str, task: &Task) -> ParsedSkillRequest {
+    let input = search_industry_benchmarks_input(text, task);
+    autosuggest_request(
+        "search_industry_benchmarks",
+        serde_json::Value::Object(input),
+        "根据客服DSR/NPS分析中的行业基准需求自动追加外部搜索 skill",
+    )
 }
 
 fn autosuggest_creative(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
@@ -4609,6 +4662,11 @@ fn infer_search_benchmark_metric(text: &str) -> &'static str {
         "conversion"
     } else if contains_any(text, &["客单价", "aov"]) {
         "aov"
+    } else if contains_any(
+        text,
+        &["dsr", "DSR", "服务评分", "店铺评分", "描述相符", "物流服务"],
+    ) {
+        "dsr"
     } else if contains_any(text, &["nps", "NPS", "满意度"]) {
         "nps"
     } else if contains_any(text, &["退款", "退货", "refund"]) {
@@ -8537,6 +8595,61 @@ mod tests {
             assert_eq!(requests.len(), 1, "{prompt}");
             assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
         }
+    }
+
+    #[test]
+    fn autosuggests_service_benchmark_chain_for_dsr_and_nps() {
+        let dsr_requests = autosuggest_skill_requests(
+            &role("service"),
+            &task("DSR下降，服务评分低，联网查最新行业基准并给提升方案，最多4条来源"),
+            "{}",
+        );
+
+        assert_eq!(dsr_requests.len(), 2);
+        assert_eq!(dsr_requests[0].skill_id, "service_dsr_improvement");
+        assert_eq!(dsr_requests[0].input["platform"], "淘宝");
+        assert_eq!(dsr_requests[1].skill_id, "search_industry_benchmarks");
+        assert_eq!(dsr_requests[1].input["metric"], "dsr");
+        assert_eq!(dsr_requests[1].input["platform"], "电商");
+        assert_eq!(dsr_requests[1].input["_needs_fresh_data"], true);
+        assert_eq!(dsr_requests[1].input["max_results"], 4);
+
+        let nps_requests = autosuggest_skill_requests(
+            &role("service"),
+            &task("分析投诉分类和满意度驱动因素，顺便联网查抖音NPS行业基准"),
+            "{}",
+        );
+
+        assert_eq!(nps_requests.len(), 2);
+        assert_eq!(nps_requests[0].skill_id, "service_nps_driver_analysis");
+        assert_eq!(nps_requests[0].input["platform"], "抖音");
+        assert_eq!(nps_requests[1].skill_id, "search_industry_benchmarks");
+        assert_eq!(nps_requests[1].input["metric"], "nps");
+        assert_eq!(nps_requests[1].input["platform"], "抖音");
+        assert_eq!(nps_requests[1].input["_needs_fresh_data"], true);
+    }
+
+    #[test]
+    fn autosuggest_service_benchmark_chain_keeps_selected_product_explicit() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("service"),
+            &task_with_metadata(
+                "这个商品DSR下降，查最新行业基准并给提升方案",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 2);
+        assert_eq!(requests[0].skill_id, "service_dsr_improvement");
+        assert_eq!(requests[1].skill_id, "search_industry_benchmarks");
+        assert_eq!(requests[1].input["industry"], "咖啡饮品");
+        assert_eq!(requests[1].input["product_name"], "五一咖啡组合");
+        assert_eq!(
+            requests[1].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
     }
 
     #[test]

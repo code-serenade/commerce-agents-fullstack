@@ -112,6 +112,8 @@ Post 8-114 补充：App 外部搜索 API 和 Agent `search_trends` / `search_com
 | `service_sentiment_analyzer` | `service_sentiment_analyzer` | native_ready | `backend/crates/agent/src/skills/service.rs` | 已可 native 执行并可由差评/情绪/投诉自然问法触发；Post 8-34：成功输出会沉淀为 `service_sentiment_report` artifact |
 | `service_nps_driver_analysis` | `service_nps_driver_analysis` | native_ready | `backend/crates/agent/src/skills/service.rs` | 已补强满意度驱动因素/投诉分类/NPS拖累自然问法触达；Post 8-34：成功输出会沉淀为 `service_nps_driver_report` artifact |
 
+Post 8-115 补充：客服岗位在 DSR、店铺评分、服务评分、NPS、满意度驱动因素或投诉分类意图中，如果用户同时要求最新 / 实时 / 联网 / 行业基准，会生成可见 skill 链路：先运行客服 native skill，再追加 `search_industry_benchmarks`。行业基准搜索新增 `metric=dsr` 支持；NPS 继续使用 `metric=nps`。该搜索不再隐藏在客服 native skill 内部，仍按统一外部搜索 adapter 降级规则执行，未显式选品时不注入默认商品。
+
 ## 设计 design
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |

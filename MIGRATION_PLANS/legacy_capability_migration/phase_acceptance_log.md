@@ -1,5 +1,19 @@
 # 阶段验收记录
 
+## Post 8-115：客服满意度行业基准搜索链路
+
+结论：通过。
+
+验收点：
+
+- 客服岗位 DSR / NPS / 满意度分析在用户要求实时行业基准时会返回两个 skill 请求。
+- 第一个请求保持客服 native skill，例如 `service_dsr_improvement` 或 `service_nps_driver_analysis`。
+- 第二个请求为 `search_industry_benchmarks`，通过 SSE / skill run 作为独立步骤可见。
+- 客服 role catalog 已允许 `search_industry_benchmarks`。
+- 搜索基准 metric 已支持 `dsr`，NPS 仍走 `nps`。
+- 显式商品上下文只来自本轮选择，未选择商品时不写空引用、不注入默认商品。
+- Agent service / search 测试、设计文档、API 文档和迁移归档已同步。
+
 ## Post 8-114：外部搜索来源时效过滤
 
 结论：通过。

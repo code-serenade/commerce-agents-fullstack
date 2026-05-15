@@ -234,7 +234,7 @@ pub fn search_industry_benchmarks_spec() -> SkillSpec {
             ),
             SkillInputField::optional(
                 "metric",
-                "关注指标：conversion/aov/nps/refund/roi/general",
+                "关注指标：conversion/aov/nps/dsr/refund/roi/general",
                 json!({"type": "string"}),
             ),
             SkillInputField::optional(
@@ -1237,6 +1237,7 @@ fn build_benchmark_query(
         "conversion" => "转化率 成交转化 CVR 行业均值 基准",
         "aov" => "客单价 平均订单金额 消费水平 均值",
         "nps" => "NPS 净推荐值 客户满意度 行业标准 平均分",
+        "dsr" => "DSR 店铺评分 描述相符 服务态度 物流服务 行业基准",
         "refund" => "退款率 退货率 售后率 行业水平 均值",
         "roi" => "广告ROI 投产比 ROAS 营销效率 基准",
         _ => "行业数据 KPI基准 平均水平 运营指标 数据报告",
