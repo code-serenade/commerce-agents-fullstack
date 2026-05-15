@@ -104,6 +104,7 @@ The following major foundations are already in place:
 - search adapter skills can now be reached from natural external-search language while preserving live/degraded/deferred evidence boundaries
 - search evidence artifacts now preserve explicit selected-product context in metadata and preview when live `search_*` results are product-bound
 - search evidence artifacts now enter `workspace_context_pack` as readable evidence summaries instead of raw JSON
+- explicit `contextRefs` can now reuse selected conversation files, product assets, product materials, and workspace artifacts as Agent context without automatically pulling unrelated history
 - multiple native skill migrations across ops / data / service / creative / web / design / accounting
 - creative and design skill outputs can now materialize into reusable workspace artifacts when the skill result is successful
 - data dashboard is now a native deterministic skill with explicit manual-input vs store-metrics-required readiness

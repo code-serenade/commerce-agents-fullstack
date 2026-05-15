@@ -1,5 +1,32 @@
 # 迁移开发记录
 
+## Post 8-107：显式工作区来源上下文引用
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 107 个补强项：`Post 8-107`。
+
+本轮完成：
+
+- `WorkspaceApi::context_summary` / `context_pack` 的 `contextRefs` 从只支持历史交付物，扩展为支持附件、商品资产、商品素材和工作区交付物。
+- 新增显式引用：`conversation_file:{uuid}` / `file:{uuid}`、`product_asset:{uuid}` / `asset:{uuid}`、`product_material:{uuid}` / `material:{uuid}`。
+- 所有显式引用都在 service 层校验当前用户、active 状态和所属资源。
+- 显式商品资产 / 商品素材只作为本轮资料来源，不会反向把所属商品当作“本轮已选商品”。
+- 仍保持默认防串线策略：未显式引用时，不自动读取历史附件、历史商品素材或历史 run artifact。
+
+用户可感知变化：
+
+- 后续前端做“选择历史附件 / 商品素材 / 商品资产 / 搜索证据继续追问”时，可以把用户手动勾选的真实资料传入本轮 Agent。
+- 用户没选资料时，普通问答不会自动混入旧会话附件、历史商品素材、千乐咖啡或任何测试商品资料。
+
+文档：
+
+- [x] 后端设计：`temp/DEVELOPMENT_DOCS/backend/explicit_workspace_source_context_refs_post_8_107.md`
+- [x] API 文档：`API_DOCS/sse.md`、`API_DOCS/app.md`
+
 ## Post 8-106：显式交付物上下文引用接入 Agent SSE
 
 状态：done

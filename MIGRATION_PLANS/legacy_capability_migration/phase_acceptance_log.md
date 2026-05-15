@@ -2,6 +2,20 @@
 
 # 阶段验收记录
 
+## Post 8-107：显式工作区来源上下文引用
+
+结论：通过。
+
+验收点：
+
+- `contextRefs` 支持显式引用 `conversation_file:{uuid}` / `file:{uuid}`。
+- `contextRefs` 支持显式引用 `product_asset:{uuid}` / `asset:{uuid}`。
+- `contextRefs` 支持显式引用 `product_material:{uuid}` / `material:{uuid}`。
+- 既有 `workspace_artifact:{uuid}` / `artifact:{uuid}` 继续可用。
+- 显式来源进入 workspace context summary / pack 前会校验当前用户、active 状态和所属资源。
+- 显式商品资产 / 商品素材只作为资料来源，不会反向设置本轮选中商品。
+- API 文档和迁移归档已同步。
+
 ## Post 8-106：显式交付物上下文引用接入 Agent SSE
 
 结论：通过。

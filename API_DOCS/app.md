@@ -2834,7 +2834,7 @@
 | `conversationId` | `uuid` | 否 | 聚合该会话下已注册的 active 附件 |
 | `productId` | `uuid` | 否 | 聚合该商品下 active 资产和素材；为空时优先使用工作区绑定商品 |
 | `runId` | `uuid` | 否 | 只聚合该运行记录下的 active 工作区交付物 |
-| `contextRefs` | `string` | 否 | 逗号分隔的显式上下文引用，当前支持 `workspace_artifact:{artifactId}` 和 `artifact:{artifactId}`，最多 20 个 |
+| `contextRefs` | `string` | 否 | 逗号分隔的显式上下文引用，当前支持 `conversation_file:{fileId}`、`file:{fileId}`、`product_asset:{assetId}`、`asset:{assetId}`、`product_material:{materialId}`、`material:{materialId}`、`workspace_artifact:{artifactId}` 和 `artifact:{artifactId}`，最多 20 个 |
 
 成功响应 `data`：
 
@@ -2888,7 +2888,8 @@
 - `readiness=empty` 表示没有任何 active 附件、素材、资产或交付物来源。
 - `agentContext.refs` 是后续 Agent 上下文注入和前端来源面板可复用的引用 key。
 - 该接口只做后端状态聚合，不读取文件正文，不伪造 OCR/文档摘要。
-- `contextRefs` 只读取当前用户、当前 workspace 下的 active artifact；不会因为传入 `workspaceId` 自动读取全部历史 run artifact。
+- `contextRefs` 只读取当前用户自己的 active 附件、active 商品资产、active 商品素材，以及当前 workspace 下的 active artifact。显式商品资产 / 商品素材会校验所属商品仍 active，但不会反向把该商品当成本轮“已选商品”；如果需要商品知识和商品型 skill 输入，仍应通过 `productId`、`productIds` 或 `product:{uuid}` 显式选择商品。
+- `contextRefs` 不会因为传入 `workspaceId` 自动读取全部历史 run artifact，也不会因为传入某个附件或素材就自动读取同一会话、同一商品下的其它资料。
 - Agent SSE 会在绑定 `workspace_run` 后自动调用该摘要能力，发送 `workspace_context_loaded` 事件，并把 `agentContext.refs` 与 `summary` 注入 agent runtime metadata。
 
 ## 68.1 查询工作区上下文内容包
@@ -2904,7 +2905,7 @@
 | `conversationId` | `uuid` | 否 | 聚合该会话下已注册的 active 附件；只读取 metadata 中已经存在的抽取文本 |
 | `productId` | `uuid` | 否 | 聚合该商品下 active 资产描述和素材正文；为空时优先使用工作区绑定商品 |
 | `runId` | `uuid` | 否 | 只聚合该运行记录下的 active 工作区交付物 |
-| `contextRefs` | `string` | 否 | 逗号分隔的显式上下文引用，当前支持 `workspace_artifact:{artifactId}` 和 `artifact:{artifactId}`，最多 20 个 |
+| `contextRefs` | `string` | 否 | 逗号分隔的显式上下文引用，当前支持 `conversation_file:{fileId}`、`file:{fileId}`、`product_asset:{assetId}`、`asset:{assetId}`、`product_material:{materialId}`、`material:{materialId}`、`workspace_artifact:{artifactId}` 和 `artifact:{artifactId}`，最多 20 个 |
 | `maxItems` | `number` | 否 | 返回来源上限，默认 20，最大 50 |
 | `maxChars` | `number` | 否 | 返回文本总字符上限，默认 12000，最大 24000 |
 
@@ -2982,7 +2983,7 @@
 - `contentKind=unavailable` 表示该来源没有可读文本。
 - 该接口不会读取 object storage，不做 OCR，不解析 PDF/图片/视频，也不会把二进制附件伪造成已读正文。
 - Agent SSE 会在 `workspace_context_loaded` 后自动调用该内容包能力，发送 `workspace_context_pack_loaded` 事件，并把可读文本追加进 runtime `context.summary`。
-- `contextRefs` 中的显式 artifact 会和 `runId` 范围 artifact 合并去重后进入内容包；未显式引用的历史 artifact 不会进入 SSE Agent 本轮上下文。
+- `contextRefs` 中的显式附件、商品资产、商品素材和 artifact 会和 `conversationId`、`productId`、`runId` 范围来源合并去重后进入内容包；未显式引用的历史附件、历史商品素材或历史 artifact 不会进入 SSE Agent 本轮上下文。
 
 ## 69. 查询支持的平台列表
 

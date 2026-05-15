@@ -898,20 +898,27 @@ impl WorkspaceApi {
         if let Some(run_id) = run_id {
             self.ensure_run_owner(user_id, workspace_id, run_id).await?;
         }
-        let explicit_artifact_ids = artifact_ids_from_context_refs(req.context_refs)?;
+        let explicit_context_refs = explicit_workspace_context_refs(req.context_refs)?;
 
-        let attachment_sources = if let Some(conversation_id) = conversation_id {
+        let mut conversation_files = if let Some(conversation_id) = conversation_id {
             self.conversation_file_svc
                 .list_by_conversation_id(conversation_id)
                 .await?
-                .into_iter()
-                .map(map_context_conversation_file)
-                .collect::<Vec<_>>()
         } else {
             Vec::new()
         };
+        for file_id in explicit_context_refs.conversation_file_ids {
+            let file = self
+                .ensure_active_conversation_file_owner(user_id, file_id)
+                .await?;
+            push_unique_conversation_file(&mut conversation_files, file);
+        }
+        let attachment_sources = conversation_files
+            .into_iter()
+            .map(map_context_conversation_file)
+            .collect::<Vec<_>>();
 
-        let product_asset_sources = if let Some(product_id) = product_id {
+        let mut product_assets = if let Some(product_id) = product_id {
             self.product_asset_svc
                 .list(ProductAssetFilter {
                     user_id,
@@ -922,14 +929,21 @@ impl WorkspaceApi {
                     limit: Some(200),
                 })
                 .await?
-                .into_iter()
-                .map(map_context_product_asset)
-                .collect::<Vec<_>>()
         } else {
             Vec::new()
         };
+        for asset_id in explicit_context_refs.product_asset_ids {
+            let asset = self
+                .ensure_active_product_asset_owner(user_id, asset_id)
+                .await?;
+            push_unique_product_asset(&mut product_assets, asset);
+        }
+        let product_asset_sources = product_assets
+            .into_iter()
+            .map(map_context_product_asset)
+            .collect::<Vec<_>>();
 
-        let product_material_sources = if let Some(product_id) = product_id {
+        let mut product_materials = if let Some(product_id) = product_id {
             self.product_material_svc
                 .list(ProductMaterialFilter {
                     user_id,
@@ -940,12 +954,19 @@ impl WorkspaceApi {
                     limit: Some(200),
                 })
                 .await?
-                .into_iter()
-                .map(map_context_product_material)
-                .collect::<Vec<_>>()
         } else {
             Vec::new()
         };
+        for material_id in explicit_context_refs.product_material_ids {
+            let material = self
+                .ensure_active_product_material_owner(user_id, material_id)
+                .await?;
+            push_unique_product_material(&mut product_materials, material);
+        }
+        let product_material_sources = product_materials
+            .into_iter()
+            .map(map_context_product_material)
+            .collect::<Vec<_>>();
 
         let mut workspace_artifacts = self
             .artifact_svc
@@ -962,7 +983,7 @@ impl WorkspaceApi {
                 offset: Some(0),
             })
             .await?;
-        for artifact_id in explicit_artifact_ids {
+        for artifact_id in explicit_context_refs.workspace_artifact_ids {
             let artifact = self
                 .ensure_active_artifact_owner(user_id, workspace_id, artifact_id)
                 .await?;
@@ -1080,17 +1101,23 @@ impl WorkspaceApi {
         if let Some(run_id) = run_id {
             self.ensure_run_owner(user_id, workspace_id, run_id).await?;
         }
-        let explicit_artifact_ids = artifact_ids_from_context_refs(req.context_refs)?;
+        let explicit_context_refs = explicit_workspace_context_refs(req.context_refs)?;
 
-        let conversation_files = if let Some(conversation_id) = conversation_id {
+        let mut conversation_files = if let Some(conversation_id) = conversation_id {
             self.conversation_file_svc
                 .list_by_conversation_id(conversation_id)
                 .await?
         } else {
             Vec::new()
         };
+        for file_id in explicit_context_refs.conversation_file_ids {
+            let file = self
+                .ensure_active_conversation_file_owner(user_id, file_id)
+                .await?;
+            push_unique_conversation_file(&mut conversation_files, file);
+        }
 
-        let product_assets = if let Some(product_id) = product_id {
+        let mut product_assets = if let Some(product_id) = product_id {
             self.product_asset_svc
                 .list(ProductAssetFilter {
                     user_id,
@@ -1104,8 +1131,14 @@ impl WorkspaceApi {
         } else {
             Vec::new()
         };
+        for asset_id in explicit_context_refs.product_asset_ids {
+            let asset = self
+                .ensure_active_product_asset_owner(user_id, asset_id)
+                .await?;
+            push_unique_product_asset(&mut product_assets, asset);
+        }
 
-        let product_materials = if let Some(product_id) = product_id {
+        let mut product_materials = if let Some(product_id) = product_id {
             self.product_material_svc
                 .list(ProductMaterialFilter {
                     user_id,
@@ -1119,6 +1152,12 @@ impl WorkspaceApi {
         } else {
             Vec::new()
         };
+        for material_id in explicit_context_refs.product_material_ids {
+            let material = self
+                .ensure_active_product_material_owner(user_id, material_id)
+                .await?;
+            push_unique_product_material(&mut product_materials, material);
+        }
 
         let mut workspace_artifacts = self
             .artifact_svc
@@ -1135,7 +1174,7 @@ impl WorkspaceApi {
                 offset: Some(0),
             })
             .await?;
-        for artifact_id in explicit_artifact_ids {
+        for artifact_id in explicit_context_refs.workspace_artifact_ids {
             let artifact = self
                 .ensure_active_artifact_owner(user_id, workspace_id, artifact_id)
                 .await?;
@@ -3774,6 +3813,102 @@ impl WorkspaceApi {
         Ok(artifact)
     }
 
+    async fn ensure_active_conversation_file_owner(
+        &self,
+        user_id: Uuid,
+        file_id: Uuid,
+    ) -> BizResult<ConversationFile> {
+        let file = self
+            .conversation_file_svc
+            .get_by_id(file_id)
+            .await?
+            .ok_or_else(|| {
+                BizError::new(
+                    app_error::CONVERSATION_FILE_NOT_FOUND,
+                    "conversation file not found".to_string(),
+                )
+            })?;
+        if file.user_id != user_id {
+            return Err(BizError::new(
+                app_error::CONVERSATION_FILE_FORBIDDEN,
+                "conversation file does not belong to current user".to_string(),
+            ));
+        }
+        if file.status != "active" {
+            return Err(BizError::new(
+                app_error::CONVERSATION_FILE_NOT_FOUND,
+                "conversation file not found".to_string(),
+            ));
+        }
+        self.ensure_conversation_owner(user_id, file.conversation_id)
+            .await?;
+        Ok(file)
+    }
+
+    async fn ensure_active_product_asset_owner(
+        &self,
+        user_id: Uuid,
+        asset_id: Uuid,
+    ) -> BizResult<ProductAsset> {
+        let asset = self
+            .product_asset_svc
+            .get_by_id(asset_id)
+            .await?
+            .ok_or_else(|| {
+                BizError::new(
+                    app_error::PRODUCT_ASSET_NOT_FOUND,
+                    "product asset not found".to_string(),
+                )
+            })?;
+        if asset.user_id != user_id {
+            return Err(BizError::new(
+                app_error::PRODUCT_ASSET_FORBIDDEN,
+                "product asset does not belong to current user".to_string(),
+            ));
+        }
+        if asset.status == ProductAssetStatus::Archived {
+            return Err(BizError::new(
+                app_error::PRODUCT_ASSET_NOT_FOUND,
+                "product asset not found".to_string(),
+            ));
+        }
+        self.ensure_active_product_owner(user_id, asset.product_id)
+            .await?;
+        Ok(asset)
+    }
+
+    async fn ensure_active_product_material_owner(
+        &self,
+        user_id: Uuid,
+        material_id: Uuid,
+    ) -> BizResult<ProductMaterial> {
+        let material = self
+            .product_material_svc
+            .get_by_id(material_id)
+            .await?
+            .ok_or_else(|| {
+                BizError::new(
+                    app_error::PRODUCT_MATERIAL_NOT_FOUND,
+                    "product material not found".to_string(),
+                )
+            })?;
+        if material.user_id != user_id {
+            return Err(BizError::new(
+                app_error::PRODUCT_MATERIAL_FORBIDDEN,
+                "product material does not belong to current user".to_string(),
+            ));
+        }
+        if material.status == ProductMaterialStatus::Archived {
+            return Err(BizError::new(
+                app_error::PRODUCT_MATERIAL_NOT_FOUND,
+                "product material not found".to_string(),
+            ));
+        }
+        self.ensure_active_product_owner(user_id, material.product_id)
+            .await?;
+        Ok(material)
+    }
+
     async fn resolve_artifact_links(
         &self,
         user_id: Uuid,
@@ -5072,18 +5207,64 @@ fn normalize_context_refs(context_refs: Vec<String>) -> BizResult<Vec<String>> {
     Ok(refs)
 }
 
-fn artifact_ids_from_context_refs(context_refs: Vec<String>) -> BizResult<Vec<Uuid>> {
-    let mut ids = Vec::new();
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct ExplicitWorkspaceContextRefs {
+    conversation_file_ids: Vec<Uuid>,
+    product_asset_ids: Vec<Uuid>,
+    product_material_ids: Vec<Uuid>,
+    workspace_artifact_ids: Vec<Uuid>,
+}
+
+fn explicit_workspace_context_refs(
+    context_refs: Vec<String>,
+) -> BizResult<ExplicitWorkspaceContextRefs> {
+    let mut refs = ExplicitWorkspaceContextRefs::default();
     for context_ref in normalize_context_refs(context_refs)? {
-        let Some(artifact_id) = artifact_id_from_context_ref(&context_ref) else {
+        if let Some(file_id) = conversation_file_id_from_context_ref(&context_ref) {
+            let file_id = parse_uuid(file_id, "context_ref conversation file id")?;
+            push_unique_uuid(&mut refs.conversation_file_ids, file_id);
             continue;
-        };
-        let artifact_id = parse_uuid(artifact_id, "context_ref artifact id")?;
-        if !ids.contains(&artifact_id) {
-            ids.push(artifact_id);
+        }
+        if let Some(asset_id) = product_asset_id_from_context_ref(&context_ref) {
+            let asset_id = parse_uuid(asset_id, "context_ref product asset id")?;
+            push_unique_uuid(&mut refs.product_asset_ids, asset_id);
+            continue;
+        }
+        if let Some(material_id) = product_material_id_from_context_ref(&context_ref) {
+            let material_id = parse_uuid(material_id, "context_ref product material id")?;
+            push_unique_uuid(&mut refs.product_material_ids, material_id);
+            continue;
+        }
+        if let Some(artifact_id) = artifact_id_from_context_ref(&context_ref) {
+            let artifact_id = parse_uuid(artifact_id, "context_ref artifact id")?;
+            push_unique_uuid(&mut refs.workspace_artifact_ids, artifact_id);
         }
     }
-    Ok(ids)
+    Ok(refs)
+}
+
+fn conversation_file_id_from_context_ref(value: &str) -> Option<&str> {
+    value
+        .strip_prefix("conversation_file:")
+        .or_else(|| value.strip_prefix("conversation_file/"))
+        .or_else(|| value.strip_prefix("file:"))
+        .or_else(|| value.strip_prefix("file/"))
+}
+
+fn product_asset_id_from_context_ref(value: &str) -> Option<&str> {
+    value
+        .strip_prefix("product_asset:")
+        .or_else(|| value.strip_prefix("product_asset/"))
+        .or_else(|| value.strip_prefix("asset:"))
+        .or_else(|| value.strip_prefix("asset/"))
+}
+
+fn product_material_id_from_context_ref(value: &str) -> Option<&str> {
+    value
+        .strip_prefix("product_material:")
+        .or_else(|| value.strip_prefix("product_material/"))
+        .or_else(|| value.strip_prefix("material:"))
+        .or_else(|| value.strip_prefix("material/"))
 }
 
 fn artifact_id_from_context_ref(value: &str) -> Option<&str> {
@@ -5092,6 +5273,30 @@ fn artifact_id_from_context_ref(value: &str) -> Option<&str> {
         .or_else(|| value.strip_prefix("workspace_artifact/"))
         .or_else(|| value.strip_prefix("artifact:"))
         .or_else(|| value.strip_prefix("artifact/"))
+}
+
+fn push_unique_uuid(items: &mut Vec<Uuid>, id: Uuid) {
+    if !items.contains(&id) {
+        items.push(id);
+    }
+}
+
+fn push_unique_conversation_file(items: &mut Vec<ConversationFile>, file: ConversationFile) {
+    if !items.iter().any(|item| item.id == file.id) {
+        items.push(file);
+    }
+}
+
+fn push_unique_product_asset(items: &mut Vec<ProductAsset>, asset: ProductAsset) {
+    if !items.iter().any(|item| item.id == asset.id) {
+        items.push(asset);
+    }
+}
+
+fn push_unique_product_material(items: &mut Vec<ProductMaterial>, material: ProductMaterial) {
+    if !items.iter().any(|item| item.id == material.id) {
+        items.push(material);
+    }
 }
 
 fn push_unique_artifact(items: &mut Vec<WorkspaceArtifact>, artifact: WorkspaceArtifact) {
@@ -8360,32 +8565,43 @@ mod tests {
     }
 
     #[test]
-    fn artifact_context_refs_parse_supported_forms_only() {
+    fn explicit_workspace_context_refs_parse_supported_forms() {
         let artifact_id = Uuid::parse_str("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa").unwrap();
-        let ids = artifact_ids_from_context_refs(vec![
+        let file_id = Uuid::parse_str("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb").unwrap();
+        let asset_id = Uuid::parse_str("cccccccc-cccc-cccc-cccc-cccccccccccc").unwrap();
+        let material_id = Uuid::parse_str("dddddddd-dddd-dddd-dddd-dddddddddddd").unwrap();
+        let refs = explicit_workspace_context_refs(vec![
             format!("workspace_artifact:{artifact_id}"),
             format!("artifact/{artifact_id}"),
+            format!("conversation_file:{file_id}"),
+            format!("file/{file_id}"),
+            format!("product_asset:{asset_id}"),
+            format!("asset/{asset_id}"),
+            format!("product_material:{material_id}"),
+            format!("material/{material_id}"),
             format!("product:{artifact_id}"),
-            "conversation_file:bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb".to_string(),
             format!("workspace_artifact:{artifact_id}"),
         ])
-        .expect("artifact refs should parse");
+        .expect("workspace context refs should parse");
 
-        assert_eq!(ids, vec![artifact_id]);
+        assert_eq!(refs.workspace_artifact_ids, vec![artifact_id]);
+        assert_eq!(refs.conversation_file_ids, vec![file_id]);
+        assert_eq!(refs.product_asset_ids, vec![asset_id]);
+        assert_eq!(refs.product_material_ids, vec![material_id]);
     }
 
     #[test]
-    fn artifact_context_refs_reject_invalid_uuid() {
-        let err = artifact_ids_from_context_refs(vec!["workspace_artifact:not-a-uuid".to_string()])
+    fn explicit_workspace_context_refs_reject_invalid_uuid() {
+        let err = explicit_workspace_context_refs(vec!["product_material:not-a-uuid".to_string()])
             .expect_err("invalid artifact ref should fail");
 
         assert_eq!(err.code(), app_error::WORKSPACE_REQUEST_INVALID);
     }
 
     #[test]
-    fn artifact_context_refs_reject_too_many_refs() {
+    fn explicit_workspace_context_refs_reject_too_many_refs() {
         let refs = (0..21).map(|index| format!("artifact:{index}")).collect();
-        let err = artifact_ids_from_context_refs(refs).expect_err("too many refs should fail");
+        let err = explicit_workspace_context_refs(refs).expect_err("too many refs should fail");
 
         assert_eq!(err.code(), app_error::WORKSPACE_REQUEST_INVALID);
     }
