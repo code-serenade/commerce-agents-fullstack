@@ -494,6 +494,9 @@ fn autosuggest_skill_requests(
     if role.runtime_role == "design" {
         return autosuggest_design_requests(&text, task);
     }
+    if role.runtime_role == "douyin_ads" {
+        return autosuggest_douyin_ads_requests(&text, task);
+    }
     if role.runtime_role == "engineering" {
         return autosuggest_engineering_requests(&text, task);
     }
@@ -513,6 +516,7 @@ fn autosuggest_for_role(runtime_role: &str, text: &str, task: &Task) -> Option<P
         "creative" => autosuggest_creative(text, task),
         "web" => autosuggest_web(text, task),
         "design" => autosuggest_design(text, task),
+        "douyin_ads" => autosuggest_douyin_ads(text, task),
         "engineering" => autosuggest_engineering(text, task),
         _ => None,
     }
@@ -593,6 +597,215 @@ fn autosuggest_ops_requests(text: &str, task: &Task) -> Vec<ParsedSkillRequest> 
 
 fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     autosuggest_ops_requests(text, task).into_iter().next()
+}
+
+fn autosuggest_douyin_ads_requests(text: &str, task: &Task) -> Vec<ParsedSkillRequest> {
+    if let Some(primary) = autosuggest_douyin_ads_native(text, task) {
+        if is_douyin_ads_search_chain_intent(text, &primary.skill_id) {
+            let search = autosuggest_douyin_ads_search(text, task, &primary.skill_id);
+            return vec![primary, search];
+        }
+        return vec![primary];
+    }
+
+    if let Some(request) = autosuggest_search(text, task) {
+        return vec![request];
+    }
+
+    vec![autosuggest_request(
+        "douyin_ads_plan_structure",
+        serde_json::Value::Object(infer_douyin_ads_plan_structure_input(text, task)),
+        "根据千川投放岗位任务自动补偿计划结构 skill",
+    )]
+}
+
+fn autosuggest_douyin_ads(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
+    autosuggest_douyin_ads_requests(text, task)
+        .into_iter()
+        .next()
+}
+
+fn autosuggest_douyin_ads_native(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
+    if contains_any(
+        text,
+        &[
+            "直播间",
+            "进房",
+            "场观",
+            "商品点击",
+            "下单",
+            "付款",
+            "漏斗",
+            "GPM",
+            "gpm",
+            "live room",
+            "funnel",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "douyin_ads_live_funnel_diagnosis",
+            serde_json::Value::Object(infer_douyin_ads_live_funnel_input(text, task)),
+            "根据直播间投放漏斗/进房/付款转化意图自动补偿千川直播漏斗诊断 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
+        &[
+            "人群包",
+            "定向",
+            "人群",
+            "相似人群",
+            "达人粉丝",
+            "再营销",
+            "DMP",
+            "dmp",
+            "audience",
+            "targeting",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "douyin_ads_audience_package",
+            serde_json::Value::Object(infer_douyin_ads_audience_input(text, task)),
+            "根据千川人群包/定向意图自动补偿千川人群包设计 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
+        &[
+            "计划结构",
+            "投放计划",
+            "冷启动",
+            "赛马",
+            "短视频引流",
+            "campaign",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "douyin_ads_plan_structure",
+            serde_json::Value::Object(infer_douyin_ads_plan_structure_input(text, task)),
+            "根据千川投放/计划结构/冷启动意图自动补偿千川计划结构 skill",
+        ));
+    }
+
+    if contains_any(
+        text,
+        &[
+            "预算", "消耗", "花费", "节奏", "放量", "稳投", "收缩", "止损", "复盘", "投产", "ROI",
+            "roi", "ROAS", "roas", "pacing", "scale",
+        ],
+    ) {
+        return Some(autosuggest_request(
+            "douyin_ads_budget_pacing",
+            serde_json::Value::Object(infer_douyin_ads_budget_pacing_input(text, task)),
+            "根据千川预算节奏/ROI/ROAS意图自动补偿千川预算节奏 skill",
+        ));
+    }
+
+    if contains_any(text, &["千川", "巨量千川", "投流", "投放"]) {
+        return Some(autosuggest_request(
+            "douyin_ads_plan_structure",
+            serde_json::Value::Object(infer_douyin_ads_plan_structure_input(text, task)),
+            "根据千川投放任务自动补偿千川计划结构 skill",
+        ));
+    }
+
+    None
+}
+
+fn is_douyin_ads_search_chain_intent(text: &str, native_skill_id: &str) -> bool {
+    match native_skill_id {
+        "douyin_ads_plan_structure" => {
+            has_external_search_intent(text)
+                || contains_any(text, &["最新投放规则", "千川规则", "平台规则", "流量规则"])
+        }
+        "douyin_ads_audience_package" => {
+            has_external_search_intent(text)
+                || contains_any(text, &["最新人群趋势", "人群趋势", "兴趣趋势"])
+        }
+        "douyin_ads_budget_pacing" => {
+            has_external_search_intent(text)
+                || contains_any(
+                    text,
+                    &["行业ROI", "行业 ROI", "行业ROAS", "行业 ROAS", "基准"],
+                )
+        }
+        "douyin_ads_live_funnel_diagnosis" => {
+            has_external_search_intent(text)
+                || contains_any(text, &["直播间基准", "直播转化基准", "GPM基准", "gpm基准"])
+        }
+        _ => has_external_search_intent(text),
+    }
+}
+
+fn autosuggest_douyin_ads_search(
+    text: &str,
+    task: &Task,
+    native_skill_id: &str,
+) -> ParsedSkillRequest {
+    match native_skill_id {
+        "douyin_ads_plan_structure"
+            if is_platform_policy_search_intent(text)
+                || contains_any(text, &["平台规则", "千川规则", "流量规则", "审核规则"]) =>
+        {
+            let mut input = search_platform_policy_input(text, task);
+            input.insert(
+                "platform".to_string(),
+                serde_json::json!(selected_product_platform_or_infer(task, text)),
+            );
+            input.insert("policy_type".to_string(), serde_json::json!("algorithm"));
+            autosuggest_request(
+                "search_platform_policy",
+                serde_json::Value::Object(input),
+                "根据千川平台规则/流量规则诉求自动追加平台规则搜索 skill",
+            )
+        }
+        "douyin_ads_budget_pacing" | "douyin_ads_live_funnel_diagnosis" => {
+            let mut input = search_industry_benchmarks_input(text, task);
+            input.insert("metric".to_string(), serde_json::json!("roi"));
+            input.insert(
+                "platform".to_string(),
+                serde_json::json!(selected_product_platform_or_infer(task, text)),
+            );
+            autosuggest_request(
+                "search_industry_benchmarks",
+                serde_json::Value::Object(input),
+                "根据千川ROI/直播转化基准诉求自动追加行业基准搜索 skill",
+            )
+        }
+        "douyin_ads_audience_package" => {
+            let mut input = search_trends_input(text, task);
+            input.insert(
+                "query".to_string(),
+                serde_json::json!(format!(
+                    "{} 抖音 千川 人群 兴趣 趋势",
+                    selected_product_category_or_infer(task, text)
+                )),
+            );
+            input.insert("platform".to_string(), serde_json::json!("抖音"));
+            autosuggest_request(
+                "search_trends",
+                serde_json::Value::Object(input),
+                "根据千川人群/兴趣趋势诉求自动追加趋势搜索 skill",
+            )
+        }
+        _ => {
+            let mut input = search_market_info_input(text, task);
+            input.insert(
+                "query".to_string(),
+                serde_json::json!(format!(
+                    "{} 抖音 千川 投放 策略",
+                    selected_product_category_or_infer(task, text)
+                )),
+            );
+            autosuggest_request(
+                "search_market_info",
+                serde_json::Value::Object(input),
+                "根据千川投放外部资料诉求自动追加市场资料搜索 skill",
+            )
+        }
+    }
 }
 
 fn autosuggest_ops_native(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
@@ -6369,6 +6582,261 @@ fn infer_inventory_planning_input(
     input
 }
 
+fn infer_douyin_ads_plan_structure_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
+    if first_selected_product(task).is_some()
+        || contains_any(text, &["商品", "产品", "咖啡", "SKU", "sku"])
+    {
+        input.insert(
+            "product_name".to_string(),
+            serde_json::json!(selected_product_name_or_task(task)),
+        );
+    }
+    input.insert(
+        "goal".to_string(),
+        serde_json::json!(infer_douyin_ads_goal(text, task)),
+    );
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(selected_product_platform_or_infer(task, text)),
+    );
+    input.insert("stage".to_string(), serde_json::json!(infer_stage(text)));
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_explicit_period_days(text).unwrap_or(7)),
+    );
+    insert_metric_value(
+        &mut input,
+        "budget",
+        text,
+        &[
+            "投放预算",
+            "广告预算",
+            "千川预算",
+            "总预算",
+            "预算",
+            "budget",
+        ],
+    );
+    insert_metric_value(
+        &mut input,
+        "target_roas",
+        text,
+        &["目标ROAS", "目标roas", "目标投产", "目标ROI", "target_roas"],
+    );
+    input
+}
+
+fn infer_douyin_ads_audience_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
+    if first_selected_product(task).is_some()
+        || contains_any(text, &["商品", "产品", "咖啡", "SKU", "sku"])
+    {
+        input.insert(
+            "product_name".to_string(),
+            serde_json::json!(selected_product_name_or_task(task)),
+        );
+    }
+    input.insert(
+        "target_audience".to_string(),
+        serde_json::json!(infer_audience(text)),
+    );
+    input.insert(
+        "category".to_string(),
+        serde_json::json!(selected_product_category_or_infer(task, text)),
+    );
+    input.insert("stage".to_string(), serde_json::json!(infer_stage(text)));
+    insert_metric_value(
+        &mut input,
+        "budget",
+        text,
+        &[
+            "人群预算",
+            "投放预算",
+            "广告预算",
+            "千川预算",
+            "预算",
+            "budget",
+        ],
+    );
+    input
+}
+
+fn infer_douyin_ads_budget_pacing_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_explicit_period_days(text).unwrap_or(7)),
+    );
+    insert_metric_value(
+        &mut input,
+        "budget",
+        text,
+        &[
+            "投放预算",
+            "广告预算",
+            "千川预算",
+            "总预算",
+            "预算",
+            "budget",
+        ],
+    );
+    insert_metric_value(
+        &mut input,
+        "spend",
+        text,
+        &[
+            "已消耗",
+            "消耗",
+            "花费",
+            "广告费",
+            "广告花费",
+            "spend",
+            "ad_spend",
+        ],
+    );
+    insert_metric_value(
+        &mut input,
+        "gmv",
+        text,
+        &["GMV", "gmv", "成交额", "销售额", "营收"],
+    );
+    if let Some(current_roas) = infer_douyin_ads_current_roas(text) {
+        input.insert("current_roas".to_string(), serde_json::json!(current_roas));
+    }
+    insert_metric_value(
+        &mut input,
+        "target_roas",
+        text,
+        &["目标ROAS", "目标roas", "目标投产", "目标ROI", "target_roas"],
+    );
+    input
+}
+
+fn infer_douyin_ads_live_funnel_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+    }
+    insert_metric_value(
+        &mut input,
+        "impressions",
+        text,
+        &["曝光量", "曝光", "展现", "展示", "impressions", "exposure"],
+    );
+    insert_metric_value(
+        &mut input,
+        "clicks",
+        text,
+        &["点击数", "点击", "广告点击", "clicks", "click"],
+    );
+    insert_metric_value(
+        &mut input,
+        "live_room_entries",
+        text,
+        &["进房数", "进房", "进入直播间", "场观", "live_room_entries"],
+    );
+    insert_metric_value(
+        &mut input,
+        "product_clicks",
+        text,
+        &["商品点击数", "商品点击", "点击商品", "product_clicks"],
+    );
+    insert_metric_value(
+        &mut input,
+        "orders",
+        text,
+        &["下单数", "下单", "订单数", "订单", "orders"],
+    );
+    insert_metric_value(
+        &mut input,
+        "payments",
+        text,
+        &["付款数", "付款", "支付数", "支付", "payments"],
+    );
+    insert_metric_value(
+        &mut input,
+        "ad_spend",
+        text,
+        &[
+            "广告消耗",
+            "广告花费",
+            "广告费",
+            "消耗",
+            "spend",
+            "ad_spend",
+        ],
+    );
+    insert_metric_value(
+        &mut input,
+        "gmv",
+        text,
+        &["GMV", "gmv", "成交额", "销售额", "营收"],
+    );
+    input
+}
+
+fn infer_douyin_ads_goal(text: &str, task: &Task) -> String {
+    if contains_any(text, &["直播", "直播间", "进房", "场观"]) {
+        "直播间成交与进房转化".to_string()
+    } else if contains_any(text, &["短视频", "视频", "素材"]) {
+        "短视频引流与商品转化".to_string()
+    } else if contains_any(text, &["新品", "冷启动", "起量"]) {
+        "新品冷启动起量".to_string()
+    } else {
+        compact_task_text(&task.description)
+    }
+}
+
+fn infer_douyin_ads_current_roas(text: &str) -> Option<f64> {
+    extract_metric_value(
+        text,
+        &[
+            "当前ROAS",
+            "当前roas",
+            "实际ROAS",
+            "实际roas",
+            "当前投产",
+            "实际投产",
+            "当前ROI",
+            "当前roi",
+            "实际ROI",
+            "实际roi",
+        ],
+    )
+    .or_else(|| {
+        if contains_any(
+            text,
+            &["目标ROAS", "目标roas", "目标投产", "目标ROI", "target_roas"],
+        ) {
+            None
+        } else {
+            extract_metric_value(text, &["ROAS", "roas", "投产", "ROI", "roi"])
+        }
+    })
+}
+
 fn infer_promo_budget(text: &str) -> Option<f64> {
     extract_metric_value(text, &["活动预算", "总预算", "预算", "budget"])
         .filter(|value| *value >= 100.0)
@@ -9783,6 +10251,96 @@ mod tests {
         assert_eq!(requests.len(), 1);
         assert_eq!(requests[0].skill_id, "ops_promo_planning");
         assert!(requests[0].input.get("product_ref").is_none());
+    }
+
+    #[test]
+    fn autosuggests_douyin_ads_plan_structure_with_selected_product() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("douyin_ads"),
+            &task_with_metadata(
+                "给这个商品做千川冷启动计划结构，千川预算2万，目标ROAS2.8，最近7天",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "douyin_ads_plan_structure");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["product_name"], "五一咖啡组合");
+        assert_eq!(requests[0].input["platform"], "抖音");
+        assert_eq!(requests[0].input["budget"], 20000.0);
+        assert_eq!(requests[0].input["target_roas"], 2.8);
+    }
+
+    #[test]
+    fn douyin_ads_without_selection_has_no_empty_product_ref() {
+        let requests = autosuggest_skill_requests(
+            &role("douyin_ads"),
+            &task("给咖啡新品做千川投放计划，预算20000，目标ROAS2.5"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "douyin_ads_plan_structure");
+        assert!(requests[0].input.get("product_ref").is_none());
+    }
+
+    #[test]
+    fn autosuggests_douyin_ads_budget_pacing_from_metrics() {
+        let requests = autosuggest_skill_requests(
+            &role("douyin_ads"),
+            &task("复盘千川预算节奏：总预算5万，已消耗1.2万，GMV4.2万，目标ROAS3"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "douyin_ads_budget_pacing");
+        assert_eq!(requests[0].input["budget"], 50000.0);
+        assert_eq!(requests[0].input["spend"], 12000.0);
+        assert_eq!(requests[0].input["gmv"], 42000.0);
+        assert_eq!(requests[0].input["target_roas"], 3.0);
+    }
+
+    #[test]
+    fn autosuggests_douyin_ads_live_funnel_from_metrics() {
+        let requests = autosuggest_skill_requests(
+            &role("douyin_ads"),
+            &task(
+                "诊断直播间漏斗：曝光10万，点击3200，进房1800，商品点击360，下单72，付款60，广告消耗1.2万，GMV4.2万",
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "douyin_ads_live_funnel_diagnosis");
+        assert_eq!(requests[0].input["impressions"], 100000.0);
+        assert_eq!(requests[0].input["clicks"], 3200.0);
+        assert_eq!(requests[0].input["live_room_entries"], 1800.0);
+        assert_eq!(requests[0].input["product_clicks"], 360.0);
+        assert_eq!(requests[0].input["orders"], 72.0);
+        assert_eq!(requests[0].input["payments"], 60.0);
+        assert_eq!(requests[0].input["ad_spend"], 12000.0);
+        assert_eq!(requests[0].input["gmv"], 42000.0);
+    }
+
+    #[test]
+    fn douyin_ads_external_context_adds_visible_search_step() {
+        let requests = autosuggest_skill_requests(
+            &role("douyin_ads"),
+            &task("复盘千川预算节奏：预算5万，消耗1万，GMV3万，并查行业ROI基准，最多3条来源"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 2);
+        assert_eq!(requests[0].skill_id, "douyin_ads_budget_pacing");
+        assert_eq!(requests[1].skill_id, "search_industry_benchmarks");
+        assert_eq!(requests[1].input["metric"], "roi");
+        assert_eq!(requests[1].input["max_results"], 3);
     }
 
     #[test]

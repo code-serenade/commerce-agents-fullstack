@@ -119,6 +119,12 @@ pub fn role_can_use_skill(runtime_role: &str, spec: &SkillSpec) -> bool {
                 || spec.id == "search_market_info"
                 || spec.id == "search_industry_benchmarks"
         }
+        "douyin_ads" => {
+            spec.id == "search_trends"
+                || spec.id == "search_market_info"
+                || spec.id == "search_platform_policy"
+                || spec.id == "search_industry_benchmarks"
+        }
         "engineering" => spec.id == "coordination_status_query" || spec.id == "search_market_info",
         _ => false,
     }
@@ -225,5 +231,10 @@ mod tests {
         assert!(catalog.can_role_use_skill(&role("engineering"), "engineering_system_check"));
         assert!(catalog.can_role_use_skill(&role("service"), "search_industry_benchmarks"));
         assert!(catalog.can_role_use_skill(&role("ops"), "search_product_reviews"));
+        assert!(catalog.can_role_use_skill(&role("douyin_ads"), "douyin_ads_plan_structure"));
+        assert!(catalog.can_role_use_skill(&role("douyin_ads"), "douyin_ads_budget_pacing"));
+        assert!(catalog.can_role_use_skill(&role("douyin_ads"), "search_platform_policy"));
+        assert!(catalog.can_role_use_skill(&role("douyin_ads"), "search_industry_benchmarks"));
+        assert!(!catalog.can_role_use_skill(&role("douyin_ads"), "creative_video_script"));
     }
 }

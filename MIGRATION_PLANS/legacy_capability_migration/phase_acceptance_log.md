@@ -2347,3 +2347,26 @@
 - 本阶段解决的是“客服平台规则诉求可见化”，不是直接接通淘宝、抖音、京东或其它官方售后规则 API。
 - 搜索 provider 未配置、失败或无可信来源时仍按搜索 skill 降级，不伪造 live 平台政策、赔付标准或售后规则。
 - 前端后续应把该双 skill 链路展示为过程卡片和来源面板。
+
+## Post 8-134：千川投放 native skills
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] 新增 `douyin_ads_plan_structure`、`douyin_ads_audience_package`、`douyin_ads_budget_pacing`、`douyin_ads_live_funnel_diagnosis` 四个 Rust Agent native skills。
+- [x] 四个千川投放 native skills 已注册进 staged skill registry 和 runtime executor。
+- [x] `douyin_ads` 角色权限允许自身 native skills，并允许选定搜索 skills：`search_trends`、`search_market_info`、`search_platform_policy`、`search_industry_benchmarks`。
+- [x] Worker autosuggest 可从千川计划、冷启动、赛马、人群包、定向、预算节奏、ROI/ROAS、直播间漏斗、进房、商品点击、付款等自然语言触发对应 skill。
+- [x] 用户明确要求最新 / 实时 / 联网 / 平台规则 / 行业 ROI 基准 / 人群趋势时，后端会追加可见 `search_*` skill 链路。
+- [x] 成功输出可沉淀为 `douyin_ads_plan_structure`、`douyin_ads_audience_package`、`douyin_ads_budget_pacing`、`douyin_ads_live_funnel_report` 工作区交付物。
+- [x] 未显式选择商品时，不从历史摘要、预设商品或默认测试商品注入 `product_ref/product_name`。
+- [x] API/SSE 文档已同步。
+
+当前说明：
+
+- 本阶段解决的是“千川投放岗位具备真实 native 后端能力”，不是直接接通巨量千川、抖音罗盘、直播间后台或广告后台实时数据。
+- 预算节奏缺少预算或 ROAS / GMV / 消耗时返回 `deferred`；直播漏斗缺少曝光和点击时返回 `deferred`。
+- 搜索 provider 未配置、失败或无可信来源时仍按搜索 skill 降级，不伪造平台规则、行业 ROI 基准或实时人群趋势。
+- 前端后续应把千川 native + search 双 skill 链路展示为可折叠过程卡片、右侧过程面板和工作区交付物列表。

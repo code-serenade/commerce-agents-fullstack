@@ -120,6 +120,14 @@ Kimi Agent 集群 = 前端交互和视觉体验参考
 - Native-only behavior is preserved for ordinary color-scheme and material-spec tasks.
 - Selected product context remains explicit-only: no product ref/name/category is injected unless the current turn selected a product.
 
+## Post 8-134 Update
+
+- The existing `douyin_ads` / 千川投放专员 role now has four Rust native skills: `douyin_ads_plan_structure`, `douyin_ads_audience_package`, `douyin_ads_budget_pacing`, and `douyin_ads_live_funnel_diagnosis`.
+- Worker autosuggest can route natural Qianchuan prompts for plan structure, audience packages, budget pacing, ROI / ROAS, and live-room funnel diagnosis to those skills.
+- `douyin_ads` role permissions now include its native skills plus selected search skills for platform policy, trends, market info, and industry ROI benchmarks.
+- Successful Douyin ads native outputs can materialize as workspace artifacts: `douyin_ads_plan_structure`, `douyin_ads_audience_package`, `douyin_ads_budget_pacing`, and `douyin_ads_live_funnel_report`.
+- The boundary remains explicit: these skills do not read or fabricate Giant Qianchuan, Douyin Compass, live-room, or ad backend realtime data. Missing required metrics return `deferred`; realtime rules or benchmarks remain separate `search_*` adapter steps.
+
 ## Post 8-118 Update
 
 - Web-role SEO optimization, keyword research, and page conversion prompts can now surface visible two-step chains when the user explicitly asks for latest, realtime, online, SEO algorithm, traffic-rule, keyword-competition, search-volume, CPC, or conversion-benchmark data.

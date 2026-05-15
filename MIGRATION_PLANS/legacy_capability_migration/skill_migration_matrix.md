@@ -29,6 +29,17 @@ Post 8-119 补充：运营岗位在定价策略、智能定价、促销策划、
 
 Post 8-127 补充：运营岗位在上架文案 / 标题卖点中，如果用户同时要求最新 / 实时 / 联网 / 搜索 / 公开资料 / 标题规则 / 上架规则 / 发布规则 / 违禁词 / 搜索量 / 热搜词 / 标题趋势 / 买家痛点 / 真实评价，会生成可见 skill 链路：先运行 `ops_listing_copy`，再按场景追加 `search_platform_policy(policy_type=content)`、`search_market_info(topic=general)` 或 `search_product_reviews`。普通上架文案没有实时资料诉求时仍只走 native skill；未显式选品时不注入默认商品。
 
+## 千川投放 douyin_ads
+
+| 旧能力 | 新产品目标 ID | 状态 | 新落点 | 备注 |
+| --- | --- | --- | --- | --- |
+| 千川计划结构 / 冷启动赛马 | `douyin_ads_plan_structure` | native_ready | `backend/crates/agent/src/skills/douyin_ads.rs` / `backend/crates/agent/src/agent/worker/runner.rs` / `backend/crates/service/src/api/workspace.rs` | Post 8-134：已迁为 Rust native 计划结构能力；可由千川计划、计划结构、冷启动、赛马、短视频引流等问法触发，成功输出会沉淀为 `douyin_ads_plan_structure` artifact。仅基于本轮显式输入和显式选品上下文，不读取或伪造千川后台实时数据 |
+| 千川人群包 / 定向 | `douyin_ads_audience_package` | native_ready | `backend/crates/agent/src/skills/douyin_ads.rs` / `backend/crates/agent/src/agent/worker/runner.rs` / `backend/crates/service/src/api/workspace.rs` | Post 8-134：已迁为 Rust native 人群包设计能力；可由人群包、定向、相似人群、再营销、DMP 等问法触发，成功输出会沉淀为 `douyin_ads_audience_package` artifact。未接真实DMP或广告后台人群规模数据 |
+| 千川预算节奏 / ROI止损 | `douyin_ads_budget_pacing` | native_ready | `backend/crates/agent/src/skills/douyin_ads.rs` / `backend/crates/agent/src/agent/worker/runner.rs` / `backend/crates/service/src/api/workspace.rs` | Post 8-134：已迁为 Rust native 预算节奏能力；可解析预算、消耗、GMV、当前ROAS、目标ROAS，成功输出会沉淀为 `douyin_ads_budget_pacing` artifact。缺预算或 ROAS / GMV / 消耗时返回 `deferred`，不伪造消耗和成交 |
+| 直播间投放漏斗诊断 | `douyin_ads_live_funnel_diagnosis` | native_ready | `backend/crates/agent/src/skills/douyin_ads.rs` / `backend/crates/agent/src/agent/worker/runner.rs` / `backend/crates/service/src/api/workspace.rs` | Post 8-134：已迁为 Rust native 直播漏斗诊断能力；可解析曝光、点击、进房、商品点击、下单、付款、广告消耗和GMV，成功输出会沉淀为 `douyin_ads_live_funnel_report` artifact。缺曝光和点击时返回 `deferred`，不伪造直播间实时漏斗 |
+
+Post 8-134 补充：千川投放岗位如果用户同时要求最新 / 实时 / 联网 / 公开来源 / 平台规则 / 千川规则 / 行业ROI基准 / 直播转化基准 / 人群趋势，会生成可见 skill 链路：先运行对应 `douyin_ads_*` native skill，再追加 `search_platform_policy(policy_type=algorithm)`、`search_industry_benchmarks(metric=roi)`、`search_trends` 或 `search_market_info`。搜索步骤仍按统一 adapter 降级规则执行，未显式选品时不注入默认商品。
+
 ## 数据 data
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |

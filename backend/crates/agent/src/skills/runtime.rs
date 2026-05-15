@@ -7,8 +7,8 @@ use thiserror::Error;
 
 use crate::skills::{
     SearchAdapterConfig, Skill, SkillCategory, SkillContext, SkillError, SkillOutcome, SkillSpec,
-    accounting, coordination, creative, data, design, engineering, ops, search, service,
-    staged_specs, web,
+    accounting, coordination, creative, data, design, douyin_ads, engineering, ops, search,
+    service, staged_specs, web,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -447,6 +447,7 @@ async fn run_known_skill(
         "ops" => return ops::execute(id, input, &context).await,
         "accounting" => return accounting::execute(id, input, &context).await,
         "data" | "query" => return data::execute(id, input, &context).await,
+        "douyin" => return douyin_ads::execute(id, input, &context).await,
         _ => {}
     }
 
@@ -676,8 +677,9 @@ mod tests {
     #[test]
     fn staged_registry_loads_all_specs() {
         let registry = SkillRegistry::staged().expect("registry should load");
-        assert_eq!(registry.len(), 95);
+        assert_eq!(registry.len(), 99);
         assert!(registry.get("ops_pricing_strategy").is_some());
+        assert!(registry.get("douyin_ads_plan_structure").is_some());
         assert!(registry.get("query_product_metrics").is_some());
         assert!(registry.get("query_campaign_metrics").is_some());
         assert!(registry.get("missing_skill").is_none());
@@ -703,6 +705,12 @@ mod tests {
                 .by_category(&SkillCategory::Custom("ops".to_string()))
                 .len(),
             11
+        );
+        assert_eq!(
+            registry
+                .by_category(&SkillCategory::Custom("douyin_ads".to_string()))
+                .len(),
+            4
         );
         assert!(!registry.by_tag("deferred").is_empty());
         assert!(
@@ -757,6 +765,10 @@ mod tests {
                 json!({"title": "春夏新款轻便通勤保温杯", "target_keywords": ["保温杯"]}),
             ),
             ("engineering_sla_monitor", json!({})),
+            (
+                "douyin_ads_plan_structure",
+                json!({"goal": "直播间成交", "budget": 12000.0, "target_roas": 2.5}),
+            ),
             (
                 "coordination_agent_handoff",
                 json!({"task_description": "分析店铺转化率下滑并给出运营动作"}),

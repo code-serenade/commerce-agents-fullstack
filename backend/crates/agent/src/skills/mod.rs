@@ -3,6 +3,7 @@ pub mod coordination;
 pub mod creative;
 pub mod data;
 pub mod design;
+pub mod douyin_ads;
 pub mod engineering;
 pub mod ops;
 pub mod runtime;
@@ -33,6 +34,7 @@ pub fn staged_specs() -> Vec<SkillSpec> {
     specs.extend(creative::specs());
     specs.extend(data::specs());
     specs.extend(design::specs());
+    specs.extend(douyin_ads::specs());
     specs.extend(engineering::specs());
     specs.extend(ops::specs());
     specs.extend(search::specs());
@@ -66,8 +68,10 @@ mod tests {
         assert!(ids.contains(&"data_ab_test_analyzer"));
         assert!(ids.contains(&"creative_title_ctr_scorer"));
         assert!(ids.contains(&"web_title_seo_scorer"));
+        assert!(ids.contains(&"douyin_ads_plan_structure"));
+        assert!(ids.contains(&"douyin_ads_live_funnel_diagnosis"));
         assert!(ids.contains(&"engineering_sla_monitor"));
         assert!(ids.contains(&"coordination_agent_handoff"));
-        assert_eq!(specs.len(), 95);
+        assert_eq!(specs.len(), 99);
     }
 }
