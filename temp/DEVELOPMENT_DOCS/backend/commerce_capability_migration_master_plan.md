@@ -238,17 +238,17 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-105: search evidence context pack summary
+Post 8-106: explicit artifact context refs for Agent SSE
 ```
 
 Scope:
 
-- detect `artifactType=search_evidence` with `metadata.kind=agent_search_evidence` inside `workspace_context_pack`
-- render readable `contentKind=search_evidence_summary` text for Agent reuse
-- include query, explicit product context, evidence summary, confidence, source count, domains, and Top sources
-- fall back to artifact preview when stored search JSON is invalid or not readable
-- avoid inferring product context from query text, history, or workspace summaries
-- keep existing live-only artifact creation rules unchanged
+- extend workspace context summary / pack requests with explicit `context_refs`
+- support `workspace_artifact:{artifactUuid}` and `artifact:{artifactUuid}` refs
+- pass SSE `metadata.context.contextRefs` into workspace context aggregation
+- validate current user, current workspace, and active artifact status before reuse
+- keep current-run-only default behavior when no artifact ref is explicitly selected
+- keep search evidence readable summary behavior from Post 8-105
 
 Reason:
 

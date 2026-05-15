@@ -1474,6 +1474,8 @@ pub struct WorkspaceContextSummaryQuery {
     pub product_id: Option<String>,
     #[validate(length(max = 64))]
     pub run_id: Option<String>,
+    #[validate(length(max = 3400))]
+    pub context_refs: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Validate)]
@@ -1485,6 +1487,8 @@ pub struct WorkspaceContextPackQuery {
     pub product_id: Option<String>,
     #[validate(length(max = 64))]
     pub run_id: Option<String>,
+    #[validate(length(max = 3400))]
+    pub context_refs: Option<String>,
     #[validate(range(min = 1, max = 50))]
     pub max_items: Option<usize>,
     #[validate(range(min = 1, max = 24000))]

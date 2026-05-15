@@ -2,6 +2,18 @@
 
 # 阶段验收记录
 
+## Post 8-106：显式交付物上下文引用接入 Agent SSE
+
+结论：通过。
+
+验收点：
+
+- `contextRefs` 支持显式引用 `workspace_artifact:{uuid}` / `artifact:{uuid}`。
+- 显式 artifact 进入 workspace context summary / pack 前会校验当前用户、当前 workspace 和 active 状态。
+- Agent SSE 默认仍只聚合当前 run artifact；历史 artifact 必须显式选择。
+- `search_evidence` artifact 进入 pack 时继续使用可读摘要，避免原始搜索 JSON 直接污染上下文。
+- API 文档和迁移归档已同步。
+
 ## Post 8-105：搜索证据进入上下文内容包的可读摘要
 
 状态：done

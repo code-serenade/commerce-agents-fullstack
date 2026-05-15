@@ -23,7 +23,10 @@
     "context": {
       "conversationId": "conversation-uuid",
       "productIds": ["product-uuid"],
-      "contextRefs": ["product:product-uuid"]
+      "contextRefs": [
+        "product:product-uuid",
+        "workspace_artifact:artifact-uuid"
+      ]
     },
     "strategy": {
       "id": "collab",
@@ -50,7 +53,7 @@
 | `workspaceId` | `string` | 否 | 工作区 ID；不传时后端会创建或复用当前用户默认 `agent_chat` 工作区 |
 | `metadata.context.conversationId` | `string` | 否 | 绑定到本轮问答的会话 ID；后端会读取该会话下已注册的 active 附件，并注入工作区上下文摘要 |
 | `metadata.context.productIds` | `string[]` | 否 | 绑定到本轮问答的商品 ID，最多 5 个；后端会校验当前用户权限并读取真实商品/知识 |
-| `metadata.context.contextRefs` | `string[]` | 否 | 上下文引用，当前支持 `product:{productId}`，最多 20 个 |
+| `metadata.context.contextRefs` | `string[]` | 否 | 上下文引用，当前支持 `product:{productId}`、`workspace_artifact:{artifactId}` 和 `artifact:{artifactId}`，最多 20 个 |
 | `metadata.model.name` | `string` | 否 | 指定本轮使用的后端 `llm.name`；不传时使用后端默认模型 |
 | `metadata.strategy.id` | `string` | 否 | 回答策略 ID，当前前端使用 `execution` / `learning` / `collab` |
 | `metadata.strategy.responseMode` | `string` | 否 | 回答模式，当前前端使用 `execution` / `learning` |
@@ -59,7 +62,7 @@
 | `metadata.strategy.primaryRole` | `string` | 否 | 用户指定的主岗位 runtime role，例如 `data`、`ops`、`creative` |
 | `metadata.strategy.selectedRoles` | `string[]` | 否 | 用户指定参与本轮协作的岗位 runtime role，最多 6 个，服务端去重 |
 
-`metadata.context.*` 只作为引用入口，不允许前端直接塞商品事实或附件正文。后端会通过 service 层读取当前用户自己的 active 商品、active 商品知识、同一会话历史消息、会话附件和工作区交付物，压缩成 agent runtime metadata：`context.product_ids`、`context.refs`、`context.selected_summary`、`context.combined_summary`、`context.sources_json`、`conversation.*`、`workspaceContext.*` 等。商品、会话、工作区不存在、已归档、不属于当前用户或 ID 非法时返回对应业务错误码。商品上下文是显式选择能力：只有传入 `metadata.context.productIds` 或 `metadata.context.contextRefs` 中的 `product:{id}` 时，后端才会注入对应商品资料；如果本轮没有选择商品，即使用户问题包含“咖啡”等关键词，也不会自动把某个已有商品或商品知识注入模型上下文。
+`metadata.context.*` 只作为引用入口，不允许前端直接塞商品事实或附件正文。后端会通过 service 层读取当前用户自己的 active 商品、active 商品知识、同一会话历史消息、会话附件和工作区交付物，压缩成 agent runtime metadata：`context.product_ids`、`context.refs`、`context.selected_summary`、`context.combined_summary`、`context.sources_json`、`conversation.*`、`workspaceContext.*` 等。商品、会话、工作区或交付物不存在、已归档、不属于当前用户或 ID 非法时返回对应业务错误码。商品上下文是显式选择能力：只有传入 `metadata.context.productIds` 或 `metadata.context.contextRefs` 中的 `product:{id}` 时，后端才会注入对应商品资料；如果本轮没有选择商品，即使用户问题包含“咖啡”等关键词，也不会自动把某个已有商品或商品知识注入模型上下文。历史工作区交付物也是显式选择能力：只有传入 `workspace_artifact:{artifactId}` 或 `artifact:{artifactId}` 时，SSE 才会读取该 active artifact；仅传入 `workspaceId` 不会自动读取历史 run 的全部交付物。
 
 `context.selected_summary` 是后端唯一认可的“本轮手动选中商品”来源。worker 自动补偿内容、上架、详情、设计、关键词、促销、渠道等商品型 skill input 时，只会从 `context.selected_summary` 解析商品名称、平台、类目、卖点和商品引用；`conversation.history_summary`、`context.summary`、`context.combined_summary`、`rag.summary`、`workspaceContext.summary` 只能作为普通上下文，不会被当作本轮选品。未选择商品时，相关 skill 会使用本轮用户问题中的普通文本或返回缺数据 / 默认假设状态，不会把历史商品、预设商品或测试商品作为默认指定商品。
 
@@ -73,7 +76,7 @@
 
 当 `metadata.strategy.collaborationMode` 为 `manual` 或 `single`，且 `primaryRole` 或 `selectedRoles` 中包含非 `chat` 岗位时，后端会优先尊重这次显式岗位选择并进入 commander/任务图路由；即使用户输入文本本身像“只输出/answer only”这类短答请求，也不会被 `chat_bypass` 吞掉。没有显式非 `chat` 岗位选择的短答请求仍可走 `route_decided.route_mode=chat_bypass`，用于普通轻问答。
 
-每次 SSE Agent 调用都会先在 service 层绑定工作区运行记录：如果 `workspaceId` 合法且属于当前用户，则写入该工作区；如果不传 `workspaceId`，后端会创建或复用当前用户的默认 `agent_chat` 工作区。绑定成功后，agent runtime metadata 会追加 `workspace.workspace_id`、`workspace.run_id` 和 `workspace.source=agent_session`。随后后端会调用 `WorkspaceApi::context_summary` 和 `WorkspaceApi::context_pack`，但 Agent SSE 内部只按本次新建的 `workspace_run.id` 聚合工作区 artifact，避免未选择商品时把同一工作区历史交付物自动注入模型。会话附件仍只跟随本轮 `conversationId`，商品资产和商品素材仍只跟随本轮显式选择的 `productIds/contextRefs`。后端会发送 `workspace_context_loaded` 与 `workspace_context_pack_loaded` 事件，并把这两个事件中的本轮上下文 metadata 注入 Agent runtime。Agent SSE 场景下，工作区绑定过商品也不会被当成本轮默认商品；必须由本轮 `metadata.context.productIds/contextRefs` 显式选择后，商品资产和商品素材才会进入本轮上下文。如果绑定或上下文归属校验失败，SSE 不会启动，接口直接返回业务错误，避免前端误以为本次结果已沉淀或已读取资料。
+每次 SSE Agent 调用都会先在 service 层绑定工作区运行记录：如果 `workspaceId` 合法且属于当前用户，则写入该工作区；如果不传 `workspaceId`，后端会创建或复用当前用户的默认 `agent_chat` 工作区。绑定成功后，agent runtime metadata 会追加 `workspace.workspace_id`、`workspace.run_id` 和 `workspace.source=agent_session`。随后后端会调用 `WorkspaceApi::context_summary` 和 `WorkspaceApi::context_pack`，但 Agent SSE 内部默认只按本次新建的 `workspace_run.id` 聚合工作区 artifact，避免未选择商品时把同一工作区历史交付物自动注入模型。若本轮 `metadata.context.contextRefs` 显式传入 `workspace_artifact:{artifactId}` 或 `artifact:{artifactId}`，后端会额外校验并读取这些 active artifact，和当前 run artifact 合并去重后进入 `workspace_context_loaded` / `workspace_context_pack_loaded`。会话附件仍只跟随本轮 `conversationId`，商品资产和商品素材仍只跟随本轮显式选择的 `productIds/contextRefs`。后端会发送 `workspace_context_loaded` 与 `workspace_context_pack_loaded` 事件，并把这两个事件中的本轮上下文 metadata 注入 Agent runtime。Agent SSE 场景下，工作区绑定过商品也不会被当成本轮默认商品；必须由本轮 `metadata.context.productIds/contextRefs` 显式选择后，商品资产和商品素材才会进入本轮上下文。如果绑定或上下文归属校验失败，SSE 不会启动，接口直接返回业务错误，避免前端误以为本次结果已沉淀或已读取资料。
 
 SSE 事件分为三类：
 
@@ -217,7 +220,7 @@ data: {"type":"approval_required","approval":{"id":"approval-uuid","workspaceId"
 
 `rag_context_loaded` 当前使用本地 RAG：来源只来自当前用户自己的 active `products` 和 active `product_knowledge`。只有本轮显式选择商品时，服务端才会把检索摘要追加到 agent runtime `context.summary`，让模型可在回答中使用这些事实。如果没有选择商品，事件可返回空检索状态，但不会向模型注入商品知识或“默认商品”提示。如果已选择商品但没有命中知识，事件会返回 `degraded=true` 和 `degradedReason`。当后端 `[external_search]` 未完整配置时，`externalSearchAvailable=false`，降级原因为 `No matching local product knowledge was found; external search adapter is not configured.`；当 `[external_search]` 已完整配置时，`externalSearchAvailable=true`，降级原因会说明本地知识未命中，但搜索类 skill 可以在任务需要实时市场资料时请求 live sources。当前不会伪造外部搜索结果；只有同一轮 `search_*` skill 成功返回 `output.status=live` 和真实来源时，前端才应展示 live 外部搜索证据。
 
-`workspace_context_loaded` 当前只聚合来源元数据，不读取文件正文，不做 OCR，不伪造素材总结。普通工作区查询接口可以按请求参数查看历史 workspace artifact；但 SSE Agent 自动注入时只使用本次 run 范围，避免历史报告影响未指定商品的普通问答。服务端会把 `agentContext.refs` 追加到 runtime `context.combined_refs`，把 `summary` 追加到 `context.combined_summary`，并写入 `workspaceContext.readiness`、`workspaceContext.counts_json`、`workspaceContext.refs`、`workspaceContext.sources_json`、`workspaceContext.missing_json`、`workspaceContext.warnings_json`。`readiness=empty` 表示没有可用附件、素材或交付物，前端应展示明确空状态；这不是外部搜索或附件解析结果。
+`workspace_context_loaded` 当前只聚合来源元数据，不读取文件正文，不做 OCR，不伪造素材总结。普通工作区查询接口可以按请求参数查看历史 workspace artifact；但 SSE Agent 自动注入时默认只使用本次 run 范围，避免历史报告影响未指定商品的普通问答。用户显式传入的 `workspace_artifact:{artifactId}` / `artifact:{artifactId}` 例外，会在权限校验后加入本轮上下文来源。服务端会把 `agentContext.refs` 追加到 runtime `context.combined_refs`，把 `summary` 追加到 `context.combined_summary`，并写入 `workspaceContext.readiness`、`workspaceContext.counts_json`、`workspaceContext.refs`、`workspaceContext.sources_json`、`workspaceContext.missing_json`、`workspaceContext.warnings_json`。`readiness=empty` 表示没有可用附件、素材或交付物，前端应展示明确空状态；这不是外部搜索或附件解析结果。
 
 `workspace_context_pack_loaded` 会继续把可读正文追加到 runtime `context.combined_summary`，并写入 `workspaceContextPack.readiness`、`workspaceContextPack.counts_json`、`workspaceContextPack.items_json`、`workspaceContextPack.refs`、`workspaceContextPack.omitted_json`、`workspaceContextPack.warnings_json`。可读来源包括本轮明确 product_id 下的 `product_material.content`、`product_asset.description`、`workspace_artifact.content/preview`，以及 `conversation_file.metadata.extractionStatus=extracted` 时的 `extractedText/textContent/plainText/markdown/text/content/preview/summary` 等字段。`artifactType=search_evidence` 且 `metadata.kind=agent_search_evidence` 的交付物进入内容包时使用 `contentKind=search_evidence_summary`，后端从已沉淀的搜索 JSON 中整理 query、显式商品上下文、证据摘要、来源数量、置信度、域名和 Top sources；这不会触发新搜索，也不会从 query 或历史推断商品。未成功抽取的附件会返回 `contentKind=metadata_only`、`extraction_pending`、`extraction_failed` 或 `extraction_unsupported`，不会被当成已读取正文。
 

@@ -77,6 +77,8 @@ const DEFAULT_CONTEXT_PACK_MAX_CHARS: usize = 12_000;
 const MAX_CONTEXT_PACK_MAX_CHARS: usize = 24_000;
 const DEFAULT_CONTEXT_PACK_ITEM_CHARS: usize = 2_400;
 const DEFAULT_ARTIFACT_EXPORT_FORMAT: &str = "markdown";
+const MAX_CONTEXT_REFS: usize = 20;
+const MAX_CONTEXT_REF_CHARS: usize = 160;
 
 pub struct WorkspaceApi {
     db: DbContext,
@@ -896,6 +898,7 @@ impl WorkspaceApi {
         if let Some(run_id) = run_id {
             self.ensure_run_owner(user_id, workspace_id, run_id).await?;
         }
+        let explicit_artifact_ids = artifact_ids_from_context_refs(req.context_refs)?;
 
         let attachment_sources = if let Some(conversation_id) = conversation_id {
             self.conversation_file_svc
@@ -944,7 +947,7 @@ impl WorkspaceApi {
             Vec::new()
         };
 
-        let artifact_sources = self
+        let mut workspace_artifacts = self
             .artifact_svc
             .list(WorkspaceArtifactFilter {
                 workspace_id: Some(workspace_id),
@@ -958,7 +961,14 @@ impl WorkspaceApi {
                 limit: Some(200),
                 offset: Some(0),
             })
-            .await?
+            .await?;
+        for artifact_id in explicit_artifact_ids {
+            let artifact = self
+                .ensure_active_artifact_owner(user_id, workspace_id, artifact_id)
+                .await?;
+            push_unique_artifact(&mut workspace_artifacts, artifact);
+        }
+        let artifact_sources = workspace_artifacts
             .into_iter()
             .map(map_context_artifact)
             .collect::<Vec<_>>();
@@ -1070,6 +1080,7 @@ impl WorkspaceApi {
         if let Some(run_id) = run_id {
             self.ensure_run_owner(user_id, workspace_id, run_id).await?;
         }
+        let explicit_artifact_ids = artifact_ids_from_context_refs(req.context_refs)?;
 
         let conversation_files = if let Some(conversation_id) = conversation_id {
             self.conversation_file_svc
@@ -1109,7 +1120,7 @@ impl WorkspaceApi {
             Vec::new()
         };
 
-        let workspace_artifacts = self
+        let mut workspace_artifacts = self
             .artifact_svc
             .list(WorkspaceArtifactFilter {
                 workspace_id: Some(workspace_id),
@@ -1124,6 +1135,12 @@ impl WorkspaceApi {
                 offset: Some(0),
             })
             .await?;
+        for artifact_id in explicit_artifact_ids {
+            let artifact = self
+                .ensure_active_artifact_owner(user_id, workspace_id, artifact_id)
+                .await?;
+            push_unique_artifact(&mut workspace_artifacts, artifact);
+        }
 
         let counts = WorkspaceContextSummaryCounts {
             conversation_files: conversation_files.len(),
@@ -5028,6 +5045,61 @@ fn parse_optional_uuid(value: Option<String>, label: &str) -> BizResult<Option<U
         .transpose()
 }
 
+fn normalize_context_refs(context_refs: Vec<String>) -> BizResult<Vec<String>> {
+    if context_refs.len() > MAX_CONTEXT_REFS {
+        return Err(BizError::new(
+            app_error::WORKSPACE_REQUEST_INVALID,
+            format!("context_refs cannot exceed {MAX_CONTEXT_REFS} items"),
+        ));
+    }
+
+    let mut refs = Vec::new();
+    for item in context_refs {
+        let item = item.trim();
+        if item.is_empty() {
+            continue;
+        }
+        if item.chars().count() > MAX_CONTEXT_REF_CHARS {
+            return Err(BizError::new(
+                app_error::WORKSPACE_REQUEST_INVALID,
+                format!("context ref must be at most {MAX_CONTEXT_REF_CHARS} characters"),
+            ));
+        }
+        if !refs.iter().any(|existing| existing == item) {
+            refs.push(item.to_string());
+        }
+    }
+    Ok(refs)
+}
+
+fn artifact_ids_from_context_refs(context_refs: Vec<String>) -> BizResult<Vec<Uuid>> {
+    let mut ids = Vec::new();
+    for context_ref in normalize_context_refs(context_refs)? {
+        let Some(artifact_id) = artifact_id_from_context_ref(&context_ref) else {
+            continue;
+        };
+        let artifact_id = parse_uuid(artifact_id, "context_ref artifact id")?;
+        if !ids.contains(&artifact_id) {
+            ids.push(artifact_id);
+        }
+    }
+    Ok(ids)
+}
+
+fn artifact_id_from_context_ref(value: &str) -> Option<&str> {
+    value
+        .strip_prefix("workspace_artifact:")
+        .or_else(|| value.strip_prefix("workspace_artifact/"))
+        .or_else(|| value.strip_prefix("artifact:"))
+        .or_else(|| value.strip_prefix("artifact/"))
+}
+
+fn push_unique_artifact(items: &mut Vec<WorkspaceArtifact>, artifact: WorkspaceArtifact) {
+    if !items.iter().any(|item| item.id == artifact.id) {
+        items.push(artifact);
+    }
+}
+
 #[derive(Debug, Clone)]
 struct SearchEvidenceArtifactDraft {
     title: String,
@@ -8285,6 +8357,37 @@ mod tests {
             candidate.text.as_deref(),
             Some("Query: fallback preview\nSources: 1")
         );
+    }
+
+    #[test]
+    fn artifact_context_refs_parse_supported_forms_only() {
+        let artifact_id = Uuid::parse_str("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa").unwrap();
+        let ids = artifact_ids_from_context_refs(vec![
+            format!("workspace_artifact:{artifact_id}"),
+            format!("artifact/{artifact_id}"),
+            format!("product:{artifact_id}"),
+            "conversation_file:bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb".to_string(),
+            format!("workspace_artifact:{artifact_id}"),
+        ])
+        .expect("artifact refs should parse");
+
+        assert_eq!(ids, vec![artifact_id]);
+    }
+
+    #[test]
+    fn artifact_context_refs_reject_invalid_uuid() {
+        let err = artifact_ids_from_context_refs(vec!["workspace_artifact:not-a-uuid".to_string()])
+            .expect_err("invalid artifact ref should fail");
+
+        assert_eq!(err.code(), app_error::WORKSPACE_REQUEST_INVALID);
+    }
+
+    #[test]
+    fn artifact_context_refs_reject_too_many_refs() {
+        let refs = (0..21).map(|index| format!("artifact:{index}")).collect();
+        let err = artifact_ids_from_context_refs(refs).expect_err("too many refs should fail");
+
+        assert_eq!(err.code(), app_error::WORKSPACE_REQUEST_INVALID);
     }
 
     #[test]

@@ -69,6 +69,8 @@ Post 8-60 补充：App API 和 Agent `search_*` skill 均已回显 `bypassCache/
 
 Post 8-105 补充：`search_evidence` 工作区交付物进入 `workspace_context_pack` 时会生成 `contentKind=search_evidence_summary` 的可读摘要，包含 query、显式商品上下文、证据摘要、来源数量、置信度、域名和 Top sources；不会把完整搜索 JSON 直接塞进 Agent 上下文，也不会触发新搜索或推断默认商品。
 
+Post 8-106 补充：Agent SSE 和工作区上下文查询支持显式 `workspace_artifact:{artifactUuid}` / `artifact:{artifactUuid}` 引用。用户主动选择历史交付物或搜索证据后，后端会校验当前用户、当前 workspace 和 active 状态，再把该 artifact 合并进 `workspace_context_summary` / `workspace_context_pack`；未显式选择时不会自动读取历史 run artifact。
+
 ## 平台执行 / 审批治理
 
 | 旧能力 | 新产品目标 ID | 状态 | 新落点 | 备注 |

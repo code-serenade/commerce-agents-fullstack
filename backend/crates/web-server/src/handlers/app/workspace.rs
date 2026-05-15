@@ -667,6 +667,7 @@ pub async fn get_workspace_context_summary(
             product_id: req.product_id,
             include_workspace_product_context: true,
             run_id: req.run_id,
+            context_refs: parse_context_refs_query(req.context_refs)?,
         })
         .await
         .map_err(from_biz_error)?;
@@ -688,12 +689,30 @@ pub async fn get_workspace_context_pack(
             product_id: req.product_id,
             include_workspace_product_context: true,
             run_id: req.run_id,
+            context_refs: parse_context_refs_query(req.context_refs)?,
             max_items: req.max_items,
             max_chars: req.max_chars,
         })
         .await
         .map_err(from_biz_error)?;
     Ok(response.into_common_response().to_json())
+}
+
+fn parse_context_refs_query(value: Option<String>) -> Result<Vec<String>, Error> {
+    let Some(value) = value else {
+        return Ok(Vec::new());
+    };
+    let mut refs = Vec::new();
+    for item in value.split(',') {
+        let item = item.trim();
+        if item.is_empty() {
+            continue;
+        }
+        if !refs.iter().any(|existing| existing == item) {
+            refs.push(item.to_string());
+        }
+    }
+    Ok(refs)
 }
 
 pub async fn list_agent_quality_checks(

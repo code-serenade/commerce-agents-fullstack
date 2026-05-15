@@ -1,5 +1,33 @@
 # 迁移开发记录
 
+## Post 8-106：显式交付物上下文引用接入 Agent SSE
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 106 个补强项：`Post 8-106`。
+
+本轮完成：
+
+- `WorkspaceApi::context_summary` / `context_pack` 增加 `context_refs`。
+- 支持 `workspace_artifact:{artifactUuid}` 与 `artifact:{artifactUuid}` 显式引用。
+- 显式 artifact 必须属于当前用户和当前 workspace，且必须 active。
+- Agent SSE 会把 `metadata.context.contextRefs` 传给 workspace context 聚合。
+- HTTP context summary / pack 查询支持逗号分隔 `contextRefs`。
+- 保持默认防串线策略：未显式引用时，不自动读取历史 run 的 artifact。
+
+用户可感知变化：
+
+- 后续前端选择某个历史交付物或搜索证据后，继续提问时 Agent 可以把这份真实交付物作为上下文；未选择时，普通问答不会自动混入历史商品或历史报告。
+
+文档：
+
+- [x] 后端设计：`temp/DEVELOPMENT_DOCS/backend/explicit_artifact_context_refs_post_8_106.md`
+- [x] 迁移归档：`MIGRATION_PLANS/legacy_capability_migration/post_phase_8_106_explicit_artifact_context_refs.md`
+- [x] API 文档：`API_DOCS/sse.md`、`API_DOCS/app.md`
+
 ## Post 8-105：搜索证据进入上下文内容包的可读摘要
 
 状态：done

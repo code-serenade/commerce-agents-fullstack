@@ -285,6 +285,7 @@ pub struct GetWorkspaceContextSummaryRequest {
     pub product_id: Option<String>,
     pub include_workspace_product_context: bool,
     pub run_id: Option<String>,
+    pub context_refs: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -295,6 +296,7 @@ pub struct GetWorkspaceContextPackRequest {
     pub product_id: Option<String>,
     pub include_workspace_product_context: bool,
     pub run_id: Option<String>,
+    pub context_refs: Vec<String>,
     pub max_items: Option<usize>,
     pub max_chars: Option<usize>,
 }

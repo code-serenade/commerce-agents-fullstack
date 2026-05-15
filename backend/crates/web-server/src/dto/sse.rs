@@ -164,9 +164,37 @@ impl AgentStreamMetadata {
 }
 
 impl AgentStreamContextSelection {
-    pub fn is_empty(&self) -> bool {
-        self.product_ids.is_empty() && self.context_refs.is_empty()
+    pub fn has_product_context(&self) -> bool {
+        !self.product_ids.is_empty()
+            || self
+                .context_refs
+                .iter()
+                .any(|context_ref| is_product_context_ref(context_ref))
     }
+
+    pub fn product_context_refs(&self) -> Vec<String> {
+        self.context_refs
+            .iter()
+            .filter(|context_ref| is_product_context_ref(context_ref))
+            .cloned()
+            .collect()
+    }
+
+    pub fn first_product_ref_id(&self) -> Option<String> {
+        self.context_refs
+            .iter()
+            .find_map(|context_ref| product_id_from_context_ref(context_ref).map(str::to_string))
+    }
+}
+
+fn is_product_context_ref(value: &str) -> bool {
+    product_id_from_context_ref(value).is_some()
+}
+
+fn product_id_from_context_ref(value: &str) -> Option<&str> {
+    value
+        .strip_prefix("product:")
+        .or_else(|| value.strip_prefix("product/"))
 }
 
 fn validate_optional_context_value(
@@ -341,7 +369,53 @@ mod tests {
             context.conversation_id.as_deref(),
             Some("conversation-uuid")
         );
-        assert!(context.is_empty());
+        assert!(context.product_ids.is_empty());
+        assert!(context.context_refs.is_empty());
+    }
+
+    #[test]
+    fn metadata_accepts_workspace_artifact_context_refs() {
+        let artifact_ref = "workspace_artifact:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa".to_string();
+        let metadata = AgentStreamMetadata {
+            context: Some(AgentStreamContextMetadata {
+                conversation_id: None,
+                product_ids: Vec::new(),
+                context_refs: vec![artifact_ref.clone(), artifact_ref.clone()],
+            }),
+            model: None,
+            strategy: None,
+        };
+
+        let (_, context, _) = metadata.into_parts().expect("metadata should parse");
+
+        assert_eq!(context.context_refs, vec![artifact_ref]);
+        assert!(!context.context_refs.is_empty());
+        assert!(!context.has_product_context());
+        assert!(context.product_context_refs().is_empty());
+    }
+
+    #[test]
+    fn metadata_separates_product_context_refs_from_artifacts() {
+        let product_ref = "product:11111111-1111-1111-1111-111111111111".to_string();
+        let artifact_ref = "workspace_artifact:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa".to_string();
+        let metadata = AgentStreamMetadata {
+            context: Some(AgentStreamContextMetadata {
+                conversation_id: None,
+                product_ids: Vec::new(),
+                context_refs: vec![product_ref.clone(), artifact_ref],
+            }),
+            model: None,
+            strategy: None,
+        };
+
+        let (_, context, _) = metadata.into_parts().expect("metadata should parse");
+
+        assert!(context.has_product_context());
+        assert_eq!(context.product_context_refs(), vec![product_ref]);
+        assert_eq!(
+            context.first_product_ref_id().as_deref(),
+            Some("11111111-1111-1111-1111-111111111111")
+        );
     }
 
     #[test]

@@ -73,7 +73,12 @@ pub async fn stream_agent_session(
     let (mut metadata, context_selection, model_selection) =
         req.metadata.into_parts().map_err(bad_request)?;
     let conversation_id = context_selection.conversation_id.clone();
-    let selected_product_id = context_selection.product_ids.first().cloned();
+    let selected_product_id = context_selection
+        .product_ids
+        .first()
+        .cloned()
+        .or_else(|| context_selection.first_product_ref_id());
+    let product_context_refs = context_selection.product_context_refs();
 
     let api = AppApi::new(get_app_ctx());
     api.get_current_user_permissions(user_id.clone())
@@ -95,12 +100,12 @@ pub async fn stream_agent_session(
     }
     let context_api = AgentContextApi::new(get_app_ctx());
     let external_search_available = get_external_search_config().is_configured();
-    if !context_selection.is_empty() {
+    if context_selection.has_product_context() {
         let context = context_api
             .build_product_context(BuildAgentProductContextRequest {
                 user_id: user_id.clone(),
                 product_ids: context_selection.product_ids.clone(),
-                context_refs: context_selection.context_refs.clone(),
+                context_refs: product_context_refs.clone(),
             })
             .await
             .map_err(from_biz_error)?;
@@ -112,14 +117,14 @@ pub async fn stream_agent_session(
             user_id: user_id.clone(),
             query: input.clone(),
             product_ids: context_selection.product_ids.clone(),
-            context_refs: context_selection.context_refs.clone(),
+            context_refs: product_context_refs,
             allow_implicit_products: false,
             external_search_available,
             limit: Some(8),
         })
         .await
         .map_err(from_biz_error)?;
-    if !context_selection.is_empty() {
+    if context_selection.has_product_context() {
         merge_agent_retrieval_metadata(&mut metadata, &retrieval_context)
             .map_err(|err| Error::Custom(format!("agent retrieval metadata failed: {err}")))?;
     }
@@ -154,6 +159,7 @@ pub async fn stream_agent_session(
             product_id: selected_product_id,
             include_workspace_product_context: false,
             run_id: active_run_id.clone(),
+            context_refs: context_selection.context_refs.clone(),
         })
         .await
         .map_err(from_biz_error)?;
@@ -167,6 +173,7 @@ pub async fn stream_agent_session(
             product_id: workspace_context.product_id.clone(),
             include_workspace_product_context: false,
             run_id: active_run_id,
+            context_refs: context_selection.context_refs.clone(),
             max_items: Some(20),
             max_chars: Some(12_000),
         })
