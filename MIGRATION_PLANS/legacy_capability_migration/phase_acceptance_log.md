@@ -2,6 +2,28 @@
 
 # 阶段验收记录
 
+## Post 8-103：搜索 skill 显式选品上下文
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Worker autosuggest：`search_*` 自动补偿可读取 `Task` 中已校验的 `context.selected_summary`。
+- [x] Worker autosuggest：识别“这个商品 / 本品 / 当前商品 / 所选商品 / selected product”等显式选品指代。
+- [x] Worker autosuggest：本轮显式选品时，搜索 input 携带 `product_ref`、`product_name`、`product_category`。
+- [x] Worker autosuggest：本轮显式选品且文本未指定平台时，搜索 platform 可使用选中商品平台。
+- [x] Worker autosuggest：未选商品时不写空商品上下文字段，也不从历史或预设商品推断默认商品。
+- [x] Agent search skill：输出 `query` 对象回显可选商品上下文。
+- [x] API：`API_DOCS/sse.md` 已同步搜索 product context 契约。
+- [x] 前端：本轮不新增假入口。
+
+当前说明：
+
+- 本阶段解决的是“外部搜索类 skill 能触发，但不知道用户本轮手动选择的是哪个商品”的问题。
+- 本阶段只消费后端 service/web-server 已校验后注入的显式选品 metadata；agent crate 不直连数据库、不跨用户读取商品资料。
+- 本阶段不改变真实搜索 provider 调用边界；未配置、失败或无来源时仍明确降级，不伪造联网结果。
+
 ## Post 8-102：运营执行计划 product_ref 契约
 
 状态：done

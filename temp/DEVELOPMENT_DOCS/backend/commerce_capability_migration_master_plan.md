@@ -236,23 +236,24 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-102: ops execution plan product_ref contract
+Post 8-103: search selected product context
 ```
 
 Scope:
 
-- echo `product_ref=product:{uuid}` in successful `ops_execution_plan` output as `商品引用`
-- route the ops worker fallback execution-plan autosuggest through structured input construction
-- let ops worker autosuggest pass selected product refs only from explicit `context.selected_summary`
-- avoid writing empty or null `product_ref` when no product is selected
-- keep execution planning based on user input plus deterministic execution framework rather than fake platform, ERP, WMS, supply-chain, or live platform data
+- route `search_*` autosuggest through the current `Task`, so it can read explicit selected product metadata
+- detect selected-product references such as “这个商品 / 本品 / 当前商品 / 所选商品 / selected product”
+- add optional `product_ref`, `product_name`, and `product_category` to search skill input and output query echo
+- use selected product name/category/platform for search query construction only when the user explicitly refers to the selected product
+- avoid writing empty product context when no product is selected
+- keep external search provider behavior unchanged: configured providers can return live sources; unconfigured, failed, or source-less searches remain deferred/degraded
 
 Reason:
 
-- execution plan is the ops fallback capability and must preserve selected-product provenance when a user manually selects a product
-- selected-product and unspecified execution planning must stay separate
-- the frontend can use `skill_result.output.商品引用` to distinguish product-bound plans from generic ops plans
-- real Taobao, Douyin, Qianchuan, ERP, WMS, supply-chain, platform action, and live platform data remain adapter/service/search concerns and must not be faked
+- external search has been raised in priority, but it must still respect the product context boundary
+- selected-product search and generic market search are different user paths
+- the frontend can use `skill_result.output.query.product_ref/product_name/product_category` to distinguish product-bound search from ordinary search
+- real Taobao, Douyin, Qianchuan, platform reviews, policy announcements, market data, and live external sources remain adapter/search concerns and must not be faked
 
 ## 10. Validation Standard
 

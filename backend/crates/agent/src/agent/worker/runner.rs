@@ -823,7 +823,7 @@ fn autosuggest_ops(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         }
     }
 
-    if let Some(request) = autosuggest_search(text) {
+    if let Some(request) = autosuggest_search(text, task) {
         return Some(request);
     }
 
@@ -955,7 +955,7 @@ fn autosuggest_data(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         ));
     }
 
-    if let Some(request) = autosuggest_search(text) {
+    if let Some(request) = autosuggest_search(text, task) {
         return Some(request);
     }
 
@@ -1215,10 +1215,10 @@ fn autosuggest_data(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     ))
 }
 
-fn autosuggest_accounting(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
+fn autosuggest_accounting(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     let numbers = numbers_in_text(text);
 
-    if let Some(request) = autosuggest_search(text) {
+    if let Some(request) = autosuggest_search(text, task) {
         return Some(request);
     }
 
@@ -1290,7 +1290,7 @@ fn autosuggest_accounting(text: &str, _task: &Task) -> Option<ParsedSkillRequest
 }
 
 fn autosuggest_service(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
-    if let Some(request) = autosuggest_search(text) {
+    if let Some(request) = autosuggest_search(text, task) {
         return Some(request);
     }
 
@@ -1452,7 +1452,7 @@ fn autosuggest_service(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
 }
 
 fn autosuggest_creative(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
-    if let Some(request) = autosuggest_search(text) {
+    if let Some(request) = autosuggest_search(text, task) {
         return Some(request);
     }
 
@@ -1584,7 +1584,7 @@ fn autosuggest_creative(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
 }
 
 fn autosuggest_web(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
-    if let Some(request) = autosuggest_search(text) {
+    if let Some(request) = autosuggest_search(text, task) {
         return Some(request);
     }
 
@@ -1891,42 +1891,30 @@ fn autosuggest_engineering(text: &str, _task: &Task) -> Option<ParsedSkillReques
     ))
 }
 
-fn autosuggest_search(text: &str) -> Option<ParsedSkillRequest> {
+fn autosuggest_search(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     if is_platform_policy_search_intent(text) {
+        let input = search_platform_policy_input(text, task);
         return Some(autosuggest_request(
             "search_platform_policy",
-            serde_json::json!({
-                "platform": infer_search_platform(text),
-                "policy_type": infer_search_policy_type(text),
-                "days": infer_period_days(text),
-                "_needs_fresh_data": infer_search_bypass_cache(text),
-            }),
+            serde_json::Value::Object(input),
             "根据平台规则/政策实时查询意图自动补偿外部搜索 skill",
         ));
     }
 
     if is_product_review_search_intent(text) {
+        let input = search_product_reviews_input(text, task);
         return Some(autosuggest_request(
             "search_product_reviews",
-            serde_json::json!({
-                "query": infer_search_query(text),
-                "platform": infer_search_platform(text),
-                "focus": infer_search_review_focus(text),
-                "_needs_fresh_data": infer_search_bypass_cache(text),
-            }),
+            serde_json::Value::Object(input),
             "根据用户评价/口碑实时查询意图自动补偿外部搜索 skill",
         ));
     }
 
     if is_industry_benchmark_search_intent(text) {
+        let input = search_industry_benchmarks_input(text, task);
         return Some(autosuggest_request(
             "search_industry_benchmarks",
-            serde_json::json!({
-                "industry": infer_search_industry(text),
-                "metric": infer_search_benchmark_metric(text),
-                "platform": infer_search_platform(text),
-                "_needs_fresh_data": infer_search_bypass_cache(text),
-            }),
+            serde_json::Value::Object(input),
             "根据行业基准/均值查询意图自动补偿外部搜索 skill",
         ));
     }
@@ -1939,14 +1927,10 @@ fn autosuggest_search(text: &str) -> Option<ParsedSkillRequest> {
         text,
         &["competitor", "竞品", "竞对", "竞争对手", "对标", "同类商品"],
     ) {
+        let input = search_competitor_input(text, task);
         return Some(autosuggest_request(
             "search_competitor",
-            serde_json::json!({
-                "query": infer_search_query(text),
-                "platform": infer_search_platform(text),
-                "focus": infer_search_competitor_focus(text),
-                "_needs_fresh_data": infer_search_bypass_cache(text),
-            }),
+            serde_json::Value::Object(input),
             "根据竞品外部资料查询意图自动补偿外部搜索 skill",
         ));
     }
@@ -1964,14 +1948,10 @@ fn autosuggest_search(text: &str) -> Option<ParsedSkillRequest> {
             "消费趋势",
         ],
     ) {
+        let input = search_trends_input(text, task);
         return Some(autosuggest_request(
             "search_trends",
-            serde_json::json!({
-                "query": infer_search_query(text),
-                "platform": infer_search_platform(text),
-                "days": infer_period_days(text),
-                "_needs_fresh_data": infer_search_bypass_cache(text),
-            }),
+            serde_json::Value::Object(input),
             "根据趋势/热点实时查询意图自动补偿外部搜索 skill",
         ));
     }
@@ -1990,14 +1970,10 @@ fn autosuggest_search(text: &str) -> Option<ParsedSkillRequest> {
             "公开来源",
         ],
     ) {
+        let input = search_market_info_input(text, task);
         return Some(autosuggest_request(
             "search_market_info",
-            serde_json::json!({
-                "query": infer_search_query(text),
-                "topic": infer_search_topic(text),
-                "days": infer_period_days(text),
-                "_needs_fresh_data": infer_search_bypass_cache(text),
-            }),
+            serde_json::Value::Object(input),
             "根据市场行情/公开资料查询意图自动补偿外部搜索 skill",
         ));
     }
@@ -4253,8 +4229,218 @@ fn infer_search_query(text: &str) -> String {
     compact_task_text(text)
 }
 
+fn infer_search_query_for_task(text: &str, task: &Task) -> String {
+    if refers_to_selected_product(text)
+        && let Some(product) = first_selected_product(task)
+    {
+        if let Some(category) = product.category.filter(|value| !value.is_empty()) {
+            return format!("{} {}", product.name, category);
+        }
+        return product.name;
+    }
+    infer_search_query(text)
+}
+
+fn infer_search_industry_for_task(text: &str, task: &Task) -> String {
+    if refers_to_selected_product(text)
+        && let Some(product) = first_selected_product(task)
+        && let Some(category) = product.category.filter(|value| !value.is_empty())
+    {
+        return category;
+    }
+    infer_search_industry(text)
+}
+
 fn infer_search_industry(text: &str) -> String {
     infer_category(text).to_string()
+}
+
+fn infer_search_platform_for_task(text: &str, task: &Task) -> String {
+    let explicit_platform = infer_search_platform(text);
+    if explicit_platform != "电商" {
+        return explicit_platform.to_string();
+    }
+    first_selected_product(task)
+        .and_then(|product| product.platform)
+        .filter(|platform| !platform.is_empty())
+        .unwrap_or_else(|| explicit_platform.to_string())
+}
+
+fn refers_to_selected_product(text: &str) -> bool {
+    contains_any(
+        text,
+        &[
+            "这个商品",
+            "这个产品",
+            "该商品",
+            "该产品",
+            "本品",
+            "当前商品",
+            "所选商品",
+            "选中商品",
+            "这个SKU",
+            "该SKU",
+            "this product",
+            "selected product",
+        ],
+    )
+}
+
+fn insert_selected_product_search_context(
+    input: &mut serde_json::Map<String, serde_json::Value>,
+    task: &Task,
+) {
+    if let Some(product) = first_selected_product(task) {
+        input.insert(
+            "product_ref".to_string(),
+            serde_json::json!(product.ref_key()),
+        );
+        input.insert("product_name".to_string(), serde_json::json!(product.name));
+        if let Some(category) = product.category.filter(|value| !value.is_empty()) {
+            input.insert("product_category".to_string(), serde_json::json!(category));
+        }
+    }
+}
+
+fn search_product_reviews_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    input.insert(
+        "query".to_string(),
+        serde_json::json!(infer_search_query_for_task(text, task)),
+    );
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(infer_search_platform_for_task(text, task)),
+    );
+    input.insert(
+        "focus".to_string(),
+        serde_json::json!(infer_search_review_focus(text)),
+    );
+    input.insert(
+        "_needs_fresh_data".to_string(),
+        serde_json::json!(infer_search_bypass_cache(text)),
+    );
+    insert_selected_product_search_context(&mut input, task);
+    input
+}
+
+fn search_industry_benchmarks_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    input.insert(
+        "industry".to_string(),
+        serde_json::json!(infer_search_industry_for_task(text, task)),
+    );
+    input.insert(
+        "metric".to_string(),
+        serde_json::json!(infer_search_benchmark_metric(text)),
+    );
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(infer_search_platform_for_task(text, task)),
+    );
+    input.insert(
+        "_needs_fresh_data".to_string(),
+        serde_json::json!(infer_search_bypass_cache(text)),
+    );
+    insert_selected_product_search_context(&mut input, task);
+    input
+}
+
+fn search_competitor_input(text: &str, task: &Task) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    input.insert(
+        "query".to_string(),
+        serde_json::json!(infer_search_query_for_task(text, task)),
+    );
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(infer_search_platform_for_task(text, task)),
+    );
+    input.insert(
+        "focus".to_string(),
+        serde_json::json!(infer_search_competitor_focus(text)),
+    );
+    input.insert(
+        "_needs_fresh_data".to_string(),
+        serde_json::json!(infer_search_bypass_cache(text)),
+    );
+    insert_selected_product_search_context(&mut input, task);
+    input
+}
+
+fn search_trends_input(text: &str, task: &Task) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    input.insert(
+        "query".to_string(),
+        serde_json::json!(infer_search_query_for_task(text, task)),
+    );
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(infer_search_platform_for_task(text, task)),
+    );
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_period_days(text)),
+    );
+    input.insert(
+        "_needs_fresh_data".to_string(),
+        serde_json::json!(infer_search_bypass_cache(text)),
+    );
+    insert_selected_product_search_context(&mut input, task);
+    input
+}
+
+fn search_market_info_input(text: &str, task: &Task) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    input.insert(
+        "query".to_string(),
+        serde_json::json!(infer_search_query_for_task(text, task)),
+    );
+    input.insert(
+        "topic".to_string(),
+        serde_json::json!(infer_search_topic(text)),
+    );
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_period_days(text)),
+    );
+    input.insert(
+        "_needs_fresh_data".to_string(),
+        serde_json::json!(infer_search_bypass_cache(text)),
+    );
+    insert_selected_product_search_context(&mut input, task);
+    input
+}
+
+fn search_platform_policy_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = serde_json::Map::new();
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(infer_search_platform_for_task(text, task)),
+    );
+    input.insert(
+        "policy_type".to_string(),
+        serde_json::json!(infer_search_policy_type(text)),
+    );
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_period_days(text)),
+    );
+    input.insert(
+        "_needs_fresh_data".to_string(),
+        serde_json::json!(infer_search_bypass_cache(text)),
+    );
+    insert_selected_product_search_context(&mut input, task);
+    input
 }
 
 fn infer_search_bypass_cache(text: &str) -> bool {
@@ -7723,6 +7909,96 @@ mod tests {
             assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
             assert_eq!(
                 requests[0].input["_needs_fresh_data"], expected_fresh,
+                "{prompt}"
+            );
+        }
+    }
+
+    #[test]
+    fn selected_product_context_feeds_search_queries() {
+        let summary = selected_product_summary();
+        let cases = [
+            (
+                "搜这个商品竞品公开资料，重点看价格",
+                "web",
+                "search_competitor",
+                "query",
+                "五一咖啡组合 咖啡饮品",
+            ),
+            (
+                "搜这个商品用户差评和真实口碑",
+                "service",
+                "search_product_reviews",
+                "query",
+                "五一咖啡组合 咖啡饮品",
+            ),
+            (
+                "联网查这个商品最近消费趋势和爆款",
+                "data",
+                "search_trends",
+                "query",
+                "五一咖啡组合 咖啡饮品",
+            ),
+            (
+                "查这个商品所在行业基准数据，重点看ROI",
+                "data",
+                "search_industry_benchmarks",
+                "industry",
+                "咖啡饮品",
+            ),
+        ];
+
+        for (prompt, runtime_role, expected_skill, key, expected_value) in cases {
+            let requests = autosuggest_skill_requests(
+                &role(runtime_role),
+                &task_with_metadata(prompt, &[("context.selected_summary", &summary)]),
+                "{}",
+            );
+            assert_eq!(requests.len(), 1, "{prompt}");
+            assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
+            assert_eq!(requests[0].input[key], expected_value, "{prompt}");
+            assert_eq!(
+                requests[0].input["product_ref"], "product:11111111-1111-1111-1111-111111111111",
+                "{prompt}"
+            );
+            assert_eq!(
+                requests[0].input["product_name"], "五一咖啡组合",
+                "{prompt}"
+            );
+            assert_eq!(
+                requests[0].input["product_category"], "咖啡饮品",
+                "{prompt}"
+            );
+            if requests[0].input.get("platform").is_some() {
+                assert_eq!(requests[0].input["platform"], "抖音", "{prompt}");
+            }
+        }
+    }
+
+    #[test]
+    fn search_without_selection_has_no_empty_product_context() {
+        let cases = [
+            (
+                "搜冷萃咖啡竞品公开资料，重点看价格",
+                "web",
+                "search_competitor",
+            ),
+            (
+                "搜冷萃咖啡用户差评和真实口碑",
+                "service",
+                "search_product_reviews",
+            ),
+            ("联网搜咖啡饮品最近消费趋势和爆款", "data", "search_trends"),
+        ];
+
+        for (prompt, runtime_role, expected_skill) in cases {
+            let requests = autosuggest_skill_requests(&role(runtime_role), &task(prompt), "{}");
+            assert_eq!(requests.len(), 1, "{prompt}");
+            assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
+            assert!(requests[0].input.get("product_ref").is_none(), "{prompt}");
+            assert!(requests[0].input.get("product_name").is_none(), "{prompt}");
+            assert!(
+                requests[0].input.get("product_category").is_none(),
                 "{prompt}"
             );
         }

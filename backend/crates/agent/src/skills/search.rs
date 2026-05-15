@@ -261,6 +261,9 @@ struct SearchPlan {
     days: i64,
     max_results: i64,
     bypass_cache: bool,
+    product_ref: Option<String>,
+    product_name: Option<String>,
+    product_category: Option<String>,
 }
 
 impl SearchPlan {
@@ -277,11 +280,26 @@ impl SearchPlan {
             days: days.max(1),
             max_results: DEFAULT_MAX_RESULTS,
             bypass_cache: false,
+            product_ref: None,
+            product_name: None,
+            product_category: None,
         }
     }
 
     fn with_bypass_cache(mut self, bypass_cache: bool) -> Self {
         self.bypass_cache = bypass_cache;
+        self
+    }
+
+    fn with_product_context(
+        mut self,
+        product_ref: Option<String>,
+        product_name: Option<String>,
+        product_category: Option<String>,
+    ) -> Self {
+        self.product_ref = product_ref;
+        self.product_name = product_name;
+        self.product_category = product_category;
         self
     }
 
@@ -323,7 +341,10 @@ fn deferred_search_output(
             "topic": plan.topic,
             "days": plan.days,
             "max_results": plan.max_results,
-            "bypass_cache": plan.bypass_cache
+            "bypass_cache": plan.bypass_cache,
+            "product_ref": plan.product_ref,
+            "product_name": plan.product_name,
+            "product_category": plan.product_category
         },
         "data": {
             "items": []
@@ -378,7 +399,10 @@ fn degraded_search_output(
             "topic": plan.topic,
             "days": plan.days,
             "max_results": plan.max_results,
-            "bypass_cache": plan.bypass_cache
+            "bypass_cache": plan.bypass_cache,
+            "product_ref": plan.product_ref,
+            "product_name": plan.product_name,
+            "product_category": plan.product_category
         },
         "engine": adapter.provider_name(),
         "data": {
@@ -472,7 +496,10 @@ fn live_search_output(
             "topic": plan.topic,
             "days": plan.days,
             "max_results": plan.max_results,
-            "bypass_cache": plan.bypass_cache
+            "bypass_cache": plan.bypass_cache,
+            "product_ref": plan.product_ref,
+            "product_name": plan.product_name,
+            "product_category": plan.product_category
         },
         "key": payload.get("key").and_then(Value::as_str).unwrap_or("search"),
         "engine": engine,
@@ -806,6 +833,13 @@ fn search_bypass_cache(params: &Value) -> Result<bool, crate::skills::SkillError
         .unwrap_or(false))
 }
 
+fn optional_search_string_param(
+    params: &Value,
+    field: &str,
+) -> Result<Option<String>, crate::skills::SkillError> {
+    optional_string_param(params, field)
+}
+
 fn string_field(item: &Value, keys: &[&str]) -> Option<String> {
     keys.iter()
         .find_map(|key| item.get(*key).and_then(Value::as_str))
@@ -866,8 +900,12 @@ macro_rules! deferred_search_skill {
                 object_params(&params)?;
                 let required_value = string_param(&params, $required)?;
                 let bypass_cache = search_bypass_cache(&params)?;
+                let product_ref = optional_search_string_param(&params, "product_ref")?;
+                let product_name = optional_search_string_param(&params, "product_name")?;
+                let product_category = optional_search_string_param(&params, "product_category")?;
                 let plan = $builder(&params, &required_value)?
                     .with_bypass_cache(bypass_cache)
+                    .with_product_context(product_ref, product_name, product_category)
                     .with_adapter_defaults(adapter)?;
                 if !adapter.is_configured() {
                     return Ok(deferred_search_output(&self.spec.id, required_value, plan));
@@ -1128,5 +1166,42 @@ mod tests {
                 .and_then(Value::as_str)
                 .is_some_and(|context| context.contains("没有可采信实时来源"))
         );
+    }
+
+    #[tokio::test]
+    async fn search_skill_echoes_product_context_in_degraded_output() {
+        let adapter = SearchAdapterConfig {
+            enabled: false,
+            ..SearchAdapterConfig::default()
+        };
+        let outcome = SearchCompetitor::new()
+            .run_with_adapter(
+                json!({
+                    "query": "五一咖啡组合 咖啡饮品",
+                    "platform": "抖音",
+                    "focus": "price",
+                    "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                    "product_name": "五一咖啡组合",
+                    "product_category": "咖啡饮品"
+                }),
+                SkillContext::default(),
+                &adapter,
+            )
+            .await
+            .expect("search should return structured deferred output");
+
+        assert_eq!(
+            outcome.output.pointer("/query/product_ref"),
+            Some(&json!("product:11111111-1111-1111-1111-111111111111"))
+        );
+        assert_eq!(
+            outcome.output.pointer("/query/product_name"),
+            Some(&json!("五一咖啡组合"))
+        );
+        assert_eq!(
+            outcome.output.pointer("/query/product_category"),
+            Some(&json!("咖啡饮品"))
+        );
+        assert_eq!(outcome.output.pointer("/status"), Some(&json!("deferred")));
     }
 }
