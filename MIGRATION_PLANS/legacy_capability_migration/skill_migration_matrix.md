@@ -118,6 +118,8 @@ Post 8-114 补充：App 外部搜索 API 和 Agent `search_trends` / `search_com
 
 Post 8-115 补充：客服岗位在 DSR、店铺评分、服务评分、NPS、满意度驱动因素或投诉分类意图中，如果用户同时要求最新 / 实时 / 联网 / 行业基准，会生成可见 skill 链路：先运行客服 native skill，再追加 `search_industry_benchmarks`。行业基准搜索新增 `metric=dsr` 支持；NPS 继续使用 `metric=nps`。该搜索不再隐藏在客服 native skill 内部，仍按统一外部搜索 adapter 降级规则执行，未显式选品时不注入默认商品。
 
+Post 8-120 补充：客服岗位在情绪分析、工单处理、退换货处理或满意度驱动因素分析中，如果用户同时要求真实评价 / 商品评价 / 买家评价 / 口碑 / 差评 / 吐槽 / 真实反馈 / 联网 / 搜索 / 最新，会生成可见 skill 链路：先运行对应 service native skill，再追加 `search_product_reviews`。该搜索步骤独立出现在 SSE `skill_requested` / `skill_result` 中，失败或未配置 provider 时按统一搜索降级，不伪造平台评价；未显式选品时不注入默认商品。
+
 ## 设计 design
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |

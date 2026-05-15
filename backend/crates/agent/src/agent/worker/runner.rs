@@ -1692,6 +1692,12 @@ fn autosuggest_service_requests(text: &str, task: &Task) -> Vec<ParsedSkillReque
         return vec![primary, autosuggest_service_benchmark_search(text, task)];
     }
 
+    if let Some(primary) = autosuggest_service_native(text, task)
+        && is_service_review_search_chain_intent(text, &primary.skill_id)
+    {
+        return vec![primary, autosuggest_service_review_search(text, task)];
+    }
+
     if let Some(request) = autosuggest_search(text, task) {
         return vec![request];
     }
@@ -1895,6 +1901,138 @@ fn autosuggest_service_benchmark_search(text: &str, task: &Task) -> ParsedSkillR
         serde_json::Value::Object(input),
         "根据客服DSR/NPS分析中的行业基准需求自动追加外部搜索 skill",
     )
+}
+
+fn is_service_review_search_chain_intent(text: &str, native_skill_id: &str) -> bool {
+    matches!(
+        native_skill_id,
+        "service_sentiment_analyzer"
+            | "service_ticket_handler"
+            | "service_return_handler"
+            | "service_nps_driver_analysis"
+    ) && is_product_review_search_intent(text)
+        && has_service_review_work_intent(text, native_skill_id)
+}
+
+fn has_service_review_work_intent(text: &str, native_skill_id: &str) -> bool {
+    match native_skill_id {
+        "service_sentiment_analyzer" => contains_any(
+            text,
+            &[
+                "分析",
+                "识别",
+                "判断",
+                "研判",
+                "情绪",
+                "情感",
+                "sentiment",
+                "analyze",
+            ],
+        ),
+        "service_ticket_handler" => contains_any(
+            text,
+            &[
+                "工单",
+                "处理",
+                "话术",
+                "回复",
+                "安抚",
+                "客户说",
+                "用户说",
+                "ticket",
+            ],
+        ),
+        "service_return_handler" => contains_any(
+            text,
+            &[
+                "退款",
+                "退货",
+                "换货",
+                "售后",
+                "退换货",
+                "返修",
+                "return",
+                "refund",
+            ],
+        ),
+        "service_nps_driver_analysis" => contains_any(
+            text,
+            &[
+                "驱动因素",
+                "满意度原因",
+                "投诉分类",
+                "nps驱动",
+                "NPS",
+                "nps",
+            ],
+        ),
+        _ => false,
+    }
+}
+
+fn autosuggest_service_review_search(text: &str, task: &Task) -> ParsedSkillRequest {
+    autosuggest_request(
+        "search_product_reviews",
+        serde_json::Value::Object(service_product_reviews_search_input(text, task)),
+        "根据客服处理中的真实评价/口碑/差评诉求自动追加外部评价搜索 skill",
+    )
+}
+
+fn service_product_reviews_search_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = search_product_reviews_input(text, task);
+    input.insert(
+        "query".to_string(),
+        serde_json::json!(service_review_search_subject(text, task)),
+    );
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(selected_product_platform_or_infer(task, text)),
+    );
+    input.insert(
+        "focus".to_string(),
+        serde_json::json!(infer_service_review_search_focus(text)),
+    );
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_service_search_days(text, 30)),
+    );
+    input.insert("_needs_fresh_data".to_string(), serde_json::json!(true));
+    input
+}
+
+fn service_review_search_subject(text: &str, task: &Task) -> String {
+    first_selected_product(task)
+        .map(|product| product.name)
+        .unwrap_or_else(|| infer_search_query_for_task(text, task))
+}
+
+fn infer_service_review_search_focus(text: &str) -> &'static str {
+    if contains_any(
+        text,
+        &["差评", "负面", "投诉", "吐槽", "不满意", "negative"],
+    ) {
+        "negative"
+    } else if contains_any(text, &["好评", "正面", "满意", "positive"]) {
+        "positive"
+    } else {
+        "overall"
+    }
+}
+
+fn infer_service_search_days(text: &str, default: i64) -> i64 {
+    if !numbers_in_text(text).is_empty()
+        && contains_any(
+            text,
+            &["最近", "近", "过去", "天内", "日内", "周内", "月内"],
+        )
+    {
+        infer_period_days(text)
+    } else {
+        default
+    }
 }
 
 fn autosuggest_creative_requests(text: &str, task: &Task) -> Vec<ParsedSkillRequest> {
@@ -5449,27 +5587,27 @@ fn infer_search_max_results(text: &str) -> Option<i64> {
 }
 
 fn is_search_result_count_context(before: &str, after: &str) -> bool {
-    let has_after_result_unit = contains_any(
-        after,
-        &[
-            "条来源",
-            "个来源",
-            "条结果",
-            "个结果",
-            "条公开资料",
-            "个公开资料",
-            "条证据",
-            "个证据",
-            "篇资料",
-            "篇来源",
-            "sources",
-            "source",
-            "results",
-            "result",
-            "links",
-            "items",
-        ],
-    );
+    let trimmed_after = after.trim_start();
+    let has_after_result_unit = [
+        "条来源",
+        "个来源",
+        "条结果",
+        "个结果",
+        "条公开资料",
+        "个公开资料",
+        "条证据",
+        "个证据",
+        "篇资料",
+        "篇来源",
+        "sources",
+        "source",
+        "results",
+        "result",
+        "links",
+        "items",
+    ]
+    .iter()
+    .any(|unit| trimmed_after.starts_with(unit));
     let has_before_limit_word = contains_any(
         before,
         &[
@@ -5477,9 +5615,9 @@ fn is_search_result_count_context(before: &str, after: &str) -> bool {
             "limit", "max", "maximum",
         ],
     );
-    let has_after_short_unit = after.trim_start().starts_with('条')
-        || after.trim_start().starts_with('个')
-        || after.trim_start().starts_with("篇");
+    let has_after_short_unit = trimmed_after.starts_with('条')
+        || trimmed_after.starts_with('个')
+        || trimmed_after.starts_with("篇");
 
     has_after_result_unit || (has_before_limit_word && has_after_short_unit)
 }
@@ -9889,6 +10027,66 @@ mod tests {
         assert_eq!(nps_requests[1].input["metric"], "nps");
         assert_eq!(nps_requests[1].input["platform"], "抖音");
         assert_eq!(nps_requests[1].input["_needs_fresh_data"], true);
+    }
+
+    #[test]
+    fn autosuggests_service_review_search_chain_when_reviews_requested() {
+        let sentiment_requests = autosuggest_skill_requests(
+            &role("service"),
+            &task("分析冷萃咖啡差评和投诉情绪，联网搜最近30天真实用户评价，最多5条来源"),
+            "{}",
+        );
+
+        assert_eq!(sentiment_requests.len(), 2);
+        assert_eq!(sentiment_requests[0].skill_id, "service_sentiment_analyzer");
+        assert_eq!(sentiment_requests[1].skill_id, "search_product_reviews");
+        assert_eq!(sentiment_requests[1].input["focus"], "negative");
+        assert_eq!(sentiment_requests[1].input["platform"], "淘宝");
+        assert_eq!(sentiment_requests[1].input["days"], 30);
+        assert_eq!(sentiment_requests[1].input["max_results"], 5);
+        assert_eq!(sentiment_requests[1].input["_needs_fresh_data"], true);
+        assert!(sentiment_requests[1].input.get("product_ref").is_none());
+        assert!(sentiment_requests[1].input.get("product_name").is_none());
+
+        let return_requests = autosuggest_skill_requests(
+            &role("service"),
+            &task("客户要求退款退货，帮我处理售后，并搜这个品类真实差评和口碑"),
+            "{}",
+        );
+
+        assert_eq!(return_requests.len(), 2);
+        assert_eq!(return_requests[0].skill_id, "service_return_handler");
+        assert_eq!(return_requests[1].skill_id, "search_product_reviews");
+        assert_eq!(return_requests[1].input["focus"], "negative");
+    }
+
+    #[test]
+    fn service_review_search_chain_keeps_selected_product_explicit() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("service"),
+            &task_with_metadata(
+                "分析这个商品差评和投诉情绪，联网搜真实用户评价",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 2);
+        assert_eq!(requests[0].skill_id, "service_sentiment_analyzer");
+        assert_eq!(requests[1].skill_id, "search_product_reviews");
+        assert_eq!(
+            requests[1].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[1].input["product_name"], "五一咖啡组合");
+        assert_eq!(requests[1].input["product_category"], "咖啡饮品");
+        assert_eq!(requests[1].input["platform"], "抖音");
+        assert!(
+            requests[1].input["query"]
+                .as_str()
+                .is_some_and(|query| query.contains("五一咖啡组合"))
+        );
     }
 
     #[test]

@@ -322,25 +322,23 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-119: ops search chain
+Post 8-120: service review search chain
 ```
 
 Scope:
 
-- make ops autosuggest produce visible native + search chains for realtime operations questions
-- keep ordinary ops questions on native skills only
-- map realtime pricing to `search_competitor(focus=price)`
-- map promotion rules to `search_platform_policy(policy_type=promotion)`
-- map promotion trends to `search_market_info(topic=news)`
-- map channel benchmarks to `search_industry_benchmarks(metric=roi)`
-- map assortment trends to `search_trends`
+- make service autosuggest produce visible native + `search_product_reviews` chains for real review/reputation questions
+- keep ordinary service support questions on native skills only
+- map negative review / complaint / dissatisfaction language to `search_product_reviews(focus=negative)`
+- map positive review / satisfaction language to `search_product_reviews(focus=positive)`
 - preserve explicit selected-product context only; never infer product context from history or defaults
+- keep search provider failures as transparent degraded search results rather than fabricated platform reviews
 
 Reason:
 
-- ops is the core e-commerce operator role and must not return static plans when the user explicitly asks for current market evidence
-- old-product hidden `_web_search` behavior should become visible and auditable in new-product SSE skill events
-- search provider failure must degrade transparently rather than producing fake realtime competitor prices, platform rules, or market trends
+- customer service quality depends on real complaint/review evidence when the user explicitly asks for reputation, bad reviews, or buyer feedback
+- old-product hidden review/search behavior should become visible and auditable in new-product SSE skill events
+- natural-language limits such as "recent 30 days" and "max 5 sources" must map to distinct search parameters
 - real Taobao, Douyin, Qianchuan, platform reviews, policy announcements, market data, and live external sources remain adapter/search concerns and must not be faked
 
 ## 10. Validation Standard

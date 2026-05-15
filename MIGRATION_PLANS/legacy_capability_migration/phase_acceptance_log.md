@@ -2168,3 +2168,25 @@
 - 本阶段解决的是“运营岗位实时资料诉求可见化”，不是直接接通淘宝、抖音或其它官方平台。
 - 搜索 provider 未配置、失败或无可信来源时仍按搜索 skill 降级，不伪造 live 结果。
 - 前端后续应把该双 skill 链路展示为过程卡片和来源面板。
+
+## Post 8-120：客服评价/口碑搜索链路
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent worker 新增客服岗位 native + `search_product_reviews` 双 skill 编排。
+- [x] 普通客服情绪分析、工单处理、退换货处理、满意度驱动因素分析仍只触发 native skill。
+- [x] 用户明确要求真实评价 / 商品评价 / 买家评价 / 口碑 / 差评 / 吐槽 / 真实反馈 / 联网 / 搜索 / 最新时，才追加 `search_product_reviews`。
+- [x] 差评、负面、投诉、吐槽、不满意会映射为 `focus=negative`。
+- [x] 好评、正面、满意会映射为 `focus=positive`；其它评价诉求使用 `focus=overall`。
+- [x] 用户说“最近30天、最多5条来源”时，时间窗口和来源数量会分别落到 `days=30`、`max_results=5`。
+- [x] 未显式选择商品时，不从历史摘要或默认演示商品注入 `product_ref/product_name/product_category`。
+- [x] API/SSE 文档已同步。
+
+当前说明：
+
+- 本阶段解决的是“客服岗位真实评价/口碑诉求可见化”，不是直接接通淘宝、抖音或其它官方评价 API。
+- 搜索 provider 未配置、失败或无可信来源时仍按搜索 skill 降级，不伪造 live 评价。
+- 前端后续应把该双 skill 链路展示为过程卡片和来源面板。

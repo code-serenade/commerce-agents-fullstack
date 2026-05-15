@@ -5556,3 +5556,47 @@
 
 - 真实搜索 provider 配置和部署仍是外部搜索能力的后续事项。
 - 前端可继续把 native + search 双 skill 链路展示为可折叠过程卡片和来源面板。
+
+## Post 8-120：客服评价/口碑搜索链路
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 120 个补强项：`Post 8-120`。
+
+本次目标：
+
+- 把旧产品客服 skill 中依赖外部评价、口碑、差评信息的能力，迁成新产品可见、可审计、可降级的 skill 链路。
+- 让情绪分析、工单处理、退换货处理和满意度驱动因素分析在用户明确要求真实评价/口碑/差评时，先跑 service native skill，再追加 `search_product_reviews`。
+
+涉及范围：
+
+- 产品内核：客服岗位从“只生成客服 SOP / 情绪判断”增强为“native 客服处理 + 可见评价证据检索”的双 skill 链路。
+- 后端 Agent：`autosuggest_service_requests` 保留普通客服任务 native-only；只有真实评价搜索诉求才追加评价搜索。
+- 搜索参数：`search_product_reviews` 继承统一搜索输入，并支持解析“最近30天、最多5条来源”等自然语言参数。
+- SSE/API 文档：同步说明 service 评价搜索双 skill 链路。
+- 迁移归档：新增 Post 8-120 独立归档和后端设计文档。
+
+用户可感知变化：
+
+- 用户要求“分析冷萃咖啡差评和投诉情绪，联网搜最近30天真实用户评价，最多5条来源”时，过程区会看到情绪分析和评价搜索两个步骤。
+- 用户要求“客户要求退款退货，帮我处理售后，并搜真实差评和口碑”时，过程区会看到退换货处理和评价搜索两个步骤。
+- 用户没有显式选择商品时，后端不会注入历史里的默认商品或演示商品；用户选中商品后，评价搜索才携带 `product_ref/product_name/product_category`。
+- 搜索 provider 没配置或无可信来源时，后端仍会明确降级，不伪造真实平台评价。
+
+当前验证：
+
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent service`
+- [x] `cargo test -p agent search`
+- [x] `cargo test -p agent keeps_roles_from_requesting_unowned_skills`
+- [x] `cargo check -p agent -p web-server`
+- [x] `cargo clippy -p agent -p web-server`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 真实评价搜索 provider 配置和部署仍是外部搜索能力的后续事项。
+- 前端可继续把 native + search 双 skill 链路展示为可折叠过程卡片和来源面板。
