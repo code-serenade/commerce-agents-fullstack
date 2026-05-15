@@ -1,5 +1,18 @@
 # 阶段验收记录
 
+## Post 8-113：搜索自然语言结果数量解析
+
+结论：通过。
+
+验收点：
+
+- worker autosuggest 能从中文搜索结果数量表达中提取 `max_results`。
+- worker autosuggest 能从英文 `top N sources/results` 表达中提取 `max_results`。
+- 六个搜索类 skill input builder 都会复用该数量解析。
+- 结果数量会 clamp 到 `1..=12`。
+- `最近30天` 等时间窗口不会被误识别为来源数量。
+- Agent 搜索测试、设计文档、API 文档和迁移归档已同步。
+
 ## Post 8-112：搜索 Skill 结果数量输入契约
 
 结论：通过。

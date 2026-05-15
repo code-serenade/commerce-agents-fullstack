@@ -4302,6 +4302,15 @@ fn insert_selected_product_search_context(
     }
 }
 
+fn insert_search_max_results(input: &mut serde_json::Map<String, serde_json::Value>, text: &str) {
+    if let Some(max_results) = infer_search_max_results(text) {
+        input.insert(
+            "max_results".to_string(),
+            serde_json::json!(max_results.clamp(1, 12)),
+        );
+    }
+}
+
 fn search_product_reviews_input(
     text: &str,
     task: &Task,
@@ -4323,6 +4332,7 @@ fn search_product_reviews_input(
         "_needs_fresh_data".to_string(),
         serde_json::json!(infer_search_bypass_cache(text)),
     );
+    insert_search_max_results(&mut input, text);
     insert_selected_product_search_context(&mut input, task);
     input
 }
@@ -4348,6 +4358,7 @@ fn search_industry_benchmarks_input(
         "_needs_fresh_data".to_string(),
         serde_json::json!(infer_search_bypass_cache(text)),
     );
+    insert_search_max_results(&mut input, text);
     insert_selected_product_search_context(&mut input, task);
     input
 }
@@ -4370,6 +4381,7 @@ fn search_competitor_input(text: &str, task: &Task) -> serde_json::Map<String, s
         "_needs_fresh_data".to_string(),
         serde_json::json!(infer_search_bypass_cache(text)),
     );
+    insert_search_max_results(&mut input, text);
     insert_selected_product_search_context(&mut input, task);
     input
 }
@@ -4392,6 +4404,7 @@ fn search_trends_input(text: &str, task: &Task) -> serde_json::Map<String, serde
         "_needs_fresh_data".to_string(),
         serde_json::json!(infer_search_bypass_cache(text)),
     );
+    insert_search_max_results(&mut input, text);
     insert_selected_product_search_context(&mut input, task);
     input
 }
@@ -4414,6 +4427,7 @@ fn search_market_info_input(text: &str, task: &Task) -> serde_json::Map<String, 
         "_needs_fresh_data".to_string(),
         serde_json::json!(infer_search_bypass_cache(text)),
     );
+    insert_search_max_results(&mut input, text);
     insert_selected_product_search_context(&mut input, task);
     input
 }
@@ -4439,6 +4453,7 @@ fn search_platform_policy_input(
         "_needs_fresh_data".to_string(),
         serde_json::json!(infer_search_bypass_cache(text)),
     );
+    insert_search_max_results(&mut input, text);
     insert_selected_product_search_context(&mut input, task);
     input
 }
@@ -4466,6 +4481,88 @@ fn infer_search_bypass_cache(text: &str) -> bool {
             "bypass_cache",
         ],
     )
+}
+
+fn infer_search_max_results(text: &str) -> Option<i64> {
+    for (start, ch) in text.char_indices() {
+        if !ch.is_ascii_digit() {
+            continue;
+        }
+        if start > 0
+            && text[..start]
+                .chars()
+                .last()
+                .is_some_and(|prev| prev.is_ascii_digit() || prev == '.')
+        {
+            continue;
+        }
+
+        let mut end = start + ch.len_utf8();
+        for (offset, next) in text[end..].char_indices() {
+            if next.is_ascii_digit() {
+                end = end + offset + next.len_utf8();
+                continue;
+            }
+            break;
+        }
+
+        let Ok(value) = text[start..end].parse::<i64>() else {
+            continue;
+        };
+        if value <= 0 {
+            continue;
+        }
+        let before = text[..start]
+            .chars()
+            .rev()
+            .take(16)
+            .collect::<Vec<_>>()
+            .into_iter()
+            .rev()
+            .collect::<String>();
+        let after = text[end..].chars().take(16).collect::<String>();
+
+        if is_search_result_count_context(&before, &after) {
+            return Some(value.clamp(1, 12));
+        }
+    }
+    None
+}
+
+fn is_search_result_count_context(before: &str, after: &str) -> bool {
+    let has_after_result_unit = contains_any(
+        after,
+        &[
+            "条来源",
+            "个来源",
+            "条结果",
+            "个结果",
+            "条公开资料",
+            "个公开资料",
+            "条证据",
+            "个证据",
+            "篇资料",
+            "篇来源",
+            "sources",
+            "source",
+            "results",
+            "result",
+            "links",
+            "items",
+        ],
+    );
+    let has_before_limit_word = contains_any(
+        before,
+        &[
+            "最多", "至多", "只要", "只看", "返回", "给我", "列出", "展示", "查", "搜", "top",
+            "limit", "max", "maximum",
+        ],
+    );
+    let has_after_short_unit = after.trim_start().starts_with('条')
+        || after.trim_start().starts_with('个')
+        || after.trim_start().starts_with("篇");
+
+    has_after_result_unit || (has_before_limit_word && has_after_short_unit)
 }
 
 fn infer_search_policy_type(text: &str) -> &'static str {
@@ -7912,6 +8009,54 @@ mod tests {
                 "{prompt}"
             );
         }
+    }
+
+    #[test]
+    fn autosuggest_search_extracts_natural_language_max_results() {
+        let cases = [
+            (
+                "联网搜一下咖啡饮品最近30天抖音消费趋势和爆款，最多3条来源",
+                "data",
+                "search_trends",
+                3,
+            ),
+            (
+                "搜冷萃咖啡竞品公开资料，top 4 sources，重点看价格",
+                "web",
+                "search_competitor",
+                4,
+            ),
+            (
+                "查抖音最新平台规则和内容违规政策，返回20条结果",
+                "service",
+                "search_platform_policy",
+                12,
+            ),
+        ];
+
+        for (prompt, runtime_role, expected_skill, expected_max_results) in cases {
+            let requests = autosuggest_skill_requests(&role(runtime_role), &task(prompt), "{}");
+            assert_eq!(requests.len(), 1, "{prompt}");
+            assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
+            assert_eq!(
+                requests[0].input["max_results"], expected_max_results,
+                "{prompt}"
+            );
+        }
+    }
+
+    #[test]
+    fn autosuggest_search_does_not_treat_period_as_max_results() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("联网搜一下咖啡饮品最近30天抖音消费趋势和爆款"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "search_trends");
+        assert_eq!(requests[0].input["days"], 30);
+        assert!(requests[0].input.get("max_results").is_none());
     }
 
     #[test]

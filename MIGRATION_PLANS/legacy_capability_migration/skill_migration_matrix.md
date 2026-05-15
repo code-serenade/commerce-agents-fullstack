@@ -79,6 +79,8 @@ Post 8-111 补充：App 外部搜索 API 和 Agent `search_*` skill 在 provider
 
 Post 8-112 补充：六个搜索类 skill 都已声明可选 `max_results` 输入，并在 runtime 兼容 `max_results` / `maxResults`；显式输入优先于 `[external_search].default_max_results`，最终会 clamp 到 `1..=12`，让旧产品搜索策略里的“来源数量控制”进入新产品 Agent skill 契约。
 
+Post 8-113 补充：worker autosuggest 已能从“最多3条来源 / 返回5条结果 / top 4 sources”等自然语言搜索意图中提取 `max_results` 并写入搜索 skill input；“最近30天”等时间窗口仍只作为 `days`，不会误变成来源数量。
+
 ## 平台执行 / 审批治理
 
 | 旧能力 | 新产品目标 ID | 状态 | 新落点 | 备注 |

@@ -1,5 +1,34 @@
 # 迁移开发记录
 
+## Post 8-113：搜索自然语言结果数量解析
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 113 个补强项：`Post 8-113`。
+
+本轮完成：
+
+- worker autosuggest 会从搜索意图自然语言中提取 `max_results`。
+- 支持“3条来源”“5条结果”“返回4条公开资料”“top 4 sources”等表达。
+- 提取结果写入六个搜索类 skill 的 `skill_requested.input.max_results`。
+- 结果数 clamp 到 `1..=12`。
+- “最近30天”仍作为 `days`，不会误识别为 30 条来源。
+
+用户可感知变化：
+
+- 用户说“联网搜咖啡趋势，最多 3 条来源”，后端会真正按 3 条来源计划搜索。
+- 用户不需要等前端新增专门控件，也能通过自然语言控制搜索证据数量。
+- 来源面板和搜索证据交付物后续会更清爽、更符合用户表达。
+
+文档：
+
+- [x] 后端设计：`temp/DEVELOPMENT_DOCS/backend/search_autosuggest_max_results_post_8_113.md`
+- [x] API 文档：`API_DOCS/sse.md`
+- [x] 迁移归档：`MIGRATION_PLANS/legacy_capability_migration/post_phase_8_113_search_autosuggest_max_results.md`
+
 ## Post 8-112：搜索 Skill 结果数量输入契约
 
 状态：done

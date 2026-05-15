@@ -50,6 +50,13 @@ Kimi Agent 集群 = 前端交互和视觉体验参考
 - Search plan result counts are clamped to `1..=12`, then reused consistently by provider requests, live source normalization, provenance, evidence, and search evidence artifacts.
 - This moves old product search strategy controls further into the new product's Agent skill contract without adding frontend-only controls.
 
+## Post 8-113 Update
+
+- Worker autosuggest now extracts search result counts from natural language such as `最多3条来源`, `返回5条结果`, and `top 4 sources`.
+- Inferred counts are written to `skill_requested.input.max_results` for all six `search_*` skills.
+- Result-count inference is bounded to source/result wording and avoids treating period expressions such as `最近30天` as result limits.
+- This makes old product search strategy controls reachable from user language before frontend-specific controls are added.
+
 ## Post 8-108 Update
 
 - Agent Chat frontend now exposes explicit current-conversation file sources after upload.
