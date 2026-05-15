@@ -56,6 +56,27 @@ export interface AgentChatShellProps {
   children: ReactNode
 }
 
+const CHAT_ROUTE_PATHS = ["/", "/commerce", "/agent"] as const
+
+const FUNCTION_NAV_ROUTE_PATHS = [
+  "/",
+  "/agent",
+  "/agent-capabilities",
+  "/commerce",
+  "/campaigns",
+  "/operations",
+  "/overview",
+  "/platform-connect",
+  "/products",
+] as const
+
+const GOVERNANCE_ROUTE_PATHS = [
+  "/agent-output",
+  "/approvals",
+  "/packages",
+  "/workspaces",
+] as const
+
 export function AgentChatShell({ children }: AgentChatShellProps) {
   return (
     <AgentChatProvider>
@@ -70,6 +91,15 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   const location = useLocation()
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const functionNavRouteActive = isAnyRouteActive(
+    location.pathname,
+    FUNCTION_NAV_ROUTE_PATHS
+  )
+  const governanceRouteActive = isAnyRouteActive(
+    location.pathname,
+    GOVERNANCE_ROUTE_PATHS
+  )
+  const isQuestionRoute = isAnyRouteActive(location.pathname, CHAT_ROUTE_PATHS)
   const [renameTarget, setRenameTarget] = useState<{
     id: string
     title: string
@@ -77,8 +107,14 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   const [renameValue, setRenameValue] = useState("")
   const [visibleConversationCount, setVisibleConversationCount] = useState(5)
   const [historyOpen, setHistoryOpen] = useState(true)
-  const [functionNavOpen, setFunctionNavOpen] = useState(false)
-  const [governanceOpen, setGovernanceOpen] = useState(false)
+  const [functionNavCollapsedPath, setFunctionNavCollapsedPath] = useState<
+    string | null
+  >(null)
+  const [functionNavManualOpen, setFunctionNavManualOpen] = useState(false)
+  const [governanceCollapsedPath, setGovernanceCollapsedPath] = useState<
+    string | null
+  >(null)
+  const [governanceManualOpen, setGovernanceManualOpen] = useState(false)
   const user = useSelector((state: RootState) => state.auth.user)
   const displayName = user?.name || t("web.shell.account.guestName")
   const displayId = user
@@ -87,6 +123,13 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   const activeConversation = chat.conversations.find(
     (conversation) => conversation.id === chat.conversationId
   )
+  const routeTitleKey = getRouteTitleKey(location.pathname)
+  const functionNavOpen = functionNavRouteActive
+    ? functionNavCollapsedPath !== location.pathname
+    : functionNavManualOpen
+  const governanceOpen = governanceRouteActive
+    ? governanceCollapsedPath !== location.pathname
+    : governanceManualOpen
 
   const handleLogout = () => {
     localStorage.removeItem("token")
@@ -101,20 +144,34 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     setRenameValue(conversation.title)
   }
 
+  const setFunctionNavOpen = (nextOpen: boolean) => {
+    if (functionNavRouteActive) {
+      setFunctionNavCollapsedPath(nextOpen ? null : location.pathname)
+    } else {
+      setFunctionNavManualOpen(nextOpen)
+    }
+  }
+
+  const setGovernanceOpen = (nextOpen: boolean) => {
+    if (governanceRouteActive) {
+      setGovernanceCollapsedPath(nextOpen ? null : location.pathname)
+    } else {
+      setGovernanceManualOpen(nextOpen)
+    }
+  }
+
   const navigateTo = (path: string) => {
+    if (isAnyRouteActive(path, FUNCTION_NAV_ROUTE_PATHS)) {
+      setFunctionNavCollapsedPath(null)
+    }
+    if (isAnyRouteActive(path, GOVERNANCE_ROUTE_PATHS)) {
+      setGovernanceCollapsedPath(null)
+    }
     navigate(path)
   }
 
   const isRouteActive = (path: string) => {
-    if (path === "/commerce") {
-      return (
-        location.pathname === "/" ||
-        location.pathname === "/commerce" ||
-        location.pathname === "/agent"
-      )
-    }
-
-    return location.pathname === path
+    return isAgentChatRouteActive(location.pathname, path)
   }
 
   const closeRenameDialog = () => {
@@ -383,7 +440,9 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
         isRouteActive("/commerce") ||
         isRouteActive("/products") ||
         isRouteActive("/campaigns") ||
-        isRouteActive("/platform-connect"),
+        isRouteActive("/platform-connect") ||
+        isRouteActive("/overview") ||
+        isRouteActive("/operations"),
       subItems: [
         {
           key: "capabilities",
@@ -419,6 +478,27 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           href: "/platform-connect",
           active: isRouteActive("/platform-connect"),
           onSelect: () => navigateTo("/platform-connect"),
+        },
+        {
+          key: "market-research",
+          label: t("agentChat.shell.navigation.marketResearch"),
+          href: "/overview",
+          active: isRouteActive("/overview"),
+          onSelect: () => navigateTo("/overview"),
+        },
+        {
+          key: "briefing",
+          label: t("agentChat.shell.navigation.briefing"),
+          href: "/operations",
+          active: isRouteActive("/operations"),
+          onSelect: () => navigateTo("/operations"),
+        },
+        {
+          key: "alerts",
+          label: t("agentChat.shell.navigation.alerts"),
+          href: "/operations",
+          active: isRouteActive("/operations"),
+          onSelect: () => navigateTo("/operations"),
         },
       ],
     },
@@ -485,7 +565,13 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
         showSidebarRail={false}
         header={
           <TopBar
-            title={activeConversation?.title ?? t("agentChat.shell.topbarTitle")}
+            title={
+              isQuestionRoute
+                ? activeConversation?.title ?? t("agentChat.shell.topbarTitle")
+                : routeTitleKey
+                  ? t(routeTitleKey)
+                  : t("agentChat.shell.topbarTitle")
+            }
             meta={t("agentChat.shell.topbarMeta")}
             showSidebarTrigger={false}
             trailing={trailing}
@@ -559,6 +645,52 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       </Dialog>
     </>
   )
+}
+
+function isAnyRouteActive(pathname: string, paths: readonly string[]) {
+  return paths.some((path) => isAgentChatRouteActive(pathname, path))
+}
+
+function isAgentChatRouteActive(pathname: string, path: string) {
+  if (path === "/commerce") {
+    return pathname === "/" || pathname === "/commerce" || pathname === "/agent"
+  }
+
+  return pathname === path
+}
+
+function getRouteTitleKey(pathname: string) {
+  if (pathname === "/agent-capabilities") {
+    return "agentChat.shell.navigation.capabilities"
+  }
+  if (pathname === "/products") {
+    return "agentChat.shell.navigation.productBoard"
+  }
+  if (pathname === "/campaigns") {
+    return "agentChat.shell.navigation.campaigns"
+  }
+  if (pathname === "/platform-connect") {
+    return "agentChat.shell.navigation.platform"
+  }
+  if (pathname === "/overview") {
+    return "agentChat.shell.navigation.marketResearch"
+  }
+  if (pathname === "/operations") {
+    return "agentChat.shell.navigation.alerts"
+  }
+  if (pathname === "/agent-output") {
+    return "agentChat.shell.navigation.deliverables"
+  }
+  if (pathname === "/approvals") {
+    return "agentChat.shell.navigation.approvals"
+  }
+  if (pathname === "/workspaces") {
+    return "agentChat.shell.navigation.taskBoard"
+  }
+  if (pathname === "/packages") {
+    return "agentChat.shell.navigation.packages"
+  }
+  return null
 }
 
 function ConversationActionMenu({

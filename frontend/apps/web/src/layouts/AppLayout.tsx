@@ -7,7 +7,16 @@ export default function AppLayout() {
     location.pathname === "/" ||
     location.pathname === "/commerce" ||
     location.pathname === "/agent" ||
-    location.pathname === "/agent-capabilities"
+    location.pathname === "/agent-capabilities" ||
+    location.pathname === "/overview" ||
+    location.pathname === "/products" ||
+    location.pathname === "/campaigns" ||
+    location.pathname === "/workspaces" ||
+    location.pathname === "/platform-connect" ||
+    location.pathname === "/approvals" ||
+    location.pathname === "/operations" ||
+    location.pathname === "/packages" ||
+    location.pathname === "/agent-output"
 
   if (isAgentChatRoute) {
     return (

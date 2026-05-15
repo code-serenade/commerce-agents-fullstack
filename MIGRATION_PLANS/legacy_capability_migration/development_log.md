@@ -1,5 +1,45 @@
 # 迁移开发记录
 
+## Post 8-133：电商工作台壳层与真实路由对齐
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 133 个补强项：`Post 8-133`。
+
+本次目标：
+
+- 让问答、能力介绍、商品、活动、工作区、平台连接、审批、运营、能力包和交付物页面统一进入 `AgentChatShell`。
+- 保留左侧历史对话、功能导航、管理与复盘，让用户在业务页之间切换时不丢失问答上下文入口。
+- 当前路由属于功能导航或管理复盘时，对应折叠分区自动展开。
+
+涉及范围：
+
+- 应用壳层：`AppLayout` 将电商业务页统一纳入 Agent Chat 工作台壳层。
+- Agent Chat 壳层：按真实当前路由展开功能导航 / 管理复盘分区。
+- 移动端导航：功能导航补齐概览和运营入口。
+- 顶部标题：问答页显示会话标题，业务页显示当前功能入口名称。
+
+用户可感知变化：
+
+- 演示时从问答跳到商品、活动、工作区、审批、能力包等页面，左侧历史对话和功能导航不会消失。
+- 当前所在功能会自动露出并高亮，用户更容易理解自己处于哪个模块。
+- 分区仍然可折叠，左侧不会因为业务入口多而长期铺满。
+
+验证：
+
+- [x] `pnpm -C frontend/apps/web lint`
+- [x] `pnpm -C frontend/apps/web test`
+- [x] `pnpm -C frontend/apps/web build`
+- [x] `pnpm -C frontend/apps/web rules`
+- [x] `pnpm -C frontend rules`
+
+归档：
+
+- [x] `MIGRATION_PLANS/legacy_capability_migration/post_phase_8_133_frontend_agent_shell_route_alignment.md`
+
 ## Post 8-132：问答发送 / 停止 / 错误状态反馈
 
 状态：done
