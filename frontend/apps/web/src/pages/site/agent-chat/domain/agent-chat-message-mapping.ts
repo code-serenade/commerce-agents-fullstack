@@ -98,6 +98,18 @@ export function readConversationSelectedProductIds(
   return []
 }
 
+export function readConversationSelectedSourceRefs(
+  detail: ConversationDetailResponse
+): string[] {
+  for (let index = detail.messages.length - 1; index >= 0; index -= 1) {
+    const message = detail.messages[index]
+    if (message?.role !== "user") continue
+    const sourceRefs = readSourceRefs(message.contentJson)
+    if (sourceRefs.length > 0) return sourceRefs
+  }
+  return []
+}
+
 export function mapConversationAttachments(
   detail: ConversationDetailResponse
 ): AgentChatAttachmentItem[] {
@@ -133,6 +145,16 @@ function readProductIds(contentJson: unknown): string[] {
     .filter((item): item is string => Boolean(item))
 
   return uniqueStrings([...productIds, ...contextRefs])
+}
+
+function readSourceRefs(contentJson: unknown): string[] {
+  if (!isRecord(contentJson)) return []
+  const context = contentJson.context
+  if (!isRecord(context)) return []
+
+  return readStringArray(context.contextRefs).filter((ref) =>
+    ref.startsWith("conversation_file:")
+  )
 }
 
 function mapConversationFile(

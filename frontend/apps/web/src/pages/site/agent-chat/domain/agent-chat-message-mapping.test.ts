@@ -6,6 +6,7 @@ import {
   mapConversationMessages,
   readConversationRuntimeEvents,
   readConversationSelectedProductIds,
+  readConversationSelectedSourceRefs,
 } from "./agent-chat-message-mapping"
 import type { AgentChatMessage } from "../types"
 
@@ -121,6 +122,32 @@ describe("agent chat message mapping", () => {
     ])
 
     expect(readConversationSelectedProductIds(detail)).toEqual(["product-b"])
+  })
+
+  it("restores selected source refs from the latest persisted user context", () => {
+    const fileRef = "conversation_file:file-a"
+    const detail = conversationDetail([
+      {
+        id: "m1",
+        role: "user",
+        contentText: "first question",
+        contentJson: {
+          context: {
+            contextRefs: [fileRef],
+          },
+        },
+        sequence: 1,
+      },
+      {
+        id: "m2",
+        role: "assistant",
+        contentText: "answer",
+        contentJson: null,
+        sequence: 2,
+      },
+    ])
+
+    expect(readConversationSelectedSourceRefs(detail)).toEqual([fileRef])
   })
 
   it("maps persisted conversation files into composer attachments", () => {

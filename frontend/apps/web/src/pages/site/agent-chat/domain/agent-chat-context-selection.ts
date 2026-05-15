@@ -83,6 +83,18 @@ export function toggleSourceContextSelection(
   return [...current, next].slice(0, 8)
 }
 
+export function restoreSourceContextSelection(
+  availableSources: AgentChatSourceContextSelection[],
+  sourceRefs: string[]
+) {
+  const uniqueSourceRefs = uniqueContextRefs(sourceRefs).filter((ref) =>
+    ref.startsWith("conversation_file:")
+  )
+  return availableSources
+    .filter((source) => uniqueSourceRefs.includes(source.ref))
+    .slice(0, 8)
+}
+
 function uniqueContextRefs(refs: string[]) {
   const result: string[] = []
   refs.forEach((ref) => {

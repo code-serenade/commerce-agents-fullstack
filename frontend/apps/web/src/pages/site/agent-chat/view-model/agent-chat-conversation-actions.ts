@@ -9,6 +9,7 @@ import {
   mapConversationMessages,
   readConversationRuntimeEvents,
   readConversationSelectedProductIds,
+  readConversationSelectedSourceRefs,
   type AgentChatMessageFormatCopy,
 } from "../domain/agent-chat-message-mapping"
 import type {
@@ -25,6 +26,7 @@ interface ConversationActionState {
   clearSelectedProducts?: () => void
   clearSelectedSources?: () => void
   restoreSelectedProducts?: (productIds: string[]) => void
+  restoreSelectedSources?: (sourceRefs: string[]) => void
   setConversationId: Dispatch<SetStateAction<string | null>>
   setConversations: Dispatch<SetStateAction<AgentChatConversationItem[]>>
   setError: Dispatch<SetStateAction<string | null>>
@@ -161,13 +163,18 @@ function restoreConversationContext(
   state: ConversationActionState
 ) {
   const productIds = readConversationSelectedProductIds(detail)
+  const sourceRefs = readConversationSelectedSourceRefs(detail)
   if (productIds.length > 0) {
     state.restoreSelectedProducts?.(productIds)
   } else {
     state.clearSelectedProducts?.()
   }
   state.setAttachments?.(mapConversationAttachments(detail))
-  state.clearSelectedSources?.()
+  if (sourceRefs.length > 0) {
+    state.restoreSelectedSources?.(sourceRefs)
+  } else {
+    state.clearSelectedSources?.()
+  }
 }
 
 function formatActionError(err: unknown, state: ConversationActionState) {

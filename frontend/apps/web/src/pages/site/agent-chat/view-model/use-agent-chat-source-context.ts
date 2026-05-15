@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   mapAttachmentToSourceContextSelection,
+  restoreSourceContextSelection,
   toggleSourceContextSelection,
   type AgentChatSourceContextSelection,
 } from "../domain/agent-chat-context-selection"
@@ -16,6 +17,7 @@ export function useAgentChatSourceContext({
   const [selectedSources, setSelectedSources] = useState<
     AgentChatSourceContextSelection[]
   >([])
+  const pendingSelectedSourceRefsRef = useRef<string[]>([])
   const availableSources = useMemo(
     () =>
       attachments
@@ -36,8 +38,32 @@ export function useAgentChatSourceContext({
 
   const clearSelectedSources = useCallback(() => {
     if (isStreaming) return
+    pendingSelectedSourceRefsRef.current = []
     setSelectedSources([])
   }, [isStreaming])
+
+  const restoreSelectedSources = useCallback(
+    (sourceRefs: string[]) => {
+      if (isStreaming) return
+      pendingSelectedSourceRefsRef.current = sourceRefs
+      setSelectedSources(
+        restoreSourceContextSelection(availableSources, sourceRefs)
+      )
+    },
+    [availableSources, isStreaming]
+  )
+
+  useEffect(() => {
+    const pendingSelectedSourceRefs = pendingSelectedSourceRefsRef.current
+    if (pendingSelectedSourceRefs.length === 0) return
+    const restoredSources = restoreSourceContextSelection(
+      availableSources,
+      pendingSelectedSourceRefs
+    )
+    if (restoredSources.length === 0) return
+    setSelectedSources(restoredSources)
+    pendingSelectedSourceRefsRef.current = []
+  }, [availableSources])
 
   const toggleSourceContext = useCallback(
     (source: AgentChatSourceContextSelection) => {
@@ -52,6 +78,7 @@ export function useAgentChatSourceContext({
   return {
     availableSources,
     clearSelectedSources,
+    restoreSelectedSources,
     selectedSources: effectiveSelectedSources,
     toggleSourceContext,
   }

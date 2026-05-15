@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   createContextRefs,
   mapAttachmentToSourceContextSelection,
+  restoreSourceContextSelection,
   toggleSourceContextSelection,
   type AgentChatSourceContextSelection,
   type AgentChatProductContextSelection,
@@ -69,5 +70,23 @@ describe("agent chat context selection", () => {
 
     expect(toggleSourceContextSelection([], source)).toEqual([source])
     expect(toggleSourceContextSelection([source], source)).toEqual([])
+  })
+
+  it("restores only available conversation file selections", () => {
+    const source: AgentChatSourceContextSelection = {
+      id: "file-a",
+      kind: "conversation_file" as const,
+      readable: true,
+      ref: "conversation_file:file-a",
+      status: "uploaded" as const,
+      title: sourceTitle,
+    }
+
+    expect(
+      restoreSourceContextSelection(
+        [source],
+        ["product:product-a", "conversation_file:file-a", "conversation_file:missing"]
+      )
+    ).toEqual([source])
   })
 })

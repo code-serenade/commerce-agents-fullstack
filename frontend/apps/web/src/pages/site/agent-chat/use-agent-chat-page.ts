@@ -86,6 +86,7 @@ export function useAgentChatPage() {
       clearSelectedProducts: productContext.clearSelectedProducts,
       clearSelectedSources: sourceContext.clearSelectedSources,
       restoreSelectedProducts: productContext.restoreSelectedProducts,
+      restoreSelectedSources: sourceContext.restoreSelectedSources,
       tError: t("agentChat.error"),
     }),
     [
@@ -95,6 +96,7 @@ export function useAgentChatPage() {
       productContext.clearSelectedProducts,
       productContext.restoreSelectedProducts,
       sourceContext.clearSelectedSources,
+      sourceContext.restoreSelectedSources,
       t,
     ]
   )
