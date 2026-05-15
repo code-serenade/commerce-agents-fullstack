@@ -262,7 +262,7 @@ fn normalize_provider_response(
     spec: &ExternalSearchSpec,
     payload: &Value,
 ) -> ExternalSearchResponse {
-    let sources = normalize_sources(payload);
+    let sources = normalize_sources(payload, spec.max_results);
     let provenance = build_provenance(&sources);
     let evidence = build_search_evidence(&sources);
     let confidence = payload
@@ -323,11 +323,12 @@ fn normalize_provider_response(
     }
 }
 
-fn normalize_sources(payload: &Value) -> Vec<ExternalSearchSource> {
+fn normalize_sources(payload: &Value, max_results: u64) -> Vec<ExternalSearchSource> {
     let Some(items) = source_items(payload) else {
         return Vec::new();
     };
 
+    let result_limit = max_results.clamp(1, MAX_RESULTS) as usize;
     let mut seen = BTreeSet::new();
     let mut sources = Vec::new();
     for item in items {
@@ -341,7 +342,7 @@ fn normalize_sources(payload: &Value) -> Vec<ExternalSearchSource> {
         if seen.insert(key) {
             sources.push(source);
         }
-        if sources.len() >= MAX_RESULTS as usize {
+        if sources.len() >= result_limit {
             break;
         }
     }
@@ -759,7 +760,7 @@ mod tests {
             ]
         });
 
-        let sources = normalize_sources(&payload);
+        let sources = normalize_sources(&payload, MAX_RESULTS);
 
         assert_eq!(sources.len(), 2);
         assert_eq!(sources[0].rank, 1);
@@ -785,7 +786,7 @@ mod tests {
             }
         });
 
-        let sources = normalize_sources(&payload);
+        let sources = normalize_sources(&payload, MAX_RESULTS);
 
         assert_eq!(sources.len(), 1);
         assert_eq!(sources[0].rank, 1);
@@ -818,11 +819,56 @@ mod tests {
             ]
         });
 
-        let sources = normalize_sources(&payload);
+        let sources = normalize_sources(&payload, MAX_RESULTS);
 
         assert_eq!(sources.len(), 1);
         assert_eq!(sources[0].rank, 1);
         assert_eq!(sources[0].title, "可追溯来源");
         assert_eq!(sources[0].domain, "verified.example.com");
+    }
+
+    #[test]
+    fn provider_payload_respects_requested_max_results() {
+        let config = ExternalSearchConfig {
+            enabled: true,
+            provider: Some("legacy".to_string()),
+            base_url: Some("http://example.test".to_string()),
+            search_endpoint: Some("/search".to_string()),
+            ..ExternalSearchConfig::default()
+        };
+        let spec = ExternalSearchSpec {
+            query: "咖啡".to_string(),
+            topic: "general".to_string(),
+            days: 30,
+            max_results: 2,
+            bypass_cache: false,
+        };
+        let payload = json!({
+            "results": [
+                {
+                    "title": "咖啡消费趋势",
+                    "snippet": "冷萃咖啡增长",
+                    "url": "https://www.example.com/a"
+                },
+                {
+                    "title": "咖啡行业报告",
+                    "snippet": "即饮咖啡继续增长",
+                    "url": "https://report.example.cn/b"
+                },
+                {
+                    "title": "第三条应被截断",
+                    "snippet": "超过本次请求 maxResults",
+                    "url": "https://extra.example.org/c"
+                }
+            ]
+        });
+
+        let response = normalize_provider_response(&config, &spec, &payload);
+
+        assert_eq!(response.max_results, 2);
+        assert_eq!(response.data.items.len(), 2);
+        assert_eq!(response.provenance.source_count, 2);
+        assert_eq!(response.evidence.source_titles.len(), 2);
+        assert!(!response.evidence.llm_context.contains("第三条应被截断"));
     }
 }

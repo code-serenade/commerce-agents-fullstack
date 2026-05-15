@@ -339,7 +339,7 @@
 - 当前用户必须存在于 `app_users`，且状态为 `enabled`
 - provider HTTP 失败、返回结构无法解析或没有可归一化来源时，接口返回 200 + `status=degraded`
 - 该接口是 Rust 后端外部搜索 adapter 的 App 侧入口；Agent `search_*` skill 已接入同一份 `[external_search]` 配置，并复用相同字段语义
-- `maxResults` 和 `bypassCache` 是后端实际使用的搜索控制参数回显；`bypassCache=true` 会转发给 provider，但 provider 是否真的绕过缓存由 provider 自身决定
+- `maxResults` 和 `bypassCache` 是后端实际使用的搜索控制参数回显；`maxResults` 不只会转发给 provider，后端在归一化 provider 返回后也会按该值截断 `data.items`、`provenance` 和 `evidence`；`bypassCache=true` 会转发给 provider，但 provider 是否真的绕过缓存由 provider 自身决定
 - `evidence` 是后端归一化后的搜索证据摘要：`sourceTitles`、`sourceDomains` 用于前端来源面板，`llmContext` 用于 Agent/后端复用来源文本
 - provider 返回重复 URL 时，后端会去重并重新生成 `rank`
 - provider 来源数组兼容 `data.items`、`data.results`、`data.sources`、`data.organic`、`data.organic_results`、`data.webPages.value`、`items`、`sources`、`results`、`organic`、`organic_results`、`webPages.value` 和 `value`

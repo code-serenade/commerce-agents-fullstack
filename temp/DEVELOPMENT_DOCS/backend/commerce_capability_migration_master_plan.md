@@ -36,6 +36,13 @@ Kimi Agent 集群 = 前端交互和视觉体验参考
 - Upload success and extraction readability are now separated, so a file can be saved without pretending that PDF, image, Office, or binary content was parsed.
 - Workspace context pack continues to read only trusted `extracted` text.
 
+## Post 8-111 Update
+
+- App external search API and Agent `search_*` skills now enforce the request/plan-level `maxResults` / `query.max_results` after provider response normalization.
+- `sources`, `data.items`, `provenance`, `evidence`, and downstream search evidence artifacts are built only from the truncated trusted source set.
+- The provider may return more raw items, but the new product backend exposes only the configured strategy limit, still capped by the global hard limit of 12.
+- Degraded behavior is unchanged: missing provider, provider failure, or zero trusted traceable sources still never creates fake live evidence.
+
 ## Post 8-108 Update
 
 - Agent Chat frontend now exposes explicit current-conversation file sources after upload.

@@ -440,7 +440,7 @@ fn live_search_output(
     adapter: &SearchAdapterConfig,
     payload: &Value,
 ) -> SkillOutcome {
-    let sources = normalize_sources(payload);
+    let sources = normalize_sources(payload, plan.max_results);
     if sources.is_empty() {
         return degraded_search_output(
             skill_id,
@@ -573,11 +573,12 @@ async fn query_provider(adapter: &SearchAdapterConfig, plan: &SearchPlan) -> Res
         .map_err(|err| format!("decode external search provider response failed: {err}"))
 }
 
-fn normalize_sources(payload: &Value) -> Vec<Value> {
+fn normalize_sources(payload: &Value, max_results: i64) -> Vec<Value> {
     let Some(items) = source_items(payload) else {
         return Vec::new();
     };
 
+    let result_limit = max_results.clamp(1, MAX_RESULTS) as usize;
     let mut seen = BTreeSet::new();
     let mut sources = Vec::new();
     for item in items {
@@ -591,7 +592,7 @@ fn normalize_sources(payload: &Value) -> Vec<Value> {
         if seen.insert(key) {
             sources.push(source);
         }
-        if sources.len() >= MAX_RESULTS as usize {
+        if sources.len() >= result_limit {
             break;
         }
     }
@@ -1164,7 +1165,7 @@ mod tests {
             }
         });
 
-        let sources = normalize_sources(&payload);
+        let sources = normalize_sources(&payload, MAX_RESULTS);
         let evidence = build_search_evidence(&sources);
 
         assert_eq!(sources.len(), 2);
@@ -1211,7 +1212,7 @@ mod tests {
             }
         });
 
-        let sources = normalize_sources(&payload);
+        let sources = normalize_sources(&payload, MAX_RESULTS);
         let evidence = build_search_evidence(&sources);
 
         assert_eq!(sources.len(), 1);
@@ -1226,6 +1227,70 @@ mod tests {
                 .and_then(Value::as_str)
                 .is_some_and(|context| context.contains("https://news.example.cn/coffee")
                     && !context.contains("无 URL 弱来源"))
+        );
+    }
+
+    #[test]
+    fn live_search_output_respects_plan_max_results() {
+        let adapter = SearchAdapterConfig {
+            enabled: true,
+            provider: Some("legacy".to_string()),
+            base_url: Some("http://example.test".to_string()),
+            search_endpoint: Some("/search".to_string()),
+            default_max_results: Some(2),
+            ..SearchAdapterConfig::default()
+        };
+        let plan = SearchPlan::new("咖啡", "咖啡 消费趋势", "general", 30)
+            .with_adapter_defaults(&adapter)
+            .expect("search plan should normalize");
+        let payload = json!({
+            "results": [
+                {
+                    "title": "咖啡消费趋势",
+                    "snippet": "冷萃咖啡增长",
+                    "url": "https://www.example.com/a"
+                },
+                {
+                    "title": "咖啡行业报告",
+                    "snippet": "即饮咖啡继续增长",
+                    "url": "https://report.example.cn/b"
+                },
+                {
+                    "title": "第三条应被截断",
+                    "snippet": "超过本次搜索计划 max_results",
+                    "url": "https://extra.example.org/c"
+                }
+            ]
+        });
+
+        let outcome = live_search_output(
+            "search_trends",
+            "咖啡".to_string(),
+            plan,
+            &adapter,
+            &payload,
+        );
+
+        assert_eq!(outcome.output.pointer("/status"), Some(&json!("live")));
+        assert_eq!(
+            outcome.output.pointer("/query/max_results"),
+            Some(&json!(2))
+        );
+        assert_eq!(
+            outcome.output.pointer("/provenance/source_count"),
+            Some(&json!(2))
+        );
+        assert_eq!(
+            outcome.output.pointer("/sources/1/title"),
+            Some(&json!("咖啡行业报告"))
+        );
+        assert_eq!(outcome.output.pointer("/sources/2/title"), None);
+        assert!(
+            outcome
+                .output
+                .pointer("/evidence/llm_context")
+                .and_then(Value::as_str)
+                .is_some_and(|context| !context.contains("第三条应被截断"))
         );
     }
 

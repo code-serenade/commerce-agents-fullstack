@@ -1,5 +1,18 @@
 # 阶段验收记录
 
+## Post 8-111：外部搜索结果数量约束
+
+结论：通过。
+
+验收点：
+
+- App 外部搜索 API 会按本次 `maxResults` 截断 provider 返回后的可信来源。
+- Agent `search_*` skill 会按 `output.query.max_results` 截断 provider 返回后的可信来源。
+- `sources` / `data.items`、`provenance`、`evidence` 使用同一批截断后的来源，数量一致。
+- provider 返回多余结果不会进入搜索证据 artifact 或后续上下文包。
+- provider 未配置、失败或无可信 URL 来源时仍降级，不伪造实时来源。
+- 后端测试、设计文档、API 文档和迁移归档已同步。
+
 ## Post 8-110：会话附件浏览器文本抽取状态对齐
 
 结论：通过。

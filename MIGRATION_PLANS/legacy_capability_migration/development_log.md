@@ -1,5 +1,34 @@
 # 迁移开发记录
 
+## Post 8-111：外部搜索结果数量约束
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 111 个补强项：`Post 8-111`。
+
+本轮完成：
+
+- App 外部搜索 API 在 provider 返回后，会按本次 `maxResults` 截断可信来源。
+- Agent `search_*` skill 在 provider 返回后，会按 `output.query.max_results` 截断可信来源。
+- `sources` / `data.items`、`provenance.sourceCount`、`evidence` 和后续搜索证据 artifact 都只基于截断后的来源生成。
+- 继续保留全局硬上限 `12`，防止 provider 返回过多来源撑乱过程区、来源面板和上下文包。
+- provider 未配置、请求失败或无可信来源时，仍走 degraded/deferred，不伪造搜索结果。
+
+用户可感知变化：
+
+- 后续接入真实搜索 provider 后，策略配置要求几条来源，用户最多就会看到几条来源。
+- 搜索证据数量更稳定，回答过程不会因为 provider 返回过多结果而显得杂乱。
+- 用户看到的来源数量、证据摘要和工作区搜索证据交付物会保持一致。
+
+文档：
+
+- [x] 后端设计：`temp/DEVELOPMENT_DOCS/backend/external_search_max_results_post_8_111.md`
+- [x] API 文档：`API_DOCS/app.md`、`API_DOCS/sse.md`
+- [x] 迁移归档：`MIGRATION_PLANS/legacy_capability_migration/post_phase_8_111_external_search_max_results.md`
+
 ## Post 8-110：会话附件浏览器文本抽取状态对齐
 
 状态：done

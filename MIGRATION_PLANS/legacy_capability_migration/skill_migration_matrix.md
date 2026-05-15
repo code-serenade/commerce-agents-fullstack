@@ -75,6 +75,8 @@ Post 8-107 补充：Agent SSE 和工作区上下文查询支持显式 `conversat
 
 Post 8-109 补充：搜索类 `search_trends` / `search_competitor` / `search_market_info` / `search_product_reviews` / `search_platform_policy` / `search_industry_benchmarks` 的 App 侧 adapter 与 Agent skill 已增强 provider 返回结构兼容，支持 `data.items`、`data.results`、`data.sources`、`data.organic`、`data.organic_results`、`data.webPages.value`、`items`、`sources`、`results`、`organic`、`organic_results`、`webPages.value` 和 `value` 等来源数组；来源必须带可追溯 URL 且能从 URL 本身形成 domain 才会进入 live evidence，只有标题、摘要或相对路径的弱结果会被过滤。过滤后没有可信来源时仍按 degraded/deferred 处理，不创建假搜索证据 artifact。真实 provider 配置和部署仍是外部搜索能力的后续事项。
 
+Post 8-111 补充：App 外部搜索 API 和 Agent `search_*` skill 在 provider 返回后会继续按本次 `maxResults` / `query.max_results` 截断可信来源；`sources`、`data.items`、`provenance`、`evidence` 和搜索证据 artifact 都只基于截断后的来源生成，避免 provider 返回过多结果影响回答和前端来源面板。
+
 ## 平台执行 / 审批治理
 
 | 旧能力 | 新产品目标 ID | 状态 | 新落点 | 备注 |
