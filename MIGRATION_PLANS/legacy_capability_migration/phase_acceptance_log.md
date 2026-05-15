@@ -1,5 +1,17 @@
 # 阶段验收记录
 
+## Post 8-114：外部搜索来源时效过滤
+
+结论：通过。
+
+验收点：
+
+- App 外部搜索 API 会过滤超出请求时间窗口的可解析发布时间来源。
+- Agent `search_*` skill 会过滤超出 `query.days` 的可解析发布时间来源。
+- 过滤后仍有可信来源时保持 live，且 provenance / freshness 记录 stale 过滤数量。
+- 过滤后没有可信来源时返回 degraded/deferred，不创建假搜索证据。
+- Agent 搜索测试、Service 外部搜索测试、设计文档、API 文档和迁移归档已同步。
+
 ## Post 8-113：搜索自然语言结果数量解析
 
 结论：通过。

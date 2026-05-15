@@ -81,6 +81,8 @@ Post 8-112 补充：六个搜索类 skill 都已声明可选 `max_results` 输�
 
 Post 8-113 补充：worker autosuggest 已能从“最多3条来源 / 返回5条结果 / top 4 sources”等自然语言搜索意图中提取 `max_results` 并写入搜索 skill input；“最近30天”等时间窗口仍只作为 `days`，不会误变成来源数量。
 
+Post 8-114 补充：App 外部搜索 API 和 Agent `search_trends` / `search_competitor` / `search_market_info` / `search_product_reviews` / `search_platform_policy` / `search_industry_benchmarks` 会过滤有可解析发布时间且超出本次 `days` 时间窗口的来源；过滤数量通过 `staleFilteredCount` / `stale_filtered_count` 回显。过滤后没有可信来源时仍按 degraded/deferred 处理，不创建假搜索证据 artifact。
+
 ## 平台执行 / 审批治理
 
 | 旧能力 | 新产品目标 ID | 状态 | 新落点 | 备注 |

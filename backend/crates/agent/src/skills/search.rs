@@ -3,7 +3,10 @@ use std::collections::BTreeSet;
 use async_trait::async_trait;
 use serde::Deserialize;
 use serde_json::{Value, json};
-use time::{OffsetDateTime, format_description::well_known::Rfc3339};
+use time::{
+    Date, Duration, OffsetDateTime, format_description::well_known::Rfc3339,
+    macros::format_description,
+};
 use toolcraft_request::{HeaderMap, Request};
 
 use crate::skills::{
@@ -22,6 +25,8 @@ const SEARCH_DEGRADED_REASON: &str =
     "Search adapter is not configured; planned query is returned for traceability.";
 const SEARCH_PROVIDER_EMPTY_REASON: &str =
     "External search provider returned no normalized sources; live sources were not accepted.";
+const SEARCH_PROVIDER_STALE_REASON: &str =
+    "External search provider returned only sources outside the requested freshness window.";
 const VALID_TOPICS: &[&str] = &["general", "news", "finance"];
 const MAX_DAYS: i64 = 365;
 const MAX_RESULTS: i64 = 12;
@@ -274,6 +279,12 @@ struct SearchPlan {
     product_category: Option<String>,
 }
 
+#[derive(Debug, Clone, Default)]
+struct SearchSourceSet {
+    sources: Vec<Value>,
+    stale_filtered_count: usize,
+}
+
 impl SearchPlan {
     fn new(
         raw: impl Into<String>,
@@ -370,14 +381,16 @@ fn deferred_search_output(
             "domain_count": 0,
             "domains": [],
             "published_count": 0,
-            "latest_published_at": null
+            "latest_published_at": null,
+            "stale_filtered_count": 0
         },
         "confidence": 0.0,
         "freshness": {
             "requested_days": plan.days,
-            "requested_at": null
+            "requested_at": null,
+            "stale_filtered_count": 0
         },
-        "evidence": build_search_evidence(&[]),
+        "evidence": build_search_evidence(&[], 0),
         "degraded": true,
         "degraded_reason": SEARCH_DEGRADED_REASON,
         "expected_outputs": ["分析摘要", "结构化要点", "sources", "engine"]
@@ -393,6 +406,7 @@ fn degraded_search_output(
     plan: SearchPlan,
     adapter: &SearchAdapterConfig,
     reason: impl Into<String>,
+    stale_filtered_count: usize,
 ) -> SkillOutcome {
     let reason = reason.into();
     SkillOutcome::new(json!({
@@ -429,14 +443,16 @@ fn degraded_search_output(
             "domain_count": 0,
             "domains": [],
             "published_count": 0,
-            "latest_published_at": null
+            "latest_published_at": null,
+            "stale_filtered_count": stale_filtered_count
         },
         "confidence": 0.0,
         "freshness": {
             "requested_days": plan.days,
-            "requested_at": utc_now_rfc3339()
+            "requested_at": utc_now_rfc3339(),
+            "stale_filtered_count": stale_filtered_count
         },
-        "evidence": build_search_evidence(&[]),
+        "evidence": build_search_evidence(&[], stale_filtered_count),
         "notice": "未获取到可靠公开来源，当前不能伪造实时搜索结果。",
         "degraded": true,
         "degraded_reason": reason,
@@ -446,6 +462,7 @@ fn degraded_search_output(
     .with_metadata("adapter_status", json!("degraded"))
     .with_metadata("adapter_kind", json!("search"))
     .with_metadata("provider", json!(adapter.provider_name()))
+    .with_metadata("stale_filtered_count", json!(stale_filtered_count))
 }
 
 fn live_search_output(
@@ -455,19 +472,26 @@ fn live_search_output(
     adapter: &SearchAdapterConfig,
     payload: &Value,
 ) -> SkillOutcome {
-    let sources = normalize_sources(payload, plan.max_results);
+    let source_set = normalize_sources(payload, plan.max_results, plan.days);
+    let sources = source_set.sources;
     if sources.is_empty() {
+        let reason = if source_set.stale_filtered_count > 0 {
+            SEARCH_PROVIDER_STALE_REASON
+        } else {
+            SEARCH_PROVIDER_EMPTY_REASON
+        };
         return degraded_search_output(
             skill_id,
             required_input,
             plan,
             adapter,
-            SEARCH_PROVIDER_EMPTY_REASON,
+            reason,
+            source_set.stale_filtered_count,
         );
     }
 
-    let provenance = build_provenance(&sources);
-    let evidence = build_search_evidence(&sources);
+    let provenance = build_provenance(&sources, source_set.stale_filtered_count);
+    let evidence = build_search_evidence(&sources, source_set.stale_filtered_count);
     let confidence = payload
         .get("confidence")
         .and_then(Value::as_f64)
@@ -526,7 +550,8 @@ fn live_search_output(
         "confidence": confidence,
         "freshness": {
             "requested_days": plan.days,
-            "requested_at": requested_at
+            "requested_at": requested_at,
+            "stale_filtered_count": source_set.stale_filtered_count
         },
         "evidence": evidence,
         "degraded": false,
@@ -538,6 +563,10 @@ fn live_search_output(
     .with_metadata("adapter_kind", json!("search"))
     .with_metadata("provider", json!(adapter.provider_name()))
     .with_metadata("source_count", json!(source_count))
+    .with_metadata(
+        "stale_filtered_count",
+        json!(source_set.stale_filtered_count),
+    )
 }
 
 async fn query_provider(adapter: &SearchAdapterConfig, plan: &SearchPlan) -> Result<Value, String> {
@@ -588,19 +617,25 @@ async fn query_provider(adapter: &SearchAdapterConfig, plan: &SearchPlan) -> Res
         .map_err(|err| format!("decode external search provider response failed: {err}"))
 }
 
-fn normalize_sources(payload: &Value, max_results: i64) -> Vec<Value> {
+fn normalize_sources(payload: &Value, max_results: i64, days: i64) -> SearchSourceSet {
     let Some(items) = source_items(payload) else {
-        return Vec::new();
+        return SearchSourceSet::default();
     };
 
     let result_limit = max_results.clamp(1, MAX_RESULTS) as usize;
+    let requested_days = days.clamp(1, MAX_DAYS);
     let mut seen = BTreeSet::new();
     let mut sources = Vec::new();
+    let mut stale_filtered_count = 0;
     for item in items {
         let rank = sources.len() as u64 + 1;
         let Some(source) = normalize_source(rank, item) else {
             continue;
         };
+        if is_source_outside_freshness_window(&source, requested_days) {
+            stale_filtered_count += 1;
+            continue;
+        }
         let Some(key) = normalized_source_key(&source) else {
             continue;
         };
@@ -611,7 +646,10 @@ fn normalize_sources(payload: &Value, max_results: i64) -> Vec<Value> {
             break;
         }
     }
-    sources
+    SearchSourceSet {
+        sources,
+        stale_filtered_count,
+    }
 }
 
 fn normalize_source(rank: u64, item: &Value) -> Option<Value> {
@@ -681,7 +719,7 @@ fn normalized_source_key(source: &Value) -> Option<String> {
         .map(|value| value.trim_end_matches('/').to_ascii_lowercase())
 }
 
-fn build_provenance(sources: &[Value]) -> Value {
+fn build_provenance(sources: &[Value], stale_filtered_count: usize) -> Value {
     let domains = sources
         .iter()
         .filter_map(|item| item.get("domain").and_then(Value::as_str))
@@ -704,14 +742,22 @@ fn build_provenance(sources: &[Value]) -> Value {
         "domain_count": domains.len(),
         "domains": domains,
         "published_count": published.len(),
-        "latest_published_at": latest_published_at
+        "latest_published_at": latest_published_at,
+        "stale_filtered_count": stale_filtered_count
     })
 }
 
-fn build_search_evidence(sources: &[Value]) -> Value {
+fn build_search_evidence(sources: &[Value], stale_filtered_count: usize) -> Value {
     if sources.is_empty() {
+        let summary = if stale_filtered_count > 0 {
+            format!(
+                "没有可采信实时来源；已过滤 {stale_filtered_count} 条超出请求时间范围的来源，当前结果只能作为降级状态。"
+            )
+        } else {
+            "没有可采信实时来源；当前结果只能作为降级状态，不可当作联网证据。".to_string()
+        };
         return json!({
-            "summary": "没有可采信实时来源；当前结果只能作为降级状态，不可当作联网证据。",
+            "summary": summary,
             "source_titles": [],
             "source_domains": [],
             "llm_context": "（本次没有可采信实时来源。回答时必须说明外部搜索未返回来源，不能引用不存在的联网数据。）"
@@ -736,21 +782,27 @@ fn build_search_evidence(sources: &[Value]) -> Value {
         .take(8)
         .map(ToOwned::to_owned)
         .collect::<Vec<_>>();
+    let stale_note = if stale_filtered_count > 0 {
+        format!("已过滤 {stale_filtered_count} 条超出请求时间范围的来源；")
+    } else {
+        String::new()
+    };
     let summary = format!(
-        "共 {} 条实时来源，覆盖 {} 个域名；回答应优先引用这些来源，并注明时效性和置信度。",
+        "共 {} 条实时来源，覆盖 {} 个域名；{}回答应优先引用这些来源，并注明时效性和置信度。",
         sources.len(),
-        domains.len()
+        domains.len(),
+        stale_note
     );
 
     json!({
         "summary": summary,
         "source_titles": titles,
         "source_domains": domains,
-        "llm_context": format_sources_for_llm(sources)
+        "llm_context": format_sources_for_llm(sources, stale_filtered_count)
     })
 }
 
-fn format_sources_for_llm(sources: &[Value]) -> String {
+fn format_sources_for_llm(sources: &[Value], stale_filtered_count: usize) -> String {
     if sources.is_empty() {
         return "（本次没有可采信实时来源。回答时必须说明外部搜索未返回来源，不能引用不存在的联网数据。）".to_string();
     }
@@ -759,6 +811,12 @@ fn format_sources_for_llm(sources: &[Value]) -> String {
         "（共{}条实时来源，优先从中提取具体数字、结论和出处；若来源不足，明确说明数据不足。）",
         sources.len().min(5)
     )];
+    if stale_filtered_count > 0 {
+        lines.push(format!(
+            "已过滤{}条超出请求时间范围的来源；不要引用这些过期来源。",
+            stale_filtered_count
+        ));
+    }
     for (index, source) in sources.iter().take(5).enumerate() {
         let title = source
             .get("title")
@@ -822,6 +880,35 @@ fn estimate_confidence(sources: &[Value]) -> f64 {
         0.08
     };
     ((source_score + diversity_score + freshness_score).min(1.0) * 1000.0).round() / 1000.0
+}
+
+fn is_source_outside_freshness_window(source: &Value, days: i64) -> bool {
+    let Some(published_at) = source
+        .get("published_at")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    else {
+        return false;
+    };
+    let Some(published_at) = parse_published_at(published_at) else {
+        return false;
+    };
+    let cutoff = OffsetDateTime::now_utc() - Duration::days(days.clamp(1, MAX_DAYS));
+    published_at < cutoff
+}
+
+fn parse_published_at(value: &str) -> Option<OffsetDateTime> {
+    let text = value.trim();
+    if text.is_empty() {
+        return None;
+    }
+    if let Ok(datetime) = OffsetDateTime::parse(text, &Rfc3339) {
+        return Some(datetime);
+    }
+    Date::parse(text, format_description!("[year]-[month]-[day]"))
+        .ok()
+        .map(|date| date.midnight().assume_utc())
 }
 
 fn build_provider_headers(adapter: &SearchAdapterConfig) -> Result<Option<HeaderMap>, String> {
@@ -994,6 +1081,7 @@ macro_rules! deferred_search_skill {
                             plan,
                             adapter,
                             reason,
+                            0,
                         ));
                     }
                 };
@@ -1202,8 +1290,9 @@ mod tests {
             }
         });
 
-        let sources = normalize_sources(&payload, MAX_RESULTS);
-        let evidence = build_search_evidence(&sources);
+        let source_set = normalize_sources(&payload, MAX_RESULTS, MAX_DAYS);
+        let sources = source_set.sources;
+        let evidence = build_search_evidence(&sources, source_set.stale_filtered_count);
 
         assert_eq!(sources.len(), 2);
         assert_eq!(sources[0].get("rank").and_then(Value::as_u64), Some(1));
@@ -1249,8 +1338,9 @@ mod tests {
             }
         });
 
-        let sources = normalize_sources(&payload, MAX_RESULTS);
-        let evidence = build_search_evidence(&sources);
+        let source_set = normalize_sources(&payload, MAX_RESULTS, MAX_DAYS);
+        let sources = source_set.sources;
+        let evidence = build_search_evidence(&sources, source_set.stale_filtered_count);
 
         assert_eq!(sources.len(), 1);
         assert_eq!(sources[0].get("rank").and_then(Value::as_u64), Some(1));
@@ -1305,6 +1395,41 @@ mod tests {
             .with_max_results(max_results);
 
         assert_eq!(plan.max_results, MAX_RESULTS);
+    }
+
+    #[test]
+    fn normalizes_provider_sources_filters_stale_published_items() {
+        let stale_date = (OffsetDateTime::now_utc() - Duration::days(90))
+            .format(&Rfc3339)
+            .expect("stale date should format");
+        let fresh_date = (OffsetDateTime::now_utc() - Duration::days(3))
+            .format(&Rfc3339)
+            .expect("fresh date should format");
+        let payload = json!({
+            "results": [
+                {
+                    "title": "旧咖啡报告",
+                    "snippet": "超出最近7天，不应作为实时证据",
+                    "url": "https://old.example.com/report",
+                    "published_at": stale_date
+                },
+                {
+                    "title": "新咖啡趋势",
+                    "snippet": "最近3天内发布",
+                    "url": "https://fresh.example.com/trend",
+                    "published_at": fresh_date
+                }
+            ]
+        });
+
+        let source_set = normalize_sources(&payload, MAX_RESULTS, 7);
+
+        assert_eq!(source_set.stale_filtered_count, 1);
+        assert_eq!(source_set.sources.len(), 1);
+        assert_eq!(
+            source_set.sources[0].get("title").and_then(Value::as_str),
+            Some("新咖啡趋势")
+        );
     }
 
     #[test]

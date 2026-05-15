@@ -7,7 +7,10 @@ use db_core::{
 use error_code::app as app_error;
 use repo::table::app_users::{AppUserService, AppUserStatus};
 use serde_json::Value;
-use time::{OffsetDateTime, format_description::well_known::Rfc3339};
+use time::{
+    Date, Duration, OffsetDateTime, format_description::well_known::Rfc3339,
+    macros::format_description,
+};
 use toolcraft_request::{HeaderMap, Request};
 use uuid::Uuid;
 
@@ -22,6 +25,8 @@ const REQUIRED_CONFIG: &str =
     "external_search.enabled=true, base_url and search_endpoint are required";
 const SEARCH_NOT_CONFIGURED_REASON: &str =
     "External search adapter is not configured; no live sources were queried.";
+const SEARCH_PROVIDER_STALE_REASON: &str =
+    "External search provider returned only sources outside the requested freshness window.";
 const VALID_TOPICS: &[&str] = &["general", "news", "finance"];
 const DEFAULT_TOPIC: &str = "general";
 const DEFAULT_DAYS: u64 = 30;
@@ -32,6 +37,12 @@ const MAX_RESULTS: u64 = 12;
 pub struct ExternalSearchApi {
     app_user_svc: AppUserService,
     config: ExternalSearchConfig,
+}
+
+#[derive(Debug, Clone, Default)]
+struct ExternalSearchSourceSet {
+    sources: Vec<ExternalSearchSource>,
+    stale_filtered_count: usize,
 }
 
 impl ExternalSearchApi {
@@ -248,9 +259,9 @@ fn degraded_response(
         max_results: spec.max_results,
         bypass_cache: spec.bypass_cache,
         confidence: 0.0,
-        provenance: build_provenance(&[]),
+        provenance: build_provenance(&[], 0),
         data: ExternalSearchData { items: Vec::new() },
-        evidence: build_search_evidence(&[]),
+        evidence: build_search_evidence(&[], 0),
         notice: Some("未获取到可靠公开来源，当前不能伪造实时搜索结果。".to_string()),
         degraded: true,
         degraded_reason: Some(reason.to_string()),
@@ -262,9 +273,10 @@ fn normalize_provider_response(
     spec: &ExternalSearchSpec,
     payload: &Value,
 ) -> ExternalSearchResponse {
-    let sources = normalize_sources(payload, spec.max_results);
-    let provenance = build_provenance(&sources);
-    let evidence = build_search_evidence(&sources);
+    let source_set = normalize_sources(payload, spec.max_results, spec.days);
+    let sources = source_set.sources;
+    let provenance = build_provenance(&sources, source_set.stale_filtered_count);
+    let evidence = build_search_evidence(&sources, source_set.stale_filtered_count);
     let confidence = payload
         .get("confidence")
         .and_then(Value::as_f64)
@@ -313,29 +325,44 @@ fn normalize_provider_response(
             items: sources.clone(),
         },
         evidence,
-        notice: sources
-            .is_empty()
-            .then(|| "Provider returned no normalized sources.".to_string()),
+        notice: sources.is_empty().then(|| {
+            if source_set.stale_filtered_count > 0 {
+                "Provider returned only stale sources outside the requested freshness window."
+                    .to_string()
+            } else {
+                "Provider returned no normalized sources.".to_string()
+            }
+        }),
         degraded: sources.is_empty(),
-        degraded_reason: sources
-            .is_empty()
-            .then(|| "External search provider returned no normalized sources.".to_string()),
+        degraded_reason: sources.is_empty().then(|| {
+            if source_set.stale_filtered_count > 0 {
+                SEARCH_PROVIDER_STALE_REASON.to_string()
+            } else {
+                "External search provider returned no normalized sources.".to_string()
+            }
+        }),
     }
 }
 
-fn normalize_sources(payload: &Value, max_results: u64) -> Vec<ExternalSearchSource> {
+fn normalize_sources(payload: &Value, max_results: u64, days: u64) -> ExternalSearchSourceSet {
     let Some(items) = source_items(payload) else {
-        return Vec::new();
+        return ExternalSearchSourceSet::default();
     };
 
     let result_limit = max_results.clamp(1, MAX_RESULTS) as usize;
+    let requested_days = days.clamp(1, MAX_DAYS);
     let mut seen = BTreeSet::new();
     let mut sources = Vec::new();
+    let mut stale_filtered_count = 0;
     for item in items {
         let rank = sources.len() as u64 + 1;
         let Some(source) = normalize_source(rank, item) else {
             continue;
         };
+        if is_source_outside_freshness_window(&source, requested_days) {
+            stale_filtered_count += 1;
+            continue;
+        }
         let Some(key) = normalized_source_key(&source) else {
             continue;
         };
@@ -346,7 +373,10 @@ fn normalize_sources(payload: &Value, max_results: u64) -> Vec<ExternalSearchSou
             break;
         }
     }
-    sources
+    ExternalSearchSourceSet {
+        sources,
+        stale_filtered_count,
+    }
 }
 
 fn normalize_source(rank: u64, item: &Value) -> Option<ExternalSearchSource> {
@@ -413,7 +443,10 @@ fn normalized_source_key(source: &ExternalSearchSource) -> Option<String> {
     }
 }
 
-fn build_provenance(sources: &[ExternalSearchSource]) -> ExternalSearchProvenance {
+fn build_provenance(
+    sources: &[ExternalSearchSource],
+    stale_filtered_count: usize,
+) -> ExternalSearchProvenance {
     let domains = sources
         .iter()
         .filter_map(|item| {
@@ -438,13 +471,24 @@ fn build_provenance(sources: &[ExternalSearchSource]) -> ExternalSearchProvenanc
         domains,
         published_count: published.len(),
         latest_published_at,
+        stale_filtered_count,
     }
 }
 
-fn build_search_evidence(sources: &[ExternalSearchSource]) -> ExternalSearchEvidence {
+fn build_search_evidence(
+    sources: &[ExternalSearchSource],
+    stale_filtered_count: usize,
+) -> ExternalSearchEvidence {
     if sources.is_empty() {
+        let summary = if stale_filtered_count > 0 {
+            format!(
+                "没有可采信实时来源；已过滤 {stale_filtered_count} 条超出请求时间范围的来源，当前结果只能作为降级状态。"
+            )
+        } else {
+            "没有可采信实时来源；当前结果只能作为降级状态，不可当作联网证据。".to_string()
+        };
         return ExternalSearchEvidence {
-            summary: "没有可采信实时来源；当前结果只能作为降级状态，不可当作联网证据。".to_string(),
+            summary,
             source_titles: Vec::new(),
             source_domains: Vec::new(),
             llm_context: "（本次没有可采信实时来源。回答时必须说明外部搜索未返回来源，不能引用不存在的联网数据。）".to_string(),
@@ -466,21 +510,27 @@ fn build_search_evidence(sources: &[ExternalSearchSource]) -> ExternalSearchEvid
         .take(8)
         .map(ToOwned::to_owned)
         .collect::<Vec<_>>();
+    let stale_note = if stale_filtered_count > 0 {
+        format!("已过滤 {stale_filtered_count} 条超出请求时间范围的来源；")
+    } else {
+        String::new()
+    };
     let summary = format!(
-        "共 {} 条实时来源，覆盖 {} 个域名；回答应优先引用这些来源，并注明时效性和置信度。",
+        "共 {} 条实时来源，覆盖 {} 个域名；{}回答应优先引用这些来源，并注明时效性和置信度。",
         sources.len(),
-        source_domains.len()
+        source_domains.len(),
+        stale_note
     );
 
     ExternalSearchEvidence {
         summary,
         source_titles,
         source_domains,
-        llm_context: format_sources_for_llm(sources),
+        llm_context: format_sources_for_llm(sources, stale_filtered_count),
     }
 }
 
-fn format_sources_for_llm(sources: &[ExternalSearchSource]) -> String {
+fn format_sources_for_llm(sources: &[ExternalSearchSource], stale_filtered_count: usize) -> String {
     if sources.is_empty() {
         return "（本次没有可采信实时来源。回答时必须说明外部搜索未返回来源，不能引用不存在的联网数据。）".to_string();
     }
@@ -489,6 +539,12 @@ fn format_sources_for_llm(sources: &[ExternalSearchSource]) -> String {
         "（共{}条实时来源，优先从中提取具体数字、结论和出处；若来源不足，明确说明数据不足。）",
         sources.len().min(5)
     )];
+    if stale_filtered_count > 0 {
+        lines.push(format!(
+            "已过滤{}条超出请求时间范围的来源；不要引用这些过期来源。",
+            stale_filtered_count
+        ));
+    }
     for (index, source) in sources.iter().take(5).enumerate() {
         lines.push(format!(
             "\n[{}] {}",
@@ -529,6 +585,35 @@ fn estimate_confidence(sources: &[ExternalSearchSource]) -> f64 {
         0.08
     };
     ((source_score + diversity_score + freshness_score).min(1.0) * 1000.0).round() / 1000.0
+}
+
+fn is_source_outside_freshness_window(source: &ExternalSearchSource, days: u64) -> bool {
+    let Some(published_at) = source
+        .published_at
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    else {
+        return false;
+    };
+    let Some(published_at) = parse_published_at(published_at) else {
+        return false;
+    };
+    let cutoff = OffsetDateTime::now_utc() - Duration::days(days.clamp(1, MAX_DAYS) as i64);
+    published_at < cutoff
+}
+
+fn parse_published_at(value: &str) -> Option<OffsetDateTime> {
+    let text = value.trim();
+    if text.is_empty() {
+        return None;
+    }
+    if let Ok(datetime) = OffsetDateTime::parse(text, &Rfc3339) {
+        return Some(datetime);
+    }
+    Date::parse(text, format_description!("[year]-[month]-[day]"))
+        .ok()
+        .map(|date| date.midnight().assume_utc())
 }
 
 fn build_provider_headers(config: &ExternalSearchConfig) -> Result<Option<HeaderMap>, String> {
@@ -700,6 +785,9 @@ mod tests {
             max_results: 6,
             bypass_cache: false,
         };
+        let fresh_date = (OffsetDateTime::now_utc() - Duration::days(1))
+            .format(&Rfc3339)
+            .expect("fresh date should format");
         let payload = json!({
             "status": "live",
             "engine": "free_web",
@@ -710,7 +798,7 @@ mod tests {
                         "title": "咖啡消费趋势",
                         "snippet": "冷萃咖啡增长",
                         "url": "https://www.example.com/a",
-                        "published_at": "2026-05-01T00:00:00Z"
+                        "published_at": fresh_date
                     },
                     {
                         "title": "咖啡行业报告",
@@ -760,7 +848,7 @@ mod tests {
             ]
         });
 
-        let sources = normalize_sources(&payload, MAX_RESULTS);
+        let sources = normalize_sources(&payload, MAX_RESULTS, MAX_DAYS).sources;
 
         assert_eq!(sources.len(), 2);
         assert_eq!(sources[0].rank, 1);
@@ -786,7 +874,7 @@ mod tests {
             }
         });
 
-        let sources = normalize_sources(&payload, MAX_RESULTS);
+        let sources = normalize_sources(&payload, MAX_RESULTS, MAX_DAYS).sources;
 
         assert_eq!(sources.len(), 1);
         assert_eq!(sources[0].rank, 1);
@@ -819,12 +907,61 @@ mod tests {
             ]
         });
 
-        let sources = normalize_sources(&payload, MAX_RESULTS);
+        let sources = normalize_sources(&payload, MAX_RESULTS, MAX_DAYS).sources;
 
         assert_eq!(sources.len(), 1);
         assert_eq!(sources[0].rank, 1);
         assert_eq!(sources[0].title, "可追溯来源");
         assert_eq!(sources[0].domain, "verified.example.com");
+    }
+
+    #[test]
+    fn provider_payload_filters_sources_outside_requested_freshness() {
+        let config = ExternalSearchConfig {
+            enabled: true,
+            provider: Some("legacy".to_string()),
+            base_url: Some("http://example.test".to_string()),
+            search_endpoint: Some("/search".to_string()),
+            ..ExternalSearchConfig::default()
+        };
+        let spec = ExternalSearchSpec {
+            query: "咖啡 最新趋势".to_string(),
+            topic: "news".to_string(),
+            days: 7,
+            max_results: 6,
+            bypass_cache: false,
+        };
+        let stale_date = (OffsetDateTime::now_utc() - Duration::days(90))
+            .format(&Rfc3339)
+            .expect("stale date should format");
+        let fresh_date = (OffsetDateTime::now_utc() - Duration::days(3))
+            .format(&Rfc3339)
+            .expect("fresh date should format");
+        let payload = json!({
+            "results": [
+                {
+                    "title": "旧咖啡报告",
+                    "snippet": "超出最近7天",
+                    "url": "https://old.example.com/report",
+                    "published_at": stale_date
+                },
+                {
+                    "title": "新咖啡趋势",
+                    "snippet": "最近3天内发布",
+                    "url": "https://fresh.example.com/trend",
+                    "published_at": fresh_date
+                }
+            ]
+        });
+
+        let response = normalize_provider_response(&config, &spec, &payload);
+
+        assert_eq!(response.status, "live");
+        assert_eq!(response.data.items.len(), 1);
+        assert_eq!(response.data.items[0].title, "新咖啡趋势");
+        assert_eq!(response.provenance.stale_filtered_count, 1);
+        assert!(response.evidence.summary.contains("已过滤 1 条"));
+        assert!(!response.evidence.llm_context.contains("旧咖啡报告"));
     }
 
     #[test]

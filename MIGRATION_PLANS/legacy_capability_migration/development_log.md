@@ -1,5 +1,34 @@
 # 迁移开发记录
 
+## Post 8-114：外部搜索来源时效过滤
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 114 个补强项：`Post 8-114`。
+
+本轮完成：
+
+- App 外部搜索 API 会过滤有发布时间且超出 `days/freshnessDays` 的来源。
+- Agent `search_*` skill 会过滤有发布时间且超出 `output.query.days` 的来源。
+- 过滤数量会进入 App `provenance.staleFilteredCount`，以及 Agent `output.provenance.stale_filtered_count` / `output.freshness.stale_filtered_count`。
+- 有效来源仍可返回 live；全部来源过期时返回 degraded/deferred，不创建假搜索证据 artifact。
+- 无发布时间或日期无法解析的来源会被保留，但不会提升 freshness 可信度。
+
+用户可感知变化：
+
+- 用户要求最近资料时，后端不会把明显过期的搜索结果当成实时来源。
+- 搜索证据摘要会说明已过滤多少条过期来源。
+- 如果 provider 只返回过期资料，用户会看到明确降级，而不是看到假实时资料。
+
+文档：
+
+- [x] 后端设计：`temp/DEVELOPMENT_DOCS/backend/external_search_freshness_filter_post_8_114.md`
+- [x] API 文档：`API_DOCS/app.md`、`API_DOCS/sse.md`
+- [x] 迁移归档：`MIGRATION_PLANS/legacy_capability_migration/post_phase_8_114_external_search_freshness_filter.md`
+
 ## Post 8-113：搜索自然语言结果数量解析
 
 状态：done

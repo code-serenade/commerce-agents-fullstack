@@ -271,7 +271,8 @@
     "domainCount": 0,
     "domains": [],
     "publishedCount": 0,
-    "latestPublishedAt": null
+    "latestPublishedAt": null,
+    "staleFilteredCount": 0
   },
   "data": {
     "items": []
@@ -308,7 +309,8 @@
     "domainCount": 2,
     "domains": ["example.com", "report.example.cn"],
     "publishedCount": 1,
-    "latestPublishedAt": "2026-05-01T00:00:00Z"
+    "latestPublishedAt": "2026-05-01T00:00:00Z",
+    "staleFilteredCount": 1
   },
   "data": {
     "items": [
@@ -323,7 +325,7 @@
     ]
   },
   "evidence": {
-    "summary": "共 2 条实时来源，覆盖 2 个域名；回答应优先引用这些来源，并注明时效性和置信度。",
+    "summary": "共 2 条实时来源，覆盖 2 个域名；已过滤 1 条超出请求时间范围的来源；回答应优先引用这些来源，并注明时效性和置信度。",
     "sourceTitles": ["咖啡消费趋势", "咖啡行业报告"],
     "sourceDomains": ["example.com", "report.example.cn"],
     "llmContext": "（共2条实时来源，优先从中提取具体数字、结论和出处；若来源不足，明确说明数据不足。）"
@@ -345,6 +347,7 @@
 - provider 来源数组兼容 `data.items`、`data.results`、`data.sources`、`data.organic`、`data.organic_results`、`data.webPages.value`、`items`、`sources`、`results`、`organic`、`organic_results`、`webPages.value` 和 `value`
 - provider 来源字段兼容 `title/name/headline`、`url/link/href/source_url/sourceUrl`、`snippet/body/summary/content/description/text/excerpt` 和 `published_at/publishedAt/pubDate/published/datePublished/date`
 - 只有带可追溯 URL 且可从 URL 本身形成 domain 的来源会进入 `data.items` / `evidence`；只有标题、摘要、相对路径或无 URL 的弱结果会被过滤，过滤后没有可信来源时仍返回 `status=degraded`
+- 对有可解析发布时间的来源，后端会按请求 `days/freshnessDays` 过滤超出时间窗口的结果，过滤数量写入 `provenance.staleFilteredCount`；无发布时间或日期无法解析的来源会保留，但不会提升 freshness 可信度
 - 当前不会在前端伪造搜索结果；只有 `status=live` 且 `data.items` 非空时，前端才可展示为实时来源
 
 ## 3. 查询我的会话列表

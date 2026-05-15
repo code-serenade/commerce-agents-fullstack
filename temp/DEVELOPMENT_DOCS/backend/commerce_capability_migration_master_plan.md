@@ -57,6 +57,13 @@ Kimi Agent 集群 = 前端交互和视觉体验参考
 - Result-count inference is bounded to source/result wording and avoids treating period expressions such as `最近30天` as result limits.
 - This makes old product search strategy controls reachable from user language before frontend-specific controls are added.
 
+## Post 8-114 Update
+
+- App external search API and Agent `search_*` skills now filter sources with parseable `published_at` / `publishedAt` / `datePublished` values outside the requested freshness window.
+- Unknown or unparsable source dates are kept but do not add freshness confidence.
+- `provenance.staleFilteredCount` on App API and `provenance.stale_filtered_count` / `freshness.stale_filtered_count` on Agent output expose how many stale sources were removed.
+- If every traceable source is stale, search degrades instead of creating fake live evidence or a `search_evidence` artifact.
+
 ## Post 8-108 Update
 
 - Agent Chat frontend now exposes explicit current-conversation file sources after upload.

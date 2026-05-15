@@ -139,4 +139,5 @@ pub struct ExternalSearchProvenance {
     pub domains: Vec<String>,
     pub published_count: usize,
     pub latest_published_at: Option<String>,
+    pub stale_filtered_count: usize,
 }
