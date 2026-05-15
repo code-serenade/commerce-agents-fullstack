@@ -2277,3 +2277,24 @@
 - 本阶段解决的是“数据岗位外部趋势 / 基准诉求可见化”，不是直接接通淘宝、抖音、千川或第三方行业数据库。
 - 搜索 provider 未配置、失败或无可信来源时仍按搜索 skill 降级，不伪造 live 行业基准、市场趋势或公开报告。
 - 前端后续应把该双 skill 链路展示为过程卡片和来源面板。
+
+## Post 8-125：客服平台规则搜索链路
+
+状态：done
+
+验收项：
+
+- [x] 后端设计文档已写入 `temp/DEVELOPMENT_DOCS/backend/`。
+- [x] Agent worker 新增客服岗位 native + `search_platform_policy(policy_type=general)` 双 skill 编排。
+- [x] 普通工单处理、FAQ话术、升级处理、退换货处理仍只触发 native skill。
+- [x] 用户明确要求平台规则 / 售后规则 / 退换货规则 / 赔付标准 / 运费规则 / 投诉规则 / 平台介入规则 / 七天无理由 / 联网 / 最新时，才追加平台规则搜索。
+- [x] 平台规则搜索复用已有 `search_platform_policy`，不新增第二套平台规则 adapter。
+- [x] “最多4条来源”等来源数量限制会写入 `max_results`。
+- [x] 未显式选择商品时，不从历史摘要、预设商品或默认演示商品注入 `product_ref/product_name/product_category`。
+- [x] API/SSE 文档已同步。
+
+当前说明：
+
+- 本阶段解决的是“客服平台规则诉求可见化”，不是直接接通淘宝、抖音、京东或其它官方售后规则 API。
+- 搜索 provider 未配置、失败或无可信来源时仍按搜索 skill 降级，不伪造 live 平台政策、赔付标准或售后规则。
+- 前端后续应把该双 skill 链路展示为过程卡片和来源面板。

@@ -122,6 +122,8 @@ Post 8-115 补充：客服岗位在 DSR、店铺评分、服务评分、NPS、�
 
 Post 8-120 补充：客服岗位在情绪分析、工单处理、退换货处理或满意度驱动因素分析中，如果用户同时要求真实评价 / 商品评价 / 买家评价 / 口碑 / 差评 / 吐槽 / 真实反馈 / 联网 / 搜索 / 最新，会生成可见 skill 链路：先运行对应 service native skill，再追加 `search_product_reviews`。该搜索步骤独立出现在 SSE `skill_requested` / `skill_result` 中，失败或未配置 provider 时按统一搜索降级，不伪造平台评价；未显式选品时不注入默认商品。
 
+Post 8-125 补充：客服岗位在工单处理、FAQ话术、升级处理或退换货处理中，如果用户同时要求平台规则 / 平台政策 / 售后规则 / 退换货规则 / 赔付标准 / 运费规则 / 投诉规则 / 平台介入规则 / 七天无理由 / 最新 / 联网 / 公开资料，会生成可见 skill 链路：先运行对应 service native skill，再追加 `search_platform_policy(policy_type=general)`。普通客服处理没有平台规则诉求时仍只进入 native skill；搜索失败或未配置 provider 时按统一搜索降级，不伪造平台政策、赔付标准或售后规则；未显式选品时不注入默认商品。
+
 ## 设计 design
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |

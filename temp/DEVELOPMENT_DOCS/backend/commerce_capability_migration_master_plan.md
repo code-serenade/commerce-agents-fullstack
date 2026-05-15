@@ -322,22 +322,22 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-124: data external trend and benchmark search chain
+Post 8-125: service platform policy search chain
 ```
 
 Scope:
 
-- make data autosuggest produce visible native + search chains for channel ROI, attribution, refund decomposition, trend forecast, demand forecast, multi-period trend, seasonality, anomaly diagnosis, comprehensive diagnosis, and dashboard questions when the user asks for latest / realtime / online / public / benchmark / trend context
-- route ROI and attribution benchmarks to `search_industry_benchmarks(metric=roi)`, refund benchmarks to `search_industry_benchmarks(metric=refund)`, trend and demand contexts to `search_trends`, anomaly external causes to `search_market_info(topic=news)`, and diagnosis/dashboard market context to `search_market_info(topic=general)`
-- keep ordinary data analysis on native skills only when no external search context is requested
-- keep selected product context explicit-only; do not inject default, preset, history, or test product context into data search chains
+- make service autosuggest produce visible native + `search_platform_policy(policy_type=general)` chains for ticket handling, FAQ playbooks, escalation flows, and return/refund handling when the user asks for latest platform rules, after-sales rules, compensation standards, freight rules, complaint rules, platform intervention rules, or seven-day return policies
+- keep ordinary service handling on native skills only when no platform policy context is requested
+- keep selected product context explicit-only; do not inject default, preset, history, or test product context into service policy search chains
+- keep search provider failures as transparent degraded search results rather than fabricated platform policies, compensation standards, or after-sales rules
 
 Reason:
 
-- old-product data analysis often mixed market trends, industry benchmarks, and public context into one answer
-- new-product architecture should expose those external information needs as auditable `search_*` skill events instead of hiding sources in native outputs
-- natural-language limits such as "max 4 sources" must map to search parameters while explicit time windows such as "recent 14 days" map to `days`
-- real external sources remain adapter/search concerns and must not be faked when providers are missing, failing, stale, or source-less
+- old-product customer-service handling often mixed platform after-sales policies and compensation rules into local SOP outputs
+- new-product architecture should expose platform policy lookup as an auditable `search_platform_policy` skill event instead of hiding rules in service native outputs
+- natural-language limits such as "max 4 sources" must map to search parameters while ordinary service tasks remain native-only
+- real platform policies remain adapter/search concerns and must not be faked when providers are missing, failing, stale, or source-less
 
 ## 10. Validation Standard
 

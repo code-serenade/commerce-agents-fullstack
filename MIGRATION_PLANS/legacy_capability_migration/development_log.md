@@ -5779,3 +5779,50 @@
 
 - 真实搜索 provider 配置和部署仍是外部搜索能力的后续事项。
 - 前端可继续把 native + search 双 skill 链路展示为可折叠过程卡片和来源面板。
+
+## Post 8-125：客服平台规则搜索链路
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 125 个补强项：`Post 8-125`。
+
+本次目标：
+
+- 把旧产品客服处理里隐藏的最新平台规则、售后政策、赔付标准、运费规则、投诉处理和平台介入规则查询能力，迁成新产品可见、可审计、可降级的 skill 链路。
+- 让工单处理、FAQ话术、升级处理和退换货处理在用户明确要求平台规则 / 售后规则 / 赔付标准 / 运费规则 / 投诉规则 / 平台介入规则 / 七天无理由 / 最新 / 联网 / 公开资料时，先跑 service native skill，再追加 `search_platform_policy(policy_type=general)`。
+
+涉及范围：
+
+- 产品内核：客服岗位从“只输出本地 SOP / 话术”增强为“native 客服处理 + 可见平台规则检索”的双 skill 链路。
+- 后端 Agent：新增客服平台规则 native + search 编排；普通客服处理仍只触发 native skill。
+- 搜索参数：平台规则搜索使用 `policy_type=general`，平台优先来自本轮显式平台或显式选中商品的平台，支持解析“最多4条来源”等自然语言限制。
+- SSE/API 文档：同步说明客服平台规则双 skill 链路和 artifact 沉淀关系。
+- 迁移归档：新增 Post 8-125 独立归档和后端设计文档。
+
+用户可感知变化：
+
+- 用户要求“处理退款售后，并联网查抖音最新退换货规则和赔付标准”时，过程区会看到退换货处理和平台规则搜索两个步骤。
+- 用户要求“整理售后FAQ，并查淘宝最新七天无理由和运费险规则”时，过程区会看到 FAQ 话术库和平台规则搜索两个步骤。
+- 用户要求“主管升级，并查最新平台介入规则”时，过程区会看到升级处理和平台规则搜索两个步骤。
+- 用户没有明确平台规则诉求时，普通客服处理仍只走 native skill；用户没有显式选择商品时，后端不会注入默认商品或历史商品。
+
+当前验证：
+
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent autosuggests_service_platform_policy_search_chain_when_rules_requested`
+- [x] `cargo test -p agent service_platform_policy_search_chain_keeps_selected_product_explicit`
+- [x] `cargo test -p agent service_platform_policy_chain_preserves_native_without_policy_intent`
+- [x] `cargo test -p agent service`
+- [x] `cargo test -p agent search`
+- [x] `cargo test -p agent keeps_roles_from_requesting_unowned_skills`
+- [x] `cargo check -p agent -p web-server`
+- [x] `cargo clippy -p agent -p web-server`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 真实平台规则 provider 配置和部署仍是外部搜索能力的后续事项。
+- 前端可继续把 native + search 双 skill 链路展示为可折叠过程卡片和来源面板。

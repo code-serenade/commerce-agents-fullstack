@@ -2605,6 +2605,15 @@ fn autosuggest_service_requests(text: &str, task: &Task) -> Vec<ParsedSkillReque
     }
 
     if let Some(primary) = autosuggest_service_native(text, task)
+        && is_service_platform_policy_search_chain_intent(text, &primary.skill_id)
+    {
+        return vec![
+            primary,
+            autosuggest_service_platform_policy_search(text, task),
+        ];
+    }
+
+    if let Some(primary) = autosuggest_service_native(text, task)
         && is_service_review_search_chain_intent(text, &primary.skill_id)
     {
         return vec![primary, autosuggest_service_review_search(text, task)];
@@ -2813,6 +2822,130 @@ fn autosuggest_service_benchmark_search(text: &str, task: &Task) -> ParsedSkillR
         serde_json::Value::Object(input),
         "根据客服DSR/NPS分析中的行业基准需求自动追加外部搜索 skill",
     )
+}
+
+fn is_service_platform_policy_search_chain_intent(text: &str, native_skill_id: &str) -> bool {
+    matches!(
+        native_skill_id,
+        "service_ticket_handler"
+            | "service_faq_playbook"
+            | "service_escalation_flow"
+            | "service_return_handler"
+    ) && is_service_platform_policy_search_intent(text)
+        && has_service_policy_work_intent(text, native_skill_id)
+}
+
+fn is_service_platform_policy_search_intent(text: &str) -> bool {
+    contains_any(
+        text,
+        &[
+            "平台规则",
+            "平台政策",
+            "平台公告",
+            "最新规则",
+            "最新政策",
+            "售后规则",
+            "售后政策",
+            "退货规则",
+            "退款规则",
+            "退换货规则",
+            "换货规则",
+            "运费规则",
+            "运费险",
+            "赔付标准",
+            "赔偿标准",
+            "补偿标准",
+            "投诉规则",
+            "平台介入规则",
+            "纠纷规则",
+            "纠纷处理",
+            "七天无理由",
+            "7天无理由",
+            "假一赔",
+            "仅退款",
+            "售后时效",
+            "policy",
+        ],
+    ) && (has_external_search_intent(text)
+        || contains_any(text, &["最新", "规则", "政策", "标准", "公告"]))
+}
+
+fn has_service_policy_work_intent(text: &str, native_skill_id: &str) -> bool {
+    match native_skill_id {
+        "service_ticket_handler" => contains_any(
+            text,
+            &[
+                "工单", "处理", "话术", "回复", "安抚", "客户", "用户", "客服", "投诉", "ticket",
+            ],
+        ),
+        "service_faq_playbook" => contains_any(
+            text,
+            &[
+                "faq",
+                "FAQ",
+                "常见问题",
+                "问答库",
+                "标准话术",
+                "话术库",
+                "客服话术",
+            ],
+        ),
+        "service_escalation_flow" => contains_any(
+            text,
+            &[
+                "升级",
+                "主管",
+                "投诉平台",
+                "平台介入",
+                "维权",
+                "举报",
+                "纠纷",
+                "escalation",
+            ],
+        ),
+        "service_return_handler" => contains_any(
+            text,
+            &[
+                "退款",
+                "退货",
+                "换货",
+                "售后",
+                "退换货",
+                "返修",
+                "赔付",
+                "运费",
+                "return",
+                "refund",
+            ],
+        ),
+        _ => false,
+    }
+}
+
+fn autosuggest_service_platform_policy_search(text: &str, task: &Task) -> ParsedSkillRequest {
+    autosuggest_request(
+        "search_platform_policy",
+        serde_json::Value::Object(service_platform_policy_search_input(text, task)),
+        "根据客服处理中的平台售后/赔付/投诉规则诉求自动追加平台规则搜索 skill",
+    )
+}
+
+fn service_platform_policy_search_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = search_platform_policy_input(text, task);
+    input.insert("policy_type".to_string(), serde_json::json!("general"));
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(selected_product_platform_or_infer(task, text)),
+    );
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_service_search_days(text, 30)),
+    );
+    input.insert("_needs_fresh_data".to_string(), serde_json::json!(true));
+    input
 }
 
 fn is_service_review_search_chain_intent(text: &str, native_skill_id: &str) -> bool {
@@ -11785,6 +11918,80 @@ mod tests {
                 .as_str()
                 .is_some_and(|query| query.contains("五一咖啡组合"))
         );
+    }
+
+    #[test]
+    fn autosuggests_service_platform_policy_search_chain_when_rules_requested() {
+        let return_requests = autosuggest_skill_requests(
+            &role("service"),
+            &task(
+                "客户要求退款退货，帮我处理售后，并联网查抖音最新退换货规则和赔付标准，最多4条来源",
+            ),
+            "{}",
+        );
+
+        assert_eq!(return_requests.len(), 2);
+        assert_eq!(return_requests[0].skill_id, "service_return_handler");
+        assert_eq!(return_requests[1].skill_id, "search_platform_policy");
+        assert_eq!(return_requests[1].input["platform"], "抖音");
+        assert_eq!(return_requests[1].input["policy_type"], "general");
+        assert_eq!(return_requests[1].input["days"], 30);
+        assert_eq!(return_requests[1].input["max_results"], 4);
+        assert_eq!(return_requests[1].input["_needs_fresh_data"], true);
+        assert!(return_requests[1].input.get("product_ref").is_none());
+        assert!(return_requests[1].input.get("product_name").is_none());
+
+        let faq_requests = autosuggest_skill_requests(
+            &role("service"),
+            &task("整理售后FAQ和标准话术，查淘宝最新七天无理由和运费险规则"),
+            "{}",
+        );
+
+        assert_eq!(faq_requests.len(), 2);
+        assert_eq!(faq_requests[0].skill_id, "service_faq_playbook");
+        assert_eq!(faq_requests[1].skill_id, "search_platform_policy");
+        assert_eq!(faq_requests[1].input["platform"], "淘宝");
+        assert_eq!(faq_requests[1].input["policy_type"], "general");
+    }
+
+    #[test]
+    fn service_platform_policy_search_chain_keeps_selected_product_explicit() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("service"),
+            &task_with_metadata(
+                "这个商品需要主管升级和平台介入，生成升级处理流程，并查最新平台介入规则和赔付标准",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 2);
+        assert_eq!(requests[0].skill_id, "service_escalation_flow");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[1].skill_id, "search_platform_policy");
+        assert_eq!(requests[1].input["platform"], "抖音");
+        assert_eq!(
+            requests[1].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[1].input["product_name"], "五一咖啡组合");
+        assert_eq!(requests[1].input["product_category"], "咖啡饮品");
+    }
+
+    #[test]
+    fn service_platform_policy_chain_preserves_native_without_policy_intent() {
+        let requests = autosuggest_skill_requests(
+            &role("service"),
+            &task("客户要求退款退货，帮我处理售后并判断运费承担"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "service_return_handler");
     }
 
     #[test]
