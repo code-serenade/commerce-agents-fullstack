@@ -909,6 +909,9 @@ const messages = {
       hint: "Business context connected",
       send: "Send",
       stop: "Stop",
+      status: {
+        sending: "Calling the backend agent. You can stop this answer at any time.",
+      },
       attachTitle: "Upload attachment",
       attachShort: "Upload",
       attachPrompt:
@@ -1083,6 +1086,7 @@ const messages = {
       welcomeCapabilities: ["Ecommerce Q&A", "Virtual employee collaboration", "Store deliverables"],
       receivingOutput: "Receiving business execution output",
       waitingEvents: "Waiting for task process events",
+      stopped: "This answer was stopped, and the backend model call did not continue.",
       completedTasks: "{{completed}}/{{total}} tasks completed",
       planning: "Generating execution plan",
       historyNotExecuted: "Historical message not executed",

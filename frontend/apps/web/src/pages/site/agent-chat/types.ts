@@ -28,7 +28,7 @@ export interface AgentChatMessage {
   content: string
   contextSummary?: AgentChatMessageContextSummary
   runtimeEvents?: AgentRuntimeEvent[]
-  status?: "streaming" | "error"
+  status?: "streaming" | "error" | "stopped"
 }
 
 export interface AgentChatConversationItem {

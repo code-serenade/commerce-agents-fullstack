@@ -901,6 +901,9 @@ const messages = {
       hint: "已连接业务上下文",
       send: "发送",
       stop: "停止",
+      status: {
+        sending: "正在调用后端智能体，可随时停止本轮回答。",
+      },
       attachTitle: "上传附件",
       attachShort: "上传",
       attachPrompt:
@@ -1074,6 +1077,7 @@ const messages = {
       welcomeCapabilities: ["电商问答", "虚拟员工协作", "沉淀交付产物"],
       receivingOutput: "正在接收业务执行输出",
       waitingEvents: "正在等待任务过程事件",
+      stopped: "本轮回答已停止，没有继续调用后端模型。",
       completedTasks: "{{completed}}/{{total}} 个任务完成",
       planning: "正在生成执行计划",
       historyNotExecuted: "历史消息未执行",

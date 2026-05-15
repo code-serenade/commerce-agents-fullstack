@@ -15,6 +15,7 @@ export interface AgentChatComposerProps {
   availableProducts: AgentChatProductContextSelection[]
   availableSources: AgentChatSourceContextSelection[]
   canSend: boolean
+  error: string | null
   input: string
   isLoggedIn: boolean
   isLoadingPlaybooks: boolean

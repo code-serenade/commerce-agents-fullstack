@@ -8,6 +8,7 @@ import type { AgentChatComposerProps } from "./agent-chat-composer-types"
 import { AgentChatAttachmentStrip } from "./agent-chat-attachment-strip"
 import { AgentChatComposerInput } from "./agent-chat-composer-input"
 import { AgentChatComposerPanels } from "./agent-chat-composer-panels"
+import { AgentChatComposerStatus } from "./agent-chat-composer-status"
 import { AgentChatComposerToolbar } from "./agent-chat-composer-toolbar"
 import { useAgentChatPanelState } from "../view-model/use-agent-chat-panel-state"
 
@@ -16,6 +17,7 @@ export function AgentChatComposer({
   availableProducts,
   availableSources,
   canSend,
+  error,
   input,
   isLoggedIn,
   isLoadingPlaybooks,
@@ -152,6 +154,12 @@ export function AgentChatComposer({
           />
 
           <div className="grid gap-1 rounded-lg bg-background p-1.5 shadow-sm">
+            <AgentChatComposerStatus
+              error={error}
+              isLoggedIn={isLoggedIn}
+              isStreaming={isStreaming}
+            />
+
             <AgentChatComposerInput
               canSend={canSend}
               fileInputRef={fileInputRef}

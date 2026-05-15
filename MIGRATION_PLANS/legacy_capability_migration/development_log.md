@@ -1,5 +1,47 @@
 # 迁移开发记录
 
+## Post 8-132：问答发送 / 停止 / 错误状态反馈
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 132 个补强项：`Post 8-132`。
+
+本次目标：
+
+- 把问答主链路已有的发送中、停止、错误和未登录状态展示清楚。
+- 用户点击停止后，如果本轮还没有正文，不能继续显示“正在生成”，要明确显示已停止。
+- 状态反馈只来自真实 `isStreaming`、`error`、登录态和 abort 结果，不伪造后端执行进度。
+
+涉及范围：
+
+- 消息模型：`AgentChatMessage.status` 增加 `stopped`。
+- 停止逻辑：`stopAgentStreaming` 将无正文的 streaming 助手消息转成 stopped。
+- 输入区：新增必要状态条，发送中、错误、未登录时显示，正常空闲不占位置。
+- 对话流：新增停止卡片，明确本轮回答已停止。
+- 文案：同步中英文 locale。
+
+用户可感知变化：
+
+- 发送问题后，输入区会显示正在调用后端智能体，并提示可随时停止。
+- 用户停止本轮回答后，若模型还没返回正文，对话流会明确显示“本轮回答已停止”。
+- 后端错误会在输入区附近同步展示，用户不用只看顶部错误条。
+- 正常可输入状态下不额外增加提示条，保持界面清爽。
+
+验证：
+
+- [x] `pnpm -C apps/web lint`
+- [x] `pnpm -C apps/web test`
+- [x] `pnpm -C apps/web rules`
+- [x] `pnpm -C apps/web build`
+- [x] `pnpm rules`
+
+归档：
+
+- [x] `MIGRATION_PLANS/legacy_capability_migration/post_phase_8_132_frontend_answer_status_feedback.md`
+
 ## Post 8-131：Agent Chat 移动端真实导航与滚动治理
 
 状态：done

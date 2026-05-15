@@ -53,6 +53,7 @@ export default function AgentChatPage() {
             availableProducts={chat.availableProducts}
             availableSources={chat.availableSources}
             canSend={chat.canSend}
+            error={chat.error}
             input={chat.input}
             isLoggedIn={chat.isLoggedIn}
             isLoadingPlaybooks={chat.isLoadingPlaybooks}

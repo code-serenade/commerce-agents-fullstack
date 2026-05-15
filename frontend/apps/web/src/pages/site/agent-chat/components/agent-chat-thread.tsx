@@ -8,6 +8,7 @@ import { MessageContextSummary } from "./message-context-summary"
 import { isChatOnlyRuntime } from "../view-model/thread-inline-view-model"
 import {
   AgentProgressCard,
+  AgentStoppedCard,
   StrategyStatusPill,
   MessageActions,
   WelcomeCard,
@@ -111,6 +112,7 @@ function ThreadMessage({ message }: { message: AgentChatMessage }) {
           {message.status === "streaming" && !message.content ? (
             <AgentProgressCard content={message.content} />
           ) : null}
+          {message.status === "stopped" ? <AgentStoppedCard /> : null}
           {message.status === "error" ? (
             <p className="mt-2 text-xs font-medium text-destructive">
               {t("agentChat.errorBadge")}
