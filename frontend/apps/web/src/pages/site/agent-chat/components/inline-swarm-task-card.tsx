@@ -7,10 +7,10 @@ import {
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { AgentRuntimeEvent } from "@/api"
+import { getInlineArtifactsFromRuntime } from "../view-model/thread-artifacts-view-model"
 import {
   getCommerceHandoffItems,
   getInlineAgents,
-  getInlineArtifacts,
   getInlineSteps,
 } from "../view-model/thread-inline-view-model"
 import { InlineArtifactsPanel } from "./inline-artifacts-panel"
@@ -66,7 +66,7 @@ export function InlineSwarmTaskCard({
       agent.state === "reworking" ||
       agent.state === "failed"
   )
-  const artifacts = getInlineArtifacts(agents, hasRuntime, isStreaming, t)
+  const artifacts = getInlineArtifactsFromRuntime(runtimeEvents, t)
   const handoffItems = getCommerceHandoffItems(t)
   const progressLabel = hasRuntime
     ? t("agentChat.thread.completedTasks", {

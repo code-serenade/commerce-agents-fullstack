@@ -19,14 +19,6 @@ export interface InlineAgent {
   state: InlineAgentState
 }
 
-export interface InlineArtifact {
-  filename: string
-  meta: string
-  nodeId: string
-  status: string
-  state: InlineAgentState
-}
-
 const INLINE_AGENT_PRESETS = [
   ["data", "data"],
   ["accounting", "accounting"],
@@ -94,31 +86,6 @@ export function getInlineSteps(
         : t("agentChat.thread.steps.enrichFallback"),
     ],
   ]
-}
-
-export function getInlineArtifacts(
-  agents: InlineAgent[],
-  hasRuntime: boolean,
-  isStreaming: boolean,
-  t: TFunction
-): InlineArtifact[] {
-  const stateByNode = new Map(
-    agents.map((agent) => [agent.nodeId, agent.state])
-  )
-  const fallbackState = hasRuntime ? "queued" : isStreaming ? "working" : "idle"
-  const specs = [
-    ["research.dimension.report.md", "MD", "data", t("agentChat.thread.artifactSpecs.dataStatus")],
-    ["douyin.ads.launch.plan.xlsx", "XLSX", "douyin_ads", t("agentChat.thread.artifactSpecs.adsStatus")],
-    [t("agentChat.thread.artifactSpecs.deliveryFile"), "DOCX", "delivery", t("agentChat.thread.artifactSpecs.deliveryStatus")],
-  ] as const
-
-  return specs.map(([filename, meta, nodeId, status]) => ({
-    filename,
-    meta,
-    nodeId,
-    status,
-    state: stateByNode.get(nodeId) ?? fallbackState,
-  }))
 }
 
 export function getCommerceHandoffItems(t: TFunction) {

@@ -1,8 +1,8 @@
 import { CheckCircle2, FileText, Loader2 } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import type { InlineArtifact } from "../view-model/thread-artifacts-view-model"
 import {
   getInlineArtifactStateLabel,
-  type InlineArtifact,
 } from "../view-model/thread-inline-view-model"
 
 export function InlineArtifactCard({ artifact }: { artifact: InlineArtifact }) {
