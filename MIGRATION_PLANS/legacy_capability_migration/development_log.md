@@ -1,5 +1,51 @@
 # 迁移开发记录
 
+## Post 8-127：上架/标题/详情文案搜索链路
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 127 个补强项：`Post 8-127`。
+
+本次目标：
+
+- 把旧产品上架文案、标题生成、详情文案中依赖平台规则、标题趋势、搜索量、买家评价和购买顾虑的增强能力，迁成新产品可见、可审计、可降级的 skill 链路。
+- 让 `ops_listing_copy`、`web_title_generator`、`web_product_description` 在用户明确要求最新 / 实时 / 联网 / 搜索 / 公开资料时，先跑 native skill，再按场景追加统一搜索 skill。
+
+涉及范围：
+
+- 产品内核：上架/标题/详情文案从“只生成内容”增强为“native 内容 + 可见外部资料检索”的双 skill 链路。
+- 后端 Agent：扩展 `autosuggest_ops_requests` 和 `autosuggest_web_requests` 链式编排；普通上架文案、标题生成、详情文案仍只触发 native skill。
+- 搜索参数：
+  - 标题 / 发布 / 内容规则走 `search_platform_policy(policy_type=content)`。
+  - 搜索量 / 热搜词 / 标题趋势 / 详情页趋势走 `search_market_info(topic=general)`。
+  - 买家痛点 / 购买顾虑 / 真实评价走 `search_product_reviews`，负面痛点默认 `focus=negative`。
+- 角色权限：运营岗位现在允许使用 `search_product_reviews`，避免 autosuggest 后运行时被 role catalog 拒绝。
+- SSE/API 文档：同步说明上架/标题/详情文案双 skill 链路和 artifact 沉淀关系。
+- 迁移归档：新增 Post 8-127 独立归档和后端设计文档。
+
+用户可感知变化：
+
+- 用户说“帮冷萃咖啡写上架文案，查最新标题规则和违禁词”时，过程区会看到上架文案和平台内容规则搜索两个步骤。
+- 用户说“给商品生成标题，联网查搜索量、热搜词和高点击趋势”时，过程区会看到标题生成和外部市场资料搜索两个步骤。
+- 用户说“写详情文案，联网查买家痛点、真实评价和购买顾虑”时，过程区会看到详情文案和评价搜索两个步骤。
+- 用户没有明确外部资料诉求时，普通上架文案 / 标题 / 详情文案仍只走 native skill。
+- 用户没有显式选择商品时，后端不会注入默认商品或历史商品；用户选中商品后，搜索 input 才携带 `product_ref/product_name/product_category`。
+
+当前验证：
+
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent listing_copy`
+- [x] `cargo test -p agent web_title_and_description`
+- [x] `cargo test -p agent keeps_roles_from_requesting_unowned_skills`
+
+后续缺口：
+
+- 真实搜索 provider 的配置、部署和来源质量治理仍是外部搜索能力的后续事项。
+- 前端可继续把 native + search 双 skill 链路展示为可折叠过程卡片和来源面板。
+
 ## Post 8-126：创意直播/软文趋势搜索链路
 
 状态：done

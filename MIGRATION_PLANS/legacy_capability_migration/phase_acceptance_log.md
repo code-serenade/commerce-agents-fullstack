@@ -1,5 +1,22 @@
 # 阶段验收记录
 
+## Post 8-127：上架/标题/详情文案搜索链路
+
+结论：通过。
+
+验收点：
+
+- 运营岗位上架文案、Web 岗位标题生成和详情文案在普通问法下仍只进入 native skill。
+- 用户明确要求最新 / 实时 / 联网 / 搜索 / 公开资料 / 标题规则 / 上架规则 / 违禁词 / 搜索量 / 热搜词 / 高点击 / 详情页趋势 / 买家痛点 / 真实评价时，会返回两个 skill 请求。
+- 第一个请求保持 native skill，第二个请求为 `search_platform_policy`、`search_market_info` 或 `search_product_reviews`。
+- 标题 / 发布 / 内容规则搜索链路使用 `search_platform_policy(policy_type=content)`。
+- 搜索量 / 热搜词 / 标题趋势 / 详情页趋势搜索链路使用 `search_market_info(topic=general)`。
+- 买家痛点 / 真实评价搜索链路使用 `search_product_reviews`，痛点 / 顾虑 / 差评语义会写入 `focus=negative`。
+- 运营岗位 role catalog 已允许 `search_product_reviews`，不会出现 autosuggest 后运行时拒绝。
+- 搜索步骤通过既有 `skill_requested` / `skill_result` 可见，失败或未配置时仍降级，不伪造来源。
+- 显式商品上下文只来自本轮选择，未选择商品时不写空引用、不注入默认商品。
+- Agent listing / web title-description / role catalog 测试、设计文档、API 文档和迁移归档已同步。
+
 ## Post 8-126：创意直播/软文趋势搜索链路
 
 结论：通过。

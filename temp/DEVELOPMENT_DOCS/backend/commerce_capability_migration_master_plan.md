@@ -98,6 +98,17 @@ Kimi Agent 集群 = 前端交互和视觉体验参考
 - Creative search subject extraction now handles both `帮X写...` and `写一篇X产品软文...` patterns so search queries stay close to the user-provided product/content subject.
 - Selected product context remains explicit-only: no product ref/name/category is injected unless the current turn selected a product.
 
+## Post 8-127 Update
+
+- Ops listing-copy prompts can now surface visible two-step chains when the user explicitly asks for latest title/content rules, listing rules, forbidden words, search volume, title trend, buyer pain points, or real reviews.
+- `ops_listing_copy` can be followed by `search_platform_policy(policy_type=content)`, `search_market_info(topic=general)`, or `search_product_reviews`.
+- Web title and product-description prompts can now surface the same visible search chains for title rules, hot keywords, high-click title trend, detail-page trend, buyer pain points, and real reviews.
+- `web_title_generator` can be followed by `search_platform_policy(policy_type=content)` or `search_market_info(topic=general)`.
+- `web_product_description` can be followed by `search_platform_policy(policy_type=content)`, `search_market_info(topic=general)`, or `search_product_reviews`.
+- `ops` role permission now includes `search_product_reviews`, using the existing role skill catalog rather than bypassing framework governance.
+- Native-only behavior is preserved for ordinary listing-copy, title-generation, and product-description tasks.
+- Selected product context remains explicit-only: no product ref/name/category is injected unless the current turn selected a product.
+
 ## Post 8-118 Update
 
 - Web-role SEO optimization, keyword research, and page conversion prompts can now surface visible two-step chains when the user explicitly asks for latest, realtime, online, SEO algorithm, traffic-rule, keyword-competition, search-volume, CPC, or conversion-benchmark data.
@@ -331,22 +342,22 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-126: creative live/article trend search chain
+Post 8-127: listing/title/description search chain
 ```
 
 Scope:
 
-- make creative autosuggest produce visible native + `search_trends` chains for live scripts and product articles when the user asks for latest live-room tactics, realtime content styles, viral articles, public sources, or online trend context
-- keep ordinary live-script and product-article requests on native skills only when no fresh external context is requested
-- keep selected product context explicit-only; do not inject default, preset, history, or test product context into creative search chains
-- keep source-count language such as "最多4条来源" mapped to search `max_results`, not to live duration
+- make ops/web autosuggest produce visible native + search chains for listing copy, title generation, and product description when the user asks for latest title/content rules, search volume, hot keywords, high-click trend, detail-page trend, buyer pain points, or real reviews
+- keep ordinary listing-copy, title-generation, and product-description requests on native skills only when no fresh external context is requested
+- keep selected product context explicit-only; do not inject default, preset, history, or test product context into listing/title/description search chains
+- keep platform/content rules, market trend/search volume, and buyer review lookup as separate auditable search skill events
 
 Reason:
 
-- old-product creative skills often mixed trend lookup into content generation outputs
-- new-product architecture should expose live/article trend lookup as auditable `search_trends` skill events instead of hiding external context inside creative native outputs
-- live script and product article are high-frequency e-commerce content abilities and should share the same transparent search degradation boundary as video, seeding, and content-calendar skills
-- real content trend evidence remains adapter/search concern and must not be faked when providers are missing, failing, stale, or source-less
+- old-product listing/title/description skills could benefit from external title rules, buyer reviews, and market trend context
+- new-product architecture should expose those inputs as auditable search skill events instead of hiding external context inside native outputs
+- listing copy, title generation, and product description are high-frequency e-commerce abilities and should share the same transparent search degradation boundary as SEO, creative, service, and ops planning skills
+- real platform rules, hot keyword data, and buyer review evidence remain adapter/search concern and must not be faked when providers are missing, failing, stale, or source-less
 
 ## 10. Validation Standard
 

@@ -941,6 +941,33 @@ fn is_ops_search_chain_intent(text: &str, native_skill_id: &str) -> bool {
                     ],
                 )
         }
+        "ops_listing_copy" => {
+            is_listing_copy_policy_search_intent(text)
+                || is_listing_copy_review_search_intent(text)
+                || (has_external_search_intent(text)
+                    && contains_any(
+                        text,
+                        &[
+                            "标题规则",
+                            "标题规范",
+                            "上架规则",
+                            "发布规则",
+                            "违禁词",
+                            "审核规则",
+                            "热搜词",
+                            "标题趋势",
+                            "卖点趋势",
+                            "搜索词",
+                            "搜索量",
+                            "买家痛点",
+                            "购买顾虑",
+                            "用户反馈",
+                            "真实反馈",
+                            "高点击",
+                            "高转化",
+                        ],
+                    ))
+        }
         _ => false,
     }
 }
@@ -977,6 +1004,21 @@ fn autosuggest_ops_search(text: &str, task: &Task, native_skill_id: &str) -> Par
             serde_json::Value::Object(ops_assortment_trend_search_input(text, task)),
             "根据运营选品/货盘中的实时品类趋势需求自动追加外部趋势搜索 skill",
         ),
+        "ops_listing_copy" if is_listing_copy_policy_search_intent(text) => autosuggest_request(
+            "search_platform_policy",
+            serde_json::Value::Object(listing_copy_policy_search_input(text, task)),
+            "根据上架文案中的标题/发布/内容规则诉求自动追加平台规则搜索 skill",
+        ),
+        "ops_listing_copy" if is_listing_copy_review_search_intent(text) => autosuggest_request(
+            "search_product_reviews",
+            serde_json::Value::Object(listing_copy_reviews_search_input(text, task)),
+            "根据上架文案中的买家评价/痛点诉求自动追加外部评价搜索 skill",
+        ),
+        "ops_listing_copy" => autosuggest_request(
+            "search_market_info",
+            serde_json::Value::Object(listing_copy_market_search_input(text, task)),
+            "根据上架文案中的最新标题/卖点/搜索趋势诉求自动追加外部市场搜索 skill",
+        ),
         _ => autosuggest_request(
             "search_market_info",
             serde_json::Value::Object(ops_market_search_input(text, task)),
@@ -1001,6 +1043,55 @@ fn is_ops_platform_policy_search_intent(text: &str) -> bool {
             "费率",
         ],
     )
+}
+
+fn is_listing_copy_policy_search_intent(text: &str) -> bool {
+    (has_external_search_intent(text)
+        || contains_any(text, &["最新规则", "平台规则", "平台政策", "规则变化"]))
+        && contains_any(
+            text,
+            &[
+                "平台规则",
+                "平台政策",
+                "标题规则",
+                "标题规范",
+                "上架规则",
+                "发布规则",
+                "内容规则",
+                "内容规范",
+                "违禁词",
+                "审核规则",
+                "发布审核",
+                "违规",
+            ],
+        )
+}
+
+fn is_listing_copy_review_search_intent(text: &str) -> bool {
+    has_external_search_intent(text)
+        && contains_any(
+            text,
+            &[
+                "用户评价",
+                "真实评价",
+                "商品评价",
+                "买家评价",
+                "口碑",
+                "差评",
+                "好评",
+                "吐槽",
+                "真实反馈",
+                "用户反馈",
+                "买家痛点",
+                "购买痛点",
+                "购买顾虑",
+                "消费顾虑",
+                "痛点",
+                "顾虑",
+                "review",
+                "reviews",
+            ],
+        )
 }
 
 fn ops_competitor_price_search_input(
@@ -1128,6 +1219,98 @@ fn ops_assortment_trend_search_input(
     );
     input.insert("_needs_fresh_data".to_string(), serde_json::json!(true));
     input
+}
+
+fn listing_copy_policy_search_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = search_platform_policy_input(text, task);
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(selected_product_platform_or_infer(task, text)),
+    );
+    input.insert("policy_type".to_string(), serde_json::json!("content"));
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_ops_search_days(text, 30)),
+    );
+    input.insert("_needs_fresh_data".to_string(), serde_json::json!(true));
+    input
+}
+
+fn listing_copy_reviews_search_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = search_product_reviews_input(text, task);
+    input.insert(
+        "query".to_string(),
+        serde_json::json!(ops_search_subject(text, task)),
+    );
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(selected_product_platform_or_infer(task, text)),
+    );
+    input.insert(
+        "focus".to_string(),
+        serde_json::json!(infer_listing_copy_review_search_focus(text)),
+    );
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_ops_search_days(text, 30)),
+    );
+    input.insert("_needs_fresh_data".to_string(), serde_json::json!(true));
+    input
+}
+
+fn listing_copy_market_search_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = search_market_info_input(text, task);
+    input.insert(
+        "query".to_string(),
+        serde_json::json!(format!(
+            "{} {} 上架标题 标题关键词 卖点表达 搜索趋势 高点击 2026",
+            selected_product_platform_or_infer(task, text),
+            ops_search_subject(text, task)
+        )),
+    );
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(selected_product_platform_or_infer(task, text)),
+    );
+    input.insert("topic".to_string(), serde_json::json!("general"));
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_ops_search_days(text, 30)),
+    );
+    input.insert("_needs_fresh_data".to_string(), serde_json::json!(true));
+    input
+}
+
+fn infer_listing_copy_review_search_focus(text: &str) -> &'static str {
+    if contains_any(
+        text,
+        &[
+            "差评",
+            "负面",
+            "投诉",
+            "吐槽",
+            "不满意",
+            "痛点",
+            "顾虑",
+            "踩雷",
+            "negative",
+        ],
+    ) {
+        "negative"
+    } else if contains_any(text, &["好评", "正面", "满意", "positive"]) {
+        "positive"
+    } else {
+        "overall"
+    }
 }
 
 fn ops_market_search_input(text: &str, task: &Task) -> serde_json::Map<String, serde_json::Value> {
@@ -3724,6 +3907,55 @@ fn is_web_search_chain_intent(text: &str, native_skill_id: &str) -> bool {
                     ],
                 )
         }
+        "web_title_generator" => {
+            is_listing_copy_policy_search_intent(text)
+                || (has_fresh_or_external
+                    && contains_any(
+                        text,
+                        &[
+                            "标题规则",
+                            "标题规范",
+                            "平台规则",
+                            "流量规则",
+                            "违禁词",
+                            "审核规则",
+                            "关键词竞争",
+                            "搜索量",
+                            "CPC",
+                            "cpc",
+                            "热搜词",
+                            "标题趋势",
+                            "高点击",
+                            "点击率",
+                            "CTR",
+                            "ctr",
+                        ],
+                    ))
+        }
+        "web_product_description" => {
+            is_listing_copy_policy_search_intent(text)
+                || is_listing_copy_review_search_intent(text)
+                || (has_fresh_or_external
+                    && contains_any(
+                        text,
+                        &[
+                            "详情页趋势",
+                            "详情文案趋势",
+                            "卖点趋势",
+                            "高转化",
+                            "转化卖点",
+                            "买家痛点",
+                            "购买顾虑",
+                            "用户反馈",
+                            "真实反馈",
+                            "用户评价",
+                            "真实评价",
+                            "商品评价",
+                            "买家评价",
+                            "口碑",
+                        ],
+                    ))
+        }
         _ => false,
     }
 }
@@ -3776,6 +4008,43 @@ fn autosuggest_web_search(text: &str, task: &Task, native_skill_id: &str) -> Par
             "search_market_info",
             serde_json::Value::Object(web_seo_market_search_input(text, task, native_skill_id)),
             "根据 Web 增长中的关键词竞争/搜索量/SEO实时资料需求自动追加外部市场搜索 skill",
+        ),
+        "web_title_generator" if is_listing_copy_policy_search_intent(text) => autosuggest_request(
+            "search_platform_policy",
+            serde_json::Value::Object(listing_copy_policy_search_input(text, task)),
+            "根据标题生成中的平台标题/内容规则诉求自动追加平台规则搜索 skill",
+        ),
+        "web_title_generator" => autosuggest_request(
+            "search_market_info",
+            serde_json::Value::Object(web_listing_copy_market_search_input(
+                text,
+                task,
+                native_skill_id,
+            )),
+            "根据标题生成中的最新关键词/搜索趋势/高点击诉求自动追加外部市场搜索 skill",
+        ),
+        "web_product_description" if is_listing_copy_review_search_intent(text) => {
+            autosuggest_request(
+                "search_product_reviews",
+                serde_json::Value::Object(listing_copy_reviews_search_input(text, task)),
+                "根据详情文案中的买家评价/痛点诉求自动追加外部评价搜索 skill",
+            )
+        }
+        "web_product_description" if is_listing_copy_policy_search_intent(text) => {
+            autosuggest_request(
+                "search_platform_policy",
+                serde_json::Value::Object(listing_copy_policy_search_input(text, task)),
+                "根据详情文案中的平台内容/发布规则诉求自动追加平台规则搜索 skill",
+            )
+        }
+        "web_product_description" => autosuggest_request(
+            "search_market_info",
+            serde_json::Value::Object(web_listing_copy_market_search_input(
+                text,
+                task,
+                native_skill_id,
+            )),
+            "根据详情文案中的最新详情页/卖点/转化趋势诉求自动追加外部市场搜索 skill",
         ),
         _ => autosuggest_request(
             "search_market_info",
@@ -3857,6 +4126,43 @@ fn web_conversion_benchmark_search_input(
     );
     input.insert("_needs_fresh_data".to_string(), serde_json::json!(true));
     input
+}
+
+fn web_listing_copy_market_search_input(
+    text: &str,
+    task: &Task,
+    native_skill_id: &str,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = search_market_info_input(text, task);
+    input.insert(
+        "query".to_string(),
+        serde_json::json!(web_listing_copy_market_query(text, task, native_skill_id)),
+    );
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(selected_product_platform_or_infer(task, text)),
+    );
+    input.insert("topic".to_string(), serde_json::json!("general"));
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_web_search_days(text, 30)),
+    );
+    input.insert("_needs_fresh_data".to_string(), serde_json::json!(true));
+    input
+}
+
+fn web_listing_copy_market_query(text: &str, task: &Task, native_skill_id: &str) -> String {
+    let platform = selected_product_platform_or_infer(task, text);
+    let subject = web_search_subject(text, task);
+    match native_skill_id {
+        "web_title_generator" => {
+            format!("{platform} {subject} 商品标题 关键词 搜索趋势 高点击 CTR 2026")
+        }
+        "web_product_description" => {
+            format!("{platform} {subject} 详情页文案 卖点表达 转化趋势 买家痛点 2026")
+        }
+        _ => format!("{platform} {subject} Web增长 文案趋势 2026"),
+    }
 }
 
 fn web_seo_market_query(text: &str, task: &Task, native_skill_id: &str) -> String {
@@ -9519,6 +9825,98 @@ mod tests {
     }
 
     #[test]
+    fn autosuggests_ops_listing_copy_search_chains_when_requested() {
+        let policy_requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task("帮冷萃咖啡写上架文案和商品标题，查抖音最新标题规则和违禁词，最多4条来源"),
+            "{}",
+        );
+
+        assert_eq!(policy_requests.len(), 2);
+        assert_eq!(policy_requests[0].skill_id, "ops_listing_copy");
+        assert_eq!(policy_requests[1].skill_id, "search_platform_policy");
+        assert_eq!(policy_requests[1].input["platform"], "抖音");
+        assert_eq!(policy_requests[1].input["policy_type"], "content");
+        assert_eq!(policy_requests[1].input["max_results"], 4);
+        assert_eq!(policy_requests[1].input["_needs_fresh_data"], true);
+        assert!(policy_requests[1].input.get("product_ref").is_none());
+
+        let review_requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task("帮冷萃咖啡写上架文案和标题卖点，联网查买家痛点、真实评价和购买顾虑"),
+            "{}",
+        );
+
+        assert_eq!(review_requests.len(), 2);
+        assert_eq!(review_requests[0].skill_id, "ops_listing_copy");
+        assert_eq!(review_requests[1].skill_id, "search_product_reviews");
+        assert_eq!(review_requests[1].input["focus"], "negative");
+        assert_eq!(review_requests[1].input["platform"], "淘宝");
+        assert_eq!(review_requests[1].input["days"], 30);
+        assert_eq!(review_requests[1].input["_needs_fresh_data"], true);
+
+        let market_requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task("帮冷萃咖啡写上架文案和商品标题，联网查最新标题趋势和搜索量，最多3条来源"),
+            "{}",
+        );
+
+        assert_eq!(market_requests.len(), 2);
+        assert_eq!(market_requests[0].skill_id, "ops_listing_copy");
+        assert_eq!(market_requests[1].skill_id, "search_market_info");
+        assert_eq!(market_requests[1].input["topic"], "general");
+        assert_eq!(market_requests[1].input["max_results"], 3);
+        assert!(
+            market_requests[1].input["query"]
+                .as_str()
+                .is_some_and(|query| query.contains("上架标题")
+                    && query.contains("搜索趋势")
+                    && query.contains("高点击"))
+        );
+    }
+
+    #[test]
+    fn ops_listing_copy_remains_native_without_search_intent() {
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task("帮这个保温杯写上架文案和标题卖点，突出便携防漏"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "ops_listing_copy");
+    }
+
+    #[test]
+    fn ops_listing_copy_search_preserves_selected_product_context() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task_with_metadata(
+                "帮这个商品写上架文案和标题卖点，联网查买家痛点和真实评价",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 2);
+        assert_eq!(requests[0].skill_id, "ops_listing_copy");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["product_name"], "五一咖啡组合");
+        assert_eq!(requests[1].skill_id, "search_product_reviews");
+        assert_eq!(
+            requests[1].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[1].input["product_name"], "五一咖啡组合");
+        assert_eq!(requests[1].input["product_category"], "咖啡饮品");
+        assert_eq!(requests[1].input["platform"], "抖音");
+    }
+
+    #[test]
     fn ops_search_chain_keeps_selected_product_explicit() {
         let summary = selected_product_summary();
         let requests = autosuggest_skill_requests(
@@ -11906,6 +12304,140 @@ mod tests {
         assert!(plain_requests[1].input.get("product_ref").is_none());
         assert!(plain_requests[1].input.get("product_name").is_none());
         assert!(plain_requests[1].input.get("product_category").is_none());
+    }
+
+    #[test]
+    fn autosuggests_web_title_and_description_search_chains_when_requested() {
+        let title_policy_requests = autosuggest_skill_requests(
+            &role("web"),
+            &task("给冷萃咖啡生成淘宝标题，联网查最新标题规则、标题规范和违禁词，最多4条来源"),
+            "{}",
+        );
+
+        assert_eq!(title_policy_requests.len(), 2);
+        assert_eq!(title_policy_requests[0].skill_id, "web_title_generator");
+        assert_eq!(title_policy_requests[1].skill_id, "search_platform_policy");
+        assert_eq!(title_policy_requests[1].input["platform"], "淘宝");
+        assert_eq!(title_policy_requests[1].input["policy_type"], "content");
+        assert_eq!(title_policy_requests[1].input["max_results"], 4);
+        assert_eq!(title_policy_requests[1].input["_needs_fresh_data"], true);
+
+        let title_market_requests = autosuggest_skill_requests(
+            &role("web"),
+            &task("给冷萃咖啡生成商品标题，联网查最新搜索量、热搜词和高点击趋势，最多3条来源"),
+            "{}",
+        );
+
+        assert_eq!(title_market_requests.len(), 2);
+        assert_eq!(title_market_requests[0].skill_id, "web_title_generator");
+        assert_eq!(title_market_requests[1].skill_id, "search_market_info");
+        assert_eq!(title_market_requests[1].input["max_results"], 3);
+        assert!(
+            title_market_requests[1].input["query"]
+                .as_str()
+                .is_some_and(|query| query.contains("商品标题")
+                    && query.contains("搜索趋势")
+                    && query.contains("CTR"))
+        );
+
+        let description_reviews = autosuggest_skill_requests(
+            &role("web"),
+            &task("写冷萃咖啡详情文案，联网查买家痛点、真实评价和购买顾虑"),
+            "{}",
+        );
+
+        assert_eq!(description_reviews.len(), 2);
+        assert_eq!(description_reviews[0].skill_id, "web_product_description");
+        assert_eq!(description_reviews[1].skill_id, "search_product_reviews");
+        assert_eq!(description_reviews[1].input["focus"], "negative");
+        assert_eq!(description_reviews[1].input["platform"], "淘宝");
+        assert_eq!(description_reviews[1].input["_needs_fresh_data"], true);
+
+        let description_market = autosuggest_skill_requests(
+            &role("web"),
+            &task("写冷萃咖啡详情文案，联网查最新详情页趋势和高转化卖点"),
+            "{}",
+        );
+
+        assert_eq!(description_market.len(), 2);
+        assert_eq!(description_market[0].skill_id, "web_product_description");
+        assert_eq!(description_market[1].skill_id, "search_market_info");
+        assert!(
+            description_market[1].input["query"]
+                .as_str()
+                .is_some_and(|query| query.contains("详情页文案")
+                    && query.contains("转化趋势")
+                    && query.contains("买家痛点"))
+        );
+    }
+
+    #[test]
+    fn web_title_and_description_remain_native_without_search_intent() {
+        let title_requests =
+            autosuggest_skill_requests(&role("web"), &task("给冷萃咖啡生成淘宝标题"), "{}");
+
+        assert_eq!(title_requests.len(), 1);
+        assert_eq!(title_requests[0].skill_id, "web_title_generator");
+
+        let description_requests =
+            autosuggest_skill_requests(&role("web"), &task("写商品详情文案和卖点文案"), "{}");
+
+        assert_eq!(description_requests.len(), 1);
+        assert_eq!(description_requests[0].skill_id, "web_product_description");
+    }
+
+    #[test]
+    fn web_title_and_description_search_preserve_selected_product_context() {
+        let summary = selected_product_summary();
+        let title_requests = autosuggest_skill_requests(
+            &role("web"),
+            &task_with_metadata(
+                "给这个商品生成标题，联网查最新搜索量和高点击标题趋势",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(title_requests.len(), 2);
+        assert_eq!(title_requests[0].skill_id, "web_title_generator");
+        assert_eq!(
+            title_requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(title_requests[0].input["product_name"], "五一咖啡组合");
+        assert_eq!(title_requests[1].skill_id, "search_market_info");
+        assert_eq!(
+            title_requests[1].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(title_requests[1].input["product_name"], "五一咖啡组合");
+        assert_eq!(title_requests[1].input["product_category"], "咖啡饮品");
+        assert_eq!(title_requests[1].input["platform"], "抖音");
+
+        let description_requests = autosuggest_skill_requests(
+            &role("web"),
+            &task_with_metadata(
+                "给这个商品写详情文案，联网查真实评价和买家痛点",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(description_requests.len(), 2);
+        assert_eq!(description_requests[0].skill_id, "web_product_description");
+        assert_eq!(
+            description_requests[1].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(
+            description_requests[1].input["product_name"],
+            "五一咖啡组合"
+        );
+        assert_eq!(
+            description_requests[1].input["product_category"],
+            "咖啡饮品"
+        );
+        assert_eq!(description_requests[1].skill_id, "search_product_reviews");
     }
 
     #[test]
