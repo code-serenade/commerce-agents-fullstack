@@ -31,6 +31,7 @@ const VALID_TOPICS: &[&str] = &["general", "news", "finance"];
 const MAX_DAYS: i64 = 365;
 const MAX_RESULTS: i64 = 12;
 const DEFAULT_MAX_RESULTS: i64 = 6;
+const DEFAULT_TIMEOUT_SEC: u64 = 10;
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 #[serde(default)]
@@ -82,6 +83,69 @@ impl SearchAdapterConfig {
             .filter(|value| !value.is_empty())
             .unwrap_or("external_search")
             .to_string()
+    }
+
+    fn readiness(&self) -> Value {
+        let mut missing_config = Vec::new();
+        if !self.enabled {
+            missing_config.push("external_search.enabled");
+        }
+        if self
+            .base_url
+            .as_deref()
+            .is_none_or(|value| value.trim().is_empty())
+        {
+            missing_config.push("external_search.base_url");
+        }
+        if self
+            .search_endpoint
+            .as_deref()
+            .is_none_or(|value| value.trim().is_empty())
+        {
+            missing_config.push("external_search.search_endpoint");
+        }
+
+        let configured = missing_config.is_empty();
+        let status = if configured {
+            "configured"
+        } else if self.enabled {
+            "missing_config"
+        } else {
+            "disabled"
+        };
+        let message = match status {
+            "configured" => {
+                "外部搜索 adapter 已配置，后端会尝试请求真实 provider；provider 仍可能因无可信来源而降级。"
+            }
+            "missing_config" => "外部搜索 adapter 已启用但配置不完整，当前不会请求 provider。",
+            _ => "外部搜索 adapter 未启用，当前不会查询外部实时来源。",
+        };
+
+        json!({
+            "status": status,
+            "enabled": self.enabled,
+            "configured": configured,
+            "provider": self.provider_name(),
+            "missing_config": missing_config,
+            "has_api_key": self
+                .api_key
+                .as_deref()
+                .is_some_and(|value| !value.trim().is_empty()),
+            "timeout_sec": self.timeout_sec.unwrap_or(DEFAULT_TIMEOUT_SEC).max(1),
+            "default_topic": self
+                .default_topic
+                .as_deref()
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .unwrap_or("general"),
+            "default_days": self.default_days.unwrap_or(30).clamp(1, MAX_DAYS as u64),
+            "default_max_results": self
+                .default_max_results
+                .unwrap_or(DEFAULT_MAX_RESULTS as u64)
+                .clamp(1, MAX_RESULTS as u64),
+            "max_results_limit": MAX_RESULTS,
+            "message": message
+        })
     }
 }
 
@@ -347,7 +411,9 @@ fn deferred_search_output(
     skill_id: &str,
     required_input: String,
     plan: SearchPlan,
+    adapter: &SearchAdapterConfig,
 ) -> SkillOutcome {
+    let readiness = adapter.readiness();
     SkillOutcome::new(json!({
         "status": "deferred",
         "adapter_status": "adapter_required",
@@ -355,7 +421,8 @@ fn deferred_search_output(
             "kind": "search",
             "provider": null,
             "configured": false,
-            "required_config": SEARCH_ADAPTER_REQUIRED_CONFIG
+            "required_config": SEARCH_ADAPTER_REQUIRED_CONFIG,
+            "readiness": readiness
         },
         "deferred_reason": SEARCH_DEFERRED_REASON,
         "skill": skill_id,
@@ -398,6 +465,7 @@ fn deferred_search_output(
     .with_summary("外部搜索 adapter 未接入，已返回结构化降级契约")
     .with_metadata("adapter_status", json!("adapter_required"))
     .with_metadata("adapter_kind", json!("search"))
+    .with_metadata("adapter_readiness", readiness)
 }
 
 fn degraded_search_output(
@@ -409,6 +477,7 @@ fn degraded_search_output(
     stale_filtered_count: usize,
 ) -> SkillOutcome {
     let reason = reason.into();
+    let readiness = adapter.readiness();
     SkillOutcome::new(json!({
         "status": "deferred",
         "adapter_status": "degraded",
@@ -416,7 +485,8 @@ fn degraded_search_output(
             "kind": "search",
             "provider": adapter.provider_name(),
             "configured": adapter.is_configured(),
-            "required_config": if adapter.is_configured() { Value::Null } else { json!(SEARCH_ADAPTER_REQUIRED_CONFIG) }
+            "required_config": if adapter.is_configured() { Value::Null } else { json!(SEARCH_ADAPTER_REQUIRED_CONFIG) },
+            "readiness": readiness
         },
         "deferred_reason": "外部搜索 adapter 已配置但本次未拿到可采信来源，不能伪造实时来源",
         "skill": skill_id,
@@ -463,6 +533,7 @@ fn degraded_search_output(
     .with_metadata("adapter_kind", json!("search"))
     .with_metadata("provider", json!(adapter.provider_name()))
     .with_metadata("stale_filtered_count", json!(stale_filtered_count))
+    .with_metadata("adapter_readiness", readiness)
 }
 
 fn live_search_output(
@@ -516,6 +587,7 @@ fn live_search_output(
         .get("source_count")
         .and_then(Value::as_u64)
         .unwrap_or(sources.len() as u64);
+    let readiness = adapter.readiness();
 
     SkillOutcome::new(json!({
         "status": "live",
@@ -524,7 +596,8 @@ fn live_search_output(
             "kind": "search",
             "provider": adapter.provider_name(),
             "configured": true,
-            "required_config": null
+            "required_config": null,
+            "readiness": readiness
         },
         "skill": skill_id,
         "required_input": required_input,
@@ -563,6 +636,7 @@ fn live_search_output(
     .with_metadata("adapter_kind", json!("search"))
     .with_metadata("provider", json!(adapter.provider_name()))
     .with_metadata("source_count", json!(source_count))
+    .with_metadata("adapter_readiness", readiness)
     .with_metadata(
         "stale_filtered_count",
         json!(source_set.stale_filtered_count),
@@ -1069,7 +1143,12 @@ macro_rules! deferred_search_skill {
                     .with_adapter_defaults(adapter)?
                     .with_max_results(max_results);
                 if !adapter.is_configured() {
-                    return Ok(deferred_search_output(&self.spec.id, required_value, plan));
+                    return Ok(deferred_search_output(
+                        &self.spec.id,
+                        required_value,
+                        plan,
+                        adapter,
+                    ));
                 }
 
                 let payload = match query_provider(adapter, &plan).await {
@@ -1400,6 +1479,51 @@ mod tests {
     }
 
     #[test]
+    fn search_adapter_readiness_reports_disabled_and_missing_config() {
+        let disabled = SearchAdapterConfig::default().readiness();
+        assert_eq!(disabled.pointer("/status"), Some(&json!("disabled")));
+        assert_eq!(disabled.pointer("/configured"), Some(&json!(false)));
+        assert_eq!(
+            disabled.pointer("/missing_config/0"),
+            Some(&json!("external_search.enabled"))
+        );
+
+        let missing_endpoint = SearchAdapterConfig {
+            enabled: true,
+            provider: Some("custom".to_string()),
+            base_url: Some("https://search.example.test".to_string()),
+            search_endpoint: None,
+            timeout_sec: Some(0),
+            default_days: Some(1000),
+            default_max_results: Some(100),
+            ..SearchAdapterConfig::default()
+        }
+        .readiness();
+
+        assert_eq!(
+            missing_endpoint.pointer("/status"),
+            Some(&json!("missing_config"))
+        );
+        assert_eq!(
+            missing_endpoint.pointer("/provider"),
+            Some(&json!("custom"))
+        );
+        assert_eq!(missing_endpoint.pointer("/timeout_sec"), Some(&json!(1)));
+        assert_eq!(
+            missing_endpoint.pointer("/default_days"),
+            Some(&json!(MAX_DAYS))
+        );
+        assert_eq!(
+            missing_endpoint.pointer("/default_max_results"),
+            Some(&json!(MAX_RESULTS))
+        );
+        assert_eq!(
+            missing_endpoint.pointer("/missing_config/0"),
+            Some(&json!("external_search.search_endpoint"))
+        );
+    }
+
+    #[test]
     fn normalizes_provider_sources_filters_stale_published_items() {
         let stale_date = (OffsetDateTime::now_utc() - Duration::days(90))
             .format(&Rfc3339)
@@ -1489,6 +1613,14 @@ mod tests {
             Some(&json!("咖啡行业报告"))
         );
         assert_eq!(outcome.output.pointer("/sources/2/title"), None);
+        assert_eq!(
+            outcome.output.pointer("/adapter/readiness/status"),
+            Some(&json!("configured"))
+        );
+        assert_eq!(
+            outcome.metadata.get("adapter_readiness"),
+            outcome.output.pointer("/adapter/readiness")
+        );
         assert!(
             outcome
                 .output
@@ -1523,6 +1655,14 @@ mod tests {
         assert_eq!(
             outcome.output.pointer("/evidence/source_titles"),
             Some(&json!([]))
+        );
+        assert_eq!(
+            outcome.output.pointer("/adapter/readiness/status"),
+            Some(&json!("disabled"))
+        );
+        assert_eq!(
+            outcome.metadata.get("adapter_readiness"),
+            outcome.output.pointer("/adapter/readiness")
         );
         assert!(
             outcome

@@ -218,7 +218,25 @@
   "configured": false,
   "provider": null,
   "requiredConfig": "external_search.enabled=true, base_url and search_endpoint are required",
-  "status": "degraded"
+  "status": "degraded",
+  "readiness": {
+    "status": "disabled",
+    "enabled": false,
+    "configured": false,
+    "provider": "external_search",
+    "missingConfig": [
+      "external_search.enabled",
+      "external_search.base_url",
+      "external_search.search_endpoint"
+    ],
+    "hasApiKey": false,
+    "timeoutSec": 10,
+    "defaultTopic": "general",
+    "defaultDays": 30,
+    "defaultMaxResults": 6,
+    "maxResultsLimit": 12,
+    "message": "外部搜索 adapter 未启用，当前不会查询外部实时来源。"
+  }
 }
 ```
 
@@ -228,6 +246,9 @@
 - `configured=true` 需要 `enabled=true` 且配置了 `base_url`、`search_endpoint`
 - `provider` 仅在配置完整时返回 provider 名称
 - `status=configured` 表示后端具备向外部搜索 provider 发起请求的配置；`status=degraded` 表示当前不会查询外部搜索
+- `readiness` 是搜索 adapter 可用性诊断，不包含 `api_key` 原文；`status=disabled` 表示未启用，`status=missing_config` 表示已启用但缺 `base_url` 或 `search_endpoint`，`status=configured` 表示后端会尝试请求真实 provider，但 provider 仍可能因失败、无来源或来源过期而降级
+- `readiness.missingConfig` 只返回缺失配置项名称，供前端展示和运维排查；前端不得据此伪造搜索结果
+- `readiness.defaultMaxResults` 与 `readiness.maxResultsLimit` 分别表示默认来源数和后端硬上限
 
 补充说明：
 
@@ -283,6 +304,24 @@
     "sourceDomains": [],
     "llmContext": "（本次没有可采信实时来源。回答时必须说明外部搜索未返回来源，不能引用不存在的联网数据。）"
   },
+  "readiness": {
+    "status": "disabled",
+    "enabled": false,
+    "configured": false,
+    "provider": "external_search",
+    "missingConfig": [
+      "external_search.enabled",
+      "external_search.base_url",
+      "external_search.search_endpoint"
+    ],
+    "hasApiKey": false,
+    "timeoutSec": 10,
+    "defaultTopic": "general",
+    "defaultDays": 30,
+    "defaultMaxResults": 6,
+    "maxResultsLimit": 12,
+    "message": "外部搜索 adapter 未启用，当前不会查询外部实时来源。"
+  },
   "notice": "未获取到可靠公开来源，当前不能伪造实时搜索结果。",
   "degraded": true,
   "degradedReason": "External search adapter is not configured; no live sources were queried."
@@ -330,6 +369,20 @@
     "sourceDomains": ["example.com", "report.example.cn"],
     "llmContext": "（共2条实时来源，优先从中提取具体数字、结论和出处；若来源不足，明确说明数据不足。）"
   },
+  "readiness": {
+    "status": "configured",
+    "enabled": true,
+    "configured": true,
+    "provider": "custom",
+    "missingConfig": [],
+    "hasApiKey": true,
+    "timeoutSec": 10,
+    "defaultTopic": "general",
+    "defaultDays": 30,
+    "defaultMaxResults": 6,
+    "maxResultsLimit": 12,
+    "message": "外部搜索 adapter 已配置，后端会尝试请求真实 provider；provider 仍可能因无可信来源而降级。"
+  },
   "notice": null,
   "degraded": false,
   "degradedReason": null
@@ -343,6 +396,7 @@
 - 该接口是 Rust 后端外部搜索 adapter 的 App 侧入口；Agent `search_*` skill 已接入同一份 `[external_search]` 配置，并复用相同字段语义
 - `maxResults` 和 `bypassCache` 是后端实际使用的搜索控制参数回显；`maxResults` 不只会转发给 provider，后端在归一化 provider 返回后也会按该值截断 `data.items`、`provenance` 和 `evidence`；`bypassCache=true` 会转发给 provider，但 provider 是否真的绕过缓存由 provider 自身决定
 - `evidence` 是后端归一化后的搜索证据摘要：`sourceTitles`、`sourceDomains` 用于前端来源面板，`llmContext` 用于 Agent/后端复用来源文本
+- `readiness` 与 `/external-search/status` 的字段语义一致；即使本次响应为 `status=degraded`，前端也能通过 `readiness.status` 区分未启用、缺配置、已配置但 provider 本次失败或无可信来源
 - provider 返回重复 URL 时，后端会去重并重新生成 `rank`
 - provider 来源数组兼容 `data.items`、`data.results`、`data.sources`、`data.organic`、`data.organic_results`、`data.webPages.value`、`items`、`sources`、`results`、`organic`、`organic_results`、`webPages.value` 和 `value`
 - provider 来源字段兼容 `title/name/headline`、`url/link/href/source_url/sourceUrl`、`snippet/body/summary/content/description/text/excerpt` 和 `published_at/publishedAt/pubDate/published/datePublished/date`

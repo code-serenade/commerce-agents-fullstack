@@ -160,6 +160,7 @@ impl ExternalSearchApi {
 
 fn status_from_config(config: &ExternalSearchConfig) -> ExternalSearchStatusResponse {
     let configured = config.is_configured();
+    let readiness = config.readiness();
     ExternalSearchStatusResponse {
         adapter: ADAPTER_NAME.to_string(),
         enabled: config.enabled,
@@ -171,6 +172,7 @@ fn status_from_config(config: &ExternalSearchConfig) -> ExternalSearchStatusResp
         } else {
             "degraded".to_string()
         },
+        readiness,
     }
 }
 
@@ -262,6 +264,7 @@ fn degraded_response(
         provenance: build_provenance(&[], 0),
         data: ExternalSearchData { items: Vec::new() },
         evidence: build_search_evidence(&[], 0),
+        readiness: config.readiness(),
         notice: Some("未获取到可靠公开来源，当前不能伪造实时搜索结果。".to_string()),
         degraded: true,
         degraded_reason: Some(reason.to_string()),
@@ -325,6 +328,7 @@ fn normalize_provider_response(
             items: sources.clone(),
         },
         evidence,
+        readiness: config.readiness(),
         notice: sources.is_empty().then(|| {
             if source_set.stale_filtered_count > 0 {
                 "Provider returned only stale sources outside the requested freshness window."
@@ -728,6 +732,43 @@ mod tests {
         assert!(!status.configured);
         assert_eq!(status.status, "degraded");
         assert!(status.required_config.is_some());
+        assert_eq!(status.readiness.status, "disabled");
+        assert!(!status.readiness.configured);
+        assert!(
+            status
+                .readiness
+                .missing_config
+                .contains(&"external_search.enabled".to_string())
+        );
+        assert_eq!(status.readiness.max_results_limit, MAX_RESULTS);
+    }
+
+    #[test]
+    fn enabled_config_reports_missing_config_until_provider_endpoint_is_complete() {
+        let config = ExternalSearchConfig {
+            enabled: true,
+            provider: Some("custom".to_string()),
+            base_url: Some("https://search.example.test".to_string()),
+            search_endpoint: None,
+            timeout_sec: Some(0),
+            default_days: Some(1000),
+            default_max_results: Some(100),
+            ..ExternalSearchConfig::default()
+        };
+        let status = status_from_config(&config);
+
+        assert!(status.enabled);
+        assert!(!status.configured);
+        assert_eq!(status.status, "degraded");
+        assert_eq!(status.readiness.status, "missing_config");
+        assert_eq!(status.readiness.provider, "custom");
+        assert_eq!(status.readiness.timeout_sec, 1);
+        assert_eq!(status.readiness.default_days, MAX_DAYS);
+        assert_eq!(status.readiness.default_max_results, MAX_RESULTS);
+        assert_eq!(
+            status.readiness.missing_config,
+            vec!["external_search.search_endpoint".to_string()]
+        );
     }
 
     #[test]
@@ -767,6 +808,8 @@ mod tests {
         assert!(response.bypass_cache);
         assert_eq!(response.evidence.source_titles.len(), 0);
         assert!(response.evidence.llm_context.contains("没有可采信实时来源"));
+        assert_eq!(response.readiness.status, "disabled");
+        assert!(!response.readiness.configured);
     }
 
     #[test]
@@ -824,6 +867,9 @@ mod tests {
         assert_eq!(response.provenance.published_count, 1);
         assert!(response.evidence.summary.contains("2 条实时来源"));
         assert!(response.evidence.llm_context.contains("咖啡消费趋势"));
+        assert_eq!(response.readiness.status, "configured");
+        assert!(response.readiness.configured);
+        assert_eq!(response.readiness.provider, "legacy");
     }
 
     #[test]

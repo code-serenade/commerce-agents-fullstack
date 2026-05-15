@@ -1,5 +1,18 @@
 # 阶段验收记录
 
+## Post 8-135：外部搜索 readiness 诊断契约
+
+结论：通过。
+
+验收点：
+
+- App 外部搜索状态接口返回 `readiness`，能区分 `disabled`、`missing_config` 和 `configured`。
+- App 外部搜索查询接口无论 live 还是 degraded，都返回同一语义的 `readiness`。
+- Agent `search_*` skill 输出 `output.adapter.readiness`，并在 `metadata.adapter_readiness` 保存同一份诊断。
+- 诊断字段只暴露 `hasApiKey` 布尔值，不暴露 `api_key` 原文。
+- 未启用、缺配置、provider 失败、无可信 URL 来源或来源过期时，仍然按 degraded/deferred 处理，不伪造 live 搜索来源。
+- 设计文档、API 文档和迁移归档已同步。
+
 ## Post 8-128：设计配色 / 素材规范搜索链路
 
 结论：通过。

@@ -1,5 +1,41 @@
 # 迁移开发记录
 
+## Post 8-135：外部搜索 readiness 诊断契约
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 135 个补强项：`Post 8-135`。
+
+本次目标：
+
+- 让外部搜索 / 实时资料链路不仅能返回 live 或 degraded，还能说明 adapter 当前为什么不可用。
+- 将 App API 与 Agent `search_*` skill 的搜索配置状态统一成 `readiness` 诊断。
+
+涉及范围：
+
+- 后端设计：`temp/DEVELOPMENT_DOCS/backend/external_search_readiness_diagnostics_post_8_135.md`
+- 后端 service：`ExternalSearchStatusResponse` 与 `ExternalSearchResponse` 增加 `readiness`。
+- 后端 agent：搜索类 skill 输出 `output.adapter.readiness`，并在 metadata 写入 `adapter_readiness`。
+- API：同步 `API_DOCS/app.md` 与 `API_DOCS/sse.md`。
+- 迁移归档：`MIGRATION_PLANS/legacy_capability_migration/post_phase_8_135_external_search_readiness_diagnostics.md`
+
+用户可感知变化：
+
+- 后续前端展示联网搜索步骤时，可以明确区分“未启用”、“缺配置”、“已配置但本次 provider 没有可信来源”。
+- 搜索不可用时不会伪造来源，降级原因更容易解释给用户和运维。
+
+验证：
+
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent search`
+- [x] `cargo test -p service external_search`
+- [x] `cargo check -p agent -p service -p web-server`
+- [x] `cargo clippy -p agent -p service -p web-server`
+- [x] `git diff --check`
+
 ## Post 8-133：电商工作台壳层与真实路由对齐
 
 状态：done

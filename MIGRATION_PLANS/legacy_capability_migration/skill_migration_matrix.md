@@ -102,6 +102,8 @@ Post 8-113 补充：worker autosuggest 已能从“最多3条来源 / 返回5条
 
 Post 8-114 补充：App 外部搜索 API 和 Agent `search_trends` / `search_competitor` / `search_market_info` / `search_product_reviews` / `search_platform_policy` / `search_industry_benchmarks` 会过滤有可解析发布时间且超出本次 `days` 时间窗口的来源；过滤数量通过 `staleFilteredCount` / `stale_filtered_count` 回显。过滤后没有可信来源时仍按 degraded/deferred 处理，不创建假搜索证据 artifact。
 
+Post 8-135 补充：App 外部搜索 API 和 Agent `search_*` skill 均返回统一 `readiness` 诊断。`disabled` 表示未启用，`missing_config` 表示已启用但缺 `base_url` 或 `search_endpoint`，`configured` 表示后端会尝试请求真实 provider。诊断会暴露缺失配置项、默认 topic / days / max results、超时和 `has_api_key` 布尔值，但不会暴露密钥原文；配置完整仍不代表一定有 live 来源，provider 失败、无 URL 来源或全为过期来源时继续降级。
+
 ## 平台执行 / 审批治理
 
 | 旧能力 | 新产品目标 ID | 状态 | 新落点 | 备注 |
