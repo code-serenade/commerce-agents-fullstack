@@ -1,5 +1,53 @@
 # 迁移开发记录
 
+## Post 8-126：创意直播/软文趋势搜索链路
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 126 个补强项：`Post 8-126`。
+
+本次目标：
+
+- 把旧产品创意 skill 中隐藏的直播间玩法、转化节奏、爆款文章、公众号热门风格等外部趋势检索能力，迁成新产品可见、可审计、可降级的 skill 链路。
+- 让直播话术和产品软文在用户明确要求最新 / 实时 / 联网 / 搜索 / 公开资料 / 热门趋势时，先跑 creative native skill，再追加 `search_trends`。
+
+涉及范围：
+
+- 产品内核：创意岗位从“只生成直播/软文内容”增强为“native 内容 + 可见外部趋势检索”的双 skill 链路。
+- 后端 Agent：扩展 `autosuggest_creative_requests` 链式编排；普通直播话术和普通产品软文仍只触发 native skill。
+- 搜索参数：直播/软文趋势搜索使用 `search_trends`，支持解析“最多4条来源”等自然语言限制；该来源数量不会污染直播时长。
+- 搜索 query：补强创意主题抽取，支持 `帮X写...` 和 `写一篇X产品软文...` 等常见表达。
+- SSE/API 文档：同步说明 creative 直播/软文趋势双 skill 链路。
+- 迁移归档：新增 Post 8-126 独立归档和后端设计文档。
+
+用户可感知变化：
+
+- 用户要求“写一套抖音直播带货话术，联网查最新直播间玩法和转化节奏，最多4条来源”时，过程区会看到直播脚本和趋势搜索两个步骤。
+- 用户要求“写一篇冷萃咖啡产品软文，查最新公众号爆款文章和热门内容风格”时，过程区会看到产品软文和趋势搜索两个步骤。
+- 用户没有明确外部趋势诉求时，普通直播话术 / 产品软文仍只走 native skill。
+- 用户没有显式选择商品时，后端不会注入默认商品或历史商品；用户选中商品后，趋势搜索才携带 `product_ref/product_name/product_category`。
+
+当前验证：
+
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent autosuggests_creative_live_and_article_search_chains_when_requested`
+- [x] `cargo test -p agent creative_live_and_article_search_preserve_selected_product_context`
+- [x] `cargo test -p agent creative_live_and_article_remain_native_without_search_intent`
+- [x] `cargo test -p agent creative`
+- [x] `cargo test -p agent search`
+- [x] `cargo test -p agent keeps_roles_from_requesting_unowned_skills`
+- [x] `cargo check -p agent -p web-server`
+- [x] `cargo clippy -p agent -p web-server`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 真实内容趋势 provider 配置和部署仍是外部搜索能力的后续事项。
+- 前端可继续把 native + search 双 skill 链路展示为可折叠过程卡片和来源面板。
+
 ## Post 8-118：Web/SEO 增长搜索链路
 
 状态：done

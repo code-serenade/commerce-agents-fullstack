@@ -89,6 +89,15 @@ Kimi Agent 集群 = 前端交互和视觉体验参考
 - Result-count language such as `最多4条来源` is kept as search `max_results` and no longer changes video-script duration.
 - Selected product context remains explicit-only: no product ref/name/category is injected unless the current turn selected a product.
 
+## Post 8-126 Update
+
+- Creative-role live-script and product-article prompts can now surface visible two-step chains when the user explicitly asks for latest, realtime, online, live-room tactics, conversion rhythm, viral article, public-source, or hot content-style data.
+- `creative_live_script` and `creative_product_article` can be followed by `search_trends`.
+- Native-only behavior is preserved for ordinary live-script and product-article writing tasks.
+- Result-count language such as `最多4条来源` is kept as search `max_results` and no longer changes live duration.
+- Creative search subject extraction now handles both `帮X写...` and `写一篇X产品软文...` patterns so search queries stay close to the user-provided product/content subject.
+- Selected product context remains explicit-only: no product ref/name/category is injected unless the current turn selected a product.
+
 ## Post 8-118 Update
 
 - Web-role SEO optimization, keyword research, and page conversion prompts can now surface visible two-step chains when the user explicitly asks for latest, realtime, online, SEO algorithm, traffic-rule, keyword-competition, search-volume, CPC, or conversion-benchmark data.
@@ -322,22 +331,22 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-125: service platform policy search chain
+Post 8-126: creative live/article trend search chain
 ```
 
 Scope:
 
-- make service autosuggest produce visible native + `search_platform_policy(policy_type=general)` chains for ticket handling, FAQ playbooks, escalation flows, and return/refund handling when the user asks for latest platform rules, after-sales rules, compensation standards, freight rules, complaint rules, platform intervention rules, or seven-day return policies
-- keep ordinary service handling on native skills only when no platform policy context is requested
-- keep selected product context explicit-only; do not inject default, preset, history, or test product context into service policy search chains
-- keep search provider failures as transparent degraded search results rather than fabricated platform policies, compensation standards, or after-sales rules
+- make creative autosuggest produce visible native + `search_trends` chains for live scripts and product articles when the user asks for latest live-room tactics, realtime content styles, viral articles, public sources, or online trend context
+- keep ordinary live-script and product-article requests on native skills only when no fresh external context is requested
+- keep selected product context explicit-only; do not inject default, preset, history, or test product context into creative search chains
+- keep source-count language such as "最多4条来源" mapped to search `max_results`, not to live duration
 
 Reason:
 
-- old-product customer-service handling often mixed platform after-sales policies and compensation rules into local SOP outputs
-- new-product architecture should expose platform policy lookup as an auditable `search_platform_policy` skill event instead of hiding rules in service native outputs
-- natural-language limits such as "max 4 sources" must map to search parameters while ordinary service tasks remain native-only
-- real platform policies remain adapter/search concerns and must not be faked when providers are missing, failing, stale, or source-less
+- old-product creative skills often mixed trend lookup into content generation outputs
+- new-product architecture should expose live/article trend lookup as auditable `search_trends` skill events instead of hiding external context inside creative native outputs
+- live script and product article are high-frequency e-commerce content abilities and should share the same transparent search degradation boundary as video, seeding, and content-calendar skills
+- real content trend evidence remains adapter/search concern and must not be faked when providers are missing, failing, stale, or source-less
 
 ## 10. Validation Standard
 
