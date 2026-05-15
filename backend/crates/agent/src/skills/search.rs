@@ -574,12 +574,7 @@ async fn query_provider(adapter: &SearchAdapterConfig, plan: &SearchPlan) -> Res
 }
 
 fn normalize_sources(payload: &Value) -> Vec<Value> {
-    let Some(items) = payload
-        .pointer("/data/items")
-        .and_then(Value::as_array)
-        .or_else(|| payload.get("sources").and_then(Value::as_array))
-        .or_else(|| payload.get("results").and_then(Value::as_array))
-    else {
+    let Some(items) = source_items(payload) else {
         return Vec::new();
     };
 
@@ -604,26 +599,52 @@ fn normalize_sources(payload: &Value) -> Vec<Value> {
 }
 
 fn normalize_source(rank: u64, item: &Value) -> Option<Value> {
-    let title = string_field(item, &["title", "name"])
+    let title = string_field(item, &["title", "name", "headline"])
         .map(|value| compact_text(&value, 180))
         .unwrap_or_else(|| "未命名来源".to_string());
-    let url = string_field(item, &["url", "link"]).unwrap_or_default();
-    if title.trim().is_empty() && url.trim().is_empty() {
+    let url = string_field(item, &["url", "link", "href", "source_url", "sourceUrl"])
+        .map(|value| compact_text(&value, 400))
+        .unwrap_or_default();
+    if url.trim().is_empty() {
         return None;
     }
-    let snippet = string_field(item, &["snippet", "body", "summary", "content"])
-        .map(|value| compact_text(&value, 320))
-        .unwrap_or_default();
-    let published_at = string_field(item, &["published_at", "publishedAt", "pubDate"])
-        .map(|value| compact_text(&value, 64))
-        .filter(|value| !value.is_empty());
     let domain = extract_domain(&url);
+    if !is_traceable_domain(&domain) {
+        return None;
+    }
+    let snippet = string_field(
+        item,
+        &[
+            "snippet",
+            "body",
+            "summary",
+            "content",
+            "description",
+            "text",
+            "excerpt",
+        ],
+    )
+    .map(|value| compact_text(&value, 320))
+    .unwrap_or_default();
+    let published_at = string_field(
+        item,
+        &[
+            "published_at",
+            "publishedAt",
+            "pubDate",
+            "published",
+            "datePublished",
+            "date",
+        ],
+    )
+    .map(|value| compact_text(&value, 64))
+    .filter(|value| !value.is_empty());
 
     Some(json!({
         "rank": rank,
         "title": title,
         "snippet": snippet,
-        "url": compact_text(&url, 400),
+        "url": url,
         "domain": domain,
         "published_at": published_at
     }))
@@ -848,6 +869,31 @@ fn string_field(item: &Value, keys: &[&str]) -> Option<String> {
         .map(ToOwned::to_owned)
 }
 
+fn source_items(payload: &Value) -> Option<&[Value]> {
+    [
+        "/data/items",
+        "/data/results",
+        "/data/sources",
+        "/data/organic",
+        "/data/organic_results",
+        "/data/webPages/value",
+        "/items",
+        "/sources",
+        "/results",
+        "/organic",
+        "/organic_results",
+        "/webPages/value",
+        "/value",
+    ]
+    .iter()
+    .find_map(|pointer| {
+        payload
+            .pointer(pointer)
+            .and_then(Value::as_array)
+            .map(Vec::as_slice)
+    })
+}
+
 fn extract_domain(url: &str) -> String {
     let text = url.trim();
     if text.is_empty() {
@@ -862,8 +908,14 @@ fn extract_domain(url: &str) -> String {
         .next()
         .unwrap_or_default()
         .trim()
+        .trim_end_matches('.')
         .trim_start_matches("www.")
         .to_ascii_lowercase()
+}
+
+fn is_traceable_domain(value: &str) -> bool {
+    let text = value.trim();
+    !text.is_empty() && text.contains('.') && !text.chars().any(char::is_whitespace)
 }
 
 fn compact_text(value: &str, max_chars: usize) -> String {
@@ -1130,6 +1182,50 @@ mod tests {
                 .and_then(Value::as_str)
                 .is_some_and(|context| context.contains("咖啡消费趋势")
                     && context.contains("https://www.example.com/a"))
+        );
+    }
+
+    #[test]
+    fn normalizes_nested_provider_shapes_and_requires_traceable_url() {
+        let payload = json!({
+            "webPages": {
+                "value": [
+                    {
+                        "name": "无 URL 弱来源",
+                        "description": "没有可点击来源，不能作为 live evidence",
+                        "domain": "example.com"
+                    },
+                    {
+                        "name": "相对路径弱来源",
+                        "description": "相对路径不能作为 live evidence",
+                        "href": "/relative/path",
+                        "domain": "example.com"
+                    },
+                    {
+                        "headline": "咖啡消费公开资料",
+                        "text": "瓶装咖啡搜索热度提升",
+                        "href": "https://news.example.cn/coffee",
+                        "published": "2026-05-03"
+                    }
+                ]
+            }
+        });
+
+        let sources = normalize_sources(&payload);
+        let evidence = build_search_evidence(&sources);
+
+        assert_eq!(sources.len(), 1);
+        assert_eq!(sources[0].get("rank").and_then(Value::as_u64), Some(1));
+        assert_eq!(
+            sources[0].get("domain").and_then(Value::as_str),
+            Some("news.example.cn")
+        );
+        assert!(
+            evidence
+                .get("llm_context")
+                .and_then(Value::as_str)
+                .is_some_and(|context| context.contains("https://news.example.cn/coffee")
+                    && !context.contains("无 URL 弱来源"))
         );
     }
 

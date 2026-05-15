@@ -1,5 +1,18 @@
 # 阶段验收记录
 
+## Post 8-109：外部搜索来源归一化增强
+
+结论：通过。
+
+验收点：
+
+- App 侧 `/api/app/external-search/search` 和 Agent `search_*` skill 使用一致的来源归一化语义。
+- 支持更多常见 provider 来源数组结构，包括 `data.webPages.value`、`organic_results`、`results`、`sources` 和 `value`。
+- 支持更多常见来源字段，包括 `headline`、`href`、`description`、`text`、`excerpt`、`datePublished`。
+- 缺少可追溯 URL 或无法形成 domain 的弱来源不会进入 live evidence。
+- provider 过滤后无可信来源时仍走 degraded/deferred，不伪造实时来源，不创建搜索证据 artifact。
+- API 文档、后端设计文档和迁移归档已同步。
+
 ## Post 8-108：前端显式资料引用接入
 
 结论：通过。

@@ -73,6 +73,8 @@ Post 8-106 补充：Agent SSE 和工作区上下文查询支持显式 `workspace
 
 Post 8-107 补充：Agent SSE 和工作区上下文查询支持显式 `conversation_file:{fileUuid}` / `file:{fileUuid}`、`product_asset:{assetUuid}` / `asset:{assetUuid}`、`product_material:{materialUuid}` / `material:{materialUuid}` 引用。用户主动选择历史附件、商品资产或商品素材后，后端会校验当前用户、active 状态和所属资源，再把该来源合并进 `workspace_context_summary` / `workspace_context_pack`；未显式选择时不会自动读取历史附件、历史商品资料或其它同商品素材。显式商品资产 / 商品素材只作为资料来源，不会反向设置本轮选中商品。
 
+Post 8-109 补充：搜索类 `search_trends` / `search_competitor` / `search_market_info` / `search_product_reviews` / `search_platform_policy` / `search_industry_benchmarks` 的 App 侧 adapter 与 Agent skill 已增强 provider 返回结构兼容，支持 `data.items`、`data.results`、`data.sources`、`data.organic`、`data.organic_results`、`data.webPages.value`、`items`、`sources`、`results`、`organic`、`organic_results`、`webPages.value` 和 `value` 等来源数组；来源必须带可追溯 URL 且能从 URL 本身形成 domain 才会进入 live evidence，只有标题、摘要或相对路径的弱结果会被过滤。过滤后没有可信来源时仍按 degraded/deferred 处理，不创建假搜索证据 artifact。真实 provider 配置和部署仍是外部搜索能力的后续事项。
+
 ## 平台执行 / 审批治理
 
 | 旧能力 | 新产品目标 ID | 状态 | 新落点 | 备注 |

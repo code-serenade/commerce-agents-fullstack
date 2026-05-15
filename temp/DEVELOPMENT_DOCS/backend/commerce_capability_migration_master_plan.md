@@ -22,6 +22,13 @@ Kimi Agent 集群 = 前端交互和视觉体验参考
 新产品架构 = 唯一落地框架
 ```
 
+## Post 8-109 Update
+
+- App external search API and Agent `search_*` skills now accept more common provider source shapes, including `data.results`, `data.sources`, `organic_results`, `webPages.value`, and top-level `value`.
+- Source fields now accept common aliases such as `headline`, `href`, `description`, `text`, `excerpt`, and `datePublished`.
+- Live search evidence now requires a traceable URL with a domain derived from that URL. Title-only, snippet-only, or relative-path weak results are filtered.
+- If filtering leaves no reliable source, search still degrades instead of fabricating live evidence or creating a fake `search_evidence` artifact.
+
 ## Post 8-108 Update
 
 - Agent Chat frontend now exposes explicit current-conversation file sources after upload.

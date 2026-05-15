@@ -341,7 +341,10 @@
 - 该接口是 Rust 后端外部搜索 adapter 的 App 侧入口；Agent `search_*` skill 已接入同一份 `[external_search]` 配置，并复用相同字段语义
 - `maxResults` 和 `bypassCache` 是后端实际使用的搜索控制参数回显；`bypassCache=true` 会转发给 provider，但 provider 是否真的绕过缓存由 provider 自身决定
 - `evidence` 是后端归一化后的搜索证据摘要：`sourceTitles`、`sourceDomains` 用于前端来源面板，`llmContext` 用于 Agent/后端复用来源文本
-- provider 返回重复 URL 或重复标题时，后端会去重并重新生成 `rank`
+- provider 返回重复 URL 时，后端会去重并重新生成 `rank`
+- provider 来源数组兼容 `data.items`、`data.results`、`data.sources`、`data.organic`、`data.organic_results`、`data.webPages.value`、`items`、`sources`、`results`、`organic`、`organic_results`、`webPages.value` 和 `value`
+- provider 来源字段兼容 `title/name/headline`、`url/link/href/source_url/sourceUrl`、`snippet/body/summary/content/description/text/excerpt` 和 `published_at/publishedAt/pubDate/published/datePublished/date`
+- 只有带可追溯 URL 且可从 URL 本身形成 domain 的来源会进入 `data.items` / `evidence`；只有标题、摘要、相对路径或无 URL 的弱结果会被过滤，过滤后没有可信来源时仍返回 `status=degraded`
 - 当前不会在前端伪造搜索结果；只有 `status=live` 且 `data.items` 非空时，前端才可展示为实时来源
 
 ## 3. 查询我的会话列表

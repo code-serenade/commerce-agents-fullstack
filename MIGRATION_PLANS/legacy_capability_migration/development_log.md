@@ -1,5 +1,34 @@
 # 迁移开发记录
 
+## Post 8-109：外部搜索来源归一化增强
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 109 个补强项：`Post 8-109`。
+
+本轮完成：
+
+- 增强 App 侧外部搜索接口和 Agent `search_*` skill 的 provider 返回结构兼容。
+- 支持 `data.items`、`data.results`、`data.sources`、`data.organic`、`data.organic_results`、`data.webPages.value`、`items`、`sources`、`results`、`organic`、`organic_results`、`webPages.value` 和 `value` 等常见来源数组。
+- 兼容 `title/name/headline`、`url/link/href/source_url/sourceUrl`、`snippet/body/summary/content/description/text/excerpt`、`published_at/publishedAt/pubDate/published/datePublished/date` 等来源字段。
+- 搜索来源必须有可追溯 URL 且能形成 domain；只有标题或摘要但没有 URL 的弱结果会被过滤。
+- 过滤后没有可信来源时继续返回 degraded/deferred，不创建假 live source 或假搜索证据 artifact。
+
+用户可感知变化：
+
+- 后续接入真实外部搜索 provider 后，更多 provider 返回格式能被后端识别为搜索证据。
+- 用户看到的“实时来源”必须可点击、可追溯；系统不会把无法核验的标题摘要当作联网证据。
+- 如果 provider 只返回弱结果，问答仍会明确降级，而不是假装已经联网搜索成功。
+
+文档：
+
+- [x] 后端设计：`temp/DEVELOPMENT_DOCS/backend/external_search_source_normalization_post_8_109.md`
+- [x] API 文档：`API_DOCS/app.md`、`API_DOCS/sse.md`
+- [x] 迁移归档：`MIGRATION_PLANS/legacy_capability_migration/post_phase_8_109_external_search_source_normalization.md`
+
 ## Post 8-108：前端显式资料引用接入
 
 状态：done

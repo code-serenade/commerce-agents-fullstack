@@ -324,12 +324,7 @@ fn normalize_provider_response(
 }
 
 fn normalize_sources(payload: &Value) -> Vec<ExternalSearchSource> {
-    let Some(items) = payload
-        .pointer("/data/items")
-        .and_then(Value::as_array)
-        .or_else(|| payload.get("sources").and_then(Value::as_array))
-        .or_else(|| payload.get("results").and_then(Value::as_array))
-    else {
+    let Some(items) = source_items(payload) else {
         return Vec::new();
     };
 
@@ -354,26 +349,52 @@ fn normalize_sources(payload: &Value) -> Vec<ExternalSearchSource> {
 }
 
 fn normalize_source(rank: u64, item: &Value) -> Option<ExternalSearchSource> {
-    let title = string_field(item, &["title", "name"])
+    let title = string_field(item, &["title", "name", "headline"])
         .map(|value| compact_text(&value, 180))
         .unwrap_or_else(|| "未命名来源".to_string());
-    let url = string_field(item, &["url", "link"]).unwrap_or_default();
-    if title.trim().is_empty() && url.trim().is_empty() {
+    let url = string_field(item, &["url", "link", "href", "source_url", "sourceUrl"])
+        .map(|value| compact_text(&value, 400))
+        .unwrap_or_default();
+    if url.trim().is_empty() {
         return None;
     }
-    let snippet = string_field(item, &["snippet", "body", "summary", "content"])
-        .map(|value| compact_text(&value, 320))
-        .unwrap_or_default();
-    let published_at = string_field(item, &["published_at", "publishedAt", "pubDate"])
-        .map(|value| compact_text(&value, 64))
-        .filter(|value| !value.is_empty());
     let domain = extract_domain(&url);
+    if !is_traceable_domain(&domain) {
+        return None;
+    }
+    let snippet = string_field(
+        item,
+        &[
+            "snippet",
+            "body",
+            "summary",
+            "content",
+            "description",
+            "text",
+            "excerpt",
+        ],
+    )
+    .map(|value| compact_text(&value, 320))
+    .unwrap_or_default();
+    let published_at = string_field(
+        item,
+        &[
+            "published_at",
+            "publishedAt",
+            "pubDate",
+            "published",
+            "datePublished",
+            "date",
+        ],
+    )
+    .map(|value| compact_text(&value, 64))
+    .filter(|value| !value.is_empty());
 
     Some(ExternalSearchSource {
         rank,
         title,
         snippet,
-        url: compact_text(&url, 400),
+        url,
         domain,
         published_at,
     })
@@ -542,6 +563,31 @@ fn string_field(item: &Value, keys: &[&str]) -> Option<String> {
         .map(ToOwned::to_owned)
 }
 
+fn source_items(payload: &Value) -> Option<&[Value]> {
+    [
+        "/data/items",
+        "/data/results",
+        "/data/sources",
+        "/data/organic",
+        "/data/organic_results",
+        "/data/webPages/value",
+        "/items",
+        "/sources",
+        "/results",
+        "/organic",
+        "/organic_results",
+        "/webPages/value",
+        "/value",
+    ]
+    .iter()
+    .find_map(|pointer| {
+        payload
+            .pointer(pointer)
+            .and_then(Value::as_array)
+            .map(Vec::as_slice)
+    })
+}
+
 fn extract_domain(url: &str) -> String {
     let text = url.trim();
     if text.is_empty() {
@@ -556,8 +602,14 @@ fn extract_domain(url: &str) -> String {
         .next()
         .unwrap_or_default()
         .trim()
+        .trim_end_matches('.')
         .trim_start_matches("www.")
         .to_ascii_lowercase()
+}
+
+fn is_traceable_domain(value: &str) -> bool {
+    let text = value.trim();
+    !text.is_empty() && text.contains('.') && !text.chars().any(char::is_whitespace)
 }
 
 fn compact_text(value: &str, max_chars: usize) -> String {
@@ -714,5 +766,63 @@ mod tests {
         assert_eq!(sources[1].rank, 2);
         assert_eq!(sources[0].domain, "example.com");
         assert_eq!(sources[1].domain, "report.example.cn");
+    }
+
+    #[test]
+    fn provider_payload_accepts_nested_common_search_shapes() {
+        let payload = json!({
+            "data": {
+                "webPages": {
+                    "value": [
+                        {
+                            "name": "咖啡行业公开报告",
+                            "description": "即饮咖啡线上增速继续提升",
+                            "url": "https://www.research.example.cn/report",
+                            "datePublished": "2026-05-02"
+                        }
+                    ]
+                }
+            }
+        });
+
+        let sources = normalize_sources(&payload);
+
+        assert_eq!(sources.len(), 1);
+        assert_eq!(sources[0].rank, 1);
+        assert_eq!(sources[0].title, "咖啡行业公开报告");
+        assert_eq!(sources[0].snippet, "即饮咖啡线上增速继续提升");
+        assert_eq!(sources[0].domain, "research.example.cn");
+        assert_eq!(sources[0].published_at.as_deref(), Some("2026-05-02"));
+    }
+
+    #[test]
+    fn provider_payload_rejects_sources_without_traceable_url() {
+        let payload = json!({
+            "organic_results": [
+                {
+                    "title": "只有标题的弱来源",
+                    "snippet": "没有 URL，不能作为联网证据",
+                    "domain": "example.com"
+                },
+                {
+                    "title": "相对路径弱来源",
+                    "snippet": "相对路径不能作为可追溯来源",
+                    "href": "/relative/path",
+                    "domain": "example.com"
+                },
+                {
+                    "headline": "可追溯来源",
+                    "excerpt": "有 href 可核验",
+                    "href": "https://verified.example.com/article"
+                }
+            ]
+        });
+
+        let sources = normalize_sources(&payload);
+
+        assert_eq!(sources.len(), 1);
+        assert_eq!(sources[0].rank, 1);
+        assert_eq!(sources[0].title, "可追溯来源");
+        assert_eq!(sources[0].domain, "verified.example.com");
     }
 }
