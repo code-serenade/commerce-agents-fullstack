@@ -1,7 +1,10 @@
 import { useCallback, type MutableRefObject } from "react"
 import type { Dispatch, SetStateAction } from "react"
 import type { AgentRuntimeEvent } from "../agent-chat-data"
-import type { AgentChatProductContextSelection } from "../domain/agent-chat-context-selection"
+import type {
+  AgentChatProductContextSelection,
+  AgentChatSourceContextSelection,
+} from "../domain/agent-chat-context-selection"
 import type { AgentChatMessageFormatCopy } from "../domain/agent-chat-message-mapping"
 import type { AgentChatStrategy } from "../domain/agent-chat-strategy"
 import type { AgentChatRuntimeSelection } from "../domain/agent-runtime-options"
@@ -19,6 +22,7 @@ export function useAgentChatSend(input: {
   messageFormatCopy: AgentChatMessageFormatCopy
   runtimeSelection: AgentChatRuntimeSelection
   selectedProducts: AgentChatProductContextSelection[]
+  selectedSources: AgentChatSourceContextSelection[]
   sessionIdRef: MutableRefObject<string>
   setConversationId: Dispatch<SetStateAction<string | null>>
   setConversations: Dispatch<SetStateAction<AgentChatConversationItem[]>>
@@ -41,6 +45,7 @@ export function useAgentChatSend(input: {
     messageFormatCopy,
     runtimeSelection,
     selectedProducts,
+    selectedSources,
     sessionIdRef,
     setConversationId,
     setConversations,
@@ -71,6 +76,7 @@ export function useAgentChatSend(input: {
       },
       runtimeSelection,
       selectedProducts,
+      selectedSources,
       sessionIdRef,
       setConversationId,
       setConversations,
@@ -97,6 +103,7 @@ export function useAgentChatSend(input: {
     messageFormatCopy,
     runtimeSelection,
     selectedProducts,
+    selectedSources,
     sessionIdRef,
     setConversationId,
     setConversations,

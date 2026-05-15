@@ -1,5 +1,33 @@
 # 迁移开发记录
 
+## Post 8-108：前端显式资料引用接入
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 108 个补强项：`Post 8-108`。
+
+本轮完成：
+
+- Agent Chat 前端新增“资料”选择入口。
+- 当前会话已上传且已登记的文件会变成可选资料来源。
+- 用户手动勾选后，发送问答会把 `conversation_file:{fileId}` 合并进 `metadata.context.contextRefs`。
+- 商品引用与资料引用在前端 domain 中统一去重合并；资料引用不会反向变成已选商品。
+- 未勾选资料时，普通问答不自动读取历史文件、商品素材、测试资料或默认商品。
+
+用户可感知变化：
+
+- 上传文件后，用户可以点输入栏工具区的“资料”按钮，选择本轮要引用的文件。
+- 被勾选的文件会进入后端真实上下文链路；未勾选的文件只保留为会话附件，不影响本轮回答。
+- 不可读文件会显示“仅元数据”，避免把未解析的二进制文件伪装成已读取正文。
+
+文档：
+
+- [x] 前端设计：`temp/DEVELOPMENT_DOCS/frontend/explicit_workspace_source_context_refs_post_8_108.md`
+- [x] 迁移归档：`MIGRATION_PLANS/legacy_capability_migration/post_phase_8_108_frontend_explicit_source_context_refs.md`
+
 ## Post 8-107：显式工作区来源上下文引用
 
 状态：done

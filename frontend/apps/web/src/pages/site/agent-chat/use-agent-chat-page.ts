@@ -10,12 +10,14 @@ import type { AgentChatAttachmentItem, AgentChatConversationItem, AgentChatMessa
 import { loadLatestAgentConversation } from "./view-model/agent-chat-conversation-actions"
 import { resetGuestAgentChatState } from "./view-model/agent-chat-page-actions"
 import { useAgentChatAttachmentUploads } from "./view-model/use-agent-chat-attachment-uploads"
+import { createAgentChatPageViewModel } from "./view-model/agent-chat-page-view-model"
 import { useAgentChatPageCommands } from "./view-model/use-agent-chat-page-commands"
 import { useAgentChatPlaybooks } from "./view-model/use-agent-chat-playbooks"
 import { useAgentChatProductContext } from "./view-model/use-agent-chat-product-context"
 import { useAgentRuntimeOptions } from "./view-model/use-agent-runtime-options"
 import { useAgentRunFeedback } from "./view-model/use-agent-run-feedback"
 import { useAgentChatSend } from "./view-model/use-agent-chat-send"
+import { useAgentChatSourceContext } from "./view-model/use-agent-chat-source-context"
 
 export function useAgentChatPage() {
   const { t } = useTranslation()
@@ -49,6 +51,7 @@ export function useAgentChatPage() {
   const abortRef = useRef<AbortController | null>(null)
   const sessionIdRef = useRef(createSessionId())
   const productContext = useAgentChatProductContext({ enabled: Boolean(user), isStreaming })
+  const sourceContext = useAgentChatSourceContext({ attachments, isStreaming })
   const playbookContext = useAgentChatPlaybooks({ enabled: Boolean(user) })
   const runtimeContext = useAgentRuntimeOptions({ enabled: Boolean(user) })
   const feedback = useAgentRunFeedback({
@@ -81,6 +84,7 @@ export function useAgentChatPage() {
       setRuntimeEvents,
       setAttachments,
       clearSelectedProducts: productContext.clearSelectedProducts,
+      clearSelectedSources: sourceContext.clearSelectedSources,
       restoreSelectedProducts: productContext.restoreSelectedProducts,
       tError: t("agentChat.error"),
     }),
@@ -90,6 +94,7 @@ export function useAgentChatPage() {
       messageFormatCopy,
       productContext.clearSelectedProducts,
       productContext.restoreSelectedProducts,
+      sourceContext.clearSelectedSources,
       t,
     ]
   )
@@ -156,6 +161,7 @@ export function useAgentChatPage() {
     messageFormatCopy,
     runtimeSelection: selectedRuntime,
     selectedProducts: productContext.selectedProducts,
+    selectedSources: sourceContext.selectedSources,
     sessionIdRef,
     setConversationId,
     setConversations,
@@ -168,13 +174,16 @@ export function useAgentChatPage() {
     tError: t("agentChat.error"),
   })
 
-  return {
+  return createAgentChatPageViewModel({
     attachments,
     availableProducts: productContext.availableProducts,
+    availableSources: sourceContext.availableSources,
     canSend,
+    clearSelectedProducts: productContext.clearSelectedProducts,
+    clearSelectedSources: sourceContext.clearSelectedSources,
     conversationId,
     conversations,
-    deleteConversation: commands.deleteConversation,
+    commands,
     error,
     feedback,
     input,
@@ -188,24 +197,20 @@ export function useAgentChatPage() {
     runtimeOptions: runtimeContext.runtimeOptions,
     runtimeSelection: selectedRuntime,
     runtimeEvents,
-    selectPlaybook: commands.selectPlaybook,
     selectedProducts: productContext.selectedProducts,
-    clearSelectedProducts: productContext.clearSelectedProducts,
-    renameConversation: commands.renameConversation,
-    sendMessage,
-    selectConversation: commands.selectConversation,
     selectedStrategy,
+    selectedSources: sourceContext.selectedSources,
+    sendMessage,
     setInput,
     setRuntimeCollaborationMode: runtimeContext.setCollaborationMode,
     setRuntimeLearningLevel: runtimeContext.setLearningLevel,
     setRuntimeModelName: runtimeContext.setModelName,
     setRuntimePrimaryRole: runtimeContext.setPrimaryRole,
     setStrategyId,
-    startNewConversation: commands.startNewConversation,
-    stopStreaming: commands.stopStreaming,
     strategyId,
     toggleProductContext: productContext.toggleProductContext,
     toggleRuntimeRole: runtimeContext.toggleRole,
+    toggleSourceContext: sourceContext.toggleSourceContext,
     uploadAttachments,
-  }
+  })
 }

@@ -1,23 +1,20 @@
 import {
   type ChangeEvent,
-  type KeyboardEvent,
   type MouseEvent,
   useEffect,
   useRef,
-  useState,
 } from "react"
-import { useTranslation } from "react-i18next"
 import type { AgentChatComposerProps } from "./agent-chat-composer-types"
 import { AgentChatAttachmentStrip } from "./agent-chat-attachment-strip"
+import { AgentChatComposerInput } from "./agent-chat-composer-input"
 import { AgentChatComposerPanels } from "./agent-chat-composer-panels"
-import {
-  AgentChatComposerSendButton,
-  AgentChatComposerToolbar,
-} from "./agent-chat-composer-toolbar"
+import { AgentChatComposerToolbar } from "./agent-chat-composer-toolbar"
+import { useAgentChatPanelState } from "../view-model/use-agent-chat-panel-state"
 
 export function AgentChatComposer({
   attachments,
   availableProducts,
+  availableSources,
   canSend,
   input,
   isLoggedIn,
@@ -36,30 +33,39 @@ export function AgentChatComposer({
   onStop,
   onStrategyChange,
   onClearProductContext,
+  onClearSourceContext,
   onToggleProductContext,
+  onToggleSourceContext,
   onUploadAttachments,
   selectedProducts,
+  selectedSources,
   playbooks,
   runtimeOptions,
   runtimeSelection,
   strategyId,
 }: AgentChatComposerProps) {
-  const { t } = useTranslation()
   const composerRootRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const [productContextOpen, setProductContextOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
+  const panels = useAgentChatPanelState()
+  const {
+    closePanels,
+    productContextOpen,
+    setProductContextOpen,
+    setSourceContextOpen,
+    settingsOpen,
+    sourceContextOpen,
+    toggleSettingsPanel,
+  } = panels
 
   useEffect(() => {
-    if (!productContextOpen && !settingsOpen) return
+    if (!productContextOpen && !sourceContextOpen && !settingsOpen) return
 
     const closePanelsOnOutsideEvent = (event: Event) => {
       const target = event.target
       if (!(target instanceof Node)) return
       if (composerRootRef.current?.contains(target)) return
-      setProductContextOpen(false)
-      setSettingsOpen(false)
+      closePanels()
     }
 
     document.addEventListener("pointerdown", closePanelsOnOutsideEvent, true)
@@ -72,7 +78,12 @@ export function AgentChatComposer({
       )
       document.removeEventListener("click", closePanelsOnOutsideEvent, true)
     }
-  }, [productContextOpen, settingsOpen])
+  }, [
+    closePanels,
+    productContextOpen,
+    settingsOpen,
+    sourceContextOpen,
+  ])
 
   useEffect(() => {
     const textarea = textareaRef.current
@@ -82,20 +93,8 @@ export function AgentChatComposer({
   }, [input])
 
   const sendAndClosePanels = () => {
-    setProductContextOpen(false)
-    setSettingsOpen(false)
+    closePanels()
     onSend()
-  }
-
-  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (
-      event.key !== "Enter" ||
-      event.shiftKey ||
-      event.nativeEvent.isComposing
-    )
-      return
-    event.preventDefault()
-    if (canSend) sendAndClosePanels()
   }
 
   const focusComposer = (event: MouseEvent<HTMLDivElement>) => {
@@ -124,6 +123,7 @@ export function AgentChatComposer({
         <div className="relative">
           <AgentChatComposerPanels
             availableProducts={availableProducts}
+            availableSources={availableSources}
             isLoadingPlaybooks={isLoadingPlaybooks}
             isLoadingProducts={isLoadingProducts}
             isLoadingRuntimeOptions={isLoadingRuntimeOptions}
@@ -136,55 +136,40 @@ export function AgentChatComposer({
             onSelectPlaybook={onSelectPlaybook}
             onStrategyChange={onStrategyChange}
             onClearProductContext={onClearProductContext}
+            onClearSourceContext={onClearSourceContext}
             onToggleProductContext={onToggleProductContext}
+            onToggleSourceContext={onToggleSourceContext}
             onToggleRuntimeRole={onToggleRuntimeRole}
             playbooks={playbooks}
             productContextOpen={productContextOpen}
             runtimeOptions={runtimeOptions}
             runtimeSelection={runtimeSelection}
             selectedProducts={selectedProducts}
+            selectedSources={selectedSources}
             settingsOpen={settingsOpen}
+            sourceContextOpen={sourceContextOpen}
             strategyId={strategyId}
           />
 
           <div className="grid gap-1 rounded-lg bg-background p-1.5 shadow-sm">
-            <input
-              ref={fileInputRef}
-              className="hidden"
-              multiple
-              type="file"
-              onChange={handleAttachmentChange}
+            <AgentChatComposerInput
+              canSend={canSend}
+              fileInputRef={fileInputRef}
+              input={input}
+              isLoggedIn={isLoggedIn}
+              isStreaming={isStreaming}
+              onAttachmentChange={handleAttachmentChange}
+              onInputChange={onInputChange}
+              onSend={sendAndClosePanels}
+              onStop={onStop}
+              textareaRef={textareaRef}
             />
-            <div className="grid min-h-10 grid-cols-1 gap-1 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-              <textarea
-                ref={textareaRef}
-                value={input}
-                onChange={(event) => onInputChange(event.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={t(
-                  !isLoggedIn
-                    ? "agentChat.composer.loginPlaceholder"
-                    : "agentChat.composer.placeholder"
-                )}
-                disabled={isStreaming}
-                rows={1}
-                className="max-h-44 min-h-10 w-full resize-none border-0 bg-transparent px-3 py-2 text-sm/6 outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60"
-              />
-              <div className="hidden min-h-10 items-center sm:flex">
-                <AgentChatComposerSendButton
-                  canSend={canSend}
-                  isLoggedIn={isLoggedIn}
-                  isStreaming={isStreaming}
-                  onSend={sendAndClosePanels}
-                  onStop={onStop}
-                />
-              </div>
-            </div>
 
             <AgentChatAttachmentStrip attachments={attachments} />
 
             <AgentChatComposerToolbar
               availableProducts={availableProducts}
+              availableSources={availableSources}
               canSend={canSend}
               isLoggedIn={isLoggedIn}
               isLoadingPlaybooks={isLoadingPlaybooks}
@@ -204,24 +189,21 @@ export function AgentChatComposer({
               onStop={onStop}
               onStrategyChange={onStrategyChange}
               onClearProductContext={onClearProductContext}
+              onClearSourceContext={onClearSourceContext}
               onToggleProductContext={onToggleProductContext}
-              onToggleProductPanel={(open) => {
-                setProductContextOpen(open)
-                if (open) setSettingsOpen(false)
-              }}
+              onToggleProductPanel={setProductContextOpen}
+              onToggleSourceContext={onToggleSourceContext}
+              onToggleSourcePanel={setSourceContextOpen}
               onToggleRuntimeRole={onToggleRuntimeRole}
-              onToggleSettingsPanel={() => {
-                setSettingsOpen((open) => {
-                  if (!open) setProductContextOpen(false)
-                  return !open
-                })
-              }}
+              onToggleSettingsPanel={toggleSettingsPanel}
               playbooks={playbooks}
               productContextOpen={productContextOpen}
               runtimeOptions={runtimeOptions}
               runtimeSelection={runtimeSelection}
               selectedProducts={selectedProducts}
+              selectedSources={selectedSources}
               settingsOpen={settingsOpen}
+              sourceContextOpen={sourceContextOpen}
               strategyId={strategyId}
             />
           </div>

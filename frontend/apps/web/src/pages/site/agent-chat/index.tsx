@@ -51,6 +51,7 @@ export default function AgentChatPage() {
           <AgentChatComposer
             attachments={chat.attachments}
             availableProducts={chat.availableProducts}
+            availableSources={chat.availableSources}
             canSend={chat.canSend}
             input={chat.input}
             isLoggedIn={chat.isLoggedIn}
@@ -69,9 +70,12 @@ export default function AgentChatPage() {
             onStop={chat.stopStreaming}
             onStrategyChange={chat.setStrategyId}
             onClearProductContext={chat.clearSelectedProducts}
+            onClearSourceContext={chat.clearSelectedSources}
             onToggleProductContext={chat.toggleProductContext}
+            onToggleSourceContext={chat.toggleSourceContext}
             onUploadAttachments={chat.uploadAttachments}
             selectedProducts={chat.selectedProducts}
+            selectedSources={chat.selectedSources}
             playbooks={chat.playbooks}
             runtimeOptions={chat.runtimeOptions}
             runtimeSelection={chat.runtimeSelection}

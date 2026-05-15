@@ -20,6 +20,7 @@ export interface AgentChatPageStateActions {
   setRuntimeEvents: Dispatch<SetStateAction<AgentRuntimeEvent[]>>
   setAttachments?: Dispatch<SetStateAction<AgentChatAttachmentItem[]>>
   clearSelectedProducts?: () => void
+  clearSelectedSources?: () => void
 }
 
 export function resetGuestAgentChatState(
@@ -34,6 +35,7 @@ export function resetGuestAgentChatState(
     state.setMessages([state.createWelcomeMessage()])
     state.setAttachments?.([])
     state.clearSelectedProducts?.()
+    state.clearSelectedSources?.()
   })
 }
 
@@ -49,6 +51,7 @@ export function startNewAgentConversation(state: AgentChatPageStateActions) {
   state.setMessages([state.createWelcomeMessage()])
   state.setAttachments?.([])
   state.clearSelectedProducts?.()
+  state.clearSelectedSources?.()
 }
 
 export function stopAgentStreaming(state: AgentChatPageStateActions) {

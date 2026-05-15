@@ -22,6 +22,13 @@ Kimi Agent 集群 = 前端交互和视觉体验参考
 新产品架构 = 唯一落地框架
 ```
 
+## Post 8-108 Update
+
+- Agent Chat frontend now exposes explicit current-conversation file sources after upload.
+- Manual source selection sends `conversation_file:{fileId}` through `metadata.context.contextRefs`, matching the Post 8-107 backend contract.
+- Source refs are context-only and do not reverse-select products.
+- No source is injected when the user has not selected it, preserving the separate paths for selected product, selected source, and ordinary general Q&A.
+
 ## 2. Current Constraints
 
 - `backend/crates/agent/` can now be modified. The old no-agent-crate restriction is no longer active.

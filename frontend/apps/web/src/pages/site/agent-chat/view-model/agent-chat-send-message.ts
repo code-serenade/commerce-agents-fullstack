@@ -10,6 +10,7 @@ import {
 import {
   createContextRefs,
   type AgentChatProductContextSelection,
+  type AgentChatSourceContextSelection,
 } from "../domain/agent-chat-context-selection"
 import type { AgentChatRuntimeSelection } from "../domain/agent-runtime-options"
 import type { AgentChatStrategy } from "../domain/agent-chat-strategy"
@@ -30,6 +31,7 @@ interface SendAgentChatMessageInput {
   setMessages: Dispatch<SetStateAction<AgentChatMessage[]>>
   setRuntimeEvents: Dispatch<SetStateAction<AgentRuntimeEvent[]>>
   selectedProducts: AgentChatProductContextSelection[]
+  selectedSources: AgentChatSourceContextSelection[]
   runtimeSelection: AgentChatRuntimeSelection
   strategy: AgentChatStrategy
   tError: string
@@ -63,7 +65,10 @@ export async function sendAgentChatMessage(
       modelName: input.runtimeSelection.modelName,
     }
     const contextMeta = {
-      contextRefs: createContextRefs(input.selectedProducts),
+      contextRefs: createContextRefs(
+        input.selectedProducts,
+        input.selectedSources
+      ),
       productIds: input.selectedProducts.map((product) => product.id),
     }
     let activeConversationId = input.conversationId

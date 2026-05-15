@@ -1,6 +1,9 @@
 import { FileUp, LockKeyhole, Send, Square } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import type { AgentChatProductContextSelection } from "../domain/agent-chat-context-selection"
+import type {
+  AgentChatProductContextSelection,
+  AgentChatSourceContextSelection,
+} from "../domain/agent-chat-context-selection"
 import type { AgentChatPlaybookSelection } from "../domain/agent-chat-playbook"
 import type {
   AgentChatRuntimeSelection,
@@ -9,9 +12,11 @@ import type {
 import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
 import { AgentChatProductContextBar } from "./agent-chat-product-context-bar"
 import { AgentChatSettingsPanel } from "./agent-chat-settings-panel"
+import { AgentChatSourceContextBar } from "./agent-chat-source-context-bar"
 
 export function AgentChatComposerToolbar({
   availableProducts,
+  availableSources,
   canSend,
   isLoggedIn,
   isLoadingPlaybooks,
@@ -28,8 +33,11 @@ export function AgentChatComposerToolbar({
   onStop,
   onStrategyChange,
   onClearProductContext,
+  onClearSourceContext,
   onToggleProductContext,
   onToggleProductPanel,
+  onToggleSourceContext,
+  onToggleSourcePanel,
   onToggleRuntimeRole,
   onToggleSettingsPanel,
   playbooks,
@@ -37,10 +45,13 @@ export function AgentChatComposerToolbar({
   runtimeOptions,
   runtimeSelection,
   selectedProducts,
+  selectedSources,
   settingsOpen,
+  sourceContextOpen,
   strategyId,
 }: {
   availableProducts: AgentChatProductContextSelection[]
+  availableSources: AgentChatSourceContextSelection[]
   canSend: boolean
   isLoggedIn: boolean
   isLoadingPlaybooks: boolean
@@ -57,8 +68,11 @@ export function AgentChatComposerToolbar({
   onStop: () => void
   onStrategyChange: (strategyId: AgentChatStrategyId) => void
   onClearProductContext: () => void
+  onClearSourceContext: () => void
   onToggleProductContext: (product: AgentChatProductContextSelection) => void
   onToggleProductPanel: (open: boolean) => void
+  onToggleSourceContext: (source: AgentChatSourceContextSelection) => void
+  onToggleSourcePanel: (open: boolean) => void
   onToggleRuntimeRole: (value: string) => void
   onToggleSettingsPanel: () => void
   playbooks: AgentChatPlaybookSelection[]
@@ -66,7 +80,9 @@ export function AgentChatComposerToolbar({
   runtimeOptions: AgentRuntimeOptions | null
   runtimeSelection: AgentChatRuntimeSelection
   selectedProducts: AgentChatProductContextSelection[]
+  selectedSources: AgentChatSourceContextSelection[]
   settingsOpen: boolean
+  sourceContextOpen: boolean
   strategyId: AgentChatStrategyId
 }) {
   const { t } = useTranslation()
@@ -93,6 +109,16 @@ export function AgentChatComposerToolbar({
           onOpenChange={onToggleProductPanel}
           onToggleProductContext={onToggleProductContext}
           selectedProducts={selectedProducts}
+          variant="compact"
+        />
+        <AgentChatSourceContextBar
+          availableSources={availableSources}
+          disabled={isStreaming}
+          isOpen={sourceContextOpen}
+          onClearSourceContext={onClearSourceContext}
+          onOpenChange={onToggleSourcePanel}
+          onToggleSourceContext={onToggleSourceContext}
+          selectedSources={selectedSources}
           variant="compact"
         />
         <AgentChatSettingsPanel

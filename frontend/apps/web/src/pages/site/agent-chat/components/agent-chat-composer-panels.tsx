@@ -1,4 +1,7 @@
-import type { AgentChatProductContextSelection } from "../domain/agent-chat-context-selection"
+import type {
+  AgentChatProductContextSelection,
+  AgentChatSourceContextSelection,
+} from "../domain/agent-chat-context-selection"
 import type { AgentChatPlaybookSelection } from "../domain/agent-chat-playbook"
 import type {
   AgentChatRuntimeSelection,
@@ -7,9 +10,11 @@ import type {
 import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
 import { AgentChatProductContextBar } from "./agent-chat-product-context-bar"
 import { AgentChatSettingsPanel } from "./agent-chat-settings-panel"
+import { AgentChatSourceContextBar } from "./agent-chat-source-context-bar"
 
 export function AgentChatComposerPanels({
   availableProducts,
+  availableSources,
   isLoadingPlaybooks,
   isLoadingProducts,
   isLoadingRuntimeOptions,
@@ -22,17 +27,22 @@ export function AgentChatComposerPanels({
   onSelectPlaybook,
   onStrategyChange,
   onClearProductContext,
+  onClearSourceContext,
   onToggleProductContext,
+  onToggleSourceContext,
   onToggleRuntimeRole,
   playbooks,
   productContextOpen,
   runtimeOptions,
   runtimeSelection,
   selectedProducts,
+  selectedSources,
   settingsOpen,
+  sourceContextOpen,
   strategyId,
 }: {
   availableProducts: AgentChatProductContextSelection[]
+  availableSources: AgentChatSourceContextSelection[]
   isLoadingPlaybooks: boolean
   isLoadingProducts: boolean
   isLoadingRuntimeOptions: boolean
@@ -45,14 +55,18 @@ export function AgentChatComposerPanels({
   onSelectPlaybook: (playbook: AgentChatPlaybookSelection) => void
   onStrategyChange: (strategyId: AgentChatStrategyId) => void
   onClearProductContext: () => void
+  onClearSourceContext: () => void
   onToggleProductContext: (product: AgentChatProductContextSelection) => void
+  onToggleSourceContext: (source: AgentChatSourceContextSelection) => void
   onToggleRuntimeRole: (value: string) => void
   playbooks: AgentChatPlaybookSelection[]
   productContextOpen: boolean
   runtimeOptions: AgentRuntimeOptions | null
   runtimeSelection: AgentChatRuntimeSelection
   selectedProducts: AgentChatProductContextSelection[]
+  selectedSources: AgentChatSourceContextSelection[]
   settingsOpen: boolean
+  sourceContextOpen: boolean
   strategyId: AgentChatStrategyId
 }) {
   return (
@@ -69,6 +83,21 @@ export function AgentChatComposerPanels({
             onClearProductContext={onClearProductContext}
             onToggleProductContext={onToggleProductContext}
             selectedProducts={selectedProducts}
+            variant="panel"
+          />
+        </div>
+      ) : null}
+      {sourceContextOpen ? (
+        <div
+          className="absolute inset-x-0 bottom-full z-50 mb-2 rounded-xl border border-border bg-background p-3 shadow-2xl shadow-black/15"
+          data-composer-interactive="true"
+        >
+          <AgentChatSourceContextBar
+            availableSources={availableSources}
+            disabled={isStreaming}
+            onClearSourceContext={onClearSourceContext}
+            onToggleSourceContext={onToggleSourceContext}
+            selectedSources={selectedSources}
             variant="panel"
           />
         </div>

@@ -23,6 +23,7 @@ interface ConversationActionState {
   messageFormatCopy: AgentChatMessageFormatCopy
   sessionIdRef: MutableRefObject<string>
   clearSelectedProducts?: () => void
+  clearSelectedSources?: () => void
   restoreSelectedProducts?: (productIds: string[]) => void
   setConversationId: Dispatch<SetStateAction<string | null>>
   setConversations: Dispatch<SetStateAction<AgentChatConversationItem[]>>
@@ -138,6 +139,7 @@ export async function deleteAgentConversation(
       state.setRuntimeEvents([])
       state.setInput("")
       state.clearSelectedProducts?.()
+      state.clearSelectedSources?.()
     }
   } catch (err) {
     state.setError(formatActionError(err, state))
@@ -151,6 +153,7 @@ function resetActiveConversation(state: ConversationActionState) {
   state.setRuntimeEvents([])
   state.setAttachments?.([])
   state.clearSelectedProducts?.()
+  state.clearSelectedSources?.()
 }
 
 function restoreConversationContext(
@@ -164,6 +167,7 @@ function restoreConversationContext(
     state.clearSelectedProducts?.()
   }
   state.setAttachments?.(mapConversationAttachments(detail))
+  state.clearSelectedSources?.()
 }
 
 function formatActionError(err: unknown, state: ConversationActionState) {
