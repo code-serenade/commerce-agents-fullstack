@@ -72,6 +72,14 @@ Kimi Agent 集群 = 前端交互和视觉体验参考
 - Industry benchmark search now supports `metric=dsr` in addition to existing NPS and KPI metrics.
 - Selected product context is still explicit-only: no product ref/name/category is injected unless the current turn selected a product.
 
+## Post 8-116 Update
+
+- Data-role competitor analysis and price-elasticity prompts can now surface visible two-step chains when the user explicitly asks for realtime/latest/online public market data.
+- `data_competitor_analysis` can be followed by `search_competitor`; `data_price_elasticity` can be followed by `search_competitor` with `focus=price`.
+- Native-only prompts still remain native-only, so the product does not imply realtime competitor intelligence unless the user asked for it and the search adapter produced real sources.
+- `infer_search_max_results` now handles multi-digit limits before non-ASCII punctuation without byte-boundary panics.
+- Selected product context remains explicit-only across both native data skill input and follow-up competitor search input.
+
 ## Post 8-108 Update
 
 - Agent Chat frontend now exposes explicit current-conversation file sources after upload.

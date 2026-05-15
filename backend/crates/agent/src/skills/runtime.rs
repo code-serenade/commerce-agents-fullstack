@@ -1366,7 +1366,8 @@ mod tests {
                 .and_then(Value::as_str)
                 .is_some_and(|reason| reason.contains("provider request failed")
                     || reason.contains("Connection refused")
-                    || reason.contains("error sending request")),
+                    || reason.contains("error sending request")
+                    || reason.contains("external search provider returned status")),
             "unexpected degraded reason: {:?}",
             output.get("degraded_reason")
         );

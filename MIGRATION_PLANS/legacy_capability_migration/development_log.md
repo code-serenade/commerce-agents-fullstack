@@ -1,5 +1,35 @@
 # 迁移开发记录
 
+## Post 8-116：数据竞品与价格弹性搜索链路
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 116 个补强项：`Post 8-116`。
+
+本轮完成：
+
+- 数据岗位在用户要求竞品分析且同时要求最新 / 实时 / 联网 / 搜索 / 公开资料时，会生成可见 skill 链路。
+- 链路先触发 `data_competitor_analysis`，再追加 `search_competitor`。
+- 数据岗位在用户要求价格弹性且同时要求市场定价 / 竞品价格区间 / 实时价格时，会生成 `data_price_elasticity` + `search_competitor`。
+- 价格弹性链路的 `search_competitor.input.focus` 会稳定为 `price`。
+- 修复搜索结果数量解析中连续数字遇到中文标点时的 byte 边界问题。
+- 搜索 provider 降级测试兼容真实 HTTP 状态错误文案，仍保持“失败不伪造来源”的规则。
+
+用户可感知变化：
+
+- 用户让数据虚拟员工做竞品分析或价格弹性分析，并要求实时资料时，前端过程区能看到“本地数据分析”和“外部竞品/市场定价搜索”两个真实步骤。
+- 普通竞品分析或价格弹性分析仍只走 native skill，不会自动假装联网查到了竞品情报。
+- 外部搜索不可用、失败或无可信来源时，会明确降级，不会把无来源内容当成实时市场数据。
+
+文档：
+
+- [x] 后端设计：`temp/DEVELOPMENT_DOCS/backend/data_competitor_price_search_chain_post_8_116.md`
+- [x] API 文档：`API_DOCS/sse.md`
+- [x] 迁移归档：`MIGRATION_PLANS/legacy_capability_migration/post_phase_8_116_data_competitor_price_search_chain.md`
+
 ## Post 8-115：客服满意度行业基准搜索链路
 
 状态：done

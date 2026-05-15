@@ -476,6 +476,9 @@ fn autosuggest_skill_requests(
     if role.runtime_role == "service" {
         return autosuggest_service_requests(&text, task);
     }
+    if role.runtime_role == "data" {
+        return autosuggest_data_requests(&text, task);
+    }
     let Some(request) = autosuggest_for_role(role.runtime_role.as_str(), &text, task) else {
         return Vec::new();
     };
@@ -897,17 +900,18 @@ fn autosuggest_data(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         ],
     ) {
         let numbers = numbers_in_text(text);
-        return Some(autosuggest_request(
+        let request = autosuggest_request(
             "data_competitor_analysis",
             serde_json::json!({
                 "product_ref": selected_product_ref(task),
                 "our_product": first_selected_product(task)
                     .map(|product| product.name)
-                    .unwrap_or_else(|| infer_product_name(text)),
+                    .unwrap_or_else(|| infer_search_query_for_task(text, task)),
                 "our_price": numbers.first().copied().unwrap_or(99.0),
             }),
             "根据竞品/对标意图自动补偿竞品分析 skill",
-        ));
+        );
+        return Some(request);
     }
 
     if contains_any(
@@ -1216,6 +1220,80 @@ fn autosuggest_data(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         serde_json::Value::Object(input),
         "根据数据/转化意图自动补偿漏斗分析 skill",
     ))
+}
+
+fn autosuggest_data_requests(text: &str, task: &Task) -> Vec<ParsedSkillRequest> {
+    if is_data_price_search_chain_intent(text) {
+        let primary = autosuggest_request(
+            "data_price_elasticity",
+            serde_json::Value::Object(infer_price_elasticity_input(text, task)),
+            "根据价格弹性/价格敏感/调价影响意图自动补偿价格弹性 skill",
+        );
+        return vec![primary, autosuggest_data_competitor_search(text, task)];
+    }
+
+    if is_data_competitor_search_chain_intent(text) {
+        let numbers = numbers_in_text(text);
+        let primary = autosuggest_request(
+            "data_competitor_analysis",
+            serde_json::json!({
+                "product_ref": selected_product_ref(task),
+                "our_product": first_selected_product(task)
+                    .map(|product| product.name)
+                    .unwrap_or_else(|| infer_search_query_for_task(text, task)),
+                "our_price": numbers.first().copied().unwrap_or(99.0),
+            }),
+            "根据竞品/对标意图自动补偿竞品分析 skill",
+        );
+        return vec![primary, autosuggest_data_competitor_search(text, task)];
+    }
+
+    autosuggest_data(text, task).into_iter().collect()
+}
+
+fn is_data_competitor_search_chain_intent(text: &str) -> bool {
+    contains_any(
+        text,
+        &[
+            "competitor",
+            "竞品",
+            "竞对",
+            "竞争对手",
+            "对标",
+            "同类商品",
+            "价格带对比",
+            "竞品分析",
+        ],
+    ) && has_external_search_intent(text)
+}
+
+fn is_data_price_search_chain_intent(text: &str) -> bool {
+    contains_any(
+        text,
+        &[
+            "price elasticity",
+            "elasticity",
+            "价格弹性",
+            "价格敏感",
+            "需求弹性",
+            "调价测试",
+            "涨价影响",
+            "降价影响",
+            "市场定价",
+            "竞品价格区间",
+            "价格区间",
+        ],
+    ) && (has_external_search_intent(text)
+        || contains_any(text, &["市场定价", "竞品价格区间", "实时价格", "最新价格"]))
+}
+
+fn autosuggest_data_competitor_search(text: &str, task: &Task) -> ParsedSkillRequest {
+    let input = search_competitor_input(text, task);
+    autosuggest_request(
+        "search_competitor",
+        serde_json::Value::Object(input),
+        "根据数据分析中的实时竞品/市场定价需求自动追加外部搜索 skill",
+    )
 }
 
 fn autosuggest_accounting(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
@@ -4551,9 +4629,10 @@ fn infer_search_max_results(text: &str) -> Option<i64> {
         }
 
         let mut end = start + ch.len_utf8();
-        for (offset, next) in text[end..].char_indices() {
+        let suffix_start = end;
+        for (offset, next) in text[suffix_start..].char_indices() {
             if next.is_ascii_digit() {
-                end = end + offset + next.len_utf8();
+                end = suffix_start + offset + next.len_utf8();
                 continue;
             }
             break;
@@ -4644,7 +4723,20 @@ fn infer_search_review_focus(text: &str) -> &'static str {
 }
 
 fn infer_search_competitor_focus(text: &str) -> &'static str {
-    if contains_any(text, &["价格", "定价", "售价", "price"]) {
+    if contains_any(
+        text,
+        &[
+            "价格",
+            "定价",
+            "售价",
+            "price",
+            "价格弹性",
+            "价格敏感",
+            "调价",
+            "市场定价",
+            "价格区间",
+        ],
+    ) {
         "price"
     } else if contains_any(text, &["促销", "活动", "优惠", "promotion"]) {
         "promotion"
@@ -7147,6 +7239,55 @@ mod tests {
             "product:11111111-1111-1111-1111-111111111111"
         );
         assert_eq!(requests[0].input["our_product"], "五一咖啡组合");
+    }
+
+    #[test]
+    fn autosuggests_data_competitor_search_chain_when_realtime_requested() {
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task("请做冷萃咖啡竞品分析，联网搜最新竞品价格和公开资料，最多5条来源"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 2);
+        assert_eq!(requests[0].skill_id, "data_competitor_analysis");
+        assert_eq!(requests[0].input["our_product"], "咖啡饮品");
+        assert_eq!(requests[1].skill_id, "search_competitor");
+        assert_eq!(requests[1].input["query"], "咖啡饮品");
+        assert_eq!(requests[1].input["focus"], "price");
+        assert_eq!(requests[1].input["_needs_fresh_data"], true);
+        assert_eq!(requests[1].input["max_results"], 5);
+        assert!(requests[1].input.get("product_ref").is_none());
+    }
+
+    #[test]
+    fn autosuggests_data_price_elasticity_search_chain_when_market_price_requested() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("data"),
+            &task_with_metadata(
+                "分析这个商品价格弹性：价格90销量560，价格110销量440，成本42，当前售价99，并联网查实时市场定价和竞品价格区间",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 2);
+        assert_eq!(requests[0].skill_id, "data_price_elasticity");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[1].skill_id, "search_competitor");
+        assert_eq!(requests[1].input["query"], "五一咖啡组合 咖啡饮品");
+        assert_eq!(requests[1].input["focus"], "price");
+        assert_eq!(requests[1].input["platform"], "抖音");
+        assert_eq!(requests[1].input["_needs_fresh_data"], true);
+        assert_eq!(requests[1].input["product_name"], "五一咖啡组合");
+        assert_eq!(
+            requests[1].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
     }
 
     #[test]

@@ -50,6 +50,8 @@
 | `data_demand_forecast` | `data_demand_forecast` | native_ready | `backend/crates/agent/src/skills/data.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | 已可 native 执行；Post 8-38：成功输出会沉淀为 `data_demand_forecast_report` artifact，时序点不足时 deferred。Post 8-83：支持 `product_ref=product:{uuid}` 作为本轮显式选品引用，成功输出回显 `商品引用`；`需求预测/销量预测/订单预测/备货预测/补货预测/库存预测` 自然问法可触达，未选商品时不写空引用 |
 | `data_comprehensive_diagnosis` | `data_comprehensive_diagnosis` | native_ready | `backend/crates/agent/src/skills/data.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | Post 8-59：已迁为 Rust native 综合诊断编排器，组合经营看板、漏斗、异常、客户、退款、预测、归因和 LTV 分项；成功输出会沉淀为 `data_comprehensive_diagnosis_report` artifact，整体无有效用户数据时 deferred。Post 8-92：支持 `product_ref=product:{uuid}` 作为本轮显式选品引用，成功输出回显 `商品引用`；`综合诊断/全面诊断/业务诊断/经营体检/全链路诊断` 自然问法可触达并解析本轮显式经营指标、渠道指标、退款项和数字序列，未选商品时不写空引用 |
 
+Post 8-116 补充：数据岗位在竞品分析或价格弹性分析中，如果用户同时要求最新 / 实时 / 联网 / 搜索 / 公开资料 / 市场定价 / 竞品价格区间，会生成可见 skill 链路：先运行 `data_competitor_analysis` 或 `data_price_elasticity`，再追加 `search_competitor`。普通分析仍只走 native skill；价格弹性链路的搜索 focus 为 `price`。外部搜索仍按统一 adapter 降级规则执行，未显式选品时不注入默认商品。
+
 ## 搜索 search
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
