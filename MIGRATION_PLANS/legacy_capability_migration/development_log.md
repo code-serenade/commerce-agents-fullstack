@@ -1,5 +1,34 @@
 # 迁移开发记录
 
+## Post 8-110：会话附件浏览器文本抽取状态对齐
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 110 个补强项：`Post 8-110`。
+
+本轮完成：
+
+- Agent Chat 上传附件后，前端会复用已有后端 `conversation-files/{fileId}/extraction` 接口登记抽取状态。
+- `.txt`、`.md`、`.csv`、`.json`、HTML 等浏览器可读文本会登记为 `extracted`，并把正文写入后端可信抽取 metadata。
+- 空文本会登记为 `failed`，非文本 / 浏览器不可读文件会登记为 `unsupported`。
+- 抽取状态失败不会把上传本身误判为失败；上传和抽取状态被分开处理。
+- 不做 OCR、PDF、Office、图片或 object storage 后台解析，不伪造附件正文。
+
+用户可感知变化：
+
+- 用户上传文本资料后，点“资料”勾选该附件，Agent 可以读取真实文本作为本轮上下文。
+- 用户上传 PDF、图片等资料时，附件仍可保存，但系统不会假装已读正文；后续需要真实 parser adapter。
+- 空文本或读取失败时，附件不会挡住上传流程，只是不作为可读上下文。
+
+文档：
+
+- [x] 前端设计：`temp/DEVELOPMENT_DOCS/frontend/conversation_file_browser_extraction_status_post_8_110.md`
+- [x] API 文档：`API_DOCS/app.md`
+- [x] 迁移归档：`MIGRATION_PLANS/legacy_capability_migration/post_phase_8_110_conversation_file_browser_extraction_status.md`
+
 ## Post 8-109：外部搜索来源归一化增强
 
 状态：done

@@ -29,6 +29,13 @@ Kimi Agent 集群 = 前端交互和视觉体验参考
 - Live search evidence now requires a traceable URL with a domain derived from that URL. Title-only, snippet-only, or relative-path weak results are filtered.
 - If filtering leaves no reliable source, search still degrades instead of fabricating live evidence or creating a fake `search_evidence` artifact.
 
+## Post 8-110 Update
+
+- Agent Chat upload now uses the existing conversation file extraction API after file registration.
+- Browser-readable text files are registered as `extracted`; empty text is registered as `failed`; non-text files are registered as `unsupported`.
+- Upload success and extraction readability are now separated, so a file can be saved without pretending that PDF, image, Office, or binary content was parsed.
+- Workspace context pack continues to read only trusted `extracted` text.
+
 ## Post 8-108 Update
 
 - Agent Chat frontend now exposes explicit current-conversation file sources after upload.

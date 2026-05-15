@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from "react"
+import type { UpdateConversationFileExtractionRequest } from "@/api"
 import { AGENT_ID, agentChatData } from "../agent-chat-data"
 import { mapConversationItem } from "../domain/agent-chat-message-mapping"
 import type {
@@ -7,6 +8,10 @@ import type {
 } from "../types"
 
 const MAX_INLINE_TEXT_CHARS = 100_000
+const UNSUPPORTED_TEXT_EXTRACTION_REASON =
+  "Browser text extraction supports plain text, CSV, JSON, Markdown, and HTML files only."
+const EMPTY_TEXT_EXTRACTION_REASON = "File contains no readable text."
+const FAILED_TEXT_EXTRACTION_REASON = "Browser text extraction failed."
 const READABLE_TEXT_TYPES = new Set([
   "application/json",
   "application/ld+json",
@@ -91,24 +96,18 @@ async function uploadOneAttachment(
       mimeType: file.type || sign.contentType || "application/octet-stream",
       objectKey: sign.objectKey,
     })
-    const readableText = await readAttachmentText(file)
-    if (readableText) {
-      await agentChatData.updateConversationFileExtraction(registered.id, {
-        contentKind: contentKindForFile(file),
-        metadata: { sourceFileName: file.name },
-        parser: "browser_text",
-        source: "browser_upload",
-        status: "extracted",
-        text: readableText,
-      })
-    }
+    const extraction = await createBrowserExtractionRequest(file)
+    const extractionUpdated = await updateRegisteredFileExtraction(
+      registered.id,
+      extraction.request
+    )
     setAttachments((current) =>
       current.map((item) =>
         item.id === localId
           ? {
               ...item,
               fileId: registered.id,
-              readable: Boolean(readableText),
+              readable: extraction.readable && extractionUpdated,
               status: "uploaded",
             }
           : item
@@ -123,14 +122,89 @@ async function uploadOneAttachment(
   }
 }
 
-async function readAttachmentText(file: File) {
-  if (!isReadableTextFile(file)) return null
-  const text = await file.text()
+export interface BrowserExtractionRequestResult {
+  readable: boolean
+  request: UpdateConversationFileExtractionRequest
+}
+
+export async function createBrowserExtractionRequest(
+  file: File
+): Promise<BrowserExtractionRequestResult> {
+  const metadata = browserExtractionMetadata(file)
+  if (!isReadableTextFile(file)) {
+    return {
+      readable: false,
+      request: {
+        contentKind: "unsupported",
+        failureReason: UNSUPPORTED_TEXT_EXTRACTION_REASON,
+        metadata,
+        parser: "browser_text",
+        source: "browser_upload",
+        status: "unsupported",
+      },
+    }
+  }
+
+  let text = ""
+  try {
+    text = await file.text()
+  } catch {
+    return {
+      readable: false,
+      request: {
+        contentKind: contentKindForFile(file),
+        failureReason: FAILED_TEXT_EXTRACTION_REASON,
+        metadata,
+        parser: "browser_text",
+        source: "browser_upload",
+        status: "failed",
+      },
+    }
+  }
+
   const trimmed = text.trim()
-  if (!trimmed) return null
-  return trimmed.length > MAX_INLINE_TEXT_CHARS
-    ? trimmed.slice(0, MAX_INLINE_TEXT_CHARS)
-    : trimmed
+  if (!trimmed) {
+    return {
+      readable: false,
+      request: {
+        contentKind: contentKindForFile(file),
+        failureReason: EMPTY_TEXT_EXTRACTION_REASON,
+        metadata,
+        parser: "browser_text",
+        source: "browser_upload",
+        status: "failed",
+      },
+    }
+  }
+
+  const truncated = trimmed.length > MAX_INLINE_TEXT_CHARS
+  return {
+    readable: true,
+    request: {
+      contentKind: contentKindForFile(file),
+      metadata: {
+        ...metadata,
+        originalTextChars: trimmed.length,
+        truncated,
+      },
+      parser: "browser_text",
+      source: "browser_upload",
+      status: "extracted",
+      text: truncated ? trimmed.slice(0, MAX_INLINE_TEXT_CHARS) : trimmed,
+    },
+  }
+}
+
+async function updateRegisteredFileExtraction(
+  fileId: string,
+  request: UpdateConversationFileExtractionRequest
+) {
+  try {
+    await agentChatData.updateConversationFileExtraction(fileId, request)
+    return true
+  } catch {
+    return false
+  }
 }
 
 function isReadableTextFile(file: File) {
@@ -155,6 +229,14 @@ function extensionFromFile(file: File) {
   if (extension) return extension.toLowerCase()
   const subtype = file.type.split("/")[1]?.split(";")[0]?.trim()
   return subtype || "bin"
+}
+
+function browserExtractionMetadata(file: File) {
+  return {
+    fileSize: file.size,
+    mimeType: file.type || null,
+    sourceFileName: file.name,
+  }
 }
 
 function createAttachmentId(file: File) {

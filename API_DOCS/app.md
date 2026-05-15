@@ -595,6 +595,7 @@
 
 - 本接口只登记可信抽取状态和文本，不负责 OCR、PDF 解析、图片识别或 object storage 文件读取
 - 新上传会话附件会初始化为 `metadata.extractionStatus=pending`
+- Agent Chat 前端在浏览器可直接读取的文本类附件上传后会调用本接口登记 `status=extracted`；文本为空或读取失败会登记 `status=failed`；PDF、图片、Office 等非浏览器文本类附件会登记 `status=unsupported`
 - 只有 `status=extracted` 的附件正文会被工作区 `context-pack` 读取
 - `status=pending/failed/unsupported` 不会进入 Agent 可读上下文
 - `metadata` 必须是 JSON object

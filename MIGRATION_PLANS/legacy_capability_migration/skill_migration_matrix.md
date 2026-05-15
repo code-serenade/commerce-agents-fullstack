@@ -88,7 +88,7 @@ Post 8-109 补充：搜索类 `search_trends` / `search_competitor` / `search_ma
 | 旧能力 | 新产品目标 ID | 状态 | 新落点 | 备注 |
 | --- | --- | --- | --- | --- |
 | `conversation_file_context` | `workspace_context_pack` | native_ready | `backend/crates/service/src/api/workspace.rs` / `frontend/apps/web/src/pages/site/agent-chat` | Post 8-14：工作区内容包已读取数据库已有素材正文、资产描述、交付物正文和附件抽取文本；Post 8-43：附件解析状态新增 `pending/extracted/failed/unsupported`，只有 `extracted` 会进入 Agent 可读上下文；Post 8-107：后端支持用户显式选择单个附件、商品资产、商品素材或工作区交付物进入本轮上下文；Post 8-108：Agent Chat 前端已支持勾选当前会话已上传文件并发送 `conversation_file:{uuid}` |
-| `conversation_file_extraction` | `conversation_file_extraction_status` | adapter_required | `backend/crates/service/src/api/conversation.rs` | Post 8-16：已有可信抽取文本登记 API；Post 8-43：已补状态契约。真实 OCR、PDF/Office 解析、图片识别、object storage 文件读取和后台 parser worker 仍待 adapter |
+| `conversation_file_extraction` | `conversation_file_extraction_status` | adapter_required | `backend/crates/service/src/api/conversation.rs` / `frontend/apps/web/src/pages/site/agent-chat` | Post 8-16：已有可信抽取文本登记 API；Post 8-43：已补状态契约；Post 8-110：Agent Chat 前端上传文本类附件后会登记 `extracted`，空文本登记 `failed`，非文本登记 `unsupported`，上传和抽取状态分离。真实 OCR、PDF/Office 解析、图片识别、object storage 文件读取和后台 parser worker 仍待 adapter |
 
 ## 客服 service
 
