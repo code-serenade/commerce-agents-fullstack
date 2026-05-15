@@ -209,7 +209,7 @@ pub fn search_platform_policy_spec() -> SkillSpec {
             ),
             SkillInputField::optional(
                 "policy_type",
-                "政策类型：algorithm/fee/promotion/content/general",
+                "政策类型：algorithm/fee/promotion/content/material/general",
                 json!({"type": "string"}),
             ),
             SkillInputField::optional(
@@ -1221,6 +1221,7 @@ fn build_policy_query(
         "fee" => "佣金 费率 扣点 服务费 收费标准",
         "promotion" => "大促规则 活动报名 双11 618 商家政策",
         "content" => "内容规范 违禁词 审核标准 发布规定 违规处罚",
+        "material" => "素材尺寸 广告位规格 上传格式 文件大小 安全区 审核要求",
         _ => "规则变化 政策更新 新规 公告",
     };
     let planned = format!("{platform} {type_text} 最新 2026");

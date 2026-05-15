@@ -1,5 +1,54 @@
 # 迁移开发记录
 
+## Post 8-128：设计配色 / 素材规范搜索链路
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 128 个补强项：`Post 8-128`。
+
+本次目标：
+
+- 把旧产品设计配色和素材规范中依赖流行色、竞品配色、平台素材尺寸、上传格式、安全区和审核要求的增强能力，迁成新产品可见、可审计、可降级的 skill 链路。
+- 让 `design_color_scheme`、`design_material_spec` 在用户明确要求最新 / 实时 / 联网 / 搜索 / 公开资料时，先跑 native skill，再按场景追加统一搜索 skill。
+
+涉及范围：
+
+- 产品内核：设计岗位从“只生成配色 / 素材规范”增强为“native 设计交付 + 可见外部趋势 / 平台规则检索”的双 skill 链路。
+- 后端 Agent：扩展 `autosuggest_design_requests` 链式编排；普通配色方案和普通素材规范仍只触发 native skill。
+- 搜索参数：
+  - 配色趋势 / 流行色 / 竞品配色走 `search_trends`，默认 `days=90`。
+  - 平台素材规范 / 广告位规格 / 尺寸规则 / 上传格式 / 文件大小 / 安全区 / 审核要求走 `search_platform_policy(policy_type=material)`。
+- 角色权限：设计岗位现在允许使用 `search_platform_policy`，避免 autosuggest 后运行时被 role catalog 拒绝。
+- 搜索 skill：`search_platform_policy` 新增 `policy_type=material` 查询语义。
+- SSE/API 文档：同步说明设计配色 / 素材规范双 skill 链路和 artifact 沉淀关系。
+- 迁移归档：新增 Post 8-128 独立归档和后端设计文档。
+
+用户可感知变化：
+
+- 用户说“给咖啡品牌做配色方案，联网查最新流行色和竞品配色趋势”时，过程区会看到配色方案和外部趋势搜索两个步骤。
+- 用户说“整理抖音信息流广告素材尺寸规格，联网查最新平台上传规范和审核要求”时，过程区会看到素材规范和平台素材规则搜索两个步骤。
+- 用户只问“查一下抖音信息流广告最新素材尺寸规范和审核要求”时，只会进入平台规则搜索步骤，不会生成无关素材规范交付物。
+- 用户没有明确外部资料诉求时，普通配色方案 / 素材规范仍只走 native skill。
+- 用户没有显式选择商品时，后端不会注入默认商品或历史商品；用户选中商品后，搜索 input 才携带 `product_ref/product_name/product_category`。
+
+当前验证：
+
+- [x] `cargo fmt --all`
+- [x] `cargo test -p agent design`
+- [x] `cargo test -p agent search`
+- [x] `cargo test -p agent keeps_roles_from_requesting_unowned_skills`
+- [x] `cargo check -p agent -p web-server`
+- [x] `cargo clippy -p agent -p web-server`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 真实搜索 provider 的配置、部署和来源质量治理仍是外部搜索能力的后续事项。
+- 前端可继续把 native + search 双 skill 链路展示为可折叠过程卡片和来源面板。
+
 ## Post 8-127：上架/标题/详情文案搜索链路
 
 状态：done

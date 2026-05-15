@@ -1,5 +1,22 @@
 # 阶段验收记录
 
+## Post 8-128：设计配色 / 素材规范搜索链路
+
+结论：通过。
+
+验收点：
+
+- 设计岗位品牌配色和素材规范在普通问法下仍只进入 native skill。
+- 用户明确要求最新 / 实时 / 联网 / 搜索 / 公开资料 / 流行色 / 配色趋势 / 竞品配色 / 平台素材规范 / 广告位规格 / 尺寸规则 / 上传格式 / 文件大小 / 安全区 / 审核要求时，会返回两个 skill 请求。
+- 第一个请求保持 native skill，第二个请求为 `search_trends` 或 `search_platform_policy`。
+- 配色趋势搜索链路使用 `search_trends`，默认 `days=90`。
+- 素材规范平台规则搜索链路使用 `search_platform_policy(policy_type=material)`。
+- 纯“查最新素材尺寸规范”只触发平台规则搜索，不会误生成素材规范 artifact。
+- 设计岗位 role catalog 已允许 `search_platform_policy`，不会出现 autosuggest 后运行时拒绝。
+- 搜索步骤通过既有 `skill_requested` / `skill_result` 可见，失败或未配置时仍降级，不伪造来源。
+- 显式商品上下文只来自本轮选择，未选择商品时不写空引用、不注入默认商品。
+- Agent design / role catalog 测试、设计文档、API 文档和迁移归档已同步。
+
 ## Post 8-127：上架/标题/详情文案搜索链路
 
 结论：通过。

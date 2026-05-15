@@ -4223,6 +4223,10 @@ fn infer_web_current_rank(text: &str) -> Option<i64> {
 }
 
 fn autosuggest_design_requests(text: &str, task: &Task) -> Vec<ParsedSkillRequest> {
+    if is_design_pure_material_policy_search_intent(text) {
+        return vec![autosuggest_design_material_policy_search(text, task)];
+    }
+
     if is_design_pure_visual_search_intent(text) {
         return vec![autosuggest_design_visual_search(
             text,
@@ -4238,6 +4242,17 @@ fn autosuggest_design_requests(text: &str, task: &Task) -> Vec<ParsedSkillReques
     if is_design_visual_trend_search_chain_intent(text, &primary.skill_id) {
         let search = autosuggest_design_visual_search(text, task, &primary.skill_id);
         return vec![primary, search];
+    }
+
+    if is_design_color_trend_search_chain_intent(text, &primary.skill_id) {
+        return vec![primary, autosuggest_design_color_trend_search(text, task)];
+    }
+
+    if is_design_material_policy_search_chain_intent(text, &primary.skill_id) {
+        return vec![
+            primary,
+            autosuggest_design_material_policy_search(text, task),
+        ];
     }
 
     vec![primary]
@@ -4317,6 +4332,14 @@ fn is_design_visual_trend_search_chain_intent(text: &str, native_skill_id: &str)
     ) && has_design_visual_trend_search_intent(text)
 }
 
+fn is_design_color_trend_search_chain_intent(text: &str, native_skill_id: &str) -> bool {
+    native_skill_id == "design_color_scheme" && has_design_color_trend_search_intent(text)
+}
+
+fn is_design_material_policy_search_chain_intent(text: &str, native_skill_id: &str) -> bool {
+    native_skill_id == "design_material_spec" && has_design_material_policy_search_intent(text)
+}
+
 fn has_design_visual_trend_search_intent(text: &str) -> bool {
     let has_design_signal = contains_any(
         text,
@@ -4360,6 +4383,94 @@ fn has_design_visual_trend_search_intent(text: &str) -> bool {
     has_design_signal && has_fresh_or_evidence
 }
 
+fn has_design_color_trend_search_intent(text: &str) -> bool {
+    let has_color_signal = contains_any(
+        text,
+        &[
+            "配色趋势",
+            "色彩趋势",
+            "流行色",
+            "年度色",
+            "品牌色趋势",
+            "竞品配色",
+            "热门配色",
+            "流行配色",
+            "视觉色彩",
+            "color trend",
+            "palette trend",
+        ],
+    ) || (contains_any(text, &["配色", "色彩", "品牌色", "颜色"])
+        && contains_any(text, &["趋势", "流行", "热门", "竞品", "参考", "对标"]));
+
+    let has_fresh_or_evidence = has_external_search_intent(text)
+        || contains_any(
+            text,
+            &[
+                "最新",
+                "近期",
+                "当前",
+                "今年",
+                "2026",
+                "公开来源",
+                "公开资料",
+                "参考",
+                "对标",
+                "竞品",
+            ],
+        );
+
+    has_color_signal && has_fresh_or_evidence
+}
+
+fn has_design_material_policy_search_intent(text: &str) -> bool {
+    let has_material_signal =
+        contains_any(
+            text,
+            &[
+                "素材规范",
+                "素材规格",
+                "广告素材规格",
+                "广告位规格",
+                "尺寸规范",
+                "尺寸规则",
+                "平台尺寸",
+                "信息流尺寸",
+                "上传规范",
+                "文件大小",
+                "安全区",
+                "审核规范",
+                "格式要求",
+                "ad spec",
+                "asset spec",
+            ],
+        ) || (contains_any(text, &["素材", "规格", "尺寸", "广告位", "格式"])
+            && contains_any(
+                text,
+                &["规则", "规范", "要求", "审核", "平台", "官方", "最新"],
+            ));
+
+    let has_policy_or_fresh = has_external_search_intent(text)
+        || contains_any(
+            text,
+            &[
+                "最新",
+                "近期",
+                "当前",
+                "今年",
+                "2026",
+                "规则",
+                "规范",
+                "要求",
+                "平台",
+                "官方",
+                "公开来源",
+                "公开资料",
+            ],
+        );
+
+    has_material_signal && has_policy_or_fresh
+}
+
 fn is_design_pure_visual_search_intent(text: &str) -> bool {
     has_design_visual_trend_search_intent(text)
         && contains_any(
@@ -4385,6 +4496,30 @@ fn is_design_pure_visual_search_intent(text: &str) -> bool {
         )
 }
 
+fn is_design_pure_material_policy_search_intent(text: &str) -> bool {
+    has_design_material_policy_search_intent(text)
+        && contains_any(
+            text,
+            &["查", "查一下", "搜索", "搜", "联网", "公开来源", "公开资料"],
+        )
+        && !contains_any(
+            text,
+            &[
+                "做",
+                "生成",
+                "规划",
+                "输出",
+                "整理",
+                "设计方案",
+                "制作",
+                "创建",
+                "给方案",
+                "出方案",
+                "交付",
+            ],
+        )
+}
+
 fn infer_design_visual_search_skill_id(text: &str) -> &'static str {
     if contains_any(text, &["海报", "banner", "Banner", "活动图", "活动海报"]) {
         "design_campaign_poster"
@@ -4393,6 +4528,68 @@ fn infer_design_visual_search_skill_id(text: &str) -> &'static str {
     } else {
         "design_main_image"
     }
+}
+
+fn autosuggest_design_color_trend_search(text: &str, task: &Task) -> ParsedSkillRequest {
+    autosuggest_request(
+        "search_trends",
+        serde_json::Value::Object(design_color_trend_search_input(text, task)),
+        "根据设计配色任务中的最新色彩趋势/竞品配色参考需求自动追加外部趋势搜索 skill",
+    )
+}
+
+fn design_color_trend_search_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = search_trends_input(text, task);
+    input.insert(
+        "query".to_string(),
+        serde_json::json!(design_color_trend_search_query(text, task)),
+    );
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(selected_product_platform_or_infer(task, text)),
+    );
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_design_search_days(text, 90)),
+    );
+    input.insert("_needs_fresh_data".to_string(), serde_json::json!(true));
+    input
+}
+
+fn design_color_trend_search_query(text: &str, task: &Task) -> String {
+    let platform = selected_product_platform_or_infer(task, text);
+    let subject = design_visual_search_subject(text, task);
+    let style = infer_design_style(text);
+    format!("{platform} {subject} {style} 品牌配色 色彩趋势 流行色 竞品配色 2026")
+}
+
+fn autosuggest_design_material_policy_search(text: &str, task: &Task) -> ParsedSkillRequest {
+    autosuggest_request(
+        "search_platform_policy",
+        serde_json::Value::Object(design_material_policy_search_input(text, task)),
+        "根据设计素材规范任务中的平台尺寸/审核/格式规则需求自动追加平台规则搜索 skill",
+    )
+}
+
+fn design_material_policy_search_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = search_platform_policy_input(text, task);
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(selected_product_platform_or_infer(task, text)),
+    );
+    input.insert("policy_type".to_string(), serde_json::json!("material"));
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_design_search_days(text, 30)),
+    );
+    input.insert("_needs_fresh_data".to_string(), serde_json::json!(true));
+    input
 }
 
 fn autosuggest_design_visual_search(
@@ -7484,6 +7681,22 @@ fn infer_search_policy_type(text: &str) -> &'static str {
         "fee"
     } else if contains_any(text, &["大促", "活动", "618", "双11", "报名", "promotion"]) {
         "promotion"
+    } else if contains_any(
+        text,
+        &[
+            "素材",
+            "尺寸",
+            "规格",
+            "广告位",
+            "格式",
+            "安全区",
+            "文件大小",
+            "asset",
+            "material",
+            "spec",
+        ],
+    ) {
+        "material"
     } else if contains_any(text, &["内容", "违禁词", "审核", "违规", "发布", "content"])
     {
         "content"
@@ -12574,6 +12787,135 @@ mod tests {
                 && query.contains("主图设计")
                 && query.contains("视觉趋势")
         ));
+    }
+
+    #[test]
+    fn autosuggests_design_color_and_material_search_chains_when_requested() {
+        let color_requests = autosuggest_skill_requests(
+            &role("design"),
+            &task("给咖啡品牌做配色方案，联网查最新流行色和竞品配色趋势，最多4条来源"),
+            "{}",
+        );
+
+        assert_eq!(color_requests.len(), 2);
+        assert_eq!(color_requests[0].skill_id, "design_color_scheme");
+        assert_eq!(color_requests[1].skill_id, "search_trends");
+        assert_eq!(color_requests[1].input["platform"], "淘宝");
+        assert_eq!(color_requests[1].input["days"], 90);
+        assert_eq!(color_requests[1].input["max_results"], 4);
+        assert_eq!(color_requests[1].input["_needs_fresh_data"], true);
+        assert!(
+            color_requests[1].input["query"]
+                .as_str()
+                .is_some_and(|query| query.contains("咖啡饮品")
+                    && query.contains("品牌配色")
+                    && query.contains("流行色")
+                    && query.contains("竞品配色"))
+        );
+        assert!(color_requests[1].input.get("product_ref").is_none());
+        assert!(color_requests[1].input.get("product_name").is_none());
+
+        let material_requests = autosuggest_skill_requests(
+            &role("design"),
+            &task("整理抖音信息流广告素材尺寸规格，联网查最新平台上传规范和审核要求，最多3条来源"),
+            "{}",
+        );
+
+        assert_eq!(material_requests.len(), 2);
+        assert_eq!(material_requests[0].skill_id, "design_material_spec");
+        assert_eq!(material_requests[1].skill_id, "search_platform_policy");
+        assert_eq!(material_requests[1].input["platform"], "抖音");
+        assert_eq!(material_requests[1].input["policy_type"], "material");
+        assert_eq!(material_requests[1].input["days"], 30);
+        assert_eq!(material_requests[1].input["max_results"], 3);
+        assert_eq!(material_requests[1].input["_needs_fresh_data"], true);
+
+        let plain_color = autosuggest_skill_requests(
+            &role("design"),
+            &task("做品牌配色方案，想要高端质感"),
+            "{}",
+        );
+        assert_eq!(plain_color.len(), 1);
+        assert_eq!(plain_color[0].skill_id, "design_color_scheme");
+    }
+
+    #[test]
+    fn design_color_material_search_chains_preserve_selected_product_only_when_selected() {
+        let summary = selected_product_summary();
+        let color_requests = autosuggest_skill_requests(
+            &role("design"),
+            &task_with_metadata(
+                "给这个商品做配色方案，联网查最新色彩趋势和竞品配色",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(color_requests.len(), 2);
+        assert_eq!(color_requests[0].skill_id, "design_color_scheme");
+        assert_eq!(
+            color_requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(color_requests[1].skill_id, "search_trends");
+        assert_eq!(
+            color_requests[1].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(color_requests[1].input["product_name"], "五一咖啡组合");
+        assert_eq!(color_requests[1].input["product_category"], "咖啡饮品");
+        assert_eq!(color_requests[1].input["platform"], "抖音");
+        assert!(
+            color_requests[1].input["query"]
+                .as_str()
+                .is_some_and(|query| query.contains("五一咖啡组合"))
+        );
+
+        let material_requests = autosuggest_skill_requests(
+            &role("design"),
+            &task_with_metadata(
+                "整理这个商品的小红书素材规格，联网查最新平台尺寸规范",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(material_requests.len(), 2);
+        assert_eq!(material_requests[1].skill_id, "search_platform_policy");
+        assert_eq!(
+            material_requests[1].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(material_requests[1].input["product_name"], "五一咖啡组合");
+        assert_eq!(material_requests[1].input["product_category"], "咖啡饮品");
+
+        let plain_material = autosuggest_skill_requests(
+            &role("design"),
+            &task("整理抖音广告素材尺寸规格，联网查最新平台上传规范"),
+            "{}",
+        );
+        assert_eq!(plain_material.len(), 2);
+        assert_eq!(plain_material[1].skill_id, "search_platform_policy");
+        assert!(plain_material[1].input.get("product_ref").is_none());
+        assert!(plain_material[1].input.get("product_name").is_none());
+        assert!(plain_material[1].input.get("product_category").is_none());
+    }
+
+    #[test]
+    fn pure_design_material_policy_search_does_not_force_native_design() {
+        let requests = autosuggest_skill_requests(
+            &role("design"),
+            &task("查一下抖音信息流广告最新素材尺寸规范和审核要求，最多5条来源"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "search_platform_policy");
+        assert_eq!(requests[0].input["platform"], "抖音");
+        assert_eq!(requests[0].input["policy_type"], "material");
+        assert_eq!(requests[0].input["days"], 30);
+        assert_eq!(requests[0].input["max_results"], 5);
+        assert_eq!(requests[0].input["_needs_fresh_data"], true);
     }
 
     #[test]

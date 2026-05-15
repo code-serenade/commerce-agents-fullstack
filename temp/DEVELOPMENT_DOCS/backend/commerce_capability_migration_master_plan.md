@@ -109,6 +109,17 @@ Kimi Agent 集群 = 前端交互和视觉体验参考
 - Native-only behavior is preserved for ordinary listing-copy, title-generation, and product-description tasks.
 - Selected product context remains explicit-only: no product ref/name/category is injected unless the current turn selected a product.
 
+## Post 8-128 Update
+
+- Design color-scheme prompts can now surface visible two-step chains when the user explicitly asks for latest color trends, popular palettes, competitor colors, public sources, or online references.
+- `design_color_scheme` can be followed by `search_trends` with a design-color query and default `days=90`.
+- Design material-spec prompts can now surface visible two-step chains when the user asks for latest platform material specs, ad-slot sizes, upload format, file-size, safe-area, or review requirements.
+- `design_material_spec` can be followed by `search_platform_policy(policy_type=material)`.
+- Pure “search material spec / platform size rules” prompts trigger only `search_platform_policy`, so the worker does not create an unrelated design artifact.
+- `design` role permission now includes `search_platform_policy`, using the existing role skill catalog rather than bypassing framework governance.
+- Native-only behavior is preserved for ordinary color-scheme and material-spec tasks.
+- Selected product context remains explicit-only: no product ref/name/category is injected unless the current turn selected a product.
+
 ## Post 8-118 Update
 
 - Web-role SEO optimization, keyword research, and page conversion prompts can now surface visible two-step chains when the user explicitly asks for latest, realtime, online, SEO algorithm, traffic-rule, keyword-competition, search-volume, CPC, or conversion-benchmark data.
