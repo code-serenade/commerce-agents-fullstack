@@ -1,5 +1,40 @@
 # 迁移开发记录
 
+## Post 8-117：创意内容趋势搜索链路
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 117 个补强项：`Post 8-117`。
+
+本轮完成：
+
+- 参考旧产品 `D:\github\commerce-agents崩了之后重新做\server\src\skills\creative.py` 中创意类 skill 内部 `_web_search` 逻辑。
+- 新产品不再把外部搜索隐藏在创意 native skill 内部，而是生成可见双 skill 链路。
+- 创意岗位普通任务仍只触发 native skill，例如 `creative_video_script`、`creative_seeding_copy`、`creative_content_calendar`、`creative_trend_catch`。
+- 当用户明确要求最新 / 实时 / 联网 / 搜索 / 爆款 / 热门风格 / 热门话题 / 营销节点时，会追加搜索 skill：
+  - `creative_video_script -> search_trends`
+  - `creative_seeding_copy -> search_trends`
+  - `creative_trend_catch -> search_trends`
+  - `creative_content_calendar -> search_market_info`
+- `creative` role catalog 已允许 `search_market_info`，避免内容排期搜索链路被角色白名单拒绝。
+- 修正创意短视频时长推断：`最多4条来源` 只作为搜索来源数量，不再误当成 4 秒脚本时长。
+- 显式商品上下文保持不变：只有本轮手动选中商品时才给 native/search skill 写入 `product_ref/product_name/product_category`。
+
+用户可感知变化：
+
+- 用户说“帮我写抖音短视频脚本，联网查最新爆款内容趋势”时，过程区能看到“短视频脚本生成”和“外部趋势搜索”两个真实步骤。
+- 用户说“排内容日历，查最新营销节点和热门话题”时，过程区能看到“内容排期”和“市场信息搜索”两个真实步骤。
+- 如果外部搜索 provider 没接好，会清楚显示待接入或降级状态，不会伪造实时热点来源。
+
+文档：
+
+- [x] 后端设计：`temp/DEVELOPMENT_DOCS/backend/creative_trend_search_chain_post_8_117.md`
+- [x] API 文档：`API_DOCS/sse.md`
+- [x] 迁移归档：`MIGRATION_PLANS/legacy_capability_migration/post_phase_8_117_creative_trend_search_chain.md`
+
 ## Post 8-116：数据竞品与价格弹性搜索链路
 
 状态：done

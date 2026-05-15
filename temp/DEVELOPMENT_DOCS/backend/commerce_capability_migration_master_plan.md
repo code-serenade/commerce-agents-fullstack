@@ -80,6 +80,15 @@ Kimi Agent 集群 = 前端交互和视觉体验参考
 - `infer_search_max_results` now handles multi-digit limits before non-ASCII punctuation without byte-boundary panics.
 - Selected product context remains explicit-only across both native data skill input and follow-up competitor search input.
 
+## Post 8-117 Update
+
+- Creative-role video script, seeding copy, content calendar, and trend-catch prompts can now surface visible two-step chains when the user explicitly asks for latest, realtime, online, hot-topic, viral-style, or marketing-node data.
+- `creative_video_script`, `creative_seeding_copy`, and `creative_trend_catch` can be followed by `search_trends`; `creative_content_calendar` can be followed by `search_market_info`.
+- The new product no longer hides old-product creative `_web_search` behavior inside native creative outputs; the search step is visible through the existing `skill_requested` / `skill_result` SSE contract.
+- `creative` is allowed to use `search_market_info`, so content-calendar marketing-node search is not rejected by role permissions.
+- Result-count language such as `最多4条来源` is kept as search `max_results` and no longer changes video-script duration.
+- Selected product context remains explicit-only: no product ref/name/category is injected unless the current turn selected a product.
+
 ## Post 8-108 Update
 
 - Agent Chat frontend now exposes explicit current-conversation file sources after upload.

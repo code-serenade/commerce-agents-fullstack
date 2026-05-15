@@ -170,14 +170,16 @@ Post 8-115 补充：客服岗位在 DSR、店铺评分、服务评分、NPS、�
 
 | 旧 Skill | 新产品目标 ID | 状态 | 新落点 | 备注 |
 | --- | --- | --- | --- | --- |
-| `creative_video_script` | `creative_video_script` | native_ready | `backend/crates/agent/src/skills/creative.rs` | 已迁为 Rust native 结构化脚本产物，并纳入创意岗位自动补偿；Post 8-40：成功输出会沉淀为 `video_script` artifact；Post 8-70：显式选品时自动补偿 input 使用选中商品和平台，未选商品时不从历史摘要注入默认商品；Post 8-71：支持 `product_ref=product:{uuid}` |
-| `creative_seeding_copy` | `creative_seeding_copy` | native_ready | `backend/crates/agent/src/skills/creative.rs` | 已迁为 Rust native 种草文案产物，并纳入创意岗位自动补偿；Post 8-40：成功输出会沉淀为 `seeding_copy` artifact；Post 8-70：显式选品时自动补偿 input 使用选中商品、平台和知识卖点；Post 8-71：支持 `product_ref=product:{uuid}` |
+| `creative_video_script` | `creative_video_script` | native_ready | `backend/crates/agent/src/skills/creative.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | 已迁为 Rust native 结构化脚本产物，并纳入创意岗位自动补偿；Post 8-40：成功输出会沉淀为 `video_script` artifact；Post 8-70：显式选品时自动补偿 input 使用选中商品和平台，未选商品时不从历史摘要注入默认商品；Post 8-71：支持 `product_ref=product:{uuid}`；Post 8-117：用户明确要求最新/实时/联网/爆款内容趋势时，会追加可见 `search_trends`，不再隐藏旧产品内部搜索 |
+| `creative_seeding_copy` | `creative_seeding_copy` | native_ready | `backend/crates/agent/src/skills/creative.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | 已迁为 Rust native 种草文案产物，并纳入创意岗位自动补偿；Post 8-40：成功输出会沉淀为 `seeding_copy` artifact；Post 8-70：显式选品时自动补偿 input 使用选中商品、平台和知识卖点；Post 8-71：支持 `product_ref=product:{uuid}`；Post 8-117：用户明确要求最新/实时/联网/热门风格/爆款话题时，会追加可见 `search_trends` |
 | `creative_ip_branding` | `creative_ip_branding` | native_ready | `backend/crates/agent/src/skills/creative.rs` | 已迁为 Rust native IP 定位方案，并纳入创意岗位自动补偿；Post 8-40：成功输出会沉淀为 `ip_branding` artifact，缺品牌/类目时 validation error |
-| `creative_content_calendar` | `creative_content_calendar` | native_ready | `backend/crates/agent/src/skills/creative.rs` | 已迁为 Rust native 内容排期产物，并纳入创意岗位自动补偿；Post 8-40：成功输出会沉淀为 `content_calendar` artifact，默认排期会明示 `calculated_from_defaults` |
-| `creative_trend_catch` | `creative_trend_catch` | native_ready | `backend/crates/agent/src/skills/creative.rs` | 已迁为 Rust native 趋势方向产物；Post 8-40：成功输出会沉淀为 `creative_trend_report` artifact；实时外部搜索仍待后续 adapter |
+| `creative_content_calendar` | `creative_content_calendar` | native_ready | `backend/crates/agent/src/skills/creative.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | 已迁为 Rust native 内容排期产物，并纳入创意岗位自动补偿；Post 8-40：成功输出会沉淀为 `content_calendar` artifact，默认排期会明示 `calculated_from_defaults`；Post 8-117：用户明确要求最新营销节点/热门话题/内容节点时，会追加可见 `search_market_info` |
+| `creative_trend_catch` | `creative_trend_catch` | native_ready | `backend/crates/agent/src/skills/creative.rs` / `backend/crates/agent/src/agent/worker/runner.rs` | 已迁为 Rust native 趋势方向产物；Post 8-40：成功输出会沉淀为 `creative_trend_report` artifact；Post 8-117：用户明确要求最新/实时/联网趋势时，会追加可见 `search_trends`，搜索失败仍降级不伪造来源 |
 | `creative_live_script` | `creative_live_script` | native_ready | `backend/crates/agent/src/skills/creative.rs` | 已迁为 Rust native 直播话术产物，并纳入岗位自动补偿规则；Post 8-40：成功输出会沉淀为 `live_script` artifact，默认直播参数会明示 `calculated_from_defaults`；Post 8-70：显式选品时 product_count 和平台来自选中商品上下文；Post 8-71：支持 `product_refs=[product:{uuid}]` |
 | `creative_product_article` | `creative_product_article` | native_ready | `backend/crates/agent/src/skills/creative.rs` | 已迁为 Rust native 产品软文产物，并纳入创意岗位自动补偿；Post 8-40：成功输出会沉淀为 `product_article` artifact；Post 8-70：显式选品时自动补偿 input 使用选中商品和平台；Post 8-71：支持 `product_ref=product:{uuid}` |
 | `creative_title_ctr_scorer` | `creative_title_ctr_scorer` | native_ready | `backend/crates/agent/src/skills/creative.rs` | 已纳入岗位自动补偿规则；Post 8-40：成功输出会沉淀为 `creative_title_ctr_score` artifact，缺标题时 validation error |
+
+Post 8-117 补充：创意岗位在短视频脚本、种草文案、内容排期、趋势捕捉中，如果用户同时要求最新 / 实时 / 联网 / 搜索 / 爆款 / 热门风格 / 热门话题 / 营销节点，会生成可见 skill 链路：先运行创意 native skill，再追加 `search_trends` 或 `search_market_info`。这对应旧产品 creative skill 内部 `_web_search` 能力，但新产品按统一搜索 adapter 和 SSE 过程展示，不在 native 输出里隐藏搜索；未显式选品时不注入默认商品。
 
 ## 协同 coordination
 

@@ -479,6 +479,9 @@ fn autosuggest_skill_requests(
     if role.runtime_role == "data" {
         return autosuggest_data_requests(&text, task);
     }
+    if role.runtime_role == "creative" {
+        return autosuggest_creative_requests(&text, task);
+    }
     let Some(request) = autosuggest_for_role(role.runtime_role.as_str(), &text, task) else {
         return Vec::new();
     };
@@ -1582,11 +1585,27 @@ fn autosuggest_service_benchmark_search(text: &str, task: &Task) -> ParsedSkillR
     )
 }
 
-fn autosuggest_creative(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
-    if let Some(request) = autosuggest_search(text, task) {
-        return Some(request);
+fn autosuggest_creative_requests(text: &str, task: &Task) -> Vec<ParsedSkillRequest> {
+    if let Some(primary) = autosuggest_creative_native(text, task) {
+        if is_creative_search_chain_intent(text, &primary.skill_id) {
+            let search = autosuggest_creative_search(text, task, &primary.skill_id);
+            return vec![primary, search];
+        }
+        return vec![primary];
     }
 
+    if let Some(request) = autosuggest_search(text, task) {
+        return vec![request];
+    }
+
+    vec![autosuggest_creative_title_ctr(text, task)]
+}
+
+fn autosuggest_creative(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
+    autosuggest_creative_requests(text, task).into_iter().next()
+}
+
+fn autosuggest_creative_native(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     if contains_any(text, &["live", "直播"]) {
         let product_count = selected_product_count_or_default(task, 6);
         return Some(autosuggest_request(
@@ -1620,7 +1639,7 @@ fn autosuggest_creative(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
                 "product_name": selected_product_name_or_task(task),
                 "product_ref": selected_product_ref(task),
                 "video_type": infer_video_type(text),
-                "duration": numbers_in_text(text).first().copied().unwrap_or(30.0).round().clamp(10.0, 180.0) as i64,
+                "duration": infer_video_duration_seconds(text),
                 "platform": selected_product_platform_or_infer(task, text),
             }),
             "根据短视频/脚本意图自动补偿短视频脚本 skill",
@@ -1704,14 +1723,205 @@ fn autosuggest_creative(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
         ));
     }
 
-    Some(autosuggest_request(
+    None
+}
+
+fn autosuggest_creative_title_ctr(text: &str, task: &Task) -> ParsedSkillRequest {
+    autosuggest_request(
         "creative_title_ctr_scorer",
         serde_json::json!({
             "title": extract_title_candidate(text).unwrap_or_else(|| compact_task_text(&task.description)),
             "platform": infer_platform(text),
         }),
         "根据创意岗位任务自动补偿标题 CTR 评分 skill",
-    ))
+    )
+}
+
+fn is_creative_search_chain_intent(text: &str, native_skill_id: &str) -> bool {
+    let has_fresh_or_external = has_external_search_intent(text)
+        || contains_any(
+            text,
+            &[
+                "当前",
+                "近期",
+                "今年",
+                "今日",
+                "今天",
+                "热搜",
+                "榜单",
+                "站外",
+                "公开来源",
+                "公开资料",
+            ],
+        );
+
+    match native_skill_id {
+        "creative_video_script" | "creative_seeding_copy" => {
+            (has_fresh_or_external
+                && contains_any(
+                    text,
+                    &[
+                        "爆款", "热门", "热点", "趋势", "风格", "标签", "话题", "内容",
+                    ],
+                ))
+                || contains_any(
+                    text,
+                    &[
+                        "最新爆款",
+                        "实时爆款",
+                        "热门风格",
+                        "爆款话题",
+                        "热搜",
+                        "榜单",
+                    ],
+                )
+        }
+        "creative_content_calendar" => {
+            has_fresh_or_external
+                || contains_any(
+                    text,
+                    &[
+                        "营销节点",
+                        "内容节点",
+                        "热门话题",
+                        "热点话题",
+                        "节日热点",
+                        "节日营销",
+                    ],
+                )
+        }
+        "creative_trend_catch" => {
+            has_fresh_or_external
+                || contains_any(text, &["最新趋势", "实时趋势", "热搜", "榜单", "热点话题"])
+        }
+        _ => false,
+    }
+}
+
+fn autosuggest_creative_search(
+    text: &str,
+    task: &Task,
+    native_skill_id: &str,
+) -> ParsedSkillRequest {
+    match native_skill_id {
+        "creative_content_calendar" => autosuggest_request(
+            "search_market_info",
+            serde_json::Value::Object(creative_calendar_market_search_input(text, task)),
+            "根据内容排期中的营销节点/热门话题需求自动追加外部市场搜索 skill",
+        ),
+        _ => autosuggest_request(
+            "search_trends",
+            serde_json::Value::Object(creative_trend_search_input(text, task, native_skill_id)),
+            "根据创意内容中的实时爆款/趋势需求自动追加外部趋势搜索 skill",
+        ),
+    }
+}
+
+fn creative_trend_search_input(
+    text: &str,
+    task: &Task,
+    native_skill_id: &str,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = search_trends_input(text, task);
+    input.insert(
+        "query".to_string(),
+        serde_json::json!(creative_trend_search_query(text, task, native_skill_id)),
+    );
+    input.insert(
+        "platform".to_string(),
+        serde_json::json!(selected_product_platform_or_infer(task, text)),
+    );
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_creative_search_days(text, 14)),
+    );
+    input.insert("_needs_fresh_data".to_string(), serde_json::json!(true));
+    input
+}
+
+fn creative_calendar_market_search_input(
+    text: &str,
+    task: &Task,
+) -> serde_json::Map<String, serde_json::Value> {
+    let mut input = search_market_info_input(text, task);
+    input.insert(
+        "query".to_string(),
+        serde_json::json!(format!(
+            "电商营销节日 热门话题 内容节点 {} 2026",
+            selected_product_platform_or_infer(task, text)
+        )),
+    );
+    input.insert("topic".to_string(), serde_json::json!("news"));
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_creative_search_days(text, 30)),
+    );
+    input.insert("_needs_fresh_data".to_string(), serde_json::json!(true));
+    input
+}
+
+fn creative_trend_search_query(text: &str, task: &Task, native_skill_id: &str) -> String {
+    let platform = selected_product_platform_or_infer(task, text);
+    let subject = infer_creative_search_subject(text, task);
+
+    match native_skill_id {
+        "creative_video_script" => {
+            format!(
+                "{platform} {subject} 爆款视频 {} 热门内容 2026",
+                infer_video_type(text)
+            )
+        }
+        "creative_seeding_copy" => {
+            format!("{platform} {subject} 种草文案 热门风格 爆款话题 2026")
+        }
+        "creative_trend_catch" => {
+            let category = selected_product_category_or_infer(task, text);
+            format!("{category} {platform} 热门内容趋势 爆款 2026")
+        }
+        _ => format!("{subject} {platform} 内容趋势 热点 爆款 2026"),
+    }
+}
+
+fn infer_creative_search_subject(text: &str, task: &Task) -> String {
+    if let Some(product) = first_selected_product(task) {
+        return product.name;
+    }
+
+    for prefix in ["请帮", "帮", "给", "为"] {
+        let Some((_, rest)) = text.split_once(prefix) else {
+            continue;
+        };
+        let rest = rest.trim_start();
+        let stop = [
+            "写", "做", "生成", "排", "分析", "设计", "出", "，", ",", "。", "；", ";", " ",
+        ]
+        .iter()
+        .filter_map(|token| rest.find(token))
+        .min();
+        let Some(stop) = stop else {
+            continue;
+        };
+        let candidate = rest[..stop].trim();
+        let char_count = candidate.chars().count();
+        if (2..=20).contains(&char_count) {
+            return candidate.to_string();
+        }
+    }
+
+    infer_search_query_for_task(text, task)
+}
+
+fn infer_creative_search_days(text: &str, default: i64) -> i64 {
+    if !numbers_in_text(text).is_empty()
+        && contains_any(
+            text,
+            &["最近", "近", "过去", "天内", "日内", "周内", "月内"],
+        )
+    {
+        infer_period_days(text)
+    } else {
+        default
+    }
 }
 
 fn autosuggest_web(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
@@ -5092,6 +5302,23 @@ fn infer_video_type(text: &str) -> &'static str {
     }
 }
 
+fn infer_video_duration_seconds(text: &str) -> i64 {
+    let numbers = numbers_in_text(text);
+    if numbers.is_empty() {
+        return 30;
+    }
+    if contains_any(
+        text,
+        &["秒", "sec", "second", "seconds", "时长", "duration"],
+    ) {
+        return numbers[0].round().clamp(10.0, 180.0) as i64;
+    }
+    if contains_any(text, &["分钟", "minute", "minutes"]) {
+        return (numbers[0] * 60.0).round().clamp(10.0, 180.0) as i64;
+    }
+    30
+}
+
 fn infer_audience(text: &str) -> &'static str {
     if contains_any(text, &["student", "学生"]) {
         "学生用户"
@@ -8405,6 +8632,91 @@ mod tests {
             assert_eq!(requests.len(), 1, "{prompt}");
             assert_eq!(requests[0].skill_id, expected_skill, "{prompt}");
         }
+    }
+
+    #[test]
+    fn autosuggests_creative_trend_search_chain_when_requested() {
+        let video_requests = autosuggest_skill_requests(
+            &role("creative"),
+            &task("帮冷萃咖啡写抖音短视频脚本，联网查最新爆款内容趋势，最多4条来源"),
+            "{}",
+        );
+
+        assert_eq!(video_requests.len(), 2);
+        assert_eq!(video_requests[0].skill_id, "creative_video_script");
+        assert_eq!(
+            video_requests[0].input["product_name"],
+            "帮冷萃咖啡写抖音短视频脚本，联网查最新爆款内容趋势，最多4条来源"
+        );
+        assert_eq!(video_requests[0].input["duration"], 30);
+        assert_eq!(video_requests[1].skill_id, "search_trends");
+        assert_eq!(video_requests[1].input["platform"], "抖音");
+        assert_eq!(video_requests[1].input["days"], 14);
+        assert_eq!(video_requests[1].input["max_results"], 4);
+        assert_eq!(video_requests[1].input["_needs_fresh_data"], true);
+        assert!(
+            video_requests[1].input["query"]
+                .as_str()
+                .is_some_and(|query| query.contains("爆款视频")
+                    && query.contains("热门内容")
+                    && query.contains("冷萃咖啡"))
+        );
+        assert!(video_requests[1].input.get("product_ref").is_none());
+        assert!(video_requests[1].input.get("product_name").is_none());
+        assert!(video_requests[1].input.get("product_category").is_none());
+
+        let calendar_requests = autosuggest_skill_requests(
+            &role("creative"),
+            &task("排一周内容日历和选题，查最新营销节点和热门话题"),
+            "{}",
+        );
+
+        assert_eq!(calendar_requests.len(), 2);
+        assert_eq!(calendar_requests[0].skill_id, "creative_content_calendar");
+        assert_eq!(calendar_requests[1].skill_id, "search_market_info");
+        assert_eq!(calendar_requests[1].input["topic"], "news");
+        assert_eq!(calendar_requests[1].input["days"], 30);
+        assert_eq!(calendar_requests[1].input["_needs_fresh_data"], true);
+        assert!(
+            calendar_requests[1].input["query"]
+                .as_str()
+                .is_some_and(|query| query.contains("营销节日")
+                    && query.contains("热门话题")
+                    && query.contains("内容节点"))
+        );
+    }
+
+    #[test]
+    fn creative_search_chain_preserves_selected_product_context_only_when_selected() {
+        let summary = selected_product_summary();
+        let requests = autosuggest_skill_requests(
+            &role("creative"),
+            &task_with_metadata(
+                "帮这个商品写抖音短视频脚本，联网查最新爆款内容趋势",
+                &[("context.selected_summary", &summary)],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 2);
+        assert_eq!(requests[0].skill_id, "creative_video_script");
+        assert_eq!(requests[0].input["product_name"], "五一咖啡组合");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[1].skill_id, "search_trends");
+        assert_eq!(
+            requests[1].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[1].input["product_name"], "五一咖啡组合");
+        assert_eq!(requests[1].input["product_category"], "咖啡饮品");
+        assert!(
+            requests[1].input["query"]
+                .as_str()
+                .is_some_and(|query| query.contains("五一咖啡组合"))
+        );
     }
 
     #[test]

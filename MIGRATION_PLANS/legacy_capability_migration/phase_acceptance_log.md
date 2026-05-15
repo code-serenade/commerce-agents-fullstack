@@ -1,5 +1,20 @@
 # 阶段验收记录
 
+## Post 8-117：创意内容趋势搜索链路
+
+结论：通过。
+
+验收点：
+
+- 创意岗位短视频脚本 / 种草文案 / 内容排期 / 趋势捕捉在普通问法下仍只进入 native skill。
+- 用户明确要求最新 / 实时 / 联网 / 搜索 / 爆款 / 热门话题 / 营销节点时，会返回两个 skill 请求。
+- 第一个请求保持创意 native skill，第二个请求为 `search_trends` 或 `search_market_info`。
+- 内容排期的营销节点搜索链路使用 `search_market_info`，且 creative 角色白名单允许该 skill。
+- 搜索步骤通过既有 `skill_requested` / `skill_result` 可见，失败或未配置时仍降级，不伪造来源。
+- “最多4条来源”只影响搜索 `max_results`，不污染短视频脚本时长。
+- 显式商品上下文只来自本轮选择，未选择商品时不写空引用、不注入默认商品。
+- Agent creative / search / role catalog 测试、设计文档、API 文档和迁移归档已同步。
+
 ## Post 8-116：数据竞品与价格弹性搜索链路
 
 结论：通过。

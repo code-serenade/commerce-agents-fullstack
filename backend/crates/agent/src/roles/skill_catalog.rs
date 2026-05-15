@@ -91,7 +91,11 @@ pub fn role_can_use_skill(runtime_role: &str, spec: &SkillSpec) -> bool {
                 || spec.id == "search_product_reviews"
                 || spec.id == "search_industry_benchmarks"
         }
-        "creative" => spec.id == "web_title_seo_scorer" || spec.id == "search_trends",
+        "creative" => {
+            spec.id == "web_title_seo_scorer"
+                || spec.id == "search_trends"
+                || spec.id == "search_market_info"
+        }
         "web" => {
             spec.id == "creative_title_ctr_scorer"
                 || spec.id == "search_trends"
@@ -206,6 +210,7 @@ mod tests {
         assert!(catalog.can_role_use_skill(&role("accounting"), "accounting_roi_calc"));
         assert!(!catalog.can_role_use_skill(&role("accounting"), "creative_video_script"));
         assert!(catalog.can_role_use_skill(&role("creative"), "web_title_seo_scorer"));
+        assert!(catalog.can_role_use_skill(&role("creative"), "search_market_info"));
         assert!(catalog.can_role_use_skill(&role("engineering"), "engineering_system_check"));
         assert!(catalog.can_role_use_skill(&role("service"), "search_industry_benchmarks"));
     }
