@@ -29,6 +29,7 @@ interface AgentChatSwarmPanelProps {
   messages: AgentChatMessage[]
   onCollapse: () => void
   runtimeEvents: AgentRuntimeEvent[]
+  task?: string
 }
 
 export function AgentChatSwarmPanel({
@@ -37,11 +38,12 @@ export function AgentChatSwarmPanel({
   messages,
   onCollapse,
   runtimeEvents,
+  task,
 }: AgentChatSwarmPanelProps) {
   const { t } = useTranslation()
   const userMessages = messages.filter((message) => message.role === "user")
-  const hasTask = userMessages.length > 0
-  const lastTask = userMessages.at(-1)?.content
+  const lastTask = task ?? userMessages.at(-1)?.content
+  const hasTask = Boolean(lastTask)
   const hasRuntime = runtimeEvents.length > 0
   const graphNodes = getPlannedGraph(runtimeEvents)?.nodes ?? []
   const runtimeNodeStates = getRuntimeNodeStates(runtimeEvents)

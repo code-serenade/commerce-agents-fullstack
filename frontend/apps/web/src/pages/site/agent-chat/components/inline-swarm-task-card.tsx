@@ -44,14 +44,7 @@ export function InlineSwarmTaskCard({
     event.type === "failed" ||
     event.type === "finished"
   )
-  const openPhase = isComplete ? "complete" : "active"
-  const autoOpen = isStreaming && !isComplete
-  const [manualOpen, setManualOpen] = useState<{
-    open: boolean
-    phase: "active" | "complete"
-  } | null>(null)
-  const manualOpenApplies = manualOpen?.phase === openPhase
-  const open = manualOpenApplies ? manualOpen.open : autoOpen
+  const [open, setOpen] = useState(false)
   const agents = getInlineAgents(runtimeEvents, isStreaming, t)
   const steps = getInlineSteps(runtimeEvents, isStreaming, t)
   const completedCount = agents.filter((agent) => agent.state === "done").length
@@ -120,12 +113,7 @@ export function InlineSwarmTaskCard({
               ) : null}
               <button
                 type="button"
-                onClick={() =>
-                  setManualOpen({
-                    open: !open,
-                    phase: openPhase,
-                  })
-                }
+                onClick={() => setOpen((current) => !current)}
                 className="flex size-7 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 aria-expanded={open}
                 title={

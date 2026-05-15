@@ -16,20 +16,20 @@ import {
 import type { AgentChatStrategy } from "../domain/agent-chat-strategy"
 
 export interface AgentChatThreadProps {
+  activeProcessMessageId: string | null
   isStreaming: boolean
   messages: AgentChatMessage[]
-  onOpenProcessPanel: () => void
-  processPanelOpen: boolean
+  onOpenProcessPanel: (target: { messageId: string; task: string }) => void
   runtimeEvents: AgentRuntimeEvent[]
   selectedStrategy: AgentChatStrategy
   showProcessPanelAction: boolean
 }
 
 export function AgentChatThread({
+  activeProcessMessageId,
   isStreaming,
   messages,
   onOpenProcessPanel,
-  processPanelOpen,
   runtimeEvents,
   selectedStrategy,
   showProcessPanelAction,
@@ -42,7 +42,7 @@ export function AgentChatThread({
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
-  }, [messages, processPanelOpen])
+  }, [messages, activeProcessMessageId])
 
   return (
     <section className="min-h-0 flex-1 overflow-y-auto bg-background px-4 py-5 sm:px-6">
@@ -58,8 +58,13 @@ export function AgentChatThread({
               <InlineSwarmTaskCard
                 key={`process-${message.id}`}
                 isStreaming={message.status === "streaming" && inlineIsStreaming}
-                onOpenProcessPanel={onOpenProcessPanel}
-                processPanelOpen={processPanelOpen}
+                onOpenProcessPanel={() =>
+                  onOpenProcessPanel({
+                    messageId: message.id,
+                    task: findPreviousUserTask(messages, index),
+                  })
+                }
+                processPanelOpen={activeProcessMessageId === message.id}
                 runtimeEvents={message.runtimeEvents ?? runtimeEvents}
                 showProcessPanelAction={showProcessPanelAction}
                 task={findPreviousUserTask(messages, index)}

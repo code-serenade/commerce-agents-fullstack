@@ -1,20 +1,30 @@
 import { useState } from "react"
 import { useNavigate } from "react-router"
+import type { AgentRuntimeEvent } from "./agent-chat-data"
 import { AgentChatComposer } from "./components/agent-chat-composer"
 import { AgentChatStatus } from "./components/agent-chat-status"
 import { AgentChatSwarmPanel } from "./components/agent-chat-swarm-panel"
 import { AgentChatThread } from "./components/agent-chat-thread"
-import { CollapsedWorkbenchHandle } from "./components/collapsed-workbench-handle"
 import { useAgentChatContext } from "./context/use-agent-chat-context"
 import { isChatOnlyRuntime } from "./view-model/thread-inline-view-model"
+
+interface ActiveProcessTarget {
+  messageId: string
+  task: string
+}
 
 export default function AgentChatPage() {
   const chat = useAgentChatContext()
   const navigate = useNavigate()
-  const [isProcessPanelOpen, setIsProcessPanelOpen] = useState(false)
-  const isChatOnly = isChatOnlyRuntime(chat.runtimeEvents)
-  const shouldShowProcessPanel = isProcessPanelOpen && !isChatOnly
-  const canExpandProcessPanel = !shouldShowProcessPanel && !isChatOnly
+  const [activeProcessTarget, setActiveProcessTarget] =
+    useState<ActiveProcessTarget | null>(null)
+  const activeProcessMessage = activeProcessTarget
+    ? chat.messages.find((message) => message.id === activeProcessTarget.messageId)
+    : null
+  const activeRuntimeEvents: AgentRuntimeEvent[] =
+    activeProcessMessage?.runtimeEvents ?? chat.runtimeEvents
+  const shouldShowProcessPanel =
+    Boolean(activeProcessMessage && !isChatOnlyRuntime(activeRuntimeEvents))
 
   const layoutClassName = [
     "relative grid min-h-0 w-full flex-1 grid-cols-1 gap-2 p-2 sm:p-3",
@@ -40,13 +50,13 @@ export default function AgentChatPage() {
       <div className={layoutClassName}>
         <section className={chatPanelClassName}>
           <AgentChatThread
+            activeProcessMessageId={activeProcessMessage?.id ?? null}
             isStreaming={chat.isStreaming}
             messages={chat.messages}
-            onOpenProcessPanel={() => setIsProcessPanelOpen(true)}
-            processPanelOpen={shouldShowProcessPanel}
+            onOpenProcessPanel={setActiveProcessTarget}
             runtimeEvents={chat.runtimeEvents}
             selectedStrategy={chat.selectedStrategy}
-            showProcessPanelAction={canExpandProcessPanel}
+            showProcessPanelAction
           />
           <AgentChatComposer
             attachments={chat.attachments}
@@ -87,18 +97,13 @@ export default function AgentChatPage() {
           <div className="min-h-0 min-w-0 overflow-hidden max-[1179px]:min-h-124">
             <AgentChatSwarmPanel
               feedback={chat.feedback}
-              isStreaming={chat.isStreaming}
+              isStreaming={activeProcessMessage?.status === "streaming" && chat.isStreaming}
               messages={chat.messages}
-              onCollapse={() => setIsProcessPanelOpen(false)}
-              runtimeEvents={chat.runtimeEvents}
+              onCollapse={() => setActiveProcessTarget(null)}
+              runtimeEvents={activeRuntimeEvents}
+              task={activeProcessTarget?.task}
             />
           </div>
-        ) : canExpandProcessPanel ? (
-          <CollapsedWorkbenchHandle
-            isStreaming={chat.isStreaming}
-            onExpand={() => setIsProcessPanelOpen(true)}
-            runtimeEvents={chat.runtimeEvents}
-          />
         ) : null}
       </div>
     </div>
