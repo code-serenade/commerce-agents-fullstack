@@ -1,5 +1,51 @@
 # 迁移开发记录
 
+## Post 8-136：教学解释 native skill
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 136 个补强项：`Post 8-136`。
+
+本次目标：
+
+- 把旧产品的教学模式 / 概念讲解 / 常见误区 / 自检题能力迁成新产品后端真实 skill。
+- 让“解释 ROI 和 ROAS 区别”“用教学模式讲转化率”“给我常见误区和自检题”等问题不只靠前端提示词，而是能产生可见、可审计、可沉淀的 `learning_teaching_explain` skill。
+
+涉及范围：
+
+- 产品内核：新增跨岗位教学解释 native skill，仍走新产品 Agent skill registry、runtime、role skill catalog、worker autosuggest 和 workspace artifact 体系。
+- 后端 Agent：新增 `backend/crates/agent/src/skills/learning.rs`，输出 30 秒结论、术语白话解释、为什么、怎么做、场景示例、常见误区、自检题和下一步练习。
+- 自动触发：教学 / 讲解 / 解释 / 什么是 / 区别 / 为什么 / 怎么做 / 常见误区 / 自检等问法可触发该 skill。
+- 商品边界：只有本轮显式选品时才写入 `product_ref/product_name/platform`；未选商品时明确为通用教学解释，不注入历史商品、预设商品或演示商品。
+- 工作区交付物：成功输出可沉淀为 `learning_teaching_explain` artifact。
+- API 文档：同步更新根目录 `API_DOCS/app.md` 和 `API_DOCS/sse.md`。
+
+用户可感知变化：
+
+- 用户问“请教学解释 ROI 和 ROAS 的区别，给电商场景例子和常见误区”时，过程区会看到 `learning_teaching_explain`，并得到结构化教学回答。
+- 用户问“怎么理解转化率，给我自检题”时，后端会生成教学解释而不是普通执行清单。
+- 用户没有显式选择商品时，回答不会自动带入某个历史咖啡商品或默认商品。
+- 用户显式选择商品后，教学示例可以标记为“本轮显式选择商品”场景，但仍不读取平台实时数据。
+
+当前验证：
+
+- [x] `cargo fmt --all`（在 `backend/` workspace 执行；根目录没有 `Cargo.toml`）
+- [x] `cargo test -p agent learning`
+- [x] `cargo test -p agent keeps_roles_from_requesting_unowned_skills`
+- [x] `cargo test -p agent executor_runs_representative_native_categories`
+- [x] `cargo test -p service content_artifact_builds_from_learning_skill_output`
+- [x] `cargo check -p agent -p service -p web-server`
+- [x] `cargo clippy -p agent -p service -p web-server`
+- [x] `git diff --check`
+
+后续缺口：
+
+- 前端后续可以把“回答策略 / 教学模式”按钮对齐到该 backend skill，但不能先做假模式。
+- 旧产品更完整的班级、作业、评价教学工作台仍属于独立 teaching workspace/API 迁移，不在本轮伪造。
+
 ## Post 8-135：外部搜索 readiness 诊断契约
 
 状态：done

@@ -5,6 +5,7 @@ pub mod data;
 pub mod design;
 pub mod douyin_ads;
 pub mod engineering;
+pub mod learning;
 pub mod ops;
 pub mod runtime;
 pub mod search;
@@ -36,6 +37,7 @@ pub fn staged_specs() -> Vec<SkillSpec> {
     specs.extend(design::specs());
     specs.extend(douyin_ads::specs());
     specs.extend(engineering::specs());
+    specs.extend(learning::specs());
     specs.extend(ops::specs());
     specs.extend(search::specs());
     specs.extend(service::specs());
@@ -71,7 +73,8 @@ mod tests {
         assert!(ids.contains(&"douyin_ads_plan_structure"));
         assert!(ids.contains(&"douyin_ads_live_funnel_diagnosis"));
         assert!(ids.contains(&"engineering_sla_monitor"));
+        assert!(ids.contains(&"learning_teaching_explain"));
         assert!(ids.contains(&"coordination_agent_handoff"));
-        assert_eq!(specs.len(), 99);
+        assert_eq!(specs.len(), 100);
     }
 }

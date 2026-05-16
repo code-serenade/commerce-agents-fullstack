@@ -6007,6 +6007,12 @@ fn build_content_artifact_from_skill_output(
             "Engineering SLA report",
             "engineering SLA monitor artifact generated",
         ),
+        "learning_teaching_explain" => (
+            "learning",
+            "learning_teaching_explain",
+            "Learning teaching explain",
+            "learning teaching explanation artifact generated",
+        ),
         _ => return None,
     };
 
@@ -8305,6 +8311,28 @@ mod tests {
         assert_eq!(draft.title, "Engineering SLA report");
         assert_eq!(draft.file_name, "engineering_sla_report.md");
         assert!(draft.preview.contains("SLA监控分析已完成"));
+    }
+
+    #[test]
+    fn content_artifact_builds_from_learning_skill_output() {
+        let output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "data_readiness": "user_provided",
+            "summary": "教学解释已生成：ROI和ROAS的区别",
+            "教学主题": "ROI和ROAS的区别",
+            "30秒结论": "ROI更偏财务投入产出，ROAS更偏广告投放产出。"
+        });
+
+        let draft = build_content_artifact_from_skill_output("learning_teaching_explain", &output)
+            .expect("learning teaching output should be materializable");
+
+        assert_eq!(draft.content_category, "learning");
+        assert_eq!(draft.artifact_type, "learning_teaching_explain");
+        assert_eq!(draft.title, "Learning teaching explain");
+        assert_eq!(draft.file_name, "learning_teaching_explain.md");
+        assert!(draft.preview.contains("教学解释已生成"));
     }
 
     #[test]

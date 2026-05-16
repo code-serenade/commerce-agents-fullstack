@@ -59,6 +59,22 @@ impl Default for RoleSkillCatalog {
 }
 
 pub fn role_can_use_skill(runtime_role: &str, spec: &SkillSpec) -> bool {
+    if spec.id == "learning_teaching_explain" {
+        return matches!(
+            runtime_role,
+            "chat"
+                | "ops"
+                | "data"
+                | "service"
+                | "creative"
+                | "web"
+                | "design"
+                | "accounting"
+                | "douyin_ads"
+                | "engineering"
+        );
+    }
+
     if matches_role_category(runtime_role, &spec.category) {
         return true;
     }
@@ -229,6 +245,10 @@ mod tests {
         assert!(catalog.can_role_use_skill(&role("design"), "search_platform_policy"));
         assert!(catalog.can_role_use_skill(&role("engineering"), "search_market_info"));
         assert!(catalog.can_role_use_skill(&role("engineering"), "engineering_system_check"));
+        assert!(catalog.can_role_use_skill(&role("chat"), "learning_teaching_explain"));
+        assert!(catalog.can_role_use_skill(&role("ops"), "learning_teaching_explain"));
+        assert!(catalog.can_role_use_skill(&role("data"), "learning_teaching_explain"));
+        assert!(catalog.can_role_use_skill(&role("douyin_ads"), "learning_teaching_explain"));
         assert!(catalog.can_role_use_skill(&role("service"), "search_industry_benchmarks"));
         assert!(catalog.can_role_use_skill(&role("ops"), "search_product_reviews"));
         assert!(catalog.can_role_use_skill(&role("douyin_ads"), "douyin_ads_plan_structure"));

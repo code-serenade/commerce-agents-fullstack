@@ -7,8 +7,8 @@ use thiserror::Error;
 
 use crate::skills::{
     SearchAdapterConfig, Skill, SkillCategory, SkillContext, SkillError, SkillOutcome, SkillSpec,
-    accounting, coordination, creative, data, design, douyin_ads, engineering, ops, search,
-    service, staged_specs, web,
+    accounting, coordination, creative, data, design, douyin_ads, engineering, learning, ops,
+    search, service, staged_specs, web,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -605,6 +605,11 @@ async fn run_known_skill(
                 .run(input, context)
                 .await
         }
+        "learning_teaching_explain" => {
+            learning::LearningTeachingExplain::new()
+                .run(input, context)
+                .await
+        }
         "coordination_agent_handoff" => {
             coordination::CoordinationAgentHandoff::new()
                 .run(input, context)
@@ -677,11 +682,12 @@ mod tests {
     #[test]
     fn staged_registry_loads_all_specs() {
         let registry = SkillRegistry::staged().expect("registry should load");
-        assert_eq!(registry.len(), 99);
+        assert_eq!(registry.len(), 100);
         assert!(registry.get("ops_pricing_strategy").is_some());
         assert!(registry.get("douyin_ads_plan_structure").is_some());
         assert!(registry.get("query_product_metrics").is_some());
         assert!(registry.get("query_campaign_metrics").is_some());
+        assert!(registry.get("learning_teaching_explain").is_some());
         assert!(registry.get("missing_skill").is_none());
     }
 
@@ -765,6 +771,10 @@ mod tests {
                 json!({"title": "春夏新款轻便通勤保温杯", "target_keywords": ["保温杯"]}),
             ),
             ("engineering_sla_monitor", json!({})),
+            (
+                "learning_teaching_explain",
+                json!({"topic": "ROI和ROAS的区别", "learning_level": "undergraduate"}),
+            ),
             (
                 "douyin_ads_plan_structure",
                 json!({"goal": "直播间成交", "budget": 12000.0, "target_roas": 2.5}),

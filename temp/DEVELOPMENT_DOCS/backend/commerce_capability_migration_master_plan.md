@@ -135,6 +135,15 @@ Kimi Agent 集群 = 前端交互和视觉体验参考
 - Readiness distinguishes `disabled`, `missing_config`, and `configured`, exposes missing config keys and default limits, and only reports `hasApiKey` as a boolean.
 - This does not configure a real provider or fabricate live sources. Even when readiness is `configured`, provider failure, missing traceable URL sources, or stale-only sources still degrade.
 
+## Post 8-136 Update
+
+- The old product's teaching / learning mode now has a real Rust native Agent skill: `learning_teaching_explain`.
+- Teaching / explain / what-is / difference / why / how-to / common-pitfall / self-check prompts can now produce visible `skill_requested` / `skill_result` events.
+- The skill returns a structured teaching output with 30-second conclusion, plain-language term explanation, why, how, commerce example, common pitfalls, self-check question, and next practice.
+- Successful outputs can materialize as `learning_teaching_explain` workspace artifacts through the existing content artifact pipeline.
+- Product context remains explicit-only: if no product was selected this turn, the skill stays generic and does not inject historical, preset, demo, or coffee sample products.
+- The skill is native and deterministic; latest rules, public sources, and realtime data remain separate `search_*` adapter concerns.
+
 ## Post 8-118 Update
 
 - Web-role SEO optimization, keyword research, and page conversion prompts can now surface visible two-step chains when the user explicitly asks for latest, realtime, online, SEO algorithm, traffic-rule, keyword-competition, search-volume, CPC, or conversion-benchmark data.

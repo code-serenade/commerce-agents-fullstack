@@ -473,6 +473,9 @@ fn autosuggest_skill_requests(
     output: &str,
 ) -> Vec<ParsedSkillRequest> {
     let text = autosuggest_text(task, output);
+    if let Some(request) = autosuggest_learning(&text, task) {
+        return vec![request];
+    }
     if role.runtime_role == "ops" {
         return autosuggest_ops_requests(&text, task);
     }
@@ -573,6 +576,86 @@ fn autosuggest_chat(text: &str, _task: &Task) -> Option<ParsedSkillRequest> {
         ));
     }
     None
+}
+
+fn autosuggest_learning(text: &str, task: &Task) -> Option<ParsedSkillRequest> {
+    if !has_learning_teaching_intent(text) {
+        return None;
+    }
+
+    let mut input = serde_json::Map::new();
+    input.insert(
+        "topic".to_string(),
+        serde_json::json!(infer_learning_topic(text)),
+    );
+    input.insert(
+        "learning_level".to_string(),
+        serde_json::json!(infer_learning_level_from_text(text)),
+    );
+    input.insert(
+        "scenario".to_string(),
+        serde_json::json!(infer_learning_scenario(text)),
+    );
+    input.insert(
+        "include_self_check".to_string(),
+        serde_json::json!(!contains_any(
+            text,
+            &["不要自检", "不用自检", "不要题", "no quiz"]
+        )),
+    );
+    if let Some(product_ref) = selected_product_ref(task) {
+        input.insert("product_ref".to_string(), serde_json::json!(product_ref));
+        if let Some(product) = first_selected_product(task) {
+            input.insert("product_name".to_string(), serde_json::json!(product.name));
+            if let Some(platform) = product.platform {
+                input.insert("platform".to_string(), serde_json::json!(platform));
+            }
+        }
+    }
+
+    Some(autosuggest_request(
+        "learning_teaching_explain",
+        serde_json::Value::Object(input),
+        "根据教学/解释/概念学习意图自动补偿教学解释 skill",
+    ))
+}
+
+fn has_learning_teaching_intent(text: &str) -> bool {
+    let explicit_learning = contains_any(
+        text,
+        &[
+            "教学",
+            "讲解",
+            "解释",
+            "解释一下",
+            "解释下",
+            "什么是",
+            "是什么",
+            "区别",
+            "原理",
+            "为什么",
+            "怎么做",
+            "怎么理解",
+            "常见误区",
+            "误区",
+            "自检",
+            "思考题",
+            "教我",
+            "学习",
+            "科普",
+            "tutorial",
+            "explain",
+            "what is",
+            "how to",
+        ],
+    );
+    let explanatory_question = contains_any(text, &["为什么", "怎么做", "why"])
+        && contains_any(
+            text,
+            &["讲", "解释", "教", "学习", "概念", "原理", "误区", "自检"],
+        );
+
+    explicit_learning || explanatory_question
 }
 
 fn autosuggest_ops_requests(text: &str, task: &Task) -> Vec<ParsedSkillRequest> {
@@ -8896,6 +8979,67 @@ fn infer_stack_hint(text: &str) -> String {
     }
 }
 
+fn infer_learning_topic(text: &str) -> String {
+    if contains_any(text, &["ROI", "roi", "ROAS", "roas", "投产"]) {
+        return "ROI和ROAS的区别".to_string();
+    }
+    if contains_any(text, &["CTR", "ctr", "点击率"]) {
+        return "点击率CTR".to_string();
+    }
+    if contains_any(text, &["CVR", "cvr", "转化率"]) {
+        return "转化率CVR".to_string();
+    }
+    if contains_any(text, &["DSR", "dsr", "店铺评分", "服务评分"]) {
+        return "DSR店铺评分".to_string();
+    }
+    if contains_any(text, &["NPS", "nps", "净推荐值"]) {
+        return "NPS净推荐值".to_string();
+    }
+    if contains_any(text, &["复购", "复购率"]) {
+        return "复购率".to_string();
+    }
+    if contains_any(text, &["客单价", "AOV", "aov"]) {
+        return "客单价AOV".to_string();
+    }
+
+    compact_task_text(text)
+        .trim_start_matches("请")
+        .trim_start_matches("帮我")
+        .trim_start_matches("给我")
+        .trim()
+        .to_string()
+}
+
+fn infer_learning_level_from_text(text: &str) -> &'static str {
+    if contains_any(text, &["本科", "大学", "undergraduate"]) {
+        "undergraduate"
+    } else if contains_any(text, &["小白", "新手", "入门", "零基础", "beginner"]) {
+        "beginner"
+    } else if contains_any(text, &["专家", "深入", "高级", "专业", "expert"]) {
+        "expert"
+    } else {
+        "practitioner"
+    }
+}
+
+fn infer_learning_scenario(text: &str) -> &'static str {
+    if contains_any(
+        text,
+        &["投放", "广告", "千川", "ROI", "roi", "ROAS", "roas"],
+    ) {
+        "电商投放复盘"
+    } else if contains_any(text, &["客服", "售后", "退款", "DSR", "dsr", "NPS", "nps"]) {
+        "客服售后分析"
+    } else if contains_any(
+        text,
+        &["转化", "详情页", "主图", "标题", "CTR", "ctr", "点击率"],
+    ) {
+        "商品转化优化"
+    } else {
+        "电商经营学习"
+    }
+}
+
 fn infer_tech_domain(text: &str) -> &'static str {
     if contains_any(text, &["queue", "mq", "消息队列"]) {
         "消息队列"
@@ -10084,6 +10228,41 @@ mod tests {
         assert_eq!(requests[0].skill_id, "ops_execution_plan");
         assert_eq!(requests[0].input["stage"], "冷启动");
         assert!(requests[0].input.get("product_ref").is_none());
+    }
+
+    #[test]
+    fn autosuggests_learning_teaching_explain_for_chat() {
+        let requests = autosuggest_skill_requests(
+            &role("chat"),
+            &task("请教学解释ROI和ROAS的区别，给我一个电商场景例子和常见误区"),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "learning_teaching_explain");
+        assert_eq!(requests[0].input["topic"], "ROI和ROAS的区别");
+        assert_eq!(requests[0].input["scenario"], "电商投放复盘");
+        assert!(requests[0].input.get("product_ref").is_none());
+    }
+
+    #[test]
+    fn autosuggests_learning_uses_only_explicit_selected_product() {
+        let requests = autosuggest_skill_requests(
+            &role("ops"),
+            &task_with_metadata(
+                "请结合这个商品讲解转化率CVR为什么重要",
+                &[("context.selected_summary", &selected_product_summary())],
+            ),
+            "{}",
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "learning_teaching_explain");
+        assert_eq!(
+            requests[0].input["product_ref"],
+            "product:11111111-1111-1111-1111-111111111111"
+        );
+        assert_eq!(requests[0].input["product_name"], "五一咖啡组合");
     }
 
     #[test]

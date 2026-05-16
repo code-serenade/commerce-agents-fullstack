@@ -104,6 +104,12 @@ Post 8-114 补充：App 外部搜索 API 和 Agent `search_trends` / `search_com
 
 Post 8-135 补充：App 外部搜索 API 和 Agent `search_*` skill 均返回统一 `readiness` 诊断。`disabled` 表示未启用，`missing_config` 表示已启用但缺 `base_url` 或 `search_endpoint`，`configured` 表示后端会尝试请求真实 provider。诊断会暴露缺失配置项、默认 topic / days / max results、超时和 `has_api_key` 布尔值，但不会暴露密钥原文；配置完整仍不代表一定有 live 来源，provider 失败、无 URL 来源或全为过期来源时继续降级。
 
+## 教学 learning
+
+| 旧能力 | 新产品目标 ID | 状态 | 新落点 | 备注 |
+| --- | --- | --- | --- | --- |
+| 教学解释 / 概念讲解 / 常见误区 / 自检题 | `learning_teaching_explain` | native_ready | `backend/crates/agent/src/skills/learning.rs` / `backend/crates/agent/src/agent/worker/runner.rs` / `backend/crates/service/src/api/workspace.rs` | Post 8-136：已迁为 Rust native 教学解释能力；可由“教学/讲解/解释/什么是/区别/为什么/怎么做/常见误区/自检”等问法触发，输出 30 秒结论、术语白话解释、为什么、怎么做、场景示例、常见误区、自检题和练习；成功输出会沉淀为 `learning_teaching_explain` artifact。未显式选品时不注入历史商品、预设商品或演示商品；需要最新规则或公开来源时应另走 `search_*` adapter，不在教学 native 输出里伪造实时资料。 |
+
 ## 平台执行 / 审批治理
 
 | 旧能力 | 新产品目标 ID | 状态 | 新落点 | 备注 |
