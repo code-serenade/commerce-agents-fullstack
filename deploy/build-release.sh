@@ -26,7 +26,19 @@ docker run --rm \
   sh -c 'cargo build --release --locked -p web-server -p migration -p xtask'
 
 echo "==> Building runtime images"
-docker compose build
+docker compose build postgres backend
+docker compose build --no-cache web admin
+
+echo "==> Verifying runtime images"
+for image in \
+  commerce-agents-postgres:local \
+  commerce-agents-backend:local \
+  commerce-agents-web:local \
+  commerce-agents-admin:local
+do
+  docker image inspect "$image" >/dev/null
+  echo "found $image"
+done
 
 echo "==> Packaging offline installer"
 "$PROJECT_DIR/deploy/package-offline.sh"
