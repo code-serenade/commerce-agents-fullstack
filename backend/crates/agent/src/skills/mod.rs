@@ -16,7 +16,8 @@ pub mod web;
 pub use runtime::{
     LocalSkillExecutor, SkillAdapterKind, SkillExecutionMode, SkillExecutionResult,
     SkillExecutionStatus, SkillExecutor, SkillExecutorSet, SkillId, SkillRegistry, SkillRequest,
-    SkillRiskLevel, SkillRuntimeError,
+    SkillRiskLevel, SkillRuntimeError, adapter_kinds_for_spec, execution_mode_for_spec,
+    risk_level_for_spec,
 };
 pub use search::SearchAdapterConfig;
 pub use spec::{

@@ -144,6 +144,14 @@ Kimi Agent 集群 = 前端交互和视觉体验参考
 - Product context remains explicit-only: if no product was selected this turn, the skill stays generic and does not inject historical, preset, demo, or coffee sample products.
 - The skill is native and deterministic; latest rules, public sources, and realtime data remain separate `search_*` adapter concerns.
 
+## Post 8-137 Update
+
+- The new product now exposes a backend-derived Agent capability catalog at `GET /api/app/agent/capability-catalog`.
+- The catalog is built from `RoleCatalog`, `RoleSkillCatalog`, and `SkillRegistry`, not frontend hard-coded cards.
+- Each role response includes domains, keywords, preferred actions, required / optional capabilities, and usable skills.
+- Each skill response includes category, priority, execution mode, risk level, approval requirement, adapter requirements, tags, and input fields.
+- This is a read-only backend contract for the future "功能导航 / 虚拟员工能力介绍" UI. It does not execute skills, call LLMs, create tasks, or trigger platform actions.
+
 ## Post 8-118 Update
 
 - Web-role SEO optimization, keyword research, and page conversion prompts can now surface visible two-step chains when the user explicitly asks for latest, realtime, online, SEO algorithm, traffic-rule, keyword-competition, search-volume, CPC, or conversion-benchmark data.

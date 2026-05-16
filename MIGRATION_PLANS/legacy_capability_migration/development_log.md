@@ -1,5 +1,46 @@
 # 迁移开发记录
 
+## Post 8-137：Agent 能力目录后端接口
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 137 个补强项：`Post 8-137`。
+
+本次目标：
+
+- 让新产品后续的“功能导航 / 虚拟员工能力介绍”不再依赖前端硬编码。
+- 把同事框架中已经存在的 `RoleCatalog`、`RoleSkillCatalog`、`SkillRegistry` 整理为一个真实后端只读接口。
+- 为 Kimi Agent 集群式右侧功能导航、岗位介绍、skill 展示和执行边界说明提供后端数据源。
+
+涉及范围：
+
+- 产品内核：新增 Agent runtime 能力目录契约，能力说明从后端真实角色和 skill 注册表生成。
+- 后端 Agent：开放 skill 执行模式、风险等级、adapter 依赖等元数据判断函数，供 web-server 目录接口复用。
+- 后端 API：新增 `GET /api/app/agent/capability-catalog`，返回角色、岗位关键词、能力、skill、输入字段、执行方式、风险和审批边界。
+- API 文档：同步 `API_DOCS/app.md`，说明该接口用于功能导航，不执行 skill，不调用 LLM。
+
+用户可感知变化：
+
+- 前端后续可以在“功能导航”里展示真实虚拟员工和真实后端 skill，不需要再靠静态卡片猜测产品能力。
+- 用户打开功能导航时，可以看到每个虚拟员工能做什么、哪些能力需要外部 adapter、哪些动作需要审批。
+- 这能减少“页面有按钮但后端不支持”的体验问题。
+
+边界：
+
+- 本轮只做后端只读目录，不直接改前端。
+- 该接口不执行 skill、不创建任务、不调用 LLM、不触发平台写操作。
+- 平台 adapter、外部搜索、文件解析等真实能力状态仍按各自后端契约展示，不在目录接口里伪造成可用。
+
+验证：
+
+- [x] `cargo fmt --all`
+- [x] `cargo test -p web-server agent_capability_catalog`
+- [x] `cargo check -p agent -p web-server`
+- [x] `cargo clippy -p agent -p web-server`
+
 ## Post 8-136：教学解释 native skill
 
 状态：done

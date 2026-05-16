@@ -236,3 +236,7 @@ Post 8-127 补充：Web 岗位在标题生成和详情文案中，如果用户�
 | `coordination_save_memory` | `coordination_save_memory` | native_ready | `backend/crates/agent/src/skills/coordination.rs` | 本轮已真实化为工作记忆草案 skill，并通过 SSE/service 落成真实 agent learning record / workspace memory |
 | `coordination_skill_chain_planner` | `coordination_skill_chain_planner` | native_ready | `backend/crates/agent/src/skills/coordination.rs` | Post 8-61：已补强为 Rust native 结构化技能链规划，输出阶段、负责角色、执行模式、风险、前置依赖、不可用技能、adapter提示和审批提示；只做规划，不执行外部 Agent 或平台写操作 |
 | `coordination_external_agent_call` | `coordination_external_agent_call` | approval_required | `backend/crates/agent/src/skills/coordination.rs` | 保持 pending approval；真实外部 Agent/A2A 调用需要白名单、审计和安全策略后再接，不在当前阶段伪造执行 |
+
+## 能力目录 / 功能导航
+
+Post 8-137 补充：`GET /api/app/agent/capability-catalog` 已把新产品后端真实 `RoleCatalog`、`RoleSkillCatalog` 和 `SkillRegistry` 暴露成只读能力目录。前端后续“功能导航 / 虚拟员工能力介绍”应消费该接口展示岗位、skill、输入字段、执行模式、风险等级、审批要求和 adapter 依赖，不能再维护脱离后端的静态能力卡片。该接口只说明真实后端目录，不执行 skill、不调用 LLM、不创建任务、不触发平台写操作。

@@ -211,7 +211,7 @@ impl SkillRegistry {
     pub fn by_execution_mode(&self, mode: SkillExecutionMode) -> Vec<&SkillSpec> {
         self.specs
             .values()
-            .filter(|spec| execution_mode(spec) == mode)
+            .filter(|spec| execution_mode_for_spec(spec) == mode)
             .collect()
     }
 }
@@ -279,7 +279,7 @@ impl SkillExecutor for LocalSkillExecutor {
             );
         }
 
-        let mode = execution_mode(spec);
+        let mode = execution_mode_for_spec(spec);
         let outcome = run_known_skill(
             spec.id.as_str(),
             request.input.clone(),
@@ -350,7 +350,7 @@ fn validate_request(spec: &SkillSpec, input: &Value) -> Result<(), SkillError> {
     Ok(())
 }
 
-fn execution_mode(spec: &SkillSpec) -> SkillExecutionMode {
+pub fn execution_mode_for_spec(spec: &SkillSpec) -> SkillExecutionMode {
     if custom_category(spec) == Some("search")
         || spec.tags.iter().any(|tag| tag == "adapter")
         || spec.tags.iter().any(|tag| tag == "pending_approval")
@@ -359,14 +359,14 @@ fn execution_mode(spec: &SkillSpec) -> SkillExecutionMode {
         SkillExecutionMode::Adapter
     } else if spec.tags.iter().any(|tag| tag == "deferred") {
         SkillExecutionMode::Deferred
-    } else if adapter_kinds(spec).is_empty() {
+    } else if adapter_kinds_for_spec(spec).is_empty() {
         SkillExecutionMode::Native
     } else {
         SkillExecutionMode::Adapter
     }
 }
 
-fn adapter_kinds(spec: &SkillSpec) -> BTreeSet<SkillAdapterKind> {
+pub fn adapter_kinds_for_spec(spec: &SkillSpec) -> BTreeSet<SkillAdapterKind> {
     let mut kinds = BTreeSet::new();
     let category = custom_category(spec);
     if category == Some("search") {
@@ -392,7 +392,7 @@ fn adapter_kinds(spec: &SkillSpec) -> BTreeSet<SkillAdapterKind> {
     kinds
 }
 
-fn risk_level(spec: &SkillSpec) -> SkillRiskLevel {
+pub fn risk_level_for_spec(spec: &SkillSpec) -> SkillRiskLevel {
     if spec.tags.iter().any(|tag| tag == "pending_approval") || spec.id.starts_with("platform_") {
         SkillRiskLevel::High
     } else if spec.tags.iter().any(|tag| tag == "deferred")
@@ -410,12 +410,12 @@ fn add_runtime_metadata(
     mode: SkillExecutionMode,
 ) {
     metadata.insert("execution_mode".to_string(), json!(mode));
-    metadata.insert("risk_level".to_string(), json!(risk_level(spec)));
+    metadata.insert("risk_level".to_string(), json!(risk_level_for_spec(spec)));
     metadata.insert(
         "approval_required".to_string(),
-        json!(risk_level(spec) == SkillRiskLevel::High),
+        json!(risk_level_for_spec(spec) == SkillRiskLevel::High),
     );
-    let adapters = adapter_kinds(spec).into_iter().collect::<Vec<_>>();
+    let adapters = adapter_kinds_for_spec(spec).into_iter().collect::<Vec<_>>();
     if !adapters.is_empty() {
         metadata.insert("adapter_requirements".to_string(), json!(adapters));
     }

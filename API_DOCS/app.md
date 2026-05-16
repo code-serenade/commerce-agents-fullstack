@@ -203,6 +203,83 @@
 - 该接口只暴露问答工作台可选择的运行契约，不会动态修改模型配置或角色目录
 - 前端发送 SSE 时应把用户选择映射到 `metadata.model.name` 与 `metadata.strategy.*`
 
+## 2.2.1 查询 Agent 能力目录
+
+- 方法：`GET`
+- 路径：`/api/app/agent/capability-catalog`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：
+
+```json
+{
+  "source": "agent_runtime",
+  "version": "post_8_137",
+  "summary": {
+    "roleCount": 10,
+    "skillCount": 100,
+    "nativeSkillCount": 82,
+    "adapterSkillCount": 18,
+    "approvalSkillCount": 4
+  },
+  "roles": [
+    {
+      "id": "role.data-analyst",
+      "name": "数据分析师",
+      "runtimeRole": "data",
+      "priority": 20,
+      "domains": ["domain.general", "domain.ecommerce", "domain.education"],
+      "keywords": ["数据", "分析", "报表", "指标", "预测", "漏斗", "归因", "A/B"],
+      "preferredActions": ["analyze", "query", "plan"],
+      "requiredCapabilities": ["data.analysis", "metrics.diagnosis"],
+      "optionalCapabilities": ["forecast.demand", "attribution.modeling"],
+      "skillCount": 28,
+      "skills": [
+        {
+          "id": "data_comprehensive_diagnosis",
+          "name": "综合业务诊断",
+          "description": "编排经营看板、漏斗、异常、退款、预测、归因和LTV，输出综合业务诊断",
+          "category": "data",
+          "priority": "critical",
+          "executionMode": "native",
+          "riskLevel": "low",
+          "approvalRequired": false,
+          "adapterRequirements": [],
+          "tags": ["deterministic", "orchestrator"],
+          "inputs": [
+            {
+              "name": "product_ref",
+              "description": "新产品商品引用 product:{uuid}；仅用于标识本轮显式选品",
+              "required": false,
+              "schema": {
+                "type": "string"
+              },
+              "default": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+字段说明：
+
+- `source=agent_runtime` 表示目录来自后端 Agent runtime，不是前端静态文案
+- `roles` 来自 Agent `RoleCatalog::configured()`
+- `skills` 来自 Agent `RoleSkillCatalog::staged()` 对每个角色的真实可用 skill 过滤结果
+- `executionMode` 可为 `native`、`adapter`、`deferred`
+- `riskLevel=high` 或 `approvalRequired=true` 表示该能力涉及审批或高风险执行边界
+- `adapterRequirements` 可包含 `search`、`llm`、`db`、`platform`
+- `inputs` 是 skill 的后端输入契约，前端可以据此生成能力介绍、输入提示或调试面板，但不能伪造成功执行状态
+
+补充说明：
+
+- 当前用户必须存在于 `app_users`，且状态为 `enabled`
+- 该接口只读，不调用 LLM，不执行 skill，不创建任务，不触发平台写操作
+- 该接口用于“功能导航 / 虚拟员工能力介绍”前端适配，前端不应继续维护一份脱离后端的能力说明
+
 ## 2.3 查询外部搜索 Adapter 状态
 
 - 方法：`GET`

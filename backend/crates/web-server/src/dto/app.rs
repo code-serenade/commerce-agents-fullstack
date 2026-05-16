@@ -225,6 +225,67 @@ pub struct AgentRuntimeRoleOptionResponse {
     pub is_default: bool,
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentCapabilityCatalogResponse {
+    pub source: String,
+    pub version: String,
+    pub summary: AgentCapabilityCatalogSummaryResponse,
+    pub roles: Vec<AgentCapabilityRoleResponse>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentCapabilityCatalogSummaryResponse {
+    pub role_count: usize,
+    pub skill_count: usize,
+    pub native_skill_count: usize,
+    pub adapter_skill_count: usize,
+    pub approval_skill_count: usize,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentCapabilityRoleResponse {
+    pub id: String,
+    pub name: String,
+    pub runtime_role: String,
+    pub priority: u32,
+    pub domains: Vec<String>,
+    pub keywords: Vec<String>,
+    pub preferred_actions: Vec<String>,
+    pub required_capabilities: Vec<String>,
+    pub optional_capabilities: Vec<String>,
+    pub skill_count: usize,
+    pub skills: Vec<AgentCapabilitySkillResponse>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentCapabilitySkillResponse {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub category: String,
+    pub priority: String,
+    pub execution_mode: String,
+    pub risk_level: String,
+    pub approval_required: bool,
+    pub adapter_requirements: Vec<String>,
+    pub tags: Vec<String>,
+    pub inputs: Vec<AgentCapabilitySkillInputResponse>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentCapabilitySkillInputResponse {
+    pub name: String,
+    pub description: String,
+    pub required: bool,
+    pub schema: Value,
+    pub default: Option<Value>,
+}
+
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct ExternalSearchQuery {
