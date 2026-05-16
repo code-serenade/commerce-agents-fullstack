@@ -12,8 +12,6 @@ services:
       APP_DATABASE_URL: postgres://postgres:123456@%2Fvar%2Frun%2Fpostgresql/app
       ROOT_IDENTIFIER: test
       ROOT_PASSWORD: "12345678"
-    ports:
-      - "25432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:
@@ -30,9 +28,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    ports:
-      - "19878:19878"
-
   web:
     build:
       context: .

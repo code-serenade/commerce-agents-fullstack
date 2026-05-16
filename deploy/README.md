@@ -11,27 +11,26 @@
 
 ## 启动
 
-先在本机编译前端静态文件：
+生成最终离线交付包：
 
 ```bash
-cd frontend
-pnpm install --frozen-lockfile
-pnpm -C apps/web build
-pnpm -C apps/admin build
-cd ..
+./deploy/build-release.sh
 ```
 
-再启动 Docker Compose：
+脚本会依次完成：
 
-```bash
-./deploy/build-backend-base-images.sh
-docker compose up --build
+```text
+1. 检查并准备 rust-builder:alpine
+2. 编译前端 web/admin dist
+3. 编译后端 web-server/migration/xtask 静态 bin
+4. 构建最终 Docker 镜像
+5. 生成 output/commerce-agents-offline.tar.gz
 ```
 
-后台运行：
+本机测试启动：
 
 ```bash
-docker compose up --build -d
+docker compose up -d
 ```
 
 前端镜像只使用 nginx，不在 Docker 里安装 Node 或 pnpm。`deploy/frontend/Dockerfile` 只会把本机已经生成的 `frontend/apps/web/dist` 或 `frontend/apps/admin/dist` 复制进 nginx 镜像。
@@ -49,7 +48,7 @@ rust-builder:alpine
 ./deploy/build-backend-base-images.sh
 ```
 
-这个步骤只构建 builder 基础镜像。它会安装 Alpine 系统依赖，但不会 `cargo fetch`，也不会把当前项目源码 COPY 进镜像。
+这个步骤只在本地不存在 `rust-builder:alpine` 时构建 builder 基础镜像。它会安装 Alpine 系统依赖，但不会 `cargo fetch`，也不会把当前项目源码 COPY 进镜像。
 
 用 builder 容器编译后端：
 
@@ -70,12 +69,6 @@ rust-builder:alpine
 
 ```bash
 CARGO_CACHE_DIR=/path/to/cargo-cache ./deploy/build-backend-in-alpine.sh
-```
-
-如果暂时不想维护基础镜像，也可以使用兜底 Dockerfile：
-
-```bash
-docker build -f deploy/backend/Dockerfile.source-build -t commerce-agents-backend:local .
 ```
 
 访问：
@@ -149,19 +142,21 @@ docker compose up --build
 
 ## 后续正式化方向
 
-第一版采用“前端本机 build，后端 stable Docker build”的混合方案。后端已拆出 builder/runtime/deps 基础镜像，适合后续用 `docker save/load` 做离线交付。
+第一版采用“前端本机 build，后端 Alpine builder 编译静态 bin”的混合方案。最终运行镜像里不包含 Rust toolchain，也不依赖额外 Linux 动态库 runtime。
 
 离线交付时至少需要保存这些镜像：
 
 ```bash
-docker save \
-  postgres:latest \
-  commerce-agents-postgres:local \
-  nginx:stable-alpine-slim \
-  commerce-agents-backend:local \
-  commerce-agents-web:local \
-  commerce-agents-admin:local \
-  -o commerce-agents-images.tar
+./deploy/package-offline.sh
 ```
+
+脚本会生成：
+
+```text
+output/commerce-agents-offline.tar.gz
+output/commerce-agents-offline/
+```
+
+`output/` 已被 `.gitignore` 忽略，不需要提交到 Git。把 `commerce-agents-offline.tar.gz` 交给实施人员即可。
 
 后端当前使用 Alpine builder 编译静态 `web-server`。最终交付镜像只需要复制 `web-server` 和运行配置；`migration` 与开发/初始化流程相关，不放入最终后端运行镜像。
