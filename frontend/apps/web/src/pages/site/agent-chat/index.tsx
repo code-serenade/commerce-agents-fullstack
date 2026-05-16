@@ -2,8 +2,8 @@ import { useState } from "react"
 import { useNavigate } from "react-router"
 import type { AgentRuntimeEvent } from "./agent-chat-data"
 import { AgentChatComposer } from "./components/agent-chat-composer"
+import { AgentProcessDrawer } from "./components/agent-process-drawer"
 import { AgentChatStatus } from "./components/agent-chat-status"
-import { AgentChatSwarmPanel } from "./components/agent-chat-swarm-panel"
 import { AgentChatThread } from "./components/agent-chat-thread"
 import { useAgentChatContext } from "./context/use-agent-chat-context"
 import { isChatOnlyRuntime } from "./view-model/thread-inline-view-model"
@@ -27,17 +27,12 @@ export default function AgentChatPage() {
     Boolean(activeProcessMessage && !isChatOnlyRuntime(activeRuntimeEvents))
 
   const layoutClassName = [
-    "relative grid min-h-0 w-full flex-1 grid-cols-1 gap-2 p-2 sm:p-3",
-    shouldShowProcessPanel
-      ? "overflow-hidden min-[1180px]:grid-cols-[minmax(0,1fr)_minmax(30rem,0.46fr)] min-[1440px]:grid-cols-[minmax(0,1.08fr)_minmax(34rem,0.44fr)] min-[1680px]:grid-cols-[minmax(0,1.22fr)_minmax(38rem,0.4fr)]"
-      : "overflow-hidden",
+    "relative min-h-0 w-full flex-1 overflow-hidden p-2 sm:p-3",
   ].join(" ")
 
   const chatPanelClassName = [
     "flex min-w-0 flex-col overflow-hidden rounded-lg bg-background",
-    shouldShowProcessPanel
-      ? "mx-auto min-h-[31rem] w-full max-w-4xl min-[1280px]:min-h-0 min-[1440px]:max-w-none"
-      : "mx-auto min-h-0 w-full max-w-5xl",
+    "mx-auto min-h-0 w-full max-w-5xl",
   ].join(" ")
 
   return (
@@ -93,19 +88,15 @@ export default function AgentChatPage() {
             strategyId={chat.strategyId}
           />
         </section>
-        {shouldShowProcessPanel ? (
-          <div className="min-h-0 min-w-0 overflow-hidden max-[1179px]:min-h-124">
-            <AgentChatSwarmPanel
-              feedback={chat.feedback}
-              isStreaming={activeProcessMessage?.status === "streaming" && chat.isStreaming}
-              messages={chat.messages}
-              onCollapse={() => setActiveProcessTarget(null)}
-              runtimeEvents={activeRuntimeEvents}
-              task={activeProcessTarget?.task}
-            />
-          </div>
-        ) : null}
       </div>
+      {shouldShowProcessPanel ? (
+        <AgentProcessDrawer
+          isStreaming={activeProcessMessage?.status === "streaming" && chat.isStreaming}
+          onClose={() => setActiveProcessTarget(null)}
+          runtimeEvents={activeRuntimeEvents}
+          task={activeProcessTarget?.task}
+        />
+      ) : null}
     </div>
   )
 }

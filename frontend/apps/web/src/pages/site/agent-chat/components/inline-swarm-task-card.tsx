@@ -2,7 +2,7 @@ import {
   Activity,
   ChevronDown,
   GitBranch,
-  PanelRightOpen,
+  ListTree,
 } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -101,14 +101,16 @@ export function InlineSwarmTaskCard({
                 <button
                   type="button"
                   onClick={onOpenProcessPanel}
-                  className="flex h-7 items-center gap-1.5 rounded-md border border-border bg-background px-2 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  className={`flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium shadow-sm transition-colors ${
+                    processPanelOpen
+                      ? "border-primary/50 bg-primary/10 text-primary"
+                      : "border-border bg-background text-foreground hover:bg-muted"
+                  }`}
                   aria-pressed={processPanelOpen}
                   title={t("agentChat.thread.openWorkbench")}
                 >
-                  <PanelRightOpen className="size-3.5" />
-                  <span className="hidden sm:inline">
-                    {t("agentChat.thread.openWorkbench")}
-                  </span>
+                  <ListTree className="size-3.5" />
+                  <span>{t("agentChat.thread.openWorkbench")}</span>
                 </button>
               ) : null}
               <button

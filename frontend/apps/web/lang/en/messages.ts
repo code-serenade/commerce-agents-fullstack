@@ -83,6 +83,8 @@ const messages = {
       manualEnable: "Frontend enable",
       manualDisable: "Frontend disable",
       manualRollback: "Frontend rollback",
+      dialogDescription:
+        "Fill the backend business fields and save. Nothing is written before saving.",
       countPending: "{{count}} pending",
       countRunning: "{{count}} running",
       countEnabled: "{{count}} enabled",
@@ -1021,6 +1023,7 @@ const messages = {
       title: "Task process",
       expand: "Expand task process",
       collapse: "Collapse task process",
+      close: "Close task process",
       progress: "Progress",
       activity: "Run activity",
       record: "Run records",
@@ -1110,7 +1113,8 @@ const messages = {
       currentProgress: "Current progress {{completed}}/{{total}}",
       collapseProcess: "Collapse process",
       expandProcess: "Expand process",
-      openWorkbench: "Open task process",
+      openWorkbench: "View this answer process",
+      currentAnswerProcess: "Current answer",
       contextSummary: {
         label: "Backend context for this turn",
         productNone: "No product",

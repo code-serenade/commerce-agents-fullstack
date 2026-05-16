@@ -179,43 +179,106 @@ impl TaskGraphRuntime {
     }
 
     pub fn synthesize(&self) -> String {
-        let mut lines = vec![
-            "多智能体任务图已完成。".to_string(),
-            format!("原始任务：{}", self.graph.root_task),
-            String::new(),
-            "通过的角色产物：".to_string(),
-        ];
+        let passed_nodes = self
+            .graph
+            .nodes
+            .iter()
+            .filter(|node| {
+                matches!(
+                    self.states.get(&node.id),
+                    Some(TaskNodeRuntimeState::Passed)
+                )
+            })
+            .collect::<Vec<_>>();
+        let primary_node = select_primary_answer_node(&self.graph.nodes, &passed_nodes)
+            .or_else(|| self.graph.nodes.first().filter(|node| node.role != "chat"));
+        let support_count = passed_nodes
+            .iter()
+            .filter(|node| {
+                primary_node
+                    .map(|primary| node.id != primary.id && node.role != "chat")
+                    .unwrap_or(true)
+            })
+            .count();
+        let mut lines = Vec::new();
 
-        let mut passed_count = 0;
-        for node in &self.graph.nodes {
-            if !matches!(
-                self.states.get(&node.id),
-                Some(TaskNodeRuntimeState::Passed)
-            ) {
-                continue;
+        lines.push("# 多智能体协作结论".to_string());
+        lines.push("多智能体任务图已完成。".to_string());
+        lines.push(String::new());
+        lines.push(format!("**用户任务**：{}", self.graph.root_task));
+        if let Some(product_context) = product_context_line(&self.graph.root_task, &self.reports) {
+            lines.push(product_context);
+        }
+        lines.push(String::new());
+
+        lines.push("## 直接结论".to_string());
+        if let Some(summary) = primary_answer_summary(primary_node, &passed_nodes, &self.reports) {
+            lines.push(summary);
+            if support_count > 0 {
+                lines.push(format!(
+                    "本轮由{}牵头，{} 个协作岗位分别从指标、服务、内容、技术或预算边界补充判断；各岗位先独立完成自己的判断，再把结论交给主岗汇总，所以回答会同时体现分工和信息互通。",
+                    primary_node
+                        .map(|node| role_display_name(&node.role))
+                        .unwrap_or("主岗位"),
+                    support_count
+                ));
             }
-            passed_count += 1;
+        } else {
+            lines.push("本轮没有形成可用岗位产物，需要重新补充业务目标或上下文。".to_string());
+        }
+        lines.push(String::new());
+
+        let team_brief = team_decision_brief(&passed_nodes, &self.reports);
+        if !team_brief.is_empty() {
+            lines.push("## 团队交付".to_string());
+            lines.extend(team_brief);
+            lines.push(String::new());
+        }
+
+        lines.push("## 岗位协作".to_string());
+        if let Some(node) = primary_node {
+            lines.push(format!(
+                "- **主回答岗位**：{}（{}）负责先给出核心判断。",
+                node.title,
+                role_display_name(&node.role)
+            ));
+            let supports = passed_nodes
+                .iter()
+                .filter(|item| item.id != node.id && item.role != "chat")
+                .map(|item| format!("{}（{}）", item.title, role_display_name(&item.role)))
+                .collect::<Vec<_>>();
+            if !supports.is_empty() {
+                lines.push(format!(
+                    "- **协作岗位**：{} 分别补充证据、执行动作和风险边界。",
+                    supports.join("、")
+                ));
+            }
+        }
+        if passed_nodes.is_empty() {
+            lines.push("- 暂无通过的岗位产物。".to_string());
+        }
+        for (index, node) in passed_nodes.iter().enumerate() {
             let Some(report) = self.reports.get(&node.id) else {
-                lines.push(format!("- {}({}): 无内容", node.title, node.role));
                 continue;
             };
+            let role_label = role_display_name(&node.role);
+            let prefix = format!(
+                "{:02}. {}（{}，{}）",
+                index + 1,
+                node.title,
+                role_label,
+                node.role
+            );
             if let Some(role_output) = &report.role_output {
-                lines.push(format!(
-                    "- {}({}): {}",
-                    node.title,
-                    node.role,
-                    role_output.summary.trim()
-                ));
+                lines.push(format!("- **{prefix}**：{}", role_output.summary.trim()));
                 extend_synthesis_items(&mut lines, "  发现", &role_output.findings);
                 extend_synthesis_items(&mut lines, "  建议", &role_output.recommendations);
                 extend_synthesis_items(&mut lines, "  风险", &role_output.risks);
-                extend_synthesis_items(&mut lines, "  缺口", &role_output.open_questions);
+                extend_synthesis_items(&mut lines, "  待补充", &role_output.open_questions);
             } else {
                 let content = report.content.trim();
                 lines.push(format!(
-                    "- {}({}): {}",
-                    node.title,
-                    node.role,
+                    "- **{prefix}**：{}",
                     if content.is_empty() {
                         "无内容"
                     } else {
@@ -224,8 +287,50 @@ impl TaskGraphRuntime {
                 ));
             }
         }
-        if passed_count == 0 {
-            lines.push("- 无。".to_string());
+
+        let handoffs = collaboration_handoffs(&self.graph.nodes);
+        if !handoffs.is_empty() {
+            lines.push(String::new());
+            lines.push("## 协同关系".to_string());
+            lines.extend(handoffs);
+        }
+
+        let actions = unique_strings(
+            passed_nodes
+                .iter()
+                .filter_map(|node| self.reports.get(&node.id))
+                .filter_map(|report| report.role_output.as_ref())
+                .flat_map(|output| output.recommendations.clone())
+                .collect(),
+        );
+        if !actions.is_empty() {
+            lines.push(String::new());
+            lines.push("## 下一步".to_string());
+            for (index, action) in actions.iter().take(6).enumerate() {
+                lines.push(format!(
+                    "{}. {}",
+                    index + 1,
+                    strip_list_marker(action.trim())
+                ));
+            }
+        }
+
+        let check_items = execution_check_items(&passed_nodes, &self.reports);
+        if !check_items.is_empty() {
+            lines.push(String::new());
+            lines.push("## 执行检查清单".to_string());
+            for item in check_items.iter().take(6) {
+                lines.push(format!("- {item}"));
+            }
+        }
+
+        let deliverables = deliverable_hints(&passed_nodes, &self.reports);
+        if !deliverables.is_empty() {
+            lines.push(String::new());
+            lines.push("## 可沉淀交付物".to_string());
+            for item in deliverables {
+                lines.push(format!("- {item}"));
+            }
         }
 
         let gaps = self
@@ -234,19 +339,23 @@ impl TaskGraphRuntime {
             .iter()
             .filter_map(|node| match self.states.get(&node.id) {
                 Some(TaskNodeRuntimeState::Failed(reason)) => Some(format!(
-                    "- {}({}) failed: {}",
-                    node.title, node.role, reason
+                    "- {}（{}）未完成：{}",
+                    node.title,
+                    role_display_name(&node.role),
+                    format_runtime_gap_reason(reason)
                 )),
                 Some(TaskNodeRuntimeState::Skipped(reason)) => Some(format!(
-                    "- {}({}) skipped: {}",
-                    node.title, node.role, reason
+                    "- {}（{}）已跳过：{}",
+                    node.title,
+                    role_display_name(&node.role),
+                    format_runtime_gap_reason(reason)
                 )),
                 _ => None,
             })
             .collect::<Vec<_>>();
         if !gaps.is_empty() {
             lines.push(String::new());
-            lines.push("未完成节点：".to_string());
+            lines.push("## 未完成或需复核".to_string());
             lines.extend(gaps);
         }
 
@@ -1261,14 +1370,22 @@ fn evaluate_report(
             "placeholder",
             "无法处理",
             "不知道",
-            "无数据",
             "作为ai",
             "as an ai",
         ],
     ) {
         reasons.push("content looks like placeholder or failure text".to_string());
     }
+    if lower.contains("无数据")
+        && !report
+            .role_output
+            .as_ref()
+            .is_some_and(has_actionable_boundary_output)
+    {
+        reasons.push("content looks like placeholder or failure text".to_string());
+    }
 
+    let reasons = downgrade_role_contract_gaps(report, node, reasons);
     let passed = reasons.is_empty();
     Evaluation {
         node_id: report.node_id.clone(),
@@ -1278,6 +1395,87 @@ fn evaluate_report(
         rework_instruction: (!passed).then_some(
             "请重新提交本节点结果：内容必须具体、非空，不能是占位或失败表达。".to_string(),
         ),
+    }
+}
+
+fn downgrade_role_contract_gaps(
+    report: &WorkerReport,
+    node: Option<&TaskNode>,
+    reasons: Vec<String>,
+) -> Vec<String> {
+    if reasons.is_empty() || report.status == WorkerReportStatus::Failed {
+        return reasons;
+    }
+    let Some(output) = report.role_output.as_ref() else {
+        return reasons;
+    };
+    if !has_actionable_boundary_output(output) {
+        return reasons;
+    }
+
+    reasons
+        .into_iter()
+        .filter(|reason| !is_downgradable_quality_gap(reason, &report.role, node))
+        .collect()
+}
+
+fn has_actionable_boundary_output(output: &RoleWorkOutput) -> bool {
+    !output.summary.trim().is_empty()
+        && (!output.findings.is_empty() || !output.recommendations.is_empty())
+        && (!output.risks.is_empty()
+            || !output.open_questions.is_empty()
+            || contains_data_gap(&format!(
+                "{} {} {}",
+                output.summary,
+                output.findings.join(" "),
+                output.recommendations.join(" ")
+            )))
+}
+
+fn is_downgradable_quality_gap(reason: &str, role: &str, node: Option<&TaskNode>) -> bool {
+    if reason.starts_with("quality completeness:")
+        || reason.starts_with("quality actionability:")
+        || reason.starts_with("quality risk awareness:")
+    {
+        return true;
+    }
+
+    match role {
+        "data" => matches!(
+            reason,
+            "data role should provide at least two findings"
+                | "data role should mark data or interpretation risks"
+        ),
+        "ops" => reason == "ops role should provide at least three recommendations",
+        "service" => {
+            reason == "service role output lacks service-specific content"
+                || reason == "service role should provide scripts, SOP, or escalation steps"
+        }
+        "engineering" => {
+            reason == "engineering role output lacks technical content"
+                || reason
+                    == "engineering role should provide technical risks or rollback boundaries"
+        }
+        "design" => {
+            reason == "design role output lacks design-specific content"
+                || reason == "design role should provide visual or page recommendations"
+        }
+        "creative" => {
+            reason == "creative role output lacks creative-specific content"
+                || reason == "creative role should provide usable creative directions"
+        }
+        "accounting" => {
+            reason == "accounting role output lacks financial content"
+                || reason == "accounting role should provide budget or financial risks"
+        }
+        "web" => {
+            reason == "web role output lacks web or SEO-specific content"
+                || reason == "web role should provide SEO, keyword, or conversion recommendations"
+        }
+        _ => {
+            node.is_some_and(|node| !node.input_refs.is_empty())
+                && reason.starts_with("upstream evidence:")
+        }
     }
 }
 
@@ -1307,7 +1505,6 @@ fn evaluate_quality_contract(report: &WorkerReport, output: &RoleWorkOutput) -> 
             "查询到",
             "搜索结果显示",
             "数据库显示",
-            "实时数据",
             "调用工具",
             "tool result",
         ],
@@ -1343,6 +1540,9 @@ fn evaluate_quality_contract(report: &WorkerReport, output: &RoleWorkOutput) -> 
 
 fn open_questions_are_blocking(output: Option<&RoleWorkOutput>, open_questions: &[String]) -> bool {
     if open_questions.is_empty() {
+        return false;
+    }
+    if output.is_some_and(has_actionable_boundary_output) {
         return false;
     }
     if open_questions.iter().any(|item| {
@@ -1405,6 +1605,397 @@ fn evaluate_upstream_evidence(
     }
 
     reasons
+}
+
+fn select_primary_answer_node<'a>(
+    graph_nodes: &'a [TaskNode],
+    passed_nodes: &[&'a TaskNode],
+) -> Option<&'a TaskNode> {
+    let is_passed = |candidate: &TaskNode| passed_nodes.iter().any(|node| node.id == candidate.id);
+    let has_downstream = |candidate: &TaskNode| {
+        graph_nodes
+            .iter()
+            .any(|node| node.input_refs.iter().any(|input| input == &candidate.id))
+    };
+
+    passed_nodes
+        .iter()
+        .copied()
+        .find(|node| node.role == "ops")
+        .or_else(|| {
+            graph_nodes
+                .iter()
+                .rev()
+                .find(|node| is_passed(node) && !has_downstream(node) && node.role != "chat")
+        })
+        .or_else(|| {
+            passed_nodes
+                .iter()
+                .copied()
+                .find(|node| node.role != "chat")
+        })
+}
+
+fn primary_answer_summary(
+    primary_node: Option<&TaskNode>,
+    nodes: &[&TaskNode],
+    reports: &HashMap<TaskNodeId, WorkerReport>,
+) -> Option<String> {
+    primary_node
+        .and_then(|node| report_summary(node, reports))
+        .or_else(|| primary_summary(nodes, reports))
+}
+
+fn report_summary(node: &TaskNode, reports: &HashMap<TaskNodeId, WorkerReport>) -> Option<String> {
+    let report = reports.get(&node.id)?;
+    report
+        .role_output
+        .as_ref()
+        .and_then(|output| {
+            let summary = output.summary.trim();
+            (!summary.is_empty()).then(|| summary.to_string())
+        })
+        .or_else(|| {
+            let content = report.content.trim();
+            (!content.is_empty()).then(|| content.to_string())
+        })
+}
+
+fn primary_summary(
+    nodes: &[&TaskNode],
+    reports: &HashMap<TaskNodeId, WorkerReport>,
+) -> Option<String> {
+    nodes
+        .iter()
+        .rev()
+        .find_map(|node| {
+            let report = reports.get(&node.id)?;
+            let output = report.role_output.as_ref()?;
+            (!output.summary.trim().is_empty()).then(|| output.summary.trim().to_string())
+        })
+        .or_else(|| {
+            nodes.iter().rev().find_map(|node| {
+                let content = reports.get(&node.id)?.content.trim();
+                (!content.is_empty()).then(|| content.to_string())
+            })
+        })
+}
+
+fn product_context_line(
+    root_task: &str,
+    reports: &HashMap<TaskNodeId, WorkerReport>,
+) -> Option<String> {
+    if reports
+        .values()
+        .any(report_mentions_selected_product_context)
+    {
+        return Some(
+            "**商品上下文**：本轮使用用户手动选择的预设商品资料，来源为 context.selected_summary。"
+                .to_string(),
+        );
+    }
+    if root_task.contains("不引用任何预设商品")
+        || root_task.contains("未指定商品")
+        || reports
+            .values()
+            .any(report_mentions_unselected_product_context)
+    {
+        return Some("**商品上下文**：本轮未检测到用户手动选择的预设商品资料，不注入默认商品，只按用户文本、同一会话历史和工作区上下文理解问题。".to_string());
+    }
+    None
+}
+
+fn report_mentions_selected_product_context(report: &WorkerReport) -> bool {
+    report_text_fields(report).iter().any(|item| {
+        item.contains("用户本轮手动选择的预设商品资料")
+            || item.contains("来源 context.selected_summary")
+    })
+}
+
+fn report_mentions_unselected_product_context(report: &WorkerReport) -> bool {
+    report_text_fields(report).iter().any(|item| {
+        item.contains("未检测到 context.selected_summary")
+            || item.contains("不注入任何预设商品资料")
+            || item.contains("不使用默认商品资料")
+    })
+}
+
+fn report_text_fields(report: &WorkerReport) -> Vec<String> {
+    let mut items = vec![report.content.clone()];
+    if let Some(output) = &report.role_output {
+        items.push(output.summary.clone());
+        items.extend(output.findings.clone());
+        items.extend(output.recommendations.clone());
+        items.extend(output.evidence.clone());
+        items.extend(output.risks.clone());
+        items.extend(output.open_questions.clone());
+    }
+    items.extend(report.evidence.clone());
+    items.extend(report.risks.clone());
+    items.extend(report.open_questions.clone());
+    items
+}
+
+fn format_runtime_gap_reason(reason: &str) -> String {
+    if reason.trim().is_empty() {
+        return "本节点没有形成可复核产物，需要补齐输入后重新运行。".to_string();
+    }
+
+    let mapped = reason
+        .split(';')
+        .map(str::trim)
+        .filter(|item| !item.is_empty())
+        .map(localize_evaluation_reason)
+        .collect::<Vec<_>>();
+    if mapped.is_empty() {
+        reason.to_string()
+    } else {
+        unique_strings(mapped).join("；")
+    }
+}
+
+fn localize_evaluation_reason(reason: &str) -> String {
+    match reason {
+        "data role should provide at least two findings" => {
+            "数据岗位需要补齐至少两个可复核发现。".to_string()
+        }
+        "data role should mark data or interpretation risks" => {
+            "数据岗位需要说明数据口径或解释风险。".to_string()
+        }
+        "service role output lacks service-specific content" => {
+            "服务岗位需要补充客服承接、售后边界或升级 SOP。".to_string()
+        }
+        "service role should provide scripts, SOP, or escalation steps" => {
+            "服务岗位需要给出话术、SOP 或升级步骤。".to_string()
+        }
+        "engineering role output lacks technical content" => {
+            "工程岗位需要补充埋点、接口、稳定性或回滚边界。".to_string()
+        }
+        "engineering role should provide technical risks or rollback boundaries" => {
+            "工程岗位需要说明技术风险或回滚边界。".to_string()
+        }
+        "structured role output is missing" => "岗位没有返回结构化产物。".to_string(),
+        "content is empty" => "岗位产物为空。".to_string(),
+        "open questions remain" => "仍有阻塞性待确认问题。".to_string(),
+        "worker reported failed status" => "worker 报告执行失败。".to_string(),
+        "content looks like placeholder or failure text" => {
+            "岗位产物像占位或失败文本。".to_string()
+        }
+        _ if reason.starts_with("quality completeness: summary is too thin") => {
+            "岗位摘要过薄，需要补充具体判断。".to_string()
+        }
+        _ if reason.starts_with("quality completeness: no findings or recommendations") => {
+            "岗位缺少发现或行动建议。".to_string()
+        }
+        _ if reason.starts_with("quality actionability:") => "岗位缺少可执行建议。".to_string(),
+        _ if reason.starts_with("quality risk awareness:") => "岗位缺少风险边界。".to_string(),
+        _ if reason.starts_with("upstream evidence: missing citation for input") => {
+            "协作岗位没有引用上游岗位产物，需要补齐交接证据。".to_string()
+        }
+        _ if reason.starts_with("upstream evidence: dependent role must cite upstream inputs") => {
+            "协作岗位需要引用上游输入。".to_string()
+        }
+        _ => reason.to_string(),
+    }
+}
+
+fn execution_check_items(
+    nodes: &[&TaskNode],
+    reports: &HashMap<TaskNodeId, WorkerReport>,
+) -> Vec<String> {
+    let mut items = Vec::new();
+    for node in nodes {
+        let Some(output) = reports
+            .get(&node.id)
+            .and_then(|report| report.role_output.as_ref())
+        else {
+            continue;
+        };
+        match node.role.as_str() {
+            "data" => {
+                push_unique(
+                    &mut items,
+                    "数据：补齐曝光、点击、加购、付款、退款和渠道拆分，先统一口径再判断健康度。"
+                        .to_string(),
+                );
+            }
+            "ops" => {
+                push_unique(
+                    &mut items,
+                    "运营：把目标、周期、预算和成功指标写入同一张复盘表，避免同时改动过多变量。"
+                        .to_string(),
+                );
+            }
+            "creative" => {
+                push_unique(
+                    &mut items,
+                    "创意：把卖点拆成标题、直播脚本和短视频钩子，按 A/B 结果保留胜出版本。"
+                        .to_string(),
+                );
+            }
+            "service" => {
+                push_unique(
+                    &mut items,
+                    "客服：同步咨询话术、售后承诺和异常升级 SOP，避免前端营销承诺超过履约能力。"
+                        .to_string(),
+                );
+            }
+            "engineering" => {
+                push_unique(
+                    &mut items,
+                    "工程：确认埋点、数据接口、刷新时间和失败回滚边界，保证结论可复核。"
+                        .to_string(),
+                );
+            }
+            "douyin_ads" => {
+                push_unique(
+                    &mut items,
+                    "投放：按人群包、素材组、出价和预算节奏拆分测试，并设置止损阈值。".to_string(),
+                );
+            }
+            _ => {}
+        }
+        for question in &output.open_questions {
+            push_unique(&mut items, format!("待补充：{}", question.trim()));
+        }
+    }
+    items
+}
+
+fn deliverable_hints(
+    nodes: &[&TaskNode],
+    reports: &HashMap<TaskNodeId, WorkerReport>,
+) -> Vec<String> {
+    let mut items = Vec::new();
+    let has_role = |role: &str| nodes.iter().any(|node| node.role == role);
+
+    if has_role("data") {
+        items.push("数据诊断报告：记录指标口径、漏斗断点、缺口和复核方式。".to_string());
+    }
+    if has_role("ops") || has_role("douyin_ads") {
+        items.push("运营执行清单：沉淀优先级、责任岗位、预算节奏和复盘节点。".to_string());
+    }
+    if has_role("creative") || has_role("design") {
+        items.push("素材与页面方案：沉淀标题、脚本、主图/详情页调整点和测试假设。".to_string());
+    }
+    if has_role("service") {
+        items.push("客服承接 SOP：沉淀咨询话术、异议处理、售后边界和升级路径。".to_string());
+    }
+
+    if items.is_empty()
+        && nodes.iter().any(|node| {
+            reports
+                .get(&node.id)
+                .and_then(|report| report.role_output.as_ref())
+                .is_some()
+        })
+    {
+        items.push("本轮回答可保存为工作区交付物，供后续对话和复盘继续引用。".to_string());
+    }
+
+    items
+}
+
+fn team_decision_brief(
+    nodes: &[&TaskNode],
+    reports: &HashMap<TaskNodeId, WorkerReport>,
+) -> Vec<String> {
+    let mut items = Vec::new();
+    for node in nodes {
+        if node.role == "chat" {
+            continue;
+        }
+        let Some(output) = reports
+            .get(&node.id)
+            .and_then(|report| report.role_output.as_ref())
+        else {
+            continue;
+        };
+        let finding = output
+            .findings
+            .iter()
+            .find(|item| !item.trim().is_empty())
+            .map(|item| strip_list_marker(item.trim()))
+            .unwrap_or_else(|| output.summary.trim());
+        let action = output
+            .recommendations
+            .iter()
+            .find(|item| !item.trim().is_empty())
+            .map(|item| strip_list_marker(item.trim()))
+            .unwrap_or("继续按本岗位边界补齐执行动作。");
+        items.push(format!(
+            "- **{}**：{}；对应动作：{}",
+            role_display_name(&node.role),
+            finding,
+            action
+        ));
+    }
+    items
+}
+
+fn collaboration_handoffs(nodes: &[TaskNode]) -> Vec<String> {
+    let title_by_id = nodes
+        .iter()
+        .map(|node| (node.id.clone(), node.title.clone()))
+        .collect::<HashMap<_, _>>();
+
+    nodes
+        .iter()
+        .filter(|node| !node.input_refs.is_empty())
+        .map(|node| {
+            let inputs = node
+                .input_refs
+                .iter()
+                .filter_map(|input| title_by_id.get(input))
+                .cloned()
+                .collect::<Vec<_>>()
+                .join("、");
+            format!("- {} 接收 {} 的结果继续处理。", node.title, inputs)
+        })
+        .collect()
+}
+
+fn role_display_name(role: &str) -> &'static str {
+    match role {
+        "ops" => "运营策略师",
+        "data" => "数据分析师",
+        "service" => "客户成功专员",
+        "design" => "设计师",
+        "accounting" => "财务分析师",
+        "engineering" => "技术架构师",
+        "web" => "Web/SEO 专家",
+        "creative" => "内容创意师",
+        "douyin_ads" => "千川投放专员",
+        "chat" => "对话助手",
+        _ => "虚拟员工",
+    }
+}
+
+fn contains_data_gap(value: &str) -> bool {
+    contains_any(
+        value,
+        &[
+            "缺少",
+            "缺乏",
+            "未提供",
+            "未获取",
+            "未检索",
+            "未查询",
+            "未拿到",
+            "当前没有",
+            "没有真实",
+            "没有指定",
+            "缺",
+            "需要补充",
+            "需要提供",
+            "需要获取",
+            "需要查询",
+            "待补充",
+            "无法量化",
+            "不能承诺",
+            "不能编造",
+        ],
+    )
 }
 
 fn evaluate_role_output(role: &str, output: &RoleWorkOutput) -> Vec<String> {
@@ -1568,6 +2159,13 @@ fn extend_synthesis_items(lines: &mut Vec<String>, label: &str, items: &[String]
     ));
 }
 
+fn push_unique(items: &mut Vec<String>, value: String) {
+    if value.trim().is_empty() || items.iter().any(|item| item == &value) {
+        return;
+    }
+    items.push(value);
+}
+
 fn merge_unique(mut left: Vec<String>, right: Vec<String>) -> Vec<String> {
     for item in right {
         if !item.trim().is_empty() && !left.contains(&item) {
@@ -1584,6 +2182,23 @@ fn unique_strings(items: Vec<String>) -> Vec<String> {
         }
         unique
     })
+}
+
+fn strip_list_marker(value: &str) -> &str {
+    let value = value.trim();
+    let mut saw_digit = false;
+
+    for (index, ch) in value.char_indices() {
+        if ch.is_ascii_digit() {
+            saw_digit = true;
+            continue;
+        }
+        if saw_digit && matches!(ch, '.' | '、' | ')') {
+            return value[index + ch.len_utf8()..].trim_start();
+        }
+        return value;
+    }
+    value
 }
 
 fn contains_any(value: &str, needles: &[&str]) -> bool {
@@ -2049,7 +2664,7 @@ mod tests {
 
         assert!(matches!(outcome, EvaluationOutcome::Failed(_)));
         assert!(runtime.is_finished());
-        assert!(runtime.synthesize().contains("未完成节点"));
+        assert!(runtime.synthesize().contains("未完成或需复核"));
     }
 
     #[test]
@@ -2145,6 +2760,74 @@ mod tests {
             runtime.states.get(&node.id),
             Some(TaskNodeRuntimeState::Pending)
         ));
+    }
+
+    #[test]
+    fn evaluator_accepts_actionable_data_gap_as_support_output() {
+        let graph = TaskGraph {
+            graph_id: TaskGraphId("graph-data-gap".to_string()),
+            root_task: "请用一句话说明如何判断直播间转化是否健康，不引用任何预设商品。".to_string(),
+            nodes: vec![node(
+                "data",
+                "data",
+                "数据诊断",
+                "作为数据支持角色判断直播间转化健康度".to_string(),
+                Vec::new(),
+                2,
+            )],
+        };
+        let mut runtime = TaskGraphRuntime::new(graph);
+        let node = runtime.ready_nodes().remove(0);
+        let assignment = runtime.build_assignment(&node);
+        runtime.mark_running(&assignment);
+        let mut report = report_from_assignment(&assignment, "数据支持说明");
+        report.role_output = Some(RoleWorkOutput {
+            summary: "没有指定商品和真实漏斗数据时，只能给出健康判断框架。".to_string(),
+            findings: vec!["需要同时看曝光、点击、加购、付款和退款链路。".to_string()],
+            recommendations: vec!["补齐直播间漏斗指标后，再判断转化率是否健康。".to_string()],
+            evidence: vec!["原始任务明确不引用任何预设商品。".to_string()],
+            risks: vec!["缺少真实指标时不能编造具体转化率或行业排名。".to_string()],
+            open_questions: Vec::new(),
+        });
+
+        let outcome = runtime.apply_report(report);
+
+        assert!(matches!(outcome, EvaluationOutcome::Passed(_)));
+    }
+
+    #[test]
+    fn evaluator_accepts_actionable_service_support_output_without_service_scene() {
+        let graph = TaskGraph {
+            graph_id: TaskGraphId("graph-service-support".to_string()),
+            root_task: "请用一句话说明如何判断直播间转化是否健康，不引用任何预设商品。".to_string(),
+            nodes: vec![node(
+                "service",
+                "service",
+                "服务方案",
+                "作为服务支持角色补充转化健康风险".to_string(),
+                Vec::new(),
+                2,
+            )],
+        };
+        let mut runtime = TaskGraphRuntime::new(graph);
+        let node = runtime.ready_nodes().remove(0);
+        let assignment = runtime.build_assignment(&node);
+        runtime.mark_running(&assignment);
+        let mut report = report_from_assignment(&assignment, "服务支持说明");
+        report.role_output = Some(RoleWorkOutput {
+            summary: "服务支持角色关注咨询承接、异议处理和售后承诺对转化的影响。".to_string(),
+            findings: vec!["如果咨询响应慢或承诺不清，点击到付款会出现流失。".to_string()],
+            recommendations: vec![
+                "同步准备高频异议话术和售后边界，避免用户在付款前反复犹豫。".to_string(),
+            ],
+            evidence: vec!["原始任务要求判断直播间转化健康度。".to_string()],
+            risks: vec!["不能用未确认的政策或库存承诺刺激转化。".to_string()],
+            open_questions: Vec::new(),
+        });
+
+        let outcome = runtime.apply_report(report);
+
+        assert!(matches!(outcome, EvaluationOutcome::Passed(_)));
     }
 
     #[test]
@@ -2248,10 +2931,188 @@ mod tests {
 
         let output = runtime.synthesize();
 
+        assert!(output.contains("# 多智能体协作结论"));
         assert!(output.contains("运营先聚焦转化链路"));
+        assert!(output.contains("## 团队交付"));
+        assert!(output.contains("## 岗位协作"));
         assert!(output.contains("发现: 首屏承接弱"));
         assert!(output.contains("建议: P1 优化首屏"));
         assert!(output.contains("风险: 不要同时改太多变量"));
+        assert!(output.contains("## 下一步"));
+        assert!(output.contains("1. P1 优化首屏"));
+        assert!(!output.contains("1. 1."));
+        assert!(output.contains("## 执行检查清单"));
+        assert!(output.contains("## 可沉淀交付物"));
+        assert!(output.contains("主回答岗位"));
+    }
+
+    #[test]
+    fn synthesis_explains_team_handoff_for_multiple_roles() {
+        let graph = TaskGraph {
+            graph_id: TaskGraphId("graph-team-answer".to_string()),
+            root_task: "请分析直播间转化是否健康，不引用任何预设商品。".to_string(),
+            nodes: vec![
+                node(
+                    "ops",
+                    "ops",
+                    "运营方案",
+                    "先给出运营判断".to_string(),
+                    Vec::new(),
+                    2,
+                ),
+                node(
+                    "data",
+                    "data",
+                    "数据诊断",
+                    "基于运营输入补充指标判断".to_string(),
+                    vec!["ops"],
+                    2,
+                ),
+            ],
+        };
+        let mut runtime = TaskGraphRuntime::new(graph);
+        let ops = runtime.ready_nodes().remove(0);
+        let ops_assignment = runtime.build_assignment(&ops);
+        runtime.mark_running(&ops_assignment);
+        assert!(matches!(
+            runtime.apply_report(report_from_assignment(&ops_assignment, "运营方案完整")),
+            EvaluationOutcome::Passed(_)
+        ));
+
+        let data = runtime.ready_nodes().remove(0);
+        let data_assignment = runtime.build_assignment(&data);
+        runtime.mark_running(&data_assignment);
+        let mut data_report = report_from_assignment(&data_assignment, "数据诊断完成");
+        if let Some(output) = data_report.role_output.as_mut() {
+            output.evidence = vec!["worker.assignment.input.ops".to_string()];
+        }
+        assert!(matches!(
+            runtime.apply_report(data_report),
+            EvaluationOutcome::Passed(_)
+        ));
+
+        let output = runtime.synthesize();
+
+        assert!(!output.contains("2 个协作岗位"));
+        assert!(output.contains("1 个协作岗位"));
+        assert!(output.contains("协作岗位"));
+        assert!(output.contains("分别从指标、服务、内容、技术或预算边界补充判断"));
+        assert!(output.contains("数据诊断 接收 运营方案 的结果继续处理。"));
+        assert!(output.contains("数据诊断报告"));
+    }
+
+    #[test]
+    fn synthesis_uses_terminal_ops_node_as_primary_answer() {
+        let graph = TaskGraph {
+            graph_id: TaskGraphId("graph-terminal-primary".to_string()),
+            root_task: "请分析直播间转化是否健康，不引用任何预设商品。".to_string(),
+            nodes: vec![
+                node(
+                    "data",
+                    "data",
+                    "数据诊断",
+                    "先判断指标口径".to_string(),
+                    Vec::new(),
+                    2,
+                ),
+                node(
+                    "creative",
+                    "creative",
+                    "创意产出",
+                    "基于数据诊断补充创意方向".to_string(),
+                    vec!["data"],
+                    2,
+                ),
+                node(
+                    "ops",
+                    "ops",
+                    "运营方案",
+                    "整合数据和创意，形成最终运营判断".to_string(),
+                    vec!["creative"],
+                    2,
+                ),
+            ],
+        };
+        let mut runtime = TaskGraphRuntime::new(graph);
+
+        let data = runtime.ready_nodes().remove(0);
+        let data_assignment = runtime.build_assignment(&data);
+        runtime.mark_running(&data_assignment);
+        assert!(matches!(
+            runtime.apply_report(report_from_assignment(&data_assignment, "数据指标口径完整")),
+            EvaluationOutcome::Passed(_)
+        ));
+
+        let creative = runtime.ready_nodes().remove(0);
+        let creative_assignment = runtime.build_assignment(&creative);
+        runtime.mark_running(&creative_assignment);
+        let mut creative_report = report_from_assignment(&creative_assignment, "创意承接完整");
+        if let Some(output) = creative_report.role_output.as_mut() {
+            output.evidence = vec!["worker.assignment.input.data".to_string()];
+        }
+        assert!(matches!(
+            runtime.apply_report(creative_report),
+            EvaluationOutcome::Passed(_)
+        ));
+
+        let ops = runtime.ready_nodes().remove(0);
+        let ops_assignment = runtime.build_assignment(&ops);
+        runtime.mark_running(&ops_assignment);
+        let mut ops_report = report_from_assignment(&ops_assignment, "运营整合结论完整");
+        if let Some(output) = ops_report.role_output.as_mut() {
+            output.summary = "运营主岗结论：健康直播间要同时看点击率、加购率、付款率和退款/咨询风险，而不是只看单一转化率。".to_string();
+            output.evidence = vec!["worker.assignment.input.creative".to_string()];
+        }
+        assert!(matches!(
+            runtime.apply_report(ops_report),
+            EvaluationOutcome::Passed(_)
+        ));
+
+        let output = runtime.synthesize();
+
+        assert!(output.contains("运营主岗结论"));
+        assert!(output.contains("主回答岗位**：运营方案（运营策略师）"));
+        assert!(output.contains("未检测到用户手动选择的预设商品资料"));
+    }
+
+    #[test]
+    fn synthesis_localizes_runtime_gap_reasons() {
+        let mut graph = TaskGraph {
+            graph_id: TaskGraphId("graph-localized-gap".to_string()),
+            root_task: "请分析直播间转化是否健康".to_string(),
+            nodes: vec![node(
+                "data",
+                "data",
+                "数据诊断",
+                "分析直播间转化".to_string(),
+                Vec::new(),
+                1,
+            )],
+        };
+        graph.nodes[0].max_attempts = 1;
+        let mut runtime = TaskGraphRuntime::new(graph);
+        let data = runtime.ready_nodes().remove(0);
+        let assignment = runtime.build_assignment(&data);
+        runtime.mark_running(&assignment);
+        let mut report = report_from_assignment(&assignment, "数据产物不足");
+        report.role_output = Some(RoleWorkOutput {
+            summary: "数据结论不足".to_string(),
+            findings: vec!["只看到转化下降".to_string()],
+            recommendations: Vec::new(),
+            evidence: Vec::new(),
+            risks: Vec::new(),
+            open_questions: Vec::new(),
+        });
+
+        assert!(matches!(
+            runtime.apply_report(report),
+            EvaluationOutcome::Failed(_)
+        ));
+
+        let output = runtime.synthesize();
+
+        assert!(output.contains("数据岗位需要补齐至少两个可复核发现"));
+        assert!(!output.contains("data role should provide at least two findings"));
     }
 
     #[test]
@@ -2651,6 +3512,44 @@ mod tests {
         assert!(!evaluation.passed);
         assert!(
             evaluation
+                .reasons
+                .contains(&"quality fabrication: claims unsupported external evidence".to_string())
+        );
+    }
+
+    #[test]
+    fn evaluator_allows_realtime_data_risk_boundary_without_claiming_evidence() {
+        let role_output = RoleWorkOutput {
+            summary: "直播间转化健康需要用漏斗转化率和基准对比。".to_string(),
+            findings: vec!["需要记录观看、加购和付款的链路指标。".to_string()],
+            recommendations: vec![
+                "先补齐观看、加购、付款数据，再与历史或行业基准对比。".to_string(),
+                "设置异常波动提醒。".to_string(),
+                "按日复盘转化断点。".to_string(),
+            ],
+            evidence: vec!["原始任务".to_string()],
+            risks: vec!["缺乏实时数据源会导致监控不完整。".to_string()],
+            open_questions: Vec::new(),
+        };
+        let report = WorkerReport {
+            graph_id: TaskGraphId("graph-ops-risk-boundary".to_string()),
+            node_id: TaskNodeId("ops".to_string()),
+            task_id: TaskId("task-ops-risk-boundary".to_string()),
+            worker_id: WorkerId("worker.ops".to_string()),
+            role: "ops".to_string(),
+            content: role_output.summary.clone(),
+            role_output: Some(role_output),
+            evidence: Vec::new(),
+            risks: Vec::new(),
+            open_questions: Vec::new(),
+            status: WorkerReportStatus::Completed,
+        };
+
+        let evaluation = evaluate_report(&report, None, &HashMap::new());
+
+        assert!(evaluation.passed);
+        assert!(
+            !evaluation
                 .reasons
                 .contains(&"quality fabrication: claims unsupported external evidence".to_string())
         );

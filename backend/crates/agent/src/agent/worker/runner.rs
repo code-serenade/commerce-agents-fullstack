@@ -234,12 +234,14 @@ impl Worker {
             self.state = WorkerState::Idle;
             return;
         };
+        let context = task.context.clone();
+        let requester = task.requester.clone();
 
         let _ = self.sender.send(Message {
             id: next_message_id(),
-            context: task.context,
+            context,
             from: self.id.clone(),
-            to: task.requester,
+            to: requester,
             payload: task
                 .assignment
                 .as_ref()
@@ -258,7 +260,11 @@ impl Worker {
                             serde_json::from_str::<Vec<SkillExecutionResult>>(value).ok()
                         })
                         .unwrap_or_default();
-                    let parsed = merge_skill_results(parsed, &skill_results);
+                    let parsed = normalize_worker_role_output(
+                        &assignment.role,
+                        &task,
+                        merge_skill_results(parsed, &skill_results),
+                    );
 
                     Payload::WorkerReport {
                         report: crate::core::protocol::WorkerReport {
@@ -9891,6 +9897,363 @@ fn merge_skill_results(
     parsed
 }
 
+fn normalize_worker_role_output(
+    role: &str,
+    task: &Task,
+    mut parsed: ParsedWorkerRoleOutput,
+) -> ParsedWorkerRoleOutput {
+    let output = parsed
+        .role_output
+        .get_or_insert_with(crate::core::protocol::RoleWorkOutput::default);
+
+    let task_line = compact_task_text(&task.description);
+    if output.summary.trim().is_empty() {
+        output.summary = format!(
+            "{}已基于本轮任务给出岗位判断：{}",
+            role_display_name(role),
+            task_line
+        );
+    }
+
+    if output.findings.is_empty() {
+        output.findings = default_role_findings(role, &task_line);
+    }
+    let required_findings = required_findings_for_role(role);
+    while output.findings.len() < required_findings {
+        output.findings.push(default_role_finding(
+            role,
+            output.findings.len(),
+            &task_line,
+        ));
+    }
+    normalize_role_specific_findings(role, &mut output.findings, &task_line);
+
+    if output.recommendations.is_empty() {
+        output.recommendations = default_role_recommendations(role, &task_line);
+    }
+    let required_recommendations = required_recommendations_for_role(role);
+    while output.recommendations.len() < required_recommendations {
+        output.recommendations.push(default_role_recommendation(
+            role,
+            output.recommendations.len(),
+            &task_line,
+        ));
+    }
+    normalize_role_specific_recommendations(role, &mut output.recommendations, &task_line);
+
+    normalize_product_context_evidence(task, output);
+    normalize_upstream_evidence(task, output);
+    if output.evidence.is_empty() {
+        output
+            .evidence
+            .push("本轮用户任务和会话/工作区上下文".to_string());
+    }
+    if output.risks.is_empty() && role_requires_risk(role) {
+        output.risks = default_role_risks(role);
+    }
+
+    parsed.evidence = merge_unique(parsed.evidence, output.evidence.clone());
+    parsed.risks = merge_unique(parsed.risks, output.risks.clone());
+    parsed.open_questions = merge_unique(parsed.open_questions, output.open_questions.clone());
+    parsed.content = format_role_work_output_content(output);
+    parsed
+}
+
+#[cfg(test)]
+fn normalize_worker_role_output_for_test(
+    role: &str,
+    task_description: &str,
+    parsed: ParsedWorkerRoleOutput,
+) -> ParsedWorkerRoleOutput {
+    normalize_worker_role_output_for_test_with_metadata(role, task_description, &[], parsed)
+}
+
+#[cfg(test)]
+fn normalize_worker_role_output_for_test_with_metadata(
+    role: &str,
+    task_description: &str,
+    metadata: &[(&str, &str)],
+    parsed: ParsedWorkerRoleOutput,
+) -> ParsedWorkerRoleOutput {
+    let mut context = crate::core::protocol::MessageContext::default();
+    for (key, value) in metadata {
+        context
+            .metadata
+            .insert((*key).to_string(), (*value).to_string());
+    }
+    normalize_worker_role_output(
+        role,
+        &Task {
+            id: "task-test".to_string(),
+            context,
+            description: task_description.to_string(),
+            requester: AgentId("agent.test".to_string()),
+            assignment: None,
+        },
+        parsed,
+    )
+}
+
+fn role_display_name(role: &str) -> &'static str {
+    match role {
+        "ops" => "运营策略师",
+        "data" => "数据分析师",
+        "service" => "客户成功专员",
+        "design" => "设计师",
+        "accounting" => "财务分析师",
+        "engineering" => "技术架构师",
+        "web" => "Web/SEO 专家",
+        "creative" => "内容创意师",
+        "douyin_ads" => "千川投放专员",
+        "chat" => "对话助手",
+        _ => "虚拟员工",
+    }
+}
+
+fn default_role_findings(role: &str, task: &str) -> Vec<String> {
+    vec![default_role_finding(role, 0, task)]
+}
+
+fn required_findings_for_role(role: &str) -> usize {
+    match role {
+        "data" | "service" | "engineering" => 2,
+        _ => 1,
+    }
+}
+
+fn required_recommendations_for_role(role: &str) -> usize {
+    match role {
+        "ops" => 3,
+        "creative" => 2,
+        _ => 1,
+    }
+}
+
+fn normalize_role_specific_findings(role: &str, findings: &mut Vec<String>, task: &str) {
+    match role {
+        "data" => {
+            if !contains_any_in_items(findings, &["指标", "口径", "曝光", "点击", "加购", "付款"])
+            {
+                push_unique(
+                    findings,
+                    format!("判断 {task} 需要先统一曝光、点击、加购、付款、退款等指标口径。"),
+                );
+            }
+            if !contains_any_in_items(
+                findings,
+                &["缺", "未提供", "未获取", "没有真实", "不能编造"],
+            ) {
+                push_unique(
+                    findings,
+                    "如果没有真实漏斗和渠道数据，只能输出判断框架，不能编造转化率或行业排名。"
+                        .to_string(),
+                );
+            }
+        }
+        "service" => {
+            if !contains_any_in_items(
+                findings,
+                &["客服", "售后", "投诉", "退款", "sop", "SOP", "承诺", "咨询"],
+            ) {
+                push_unique(
+                    findings,
+                    "服务岗位本轮作为协作岗位，负责识别咨询承接、售后承诺和异议处理对转化的影响。"
+                        .to_string(),
+                );
+            }
+        }
+        "engineering" => {
+            if !contains_any_in_items(findings, &["接口", "埋点", "技术", "系统", "稳定", "回滚"])
+            {
+                push_unique(
+                    findings,
+                    "工程岗位本轮作为协作岗位，负责确认埋点、接口、数据刷新和系统稳定性边界。"
+                        .to_string(),
+                );
+            }
+        }
+        _ => {}
+    }
+}
+
+fn normalize_role_specific_recommendations(
+    role: &str,
+    recommendations: &mut Vec<String>,
+    task: &str,
+) {
+    match role {
+        "service" => {
+            if !contains_any_in_items(
+                recommendations,
+                &["客服", "售后", "话术", "SOP", "sop", "升级"],
+            ) {
+                push_unique(
+                    recommendations,
+                    "准备客服答疑、售后承诺和异常升级 SOP，避免转化承诺超过实际履约能力。"
+                        .to_string(),
+                );
+            }
+        }
+        "engineering" => {
+            if !contains_any_in_items(recommendations, &["埋点", "接口", "报表", "回滚", "刷新"])
+            {
+                push_unique(
+                    recommendations,
+                    "确认埋点、数据接口、报表刷新时间和回滚边界，确保判断可追踪、可复核。"
+                        .to_string(),
+                );
+            }
+        }
+        "data" => {
+            if !contains_any_in_items(recommendations, &["曝光", "点击", "加购", "付款", "漏斗"])
+            {
+                push_unique(
+                    recommendations,
+                    format!(
+                        "先补齐 {task} 对应的曝光、点击、加购、付款和退款漏斗，再输出确定性结论。"
+                    ),
+                );
+            }
+        }
+        _ => {}
+    }
+}
+
+fn default_role_finding(role: &str, index: usize, task: &str) -> String {
+    match (role, index) {
+        ("data", 0) => format!("当前问题需要先明确指标口径、样本周期和漏斗节点：{task}"),
+        ("data", _) => {
+            "未提供真实曝光、点击、加购、付款等指标时，只能给出判断框架，不能编造转化率。"
+                .to_string()
+        }
+        ("service", _) => {
+            "服务岗位本轮作为支持角色，重点识别用户承诺、售后风险和需要补齐的话术边界。".to_string()
+        }
+        ("engineering", _) => {
+            "工程岗位本轮作为支持角色，重点判断数据链路、接口可用性和可验证性。".to_string()
+        }
+        ("creative", _) => {
+            "创意岗位本轮负责把业务判断转成可测试的标题、脚本或素材方向。".to_string()
+        }
+        ("design", _) => "设计岗位本轮负责把转化判断落到页面层级、主图和行动按钮承接。".to_string(),
+        ("accounting", _) => "财务岗位本轮负责识别预算、毛利、ROI 和止损边界。".to_string(),
+        ("web", _) => "Web/SEO 岗位本轮负责识别页面、关键词和自然流量承接机会。".to_string(),
+        ("douyin_ads", _) => "千川投放岗位本轮负责识别人群、素材、出价和预算节奏。".to_string(),
+        ("ops", _) => "运营岗位本轮负责把多岗位判断整合为可执行节奏。".to_string(),
+        _ => format!("已围绕本轮任务形成岗位判断：{task}"),
+    }
+}
+
+fn default_role_recommendations(role: &str, task: &str) -> Vec<String> {
+    match role {
+        "ops" => vec![
+            "先确认目标、周期、预算和成功指标，再拆分执行节奏。".to_string(),
+            "把数据、创意、投放和客服输入合并为同一张行动清单。".to_string(),
+            "设置每日复盘节点，按转化、成本和风险调整优先级。".to_string(),
+        ],
+        _ => vec![default_role_recommendation(role, 0, task)],
+    }
+}
+
+fn default_role_recommendation(role: &str, index: usize, task: &str) -> String {
+    match (role, index) {
+        ("data", _) => {
+            "补齐曝光、点击、加购、付款、退款和渠道拆分后，再计算转化健康度。".to_string()
+        }
+        ("service", _) => {
+            "准备客服答疑、售后承诺和异常升级 SOP，避免营销承诺超过履约能力。".to_string()
+        }
+        ("engineering", _) => {
+            "确认埋点、数据接口和报表刷新时间，确保判断可追踪、可复核。".to_string()
+        }
+        ("creative", _) => "输出至少三组可 A/B 测试的标题、脚本钩子和直播间话术。".to_string(),
+        ("design", _) => "把核心卖点、信任证明和行动按钮放在首屏优先级最高的位置。".to_string(),
+        ("accounting", _) => {
+            "先按客单价、毛利率和预算上限测算可接受 CPA 与 ROI 止损线。".to_string()
+        }
+        ("web", _) => "围绕核心关键词、FAQ 和转化页面建立可复用内容结构。".to_string(),
+        ("douyin_ads", _) => "按人群包、素材组和预算节奏拆分测试计划，并设置止损阈值。".to_string(),
+        ("ops", 0) => "先确认目标、周期、预算和成功指标，再拆分执行节奏。".to_string(),
+        ("ops", 1) => "把数据、创意、投放和客服输入合并为同一张行动清单。".to_string(),
+        ("ops", _) => "设置每日复盘节点，按转化、成本和风险调整优先级。".to_string(),
+        _ => format!("按岗位边界继续推进：{task}"),
+    }
+}
+
+fn normalize_product_context_evidence(
+    task: &Task,
+    output: &mut crate::core::protocol::RoleWorkOutput,
+) {
+    if let Some(product) = first_selected_product(task) {
+        push_unique(
+            &mut output.evidence,
+            format!(
+                "用户本轮手动选择的预设商品资料：{}（{}，来源 context.selected_summary）。",
+                product.name,
+                product.ref_key()
+            ),
+        );
+        return;
+    }
+
+    push_unique(
+        &mut output.evidence,
+        "本轮未检测到 context.selected_summary；不注入任何预设商品资料，只按用户文本、会话历史和工作区上下文理解问题。"
+            .to_string(),
+    );
+}
+
+fn normalize_upstream_evidence(task: &Task, output: &mut crate::core::protocol::RoleWorkOutput) {
+    let Some(assignment) = &task.assignment else {
+        return;
+    };
+
+    for input in &assignment.inputs {
+        push_unique(
+            &mut output.evidence,
+            format!(
+                "worker.assignment.input.{}：引用上游{}岗位产物，保持本轮团队信息打通。",
+                input.node_id.0,
+                role_display_name(&input.role)
+            ),
+        );
+    }
+}
+
+fn role_requires_risk(role: &str) -> bool {
+    matches!(
+        role,
+        "ops" | "data" | "accounting" | "engineering" | "service" | "web"
+    )
+}
+
+fn default_role_risks(role: &str) -> Vec<String> {
+    let risk = match role {
+        "data" => "缺少真实指标时不能输出确定性转化结论。",
+        "service" => "客服话术不能承诺政策、库存或物流未确认的事项。",
+        "accounting" => "未确认毛利和预算边界时不能承诺 ROI 结果。",
+        "engineering" => "埋点或接口未确认时，数据结论可能无法复核。",
+        "web" => "未接入真实搜索数据时不能承诺排名或自然流量提升。",
+        "ops" => "同时改动过多变量会导致复盘无法归因。",
+        _ => "缺少关键上下文时，结论需要在执行前复核。",
+    };
+    vec![risk.to_string()]
+}
+
+fn merge_unique(mut left: Vec<String>, right: Vec<String>) -> Vec<String> {
+    for item in right {
+        if item.trim().is_empty() || left.iter().any(|value| value == &item) {
+            continue;
+        }
+        left.push(item);
+    }
+    left
+}
+
+fn contains_any_in_items(items: &[String], needles: &[&str]) -> bool {
+    items.iter().any(|item| contains_any(item, needles))
+}
+
 fn format_success_skill_evidence(result: &SkillExecutionResult) -> String {
     let summary = result
         .summary
@@ -10150,7 +10513,8 @@ fn next_message_id() -> MessageId {
 #[cfg(test)]
 mod tests {
     use super::{
-        autosuggest_skill_requests, merge_skill_results, parse_skill_requests,
+        autosuggest_skill_requests, merge_skill_results, normalize_worker_role_output_for_test,
+        normalize_worker_role_output_for_test_with_metadata, parse_skill_requests,
         parse_worker_role_output, resolve_skill_requests,
     };
     use crate::{
@@ -14146,6 +14510,164 @@ mod tests {
                 .open_questions
                 .iter()
                 .any(|item| item.contains("尚未产出可用结果"))
+        );
+    }
+
+    #[test]
+    fn normalizes_thin_data_output_into_actionable_role_output() {
+        let parsed = parse_worker_role_output(
+            r#"{
+              "decision": {"kind": "NoAction"},
+              "role_output": {
+                "summary": "需要看漏斗数据",
+                "findings": ["当前没有真实指标"],
+                "recommendations": [],
+                "evidence": [],
+                "risks": [],
+                "open_questions": []
+              }
+            }"#,
+        );
+
+        let normalized = normalize_worker_role_output_for_test(
+            "data",
+            "请用一句话说明如何判断直播间转化是否健康，不引用任何预设商品。",
+            parsed,
+        );
+        let output = normalized.role_output.expect("role output");
+
+        assert!(output.findings.len() >= 2);
+        assert!(!output.recommendations.is_empty());
+        assert!(!output.risks.is_empty());
+        assert!(normalized.content.contains("发现"));
+        assert!(normalized.content.contains("建议"));
+    }
+
+    #[test]
+    fn normalizes_support_role_without_native_scene_terms() {
+        let parsed = parse_worker_role_output(
+            r#"{
+              "decision": {"kind": "NoAction"},
+              "role_output": {
+                "summary": "服务支持看用户犹豫点",
+                "findings": [],
+                "recommendations": [],
+                "evidence": [],
+                "risks": [],
+                "open_questions": []
+              }
+            }"#,
+        );
+
+        let normalized = normalize_worker_role_output_for_test(
+            "service",
+            "请用一句话说明如何判断直播间转化是否健康，不引用任何预设商品。",
+            parsed,
+        );
+        let output = normalized.role_output.expect("role output");
+
+        assert!(output.findings.iter().any(|item| item.contains("服务岗位")));
+        assert!(
+            output
+                .recommendations
+                .iter()
+                .any(|item| item.contains("SOP"))
+        );
+        assert!(output.risks.iter().any(|item| item.contains("承诺")));
+    }
+
+    #[test]
+    fn normalized_output_marks_history_product_as_not_selected_context() {
+        let parsed = parse_worker_role_output(
+            r#"{
+              "decision": {"kind": "NoAction"},
+              "role_output": {
+                "summary": "可以围绕用户当前问题给出内容方向",
+                "findings": [],
+                "recommendations": [],
+                "evidence": [],
+                "risks": [],
+                "open_questions": []
+              }
+            }"#,
+        );
+
+        let normalized = normalize_worker_role_output_for_test_with_metadata(
+            "creative",
+            "请继续按刚才补充的信息写咖啡短视频脚本",
+            &[("conversation.history_summary", "上一次用户分析过千乐咖啡")],
+            parsed,
+        );
+        let output = normalized.role_output.expect("role output");
+        let evidence = output.evidence.join("\n");
+
+        assert!(evidence.contains("未检测到 context.selected_summary"));
+        assert!(evidence.contains("不注入任何预设商品资料"));
+        assert!(!evidence.contains("千乐咖啡（product:"));
+    }
+
+    #[test]
+    fn normalized_output_marks_explicit_selected_product_context() {
+        let parsed = parse_worker_role_output(
+            r#"{
+              "decision": {"kind": "NoAction"},
+              "role_output": {
+                "summary": "可以结合用户选择商品做运营判断",
+                "findings": [],
+                "recommendations": [],
+                "evidence": [],
+                "risks": [],
+                "open_questions": []
+              }
+            }"#,
+        );
+        let selected_summary = selected_product_summary();
+
+        let normalized = normalize_worker_role_output_for_test_with_metadata(
+            "ops",
+            "请结合这个商品做直播间转化判断",
+            &[("context.selected_summary", &selected_summary)],
+            parsed,
+        );
+        let output = normalized.role_output.expect("role output");
+        let evidence = output.evidence.join("\n");
+
+        assert!(evidence.contains("用户本轮手动选择的预设商品资料"));
+        assert!(evidence.contains("五一咖啡组合"));
+        assert!(evidence.contains("context.selected_summary"));
+    }
+
+    #[test]
+    fn normalizes_data_output_with_generic_gap_into_two_findings() {
+        let parsed = parse_worker_role_output(
+            r#"{
+              "decision": {"kind": "NoAction"},
+              "role_output": {
+                "summary": "需要补充指标",
+                "findings": ["当前没有真实指标"],
+                "recommendations": ["补充数据后判断"],
+                "evidence": [],
+                "risks": [],
+                "open_questions": []
+              }
+            }"#,
+        );
+
+        let normalized = normalize_worker_role_output_for_test("data", "请分析咖啡类商品", parsed);
+        let output = normalized.role_output.expect("role output");
+
+        assert!(output.findings.len() >= 2);
+        assert!(
+            output
+                .findings
+                .iter()
+                .any(|item| item.contains("曝光") && item.contains("付款"))
+        );
+        assert!(
+            output
+                .findings
+                .iter()
+                .any(|item| item.contains("不能编造") || item.contains("真实漏斗"))
         );
     }
 }
