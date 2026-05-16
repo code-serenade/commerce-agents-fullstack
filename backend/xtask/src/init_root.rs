@@ -27,12 +27,16 @@ pub fn run() -> Result<()> {
     let login_url = format!("{auth_base_url}/auth/session/login");
     let me_url = format!("{auth_base_url}/auth/user/me");
 
-    let identifier = prompt("请输入 root 账号（用户名或邮箱）: ")?;
+    let identifier = env::var("ROOT_IDENTIFIER")
+        .or_else(|_| env::var("ROOT_USERNAME"))
+        .unwrap_or_else(|_| prompt("请输入 root 账号（用户名或邮箱）: ").unwrap_or_default());
     if identifier.is_empty() {
         bail!("错误：账号不能为空");
     }
 
-    let password = prompt_password("请输入 root 密码: ")?;
+    let password = env::var("ROOT_PASSWORD").unwrap_or_else(|_| {
+        prompt_password("请输入 root 密码: ").unwrap_or_default()
+    });
     if password.is_empty() {
         bail!("错误：密码不能为空");
     }

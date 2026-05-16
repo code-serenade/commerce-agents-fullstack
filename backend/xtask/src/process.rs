@@ -10,9 +10,9 @@ pub fn require_command(command: &str) -> Result<()> {
             .stderr(Stdio::null())
             .status()
     } else {
-        Command::new("command")
-            .arg("-v")
-            .arg(command)
+        Command::new("sh")
+            .arg("-c")
+            .arg(format!("command -v {command}"))
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .status()
