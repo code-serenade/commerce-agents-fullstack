@@ -111,7 +111,7 @@ pub async fn get_agent_runtime_options(
         ]),
         learning_levels: runtime_choices(&[
             ("beginner", "低", "减少术语，强调操作顺序。", false),
-            ("higher_vocational", "中", "按电商岗位实操标准解释。", true),
+            ("higher_vocational", "中", "按电商岗位应用口径解释。", true),
             (
                 "professional",
                 "高",
@@ -380,7 +380,7 @@ mod tests {
         ]);
         let learning_levels = runtime_choices(&[
             ("beginner", "低", "减少术语，强调操作顺序。", false),
-            ("higher_vocational", "中", "按电商岗位实操标准解释。", true),
+            ("higher_vocational", "中", "按电商岗位应用口径解释。", true),
             (
                 "professional",
                 "高",

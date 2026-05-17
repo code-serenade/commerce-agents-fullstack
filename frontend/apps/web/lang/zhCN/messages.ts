@@ -894,14 +894,17 @@ const messages = {
         learning: {
           label: "教学模式",
           hint: "默认模式：面向学生和新手，讲清概念、判断逻辑和可执行动作",
+          shortHint: "默认",
         },
         quick: {
           label: "快速简答",
           hint: "适合快速判断：直接给结论、关键理由和下一步，不展开长篇过程",
+          shortHint: "短结论",
         },
         execution: {
           label: "丰富执行",
           hint: "适合汇报和落地：输出完整方案、岗位分工、表格清单、风险和验收",
+          shortHint: "完整方案",
         },
       },
     },
@@ -1009,15 +1012,15 @@ const messages = {
         roleModes: {
           auto: {
             label: "自动分配",
-            description: "推荐默认项。后端根据问题自动判断单岗或多岗。",
+            description: "推荐默认",
           },
           single: {
             label: "指定单岗",
-            description: "点一个岗位卡片，本轮只由该岗位回答。",
+            description: "一个岗位",
           },
           manual: {
             label: "指定多岗",
-            description: "先点主回答岗位，再勾选协作岗位。",
+            description: "多岗协作",
           },
         },
         strategyNotes: {

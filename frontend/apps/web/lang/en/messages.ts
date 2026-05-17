@@ -902,16 +902,19 @@ const messages = {
           label: "Teaching mode",
           hint:
             "Default mode for students and beginners: explain terms, reasoning, and actionable steps",
+          shortHint: "Default",
         },
         quick: {
           label: "Quick answer",
           hint:
             "Best for fast judgment: direct conclusion, key reason, and next steps without a long process",
+          shortHint: "Short",
         },
         execution: {
           label: "Rich execution",
           hint:
             "Best for reports and delivery: full plan, role split, tables, risks, and acceptance checks",
+          shortHint: "Full plan",
         },
       },
     },
@@ -1026,17 +1029,15 @@ const messages = {
         roleModes: {
           auto: {
             label: "Auto dispatch",
-            description:
-              "Recommended default. The backend decides whether one or multiple roles are needed.",
+            description: "Default",
           },
           single: {
             label: "Single role",
-            description: "Click one role card. Only that role answers this turn.",
+            description: "One role",
           },
           manual: {
             label: "Multi-role",
-            description:
-              "Pick the lead answer role first, then select support roles.",
+            description: "Team roles",
           },
         },
         strategyNotes: {

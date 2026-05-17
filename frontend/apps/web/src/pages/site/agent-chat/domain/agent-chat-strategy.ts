@@ -5,6 +5,7 @@ export interface AgentChatStrategy {
   responseMode: AgentChatResponseMode
   labelKey: string
   hintKey: string
+  shortHintKey: string
   intent: string
 }
 
@@ -16,6 +17,7 @@ export const AGENT_CHAT_STRATEGIES = [
     responseMode: "learning",
     labelKey: "agentChat.strategy.options.learning.label",
     hintKey: "agentChat.strategy.options.learning.hint",
+    shortHintKey: "agentChat.strategy.options.learning.shortHint",
     intent:
       "Explain the reasoning in simple steps while still producing an actionable commerce answer.",
   },
@@ -24,6 +26,7 @@ export const AGENT_CHAT_STRATEGIES = [
     responseMode: "quick",
     labelKey: "agentChat.strategy.options.quick.label",
     hintKey: "agentChat.strategy.options.quick.hint",
+    shortHintKey: "agentChat.strategy.options.quick.shortHint",
     intent:
       "Give a concise answer with the direct conclusion, key reason, and a short next-step list.",
   },
@@ -32,6 +35,7 @@ export const AGENT_CHAT_STRATEGIES = [
     responseMode: "execution",
     labelKey: "agentChat.strategy.options.execution.label",
     hintKey: "agentChat.strategy.options.execution.hint",
+    shortHintKey: "agentChat.strategy.options.execution.shortHint",
     intent:
       "Produce a complete execution plan with role division, tables, action owners, risks, and acceptance checks.",
   },

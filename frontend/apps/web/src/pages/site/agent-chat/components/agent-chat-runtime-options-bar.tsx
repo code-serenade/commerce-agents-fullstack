@@ -52,7 +52,7 @@ export function AgentChatRuntimeOptionsBar({
   )
 
   return (
-    <div className="grid gap-3 rounded-lg border border-border bg-background p-3">
+    <div className="grid gap-2 rounded-lg border border-border bg-background p-2.5">
       {!runtimeOptions && isLoadingRuntimeOptions ? (
         <div className="rounded-lg border border-border bg-card px-3 py-2 text-xs text-muted-foreground">
           {t("agentChat.composer.runtime.loading")}

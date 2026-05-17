@@ -196,7 +196,7 @@
     {
       "id": "higher_vocational",
       "label": "中",
-      "description": "按电商岗位实操标准解释。",
+      "description": "按电商岗位应用口径解释。",
       "isDefault": true
     },
     {

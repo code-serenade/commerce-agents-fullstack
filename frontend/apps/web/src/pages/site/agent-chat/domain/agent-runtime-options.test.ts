@@ -21,6 +21,14 @@ const autoCopy = "Auto"
 const higherVocationalCopy = "Higher vocational"
 
 describe("agent runtime options", () => {
+  it("uses the same default answer setup before backend options finish loading", () => {
+    expect(defaultRuntimeSelection(null)).toMatchObject({
+      collaborationMode: "auto",
+      learningLevel: "higher_vocational",
+      primaryRole: "ops",
+    })
+  })
+
   it("defaults new commerce chats to backend auto role dispatch when available", () => {
     expect(
       defaultRuntimeSelection({

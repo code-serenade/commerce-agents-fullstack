@@ -18,12 +18,12 @@ export function OptionSegment({
   value: string
 }) {
   return (
-    <div className="grid gap-2">
-      <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+    <div className="grid gap-1.5 sm:grid-cols-[4.75rem_minmax(0,1fr)] sm:items-center">
+      <div className="flex min-w-0 items-center gap-1.5 text-xs font-semibold text-foreground">
         {icon}
-        <span>{label}</span>
+        <span className="truncate">{label}</span>
       </div>
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div className="grid gap-1.5 sm:grid-cols-3">
         {options.map((option) => {
           const active = option.value === value
           return (
@@ -32,22 +32,31 @@ export function OptionSegment({
               type="button"
               disabled={disabled}
               onClick={() => onValueChange(option.value)}
-              className={`min-w-0 rounded-lg border px-3 py-2.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+              className={`flex h-8 min-w-0 items-center gap-1.5 rounded-md border px-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                 active
                   ? "border-primary/50 bg-primary/10 text-primary"
                   : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
               title={option.description}
+              aria-pressed={active}
             >
-              <span className="flex items-center gap-2 text-sm font-semibold">
-                {active ? <Check className="size-3.5 shrink-0" /> : null}
-                <span className="truncate">{option.label}</span>
+              <span className="flex size-3.5 shrink-0 items-center justify-center">
+                {active ? <Check className="size-3.5" /> : null}
               </span>
-              {option.description ? (
-                <span className="mt-1 block text-xs/5 opacity-80">
-                  {option.description}
+              <span className="flex min-w-0 items-baseline gap-2">
+                <span className="truncate text-sm font-semibold">
+                  {option.label}
                 </span>
-              ) : null}
+                {option.description ? (
+                  <span
+                    className={`truncate text-xs ${
+                      active ? "text-primary/70" : "text-muted-foreground"
+                    }`}
+                  >
+                    {option.description}
+                  </span>
+                ) : null}
+              </span>
             </button>
           )
         })}

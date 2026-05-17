@@ -54,7 +54,7 @@
 讲解深度加入 `runtime.explanation_depth` 事实：
 
 - `beginner`：低，减少术语，补白话解释。
-- `higher_vocational`：中，按电商实操口径解释。
+- `higher_vocational`：中，按电商岗位应用口径解释。
 - `professional`：高，保留指标、推导、风险和约束。
 
 自动岗位分配时，快速简答会倾向单岗短链路；教学模式和丰富执行仍允许后端根据问题分配多岗。手动单岗/多岗选择不被覆盖。

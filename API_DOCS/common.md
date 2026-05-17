@@ -66,7 +66,7 @@ temperature = 0.2
 | `reasoning_effort` | 否 | 支持 reasoning effort 的 provider 使用 |
 | `chat_completions_endpoint` | 否 | 特殊 provider 覆盖 endpoint 时使用，普通情况不需要配置；当 `base_url` 已以 `/v1`、`/api/v1` 或 `/api/v3` 结尾时，客户端会自动请求 `chat/completions` |
 
-顶层 `default_llm` 可选，用于指定默认使用哪个 `[[llm]].name`。如果不配置，运行选项接口会优先选择真实配置的豆包模型（`name` 或 `model` 包含 `doubao`），否则使用第一个 `[[llm]]`。前端只展示 `services.toml` 里真实存在的模型，不会伪造豆包选项。
+顶层 `default_llm` 可选，用于指定默认使用哪个 `[[llm]].name`。如果不配置，运行选项接口和 Agent runtime 都会优先选择真实配置的豆包模型（`name` 或 `model` 包含 `doubao`），否则使用第一个 `[[llm]]`。前端只展示 `services.toml` 里真实存在的模型，不会伪造豆包选项。
 
 豆包 Ark 示例：
 

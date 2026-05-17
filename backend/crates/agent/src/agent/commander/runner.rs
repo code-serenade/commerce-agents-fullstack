@@ -1232,7 +1232,7 @@ fn extend_runtime_strategy_facts(
         "professional" => {
             "讲解深度：高。保留关键指标、推导路径、约束假设、风险边界和可复核口径，适合汇报和专业复盘。"
         }
-        _ => "讲解深度：中。按电商岗位实操标准解释，术语不过度展开，但关键概念和动作口径要说清楚。",
+        _ => "讲解深度：中。按电商岗位应用口径解释，术语不过度展开，但关键概念和动作口径要说清楚。",
     };
     facts.push(Fact {
         source: "runtime.explanation_depth".to_string(),

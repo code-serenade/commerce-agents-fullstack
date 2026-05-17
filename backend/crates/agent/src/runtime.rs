@@ -92,17 +92,7 @@ fn build_default_llm(config: AgentRuntimeCfg) -> Result<AgentLlmClient> {
         .into());
     }
 
-    let selected = match config.default_llm.as_deref() {
-        Some(name) => config
-            .llm
-            .iter()
-            .find(|llm| llm.name == name)
-            .ok_or_else(|| SettingsError::missing_llm_usage(format!("llm '{name}' not found")))?,
-        None => config
-            .llm
-            .first()
-            .expect("checked non-empty llm config above"),
-    };
+    let selected = select_default_llm_config(&config)?;
 
     let mut client = ChatCompletionsLlm::new(
         &selected.base_url,
@@ -124,4 +114,91 @@ fn build_default_llm(config: AgentRuntimeCfg) -> Result<AgentLlmClient> {
     }
 
     Ok(client)
+}
+
+fn select_default_llm_config(config: &AgentRuntimeCfg) -> Result<&AgentLlmCfg> {
+    if config.llm.is_empty() {
+        return Err(SettingsError::missing_llm_usage(
+            "agent runtime requires at least one [[llm]] entry",
+        )
+        .into());
+    }
+
+    match config.default_llm.as_deref() {
+        Some(name) => config
+            .llm
+            .iter()
+            .find(|llm| llm.name == name)
+            .ok_or_else(|| {
+                SettingsError::missing_llm_usage(format!("llm '{name}' not found")).into()
+            }),
+        None => Ok(config
+            .llm
+            .iter()
+            .find(|llm| is_doubao_llm(llm))
+            .or_else(|| config.llm.first())
+            .expect("checked non-empty llm config above")),
+    }
+}
+
+fn is_doubao_llm(llm: &AgentLlmCfg) -> bool {
+    let name = llm.name.to_ascii_lowercase();
+    let model = llm.model.to_ascii_lowercase();
+    name.contains("doubao") || model.contains("doubao")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{AgentLlmCfg, AgentRuntimeCfg, is_doubao_llm, select_default_llm_config};
+
+    fn llm(name: &str, model: &str) -> AgentLlmCfg {
+        AgentLlmCfg {
+            name: name.to_string(),
+            base_url: "http://127.0.0.1:11434/v1".to_string(),
+            model: model.to_string(),
+            api_key: None,
+            max_tokens: None,
+            temperature: None,
+            reasoning_effort: None,
+            chat_completions_endpoint: None,
+        }
+    }
+
+    #[test]
+    fn doubao_detection_matches_name_or_model() {
+        assert!(is_doubao_llm(&llm(
+            "doubao-external",
+            "doubao-seed-2-0-pro-260215"
+        )));
+        assert!(is_doubao_llm(&llm(
+            "ark-main",
+            "doubao-seed-2-0-pro-260215"
+        )));
+        assert!(!is_doubao_llm(&llm("ollama-gpt", "gpt-oss:20b")));
+    }
+
+    #[test]
+    fn runtime_config_prefers_doubao_without_default_llm() {
+        let config = AgentRuntimeCfg::from_llm(vec![
+            llm("ollama-gpt", "gpt-oss:20b"),
+            llm("doubao-external", "doubao-seed-2-0-pro-260215"),
+        ]);
+
+        let preferred = select_default_llm_config(&config).expect("selected llm");
+
+        assert_eq!(preferred.name, "doubao-external");
+    }
+
+    #[test]
+    fn runtime_config_respects_explicit_default_llm() {
+        let mut config = AgentRuntimeCfg::from_llm(vec![
+            llm("doubao-external", "doubao-seed-2-0-pro-260215"),
+            llm("ollama-gpt", "gpt-oss:20b"),
+        ]);
+        config.default_llm = Some("ollama-gpt".to_string());
+
+        let preferred = select_default_llm_config(&config).expect("selected llm");
+
+        assert_eq!(preferred.name, "ollama-gpt");
+    }
 }

@@ -24,7 +24,7 @@ Rules:
 - `base_url` must be reachable from the backend machine.
 - The client calls an OpenAI-compatible chat completions API.
 - If the provider path is not the default, set `chat_completions_endpoint`. When `base_url` already ends with `/v1`, `/api/v1`, or `/api/v3`, the client automatically calls `chat/completions`.
-- `default_llm` selects one entry by `name`. If omitted, runtime options prefer a real configured Doubao entry whose `name` or `model` contains `doubao`; otherwise the first `[[llm]]` entry is used.
+- `default_llm` selects one entry by `name`. If omitted, runtime options and Agent runtime prefer a real configured Doubao entry whose `name` or `model` contains `doubao`; otherwise the first `[[llm]]` entry is used.
 - Model selection is server-side only. Frontend requests do not expose or override LLM config.
 - Local Ollama is still supported, for example `base_url = "http://127.0.0.1:11434"`.
 
@@ -131,7 +131,7 @@ Request body:
 }
 ```
 
-The backend uses `default_llm` from `backend/config/services.toml`. If it is omitted and a real Doubao entry is configured, the runtime options default to that Doubao entry; otherwise they default to the first configured LLM.
+The backend uses `default_llm` from `backend/config/services.toml`. If it is omitted and a real Doubao entry is configured, both runtime options and Agent runtime default to that Doubao entry; otherwise they default to the first configured LLM.
 
 Important SSE events:
 

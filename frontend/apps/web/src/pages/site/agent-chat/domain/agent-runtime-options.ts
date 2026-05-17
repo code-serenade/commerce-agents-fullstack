@@ -53,7 +53,7 @@ export function defaultRuntimeSelection(
   const defaultCollaboration =
     options?.collaborationModes.find((mode) => mode.id === "auto")?.id ??
     options?.collaborationModes.find((mode) => mode.isDefault)?.id ??
-    "manual"
+    "auto"
   const defaultLearning =
     options?.learningLevels.find((level) => level.isDefault)?.id ??
     "higher_vocational"

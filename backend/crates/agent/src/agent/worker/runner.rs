@@ -9722,7 +9722,7 @@ fn extend_runtime_strategy_facts(
         content: match runtime_learning_level(metadata) {
             "beginner" => "讲解深度：低。减少术语，必要术语必须白话解释，输出更像老师带学生拆题。",
             "professional" => "讲解深度：高。保留指标、推导、约束、风险和复盘口径，适合专业汇报。",
-            _ => "讲解深度：中。按电商实操标准解释，重点概念讲清楚即可。",
+            _ => "讲解深度：中。按电商岗位应用口径解释，重点概念讲清楚即可。",
         }
         .to_string(),
         reliability: 1.0,
