@@ -109,6 +109,7 @@ export async function sendAgentChatMessage(
     })
 
     let assistantContent = ""
+    let assistantDone = false
     const runtimeEvents: AgentRuntimeEvent[] = []
     await agentChatData.streamAgentSession(
       {
@@ -137,17 +138,23 @@ export async function sendAgentChatMessage(
         signal: controller.signal,
         onDelta: (chunk) => {
           assistantContent += chunk
+          const displayContent = formatAgentUiMessage(
+            assistantContent,
+            input.messageFormatCopy
+          )
           input.setMessages((current) =>
             current.map((message) =>
               message.id === assistantId
-                ? { ...message, content: message.content + chunk }
+                ? { ...message, content: displayContent }
                 : message
             )
           )
         },
         onAgentEvent: (event) => {
           runtimeEvents.push(event)
-          input.setRuntimeEvents((current) => [...current, event])
+          if (!assistantDone) {
+            input.setRuntimeEvents((current) => [...current, event])
+          }
           input.setMessages((current) =>
             current.map((message) =>
               message.id === assistantId
@@ -160,17 +167,26 @@ export async function sendAgentChatMessage(
           )
         },
         onDone: () => {
+          if (assistantDone) return
+          assistantDone = true
+          input.setRuntimeEvents([...runtimeEvents])
+          const displayContent = formatAgentUiMessage(
+            assistantContent,
+            input.messageFormatCopy
+          )
           input.setMessages((current) =>
             current.map((message) =>
               message.id === assistantId
                 ? {
                     ...message,
-                    runtimeEvents,
+                    content: displayContent,
+                    runtimeEvents: [...runtimeEvents],
                     status: undefined,
                   }
                 : message
             )
           )
+          input.setIsStreaming(false)
         },
         onError: (message) => {
           const displayMessage = formatAgentUiMessage(
@@ -193,7 +209,10 @@ export async function sendAgentChatMessage(
         },
       }
     )
-    const finalAssistantContent = assistantContent.trim()
+    const finalAssistantContent = formatAgentUiMessage(
+      assistantContent,
+      input.messageFormatCopy
+    )
     if (finalAssistantContent) {
       await agentChatData.addConversationMessage(activeConversationId, {
         role: "assistant",
@@ -204,12 +223,12 @@ export async function sendAgentChatMessage(
     input.setIsStreaming(false)
   } catch (err) {
     if (controller.signal.aborted) return null
+    input.setIsStreaming(false)
     const message = formatAgentUiMessage(
       err instanceof Error ? err.message : input.tError,
       input.messageFormatCopy
     )
     input.setError(message)
-    input.setIsStreaming(false)
     input.setMessages((current) =>
       current.map((item) =>
         item.id === assistantId

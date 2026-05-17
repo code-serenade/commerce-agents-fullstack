@@ -26,6 +26,7 @@ export function useAgentChatPage() {
   const loginRequiredMessage = t("agentChat.loginRequired.message")
   const messageFormatCopy = useMemo(
     () => ({
+      boundaryNotice: t("agentChat.boundaryNotice"),
       missingStructuredOutput: t("agentChat.missingStructuredOutput"),
       streamTimedOut: t("agentChat.streamTimedOut"),
     }),
@@ -60,7 +61,7 @@ export function useAgentChatPage() {
     isStreaming,
     runtimeEvents,
   })
-  const { actionState, createWelcomeMessage } = useAgentChatActionState({
+  const { actionState } = useAgentChatActionState({
     abortRef,
     clearSelectedProducts: productContext.clearSelectedProducts,
     clearSelectedSources: sourceContext.clearSelectedSources,
@@ -83,6 +84,8 @@ export function useAgentChatPage() {
     tError: t("agentChat.error"),
     welcomeMessage: t("agentChat.welcomeMessage"),
   })
+  const actionStateRef = useRef(actionState)
+  const userBootstrapKey = user?.id ?? null
 
   useEffect(() => {
     const currentAbortRef = abortRef
@@ -90,19 +93,23 @@ export function useAgentChatPage() {
   }, [])
 
   useEffect(() => {
+    actionStateRef.current = actionState
+  }, [actionState])
+
+  useEffect(() => {
     let cancelled = false
+    const latestActionState = actionStateRef.current
 
-    if (!user) {
-      resetGuestAgentChatState(actionState, () => cancelled)
-      return
+    if (!userBootstrapKey) {
+      resetGuestAgentChatState(latestActionState, () => cancelled)
+    } else {
+      void loadLatestAgentConversation(latestActionState, () => cancelled)
     }
-
-    void loadLatestAgentConversation(actionState, () => cancelled)
 
     return () => {
       cancelled = true
     }
-  }, [createWelcomeMessage, actionState, user])
+  }, [userBootstrapKey])
 
   const canSend = input.trim().length > 0 && !isStreaming
   const selectedStrategy = useMemo(

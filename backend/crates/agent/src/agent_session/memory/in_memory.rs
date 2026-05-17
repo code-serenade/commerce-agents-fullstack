@@ -313,6 +313,52 @@ fn format_task_graph_memory(summary: &super::TaskGraphMemorySummary) -> String {
         format!("Root task: {}", summary.root_task),
         format!("Roles: {}", summary.roles.join(", ")),
     ];
+    if let Some(process) = &summary.process {
+        lines.push(format!(
+            "Process panel: {} (default_collapsed={}, anchor={})",
+            process.panel.label, process.panel.default_collapsed, process.panel.anchor
+        ));
+        if let Some(primary) = &process.primary {
+            lines.push(format!(
+                "Primary role: {} ({})",
+                primary.role_label, primary.role
+            ));
+            if let Some(summary) = &primary.summary
+                && !summary.trim().is_empty()
+            {
+                lines.push(format!("Primary summary: {}", summary.trim()));
+            }
+        }
+        if !process.handoffs.is_empty() {
+            let handoffs = process
+                .handoffs
+                .iter()
+                .map(|handoff| format!("- {}", handoff.summary.trim()))
+                .collect::<Vec<_>>()
+                .join("\n");
+            lines.push(format!("Process handoffs:\n{handoffs}"));
+        }
+        if !process.next_actions.is_empty() {
+            lines.push(format_list("Process next actions", &process.next_actions));
+        }
+        if !process.deliverables.is_empty() {
+            lines.push(format_list("Process deliverables", &process.deliverables));
+        }
+        if !process.incomplete.is_empty() {
+            let gaps = process
+                .incomplete
+                .iter()
+                .map(|gap| {
+                    format!(
+                        "- {} ({}) {}: {}",
+                        gap.title, gap.role_label, gap.state, gap.reason
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+            lines.push(format!("Process incomplete:\n{gaps}"));
+        }
+    }
     if !summary.risks.is_empty() {
         lines.push(format_list("Risks", &summary.risks));
     }

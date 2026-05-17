@@ -1,5 +1,95 @@
 # 迁移开发记录
 
+## Post 8-141：任务图过程进入会话记忆
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 141 个补强项：`Post 8-141`。
+
+本次目标：
+
+- 让 Post 8-140 的 `task_graph_finished.process` 不只存在于实时 SSE。
+- 把同一份回答级任务图过程摘要写入 `TaskGraphMemorySummary.process`，随 session memory 持久化。
+- 为历史对话、工作台回放、每次回答独立过程面板提供后端真实数据，而不是让前端解析 Markdown 或复用全局悬浮按钮。
+
+涉及范围：
+
+- Agent 公共 API：`backend/crates/agent/src/api/mod.rs`
+- Agent 记忆模型：`backend/crates/agent/src/agent_session/memory/model.rs`
+- Agent 记忆格式化：`backend/crates/agent/src/agent_session/memory/in_memory.rs`
+- Task graph runtime：`backend/crates/agent/src/agent/commander/task_graph.rs`
+- Agent 记忆测试：`backend/crates/agent/tests/memory.rs`
+- API 文档：`API_DOCS/sse.md`
+- 后端设计记录：`temp/DEVELOPMENT_DOCS/backend/task_graph_process_memory_post_8_141.md`
+
+用户可感知变化：
+
+- 后续前端打开历史对话或工作区回答时，可以从后端记忆恢复“本次回答过程”，包括主岗位、岗位状态、handoff、下一步、交付物、风险和未完成项。
+- 过程面板仍默认折叠，且锚点仍为 `answer_scoped_process`，适合绑定到每条回答，而不是页面右侧唯一全局状态。
+- 该记忆只来自当前 Agent runtime 的真实任务图和 worker report，不会伪造搜索、平台执行、商品选择或 artifact。
+
+## Post 8-140：任务图完成过程摘要
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 140 个补强项：`Post 8-140`。
+
+本次目标：
+
+- 让多岗位任务图在完成时输出后端真实结构化过程摘要。
+- 为前端后续“每次问答对应自己的过程面板 / 默认折叠 / 可回顾”提供真实后端契约。
+- 避免前端通过解析 Markdown 正文或全局悬浮按钮来猜岗位过程。
+
+涉及范围：
+
+- Agent 协议：`backend/crates/agent/src/core/protocol/task_graph.rs`
+- Agent 事件：`backend/crates/agent/src/core/protocol/event.rs`
+- Commander runtime：`backend/crates/agent/src/agent/commander/runner.rs`
+- Task graph runtime：`backend/crates/agent/src/agent/commander/task_graph.rs`
+- API 文档：`API_DOCS/sse.md`
+- 后端设计记录：`temp/DEVELOPMENT_DOCS/backend/task_graph_process_summary_post_8_140.md`
+
+用户可感知变化：
+
+- 多岗位回答完成后，SSE `task_graph_finished` 会携带 `process`，其中包含主回答岗位、所有岗位状态、handoff、下一步、检查清单、交付物提示、风险和缺口。
+- `process.panel.default_collapsed=true`，前端后续可直接把“研究过程 / 岗位过程”默认折叠并绑定到本次回答。
+- 该摘要只来自当前任务图真实 runtime，不会伪造搜索、平台执行、商品选择或 artifact。
+
+## Post 8-139：Coordination 创建任务优先级容错
+
+状态：done
+
+当前进度：
+
+- 旧产品能力迁移主体计划已完成 `12/12`。
+- 本轮属于主体计划后的第 139 个补强项：`Post 8-139`。
+
+本次目标：
+
+- 修复多岗位真实链路里 `coordination_create_task` 因 `priority` 为 `high` / `urgent` / `重要` / `紧急` 等文本而失败的问题。
+- 把优先级容错下沉到 Rust native skill 本体，而不是只依赖 worker autosuggest 预处理。
+- 保持 `task_creation.priority` 输出为现有工作区任务 `0..10` 数字，继续复用 SSE/service 真实 `workspace_task` 落地链路。
+
+涉及范围：
+
+- 后端 agent：`backend/crates/agent/src/skills/coordination.rs`
+- API 文档：`API_DOCS/sse.md`
+- 总计划：`temp/DEVELOPMENT_DOCS/backend/commerce_capability_migration_master_plan.md`
+- 迁移矩阵：`MIGRATION_PLANS/legacy_capability_migration/skill_migration_matrix.md`
+- 后端设计记录：`temp/DEVELOPMENT_DOCS/backend/coordination_create_task_priority_tolerance_post_8_139.md`
+
+用户可感知变化：
+
+- LLM 或多岗位协作输出“高优先级 / urgent / 重要”时，创建任务过程不再打红失败。
+- 前端后续仍只需要展示数字优先级或映射后的标签，不需要消费原始字符串。
+- 未知优先级文本会降级为普通优先级，不阻塞主回答。
+
 ## Post 8-137：Agent 能力目录后端接口
 
 状态：done

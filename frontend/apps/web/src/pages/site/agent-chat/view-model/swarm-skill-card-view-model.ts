@@ -23,7 +23,7 @@ export function getSkillCard(
       }),
       latestSkill.summary ?? latestSkill.error ?? latestSkill.reason ?? "",
     ].filter(Boolean),
-    state: skillState(latestSkill.status),
+    state: skillState(latestSkill.status, latestSkill.boundary),
   }
 }
 
@@ -37,6 +37,9 @@ function formatSkillDescription(
   if (skill.approvalRequired) {
     return t("agentChat.swarm.cards.skill.approvalRequired")
   }
+  if (skill.boundary) {
+    return skill.summary ?? t("agentChat.swarm.cards.skill.completed")
+  }
   if (skill.status === "deferred") {
     return t("agentChat.swarm.cards.skill.deferred")
   }
@@ -44,7 +47,8 @@ function formatSkillDescription(
   return skill.summary ?? t("agentChat.swarm.cards.skill.completed")
 }
 
-function skillState(status: string) {
+function skillState(status: string, boundary?: boolean) {
+  if (boundary) return "boundary" as const
   if (status === "success") return "done" as const
   if (status === "requested" || status === "deferred" || status === "pending_approval") {
     return "working" as const

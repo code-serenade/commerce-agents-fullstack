@@ -6,6 +6,30 @@ use std::time::Duration;
 
 use crate::util::{AppError, AppResult, command_name};
 
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
+
+#[cfg(windows)]
+use std::ffi::c_void;
+
+#[cfg(windows)]
+const DETACHED_PROCESS: u32 = 0x0000_0008;
+#[cfg(windows)]
+const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
+#[cfg(windows)]
+const PROCESS_QUERY_LIMITED_INFORMATION: u32 = 0x0000_1000;
+
+#[cfg(windows)]
+#[link(name = "kernel32")]
+unsafe extern "system" {
+    fn OpenProcess(
+        dw_desired_access: u32,
+        b_inherit_handle: i32,
+        dw_process_id: u32,
+    ) -> *mut c_void;
+    fn CloseHandle(handle: *mut c_void) -> i32;
+}
+
 pub fn require_command(command: &str) -> AppResult<()> {
     let status = if cfg!(windows) {
         Command::new("where")
@@ -83,12 +107,17 @@ pub fn start_managed(
 
     let log = fs::File::create(log_file)?;
     let err_log = fs::OpenOptions::new().append(true).open(log_file)?;
-    let child = Command::new(command_name(command))
+    let mut command = Command::new(command_name(command));
+    command
         .args(args)
         .current_dir(cwd)
         .stdout(Stdio::from(log))
-        .stderr(Stdio::from(err_log))
-        .spawn()?;
+        .stderr(Stdio::from(err_log));
+
+    #[cfg(windows)]
+    command.creation_flags(DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP);
+
+    let child = command.spawn()?;
 
     fs::write(pid_file, child.id().to_string())?;
     Ok(())
@@ -201,11 +230,7 @@ fn read_pid(pid_file: &Path) -> Option<u32> {
 
 fn process_exists(pid: u32) -> bool {
     if cfg!(windows) {
-        Command::new("tasklist")
-            .args(["/FI", &format!("PID eq {pid}")])
-            .output()
-            .map(|output| String::from_utf8_lossy(&output.stdout).contains(&pid.to_string()))
-            .unwrap_or(false)
+        windows_process_exists(pid)
     } else {
         Command::new("kill")
             .args(["-0", &pid.to_string()])
@@ -214,6 +239,19 @@ fn process_exists(pid: u32) -> bool {
             .status()
             .map(|status| status.success())
             .unwrap_or(false)
+    }
+}
+
+#[cfg(windows)]
+fn windows_process_exists(pid: u32) -> bool {
+    unsafe {
+        let handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
+        if handle.is_null() {
+            return false;
+        }
+
+        CloseHandle(handle);
+        true
     }
 }
 

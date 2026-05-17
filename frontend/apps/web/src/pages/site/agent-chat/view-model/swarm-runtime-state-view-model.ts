@@ -3,6 +3,13 @@ import {
   readRuntimeNodeId,
   resolveWorkerNodeId,
 } from "./agent-runtime-event-mapping"
+import {
+  isNonBlockingWorkspaceFailure,
+  isBoundaryEvaluation,
+  isBoundaryReport,
+  isNonBlockingNodeFailure,
+  isNonBlockingSkillGap,
+} from "./thread-boundary-state-view-model"
 
 export type SwarmState =
   | "idle"
@@ -12,6 +19,7 @@ export type SwarmState =
   | "failed"
   | "reworking"
   | "skipped"
+  | "boundary"
 
 export interface RuntimeNodeSnapshot {
   attempt?: number
@@ -30,6 +38,7 @@ export interface AgentSkillRuntimeResult {
   skillId: string
   status: "requested" | string
   summary?: string | null
+  boundary?: boolean
 }
 
 export function getRuntimeNodeStates(runtimeEvents: AgentRuntimeEvent[]) {
@@ -73,12 +82,20 @@ export function getRuntimeNodeStates(runtimeEvents: AgentRuntimeEvent[]) {
     } else if (event.type === "task_node_reported") {
       Object.assign(ensureNode(readRuntimeNodeId(event)), {
         report: event.report,
-        state: event.report.status === "failed" ? "failed" : "done",
+        state: isBoundaryReport(event.report)
+          ? "boundary"
+          : event.report.status === "failed"
+            ? "failed"
+            : "done",
       })
     } else if (event.type === "task_node_evaluated") {
       const snapshot = ensureNode(readRuntimeId(event.evaluation.node_id))
-      snapshot.evaluationReasons = event.evaluation.reasons
-      snapshot.state = event.evaluation.passed ? "done" : snapshot.state
+      snapshot.evaluationReasons = isBoundaryEvaluation(event.evaluation, runtimeEvents)
+        ? []
+        : event.evaluation.reasons
+      if (event.evaluation.passed && snapshot.state !== "boundary") {
+        snapshot.state = "done"
+      }
     } else if (event.type === "task_node_rework_requested") {
       Object.assign(ensureNode(readRuntimeNodeId(event)), {
         attempt: event.attempt,
@@ -86,26 +103,36 @@ export function getRuntimeNodeStates(runtimeEvents: AgentRuntimeEvent[]) {
         state: "reworking",
       })
     } else if (event.type === "task_node_passed") {
-      ensureNode(readRuntimeNodeId(event)).state = "done"
+      const snapshot = ensureNode(readRuntimeNodeId(event))
+      if (snapshot.state !== "boundary") snapshot.state = "done"
     } else if (event.type === "task_node_failed") {
-      Object.assign(ensureNode(readRuntimeNodeId(event)), {
-        evaluationReasons: [event.reason],
-        state: "failed",
-      })
+      const snapshot = ensureNode(readRuntimeNodeId(event))
+      if (isNonBlockingNodeFailure(event, runtimeEvents)) {
+        if (snapshot.state !== "done") {
+          snapshot.state = "boundary"
+        }
+      } else {
+        Object.assign(snapshot, {
+          evaluationReasons: [event.reason],
+          state: "failed",
+        })
+      }
     } else if (event.type === "skill_requested") {
       const snapshot = ensureNode(resolveWorkerNodeId(event))
-      snapshot.state = "working"
+      if (snapshot.state !== "boundary") snapshot.state = "working"
       upsertSkillResult(snapshot, {
         reason: event.reason,
         skillId: event.skill_id,
         status: "requested",
       })
     } else if (event.type === "skill_result") {
-      applySkillResult(ensureNode(resolveWorkerNodeId(event)), event)
+      applySkillResult(ensureNode(resolveWorkerNodeId(event)), event, runtimeEvents)
     } else if (event.type === "worker_started") {
-      ensureNode(resolveWorkerNodeId(event)).state = "working"
+      const snapshot = ensureNode(resolveWorkerNodeId(event))
+      if (snapshot.state !== "boundary") snapshot.state = "working"
     } else if (event.type === "worker_finished") {
-      ensureNode(resolveWorkerNodeId(event)).state = "done"
+      const snapshot = ensureNode(resolveWorkerNodeId(event))
+      if (snapshot.state !== "boundary") snapshot.state = "done"
     } else if (
       event.type === "workspace_artifact_created" ||
       event.type === "agent_learning_record_created" ||
@@ -114,10 +141,14 @@ export function getRuntimeNodeStates(runtimeEvents: AgentRuntimeEvent[]) {
     ) {
       ensureNode("delivery").state = "done"
     } else if (event.type === "workspace_run_failed") {
-      Object.assign(ensureNode("delivery"), {
-        evaluationReasons: [event.summary ?? event.status],
-        state: "failed",
-      })
+      if (!isNonBlockingWorkspaceFailure(event, runtimeEvents)) {
+        Object.assign(ensureNode("delivery"), {
+          evaluationReasons: [event.summary ?? event.status],
+          state: "failed",
+        })
+      } else {
+        ensureNode("delivery").state = "boundary"
+      }
     } else if (event.type === "failed") {
       Object.assign(ensureNode("ops"), {
         evaluationReasons: [event.reason],
@@ -136,7 +167,10 @@ export function getCompletedCount(
   runtimeNodeStates: Map<string, RuntimeNodeSnapshot>
 ) {
   if (runtimeNodeStates.size === 0) return 0
-  return agents.filter((agent) => runtimeNodeStates.get(agent.nodeId)?.state === "done").length
+  return agents.filter((agent) => {
+    const state = runtimeNodeStates.get(agent.nodeId)?.state
+    return state === "done" || state === "boundary"
+  }).length
 }
 
 export function hasFailedNode(runtimeNodeStates: Map<string, RuntimeNodeSnapshot>) {
@@ -145,15 +179,21 @@ export function hasFailedNode(runtimeNodeStates: Map<string, RuntimeNodeSnapshot
 
 function applySkillResult(
   snapshot: RuntimeNodeSnapshot,
-  event: Extract<AgentRuntimeEvent, { type: "skill_result" }>
+  event: Extract<AgentRuntimeEvent, { type: "skill_result" }>,
+  runtimeEvents: AgentRuntimeEvent[]
 ) {
   if (event.status === "failed" || event.status === "not_found" || event.status === "validation_error") {
-    snapshot.state = "failed"
+    if (!isNonBlockingSkillGap(event, runtimeEvents)) {
+      snapshot.state = "failed"
+    } else if (snapshot.state !== "done") {
+      snapshot.state = "boundary"
+    }
   } else if (snapshot.state !== "failed") {
-    snapshot.state = "working"
+    if (snapshot.state !== "boundary") snapshot.state = "working"
   }
   upsertSkillResult(snapshot, {
     approvalRequired: event.approval_required,
+    boundary: isNonBlockingSkillGap(event, runtimeEvents),
     error: event.error,
     executionMode: event.execution_mode,
     riskLevel: event.risk_level,

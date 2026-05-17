@@ -10,7 +10,8 @@ use agent::api::{
     CognitionResult, FileMemoryStore, FileMemoryStoreError, InMemoryMemoryStore, MemoryBudget,
     MemoryCompactionPolicy, MemoryId, MemoryKind, MemoryQuery, MemoryRecord, MemoryScope,
     MemorySource, MemoryStore, RoleMemorySummary, SessionEvent, SessionId, SessionSnapshot,
-    TaskGraphId, TaskGraphMemorySummary, TaskNodeId, UserId, WorkerDetail, WorkerId,
+    TaskGraphHandoff, TaskGraphId, TaskGraphMemorySummary, TaskGraphProcessPanel,
+    TaskGraphProcessRole, TaskGraphProcessSummary, TaskNodeId, UserId, WorkerDetail, WorkerId,
     WorkerReportStatus,
 };
 use async_trait::async_trait;
@@ -584,6 +585,67 @@ fn session_snapshot_persists_role_risks_questions_and_evaluation() {
         open_questions: vec!["需要确认 GMV 统计口径".to_string()],
         evaluation: None,
     };
+    let process_summary = TaskGraphProcessSummary {
+        graph_id: TaskGraphId("graph-snapshot".to_string()),
+        root_task: "分析数据指标归因".to_string(),
+        primary: Some(TaskGraphProcessRole {
+            node_id: TaskNodeId("node-data".to_string()),
+            task_id: Some(agent::api::TaskId("graph-snapshot:node-data".to_string())),
+            worker_id: WorkerId("worker.data".to_string()),
+            role: "data".to_string(),
+            role_label: "数据分析师".to_string(),
+            title: "数据诊断".to_string(),
+            objective: "分析数据指标归因".to_string(),
+            status: "passed".to_string(),
+            attempt: 1,
+            is_primary: true,
+            summary: Some("数据角色完成归因口径诊断".to_string()),
+            finding: Some("漏斗指标需要拆解".to_string()),
+            recommendation: Some("统一渠道口径".to_string()),
+            evidence: vec!["原始任务".to_string()],
+            risks: vec!["口径不一致会导致误判".to_string()],
+            open_questions: vec!["需要确认 GMV 统计口径".to_string()],
+        }),
+        roles: vec![TaskGraphProcessRole {
+            node_id: TaskNodeId("node-data".to_string()),
+            task_id: Some(agent::api::TaskId("graph-snapshot:node-data".to_string())),
+            worker_id: WorkerId("worker.data".to_string()),
+            role: "data".to_string(),
+            role_label: "数据分析师".to_string(),
+            title: "数据诊断".to_string(),
+            objective: "分析数据指标归因".to_string(),
+            status: "passed".to_string(),
+            attempt: 1,
+            is_primary: true,
+            summary: Some("数据角色完成归因口径诊断".to_string()),
+            finding: Some("漏斗指标需要拆解".to_string()),
+            recommendation: Some("统一渠道口径".to_string()),
+            evidence: vec!["原始任务".to_string()],
+            risks: vec!["口径不一致会导致误判".to_string()],
+            open_questions: vec!["需要确认 GMV 统计口径".to_string()],
+        }],
+        handoffs: vec![TaskGraphHandoff {
+            from_node_id: TaskNodeId("node-data".to_string()),
+            to_node_id: TaskNodeId("node-ops".to_string()),
+            from_role: "data".to_string(),
+            to_role: "ops".to_string(),
+            from_role_label: "数据分析师".to_string(),
+            to_role_label: "运营负责人".to_string(),
+            summary: "数据口径交给运营拆执行节奏".to_string(),
+        }],
+        next_actions: vec!["统一渠道口径".to_string()],
+        check_items: vec!["确认 GMV 统计口径".to_string()],
+        deliverables: vec!["final_report：归因诊断报告".to_string()],
+        risks: vec!["口径不一致会导致误判".to_string()],
+        open_questions: vec!["需要确认 GMV 统计口径".to_string()],
+        incomplete: Vec::new(),
+        panel: TaskGraphProcessPanel {
+            default_collapsed: true,
+            anchor: "answer_scoped_process".to_string(),
+            label: "本次回答过程".to_string(),
+            reason: "过程面板绑定本次回答，历史回放时默认折叠。".to_string(),
+        },
+    };
     let outcome = MemoryStore::persist_session(
         &store,
         &scope,
@@ -594,6 +656,7 @@ fn session_snapshot_persists_role_risks_questions_and_evaluation() {
                 graph_id: TaskGraphId("graph-snapshot".to_string()),
                 root_task: "分析数据指标归因".to_string(),
                 roles: vec!["data".to_string()],
+                process: Some(process_summary),
                 role_summaries: vec![role_summary.clone()],
                 worker_details: vec![worker_detail.clone()],
                 risks: role_summary.risks.clone(),
@@ -634,6 +697,31 @@ fn session_snapshot_persists_role_risks_questions_and_evaluation() {
             .iter()
             .any(|record| record.tags.contains(&"evaluation".to_string())
                 && record.content.contains("passed=true"))
+    );
+    let task_graph_memory = records
+        .iter()
+        .find(|record| {
+            record.kind == MemoryKind::CrossRoleContext
+                && record.key.as_deref() == Some("task_graph:graph-snapshot")
+        })
+        .expect("task graph memory should be persisted");
+    assert!(task_graph_memory.content.contains("Process panel"));
+    assert!(task_graph_memory.content.contains("default_collapsed=true"));
+    assert!(task_graph_memory.content.contains("answer_scoped_process"));
+    assert!(
+        task_graph_memory
+            .content
+            .contains("Primary role: 数据分析师")
+    );
+    assert!(
+        task_graph_memory
+            .content
+            .contains("数据口径交给运营拆执行节奏")
+    );
+    assert!(
+        task_graph_memory
+            .content
+            .contains("final_report：归因诊断报告")
     );
 }
 

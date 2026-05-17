@@ -25,7 +25,7 @@
           "objective": "以对话助手身份快速、自然地回应用户，不启动多角色分析或业务编排：{{task}}",
           "max_attempts": 1,
           "acceptance": [
-            "reply should be brief, natural, and directly address the greeting or lightweight chat"
+            "回复应简短自然，直接回应问候或轻量对话，不启动多角色任务图"
           ]
         }
       ]

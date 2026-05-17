@@ -608,7 +608,6 @@ fn context_loaded_event(session_id: &SessionId, context: &MessageContext) -> Opt
     let summary = context
         .metadata
         .get("context.selected_summary")
-        .or_else(|| context.metadata.get("context.summary"))
         .map(|value| compact_event_text(value, 600));
     let sources_json = context.metadata.get("context.sources_json").cloned();
 

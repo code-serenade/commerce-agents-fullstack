@@ -922,10 +922,14 @@ async fn commander_dispatches_task_graph_roles_after_upstream_role() {
     assert!(runtime_roles.contains("accounting"));
     assert!(runtime_roles.contains("creative"));
     assert!(result.output.contains("多智能体任务图已完成"));
-    assert!(result.output.contains("数据诊断(data)"));
-    assert!(result.output.contains("预算评估(accounting)"));
-    assert!(result.output.contains("创意产出(creative)"));
-    assert!(result.output.contains("运营方案(ops)"));
+    assert!(result.output.contains("数据诊断"));
+    assert!(result.output.contains("数据分析师"));
+    assert!(result.output.contains("预算评估"));
+    assert!(result.output.contains("财务分析师"));
+    assert!(result.output.contains("创意产出"));
+    assert!(result.output.contains("内容创意师"));
+    assert!(result.output.contains("运营方案"));
+    assert!(result.output.contains("运营策略师"));
 }
 
 #[tokio::test]
@@ -1097,11 +1101,14 @@ async fn stream_emits_task_graph_events() {
             .iter()
             .any(|event| matches!(event, SessionEvent::TaskNodeStarted { .. }))
     );
-    assert!(
-        events
-            .iter()
-            .any(|event| matches!(event, SessionEvent::TaskGraphFinished { .. }))
-    );
+    assert!(events.iter().any(|event| matches!(
+        event,
+        SessionEvent::TaskGraphFinished { process, .. }
+            if process.graph_id.0.starts_with("graph-")
+                && !process.roles.is_empty()
+                && process.panel.default_collapsed
+                && process.panel.anchor == "answer_scoped_process"
+    )));
 }
 
 #[tokio::test]
@@ -1620,6 +1627,55 @@ async fn stream_emits_context_loaded_event_from_request_metadata() {
                 && knowledge_count == &2
                 && source_count == &3
                 && summary.as_deref().is_some_and(|value| value.contains("五一咖啡组合"))
+        )
+    }));
+}
+
+#[tokio::test]
+async fn stream_does_not_emit_product_context_from_generic_context_summary() {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(|| Ok(Box::new(NoopWorkerCognition))),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert(
+        "context.summary".to_string(),
+        "Workspace context only".to_string(),
+    );
+    metadata.insert("context.knowledge_count".to_string(), "2".to_string());
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-context-summary-only".to_string()),
+            input: "hi".to_string(),
+            metadata,
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    while let Some(event) = rx.recv().await {
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::ContextLoaded {
+                product_ids,
+                product_count,
+                summary,
+                ..
+            } if product_ids.is_empty() && product_count == &0 && summary.is_none()
         )
     }));
 }

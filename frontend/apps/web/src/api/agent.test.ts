@@ -79,4 +79,40 @@ describe("streamAgentSessionApi", () => {
 
     expect(deltas).toEqual(["Final answer body"])
   })
+
+  it("releases the chat UI when the agent finished event arrives before workspace persistence", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          streamFromSse([
+            'event: delta\ndata: {"content":"Final answer body"}\n\n',
+            'event: finished\ndata: {"type":"finished","session_id":"session-1"}\n\n',
+            'event: workspace_run_completed\ndata: {"type":"workspace_run_completed","id":"run-1","status":"succeeded","report":{"output":"Final answer body"},"summary":"Final answer body"}\n\n',
+            "event: done\ndata: {}\n\n",
+          ]),
+          {
+            status: 200,
+            headers: { "Content-Type": "text/event-stream" },
+          }
+        )
+      )
+    )
+
+    const deltas: string[] = []
+    const onDone = vi.fn()
+    await streamAgentSessionApi(
+      { input: "diagnose a livestream funnel" },
+      {
+        onDelta: (content) => deltas.push(content),
+        onDone,
+        onError: (message) => {
+          throw new Error(message)
+        },
+      }
+    )
+
+    expect(deltas).toEqual(["Final answer body"])
+    expect(onDone).toHaveBeenCalledTimes(1)
+  })
 })

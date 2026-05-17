@@ -82,6 +82,9 @@ function DockStateIcon({ state }: { state: SwarmState }) {
   if (state === "done") {
     return <CheckCircle2 className="size-3 text-emerald-600" />
   }
+  if (state === "boundary") {
+    return <span className="size-2 rounded-full bg-amber-500" />
+  }
   if (state === "working" || state === "reworking") {
     return <Loader2 className="size-3 animate-spin text-emerald-600" />
   }

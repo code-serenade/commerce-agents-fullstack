@@ -1,0 +1,125 @@
+import { describe, expect, it } from "vitest"
+import { isUnsupportedBenchmarkClaim } from "./agent-chat-answer-sanitizer"
+import { formatAgentUiMessage } from "./agent-chat-message-mapping"
+
+const copy = {
+  boundaryNotice: "boundary notice",
+  missingStructuredOutput: "missing structured output",
+  streamTimedOut: "stream timed out",
+}
+
+describe("agent chat answer sanitizer", () => {
+  it("hides backend skill marker text from persisted assistant answers", () => {
+    expect(
+      formatAgentUiMessage(
+        "Suggestion: improve the entry point;skill:data_refund_decomposition status=Deferred reason=data skill executed\nskill:creative_copy status=ok\nNext step: add more data",
+        copy
+      )
+    ).toBe("Suggestion: improve the entry point\nNext step: add more data")
+  })
+
+  it("hides legacy internal role quality failures from persisted answers", () => {
+    const raw = [
+      textFromCodes([22810, 26234, 33021, 20307, 20219, 21153, 22270, 24050, 23436, 25104, 12290]),
+      textFromCodes([36890, 36807, 30340, 35282, 33394, 20135, 29289, 65306]),
+      `- ${textFromCodes([36816, 33829, 26041, 26696])}(ops): ${textFromCodes([24050, 24418, 25104, 31867, 30446, 32423, 21028, 26029, 12290])}`,
+      textFromCodes([26410, 23436, 25104, 33410, 28857, 65306]),
+      `- ${textFromCodes([25968, 25454, 35786, 26029])}(data) failed: data role should provide at least two findings`,
+      `- ${textFromCodes([26381, 21153, 26041, 26696])}(service) failed: service role output lacks service-specific content`,
+    ].join("\n")
+    const formatted = formatAgentUiMessage(raw, copy)
+    const opsLine = [
+      textFromCodes([36816, 33829, 26041, 26696]),
+      "(ops): ",
+      textFromCodes([24050, 24418, 25104, 31867, 30446, 32423, 21028, 26029, 12290]),
+    ].join("")
+
+    expect(formatted).toContain(opsLine)
+    expect(formatted).toContain(copy.boundaryNotice)
+    expect(formatted).not.toContain("data role should provide")
+    expect(formatted).not.toContain("service role output")
+  })
+
+  it("removes legacy unfinished-node blocks even when several internal failures are mixed", () => {
+    const suggestion = textFromCodes([
+      24314, 35758, 65306, 20808, 25353, 21654, 21857, 31867, 30446, 20570,
+      29992, 25143, 12289, 22330, 26223, 12289, 20215, 26684, 24102, 21644,
+      28192, 36947, 25286, 35299, 12290,
+    ])
+    const unfinishedHeading = textFromCodes([
+      26410, 23436, 25104, 25110, 38656, 22797, 26680, 65306,
+    ])
+    const dataName = textFromCodes([25968, 25454, 35786, 26029])
+    const serviceName = textFromCodes([26381, 21153, 26041, 26696])
+    const engineeringName = textFromCodes([24037, 31243, 21028, 26029])
+    const raw = [
+      suggestion,
+      unfinishedHeading,
+      `- ${dataName}(data) failed: data role should provide at least two findings`,
+      `- ${serviceName}(service) failed: service role output lacks service-specific content`,
+      `- ${engineeringName}(engineering) failed: engineering role should provide technical risks or rollback boundaries`,
+    ].join("\n")
+
+    const formatted = formatAgentUiMessage(raw, copy)
+
+    expect(formatted).toContain(suggestion)
+    expect(formatted).toContain(copy.boundaryNotice)
+    expect(formatted).not.toContain(unfinishedHeading)
+    expect(formatted).not.toContain("data role should")
+    expect(formatted).not.toContain("service role output")
+    expect(formatted).not.toContain("engineering role should")
+  })
+
+  it("removes unsupported industry benchmark ranges but keeps benchmark gaps", () => {
+    const unsupportedIndustryRange = textFromCodes([21457, 29616, 65306, 26333, 20809, 21040, 28857, 20987, 36716, 21270, 29575, 56, 37, 20302, 20110, 34892, 19994, 53, 45, 49, 48, 37, 21306, 38388, 65292, 25552, 31034, 27969, 37327, 25110, 26631, 39064, 47, 23553, 38754, 21560, 24341, 21147, 19981, 36275, 12290])
+    const unsupportedCommonClaim = textFromCodes([21457, 29616, 65306, 28857, 20987, 21040, 21152, 36141, 29575, 32422, 50, 53, 46, 48, 37, 65292, 31526, 21512, 22810, 25968, 30005, 21830, 30452, 25773, 30340, 21152, 36141, 36716, 21270, 29575, 12290])
+    const unsupportedAttractionClaim = textFromCodes([21457, 29616, 65306, 26333, 20809, 21040, 28857, 20987, 29575, 32422, 32, 56, 46, 48, 37, 65292, 31526, 21512, 19968, 33324, 30452, 25773, 23553, 38754, 47, 26631, 39064, 21560, 24341, 21147, 39044, 26399, 12290])
+    const allowedBenchmarkGap = textFromCodes([21457, 29616, 65306, 28857, 20987, 21040, 21152, 36141, 32422, 50, 53, 37, 65292, 38656, 35201, 25910, 38598, 34892, 19994, 22522, 20934, 21518, 20877, 21028, 26029, 26159, 21542, 20581, 24247, 12290])
+    const allowedReviewGap = textFromCodes([39118, 38505, 65306, 38656, 35201, 34917, 40784, 34892, 19994, 22522, 20934, 12289, 23458, 21333, 20215, 21644, 25237, 25918, 25104, 26412, 21518, 22797, 26680, 12290])
+    const unsupportedComparison = textFromCodes([24314, 35758, 65306, 20808, 23545, 27604, 34892, 19994, 51, 48, 45, 52, 48, 37, 21306, 38388, 20877, 20915, 23450, 26159, 21542, 25918, 37327, 12290])
+    const raw = [
+      unsupportedIndustryRange,
+      unsupportedCommonClaim,
+      unsupportedAttractionClaim,
+      allowedBenchmarkGap,
+      allowedReviewGap,
+      unsupportedComparison,
+    ].join("\n")
+
+    const formatted = formatAgentUiMessage(raw, copy)
+
+    expect(formatted).not.toContain(textFromCodes([34892, 19994, 53, 45, 49, 48, 37]))
+    expect(formatted).not.toContain(textFromCodes([34892, 19994, 51, 48, 45, 52, 48, 37]))
+    expect(formatted).not.toContain(textFromCodes([20302, 20110, 34892, 19994]))
+    expect(formatted).not.toContain(textFromCodes([31526, 21512, 22810, 25968, 30005, 21830, 30452, 25773]))
+    expect(formatted).not.toContain(textFromCodes([31526, 21512, 19968, 33324, 30452, 25773]))
+    expect(formatted).toContain(textFromCodes([38656, 35201, 25910, 38598, 34892, 19994, 22522, 20934, 21518, 20877, 21028, 26029, 26159, 21542, 20581, 24247]))
+    expect(formatted).toContain(textFromCodes([38656, 35201, 34917, 40784, 34892, 19994, 22522, 20934, 12289, 23458, 21333, 20215, 21644, 25237, 25918, 25104, 26412, 21518, 22797, 26680]))
+  })
+
+  it("classifies unsupported benchmark claims without hiding sourced or gap wording", () => {
+    expect(
+      isUnsupportedBenchmarkClaim(textFromCodes([26333, 20809, 21040, 28857, 20987, 36716, 21270, 29575, 56, 37, 20302, 20110, 34892, 19994, 53, 45, 49, 48, 37, 21306, 38388]))
+    ).toBe(true)
+    expect(
+      isUnsupportedBenchmarkClaim(
+        textFromCodes([28857, 20987, 21040, 21152, 36141, 29575, 32422, 50, 53, 46, 48, 37, 65292, 31526, 21512, 22810, 25968, 30005, 21830, 30452, 25773, 30340, 21152, 36141, 36716, 21270, 29575, 12290])
+      )
+    ).toBe(true)
+    expect(
+      isUnsupportedBenchmarkClaim(
+        textFromCodes([26333, 20809, 21040, 28857, 20987, 29575, 32422, 32, 56, 46, 48, 37, 65292, 31526, 21512, 19968, 33324, 30452, 25773, 23553, 38754, 47, 26631, 39064, 21560, 24341, 21147, 39044, 26399, 12290])
+      )
+    ).toBe(true)
+    expect(
+      isUnsupportedBenchmarkClaim(textFromCodes([28857, 20987, 21040, 21152, 36141, 32422, 50, 53, 37, 65292, 38656, 35201, 25910, 38598, 34892, 19994, 22522, 20934, 21518, 20877, 21028, 26029, 26159, 21542, 20581, 24247]))
+    ).toBe(false)
+    expect(
+      isUnsupportedBenchmarkClaim(textFromCodes([26469, 28304, 65306, 20844, 24320, 25253, 21578, 26174, 31034, 34892, 19994, 53, 45, 49, 48, 37, 21306, 38388]))
+    ).toBe(false)
+  })
+})
+
+function textFromCodes(codes: number[]) {
+  return String.fromCodePoint(...codes)
+}

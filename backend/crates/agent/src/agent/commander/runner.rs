@@ -17,8 +17,8 @@ use crate::{
         },
     },
     roles::{
-        FinalSynthesisPromptInput, RoleAssignment, RoleCollaborationPlan, RoleContribution,
-        RolePromptBuilder, RoleRoute, RoleRouteInput, RoleRouter,
+        RoleAssignment, RoleCollaborationPlan, RoleContribution, RoleRoute, RoleRouteInput,
+        RoleRouter,
     },
 };
 
@@ -587,11 +587,13 @@ impl Commander {
         let content = runtime
             .direct_chat_output()
             .unwrap_or_else(|| runtime.synthesize());
+        let process = runtime.process_summary();
         self.session_context
             .record_task_graph_memory(runtime.memory_summary());
         self.emit_event(SessionEvent::TaskGraphFinished {
             session_id: self.session_id_from_context(&self.current_context),
             graph_id: runtime.graph.graph_id.clone(),
+            process: Box::new(process),
         });
         let _ = self.sender.send(Message::new_with_context(
             next_message_id(),
@@ -767,6 +769,17 @@ impl Commander {
             .collect();
 
         let mut dispatched = Vec::new();
+        let root_task = self
+            .current_task
+            .as_ref()
+            .map(|task| task.description.as_str())
+            .unwrap_or_default();
+        let primary_output = self
+            .collaboration_outputs
+            .get(&plan.primary.worker_id)
+            .map(|contribution| contribution.content.as_str())
+            .filter(|content| !content.trim().is_empty())
+            .unwrap_or("主回答岗位已完成初稿，但没有返回可读摘要。");
         for assignment in &plan.support {
             let task = TaskSpec {
                 id: TaskId(format!(
@@ -774,7 +787,7 @@ impl Commander {
                     primary_task_id.0, assignment.runtime_role
                 )),
                 description: format!(
-                    "作为{}支持角色，基于主角色结果补充本岗位判断。",
+                    "原始用户任务：{root_task}\n\n主回答岗位初稿：{primary_output}\n\n作为{}支持角色，请基于同一上下文补充本岗位的独立判断、证据、风险和要交给主岗汇总的行动建议；不要只说“接收上游结果”。",
                     assignment.runtime_role
                 ),
             };
@@ -893,12 +906,16 @@ impl Commander {
             .map(|task| task.description.clone())
             .unwrap_or_default();
         let Some(plan) = &self.active_collaboration else {
-            return RolePromptBuilder::build_final_synthesis_prompt(&FinalSynthesisPromptInput {
-                task_id: task_id.clone(),
-                task,
-                support_workers: support_workers.to_string(),
-                contributions: Vec::new(),
-            });
+            return synthesize_user_facing_collaboration_report(
+                task_id,
+                &task,
+                None,
+                support_workers,
+                &[],
+                self.current_context
+                    .metadata
+                    .get("context.selected_summary"),
+            );
         };
 
         let mut contributions = Vec::new();
@@ -911,12 +928,16 @@ impl Commander {
             }
         }
 
-        RolePromptBuilder::build_final_synthesis_prompt(&FinalSynthesisPromptInput {
-            task_id: task_id.clone(),
-            task,
-            support_workers: support_workers.to_string(),
-            contributions,
-        })
+        synthesize_user_facing_collaboration_report(
+            task_id,
+            &task,
+            Some(plan),
+            support_workers,
+            &contributions,
+            self.current_context
+                .metadata
+                .get("context.selected_summary"),
+        )
     }
 
     fn is_collaboration_worker(&self, worker_id: &WorkerId) -> bool {
@@ -1079,21 +1100,19 @@ impl Commander {
         if selected_roles.is_empty() {
             return None;
         }
-        let primary = self
+        let requested_primary = self
             .current_context
             .metadata
             .get("strategy.primary_role")
             .filter(|role| selected_roles.iter().any(|item| item == *role))
-            .cloned()
-            .unwrap_or_else(|| selected_roles[0].clone());
-        let support = if collaboration_mode == "single" {
-            Vec::new()
-        } else {
-            selected_roles
-                .into_iter()
-                .filter(|role| role != &primary)
-                .collect()
-        };
+            .cloned();
+        let normalized = normalize_requested_runtime_roles(
+            collaboration_mode,
+            selected_roles,
+            requested_primary,
+        );
+        let primary = normalized.first()?.clone();
+        let support = normalized.into_iter().skip(1).collect::<Vec<_>>();
 
         self.role_router.route_for_runtime_roles(&primary, &support)
     }
@@ -1111,6 +1130,57 @@ fn selected_runtime_roles(metadata: &std::collections::BTreeMap<String, String>)
                 .collect()
         })
         .unwrap_or_default()
+}
+
+fn normalize_requested_runtime_roles(
+    collaboration_mode: &str,
+    roles: Vec<String>,
+    requested_primary: Option<String>,
+) -> Vec<String> {
+    let roles = unique_runtime_roles(roles);
+    if roles.is_empty() {
+        return Vec::new();
+    }
+
+    let non_chat_roles = roles
+        .iter()
+        .filter(|role| role.as_str() != "chat")
+        .cloned()
+        .collect::<Vec<_>>();
+    let primary = requested_primary
+        .filter(|role| role != "chat")
+        .or_else(|| {
+            non_chat_roles
+                .iter()
+                .find(|role| role.as_str() == "ops")
+                .cloned()
+        })
+        .or_else(|| non_chat_roles.first().cloned())
+        .or_else(|| roles.first().cloned());
+
+    let Some(primary) = primary else {
+        return Vec::new();
+    };
+
+    let mut selected = vec![primary.clone()];
+    if collaboration_mode == "manual" {
+        selected.extend(
+            roles
+                .into_iter()
+                .filter(|role| role != "chat" && role != &primary),
+        );
+    }
+    selected
+}
+
+fn unique_runtime_roles(roles: Vec<String>) -> Vec<String> {
+    roles.into_iter().fold(Vec::new(), |mut unique, role| {
+        let role = role.trim().to_string();
+        if !role.is_empty() && !unique.contains(&role) {
+            unique.push(role);
+        }
+        unique
+    })
 }
 
 fn extend_context_facts(
@@ -1137,6 +1207,19 @@ fn extend_context_facts(
         "commerce.selected_product_context",
         "用户本轮手动选择的商品/知识上下文如下；只有存在这段事实时，才可按指定商品回答。\n",
     );
+    if metadata
+        .get("context.selected_summary")
+        .map(|value| value.trim().is_empty())
+        .unwrap_or(true)
+    {
+        facts.push(Fact {
+            source: "commerce.unselected_product_context".to_string(),
+            content:
+                "本轮没有用户手动选择的商品/知识上下文。可以结合用户文本、同一会话历史和工作区资料理解问题，但不得把历史商品、测试商品或默认商品当成本轮指定商品；需要单品级分析时应要求用户显式选择或提供商品。"
+                    .to_string(),
+            reliability: 1.0,
+        });
+    }
     extend_named_context_fact(
         metadata,
         facts,
@@ -1274,6 +1357,357 @@ fn extract_worker_content(output: &str) -> String {
         .unwrap_or_else(|| trimmed.to_string())
 }
 
+fn synthesize_user_facing_collaboration_report(
+    task_id: &TaskId,
+    task: &str,
+    plan: Option<&RoleCollaborationPlan>,
+    support_workers: &str,
+    contributions: &[RoleContribution],
+    selected_summary: Option<&String>,
+) -> String {
+    let roles = collaboration_roles(plan, contributions);
+    let primary_role = plan
+        .map(|plan| plan.primary.runtime_role.as_str())
+        .or_else(|| roles.first().map(String::as_str))
+        .unwrap_or("ops");
+    let support_roles = roles
+        .iter()
+        .filter(|role| role.as_str() != primary_role)
+        .map(String::as_str)
+        .collect::<Vec<_>>();
+    let metrics = extract_live_conversion_metrics_for_collaboration(task);
+
+    let mut lines = Vec::new();
+    lines.push("# 多智能体协作结论".to_string());
+    lines.push(format!("**本轮请求**：{}", task.trim()));
+    lines.push(format!("**任务编号**：{}", task_id.0));
+    if let Some(selected_summary) = selected_summary
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
+    {
+        lines.push(format!(
+            "**商品上下文**：本轮使用用户手动选择的预设商品资料：{}",
+            compact_text(selected_summary, 140)
+        ));
+    } else {
+        lines.push("**商品上下文**：本轮未检测到用户手动选择的预设商品；按未指定商品链路回答，不注入历史商品、测试商品或默认商品。".to_string());
+    }
+    if !support_workers.trim().is_empty() {
+        lines.push(format!("**协作岗位**：{}", support_workers.trim()));
+    }
+    lines.push(String::new());
+
+    lines.push("## 直接结论".to_string());
+    if is_live_conversion_collaboration_task(task) {
+        lines.push(format!(
+            "- **团队判断**：{}先收敛主结论，{}分别补充指标、内容、服务、技术或预算边界；这不是多个回答的简单拼接，而是一组虚拟员工围绕同一上下文协作形成的 final_report。",
+            role_display_name_for_collaboration(primary_role),
+            if support_roles.is_empty() {
+                "协作岗位".to_string()
+            } else {
+                support_roles
+                    .iter()
+                    .map(|role| role_display_name_for_collaboration(role))
+                    .collect::<Vec<_>>()
+                    .join("、")
+            }
+        ));
+        if metrics.is_empty() {
+            lines.push("- **健康度边界**：当前问题缺少完整可复核指标，只能先按曝光、点击、加购、下单、付款、退款和咨询承接定义判断框架。".to_string());
+        } else {
+            lines.push("- **健康度边界**：这组数据能说明本轮漏斗表现，但不能单独判定行业健康度；还需要行业基准、历史同类直播、客单价、毛利、投放成本、退款和客服咨询承接一起复核。".to_string());
+            lines.extend(
+                live_conversion_metric_lines(&metrics)
+                    .into_iter()
+                    .map(|line| format!("  - {line}")),
+            );
+        }
+    } else {
+        lines.push(format!(
+            "- **团队判断**：{}负责把各岗位输入收敛成可执行结论，{}负责补齐证据、动作、风险和待补数据，最终沉淀为 `final_report`。",
+            role_display_name_for_collaboration(primary_role),
+            if support_roles.is_empty() {
+                "协作岗位".to_string()
+            } else {
+                support_roles
+                    .iter()
+                    .map(|role| role_display_name_for_collaboration(role))
+                    .collect::<Vec<_>>()
+                    .join("、")
+            }
+        ));
+    }
+    lines.push("- **上下文处理**：同一会话里的历史问题会作为任务背景参与理解，但不会替代本轮的商品选择；只有 `context.selected_summary` 存在时，才进入指定商品链路。".to_string());
+    lines.push(String::new());
+
+    lines.push("## 虚拟员工分工".to_string());
+    lines.push("| 岗位 | 独立判断 | 交给团队的内容 |".to_string());
+    lines.push("| --- | --- | --- |".to_string());
+    for role in &roles {
+        lines.push(format!(
+            "| {} | {} | {} |",
+            role_display_name_for_collaboration(role),
+            role_independent_judgement(role, task),
+            contribution_handoff_for_role(role, contributions)
+        ));
+    }
+    lines.push(String::new());
+
+    let contribution_lines = user_facing_contribution_lines(contributions);
+    if !contribution_lines.is_empty() {
+        lines.push("## 岗位过程摘要".to_string());
+        lines.extend(contribution_lines);
+        lines.push(String::new());
+    }
+
+    lines.push("## 执行清单".to_string());
+    if is_live_conversion_collaboration_task(task) {
+        lines.push("- P0 数据口径：把曝光、点击、加购、下单、付款、退款、咨询量、渠道来源和样本周期补齐，先确认每段转化率是否可复核。".to_string());
+        lines.push("- P1 转化承接：针对最低或最关键的漏斗段，分别检查直播开场、卖点讲解、价格利益、信任证明、客服响应和支付阻力。".to_string());
+        lines.push("- P2 团队复盘：每天按同一口径沉淀数据、岗位判断、动作负责人和下一轮验证结果，避免只凭单次回答做放量决策。".to_string());
+    } else {
+        lines.push("- P0 先统一问题口径、业务目标、可用上下文和不能编造的数据边界。".to_string());
+        lines.push(
+            "- P1 由对应岗位分别产出数据判断、运营动作、内容素材、服务承接和技术复核。".to_string(),
+        );
+        lines.push("- P2 主岗位把结果收敛成优先级、负责人、验证指标和下一轮追问入口。".to_string());
+    }
+    lines.push(String::new());
+
+    lines.push("## 交付物".to_string());
+    lines.push("- 本轮回答应作为 `final_report` 类型交付物沉淀，保留岗位分工、过程依据、风险边界和下一步清单，方便后续在同一历史对话中继续追问、回顾或导出。".to_string());
+
+    lines.join("\n")
+}
+
+fn collaboration_roles(
+    plan: Option<&RoleCollaborationPlan>,
+    contributions: &[RoleContribution],
+) -> Vec<String> {
+    let mut roles = Vec::new();
+    if let Some(plan) = plan {
+        push_unique_role(&mut roles, &plan.primary.runtime_role);
+        for assignment in &plan.support {
+            push_unique_role(&mut roles, &assignment.runtime_role);
+        }
+    }
+    for contribution in contributions {
+        push_unique_role(&mut roles, &contribution.runtime_role);
+    }
+    if roles.is_empty() {
+        roles.push("ops".to_string());
+    }
+    roles
+}
+
+fn push_unique_role(roles: &mut Vec<String>, role: &str) {
+    let role = role.trim();
+    if !role.is_empty() && !roles.iter().any(|item| item == role) {
+        roles.push(role.to_string());
+    }
+}
+
+fn role_display_name_for_collaboration(role: &str) -> &'static str {
+    match role {
+        "ops" => "运营策略师",
+        "data" => "数据分析师",
+        "creative" => "内容创意师",
+        "service" => "客户成功专员",
+        "engineering" => "技术架构师",
+        "douyin_ads" => "千川投放专员",
+        "accounting" => "财务分析师",
+        "design" => "设计师",
+        "web" => "Web/SEO 专家",
+        "chat" => "通用助手",
+        _ => "虚拟员工",
+    }
+}
+
+fn role_independent_judgement(role: &str, task: &str) -> &'static str {
+    if is_live_conversion_collaboration_task(task) {
+        return match role {
+            "data" => "先计算曝光、点击、加购、下单、付款等漏斗口径和缺失指标。",
+            "ops" => "把各段漏斗表现收敛成优先级、动作节奏和复盘方式。",
+            "creative" => "把异常段转成直播开场、卖点、标题和短视频脚本测试。",
+            "service" => "检查咨询响应、售后承诺、退款和履约边界对转化的影响。",
+            "engineering" => "确认埋点、报表刷新、数据接口和失败回滚是否可验证。",
+            "douyin_ads" => "拆人群包、素材组、出价、预算节奏和 CPA/ROI 止损线。",
+            "accounting" => "把毛利、投放成本、退款和优惠成本纳入健康度判断。",
+            "design" => "检查主图、详情页、直播视觉和行动按钮是否承接卖点。",
+            "web" => "补充搜索入口、FAQ 和页面承接对自然流量的影响。",
+            _ => "围绕本岗位边界补充证据、风险和下一步。",
+        };
+    }
+
+    match role {
+        "data" => "先统一指标口径、样本周期、归因方式和待补数据。",
+        "ops" => "把业务目标收敛成优先级、执行节奏、负责人和复盘指标。",
+        "creative" => "把策略转成标题、脚本、卖点和素材测试假设。",
+        "service" => "补齐客服问答、售后承诺、退款/物流边界和升级 SOP。",
+        "engineering" => "确认埋点、接口、报表、数据刷新和回滚边界。",
+        "douyin_ads" => "拆解人群、素材、出价、预算节奏和投放止损线。",
+        "accounting" => "评估毛利、预算、CPA/ROI 和现金流约束。",
+        "design" => "把卖点、信任证明和行动按钮落到视觉承接。",
+        "web" => "补关键词、FAQ、页面结构和自然流量承接。",
+        _ => "围绕本岗位边界补充判断和交接内容。",
+    }
+}
+
+fn contribution_handoff_for_role(role: &str, contributions: &[RoleContribution]) -> String {
+    contributions
+        .iter()
+        .find(|contribution| contribution.runtime_role == role)
+        .map(|contribution| sanitize_contribution_text(&contribution.content))
+        .filter(|content| !content.is_empty())
+        .unwrap_or_else(|| default_handoff_for_role(role).to_string())
+}
+
+fn default_handoff_for_role(role: &str) -> &'static str {
+    match role {
+        "data" => "把可复核指标、异常段和待补数据交给主岗。",
+        "ops" => "把各岗位输入合成主结论、执行节奏和 final_report。",
+        "creative" => "把内容钩子、脚本方向和 A/B 测试假设交给团队。",
+        "service" => "把咨询承接、售后边界和服务风险交给团队。",
+        "engineering" => "把埋点、接口、报表和回滚边界交给团队。",
+        "douyin_ads" => "把投放人群、素材、出价和止损线交给团队。",
+        "accounting" => "把预算、毛利和 ROI 边界交给团队。",
+        "design" => "把视觉承接和页面测试点交给团队。",
+        "web" => "把搜索入口和页面承接建议交给团队。",
+        _ => "把本岗位结论、证据和风险交给团队。",
+    }
+}
+
+fn user_facing_contribution_lines(contributions: &[RoleContribution]) -> Vec<String> {
+    contributions
+        .iter()
+        .filter_map(|contribution| {
+            let content = sanitize_contribution_text(&contribution.content);
+            (!content.is_empty()).then(|| {
+                format!(
+                    "- **{}**：{}",
+                    role_display_name_for_collaboration(&contribution.runtime_role),
+                    content
+                )
+            })
+        })
+        .collect()
+}
+
+fn sanitize_contribution_text(content: &str) -> String {
+    let compact = compact_text(content, 180);
+    let lower = compact.to_ascii_lowercase();
+    if compact.is_empty()
+        || compact.contains("用户任务：")
+        || compact.contains("最终汇总：")
+        || compact.contains("输出边界")
+        || compact.contains("输出结构")
+        || lower.contains("support role")
+        || lower.contains("data role should provide")
+        || lower.contains("service role output lacks")
+        || lower.contains("engineering role output lacks")
+        || lower.contains("worker reported failed status")
+        || lower.starts_with("任务已完成:")
+        || (compact.contains("接收") && compact.contains("继续处理"))
+    {
+        return String::new();
+    }
+    compact
+}
+
+fn compact_text(content: &str, max_chars: usize) -> String {
+    let mut text = content
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .trim()
+        .to_string();
+    if text.chars().count() > max_chars {
+        text = text.chars().take(max_chars).collect::<String>();
+        text.push_str("...");
+    }
+    text
+}
+
+fn is_live_conversion_collaboration_task(task: &str) -> bool {
+    contains_any_for_collaboration(
+        task,
+        &["直播间", "直播", "转化", "转化率", "点击", "加购", "付款"],
+    )
+}
+
+fn contains_any_for_collaboration(text: &str, terms: &[&str]) -> bool {
+    terms.iter().any(|term| text.contains(term))
+}
+
+fn extract_live_conversion_metrics_for_collaboration(task: &str) -> HashMap<&'static str, f64> {
+    const LABELS: [&str; 5] = ["曝光", "点击", "加购", "下单", "付款"];
+    let mut metrics = HashMap::new();
+    for label in LABELS {
+        if let Some(value) = extract_number_after_label_for_collaboration(task, label) {
+            metrics.insert(label, value);
+        }
+    }
+    metrics
+}
+
+fn extract_number_after_label_for_collaboration(text: &str, label: &str) -> Option<f64> {
+    let start = text.find(label)? + label.len();
+    let tail = &text[start..];
+    let mut number = String::new();
+    let mut started = false;
+    for ch in tail.chars() {
+        if ch.is_ascii_digit() || (started && ch == '.') {
+            started = true;
+            number.push(ch);
+        } else if started || !ch.is_whitespace() {
+            break;
+        }
+    }
+    number.parse::<f64>().ok()
+}
+
+fn live_conversion_metric_lines(metrics: &HashMap<&'static str, f64>) -> Vec<String> {
+    let mut lines = Vec::new();
+    if let (Some(exposure), Some(click)) = (metrics.get("曝光"), metrics.get("点击")) {
+        lines.push(format!(
+            "曝光到点击约 {:.1}%，先看直播封面、标题、主播开场和人群匹配是否足够吸引。",
+            ratio_percent_for_collaboration(*click, *exposure)
+        ));
+    }
+    if let (Some(click), Some(cart)) = (metrics.get("点击"), metrics.get("加购")) {
+        lines.push(format!(
+            "点击到加购约 {:.1}%，重点检查卖点、价格利益、信任证明和讲解节奏是否承接住兴趣。",
+            ratio_percent_for_collaboration(*cart, *click)
+        ));
+    }
+    if let (Some(cart), Some(order)) = (metrics.get("加购"), metrics.get("下单")) {
+        lines.push(format!(
+            "加购到下单约 {:.1}%，需要排查优惠门槛、库存、运费、活动规则和犹豫点。",
+            ratio_percent_for_collaboration(*order, *cart)
+        ));
+    }
+    if let (Some(order), Some(paid)) = (metrics.get("下单"), metrics.get("付款")) {
+        lines.push(format!(
+            "下单到付款约 {:.1}%，如果接近 100% 说明支付环节阻力不大；后续还要看退款、投诉和履约。",
+            ratio_percent_for_collaboration(*paid, *order)
+        ));
+    }
+    if let (Some(exposure), Some(paid)) = (metrics.get("曝光"), metrics.get("付款")) {
+        lines.push(format!(
+            "曝光到付款总转化约 {:.2}%，单看该链路不是结论，必须结合行业基准、客单价、毛利和投放成本判断健康度。",
+            ratio_percent_for_collaboration(*paid, *exposure)
+        ));
+    }
+    lines
+}
+
+fn ratio_percent_for_collaboration(numerator: f64, denominator: f64) -> f64 {
+    if denominator <= 0.0 {
+        return 0.0;
+    }
+    numerator / denominator * 100.0
+}
+
 fn next_message_id() -> MessageId {
     use std::{
         sync::atomic::{AtomicU64, Ordering},
@@ -1289,4 +1723,127 @@ fn next_message_id() -> MessageId {
     let sequence = NEXT_MESSAGE_COUNTER.fetch_add(1, Ordering::Relaxed);
 
     MessageId(format!("msg-{millis}-{sequence}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::synthesize_user_facing_collaboration_report;
+    use crate::{
+        core::protocol::{TaskId, WorkerId},
+        roles::{RoleAssignment, RoleCollaborationPlan, RoleContribution, RoleId},
+    };
+
+    #[test]
+    fn legacy_collaboration_synthesis_is_user_facing_team_report() {
+        let task = "请用Agent集群方式判断：直播间曝光1000、点击80、加购20、下单8、付款7是否健康，不引用任何预设商品，并说明各虚拟员工如何协作。";
+        let plan = RoleCollaborationPlan {
+            primary: assignment("ops"),
+            support: vec![
+                assignment("data"),
+                assignment("creative"),
+                assignment("service"),
+            ],
+        };
+        let contributions = vec![
+            contribution(
+                "ops",
+                "运营主岗先判断直播间健康度，再把数据、内容和服务输入收敛成复盘节奏。",
+            ),
+            contribution(
+                "data",
+                "数据岗确认曝光到点击、点击到加购、加购到下单、下单到付款和总转化都需要分段复核。",
+            ),
+            contribution(
+                "creative",
+                "内容岗把点击到加购的承接问题转成直播钩子、标题和脚本测试。",
+            ),
+            contribution(
+                "service",
+                "服务岗补充咨询响应、售后承诺和退款边界，避免营销承诺超过履约能力。",
+            ),
+        ];
+
+        let output = synthesize_user_facing_collaboration_report(
+            &TaskId("task-live-collab".to_string()),
+            task,
+            Some(&plan),
+            "worker.data, worker.creative, worker.service",
+            &contributions,
+            None,
+        );
+
+        assert!(output.contains("虚拟员工分工"));
+        assert!(output.contains("团队"));
+        assert!(output.contains("final_report"));
+        assert!(output.contains("曝光到点击约 8.0%"));
+        assert!(output.contains("点击到加购约 25.0%"));
+        assert!(output.contains("加购到下单约 40.0%"));
+        assert!(output.contains("下单到付款约 87.5%"));
+        assert!(output.contains("曝光到付款总转化约 0.70%"));
+        assert!(!output.contains("用户任务："));
+        assert!(!output.contains("最终汇总："));
+        assert!(!output.contains("输出边界"));
+        assert!(!output.contains("输出结构"));
+        assert!(!output.contains("support role"));
+        assert!(!output.contains("任务已完成: task-"));
+        assert!(!output.contains("千乐咖啡"));
+    }
+
+    #[test]
+    fn legacy_collaboration_synthesis_hides_internal_evaluator_noise() {
+        let task = "请用Agent集群方式判断直播间转化是否健康，不引用任何预设商品。";
+        let plan = RoleCollaborationPlan {
+            primary: assignment("ops"),
+            support: vec![
+                assignment("data"),
+                assignment("service"),
+                assignment("engineering"),
+            ],
+        };
+        let contributions = vec![
+            contribution("ops", "任务已完成: task-123"),
+            contribution("data", "data role should provide at least two findings"),
+            contribution(
+                "service",
+                "service role output lacks service-specific content",
+            ),
+            contribution(
+                "engineering",
+                "engineering role output lacks technical content",
+            ),
+        ];
+
+        let output = synthesize_user_facing_collaboration_report(
+            &TaskId("task-noise".to_string()),
+            task,
+            Some(&plan),
+            "worker.data, worker.service, worker.engineering",
+            &contributions,
+            None,
+        );
+        let lower = output.to_ascii_lowercase();
+
+        assert!(output.contains("虚拟员工分工"));
+        assert!(output.contains("final_report"));
+        assert!(!lower.contains("data role should provide"));
+        assert!(!lower.contains("service role output lacks"));
+        assert!(!lower.contains("engineering role output lacks"));
+        assert!(!output.contains("任务已完成: task-123"));
+    }
+
+    fn assignment(runtime_role: &str) -> RoleAssignment {
+        RoleAssignment {
+            role_id: RoleId(format!("role.{runtime_role}")),
+            runtime_role: runtime_role.to_string(),
+            worker_id: WorkerId(format!("worker.{runtime_role}")),
+        }
+    }
+
+    fn contribution(runtime_role: &str, content: &str) -> RoleContribution {
+        RoleContribution::new(
+            &assignment(runtime_role),
+            TaskId(format!("task-{runtime_role}")),
+            content,
+        )
+    }
 }

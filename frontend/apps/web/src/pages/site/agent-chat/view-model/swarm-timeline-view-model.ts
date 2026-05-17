@@ -1,11 +1,17 @@
 import type { TFunction } from "i18next"
 import type { AgentRuntimeEvent } from "@/api"
 import { readRuntimeNodeId, resolveWorkerNodeId } from "./agent-runtime-event-mapping"
+import {
+  isNonBlockingNodeFailure,
+  isNonBlockingWorkspaceFailure,
+  isNonBlockingSkillGap,
+} from "./thread-boundary-state-view-model"
 import type { SwarmAgent } from "./swarm-panel-view-model"
 
 export function formatTimelineEvent(
   event: AgentRuntimeEvent,
   agents: SwarmAgent[],
+  runtimeEvents: AgentRuntimeEvent[],
   t: TFunction
 ) {
   if (event.type === "commander_thinking") {
@@ -82,11 +88,20 @@ export function formatTimelineEvent(
     }
   }
   if (event.type === "workspace_run_task_updated") {
+    const boundary = isBoundaryWorkspaceTaskUpdate(event, runtimeEvents)
     return {
-      label: t("agentChat.swarm.timeline.events.workspaceTaskUpdated", {
-        status: event.status,
-      }),
-      tone: event.status === "failed" ? "error" as const : "default" as const,
+      label: boundary
+        ? t("agentChat.swarm.timeline.events.workspaceTaskBoundary", {
+            status: event.status,
+          })
+        : t("agentChat.swarm.timeline.events.workspaceTaskUpdated", {
+            status: event.status,
+          }),
+      tone: boundary
+        ? "warning" as const
+        : event.status === "failed"
+          ? "error" as const
+          : "default" as const,
     }
   }
   if (event.type === "workspace_run_completed") {
@@ -133,6 +148,14 @@ export function formatTimelineEvent(
     }
   }
   if (event.type === "workspace_run_failed") {
+    if (isNonBlockingWorkspaceFailure(event, runtimeEvents)) {
+      return {
+        label: t("agentChat.swarm.timeline.events.workspaceTaskBoundary", {
+          status: event.status,
+        }),
+        tone: "warning" as const,
+      }
+    }
     return {
       label: t("agentChat.swarm.timeline.events.workspaceRunFailed"),
       tone: "error" as const,
@@ -156,6 +179,9 @@ export function formatTimelineEvent(
     return { label: t("agentChat.swarm.timeline.events.nodePassed", { agent: getTimelineAgentName(readRuntimeNodeId(event), agents) }), tone: "success" as const }
   }
   if (event.type === "task_node_failed") {
+    if (isNonBlockingNodeFailure(event, runtimeEvents)) {
+      return { label: t("agentChat.swarm.timeline.events.nodeBoundary", { agent: getTimelineAgentName(readRuntimeNodeId(event), agents) }), tone: "warning" as const }
+    }
     return { label: t("agentChat.swarm.timeline.events.nodeFailed", { agent: getTimelineAgentName(readRuntimeNodeId(event), agents), reason: event.reason }), tone: "error" as const }
   }
   if (event.type === "skill_requested") {
@@ -173,7 +199,7 @@ export function formatTimelineEvent(
         skill: event.skill_id,
         status: event.status,
       }),
-      tone: getSkillResultTone(event.status),
+      tone: getSkillResultTone(event, runtimeEvents),
     }
   }
   if (event.type === "worker_started") {
@@ -204,13 +230,33 @@ export function formatTimelineEvent(
   return null
 }
 
-function getSkillResultTone(status: string) {
+function getSkillResultTone(
+  event: Extract<AgentRuntimeEvent, { type: "skill_result" }>,
+  runtimeEvents: AgentRuntimeEvent[]
+) {
+  if (isNonBlockingSkillGap(event, runtimeEvents)) return "warning" as const
+  const status = event.status
   if (status === "success") return "success" as const
   if (status === "pending_approval" || status === "deferred") return "warning" as const
   if (status === "failed" || status === "not_found" || status === "validation_error") {
     return "error" as const
   }
   return "default" as const
+}
+
+function isBoundaryWorkspaceTaskUpdate(
+  event: Extract<AgentRuntimeEvent, { type: "workspace_run_task_updated" }>,
+  runtimeEvents: AgentRuntimeEvent[]
+) {
+  if (event.status !== "failed") return false
+  const metadataText = stringifyUnknown(event.metadata)
+  if (metadataText.includes("category_level_boundary")) return true
+  const ownerRole = event.ownerRole ?? event.owner_role
+  return runtimeEvents.some((item) => {
+    if (item.type !== "task_node_failed") return false
+    if (!isNonBlockingNodeFailure(item, runtimeEvents)) return false
+    return ownerRole ? readRuntimeNodeId(item) === ownerRole : true
+  })
 }
 
 function getTimelineAgentName(nodeId: string, agents: SwarmAgent[]) {
@@ -223,6 +269,16 @@ function readApprovalSkill(event: Extract<AgentRuntimeEvent, { type: "approval_r
 
 function readApprovalRisk(event: Extract<AgentRuntimeEvent, { type: "approval_required" }>) {
   return event.riskLevel ?? event.risk_level ?? event.approval?.riskLevel ?? event.approval?.risk_level ?? "-"
+}
+
+function stringifyUnknown(value: unknown) {
+  if (value === null || value === undefined) return ""
+  if (typeof value === "string") return value
+  try {
+    return JSON.stringify(value)
+  } catch {
+    return ""
+  }
 }
 
 function getWorkspaceContextSourceCount(

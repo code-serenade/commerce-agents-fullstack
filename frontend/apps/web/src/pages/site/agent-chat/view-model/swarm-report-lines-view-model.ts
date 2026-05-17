@@ -1,5 +1,6 @@
 import type { TFunction } from "i18next"
 import type { AgentWorkerReport } from "@/api"
+import { isUnsupportedBenchmarkClaim } from "../domain/agent-chat-answer-sanitizer"
 
 export function readReportDocumentLines(
   report: AgentWorkerReport | undefined,
@@ -15,7 +16,14 @@ export function compactPreviewLines(lines: Array<string | undefined | null>) {
     .flatMap((line) => String(line ?? "").split(/\r?\n/))
     .map((line) => line.trim())
     .filter((line) => {
-      if (!line || seen.has(line)) return false
+      if (
+        !line ||
+        seen.has(line) ||
+        isUnsupportedBenchmarkClaim(line) ||
+        isInternalRuntimeLine(line)
+      ) {
+        return false
+      }
       seen.add(line)
       return true
     })
@@ -39,5 +47,29 @@ export function readReportLines(
     ...(report.open_questions ?? []).map((question) =>
       t("agentChat.swarm.reportLines.question", { question })
     ),
-  ].filter((line): line is string => Boolean(line))
+  ].flatMap((line) => {
+    const value = line?.trim()
+    if (!value) return []
+    if (isUnsupportedBenchmarkClaim(value) || isInternalRuntimeLine(value)) {
+      return []
+    }
+    return [value]
+  })
+}
+
+export function isInternalRuntimeLine(value: string) {
+  const text = value.trim()
+  if (!text) return false
+  return [
+    "content must be specific and non-empty",
+    "data role should provide",
+    "service role output lacks",
+    "engineering role output lacks",
+    "worker reported failed status",
+    "json template validation",
+    "decode failed",
+    "cognition failure",
+    "raw=",
+    "missing key",
+  ].some((term) => text.toLowerCase().includes(term))
 }

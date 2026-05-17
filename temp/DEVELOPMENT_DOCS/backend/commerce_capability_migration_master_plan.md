@@ -152,6 +152,37 @@ Kimi Agent 集群 = 前端交互和视觉体验参考
 - Each skill response includes category, priority, execution mode, risk level, approval requirement, adapter requirements, tags, and input fields.
 - This is a read-only backend contract for the future "功能导航 / 虚拟员工能力介绍" UI. It does not execute skills, call LLMs, create tasks, or trigger platform actions.
 
+## Post 8-138 Update
+
+- `coordination_status_query` is now a stronger Rust native coordination skill rather than a shallow metadata echo.
+- Its `skill_result.output` keeps the existing session / worker / task / workspace / context / health / blockers / observability fields and now adds `progress_view`, `role_statuses`, `next_actions`, and `user_visible_summary`.
+- The progress view reports a current-session phase, visible percent, basis, upstream input count, and workspace binding state using only `SkillContext` and runtime metadata.
+- Role statuses distinguish upstream completed roles, current working role, support roles, and explicitly selected roles without pretending to know other sessions.
+- Missing `session_id`, `task_id`, `run_id`, or workspace context is surfaced as a visibility boundary in `blockers` and `observability`; the skill still does not query DB, platform adapters, other users, or other sessions.
+
+## Post 8-139 Update
+
+- `coordination_create_task` now normalizes priority at the skill boundary, not only in worker autosuggest.
+- It accepts numeric priorities, numeric strings, and common labels such as `low`, `normal`, `medium`, `important`, `high`, `urgent`, `普通`, `重要`, and `紧急`.
+- The output remains the existing numeric workspace task scale (`0..10`) in `task_creation.priority` and `normalized_inputs.priority`.
+- Unknown or empty priority labels default to normal priority instead of failing the multi-agent chain with `invalid parameter 'priority'`.
+- This keeps the capability native, deterministic, and compatible with existing SSE/service workspace task materialization.
+
+## Post 8-140 Update
+
+- `task_graph_finished` now includes an answer-scoped `process` summary built from the real `TaskGraphRuntime`.
+- The summary exposes graph id, root task, primary answer role, all role/node statuses, role findings, recommendations, handoffs, next actions, execution checks, deliverable hints, risks, open questions, and incomplete nodes.
+- `process.panel.default_collapsed=true` and `process.panel.anchor=answer_scoped_process` make the intended frontend behavior explicit: each answer can own its own collapsible process panel instead of relying on one global floating toggle.
+- The summary is derived only from current runtime nodes, worker reports, evaluations, and existing deterministic synthesis helpers. It does not query other users/sessions and does not fabricate search, platform execution, product selection, or artifact results.
+
+## Post 8-141 Update
+
+- `TaskGraphMemorySummary` now stores `process: Option<TaskGraphProcessSummary>`.
+- `TaskGraphRuntime::memory_summary()` writes the same answer-scoped process summary used by `task_graph_finished.process` into session memory.
+- Persisted task-graph memory now includes process panel metadata, primary role, handoffs, next actions, deliverables, and incomplete states in its formatted memory record.
+- Agent public API exports the process summary types so web-server/history consumers can use the same typed contract instead of parsing Markdown.
+- This keeps historical process replay backend-owned: future frontend work can render a per-answer collapsed process panel from memory without inventing fake state or using one global drawer.
+
 ## Post 8-118 Update
 
 - Web-role SEO optimization, keyword research, and page conversion prompts can now surface visible two-step chains when the user explicitly asks for latest, realtime, online, SEO algorithm, traffic-rule, keyword-competition, search-volume, CPC, or conversion-benchmark data.
@@ -385,22 +416,21 @@ Continue in this order:
 The latest active/completed slice is:
 
 ```text
-Post 8-127: listing/title/description search chain
+Post 8-140: task graph process summary
 ```
 
 Scope:
 
-- make ops/web autosuggest produce visible native + search chains for listing copy, title generation, and product description when the user asks for latest title/content rules, search volume, hot keywords, high-click trend, detail-page trend, buyer pain points, or real reviews
-- keep ordinary listing-copy, title-generation, and product-description requests on native skills only when no fresh external context is requested
-- keep selected product context explicit-only; do not inject default, preset, history, or test product context into listing/title/description search chains
-- keep platform/content rules, market trend/search volume, and buyer review lookup as separate auditable search skill events
+- make `task_graph_finished` return frontend-consumable process summary from real Agent task graph runtime state
+- expose primary role, per-role status, handoffs, next actions, checks, deliverables, risks, open questions, incomplete nodes, and default collapsed panel intent
+- keep the event name and existing process events compatible
+- avoid DB queries, frontend-only process guesses, global process state, or fabricated platform/search/artifact results
 
 Reason:
 
-- old-product listing/title/description skills could benefit from external title rules, buyer reviews, and market trend context
-- new-product architecture should expose those inputs as auditable search skill events instead of hiding external context inside native outputs
-- listing copy, title generation, and product description are high-frequency e-commerce abilities and should share the same transparent search degradation boundary as SEO, creative, service, and ops planning skills
-- real platform rules, hot keyword data, and buyer review evidence remain adapter/search concern and must not be faked when providers are missing, failing, stale, or source-less
+- old-product and Kimi-style experiences make every answer's team process inspectable; the new product should expose that from the backend runtime, not from UI heuristics
+- the frontend needs a per-answer process object so multiple questions in one conversation can each reopen their own process history
+- this strengthens the virtual-employee workbench foundation while still deferring official Taobao/Douyin platform integrations
 
 ## 10. Validation Standard
 

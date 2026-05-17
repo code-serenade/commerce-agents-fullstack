@@ -192,13 +192,14 @@ export function getTimeline(
     }))
   }
   return runtimeEvents
-    .map((event) => formatTimelineEvent(event, agents, t))
+    .map((event) => formatTimelineEvent(event, agents, runtimeEvents, t))
     .filter((item): item is NonNullable<typeof item> => item !== null)
     .slice(-8)
 }
 
 export function getStatePillLabel(state: SwarmState, t: TFunction) {
   if (state === "done") return t("agentChat.swarm.statePill.done")
+  if (state === "boundary") return t("agentChat.swarm.statePill.boundary")
   if (state === "working") return t("agentChat.swarm.statePill.working")
   if (state === "queued") return t("agentChat.swarm.statePill.queued")
   if (state === "failed") return t("agentChat.swarm.statePill.failed")
@@ -209,6 +210,7 @@ export function getStatePillLabel(state: SwarmState, t: TFunction) {
 
 export function getFallbackResponse(agent: SwarmAgent, state: SwarmState, t: TFunction) {
   if (state === "failed") return t("agentChat.swarm.fallbackResponse.failed")
+  if (state === "boundary") return t("agentChat.swarm.fallbackResponse.boundary")
   if (state === "reworking") return t("agentChat.swarm.fallbackResponse.reworking")
   if (state === "working") return t("agentChat.swarm.fallbackResponse.working", { agent: agent.name })
   if (state === "done") return t("agentChat.swarm.fallbackResponse.done", { agent: agent.name })
@@ -217,6 +219,7 @@ export function getFallbackResponse(agent: SwarmAgent, state: SwarmState, t: TFu
 
 export function getDockStateLabel(state: SwarmState, t: TFunction) {
   if (state === "done") return t("agentChat.swarm.dockState.done")
+  if (state === "boundary") return t("agentChat.swarm.dockState.boundary")
   if (state === "working") return t("agentChat.swarm.dockState.working")
   if (state === "reworking") return t("agentChat.swarm.dockState.reworking")
   if (state === "failed") return t("agentChat.swarm.dockState.failed")

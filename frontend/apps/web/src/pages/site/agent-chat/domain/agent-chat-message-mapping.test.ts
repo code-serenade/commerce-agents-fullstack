@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { ConversationDetailResponse } from "@/api"
 import {
-  formatAgentUiMessage,
   mapConversationAttachments,
   mapConversationMessages,
   readConversationRuntimeEvents,
@@ -20,6 +19,7 @@ const fallback: AgentChatMessage = {
 }
 
 const copy = {
+  boundaryNotice: "boundary notice",
   missingStructuredOutput: "missing structured output",
   streamTimedOut: "stream timed out",
 }
@@ -78,15 +78,6 @@ describe("agent chat message mapping", () => {
         support_runtime_roles: ["data"],
       },
     ])
-  })
-
-  it("hides backend skill marker text from persisted assistant answers", () => {
-    expect(
-      formatAgentUiMessage(
-        "Suggestion: improve the entry point;skill:data_refund_decomposition status=Deferred reason=data skill executed\nskill:creative_copy status=ok\nNext step: add more data",
-        copy
-      )
-    ).toBe("Suggestion: improve the entry point\nNext step: add more data")
   })
 
   it("restores selected product ids from the latest persisted user context", () => {
@@ -251,13 +242,7 @@ describe("agent chat message mapping", () => {
     ]
 
     expect(mapConversationAttachments(detail)).toEqual([
-      {
-        fileId: "file-1",
-        id: "file-1",
-        name: "brief.md",
-        readable: true,
-        status: "uploaded",
-      },
+      { fileId: "file-1", id: "file-1", name: "brief.md", readable: true, status: "uploaded" },
     ])
   })
 })
@@ -273,15 +258,9 @@ function conversationDetail(
 ): ConversationDetailResponse {
   return {
     conversation: {
-      agentId: "web-agent",
-      createdAt: "2026-05-13T00:00:00.000Z",
-      id: "c1",
-      modelName: null,
-      source: "agent_chat",
-      status: "active",
-      title: null,
-      updatedAt: "2026-05-13T00:00:00.000Z",
-      userId: "u1",
+      agentId: "web-agent", createdAt: "2026-05-13T00:00:00.000Z", id: "c1",
+      modelName: null, source: "agent_chat", status: "active", title: null,
+      updatedAt: "2026-05-13T00:00:00.000Z", userId: "u1",
     },
     files: [],
     messages: messages.map((message) => ({

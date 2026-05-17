@@ -1,5 +1,6 @@
 const AGENT_STREAM_URL = "/api/sse/agent/session/stream"
 const AGENT_STREAM_IDLE_TIMEOUT_MS = 240_000
+const AGENT_AUTH_REFRESH_TIMEOUT_MS = 10_000
 const AUTH_REFRESH_URL = "/auth/session/refresh_token"
 
 export interface AgentStreamRequest {
@@ -121,6 +122,7 @@ export type AgentRuntimeEvent =
       status: string
       summary?: string | null
       error?: string | null
+      output?: unknown | null
       execution_mode?: string | null
       risk_level?: string | null
       approval_required?: boolean | null
@@ -211,7 +213,7 @@ export type AgentRuntimeEvent =
       node_id?: string
       reason: string
     }
-  | { type: "task_graph_finished"; graphId?: string; graph_id?: string }
+  | { type: "task_graph_finished"; graphId?: string; graph_id?: string; session_id?: string }
   | {
       type: "workspace_run_linked"
       createdWorkspace?: boolean
@@ -310,9 +312,19 @@ export interface AgentWorkerReport {
     risks: string[]
     open_questions: string[]
   } | null
+  roleOutput?: {
+    summary: string
+    findings: string[]
+    recommendations: string[]
+    evidence: string[]
+    risks: string[]
+    openQuestions?: string[]
+    open_questions?: string[]
+  } | null
   evidence: string[]
   risks: string[]
   open_questions: string[]
+  openQuestions?: string[]
   status: string
 }
 
@@ -675,14 +687,30 @@ export async function streamAgentSessionApi(
   handlers: AgentStreamHandlers
 ) {
   let settled = false
+  let uiCompleted = false
   let receivedDelta = false
   let fallbackOutput = ""
   let reader: ReadableStreamDefaultReader<Uint8Array> | null = null
   let idleTimeout: number | undefined
+  const completeUi = () => {
+    if (uiCompleted) return
+    if (!receivedDelta && fallbackOutput) {
+      handlers.onDelta(fallbackOutput)
+      receivedDelta = true
+    }
+    handlers.onDone()
+    uiCompleted = true
+  }
   const resetIdleTimeout = () => {
     if (idleTimeout !== undefined) window.clearTimeout(idleTimeout)
     idleTimeout = window.setTimeout(() => {
       if (settled) return
+      if (uiCompleted || receivedDelta || fallbackOutput) {
+        completeUi()
+        settled = true
+        void reader?.cancel()
+        return
+      }
       settled = true
       handlers.onError("Agent stream timed out without backend events.")
       void reader?.cancel()
@@ -733,14 +761,14 @@ export async function streamAgentSessionApi(
         receivedDelta = receivedDelta || result.receivedDelta
         fallbackOutput = mergeFallbackOutput(fallbackOutput, result.fallbackOutput)
         if (result.finished) {
-          if (!receivedDelta && fallbackOutput) {
-            handlers.onDelta(fallbackOutput)
-          }
           if (result.completed) {
-            handlers.onDone()
+            completeUi()
           }
           settled = true
           return
+        }
+        if (result.uiCompleted) {
+          completeUi()
         }
       }
     }
@@ -751,22 +779,19 @@ export async function streamAgentSessionApi(
       receivedDelta = receivedDelta || result.receivedDelta
       fallbackOutput = mergeFallbackOutput(fallbackOutput, result.fallbackOutput)
       if (result.finished) {
-        if (!receivedDelta && fallbackOutput) {
-          handlers.onDelta(fallbackOutput)
-        }
         if (result.completed) {
-          handlers.onDone()
+          completeUi()
         }
         settled = true
         return
       }
+      if (result.uiCompleted) {
+        completeUi()
+      }
     }
 
     if (!settled) {
-      if (!receivedDelta && fallbackOutput) {
-        handlers.onDelta(fallbackOutput)
-      }
-      handlers.onDone()
+      completeUi()
       settled = true
     }
   } finally {
@@ -774,7 +799,13 @@ export async function streamAgentSessionApi(
     if (!receivedDelta && fallbackOutput && !settled && !handlers.signal?.aborted) {
       handlers.onDelta(fallbackOutput)
     }
-    if (!receivedDelta && !fallbackOutput && !settled && !handlers.signal?.aborted) {
+    if (
+      !receivedDelta &&
+      !fallbackOutput &&
+      !settled &&
+      !uiCompleted &&
+      !handlers.signal?.aborted
+    ) {
       handlers.onError("Agent stream ended without output.")
     }
   }
@@ -797,13 +828,24 @@ function fetchAgentStream(body: AgentStreamRequest, signal?: AbortSignal) {
 async function refreshAgentStreamToken(): Promise<boolean> {
   const refreshToken = localStorage.getItem("refreshToken")
   if (!refreshToken) return false
+  const controller = new AbortController()
+  const timer = window.setTimeout(
+    () => controller.abort(),
+    AGENT_AUTH_REFRESH_TIMEOUT_MS
+  )
 
   const response = await fetch(AUTH_REFRESH_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ refreshToken }),
-  })
-  if (!response.ok) return false
+    signal: controller.signal,
+  }).catch(() => null)
+  window.clearTimeout(timer)
+  if (!response?.ok) {
+    localStorage.removeItem("token")
+    localStorage.removeItem("refreshToken")
+    return false
+  }
 
   const json = (await response.json().catch(() => ({}))) as {
     data?: { accessToken?: string; access_token?: string }
@@ -844,6 +886,7 @@ function handleSseMessage(
   fallbackOutput: string
   finished: boolean
   receivedDelta: boolean
+  uiCompleted: boolean
 } {
   if (message.event === "done") {
     const event = readAgentRuntimeEvent(message.data)
@@ -854,6 +897,7 @@ function handleSseMessage(
       fallbackOutput: "",
       finished: true,
       receivedDelta: false,
+      uiCompleted: true,
     }
   }
 
@@ -866,6 +910,7 @@ function handleSseMessage(
       fallbackOutput: "",
       finished: false,
       receivedDelta: false,
+      uiCompleted: true,
     }
   }
 
@@ -876,6 +921,7 @@ function handleSseMessage(
       fallbackOutput: "",
       finished: false,
       receivedDelta: false,
+      uiCompleted: false,
     }
   }
 
@@ -887,6 +933,7 @@ function handleSseMessage(
       fallbackOutput: "",
       finished: true,
       receivedDelta: false,
+      uiCompleted: true,
     }
   }
 
@@ -899,6 +946,7 @@ function handleSseMessage(
       fallbackOutput: "",
       finished: false,
       receivedDelta: Boolean(content),
+      uiCompleted: false,
     }
   }
 
@@ -912,6 +960,7 @@ function handleSseMessage(
       fallbackOutput,
       finished: false,
       receivedDelta: false,
+      uiCompleted: false,
     }
   }
 
@@ -925,6 +974,7 @@ function handleSseMessage(
       fallbackOutput,
       finished: false,
       receivedDelta: false,
+      uiCompleted: isUiCompletionEvent(event),
     }
   }
 
@@ -934,7 +984,15 @@ function handleSseMessage(
     fallbackOutput: "",
     finished: false,
     receivedDelta: false,
+    uiCompleted: false,
   }
+}
+
+function isUiCompletionEvent(event: AgentRuntimeEvent | null) {
+  return (
+    event?.type === "workspace_run_completed" ||
+    event?.type === "workspace_run_failed"
+  )
 }
 
 function mergeFallbackOutput(current: string, next: string): string {

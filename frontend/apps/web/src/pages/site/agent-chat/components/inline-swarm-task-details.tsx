@@ -64,7 +64,7 @@ export function InlineStepStrip({ steps }: { steps: string[][] }) {
       {steps.map(([label, detail], index) => {
         return (
           <div
-            key={label}
+            key={`${index}-${label}`}
             className="flex min-w-0 max-w-full items-center gap-2 rounded-full border border-border bg-card px-2.5 py-1.5 shadow-sm"
           >
             <span className="shrink-0 font-mono text-[11px] font-semibold text-muted-foreground">
@@ -120,6 +120,8 @@ export function InlineAgentGrid({
           className={`flex min-w-0 items-center gap-2 rounded-md px-2.5 py-2 ${
             agent.state === "working" || agent.state === "reworking"
               ? "bg-background ring-1 ring-foreground/25"
+              : agent.state === "boundary"
+                ? "bg-amber-50 text-amber-950 ring-1 ring-amber-200 dark:bg-amber-950/20 dark:text-amber-100 dark:ring-amber-900/60"
               : agent.state === "failed"
                 ? "bg-destructive/10"
                 : "bg-background/80"
@@ -130,6 +132,8 @@ export function InlineAgentGrid({
               <Loader2 className="size-4 animate-spin text-emerald-600" />
             ) : agent.state === "done" ? (
               <CheckCircle2 className="size-4 text-emerald-600" />
+            ) : agent.state === "boundary" ? (
+              <MonitorCog className="size-4 text-amber-600" />
             ) : agent.state === "failed" ? (
               <MonitorCog className="size-4 text-destructive" />
             ) : (
@@ -171,6 +175,8 @@ function InlinePixels({
             shouldLightInlinePixel(state, pixelIndex)
               ? state === "failed"
                 ? "bg-destructive"
+                : state === "boundary"
+                  ? "bg-amber-500"
                 : "bg-emerald-500"
               : "bg-muted-foreground/15"
           }`}

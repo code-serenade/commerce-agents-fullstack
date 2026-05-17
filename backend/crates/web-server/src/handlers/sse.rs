@@ -741,6 +741,13 @@ pub async fn stream_agent_session(
                     return;
                 }
                 SessionEvent::Finished { .. } => {
+                    yield Ok(json_event(
+                        "finished",
+                        json!({
+                            "type": "finished",
+                            "session_id": link_state.session_id,
+                        }),
+                    ));
                     if !link_state.completed {
                         let response = workspace_api
                             .complete_agent_run(CompleteAgentWorkspaceRunRequest {

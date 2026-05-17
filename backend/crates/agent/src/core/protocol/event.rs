@@ -2,7 +2,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::protocol::{
-    Evaluation, SessionId, TaskGraph, TaskGraphId, TaskId, TaskNodeId, WorkerId, WorkerReport,
+    Evaluation, SessionId, TaskGraph, TaskGraphId, TaskGraphProcessSummary, TaskId, TaskNodeId,
+    WorkerId, WorkerReport,
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -163,6 +164,7 @@ pub enum SessionEvent {
     TaskGraphFinished {
         session_id: SessionId,
         graph_id: TaskGraphId,
+        process: Box<TaskGraphProcessSummary>,
     },
     Output {
         session_id: SessionId,

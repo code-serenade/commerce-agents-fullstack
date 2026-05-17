@@ -49,13 +49,17 @@ export function AgentChatSwarmPanel({
   const runtimeNodeStates = getRuntimeNodeStates(runtimeEvents)
   const agents = getAgents(graphNodes, t)
   const doneAgents = agents.filter(
-    (agent) => runtimeNodeStates.get(agent.nodeId)?.state === "done"
+    (agent) => {
+      const state = runtimeNodeStates.get(agent.nodeId)?.state
+      return state === "done" || state === "boundary"
+    }
   )
   const activeAgent =
     agents.find((agent) => runtimeNodeStates.get(agent.nodeId)?.state === "working") ??
     agents.find((agent) => runtimeNodeStates.get(agent.nodeId)?.state === "reworking") ??
-    agents.find((agent) => runtimeNodeStates.get(agent.nodeId)?.state === "failed") ??
+    agents.find((agent) => runtimeNodeStates.get(agent.nodeId)?.state === "boundary") ??
     doneAgents.at(-1) ??
+    agents.find((agent) => runtimeNodeStates.get(agent.nodeId)?.state === "failed") ??
     agents[0]
   const activeAgentIndex = agents.indexOf(activeAgent)
   const activeState = getAgentState({
@@ -154,7 +158,7 @@ export function AgentChatSwarmPanel({
           </section>
         </div>
 
-        <div className="shrink-0 overflow-x-auto [scrollbar-gutter:stable]">
+        <div className="max-h-40 shrink-0 overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable]">
           <AgentDock
             activeNodeId={activeAgent.nodeId}
             agents={agents}

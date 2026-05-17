@@ -3,6 +3,7 @@ import {
   Button,
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -55,6 +56,9 @@ export function SimpleFormDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>
+            {t("commerce.common.dialogDescription")}
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           {fields.map((field) => (

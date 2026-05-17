@@ -3,7 +3,18 @@ import type { TFunction } from "i18next"
 import type { AgentRuntimeEvent } from "@/api"
 import { readRuntimeNodeId } from "./agent-runtime-event-mapping"
 import {
+  isNonBlockingNodeFailure,
+  isNonBlockingSkillGap,
+  resolveSkillResultNodeId,
+} from "./thread-boundary-state-view-model"
+import {
+  findLatestNodeEvent,
+  formatRuntimeEventDescription,
+  getRuntimeActionLabel,
+} from "./swarm-runtime-event-label-view-model"
+import {
   compactPreviewLines,
+  isInternalRuntimeLine,
   readReportDocumentLines,
   readReportLines,
 } from "./swarm-report-lines-view-model"
@@ -36,7 +47,7 @@ export function getComputerCards(input: {
   const workspaceCard = getWorkspacePersistenceCard(runtimeEvents, t)
   if (workspaceCard) cards.push(workspaceCard)
   const latestNodeEvent = findLatestNodeEvent(runtimeEvents)
-  cards.push(getRuntimeCard(latestNodeEvent, activeAgent, activeNode, agents, t))
+  cards.push(getRuntimeCard(latestNodeEvent, activeAgent, activeNode, agents, runtimeEvents, t))
   const skillCard = getSkillCard(activeNode, t)
   if (skillCard) cards.push(skillCard)
   cards.push(getOutputCard(activeAgent, activeNode, t))
@@ -50,6 +61,18 @@ export function getComputerCards(input: {
       icon: SearchCheck,
       lines: [reworkEvent.instruction],
       state: "reworking",
+    })
+  }
+  const boundaryEvent = findLatestBoundaryEvent(runtimeEvents)
+  if (boundaryEvent) {
+    cards.push({
+      id: "boundary",
+      title: t("agentChat.swarm.cards.boundary.title"),
+      meta: getAgentName(boundaryEvent.nodeId, agents),
+      description: t("agentChat.swarm.cards.boundary.description"),
+      icon: SearchCheck,
+      lines: [t("agentChat.swarm.cards.boundary.line")],
+      state: "boundary",
     })
   }
   const failedEvent = findLatestFailedEvent(runtimeEvents)
@@ -81,9 +104,11 @@ export function getComputerScreenContext(
   )
   const request = graphNode?.objective ?? activeAgent.objective
   const acceptanceLines =
-    graphNode?.acceptance.map((item, index) =>
-      t("agentChat.swarm.screen.acceptanceLine", { index: index + 1, item })
-    ) ?? []
+    graphNode?.acceptance
+      .filter((item) => !isInternalRuntimeLine(item))
+      .map((item, index) =>
+        t("agentChat.swarm.screen.acceptanceLine", { index: index + 1, item })
+      ) ?? []
   const lines = compactPreviewLines([
     `# ${activeAgent.name}`,
     t("agentChat.swarm.screen.responsibilityLine", {
@@ -92,9 +117,9 @@ export function getComputerScreenContext(
     t("agentChat.swarm.screen.objectiveLine", { request }),
     ...acceptanceLines,
     ...readReportDocumentLines(activeNode?.report, t),
-    ...(activeNode?.evaluationReasons ?? []).map((reason) =>
-      t("agentChat.swarm.screen.reviewLine", { reason })
-    ),
+    ...(activeNode?.evaluationReasons ?? [])
+      .filter((reason) => !isInternalRuntimeLine(reason))
+      .map((reason) => t("agentChat.swarm.screen.reviewLine", { reason })),
   ])
 
   return {
@@ -150,6 +175,7 @@ function getRuntimeCard(
   activeAgent: SwarmAgent,
   activeNode: RuntimeNodeSnapshot | undefined,
   agents: SwarmAgent[],
+  runtimeEvents: AgentRuntimeEvent[],
   t: TFunction
 ): ComputerCard {
   return {
@@ -157,7 +183,7 @@ function getRuntimeCard(
     title: t("agentChat.swarm.cards.assign.title"),
     meta: t("agentChat.swarm.cards.assign.meta"),
     description: latestNodeEvent
-      ? formatRuntimeEventDescription(latestNodeEvent, agents, t)
+      ? formatRuntimeEventDescription(latestNodeEvent, agents, runtimeEvents, t)
       : t("agentChat.swarm.cards.assign.description"),
     icon: TerminalSquare,
     lines: [
@@ -167,7 +193,7 @@ function getRuntimeCard(
       }),
       latestNodeEvent
         ? t("agentChat.swarm.cards.assign.latestAction", {
-            action: getRuntimeActionLabel(latestNodeEvent.type, t),
+            action: getRuntimeActionLabel(latestNodeEvent, runtimeEvents, t),
           })
         : t("agentChat.swarm.cards.assign.latestPlanning"),
     ],
@@ -202,92 +228,30 @@ function getOutputCard(
   }
 }
 
-function findLatestNodeEvent(runtimeEvents: AgentRuntimeEvent[]) {
-  for (let index = runtimeEvents.length - 1; index >= 0; index -= 1) {
-    const event = runtimeEvents[index]
-    if (
-      event.type === "task_node_started" ||
-      event.type === "task_node_reported" ||
-      event.type === "task_node_passed" ||
-      event.type === "task_node_failed" ||
-      event.type === "task_node_rework_requested" ||
-      event.type === "skill_requested" ||
-      event.type === "skill_result"
-    ) {
-      return event
-    }
-  }
-  return null
-}
-
 function findLatestReworkEvent(runtimeEvents: AgentRuntimeEvent[]) {
   return [...runtimeEvents].reverse().find((event) => event.type === "task_node_rework_requested") ?? null
 }
 
 function findLatestFailedEvent(runtimeEvents: AgentRuntimeEvent[]) {
-  return [...runtimeEvents].reverse().find((event) => event.type === "task_node_failed") ?? null
+  return [...runtimeEvents]
+    .reverse()
+    .find(
+      (event): event is Extract<AgentRuntimeEvent, { type: "task_node_failed" }> =>
+        event.type === "task_node_failed" &&
+        !isNonBlockingNodeFailure(event, runtimeEvents)
+    ) ?? null
 }
 
-function formatRuntimeEventDescription(
-  event: NonNullable<ReturnType<typeof findLatestNodeEvent>>,
-  agents: SwarmAgent[],
-  t: TFunction
-) {
-  if (event.type === "task_node_started") {
-    return t("agentChat.swarm.runtimeDescriptions.started", {
-      agent: getAgentName(readRuntimeNodeId(event), agents),
-      attempt: event.attempt,
-    })
+function findLatestBoundaryEvent(runtimeEvents: AgentRuntimeEvent[]) {
+  for (const event of [...runtimeEvents].reverse()) {
+    if (event.type === "task_node_failed" && isNonBlockingNodeFailure(event, runtimeEvents)) {
+      return { nodeId: readRuntimeNodeId(event) }
+    }
+    if (event.type === "skill_result" && isNonBlockingSkillGap(event, runtimeEvents)) {
+      return { nodeId: resolveSkillResultNodeId(event) }
+    }
   }
-  if (event.type === "task_node_reported") {
-    return t("agentChat.swarm.runtimeDescriptions.reported", {
-      agent: getAgentName(readRuntimeNodeId(event), agents),
-    })
-  }
-  if (event.type === "task_node_passed") {
-    return t("agentChat.swarm.runtimeDescriptions.passed", {
-      agent: getAgentName(readRuntimeNodeId(event), agents),
-    })
-  }
-  if (event.type === "task_node_failed") {
-    return t("agentChat.swarm.runtimeDescriptions.failed", {
-      agent: getAgentName(readRuntimeNodeId(event), agents),
-    })
-  }
-  if (event.type === "skill_requested") {
-    return t("agentChat.swarm.runtimeDescriptions.skillRequested", {
-      skill: event.skill_id,
-    })
-  }
-  if (event.type === "skill_result") {
-    return t("agentChat.swarm.runtimeDescriptions.skillResult", {
-      skill: event.skill_id,
-      status: event.status,
-    })
-  }
-  return t("agentChat.swarm.runtimeDescriptions.reworking", {
-    agent: getAgentName(readRuntimeNodeId(event), agents),
-  })
-}
-
-function getRuntimeActionLabel(eventType: AgentRuntimeEvent["type"], t: TFunction) {
-  return t(`agentChat.swarm.runtimeActions.${runtimeActionKey(eventType)}`)
-}
-
-function runtimeActionKey(eventType: AgentRuntimeEvent["type"]) {
-  if (eventType === "commander_thinking") return "commanderThinking"
-  if (eventType === "task_graph_planned") return "graphPlanned"
-  if (eventType === "task_node_ready") return "nodeReady"
-  if (eventType === "task_node_started") return "nodeStarted"
-  if (eventType === "task_node_reported") return "nodeReported"
-  if (eventType === "task_node_evaluated") return "nodeEvaluated"
-  if (eventType === "task_node_rework_requested") return "nodeRework"
-  if (eventType === "task_node_passed") return "nodePassed"
-  if (eventType === "task_node_failed") return "nodeFailed"
-  if (eventType === "skill_requested") return "skillRequested"
-  if (eventType === "skill_result") return "skillResult"
-  if (eventType === "task_graph_finished") return "graphFinished"
-  return "synced"
+  return null
 }
 
 function getComputerFilename(agent: SwarmAgent, t: TFunction) {

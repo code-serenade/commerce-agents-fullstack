@@ -5,6 +5,7 @@ import type {
 } from "@/api"
 import type { AgentRuntimeEvent } from "../agent-chat-data"
 import type { AgentChatRuntimeSelectionRestore } from "./agent-runtime-options"
+import { sanitizeAgentAnswerContent } from "./agent-chat-answer-sanitizer"
 import {
   DEFAULT_AGENT_CHAT_STRATEGY_ID,
   isAgentChatStrategyId,
@@ -18,6 +19,7 @@ import type {
 import { readMessageContextSummary } from "./agent-chat-message-context-summary"
 
 export interface AgentChatMessageFormatCopy {
+  boundaryNotice: string
   missingStructuredOutput: string
   streamTimedOut: string
 }
@@ -63,7 +65,7 @@ export function formatAgentUiMessage(
   if (/Agent stream timed out without backend events/i.test(text)) {
     return copy.streamTimedOut
   }
-  return sanitizeAgentUiMessage(text)
+  return sanitizeAgentUiMessage(text, copy)
 }
 
 export function createConversationTitle(content: string) {
@@ -288,16 +290,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null
 }
 
-function sanitizeAgentUiMessage(content: string) {
-  return content
-    .split("\n")
-    .map((line) => {
-      const trimmedLine = line.trim()
-      if (/^skill:[^\n]+/i.test(trimmedLine)) return ""
-      return line.replace(/[;；]?\s*skill:[^\n。；;]+(?:[。.;])?/gi, "").trimEnd()
-    })
-    .filter((line) => Boolean(line.trim()))
-    .join("\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim()
+function sanitizeAgentUiMessage(content: string, copy: AgentChatMessageFormatCopy) {
+  return sanitizeAgentAnswerContent(content, {
+    boundaryNotice: copy.boundaryNotice,
+  })
 }

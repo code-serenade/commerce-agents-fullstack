@@ -819,6 +819,8 @@ const messages = {
     streaming: "正在思考...",
     error: "Agent 回复失败，请稍后重试。",
     errorBadge: "回复失败",
+    boundaryNotice:
+      "补充说明：本轮部分岗位遇到未选商品或未接入真实指标造成的边界问题，界面已按业务边界处理，不把这些内部校验原因当作用户侧失败。",
     missingStructuredOutput:
       "上一轮任务未产出完整结构化结果。可以直接重新发送任务，我会重新规划执行计划，并把过程同步到任务过程面板。",
     streamTimedOut:
@@ -1015,6 +1017,7 @@ const messages = {
       expand: "展开任务过程",
       collapse: "收起任务过程",
       close: "关闭任务过程",
+      closePanel: "收起右侧过程",
       progress: "进度",
       activity: "本轮动态",
       record: "本轮记录",
@@ -1103,8 +1106,12 @@ const messages = {
       currentProgress: "当前进度 {{completed}}/{{total}}",
       collapseProcess: "折叠执行过程",
       expandProcess: "展开执行过程",
-      openWorkbench: "查看这条回答过程",
+      openWorkbench: "查看本条过程",
+      openWorkbenchForTurn: "查看本条回答过程",
+      closeWorkbench: "收起本条过程",
       currentAnswerProcess: "当前回答",
+      processLinkedToAnswer: "对应本条回答",
+      processPanelActive: "右侧已打开",
       contextSummary: {
         label: "本轮后端上下文",
         productNone: "未选商品",
@@ -1112,7 +1119,7 @@ const messages = {
         sourceNone: "未选资料",
         sourceCount: "{{count}} 份资料",
         strategy: "策略：{{strategy}}",
-        roles: "岗位：{{role}} / {{count}} 个",
+        roles: "岗位：主岗 {{role}} / 共 {{count}} 个",
         model: "模型：{{model}}",
         details: "引用明细",
         productDetails: "引用商品",
@@ -1198,6 +1205,7 @@ const messages = {
       },
       artifactState: {
         done: "已生成",
+        boundary: "边界完成",
         working: "生成中",
         failed: "受阻",
         queued: "排队",
@@ -1205,6 +1213,7 @@ const messages = {
       },
       inlineState: {
         done: "已完成",
+        boundary: "边界完成",
         working: "处理中",
         reworking: "重试中",
         failed: "失败",
@@ -1297,6 +1306,7 @@ const messages = {
       },
       statePill: {
         done: "已完成",
+        boundary: "需补数据",
         working: "正在处理",
         queued: "排队",
         failed: "失败",
@@ -1306,6 +1316,7 @@ const messages = {
       },
       dockState: {
         done: "已完成",
+        boundary: "边界完成",
         working: "正在推理",
         reworking: "正在重试",
         failed: "执行失败",
@@ -1344,6 +1355,7 @@ const messages = {
           nodeStarted: "{{agent}} 开始第 {{attempt}} 次执行。",
           nodeRework: "{{agent}} 进入重试：{{instruction}}",
           nodePassed: "{{agent}} 已通过验收。",
+          nodeBoundary: "{{agent}} 已按类目级边界完成输出，不阻塞最终回答。",
           nodeFailed: "{{agent}} 失败：{{reason}}",
           skillRequested: "{{role}} 调用能力 {{skill}}。",
           skillResult: "能力 {{skill}} 返回状态：{{status}}。",
@@ -1361,6 +1373,7 @@ const messages = {
           workspaceRunLinked: "已绑定工作区：{{title}}。",
           workspaceTasksLinked: "已沉淀 {{count}} 个工作区任务。",
           workspaceTaskUpdated: "工作区任务状态已更新：{{status}}。",
+          workspaceTaskBoundary: "工作区任务记录为边界复核：{{status}}。",
           workspaceRunCompleted: "最终回答已保存到工作区运行记录。",
           workspaceArtifactCreated: "交付物已生成：{{title}}。",
           agentLearningRecordCreated: "工作记忆已保存：{{category}}。",
@@ -1442,6 +1455,11 @@ const messages = {
           title: "重新检查",
           description: "验收未通过，系统已触发返工指令。",
         },
+        boundary: {
+          title: "边界完成",
+          description: "该节点是未选商品或外部数据未接入的业务边界，不阻塞最终回答。",
+          line: "已按类目级/未选商品链路处理：保留待补数据、风险和下一步，不显示为执行失败。",
+        },
         failed: {
           title: "执行受阻",
           description: "当前节点执行失败，需要检查模型服务或上游依赖。",
@@ -1456,6 +1474,9 @@ const messages = {
           tasksLinkedDescription: "任务图节点已写入工作区任务快照。",
           taskUpdatedTitle: "任务快照已更新",
           taskUpdatedDescription: "虚拟员工执行状态已写入后端。",
+          taskBoundaryTitle: "任务边界已完成",
+          taskBoundaryDescription:
+            "该节点是未选商品的类目级数据边界，已写入后端记录但不阻塞回答汇总。",
           completedTitle: "报告已保存",
           completedDescription: "最终回答已写入工作区运行报告。",
           artifactCreatedTitle: "交付物已创建",
@@ -1497,6 +1518,7 @@ const messages = {
         started: "{{agent}} 开始执行第 {{attempt}} 次尝试。",
         reported: "{{agent}} 已提交报告，等待验收或汇总。",
         passed: "{{agent}} 已通过验收。",
+        boundary: "{{agent}} 已输出类目级边界，等待主岗汇总。",
         failed: "{{agent}} 执行失败。",
         reworking: "{{agent}} 正在按反馈重新组织输出。",
         skillRequested: "已请求执行能力 {{skill}}。",
@@ -1511,6 +1533,7 @@ const messages = {
         nodeEvaluated: "结果已复核",
         nodeRework: "触发返工",
         nodePassed: "通过验收",
+        nodeBoundary: "边界完成",
         nodeFailed: "执行受阻",
         skillRequested: "请求能力",
         skillResult: "能力返回",
@@ -1523,6 +1546,7 @@ const messages = {
       },
       fallbackResponse: {
         failed: "该任务执行失败，通常是模型服务、工具或上游依赖不可用导致。",
+        boundary: "该岗位已按类目级/未选商品边界输出，主岗会把它作为风险和待补数据清单汇总。",
         reworking: "验收未通过，正在按反馈重新组织任务输出。",
         working: "{{agent}} 正在处理请求，结果会在这里更新。",
         done: "{{agent}} 已完成，等待最终汇总。",

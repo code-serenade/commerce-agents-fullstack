@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use super::{MemoryCompactionPolicy, MemoryWriteOutcome};
 use crate::core::protocol::{
-    AgentId, Evaluation, RoleWorkOutput, SessionId, TaskGraphId, TaskId, TaskNodeId, UserId,
-    WorkerId, WorkerReportStatus, WorkspaceId,
+    AgentId, Evaluation, RoleWorkOutput, SessionId, TaskGraphId, TaskGraphProcessSummary, TaskId,
+    TaskNodeId, UserId, WorkerId, WorkerReportStatus, WorkspaceId,
 };
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -53,6 +53,7 @@ pub struct TaskGraphMemorySummary {
     pub graph_id: TaskGraphId,
     pub root_task: String,
     pub roles: Vec<String>,
+    pub process: Option<TaskGraphProcessSummary>,
     pub role_summaries: Vec<RoleMemorySummary>,
     pub worker_details: Vec<WorkerDetail>,
     pub risks: Vec<String>,

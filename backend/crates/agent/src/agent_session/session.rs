@@ -278,19 +278,63 @@ fn selected_runtime_roles(metadata: &BTreeMap<String, String>) -> Vec<String> {
                 .collect::<Vec<_>>()
         })
         .unwrap_or_default();
-    let primary = metadata
+    let requested_primary = metadata
         .get("strategy.primary_role")
-        .filter(|role| roles.iter().any(|item| item == *role))
         .cloned()
+        .filter(|role| roles.iter().any(|item| item == role));
+
+    normalize_requested_runtime_roles(collaboration_mode, roles, requested_primary)
+}
+
+fn normalize_requested_runtime_roles(
+    collaboration_mode: &str,
+    roles: Vec<String>,
+    requested_primary: Option<String>,
+) -> Vec<String> {
+    let roles = unique_runtime_roles(roles);
+    if roles.is_empty() {
+        return Vec::new();
+    }
+
+    let non_chat_roles = roles
+        .iter()
+        .filter(|role| role.as_str() != "chat")
+        .cloned()
+        .collect::<Vec<_>>();
+    let primary = requested_primary
+        .filter(|role| role != "chat")
+        .or_else(|| {
+            non_chat_roles
+                .iter()
+                .find(|role| role.as_str() == "ops")
+                .cloned()
+        })
+        .or_else(|| non_chat_roles.first().cloned())
         .or_else(|| roles.first().cloned());
+
     let Some(primary) = primary else {
         return Vec::new();
     };
+
     let mut selected = vec![primary.clone()];
     if collaboration_mode == "manual" {
-        selected.extend(roles.into_iter().filter(|role| role != &primary));
+        selected.extend(
+            roles
+                .into_iter()
+                .filter(|role| role != "chat" && role != &primary),
+        );
     }
     selected
+}
+
+fn unique_runtime_roles(roles: Vec<String>) -> Vec<String> {
+    roles.into_iter().fold(Vec::new(), |mut unique, role| {
+        let role = role.trim().to_string();
+        if !role.is_empty() && !unique.contains(&role) {
+            unique.push(role);
+        }
+        unique
+    })
 }
 
 #[cfg(test)]
@@ -355,6 +399,44 @@ mod tests {
         assert!(selected.contains(&"data".to_string()));
         assert!(selected.contains(&"ops".to_string()));
         assert!(selected.contains(&"chat".to_string()));
+    }
+
+    #[test]
+    fn manual_multi_role_selection_promotes_ops_when_primary_is_chat() {
+        let roles = RoleCatalog::builtin();
+        let mut metadata = BTreeMap::new();
+        metadata.insert(
+            "strategy.collaboration_mode".to_string(),
+            "manual".to_string(),
+        );
+        metadata.insert("strategy.primary_role".to_string(), "chat".to_string());
+        metadata.insert(
+            "strategy.selected_roles".to_string(),
+            "chat,ops,data,service,creative,engineering".to_string(),
+        );
+
+        let selected = select_roles_for_task(
+            &roles,
+            &SessionRuntimeConfig::default(),
+            "请分析咖啡类商品",
+            &metadata,
+        )
+        .into_iter()
+        .map(|role| role.runtime_role.clone())
+        .collect::<Vec<_>>();
+
+        assert_eq!(selected[0], "ops");
+        assert!(selected.contains(&"data".to_string()));
+        assert!(selected.contains(&"service".to_string()));
+        assert!(selected.contains(&"creative".to_string()));
+        assert!(selected.contains(&"engineering".to_string()));
+        assert_eq!(
+            selected
+                .iter()
+                .filter(|role| role.as_str() == "chat")
+                .count(),
+            1
+        );
     }
 
     #[test]

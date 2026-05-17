@@ -73,6 +73,7 @@ export interface SidebarShellProps {
   sections: SidebarShellSection[]
   header?: ReactNode
   showSidebarRail?: boolean
+  contentScroll?: "auto" | "hidden"
   mobileNavigation?: {
     label?: string
     items: MobileBottomNavItem[]
@@ -104,11 +105,18 @@ export function SidebarShell({
   sections,
   header,
   showSidebarRail = true,
+  contentScroll = "auto",
   mobileNavigation,
   footerAccount,
   children,
 }: SidebarShellProps) {
   const { t } = useTranslation("components")
+  const contentClassName = [
+    "flex min-h-0 min-w-0 flex-1",
+    contentScroll === "hidden"
+      ? "overflow-hidden"
+      : "overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable] md:pr-1",
+  ].join(" ")
 
   return (
     <div className="h-svh overflow-hidden [&_[data-sidebar=trigger]]:max-md:hidden">
@@ -188,7 +196,7 @@ export function SidebarShell({
             <div className="flex h-svh min-h-0 min-w-0 flex-col overflow-hidden">
               {header}
               <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden p-0 pb-[calc(4.25rem+env(safe-area-inset-bottom))] md:p-3">
-                <div className="flex min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable] md:pr-1">
+                <div className={contentClassName}>
                   {children}
                 </div>
               </div>

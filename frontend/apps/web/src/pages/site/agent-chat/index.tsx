@@ -9,6 +9,7 @@ import { useAgentChatContext } from "./context/use-agent-chat-context"
 import { isChatOnlyRuntime } from "./view-model/thread-inline-view-model"
 
 interface ActiveProcessTarget {
+  anchorLabel: string
   messageId: string
   task: string
 }
@@ -22,17 +23,14 @@ export default function AgentChatPage() {
     ? chat.messages.find((message) => message.id === activeProcessTarget.messageId)
     : null
   const activeRuntimeEvents: AgentRuntimeEvent[] =
-    activeProcessMessage?.runtimeEvents ?? chat.runtimeEvents
+    activeProcessMessage?.runtimeEvents ?? []
   const shouldShowProcessPanel =
     Boolean(activeProcessMessage && !isChatOnlyRuntime(activeRuntimeEvents))
 
-  const layoutClassName = [
-    "relative min-h-0 w-full flex-1 overflow-hidden p-2 sm:p-3",
-  ].join(" ")
+  const layoutClassName = "relative flex min-h-0 w-full flex-1 overflow-hidden p-2 sm:p-3"
 
   const chatPanelClassName = [
-    "flex min-w-0 flex-col overflow-hidden rounded-lg bg-background",
-    "mx-auto min-h-0 w-full max-w-5xl",
+    "mx-auto flex h-full min-h-0 w-full max-w-5xl min-w-0 flex-col overflow-hidden rounded-lg bg-background",
   ].join(" ")
 
   return (
@@ -48,6 +46,7 @@ export default function AgentChatPage() {
             activeProcessMessageId={activeProcessMessage?.id ?? null}
             isStreaming={chat.isStreaming}
             messages={chat.messages}
+            onCloseProcessPanel={() => setActiveProcessTarget(null)}
             onOpenProcessPanel={setActiveProcessTarget}
             runtimeEvents={chat.runtimeEvents}
             selectedStrategy={chat.selectedStrategy}
@@ -91,7 +90,9 @@ export default function AgentChatPage() {
       </div>
       {shouldShowProcessPanel ? (
         <AgentProcessDrawer
+          anchorLabel={activeProcessTarget?.anchorLabel}
           isStreaming={activeProcessMessage?.status === "streaming" && chat.isStreaming}
+          messageId={activeProcessMessage?.id}
           onClose={() => setActiveProcessTarget(null)}
           runtimeEvents={activeRuntimeEvents}
           task={activeProcessTarget?.task}

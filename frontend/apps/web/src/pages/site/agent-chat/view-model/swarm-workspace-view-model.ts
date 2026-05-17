@@ -2,6 +2,10 @@ import { Archive, CheckCircle2, Database, FileCheck2, FileText, ShieldAlert, Shi
 import type { TFunction } from "i18next"
 import type { AgentRuntimeEvent } from "@/api"
 import type { ComputerCard } from "./swarm-panel-view-model"
+import {
+  isNonBlockingNodeFailure,
+  isNonBlockingWorkspaceFailure,
+} from "./thread-boundary-state-view-model"
 
 export function getWorkspacePersistenceCard(
   runtimeEvents: AgentRuntimeEvent[],
@@ -30,14 +34,19 @@ export function getWorkspacePersistenceCard(
   }
 
   if (failed) {
+    const boundary = isNonBlockingWorkspaceFailure(failed, runtimeEvents)
     return {
       id: "workspace-run-failed",
-      title: t("agentChat.swarm.cards.workspace.failedTitle"),
+      title: boundary
+        ? t("agentChat.swarm.cards.workspace.taskBoundaryTitle")
+        : t("agentChat.swarm.cards.workspace.failedTitle"),
       meta: readWorkspaceRunId(failed),
-      description: t("agentChat.swarm.cards.workspace.failedDescription"),
-      icon: TriangleAlert,
+      description: boundary
+        ? t("agentChat.swarm.cards.workspace.taskBoundaryDescription")
+        : t("agentChat.swarm.cards.workspace.failedDescription"),
+      icon: boundary ? ShieldAlert : TriangleAlert,
       lines: readWorkspaceRunLines(failed, t),
-      state: "failed",
+      state: boundary ? "boundary" : "failed",
     }
   }
 
@@ -141,11 +150,16 @@ export function getWorkspacePersistenceCard(
   }
 
   if (taskUpdate) {
+    const boundary = isBoundaryWorkspaceTaskUpdate(taskUpdate, runtimeEvents)
     return {
       id: "workspace-task-updated",
-      title: t("agentChat.swarm.cards.workspace.taskUpdatedTitle"),
+      title: boundary
+        ? t("agentChat.swarm.cards.workspace.taskBoundaryTitle")
+        : t("agentChat.swarm.cards.workspace.taskUpdatedTitle"),
       meta: taskUpdate.status,
-      description: t("agentChat.swarm.cards.workspace.taskUpdatedDescription"),
+      description: boundary
+        ? t("agentChat.swarm.cards.workspace.taskBoundaryDescription")
+        : t("agentChat.swarm.cards.workspace.taskUpdatedDescription"),
       icon: FileText,
       lines: [
         t("agentChat.swarm.cards.workspace.runTaskLine", {
@@ -153,7 +167,7 @@ export function getWorkspacePersistenceCard(
           status: taskUpdate.status,
         }),
       ],
-      state: taskUpdate.status === "failed" ? "failed" : "working",
+      state: boundary ? "boundary" : taskUpdate.status === "failed" ? "failed" : "working",
     }
   }
 
@@ -227,4 +241,30 @@ function readWorkspaceRunLines(
 
 function readWorkspaceRunId(run: { id: string }) {
   return run.id.slice(0, 8)
+}
+
+function isBoundaryWorkspaceTaskUpdate(
+  event: Extract<AgentRuntimeEvent, { type: "workspace_run_task_updated" }>,
+  runtimeEvents: AgentRuntimeEvent[]
+) {
+  if (event.status !== "failed") return false
+  const metadataText = stringifyUnknown(event.metadata)
+  if (metadataText.includes("category_level_boundary")) return true
+  const ownerRole = event.ownerRole ?? event.owner_role
+  return runtimeEvents.some((item) => {
+    if (item.type !== "task_node_failed") return false
+    if (!isNonBlockingNodeFailure(item, runtimeEvents)) return false
+    const nodeId = item.nodeId ?? item.node_id
+    return ownerRole ? nodeId === ownerRole : true
+  })
+}
+
+function stringifyUnknown(value: unknown) {
+  if (value === null || value === undefined) return ""
+  if (typeof value === "string") return value
+  try {
+    return JSON.stringify(value)
+  } catch {
+    return ""
+  }
 }

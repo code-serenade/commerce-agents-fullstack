@@ -18,8 +18,9 @@ pub use crate::{
         CognitionResult, Context, Fact, FailureReason, Intent, IntentKind, JsonTemplateDecoder,
     },
     core::protocol::{
-        AgentId, SessionEvent, SessionId, TaskGraphId, TaskId, TaskNodeId, UserId, WorkerId,
-        WorkerReportStatus, WorkspaceId,
+        AgentId, SessionEvent, SessionId, TaskGraphHandoff, TaskGraphId, TaskGraphProcessGap,
+        TaskGraphProcessPanel, TaskGraphProcessRole, TaskGraphProcessSummary, TaskId, TaskNodeId,
+        UserId, WorkerId, WorkerReportStatus, WorkspaceId,
     },
     roles::{
         RoleAction, RoleAssignment, RoleCatalog, RoleCollaborationPlan, RoleContribution, RoleId,

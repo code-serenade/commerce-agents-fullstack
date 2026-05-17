@@ -55,16 +55,17 @@ export function defaultRuntimeSelection(
   const defaultLearning =
     options?.learningLevels.find((level) => level.isDefault)?.id ??
     "higher_vocational"
-  const defaultRoles = options?.roles
-    .filter((role) => role.runtimeRole !== "chat")
-    .slice(0, 3)
-    .map((role) => role.runtimeRole) ?? ["data", "ops", "creative"]
+  const defaultRoles = orderDefaultCommerceTeamRoles(
+    options?.roles
+      .filter((role) => role.runtimeRole !== "chat")
+      .map((role) => role.runtimeRole) ?? ["ops", "data", "creative"]
+  )
 
   return {
     collaborationMode: defaultCollaboration,
     learningLevel: defaultLearning,
     modelName: defaultModel ?? undefined,
-    primaryRole: defaultRoles[0],
+    primaryRole: preferredRuntimePrimaryRole(defaultRoles),
     selectedRoles: defaultRoles,
   }
 }
@@ -138,12 +139,39 @@ export function runtimeSelectionForStrategy(
     }
   }
   if (strategyId === "collab") {
-    return {
+    return normalizeCollabRuntimeSelection({
       ...selection,
       collaborationMode: "manual",
-    }
+    })
   }
   return selection
+}
+
+function normalizeCollabRuntimeSelection(
+  selection: AgentChatRuntimeSelection
+): AgentChatRuntimeSelection {
+  const roles = uniqueRuntimeRoles(selection.selectedRoles)
+  const nonChatRoles = roles.filter((role) => role !== "chat")
+  if (nonChatRoles.length === 0) {
+    return {
+      ...selection,
+      primaryRole: "chat",
+      selectedRoles: roles.length ? roles : ["chat"],
+    }
+  }
+
+  const primaryRole =
+    selection.primaryRole && selection.primaryRole !== "chat"
+      ? selection.primaryRole
+      : nonChatRoles.includes("ops")
+        ? "ops"
+        : nonChatRoles[0]
+
+  return {
+    ...selection,
+    primaryRole,
+    selectedRoles: nonChatRoles,
+  }
 }
 
 export function setRuntimePrimaryRole(
@@ -176,13 +204,39 @@ export function toggleRuntimeRole(
     ? selection.selectedRoles.filter((role) => role !== runtimeRole)
     : [...selection.selectedRoles, runtimeRole]
   const nextRoles = selectedRoles.length ? selectedRoles : [runtimeRole]
-  const primaryRole = nextRoles.includes(selection.primaryRole ?? "")
-    ? selection.primaryRole
-    : nextRoles[0]
+  const primaryRole =
+    selection.primaryRole &&
+    selection.primaryRole !== "chat" &&
+    nextRoles.includes(selection.primaryRole)
+      ? selection.primaryRole
+      : preferredRuntimePrimaryRole(nextRoles)
 
   return {
     ...selection,
     primaryRole,
     selectedRoles: nextRoles,
   }
+}
+
+function preferredRuntimePrimaryRole(roles: string[]) {
+  const nonChatRoles = roles.filter((role) => role !== "chat")
+  if (nonChatRoles.includes("ops")) return "ops"
+  return nonChatRoles[0] ?? roles[0] ?? "chat"
+}
+
+function orderDefaultCommerceTeamRoles(roles: string[]) {
+  const preferred = ["ops", "data", "creative", "service", "engineering"]
+  const uniqueRoles = uniqueRuntimeRoles(roles)
+  const ordered = preferred.filter((role) => uniqueRoles.includes(role))
+  const rest = uniqueRoles.filter((role) => !ordered.includes(role))
+  const team = [...ordered, ...rest].slice(0, 5)
+  return team.length ? team : ["ops", "data", "creative"]
+}
+
+function uniqueRuntimeRoles(roles: string[]) {
+  return roles.reduce<string[]>((unique, role) => {
+    const normalized = role.trim()
+    if (normalized && !unique.includes(normalized)) unique.push(normalized)
+    return unique
+  }, [])
 }

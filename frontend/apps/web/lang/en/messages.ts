@@ -826,6 +826,8 @@ const messages = {
     streaming: "Thinking...",
     error: "Agent reply failed. Please try again later.",
     errorBadge: "Reply failed",
+    boundaryNotice:
+      "Note: some roles hit a no-selected-product or missing-live-metrics boundary. The interface treats these internal checks as reviewable business boundaries, not user-facing failures.",
     missingStructuredOutput:
       "The previous run did not produce complete structured output. Send the task again and I will rebuild the execution plan and sync the process to the task process panel.",
     streamTimedOut:
@@ -1024,6 +1026,7 @@ const messages = {
       expand: "Expand task process",
       collapse: "Collapse task process",
       close: "Close task process",
+      closePanel: "Collapse process panel",
       progress: "Progress",
       activity: "Run activity",
       record: "Run records",
@@ -1113,8 +1116,12 @@ const messages = {
       currentProgress: "Current progress {{completed}}/{{total}}",
       collapseProcess: "Collapse process",
       expandProcess: "Expand process",
-      openWorkbench: "View this answer process",
+      openWorkbench: "View this process",
+      openWorkbenchForTurn: "View this answer process",
+      closeWorkbench: "Hide this process",
       currentAnswerProcess: "Current answer",
+      processLinkedToAnswer: "Linked to this answer",
+      processPanelActive: "Right panel open",
       contextSummary: {
         label: "Backend context for this turn",
         productNone: "No product",
@@ -1122,7 +1129,7 @@ const messages = {
         sourceNone: "No files",
         sourceCount: "{{count}} files",
         strategy: "Strategy: {{strategy}}",
-        roles: "Role: {{role}} / {{count}}",
+        roles: "Primary role: {{role}} / {{count}} roles",
         model: "Model: {{model}}",
         details: "Context details",
         productDetails: "Referenced products",
@@ -1208,6 +1215,7 @@ const messages = {
       },
       artifactState: {
         done: "Generated",
+        boundary: "Boundary complete",
         working: "Generating",
         failed: "Blocked",
         queued: "Queued",
@@ -1215,6 +1223,7 @@ const messages = {
       },
       inlineState: {
         done: "Done",
+        boundary: "Boundary complete",
         working: "Processing",
         reworking: "Retrying",
         failed: "Failed",
@@ -1307,6 +1316,7 @@ const messages = {
       },
       statePill: {
         done: "Done",
+        boundary: "Needs data",
         working: "Working",
         queued: "Queued",
         failed: "Failed",
@@ -1316,6 +1326,7 @@ const messages = {
       },
       dockState: {
         done: "Done",
+        boundary: "Boundary complete",
         working: "Reasoning",
         reworking: "Retrying",
         failed: "Failed",
@@ -1354,6 +1365,7 @@ const messages = {
           nodeStarted: "{{agent}} started attempt {{attempt}}.",
           nodeRework: "{{agent}} entered retry: {{instruction}}",
           nodePassed: "{{agent}} passed acceptance.",
+          nodeBoundary: "{{agent}} completed category-level boundary output without blocking the final answer.",
           nodeFailed: "{{agent}} failed: {{reason}}",
           skillRequested: "{{role}} called capability {{skill}}.",
           skillResult: "Capability {{skill}} returned status: {{status}}.",
@@ -1371,6 +1383,7 @@ const messages = {
           workspaceRunLinked: "Workspace linked: {{title}}.",
           workspaceTasksLinked: "Persisted {{count}} workspace task(s).",
           workspaceTaskUpdated: "Workspace task status updated: {{status}}.",
+          workspaceTaskBoundary: "Workspace task recorded as boundary review: {{status}}.",
           workspaceRunCompleted: "Final answer saved to the workspace run.",
           workspaceArtifactCreated: "Deliverable created: {{title}}.",
           agentLearningRecordCreated: "Workspace memory saved: {{category}}.",
@@ -1452,6 +1465,11 @@ const messages = {
           title: "Recheck",
           description: "Acceptance failed and the system triggered a rework instruction.",
         },
+        boundary: {
+          title: "Boundary complete",
+          description: "This node hit an unselected-product or missing-adapter boundary and does not block the final answer.",
+          line: "Handled as a category-level boundary: keep missing data, risks, and next steps without showing it as execution failure.",
+        },
         failed: {
           title: "Execution blocked",
           description: "The current node failed. Check model service or upstream dependencies.",
@@ -1466,6 +1484,9 @@ const messages = {
           tasksLinkedDescription: "Task graph nodes were written as workspace task snapshots.",
           taskUpdatedTitle: "Task snapshot updated",
           taskUpdatedDescription: "Virtual employee execution status was saved by the backend.",
+          taskBoundaryTitle: "Boundary complete",
+          taskBoundaryDescription:
+            "This node is a category-level data boundary without a selected product. It is saved but does not block answer synthesis.",
           completedTitle: "Report saved",
           completedDescription: "The final answer was written to the workspace run report.",
           artifactCreatedTitle: "Deliverable created",
@@ -1510,6 +1531,7 @@ const messages = {
         started: "{{agent}} started attempt {{attempt}}.",
         reported: "{{agent}} submitted a report and is waiting for acceptance or summary.",
         passed: "{{agent}} passed acceptance.",
+        boundary: "{{agent}} produced a category-level boundary for the primary role to summarize.",
         failed: "{{agent}} failed.",
         reworking: "{{agent}} is reorganizing output from feedback.",
         skillRequested: "Requested capability {{skill}}.",
@@ -1524,6 +1546,7 @@ const messages = {
         nodeEvaluated: "Result reviewed",
         nodeRework: "Rework triggered",
         nodePassed: "Accepted",
+        nodeBoundary: "Boundary complete",
         nodeFailed: "Execution blocked",
         skillRequested: "Capability requested",
         skillResult: "Capability returned",
@@ -1536,6 +1559,8 @@ const messages = {
       },
       fallbackResponse: {
         failed: "This task failed, usually because the model service, tools, or upstream dependencies were unavailable.",
+        boundary:
+          "This role produced a category-level / no-selected-product boundary, which the primary role will summarize as risks and missing data.",
         reworking: "Acceptance failed. The task output is being reorganized from feedback.",
         working: "{{agent}} is processing the request. Results will update here.",
         done: "{{agent}} is complete and waiting for final summary.",

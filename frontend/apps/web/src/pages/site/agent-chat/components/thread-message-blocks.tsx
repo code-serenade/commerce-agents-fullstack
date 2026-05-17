@@ -28,9 +28,9 @@ export function WelcomeCard({ content }: { content: string }) {
         </div>
       </div>
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
-        {capabilities.map((item) => (
+        {capabilities.map((item, index) => (
           <div
-            key={item}
+            key={`${index}-${item}`}
             className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground"
           >
             <ListChecks className="size-3.5" />

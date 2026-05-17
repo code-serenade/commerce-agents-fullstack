@@ -78,9 +78,9 @@ export function CompactInfoBlock({
         <span className="truncate">{title}</span>
       </div>
       <div className="space-y-1">
-        {items.slice(0, 3).map((item) => (
+        {items.slice(0, 3).map((item, index) => (
           <div
-            key={item}
+            key={`${index}-${item}`}
             className="flex items-center gap-2 text-xs text-muted-foreground"
           >
             <span className="size-1.5 shrink-0 rounded-full bg-muted-foreground/35" />

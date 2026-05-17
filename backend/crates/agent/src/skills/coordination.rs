@@ -570,6 +570,18 @@ impl Skill for CoordinationStatusQuery {
         let health = system_health_summary(&context);
         let blockers = coordination_blockers(&context);
         let observability = observability_limits(&context);
+        let progress_view = progress_view_summary(&worker, &task, &workspace, &context_status);
+        let role_statuses = role_statuses_summary(&worker, &task, &session);
+        let next_actions = status_next_actions(
+            &query_type,
+            &worker,
+            &task,
+            &workspace,
+            &context_status,
+            &blockers,
+        );
+        let user_visible_summary =
+            user_visible_status_summary(&query_type, &worker, &task, &workspace, &progress_view);
 
         let summary = status_summary_line(&query_type, &worker, &task, &workspace, &health);
         Ok(SkillOutcome::new(json!({
@@ -584,6 +596,10 @@ impl Skill for CoordinationStatusQuery {
             "system_health": health,
             "blockers": blockers,
             "observability": observability,
+            "progress_view": progress_view,
+            "role_statuses": role_statuses,
+            "next_actions": next_actions,
+            "user_visible_summary": user_visible_summary,
         }))
         .with_summary(summary)
         .with_metadata("status_query_scope", json!("session_local"))
@@ -782,9 +798,7 @@ impl Skill for CoordinationCreateTask {
                 .or_else(|| metadata_string_value(&context.metadata, "assignment_role"))
                 .or_else(|| metadata_string_value(&context.metadata, "role_runtime")),
         );
-        let priority = optional_i64_param(&params, "priority")?
-            .map(clamp_coordination_priority)
-            .unwrap_or(3);
+        let priority = coordination_task_priority(&params)?;
         let acceptance_criteria = optional_string_param(&params, "acceptance_criteria")?
             .map(|value| compact_text_for_task_body(&value))
             .filter(|value| !value.is_empty());
@@ -1959,6 +1973,258 @@ fn observability_limits(context: &SkillContext) -> Value {
     })
 }
 
+fn progress_view_summary(
+    worker: &Value,
+    task: &Value,
+    workspace: &Value,
+    context_status: &Value,
+) -> Value {
+    let input_count = task.get("input_count").and_then(Value::as_u64).unwrap_or(0);
+    let has_task = task.get("task_id").and_then(Value::as_str).is_some();
+    let has_workspace_run = workspace.get("run_id").and_then(Value::as_str).is_some();
+    let workspace_loaded = context_status
+        .get("workspace_context_loaded")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+        || context_status
+            .get("workspace_context_pack_loaded")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+    let product_loaded = context_status
+        .get("product_context_loaded")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let worker_status = worker
+        .get("status")
+        .and_then(Value::as_str)
+        .unwrap_or("ready");
+
+    let (phase, percent, label) = if !has_task {
+        (
+            "limited_visibility",
+            10,
+            "当前 skill 只能看到会话级上下文，未收到具体任务节点信息。",
+        )
+    } else if worker_status == "executing_skill" && input_count > 0 {
+        (
+            "running_with_upstream_context",
+            67,
+            "当前岗位已收到上游岗位输入，正在执行状态查询或补充本岗位结果。",
+        )
+    } else if worker_status == "executing_skill" {
+        (
+            "running_independent_task",
+            50,
+            "当前岗位正在执行本轮状态查询或独立任务。",
+        )
+    } else if input_count > 0 {
+        (
+            "ready_with_upstream_context",
+            55,
+            "当前岗位已具备上游输入，可继续产出本岗位结果。",
+        )
+    } else {
+        ("ready", 35, "当前岗位已收到任务，尚未看到上游岗位输入。")
+    };
+
+    let mut basis = Vec::new();
+    if has_task {
+        basis.push("task_context");
+    }
+    if input_count > 0 {
+        basis.push("upstream_worker_inputs");
+    }
+    if has_workspace_run {
+        basis.push("workspace_run");
+    }
+    if workspace_loaded {
+        basis.push("workspace_context");
+    }
+    if product_loaded {
+        basis.push("selected_product_context");
+    }
+    if basis.is_empty() {
+        basis.push("skill_context");
+    }
+
+    json!({
+        "phase": phase,
+        "percent": percent,
+        "label": label,
+        "basis": basis,
+        "workspace_bound": has_workspace_run,
+        "upstream_input_count": input_count,
+    })
+}
+
+fn role_statuses_summary(worker: &Value, task: &Value, session: &Value) -> Value {
+    let current_role = worker
+        .get("runtime_role")
+        .and_then(Value::as_str)
+        .or_else(|| task.get("assignment_role").and_then(Value::as_str));
+    let upstream_roles = task
+        .get("upstream_roles")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let selected_roles = session
+        .get("selected_roles")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let support_roles = session
+        .get("support_roles")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+
+    let mut statuses = Vec::new();
+    for role in upstream_roles.iter().filter_map(Value::as_str) {
+        push_role_status(
+            &mut statuses,
+            role,
+            "upstream_completed",
+            "upstream",
+            "assignment_input_roles",
+        );
+    }
+    if let Some(role) = current_role {
+        push_role_status(&mut statuses, role, "working", "current", "role_runtime");
+    }
+    for role in support_roles.iter().filter_map(Value::as_str) {
+        push_role_status(
+            &mut statuses,
+            role,
+            "planned_or_support",
+            "support",
+            "request.role_route.support_runtime_roles",
+        );
+    }
+    for role in selected_roles.iter().filter_map(Value::as_str) {
+        push_role_status(
+            &mut statuses,
+            role,
+            "selected",
+            "selected",
+            "request.strategy.selected_roles",
+        );
+    }
+
+    json!(statuses)
+}
+
+fn push_role_status(
+    statuses: &mut Vec<Value>,
+    role: &str,
+    state: &str,
+    relation: &str,
+    source: &str,
+) {
+    if role.trim().is_empty() {
+        return;
+    }
+    if statuses.iter().any(|item| {
+        item.get("role")
+            .and_then(Value::as_str)
+            .is_some_and(|existing| existing == role)
+    }) {
+        return;
+    }
+    statuses.push(json!({
+        "role": role,
+        "state": state,
+        "relation": relation,
+        "source": source,
+    }));
+}
+
+fn status_next_actions(
+    query_type: &str,
+    worker: &Value,
+    task: &Value,
+    workspace: &Value,
+    context_status: &Value,
+    blockers: &[String],
+) -> Vec<String> {
+    let mut actions = Vec::new();
+    let has_task = task.get("task_id").and_then(Value::as_str).is_some();
+    let input_count = task.get("input_count").and_then(Value::as_u64).unwrap_or(0);
+    let worker_status = worker
+        .get("status")
+        .and_then(Value::as_str)
+        .unwrap_or("ready");
+    let has_workspace_run = workspace.get("run_id").and_then(Value::as_str).is_some();
+    let workspace_loaded = context_status
+        .get("workspace_context_loaded")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+        || context_status
+            .get("workspace_context_pack_loaded")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+
+    match query_type {
+        "workspace_status" if !has_workspace_run => {
+            actions.push("本轮未绑定 workspace run，只能展示会话级状态。".to_string());
+        }
+        "task_status" if has_task && input_count > 0 => {
+            actions.push("继续读取上游岗位结果，并等待当前岗位完成本轮输出。".to_string());
+        }
+        "agent_status" if worker_status == "executing_skill" => {
+            actions
+                .push("当前岗位正在执行 skill，等待 skill_result 回写后再汇总结论。".to_string());
+        }
+        "session_status" => {
+            actions.push("保持在当前会话内追问；跨会话历史不会自动混入本轮状态。".to_string());
+        }
+        _ => {
+            actions.push("继续等待当前 Agent runtime 通过 SSE 推送后续事件。".to_string());
+        }
+    }
+
+    if !workspace_loaded {
+        actions.push("如需引用历史资料或交付物，请在本轮显式选择对应来源。".to_string());
+    }
+    if blockers.is_empty() {
+        actions.push("当前可见范围内没有发现阻塞项。".to_string());
+    } else {
+        actions.push("先处理 blockers 中列出的可见性或上下文缺口。".to_string());
+    }
+    actions
+}
+
+fn user_visible_status_summary(
+    query_type: &str,
+    worker: &Value,
+    task: &Value,
+    workspace: &Value,
+    progress_view: &Value,
+) -> String {
+    let role = worker
+        .get("runtime_role")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    let task_id = task
+        .get("task_id")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    let workspace_id = workspace
+        .get("workspace_id")
+        .and_then(Value::as_str)
+        .unwrap_or("none");
+    let phase = progress_view
+        .get("phase")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
+    let percent = progress_view
+        .get("percent")
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
+    format!(
+        "当前查询 {query_type}：{role} 正在处理 {task_id}，工作区 {workspace_id}，阶段 {phase}，可见进度约 {percent}%。"
+    )
+}
+
 fn status_summary_line(
     query_type: &str,
     worker: &Value,
@@ -2001,6 +2267,50 @@ fn normalize_owner_role(value: Option<String>) -> String {
 
 fn clamp_coordination_priority(value: i64) -> i64 {
     value.clamp(0, 10)
+}
+
+fn coordination_task_priority(params: &Value) -> Result<i64, crate::skills::SkillError> {
+    let Some(value) = params.get("priority") else {
+        return Ok(3);
+    };
+    match value {
+        Value::Null => Ok(3),
+        Value::Number(number) => number
+            .as_i64()
+            .map(clamp_coordination_priority)
+            .ok_or_else(|| crate::skills::SkillError::invalid_parameter("priority", "integer")),
+        Value::String(text) => Ok(normalize_coordination_priority_text(text).unwrap_or(3)),
+        _ => Err(crate::skills::SkillError::invalid_parameter(
+            "priority",
+            "integer or priority label",
+        )),
+    }
+}
+
+fn normalize_coordination_priority_text(value: &str) -> Option<i64> {
+    let text = value.trim().to_ascii_lowercase();
+    if text.is_empty() {
+        return None;
+    }
+    match text.as_str() {
+        "0" => Some(0),
+        "1" => Some(1),
+        "2" => Some(2),
+        "3" => Some(3),
+        "4" => Some(4),
+        "5" => Some(5),
+        "6" => Some(6),
+        "7" => Some(7),
+        "8" => Some(8),
+        "9" => Some(9),
+        "10" => Some(10),
+        "low" | "normal" | "普通" | "低" | "低优先级" => Some(3),
+        "medium" | "important" | "中" | "中等" | "重要" | "较重要" => Some(6),
+        "high" | "urgent" | "紧急" | "高" | "高优先级" | "critical" | "立即" | "最高" => {
+            Some(8)
+        }
+        _ => text.parse::<i64>().ok().map(clamp_coordination_priority),
+    }
 }
 
 fn compact_text_for_task_title(value: &str) -> String {
@@ -2171,6 +2481,103 @@ mod tests {
             result.metadata.get("status_query_scope"),
             Some(&json!("session_local"))
         );
+        assert_eq!(
+            result.output.pointer("/progress_view/phase"),
+            Some(&json!("ready_with_upstream_context"))
+        );
+        assert_eq!(
+            result.output.pointer("/progress_view/percent"),
+            Some(&json!(55))
+        );
+        assert!(
+            result
+                .output
+                .pointer("/progress_view/basis")
+                .and_then(Value::as_array)
+                .is_some_and(|items| items.contains(&json!("upstream_worker_inputs")))
+        );
+        assert!(
+            result
+                .output
+                .pointer("/role_statuses")
+                .and_then(Value::as_array)
+                .is_some_and(|items| items.iter().any(|item| item
+                    .get("role")
+                    .and_then(Value::as_str)
+                    == Some("engineering")
+                    && item.get("state").and_then(Value::as_str) == Some("working")))
+        );
+        assert!(
+            result
+                .output
+                .pointer("/next_actions")
+                .and_then(Value::as_array)
+                .is_some_and(|items| items.iter().any(|item| item
+                    .as_str()
+                    .is_some_and(|text| text.contains("上游岗位结果"))))
+        );
+        assert!(
+            result
+                .output
+                .get("user_visible_summary")
+                .and_then(Value::as_str)
+                .is_some_and(|summary| summary.contains("engineering")
+                    && summary.contains("task-1")
+                    && summary.contains("workspace-1"))
+        );
+        assert_eq!(
+            result
+                .output
+                .pointer("/observability/global_cluster_visibility"),
+            Some(&json!(false))
+        );
+    }
+
+    #[tokio::test]
+    async fn coordination_status_query_reports_limited_visibility_without_task_context() {
+        let skill = CoordinationStatusQuery::new();
+        let result = skill
+            .run(json!({"query_type": "system_health"}), SkillContext::new())
+            .await
+            .expect("status query should degrade to visible context");
+
+        assert_eq!(result.output.get("status"), Some(&json!("success")));
+        assert_eq!(
+            result.output.pointer("/progress_view/phase"),
+            Some(&json!("limited_visibility"))
+        );
+        assert_eq!(
+            result.output.pointer("/progress_view/basis"),
+            Some(&json!(vec!["skill_context"]))
+        );
+        assert!(
+            result
+                .output
+                .pointer("/blockers")
+                .and_then(Value::as_array)
+                .is_some_and(|items| items.iter().any(|item| item
+                    .as_str()
+                    .is_some_and(|text| text.contains("session_id"))))
+        );
+        assert!(
+            result
+                .output
+                .pointer("/next_actions")
+                .and_then(Value::as_array)
+                .is_some_and(|items| items
+                    .iter()
+                    .any(|item| item.as_str().is_some_and(|text| text.contains("blockers"))))
+        );
+        assert_eq!(
+            result.output.pointer("/observability/database_live_query"),
+            Some(&json!(false))
+        );
+        assert_eq!(
+            result
+                .output
+                .pointer("/observability/other_sessions_visible"),
+            Some(&json!(false))
+        );
     }
 
     #[test]
@@ -2316,6 +2723,52 @@ mod tests {
         assert_eq!(
             result.metadata.get("task_creation_kind"),
             Some(&json!("workspace_task"))
+        );
+    }
+
+    #[tokio::test]
+    async fn coordination_create_task_accepts_text_priority_labels() {
+        let skill = CoordinationCreateTask::new();
+        let result = skill
+            .run(
+                json!({
+                    "title": "补齐咖啡类目指标",
+                    "owner_role": "data",
+                    "priority": "urgent"
+                }),
+                SkillContext::new(),
+            )
+            .await
+            .expect("text priority should be normalized");
+
+        assert_eq!(result.output.get("status"), Some(&json!("success")));
+        assert_eq!(
+            result.output.pointer("/task_creation/priority"),
+            Some(&json!(8))
+        );
+        assert_eq!(
+            result.output.pointer("/normalized_inputs/priority"),
+            Some(&json!(8))
+        );
+    }
+
+    #[tokio::test]
+    async fn coordination_create_task_defaults_unknown_priority_label() {
+        let skill = CoordinationCreateTask::new();
+        let result = skill
+            .run(
+                json!({
+                    "title": "沉淀活动复盘动作",
+                    "priority": "稍后看情况"
+                }),
+                SkillContext::new(),
+            )
+            .await
+            .expect("unknown text priority should not fail the task chain");
+
+        assert_eq!(
+            result.output.pointer("/task_creation/priority"),
+            Some(&json!(3))
         );
     }
 

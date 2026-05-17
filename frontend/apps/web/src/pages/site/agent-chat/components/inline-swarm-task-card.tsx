@@ -2,7 +2,8 @@ import {
   Activity,
   ChevronDown,
   GitBranch,
-  ListTree,
+  PanelRight,
+  PanelRightClose,
 } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -23,6 +24,8 @@ import {
 
 export function InlineSwarmTaskCard({
   isStreaming,
+  messageId,
+  onCloseProcessPanel,
   onOpenProcessPanel,
   processPanelOpen,
   runtimeEvents,
@@ -30,6 +33,8 @@ export function InlineSwarmTaskCard({
   task,
 }: {
   isStreaming: boolean
+  messageId: string
+  onCloseProcessPanel: () => void
   onOpenProcessPanel: () => void
   processPanelOpen: boolean
   runtimeEvents: AgentRuntimeEvent[]
@@ -47,7 +52,9 @@ export function InlineSwarmTaskCard({
   const [open, setOpen] = useState(false)
   const agents = getInlineAgents(runtimeEvents, isStreaming, t)
   const steps = getInlineSteps(runtimeEvents, isStreaming, t)
-  const completedCount = agents.filter((agent) => agent.state === "done").length
+  const completedCount = agents.filter((agent) =>
+    agent.state === "done" || agent.state === "boundary"
+  ).length
   const hasRuntime = runtimeEvents.length > 0
   const progressPercent = agents.length
     ? Math.min(100, Math.round((completedCount / agents.length) * 100))
@@ -71,13 +78,19 @@ export function InlineSwarmTaskCard({
       : t("agentChat.thread.historyNotExecuted")
 
   return (
-    <article className="flex justify-start gap-3">
+    <article className="flex justify-start gap-3" data-process-message-id={messageId}>
       <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-card text-foreground">
         <GitBranch className="size-5" />
       </div>
       <div className="max-w-[min(43rem,92%)] min-w-0 space-y-4">
-        <div className="rounded-lg border border-border bg-[#f5f5f2] p-2.5 shadow-sm dark:bg-card">
-          <div className="flex flex-wrap items-start justify-between gap-3">
+        <div
+          className={`rounded-lg border p-2.5 shadow-sm dark:bg-card ${
+            processPanelOpen
+              ? "border-primary/60 bg-primary/5 ring-1 ring-primary/25"
+              : "border-border bg-[#f5f5f2]"
+          }`}
+        >
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 text-sm font-semibold">
                 <Activity className="size-4 text-muted-foreground" />
@@ -85,6 +98,11 @@ export function InlineSwarmTaskCard({
                 <span className="text-xs font-normal text-muted-foreground">
                   {progressLabel}
                 </span>
+                {processPanelOpen ? (
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                    {t("agentChat.thread.processPanelActive")}
+                  </span>
+                ) : null}
               </div>
               <p className="mt-1.5 line-clamp-1 text-xs/5 text-muted-foreground">
                 {activeAgent
@@ -92,7 +110,7 @@ export function InlineSwarmTaskCard({
                 : task}
               </p>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 flex-wrap items-center justify-start gap-2 sm:justify-end">
               <InlineRuntimeBadge
                 hasRuntime={hasRuntime}
                 isStreaming={isStreaming}
@@ -100,17 +118,30 @@ export function InlineSwarmTaskCard({
               {showProcessPanelAction ? (
                 <button
                   type="button"
-                  onClick={onOpenProcessPanel}
-                  className={`flex h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium shadow-sm transition-colors ${
+                  onClick={processPanelOpen ? onCloseProcessPanel : onOpenProcessPanel}
+                  className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border px-3 text-sm font-medium shadow-sm transition-colors ${
                     processPanelOpen
-                      ? "border-primary/50 bg-primary/10 text-primary"
-                      : "border-border bg-background text-foreground hover:bg-muted"
+                      ? "border-primary/60 bg-primary/10 text-primary"
+                      : "border-primary/30 bg-background text-foreground hover:border-primary/60 hover:bg-primary/5 hover:text-primary"
                   }`}
                   aria-pressed={processPanelOpen}
-                  title={t("agentChat.thread.openWorkbench")}
+                  aria-label={
+                    processPanelOpen
+                      ? t("agentChat.thread.closeWorkbench")
+                      : t("agentChat.thread.openWorkbench")
+                  }
+                  title={t("agentChat.thread.processLinkedToAnswer")}
                 >
-                  <ListTree className="size-3.5" />
-                  <span>{t("agentChat.thread.openWorkbench")}</span>
+                  {processPanelOpen ? (
+                    <PanelRightClose className="size-4" />
+                  ) : (
+                    <PanelRight className="size-4" />
+                  )}
+                  <span>
+                    {processPanelOpen
+                      ? t("agentChat.thread.closeWorkbench")
+                      : t("agentChat.thread.openWorkbenchForTurn")}
+                  </span>
                 </button>
               ) : null}
               <button
@@ -151,11 +182,11 @@ export function InlineSwarmTaskCard({
                   hasRuntime={hasRuntime}
                   isStreaming={isStreaming}
                 />
-                {handoffItems.map((item) => {
+                {handoffItems.map((item, index) => {
                   const Icon = item.icon
                   return (
                     <div
-                      key={item.label}
+                      key={`${index}-${item.label}`}
                       className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-xs text-muted-foreground"
                     >
                       <Icon className="size-3.5 shrink-0" />

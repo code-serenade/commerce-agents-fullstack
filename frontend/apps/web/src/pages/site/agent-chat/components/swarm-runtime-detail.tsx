@@ -106,6 +106,8 @@ function ComputerScreen({
               <Loader2 className="size-4 animate-spin text-emerald-600" />
             ) : activeState === "done" ? (
               <CheckCircle2 className="size-4 text-emerald-600" />
+            ) : activeState === "boundary" ? (
+              <MonitorCog className="size-4 text-amber-600" />
             ) : (
               <MonitorCog className="size-4" />
             )}

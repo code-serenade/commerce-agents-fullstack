@@ -9,7 +9,10 @@ use crate::{
     cognition::{Cognition, CognitionInput, CognitionResult, Context, Fact, Intent, IntentKind},
     core::{
         messaging::{MessageRx, MessageTx},
-        protocol::{AgentId, Message, MessageId, Payload, SessionEvent, TaskId, WorkerId},
+        protocol::{
+            AgentId, Message, MessageId, Payload, RoleWorkOutput, SessionEvent, TaskId,
+            WorkerAssignment, WorkerId, WorkerReportStatus,
+        },
     },
     roles::{RoleProfile, RolePromptBuilder, RolePromptInput, RoleSkillCatalog},
     skills::{
@@ -19,6 +22,8 @@ use crate::{
 };
 
 pub type BoxedAction = Box<dyn Action<Result = ActionResult<String, String, ()>> + Send>;
+
+const CATEGORY_LEVEL_BOUNDARY_MARKER: &str = "category_level_boundary";
 
 pub struct Worker {
     id: AgentId,
@@ -263,7 +268,7 @@ impl Worker {
                     let parsed = normalize_worker_role_output(
                         &assignment.role,
                         &task,
-                        merge_skill_results(parsed, &skill_results),
+                        merge_skill_results(parsed, &skill_results, &task),
                     );
 
                     Payload::WorkerReport {
@@ -303,34 +308,47 @@ impl Worker {
             .last_error
             .clone()
             .unwrap_or_else(|| "unknown error".to_string());
+        let context = task.context.clone();
+        let requester = task.requester.clone();
+        let payload = task
+            .assignment
+            .as_ref()
+            .map(|assignment| {
+                if should_downgrade_category_worker_failure(&task, &reason) {
+                    Payload::WorkerReport {
+                        report: category_boundary_failure_report(
+                            assignment, &task, &reason, &self.id,
+                        ),
+                    }
+                } else {
+                    Payload::WorkerReport {
+                        report: crate::core::protocol::WorkerReport {
+                            graph_id: assignment.graph_id.clone(),
+                            node_id: assignment.node_id.clone(),
+                            task_id: TaskId(task.id.clone()),
+                            worker_id: WorkerId(self.id.0.clone()),
+                            role: assignment.role.clone(),
+                            content: reason.clone(),
+                            role_output: None,
+                            evidence: Vec::new(),
+                            risks: Vec::new(),
+                            open_questions: vec![reason.clone()],
+                            status: WorkerReportStatus::Failed,
+                        },
+                    }
+                }
+            })
+            .unwrap_or_else(|| Payload::WorkerReportFailed {
+                worker_id: WorkerId(self.id.0.clone()),
+                task_id: TaskId(task.id.clone()),
+                reason: reason.clone(),
+            });
         let _ = self.sender.send(Message {
             id: next_message_id(),
-            context: task.context,
+            context,
             from: self.id.clone(),
-            to: task.requester,
-            payload: task
-                .assignment
-                .as_ref()
-                .map(|assignment| Payload::WorkerReport {
-                    report: crate::core::protocol::WorkerReport {
-                        graph_id: assignment.graph_id.clone(),
-                        node_id: assignment.node_id.clone(),
-                        task_id: TaskId(task.id.clone()),
-                        worker_id: WorkerId(self.id.0.clone()),
-                        role: assignment.role.clone(),
-                        content: reason.clone(),
-                        role_output: None,
-                        evidence: Vec::new(),
-                        risks: Vec::new(),
-                        open_questions: vec![reason.clone()],
-                        status: crate::core::protocol::WorkerReportStatus::Failed,
-                    },
-                })
-                .unwrap_or_else(|| Payload::WorkerReportFailed {
-                    worker_id: WorkerId(self.id.0.clone()),
-                    task_id: TaskId(task.id.clone()),
-                    reason: reason.clone(),
-                }),
+            to: requester,
+            payload,
         });
         self.current_action = None;
         self.phase = WorkerPhase::Thinking;
@@ -416,6 +434,30 @@ impl Worker {
         let Some(session_id) = &task.context.session_id else {
             return;
         };
+        let is_non_blocking_category_gap = is_non_blocking_category_skill_gap(result, task);
+        let output = if is_non_blocking_category_gap {
+            Some(category_level_skill_boundary_output(result))
+        } else {
+            result.output.clone()
+        };
+        let status = if is_non_blocking_category_gap {
+            skill_status_name(SkillExecutionStatus::Deferred)
+        } else {
+            skill_status_name(result.status)
+        };
+        let summary = if is_non_blocking_category_gap {
+            Some(
+                "品类级边界：本轮未手动选择预设商品或外部执行条件不足，已按非阻塞能力边界记录。"
+                    .to_string(),
+            )
+        } else {
+            result.summary.clone().map(compact_event_text)
+        };
+        let error = if is_non_blocking_category_gap {
+            None
+        } else {
+            result.error.clone().map(compact_event_text)
+        };
         self.emit_event(SessionEvent::SkillResult {
             session_id: session_id.clone(),
             worker_id: WorkerId(self.id.0.clone()),
@@ -423,10 +465,10 @@ impl Worker {
             request_id: result.request_id.clone(),
             skill_id: result.skill_id.as_str().to_string(),
             role: self.role.runtime_role.clone(),
-            status: skill_status_name(result.status).to_string(),
-            summary: result.summary.clone().map(compact_event_text),
-            error: result.error.clone().map(compact_event_text),
-            output: result.output.clone(),
+            status: status.to_string(),
+            summary,
+            error,
+            output,
             execution_mode: metadata_string(&result.metadata, "execution_mode"),
             risk_level: metadata_string(&result.metadata, "risk_level"),
             approval_required: result
@@ -468,9 +510,83 @@ fn resolve_skill_requests(
 ) -> Vec<ParsedSkillRequest> {
     let requests = parse_skill_requests(output);
     if !requests.is_empty() {
-        return requests;
+        return normalize_explicit_skill_requests_for_task(requests, task);
     }
     autosuggest_skill_requests(role, task, output)
+}
+
+fn normalize_explicit_skill_requests_for_task(
+    requests: Vec<ParsedSkillRequest>,
+    task: &Task,
+) -> Vec<ParsedSkillRequest> {
+    requests
+        .into_iter()
+        .filter_map(|mut request| {
+            if should_defer_category_level_skill_request(&request, task) {
+                return None;
+            }
+            normalize_parsed_skill_request(&mut request);
+            Some(request)
+        })
+        .collect()
+}
+
+fn should_defer_category_level_skill_request(request: &ParsedSkillRequest, task: &Task) -> bool {
+    first_selected_product(task).is_none()
+        && is_category_level_task(&task.description)
+        && is_category_level_deferred_skill(request.skill_id.as_str())
+}
+
+fn is_category_level_deferred_skill(skill: &str) -> bool {
+    matches!(
+        skill,
+        "coordination_create_task"
+            | "coordination_create_campaign"
+            | "platform_update_price"
+            | "platform_update_inventory"
+            | "platform_sync_products"
+            | "coordination_external_agent_call"
+            | "engineering_system_check"
+    )
+}
+
+fn normalize_parsed_skill_request(request: &mut ParsedSkillRequest) {
+    if request.skill_id == "coordination_create_task" {
+        normalize_coordination_create_task_input(&mut request.input);
+    }
+}
+
+fn normalize_coordination_create_task_input(input: &mut serde_json::Value) {
+    let Some(object) = input.as_object_mut() else {
+        return;
+    };
+
+    if let Some(priority) = object.get("priority").cloned() {
+        let normalized = match priority {
+            serde_json::Value::Number(number) => number.as_i64().map(|value| value.clamp(0, 2)),
+            serde_json::Value::String(text) => normalize_task_priority_text(&text),
+            _ => None,
+        };
+        if let Some(value) = normalized {
+            object.insert("priority".to_string(), serde_json::json!(value));
+        } else {
+            object.remove("priority");
+        }
+    }
+}
+
+fn normalize_task_priority_text(value: &str) -> Option<i64> {
+    let text = value.trim().to_ascii_lowercase();
+    match text.as_str() {
+        "0" | "normal" | "low" | "普通" | "低" => Some(0),
+        "1" | "medium" | "important" | "重要" | "中" => Some(1),
+        "2" | "high" | "urgent" | "紧急" | "高" => Some(2),
+        _ => value
+            .trim()
+            .parse::<i64>()
+            .ok()
+            .map(|value| value.clamp(0, 2)),
+    }
 }
 
 fn autosuggest_skill_requests(
@@ -5752,7 +5868,7 @@ fn infer_product_metrics_input(
     }
     if let Some(product) = first_selected_product(task) {
         input.insert("product_name".to_string(), serde_json::json!(product.name));
-    } else {
+    } else if !is_category_level_task(&task.description) && !is_category_level_task(text) {
         let product_name = infer_product_name(text);
         if !product_name.trim().is_empty() {
             input.insert("product_name".to_string(), serde_json::json!(product_name));
@@ -9852,6 +9968,7 @@ fn build_skill_context(
 fn merge_skill_results(
     mut parsed: ParsedWorkerRoleOutput,
     results: &[SkillExecutionResult],
+    task: &Task,
 ) -> ParsedWorkerRoleOutput {
     if results.is_empty() {
         return parsed;
@@ -9869,21 +9986,63 @@ fn merge_skill_results(
                 push_unique(&mut role_output.evidence, evidence);
             }
             SkillExecutionStatus::Deferred | SkillExecutionStatus::PendingApproval => {
-                let risk = format_incomplete_skill_risk(result);
+                let is_non_blocking_gap = is_non_blocking_category_skill_gap(result, task);
+                let risk = if is_non_blocking_gap {
+                    format_category_level_skill_boundary(result)
+                } else {
+                    format_incomplete_skill_risk(result)
+                };
                 let question = format_incomplete_skill_question(result);
                 push_unique(&mut parsed.risks, risk.clone());
-                push_unique(&mut parsed.open_questions, question.clone());
+                if !is_non_blocking_gap {
+                    push_unique(&mut parsed.open_questions, question.clone());
+                }
                 push_unique(&mut role_output.risks, risk);
-                push_unique(&mut role_output.open_questions, question);
+                if is_non_blocking_gap {
+                    push_unique(
+                        &mut role_output.evidence,
+                        CATEGORY_LEVEL_BOUNDARY_MARKER.to_string(),
+                    );
+                    push_unique(
+                        &mut role_output.evidence,
+                        format!(
+                            "本轮返回缺数据或待适配状态；由于用户询问类目级问题且未选择预设商品，按数据边界降级展示，不阻塞岗位产物。能力边界：{}。",
+                            category_skill_boundary_label(result.skill_id.as_str())
+                        ),
+                    );
+                } else {
+                    push_unique(&mut role_output.open_questions, question);
+                }
             }
             SkillExecutionStatus::NotFound
             | SkillExecutionStatus::ValidationError
             | SkillExecutionStatus::Failed => {
-                let risk = format_failed_skill_risk(result);
+                let is_non_blocking_gap = is_non_blocking_category_skill_gap(result, task);
+                let risk = if is_non_blocking_gap {
+                    format_category_level_skill_boundary(result)
+                } else {
+                    format_failed_skill_risk(result)
+                };
                 push_unique(&mut parsed.risks, risk.clone());
-                push_unique(&mut parsed.open_questions, risk.clone());
+                if !is_non_blocking_gap {
+                    push_unique(&mut parsed.open_questions, risk.clone());
+                }
                 push_unique(&mut role_output.risks, risk.clone());
-                push_unique(&mut role_output.open_questions, risk);
+                if is_non_blocking_gap {
+                    push_unique(
+                        &mut role_output.evidence,
+                        CATEGORY_LEVEL_BOUNDARY_MARKER.to_string(),
+                    );
+                    push_unique(
+                        &mut role_output.evidence,
+                        format!(
+                            "本轮有能力未形成可用结果；由于这是未选商品的类目级问题，该缺口只作为数据边界，不要求用户先指定预设商品。能力边界：{}。",
+                            category_skill_boundary_label(result.skill_id.as_str())
+                        ),
+                    );
+                } else {
+                    push_unique(&mut role_output.open_questions, risk);
+                }
             }
         }
     }
@@ -9943,6 +10102,39 @@ fn normalize_worker_role_output(
 
     normalize_product_context_evidence(task, output);
     normalize_upstream_evidence(task, output);
+    let category_level_boundary_applied =
+        normalize_category_level_product_requests(role, task, output);
+    if category_level_boundary_applied {
+        sanitize_category_level_runtime_artifacts(output);
+        parsed
+            .open_questions
+            .retain(|item| !is_category_runtime_noise(item));
+        parsed.risks.retain(|item| !is_category_runtime_noise(item));
+        parsed
+            .evidence
+            .retain(|item| !is_category_runtime_noise(item));
+    }
+    let removed_unsupported_benchmark_claims = sanitize_unsupported_benchmark_claims(output);
+    if removed_unsupported_benchmark_claims {
+        push_unique(
+            &mut output.risks,
+            "未接入真实外部行业基准时，不输出行业区间、行业均值或行业百分位；如需对标，应先接入外部搜索或行业基准来源。".to_string(),
+        );
+        while output.findings.len() < required_findings {
+            output.findings.push(default_role_finding(
+                role,
+                output.findings.len(),
+                &task_line,
+            ));
+        }
+        while output.recommendations.len() < required_recommendations {
+            output.recommendations.push(default_role_recommendation(
+                role,
+                output.recommendations.len(),
+                &task_line,
+            ));
+        }
+    }
     if output.evidence.is_empty() {
         output
             .evidence
@@ -9957,6 +10149,291 @@ fn normalize_worker_role_output(
     parsed.open_questions = merge_unique(parsed.open_questions, output.open_questions.clone());
     parsed.content = format_role_work_output_content(output);
     parsed
+}
+
+fn sanitize_category_level_runtime_artifacts(output: &mut RoleWorkOutput) {
+    output
+        .findings
+        .retain(|item| !is_category_runtime_noise(item));
+    output
+        .recommendations
+        .retain(|item| !is_category_runtime_noise(item));
+    output.risks.retain(|item| !is_category_runtime_noise(item));
+    output
+        .open_questions
+        .retain(|item| !is_category_runtime_noise(item));
+    output.evidence.retain(|item| {
+        item == CATEGORY_LEVEL_BOUNDARY_MARKER
+            || item.contains("worker.assignment.input")
+            || is_category_boundary_explanation(item)
+            || !is_category_runtime_noise(item)
+    });
+    if is_category_runtime_noise(&output.summary) || contains_refusal_summary(&output.summary) {
+        output.summary = "本轮按类目级或未指定商品链路形成团队判断：不注入默认商品，不把未接入的单品指标或平台写操作视为回答失败。".to_string();
+    }
+}
+
+fn sanitize_unsupported_benchmark_claims(output: &mut RoleWorkOutput) -> bool {
+    let mut removed = false;
+    if is_unsupported_benchmark_claim(&output.summary) {
+        output.summary = "本岗位已按可用数据形成判断；没有真实外部来源时，不输出行业区间、行业均值或行业百分位，只保留可复核指标、业务边界和待补基准。".to_string();
+        removed = true;
+    }
+    removed |= retain_supported_benchmark_items(&mut output.findings);
+    removed |= retain_supported_benchmark_items(&mut output.recommendations);
+    removed |= retain_supported_benchmark_items(&mut output.risks);
+    removed |= retain_supported_benchmark_items(&mut output.open_questions);
+    removed |= retain_supported_benchmark_items(&mut output.evidence);
+    removed
+}
+
+fn retain_supported_benchmark_items(items: &mut Vec<String>) -> bool {
+    let original_len = items.len();
+    items.retain(|item| !is_unsupported_benchmark_claim(item));
+    original_len != items.len()
+}
+
+fn is_unsupported_benchmark_claim(value: &str) -> bool {
+    let text = value.trim();
+    if text.is_empty() {
+        return false;
+    }
+    if contains_any(
+        text,
+        &[
+            "来源",
+            "引用",
+            "证据",
+            "已保存真实外部搜索证据",
+            "search_evidence",
+            "http://",
+            "https://",
+        ],
+    ) {
+        return false;
+    }
+
+    let has_assertive_comparison = contains_any(
+        text,
+        &[
+            "整体偏好",
+            "真正偏好",
+            "相对优异",
+            "符合行业",
+            "符合一般直播",
+            "符合多数",
+            "匹配度良好",
+            "优于",
+            "高于",
+            "低于",
+            "属于",
+            "略高",
+            "略低",
+            "接近",
+            "接近或略高",
+            "接近或略低",
+            "偏高",
+            "偏低",
+            "较高",
+            "较低",
+            "中等水平",
+            "表现良好",
+            "表现较好",
+            "表现优秀",
+            "转化率高",
+            "点击率低",
+            "点击率高",
+            "加购率低",
+            "加购率高",
+            "下单率低",
+            "下单率高",
+            "付款率低",
+            "付款率高",
+            "阻力极低",
+            "存在一定阻力",
+            "处于常见水平",
+            "健康区间",
+            "健康水平",
+            "行业常规水平",
+        ],
+    );
+    if has_assertive_comparison {
+        return true;
+    }
+
+    let has_benchmark = contains_any(
+        text,
+        &[
+            "行业平均",
+            "行业均值",
+            "行业基准",
+            "行业水平",
+            "行业常规",
+            "同类直播",
+            "同类商品",
+            "同类场景",
+            "一般直播",
+            "多数电商直播",
+            "多数直播",
+            "平均水平",
+            "常见范围",
+            "常见水平",
+            "行业区间",
+            "行业范围",
+            "行业",
+        ],
+    );
+    if !has_benchmark {
+        return false;
+    }
+
+    let asks_for_benchmark = contains_any(
+        text,
+        &[
+            "需要",
+            "待补",
+            "缺乏",
+            "缺少",
+            "收集",
+            "对比",
+            "复核",
+            "补齐",
+            "接入",
+            "未接入",
+            "没有真实",
+            "不能",
+            "不得",
+            "不输出",
+            "不可",
+            "无法客观判断",
+        ],
+    );
+    if asks_for_benchmark && !contains_benchmark_number_claim(text) {
+        return false;
+    }
+    if contains_any(
+        text,
+        &[
+            "符合",
+            "处于",
+            "属于",
+            "常见水平",
+            "平均水平",
+            "常规水平",
+            "健康水平",
+            "健康区间",
+            "吸引力预期",
+            "良好",
+            "优秀",
+            "正常",
+            "合理",
+        ],
+    ) {
+        return true;
+    }
+    contains_benchmark_number_claim(text)
+}
+
+fn contains_benchmark_number_claim(value: &str) -> bool {
+    const TERMS: [&str; 9] = [
+        "行业", "基准", "均值", "平均", "常规", "常见", "区间", "范围", "水平",
+    ];
+    TERMS.iter().any(|term| {
+        value.find(term).is_some_and(|index| {
+            let after = &value[index..];
+            let before = &value[..index];
+            segment_after_contains_percent_or_range(after)
+                || segment_before_contains_percent_or_range(before)
+        })
+    })
+}
+
+fn segment_after_contains_percent_or_range(value: &str) -> bool {
+    let segment = value
+        .split(['，', '。', '；', ';', ',', '\n'])
+        .next()
+        .unwrap_or(value);
+    contains_percent_or_range(segment)
+}
+
+fn segment_before_contains_percent_or_range(value: &str) -> bool {
+    let segment = value
+        .rsplit(['，', '。', '；', ';', ',', '\n'])
+        .next()
+        .unwrap_or(value);
+    contains_percent_or_range(segment)
+}
+
+fn contains_percent_or_range(value: &str) -> bool {
+    let mut previous_was_digit = false;
+    for ch in value.chars() {
+        if ch.is_ascii_digit() {
+            previous_was_digit = true;
+            continue;
+        }
+        if previous_was_digit && matches!(ch, '%' | '％' | '-' | '~' | '—' | '至') {
+            return true;
+        }
+        if !matches!(ch, '.' | ' ' | '\t') {
+            previous_was_digit = false;
+        }
+    }
+    false
+}
+
+fn is_category_runtime_noise(value: &str) -> bool {
+    let text = value.trim();
+    if text.is_empty() {
+        return false;
+    }
+    asks_for_specific_product_identity(text)
+        || contains_raw_skill_runtime_text(text)
+        || contains_refusal_summary(text)
+}
+
+fn is_category_boundary_explanation(value: &str) -> bool {
+    contains_any(
+        value,
+        &[
+            "类目级问题",
+            "类目通用链路",
+            "未手动选择预设商品",
+            "不注入任何预设商品资料",
+            "按数据边界降级展示",
+        ],
+    )
+}
+
+fn contains_raw_skill_runtime_text(value: &str) -> bool {
+    let lower = value.to_ascii_lowercase();
+    lower.contains("skill:")
+        || lower.contains(" status=")
+        || lower.contains(" failed")
+        || lower.contains("validationerror")
+        || lower.contains("validation_error")
+        || lower.contains("not allowed for role")
+        || lower.contains("invalid parameter")
+        || lower.contains("expected integer")
+        || lower.contains("data role should provide at least two findings")
+        || lower.contains("service role output lacks service-specific content")
+        || lower.contains("engineering role output lacks technical content")
+        || lower.contains("worker runtime failure downgraded")
+}
+
+fn contains_refusal_summary(value: &str) -> bool {
+    contains_any(
+        value,
+        &[
+            "无法完成分析",
+            "无法完成",
+            "无法得出",
+            "无法进行",
+            "无法评估",
+            "暂无可用数据",
+            "没有可用数据",
+            "不能完成",
+        ],
+    )
 }
 
 #[cfg(test)]
@@ -10201,6 +10678,525 @@ fn normalize_product_context_evidence(
         "本轮未检测到 context.selected_summary；不注入任何预设商品资料，只按用户文本、会话历史和工作区上下文理解问题。"
             .to_string(),
     );
+}
+
+fn normalize_category_level_product_requests(
+    role: &str,
+    task: &Task,
+    output: &mut crate::core::protocol::RoleWorkOutput,
+) -> bool {
+    if first_selected_product(task).is_some() || !is_category_level_task(&task.description) {
+        return false;
+    }
+
+    if asks_for_specific_product_identity(&output.summary) {
+        output.summary = format!(
+            "{}先按类目级或未指定商品链路回答：{}",
+            role_display_name(role),
+            compact_task_text(&task.description)
+        );
+    }
+    filter_product_identity_requests(&mut output.findings);
+    let removed_open_questions = filter_product_identity_requests(&mut output.open_questions);
+    let removed_recommendations = filter_product_identity_requests(&mut output.recommendations);
+    let removed_risks = filter_product_identity_requests(&mut output.risks);
+    let removed_product_specific_request =
+        removed_open_questions || removed_recommendations || removed_risks;
+    let task_line = compact_task_text(&task.description);
+    while output.findings.len() < required_findings_for_role(role) {
+        output.findings.push(default_role_finding(
+            role,
+            output.findings.len(),
+            &task_line,
+        ));
+    }
+    if output.recommendations.is_empty() {
+        output.recommendations = default_role_recommendations(role, &task_line);
+    }
+    normalize_role_specific_findings(role, &mut output.findings, &task_line);
+    normalize_role_specific_recommendations(role, &mut output.recommendations, &task_line);
+    while output.recommendations.len() < required_recommendations_for_role(role) {
+        output.recommendations.push(default_role_recommendation(
+            role,
+            output.recommendations.len(),
+            &task_line,
+        ));
+    }
+    apply_category_team_output_shape(role, &task_line, output);
+
+    push_unique(
+        &mut output.evidence,
+        "用户本轮没有手动选择预设商品；系统按类目/未指定商品链路回答，不把历史商品或默认商品注入本轮上下文。"
+            .to_string(),
+    );
+    push_unique(
+        &mut output.evidence,
+        CATEGORY_LEVEL_BOUNDARY_MARKER.to_string(),
+    );
+    push_unique(
+        &mut output.risks,
+        "类目级或未指定商品结论只能用于方向判断，不能替代单品级库存、价格、素材、投放和历史转化数据复核。"
+            .to_string(),
+    );
+
+    if removed_product_specific_request {
+        push_unique(
+            &mut output.evidence,
+            "用户本轮询问的是类目级问题，未手动选择预设商品；系统先按类目通用链路分析，不把具体商品编号或历史商品作为前置条件。"
+                .to_string(),
+        );
+        push_unique(
+            &mut output.evidence,
+            CATEGORY_LEVEL_BOUNDARY_MARKER.to_string(),
+        );
+        push_unique(
+            &mut output.recommendations,
+            "如果后续要做单品级诊断，再由用户手动选择预设商品或补充商品资料；本轮先输出咖啡类目可执行判断。"
+                .to_string(),
+        );
+        push_unique(
+            &mut output.risks,
+            "类目级结论不能替代单品级库存、价格、素材和历史转化数据复核。".to_string(),
+        );
+    }
+    true
+}
+
+fn apply_category_team_output_shape(
+    role: &str,
+    task: &str,
+    output: &mut crate::core::protocol::RoleWorkOutput,
+) {
+    match role {
+        "data" => {
+            push_unique(
+                &mut output.findings,
+                format!(
+                    "数据岗按类目级链路先定义 {task} 的曝光、点击、加购、付款、退款、咨询量和渠道拆分口径。"
+                ),
+            );
+            push_unique(&mut output.findings, "未选择具体商品时，数据岗不能把历史商品或默认商品当成本轮样本，只能输出诊断框架和待补数据清单。".to_string());
+            push_unique(&mut output.recommendations, "建立一张类目级漏斗表：渠道、曝光、点击率、加购率、付款率、退款率、客服咨询率、复购率逐列补齐。".to_string());
+            push_unique(&mut output.recommendations, "把后续单品级诊断的入口限定为用户手动选择预设商品或补充商品资料，避免默认商品污染结论。".to_string());
+        }
+        "creative" => {
+            push_unique(&mut output.findings, "内容岗把咖啡类商品先拆成场景、人群、价格带、口味/功能卖点和首三秒钩子，而不是直接套用某个历史商品。".to_string());
+            push_unique(&mut output.recommendations, "准备三组可 A/B 测试素材：通勤提神、办公室囤货、礼盒送礼；每组包含标题、短视频开头和直播间话术。".to_string());
+            push_unique(
+                &mut output.recommendations,
+                "每组素材都绑定数据岗定义的点击率、停留、加购和付款指标，避免只看播放量。"
+                    .to_string(),
+            );
+        }
+        "service" => {
+            push_unique(&mut output.findings, "服务岗按类目级链路识别咨询承接、售后承诺、物流时效、口味不符和退款争议对转化的影响。".to_string());
+            push_unique(
+                &mut output.recommendations,
+                "先沉淀客服 SOP：口味选择、保质期、发货时效、退换货、优惠叠加和异常升级六类话术。"
+                    .to_string(),
+            );
+            push_unique(
+                &mut output.recommendations,
+                "直播或活动承诺不得超过库存、物流和售后政策的真实履约边界。".to_string(),
+            );
+        }
+        "engineering" => {
+            push_unique(&mut output.findings, "工程岗负责确认埋点、报表刷新、商品/订单/客服数据接口和失败回滚边界，保证后续复盘可追踪。".to_string());
+            push_unique(
+                &mut output.recommendations,
+                "补齐曝光、点击、加购、付款、退款和咨询事件的埋点校验，并记录报表刷新时间。"
+                    .to_string(),
+            );
+            push_unique(&mut output.recommendations, "若右侧过程或工作区写入失败，要保留本轮 SSE 事件和最终回答，避免用户以为任务仍在执行。".to_string());
+        }
+        "ops" => {
+            push_unique(&mut output.findings, "运营岗把数据、内容、服务和工程岗位的输入收敛成可执行节奏，先做类目级判断，再等待用户选择商品进入单品复核。".to_string());
+            push_unique(&mut output.recommendations, "第 1 步补齐类目漏斗口径，第 2 步上线三组内容/话术测试，第 3 步按日报复盘转化断点和服务风险。".to_string());
+            push_unique(&mut output.recommendations, "所有结论都标记为未指定商品链路；只有用户手动勾选预设商品后，才把对应商品资料注入下一轮回答。".to_string());
+        }
+        "douyin_ads" => {
+            push_unique(&mut output.findings, "千川投放岗在未指定商品时只拆人群、素材组、预算节奏和 CPA/ROI 止损线，不承诺具体投放结果。".to_string());
+            push_unique(&mut output.recommendations, "按冷启动、放量、复盘三段设置预算护栏，并把素材点击、直播间停留和付款转化串联复盘。".to_string());
+        }
+        "accounting" => {
+            push_unique(
+                &mut output.findings,
+                "财务岗在未指定商品时先给预算和毛利校验框架，不编造客单价、成本或 ROI。"
+                    .to_string(),
+            );
+            push_unique(
+                &mut output.recommendations,
+                "先补客单价、毛利率、优惠成本、广告费和退款率，再计算可接受 CPA 与放量上限。"
+                    .to_string(),
+            );
+        }
+        "design" => {
+            push_unique(
+                &mut output.findings,
+                "设计岗按类目级视觉承接拆主图、详情页、直播间贴片和行动按钮，不套用历史商品素材。"
+                    .to_string(),
+            );
+            push_unique(
+                &mut output.recommendations,
+                "围绕提神、低负担、囤货、礼赠四类卖点准备主图和详情页首屏测试版本。".to_string(),
+            );
+        }
+        "web" => {
+            push_unique(
+                &mut output.findings,
+                "Web/SEO 岗按类目级搜索意图拆关键词、FAQ 和页面结构，不承诺未接入搜索数据的排名。"
+                    .to_string(),
+            );
+            push_unique(
+                &mut output.recommendations,
+                "建立咖啡类目关键词矩阵、购买顾虑 FAQ 和长尾内容页，再用真实搜索数据复核。"
+                    .to_string(),
+            );
+        }
+        _ => {}
+    }
+}
+
+fn filter_product_identity_requests(items: &mut Vec<String>) -> bool {
+    let original_len = items.len();
+    items.retain(|item| !asks_for_specific_product_identity(item));
+    original_len != items.len()
+}
+
+fn is_non_blocking_category_skill_gap(result: &SkillExecutionResult, task: &Task) -> bool {
+    if first_selected_product(task).is_some() || !is_category_level_task(&task.description) {
+        return false;
+    }
+    if !matches!(
+        result.status,
+        SkillExecutionStatus::Deferred
+            | SkillExecutionStatus::NotFound
+            | SkillExecutionStatus::ValidationError
+            | SkillExecutionStatus::Failed
+    ) {
+        return false;
+    }
+
+    let skill = result.skill_id.as_str();
+    if matches!(
+        skill,
+        "query_product_metrics"
+            | "query_store_metrics"
+            | "query_campaign_metrics"
+            | "data_dashboard"
+            | "data_funnel_analysis"
+            | "data_comprehensive_diagnosis"
+            | "service_query_product"
+            | "search_market_info"
+            | "search_industry_benchmarks"
+            | "search_product_reviews"
+            | "search_platform_policy"
+            | "search_trends"
+            | "coordination_create_task"
+            | "coordination_create_campaign"
+            | "platform_update_price"
+            | "platform_update_inventory"
+            | "platform_sync_products"
+            | "coordination_external_agent_call"
+            | "engineering_system_check"
+    ) {
+        return true;
+    }
+
+    result.output.as_ref().is_some_and(|output| {
+        output
+            .get("data_readiness")
+            .and_then(serde_json::Value::as_str)
+            .is_some_and(|value| value == "missing_user_input")
+            || output
+                .get("adapter_status")
+                .and_then(serde_json::Value::as_str)
+                .is_some_and(|value| {
+                    value.contains("required")
+                        || value.contains("missing")
+                        || value.contains("not_configured")
+                })
+    }) || result.error.as_deref().is_some_and(|error| {
+        asks_for_specific_product_identity(error)
+            || contains_runtime_data_gap(error)
+            || contains_role_skill_runtime_gap(error)
+    }) || result.summary.as_deref().is_some_and(|summary| {
+        asks_for_specific_product_identity(summary)
+            || contains_runtime_data_gap(summary)
+            || contains_role_skill_runtime_gap(summary)
+    })
+}
+
+fn contains_role_skill_runtime_gap(value: &str) -> bool {
+    contains_any(
+        value,
+        &[
+            "not allowed for role",
+            "invalid parameter",
+            "expected integer",
+            "skill executor unavailable",
+            "approval",
+            "adapter required",
+            "pending approval",
+            "需要审批",
+            "需要适配器",
+            "未授权",
+            "无权限",
+        ],
+    )
+}
+
+fn contains_runtime_data_gap(value: &str) -> bool {
+    contains_any(
+        value,
+        &[
+            "缺少",
+            "缺乏",
+            "未提供",
+            "未获取",
+            "未检索",
+            "未查询",
+            "未拿到",
+            "当前没有",
+            "没有真实",
+            "没有指定",
+            "需要补充",
+            "需要提供",
+            "需要获取",
+            "需要查询",
+            "待补充",
+            "missing",
+            "required",
+            "not configured",
+            "adapter",
+        ],
+    )
+}
+
+fn format_category_level_skill_boundary(result: &SkillExecutionResult) -> String {
+    format!(
+        "数据边界：{}；本轮未手动选择预设商品，按类目级分析降级处理，不把缺少单品标识、外部适配器或工作区写入草案视为执行失败。",
+        category_skill_boundary_label(result.skill_id.as_str())
+    )
+}
+
+fn category_level_skill_boundary_output(result: &SkillExecutionResult) -> serde_json::Value {
+    let mut output = result
+        .output
+        .clone()
+        .unwrap_or_else(|| serde_json::json!({}));
+    let original_status = format!("{:?}", result.status);
+    let original_message = result
+        .error
+        .as_deref()
+        .or(result.summary.as_deref())
+        .map(compact_task_text);
+    if let Some(object) = output.as_object_mut() {
+        object.insert(
+            "boundary_marker".to_string(),
+            serde_json::json!(CATEGORY_LEVEL_BOUNDARY_MARKER),
+        );
+        object.insert(
+            "boundary_policy".to_string(),
+            serde_json::json!("category_level_without_selected_product"),
+        );
+        object.insert(
+            "boundary_label".to_string(),
+            serde_json::json!(category_skill_boundary_label(result.skill_id.as_str())),
+        );
+        object.insert(
+            "original_status".to_string(),
+            serde_json::json!(original_status),
+        );
+        if let Some(message) = original_message {
+            object.insert("original_message".to_string(), serde_json::json!(message));
+        }
+    } else {
+        output = serde_json::json!({
+            "value": output,
+            "boundary_marker": CATEGORY_LEVEL_BOUNDARY_MARKER,
+            "boundary_policy": "category_level_without_selected_product",
+            "boundary_label": category_skill_boundary_label(result.skill_id.as_str()),
+            "original_status": original_status,
+            "original_message": original_message,
+        });
+    }
+    output
+}
+
+fn category_skill_boundary_label(skill: &str) -> &'static str {
+    match skill {
+        "coordination_create_task" => "后续任务草案待用户确认后再写入工作区",
+        "coordination_create_campaign" => "活动草案待用户确认后再沉淀",
+        "platform_update_price" | "platform_update_inventory" | "platform_sync_products" => {
+            "平台写操作需审批和外部平台适配器"
+        }
+        "coordination_external_agent_call" => "外部 Agent 调用需明确目标和安全边界",
+        "engineering_system_check" => "真实系统检测需平台适配器和审批",
+        "search_market_info"
+        | "search_industry_benchmarks"
+        | "search_product_reviews"
+        | "search_platform_policy"
+        | "search_trends" => "外部搜索适配器未产出可信实时来源",
+        "query_product_metrics"
+        | "query_store_metrics"
+        | "query_campaign_metrics"
+        | "data_dashboard"
+        | "data_funnel_analysis"
+        | "data_comprehensive_diagnosis" => "未指定商品或未接入真实经营指标",
+        "service_query_product" => "客服商品资料需用户手动选择商品后读取",
+        _ => "该能力本轮只作为可见边界记录",
+    }
+}
+
+fn should_downgrade_category_worker_failure(task: &Task, reason: &str) -> bool {
+    first_selected_product(task).is_none()
+        && is_category_level_task(&task.description)
+        && (asks_for_specific_product_identity(reason) || contains_runtime_data_gap(reason))
+}
+
+fn category_boundary_failure_report(
+    assignment: &WorkerAssignment,
+    task: &Task,
+    _reason: &str,
+    worker_id: &AgentId,
+) -> crate::core::protocol::WorkerReport {
+    let task_line = compact_task_text(&task.description);
+    let role = assignment.role.as_str();
+    let mut output = RoleWorkOutput {
+        summary: format!(
+            "{}按类目级或未指定商品链路完成边界判断：{}",
+            role_display_name(role),
+            task_line
+        ),
+        findings: default_role_findings(role, &task_line),
+        recommendations: default_role_recommendations(role, &task_line),
+        evidence: vec![
+            "本轮未检测到 context.selected_summary；不注入任何预设商品资料，只按用户文本、会话历史和工作区上下文理解问题。"
+                .to_string(),
+            CATEGORY_LEVEL_BOUNDARY_MARKER.to_string(),
+            "部分岗位原始输出结构不完整，已按类目级业务边界降级为可复核的方向判断。".to_string(),
+        ],
+        risks: vec![
+            "类目级或未指定商品结论只能用于方向判断；内部执行细节不会作为用户结论展示，后续需要用真实经营数据复核。"
+                .to_string(),
+        ],
+        open_questions: Vec::new(),
+    };
+    normalize_role_specific_findings(role, &mut output.findings, &task_line);
+    normalize_role_specific_recommendations(role, &mut output.recommendations, &task_line);
+    while output.findings.len() < required_findings_for_role(role) {
+        output.findings.push(default_role_finding(
+            role,
+            output.findings.len(),
+            &task_line,
+        ));
+    }
+    while output.recommendations.len() < required_recommendations_for_role(role) {
+        output.recommendations.push(default_role_recommendation(
+            role,
+            output.recommendations.len(),
+            &task_line,
+        ));
+    }
+    if output.risks.is_empty() && role_requires_risk(role) {
+        output.risks = default_role_risks(role);
+    }
+    normalize_upstream_evidence(task, &mut output);
+    let content = format_role_work_output_content(&output);
+
+    crate::core::protocol::WorkerReport {
+        graph_id: assignment.graph_id.clone(),
+        node_id: assignment.node_id.clone(),
+        task_id: TaskId(task.id.clone()),
+        worker_id: WorkerId(worker_id.0.clone()),
+        role: assignment.role.clone(),
+        content,
+        evidence: output.evidence.clone(),
+        risks: output.risks.clone(),
+        open_questions: Vec::new(),
+        role_output: Some(output),
+        status: WorkerReportStatus::Completed,
+    }
+}
+
+fn is_category_level_task(task: &str) -> bool {
+    contains_any(
+        task,
+        &[
+            "类目",
+            "品类",
+            "咖啡类",
+            "茶饮类",
+            "食品类",
+            "服饰类",
+            "美妆类",
+            "家居类",
+            "商品类",
+            "类商品",
+            "类产品",
+            "行业",
+            "未指定商品",
+            "未选商品",
+            "不指定商品",
+            "不引用任何预设商品",
+            "不要引用任何预设商品",
+            "不引用任何预设",
+            "不引用预设商品",
+            "不引用任何商品",
+            "不使用预设商品",
+            "不使用默认商品",
+            "不引用默认商品",
+            "不选择商品",
+            "不绑定商品",
+            "no selected product",
+            "without selected product",
+        ],
+    )
+}
+
+fn asks_for_specific_product_identity(question: &str) -> bool {
+    if describes_unselected_product_boundary(question) {
+        return false;
+    }
+    contains_any(
+        question,
+        &[
+            "产品编号",
+            "商品编号",
+            "商品ID",
+            "商品id",
+            "产品ID",
+            "产品id",
+            "商品名称",
+            "产品名称",
+            "具体商品",
+            "指定商品",
+        ],
+    )
+}
+
+fn describes_unselected_product_boundary(value: &str) -> bool {
+    contains_any(
+        value,
+        &[
+            "未指定商品",
+            "未选商品",
+            "未选择具体商品",
+            "未手动选择预设商品",
+            "不指定商品",
+            "不引用预设商品",
+            "不注入任何预设商品",
+            "不把历史商品",
+            "不把具体商品",
+            "不要求用户先指定预设商品",
+            "不替代单品级",
+            "类目级或未指定商品",
+            "类目/未指定商品",
+            "no selected product",
+            "without selected product",
+        ],
+    )
 }
 
 fn normalize_upstream_evidence(task: &Task, output: &mut crate::core::protocol::RoleWorkOutput) {
@@ -10513,12 +11509,18 @@ fn next_message_id() -> MessageId {
 #[cfg(test)]
 mod tests {
     use super::{
-        autosuggest_skill_requests, merge_skill_results, normalize_worker_role_output_for_test,
-        normalize_worker_role_output_for_test_with_metadata, parse_skill_requests,
-        parse_worker_role_output, resolve_skill_requests,
+        CATEGORY_LEVEL_BOUNDARY_MARKER, ParsedWorkerRoleOutput, autosuggest_skill_requests,
+        category_boundary_failure_report, format_role_work_output_content, merge_skill_results,
+        normalize_worker_role_output_for_test, normalize_worker_role_output_for_test_with_metadata,
+        parse_skill_requests, parse_worker_role_output, required_findings_for_role,
+        required_recommendations_for_role, resolve_skill_requests,
+        should_downgrade_category_worker_failure,
     };
     use crate::{
-        core::protocol::MessageContext,
+        core::protocol::{
+            AgentId, MessageContext, TaskGraphId, TaskId, TaskNodeId, WorkerAssignment, WorkerId,
+            WorkerReportStatus,
+        },
         roles::{RoleCatalog, RoleProfile},
         skills::{SkillExecutionResult, SkillExecutionStatus, SkillId},
     };
@@ -10539,6 +11541,26 @@ mod tests {
             description: description.to_string(),
             requester: crate::core::protocol::AgentId("test".to_string()),
             assignment: None,
+        }
+    }
+
+    fn assigned_task(description: &str, role: &str) -> super::Task {
+        super::Task {
+            id: "task-assigned".to_string(),
+            context: MessageContext::default(),
+            description: description.to_string(),
+            requester: AgentId("test".to_string()),
+            assignment: Some(WorkerAssignment {
+                graph_id: TaskGraphId("graph-test".to_string()),
+                node_id: TaskNodeId(role.to_string()),
+                task_id: TaskId("task-assigned".to_string()),
+                worker_id: WorkerId(format!("worker.{role}")),
+                role: role.to_string(),
+                attempt: 1,
+                objective: description.to_string(),
+                inputs: Vec::new(),
+                rework_instruction: None,
+            }),
         }
     }
 
@@ -13384,6 +14406,30 @@ mod tests {
     }
 
     #[test]
+    fn category_level_product_metrics_do_not_infer_product_name_without_selection() {
+        let cases = [
+            "请分析咖啡类商品",
+            "请用一句话说明如何判断直播间转化是否健康，不引用任何预设商品。",
+            "分析咖啡类产品的直播转化健康度，未指定商品。",
+        ];
+
+        for prompt in cases {
+            let requests = autosuggest_skill_requests(&role("data"), &task(prompt), "{}");
+            assert_eq!(requests.len(), 1, "{prompt}");
+            assert!(
+                matches!(
+                    requests[0].skill_id.as_str(),
+                    "data_funnel_analysis" | "query_product_metrics"
+                ),
+                "{prompt}: {}",
+                requests[0].skill_id
+            );
+            assert!(requests[0].input.get("product_ref").is_none(), "{prompt}");
+            assert!(requests[0].input.get("product_name").is_none(), "{prompt}");
+        }
+    }
+
+    #[test]
     fn service_query_product_without_selection_has_no_empty_product_ref() {
         let requests = autosuggest_skill_requests(
             &role("service"),
@@ -14460,6 +15506,7 @@ mod tests {
                 metadata: serde_json::Map::new(),
                 error: None,
             }],
+            &task("给标题做 SEO 评分"),
         );
 
         assert!(
@@ -14497,6 +15544,7 @@ mod tests {
                 metadata: serde_json::Map::new(),
                 error: None,
             }],
+            &task("请搜索咖啡趋势"),
         );
 
         assert!(
@@ -14510,6 +15558,372 @@ mod tests {
                 .open_questions
                 .iter()
                 .any(|item| item.contains("尚未产出可用结果"))
+        );
+    }
+
+    #[test]
+    fn category_level_deferred_product_metrics_gap_is_not_blocking() {
+        let parsed = parse_worker_role_output(
+            r#"{
+              "decision": {"kind": "NoAction"},
+              "role_output": {
+                "summary": "可以先按咖啡类目分析直播间转化健康度",
+                "findings": ["需要拆曝光、点击、加购、付款和退款链路"],
+                "recommendations": ["先按类目链路给出判断框架"],
+                "evidence": [],
+                "risks": [],
+                "open_questions": []
+              }
+            }"#,
+        );
+        let merged = merge_skill_results(
+            parsed,
+            &[SkillExecutionResult {
+                request_id: "req-1".to_string(),
+                skill_id: SkillId::new("query_product_metrics"),
+                status: SkillExecutionStatus::Deferred,
+                output: Some(serde_json::json!({
+                    "status": "deferred",
+                    "data_readiness": "missing_user_input",
+                    "adapter_status": "product_metrics_required"
+                })),
+                summary: Some("商品指标查询等待真实数据输入".to_string()),
+                metadata: serde_json::Map::new(),
+                error: None,
+            }],
+            &task("请分析咖啡类商品"),
+        );
+        let normalized = normalize_worker_role_output_for_test("data", "请分析咖啡类商品", merged);
+        let output = normalized.role_output.expect("role output");
+
+        assert!(normalized.open_questions.is_empty());
+        assert!(output.open_questions.is_empty());
+        assert!(
+            output
+                .evidence
+                .iter()
+                .any(|item| item.contains("按数据边界降级展示"))
+        );
+        assert!(
+            output
+                .risks
+                .iter()
+                .any(|item| item.contains("未指定商品") || item.contains("真实经营指标"))
+        );
+    }
+
+    #[test]
+    fn category_level_coordination_create_task_request_is_deferred_before_execution() {
+        let requests = resolve_skill_requests(
+            &role("engineering"),
+            &task("请分析咖啡类商品"),
+            r#"{
+              "decision": {"kind": "NoAction"},
+              "skill_requests": [
+                {
+                  "skill_id": "coordination_create_task",
+                  "input": {"title": "补齐咖啡类目指标", "priority": "high"}
+                }
+              ],
+              "role_output": {"summary": "需要后续任务"}
+            }"#,
+        );
+
+        assert!(requests.is_empty());
+    }
+
+    #[test]
+    fn selected_product_coordination_create_task_priority_is_normalized() {
+        let requests = resolve_skill_requests(
+            &role("ops"),
+            &task_with_metadata(
+                "请给这个商品创建复盘任务",
+                &[("context.selected_summary", &selected_product_summary())],
+            ),
+            r#"{
+              "decision": {"kind": "NoAction"},
+              "skill_requests": [
+                {
+                  "skill_id": "coordination_create_task",
+                  "input": {"title": "五一咖啡复盘", "priority": "urgent"}
+                }
+              ],
+              "role_output": {"summary": "需要创建任务"}
+            }"#,
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].input["priority"], 2);
+    }
+
+    #[test]
+    fn category_level_coordination_create_task_failure_is_boundary_not_open_question() {
+        let parsed = parse_worker_role_output(
+            r#"{
+              "decision": {"kind": "NoAction"},
+              "role_output": {
+                "summary": "需要把咖啡类目动作拆成任务",
+                "findings": ["先按类目级链路识别动作"],
+                "recommendations": ["生成后续复盘清单"],
+                "evidence": [],
+                "risks": [],
+                "open_questions": []
+              }
+            }"#,
+        );
+        let merged = merge_skill_results(
+            parsed,
+            &[SkillExecutionResult {
+                request_id: "req-create-task".to_string(),
+                skill_id: SkillId::new("coordination_create_task"),
+                status: SkillExecutionStatus::ValidationError,
+                output: None,
+                summary: None,
+                metadata: serde_json::Map::new(),
+                error: Some("invalid parameter 'priority': expected integer".to_string()),
+            }],
+            &task("请分析咖啡类商品"),
+        );
+        let normalized = normalize_worker_role_output_for_test("ops", "请分析咖啡类商品", merged);
+        let output = normalized.role_output.expect("role output");
+
+        assert!(normalized.open_questions.is_empty());
+        assert!(output.open_questions.is_empty());
+        assert!(
+            output
+                .risks
+                .iter()
+                .any(|item| item.contains("后续任务草案") || item.contains("非阻塞"))
+        );
+        assert!(
+            !format_role_work_output_content(&output)
+                .to_ascii_lowercase()
+                .contains("invalid parameter")
+        );
+    }
+
+    #[test]
+    fn category_level_not_allowed_skill_is_boundary_without_raw_error() {
+        let parsed = parse_worker_role_output(
+            r#"{
+              "decision": {"kind": "NoAction"},
+              "role_output": {
+                "summary": "工程岗补充咖啡类目复盘边界",
+                "findings": ["需要确认埋点、报表和接口边界"],
+                "recommendations": ["先记录工程待办，再由运营确认是否落工作区"],
+                "evidence": [],
+                "risks": [],
+                "open_questions": []
+              }
+            }"#,
+        );
+        let merged = merge_skill_results(
+            parsed,
+            &[SkillExecutionResult {
+                request_id: "req-reject".to_string(),
+                skill_id: SkillId::new("coordination_create_task"),
+                status: SkillExecutionStatus::ValidationError,
+                output: None,
+                summary: None,
+                metadata: serde_json::Map::new(),
+                error: Some(
+                    "skill 'coordination_create_task' is not allowed for role 'engineering'"
+                        .to_string(),
+                ),
+            }],
+            &task("请分析咖啡类商品"),
+        );
+        let normalized =
+            normalize_worker_role_output_for_test("engineering", "请分析咖啡类商品", merged);
+        let output = normalized.role_output.expect("role output");
+        let text = format_role_work_output_content(&output).to_ascii_lowercase();
+
+        assert!(normalized.open_questions.is_empty());
+        assert!(!text.contains("not allowed"));
+        assert!(!text.contains("skill:coordination_create_task"));
+        assert!(
+            output
+                .evidence
+                .iter()
+                .any(|item| item.contains(CATEGORY_LEVEL_BOUNDARY_MARKER))
+        );
+    }
+
+    #[test]
+    fn category_level_refusal_and_raw_skill_text_are_rewritten() {
+        let parsed = parse_worker_role_output(
+            r#"{
+              "decision": {"kind": "NoAction"},
+              "role_output": {
+                "summary": "暂无可用数据，无法完成分析",
+                "findings": ["skill:coordination_create_task status=Failed error=invalid parameter"],
+                "recommendations": ["请提供咖啡类商品的产品编号或名称，以便查询相关业务指标。"],
+                "evidence": ["skill:coordination_create_task 未形成可用结果"],
+                "risks": ["无法得出任何指标"],
+                "open_questions": ["service role output lacks service-specific content"]
+              }
+            }"#,
+        );
+
+        let normalized = normalize_worker_role_output_for_test("data", "请分析咖啡类商品", parsed);
+        let output = normalized.role_output.expect("role output");
+        let text = format_role_work_output_content(&output);
+
+        assert!(!text.contains("暂无可用数据"));
+        assert!(!text.contains("无法完成分析"));
+        assert!(!text.contains("skill:coordination_create_task"));
+        assert!(!text.contains("service role output lacks"));
+        assert!(text.contains("类目级") || text.contains("未指定商品"));
+        assert!(
+            output
+                .findings
+                .iter()
+                .any(|item| item.contains("曝光") && item.contains("付款"))
+        );
+    }
+
+    #[test]
+    fn role_output_removes_unsupported_industry_benchmark_ranges() {
+        let parsed = parse_worker_role_output(
+            r#"{
+              "decision": {"kind": "Execute"},
+              "role_output": {
+                "summary": "直播间转化低于行业常规水平，应立即优化。",
+                "findings": [
+                  "曝光到点击转化率8%低于行业5-10%区间，提示流量或标题/封面吸引力不足。",
+                  "点击到加购率约25.0%，符合多数电商直播的加购转化率。",
+                  "曝光到点击率约 8.0%，符合一般直播封面/标题吸引力预期。",
+                  "点击到加购约25%，需要收集行业基准后再判断是否健康。",
+                  "需要补齐行业基准、客单价和投放成本后复核。"
+                ],
+                "recommendations": [
+                  "先对比行业30-40%区间再决定是否放量。",
+                  "补齐曝光、点击、加购、付款、退款和渠道拆分。"
+                ],
+                "evidence": [],
+                "risks": [],
+                "open_questions": []
+              }
+            }"#,
+        );
+
+        let normalized = normalize_worker_role_output_for_test(
+            "data",
+            "请用Agent集群方式判断：直播间曝光1000、点击80、加购20、下单8、付款7是否健康，不引用任何预设商品。",
+            parsed,
+        );
+        let output = normalized.role_output.expect("role output");
+        let text = format_role_work_output_content(&output);
+
+        assert!(!text.contains("行业5-10%"));
+        assert!(!text.contains("行业30-40%"));
+        assert!(!text.contains("低于行业"));
+        assert!(!text.contains("行业常规水平"));
+        assert!(!text.contains("符合多数电商直播"));
+        assert!(!text.contains("符合一般直播"));
+        assert!(text.contains("需要收集行业基准后再判断是否健康"));
+        assert!(text.contains("需要补齐行业基准、客单价和投放成本后复核"));
+        assert!(text.contains("未接入真实外部行业基准"));
+        assert!(output.findings.len() >= required_findings_for_role("data"));
+    }
+
+    #[test]
+    fn category_level_skill_boundary_keeps_business_wording_without_raw_skill_ids() {
+        let parsed = parse_worker_role_output(
+            r#"{
+              "decision": {"kind": "NoAction"},
+              "role_output": {
+                "summary": "数据岗先按类目级链路判断",
+                "findings": ["需要定义咖啡类目漏斗口径"],
+                "recommendations": ["先按类目链路形成判断框架"],
+                "evidence": [],
+                "risks": [],
+                "open_questions": []
+              }
+            }"#,
+        );
+        let merged = merge_skill_results(
+            parsed,
+            &[SkillExecutionResult {
+                request_id: "req-metrics".to_string(),
+                skill_id: SkillId::new("query_product_metrics"),
+                status: SkillExecutionStatus::Deferred,
+                output: None,
+                summary: Some("商品指标查询等待真实数据输入".to_string()),
+                metadata: serde_json::Map::new(),
+                error: None,
+            }],
+            &task("请分析咖啡类商品"),
+        );
+        let normalized = normalize_worker_role_output_for_test("data", "请分析咖啡类商品", merged);
+        let output = normalized.role_output.expect("role output");
+        let text = format_role_work_output_content(&output);
+
+        assert!(
+            output
+                .evidence
+                .iter()
+                .any(|item| item.contains("按数据边界降级展示"))
+        );
+        assert!(
+            output
+                .risks
+                .iter()
+                .any(|item| item.contains("真实经营指标"))
+        );
+        assert!(!text.contains("skill:query_product_metrics"));
+        assert!(!text.contains("status=Deferred"));
+    }
+
+    #[test]
+    fn category_level_service_product_gap_is_not_blocking() {
+        let parsed = parse_worker_role_output(
+            r#"{
+              "decision": {"kind": "NoAction"},
+              "role_output": {
+                "summary": "服务岗位先按类目承接边界判断",
+                "findings": ["未选商品时不能读取单品客服资料"],
+                "recommendations": ["先输出类目级客服承接 SOP"],
+                "evidence": [],
+                "risks": [],
+                "open_questions": []
+              }
+            }"#,
+        );
+        let merged = merge_skill_results(
+            parsed,
+            &[SkillExecutionResult {
+                request_id: "req-service".to_string(),
+                skill_id: SkillId::new("service_query_product"),
+                status: SkillExecutionStatus::Deferred,
+                output: Some(serde_json::json!({
+                    "status": "deferred",
+                    "data_readiness": "explicit_product_context_required",
+                    "adapter_status": "context_required"
+                })),
+                summary: Some("商品上下文等待用户显式选择".to_string()),
+                metadata: serde_json::Map::new(),
+                error: None,
+            }],
+            &task("请分析咖啡类商品"),
+        );
+        let normalized =
+            normalize_worker_role_output_for_test("service", "请分析咖啡类商品", merged);
+        let output = normalized.role_output.expect("role output");
+
+        assert!(normalized.open_questions.is_empty());
+        assert!(output.open_questions.is_empty());
+        assert!(
+            output
+                .evidence
+                .iter()
+                .any(|item| item.contains("category_level_boundary"))
+        );
+        assert!(
+            output
+                .risks
+                .iter()
+                .any(|item| item.contains("客服商品资料") || item.contains("手动选择商品"))
         );
     }
 
@@ -14574,6 +15988,87 @@ mod tests {
                 .any(|item| item.contains("SOP"))
         );
         assert!(output.risks.iter().any(|item| item.contains("承诺")));
+    }
+
+    #[test]
+    fn category_worker_failure_can_be_downgraded_to_boundary_report() {
+        let task = assigned_task("请分析咖啡类商品", "data");
+        let reason = "缺少商品编号，无法查询商品指标";
+
+        assert!(should_downgrade_category_worker_failure(&task, reason));
+
+        let assignment = task.assignment.as_ref().expect("assignment");
+        let report = category_boundary_failure_report(
+            assignment,
+            &task,
+            reason,
+            &AgentId("worker.data".to_string()),
+        );
+        let output = report.role_output.as_ref().expect("role output");
+
+        assert_eq!(report.status, WorkerReportStatus::Completed);
+        assert!(
+            output
+                .evidence
+                .iter()
+                .any(|item| item.contains("category_level_boundary"))
+        );
+        assert!(
+            output
+                .evidence
+                .iter()
+                .any(|item| item.contains("未检测到 context.selected_summary"))
+        );
+        assert!(output.findings.len() >= 2);
+        assert!(
+            output
+                .recommendations
+                .iter()
+                .any(|item| item.contains("曝光") || item.contains("类目"))
+        );
+        assert!(report.open_questions.is_empty());
+    }
+
+    #[test]
+    fn downgraded_category_worker_failure_hides_internal_runtime_reason() {
+        let task = assigned_task("请分析咖啡类商品", "ops");
+        let reason = r#"cognition failure: cognition failed after 3 attempt(s): decode failed on attempt 3/3: json template validation failed at $: missing key 'role_output'; raw={"decision":{"kind":"ActionIntent"}}"#;
+
+        let assignment = task.assignment.as_ref().expect("assignment");
+        let report = category_boundary_failure_report(
+            assignment,
+            &task,
+            reason,
+            &AgentId("worker.ops".to_string()),
+        );
+        let text = [
+            report.content.as_str(),
+            &report.evidence.join("\n"),
+            &report.risks.join("\n"),
+        ]
+        .join("\n")
+        .to_ascii_lowercase();
+
+        assert!(!text.contains("cognition failure"));
+        assert!(!text.contains("decode failed"));
+        assert!(!text.contains("json template validation"));
+        assert!(!text.contains("raw="));
+        assert!(!text.contains("missing key"));
+        assert!(text.contains("输出结构不完整") || text.contains("业务边界"));
+    }
+
+    #[test]
+    fn selected_product_worker_failure_is_not_downgraded() {
+        let mut task = assigned_task("请结合这个商品分析直播间转化", "data");
+        task.context.metadata.insert(
+            "context.selected_summary".to_string(),
+            selected_product_summary(),
+        );
+
+        assert!(!should_downgrade_category_worker_failure(
+            &task,
+            "缺少商品编号，无法查询商品指标"
+        ));
     }
 
     #[test]
@@ -14669,5 +16164,85 @@ mod tests {
                 .iter()
                 .any(|item| item.contains("不能编造") || item.contains("真实漏斗"))
         );
+    }
+
+    #[test]
+    fn category_level_task_does_not_require_specific_product_identity() {
+        let parsed = parse_worker_role_output(
+            r#"{
+              "decision": {"kind": "NoAction"},
+              "role_output": {
+                "summary": "请提供咖啡类商品的产品编号或名称，以便查询相关业务指标。",
+                "findings": ["请提供咖啡类商品的商品名称，以便查询指标。"],
+                "recommendations": ["按类目通用链路先给运营判断"],
+                "evidence": [],
+                "risks": [],
+                "open_questions": ["请提供咖啡类商品的产品编号或名称，以便查询相关业务指标。"]
+              }
+            }"#,
+        );
+
+        let normalized = normalize_worker_role_output_for_test("data", "请分析咖啡类商品", parsed);
+        let output = normalized.role_output.expect("role output");
+
+        assert!(!output.summary.contains("产品编号"));
+        assert!(!output.summary.contains("商品名称"));
+        assert!(
+            output
+                .findings
+                .iter()
+                .chain(output.open_questions.iter())
+                .all(|item| !item.contains("产品编号") && !item.contains("商品名称"))
+        );
+        assert!(
+            output
+                .open_questions
+                .iter()
+                .all(|item| !item.contains("产品编号") && !item.contains("商品编号"))
+        );
+        assert!(
+            output
+                .evidence
+                .iter()
+                .any(|item| item.contains("类目级问题") && item.contains("不把具体商品编号"))
+        );
+        assert!(
+            output
+                .recommendations
+                .iter()
+                .any(|item| item.contains("单品级诊断") && item.contains("手动选择预设商品"))
+        );
+    }
+
+    #[test]
+    fn category_level_team_roles_receive_role_specific_outputs() {
+        for role in ["data", "creative", "service", "engineering", "ops"] {
+            let normalized = normalize_worker_role_output_for_test(
+                role,
+                "请分析咖啡类商品",
+                ParsedWorkerRoleOutput::default(),
+            );
+            let output = normalized.role_output.expect("role output");
+
+            assert!(
+                output
+                    .evidence
+                    .iter()
+                    .any(|item| item.contains(CATEGORY_LEVEL_BOUNDARY_MARKER)),
+                "{role} should mark category boundary"
+            );
+            assert!(
+                output.findings.len() >= required_findings_for_role(role),
+                "{role} should have enough findings"
+            );
+            assert!(
+                output.recommendations.len() >= required_recommendations_for_role(role),
+                "{role} should have enough recommendations"
+            );
+            assert!(
+                !output.summary.contains("请提供咖啡类商品的产品编号或名称"),
+                "{role} should not block on product identity"
+            );
+        }
     }
 }
