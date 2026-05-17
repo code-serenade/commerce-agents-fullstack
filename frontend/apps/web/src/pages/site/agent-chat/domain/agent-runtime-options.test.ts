@@ -104,9 +104,7 @@ describe("agent runtime options", () => {
   })
 
   it("keeps explicit multi-role selections for backend metadata", () => {
-    expect(runtimeSelectionForStrategy(manualSelection, "execution")).toEqual(
-      manualSelection
-    )
+    expect(runtimeSelectionForStrategy(manualSelection)).toEqual(manualSelection)
   })
 
   it("shows ops as primary when chat is selected with specialist roles", () => {
@@ -115,7 +113,7 @@ describe("agent runtime options", () => {
       primaryRole: "chat",
       selectedRoles: ["chat", "ops", "data", "service"],
     }
-    expect(runtimeSelectionForStrategy(restored, "execution")).toEqual({
+    expect(runtimeSelectionForStrategy(restored)).toEqual({
       ...restored,
       collaborationMode: "manual",
       primaryRole: "ops",
@@ -124,29 +122,25 @@ describe("agent runtime options", () => {
   })
 
   it("keeps explicit role mode for professional answers", () => {
-    expect(runtimeSelectionForStrategy(manualSelection, "execution")).toEqual({
+    expect(runtimeSelectionForStrategy(manualSelection)).toEqual({
       ...manualSelection,
     })
   })
 
-  it("keeps explicit role mode for guided learning answers and lowers explanation level", () => {
-    expect(runtimeSelectionForStrategy(manualSelection, "learning")).toEqual({
+  it("keeps explicit role mode and user-selected depth for guided learning answers", () => {
+    expect(runtimeSelectionForStrategy(manualSelection)).toEqual({
       ...manualSelection,
-      learningLevel: "beginner",
     })
   })
 
   it("keeps auto collaboration as backend-dispatched role selection", () => {
     expect(
-      runtimeSelectionForStrategy(
-        {
-          ...manualSelection,
-          collaborationMode: "auto",
-          primaryRole: "chat",
-          selectedRoles: [],
-        },
-        "execution"
-      )
+      runtimeSelectionForStrategy({
+        ...manualSelection,
+        collaborationMode: "auto",
+        primaryRole: "chat",
+        selectedRoles: [],
+      })
     ).toEqual({
       ...manualSelection,
       collaborationMode: "auto",

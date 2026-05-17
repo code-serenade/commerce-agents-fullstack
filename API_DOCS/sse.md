@@ -31,7 +31,7 @@
       ]
     },
     "strategy": {
-      "id": "collab",
+      "id": "execution",
       "responseMode": "execution",
       "collaborationMode": "manual",
       "learningLevel": "higher_vocational",
@@ -57,10 +57,10 @@
 | `metadata.context.productIds` | `string[]` | 否 | 绑定到本轮问答的商品 ID，最多 5 个；后端会校验当前用户权限并读取真实商品/知识 |
 | `metadata.context.contextRefs` | `string[]` | 否 | 上下文引用，当前支持 `product:{productId}`、`conversation_file:{fileId}` / `file:{fileId}`、`product_asset:{assetId}` / `asset:{assetId}`、`product_material:{materialId}` / `material:{materialId}`、`workspace_artifact:{artifactId}` / `artifact:{artifactId}`，最多 20 个 |
 | `metadata.model.name` | `string` | 否 | 指定本轮使用的后端 `llm.name`；不传时使用后端默认模型 |
-| `metadata.strategy.id` | `string` | 否 | 回答策略 ID，当前前端使用 `execution` / `learning` / `collab` |
-| `metadata.strategy.responseMode` | `string` | 否 | 回答模式，当前前端使用 `execution` / `learning` |
-| `metadata.strategy.collaborationMode` | `string` | 否 | 协作模式，当前前端使用 `single` / `manual`；`manual` 会要求后端优先进入多角色任务图 |
-| `metadata.strategy.learningLevel` | `string` | 否 | 学习/讲解层级，例如 `beginner` / `higher_vocational` / `professional` |
+| `metadata.strategy.id` | `string` | 否 | 回答策略 ID，当前前端使用 `learning` / `quick` / `execution`；历史 `collab` 只作为兼容值处理 |
+| `metadata.strategy.responseMode` | `string` | 否 | 回答模式，当前前端使用 `learning` / `quick` / `execution` |
+| `metadata.strategy.collaborationMode` | `string` | 否 | 岗位分配模式，当前前端使用 `auto` / `single` / `manual`；`auto` 由后端判断单岗或多岗，`manual` 会要求后端优先进入多角色任务图 |
+| `metadata.strategy.learningLevel` | `string` | 否 | 讲解深度，当前前端使用 `beginner`（低） / `higher_vocational`（中） / `professional`（高） |
 | `metadata.strategy.primaryRole` | `string` | 否 | 用户指定的主岗位 runtime role，例如 `data`、`ops`、`creative` |
 | `metadata.strategy.selectedRoles` | `string[]` | 否 | 用户指定参与本轮协作的岗位 runtime role，最多 6 个，服务端去重 |
 
@@ -75,6 +75,8 @@
 `metadata.model.name` 必须是 `GET /api/app/agent/runtime-options` 返回的 `models[].name`。如果模型名不存在，服务端返回 `400`，不会启动 Agent，也不会创建工作区运行记录。后端只把模型配置名和模型名写入 runtime metadata，不向前端暴露 `base_url` 或 `api_key`。
 
 `metadata.strategy.*` 仅允许小写字母、数字、`_`、`-`，单字段最大 64 字符。后端会把这些字段转换为 agent runtime metadata：`strategy.id`、`strategy.response_mode`、`strategy.collaboration_mode`、`strategy.learning_level`、`strategy.primary_role`、`strategy.selected_roles`。前端不得把策略说明拼进 `input` 来伪造后端策略行为。
+
+`metadata.strategy.id/responseMode` 的三种新产品模式必须真实影响 Agent runtime：`learning` 注入教学表达和术语解释要求，`quick` 注入短链路结论要求并在自动分配时倾向单岗，`execution` 注入完整执行方案、表格清单、岗位分工、风险和验收要求。`metadata.strategy.learningLevel` 会进入 Commander / Worker cognition context，控制讲解深度，不是纯 UI 文案。
 
 当 `metadata.strategy.collaborationMode` 为 `manual` 或 `single`，且 `primaryRole` 或 `selectedRoles` 中包含非 `chat` 岗位时，后端会优先尊重这次显式岗位选择并进入 commander/任务图路由；即使用户输入文本本身像“只输出/answer only”这类短答请求，也不会被 `chat_bypass` 吞掉。没有显式非 `chat` 岗位选择的短答请求仍可走 `route_decided.route_mode=chat_bypass`，用于普通轻问答。
 
@@ -93,7 +95,7 @@ event: started
 data: {"type":"started","session_id":"session-001"}
 
 event: route_decided
-data: {"type":"route_decided","session_id":"session-001","strategy_id":"collab","response_mode":"execution","collaboration_mode":"manual","learning_level":"higher_vocational","model_name":"ollama-gpt-oss-20b","route_mode":"task_graph","primary_runtime_role":"data","support_runtime_roles":["ops","creative"]}
+data: {"type":"route_decided","session_id":"session-001","strategy_id":"execution","response_mode":"execution","collaboration_mode":"manual","learning_level":"higher_vocational","model_name":"ollama-gpt-oss-20b","route_mode":"task_graph","primary_runtime_role":"data","support_runtime_roles":["ops","creative"]}
 
 event: context_loaded
 data: {"type":"context_loaded","session_id":"session-001","product_ids":["product-uuid"],"refs":["product:product-uuid"],"product_count":1,"knowledge_count":3,"source_count":4,"summary":"Product source product:...","sources_json":"[...]"}

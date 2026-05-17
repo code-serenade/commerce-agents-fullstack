@@ -215,7 +215,7 @@ fn select_roles_for_task<'a>(
         message: input.to_string(),
         domain_id: Some("domain.general".to_string()),
         action: None,
-        max_roles: 3,
+        max_roles: auto_route_max_roles(metadata),
     });
 
     if runtime_roles.is_empty() && runtime.commander_fast_route {
@@ -284,6 +284,38 @@ fn selected_runtime_roles(metadata: &BTreeMap<String, String>) -> Vec<String> {
         .filter(|role| roles.iter().any(|item| item == role));
 
     normalize_requested_runtime_roles(collaboration_mode, roles, requested_primary)
+}
+
+fn auto_route_max_roles(metadata: &BTreeMap<String, String>) -> usize {
+    match runtime_response_mode(metadata) {
+        "quick" => 1,
+        "execution" => 4,
+        _ => 3,
+    }
+}
+
+fn runtime_response_mode(metadata: &BTreeMap<String, String>) -> &str {
+    if let Some(response_mode) = metadata
+        .get("strategy.response_mode")
+        .map(String::as_str)
+        .filter(|value| matches!(*value, "learning" | "quick" | "execution"))
+    {
+        return response_mode;
+    }
+    if let Some(strategy_id) = metadata
+        .get("strategy.id")
+        .map(String::as_str)
+        .filter(|value| matches!(*value, "learning" | "quick" | "execution"))
+    {
+        return strategy_id;
+    }
+    if metadata
+        .get("strategy.id")
+        .is_some_and(|value| value == "collab")
+    {
+        return "execution";
+    }
+    "learning"
 }
 
 fn normalize_requested_runtime_roles(

@@ -244,6 +244,30 @@ impl Cognition for CapturingWorkerCognition {
     }
 }
 
+struct CapturingRuntimeFactWorkerCognition {
+    fact_source: &'static str,
+    fact_value: Arc<Mutex<Option<String>>>,
+}
+
+#[async_trait]
+impl Cognition for CapturingRuntimeFactWorkerCognition {
+    async fn evaluate(&self, input: CognitionInput) -> CognitionResult {
+        *self.fact_value.lock().expect("lock fact capture") = input
+            .context
+            .facts
+            .iter()
+            .find(|fact| fact.source == self.fact_source)
+            .map(|fact| fact.content.clone());
+
+        CognitionResult::Success(json!({
+            "decision": {
+                "kind": "NoAction"
+            },
+            "role_output": test_role_output(&input)
+        }))
+    }
+}
+
 struct CapturingContextWorkerCognition {
     metadata_value: Arc<Mutex<Option<String>>>,
     fact_value: Arc<Mutex<Option<String>>>,
@@ -1239,6 +1263,116 @@ async fn manual_strategy_metadata_routes_requested_roles() {
                 && support_runtime_roles == &vec!["data".to_string(), "ops".to_string()]
         )
     }));
+}
+
+#[tokio::test]
+async fn quick_response_mode_adds_runtime_style_fact_and_limits_auto_roles() {
+    let worker_style = Arc::new(Mutex::new(None));
+    let worker_style_capture = Arc::clone(&worker_style);
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(move || {
+            Ok(Box::new(CapturingRuntimeFactWorkerCognition {
+                fact_source: "runtime.answer_style",
+                fact_value: Arc::clone(&worker_style_capture),
+            }))
+        }),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert("strategy.id".to_string(), "quick".to_string());
+    metadata.insert("strategy.response_mode".to_string(), "quick".to_string());
+    metadata.insert(
+        "strategy.collaboration_mode".to_string(),
+        "auto".to_string(),
+    );
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-quick-mode".to_string()),
+            input: "请快速判断直播间转化漏斗是否需要优化".to_string(),
+            metadata,
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    while let Some(event) = rx.recv().await {
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+
+    assert!(
+        worker_style
+            .lock()
+            .expect("lock worker style")
+            .as_deref()
+            .is_some_and(|value| value.contains("快速简答"))
+    );
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::RouteDecided {
+                response_mode,
+                collaboration_mode,
+                primary_runtime_role,
+                support_runtime_roles,
+                ..
+            } if response_mode.as_deref() == Some("quick")
+                && collaboration_mode.as_deref() == Some("auto")
+                && primary_runtime_role.is_some()
+                && support_runtime_roles.is_empty()
+        )
+    }));
+}
+
+#[tokio::test]
+async fn teaching_mode_professional_depth_reaches_worker_context() {
+    let depth_fact = Arc::new(Mutex::new(None));
+    let depth_capture = Arc::clone(&depth_fact);
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(move || {
+            Ok(Box::new(CapturingRuntimeFactWorkerCognition {
+                fact_source: "runtime.explanation_depth",
+                fact_value: Arc::clone(&depth_capture),
+            }))
+        }),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert("strategy.id".to_string(), "learning".to_string());
+    metadata.insert("strategy.response_mode".to_string(), "learning".to_string());
+    metadata.insert(
+        "strategy.learning_level".to_string(),
+        "professional".to_string(),
+    );
+
+    manager
+        .run_request(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-teaching-depth".to_string()),
+            input: "请讲解 ROI 和 ROAS 的区别".to_string(),
+            metadata,
+        })
+        .await
+        .expect("request should complete");
+
+    assert!(
+        depth_fact
+            .lock()
+            .expect("lock depth fact")
+            .as_deref()
+            .is_some_and(|value| value.contains("讲解深度：高"))
+    );
 }
 
 #[tokio::test]

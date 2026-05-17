@@ -9628,6 +9628,7 @@ fn build_context(
     }
 
     let mut facts = Vec::new();
+    extend_runtime_strategy_facts(&task.context.metadata, &mut facts);
     extend_context_facts(&task.context.metadata, &mut facts);
     if let Some(assignment) = &task.assignment {
         facts.push(Fact {
@@ -9692,6 +9693,72 @@ fn conversation_aware_task_description(task: &Task) -> String {
         "同一会话历史上下文（用于理解追问、继续、补充、按前面数据等表达；这不代表用户选择了任何预设商品）：\n{history}\n\n当前用户请求：\n{}",
         task.description
     )
+}
+
+fn extend_runtime_strategy_facts(
+    metadata: &std::collections::BTreeMap<String, String>,
+    facts: &mut Vec<Fact>,
+) {
+    let mode = runtime_response_mode(metadata);
+    let answer_style = match mode {
+        "quick" => {
+            "回答模式：快速简答。该岗位只输出最关键的岗位判断、必要证据和下一步动作，避免长篇背景说明。"
+        }
+        "execution" => {
+            "回答模式：丰富执行。该岗位需要输出可交给主岗汇总的完整岗位产物，包含发现、建议、证据、风险和可验收动作，适合表格化。"
+        }
+        _ => {
+            "回答模式：教学模式。该岗位在完成业务判断的同时，用学生能理解的话解释专业词、判断依据和动作原因。"
+        }
+    };
+    facts.push(Fact {
+        source: "runtime.answer_style".to_string(),
+        content: answer_style.to_string(),
+        reliability: 1.0,
+    });
+
+    facts.push(Fact {
+        source: "runtime.explanation_depth".to_string(),
+        content: match runtime_learning_level(metadata) {
+            "beginner" => "讲解深度：低。减少术语，必要术语必须白话解释，输出更像老师带学生拆题。",
+            "professional" => "讲解深度：高。保留指标、推导、约束、风险和复盘口径，适合专业汇报。",
+            _ => "讲解深度：中。按电商实操标准解释，重点概念讲清楚即可。",
+        }
+        .to_string(),
+        reliability: 1.0,
+    });
+}
+
+fn runtime_response_mode(metadata: &std::collections::BTreeMap<String, String>) -> &str {
+    if let Some(response_mode) = metadata
+        .get("strategy.response_mode")
+        .map(String::as_str)
+        .filter(|value| matches!(*value, "learning" | "quick" | "execution"))
+    {
+        return response_mode;
+    }
+    if let Some(strategy_id) = metadata
+        .get("strategy.id")
+        .map(String::as_str)
+        .filter(|value| matches!(*value, "learning" | "quick" | "execution"))
+    {
+        return strategy_id;
+    }
+    if metadata
+        .get("strategy.id")
+        .is_some_and(|value| value == "collab")
+    {
+        return "execution";
+    }
+    "learning"
+}
+
+fn runtime_learning_level(metadata: &std::collections::BTreeMap<String, String>) -> &str {
+    metadata
+        .get("strategy.learning_level")
+        .map(String::as_str)
+        .filter(|value| matches!(*value, "beginner" | "higher_vocational" | "professional"))
+        .unwrap_or("higher_vocational")
 }
 
 fn extend_context_facts(

@@ -65,7 +65,7 @@ fn commerce_agent_playbooks() -> Vec<CommerceAgentPlaybookResponse> {
             "新品冷启动",
             "从商品事实、首批人群、内容种草、投放测试和复盘节奏生成冷启动方案。",
             "launch",
-            "collab",
+            "execution",
             &[
                 "product_knowledge",
                 "product_material",
@@ -81,7 +81,7 @@ fn commerce_agent_playbooks() -> Vec<CommerceAgentPlaybookResponse> {
             "投放复盘",
             "复盘投放漏斗、预算节奏、人群、素材和转化承接，输出下一轮调优动作。",
             "review",
-            "collab",
+            "execution",
             &[
                 "campaign",
                 "platform_metrics",
@@ -129,7 +129,7 @@ fn commerce_agent_playbooks() -> Vec<CommerceAgentPlaybookResponse> {
             "素材优化",
             "从卖点、场景、受众和转化漏斗出发，生成短视频、直播间和详情页素材优化方案。",
             "creative",
-            "collab",
+            "execution",
             &[
                 "product_material",
                 "product_knowledge",
@@ -235,5 +235,9 @@ mod tests {
             && !item.required_context.is_empty()
             && !item.expected_outputs.is_empty()
             && !item.roles.is_empty()));
+        assert!(playbooks.iter().all(|item| matches!(
+            item.recommended_strategy.as_str(),
+            "learning" | "quick" | "execution"
+        )));
     }
 }

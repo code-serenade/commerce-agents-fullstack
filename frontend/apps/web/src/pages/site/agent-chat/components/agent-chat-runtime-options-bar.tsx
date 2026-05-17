@@ -57,10 +57,10 @@ export function AgentChatRuntimeOptionsBar({
         <div className="min-w-0">
           <div className="flex min-w-0 items-center gap-1.5 text-xs font-semibold text-foreground">
             <Cpu className="size-3.5 shrink-0 text-muted-foreground" />
-            <span>{t("agentChat.composer.runtime.label")}</span>
+            <span>{t("agentChat.composer.runtime.modelSettings")}</span>
           </div>
           <p className="mt-1 text-xs/5 text-muted-foreground">
-            {t("agentChat.composer.runtime.roleModeHint")}
+            {t("agentChat.composer.runtime.modelHint")}
           </p>
         </div>
         <div className="flex min-w-0 flex-wrap items-center justify-start gap-2 sm:justify-end">
@@ -83,6 +83,12 @@ export function AgentChatRuntimeOptionsBar({
 
       {runtimeOptions ? (
         <>
+          <AdvancedRuntimeOptions
+            disabled={controlDisabled}
+            learningLevels={runtimeOptions.learningLevels}
+            onLearningLevelChange={onLearningLevelChange}
+            runtimeSelection={runtimeSelection}
+          />
           <OptionSegment
             disabled={controlDisabled}
             icon={<GitBranch className="size-3.5" />}
@@ -96,12 +102,6 @@ export function AgentChatRuntimeOptionsBar({
             onPrimaryRoleChange={onPrimaryRoleChange}
             onToggleRole={onToggleRole}
             roles={specialistRoles}
-            runtimeSelection={runtimeSelection}
-          />
-          <AdvancedRuntimeOptions
-            disabled={controlDisabled}
-            learningLevels={runtimeOptions.learningLevels}
-            onLearningLevelChange={onLearningLevelChange}
             runtimeSelection={runtimeSelection}
           />
         </>

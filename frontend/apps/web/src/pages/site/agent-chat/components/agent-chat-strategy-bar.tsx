@@ -1,4 +1,4 @@
-import { BrainCircuit, GraduationCap } from "lucide-react"
+import { BrainCircuit, GraduationCap, Zap } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import {
   AGENT_CHAT_STRATEGIES,
@@ -8,6 +8,7 @@ import {
 const STRATEGY_ICONS = {
   execution: BrainCircuit,
   learning: GraduationCap,
+  quick: Zap,
 } as const
 
 export interface AgentChatStrategyBarProps {
@@ -28,7 +29,7 @@ export function AgentChatStrategyBar({
       <div className="text-xs font-semibold text-foreground">
         {t("agentChat.strategy.current")}
       </div>
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid gap-2 sm:grid-cols-3">
         {AGENT_CHAT_STRATEGIES.map((strategy) => {
           const Icon = STRATEGY_ICONS[strategy.id]
           const active = strategy.id === strategyId

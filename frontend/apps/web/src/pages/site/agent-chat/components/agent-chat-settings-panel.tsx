@@ -46,10 +46,17 @@ export function AgentChatSettingsPanel({
 }: AgentChatSettingsPanelProps) {
   const { t } = useTranslation()
   const activeStrategyLabel = t(`agentChat.strategy.options.${strategyId}.label`)
+  const depthLabel =
+    runtimeOptions?.learningLevels.find(
+      (level) => level.id === runtimeSelection.learningLevel
+    )?.label ?? runtimeSelection.learningLevel
+  const modelLabel = runtimeSelection.modelName
   const roleModeLabel = roleModeCopyKey(runtimeSelection.collaborationMode)
     ? t(roleModeCopyKey(runtimeSelection.collaborationMode))
     : runtimeSelection.collaborationMode
   const runtimeLabel = [
+    modelLabel,
+    t("agentChat.composer.settings.depthSummary", { depth: depthLabel }),
     roleModeLabel,
     runtimeSelection.primaryRole,
     runtimeSelection.selectedRoles.length

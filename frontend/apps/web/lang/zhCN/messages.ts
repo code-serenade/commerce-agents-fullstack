@@ -891,13 +891,17 @@ const messages = {
     strategy: {
       current: "回答模式",
       options: {
-        execution: {
-          label: "执行回答",
-          hint: "适合做汇报、复盘和方案：先给结论，再给动作和风险",
-        },
         learning: {
-          label: "教学讲解",
-          hint: "适合学生和新手：讲清概念、判断逻辑和可执行动作",
+          label: "教学模式",
+          hint: "默认模式：面向学生和新手，讲清概念、判断逻辑和可执行动作",
+        },
+        quick: {
+          label: "快速简答",
+          hint: "适合快速判断：直接给结论、关键理由和下一步，不展开长篇过程",
+        },
+        execution: {
+          label: "丰富执行",
+          hint: "适合汇报和落地：输出完整方案、岗位分工、表格清单、风险和验收",
         },
       },
     },
@@ -972,11 +976,14 @@ const messages = {
         compactTitle: "调整回答模式、岗位分配和模型",
         toggle: "任务设置",
         rolesCount: "{{count}} 个岗位",
+        depthSummary: "深度：{{depth}}",
       },
       runtime: {
         label: "岗位分配",
         loading: "正在读取运行配置",
         model: "模型",
+        modelSettings: "模型设置",
+        modelHint: "默认优先使用后端真实配置的豆包；未配置豆包时只显示可用模型。",
         learning: "讲解层级",
         collaboration: "岗位分配",
         roleMode: "岗位分配",
@@ -1014,8 +1021,9 @@ const messages = {
           },
         },
         strategyNotes: {
-          execution: "适合汇报、复盘和方案输出：少解释概念，优先给结论、步骤和风险。",
-          learning: "适合教学和新手理解：保留干货，同时把专业词和判断过程讲清楚。",
+          learning: "默认教学模式：保留干货，同时把专业词、判断过程和下一步讲清楚。",
+          quick: "适合快速判断：只给结论、关键理由和最多几个下一步动作。",
+          execution: "适合汇报、复盘和方案输出：用表格和清单讲清岗位分工、步骤、风险和验收。",
         },
       },
       samples: {

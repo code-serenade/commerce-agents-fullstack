@@ -1,4 +1,4 @@
-export type AgentChatResponseMode = "execution" | "learning"
+export type AgentChatResponseMode = "execution" | "learning" | "quick"
 
 export interface AgentChatStrategy {
   id: AgentChatStrategyId
@@ -8,16 +8,9 @@ export interface AgentChatStrategy {
   intent: string
 }
 
-export type AgentChatStrategyId = "execution" | "learning"
+export type AgentChatStrategyId = "execution" | "learning" | "quick"
 
 export const AGENT_CHAT_STRATEGIES = [
-  {
-    id: "execution",
-    responseMode: "execution",
-    labelKey: "agentChat.strategy.options.execution.label",
-    hintKey: "agentChat.strategy.options.execution.hint",
-    intent: "Give a direct, usable answer first, then list the next actions.",
-  },
   {
     id: "learning",
     responseMode: "learning",
@@ -25,6 +18,22 @@ export const AGENT_CHAT_STRATEGIES = [
     hintKey: "agentChat.strategy.options.learning.hint",
     intent:
       "Explain the reasoning in simple steps while still producing an actionable commerce answer.",
+  },
+  {
+    id: "quick",
+    responseMode: "quick",
+    labelKey: "agentChat.strategy.options.quick.label",
+    hintKey: "agentChat.strategy.options.quick.hint",
+    intent:
+      "Give a concise answer with the direct conclusion, key reason, and a short next-step list.",
+  },
+  {
+    id: "execution",
+    responseMode: "execution",
+    labelKey: "agentChat.strategy.options.execution.label",
+    hintKey: "agentChat.strategy.options.execution.hint",
+    intent:
+      "Produce a complete execution plan with role division, tables, action owners, risks, and acceptance checks.",
   },
 ] as const satisfies readonly AgentChatStrategy[]
 
@@ -61,8 +70,9 @@ export function buildAgentStrategyInput(
     `Response mode: ${strategy.responseMode}.`,
     `Strategy instruction: ${strategy.intent}`,
     "Relevant virtual employee roles include product, data, support, content, ads, operations, finance, supply chain, and delivery.",
-    "For professional answer mode, start with the business answer and concrete next actions.",
     "For teaching mode, explain the reasoning path in student-friendly language while keeping the answer actionable.",
+    "For quick answer mode, keep the answer short: conclusion, key reason, and next steps only.",
+    "For rich execution mode, start with the business answer, then provide role division, tables, concrete actions, risks, and acceptance checks.",
     "When the runtime selects multiple roles, present role-based findings and then synthesize one final recommendation.",
     "Use markdown tables for comparisons, funnels, role division, or action plans when they make the answer easier to scan.",
     "Keep the answer centered on the user's question. Do not claim external platform execution or dynamic tool calls unless runtime events prove them.",

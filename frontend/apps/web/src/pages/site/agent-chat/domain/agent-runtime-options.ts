@@ -129,16 +129,9 @@ export function restoreRuntimeSelection(
 }
 
 export function runtimeSelectionForStrategy(
-  selection: AgentChatRuntimeSelection,
-  strategyId: string
+  selection: AgentChatRuntimeSelection
 ): AgentChatRuntimeSelection {
   const normalizedSelection = normalizeRoleRuntimeSelection(selection)
-  if (strategyId === "learning") {
-    return {
-      ...normalizedSelection,
-      learningLevel: "beginner",
-    }
-  }
   return normalizedSelection
 }
 

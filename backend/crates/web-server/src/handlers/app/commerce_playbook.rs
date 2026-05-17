@@ -71,47 +71,63 @@ pub async fn get_agent_runtime_options(
             .collect(),
         strategies: runtime_choices(&[
             (
-                "execution",
-                "快速回答",
-                "直接给出可执行答案和下一步动作。",
-                false,
-            ),
-            (
                 "learning",
-                "边讲边教",
-                "解释判断过程，同时保留电商业务动作。",
+                "教学模式",
+                "面向学生和新手讲清概念、判断过程和可执行动作。",
+                true,
+            ),
+            (
+                "quick",
+                "快速简答",
+                "直接给结论、关键理由和下一步，减少铺垫。",
                 false,
             ),
             (
-                "collab",
-                "Agent 集群",
-                "调度多个电商虚拟员工分工处理并汇总。",
-                true,
+                "execution",
+                "丰富执行",
+                "输出完整方案、表格清单、风险边界和落地动作。",
+                false,
             ),
         ]),
         response_modes: runtime_choices(&[
-            ("execution", "执行导向", "先输出业务答案和动作清单。", true),
-            ("learning", "教学导向", "补充推理路径和学习说明。", false),
-        ]),
-        learning_levels: runtime_choices(&[
-            ("beginner", "入门", "减少术语，强调操作顺序。", false),
             (
-                "higher_vocational",
-                "实操",
-                "按电商岗位实操标准解释。",
+                "learning",
+                "教学模式",
+                "面向学生和新手讲清概念、判断过程和可执行动作。",
                 true,
             ),
             (
+                "quick",
+                "快速简答",
+                "直接给结论、关键理由和下一步，减少铺垫。",
+                false,
+            ),
+            (
+                "execution",
+                "丰富执行",
+                "输出完整方案、表格清单、风险边界和落地动作。",
+                false,
+            ),
+        ]),
+        learning_levels: runtime_choices(&[
+            ("beginner", "低", "减少术语，强调操作顺序。", false),
+            ("higher_vocational", "中", "按电商岗位实操标准解释。", true),
+            (
                 "professional",
-                "专业",
+                "高",
                 "保留更完整的策略、指标和风险推导。",
                 false,
             ),
         ]),
         collaboration_modes: runtime_choices(&[
-            ("auto", "自动调度", "后端按任务自动选择岗位。", false),
+            (
+                "auto",
+                "自动分配",
+                "后端按任务自动选择一个或多个岗位。",
+                true,
+            ),
             ("single", "指定单岗", "用户指定一个主岗位回答。", false),
-            ("manual", "指定多岗", "用户指定多个岗位协同执行。", true),
+            ("manual", "指定多岗", "用户指定多个岗位协同执行。", false),
         ]),
         roles,
     }
@@ -337,6 +353,75 @@ mod tests {
             data_skills
                 .iter()
                 .all(|skill| !skill.name.trim().is_empty())
+        );
+    }
+
+    #[test]
+    fn runtime_options_expose_three_answer_modes_and_auto_dispatch_defaults() {
+        let strategies = runtime_choices(&[
+            (
+                "learning",
+                "教学模式",
+                "面向学生和新手讲清概念、判断过程和可执行动作。",
+                true,
+            ),
+            (
+                "quick",
+                "快速简答",
+                "直接给结论、关键理由和下一步，减少铺垫。",
+                false,
+            ),
+            (
+                "execution",
+                "丰富执行",
+                "输出完整方案、表格清单、风险边界和落地动作。",
+                false,
+            ),
+        ]);
+        let learning_levels = runtime_choices(&[
+            ("beginner", "低", "减少术语，强调操作顺序。", false),
+            ("higher_vocational", "中", "按电商岗位实操标准解释。", true),
+            (
+                "professional",
+                "高",
+                "保留更完整的策略、指标和风险推导。",
+                false,
+            ),
+        ]);
+        let collaboration_modes = runtime_choices(&[
+            (
+                "auto",
+                "自动分配",
+                "后端按任务自动选择一个或多个岗位。",
+                true,
+            ),
+            ("single", "指定单岗", "用户指定一个主岗位回答。", false),
+            ("manual", "指定多岗", "用户指定多个岗位协同执行。", false),
+        ]);
+
+        assert_eq!(
+            strategies
+                .iter()
+                .map(|choice| choice.id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["learning", "quick", "execution"]
+        );
+        assert!(
+            strategies
+                .iter()
+                .any(|choice| choice.id == "learning" && choice.is_default)
+        );
+        assert!(
+            learning_levels
+                .iter()
+                .any(|choice| choice.id == "higher_vocational"
+                    && choice.label == "中"
+                    && choice.is_default)
+        );
+        assert!(
+            collaboration_modes
+                .iter()
+                .any(|choice| choice.id == "auto" && choice.is_default)
         );
     }
 }

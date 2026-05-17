@@ -898,14 +898,20 @@ const messages = {
     strategy: {
       current: "Answer mode",
       options: {
-        execution: {
-          label: "Execution answer",
-          hint:
-            "Best for reports, reviews, and plans: conclusion first, then actions and risks",
-        },
         learning: {
           label: "Teaching mode",
-          hint: "Best for students and beginners: explain terms, reasoning, and actions",
+          hint:
+            "Default mode for students and beginners: explain terms, reasoning, and actionable steps",
+        },
+        quick: {
+          label: "Quick answer",
+          hint:
+            "Best for fast judgment: direct conclusion, key reason, and next steps without a long process",
+        },
+        execution: {
+          label: "Rich execution",
+          hint:
+            "Best for reports and delivery: full plan, role split, tables, risks, and acceptance checks",
         },
       },
     },
@@ -982,11 +988,15 @@ const messages = {
         compactTitle: "Adjust answer mode, role assignment, and model",
         toggle: "Task settings",
         rolesCount: "{{count}} roles",
+        depthSummary: "Depth: {{depth}}",
       },
       runtime: {
         label: "Role assignment",
         loading: "Loading runtime",
         model: "Model",
+        modelSettings: "Model settings",
+        modelHint:
+          "The backend prefers a real configured Doubao model by default; if Doubao is not configured, only available models are shown.",
         learning: "Explanation level",
         collaboration: "Role assignment",
         roleMode: "Role assignment",
@@ -1030,10 +1040,12 @@ const messages = {
           },
         },
         strategyNotes: {
-          execution:
-            "Best for reports, reviews, and plans: fewer concept explanations, more conclusions, steps, and risks.",
           learning:
-            "Best for teaching and beginners: keep the substance while explaining terms and reasoning.",
+            "Default teaching mode: keep the substance while explaining terms, reasoning, and next steps.",
+          quick:
+            "Best for fast judgment: conclusion, key reason, and only a few next actions.",
+          execution:
+            "Best for reports, reviews, and plans: use tables and checklists for role split, steps, risks, and acceptance checks.",
         },
       },
       samples: {

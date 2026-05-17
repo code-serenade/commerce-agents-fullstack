@@ -170,7 +170,12 @@ fn resolve_default_model_name(config: &AgentRuntimeCfg) -> Result<String> {
         Some(name) => Err(Error::Custom(format!("llm '{name}' not found"))),
         None => Ok(config
             .llm
-            .first()
+            .iter()
+            .find(|llm| {
+                llm.name.to_ascii_lowercase().contains("doubao")
+                    || llm.model.to_ascii_lowercase().contains("doubao")
+            })
+            .or_else(|| config.llm.first())
             .expect("checked non-empty llm config above")
             .name
             .clone()),
@@ -192,4 +197,51 @@ fn new_session_id() -> String {
         .map(|duration| duration.as_millis())
         .unwrap_or_default();
     format!("web-agent-{millis}-{}", Uuid::new_v4())
+}
+
+#[cfg(test)]
+mod tests {
+    use agent::api::{AgentLlmCfg, AgentRuntimeCfg};
+
+    use super::resolve_default_model_name;
+
+    fn llm(name: &str, model: &str) -> AgentLlmCfg {
+        AgentLlmCfg {
+            name: name.to_string(),
+            base_url: "http://127.0.0.1:11434/v1".to_string(),
+            model: model.to_string(),
+            api_key: None,
+            max_tokens: None,
+            temperature: None,
+            reasoning_effort: None,
+            chat_completions_endpoint: None,
+        }
+    }
+
+    #[test]
+    fn default_model_prefers_configured_default_llm() {
+        let mut config = AgentRuntimeCfg::from_llm(vec![
+            llm("doubao-external", "doubao-seed-2-0-pro-260215"),
+            llm("ollama-gpt", "gpt-oss:20b"),
+        ]);
+        config.default_llm = Some("ollama-gpt".to_string());
+
+        assert_eq!(
+            resolve_default_model_name(&config).expect("default model"),
+            "ollama-gpt"
+        );
+    }
+
+    #[test]
+    fn default_model_prefers_doubao_when_no_default_is_set() {
+        let config = AgentRuntimeCfg::from_llm(vec![
+            llm("ollama-gpt", "gpt-oss:20b"),
+            llm("doubao-external", "doubao-seed-2-0-pro-260215"),
+        ]);
+
+        assert_eq!(
+            resolve_default_model_name(&config).expect("default model"),
+            "doubao-external"
+        );
+    }
 }

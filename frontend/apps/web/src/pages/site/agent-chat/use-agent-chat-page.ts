@@ -117,8 +117,8 @@ export function useAgentChatPage() {
     [strategyId]
   )
   const selectedRuntime = useMemo(
-    () => runtimeSelectionForStrategy(runtimeContext.runtimeSelection, strategyId),
-    [runtimeContext.runtimeSelection, strategyId]
+    () => runtimeSelectionForStrategy(runtimeContext.runtimeSelection),
+    [runtimeContext.runtimeSelection]
   )
   const commands = useAgentChatPageCommands({
     actionState,

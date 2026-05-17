@@ -1046,6 +1046,7 @@ impl Commander {
                 reliability: 1.0,
             })
             .collect::<Vec<_>>();
+        extend_runtime_strategy_facts(&self.current_context.metadata, &mut facts);
         extend_context_facts(&self.current_context.metadata, &mut facts);
         facts.extend(worker_profiles.iter().map(|profile| Fact {
             source: "session_context.worker_catalog".to_string(),
@@ -1082,8 +1083,16 @@ impl Commander {
             message: task.description.clone(),
             domain_id: Some("domain.general".to_string()),
             action: None,
-            max_roles: 3,
+            max_roles: self.auto_route_max_roles(),
         }))
+    }
+
+    fn auto_route_max_roles(&self) -> usize {
+        match runtime_response_mode(&self.current_context.metadata) {
+            "quick" => 1,
+            "execution" => 4,
+            _ => 3,
+        }
     }
 
     fn manual_role_route(&self) -> Option<RoleRoute> {
@@ -1181,6 +1190,98 @@ fn unique_runtime_roles(roles: Vec<String>) -> Vec<String> {
         }
         unique
     })
+}
+
+fn extend_runtime_strategy_facts(
+    metadata: &std::collections::BTreeMap<String, String>,
+    facts: &mut Vec<Fact>,
+) {
+    let mode = runtime_response_mode(metadata);
+    let answer_style = match mode {
+        "quick" => {
+            "回答模式：快速简答。优先给直接结论、关键理由和最多 3 个下一步动作；减少铺垫、过程展开和长篇教学，除非用户明确要求详细推导。"
+        }
+        "execution" => {
+            "回答模式：丰富执行。输出完整业务方案，优先使用 Markdown 表格呈现岗位分工、行动清单、负责人、验收指标、风险边界和复盘节奏。"
+        }
+        _ => {
+            "回答模式：教学模式。默认面向电商学生和新手，先给可用结论，再用通俗语言解释概念、判断过程、为什么这么做和下一步怎么练。"
+        }
+    };
+    facts.push(Fact {
+        source: "runtime.answer_style".to_string(),
+        content: answer_style.to_string(),
+        reliability: 1.0,
+    });
+
+    let explanation_depth = match runtime_learning_level(metadata) {
+        "beginner" => {
+            "讲解深度：低。尽量少用术语，遇到 ROI、转化率、漏斗、客单价等专业词要用白话解释，并给简单例子。"
+        }
+        "professional" => {
+            "讲解深度：高。保留关键指标、推导路径、约束假设、风险边界和可复核口径，适合汇报和专业复盘。"
+        }
+        _ => "讲解深度：中。按电商岗位实操标准解释，术语不过度展开，但关键概念和动作口径要说清楚。",
+    };
+    facts.push(Fact {
+        source: "runtime.explanation_depth".to_string(),
+        content: explanation_depth.to_string(),
+        reliability: 1.0,
+    });
+
+    let role_dispatch = match metadata
+        .get("strategy.collaboration_mode")
+        .map(String::as_str)
+        .unwrap_or("auto")
+    {
+        "single" => {
+            "岗位分配：指定单岗。只让用户指定的一个虚拟员工负责本轮回答，不额外扩展协作岗。"
+        }
+        "manual" => "岗位分配：指定多岗。主岗负责综合回答，协作岗分别产出独立判断和交接内容。",
+        _ if mode == "quick" => {
+            "岗位分配：自动分配。快速简答默认倾向单岗短链路，除非用户明确要求多岗位协作。"
+        }
+        _ => {
+            "岗位分配：自动分配。后端根据问题判断一个或多个岗位，复杂任务应体现虚拟员工分工和主岗汇总。"
+        }
+    };
+    facts.push(Fact {
+        source: "runtime.role_dispatch".to_string(),
+        content: role_dispatch.to_string(),
+        reliability: 1.0,
+    });
+}
+
+fn runtime_response_mode(metadata: &std::collections::BTreeMap<String, String>) -> &str {
+    if let Some(response_mode) = metadata
+        .get("strategy.response_mode")
+        .map(String::as_str)
+        .filter(|value| matches!(*value, "learning" | "quick" | "execution"))
+    {
+        return response_mode;
+    }
+    if let Some(strategy_id) = metadata
+        .get("strategy.id")
+        .map(String::as_str)
+        .filter(|value| matches!(*value, "learning" | "quick" | "execution"))
+    {
+        return strategy_id;
+    }
+    if metadata
+        .get("strategy.id")
+        .is_some_and(|value| value == "collab")
+    {
+        return "execution";
+    }
+    "learning"
+}
+
+fn runtime_learning_level(metadata: &std::collections::BTreeMap<String, String>) -> &str {
+    metadata
+        .get("strategy.learning_level")
+        .map(String::as_str)
+        .filter(|value| matches!(*value, "beginner" | "higher_vocational" | "professional"))
+        .unwrap_or("higher_vocational")
 }
 
 fn extend_context_facts(

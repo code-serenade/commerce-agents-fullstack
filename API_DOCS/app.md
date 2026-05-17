@@ -86,7 +86,7 @@
       "title": "新品冷启动",
       "description": "从商品事实、首批人群、内容种草、投放测试和复盘节奏生成冷启动方案。",
       "category": "launch",
-      "recommendedStrategy": "collab",
+      "recommendedStrategy": "execution",
       "prompt": "请以电商多智能体虚拟员工方式...",
       "requiredContext": [
         "product_knowledge",
@@ -114,11 +114,11 @@
 
 当前内置场景：
 
-- `new_product_launch`：新品冷启动，推荐 `collab`
-- `ad_review`：投放复盘，推荐 `collab`
+- `new_product_launch`：新品冷启动，推荐 `execution`
+- `ad_review`：投放复盘，推荐 `execution`
 - `customer_complaint_crisis`：客诉危机，推荐 `execution`
 - `selection_pricing`：选品定价，推荐 `learning`
-- `creative_optimization`：素材优化，推荐 `collab`
+- `creative_optimization`：素材优化，推荐 `execution`
 - `daily_business_review`：日报复盘，推荐 `execution`
 
 补充说明：
@@ -126,7 +126,7 @@
 - 当前用户必须存在于 `app_users`，且状态为 `enabled`
 - 该接口是问答页商业场景入口的后端契约，前端不应再硬编码替代样例
 - 本阶段 playbook 为 service 层内置目录，暂不支持用户自定义
-- `recommendedStrategy` 对齐问答策略：`execution`、`learning`、`collab`
+- `recommendedStrategy` 对齐问答策略：`learning`、`quick`、`execution`。旧值 `collab` 仅作为历史会话兼容值，前端恢复时应映射为 `execution`
 
 ## 2.2 查询 Agent 运行选项
 
@@ -148,34 +148,82 @@
   ],
   "strategies": [
     {
-      "id": "collab",
-      "label": "Agent 集群",
-      "description": "调度多个电商虚拟员工分工处理并汇总。",
+      "id": "learning",
+      "label": "教学模式",
+      "description": "面向学生和新手讲清概念、判断过程和可执行动作。",
       "isDefault": true
+    },
+    {
+      "id": "quick",
+      "label": "快速简答",
+      "description": "直接给结论、关键理由和下一步，减少铺垫。",
+      "isDefault": false
+    },
+    {
+      "id": "execution",
+      "label": "丰富执行",
+      "description": "输出完整方案、表格清单、风险边界和落地动作。",
+      "isDefault": false
     }
   ],
   "responseModes": [
     {
-      "id": "execution",
-      "label": "执行导向",
-      "description": "先输出业务答案和动作清单。",
+      "id": "learning",
+      "label": "教学模式",
+      "description": "面向学生和新手讲清概念、判断过程和可执行动作。",
       "isDefault": true
+    },
+    {
+      "id": "quick",
+      "label": "快速简答",
+      "description": "直接给结论、关键理由和下一步，减少铺垫。",
+      "isDefault": false
+    },
+    {
+      "id": "execution",
+      "label": "丰富执行",
+      "description": "输出完整方案、表格清单、风险边界和落地动作。",
+      "isDefault": false
     }
   ],
   "learningLevels": [
     {
+      "id": "beginner",
+      "label": "低",
+      "description": "减少术语，强调操作顺序。",
+      "isDefault": false
+    },
+    {
       "id": "higher_vocational",
-      "label": "实操",
+      "label": "中",
       "description": "按电商岗位实操标准解释。",
       "isDefault": true
+    },
+    {
+      "id": "professional",
+      "label": "高",
+      "description": "保留更完整的策略、指标和风险推导。",
+      "isDefault": false
     }
   ],
   "collaborationModes": [
     {
+      "id": "auto",
+      "label": "自动分配",
+      "description": "后端按任务自动选择一个或多个岗位。",
+      "isDefault": true
+    },
+    {
+      "id": "single",
+      "label": "指定单岗",
+      "description": "用户指定一个主岗位回答。",
+      "isDefault": false
+    },
+    {
       "id": "manual",
       "label": "指定多岗",
       "description": "用户指定多个岗位协同执行。",
-      "isDefault": true
+      "isDefault": false
     }
   ],
   "roles": [
@@ -193,7 +241,7 @@
 字段说明：
 
 - `models` 来自 `backend/config/services.toml` 的 `[[llm]]` 配置，只返回 `name`、`model`、`isDefault`，不返回 `base_url` 或 `api_key`
-- `defaultModelName` 是后端实际默认 `llm.name`
+- `defaultModelName` 是后端实际默认 `llm.name`。当 `default_llm` 有效时使用该配置；当 `default_llm` 未配置且存在真实豆包 `[[llm]]` 时优先豆包；否则使用第一个 `[[llm]]`。接口不会返回未配置的假豆包模型
 - `strategies`、`responseModes`、`learningLevels`、`collaborationModes` 是后端认可的运行枚举，前端不应自行硬编码替代
 - `roles` 来自 Agent `RoleCatalog::configured()`，`runtimeRole` 用于 SSE `metadata.strategy.primaryRole` 和 `selectedRoles`
 
@@ -202,6 +250,7 @@
 - 当前用户必须存在于 `app_users`，且状态为 `enabled`
 - 该接口只暴露问答工作台可选择的运行契约，不会动态修改模型配置或角色目录
 - 前端发送 SSE 时应把用户选择映射到 `metadata.model.name` 与 `metadata.strategy.*`
+- `learning`、`quick`、`execution` 会进入 Agent runtime 的 `strategy.id` / `strategy.response_mode`，后端会在 Commander 和 Worker 上下文中注入不同的回答风格事实；`beginner` / `higher_vocational` / `professional` 会作为讲解深度事实生效，不是纯前端展示字段
 
 ## 2.2.1 查询 Agent 能力目录
 
