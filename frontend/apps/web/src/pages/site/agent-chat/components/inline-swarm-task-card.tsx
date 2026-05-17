@@ -82,18 +82,18 @@ export function InlineSwarmTaskCard({
       <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-card text-foreground">
         <GitBranch className="size-5" />
       </div>
-      <div className="max-w-[min(43rem,92%)] min-w-0 space-y-4">
+      <div className="max-w-[min(43rem,92%)] min-w-0 space-y-3">
         <div
-          className={`rounded-lg border p-2.5 shadow-sm dark:bg-card ${
+          className={`rounded-lg border p-3 shadow-sm dark:bg-card ${
             processPanelOpen
               ? "border-primary/60 bg-primary/5 ring-1 ring-primary/25"
-              : "border-border bg-[#f5f5f2]"
+              : "border-border bg-card"
           }`}
         >
-          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 text-sm font-semibold">
-                <Activity className="size-4 text-muted-foreground" />
+                <Activity className="size-4 text-primary" />
                 {t("agentChat.thread.executionTitle")}
                 <span className="text-xs font-normal text-muted-foreground">
                   {progressLabel}
@@ -174,6 +174,8 @@ export function InlineSwarmTaskCard({
                   totalCount={agents.length}
                 />
                 <InlineAgentGrid agents={agents} compact={isComplete} />
+              </div>
+              <div className="mt-2">
                 <InlineStepStrip steps={steps} />
               </div>
               <div className="mt-2 grid gap-2 min-[1500px]:grid-cols-2">

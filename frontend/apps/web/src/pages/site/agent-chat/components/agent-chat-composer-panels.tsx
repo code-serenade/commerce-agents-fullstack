@@ -19,7 +19,6 @@ export function AgentChatComposerPanels({
   isLoadingProducts,
   isLoadingRuntimeOptions,
   isStreaming,
-  onFocusComposer,
   onRuntimeCollaborationModeChange,
   onRuntimeLearningLevelChange,
   onRuntimeModelChange,
@@ -47,7 +46,7 @@ export function AgentChatComposerPanels({
   isLoadingProducts: boolean
   isLoadingRuntimeOptions: boolean
   isStreaming: boolean
-  onFocusComposer: () => void
+  onFocusComposer?: () => void
   onRuntimeCollaborationModeChange: (value: string) => void
   onRuntimeLearningLevelChange: (value: string) => void
   onRuntimeModelChange: (value: string) => void
@@ -116,10 +115,7 @@ export function AgentChatComposerPanels({
             onLearningLevelChange={onRuntimeLearningLevelChange}
             onModelChange={onRuntimeModelChange}
             onPrimaryRoleChange={onRuntimePrimaryRoleChange}
-            onSelectPlaybook={(playbook) => {
-              onSelectPlaybook(playbook)
-              queueMicrotask(onFocusComposer)
-            }}
+            onSelectPlaybook={onSelectPlaybook}
             onStrategyChange={onStrategyChange}
             onToggleOpen={() => undefined}
             onToggleRole={onToggleRuntimeRole}

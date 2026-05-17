@@ -28,7 +28,7 @@ export function InlineProgressSummary({
   const { t } = useTranslation()
 
   return (
-    <div className="rounded-lg border border-border bg-background px-3 py-2">
+    <div className="rounded-md border border-border bg-background px-3 py-2">
       <div className="flex min-w-0 items-center gap-2 text-xs">
         <CheckCircle2
           className={`size-4 shrink-0 text-emerald-600 ${
@@ -65,7 +65,7 @@ export function InlineStepStrip({ steps }: { steps: string[][] }) {
         return (
           <div
             key={`${index}-${label}`}
-            className="flex min-w-0 max-w-full items-center gap-2 rounded-full border border-border bg-card px-2.5 py-1.5 shadow-sm"
+            className="flex min-w-0 max-w-full items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5"
           >
             <span className="shrink-0 font-mono text-[11px] font-semibold text-muted-foreground">
               {String(index + 1).padStart(2, "0")}
@@ -90,12 +90,14 @@ export function InlineRuntimeBadge({
 }) {
   const { t } = useTranslation()
 
+  if (hasRuntime && !isStreaming) return null
+
   return (
     <span className="rounded-full bg-secondary px-2 py-1 text-[11px] font-medium text-secondary-foreground">
       {hasRuntime
         ? isStreaming
           ? t("agentChat.thread.statuses.executing")
-          : t("agentChat.thread.statuses.synced")
+          : null
         : isStreaming
           ? t("agentChat.thread.statuses.planning")
           : t("agentChat.thread.statuses.waiting")}
@@ -110,24 +112,24 @@ export function InlineAgentGrid({
   agents: InlineAgent[]
   compact?: boolean
 }) {
-  const visibleAgents = compact ? agents.slice(0, 3) : agents.slice(0, 6)
+  const visibleAgents = compact ? agents.slice(0, 4) : agents.slice(0, 8)
 
   return (
     <div className="grid gap-1.5">
       {visibleAgents.map((agent, index) => (
         <div
           key={agent.nodeId}
-          className={`flex min-w-0 items-center gap-2 rounded-md px-2.5 py-2 ${
+          className={`flex min-w-0 items-center gap-2.5 rounded-md border px-3 py-2 ${
             agent.state === "working" || agent.state === "reworking"
-              ? "bg-background ring-1 ring-foreground/25"
+              ? "border-foreground/25 bg-background"
               : agent.state === "boundary"
-                ? "bg-amber-50 text-amber-950 ring-1 ring-amber-200 dark:bg-amber-950/20 dark:text-amber-100 dark:ring-amber-900/60"
+                ? "border-amber-200 bg-amber-50/70 text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-100"
               : agent.state === "failed"
-                ? "bg-destructive/10"
-                : "bg-background/80"
+                ? "border-destructive/25 bg-destructive/10"
+                : "border-border bg-background/80"
           }`}
         >
-          <div className="flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-background">
+          <div className="flex size-7 shrink-0 items-center justify-center rounded-md border border-border bg-background">
             {agent.state === "working" || agent.state === "reworking" ? (
               <Loader2 className="size-4 animate-spin text-emerald-600" />
             ) : agent.state === "done" ? (
@@ -142,7 +144,7 @@ export function InlineAgentGrid({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <p className="truncate text-xs font-medium">{agent.name}</p>
+              <p className="truncate text-sm font-semibold">{agent.name}</p>
               <span className="font-mono text-xs font-semibold text-muted-foreground">
                 {String(index + 1).padStart(2, "0")}
               </span>
@@ -151,7 +153,7 @@ export function InlineAgentGrid({
               {agent.summary}
             </p>
           </div>
-          <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">
+          <span className="hidden shrink-0 text-xs font-medium text-muted-foreground sm:inline">
             {agent.status}
           </span>
           <InlinePixels state={agent.state} />

@@ -25,8 +25,8 @@ export function AgentDock({
   const { t } = useTranslation()
 
   return (
-    <div className="shrink-0 border-t border-[#d8d8d3] bg-[#f8f8f6] p-2 dark:border-border dark:bg-card">
-      <div className="grid min-w-0 grid-cols-2 gap-1.5 min-[1500px]:grid-cols-4">
+    <div className="shrink-0 bg-background p-2">
+      <div className="grid min-w-0 grid-cols-2 gap-1.5 min-[1500px]:grid-cols-3">
         {agents.map((agent, index) => {
           const state = getAgentState({
             agent,
@@ -43,14 +43,14 @@ export function AgentDock({
             <article
               key={agent.nodeId}
               title={`${formatAgentNumber(index)} ${agent.name} ${getDockStateLabel(state, t)}`}
-              className={`flex min-w-0 items-center gap-2 rounded-full border px-2 py-1.5 transition-colors ${
+              className={`flex min-w-0 items-center gap-2 rounded-md border px-2 py-1.5 transition-colors ${
                 isActive
                   ? "border-foreground bg-background shadow-sm"
-                  : "border-transparent bg-[#eeeeeb] text-muted-foreground"
+                  : "border-border bg-background/70 text-muted-foreground"
               }`}
             >
               <div
-                className={`flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-background ${
+                className={`flex size-7 shrink-0 items-center justify-center rounded-md border border-border bg-background ${
                   isActive ? "text-foreground" : "text-muted-foreground"
                 }`}
               >

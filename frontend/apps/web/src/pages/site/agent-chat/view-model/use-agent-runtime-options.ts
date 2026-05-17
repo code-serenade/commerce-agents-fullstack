@@ -56,7 +56,9 @@ export function useAgentRuntimeOptions(input: { enabled: boolean }) {
           ...current,
           collaborationMode,
           selectedRoles:
-            collaborationMode === "single"
+            collaborationMode === "auto"
+              ? []
+              : collaborationMode === "single"
               ? current.primaryRole
                 ? [current.primaryRole]
                 : current.selectedRoles.slice(0, 1)

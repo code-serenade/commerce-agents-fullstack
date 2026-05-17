@@ -16,13 +16,20 @@ const manualSelection: AgentChatRuntimeSelection = {
   selectedRoles: ["data", "ops"],
 }
 const manualCopy = "Manual"
+const autoCopy = "Auto"
 const higherVocationalCopy = "Higher vocational"
 
 describe("agent runtime options", () => {
-  it("defaults new commerce chats to an ops-led agent cluster", () => {
+  it("defaults new commerce chats to backend auto role dispatch when available", () => {
     expect(
       defaultRuntimeSelection({
         collaborationModes: [
+          {
+            id: "auto",
+            label: autoCopy,
+            description: autoCopy,
+            isDefault: false,
+          },
           {
             id: "manual",
             label: manualCopy,
@@ -87,7 +94,7 @@ describe("agent runtime options", () => {
         strategies: [],
       })
     ).toEqual({
-      collaborationMode: "manual",
+      collaborationMode: "auto",
       learningLevel: "higher_vocational",
       modelName: "ollama-gpt-oss-20b",
       primaryRole: "ops",
@@ -115,21 +122,35 @@ describe("agent runtime options", () => {
     })
   })
 
-  it("uses the chat role for quick execution answers", () => {
+  it("keeps explicit role mode for professional answers", () => {
     expect(runtimeSelectionForStrategy(manualSelection, "execution")).toEqual({
       ...manualSelection,
-      collaborationMode: "single",
-      primaryRole: "chat",
-      selectedRoles: ["chat"],
     })
   })
 
-  it("uses the chat role for guided learning answers", () => {
+  it("keeps explicit role mode for guided learning answers and lowers explanation level", () => {
     expect(runtimeSelectionForStrategy(manualSelection, "learning")).toEqual({
       ...manualSelection,
-      collaborationMode: "single",
-      primaryRole: "chat",
-      selectedRoles: ["chat"],
+      learningLevel: "beginner",
+    })
+  })
+
+  it("keeps auto collaboration as backend-dispatched role selection", () => {
+    expect(
+      runtimeSelectionForStrategy(
+        {
+          ...manualSelection,
+          collaborationMode: "auto",
+          primaryRole: "chat",
+          selectedRoles: [],
+        },
+        "collab"
+      )
+    ).toEqual({
+      ...manualSelection,
+      collaborationMode: "auto",
+      primaryRole: "ops",
+      selectedRoles: [],
     })
   })
 

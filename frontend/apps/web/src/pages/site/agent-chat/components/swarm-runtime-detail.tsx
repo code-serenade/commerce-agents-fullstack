@@ -43,11 +43,11 @@ export function ComputerRuntimeDetail({
   const ActiveIcon = activeAgent.icon
 
   return (
-    <section className="grid min-h-0 overflow-hidden rounded-lg border border-[#dcdcd7] bg-white shadow-sm dark:border-border dark:bg-background">
-      <div className="min-w-0 bg-white dark:bg-background">
-        <div className="flex items-center justify-between gap-3 border-b border-border bg-white px-4 py-3 min-[1500px]:px-5 dark:bg-background">
+    <section className="grid min-h-0 overflow-hidden rounded-lg border border-border bg-background">
+      <div className="min-w-0 bg-background">
+        <div className="flex items-center justify-between gap-3 border-b border-border bg-background px-4 py-3 min-[1500px]:px-5">
           <div className="flex min-w-0 items-center gap-2">
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-card">
               <ActiveIcon className="size-4" />
             </div>
             <div className="min-w-0">
@@ -89,9 +89,9 @@ function ComputerScreen({
   const { t } = useTranslation()
 
   return (
-    <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto]">
-      <div className="border-b border-border bg-white px-3 py-2.5 min-[1500px]:px-4 dark:bg-background">
-        <span className="text-xs font-medium text-muted-foreground">
+    <div className="grid min-h-0">
+      <div className="border-b border-border bg-muted/30 px-3 py-2.5 min-[1500px]:px-4">
+        <span className="text-xs font-semibold text-foreground">
           {t("agentChat.workbench.businessInput")}
         </span>
         <p className="mt-1 line-clamp-2 text-sm/6 text-foreground">
@@ -99,8 +99,8 @@ function ComputerScreen({
         </p>
       </div>
       <PreviewDocument filename={screen.filename} lines={screen.lines} />
-      <div className="grid gap-2 border-t border-border bg-[#f5f5f2] p-2 min-[1500px]:grid-cols-[minmax(0,1fr)_8rem] dark:bg-card">
-        <div className="min-w-0 rounded-md border border-border bg-background px-3 py-2">
+      <div className="grid gap-2 border-t border-border bg-background p-2 min-[1500px]:grid-cols-[minmax(0,1fr)_8rem]">
+        <div className="min-w-0 rounded-md border border-border bg-card px-3 py-2">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             {activeState === "working" || activeState === "reworking" ? (
               <Loader2 className="size-4 animate-spin text-emerald-600" />
@@ -121,7 +121,7 @@ function ComputerScreen({
               : activeAgent.objective}
           </p>
         </div>
-        <div className="rounded-md border border-border bg-background px-3 py-2">
+        <div className="rounded-md border border-border bg-card px-3 py-2">
           <p className="text-xs text-muted-foreground">
             {t("agentChat.workbench.turns")}
           </p>
@@ -148,7 +148,7 @@ function ComputerRuntimeChip({ card }: { card: ComputerCard }) {
 
   return (
     <article
-      className="flex min-w-0 items-center gap-2 rounded-full border border-border bg-background px-2.5 py-1.5 text-xs"
+      className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs"
       title={`${card.title} ${card.description}`}
     >
       <Icon className="size-3.5 shrink-0 text-muted-foreground" />
@@ -169,9 +169,9 @@ function PreviewDocument({ filename, lines }: { filename: string; lines: string[
   const { t } = useTranslation()
 
   return (
-    <div className="min-h-0 bg-white p-2.5 min-[1500px]:p-3 dark:bg-background">
-      <div className="flex h-full min-h-36 flex-col overflow-hidden rounded-lg border border-border bg-[#fbfbfa] dark:bg-card">
-        <div className="flex items-center justify-between gap-3 border-b border-border bg-[#f7f7f4] px-4 py-2.5 dark:bg-card">
+    <div className="min-h-0 bg-background p-2.5 min-[1500px]:p-3">
+      <div className="flex h-full min-h-36 flex-col overflow-hidden rounded-md border border-border bg-card">
+        <div className="flex items-center justify-between gap-3 border-b border-border bg-background px-4 py-2.5">
           <div className="flex min-w-0 items-center gap-2">
             <FileText className="size-4 shrink-0 text-muted-foreground" />
             <span className="truncate text-sm font-medium">{filename}</span>

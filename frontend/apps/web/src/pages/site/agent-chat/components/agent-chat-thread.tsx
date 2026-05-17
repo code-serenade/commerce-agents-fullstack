@@ -1,11 +1,17 @@
 import { Bot, UserRound } from "lucide-react"
-import { useCallback, useEffect, useRef } from "react"
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import type { AgentRuntimeEvent } from "@/api"
 import type { AgentChatMessage } from "../types"
 import { InlineSwarmTaskCard } from "./inline-swarm-task-card"
 import { MessageContextSummary } from "./message-context-summary"
 import { isChatOnlyRuntime } from "../view-model/thread-inline-view-model"
+import { AssistantAnswer } from "./assistant-answer"
+import {
+  createThreadScrollSnapshot,
+  restoreThreadScroll,
+  type ThreadScrollSnapshot,
+} from "../view-model/thread-scroll-preservation"
 import {
   AgentProgressCard,
   AgentStoppedCard,
@@ -46,41 +52,45 @@ export function AgentChatThread({
     (message) => message.status === "streaming"
   )
   const inlineIsStreaming = isStreaming || hasStreamingMessage
+  const messageIdentityKey = useMemo(
+    () => messages.map((message) => message.id).join("|"),
+    [messages]
+  )
+  const lastMessage = messages.at(-1)
+  const lastMessageContentLength = lastMessage?.content.length ?? 0
+  const previousMessageIdentityRef = useRef("")
+  const pendingScrollRestoreRef = useRef<ThreadScrollSnapshot | null>(null)
 
   useEffect(() => {
-    if (!inlineIsStreaming) return
+    if (messageIdentityKey === previousMessageIdentityRef.current) return
+    previousMessageIdentityRef.current = messageIdentityKey
+    requestAnimationFrame(() => {
+      endRef.current?.scrollIntoView({ behavior: "auto", block: "end" })
+    })
+  }, [messageIdentityKey])
+
+  useEffect(() => {
+    if (!inlineIsStreaming || !lastMessage) return
     if (activeProcessMessageId) return
     if (!isNearThreadBottom(scrollRootRef.current)) return
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
-  }, [messages, inlineIsStreaming, activeProcessMessageId])
+  }, [
+    activeProcessMessageId,
+    inlineIsStreaming,
+    lastMessage,
+    lastMessageContentLength,
+  ])
+
+  useLayoutEffect(() => {
+    restoreThreadScroll(pendingScrollRestoreRef.current)
+  }, [activeProcessMessageId])
 
   const preserveThreadScroll = useCallback((messageId: string | null, action: () => void) => {
     const root = scrollRootRef.current
-    const anchor = messageId
-      ? root?.querySelector<HTMLElement>(`[data-message-id="${messageId}"]`)
-      : null
-    const fallbackScrollTop = root?.scrollTop
-    const anchorTop = anchor?.getBoundingClientRect().top
-    const activeElement = document.activeElement
-    const shouldRefocus =
-      activeElement instanceof HTMLElement && Boolean(root?.contains(activeElement))
+    const snapshot = createThreadScrollSnapshot(root, messageId)
+    pendingScrollRestoreRef.current = snapshot
     action()
-    if (!root || fallbackScrollTop === undefined) return
-
-    const restore = () => {
-      if (shouldRefocus) activeElement.focus({ preventScroll: true })
-      if (anchor && anchorTop !== undefined) {
-        const nextTop = anchor.getBoundingClientRect().top
-        root.scrollTop += nextTop - anchorTop
-      } else {
-        root.scrollTop = fallbackScrollTop
-      }
-    }
-    restore()
-    requestAnimationFrame(() => {
-      restore()
-      requestAnimationFrame(restore)
-    })
+    restoreThreadScroll(snapshot)
   }, [])
 
   const handleOpenProcessPanel = (target: {
@@ -98,6 +108,7 @@ export function AgentChatThread({
   return (
     <section
       ref={scrollRootRef}
+      data-agent-chat-thread-scroll-root="true"
       className="min-h-0 flex-1 overflow-y-auto bg-background px-4 py-5 sm:px-6"
     >
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
@@ -161,10 +172,12 @@ function ThreadMessage({ message }: { message: AgentChatMessage }) {
         >
           {isWelcome ? (
             <WelcomeCard content={message.content} />
-          ) : message.content ? (
+          ) : message.content && isUser ? (
             <p className="wrap-break-word whitespace-pre-wrap">
               {message.content}
             </p>
+          ) : message.content ? (
+            <AssistantAnswer content={message.content} />
           ) : (
             <p className="text-muted-foreground">
               {t("agentChat.streaming")}

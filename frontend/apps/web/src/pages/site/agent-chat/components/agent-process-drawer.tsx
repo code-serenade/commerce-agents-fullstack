@@ -27,8 +27,8 @@ export function AgentProcessDrawer({
     : t("agentChat.thread.currentAnswerProcess")
 
   return (
-    <div className="pointer-events-none fixed inset-y-0 right-0 z-40 flex w-[min(60rem,calc(100%-1rem))] max-w-full flex-col items-end border-l border-border/70 bg-background/60 p-2 shadow-2xl backdrop-blur-sm xl:w-[min(64rem,50vw)] 2xl:w-[min(70rem,46vw)]">
-      <div className="pointer-events-auto mb-2 flex w-full items-center justify-between rounded-md border border-primary/25 bg-background/95 px-3 py-2 shadow-lg backdrop-blur">
+    <div className="pointer-events-none fixed inset-y-0 right-0 z-40 flex w-[min(46rem,calc(100%-1rem))] max-w-full flex-col items-end bg-background/60 p-3 shadow-2xl backdrop-blur-sm xl:w-[min(48rem,42vw)] 2xl:w-[min(52rem,38vw)]">
+      <div className="pointer-events-auto mb-3 flex w-full items-center justify-between rounded-lg border border-border bg-background/95 px-4 py-3 shadow-lg backdrop-blur">
         <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
           <ListTree className="size-4 shrink-0 text-primary" />
           <div className="min-w-0">
@@ -54,7 +54,7 @@ export function AgentProcessDrawer({
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-3 text-sm font-medium text-primary shadow-sm transition-colors hover:border-primary/70 hover:bg-primary/15"
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-3 text-sm font-medium text-primary shadow-sm transition-colors hover:border-primary/70 hover:bg-primary/15"
             aria-label={t("agentChat.workbench.closePanel")}
             title={t("agentChat.workbench.closePanel")}
           >
@@ -64,7 +64,7 @@ export function AgentProcessDrawer({
           <button
             type="button"
             onClick={onClose}
-            className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             aria-label={closeLabel}
             title={closeLabel}
           >
@@ -72,7 +72,7 @@ export function AgentProcessDrawer({
           </button>
         </div>
       </div>
-      <div className="pointer-events-auto min-h-0 flex-1 overflow-hidden rounded-lg bg-background shadow-2xl ring-1 ring-border/80">
+      <div className="pointer-events-auto min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-background shadow-xl">
         <AgentChatSwarmPanel
           feedback={chat.feedback}
           isStreaming={isStreaming}

@@ -79,16 +79,16 @@ export function AgentChatSwarmPanel({
   const timeline = getTimeline(runtimeEvents, agents, hasTask, isStreaming, t)
 
   return (
-    <aside className="h-full min-h-124 min-w-0 overflow-hidden rounded-lg border border-border bg-[#eeeeeb] p-1.5 shadow-sm 2xl:min-h-0 dark:bg-muted/30">
-      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg bg-[#f6f6f3] dark:bg-card">
-        <header className="sticky top-0 z-10 shrink-0 border-b border-[#d8d8d3] bg-[#f6f6f3]/95 p-2 backdrop-blur dark:border-border dark:bg-card/95">
+    <aside className="h-full min-h-124 min-w-0 overflow-hidden bg-background 2xl:min-h-0">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
+        <header className="sticky top-0 z-10 shrink-0 border-b border-border bg-background/95 px-4 py-3 backdrop-blur">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-foreground/20 bg-background text-foreground shadow-sm">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-card text-foreground">
                 <MonitorCog className="size-4" />
               </div>
               <div className="min-w-0">
-                <h2 className="truncate font-mono text-sm font-semibold">
+                <h2 className="truncate text-sm font-semibold">
                   {t("agentChat.workbench.title")}
                 </h2>
                 <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -111,7 +111,7 @@ export function AgentChatSwarmPanel({
                 </div>
               </div>
             </div>
-            <div className="rounded-md border border-border bg-background/90 p-1 shadow-sm">
+            <div className="rounded-md border border-border bg-card p-1">
               <button
                 type="button"
                 onClick={onCollapse}
@@ -125,7 +125,7 @@ export function AgentChatSwarmPanel({
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-1.5 [scrollbar-gutter:stable]">
+        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-3 [scrollbar-gutter:stable]">
           {hasRuntime ? (
             <ComputerRuntimeDetail
               activeAgent={activeAgent}
@@ -144,7 +144,7 @@ export function AgentChatSwarmPanel({
             />
           )}
 
-          <section className="mt-2 grid gap-1.5 min-[1500px]:grid-cols-3">
+          <section className="mt-3 grid gap-2 min-[1500px]:grid-cols-3">
             <WorkspaceHandoffRail compact />
             <AgentRunFeedbackPanel compact feedback={feedback} />
             <CompactInfoBlock
@@ -158,7 +158,7 @@ export function AgentChatSwarmPanel({
           </section>
         </div>
 
-        <div className="max-h-40 shrink-0 overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable]">
+        <div className="max-h-40 shrink-0 overflow-x-hidden overflow-y-auto border-t border-border [scrollbar-gutter:stable]">
           <AgentDock
             activeNodeId={activeAgent.nodeId}
             agents={agents}

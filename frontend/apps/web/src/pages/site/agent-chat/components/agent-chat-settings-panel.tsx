@@ -1,17 +1,15 @@
 import { ChevronsUpDown, SlidersHorizontal } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import type { AgentChatPlaybookSelection } from "../domain/agent-chat-playbook"
 import type {
   AgentChatRuntimeSelection,
   AgentRuntimeOptions,
 } from "../domain/agent-runtime-options"
 import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
-import { AgentChatPlaybookButtons } from "./agent-chat-playbook-buttons"
 import { AgentChatRuntimeOptionsBar } from "./agent-chat-runtime-options-bar"
 import { AgentChatStrategyBar } from "./agent-chat-strategy-bar"
 
 export interface AgentChatSettingsPanelProps {
-  isLoadingPlaybooks: boolean
+  isLoadingPlaybooks?: boolean
   isLoadingRuntimeOptions: boolean
   isOpen: boolean
   isStreaming: boolean
@@ -19,11 +17,11 @@ export interface AgentChatSettingsPanelProps {
   onLearningLevelChange: (value: string) => void
   onModelChange: (value: string) => void
   onPrimaryRoleChange: (value: string) => void
-  onSelectPlaybook: (playbook: AgentChatPlaybookSelection) => void
+  onSelectPlaybook?: unknown
   onStrategyChange: (strategyId: AgentChatStrategyId) => void
   onToggleOpen: () => void
   onToggleRole: (value: string) => void
-  playbooks: AgentChatPlaybookSelection[]
+  playbooks?: unknown[]
   runtimeOptions: AgentRuntimeOptions | null
   runtimeSelection: AgentChatRuntimeSelection
   strategyId: AgentChatStrategyId
@@ -31,7 +29,6 @@ export interface AgentChatSettingsPanelProps {
 }
 
 export function AgentChatSettingsPanel({
-  isLoadingPlaybooks,
   isLoadingRuntimeOptions,
   isOpen,
   isStreaming,
@@ -39,11 +36,9 @@ export function AgentChatSettingsPanel({
   onLearningLevelChange,
   onModelChange,
   onPrimaryRoleChange,
-  onSelectPlaybook,
   onStrategyChange,
   onToggleOpen,
   onToggleRole,
-  playbooks,
   runtimeOptions,
   runtimeSelection,
   strategyId,
@@ -78,17 +73,14 @@ export function AgentChatSettingsPanel({
           ) : null}
         </div>
         <AgentChatSettingsControls
-          isLoadingPlaybooks={isLoadingPlaybooks}
           isLoadingRuntimeOptions={isLoadingRuntimeOptions}
           isStreaming={isStreaming}
           onCollaborationModeChange={onCollaborationModeChange}
           onLearningLevelChange={onLearningLevelChange}
           onModelChange={onModelChange}
           onPrimaryRoleChange={onPrimaryRoleChange}
-          onSelectPlaybook={onSelectPlaybook}
           onStrategyChange={onStrategyChange}
           onToggleRole={onToggleRole}
-          playbooks={playbooks}
           runtimeOptions={runtimeOptions}
           runtimeSelection={runtimeSelection}
           strategyId={strategyId}
@@ -159,17 +151,14 @@ export function AgentChatSettingsPanel({
       {isOpen ? (
         <div className="grid gap-2 rounded-xl border border-border bg-background/80 p-2">
           <AgentChatSettingsControls
-            isLoadingPlaybooks={isLoadingPlaybooks}
             isLoadingRuntimeOptions={isLoadingRuntimeOptions}
             isStreaming={isStreaming}
             onCollaborationModeChange={onCollaborationModeChange}
             onLearningLevelChange={onLearningLevelChange}
             onModelChange={onModelChange}
             onPrimaryRoleChange={onPrimaryRoleChange}
-            onSelectPlaybook={onSelectPlaybook}
             onStrategyChange={onStrategyChange}
             onToggleRole={onToggleRole}
-            playbooks={playbooks}
             runtimeOptions={runtimeOptions}
             runtimeSelection={runtimeSelection}
             strategyId={strategyId}
@@ -181,32 +170,26 @@ export function AgentChatSettingsPanel({
 }
 
 function AgentChatSettingsControls({
-  isLoadingPlaybooks,
   isLoadingRuntimeOptions,
   isStreaming,
   onCollaborationModeChange,
   onLearningLevelChange,
   onModelChange,
   onPrimaryRoleChange,
-  onSelectPlaybook,
   onStrategyChange,
   onToggleRole,
-  playbooks,
   runtimeOptions,
   runtimeSelection,
   strategyId,
 }: {
-  isLoadingPlaybooks: boolean
   isLoadingRuntimeOptions: boolean
   isStreaming: boolean
   onCollaborationModeChange: (value: string) => void
   onLearningLevelChange: (value: string) => void
   onModelChange: (value: string) => void
   onPrimaryRoleChange: (value: string) => void
-  onSelectPlaybook: (playbook: AgentChatPlaybookSelection) => void
   onStrategyChange: (strategyId: AgentChatStrategyId) => void
   onToggleRole: (value: string) => void
-  playbooks: AgentChatPlaybookSelection[]
   runtimeOptions: AgentRuntimeOptions | null
   runtimeSelection: AgentChatRuntimeSelection
   strategyId: AgentChatStrategyId
@@ -228,12 +211,7 @@ function AgentChatSettingsControls({
         onToggleRole={onToggleRole}
         runtimeOptions={runtimeOptions}
         runtimeSelection={runtimeSelection}
-      />
-      <AgentChatPlaybookButtons
-        isLoading={isLoadingPlaybooks}
-        isStreaming={isStreaming}
-        onSelectPlaybook={onSelectPlaybook}
-        playbooks={playbooks}
+        strategyId={strategyId}
       />
     </>
   )

@@ -128,7 +128,7 @@ export function getInlineProcessStage(
       (event) => event.type === "workspace_artifact_created" || event.type === "workspace_run_completed"
     )
   ) {
-    return t("agentChat.thread.processStage.saved")
+    return t("agentChat.thread.processStage.finished")
   }
   if (runtimeEvents.some((event) => event.type === "task_graph_finished")) {
     return t("agentChat.thread.processStage.finished")

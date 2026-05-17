@@ -892,16 +892,16 @@ const messages = {
       current: "Current strategy",
       options: {
         execution: {
-          label: "Quick answer",
-          hint: "Usable result first",
+          label: "Professional answer",
+          hint: "Actionable conclusion first, then key steps",
         },
         learning: {
-          label: "Teach along",
-          hint: "Explain logic and steps",
+          label: "Teaching mode",
+          hint: "Explain the reasoning in beginner-friendly language",
         },
         collab: {
-          label: "Agent cluster",
-          hint: "Plan, split, improve",
+          label: "Team collaboration",
+          hint: "Coordinate one or multiple commerce roles",
         },
       },
     },
@@ -980,13 +980,27 @@ const messages = {
         rolesCount: "{{count}} roles",
       },
       runtime: {
-        label: "Runtime",
+        label: "Roles and model",
         loading: "Loading runtime",
         model: "Model",
-        learning: "Level",
-        collaboration: "Mode",
-        roles: "Roles",
+        learning: "Explanation level",
+        collaboration: "Role assignment",
+        roleMode: "Role assignment",
+        roles: "Support roles",
+        singleRole: "Selected role",
         primary: "Lead",
+        advanced: "More settings",
+        explanationDepth: "Explanation depth",
+        autoRolesHint:
+          "The backend will decide whether this turn needs one role or multiple collaborating roles.",
+        strategyNotes: {
+          execution:
+            "Best for reports, reviews, and plans: fewer concept explanations, more conclusions, steps, and risks.",
+          learning:
+            "Best for teaching and beginners: keep the substance while explaining terms and reasoning.",
+          collab:
+            "Best for complex commerce questions: split work by role, then synthesize one final answer.",
+        },
       },
       samples: {
         coffee: {
@@ -1099,7 +1113,7 @@ const messages = {
       executionTitle: "Business execution",
       statuses: {
         executing: "Executing",
-        synced: "Run synced",
+        synced: "",
         planning: "Planning",
         waiting: "Waiting for a new run",
       },
@@ -1207,15 +1221,15 @@ const messages = {
       processStage: {
         failed: "Execution blocked. Expand task process to inspect action items.",
         finished: "Plan summarized. Review process and business links.",
-        saved: "This answer was saved to the workspace",
+        saved: "Plan summarized. Review process and business links.",
         running: "Execution plan is progressing",
         planning: "Planning execution graph",
-        synced: "Run process synced",
+        synced: "Expand to review this run",
         history: "Historical chat. Expand task process to review this run.",
       },
       artifactState: {
         done: "Generated",
-        boundary: "Boundary complete",
+        boundary: "Needs data",
         working: "Generating",
         failed: "Blocked",
         queued: "Queued",
@@ -1223,7 +1237,7 @@ const messages = {
       },
       inlineState: {
         done: "Done",
-        boundary: "Boundary complete",
+        boundary: "Needs data",
         working: "Processing",
         reworking: "Retrying",
         failed: "Failed",
@@ -1326,7 +1340,7 @@ const messages = {
       },
       dockState: {
         done: "Done",
-        boundary: "Boundary complete",
+        boundary: "Needs data",
         working: "Reasoning",
         reworking: "Retrying",
         failed: "Failed",
@@ -1466,7 +1480,7 @@ const messages = {
           description: "Acceptance failed and the system triggered a rework instruction.",
         },
         boundary: {
-          title: "Boundary complete",
+          title: "Needs data",
           description: "This node hit an unselected-product or missing-adapter boundary and does not block the final answer.",
           line: "Handled as a category-level boundary: keep missing data, risks, and next steps without showing it as execution failure.",
         },
@@ -1484,7 +1498,7 @@ const messages = {
           tasksLinkedDescription: "Task graph nodes were written as workspace task snapshots.",
           taskUpdatedTitle: "Task snapshot updated",
           taskUpdatedDescription: "Virtual employee execution status was saved by the backend.",
-          taskBoundaryTitle: "Boundary complete",
+          taskBoundaryTitle: "Needs data",
           taskBoundaryDescription:
             "This node is a category-level data boundary without a selected product. It is saved but does not block answer synthesis.",
           completedTitle: "Report saved",
@@ -1546,7 +1560,7 @@ const messages = {
         nodeEvaluated: "Result reviewed",
         nodeRework: "Rework triggered",
         nodePassed: "Accepted",
-        nodeBoundary: "Boundary complete",
+        nodeBoundary: "Needs data",
         nodeFailed: "Execution blocked",
         skillRequested: "Capability requested",
         skillResult: "Capability returned",
@@ -1560,7 +1574,7 @@ const messages = {
       fallbackResponse: {
         failed: "This task failed, usually because the model service, tools, or upstream dependencies were unavailable.",
         boundary:
-          "This role produced a category-level / no-selected-product boundary, which the primary role will summarize as risks and missing data.",
+          "This role was limited by no selected product, missing live metrics, or an unavailable external adapter, so it produced a stage conclusion and missing-data list.",
         reworking: "Acceptance failed. The task output is being reorganized from feedback.",
         working: "{{agent}} is processing the request. Results will update here.",
         done: "{{agent}} is complete and waiting for final summary.",

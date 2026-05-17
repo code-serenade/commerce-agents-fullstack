@@ -26,7 +26,7 @@ export function WorkspaceHandoffRail({ compact = false }: { compact?: boolean })
   const navigate = useNavigate()
 
   return (
-    <div className="rounded-lg border border-border bg-background p-2 shadow-sm">
+    <div className="rounded-md border border-border bg-background p-2">
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1.5 text-xs font-medium">
           <PlugZap className="size-4 text-muted-foreground" />
@@ -72,7 +72,7 @@ export function CompactInfoBlock({
   title: string
 }) {
   return (
-    <div className="rounded-lg border border-border bg-background p-2 shadow-sm">
+    <div className="rounded-md border border-border bg-background p-2">
       <div className="mb-2 flex min-w-0 items-center gap-1.5 text-xs font-medium">
         <Icon className="size-4 text-muted-foreground" />
         <span className="truncate">{title}</span>
@@ -109,8 +109,8 @@ export function SwarmIdleDetail({
 
   return (
     <div className="p-3">
-      <div className="min-w-0 overflow-hidden rounded-xl border border-[#d8d8d3] bg-white shadow-sm dark:border-border dark:bg-background">
-        <div className="flex items-center justify-between gap-3 border-b border-border bg-white px-5 py-3 dark:bg-background">
+      <div className="min-w-0 overflow-hidden rounded-lg border border-border bg-card">
+        <div className="flex items-center justify-between gap-3 border-b border-border bg-card px-5 py-3">
           <div className="flex min-w-0 items-center gap-2">
             <MonitorCog className="size-4 shrink-0 text-muted-foreground" />
             <div className="min-w-0">
@@ -125,7 +125,7 @@ export function SwarmIdleDetail({
           <StatePill state={isStreaming ? "working" : "idle"} />
         </div>
         <div className="grid min-h-92 grid-rows-[auto_minmax(0,1fr)_auto]">
-          <div className="border-b border-border bg-white px-5 py-3 dark:bg-background">
+          <div className="border-b border-border bg-card px-5 py-3">
             <span className="text-xs font-medium text-muted-foreground">
               {t("agentChat.workbench.businessInput")}
             </span>
@@ -134,7 +134,7 @@ export function SwarmIdleDetail({
             </p>
           </div>
           <IdlePreview title={idleState.title} description={idleState.description} lines={lines} />
-          <div className="grid gap-2 border-t border-border bg-[#f5f5f2] p-3 sm:grid-cols-2 dark:bg-card">
+          <div className="grid gap-2 border-t border-border bg-background p-3 sm:grid-cols-2">
             {WORKSPACE_LANES.map(([labelKey, valueKey]) => (
               <div
                 key={labelKey}
@@ -165,9 +165,9 @@ function IdlePreview({
   const { t } = useTranslation()
 
   return (
-    <div className="min-h-0 bg-white p-3 dark:bg-background">
-      <div className="flex h-full min-h-64 flex-col overflow-hidden rounded-lg border border-border bg-[#fbfbfa] dark:bg-card">
-        <div className="flex items-center justify-between gap-2 border-b border-border bg-[#f7f7f4] px-4 py-2.5 dark:bg-card">
+    <div className="min-h-0 bg-card p-3">
+          <div className="flex h-full min-h-64 flex-col overflow-hidden rounded-md border border-border bg-background">
+        <div className="flex items-center justify-between gap-2 border-b border-border bg-card px-4 py-2.5">
           <div className="flex min-w-0 items-center gap-2">
             <FileText className="size-4 text-muted-foreground" />
             <span className="truncate text-sm font-medium">

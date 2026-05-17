@@ -51,7 +51,9 @@ export function defaultRuntimeSelection(
     options?.models.find((model) => model.isDefault)?.name ??
     options?.models[0]?.name
   const defaultCollaboration =
-    options?.collaborationModes.find((mode) => mode.isDefault)?.id ?? "manual"
+    options?.collaborationModes.find((mode) => mode.id === "auto")?.id ??
+    options?.collaborationModes.find((mode) => mode.isDefault)?.id ??
+    "manual"
   const defaultLearning =
     options?.learningLevels.find((level) => level.isDefault)?.id ??
     "higher_vocational"
@@ -130,18 +132,19 @@ export function runtimeSelectionForStrategy(
   selection: AgentChatRuntimeSelection,
   strategyId: string
 ): AgentChatRuntimeSelection {
-  if (strategyId === "execution" || strategyId === "learning") {
+  if (strategyId === "learning") {
     return {
       ...selection,
-      collaborationMode: "single",
-      primaryRole: "chat",
-      selectedRoles: ["chat"],
+      learningLevel: "beginner",
     }
   }
   if (strategyId === "collab") {
     return normalizeCollabRuntimeSelection({
       ...selection,
-      collaborationMode: "manual",
+      collaborationMode:
+        selection.collaborationMode === "single"
+          ? "auto"
+          : selection.collaborationMode,
     })
   }
   return selection
@@ -150,6 +153,14 @@ export function runtimeSelectionForStrategy(
 function normalizeCollabRuntimeSelection(
   selection: AgentChatRuntimeSelection
 ): AgentChatRuntimeSelection {
+  if (selection.collaborationMode === "auto") {
+    return {
+      ...selection,
+      primaryRole: selection.primaryRole === "chat" ? "ops" : selection.primaryRole,
+      selectedRoles: [],
+    }
+  }
+
   const roles = uniqueRuntimeRoles(selection.selectedRoles)
   const nonChatRoles = roles.filter((role) => role !== "chat")
   if (nonChatRoles.length === 0) {

@@ -1,5 +1,5 @@
 export type AgentChatResponseMode = "execution" | "learning"
-export type AgentChatCollaborationMode = "single" | "manual"
+export type AgentChatCollaborationMode = "auto" | "single" | "manual"
 
 export interface AgentChatStrategy {
   id: "execution" | "learning" | "collab"
@@ -31,7 +31,7 @@ export const AGENT_CHAT_STRATEGIES = [
   {
     id: "collab",
     responseMode: "execution",
-    collaborationMode: "manual",
+    collaborationMode: "auto",
     labelKey: "agentChat.strategy.options.collab.label",
     hintKey: "agentChat.strategy.options.collab.hint",
     intent:
@@ -66,8 +66,8 @@ export function buildAgentStrategyInput(
     `Response mode: ${strategy.responseMode}. Collaboration mode: ${strategy.collaborationMode}.`,
     `Strategy instruction: ${strategy.intent}`,
     "Relevant virtual employee roles include product, data, support, content, ads, operations, finance, supply chain, and delivery.",
-    "For execution mode, start with the business answer and concrete next actions.",
-    "For learning mode, explain the reasoning path while keeping the answer actionable.",
+    "For professional answer mode, start with the business answer and concrete next actions.",
+    "For teaching mode, explain the reasoning path in student-friendly language while keeping the answer actionable.",
     "For agent cluster mode, present role-based findings and then synthesize one final recommendation.",
     "Keep the answer centered on the user's question. Do not claim external platform execution or dynamic tool calls unless runtime events prove them.",
     "User question:",
