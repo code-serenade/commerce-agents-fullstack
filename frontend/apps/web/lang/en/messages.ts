@@ -1005,12 +1005,12 @@ const messages = {
         primary: "Lead",
         leadRole: "Lead answer role",
         supportRoles: "Support roles",
-        singleRoleHint: "Click one role card. Only that virtual employee answers this turn.",
-        leadRoleHint: "Click a role card to switch the role that synthesizes the answer.",
+        singleRoleHint: "Click a role card. That virtual employee answers this turn alone.",
+        leadRoleHint: "Click a role card to switch the lead answer role. The lead owns synthesis and the final plan.",
         supportRolesHint:
-          "Select roles that should add evidence, risks, assets, and action suggestions.",
-        answerRoleBadge: "Answering",
-        primaryBadge: "Synthesizes",
+          "Select support roles that should add evidence, risks, assets, and action suggestions into the backend task graph.",
+        answerRoleBadge: "Answer role",
+        primaryBadge: "Lead answer",
         supportBadge: "Support",
         currentLead: "Current lead",
         currentSupport: "Support: {{roles}}",
@@ -1027,16 +1027,16 @@ const messages = {
           auto: {
             label: "Auto dispatch",
             description:
-              "The system decides whether one or multiple roles are needed.",
+              "Recommended default. The backend decides whether one or multiple roles are needed.",
           },
           single: {
             label: "Single role",
-            description: "One virtual employee owns this answer.",
+            description: "Click one role card. Only that role answers this turn.",
           },
           manual: {
             label: "Multi-role",
             description:
-              "Select the lead and support roles manually for complex work.",
+              "Pick the lead answer role first, then select support roles.",
           },
         },
         strategyNotes: {

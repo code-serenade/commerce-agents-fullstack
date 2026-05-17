@@ -20,6 +20,23 @@ const CATEGORY_LEVEL_BOUNDARY_MARKER: &str = "category_level_boundary";
 const DEFAULT_NODE_ACCEPTANCE: &str =
     "输出必须围绕本岗位职责给出可复核的业务判断、依据、风险边界和下一步动作。";
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum TaskGraphAnswerMode {
+    Learning,
+    Quick,
+    Execution,
+}
+
+impl TaskGraphAnswerMode {
+    fn from_metadata(value: Option<&str>) -> Self {
+        match value {
+            Some("quick") => Self::Quick,
+            Some("execution") | Some("collab") => Self::Execution,
+            _ => Self::Learning,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TaskNodeRuntimeState {
     Pending,
@@ -37,6 +54,7 @@ pub struct TaskGraphRuntime {
     pub reports: HashMap<TaskNodeId, WorkerReport>,
     pub rework_instructions: HashMap<TaskNodeId, String>,
     pub evaluations: Vec<Evaluation>,
+    answer_mode: TaskGraphAnswerMode,
 }
 
 impl TaskGraphRuntime {
@@ -54,7 +72,13 @@ impl TaskGraphRuntime {
             reports: HashMap::new(),
             rework_instructions: HashMap::new(),
             evaluations: Vec::new(),
+            answer_mode: TaskGraphAnswerMode::Learning,
         }
+    }
+
+    pub fn with_response_mode(mut self, response_mode: Option<&str>) -> Self {
+        self.answer_mode = TaskGraphAnswerMode::from_metadata(response_mode);
+        self
     }
 
     pub fn ready_nodes(&self) -> Vec<TaskNode> {
@@ -208,8 +232,17 @@ impl TaskGraphRuntime {
         let mut lines = Vec::new();
         let team_playbook = ecommerce_team_playbook(&self.graph.root_task, &passed_nodes);
 
+        if matches!(self.answer_mode, TaskGraphAnswerMode::Quick) {
+            return synthesize_quick_answer(
+                &self.graph.root_task,
+                primary_node,
+                &passed_nodes,
+                &self.reports,
+            );
+        }
+
         lines.push("# 多智能体协作结论".to_string());
-        lines.push("多智能体任务图已完成。".to_string());
+        lines.push(mode_intro_line(self.answer_mode).to_string());
         lines.push(String::new());
         lines.push(format!("**用户任务**：{}", self.graph.root_task));
         if let Some(product_context) = product_context_line(&self.graph.root_task, &self.reports) {
@@ -228,8 +261,12 @@ impl TaskGraphRuntime {
             lines.extend(deterministic_quality_lines);
             lines.push(String::new());
         }
-        let team_contract_lines =
-            team_collaboration_contract_lines(&self.graph.root_task, primary_node, &passed_nodes);
+        let team_contract_lines = team_collaboration_contract_lines(
+            &self.graph.root_task,
+            primary_node,
+            &passed_nodes,
+            self.answer_mode,
+        );
         if !team_contract_lines.is_empty() {
             lines.extend(team_contract_lines);
             lines.push(String::new());
@@ -273,11 +310,11 @@ impl TaskGraphRuntime {
         }
         lines.push(String::new());
 
-        let role_briefs = role_brief_table(&passed_nodes, &self.reports);
+        let role_briefs = role_brief_table(&passed_nodes, primary_node, &self.reports);
         if !role_briefs.is_empty() {
-            lines.push("## 虚拟员工分工（各岗位独立输出）".to_string());
-            lines.push("| 岗位 | 负责问题 | 独立判断 | 交给主岗的内容 |".to_string());
-            lines.push("| --- | --- | --- | --- |".to_string());
+            lines.push("## 虚拟员工分工（主岗与协作岗）".to_string());
+            lines.push("| 类型 | 岗位 | 负责问题 | 独立判断 | 交给团队的内容 |".to_string());
+            lines.push("| --- | --- | --- | --- | --- |".to_string());
             lines.extend(role_briefs);
             lines.push(String::new());
         }
@@ -299,12 +336,34 @@ impl TaskGraphRuntime {
             lines.push(String::new());
         }
 
-        let execution_draft =
-            ecommerce_team_execution_draft(&self.graph.root_task, primary_node, &passed_nodes);
+        let execution_draft = ecommerce_team_execution_draft(
+            &self.graph.root_task,
+            primary_node,
+            &passed_nodes,
+            &self.reports,
+            self.answer_mode,
+        );
         if !execution_draft.is_empty() {
-            lines.push("## 团队执行稿".to_string());
+            lines.push(
+                if matches!(self.answer_mode, TaskGraphAnswerMode::Execution) {
+                    "## 丰富执行方案"
+                } else {
+                    "## 团队执行稿"
+                }
+                .to_string(),
+            );
             lines.extend(execution_draft);
             lines.push(String::new());
+        }
+
+        if matches!(self.answer_mode, TaskGraphAnswerMode::Learning) {
+            let teaching_lines =
+                teaching_explanation_lines(&self.graph.root_task, primary_node, &passed_nodes);
+            if !teaching_lines.is_empty() {
+                lines.push("## 教学讲解".to_string());
+                lines.extend(teaching_lines);
+                lines.push(String::new());
+            }
         }
 
         lines.push("## 岗位协作过程".to_string());
@@ -3207,10 +3266,142 @@ fn ecommerce_team_playbook(root_task: &str, nodes: &[&TaskNode]) -> Vec<String> 
     lines
 }
 
+fn mode_intro_line(mode: TaskGraphAnswerMode) -> &'static str {
+    match mode {
+        TaskGraphAnswerMode::Quick => "快速简答已完成。",
+        TaskGraphAnswerMode::Execution => "丰富执行模式已完成，多智能体任务图已形成可落地方案。",
+        TaskGraphAnswerMode::Learning => "教学模式已完成，多智能体任务图已形成可讲解的业务结论。",
+    }
+}
+
+fn synthesize_quick_answer(
+    root_task: &str,
+    primary_node: Option<&TaskNode>,
+    nodes: &[&TaskNode],
+    reports: &HashMap<TaskNodeId, WorkerReport>,
+) -> String {
+    let mut lines = Vec::new();
+    lines.push("# 快速简答".to_string());
+    lines.push(String::new());
+    if let Some(product_context) = product_context_line(root_task, reports) {
+        lines.push(product_context);
+        lines.push(String::new());
+    }
+
+    lines.push("## 直接结论".to_string());
+    let direct = direct_team_answer(root_task, primary_node, nodes, reports);
+    if direct.is_empty() {
+        if let Some(summary) = primary_answer_summary(primary_node, nodes, reports) {
+            lines.push(format!("- **结论**：{}", strip_list_marker(&summary)));
+        } else {
+            lines.push("- **结论**：本轮信息不足，需要补充业务目标或上下文后再判断。".to_string());
+        }
+    } else {
+        lines.extend(direct.into_iter().take(4));
+    }
+
+    let role_rows = quick_role_rows(nodes, primary_node, reports);
+    if !role_rows.is_empty() {
+        lines.push(String::new());
+        lines.push("## 岗位分工".to_string());
+        lines.push("| 类型 | 岗位 | 核心判断 | 下一步 |".to_string());
+        lines.push("| --- | --- | --- | --- |".to_string());
+        lines.extend(role_rows);
+    }
+
+    let actions = unique_strings(
+        nodes
+            .iter()
+            .filter_map(|node| reports.get(&node.id))
+            .filter_map(|report| report.role_output.as_ref())
+            .flat_map(|output| output.recommendations.clone())
+            .filter_map(|item| {
+                visible_non_empty(&item)
+                    .map(strip_list_marker)
+                    .map(ToString::to_string)
+            })
+            .collect(),
+    );
+    if !actions.is_empty() {
+        lines.push(String::new());
+        lines.push("## 下一步".to_string());
+        for (index, action) in actions.iter().take(3).enumerate() {
+            lines.push(format!("{}. {}", index + 1, action));
+        }
+    }
+
+    lines.join("\n")
+}
+
+fn quick_role_rows(
+    nodes: &[&TaskNode],
+    primary_node: Option<&TaskNode>,
+    reports: &HashMap<TaskNodeId, WorkerReport>,
+) -> Vec<String> {
+    nodes
+        .iter()
+        .filter(|node| node.role != "chat")
+        .filter_map(|node| {
+            let output = reports.get(&node.id)?.role_output.as_ref()?;
+            let finding = first_visible_non_empty(&output.findings)
+                .or_else(|| visible_non_empty(output.summary.as_str()))
+                .unwrap_or("已形成本岗位判断");
+            let action = first_visible_non_empty(&output.recommendations)
+                .or_else(|| first_visible_non_empty(&output.risks))
+                .unwrap_or("交给主岗整合");
+            let role_type = if primary_node.is_some_and(|primary| primary.id == node.id) {
+                "主岗"
+            } else {
+                "协作岗"
+            };
+            Some(format!(
+                "| {} | {} | {} | {} |",
+                role_type,
+                role_display_name(&node.role),
+                markdown_table_cell(strip_list_marker(finding)),
+                markdown_table_cell(strip_list_marker(action))
+            ))
+        })
+        .collect()
+}
+
+fn teaching_explanation_lines(
+    root_task: &str,
+    primary_node: Option<&TaskNode>,
+    nodes: &[&TaskNode],
+) -> Vec<String> {
+    let roles = nodes
+        .iter()
+        .filter(|node| node.role != "chat")
+        .map(|node| node.role.as_str())
+        .collect::<Vec<_>>();
+    if roles.is_empty() {
+        return Vec::new();
+    }
+
+    let mut lines = Vec::new();
+    let primary = primary_node
+        .map(|node| role_display_name(&node.role))
+        .unwrap_or("主回答岗位");
+    lines.push(format!(
+        "- **怎么读这份回答**：先看“综合回答”拿结论，再看“虚拟员工分工”理解每个岗位为什么这么判断，最后看执行稿决定下一步先做什么。{}负责把团队意见收口。",
+        primary
+    ));
+    if is_live_conversion_task(root_task) {
+        lines.push("- **关键概念**：直播漏斗要逐段看，曝光到点击看吸引力，点击到加购看商品承接，加购到付款看价格、信任和下单阻力。".to_string());
+    }
+    if is_category_level_task(root_task) {
+        lines.push("- **商品边界**：未手动选择预设商品时，只能做类目级判断；选择了具体商品后，才进入单品资料注入链路。".to_string());
+    }
+    lines.push("- **继续追问建议**：可以继续补充预算、平台、商品资料、历史转化或素材方向，系统会在同一会话里把这些信息作为上下文继续使用。".to_string());
+    lines
+}
+
 fn team_collaboration_contract_lines(
     root_task: &str,
     primary_node: Option<&TaskNode>,
     nodes: &[&TaskNode],
+    mode: TaskGraphAnswerMode,
 ) -> Vec<String> {
     let roles = nodes
         .iter()
@@ -3240,6 +3431,9 @@ fn team_collaboration_contract_lines(
         }
     }
 
+    if matches!(mode, TaskGraphAnswerMode::Execution) {
+        lines.push("- **丰富执行要求**：主回答岗位必须把岗位判断转成可执行清单、负责人、验收指标和风险边界；协作岗输出不是装饰，而是最终方案的证据来源。".to_string());
+    }
     lines.push("- **过程文件**：后端会把最终答复沉淀为 `final_report`；数据、投放、内容、服务或工程岗位如果产出结构化过程，也会进入对应 artifact，供后续预览、追问和导出。".to_string());
     lines
 }
@@ -3326,6 +3520,8 @@ fn ecommerce_team_execution_draft(
     root_task: &str,
     primary_node: Option<&TaskNode>,
     nodes: &[&TaskNode],
+    reports: &HashMap<TaskNodeId, WorkerReport>,
+    mode: TaskGraphAnswerMode,
 ) -> Vec<String> {
     let roles = nodes
         .iter()
@@ -3355,6 +3551,16 @@ fn ecommerce_team_execution_draft(
     let mut lines = vec![format!(
         "- **主结论**：{first_sentence}{category_line} {primary}负责把各岗位结论收敛为最终行动节奏。"
     )];
+    if matches!(mode, TaskGraphAnswerMode::Execution) {
+        let rows = execution_action_table_rows(nodes, reports);
+        if !rows.is_empty() {
+            lines.push(String::new());
+            lines.push("| 优先级 | 负责人 | 动作 | 验收方式 | 风险边界 |".to_string());
+            lines.push("| --- | --- | --- | --- | --- |".to_string());
+            lines.extend(rows);
+            lines.push(String::new());
+        }
+    }
     if roles.contains(&"data") {
         lines.push("- **数据分析师**：先定义可复核口径，至少包括曝光、点击、加购、付款、退款、咨询量和渠道拆分；没有真实数据时输出诊断框架和待补齐清单，不编造数值。".to_string());
     }
@@ -3387,6 +3593,58 @@ fn ecommerce_team_execution_draft(
     }
     lines.push("- **交付物**：本轮会沉淀为 `final_report`，报告中保留岗位分工、过程依据、风险边界和下一步清单，方便后续在同一会话继续追问。".to_string());
     lines
+}
+
+fn execution_action_table_rows(
+    nodes: &[&TaskNode],
+    reports: &HashMap<TaskNodeId, WorkerReport>,
+) -> Vec<String> {
+    nodes
+        .iter()
+        .filter(|node| node.role != "chat")
+        .filter_map(|node| {
+            let output = reports.get(&node.id)?.role_output.as_ref()?;
+            let action = first_visible_non_empty(&output.recommendations)
+                .or_else(|| visible_non_empty(output.summary.as_str()))
+                .unwrap_or("按本岗位边界补齐执行动作");
+            let risk = first_visible_non_empty(&output.risks)
+                .or_else(|| first_visible_non_empty(&output.open_questions))
+                .unwrap_or("持续复核数据和执行边界");
+            Some(format!(
+                "| {} | {} | {} | {} | {} |",
+                role_priority_label(&node.role),
+                role_display_name(&node.role),
+                markdown_table_cell(strip_list_marker(action)),
+                markdown_table_cell(role_acceptance_hint(&node.role)),
+                markdown_table_cell(strip_list_marker(risk))
+            ))
+        })
+        .collect()
+}
+
+fn role_priority_label(role: &str) -> &'static str {
+    match role {
+        "data" => "P0",
+        "ops" => "P0",
+        "douyin_ads" | "accounting" => "P1",
+        "creative" | "design" | "service" | "engineering" => "P1",
+        _ => "P2",
+    }
+}
+
+fn role_acceptance_hint(role: &str) -> &'static str {
+    match role {
+        "data" => "漏斗口径、样本周期和异常段可复核",
+        "ops" => "形成优先级、节奏、负责人和复盘节点",
+        "creative" => "至少产出可测试标题/脚本/素材方向",
+        "design" => "主图、详情页或直播视觉承接点明确",
+        "service" => "客服话术、售后承诺和升级 SOP 明确",
+        "engineering" => "埋点、报表刷新和回滚边界可验证",
+        "douyin_ads" => "人群、素材、出价、预算和止损线明确",
+        "accounting" => "毛利、CPA/ROI 和现金流边界明确",
+        "web" => "关键词、FAQ 和页面转化路径明确",
+        _ => "本岗位产物可被主岗继续引用",
+    }
 }
 
 fn is_live_conversion_task(task: &str) -> bool {
@@ -3569,6 +3827,7 @@ fn inferred_collaboration_handoffs(nodes: &[&TaskNode]) -> Vec<String> {
 
 fn role_brief_table(
     nodes: &[&TaskNode],
+    primary_node: Option<&TaskNode>,
     reports: &HashMap<TaskNodeId, WorkerReport>,
 ) -> Vec<String> {
     nodes
@@ -3583,8 +3842,14 @@ fn role_brief_table(
                 .or_else(|| first_visible_non_empty(&output.risks))
                 .or_else(|| first_visible_non_empty(&output.open_questions))
                 .unwrap_or("继续交给主岗整合");
+            let role_type = if primary_node.is_some_and(|primary| primary.id == node.id) {
+                "主回答岗位"
+            } else {
+                "协作岗位"
+            };
             Some(format!(
-                "| {} | {} | {} | {} |",
+                "| {} | {} | {} | {} | {} |",
+                role_type,
                 role_display_name(&node.role),
                 markdown_table_cell(role_responsibility(&node.role)),
                 markdown_table_cell(&format!(
@@ -4992,7 +5257,7 @@ mod tests {
         assert!(output.contains("## 主岗综合方案"));
         assert!(output.contains("## 虚拟员工分工"));
         assert!(output.contains("## 岗位协作过程"));
-        assert!(output.contains("| 岗位 | 负责问题 | 独立判断 | 交给主岗的内容 |"));
+        assert!(output.contains("| 类型 | 岗位 | 负责问题 | 独立判断 | 交给团队的内容 |"));
         assert!(output.contains("发现: 首屏承接弱"));
         assert!(output.contains("建议: P1 优化首屏"));
         assert!(output.contains("风险: 不要同时改太多变量"));
@@ -6070,6 +6335,198 @@ mod tests {
         assert!(output.contains("判断直播间转化是否健康时，要把曝光、点击、加购、付款、退款、咨询承接和履约风险连成一条漏斗看"));
         assert!(output.contains("不会把任何历史商品、测试商品或默认商品注入为本轮商品"));
         assert!(output.contains("交付物"));
+    }
+
+    #[test]
+    fn synthesis_quick_mode_returns_compact_team_answer() {
+        let graph = TaskGraph {
+            graph_id: TaskGraphId("graph-quick-mode".to_string()),
+            root_task: "请快速判断咖啡类商品直播转化是否健康，不引用任何预设商品。".to_string(),
+            nodes: vec![
+                node(
+                    "ops",
+                    "ops",
+                    "运营方案",
+                    "快速收敛运营判断".to_string(),
+                    Vec::new(),
+                    2,
+                ),
+                node(
+                    "data",
+                    "data",
+                    "数据诊断",
+                    "补充漏斗指标判断".to_string(),
+                    vec!["ops"],
+                    2,
+                ),
+            ],
+        };
+        let mut runtime = TaskGraphRuntime::new(graph).with_response_mode(Some("quick"));
+        let ops = runtime.ready_nodes().remove(0);
+        let ops_assignment = runtime.build_assignment(&ops);
+        runtime.mark_running(&ops_assignment);
+        assert!(matches!(
+            runtime.apply_report(report_from_assignment(&ops_assignment, "运营判断完整")),
+            EvaluationOutcome::Passed(_)
+        ));
+
+        let data = runtime.ready_nodes().remove(0);
+        let data_assignment = runtime.build_assignment(&data);
+        runtime.mark_running(&data_assignment);
+        let mut data_report = report_from_assignment(&data_assignment, "数据诊断完成");
+        if let Some(output) = data_report.role_output.as_mut() {
+            output.evidence = vec!["worker.assignment.input.ops".to_string()];
+        }
+        assert!(matches!(
+            runtime.apply_report(data_report),
+            EvaluationOutcome::Passed(_)
+        ));
+
+        let output = runtime.synthesize();
+        assert!(output.contains("# 快速简答"));
+        assert!(output.contains("## 直接结论"));
+        assert!(output.contains("| 类型 | 岗位 | 核心判断 | 下一步 |"));
+        assert!(output.contains("主岗"));
+        assert!(output.contains("协作岗"));
+        assert!(output.contains("## 下一步"));
+        assert!(!output.contains("## 岗位协作过程"));
+        assert!(!output.contains("## 丰富执行方案"));
+    }
+
+    #[test]
+    fn synthesis_execution_mode_emits_action_table_and_role_ownership() {
+        let graph = TaskGraph {
+            graph_id: TaskGraphId("graph-execution-mode".to_string()),
+            root_task: "请给出咖啡类商品直播转化提升的丰富执行方案，不引用任何预设商品。"
+                .to_string(),
+            nodes: vec![
+                node(
+                    "data",
+                    "data",
+                    "数据诊断",
+                    "给出漏斗口径和数据缺口".to_string(),
+                    Vec::new(),
+                    2,
+                ),
+                node(
+                    "creative",
+                    "creative",
+                    "创意产出",
+                    "基于数据诊断给出内容方向".to_string(),
+                    vec!["data"],
+                    2,
+                ),
+                node(
+                    "ops",
+                    "ops",
+                    "运营方案",
+                    "整合数据和创意形成执行方案".to_string(),
+                    vec!["creative"],
+                    2,
+                ),
+            ],
+        };
+        let mut runtime = TaskGraphRuntime::new(graph).with_response_mode(Some("execution"));
+        let data = runtime.ready_nodes().remove(0);
+        let data_assignment = runtime.build_assignment(&data);
+        runtime.mark_running(&data_assignment);
+        assert!(matches!(
+            runtime.apply_report(report_from_assignment(&data_assignment, "数据诊断完整")),
+            EvaluationOutcome::Passed(_)
+        ));
+
+        let creative = runtime.ready_nodes().remove(0);
+        let creative_assignment = runtime.build_assignment(&creative);
+        runtime.mark_running(&creative_assignment);
+        let mut creative_report = report_from_assignment(&creative_assignment, "创意方案完整");
+        if let Some(output) = creative_report.role_output.as_mut() {
+            output.evidence = vec!["worker.assignment.input.data".to_string()];
+            output.findings = vec!["咖啡卖点需要拆成场景、口味和复购理由。".to_string()];
+            output.recommendations = vec!["产出三套短视频钩子和直播间开场脚本。".to_string()];
+        }
+        assert!(matches!(
+            runtime.apply_report(creative_report),
+            EvaluationOutcome::Passed(_)
+        ));
+
+        let ops = runtime.ready_nodes().remove(0);
+        let ops_assignment = runtime.build_assignment(&ops);
+        runtime.mark_running(&ops_assignment);
+        let mut ops_report = report_from_assignment(&ops_assignment, "运营执行方案完整");
+        if let Some(output) = ops_report.role_output.as_mut() {
+            output.evidence = vec![
+                "worker.assignment.input.creative".to_string(),
+                "worker.assignment.input.data".to_string(),
+            ];
+        }
+        assert!(matches!(
+            runtime.apply_report(ops_report),
+            EvaluationOutcome::Passed(_)
+        ));
+
+        let output = runtime.synthesize();
+        assert!(output.contains("丰富执行模式已完成"));
+        assert!(output.contains("## 丰富执行方案"));
+        assert!(output.contains("| 优先级 | 负责人 | 动作 | 验收方式 | 风险边界 |"));
+        assert!(output.contains("主回答岗位"));
+        assert!(output.contains("协作岗位"));
+        assert!(output.contains("丰富执行要求"));
+        assert!(!output.contains("## 教学讲解"));
+    }
+
+    #[test]
+    fn synthesis_learning_mode_keeps_student_friendly_explanation_by_default() {
+        let graph = TaskGraph {
+            graph_id: TaskGraphId("graph-learning-mode".to_string()),
+            root_task: "请用教学方式解释咖啡类商品直播转化怎么分析，不引用任何预设商品。"
+                .to_string(),
+            nodes: vec![
+                node(
+                    "data",
+                    "data",
+                    "数据诊断",
+                    "解释漏斗指标".to_string(),
+                    Vec::new(),
+                    2,
+                ),
+                node(
+                    "ops",
+                    "ops",
+                    "运营方案",
+                    "整合为教学讲解".to_string(),
+                    vec!["data"],
+                    2,
+                ),
+            ],
+        };
+        let mut runtime = TaskGraphRuntime::new(graph);
+        let data = runtime.ready_nodes().remove(0);
+        let data_assignment = runtime.build_assignment(&data);
+        runtime.mark_running(&data_assignment);
+        assert!(matches!(
+            runtime.apply_report(report_from_assignment(&data_assignment, "数据教学诊断完整")),
+            EvaluationOutcome::Passed(_)
+        ));
+
+        let ops = runtime.ready_nodes().remove(0);
+        let ops_assignment = runtime.build_assignment(&ops);
+        runtime.mark_running(&ops_assignment);
+        let mut ops_report = report_from_assignment(&ops_assignment, "运营教学方案完整");
+        if let Some(output) = ops_report.role_output.as_mut() {
+            output.evidence = vec!["worker.assignment.input.data".to_string()];
+        }
+        assert!(matches!(
+            runtime.apply_report(ops_report),
+            EvaluationOutcome::Passed(_)
+        ));
+
+        let output = runtime.synthesize();
+        assert!(output.contains("教学模式已完成"));
+        assert!(output.contains("## 教学讲解"));
+        assert!(output.contains("怎么读这份回答"));
+        assert!(output.contains("商品边界"));
+        assert!(output.contains("## 团队执行稿"));
+        assert!(!output.contains("## 丰富执行方案"));
     }
 
     #[test]

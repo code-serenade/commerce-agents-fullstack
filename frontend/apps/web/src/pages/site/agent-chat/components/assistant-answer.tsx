@@ -139,7 +139,7 @@ function TableBlock({
   block: Extract<AssistantAnswerBlock, { kind: "table" }>
 }) {
   return (
-    <div className="max-w-full overflow-x-auto rounded-lg border border-foreground/30 bg-background shadow-sm ring-1 ring-foreground/10 [&_table]:border-collapse [&_tbody_tr:nth-child(even)]:bg-muted/25 [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2.5 [&_td]:align-top [&_th]:border [&_th]:border-border [&_th]:bg-muted/90 [&_th]:px-3 [&_th]:py-2.5 [&_th]:text-foreground [&_thead]:border-b [&_thead]:border-foreground/20">
+    <div className="max-w-full overflow-x-auto rounded-lg border border-foreground/40 bg-background shadow-sm ring-1 ring-foreground/15 [&_table]:border-collapse [&_tbody_tr:nth-child(even)]:bg-muted/30 [&_td]:border [&_td]:border-foreground/20 [&_td]:px-3 [&_td]:py-2.5 [&_td]:align-top [&_th]:border [&_th]:border-foreground/25 [&_th]:bg-muted [&_th]:px-3 [&_th]:py-2.5 [&_th]:font-semibold [&_th]:text-foreground [&_thead]:border-b [&_thead]:border-foreground/30">
       <Table>
         <TableHeader>
           <TableRow>
@@ -175,10 +175,10 @@ function resolveSectionTone(text: string) {
   if (/^(各岗位独立输出|虚拟员工分工|协作回答|岗位协作|各岗位|分工)/.test(text)) {
     return "rounded-lg border border-border bg-muted/35 px-3 py-2 text-foreground"
   }
-  if (/^(主岗汇总方案|主岗综合方案|团队执行稿)/.test(text)) {
+  if (/^(主岗汇总方案|主岗综合方案|团队执行稿|丰富执行方案)/.test(text)) {
     return "rounded-lg border border-foreground/15 bg-card px-3 py-2"
   }
-  if (/^(执行清单|下一步|团队执行稿|交付物|可沉淀交付物)/.test(text)) {
+  if (/^(教学讲解|执行清单|下一步|交付物|可沉淀交付物)/.test(text)) {
     return "border-l-2 border-primary/40 pl-3"
   }
   return ""
@@ -191,9 +191,10 @@ function resolveSectionLabel(text: string, labels: SectionLabels) {
   if (/^(各岗位独立输出|虚拟员工分工|岗位协作|协作回答|各岗位)/.test(text)) {
     return labels.team
   }
-  if (/^(主岗汇总方案|主岗综合方案|执行清单|下一步|团队执行稿|交付物|可沉淀交付物)/.test(text)) {
+  if (/^(主岗汇总方案|主岗综合方案|丰富执行方案|执行清单|下一步|团队执行稿|交付物|可沉淀交付物)/.test(text)) {
     return labels.action
   }
+  if (/^(教学讲解)/.test(text)) return labels.team
   return ""
 }
 

@@ -439,7 +439,18 @@ impl Commander {
         self.pending_support_workers.clear();
         self.completed_support_workers.clear();
         self.collaboration_outputs.clear();
-        let runtime = TaskGraphRuntime::new(graph);
+        let runtime = TaskGraphRuntime::new(graph).with_response_mode(
+            self.current_context
+                .metadata
+                .get("strategy.response_mode")
+                .map(String::as_str)
+                .or_else(|| {
+                    self.current_context
+                        .metadata
+                        .get("strategy.id")
+                        .map(String::as_str)
+                }),
+        );
         self.schedule_task_graph_runtime(runtime).await;
         true
     }

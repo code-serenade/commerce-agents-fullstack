@@ -285,7 +285,14 @@ impl SessionRuntime {
                                 SettingsError::invalid("chat bypass graph is unavailable")
                             })?,
                     ],
-                });
+                })
+                .with_response_mode(
+                    self.context
+                        .metadata
+                        .get("strategy.response_mode")
+                        .map(String::as_str)
+                        .or_else(|| self.context.metadata.get("strategy.id").map(String::as_str)),
+                );
                 let assignment = runtime.build_assignment(&runtime.ready_nodes().remove(0));
                 runtime.mark_running(&assignment);
                 let _ = runtime.apply_report(report);
@@ -524,7 +531,13 @@ impl SessionRuntime {
     }
 
     fn dispatch_chat_direct(&self, context: MessageContext, graph: TaskGraph) -> Result<()> {
-        let runtime = TaskGraphRuntime::new(graph);
+        let runtime = TaskGraphRuntime::new(graph).with_response_mode(
+            self.context
+                .metadata
+                .get("strategy.response_mode")
+                .map(String::as_str)
+                .or_else(|| self.context.metadata.get("strategy.id").map(String::as_str)),
+        );
         let Some(node) = runtime.ready_nodes().into_iter().next() else {
             return Err(SettingsError::invalid("chat bypass graph has no ready node").into());
         };

@@ -945,7 +945,8 @@ async fn commander_dispatches_task_graph_roles_after_upstream_role() {
     assert!(runtime_roles.contains("data"));
     assert!(runtime_roles.contains("accounting"));
     assert!(runtime_roles.contains("creative"));
-    assert!(result.output.contains("多智能体任务图已完成"));
+    assert!(result.output.contains("多智能体协作结论"));
+    assert!(result.output.contains("教学模式已完成"));
     assert!(result.output.contains("数据诊断"));
     assert!(result.output.contains("数据分析师"));
     assert!(result.output.contains("预算评估"));

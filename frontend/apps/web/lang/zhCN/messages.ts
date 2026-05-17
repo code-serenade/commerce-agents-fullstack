@@ -992,11 +992,11 @@ const messages = {
         primary: "主岗",
         leadRole: "主回答岗位",
         supportRoles: "协作岗位",
-        singleRoleHint: "点击一个岗位卡片，本轮只由这个虚拟员工回答。",
-        leadRoleHint: "点击岗位卡片切换负责汇总回答的主岗。",
-        supportRolesHint: "勾选参与补充证据、风险、素材和动作建议的协作岗位。",
-        answerRoleBadge: "本轮回答",
-        primaryBadge: "负责汇总",
+        singleRoleHint: "点哪个岗位卡片，本轮就只由哪个虚拟员工回答。",
+        leadRoleHint: "点岗位卡片即可切换主回答岗位；主岗负责综合结论和最终方案。",
+        supportRolesHint: "勾选协作岗补充证据、风险、素材和动作建议，协作岗会进入后端任务图。",
+        answerRoleBadge: "当前回答岗",
+        primaryBadge: "主回答",
         supportBadge: "协作",
         currentLead: "当前主岗",
         currentSupport: "协作：{{roles}}",
@@ -1009,15 +1009,15 @@ const messages = {
         roleModes: {
           auto: {
             label: "自动分配",
-            description: "系统根据问题自动判断一个或多个岗位。",
+            description: "推荐默认项。后端根据问题自动判断单岗或多岗。",
           },
           single: {
             label: "指定单岗",
-            description: "只让一个虚拟员工负责本轮回答。",
+            description: "点一个岗位卡片，本轮只由该岗位回答。",
           },
           manual: {
             label: "指定多岗",
-            description: "手动选择主岗和协作岗位，适合复杂任务。",
+            description: "先点主回答岗位，再勾选协作岗位。",
           },
         },
         strategyNotes: {

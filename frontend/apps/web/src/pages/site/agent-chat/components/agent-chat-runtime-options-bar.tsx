@@ -53,34 +53,11 @@ export function AgentChatRuntimeOptionsBar({
 
   return (
     <div className="grid gap-3 rounded-lg border border-border bg-background p-3">
-      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-        <div className="min-w-0">
-          <div className="flex min-w-0 items-center gap-1.5 text-xs font-semibold text-foreground">
-            <Cpu className="size-3.5 shrink-0 text-muted-foreground" />
-            <span>{t("agentChat.composer.runtime.modelSettings")}</span>
-          </div>
-          <p className="mt-1 text-xs/5 text-muted-foreground">
-            {t("agentChat.composer.runtime.modelHint")}
-          </p>
+      {!runtimeOptions && isLoadingRuntimeOptions ? (
+        <div className="rounded-lg border border-border bg-card px-3 py-2 text-xs text-muted-foreground">
+          {t("agentChat.composer.runtime.loading")}
         </div>
-        <div className="flex min-w-0 flex-wrap items-center justify-start gap-2 sm:justify-end">
-          {isLoadingRuntimeOptions ? (
-            <span className="rounded-full border border-border bg-background/70 px-3 py-1.5 text-xs text-muted-foreground">
-              {t("agentChat.composer.runtime.loading")}
-            </span>
-          ) : null}
-          {runtimeOptions ? (
-            <RuntimeSelect
-              disabled={controlDisabled}
-              label={t("agentChat.composer.runtime.model")}
-              onValueChange={onModelChange}
-              options={runtimeOptions.models.map(modelToSelectOption)}
-              value={runtimeSelection.modelName ?? ""}
-            />
-          ) : null}
-        </div>
-      </div>
-
+      ) : null}
       {runtimeOptions ? (
         <>
           <AdvancedRuntimeOptions
@@ -104,6 +81,31 @@ export function AgentChatRuntimeOptionsBar({
             roles={specialistRoles}
             runtimeSelection={runtimeSelection}
           />
+          <div className="grid gap-2 rounded-lg border border-border bg-card p-2.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+            <div className="min-w-0">
+              <div className="flex min-w-0 items-center gap-1.5 text-xs font-semibold text-foreground">
+                <Cpu className="size-3.5 shrink-0 text-muted-foreground" />
+                <span>{t("agentChat.composer.runtime.modelSettings")}</span>
+              </div>
+              <p className="mt-1 text-xs/5 text-muted-foreground">
+                {t("agentChat.composer.runtime.modelHint")}
+              </p>
+            </div>
+            <div className="flex min-w-0 flex-wrap items-center justify-start gap-2 sm:justify-end">
+              {isLoadingRuntimeOptions ? (
+                <span className="rounded-full border border-border bg-background/70 px-3 py-1.5 text-xs text-muted-foreground">
+                  {t("agentChat.composer.runtime.loading")}
+                </span>
+              ) : null}
+              <RuntimeSelect
+                disabled={controlDisabled}
+                label={t("agentChat.composer.runtime.model")}
+                onValueChange={onModelChange}
+                options={runtimeOptions.models.map(modelToSelectOption)}
+                value={runtimeSelection.modelName ?? ""}
+              />
+            </div>
+          </div>
         </>
       ) : null}
     </div>

@@ -80,7 +80,7 @@ export function RoleSelector({
           title={t("agentChat.composer.runtime.leadRole")}
           description={t("agentChat.composer.runtime.leadRoleHint")}
         />
-        <div className="grid max-h-48 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid max-h-52 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
           {roles.map((role) => (
             <PrimaryRoleButton
               badge={t("agentChat.composer.runtime.primaryBadge")}
@@ -103,7 +103,7 @@ export function RoleSelector({
           primaryRole={roles.find((role) => role.runtimeRole === primaryRole)}
           supportRoles={selectedSupportRoles}
         />
-        <div className="flex max-h-40 min-w-0 flex-wrap gap-1.5 overflow-y-auto pr-1">
+        <div className="grid max-h-44 min-w-0 gap-1.5 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
           {roles
             .filter((role) => role.runtimeRole !== primaryRole)
             .map((role) => {

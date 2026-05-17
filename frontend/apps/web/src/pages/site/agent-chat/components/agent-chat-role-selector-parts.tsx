@@ -13,20 +13,19 @@ export function SelectedRoleSummary({
   const { t } = useTranslation()
 
   return (
-    <div className="flex min-w-0 flex-wrap items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs text-muted-foreground">
+    <div className="grid min-w-0 gap-1.5 rounded-lg border border-primary/20 bg-background px-3 py-2 text-xs text-muted-foreground sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] sm:items-center">
       {primaryRole ? (
-        <span className="inline-flex min-w-0 items-center gap-1.5">
+        <span className="inline-flex min-w-0 items-center gap-1.5 rounded-md bg-primary/10 px-2 py-1 text-primary">
           <Crown className="size-3 shrink-0 text-primary" />
           <span className="shrink-0">
             {t("agentChat.composer.runtime.currentLead")}
           </span>
-          <span className="max-w-32 truncate font-semibold text-foreground">
+          <span className="truncate font-semibold text-primary">
             {primaryRole.name}
           </span>
         </span>
       ) : null}
-      <span className="text-border">/</span>
-      <span className="min-w-0">
+      <span className="min-w-0 truncate">
         {supportRoles.length
           ? t("agentChat.composer.runtime.currentSupport", {
               roles: supportRoles.map((role) => role.name).join("、"),
@@ -83,7 +82,7 @@ export function PrimaryRoleButton({
       onClick={() => onSelect(role.runtimeRole)}
       className={`flex min-w-0 items-start gap-2 rounded-lg border px-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
         selected
-          ? "border-primary/70 bg-background text-primary shadow-sm ring-2 ring-primary/20"
+          ? "border-primary bg-primary/10 text-primary shadow-sm ring-2 ring-primary/25"
           : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
       }`}
       title={role.capabilities.join(" / ")}
@@ -96,10 +95,10 @@ export function PrimaryRoleButton({
         {selected ? <Check className="size-3" /> : null}
       </span>
       <span className="min-w-0">
-        <span className="flex min-w-0 items-center gap-1.5 text-sm font-semibold">
+        <span className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm font-semibold">
           <span className="truncate">{role.name}</span>
           {selected ? (
-            <span className="shrink-0 rounded-full bg-primary px-1.5 py-0.5 text-[10px] text-primary-foreground">
+            <span className="shrink-0 rounded-full bg-primary px-2 py-0.5 text-[10px] text-primary-foreground">
               {badge}
             </span>
           ) : null}
@@ -132,9 +131,9 @@ export function RoleToggle({
       type="button"
       disabled={disabled}
       onClick={() => onToggleRole(role.runtimeRole)}
-      className={`flex max-w-52 min-w-0 items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+      className={`flex min-w-0 items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
         selected
-          ? "border-primary/50 bg-primary/10 text-primary"
+          ? "border-primary/60 bg-primary/10 text-primary ring-1 ring-primary/15"
           : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
       }`}
       title={role.capabilities.join(" / ")}
