@@ -1397,7 +1397,7 @@ fn synthesize_user_facing_collaboration_report(
     }
     lines.push(String::new());
 
-    lines.push("## 直接结论".to_string());
+    lines.push("## 综合回答".to_string());
     if is_live_conversion_collaboration_task(task) {
         lines.push(format!(
             "- **团队判断**：{}先收敛主结论，{}分别补充指标、内容、服务、技术或预算边界；这不是多个回答的简单拼接，而是一组虚拟员工围绕同一上下文协作形成的 final_report。",
@@ -1440,13 +1440,14 @@ fn synthesize_user_facing_collaboration_report(
     lines.push("- **上下文处理**：同一会话里的历史问题会作为任务背景参与理解，但不会替代本轮的商品选择；只有 `context.selected_summary` 存在时，才进入指定商品链路。".to_string());
     lines.push(String::new());
 
-    lines.push("## 虚拟员工分工".to_string());
-    lines.push("| 岗位 | 独立判断 | 交给团队的内容 |".to_string());
-    lines.push("| --- | --- | --- |".to_string());
+    lines.push("## 虚拟员工分工（各岗位独立输出）".to_string());
+    lines.push("| 岗位 | 负责问题 | 独立判断 | 交给主岗的内容 |".to_string());
+    lines.push("| --- | --- | --- | --- |".to_string());
     for role in &roles {
         lines.push(format!(
-            "| {} | {} | {} |",
+            "| {} | {} | {} | {} |",
             role_display_name_for_collaboration(role),
+            role_responsibility_for_collaboration(role),
             role_independent_judgement(role, task),
             contribution_handoff_for_role(role, contributions)
         ));
@@ -1460,7 +1461,11 @@ fn synthesize_user_facing_collaboration_report(
         lines.push(String::new());
     }
 
-    lines.push("## 执行清单".to_string());
+    lines.push("## 主岗综合方案".to_string());
+    lines.push(format!(
+        "- **主回答岗位**：{}负责把各岗位独立判断合成为最终结论，协作岗位只补证据、风险、素材、数据和执行建议，不替代主岗汇总。",
+        role_display_name_for_collaboration(primary_role)
+    ));
     if is_live_conversion_collaboration_task(task) {
         lines.push("- P0 数据口径：把曝光、点击、加购、下单、付款、退款、咨询量、渠道来源和样本周期补齐，先确认每段转化率是否可复核。".to_string());
         lines.push("- P1 转化承接：针对最低或最关键的漏斗段，分别检查直播开场、卖点讲解、价格利益、信任证明、客服响应和支付阻力。".to_string());
@@ -1475,7 +1480,8 @@ fn synthesize_user_facing_collaboration_report(
     lines.push(String::new());
 
     lines.push("## 交付物".to_string());
-    lines.push("- 本轮回答应作为 `final_report` 类型交付物沉淀，保留岗位分工、过程依据、风险边界和下一步清单，方便后续在同一历史对话中继续追问、回顾或导出。".to_string());
+    lines.push("- **final_report**：本轮完整回答应沉淀为 Markdown 交付物，保留综合结论、岗位分工、过程依据、风险边界和下一步清单。".to_string());
+    lines.push("- **过程依据**：各岗位独立输出会作为报告依据保存，后续用户可在同一历史对话中继续追问、回顾或导出。".to_string());
 
     lines.join("\n")
 }
@@ -1550,6 +1556,21 @@ fn role_independent_judgement(role: &str, task: &str) -> &'static str {
         "design" => "把卖点、信任证明和行动按钮落到视觉承接。",
         "web" => "补关键词、FAQ、页面结构和自然流量承接。",
         _ => "围绕本岗位边界补充判断和交接内容。",
+    }
+}
+
+fn role_responsibility_for_collaboration(role: &str) -> &'static str {
+    match role {
+        "data" => "指标口径、样本周期、异常段和可复核证据。",
+        "ops" => "业务目标、优先级、执行节奏和最终汇总。",
+        "creative" => "卖点、标题、脚本、素材测试和内容承接。",
+        "service" => "客服问答、售后承诺、退款物流和服务风险。",
+        "engineering" => "埋点、接口、报表刷新、链路验证和回滚。",
+        "douyin_ads" => "千川人群、素材组、出价、预算和止损线。",
+        "accounting" => "毛利、预算、CPA、ROI 和现金流边界。",
+        "design" => "主图、详情页、直播视觉和行动按钮承接。",
+        "web" => "搜索入口、FAQ、页面结构和自然流量承接。",
+        _ => "本岗位职责内的判断、证据、风险和交接内容。",
     }
 }
 
@@ -1773,6 +1794,10 @@ mod tests {
         );
 
         assert!(output.contains("虚拟员工分工"));
+        assert!(output.contains("综合回答"));
+        assert!(output.contains("各岗位独立输出"));
+        assert!(output.contains("主岗综合方案"));
+        assert!(output.contains("| 岗位 | 负责问题 | 独立判断 | 交给主岗的内容 |"));
         assert!(output.contains("团队"));
         assert!(output.contains("final_report"));
         assert!(output.contains("曝光到点击约 8.0%"));
@@ -1824,6 +1849,8 @@ mod tests {
         let lower = output.to_ascii_lowercase();
 
         assert!(output.contains("虚拟员工分工"));
+        assert!(output.contains("各岗位独立输出"));
+        assert!(output.contains("主岗综合方案"));
         assert!(output.contains("final_report"));
         assert!(!lower.contains("data role should provide"));
         assert!(!lower.contains("service role output lacks"));

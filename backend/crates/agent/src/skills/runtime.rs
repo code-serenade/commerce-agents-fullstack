@@ -351,14 +351,17 @@ fn validate_request(spec: &SkillSpec, input: &Value) -> Result<(), SkillError> {
 }
 
 pub fn execution_mode_for_spec(spec: &SkillSpec) -> SkillExecutionMode {
-    if custom_category(spec) == Some("search")
+    if spec.tags.iter().any(|tag| tag == "deferred")
+        && custom_category(spec) != Some("search")
+        && !spec.tags.iter().any(|tag| tag == "pending_approval")
+    {
+        SkillExecutionMode::Deferred
+    } else if custom_category(spec) == Some("search")
         || spec.tags.iter().any(|tag| tag == "adapter")
         || spec.tags.iter().any(|tag| tag == "pending_approval")
         || spec.id.starts_with("platform_")
     {
         SkillExecutionMode::Adapter
-    } else if spec.tags.iter().any(|tag| tag == "deferred") {
-        SkillExecutionMode::Deferred
     } else if adapter_kinds_for_spec(spec).is_empty() {
         SkillExecutionMode::Native
     } else {
@@ -719,8 +722,14 @@ mod tests {
             4
         );
         assert!(!registry.by_tag("deferred").is_empty());
+        assert!(registry.by_execution_mode(SkillExecutionMode::Native).len() > 80);
         assert!(
             !registry
+                .by_execution_mode(SkillExecutionMode::Adapter)
+                .is_empty()
+        );
+        assert!(
+            registry
                 .by_execution_mode(SkillExecutionMode::Deferred)
                 .is_empty()
         );

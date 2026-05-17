@@ -823,6 +823,13 @@ const messages = {
   agentChat: {
     welcomeMessage:
       "Hi, I am the ecommerce multi-agent workspace. Send an ecommerce question or business goal and I will coordinate virtual employee roles across product, data, support, content, ads, operations, finance, supply chain, and delivery, with process and artifacts on the right.",
+    answer: {
+      sectionLabels: {
+        final: "Final",
+        team: "Team",
+        action: "Action",
+      },
+    },
     streaming: "Thinking...",
     error: "Agent reply failed. Please try again later.",
     errorBadge: "Reply failed",
@@ -986,6 +993,18 @@ const messages = {
         roles: "Support roles",
         singleRole: "Selected role",
         primary: "Lead",
+        leadRole: "Lead answer role",
+        supportRoles: "Support roles",
+        singleRoleHint: "Click one role card. Only that virtual employee answers this turn.",
+        leadRoleHint: "Click a role card to switch the role that synthesizes the answer.",
+        supportRolesHint:
+          "Select roles that should add evidence, risks, assets, and action suggestions.",
+        answerRoleBadge: "Answering",
+        primaryBadge: "Synthesizes",
+        supportBadge: "Support",
+        currentLead: "Current lead",
+        currentSupport: "Support: {{roles}}",
+        noSupportRoles: "No support roles selected",
         advanced: "More settings",
         explanationDepth: "Explanation depth",
         autoRolesHint:

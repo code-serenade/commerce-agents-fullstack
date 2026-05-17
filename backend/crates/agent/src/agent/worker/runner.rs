@@ -595,11 +595,16 @@ fn autosuggest_skill_requests(
     output: &str,
 ) -> Vec<ParsedSkillRequest> {
     let text = autosuggest_text(task, output);
-    if let Some(request) = autosuggest_learning(&text, task) {
-        return vec![request];
-    }
     if role.runtime_role == "ops" {
+        if let Some(request) = autosuggest_learning(&text, task) {
+            return vec![request];
+        }
         return autosuggest_ops_requests(&text, task);
+    }
+    if role.runtime_role == "chat"
+        && let Some(request) = autosuggest_learning(&text, task)
+    {
+        return vec![request];
     }
     if role.runtime_role == "service" {
         return autosuggest_service_requests(&text, task);
@@ -756,7 +761,6 @@ fn has_learning_teaching_intent(text: &str) -> bool {
             "区别",
             "原理",
             "为什么",
-            "怎么做",
             "怎么理解",
             "常见误区",
             "误区",
@@ -10143,6 +10147,7 @@ fn normalize_worker_role_output(
     if output.risks.is_empty() && role_requires_risk(role) {
         output.risks = default_role_risks(role);
     }
+    normalize_role_specific_risks(role, &mut output.risks);
 
     parsed.evidence = merge_unique(parsed.evidence, output.evidence.clone());
     parsed.risks = merge_unique(parsed.risks, output.risks.clone());
@@ -10593,6 +10598,16 @@ fn normalize_role_specific_recommendations(
             }
         }
         _ => {}
+    }
+}
+
+fn normalize_role_specific_risks(role: &str, risks: &mut Vec<String>) {
+    if role == "service" && !contains_any_in_items(risks, &["承诺", "售后", "客服", "物流"])
+    {
+        push_unique(
+            risks,
+            "客服和直播话术不能承诺政策、库存、物流或售后未确认的事项。".to_string(),
+        );
     }
 }
 
@@ -11102,6 +11117,7 @@ fn category_boundary_failure_report(
     if output.risks.is_empty() && role_requires_risk(role) {
         output.risks = default_role_risks(role);
     }
+    normalize_role_specific_risks(role, &mut output.risks);
     normalize_upstream_evidence(task, &mut output);
     let content = format_role_work_output_content(&output);
 

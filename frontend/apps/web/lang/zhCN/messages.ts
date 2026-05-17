@@ -816,6 +816,13 @@ const messages = {
   agentChat: {
     welcomeMessage:
       "你好，我是电商多智能体。你可以输入一个电商问题或业务目标，我会按商品、数据、客服、内容、投放、运营、财务、供应链和交付等虚拟员工岗位协作处理，并在右侧展示过程轨迹和产物。",
+    answer: {
+      sectionLabels: {
+        final: "结论",
+        team: "团队",
+        action: "行动",
+      },
+    },
     streaming: "正在思考...",
     error: "Agent 回复失败，请稍后重试。",
     errorBadge: "回复失败",
@@ -976,6 +983,17 @@ const messages = {
         roles: "协作岗位",
         singleRole: "指定岗位",
         primary: "主岗",
+        leadRole: "主回答岗位",
+        supportRoles: "协作岗位",
+        singleRoleHint: "点击一个岗位卡片，本轮只由这个虚拟员工回答。",
+        leadRoleHint: "点击岗位卡片切换负责汇总回答的主岗。",
+        supportRolesHint: "勾选参与补充证据、风险、素材和动作建议的协作岗位。",
+        answerRoleBadge: "本轮回答",
+        primaryBadge: "负责汇总",
+        supportBadge: "协作",
+        currentLead: "当前主岗",
+        currentSupport: "协作：{{roles}}",
+        noSupportRoles: "暂未选择协作岗",
         advanced: "补充设置",
         explanationDepth: "讲解深度",
         autoRolesHint: "系统会根据本轮问题自动判断需要一个岗位还是多个岗位协作。",

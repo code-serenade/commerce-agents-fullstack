@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { useTranslation } from "react-i18next"
 import {
   Table,
   TableBody,
@@ -13,19 +14,43 @@ import {
 } from "../domain/assistant-answer-blocks"
 
 export function AssistantAnswer({ content }: { content: string }) {
+  const { t } = useTranslation()
   const blocks = parseAnswerBlocks(content)
+  const sectionLabels = {
+    action: t("agentChat.answer.sectionLabels.action"),
+    final: t("agentChat.answer.sectionLabels.final"),
+    team: t("agentChat.answer.sectionLabels.team"),
+  }
 
   return (
     <div className="space-y-4 text-sm/7 text-foreground">
       {blocks.map((block, index) => (
-        <AnswerBlockView block={block} key={`${index}-${block.kind}`} />
+        <AnswerBlockView
+          block={block}
+          key={`${index}-${block.kind}`}
+          sectionLabels={sectionLabels}
+        />
       ))}
     </div>
   )
 }
 
-function AnswerBlockView({ block }: { block: AssistantAnswerBlock }) {
-  if (block.kind === "heading") return <HeadingBlock block={block} />
+type SectionLabels = {
+  action: string
+  final: string
+  team: string
+}
+
+function AnswerBlockView({
+  block,
+  sectionLabels,
+}: {
+  block: AssistantAnswerBlock
+  sectionLabels: SectionLabels
+}) {
+  if (block.kind === "heading") {
+    return <HeadingBlock block={block} sectionLabels={sectionLabels} />
+  }
   if (block.kind === "list") return <ListBlock block={block} />
   if (block.kind === "quote") return <QuoteBlock text={block.text} />
   if (block.kind === "code") return <CodeBlock code={block.code} />
@@ -40,11 +65,14 @@ function AnswerBlockView({ block }: { block: AssistantAnswerBlock }) {
 
 function HeadingBlock({
   block,
+  sectionLabels,
 }: {
   block: Extract<AssistantAnswerBlock, { kind: "heading" }>
+  sectionLabels: SectionLabels
 }) {
   const isPrimary = block.depth <= 2
   const sectionTone = resolveSectionTone(block.text)
+  const headingLabel = resolveSectionLabel(block.text, sectionLabels)
 
   return (
     <div
@@ -53,10 +81,15 @@ function HeadingBlock({
       } ${sectionTone}`}
     >
       <h3
-        className={`wrap-break-word font-semibold tracking-normal ${
+        className={`wrap-break-word flex min-w-0 items-center gap-2 font-semibold tracking-normal ${
           isPrimary ? "text-base/7" : "text-sm/6"
         }`}
       >
+        {headingLabel ? (
+          <span className="shrink-0 rounded-full border border-border bg-background px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+            {headingLabel}
+          </span>
+        ) : null}
         {renderInlineMarkdown(block.text)}
       </h3>
     </div>
@@ -106,7 +139,7 @@ function TableBlock({
   block: Extract<AssistantAnswerBlock, { kind: "table" }>
 }) {
   return (
-    <div className="max-w-full overflow-hidden rounded-lg border border-border">
+    <div className="max-w-full overflow-x-auto rounded-lg border border-foreground/30 bg-background shadow-sm ring-1 ring-foreground/10 [&_table]:border-collapse [&_tbody_tr:nth-child(even)]:bg-muted/25 [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2.5 [&_td]:align-top [&_th]:border [&_th]:border-border [&_th]:bg-muted/90 [&_th]:px-3 [&_th]:py-2.5 [&_th]:text-foreground [&_thead]:border-b [&_thead]:border-foreground/20">
       <Table>
         <TableHeader>
           <TableRow>
@@ -136,11 +169,30 @@ function TableBlock({
 }
 
 function resolveSectionTone(text: string) {
-  if (/^(主回答|直接结论|最终建议|多智能体协作结论)/.test(text)) {
-    return "rounded-md bg-muted/40 px-3 py-2"
+  if (/^(综合回答|综合结论|直接结论|最终建议|多智能体协作结论)/.test(text)) {
+    return "rounded-lg border border-primary/25 bg-primary/5 px-3 py-2 text-primary"
   }
-  if (/^(虚拟员工分工|协作回答|岗位协作|各岗位|分工)/.test(text)) {
-    return "border-l-2 border-border pl-3"
+  if (/^(各岗位独立输出|虚拟员工分工|协作回答|岗位协作|各岗位|分工)/.test(text)) {
+    return "rounded-lg border border-border bg-muted/35 px-3 py-2 text-foreground"
+  }
+  if (/^(主岗汇总方案|主岗综合方案|团队执行稿)/.test(text)) {
+    return "rounded-lg border border-foreground/15 bg-card px-3 py-2"
+  }
+  if (/^(执行清单|下一步|团队执行稿|交付物|可沉淀交付物)/.test(text)) {
+    return "border-l-2 border-primary/40 pl-3"
+  }
+  return ""
+}
+
+function resolveSectionLabel(text: string, labels: SectionLabels) {
+  if (/^(综合回答|综合结论|直接结论|多智能体协作结论)/.test(text)) {
+    return labels.final
+  }
+  if (/^(各岗位独立输出|虚拟员工分工|岗位协作|协作回答|各岗位)/.test(text)) {
+    return labels.team
+  }
+  if (/^(主岗汇总方案|主岗综合方案|执行清单|下一步|团队执行稿|交付物|可沉淀交付物)/.test(text)) {
+    return labels.action
   }
   return ""
 }

@@ -221,7 +221,7 @@ impl TaskGraphRuntime {
         }
         lines.push(String::new());
 
-        lines.push("## 直接结论".to_string());
+        lines.push("## 综合回答".to_string());
         let deterministic_quality_lines =
             deterministic_answer_quality_lines(&self.graph.root_task, primary_node, &passed_nodes);
         if !deterministic_quality_lines.is_empty() {
@@ -265,6 +265,7 @@ impl TaskGraphRuntime {
             let executive_brief = executive_team_brief(primary_node, &passed_nodes, &self.reports);
             if !executive_brief.is_empty() {
                 lines.push(String::new());
+                lines.push("### 团队合成逻辑".to_string());
                 lines.extend(executive_brief);
             }
         } else {
@@ -274,16 +275,23 @@ impl TaskGraphRuntime {
 
         let role_briefs = role_brief_table(&passed_nodes, &self.reports);
         if !role_briefs.is_empty() {
-            lines.push("## 虚拟员工分工".to_string());
-            lines.push("| 岗位 | 独立判断 | 接力给团队的内容 |".to_string());
-            lines.push("| --- | --- | --- |".to_string());
+            lines.push("## 虚拟员工分工（各岗位独立输出）".to_string());
+            lines.push("| 岗位 | 负责问题 | 独立判断 | 交给主岗的内容 |".to_string());
+            lines.push("| --- | --- | --- | --- |".to_string());
             lines.extend(role_briefs);
             lines.push(String::new());
         }
 
         let team_brief = team_decision_brief(&passed_nodes, &self.reports);
         if !team_brief.is_empty() {
-            lines.push("## 团队交付".to_string());
+            lines.push("## 主岗综合方案".to_string());
+            if let Some(node) = primary_node {
+                lines.push(format!(
+                    "- **主回答岗位**：{}（{}）负责把各岗位输入合成为综合结论、优先级、执行清单和 final_report。",
+                    node.title,
+                    role_display_name(&node.role)
+                ));
+            }
             lines.extend(team_brief);
             if !team_playbook.is_empty() {
                 lines.push("- **团队协作产物**：主岗负责把上述岗位结论压缩成可执行节奏；协作岗的判断会作为工作区 `final_report` 的过程依据，后续可继续追问或导出。".to_string());
@@ -299,7 +307,7 @@ impl TaskGraphRuntime {
             lines.push(String::new());
         }
 
-        lines.push("## 岗位协作".to_string());
+        lines.push("## 岗位协作过程".to_string());
         if let Some(node) = primary_node {
             lines.push(format!(
                 "- **主回答岗位**：{}（{}）负责先给出核心判断。",
@@ -405,7 +413,8 @@ impl TaskGraphRuntime {
             for item in deliverables {
                 lines.push(format!("- {item}"));
             }
-            lines.push("- 本轮完整回答会作为 `final_report` 类型的 Markdown 交付物写入工作区 artifact，后续可在工作区继续预览、导出或引用。".to_string());
+            lines.push("- **final_report**：本轮完整回答会作为 Markdown 交付物写入工作区 artifact，包含综合结论、岗位分工、主岗综合方案和执行稿。".to_string());
+            lines.push("- **过程依据**：岗位独立输出、评估结果、风险边界和待补数据会保留在运行记录中，后续可继续预览、导出或引用。".to_string());
         }
 
         let gaps = self
@@ -522,7 +531,11 @@ impl TaskGraphRuntime {
         let mut deliverables = deliverable_hints(&passed_nodes, &self.reports);
         if !deliverables.is_empty() {
             deliverables.push(
-                "final_report：本轮完整回答会作为 Markdown 工作区交付物沉淀，可继续预览、导出或引用。"
+                "final_report：本轮完整回答会作为 Markdown 工作区交付物沉淀，包含综合结论、岗位分工、主岗综合方案和执行稿。"
+                    .to_string(),
+            );
+            deliverables.push(
+                "过程依据：岗位独立输出、评估结果、风险边界和待补数据会保留在运行记录中，可继续预览、导出或引用。"
                     .to_string(),
             );
         }
@@ -3571,8 +3584,9 @@ fn role_brief_table(
                 .or_else(|| first_visible_non_empty(&output.open_questions))
                 .unwrap_or("继续交给主岗整合");
             Some(format!(
-                "| {} | {} | {} |",
+                "| {} | {} | {} | {} |",
                 role_display_name(&node.role),
+                markdown_table_cell(role_responsibility(&node.role)),
                 markdown_table_cell(&format!(
                     "{}；{}",
                     strip_list_marker(finding),
@@ -3582,6 +3596,21 @@ fn role_brief_table(
             ))
         })
         .collect()
+}
+
+fn role_responsibility(role: &str) -> &'static str {
+    match role {
+        "data" => "指标口径、样本周期、异常段和可复核证据",
+        "ops" => "业务目标、优先级、执行节奏和最终汇总",
+        "service" => "客服问答、售后承诺、退款物流和服务风险",
+        "creative" => "卖点、标题、脚本、素材测试和内容承接",
+        "engineering" => "埋点、接口、报表刷新、链路验证和回滚",
+        "design" => "主图、详情页、直播视觉和行动按钮承接",
+        "accounting" => "毛利、预算、CPA、ROI 和现金流边界",
+        "douyin_ads" => "千川人群、素材组、出价、预算和止损线",
+        "web" => "搜索入口、FAQ、页面结构和自然流量承接",
+        _ => "本岗位职责内的判断、证据、风险和交接内容",
+    }
 }
 
 fn role_team_contribution(role: &str) -> &'static str {
@@ -4959,9 +4988,11 @@ mod tests {
 
         assert!(output.contains("# 多智能体协作结论"));
         assert!(output.contains("运营先聚焦转化链路"));
-        assert!(output.contains("## 团队交付"));
+        assert!(output.contains("## 综合回答"));
+        assert!(output.contains("## 主岗综合方案"));
         assert!(output.contains("## 虚拟员工分工"));
-        assert!(output.contains("## 岗位协作"));
+        assert!(output.contains("## 岗位协作过程"));
+        assert!(output.contains("| 岗位 | 负责问题 | 独立判断 | 交给主岗的内容 |"));
         assert!(output.contains("发现: 首屏承接弱"));
         assert!(output.contains("建议: P1 优化首屏"));
         assert!(output.contains("风险: 不要同时改太多变量"));
@@ -5038,7 +5069,9 @@ mod tests {
         assert!(output.contains("主回答岗位**：运营方案（运营策略师）"));
         assert!(output.contains("本轮未检测到用户手动选择的预设商品资料"));
         assert!(output.contains("**协作方式**：运营策略师牵头"));
+        assert!(output.contains("## 综合回答"));
         assert!(output.contains("## 虚拟员工分工"));
+        assert!(output.contains("## 主岗综合方案"));
         assert!(output.contains("**团队判断**"));
         assert!(output.contains("先判健康度"));
         assert!(output.contains("再做转化承接"));
