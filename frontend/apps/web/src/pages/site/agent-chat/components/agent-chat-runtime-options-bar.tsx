@@ -87,7 +87,10 @@ export function AgentChatRuntimeOptionsBar({
                 <Cpu className="size-3.5 shrink-0 text-muted-foreground" />
                 <span>{t("agentChat.composer.runtime.modelSettings")}</span>
               </div>
-              <p className="mt-1 text-xs/5 text-muted-foreground">
+              <p
+                className="mt-1 truncate text-xs text-muted-foreground"
+                title={t("agentChat.composer.runtime.modelHint")}
+              >
                 {t("agentChat.composer.runtime.modelHint")}
               </p>
             </div>

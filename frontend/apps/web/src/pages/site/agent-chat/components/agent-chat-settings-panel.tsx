@@ -70,8 +70,6 @@ export function AgentChatSettingsPanel({
     .filter(Boolean)
     .join(" · ")
   const compactSummary = buildCompactRuntimeSummary({
-    depthLabel,
-    roleModeLabel,
     runtimeOptions,
     runtimeSelection,
     strategyId,

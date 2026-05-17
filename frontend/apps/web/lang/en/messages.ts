@@ -1931,8 +1931,11 @@ const messages = {
       toRegisterAction: "Register",
     },
     error: {
+      title: "Sign-in did not finish",
       invalidCredentials:
         "Login failed, please check your identifier and password.",
+      workspaceUnavailable:
+        "Your account was checked but the workspace did not finish loading. Confirm the backend service is running, then sign in again.",
     },
   },
   register: {

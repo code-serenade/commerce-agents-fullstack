@@ -32,7 +32,7 @@ export function OptionSegment({
               type="button"
               disabled={disabled}
               onClick={() => onValueChange(option.value)}
-              className={`flex h-8 min-w-0 items-center gap-1.5 rounded-md border px-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+              className={`flex h-9 min-w-0 items-center gap-1.5 rounded-md border px-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                 active
                   ? "border-primary/50 bg-primary/10 text-primary"
                   : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -43,19 +43,8 @@ export function OptionSegment({
               <span className="flex size-3.5 shrink-0 items-center justify-center">
                 {active ? <Check className="size-3.5" /> : null}
               </span>
-              <span className="flex min-w-0 items-baseline gap-2">
-                <span className="truncate text-sm font-semibold">
-                  {option.label}
-                </span>
-                {option.description ? (
-                  <span
-                    className={`truncate text-xs ${
-                      active ? "text-primary/70" : "text-muted-foreground"
-                    }`}
-                  >
-                    {option.description}
-                  </span>
-                ) : null}
+              <span className="min-w-0 truncate text-sm font-semibold">
+                {option.label}
               </span>
             </button>
           )

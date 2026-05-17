@@ -46,13 +46,13 @@ export function RoleSectionHeader({
   title: string
 }) {
   return (
-    <div className="flex min-w-0 items-start gap-2">
-      <span className="mt-0.5 text-muted-foreground">{icon}</span>
-      <span className="min-w-0">
-        <span className="block text-xs font-semibold text-foreground">
+    <div className="flex min-w-0 items-center gap-2" title={description}>
+      <span className="text-muted-foreground">{icon}</span>
+      <span className="flex min-w-0 items-baseline gap-2">
+        <span className="shrink-0 text-xs font-semibold text-foreground">
           {title}
         </span>
-        <span className="wrap-break-word mt-0.5 block text-xs/5 text-muted-foreground">
+        <span className="truncate text-xs text-muted-foreground">
           {description}
         </span>
       </span>
@@ -104,7 +104,7 @@ export function PrimaryRoleButton({
           ) : null}
         </span>
         {capability ? (
-          <span className="mt-1 line-clamp-2 block text-xs/5 opacity-80">
+          <span className="mt-1 line-clamp-1 block text-xs/5 opacity-80">
             {capability}
           </span>
         ) : null}

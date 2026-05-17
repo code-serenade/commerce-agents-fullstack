@@ -1900,7 +1900,10 @@ const messages = {
       toRegisterAction: "去注册",
     },
     error: {
+      title: "登录没有完成",
       invalidCredentials: "登录失败，请检查标识和密码。",
+      workspaceUnavailable:
+        "账号验证后没有进入工作区，请确认后端服务已启动，然后重新登录。",
     },
   },
   register: {

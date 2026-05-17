@@ -22,34 +22,64 @@ const t = ((key: string, values?: Record<string, unknown>) => {
 }) as TFunction
 
 const runtimeOptions: AgentRuntimeOptions = {
-  collaborationModes: [],
-  learningLevels: [],
+  collaborationModes: [
+    {
+      id: "auto",
+      label: copy("Auto dispatch"),
+      description: copy("Default"),
+      isDefault: true,
+    },
+    {
+      id: "manual",
+      label: copy("Manual team"),
+      description: copy("Team roles"),
+      isDefault: false,
+    },
+  ],
+  learningLevels: [
+    {
+      id: "higher_vocational",
+      label: copy("Medium"),
+      description: copy("Applied"),
+      isDefault: true,
+    },
+    {
+      id: "professional",
+      label: copy("High"),
+      description: copy("Advanced"),
+      isDefault: false,
+    },
+  ],
   models: [],
   responseModes: [],
   roles: [
     {
       id: "role-ops",
-      name: "Ops",
+      name: copy("Ops"),
       runtimeRole: "ops",
       capabilities: [],
       isDefault: false,
     },
     {
       id: "role-data",
-      name: "Data",
+      name: copy("Data"),
       runtimeRole: "data",
       capabilities: [],
       isDefault: false,
     },
     {
       id: "role-creative",
-      name: "Creative",
+      name: copy("Creative"),
       runtimeRole: "creative",
       capabilities: [],
       isDefault: false,
     },
   ],
   strategies: [],
+}
+
+function copy(value: string) {
+  return value
 }
 
 describe("agent chat runtime summary view model", () => {
@@ -64,8 +94,6 @@ describe("agent chat runtime summary view model", () => {
 
     expect(
       buildCompactRuntimeSummary({
-        depthLabel: "Medium",
-        roleModeLabel: "Auto dispatch",
         runtimeOptions,
         runtimeSelection: selection,
         strategyId: "learning",

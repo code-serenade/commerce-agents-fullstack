@@ -6,21 +6,24 @@ import type {
 import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
 
 export function buildCompactRuntimeSummary({
-  depthLabel,
-  roleModeLabel,
   runtimeOptions,
   runtimeSelection,
   strategyId,
   t,
 }: {
-  depthLabel: string
-  roleModeLabel: string
   runtimeOptions: AgentRuntimeOptions | null
   runtimeSelection: AgentChatRuntimeSelection
   strategyId: AgentChatStrategyId
   t: TFunction
 }) {
   const strategyShort = t(`agentChat.strategy.options.${strategyId}.shortHint`)
+  const depthLabel = runtimeOptions?.learningLevels.find(
+    (level) => level.id === runtimeSelection.learningLevel
+  )?.label ?? runtimeSelection.learningLevel
+  const roleModeLabel =
+    runtimeOptions?.collaborationModes.find(
+      (mode) => mode.id === runtimeSelection.collaborationMode
+    )?.label ?? runtimeSelection.collaborationMode
   const modelLabel = shortModelName(runtimeSelection.modelName)
   const roleLabel = selectedRoleSummary({
     runtimeOptions,

@@ -40,7 +40,7 @@ export function AgentChatStrategyBar({
               type="button"
               disabled={disabled}
               onClick={() => onStrategyChange(strategy.id)}
-              className={`flex h-8 min-w-0 items-center gap-1.5 rounded-md border px-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+              className={`flex h-9 min-w-0 items-center gap-1.5 rounded-md border px-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                 active
                   ? "border-primary/50 bg-primary/10 text-primary shadow-sm"
                   : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -54,7 +54,7 @@ export function AgentChatStrategyBar({
                   {t(strategy.labelKey)}
                 </span>
                 <span
-                  className={`truncate text-xs ${
+                  className={`shrink-0 truncate text-xs ${
                     active ? "text-primary/70" : "text-muted-foreground"
                   }`}
                 >
