@@ -132,25 +132,17 @@ export function runtimeSelectionForStrategy(
   selection: AgentChatRuntimeSelection,
   strategyId: string
 ): AgentChatRuntimeSelection {
+  const normalizedSelection = normalizeRoleRuntimeSelection(selection)
   if (strategyId === "learning") {
     return {
-      ...selection,
+      ...normalizedSelection,
       learningLevel: "beginner",
     }
   }
-  if (strategyId === "collab") {
-    return normalizeCollabRuntimeSelection({
-      ...selection,
-      collaborationMode:
-        selection.collaborationMode === "single"
-          ? "auto"
-          : selection.collaborationMode,
-    })
-  }
-  return selection
+  return normalizedSelection
 }
 
-function normalizeCollabRuntimeSelection(
+function normalizeRoleRuntimeSelection(
   selection: AgentChatRuntimeSelection
 ): AgentChatRuntimeSelection {
   if (selection.collaborationMode === "auto") {
@@ -166,8 +158,8 @@ function normalizeCollabRuntimeSelection(
   if (nonChatRoles.length === 0) {
     return {
       ...selection,
-      primaryRole: "chat",
-      selectedRoles: roles.length ? roles : ["chat"],
+      primaryRole: preferredRuntimePrimaryRole(roles),
+      selectedRoles: roles.length ? roles : [],
     }
   }
 
@@ -189,6 +181,14 @@ export function setRuntimePrimaryRole(
   selection: AgentChatRuntimeSelection,
   primaryRole: string
 ): AgentChatRuntimeSelection {
+  if (selection.collaborationMode === "single") {
+    return {
+      ...selection,
+      primaryRole,
+      selectedRoles: [primaryRole],
+    }
+  }
+
   return {
     ...selection,
     primaryRole,
@@ -198,10 +198,66 @@ export function setRuntimePrimaryRole(
   }
 }
 
+export function setRuntimeCollaborationMode(
+  selection: AgentChatRuntimeSelection,
+  collaborationMode: string
+): AgentChatRuntimeSelection {
+  if (collaborationMode === "auto") {
+    return {
+      ...selection,
+      collaborationMode,
+      primaryRole: selection.primaryRole === "chat" ? "ops" : selection.primaryRole,
+      selectedRoles: [],
+    }
+  }
+
+  if (collaborationMode === "single") {
+    const primaryRole =
+      selection.primaryRole && selection.primaryRole !== "chat"
+        ? selection.primaryRole
+        : preferredRuntimePrimaryRole(selection.selectedRoles)
+    return {
+      ...selection,
+      collaborationMode,
+      primaryRole,
+      selectedRoles: [primaryRole],
+    }
+  }
+
+  const roles = uniqueRuntimeRoles(selection.selectedRoles).filter(
+    (role) => role !== "chat"
+  )
+  const fallbackRoles = uniqueRuntimeRoles([
+    selection.primaryRole ?? "",
+    ...roles,
+    "ops",
+    "data",
+    "creative",
+  ])
+  const selectedRoles = roles.length >= 2 ? roles : fallbackRoles.slice(0, 3)
+  const primaryRole =
+    selection.primaryRole &&
+    selection.primaryRole !== "chat" &&
+    selectedRoles.includes(selection.primaryRole)
+      ? selection.primaryRole
+      : preferredRuntimePrimaryRole(selectedRoles)
+
+  return {
+    ...selection,
+    collaborationMode,
+    primaryRole,
+    selectedRoles,
+  }
+}
+
 export function toggleRuntimeRole(
   selection: AgentChatRuntimeSelection,
   runtimeRole: string
 ): AgentChatRuntimeSelection {
+  if (selection.collaborationMode === "single") {
+    return setRuntimePrimaryRole(selection, runtimeRole)
+  }
+
   if (
     selection.collaborationMode === "manual" &&
     selection.primaryRole === runtimeRole &&

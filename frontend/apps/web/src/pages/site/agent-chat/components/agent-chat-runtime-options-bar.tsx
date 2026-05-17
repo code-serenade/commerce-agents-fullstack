@@ -8,8 +8,8 @@ import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
 import { AdvancedRuntimeOptions } from "./agent-chat-advanced-runtime-options"
 import { RoleSelector } from "./agent-chat-role-selector"
 import {
-  choiceToOption,
   modelToSelectOption,
+  roleModeToOption,
   sortRoleModes,
 } from "../view-model/agent-chat-runtime-options-view-model"
 import {
@@ -27,7 +27,7 @@ export interface AgentChatRuntimeOptionsBarProps {
   onToggleRole: (value: string) => void
   runtimeOptions: AgentRuntimeOptions | null
   runtimeSelection: AgentChatRuntimeSelection
-  strategyId: AgentChatStrategyId
+  strategyId?: AgentChatStrategyId
 }
 
 export function AgentChatRuntimeOptionsBar({
@@ -40,7 +40,6 @@ export function AgentChatRuntimeOptionsBar({
   onToggleRole,
   runtimeOptions,
   runtimeSelection,
-  strategyId,
 }: AgentChatRuntimeOptionsBarProps) {
   const { t } = useTranslation()
 
@@ -53,7 +52,7 @@ export function AgentChatRuntimeOptionsBar({
   )
 
   return (
-    <div className="grid gap-3 rounded-xl border border-border bg-background p-3">
+    <div className="grid gap-3 rounded-lg border border-border bg-background p-3">
       <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
         <div className="min-w-0">
           <div className="flex min-w-0 items-center gap-1.5 text-xs font-semibold text-foreground">
@@ -61,7 +60,7 @@ export function AgentChatRuntimeOptionsBar({
             <span>{t("agentChat.composer.runtime.label")}</span>
           </div>
           <p className="mt-1 text-xs/5 text-muted-foreground">
-            {t(`agentChat.composer.runtime.strategyNotes.${strategyId}`)}
+            {t("agentChat.composer.runtime.roleModeHint")}
           </p>
         </div>
         <div className="flex min-w-0 flex-wrap items-center justify-start gap-2 sm:justify-end">
@@ -89,7 +88,7 @@ export function AgentChatRuntimeOptionsBar({
             icon={<GitBranch className="size-3.5" />}
             label={t("agentChat.composer.runtime.roleMode")}
             onValueChange={onCollaborationModeChange}
-            options={roleModes.map(choiceToOption)}
+            options={roleModes.map((mode) => roleModeToOption(mode, t))}
             value={runtimeSelection.collaborationMode}
           />
           <RoleSelector

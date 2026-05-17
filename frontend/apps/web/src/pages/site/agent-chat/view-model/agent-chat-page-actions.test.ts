@@ -12,7 +12,7 @@ describe("agent chat page actions", () => {
 
     startNewAgentConversation(state)
 
-    expect(calls).toContain("strategy:collab")
+    expect(calls).toContain("strategy:learning")
     expect(calls).toContain("runtime:reset")
     expect(calls).toContain("products:clear")
     expect(calls).toContain("sources:clear")
@@ -26,7 +26,7 @@ describe("agent chat page actions", () => {
       restoreStrategyId: (strategyId) => calls.push(`strategy:${strategyId}`),
     })
 
-    expect(calls).toEqual(["strategy:collab", "runtime:reset"])
+    expect(calls).toEqual(["strategy:learning", "runtime:reset"])
   })
 })
 

@@ -71,7 +71,7 @@ describe("sendAgentChatMessage", () => {
           runtimeEvents.splice(0, runtimeEvents.length, ...updater(runtimeEvents as never[]))
         }
       },
-      strategy: getAgentChatStrategy("collab"),
+      strategy: getAgentChatStrategy("execution"),
       tError: "error",
     })
 
@@ -94,6 +94,13 @@ describe("sendAgentChatMessage", () => {
             contextRefs: [],
             productIds: [],
           },
+          strategy: expect.objectContaining({
+            collaborationMode: "manual",
+            id: "execution",
+            outputFormat: "structured_markdown",
+            responseMode: "execution",
+            selectedRoles: ["ops", "data"],
+          }),
         }),
       }),
       expect.any(Object)
@@ -162,7 +169,7 @@ describe("sendAgentChatMessage", () => {
         }
       },
       setRuntimeEvents: vi.fn(),
-      strategy: getAgentChatStrategy("collab"),
+      strategy: getAgentChatStrategy("execution"),
       tError: "error",
     })
 
@@ -252,7 +259,7 @@ describe("sendAgentChatMessage", () => {
           )
         }
       },
-      strategy: getAgentChatStrategy("collab"),
+      strategy: getAgentChatStrategy("execution"),
       tError: "error",
     })
 

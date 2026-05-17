@@ -882,19 +882,15 @@ const messages = {
       },
     },
     strategy: {
-      current: "当前策略",
+      current: "回答模式",
       options: {
         execution: {
-          label: "专业回答",
-          hint: "先给可执行结论，再列关键动作",
+          label: "执行回答",
+          hint: "适合做汇报、复盘和方案：先给结论，再给动作和风险",
         },
         learning: {
           label: "教学讲解",
-          hint: "用小白能懂的话解释判断逻辑",
-        },
-        collab: {
-          label: "团队协作",
-          hint: "自动或手动组织多个岗位协作",
+          hint: "适合学生和新手：讲清概念、判断逻辑和可执行动作",
         },
       },
     },
@@ -965,13 +961,13 @@ const messages = {
         empty: "暂无场景",
       },
       settings: {
-        compactLabel: "策略",
-        compactTitle: "调整回答策略与运行配置",
+        compactLabel: "模式",
+        compactTitle: "调整回答模式、岗位分配和模型",
         toggle: "任务设置",
         rolesCount: "{{count}} 个岗位",
       },
       runtime: {
-        label: "岗位与模型",
+        label: "岗位分配",
         loading: "正在读取运行配置",
         model: "模型",
         learning: "讲解层级",
@@ -983,10 +979,25 @@ const messages = {
         advanced: "补充设置",
         explanationDepth: "讲解深度",
         autoRolesHint: "系统会根据本轮问题自动判断需要一个岗位还是多个岗位协作。",
+        manualRolesHint: "选择一个主岗负责汇总，再勾选需要参与协作的岗位。",
+        roleModeHint: "这里决定由谁回答：自动分配、指定一个岗位，或指定多个岗位协作。",
+        roleModes: {
+          auto: {
+            label: "自动分配",
+            description: "系统根据问题自动判断一个或多个岗位。",
+          },
+          single: {
+            label: "指定单岗",
+            description: "只让一个虚拟员工负责本轮回答。",
+          },
+          manual: {
+            label: "指定多岗",
+            description: "手动选择主岗和协作岗位，适合复杂任务。",
+          },
+        },
         strategyNotes: {
           execution: "适合汇报、复盘和方案输出：少解释概念，优先给结论、步骤和风险。",
           learning: "适合教学和新手理解：保留干货，同时把专业词和判断过程讲清楚。",
-          collab: "适合复杂电商问题：按岗位拆分任务，再由主岗汇总成一份回答。",
         },
       },
       samples: {
@@ -1128,7 +1139,7 @@ const messages = {
         productCount: "{{count}} 个商品",
         sourceNone: "未选资料",
         sourceCount: "{{count}} 份资料",
-        strategy: "策略：{{strategy}}",
+        strategy: "模式：{{strategy}}",
         roles: "岗位：主岗 {{role}} / 共 {{count}} 个",
         model: "模型：{{model}}",
         details: "引用明细",

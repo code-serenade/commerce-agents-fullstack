@@ -19,6 +19,7 @@ export interface AgentStreamRequest {
       collaborationMode?: string
       id?: string
       learningLevel?: string
+      outputFormat?: string
       primaryRole?: string
       responseMode?: string
       selectedRoles?: string[]

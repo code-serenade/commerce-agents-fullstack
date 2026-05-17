@@ -889,19 +889,16 @@ const messages = {
       },
     },
     strategy: {
-      current: "Current strategy",
+      current: "Answer mode",
       options: {
         execution: {
-          label: "Professional answer",
-          hint: "Actionable conclusion first, then key steps",
+          label: "Execution answer",
+          hint:
+            "Best for reports, reviews, and plans: conclusion first, then actions and risks",
         },
         learning: {
           label: "Teaching mode",
-          hint: "Explain the reasoning in beginner-friendly language",
-        },
-        collab: {
-          label: "Team collaboration",
-          hint: "Coordinate one or multiple commerce roles",
+          hint: "Best for students and beginners: explain terms, reasoning, and actions",
         },
       },
     },
@@ -974,13 +971,13 @@ const messages = {
         empty: "No scenarios",
       },
       settings: {
-        compactLabel: "Strategy",
-        compactTitle: "Adjust answer strategy and runtime",
+        compactLabel: "Mode",
+        compactTitle: "Adjust answer mode, role assignment, and model",
         toggle: "Task settings",
         rolesCount: "{{count}} roles",
       },
       runtime: {
-        label: "Roles and model",
+        label: "Role assignment",
         loading: "Loading runtime",
         model: "Model",
         learning: "Explanation level",
@@ -993,13 +990,31 @@ const messages = {
         explanationDepth: "Explanation depth",
         autoRolesHint:
           "The backend will decide whether this turn needs one role or multiple collaborating roles.",
+        manualRolesHint:
+          "Choose one lead role for synthesis, then select the support roles for collaboration.",
+        roleModeHint:
+          "Choose who answers this turn: automatic dispatch, one selected role, or selected multi-role collaboration.",
+        roleModes: {
+          auto: {
+            label: "Auto dispatch",
+            description:
+              "The system decides whether one or multiple roles are needed.",
+          },
+          single: {
+            label: "Single role",
+            description: "One virtual employee owns this answer.",
+          },
+          manual: {
+            label: "Multi-role",
+            description:
+              "Select the lead and support roles manually for complex work.",
+          },
+        },
         strategyNotes: {
           execution:
             "Best for reports, reviews, and plans: fewer concept explanations, more conclusions, steps, and risks.",
           learning:
             "Best for teaching and beginners: keep the substance while explaining terms and reasoning.",
-          collab:
-            "Best for complex commerce questions: split work by role, then synthesize one final answer.",
         },
       },
       samples: {
@@ -1142,7 +1157,7 @@ const messages = {
         productCount: "{{count}} products",
         sourceNone: "No files",
         sourceCount: "{{count}} files",
-        strategy: "Strategy: {{strategy}}",
+        strategy: "Mode: {{strategy}}",
         roles: "Primary role: {{role}} / {{count}} roles",
         model: "Model: {{model}}",
         details: "Context details",

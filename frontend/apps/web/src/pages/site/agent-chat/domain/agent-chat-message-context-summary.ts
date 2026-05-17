@@ -1,5 +1,5 @@
 import type { AgentChatMessageContextSummary } from "../types"
-import { isAgentChatStrategyId } from "./agent-chat-strategy"
+import { normalizeAgentChatStrategyId } from "./agent-chat-strategy"
 
 export interface MessageContextSummaryProductInput {
   brand?: string | null
@@ -53,9 +53,7 @@ export function createMessageContextSummary(input: {
     }
   })
   const strategyId =
-    input.strategyId && isAgentChatStrategyId(input.strategyId)
-      ? input.strategyId
-      : undefined
+    normalizeAgentChatStrategyId(input.strategyId) ?? undefined
   const summary: AgentChatMessageContextSummary = {
     productIds,
     products,

@@ -36,6 +36,6 @@ describe("agent chat message context summary", () => {
     expect(summary?.sourceRefs).toEqual(["conversation_file:file-a"])
     expect(summary?.sources[0]?.id).toBe("conversation_file:file-a")
     expect(summary?.sources[0]?.label).toBe("brief.md")
-    expect(summary?.strategyId).toBe("collab")
+    expect(summary?.strategyId).toBe("execution")
   })
 })

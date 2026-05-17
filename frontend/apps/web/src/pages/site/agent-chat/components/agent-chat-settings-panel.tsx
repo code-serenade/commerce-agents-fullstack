@@ -46,8 +46,11 @@ export function AgentChatSettingsPanel({
 }: AgentChatSettingsPanelProps) {
   const { t } = useTranslation()
   const activeStrategyLabel = t(`agentChat.strategy.options.${strategyId}.label`)
+  const roleModeLabel = roleModeCopyKey(runtimeSelection.collaborationMode)
+    ? t(roleModeCopyKey(runtimeSelection.collaborationMode))
+    : runtimeSelection.collaborationMode
   const runtimeLabel = [
-    runtimeSelection.modelName,
+    roleModeLabel,
     runtimeSelection.primaryRole,
     runtimeSelection.selectedRoles.length
       ? t("agentChat.composer.settings.rolesCount", {
@@ -167,6 +170,13 @@ export function AgentChatSettingsPanel({
       ) : null}
     </>
   )
+}
+
+function roleModeCopyKey(mode: string) {
+  if (mode === "auto" || mode === "single" || mode === "manual") {
+    return `agentChat.composer.runtime.roleModes.${mode}.label`
+  }
+  return ""
 }
 
 function AgentChatSettingsControls({

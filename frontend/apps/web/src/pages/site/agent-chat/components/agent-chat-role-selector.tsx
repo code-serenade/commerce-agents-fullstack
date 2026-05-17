@@ -53,18 +53,23 @@ export function RoleSelector({
         />
       </div>
       {!isSingle ? (
-        <div className="flex min-w-0 flex-wrap gap-1.5">
-          {roles.map((role) => (
-            <RoleToggle
-              disabled={disabled}
-              key={role.runtimeRole}
-              onToggleRole={onToggleRole}
-              primary={runtimeSelection.primaryRole === role.runtimeRole}
-              role={role}
-              selected={runtimeSelection.selectedRoles.includes(role.runtimeRole)}
-            />
-          ))}
-        </div>
+        <>
+          <p className="text-xs/5 text-muted-foreground">
+            {t("agentChat.composer.runtime.manualRolesHint")}
+          </p>
+          <div className="flex min-w-0 flex-wrap gap-1.5">
+            {roles.map((role) => (
+              <RoleToggle
+                disabled={disabled}
+                key={role.runtimeRole}
+                onToggleRole={onToggleRole}
+                primary={runtimeSelection.primaryRole === role.runtimeRole}
+                role={role}
+                selected={runtimeSelection.selectedRoles.includes(role.runtimeRole)}
+              />
+            ))}
+          </div>
+        </>
       ) : null}
     </div>
   )

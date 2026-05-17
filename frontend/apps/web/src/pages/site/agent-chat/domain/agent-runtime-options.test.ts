@@ -3,6 +3,7 @@ import {
   defaultRuntimeSelection,
   restoreRuntimeSelection,
   runtimeSelectionForStrategy,
+  setRuntimeCollaborationMode,
   setRuntimePrimaryRole,
   toggleRuntimeRole,
   type AgentChatRuntimeSelection,
@@ -102,19 +103,19 @@ describe("agent runtime options", () => {
     })
   })
 
-  it("keeps explicit collab role selections for backend metadata", () => {
-    expect(runtimeSelectionForStrategy(manualSelection, "collab")).toEqual(
+  it("keeps explicit multi-role selections for backend metadata", () => {
+    expect(runtimeSelectionForStrategy(manualSelection, "execution")).toEqual(
       manualSelection
     )
   })
 
-  it("shows ops as collab primary when chat is selected with specialist roles", () => {
+  it("shows ops as primary when chat is selected with specialist roles", () => {
     const restored = {
       ...manualSelection,
       primaryRole: "chat",
       selectedRoles: ["chat", "ops", "data", "service"],
     }
-    expect(runtimeSelectionForStrategy(restored, "collab")).toEqual({
+    expect(runtimeSelectionForStrategy(restored, "execution")).toEqual({
       ...restored,
       collaborationMode: "manual",
       primaryRole: "ops",
@@ -144,7 +145,7 @@ describe("agent runtime options", () => {
           primaryRole: "chat",
           selectedRoles: [],
         },
-        "collab"
+        "execution"
       )
     ).toEqual({
       ...manualSelection,
@@ -162,6 +163,39 @@ describe("agent runtime options", () => {
     })
   })
 
+  it("keeps one selected role in single-role assignment", () => {
+    const single = setRuntimeCollaborationMode(manualSelection, "single")
+
+    expect(single).toEqual({
+      ...manualSelection,
+      collaborationMode: "single",
+      primaryRole: "data",
+      selectedRoles: ["data"],
+    })
+    expect(setRuntimePrimaryRole(single, "creative")).toEqual({
+      ...single,
+      primaryRole: "creative",
+      selectedRoles: ["creative"],
+    })
+  })
+
+  it("keeps at least two selected roles in manual multi-role assignment", () => {
+    expect(
+      setRuntimeCollaborationMode(
+        {
+          ...manualSelection,
+          selectedRoles: ["data"],
+        },
+        "manual"
+      )
+    ).toEqual({
+      ...manualSelection,
+      collaborationMode: "manual",
+      primaryRole: "data",
+      selectedRoles: ["data", "ops", "creative"],
+    })
+  })
+
   it("does not remove the manual primary role while other roles remain selected", () => {
     expect(toggleRuntimeRole(manualSelection, "data")).toEqual(manualSelection)
   })
@@ -173,7 +207,7 @@ describe("agent runtime options", () => {
     })
   })
 
-  it("keeps ops as the collab primary when adding support roles after chat", () => {
+  it("keeps ops as the primary when adding support roles after chat", () => {
     expect(
       toggleRuntimeRole(
         {

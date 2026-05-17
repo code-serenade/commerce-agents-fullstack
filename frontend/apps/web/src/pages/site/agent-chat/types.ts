@@ -48,5 +48,4 @@ export interface AgentChatAttachmentItem {
 export interface AgentChatMessageStrategy {
   id: string
   responseMode: string
-  collaborationMode: string
 }

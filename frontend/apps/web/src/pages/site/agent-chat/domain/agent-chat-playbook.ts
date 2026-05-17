@@ -1,7 +1,7 @@
 import type { CommerceAgentPlaybookResponse } from "@/api"
 import {
   DEFAULT_AGENT_CHAT_STRATEGY_ID,
-  isAgentChatStrategyId,
+  normalizeAgentChatStrategyId,
   type AgentChatStrategyId,
 } from "./agent-chat-strategy"
 
@@ -25,9 +25,9 @@ export function mapCommercePlaybookToSelection(
     title: playbook.title,
     description: playbook.description,
     category: playbook.category,
-    recommendedStrategy: isAgentChatStrategyId(playbook.recommendedStrategy)
-      ? playbook.recommendedStrategy
-      : DEFAULT_AGENT_CHAT_STRATEGY_ID,
+    recommendedStrategy:
+      normalizeAgentChatStrategyId(playbook.recommendedStrategy) ??
+      DEFAULT_AGENT_CHAT_STRATEGY_ID,
     prompt: playbook.prompt,
     requiredContext: Array.isArray(playbook.requiredContext)
       ? playbook.requiredContext

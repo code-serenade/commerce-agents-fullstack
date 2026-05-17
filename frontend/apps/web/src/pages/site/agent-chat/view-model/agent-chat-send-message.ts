@@ -123,6 +123,7 @@ export async function sendAgentChatMessage(
             id: input.strategy.id,
             responseMode: input.strategy.responseMode,
             collaborationMode: input.runtimeSelection.collaborationMode,
+            outputFormat: "structured_markdown",
             learningLevel: input.runtimeSelection.learningLevel,
             primaryRole: input.runtimeSelection.primaryRole,
             selectedRoles: input.runtimeSelection.selectedRoles,

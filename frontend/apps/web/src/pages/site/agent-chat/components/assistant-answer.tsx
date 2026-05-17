@@ -1,13 +1,16 @@
 import type { ReactNode } from "react"
-
-type AnswerBlock =
-  | { kind: "code"; code: string; language?: string }
-  | { kind: "heading"; depth: number; text: string }
-  | { kind: "list"; ordered: boolean; items: string[] }
-  | { kind: "paragraph"; text: string }
-  | { kind: "quote"; text: string }
-
-const MAX_INLINE_HEADING_LENGTH = 28
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@workspace/ui-components/stable/table"
+import {
+  parseAnswerBlocks,
+  type AssistantAnswerBlock,
+} from "../domain/assistant-answer-blocks"
 
 export function AssistantAnswer({ content }: { content: string }) {
   const blocks = parseAnswerBlocks(content)
@@ -21,56 +24,12 @@ export function AssistantAnswer({ content }: { content: string }) {
   )
 }
 
-function AnswerBlockView({ block }: { block: AnswerBlock }) {
-  if (block.kind === "heading") {
-    const isPrimary = block.depth <= 2
-    return (
-      <div
-        className={`min-w-0 ${isPrimary ? "pt-1" : ""}`}
-      >
-        <h3
-          className={`wrap-break-word font-semibold tracking-normal ${
-            isPrimary ? "text-base/7" : "text-sm/6"
-          }`}
-        >
-          {renderInlineMarkdown(block.text)}
-        </h3>
-      </div>
-    )
-  }
-
-  if (block.kind === "list") {
-    const ListTag = block.ordered ? "ol" : "ul"
-    return (
-      <ListTag
-        className={`space-y-2 pl-5 ${
-          block.ordered ? "list-decimal" : "list-disc"
-        }`}
-      >
-        {block.items.map((item, index) => (
-          <li key={`${index}-${item}`} className="wrap-break-word pl-1">
-            {renderInlineMarkdown(item)}
-          </li>
-        ))}
-      </ListTag>
-    )
-  }
-
-  if (block.kind === "quote") {
-    return (
-      <blockquote className="wrap-break-word border-l-2 border-border pl-3 text-muted-foreground">
-        {renderInlineMarkdown(block.text)}
-      </blockquote>
-    )
-  }
-
-  if (block.kind === "code") {
-    return (
-      <pre className="max-w-full overflow-x-auto rounded-lg border border-border bg-muted p-3 text-xs/5">
-        <code>{block.code}</code>
-      </pre>
-    )
-  }
+function AnswerBlockView({ block }: { block: AssistantAnswerBlock }) {
+  if (block.kind === "heading") return <HeadingBlock block={block} />
+  if (block.kind === "list") return <ListBlock block={block} />
+  if (block.kind === "quote") return <QuoteBlock text={block.text} />
+  if (block.kind === "code") return <CodeBlock code={block.code} />
+  if (block.kind === "table") return <TableBlock block={block} />
 
   return (
     <p className="wrap-break-word text-foreground">
@@ -79,138 +38,111 @@ function AnswerBlockView({ block }: { block: AnswerBlock }) {
   )
 }
 
-function parseAnswerBlocks(content: string): AnswerBlock[] {
-  const normalized = content.replace(/\r\n/g, "\n").trim()
-  if (!normalized) return []
+function HeadingBlock({
+  block,
+}: {
+  block: Extract<AssistantAnswerBlock, { kind: "heading" }>
+}) {
+  const isPrimary = block.depth <= 2
+  const sectionTone = resolveSectionTone(block.text)
 
-  const blocks: AnswerBlock[] = []
-  const paragraphLines: string[] = []
-  let list: { ordered: boolean; items: string[] } | null = null
-  let code: { language?: string; lines: string[] } | null = null
-
-  const flushParagraph = () => {
-    if (!paragraphLines.length) return
-    const text = paragraphLines.join(" ").replace(/\s+/g, " ").trim()
-    if (text) blocks.push({ kind: "paragraph", text })
-    paragraphLines.length = 0
-  }
-
-  const flushList = () => {
-    if (!list) return
-    if (list.items.length) blocks.push({ ...list, kind: "list" })
-    list = null
-  }
-
-  const flushCode = () => {
-    if (!code) return
-    blocks.push({
-      code: code.lines.join("\n"),
-      kind: "code",
-      language: code.language,
-    })
-    code = null
-  }
-
-  for (const rawLine of normalized.split("\n")) {
-    const line = rawLine.trim()
-
-    if (line.startsWith("```")) {
-      if (code) {
-        flushCode()
-      } else {
-        flushParagraph()
-        flushList()
-        code = { language: line.slice(3).trim() || undefined, lines: [] }
-      }
-      continue
-    }
-
-    if (code) {
-      code.lines.push(rawLine)
-      continue
-    }
-
-    if (!line) {
-      flushParagraph()
-      flushList()
-      continue
-    }
-
-    const heading = readHeading(line)
-    if (heading) {
-      flushParagraph()
-      flushList()
-      blocks.push(heading)
-      continue
-    }
-
-    const quote = line.match(/^>\s+(.+)$/)
-    if (quote) {
-      flushParagraph()
-      flushList()
-      blocks.push({ kind: "quote", text: quote[1].trim() })
-      continue
-    }
-
-    const listItem = readListItem(line)
-    if (listItem) {
-      flushParagraph()
-      if (!list || list.ordered !== listItem.ordered) {
-        flushList()
-        list = { items: [], ordered: listItem.ordered }
-      }
-      list.items.push(listItem.text)
-      continue
-    }
-
-    flushList()
-    paragraphLines.push(line)
-  }
-
-  flushParagraph()
-  flushList()
-  flushCode()
-
-  return blocks
+  return (
+    <div
+      className={`min-w-0 ${
+        isPrimary ? "border-t border-border pt-4 first:border-t-0 first:pt-1" : ""
+      } ${sectionTone}`}
+    >
+      <h3
+        className={`wrap-break-word font-semibold tracking-normal ${
+          isPrimary ? "text-base/7" : "text-sm/6"
+        }`}
+      >
+        {renderInlineMarkdown(block.text)}
+      </h3>
+    </div>
+  )
 }
 
-function readHeading(line: string): AnswerBlock | null {
-  const markdownHeading = line.match(/^(#{1,4})\s+(.+)$/)
-  if (markdownHeading) {
-    return {
-      depth: markdownHeading[1].length,
-      kind: "heading",
-      text: cleanupHeading(markdownHeading[2]),
-    }
-  }
-
-  const strongHeading = line.match(/^\*\*(.+)\*\*[:：]?$/)
-  if (strongHeading) {
-    return { depth: 3, kind: "heading", text: cleanupHeading(strongHeading[1]) }
-  }
-
-  if (
-    line.length <= MAX_INLINE_HEADING_LENGTH &&
-    /^[\u4e00-\u9fa5A-Za-z0-9\s/·（）()]+[:：]$/.test(line)
-  ) {
-    return { depth: 3, kind: "heading", text: cleanupHeading(line) }
-  }
-
-  return null
+function ListBlock({
+  block,
+}: {
+  block: Extract<AssistantAnswerBlock, { kind: "list" }>
+}) {
+  const ListTag = block.ordered ? "ol" : "ul"
+  return (
+    <ListTag
+      className={`space-y-2 pl-5 ${
+        block.ordered ? "list-decimal" : "list-disc"
+      }`}
+    >
+      {block.items.map((item, index) => (
+        <li key={`${index}-${item}`} className="wrap-break-word pl-1">
+          {renderInlineMarkdown(item)}
+        </li>
+      ))}
+    </ListTag>
+  )
 }
 
-function readListItem(line: string) {
-  const unordered = line.match(/^[-*]\s+(.+)$/)
-  if (unordered) return { ordered: false, text: unordered[1].trim() }
-
-  const ordered = line.match(/^\d+[.)、]\s*(.+)$/)
-  if (ordered) return { ordered: true, text: ordered[1].trim() }
-
-  return null
+function QuoteBlock({ text }: { text: string }) {
+  return (
+    <blockquote className="wrap-break-word border-l-2 border-border pl-3 text-muted-foreground">
+      {renderInlineMarkdown(text)}
+    </blockquote>
+  )
 }
 
-function cleanupHeading(text: string) {
-  return text.replace(/[*#：:]+$/g, "").trim()
+function CodeBlock({ code }: { code: string }) {
+  return (
+    <pre className="max-w-full overflow-x-auto rounded-lg border border-border bg-muted p-3 text-xs/5">
+      <code>{code}</code>
+    </pre>
+  )
+}
+
+function TableBlock({
+  block,
+}: {
+  block: Extract<AssistantAnswerBlock, { kind: "table" }>
+}) {
+  return (
+    <div className="max-w-full overflow-hidden rounded-lg border border-border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {block.header.map((cell, index) => (
+              <TableHead key={`${index}-${cell}`}>
+                {renderInlineMarkdown(cell)}
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {block.rows.map((row, rowIndex) => (
+            <TableRow key={rowIndex}>
+              {row.map((cell, cellIndex) => (
+                <TableCell key={`${rowIndex}-${cellIndex}`}>
+                  <span className="wrap-break-word whitespace-normal">
+                    {renderInlineMarkdown(cell)}
+                  </span>
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  )
+}
+
+function resolveSectionTone(text: string) {
+  if (/^(主回答|直接结论|最终建议|多智能体协作结论)/.test(text)) {
+    return "rounded-md bg-muted/40 px-3 py-2"
+  }
+  if (/^(虚拟员工分工|协作回答|岗位协作|各岗位|分工)/.test(text)) {
+    return "border-l-2 border-border pl-3"
+  }
+  return ""
 }
 
 function renderInlineMarkdown(text: string): ReactNode[] {

@@ -164,7 +164,7 @@ describe("agent chat message mapping", () => {
       },
     ])
 
-    expect(readConversationStrategyId(detail)).toBe("collab")
+    expect(readConversationStrategyId(detail)).toBe("execution")
     expect(readConversationRuntimeSelection(detail)).toEqual({
       collaborationMode: "manual",
       learningLevel: "higher_vocational",
@@ -209,7 +209,7 @@ describe("agent chat message mapping", () => {
       selectedRoles: ["data", "creative"],
       sourceRefs: [fileRef],
       sources: [{ id: fileRef }],
-      strategyId: "collab",
+      strategyId: "execution",
     }
 
     expect(readMessageContextSummary(contentJson)).toEqual(expectedSummary)

@@ -8,7 +8,7 @@ import type { AgentChatRuntimeSelectionRestore } from "./agent-runtime-options"
 import { sanitizeAgentAnswerContent } from "./agent-chat-answer-sanitizer"
 import {
   DEFAULT_AGENT_CHAT_STRATEGY_ID,
-  isAgentChatStrategyId,
+  normalizeAgentChatStrategyId,
   type AgentChatStrategyId,
 } from "./agent-chat-strategy"
 import type {
@@ -228,7 +228,7 @@ function readRuntimeSelection(
 function readStrategyId(contentJson: unknown): AgentChatStrategyId | null {
   const strategy = readStrategyRecord(contentJson)
   const strategyId = readString(strategy?.strategyId)
-  return strategyId && isAgentChatStrategyId(strategyId) ? strategyId : null
+  return normalizeAgentChatStrategyId(strategyId)
 }
 
 function readStrategyRecord(contentJson: unknown) {

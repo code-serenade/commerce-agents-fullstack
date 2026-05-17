@@ -1,20 +1,19 @@
 export type AgentChatResponseMode = "execution" | "learning"
-export type AgentChatCollaborationMode = "auto" | "single" | "manual"
 
 export interface AgentChatStrategy {
-  id: "execution" | "learning" | "collab"
+  id: AgentChatStrategyId
   responseMode: AgentChatResponseMode
-  collaborationMode: AgentChatCollaborationMode
   labelKey: string
   hintKey: string
   intent: string
 }
 
+export type AgentChatStrategyId = "execution" | "learning"
+
 export const AGENT_CHAT_STRATEGIES = [
   {
     id: "execution",
     responseMode: "execution",
-    collaborationMode: "single",
     labelKey: "agentChat.strategy.options.execution.label",
     hintKey: "agentChat.strategy.options.execution.hint",
     intent: "Give a direct, usable answer first, then list the next actions.",
@@ -22,29 +21,25 @@ export const AGENT_CHAT_STRATEGIES = [
   {
     id: "learning",
     responseMode: "learning",
-    collaborationMode: "single",
     labelKey: "agentChat.strategy.options.learning.label",
     hintKey: "agentChat.strategy.options.learning.hint",
     intent:
       "Explain the reasoning in simple steps while still producing an actionable commerce answer.",
   },
-  {
-    id: "collab",
-    responseMode: "execution",
-    collaborationMode: "auto",
-    labelKey: "agentChat.strategy.options.collab.label",
-    hintKey: "agentChat.strategy.options.collab.hint",
-    intent:
-      "Use a commerce agent cluster style: plan first, split the task by data, budget, ads, creative, operations, and delivery, then synthesize the final answer.",
-  },
 ] as const satisfies readonly AgentChatStrategy[]
 
-export type AgentChatStrategyId = (typeof AGENT_CHAT_STRATEGIES)[number]["id"]
-
-export const DEFAULT_AGENT_CHAT_STRATEGY_ID: AgentChatStrategyId = "collab"
+export const DEFAULT_AGENT_CHAT_STRATEGY_ID: AgentChatStrategyId = "learning"
 
 export function isAgentChatStrategyId(value: string): value is AgentChatStrategyId {
   return AGENT_CHAT_STRATEGIES.some((strategy) => strategy.id === value)
+}
+
+export function normalizeAgentChatStrategyId(
+  value: string | null | undefined
+): AgentChatStrategyId | null {
+  if (!value) return null
+  if (value === "collab") return "execution"
+  return isAgentChatStrategyId(value) ? value : null
 }
 
 export function getAgentChatStrategy(id: AgentChatStrategyId): AgentChatStrategy {
@@ -63,12 +58,13 @@ export function buildAgentStrategyInput(
   return [
     "Answer as an ecommerce multi-agent virtual employee workspace.",
     `Response strategy: ${strategy.id}.`,
-    `Response mode: ${strategy.responseMode}. Collaboration mode: ${strategy.collaborationMode}.`,
+    `Response mode: ${strategy.responseMode}.`,
     `Strategy instruction: ${strategy.intent}`,
     "Relevant virtual employee roles include product, data, support, content, ads, operations, finance, supply chain, and delivery.",
     "For professional answer mode, start with the business answer and concrete next actions.",
     "For teaching mode, explain the reasoning path in student-friendly language while keeping the answer actionable.",
-    "For agent cluster mode, present role-based findings and then synthesize one final recommendation.",
+    "When the runtime selects multiple roles, present role-based findings and then synthesize one final recommendation.",
+    "Use markdown tables for comparisons, funnels, role division, or action plans when they make the answer easier to scan.",
     "Keep the answer centered on the user's question. Do not claim external platform execution or dynamic tool calls unless runtime events prove them.",
     "User question:",
     content,

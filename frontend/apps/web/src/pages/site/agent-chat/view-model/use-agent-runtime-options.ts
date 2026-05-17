@@ -9,6 +9,7 @@ import {
   defaultRuntimeSelection,
   normalizeRuntimeSelection,
   restoreRuntimeSelection,
+  setRuntimeCollaborationMode,
   setRuntimePrimaryRole,
   toggleRuntimeRole,
 } from "../domain/agent-runtime-options"
@@ -52,18 +53,9 @@ export function useAgentRuntimeOptions(input: { enabled: boolean }) {
   const commands = useMemo(
     () => ({
       setCollaborationMode: (collaborationMode: string) => {
-        setRuntimeSelection((current) => ({
-          ...current,
-          collaborationMode,
-          selectedRoles:
-            collaborationMode === "auto"
-              ? []
-              : collaborationMode === "single"
-              ? current.primaryRole
-                ? [current.primaryRole]
-                : current.selectedRoles.slice(0, 1)
-              : current.selectedRoles,
-        }))
+        setRuntimeSelection((current) =>
+          setRuntimeCollaborationMode(current, collaborationMode)
+        )
       },
       setLearningLevel: (learningLevel: string) => {
         setRuntimeSelection((current) => ({ ...current, learningLevel }))
