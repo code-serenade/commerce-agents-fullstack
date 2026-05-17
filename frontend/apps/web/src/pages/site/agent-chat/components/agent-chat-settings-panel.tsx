@@ -1,12 +1,13 @@
 import { ChevronsUpDown, SlidersHorizontal } from "lucide-react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import type {
   AgentChatRuntimeSelection,
   AgentRuntimeOptions,
 } from "../domain/agent-runtime-options"
 import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
-import { AgentChatRuntimeOptionsBar } from "./agent-chat-runtime-options-bar"
-import { AgentChatStrategyBar } from "./agent-chat-strategy-bar"
+import { buildCompactRuntimeSummary } from "../view-model/agent-chat-runtime-summary-view-model"
+import { AgentChatSettingsControls } from "./agent-chat-settings-controls"
 
 export interface AgentChatSettingsPanelProps {
   isLoadingPlaybooks?: boolean
@@ -45,6 +46,7 @@ export function AgentChatSettingsPanel({
   variant = "bar",
 }: AgentChatSettingsPanelProps) {
   const { t } = useTranslation()
+  const [summaryVisible, setSummaryVisible] = useState(true)
   const activeStrategyLabel = t(`agentChat.strategy.options.${strategyId}.label`)
   const depthLabel =
     runtimeOptions?.learningLevels.find(
@@ -67,6 +69,14 @@ export function AgentChatSettingsPanel({
   ]
     .filter(Boolean)
     .join(" · ")
+  const compactSummary = buildCompactRuntimeSummary({
+    depthLabel,
+    roleModeLabel,
+    runtimeOptions,
+    runtimeSelection,
+    strategyId,
+    t,
+  })
 
   if (variant === "panel") {
     return (
@@ -109,7 +119,10 @@ export function AgentChatSettingsPanel({
       .join(" - ")
 
     return (
-      <div className="relative shrink-0" data-composer-interactive="true">
+      <div
+        className="flex min-w-0 shrink items-center gap-1.5"
+        data-composer-interactive="true"
+      >
         <button
           type="button"
           disabled={isStreaming}
@@ -129,6 +142,33 @@ export function AgentChatSettingsPanel({
           </span>
           <ChevronIndicator open={isOpen} />
         </button>
+        {summaryVisible ? (
+          <div className="flex min-w-0 shrink items-center gap-1 text-xs text-muted-foreground">
+            <span className="min-w-0 max-w-[min(48vw,26rem)] truncate">
+              <span className="text-[11px] text-muted-foreground/75">
+                {t("agentChat.composer.settings.selectedPrefix")}
+              </span>
+              <span className="ml-1 text-foreground/85">{compactSummary}</span>
+            </span>
+            <button
+              type="button"
+              className="shrink-0 text-[11px] text-muted-foreground/75 underline-offset-2 transition-colors hover:text-foreground hover:underline"
+              onClick={() => setSummaryVisible(false)}
+              title={t("agentChat.composer.settings.hideSelection")}
+            >
+              {t("agentChat.composer.settings.hideSelection")}
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="shrink-0 text-[11px] text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline"
+            onClick={() => setSummaryVisible(true)}
+            title={compactSummary}
+          >
+            {t("agentChat.composer.settings.showSelection")}
+          </button>
+        )}
       </div>
     )
   }
@@ -184,54 +224,6 @@ function roleModeCopyKey(mode: string) {
     return `agentChat.composer.runtime.roleModes.${mode}.label`
   }
   return ""
-}
-
-function AgentChatSettingsControls({
-  isLoadingRuntimeOptions,
-  isStreaming,
-  onCollaborationModeChange,
-  onLearningLevelChange,
-  onModelChange,
-  onPrimaryRoleChange,
-  onStrategyChange,
-  onToggleRole,
-  runtimeOptions,
-  runtimeSelection,
-  strategyId,
-}: {
-  isLoadingRuntimeOptions: boolean
-  isStreaming: boolean
-  onCollaborationModeChange: (value: string) => void
-  onLearningLevelChange: (value: string) => void
-  onModelChange: (value: string) => void
-  onPrimaryRoleChange: (value: string) => void
-  onStrategyChange: (strategyId: AgentChatStrategyId) => void
-  onToggleRole: (value: string) => void
-  runtimeOptions: AgentRuntimeOptions | null
-  runtimeSelection: AgentChatRuntimeSelection
-  strategyId: AgentChatStrategyId
-}) {
-  return (
-    <>
-      <AgentChatStrategyBar
-        disabled={isStreaming}
-        onStrategyChange={onStrategyChange}
-        strategyId={strategyId}
-      />
-      <AgentChatRuntimeOptionsBar
-        disabled={isStreaming}
-        isLoadingRuntimeOptions={isLoadingRuntimeOptions}
-        onCollaborationModeChange={onCollaborationModeChange}
-        onLearningLevelChange={onLearningLevelChange}
-        onModelChange={onModelChange}
-        onPrimaryRoleChange={onPrimaryRoleChange}
-        onToggleRole={onToggleRole}
-        runtimeOptions={runtimeOptions}
-        runtimeSelection={runtimeSelection}
-        strategyId={strategyId}
-      />
-    </>
-  )
 }
 
 function ChevronIndicator({ open }: { open: boolean }) {

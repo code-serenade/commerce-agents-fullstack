@@ -980,6 +980,10 @@ const messages = {
         toggle: "任务设置",
         rolesCount: "{{count}} 个岗位",
         depthSummary: "深度：{{depth}}",
+        selectedPrefix: "已选",
+        hideSelection: "隐藏",
+        showSelection: "展示已选模式",
+        autoRolesSummary: "后端自动",
       },
       runtime: {
         label: "岗位分配",

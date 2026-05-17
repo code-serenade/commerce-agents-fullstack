@@ -119,7 +119,7 @@ export function AgentChatComposer({
     <footer className="relative z-30 shrink-0 bg-linear-to-t from-background via-background/95 to-background/70 px-3 pb-3 pt-2 sm:px-5">
       <div
         ref={composerRootRef}
-        className="mx-auto flex w-full max-w-4xl flex-col gap-2 rounded-xl border border-border bg-background p-1 shadow-lg shadow-black/10 dark:bg-card"
+        className="mx-auto flex w-full max-w-4xl flex-col gap-2 rounded-xl border border-muted-foreground/35 bg-background p-1 shadow-lg shadow-black/10 transition-colors focus-within:border-foreground/40 focus-within:ring-2 focus-within:ring-ring/15 dark:bg-card"
         onMouseDown={focusComposer}
       >
         <div className="relative">

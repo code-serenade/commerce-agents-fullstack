@@ -57,6 +57,8 @@ export function AgentChatSourceContextBar({
     )
   }
 
+  if (!selectedSources.length && !availableSources.length) return null
+
   return (
     <div className="relative shrink-0" data-composer-interactive="true">
       <button
@@ -73,9 +75,7 @@ export function AgentChatSourceContextBar({
       >
         <Files className="size-3.5 shrink-0" />
         <span className="truncate">
-          {selectedSources.length
-            ? t("agentChat.composer.sourceContext.compactLabel")
-            : t("agentChat.composer.sourceContext.noneCompactLabel")}
+          {t("agentChat.composer.sourceContext.compactLabel")}
         </span>
         {selectedSources.length ? (
           <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-current/10 text-[10px]">

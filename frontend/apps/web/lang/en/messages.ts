@@ -992,6 +992,10 @@ const messages = {
         toggle: "Task settings",
         rolesCount: "{{count}} roles",
         depthSummary: "Depth: {{depth}}",
+        selectedPrefix: "Selected",
+        hideSelection: "Hide",
+        showSelection: "Show selected mode",
+        autoRolesSummary: "Backend auto",
       },
       runtime: {
         label: "Role assignment",
