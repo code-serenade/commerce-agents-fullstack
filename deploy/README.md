@@ -4,7 +4,8 @@
 
 ## 服务
 
-- `postgres`: 基于官方 PostgreSQL latest 的项目数据库镜像，数据保存在 `postgres_data` volume。PostgreSQL 18+ 使用 `/var/lib/postgresql` 作为 volume 挂载点。
+- `postgres`: 使用官方 PostgreSQL latest 镜像，数据保存在 `postgres_data` volume。PostgreSQL 18+ 使用 `/var/lib/postgresql` 作为 volume 挂载点。
+- `db-init`: 一次性数据库初始化镜像，包含 `migration` 和 `xtask`，由安装脚本通过 `docker compose run --rm db-init` 执行，不保留容器。
 - `backend`: Rust `web-server` 服务，监听 `19878`。
 - `web`: Vite `apps/web` 构建产物，由 nginx 托管，宿主端口 `8080`。
 - `admin`: Vite `apps/admin` 构建产物，由 nginx 托管，宿主端口 `8081`。
@@ -23,14 +24,16 @@
 1. 检查并准备 rust-builder:alpine
 2. 编译前端 web/admin dist
 3. 编译后端 web-server/migration/xtask 静态 bin
-4. 构建最终 Docker 镜像
+4. 拉取官方 postgres 镜像，并构建 db-init/backend/web/admin 镜像
 5. 生成 output/commerce-agents-offline.tar.gz
 ```
 
 本机测试启动：
 
 ```bash
-docker compose up -d
+docker compose up -d postgres
+docker compose --profile tools run --rm db-init
+docker compose up -d backend web admin
 ```
 
 前端镜像只使用 nginx，不在 Docker 里安装 Node 或 pnpm。`deploy/frontend/Dockerfile` 只会把本机已经生成的 `frontend/apps/web/dist` 或 `frontend/apps/admin/dist` 复制进 nginx 镜像。
@@ -75,8 +78,8 @@ CARGO_CACHE_DIR=/path/to/cargo-cache ./deploy/build-backend-in-alpine.sh
 
 - Web: http://localhost:8080
 - Admin: http://localhost:8081
-- Backend: http://localhost:19878
-- PostgreSQL: localhost:25432
+
+`backend` 和 `postgres` 默认不映射到宿主机端口，只在 Docker Compose 内部网络中访问。
 
 ## 配置
 
@@ -88,15 +91,17 @@ postgres://postgres:123456@postgres:5432/app
 
 注意容器内不能使用本机开发环境的 `localhost:15432`，必须用 Compose 服务名 `postgres`。
 
+`backend/config/json` 和 `backend/config/prompts` 是服务端业务紧耦合配置，会在构建 `backend` 镜像时直接复制到容器内 `/app/config/json` 和 `/app/config/prompts`。不要在 `deploy/` 下维护这两个目录的副本；只有 `services.toml` 这类环境相关配置放在 `deploy/backend/`。
+
 数据库结构不会在 `docker build` 阶段初始化。镜像构建时没有最终运行中的 PostgreSQL，也没有最终数据 volume；初始化应该发生在 `docker compose up` 的运行阶段。
 
 当前 Compose 启动顺序是：
 
 ```text
-postgres -> backend -> web/admin
+postgres -> db-init -> backend -> web/admin
 ```
 
-数据库第一次创建数据目录时，PostgreSQL 会自动执行 `deploy/postgres/init-commerce-agents.sh`。初始化包含：
+`db-init` 是一次性初始化容器。初始化包含：
 
 ```text
 1. migration up
@@ -104,6 +109,8 @@ postgres -> backend -> web/admin
 3. xtask init-app-permissions
 4. xtask init-root
 ```
+
+初始化完成后，`db-init` 会在数据库中写入 `__app_init_state` 标记；重复执行时会跳过已完成的初始化。
 
 默认 root 账号初始化参数：
 
@@ -159,4 +166,4 @@ output/commerce-agents-offline/
 
 `output/` 已被 `.gitignore` 忽略，不需要提交到 Git。把 `commerce-agents-offline.tar.gz` 交给实施人员即可。
 
-后端当前使用 Alpine builder 编译静态 `web-server`。最终交付镜像只需要复制 `web-server` 和运行配置；`migration` 与开发/初始化流程相关，不放入最终后端运行镜像。
+后端当前使用 Alpine builder 编译静态 `web-server`。最终后端运行镜像只需要复制 `web-server` 和运行配置；`migration` 与 `xtask` 放在一次性 `db-init` 镜像中。
