@@ -653,6 +653,10 @@ impl ApprovalAuditApi {
             })
             .await?;
 
+        if !is_platform_execution_skill(current.skill_name.as_str()) {
+            return Ok(approved);
+        }
+
         let params = platform_execution_params(&current.args);
         let execution_item = execution_tx_svc
             .create(CreateExecutionQueueItem {
@@ -747,12 +751,14 @@ impl ApprovalAuditApi {
             })
             .await?;
 
+        let final_approval_result =
+            tool_approval_result_after_execution_attempt(current, &execution_item, &attempt);
         let final_approval = approval_tx_svc
             .update_decision(UpdateToolApprovalDecision {
                 id: approved.id,
                 status: attempt.approval_status,
-                reason: attempt.decision_reason.clone(),
-                result: attempt.result.clone(),
+                reason: approved_reason.clone(),
+                result: final_approval_result,
                 approved_by: Some(actor_user_id),
                 approved_at: Some(now),
                 executed_at: attempt.executed_at,
@@ -779,6 +785,8 @@ impl ApprovalAuditApi {
                     "skillName": current.skill_name,
                     "platform": params.platform,
                     "finalApprovalStatus": final_approval.status.as_str(),
+                    "executionStatus": attempt.execution_status.as_str(),
+                    "adapterStatus": value_field(&attempt.result, "adapterStatus"),
                     "result": final_approval.result,
                 }),
             })
@@ -1019,7 +1027,7 @@ fn platform_execution_failed(
         "source": "tool_approval_execution",
         "approvalId": approval.id,
         "executionQueueId": execution_item.id,
-        "approvalStatus": "failed",
+        "approvalStatus": "approved",
         "executionStatus": "failed",
         "adapterStatus": outcome.adapter_status,
         "platform": params.platform,
@@ -1033,14 +1041,44 @@ fn platform_execution_failed(
         "attemptedAt": now,
     });
     PlatformExecutionAttempt {
-        approval_status: ToolApprovalStatus::Failed,
+        approval_status: ToolApprovalStatus::Approved,
         execution_status: ExecutionQueueStatus::Failed,
         decision_reason: Some(decision_reason),
         result,
-        executed_at: Some(now),
+        executed_at: None,
         execution_audit_action: "execution_queue.failed",
-        approval_audit_action: "tool_approval.execute_failed",
+        approval_audit_action: "tool_approval.execution_attempt_failed",
     }
+}
+
+fn tool_approval_result_after_execution_attempt(
+    approval: &ToolApproval,
+    execution_item: &ExecutionQueueItem,
+    attempt: &PlatformExecutionAttempt,
+) -> Value {
+    json!({
+        "status": attempt.approval_status.as_str(),
+        "source": "tool_approval_approve",
+        "approvalId": approval.id,
+        "executionQueueId": execution_item.id,
+        "approvalStatus": attempt.approval_status.as_str(),
+        "executionStatus": attempt.execution_status.as_str(),
+        "adapterStatus": value_field(&attempt.result, "adapterStatus"),
+        "platform": value_field(&attempt.result, "platform"),
+        "skillName": approval.skill_name,
+        "message": value_field(&attempt.result, "message"),
+        "details": value_field(&attempt.result, "details"),
+        "adapterRequest": value_field(&attempt.result, "adapterRequest"),
+        "providerResult": value_field(&attempt.result, "providerResult"),
+        "retryable": value_field(&attempt.result, "retryable"),
+        "manualResult": value_field(&attempt.result, "manualResult"),
+        "attemptedAt": value_field(&attempt.result, "attemptedAt"),
+        "executionAttempt": attempt.result,
+    })
+}
+
+fn value_field(value: &Value, key: &str) -> Value {
+    value.get(key).cloned().unwrap_or(Value::Null)
 }
 
 fn build_execution_description(
@@ -1104,8 +1142,13 @@ mod tests {
         let attempt =
             plan_platform_execution(&approval, &execution, &params, None, &json!({}), now);
 
-        assert_eq!(attempt.approval_status, ToolApprovalStatus::Failed);
+        assert_eq!(attempt.approval_status, ToolApprovalStatus::Approved);
         assert_eq!(attempt.execution_status, ExecutionQueueStatus::Failed);
+        assert_eq!(attempt.executed_at, None);
+        assert_eq!(
+            attempt.result.get("approvalStatus").and_then(Value::as_str),
+            Some("approved")
+        );
         assert_eq!(
             attempt.result.get("adapterStatus").and_then(Value::as_str),
             Some("connection_missing")
@@ -1134,7 +1177,8 @@ mod tests {
             now,
         );
 
-        assert_eq!(attempt.approval_status, ToolApprovalStatus::Failed);
+        assert_eq!(attempt.approval_status, ToolApprovalStatus::Approved);
+        assert_eq!(attempt.execution_status, ExecutionQueueStatus::Failed);
         assert_eq!(
             attempt.result.get("adapterStatus").and_then(Value::as_str),
             Some("adapter_not_implemented")
@@ -1169,6 +1213,25 @@ mod tests {
                 .result
                 .get("providerResult")
                 .is_some_and(Value::is_null)
+        );
+
+        let approval_result =
+            tool_approval_result_after_execution_attempt(&approval, &execution, &attempt);
+        assert_eq!(
+            approval_result.get("status").and_then(Value::as_str),
+            Some("approved")
+        );
+        assert_eq!(
+            approval_result
+                .get("executionStatus")
+                .and_then(Value::as_str),
+            Some("failed")
+        );
+        assert_eq!(
+            approval_result
+                .pointer("/executionAttempt/adapterStatus")
+                .and_then(Value::as_str),
+            Some("adapter_not_implemented")
         );
     }
 
@@ -1280,7 +1343,7 @@ mod tests {
             now,
         );
 
-        assert_eq!(attempt.approval_status, ToolApprovalStatus::Failed);
+        assert_eq!(attempt.approval_status, ToolApprovalStatus::Approved);
         assert_eq!(
             attempt.result.get("adapterStatus").and_then(Value::as_str),
             Some("unsupported_action")
@@ -1307,7 +1370,7 @@ mod tests {
         let attempt =
             plan_platform_execution(&approval, &execution, &params, None, &json!({}), now);
 
-        assert_eq!(attempt.approval_status, ToolApprovalStatus::Failed);
+        assert_eq!(attempt.approval_status, ToolApprovalStatus::Approved);
         assert_eq!(
             attempt.result.get("adapterStatus").and_then(Value::as_str),
             Some("unsupported_action")

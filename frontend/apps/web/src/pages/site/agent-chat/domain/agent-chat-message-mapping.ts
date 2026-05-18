@@ -1,22 +1,25 @@
 import type {
+  AgentRuntimeEvent,
   ConversationDetailResponse,
   ConversationFileResponse,
   ConversationMessageResponse,
 } from "@/api"
-import type { AgentRuntimeEvent } from "../agent-chat-data"
-import type { AgentChatRuntimeSelectionRestore } from "./agent-runtime-options"
 import { sanitizeAgentAnswerContent } from "./agent-chat-answer-sanitizer"
-import {
-  DEFAULT_AGENT_CHAT_STRATEGY_ID,
-  normalizeAgentChatStrategyId,
-  type AgentChatStrategyId,
-} from "./agent-chat-strategy"
 import type {
   AgentChatAttachmentItem,
   AgentChatConversationItem,
   AgentChatMessage,
 } from "../types"
 import { readMessageContextSummary } from "./agent-chat-message-context-summary"
+export {
+  readConversationRuntimeEvents,
+  readConversationRuntimeSelection,
+  readConversationSelectedCampaignIds,
+  readConversationSelectedProductIds,
+  readConversationSelectedSourceRefs,
+  readConversationStrategyId,
+} from "./agent-chat-conversation-readers"
+import { isAgentRuntimeEvent } from "./agent-chat-conversation-readers"
 
 export interface AgentChatMessageFormatCopy {
   boundaryNotice: string
@@ -80,64 +83,6 @@ export function createMessageId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
 }
 
-export function readConversationRuntimeEvents(
-  detail: ConversationDetailResponse
-): AgentRuntimeEvent[] {
-  for (let index = detail.messages.length - 1; index >= 0; index -= 1) {
-    const runtimeEvents = readRuntimeEvents(detail.messages[index]?.contentJson)
-    if (runtimeEvents.length > 0) return runtimeEvents
-  }
-  return []
-}
-
-export function readConversationSelectedProductIds(
-  detail: ConversationDetailResponse
-): string[] {
-  for (let index = detail.messages.length - 1; index >= 0; index -= 1) {
-    const message = detail.messages[index]
-    if (message?.role !== "user") continue
-    const productIds = readProductIds(message.contentJson)
-    if (productIds.length > 0) return productIds
-  }
-  return []
-}
-
-export function readConversationSelectedSourceRefs(
-  detail: ConversationDetailResponse
-): string[] {
-  for (let index = detail.messages.length - 1; index >= 0; index -= 1) {
-    const message = detail.messages[index]
-    if (message?.role !== "user") continue
-    const sourceRefs = readSourceRefs(message.contentJson)
-    if (sourceRefs.length > 0) return sourceRefs
-  }
-  return []
-}
-
-export function readConversationRuntimeSelection(
-  detail: ConversationDetailResponse
-): AgentChatRuntimeSelectionRestore | null {
-  for (let index = detail.messages.length - 1; index >= 0; index -= 1) {
-    const message = detail.messages[index]
-    if (message?.role !== "user") continue
-    const selection = readRuntimeSelection(message.contentJson)
-    if (selection) return selection
-  }
-  return null
-}
-
-export function readConversationStrategyId(
-  detail: ConversationDetailResponse
-): AgentChatStrategyId {
-  for (let index = detail.messages.length - 1; index >= 0; index -= 1) {
-    const message = detail.messages[index]
-    if (message?.role !== "user") continue
-    const strategyId = readStrategyId(message.contentJson)
-    if (strategyId) return strategyId
-  }
-  return DEFAULT_AGENT_CHAT_STRATEGY_ID
-}
-
 export function mapConversationAttachments(
   detail: ConversationDetailResponse
 ): AgentChatAttachmentItem[] {
@@ -180,63 +125,6 @@ function readRuntimeEvents(contentJson: unknown): AgentRuntimeEvent[] {
   return runtimeEvents.filter(isAgentRuntimeEvent)
 }
 
-function readProductIds(contentJson: unknown): string[] {
-  if (!isRecord(contentJson)) return []
-  const context = contentJson.context
-  if (!isRecord(context)) return []
-
-  const productIds = readStringArray(context.productIds)
-  const contextRefs = readStringArray(context.contextRefs)
-    .map((item) => item.match(/^product:(.+)$/)?.[1])
-    .filter((item): item is string => Boolean(item))
-
-  return uniqueStrings([...productIds, ...contextRefs])
-}
-
-function readSourceRefs(contentJson: unknown): string[] {
-  if (!isRecord(contentJson)) return []
-  const context = contentJson.context
-  if (!isRecord(context)) return []
-
-  return readStringArray(context.contextRefs).filter((ref) =>
-    ref.startsWith("conversation_file:")
-  )
-}
-
-function readRuntimeSelection(
-  contentJson: unknown
-): AgentChatRuntimeSelectionRestore | null {
-  const strategy = readStrategyRecord(contentJson)
-  if (!strategy) return null
-
-  const selection: AgentChatRuntimeSelectionRestore = {}
-  const collaborationMode = readString(strategy.collaborationMode)
-  const learningLevel = readString(strategy.learningLevel)
-  const modelName = readString(strategy.modelName)
-  const primaryRole = readString(strategy.primaryRole)
-  const selectedRoles = readStringArray(strategy.selectedRoles)
-
-  if (collaborationMode) selection.collaborationMode = collaborationMode
-  if (learningLevel) selection.learningLevel = learningLevel
-  if (modelName) selection.modelName = modelName
-  if (primaryRole) selection.primaryRole = primaryRole
-  if (selectedRoles.length > 0) selection.selectedRoles = selectedRoles
-
-  return Object.keys(selection).length > 0 ? selection : null
-}
-
-function readStrategyId(contentJson: unknown): AgentChatStrategyId | null {
-  const strategy = readStrategyRecord(contentJson)
-  const strategyId = readString(strategy?.strategyId)
-  return normalizeAgentChatStrategyId(strategyId)
-}
-
-function readStrategyRecord(contentJson: unknown) {
-  if (!isRecord(contentJson)) return null
-  const strategy = contentJson.strategy
-  return isRecord(strategy) ? strategy : null
-}
-
 function mapConversationFile(
   file: ConversationFileResponse
 ): AgentChatAttachmentItem {
@@ -247,28 +135,6 @@ function mapConversationFile(
     readable: isReadableConversationFile(file),
     status: file.status === "failed" ? "failed" : "uploaded",
   }
-}
-
-function isAgentRuntimeEvent(value: unknown): value is AgentRuntimeEvent {
-  return isRecord(value) && typeof value.type === "string"
-}
-
-function readStringArray(value: unknown) {
-  if (!Array.isArray(value)) return []
-  return value.filter((item): item is string => typeof item === "string")
-}
-
-function readString(value: unknown) {
-  return typeof value === "string" && value.trim() ? value : null
-}
-
-function uniqueStrings(values: string[]) {
-  const result: string[] = []
-  values.forEach((value) => {
-    const normalized = value.trim()
-    if (normalized && !result.includes(normalized)) result.push(normalized)
-  })
-  return result
 }
 
 function isReadableConversationFile(file: ConversationFileResponse) {

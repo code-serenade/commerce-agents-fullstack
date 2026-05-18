@@ -21,6 +21,7 @@ export interface AgentChatPageStateActions {
   setMessages: Dispatch<SetStateAction<AgentChatMessage[]>>
   setRuntimeEvents: Dispatch<SetStateAction<AgentRuntimeEvent[]>>
   setAttachments?: Dispatch<SetStateAction<AgentChatAttachmentItem[]>>
+  clearSelectedCampaigns?: () => void
   clearSelectedProducts?: () => void
   clearSelectedSources?: () => void
   resetRuntimeSelection?: () => void
@@ -38,6 +39,7 @@ export function resetGuestAgentChatState(
     state.sessionIdRef.current = createSessionId()
     state.setMessages([state.createWelcomeMessage()])
     state.setAttachments?.([])
+    state.clearSelectedCampaigns?.()
     state.clearSelectedProducts?.()
     state.clearSelectedSources?.()
     resetAgentChatConversationContext(state)
@@ -55,6 +57,7 @@ export function startNewAgentConversation(state: AgentChatPageStateActions) {
   state.setRuntimeEvents([])
   state.setMessages([state.createWelcomeMessage()])
   state.setAttachments?.([])
+  state.clearSelectedCampaigns?.()
   state.clearSelectedProducts?.()
   state.clearSelectedSources?.()
   resetAgentChatConversationContext(state)

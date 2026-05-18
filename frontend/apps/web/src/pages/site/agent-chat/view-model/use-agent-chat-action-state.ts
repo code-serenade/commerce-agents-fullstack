@@ -17,12 +17,14 @@ import type {
 
 export function useAgentChatActionState(input: {
   abortRef: MutableRefObject<AbortController | null>
+  clearSelectedCampaigns: () => void
   clearSelectedProducts: () => void
   clearSelectedSources: () => void
   fallbackConversationTitle: string
   messageFormatCopy: AgentChatMessageFormatCopy
   resetRuntimeSelection: () => void
   restoreRuntimeSelection: (selection: AgentChatRuntimeSelectionRestore) => void
+  restoreSelectedCampaigns: (campaignIds: string[]) => void
   restoreSelectedProducts: (productIds: string[]) => void
   restoreSelectedSources: (sourceRefs: string[]) => void
   sessionIdRef: MutableRefObject<string>
@@ -50,6 +52,7 @@ export function useAgentChatActionState(input: {
   const actionState = useMemo(
     () => ({
       abortRef: input.abortRef,
+      clearSelectedCampaigns: input.clearSelectedCampaigns,
       clearSelectedProducts: input.clearSelectedProducts,
       clearSelectedSources: input.clearSelectedSources,
       createWelcomeMessage,
@@ -57,6 +60,7 @@ export function useAgentChatActionState(input: {
       messageFormatCopy: input.messageFormatCopy,
       resetRuntimeSelection: input.resetRuntimeSelection,
       restoreRuntimeSelection: input.restoreRuntimeSelection,
+      restoreSelectedCampaigns: input.restoreSelectedCampaigns,
       restoreSelectedProducts: input.restoreSelectedProducts,
       restoreSelectedSources: input.restoreSelectedSources,
       restoreStrategyId: input.setStrategyId,
@@ -74,12 +78,14 @@ export function useAgentChatActionState(input: {
     [
       createWelcomeMessage,
       input.abortRef,
+      input.clearSelectedCampaigns,
       input.clearSelectedProducts,
       input.clearSelectedSources,
       input.fallbackConversationTitle,
       input.messageFormatCopy,
       input.resetRuntimeSelection,
       input.restoreRuntimeSelection,
+      input.restoreSelectedCampaigns,
       input.restoreSelectedProducts,
       input.restoreSelectedSources,
       input.sessionIdRef,

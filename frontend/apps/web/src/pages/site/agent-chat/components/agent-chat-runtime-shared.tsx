@@ -1,29 +1,46 @@
 import type { ReactNode } from "react"
-import { Check } from "lucide-react"
 import { NativeSelect } from "@workspace/ui-components/stable/native-select"
+
+export function SettingsRow({
+  align = "center",
+  children,
+  label,
+}: {
+  align?: "center" | "start"
+  children: ReactNode
+  label: string
+}) {
+  const rowClassName =
+    align === "start"
+      ? "grid grid-cols-[5.5rem_minmax(0,1fr)] gap-2 items-start"
+      : "grid grid-cols-[5.5rem_minmax(0,1fr)] gap-2 items-center"
+
+  return (
+    <div className={rowClassName}>
+      <div className="min-w-0 text-sm/8 font-semibold text-foreground">
+        <span className="truncate">{label}</span>
+      </div>
+      <div className="min-w-0">{children}</div>
+    </div>
+  )
+}
 
 export function OptionSegment({
   disabled,
-  icon,
   label,
   onValueChange,
   options,
   value,
 }: {
   disabled: boolean
-  icon?: ReactNode
   label: string
   onValueChange: (value: string) => void
   options: { description?: string; label: string; value: string }[]
   value: string
 }) {
   return (
-    <div className="grid gap-1.5 sm:grid-cols-[4.75rem_minmax(0,1fr)] sm:items-center">
-      <div className="flex min-w-0 items-center gap-1.5 text-xs font-semibold text-foreground">
-        {icon}
-        <span className="truncate">{label}</span>
-      </div>
-      <div className="grid gap-1.5 sm:grid-cols-3">
+    <SettingsRow label={label}>
+      <div className="grid grid-cols-3 gap-1.5">
         {options.map((option) => {
           const active = option.value === value
           return (
@@ -32,25 +49,22 @@ export function OptionSegment({
               type="button"
               disabled={disabled}
               onClick={() => onValueChange(option.value)}
-              className={`flex h-9 min-w-0 items-center gap-1.5 rounded-md border px-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+              className={`flex h-8 min-w-0 items-center justify-center rounded-md border px-2 text-center transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                 active
-                  ? "border-primary/50 bg-primary/10 text-primary"
+                  ? "border-primary/60 bg-primary/10 text-primary ring-1 ring-primary/10"
                   : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
               title={option.description}
               aria-pressed={active}
             >
-              <span className="flex size-3.5 shrink-0 items-center justify-center">
-                {active ? <Check className="size-3.5" /> : null}
-              </span>
-              <span className="min-w-0 truncate text-sm font-semibold">
+              <span className="min-w-0 truncate text-sm font-semibold leading-none">
                 {option.label}
               </span>
             </button>
           )
         })}
       </div>
-    </div>
+    </SettingsRow>
   )
 }
 
@@ -69,7 +83,7 @@ export function RuntimeSelect({
 }) {
   return (
     <label className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
-      <span className="shrink-0">{label}</span>
+      {label ? <span className="shrink-0">{label}</span> : null}
       <NativeSelect
         disabled={disabled || options.length === 0}
         onValueChange={onValueChange}

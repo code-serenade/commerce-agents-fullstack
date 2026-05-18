@@ -3028,7 +3028,7 @@
 | `conversationId` | `uuid` | 否 | 聚合该会话下已注册的 active 附件 |
 | `productId` | `uuid` | 否 | 聚合该商品下 active 资产和素材；为空时优先使用工作区绑定商品 |
 | `runId` | `uuid` | 否 | 只聚合该运行记录下的 active 工作区交付物 |
-| `contextRefs` | `string` | 否 | 逗号分隔的显式上下文引用，当前支持 `conversation_file:{fileId}`、`file:{fileId}`、`product_asset:{assetId}`、`asset:{assetId}`、`product_material:{materialId}`、`material:{materialId}`、`workspace_artifact:{artifactId}` 和 `artifact:{artifactId}`，最多 20 个 |
+| `contextRefs` | `string` | 否 | 逗号分隔的显式上下文引用，当前支持 `conversation_file:{fileId}`、`file:{fileId}`、`campaign:{campaignId}`、`campaign/{campaignId}`、`product_asset:{assetId}`、`asset:{assetId}`、`product_material:{materialId}`、`material:{materialId}`、`workspace_artifact:{artifactId}` 和 `artifact:{artifactId}`，最多 20 个 |
 
 成功响应 `data`：
 
@@ -3082,7 +3082,7 @@
 - `readiness=empty` 表示没有任何 active 附件、素材、资产或交付物来源。
 - `agentContext.refs` 是后续 Agent 上下文注入和前端来源面板可复用的引用 key。
 - 该接口只做后端状态聚合，不读取文件正文，不伪造 OCR/文档摘要。
-- `contextRefs` 只读取当前用户自己的 active 附件、active 商品资产、active 商品素材，以及当前 workspace 下的 active artifact。显式商品资产 / 商品素材会校验所属商品仍 active，但不会反向把该商品当成本轮“已选商品”；如果需要商品知识和商品型 skill 输入，仍应通过 `productId`、`productIds` 或 `product:{uuid}` 显式选择商品。
+- `contextRefs` 只读取当前用户自己的 active 附件、active 营销活动、active 商品资产、active 商品素材，以及当前 workspace 下的 active artifact。显式活动引用会把该活动的名称、类型、预算、时间、状态、描述、沉淀输出和动作元数据写入本轮 workspace context pack；不会默认读取未显式选择的历史活动。显式商品资产 / 商品素材会校验所属商品仍 active，但不会反向把该商品当成本轮“已选商品”；如果需要商品知识和商品型 skill 输入，仍应通过 `productId`、`productIds` 或 `product:{uuid}` 显式选择商品。
 - `contextRefs` 不会因为传入 `workspaceId` 自动读取全部历史 run artifact，也不会因为传入某个附件或素材就自动读取同一会话、同一商品下的其它资料。
 - Agent SSE 会在绑定 `workspace_run` 后自动调用该摘要能力，发送 `workspace_context_loaded` 事件，并把 `agentContext.refs` 与 `summary` 注入 agent runtime metadata。
 
@@ -3099,7 +3099,7 @@
 | `conversationId` | `uuid` | 否 | 聚合该会话下已注册的 active 附件；只读取 metadata 中已经存在的抽取文本 |
 | `productId` | `uuid` | 否 | 聚合该商品下 active 资产描述和素材正文；为空时优先使用工作区绑定商品 |
 | `runId` | `uuid` | 否 | 只聚合该运行记录下的 active 工作区交付物 |
-| `contextRefs` | `string` | 否 | 逗号分隔的显式上下文引用，当前支持 `conversation_file:{fileId}`、`file:{fileId}`、`product_asset:{assetId}`、`asset:{assetId}`、`product_material:{materialId}`、`material:{materialId}`、`workspace_artifact:{artifactId}` 和 `artifact:{artifactId}`，最多 20 个 |
+| `contextRefs` | `string` | 否 | 逗号分隔的显式上下文引用，当前支持 `conversation_file:{fileId}`、`file:{fileId}`、`campaign:{campaignId}`、`campaign/{campaignId}`、`product_asset:{assetId}`、`asset:{assetId}`、`product_material:{materialId}`、`material:{materialId}`、`workspace_artifact:{artifactId}` 和 `artifact:{artifactId}`，最多 20 个 |
 | `maxItems` | `number` | 否 | 返回来源上限，默认 20，最大 50 |
 | `maxChars` | `number` | 否 | 返回文本总字符上限，默认 12000，最大 24000 |
 
@@ -3177,7 +3177,7 @@
 - `contentKind=unavailable` 表示该来源没有可读文本。
 - 该接口不会读取 object storage，不做 OCR，不解析 PDF/图片/视频，也不会把二进制附件伪造成已读正文。
 - Agent SSE 会在 `workspace_context_loaded` 后自动调用该内容包能力，发送 `workspace_context_pack_loaded` 事件，并把可读文本追加进 runtime `context.summary`。
-- `contextRefs` 中的显式附件、商品资产、商品素材和 artifact 会和 `conversationId`、`productId`、`runId` 范围来源合并去重后进入内容包；未显式引用的历史附件、历史商品素材或历史 artifact 不会进入 SSE Agent 本轮上下文。
+- `contextRefs` 中的显式附件、营销活动、商品资产、商品素材和 artifact 会和 `conversationId`、`productId`、`runId` 范围来源合并去重后进入内容包；未显式引用的历史附件、历史活动、历史商品素材或历史 artifact 不会进入 SSE Agent 本轮上下文。
 
 ## 69. 查询支持的平台列表
 
@@ -3667,7 +3667,7 @@
 | --- | --- | --- | --- |
 | `workspaceId` | `uuid` | 否 | 只查询某个工作区 |
 | `runId` | `uuid` | 否 | 只查询某个运行记录，传入时必须同时传 `workspaceId` |
-| `status` | `pending \| approved \| executed \| failed \| rejected \| cancelled` | 否 | 审批状态 |
+| `status` | `pending \| approved \| executed \| failed \| rejected \| cancelled` | 否 | 审批状态；平台执行尝试失败不会把人工审批状态覆盖成 `failed`，执行结果请读取 `result.executionStatus` 或执行队列 |
 | `skillName` | `string` | 否 | 工具或能力名称 |
 | `riskLevel` | `string` | 否 | 风险等级，例如 `L1`、`L2` |
 | `page` | `number` | 否 | 默认 1 |
@@ -3797,14 +3797,16 @@
 补充说明：
 
 - 只有 `pending` 状态的审批请求可以通过
-- 通过后会先写入 `approvedBy`、`approvedAt` 和 `tool_approval.approve` 审计日志
+- 通过后会写入 `approvedBy`、`approvedAt` 和 `tool_approval.approve` 审计日志；非平台类审批通过后保持 `status=approved`
 - 如果该审批对应的是高风险平台动作，后端会自动创建一条 `execution_queue` 记录，并立即尝试进入平台执行闭环
-- 若当前平台连接缺失、连接被禁用、参数缺失或平台 adapter 尚未实现，后端会把真实失败结果写回 `toolApproval.result` 和 `executionQueue.result`，不会伪造成功
-- 因此通过接口返回的最终 `ToolApprovalResponse.status` 可能不只停留在 `approved`，也可能直接变成 `executed` 或 `failed`
+- 若当前平台连接缺失、连接被禁用、参数缺失或平台 adapter 尚未实现，后端会把真实失败结果写回 `toolApproval.result.executionAttempt` 和 `executionQueue.result`，不会伪造成功
+- 平台执行尝试失败时，`ToolApprovalResponse.status` 仍保持 `approved`，表示人工审批动作已成功；执行尝试状态通过 `result.executionStatus=failed`、`result.adapterStatus`、`result.executionQueueId` 以及对应 `execution_queue.status=failed` 表达
+- 只有未来真实平台 adapter 执行成功时，工具审批才可进入 `status=executed`；人工拒绝仍为 `rejected`
 - 当前版本已补齐审批后的执行闭环与审计落库，但远端平台 API adapter 仍未真正接入；因此已连接平台的动作当前会返回 `adapter_not_implemented`
 - 从 Post 8-49 开始，支持的平台执行动作失败结果会包含 `result.adapterRequest`，用于记录规范化 adapter 请求和幂等键；unsupported 动作或缺少平台时该字段为 `null`
 - 从 Post 8-50 开始，该失败结果还会包含 `result.providerResult` 和 `result.retryable`，用于承接后续真实 adapter 的原始返回和重试语义；当前未实现 adapter 返回 `providerResult=null`、`retryable=false`
 - 从 Post 8-51 开始，`validation_error`、`connection_missing`、`connection_disabled`、`unsupported_action` 和 `adapter_not_implemented` 都由 service 内部统一 dispatch outcome 入口生成，审批模块只负责事务、执行队列、审批状态和审计写回
+- 从 Post 8-52 开始，人工审批状态与平台执行尝试状态分离：执行失败会记录 `execution_queue.failed` 和 `tool_approval.execution_attempt_failed` 审计动作，但不会把工具审批本身覆盖为 `failed`
 
 ## 89. 拒绝工具审批请求
 

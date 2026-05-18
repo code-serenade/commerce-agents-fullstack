@@ -994,7 +994,20 @@ impl WorkspaceApi {
             .map(map_context_artifact)
             .collect::<Vec<_>>();
 
+        let mut campaigns = Vec::new();
+        for campaign_id in explicit_context_refs.campaign_ids {
+            let campaign = self
+                .ensure_active_campaign_owner(user_id, campaign_id)
+                .await?;
+            push_unique_campaign(&mut campaigns, campaign);
+        }
+        let campaign_sources = campaigns
+            .into_iter()
+            .map(map_context_campaign)
+            .collect::<Vec<_>>();
+
         let counts = WorkspaceContextSummaryCounts {
+            campaigns: campaign_sources.len(),
             conversation_files: attachment_sources.len(),
             product_assets: product_asset_sources.len(),
             product_materials: product_material_sources.len(),
@@ -1042,12 +1055,14 @@ impl WorkspaceApi {
             "summary": summary,
             "counts": {
                 "conversationFiles": counts.conversation_files,
+                "campaigns": counts.campaigns,
                 "productAssets": counts.product_assets,
                 "productMaterials": counts.product_materials,
                 "workspaceArtifacts": counts.workspace_artifacts,
             },
             "refs": context_ref_keys(
                 &attachment_sources,
+                &campaign_sources,
                 &product_asset_sources,
                 &product_material_sources,
                 &artifact_sources,
@@ -1065,6 +1080,7 @@ impl WorkspaceApi {
             summary,
             counts,
             attachment_sources,
+            campaign_sources,
             product_asset_sources,
             product_material_sources,
             artifact_sources,
@@ -1181,7 +1197,16 @@ impl WorkspaceApi {
             push_unique_artifact(&mut workspace_artifacts, artifact);
         }
 
+        let mut campaigns = Vec::new();
+        for campaign_id in explicit_context_refs.campaign_ids {
+            let campaign = self
+                .ensure_active_campaign_owner(user_id, campaign_id)
+                .await?;
+            push_unique_campaign(&mut campaigns, campaign);
+        }
+
         let counts = WorkspaceContextSummaryCounts {
+            campaigns: campaigns.len(),
             conversation_files: conversation_files.len(),
             product_assets: product_assets.len(),
             product_materials: product_materials.len(),
@@ -1198,6 +1223,7 @@ impl WorkspaceApi {
         let candidates = conversation_files
             .into_iter()
             .map(context_pack_conversation_file_candidate)
+            .chain(campaigns.into_iter().map(context_pack_campaign_candidate))
             .chain(
                 product_assets
                     .into_iter()
@@ -1273,6 +1299,7 @@ impl WorkspaceApi {
             "summary": summary,
             "counts": {
                 "conversationFiles": counts.conversation_files,
+                "campaigns": counts.campaigns,
                 "productAssets": counts.product_assets,
                 "productMaterials": counts.product_materials,
                 "workspaceArtifacts": counts.workspace_artifacts,
@@ -3633,6 +3660,36 @@ impl WorkspaceApi {
         Ok(())
     }
 
+    async fn ensure_active_campaign_owner(
+        &self,
+        user_id: Uuid,
+        campaign_id: Uuid,
+    ) -> BizResult<Campaign> {
+        let campaign = self
+            .campaign_svc
+            .get_by_id(campaign_id)
+            .await?
+            .ok_or_else(|| {
+                BizError::new(
+                    app_error::CAMPAIGN_NOT_FOUND,
+                    "campaign not found".to_string(),
+                )
+            })?;
+        if campaign.user_id != user_id {
+            return Err(BizError::new(
+                app_error::CAMPAIGN_FORBIDDEN,
+                "campaign does not belong to current user".to_string(),
+            ));
+        }
+        if campaign.status == CampaignStatus::Archived {
+            return Err(BizError::new(
+                app_error::CAMPAIGN_NOT_FOUND,
+                "campaign not found".to_string(),
+            ));
+        }
+        Ok(campaign)
+    }
+
     async fn ensure_conversation_owner(
         &self,
         user_id: Uuid,
@@ -4322,6 +4379,29 @@ fn map_context_artifact(item: WorkspaceArtifact) -> WorkspaceContextSourceRespon
     }
 }
 
+fn map_context_campaign(item: Campaign) -> WorkspaceContextSourceResponse {
+    let id = item.id.to_string();
+    WorkspaceContextSourceResponse {
+        source_type: "campaign".to_string(),
+        id: id.clone(),
+        title: Some(item.name.clone()),
+        mime_type: Some("application/json".to_string()),
+        file_size: None,
+        status: item.status.as_str().to_string(),
+        ref_key: format!("campaign:{id}"),
+        preview: campaign_preview(&item),
+        metadata: json!({
+            "productId": item.product_id,
+            "campaignType": item.campaign_type,
+            "budget": item.budget,
+            "startDate": item.start_date,
+            "endDate": item.end_date,
+            "metadata": item.metadata,
+            "actionMetadata": item.action_metadata,
+        }),
+    }
+}
+
 #[derive(Debug, Clone)]
 struct WorkspaceContextPackCandidate {
     source_type: String,
@@ -4417,6 +4497,30 @@ fn context_pack_product_asset_candidate(item: ProductAsset) -> WorkspaceContextP
     }
 }
 
+fn context_pack_campaign_candidate(item: Campaign) -> WorkspaceContextPackCandidate {
+    let id = item.id.to_string();
+    WorkspaceContextPackCandidate {
+        source_type: "campaign".to_string(),
+        id: id.clone(),
+        title: Some(item.name.clone()),
+        ref_key: format!("campaign:{id}"),
+        content_kind: "campaign_summary".to_string(),
+        text: Some(campaign_context_text(&item)),
+        extraction_status: None,
+        metadata: json!({
+            "productId": item.product_id,
+            "campaignType": item.campaign_type,
+            "budget": item.budget,
+            "startDate": item.start_date,
+            "endDate": item.end_date,
+            "status": item.status.as_str(),
+            "metadata": item.metadata,
+            "output": item.output,
+            "actionMetadata": item.action_metadata,
+        }),
+    }
+}
+
 fn context_pack_product_material_candidate(item: ProductMaterial) -> WorkspaceContextPackCandidate {
     let id = item.id.to_string();
     WorkspaceContextPackCandidate {
@@ -4482,6 +4586,69 @@ fn context_pack_artifact_text(item: &WorkspaceArtifact) -> (String, Option<Strin
             Some(preview) => ("preview".to_string(), Some(preview)),
             None => ("unavailable".to_string(), None),
         },
+    }
+}
+
+fn campaign_preview(item: &Campaign) -> Option<String> {
+    Some(compact_text(&campaign_context_text(item), 240))
+}
+
+fn campaign_context_text(item: &Campaign) -> String {
+    let mut lines = vec![
+        "Campaign context".to_string(),
+        format!("Name: {}", item.name),
+        format!("Status: {}", item.status.as_str()),
+        format!("Budget: {}", item.budget),
+    ];
+    if let Some(campaign_type) = item.campaign_type.as_deref() {
+        lines.push(format!("Type: {campaign_type}"));
+    }
+    if let Some(product_id) = item.product_id {
+        lines.push(format!("Product ref: product:{product_id}"));
+    }
+    if let Some(start_date) = item.start_date.as_deref() {
+        lines.push(format!("Start date: {start_date}"));
+    }
+    if let Some(end_date) = item.end_date.as_deref() {
+        lines.push(format!("End date: {end_date}"));
+    }
+    if let Some(description) = item
+        .description
+        .as_deref()
+        .and_then(normalize_borrowed_string)
+    {
+        lines.push(format!("Description: {}", compact_text(&description, 1200)));
+    }
+    if let Some(metadata_summary) = readable_json_context("Metadata", &item.metadata) {
+        lines.push(metadata_summary);
+    }
+    if let Some(output_summary) = readable_json_context("Saved output", &item.output) {
+        lines.push(output_summary);
+    }
+    if let Some(action_summary) = readable_json_context("Action metadata", &item.action_metadata) {
+        lines.push(action_summary);
+    }
+    lines.join("\n")
+}
+
+fn readable_json_context(label: &str, value: &Value) -> Option<String> {
+    match value {
+        Value::Null => None,
+        Value::Object(map) if map.is_empty() => None,
+        Value::Array(items) if items.is_empty() => None,
+        _ => serde_json::to_string(value)
+            .ok()
+            .and_then(normalize_string)
+            .map(|text| format!("{label}: {}", compact_text(&text, 2400))),
+    }
+}
+
+fn normalize_borrowed_string(value: &str) -> Option<String> {
+    let normalized = value.trim();
+    if normalized.is_empty() {
+        None
+    } else {
+        Some(normalized.to_string())
     }
 }
 
@@ -5120,9 +5287,11 @@ fn build_context_summary_text(counts: &WorkspaceContextSummaryCounts, readiness:
         return "No active workspace context sources are ready for agent use.".to_string();
     }
     format!(
-        "Workspace context is {readiness}: {} conversation files, {} product assets, {} product \
-         materials, {} workspace artifacts are available for agent grounding and delivery.",
+        "Workspace context is {readiness}: {} conversation files, {} campaigns, {} product \
+         assets, {} product materials, {} workspace artifacts are available for agent grounding \
+         and delivery.",
         counts.conversation_files,
+        counts.campaigns,
         counts.product_assets,
         counts.product_materials,
         counts.workspace_artifacts
@@ -5141,9 +5310,10 @@ fn build_context_pack_summary_text(
     }
     format!(
         "Workspace context pack is {readiness}: {readable_items} readable item(s), {text_chars} \
-         text chars, {omitted_items} omitted item(s), from {} conversation files, {} product \
-         assets, {} product materials, {} workspace artifacts.",
+         text chars, {omitted_items} omitted item(s), from {} conversation files, {} campaigns, \
+         {} product assets, {} product materials, {} workspace artifacts.",
         counts.conversation_files,
+        counts.campaigns,
         counts.product_assets,
         counts.product_materials,
         counts.workspace_artifacts
@@ -5152,12 +5322,14 @@ fn build_context_pack_summary_text(
 
 fn context_ref_keys(
     attachments: &[WorkspaceContextSourceResponse],
+    campaigns: &[WorkspaceContextSourceResponse],
     assets: &[WorkspaceContextSourceResponse],
     materials: &[WorkspaceContextSourceResponse],
     artifacts: &[WorkspaceContextSourceResponse],
 ) -> Vec<String> {
     attachments
         .iter()
+        .chain(campaigns.iter())
         .chain(assets.iter())
         .chain(materials.iter())
         .chain(artifacts.iter())
@@ -5214,6 +5386,7 @@ fn normalize_context_refs(context_refs: Vec<String>) -> BizResult<Vec<String>> {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 struct ExplicitWorkspaceContextRefs {
+    campaign_ids: Vec<Uuid>,
     conversation_file_ids: Vec<Uuid>,
     product_asset_ids: Vec<Uuid>,
     product_material_ids: Vec<Uuid>,
@@ -5243,6 +5416,11 @@ fn explicit_workspace_context_refs(
         if let Some(artifact_id) = artifact_id_from_context_ref(&context_ref) {
             let artifact_id = parse_uuid(artifact_id, "context_ref artifact id")?;
             push_unique_uuid(&mut refs.workspace_artifact_ids, artifact_id);
+            continue;
+        }
+        if let Some(campaign_id) = campaign_id_from_context_ref(&context_ref) {
+            let campaign_id = parse_uuid(campaign_id, "context_ref campaign id")?;
+            push_unique_uuid(&mut refs.campaign_ids, campaign_id);
         }
     }
     Ok(refs)
@@ -5280,6 +5458,12 @@ fn artifact_id_from_context_ref(value: &str) -> Option<&str> {
         .or_else(|| value.strip_prefix("artifact/"))
 }
 
+fn campaign_id_from_context_ref(value: &str) -> Option<&str> {
+    value
+        .strip_prefix("campaign:")
+        .or_else(|| value.strip_prefix("campaign/"))
+}
+
 fn push_unique_uuid(items: &mut Vec<Uuid>, id: Uuid) {
     if !items.contains(&id) {
         items.push(id);
@@ -5307,6 +5491,12 @@ fn push_unique_product_material(items: &mut Vec<ProductMaterial>, material: Prod
 fn push_unique_artifact(items: &mut Vec<WorkspaceArtifact>, artifact: WorkspaceArtifact) {
     if !items.iter().any(|item| item.id == artifact.id) {
         items.push(artifact);
+    }
+}
+
+fn push_unique_campaign(items: &mut Vec<Campaign>, campaign: Campaign) {
+    if !items.iter().any(|item| item.id == campaign.id) {
+        items.push(campaign);
     }
 }
 
@@ -8515,13 +8705,14 @@ mod tests {
     #[test]
     fn context_summary_counts_total_sources() {
         let counts = WorkspaceContextSummaryCounts {
+            campaigns: 1,
             conversation_files: 1,
             product_assets: 2,
             product_materials: 3,
             workspace_artifacts: 4,
         };
 
-        assert_eq!(counts.total(), 10);
+        assert_eq!(counts.total(), 11);
     }
 
     #[test]
@@ -8548,14 +8739,16 @@ mod tests {
             metadata: json!({}),
         };
         let attachments = vec![source("conversation_file", "a")];
+        let campaigns = vec![source("campaign", "campaign-a")];
         let assets = vec![source("product_asset", "b")];
         let materials = vec![source("product_material", "c")];
         let artifacts = vec![source("workspace_artifact", "d")];
 
         assert_eq!(
-            context_ref_keys(&attachments, &assets, &materials, &artifacts),
+            context_ref_keys(&attachments, &campaigns, &assets, &materials, &artifacts),
             vec![
                 "conversation_file:a".to_string(),
+                "campaign:campaign-a".to_string(),
                 "product_asset:b".to_string(),
                 "product_material:c".to_string(),
                 "workspace_artifact:d".to_string(),
@@ -8649,6 +8842,7 @@ mod tests {
     #[test]
     fn explicit_workspace_context_refs_parse_supported_forms() {
         let artifact_id = Uuid::parse_str("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa").unwrap();
+        let campaign_id = Uuid::parse_str("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee").unwrap();
         let file_id = Uuid::parse_str("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb").unwrap();
         let asset_id = Uuid::parse_str("cccccccc-cccc-cccc-cccc-cccccccccccc").unwrap();
         let material_id = Uuid::parse_str("dddddddd-dddd-dddd-dddd-dddddddddddd").unwrap();
@@ -8661,6 +8855,8 @@ mod tests {
             format!("asset/{asset_id}"),
             format!("product_material:{material_id}"),
             format!("material/{material_id}"),
+            format!("campaign:{campaign_id}"),
+            format!("campaign/{campaign_id}"),
             format!("product:{artifact_id}"),
             format!("workspace_artifact:{artifact_id}"),
         ])
@@ -8670,6 +8866,7 @@ mod tests {
         assert_eq!(refs.conversation_file_ids, vec![file_id]);
         assert_eq!(refs.product_asset_ids, vec![asset_id]);
         assert_eq!(refs.product_material_ids, vec![material_id]);
+        assert_eq!(refs.campaign_ids, vec![campaign_id]);
     }
 
     #[test]
@@ -8830,6 +9027,7 @@ mod tests {
     #[test]
     fn context_pack_summary_reports_readable_and_omitted_counts() {
         let counts = WorkspaceContextSummaryCounts {
+            campaigns: 1,
             conversation_files: 1,
             product_assets: 1,
             product_materials: 2,
@@ -8841,5 +9039,38 @@ mod tests {
         assert!(summary.contains("partial"));
         assert!(summary.contains("3 readable"));
         assert!(summary.contains("2 omitted"));
+    }
+
+    #[test]
+    fn campaign_context_pack_candidate_includes_operational_context() {
+        let campaign = Campaign {
+            id: Uuid::parse_str("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee").unwrap(),
+            user_id: Uuid::new_v4(),
+            product_id: Some(Uuid::parse_str("11111111-1111-1111-1111-111111111111").unwrap()),
+            name: "618 campaign".to_string(),
+            campaign_type: Some("promotion".to_string()),
+            description: Some("Drive preorder conversion".to_string()),
+            budget: 3000.0,
+            start_date: Some("2026-06-01".to_string()),
+            end_date: Some("2026-06-18".to_string()),
+            status: CampaignStatus::Active,
+            metadata: json!({ "goal": "roi 2.0" }),
+            output: json!({ "plan": "short video plus live room" }),
+            action_metadata: json!({ "executionStatus": "not_submitted" }),
+            created_at: OffsetDateTime::now_utc(),
+            updated_at: OffsetDateTime::now_utc(),
+        };
+
+        let candidate = context_pack_campaign_candidate(campaign);
+
+        assert_eq!(
+            candidate.ref_key,
+            "campaign:eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"
+        );
+        let text = candidate.text.expect("campaign context should be readable");
+        assert!(text.contains("618 campaign"));
+        assert!(text.contains("Budget: 3000"));
+        assert!(text.contains("Product ref: product:11111111-1111-1111-1111-111111111111"));
+        assert!(text.contains("Saved output"));
     }
 }

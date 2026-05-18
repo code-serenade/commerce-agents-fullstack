@@ -8,6 +8,7 @@ export interface AgentStreamRequest {
   agentId?: string
   metadata?: {
     context?: {
+      campaignIds?: string[]
       conversationId?: string
       contextRefs?: string[]
       productIds?: string[]
@@ -554,11 +555,14 @@ export interface AgentWorkspaceContextLoaded {
   artifact_sources?: AgentWorkspaceContextSource[]
   attachmentSources?: AgentWorkspaceContextSource[]
   attachment_sources?: AgentWorkspaceContextSource[]
+  campaignSources?: AgentWorkspaceContextSource[]
+  campaign_sources?: AgentWorkspaceContextSource[]
   conversationId?: string | null
   conversation_id?: string | null
   counts?: {
     conversationFiles?: number
     conversation_files?: number
+    campaigns?: number
     productAssets?: number
     product_assets?: number
     productMaterials?: number
@@ -1102,6 +1106,7 @@ function normalizeAgentRuntimeEvent(event: AgentRuntimeEvent): AgentRuntimeEvent
   copyIfMissing(normalized, raw, "agentContext", "agent_context")
   copyIfMissing(normalized, raw, "artifactSources", "artifact_sources")
   copyIfMissing(normalized, raw, "attachmentSources", "attachment_sources")
+  copyIfMissing(normalized, raw, "campaignSources", "campaign_sources")
   copyIfMissing(normalized, raw, "conversationId", "conversation_id")
   copyIfMissing(normalized, raw, "productAssetSources", "product_asset_sources")
   copyIfMissing(normalized, raw, "productMaterialSources", "product_material_sources")

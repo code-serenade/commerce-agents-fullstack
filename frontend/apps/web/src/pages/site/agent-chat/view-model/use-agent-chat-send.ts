@@ -2,6 +2,7 @@ import { useCallback, type MutableRefObject } from "react"
 import type { Dispatch, SetStateAction } from "react"
 import type { AgentRuntimeEvent } from "../agent-chat-data"
 import type {
+  AgentChatCampaignContextSelection,
   AgentChatProductContextSelection,
   AgentChatSourceContextSelection,
 } from "../domain/agent-chat-context-selection"
@@ -21,6 +22,7 @@ export function useAgentChatSend(input: {
   loginRequiredMessage: string
   messageFormatCopy: AgentChatMessageFormatCopy
   runtimeSelection: AgentChatRuntimeSelection
+  selectedCampaigns: AgentChatCampaignContextSelection[]
   selectedProducts: AgentChatProductContextSelection[]
   selectedSources: AgentChatSourceContextSelection[]
   sessionIdRef: MutableRefObject<string>
@@ -44,6 +46,7 @@ export function useAgentChatSend(input: {
     loginRequiredMessage,
     messageFormatCopy,
     runtimeSelection,
+    selectedCampaigns,
     selectedProducts,
     selectedSources,
     sessionIdRef,
@@ -75,6 +78,7 @@ export function useAgentChatSend(input: {
         abortRef.current = controller
       },
       runtimeSelection,
+      selectedCampaigns,
       selectedProducts,
       selectedSources,
       sessionIdRef,
@@ -102,6 +106,7 @@ export function useAgentChatSend(input: {
     loginRequiredMessage,
     messageFormatCopy,
     runtimeSelection,
+    selectedCampaigns,
     selectedProducts,
     selectedSources,
     sessionIdRef,
