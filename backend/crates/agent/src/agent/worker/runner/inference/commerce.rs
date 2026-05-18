@@ -3,7 +3,7 @@ use super::{
     metrics::{extract_metric_value, infer_metric},
     numbers::{infer_period_days, numbers_in_text},
 };
-use crate::agent::worker::Task;
+use crate::agent::worker::{Task, runner::policy::worker_policies};
 
 pub(in crate::agent::worker::runner) fn infer_price_quantity_points(
     text: &str,
@@ -22,37 +22,53 @@ pub(in crate::agent::worker::runner) fn infer_competitor_prices(text: &str) -> V
 }
 
 pub(in crate::agent::worker::runner) fn infer_cost(text: &str, fallback: f64) -> f64 {
-    extract_metric_value(text, &["单位成本", "单品成本", "成本", "cost"])
-        .unwrap_or(fallback)
-        .max(0.01)
+    extract_metric_value(
+        text,
+        &aliases("cost", &["单位成本", "单品成本", "成本", "cost"]),
+    )
+    .unwrap_or(fallback)
+    .max(number_default("rules/cost/result_min", 0.01))
 }
 
 pub(in crate::agent::worker::runner) fn infer_current_price(text: &str, fallback: f64) -> f64 {
     extract_metric_value(
         text,
-        &[
-            "当前售价",
-            "当前价格",
-            "现价",
-            "售价",
+        &aliases(
             "current_price",
-            "price",
-        ],
+            &[
+                "当前售价",
+                "当前价格",
+                "现价",
+                "售价",
+                "current_price",
+                "price",
+            ],
+        ),
     )
     .unwrap_or(fallback)
-    .max(0.0)
+    .max(number_default("rules/current_price/result_min", 0.0))
 }
 
 pub(in crate::agent::worker::runner) fn infer_stock_days(text: &str, fallback: f64) -> f64 {
-    extract_metric_value(text, &["库存天数", "可售天数", "stock_days"])
-        .unwrap_or(fallback)
-        .max(0.0)
+    extract_metric_value(
+        text,
+        &aliases("stock_days", &["库存天数", "可售天数", "stock_days"]),
+    )
+    .unwrap_or(fallback)
+    .max(number_default("rules/stock_days/result_min", 0.0))
 }
 
 pub(in crate::agent::worker::runner) fn infer_elasticity(text: &str, fallback: f64) -> f64 {
-    let value =
-        extract_metric_value(text, &["弹性系数", "价格弹性", "elasticity"]).unwrap_or(fallback);
-    if value > 0.0 { -value } else { value }
+    let value = extract_metric_value(
+        text,
+        &aliases("elasticity", &["弹性系数", "价格弹性", "elasticity"]),
+    )
+    .unwrap_or(fallback);
+    if bool_default("rules/elasticity/positive_values_are_negated", true) && value > 0.0 {
+        -value
+    } else {
+        value
+    }
 }
 
 pub(in crate::agent::worker::runner) fn infer_pricing_strategy_competitor_prices(
@@ -72,19 +88,20 @@ pub(in crate::agent::worker::runner) fn infer_pricing_strategy_competitor_prices
 
 pub(in crate::agent::worker::runner) fn infer_budget(
     text: &str,
-    aliases: &[&str],
+    aliases: &[impl AsRef<str>],
     default: f64,
 ) -> f64 {
     let numbers = numbers_in_text(text);
+    let excluded = integer_values("rules/budget/excluded_integer_values", &[618, 11]);
     extract_metric_value(text, aliases)
         .or_else(|| {
             numbers
                 .into_iter()
-                .filter(|value| !matches!(*value as i64, 618 | 11))
-                .find(|value| *value >= 100.0)
+                .filter(|value| !excluded.contains(&(*value as i64)))
+                .find(|value| *value >= number_default("rules/budget/number_min", 100.0))
         })
         .unwrap_or(default)
-        .max(0.0)
+        .max(number_default("rules/budget/result_min", 0.0))
 }
 
 pub(in crate::agent::worker::runner) fn infer_demand_forecast_input(
@@ -144,8 +161,11 @@ pub(in crate::agent::worker::runner) fn infer_channel_strategy_input(
         "budget".to_string(),
         serde_json::json!(infer_budget(
             text,
-            &["渠道预算", "月预算", "预算", "budget"],
-            10_000.0,
+            &aliases(
+                "channel_strategy_budget",
+                &["渠道预算", "月预算", "预算", "budget"],
+            ),
+            number_default("defaults/channel_strategy_budget", 10_000.0),
         )),
     );
     input.insert(
@@ -171,8 +191,11 @@ pub(in crate::agent::worker::runner) fn infer_assortment_planning_input(
         "budget".to_string(),
         serde_json::json!(infer_budget(
             text,
-            &["选品预算", "货盘预算", "采购预算", "预算", "budget"],
-            50_000.0,
+            &aliases(
+                "assortment_planning_budget",
+                &["选品预算", "货盘预算", "采购预算", "预算", "budget"],
+            ),
+            number_default("defaults/assortment_planning_budget", 50_000.0),
         )),
     );
     input
@@ -183,10 +206,19 @@ fn parse_price_quantity_segment(segment: &str) -> Option<serde_json::Value> {
     if trimmed.is_empty() {
         return None;
     }
-    let price = extract_last_metric_value(trimmed, &["价格点", "售价", "单价", "price", "价格"])?;
+    let price = extract_last_metric_value(
+        trimmed,
+        &aliases(
+            "price_quantity_point_price",
+            &["价格点", "售价", "单价", "price", "价格"],
+        ),
+    )?;
     let quantity = extract_metric_value(
         trimmed,
-        &["销量", "销售量", "件数", "销量件数", "quantity", "qty"],
+        &aliases(
+            "price_quantity_point_quantity",
+            &["销量", "销售量", "件数", "销量件数", "quantity", "qty"],
+        ),
     )?;
     Some(serde_json::json!({
         "price": price,
@@ -194,9 +226,10 @@ fn parse_price_quantity_segment(segment: &str) -> Option<serde_json::Value> {
     }))
 }
 
-fn extract_last_metric_value(text: &str, aliases: &[&str]) -> Option<f64> {
+fn extract_last_metric_value<T: AsRef<str>>(text: &str, aliases: &[T]) -> Option<f64> {
     let lower = text.to_ascii_lowercase();
     for alias in aliases {
+        let alias = alias.as_ref();
         let alias_lower = alias.to_ascii_lowercase();
         let index = lower
             .rmatch_indices(&alias_lower)
@@ -211,4 +244,44 @@ fn extract_last_metric_value(text: &str, aliases: &[&str]) -> Option<f64> {
         }
     }
     None
+}
+
+fn aliases(key: &str, fallback: &[&str]) -> Vec<String> {
+    worker_policies()
+        .inference
+        .string_list_or("aliases", &format!("/{}", key), fallback)
+}
+
+fn number_default(pointer: &str, fallback: f64) -> f64 {
+    let Some((section, nested)) = pointer.split_once('/') else {
+        return fallback;
+    };
+    worker_policies()
+        .inference
+        .f64_or(section, &format!("/{}", nested), fallback)
+}
+
+fn bool_default(pointer: &str, fallback: bool) -> bool {
+    let Some((section, nested)) = pointer.split_once('/') else {
+        return fallback;
+    };
+    worker_policies()
+        .inference
+        .section(section)
+        .and_then(|value| value.pointer(&format!("/{}", nested)))
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(fallback)
+}
+
+fn integer_values(pointer: &str, fallback: &[i64]) -> Vec<i64> {
+    let Some((section, nested)) = pointer.split_once('/') else {
+        return fallback.to_vec();
+    };
+    worker_policies()
+        .inference
+        .section(section)
+        .and_then(|value| value.pointer(&format!("/{}", nested)))
+        .and_then(serde_json::Value::as_array)
+        .map(|items| items.iter().filter_map(serde_json::Value::as_i64).collect())
+        .unwrap_or_else(|| fallback.to_vec())
 }

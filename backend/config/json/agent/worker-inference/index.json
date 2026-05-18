@@ -1,0 +1,11 @@
+{
+  "files": [
+    "labels.json",
+    "commerce.json",
+    "data.json",
+    "inventory.json",
+    "search.json",
+    "context.json",
+    "douyin-ads.json"
+  ]
+}

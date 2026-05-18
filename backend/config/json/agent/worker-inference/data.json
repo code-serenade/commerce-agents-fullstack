@@ -1,0 +1,223 @@
+{
+  "schema_version": 1,
+  "source": {
+    "rust_file": "backend/crates/agent/src/agent/worker/runner/inference/data.rs",
+    "scope": "worker inference data configurable draft"
+  },
+  "defaults": {
+    "attribution_model": "all",
+    "refund_item_name": "综合退款",
+    "ab_test_name": "A/B测试",
+    "ab_metric": "转化率",
+    "multi_periods": [7, 14, 30],
+    "multi_periods_weekly": [7, 14, 28],
+    "forecast_periods": 7,
+    "diagnosis_focus": "all"
+  },
+  "platforms": {
+    "channel_roi_labels": ["抖音", "douyin", "tiktok", "淘宝", "taobao", "天猫", "tmall", "京东", "jd", "拼多多", "pdd", "小红书", "xiaohongshu", "快手", "kuaishou"],
+    "canonical_channels": [
+      {
+        "label": "抖音",
+        "aliases": ["抖音", "douyin", "tiktok"]
+      },
+      {
+        "label": "天猫",
+        "aliases": ["天猫", "tmall"]
+      },
+      {
+        "label": "淘宝",
+        "aliases": ["淘宝", "taobao"]
+      },
+      {
+        "label": "京东",
+        "aliases": ["京东", "jd"]
+      },
+      {
+        "label": "拼多多",
+        "aliases": ["拼多多", "pdd"]
+      },
+      {
+        "label": "小红书",
+        "aliases": ["小红书", "xiaohongshu"]
+      },
+      {
+        "label": "快手",
+        "aliases": ["快手", "kuaishou"]
+      }
+    ],
+    "unknown_channel": "未知渠道"
+  },
+  "aliases": {
+    "channel_roi": {
+      "gmv": ["GMV", "gmv", "销售额", "成交额", "营收"],
+      "ad_spend": ["广告花费", "广告费", "投放花费", "投放消耗", "消耗", "花费", "ad_spend", "ad cost"],
+      "orders": ["订单数", "订单", "支付订单", "orders"],
+      "uv": ["访客数", "访客", "UV", "uv"],
+      "conversion_rate": ["转化率", "成交转化率", "conversion_rate", "cvr"]
+    },
+    "metric_numbers": {
+      "cac": ["CAC", "cac", "获客成本", "获客成本CAC"],
+      "avg_order_value": ["客单价", "平均客单价", "AOV", "aov", "avg_order_value"],
+      "purchase_frequency": ["购买频次", "月购买频次", "复购频次", "purchase_frequency"],
+      "gross_margin": ["毛利率", "gross_margin"],
+      "monthly_retention": ["月留存率", "留存率", "monthly_retention"],
+      "new_customers": ["首期新客", "新客数", "新增客户", "新客", "new_customers"],
+      "total_customers": ["客户总数", "总客户数", "客户数", "用户数", "total_customers"],
+      "avg_orders_per_customer": ["人均订单数", "人均购买次数", "平均订单数", "avg_orders_per_customer"],
+      "recency_days": ["平均购买间隔", "购买间隔", "最近购买间隔", "recency_days"],
+      "forecast_periods": ["未来", "预测", "forecast_periods"],
+      "target_gmv": ["目标GMV", "目标销售额", "目标成交额", "target_gmv", "goal_gmv"],
+      "previous_gmv": ["previous_gmv", "last_gmv", "上期GMV", "上周GMV", "前期GMV"],
+      "gmv": ["本期GMV", "当前GMV", "活动GMV", "商品GMV", "GMV", "gmv", "销售额", "成交额", "营收"],
+      "previous_orders": ["previous_orders", "last_orders", "上期订单", "上周订单", "前期订单"],
+      "orders": ["本期订单", "当前订单", "订单数", "订单", "成交订单", "支付订单"],
+      "previous_visitors": ["previous_visitors", "last_visitors", "上期UV", "上周UV", "前期UV"],
+      "visitors": ["本期UV", "当前UV", "UV", "uv", "访客数", "访客"],
+      "clicks": ["点击数", "点击", "clicks", "click_count"],
+      "ad_spend": ["广告费", "广告花费", "投放费用", "ad_spend", "ad spend", "ad_cost"],
+      "refund_amount": ["退款金额", "退款额", "退款", "refund_amount", "refunds"],
+      "gross_profit": ["毛利额", "毛利", "gross_profit", "profit"],
+      "impressions": ["曝光", "曝光量", "展现", "展现量", "impressions", "exposure"],
+      "add_to_cart": ["加购", "加购数", "add_to_cart"],
+      "payments": ["付款数", "付款", "支付数", "支付", "payments"],
+      "inventory": ["库存", "剩余库存", "inventory", "stock"],
+      "stockout_count": ["缺货次数", "断货次数", "stockout_count", "stockout"],
+      "budget": ["预算", "budget", "活动预算"],
+      "spend": ["活动花费", "实际花费", "已花费", "消耗", "spend", "cost"],
+      "coupon_cost": ["优惠券成本", "券成本", "让利成本", "coupon_cost"],
+      "top_n": ["top_n", "前N", "前n", "展示前"]
+    },
+    "ab_integers": {
+      "control_visitors": ["control_visitors", "control visitors", "对照组访客数", "对照组访客", "控制组访客数", "控制组访客", "A组访客数", "A组访客", "A版访客"],
+      "control_conversions": ["control_conversions", "control conversions", "对照组转化数", "对照组转化", "控制组转化数", "控制组转化", "A组转化数", "A组转化", "A版转化"],
+      "test_visitors": ["test_visitors", "test visitors", "实验组访客数", "实验组访客", "测试组访客数", "测试组访客", "B组访客数", "B组访客", "B版访客"],
+      "test_conversions": ["test_conversions", "test conversions", "实验组转化数", "实验组转化", "测试组转化数", "测试组转化", "B组转化数", "B组转化", "B版转化"]
+    },
+    "refund_amount": ["退款金额", "退款额", "退款", "退货金额", "退货"],
+    "labeled_tokens": {
+      "product_id": ["商品ID", "product_id", "product id"],
+      "sku_id": ["SKU", "sku_id", "sku id", "规格ID"],
+      "campaign_id": ["活动ID", "campaign_id", "campaign id"]
+    }
+  },
+  "classifiers": {
+    "attribution_model": [
+      {
+        "value": "last_touch",
+        "keywords": ["last_touch", "末次", "最后触点", "末次归因"]
+      },
+      {
+        "value": "linear",
+        "keywords": ["linear", "线性", "线性归因"]
+      },
+      {
+        "value": "time_decay",
+        "keywords": ["time_decay", "时间衰减", "衰减归因"]
+      },
+      {
+        "value": "position",
+        "keywords": ["position", "位置归因", "u形", "U形", "首末"]
+      }
+    ],
+    "ab_test_name": [
+      {
+        "value": "详情页首屏A/B测试",
+        "keywords": ["首屏", "详情首屏", "详情页首屏", "above the fold"]
+      },
+      {
+        "value": "主图A/B测试",
+        "keywords": ["主图", "封面", "image"]
+      },
+      {
+        "value": "标题A/B测试",
+        "keywords": ["标题", "title"]
+      },
+      {
+        "value": "详情页A/B测试",
+        "keywords": ["详情页", "详情", "detail"]
+      },
+      {
+        "value": "直播间A/B测试",
+        "keywords": ["直播", "live"]
+      }
+    ],
+    "ab_metric": [
+      {
+        "value": "点击率",
+        "keywords": ["点击", "ctr", "CTR", "click"]
+      },
+      {
+        "value": "支付转化率",
+        "keywords": ["支付", "成交", "订单", "purchase", "order"]
+      }
+    ],
+    "multi_periods": [
+      {
+        "value": [7, 14, 28],
+        "keywords": ["周内", "周度", "每周", "weekly", "week"]
+      }
+    ],
+    "diagnosis_focus": [
+      {
+        "value": "growth",
+        "keywords": ["重点看增长", "重点分析增长", "聚焦增长", "增长为主", "增长优先", "focus growth"]
+      },
+      {
+        "value": "profit",
+        "keywords": ["profit", "利润", "毛利", "盈利", "ROI", "roi"]
+      },
+      {
+        "value": "retention",
+        "keywords": ["retention", "留存", "复购", "客户", "会员"]
+      },
+      {
+        "value": "risk",
+        "keywords": ["risk", "风险", "异常", "退款", "下滑"]
+      },
+      {
+        "value": "growth",
+        "keywords": ["growth", "增长", "放量", "规模", "GMV", "gmv"]
+      }
+    ]
+  },
+  "rules": {
+    "metric_integer": {
+      "round": true,
+      "min": 0.0
+    },
+    "forecast_periods": {
+      "round": true,
+      "min": 1,
+      "max": 90
+    },
+    "top_n": {
+      "round": true,
+      "min": 1,
+      "max": 100
+    },
+    "ab_number_fallback": {
+      "source": "numbers_in_text",
+      "minimum_number_count": 4,
+      "index_by_key": {
+        "control_visitors": 0,
+        "control_conversions": 1,
+        "test_visitors": 2,
+        "test_conversions": 3
+      }
+    }
+  },
+  "parsers": {
+    "channel_roi_rows": {
+      "segment_by_platform_labels": true,
+      "dedupe_by_canonical_name": true,
+      "emit_if_any_field_present": ["gmv", "ad_spend", "orders", "uv", "conversion_rate"],
+      "integer_fields": ["orders", "uv"]
+    },
+    "refund_items": {
+      "split_on": ["，", ",", "；", ";", "、", "\n"],
+      "trim_name_before_alias": true,
+      "amount_alias_group": "refund_amount"
+    }
+  }
+}

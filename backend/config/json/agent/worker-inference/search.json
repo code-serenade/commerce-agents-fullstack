@@ -1,0 +1,140 @@
+{
+  "search": {
+    "query": {
+      "selected_product_triggers": [
+        "这个商品",
+        "这个产品",
+        "该商品",
+        "该产品",
+        "本品",
+        "当前商品",
+        "所选商品",
+        "选中商品",
+        "这个SKU",
+        "该SKU",
+        "this product",
+        "selected product"
+      ],
+      "generic_category_label": "电商消费品",
+      "fallback_source": "compact_task_text",
+      "candidate_split_delimiters": [
+        "，",
+        ",",
+        "；",
+        ";",
+        "。",
+        ".",
+        "\n"
+      ],
+      "candidate_min_chars": 2,
+      "candidate_max_chars": 24,
+      "candidate_exclude_keywords": [
+        "帮我",
+        "请",
+        "搜索",
+        "查询",
+        "分析",
+        "最新",
+        "实时",
+        "行业",
+        "数据"
+      ]
+    },
+    "platform": {
+      "rule_set": "platform.search",
+      "generic_label": "电商",
+      "selected_product_fallback": true
+    },
+    "freshness": {
+      "bypass_cache_keywords": [
+        "实时",
+        "最新",
+        "刚刚",
+        "今天",
+        "联网",
+        "公开来源",
+        "公开资料",
+        "外部资料",
+        "真实",
+        "真实评价",
+        "真实口碑",
+        "真实反馈",
+        "不要缓存",
+        "fresh",
+        "live",
+        "_needs_fresh_data",
+        "bypass_cache"
+      ]
+    },
+    "max_results": {
+      "min": 1,
+      "max": 12,
+      "scan_before_chars": 16,
+      "scan_after_chars": 16,
+      "after_result_units": [
+        "条来源",
+        "个来源",
+        "条结果",
+        "个结果",
+        "条公开资料",
+        "个公开资料",
+        "条证据",
+        "个证据",
+        "篇资料",
+        "篇来源",
+        "sources",
+        "source",
+        "results",
+        "result",
+        "links",
+        "items"
+      ],
+      "before_limit_keywords": [
+        "最多",
+        "至多",
+        "只要",
+        "只看",
+        "返回",
+        "给我",
+        "列出",
+        "展示",
+        "查",
+        "搜",
+        "top",
+        "limit",
+        "max",
+        "maximum"
+      ],
+      "after_short_units": [
+        "条",
+        "个",
+        "篇"
+      ]
+    },
+    "label_fields": {
+      "policy_type": {
+        "rule_set": "search.policy_type",
+        "default": "general"
+      },
+      "review_focus": {
+        "rule_set": "search.review_focus",
+        "default": "overall"
+      },
+      "competitor_focus": {
+        "rule_set": "search.competitor_focus",
+        "default": "general"
+      },
+      "benchmark_metric": {
+        "rule_set": "search.benchmark_metric",
+        "default": "general"
+      },
+      "topic": {
+        "rule_set": "search.topic",
+        "default": "general"
+      }
+    },
+    "period": {
+      "source": "numbers.infer_period_days"
+    }
+  }
+}

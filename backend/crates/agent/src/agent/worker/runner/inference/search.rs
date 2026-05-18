@@ -1,5 +1,5 @@
 use super::{context, domain, metrics, numbers, text::compact_task_text};
-use crate::agent::worker::Task;
+use crate::agent::worker::{Task, runner::policy::worker_policies};
 
 pub(in crate::agent::worker::runner) fn query_for_task(text: &str, task: &Task) -> String {
     if refers_to_selected_product(text)
@@ -25,7 +25,7 @@ pub(in crate::agent::worker::runner) fn industry_for_task(text: &str, task: &Tas
 
 pub(in crate::agent::worker::runner) fn platform_for_task(text: &str, task: &Task) -> String {
     let explicit_platform = infer_platform(text);
-    if explicit_platform != "电商" {
+    if explicit_platform != config_string("/platform/generic_label", "电商") {
         return explicit_platform;
     }
     context::first_selected_product(task)
@@ -37,25 +37,28 @@ pub(in crate::agent::worker::runner) fn platform_for_task(text: &str, task: &Tas
 pub(in crate::agent::worker::runner) fn bypass_cache(text: &str) -> bool {
     contains_any(
         text,
-        &[
-            "实时",
-            "最新",
-            "刚刚",
-            "今天",
-            "联网",
-            "公开来源",
-            "公开资料",
-            "外部资料",
-            "真实",
-            "真实评价",
-            "真实口碑",
-            "真实反馈",
-            "不要缓存",
-            "fresh",
-            "live",
-            "_needs_fresh_data",
-            "bypass_cache",
-        ],
+        &config_string_list(
+            "/freshness/bypass_cache_keywords",
+            &[
+                "实时",
+                "最新",
+                "刚刚",
+                "今天",
+                "联网",
+                "公开来源",
+                "公开资料",
+                "外部资料",
+                "真实",
+                "真实评价",
+                "真实口碑",
+                "真实反馈",
+                "不要缓存",
+                "fresh",
+                "live",
+                "_needs_fresh_data",
+                "bypass_cache",
+            ],
+        ),
     )
 }
 
@@ -92,38 +95,44 @@ pub(in crate::agent::worker::runner) fn max_results(text: &str) -> Option<i64> {
         let before = text[.. start]
             .chars()
             .rev()
-            .take(16)
+            .take(config_usize("/max_results/scan_before_chars", 16))
             .collect::<Vec<_>>()
             .into_iter()
             .rev()
             .collect::<String>();
-        let after = text[end ..].chars().take(16).collect::<String>();
+        let after = text[end ..]
+            .chars()
+            .take(config_usize("/max_results/scan_after_chars", 16))
+            .collect::<String>();
 
         if is_result_count_context(&before, &after) {
-            return Some(value.clamp(1, 12));
+            return Some(value.clamp(
+                config_i64("/max_results/min", 1),
+                config_i64("/max_results/max", 12),
+            ));
         }
     }
     None
 }
 
 pub(in crate::agent::worker::runner) fn policy_type(text: &str) -> &'static str {
-    match_label(text, "search.policy_type", "general")
+    match_configured_label(text, "policy_type", "general")
 }
 
 pub(in crate::agent::worker::runner) fn review_focus(text: &str) -> &'static str {
-    match_label(text, "search.review_focus", "overall")
+    match_configured_label(text, "review_focus", "overall")
 }
 
 pub(in crate::agent::worker::runner) fn competitor_focus(text: &str) -> &'static str {
-    match_label(text, "search.competitor_focus", "general")
+    match_configured_label(text, "competitor_focus", "general")
 }
 
 pub(in crate::agent::worker::runner) fn benchmark_metric(text: &str) -> &'static str {
-    match_label(text, "search.benchmark_metric", "general")
+    match_configured_label(text, "benchmark_metric", "general")
 }
 
 pub(in crate::agent::worker::runner) fn topic(text: &str) -> &'static str {
-    match_label(text, "search.topic", "general")
+    match_configured_label(text, "topic", "general")
 }
 
 pub(in crate::agent::worker::runner) fn days(text: &str) -> i64 {
@@ -133,14 +142,17 @@ pub(in crate::agent::worker::runner) fn days(text: &str) -> i64 {
 fn infer_platform(text: &str) -> String {
     crate::agent::worker::runner::policy::worker_policies()
         .inference
-        .match_label(text, "platform.search")
-        .unwrap_or("电商")
+        .match_label(
+            text,
+            &config_string("/platform/rule_set", "platform.search"),
+        )
+        .unwrap_or(config_string("/platform/generic_label", "电商").as_str())
         .to_string()
 }
 
 fn infer_query(text: &str) -> String {
     let category = domain::infer_category(text);
-    if category != "电商消费品" {
+    if category != config_string("/query/generic_category_label", "电商消费品") {
         return category;
     }
     let keywords = extract_keyword_candidates(text);
@@ -151,17 +163,20 @@ fn infer_query(text: &str) -> String {
 }
 
 fn extract_keyword_candidates(text: &str) -> Vec<String> {
-    text.split(['，', ',', '；', ';', '。', '.', '\n'])
+    let min_chars = config_usize("/query/candidate_min_chars", 2);
+    let max_chars = config_usize("/query/candidate_max_chars", 24);
+    let exclude_keywords = config_string_list(
+        "/query/candidate_exclude_keywords",
+        &[
+            "帮我", "请", "搜索", "查询", "分析", "最新", "实时", "行业", "数据",
+        ],
+    );
+    let delimiters = split_delimiters("/query/candidate_split_delimiters");
+
+    text.split(|ch| delimiters.contains(&ch))
         .map(str::trim)
-        .filter(|value| value.chars().count() >= 2 && value.chars().count() <= 24)
-        .filter(|value| {
-            !contains_any(
-                value,
-                &[
-                    "帮我", "请", "搜索", "查询", "分析", "最新", "实时", "行业", "数据",
-                ],
-            )
-        })
+        .filter(|value| value.chars().count() >= min_chars && value.chars().count() <= max_chars)
+        .filter(|value| !contains_any(value, &exclude_keywords))
         .map(ToOwned::to_owned)
         .collect()
 }
@@ -169,69 +184,124 @@ fn extract_keyword_candidates(text: &str) -> Vec<String> {
 fn refers_to_selected_product(text: &str) -> bool {
     contains_any(
         text,
-        &[
-            "这个商品",
-            "这个产品",
-            "该商品",
-            "该产品",
-            "本品",
-            "当前商品",
-            "所选商品",
-            "选中商品",
-            "这个SKU",
-            "该SKU",
-            "this product",
-            "selected product",
-        ],
+        &config_string_list(
+            "/query/selected_product_triggers",
+            &[
+                "这个商品",
+                "这个产品",
+                "该商品",
+                "该产品",
+                "本品",
+                "当前商品",
+                "所选商品",
+                "选中商品",
+                "这个SKU",
+                "该SKU",
+                "this product",
+                "selected product",
+            ],
+        ),
     )
 }
 
 fn is_result_count_context(before: &str, after: &str) -> bool {
     let trimmed_after = after.trim_start();
-    let has_after_result_unit = [
-        "条来源",
-        "个来源",
-        "条结果",
-        "个结果",
-        "条公开资料",
-        "个公开资料",
-        "条证据",
-        "个证据",
-        "篇资料",
-        "篇来源",
-        "sources",
-        "source",
-        "results",
-        "result",
-        "links",
-        "items",
-    ]
-    .iter()
-    .any(|unit| trimmed_after.starts_with(unit));
+    let has_after_result_unit = starts_with_any(
+        trimmed_after,
+        &config_string_list(
+            "/max_results/after_result_units",
+            &[
+                "条来源",
+                "个来源",
+                "条结果",
+                "个结果",
+                "条公开资料",
+                "个公开资料",
+                "条证据",
+                "个证据",
+                "篇资料",
+                "篇来源",
+                "sources",
+                "source",
+                "results",
+                "result",
+                "links",
+                "items",
+            ],
+        ),
+    );
     let has_before_limit_word = contains_any(
         before,
-        &[
-            "最多", "至多", "只要", "只看", "返回", "给我", "列出", "展示", "查", "搜", "top",
-            "limit", "max", "maximum",
-        ],
+        &config_string_list(
+            "/max_results/before_limit_keywords",
+            &[
+                "最多", "至多", "只要", "只看", "返回", "给我", "列出", "展示", "查", "搜", "top",
+                "limit", "max", "maximum",
+            ],
+        ),
     );
-    let has_after_short_unit = trimmed_after.starts_with('条')
-        || trimmed_after.starts_with('个')
-        || trimmed_after.starts_with("篇");
+    let has_after_short_unit = starts_with_any(
+        trimmed_after,
+        &config_string_list("/max_results/after_short_units", &["条", "个", "篇"]),
+    );
 
     has_after_result_unit || (has_before_limit_word && has_after_short_unit)
 }
 
-fn match_label(text: &str, rule_set: &str, default: &'static str) -> &'static str {
-    crate::agent::worker::runner::policy::worker_policies()
+fn match_configured_label(text: &str, field: &str, fallback: &'static str) -> &'static str {
+    let rule_set = config_string(&format!("/label_fields/{field}/rule_set"), "");
+    let default = config_string(&format!("/label_fields/{field}/default"), fallback);
+    worker_policies()
         .inference
-        .match_label(text, rule_set)
+        .match_label(text, &rule_set)
+        .map(str::to_string)
         .unwrap_or(default)
+        .leak()
 }
 
-fn contains_any(text: &str, needles: &[&str]) -> bool {
+fn contains_any<T: AsRef<str>>(text: &str, needles: &[T]) -> bool {
     let lower = text.to_ascii_lowercase();
-    needles
+    needles.iter().any(|needle| {
+        let needle = needle.as_ref();
+        text.contains(needle) || lower.contains(&needle.to_ascii_lowercase())
+    })
+}
+
+fn starts_with_any<T: AsRef<str>>(text: &str, prefixes: &[T]) -> bool {
+    prefixes
         .iter()
-        .any(|needle| text.contains(needle) || lower.contains(&needle.to_ascii_lowercase()))
+        .any(|prefix| text.starts_with(prefix.as_ref()))
+}
+
+fn config_string(pointer: &str, fallback: &str) -> String {
+    worker_policies()
+        .inference
+        .string_or("search", pointer, fallback)
+}
+
+fn config_string_list(pointer: &str, fallback: &[&str]) -> Vec<String> {
+    worker_policies()
+        .inference
+        .string_list_or("search", pointer, fallback)
+}
+
+fn config_i64(pointer: &str, fallback: i64) -> i64 {
+    worker_policies()
+        .inference
+        .i64_or("search", pointer, fallback)
+}
+
+fn config_usize(pointer: &str, fallback: usize) -> usize {
+    config_i64(pointer, fallback as i64).max(0) as usize
+}
+
+fn split_delimiters(pointer: &str) -> Vec<char> {
+    config_string_list(pointer, &["，", ",", "；", ";", "。", ".", "\n"])
+        .iter()
+        .filter_map(|value| {
+            let mut chars = value.chars();
+            let ch = chars.next()?;
+            chars.next().is_none().then_some(ch)
+        })
+        .collect()
 }

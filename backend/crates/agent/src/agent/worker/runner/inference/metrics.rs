@@ -38,9 +38,10 @@ pub(in crate::agent::worker::runner) fn infer_metric(text: &str) -> &'static str
     }
 }
 
-pub(super) fn extract_metric_value(text: &str, aliases: &[&str]) -> Option<f64> {
+pub(super) fn extract_metric_value<T: AsRef<str>>(text: &str, aliases: &[T]) -> Option<f64> {
     let lower = text.to_ascii_lowercase();
     for alias in aliases {
+        let alias = alias.as_ref();
         let alias_lower = alias.to_ascii_lowercase();
         let Some(index) = lower.find(&alias_lower) else {
             continue;

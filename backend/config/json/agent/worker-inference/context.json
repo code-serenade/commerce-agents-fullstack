@@ -1,0 +1,258 @@
+{
+  "context": {
+    "selected_product_summary": {
+      "metadata_keys": [
+        "context.selected_summary",
+        "commerce.selected_product_context"
+      ],
+      "product_line_prefix": "Product source product:",
+      "knowledge_line_prefix": "Knowledge source product_knowledge:",
+      "field_separator": "|",
+      "key_value_separator": "=",
+      "product_fields": {
+        "id": "id",
+        "name": "name",
+        "platform": "platform",
+        "category": "category",
+        "brand": "brand",
+        "description": "description"
+      },
+      "knowledge_fields": {
+        "product_id": "product",
+        "content": "content"
+      },
+      "product_ref_prefix": "product:"
+    },
+    "fallbacks": {
+      "selected_product_name": "compact_task_text(task.description)",
+      "selected_product_brand_name": "selected brand, else selected name, else compact_task_text(task.description)",
+      "selected_product_platform": "metrics.infer_platform(text)",
+      "selected_product_category": "domain.infer_category(text)"
+    },
+    "article_platform": {
+      "keyword_platforms": [
+        {
+          "platform": "小红书",
+          "keywords": [
+            "小红书"
+          ]
+        }
+      ],
+      "default": "微信公众号"
+    },
+    "title_candidate": {
+      "quote_delimiters": [
+        "\"",
+        "'",
+        "“",
+        "”",
+        "「",
+        "」"
+      ],
+      "fallback": "compact_task_text(task.description)"
+    },
+    "keyword_candidates": {
+      "keywords": [
+        "SEO",
+        "关键词",
+        "标题",
+        "转化",
+        "新品",
+        "直播",
+        "抖音"
+      ],
+      "max_items": 4
+    },
+    "feature_inference": {
+      "keywords": [
+        "高性价比",
+        "低糖",
+        "便携",
+        "高蛋白",
+        "礼盒",
+        "新品",
+        "直播爆款"
+      ],
+      "fallback": "compact_task_text(text)"
+    },
+    "selected_product_count": {
+      "fallback_behavior": "return provided default when no selected products exist"
+    }
+  },
+  "domain": {
+    "label_fields": {
+      "return_reason": {
+        "rule_set": "service.return_reason",
+        "default": "不喜欢"
+      },
+      "service_issue_type": {
+        "rule_set": "service.issue_type",
+        "default": "售后咨询"
+      },
+      "service_emotion": {
+        "rule_set": "service.emotion",
+        "default": "普通"
+      },
+      "design_usage": {
+        "rule_set": "design.usage",
+        "default": "主图套组"
+      },
+      "design_style": {
+        "rule_set": "design.style",
+        "default": "简约现代"
+      },
+      "page_type": {
+        "rule_set": "web.page_type",
+        "default": "首页"
+      },
+      "discount_hint": {
+        "rule_set": "promotion.discount_hint",
+        "default": "限时优惠"
+      },
+      "video_type": {
+        "rule_set": "creative.video_type",
+        "default": "种草"
+      },
+      "audience": {
+        "rule_set": "audience",
+        "default": "目标消费者"
+      },
+      "category": {
+        "rule_set": "category",
+        "default": "电商消费品"
+      },
+      "campaign_name": {
+        "rule_set": "campaign.name",
+        "default": "compact_task_text(text)"
+      },
+      "campaign_type": {
+        "rule_set": "campaign_type",
+        "default": "general"
+      },
+      "system_type": {
+        "rule_set": "engineering.system_type",
+        "default": "电商平台"
+      },
+      "bug_type": {
+        "rule_set": "engineering.bug_type",
+        "default": "数据异常"
+      },
+      "bug_frequency": {
+        "rule_set": "engineering.bug_frequency",
+        "default": "偶发"
+      },
+      "perf_bottleneck": {
+        "rule_set": "engineering.perf_bottleneck",
+        "default": "接口"
+      },
+      "tech_domain": {
+        "rule_set": "engineering.tech_domain",
+        "default": "Web框架"
+      },
+      "status_query_type": {
+        "rule_set": "status.query_type",
+        "default": "system_health"
+      },
+      "learning_topic": {
+        "rule_set": "learning.topic",
+        "default": "compact_task_text(text)",
+        "trim_prefixes": [
+          "请",
+          "帮我",
+          "给我"
+        ]
+      },
+      "learning_level": {
+        "rule_set": "learning.level",
+        "default": "practitioner"
+      },
+      "learning_scenario": {
+        "rule_set": "learning.scenario",
+        "default": "电商经营学习"
+      }
+    },
+    "video_duration_seconds": {
+      "default": 30,
+      "min": 10,
+      "max": 180,
+      "second_keywords": [
+        "秒",
+        "sec",
+        "second",
+        "seconds",
+        "时长",
+        "duration"
+      ],
+      "minute_keywords": [
+        "分钟",
+        "minute",
+        "minutes"
+      ]
+    },
+    "stack_hint": {
+      "known_stacks": [
+        "Rust",
+        "Python",
+        "FastAPI",
+        "React",
+        "Postgres",
+        "MySQL",
+        "Redis",
+        "Docker",
+        "Nginx"
+      ],
+      "separator": "/",
+      "default": "未明确技术栈"
+    },
+    "platform_health_check": {
+      "platform_intent_keywords": [
+        "淘宝",
+        "天猫",
+        "抖音",
+        "千川",
+        "京东",
+        "拼多多",
+        "pdd",
+        "jd",
+        "taobao",
+        "tmall",
+        "douyin",
+        "tiktok",
+        "api",
+        "API",
+        "平台"
+      ],
+      "health_intent_keywords": [
+        "接口健康",
+        "健康检查",
+        "连接状态",
+        "连接配置",
+        "连通性",
+        "连通",
+        "测试连接",
+        "API健康",
+        "api健康",
+        "同步状态",
+        "凭证",
+        "密钥",
+        "授权"
+      ],
+      "generic_platform_label": "电商",
+      "default": ""
+    },
+    "labeled_token": {
+      "allowed_token_chars": "ascii_alphanumeric_or_underscore_or_hyphen",
+      "skip_chars": [
+        ":",
+        "：",
+        "=",
+        "＝",
+        " ",
+        "\t",
+        "#",
+        "号"
+      ],
+      "max_skip_chars": 12
+    }
+  }
+}

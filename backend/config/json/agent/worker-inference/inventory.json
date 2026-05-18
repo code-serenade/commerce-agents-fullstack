@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "source": {
+    "rust_file": "backend/crates/agent/src/agent/worker/runner/inference/inventory.rs",
+    "scope": "worker inference inventory configurable draft"
+  },
+  "defaults": {
+    "avg_daily_demand": 1.0,
+    "lead_time_days_min": 1,
+    "service_level": null,
+    "sku_label_fallback": "SKU",
+    "top_n": null
+  },
+  "aliases": {
+    "avg_daily_demand": ["日均销量", "日均需求", "日销量", "avg_daily_demand"],
+    "lead_time_days": ["供货周期", "补货周期", "交货周期", "lead_time_days"],
+    "ordering_cost": ["订货成本", "下单成本", "ordering_cost"],
+    "holding_rate": ["持有成本率", "库存持有成本率", "holding_rate"],
+    "total_budget": ["总预算", "广告总预算", "total_budget"],
+    "top_n": ["top_n", "前N", "前n", "展示前"],
+    "inventory_sku_name_markers": ["月销量", "月销", "monthly_sales", "monthly sales", "销量", "单位成本", "单品成本", "成本", "cost", "unit_cost", "当前库存", "库存数量", "库存", "stock_qty", "stock", "inventory"],
+    "abc_xyz_sku_id_markers": ["GMV", "gmv", "销售额", "成交额", "营收", "历史销量", "销量历史", "sales_history"],
+    "inventory_sku_required_text": ["sku", "SKU", "款", "货品", "商品"],
+    "inventory_sku_monthly_sales": ["月销量", "月销", "monthly_sales", "monthly sales", "销量"],
+    "inventory_sku_cost": ["单位成本", "单品成本", "成本", "cost", "unit_cost"],
+    "inventory_sku_stock_qty": ["当前库存", "库存数量", "库存", "stock_qty", "stock", "inventory"],
+    "abc_xyz_gmv": ["GMV", "gmv", "销售额", "成交额", "营收"],
+    "abc_xyz_sales_history": ["历史销量", "销量历史", "sales_history"],
+    "ad_fatigue": {
+      "ctr_baseline": ["CTR基准", "基准CTR", "历史CTR", "baseline_ctr", "ctr_baseline"],
+      "ctr_recent": ["近期CTR", "当前CTR", "最近CTR", "recent_ctr", "ctr_recent"],
+      "impressions_per_user": ["曝光频次", "频次", "人均曝光", "impressions_per_user", "frequency"],
+      "budget": ["预算", "广告预算", "投放预算", "budget", "ad_budget"],
+      "roas": ["ROAS", "roas", "投产", "roi", "ROI"]
+    }
+  },
+  "service_levels": [
+    {
+      "value": "99%",
+      "keywords": ["99%", "service_level99", "service level 99"]
+    },
+    {
+      "value": "98%",
+      "keywords": ["98%", "service_level98", "service level 98"]
+    },
+    {
+      "value": "95%",
+      "keywords": ["95%", "service_level95", "service level 95"]
+    },
+    {
+      "value": "90%",
+      "keywords": ["90%", "service_level90", "service level 90"]
+    }
+  ],
+  "platforms": {
+    "ad_fatigue_labels": ["抖音", "douyin", "tiktok", "淘宝", "taobao", "天猫", "tmall", "京东", "jd", "拼多多", "pdd", "小红书", "xiaohongshu", "快手", "kuaishou", "直通车", "千川"],
+    "canonical_channels": [
+      {
+        "label": "抖音",
+        "aliases": ["抖音", "douyin", "tiktok"]
+      },
+      {
+        "label": "淘宝",
+        "aliases": ["淘宝", "taobao"]
+      },
+      {
+        "label": "天猫",
+        "aliases": ["天猫", "tmall"]
+      },
+      {
+        "label": "京东",
+        "aliases": ["京东", "jd"]
+      },
+      {
+        "label": "拼多多",
+        "aliases": ["拼多多", "pdd"]
+      },
+      {
+        "label": "小红书",
+        "aliases": ["小红书", "xiaohongshu"]
+      },
+      {
+        "label": "快手",
+        "aliases": ["快手", "kuaishou"]
+      },
+      {
+        "label": "直通车",
+        "aliases": ["直通车"]
+      },
+      {
+        "label": "千川",
+        "aliases": ["千川"]
+      }
+    ],
+    "unknown_channel": "其他"
+  },
+  "rules": {
+    "avg_daily_demand": {
+      "default": 1.0,
+      "result_min": 0.0
+    },
+    "lead_time_days": {
+      "source_order": ["metric_alias", "explicit_period_days", "caller_default"],
+      "round": true,
+      "min": 1
+    },
+    "top_n": {
+      "round": true,
+      "min": 1,
+      "max": 100
+    },
+    "sku_label_cleanup": {
+      "trim_prefix_chars": ["-", "•", "*", " "],
+      "prefer_last_sku_prefix": true,
+      "sku_prefix_marker": "sku",
+      "trim_delimiters": ["：", ":", ",", "，", ";", "；", " "]
+    }
+  },
+  "parsers": {
+    "inventory_skus": {
+      "split_on": ["；", ";", "\n"],
+      "required_text_alias_group": "inventory_sku_required_text",
+      "required_fields": ["monthly_sales", "cost", "stock_qty"],
+      "field_alias_groups": {
+        "monthly_sales": "inventory_sku_monthly_sales",
+        "cost": "inventory_sku_cost",
+        "stock_qty": "inventory_sku_stock_qty"
+      },
+      "metric_match": "last_metric_value"
+    },
+    "abc_xyz_skus": {
+      "split_on": ["；", ";", "\n"],
+      "required_text_alias_group": "inventory_sku_required_text",
+      "required_fields": ["gmv"],
+      "gmv_alias_group": "abc_xyz_gmv",
+      "history_alias_group": "abc_xyz_sales_history",
+      "history_split_on": ["；", ";", "\n"],
+      "metric_match": "last_metric_value"
+    },
+    "ad_fatigue_channels": {
+      "segment_by_platform_labels": true,
+      "dedupe_by_canonical_name": true,
+      "emit_if_any_field_present": ["ctr_baseline", "ctr_recent", "impressions_per_user", "budget", "roas"]
+    }
+  }
+}

@@ -1,0 +1,184 @@
+{
+  "douyin_ads": {
+    "goal": {
+      "rules": [
+        {
+          "label": "直播间成交与进房转化",
+          "keywords": [
+            "直播",
+            "直播间",
+            "进房",
+            "场观"
+          ]
+        },
+        {
+          "label": "短视频引流与商品转化",
+          "keywords": [
+            "短视频",
+            "视频",
+            "素材"
+          ]
+        },
+        {
+          "label": "新品冷启动起量",
+          "keywords": [
+            "新品",
+            "冷启动",
+            "起量"
+          ]
+        }
+      ],
+      "fallback": "compact_task_text(task.description)"
+    },
+    "days": {
+      "source": "numbers.infer_explicit_period_days",
+      "default": 7
+    },
+    "product_name": {
+      "selected_product_first": true,
+      "intent_keywords": [
+        "商品",
+        "产品",
+        "咖啡",
+        "SKU",
+        "sku"
+      ],
+      "fallback_when_no_intent": ""
+    },
+    "metrics": {
+      "budget": {
+        "aliases": [
+          "投放预算",
+          "广告预算",
+          "千川预算",
+          "总预算",
+          "人群预算",
+          "预算",
+          "budget"
+        ]
+      },
+      "target_roas": {
+        "aliases": [
+          "目标ROAS",
+          "目标roas",
+          "目标投产",
+          "目标ROI",
+          "target_roas"
+        ]
+      },
+      "spend": {
+        "aliases": [
+          "已消耗",
+          "消耗",
+          "花费",
+          "广告费",
+          "广告花费",
+          "spend",
+          "ad_spend"
+        ]
+      },
+      "gmv": {
+        "aliases": [
+          "GMV",
+          "gmv",
+          "成交额",
+          "销售额",
+          "营收"
+        ]
+      },
+      "current_roas": {
+        "primary_aliases": [
+          "当前ROAS",
+          "当前roas",
+          "实际ROAS",
+          "实际roas",
+          "当前投产",
+          "实际投产",
+          "当前ROI",
+          "当前roi",
+          "实际ROI",
+          "实际roi"
+        ],
+        "blocked_when_target_alias_present": [
+          "目标ROAS",
+          "目标roas",
+          "目标投产",
+          "目标ROI",
+          "target_roas"
+        ],
+        "fallback_aliases": [
+          "ROAS",
+          "roas",
+          "投产",
+          "ROI",
+          "roi"
+        ]
+      }
+    },
+    "live_metrics": {
+      "impressions": {
+        "aliases": [
+          "曝光量",
+          "曝光",
+          "展现",
+          "展示",
+          "impressions",
+          "exposure"
+        ]
+      },
+      "clicks": {
+        "aliases": [
+          "点击数",
+          "点击",
+          "广告点击",
+          "clicks",
+          "click"
+        ]
+      },
+      "live_room_entries": {
+        "aliases": [
+          "进房数",
+          "进房",
+          "进入直播间",
+          "场观",
+          "live_room_entries"
+        ]
+      },
+      "product_clicks": {
+        "aliases": [
+          "商品点击数",
+          "商品点击",
+          "点击商品",
+          "product_clicks"
+        ]
+      },
+      "orders": {
+        "aliases": [
+          "下单数",
+          "下单",
+          "订单数",
+          "订单",
+          "orders"
+        ]
+      },
+      "payments": {
+        "aliases": [
+          "付款数",
+          "付款",
+          "支付数",
+          "支付",
+          "payments"
+        ]
+      },
+      "ad_spend": {
+        "reuse_metric": "spend"
+      },
+      "gmv": {
+        "reuse_metric": "gmv"
+      }
+    },
+    "stage": {
+      "source": "metrics.infer_stage"
+    }
+  }
+}
