@@ -6,8 +6,10 @@ use super::{
     Task, TaskMemory, WorkerPhase, WorkerState,
     action_bridge::decision_to_action,
     output_policy::{
-        default_role_finding, default_role_findings, default_role_recommendation,
-        default_role_recommendations, default_role_risks, normalize_role_specific_findings,
+        apply_category_boundary_output, apply_category_team_output_shape,
+        category_skill_boundary_label, default_role_finding, default_role_findings,
+        default_role_recommendation, default_role_recommendations, default_role_risks,
+        is_category_non_blocking_skill, normalize_role_specific_findings,
         normalize_role_specific_recommendations, normalize_role_specific_risks,
         required_findings_for_role, required_recommendations_for_role, role_display_name,
         role_requires_risk,
@@ -10644,207 +10646,21 @@ fn normalize_category_level_product_requests(
             &task_line,
         ));
     }
-    apply_category_team_output_shape(role, &task_line, output);
+    apply_category_team_output_shape(role, output);
 
-    push_unique(
-        &mut output.evidence,
-        "用户本轮没有手动选择预设商品；系统按类目/未指定商品链路回答，\
-         不把历史商品或默认商品注入本轮上下文。"
-            .to_string(),
-    );
+    apply_category_boundary_output(output, removed_product_specific_request);
     push_unique(
         &mut output.evidence,
         CATEGORY_LEVEL_BOUNDARY_MARKER.to_string(),
-    );
-    push_unique(
-        &mut output.risks,
-        "类目级或未指定商品结论只能用于方向判断，不能替代单品级库存、价格、素材、\
-         投放和历史转化数据复核。"
-            .to_string(),
     );
 
     if removed_product_specific_request {
         push_unique(
             &mut output.evidence,
-            "用户本轮询问的是类目级问题，未手动选择预设商品；系统先按类目通用链路分析，\
-             不把具体商品编号或历史商品作为前置条件。"
-                .to_string(),
-        );
-        push_unique(
-            &mut output.evidence,
             CATEGORY_LEVEL_BOUNDARY_MARKER.to_string(),
-        );
-        push_unique(
-            &mut output.recommendations,
-            "如果后续要做单品级诊断，再由用户手动选择预设商品或补充商品资料；\
-             本轮先输出咖啡类目可执行判断。"
-                .to_string(),
-        );
-        push_unique(
-            &mut output.risks,
-            "类目级结论不能替代单品级库存、价格、素材和历史转化数据复核。".to_string(),
         );
     }
     true
-}
-
-fn apply_category_team_output_shape(
-    role: &str,
-    _task: &str,
-    output: &mut crate::core::protocol::RoleWorkOutput,
-) {
-    match role {
-        "data" => {
-            push_unique(
-                &mut output.findings,
-                "数据岗按类目级链路先定义曝光、点击、加购、付款、退款、咨询量和渠道拆分口径。"
-                    .to_string(),
-            );
-            push_unique(
-                &mut output.findings,
-                "未选择具体商品时，数据岗不能把历史商品或默认商品当成本轮样本，\
-                 只能输出诊断框架和待补数据清单。"
-                    .to_string(),
-            );
-            push_unique(
-                &mut output.recommendations,
-                "建立一张类目级漏斗表：渠道、曝光、点击率、加购率、付款率、退款率、客服咨询率、\
-                 复购率逐列补齐。"
-                    .to_string(),
-            );
-            push_unique(
-                &mut output.recommendations,
-                "把后续单品级诊断的入口限定为用户手动选择预设商品或补充商品资料，\
-                 避免默认商品污染结论。"
-                    .to_string(),
-            );
-        }
-        "creative" => {
-            push_unique(
-                &mut output.findings,
-                "内容岗把咖啡类商品先拆成场景、人群、价格带、口味/功能卖点和首三秒钩子，\
-                 而不是直接套用某个历史商品。"
-                    .to_string(),
-            );
-            push_unique(
-                &mut output.recommendations,
-                "准备三组可 A/B 测试素材：通勤提神、办公室囤货、礼盒送礼；每组包含标题、\
-                 短视频开头和直播间话术。"
-                    .to_string(),
-            );
-            push_unique(
-                &mut output.recommendations,
-                "每组素材都绑定数据岗定义的点击率、停留、加购和付款指标，避免只看播放量。"
-                    .to_string(),
-            );
-        }
-        "service" => {
-            push_unique(
-                &mut output.findings,
-                "服务岗按类目级链路识别咨询承接、售后承诺、物流时效、\
-                 口味不符和退款争议对转化的影响。"
-                    .to_string(),
-            );
-            push_unique(
-                &mut output.recommendations,
-                "先沉淀客服 SOP：口味选择、保质期、发货时效、退换货、优惠叠加和异常升级六类话术。"
-                    .to_string(),
-            );
-            push_unique(
-                &mut output.recommendations,
-                "直播或活动承诺不得超过库存、物流和售后政策的真实履约边界。".to_string(),
-            );
-        }
-        "engineering" => {
-            push_unique(
-                &mut output.findings,
-                "工程岗负责确认埋点、报表刷新、商品/订单/客服数据接口和失败回滚边界，\
-                 保证后续复盘可追踪。"
-                    .to_string(),
-            );
-            push_unique(
-                &mut output.recommendations,
-                "补齐曝光、点击、加购、付款、退款和咨询事件的埋点校验，并记录报表刷新时间。"
-                    .to_string(),
-            );
-            push_unique(
-                &mut output.recommendations,
-                "若右侧过程或工作区写入失败，要保留本轮 SSE \
-                 事件和最终回答，避免用户以为任务仍在执行。"
-                    .to_string(),
-            );
-        }
-        "ops" => {
-            push_unique(
-                &mut output.findings,
-                "运营岗把数据、内容、服务和工程岗位的输入收敛成可执行节奏，先做类目级判断，\
-                 再等待用户选择商品进入单品复核。"
-                    .to_string(),
-            );
-            push_unique(
-                &mut output.recommendations,
-                "第 1 步补齐类目漏斗口径，第 2 步上线三组内容/话术测试，第 3 \
-                 步按日报复盘转化断点和服务风险。"
-                    .to_string(),
-            );
-            push_unique(
-                &mut output.recommendations,
-                "所有结论都标记为未指定商品链路；只有用户手动勾选预设商品后，\
-                 才把对应商品资料注入下一轮回答。"
-                    .to_string(),
-            );
-        }
-        "douyin_ads" => {
-            push_unique(
-                &mut output.findings,
-                "千川投放岗在未指定商品时只拆人群、素材组、预算节奏和 CPA/ROI \
-                 止损线，不承诺具体投放结果。"
-                    .to_string(),
-            );
-            push_unique(
-                &mut output.recommendations,
-                "按冷启动、放量、复盘三段设置预算护栏，并把素材点击、\
-                 直播间停留和付款转化串联复盘。"
-                    .to_string(),
-            );
-        }
-        "accounting" => {
-            push_unique(
-                &mut output.findings,
-                "财务岗在未指定商品时先给预算和毛利校验框架，不编造客单价、成本或 ROI。"
-                    .to_string(),
-            );
-            push_unique(
-                &mut output.recommendations,
-                "先补客单价、毛利率、优惠成本、广告费和退款率，再计算可接受 CPA 与放量上限。"
-                    .to_string(),
-            );
-        }
-        "design" => {
-            push_unique(
-                &mut output.findings,
-                "设计岗按类目级视觉承接拆主图、详情页、直播间贴片和行动按钮，不套用历史商品素材。"
-                    .to_string(),
-            );
-            push_unique(
-                &mut output.recommendations,
-                "围绕提神、低负担、囤货、礼赠四类卖点准备主图和详情页首屏测试版本。".to_string(),
-            );
-        }
-        "web" => {
-            push_unique(
-                &mut output.findings,
-                "Web/SEO 岗按类目级搜索意图拆关键词、FAQ 和页面结构，不承诺未接入搜索数据的排名。"
-                    .to_string(),
-            );
-            push_unique(
-                &mut output.recommendations,
-                "建立咖啡类目关键词矩阵、购买顾虑 FAQ 和长尾内容页，再用真实搜索数据复核。"
-                    .to_string(),
-            );
-        }
-        _ => {}
-    }
 }
 
 fn filter_product_identity_requests(items: &mut Vec<String>) -> bool {
@@ -10867,29 +10683,7 @@ fn is_non_blocking_category_skill_gap(result: &SkillExecutionResult, task: &Task
         return false;
     }
 
-    let skill = result.skill_id.as_str();
-    if matches!(
-        skill,
-        "query_product_metrics"
-            | "query_store_metrics"
-            | "query_campaign_metrics"
-            | "data_dashboard"
-            | "data_funnel_analysis"
-            | "data_comprehensive_diagnosis"
-            | "service_query_product"
-            | "search_market_info"
-            | "search_industry_benchmarks"
-            | "search_product_reviews"
-            | "search_platform_policy"
-            | "search_trends"
-            | "coordination_create_task"
-            | "coordination_create_campaign"
-            | "platform_update_price"
-            | "platform_update_inventory"
-            | "platform_sync_products"
-            | "coordination_external_agent_call"
-            | "engineering_system_check"
-    ) {
+    if is_category_non_blocking_skill(result.skill_id.as_str()) {
         return true;
     }
 
@@ -11013,31 +10807,6 @@ fn category_level_skill_boundary_output(result: &SkillExecutionResult) -> serde_
         });
     }
     output
-}
-
-fn category_skill_boundary_label(skill: &str) -> &'static str {
-    match skill {
-        "coordination_create_task" => "后续任务草案待用户确认后再写入工作区",
-        "coordination_create_campaign" => "活动草案待用户确认后再沉淀",
-        "platform_update_price" | "platform_update_inventory" | "platform_sync_products" => {
-            "平台写操作需审批和外部平台适配器"
-        }
-        "coordination_external_agent_call" => "外部 Agent 调用需明确目标和安全边界",
-        "engineering_system_check" => "真实系统检测需平台适配器和审批",
-        "search_market_info"
-        | "search_industry_benchmarks"
-        | "search_product_reviews"
-        | "search_platform_policy"
-        | "search_trends" => "外部搜索适配器未产出可信实时来源",
-        "query_product_metrics"
-        | "query_store_metrics"
-        | "query_campaign_metrics"
-        | "data_dashboard"
-        | "data_funnel_analysis"
-        | "data_comprehensive_diagnosis" => "未指定商品或未接入真实经营指标",
-        "service_query_product" => "客服商品资料需用户手动选择商品后读取",
-        _ => "该能力本轮只作为可见边界记录",
-    }
 }
 
 fn should_downgrade_category_worker_failure(task: &Task, reason: &str) -> bool {

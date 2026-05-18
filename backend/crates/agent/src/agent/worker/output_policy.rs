@@ -19,7 +19,28 @@ struct WorkerOutputPolicy {
     fallback_recommendation: String,
     fallback_risk: String,
     #[serde(default)]
+    category_boundary: CategoryBoundaryPolicy,
+    #[serde(default)]
     roles: BTreeMap<String, RoleOutputPolicy>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+struct CategoryBoundaryPolicy {
+    #[serde(default)]
+    evidence: Vec<String>,
+    #[serde(default)]
+    risks: Vec<String>,
+    #[serde(default)]
+    removed_product_identity_evidence: Vec<String>,
+    #[serde(default)]
+    removed_product_identity_recommendations: Vec<String>,
+    #[serde(default)]
+    removed_product_identity_risks: Vec<String>,
+    #[serde(default)]
+    non_blocking_skills: Vec<String>,
+    default_skill_boundary_label: Option<String>,
+    #[serde(default)]
+    skill_boundary_labels: BTreeMap<String, String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -41,6 +62,10 @@ struct RoleOutputPolicy {
     recommendation_rules: Vec<OutputRule>,
     #[serde(default)]
     risk_rules: Vec<OutputRule>,
+    #[serde(default)]
+    category_findings: Vec<String>,
+    #[serde(default)]
+    category_recommendations: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -176,6 +201,69 @@ pub fn default_role_risks(role: &str) -> Vec<String> {
     } else {
         values.to_vec()
     }
+}
+
+pub fn apply_category_team_output_shape(
+    role: &str,
+    output: &mut crate::core::protocol::RoleWorkOutput,
+) {
+    let Some(role_policy) = policy().role(role) else {
+        return;
+    };
+    for finding in &role_policy.category_findings {
+        push_unique(&mut output.findings, finding.clone());
+    }
+    for recommendation in &role_policy.category_recommendations {
+        push_unique(&mut output.recommendations, recommendation.clone());
+    }
+}
+
+pub fn apply_category_boundary_output(
+    output: &mut crate::core::protocol::RoleWorkOutput,
+    removed_product_specific_request: bool,
+) {
+    let category_boundary = &policy().category_boundary;
+    for evidence in &category_boundary.evidence {
+        push_unique(&mut output.evidence, evidence.clone());
+    }
+    for risk in &category_boundary.risks {
+        push_unique(&mut output.risks, risk.clone());
+    }
+    if !removed_product_specific_request {
+        return;
+    }
+    for evidence in &category_boundary.removed_product_identity_evidence {
+        push_unique(&mut output.evidence, evidence.clone());
+    }
+    for recommendation in &category_boundary.removed_product_identity_recommendations {
+        push_unique(&mut output.recommendations, recommendation.clone());
+    }
+    for risk in &category_boundary.removed_product_identity_risks {
+        push_unique(&mut output.risks, risk.clone());
+    }
+}
+
+pub fn is_category_non_blocking_skill(skill: &str) -> bool {
+    policy()
+        .category_boundary
+        .non_blocking_skills
+        .iter()
+        .any(|candidate| candidate == skill)
+}
+
+pub fn category_skill_boundary_label(skill: &str) -> String {
+    policy()
+        .category_boundary
+        .skill_boundary_labels
+        .get(skill)
+        .cloned()
+        .or_else(|| {
+            policy()
+                .category_boundary
+                .default_skill_boundary_label
+                .clone()
+        })
+        .unwrap_or_else(|| "该能力本轮只作为可见边界记录".to_string())
 }
 
 fn apply_rules(items: &mut Vec<String>, task: &str, rules: &[OutputRule]) {
