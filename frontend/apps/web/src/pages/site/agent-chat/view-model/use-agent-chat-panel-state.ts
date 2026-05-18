@@ -1,6 +1,10 @@
 import { useCallback, useState } from "react"
 
-export type AgentChatComposerPanelId = "product" | "settings" | "source"
+export type AgentChatComposerPanelId =
+  | "campaign"
+  | "product"
+  | "settings"
+  | "source"
 
 export function useAgentChatPanelState() {
   const [activePanel, setActivePanel] = useState<AgentChatComposerPanelId | null>(
@@ -15,6 +19,10 @@ export function useAgentChatPanelState() {
     setActivePanel(open ? "product" : null)
   }, [])
 
+  const setCampaignContextOpen = useCallback((open: boolean) => {
+    setActivePanel(open ? "campaign" : null)
+  }, [])
+
   const setSourceContextOpen = useCallback((open: boolean) => {
     setActivePanel(open ? "source" : null)
   }, [])
@@ -24,8 +32,10 @@ export function useAgentChatPanelState() {
   }, [])
 
   return {
+    campaignContextOpen: activePanel === "campaign",
     closePanels,
     productContextOpen: activePanel === "product",
+    setCampaignContextOpen,
     setProductContextOpen,
     setSourceContextOpen,
     settingsOpen: activePanel === "settings",

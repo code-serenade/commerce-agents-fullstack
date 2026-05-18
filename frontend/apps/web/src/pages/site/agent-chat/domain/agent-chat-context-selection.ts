@@ -1,5 +1,16 @@
-import type { ProductResponse } from "@/api"
+import type { CampaignResponse, ProductResponse } from "@/api"
 import type { AgentChatAttachmentItem } from "../types"
+
+export interface AgentChatCampaignContextSelection {
+  budget?: number | null
+  campaignType?: string | null
+  endDate?: string | null
+  id: string
+  name: string
+  productId?: string | null
+  startDate?: string | null
+  status?: string | null
+}
 
 export interface AgentChatProductContextSelection {
   brand?: string | null
@@ -38,14 +49,51 @@ export function mapProductToContextSelection(
   }
 }
 
+export function mapCampaignToContextSelection(
+  campaign: CampaignResponse
+): AgentChatCampaignContextSelection {
+  return {
+    budget: campaign.budget,
+    campaignType: campaign.campaignType,
+    endDate: campaign.endDate,
+    id: campaign.id,
+    name: campaign.name,
+    productId: campaign.productId,
+    startDate: campaign.startDate,
+    status: campaign.status,
+  }
+}
+
 export function createContextRefs(
   products: AgentChatProductContextSelection[],
-  sources: AgentChatSourceContextSelection[] = []
+  sources: AgentChatSourceContextSelection[] = [],
+  campaigns: AgentChatCampaignContextSelection[] = []
 ): string[] {
   return uniqueContextRefs([
     ...products.map((product) => `product:${product.id}`),
     ...sources.map((source) => source.ref),
+    ...campaigns.map((campaign) => `campaign:${campaign.id}`),
   ])
+}
+
+export function toggleCampaignContextSelection(
+  current: AgentChatCampaignContextSelection[],
+  next: AgentChatCampaignContextSelection
+) {
+  if (current.some((item) => item.id === next.id)) {
+    return current.filter((item) => item.id !== next.id)
+  }
+  return [...current, next].slice(0, 5)
+}
+
+export function restoreCampaignContextSelection(
+  availableCampaigns: AgentChatCampaignContextSelection[],
+  campaignIds: string[]
+) {
+  const uniqueCampaignIds = uniqueContextRefs(campaignIds)
+  return availableCampaigns
+    .filter((campaign) => uniqueCampaignIds.includes(campaign.id))
+    .slice(0, 5)
 }
 
 export function toggleProductContextSelection(

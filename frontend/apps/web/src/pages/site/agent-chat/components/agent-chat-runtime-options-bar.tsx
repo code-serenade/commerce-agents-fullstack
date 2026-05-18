@@ -1,4 +1,3 @@
-import { Cpu, GitBranch } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type {
   AgentChatRuntimeSelection,
@@ -15,6 +14,7 @@ import {
 import {
   OptionSegment,
   RuntimeSelect,
+  SettingsRow,
 } from "./agent-chat-runtime-shared"
 
 export interface AgentChatRuntimeOptionsBarProps {
@@ -52,7 +52,7 @@ export function AgentChatRuntimeOptionsBar({
   )
 
   return (
-    <div className="grid gap-2 rounded-lg border border-border bg-background p-2.5">
+    <section className="grid gap-2">
       {!runtimeOptions && isLoadingRuntimeOptions ? (
         <div className="rounded-lg border border-border bg-card px-3 py-2 text-xs text-muted-foreground">
           {t("agentChat.composer.runtime.loading")}
@@ -68,7 +68,6 @@ export function AgentChatRuntimeOptionsBar({
           />
           <OptionSegment
             disabled={controlDisabled}
-            icon={<GitBranch className="size-3.5" />}
             label={t("agentChat.composer.runtime.roleMode")}
             onValueChange={onCollaborationModeChange}
             options={roleModes.map((mode) => roleModeToOption(mode, t))}
@@ -81,20 +80,8 @@ export function AgentChatRuntimeOptionsBar({
             roles={specialistRoles}
             runtimeSelection={runtimeSelection}
           />
-          <div className="grid gap-2 rounded-lg border border-border bg-card p-2.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-            <div className="min-w-0">
-              <div className="flex min-w-0 items-center gap-1.5 text-xs font-semibold text-foreground">
-                <Cpu className="size-3.5 shrink-0 text-muted-foreground" />
-                <span>{t("agentChat.composer.runtime.modelSettings")}</span>
-              </div>
-              <p
-                className="mt-1 truncate text-xs text-muted-foreground"
-                title={t("agentChat.composer.runtime.modelHint")}
-              >
-                {t("agentChat.composer.runtime.modelHint")}
-              </p>
-            </div>
-            <div className="flex min-w-0 flex-wrap items-center justify-start gap-2 sm:justify-end">
+          <SettingsRow label={t("agentChat.composer.runtime.modelSettings")}>
+            <div className="flex min-w-0 flex-wrap items-center justify-start gap-2">
               {isLoadingRuntimeOptions ? (
                 <span className="rounded-full border border-border bg-background/70 px-3 py-1.5 text-xs text-muted-foreground">
                   {t("agentChat.composer.runtime.loading")}
@@ -108,9 +95,9 @@ export function AgentChatRuntimeOptionsBar({
                 value={runtimeSelection.modelName ?? ""}
               />
             </div>
-          </div>
+          </SettingsRow>
         </>
       ) : null}
-    </div>
+    </section>
   )
 }

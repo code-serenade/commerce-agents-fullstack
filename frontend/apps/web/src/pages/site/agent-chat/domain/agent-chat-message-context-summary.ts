@@ -10,12 +10,24 @@ export interface MessageContextSummaryProductInput {
   status?: string | null
 }
 
+export interface MessageContextSummaryCampaignInput {
+  budget?: number | null
+  campaignType?: string | null
+  endDate?: string | null
+  id: string
+  name?: string | null
+  startDate?: string | null
+  status?: string | null
+}
+
 export interface MessageContextSummarySourceInput {
   ref: string
   title?: string | null
 }
 
 export function createMessageContextSummary(input: {
+  campaignIds?: string[]
+  campaigns?: MessageContextSummaryCampaignInput[]
   collaborationMode?: string
   contextRefs: string[]
   learningLevel?: string
@@ -33,6 +45,12 @@ export function createMessageContextSummary(input: {
       .map((item) => item.match(/^product:(.+)$/)?.[1])
       .filter((item): item is string => Boolean(item)),
   ])
+  const campaignIds = uniqueStrings([
+    ...(input.campaignIds ?? []),
+    ...input.contextRefs
+      .map((item) => item.match(/^campaign:(.+)$/)?.[1])
+      .filter((item): item is string => Boolean(item)),
+  ])
   const sourceRefs = uniqueStrings(
     input.contextRefs.filter((ref) => ref.startsWith("conversation_file:"))
   )
@@ -45,6 +63,14 @@ export function createMessageContextSummary(input: {
       ...getProductSecondary(product),
     }
   })
+  const campaigns = campaignIds.map((id) => {
+    const campaign = input.campaigns?.find((item) => item.id === id)
+    return {
+      id,
+      ...(campaign?.name ? { label: campaign.name } : {}),
+      ...getCampaignSecondary(campaign),
+    }
+  })
   const sources = sourceRefs.map((ref) => {
     const source = input.sources?.find((item) => item.ref === ref)
     return {
@@ -55,6 +81,8 @@ export function createMessageContextSummary(input: {
   const strategyId =
     normalizeAgentChatStrategyId(input.strategyId) ?? undefined
   const summary: AgentChatMessageContextSummary = {
+    campaignIds,
+    campaigns,
     productIds,
     products,
     selectedRoles,
@@ -87,6 +115,7 @@ export function readMessageContextSummary(
     learningLevel: readString(strategy?.learningLevel) ?? undefined,
     modelName: readString(strategy?.modelName) ?? undefined,
     primaryRole: readString(strategy?.primaryRole) ?? undefined,
+    campaignIds: hasContext ? readStringArray(context.campaignIds) : [],
     productIds: hasContext ? readStringArray(context.productIds) : [],
     selectedRoles: readStringArray(strategy?.selectedRoles),
     strategyId: readString(strategy?.strategyId) ?? undefined,
@@ -131,9 +160,30 @@ function getProductSecondary(
   return secondary ? { secondary } : {}
 }
 
+function getCampaignSecondary(
+  campaign: MessageContextSummaryCampaignInput | undefined
+) {
+  if (!campaign) return {}
+  const dateRange =
+    campaign.startDate || campaign.endDate
+      ? `${campaign.startDate ?? "-"} ~ ${campaign.endDate ?? "-"}`
+      : ""
+  const secondary = uniqueStrings([
+    campaign.status ?? "",
+    campaign.campaignType ?? "",
+    campaign.budget === undefined || campaign.budget === null
+      ? ""
+      : `budget ${campaign.budget}`,
+    dateRange,
+  ]).join(" / ")
+
+  return secondary ? { secondary } : {}
+}
+
 function summaryHasContent(summary: AgentChatMessageContextSummary) {
   return Boolean(
-    summary.productIds.length ||
+    summary.campaignIds.length ||
+      summary.productIds.length ||
       summary.sourceRefs.length ||
       summary.strategyId ||
       summary.collaborationMode ||

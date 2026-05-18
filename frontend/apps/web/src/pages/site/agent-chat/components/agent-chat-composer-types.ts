@@ -1,4 +1,5 @@
 import type {
+  AgentChatCampaignContextSelection,
   AgentChatProductContextSelection,
   AgentChatSourceContextSelection,
 } from "../domain/agent-chat-context-selection"
@@ -13,12 +14,14 @@ import type { AgentChatAttachmentItem } from "../types"
 export interface AgentChatComposerProps {
   attachments: AgentChatAttachmentItem[]
   availableProducts: AgentChatProductContextSelection[]
+  availableCampaigns: AgentChatCampaignContextSelection[]
   availableSources: AgentChatSourceContextSelection[]
   canSend: boolean
   error: string | null
   input: string
   isLoggedIn: boolean
   isLoadingPlaybooks: boolean
+  isLoadingCampaigns: boolean
   isLoadingProducts: boolean
   isLoadingRuntimeOptions: boolean
   isStreaming: boolean
@@ -33,11 +36,14 @@ export interface AgentChatComposerProps {
   onStop: () => void
   onStrategyChange: (strategyId: AgentChatStrategyId) => void
   onClearProductContext: () => void
+  onClearCampaignContext: () => void
   onClearSourceContext: () => void
+  onToggleCampaignContext: (campaign: AgentChatCampaignContextSelection) => void
   onToggleProductContext: (product: AgentChatProductContextSelection) => void
   onToggleSourceContext: (source: AgentChatSourceContextSelection) => void
   onUploadAttachments: (files: File[]) => void
   selectedProducts: AgentChatProductContextSelection[]
+  selectedCampaigns: AgentChatCampaignContextSelection[]
   selectedSources: AgentChatSourceContextSelection[]
   playbooks: AgentChatPlaybookSelection[]
   runtimeOptions: AgentRuntimeOptions | null

@@ -884,6 +884,7 @@ const messages = {
         campaigns: "Campaigns",
         platform: "Platform connections",
         marketResearch: "Market insights",
+        operations: "Operations",
         briefing: "Daily briefing",
         alerts: "Alerts",
         deliverables: "Deliverables",
@@ -901,8 +902,8 @@ const messages = {
         learning: {
           label: "Teaching mode",
           hint:
-            "Default mode for students and beginners: explain terms, reasoning, and actionable steps",
-          shortHint: "Default",
+            "For students and beginners: explain terms, reasoning, and actionable steps",
+          shortHint: "Teaching",
         },
         quick: {
           label: "Quick answer",
@@ -961,6 +962,33 @@ const messages = {
           unknown: "Unknown",
         },
       },
+      campaignContext: {
+        label: "Campaign context",
+        compactLabel: "Campaign",
+        noneCompactLabel: "No campaign",
+        compactTitle: "Choose campaign context for this turn",
+        loading: "Loading campaigns",
+        empty: "No available campaigns",
+        noneSelected: "No campaign selected",
+        choose: "Choose campaign",
+        collapse: "Collapse campaigns",
+        clear: "Clear campaigns",
+        noneHint: "This turn will not read saved campaign plans, budget, or execution data.",
+        manualHint: "Backend campaign data is loaded only after you manually select a campaign.",
+        searchPlaceholder: "Search campaign name, type, status, budget, or date",
+        selectedHint: "This turn will read the selected campaigns' goals, budget, dates, status, and saved outputs.",
+        selectedCount: "{{count}} campaign selected",
+        budget: "Budget {{value}}",
+        noSearchResult: "No matching campaign",
+        status: {
+          active: "Active",
+          draft: "Draft",
+          paused: "Paused",
+          ended: "Ended",
+          archived: "Archived",
+          unknown: "Unknown",
+        },
+      },
       sourceContext: {
         compactLabel: "Sources",
         noneCompactLabel: "No sources",
@@ -1012,6 +1040,10 @@ const messages = {
         primary: "Lead",
         leadRole: "Lead answer role",
         supportRoles: "Support roles",
+        selectedRoles: "Select roles",
+        roleColumn: "Role",
+        primaryShort: "Lead",
+        supportShort: "Support",
         singleRoleHint: "Click a role card. That virtual employee answers this turn alone.",
         leadRoleHint: "Click a role card to switch the lead answer role. The lead owns synthesis and the final plan.",
         supportRolesHint:
@@ -1033,7 +1065,7 @@ const messages = {
         roleModes: {
           auto: {
             label: "Auto dispatch",
-            description: "Default",
+            description: "Backend decides",
           },
           single: {
             label: "Single role",
@@ -1046,7 +1078,7 @@ const messages = {
         },
         strategyNotes: {
           learning:
-            "Default teaching mode: keep the substance while explaining terms, reasoning, and next steps.",
+            "Teaching mode: keep the substance while explaining terms, reasoning, and next steps.",
           quick:
             "Best for fast judgment: conclusion, key reason, and only a few next actions.",
           execution:
@@ -1191,6 +1223,7 @@ const messages = {
         label: "Backend context for this turn",
         productNone: "No product",
         productCount: "{{count}} products",
+        campaignCount: "{{count}} campaigns",
         sourceNone: "No files",
         sourceCount: "{{count}} files",
         strategy: "Mode: {{strategy}}",
@@ -1198,6 +1231,7 @@ const messages = {
         model: "Model: {{model}}",
         details: "Context details",
         productDetails: "Referenced products",
+        campaignDetails: "Referenced campaigns",
         sourceDetails: "Referenced files",
       },
       actions: {
@@ -1244,6 +1278,20 @@ const messages = {
         enrichMaterial: "Enrich materials",
         enrichByTask: "Enrich platform materials by task",
         enrichFallback: "Enrich industry and platform context",
+        directAnswer: "Direct answer without a multi-role task graph",
+        graphNodeReady: "Backend generated this step for the current task",
+      },
+      roleFallbackTitles: {
+        chat: "Direct answer",
+        data: "Data diagnosis",
+        creative: "Creative output",
+        service: "Service plan",
+        design: "Experience design",
+        accounting: "Budget review",
+        engineering: "Engineering judgment",
+        web: "Web/SEO plan",
+        douyin_ads: "Qianchuan ads optimization",
+        ops: "Operations plan",
       },
       artifactSpecs: {
         dataStatus: "Data diagnosis, metric attribution, platform context",

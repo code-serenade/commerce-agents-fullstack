@@ -14,6 +14,7 @@ describe("agent chat page actions", () => {
 
     expect(calls).toContain("strategy:learning")
     expect(calls).toContain("runtime:reset")
+    expect(calls).toContain("campaigns:clear")
     expect(calls).toContain("products:clear")
     expect(calls).toContain("sources:clear")
   })
@@ -35,6 +36,7 @@ function createPageState(calls: string[]): AgentChatPageStateActions {
 
   return {
     abortRef: { current: abortController },
+    clearSelectedCampaigns: () => calls.push("campaigns:clear"),
     clearSelectedProducts: () => calls.push("products:clear"),
     clearSelectedSources: () => calls.push("sources:clear"),
     createWelcomeMessage: () => ({

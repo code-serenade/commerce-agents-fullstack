@@ -1,17 +1,11 @@
 import { FileText, ListChecks, PlugZap, ShieldAlert } from "lucide-react"
 import type { TFunction } from "i18next"
 import type { AgentRuntimeEvent, AgentTaskNode } from "@/api"
-import { readRuntimeNodeId, resolveWorkerNodeId } from "./agent-runtime-event-mapping"
 import {
-  hasBlockingTaskFailure,
-  hasBlockingWorkspaceFailure,
-  isBoundaryEvaluation,
-  isBoundaryReport,
-  isNonBlockingNodeFailure,
-  isNonBlockingWorkspaceFailure,
-  isNonBlockingSkillGap,
-  resolveSkillResultNodeId,
-} from "./thread-boundary-state-view-model"
+  getInlineNodeStates,
+  getInlineProcessFailureState,
+  readInlineId,
+} from "./thread-inline-node-states"
 
 export type InlineAgentState =
   | "idle"
@@ -66,9 +60,23 @@ export function getInlineSteps(
   isStreaming: boolean,
   t: TFunction
 ) {
-  const hasGraph = runtimeEvents.some(
-    (event) => event.type === "task_graph_planned"
-  )
+  const graphNodes = getInlineGraphNodes(runtimeEvents)
+  if (graphNodes.length > 0) {
+    return graphNodes.slice(0, 8).map((node) => [
+      node.title || routeRoleFallbackTitle(node.role, t),
+      node.objective || t("agentChat.thread.steps.graphNodeReady"),
+    ])
+  }
+
+  if (isChatOnlyRuntime(runtimeEvents)) {
+    return [
+      [
+        t("agentChat.thread.steps.readTarget"),
+        t("agentChat.thread.steps.directAnswer"),
+      ],
+    ]
+  }
+
   const hasNodeStarted = runtimeEvents.some(
     (event) => event.type === "task_node_started"
   )
@@ -76,9 +84,7 @@ export function getInlineSteps(
   return [
     [
       t("agentChat.thread.steps.readTarget"),
-      hasGraph
-        ? t("agentChat.thread.steps.planReady")
-        : isStreaming
+      isStreaming
           ? t("agentChat.thread.steps.readingRules")
           : t("agentChat.thread.steps.targetRules"),
     ],
@@ -117,10 +123,7 @@ export function getInlineProcessStage(
   t: TFunction
 ) {
   const { hasRuntime, isStreaming, runtimeEvents } = input
-  if (hasBlockingTaskFailure(runtimeEvents)) {
-    return t("agentChat.thread.processStage.failed")
-  }
-  if (hasBlockingWorkspaceFailure(runtimeEvents)) {
+  if (getInlineProcessFailureState(runtimeEvents) === "failed") {
     return t("agentChat.thread.processStage.failed")
   }
   if (
@@ -217,79 +220,9 @@ function mapGraphNodeToInlineAgent(
   }
 }
 
-function getInlineNodeStates(runtimeEvents: AgentRuntimeEvent[]) {
-  const states = new Map<string, InlineAgentState>()
-
-  runtimeEvents.forEach((event) => {
-    if (event.type === "task_graph_planned") {
-      event.graph.nodes.forEach((node) =>
-        states.set(readInlineId(node.id), "queued")
-      )
-    } else if (event.type === "task_node_ready") {
-      states.set(readRuntimeNodeId(event), "queued")
-    } else if (event.type === "task_node_started") {
-      states.set(readRuntimeNodeId(event), "working")
-    } else if (event.type === "task_node_reported") {
-      states.set(
-        readRuntimeNodeId(event),
-        isBoundaryReport(event.report) ? "boundary" : event.report.status === "failed" ? "failed" : "done"
-      )
-    } else if (event.type === "task_node_evaluated") {
-      const nodeId = readInlineId(event.evaluation.node_id)
-      if (event.evaluation.passed && states.get(nodeId) !== "boundary") {
-        states.set(nodeId, "done")
-      } else if (isBoundaryEvaluation(event.evaluation, runtimeEvents)) {
-        if (states.get(nodeId) !== "done") states.set(nodeId, "boundary")
-      }
-    } else if (event.type === "task_node_rework_requested") {
-      states.set(readRuntimeNodeId(event), "reworking")
-    } else if (event.type === "task_node_passed") {
-      const nodeId = readRuntimeNodeId(event)
-      if (states.get(nodeId) !== "boundary") states.set(nodeId, "done")
-    } else if (event.type === "task_node_failed") {
-      const nodeId = readRuntimeNodeId(event)
-      if (isNonBlockingNodeFailure(event, runtimeEvents)) {
-        if (states.get(nodeId) !== "done") states.set(nodeId, "boundary")
-      } else {
-        states.set(nodeId, "failed")
-      }
-    } else if (event.type === "skill_requested") {
-      const nodeId = resolveWorkerNodeId(event)
-      if (states.get(nodeId) !== "boundary") states.set(nodeId, "working")
-    } else if (event.type === "skill_result") {
-      const nodeId = resolveSkillResultNodeId(event)
-      if (isNonBlockingSkillGap(event, runtimeEvents)) {
-        if (states.get(nodeId) !== "done") states.set(nodeId, "boundary")
-      } else {
-        states.set(
-          nodeId,
-          event.status === "failed" || event.status === "not_found" || event.status === "validation_error"
-            ? "failed"
-            : "working"
-        )
-      }
-    } else if (event.type === "worker_started") {
-      const nodeId = resolveWorkerNodeId(event)
-      if (states.get(nodeId) !== "boundary") states.set(nodeId, "working")
-    } else if (event.type === "worker_finished") {
-      const nodeId = resolveWorkerNodeId(event)
-      if (states.get(nodeId) !== "boundary") states.set(nodeId, "done")
-    } else if (event.type === "workspace_artifact_created" || event.type === "workspace_run_completed") {
-      states.set("delivery", "done")
-    } else if (event.type === "workspace_run_failed") {
-      if (!isNonBlockingWorkspaceFailure(event, runtimeEvents)) {
-        states.set("delivery", "failed")
-      } else {
-        states.set("delivery", "boundary")
-      }
-    } else if (event.type === "failed") {
-      states.set("ops", "failed")
-    } else if (event.type === "finished") {
-      states.set("delivery", "done")
-    }
-  })
-
-  return states
+function routeRoleFallbackTitle(role: string, t: TFunction) {
+  const key = role.trim() || "chat"
+  return t(`agentChat.thread.roleFallbackTitles.${key}`)
 }
 
 function getFallbackInlineState(index: number, isStreaming: boolean): InlineAgentState {
@@ -309,8 +242,3 @@ function getInlineStateLabel(state: InlineAgentState, t: TFunction) {
   return t("agentChat.thread.inlineState.idle")
 }
 
-function readInlineId(value: string | [string] | { 0: string }) {
-  if (typeof value === "string") return value
-  if (Array.isArray(value)) return value[0]
-  return value[0]
-}

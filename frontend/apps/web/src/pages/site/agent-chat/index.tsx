@@ -54,12 +54,14 @@ export default function AgentChatPage() {
           />
           <AgentChatComposer
             attachments={chat.attachments}
+            availableCampaigns={chat.availableCampaigns}
             availableProducts={chat.availableProducts}
             availableSources={chat.availableSources}
             canSend={chat.canSend}
             error={chat.error}
             input={chat.input}
             isLoggedIn={chat.isLoggedIn}
+            isLoadingCampaigns={chat.isLoadingCampaigns}
             isLoadingPlaybooks={chat.isLoadingPlaybooks}
             isLoadingProducts={chat.isLoadingProducts}
             isLoadingRuntimeOptions={chat.isLoadingRuntimeOptions}
@@ -74,11 +76,14 @@ export default function AgentChatPage() {
             onSend={chat.sendMessage}
             onStop={chat.stopStreaming}
             onStrategyChange={chat.setStrategyId}
+            onClearCampaignContext={chat.clearSelectedCampaigns}
             onClearProductContext={chat.clearSelectedProducts}
             onClearSourceContext={chat.clearSelectedSources}
+            onToggleCampaignContext={chat.toggleCampaignContext}
             onToggleProductContext={chat.toggleProductContext}
             onToggleSourceContext={chat.toggleSourceContext}
             onUploadAttachments={chat.uploadAttachments}
+            selectedCampaigns={chat.selectedCampaigns}
             selectedProducts={chat.selectedProducts}
             selectedSources={chat.selectedSources}
             playbooks={chat.playbooks}

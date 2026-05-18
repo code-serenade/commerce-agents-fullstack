@@ -1,6 +1,9 @@
 import {
+  ensureManualRoleTeam,
+  manualSupportFallbackRoles,
   orderDefaultCommerceTeamRoles,
   preferredRuntimePrimaryRole,
+  selectedSupportRoleCount,
   uniqueRuntimeRoles,
 } from "./agent-runtime-role-utils"
 
@@ -137,13 +140,6 @@ export function restoreRuntimeSelection(
 export function runtimeSelectionForStrategy(
   selection: AgentChatRuntimeSelection
 ): AgentChatRuntimeSelection {
-  const normalizedSelection = normalizeRoleRuntimeSelection(selection)
-  return normalizedSelection
-}
-
-function normalizeRoleRuntimeSelection(
-  selection: AgentChatRuntimeSelection
-): AgentChatRuntimeSelection {
   if (selection.collaborationMode === "auto") {
     return {
       ...selection,
@@ -165,9 +161,7 @@ function normalizeRoleRuntimeSelection(
   const primaryRole =
     selection.primaryRole && selection.primaryRole !== "chat"
       ? selection.primaryRole
-      : nonChatRoles.includes("ops")
-        ? "ops"
-        : nonChatRoles[0]
+      : preferredRuntimePrimaryRole(nonChatRoles)
 
   return {
     ...selection,
@@ -185,6 +179,18 @@ export function setRuntimePrimaryRole(
       ...selection,
       primaryRole,
       selectedRoles: [primaryRole],
+    }
+  }
+
+  if (selection.collaborationMode === "manual") {
+    return {
+      ...selection,
+      primaryRole,
+      selectedRoles: uniqueRuntimeRoles([
+        primaryRole,
+        ...selection.selectedRoles.filter((role) => role !== primaryRole),
+        ...manualSupportFallbackRoles(primaryRole),
+      ]).slice(0, 3),
     }
   }
 
@@ -228,20 +234,17 @@ export function setRuntimeCollaborationMode(
       selection.primaryRole && selection.primaryRole !== "chat"
         ? selection.primaryRole
         : preferredRuntimePrimaryRole(selection.selectedRoles)
-    const selectedRoles = uniqueRuntimeRoles([
-      primaryRole,
-      "ops",
-      "data",
-      "creative",
-    ]).slice(0, 3)
 
     return {
       ...selection,
       collaborationMode,
-      primaryRole: selectedRoles.includes(primaryRole)
-        ? primaryRole
-        : preferredRuntimePrimaryRole(selectedRoles),
-      selectedRoles,
+      primaryRole,
+      selectedRoles: uniqueRuntimeRoles([
+        primaryRole,
+        "ops",
+        "data",
+        "creative",
+      ]).slice(0, 3),
     }
   }
 
@@ -282,7 +285,7 @@ export function toggleRuntimeRole(
   if (
     selection.collaborationMode === "manual" &&
     selection.primaryRole === runtimeRole &&
-    selection.selectedRoles.length > 1
+    selectedSupportRoleCount(selection.selectedRoles, selection.primaryRole) > 0
   ) {
     return selection
   }
@@ -291,7 +294,16 @@ export function toggleRuntimeRole(
   const selectedRoles = exists
     ? selection.selectedRoles.filter((role) => role !== runtimeRole)
     : [...selection.selectedRoles, runtimeRole]
-  const nextRoles = selectedRoles.length ? selectedRoles : [runtimeRole]
+  const primaryCandidate =
+    selection.primaryRole && selection.primaryRole !== "chat"
+      ? selection.primaryRole
+      : runtimeRole
+  const nextRoles =
+    selection.collaborationMode === "manual"
+      ? ensureManualRoleTeam(selectedRoles, primaryCandidate)
+      : selectedRoles.length
+        ? selectedRoles
+        : [runtimeRole]
   const primaryRole =
     selection.primaryRole &&
     selection.primaryRole !== "chat" &&

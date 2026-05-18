@@ -55,6 +55,7 @@ export interface SidebarShellNavEntry {
 export interface SidebarShellSection {
   key?: string
   label: ReactNode
+  action?: ReactNode
   items: SidebarShellNavEntry[]
   collapsible?: boolean
   defaultOpen?: boolean
@@ -233,26 +234,31 @@ function SidebarSectionGroup({ section }: { section: SidebarShellSection }) {
   return (
     <SidebarGroup>
       {section.collapsible ? (
-        <button
-          type="button"
-          aria-expanded={open}
-          aria-label={section.toggleLabel}
-          className="flex h-8 w-full shrink-0 items-center gap-2 rounded-md px-2 text-xs font-medium text-sidebar-foreground/70 ring-sidebar-ring transition-colors outline-hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 group-data-[collapsible=icon]:hidden"
-          onClick={() => setOpen(!open)}
-        >
-          <span className="min-w-0 flex-1 truncate text-left">
-            {section.label}
-          </span>
-          <ChevronRight
-            className={[
-              "size-3.5 shrink-0 transition-transform",
-              open ? "rotate-90" : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-            aria-hidden="true"
-          />
-        </button>
+        <div className="flex min-w-0 items-center gap-1 group-data-[collapsible=icon]:hidden">
+          <button
+            type="button"
+            aria-expanded={open}
+            aria-label={section.toggleLabel}
+            className="flex h-8 min-w-0 flex-1 shrink-0 items-center gap-2 rounded-md px-2 text-xs font-medium text-sidebar-foreground/70 ring-sidebar-ring transition-colors outline-hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2"
+            onClick={() => setOpen(!open)}
+          >
+            <span className="min-w-0 flex-1 truncate text-left">
+              {section.label}
+            </span>
+            <ChevronRight
+              className={[
+                "size-3.5 shrink-0 transition-transform",
+                open ? "rotate-90" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              aria-hidden="true"
+            />
+          </button>
+          {section.action ? (
+            <div className="shrink-0">{section.action}</div>
+          ) : null}
+        </div>
       ) : (
         <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
       )}

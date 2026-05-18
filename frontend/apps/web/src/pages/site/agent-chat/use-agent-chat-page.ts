@@ -14,6 +14,7 @@ import { createAgentChatPageViewModel } from "./view-model/agent-chat-page-view-
 import { useAgentChatActionState } from "./view-model/use-agent-chat-action-state"
 import { useAgentChatPageCommands } from "./view-model/use-agent-chat-page-commands"
 import { useAgentChatPlaybooks } from "./view-model/use-agent-chat-playbooks"
+import { useAgentChatCampaignContext } from "./view-model/use-agent-chat-campaign-context"
 import { useAgentChatProductContext } from "./view-model/use-agent-chat-product-context"
 import { useAgentRuntimeOptions } from "./view-model/use-agent-runtime-options"
 import { useAgentRunFeedback } from "./view-model/use-agent-run-feedback"
@@ -53,6 +54,7 @@ export function useAgentChatPage() {
   const abortRef = useRef<AbortController | null>(null)
   const sessionIdRef = useRef(createSessionId())
   const productContext = useAgentChatProductContext({ enabled: Boolean(user), isStreaming })
+  const campaignContext = useAgentChatCampaignContext({ enabled: Boolean(user), isStreaming })
   const sourceContext = useAgentChatSourceContext({ attachments, isStreaming })
   const playbookContext = useAgentChatPlaybooks({ enabled: Boolean(user) })
   const runtimeContext = useAgentRuntimeOptions({ enabled: Boolean(user) })
@@ -63,12 +65,14 @@ export function useAgentChatPage() {
   })
   const { actionState } = useAgentChatActionState({
     abortRef,
+    clearSelectedCampaigns: campaignContext.clearSelectedCampaigns,
     clearSelectedProducts: productContext.clearSelectedProducts,
     clearSelectedSources: sourceContext.clearSelectedSources,
     fallbackConversationTitle,
     messageFormatCopy,
     resetRuntimeSelection: runtimeContext.resetSelection,
     restoreRuntimeSelection: runtimeContext.restoreSelection,
+    restoreSelectedCampaigns: campaignContext.restoreSelectedCampaigns,
     restoreSelectedProducts: productContext.restoreSelectedProducts,
     restoreSelectedSources: sourceContext.restoreSelectedSources,
     sessionIdRef,
@@ -86,11 +90,6 @@ export function useAgentChatPage() {
   })
   const actionStateRef = useRef(actionState)
   const userBootstrapKey = user?.id ?? null
-
-  useEffect(() => {
-    const currentAbortRef = abortRef
-    return () => currentAbortRef.current?.abort()
-  }, [])
 
   useEffect(() => {
     actionStateRef.current = actionState
@@ -152,6 +151,7 @@ export function useAgentChatPage() {
     loginRequiredMessage,
     messageFormatCopy,
     runtimeSelection: selectedRuntime,
+    selectedCampaigns: campaignContext.selectedCampaigns,
     selectedProducts: productContext.selectedProducts,
     selectedSources: sourceContext.selectedSources,
     sessionIdRef,
@@ -167,9 +167,11 @@ export function useAgentChatPage() {
   })
   return createAgentChatPageViewModel({
     attachments,
+    availableCampaigns: campaignContext.availableCampaigns,
     availableProducts: productContext.availableProducts,
     availableSources: sourceContext.availableSources,
     canSend,
+    clearSelectedCampaigns: campaignContext.clearSelectedCampaigns,
     clearSelectedProducts: productContext.clearSelectedProducts,
     clearSelectedSources: sourceContext.clearSelectedSources,
     conversationId,
@@ -179,6 +181,7 @@ export function useAgentChatPage() {
     feedback,
     input,
     isLoggedIn: Boolean(user),
+    isLoadingCampaigns: campaignContext.isLoadingCampaigns,
     isLoadingPlaybooks: playbookContext.isLoadingPlaybooks,
     isLoadingProducts: productContext.isLoadingProducts,
     isLoadingRuntimeOptions: runtimeContext.isLoadingRuntimeOptions,
@@ -189,6 +192,7 @@ export function useAgentChatPage() {
     runtimeSelection: selectedRuntime,
     runtimeEvents,
     selectedProducts: productContext.selectedProducts,
+    selectedCampaigns: campaignContext.selectedCampaigns,
     selectedStrategy,
     selectedSources: sourceContext.selectedSources,
     sendMessage,
@@ -200,6 +204,7 @@ export function useAgentChatPage() {
     setStrategyId,
     strategyId,
     toggleProductContext: productContext.toggleProductContext,
+    toggleCampaignContext: campaignContext.toggleCampaignContext,
     toggleRuntimeRole: runtimeContext.toggleRole,
     toggleSourceContext: sourceContext.toggleSourceContext,
     uploadAttachments,

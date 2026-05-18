@@ -4,8 +4,11 @@ import type {
   AgentChatConversationItem,
   AgentChatMessage,
 } from "../types"
-import type { AgentChatProductContextSelection } from "../domain/agent-chat-context-selection"
-import type { AgentChatSourceContextSelection } from "../domain/agent-chat-context-selection"
+import type {
+  AgentChatCampaignContextSelection,
+  AgentChatProductContextSelection,
+  AgentChatSourceContextSelection,
+} from "../domain/agent-chat-context-selection"
 import type { AgentChatPlaybookSelection } from "../domain/agent-chat-playbook"
 import type {
   AgentChatRuntimeSelection,
@@ -19,6 +22,7 @@ import type { AgentRunFeedbackState } from "./use-agent-run-feedback"
 
 export interface AgentChatPageViewModelInput {
   attachments: AgentChatAttachmentItem[]
+  availableCampaigns: AgentChatCampaignContextSelection[]
   availableProducts: AgentChatProductContextSelection[]
   availableSources: AgentChatSourceContextSelection[]
   canSend: boolean
@@ -39,6 +43,7 @@ export interface AgentChatPageViewModelInput {
   feedback: AgentRunFeedbackState
   input: string
   isLoggedIn: boolean
+  isLoadingCampaigns: boolean
   isLoadingPlaybooks: boolean
   isLoadingProducts: boolean
   isLoadingRuntimeOptions: boolean
@@ -48,6 +53,7 @@ export interface AgentChatPageViewModelInput {
   runtimeEvents: AgentRuntimeEvent[]
   runtimeOptions: AgentRuntimeOptions | null
   runtimeSelection: AgentChatRuntimeSelection
+  selectedCampaigns: AgentChatCampaignContextSelection[]
   selectedProducts: AgentChatProductContextSelection[]
   selectedSources: AgentChatSourceContextSelection[]
   selectedStrategy: AgentChatStrategy
@@ -60,8 +66,10 @@ export interface AgentChatPageViewModelInput {
   setStrategyId: (value: AgentChatStrategyId) => void
   strategyId: AgentChatStrategyId
   toggleProductContext: (product: AgentChatProductContextSelection) => void
+  toggleCampaignContext: (campaign: AgentChatCampaignContextSelection) => void
   toggleRuntimeRole: (value: string) => void
   toggleSourceContext: (source: AgentChatSourceContextSelection) => void
+  clearSelectedCampaigns: () => void
   clearSelectedProducts: () => void
   clearSelectedSources: () => void
   uploadAttachments: (files: File[]) => Promise<void>
@@ -70,9 +78,11 @@ export interface AgentChatPageViewModelInput {
 export function createAgentChatPageViewModel(input: AgentChatPageViewModelInput) {
   return {
     attachments: input.attachments,
+    availableCampaigns: input.availableCampaigns,
     availableProducts: input.availableProducts,
     availableSources: input.availableSources,
     canSend: input.canSend,
+    clearSelectedCampaigns: input.clearSelectedCampaigns,
     clearSelectedProducts: input.clearSelectedProducts,
     clearSelectedSources: input.clearSelectedSources,
     conversationId: input.conversationId,
@@ -82,6 +92,7 @@ export function createAgentChatPageViewModel(input: AgentChatPageViewModelInput)
     feedback: input.feedback,
     input: input.input,
     isLoggedIn: input.isLoggedIn,
+    isLoadingCampaigns: input.isLoadingCampaigns,
     isLoadingPlaybooks: input.isLoadingPlaybooks,
     isLoadingProducts: input.isLoadingProducts,
     isLoadingRuntimeOptions: input.isLoadingRuntimeOptions,
@@ -95,6 +106,7 @@ export function createAgentChatPageViewModel(input: AgentChatPageViewModelInput)
     selectConversation: input.commands.selectConversation,
     selectPlaybook: input.commands.selectPlaybook,
     selectedProducts: input.selectedProducts,
+    selectedCampaigns: input.selectedCampaigns,
     selectedSources: input.selectedSources,
     selectedStrategy: input.selectedStrategy,
     sendMessage: input.sendMessage,
@@ -108,6 +120,7 @@ export function createAgentChatPageViewModel(input: AgentChatPageViewModelInput)
     stopStreaming: input.commands.stopStreaming,
     strategyId: input.strategyId,
     toggleProductContext: input.toggleProductContext,
+    toggleCampaignContext: input.toggleCampaignContext,
     toggleRuntimeRole: input.toggleRuntimeRole,
     toggleSourceContext: input.toggleSourceContext,
     uploadAttachments: input.uploadAttachments,
