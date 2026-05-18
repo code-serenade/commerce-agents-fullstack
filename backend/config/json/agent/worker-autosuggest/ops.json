@@ -126,6 +126,9 @@
         "cost": "{{cost}}",
         "current_price": "{{current_price}}",
         "current_monthly_sales": "{{integer}}",
+        "stock_days": "{{stock_days}}",
+        "elasticity": "{{elasticity}}",
+        "competitor_prices": "{{competitor_prices}}",
         "platform": "{{platform}}"
       },
       "reason": "autosuggest:ops.smart_pricing"
@@ -153,9 +156,12 @@
       },
       "skill_id": "ops_inventory_optimizer",
       "input": {
-        "skus": [],
-        "lead_time_days": 14,
-        "service_level": "95%"
+        "product_ref": "{{selected_product_ref}}",
+        "skus": "{{inventory_skus}}",
+        "ordering_cost": "{{inventory_ordering_cost}}",
+        "holding_rate": "{{inventory_holding_rate}}",
+        "lead_time_days": "{{inventory_lead_time_days}}",
+        "service_level": "{{inventory_service_level}}"
       },
       "reason": "autosuggest:ops.inventory_optimizer"
     },
@@ -186,8 +192,10 @@
       },
       "skill_id": "ops_abc_xyz_classifier",
       "input": {
-        "skus": [],
-        "platform": "淘宝"
+        "product_ref": "{{selected_product_ref}}",
+        "skus": "{{abc_xyz_skus}}",
+        "platform": "{{platform}}",
+        "top_n": "{{abc_xyz_top_n}}"
       },
       "reason": "autosuggest:ops.abc_xyz_classifier"
     },
@@ -216,8 +224,10 @@
       },
       "skill_id": "ops_ad_fatigue_detector",
       "input": {
-        "channels": [],
-        "platform": "淘宝"
+        "product_ref": "{{selected_product_ref}}",
+        "channels": "{{ad_fatigue_channels}}",
+        "total_budget": "{{ad_fatigue_total_budget}}",
+        "platform": "{{platform}}"
       },
       "reason": "autosuggest:ops.ad_fatigue"
     },
@@ -246,7 +256,7 @@
       "input": {
         "product_ref": "{{selected_product_ref}}",
         "cost": "{{cost}}",
-        "competitor_prices": [],
+        "competitor_prices": "{{pricing_strategy_competitor_prices}}",
         "platform": "{{platform}}"
       },
       "reason": "autosuggest:ops.pricing_strategy"
@@ -274,8 +284,9 @@
       },
       "skill_id": "ops_inventory_planning",
       "input": {
-        "avg_daily_demand": 1,
-        "lead_time_days": 7,
+        "product_ref": "{{selected_product_ref}}",
+        "avg_daily_demand": "{{inventory_avg_daily_demand}}",
+        "lead_time_days": "{{inventory_lead_time_days}}",
         "service_level": 0.95
       },
       "reason": "autosuggest:ops.inventory_planning"

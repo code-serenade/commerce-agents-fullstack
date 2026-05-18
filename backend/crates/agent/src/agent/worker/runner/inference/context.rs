@@ -60,9 +60,27 @@ pub(in crate::agent::worker::runner) fn selected_product_ref(task: &Task) -> Opt
     first_selected_product(task).map(|product| product.ref_key())
 }
 
+pub(in crate::agent::worker::runner) fn selected_product_refs(task: &Task) -> Vec<String> {
+    selected_products_from_task(task)
+        .into_iter()
+        .map(|product| product.ref_key())
+        .collect()
+}
+
 pub(in crate::agent::worker::runner) fn selected_product_name_or_task(task: &Task) -> String {
     first_selected_product(task)
         .map(|product| product.name)
+        .unwrap_or_else(|| compact_task_text(&task.description))
+}
+
+pub(in crate::agent::worker::runner) fn selected_product_brand_name_or_task(task: &Task) -> String {
+    first_selected_product(task)
+        .and_then(|product| {
+            product
+                .brand
+                .filter(|brand| !brand.is_empty())
+                .or(Some(product.name))
+        })
         .unwrap_or_else(|| compact_task_text(&task.description))
 }
 
@@ -86,9 +104,73 @@ pub(in crate::agent::worker::runner) fn selected_product_category_or_infer(
         .unwrap_or_else(|| super::domain::infer_category(text))
 }
 
+pub(in crate::agent::worker::runner) fn selected_product_features_or_infer(
+    task: &Task,
+    text: &str,
+) -> Vec<String> {
+    let mut features = first_selected_product(task)
+        .map(|product| {
+            let mut values = product.selling_points;
+            if let Some(description) = product.description.filter(|value| !value.is_empty()) {
+                values.push(description);
+            }
+            values
+        })
+        .unwrap_or_default();
+    if features.is_empty() {
+        features = infer_feature_list(text);
+    }
+    features
+}
+
+pub(in crate::agent::worker::runner) fn selected_product_count_or_default(
+    task: &Task,
+    default: i64,
+) -> i64 {
+    let count = selected_products_from_task(task).len();
+    if count == 0 { default } else { count as i64 }
+}
+
+pub(in crate::agent::worker::runner) fn selected_product_article_platform_or_default(
+    task: &Task,
+    text: &str,
+) -> String {
+    first_selected_product(task)
+        .and_then(|product| product.platform)
+        .filter(|platform| !platform.is_empty())
+        .unwrap_or_else(|| {
+            if text.contains("小红书") {
+                "小红书".to_string()
+            } else {
+                "微信公众号".to_string()
+            }
+        })
+}
+
+pub(in crate::agent::worker::runner) fn title_candidate_or_task(text: &str, task: &Task) -> String {
+    extract_title_candidate(text).unwrap_or_else(|| compact_task_text(&task.description))
+}
+
+pub(in crate::agent::worker::runner) fn keyword_candidates(text: &str) -> Vec<String> {
+    ["SEO", "关键词", "标题", "转化", "新品", "直播", "抖音"]
+        .iter()
+        .filter(|keyword| text.contains(**keyword))
+        .map(|keyword| (*keyword).to_string())
+        .take(4)
+        .collect()
+}
+
 impl SelectedProductContext {
     pub(in crate::agent::worker::runner) fn name(&self) -> &str {
         &self.name
+    }
+
+    pub(in crate::agent::worker::runner) fn platform(&self) -> Option<&str> {
+        self.platform.as_deref()
+    }
+
+    pub(in crate::agent::worker::runner) fn category(&self) -> Option<&str> {
+        self.category.as_deref()
     }
 
     pub(in crate::agent::worker::runner) fn ref_key(&self) -> String {
@@ -119,6 +201,42 @@ fn parse_product_summary_line(line: &str) -> Option<SelectedProductContext> {
         description: non_empty_field(&fields, "description"),
         selling_points: Vec::new(),
     })
+}
+
+fn extract_title_candidate(text: &str) -> Option<String> {
+    for quote in ['"', '\'', '“', '”', '「', '」'] {
+        let mut parts = text.split(quote);
+        let _ = parts.next();
+        if let Some(candidate) = parts
+            .next()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            return Some(compact_task_text(candidate));
+        }
+    }
+    None
+}
+
+fn infer_feature_list(text: &str) -> Vec<String> {
+    let mut features = Vec::new();
+    for keyword in [
+        "高性价比",
+        "低糖",
+        "便携",
+        "高蛋白",
+        "礼盒",
+        "新品",
+        "直播爆款",
+    ] {
+        if text.contains(keyword) {
+            features.push(keyword.to_string());
+        }
+    }
+    if features.is_empty() {
+        features.push(compact_task_text(text));
+    }
+    features
 }
 
 fn parse_knowledge_summary_line(line: &str) -> Option<(String, String)> {

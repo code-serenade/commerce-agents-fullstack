@@ -16,9 +16,8 @@
       },
       "skill_id": "web_seo_optimize",
       "input": {
-        "target_keywords": [
-          "{{task_description}}"
-        ]
+        "target_keywords": "{{keyword_candidates}}",
+        "page_type": "{{page_type}}"
       },
       "reason": "autosuggest:web.seo_optimize"
     },
@@ -38,7 +37,8 @@
       },
       "skill_id": "web_keyword_research",
       "input": {
-        "seed_keyword": "{{task_description}}"
+        "seed_keyword": "{{selected_product_name}}",
+        "platform": "{{platform}}"
       },
       "reason": "autosuggest:web.keyword_research"
     },
@@ -57,10 +57,8 @@
       },
       "skill_id": "web_title_generator",
       "input": {
-        "product_name": "{{task_description}}",
-        "keywords": [
-          "{{task_description}}"
-        ],
+        "product_name": "{{selected_product_name}}",
+        "keywords": "{{keyword_candidates}}",
         "style": "营销型"
       },
       "reason": "autosuggest:web.title_generator"
@@ -99,7 +97,8 @@
       },
       "skill_id": "web_product_description",
       "input": {
-        "product_name": "{{task_description}}",
+        "product_name": "{{selected_product_name}}",
+        "selling_points": "{{selected_product_features}}",
         "style": "营销型"
       },
       "reason": "autosuggest:web.product_description"
@@ -139,10 +138,8 @@
       },
       "skill_id": "web_title_seo_scorer",
       "input": {
-        "title": "{{task_description}}",
-        "target_keywords": [
-          "{{task_description}}"
-        ]
+        "title": "{{title_candidate}}",
+        "target_keywords": "{{keyword_candidates}}"
       },
       "reason": "autosuggest:web.title_seo_scorer"
     }

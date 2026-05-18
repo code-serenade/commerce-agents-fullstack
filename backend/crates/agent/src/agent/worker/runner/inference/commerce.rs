@@ -43,6 +43,33 @@ pub(in crate::agent::worker::runner) fn infer_current_price(text: &str, fallback
     .max(0.0)
 }
 
+pub(in crate::agent::worker::runner) fn infer_stock_days(text: &str, fallback: f64) -> f64 {
+    extract_metric_value(text, &["库存天数", "可售天数", "stock_days"])
+        .unwrap_or(fallback)
+        .max(0.0)
+}
+
+pub(in crate::agent::worker::runner) fn infer_elasticity(text: &str, fallback: f64) -> f64 {
+    let value =
+        extract_metric_value(text, &["弹性系数", "价格弹性", "elasticity"]).unwrap_or(fallback);
+    if value > 0.0 { -value } else { value }
+}
+
+pub(in crate::agent::worker::runner) fn infer_pricing_strategy_competitor_prices(
+    text: &str,
+    fallback_cost: f64,
+) -> Vec<f64> {
+    let prices = infer_competitor_prices(text);
+    if prices.is_empty() {
+        numbers_in_text(text)
+            .into_iter()
+            .filter(|value| (*value - fallback_cost).abs() > 0.01)
+            .collect()
+    } else {
+        prices
+    }
+}
+
 pub(in crate::agent::worker::runner) fn infer_budget(
     text: &str,
     aliases: &[&str],

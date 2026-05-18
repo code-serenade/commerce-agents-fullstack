@@ -19,7 +19,20 @@
       },
       "skill_id": "data_dashboard",
       "input": {
-        "scope": "{{task_description}}"
+        "days": "{{period_days}}",
+        "platform": "{{store_metrics_platform}}",
+        "product_ref": "{{selected_product_ref}}",
+        "gmv": "{{data_gmv}}",
+        "previous_gmv": "{{data_previous_gmv}}",
+        "orders": "{{data_orders}}",
+        "previous_orders": "{{data_previous_orders}}",
+        "visitors": "{{data_visitors}}",
+        "previous_visitors": "{{data_previous_visitors}}",
+        "clicks": "{{data_clicks}}",
+        "ad_spend": "{{data_ad_spend}}",
+        "refund_amount": "{{data_refund_amount}}",
+        "gross_profit": "{{data_gross_profit}}",
+        "target_gmv": "{{data_target_gmv}}"
       },
       "reason": "autosuggest:data.dashboard"
     },
@@ -42,9 +55,169 @@
       },
       "skill_id": "data_comprehensive_diagnosis",
       "input": {
-        "scope": "{{task_description}}"
+        "days": "{{period_days}}",
+        "platform": "{{store_metrics_platform}}",
+        "product_ref": "{{selected_product_ref}}",
+        "focus": "{{diagnosis_focus}}",
+        "gmv": "{{data_gmv}}",
+        "previous_gmv": "{{data_previous_gmv}}",
+        "orders": "{{data_orders}}",
+        "previous_orders": "{{data_previous_orders}}",
+        "visitors": "{{data_visitors}}",
+        "previous_visitors": "{{data_previous_visitors}}",
+        "clicks": "{{data_clicks}}",
+        "ad_spend": "{{data_ad_spend}}",
+        "refund_amount": "{{data_refund_amount}}",
+        "gross_profit": "{{data_gross_profit}}",
+        "target_gmv": "{{data_target_gmv}}",
+        "impressions": "{{data_impressions}}",
+        "add_to_cart": "{{data_add_to_cart}}",
+        "payments": "{{data_payments}}",
+        "values": "{{data_values}}",
+        "channels": "{{channel_roi_rows}}",
+        "items": "{{refund_items}}"
       },
       "reason": "autosuggest:data.comprehensive_diagnosis"
+    },
+    {
+      "id": "data.query_store_metrics",
+      "roles": [
+        "data"
+      ],
+      "match": {
+        "any_keywords": [
+          "query_store_metrics",
+          "store metrics",
+          "store_metrics",
+          "查询店铺指标",
+          "加载店铺指标",
+          "读取店铺指标",
+          "查询店铺数据",
+          "加载店铺数据",
+          "读取店铺数据",
+          "经营数据基线",
+          "数据基线",
+          "店铺指标",
+          "店铺数据",
+          "经营指标",
+          "经营数据"
+        ]
+      },
+      "skill_id": "query_store_metrics",
+      "input": {
+        "days": "{{period_days}}",
+        "platform": "{{store_metrics_platform}}",
+        "include_anomalies": true,
+        "gmv": "{{data_gmv}}",
+        "previous_gmv": "{{data_previous_gmv}}",
+        "orders": "{{data_orders}}",
+        "previous_orders": "{{data_previous_orders}}",
+        "visitors": "{{data_visitors}}",
+        "previous_visitors": "{{data_previous_visitors}}",
+        "clicks": "{{data_clicks}}",
+        "ad_spend": "{{data_ad_spend}}",
+        "refund_amount": "{{data_refund_amount}}",
+        "gross_profit": "{{data_gross_profit}}"
+      },
+      "reason": "autosuggest:data.query_store_metrics"
+    },
+    {
+      "id": "data.query_product_metrics",
+      "roles": [
+        "data"
+      ],
+      "match": {
+        "any_keywords": [
+          "query_product_metrics",
+          "product metrics",
+          "product_metrics",
+          "查询商品指标",
+          "加载商品指标",
+          "读取商品指标",
+          "查询商品数据",
+          "加载商品数据",
+          "读取商品数据",
+          "商品表现",
+          "单品表现",
+          "SKU表现",
+          "sku表现",
+          "商品数据基线",
+          "商品指标",
+          "商品数据",
+          "单品指标",
+          "单品数据",
+          "SKU指标",
+          "sku指标"
+        ]
+      },
+      "skill_id": "query_product_metrics",
+      "input": {
+        "product_ref": "{{selected_product_ref}}",
+        "product_id": "{{data_product_id}}",
+        "product_name": "{{selected_product_name}}",
+        "sku_id": "{{data_sku_id}}",
+        "days": "{{period_days}}",
+        "platform": "{{store_metrics_platform}}",
+        "gmv": "{{data_gmv}}",
+        "previous_gmv": "{{data_previous_gmv}}",
+        "orders": "{{data_orders}}",
+        "previous_orders": "{{data_previous_orders}}",
+        "visitors": "{{data_visitors}}",
+        "clicks": "{{data_clicks}}",
+        "ad_spend": "{{data_ad_spend}}",
+        "refund_amount": "{{data_refund_amount}}",
+        "gross_profit": "{{data_gross_profit}}",
+        "inventory": "{{data_inventory}}",
+        "stockout_count": "{{data_stockout_count}}"
+      },
+      "reason": "autosuggest:data.query_product_metrics"
+    },
+    {
+      "id": "data.query_campaign_metrics",
+      "roles": [
+        "data"
+      ],
+      "match": {
+        "any_keywords": [
+          "query_campaign_metrics",
+          "campaign metrics",
+          "campaign_metrics",
+          "查询活动指标",
+          "加载活动指标",
+          "读取活动指标",
+          "查询活动数据",
+          "加载活动数据",
+          "读取活动数据",
+          "活动表现",
+          "活动数据基线",
+          "投放活动数据",
+          "活动指标",
+          "活动数据",
+          "活动复盘",
+          "campaign指标",
+          "campaign数据"
+        ]
+      },
+      "skill_id": "query_campaign_metrics",
+      "input": {
+        "campaign_id": "{{data_campaign_id}}",
+        "campaign_name": "{{campaign_name}}",
+        "campaign_type": "{{campaign_type}}",
+        "days": "{{period_days}}",
+        "platform": "{{store_metrics_platform}}",
+        "budget": "{{data_budget}}",
+        "spend": "{{data_spend}}",
+        "ad_spend": "{{data_ad_spend}}",
+        "gmv": "{{data_gmv}}",
+        "previous_gmv": "{{data_previous_gmv}}",
+        "orders": "{{data_orders}}",
+        "visitors": "{{data_visitors}}",
+        "clicks": "{{data_clicks}}",
+        "impressions": "{{data_impressions}}",
+        "coupon_cost": "{{data_coupon_cost}}",
+        "refund_amount": "{{data_refund_amount}}"
+      },
+      "reason": "autosuggest:data.query_campaign_metrics"
     },
     {
       "id": "data.channel_roi",
@@ -64,9 +237,397 @@
       "skill_id": "data_channel_roi",
       "input": {
         "days": "{{period_days}}",
-        "channels": []
+        "channels": "{{channel_roi_rows}}",
+        "product_ref": "{{selected_product_ref}}"
       },
       "reason": "autosuggest:data.channel_roi"
+    },
+    {
+      "id": "data.competitor_analysis",
+      "roles": [
+        "data"
+      ],
+      "match": {
+        "any_keywords": [
+          "competitor",
+          "竞品",
+          "竞对",
+          "竞争对手",
+          "对标",
+          "同类商品",
+          "价格带对比",
+          "竞品分析"
+        ]
+      },
+      "skill_id": "data_competitor_analysis",
+      "input": {
+        "product_ref": "{{selected_product_ref}}",
+        "our_product": "{{selected_product_name_or_query}}",
+        "our_price": "{{data_our_price}}"
+      },
+      "reason": "autosuggest:data.competitor_analysis"
+    },
+    {
+      "id": "data.attribution",
+      "roles": [
+        "data"
+      ],
+      "match": {
+        "any_keywords": [
+          "attribution",
+          "归因模型",
+          "多触点归因",
+          "渠道归因",
+          "投放归因",
+          "归因分析"
+        ]
+      },
+      "skill_id": "data_attribution_analysis",
+      "input": {
+        "days": "{{period_days}}",
+        "attribution_model": "{{attribution_model}}",
+        "channels": "{{channel_roi_rows}}",
+        "product_ref": "{{selected_product_ref}}"
+      },
+      "reason": "autosuggest:data.attribution"
+    },
+    {
+      "id": "data.ltv",
+      "roles": [
+        "data"
+      ],
+      "match": {
+        "any_keywords": [
+          "ltv",
+          "LTV",
+          "客户价值",
+          "生命周期价值",
+          "获客成本",
+          "回收周期",
+          "复购价值"
+        ]
+      },
+      "skill_id": "data_ltv_calculator",
+      "input": {
+        "days": "{{period_days}}",
+        "product_ref": "{{selected_product_ref}}",
+        "cac": "{{data_ltv_cac}}",
+        "avg_order_value": "{{data_ltv_avg_order_value}}",
+        "purchase_frequency": "{{data_ltv_purchase_frequency}}",
+        "gross_margin": "{{data_ltv_gross_margin}}",
+        "monthly_retention": "{{data_ltv_monthly_retention}}"
+      },
+      "reason": "autosuggest:data.ltv"
+    },
+    {
+      "id": "data.cohort",
+      "roles": [
+        "data"
+      ],
+      "match": {
+        "any_keywords": [
+          "cohort",
+          "cohort analysis",
+          "retention",
+          "留存",
+          "留存率",
+          "复购率",
+          "队列留存",
+          "同期群",
+          "留存队列",
+          "留存分析",
+          "复购留存",
+          "新客留存",
+          "用户留存",
+          "客户留存",
+          "流失节点"
+        ]
+      },
+      "skill_id": "data_cohort_analysis",
+      "input": {
+        "days": "{{period_days}}",
+        "cohort_unit": "{{cohort_unit}}",
+        "product_ref": "{{selected_product_ref}}",
+        "new_customers": "{{data_new_customers}}"
+      },
+      "reason": "autosuggest:data.cohort"
+    },
+    {
+      "id": "data.price_elasticity",
+      "roles": [
+        "data"
+      ],
+      "match": {
+        "any_keywords": [
+          "price elasticity",
+          "elasticity",
+          "价格弹性",
+          "价格敏感",
+          "需求弹性",
+          "调价测试",
+          "涨价影响",
+          "降价影响"
+        ]
+      },
+      "skill_id": "data_price_elasticity",
+      "input": {
+        "days": "{{period_days}}",
+        "product_ref": "{{selected_product_ref}}",
+        "price_points": "{{price_points}}",
+        "cost": "{{cost}}",
+        "current_price": "{{current_price}}"
+      },
+      "reason": "autosuggest:data.price_elasticity"
+    },
+    {
+      "id": "data.ab_test",
+      "roles": [
+        "data"
+      ],
+      "match": {
+        "any_keywords": [
+          "a/b",
+          "ab test",
+          "ab_test",
+          "a b test",
+          "AB测试",
+          "A/B测试",
+          "A B测试",
+          "对照组",
+          "控制组",
+          "实验组",
+          "测试组",
+          "转化对比",
+          "实验显著",
+          "推全"
+        ]
+      },
+      "skill_id": "data_ab_test_analyzer",
+      "input": {
+        "product_ref": "{{selected_product_ref}}",
+        "test_name": "{{ab_test_name}}",
+        "metric_name": "{{ab_metric}}",
+        "control_visitors": "{{ab_control_visitors}}",
+        "control_conversions": "{{ab_control_conversions}}",
+        "test_visitors": "{{ab_test_visitors}}",
+        "test_conversions": "{{ab_test_conversions}}"
+      },
+      "reason": "autosuggest:data.ab_test"
+    },
+    {
+      "id": "data.multi_period_trend",
+      "roles": [
+        "data"
+      ],
+      "match": {
+        "any_keywords": [
+          "multi period",
+          "multi-period",
+          "multi_period",
+          "multi period trend",
+          "multi-period trend",
+          "多周期",
+          "多周期趋势",
+          "多周期环比",
+          "多周期对比",
+          "多周期分析",
+          "环比趋势",
+          "同比环比",
+          "移动平均",
+          "趋势动能"
+        ]
+      },
+      "skill_id": "data_multi_period_trend",
+      "input": {
+        "metric": "{{metric}}",
+        "periods": "{{multi_periods}}",
+        "product_ref": "{{selected_product_ref}}",
+        "values": "{{data_values}}"
+      },
+      "reason": "autosuggest:data.multi_period_trend"
+    },
+    {
+      "id": "data.refund_decomposition",
+      "roles": [
+        "data"
+      ],
+      "match": {
+        "any_keywords": [
+          "refund",
+          "退款",
+          "售后占比",
+          "退货率",
+          "帕累托",
+          "退款分解"
+        ]
+      },
+      "skill_id": "data_refund_decomposition",
+      "input": {
+        "days": "{{period_days}}",
+        "top_n": "{{data_top_n}}",
+        "product_ref": "{{selected_product_ref}}",
+        "items": "{{refund_items}}"
+      },
+      "reason": "autosuggest:data.refund_decomposition"
+    },
+    {
+      "id": "data.funnel_analysis",
+      "roles": [
+        "data"
+      ],
+      "match": {
+        "any_keywords": [
+          "funnel",
+          "漏斗",
+          "转化漏斗",
+          "转化",
+          "流失",
+          "加购",
+          "下单",
+          "付款"
+        ]
+      },
+      "skill_id": "data_funnel_analysis",
+      "input": {
+        "product_ref": "{{selected_product_ref}}",
+        "impressions": "{{data_impressions}}",
+        "clicks": "{{data_clicks}}",
+        "add_to_cart": "{{data_add_to_cart}}",
+        "orders": "{{data_orders}}",
+        "payments": "{{data_payments}}",
+        "platform": "{{store_metrics_platform}}",
+        "days": "{{period_days}}"
+      },
+      "reason": "autosuggest:data.funnel_analysis"
+    },
+    {
+      "id": "data.seasonal_decompose",
+      "roles": [
+        "data"
+      ],
+      "match": {
+        "any_keywords": [
+          "seasonal",
+          "seasonality",
+          "seasonal decompose",
+          "季节性",
+          "周期性",
+          "周期分解",
+          "季节分解",
+          "周内波动",
+          "周期波动",
+          "周期趋势"
+        ]
+      },
+      "skill_id": "data_seasonal_decompose",
+      "input": {
+        "days": "{{period_days}}",
+        "metric": "{{metric}}",
+        "period": "{{seasonal_period}}",
+        "product_ref": "{{selected_product_ref}}",
+        "values": "{{data_values}}"
+      },
+      "reason": "autosuggest:data.seasonal_decompose"
+    },
+    {
+      "id": "data.anomaly_diagnosis",
+      "roles": [
+        "data"
+      ],
+      "match": {
+        "any_keywords": [
+          "anomaly",
+          "异常",
+          "波动",
+          "下滑",
+          "暴涨",
+          "暴跌"
+        ]
+      },
+      "skill_id": "data_anomaly_diagnosis",
+      "input": {
+        "metric_name": "{{metric}}",
+        "product_ref": "{{selected_product_ref}}",
+        "values": "{{data_values}}"
+      },
+      "reason": "autosuggest:data.anomaly_diagnosis"
+    },
+    {
+      "id": "data.demand_forecast",
+      "roles": [
+        "data"
+      ],
+      "match": {
+        "any_keywords": [
+          "demand forecast",
+          "demand_forecast",
+          "需求预测",
+          "销量预测",
+          "订单预测",
+          "备货预测",
+          "补货预测",
+          "库存预测",
+          "补货量",
+          "备货量"
+        ]
+      },
+      "skill_id": "data_demand_forecast",
+      "input": {
+        "days": "{{period_days}}",
+        "metric": "{{metric}}",
+        "product_ref": "{{selected_product_ref}}",
+        "values": "{{data_values}}"
+      },
+      "reason": "autosuggest:data.demand_forecast"
+    },
+    {
+      "id": "data.trend_forecast",
+      "roles": [
+        "data"
+      ],
+      "match": {
+        "any_keywords": [
+          "trend",
+          "forecast",
+          "预测",
+          "趋势"
+        ]
+      },
+      "skill_id": "data_trend_forecast",
+      "input": {
+        "metric_name": "{{metric}}",
+        "forecast_periods": "{{forecast_periods}}",
+        "platform": "{{platform}}",
+        "product_ref": "{{selected_product_ref}}",
+        "values": "{{data_values}}"
+      },
+      "reason": "autosuggest:data.trend_forecast"
+    },
+    {
+      "id": "data.customer_segmentation",
+      "roles": [
+        "data"
+      ],
+      "match": {
+        "any_keywords": [
+          "customer",
+          "segment",
+          "rfm",
+          "客户",
+          "人群",
+          "分层"
+        ]
+      },
+      "skill_id": "data_customer_segmentation",
+      "input": {
+        "days": "{{period_days}}",
+        "product_ref": "{{selected_product_ref}}",
+        "total_customers": "{{data_total_customers}}",
+        "avg_order_value": "{{data_avg_order_value}}",
+        "avg_orders_per_customer": "{{data_avg_orders_per_customer}}",
+        "recency_days": "{{data_recency_days}}"
+      },
+      "reason": "autosuggest:data.customer_segmentation"
     }
   ]
 }

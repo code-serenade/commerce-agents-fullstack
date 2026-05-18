@@ -16,8 +16,11 @@
       },
       "skill_id": "creative_video_script",
       "input": {
-        "product_name": "{{task_description}}",
-        "duration_seconds": 30
+        "product_name": "{{selected_product_name}}",
+        "selling_points": "{{selected_product_features}}",
+        "video_type": "{{video_type}}",
+        "duration_seconds": "{{video_duration_seconds}}",
+        "target_audience": "{{audience}}"
       },
       "reason": "autosuggest:creative.video_script"
     },
@@ -36,8 +39,11 @@
       },
       "skill_id": "creative_seeding_copy",
       "input": {
-        "product_name": "{{task_description}}",
-        "platform": "小红书"
+        "product_name": "{{selected_product_name}}",
+        "brand_name": "{{selected_product_brand_name}}",
+        "selling_points": "{{selected_product_features}}",
+        "platform": "{{selected_product_article_platform}}",
+        "target_audience": "{{audience}}"
       },
       "reason": "autosuggest:creative.seeding_copy"
     },
@@ -57,7 +63,8 @@
       },
       "skill_id": "creative_title_ctr_scorer",
       "input": {
-        "title": "{{task_description}}"
+        "title": "{{title_candidate}}",
+        "target_keywords": "{{keyword_candidates}}"
       },
       "reason": "autosuggest:creative.title_ctr"
     }

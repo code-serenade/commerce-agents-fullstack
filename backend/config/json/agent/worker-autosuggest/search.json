@@ -23,9 +23,14 @@
       },
       "skill_id": "search_platform_policy",
       "input": {
-        "platform": "电商平台",
-        "policy_type": "general",
-        "days": 30
+        "platform": "{{search_platform}}",
+        "policy_type": "{{search_policy_type}}",
+        "days": "{{search_days}}",
+        "_needs_fresh_data": "{{search_bypass_cache}}",
+        "max_results": "{{search_max_results}}",
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
       },
       "reason": "autosuggest:search.platform_policy"
     },
@@ -49,8 +54,14 @@
       },
       "skill_id": "search_product_reviews",
       "input": {
-        "query": "{{task_description}}",
-        "focus": "overall"
+        "query": "{{search_query}}",
+        "platform": "{{search_platform}}",
+        "focus": "{{search_review_focus}}",
+        "_needs_fresh_data": "{{search_bypass_cache}}",
+        "max_results": "{{search_max_results}}",
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
       },
       "reason": "autosuggest:search.product_reviews"
     },
@@ -76,8 +87,14 @@
       },
       "skill_id": "search_industry_benchmarks",
       "input": {
-        "industry": "{{task_description}}",
-        "metric": "general"
+        "industry": "{{search_industry}}",
+        "metric": "{{search_benchmark_metric}}",
+        "platform": "{{search_platform}}",
+        "_needs_fresh_data": "{{search_bypass_cache}}",
+        "max_results": "{{search_max_results}}",
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
       },
       "reason": "autosuggest:search.industry_benchmarks"
     },
@@ -98,8 +115,14 @@
       },
       "skill_id": "search_competitor",
       "input": {
-        "query": "{{task_description}}",
-        "focus": "features"
+        "query": "{{search_query}}",
+        "platform": "{{search_platform}}",
+        "focus": "{{search_competitor_focus}}",
+        "_needs_fresh_data": "{{search_bypass_cache}}",
+        "max_results": "{{search_max_results}}",
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
       },
       "reason": "autosuggest:search.competitor"
     },
@@ -122,8 +145,14 @@
       },
       "skill_id": "search_trends",
       "input": {
-        "query": "{{task_description}}",
-        "days": 30
+        "query": "{{search_query}}",
+        "platform": "{{search_platform}}",
+        "days": "{{search_days}}",
+        "_needs_fresh_data": "{{search_bypass_cache}}",
+        "max_results": "{{search_max_results}}",
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
       },
       "reason": "autosuggest:search.trends"
     },
@@ -152,9 +181,14 @@
       },
       "skill_id": "search_market_info",
       "input": {
-        "query": "{{task_description}}",
-        "topic": "general",
-        "days": 7
+        "query": "{{search_query}}",
+        "topic": "{{search_topic}}",
+        "days": "{{search_days}}",
+        "_needs_fresh_data": "{{search_bypass_cache}}",
+        "max_results": "{{search_max_results}}",
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
       },
       "reason": "autosuggest:search.market_info"
     }

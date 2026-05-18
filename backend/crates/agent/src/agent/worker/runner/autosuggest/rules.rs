@@ -2,7 +2,10 @@ use super::config::{AutosuggestRule, AutosuggestRuleMode, WorkerAutosuggestPolic
 use crate::agent::worker::{
     Task,
     runner::{
-        inference::{commerce, context, domain, memory_task, metrics, numbers},
+        inference::{
+            commerce, context, data, domain, douyin_ads, inventory, memory_task, metrics, numbers,
+            search,
+        },
         types::ParsedSkillRequest,
     },
 };
@@ -71,6 +74,10 @@ fn render_template_value(value: &serde_json::Value, text: &str, task: &Task) -> 
 }
 
 fn render_template_scalar(template: &str, text: &str, task: &Task) -> serde_json::Value {
+    if let Some(value) = render_exact_template_value(template, text, task) {
+        return value;
+    }
+
     let rendered = render_template_string(template, text, task);
     if template.trim().starts_with("{{")
         && template.trim().ends_with("}}")
@@ -80,6 +87,231 @@ fn render_template_scalar(template: &str, text: &str, task: &Task) -> serde_json
         return serde_json::json!(value);
     }
     serde_json::Value::String(rendered)
+}
+
+fn render_exact_template_value(
+    template: &str,
+    text: &str,
+    task: &Task,
+) -> Option<serde_json::Value> {
+    match template.trim() {
+        "{{price_points}}" => Some(serde_json::Value::Array(
+            commerce::infer_price_quantity_points(text),
+        )),
+        "{{competitor_prices}}" => Some(serde_json::json!(commerce::infer_competitor_prices(text))),
+        "{{pricing_strategy_competitor_prices}}" => {
+            let cost = commerce::infer_cost(text, 1.0);
+            Some(serde_json::json!(
+                commerce::infer_pricing_strategy_competitor_prices(text, cost)
+            ))
+        }
+        "{{douyin_ads_budget}}" => Some(optional_number(douyin_ads::infer_budget(text))),
+        "{{douyin_ads_target_roas}}" => Some(optional_number(douyin_ads::infer_target_roas(text))),
+        "{{douyin_ads_spend}}" => Some(optional_number(douyin_ads::infer_spend(text))),
+        "{{douyin_ads_gmv}}" => Some(optional_number(douyin_ads::infer_gmv(text))),
+        "{{douyin_ads_current_roas}}" => {
+            Some(optional_number(douyin_ads::infer_current_roas(text)))
+        }
+        "{{douyin_ads_impressions}}" => Some(optional_number(douyin_ads::infer_live_metric(
+            text,
+            "impressions",
+        ))),
+        "{{douyin_ads_clicks}}" => Some(optional_number(douyin_ads::infer_live_metric(
+            text, "clicks",
+        ))),
+        "{{douyin_ads_live_room_entries}}" => Some(optional_number(douyin_ads::infer_live_metric(
+            text,
+            "live_room_entries",
+        ))),
+        "{{douyin_ads_product_clicks}}" => Some(optional_number(douyin_ads::infer_live_metric(
+            text,
+            "product_clicks",
+        ))),
+        "{{douyin_ads_orders}}" => Some(optional_number(douyin_ads::infer_live_metric(
+            text, "orders",
+        ))),
+        "{{douyin_ads_payments}}" => Some(optional_number(douyin_ads::infer_live_metric(
+            text, "payments",
+        ))),
+        "{{douyin_ads_ad_spend}}" => Some(optional_number(douyin_ads::infer_live_metric(
+            text, "ad_spend",
+        ))),
+        "{{douyin_ads_live_gmv}}" => {
+            Some(optional_number(douyin_ads::infer_live_metric(text, "gmv")))
+        }
+        "{{douyin_ads_goal}}" => Some(serde_json::json!(douyin_ads::infer_goal(text, task))),
+        "{{douyin_ads_days}}" => Some(serde_json::json!(douyin_ads::infer_days(text))),
+        "{{inventory_skus}}" => Some(serde_json::json!(inventory::infer_inventory_skus(text))),
+        "{{inventory_ordering_cost}}" => {
+            Some(optional_number(inventory::infer_ordering_cost(text)))
+        }
+        "{{inventory_holding_rate}}" => Some(optional_number(inventory::infer_holding_rate(text))),
+        "{{inventory_service_level}}" => {
+            Some(optional_string(inventory::infer_service_level(text)))
+        }
+        "{{ad_fatigue_channels}}" => Some(serde_json::json!(inventory::infer_ad_fatigue_channels(
+            text
+        ))),
+        "{{ad_fatigue_total_budget}}" => Some(optional_number(inventory::infer_total_budget(text))),
+        "{{abc_xyz_skus}}" => Some(serde_json::json!(inventory::infer_abc_xyz_skus(text))),
+        "{{abc_xyz_top_n}}" => Some(optional_integer(inventory::infer_top_n(text))),
+        "{{data_values}}" => Some(serde_json::json!(data::infer_values(text))),
+        "{{channel_roi_rows}}" => Some(serde_json::json!(data::infer_channel_roi_rows(text))),
+        "{{refund_items}}" => Some(serde_json::json!(data::infer_refund_items(text))),
+        "{{multi_periods}}" => Some(serde_json::json!(data::infer_multi_periods(text))),
+        "{{data_ltv_cac}}" => Some(optional_number(data::infer_metric_number(text, "cac"))),
+        "{{data_ltv_avg_order_value}}" => Some(optional_number(data::infer_metric_number(
+            text,
+            "avg_order_value",
+        ))),
+        "{{data_ltv_purchase_frequency}}" => Some(optional_number(data::infer_metric_number(
+            text,
+            "purchase_frequency",
+        ))),
+        "{{data_ltv_gross_margin}}" => Some(optional_number(data::infer_metric_number(
+            text,
+            "gross_margin",
+        ))),
+        "{{data_ltv_monthly_retention}}" => Some(optional_number(data::infer_metric_number(
+            text,
+            "monthly_retention",
+        ))),
+        "{{data_new_customers}}" => Some(optional_integer(data::infer_metric_integer(
+            text,
+            "new_customers",
+        ))),
+        "{{data_total_customers}}" => Some(optional_integer(data::infer_metric_integer(
+            text,
+            "total_customers",
+        ))),
+        "{{data_avg_order_value}}" => Some(optional_number(data::infer_metric_number(
+            text,
+            "avg_order_value",
+        ))),
+        "{{data_avg_orders_per_customer}}" => Some(optional_number(data::infer_metric_number(
+            text,
+            "avg_orders_per_customer",
+        ))),
+        "{{data_recency_days}}" => Some(optional_number(data::infer_metric_number(
+            text,
+            "recency_days",
+        ))),
+        "{{data_target_gmv}}" => Some(optional_number(data::infer_metric_number(
+            text,
+            "target_gmv",
+        ))),
+        "{{data_previous_gmv}}" => Some(optional_number(data::infer_metric_number(
+            text,
+            "previous_gmv",
+        ))),
+        "{{data_gmv}}" => Some(optional_number(data::infer_metric_number(text, "gmv"))),
+        "{{data_previous_orders}}" => Some(optional_integer(data::infer_metric_integer(
+            text,
+            "previous_orders",
+        ))),
+        "{{data_orders}}" => Some(optional_integer(data::infer_metric_integer(text, "orders"))),
+        "{{data_previous_visitors}}" => Some(optional_integer(data::infer_metric_integer(
+            text,
+            "previous_visitors",
+        ))),
+        "{{data_visitors}}" => Some(optional_integer(data::infer_metric_integer(
+            text, "visitors",
+        ))),
+        "{{data_clicks}}" => Some(optional_integer(data::infer_metric_integer(text, "clicks"))),
+        "{{data_ad_spend}}" => Some(optional_number(data::infer_metric_number(text, "ad_spend"))),
+        "{{data_refund_amount}}" => Some(optional_number(data::infer_metric_number(
+            text,
+            "refund_amount",
+        ))),
+        "{{data_gross_profit}}" => Some(optional_number(data::infer_metric_number(
+            text,
+            "gross_profit",
+        ))),
+        "{{data_impressions}}" => Some(optional_integer(data::infer_metric_integer(
+            text,
+            "impressions",
+        ))),
+        "{{data_add_to_cart}}" => Some(optional_integer(data::infer_metric_integer(
+            text,
+            "add_to_cart",
+        ))),
+        "{{data_payments}}" => Some(optional_integer(data::infer_metric_integer(
+            text, "payments",
+        ))),
+        "{{data_inventory}}" => Some(optional_integer(data::infer_metric_integer(
+            text,
+            "inventory",
+        ))),
+        "{{data_stockout_count}}" => Some(optional_integer(data::infer_metric_integer(
+            text,
+            "stockout_count",
+        ))),
+        "{{data_budget}}" => Some(optional_number(data::infer_metric_number(text, "budget"))),
+        "{{data_spend}}" => Some(optional_number(data::infer_metric_number(text, "spend"))),
+        "{{data_coupon_cost}}" => Some(optional_number(data::infer_metric_number(
+            text,
+            "coupon_cost",
+        ))),
+        "{{data_product_id}}" => Some(optional_string(data::infer_labeled_token(
+            text,
+            "product_id",
+        ))),
+        "{{data_sku_id}}" => Some(optional_string(data::infer_labeled_token(text, "sku_id"))),
+        "{{data_campaign_id}}" => Some(optional_string(data::infer_labeled_token(
+            text,
+            "campaign_id",
+        ))),
+        "{{search_max_results}}" => Some(optional_integer(search::max_results(text))),
+        "{{search_bypass_cache}}" => Some(serde_json::json!(search::bypass_cache(text))),
+        "{{selected_product_refs}}" => {
+            Some(serde_json::json!(context::selected_product_refs(task)))
+        }
+        "{{selected_product_features}}" => Some(serde_json::json!(
+            context::selected_product_features_or_infer(task, text)
+        )),
+        "{{keyword_candidates}}" => Some(serde_json::json!(context::keyword_candidates(text))),
+        "{{data_our_price}}" => Some(optional_number(Some(numbers::infer_percent_number(
+            text, 99.0,
+        )))),
+        "{{ab_control_visitors}}" => Some(optional_integer(data::infer_ab_integer(
+            text,
+            "control_visitors",
+        ))),
+        "{{ab_control_conversions}}" => Some(optional_integer(data::infer_ab_integer(
+            text,
+            "control_conversions",
+        ))),
+        "{{ab_test_visitors}}" => Some(optional_integer(data::infer_ab_integer(
+            text,
+            "test_visitors",
+        ))),
+        "{{ab_test_conversions}}" => Some(optional_integer(data::infer_ab_integer(
+            text,
+            "test_conversions",
+        ))),
+        _ => None,
+    }
+}
+
+fn optional_number(value: Option<f64>) -> serde_json::Value {
+    match value {
+        Some(value) if value.is_finite() => serde_json::json!(value),
+        _ => serde_json::Value::Null,
+    }
+}
+
+fn optional_integer(value: Option<i64>) -> serde_json::Value {
+    match value {
+        Some(value) => serde_json::json!(value),
+        _ => serde_json::Value::Null,
+    }
+}
+
+fn optional_string(value: Option<String>) -> serde_json::Value {
+    value
+        .filter(|value| !value.trim().is_empty())
+        .map(serde_json::Value::String)
+        .unwrap_or(serde_json::Value::Null)
 }
 
 fn render_template_string(template: &str, text: &str, task: &Task) -> String {
@@ -160,6 +392,14 @@ fn render_template_string(template: &str, text: &str, task: &Task) -> String {
             &commerce::infer_current_price(text, 9.9).to_string(),
         )
         .replace(
+            "{{stock_days}}",
+            &commerce::infer_stock_days(text, 30.0).to_string(),
+        )
+        .replace(
+            "{{elasticity}}",
+            &commerce::infer_elasticity(text, -1.2).to_string(),
+        )
+        .replace(
             "{{budget}}",
             &commerce::infer_budget(text, &["预算", "budget"], 10_000.0).to_string(),
         )
@@ -191,6 +431,81 @@ fn render_template_string(template: &str, text: &str, task: &Task) -> String {
             "{{selected_product_name}}",
             &context::selected_product_name_or_task(task),
         )
+        .replace(
+            "{{selected_product_name_or_query}}",
+            &context::selected_product_name_or_task(task),
+        )
+        .replace(
+            "{{selected_product_brand_name}}",
+            &context::selected_product_brand_name_or_task(task),
+        )
+        .replace(
+            "{{selected_product_count}}",
+            &context::selected_product_count_or_default(task, 6).to_string(),
+        )
+        .replace(
+            "{{selected_product_article_platform}}",
+            &context::selected_product_article_platform_or_default(task, text),
+        )
+        .replace(
+            "{{title_candidate}}",
+            &context::title_candidate_or_task(text, task),
+        )
+        .replace(
+            "{{douyin_ads_product_name}}",
+            &douyin_ads::infer_product_name(text, task),
+        )
+        .replace(
+            "{{douyin_ads_stage}}",
+            &douyin_ads::infer_stage_for_ads(text),
+        )
+        .replace(
+            "{{inventory_avg_daily_demand}}",
+            &inventory::infer_avg_daily_demand(text).to_string(),
+        )
+        .replace(
+            "{{inventory_lead_time_days}}",
+            &inventory::infer_lead_time_days(text, 7).to_string(),
+        )
+        .replace("{{attribution_model}}", data::infer_attribution_model(text))
+        .replace("{{ab_test_name}}", data::infer_ab_test_name(text))
+        .replace("{{ab_metric}}", data::infer_ab_metric(text))
+        .replace(
+            "{{forecast_periods}}",
+            &data::infer_forecast_periods(text).to_string(),
+        )
+        .replace("{{data_days}}", &data::default_days(text).to_string())
+        .replace("{{data_top_n}}", &data::infer_top_n(text, 5).to_string())
+        .replace("{{diagnosis_focus}}", data::infer_diagnosis_focus(text))
+        .replace("{{search_query}}", &search::query_for_task(text, task))
+        .replace(
+            "{{search_industry}}",
+            &search::industry_for_task(text, task),
+        )
+        .replace(
+            "{{search_platform}}",
+            &search::platform_for_task(text, task),
+        )
+        .replace(
+            "{{search_bypass_cache}}",
+            if search::bypass_cache(text) {
+                "true"
+            } else {
+                "false"
+            },
+        )
+        .replace("{{search_policy_type}}", search::policy_type(text))
+        .replace("{{search_review_focus}}", search::review_focus(text))
+        .replace(
+            "{{search_competitor_focus}}",
+            search::competitor_focus(text),
+        )
+        .replace(
+            "{{search_benchmark_metric}}",
+            search::benchmark_metric(text),
+        )
+        .replace("{{search_topic}}", search::topic(text))
+        .replace("{{search_days}}", &search::days(text).to_string())
 }
 
 fn contains_keyword(text: &str, needle: &str) -> bool {
