@@ -2,7 +2,17 @@ use std::collections::HashMap;
 
 use tracing::warn;
 
-use super::{Task, TaskMemory, WorkerPhase, WorkerState, action_bridge::decision_to_action};
+use super::{
+    Task, TaskMemory, WorkerPhase, WorkerState,
+    action_bridge::decision_to_action,
+    output_policy::{
+        default_role_finding, default_role_findings, default_role_recommendation,
+        default_role_recommendations, default_role_risks, normalize_role_specific_findings,
+        normalize_role_specific_recommendations, normalize_role_specific_risks,
+        required_findings_for_role, required_recommendations_for_role, role_display_name,
+        role_requires_risk,
+    },
+};
 use crate::{
     action::{Action, ActionResult, ActionState},
     agent_session::SessionEventTx,
@@ -10558,204 +10568,6 @@ fn normalize_worker_role_output_for_test_with_metadata(
     )
 }
 
-fn role_display_name(role: &str) -> &'static str {
-    match role {
-        "ops" => "运营策略师",
-        "data" => "数据分析师",
-        "service" => "客户成功专员",
-        "design" => "设计师",
-        "accounting" => "财务分析师",
-        "engineering" => "技术架构师",
-        "web" => "Web/SEO 专家",
-        "creative" => "内容创意师",
-        "douyin_ads" => "千川投放专员",
-        "chat" => "对话助手",
-        _ => "虚拟员工",
-    }
-}
-
-fn default_role_findings(role: &str, task: &str) -> Vec<String> {
-    vec![default_role_finding(role, 0, task)]
-}
-
-fn required_findings_for_role(role: &str) -> usize {
-    match role {
-        "data" | "service" | "engineering" => 2,
-        _ => 1,
-    }
-}
-
-fn required_recommendations_for_role(role: &str) -> usize {
-    match role {
-        "ops" => 3,
-        "creative" => 2,
-        _ => 1,
-    }
-}
-
-fn normalize_role_specific_findings(role: &str, findings: &mut Vec<String>, task: &str) {
-    match role {
-        "data" => {
-            if !contains_any_in_items(findings, &["指标", "口径", "曝光", "点击", "加购", "付款"])
-            {
-                push_unique(
-                    findings,
-                    format!("判断 {task} 需要先统一曝光、点击、加购、付款、退款等指标口径。"),
-                );
-            }
-            if !contains_any_in_items(
-                findings,
-                &["缺", "未提供", "未获取", "没有真实", "不能编造"],
-            ) {
-                push_unique(
-                    findings,
-                    "如果没有真实漏斗和渠道数据，只能输出判断框架，不能编造转化率或行业排名。"
-                        .to_string(),
-                );
-            }
-        }
-        "service" => {
-            if !contains_any_in_items(
-                findings,
-                &["客服", "售后", "投诉", "退款", "sop", "SOP", "承诺", "咨询"],
-            ) {
-                push_unique(
-                    findings,
-                    "服务岗位本轮作为协作岗位，负责识别咨询承接、售后承诺和异议处理对转化的影响。"
-                        .to_string(),
-                );
-            }
-        }
-        "engineering"
-            if !contains_any_in_items(
-                findings,
-                &["接口", "埋点", "技术", "系统", "稳定", "回滚"],
-            ) =>
-        {
-            push_unique(
-                findings,
-                "工程岗位本轮作为协作岗位，负责确认埋点、接口、数据刷新和系统稳定性边界。"
-                    .to_string(),
-            );
-        }
-        _ => {}
-    }
-}
-
-fn normalize_role_specific_recommendations(
-    role: &str,
-    recommendations: &mut Vec<String>,
-    _task: &str,
-) {
-    match role {
-        "service" => {
-            if !contains_any_in_items(
-                recommendations,
-                &["客服", "售后", "话术", "SOP", "sop", "升级"],
-            ) {
-                push_unique(
-                    recommendations,
-                    "准备客服答疑、售后承诺和异常升级 SOP，避免转化承诺超过实际履约能力。"
-                        .to_string(),
-                );
-            }
-        }
-        "engineering" => {
-            if !contains_any_in_items(recommendations, &["埋点", "接口", "报表", "回滚", "刷新"])
-            {
-                push_unique(
-                    recommendations,
-                    "确认埋点、数据接口、报表刷新时间和回滚边界，确保判断可追踪、可复核。"
-                        .to_string(),
-                );
-            }
-        }
-        "data"
-            if !contains_any_in_items(
-                recommendations,
-                &["曝光", "点击", "加购", "付款", "漏斗"],
-            ) =>
-        {
-            push_unique(
-                recommendations,
-                "先补齐曝光、点击、加购、付款、退款、咨询量和渠道来源，再输出确定性结论。"
-                    .to_string(),
-            );
-        }
-        _ => {}
-    }
-}
-
-fn normalize_role_specific_risks(role: &str, risks: &mut Vec<String>) {
-    if role == "service" && !contains_any_in_items(risks, &["承诺", "售后", "客服", "物流"])
-    {
-        push_unique(
-            risks,
-            "客服和直播话术不能承诺政策、库存、物流或售后未确认的事项。".to_string(),
-        );
-    }
-}
-
-fn default_role_finding(role: &str, index: usize, task: &str) -> String {
-    match (role, index) {
-        ("data", 0) => format!("当前问题需要先明确指标口径、样本周期和漏斗节点：{task}"),
-        ("data", _) => "未提供真实曝光、点击、加购、付款等指标时，只能给出判断框架，\
-                        不能编造转化率。"
-            .to_string(),
-        ("service", _) => {
-            "服务岗位本轮作为支持角色，重点识别用户承诺、售后风险和需要补齐的话术边界。".to_string()
-        }
-        ("engineering", _) => {
-            "工程岗位本轮作为支持角色，重点判断数据链路、接口可用性和可验证性。".to_string()
-        }
-        ("creative", _) => {
-            "创意岗位本轮负责把业务判断转成可测试的标题、脚本或素材方向。".to_string()
-        }
-        ("design", _) => "设计岗位本轮负责把转化判断落到页面层级、主图和行动按钮承接。".to_string(),
-        ("accounting", _) => "财务岗位本轮负责识别预算、毛利、ROI 和止损边界。".to_string(),
-        ("web", _) => "Web/SEO 岗位本轮负责识别页面、关键词和自然流量承接机会。".to_string(),
-        ("douyin_ads", _) => "千川投放岗位本轮负责识别人群、素材、出价和预算节奏。".to_string(),
-        ("ops", _) => "运营岗位本轮负责把多岗位判断整合为可执行节奏。".to_string(),
-        _ => format!("已围绕本轮任务形成岗位判断：{task}"),
-    }
-}
-
-fn default_role_recommendations(role: &str, task: &str) -> Vec<String> {
-    match role {
-        "ops" => vec![
-            "先确认目标、周期、预算和成功指标，再拆分执行节奏。".to_string(),
-            "把数据、创意、投放和客服输入合并为同一张行动清单。".to_string(),
-            "设置每日复盘节点，按转化、成本和风险调整优先级。".to_string(),
-        ],
-        _ => vec![default_role_recommendation(role, 0, task)],
-    }
-}
-
-fn default_role_recommendation(role: &str, index: usize, task: &str) -> String {
-    match (role, index) {
-        ("data", _) => {
-            "补齐曝光、点击、加购、付款、退款和渠道拆分后，再计算转化健康度。".to_string()
-        }
-        ("service", _) => {
-            "准备客服答疑、售后承诺和异常升级 SOP，避免营销承诺超过履约能力。".to_string()
-        }
-        ("engineering", _) => {
-            "确认埋点、数据接口和报表刷新时间，确保判断可追踪、可复核。".to_string()
-        }
-        ("creative", _) => "输出至少三组可 A/B 测试的标题、脚本钩子和直播间话术。".to_string(),
-        ("design", _) => "把核心卖点、信任证明和行动按钮放在首屏优先级最高的位置。".to_string(),
-        ("accounting", _) => {
-            "先按客单价、毛利率和预算上限测算可接受 CPA 与 ROI 止损线。".to_string()
-        }
-        ("web", _) => "围绕核心关键词、FAQ 和转化页面建立可复用内容结构。".to_string(),
-        ("douyin_ads", _) => "按人群包、素材组和预算节奏拆分测试计划，并设置止损阈值。".to_string(),
-        ("ops", 0) => "先确认目标、周期、预算和成功指标，再拆分执行节奏。".to_string(),
-        ("ops", 1) => "把数据、创意、投放和客服输入合并为同一张行动清单。".to_string(),
-        ("ops", _) => "设置每日复盘节点，按转化、成本和风险调整优先级。".to_string(),
-        _ => format!("按岗位边界继续推进：{task}"),
-    }
-}
-
 fn normalize_product_context_evidence(
     task: &Task,
     output: &mut crate::core::protocol::RoleWorkOutput,
@@ -11396,26 +11208,6 @@ fn normalize_upstream_evidence(task: &Task, output: &mut crate::core::protocol::
             ),
         );
     }
-}
-
-fn role_requires_risk(role: &str) -> bool {
-    matches!(
-        role,
-        "ops" | "data" | "accounting" | "engineering" | "service" | "web"
-    )
-}
-
-fn default_role_risks(role: &str) -> Vec<String> {
-    let risk = match role {
-        "data" => "缺少真实指标时不能输出确定性转化结论。",
-        "service" => "客服话术不能承诺政策、库存或物流未确认的事项。",
-        "accounting" => "未确认毛利和预算边界时不能承诺 ROI 结果。",
-        "engineering" => "埋点或接口未确认时，数据结论可能无法复核。",
-        "web" => "未接入真实搜索数据时不能承诺排名或自然流量提升。",
-        "ops" => "同时改动过多变量会导致复盘无法归因。",
-        _ => "缺少关键上下文时，结论需要在执行前复核。",
-    };
-    vec![risk.to_string()]
 }
 
 fn merge_unique(mut left: Vec<String>, right: Vec<String>) -> Vec<String> {

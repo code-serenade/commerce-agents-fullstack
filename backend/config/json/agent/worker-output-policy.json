@@ -1,0 +1,185 @@
+{
+  "fallback_role_name": "虚拟员工",
+  "fallback_finding": "已围绕本轮任务形成岗位判断：{{task}}",
+  "fallback_recommendation": "按岗位边界继续推进：{{task}}",
+  "fallback_risk": "缺少关键上下文时，结论需要在执行前复核。",
+  "roles": {
+    "ops": {
+      "display_name": "运营策略师",
+      "required_findings": 1,
+      "required_recommendations": 3,
+      "default_findings": [
+        "运营岗位本轮负责把多岗位判断整合为可执行节奏。"
+      ],
+      "default_recommendations": [
+        "先确认目标、周期、预算和成功指标，再拆分执行节奏。",
+        "把数据、创意、投放和客服输入合并为同一张行动清单。",
+        "设置每日复盘节点，按转化、成本和风险调整优先级。"
+      ],
+      "default_risks": [
+        "同时改动过多变量会导致复盘无法归因。"
+      ]
+    },
+    "data": {
+      "display_name": "数据分析师",
+      "required_findings": 2,
+      "required_recommendations": 1,
+      "default_findings": [
+        "当前问题需要先明确指标口径、样本周期和漏斗节点：{{task}}",
+        "未提供真实曝光、点击、加购、付款等指标时，只能给出判断框架，不能编造转化率。"
+      ],
+      "default_recommendations": [
+        "补齐曝光、点击、加购、付款、退款和渠道拆分后，再计算转化健康度。"
+      ],
+      "default_risks": [
+        "缺少真实指标时不能输出确定性转化结论。"
+      ],
+      "finding_rules": [
+        {
+          "absent_any": ["指标", "口径", "曝光", "点击", "加购", "付款"],
+          "message": "判断 {{task}} 需要先统一曝光、点击、加购、付款、退款等指标口径。"
+        },
+        {
+          "absent_any": ["缺", "未提供", "未获取", "没有真实", "不能编造"],
+          "message": "如果没有真实漏斗和渠道数据，只能输出判断框架，不能编造转化率或行业排名。"
+        }
+      ],
+      "recommendation_rules": [
+        {
+          "absent_any": ["曝光", "点击", "加购", "付款", "漏斗"],
+          "message": "先补齐曝光、点击、加购、付款、退款、咨询量和渠道来源，再输出确定性结论。"
+        }
+      ]
+    },
+    "service": {
+      "display_name": "客户成功专员",
+      "required_findings": 2,
+      "required_recommendations": 1,
+      "default_findings": [
+        "服务岗位本轮作为支持角色，重点识别用户承诺、售后风险和需要补齐的话术边界。"
+      ],
+      "default_recommendations": [
+        "准备客服答疑、售后承诺和异常升级 SOP，避免营销承诺超过履约能力。"
+      ],
+      "default_risks": [
+        "客服话术不能承诺政策、库存或物流未确认的事项。"
+      ],
+      "finding_rules": [
+        {
+          "absent_any": ["客服", "售后", "投诉", "退款", "sop", "SOP", "承诺", "咨询"],
+          "message": "服务岗位本轮作为协作岗位，负责识别咨询承接、售后承诺和异议处理对转化的影响。"
+        }
+      ],
+      "recommendation_rules": [
+        {
+          "absent_any": ["客服", "售后", "话术", "SOP", "sop", "升级"],
+          "message": "准备客服答疑、售后承诺和异常升级 SOP，避免转化承诺超过实际履约能力。"
+        }
+      ],
+      "risk_rules": [
+        {
+          "absent_any": ["承诺", "售后", "客服", "物流"],
+          "message": "客服和直播话术不能承诺政策、库存、物流或售后未确认的事项。"
+        }
+      ]
+    },
+    "engineering": {
+      "display_name": "技术架构师",
+      "required_findings": 2,
+      "required_recommendations": 1,
+      "default_findings": [
+        "工程岗位本轮作为支持角色，重点判断数据链路、接口可用性和可验证性。"
+      ],
+      "default_recommendations": [
+        "确认埋点、数据接口和报表刷新时间，确保判断可追踪、可复核。"
+      ],
+      "default_risks": [
+        "埋点或接口未确认时，数据结论可能无法复核。"
+      ],
+      "finding_rules": [
+        {
+          "absent_any": ["接口", "埋点", "技术", "系统", "稳定", "回滚"],
+          "message": "工程岗位本轮作为协作岗位，负责确认埋点、接口、数据刷新和系统稳定性边界。"
+        }
+      ],
+      "recommendation_rules": [
+        {
+          "absent_any": ["埋点", "接口", "报表", "回滚", "刷新"],
+          "message": "确认埋点、数据接口、报表刷新时间和回滚边界，确保判断可追踪、可复核。"
+        }
+      ]
+    },
+    "creative": {
+      "display_name": "内容创意师",
+      "required_findings": 1,
+      "required_recommendations": 2,
+      "default_findings": [
+        "创意岗位本轮负责把业务判断转成可测试的标题、脚本或素材方向。"
+      ],
+      "default_recommendations": [
+        "输出至少三组可 A/B 测试的标题、脚本钩子和直播间话术。"
+      ]
+    },
+    "design": {
+      "display_name": "设计师",
+      "required_findings": 1,
+      "required_recommendations": 1,
+      "default_findings": [
+        "设计岗位本轮负责把转化判断落到页面层级、主图和行动按钮承接。"
+      ],
+      "default_recommendations": [
+        "把核心卖点、信任证明和行动按钮放在首屏优先级最高的位置。"
+      ]
+    },
+    "accounting": {
+      "display_name": "财务分析师",
+      "required_findings": 1,
+      "required_recommendations": 1,
+      "default_findings": [
+        "财务岗位本轮负责识别预算、毛利、ROI 和止损边界。"
+      ],
+      "default_recommendations": [
+        "先按客单价、毛利率和预算上限测算可接受 CPA 与 ROI 止损线。"
+      ],
+      "default_risks": [
+        "未确认毛利和预算边界时不能承诺 ROI 结果。"
+      ]
+    },
+    "web": {
+      "display_name": "Web/SEO 专家",
+      "required_findings": 1,
+      "required_recommendations": 1,
+      "default_findings": [
+        "Web/SEO 岗位本轮负责识别页面、关键词和自然流量承接机会。"
+      ],
+      "default_recommendations": [
+        "围绕核心关键词、FAQ 和转化页面建立可复用内容结构。"
+      ],
+      "default_risks": [
+        "未接入真实搜索数据时不能承诺排名或自然流量提升。"
+      ]
+    },
+    "douyin_ads": {
+      "display_name": "千川投放专员",
+      "required_findings": 1,
+      "required_recommendations": 1,
+      "default_findings": [
+        "千川投放岗位本轮负责识别人群、素材、出价和预算节奏。"
+      ],
+      "default_recommendations": [
+        "按人群包、素材组和预算节奏拆分测试计划，并设置止损阈值。"
+      ]
+    },
+    "chat": {
+      "display_name": "对话助手",
+      "required_findings": 1,
+      "required_recommendations": 1,
+      "default_findings": [
+        "已围绕本轮任务形成岗位判断：{{task}}"
+      ],
+      "default_recommendations": [
+        "按岗位边界继续推进：{{task}}"
+      ]
+    }
+  }
+}
