@@ -44,9 +44,10 @@
       },
       "skill_id": "ops_channel_strategy",
       "input": {
-        "product_type": "{{task_description}}",
-        "budget": 10000,
-        "target_audience": "{{task_description}}"
+        "product_type": "{{category}}",
+        "product_ref": "{{selected_product_ref}}",
+        "budget": "{{budget}}",
+        "target_audience": "{{audience}}"
       },
       "reason": "autosuggest:ops.channel_strategy"
     },
@@ -67,11 +68,11 @@
       },
       "skill_id": "ops_listing_copy",
       "input": {
-        "product_name": "{{task_description}}",
+        "product_name": "{{selected_product_name}}",
         "features": [
           "{{task_description}}"
         ],
-        "platform": "淘宝"
+        "platform": "{{platform}}"
       },
       "reason": "autosuggest:ops.listing_copy"
     },
@@ -92,8 +93,9 @@
       },
       "skill_id": "ops_assortment_planning",
       "input": {
-        "category": "{{task_description}}",
-        "budget": 10000
+        "category": "{{category}}",
+        "product_ref": "{{selected_product_ref}}",
+        "budget": "{{budget}}"
       },
       "reason": "autosuggest:ops.assortment_planning"
     },
@@ -120,10 +122,11 @@
       },
       "skill_id": "ops_smart_pricing",
       "input": {
-        "cost": 1,
-        "current_price": 9.9,
-        "current_monthly_sales": 500,
-        "platform": "淘宝"
+        "product_ref": "{{selected_product_ref}}",
+        "cost": "{{cost}}",
+        "current_price": "{{current_price}}",
+        "current_monthly_sales": "{{integer}}",
+        "platform": "{{platform}}"
       },
       "reason": "autosuggest:ops.smart_pricing"
     },
@@ -241,9 +244,10 @@
       },
       "skill_id": "ops_pricing_strategy",
       "input": {
-        "cost": 1,
+        "product_ref": "{{selected_product_ref}}",
+        "cost": "{{cost}}",
         "competitor_prices": [],
-        "platform": "淘宝"
+        "platform": "{{platform}}"
       },
       "reason": "autosuggest:ops.pricing_strategy"
     },
@@ -296,9 +300,10 @@
       },
       "skill_id": "ops_promo_planning",
       "input": {
-        "product": "{{task_description}}",
-        "budget": 10000,
-        "platform": "淘宝"
+        "product": "{{selected_product_name}}",
+        "product_ref": "{{selected_product_ref}}",
+        "budget": "{{budget}}",
+        "platform": "{{platform}}"
       },
       "reason": "autosuggest:ops.promo_planning"
     },
@@ -321,7 +326,8 @@
       "skill_id": "ops_execution_plan",
       "input": {
         "goal": "{{task_description}}",
-        "stage": "成长期"
+        "stage": "{{stage}}",
+        "product_ref": "{{selected_product_ref}}"
       },
       "reason": "autosuggest:ops.execution_plan"
     }

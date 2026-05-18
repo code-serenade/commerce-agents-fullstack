@@ -43,7 +43,11 @@ pub(in crate::agent::worker::runner) fn infer_current_price(text: &str, fallback
     .max(0.0)
 }
 
-pub(in crate::agent::worker::runner) fn infer_budget(text: &str, aliases: &[&str], default: f64) -> f64 {
+pub(in crate::agent::worker::runner) fn infer_budget(
+    text: &str,
+    aliases: &[&str],
+    default: f64,
+) -> f64 {
     let numbers = numbers_in_text(text);
     extract_metric_value(text, aliases)
         .or_else(|| {
@@ -61,7 +65,10 @@ pub(in crate::agent::worker::runner) fn infer_demand_forecast_input(
     task: &Task,
 ) -> serde_json::Map<String, serde_json::Value> {
     let mut input = serde_json::Map::new();
-    input.insert("days".to_string(), serde_json::json!(infer_period_days(text)));
+    input.insert(
+        "days".to_string(),
+        serde_json::json!(infer_period_days(text)),
+    );
     input.insert("metric".to_string(), serde_json::json!(infer_metric(text)));
     if let Some(product_ref) = context::selected_product_ref(task) {
         input.insert("product_ref".to_string(), serde_json::json!(product_ref));
@@ -172,7 +179,7 @@ fn extract_last_metric_value(text: &str, aliases: &[&str]) -> Option<f64> {
             continue;
         };
         let start = index + alias_lower.len();
-        if let Some(value) = super::metrics::parse_metric_number_after_alias(&text[start..]) {
+        if let Some(value) = super::metrics::parse_metric_number_after_alias(&text[start ..]) {
             return Some(value);
         }
     }

@@ -63,7 +63,7 @@
       },
       "skill_id": "data_channel_roi",
       "input": {
-        "days": 30,
+        "days": "{{period_days}}",
         "channels": []
       },
       "reason": "autosuggest:data.channel_roi"

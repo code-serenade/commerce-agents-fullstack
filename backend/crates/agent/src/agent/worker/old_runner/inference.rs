@@ -1,7 +1,6 @@
 // Inference helpers are split by domain while preserving the parent runner module scope.
 include!("inference/metrics.rs");
 include!("inference/pricing.rs");
-include!("inference/promo.rs");
 include!("inference/inventory.rs");
 include!("inference/campaign.rs");
 include!("inference/analytics.rs");

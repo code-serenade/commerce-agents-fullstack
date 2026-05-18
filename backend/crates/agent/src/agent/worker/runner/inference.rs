@@ -1,6 +1,6 @@
+pub(super) mod commerce;
 pub(super) mod config;
 pub(super) mod context;
-pub(super) mod commerce;
 pub(super) mod domain;
 pub(super) mod memory_task;
 pub(super) mod metrics;

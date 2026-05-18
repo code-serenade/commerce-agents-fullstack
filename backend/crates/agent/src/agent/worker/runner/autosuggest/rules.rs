@@ -2,7 +2,7 @@ use super::config::{AutosuggestRule, AutosuggestRuleMode, WorkerAutosuggestPolic
 use crate::agent::worker::{
     Task,
     runner::{
-        inference::{context, domain, memory_task, metrics, numbers},
+        inference::{commerce, context, domain, memory_task, metrics, numbers},
         types::ParsedSkillRequest,
     },
 };
@@ -53,9 +53,7 @@ fn rule_matches(rule: &AutosuggestRule, role_runtime: &str, text: &str) -> bool 
 
 fn render_template_value(value: &serde_json::Value, text: &str, task: &Task) -> serde_json::Value {
     match value {
-        serde_json::Value::String(template) => {
-            serde_json::Value::String(render_template_string(template, text, task))
-        }
+        serde_json::Value::String(template) => render_template_scalar(template, text, task),
         serde_json::Value::Array(items) => serde_json::Value::Array(
             items
                 .iter()
@@ -70,6 +68,18 @@ fn render_template_value(value: &serde_json::Value, text: &str, task: &Task) -> 
         ),
         _ => value.clone(),
     }
+}
+
+fn render_template_scalar(template: &str, text: &str, task: &Task) -> serde_json::Value {
+    let rendered = render_template_string(template, text, task);
+    if template.trim().starts_with("{{")
+        && template.trim().ends_with("}}")
+        && let Ok(value) = rendered.parse::<f64>()
+        && value.is_finite()
+    {
+        return serde_json::json!(value);
+    }
+    serde_json::Value::String(rendered)
 }
 
 fn render_template_string(template: &str, text: &str, task: &Task) -> String {
@@ -144,6 +154,15 @@ fn render_template_string(template: &str, text: &str, task: &Task) -> String {
         .replace("{{product_name}}", &domain::infer_product_name(text))
         .replace("{{campaign_name}}", &domain::infer_campaign_name(text))
         .replace("{{campaign_type}}", &domain::infer_campaign_type(text))
+        .replace("{{cost}}", &commerce::infer_cost(text, 1.0).to_string())
+        .replace(
+            "{{current_price}}",
+            &commerce::infer_current_price(text, 9.9).to_string(),
+        )
+        .replace(
+            "{{budget}}",
+            &commerce::infer_budget(text, &["预算", "budget"], 10_000.0).to_string(),
+        )
         .replace("{{system_type}}", &domain::infer_system_type(text))
         .replace("{{bug_type}}", &domain::infer_bug_type(text))
         .replace("{{bug_frequency}}", &domain::infer_bug_frequency(text))
