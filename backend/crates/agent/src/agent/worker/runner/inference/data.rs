@@ -74,15 +74,6 @@ pub(in crate::agent::worker::runner) fn infer_attribution_model(text: &str) -> &
     classify_or(
         text,
         "attribution_model",
-        &[
-            (
-                "last_touch",
-                &["last_touch", "末次", "最后触点", "末次归因"][..],
-            ),
-            ("linear", &["linear", "线性", "线性归因"]),
-            ("time_decay", &["time_decay", "时间衰减", "衰减归因"]),
-            ("position", &["position", "位置归因", "u形", "U形", "首末"]),
-        ],
         default_str("attribution_model", "all"),
     )
 }
@@ -154,33 +145,11 @@ fn infer_ab_number_fallback(text: &str, key: &str) -> Option<i64> {
 }
 
 pub(in crate::agent::worker::runner) fn infer_ab_test_name(text: &str) -> &'static str {
-    classify_or(
-        text,
-        "ab_test_name",
-        &[
-            (
-                "详情页首屏A/B测试",
-                &["首屏", "详情首屏", "详情页首屏", "above the fold"][..],
-            ),
-            ("主图A/B测试", &["主图", "封面", "image"]),
-            ("标题A/B测试", &["标题", "title"]),
-            ("详情页A/B测试", &["详情页", "详情", "detail"]),
-            ("直播间A/B测试", &["直播", "live"]),
-        ],
-        default_str("ab_test_name", "A/B测试"),
-    )
+    classify_or(text, "ab_test_name", default_str("ab_test_name", "A/B测试"))
 }
 
 pub(in crate::agent::worker::runner) fn infer_ab_metric(text: &str) -> &'static str {
-    classify_or(
-        text,
-        "ab_metric",
-        &[
-            ("点击率", &["点击", "ctr", "CTR", "click"][..]),
-            ("支付转化率", &["支付", "成交", "订单", "purchase", "order"]),
-        ],
-        default_str("ab_metric", "转化率"),
-    )
+    classify_or(text, "ab_metric", default_str("ab_metric", "转化率"))
 }
 
 pub(in crate::agent::worker::runner) fn infer_multi_periods(text: &str) -> Vec<i64> {
@@ -204,23 +173,6 @@ pub(in crate::agent::worker::runner) fn infer_diagnosis_focus(text: &str) -> &'s
     classify_or(
         text,
         "diagnosis_focus",
-        &[
-            (
-                "growth",
-                &[
-                    "重点看增长",
-                    "重点分析增长",
-                    "聚焦增长",
-                    "增长为主",
-                    "增长优先",
-                    "focus growth",
-                ][..],
-            ),
-            ("profit", &["profit", "利润", "毛利", "盈利", "ROI", "roi"]),
-            ("retention", &["retention", "留存", "复购", "客户", "会员"]),
-            ("risk", &["risk", "风险", "异常", "退款", "下滑"]),
-            ("growth", &["growth", "增长", "放量", "规模", "GMV", "gmv"]),
-        ],
         default_str("diagnosis_focus", "all"),
     )
 }
@@ -362,20 +314,8 @@ fn refund_amount_aliases() -> Vec<String> {
     )
 }
 
-fn classify_or(
-    text: &str,
-    classifier: &str,
-    fallback_rules: &[(&'static str, &[&str])],
-    fallback: &'static str,
-) -> &'static str {
-    if let Some(value) = classify(text, classifier) {
-        return value;
-    }
-
-    fallback_rules
-        .iter()
-        .find_map(|(value, keywords)| contains_any(text, keywords).then_some(*value))
-        .unwrap_or(fallback)
+fn classify_or(text: &str, classifier: &str, fallback: &'static str) -> &'static str {
+    classify(text, classifier).unwrap_or(fallback)
 }
 
 fn classify(text: &str, classifier: &str) -> Option<&'static str> {
@@ -489,10 +429,6 @@ fn policy_section(section: &str) -> &'static serde_json::Value {
 
 fn rules_value() -> &'static serde_json::Value {
     policy_section("rules")
-}
-
-fn contains_any(text: &str, needles: &[&str]) -> bool {
-    needles.iter().any(|needle| contains_keyword(text, needle))
 }
 
 fn contains_keyword(text: &str, needle: &str) -> bool {
