@@ -10,7 +10,7 @@ use serde::Deserialize;
 const DEFAULT_POLICY_PATH: &str = "config/json/agent/worker-output-policy.json";
 const POLICY_ENV: &str = "CM_AGENT_WORKER_OUTPUT_POLICY";
 const EMBEDDED_POLICY: &str =
-    include_str!("../../../../../config/json/agent/worker-output-policy.json");
+    include_str!("../../../../../../config/json/agent/worker-output-policy.json");
 
 #[derive(Debug, Clone, Deserialize)]
 struct WorkerOutputPolicy {

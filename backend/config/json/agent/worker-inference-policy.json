@@ -1,0 +1,120 @@
+{
+  "rules": {
+    "platform.store_metrics": [
+      { "label": "抖音", "keywords": ["抖音", "douyin", "tiktok"] },
+      { "label": "淘宝", "keywords": ["淘宝", "taobao"] },
+      { "label": "天猫", "keywords": ["天猫", "tmall"] },
+      { "label": "京东", "keywords": ["京东", "jd"] },
+      { "label": "拼多多", "keywords": ["拼多多", "pdd"] },
+      { "label": "快手", "keywords": ["快手"] }
+    ],
+    "platform.default": [
+      { "label": "抖音", "keywords": ["抖音", "douyin", "tiktok"] },
+      { "label": "京东", "keywords": ["京东", "jd"] },
+      { "label": "拼多多", "keywords": ["拼多多", "pdd"] },
+      { "label": "快手", "keywords": ["快手"] }
+    ],
+    "platform.search": [
+      { "label": "抖音", "keywords": ["抖音", "douyin", "tiktok"] },
+      { "label": "淘宝", "keywords": ["淘宝", "taobao"] },
+      { "label": "天猫", "keywords": ["天猫", "tmall"] },
+      { "label": "京东", "keywords": ["京东", "jd"] },
+      { "label": "拼多多", "keywords": ["拼多多", "pdd"] },
+      { "label": "小红书", "keywords": ["小红书", "xiaohongshu", "red"] },
+      { "label": "快手", "keywords": ["快手"] }
+    ],
+    "category": [
+      { "label": "咖啡饮品", "keywords": ["coffee", "咖啡", "饮品"] },
+      { "label": "美妆护肤", "keywords": ["beauty", "美妆", "护肤"] },
+      { "label": "食品零食", "keywords": ["food", "食品", "零食"] },
+      { "label": "服饰穿搭", "keywords": ["clothes", "服饰", "穿搭"] },
+      { "label": "家居生活", "keywords": ["home", "家居", "家电"] }
+    ],
+    "stage": [
+      { "label": "冷启动", "keywords": ["cold start", "new product", "冷启动", "新品"] },
+      { "label": "成熟期", "keywords": ["mature", "成熟"] },
+      { "label": "衰退期", "keywords": ["decline", "衰退"] }
+    ],
+    "campaign_type": [
+      { "label": "ad", "keywords": ["投放", "广告", "ad", "paid"] },
+      { "label": "live", "keywords": ["直播", "live"] },
+      { "label": "launch", "keywords": ["新品", "上新", "冷启动", "launch"] },
+      { "label": "promotion", "keywords": ["促销", "大促", "满减", "优惠", "promotion"] }
+    ],
+    "service.issue_type": [
+      { "label": "物流延迟", "keywords": ["物流", "快递", "未到", "延迟", "没收到"] },
+      { "label": "质量问题", "keywords": ["质量", "破损", "坏了", "假货", "描述不符"] },
+      { "label": "退款退货", "keywords": ["退款", "退货", "换货", "售后"] },
+      { "label": "发错货", "keywords": ["发错", "少发", "漏发"] },
+      { "label": "投诉", "keywords": ["投诉", "差评", "曝光", "维权", "举报"] }
+    ],
+    "service.emotion": [
+      { "label": "威胁投诉", "keywords": ["威胁投诉", "投诉平台", "曝光", "举报", "维权", "骗子"] },
+      { "label": "愤怒", "keywords": ["愤怒", "生气", "气死", "垃圾", "太差"] },
+      { "label": "焦虑", "keywords": ["着急", "急", "催", "怎么还", "等了"] },
+      { "label": "满意", "keywords": ["满意", "好评", "谢谢"] }
+    ],
+    "design.usage": [
+      { "label": "详情页", "keywords": ["详情"] },
+      { "label": "信息流广告", "keywords": ["信息流", "广告"] },
+      { "label": "直播封面", "keywords": ["直播"] }
+    ],
+    "design.style": [
+      { "label": "高端奢华", "keywords": ["高端", "奢华", "质感"] },
+      { "label": "年轻活力", "keywords": ["年轻", "活力", "可爱"] },
+      { "label": "国潮复古", "keywords": ["国潮", "复古"] },
+      { "label": "科技感", "keywords": ["科技", "数码"] },
+      { "label": "清新自然", "keywords": ["清新", "自然"] }
+    ],
+    "engineering.system_type": [
+      { "label": "ERP", "keywords": ["erp", "ERP"] },
+      { "label": "CRM", "keywords": ["crm", "CRM"] },
+      { "label": "数据平台", "keywords": ["数据平台", "报表平台", "bi", "BI"] },
+      { "label": "小程序", "keywords": ["小程序", "mini program"] }
+    ],
+    "engineering.bug_type": [
+      { "label": "接口超时", "keywords": ["timeout", "超时"] },
+      { "label": "页面白屏", "keywords": ["白屏"] },
+      { "label": "支付失败", "keywords": ["支付失败", "支付"] },
+      { "label": "库存不一致", "keywords": ["库存不一致", "库存"] },
+      { "label": "OOM", "keywords": ["oom", "内存"] },
+      { "label": "死锁", "keywords": ["死锁"] }
+    ],
+    "engineering.perf_bottleneck": [
+      { "label": "数据库", "keywords": ["database", "db", "数据库", "sql"] },
+      { "label": "前端", "keywords": ["front", "前端", "页面"] },
+      { "label": "缓存", "keywords": ["cache", "缓存", "redis"] },
+      { "label": "网络", "keywords": ["network", "网络"] },
+      { "label": "并发", "keywords": ["concurrency", "并发"] }
+    ],
+    "search.policy_type": [
+      { "label": "algorithm", "keywords": ["算法", "搜索", "流量", "排名", "权重", "algorithm"] },
+      { "label": "fee", "keywords": ["佣金", "费率", "扣点", "服务费", "fee"] },
+      { "label": "promotion", "keywords": ["大促", "活动", "618", "双11", "报名", "promotion"] },
+      { "label": "material", "keywords": ["素材", "尺寸", "规格", "广告位", "格式", "安全区", "文件大小", "asset", "material", "spec"] },
+      { "label": "content", "keywords": ["内容", "违禁词", "审核", "违规", "发布", "content"] }
+    ],
+    "search.review_focus": [
+      { "label": "negative", "keywords": ["差评", "负面", "吐槽", "投诉", "踩雷", "negative"] },
+      { "label": "positive", "keywords": ["好评", "正面", "优点", "满意", "positive"] }
+    ],
+    "search.competitor_focus": [
+      { "label": "price", "keywords": ["价格", "定价", "售价", "price", "价格弹性", "价格敏感", "调价", "市场定价", "价格区间"] },
+      { "label": "promotion", "keywords": ["促销", "活动", "优惠", "promotion"] },
+      { "label": "reviews", "keywords": ["评价", "口碑", "差评", "reviews"] },
+      { "label": "features", "keywords": ["卖点", "功能", "特点", "features"] }
+    ],
+    "search.benchmark_metric": [
+      { "label": "conversion", "keywords": ["转化", "转化率", "conversion", "cvr"] },
+      { "label": "aov", "keywords": ["客单价", "aov"] },
+      { "label": "dsr", "keywords": ["dsr", "DSR", "服务评分", "店铺评分", "描述相符", "物流服务"] },
+      { "label": "nps", "keywords": ["nps", "NPS", "满意度"] },
+      { "label": "refund", "keywords": ["退款", "退货", "refund"] },
+      { "label": "roi", "keywords": ["roi", "ROI", "roas", "ROAS", "投产"] }
+    ],
+    "search.topic": [
+      { "label": "finance", "keywords": ["融资", "财报", "金融", "finance", "财务", "财务基准", "财务对标", "利润率", "毛利率", "净利率", "现金流", "广告ROI", "广告 ROI"] },
+      { "label": "news", "keywords": ["新闻", "资讯", "公告", "news"] }
+    ]
+  }
+}
