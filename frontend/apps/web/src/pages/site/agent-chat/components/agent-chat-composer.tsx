@@ -1,223 +1,220 @@
 import {
-  Bot,
-  Coffee,
-  Database,
-  LockKeyhole,
-  Loader2,
-  Megaphone,
-  Plus,
-  Send,
-  ShoppingBag,
-  Square,
-} from "lucide-react"
-import { type KeyboardEvent, type MouseEvent, useRef } from "react"
-import { useTranslation } from "react-i18next"
-import { Button } from "@workspace/ui-components/stable/button"
-import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
-import { AgentChatStrategyBar } from "./agent-chat-strategy-bar"
-
-const SAMPLE_PROMPTS = [
-  {
-    labelKey: "agentChat.composer.samples.coffee.label",
-    icon: Coffee,
-    promptKey: "agentChat.composer.samples.coffee.prompt",
-  },
-  {
-    labelKey: "agentChat.composer.samples.qianchuan.label",
-    icon: Megaphone,
-    promptKey: "agentChat.composer.samples.qianchuan.prompt",
-  },
-]
-
-const CONTEXT_CHIPS = [
-  {
-    labelKey: "agentChat.composer.chips.products.label",
-    icon: ShoppingBag,
-    titleKey: "agentChat.composer.chips.products.title",
-    promptKey: "agentChat.composer.chips.products.prompt",
-  },
-  {
-    labelKey: "agentChat.composer.chips.campaign.label",
-    icon: Megaphone,
-    titleKey: "agentChat.composer.chips.campaign.title",
-    promptKey: "agentChat.composer.chips.campaign.prompt",
-  },
-  {
-    labelKey: "agentChat.composer.chips.platform.label",
-    icon: Database,
-    titleKey: "agentChat.composer.chips.platform.title",
-    promptKey: "agentChat.composer.chips.platform.prompt",
-  },
-]
-
-export interface AgentChatComposerProps {
-  canSend: boolean
-  input: string
-  isLoggedIn: boolean
-  isStreaming: boolean
-  onInputChange: (value: string) => void
-  onSend: () => void
-  onStop: () => void
-  onStrategyChange: (strategyId: AgentChatStrategyId) => void
-  strategyId: AgentChatStrategyId
-}
+  type ChangeEvent,
+  type MouseEvent,
+  useEffect,
+  useRef,
+} from "react"
+import type { AgentChatComposerProps } from "./agent-chat-composer-types"
+import { AgentChatAttachmentStrip } from "./agent-chat-attachment-strip"
+import { AgentChatComposerInput } from "./agent-chat-composer-input"
+import { AgentChatComposerPanels } from "./agent-chat-composer-panels"
+import { AgentChatComposerStatus } from "./agent-chat-composer-status"
+import { AgentChatComposerToolbar } from "./agent-chat-composer-toolbar"
+import { useAgentChatPanelState } from "../view-model/use-agent-chat-panel-state"
 
 export function AgentChatComposer({
+  attachments,
+  availableProducts,
+  availableSources,
   canSend,
+  error,
   input,
   isLoggedIn,
+  isLoadingPlaybooks,
+  isLoadingProducts,
+  isLoadingRuntimeOptions,
   isStreaming,
   onInputChange,
+  onRuntimeCollaborationModeChange,
+  onRuntimeLearningLevelChange,
+  onRuntimeModelChange,
+  onRuntimePrimaryRoleChange,
+  onToggleRuntimeRole,
+  onSelectPlaybook,
   onSend,
   onStop,
   onStrategyChange,
+  onClearProductContext,
+  onClearSourceContext,
+  onToggleProductContext,
+  onToggleSourceContext,
+  onUploadAttachments,
+  selectedProducts,
+  selectedSources,
+  playbooks,
+  runtimeOptions,
+  runtimeSelection,
   strategyId,
 }: AgentChatComposerProps) {
-  const { t } = useTranslation()
+  const composerRootRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const panels = useAgentChatPanelState()
+  const {
+    closePanels,
+    productContextOpen,
+    setProductContextOpen,
+    setSourceContextOpen,
+    settingsOpen,
+    sourceContextOpen,
+    toggleSettingsPanel,
+  } = panels
 
-  const appendComposerText = (text: string) => {
-    onInputChange(input.trim() ? `${input.trim()}\n${text}` : text)
-    queueMicrotask(() => textareaRef.current?.focus())
-  }
+  useEffect(() => {
+    if (!productContextOpen && !sourceContextOpen && !settingsOpen) return
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (
-      event.key !== "Enter" ||
-      event.shiftKey ||
-      event.nativeEvent.isComposing
-    )
-      return
-    event.preventDefault()
-    if (canSend) onSend()
+    const closePanelsOnOutsideEvent = (event: Event) => {
+      const target = event.target
+      if (!(target instanceof Node)) return
+      if (composerRootRef.current?.contains(target)) return
+      closePanels()
+    }
+
+    document.addEventListener("pointerdown", closePanelsOnOutsideEvent, true)
+    document.addEventListener("click", closePanelsOnOutsideEvent, true)
+    return () => {
+      document.removeEventListener(
+        "pointerdown",
+        closePanelsOnOutsideEvent,
+        true
+      )
+      document.removeEventListener("click", closePanelsOnOutsideEvent, true)
+    }
+  }, [
+    closePanels,
+    productContextOpen,
+    settingsOpen,
+    sourceContextOpen,
+  ])
+
+  useEffect(() => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+    textarea.style.height = "auto"
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 180)}px`
+  }, [input])
+
+  const sendAndClosePanels = () => {
+    closePanels()
+    onSend()
   }
 
   const focusComposer = (event: MouseEvent<HTMLDivElement>) => {
     if (isStreaming) return
     const target = event.target
     if (!(target instanceof HTMLElement)) return
-    if (target.closest("button, textarea")) return
+    if (target.closest("button, select, textarea, [data-composer-interactive='true']"))
+      return
     textareaRef.current?.focus()
   }
 
+  const handleAttachmentChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? [])
+    event.target.value = ""
+    if (!files.length) return
+    onUploadAttachments(files)
+  }
+
   return (
-    <footer className="relative z-30 shrink-0 bg-background/95 p-3 sm:px-5">
+    <footer className="relative z-30 shrink-0 bg-linear-to-t from-background via-background/95 to-background/70 px-3 pb-3 pt-2 sm:px-5">
       <div
-        className="mx-auto flex w-full max-w-3xl flex-col gap-3 rounded-[1.65rem] border border-border bg-[#f1f1ef] p-3 shadow-xl shadow-black/10 dark:bg-card"
+        ref={composerRootRef}
+        className="mx-auto flex w-full max-w-4xl flex-col gap-2 rounded-xl border border-muted-foreground/35 bg-background p-1 shadow-lg shadow-black/10 transition-colors focus-within:border-foreground/40 focus-within:ring-2 focus-within:ring-ring/15 dark:bg-card"
         onMouseDown={focusComposer}
-        onKeyDown={handleKeyDown}
       >
-        <AgentChatStrategyBar
-          disabled={isStreaming}
-          onStrategyChange={onStrategyChange}
-          strategyId={strategyId}
-        />
-        <div className="flex flex-wrap gap-2">
-          {SAMPLE_PROMPTS.map((sample) => {
-            const Icon = sample.icon
-            const label = t(sample.labelKey)
-            const prompt = t(sample.promptKey)
-            return (
-              <button
-                key={sample.labelKey}
-                type="button"
-                disabled={isStreaming}
-                onClick={() => {
-                  onInputChange(prompt)
-                  queueMicrotask(() => textareaRef.current?.focus())
-                }}
-                className="flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                title={prompt}
-              >
-                <Icon className="size-3.5" />
-                {label}
-              </button>
-            )
-          })}
-          <span className="hidden h-7 w-px bg-border sm:block" />
-          {CONTEXT_CHIPS.map((chip) => {
-            const Icon = chip.icon
-            const label = t(chip.labelKey)
-            const prompt = t(chip.promptKey)
-            return (
-              <button
-                key={chip.labelKey}
-                type="button"
-                disabled={isStreaming}
-                onClick={() => appendComposerText(prompt)}
-                className="flex items-center gap-2 rounded-full border border-border bg-background/70 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                title={`${t(chip.titleKey)} ${prompt}`}
-              >
-                <Icon className="size-3.5" />
-                {label}
-              </button>
-            )
-          })}
-        </div>
-        <div className="flex min-w-0 items-end justify-between gap-2 rounded-3xl bg-background p-2 shadow-sm">
-          <div className="flex min-w-0 flex-1 items-end gap-2 overflow-hidden">
-            <button
-              type="button"
-              className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:text-foreground"
-              onClick={() => appendComposerText(t("agentChat.composer.attachPrompt"))}
-              title={t("agentChat.composer.attachTitle")}
-            >
-              <Plus className="size-5" />
-            </button>
-            <div className="flex min-w-0 flex-1 flex-col gap-1 rounded-2xl p-1">
-              <div className="flex min-w-0 items-center gap-2">
-                <button
-                  type="button"
-                  className="flex max-w-48 min-w-0 shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
-                  title={t("agentChat.composer.agentTitle")}
-                >
-                  <Bot className="size-4 shrink-0 text-blue-500" />
-                  <span className="truncate">{t("agentChat.composer.agentName")}</span>
-                </button>
-                <p className="hidden shrink-0 text-xs text-muted-foreground lg:block">
-                  {isLoggedIn
-                    ? t("agentChat.composer.hint")
-                    : t("agentChat.loginRequired.inline")}
-                </p>
-              </div>
-              <textarea
-                ref={textareaRef}
-                value={input}
-                onChange={(event) => onInputChange(event.target.value)}
-                placeholder={t(
-                  !isLoggedIn
-                    ? "agentChat.composer.loginPlaceholder"
-                    : "agentChat.composer.placeholder"
-                )}
-                disabled={isStreaming}
-                rows={1}
-                className="max-h-32 min-h-7 w-full resize-none border-0 bg-transparent px-2 py-1 text-sm/6 outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60"
-              />
-            </div>
+        <div className="relative">
+          <AgentChatComposerPanels
+            availableProducts={availableProducts}
+            availableSources={availableSources}
+            isLoadingPlaybooks={isLoadingPlaybooks}
+            isLoadingProducts={isLoadingProducts}
+            isLoadingRuntimeOptions={isLoadingRuntimeOptions}
+            isStreaming={isStreaming}
+            onFocusComposer={() => textareaRef.current?.focus()}
+            onRuntimeCollaborationModeChange={onRuntimeCollaborationModeChange}
+            onRuntimeLearningLevelChange={onRuntimeLearningLevelChange}
+            onRuntimeModelChange={onRuntimeModelChange}
+            onRuntimePrimaryRoleChange={onRuntimePrimaryRoleChange}
+            onSelectPlaybook={onSelectPlaybook}
+            onStrategyChange={onStrategyChange}
+            onClearProductContext={onClearProductContext}
+            onClearSourceContext={onClearSourceContext}
+            onToggleProductContext={onToggleProductContext}
+            onToggleSourceContext={onToggleSourceContext}
+            onToggleRuntimeRole={onToggleRuntimeRole}
+            playbooks={playbooks}
+            productContextOpen={productContextOpen}
+            runtimeOptions={runtimeOptions}
+            runtimeSelection={runtimeSelection}
+            selectedProducts={selectedProducts}
+            selectedSources={selectedSources}
+            settingsOpen={settingsOpen}
+            sourceContextOpen={sourceContextOpen}
+            strategyId={strategyId}
+          />
+
+          <div className="grid gap-1 rounded-lg bg-background p-1.5 shadow-sm">
+            <AgentChatComposerStatus
+              error={error}
+              isLoggedIn={isLoggedIn}
+              isStreaming={isStreaming}
+            />
+
+            <AgentChatComposerInput
+              canSend={canSend}
+              fileInputRef={fileInputRef}
+              input={input}
+              isLoggedIn={isLoggedIn}
+              isStreaming={isStreaming}
+              onAttachmentChange={handleAttachmentChange}
+              onInputChange={onInputChange}
+              onSend={sendAndClosePanels}
+              onStop={onStop}
+              textareaRef={textareaRef}
+            />
+
+            <AgentChatAttachmentStrip attachments={attachments} />
+
+            <AgentChatComposerToolbar
+              availableProducts={availableProducts}
+              availableSources={availableSources}
+              canSend={canSend}
+              isLoggedIn={isLoggedIn}
+              isLoadingPlaybooks={isLoadingPlaybooks}
+              isLoadingProducts={isLoadingProducts}
+              isLoadingRuntimeOptions={isLoadingRuntimeOptions}
+              isStreaming={isStreaming}
+              onAttach={() => fileInputRef.current?.click()}
+              onRuntimeCollaborationModeChange={onRuntimeCollaborationModeChange}
+              onRuntimeLearningLevelChange={onRuntimeLearningLevelChange}
+              onRuntimeModelChange={onRuntimeModelChange}
+              onRuntimePrimaryRoleChange={onRuntimePrimaryRoleChange}
+              onSelectPlaybook={(playbook) => {
+                onSelectPlaybook(playbook)
+                queueMicrotask(() => textareaRef.current?.focus())
+              }}
+              onSend={sendAndClosePanels}
+              onStop={onStop}
+              onStrategyChange={onStrategyChange}
+              onClearProductContext={onClearProductContext}
+              onClearSourceContext={onClearSourceContext}
+              onToggleProductContext={onToggleProductContext}
+              onToggleProductPanel={setProductContextOpen}
+              onToggleSourceContext={onToggleSourceContext}
+              onToggleSourcePanel={setSourceContextOpen}
+              onToggleRuntimeRole={onToggleRuntimeRole}
+              onToggleSettingsPanel={toggleSettingsPanel}
+              playbooks={playbooks}
+              productContextOpen={productContextOpen}
+              runtimeOptions={runtimeOptions}
+              runtimeSelection={runtimeSelection}
+              selectedProducts={selectedProducts}
+              selectedSources={selectedSources}
+              settingsOpen={settingsOpen}
+              sourceContextOpen={sourceContextOpen}
+              strategyId={strategyId}
+            />
           </div>
-          {isStreaming ? (
-            <Button variant="outline" size="icon" onClick={onStop}>
-              <Square className="size-4" />
-            </Button>
-          ) : (
-            <button
-              type="button"
-              disabled={!canSend}
-              onClick={onSend}
-              className="flex size-9 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-colors hover:bg-foreground/90 disabled:cursor-not-allowed disabled:opacity-45"
-              title={t("agentChat.composer.send")}
-            >
-              {canSend ? (
-                isLoggedIn ? (
-                  <Send className="size-4" />
-                ) : (
-                  <LockKeyhole className="size-4" />
-                )
-              ) : (
-                <Loader2 className="size-4" />
-              )}
-            </button>
-          )}
         </div>
       </div>
     </footer>

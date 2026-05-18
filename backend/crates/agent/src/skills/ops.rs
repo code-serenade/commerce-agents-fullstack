@@ -15,6 +15,12 @@ pub fn specs() -> Vec<SkillSpec> {
                 field("cost", "number", "单位成本（元）", true),
                 field("competitor_prices", "array<number>", "竞品价格列表", true),
                 field("platform", "string", "销售平台，默认淘宝", false),
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用，如 product:{uuid}",
+                    false,
+                ),
             ],
         ),
         spec(
@@ -23,6 +29,12 @@ pub fn specs() -> Vec<SkillSpec> {
             "根据商品、预算和平台，生成促销活动阶段、KPI和预算分配",
             vec![
                 field("product", "string", "商品名称或类目", true),
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用，如 product:{uuid}",
+                    false,
+                ),
                 field("budget", "number", "总预算（元）", true),
                 field(
                     "platform",
@@ -43,6 +55,12 @@ pub fn specs() -> Vec<SkillSpec> {
                     "商品类型：美妆/食品/数码/服饰/家居",
                     true,
                 ),
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用，如 product:{uuid}",
+                    false,
+                ),
                 field("budget", "number", "月预算（元）", true),
                 field("target_audience", "string", "目标人群描述", false),
             ],
@@ -54,6 +72,12 @@ pub fn specs() -> Vec<SkillSpec> {
             vec![
                 field("avg_daily_demand", "number", "日均销量（件）", true),
                 field("lead_time_days", "integer", "供货周期（天）", true),
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用，如 product:{uuid}",
+                    false,
+                ),
                 field("demand_std", "number", "需求标准差，默认日均需求20%", false),
                 field(
                     "service_level",
@@ -69,9 +93,20 @@ pub fn specs() -> Vec<SkillSpec> {
             "根据商品名称、卖点和平台，生成标题、卖点描述、关键词和问答",
             vec![
                 field("product_name", "string", "商品名称", false),
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用，如 product:{uuid}",
+                    false,
+                ),
                 field("features", "array<string>", "商品卖点列表", false),
                 field("platform", "string", "上架平台，默认淘宝", false),
-                field("product_id", "integer", "商品ID，仅用于透传标识", false),
+                field(
+                    "product_id",
+                    "integer",
+                    "旧整数商品ID，仅用于兼容透传",
+                    false,
+                ),
                 field("competitor_titles", "array<string>", "竞品标题列表", false),
             ],
         ),
@@ -81,6 +116,12 @@ pub fn specs() -> Vec<SkillSpec> {
             "根据类目和选品预算，输出商品组合、测品预算和风险控制",
             vec![
                 field("category", "string", "商品类目", true),
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用，如 product:{uuid}",
+                    false,
+                ),
                 field("budget", "number", "选品预算（元）", true),
             ],
         ),
@@ -91,7 +132,13 @@ pub fn specs() -> Vec<SkillSpec> {
             vec![
                 field("goal", "string", "运营目标", true),
                 field("stage", "string", "阶段：冷启动/成长期/成熟期/衰退期", true),
-                field("product_id", "integer", "主推商品ID，可选", false),
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品主推商品引用，如 product:{uuid}",
+                    false,
+                ),
+                field("product_id", "integer", "旧整数主推商品ID，可选", false),
             ],
         ),
         spec(
@@ -111,6 +158,12 @@ pub fn specs() -> Vec<SkillSpec> {
                 field("platform", "string", "平台，默认淘宝", false),
                 field("elasticity", "number", "价格弹性系数，默认-1.5", false),
                 field("stock_days", "integer", "当前库存天数", false),
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用，如 product:{uuid}",
+                    false,
+                ),
             ],
         ),
         spec(
@@ -133,6 +186,12 @@ pub fn specs() -> Vec<SkillSpec> {
                     "服务水平：90%/95%/98%/99%，默认95%",
                     false,
                 ),
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用，如 product:{uuid}",
+                    false,
+                ),
             ],
         ),
         spec(
@@ -149,6 +208,12 @@ pub fn specs() -> Vec<SkillSpec> {
                 ),
                 field("total_budget", "number", "总广告预算", false),
                 field("platform", "string", "平台，默认淘宝", false),
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用，如 product:{uuid}",
+                    false,
+                ),
             ],
         ),
         spec(
@@ -164,6 +229,12 @@ pub fn specs() -> Vec<SkillSpec> {
                 ),
                 field("platform", "string", "平台，默认淘宝", false),
                 field("top_n", "integer", "展示前N个高价值SKU，默认20", false),
+                field(
+                    "product_ref",
+                    "string",
+                    "新产品商品引用，如 product:{uuid}",
+                    false,
+                ),
             ],
         ),
     ]
@@ -174,7 +245,7 @@ pub async fn execute(
     input: Value,
     _context: &SkillContext,
 ) -> Result<SkillOutcome, SkillError> {
-    let value = match skill_name {
+    let mut value = match skill_name {
         "ops_pricing_strategy" => pricing_strategy(&input),
         "ops_promo_planning" => promo_planning(&input),
         "ops_channel_strategy" => channel_strategy(&input),
@@ -188,13 +259,85 @@ pub async fn execute(
         "ops_abc_xyz_classifier" => abc_xyz_classifier(&input),
         other => return Err(invalid_input(format!("unknown ops skill: {other}"))),
     };
+    normalize_ops_output(skill_name, &input, &mut value);
     Ok(outcome(value))
+}
+
+fn normalize_ops_output(skill_name: &str, input: &Value, output: &mut Value) {
+    let Some(map) = output.as_object_mut() else {
+        return;
+    };
+    if map.contains_key("status") {
+        return;
+    }
+
+    let has_data = output_has_data(map);
+    if !has_data {
+        map.insert("status".to_owned(), json!("deferred"));
+        map.insert("has_data".to_owned(), json!(false));
+        map.insert("adapter_status".to_owned(), json!("user_input_required"));
+        map.insert("data_readiness".to_owned(), json!("missing_user_input"));
+        map.insert("summary".to_owned(), json!(ops_summary(skill_name)));
+        return;
+    }
+
+    map.insert("status".to_owned(), json!("success"));
+    map.insert("has_data".to_owned(), json!(true));
+    map.insert("adapter_status".to_owned(), json!("manual_input"));
+    map.insert(
+        "data_readiness".to_owned(),
+        json!(ops_data_readiness(skill_name, input)),
+    );
+    map.insert("summary".to_owned(), json!(ops_summary(skill_name)));
+}
+
+fn output_has_data(map: &serde_json::Map<String, Value>) -> bool {
+    !matches!(map.get("has_data").and_then(Value::as_bool), Some(false))
+        && !map.contains_key("error")
+}
+
+fn ops_data_readiness(skill_name: &str, input: &Value) -> &'static str {
+    match skill_name {
+        "ops_pricing_strategy" | "ops_smart_pricing"
+            if nums(input, "competitor_prices").is_empty() =>
+        {
+            "calculated_from_defaults"
+        }
+        "ops_listing_copy" if strings(input, "features").is_empty() => "calculated_from_defaults",
+        "ops_abc_xyz_classifier"
+            if input["skus"]
+                .as_array()
+                .map(|items| items.is_empty())
+                .unwrap_or(true) =>
+        {
+            "calculated_from_defaults"
+        }
+        _ => "user_provided",
+    }
+}
+
+fn ops_summary(skill_name: &str) -> &'static str {
+    match skill_name {
+        "ops_promo_planning" => "促销策划方案已生成",
+        "ops_pricing_strategy" => "定价策略已生成",
+        "ops_channel_strategy" => "渠道策略已生成",
+        "ops_inventory_planning" => "库存规划已生成",
+        "ops_listing_copy" => "上架文案已生成",
+        "ops_assortment_planning" => "选品规划已生成",
+        "ops_execution_plan" => "运营执行计划已生成",
+        "ops_smart_pricing" => "智能定价方案已生成",
+        "ops_inventory_optimizer" => "库存优化方案已生成",
+        "ops_ad_fatigue_detector" => "广告疲劳检测报告已生成",
+        "ops_abc_xyz_classifier" => "ABC-XYZ库存分类报告已生成",
+        _ => "运营技能结果已生成",
+    }
 }
 
 fn pricing_strategy(input: &Value) -> Value {
     let cost = num(input, "cost", 0.0);
     let competitors = nums(input, "competitor_prices");
     let platform = string(input, "platform", "淘宝");
+    let product_ref = string(input, "product_ref", "");
     let avg_comp = if competitors.is_empty() {
         cost * 3.0
     } else {
@@ -219,6 +362,7 @@ fn pricing_strategy(input: &Value) -> Value {
     json!({
         "成本": cost,
         "平台": platform,
+        "商品引用": if product_ref.is_empty() { Value::Null } else { json!(product_ref) },
         "建议零售价": recommended,
         "平台佣金": commission,
         "单品利润": profit,
@@ -234,6 +378,7 @@ fn pricing_strategy(input: &Value) -> Value {
 
 fn promo_planning(input: &Value) -> Value {
     let product = string(input, "product", "通用商品");
+    let product_ref = string(input, "product_ref", "");
     let budget = num(input, "budget", 10_000.0).max(0.0);
     let platform = string(input, "platform", "淘宝");
     let phases = vec![
@@ -275,6 +420,7 @@ fn promo_planning(input: &Value) -> Value {
         "has_data": true,
         "数据来源": "用户输入 + 确定性预算模型",
         "商品": product,
+        "商品引用": if product_ref.is_empty() { Value::Null } else { json!(product_ref) },
         "平台": platform,
         "总预算": currency(budget),
         "活动阶段": phases,
@@ -295,6 +441,7 @@ fn promo_planning(input: &Value) -> Value {
 
 fn channel_strategy(input: &Value) -> Value {
     let product_type = string(input, "product_type", "通用");
+    let product_ref = string(input, "product_ref", "");
     let budget = num(input, "budget", 10_000.0).max(0.0);
     let audience = string(input, "target_audience", "泛兴趣人群");
     let weights = if product_type.contains("美妆") || product_type.contains("服饰") {
@@ -335,6 +482,7 @@ fn channel_strategy(input: &Value) -> Value {
         "has_data": true,
         "数据来源": "用户输入 + 类目渠道规则",
         "商品类型": product_type,
+        "商品引用": if product_ref.is_empty() { Value::Null } else { json!(product_ref) },
         "目标人群": audience,
         "月预算": currency(budget),
         "渠道组合": mix,
@@ -349,6 +497,7 @@ fn channel_strategy(input: &Value) -> Value {
 fn inventory_planning(input: &Value) -> Value {
     let avg_demand = num(input, "avg_daily_demand", 100.0);
     let lead_time = num(input, "lead_time_days", 7.0).max(0.0);
+    let product_ref = string(input, "product_ref", "");
     let demand_std = num(input, "demand_std", avg_demand * 0.2).max(0.0);
     let service_level = num(input, "service_level", 0.95);
     let z = z_score(service_level);
@@ -364,6 +513,7 @@ fn inventory_planning(input: &Value) -> Value {
     json!({
         "日均销量": avg_demand,
         "供货周期": format!("{}天", lead_time.round()),
+        "商品引用": if product_ref.is_empty() { Value::Null } else { json!(product_ref) },
         "安全库存": safety_stock,
         "补货点": reorder_point,
         "建议订货量": eoq,
@@ -375,14 +525,19 @@ fn inventory_planning(input: &Value) -> Value {
 
 fn listing_copy(input: &Value) -> Value {
     let product_name = string(input, "product_name", "");
-    if product_name.is_empty() && input.get("product_id").is_none() {
+    let product_ref = string(input, "product_ref", "");
+    if product_name.is_empty() && product_ref.is_empty() && input.get("product_id").is_none() {
         return json!({
             "has_data": false,
-            "提示": "请提供 product_name；纯计算版本不会按 product_id 自动读取商品信息。",
+            "提示": "请提供 product_name 或 product_ref；纯计算版本不会按商品引用自动读取数据库信息。",
         });
     }
     let name = if product_name.is_empty() {
-        format!("商品ID {}", num(input, "product_id", 0.0).round() as i64)
+        if product_ref.is_empty() {
+            format!("商品ID {}", num(input, "product_id", 0.0).round() as i64)
+        } else {
+            product_ref.clone()
+        }
     } else {
         product_name
     };
@@ -401,6 +556,7 @@ fn listing_copy(input: &Value) -> Value {
         "数据来源": "用户输入 + 确定性文案模板",
         "平台": platform,
         "商品": name,
+        "商品引用": if product_ref.is_empty() { Value::Null } else { json!(product_ref) },
         "标题版本": [
             format!("{} {} 官方同款 高性价比", name, features[0]),
             format!("{} {} 新品热卖 现货速发", name, features.join(" ")),
@@ -419,6 +575,7 @@ fn listing_copy(input: &Value) -> Value {
 
 fn assortment_planning(input: &Value) -> Value {
     let category = string(input, "category", "通用");
+    let product_ref = string(input, "product_ref", "");
     let budget = num(input, "budget", 50_000.0).max(0.0);
     let hero = round2(budget * 0.45);
     let test = round2(budget * 0.30);
@@ -428,6 +585,7 @@ fn assortment_planning(input: &Value) -> Value {
         "has_data": true,
         "数据来源": "用户输入 + 确定性选品组合模型",
         "类目": category,
+        "商品引用": if product_ref.is_empty() { Value::Null } else { json!(product_ref) },
         "选品预算": currency(budget),
         "商品组合": [
             {"角色": "引流款", "预算": currency(hero), "SKU数": 2, "目标": "获取曝光与搜索权重", "毛利要求": "15%-25%"},
@@ -447,11 +605,13 @@ fn assortment_planning(input: &Value) -> Value {
 fn execution_plan(input: &Value) -> Value {
     let goal = string(input, "goal", "提升GMV");
     let stage = string(input, "stage", "成长期");
+    let product_ref = string(input, "product_ref", "");
     json!({
         "has_data": true,
         "数据来源": "用户输入 + 确定性执行框架",
         "目标": goal,
         "阶段": stage,
+        "商品引用": if product_ref.is_empty() { Value::Null } else { json!(product_ref) },
         "30天执行计划": [
             {"周期": "第1周", "主题": "诊断与基线", "行动": ["确认GMV/转化/ROI基线", "梳理主推SKU和库存", "搭建日更看板"], "交付物": "基线表+问题清单"},
             {"周期": "第2周", "主题": "素材与流量测试", "行动": ["上线3组价格/利益点测试", "投放小预算渠道实验", "优化标题和详情首屏"], "交付物": "测试结论+预算调整表"},
@@ -483,6 +643,7 @@ fn smart_pricing(input: &Value) -> Value {
     let current_sales = num(input, "current_monthly_sales", 500.0).max(1.0);
     let competitors = nums(input, "competitor_prices");
     let platform = string(input, "platform", "淘宝");
+    let product_ref = string(input, "product_ref", "");
     let elasticity = num(input, "elasticity", -1.5);
     let stock_days = num(input, "stock_days", 0.0);
     let commission_rate = commission_rate(&platform);
@@ -604,6 +765,7 @@ fn smart_pricing(input: &Value) -> Value {
         "推荐定价": currency(best_price),
         "推荐理由": format!("在当前弹性({elasticity})和竞品约束下，{}预期月利润最大化", currency(best_price)),
         "竞品价格区间": if competitors.is_empty() { json!("无竞品数据") } else { json!({"最低": currency(min_comp), "均价": currency(avg_comp), "最高": currency(max_comp)}) },
+        "商品引用": if product_ref.is_empty() { Value::Null } else { json!(product_ref) },
     });
 
     if let Some(sp) = stock_pressure_price {
@@ -619,6 +781,7 @@ fn smart_pricing(input: &Value) -> Value {
 
 fn inventory_optimizer(input: &Value) -> Value {
     let skus = input["skus"].as_array().cloned().unwrap_or_default();
+    let product_ref = string(input, "product_ref", "");
     if skus.is_empty() {
         return json!({
             "has_data": false,
@@ -729,6 +892,7 @@ fn inventory_optimizer(input: &Value) -> Value {
     json!({
         "has_data": true,
         "数据来源": "用户提供",
+        "商品引用": if product_ref.is_empty() { Value::Null } else { json!(product_ref) },
         "服务水平": service_level,
         "供应商交货期": format!("{}天", lead_time.round()),
         "SKU库存优化明细": sku_results,
@@ -750,6 +914,7 @@ fn inventory_optimizer(input: &Value) -> Value {
 
 fn ad_fatigue_detector(input: &Value) -> Value {
     let channels = input["channels"].as_array().cloned().unwrap_or_default();
+    let product_ref = string(input, "product_ref", "");
     if channels.is_empty() {
         return json!({
             "has_data": false,
@@ -828,6 +993,7 @@ fn ad_fatigue_detector(input: &Value) -> Value {
         "数据来源": "用户提供",
         "总广告预算": if total_budget > 0.0 { currency(total_budget) } else { "未知".to_owned() },
         "平台": platform,
+        "商品引用": if product_ref.is_empty() { Value::Null } else { json!(product_ref) },
         "行业疲劳基准": "CTR衰减>15%（连续7天）= 疲劳信号；频次≥8次/用户 = 受众疲劳",
         "渠道疲劳分析": channel_results,
         "疲劳渠道数": format!("{}/{}", fatigued_count, channels.len()),
@@ -858,6 +1024,7 @@ fn ad_fatigue_detector(input: &Value) -> Value {
 
 fn abc_xyz_classifier(input: &Value) -> Value {
     let mut skus = input["skus"].as_array().cloned().unwrap_or_default();
+    let product_ref = string(input, "product_ref", "");
     if skus.is_empty() {
         skus = demo_skus();
     }
@@ -959,6 +1126,7 @@ fn abc_xyz_classifier(input: &Value) -> Value {
     json!({
         "数据来源": data_source,
         "平台": platform,
+        "商品引用": if product_ref.is_empty() { Value::Null } else { json!(product_ref) },
         "分析SKU总数": classified.len(),
         "9格矩阵": matrix_display,
         "矩阵说明": "ABC: A=前80%GMV / B=80-95% / C=尾部; XYZ: X=CV<0.2稳定 / Y=CV0.2-0.5 / Z=CV>0.5高波动",
@@ -1221,4 +1389,500 @@ fn demo_skus() -> Vec<Value> {
             json!({"sku_id": format!("SKU{:03}", i + 1), "gmv": round2(gmv), "sales_history": history})
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn assert_success_contract(output: &Value, summary: &str) {
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("success")
+        );
+        assert_eq!(output.get("has_data").and_then(Value::as_bool), Some(true));
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("manual_input")
+        );
+        assert_eq!(output.get("summary").and_then(Value::as_str), Some(summary));
+    }
+
+    #[tokio::test]
+    async fn ops_promo_planning_marks_success_for_user_input() {
+        let outcome = execute(
+            "ops_promo_planning",
+            json!({
+                "product": "冷萃咖啡",
+                "budget": 20000.0,
+                "platform": "抖音"
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops promo should run");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "促销策划方案已生成");
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("user_provided")
+        );
+        assert!(output.get("活动阶段").is_some());
+        assert!(output.get("KPI").is_some());
+    }
+
+    #[tokio::test]
+    async fn ops_pricing_strategy_echoes_product_ref() {
+        let outcome = execute(
+            "ops_pricing_strategy",
+            json!({
+                "cost": 42.0,
+                "competitor_prices": [89.0, 99.0, 109.0],
+                "platform": "抖音",
+                "product_ref": "product:11111111-1111-1111-1111-111111111111"
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops pricing should echo product_ref");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "定价策略已生成");
+        assert_eq!(
+            output.get("商品引用").and_then(Value::as_str),
+            Some("product:11111111-1111-1111-1111-111111111111")
+        );
+        assert_eq!(output.get("平台").and_then(Value::as_str), Some("抖音"));
+        assert!(output.get("建议零售价").is_some());
+    }
+
+    #[tokio::test]
+    async fn ops_promo_planning_echoes_product_ref() {
+        let outcome = execute(
+            "ops_promo_planning",
+            json!({
+                "product": "五一咖啡组合",
+                "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                "budget": 20000.0,
+                "platform": "抖音"
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops promo should echo product_ref");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "促销策划方案已生成");
+        assert_eq!(
+            output.get("商品引用").and_then(Value::as_str),
+            Some("product:11111111-1111-1111-1111-111111111111")
+        );
+        assert_eq!(
+            output.get("商品").and_then(Value::as_str),
+            Some("五一咖啡组合")
+        );
+    }
+
+    #[tokio::test]
+    async fn ops_pricing_strategy_discloses_default_competitor_prices() {
+        let outcome = execute(
+            "ops_pricing_strategy",
+            json!({
+                "cost": 42.0,
+                "platform": "淘宝"
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops pricing should run");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "定价策略已生成");
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("calculated_from_defaults")
+        );
+        assert!(output.get("竞品分析").is_some());
+    }
+
+    #[tokio::test]
+    async fn ops_listing_copy_defers_without_product_context() {
+        let outcome = execute("ops_listing_copy", json!({}), &SkillContext::default())
+            .await
+            .expect("ops listing should return deferred output");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("deferred")
+        );
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("user_input_required")
+        );
+        assert_eq!(output.get("has_data").and_then(Value::as_bool), Some(false));
+    }
+
+    #[tokio::test]
+    async fn ops_execution_plan_marks_success_for_goal() {
+        let outcome = execute(
+            "ops_execution_plan",
+            json!({
+                "goal": "提升新品首月GMV",
+                "stage": "冷启动"
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops execution should run");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "运营执行计划已生成");
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("user_provided")
+        );
+        assert!(output.get("30天执行计划").is_some());
+    }
+
+    #[tokio::test]
+    async fn ops_execution_plan_echoes_product_ref() {
+        let outcome = execute(
+            "ops_execution_plan",
+            json!({
+                "goal": "提升五一咖啡组合首月GMV",
+                "stage": "冷启动",
+                "product_ref": "product:11111111-1111-1111-1111-111111111111"
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops execution should echo product_ref");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "运营执行计划已生成");
+        assert_eq!(
+            output.get("商品引用").and_then(Value::as_str),
+            Some("product:11111111-1111-1111-1111-111111111111")
+        );
+        assert_eq!(output.get("阶段").and_then(Value::as_str), Some("冷启动"));
+        assert!(output.get("30天执行计划").is_some());
+    }
+
+    #[tokio::test]
+    async fn ops_smart_pricing_marks_success_for_price_inputs() {
+        let outcome = execute(
+            "ops_smart_pricing",
+            json!({
+                "cost": 38.0,
+                "current_price": 99.0,
+                "current_monthly_sales": 820,
+                "competitor_prices": [89.0, 109.0, 119.0],
+                "platform": "淘宝",
+                "elasticity": -1.6,
+                "stock_days": 45
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops smart pricing should run");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "智能定价方案已生成");
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("user_provided")
+        );
+        assert!(output.get("定价方案对比").is_some());
+        assert!(output.get("推荐定价").is_some());
+    }
+
+    #[tokio::test]
+    async fn ops_smart_pricing_discloses_default_competitor_range() {
+        let outcome = execute(
+            "ops_smart_pricing",
+            json!({
+                "cost": 38.0,
+                "current_price": 99.0,
+                "platform": "淘宝"
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops smart pricing should run with default competitor range");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "智能定价方案已生成");
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("calculated_from_defaults")
+        );
+        assert_eq!(
+            output.get("竞品价格区间").and_then(Value::as_str),
+            Some("无竞品数据")
+        );
+    }
+
+    #[tokio::test]
+    async fn ops_smart_pricing_echoes_product_ref() {
+        let outcome = execute(
+            "ops_smart_pricing",
+            json!({
+                "cost": 38.0,
+                "current_price": 99.0,
+                "competitor_prices": [89.0, 109.0, 119.0],
+                "product_ref": "product:11111111-1111-1111-1111-111111111111"
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops smart pricing should echo product_ref");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "智能定价方案已生成");
+        assert_eq!(
+            output.get("商品引用").and_then(Value::as_str),
+            Some("product:11111111-1111-1111-1111-111111111111")
+        );
+    }
+
+    #[tokio::test]
+    async fn ops_channel_strategy_echoes_product_ref() {
+        let outcome = execute(
+            "ops_channel_strategy",
+            json!({
+                "product_type": "咖啡饮品",
+                "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                "budget": 20000.0,
+                "target_audience": "一二线城市通勤白领"
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops channel strategy should echo product_ref");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "渠道策略已生成");
+        assert_eq!(
+            output.get("商品引用").and_then(Value::as_str),
+            Some("product:11111111-1111-1111-1111-111111111111")
+        );
+        assert_eq!(
+            output.get("商品类型").and_then(Value::as_str),
+            Some("咖啡饮品")
+        );
+        assert!(output.get("渠道组合").is_some());
+    }
+
+    #[tokio::test]
+    async fn ops_inventory_planning_echoes_product_ref() {
+        let outcome = execute(
+            "ops_inventory_planning",
+            json!({
+                "avg_daily_demand": 120.0,
+                "lead_time_days": 7,
+                "product_ref": "product:11111111-1111-1111-1111-111111111111"
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops inventory planning should echo product_ref");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "库存规划已生成");
+        assert_eq!(
+            output.get("商品引用").and_then(Value::as_str),
+            Some("product:11111111-1111-1111-1111-111111111111")
+        );
+        assert_eq!(output.get("日均销量").and_then(Value::as_f64), Some(120.0));
+        assert!(output.get("补货点").is_some());
+    }
+
+    #[tokio::test]
+    async fn ops_assortment_planning_echoes_product_ref() {
+        let outcome = execute(
+            "ops_assortment_planning",
+            json!({
+                "category": "咖啡饮品",
+                "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                "budget": 80000.0
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops assortment planning should echo product_ref");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "选品规划已生成");
+        assert_eq!(
+            output.get("商品引用").and_then(Value::as_str),
+            Some("product:11111111-1111-1111-1111-111111111111")
+        );
+        assert_eq!(output.get("类目").and_then(Value::as_str), Some("咖啡饮品"));
+        assert!(output.get("商品组合").is_some());
+    }
+
+    #[tokio::test]
+    async fn ops_inventory_optimizer_defers_without_skus() {
+        let outcome = execute(
+            "ops_inventory_optimizer",
+            json!({}),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops inventory optimizer should return deferred output");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("deferred")
+        );
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("user_input_required")
+        );
+        assert_eq!(output.get("has_data").and_then(Value::as_bool), Some(false));
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("missing_user_input")
+        );
+    }
+
+    #[tokio::test]
+    async fn ops_inventory_optimizer_echoes_product_ref() {
+        let outcome = execute(
+            "ops_inventory_optimizer",
+            json!({
+                "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                "skus": [
+                    {"name": "冷萃A", "monthly_sales": 300, "cost": 40, "stock_qty": 500}
+                ],
+                "lead_time_days": 14
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops inventory optimizer should echo product_ref");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "库存优化方案已生成");
+        assert_eq!(
+            output.get("商品引用").and_then(Value::as_str),
+            Some("product:11111111-1111-1111-1111-111111111111")
+        );
+        assert!(output.get("SKU库存优化明细").is_some());
+    }
+
+    #[tokio::test]
+    async fn ops_ad_fatigue_detector_defers_without_channels() {
+        let outcome = execute(
+            "ops_ad_fatigue_detector",
+            json!({}),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops ad fatigue detector should return deferred output");
+        let output = outcome.output;
+
+        assert_eq!(
+            output.get("status").and_then(Value::as_str),
+            Some("deferred")
+        );
+        assert_eq!(
+            output.get("adapter_status").and_then(Value::as_str),
+            Some("user_input_required")
+        );
+        assert_eq!(output.get("has_data").and_then(Value::as_bool), Some(false));
+        assert_eq!(
+            output.get("summary").and_then(Value::as_str),
+            Some("广告疲劳检测报告已生成")
+        );
+    }
+
+    #[tokio::test]
+    async fn ops_ad_fatigue_detector_echoes_product_ref() {
+        let outcome = execute(
+            "ops_ad_fatigue_detector",
+            json!({
+                "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                "platform": "抖音",
+                "channels": [
+                    {
+                        "name": "千川",
+                        "ctr_baseline": 3.2,
+                        "ctr_recent": 2.1,
+                        "impressions_per_user": 9,
+                        "budget": 5000,
+                        "roas": 2.4
+                    }
+                ]
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops ad fatigue detector should echo product_ref");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "广告疲劳检测报告已生成");
+        assert_eq!(
+            output.get("商品引用").and_then(Value::as_str),
+            Some("product:11111111-1111-1111-1111-111111111111")
+        );
+        assert!(output.get("渠道疲劳分析").is_some());
+    }
+
+    #[tokio::test]
+    async fn ops_abc_xyz_classifier_discloses_demo_skus() {
+        let outcome = execute(
+            "ops_abc_xyz_classifier",
+            json!({"platform": "淘宝", "top_n": 8}),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops abc xyz should run with demo SKU data");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "ABC-XYZ库存分类报告已生成");
+        assert_eq!(
+            output.get("data_readiness").and_then(Value::as_str),
+            Some("calculated_from_defaults")
+        );
+        assert_eq!(
+            output.get("数据来源").and_then(Value::as_str),
+            Some("演示数据（30个确定性模拟SKU）")
+        );
+        assert!(output.get("9格矩阵").is_some());
+    }
+
+    #[tokio::test]
+    async fn ops_abc_xyz_classifier_echoes_product_ref() {
+        let outcome = execute(
+            "ops_abc_xyz_classifier",
+            json!({
+                "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                "platform": "抖音",
+                "skus": [
+                    {"sku_id": "SKU冷萃A", "gmv": 120000, "sales_history": [100, 102, 98, 101]},
+                    {"sku_id": "SKU拿铁B", "gmv": 60000, "sales_history": [60, 88, 44, 96]}
+                ],
+                "top_n": 2
+            }),
+            &SkillContext::default(),
+        )
+        .await
+        .expect("ops abc xyz should echo product_ref");
+        let output = outcome.output;
+
+        assert_success_contract(&output, "ABC-XYZ库存分类报告已生成");
+        assert_eq!(
+            output.get("商品引用").and_then(Value::as_str),
+            Some("product:11111111-1111-1111-1111-111111111111")
+        );
+        assert_eq!(
+            output.get("数据来源").and_then(Value::as_str),
+            Some("用户输入")
+        );
+        assert_eq!(output.get("分析SKU总数").and_then(Value::as_u64), Some(2));
+    }
 }

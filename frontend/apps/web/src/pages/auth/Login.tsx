@@ -1,6 +1,8 @@
 import { Link, useLocation, useNavigate } from "react-router"
 import { useDispatch } from "react-redux"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
+import { toRequestError } from "@workspace/services/errors/request-error"
 import {
   AuthLoginView,
   type AuthLoginSubmitValues,
@@ -11,8 +13,8 @@ import {
   loginApi,
   meApi,
 } from "@/api"
-import { setAccess } from "@/store/accessSlice"
-import { loginSuccess } from "@/store/authSlice"
+import { resetAccess, setAccess } from "@/store/accessSlice"
+import { loginSuccess, logout } from "@/store/authSlice"
 
 const authLinkClassName =
   "font-medium text-(--app-text) underline-offset-4 transition hover:underline"
@@ -42,9 +44,11 @@ export default function LoginPage() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
-  const from = location.state?.from?.pathname ?? "/home"
+  const [loginError, setLoginError] = useState<string | null>(null)
+  const from = location.state?.from?.pathname ?? "/commerce"
 
   const handleLogin = async (values: AuthLoginSubmitValues) => {
+    setLoginError(null)
     try {
       const res = await loginApi(values)
       const token = res.accessToken
@@ -66,13 +70,27 @@ export default function LoginPage() {
 
       navigate(from, { replace: true })
     } catch (err) {
-      console.error("Login failed:", err)
+      const requestError = toRequestError(err)
+      console.error("Login failed:", requestError)
+      localStorage.removeItem("token")
+      localStorage.removeItem("refreshToken")
+      dispatch(logout())
+      dispatch(resetAccess())
+      setLoginError(t(loginErrorCopyKey(requestError.status)))
     }
   }
 
   return (
     <AuthLoginView
       labels={createLoginLabels(t)}
+      notice={
+        loginError
+          ? {
+              title: t("login.error.title"),
+              description: loginError,
+            }
+          : undefined
+      }
       footerLink={{
         prefix: t("login.footer.toRegisterPrefix"),
         action: (
@@ -84,4 +102,12 @@ export default function LoginPage() {
       onSubmit={handleLogin}
     />
   )
+}
+
+function loginErrorCopyKey(status?: number) {
+  if (status === 400 || status === 401 || status === 403) {
+    return "login.error.invalidCredentials"
+  }
+
+  return "login.error.workspaceUnavailable"
 }

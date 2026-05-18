@@ -16,6 +16,7 @@ import { ensureCurrentAppUserPermissions, meApi } from "./api"
 import { toRequestError } from "@workspace/services/errors/request-error"
 import { clearRequestErrorMessage } from "./store/requestErrorSlice"
 import { resetAccess, setAccess } from "./store/accessSlice"
+import type { RootState } from "./store"
 
 export default function App() {
   const { t } = useTranslation()
@@ -23,6 +24,7 @@ export default function App() {
     (state: { requestError: { message: string | null } }) =>
       state.requestError.message
   )
+  const isLogin = useSelector((state: RootState) => state.auth.isLogin)
   const dispatch = useDispatch()
   const token = localStorage.getItem("token")
 
@@ -66,7 +68,10 @@ export default function App() {
     })
   }, [dispatch])
 
-  const isRestored = !token || restoreQuery.status !== "pending"
+  const isRestored =
+    !token ||
+    isLogin ||
+    restoreQuery.status === "error"
   const router = useMemo(() => {
     if (!isRestored) return null
 

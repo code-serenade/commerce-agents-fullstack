@@ -3,7 +3,9 @@ pub mod coordination;
 pub mod creative;
 pub mod data;
 pub mod design;
+pub mod douyin_ads;
 pub mod engineering;
+pub mod learning;
 pub mod ops;
 pub mod runtime;
 pub mod search;
@@ -14,8 +16,10 @@ pub mod web;
 pub use runtime::{
     LocalSkillExecutor, SkillAdapterKind, SkillExecutionMode, SkillExecutionResult,
     SkillExecutionStatus, SkillExecutor, SkillExecutorSet, SkillId, SkillRegistry, SkillRequest,
-    SkillRiskLevel, SkillRuntimeError,
+    SkillRiskLevel, SkillRuntimeError, adapter_kinds_for_spec, execution_mode_for_spec,
+    risk_level_for_spec,
 };
+pub use search::SearchAdapterConfig;
 pub use spec::{
     Skill, SkillCategory, SkillContext, SkillError, SkillInputField, SkillOutcome, SkillPriority,
     SkillResult, SkillSpec, bool_param, f64_param, i64_param, object_params, optional_bool_param,
@@ -32,7 +36,9 @@ pub fn staged_specs() -> Vec<SkillSpec> {
     specs.extend(creative::specs());
     specs.extend(data::specs());
     specs.extend(design::specs());
+    specs.extend(douyin_ads::specs());
     specs.extend(engineering::specs());
+    specs.extend(learning::specs());
     specs.extend(ops::specs());
     specs.extend(search::specs());
     specs.extend(service::specs());
@@ -59,12 +65,17 @@ mod tests {
         assert!(ids.contains(&"accounting_cost_calc"));
         assert!(ids.contains(&"accounting_scenario_analysis"));
         assert!(ids.contains(&"search_trends"));
+        assert!(ids.contains(&"query_product_metrics"));
+        assert!(ids.contains(&"query_campaign_metrics"));
         assert!(ids.contains(&"data_funnel_analysis"));
         assert!(ids.contains(&"data_ab_test_analyzer"));
         assert!(ids.contains(&"creative_title_ctr_scorer"));
         assert!(ids.contains(&"web_title_seo_scorer"));
+        assert!(ids.contains(&"douyin_ads_plan_structure"));
+        assert!(ids.contains(&"douyin_ads_live_funnel_diagnosis"));
         assert!(ids.contains(&"engineering_sla_monitor"));
+        assert!(ids.contains(&"learning_teaching_explain"));
         assert!(ids.contains(&"coordination_agent_handoff"));
-        assert_eq!(specs.len(), 93);
+        assert_eq!(specs.len(), 100);
     }
 }

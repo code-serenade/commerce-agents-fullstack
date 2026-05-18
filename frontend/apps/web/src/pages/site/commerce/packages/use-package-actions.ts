@@ -7,6 +7,7 @@ import {
   rollbackPackageApi,
   savePackageApi,
   savePackageLocksApi,
+  syncLegacyBuiltinPackagesApi,
   validatePackageApi,
   type PackageLockDriftResponse,
   type PackageResponse,
@@ -60,6 +61,17 @@ export function usePackageActions({
       setSelectedPackageKey(packageKey(result))
       setDialog(null)
       notifySuccess(t("commerce.packages.notify.saved"))
+      await invalidate()
+    },
+  })
+  const syncLegacyBuiltins = useMutation({
+    mutationFn: () => syncLegacyBuiltinPackagesApi({ resetStatus: false }),
+    onSuccess: async (result) => {
+      notifySuccess(
+        t("commerce.packages.notify.legacySynced", {
+          count: result.totalCount,
+        })
+      )
       await invalidate()
     },
   })
@@ -132,6 +144,8 @@ export function usePackageActions({
     rollbackPackage: rollbackPackage.mutate,
     saveLock: saveLock.mutate,
     savePackage: savePackage.mutate,
+    syncLegacyBuiltins: syncLegacyBuiltins.mutate,
+    syncingLegacyBuiltins: syncLegacyBuiltins.isPending,
     validatePackage: validatePackage.mutate,
     validation,
   }

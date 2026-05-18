@@ -109,6 +109,43 @@ impl RoleRouter {
             scores: scored,
         }
     }
+
+    pub fn route_for_runtime_roles(
+        &self,
+        primary_runtime_role: &str,
+        support_runtime_roles: &[String],
+    ) -> Option<RoleRoute> {
+        let primary = self.catalog.role_by_runtime_role(primary_runtime_role)?;
+        let support = support_runtime_roles
+            .iter()
+            .filter_map(|runtime_role| self.catalog.role_by_runtime_role(runtime_role))
+            .filter(|role| role.runtime_role != primary.runtime_role)
+            .collect::<Vec<_>>();
+        let mut scores = Vec::with_capacity(1 + support.len());
+        scores.push(RoleScore {
+            role_id: primary.id.clone(),
+            runtime_role: primary.runtime_role.clone(),
+            score: 100.0,
+            keyword_hits: 0,
+        });
+        scores.extend(support.iter().map(|role| RoleScore {
+            role_id: role.id.clone(),
+            runtime_role: role.runtime_role.clone(),
+            score: 90.0,
+            keyword_hits: 0,
+        }));
+
+        Some(RoleRoute {
+            primary_role: primary.id.clone(),
+            primary_runtime_role: primary.runtime_role.clone(),
+            support_roles: support.iter().map(|role| role.id.clone()).collect(),
+            support_runtime_roles: support
+                .iter()
+                .map(|role| role.runtime_role.clone())
+                .collect(),
+            scores,
+        })
+    }
 }
 
 impl Default for RoleRouter {

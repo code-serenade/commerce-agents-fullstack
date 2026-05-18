@@ -82,7 +82,7 @@ fn bench_concurrent_sessions(c: &mut Criterion) {
             b.iter(|| {
                 runtime.block_on(async move {
                     let manager = Arc::new(build_manager());
-                    let handles = (0 .. total)
+                    let handles = (0..total)
                         .map(|index| {
                             let manager = Arc::clone(&manager);
                             tokio::spawn(async move {
@@ -121,6 +121,7 @@ fn request_for(index: usize) -> AgentRequest {
         agent_id: AgentId("bench-agent".to_string()),
         session_id: SessionId(format!("bench-session-{index}")),
         input: format!("benchmark request {index}"),
+        metadata: Default::default(),
     }
 }
 

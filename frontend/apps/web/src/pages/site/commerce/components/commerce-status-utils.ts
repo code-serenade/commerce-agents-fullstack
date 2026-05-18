@@ -43,6 +43,13 @@ export function toneForStatus(status?: string | null): StatusTone {
       "disabled",
       "deprecated",
       "blocked",
+      "adapter_not_implemented",
+      "connection_disabled",
+      "connection_missing",
+      "missing",
+      "unsupported",
+      "unsupported_action",
+      "validation_error",
     ].includes(status)
   ) {
     return "danger"

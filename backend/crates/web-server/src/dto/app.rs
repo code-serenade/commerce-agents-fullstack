@@ -181,6 +181,125 @@ pub struct CurrentUserPermissionsResponse {
     pub permission_codes: Vec<String>,
 }
 
+pub type CommerceAgentPlaybookListResponse =
+    service::dto::commerce_playbook::CommerceAgentPlaybookListResponse;
+pub type ExternalSearchStatusResponse = service::dto::external_search::ExternalSearchStatusResponse;
+pub type ExternalSearchResponse = service::dto::external_search::ExternalSearchResponse;
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentRuntimeOptionsResponse {
+    pub default_model_name: Option<String>,
+    pub models: Vec<AgentRuntimeModelOptionResponse>,
+    pub strategies: Vec<AgentRuntimeChoiceResponse>,
+    pub response_modes: Vec<AgentRuntimeChoiceResponse>,
+    pub learning_levels: Vec<AgentRuntimeChoiceResponse>,
+    pub collaboration_modes: Vec<AgentRuntimeChoiceResponse>,
+    pub roles: Vec<AgentRuntimeRoleOptionResponse>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentRuntimeModelOptionResponse {
+    pub name: String,
+    pub model: String,
+    pub is_default: bool,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentRuntimeChoiceResponse {
+    pub id: String,
+    pub label: String,
+    pub description: String,
+    pub is_default: bool,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentRuntimeRoleOptionResponse {
+    pub id: String,
+    pub name: String,
+    pub runtime_role: String,
+    pub capabilities: Vec<String>,
+    pub is_default: bool,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentCapabilityCatalogResponse {
+    pub source: String,
+    pub version: String,
+    pub summary: AgentCapabilityCatalogSummaryResponse,
+    pub roles: Vec<AgentCapabilityRoleResponse>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentCapabilityCatalogSummaryResponse {
+    pub role_count: usize,
+    pub skill_count: usize,
+    pub native_skill_count: usize,
+    pub adapter_skill_count: usize,
+    pub approval_skill_count: usize,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentCapabilityRoleResponse {
+    pub id: String,
+    pub name: String,
+    pub runtime_role: String,
+    pub priority: u32,
+    pub domains: Vec<String>,
+    pub keywords: Vec<String>,
+    pub preferred_actions: Vec<String>,
+    pub required_capabilities: Vec<String>,
+    pub optional_capabilities: Vec<String>,
+    pub skill_count: usize,
+    pub skills: Vec<AgentCapabilitySkillResponse>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentCapabilitySkillResponse {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub category: String,
+    pub priority: String,
+    pub execution_mode: String,
+    pub risk_level: String,
+    pub approval_required: bool,
+    pub adapter_requirements: Vec<String>,
+    pub tags: Vec<String>,
+    pub inputs: Vec<AgentCapabilitySkillInputResponse>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentCapabilitySkillInputResponse {
+    pub name: String,
+    pub description: String,
+    pub required: bool,
+    pub schema: Value,
+    pub default: Option<Value>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct ExternalSearchQuery {
+    #[validate(length(min = 1, max = 500))]
+    pub q: String,
+    #[validate(length(max = 32))]
+    pub topic: Option<String>,
+    #[validate(range(min = 1, max = 365))]
+    pub days: Option<u64>,
+    #[validate(range(min = 1, max = 12))]
+    pub max_results: Option<u64>,
+    pub bypass_cache: Option<bool>,
+}
+
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateConversationRequest {
@@ -223,6 +342,26 @@ pub struct RegisterConversationFileRequest {
     pub file_size: Option<i64>,
     #[validate(length(max = 128))]
     pub sha256: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateConversationFileExtractionRequest {
+    #[validate(length(max = 32))]
+    pub status: Option<String>,
+    #[validate(length(max = 100000))]
+    pub text: Option<String>,
+    #[validate(length(max = 32))]
+    pub content_kind: Option<String>,
+    #[validate(length(max = 64))]
+    pub source: Option<String>,
+    #[validate(length(max = 64))]
+    pub parser: Option<String>,
+    #[validate(length(max = 32))]
+    pub language: Option<String>,
+    #[validate(length(max = 2000))]
+    pub failure_reason: Option<String>,
+    pub metadata: Option<Value>,
 }
 
 #[derive(Debug, Deserialize, Validate)]
@@ -299,6 +438,7 @@ pub struct ConversationFileResponse {
     pub file_size: Option<i64>,
     pub sha256: Option<String>,
     pub status: String,
+    pub metadata: Value,
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
 }
@@ -334,6 +474,8 @@ pub struct CreateProductRequest {
     pub category: Option<String>,
     #[validate(length(max = 128))]
     pub brand: Option<String>,
+    #[validate(length(max = 32))]
+    pub status: Option<String>,
     #[validate(length(max = 20000))]
     pub description: Option<String>,
     #[validate(length(max = 64))]
@@ -362,6 +504,16 @@ pub struct UpdateProductRequest {
     pub price: Option<String>,
     #[validate(length(max = 16))]
     pub currency: Option<String>,
+    pub metadata: Option<Value>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct TransitionProductLifecycleRequest {
+    #[validate(length(min = 1, max = 32))]
+    pub target_status: String,
+    #[validate(length(max = 500))]
+    pub reason: Option<String>,
     pub metadata: Option<Value>,
 }
 
@@ -396,9 +548,14 @@ pub struct ProductDetailResponse {
 #[serde(rename_all = "camelCase")]
 pub struct ProductDashboardResponse {
     pub total: u64,
+    pub draft: u64,
+    pub listing: u64,
     pub active: u64,
     pub archived: u64,
 }
+
+pub type ProductLifecycleOptionsResponse = service::dto::product::ProductLifecycleOptionsResponse;
+pub type ProductLifecycleResponse = service::dto::product::ProductLifecycleResponse;
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
@@ -443,6 +600,44 @@ pub struct CreateCampaignRequest {
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
+pub struct CreateCampaignDraftRequest {
+    #[validate(length(max = 64))]
+    pub product_id: Option<String>,
+    #[validate(length(max = 64))]
+    pub workspace_id: Option<String>,
+    #[validate(length(max = 64))]
+    pub source_artifact_id: Option<String>,
+    #[validate(length(min = 1, max = 255))]
+    pub name: String,
+    #[validate(length(max = 64))]
+    pub campaign_type: Option<String>,
+    #[validate(length(max = 20000))]
+    pub description: Option<String>,
+    #[validate(range(min = 0.0))]
+    pub budget: Option<f64>,
+    #[validate(length(max = 32))]
+    pub start_date: Option<String>,
+    #[validate(length(max = 32))]
+    pub end_date: Option<String>,
+    #[validate(length(max = 2000))]
+    pub goal: Option<String>,
+    #[validate(length(max = 1000))]
+    pub target_audience: Option<String>,
+    #[validate(length(max = 16))]
+    pub channels: Option<Vec<String>>,
+    #[validate(length(max = 20000))]
+    pub strategy: Option<String>,
+    #[validate(length(max = 64))]
+    pub source_type: Option<String>,
+    #[validate(length(max = 20000))]
+    pub source_summary: Option<String>,
+    pub draft: Option<Value>,
+    pub metadata: Option<Value>,
+    pub action_metadata: Option<Value>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateCampaignRequest {
     #[validate(length(max = 64))]
     pub product_id: Option<String>,
@@ -472,6 +667,26 @@ pub struct CampaignListResponse {
     pub total: u64,
     pub page: u64,
     pub page_size: u64,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CampaignDraftResponse {
+    pub campaign: CampaignResponse,
+    pub source: CampaignDraftSourceResponse,
+    pub warnings: Vec<String>,
+    pub agent_context: Value,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CampaignDraftSourceResponse {
+    pub source_type: String,
+    pub product_id: Option<String>,
+    pub workspace_id: Option<String>,
+    pub source_artifact_id: Option<String>,
+    pub source_summary: Option<String>,
+    pub ref_keys: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -658,6 +873,104 @@ pub struct ListWorkspaceRunTasksQuery {
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
+pub struct ListAgentSkillRunsQuery {
+    #[validate(length(max = 32))]
+    pub status: Option<String>,
+    #[validate(length(max = 128))]
+    pub skill_id: Option<String>,
+    #[validate(length(max = 64))]
+    pub role: Option<String>,
+    #[validate(range(min = 1))]
+    pub page: Option<u64>,
+    #[validate(range(min = 1, max = 100))]
+    pub page_size: Option<u64>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct ListWorkspaceArtifactsQuery {
+    #[validate(length(max = 64))]
+    pub run_id: Option<String>,
+    #[validate(length(max = 64))]
+    pub workspace_task_id: Option<String>,
+    #[validate(length(max = 64))]
+    pub run_task_id: Option<String>,
+    #[validate(length(max = 64))]
+    pub artifact_type: Option<String>,
+    #[validate(length(max = 32))]
+    pub status: Option<String>,
+    #[validate(length(max = 255))]
+    pub keyword: Option<String>,
+    #[validate(range(min = 1))]
+    pub page: Option<u64>,
+    #[validate(range(min = 1, max = 100))]
+    pub page_size: Option<u64>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct ExportWorkspaceArtifactQuery {
+    #[validate(length(max = 32))]
+    pub format: Option<String>,
+    pub include_metadata: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct ListAgentQualityChecksQuery {
+    #[validate(range(min = 1))]
+    pub page: Option<u64>,
+    #[validate(range(min = 1, max = 100))]
+    pub page_size: Option<u64>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct EvaluateAgentRunQualityRequest {
+    #[validate(length(max = 64))]
+    pub artifact_id: Option<String>,
+    #[validate(length(max = 100000))]
+    pub output: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct SubmitAgentRunFeedbackRequest {
+    #[validate(range(min = 1, max = 5))]
+    pub rating: i32,
+    #[validate(length(max = 40000))]
+    pub comment: Option<String>,
+    pub metadata: Option<Value>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct ListAgentLearningRecordsQuery {
+    #[validate(length(max = 64))]
+    pub run_id: Option<String>,
+    #[validate(length(max = 64))]
+    pub role: Option<String>,
+    #[validate(length(max = 32))]
+    pub category: Option<String>,
+    #[validate(range(min = 1))]
+    pub page: Option<u64>,
+    #[validate(range(min = 1, max = 100))]
+    pub page_size: Option<u64>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct ListAgentTrustScoresQuery {
+    #[validate(length(max = 64))]
+    pub role: Option<String>,
+    #[validate(range(min = 1))]
+    pub page: Option<u64>,
+    #[validate(range(min = 1, max = 100))]
+    pub page_size: Option<u64>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateWorkspaceRunTaskRequest {
     #[validate(length(max = 64))]
     pub workspace_task_id: Option<String>,
@@ -695,6 +1008,78 @@ pub struct UpdateWorkspaceRunTaskRequest {
     pub acceptance_notes: Option<String>,
     #[validate(length(max = 40000))]
     pub execution_notes: Option<String>,
+    pub metadata: Option<Value>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateWorkspaceArtifactRequest {
+    #[validate(length(max = 64))]
+    pub run_id: Option<String>,
+    #[validate(length(max = 64))]
+    pub workspace_task_id: Option<String>,
+    #[validate(length(max = 64))]
+    pub run_task_id: Option<String>,
+    #[validate(length(min = 1, max = 64))]
+    pub artifact_type: String,
+    #[validate(length(min = 1, max = 255))]
+    pub title: String,
+    #[validate(length(max = 100000))]
+    pub content: Option<String>,
+    #[validate(length(max = 4000))]
+    pub preview: Option<String>,
+    #[validate(length(max = 128))]
+    pub mime_type: Option<String>,
+    #[validate(length(max = 64))]
+    pub format: Option<String>,
+    #[validate(length(max = 32))]
+    pub storage_kind: Option<String>,
+    #[validate(length(max = 128))]
+    pub bucket: Option<String>,
+    #[validate(length(max = 2048))]
+    pub object_key: Option<String>,
+    #[validate(length(max = 255))]
+    pub file_name: Option<String>,
+    pub file_size: Option<i64>,
+    #[validate(length(max = 128))]
+    pub sha256: Option<String>,
+    #[validate(length(max = 64))]
+    pub source: Option<String>,
+    #[validate(length(max = 32))]
+    pub validation_status: Option<String>,
+    pub validation_report: Option<Value>,
+    pub metadata: Option<Value>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateWorkspaceArtifactRequest {
+    #[validate(length(max = 255))]
+    pub title: Option<String>,
+    #[validate(length(max = 100000))]
+    pub content: Option<String>,
+    #[validate(length(max = 4000))]
+    pub preview: Option<String>,
+    #[validate(length(max = 128))]
+    pub mime_type: Option<String>,
+    #[validate(length(max = 64))]
+    pub format: Option<String>,
+    #[validate(length(max = 32))]
+    pub storage_kind: Option<String>,
+    #[validate(length(max = 128))]
+    pub bucket: Option<String>,
+    #[validate(length(max = 2048))]
+    pub object_key: Option<String>,
+    #[validate(length(max = 255))]
+    pub file_name: Option<String>,
+    pub file_size: Option<i64>,
+    #[validate(length(max = 128))]
+    pub sha256: Option<String>,
+    #[validate(length(max = 32))]
+    pub status: Option<String>,
+    #[validate(length(max = 32))]
+    pub validation_status: Option<String>,
+    pub validation_report: Option<Value>,
     pub metadata: Option<Value>,
 }
 
@@ -1124,6 +1509,55 @@ pub struct WorkspaceRunListResponse {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct WorkspaceArtifactListResponse {
+    pub artifacts: Vec<WorkspaceArtifactResponse>,
+    pub total: u64,
+    pub page: u64,
+    pub page_size: u64,
+}
+
+pub type AgentQualityCheckListResponse = service::dto::workspace::AgentQualityCheckListResponse;
+pub type AgentQualityEvaluationResponse = service::dto::workspace::AgentQualityEvaluationResponse;
+pub type AgentRunFeedbackResponse = service::dto::workspace::AgentRunFeedbackResponse;
+pub type AgentLearningRecordListResponse = service::dto::workspace::AgentLearningRecordListResponse;
+pub type AgentTrustScoreListResponse = service::dto::workspace::AgentTrustScoreListResponse;
+pub type AgentSkillRunListResponse = service::dto::workspace::AgentSkillRunListResponse;
+pub type WorkspaceArtifactExportResponse = service::dto::workspace::WorkspaceArtifactExportResponse;
+pub type WorkspaceContextSummaryResponse = service::dto::workspace::WorkspaceContextSummaryResponse;
+pub type WorkspaceContextPackResponse = service::dto::workspace::WorkspaceContextPackResponse;
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceContextSummaryQuery {
+    #[validate(length(max = 64))]
+    pub conversation_id: Option<String>,
+    #[validate(length(max = 64))]
+    pub product_id: Option<String>,
+    #[validate(length(max = 64))]
+    pub run_id: Option<String>,
+    #[validate(length(max = 3400))]
+    pub context_refs: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceContextPackQuery {
+    #[validate(length(max = 64))]
+    pub conversation_id: Option<String>,
+    #[validate(length(max = 64))]
+    pub product_id: Option<String>,
+    #[validate(length(max = 64))]
+    pub run_id: Option<String>,
+    #[validate(length(max = 3400))]
+    pub context_refs: Option<String>,
+    #[validate(range(min = 1, max = 50))]
+    pub max_items: Option<usize>,
+    #[validate(range(min = 1, max = 24000))]
+    pub max_chars: Option<usize>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExecutionQueueListResponse {
     pub items: Vec<ExecutionQueueResponse>,
     pub total: u64,
@@ -1213,6 +1647,38 @@ pub struct WorkspaceRunTaskResponse {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct WorkspaceArtifactResponse {
+    pub id: String,
+    pub workspace_id: String,
+    pub run_id: Option<String>,
+    pub workspace_task_id: Option<String>,
+    pub run_task_id: Option<String>,
+    pub user_id: String,
+    pub artifact_type: String,
+    pub title: String,
+    pub content: Option<String>,
+    pub preview: Option<String>,
+    pub mime_type: Option<String>,
+    pub format: String,
+    pub storage_kind: String,
+    pub bucket: Option<String>,
+    pub object_key: Option<String>,
+    pub file_name: Option<String>,
+    pub file_size: Option<i64>,
+    pub sha256: Option<String>,
+    pub source: String,
+    pub status: String,
+    pub validation_status: String,
+    pub validation_report: Value,
+    pub metadata: Value,
+    #[serde(with = "time::serde::rfc3339")]
+    pub created_at: OffsetDateTime,
+    #[serde(with = "time::serde::rfc3339")]
+    pub updated_at: OffsetDateTime,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExecutionQueueResponse {
     pub id: String,
     pub user_id: String,
@@ -1239,6 +1705,14 @@ pub struct ListPlatformConnectionsQuery {
     #[validate(length(max = 64))]
     pub platform: Option<String>,
     pub enabled: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct PlatformExecutionPreflightRequest {
+    #[validate(length(min = 1, max = 128))]
+    pub skill_name: String,
+    pub args: Option<Value>,
 }
 
 #[derive(Debug, Deserialize, Validate)]
@@ -1305,6 +1779,10 @@ pub type PlatformCatalogResponse = service::dto::platform_connect::PlatformCatal
 pub type PlatformConnectionListResponse =
     service::dto::platform_connect::PlatformConnectionListResponse;
 pub type PlatformConnectionResponse = service::dto::platform_connect::PlatformConnectionResponse;
+pub type PlatformExecutionAdapterCatalogResponse =
+    service::dto::platform_connect::PlatformExecutionAdapterCatalogResponse;
+pub type PlatformExecutionPreflightResponse =
+    service::dto::platform_connect::PlatformExecutionPreflightResponse;
 pub type PlatformSyncStatusListResponse =
     service::dto::platform_connect::PlatformSyncStatusListResponse;
 pub type PlatformSummaryResponse = service::dto::platform_connect::PlatformSummaryResponse;
@@ -1425,6 +1903,12 @@ pub struct PackageStatusChangeRequest {
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
+pub struct SyncLegacyBuiltinPackagesRequest {
+    pub reset_status: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
 pub struct ListPackageHistoryQuery {
     #[validate(range(min = 1, max = 500))]
     pub limit: Option<u64>,
@@ -1465,6 +1949,8 @@ pub type PackageValidationResponse = service::dto::package_governance::PackageVa
 pub type PackageHistoryListResponse = service::dto::package_governance::PackageHistoryListResponse;
 pub type PackageLockListResponse = service::dto::package_governance::PackageLockListResponse;
 pub type PackageLockDriftResponse = service::dto::package_governance::PackageLockDriftResponse;
+pub type SyncLegacyBuiltinPackagesResponse =
+    service::dto::package_governance::SyncLegacyBuiltinPackagesResponse;
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
@@ -1732,6 +2218,17 @@ pub struct ListProductCompetitorsQuery {
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
+pub struct ProductCompetitorAnalysisQuery {
+    #[validate(length(max = 32))]
+    pub status: Option<String>,
+    #[validate(length(max = 64))]
+    pub platform: Option<String>,
+    #[validate(range(min = 1, max = 500))]
+    pub change_limit: Option<u64>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateProductCompetitorRequest {
     #[validate(length(min = 1, max = 255))]
     pub name: String,
@@ -1849,3 +2346,6 @@ pub struct CompetitorChangeResponse {
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
 }
+
+pub type ProductCompetitorAnalysisResponse =
+    service::dto::product_competitor::ProductCompetitorAnalysisResponse;

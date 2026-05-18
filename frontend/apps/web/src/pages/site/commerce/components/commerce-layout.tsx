@@ -35,14 +35,18 @@ export function CommercePageHeader({
 
 export function CommerceSurface({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col overflow-hidden rounded-lg border border-(--app-border) bg-background">
+    <div className="mx-auto flex max-h-full min-h-0 w-full max-w-7xl flex-1 flex-col overflow-hidden rounded-lg border border-(--app-border) bg-background">
       {children}
     </div>
   )
 }
 
 export function CommerceBody({ children }: { children: ReactNode }) {
-  return <div className="space-y-4 p-4 sm:p-5">{children}</div>
+  return (
+    <div className="min-h-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto p-4 pr-3 [scrollbar-gutter:stable] sm:p-5 sm:pr-4">
+      {children}
+    </div>
+  )
 }
 
 export function CommercePanel({

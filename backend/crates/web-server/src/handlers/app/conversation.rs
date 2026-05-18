@@ -62,12 +62,13 @@ use crate::{
         SavePackageLocksRequest, SavePlatformConnectionRequest, SaveStoreMetricRequest,
         SnoozeAlertRequest, StoreMetricListResponse, StoreMetricResponse, ToolApprovalListResponse,
         ToolApprovalResponse, UpdateCampaignRequest, UpdateChannelConnectionRequest,
-        UpdateConversationRequest, UpdateLongTaskRequest, UpdatePackageRequest,
-        UpdatePlatformConnectionRequest, UpdateProductAssetRequest, UpdateProductCompetitorRequest,
-        UpdateProductKnowledgeRequest, UpdateProductMaterialRequest, UpdateProductRequest,
-        UpdateWorkspaceRequest, UpdateWorkspaceRunRequest, UpdateWorkspaceRunTaskRequest,
-        UpdateWorkspaceTaskRequest, UpsertDailyBriefingRecordRequest, UpsertPackageRequest,
-        WorkspaceListResponse, WorkspaceResponse, WorkspaceRunListResponse, WorkspaceRunResponse,
+        UpdateConversationFileExtractionRequest, UpdateConversationRequest, UpdateLongTaskRequest,
+        UpdatePackageRequest, UpdatePlatformConnectionRequest, UpdateProductAssetRequest,
+        UpdateProductCompetitorRequest, UpdateProductKnowledgeRequest,
+        UpdateProductMaterialRequest, UpdateProductRequest, UpdateWorkspaceRequest,
+        UpdateWorkspaceRunRequest, UpdateWorkspaceRunTaskRequest, UpdateWorkspaceTaskRequest,
+        UpsertDailyBriefingRecordRequest, UpsertPackageRequest, WorkspaceListResponse,
+        WorkspaceResponse, WorkspaceRunListResponse, WorkspaceRunResponse,
         WorkspaceRunTaskResponse, WorkspaceTaskListResponse, WorkspaceTaskResponse,
     },
     error::{Error, from_biz_error},
@@ -285,6 +286,34 @@ pub async fn get_conversation_file_access(
     .to_json())
 }
 
+pub async fn update_conversation_file_extraction(
+    Extension(auth_user): Extension<AuthUser>,
+    Path(file_id): Path<String>,
+    Json(req): Json<UpdateConversationFileExtractionRequest>,
+) -> ResponseResult<ConversationFileResponse> {
+    req.validate().map_err(Error::from)?;
+    let api = ConversationApi::new(get_app_ctx());
+    let file = api
+        .update_file_extraction(
+            service::dto::conversation::UpdateConversationFileExtractionRequest {
+                user_id: auth_user.user_id,
+                file_id,
+                status: req.status,
+                text: req.text,
+                content_kind: req.content_kind,
+                source: req.source,
+                parser: req.parser,
+                language: req.language,
+                failure_reason: req.failure_reason,
+                metadata: req.metadata,
+            },
+        )
+        .await
+        .map_err(from_biz_error)?;
+
+    Ok(map_file_response(file).into_common_response().to_json())
+}
+
 fn map_conversation_detail_response(
     detail: service::dto::conversation::ConversationDetailResponse,
 ) -> ConversationDetailResponse {
@@ -346,6 +375,7 @@ fn map_file_response(
         file_size: item.file_size,
         sha256: item.sha256,
         status: item.status,
+        metadata: item.metadata,
         created_at: item.created_at,
     }
 }

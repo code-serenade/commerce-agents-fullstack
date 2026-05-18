@@ -1,7 +1,17 @@
 import { FileText, ListChecks, PlugZap, ShieldAlert } from "lucide-react"
 import type { TFunction } from "i18next"
 import type { AgentRuntimeEvent, AgentTaskNode } from "@/api"
-import { resolveWorkerNodeId } from "./agent-runtime-event-mapping"
+import { readRuntimeNodeId, resolveWorkerNodeId } from "./agent-runtime-event-mapping"
+import {
+  hasBlockingTaskFailure,
+  hasBlockingWorkspaceFailure,
+  isBoundaryEvaluation,
+  isBoundaryReport,
+  isNonBlockingNodeFailure,
+  isNonBlockingWorkspaceFailure,
+  isNonBlockingSkillGap,
+  resolveSkillResultNodeId,
+} from "./thread-boundary-state-view-model"
 
 export type InlineAgentState =
   | "idle"
@@ -10,19 +20,12 @@ export type InlineAgentState =
   | "done"
   | "failed"
   | "reworking"
+  | "boundary"
 
 export interface InlineAgent {
   nodeId: string
   name: string
   summary: string
-  status: string
-  state: InlineAgentState
-}
-
-export interface InlineArtifact {
-  filename: string
-  meta: string
-  nodeId: string
   status: string
   state: InlineAgentState
 }
@@ -96,31 +99,6 @@ export function getInlineSteps(
   ]
 }
 
-export function getInlineArtifacts(
-  agents: InlineAgent[],
-  hasRuntime: boolean,
-  isStreaming: boolean,
-  t: TFunction
-): InlineArtifact[] {
-  const stateByNode = new Map(
-    agents.map((agent) => [agent.nodeId, agent.state])
-  )
-  const fallbackState = hasRuntime ? "queued" : isStreaming ? "working" : "idle"
-  const specs = [
-    ["research.dimension.report.md", "MD", "data", t("agentChat.thread.artifactSpecs.dataStatus")],
-    ["douyin.ads.launch.plan.xlsx", "XLSX", "douyin_ads", t("agentChat.thread.artifactSpecs.adsStatus")],
-    [t("agentChat.thread.artifactSpecs.deliveryFile"), "DOCX", "delivery", t("agentChat.thread.artifactSpecs.deliveryStatus")],
-  ] as const
-
-  return specs.map(([filename, meta, nodeId, status]) => ({
-    filename,
-    meta,
-    nodeId,
-    status,
-    state: stateByNode.get(nodeId) ?? fallbackState,
-  }))
-}
-
 export function getCommerceHandoffItems(t: TFunction) {
   return [
     { icon: PlugZap, label: t("agentChat.thread.handoff.context.label"), detail: t("agentChat.thread.handoff.context.detail") },
@@ -139,8 +117,18 @@ export function getInlineProcessStage(
   t: TFunction
 ) {
   const { hasRuntime, isStreaming, runtimeEvents } = input
-  if (runtimeEvents.some((event) => event.type === "task_node_failed")) {
+  if (hasBlockingTaskFailure(runtimeEvents)) {
     return t("agentChat.thread.processStage.failed")
+  }
+  if (hasBlockingWorkspaceFailure(runtimeEvents)) {
+    return t("agentChat.thread.processStage.failed")
+  }
+  if (
+    runtimeEvents.some(
+      (event) => event.type === "workspace_artifact_created" || event.type === "workspace_run_completed"
+    )
+  ) {
+    return t("agentChat.thread.processStage.finished")
   }
   if (runtimeEvents.some((event) => event.type === "task_graph_finished")) {
     return t("agentChat.thread.processStage.finished")
@@ -160,6 +148,7 @@ export function getInlineArtifactStateLabel(
   t: TFunction
 ) {
   if (state === "done") return t("agentChat.thread.artifactState.done")
+  if (state === "boundary") return t("agentChat.thread.artifactState.boundary")
   if (state === "working" || state === "reworking") {
     return t("agentChat.thread.artifactState.working")
   }
@@ -170,6 +159,7 @@ export function getInlineArtifactStateLabel(
 
 export function shouldLightInlinePixel(state: InlineAgentState, index: number) {
   if (state === "done") return index < 12
+  if (state === "boundary") return index < 8
   if (state === "working" || state === "reworking") return index < 5
   if (state === "failed") return index < 4
   if (state === "queued") return index < 2
@@ -195,6 +185,15 @@ function getInlineGraphNodes(runtimeEvents: AgentRuntimeEvent[]): AgentTaskNode[
 }
 
 export function isChatOnlyRuntime(runtimeEvents: AgentRuntimeEvent[]) {
+  if (
+    runtimeEvents.some(
+      (event) =>
+        event.type === "route_decided" && event.route_mode === "chat_bypass"
+    )
+  ) {
+    return true
+  }
+
   const graphNodes = getInlineGraphNodes(runtimeEvents)
   if (graphNodes.length !== 1) return false
 
@@ -227,24 +226,62 @@ function getInlineNodeStates(runtimeEvents: AgentRuntimeEvent[]) {
         states.set(readInlineId(node.id), "queued")
       )
     } else if (event.type === "task_node_ready") {
-      states.set(event.nodeId, "queued")
+      states.set(readRuntimeNodeId(event), "queued")
     } else if (event.type === "task_node_started") {
-      states.set(event.nodeId, "working")
+      states.set(readRuntimeNodeId(event), "working")
     } else if (event.type === "task_node_reported") {
-      states.set(event.nodeId, event.report.status === "failed" ? "failed" : "done")
+      states.set(
+        readRuntimeNodeId(event),
+        isBoundaryReport(event.report) ? "boundary" : event.report.status === "failed" ? "failed" : "done"
+      )
     } else if (event.type === "task_node_evaluated") {
       const nodeId = readInlineId(event.evaluation.node_id)
-      if (event.evaluation.passed) states.set(nodeId, "done")
+      if (event.evaluation.passed && states.get(nodeId) !== "boundary") {
+        states.set(nodeId, "done")
+      } else if (isBoundaryEvaluation(event.evaluation, runtimeEvents)) {
+        if (states.get(nodeId) !== "done") states.set(nodeId, "boundary")
+      }
     } else if (event.type === "task_node_rework_requested") {
-      states.set(event.nodeId, "reworking")
+      states.set(readRuntimeNodeId(event), "reworking")
     } else if (event.type === "task_node_passed") {
-      states.set(event.nodeId, "done")
+      const nodeId = readRuntimeNodeId(event)
+      if (states.get(nodeId) !== "boundary") states.set(nodeId, "done")
     } else if (event.type === "task_node_failed") {
-      states.set(event.nodeId, "failed")
+      const nodeId = readRuntimeNodeId(event)
+      if (isNonBlockingNodeFailure(event, runtimeEvents)) {
+        if (states.get(nodeId) !== "done") states.set(nodeId, "boundary")
+      } else {
+        states.set(nodeId, "failed")
+      }
+    } else if (event.type === "skill_requested") {
+      const nodeId = resolveWorkerNodeId(event)
+      if (states.get(nodeId) !== "boundary") states.set(nodeId, "working")
+    } else if (event.type === "skill_result") {
+      const nodeId = resolveSkillResultNodeId(event)
+      if (isNonBlockingSkillGap(event, runtimeEvents)) {
+        if (states.get(nodeId) !== "done") states.set(nodeId, "boundary")
+      } else {
+        states.set(
+          nodeId,
+          event.status === "failed" || event.status === "not_found" || event.status === "validation_error"
+            ? "failed"
+            : "working"
+        )
+      }
     } else if (event.type === "worker_started") {
-      states.set(resolveWorkerNodeId(event), "working")
+      const nodeId = resolveWorkerNodeId(event)
+      if (states.get(nodeId) !== "boundary") states.set(nodeId, "working")
     } else if (event.type === "worker_finished") {
-      states.set(resolveWorkerNodeId(event), "done")
+      const nodeId = resolveWorkerNodeId(event)
+      if (states.get(nodeId) !== "boundary") states.set(nodeId, "done")
+    } else if (event.type === "workspace_artifact_created" || event.type === "workspace_run_completed") {
+      states.set("delivery", "done")
+    } else if (event.type === "workspace_run_failed") {
+      if (!isNonBlockingWorkspaceFailure(event, runtimeEvents)) {
+        states.set("delivery", "failed")
+      } else {
+        states.set("delivery", "boundary")
+      }
     } else if (event.type === "failed") {
       states.set("ops", "failed")
     } else if (event.type === "finished") {
@@ -266,6 +303,7 @@ function getInlineStateLabel(state: InlineAgentState, t: TFunction) {
   if (state === "done") return t("agentChat.thread.inlineState.done")
   if (state === "working") return t("agentChat.thread.inlineState.working")
   if (state === "reworking") return t("agentChat.thread.inlineState.reworking")
+  if (state === "boundary") return t("agentChat.thread.inlineState.boundary")
   if (state === "failed") return t("agentChat.thread.inlineState.failed")
   if (state === "queued") return t("agentChat.thread.inlineState.queued")
   return t("agentChat.thread.inlineState.idle")

@@ -57,17 +57,19 @@ use crate::{
         PresignProductAssetUploadRequest, PresignProductAssetUploadResponse,
         ProductAssetAccessResponse, ProductAssetResponse, ProductCompetitorResponse,
         ProductDashboardResponse, ProductDetailResponse, ProductKnowledgeResponse,
-        ProductMaterialResponse, ProductResponse, RegisterAppUserRequest,
-        RegisterConversationFileRequest, RegisterProductAssetRequest, SaveChannelConnectionRequest,
-        SavePackageLocksRequest, SavePlatformConnectionRequest, SaveStoreMetricRequest,
-        SnoozeAlertRequest, StoreMetricListResponse, StoreMetricResponse, ToolApprovalListResponse,
-        ToolApprovalResponse, UpdateCampaignRequest, UpdateChannelConnectionRequest,
-        UpdateConversationRequest, UpdateLongTaskRequest, UpdatePackageRequest,
-        UpdatePlatformConnectionRequest, UpdateProductAssetRequest, UpdateProductCompetitorRequest,
-        UpdateProductKnowledgeRequest, UpdateProductMaterialRequest, UpdateProductRequest,
-        UpdateWorkspaceRequest, UpdateWorkspaceRunRequest, UpdateWorkspaceRunTaskRequest,
-        UpdateWorkspaceTaskRequest, UpsertDailyBriefingRecordRequest, UpsertPackageRequest,
-        WorkspaceListResponse, WorkspaceResponse, WorkspaceRunListResponse, WorkspaceRunResponse,
+        ProductLifecycleOptionsResponse, ProductLifecycleResponse, ProductMaterialResponse,
+        ProductResponse, RegisterAppUserRequest, RegisterConversationFileRequest,
+        RegisterProductAssetRequest, SaveChannelConnectionRequest, SavePackageLocksRequest,
+        SavePlatformConnectionRequest, SaveStoreMetricRequest, SnoozeAlertRequest,
+        StoreMetricListResponse, StoreMetricResponse, ToolApprovalListResponse,
+        ToolApprovalResponse, TransitionProductLifecycleRequest, UpdateCampaignRequest,
+        UpdateChannelConnectionRequest, UpdateConversationRequest, UpdateLongTaskRequest,
+        UpdatePackageRequest, UpdatePlatformConnectionRequest, UpdateProductAssetRequest,
+        UpdateProductCompetitorRequest, UpdateProductKnowledgeRequest,
+        UpdateProductMaterialRequest, UpdateProductRequest, UpdateWorkspaceRequest,
+        UpdateWorkspaceRunRequest, UpdateWorkspaceRunTaskRequest, UpdateWorkspaceTaskRequest,
+        UpsertDailyBriefingRecordRequest, UpsertPackageRequest, WorkspaceListResponse,
+        WorkspaceResponse, WorkspaceRunListResponse, WorkspaceRunResponse,
         WorkspaceRunTaskResponse, WorkspaceTaskListResponse, WorkspaceTaskResponse,
     },
     error::{Error, from_biz_error},
@@ -109,6 +111,7 @@ pub async fn create_product(
             external_id: req.external_id,
             category: req.category,
             brand: req.brand,
+            status: req.status,
             description: req.description,
             price: req.price,
             currency: req.currency,
@@ -197,11 +200,62 @@ pub async fn product_dashboard(
 
     Ok(ProductDashboardResponse {
         total: dashboard.total,
+        draft: dashboard.draft,
+        listing: dashboard.listing,
         active: dashboard.active,
         archived: dashboard.archived,
     }
     .into_common_response()
     .to_json())
+}
+
+pub async fn product_lifecycle_options(
+    Extension(auth_user): Extension<AuthUser>,
+) -> ResponseResult<ProductLifecycleOptionsResponse> {
+    let api = ProductApi::new(get_app_ctx());
+    let options = api
+        .lifecycle_options(auth_user.user_id)
+        .await
+        .map_err(from_biz_error)?;
+
+    Ok(options.into_common_response().to_json())
+}
+
+pub async fn get_product_lifecycle(
+    Extension(auth_user): Extension<AuthUser>,
+    Path(product_id): Path<String>,
+) -> ResponseResult<ProductLifecycleResponse> {
+    let api = ProductApi::new(get_app_ctx());
+    let lifecycle = api
+        .get_lifecycle(service::dto::product::GetProductLifecycleRequest {
+            user_id: auth_user.user_id,
+            product_id,
+        })
+        .await
+        .map_err(from_biz_error)?;
+
+    Ok(lifecycle.into_common_response().to_json())
+}
+
+pub async fn transition_product_lifecycle(
+    Extension(auth_user): Extension<AuthUser>,
+    Path(product_id): Path<String>,
+    Json(req): Json<TransitionProductLifecycleRequest>,
+) -> ResponseResult<ProductLifecycleResponse> {
+    req.validate().map_err(Error::from)?;
+    let api = ProductApi::new(get_app_ctx());
+    let lifecycle = api
+        .transition_lifecycle(service::dto::product::TransitionProductLifecycleRequest {
+            user_id: auth_user.user_id,
+            product_id,
+            target_status: req.target_status,
+            reason: req.reason,
+            metadata: req.metadata,
+        })
+        .await
+        .map_err(from_biz_error)?;
+
+    Ok(lifecycle.into_common_response().to_json())
 }
 
 fn map_product_response(item: service::dto::product::ProductResponse) -> ProductResponse {

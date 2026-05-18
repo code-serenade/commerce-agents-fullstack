@@ -64,9 +64,23 @@ temperature = 0.2
 | `max_tokens` | 否 | 默认输出 token 上限 |
 | `temperature` | 否 | 默认温度 |
 | `reasoning_effort` | 否 | 支持 reasoning effort 的 provider 使用 |
-| `chat_completions_endpoint` | 否 | 特殊 provider 覆盖 endpoint 时使用，普通情况不需要配置 |
+| `chat_completions_endpoint` | 否 | 特殊 provider 覆盖 endpoint 时使用，普通情况不需要配置；当 `base_url` 已以 `/v1`、`/api/v1` 或 `/api/v3` 结尾时，客户端会自动请求 `chat/completions` |
 
-顶层 `default_llm` 可选，用于指定默认使用哪个 `[[llm]].name`。如果不配置，默认使用第一个 `[[llm]]`。
+顶层 `default_llm` 可选，用于指定默认使用哪个 `[[llm]].name`。如果不配置，运行选项接口和 Agent runtime 都会优先选择真实配置的豆包模型（`name` 或 `model` 包含 `doubao`），否则使用第一个 `[[llm]]`。前端只展示 `services.toml` 里真实存在的模型，不会伪造豆包选项。
+
+当前仓库提交的 `backend/config/services.toml` 没有真实豆包 Ark 配置，也没有 Ark API key；因此当前本地运行时不会调用豆包。要启用豆包，必须在部署机器的 `services.toml` 中添加真实 `[[llm]]` 配置并设置 `default_llm`，不要把真实 key 提交到仓库。
+
+豆包 Ark 示例：
+
+```toml
+[[llm]]
+name = "doubao-external"
+base_url = "https://ark.cn-beijing.volces.com/api/v3"
+model = "doubao-seed-2-0-pro-260215"
+api_key = "CHANGE_ME"
+max_tokens = 20000
+temperature = 0.2
+```
 
 本地 Ollama agent smoke 测试：
 

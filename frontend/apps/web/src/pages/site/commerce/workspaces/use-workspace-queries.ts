@@ -1,10 +1,17 @@
 import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import {
+  exportWorkspaceArtifactApi,
   getExecutionQueueApi,
+  getWorkspaceArtifactApi,
   getWorkspaceApi,
   getWorkspaceRunApi,
   listExecutionQueueApi,
+  listAgentLearningRecordsApi,
+  listAgentQualityChecksApi,
+  listAgentSkillRunsApi,
+  listAgentTrustScoresApi,
+  listWorkspaceArtifactsApi,
   listWorkspaceRunsApi,
   listWorkspaceRunTasksApi,
   listWorkspacesApi,
@@ -15,10 +22,12 @@ export const workspacesQueryKey = ["commerce", "workspaces"]
 
 export function useWorkspaceQueries({
   keyword,
+  selectedArtifactId,
   selectedRunId,
   selectedWorkspaceId,
 }: {
   keyword: string
+  selectedArtifactId: string | null
   selectedRunId: string | null
   selectedWorkspaceId: string | null
 }) {
@@ -89,6 +98,94 @@ export function useWorkspaceQueries({
     enabled: Boolean(workspaceId && selectedRun?.id),
     queryFn: () => listWorkspaceRunTasksApi(workspaceId!, selectedRun!.id),
   })
+  const skillRunsQuery = useQuery({
+    queryKey: [
+      ...workspacesQueryKey,
+      workspaceId,
+      "runs",
+      selectedRun?.id,
+      "skill-runs",
+    ],
+    enabled: Boolean(workspaceId && selectedRun?.id),
+    queryFn: () =>
+      listAgentSkillRunsApi(workspaceId!, selectedRun!.id, { pageSize: 100 }),
+  })
+  const qualityChecksQuery = useQuery({
+    queryKey: [
+      ...workspacesQueryKey,
+      workspaceId,
+      "runs",
+      selectedRun?.id,
+      "quality-checks",
+    ],
+    enabled: Boolean(workspaceId && selectedRun?.id),
+    queryFn: () =>
+      listAgentQualityChecksApi(workspaceId!, selectedRun!.id, {
+        pageSize: 20,
+      }),
+  })
+  const learningRecordsQuery = useQuery({
+    queryKey: [...workspacesQueryKey, workspaceId, selectedRun?.id, "learnings"],
+    enabled: Boolean(workspaceId),
+    queryFn: () =>
+      listAgentLearningRecordsApi(workspaceId!, {
+        pageSize: 20,
+        runId: selectedRun?.id,
+      }),
+  })
+  const trustScoresQuery = useQuery({
+    queryKey: [...workspacesQueryKey, "trust-scores"],
+    queryFn: () => listAgentTrustScoresApi({ pageSize: 20 }),
+  })
+  const artifactsQuery = useQuery({
+    queryKey: [...workspacesQueryKey, workspaceId, "artifacts"],
+    enabled: Boolean(workspaceId),
+    queryFn: () =>
+      listWorkspaceArtifactsApi(workspaceId!, {
+        pageSize: 100,
+        status: "active",
+      }),
+  })
+  const artifacts = useMemo(
+    () => artifactsQuery.data?.artifacts ?? [],
+    [artifactsQuery.data?.artifacts]
+  )
+  const selectedArtifactSnapshot = useMemo(() => {
+    if (!artifacts.length) return null
+
+    return (
+      artifacts.find((artifact) => artifact.id === selectedArtifactId) ??
+      artifacts[0]
+    )
+  }, [artifacts, selectedArtifactId])
+  const artifactDetailQuery = useQuery({
+    queryKey: [
+      ...workspacesQueryKey,
+      workspaceId,
+      "artifacts",
+      selectedArtifactSnapshot?.id,
+      "detail",
+    ],
+    enabled: Boolean(workspaceId && selectedArtifactSnapshot?.id),
+    queryFn: () =>
+      getWorkspaceArtifactApi(workspaceId!, selectedArtifactSnapshot!.id),
+  })
+  const selectedArtifact =
+    artifactDetailQuery.data ?? selectedArtifactSnapshot
+  const artifactExportQuery = useQuery({
+    queryKey: [
+      ...workspacesQueryKey,
+      workspaceId,
+      "artifacts",
+      selectedArtifact?.id,
+      "export",
+    ],
+    enabled: Boolean(workspaceId && selectedArtifact?.id),
+    queryFn: () =>
+      exportWorkspaceArtifactApi(workspaceId!, selectedArtifact!.id, {
+        format: selectedArtifact?.format,
+      }),
+  })
   const selectedExecutionSnapshot =
     executionQueueQuery.data?.items.find((item) => item.status === "pending") ??
     executionQueueQuery.data?.items[0] ??
@@ -105,6 +202,8 @@ export function useWorkspaceQueries({
   })
 
   return {
+    artifacts,
+    artifactExport: artifactExportQuery.data ?? null,
     executionQueue: executionQueueQuery.data?.items ?? [],
     focusedExecution:
       executionDetailQuery.data ?? selectedExecutionSnapshot,
@@ -116,12 +215,24 @@ export function useWorkspaceQueries({
       runDetailQuery.isLoading ||
       executionQueueQuery.isLoading ||
       executionDetailQuery.isLoading ||
-      runTasksQuery.isLoading,
+      runTasksQuery.isLoading ||
+      skillRunsQuery.isLoading ||
+      qualityChecksQuery.isLoading ||
+      learningRecordsQuery.isLoading ||
+      trustScoresQuery.isLoading ||
+      artifactsQuery.isLoading ||
+      artifactDetailQuery.isLoading ||
+      artifactExportQuery.isLoading,
     runTasks: runTasksQuery.data ?? [],
     runs,
+    selectedArtifact,
     selectedRun,
     selectedWorkspace,
+    learningRecords: learningRecordsQuery.data?.records ?? [],
+    qualityChecks: qualityChecksQuery.data?.checks ?? [],
+    skillRuns: skillRunsQuery.data?.skillRuns ?? [],
     tasks: tasksQuery.data?.tasks ?? [],
+    trustScores: trustScoresQuery.data?.scores ?? [],
     workspaces,
   }
 }

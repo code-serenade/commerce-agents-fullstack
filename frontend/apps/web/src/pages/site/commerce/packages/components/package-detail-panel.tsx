@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next"
-import { Button, Input } from "@workspace/ui-components"
+import { Button, NativeSelect } from "@workspace/ui-components"
 import {
   CommercePanel,
   CommerceTable,
@@ -114,17 +114,43 @@ function PackageLocksPanel({ page }: { page: PackagesPageState }) {
       }
     >
       <div className="mb-3 grid gap-2 sm:grid-cols-2">
-        <Input
+        <NativeSelect
           value={page.workspaceId}
-          placeholder={"workspaceId"}
+          placeholder={t("commerce.packages.panels.selectWorkspace")}
           onValueChange={page.setWorkspaceId}
+          options={page.workspaces.map((workspace) => ({
+            label: workspace.title,
+            value: workspace.id,
+          }))}
         />
-        <Input
+        <NativeSelect
           value={page.runId}
-          placeholder={"runId"}
+          placeholder={t("commerce.packages.panels.selectRun")}
           onValueChange={page.setRunId}
+          options={page.runs.map((run) => ({
+            label: `${run.goal || run.id.slice(0, 8)} · ${run.status}`,
+            value: run.id,
+          }))}
+          disabled={!page.workspaceId || page.runs.length === 0}
         />
       </div>
+      {page.workspaceId && page.runId ? (
+        <div className="mb-3">
+          <InlineAlert
+            variant="success"
+            title={t("commerce.packages.panels.lockContext")}
+            description={t("commerce.packages.panels.lockContextDesc", {
+              run:
+                page.selectedRun?.goal ||
+                page.selectedRun?.id.slice(0, 8) ||
+                page.runId.slice(0, 8),
+              workspace:
+                page.selectedWorkspace?.title ||
+                page.workspaceId.slice(0, 8),
+            })}
+          />
+        </div>
+      ) : null}
       {page.drift ? (
         <div className="mb-3">
           <InlineAlert
@@ -139,7 +165,11 @@ function PackageLocksPanel({ page }: { page: PackagesPageState }) {
       <CommerceTable
         loading={page.loading}
         items={page.locks}
-        emptyText={t("commerce.packages.panels.emptyLocks")}
+        emptyText={
+          page.workspaceId && page.runId
+            ? t("commerce.packages.panels.emptyLocksForRun")
+            : t("commerce.packages.panels.emptyLocks")
+        }
         getRowId={(item, index) =>
           item.id ?? `${item.packageType}:${item.packageId}:${index}`
         }

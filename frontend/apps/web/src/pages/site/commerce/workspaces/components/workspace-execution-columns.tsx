@@ -32,9 +32,7 @@ export function createExecutionColumns(
     {
       key: "status",
       header: t("commerce.common.status"),
-      render: (item) => (
-        <StatusBadge tone={toneForStatus(item.status)}>{item.status}</StatusBadge>
-      ),
+      render: renderExecutionStatus,
     },
     {
       key: "actions",
@@ -61,4 +59,29 @@ export function createExecutionColumns(
       ),
     },
   ]
+}
+
+function renderExecutionStatus(item: ExecutionQueueResponse) {
+  const adapterStatus = getString(item.result, "adapterStatus")
+  const message = getString(item.result, "message")
+
+  return (
+    <div className="space-y-1">
+      <StatusBadge tone={toneForStatus(item.status)}>{item.status}</StatusBadge>
+      {adapterStatus ? (
+        <StatusBadge tone={toneForStatus(adapterStatus)}>{adapterStatus}</StatusBadge>
+      ) : null}
+      {message ? <MutedText>{message}</MutedText> : null}
+    </div>
+  )
+}
+
+function getString(
+  value: Record<string, unknown> | undefined,
+  key: string
+): string | undefined {
+  const candidate = value?.[key]
+  return typeof candidate === "string" && candidate.trim()
+    ? candidate
+    : undefined
 }

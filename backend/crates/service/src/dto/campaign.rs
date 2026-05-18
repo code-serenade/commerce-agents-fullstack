@@ -30,6 +30,29 @@ pub struct CreateCampaignRequest {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct CreateCampaignDraftRequest {
+    pub user_id: String,
+    pub product_id: Option<String>,
+    pub workspace_id: Option<String>,
+    pub source_artifact_id: Option<String>,
+    pub name: String,
+    pub campaign_type: Option<String>,
+    pub description: Option<String>,
+    pub budget: Option<f64>,
+    pub start_date: Option<String>,
+    pub end_date: Option<String>,
+    pub goal: Option<String>,
+    pub target_audience: Option<String>,
+    pub channels: Option<Vec<String>>,
+    pub strategy: Option<String>,
+    pub source_type: Option<String>,
+    pub source_summary: Option<String>,
+    pub draft: Option<Value>,
+    pub metadata: Option<Value>,
+    pub action_metadata: Option<Value>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct GetCampaignRequest {
     pub user_id: String,
     pub campaign_id: String,
@@ -64,6 +87,24 @@ pub struct CampaignListResponse {
     pub total: u64,
     pub page: u64,
     pub page_size: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CampaignDraftResponse {
+    pub campaign: CampaignResponse,
+    pub source: CampaignDraftSourceResponse,
+    pub warnings: Vec<String>,
+    pub agent_context: Value,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CampaignDraftSourceResponse {
+    pub source_type: String,
+    pub product_id: Option<String>,
+    pub workspace_id: Option<String>,
+    pub source_artifact_id: Option<String>,
+    pub source_summary: Option<String>,
+    pub ref_keys: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]

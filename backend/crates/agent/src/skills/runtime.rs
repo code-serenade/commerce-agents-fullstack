@@ -6,8 +6,9 @@ use serde_json::{Map, Value, json};
 use thiserror::Error;
 
 use crate::skills::{
-    Skill, SkillCategory, SkillContext, SkillError, SkillOutcome, SkillSpec, accounting,
-    coordination, creative, data, design, engineering, ops, search, service, staged_specs, web,
+    SearchAdapterConfig, Skill, SkillCategory, SkillContext, SkillError, SkillOutcome, SkillSpec,
+    accounting, coordination, creative, data, design, douyin_ads, engineering, learning, ops,
+    search, service, staged_specs, web,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -210,7 +211,7 @@ impl SkillRegistry {
     pub fn by_execution_mode(&self, mode: SkillExecutionMode) -> Vec<&SkillSpec> {
         self.specs
             .values()
-            .filter(|spec| execution_mode(spec) == mode)
+            .filter(|spec| execution_mode_for_spec(spec) == mode)
             .collect()
     }
 }
@@ -223,15 +224,27 @@ pub trait SkillExecutor: Send + Sync {
 #[derive(Clone, Debug)]
 pub struct LocalSkillExecutor {
     registry: SkillRegistry,
+    search: SearchAdapterConfig,
 }
 
 impl LocalSkillExecutor {
     pub fn new(registry: SkillRegistry) -> Self {
-        Self { registry }
+        Self {
+            registry,
+            search: SearchAdapterConfig::default(),
+        }
+    }
+
+    pub fn new_with_search(registry: SkillRegistry, search: SearchAdapterConfig) -> Self {
+        Self { registry, search }
     }
 
     pub fn staged() -> Result<Self, SkillRuntimeError> {
         Ok(Self::new(SkillRegistry::staged()?))
+    }
+
+    pub fn staged_with_search(search: SearchAdapterConfig) -> Result<Self, SkillRuntimeError> {
+        Ok(Self::new_with_search(SkillRegistry::staged()?, search))
     }
 
     pub fn registry(&self) -> &SkillRegistry {
@@ -266,11 +279,12 @@ impl SkillExecutor for LocalSkillExecutor {
             );
         }
 
-        let mode = execution_mode(spec);
+        let mode = execution_mode_for_spec(spec);
         let outcome = run_known_skill(
             spec.id.as_str(),
             request.input.clone(),
             request.context.clone(),
+            &self.search,
         )
         .await;
         match outcome {
@@ -293,6 +307,12 @@ impl SkillExecutorSet {
     pub fn staged() -> Result<Self, SkillRuntimeError> {
         Ok(Self {
             local: LocalSkillExecutor::staged()?,
+        })
+    }
+
+    pub fn staged_with_search(search: SearchAdapterConfig) -> Result<Self, SkillRuntimeError> {
+        Ok(Self {
+            local: LocalSkillExecutor::staged_with_search(search)?,
         })
     }
 
@@ -330,17 +350,26 @@ fn validate_request(spec: &SkillSpec, input: &Value) -> Result<(), SkillError> {
     Ok(())
 }
 
-fn execution_mode(spec: &SkillSpec) -> SkillExecutionMode {
-    if spec.tags.iter().any(|tag| tag == "deferred") {
+pub fn execution_mode_for_spec(spec: &SkillSpec) -> SkillExecutionMode {
+    if spec.tags.iter().any(|tag| tag == "deferred")
+        && custom_category(spec) != Some("search")
+        && !spec.tags.iter().any(|tag| tag == "pending_approval")
+    {
         SkillExecutionMode::Deferred
-    } else if adapter_kinds(spec).is_empty() {
+    } else if custom_category(spec) == Some("search")
+        || spec.tags.iter().any(|tag| tag == "adapter")
+        || spec.tags.iter().any(|tag| tag == "pending_approval")
+        || spec.id.starts_with("platform_")
+    {
+        SkillExecutionMode::Adapter
+    } else if adapter_kinds_for_spec(spec).is_empty() {
         SkillExecutionMode::Native
     } else {
         SkillExecutionMode::Adapter
     }
 }
 
-fn adapter_kinds(spec: &SkillSpec) -> BTreeSet<SkillAdapterKind> {
+pub fn adapter_kinds_for_spec(spec: &SkillSpec) -> BTreeSet<SkillAdapterKind> {
     let mut kinds = BTreeSet::new();
     let category = custom_category(spec);
     if category == Some("search") {
@@ -366,7 +395,7 @@ fn adapter_kinds(spec: &SkillSpec) -> BTreeSet<SkillAdapterKind> {
     kinds
 }
 
-fn risk_level(spec: &SkillSpec) -> SkillRiskLevel {
+pub fn risk_level_for_spec(spec: &SkillSpec) -> SkillRiskLevel {
     if spec.tags.iter().any(|tag| tag == "pending_approval") || spec.id.starts_with("platform_") {
         SkillRiskLevel::High
     } else if spec.tags.iter().any(|tag| tag == "deferred")
@@ -384,12 +413,12 @@ fn add_runtime_metadata(
     mode: SkillExecutionMode,
 ) {
     metadata.insert("execution_mode".to_string(), json!(mode));
-    metadata.insert("risk_level".to_string(), json!(risk_level(spec)));
+    metadata.insert("risk_level".to_string(), json!(risk_level_for_spec(spec)));
     metadata.insert(
         "approval_required".to_string(),
-        json!(risk_level(spec) == SkillRiskLevel::High),
+        json!(risk_level_for_spec(spec) == SkillRiskLevel::High),
     );
-    let adapters = adapter_kinds(spec).into_iter().collect::<Vec<_>>();
+    let adapters = adapter_kinds_for_spec(spec).into_iter().collect::<Vec<_>>();
     if !adapters.is_empty() {
         metadata.insert("adapter_requirements".to_string(), json!(adapters));
     }
@@ -415,31 +444,45 @@ async fn run_known_skill(
     id: &str,
     input: Value,
     context: SkillContext,
+    search_config: &SearchAdapterConfig,
 ) -> Result<SkillOutcome, SkillError> {
     match custom_category_from_id(id) {
         "ops" => return ops::execute(id, input, &context).await,
         "accounting" => return accounting::execute(id, input, &context).await,
         "data" | "query" => return data::execute(id, input, &context).await,
+        "douyin" => return douyin_ads::execute(id, input, &context).await,
         _ => {}
     }
 
     match id {
-        "search_trends" => search::SearchTrends::new().run(input, context).await,
-        "search_competitor" => search::SearchCompetitor::new().run(input, context).await,
-        "search_market_info" => search::SearchMarketInfo::new().run(input, context).await,
+        "search_trends" => {
+            search::SearchTrends::new()
+                .run_with_adapter(input, context, search_config)
+                .await
+        }
+        "search_competitor" => {
+            search::SearchCompetitor::new()
+                .run_with_adapter(input, context, search_config)
+                .await
+        }
+        "search_market_info" => {
+            search::SearchMarketInfo::new()
+                .run_with_adapter(input, context, search_config)
+                .await
+        }
         "search_product_reviews" => {
             search::SearchProductReviews::new()
-                .run(input, context)
+                .run_with_adapter(input, context, search_config)
                 .await
         }
         "search_platform_policy" => {
             search::SearchPlatformPolicy::new()
-                .run(input, context)
+                .run_with_adapter(input, context, search_config)
                 .await
         }
         "search_industry_benchmarks" => {
             search::SearchIndustryBenchmarks::new()
-                .run(input, context)
+                .run_with_adapter(input, context, search_config)
                 .await
         }
         "service_ticket_handler" => {
@@ -565,6 +608,11 @@ async fn run_known_skill(
                 .run(input, context)
                 .await
         }
+        "learning_teaching_explain" => {
+            learning::LearningTeachingExplain::new()
+                .run(input, context)
+                .await
+        }
         "coordination_agent_handoff" => {
             coordination::CoordinationAgentHandoff::new()
                 .run(input, context)
@@ -637,8 +685,12 @@ mod tests {
     #[test]
     fn staged_registry_loads_all_specs() {
         let registry = SkillRegistry::staged().expect("registry should load");
-        assert_eq!(registry.len(), 93);
+        assert_eq!(registry.len(), 100);
         assert!(registry.get("ops_pricing_strategy").is_some());
+        assert!(registry.get("douyin_ads_plan_structure").is_some());
+        assert!(registry.get("query_product_metrics").is_some());
+        assert!(registry.get("query_campaign_metrics").is_some());
+        assert!(registry.get("learning_teaching_explain").is_some());
         assert!(registry.get("missing_skill").is_none());
     }
 
@@ -663,9 +715,21 @@ mod tests {
                 .len(),
             11
         );
+        assert_eq!(
+            registry
+                .by_category(&SkillCategory::Custom("douyin_ads".to_string()))
+                .len(),
+            4
+        );
         assert!(!registry.by_tag("deferred").is_empty());
+        assert!(registry.by_execution_mode(SkillExecutionMode::Native).len() > 80);
         assert!(
             !registry
+                .by_execution_mode(SkillExecutionMode::Adapter)
+                .is_empty()
+        );
+        assert!(
+            registry
                 .by_execution_mode(SkillExecutionMode::Deferred)
                 .is_empty()
         );
@@ -698,7 +762,14 @@ mod tests {
                 "accounting_cost_calc",
                 json!({"purchase_cost": 20.0, "selling_price": 49.0}),
             ),
-            ("data_funnel_analysis", json!({})),
+            (
+                "data_funnel_analysis",
+                json!({"impressions": 120000, "clicks": 9600, "add_to_cart": 1800, "orders": 860, "payments": 790}),
+            ),
+            (
+                "data_dashboard",
+                json!({"gmv": 180000.0, "previous_gmv": 150000.0, "orders": 1800, "visitors": 36000}),
+            ),
             ("service_dsr_improvement", json!({})),
             (
                 "creative_title_ctr_scorer",
@@ -709,6 +780,14 @@ mod tests {
                 json!({"title": "春夏新款轻便通勤保温杯", "target_keywords": ["保温杯"]}),
             ),
             ("engineering_sla_monitor", json!({})),
+            (
+                "learning_teaching_explain",
+                json!({"topic": "ROI和ROAS的区别", "learning_level": "undergraduate"}),
+            ),
+            (
+                "douyin_ads_plan_structure",
+                json!({"goal": "直播间成交", "budget": 12000.0, "target_roas": 2.5}),
+            ),
             (
                 "coordination_agent_handoff",
                 json!({"task_description": "分析店铺转化率下滑并给出运营动作"}),
@@ -735,6 +814,299 @@ mod tests {
                 "{skill_id} used unexpected execution mode"
             );
         }
+    }
+
+    #[tokio::test]
+    async fn executor_runs_native_data_channel_and_refund_skills() {
+        let executor = SkillExecutorSet::staged().expect("executor should load");
+        let cases = [
+            (
+                "data_channel_roi",
+                json!({
+                    "channels": [
+                        {"name": "抖音", "gmv": 120000.0, "ad_spend": 30000.0, "orders": 600, "uv": 20000},
+                        {"name": "淘宝", "gmv": 80000.0, "ad_spend": 26000.0, "orders": 420, "uv": 16000}
+                    ]
+                }),
+            ),
+            (
+                "data_refund_decomposition",
+                json!({
+                    "items": [
+                        {"name": "质量问题", "refund_amount": 24000.0},
+                        {"name": "物流破损", "refund_amount": 9000.0}
+                    ]
+                }),
+            ),
+        ];
+
+        for (index, (skill_id, input)) in cases.into_iter().enumerate() {
+            let result = executor
+                .execute(SkillRequest::new(
+                    format!("req-native-data-contract-{index}"),
+                    skill_id,
+                    input,
+                ))
+                .await;
+            assert_eq!(
+                result.status,
+                SkillExecutionStatus::Success,
+                "{skill_id} failed: {:?}",
+                result.error
+            );
+            assert_eq!(
+                result.metadata.get("execution_mode"),
+                Some(&json!(SkillExecutionMode::Native)),
+                "{skill_id} used unexpected execution mode"
+            );
+            assert_eq!(
+                result.metadata.get("risk_level"),
+                Some(&json!(SkillRiskLevel::Low)),
+                "{skill_id} used unexpected risk level"
+            );
+            assert!(
+                !result.metadata.contains_key("adapter_requirements"),
+                "{skill_id} should not report adapter requirements when using explicit user data"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn executor_runs_native_creative_content_skills() {
+        let executor = SkillExecutorSet::staged().expect("executor should load");
+        let cases = [
+            (
+                "creative_video_script",
+                json!({"product_name": "冷萃咖啡", "video_type": "种草", "duration": 30, "platform": "抖音"}),
+            ),
+            (
+                "creative_seeding_copy",
+                json!({"product_name": "冷萃咖啡", "target_audience": "通勤白领"}),
+            ),
+            (
+                "creative_ip_branding",
+                json!({"brand_name": "示例咖啡品牌", "category": "咖啡饮品"}),
+            ),
+            (
+                "creative_content_calendar",
+                json!({"period": "周", "weekly_posts": 5}),
+            ),
+            (
+                "creative_trend_catch",
+                json!({"category": "咖啡饮品", "platform": "抖音"}),
+            ),
+            (
+                "creative_live_script",
+                json!({"duration_hours": 2.0, "product_count": 4, "platform": "抖音"}),
+            ),
+            (
+                "creative_product_article",
+                json!({"product_name": "冷萃咖啡", "article_type": "测评软文"}),
+            ),
+        ];
+
+        for (index, (skill_id, input)) in cases.into_iter().enumerate() {
+            let result = executor
+                .execute(SkillRequest::new(
+                    format!("req-creative-native-{index}"),
+                    skill_id,
+                    input,
+                ))
+                .await;
+            assert_eq!(
+                result.status,
+                SkillExecutionStatus::Success,
+                "{skill_id} failed: {:?}",
+                result.error
+            );
+            assert_eq!(
+                result.metadata.get("execution_mode"),
+                Some(&json!(SkillExecutionMode::Native)),
+                "{skill_id} used unexpected execution mode"
+            );
+            assert!(result.output.is_some(), "{skill_id} returned no output");
+        }
+    }
+
+    #[tokio::test]
+    async fn executor_runs_native_design_and_web_growth_skills() {
+        let executor = SkillExecutorSet::staged().expect("executor should load");
+        let cases = [
+            (
+                "design_main_image",
+                json!({"product_name": "冷萃咖啡", "platform": "抖音", "style": "年轻活力"}),
+            ),
+            (
+                "design_detail_page",
+                json!({"product_name": "冷萃咖啡", "platform": "淘宝"}),
+            ),
+            (
+                "design_color_scheme",
+                json!({"brand_tone": "高端奢华", "category": "咖啡饮品"}),
+            ),
+            (
+                "design_material_spec",
+                json!({"usage": "信息流广告", "platforms": ["抖音", "小红书"]}),
+            ),
+            (
+                "design_campaign_poster",
+                json!({"campaign_name": "618大促", "discount_info": "满300减50"}),
+            ),
+            (
+                "web_seo_optimize",
+                json!({"target_keywords": ["冷萃咖啡", "低糖"], "platform": "淘宝"}),
+            ),
+            (
+                "web_title_generator",
+                json!({"product_name": "冷萃咖啡", "keywords": ["冷萃咖啡", "低糖"]}),
+            ),
+            ("web_page_conversion", json!({"page_type": "商品详情"})),
+            (
+                "web_store_design",
+                json!({"store_type": "旗舰店", "category": "咖啡饮品"}),
+            ),
+            (
+                "web_keyword_research",
+                json!({"seed_keyword": "冷萃咖啡", "category": "咖啡饮品"}),
+            ),
+            (
+                "web_product_description",
+                json!({"product_name": "冷萃咖啡", "style": "营销型"}),
+            ),
+        ];
+
+        for (index, (skill_id, input)) in cases.into_iter().enumerate() {
+            let result = executor
+                .execute(SkillRequest::new(
+                    format!("req-design-web-native-{index}"),
+                    skill_id,
+                    input,
+                ))
+                .await;
+            assert_eq!(
+                result.status,
+                SkillExecutionStatus::Success,
+                "{skill_id} failed: {:?}",
+                result.error
+            );
+            assert_eq!(
+                result.metadata.get("execution_mode"),
+                Some(&json!(SkillExecutionMode::Native)),
+                "{skill_id} used unexpected execution mode"
+            );
+            assert!(result.output.is_some(), "{skill_id} returned no output");
+        }
+    }
+
+    #[tokio::test]
+    async fn executor_runs_native_service_support_skills() {
+        let executor = SkillExecutorSet::staged().expect("executor should load");
+        let cases = [
+            (
+                "service_ticket_handler",
+                json!({
+                    "issue_type": "物流延迟",
+                    "customer_message": "客户很生气，说快递三天没动，准备投诉平台",
+                    "customer_emotion": "威胁投诉"
+                }),
+            ),
+            (
+                "service_faq_playbook",
+                json!({
+                    "questions": ["什么时候发货？", "支持退货退款吗？怎么操作？"],
+                    "platform": "淘宝"
+                }),
+            ),
+            (
+                "service_escalation_flow",
+                json!({
+                    "issue_description": "客户威胁投诉平台，已经联系3次还没解决退款",
+                    "customer_emotion": "威胁投诉",
+                    "previous_contacts": 3
+                }),
+            ),
+            (
+                "service_dsr_improvement",
+                json!({
+                    "description_score": 4.5,
+                    "service_score": 4.3,
+                    "logistics_score": 4.7
+                }),
+            ),
+        ];
+
+        for (index, (skill_id, input)) in cases.into_iter().enumerate() {
+            let result = executor
+                .execute(SkillRequest::new(
+                    format!("req-service-native-{index}"),
+                    skill_id,
+                    input,
+                ))
+                .await;
+            assert_eq!(
+                result.status,
+                SkillExecutionStatus::Success,
+                "{skill_id} failed: {:?}",
+                result.error
+            );
+            assert_eq!(
+                result.metadata.get("execution_mode"),
+                Some(&json!(SkillExecutionMode::Native)),
+                "{skill_id} used unexpected execution mode"
+            );
+            assert!(result.output.is_some(), "{skill_id} returned no output");
+        }
+    }
+
+    #[tokio::test]
+    async fn executor_runs_service_query_product_with_context() {
+        let executor = SkillExecutorSet::staged().expect("executor should load");
+        let context = SkillContext::new()
+            .with_metadata("request.context.product_ids", json!("product-1"))
+            .with_metadata("request.context.refs", json!("product:product-1"))
+            .with_metadata(
+                "request.context.selected_summary",
+                json!("商品：冷萃咖啡。规格：12瓶装。卖点：低糖、即饮、适合办公室囤货。"),
+            )
+            .with_metadata(
+                "request.context.sources_json",
+                json!(
+                    json!([
+                        {
+                            "source_type": "product",
+                            "id": "product-1",
+                            "product_id": "product-1",
+                            "title": "冷萃咖啡"
+                        }
+                    ])
+                    .to_string()
+                ),
+            );
+        let result = executor
+            .execute(
+                SkillRequest::new(
+                    "req-service-query-product-context",
+                    "service_query_product",
+                    json!({"product_name": "冷萃咖啡"}),
+                )
+                .with_context(context),
+            )
+            .await;
+
+        assert_eq!(result.status, SkillExecutionStatus::Success);
+        assert_eq!(
+            result.metadata.get("execution_mode"),
+            Some(&json!(SkillExecutionMode::Native))
+        );
+        let output = result.output.as_ref().expect("skill output");
+        assert_eq!(
+            output.get("adapter_status"),
+            Some(&json!("context_metadata"))
+        );
+        assert_eq!(
+            output.get("data_readiness"),
+            Some(&json!("explicit_product_context"))
+        );
     }
 
     #[tokio::test]
@@ -800,11 +1172,236 @@ mod tests {
             .await;
 
         assert_eq!(result.status, SkillExecutionStatus::Deferred);
+        let output = result.output.as_ref().expect("search output");
+        assert_eq!(output.get("status"), Some(&json!("deferred")));
+        assert_eq!(
+            output.get("adapter_status"),
+            Some(&json!("adapter_required"))
+        );
+        assert_eq!(output.pointer("/adapter/kind"), Some(&json!("search")));
+        assert_eq!(output.pointer("/adapter/configured"), Some(&json!(false)));
+        assert_eq!(output.get("sources"), Some(&json!([])));
+        assert_eq!(output.pointer("/data/items"), Some(&json!([])));
+        assert_eq!(output.get("confidence"), Some(&json!(0.0)));
+        assert_eq!(output.get("degraded"), Some(&json!(true)));
+        assert!(output.get("_search_engine").is_none());
+        assert!(
+            output
+                .pointer("/query/planned")
+                .and_then(Value::as_str)
+                .is_some_and(|query| query.contains("咖啡"))
+        );
         assert_eq!(
             result.metadata.get("risk_level"),
             Some(&json!(SkillRiskLevel::Medium))
         );
+        assert_eq!(
+            result.metadata.get("execution_mode"),
+            Some(&json!(SkillExecutionMode::Adapter))
+        );
         assert!(result.metadata.contains_key("adapter_requirements"));
+    }
+
+    #[tokio::test]
+    async fn executor_returns_structured_deferred_for_search_skills() {
+        let executor = SkillExecutorSet::staged().expect("executor should load");
+        let cases = [
+            (
+                "search_trends",
+                json!({"query": "咖啡", "platform": "抖音", "days": 14}),
+                "general",
+                14,
+            ),
+            (
+                "search_competitor",
+                json!({"query": "冷萃咖啡", "focus": "price"}),
+                "general",
+                60,
+            ),
+            (
+                "search_market_info",
+                json!({"query": "咖啡饮品", "topic": "news"}),
+                "news",
+                7,
+            ),
+            (
+                "search_product_reviews",
+                json!({"query": "冷萃咖啡", "focus": "negative"}),
+                "general",
+                90,
+            ),
+            (
+                "search_platform_policy",
+                json!({"platform": "抖音", "policy_type": "content", "days": 21}),
+                "news",
+                21,
+            ),
+            (
+                "search_industry_benchmarks",
+                json!({"industry": "咖啡饮品", "metric": "roi"}),
+                "general",
+                180,
+            ),
+        ];
+
+        for (index, (skill_id, input, expected_topic, expected_days)) in
+            cases.into_iter().enumerate()
+        {
+            let result = executor
+                .execute(SkillRequest::new(
+                    format!("req-search-contract-{index}"),
+                    skill_id,
+                    input,
+                ))
+                .await;
+
+            assert_eq!(
+                result.status,
+                SkillExecutionStatus::Deferred,
+                "{skill_id} should remain deferred until search adapter is configured"
+            );
+            assert_eq!(
+                result.metadata.get("execution_mode"),
+                Some(&json!(SkillExecutionMode::Adapter)),
+                "{skill_id} should be adapter mode"
+            );
+            assert_eq!(
+                result.metadata.get("adapter_requirements"),
+                Some(&json!([SkillAdapterKind::Search, SkillAdapterKind::Llm])),
+                "{skill_id} adapter requirements changed"
+            );
+            assert_eq!(
+                result.metadata.get("adapter_status"),
+                Some(&json!("adapter_required")),
+                "{skill_id} adapter status missing"
+            );
+
+            let output = result.output.as_ref().expect("search output");
+            assert_eq!(
+                output.get("adapter_status"),
+                Some(&json!("adapter_required")),
+                "{skill_id} output adapter status missing"
+            );
+            assert_eq!(
+                output.pointer("/query/topic"),
+                Some(&json!(expected_topic)),
+                "{skill_id} topic mismatch"
+            );
+            assert_eq!(
+                output.pointer("/query/days"),
+                Some(&json!(expected_days)),
+                "{skill_id} days mismatch"
+            );
+            assert_eq!(
+                output.pointer("/query/max_results"),
+                Some(&json!(6)),
+                "{skill_id} max_results mismatch"
+            );
+            assert_eq!(
+                output.pointer("/adapter/provider"),
+                Some(&Value::Null),
+                "{skill_id} must not claim a provider"
+            );
+            assert_eq!(
+                output.pointer("/adapter/configured"),
+                Some(&json!(false)),
+                "{skill_id} must report unconfigured adapter"
+            );
+            assert_eq!(
+                output.get("sources"),
+                Some(&json!([])),
+                "{skill_id} must not fake sources"
+            );
+            assert_eq!(
+                output.pointer("/data/items"),
+                Some(&json!([])),
+                "{skill_id} must not fake search items"
+            );
+            assert_eq!(
+                output.pointer("/provenance/source_count"),
+                Some(&json!(0)),
+                "{skill_id} must not fake provenance"
+            );
+            assert_eq!(
+                output.get("confidence"),
+                Some(&json!(0.0)),
+                "{skill_id} confidence must be zero without sources"
+            );
+            assert_eq!(
+                output.get("degraded"),
+                Some(&json!(true)),
+                "{skill_id} must be degraded"
+            );
+            assert!(
+                output
+                    .get("degraded_reason")
+                    .and_then(Value::as_str)
+                    .is_some_and(|reason| reason.contains("Search adapter is not configured")),
+                "{skill_id} missing degraded reason"
+            );
+            assert!(
+                output.get("_search_engine").is_none(),
+                "{skill_id} must not claim a search engine"
+            );
+            assert!(
+                output
+                    .pointer("/query/planned")
+                    .and_then(Value::as_str)
+                    .is_some_and(|query| !query.trim().is_empty()),
+                "{skill_id} planned query missing"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn executor_reports_degraded_when_configured_search_provider_fails() {
+        let executor = SkillExecutorSet::staged_with_search(SearchAdapterConfig {
+            enabled: true,
+            provider: Some("mock-search".to_string()),
+            base_url: Some("http://127.0.0.1:9".to_string()),
+            search_endpoint: Some("/search".to_string()),
+            ..SearchAdapterConfig::default()
+        })
+        .expect("executor should load");
+        let result = executor
+            .execute(SkillRequest::new(
+                "req-search-provider-fails",
+                "search_trends",
+                json!({"query": "咖啡"}),
+            ))
+            .await;
+
+        assert_eq!(result.status, SkillExecutionStatus::Deferred);
+        assert_eq!(
+            result.metadata.get("execution_mode"),
+            Some(&json!(SkillExecutionMode::Adapter))
+        );
+        assert_eq!(
+            result.metadata.get("adapter_status"),
+            Some(&json!("degraded"))
+        );
+        let output = result.output.as_ref().expect("search output");
+        assert_eq!(output.get("status"), Some(&json!("deferred")));
+        assert_eq!(output.get("adapter_status"), Some(&json!("degraded")));
+        assert_eq!(output.pointer("/adapter/configured"), Some(&json!(true)));
+        assert_eq!(
+            output.pointer("/adapter/provider"),
+            Some(&json!("mock-search"))
+        );
+        assert_eq!(output.get("sources"), Some(&json!([])));
+        assert_eq!(output.pointer("/data/items"), Some(&json!([])));
+        assert_eq!(output.get("degraded"), Some(&json!(true)));
+        assert!(
+            output
+                .get("degraded_reason")
+                .and_then(Value::as_str)
+                .is_some_and(|reason| reason.contains("provider request failed")
+                    || reason.contains("Connection refused")
+                    || reason.contains("error sending request")
+                    || reason.contains("external search provider returned status")),
+            "unexpected degraded reason: {:?}",
+            output.get("degraded_reason")
+        );
     }
 
     #[tokio::test]
@@ -823,6 +1420,33 @@ mod tests {
         assert_eq!(
             result.metadata.get("risk_level"),
             Some(&json!(SkillRiskLevel::High))
+        );
+    }
+
+    #[tokio::test]
+    async fn executor_marks_engineering_system_check_as_platform_boundary() {
+        let executor = SkillExecutorSet::staged().expect("executor should load");
+        let result = executor
+            .execute(SkillRequest::new(
+                "req-engineering-system-check",
+                "engineering_system_check",
+                json!({"platform": "淘宝", "test_live": true}),
+            ))
+            .await;
+
+        assert_eq!(result.status, SkillExecutionStatus::PendingApproval);
+        assert_eq!(
+            result.metadata.get("execution_mode"),
+            Some(&json!(SkillExecutionMode::Adapter))
+        );
+        assert_eq!(
+            result.metadata.get("risk_level"),
+            Some(&json!(SkillRiskLevel::High))
+        );
+        assert_eq!(result.metadata.get("approval_required"), Some(&json!(true)));
+        assert_eq!(
+            result.metadata.get("adapter_requirements"),
+            Some(&json!([SkillAdapterKind::Platform]))
         );
     }
 }

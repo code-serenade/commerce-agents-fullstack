@@ -8,7 +8,7 @@ use crate::{
     agent::{
         commander::{
             Commander, CommanderChannels, CommanderOptions, CommanderSessionContext,
-            TaskGraphRuntime, plan_task_graph,
+            TaskGraphRuntime, plan_forced_chat_graph, plan_quick_chat_graph,
         },
         worker::Worker,
     },
@@ -22,6 +22,7 @@ use crate::{
         },
     },
     roles::{RoleCatalog, RoleProfile, RoleRouter},
+    skills::{SearchAdapterConfig, SkillExecutorSet},
 };
 
 pub type SessionEventTx = tokio_mpsc::Sender<SessionEvent>;
@@ -33,6 +34,7 @@ pub struct SessionRuntimeConfig {
     pub event_buffer: usize,
     pub commander_fast_route: bool,
     pub commander_fast_route_min_score: f32,
+    pub search: SearchAdapterConfig,
 }
 
 impl Default for SessionRuntimeConfig {
@@ -42,6 +44,7 @@ impl Default for SessionRuntimeConfig {
             event_buffer: 1024,
             commander_fast_route: true,
             commander_fast_route_min_score: 2.0,
+            search: SearchAdapterConfig::default(),
         }
     }
 }
@@ -123,11 +126,19 @@ impl SessionRuntime {
                 .register_worker_tx(profile.worker_id.clone(), worker_tx.clone());
             session_context.worker_catalog().register(profile.clone());
 
+            let skill_executor = SkillExecutorSet::staged_with_search(input.config.search.clone())
+                .map_err(|error| {
+                    tracing::warn!(error = %error, "worker skill executor initialization failed");
+                    error
+                })
+                .ok();
             let worker = Worker::new(
                 worker_input.role,
                 worker_input.cognition,
                 worker_rx,
                 commander_tx.clone(),
+                input.event_tx.clone(),
+                skill_executor,
             );
             let worker_loop = tokio::spawn(async move {
                 let mut worker = worker;
@@ -198,6 +209,9 @@ impl SessionRuntime {
             kinds: memory_kinds,
         })
         .await;
+        if let Some(event) = context_loaded_event(&self.session_id, &self.context) {
+            self.emit_event(event).await;
+        }
 
         let task_id = TaskId(next_id("task"));
         let mut context = self.context.clone();
@@ -205,6 +219,11 @@ impl SessionRuntime {
         context.task_id = Some(task_id.clone());
 
         if let Some(graph) = self.chat_bypass_graph(&task_id) {
+            self.emit_route_decided(
+                "chat_bypass",
+                Some(graph.nodes.iter().map(|node| node.role.clone()).collect()),
+            )
+            .await;
             self.dispatch_chat_direct(context.clone(), graph)?;
         } else {
             let message = Message::new_with_context(
@@ -258,7 +277,7 @@ impl SessionRuntime {
 
                 let mut runtime = TaskGraphRuntime::new(TaskGraph {
                     graph_id: report.graph_id.clone(),
-                    root_task: self.task_description.clone(),
+                    root_task: self.task_description_with_conversation_history(),
                     nodes: vec![
                         self.chat_bypass_graph(&report.task_id)
                             .and_then(|graph| graph.nodes.into_iter().next())
@@ -266,7 +285,20 @@ impl SessionRuntime {
                                 SettingsError::invalid("chat bypass graph is unavailable")
                             })?,
                     ],
-                });
+                })
+                .with_response_mode(
+                    self.context
+                        .metadata
+                        .get("strategy.response_mode")
+                        .map(String::as_str)
+                        .or_else(|| self.context.metadata.get("strategy.id").map(String::as_str)),
+                )
+                .with_learning_depth(
+                    self.context
+                        .metadata
+                        .get("strategy.learning_level")
+                        .map(String::as_str),
+                );
                 let assignment = runtime.build_assignment(&runtime.ready_nodes().remove(0));
                 runtime.mark_running(&assignment);
                 let _ = runtime.apply_report(report);
@@ -369,11 +401,135 @@ impl SessionRuntime {
         if self.commander_fast_route_disabled() {
             return None;
         }
-        let graph = plan_task_graph(task_id, &self.task_description, None);
+        if self.is_explicit_chat_role_selection() {
+            let task_for_worker = self.task_description_with_conversation_history();
+            return Some(plan_forced_chat_graph(task_id, &task_for_worker));
+        }
+        let graph = plan_quick_chat_graph(task_id, &self.task_description)?;
+        if self.has_explicit_non_chat_role_selection() {
+            return None;
+        }
+        if self.force_collaboration() && !is_direct_answer_chat_graph(&graph) {
+            return None;
+        }
         let [node] = graph.nodes.as_slice() else {
             return None;
         };
-        (node.role == "chat" && node.input_refs.is_empty()).then_some(graph)
+        if node.role != "chat" || !node.input_refs.is_empty() {
+            return None;
+        }
+        let task_for_worker = self.task_description_with_conversation_history();
+        Some(chat_graph_with_task_context(graph, &task_for_worker))
+    }
+
+    fn task_description_with_conversation_history(&self) -> String {
+        let Some(history) = self
+            .context
+            .metadata
+            .get("conversation.history_summary")
+            .map(|value| value.trim())
+            .filter(|value| !value.is_empty())
+        else {
+            return self.task_description.clone();
+        };
+
+        if self.task_description.contains("同一会话历史上下文") {
+            return self.task_description.clone();
+        }
+
+        format!(
+            "同一会话历史上下文（这是同一用户同一会话内此前消息，用于理解“继续、刚才、按前面、补充后、沿用这些数据”等追问；这不代表用户选择了任何预设商品）：\n{history}\n\n当前用户请求：\n{}",
+            self.task_description
+        )
+    }
+
+    async fn emit_route_decided(&self, route_mode: &str, roles: Option<Vec<String>>) {
+        let strategy_id = self.context.metadata.get("strategy.id").cloned();
+        let response_mode = self.context.metadata.get("strategy.response_mode").cloned();
+        let collaboration_mode = self
+            .context
+            .metadata
+            .get("strategy.collaboration_mode")
+            .cloned();
+        let roles = roles.unwrap_or_default();
+        let primary_runtime_role = roles.first().cloned();
+        let support_runtime_roles = roles.into_iter().skip(1).collect();
+        self.emit_event(SessionEvent::RouteDecided {
+            session_id: self.session_id.clone(),
+            strategy_id,
+            response_mode,
+            collaboration_mode,
+            learning_level: self
+                .context
+                .metadata
+                .get("strategy.learning_level")
+                .cloned(),
+            model_name: self.context.metadata.get("model.name").cloned(),
+            route_mode: route_mode.to_string(),
+            primary_runtime_role,
+            support_runtime_roles,
+        })
+        .await;
+    }
+
+    fn force_collaboration(&self) -> bool {
+        self.context
+            .metadata
+            .get("strategy.collaboration_mode")
+            .is_some_and(|value| value == "manual" || value == "single")
+            || self
+                .context
+                .metadata
+                .get("strategy.id")
+                .is_some_and(|value| value == "collab")
+    }
+
+    fn has_explicit_non_chat_role_selection(&self) -> bool {
+        let collaboration_mode = self
+            .context
+            .metadata
+            .get("strategy.collaboration_mode")
+            .map(String::as_str)
+            .unwrap_or_default();
+        if !matches!(collaboration_mode, "manual" | "single") {
+            return false;
+        }
+
+        let selected_roles =
+            split_metadata_list(self.context.metadata.get("strategy.selected_roles"));
+        selected_roles.iter().any(|role| role != "chat")
+            || self
+                .context
+                .metadata
+                .get("strategy.primary_role")
+                .map(|role| role.trim())
+                .is_some_and(|role| !role.is_empty() && role != "chat")
+    }
+
+    fn is_explicit_chat_role_selection(&self) -> bool {
+        let collaboration_mode = self
+            .context
+            .metadata
+            .get("strategy.collaboration_mode")
+            .map(String::as_str)
+            .unwrap_or_default();
+        if !matches!(collaboration_mode, "single" | "manual") {
+            return false;
+        }
+        if self.has_explicit_non_chat_role_selection() {
+            return false;
+        }
+
+        let selected_roles =
+            split_metadata_list(self.context.metadata.get("strategy.selected_roles"));
+        let primary_role = self
+            .context
+            .metadata
+            .get("strategy.primary_role")
+            .map(|role| role.trim());
+
+        selected_roles.iter().any(|role| role == "chat")
+            || primary_role.is_some_and(|role| role == "chat")
     }
 
     fn commander_fast_route_disabled(&self) -> bool {
@@ -381,7 +537,20 @@ impl SessionRuntime {
     }
 
     fn dispatch_chat_direct(&self, context: MessageContext, graph: TaskGraph) -> Result<()> {
-        let runtime = TaskGraphRuntime::new(graph);
+        let runtime = TaskGraphRuntime::new(graph)
+            .with_response_mode(
+                self.context
+                    .metadata
+                    .get("strategy.response_mode")
+                    .map(String::as_str)
+                    .or_else(|| self.context.metadata.get("strategy.id").map(String::as_str)),
+            )
+            .with_learning_depth(
+                self.context
+                    .metadata
+                    .get("strategy.learning_level")
+                    .map(String::as_str),
+            );
         let Some(node) = runtime.ready_nodes().into_iter().next() else {
             return Err(SettingsError::invalid("chat bypass graph has no ready node").into());
         };
@@ -433,4 +602,87 @@ fn unique_strings(items: Vec<String>) -> Vec<String> {
         }
         unique
     })
+}
+
+fn is_direct_answer_chat_graph(graph: &TaskGraph) -> bool {
+    let [node] = graph.nodes.as_slice() else {
+        return false;
+    };
+    node.role == "chat" && node.title == "直接回答"
+}
+
+fn chat_graph_with_task_context(mut graph: TaskGraph, task: &str) -> TaskGraph {
+    if task.trim().is_empty() || graph.root_task == task {
+        return graph;
+    }
+    graph.root_task = task.to_string();
+    for node in &mut graph.nodes {
+        if node.role != "chat" || node.objective.contains(task) {
+            continue;
+        }
+        node.objective = format!("{}\n\n补充任务上下文：\n{task}", node.objective);
+    }
+    graph
+}
+
+fn context_loaded_event(session_id: &SessionId, context: &MessageContext) -> Option<SessionEvent> {
+    let product_ids = split_metadata_list(context.metadata.get("context.product_ids"));
+    let refs = split_metadata_list(context.metadata.get("context.refs"));
+    let product_count = parse_usize_metadata(context.metadata.get("context.product_count"));
+    let knowledge_count = parse_usize_metadata(context.metadata.get("context.knowledge_count"));
+    let source_count = parse_usize_metadata(context.metadata.get("context.source_count"));
+    let summary = context
+        .metadata
+        .get("context.selected_summary")
+        .map(|value| compact_event_text(value, 600));
+    let sources_json = context.metadata.get("context.sources_json").cloned();
+
+    if product_ids.is_empty()
+        && refs.is_empty()
+        && product_count == 0
+        && knowledge_count == 0
+        && summary.is_none()
+    {
+        return None;
+    }
+
+    Some(SessionEvent::ContextLoaded {
+        session_id: session_id.clone(),
+        product_ids,
+        refs,
+        product_count,
+        knowledge_count,
+        source_count,
+        summary,
+        sources_json,
+    })
+}
+
+fn split_metadata_list(value: Option<&String>) -> Vec<String> {
+    value
+        .map(|value| {
+            value
+                .split(',')
+                .map(str::trim)
+                .filter(|item| !item.is_empty())
+                .map(ToString::to_string)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn parse_usize_metadata(value: Option<&String>) -> usize {
+    value
+        .and_then(|value| value.parse::<usize>().ok())
+        .unwrap_or_default()
+}
+
+fn compact_event_text(value: &str, max_chars: usize) -> String {
+    let trimmed = value.trim();
+    if trimmed.chars().count() <= max_chars {
+        return trimmed.to_string();
+    }
+    let mut output = trimmed.chars().take(max_chars).collect::<String>();
+    output.push_str("...");
+    output
 }

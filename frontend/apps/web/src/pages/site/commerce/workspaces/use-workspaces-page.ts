@@ -9,10 +9,12 @@ export function useWorkspacesPage() {
   const [keyword, setKeyword] = useState("")
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null)
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null)
+  const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(null)
   const [dialog, setDialog] = useState<WorkspaceDialogName | null>(null)
 
   const queries = useWorkspaceQueries({
     keyword,
+    selectedArtifactId,
     selectedRunId,
     selectedWorkspaceId,
   })
@@ -28,11 +30,13 @@ export function useWorkspacesPage() {
     () =>
       buildWorkspaceMetricCards(t, {
         executions: queries.executionQueue,
+        artifacts: queries.artifacts,
         runs: queries.runs,
         tasks: queries.tasks,
         workspaces: queries.workspaces,
       }),
     [
+      queries.artifacts,
       queries.executionQueue,
       queries.runs,
       queries.tasks,
@@ -47,6 +51,7 @@ export function useWorkspacesPage() {
     dialog,
     keyword,
     metricCards,
+    setSelectedArtifactId,
     setDialog,
     setKeyword,
     setSelectedRunId,

@@ -1,35 +1,37 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useSelector } from "react-redux"
 import type { RootState } from "@/store"
 import type { AgentRuntimeEvent } from "./agent-chat-data"
-import {
-  createSessionId,
-} from "./domain/agent-chat-message-mapping"
-import {
-  DEFAULT_AGENT_CHAT_STRATEGY_ID,
-  getAgentChatStrategy,
-  type AgentChatStrategyId,
-} from "./domain/agent-chat-strategy"
-import type { AgentChatConversationItem, AgentChatMessage } from "./types"
-import {
-  deleteAgentConversation,
-  loadLatestAgentConversation,
-  renameAgentConversation,
-  selectAgentConversation,
-} from "./view-model/agent-chat-conversation-actions"
-import {
-  resetGuestAgentChatState,
-  startNewAgentConversation,
-  stopAgentStreaming,
-} from "./view-model/agent-chat-page-actions"
-import { sendAgentChatMessage } from "./view-model/agent-chat-send-message"
+import { createSessionId } from "./domain/agent-chat-message-mapping"
+import { DEFAULT_AGENT_CHAT_STRATEGY_ID, getAgentChatStrategy, type AgentChatStrategyId } from "./domain/agent-chat-strategy"
+import { runtimeSelectionForStrategy } from "./domain/agent-runtime-options"
+import type { AgentChatAttachmentItem, AgentChatConversationItem, AgentChatMessage } from "./types"
+import { loadLatestAgentConversation } from "./view-model/agent-chat-conversation-actions"
+import { resetGuestAgentChatState } from "./view-model/agent-chat-page-actions"
+import { useAgentChatAttachmentUploads } from "./view-model/use-agent-chat-attachment-uploads"
+import { createAgentChatPageViewModel } from "./view-model/agent-chat-page-view-model"
+import { useAgentChatActionState } from "./view-model/use-agent-chat-action-state"
+import { useAgentChatPageCommands } from "./view-model/use-agent-chat-page-commands"
+import { useAgentChatPlaybooks } from "./view-model/use-agent-chat-playbooks"
+import { useAgentChatProductContext } from "./view-model/use-agent-chat-product-context"
+import { useAgentRuntimeOptions } from "./view-model/use-agent-runtime-options"
+import { useAgentRunFeedback } from "./view-model/use-agent-run-feedback"
+import { useAgentChatSend } from "./view-model/use-agent-chat-send"
+import { useAgentChatSourceContext } from "./view-model/use-agent-chat-source-context"
 
 export function useAgentChatPage() {
   const { t } = useTranslation()
   const fallbackConversationTitle = t("agentChat.sidebar.newChat")
   const loginRequiredMessage = t("agentChat.loginRequired.message")
-  const missingStructuredOutput = t("agentChat.missingStructuredOutput")
+  const messageFormatCopy = useMemo(
+    () => ({
+      boundaryNotice: t("agentChat.boundaryNotice"),
+      missingStructuredOutput: t("agentChat.missingStructuredOutput"),
+      streamTimedOut: t("agentChat.streamTimedOut"),
+    }),
+    [t]
+  )
   const user = useSelector((state: RootState) => state.auth.user)
   const [input, setInput] = useState("")
   const [strategyId, setStrategyId] = useState<AgentChatStrategyId>(
@@ -44,162 +46,162 @@ export function useAgentChatPage() {
   ])
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [conversations, setConversations] = useState<AgentChatConversationItem[]>([])
+  const [attachments, setAttachments] = useState<AgentChatAttachmentItem[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [runtimeEvents, setRuntimeEvents] = useState<AgentRuntimeEvent[]>([])
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const sessionIdRef = useRef(createSessionId())
-
-  const createWelcomeMessage = useCallback(
-    (): AgentChatMessage => ({
-      id: "welcome",
-      role: "assistant",
-      content: t("agentChat.welcomeMessage"),
-    }),
-    [t]
-  )
-  const actionState = useMemo(
-    () => ({
-      abortRef,
-      createWelcomeMessage,
-      fallbackConversationTitle,
-      missingStructuredOutput,
-      sessionIdRef,
-      setConversationId,
-      setConversations,
-      setError,
-      setInput,
-      setIsStreaming,
-      setMessages,
-      setRuntimeEvents,
-      tError: t("agentChat.error"),
-    }),
-    [createWelcomeMessage, fallbackConversationTitle, missingStructuredOutput, t]
-  )
+  const productContext = useAgentChatProductContext({ enabled: Boolean(user), isStreaming })
+  const sourceContext = useAgentChatSourceContext({ attachments, isStreaming })
+  const playbookContext = useAgentChatPlaybooks({ enabled: Boolean(user) })
+  const runtimeContext = useAgentRuntimeOptions({ enabled: Boolean(user) })
+  const feedback = useAgentRunFeedback({
+    isLoggedIn: Boolean(user),
+    isStreaming,
+    runtimeEvents,
+  })
+  const { actionState } = useAgentChatActionState({
+    abortRef,
+    clearSelectedProducts: productContext.clearSelectedProducts,
+    clearSelectedSources: sourceContext.clearSelectedSources,
+    fallbackConversationTitle,
+    messageFormatCopy,
+    resetRuntimeSelection: runtimeContext.resetSelection,
+    restoreRuntimeSelection: runtimeContext.restoreSelection,
+    restoreSelectedProducts: productContext.restoreSelectedProducts,
+    restoreSelectedSources: sourceContext.restoreSelectedSources,
+    sessionIdRef,
+    setAttachments,
+    setConversationId,
+    setConversations,
+    setError,
+    setInput,
+    setIsStreaming,
+    setMessages,
+    setRuntimeEvents,
+    setStrategyId,
+    tError: t("agentChat.error"),
+    welcomeMessage: t("agentChat.welcomeMessage"),
+  })
+  const actionStateRef = useRef(actionState)
+  const userBootstrapKey = user?.id ?? null
 
   useEffect(() => {
-    return () => abortRef.current?.abort()
+    const currentAbortRef = abortRef
+    return () => currentAbortRef.current?.abort()
   }, [])
 
   useEffect(() => {
+    actionStateRef.current = actionState
+  }, [actionState])
+
+  useEffect(() => {
     let cancelled = false
+    const latestActionState = actionStateRef.current
 
-    if (!user) {
-      resetGuestAgentChatState(actionState, () => cancelled)
-      return
+    if (!userBootstrapKey) {
+      resetGuestAgentChatState(latestActionState, () => cancelled)
+    } else {
+      void loadLatestAgentConversation(latestActionState, () => cancelled)
     }
-
-    void loadLatestAgentConversation(actionState, () => cancelled)
 
     return () => {
       cancelled = true
     }
-  }, [
-    createWelcomeMessage,
-    actionState,
-    user,
-  ])
+  }, [userBootstrapKey])
 
   const canSend = input.trim().length > 0 && !isStreaming
   const selectedStrategy = useMemo(
     () => getAgentChatStrategy(strategyId),
     [strategyId]
   )
-
-  const startNewConversation = useCallback(() => {
-    startNewAgentConversation(actionState)
-  }, [actionState])
-
-  const selectConversation = useCallback(
-    async (nextConversationId: string) => {
-      if (!user || nextConversationId === conversationId || isStreaming) return
-      await selectAgentConversation(nextConversationId, actionState)
-    },
-    [actionState, conversationId, isStreaming, user]
+  const selectedRuntime = useMemo(
+    () => runtimeSelectionForStrategy(runtimeContext.runtimeSelection),
+    [runtimeContext.runtimeSelection]
   )
-
-  const renameConversation = useCallback(
-    async (targetConversationId: string, title: string) => {
-      if (!user || isStreaming) return
-      await renameAgentConversation(targetConversationId, title, actionState)
-    },
-    [actionState, isStreaming, user]
-  )
-
-  const deleteConversation = useCallback(
-    async (targetConversationId: string) => {
-      if (!user || isStreaming) return
-      await deleteAgentConversation(targetConversationId, conversationId, actionState)
-    },
-    [actionState, conversationId, isStreaming, user]
-  )
-
-  const sendMessage = useCallback(async () => {
-    const content = input.trim()
-    if (!content || isStreaming) return
-    if (!user) {
-      setError(loginRequiredMessage)
-      return
-    }
-
-    const controller = await sendAgentChatMessage({
-      content,
-      conversationId,
-      fallbackConversationTitle,
-      missingStructuredOutput,
-      onController: (controller) => {
-        abortRef.current = controller
-      },
-      sessionIdRef,
-      setConversationId,
-      setConversations,
-      setError,
-      setInput,
-      setIsStreaming,
-      setMessages,
-      setRuntimeEvents,
-      strategy: selectedStrategy,
-      tError: t("agentChat.error"),
-    })
-
-    if (abortRef.current === controller) {
-      abortRef.current = null
-    }
-  }, [
+  const commands = useAgentChatPageCommands({
+    actionState,
     conversationId,
-    fallbackConversationTitle,
-    input,
-    isStreaming,
-    loginRequiredMessage,
-    missingStructuredOutput,
-    selectedStrategy,
-    t,
-    user,
-  ])
-
-  const stopStreaming = useCallback(() => {
-    stopAgentStreaming(actionState)
-  }, [actionState])
-
-  return {
-    canSend,
-    conversationId,
-    conversations,
-    deleteConversation,
-    error,
-    input,
     isLoggedIn: Boolean(user),
     isStreaming,
-    messages,
-    runtimeEvents,
-    renameConversation,
-    sendMessage,
-    selectConversation,
-    selectedStrategy,
     setInput,
     setStrategyId,
-    startNewConversation,
-    stopStreaming,
+  })
+  const uploadAttachments = useAgentChatAttachmentUploads({
+    conversationId,
+    fallbackConversationTitle,
+    isLoggedIn: Boolean(user),
+    isStreaming,
+    messageFormatCopy,
+    sessionIdRef,
+    setAttachments,
+    setConversationId,
+    setConversations,
+    setError,
+    tError: t("agentChat.error"),
+  })
+
+  const sendMessage = useAgentChatSend({
+    abortRef,
+    conversationId,
+    fallbackConversationTitle,
+    inputValue: input,
+    isLoggedIn: Boolean(user),
+    isStreaming,
+    loginRequiredMessage,
+    messageFormatCopy,
+    runtimeSelection: selectedRuntime,
+    selectedProducts: productContext.selectedProducts,
+    selectedSources: sourceContext.selectedSources,
+    sessionIdRef,
+    setConversationId,
+    setConversations,
+    setError,
+    setInput,
+    setIsStreaming,
+    setMessages,
+    setRuntimeEvents,
+    strategy: selectedStrategy,
+    tError: t("agentChat.error"),
+  })
+  return createAgentChatPageViewModel({
+    attachments,
+    availableProducts: productContext.availableProducts,
+    availableSources: sourceContext.availableSources,
+    canSend,
+    clearSelectedProducts: productContext.clearSelectedProducts,
+    clearSelectedSources: sourceContext.clearSelectedSources,
+    conversationId,
+    conversations,
+    commands,
+    error,
+    feedback,
+    input,
+    isLoggedIn: Boolean(user),
+    isLoadingPlaybooks: playbookContext.isLoadingPlaybooks,
+    isLoadingProducts: productContext.isLoadingProducts,
+    isLoadingRuntimeOptions: runtimeContext.isLoadingRuntimeOptions,
+    isStreaming,
+    messages,
+    playbooks: playbookContext.playbooks,
+    runtimeOptions: runtimeContext.runtimeOptions,
+    runtimeSelection: selectedRuntime,
+    runtimeEvents,
+    selectedProducts: productContext.selectedProducts,
+    selectedStrategy,
+    selectedSources: sourceContext.selectedSources,
+    sendMessage,
+    setInput,
+    setRuntimeCollaborationMode: runtimeContext.setCollaborationMode,
+    setRuntimeLearningLevel: runtimeContext.setLearningLevel,
+    setRuntimeModelName: runtimeContext.setModelName,
+    setRuntimePrimaryRole: runtimeContext.setPrimaryRole,
+    setStrategyId,
     strategyId,
-  }
+    toggleProductContext: productContext.toggleProductContext,
+    toggleRuntimeRole: runtimeContext.toggleRole,
+    toggleSourceContext: sourceContext.toggleSourceContext,
+    uploadAttachments,
+  })
 }

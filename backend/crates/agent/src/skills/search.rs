@@ -1,13 +1,152 @@
+use std::collections::BTreeSet;
+
 use async_trait::async_trait;
+use serde::Deserialize;
 use serde_json::{Value, json};
+use time::{
+    Date, Duration, OffsetDateTime, format_description::well_known::Rfc3339,
+    macros::format_description,
+};
+use toolcraft_request::{HeaderMap, Request};
 
 use crate::skills::{
     Skill, SkillCategory, SkillContext, SkillInputField, SkillOutcome, SkillPriority, SkillResult,
-    SkillSpec, object_params, optional_i64_param, optional_string_param, string_param,
+    SkillSpec, object_params, optional_bool_param, optional_i64_param, optional_string_param,
+    string_param,
 };
 
 fn category() -> SkillCategory {
     SkillCategory::Custom("search".to_owned())
+}
+
+const SEARCH_ADAPTER_REQUIRED_CONFIG: &str = "search.provider / search endpoint not configured";
+const SEARCH_DEFERRED_REASON: &str = "外部搜索 adapter 尚未接入，不能伪造实时来源";
+const SEARCH_DEGRADED_REASON: &str =
+    "Search adapter is not configured; planned query is returned for traceability.";
+const SEARCH_PROVIDER_EMPTY_REASON: &str =
+    "External search provider returned no normalized sources; live sources were not accepted.";
+const SEARCH_PROVIDER_STALE_REASON: &str =
+    "External search provider returned only sources outside the requested freshness window.";
+const VALID_TOPICS: &[&str] = &["general", "news", "finance"];
+const MAX_DAYS: i64 = 365;
+const MAX_RESULTS: i64 = 12;
+const DEFAULT_MAX_RESULTS: i64 = 6;
+const DEFAULT_TIMEOUT_SEC: u64 = 10;
+
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct SearchAdapterConfig {
+    pub enabled: bool,
+    pub provider: Option<String>,
+    pub base_url: Option<String>,
+    pub search_endpoint: Option<String>,
+    pub api_key: Option<String>,
+    pub timeout_sec: Option<u64>,
+    pub default_topic: Option<String>,
+    pub default_days: Option<u64>,
+    pub default_max_results: Option<u64>,
+}
+
+impl Default for SearchAdapterConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            provider: None,
+            base_url: None,
+            search_endpoint: None,
+            api_key: None,
+            timeout_sec: Some(10),
+            default_topic: Some("general".to_string()),
+            default_days: Some(30),
+            default_max_results: Some(DEFAULT_MAX_RESULTS as u64),
+        }
+    }
+}
+
+impl SearchAdapterConfig {
+    pub fn is_configured(&self) -> bool {
+        self.enabled
+            && self
+                .base_url
+                .as_deref()
+                .is_some_and(|value| !value.trim().is_empty())
+            && self
+                .search_endpoint
+                .as_deref()
+                .is_some_and(|value| !value.trim().is_empty())
+    }
+
+    pub fn provider_name(&self) -> String {
+        self.provider
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .unwrap_or("external_search")
+            .to_string()
+    }
+
+    fn readiness(&self) -> Value {
+        let mut missing_config = Vec::new();
+        if !self.enabled {
+            missing_config.push("external_search.enabled");
+        }
+        if self
+            .base_url
+            .as_deref()
+            .is_none_or(|value| value.trim().is_empty())
+        {
+            missing_config.push("external_search.base_url");
+        }
+        if self
+            .search_endpoint
+            .as_deref()
+            .is_none_or(|value| value.trim().is_empty())
+        {
+            missing_config.push("external_search.search_endpoint");
+        }
+
+        let configured = missing_config.is_empty();
+        let status = if configured {
+            "configured"
+        } else if self.enabled {
+            "missing_config"
+        } else {
+            "disabled"
+        };
+        let message = match status {
+            "configured" => {
+                "外部搜索 adapter 已配置，后端会尝试请求真实 provider；provider 仍可能因无可信来源而降级。"
+            }
+            "missing_config" => "外部搜索 adapter 已启用但配置不完整，当前不会请求 provider。",
+            _ => "外部搜索 adapter 未启用，当前不会查询外部实时来源。",
+        };
+
+        json!({
+            "status": status,
+            "enabled": self.enabled,
+            "configured": configured,
+            "provider": self.provider_name(),
+            "missing_config": missing_config,
+            "has_api_key": self
+                .api_key
+                .as_deref()
+                .is_some_and(|value| !value.trim().is_empty()),
+            "timeout_sec": self.timeout_sec.unwrap_or(DEFAULT_TIMEOUT_SEC).max(1),
+            "default_topic": self
+                .default_topic
+                .as_deref()
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .unwrap_or("general"),
+            "default_days": self.default_days.unwrap_or(30).clamp(1, MAX_DAYS as u64),
+            "default_max_results": self
+                .default_max_results
+                .unwrap_or(DEFAULT_MAX_RESULTS as u64)
+                .clamp(1, MAX_RESULTS as u64),
+            "max_results_limit": MAX_RESULTS,
+            "message": message
+        })
+    }
 }
 
 pub fn specs() -> Vec<SkillSpec> {
@@ -134,7 +273,7 @@ pub fn search_platform_policy_spec() -> SkillSpec {
             ),
             SkillInputField::optional(
                 "policy_type",
-                "政策类型：algorithm/fee/promotion/content/general",
+                "政策类型：algorithm/fee/promotion/content/material/general",
                 json!({"type": "string"}),
             ),
             SkillInputField::optional(
@@ -159,7 +298,7 @@ pub fn search_industry_benchmarks_spec() -> SkillSpec {
             ),
             SkillInputField::optional(
                 "metric",
-                "关注指标：conversion/aov/nps/refund/roi/general",
+                "关注指标：conversion/aov/nps/dsr/refund/roi/general",
                 json!({"type": "string"}),
             ),
             SkillInputField::optional(
@@ -172,14 +311,806 @@ pub fn search_industry_benchmarks_spec() -> SkillSpec {
 }
 
 fn search_spec(id: &str, name: &str, description: &str, inputs: Vec<SkillInputField>) -> SkillSpec {
-    inputs.into_iter().fold(
+    inputs.into_iter().chain([max_results_input()]).fold(
         SkillSpec::new(id, name, description)
             .with_category(category())
             .with_priority(SkillPriority::High)
             .with_tag("deferred")
+            .with_tag("adapter")
             .with_tag("fresh_data"),
         SkillSpec::with_input,
     )
+}
+
+fn max_results_input() -> SkillInputField {
+    SkillInputField::optional(
+        "max_results",
+        "最大可信来源数量，默认使用 external_search.default_max_results，允许 1-12",
+        json!({"type": "integer", "minimum": 1, "maximum": MAX_RESULTS}),
+    )
+}
+
+#[derive(Debug, Clone)]
+struct SearchPlan {
+    raw: String,
+    planned: String,
+    topic: String,
+    days: i64,
+    max_results: i64,
+    bypass_cache: bool,
+    product_ref: Option<String>,
+    product_name: Option<String>,
+    product_category: Option<String>,
+}
+
+#[derive(Debug, Clone, Default)]
+struct SearchSourceSet {
+    sources: Vec<Value>,
+    stale_filtered_count: usize,
+}
+
+impl SearchPlan {
+    fn new(
+        raw: impl Into<String>,
+        planned: impl Into<String>,
+        topic: impl Into<String>,
+        days: i64,
+    ) -> Self {
+        Self {
+            raw: raw.into(),
+            planned: planned.into(),
+            topic: topic.into(),
+            days: days.max(1),
+            max_results: DEFAULT_MAX_RESULTS,
+            bypass_cache: false,
+            product_ref: None,
+            product_name: None,
+            product_category: None,
+        }
+    }
+
+    fn with_bypass_cache(mut self, bypass_cache: bool) -> Self {
+        self.bypass_cache = bypass_cache;
+        self
+    }
+
+    fn with_product_context(
+        mut self,
+        product_ref: Option<String>,
+        product_name: Option<String>,
+        product_category: Option<String>,
+    ) -> Self {
+        self.product_ref = product_ref;
+        self.product_name = product_name;
+        self.product_category = product_category;
+        self
+    }
+
+    fn with_adapter_defaults(
+        mut self,
+        adapter: &SearchAdapterConfig,
+    ) -> Result<Self, crate::skills::SkillError> {
+        self.topic = normalize_topic(&self.topic, adapter.default_topic.as_deref())?;
+        self.days = self.days.clamp(1, MAX_DAYS);
+        self.max_results = adapter
+            .default_max_results
+            .unwrap_or(DEFAULT_MAX_RESULTS as u64)
+            .clamp(1, MAX_RESULTS as u64) as i64;
+        Ok(self)
+    }
+
+    fn with_max_results(mut self, max_results: Option<i64>) -> Self {
+        if let Some(value) = max_results {
+            self.max_results = value.clamp(1, MAX_RESULTS);
+        }
+        self
+    }
+}
+
+fn deferred_search_output(
+    skill_id: &str,
+    required_input: String,
+    plan: SearchPlan,
+    adapter: &SearchAdapterConfig,
+) -> SkillOutcome {
+    let readiness = adapter.readiness();
+    SkillOutcome::new(json!({
+        "status": "deferred",
+        "adapter_status": "adapter_required",
+        "adapter": {
+            "kind": "search",
+            "provider": null,
+            "configured": false,
+            "required_config": SEARCH_ADAPTER_REQUIRED_CONFIG,
+            "readiness": readiness
+        },
+        "deferred_reason": SEARCH_DEFERRED_REASON,
+        "skill": skill_id,
+        "required_input": required_input,
+        "planned_query": plan.planned,
+        "query": {
+            "raw": plan.raw,
+            "planned": plan.planned,
+            "topic": plan.topic,
+            "days": plan.days,
+            "max_results": plan.max_results,
+            "bypass_cache": plan.bypass_cache,
+            "product_ref": plan.product_ref,
+            "product_name": plan.product_name,
+            "product_category": plan.product_category
+        },
+        "data": {
+            "items": []
+        },
+        "sources": [],
+        "provenance": {
+            "source_count": 0,
+            "domain_count": 0,
+            "domains": [],
+            "published_count": 0,
+            "latest_published_at": null,
+            "stale_filtered_count": 0
+        },
+        "confidence": 0.0,
+        "freshness": {
+            "requested_days": plan.days,
+            "requested_at": null,
+            "stale_filtered_count": 0
+        },
+        "evidence": build_search_evidence(&[], 0),
+        "degraded": true,
+        "degraded_reason": SEARCH_DEGRADED_REASON,
+        "expected_outputs": ["分析摘要", "结构化要点", "sources", "engine"]
+    }))
+    .with_summary("外部搜索 adapter 未接入，已返回结构化降级契约")
+    .with_metadata("adapter_status", json!("adapter_required"))
+    .with_metadata("adapter_kind", json!("search"))
+    .with_metadata("adapter_readiness", readiness)
+}
+
+fn degraded_search_output(
+    skill_id: &str,
+    required_input: String,
+    plan: SearchPlan,
+    adapter: &SearchAdapterConfig,
+    reason: impl Into<String>,
+    stale_filtered_count: usize,
+) -> SkillOutcome {
+    let reason = reason.into();
+    let readiness = adapter.readiness();
+    SkillOutcome::new(json!({
+        "status": "deferred",
+        "adapter_status": "degraded",
+        "adapter": {
+            "kind": "search",
+            "provider": adapter.provider_name(),
+            "configured": adapter.is_configured(),
+            "required_config": if adapter.is_configured() { Value::Null } else { json!(SEARCH_ADAPTER_REQUIRED_CONFIG) },
+            "readiness": readiness
+        },
+        "deferred_reason": "外部搜索 adapter 已配置但本次未拿到可采信来源，不能伪造实时来源",
+        "skill": skill_id,
+        "required_input": required_input,
+        "planned_query": plan.planned,
+        "query": {
+            "raw": plan.raw,
+            "planned": plan.planned,
+            "topic": plan.topic,
+            "days": plan.days,
+            "max_results": plan.max_results,
+            "bypass_cache": plan.bypass_cache,
+            "product_ref": plan.product_ref,
+            "product_name": plan.product_name,
+            "product_category": plan.product_category
+        },
+        "engine": adapter.provider_name(),
+        "data": {
+            "items": []
+        },
+        "sources": [],
+        "provenance": {
+            "source_count": 0,
+            "domain_count": 0,
+            "domains": [],
+            "published_count": 0,
+            "latest_published_at": null,
+            "stale_filtered_count": stale_filtered_count
+        },
+        "confidence": 0.0,
+        "freshness": {
+            "requested_days": plan.days,
+            "requested_at": utc_now_rfc3339(),
+            "stale_filtered_count": stale_filtered_count
+        },
+        "evidence": build_search_evidence(&[], stale_filtered_count),
+        "notice": "未获取到可靠公开来源，当前不能伪造实时搜索结果。",
+        "degraded": true,
+        "degraded_reason": reason,
+        "expected_outputs": ["分析摘要", "结构化要点", "sources", "engine"]
+    }))
+    .with_summary("外部搜索 adapter 未返回可采信来源，已按降级结果处理")
+    .with_metadata("adapter_status", json!("degraded"))
+    .with_metadata("adapter_kind", json!("search"))
+    .with_metadata("provider", json!(adapter.provider_name()))
+    .with_metadata("stale_filtered_count", json!(stale_filtered_count))
+    .with_metadata("adapter_readiness", readiness)
+}
+
+fn live_search_output(
+    skill_id: &str,
+    required_input: String,
+    plan: SearchPlan,
+    adapter: &SearchAdapterConfig,
+    payload: &Value,
+) -> SkillOutcome {
+    let source_set = normalize_sources(payload, plan.max_results, plan.days);
+    let sources = source_set.sources;
+    if sources.is_empty() {
+        let reason = if source_set.stale_filtered_count > 0 {
+            SEARCH_PROVIDER_STALE_REASON
+        } else {
+            SEARCH_PROVIDER_EMPTY_REASON
+        };
+        return degraded_search_output(
+            skill_id,
+            required_input,
+            plan,
+            adapter,
+            reason,
+            source_set.stale_filtered_count,
+        );
+    }
+
+    let provenance = build_provenance(&sources, source_set.stale_filtered_count);
+    let evidence = build_search_evidence(&sources, source_set.stale_filtered_count);
+    let confidence = payload
+        .get("confidence")
+        .and_then(Value::as_f64)
+        .map(|value| (value * 1000.0).round() / 1000.0)
+        .unwrap_or_else(|| estimate_confidence(&sources));
+    let engine = payload
+        .get("engine")
+        .or_else(|| payload.get("_search_engine"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned)
+        .unwrap_or_else(|| adapter.provider_name());
+    let requested_at = payload
+        .get("requested_at")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned)
+        .unwrap_or_else(utc_now_rfc3339);
+    let source_count = provenance
+        .get("source_count")
+        .and_then(Value::as_u64)
+        .unwrap_or(sources.len() as u64);
+    let readiness = adapter.readiness();
+
+    SkillOutcome::new(json!({
+        "status": "live",
+        "adapter_status": "live",
+        "adapter": {
+            "kind": "search",
+            "provider": adapter.provider_name(),
+            "configured": true,
+            "required_config": null,
+            "readiness": readiness
+        },
+        "skill": skill_id,
+        "required_input": required_input,
+        "planned_query": plan.planned,
+        "query": {
+            "raw": plan.raw,
+            "planned": plan.planned,
+            "topic": plan.topic,
+            "days": plan.days,
+            "max_results": plan.max_results,
+            "bypass_cache": plan.bypass_cache,
+            "product_ref": plan.product_ref,
+            "product_name": plan.product_name,
+            "product_category": plan.product_category
+        },
+        "key": payload.get("key").and_then(Value::as_str).unwrap_or("search"),
+        "engine": engine,
+        "data": {
+            "items": sources
+        },
+        "sources": sources,
+        "provenance": provenance,
+        "confidence": confidence,
+        "freshness": {
+            "requested_days": plan.days,
+            "requested_at": requested_at,
+            "stale_filtered_count": source_set.stale_filtered_count
+        },
+        "evidence": evidence,
+        "degraded": false,
+        "degraded_reason": null,
+        "expected_outputs": ["分析摘要", "结构化要点", "sources", "engine"]
+    }))
+    .with_summary(format!("外部搜索已返回 {source_count} 个可采信来源"))
+    .with_metadata("adapter_status", json!("live"))
+    .with_metadata("adapter_kind", json!("search"))
+    .with_metadata("provider", json!(adapter.provider_name()))
+    .with_metadata("source_count", json!(source_count))
+    .with_metadata("adapter_readiness", readiness)
+    .with_metadata(
+        "stale_filtered_count",
+        json!(source_set.stale_filtered_count),
+    )
+}
+
+async fn query_provider(adapter: &SearchAdapterConfig, plan: &SearchPlan) -> Result<Value, String> {
+    let base_url = adapter
+        .base_url
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| SEARCH_ADAPTER_REQUIRED_CONFIG.to_string())?;
+    let endpoint = adapter
+        .search_endpoint
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| SEARCH_ADAPTER_REQUIRED_CONFIG.to_string())?;
+    let mut client = Request::with_timeout(adapter.timeout_sec.unwrap_or(10).max(1))
+        .map_err(|err| format!("init search request client failed: {err}"))?;
+    client
+        .set_base_url(base_url)
+        .map_err(|err| format!("invalid search base_url: {err}"))?;
+
+    let query = vec![
+        ("q".to_string(), plan.planned.clone()),
+        ("topic".to_string(), plan.topic.clone()),
+        ("days".to_string(), plan.days.to_string()),
+        ("max_results".to_string(), plan.max_results.to_string()),
+        ("bypass_cache".to_string(), plan.bypass_cache.to_string()),
+    ];
+    let response = client
+        .get(endpoint, Some(query), build_provider_headers(adapter)?)
+        .await
+        .map_err(|err| format!("external search provider request failed: {err}"))?;
+    let status = response.status();
+    if !status.is_success() {
+        let body = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "<unreadable body>".to_string());
+        return Err(format!(
+            "external search provider returned status {}: {}",
+            status.as_u16(),
+            compact_text(&body, 240)
+        ));
+    }
+    response
+        .json::<Value>()
+        .await
+        .map_err(|err| format!("decode external search provider response failed: {err}"))
+}
+
+fn normalize_sources(payload: &Value, max_results: i64, days: i64) -> SearchSourceSet {
+    let Some(items) = source_items(payload) else {
+        return SearchSourceSet::default();
+    };
+
+    let result_limit = max_results.clamp(1, MAX_RESULTS) as usize;
+    let requested_days = days.clamp(1, MAX_DAYS);
+    let mut seen = BTreeSet::new();
+    let mut sources = Vec::new();
+    let mut stale_filtered_count = 0;
+    for item in items {
+        let rank = sources.len() as u64 + 1;
+        let Some(source) = normalize_source(rank, item) else {
+            continue;
+        };
+        if is_source_outside_freshness_window(&source, requested_days) {
+            stale_filtered_count += 1;
+            continue;
+        }
+        let Some(key) = normalized_source_key(&source) else {
+            continue;
+        };
+        if seen.insert(key) {
+            sources.push(source);
+        }
+        if sources.len() >= result_limit {
+            break;
+        }
+    }
+    SearchSourceSet {
+        sources,
+        stale_filtered_count,
+    }
+}
+
+fn normalize_source(rank: u64, item: &Value) -> Option<Value> {
+    let title = string_field(item, &["title", "name", "headline"])
+        .map(|value| compact_text(&value, 180))
+        .unwrap_or_else(|| "未命名来源".to_string());
+    let url = string_field(item, &["url", "link", "href", "source_url", "sourceUrl"])
+        .map(|value| compact_text(&value, 400))
+        .unwrap_or_default();
+    if url.trim().is_empty() {
+        return None;
+    }
+    let domain = extract_domain(&url);
+    if !is_traceable_domain(&domain) {
+        return None;
+    }
+    let snippet = string_field(
+        item,
+        &[
+            "snippet",
+            "body",
+            "summary",
+            "content",
+            "description",
+            "text",
+            "excerpt",
+        ],
+    )
+    .map(|value| compact_text(&value, 320))
+    .unwrap_or_default();
+    let published_at = string_field(
+        item,
+        &[
+            "published_at",
+            "publishedAt",
+            "pubDate",
+            "published",
+            "datePublished",
+            "date",
+        ],
+    )
+    .map(|value| compact_text(&value, 64))
+    .filter(|value| !value.is_empty());
+
+    Some(json!({
+        "rank": rank,
+        "title": title,
+        "snippet": snippet,
+        "url": url,
+        "domain": domain,
+        "published_at": published_at
+    }))
+}
+
+fn normalized_source_key(source: &Value) -> Option<String> {
+    let url = source
+        .get("url")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+    let title = source
+        .get("title")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+    url.or(title)
+        .map(|value| value.trim_end_matches('/').to_ascii_lowercase())
+}
+
+fn build_provenance(sources: &[Value], stale_filtered_count: usize) -> Value {
+    let domains = sources
+        .iter()
+        .filter_map(|item| item.get("domain").and_then(Value::as_str))
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .take(12)
+        .collect::<Vec<_>>();
+    let published = sources
+        .iter()
+        .filter_map(|item| item.get("published_at").and_then(Value::as_str))
+        .filter(|value| !value.trim().is_empty())
+        .map(ToOwned::to_owned)
+        .collect::<Vec<_>>();
+    let latest_published_at = published.iter().max().cloned();
+
+    json!({
+        "source_count": sources.len(),
+        "domain_count": domains.len(),
+        "domains": domains,
+        "published_count": published.len(),
+        "latest_published_at": latest_published_at,
+        "stale_filtered_count": stale_filtered_count
+    })
+}
+
+fn build_search_evidence(sources: &[Value], stale_filtered_count: usize) -> Value {
+    if sources.is_empty() {
+        let summary = if stale_filtered_count > 0 {
+            format!(
+                "没有可采信实时来源；已过滤 {stale_filtered_count} 条超出请求时间范围的来源，当前结果只能作为降级状态。"
+            )
+        } else {
+            "没有可采信实时来源；当前结果只能作为降级状态，不可当作联网证据。".to_string()
+        };
+        return json!({
+            "summary": summary,
+            "source_titles": [],
+            "source_domains": [],
+            "llm_context": "（本次没有可采信实时来源。回答时必须说明外部搜索未返回来源，不能引用不存在的联网数据。）"
+        });
+    }
+
+    let titles = sources
+        .iter()
+        .filter_map(|item| item.get("title").and_then(Value::as_str))
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| compact_text(value, 120))
+        .take(5)
+        .collect::<Vec<_>>();
+    let domains = sources
+        .iter()
+        .filter_map(|item| item.get("domain").and_then(Value::as_str))
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .take(8)
+        .map(ToOwned::to_owned)
+        .collect::<Vec<_>>();
+    let stale_note = if stale_filtered_count > 0 {
+        format!("已过滤 {stale_filtered_count} 条超出请求时间范围的来源；")
+    } else {
+        String::new()
+    };
+    let summary = format!(
+        "共 {} 条实时来源，覆盖 {} 个域名；{}回答应优先引用这些来源，并注明时效性和置信度。",
+        sources.len(),
+        domains.len(),
+        stale_note
+    );
+
+    json!({
+        "summary": summary,
+        "source_titles": titles,
+        "source_domains": domains,
+        "llm_context": format_sources_for_llm(sources, stale_filtered_count)
+    })
+}
+
+fn format_sources_for_llm(sources: &[Value], stale_filtered_count: usize) -> String {
+    if sources.is_empty() {
+        return "（本次没有可采信实时来源。回答时必须说明外部搜索未返回来源，不能引用不存在的联网数据。）".to_string();
+    }
+
+    let mut lines = vec![format!(
+        "（共{}条实时来源，优先从中提取具体数字、结论和出处；若来源不足，明确说明数据不足。）",
+        sources.len().min(5)
+    )];
+    if stale_filtered_count > 0 {
+        lines.push(format!(
+            "已过滤{}条超出请求时间范围的来源；不要引用这些过期来源。",
+            stale_filtered_count
+        ));
+    }
+    for (index, source) in sources.iter().take(5).enumerate() {
+        let title = source
+            .get("title")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .unwrap_or("未命名来源");
+        let snippet = source
+            .get("snippet")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .unwrap_or("");
+        let url = source
+            .get("url")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .unwrap_or("");
+        let published_at = source
+            .get("published_at")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty());
+
+        lines.push(format!("\n[{}] {}", index + 1, compact_text(title, 120)));
+        if let Some(value) = published_at {
+            lines.push(format!("发布时间：{}", compact_text(value, 64)));
+        }
+        if !snippet.is_empty() {
+            lines.push(compact_text(snippet, 320));
+        }
+        if !url.is_empty() {
+            lines.push(format!("来源：{}", compact_text(url, 300)));
+        }
+    }
+    lines.push(
+        "\n注：遇到实时来源与通用经验不一致时，以实时来源为准，并说明来源数量、时效性和不确定性。"
+            .to_string(),
+    );
+    lines.join("\n")
+}
+
+fn estimate_confidence(sources: &[Value]) -> f64 {
+    if sources.is_empty() {
+        return 0.0;
+    }
+    let source_score = (sources.len() as f64 / DEFAULT_MAX_RESULTS as f64).min(1.0) * 0.55;
+    let domains = sources
+        .iter()
+        .filter_map(|item| item.get("domain").and_then(Value::as_str))
+        .filter(|value| !value.trim().is_empty())
+        .collect::<BTreeSet<_>>();
+    let diversity_score = (domains.len() as f64 / sources.len() as f64).min(1.0) * 0.25;
+    let freshness_score = if sources
+        .iter()
+        .any(|item| item.get("published_at").and_then(Value::as_str).is_some())
+    {
+        0.2
+    } else {
+        0.08
+    };
+    ((source_score + diversity_score + freshness_score).min(1.0) * 1000.0).round() / 1000.0
+}
+
+fn is_source_outside_freshness_window(source: &Value, days: i64) -> bool {
+    let Some(published_at) = source
+        .get("published_at")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    else {
+        return false;
+    };
+    let Some(published_at) = parse_published_at(published_at) else {
+        return false;
+    };
+    let cutoff = OffsetDateTime::now_utc() - Duration::days(days.clamp(1, MAX_DAYS));
+    published_at < cutoff
+}
+
+fn parse_published_at(value: &str) -> Option<OffsetDateTime> {
+    let text = value.trim();
+    if text.is_empty() {
+        return None;
+    }
+    if let Ok(datetime) = OffsetDateTime::parse(text, &Rfc3339) {
+        return Some(datetime);
+    }
+    Date::parse(text, format_description!("[year]-[month]-[day]"))
+        .ok()
+        .map(|date| date.midnight().assume_utc())
+}
+
+fn build_provider_headers(adapter: &SearchAdapterConfig) -> Result<Option<HeaderMap>, String> {
+    let Some(api_key) = adapter
+        .api_key
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    else {
+        return Ok(None);
+    };
+    let mut headers = HeaderMap::new();
+    headers
+        .insert("Authorization", format!("Bearer {api_key}"))
+        .map_err(|err| format!("invalid search auth header: {err}"))?;
+    Ok(Some(headers))
+}
+
+fn normalize_topic(
+    topic: &str,
+    fallback: Option<&str>,
+) -> Result<String, crate::skills::SkillError> {
+    let normalized = topic.trim().to_ascii_lowercase();
+    let normalized = if normalized.is_empty() {
+        fallback
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .unwrap_or("general")
+            .to_ascii_lowercase()
+    } else {
+        normalized
+    };
+    if !VALID_TOPICS.contains(&normalized.as_str()) {
+        return Err(crate::skills::SkillError::invalid_parameter(
+            "topic",
+            "general/news/finance",
+        ));
+    }
+    Ok(normalized)
+}
+
+fn search_bypass_cache(params: &Value) -> Result<bool, crate::skills::SkillError> {
+    Ok(optional_bool_param(params, "bypass_cache")?
+        .or(optional_bool_param(params, "bypassCache")?)
+        .or(optional_bool_param(params, "_needs_fresh_data")?)
+        .unwrap_or(false))
+}
+
+fn search_max_results(params: &Value) -> Result<Option<i64>, crate::skills::SkillError> {
+    Ok(optional_i64_param(params, "max_results")?.or(optional_i64_param(params, "maxResults")?))
+}
+
+fn optional_search_string_param(
+    params: &Value,
+    field: &str,
+) -> Result<Option<String>, crate::skills::SkillError> {
+    optional_string_param(params, field)
+}
+
+fn string_field(item: &Value, keys: &[&str]) -> Option<String> {
+    keys.iter()
+        .find_map(|key| item.get(*key).and_then(Value::as_str))
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned)
+}
+
+fn source_items(payload: &Value) -> Option<&[Value]> {
+    [
+        "/data/items",
+        "/data/results",
+        "/data/sources",
+        "/data/organic",
+        "/data/organic_results",
+        "/data/webPages/value",
+        "/items",
+        "/sources",
+        "/results",
+        "/organic",
+        "/organic_results",
+        "/webPages/value",
+        "/value",
+    ]
+    .iter()
+    .find_map(|pointer| {
+        payload
+            .pointer(pointer)
+            .and_then(Value::as_array)
+            .map(Vec::as_slice)
+    })
+}
+
+fn extract_domain(url: &str) -> String {
+    let text = url.trim();
+    if text.is_empty() {
+        return String::new();
+    }
+    let without_scheme = text
+        .strip_prefix("https://")
+        .or_else(|| text.strip_prefix("http://"))
+        .unwrap_or(text);
+    without_scheme
+        .split(['/', '?', '#'])
+        .next()
+        .unwrap_or_default()
+        .trim()
+        .trim_end_matches('.')
+        .trim_start_matches("www.")
+        .to_ascii_lowercase()
+}
+
+fn is_traceable_domain(value: &str) -> bool {
+    let text = value.trim();
+    !text.is_empty() && text.contains('.') && !text.chars().any(char::is_whitespace)
+}
+
+fn compact_text(value: &str, max_chars: usize) -> String {
+    let trimmed = value.trim();
+    if trimmed.chars().count() <= max_chars {
+        return trimmed.to_string();
+    }
+    trimmed.chars().take(max_chars).collect()
+}
+
+fn utc_now_rfc3339() -> String {
+    OffsetDateTime::now_utc()
+        .format(&Rfc3339)
+        .unwrap_or_else(|_| "1970-01-01T00:00:00Z".to_string())
 }
 
 macro_rules! deferred_search_skill {
@@ -191,6 +1122,55 @@ macro_rules! deferred_search_skill {
         impl $type_name {
             pub fn new() -> Self {
                 Self { spec: $spec_fn() }
+            }
+
+            pub async fn run_with_adapter(
+                &self,
+                params: Value,
+                _context: SkillContext,
+                adapter: &SearchAdapterConfig,
+            ) -> SkillResult {
+                object_params(&params)?;
+                let required_value = string_param(&params, $required)?;
+                let bypass_cache = search_bypass_cache(&params)?;
+                let max_results = search_max_results(&params)?;
+                let product_ref = optional_search_string_param(&params, "product_ref")?;
+                let product_name = optional_search_string_param(&params, "product_name")?;
+                let product_category = optional_search_string_param(&params, "product_category")?;
+                let plan = $builder(&params, &required_value)?
+                    .with_bypass_cache(bypass_cache)
+                    .with_product_context(product_ref, product_name, product_category)
+                    .with_adapter_defaults(adapter)?
+                    .with_max_results(max_results);
+                if !adapter.is_configured() {
+                    return Ok(deferred_search_output(
+                        &self.spec.id,
+                        required_value,
+                        plan,
+                        adapter,
+                    ));
+                }
+
+                let payload = match query_provider(adapter, &plan).await {
+                    Ok(payload) => payload,
+                    Err(reason) => {
+                        return Ok(degraded_search_output(
+                            &self.spec.id,
+                            required_value,
+                            plan,
+                            adapter,
+                            reason,
+                            0,
+                        ));
+                    }
+                };
+                Ok(live_search_output(
+                    &self.spec.id,
+                    required_value,
+                    plan,
+                    adapter,
+                    &payload,
+                ))
             }
         }
 
@@ -206,18 +1186,9 @@ macro_rules! deferred_search_skill {
                 &self.spec
             }
 
-            async fn run(&self, params: Value, _context: SkillContext) -> SkillResult {
-                object_params(&params)?;
-                let required_value = string_param(&params, $required)?;
-                let query = $builder(&params, &required_value)?;
-                Ok(SkillOutcome::new(json!({
-                    "status": "deferred",
-                    "deferred_reason": "搜索后端尚未接入Rust skill runtime",
-                    "skill": self.spec.id,
-                    "required_input": required_value,
-                    "planned_query": query,
-                    "expected_outputs": ["分析摘要", "结构化要点", "sources", "_search_engine"]
-                })).with_summary("搜索技能骨架已返回"))
+            async fn run(&self, params: Value, context: SkillContext) -> SkillResult {
+                self.run_with_adapter(params, context, &SearchAdapterConfig::default())
+                    .await
             }
         }
     };
@@ -260,18 +1231,20 @@ deferred_search_skill!(
     build_benchmark_query
 );
 
-fn build_trends_query(params: &Value, query: &str) -> Result<String, crate::skills::SkillError> {
+fn build_trends_query(
+    params: &Value,
+    query: &str,
+) -> Result<SearchPlan, crate::skills::SkillError> {
     let platform = optional_string_param(params, "platform")?.unwrap_or_else(|| "电商".to_owned());
     let days = optional_i64_param(params, "days")?.unwrap_or(30);
-    Ok(format!(
-        "{query} {platform} 热销 趋势 爆款 2026 最近{days}天"
-    ))
+    let planned = format!("{query} {platform} 热销 趋势 爆款 2026 最近{days}天");
+    Ok(SearchPlan::new(query, planned, "general", days))
 }
 
 fn build_competitor_query(
     params: &Value,
     query: &str,
-) -> Result<String, crate::skills::SkillError> {
+) -> Result<SearchPlan, crate::skills::SkillError> {
     let platform = optional_string_param(params, "platform")?.unwrap_or_default();
     let focus = optional_string_param(params, "focus")?.unwrap_or_default();
     let focus_text = match focus.as_str() {
@@ -281,23 +1254,29 @@ fn build_competitor_query(
         "features" => "卖点 功能特点 优势 核心参数",
         _ => "价格 卖点 评价 优惠 竞品对比",
     };
-    Ok(format!("{query} {platform} {focus_text} 2026"))
+    let planned = format!("{query} {platform} {focus_text} 2026");
+    Ok(SearchPlan::new(query, planned, "general", 60))
 }
 
 fn build_market_info_query(
     params: &Value,
     query: &str,
-) -> Result<String, crate::skills::SkillError> {
+) -> Result<SearchPlan, crate::skills::SkillError> {
     let days = optional_i64_param(params, "days")?.unwrap_or(7);
+    let topic = optional_string_param(params, "topic")?.unwrap_or_else(|| "news".to_owned());
     let recency = if days <= 7 {
         "最新".to_owned()
     } else {
         format!("{days}天内")
     };
-    Ok(format!("{query} {recency} 行业动态 市场分析 2026"))
+    let planned = format!("{query} {recency} 行业动态 市场分析 2026");
+    Ok(SearchPlan::new(query, planned, topic, days))
 }
 
-fn build_reviews_query(params: &Value, query: &str) -> Result<String, crate::skills::SkillError> {
+fn build_reviews_query(
+    params: &Value,
+    query: &str,
+) -> Result<SearchPlan, crate::skills::SkillError> {
     let platform = optional_string_param(params, "platform")?.unwrap_or_default();
     let focus = optional_string_param(params, "focus")?.unwrap_or_else(|| "overall".to_owned());
     let focus_text = match focus.as_str() {
@@ -305,35 +1284,429 @@ fn build_reviews_query(params: &Value, query: &str) -> Result<String, crate::ski
         "negative" => "差评 缺点 投诉 退货 踩雷 槽点",
         _ => "用户评价 口碑 真实反馈 购买体验 评测",
     };
-    Ok(format!("{query} {platform} {focus_text} 2026"))
+    let planned = format!("{query} {platform} {focus_text} 2026");
+    Ok(SearchPlan::new(query, planned, "general", 90))
 }
 
-fn build_policy_query(params: &Value, platform: &str) -> Result<String, crate::skills::SkillError> {
+fn build_policy_query(
+    params: &Value,
+    platform: &str,
+) -> Result<SearchPlan, crate::skills::SkillError> {
     let policy_type =
         optional_string_param(params, "policy_type")?.unwrap_or_else(|| "general".to_owned());
+    let days = optional_i64_param(params, "days")?.unwrap_or(30);
     let type_text = match policy_type.as_str() {
         "algorithm" => "搜索算法 流量规则 排名机制 权重调整",
         "fee" => "佣金 费率 扣点 服务费 收费标准",
         "promotion" => "大促规则 活动报名 双11 618 商家政策",
         "content" => "内容规范 违禁词 审核标准 发布规定 违规处罚",
+        "material" => "素材尺寸 广告位规格 上传格式 文件大小 安全区 审核要求",
         _ => "规则变化 政策更新 新规 公告",
     };
-    Ok(format!("{platform} {type_text} 最新 2026"))
+    let planned = format!("{platform} {type_text} 最新 2026");
+    Ok(SearchPlan::new(platform, planned, "news", days))
 }
 
 fn build_benchmark_query(
     params: &Value,
     industry: &str,
-) -> Result<String, crate::skills::SkillError> {
+) -> Result<SearchPlan, crate::skills::SkillError> {
     let platform = optional_string_param(params, "platform")?.unwrap_or_else(|| "电商".to_owned());
     let metric = optional_string_param(params, "metric")?.unwrap_or_else(|| "general".to_owned());
     let metric_text = match metric.as_str() {
         "conversion" => "转化率 成交转化 CVR 行业均值 基准",
         "aov" => "客单价 平均订单金额 消费水平 均值",
         "nps" => "NPS 净推荐值 客户满意度 行业标准 平均分",
+        "dsr" => "DSR 店铺评分 描述相符 服务态度 物流服务 行业基准",
         "refund" => "退款率 退货率 售后率 行业水平 均值",
         "roi" => "广告ROI 投产比 ROAS 营销效率 基准",
         _ => "行业数据 KPI基准 平均水平 运营指标 数据报告",
     };
-    Ok(format!("{industry} {platform} {metric_text} 2025 2026"))
+    let planned = format!("{industry} {platform} {metric_text} 2025 2026");
+    Ok(SearchPlan::new(industry, planned, "general", 180))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn search_specs_expose_max_results_input() {
+        for spec in specs() {
+            let field = spec
+                .inputs
+                .iter()
+                .find(|field| field.name == "max_results")
+                .unwrap_or_else(|| panic!("{} should declare max_results", spec.id));
+
+            assert!(!field.required);
+            assert_eq!(field.schema.get("type"), Some(&json!("integer")));
+            assert_eq!(field.schema.get("minimum"), Some(&json!(1)));
+            assert_eq!(field.schema.get("maximum"), Some(&json!(MAX_RESULTS)));
+        }
+    }
+
+    #[test]
+    fn normalizes_provider_sources_into_deduped_evidence() {
+        let payload = json!({
+            "data": {
+                "items": [
+                    {
+                        "title": "咖啡消费趋势",
+                        "snippet": "冷萃咖啡增长",
+                        "url": "https://www.example.com/a",
+                        "published_at": "2026-05-01T00:00:00Z"
+                    },
+                    {
+                        "title": "咖啡消费趋势重复",
+                        "summary": "重复 URL 应被去掉",
+                        "url": "https://www.example.com/a/"
+                    },
+                    {
+                        "title": "咖啡行业报告",
+                        "body": "即饮咖啡继续增长",
+                        "url": "https://report.example.cn/b"
+                    }
+                ]
+            }
+        });
+
+        let source_set = normalize_sources(&payload, MAX_RESULTS, MAX_DAYS);
+        let sources = source_set.sources;
+        let evidence = build_search_evidence(&sources, source_set.stale_filtered_count);
+
+        assert_eq!(sources.len(), 2);
+        assert_eq!(sources[0].get("rank").and_then(Value::as_u64), Some(1));
+        assert_eq!(sources[1].get("rank").and_then(Value::as_u64), Some(2));
+        assert!(
+            evidence
+                .get("summary")
+                .and_then(Value::as_str)
+                .is_some_and(|summary| summary.contains("2 条实时来源"))
+        );
+        assert!(
+            evidence
+                .get("llm_context")
+                .and_then(Value::as_str)
+                .is_some_and(|context| context.contains("咖啡消费趋势")
+                    && context.contains("https://www.example.com/a"))
+        );
+    }
+
+    #[test]
+    fn normalizes_nested_provider_shapes_and_requires_traceable_url() {
+        let payload = json!({
+            "webPages": {
+                "value": [
+                    {
+                        "name": "无 URL 弱来源",
+                        "description": "没有可点击来源，不能作为 live evidence",
+                        "domain": "example.com"
+                    },
+                    {
+                        "name": "相对路径弱来源",
+                        "description": "相对路径不能作为 live evidence",
+                        "href": "/relative/path",
+                        "domain": "example.com"
+                    },
+                    {
+                        "headline": "咖啡消费公开资料",
+                        "text": "瓶装咖啡搜索热度提升",
+                        "href": "https://news.example.cn/coffee",
+                        "published": "2026-05-03"
+                    }
+                ]
+            }
+        });
+
+        let source_set = normalize_sources(&payload, MAX_RESULTS, MAX_DAYS);
+        let sources = source_set.sources;
+        let evidence = build_search_evidence(&sources, source_set.stale_filtered_count);
+
+        assert_eq!(sources.len(), 1);
+        assert_eq!(sources[0].get("rank").and_then(Value::as_u64), Some(1));
+        assert_eq!(
+            sources[0].get("domain").and_then(Value::as_str),
+            Some("news.example.cn")
+        );
+        assert!(
+            evidence
+                .get("llm_context")
+                .and_then(Value::as_str)
+                .is_some_and(|context| context.contains("https://news.example.cn/coffee")
+                    && !context.contains("无 URL 弱来源"))
+        );
+    }
+
+    #[test]
+    fn search_plan_uses_explicit_max_results_over_adapter_default() {
+        let adapter = SearchAdapterConfig {
+            default_max_results: Some(8),
+            ..SearchAdapterConfig::default()
+        };
+        let params = json!({
+            "query": "咖啡",
+            "max_results": 3
+        });
+        let max_results = search_max_results(&params).expect("max_results should parse");
+        let plan = build_trends_query(&params, "咖啡")
+            .expect("trend query should build")
+            .with_adapter_defaults(&adapter)
+            .expect("adapter defaults should apply")
+            .with_max_results(max_results);
+
+        assert_eq!(plan.max_results, 3);
+    }
+
+    #[test]
+    fn search_plan_accepts_camel_case_max_results_and_clamps() {
+        let adapter = SearchAdapterConfig {
+            default_max_results: Some(4),
+            ..SearchAdapterConfig::default()
+        };
+        let params = json!({
+            "query": "咖啡",
+            "maxResults": 100
+        });
+        let max_results = search_max_results(&params).expect("maxResults should parse");
+        let plan = build_trends_query(&params, "咖啡")
+            .expect("trend query should build")
+            .with_adapter_defaults(&adapter)
+            .expect("adapter defaults should apply")
+            .with_max_results(max_results);
+
+        assert_eq!(plan.max_results, MAX_RESULTS);
+    }
+
+    #[test]
+    fn search_adapter_readiness_reports_disabled_and_missing_config() {
+        let disabled = SearchAdapterConfig::default().readiness();
+        assert_eq!(disabled.pointer("/status"), Some(&json!("disabled")));
+        assert_eq!(disabled.pointer("/configured"), Some(&json!(false)));
+        assert_eq!(
+            disabled.pointer("/missing_config/0"),
+            Some(&json!("external_search.enabled"))
+        );
+
+        let missing_endpoint = SearchAdapterConfig {
+            enabled: true,
+            provider: Some("custom".to_string()),
+            base_url: Some("https://search.example.test".to_string()),
+            search_endpoint: None,
+            timeout_sec: Some(0),
+            default_days: Some(1000),
+            default_max_results: Some(100),
+            ..SearchAdapterConfig::default()
+        }
+        .readiness();
+
+        assert_eq!(
+            missing_endpoint.pointer("/status"),
+            Some(&json!("missing_config"))
+        );
+        assert_eq!(
+            missing_endpoint.pointer("/provider"),
+            Some(&json!("custom"))
+        );
+        assert_eq!(missing_endpoint.pointer("/timeout_sec"), Some(&json!(1)));
+        assert_eq!(
+            missing_endpoint.pointer("/default_days"),
+            Some(&json!(MAX_DAYS))
+        );
+        assert_eq!(
+            missing_endpoint.pointer("/default_max_results"),
+            Some(&json!(MAX_RESULTS))
+        );
+        assert_eq!(
+            missing_endpoint.pointer("/missing_config/0"),
+            Some(&json!("external_search.search_endpoint"))
+        );
+    }
+
+    #[test]
+    fn normalizes_provider_sources_filters_stale_published_items() {
+        let stale_date = (OffsetDateTime::now_utc() - Duration::days(90))
+            .format(&Rfc3339)
+            .expect("stale date should format");
+        let fresh_date = (OffsetDateTime::now_utc() - Duration::days(3))
+            .format(&Rfc3339)
+            .expect("fresh date should format");
+        let payload = json!({
+            "results": [
+                {
+                    "title": "旧咖啡报告",
+                    "snippet": "超出最近7天，不应作为实时证据",
+                    "url": "https://old.example.com/report",
+                    "published_at": stale_date
+                },
+                {
+                    "title": "新咖啡趋势",
+                    "snippet": "最近3天内发布",
+                    "url": "https://fresh.example.com/trend",
+                    "published_at": fresh_date
+                }
+            ]
+        });
+
+        let source_set = normalize_sources(&payload, MAX_RESULTS, 7);
+
+        assert_eq!(source_set.stale_filtered_count, 1);
+        assert_eq!(source_set.sources.len(), 1);
+        assert_eq!(
+            source_set.sources[0].get("title").and_then(Value::as_str),
+            Some("新咖啡趋势")
+        );
+    }
+
+    #[test]
+    fn live_search_output_respects_plan_max_results() {
+        let adapter = SearchAdapterConfig {
+            enabled: true,
+            provider: Some("legacy".to_string()),
+            base_url: Some("http://example.test".to_string()),
+            search_endpoint: Some("/search".to_string()),
+            default_max_results: Some(2),
+            ..SearchAdapterConfig::default()
+        };
+        let plan = SearchPlan::new("咖啡", "咖啡 消费趋势", "general", 30)
+            .with_adapter_defaults(&adapter)
+            .expect("search plan should normalize");
+        let payload = json!({
+            "results": [
+                {
+                    "title": "咖啡消费趋势",
+                    "snippet": "冷萃咖啡增长",
+                    "url": "https://www.example.com/a"
+                },
+                {
+                    "title": "咖啡行业报告",
+                    "snippet": "即饮咖啡继续增长",
+                    "url": "https://report.example.cn/b"
+                },
+                {
+                    "title": "第三条应被截断",
+                    "snippet": "超过本次搜索计划 max_results",
+                    "url": "https://extra.example.org/c"
+                }
+            ]
+        });
+
+        let outcome = live_search_output(
+            "search_trends",
+            "咖啡".to_string(),
+            plan,
+            &adapter,
+            &payload,
+        );
+
+        assert_eq!(outcome.output.pointer("/status"), Some(&json!("live")));
+        assert_eq!(
+            outcome.output.pointer("/query/max_results"),
+            Some(&json!(2))
+        );
+        assert_eq!(
+            outcome.output.pointer("/provenance/source_count"),
+            Some(&json!(2))
+        );
+        assert_eq!(
+            outcome.output.pointer("/sources/1/title"),
+            Some(&json!("咖啡行业报告"))
+        );
+        assert_eq!(outcome.output.pointer("/sources/2/title"), None);
+        assert_eq!(
+            outcome.output.pointer("/adapter/readiness/status"),
+            Some(&json!("configured"))
+        );
+        assert_eq!(
+            outcome.metadata.get("adapter_readiness"),
+            outcome.output.pointer("/adapter/readiness")
+        );
+        assert!(
+            outcome
+                .output
+                .pointer("/evidence/llm_context")
+                .and_then(Value::as_str)
+                .is_some_and(|context| !context.contains("第三条应被截断"))
+        );
+    }
+
+    #[tokio::test]
+    async fn search_skill_preserves_fresh_data_bypass_in_degraded_output() {
+        let adapter = SearchAdapterConfig {
+            enabled: false,
+            ..SearchAdapterConfig::default()
+        };
+        let outcome = SearchTrends::new()
+            .run_with_adapter(
+                json!({
+                    "query": "咖啡",
+                    "_needs_fresh_data": true
+                }),
+                SkillContext::default(),
+                &adapter,
+            )
+            .await
+            .expect("search should return structured deferred output");
+
+        assert_eq!(
+            outcome.output.pointer("/query/bypass_cache"),
+            Some(&json!(true))
+        );
+        assert_eq!(
+            outcome.output.pointer("/evidence/source_titles"),
+            Some(&json!([]))
+        );
+        assert_eq!(
+            outcome.output.pointer("/adapter/readiness/status"),
+            Some(&json!("disabled"))
+        );
+        assert_eq!(
+            outcome.metadata.get("adapter_readiness"),
+            outcome.output.pointer("/adapter/readiness")
+        );
+        assert!(
+            outcome
+                .output
+                .pointer("/evidence/llm_context")
+                .and_then(Value::as_str)
+                .is_some_and(|context| context.contains("没有可采信实时来源"))
+        );
+    }
+
+    #[tokio::test]
+    async fn search_skill_echoes_product_context_in_degraded_output() {
+        let adapter = SearchAdapterConfig {
+            enabled: false,
+            ..SearchAdapterConfig::default()
+        };
+        let outcome = SearchCompetitor::new()
+            .run_with_adapter(
+                json!({
+                    "query": "五一咖啡组合 咖啡饮品",
+                    "platform": "抖音",
+                    "focus": "price",
+                    "product_ref": "product:11111111-1111-1111-1111-111111111111",
+                    "product_name": "五一咖啡组合",
+                    "product_category": "咖啡饮品"
+                }),
+                SkillContext::default(),
+                &adapter,
+            )
+            .await
+            .expect("search should return structured deferred output");
+
+        assert_eq!(
+            outcome.output.pointer("/query/product_ref"),
+            Some(&json!("product:11111111-1111-1111-1111-111111111111"))
+        );
+        assert_eq!(
+            outcome.output.pointer("/query/product_name"),
+            Some(&json!("五一咖啡组合"))
+        );
+        assert_eq!(
+            outcome.output.pointer("/query/product_category"),
+            Some(&json!("咖啡饮品"))
+        );
+        assert_eq!(outcome.output.pointer("/status"), Some(&json!("deferred")));
+    }
 }

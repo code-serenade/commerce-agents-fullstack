@@ -80,3 +80,68 @@ pub struct Evaluation {
     pub reasons: Vec<String>,
     pub rework_instruction: Option<String>,
 }
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TaskGraphProcessSummary {
+    pub graph_id: TaskGraphId,
+    pub root_task: String,
+    pub primary: Option<TaskGraphProcessRole>,
+    pub roles: Vec<TaskGraphProcessRole>,
+    pub handoffs: Vec<TaskGraphHandoff>,
+    pub next_actions: Vec<String>,
+    pub check_items: Vec<String>,
+    pub deliverables: Vec<String>,
+    pub risks: Vec<String>,
+    pub open_questions: Vec<String>,
+    pub incomplete: Vec<TaskGraphProcessGap>,
+    pub panel: TaskGraphProcessPanel,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TaskGraphProcessRole {
+    pub node_id: TaskNodeId,
+    pub task_id: Option<TaskId>,
+    pub worker_id: WorkerId,
+    pub role: String,
+    pub role_label: String,
+    pub title: String,
+    pub objective: String,
+    pub status: String,
+    pub attempt: u8,
+    pub is_primary: bool,
+    pub summary: Option<String>,
+    pub finding: Option<String>,
+    pub recommendation: Option<String>,
+    pub evidence: Vec<String>,
+    pub risks: Vec<String>,
+    pub open_questions: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TaskGraphHandoff {
+    pub from_node_id: TaskNodeId,
+    pub to_node_id: TaskNodeId,
+    pub from_role: String,
+    pub to_role: String,
+    pub from_role_label: String,
+    pub to_role_label: String,
+    pub summary: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TaskGraphProcessGap {
+    pub node_id: TaskNodeId,
+    pub role: String,
+    pub role_label: String,
+    pub title: String,
+    pub state: String,
+    pub reason: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TaskGraphProcessPanel {
+    pub default_collapsed: bool,
+    pub anchor: String,
+    pub label: String,
+    pub reason: String,
+}

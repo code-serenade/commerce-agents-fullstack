@@ -1,10 +1,34 @@
+import type { AgentRuntimeEvent } from "./agent-chat-data"
+import type { AgentChatStrategyId } from "./domain/agent-chat-strategy"
+
 export type AgentChatRole = "user" | "assistant"
+
+export interface AgentChatMessageContextReference {
+  id: string
+  label?: string
+  secondary?: string
+}
+
+export interface AgentChatMessageContextSummary {
+  productIds: string[]
+  products: AgentChatMessageContextReference[]
+  sourceRefs: string[]
+  sources: AgentChatMessageContextReference[]
+  strategyId?: AgentChatStrategyId
+  collaborationMode?: string
+  learningLevel?: string
+  modelName?: string
+  primaryRole?: string
+  selectedRoles: string[]
+}
 
 export interface AgentChatMessage {
   id: string
   role: AgentChatRole
   content: string
-  status?: "streaming" | "error"
+  contextSummary?: AgentChatMessageContextSummary
+  runtimeEvents?: AgentRuntimeEvent[]
+  status?: "streaming" | "error" | "stopped"
 }
 
 export interface AgentChatConversationItem {
@@ -13,8 +37,15 @@ export interface AgentChatConversationItem {
   updatedAt: string
 }
 
+export interface AgentChatAttachmentItem {
+  id: string
+  fileId?: string
+  name: string
+  status: "uploading" | "uploaded" | "failed"
+  readable: boolean
+}
+
 export interface AgentChatMessageStrategy {
   id: string
   responseMode: string
-  collaborationMode: string
 }

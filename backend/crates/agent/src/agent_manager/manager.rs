@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{BTreeMap, HashMap},
     sync::{Arc, Mutex},
 };
 
@@ -53,6 +53,8 @@ pub struct AgentRequest {
     pub agent_id: AgentId,
     pub session_id: SessionId,
     pub input: String,
+    #[serde(default)]
+    pub metadata: BTreeMap<String, String>,
 }
 
 pub struct AgentManager {
@@ -121,6 +123,7 @@ impl AgentManager {
                 workspace_id: request.workspace_id.clone(),
                 agent_id: request.agent_id.clone(),
                 session_id: request.session_id.clone(),
+                metadata: request.metadata.clone(),
             },
             AgentSessionConfig {
                 runtime: self.config.runtime.clone(),

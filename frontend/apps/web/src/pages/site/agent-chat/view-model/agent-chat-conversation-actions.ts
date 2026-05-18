@@ -1,24 +1,47 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react"
+import type { ConversationDetailResponse } from "@/api"
 import { agentChatData, type AgentRuntimeEvent } from "../agent-chat-data"
 import {
   createSessionId,
   formatAgentUiMessage,
+  mapConversationAttachments,
   mapConversationItem,
   mapConversationMessages,
+  readConversationRuntimeEvents,
+  readConversationRuntimeSelection,
+  readConversationSelectedProductIds,
+  readConversationSelectedSourceRefs,
+  readConversationStrategyId,
+  type AgentChatMessageFormatCopy,
 } from "../domain/agent-chat-message-mapping"
-import type { AgentChatConversationItem, AgentChatMessage } from "../types"
+import type { AgentChatRuntimeSelectionRestore } from "../domain/agent-runtime-options"
+import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
+import { resetAgentChatConversationContext } from "./agent-chat-page-actions"
+import type {
+  AgentChatAttachmentItem,
+  AgentChatConversationItem,
+  AgentChatMessage,
+} from "../types"
 
 interface ConversationActionState {
   createWelcomeMessage: () => AgentChatMessage
   fallbackConversationTitle: string
-  missingStructuredOutput: string
+  messageFormatCopy: AgentChatMessageFormatCopy
   sessionIdRef: MutableRefObject<string>
+  clearSelectedProducts?: () => void
+  clearSelectedSources?: () => void
+  resetRuntimeSelection?: () => void
+  restoreRuntimeSelection?: (selection: AgentChatRuntimeSelectionRestore) => void
+  restoreSelectedProducts?: (productIds: string[]) => void
+  restoreSelectedSources?: (sourceRefs: string[]) => void
+  restoreStrategyId?: (strategyId: AgentChatStrategyId) => void
   setConversationId: Dispatch<SetStateAction<string | null>>
   setConversations: Dispatch<SetStateAction<AgentChatConversationItem[]>>
   setError: Dispatch<SetStateAction<string | null>>
   setInput: Dispatch<SetStateAction<string>>
   setMessages: Dispatch<SetStateAction<AgentChatMessage[]>>
   setRuntimeEvents: Dispatch<SetStateAction<AgentRuntimeEvent[]>>
+  setAttachments?: Dispatch<SetStateAction<AgentChatAttachmentItem[]>>
   tError: string
 }
 
@@ -49,9 +72,11 @@ export async function loadLatestAgentConversation(
       mapConversationMessages(
         detail,
         state.createWelcomeMessage(),
-        state.missingStructuredOutput
+        state.messageFormatCopy
       )
     )
+    state.setRuntimeEvents(readConversationRuntimeEvents(detail))
+    restoreConversationContext(detail, state)
   } catch (err) {
     if (isCancelled()) return
     state.setError(formatActionError(err, state))
@@ -71,9 +96,11 @@ export async function selectAgentConversation(
       mapConversationMessages(
         detail,
         state.createWelcomeMessage(),
-        state.missingStructuredOutput
+        state.messageFormatCopy
       )
     )
+    state.setRuntimeEvents(readConversationRuntimeEvents(detail))
+    restoreConversationContext(detail, state)
   } catch (err) {
     state.setError(formatActionError(err, state))
   }
@@ -119,8 +146,6 @@ export async function deleteAgentConversation(
 
     if (targetConversationId === activeConversationId) {
       resetActiveConversation(state)
-      state.setRuntimeEvents([])
-      state.setInput("")
     }
   } catch (err) {
     state.setError(formatActionError(err, state))
@@ -131,11 +156,39 @@ function resetActiveConversation(state: ConversationActionState) {
   state.setConversationId(null)
   state.sessionIdRef.current = createSessionId()
   state.setMessages([state.createWelcomeMessage()])
+  state.setRuntimeEvents([])
+  state.setAttachments?.([])
+  state.clearSelectedProducts?.()
+  state.clearSelectedSources?.()
+  resetAgentChatConversationContext(state)
+}
+
+function restoreConversationContext(
+  detail: ConversationDetailResponse,
+  state: ConversationActionState
+) {
+  const productIds = readConversationSelectedProductIds(detail)
+  const sourceRefs = readConversationSelectedSourceRefs(detail)
+  const runtimeSelection = readConversationRuntimeSelection(detail)
+  const strategyId = readConversationStrategyId(detail)
+  if (productIds.length > 0) {
+    state.restoreSelectedProducts?.(productIds)
+  } else {
+    state.clearSelectedProducts?.()
+  }
+  state.setAttachments?.(mapConversationAttachments(detail))
+  if (sourceRefs.length > 0) {
+    state.restoreSelectedSources?.(sourceRefs)
+  } else {
+    state.clearSelectedSources?.()
+  }
+  state.restoreStrategyId?.(strategyId)
+  if (runtimeSelection) state.restoreRuntimeSelection?.(runtimeSelection)
 }
 
 function formatActionError(err: unknown, state: ConversationActionState) {
   return formatAgentUiMessage(
     err instanceof Error ? err.message : state.tError,
-    state.missingStructuredOutput
+    state.messageFormatCopy
   )
 }

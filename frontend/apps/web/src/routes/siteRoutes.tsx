@@ -3,6 +3,7 @@ import type { RouteObject } from "react-router"
 import { PageLoading, RouteErrorBoundary } from "@workspace/app-kit"
 import AppLayout from "@/layouts/AppLayout"
 import {
+  AgentCapabilitiesPage,
   AgentChatPage,
   AgentOutputPage,
   ApprovalsPage,
@@ -42,6 +43,10 @@ export const siteRoutes: RouteObject = {
     {
       path: "agent",
       element: withSuspense(<AgentChatPage />),
+    },
+    {
+      path: "agent-capabilities",
+      element: withSuspense(<AgentCapabilitiesPage />),
     },
     {
       element: <RequireAuth />,

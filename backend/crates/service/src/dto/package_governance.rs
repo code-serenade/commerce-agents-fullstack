@@ -102,6 +102,12 @@ pub struct PackageLockDriftRequest {
     pub run_id: String,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+pub struct SyncLegacyBuiltinPackagesRequest {
+    pub user_id: String,
+    pub reset_status: Option<bool>,
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PackageCatalogResponse {
@@ -246,4 +252,16 @@ pub struct PackageLockDriftSummary {
     pub blocking_count: u64,
     pub warning_count: u64,
     pub has_blocking: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncLegacyBuiltinPackagesResponse {
+    pub packages: Vec<PackageResponse>,
+    pub created_count: u64,
+    pub updated_count: u64,
+    pub total_count: u64,
+    pub manifest_backed_count: u64,
+    pub derived_capability_count: u64,
+    pub reset_status: bool,
 }

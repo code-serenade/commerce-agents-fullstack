@@ -35,7 +35,7 @@ impl ProductService {
             external_id: Set(input.external_id),
             category: Set(input.category),
             brand: Set(input.brand),
-            status: Set(ProductStatus::Active.as_str().to_string()),
+            status: Set(input.status.as_str().to_string()),
             description: Set(input.description),
             price: Set(input.price),
             currency: Set(input.currency),

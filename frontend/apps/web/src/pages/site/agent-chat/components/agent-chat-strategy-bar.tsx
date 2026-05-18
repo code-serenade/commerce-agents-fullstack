@@ -1,4 +1,4 @@
-import { BrainCircuit, GraduationCap, Workflow } from "lucide-react"
+import { BrainCircuit, GraduationCap, Zap } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import {
   AGENT_CHAT_STRATEGIES,
@@ -6,9 +6,9 @@ import {
 } from "../domain/agent-chat-strategy"
 
 const STRATEGY_ICONS = {
-  collab: Workflow,
   execution: BrainCircuit,
   learning: GraduationCap,
+  quick: Zap,
 } as const
 
 export interface AgentChatStrategyBarProps {
@@ -25,36 +25,46 @@ export function AgentChatStrategyBar({
   const { t } = useTranslation()
 
   return (
-    <div className="grid gap-1.5 rounded-2xl bg-background p-1 sm:grid-cols-3">
-      {AGENT_CHAT_STRATEGIES.map((strategy) => {
-        const Icon = STRATEGY_ICONS[strategy.id]
-        const active = strategy.id === strategyId
+    <div className="grid gap-2 rounded-lg border border-border bg-background p-2.5">
+      <div className="text-xs font-semibold text-foreground">
+        {t("agentChat.strategy.current")}
+      </div>
+      <div className="grid gap-1.5 sm:grid-cols-3">
+        {AGENT_CHAT_STRATEGIES.map((strategy) => {
+          const Icon = STRATEGY_ICONS[strategy.id]
+          const active = strategy.id === strategyId
 
-        return (
-          <button
-            key={strategy.id}
-            type="button"
-            disabled={disabled}
-            onClick={() => onStrategyChange(strategy.id)}
-            className={`flex min-w-0 items-center gap-2 rounded-xl border px-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-              active
-                ? "border-blue-300 bg-blue-50 text-blue-700 shadow-sm dark:border-blue-700/70 dark:bg-blue-950/40 dark:text-blue-100"
-                : "border-transparent bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
-            }`}
-            title={t(strategy.hintKey)}
-          >
-            <Icon className="size-4 shrink-0" />
-            <span className="min-w-0">
-              <span className="block truncate text-xs font-medium">
-                {t(strategy.labelKey)}
+          return (
+            <button
+              key={strategy.id}
+              type="button"
+              disabled={disabled}
+              onClick={() => onStrategyChange(strategy.id)}
+              className={`flex h-9 min-w-0 items-center gap-1.5 rounded-md border px-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                active
+                  ? "border-primary/50 bg-primary/10 text-primary shadow-sm"
+                  : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+              title={t(strategy.hintKey)}
+              aria-pressed={active}
+            >
+              <Icon className="size-3.5 shrink-0" />
+              <span className="flex min-w-0 items-baseline gap-2">
+                <span className="truncate text-sm font-semibold">
+                  {t(strategy.labelKey)}
+                </span>
+                <span
+                  className={`shrink-0 truncate text-xs ${
+                    active ? "text-primary/70" : "text-muted-foreground"
+                  }`}
+                >
+                  {t(strategy.shortHintKey)}
+                </span>
               </span>
-              <span className="block truncate text-[11px]/4 opacity-80">
-                {t(strategy.hintKey)}
-              </span>
-            </span>
-          </button>
-        )
-      })}
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }

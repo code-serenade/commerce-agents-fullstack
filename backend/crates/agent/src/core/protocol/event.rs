@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use crate::protocol::{
-    Evaluation, SessionId, TaskGraph, TaskGraphId, TaskId, TaskNodeId, WorkerId, WorkerReport,
+    Evaluation, SessionId, TaskGraph, TaskGraphId, TaskGraphProcessSummary, TaskId, TaskNodeId,
+    WorkerId, WorkerReport,
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -29,13 +31,59 @@ pub enum SessionEvent {
         before_chars: usize,
         after_chars: usize,
     },
+    ContextLoaded {
+        session_id: SessionId,
+        product_ids: Vec<String>,
+        refs: Vec<String>,
+        product_count: usize,
+        knowledge_count: usize,
+        source_count: usize,
+        summary: Option<String>,
+        sources_json: Option<String>,
+    },
     CommanderThinking {
         session_id: SessionId,
+    },
+    RouteDecided {
+        session_id: SessionId,
+        strategy_id: Option<String>,
+        response_mode: Option<String>,
+        collaboration_mode: Option<String>,
+        learning_level: Option<String>,
+        model_name: Option<String>,
+        route_mode: String,
+        primary_runtime_role: Option<String>,
+        support_runtime_roles: Vec<String>,
     },
     WorkerStarted {
         session_id: SessionId,
         worker_id: WorkerId,
         task_id: TaskId,
+    },
+    SkillRequested {
+        session_id: SessionId,
+        worker_id: WorkerId,
+        task_id: TaskId,
+        request_id: String,
+        skill_id: String,
+        role: String,
+        reason: Option<String>,
+    },
+    SkillResult {
+        session_id: SessionId,
+        worker_id: WorkerId,
+        task_id: TaskId,
+        request_id: String,
+        skill_id: String,
+        role: String,
+        status: String,
+        summary: Option<String>,
+        error: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        output: Option<Value>,
+        execution_mode: Option<String>,
+        risk_level: Option<String>,
+        approval_required: Option<bool>,
     },
     LlmChunk {
         session_id: SessionId,
@@ -116,6 +164,7 @@ pub enum SessionEvent {
     TaskGraphFinished {
         session_id: SessionId,
         graph_id: TaskGraphId,
+        process: Box<TaskGraphProcessSummary>,
     },
     Output {
         session_id: SessionId,
@@ -137,8 +186,12 @@ impl SessionEvent {
             Self::MemoryLoaded { .. } => "memory_loaded",
             Self::MemoryPersisted { .. } => "memory_persisted",
             Self::MemoryCompacted { .. } => "memory_compacted",
+            Self::ContextLoaded { .. } => "context_loaded",
             Self::CommanderThinking { .. } => "commander_thinking",
+            Self::RouteDecided { .. } => "route_decided",
             Self::WorkerStarted { .. } => "worker_started",
+            Self::SkillRequested { .. } => "skill_requested",
+            Self::SkillResult { .. } => "skill_result",
             Self::LlmChunk { .. } => "llm_chunk",
             Self::WorkerFinished { .. } => "worker_finished",
             Self::CollaborationStarted { .. } => "collaboration_started",

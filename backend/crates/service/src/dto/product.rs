@@ -17,6 +17,7 @@ pub struct CreateProductRequest {
     pub external_id: Option<String>,
     pub category: Option<String>,
     pub brand: Option<String>,
+    pub status: Option<String>,
     pub description: Option<String>,
     pub price: Option<String>,
     pub currency: Option<String>,
@@ -50,7 +51,23 @@ pub struct DeleteProductRequest {
     pub product_id: String,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+pub struct GetProductLifecycleRequest {
+    pub user_id: String,
+    pub product_id: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct TransitionProductLifecycleRequest {
+    pub user_id: String,
+    pub product_id: String,
+    pub target_status: String,
+    pub reason: Option<String>,
+    pub metadata: Option<Value>,
+}
+
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ProductResponse {
     pub id: String,
     pub user_id: String,
@@ -78,6 +95,45 @@ pub struct ProductDetailResponse {
 #[derive(Debug, Clone, Serialize)]
 pub struct ProductDashboardResponse {
     pub total: u64,
+    pub draft: u64,
+    pub listing: u64,
     pub active: u64,
     pub archived: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProductLifecycleOptionsResponse {
+    pub statuses: Vec<ProductLifecycleStatusResponse>,
+    pub transitions: Vec<ProductLifecycleTransitionResponse>,
+    pub agent_context: Value,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProductLifecycleStatusResponse {
+    pub status: String,
+    pub label: String,
+    pub description: String,
+    pub terminal: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProductLifecycleTransitionResponse {
+    pub from: String,
+    pub to: String,
+    pub label: String,
+    pub requires_reason: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProductLifecycleResponse {
+    pub product: ProductResponse,
+    pub current_status: String,
+    pub allowed_next_statuses: Vec<String>,
+    pub transitions: Vec<ProductLifecycleTransitionResponse>,
+    pub warnings: Vec<String>,
+    pub agent_context: Value,
 }

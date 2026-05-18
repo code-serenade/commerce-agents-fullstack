@@ -21,6 +21,7 @@ pub fn agent_request(user_id: &str, session_id: &str, input: &str) -> AgentReque
         agent_id: AgentId("web-agent".to_string()),
         session_id: SessionId(session_id.to_string()),
         input: input.to_string(),
+        metadata: Default::default(),
     }
 }
 

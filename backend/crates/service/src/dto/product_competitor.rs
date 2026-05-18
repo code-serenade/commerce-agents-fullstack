@@ -12,6 +12,15 @@ pub struct ListProductCompetitorsRequest {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct GetProductCompetitorAnalysisRequest {
+    pub user_id: String,
+    pub product_id: String,
+    pub status: Option<String>,
+    pub platform: Option<String>,
+    pub change_limit: Option<u64>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct CreateProductCompetitorRequest {
     pub user_id: String,
     pub product_id: String,
@@ -122,4 +131,86 @@ pub struct CompetitorChangeResponse {
     pub detected_at: OffsetDateTime,
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProductCompetitorAnalysisResponse {
+    pub product: ProductCompetitorAnalysisProductResponse,
+    pub readiness: String,
+    pub summary: String,
+    pub counts: ProductCompetitorAnalysisCounts,
+    pub price: ProductCompetitorPriceAnalysisResponse,
+    pub rating: ProductCompetitorRatingAnalysisResponse,
+    pub platforms: Vec<ProductCompetitorPlatformAnalysisResponse>,
+    pub top_competitors: Vec<ProductCompetitorResponse>,
+    pub recent_changes: Vec<CompetitorChangeResponse>,
+    pub refs: Vec<ProductCompetitorAnalysisRefResponse>,
+    pub signals: Vec<String>,
+    pub warnings: Vec<String>,
+    pub agent_context: Value,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProductCompetitorAnalysisProductResponse {
+    pub id: String,
+    pub name: String,
+    pub platform: Option<String>,
+    pub category: Option<String>,
+    pub brand: Option<String>,
+    pub price: Option<String>,
+    pub numeric_price: Option<f64>,
+    pub currency: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProductCompetitorAnalysisCounts {
+    pub competitors: usize,
+    pub priced_competitors: usize,
+    pub rated_competitors: usize,
+    pub monthly_sales_competitors: usize,
+    pub recent_changes: usize,
+}
+
+#[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProductCompetitorPriceAnalysisResponse {
+    pub product_price: Option<f64>,
+    pub min_competitor_price: Option<f64>,
+    pub max_competitor_price: Option<f64>,
+    pub avg_competitor_price: Option<f64>,
+    pub price_position: Option<String>,
+    pub gap_to_avg: Option<f64>,
+    pub gap_percent_to_avg: Option<f64>,
+    pub lower_priced_competitors: usize,
+    pub higher_priced_competitors: usize,
+}
+
+#[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProductCompetitorRatingAnalysisResponse {
+    pub min_rating: Option<f64>,
+    pub max_rating: Option<f64>,
+    pub avg_rating: Option<f64>,
+    pub rated_competitors: usize,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProductCompetitorPlatformAnalysisResponse {
+    pub platform: String,
+    pub competitors: usize,
+    pub avg_price: Option<f64>,
+    pub avg_rating: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProductCompetitorAnalysisRefResponse {
+    pub ref_type: String,
+    pub id: String,
+    pub title: String,
+    pub ref_key: String,
 }

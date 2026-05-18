@@ -1,23 +1,27 @@
 import { BarChart3, Bot, FileText, Megaphone, MonitorCog, PenLine, WalletCards } from "lucide-react"
 import type { TFunction } from "i18next"
 import type { ComponentType, SVGProps } from "react"
-import type { AgentRuntimeEvent, AgentTaskNode, AgentWorkerReport } from "@/api"
-import { resolveWorkerNodeId } from "./agent-runtime-event-mapping"
+import type { AgentRuntimeEvent, AgentTaskNode } from "@/api"
 import { formatTimelineEvent } from "./swarm-timeline-view-model"
 export { resolveWorkerNodeId } from "./agent-runtime-event-mapping"
+export {
+  getCompletedCount,
+  getRuntimeNodeStates,
+  hasFailedNode,
+  type AgentSkillRuntimeResult,
+  type RuntimeNodeSnapshot,
+  type SwarmState,
+} from "./swarm-runtime-state-view-model"
 export {
   getComputerCards,
   getComputerScreenContext,
 } from "./swarm-runtime-view-model"
 
-export type SwarmState =
-  | "idle"
-  | "queued"
-  | "working"
-  | "done"
-  | "failed"
-  | "reworking"
-  | "skipped"
+import {
+  hasFailedNode,
+  type RuntimeNodeSnapshot,
+  type SwarmState,
+} from "./swarm-runtime-state-view-model"
 
 export interface SwarmAgent {
   nodeId: string
@@ -28,13 +32,6 @@ export interface SwarmAgent {
   tone: string
   objective: string
   dependsOn: string[]
-}
-
-export interface RuntimeNodeSnapshot {
-  attempt?: number
-  evaluationReasons: string[]
-  report?: AgentWorkerReport
-  state: SwarmState
 }
 
 export interface ComputerCard {
@@ -179,69 +176,6 @@ export function getPlannedGraph(runtimeEvents: AgentRuntimeEvent[]) {
   return [...runtimeEvents].reverse().find((event) => event.type === "task_graph_planned")?.graph
 }
 
-export function getRuntimeNodeStates(runtimeEvents: AgentRuntimeEvent[]) {
-  const states = new Map<string, RuntimeNodeSnapshot>()
-  const ensureNode = (nodeId: string): RuntimeNodeSnapshot => {
-    const current = states.get(nodeId)
-    if (current) return current
-    const next: RuntimeNodeSnapshot = { evaluationReasons: [], state: "queued" }
-    states.set(nodeId, next)
-    return next
-  }
-
-  runtimeEvents.forEach((event) => {
-    if (event.type === "task_graph_planned") {
-      event.graph.nodes.forEach((node) => (ensureNode(readId(node.id)).state = "queued"))
-    } else if (event.type === "task_node_ready") {
-      ensureNode(event.nodeId).state = "queued"
-    } else if (event.type === "task_node_started") {
-      Object.assign(ensureNode(event.nodeId), { state: "working", attempt: event.attempt })
-    } else if (event.type === "task_node_reported") {
-      Object.assign(ensureNode(event.nodeId), {
-        report: event.report,
-        state: event.report.status === "failed" ? "failed" : "done",
-      })
-    } else if (event.type === "task_node_evaluated") {
-      const snapshot = ensureNode(readId(event.evaluation.node_id))
-      snapshot.evaluationReasons = event.evaluation.reasons
-      snapshot.state = event.evaluation.passed ? "done" : snapshot.state
-    } else if (event.type === "task_node_rework_requested") {
-      Object.assign(ensureNode(event.nodeId), {
-        state: "reworking",
-        attempt: event.attempt,
-        evaluationReasons: [event.instruction],
-      })
-    } else if (event.type === "task_node_passed") {
-      ensureNode(event.nodeId).state = "done"
-    } else if (event.type === "task_node_failed") {
-      Object.assign(ensureNode(event.nodeId), {
-        state: "failed",
-        evaluationReasons: [event.reason],
-      })
-    } else if (event.type === "worker_started") {
-      ensureNode(resolveWorkerNodeId(event)).state = "working"
-    } else if (event.type === "worker_finished") {
-      ensureNode(resolveWorkerNodeId(event)).state = "done"
-    } else if (event.type === "failed") {
-      Object.assign(ensureNode("ops"), {
-        state: "failed",
-        evaluationReasons: [event.reason],
-      })
-    } else if (event.type === "finished") {
-      ensureNode("delivery").state = "done"
-    }
-  })
-  return states
-}
-
-export function getCompletedCount(
-  agents: SwarmAgent[],
-  runtimeNodeStates: Map<string, RuntimeNodeSnapshot>
-) {
-  if (runtimeNodeStates.size === 0) return 0
-  return agents.filter((agent) => runtimeNodeStates.get(agent.nodeId)?.state === "done").length
-}
-
 export function getTimeline(
   runtimeEvents: AgentRuntimeEvent[],
   agents: SwarmAgent[],
@@ -258,13 +192,14 @@ export function getTimeline(
     }))
   }
   return runtimeEvents
-    .map((event) => formatTimelineEvent(event, agents, t))
+    .map((event) => formatTimelineEvent(event, agents, runtimeEvents, t))
     .filter((item): item is NonNullable<typeof item> => item !== null)
     .slice(-8)
 }
 
 export function getStatePillLabel(state: SwarmState, t: TFunction) {
   if (state === "done") return t("agentChat.swarm.statePill.done")
+  if (state === "boundary") return t("agentChat.swarm.statePill.boundary")
   if (state === "working") return t("agentChat.swarm.statePill.working")
   if (state === "queued") return t("agentChat.swarm.statePill.queued")
   if (state === "failed") return t("agentChat.swarm.statePill.failed")
@@ -275,6 +210,7 @@ export function getStatePillLabel(state: SwarmState, t: TFunction) {
 
 export function getFallbackResponse(agent: SwarmAgent, state: SwarmState, t: TFunction) {
   if (state === "failed") return t("agentChat.swarm.fallbackResponse.failed")
+  if (state === "boundary") return t("agentChat.swarm.fallbackResponse.boundary")
   if (state === "reworking") return t("agentChat.swarm.fallbackResponse.reworking")
   if (state === "working") return t("agentChat.swarm.fallbackResponse.working", { agent: agent.name })
   if (state === "done") return t("agentChat.swarm.fallbackResponse.done", { agent: agent.name })
@@ -283,16 +219,13 @@ export function getFallbackResponse(agent: SwarmAgent, state: SwarmState, t: TFu
 
 export function getDockStateLabel(state: SwarmState, t: TFunction) {
   if (state === "done") return t("agentChat.swarm.dockState.done")
+  if (state === "boundary") return t("agentChat.swarm.dockState.boundary")
   if (state === "working") return t("agentChat.swarm.dockState.working")
   if (state === "reworking") return t("agentChat.swarm.dockState.reworking")
   if (state === "failed") return t("agentChat.swarm.dockState.failed")
   if (state === "queued") return t("agentChat.swarm.dockState.queued")
   if (state === "skipped") return t("agentChat.swarm.dockState.skipped")
   return t("agentChat.swarm.dockState.idle")
-}
-
-export function hasFailedNode(runtimeNodeStates: Map<string, RuntimeNodeSnapshot>) {
-  return Array.from(runtimeNodeStates.values()).some((snapshot) => snapshot.state === "failed")
 }
 
 export const formatAgentNumber = (index: number) =>

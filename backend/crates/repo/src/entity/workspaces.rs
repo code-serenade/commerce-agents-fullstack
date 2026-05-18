@@ -22,6 +22,10 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(has_many = "super::agent_learning_records::Entity")]
+    AgentLearningRecords,
+    #[sea_orm(has_many = "super::agent_quality_checks::Entity")]
+    AgentQualityChecks,
     #[sea_orm(has_many = "super::alerts::Entity")]
     Alerts,
     #[sea_orm(
@@ -56,6 +60,8 @@ pub enum Relation {
     Products,
     #[sea_orm(has_many = "super::tool_approval_queue::Entity")]
     ToolApprovalQueue,
+    #[sea_orm(has_many = "super::workspace_artifacts::Entity")]
+    WorkspaceArtifacts,
     #[sea_orm(has_many = "super::workspace_run_package_locks::Entity")]
     WorkspaceRunPackageLocks,
     #[sea_orm(has_many = "super::workspace_run_tasks::Entity")]
@@ -64,6 +70,18 @@ pub enum Relation {
     WorkspaceRuns,
     #[sea_orm(has_many = "super::workspace_tasks::Entity")]
     WorkspaceTasks,
+}
+
+impl Related<super::agent_learning_records::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::AgentLearningRecords.def()
+    }
+}
+
+impl Related<super::agent_quality_checks::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::AgentQualityChecks.def()
+    }
 }
 
 impl Related<super::alerts::Entity> for Entity {
@@ -111,6 +129,12 @@ impl Related<super::products::Entity> for Entity {
 impl Related<super::tool_approval_queue::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::ToolApprovalQueue.def()
+    }
+}
+
+impl Related<super::workspace_artifacts::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::WorkspaceArtifacts.def()
     }
 }
 

@@ -37,3 +37,9 @@ pub struct CreateConversationFile {
     pub sha256: Option<String>,
     pub metadata: Value,
 }
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct UpdateConversationFileMetadata {
+    pub id: Uuid,
+    pub metadata: Value,
+}

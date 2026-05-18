@@ -45,7 +45,7 @@ impl RoleSkillCatalog {
 
         specs
             .into_iter()
-            .take(8)
+            .take(16)
             .map(format_skill_line)
             .collect::<Vec<_>>()
             .join("\n")
@@ -59,29 +59,89 @@ impl Default for RoleSkillCatalog {
 }
 
 pub fn role_can_use_skill(runtime_role: &str, spec: &SkillSpec) -> bool {
+    if spec.id == "learning_teaching_explain" {
+        return matches!(
+            runtime_role,
+            "chat"
+                | "ops"
+                | "data"
+                | "service"
+                | "creative"
+                | "web"
+                | "design"
+                | "accounting"
+                | "douyin_ads"
+                | "engineering"
+        );
+    }
+
     if matches_role_category(runtime_role, &spec.category) {
         return true;
     }
 
     match runtime_role {
-        "chat" => spec.id == "coordination_agent_handoff",
+        "chat" => spec.id == "coordination_agent_handoff" || spec.id == "coordination_status_query",
         "ops" => {
             spec.id == "coordination_task_orchestration"
                 || spec.id == "coordination_skill_chain_planner"
                 || spec.id == "coordination_create_task"
                 || spec.id == "query_store_metrics"
+                || spec.id == "query_product_metrics"
+                || spec.id == "query_campaign_metrics"
+                || spec.id == "search_trends"
+                || spec.id == "search_competitor"
+                || spec.id == "search_market_info"
+                || spec.id == "search_product_reviews"
+                || spec.id == "search_platform_policy"
+                || spec.id == "search_industry_benchmarks"
         }
-        "data" => spec.id.starts_with("search_industry_"),
-        "service" => spec.id == "search_platform_policy",
-        "creative" => spec.id == "web_title_seo_scorer",
+        "data" => {
+            spec.id.starts_with("search_industry_")
+                || spec.id == "search_trends"
+                || spec.id == "search_competitor"
+                || spec.id == "search_market_info"
+                || spec.id == "search_product_reviews"
+                || spec.id == "search_platform_policy"
+        }
+        "service" => {
+            spec.id == "search_platform_policy"
+                || spec.id == "search_product_reviews"
+                || spec.id == "search_industry_benchmarks"
+        }
+        "creative" => {
+            spec.id == "web_title_seo_scorer"
+                || spec.id == "search_trends"
+                || spec.id == "search_market_info"
+        }
         "web" => {
             spec.id == "creative_title_ctr_scorer"
                 || spec.id == "search_trends"
                 || spec.id == "search_competitor"
+                || spec.id == "search_market_info"
+                || spec.id == "search_product_reviews"
+                || spec.id == "search_platform_policy"
+                || spec.id == "search_industry_benchmarks"
         }
-        "design" => spec.id == "creative_title_ctr_scorer",
-        "accounting" => spec.id == "data_channel_roi" || spec.id == "query_store_metrics",
-        "engineering" => spec.id == "coordination_status_query",
+        "design" => {
+            spec.id == "creative_title_ctr_scorer"
+                || spec.id == "search_trends"
+                || spec.id == "search_platform_policy"
+        }
+        "accounting" => {
+            spec.id == "data_channel_roi"
+                || spec.id == "query_store_metrics"
+                || spec.id == "query_product_metrics"
+                || spec.id == "query_campaign_metrics"
+                || spec.id == "search_market_info"
+                || spec.id == "search_industry_benchmarks"
+        }
+        "douyin_ads" => {
+            spec.id == "search_trends"
+                || spec.id == "search_market_info"
+                || spec.id == "search_platform_policy"
+                || spec.id == "search_industry_benchmarks"
+        }
+        "engineering" => spec.id == "coordination_status_query" || spec.id == "search_market_info",
         _ => false,
     }
 }
@@ -108,12 +168,16 @@ fn format_skill_line(spec: &SkillSpec) -> String {
         .map(|input| input.name.as_str())
         .take(4)
         .collect::<Vec<_>>();
-    let mode = if spec.tags.iter().any(|tag| tag == "deferred") {
-        "deferred"
+    let mode = if matches!(&spec.category, SkillCategory::Custom(value) if value == "search")
+        || spec.tags.iter().any(|tag| tag == "adapter")
+    {
+        "adapter"
     } else if spec.tags.iter().any(|tag| tag == "pending_approval")
         || spec.id.starts_with("platform_")
     {
         "pending_approval"
+    } else if spec.tags.iter().any(|tag| tag == "deferred") {
+        "deferred"
     } else {
         "local"
     };
@@ -173,7 +237,24 @@ mod tests {
         let catalog = RoleSkillCatalog::staged();
 
         assert!(catalog.can_role_use_skill(&role("accounting"), "accounting_roi_calc"));
+        assert!(catalog.can_role_use_skill(&role("accounting"), "search_market_info"));
         assert!(!catalog.can_role_use_skill(&role("accounting"), "creative_video_script"));
         assert!(catalog.can_role_use_skill(&role("creative"), "web_title_seo_scorer"));
+        assert!(catalog.can_role_use_skill(&role("creative"), "search_market_info"));
+        assert!(catalog.can_role_use_skill(&role("design"), "search_trends"));
+        assert!(catalog.can_role_use_skill(&role("design"), "search_platform_policy"));
+        assert!(catalog.can_role_use_skill(&role("engineering"), "search_market_info"));
+        assert!(catalog.can_role_use_skill(&role("engineering"), "engineering_system_check"));
+        assert!(catalog.can_role_use_skill(&role("chat"), "learning_teaching_explain"));
+        assert!(catalog.can_role_use_skill(&role("ops"), "learning_teaching_explain"));
+        assert!(catalog.can_role_use_skill(&role("data"), "learning_teaching_explain"));
+        assert!(catalog.can_role_use_skill(&role("douyin_ads"), "learning_teaching_explain"));
+        assert!(catalog.can_role_use_skill(&role("service"), "search_industry_benchmarks"));
+        assert!(catalog.can_role_use_skill(&role("ops"), "search_product_reviews"));
+        assert!(catalog.can_role_use_skill(&role("douyin_ads"), "douyin_ads_plan_structure"));
+        assert!(catalog.can_role_use_skill(&role("douyin_ads"), "douyin_ads_budget_pacing"));
+        assert!(catalog.can_role_use_skill(&role("douyin_ads"), "search_platform_policy"));
+        assert!(catalog.can_role_use_skill(&role("douyin_ads"), "search_industry_benchmarks"));
+        assert!(!catalog.can_role_use_skill(&role("douyin_ads"), "creative_video_script"));
     }
 }

@@ -8,8 +8,8 @@ use uuid::Uuid;
 use crate::{
     entity::product_knowledge,
     table::product_knowledge::dto::{
-        CreateProductKnowledge, ProductKnowledge, ProductKnowledgeFilter, ProductKnowledgeStatus,
-        UpdateProductKnowledge,
+        CreateProductKnowledge, ProductKnowledge, ProductKnowledgeFilter,
+        ProductKnowledgeSearchFilter, ProductKnowledgeStatus, UpdateProductKnowledge,
     },
 };
 
@@ -76,6 +76,45 @@ impl ProductKnowledgeService {
             let keyword_filter = Condition::any()
                 .add(product_knowledge::Column::Title.contains(keyword.clone()))
                 .add(product_knowledge::Column::Content.contains(keyword.clone()))
+                .add(product_knowledge::Column::SourceType.contains(keyword.clone()))
+                .add(product_knowledge::Column::SourceId.contains(keyword));
+            query = query.filter(keyword_filter);
+        }
+
+        query = query
+            .order_by_desc(product_knowledge::Column::Confidence)
+            .order_by_desc(product_knowledge::Column::UpdatedAt);
+
+        if let Some(limit) = filter.limit {
+            query = query.limit(limit);
+        }
+
+        self.repo
+            .select_all(query)
+            .await?
+            .into_iter()
+            .map(Self::from_model)
+            .collect()
+    }
+
+    pub async fn search_by_user(
+        &self,
+        filter: ProductKnowledgeSearchFilter,
+    ) -> BizResult<Vec<ProductKnowledge>> {
+        let mut query = self
+            .repo
+            .query()
+            .filter(product_knowledge::Column::UserId.eq(filter.user_id));
+
+        if let Some(status) = filter.status {
+            query = query.filter(product_knowledge::Column::Status.eq(status.as_str()));
+        }
+
+        if let Some(keyword) = filter.keyword {
+            let keyword_filter = Condition::any()
+                .add(product_knowledge::Column::Title.contains(keyword.clone()))
+                .add(product_knowledge::Column::Content.contains(keyword.clone()))
+                .add(product_knowledge::Column::ContentType.contains(keyword.clone()))
                 .add(product_knowledge::Column::SourceType.contains(keyword.clone()))
                 .add(product_knowledge::Column::SourceId.contains(keyword));
             query = query.filter(keyword_filter);

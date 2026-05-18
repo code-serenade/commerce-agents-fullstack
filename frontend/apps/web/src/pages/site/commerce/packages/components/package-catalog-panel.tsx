@@ -17,9 +17,19 @@ export function PackageCatalogPanel({ page }: { page: PackagesPageState }) {
       title={t("commerce.packages.panels.catalog")}
       description={t("commerce.packages.panels.catalogDesc")}
       actions={
-        <Button size="sm" onClick={() => page.setDialog("package")}>
-          {t("commerce.packages.panels.savePackage")}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={page.syncingLegacyBuiltins}
+            onClick={() => page.syncLegacyBuiltins()}
+          >
+            {t("commerce.packages.panels.syncLegacy")}
+          </Button>
+          <Button size="sm" onClick={() => page.setDialog("package")}>
+            {t("commerce.packages.panels.savePackage")}
+          </Button>
+        </div>
       }
     >
       <div className="space-y-3">

@@ -96,3 +96,11 @@ pub struct ProductKnowledgeFilter {
     pub keyword: Option<String>,
     pub limit: Option<u64>,
 }
+
+#[derive(Debug, Clone, Default)]
+pub struct ProductKnowledgeSearchFilter {
+    pub user_id: Uuid,
+    pub status: Option<ProductKnowledgeStatus>,
+    pub keyword: Option<String>,
+    pub limit: Option<u64>,
+}

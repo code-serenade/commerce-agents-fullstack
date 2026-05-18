@@ -25,8 +25,20 @@ access_key = "CHANGE_ME"
 secret_key = "CHANGE_ME"
 user_key_salt = "please-change-to-random-long-string"
 
-# Agent runtime uses the first [[llm]] entry by default.
-# Set default_llm to switch between an external provider and local Ollama.
+[external_search]
+enabled = false
+provider = "custom"
+base_url = "https://CHANGE_ME_SEARCH_PROVIDER_BASE_URL"
+search_endpoint = "/api/external/search"
+api_key = "CHANGE_ME"
+timeout_sec = 10
+default_topic = "general"
+default_days = 30
+default_max_results = 6
+
+# Agent runtime uses default_llm when configured. If default_llm is omitted and
+# a real Doubao model is configured, the web runtime prefers that Doubao entry;
+# otherwise it falls back to the first [[llm]] entry. Do not commit real keys.
 # default_llm = "doubao-external"
 
 [[llm]]
@@ -36,16 +48,16 @@ model = "gemma4:26b"
 max_tokens = 20000
 temperature = 0.2
 
-# OpenAI-compatible external provider example. Fill this with the public
-# base URL and model that can be reached from the deployment machine.
+# Doubao Ark uses an OpenAI-compatible chat completions endpoint. Fill this
+# with a real ARK API key on the deployment machine before setting it default.
 #
 # [[llm]]
 # name = "doubao-external"
-# base_url = "https://CHANGE_ME_PUBLIC_OPENAI_COMPATIBLE_BASE_URL"
-# model = "CHANGE_ME_MODEL_NAME"
+# base_url = "https://ark.cn-beijing.volces.com/api/v3"
+# model = "doubao-seed-2-0-pro-260215"
 # api_key = "CHANGE_ME"
 # max_tokens = 20000
 # temperature = 0.2
-#
-# If the provider exposes chat completions at a non-standard path, set:
-# chat_completions_endpoint = "/v1/chat/completions"
+# The client automatically calls chat/completions when base_url ends with
+# /api/v3. Only set chat_completions_endpoint for providers with a non-standard
+# path.

@@ -5,14 +5,18 @@ use axum::{
 
 use crate::handlers::app::{
     activate_package, deactivate_package, get_package, list_package_catalog, list_package_history,
-    list_package_locks, package_lock_drift, rollback_package, save_package_locks, update_package,
-    upsert_package, validate_package,
+    list_package_locks, package_lock_drift, rollback_package, save_package_locks,
+    sync_legacy_builtin_packages, update_package, upsert_package, validate_package,
 };
 
 pub fn package_governance_routes() -> Router {
     Router::new()
         .route("/packages/catalog", get(list_package_catalog))
         .route("/packages", post(upsert_package))
+        .route(
+            "/packages/sync-legacy-builtins",
+            post(sync_legacy_builtin_packages),
+        )
         .route(
             "/packages/{package_type}/{package_id}",
             get(get_package).patch(update_package),

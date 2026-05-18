@@ -22,6 +22,11 @@ use serde_json::json;
 use time::{Duration, OffsetDateTime};
 use uuid::Uuid;
 
+use super::platform_execution::{
+    PlatformExecutionActionSpec, PlatformExecutionParams, PlatformExecutionReadiness,
+    platform_execution_action_specs, platform_execution_details, platform_execution_params,
+    platform_execution_readiness_status,
+};
 use crate::dto::platform_connect::*;
 
 const DEFAULT_PAGE: u64 = 1;
@@ -49,6 +54,83 @@ impl PlatformConnectApi {
         PlatformCatalogResponse {
             platforms: platform_specs(),
         }
+    }
+
+    pub async fn execution_adapter_catalog(
+        &self,
+        user_id: String,
+    ) -> BizResult<PlatformExecutionAdapterCatalogResponse> {
+        let user_id = parse_user_id(&user_id)?;
+        self.ensure_app_user_enabled(user_id).await?;
+        let connections = self
+            .platform_svc
+            .list(PlatformConnectionFilter {
+                user_id,
+                platform: None,
+                enabled: None,
+            })
+            .await?;
+        let connection_map = connections
+            .into_iter()
+            .map(|item| (item.platform.clone(), item))
+            .collect::<HashMap<_, _>>();
+        let adapters = platform_specs()
+            .into_iter()
+            .map(|spec| {
+                let connection = connection_map.get(spec.platform.as_str());
+                let connected = connection.is_some();
+                let enabled = connection.is_some_and(|item| item.enabled);
+                let connection_status = connection
+                    .map(|item| item.status.as_str().to_string())
+                    .unwrap_or_else(|| "missing".to_string());
+                let actions = platform_execution_action_specs()
+                    .iter()
+                    .copied()
+                    .map(|action| {
+                        map_platform_execution_action(
+                            action,
+                            connected,
+                            enabled,
+                            connection_status.as_str(),
+                        )
+                    })
+                    .collect();
+                PlatformExecutionAdapterSpec {
+                    platform: spec.platform,
+                    display: spec.display,
+                    connected,
+                    enabled,
+                    connection_status,
+                    actions,
+                }
+            })
+            .collect();
+        Ok(PlatformExecutionAdapterCatalogResponse { adapters })
+    }
+
+    pub async fn execution_preflight(
+        &self,
+        req: PlatformExecutionPreflightRequest,
+    ) -> BizResult<PlatformExecutionPreflightResponse> {
+        let user_id = parse_user_id(&req.user_id)?;
+        self.ensure_app_user_enabled(user_id).await?;
+        let skill_name = normalize_required(req.skill_name, "skill_name")?;
+        let args = req.args.unwrap_or_else(|| json!({}));
+        let params = platform_execution_params(&args);
+        let connection = if let Some(platform) = params.platform.as_deref() {
+            self.platform_svc
+                .get_by_user_platform(user_id, platform)
+                .await?
+        } else {
+            None
+        };
+
+        Ok(plan_platform_execution_preflight(
+            skill_name.as_str(),
+            &params,
+            connection.as_ref(),
+            OffsetDateTime::now_utc(),
+        ))
     }
 
     pub fn channel_catalog(&self) -> ChannelCatalogResponse {
@@ -638,6 +720,82 @@ fn platform_specs() -> Vec<PlatformSpec> {
     ]
 }
 
+fn map_platform_execution_action(
+    action: PlatformExecutionActionSpec,
+    connected: bool,
+    enabled: bool,
+    connection_status: &str,
+) -> PlatformExecutionAdapterAction {
+    let (readiness, readiness_message) = if !connected {
+        (
+            "blocked",
+            "No enabled platform connection was found for this user and platform.",
+        )
+    } else if !enabled || connection_status == "disabled" {
+        ("blocked", "Platform connection exists but is disabled.")
+    } else {
+        ("blocked", action.adapter_message)
+    };
+    PlatformExecutionAdapterAction {
+        skill_name: action.skill_name.to_string(),
+        display: action.display.to_string(),
+        description: action.description.to_string(),
+        risk_level: "L3".to_string(),
+        approval_required: true,
+        execution_mode: "adapter".to_string(),
+        adapter_status: "adapter_not_implemented".to_string(),
+        can_execute_now: false,
+        readiness: readiness.to_string(),
+        readiness_message: readiness_message.to_string(),
+        required_params: action
+            .required_params
+            .iter()
+            .map(|item| item.to_string())
+            .collect(),
+        optional_params: action
+            .optional_params
+            .iter()
+            .map(|item| item.to_string())
+            .collect(),
+        idempotency_key_fields: action
+            .idempotency_key_fields
+            .iter()
+            .map(|item| item.to_string())
+            .collect(),
+    }
+}
+
+fn plan_platform_execution_preflight(
+    skill_name: &str,
+    params: &PlatformExecutionParams,
+    connection: Option<&PlatformConnection>,
+    checked_at: OffsetDateTime,
+) -> PlatformExecutionPreflightResponse {
+    let (status, adapter_status, message) =
+        match platform_execution_readiness_status(skill_name, params, connection) {
+            PlatformExecutionReadiness::Blocked {
+                adapter_status,
+                message,
+            } => ("blocked", adapter_status, message),
+            PlatformExecutionReadiness::Unsupported { message } => {
+                ("unsupported", "unsupported_action", message)
+            }
+        };
+
+    PlatformExecutionPreflightResponse {
+        status: status.to_string(),
+        adapter_status: adapter_status.to_string(),
+        can_approve: false,
+        can_execute_now: false,
+        will_fail_if_approved: true,
+        platform: params.platform.clone(),
+        skill_name: skill_name.to_string(),
+        message: message.to_string(),
+        details: platform_execution_details(params),
+        checked_at,
+    }
+}
+
 fn channel_specs() -> Vec<ChannelSpec> {
     vec![
         ChannelSpec {
@@ -823,6 +981,204 @@ fn normalize_required(value: String, label: &str) -> BizResult<String> {
 
 fn normalize_optional(value: Option<String>) -> Option<String> {
     value.and_then(normalize_string)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::Value;
+
+    fn test_connection(platform: &str) -> PlatformConnection {
+        let now = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();
+        PlatformConnection {
+            id: Uuid::new_v4(),
+            user_id: Uuid::new_v4(),
+            platform: platform.to_string(),
+            app_key: Some("app-key".to_string()),
+            app_secret_enc: Some("secret".to_string()),
+            access_token_enc: Some("token".to_string()),
+            refresh_token_enc: None,
+            token_expires_at: None,
+            shop_id: Some("shop-1".to_string()),
+            shop_name: Some("Test Shop".to_string()),
+            enabled: true,
+            status: PlatformConnectionStatus::Configured,
+            last_tested_at: None,
+            test_result: json!({}),
+            last_synced_at: None,
+            sync_status: PlatformSyncStatus::Idle,
+            sync_message: None,
+            extra: json!({}),
+            created_at: now,
+            updated_at: now,
+        }
+    }
+
+    #[test]
+    fn platform_execution_adapter_catalog_reports_missing_connection() {
+        let action = map_platform_execution_action(
+            platform_execution_action_specs()[0],
+            false,
+            false,
+            "missing",
+        );
+
+        assert_eq!(action.skill_name, "platform_update_price");
+        assert_eq!(action.adapter_status, "adapter_not_implemented");
+        assert_eq!(action.can_execute_now, false);
+        assert_eq!(action.readiness, "blocked");
+        assert_eq!(
+            action.readiness_message,
+            "No enabled platform connection was found for this user and platform."
+        );
+    }
+
+    #[test]
+    fn platform_execution_adapter_catalog_reports_disabled_connection() {
+        let action = map_platform_execution_action(
+            platform_execution_action_specs()[1],
+            true,
+            false,
+            "disabled",
+        );
+
+        assert_eq!(action.skill_name, "platform_update_inventory");
+        assert_eq!(action.can_execute_now, false);
+        assert_eq!(action.readiness, "blocked");
+        assert_eq!(
+            action.readiness_message,
+            "Platform connection exists but is disabled."
+        );
+    }
+
+    #[test]
+    fn platform_execution_adapter_catalog_reports_unimplemented_adapter_when_connected() {
+        let action = map_platform_execution_action(
+            platform_execution_action_specs()[2],
+            true,
+            true,
+            "configured",
+        );
+
+        assert_eq!(action.skill_name, "platform_sync_products");
+        assert_eq!(action.adapter_status, "adapter_not_implemented");
+        assert_eq!(action.can_execute_now, false);
+        assert_eq!(action.readiness, "blocked");
+        assert_eq!(
+            action.readiness_message,
+            "Platform execution adapter is not implemented yet for product sync."
+        );
+        assert_eq!(action.required_params, vec!["platform"]);
+    }
+
+    #[test]
+    fn platform_execution_preflight_reads_normalized_skill_output() {
+        let args = json!({
+            "output": {
+                "normalized_inputs": {
+                    "platform": "DouYin",
+                    "product_id": "prod-1",
+                    "new_price": "129.5",
+                    "sku_id": "sku-9"
+                }
+            }
+        });
+
+        let params = platform_execution_params(&args);
+
+        assert_eq!(params.platform.as_deref(), Some("douyin"));
+        assert_eq!(params.product_id.as_deref(), Some("prod-1"));
+        assert_eq!(params.sku_id.as_deref(), Some("sku-9"));
+        assert_eq!(params.new_price, Some(129.5));
+    }
+
+    #[test]
+    fn platform_execution_preflight_reports_missing_platform() {
+        let now = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();
+        let params = PlatformExecutionParams {
+            product_id: Some("prod-1".to_string()),
+            new_price: Some(99.0),
+            ..Default::default()
+        };
+
+        let preflight =
+            plan_platform_execution_preflight("platform_update_price", &params, None, now);
+
+        assert_eq!(preflight.status, "blocked");
+        assert_eq!(preflight.adapter_status, "validation_error");
+        assert_eq!(preflight.can_execute_now, false);
+        assert_eq!(preflight.will_fail_if_approved, true);
+    }
+
+    #[test]
+    fn platform_execution_preflight_reports_missing_connection() {
+        let now = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();
+        let params = PlatformExecutionParams {
+            platform: Some("taobao".to_string()),
+            product_id: Some("prod-1".to_string()),
+            new_price: Some(99.0),
+            ..Default::default()
+        };
+
+        let preflight =
+            plan_platform_execution_preflight("platform_update_price", &params, None, now);
+
+        assert_eq!(preflight.status, "blocked");
+        assert_eq!(preflight.adapter_status, "connection_missing");
+        assert_eq!(
+            preflight
+                .details
+                .pointer("/productId")
+                .and_then(Value::as_str),
+            Some("prod-1")
+        );
+    }
+
+    #[test]
+    fn platform_execution_preflight_reports_unimplemented_adapter_when_connected() {
+        let now = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();
+        let params = PlatformExecutionParams {
+            platform: Some("jd".to_string()),
+            product_id: Some("prod-1".to_string()),
+            quantity: Some(12),
+            ..Default::default()
+        };
+        let connection = test_connection("jd");
+
+        let preflight = plan_platform_execution_preflight(
+            "platform_update_inventory",
+            &params,
+            Some(&connection),
+            now,
+        );
+
+        assert_eq!(preflight.status, "blocked");
+        assert_eq!(preflight.adapter_status, "adapter_not_implemented");
+        assert_eq!(preflight.can_execute_now, false);
+        assert_eq!(
+            preflight
+                .details
+                .pointer("/quantity")
+                .and_then(Value::as_i64),
+            Some(12)
+        );
+    }
+
+    #[test]
+    fn platform_execution_preflight_reports_unsupported_non_platform_action() {
+        let now = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();
+        let params = PlatformExecutionParams::default();
+
+        let preflight =
+            plan_platform_execution_preflight("ops_pricing_strategy", &params, None, now);
+
+        assert_eq!(preflight.status, "unsupported");
+        assert_eq!(preflight.adapter_status, "unsupported_action");
+        assert_eq!(
+            preflight.message,
+            "Tool approval is not a platform execution action."
+        );
+    }
 }
 
 fn normalize_string(value: String) -> Option<String> {

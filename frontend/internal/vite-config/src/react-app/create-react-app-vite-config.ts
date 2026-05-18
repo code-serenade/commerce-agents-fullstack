@@ -11,6 +11,10 @@ import type { CreateReactAppViteConfigOptions } from "./types.ts"
 
 export function createReactAppViteConfig({
   appDir,
+  devOverlay = true,
+  host,
+  port,
+  strictPort,
   rewriteApiPath,
   testSetupFiles = ["./src/test/setup.ts"],
 }: CreateReactAppViteConfigOptions) {
@@ -49,6 +53,12 @@ export function createReactAppViteConfig({
         },
       },
       server: {
+        host,
+        hmr: {
+          overlay: devOverlay,
+        },
+        port,
+        strictPort,
         proxy: createServerProxy(env, { rewriteApiPath }),
       },
     }

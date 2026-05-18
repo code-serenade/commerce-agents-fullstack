@@ -1,6 +1,7 @@
 import {
   BrainCircuit,
   Copy,
+  CircleStop,
   ListChecks,
   Loader2,
 } from "lucide-react"
@@ -27,9 +28,9 @@ export function WelcomeCard({ content }: { content: string }) {
         </div>
       </div>
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
-        {capabilities.map((item) => (
+        {capabilities.map((item, index) => (
           <div
-            key={item}
+            key={`${index}-${item}`}
             className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground"
           >
             <ListChecks className="size-3.5" />
@@ -52,6 +53,17 @@ export function AgentProgressCard({ content }: { content?: string }) {
           ? t("agentChat.thread.receivingOutput")
           : t("agentChat.thread.waitingEvents")}
       </span>
+    </div>
+  )
+}
+
+export function AgentStoppedCard() {
+  const { t } = useTranslation()
+
+  return (
+    <div className="mt-4 flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs text-muted-foreground">
+      <CircleStop className="size-4" />
+      <span>{t("agentChat.thread.stopped")}</span>
     </div>
   )
 }

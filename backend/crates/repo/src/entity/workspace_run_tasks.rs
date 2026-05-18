@@ -39,6 +39,8 @@ pub enum Relation {
         on_delete = "Cascade"
     )]
     AppUsers,
+    #[sea_orm(has_many = "super::workspace_artifacts::Entity")]
+    WorkspaceArtifacts,
     #[sea_orm(
         belongs_to = "super::workspace_runs::Entity",
         from = "Column::RunId",
@@ -68,6 +70,12 @@ pub enum Relation {
 impl Related<super::app_users::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::AppUsers.def()
+    }
+}
+
+impl Related<super::workspace_artifacts::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::WorkspaceArtifacts.def()
     }
 }
 

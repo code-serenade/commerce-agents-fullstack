@@ -119,7 +119,7 @@ impl XtaskContext {
     }
 
     pub fn wait_for_postgres(&self) -> Result<()> {
-        for _ in 0 .. 30 {
+        for _ in 0..30 {
             let status = Command::new("docker")
                 .args([
                     "exec",

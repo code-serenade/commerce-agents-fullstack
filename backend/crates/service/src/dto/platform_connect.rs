@@ -28,6 +28,64 @@ pub struct PlatformCatalogResponse {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct PlatformExecutionAdapterAction {
+    pub skill_name: String,
+    pub display: String,
+    pub description: String,
+    pub risk_level: String,
+    pub approval_required: bool,
+    pub execution_mode: String,
+    pub adapter_status: String,
+    pub can_execute_now: bool,
+    pub readiness: String,
+    pub readiness_message: String,
+    pub required_params: Vec<String>,
+    pub optional_params: Vec<String>,
+    pub idempotency_key_fields: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlatformExecutionAdapterSpec {
+    pub platform: String,
+    pub display: String,
+    pub connected: bool,
+    pub enabled: bool,
+    pub connection_status: String,
+    pub actions: Vec<PlatformExecutionAdapterAction>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlatformExecutionAdapterCatalogResponse {
+    pub adapters: Vec<PlatformExecutionAdapterSpec>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct PlatformExecutionPreflightRequest {
+    pub user_id: String,
+    pub skill_name: String,
+    pub args: Option<Value>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlatformExecutionPreflightResponse {
+    pub status: String,
+    pub adapter_status: String,
+    pub can_approve: bool,
+    pub can_execute_now: bool,
+    pub will_fail_if_approved: bool,
+    pub platform: Option<String>,
+    pub skill_name: String,
+    pub message: String,
+    pub details: Value,
+    #[serde(with = "time::serde::rfc3339")]
+    pub checked_at: OffsetDateTime,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ChannelSpec {
     pub channel: String,
     pub display: String,

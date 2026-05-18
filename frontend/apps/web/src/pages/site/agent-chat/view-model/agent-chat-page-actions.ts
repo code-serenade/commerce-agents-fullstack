@@ -1,7 +1,13 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react"
 import type { AgentRuntimeEvent } from "../agent-chat-data"
 import { createSessionId } from "../domain/agent-chat-message-mapping"
-import type { AgentChatConversationItem, AgentChatMessage } from "../types"
+import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
+import { DEFAULT_AGENT_CHAT_STRATEGY_ID } from "../domain/agent-chat-strategy"
+import type {
+  AgentChatAttachmentItem,
+  AgentChatConversationItem,
+  AgentChatMessage,
+} from "../types"
 
 export interface AgentChatPageStateActions {
   abortRef: MutableRefObject<AbortController | null>
@@ -14,6 +20,11 @@ export interface AgentChatPageStateActions {
   setIsStreaming: Dispatch<SetStateAction<boolean>>
   setMessages: Dispatch<SetStateAction<AgentChatMessage[]>>
   setRuntimeEvents: Dispatch<SetStateAction<AgentRuntimeEvent[]>>
+  setAttachments?: Dispatch<SetStateAction<AgentChatAttachmentItem[]>>
+  clearSelectedProducts?: () => void
+  clearSelectedSources?: () => void
+  resetRuntimeSelection?: () => void
+  restoreStrategyId?: (strategyId: AgentChatStrategyId) => void
 }
 
 export function resetGuestAgentChatState(
@@ -26,6 +37,10 @@ export function resetGuestAgentChatState(
     state.setConversations([])
     state.sessionIdRef.current = createSessionId()
     state.setMessages([state.createWelcomeMessage()])
+    state.setAttachments?.([])
+    state.clearSelectedProducts?.()
+    state.clearSelectedSources?.()
+    resetAgentChatConversationContext(state)
   })
 }
 
@@ -39,6 +54,20 @@ export function startNewAgentConversation(state: AgentChatPageStateActions) {
   state.setIsStreaming(false)
   state.setRuntimeEvents([])
   state.setMessages([state.createWelcomeMessage()])
+  state.setAttachments?.([])
+  state.clearSelectedProducts?.()
+  state.clearSelectedSources?.()
+  resetAgentChatConversationContext(state)
+}
+
+export function resetAgentChatConversationContext(
+  state: Pick<
+    AgentChatPageStateActions,
+    "resetRuntimeSelection" | "restoreStrategyId"
+  >
+) {
+  state.restoreStrategyId?.(DEFAULT_AGENT_CHAT_STRATEGY_ID)
+  state.resetRuntimeSelection?.()
 }
 
 export function stopAgentStreaming(state: AgentChatPageStateActions) {
@@ -48,7 +77,7 @@ export function stopAgentStreaming(state: AgentChatPageStateActions) {
   state.setMessages((current) =>
     current.map((message) =>
       message.status === "streaming"
-        ? { ...message, status: undefined }
+        ? { ...message, status: message.content ? undefined : "stopped" }
         : message
     )
   )

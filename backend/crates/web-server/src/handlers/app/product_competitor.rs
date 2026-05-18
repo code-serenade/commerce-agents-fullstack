@@ -55,19 +55,20 @@ use crate::{
         PlatformConnectionResponse, PlatformSummaryResponse, PlatformSyncStatusListResponse,
         PresignConversationFileUploadRequest, PresignConversationFileUploadResponse,
         PresignProductAssetUploadRequest, PresignProductAssetUploadResponse,
-        ProductAssetAccessResponse, ProductAssetResponse, ProductCompetitorResponse,
-        ProductDashboardResponse, ProductDetailResponse, ProductKnowledgeResponse,
-        ProductMaterialResponse, ProductResponse, RegisterAppUserRequest,
-        RegisterConversationFileRequest, RegisterProductAssetRequest, SaveChannelConnectionRequest,
-        SavePackageLocksRequest, SavePlatformConnectionRequest, SaveStoreMetricRequest,
-        SnoozeAlertRequest, StoreMetricListResponse, StoreMetricResponse, ToolApprovalListResponse,
-        ToolApprovalResponse, UpdateCampaignRequest, UpdateChannelConnectionRequest,
-        UpdateConversationRequest, UpdateLongTaskRequest, UpdatePackageRequest,
-        UpdatePlatformConnectionRequest, UpdateProductAssetRequest, UpdateProductCompetitorRequest,
-        UpdateProductKnowledgeRequest, UpdateProductMaterialRequest, UpdateProductRequest,
-        UpdateWorkspaceRequest, UpdateWorkspaceRunRequest, UpdateWorkspaceRunTaskRequest,
-        UpdateWorkspaceTaskRequest, UpsertDailyBriefingRecordRequest, UpsertPackageRequest,
-        WorkspaceListResponse, WorkspaceResponse, WorkspaceRunListResponse, WorkspaceRunResponse,
+        ProductAssetAccessResponse, ProductAssetResponse, ProductCompetitorAnalysisQuery,
+        ProductCompetitorAnalysisResponse, ProductCompetitorResponse, ProductDashboardResponse,
+        ProductDetailResponse, ProductKnowledgeResponse, ProductMaterialResponse, ProductResponse,
+        RegisterAppUserRequest, RegisterConversationFileRequest, RegisterProductAssetRequest,
+        SaveChannelConnectionRequest, SavePackageLocksRequest, SavePlatformConnectionRequest,
+        SaveStoreMetricRequest, SnoozeAlertRequest, StoreMetricListResponse, StoreMetricResponse,
+        ToolApprovalListResponse, ToolApprovalResponse, UpdateCampaignRequest,
+        UpdateChannelConnectionRequest, UpdateConversationRequest, UpdateLongTaskRequest,
+        UpdatePackageRequest, UpdatePlatformConnectionRequest, UpdateProductAssetRequest,
+        UpdateProductCompetitorRequest, UpdateProductKnowledgeRequest,
+        UpdateProductMaterialRequest, UpdateProductRequest, UpdateWorkspaceRequest,
+        UpdateWorkspaceRunRequest, UpdateWorkspaceRunTaskRequest, UpdateWorkspaceTaskRequest,
+        UpsertDailyBriefingRecordRequest, UpsertPackageRequest, WorkspaceListResponse,
+        WorkspaceResponse, WorkspaceRunListResponse, WorkspaceRunResponse,
         WorkspaceRunTaskResponse, WorkspaceTaskListResponse, WorkspaceTaskResponse,
     },
     error::{Error, from_biz_error},
@@ -151,6 +152,29 @@ pub async fn get_product_competitor(
     Ok(map_product_competitor_response(competitor)
         .into_common_response()
         .to_json())
+}
+
+pub async fn get_product_competitor_analysis(
+    Extension(auth_user): Extension<AuthUser>,
+    Path(product_id): Path<String>,
+    Query(req): Query<ProductCompetitorAnalysisQuery>,
+) -> ResponseResult<ProductCompetitorAnalysisResponse> {
+    req.validate().map_err(Error::from)?;
+    let api = ProductCompetitorApi::new(get_app_ctx());
+    let analysis = api
+        .competitor_analysis(
+            service::dto::product_competitor::GetProductCompetitorAnalysisRequest {
+                user_id: auth_user.user_id,
+                product_id,
+                status: req.status,
+                platform: req.platform,
+                change_limit: req.change_limit,
+            },
+        )
+        .await
+        .map_err(from_biz_error)?;
+
+    Ok(analysis.into_common_response().to_json())
 }
 
 pub async fn update_product_competitor(

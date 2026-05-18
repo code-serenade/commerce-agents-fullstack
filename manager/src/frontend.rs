@@ -33,7 +33,17 @@ pub fn run(app: &str, action: &str) -> AppResult<()> {
         "start" => {
             ensure_deps()?;
             process::start_managed(&name, &pid_file, &log_file, &app_dir, "pnpm", &["dev"])?;
-            print_frontend_url(app, &pid_file, &log_file)
+            if app == "web" {
+                process::wait_http_url(
+                    &name,
+                    &pid_file,
+                    &log_file,
+                    "http://127.0.0.1:5173/",
+                    30,
+                )
+            } else {
+                print_frontend_url(app, &pid_file, &log_file)
+            }
         }
         "stop" => process::stop_managed(&name, &pid_file),
         "restart" => {

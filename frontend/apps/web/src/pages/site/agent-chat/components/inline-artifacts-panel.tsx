@@ -1,6 +1,6 @@
 import { FileText } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { getInlineArtifacts } from "../view-model/thread-inline-view-model"
+import type { InlineArtifact } from "../view-model/thread-artifacts-view-model"
 import { InlineArtifactCard } from "./inline-artifact-card"
 
 export function InlineArtifactsPanel({
@@ -8,7 +8,7 @@ export function InlineArtifactsPanel({
   hasRuntime,
   isStreaming,
 }: {
-  artifacts: ReturnType<typeof getInlineArtifacts>
+  artifacts: InlineArtifact[]
   hasRuntime: boolean
   isStreaming: boolean
 }) {
@@ -33,11 +33,22 @@ export function InlineArtifactsPanel({
               : t("agentChat.thread.artifacts.pending")}
         </span>
       </div>
-      <div className="mt-3 grid gap-2">
-        {artifacts.map((artifact) => (
-          <InlineArtifactCard key={artifact.filename} artifact={artifact} />
-        ))}
-      </div>
+      {artifacts.length ? (
+        <div className="mt-3 grid gap-2">
+          {artifacts.map((artifact) => (
+            <InlineArtifactCard
+              key={`${artifact.meta}-${artifact.filename}`}
+              artifact={artifact}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="mt-3 rounded-md border border-dashed border-border bg-card px-3 py-2 text-xs text-muted-foreground">
+          {hasRuntime || isStreaming
+            ? t("agentChat.thread.artifacts.waitingBackend")
+            : t("agentChat.thread.artifacts.empty")}
+        </div>
+      )}
     </div>
   )
 }

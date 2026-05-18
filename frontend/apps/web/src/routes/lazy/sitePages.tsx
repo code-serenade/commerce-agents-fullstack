@@ -1,6 +1,9 @@
 import { lazy } from "react"
 
 export const AgentChatPage = lazy(() => import("@/pages/site/agent-chat"))
+export const AgentCapabilitiesPage = lazy(
+  () => import("@/pages/site/agent-capabilities")
+)
 export const AgentOutputPage = lazy(() => import("@/pages/site/agent-output"))
 export const ApprovalsPage = lazy(() => import("@/pages/site/commerce/approvals"))
 export const CampaignsPage = lazy(() => import("@/pages/site/commerce/campaigns"))

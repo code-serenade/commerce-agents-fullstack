@@ -45,7 +45,7 @@ export function MobileBottomNav({
   return (
     <>
       {openItem?.subItems?.length ? (
-        <div className="fixed inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-40 overflow-hidden rounded-xl border border-(--app-border) bg-[var(--surface)] p-2 text-[var(--surface-foreground)] shadow-[0_18px_64px_rgba(0,0,0,0.32)] md:hidden">
+        <div className="fixed inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-40 max-h-[min(24rem,calc(100svh-7rem))] overflow-y-auto rounded-xl border border-(--app-border) bg-[var(--surface)] p-2 text-[var(--surface-foreground)] shadow-[0_18px_64px_rgba(0,0,0,0.32)] [scrollbar-gutter:stable] md:hidden">
           <div className="grid gap-1">
             {openItem.subItems.map((subItem) => (
               <a

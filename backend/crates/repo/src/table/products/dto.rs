@@ -7,6 +7,8 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ProductStatus {
+    Draft,
+    Listing,
     Active,
     Archived,
 }
@@ -14,6 +16,8 @@ pub enum ProductStatus {
 impl ProductStatus {
     pub fn as_str(self) -> &'static str {
         match self {
+            Self::Draft => "draft",
+            Self::Listing => "listing",
             Self::Active => "active",
             Self::Archived => "archived",
         }
@@ -25,6 +29,8 @@ impl TryFrom<&str> for ProductStatus {
 
     fn try_from(value: &str) -> BizResult<Self> {
         match value {
+            "draft" => Ok(Self::Draft),
+            "listing" => Ok(Self::Listing),
             "active" => Ok(Self::Active),
             "archived" => Ok(Self::Archived),
             _ => Err(BizError::new(
@@ -70,6 +76,7 @@ pub struct CreateProduct {
     pub external_id: Option<String>,
     pub category: Option<String>,
     pub brand: Option<String>,
+    pub status: ProductStatus,
     pub description: Option<String>,
     pub price: Option<String>,
     pub currency: Option<String>,

@@ -48,6 +48,12 @@ impl RoleCatalog {
         &self.roles
     }
 
+    pub fn role_by_runtime_role(&self, runtime_role: &str) -> Option<&RoleProfile> {
+        self.roles
+            .iter()
+            .find(|role| role.runtime_role == runtime_role)
+    }
+
     pub fn to_worker_profiles(&self) -> Vec<WorkerProfile> {
         self.roles
             .iter()

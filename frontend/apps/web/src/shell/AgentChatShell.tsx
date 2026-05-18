@@ -1,6 +1,8 @@
 import { type MouseEvent, type ReactNode, useState } from "react"
 import {
+  Bot,
   ClipboardList,
+  ClipboardCheck,
   Database,
   Edit3,
   FileText,
@@ -25,6 +27,7 @@ import { useNavigate } from "react-router"
 import {
   CopyableText,
   LanguageSwitch,
+  type MobileBottomNavItem,
   SidebarShell,
   type SidebarShellSection,
   ThemeToggle,
@@ -53,6 +56,27 @@ export interface AgentChatShellProps {
   children: ReactNode
 }
 
+const CHAT_ROUTE_PATHS = ["/", "/commerce", "/agent"] as const
+
+const FUNCTION_NAV_ROUTE_PATHS = [
+  "/",
+  "/agent",
+  "/agent-capabilities",
+  "/commerce",
+  "/campaigns",
+  "/operations",
+  "/overview",
+  "/platform-connect",
+  "/products",
+] as const
+
+const GOVERNANCE_ROUTE_PATHS = [
+  "/agent-output",
+  "/approvals",
+  "/packages",
+  "/workspaces",
+] as const
+
 export function AgentChatShell({ children }: AgentChatShellProps) {
   return (
     <AgentChatProvider>
@@ -67,11 +91,30 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   const location = useLocation()
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const functionNavRouteActive = isAnyRouteActive(
+    location.pathname,
+    FUNCTION_NAV_ROUTE_PATHS
+  )
+  const governanceRouteActive = isAnyRouteActive(
+    location.pathname,
+    GOVERNANCE_ROUTE_PATHS
+  )
+  const isQuestionRoute = isAnyRouteActive(location.pathname, CHAT_ROUTE_PATHS)
   const [renameTarget, setRenameTarget] = useState<{
     id: string
     title: string
   } | null>(null)
   const [renameValue, setRenameValue] = useState("")
+  const [visibleConversationCount, setVisibleConversationCount] = useState(5)
+  const [historyOpen, setHistoryOpen] = useState(true)
+  const [functionNavCollapsedPath, setFunctionNavCollapsedPath] = useState<
+    string | null
+  >(null)
+  const [functionNavManualOpen, setFunctionNavManualOpen] = useState(false)
+  const [governanceCollapsedPath, setGovernanceCollapsedPath] = useState<
+    string | null
+  >(null)
+  const [governanceManualOpen, setGovernanceManualOpen] = useState(false)
   const user = useSelector((state: RootState) => state.auth.user)
   const displayName = user?.name || t("web.shell.account.guestName")
   const displayId = user
@@ -80,6 +123,13 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   const activeConversation = chat.conversations.find(
     (conversation) => conversation.id === chat.conversationId
   )
+  const routeTitleKey = getRouteTitleKey(location.pathname)
+  const functionNavOpen = functionNavRouteActive
+    ? functionNavCollapsedPath !== location.pathname
+    : functionNavManualOpen
+  const governanceOpen = governanceRouteActive
+    ? governanceCollapsedPath !== location.pathname
+    : governanceManualOpen
 
   const handleLogout = () => {
     localStorage.removeItem("token")
@@ -94,20 +144,44 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     setRenameValue(conversation.title)
   }
 
+  const setFunctionNavOpen = (nextOpen: boolean) => {
+    if (functionNavRouteActive) {
+      setFunctionNavCollapsedPath(nextOpen ? null : location.pathname)
+    } else {
+      setFunctionNavManualOpen(nextOpen)
+    }
+  }
+
+  const setGovernanceOpen = (nextOpen: boolean) => {
+    if (governanceRouteActive) {
+      setGovernanceCollapsedPath(nextOpen ? null : location.pathname)
+    } else {
+      setGovernanceManualOpen(nextOpen)
+    }
+  }
+
   const navigateTo = (path: string) => {
+    if (isAnyRouteActive(path, FUNCTION_NAV_ROUTE_PATHS)) {
+      setFunctionNavCollapsedPath(null)
+    }
+    if (isAnyRouteActive(path, GOVERNANCE_ROUTE_PATHS)) {
+      setGovernanceCollapsedPath(null)
+    }
     navigate(path)
   }
 
-  const isRouteActive = (path: string) => {
-    if (path === "/commerce") {
-      return (
-        location.pathname === "/" ||
-        location.pathname === "/commerce" ||
-        location.pathname === "/agent"
-      )
-    }
+  const openNewConversation = () => {
+    chat.startNewConversation()
+    navigateTo("/commerce")
+  }
 
-    return location.pathname === path
+  const openConversation = (conversationId: string) => {
+    void chat.selectConversation(conversationId)
+    navigateTo("/commerce")
+  }
+
+  const isRouteActive = (path: string) => {
+    return isAgentChatRouteActive(location.pathname, path)
   }
 
   const closeRenameDialog = () => {
@@ -125,6 +199,14 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     <LanguageSwitch key="lang" />,
     <ThemeToggle key="theme" />,
   ]
+  const recentConversations = chat.conversations.slice(
+    0,
+    visibleConversationCount
+  )
+  const hiddenConversationCount = Math.max(
+    chat.conversations.length - recentConversations.length,
+    0
+  )
   const sections: SidebarShellSection[] = [
     {
       key: "create",
@@ -134,15 +216,92 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           key: "new-chat",
           icon: <Edit3 />,
           label: t("agentChat.shell.navigation.newChat"),
-          active: !chat.conversationId,
-          onSelect: chat.startNewConversation,
+          active: !chat.conversationId && isQuestionRoute,
+          onSelect: openNewConversation,
         },
       ],
     },
     {
+      key: "recents",
+      label: t("agentChat.shell.sections.recents"),
+      collapsible: true,
+      maxContentHeight: "md",
+      open: historyOpen,
+      toggleLabel: historyOpen
+        ? t("agentChat.sidebar.collapseHistory")
+        : t("agentChat.sidebar.expandHistory"),
+      onOpenChange: setHistoryOpen,
+      items: recentConversations.length
+        ? [
+            ...recentConversations.map((conversation) => ({
+              key: conversation.id,
+              icon: <MessageSquareText />,
+              label: conversation.title,
+              active:
+                isQuestionRoute && conversation.id === chat.conversationId,
+              onSelect: () => openConversation(conversation.id),
+              action: (
+                <ConversationActionMenu
+                  actionLabel={t("pages:agentChat.conversation.actionLabel")}
+                  deleteLabel={t("common:actions.delete")}
+                  disabled={chat.isStreaming}
+                  onDelete={() => chat.deleteConversation(conversation.id)}
+                  onRename={() => openRenameDialog(conversation)}
+                  renameLabel={t("common:actions.rename")}
+                />
+              ),
+            })),
+            ...(hiddenConversationCount > 0
+              ? [
+                  {
+                    key: "more-recents",
+                    icon: <MoreHorizontal />,
+                    label: t("agentChat.sidebar.moreHistory", {
+                      count: Math.min(5, hiddenConversationCount),
+                    }),
+                    onSelect: () =>
+                      setVisibleConversationCount((current) =>
+                        Math.min(current + 5, chat.conversations.length)
+                      ),
+                  },
+                ]
+              : visibleConversationCount > 5 && chat.conversations.length > 5
+                ? [
+                    {
+                      key: "less-recents",
+                      icon: <MoreHorizontal />,
+                      label: t("agentChat.sidebar.lessHistory"),
+                      onSelect: () => setVisibleConversationCount(5),
+                    },
+                  ]
+                : []),
+          ]
+        : [
+            {
+              key: "empty-recents",
+              icon: <MessageSquareText />,
+              label: t("agentChat.sidebar.empty"),
+            },
+          ],
+    },
+    {
       key: "workspace",
       label: t("agentChat.shell.sections.workspace"),
+      collapsible: true,
+      maxContentHeight: "lg",
+      open: functionNavOpen,
+      toggleLabel: functionNavOpen
+        ? t("agentChat.sidebar.collapseFunctionNav")
+        : t("agentChat.sidebar.expandFunctionNav"),
+      onOpenChange: setFunctionNavOpen,
       items: [
+        {
+          key: "capabilities",
+          icon: <Bot />,
+          label: t("agentChat.shell.navigation.capabilities"),
+          active: isRouteActive("/agent-capabilities"),
+          onSelect: () => navigateTo("/agent-capabilities"),
+        },
         {
           key: "smart-ops",
           icon: <GitBranch />,
@@ -197,6 +356,14 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     {
       key: "governance",
       label: t("agentChat.shell.sections.governance"),
+      collapsible: true,
+      defaultOpen: false,
+      maxContentHeight: "sm",
+      open: governanceOpen,
+      toggleLabel: governanceOpen
+        ? t("agentChat.sidebar.collapseGovernance")
+        : t("agentChat.sidebar.expandGovernance"),
+      onOpenChange: setGovernanceOpen,
       items: [
         {
           key: "deliverables",
@@ -204,6 +371,13 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           label: t("agentChat.shell.navigation.deliverables"),
           active: isRouteActive("/agent-output"),
           onSelect: () => navigateTo("/agent-output"),
+        },
+        {
+          key: "approvals",
+          icon: <ClipboardCheck />,
+          label: t("agentChat.shell.navigation.approvals"),
+          active: isRouteActive("/approvals"),
+          onSelect: () => navigateTo("/approvals"),
         },
         {
           key: "task-board",
@@ -226,51 +400,150 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           active: isRouteActive("/overview"),
           onSelect: () => navigateTo("/overview"),
         },
+      ],
+    },
+  ]
+  const mobileConversationItems = chat.conversations.slice(0, 5).map(
+    (conversation) => ({
+      key: conversation.id,
+      label: conversation.title,
+      href: "/commerce",
+      active: isQuestionRoute && conversation.id === chat.conversationId,
+      onSelect: () => openConversation(conversation.id),
+    })
+  )
+  const mobileNavigationItems: MobileBottomNavItem[] = [
+    {
+      key: "new-chat",
+      icon: <Edit3 />,
+      label: t("agentChat.shell.navigation.newChat"),
+      active: !chat.conversationId && isRouteActive("/commerce"),
+      onSelect: openNewConversation,
+    },
+    {
+      key: "recents",
+      icon: <MessageSquareText />,
+      label: t("agentChat.shell.sections.recents"),
+      active: chat.conversationId !== null,
+      subItems: mobileConversationItems.length
+        ? mobileConversationItems
+        : [
+            {
+              key: "empty-recents",
+              label: t("agentChat.sidebar.empty"),
+              href: "/commerce",
+              onSelect: () => navigateTo("/commerce"),
+            },
+          ],
+    },
+    {
+      key: "workspace",
+      icon: <Bot />,
+      label: t("agentChat.shell.sections.workspace"),
+      active:
+        isRouteActive("/agent-capabilities") ||
+        isRouteActive("/commerce") ||
+        isRouteActive("/products") ||
+        isRouteActive("/campaigns") ||
+        isRouteActive("/platform-connect") ||
+        isRouteActive("/overview") ||
+        isRouteActive("/operations"),
+      subItems: [
         {
-          key: "team",
-          icon: <UserRound />,
-          label: t("agentChat.shell.navigation.team"),
-          active: isRouteActive("/agent"),
-          onSelect: () => navigateTo("/agent"),
+          key: "capabilities",
+          label: t("agentChat.shell.navigation.capabilities"),
+          href: "/agent-capabilities",
+          active: isRouteActive("/agent-capabilities"),
+          onSelect: () => navigateTo("/agent-capabilities"),
+        },
+        {
+          key: "smart-ops",
+          label: t("agentChat.shell.navigation.smartOps"),
+          href: "/commerce",
+          active: isRouteActive("/commerce"),
+          onSelect: () => navigateTo("/commerce"),
+        },
+        {
+          key: "product-board",
+          label: t("agentChat.shell.navigation.productBoard"),
+          href: "/products",
+          active: isRouteActive("/products"),
+          onSelect: () => navigateTo("/products"),
+        },
+        {
+          key: "campaigns",
+          label: t("agentChat.shell.navigation.campaigns"),
+          href: "/campaigns",
+          active: isRouteActive("/campaigns"),
+          onSelect: () => navigateTo("/campaigns"),
+        },
+        {
+          key: "platform",
+          label: t("agentChat.shell.navigation.platform"),
+          href: "/platform-connect",
+          active: isRouteActive("/platform-connect"),
+          onSelect: () => navigateTo("/platform-connect"),
+        },
+        {
+          key: "market-research",
+          label: t("agentChat.shell.navigation.marketResearch"),
+          href: "/overview",
+          active: isRouteActive("/overview"),
+          onSelect: () => navigateTo("/overview"),
+        },
+        {
+          key: "briefing",
+          label: t("agentChat.shell.navigation.briefing"),
+          href: "/operations",
+          active: isRouteActive("/operations"),
+          onSelect: () => navigateTo("/operations"),
+        },
+        {
+          key: "alerts",
+          label: t("agentChat.shell.navigation.alerts"),
+          href: "/operations",
+          active: isRouteActive("/operations"),
+          onSelect: () => navigateTo("/operations"),
         },
       ],
     },
     {
-      key: "recents",
-      label: t("agentChat.shell.sections.recents"),
-      items: [
+      key: "governance",
+      icon: <ClipboardCheck />,
+      label: t("agentChat.shell.sections.governance"),
+      active:
+        isRouteActive("/agent-output") ||
+        isRouteActive("/approvals") ||
+        isRouteActive("/workspaces") ||
+        isRouteActive("/packages"),
+      subItems: [
         {
-          key: "history",
-          icon: <MessageSquareText />,
-          label: t("agentChat.shell.navigation.history"),
-          active: chat.conversations.some(
-            (conversation) => conversation.id === chat.conversationId
-          ),
-          subItems: chat.conversations.length
-            ? chat.conversations.slice(0, 8).map((conversation) => ({
-                key: conversation.id,
-                href: "#",
-                label: conversation.title,
-                active: conversation.id === chat.conversationId,
-                onSelect: () => chat.selectConversation(conversation.id),
-                action: (
-                  <ConversationActionMenu
-                    actionLabel={t("pages:agentChat.conversation.actionLabel")}
-                    deleteLabel={t("common:actions.delete")}
-                    disabled={chat.isStreaming}
-                    onDelete={() => chat.deleteConversation(conversation.id)}
-                    onRename={() => openRenameDialog(conversation)}
-                    renameLabel={t("common:actions.rename")}
-                  />
-                ),
-              }))
-            : [
-                {
-                  key: "empty-recents",
-                  href: "#",
-                  label: t("agentChat.sidebar.empty"),
-                },
-              ],
+          key: "deliverables",
+          label: t("agentChat.shell.navigation.deliverables"),
+          href: "/agent-output",
+          active: isRouteActive("/agent-output"),
+          onSelect: () => navigateTo("/agent-output"),
+        },
+        {
+          key: "approvals",
+          label: t("agentChat.shell.navigation.approvals"),
+          href: "/approvals",
+          active: isRouteActive("/approvals"),
+          onSelect: () => navigateTo("/approvals"),
+        },
+        {
+          key: "task-board",
+          label: t("agentChat.shell.navigation.taskBoard"),
+          href: "/workspaces",
+          active: isRouteActive("/workspaces"),
+          onSelect: () => navigateTo("/workspaces"),
+        },
+        {
+          key: "packages",
+          label: t("agentChat.shell.navigation.packages"),
+          href: "/packages",
+          active: isRouteActive("/packages"),
+          onSelect: () => navigateTo("/packages"),
         },
       ],
     },
@@ -279,6 +552,8 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   return (
     <>
       <SidebarShell
+        defaultSidebarOpen
+        contentScroll={isQuestionRoute ? "hidden" : "auto"}
         brandLogo={
           <div className="relative flex size-10 items-center justify-center rounded-xl bg-foreground font-mono text-base font-semibold text-background shadow-sm">
             CA
@@ -289,11 +564,22 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
         brandTitle={t("agentChat.shell.brandTitle")}
         brandDescription={t("agentChat.shell.brandDescription")}
         sections={sections}
+        mobileNavigation={{
+          label: t("web.shell.navigation.mobileLabel"),
+          items: mobileNavigationItems,
+        }}
+        showSidebarRail={false}
         header={
           <TopBar
-            title={activeConversation?.title ?? t("agentChat.shell.topbarTitle")}
+            title={
+              isQuestionRoute
+                ? activeConversation?.title ?? t("agentChat.shell.topbarTitle")
+                : routeTitleKey
+                  ? t(routeTitleKey)
+                  : t("agentChat.shell.topbarTitle")
+            }
             meta={t("agentChat.shell.topbarMeta")}
-            leading={<GitBranch className="size-5" />}
+            showSidebarTrigger={false}
             trailing={trailing}
           />
         }
@@ -322,7 +608,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
                 {
                   icon: <UserRound />,
                   label: t("web.shell.account.actions.profile"),
-                  onSelect: () => chat.startNewConversation(),
+                  onSelect: () => navigate("/profile"),
                 },
               ]
             : [
@@ -365,6 +651,52 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       </Dialog>
     </>
   )
+}
+
+function isAnyRouteActive(pathname: string, paths: readonly string[]) {
+  return paths.some((path) => isAgentChatRouteActive(pathname, path))
+}
+
+function isAgentChatRouteActive(pathname: string, path: string) {
+  if (path === "/commerce") {
+    return pathname === "/" || pathname === "/commerce" || pathname === "/agent"
+  }
+
+  return pathname === path
+}
+
+function getRouteTitleKey(pathname: string) {
+  if (pathname === "/agent-capabilities") {
+    return "agentChat.shell.navigation.capabilities"
+  }
+  if (pathname === "/products") {
+    return "agentChat.shell.navigation.productBoard"
+  }
+  if (pathname === "/campaigns") {
+    return "agentChat.shell.navigation.campaigns"
+  }
+  if (pathname === "/platform-connect") {
+    return "agentChat.shell.navigation.platform"
+  }
+  if (pathname === "/overview") {
+    return "agentChat.shell.navigation.marketResearch"
+  }
+  if (pathname === "/operations") {
+    return "agentChat.shell.navigation.alerts"
+  }
+  if (pathname === "/agent-output") {
+    return "agentChat.shell.navigation.deliverables"
+  }
+  if (pathname === "/approvals") {
+    return "agentChat.shell.navigation.approvals"
+  }
+  if (pathname === "/workspaces") {
+    return "agentChat.shell.navigation.taskBoard"
+  }
+  if (pathname === "/packages") {
+    return "agentChat.shell.navigation.packages"
+  }
+  return null
 }
 
 function ConversationActionMenu({

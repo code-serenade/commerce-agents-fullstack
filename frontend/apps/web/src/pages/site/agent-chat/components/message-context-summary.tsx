@@ -1,0 +1,155 @@
+import {
+  BrainCircuit,
+  ChevronDown,
+  Cpu,
+  FileText,
+  ShoppingBag,
+  UsersRound,
+} from "lucide-react"
+import { useTranslation } from "react-i18next"
+import type {
+  AgentChatMessageContextReference,
+  AgentChatMessageContextSummary,
+} from "../types"
+
+export function MessageContextSummary({
+  summary,
+}: {
+  summary?: AgentChatMessageContextSummary
+}) {
+  const { t } = useTranslation()
+  if (!summary) return null
+
+  const chips = [
+    {
+      icon: <ShoppingBag className="size-3.5" />,
+      label:
+        summary.productIds.length > 0
+          ? t("agentChat.thread.contextSummary.productCount", {
+              count: summary.productIds.length,
+            })
+          : t("agentChat.thread.contextSummary.productNone"),
+    },
+  ]
+
+  if (summary.sourceRefs.length > 0) {
+    chips.push({
+      icon: <FileText className="size-3.5" />,
+      label: t("agentChat.thread.contextSummary.sourceCount", {
+        count: summary.sourceRefs.length,
+      }),
+    })
+  }
+
+  if (summary.strategyId) {
+    chips.push({
+      icon: <BrainCircuit className="size-3.5" />,
+      label: t("agentChat.thread.contextSummary.strategy", {
+        strategy: t(`agentChat.strategy.options.${summary.strategyId}.label`),
+      }),
+    })
+  }
+
+  if (summary.primaryRole || summary.selectedRoles.length > 0) {
+    chips.push({
+      icon: <UsersRound className="size-3.5" />,
+      label: t("agentChat.thread.contextSummary.roles", {
+        count: summary.selectedRoles.length,
+        role: formatContextValue(
+          summary.primaryRole ?? summary.selectedRoles[0] ?? ""
+        ),
+      }),
+    })
+  }
+
+  if (summary.modelName) {
+    chips.push({
+      icon: <Cpu className="size-3.5" />,
+      label: t("agentChat.thread.contextSummary.model", {
+        model: summary.modelName,
+      }),
+    })
+  }
+
+  return (
+    <div
+      className="mt-1 flex max-w-full flex-col items-end gap-1 text-[11px] text-muted-foreground"
+      aria-label={t("agentChat.thread.contextSummary.label")}
+    >
+      <div className="flex max-w-full flex-wrap justify-end gap-1.5">
+        {chips.map((chip) => (
+          <span
+            key={chip.label}
+            className="inline-flex max-w-full items-center gap-1 rounded-full border border-border bg-card px-2 py-1 shadow-sm"
+          >
+            <span className="shrink-0">{chip.icon}</span>
+            <span className="truncate">{chip.label}</span>
+          </span>
+        ))}
+      </div>
+      {summary.products.length > 0 || summary.sources.length > 0 ? (
+        <details className="group max-w-full">
+          <summary className="flex cursor-pointer list-none items-center gap-1 rounded-full border border-border bg-card px-2 py-1 shadow-sm transition-colors hover:bg-muted hover:text-foreground [&::-webkit-details-marker]:hidden">
+            <span>{t("agentChat.thread.contextSummary.details")}</span>
+            <ChevronDown className="size-3.5 transition-transform group-open:rotate-180" />
+          </summary>
+          <div className="mt-1 max-h-36 w-72 max-w-[min(72vw,18rem)] overflow-y-auto rounded-lg border border-border bg-card p-2 text-left shadow-sm">
+            <ContextReferenceGroup
+              icon={<ShoppingBag className="size-3.5" />}
+              items={summary.products}
+              title={t("agentChat.thread.contextSummary.productDetails")}
+            />
+            <ContextReferenceGroup
+              icon={<FileText className="size-3.5" />}
+              items={summary.sources}
+              title={t("agentChat.thread.contextSummary.sourceDetails")}
+            />
+          </div>
+        </details>
+      ) : null}
+    </div>
+  )
+}
+
+function ContextReferenceGroup({
+  icon,
+  items,
+  title,
+}: {
+  icon: React.ReactNode
+  items: AgentChatMessageContextReference[]
+  title: string
+}) {
+  if (items.length === 0) return null
+
+  return (
+    <div className="space-y-1 py-1 first:pt-0 last:pb-0">
+      <div className="flex items-center gap-1.5 font-medium text-foreground">
+        {icon}
+        <span>{title}</span>
+      </div>
+      <div className="space-y-1">
+        {items.map((item) => (
+          <div
+            key={item.id}
+            className="rounded-md bg-muted px-2 py-1 text-muted-foreground"
+            title={item.id}
+          >
+            <div className="truncate text-foreground">
+              {item.label ?? item.id}
+            </div>
+            {item.secondary ? (
+              <div className="truncate">{item.secondary}</div>
+            ) : item.label ? (
+              <div className="truncate">{item.id}</div>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function formatContextValue(value: string) {
+  return value.replace(/_/g, " ")
+}

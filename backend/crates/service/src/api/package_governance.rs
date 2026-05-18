@@ -30,6 +30,7 @@ use crate::dto::package_governance::*;
 const DEFAULT_PAGE: u64 = 1;
 const DEFAULT_PAGE_SIZE: u64 = 20;
 const MAX_PAGE_SIZE: u64 = 100;
+const LEGACY_MANIFEST_BACKED_COUNT: u64 = 20;
 
 pub struct PackageGovernanceApi {
     db: DbContext,
@@ -149,6 +150,115 @@ impl PackageGovernanceApi {
             .await?;
         }
         Ok(map_package(package))
+    }
+
+    pub async fn sync_legacy_builtin_packages(
+        &self,
+        req: SyncLegacyBuiltinPackagesRequest,
+    ) -> BizResult<SyncLegacyBuiltinPackagesResponse> {
+        let user_id = parse_user_id(&req.user_id)?;
+        self.ensure_app_user_enabled(user_id).await?;
+        let reset_status = req.reset_status.unwrap_or(false);
+        let specs = legacy_builtin_package_specs();
+        let total_count = specs.len() as u64;
+        let tx = self.db.begin().await?;
+        let package_svc = PackageRegistryService::new(tx.clone());
+        let history_svc = PackageStateHistoryService::new(tx.clone());
+        let mut created_count = 0;
+        let mut updated_count = 0;
+        let mut packages = Vec::with_capacity(specs.len());
+
+        let result: BizResult<SyncLegacyBuiltinPackagesResponse> = async {
+            for spec in specs {
+                let current = package_svc
+                    .get_by_user_package(user_id, spec.package_type, spec.package_id)
+                    .await?;
+                let status = if reset_status {
+                    spec.status
+                } else {
+                    current
+                        .as_ref()
+                        .map(|item| item.status)
+                        .unwrap_or(spec.status)
+                };
+                let previous_status = current.as_ref().map(|item| item.status);
+                let package = package_svc
+                    .upsert(UpsertPackageRegistry {
+                        id: Uuid::new_v4(),
+                        user_id,
+                        package_type: spec.package_type,
+                        package_id: spec.package_id.to_string(),
+                        package_name: spec.package_name.to_string(),
+                        version: spec.version.to_string(),
+                        status,
+                        manifest_path: spec.manifest_path.map(str::to_string),
+                        dependencies: spec.dependencies.clone(),
+                        compatibility: spec.compatibility.clone(),
+                        metadata: spec.metadata.clone(),
+                        updated_by: Some(user_id),
+                    })
+                    .await?;
+
+                match current {
+                    Some(_) => updated_count += 1,
+                    None => created_count += 1,
+                }
+
+                if let Some(previous_status) = previous_status {
+                    if previous_status != package.status {
+                        record_history_with(
+                            &history_svc,
+                            &package,
+                            previous_status,
+                            package.status,
+                            Some("sync legacy builtin package status".to_string()),
+                            json!({
+                                "source": "legacy_builtin_sync",
+                                "reset_status": reset_status,
+                            }),
+                        )
+                        .await?;
+                    }
+                } else {
+                    record_history_with(
+                        &history_svc,
+                        &package,
+                        PackageStatus::Disabled,
+                        package.status,
+                        Some("create legacy builtin package".to_string()),
+                        json!({
+                            "source": "legacy_builtin_sync",
+                            "created": true,
+                        }),
+                    )
+                    .await?;
+                }
+
+                packages.push(map_package(package));
+            }
+
+            Ok(SyncLegacyBuiltinPackagesResponse {
+                packages,
+                created_count,
+                updated_count,
+                total_count,
+                manifest_backed_count: LEGACY_MANIFEST_BACKED_COUNT,
+                derived_capability_count: total_count.saturating_sub(LEGACY_MANIFEST_BACKED_COUNT),
+                reset_status,
+            })
+        }
+        .await;
+
+        match result {
+            Ok(response) => {
+                tx.commit().await?;
+                Ok(response)
+            }
+            Err(err) => {
+                tx.rollback().await?;
+                Err(err)
+            }
+        }
     }
 
     pub async fn get_package(&self, req: GetPackageRequest) -> BizResult<PackageResponse> {
@@ -730,6 +840,660 @@ impl PackageGovernanceApi {
             ));
         }
         Ok((user_id, workspace_id, run_id))
+    }
+}
+
+async fn record_history_with(
+    history_svc: &PackageStateHistoryService,
+    package: &PackageRegistry,
+    from_status: PackageStatus,
+    to_status: PackageStatus,
+    reason: Option<String>,
+    metadata: Value,
+) -> BizResult<PackageStateHistory> {
+    history_svc
+        .create(CreatePackageStateHistory {
+            id: Uuid::new_v4(),
+            user_id: package.user_id,
+            package_registry_id: Some(package.id),
+            package_type: package.package_type,
+            package_id: package.package_id.clone(),
+            from_status,
+            to_status,
+            reason,
+            changed_by: Some(package.user_id),
+            metadata,
+        })
+        .await
+}
+
+#[derive(Debug, Clone)]
+struct LegacyPackageSpec {
+    package_type: PackageType,
+    package_id: &'static str,
+    package_name: &'static str,
+    version: &'static str,
+    status: PackageStatus,
+    manifest_path: Option<&'static str>,
+    dependencies: Value,
+    compatibility: Value,
+    metadata: Value,
+}
+
+fn legacy_builtin_package_specs() -> Vec<LegacyPackageSpec> {
+    let domain_specs = vec![
+        legacy_domain_spec(
+            "domain.ecommerce",
+            "电商领域",
+            10,
+            "ecommerce",
+            &[
+                "电商",
+                "店铺",
+                "商品",
+                "平台",
+                "淘宝",
+                "京东",
+                "拼多多",
+                "抖音",
+                "GMV",
+                "转化率",
+                "客单价",
+                "ROI",
+                "竞品",
+                "流量",
+            ],
+            &["ops", "data", "service", "creative"],
+            "server/packages/domains/ecommerce/manifest.yaml",
+        ),
+        legacy_domain_spec(
+            "domain.education",
+            "教育领域",
+            20,
+            "education",
+            &[
+                "教育", "课程", "学员", "课堂", "教培", "招生", "教务", "升学", "学校", "培训",
+            ],
+            &["ops", "data", "service"],
+            "server/packages/domains/education/manifest.yaml",
+        ),
+        legacy_domain_spec(
+            "domain.general",
+            "通用领域",
+            999,
+            "generic",
+            &["通用", "综合", "方案", "规划", "分析", "执行"],
+            &["ops", "data"],
+            "server/packages/domains/general/manifest.yaml",
+        ),
+        legacy_domain_spec(
+            "domain.new-energy",
+            "新能源领域",
+            30,
+            "new_energy",
+            &[
+                "新能源",
+                "光伏",
+                "储能",
+                "充电桩",
+                "电池",
+                "风电",
+                "碳排放",
+                "电价",
+                "并网",
+            ],
+            &["data", "engineering", "ops"],
+            "server/packages/domains/new-energy/manifest.yaml",
+        ),
+    ];
+    let role_specs = vec![
+        legacy_role_spec(
+            "role.creative-studio",
+            "内容创作者",
+            "creative",
+            40,
+            &["domain.general", "domain.ecommerce", "domain.education"],
+            &["文案", "创意", "视频", "脚本", "种草", "直播", "标题"],
+            &["create", "optimize"],
+            &[
+                "creative_video_script",
+                "creative_seeding_copy",
+                "creative_title_ctr_scorer",
+            ],
+            &["creative.content"],
+            &["creative.video", "creative.copywriting", "seo.title"],
+            "server/packages/roles/creative-studio/manifest.yaml",
+        ),
+        legacy_role_spec(
+            "role.customer-success",
+            "客服专家",
+            "service",
+            30,
+            &["domain.general", "domain.ecommerce", "domain.education"],
+            &["客服", "售后", "投诉", "退款", "满意度", "NPS", "服务"],
+            &["execute", "optimize", "query"],
+            &[
+                "service_sentiment_analyzer",
+                "service_return_handler",
+                "service_nps_driver_analysis",
+            ],
+            &["service.workflow", "service.sentiment"],
+            &["nps.analysis", "refund.process"],
+            "server/packages/roles/customer-success/manifest.yaml",
+        ),
+        legacy_role_spec(
+            "role.data-analyst",
+            "数据分析师",
+            "data",
+            20,
+            &[
+                "domain.general",
+                "domain.ecommerce",
+                "domain.education",
+                "domain.new-energy",
+            ],
+            &[
+                "数据", "分析", "报表", "指标", "预测", "漏斗", "归因", "A/B",
+            ],
+            &["analyze", "query", "plan"],
+            &[
+                "data_comprehensive_diagnosis",
+                "data_funnel_analysis",
+                "data_demand_forecast",
+            ],
+            &["data.analysis", "metrics.diagnosis"],
+            &["forecast.demand", "attribution.modeling"],
+            "server/packages/roles/data-analyst/manifest.yaml",
+        ),
+        legacy_role_spec(
+            "role.engineering-architect",
+            "技术工程师",
+            "engineering",
+            50,
+            &["domain.general", "domain.new-energy", "domain.ecommerce"],
+            &["技术", "架构", "接口", "性能", "SLA", "故障", "系统"],
+            &["analyze", "execute", "optimize"],
+            &[
+                "engineering_arch_review",
+                "engineering_bug_analysis",
+                "engineering_sla_monitor",
+            ],
+            &["engineering.architecture", "engineering.reliability"],
+            &["engineering.sla", "data.pipeline"],
+            "server/packages/roles/engineering-architect/manifest.yaml",
+        ),
+        legacy_role_spec(
+            "role.finance-analyst",
+            "财务分析师",
+            "accounting",
+            60,
+            &[
+                "domain.general",
+                "domain.ecommerce",
+                "domain.education",
+                "domain.new-energy",
+            ],
+            &["财务", "成本", "利润", "ROI", "预算", "现金流", "毛利"],
+            &["analyze", "plan", "query"],
+            &[
+                "accounting_cost_calc",
+                "accounting_roi_calc",
+                "accounting_cash_flow_forecast",
+            ],
+            &["finance.profitability", "finance.cashflow"],
+            &["budget.planning", "roi.modeling"],
+            "server/packages/roles/finance-analyst/manifest.yaml",
+        ),
+        legacy_role_spec(
+            "role.ops-strategist",
+            "运营专家",
+            "ops",
+            10,
+            &[
+                "domain.general",
+                "domain.ecommerce",
+                "domain.education",
+                "domain.new-energy",
+            ],
+            &[
+                "运营",
+                "增长",
+                "策略",
+                "活动",
+                "投放",
+                "推广",
+                "转化",
+                "复盘",
+                "营销",
+                "营销方式",
+                "营销策略",
+                "增长策略",
+                "增长方案",
+                "获客",
+                "拉新",
+                "促活",
+                "留存",
+                "复购",
+                "品牌传播",
+                "活动策划",
+                "渠道策略",
+                "投放策略",
+                "公域",
+                "私域",
+            ],
+            &["plan", "optimize", "execute"],
+            &[
+                "ops_promo_planning",
+                "ops_channel_strategy",
+                "ops_execution_plan",
+            ],
+            &["ops.strategy", "campaign.orchestration"],
+            &["data.analysis", "creative.content", "service.workflow"],
+            "server/packages/roles/ops-strategist/manifest.yaml",
+        ),
+    ];
+    let skill_specs = vec![
+        legacy_skill_spec(
+            "builtin.accounting",
+            "Builtin Accounting Skill Pack",
+            "server/packages/skills/accounting/manifest.yaml",
+            "src.skills.accounting",
+            &["accounting"],
+            &[
+                "finance.profitability",
+                "finance.cashflow",
+                "budget.planning",
+                "roi.modeling",
+            ],
+            false,
+        ),
+        legacy_skill_spec(
+            "builtin.coordination",
+            "Builtin Coordination Skill Pack",
+            "server/packages/skills/coordination/manifest.yaml",
+            "src.skills.coordination",
+            &[
+                "ops",
+                "data",
+                "service",
+                "creative",
+                "accounting",
+                "engineering",
+                "web",
+                "design",
+            ],
+            &["workflow.coordination", "task.orchestration"],
+            true,
+        ),
+        legacy_skill_spec(
+            "builtin.creative",
+            "Builtin Creative Skill Pack",
+            "server/packages/skills/creative/manifest.yaml",
+            "src.skills.creative",
+            &["creative"],
+            &[
+                "creative.content",
+                "creative.video",
+                "creative.copywriting",
+                "seo.title",
+            ],
+            false,
+        ),
+        legacy_skill_spec(
+            "builtin.customer_service",
+            "Builtin Customer Service Skill Pack",
+            "server/packages/skills/customer-service/manifest.yaml",
+            "src.skills.customer_service",
+            &["service"],
+            &[
+                "service.workflow",
+                "service.sentiment",
+                "nps.analysis",
+                "refund.process",
+            ],
+            false,
+        ),
+        legacy_skill_spec(
+            "builtin.data_analysis",
+            "Builtin Data Analysis Skill Pack",
+            "server/packages/skills/data-analysis/manifest.yaml",
+            "src.skills.data_analysis",
+            &["data"],
+            &[
+                "data.analysis",
+                "metrics.diagnosis",
+                "forecast.demand",
+                "attribution.modeling",
+                "data.pipeline",
+            ],
+            false,
+        ),
+        legacy_skill_spec(
+            "builtin.design",
+            "Builtin Design Skill Pack",
+            "server/packages/skills/design/manifest.yaml",
+            "src.skills.design",
+            &["design"],
+            &["design.visual", "design.layout"],
+            false,
+        ),
+        legacy_skill_spec(
+            "builtin.engineering",
+            "Builtin Engineering Skill Pack",
+            "server/packages/skills/engineering/manifest.yaml",
+            "src.skills.engineering",
+            &["engineering"],
+            &[
+                "engineering.architecture",
+                "engineering.reliability",
+                "engineering.sla",
+                "data.pipeline",
+            ],
+            false,
+        ),
+        legacy_skill_spec(
+            "builtin.ops",
+            "Builtin Ops Skill Pack",
+            "server/packages/skills/ops/manifest.yaml",
+            "src.skills.ops",
+            &["ops"],
+            &[
+                "ops.strategy",
+                "campaign.orchestration",
+                "inventory.optimization",
+                "pricing.optimization",
+            ],
+            false,
+        ),
+        legacy_skill_spec(
+            "builtin.search",
+            "Builtin Search Skill Pack",
+            "server/packages/skills/search/manifest.yaml",
+            "src.skills.search",
+            &[
+                "ops",
+                "data",
+                "service",
+                "creative",
+                "accounting",
+                "engineering",
+                "web",
+                "design",
+            ],
+            &["external.search", "research.discovery"],
+            true,
+        ),
+        legacy_skill_spec(
+            "builtin.web",
+            "Builtin Web Skill Pack",
+            "server/packages/skills/web/manifest.yaml",
+            "src.skills.web",
+            &["web"],
+            &["seo.title", "seo.optimization", "web.conversion"],
+            false,
+        ),
+    ];
+    let capability_specs = legacy_capability_specs(&role_specs, &skill_specs);
+    let mut specs = Vec::new();
+    specs.extend(domain_specs);
+    specs.extend(role_specs);
+    specs.extend(skill_specs.clone());
+    specs.extend(capability_specs);
+    specs
+}
+
+#[allow(clippy::too_many_arguments)]
+fn legacy_domain_spec(
+    package_id: &'static str,
+    package_name: &'static str,
+    priority: i64,
+    prompt_profile: &'static str,
+    keywords: &[&'static str],
+    preferred_roles: &[&'static str],
+    manifest_path: &'static str,
+) -> LegacyPackageSpec {
+    LegacyPackageSpec {
+        package_type: PackageType::Domain,
+        package_id,
+        package_name,
+        version: "1.0.0",
+        status: PackageStatus::Active,
+        manifest_path: Some(manifest_path),
+        dependencies: json!({}),
+        compatibility: legacy_compatibility(),
+        metadata: json!({
+            "source": "legacy_builtin",
+            "legacyKind": "domain",
+            "runtimeStatus": "governance_only",
+            "requiresAgentRuntimeAdapter": true,
+            "priority": priority,
+            "keywords": keywords,
+            "preferredRoles": preferred_roles,
+            "promptProfile": prompt_profile,
+        }),
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn legacy_role_spec(
+    package_id: &'static str,
+    package_name: &'static str,
+    runtime_role: &'static str,
+    priority: i64,
+    domains: &[&'static str],
+    keywords: &[&'static str],
+    preferred_actions: &[&'static str],
+    skills: &[&'static str],
+    required_capabilities: &[&'static str],
+    optional_capabilities: &[&'static str],
+    manifest_path: &'static str,
+) -> LegacyPackageSpec {
+    LegacyPackageSpec {
+        package_type: PackageType::Role,
+        package_id,
+        package_name,
+        version: "1.0.0",
+        status: PackageStatus::Active,
+        manifest_path: Some(manifest_path),
+        dependencies: json!({
+            "domain": domains,
+            "capability": required_capabilities.iter().chain(optional_capabilities.iter()).copied().collect::<Vec<_>>(),
+        }),
+        compatibility: legacy_compatibility(),
+        metadata: json!({
+            "source": "legacy_builtin",
+            "legacyKind": "role",
+            "runtimeStatus": "governance_only",
+            "requiresAgentRuntimeAdapter": true,
+            "runtimeRole": runtime_role,
+            "priority": priority,
+            "domains": domains,
+            "keywords": keywords,
+            "preferredActions": preferred_actions,
+            "legacySkills": skills,
+            "requiredCapabilities": required_capabilities,
+            "optionalCapabilities": optional_capabilities,
+        }),
+    }
+}
+
+fn legacy_skill_spec(
+    package_id: &'static str,
+    package_name: &'static str,
+    manifest_path: &'static str,
+    entrypoint_module: &'static str,
+    provided_roles: &[&'static str],
+    provided_capabilities: &[&'static str],
+    core: bool,
+) -> LegacyPackageSpec {
+    LegacyPackageSpec {
+        package_type: PackageType::Skill,
+        package_id,
+        package_name,
+        version: "1.0.0",
+        status: PackageStatus::Active,
+        manifest_path: Some(manifest_path),
+        dependencies: json!({
+            "capability": provided_capabilities,
+        }),
+        compatibility: legacy_compatibility(),
+        metadata: json!({
+            "source": "legacy_builtin",
+            "legacyKind": "skill",
+            "runtimeStatus": "adapter_required",
+            "requiresAgentRuntimeAdapter": true,
+            "entrypoint": {
+                "module": entrypoint_module,
+                "attr": "ALL_SKILLS",
+            },
+            "providedRoles": provided_roles,
+            "providedCapabilities": provided_capabilities,
+            "core": core,
+        }),
+    }
+}
+
+fn legacy_capability_specs(
+    role_specs: &[LegacyPackageSpec],
+    skill_specs: &[LegacyPackageSpec],
+) -> Vec<LegacyPackageSpec> {
+    let mut capabilities = BTreeMap::new();
+    for spec in role_specs.iter().chain(skill_specs.iter()) {
+        for capability in capability_values(&spec.metadata, "providedCapabilities")
+            .into_iter()
+            .chain(capability_values(&spec.metadata, "requiredCapabilities"))
+            .chain(capability_values(&spec.metadata, "optionalCapabilities"))
+        {
+            capabilities
+                .entry(capability)
+                .or_insert_with(Vec::new)
+                .push(spec.package_id);
+        }
+    }
+
+    capabilities
+        .into_iter()
+        .map(|(capability, providers)| LegacyPackageSpec {
+            package_type: PackageType::Capability,
+            package_id: capability,
+            package_name: capability,
+            version: "1.0.0",
+            status: PackageStatus::Active,
+            manifest_path: None,
+            dependencies: json!({}),
+            compatibility: legacy_compatibility(),
+            metadata: json!({
+                "source": "legacy_builtin",
+                "legacyKind": "capability",
+                "runtimeStatus": "governance_only",
+                "requiresAgentRuntimeAdapter": true,
+                "providers": providers,
+                "derivedFrom": "server/packages/*/manifest.yaml",
+            }),
+        })
+        .collect()
+}
+
+fn capability_values(value: &Value, key: &str) -> Vec<&'static str> {
+    value
+        .get(key)
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(Value::as_str)
+                .filter_map(static_capability)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn static_capability(value: &str) -> Option<&'static str> {
+    match value {
+        "attribution.modeling" => Some("attribution.modeling"),
+        "budget.planning" => Some("budget.planning"),
+        "campaign.orchestration" => Some("campaign.orchestration"),
+        "creative.content" => Some("creative.content"),
+        "creative.copywriting" => Some("creative.copywriting"),
+        "creative.video" => Some("creative.video"),
+        "data.analysis" => Some("data.analysis"),
+        "data.pipeline" => Some("data.pipeline"),
+        "design.layout" => Some("design.layout"),
+        "design.visual" => Some("design.visual"),
+        "engineering.architecture" => Some("engineering.architecture"),
+        "engineering.reliability" => Some("engineering.reliability"),
+        "engineering.sla" => Some("engineering.sla"),
+        "external.search" => Some("external.search"),
+        "finance.cashflow" => Some("finance.cashflow"),
+        "finance.profitability" => Some("finance.profitability"),
+        "forecast.demand" => Some("forecast.demand"),
+        "inventory.optimization" => Some("inventory.optimization"),
+        "metrics.diagnosis" => Some("metrics.diagnosis"),
+        "nps.analysis" => Some("nps.analysis"),
+        "ops.strategy" => Some("ops.strategy"),
+        "pricing.optimization" => Some("pricing.optimization"),
+        "refund.process" => Some("refund.process"),
+        "research.discovery" => Some("research.discovery"),
+        "roi.modeling" => Some("roi.modeling"),
+        "seo.optimization" => Some("seo.optimization"),
+        "seo.title" => Some("seo.title"),
+        "service.sentiment" => Some("service.sentiment"),
+        "service.workflow" => Some("service.workflow"),
+        "task.orchestration" => Some("task.orchestration"),
+        "web.conversion" => Some("web.conversion"),
+        "workflow.coordination" => Some("workflow.coordination"),
+        _ => None,
+    }
+}
+
+fn legacy_compatibility() -> Value {
+    json!({
+        "compatible": true,
+        "target": "commerce-agents-fullstack",
+        "legacyProduct": "commerce-agents崩了之后重新做",
+        "notes": "Imported as governance metadata. Runtime execution requires native Rust agent adapters.",
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn legacy_builtin_package_specs_cover_manifest_and_capability_records() {
+        let specs = legacy_builtin_package_specs();
+        let manifest_backed = specs
+            .iter()
+            .filter(|spec| spec.manifest_path.is_some())
+            .count();
+        let derived_capabilities = specs
+            .iter()
+            .filter(|spec| spec.package_type == PackageType::Capability)
+            .count();
+
+        assert_eq!(specs.len(), 52);
+        assert_eq!(manifest_backed, 20);
+        assert_eq!(derived_capabilities, 32);
+        assert!(specs.iter().any(|spec| spec.package_id == "builtin.ops"));
+        assert!(
+            specs
+                .iter()
+                .any(|spec| spec.package_id == "external.search")
+        );
+    }
+
+    #[test]
+    fn legacy_role_keeps_old_skill_names_as_metadata_not_governed_dependencies() {
+        let specs = legacy_builtin_package_specs();
+        let role = specs
+            .iter()
+            .find(|spec| spec.package_id == "role.ops-strategist")
+            .expect("ops role spec");
+
+        assert!(role.dependencies.get("skill").is_none());
+        assert!(role.dependencies.get("domain").is_some());
+        assert!(role.dependencies.get("capability").is_some());
+        assert!(role.metadata.get("legacySkills").is_some());
     }
 }
 

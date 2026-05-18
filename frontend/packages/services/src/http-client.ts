@@ -1,6 +1,7 @@
 import { resolveUrl, type UrlGroup } from "./url"
 
 const DEFAULT_TIMEOUT = 10000
+const REFRESH_TIMEOUT = 10000
 
 interface FetchOptions extends RequestInit {
   data?: unknown
@@ -214,21 +215,32 @@ async function tryRefreshToken(): Promise<boolean> {
   }
 
   const finalUrl = resolveUrl("/auth/session/refresh_token", "auth")
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), REFRESH_TIMEOUT)
 
-  const res = await fetch(finalUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refreshToken: refresh }),
-  })
+  try {
+    const res = await fetch(finalUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken: refresh }),
+      signal: controller.signal,
+    })
 
-  if (res.ok) {
-    const newTokenData = await res.json()
-    const token =
-      newTokenData.data?.accessToken ?? newTokenData.data?.access_token
-    if (token) {
-      localStorage.setItem("token", token)
-      return true
+    if (res.ok) {
+      const newTokenData = await res.json()
+      const token =
+        newTokenData.data?.accessToken ?? newTokenData.data?.access_token
+      if (token) {
+        localStorage.setItem("token", token)
+        return true
+      }
     }
+  } catch (error) {
+    if (!isAbortError(error)) {
+      console.warn("Refresh token request failed:", error)
+    }
+  } finally {
+    clearTimeout(timer)
   }
 
   redirectToLogin("Refresh token expired")

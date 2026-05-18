@@ -3,14 +3,23 @@ use axum::{Router, routing::get};
 use crate::handlers::app::{
     disable_channel_connection, disable_platform_connection, get_channel_connection,
     get_platform_connection, list_channel_catalog, list_channel_connections, list_platform_catalog,
-    list_platform_connections, list_store_metrics, platform_summary, platform_sync_status,
-    save_channel_connection, save_platform_connection, save_store_metric,
-    update_channel_connection, update_platform_connection,
+    list_platform_connections, list_platform_execution_adapters, list_store_metrics,
+    platform_execution_preflight, platform_summary, platform_sync_status, save_channel_connection,
+    save_platform_connection, save_store_metric, update_channel_connection,
+    update_platform_connection,
 };
 
 pub fn platform_connect_routes() -> Router {
     Router::new()
         .route("/platform-connect/platforms", get(list_platform_catalog))
+        .route(
+            "/platform-connect/execution-adapters",
+            get(list_platform_execution_adapters),
+        )
+        .route(
+            "/platform-connect/execution-preflight",
+            axum::routing::post(platform_execution_preflight),
+        )
         .route(
             "/platform-connect/connections",
             get(list_platform_connections).post(save_platform_connection),
