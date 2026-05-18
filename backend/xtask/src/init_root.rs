@@ -29,14 +29,19 @@ pub fn run() -> Result<()> {
 
     let identifier = env::var("ROOT_IDENTIFIER")
         .or_else(|_| env::var("ROOT_USERNAME"))
-        .unwrap_or_else(|_| prompt("请输入 root 账号（用户名或邮箱）: ").unwrap_or_default());
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .map(|value| value.trim().to_owned())
+        .unwrap_or_else(|| prompt("请输入 root 账号（用户名或邮箱）: ").unwrap_or_default());
     if identifier.is_empty() {
         bail!("错误：账号不能为空");
     }
 
-    let password = env::var("ROOT_PASSWORD").unwrap_or_else(|_| {
-        prompt_password("请输入 root 密码: ").unwrap_or_default()
-    });
+    let password = env::var("ROOT_PASSWORD")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .map(|value| value.trim().to_owned())
+        .unwrap_or_else(|| prompt_password("请输入 root 密码: ").unwrap_or_default());
     if password.is_empty() {
         bail!("错误：密码不能为空");
     }

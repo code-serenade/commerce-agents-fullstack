@@ -11,8 +11,8 @@ pub fn require_command(command: &str) -> Result<()> {
             .status()
     } else {
         Command::new("sh")
-            .arg("-c")
-            .arg(format!("command -v {command}"))
+            .args(["-c", "command -v \"$1\" >/dev/null 2>&1", "sh"])
+            .arg(command)
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .status()

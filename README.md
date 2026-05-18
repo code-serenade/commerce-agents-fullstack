@@ -10,6 +10,7 @@
 - `API_DOCS/`：项目唯一 API 文档入口
 - `frontend/`：前端项目
 - `backend/`：后端项目
+- `deploy/`：Docker 构建、离线打包和实施安装脚本
 - `cargo manage`：跨平台管理前后端服务的 Rust CLI
 - `AGENTS.md`：AI 统一入口，负责指向前端和后端子项目规则
 
@@ -129,6 +130,24 @@ cargo manage frontend admin status
 ```text
 temp/logs/
 ```
+
+生成 Docker 离线交付包：
+
+```bash
+./deploy/build-release.sh
+```
+
+生成结果在：
+
+```text
+output/commerce-agents-offline.tar.gz
+```
+
+部署脚本的系统边界：
+
+- `deploy/build-release.sh` 只支持 macOS/Linux 的 Bash 环境。
+- `deploy/runtime/install.sh` 面向 Linux 服务器，用于实施人员现场安装。
+- Windows 开发者不需要执行部署打包脚本。
 
 ## 新对话提示词
 
