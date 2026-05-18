@@ -103,6 +103,14 @@ pub(super) struct OutputNormalizationPolicy {
     #[serde(default)]
     runtime_data_gap_keywords: Vec<String>,
     category_runtime_summary_replacement: String,
+    default_summary_template: String,
+    category_product_summary_template: String,
+    default_evidence: String,
+    selected_product_evidence_template: String,
+    unselected_product_evidence: String,
+    upstream_evidence_template: String,
+    #[serde(default)]
+    runtime_evidence_keep_markers: Vec<String>,
     category_skill_boundary_template: String,
     unsupported_benchmark: UnsupportedBenchmarkPolicy,
 }
@@ -357,6 +365,42 @@ impl OutputNormalizationPolicy {
         &self.category_runtime_summary_replacement
     }
 
+    pub(super) fn default_summary(&self, role: &str, task: &str) -> String {
+        render_role_task_template(&self.default_summary_template, role, task)
+    }
+
+    pub(super) fn category_product_summary(&self, role: &str, task: &str) -> String {
+        render_role_task_template(&self.category_product_summary_template, role, task)
+    }
+
+    pub(super) fn default_evidence(&self) -> &str {
+        &self.default_evidence
+    }
+
+    pub(super) fn selected_product_evidence(
+        &self,
+        product_name: &str,
+        product_ref: &str,
+    ) -> String {
+        self.selected_product_evidence_template
+            .replace("{{product_name}}", product_name)
+            .replace("{{product_ref}}", product_ref)
+    }
+
+    pub(super) fn unselected_product_evidence(&self) -> &str {
+        &self.unselected_product_evidence
+    }
+
+    pub(super) fn upstream_evidence(&self, node_id: &str, role: &str) -> String {
+        self.upstream_evidence_template
+            .replace("{{node_id}}", node_id)
+            .replace("{{role}}", role)
+    }
+
+    pub(super) fn runtime_evidence_keep_markers(&self) -> &[String] {
+        &self.runtime_evidence_keep_markers
+    }
+
     pub(super) fn category_skill_boundary_output(&self, label: &str) -> String {
         self.category_skill_boundary_template
             .replace("{{label}}", label)
@@ -419,6 +463,10 @@ fn indexed_or_fallback<'a>(values: &'a [String], index: usize, fallback: &'a str
 
 fn render(template: &str, task: &str) -> String {
     template.replace("{{task}}", task)
+}
+
+fn render_role_task_template(template: &str, role: &str, task: &str) -> String {
+    template.replace("{{role}}", role).replace("{{task}}", task)
 }
 
 fn contains_any_in_items(items: &[String], needles: &[String]) -> bool {
