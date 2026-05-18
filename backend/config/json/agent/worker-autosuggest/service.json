@@ -175,6 +175,154 @@
       "skill_id": "service_dsr_improvement",
       "input": {},
       "reason": "autosuggest:service.dsr"
+    },
+    {
+      "id": "service.nps_driver",
+      "roles": [
+        "service"
+      ],
+      "match": {
+        "any_keywords": [
+          "driver",
+          "驱动因素",
+          "满意度原因",
+          "投诉分类",
+          "nps驱动",
+          "nps driver"
+        ]
+      },
+      "skill_id": "service_nps_driver_analysis",
+      "input": {
+        "platform": "{{platform}}",
+        "product_ref": "{{selected_product_ref}}"
+      },
+      "reason": "autosuggest:service.nps_driver"
+    },
+    {
+      "id": "service.benchmark_search",
+      "roles": [
+        "service"
+      ],
+      "match": {
+        "any_keywords": [
+          "行业基准",
+          "行业均值",
+          "行业平均",
+          "实时基准",
+          "最新基准",
+          "benchmark",
+          "ROI基准",
+          "roi基准",
+          "ROAS基准",
+          "转化率基准"
+        ],
+        "requires_any_skill_ids": [
+          "service_dsr_improvement",
+          "service_nps_analyzer",
+          "service_nps_driver_analysis"
+        ]
+      },
+      "skill_id": "search_industry_benchmarks",
+      "input": {
+        "industry": "{{search_industry}}",
+        "metric": "{{search_benchmark_metric}}",
+        "platform": "{{search_platform}}",
+        "days": "{{search_days}}",
+        "_needs_fresh_data": true,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:service.benchmark_search"
+    },
+    {
+      "id": "service.platform_policy_search",
+      "roles": [
+        "service"
+      ],
+      "match": {
+        "any_keywords": [
+          "平台规则",
+          "平台政策",
+          "平台公告",
+          "最新规则",
+          "最新政策",
+          "规则变化",
+          "审核规则",
+          "违禁词",
+          "佣金",
+          "费率",
+          "policy"
+        ],
+        "requires_any_skill_ids": [
+          "service_ticket_handler",
+          "service_faq_playbook",
+          "service_escalation_flow",
+          "service_return_handler"
+        ]
+      },
+      "skill_id": "search_platform_policy",
+      "input": {
+        "platform": "{{search_platform}}",
+        "policy_type": "general",
+        "days": "{{search_days}}",
+        "_needs_fresh_data": true,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:service.platform_policy_search"
+    },
+    {
+      "id": "service.review_search",
+      "roles": [
+        "service"
+      ],
+      "match": {
+        "any_keywords": [
+          "评价",
+          "口碑",
+          "差评",
+          "好评",
+          "用户反馈",
+          "买家反馈",
+          "真实反馈",
+          "痛点",
+          "顾虑",
+          "review",
+          "reviews"
+        ],
+        "requires_any_skill_ids": [
+          "service_sentiment_analyzer",
+          "service_ticket_handler",
+          "service_return_handler",
+          "service_nps_driver_analysis"
+        ]
+      },
+      "skill_id": "search_product_reviews",
+      "input": {
+        "query": "{{search_query}}",
+        "platform": "{{search_platform}}",
+        "focus": "{{search_review_focus}}",
+        "days": "{{search_days}}",
+        "_needs_fresh_data": true,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:service.review_search"
+    },
+    {
+      "id": "service.fallback_dsr",
+      "roles": [
+        "service"
+      ],
+      "fallback": true,
+      "skill_id": "service_dsr_improvement",
+      "input": {
+        "platform": "{{platform}}"
+      },
+      "reason": "autosuggest:service.fallback_dsr"
     }
   ]
 }

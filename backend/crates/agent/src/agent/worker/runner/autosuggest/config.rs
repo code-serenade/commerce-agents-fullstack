@@ -85,6 +85,8 @@ pub(super) struct AutosuggestRule {
     #[serde(default)]
     pub(super) roles: Vec<String>,
     #[serde(default)]
+    pub(super) fallback: bool,
+    #[serde(default)]
     pub(super) mode: AutosuggestRuleMode,
     #[serde(default)]
     pub(super) r#match: AutosuggestRuleMatch,
@@ -111,6 +113,10 @@ pub(super) struct AutosuggestRuleMatch {
     pub(super) all_keywords: Vec<String>,
     #[serde(default)]
     pub(super) none_keywords: Vec<String>,
+    #[serde(default)]
+    pub(super) requires_any_skill_ids: Vec<String>,
+    #[serde(default)]
+    pub(super) requires_no_skill_ids: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]

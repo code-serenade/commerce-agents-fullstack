@@ -110,6 +110,171 @@
         "gmv": "{{douyin_ads_live_gmv}}"
       },
       "reason": "autosuggest:douyin_ads.live_funnel"
+    },
+    {
+      "id": "douyin_ads.fallback_plan_structure",
+      "roles": [
+        "douyin_ads"
+      ],
+      "fallback": true,
+      "skill_id": "douyin_ads_plan_structure",
+      "input": {
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{douyin_ads_product_name}}",
+        "goal": "{{douyin_ads_goal}}",
+        "platform": "{{platform}}",
+        "stage": "{{douyin_ads_stage}}",
+        "days": "{{douyin_ads_days}}",
+        "budget": "{{douyin_ads_budget}}",
+        "target_roas": "{{douyin_ads_target_roas}}"
+      },
+      "reason": "autosuggest:douyin_ads.fallback_plan_structure"
+    },
+    {
+      "id": "douyin_ads.platform_policy_search",
+      "roles": [
+        "douyin_ads"
+      ],
+      "match": {
+        "any_keywords": [
+          "最新投放规则",
+          "千川规则",
+          "平台规则",
+          "流量规则",
+          "审核规则"
+        ],
+        "requires_any_skill_ids": [
+          "douyin_ads_plan_structure"
+        ]
+      },
+      "skill_id": "search_platform_policy",
+      "input": {
+        "platform": "{{search_platform}}",
+        "policy_type": "algorithm",
+        "days": "{{search_days}}",
+        "_needs_fresh_data": true,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:douyin_ads.platform_policy_search"
+    },
+    {
+      "id": "douyin_ads.benchmark_search",
+      "roles": [
+        "douyin_ads"
+      ],
+      "match": {
+        "any_keywords": [
+          "行业ROI",
+          "行业 ROI",
+          "行业ROAS",
+          "行业 ROAS",
+          "基准",
+          "直播间基准",
+          "直播转化基准",
+          "GPM基准",
+          "gpm基准"
+        ],
+        "requires_any_skill_ids": [
+          "douyin_ads_budget_pacing",
+          "douyin_ads_live_funnel_diagnosis"
+        ]
+      },
+      "skill_id": "search_industry_benchmarks",
+      "input": {
+        "industry": "{{search_industry}}",
+        "metric": "roi",
+        "platform": "{{search_platform}}",
+        "days": "{{search_days}}",
+        "_needs_fresh_data": true,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:douyin_ads.benchmark_search"
+    },
+    {
+      "id": "douyin_ads.audience_trend_search",
+      "roles": [
+        "douyin_ads"
+      ],
+      "match": {
+        "any_keywords": [
+          "最新人群趋势",
+          "人群趋势",
+          "兴趣趋势",
+          "达人粉丝趋势"
+        ],
+        "requires_any_skill_ids": [
+          "douyin_ads_audience_package"
+        ]
+      },
+      "skill_id": "search_trends",
+      "input": {
+        "query": "{{search_query}}",
+        "platform": "抖音",
+        "days": "{{search_days}}",
+        "_needs_fresh_data": true,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:douyin_ads.audience_trend_search"
+    },
+    {
+      "id": "douyin_ads.market_search",
+      "roles": [
+        "douyin_ads"
+      ],
+      "match": {
+        "any_keywords": [
+          "实时",
+          "最新",
+          "公开来源",
+          "外部资料",
+          "真实",
+          "行业基准",
+          "行业均值",
+          "行业平均",
+          "趋势",
+          "热点",
+          "竞品",
+          "竞对",
+          "市场",
+          "报告",
+          "资料",
+          "规则",
+          "政策",
+          "公告",
+          "benchmark",
+          "trend",
+          "fresh",
+          "live"
+        ],
+        "requires_any_skill_ids": [
+          "douyin_ads_plan_structure",
+          "douyin_ads_audience_package",
+          "douyin_ads_budget_pacing",
+          "douyin_ads_live_funnel_diagnosis"
+        ],
+        "requires_no_skill_ids": [
+          "search_platform_policy",
+          "search_industry_benchmarks",
+          "search_trends"
+        ]
+      },
+      "skill_id": "search_market_info",
+      "input": {
+        "query": "{{search_query}}",
+        "topic": "general",
+        "days": "{{search_days}}",
+        "_needs_fresh_data": true,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:douyin_ads.market_search"
     }
   ]
 }

@@ -628,6 +628,237 @@
         "recency_days": "{{data_recency_days}}"
       },
       "reason": "autosuggest:data.customer_segmentation"
+    },
+    {
+      "id": "data.price_competitor_search",
+      "roles": [
+        "data"
+      ],
+      "match": {
+        "any_keywords": [
+          "市场定价",
+          "竞品价格区间",
+          "实时价格",
+          "最新价格",
+          "竞品价格",
+          "价格带"
+        ],
+        "requires_any_skill_ids": [
+          "data_competitor_analysis",
+          "data_price_elasticity"
+        ]
+      },
+      "skill_id": "search_competitor",
+      "input": {
+        "query": "{{search_query}}",
+        "platform": "{{search_platform}}",
+        "focus": "price",
+        "days": "{{search_days}}",
+        "_needs_fresh_data": true,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:data.price_competitor_search"
+    },
+    {
+      "id": "data.channel_benchmark_search",
+      "roles": [
+        "data"
+      ],
+      "match": {
+        "any_keywords": [
+          "行业基准",
+          "行业均值",
+          "行业平均",
+          "实时基准",
+          "最新基准",
+          "benchmark",
+          "ROI基准",
+          "roi基准",
+          "ROAS基准",
+          "转化率基准",
+          "渠道基准",
+          "ROI基准",
+          "roi基准"
+        ],
+        "requires_any_skill_ids": [
+          "data_channel_roi",
+          "data_attribution_analysis"
+        ]
+      },
+      "skill_id": "search_industry_benchmarks",
+      "input": {
+        "industry": "{{search_industry}}",
+        "metric": "roi",
+        "platform": "{{search_platform}}",
+        "_needs_fresh_data": true,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:data.channel_benchmark_search"
+    },
+    {
+      "id": "data.refund_benchmark_search",
+      "roles": [
+        "data"
+      ],
+      "match": {
+        "any_keywords": [
+          "退款率基准",
+          "退货率基准",
+          "售后率基准",
+          "行业退款",
+          "行业退货"
+        ],
+        "requires_any_skill_ids": [
+          "data_refund_decomposition"
+        ]
+      },
+      "skill_id": "search_industry_benchmarks",
+      "input": {
+        "industry": "{{search_industry}}",
+        "metric": "refund",
+        "platform": "{{search_platform}}",
+        "_needs_fresh_data": true,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:data.refund_benchmark_search"
+    },
+    {
+      "id": "data.trend_search",
+      "roles": [
+        "data"
+      ],
+      "match": {
+        "any_keywords": [
+          "实时",
+          "最新",
+          "公开来源",
+          "外部资料",
+          "真实",
+          "行业基准",
+          "行业均值",
+          "行业平均",
+          "趋势",
+          "热点",
+          "竞品",
+          "竞对",
+          "市场",
+          "报告",
+          "资料",
+          "规则",
+          "政策",
+          "公告",
+          "benchmark",
+          "trend",
+          "fresh",
+          "live",
+          "趋势",
+          "预测",
+          "季节性",
+          "波动"
+        ],
+        "requires_any_skill_ids": [
+          "data_multi_period_trend",
+          "data_demand_forecast",
+          "data_trend_forecast",
+          "data_seasonal_decompose"
+        ]
+      },
+      "skill_id": "search_trends",
+      "input": {
+        "query": "{{search_query}}",
+        "platform": "{{search_platform}}",
+        "days": "{{search_days}}",
+        "_needs_fresh_data": true,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:data.trend_search"
+    },
+    {
+      "id": "data.anomaly_market_search",
+      "roles": [
+        "data"
+      ],
+      "match": {
+        "any_keywords": [
+          "异常",
+          "波动",
+          "下滑",
+          "暴涨",
+          "暴跌",
+          "外部原因",
+          "市场变化",
+          "新闻"
+        ],
+        "requires_any_skill_ids": [
+          "data_anomaly_diagnosis"
+        ]
+      },
+      "skill_id": "search_market_info",
+      "input": {
+        "query": "{{search_query}}",
+        "topic": "news",
+        "days": "{{search_days}}",
+        "_needs_fresh_data": true,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:data.anomaly_market_search"
+    },
+    {
+      "id": "data.market_context_search",
+      "roles": [
+        "data"
+      ],
+      "match": {
+        "any_keywords": [
+          "实时",
+          "最新",
+          "公开来源",
+          "外部资料",
+          "真实",
+          "行业基准",
+          "行业均值",
+          "行业平均",
+          "趋势",
+          "热点",
+          "竞品",
+          "竞对",
+          "市场",
+          "报告",
+          "资料",
+          "规则",
+          "政策",
+          "公告",
+          "benchmark",
+          "trend",
+          "fresh",
+          "live"
+        ],
+        "requires_any_skill_ids": [
+          "data_comprehensive_diagnosis",
+          "data_dashboard"
+        ]
+      },
+      "skill_id": "search_market_info",
+      "input": {
+        "query": "{{search_query}}",
+        "topic": "general",
+        "days": "{{search_days}}",
+        "_needs_fresh_data": true,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:data.market_context_search"
     }
   ]
 }

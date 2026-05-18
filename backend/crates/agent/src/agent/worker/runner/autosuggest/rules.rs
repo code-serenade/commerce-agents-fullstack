@@ -18,23 +18,34 @@ pub(super) fn configured_rule_requests(
     route_mode: &str,
 ) -> Vec<ParsedSkillRequest> {
     let mut requests = Vec::new();
+    let mut fallbacks = Vec::new();
     for rule in &policy.rules {
-        if !rule_matches(rule, role_runtime, text) {
+        if !rule_matches(rule, role_runtime, text, &requests) {
             continue;
         }
 
-        requests.push(ParsedSkillRequest {
+        let request = ParsedSkillRequest {
             skill_id: rule.skill_id.clone(),
             input: render_template_value(&rule.input, text, task),
             reason: rule
                 .reason
                 .clone()
                 .or_else(|| Some(format!("autosuggest:{}", rule.id))),
-        });
+        };
+
+        if rule.fallback {
+            fallbacks.push(request);
+            continue;
+        }
+
+        requests.push(request);
 
         if route_mode != "requests" || rule.mode == AutosuggestRuleMode::First {
             break;
         }
+    }
+    if requests.is_empty() {
+        requests.extend(fallbacks);
     }
     requests
 }
@@ -43,7 +54,12 @@ pub(super) fn contains_any(text: &str, needles: &[String]) -> bool {
     needles.iter().any(|needle| contains_keyword(text, needle))
 }
 
-fn rule_matches(rule: &AutosuggestRule, role_runtime: &str, text: &str) -> bool {
+fn rule_matches(
+    rule: &AutosuggestRule,
+    role_runtime: &str,
+    text: &str,
+    current_requests: &[ParsedSkillRequest],
+) -> bool {
     (rule.roles.is_empty() || rule.roles.iter().any(|role| role == role_runtime))
         && (rule.r#match.any_keywords.is_empty() || contains_any(text, &rule.r#match.any_keywords))
         && rule
@@ -52,6 +68,19 @@ fn rule_matches(rule: &AutosuggestRule, role_runtime: &str, text: &str) -> bool 
             .iter()
             .all(|keyword| contains_keyword(text, keyword))
         && !contains_any(text, &rule.r#match.none_keywords)
+        && (rule.r#match.requires_any_skill_ids.is_empty()
+            || current_requests.iter().any(|request| {
+                rule.r#match
+                    .requires_any_skill_ids
+                    .iter()
+                    .any(|skill_id| skill_id == &request.skill_id)
+            }))
+        && !current_requests.iter().any(|request| {
+            rule.r#match
+                .requires_no_skill_ids
+                .iter()
+                .any(|skill_id| skill_id == &request.skill_id)
+        })
 }
 
 fn render_template_value(value: &serde_json::Value, text: &str, task: &Task) -> serde_json::Value {
@@ -401,7 +430,7 @@ fn render_template_string(template: &str, text: &str, task: &Task) -> String {
         )
         .replace(
             "{{budget}}",
-            &commerce::infer_budget(text, &["预算", "budget"], 10_000.0).to_string(),
+            &commerce::infer_default_budget(text).to_string(),
         )
         .replace("{{system_type}}", &domain::infer_system_type(text))
         .replace("{{bug_type}}", &domain::infer_bug_type(text))

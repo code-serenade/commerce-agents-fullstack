@@ -81,6 +81,14 @@ pub(in crate::agent::worker::runner) fn infer_budget(
         .max(number_default("rules/budget/result_min", 0.0))
 }
 
+pub(in crate::agent::worker::runner) fn infer_default_budget(text: &str) -> f64 {
+    infer_budget(
+        text,
+        &aliases("budget"),
+        number_default("defaults/default_budget", 10_000.0),
+    )
+}
+
 pub(in crate::agent::worker::runner) fn infer_demand_forecast_input(
     text: &str,
     task: &Task,

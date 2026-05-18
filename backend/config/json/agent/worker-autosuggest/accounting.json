@@ -55,6 +55,197 @@
       "skill_id": "accounting_budget_plan",
       "input": {},
       "reason": "autosuggest:accounting.budget"
+    },
+    {
+      "id": "accounting.financial_narrative",
+      "roles": [
+        "accounting"
+      ],
+      "match": {
+        "any_keywords": [
+          "财务健康",
+          "财务诊断",
+          "财务体检",
+          "健康评级",
+          "财务健康诊断",
+          "financial narrative"
+        ]
+      },
+      "skill_id": "accounting_financial_narrative",
+      "input": {
+        "days": "{{period_days}}",
+        "context": "{{task_description}}",
+        "gmv": "{{data_gmv}}",
+        "ad_spend": "{{data_ad_spend}}",
+        "orders": "{{data_orders}}"
+      },
+      "reason": "autosuggest:accounting.financial_narrative"
+    },
+    {
+      "id": "accounting.pl_statement",
+      "roles": [
+        "accounting"
+      ],
+      "match": {
+        "any_keywords": [
+          "p&l",
+          "P&L",
+          "利润表",
+          "损益表",
+          "完整利润表",
+          "pl statement"
+        ]
+      },
+      "skill_id": "accounting_pl_statement",
+      "input": {
+        "days": "{{period_days}}",
+        "gmv": "{{data_gmv}}",
+        "ad_spend": "{{data_ad_spend}}",
+        "refund_amount": "{{data_refund_amount}}",
+        "gross_profit": "{{data_gross_profit}}"
+      },
+      "reason": "autosuggest:accounting.pl_statement"
+    },
+    {
+      "id": "accounting.gmv_waterfall",
+      "roles": [
+        "accounting"
+      ],
+      "match": {
+        "any_keywords": [
+          "GMV瀑布",
+          "gmv瀑布",
+          "利润瀑布",
+          "利润漏损",
+          "漏损项",
+          "waterfall"
+        ]
+      },
+      "skill_id": "accounting_gmv_waterfall",
+      "input": {
+        "gmv": "{{data_gmv}}",
+        "ad_spend": "{{data_ad_spend}}",
+        "refund_amount": "{{data_refund_amount}}",
+        "gross_profit": "{{data_gross_profit}}"
+      },
+      "reason": "autosuggest:accounting.gmv_waterfall"
+    },
+    {
+      "id": "accounting.budget_vs_actual",
+      "roles": [
+        "accounting"
+      ],
+      "match": {
+        "any_keywords": [
+          "预算vs实际",
+          "预算VS实际",
+          "预算与实际",
+          "预算执行",
+          "预算偏差",
+          "超支",
+          "budget vs actual"
+        ]
+      },
+      "skill_id": "accounting_budget_vs_actual",
+      "input": {
+        "budget": "{{data_budget}}",
+        "spend": "{{data_spend}}",
+        "days": "{{period_days}}"
+      },
+      "reason": "autosuggest:accounting.budget_vs_actual"
+    },
+    {
+      "id": "accounting.compliance",
+      "roles": [
+        "accounting"
+      ],
+      "match": {
+        "any_keywords": [
+          "compliance",
+          "合规",
+          "税务",
+          "纳税",
+          "开票",
+          "发票",
+          "现金收款"
+        ]
+      },
+      "skill_id": "accounting_compliance_check",
+      "input": {
+        "monthly_revenue": "{{data_gmv}}",
+        "invoice_rate": "{{percent}}",
+        "cash_ratio": "{{second_percent}}"
+      },
+      "reason": "autosuggest:accounting.compliance"
+    },
+    {
+      "id": "accounting.cost_calc",
+      "roles": [
+        "accounting"
+      ],
+      "match": {
+        "any_keywords": [
+          "cost",
+          "margin",
+          "成本",
+          "毛利"
+        ]
+      },
+      "skill_id": "accounting_cost_calc",
+      "input": {
+        "purchase_cost": "{{cost}}",
+        "selling_price": "{{current_price}}"
+      },
+      "reason": "autosuggest:accounting.cost_calc"
+    },
+    {
+      "id": "accounting.finance_search",
+      "roles": [
+        "accounting"
+      ],
+      "match": {
+        "any_keywords": [
+          "财务基准",
+          "财务对标",
+          "毛利率",
+          "净利率",
+          "行业财务",
+          "财务报告",
+          "公开资料",
+          "外部资料"
+        ],
+        "requires_any_skill_ids": [
+          "accounting_financial_narrative",
+          "accounting_pl_statement",
+          "accounting_gmv_waterfall",
+          "accounting_budget_vs_actual",
+          "accounting_compliance_check",
+          "accounting_roi_calc",
+          "accounting_profit_analysis",
+          "accounting_budget_plan"
+        ]
+      },
+      "skill_id": "search_market_info",
+      "input": {
+        "query": "{{search_query}}",
+        "topic": "finance",
+        "days": "{{search_days}}",
+        "_needs_fresh_data": true,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:accounting.finance_search"
+    },
+    {
+      "id": "accounting.fallback_budget",
+      "roles": [
+        "accounting"
+      ],
+      "fallback": true,
+      "skill_id": "accounting_budget_plan",
+      "input": {},
+      "reason": "autosuggest:accounting.fallback_budget"
     }
   ]
 }

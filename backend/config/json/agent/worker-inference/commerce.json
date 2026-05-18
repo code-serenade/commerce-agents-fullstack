@@ -5,76 +5,160 @@
     "scope": "worker inference commerce configurable draft"
   },
   "defaults": {
-    "channel_strategy_budget": 10000.0,
-    "assortment_planning_budget": 50000.0
+    "channel_strategy_budget": 10000,
+    "assortment_planning_budget": 50000,
+    "default_budget": 10000
   },
   "aliases": {
-    "cost": ["单位成本", "单品成本", "成本", "cost"],
-    "current_price": ["当前售价", "当前价格", "现价", "售价", "current_price", "price"],
-    "stock_days": ["库存天数", "可售天数", "stock_days"],
-    "elasticity": ["弹性系数", "价格弹性", "elasticity"],
-    "channel_strategy_budget": ["渠道预算", "月预算", "预算", "budget"],
-    "assortment_planning_budget": ["选品预算", "货盘预算", "采购预算", "预算", "budget"],
-    "price_quantity_point_price": ["价格点", "售价", "单价", "price", "价格"],
-    "price_quantity_point_quantity": ["销量", "销售量", "件数", "销量件数", "quantity", "qty"]
+    "cost": [
+      "单位成本",
+      "单品成本",
+      "成本",
+      "cost"
+    ],
+    "current_price": [
+      "当前售价",
+      "当前价格",
+      "现价",
+      "售价",
+      "current_price",
+      "price"
+    ],
+    "stock_days": [
+      "库存天数",
+      "可售天数",
+      "stock_days"
+    ],
+    "elasticity": [
+      "弹性系数",
+      "价格弹性",
+      "elasticity"
+    ],
+    "channel_strategy_budget": [
+      "渠道预算",
+      "月预算",
+      "预算",
+      "budget"
+    ],
+    "assortment_planning_budget": [
+      "选品预算",
+      "货盘预算",
+      "采购预算",
+      "预算",
+      "budget"
+    ],
+    "price_quantity_point_price": [
+      "价格点",
+      "售价",
+      "单价",
+      "price",
+      "价格"
+    ],
+    "price_quantity_point_quantity": [
+      "销量",
+      "销售量",
+      "件数",
+      "销量件数",
+      "quantity",
+      "qty"
+    ],
+    "budget": [
+      "预算",
+      "budget"
+    ]
   },
   "rules": {
     "competitor_prices": {
       "source": "numbers_in_text",
-      "min": 1.0,
-      "max": 100000.0
+      "min": 1,
+      "max": 100000
     },
     "pricing_strategy_competitor_prices": {
       "fallback_source": "numbers_in_text",
       "exclude_if_abs_diff_from_fallback_cost_lte": 0.01
     },
     "budget": {
-      "source_order": ["metric_alias", "numbers_in_text"],
-      "number_min": 100.0,
-      "excluded_integer_values": [618, 11],
-      "result_min": 0.0
+      "source_order": [
+        "metric_alias",
+        "numbers_in_text"
+      ],
+      "number_min": 100,
+      "excluded_integer_values": [
+        618,
+        11
+      ],
+      "result_min": 0
     },
     "cost": {
       "result_min": 0.01
     },
     "current_price": {
-      "result_min": 0.0
+      "result_min": 0
     },
     "stock_days": {
-      "result_min": 0.0
+      "result_min": 0
     },
     "elasticity": {
       "positive_values_are_negated": true
     },
     "demand_forecast_input": {
-      "fields": ["days", "metric", "product_ref", "values"],
+      "fields": [
+        "days",
+        "metric",
+        "product_ref",
+        "values"
+      ],
       "days_source": "infer_period_days",
       "metric_source": "infer_metric",
       "product_ref_source": "selected_product_ref",
       "values_source": "numbers_in_text_when_present"
     },
     "promo_planning_input": {
-      "fields": ["product", "product_ref", "budget", "platform"],
+      "fields": [
+        "product",
+        "product_ref",
+        "budget",
+        "platform"
+      ],
       "product_source": "selected_product_name_or_task",
       "product_ref_source": "selected_product_ref",
       "platform_source": "selected_product_platform_or_infer"
     },
     "channel_strategy_input": {
-      "fields": ["product_type", "product_ref", "budget", "target_audience"],
+      "fields": [
+        "product_type",
+        "product_ref",
+        "budget",
+        "target_audience"
+      ],
       "product_type_source": "selected_product_category_or_infer",
       "product_ref_source": "selected_product_ref",
       "target_audience_source": "infer_audience"
     },
     "assortment_planning_input": {
-      "fields": ["category", "product_ref", "budget"],
+      "fields": [
+        "category",
+        "product_ref",
+        "budget"
+      ],
       "category_source": "selected_product_category_or_infer",
       "product_ref_source": "selected_product_ref"
     }
   },
   "parsers": {
     "price_quantity_points": {
-      "split_on": ["，", ",", "；", ";", "、", "\n"],
-      "required_fields": ["price", "quantity"],
+      "split_on": [
+        "，",
+        ",",
+        "；",
+        ";",
+        "、",
+        "\n"
+      ],
+      "required_fields": [
+        "price",
+        "quantity"
+      ],
       "price_alias_group": "price_quantity_point_price",
       "quantity_alias_group": "price_quantity_point_quantity",
       "price_match": "last_metric_value"

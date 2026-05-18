@@ -121,6 +121,73 @@
         "test_live": false
       },
       "reason": "autosuggest:engineering.system_check"
+    },
+    {
+      "id": "engineering.knowledge_search",
+      "roles": [
+        "engineering"
+      ],
+      "match": {
+        "any_keywords": [
+          "实时",
+          "最新",
+          "公开来源",
+          "外部资料",
+          "真实",
+          "行业基准",
+          "行业均值",
+          "行业平均",
+          "趋势",
+          "热点",
+          "竞品",
+          "竞对",
+          "市场",
+          "报告",
+          "资料",
+          "规则",
+          "政策",
+          "公告",
+          "benchmark",
+          "trend",
+          "fresh",
+          "live",
+          "最佳实践",
+          "官方文档",
+          "技术文档",
+          "案例",
+          "选型参考"
+        ],
+        "requires_any_skill_ids": [
+          "engineering_arch_review",
+          "engineering_bug_analysis",
+          "engineering_perf_optimize",
+          "engineering_tech_selection",
+          "engineering_system_check"
+        ]
+      },
+      "skill_id": "search_market_info",
+      "input": {
+        "query": "{{search_query}}",
+        "topic": "general",
+        "days": "{{search_days}}",
+        "_needs_fresh_data": true
+      },
+      "reason": "autosuggest:engineering.knowledge_search"
+    },
+    {
+      "id": "engineering.fallback_arch_review",
+      "roles": [
+        "engineering"
+      ],
+      "fallback": true,
+      "skill_id": "engineering_arch_review",
+      "input": {
+        "system_type": "{{system_type}}",
+        "pain_points": [
+          "{{task_description}}"
+        ]
+      },
+      "reason": "autosuggest:engineering.fallback_arch_review"
     }
   ]
 }

@@ -142,6 +142,248 @@
         "target_keywords": "{{keyword_candidates}}"
       },
       "reason": "autosuggest:web.title_seo_scorer"
+    },
+    {
+      "id": "web.seo_policy_search",
+      "roles": [
+        "web"
+      ],
+      "match": {
+        "any_keywords": [
+          "平台规则",
+          "平台政策",
+          "平台公告",
+          "最新规则",
+          "最新政策",
+          "规则变化",
+          "审核规则",
+          "违禁词",
+          "佣金",
+          "费率",
+          "policy",
+          "算法调整",
+          "搜索规则",
+          "排名规则"
+        ],
+        "requires_any_skill_ids": [
+          "web_seo_optimize"
+        ]
+      },
+      "skill_id": "search_platform_policy",
+      "input": {
+        "platform": "{{search_platform}}",
+        "policy_type": "algorithm",
+        "days": "{{search_days}}",
+        "_needs_fresh_data": true,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:web.seo_policy_search"
+    },
+    {
+      "id": "web.seo_market_search",
+      "roles": [
+        "web"
+      ],
+      "match": {
+        "any_keywords": [
+          "实时",
+          "最新",
+          "公开来源",
+          "外部资料",
+          "真实",
+          "行业基准",
+          "行业均值",
+          "行业平均",
+          "趋势",
+          "热点",
+          "竞品",
+          "竞对",
+          "市场",
+          "报告",
+          "资料",
+          "规则",
+          "政策",
+          "公告",
+          "benchmark",
+          "trend",
+          "fresh",
+          "live",
+          "搜索趋势",
+          "关键词趋势",
+          "SEO趋势",
+          "搜索量"
+        ],
+        "requires_any_skill_ids": [
+          "web_seo_optimize",
+          "web_keyword_research"
+        ]
+      },
+      "skill_id": "search_market_info",
+      "input": {
+        "query": "{{search_query}}",
+        "topic": "general",
+        "days": "{{search_days}}",
+        "_needs_fresh_data": true,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:web.seo_market_search"
+    },
+    {
+      "id": "web.conversion_benchmark_search",
+      "roles": [
+        "web"
+      ],
+      "match": {
+        "any_keywords": [
+          "行业基准",
+          "行业均值",
+          "行业平均",
+          "实时基准",
+          "最新基准",
+          "benchmark",
+          "ROI基准",
+          "roi基准",
+          "ROAS基准",
+          "转化率基准",
+          "转化率基准",
+          "页面转化",
+          "落地页基准"
+        ],
+        "requires_any_skill_ids": [
+          "web_page_conversion"
+        ]
+      },
+      "skill_id": "search_industry_benchmarks",
+      "input": {
+        "industry": "{{search_industry}}",
+        "metric": "conversion",
+        "platform": "{{search_platform}}",
+        "_needs_fresh_data": true,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:web.conversion_benchmark_search"
+    },
+    {
+      "id": "web.title_policy_search",
+      "roles": [
+        "web"
+      ],
+      "match": {
+        "any_keywords": [
+          "标题规则",
+          "标题规范",
+          "违禁词",
+          "审核规则",
+          "发布规则",
+          "平台规则",
+          "平台政策"
+        ],
+        "requires_any_skill_ids": [
+          "web_title_generator",
+          "web_product_description"
+        ]
+      },
+      "skill_id": "search_platform_policy",
+      "input": {
+        "platform": "{{search_platform}}",
+        "policy_type": "content",
+        "days": "{{search_days}}",
+        "_needs_fresh_data": true,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:web.title_policy_search"
+    },
+    {
+      "id": "web.copy_review_search",
+      "roles": [
+        "web"
+      ],
+      "match": {
+        "any_keywords": [
+          "评价",
+          "口碑",
+          "差评",
+          "好评",
+          "用户反馈",
+          "买家反馈",
+          "真实反馈",
+          "痛点",
+          "顾虑",
+          "review",
+          "reviews"
+        ],
+        "requires_any_skill_ids": [
+          "web_product_description",
+          "web_title_generator"
+        ]
+      },
+      "skill_id": "search_product_reviews",
+      "input": {
+        "query": "{{search_query}}",
+        "platform": "{{search_platform}}",
+        "focus": "{{search_review_focus}}",
+        "days": "{{search_days}}",
+        "_needs_fresh_data": true,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:web.copy_review_search"
+    },
+    {
+      "id": "web.copy_market_search",
+      "roles": [
+        "web"
+      ],
+      "match": {
+        "any_keywords": [
+          "热搜词",
+          "标题趋势",
+          "卖点趋势",
+          "搜索词",
+          "搜索量",
+          "高点击",
+          "高转化",
+          "外部资料",
+          "公开来源"
+        ],
+        "requires_any_skill_ids": [
+          "web_product_description",
+          "web_title_generator"
+        ]
+      },
+      "skill_id": "search_market_info",
+      "input": {
+        "query": "{{search_query}}",
+        "topic": "general",
+        "days": "{{search_days}}",
+        "_needs_fresh_data": true,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:web.copy_market_search"
+    },
+    {
+      "id": "web.fallback_title_seo",
+      "roles": [
+        "web"
+      ],
+      "fallback": true,
+      "skill_id": "web_title_seo_scorer",
+      "input": {
+        "title": "{{title_candidate}}",
+        "target_keywords": "{{keyword_candidates}}"
+      },
+      "reason": "autosuggest:web.fallback_title_seo"
     }
   ]
 }

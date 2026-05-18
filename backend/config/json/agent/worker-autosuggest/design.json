@@ -98,6 +98,142 @@
         "campaign_name": "{{task_description}}"
       },
       "reason": "autosuggest:design.campaign_poster"
+    },
+    {
+      "id": "design.visual_trend_search",
+      "roles": [
+        "design"
+      ],
+      "match": {
+        "any_keywords": [
+          "实时",
+          "最新",
+          "公开来源",
+          "外部资料",
+          "真实",
+          "行业基准",
+          "行业均值",
+          "行业平均",
+          "趋势",
+          "热点",
+          "竞品",
+          "竞对",
+          "市场",
+          "报告",
+          "资料",
+          "规则",
+          "政策",
+          "公告",
+          "benchmark",
+          "trend",
+          "fresh",
+          "live",
+          "视觉趋势",
+          "设计趋势",
+          "竞品视觉",
+          "参考图",
+          "对标"
+        ],
+        "requires_any_skill_ids": [
+          "design_main_image",
+          "design_detail_page",
+          "design_campaign_poster"
+        ]
+      },
+      "skill_id": "search_trends",
+      "input": {
+        "query": "{{search_query}}",
+        "platform": "{{search_platform}}",
+        "days": "{{search_days}}",
+        "_needs_fresh_data": true,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:design.visual_trend_search"
+    },
+    {
+      "id": "design.color_trend_search",
+      "roles": [
+        "design"
+      ],
+      "match": {
+        "any_keywords": [
+          "配色趋势",
+          "色彩趋势",
+          "品牌色趋势",
+          "流行色",
+          "热门配色",
+          "竞品配色"
+        ],
+        "requires_any_skill_ids": [
+          "design_color_scheme"
+        ]
+      },
+      "skill_id": "search_trends",
+      "input": {
+        "query": "{{search_query}}",
+        "platform": "{{search_platform}}",
+        "days": "{{search_days}}",
+        "_needs_fresh_data": true,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:design.color_trend_search"
+    },
+    {
+      "id": "design.material_policy_search",
+      "roles": [
+        "design"
+      ],
+      "match": {
+        "any_keywords": [
+          "平台规则",
+          "平台政策",
+          "平台公告",
+          "最新规则",
+          "最新政策",
+          "规则变化",
+          "审核规则",
+          "违禁词",
+          "佣金",
+          "费率",
+          "policy",
+          "素材规范",
+          "尺寸规范",
+          "广告位规格",
+          "图片格式",
+          "安全区"
+        ],
+        "requires_any_skill_ids": [
+          "design_material_spec"
+        ]
+      },
+      "skill_id": "search_platform_policy",
+      "input": {
+        "platform": "{{search_platform}}",
+        "policy_type": "material",
+        "days": "{{search_days}}",
+        "_needs_fresh_data": true,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:design.material_policy_search"
+    },
+    {
+      "id": "design.fallback_main_image",
+      "roles": [
+        "design"
+      ],
+      "fallback": true,
+      "skill_id": "design_main_image",
+      "input": {
+        "product_name": "{{selected_product_name}}",
+        "extra_requirements": "{{task_description}}"
+      },
+      "reason": "autosuggest:design.fallback_main_image"
     }
   ]
 }

@@ -67,6 +67,195 @@
         "target_keywords": "{{keyword_candidates}}"
       },
       "reason": "autosuggest:creative.title_ctr"
+    },
+    {
+      "id": "creative.live_script",
+      "roles": [
+        "creative"
+      ],
+      "match": {
+        "any_keywords": [
+          "live",
+          "直播",
+          "直播脚本",
+          "直播间脚本"
+        ]
+      },
+      "skill_id": "creative_live_script",
+      "input": {
+        "product_name": "{{selected_product_name}}",
+        "selling_points": "{{selected_product_features}}",
+        "live_type": "日常带货",
+        "duration_hours": "{{integer}}"
+      },
+      "reason": "autosuggest:creative.live_script"
+    },
+    {
+      "id": "creative.ip_positioning",
+      "roles": [
+        "creative"
+      ],
+      "match": {
+        "any_keywords": [
+          "ip",
+          "IP",
+          "人设",
+          "定位",
+          "账号定位",
+          "品牌定位"
+        ]
+      },
+      "skill_id": "creative_ip_positioning",
+      "input": {
+        "brand_name": "{{selected_product_brand_name}}",
+        "product_name": "{{selected_product_name}}",
+        "target_audience": "{{audience}}"
+      },
+      "reason": "autosuggest:creative.ip_positioning"
+    },
+    {
+      "id": "creative.content_calendar",
+      "roles": [
+        "creative"
+      ],
+      "match": {
+        "any_keywords": [
+          "内容日历",
+          "选题日历",
+          "内容排期",
+          "月度内容",
+          "周内容",
+          "calendar"
+        ]
+      },
+      "skill_id": "creative_content_calendar",
+      "input": {
+        "product_name": "{{selected_product_name}}",
+        "platform": "{{selected_product_article_platform}}",
+        "period": "{{task_description}}"
+      },
+      "reason": "autosuggest:creative.content_calendar"
+    },
+    {
+      "id": "creative.article_brief",
+      "roles": [
+        "creative"
+      ],
+      "match": {
+        "any_keywords": [
+          "软文",
+          "文章",
+          "公众号",
+          "小红书文章",
+          "攻略",
+          "测评"
+        ]
+      },
+      "skill_id": "creative_article_brief",
+      "input": {
+        "product_name": "{{selected_product_name}}",
+        "article_type": "测评软文",
+        "platform": "{{selected_product_article_platform}}"
+      },
+      "reason": "autosuggest:creative.article_brief"
+    },
+    {
+      "id": "creative.trend_search",
+      "roles": [
+        "creative"
+      ],
+      "match": {
+        "any_keywords": [
+          "实时",
+          "最新",
+          "公开来源",
+          "外部资料",
+          "真实",
+          "行业基准",
+          "行业均值",
+          "行业平均",
+          "趋势",
+          "热点",
+          "竞品",
+          "竞对",
+          "市场",
+          "报告",
+          "资料",
+          "规则",
+          "政策",
+          "公告",
+          "benchmark",
+          "trend",
+          "fresh",
+          "live",
+          "热搜",
+          "榜单",
+          "热点话题",
+          "内容趋势",
+          "创意趋势"
+        ],
+        "requires_any_skill_ids": [
+          "creative_video_script",
+          "creative_seeding_copy",
+          "creative_live_script",
+          "creative_ip_positioning",
+          "creative_article_brief",
+          "creative_title_ctr_scorer"
+        ]
+      },
+      "skill_id": "search_trends",
+      "input": {
+        "query": "{{search_query}}",
+        "platform": "{{search_platform}}",
+        "days": "{{search_days}}",
+        "_needs_fresh_data": true,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:creative.trend_search"
+    },
+    {
+      "id": "creative.calendar_market_search",
+      "roles": [
+        "creative"
+      ],
+      "match": {
+        "any_keywords": [
+          "节日",
+          "热点日历",
+          "营销日历",
+          "内容节点",
+          "日历"
+        ],
+        "requires_any_skill_ids": [
+          "creative_content_calendar"
+        ]
+      },
+      "skill_id": "search_market_info",
+      "input": {
+        "query": "{{search_query}}",
+        "topic": "news",
+        "days": "{{search_days}}",
+        "_needs_fresh_data": true,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:creative.calendar_market_search"
+    },
+    {
+      "id": "creative.fallback_title_ctr",
+      "roles": [
+        "creative"
+      ],
+      "fallback": true,
+      "skill_id": "creative_title_ctr_scorer",
+      "input": {
+        "title": "{{title_candidate}}",
+        "target_keywords": "{{keyword_candidates}}"
+      },
+      "reason": "autosuggest:creative.fallback_title_ctr"
     }
   ]
 }
