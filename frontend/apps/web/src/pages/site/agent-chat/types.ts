@@ -10,6 +10,8 @@ export interface AgentChatMessageContextReference {
 }
 
 export interface AgentChatMessageContextSummary {
+  campaignIds: string[]
+  campaigns: AgentChatMessageContextReference[]
   productIds: string[]
   products: AgentChatMessageContextReference[]
   sourceRefs: string[]

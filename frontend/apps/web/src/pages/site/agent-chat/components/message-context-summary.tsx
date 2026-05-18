@@ -3,6 +3,7 @@ import {
   ChevronDown,
   Cpu,
   FileText,
+  Megaphone,
   ShoppingBag,
   UsersRound,
 } from "lucide-react"
@@ -37,6 +38,15 @@ export function MessageContextSummary({
       icon: <FileText className="size-3.5" />,
       label: t("agentChat.thread.contextSummary.sourceCount", {
         count: summary.sourceRefs.length,
+      }),
+    })
+  }
+
+  if (summary.campaignIds.length > 0) {
+    chips.push({
+      icon: <Megaphone className="size-3.5" />,
+      label: t("agentChat.thread.contextSummary.campaignCount", {
+        count: summary.campaignIds.length,
       }),
     })
   }
@@ -87,7 +97,9 @@ export function MessageContextSummary({
           </span>
         ))}
       </div>
-      {summary.products.length > 0 || summary.sources.length > 0 ? (
+      {summary.products.length > 0 ||
+      summary.campaigns.length > 0 ||
+      summary.sources.length > 0 ? (
         <details className="group max-w-full">
           <summary className="flex cursor-pointer list-none items-center gap-1 rounded-full border border-border bg-card px-2 py-1 shadow-sm transition-colors hover:bg-muted hover:text-foreground [&::-webkit-details-marker]:hidden">
             <span>{t("agentChat.thread.contextSummary.details")}</span>
@@ -98,6 +110,11 @@ export function MessageContextSummary({
               icon={<ShoppingBag className="size-3.5" />}
               items={summary.products}
               title={t("agentChat.thread.contextSummary.productDetails")}
+            />
+            <ContextReferenceGroup
+              icon={<Megaphone className="size-3.5" />}
+              items={summary.campaigns}
+              title={t("agentChat.thread.contextSummary.campaignDetails")}
             />
             <ContextReferenceGroup
               icon={<FileText className="size-3.5" />}

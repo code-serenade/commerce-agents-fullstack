@@ -14,12 +14,14 @@ import { useAgentChatPanelState } from "../view-model/use-agent-chat-panel-state
 
 export function AgentChatComposer({
   attachments,
+  availableCampaigns,
   availableProducts,
   availableSources,
   canSend,
   error,
   input,
   isLoggedIn,
+  isLoadingCampaigns,
   isLoadingPlaybooks,
   isLoadingProducts,
   isLoadingRuntimeOptions,
@@ -34,11 +36,14 @@ export function AgentChatComposer({
   onSend,
   onStop,
   onStrategyChange,
+  onClearCampaignContext,
   onClearProductContext,
   onClearSourceContext,
+  onToggleCampaignContext,
   onToggleProductContext,
   onToggleSourceContext,
   onUploadAttachments,
+  selectedCampaigns,
   selectedProducts,
   selectedSources,
   playbooks,
@@ -51,8 +56,10 @@ export function AgentChatComposer({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const panels = useAgentChatPanelState()
   const {
+    campaignContextOpen,
     closePanels,
     productContextOpen,
+    setCampaignContextOpen,
     setProductContextOpen,
     setSourceContextOpen,
     settingsOpen,
@@ -61,7 +68,7 @@ export function AgentChatComposer({
   } = panels
 
   useEffect(() => {
-    if (!productContextOpen && !sourceContextOpen && !settingsOpen) return
+    if (!campaignContextOpen && !productContextOpen && !sourceContextOpen && !settingsOpen) return
 
     const closePanelsOnOutsideEvent = (event: Event) => {
       const target = event.target
@@ -82,6 +89,7 @@ export function AgentChatComposer({
     }
   }, [
     closePanels,
+    campaignContextOpen,
     productContextOpen,
     settingsOpen,
     sourceContextOpen,
@@ -124,8 +132,10 @@ export function AgentChatComposer({
       >
         <div className="relative">
           <AgentChatComposerPanels
+            availableCampaigns={availableCampaigns}
             availableProducts={availableProducts}
             availableSources={availableSources}
+            isLoadingCampaigns={isLoadingCampaigns}
             isLoadingPlaybooks={isLoadingPlaybooks}
             isLoadingProducts={isLoadingProducts}
             isLoadingRuntimeOptions={isLoadingRuntimeOptions}
@@ -137,15 +147,19 @@ export function AgentChatComposer({
             onRuntimePrimaryRoleChange={onRuntimePrimaryRoleChange}
             onSelectPlaybook={onSelectPlaybook}
             onStrategyChange={onStrategyChange}
+            onClearCampaignContext={onClearCampaignContext}
             onClearProductContext={onClearProductContext}
             onClearSourceContext={onClearSourceContext}
+            onToggleCampaignContext={onToggleCampaignContext}
             onToggleProductContext={onToggleProductContext}
             onToggleSourceContext={onToggleSourceContext}
             onToggleRuntimeRole={onToggleRuntimeRole}
             playbooks={playbooks}
+            campaignContextOpen={campaignContextOpen}
             productContextOpen={productContextOpen}
             runtimeOptions={runtimeOptions}
             runtimeSelection={runtimeSelection}
+            selectedCampaigns={selectedCampaigns}
             selectedProducts={selectedProducts}
             selectedSources={selectedSources}
             settingsOpen={settingsOpen}
@@ -176,10 +190,12 @@ export function AgentChatComposer({
             <AgentChatAttachmentStrip attachments={attachments} />
 
             <AgentChatComposerToolbar
+              availableCampaigns={availableCampaigns}
               availableProducts={availableProducts}
               availableSources={availableSources}
               canSend={canSend}
               isLoggedIn={isLoggedIn}
+              isLoadingCampaigns={isLoadingCampaigns}
               isLoadingPlaybooks={isLoadingPlaybooks}
               isLoadingProducts={isLoadingProducts}
               isLoadingRuntimeOptions={isLoadingRuntimeOptions}
@@ -196,8 +212,11 @@ export function AgentChatComposer({
               onSend={sendAndClosePanels}
               onStop={onStop}
               onStrategyChange={onStrategyChange}
+              onClearCampaignContext={onClearCampaignContext}
               onClearProductContext={onClearProductContext}
               onClearSourceContext={onClearSourceContext}
+              onToggleCampaignContext={onToggleCampaignContext}
+              onToggleCampaignPanel={setCampaignContextOpen}
               onToggleProductContext={onToggleProductContext}
               onToggleProductPanel={setProductContextOpen}
               onToggleSourceContext={onToggleSourceContext}
@@ -205,9 +224,11 @@ export function AgentChatComposer({
               onToggleRuntimeRole={onToggleRuntimeRole}
               onToggleSettingsPanel={toggleSettingsPanel}
               playbooks={playbooks}
+              campaignContextOpen={campaignContextOpen}
               productContextOpen={productContextOpen}
               runtimeOptions={runtimeOptions}
               runtimeSelection={runtimeSelection}
+              selectedCampaigns={selectedCampaigns}
               selectedProducts={selectedProducts}
               selectedSources={selectedSources}
               settingsOpen={settingsOpen}

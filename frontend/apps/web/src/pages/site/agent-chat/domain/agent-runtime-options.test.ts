@@ -135,12 +135,6 @@ describe("agent runtime options", () => {
     })
   })
 
-  it("keeps explicit role mode and user-selected depth for guided learning answers", () => {
-    expect(runtimeSelectionForStrategy(manualSelection)).toEqual({
-      ...manualSelection,
-    })
-  })
-
   it("keeps auto collaboration as backend-dispatched role selection", () => {
     expect(
       runtimeSelectionForStrategy({
@@ -217,14 +211,23 @@ describe("agent runtime options", () => {
     })
   })
 
-  it("does not remove the manual primary role while other roles remain selected", () => {
+  it("keeps primary and last support selected in manual multi-role mode", () => {
     expect(toggleRuntimeRole(manualSelection, "data")).toEqual(manualSelection)
+    expect(toggleRuntimeRole(manualSelection, "ops")).toEqual(manualSelection)
   })
 
-  it("toggles non-primary manual roles", () => {
-    expect(toggleRuntimeRole(manualSelection, "ops")).toEqual({
+  it("can remove one support role while another support role remains selected", () => {
+    expect(
+      toggleRuntimeRole(
+        {
+          ...manualSelection,
+          selectedRoles: ["data", "ops", "creative"],
+        },
+        "ops"
+      )
+    ).toEqual({
       ...manualSelection,
-      selectedRoles: ["data"],
+      selectedRoles: ["data", "creative"],
     })
   })
 
@@ -233,7 +236,7 @@ describe("agent runtime options", () => {
       toggleRuntimeRole(
         {
           ...manualSelection,
-          primaryRole: "chat",
+          primaryRole: "ops",
           selectedRoles: ["chat", "ops", "data", "creative"],
         },
         "engineering"
@@ -241,7 +244,7 @@ describe("agent runtime options", () => {
     ).toEqual({
       ...manualSelection,
       primaryRole: "ops",
-      selectedRoles: ["chat", "ops", "data", "creative", "engineering"],
+      selectedRoles: ["ops", "chat", "data", "creative", "engineering"],
     })
   })
 

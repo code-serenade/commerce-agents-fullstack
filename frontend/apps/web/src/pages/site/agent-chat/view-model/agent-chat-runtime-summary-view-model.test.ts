@@ -12,7 +12,7 @@ import {
 
 const t = ((key: string, values?: Record<string, unknown>) => {
   const copy: Record<string, string> = {
-    "agentChat.strategy.options.learning.shortHint": "Default",
+    "agentChat.strategy.options.learning.shortHint": "Teaching",
     "agentChat.strategy.options.quick.shortHint": "Short",
     "agentChat.strategy.options.execution.shortHint": "Full",
     "agentChat.composer.settings.autoRolesSummary": "Backend auto",
@@ -99,7 +99,7 @@ describe("agent chat runtime summary view model", () => {
         strategyId: "learning",
         t,
       })
-    ).toBe("Default / Auto dispatch / Medium / Doubao / Backend auto")
+    ).toBe("Teaching / Auto dispatch / Medium / Doubao / Backend auto")
   })
 
   it("shows the lead role and support count for manual multi-role mode", () => {

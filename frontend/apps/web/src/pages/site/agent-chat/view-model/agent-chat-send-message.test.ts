@@ -54,6 +54,7 @@ describe("sendAgentChatMessage", () => {
         selectedRoles: ["ops", "data"],
       },
       selectedProducts: [],
+      selectedCampaigns: [],
       selectedSources: [],
       sessionIdRef: { current: "session-a" },
       setConversationId: vi.fn(),
@@ -80,6 +81,7 @@ describe("sendAgentChatMessage", () => {
       expect.objectContaining({
         contentJson: expect.objectContaining({
           context: {
+            campaignIds: [],
             contextRefs: [],
             productIds: [],
           },
@@ -91,6 +93,7 @@ describe("sendAgentChatMessage", () => {
         metadata: expect.objectContaining({
           context: {
             conversationId: "conversation-a",
+            campaignIds: [],
             contextRefs: [],
             productIds: [],
           },
@@ -106,7 +109,9 @@ describe("sendAgentChatMessage", () => {
       expect.any(Object)
     )
     expect(messages[0]?.contextSummary?.productIds).toEqual([])
+    expect(messages[0]?.contextSummary?.campaignIds).toEqual([])
     expect(messages[0]?.contextSummary?.products).toEqual([])
+    expect(messages[0]?.contextSummary?.campaigns).toEqual([])
     expect(messages[0]?.contextSummary?.sourceRefs).toEqual([])
     expect(messages[0]?.contextSummary?.sources).toEqual([])
   })
@@ -156,6 +161,7 @@ describe("sendAgentChatMessage", () => {
         selectedRoles: ["ops", "data"],
       },
       selectedProducts: [],
+      selectedCampaigns: [],
       selectedSources: [],
       sessionIdRef: { current: "session-b" },
       setConversationId: vi.fn(),
@@ -232,6 +238,7 @@ describe("sendAgentChatMessage", () => {
         selectedRoles: ["ops", "data", "creative"],
       },
       selectedProducts: [],
+      selectedCampaigns: [],
       selectedSources: [],
       sessionIdRef: { current: "session-c" },
       setConversationId: vi.fn(),

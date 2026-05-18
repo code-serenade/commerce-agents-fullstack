@@ -821,6 +821,7 @@ pub struct WorkspaceContextSummaryResponse {
     pub summary: String,
     pub counts: WorkspaceContextSummaryCounts,
     pub attachment_sources: Vec<WorkspaceContextSourceResponse>,
+    pub campaign_sources: Vec<WorkspaceContextSourceResponse>,
     pub product_asset_sources: Vec<WorkspaceContextSourceResponse>,
     pub product_material_sources: Vec<WorkspaceContextSourceResponse>,
     pub artifact_sources: Vec<WorkspaceContextSourceResponse>,
@@ -832,6 +833,7 @@ pub struct WorkspaceContextSummaryResponse {
 #[derive(Debug, Clone, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WorkspaceContextSummaryCounts {
+    pub campaigns: usize,
     pub conversation_files: usize,
     pub product_assets: usize,
     pub product_materials: usize,
@@ -840,7 +842,8 @@ pub struct WorkspaceContextSummaryCounts {
 
 impl WorkspaceContextSummaryCounts {
     pub fn total(&self) -> usize {
-        self.conversation_files
+        self.campaigns
+            + self.conversation_files
             + self.product_assets
             + self.product_materials
             + self.workspace_artifacts

@@ -10,6 +10,7 @@ import {
 import { createMessageContextSummary } from "../domain/agent-chat-message-context-summary"
 import {
   createContextRefs,
+  type AgentChatCampaignContextSelection,
   type AgentChatProductContextSelection,
   type AgentChatSourceContextSelection,
 } from "../domain/agent-chat-context-selection"
@@ -31,6 +32,7 @@ interface SendAgentChatMessageInput {
   setIsStreaming: Dispatch<SetStateAction<boolean>>
   setMessages: Dispatch<SetStateAction<AgentChatMessage[]>>
   setRuntimeEvents: Dispatch<SetStateAction<AgentRuntimeEvent[]>>
+  selectedCampaigns: AgentChatCampaignContextSelection[]
   selectedProducts: AgentChatProductContextSelection[]
   selectedSources: AgentChatSourceContextSelection[]
   runtimeSelection: AgentChatRuntimeSelection
@@ -52,7 +54,12 @@ export async function sendAgentChatMessage(
     modelName: input.runtimeSelection.modelName,
   }
   const contextMeta = {
-    contextRefs: createContextRefs(input.selectedProducts, input.selectedSources),
+    campaignIds: input.selectedCampaigns.map((campaign) => campaign.id),
+    contextRefs: createContextRefs(
+      input.selectedProducts,
+      input.selectedSources,
+      input.selectedCampaigns
+    ),
     productIds: input.selectedProducts.map((product) => product.id),
   }
   const contextSummary = createMessageContextSummary({
@@ -61,6 +68,8 @@ export async function sendAgentChatMessage(
     learningLevel: strategyMeta.learningLevel,
     modelName: strategyMeta.modelName,
     primaryRole: strategyMeta.primaryRole,
+    campaignIds: contextMeta.campaignIds,
+    campaigns: input.selectedCampaigns,
     products: input.selectedProducts,
     selectedRoles: strategyMeta.selectedRoles,
     sources: input.selectedSources.map((source) => ({

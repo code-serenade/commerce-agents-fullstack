@@ -78,6 +78,24 @@ pub async fn stream_agent_session(
         .first()
         .cloned()
         .or_else(|| context_selection.first_product_ref_id());
+    let mut workspace_context_refs = context_selection.context_refs.clone();
+    for campaign_id in &context_selection.campaign_ids {
+        let campaign_ref = format!("campaign:{campaign_id}");
+        if !workspace_context_refs
+            .iter()
+            .any(|item| item == &campaign_ref)
+        {
+            workspace_context_refs.push(campaign_ref);
+        }
+    }
+    for campaign_ref in context_selection.campaign_context_refs() {
+        if !workspace_context_refs
+            .iter()
+            .any(|item| item == &campaign_ref)
+        {
+            workspace_context_refs.push(campaign_ref);
+        }
+    }
     let product_context_refs = context_selection.product_context_refs();
 
     let api = AppApi::new(get_app_ctx());
@@ -159,7 +177,7 @@ pub async fn stream_agent_session(
             product_id: selected_product_id,
             include_workspace_product_context: false,
             run_id: active_run_id.clone(),
-            context_refs: context_selection.context_refs.clone(),
+            context_refs: workspace_context_refs.clone(),
         })
         .await
         .map_err(from_biz_error)?;
@@ -173,7 +191,7 @@ pub async fn stream_agent_session(
             product_id: workspace_context.product_id.clone(),
             include_workspace_product_context: false,
             run_id: active_run_id,
-            context_refs: context_selection.context_refs.clone(),
+            context_refs: workspace_context_refs,
             max_items: Some(20),
             max_chars: Some(12_000),
         })
@@ -1370,6 +1388,7 @@ fn workspace_context_sources(
     context
         .attachment_sources
         .iter()
+        .chain(context.campaign_sources.iter())
         .chain(context.product_asset_sources.iter())
         .chain(context.product_material_sources.iter())
         .chain(context.artifact_sources.iter())
@@ -1706,6 +1725,7 @@ mod tests {
             readiness: "ready".to_string(),
             summary: "Workspace context is ready.".to_string(),
             counts: service::dto::workspace::WorkspaceContextSummaryCounts {
+                campaigns: 1,
                 conversation_files: 1,
                 product_assets: 1,
                 product_materials: 0,
@@ -1720,6 +1740,17 @@ mod tests {
                 status: "active".to_string(),
                 ref_key: "conversation_file:file-1".to_string(),
                 preview: Some("brief.pdf".to_string()),
+                metadata: json!({}),
+            }],
+            campaign_sources: vec![WorkspaceContextSourceResponse {
+                source_type: "campaign".to_string(),
+                id: "campaign-1".to_string(),
+                title: Some("Launch campaign".to_string()),
+                mime_type: Some("application/json".to_string()),
+                file_size: None,
+                status: "active".to_string(),
+                ref_key: "campaign:campaign-1".to_string(),
+                preview: Some("Launch campaign".to_string()),
                 metadata: json!({}),
             }],
             product_asset_sources: vec![WorkspaceContextSourceResponse {
@@ -1751,6 +1782,7 @@ mod tests {
                 "kind": "workspace_context_summary",
                 "refs": [
                     "conversation_file:file-1",
+                    "campaign:campaign-1",
                     "product_asset:asset-1",
                     "workspace_artifact:artifact-1"
                 ]
@@ -1763,8 +1795,8 @@ mod tests {
         assert_eq!(metadata["workspaceContext.readiness"], "ready");
         assert_eq!(
             metadata["context.combined_refs"],
-            "product:product-1,conversation_file:file-1,product_asset:asset-1,workspace_artifact:\
-             artifact-1"
+            "product:product-1,conversation_file:file-1,campaign:campaign-1,product_asset:asset-1,\
+             workspace_artifact:artifact-1"
         );
         assert!(metadata["context.summary"].contains("Selected product."));
         assert!(
@@ -1789,6 +1821,7 @@ mod tests {
             readiness: "ready".to_string(),
             summary: "Workspace context pack is ready.".to_string(),
             counts: service::dto::workspace::WorkspaceContextSummaryCounts {
+                campaigns: 0,
                 conversation_files: 1,
                 product_assets: 0,
                 product_materials: 1,

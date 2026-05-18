@@ -20,3 +20,28 @@ export function uniqueRuntimeRoles(roles: string[]) {
     return unique
   }, [])
 }
+
+export function ensureManualRoleTeam(roles: string[], primaryRole: string) {
+  const nextRoles = uniqueRuntimeRoles([
+    primaryRole,
+    ...roles.filter((role) => role !== primaryRole),
+  ])
+  if (selectedSupportRoleCount(nextRoles, primaryRole) > 0) return nextRoles
+  return uniqueRuntimeRoles([
+    ...nextRoles,
+    manualSupportFallbackRoles(primaryRole)[0] ?? "ops",
+  ])
+}
+
+export function selectedSupportRoleCount(
+  roles: string[],
+  primaryRole: string | undefined
+) {
+  return roles.filter((role) => role !== primaryRole).length
+}
+
+export function manualSupportFallbackRoles(primaryRole: string) {
+  return ["ops", "data", "creative", "service", "engineering"].filter(
+    (role) => role !== primaryRole
+  )
+}

@@ -9,6 +9,7 @@ import {
   mapConversationMessages,
   readConversationRuntimeEvents,
   readConversationRuntimeSelection,
+  readConversationSelectedCampaignIds,
   readConversationSelectedProductIds,
   readConversationSelectedSourceRefs,
   readConversationStrategyId,
@@ -28,10 +29,12 @@ interface ConversationActionState {
   fallbackConversationTitle: string
   messageFormatCopy: AgentChatMessageFormatCopy
   sessionIdRef: MutableRefObject<string>
+  clearSelectedCampaigns?: () => void
   clearSelectedProducts?: () => void
   clearSelectedSources?: () => void
   resetRuntimeSelection?: () => void
   restoreRuntimeSelection?: (selection: AgentChatRuntimeSelectionRestore) => void
+  restoreSelectedCampaigns?: (campaignIds: string[]) => void
   restoreSelectedProducts?: (productIds: string[]) => void
   restoreSelectedSources?: (sourceRefs: string[]) => void
   restoreStrategyId?: (strategyId: AgentChatStrategyId) => void
@@ -158,6 +161,7 @@ function resetActiveConversation(state: ConversationActionState) {
   state.setMessages([state.createWelcomeMessage()])
   state.setRuntimeEvents([])
   state.setAttachments?.([])
+  state.clearSelectedCampaigns?.()
   state.clearSelectedProducts?.()
   state.clearSelectedSources?.()
   resetAgentChatConversationContext(state)
@@ -168,6 +172,7 @@ function restoreConversationContext(
   state: ConversationActionState
 ) {
   const productIds = readConversationSelectedProductIds(detail)
+  const campaignIds = readConversationSelectedCampaignIds(detail)
   const sourceRefs = readConversationSelectedSourceRefs(detail)
   const runtimeSelection = readConversationRuntimeSelection(detail)
   const strategyId = readConversationStrategyId(detail)
@@ -175,6 +180,11 @@ function restoreConversationContext(
     state.restoreSelectedProducts?.(productIds)
   } else {
     state.clearSelectedProducts?.()
+  }
+  if (campaignIds.length > 0) {
+    state.restoreSelectedCampaigns?.(campaignIds)
+  } else {
+    state.clearSelectedCampaigns?.()
   }
   state.setAttachments?.(mapConversationAttachments(detail))
   if (sourceRefs.length > 0) {

@@ -36,6 +36,9 @@ pub struct AgentStreamContextMetadata {
     pub conversation_id: Option<String>,
 
     #[serde(default)]
+    pub campaign_ids: Vec<String>,
+
+    #[serde(default)]
     pub product_ids: Vec<String>,
 
     #[serde(default)]
@@ -62,6 +65,7 @@ pub struct AgentStreamStrategyMetadata {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct AgentStreamContextSelection {
+    pub campaign_ids: Vec<String>,
     pub conversation_id: Option<String>,
     pub product_ids: Vec<String>,
     pub context_refs: Vec<String>,
@@ -133,6 +137,12 @@ impl AgentStreamMetadata {
         };
 
         Ok(AgentStreamContextSelection {
+            campaign_ids: validate_context_values(
+                "context.campaignIds",
+                &context.campaign_ids,
+                5,
+                64,
+            )?,
             conversation_id: validate_optional_context_value(
                 "context.conversationId",
                 &context.conversation_id,
@@ -185,6 +195,24 @@ impl AgentStreamContextSelection {
             .iter()
             .find_map(|context_ref| product_id_from_context_ref(context_ref).map(str::to_string))
     }
+
+    pub fn campaign_context_refs(&self) -> Vec<String> {
+        self.context_refs
+            .iter()
+            .filter(|context_ref| is_campaign_context_ref(context_ref))
+            .cloned()
+            .collect()
+    }
+}
+
+fn is_campaign_context_ref(value: &str) -> bool {
+    campaign_id_from_context_ref(value).is_some()
+}
+
+fn campaign_id_from_context_ref(value: &str) -> Option<&str> {
+    value
+        .strip_prefix("campaign:")
+        .or_else(|| value.strip_prefix("campaign/"))
 }
 
 fn is_product_context_ref(value: &str) -> bool {
@@ -296,6 +324,7 @@ mod tests {
         let product_id = "11111111-1111-1111-1111-111111111111".to_string();
         let metadata = AgentStreamMetadata {
             context: Some(AgentStreamContextMetadata {
+                campaign_ids: vec!["22222222-2222-2222-2222-222222222222".to_string()],
                 conversation_id: Some("conversation-1".to_string()),
                 product_ids: vec![product_id.clone(), product_id.clone()],
                 context_refs: vec![format!("product:{product_id}")],
@@ -328,6 +357,10 @@ mod tests {
         );
         assert_eq!(model.name.as_deref(), Some("ollama-gpt-oss-20b"));
         assert_eq!(context.conversation_id.as_deref(), Some("conversation-1"));
+        assert_eq!(
+            context.campaign_ids,
+            vec!["22222222-2222-2222-2222-222222222222".to_string()]
+        );
         assert_eq!(context.product_ids, vec![product_id.clone()]);
         assert_eq!(context.context_refs, vec![format!("product:{product_id}")]);
     }
@@ -336,6 +369,7 @@ mod tests {
     fn metadata_rejects_too_many_product_ids() {
         let metadata = AgentStreamMetadata {
             context: Some(AgentStreamContextMetadata {
+                campaign_ids: Vec::new(),
                 conversation_id: None,
                 product_ids: (0 .. 6).map(|index| format!("product-{index}")).collect(),
                 context_refs: Vec::new(),
@@ -355,6 +389,7 @@ mod tests {
     fn metadata_parses_conversation_id_context_selection() {
         let metadata = AgentStreamMetadata {
             context: Some(AgentStreamContextMetadata {
+                campaign_ids: Vec::new(),
                 conversation_id: Some("  conversation-uuid  ".to_string()),
                 product_ids: Vec::new(),
                 context_refs: Vec::new(),
@@ -378,6 +413,7 @@ mod tests {
         let artifact_ref = "workspace_artifact:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa".to_string();
         let metadata = AgentStreamMetadata {
             context: Some(AgentStreamContextMetadata {
+                campaign_ids: Vec::new(),
                 conversation_id: None,
                 product_ids: Vec::new(),
                 context_refs: vec![artifact_ref.clone(), artifact_ref.clone()],
@@ -400,6 +436,7 @@ mod tests {
         let artifact_ref = "workspace_artifact:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa".to_string();
         let metadata = AgentStreamMetadata {
             context: Some(AgentStreamContextMetadata {
+                campaign_ids: Vec::new(),
                 conversation_id: None,
                 product_ids: Vec::new(),
                 context_refs: vec![product_ref.clone(), artifact_ref],
@@ -419,9 +456,34 @@ mod tests {
     }
 
     #[test]
+    fn metadata_accepts_campaign_context_refs() {
+        let campaign_id = "22222222-2222-2222-2222-222222222222".to_string();
+        let metadata = AgentStreamMetadata {
+            context: Some(AgentStreamContextMetadata {
+                campaign_ids: vec![campaign_id.clone()],
+                conversation_id: None,
+                product_ids: Vec::new(),
+                context_refs: vec![format!("campaign:{campaign_id}")],
+            }),
+            model: None,
+            strategy: None,
+        };
+
+        let (_, context, _) = metadata.into_parts().expect("metadata should parse");
+
+        assert_eq!(context.campaign_ids, vec![campaign_id.clone()]);
+        assert_eq!(
+            context.campaign_context_refs(),
+            vec![format!("campaign:{campaign_id}")]
+        );
+        assert!(!context.has_product_context());
+    }
+
+    #[test]
     fn metadata_rejects_too_long_conversation_id() {
         let metadata = AgentStreamMetadata {
             context: Some(AgentStreamContextMetadata {
+                campaign_ids: Vec::new(),
                 conversation_id: Some("x".repeat(65)),
                 product_ids: Vec::new(),
                 context_refs: Vec::new(),

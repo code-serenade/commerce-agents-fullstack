@@ -32,7 +32,7 @@ export function AgentChatSettingsControls({
   strategyId: AgentChatStrategyId
 }) {
   return (
-    <>
+    <div className="grid gap-3 rounded-xl border border-border bg-background p-3">
       <AgentChatStrategyBar
         disabled={isStreaming}
         onStrategyChange={onStrategyChange}
@@ -50,6 +50,6 @@ export function AgentChatSettingsControls({
         runtimeSelection={runtimeSelection}
         strategyId={strategyId}
       />
-    </>
+    </div>
   )
 }
