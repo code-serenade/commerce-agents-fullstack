@@ -6,6 +6,15 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 cd "$PROJECT_DIR"
 
+if [ -f "$PROJECT_DIR/.env" ]; then
+  set -a
+  . "$PROJECT_DIR/.env"
+  set +a
+fi
+
+IMAGE_PREFIX="${IMAGE_PREFIX:-commerce-agents}"
+BACKEND_ARTIFACT_DIR="/workspace/deploy/artifacts/backend"
+
 echo "==> Preparing Rust builder"
 "$PROJECT_DIR/deploy/build-backend-base-images.sh"
 
@@ -17,13 +26,15 @@ pnpm --dir frontend --filter admin build
 echo "==> Building Rust static binaries"
 docker run --rm \
   -e CARGO_HOME=/cargo-cache \
+  -e CARGO_TARGET_DIR=/tmp/cargo-target \
+  -e BACKEND_ARTIFACT_DIR="$BACKEND_ARTIFACT_DIR" \
   -e OPENSSL_STATIC=1 \
   -e PKG_CONFIG_ALLOW_CROSS=1 \
   -v "$PROJECT_DIR:/workspace" \
   -v "$HOME/.cargo:/cargo-cache" \
   -w /workspace/backend \
   rust-builder:alpine \
-  sh -c 'cargo build --release --locked -p web-server -p migration -p xtask'
+  sh -c 'rm -rf "$CARGO_TARGET_DIR" "$BACKEND_ARTIFACT_DIR" && if [ ! -f Cargo.lock ]; then cargo generate-lockfile; fi && cargo build --release --locked -p web-server -p migration -p xtask && mkdir -p "$BACKEND_ARTIFACT_DIR" && cp "$CARGO_TARGET_DIR/release/web-server" "$CARGO_TARGET_DIR/release/migration" "$CARGO_TARGET_DIR/release/xtask" "$BACKEND_ARTIFACT_DIR"/'
 
 echo "==> Building runtime images"
 docker compose build postgres backend
@@ -31,10 +42,10 @@ docker compose build --no-cache web admin
 
 echo "==> Verifying runtime images"
 for image in \
-  commerce-agents-postgres:local \
-  commerce-agents-backend:local \
-  commerce-agents-web:local \
-  commerce-agents-admin:local
+  "$IMAGE_PREFIX-postgres:local" \
+  "$IMAGE_PREFIX-backend:local" \
+  "$IMAGE_PREFIX-web:local" \
+  "$IMAGE_PREFIX-admin:local"
 do
   docker image inspect "$image" >/dev/null
   echo "found $image"

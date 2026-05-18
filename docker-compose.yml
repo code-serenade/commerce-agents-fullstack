@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: deploy/postgres/Dockerfile
-    image: commerce-agents-postgres:local
+    image: ${IMAGE_PREFIX:-commerce-agents}-postgres:local
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: "123456"
@@ -24,7 +24,7 @@ services:
     build:
       context: .
       dockerfile: deploy/backend/Dockerfile
-    image: commerce-agents-backend:local
+    image: ${IMAGE_PREFIX:-commerce-agents}-backend:local
     depends_on:
       postgres:
         condition: service_healthy
@@ -34,7 +34,7 @@ services:
       dockerfile: deploy/frontend/Dockerfile
       args:
         APP_NAME: web
-    image: commerce-agents-web:local
+    image: ${IMAGE_PREFIX:-commerce-agents}-web:local
     environment:
       API_UPSTREAM: ${API_UPSTREAM:-http://backend:19878}
       AUTH_UPSTREAM: ${AUTH_UPSTREAM:-http://1.85.61.130:29001}
@@ -50,7 +50,7 @@ services:
       dockerfile: deploy/frontend/Dockerfile
       args:
         APP_NAME: admin
-    image: commerce-agents-admin:local
+    image: ${IMAGE_PREFIX:-commerce-agents}-admin:local
     environment:
       API_UPSTREAM: ${API_UPSTREAM:-http://backend:19878}
       AUTH_UPSTREAM: ${AUTH_UPSTREAM:-http://1.85.61.130:29001}

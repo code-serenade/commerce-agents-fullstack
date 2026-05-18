@@ -19,7 +19,7 @@
 更适合普通使用者的方式，是用 `npx` 下载一份模板副本：
 
 ```bash
-npx degit atlas-form/react-mono-template your-project-name
+npx degit atlas-orien/react-mono-template your-project-name
 cd your-project-name
 pnpm install
 ```
@@ -36,7 +36,7 @@ pnpm install
 如果你的机器暂时不能使用 `npx`，再退回到 `git clone`：
 
 ```bash
-git clone https://github.com/atlas-form/react-mono-template.git your-project-name
+git clone https://github.com/atlas-orien/react-mono-template.git your-project-name
 cd your-project-name
 rm -rf .git
 git init
@@ -58,7 +58,7 @@ git commit -m "init from template"
 请先帮我把这个模板下载到本地并完成环境准备。
 
 模板地址：
-https://github.com/atlas-form/react-mono-template.git
+https://github.com/atlas-orien/react-mono-template.git
 
 目标目录：
 请改成你自己的目录名，例如 mall-admin

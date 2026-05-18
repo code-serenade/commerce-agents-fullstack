@@ -58,8 +58,10 @@ compose() {
 install_docker
 start_docker
 
-if [ ! -f commerce-agents-images.tar ]; then
-  echo "找不到 commerce-agents-images.tar"
+IMAGE_TAR="${IMAGE_TAR:-commerce-agents-images.tar}"
+
+if [ ! -f "$IMAGE_TAR" ]; then
+  echo "找不到 $IMAGE_TAR"
   exit 1
 fi
 
@@ -67,7 +69,7 @@ if [ ! -f .env ]; then
   cp .env.example .env
 fi
 
-docker load -i commerce-agents-images.tar
+docker load -i "$IMAGE_TAR"
 compose up -d
 
 echo "安装完成"
