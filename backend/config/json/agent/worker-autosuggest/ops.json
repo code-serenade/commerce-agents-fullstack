@@ -1,3 +1,329 @@
 {
-  "rules": []
+  "rules": [
+    {
+      "id": "ops.create_task",
+      "roles": [
+        "ops"
+      ],
+      "match": {
+        "any_keywords": [
+          "创建任务",
+          "建个任务",
+          "新建任务",
+          "安排任务",
+          "分派任务",
+          "待办",
+          "todo",
+          "to-do"
+        ]
+      },
+      "skill_id": "coordination_create_task",
+      "input": {
+        "title": "{{task_description}}",
+        "description": "{{task_description}}",
+        "owner_role": "ops",
+        "priority": 3,
+        "acceptance_criteria": "完成后回填执行结果和关键风险。"
+      },
+      "reason": "autosuggest:ops.create_task"
+    },
+    {
+      "id": "ops.channel_strategy",
+      "roles": [
+        "ops"
+      ],
+      "match": {
+        "any_keywords": [
+          "channel",
+          "渠道",
+          "投放渠道",
+          "流量渠道",
+          "渠道分配",
+          "渠道策略"
+        ]
+      },
+      "skill_id": "ops_channel_strategy",
+      "input": {
+        "product_type": "{{task_description}}",
+        "budget": 10000,
+        "target_audience": "{{task_description}}"
+      },
+      "reason": "autosuggest:ops.channel_strategy"
+    },
+    {
+      "id": "ops.listing_copy",
+      "roles": [
+        "ops"
+      ],
+      "match": {
+        "any_keywords": [
+          "listing",
+          "上架",
+          "上新文案",
+          "上架文案",
+          "标题卖点",
+          "商品标题"
+        ]
+      },
+      "skill_id": "ops_listing_copy",
+      "input": {
+        "product_name": "{{task_description}}",
+        "features": [
+          "{{task_description}}"
+        ],
+        "platform": "淘宝"
+      },
+      "reason": "autosuggest:ops.listing_copy"
+    },
+    {
+      "id": "ops.assortment_planning",
+      "roles": [
+        "ops"
+      ],
+      "match": {
+        "any_keywords": [
+          "assortment",
+          "sku组合",
+          "sku 组合",
+          "货盘",
+          "选品组合",
+          "组合规划"
+        ]
+      },
+      "skill_id": "ops_assortment_planning",
+      "input": {
+        "category": "{{task_description}}",
+        "budget": 10000
+      },
+      "reason": "autosuggest:ops.assortment_planning"
+    },
+    {
+      "id": "ops.smart_pricing",
+      "roles": [
+        "ops"
+      ],
+      "match": {
+        "any_keywords": [
+          "smart pricing",
+          "dynamic pricing",
+          "智能定价",
+          "动态定价",
+          "价格优化",
+          "利润定价",
+          "最优定价",
+          "调价建议",
+          "涨价建议",
+          "降价建议",
+          "清仓定价",
+          "库存压力价"
+        ]
+      },
+      "skill_id": "ops_smart_pricing",
+      "input": {
+        "cost": 1,
+        "current_price": 9.9,
+        "current_monthly_sales": 500,
+        "platform": "淘宝"
+      },
+      "reason": "autosuggest:ops.smart_pricing"
+    },
+    {
+      "id": "ops.inventory_optimizer",
+      "roles": [
+        "ops"
+      ],
+      "match": {
+        "any_keywords": [
+          "inventory optimizer",
+          "inventory optimization",
+          "库存优化",
+          "库存健康",
+          "安全库存",
+          "再订货点",
+          "经济订货量",
+          "周转天数",
+          "EOQ",
+          "eoq",
+          "ROP",
+          "rop"
+        ]
+      },
+      "skill_id": "ops_inventory_optimizer",
+      "input": {
+        "skus": [],
+        "lead_time_days": 14,
+        "service_level": "95%"
+      },
+      "reason": "autosuggest:ops.inventory_optimizer"
+    },
+    {
+      "id": "ops.abc_xyz_classifier",
+      "roles": [
+        "ops"
+      ],
+      "match": {
+        "any_keywords": [
+          "ABC-XYZ",
+          "abc-xyz",
+          "ABCXYZ",
+          "abcxyz",
+          "ABC分类",
+          "abc分类",
+          "XYZ分类",
+          "xyz分类",
+          "ABC库存",
+          "XYZ库存",
+          "9格矩阵",
+          "九宫格库存",
+          "库存分类矩阵",
+          "SKU分层",
+          "sku分层",
+          "高价值SKU"
+        ]
+      },
+      "skill_id": "ops_abc_xyz_classifier",
+      "input": {
+        "skus": [],
+        "platform": "淘宝"
+      },
+      "reason": "autosuggest:ops.abc_xyz_classifier"
+    },
+    {
+      "id": "ops.ad_fatigue",
+      "roles": [
+        "ops"
+      ],
+      "match": {
+        "any_keywords": [
+          "ad fatigue",
+          "fatigue",
+          "ctr decay",
+          "click-through decay",
+          "click rate decay",
+          "广告疲劳",
+          "素材疲劳",
+          "创意疲劳",
+          "CTR衰减",
+          "点击率衰减",
+          "频次过高",
+          "曝光频次",
+          "ROAS健康",
+          "roas健康"
+        ]
+      },
+      "skill_id": "ops_ad_fatigue_detector",
+      "input": {
+        "channels": [],
+        "platform": "淘宝"
+      },
+      "reason": "autosuggest:ops.ad_fatigue"
+    },
+    {
+      "id": "ops.pricing_strategy",
+      "roles": [
+        "ops"
+      ],
+      "match": {
+        "any_keywords": [
+          "price",
+          "pricing",
+          "cost",
+          "定价",
+          "价格",
+          "售价",
+          "成本"
+        ],
+        "none_keywords": [
+          "智能定价",
+          "动态定价",
+          "价格优化"
+        ]
+      },
+      "skill_id": "ops_pricing_strategy",
+      "input": {
+        "cost": 1,
+        "competitor_prices": [],
+        "platform": "淘宝"
+      },
+      "reason": "autosuggest:ops.pricing_strategy"
+    },
+    {
+      "id": "ops.inventory_planning",
+      "roles": [
+        "ops"
+      ],
+      "match": {
+        "any_keywords": [
+          "inventory",
+          "stock",
+          "库存",
+          "补货",
+          "备货"
+        ],
+        "none_keywords": [
+          "库存优化",
+          "安全库存",
+          "再订货点",
+          "EOQ",
+          "ROP"
+        ]
+      },
+      "skill_id": "ops_inventory_planning",
+      "input": {
+        "avg_daily_demand": 1,
+        "lead_time_days": 7,
+        "service_level": 0.95
+      },
+      "reason": "autosuggest:ops.inventory_planning"
+    },
+    {
+      "id": "ops.promo_planning",
+      "roles": [
+        "ops"
+      ],
+      "match": {
+        "any_keywords": [
+          "campaign",
+          "promotion",
+          "promo",
+          "活动",
+          "促销",
+          "大促",
+          "五一",
+          "618",
+          "双11"
+        ]
+      },
+      "skill_id": "ops_promo_planning",
+      "input": {
+        "product": "{{task_description}}",
+        "budget": 10000,
+        "platform": "淘宝"
+      },
+      "reason": "autosuggest:ops.promo_planning"
+    },
+    {
+      "id": "ops.execution_plan",
+      "roles": [
+        "ops"
+      ],
+      "match": {
+        "any_keywords": [
+          "运营计划",
+          "执行计划",
+          "行动计划",
+          "运营节奏",
+          "增长计划",
+          "复盘计划",
+          "落地计划"
+        ]
+      },
+      "skill_id": "ops_execution_plan",
+      "input": {
+        "goal": "{{task_description}}",
+        "stage": "成长期"
+      },
+      "reason": "autosuggest:ops.execution_plan"
+    }
+  ]
 }

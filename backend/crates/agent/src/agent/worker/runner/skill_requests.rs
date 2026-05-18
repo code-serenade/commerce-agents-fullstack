@@ -1,5 +1,6 @@
 use super::{
     autosuggest::autosuggest_skill_requests,
+    policy::worker_policies,
     types::ParsedSkillRequest,
     util::{compact_event_text, metadata_string, skill_status_name},
 };
@@ -37,7 +38,8 @@ pub(super) async fn execute_requested_skills(
     executor: Option<SkillExecutorSet>,
     event_tx: Option<&crate::agent_session::SessionEventTx>,
 ) -> Vec<SkillExecutionResult> {
-    let mut requests = parse_skill_requests(output);
+    let mut requests =
+        normalize_explicit_skill_requests_for_task(parse_skill_requests(output), task);
     requests.extend(autosuggest_skill_requests(
         &role.runtime_role,
         task,
@@ -107,6 +109,98 @@ fn parse_skill_request(value: &serde_json::Value) -> Option<ParsedSkillRequest> 
         input,
         reason,
     })
+}
+
+fn normalize_explicit_skill_requests_for_task(
+    requests: Vec<ParsedSkillRequest>,
+    task: &Task,
+) -> Vec<ParsedSkillRequest> {
+    requests
+        .into_iter()
+        .filter_map(|mut request| {
+            if should_defer_category_level_skill_request(&request, task) {
+                return None;
+            }
+            normalize_parsed_skill_request(&mut request);
+            Some(request)
+        })
+        .collect()
+}
+
+fn should_defer_category_level_skill_request(request: &ParsedSkillRequest, task: &Task) -> bool {
+    !has_selected_product_context(task)
+        && is_category_level_task(&task.description)
+        && is_category_level_deferred_skill(request.skill_id.as_str())
+}
+
+fn has_selected_product_context(task: &Task) -> bool {
+    metadata_value(task, "context.selected_summary").is_some()
+        || metadata_value(task, "commerce.selected_product_context").is_some()
+}
+
+fn is_category_level_task(task: &str) -> bool {
+    let Some(items) = worker_policies()
+        .output_normalization
+        .get("category_level_task_keywords")
+        .and_then(serde_json::Value::as_array)
+    else {
+        return false;
+    };
+    items
+        .iter()
+        .filter_map(serde_json::Value::as_str)
+        .any(|keyword| !keyword.trim().is_empty() && task.contains(keyword))
+}
+
+fn is_category_level_deferred_skill(skill: &str) -> bool {
+    worker_policies().output.is_category_deferred_skill(skill)
+}
+
+fn normalize_parsed_skill_request(request: &mut ParsedSkillRequest) {
+    if request.skill_id == "coordination_create_task" {
+        normalize_coordination_create_task_input(&mut request.input);
+    }
+}
+
+fn normalize_coordination_create_task_input(input: &mut serde_json::Value) {
+    let Some(object) = input.as_object_mut() else {
+        return;
+    };
+
+    if let Some(priority) = object.get("priority").cloned() {
+        let normalized = match priority {
+            serde_json::Value::Number(number) => number.as_i64().map(|value| value.clamp(0, 2)),
+            serde_json::Value::String(text) => normalize_task_priority_text(&text),
+            _ => None,
+        };
+        if let Some(value) = normalized {
+            object.insert("priority".to_string(), serde_json::json!(value));
+        } else {
+            object.remove("priority");
+        }
+    }
+}
+
+fn normalize_task_priority_text(value: &str) -> Option<i64> {
+    let text = value.trim().to_ascii_lowercase();
+    match text.as_str() {
+        "0" | "normal" | "low" | "普通" | "低" => Some(0),
+        "1" | "medium" | "important" | "重要" | "中" => Some(1),
+        "2" | "high" | "urgent" | "紧急" | "高" => Some(2),
+        _ => value
+            .trim()
+            .parse::<i64>()
+            .ok()
+            .map(|value| value.clamp(0, 2)),
+    }
+}
+
+fn metadata_value<'a>(task: &'a Task, key: &str) -> Option<&'a str> {
+    task.context
+        .metadata
+        .get(key)
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
 }
 
 fn build_skill_context(

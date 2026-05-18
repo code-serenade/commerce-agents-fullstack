@@ -15,10 +15,30 @@ pub(super) struct WorkerPolicySet {
     pub(super) autosuggest: super::autosuggest::config::WorkerAutosuggestPolicy,
     #[allow(dead_code)]
     pub(super) inference: serde_json::Value,
-    #[allow(dead_code)]
-    pub(super) output: serde_json::Value,
+    pub(super) output: WorkerOutputPolicy,
     #[allow(dead_code)]
     pub(super) output_normalization: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub(super) struct WorkerOutputPolicy {
+    #[serde(default)]
+    category_boundary: OutputCategoryBoundaryPolicy,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+struct OutputCategoryBoundaryPolicy {
+    #[serde(default)]
+    deferred_skills: Vec<String>,
+}
+
+impl WorkerOutputPolicy {
+    pub(super) fn is_category_deferred_skill(&self, skill: &str) -> bool {
+        self.category_boundary
+            .deferred_skills
+            .iter()
+            .any(|candidate| candidate == skill)
+    }
 }
 
 static POLICIES: OnceLock<WorkerPolicySet> = OnceLock::new();

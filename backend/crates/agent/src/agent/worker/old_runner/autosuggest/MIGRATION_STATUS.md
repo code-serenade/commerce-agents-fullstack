@@ -67,7 +67,7 @@ The following files still contain old behavior that has only been partially move
 - `creative.rs`: first-level creative skill routing is configured; trend/calendar search chains still need migration.
 - `accounting.rs`: first-level accounting skill routing is configured; finance search chain and numeric inference still need migration.
 - `data.rs`: first-level dashboard/diagnosis/channel ROI routing is configured; most metrics and numeric inference still need migration.
-- `ops.rs`: not yet migrated as a complete file; contains many routing and search-chain references.
+- `ops.rs`: first-level ops skill routing is configured in `worker-autosuggest/ops.json` and deleted from the old file; only search-chain details and rich search input inference remain.
 - `search.rs`: only metric query routing remains as reference material.
 
 ## Still Shared Reference

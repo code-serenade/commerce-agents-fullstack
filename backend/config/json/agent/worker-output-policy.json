@@ -40,6 +40,15 @@
       "coordination_external_agent_call",
       "engineering_system_check"
     ],
+    "deferred_skills": [
+      "coordination_create_task",
+      "coordination_create_campaign",
+      "platform_update_price",
+      "platform_update_inventory",
+      "platform_sync_products",
+      "coordination_external_agent_call",
+      "engineering_system_check"
+    ],
     "default_skill_boundary_label": "该能力本轮只作为可见边界记录",
     "skill_boundary_labels": {
       "coordination_create_task": "后续任务草案待用户确认后再写入工作区",
