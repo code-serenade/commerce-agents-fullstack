@@ -18,7 +18,8 @@ pub fn learning_teaching_explain_spec() -> SkillSpec {
     SkillSpec::new(
         "learning_teaching_explain",
         "教学解释",
-        "按教学模式解释电商概念、指标、策略或操作方法，输出30秒结论、为什么、怎么做、常见误区和自检题。",
+        "按教学模式解释电商概念、指标、策略或操作方法，输出30秒结论、为什么、怎么做、\
+         常见误区和自检题。",
     )
     .with_category(category())
     .with_priority(SkillPriority::High)
@@ -161,7 +162,9 @@ fn topic_profile(topic: &str) -> TopicProfile {
     let lower = topic.to_ascii_lowercase();
     if lower.contains("roi") || lower.contains("roas") || topic.contains("投产") {
         return TopicProfile {
-            conclusion: "ROI更偏财务投入产出，ROAS更偏广告投放产出；看广告效果先看ROAS，看整体赚钱能力还要回到ROI和利润。".to_owned(),
+            conclusion: "ROI更偏财务投入产出，ROAS更偏广告投放产出；看广告效果先看ROAS，\
+                         看整体赚钱能力还要回到ROI和利润。"
+                .to_owned(),
             terms: vec![
                 json!({"术语": "ROI", "白话解释": "投了多少钱，最后整体赚回多少；通常要考虑成本、毛利、人工、优惠和退款。"}),
                 json!({"术语": "ROAS", "白话解释": "广告花了多少钱，广告带来多少成交额；它更像投放账户的效率表。"}),
@@ -175,7 +178,9 @@ fn topic_profile(topic: &str) -> TopicProfile {
             how: vec![
                 "先算ROAS：广告成交额 / 广告花费，用来判断投放效率。".to_owned(),
                 "再算ROI：利润或净收益 / 总投入，用来判断经营收益。".to_owned(),
-                "最后做动作：ROAS低先查素材、人群、转化链路；ROAS高但ROI低则查毛利、优惠、退款和物流成本。".to_owned(),
+                "最后做动作：ROAS低先查素材、人群、转化链路；ROAS高但ROI低则查毛利、优惠、\
+                 退款和物流成本。"
+                    .to_owned(),
             ],
             pitfalls: vec![
                 "把ROAS当成利润，看到成交额高就盲目加预算。".to_owned(),
@@ -187,9 +192,9 @@ fn topic_profile(topic: &str) -> TopicProfile {
 
     if lower.contains("ctr") || topic.contains("点击率") {
         return TopicProfile {
-            conclusion:
-                "CTR是用户看到内容后愿不愿意点进来的比例，主要反映标题、主图、素材和人群匹配度。"
-                    .to_owned(),
+            conclusion: "CTR是用户看到内容后愿不愿意点进来的比例，主要反映标题、主图、\
+                         素材和人群匹配度。"
+                .to_owned(),
             terms: vec![
                 json!({"术语": "CTR", "白话解释": "曝光100次，有多少次被点击。"}),
                 json!({"术语": "曝光", "白话解释": "用户看到了你的商品、广告或内容。"}),
@@ -215,9 +220,9 @@ fn topic_profile(topic: &str) -> TopicProfile {
 
     if lower.contains("cvr") || topic.contains("转化率") {
         return TopicProfile {
-            conclusion:
-                "转化率说明用户进入下一步后有多少人真正完成购买或目标动作，它反映的是承接能力。"
-                    .to_owned(),
+            conclusion: "转化率说明用户进入下一步后有多少人真正完成购买或目标动作，\
+                         它反映的是承接能力。"
+                .to_owned(),
             terms: vec![
                 json!({"术语": "CVR", "白话解释": "进入页面或直播间的人里面，有多少人完成购买、加购或留资。"}),
                 json!({"术语": "承接", "白话解释": "用户来了以后，页面、价格、信任、客服和促销能不能把他留下来。"}),
@@ -297,13 +302,16 @@ fn scenario_example(scenario: &str, product_bound: bool) -> String {
     };
     match scenario {
         "电商投放复盘" => format!(
-            "{prefix}：如果广告花费1000元带来4000元成交额，ROAS是4；但还要扣除货品成本、优惠、退款和物流，才能判断ROI是否健康。"
+            "{prefix}：如果广告花费1000元带来4000元成交额，ROAS是4；但还要扣除货品成本、优惠、\
+             退款和物流，才能判断ROI是否健康。"
         ),
         "客服售后分析" => format!(
-            "{prefix}：如果满意度下降，先拆解响应速度、解决率、退款原因和平台规则，再决定是改话术、补偿还是升级处理。"
+            "{prefix}：如果满意度下降，先拆解响应速度、解决率、退款原因和平台规则，\
+             再决定是改话术、补偿还是升级处理。"
         ),
         "商品转化优化" => format!(
-            "{prefix}：如果点击率高但付款率低，说明用户被入口吸引了，但详情页、价格、评价或信任承接可能没有打通。"
+            "{prefix}：如果点击率高但付款率低，说明用户被入口吸引了，但详情页、价格、\
+             评价或信任承接可能没有打通。"
         ),
         _ => format!(
             "{prefix}：先把概念对应到一个指标，再找影响这个指标的岗位动作，最后用一次小实验验证。"

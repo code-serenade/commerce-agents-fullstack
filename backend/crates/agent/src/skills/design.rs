@@ -25,7 +25,8 @@ pub fn design_main_image_spec() -> SkillSpec {
     native_spec(
         "design_main_image",
         "主图设计方案",
-        "AI生成完整主图设计执行方案（色值/构图/文案/素材清单），传入product_ref可关联新产品商品上下文",
+        "AI生成完整主图设计执行方案（色值/构图/文案/素材清单），\
+         传入product_ref可关联新产品商品上下文",
         vec![
             SkillInputField::optional(
                 "product_name",

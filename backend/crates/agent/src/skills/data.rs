@@ -1,6 +1,5 @@
 use async_trait::async_trait;
-use serde_json::Map;
-use serde_json::{Value, json};
+use serde_json::{Map, Value, json};
 
 use crate::skills::{
     Skill, SkillCategory, SkillContext, SkillError, SkillInputField, SkillOutcome, SkillPriority,
@@ -2362,7 +2361,7 @@ fn seasonal_decompose(input: &Value) -> Value {
         .unwrap_or(*series.last().unwrap_or(&series[0]));
     let trend_growth = pct(trend_end - trend_start, trend_start);
     let mut indices = Vec::new();
-    for p in 0..period {
+    for p in 0 .. period {
         let vals = series
             .iter()
             .enumerate()
@@ -2449,7 +2448,7 @@ fn demand_forecast(input: &Value) -> Value {
     let mut best_mape = f64::INFINITY;
     for alpha in alphas {
         let preds = ses_fitted(&values, alpha);
-        let score = mape(&values[1..], &preds);
+        let score = mape(&values[1 ..], &preds);
         if score < best_mape {
             best_mape = score;
             best_alpha = alpha;
@@ -2478,7 +2477,8 @@ fn comprehensive_diagnosis(input: &Value) -> Value {
     let focus = normalize_focus(&s(input, "focus", "all"));
     if !has_comprehensive_diagnosis_input(input) {
         return comprehensive_deferred(
-            "需要至少提供经营指标、漏斗数据、时序数据、渠道数据、退款明细、客户指标或LTV输入中的一类",
+            "需要至少提供经营指标、漏斗数据、时序数据、渠道数据、退款明细、\
+             客户指标或LTV输入中的一类",
             input,
         );
     }
@@ -3124,7 +3124,7 @@ fn normalize(values: Vec<f64>) -> Vec<f64> {
 }
 
 fn one_hot(len: usize, active_idx: usize) -> Vec<f64> {
-    (0..len)
+    (0 .. len)
         .map(|idx| if idx == active_idx { 1.0 } else { 0.0 })
         .collect()
 }
@@ -3348,7 +3348,7 @@ fn linear_fit(values: &[f64]) -> (f64, f64) {
         .enumerate()
         .map(|(idx, value)| (idx as f64 - x_mean) * (value - y_mean))
         .sum::<f64>();
-    let denominator = (0..values.len())
+    let denominator = (0 .. values.len())
         .map(|idx| (idx as f64 - x_mean).powi(2))
         .sum::<f64>();
     let slope = if denominator.abs() > 1e-9 {
@@ -3363,10 +3363,10 @@ fn moving_average(values: &[f64], window: usize) -> Vec<f64> {
     if values.is_empty() {
         return Vec::new();
     }
-    (0..values.len())
+    (0 .. values.len())
         .map(|idx| {
             let start = (idx + 1).saturating_sub(window);
-            round2(average(&values[start..=idx]))
+            round2(average(&values[start ..= idx]))
         })
         .collect()
 }
@@ -3383,7 +3383,7 @@ fn avg_growth(values: &[f64]) -> f64 {
 
 fn ses_level(values: &[f64], alpha: f64) -> f64 {
     let mut level = values[0];
-    for value in &values[1..] {
+    for value in &values[1 ..] {
         level = alpha * *value + (1.0 - alpha) * level;
     }
     level
@@ -3392,7 +3392,7 @@ fn ses_level(values: &[f64], alpha: f64) -> f64 {
 fn ses_fitted(values: &[f64], alpha: f64) -> Vec<f64> {
     let mut level = values[0];
     let mut fitted = Vec::with_capacity(values.len().saturating_sub(1));
-    for value in &values[1..] {
+    for value in &values[1 ..] {
         fitted.push(level);
         level = alpha * *value + (1.0 - alpha) * level;
     }

@@ -465,8 +465,9 @@ fn normalize_string(value: String) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use repo::table::platform_connections::PlatformSyncStatus;
+
+    use super::*;
 
     #[test]
     fn platform_execution_action_registry_contains_governed_actions() {

@@ -816,7 +816,9 @@ impl Commander {
                     primary_task_id.0, assignment.runtime_role
                 )),
                 description: format!(
-                    "原始用户任务：{root_task}\n\n主回答岗位初稿：{primary_output}\n\n作为{}支持角色，请基于同一上下文补充本岗位的独立判断、证据、风险和要交给主岗汇总的行动建议；不要只说“接收上游结果”。",
+                    "原始用户任务：{root_task}\n\n主回答岗位初稿：{primary_output}\n\\
+                     n作为{}支持角色，请基于同一上下文补充本岗位的独立判断、证据、\
+                     风险和要交给主岗汇总的行动建议；不要只说“接收上游结果”。",
                     assignment.runtime_role
                 ),
             };
@@ -1228,13 +1230,16 @@ fn extend_runtime_strategy_facts(
     let mode = runtime_response_mode(metadata);
     let answer_style = match mode {
         "quick" => {
-            "回答模式：快速简答。优先给直接结论、关键理由和最多 3 个下一步动作；减少铺垫、过程展开和长篇教学，除非用户明确要求详细推导。"
+            "回答模式：快速简答。优先给直接结论、关键理由和最多 3 \
+             个下一步动作；减少铺垫、过程展开和长篇教学，除非用户明确要求详细推导。"
         }
         "execution" => {
-            "回答模式：丰富执行。输出完整业务方案，优先使用 Markdown 表格呈现岗位分工、行动清单、负责人、验收指标、风险边界和复盘节奏。"
+            "回答模式：丰富执行。输出完整业务方案，优先使用 Markdown \
+             表格呈现岗位分工、行动清单、负责人、验收指标、风险边界和复盘节奏。"
         }
         _ => {
-            "回答模式：教学模式。默认面向电商学生和新手，先给可用结论，再用通俗语言解释概念、判断过程、为什么这么做和下一步怎么练。"
+            "回答模式：教学模式。默认面向电商学生和新手，先给可用结论，再用通俗语言解释概念、\
+             判断过程、为什么这么做和下一步怎么练。"
         }
     };
     facts.push(Fact {
@@ -1245,10 +1250,12 @@ fn extend_runtime_strategy_facts(
 
     let explanation_depth = match runtime_learning_level(metadata) {
         "beginner" => {
-            "讲解深度：低。尽量少用术语，遇到 ROI、转化率、漏斗、客单价等专业词要用白话解释，并给简单例子。"
+            "讲解深度：低。尽量少用术语，遇到 \
+             ROI、转化率、漏斗、客单价等专业词要用白话解释，并给简单例子。"
         }
         "professional" => {
-            "讲解深度：高。保留关键指标、推导路径、约束假设、风险边界和可复核口径，适合汇报和专业复盘。"
+            "讲解深度：高。保留关键指标、推导路径、约束假设、风险边界和可复核口径，\
+             适合汇报和专业复盘。"
         }
         _ => "讲解深度：中。按电商岗位应用口径解释，术语不过度展开，但关键概念和动作口径要说清楚。",
     };
@@ -1271,7 +1278,8 @@ fn extend_runtime_strategy_facts(
             "岗位分配：自动分配。快速简答默认倾向单岗短链路，除非用户明确要求多岗位协作。"
         }
         _ => {
-            "岗位分配：自动分配。后端根据问题判断一个或多个岗位，复杂任务应体现虚拟员工分工和主岗汇总。"
+            "岗位分配：自动分配。后端根据问题判断一个或多个岗位，\
+             复杂任务应体现虚拟员工分工和主岗汇总。"
         }
     };
     facts.push(Fact {
@@ -1325,7 +1333,8 @@ fn extend_context_facts(
         facts.push(Fact {
             source: "conversation.history".to_string(),
             content: format!(
-                "同一会话历史上下文如下。回答追问、补充、继续、按前面数据等问题时，必须优先结合这段历史；不要要求用户重复已经在这里提供的信息。\n{history}"
+                "同一会话历史上下文如下。回答追问、补充、继续、按前面数据等问题时，\
+                 必须优先结合这段历史；不要要求用户重复已经在这里提供的信息。\n{history}"
             ),
             reliability: 1.0,
         });
@@ -1344,9 +1353,11 @@ fn extend_context_facts(
     {
         facts.push(Fact {
             source: "commerce.unselected_product_context".to_string(),
-            content:
-                "本轮没有用户手动选择的商品/知识上下文。可以结合用户文本、同一会话历史和工作区资料理解问题，但不得把历史商品、测试商品或默认商品当成本轮指定商品；需要单品级分析时应要求用户显式选择或提供商品。"
-                    .to_string(),
+            content: "本轮没有用户手动选择的商品/知识上下文。可以结合用户文本、\
+                      同一会话历史和工作区资料理解问题，但不得把历史商品、\
+                      测试商品或默认商品当成本轮指定商品；\
+                      需要单品级分析时应要求用户显式选择或提供商品。"
+                .to_string(),
             reliability: 1.0,
         });
     }
@@ -1362,7 +1373,8 @@ fn extend_context_facts(
         facts,
         "context.combined_summary",
         "request.combined_context",
-        "本轮合并上下文摘要如下。它可能包含会话历史、工作区资料或 RAG 降级信息；只有 source 为 commerce.selected_product_context 时才代表用户手动指定商品。\n",
+        "本轮合并上下文摘要如下。它可能包含会话历史、工作区资料或 RAG 降级信息；只有 source 为 \
+         commerce.selected_product_context 时才代表用户手动指定商品。\n",
     );
     extend_named_context_fact(
         metadata,
@@ -1524,7 +1536,11 @@ fn synthesize_user_facing_collaboration_report(
             compact_text(selected_summary, 140)
         ));
     } else {
-        lines.push("**商品上下文**：本轮未检测到用户手动选择的预设商品；按未指定商品链路回答，不注入历史商品、测试商品或默认商品。".to_string());
+        lines.push(
+            "**商品上下文**：本轮未检测到用户手动选择的预设商品；按未指定商品链路回答，\
+             不注入历史商品、测试商品或默认商品。"
+                .to_string(),
+        );
     }
     if !support_workers.trim().is_empty() {
         lines.push(format!("**协作岗位**：{}", support_workers.trim()));
@@ -1534,7 +1550,8 @@ fn synthesize_user_facing_collaboration_report(
     lines.push("## 总回答".to_string());
     if is_live_conversion_collaboration_task(task) {
         lines.push(format!(
-            "- **团队判断**：{}先收敛主结论，{}分别补充指标、内容、服务、技术或预算边界；这不是多个回答的简单拼接，而是一组虚拟员工围绕同一上下文协作形成的 final_report。",
+            "- **团队判断**：{}先收敛主结论，{}分别补充指标、内容、服务、技术或预算边界；\
+             这不是多个回答的简单拼接，而是一组虚拟员工围绕同一上下文协作形成的 final_report。",
             role_display_name_for_collaboration(primary_role),
             if support_roles.is_empty() {
                 "协作岗位".to_string()
@@ -1547,9 +1564,18 @@ fn synthesize_user_facing_collaboration_report(
             }
         ));
         if metrics.is_empty() {
-            lines.push("- **健康度边界**：当前问题缺少完整可复核指标，只能先按曝光、点击、加购、下单、付款、退款和咨询承接定义判断框架。".to_string());
+            lines.push(
+                "- **健康度边界**：当前问题缺少完整可复核指标，只能先按曝光、点击、加购、下单、\
+                 付款、退款和咨询承接定义判断框架。"
+                    .to_string(),
+            );
         } else {
-            lines.push("- **健康度边界**：这组数据能说明本轮漏斗表现，但不能单独判定行业健康度；还需要行业基准、历史同类直播、客单价、毛利、投放成本、退款和客服咨询承接一起复核。".to_string());
+            lines.push(
+                "- **健康度边界**：这组数据能说明本轮漏斗表现，但不能单独判定行业健康度；\
+                 还需要行业基准、历史同类直播、客单价、毛利、投放成本、\
+                 退款和客服咨询承接一起复核。"
+                    .to_string(),
+            );
             lines.extend(
                 live_conversion_metric_lines(&metrics)
                     .into_iter()
@@ -1558,7 +1584,8 @@ fn synthesize_user_facing_collaboration_report(
         }
     } else {
         lines.push(format!(
-            "- **团队判断**：{}负责把各岗位输入收敛成可执行结论，{}负责补齐证据、动作、风险和待补数据，最终沉淀为 `final_report`。",
+            "- **团队判断**：{}负责把各岗位输入收敛成可执行结论，{}负责补齐证据、动作、\
+             风险和待补数据，最终沉淀为 `final_report`。",
             role_display_name_for_collaboration(primary_role),
             if support_roles.is_empty() {
                 "协作岗位".to_string()
@@ -1571,7 +1598,11 @@ fn synthesize_user_facing_collaboration_report(
             }
         ));
     }
-    lines.push("- **上下文处理**：同一会话里的历史问题会作为任务背景参与理解，但不会替代本轮的商品选择；只有 `context.selected_summary` 存在时，才进入指定商品链路。".to_string());
+    lines.push(
+        "- **上下文处理**：同一会话里的历史问题会作为任务背景参与理解，但不会替代本轮的商品选择；\
+         只有 `context.selected_summary` 存在时，才进入指定商品链路。"
+            .to_string(),
+    );
     lines.push(String::new());
 
     lines.push("## 虚拟员工分工（各岗位独立输出）".to_string());
@@ -1597,13 +1628,26 @@ fn synthesize_user_facing_collaboration_report(
 
     lines.push("## 主岗综合方案".to_string());
     lines.push(format!(
-        "- **主回答岗位**：{}负责把各岗位独立判断合成为最终结论，协作岗位只补证据、风险、素材、数据和执行建议，不替代主岗汇总。",
+        "- **主回答岗位**：{}负责把各岗位独立判断合成为最终结论，协作岗位只补证据、风险、素材、\
+         数据和执行建议，不替代主岗汇总。",
         role_display_name_for_collaboration(primary_role)
     ));
     if is_live_conversion_collaboration_task(task) {
-        lines.push("- P0 数据口径：把曝光、点击、加购、下单、付款、退款、咨询量、渠道来源和样本周期补齐，先确认每段转化率是否可复核。".to_string());
-        lines.push("- P1 转化承接：针对最低或最关键的漏斗段，分别检查直播开场、卖点讲解、价格利益、信任证明、客服响应和支付阻力。".to_string());
-        lines.push("- P2 团队复盘：每天按同一口径沉淀数据、岗位判断、动作负责人和下一轮验证结果，避免只凭单次回答做放量决策。".to_string());
+        lines.push(
+            "- P0 数据口径：把曝光、点击、加购、下单、付款、退款、咨询量、渠道来源和样本周期补齐，\
+             先确认每段转化率是否可复核。"
+                .to_string(),
+        );
+        lines.push(
+            "- P1 转化承接：针对最低或最关键的漏斗段，分别检查直播开场、卖点讲解、价格利益、\
+             信任证明、客服响应和支付阻力。"
+                .to_string(),
+        );
+        lines.push(
+            "- P2 团队复盘：每天按同一口径沉淀数据、岗位判断、动作负责人和下一轮验证结果，\
+             避免只凭单次回答做放量决策。"
+                .to_string(),
+        );
     } else {
         lines.push("- P0 先统一问题口径、业务目标、可用上下文和不能编造的数据边界。".to_string());
         lines.push(
@@ -1614,8 +1658,16 @@ fn synthesize_user_facing_collaboration_report(
     lines.push(String::new());
 
     lines.push("## 交付物".to_string());
-    lines.push("- **final_report**：本轮完整回答应沉淀为 Markdown 交付物，保留综合结论、岗位分工、过程依据、风险边界和下一步清单。".to_string());
-    lines.push("- **过程依据**：各岗位独立输出会作为报告依据保存，后续用户可在同一历史对话中继续追问、回顾或导出。".to_string());
+    lines.push(
+        "- **final_report**：本轮完整回答应沉淀为 Markdown \
+         交付物，保留综合结论、岗位分工、过程依据、风险边界和下一步清单。"
+            .to_string(),
+    );
+    lines.push(
+        "- **过程依据**：各岗位独立输出会作为报告依据保存，后续用户可在同一历史对话中继续追问、\
+         回顾或导出。"
+            .to_string(),
+    );
 
     lines.join("\n")
 }
@@ -1807,7 +1859,7 @@ fn extract_live_conversion_metrics_for_collaboration(task: &str) -> HashMap<&'st
 
 fn extract_number_after_label_for_collaboration(text: &str, label: &str) -> Option<f64> {
     let start = text.find(label)? + label.len();
-    let tail = &text[start..];
+    let tail = &text[start ..];
     let mut number = String::new();
     let mut started = false;
     for ch in tail.chars() {
@@ -1849,7 +1901,8 @@ fn live_conversion_metric_lines(metrics: &HashMap<&'static str, f64>) -> Vec<Str
     }
     if let (Some(exposure), Some(paid)) = (metrics.get("曝光"), metrics.get("付款")) {
         lines.push(format!(
-            "曝光到付款总转化约 {:.2}%，单看该链路不是结论，必须结合行业基准、客单价、毛利和投放成本判断健康度。",
+            "曝光到付款总转化约 {:.2}%，单看该链路不是结论，必须结合行业基准、客单价、\
+             毛利和投放成本判断健康度。",
             ratio_percent_for_collaboration(*paid, *exposure)
         ));
     }
@@ -1890,7 +1943,8 @@ mod tests {
 
     #[test]
     fn legacy_collaboration_synthesis_is_user_facing_team_report() {
-        let task = "请用Agent集群方式判断：直播间曝光1000、点击80、加购20、下单8、付款7是否健康，不引用任何预设商品，并说明各虚拟员工如何协作。";
+        let task = "请用Agent集群方式判断：直播间曝光1000、点击80、加购20、下单8、付款7是否健康，\
+                    不引用任何预设商品，并说明各虚拟员工如何协作。";
         let plan = RoleCollaborationPlan {
             primary: assignment("ops"),
             support: vec![

@@ -2221,7 +2221,8 @@ fn user_visible_status_summary(
         .and_then(Value::as_u64)
         .unwrap_or(0);
     format!(
-        "当前查询 {query_type}：{role} 正在处理 {task_id}，工作区 {workspace_id}，阶段 {phase}，可见进度约 {percent}%。"
+        "当前查询 {query_type}：{role} 正在处理 {task_id}，工作区 {workspace_id}，阶段 \
+         {phase}，可见进度约 {percent}%。"
     )
 }
 
@@ -2249,7 +2250,8 @@ fn status_summary_line(
         .and_then(Value::as_str)
         .unwrap_or("unknown");
     format!(
-        "状态查询已完成：query_type={query_type}，role={role}，task={task_id}，workspace={workspace_id}，health={health_name}"
+        "状态查询已完成：query_type={query_type}，role={role}，task={task_id}，\
+         workspace={workspace_id}，health={health_name}"
     )
 }
 
@@ -2414,13 +2416,14 @@ fn metadata_csv_list(metadata: &Map<String, Value>, key: &str) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
+    use serde_json::{Value, json};
+
     use super::{
         CoordinationCreateTask, CoordinationSkillChainPlanner, CoordinationStatusQuery,
         CoordinationTaskOrchestration, agent_matches, metadata_csv_list, orchestration_template,
         skill_chain_template,
     };
     use crate::skills::{Skill, SkillContext};
-    use serde_json::{Value, json};
 
     #[tokio::test]
     async fn coordination_status_query_returns_native_session_scope_status() {

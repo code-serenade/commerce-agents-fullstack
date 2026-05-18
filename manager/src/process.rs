@@ -228,22 +228,8 @@ fn read_pid(pid_file: &Path) -> Option<u32> {
         .and_then(|value| value.trim().parse::<u32>().ok())
 }
 
-fn process_exists(pid: u32) -> bool {
-    if cfg!(windows) {
-        windows_process_exists(pid)
-    } else {
-        Command::new("kill")
-            .args(["-0", &pid.to_string()])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()
-            .map(|status| status.success())
-            .unwrap_or(false)
-    }
-}
-
 #[cfg(windows)]
-fn windows_process_exists(pid: u32) -> bool {
+fn process_exists(pid: u32) -> bool {
     unsafe {
         let handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
         if handle.is_null() {
@@ -253,6 +239,17 @@ fn windows_process_exists(pid: u32) -> bool {
         CloseHandle(handle);
         true
     }
+}
+
+#[cfg(not(windows))]
+fn process_exists(pid: u32) -> bool {
+    Command::new("kill")
+        .args(["-0", &pid.to_string()])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .map(|status| status.success())
+        .unwrap_or(false)
 }
 
 fn terminate_process(pid: u32) -> AppResult<()> {

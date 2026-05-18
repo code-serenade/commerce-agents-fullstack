@@ -215,7 +215,7 @@ fn normalize_query(
             .unwrap_or(DEFAULT_DAYS)
             .clamp(1, MAX_DAYS)
     });
-    if !(1..=MAX_DAYS).contains(&days) {
+    if !(1 ..= MAX_DAYS).contains(&days) {
         return Err(BizError::new(
             app_error::EXTERNAL_SEARCH_REQUEST_INVALID,
             format!("days must be between 1 and {MAX_DAYS}"),
@@ -228,7 +228,7 @@ fn normalize_query(
             .unwrap_or(DEFAULT_MAX_RESULTS)
             .clamp(1, MAX_RESULTS)
     });
-    if !(1..=MAX_RESULTS).contains(&max_results) {
+    if !(1 ..= MAX_RESULTS).contains(&max_results) {
         return Err(BizError::new(
             app_error::EXTERNAL_SEARCH_REQUEST_INVALID,
             format!("maxResults must be between 1 and {MAX_RESULTS}"),
@@ -486,7 +486,8 @@ fn build_search_evidence(
     if sources.is_empty() {
         let summary = if stale_filtered_count > 0 {
             format!(
-                "没有可采信实时来源；已过滤 {stale_filtered_count} 条超出请求时间范围的来源，当前结果只能作为降级状态。"
+                "没有可采信实时来源；已过滤 {stale_filtered_count} \
+                 条超出请求时间范围的来源，当前结果只能作为降级状态。"
             )
         } else {
             "没有可采信实时来源；当前结果只能作为降级状态，不可当作联网证据。".to_string()
@@ -495,7 +496,9 @@ fn build_search_evidence(
             summary,
             source_titles: Vec::new(),
             source_domains: Vec::new(),
-            llm_context: "（本次没有可采信实时来源。回答时必须说明外部搜索未返回来源，不能引用不存在的联网数据。）".to_string(),
+            llm_context: "（本次没有可采信实时来源。回答时必须说明外部搜索未返回来源，\
+                          不能引用不存在的联网数据。）"
+                .to_string(),
         };
     }
 
@@ -536,7 +539,9 @@ fn build_search_evidence(
 
 fn format_sources_for_llm(sources: &[ExternalSearchSource], stale_filtered_count: usize) -> String {
     if sources.is_empty() {
-        return "（本次没有可采信实时来源。回答时必须说明外部搜索未返回来源，不能引用不存在的联网数据。）".to_string();
+        return "（本次没有可采信实时来源。回答时必须说明外部搜索未返回来源，\
+                不能引用不存在的联网数据。）"
+            .to_string();
     }
 
     let mut lines = vec![format!(

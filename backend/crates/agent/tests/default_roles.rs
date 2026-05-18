@@ -1730,7 +1730,9 @@ async fn stream_routes_auto_learning_commerce_task_to_team_graph() {
             workspace_id: None,
             agent_id: AgentId("role-agent".to_string()),
             session_id: SessionId("role-session-auto-learning-team".to_string()),
-            input: "请用教学模式自动分配岗位，面向高职学生讲清楚咖啡直播首场怎么判断是否健康；不要引用商品。".to_string(),
+            input: "请用教学模式自动分配岗位，面向高职学生讲清楚咖啡直播首场怎么判断是否健康；\
+                    不要引用商品。"
+                .to_string(),
             metadata,
         })
         .expect("stream should start");
@@ -1985,7 +1987,8 @@ async fn worker_cognition_receives_conversation_history_as_dedicated_fact() {
     let mut metadata = BTreeMap::new();
     metadata.insert(
         "conversation.history_summary".to_string(),
-        "User: 直播间曝光8000、点击640、加购160、下单80、付款72。\nAssistant: 已计算各段转化率并给出三个优化动作。"
+        "User: 直播间曝光8000、点击640、加购160、下单80、付款72。\nAssistant: \
+         已计算各段转化率并给出三个优化动作。"
             .to_string(),
     );
 

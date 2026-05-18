@@ -31,7 +31,9 @@ const MAX_RETRIEVAL_SUMMARY_CHARS: usize = 5000;
 const LOCAL_RAG_MODE: &str = "local_product_knowledge";
 const EXTERNAL_SEARCH_UNAVAILABLE_REASON: &str =
     "No matching local product knowledge was found; external search adapter is not configured.";
-const EXTERNAL_SEARCH_AVAILABLE_REASON: &str = "No matching local product knowledge was found; external search adapter is configured and search skills may request live sources when the task needs real-time market data.";
+const EXTERNAL_SEARCH_AVAILABLE_REASON: &str =
+    "No matching local product knowledge was found; external search adapter is configured and \
+     search skills may request live sources when the task needs real-time market data.";
 
 pub struct AgentContextApi {
     app_user_svc: AppUserService,
@@ -378,11 +380,16 @@ fn build_context_summary(
 
     let mut lines = Vec::new();
     lines.push("Commerce product context resolved from current user's backend data.".to_string());
-    lines.push("Use these facts when relevant, cite product or knowledge titles, and do not invent missing product details.".to_string());
+    lines.push(
+        "Use these facts when relevant, cite product or knowledge titles, and do not invent \
+         missing product details."
+            .to_string(),
+    );
 
     for product in products {
         lines.push(format!(
-            "Product source product:{} | name={} | platform={} | category={} | brand={} | price={} {} | status={} | description={}",
+            "Product source product:{} | name={} | platform={} | category={} | brand={} | \
+             price={} {} | status={} | description={}",
             product.id,
             product.name,
             option_text(&product.platform),
@@ -399,7 +406,8 @@ fn build_context_summary(
             .filter(|item| item.product_id == product.id)
         {
             lines.push(format!(
-                "Knowledge source product_knowledge:{} | product={} | title={} | type={} | source={} | confidence={:.2} | content={}",
+                "Knowledge source product_knowledge:{} | product={} | title={} | type={} | \
+                 source={} | confidence={:.2} | content={}",
                 item.id,
                 product.id,
                 option_text(&item.title),
@@ -463,7 +471,11 @@ fn build_retrieval_summary(
     lines.push(
         "Local commerce RAG context retrieved from current user's product knowledge.".to_string(),
     );
-    lines.push("Use these facts when relevant, cite product or knowledge titles, and do not invent external market facts.".to_string());
+    lines.push(
+        "Use these facts when relevant, cite product or knowledge titles, and do not invent \
+         external market facts."
+            .to_string(),
+    );
     if !query_terms.is_empty() {
         lines.push(format!("Retrieval query terms: {}", query_terms.join(", ")));
     }
@@ -473,7 +485,8 @@ fn build_retrieval_summary(
             .iter()
             .find(|product| product.id == item.product_id);
         lines.push(format!(
-            "Retrieved knowledge source product_knowledge:{} | product={} | product_name={} | title={} | type={} | source={} | confidence={:.2} | content={}",
+            "Retrieved knowledge source product_knowledge:{} | product={} | product_name={} | \
+             title={} | type={} | source={} | confidence={:.2} | content={}",
             item.id,
             item.product_id,
             product.map(|item| item.name.as_str()).unwrap_or("unknown"),
@@ -580,13 +593,13 @@ const COMMERCE_QUERY_TERMS: &[&str] = &[
 fn contains_cjk(value: &str) -> bool {
     value
         .chars()
-        .any(|ch| ('\u{4e00}'..='\u{9fff}').contains(&ch))
+        .any(|ch| ('\u{4e00}' ..= '\u{9fff}').contains(&ch))
 }
 
 fn cjk_windows(value: &str, window: usize) -> Vec<String> {
     let chars = value
         .chars()
-        .filter(|ch| ('\u{4e00}'..='\u{9fff}').contains(ch))
+        .filter(|ch| ('\u{4e00}' ..= '\u{9fff}').contains(ch))
         .collect::<Vec<_>>();
     if chars.len() < window {
         return Vec::new();
@@ -686,7 +699,7 @@ mod tests {
 
     #[test]
     fn rejects_too_many_context_refs() {
-        let refs = (0..21).map(|index| format!("ref-{index}")).collect();
+        let refs = (0 .. 21).map(|index| format!("ref-{index}")).collect();
 
         let err = normalize_context_refs(refs).expect_err("too many refs should fail");
 

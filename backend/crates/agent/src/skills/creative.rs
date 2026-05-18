@@ -181,7 +181,7 @@ impl Skill for CreativeTitleCtrScorer {
             _ => (20, 30),
         };
         let mid = (lo + hi) / 2;
-        let struct_score = if (lo..=hi).contains(&title_len) {
+        let struct_score = if (lo ..= hi).contains(&title_len) {
             25
         } else {
             (25 - (title_len - mid).abs()).max(5)

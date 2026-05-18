@@ -337,7 +337,7 @@ mod tests {
         let metadata = AgentStreamMetadata {
             context: Some(AgentStreamContextMetadata {
                 conversation_id: None,
-                product_ids: (0..6).map(|index| format!("product-{index}")).collect(),
+                product_ids: (0 .. 6).map(|index| format!("product-{index}")).collect(),
                 context_refs: Vec::new(),
             }),
             model: None,

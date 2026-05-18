@@ -89,7 +89,10 @@ impl ExternalSearchConfig {
         }
         .to_string();
         let message = match status.as_str() {
-            "configured" => "外部搜索 adapter 已配置，后端会尝试请求真实 provider；provider 仍可能因无可信来源而降级。",
+            "configured" => {
+                "外部搜索 adapter 已配置，后端会尝试请求真实 provider；provider \
+                 仍可能因无可信来源而降级。"
+            }
             "missing_config" => "外部搜索 adapter 已启用但配置不完整，当前不会请求 provider。",
             _ => "外部搜索 adapter 未启用，当前不会查询外部实时来源。",
         }

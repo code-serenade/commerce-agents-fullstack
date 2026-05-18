@@ -822,7 +822,8 @@ fn build_analysis_summary(
         _ => String::new(),
     };
     format!(
-        "Competitor analysis is {readiness}: {} competitor(s), {} priced, {} rated, {} recent change(s){}.",
+        "Competitor analysis is {readiness}: {} competitor(s), {} priced, {} rated, {} recent \
+         change(s){}.",
         counts.competitors,
         counts.priced_competitors,
         counts.rated_competitors,
@@ -867,9 +868,10 @@ fn round2(value: f64) -> f64 {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use repo::table::products::ProductStatus;
     use time::macros::datetime;
+
+    use super::*;
 
     #[test]
     fn competitor_analysis_marks_premium_price_position() {

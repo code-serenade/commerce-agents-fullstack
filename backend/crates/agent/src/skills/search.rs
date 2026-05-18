@@ -115,7 +115,8 @@ impl SearchAdapterConfig {
         };
         let message = match status {
             "configured" => {
-                "外部搜索 adapter 已配置，后端会尝试请求真实 provider；provider 仍可能因无可信来源而降级。"
+                "外部搜索 adapter 已配置，后端会尝试请求真实 provider；provider \
+                 仍可能因无可信来源而降级。"
             }
             "missing_config" => "外部搜索 adapter 已启用但配置不完整，当前不会请求 provider。",
             _ => "外部搜索 adapter 未启用，当前不会查询外部实时来源。",
@@ -825,7 +826,8 @@ fn build_search_evidence(sources: &[Value], stale_filtered_count: usize) -> Valu
     if sources.is_empty() {
         let summary = if stale_filtered_count > 0 {
             format!(
-                "没有可采信实时来源；已过滤 {stale_filtered_count} 条超出请求时间范围的来源，当前结果只能作为降级状态。"
+                "没有可采信实时来源；已过滤 {stale_filtered_count} \
+                 条超出请求时间范围的来源，当前结果只能作为降级状态。"
             )
         } else {
             "没有可采信实时来源；当前结果只能作为降级状态，不可当作联网证据。".to_string()
@@ -878,7 +880,9 @@ fn build_search_evidence(sources: &[Value], stale_filtered_count: usize) -> Valu
 
 fn format_sources_for_llm(sources: &[Value], stale_filtered_count: usize) -> String {
     if sources.is_empty() {
-        return "（本次没有可采信实时来源。回答时必须说明外部搜索未返回来源，不能引用不存在的联网数据。）".to_string();
+        return "（本次没有可采信实时来源。回答时必须说明外部搜索未返回来源，\
+                不能引用不存在的联网数据。）"
+            .to_string();
     }
 
     let mut lines = vec![format!(

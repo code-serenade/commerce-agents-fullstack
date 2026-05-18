@@ -50,7 +50,7 @@ impl Prompt {
             err
         })?;
 
-        let schema_region = &self.content[start + marker.len()..];
+        let schema_region = &self.content[start + marker.len() ..];
         let schema_text = extract_json_value(schema_region).ok_or_else(|| {
             let err = PromptError::internal("failed to extract JSON schema from prompt");
             log_error!(err);
@@ -131,7 +131,7 @@ fn extract_balanced_json(input: &str, start_char: char) -> Option<&str> {
                 if depth == 0
                     && let Some(start_index) = start
                 {
-                    return Some(&input[start_index..=index]);
+                    return Some(&input[start_index ..= index]);
                 }
             }
             _ => {}

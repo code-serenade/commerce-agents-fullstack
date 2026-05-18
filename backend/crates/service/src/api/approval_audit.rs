@@ -1061,10 +1061,11 @@ fn build_execution_description(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use repo::table::platform_connections::{
         PlatformConnection, PlatformConnectionStatus, PlatformSyncStatus,
     };
+
+    use super::*;
 
     #[test]
     fn approval_execution_params_reads_normalized_inputs_from_skill_output() {

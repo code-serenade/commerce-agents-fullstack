@@ -1298,7 +1298,8 @@ fn faq_answer(question: &str, platform: &str, policies: &Map<String, Value>) -> 
         let policy = policy_text(&["发货时效", "发货时间", "delivery"]);
         let detail = if policy.is_empty() {
             format!(
-                "正常会按{platform}店铺承诺时效发出；如遇大促、预售或缺货，会以订单页和客服确认为准。"
+                "正常会按{platform}店铺承诺时效发出；如遇大促、预售或缺货，\
+                 会以订单页和客服确认为准。"
             )
         } else {
             format!("本店当前发货规则：{policy}。如订单异常，会主动同步进度。")
@@ -1311,7 +1312,9 @@ fn faq_answer(question: &str, platform: &str, policies: &Map<String, Value>) -> 
     } else if contains_any_local(q, &["退", "换", "退款", "售后"]) {
         let policy = policy_text(&["退货政策", "售后政策", "return"]);
         let detail = if policy.is_empty() {
-            "支持按平台和店铺规则申请售后；质量、发错、破损等卖家责任问题优先处理，非质量原因按商品状态确认。".to_owned()
+            "支持按平台和店铺规则申请售后；质量、发错、破损等卖家责任问题优先处理，\
+             非质量原因按商品状态确认。"
+                .to_owned()
         } else {
             format!("售后规则：{policy}。具体责任和运费以订单、凭证和平台规则复核为准。")
         };
@@ -1323,7 +1326,8 @@ fn faq_answer(question: &str, platform: &str, policies: &Map<String, Value>) -> 
     } else if contains_any_local(q, &["质量", "正品", "保障", "假"]) {
         (
             "商品会按页面承诺和店铺标准发出。",
-            "如收到后发现破损、发错、明显质量异常，请保留外包装、商品照片和订单号，我们会优先核实处理。"
+            "如收到后发现破损、发错、明显质量异常，请保留外包装、商品照片和订单号，\
+             我们会优先核实处理。"
                 .to_owned(),
             "质量类问题需要凭证留存；疑似批量问题要升级质检和商品负责人。",
         )
@@ -1337,7 +1341,8 @@ fn faq_answer(question: &str, platform: &str, policies: &Map<String, Value>) -> 
     } else if contains_any_local(q, &["尺码", "规格", "颜色", "怎么选"]) {
         (
             "可以按页面规格说明选择，不确定可以发使用场景给客服。",
-            "建议结合商品规格、使用场景和个人偏好选择；如果您告诉我们身高体重/设备型号/使用需求，可以进一步建议。"
+            "建议结合商品规格、使用场景和个人偏好选择；如果您告诉我们身高体重/设备型号/使用需求，\
+             可以进一步建议。"
                 .to_owned(),
             "规格建议不能替代用户最终选择；高退货风险规格要提示确认。",
         )
@@ -1425,10 +1430,12 @@ fn escalation_path(severity: &str) -> Vec<&'static str> {
 fn escalation_manager_script(severity: &str) -> &'static str {
     match severity {
         "S1" => {
-            "您好，我是本店客服主管。这个问题我已经接管，会先保护您的权益并核实全部证据，接下来由我直接同步处理进展。"
+            "您好，我是本店客服主管。这个问题我已经接管，会先保护您的权益并核实全部证据，\
+             接下来由我直接同步处理进展。"
         }
         "S2" => {
-            "您好，我是客服主管。看到您已经多次沟通仍未解决，我先向您道歉，我会在约定时间内给出明确处理方案。"
+            "您好，我是客服主管。看到您已经多次沟通仍未解决，我先向您道歉，\
+             我会在约定时间内给出明确处理方案。"
         }
         "S3" => "您好，我来协助跟进这个售后问题，会先核实凭证和订单情况，再给您同步可执行方案。",
         _ => "您好，我会帮您确认当前问题并推动处理，有进展会及时告知您。",
@@ -2512,7 +2519,11 @@ mod tests {
             )
             .with_metadata(
                 "request.context.selected_summary",
-                json!("Product source product:11111111-1111-1111-1111-111111111111 | name=五一咖啡组合 | platform=抖音 | category=咖啡 | brand=千乐 | price=59 CNY | status=active | description=低糖便携"),
+                json!(
+                    "Product source product:11111111-1111-1111-1111-111111111111 | \
+                     name=五一咖啡组合 | platform=抖音 | category=咖啡 | brand=千乐 | price=59 \
+                     CNY | status=active | description=低糖便携"
+                ),
             )
             .with_metadata(
                 "request.context.sources_json",

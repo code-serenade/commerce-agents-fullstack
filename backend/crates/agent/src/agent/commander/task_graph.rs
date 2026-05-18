@@ -351,7 +351,9 @@ impl TaskGraphRuntime {
             if support_count > 0 {
                 let support_scopes = support_scope_summary(&passed_nodes, primary_node);
                 lines.push(format!(
-                    "本轮由{}牵头，{} 个协作岗位分别从{}补充判断；各岗位先独立完成自己的判断，再把结论交给主岗汇总，所以回答会同时体现分工和信息互通。",
+                    "本轮由{}牵头，{} \
+                     个协作岗位分别从{}补充判断；各岗位先独立完成自己的判断，\
+                     再把结论交给主岗汇总，所以回答会同时体现分工和信息互通。",
                     primary_node
                         .map(|node| role_display_name(&node.role))
                         .unwrap_or("主岗位"),
@@ -410,7 +412,8 @@ impl TaskGraphRuntime {
         if !team_brief.is_empty() {
             if let Some(node) = primary_node {
                 lines.push(format!(
-                    "- **主回答岗位**：{}（{}）负责把各岗位输入合成为综合结论、优先级、执行清单和 final_report。",
+                    "- **主回答岗位**：{}（{}）负责把各岗位输入合成为综合结论、优先级、执行清单和 \
+                     final_report。",
                     node.title,
                     role_display_name(&node.role)
                 ));
@@ -422,7 +425,11 @@ impl TaskGraphRuntime {
             lines.extend(team_brief.into_iter().take(team_brief_limit));
             if !team_playbook.is_empty() && !matches!(self.answer_mode, TaskGraphAnswerMode::Quick)
             {
-                lines.push("- **团队协作产物**：主岗负责把上述岗位结论压缩成可执行节奏；协作岗的判断会作为工作区 `final_report` 的过程依据，后续可继续追问或导出。".to_string());
+                lines.push(
+                    "- **团队协作产物**：主岗负责把上述岗位结论压缩成可执行节奏；\
+                     协作岗的判断会作为工作区 `final_report` 的过程依据，后续可继续追问或导出。"
+                        .to_string(),
+                );
             }
         } else {
             lines.push(
@@ -445,7 +452,8 @@ impl TaskGraphRuntime {
                     .to_string(),
             );
             lines.push(
-                "- **阅读方式**：快速模式只展示结论、关键原因、岗位摘要和主岗方案；完整岗位过程可在右侧过程面板回看。"
+                "- **阅读方式**：快速模式只展示结论、关键原因、岗位摘要和主岗方案；\
+                 完整岗位过程可在右侧过程面板回看。"
                     .to_string(),
             );
             return lines.join("\n");
@@ -609,7 +617,11 @@ impl TaskGraphRuntime {
                     .to_string(),
             );
         } else {
-            lines.push("- **过程依据**：岗位独立输出、评估结果、风险边界和待补数据会保留在运行记录中，后续可继续预览、导出或引用。".to_string());
+            lines.push(
+                "- **过程依据**：岗位独立输出、评估结果、风险边界和待补数据会保留在运行记录中，\
+                 后续可继续预览、导出或引用。"
+                    .to_string(),
+            );
         }
 
         let gaps = runtime_gap_lines(&self.graph.root_task, &self.graph.nodes, &self.states);
@@ -699,11 +711,13 @@ impl TaskGraphRuntime {
         let mut deliverables = deliverable_hints(&passed_nodes, &self.reports);
         if !deliverables.is_empty() {
             deliverables.push(
-                "final_report：本轮完整回答会作为 Markdown 工作区交付物沉淀，包含综合结论、岗位分工、主岗综合方案和执行稿。"
+                "final_report：本轮完整回答会作为 Markdown \
+                 工作区交付物沉淀，包含综合结论、岗位分工、主岗综合方案和执行稿。"
                     .to_string(),
             );
             deliverables.push(
-                "过程依据：岗位独立输出、评估结果、风险边界和待补数据会保留在运行记录中，可继续预览、导出或引用。"
+                "过程依据：岗位独立输出、评估结果、风险边界和待补数据会保留在运行记录中，\
+                 可继续预览、导出或引用。"
                     .to_string(),
             );
         }
@@ -1455,19 +1469,24 @@ fn push_known_ecommerce_team_role(roles: &mut Vec<&'static str>, role: &str) {
 fn ecommerce_team_role_objective(role: &str, task: &str) -> String {
     match role {
         "data" => format!(
-            "作为数据分析师，先定义类目、商品或直播转化问题的指标口径、样本周期、缺失数据和不能编造的边界：{task}"
+            "作为数据分析师，先定义类目、商品或直播转化问题的指标口径、样本周期、\
+             缺失数据和不能编造的边界：{task}"
         ),
         "creative" => format!(
-            "作为内容创意师，基于数据口径把业务判断转成标题、脚本、卖点、素材测试方向和可复盘假设：{task}"
+            "作为内容创意师，基于数据口径把业务判断转成标题、脚本、卖点、\
+             素材测试方向和可复盘假设：{task}"
         ),
         "service" => format!(
-            "作为客户成功专员，补充客服咨询、售后承诺、退款/履约边界和异常升级 SOP，说明这些如何影响转化：{task}"
+            "作为客户成功专员，补充客服咨询、售后承诺、退款/履约边界和异常升级 \
+             SOP，说明这些如何影响转化：{task}"
         ),
         "engineering" => format!(
-            "作为技术架构师，确认埋点、接口、报表刷新、系统稳定性和回滚边界，让后续复盘可验证：{task}"
+            "作为技术架构师，确认埋点、接口、报表刷新、系统稳定性和回滚边界，让后续复盘可验证：\
+             {task}"
         ),
         "douyin_ads" => format!(
-            "作为千川投放专员，拆解人群包、素材组、出价、预算、ROI/CPA 止损线和直播/短视频承接：{task}"
+            "作为千川投放专员，拆解人群包、素材组、出价、预算、ROI/CPA \
+             止损线和直播/短视频承接：{task}"
         ),
         "accounting" => format!("作为财务分析师，评估预算、毛利、CPA/ROI 止损线和放量风险：{task}"),
         "design" => format!(
@@ -1475,7 +1494,8 @@ fn ecommerce_team_role_objective(role: &str, task: &str) -> String {
         ),
         "web" => format!("作为 Web/SEO 专家，补充关键词、页面结构、FAQ 和自然流量承接方案：{task}"),
         "ops" => format!(
-            "作为主回答岗位运营策略师，整合所有协作岗位的输入，形成最终团队结论、执行节奏、风险边界和 final_report 交付物：{task}"
+            "作为主回答岗位运营策略师，整合所有协作岗位的输入，形成最终团队结论、执行节奏、\
+             风险边界和 final_report 交付物：{task}"
         ),
         _ => format!("围绕本岗位边界完成判断：{task}"),
     }
@@ -1528,7 +1548,8 @@ fn plan_direct_answer_chat_graph(task_id: &TaskId, task: &str) -> TaskGraph {
             "chat",
             "直接回答",
             format!(
-                "直接回答用户原始问题，必须遵守用户对简短、只输出、不要解释的要求，不启动多智能体：{task}"
+                "直接回答用户原始问题，必须遵守用户对简短、只输出、不要解释的要求，\
+                 不启动多智能体：{task}"
             ),
             Vec::new(),
             1,
@@ -2723,7 +2744,11 @@ fn product_context_line(
     reports: &HashMap<TaskNodeId, WorkerReport>,
 ) -> Option<String> {
     if is_explicit_unselected_product_task(root_task) {
-        return Some("**商品上下文**：本轮用户明确要求不引用预设商品，不注入任何默认商品或历史商品，只按用户文本、同一会话历史和工作区上下文理解问题。".to_string());
+        return Some(
+            "**商品上下文**：本轮用户明确要求不引用预设商品，不注入任何默认商品或历史商品，\
+             只按用户文本、同一会话历史和工作区上下文理解问题。"
+                .to_string(),
+        );
     }
     if reports
         .values()
@@ -2741,7 +2766,11 @@ fn product_context_line(
             .values()
             .any(report_mentions_unselected_product_context)
     {
-        return Some("**商品上下文**：本轮未检测到用户手动选择的预设商品资料，不注入默认商品，只按用户文本、同一会话历史和工作区上下文理解问题。".to_string());
+        return Some(
+            "**商品上下文**：本轮未检测到用户手动选择的预设商品资料，不注入默认商品，\
+             只按用户文本、同一会话历史和工作区上下文理解问题。"
+                .to_string(),
+        );
     }
     None
 }
@@ -2766,7 +2795,8 @@ fn team_overview_line(nodes: &[&TaskNode], primary_node: Option<&TaskNode>) -> S
         .map(|node| role_display_name(&node.role))
         .unwrap_or("主回答岗位");
     format!(
-        "**协作方式**：{}牵头，{}共同参与；每个岗位先独立产出，再把发现、建议、风险和交接证据汇总到最终回答。",
+        "**协作方式**：{}牵头，{}共同参与；每个岗位先独立产出，再把发现、建议、\
+         风险和交接证据汇总到最终回答。",
         primary,
         roles.join("、")
     )
@@ -3238,7 +3268,8 @@ fn team_decision_narrative(
         .collect::<Vec<_>>();
     if handoff.len() >= 3 {
         lines.push(format!(
-            "协作顺序不是简单罗列：{}先各自完成判断，再由主回答岗位统一收敛成优先级、执行清单和 final_report 交付物。",
+            "协作顺序不是简单罗列：{}先各自完成判断，再由主回答岗位统一收敛成优先级、执行清单和 \
+             final_report 交付物。",
             handoff.join("、")
         ));
     }
@@ -3270,7 +3301,8 @@ fn direct_team_answer(
     let mut lines = Vec::new();
     if is_live_conversion_task(root_task) {
         lines.push(format!(
-            "- **结论**：{}牵头判断直播间转化是否健康时，要把曝光、点击、加购、付款、退款、咨询承接和履约风险连成一条漏斗看；任何一段异常，都不能只用最终成交额掩盖。",
+            "- **结论**：{}牵头判断直播间转化是否健康时，要把曝光、点击、加购、付款、退款、\
+             咨询承接和履约风险连成一条漏斗看；任何一段异常，都不能只用最终成交额掩盖。",
             primary
         ));
         if let Some(sequence) = team_judgement_sequence(&roles) {
@@ -3286,15 +3318,20 @@ fn direct_team_answer(
         &["咖啡", "饮品", "食品", "类目", "品类", "商品类"],
     ) {
         lines.push(format!(
-            "- **结论**：{}牵头先按类目级链路分析，不把历史商品或默认商品当成本轮指定商品；咖啡类商品应优先拆成人群、场景、价格带、内容卖点、渠道承接和复购风险。",
+            "- **结论**：{}牵头先按类目级链路分析，不把历史商品或默认商品当成本轮指定商品；\
+             咖啡类商品应优先拆成人群、场景、价格带、内容卖点、渠道承接和复购风险。",
             primary
         ));
         if let Some(direction) = team_execution_direction(&roles) {
-            lines.push(format!("- **执行方向**：{direction}；如果后续要精确到某个预设商品，必须由用户在输入区手动选择商品资料后再进入单品级复核。"));
+            lines.push(format!(
+                "- **执行方向**：{direction}；如果后续要精确到某个预设商品，\
+                 必须由用户在输入区手动选择商品资料后再进入单品级复核。"
+            ));
         }
     } else {
         lines.push(format!(
-            "- **结论**：{}负责收敛最终判断，协作岗位分别补齐证据、动作、风险和交付物，使回答不是单个聊天回复，而是一组电商虚拟员工的团队方案。",
+            "- **结论**：{}负责收敛最终判断，协作岗位分别补齐证据、动作、风险和交付物，\
+             使回答不是单个聊天回复，而是一组电商虚拟员工的团队方案。",
             primary
         ));
     }
@@ -3311,10 +3348,18 @@ fn direct_team_answer(
     }
 
     if is_category_level_task(root_task) {
-        lines.push("- **边界**：本轮是未选商品或类目级问题，系统只能输出方向、口径和待补数据清单；不会把任何历史商品、测试商品或默认商品注入为本轮商品。".to_string());
+        lines.push(
+            "- **边界**：本轮是未选商品或类目级问题，系统只能输出方向、口径和待补数据清单；\
+             不会把任何历史商品、测试商品或默认商品注入为本轮商品。"
+                .to_string(),
+        );
     }
     if roles.len() >= 3 {
-        lines.push("- **团队感知**：每个岗位会保留自己的独立判断、交接内容和风险边界；主岗负责把这些输入合成一份可执行结论，而不是把多个岗位压成一段普通聊天回答。".to_string());
+        lines.push(
+            "- **团队感知**：每个岗位会保留自己的独立判断、交接内容和风险边界；\
+             主岗负责把这些输入合成一份可执行结论，而不是把多个岗位压成一段普通聊天回答。"
+                .to_string(),
+        );
     }
     let category_workflow = category_team_workflow(root_task, nodes);
     if !category_workflow.is_empty() {
@@ -3367,7 +3412,8 @@ fn live_conversion_funnel_lines(root_task: &str) -> Vec<String> {
     }
     if let (Some(exposure), Some(paid)) = (exposure, paid) {
         lines.push(format!(
-            "曝光到付款总转化约 {:.2}%，单看该链路不是结论，必须结合行业基准、客单价、毛利和投放成本判断健康度。",
+            "曝光到付款总转化约 {:.2}%，单看该链路不是结论，必须结合行业基准、客单价、\
+             毛利和投放成本判断健康度。",
             ratio_percent(paid, exposure)
         ));
     }
@@ -3388,7 +3434,7 @@ fn extract_live_conversion_metrics(root_task: &str) -> HashMap<&'static str, f64
 
 fn extract_number_after_label(text: &str, label: &str) -> Option<f64> {
     let start = text.find(label)? + label.len();
-    let tail = &text[start..];
+    let tail = &text[start ..];
     let mut number = String::new();
     let mut started = false;
     for ch in tail.chars() {
@@ -3431,17 +3477,24 @@ fn deterministic_answer_quality_lines(
         let funnel_lines = live_conversion_funnel_lines(root_task);
         if !funnel_lines.is_empty() {
             lines.push(format!(
-                "- **直播漏斗确定性初判**：{}先把用户给出的原始数字转成固定口径指标，再交给内容、服务、工程等岗位补充原因和执行边界。",
+                "- **直播漏斗确定性初判**：{}先把用户给出的原始数字转成固定口径指标，再交给内容、\
+                 服务、工程等岗位补充原因和执行边界。",
                 primary
             ));
             lines.extend(funnel_lines.into_iter().map(|item| format!("  - {item}")));
-            lines.push("- **健康度判断**：这组数据只能说明本轮漏斗各段表现，不能单独判定行业健康度；还需要行业基准、历史同类直播、客单价、毛利、投放成本、退款和咨询承接数据一起复核。".to_string());
+            lines.push(
+                "- **健康度判断**：这组数据只能说明本轮漏斗各段表现，不能单独判定行业健康度；\
+                 还需要行业基准、历史同类直播、客单价、毛利、投放成本、\
+                 退款和咨询承接数据一起复核。"
+                    .to_string(),
+            );
         }
     }
 
     if roles.len() >= 3 {
         lines.push(format!(
-            "- **团队调度方式**：{}是主回答岗位；{}会先独立完成各自判断，再把结论、证据、风险和待补数据交给主岗合成 `final_report`。",
+            "- **团队调度方式**：{}是主回答岗位；{}会先独立完成各自判断，再把结论、证据、\
+             风险和待补数据交给主岗合成 `final_report`。",
             primary,
             roles
                 .iter()
@@ -3467,11 +3520,15 @@ fn team_role_workplans(root_task: &str, nodes: &[&TaskNode]) -> Vec<String> {
         || contains_any(root_task, &["咖啡", "饮品", "食品", "类目", "品类"]);
     let mut items = Vec::new();
     if roles.contains(&"data") {
-        items.push(if category_scope {
-            "数据分析师：先定义类目级漏斗口径，拆曝光、点击、加购、付款、退款、咨询量和渠道来源；没有用户手动选择商品时，只给待补数据清单和复核公式。"
-        } else {
-            "数据分析师：先统一指标口径、样本周期和归因方式，再把异常段落交给运营判断优先级。"
-        }.to_string());
+        items.push(
+            if category_scope {
+                "数据分析师：先定义类目级漏斗口径，拆曝光、点击、加购、付款、退款、\
+                 咨询量和渠道来源；没有用户手动选择商品时，只给待补数据清单和复核公式。"
+            } else {
+                "数据分析师：先统一指标口径、样本周期和归因方式，再把异常段落交给运营判断优先级。"
+            }
+            .to_string(),
+        );
     }
     if roles.contains(&"ops") {
         items.push(
@@ -3486,13 +3543,25 @@ fn team_role_workplans(root_task: &str, nodes: &[&TaskNode]) -> Vec<String> {
         );
     }
     if roles.contains(&"service") {
-        items.push("客户成功专员：补客服问答、异议处理、退款/物流承诺和异常升级 SOP，避免营销承诺超过履约能力。".to_string());
+        items.push(
+            "客户成功专员：补客服问答、异议处理、退款/物流承诺和异常升级 \
+             SOP，避免营销承诺超过履约能力。"
+                .to_string(),
+        );
     }
     if roles.contains(&"engineering") {
-        items.push("技术架构师：确认埋点、接口、报表刷新、数据回放和失败回滚边界，让团队结论可以持续复核。".to_string());
+        items.push(
+            "技术架构师：确认埋点、接口、报表刷新、数据回放和失败回滚边界，\
+             让团队结论可以持续复核。"
+                .to_string(),
+        );
     }
     if roles.contains(&"douyin_ads") {
-        items.push("千川投放专员：拆人群包、素材组、出价、预算节奏和止损线，等真实数据补齐后再给放量判断。".to_string());
+        items.push(
+            "千川投放专员：拆人群包、素材组、出价、预算节奏和止损线，\
+             等真实数据补齐后再给放量判断。"
+                .to_string(),
+        );
     }
     if roles.contains(&"accounting") {
         items.push(
@@ -3537,13 +3606,25 @@ fn ecommerce_team_playbook(root_task: &str, nodes: &[&TaskNode]) -> Vec<String> 
     }
 
     if is_category_level_task(root_task) {
-        lines.push("- **本轮链路**：用户没有手动选择预设商品，所以系统按类目级/未指定商品链路回答；历史商品和默认商品不会被注入为本轮商品。".to_string());
+        lines.push(
+            "- **本轮链路**：用户没有手动选择预设商品，所以系统按类目级/未指定商品链路回答；\
+             历史商品和默认商品不会被注入为本轮商品。"
+                .to_string(),
+        );
     }
 
     if is_live_conversion_task(root_task) {
-        lines.push("- **判断框架**：直播间转化是否健康，先看曝光到点击的吸引力，再看点击到加购的承接力，接着看加购到付款的购买阻力，最后看退款、投诉、客服咨询和履约风险。".to_string());
+        lines.push(
+            "- **判断框架**：直播间转化是否健康，先看曝光到点击的吸引力，再看点击到加购的承接力，\
+             接着看加购到付款的购买阻力，最后看退款、投诉、客服咨询和履约风险。"
+                .to_string(),
+        );
     } else if contains_any(root_task, &["咖啡", "饮品", "食品", "类目", "品类"]) {
-        lines.push("- **类目框架**：先按人群、场景、价格带、内容卖点、渠道承接和复购风险拆解，不编造单品指标。".to_string());
+        lines.push(
+            "- **类目框架**：先按人群、场景、价格带、内容卖点、渠道承接和复购风险拆解，\
+             不编造单品指标。"
+                .to_string(),
+        );
     }
 
     let roles = nodes
@@ -3552,10 +3633,18 @@ fn ecommerce_team_playbook(root_task: &str, nodes: &[&TaskNode]) -> Vec<String> 
         .map(|node| node.role.as_str())
         .collect::<Vec<_>>();
     if roles.contains(&"data") {
-        lines.push("- **数据岗接力**：负责定义指标口径、样本周期和漏斗节点；没有真实数据时只输出诊断框架和待补齐数据，不把缺数据包装成已查询结果。".to_string());
+        lines.push(
+            "- **数据岗接力**：负责定义指标口径、样本周期和漏斗节点；\
+             没有真实数据时只输出诊断框架和待补齐数据，不把缺数据包装成已查询结果。"
+                .to_string(),
+        );
     }
     if roles.contains(&"ops") {
-        lines.push("- **运营岗接力**：负责把岗位输入收敛为今日可执行动作、复盘节奏和优先级，避免只给泛泛建议。".to_string());
+        lines.push(
+            "- **运营岗接力**：负责把岗位输入收敛为今日可执行动作、复盘节奏和优先级，\
+             避免只给泛泛建议。"
+                .to_string(),
+        );
     }
     if roles.contains(&"creative") {
         lines.push(
@@ -3564,10 +3653,18 @@ fn ecommerce_team_playbook(root_task: &str, nodes: &[&TaskNode]) -> Vec<String> 
         );
     }
     if roles.contains(&"design") {
-        lines.push("- **设计岗接力**：把卖点、信任证明、价格利益和行动按钮落到主图、详情页或直播视觉承接。".to_string());
+        lines.push(
+            "- **设计岗接力**：把卖点、信任证明、价格利益和行动按钮落到主图、\
+             详情页或直播视觉承接。"
+                .to_string(),
+        );
     }
     if roles.contains(&"service") {
-        lines.push("- **服务岗接力**：同步客服答疑、售后承诺和异常升级 SOP，防止营销承诺超过真实履约能力。".to_string());
+        lines.push(
+            "- **服务岗接力**：同步客服答疑、售后承诺和异常升级 \
+             SOP，防止营销承诺超过真实履约能力。"
+                .to_string(),
+        );
     }
     if roles.contains(&"engineering") {
         lines.push(
@@ -3601,7 +3698,8 @@ fn total_answer_brief_lines(
 
     if is_live_conversion_task(root_task) {
         lines.push(format!(
-            "- **一句话结论**：{}先按直播漏斗回答，重点看曝光、点击、加购、付款、退款和咨询承接是否逐段稳定；当前没有真实完整数据时，只能先给判断框架和待补数据清单。",
+            "- **一句话结论**：{}先按直播漏斗回答，重点看曝光、点击、加购、付款、\
+             退款和咨询承接是否逐段稳定；当前没有真实完整数据时，只能先给判断框架和待补数据清单。",
             primary
         ));
     } else if contains_any(
@@ -3609,7 +3707,8 @@ fn total_answer_brief_lines(
         &["咖啡", "饮品", "食品", "类目", "品类", "商品类"],
     ) {
         lines.push(format!(
-            "- **一句话结论**：{}先按类目/未指定商品链路回答，拆人群、场景、价格带、内容卖点、渠道承接和复购风险；不会把历史商品或默认商品当成本轮指定商品。",
+            "- **一句话结论**：{}先按类目/未指定商品链路回答，拆人群、场景、价格带、内容卖点、\
+             渠道承接和复购风险；不会把历史商品或默认商品当成本轮指定商品。",
             primary
         ));
     } else {
@@ -3635,7 +3734,11 @@ fn total_answer_brief_lines(
     }
 
     if is_unselected_product_task(root_task) || is_category_level_task(root_task) {
-        lines.push("- **商品边界**：只有用户手动勾选预设商品后，后端才注入该商品资料；本轮未选商品时走普通类目/未指定商品链路。".to_string());
+        lines.push(
+            "- **商品边界**：只有用户手动勾选预设商品后，后端才注入该商品资料；\
+             本轮未选商品时走普通类目/未指定商品链路。"
+                .to_string(),
+        );
     }
 
     match mode {
@@ -3646,7 +3749,11 @@ fn total_answer_brief_lines(
             );
         }
         TaskGraphAnswerMode::Learning => {
-            lines.push("- **阅读方式**：先看这一段拿结论，再看“正文分析”的解释和“虚拟员工分工”的岗位协作。".to_string());
+            lines.push(
+                "- **阅读方式**：先看这一段拿结论，\
+                 再看“正文分析”的解释和“虚拟员工分工”的岗位协作。"
+                    .to_string(),
+            );
         }
         TaskGraphAnswerMode::Execution => {
             lines.push(
@@ -3711,14 +3818,23 @@ fn teaching_explanation_lines(
         .map(|node| role_display_name(&node.role))
         .unwrap_or("主回答岗位");
     lines.push(format!(
-        "- **怎么读这份回答**：先看“总回答”拿结论，再看“虚拟员工分工”理解每个岗位为什么这么判断，最后看主岗方案决定下一步先做什么。{}负责把团队意见收口。",
+        "- **怎么读这份回答**：先看“总回答”拿结论，再看“虚拟员工分工”理解每个岗位为什么这么判断，\
+         最后看主岗方案决定下一步先做什么。{}负责把团队意见收口。",
         primary
     ));
     if !matches!(depth, TaskGraphLearningDepth::Low) && is_live_conversion_task(root_task) {
-        lines.push("- **关键概念**：直播漏斗要逐段看，曝光到点击看吸引力，点击到加购看商品承接，加购到付款看价格、信任和下单阻力。".to_string());
+        lines.push(
+            "- **关键概念**：直播漏斗要逐段看，曝光到点击看吸引力，点击到加购看商品承接，\
+             加购到付款看价格、信任和下单阻力。"
+                .to_string(),
+        );
     }
     if is_category_level_task(root_task) {
-        lines.push("- **商品边界**：未手动选择预设商品时，只能做类目级判断；选择了具体商品后，才进入单品资料注入链路。".to_string());
+        lines.push(
+            "- **商品边界**：未手动选择预设商品时，只能做类目级判断；选择了具体商品后，\
+             才进入单品资料注入链路。"
+                .to_string(),
+        );
     }
     match depth {
         TaskGraphLearningDepth::Low => {
@@ -3727,11 +3843,24 @@ fn teaching_explanation_lines(
             );
         }
         TaskGraphLearningDepth::Medium => {
-            lines.push("- **继续追问建议**：可以继续补充预算、平台、商品资料、历史转化或素材方向，系统会在同一会话里把这些信息作为上下文继续使用。".to_string());
+            lines.push(
+                "- **继续追问建议**：可以继续补充预算、平台、商品资料、历史转化或素材方向，\
+                 系统会在同一会话里把这些信息作为上下文继续使用。"
+                    .to_string(),
+            );
         }
         TaskGraphLearningDepth::High => {
-            lines.push("- **判断逻辑**：先确认数据和商品边界，再让各岗位独立输出证据、动作、风险，最后由主岗把不同岗位的判断合成为可执行方案。".to_string());
-            lines.push("- **继续追问建议**：可以继续追问“按预算拆执行节奏”“按人群写直播话术”“按岗位导出执行表”，系统会沿用同一会话上下文继续推演。".to_string());
+            lines.push(
+                "- **判断逻辑**：先确认数据和商品边界，再让各岗位独立输出证据、动作、风险，\
+                 最后由主岗把不同岗位的判断合成为可执行方案。"
+                    .to_string(),
+            );
+            lines.push(
+                "- **继续追问建议**：\
+                 可以继续追问“按预算拆执行节奏”“按人群写直播话术”“按岗位导出执行表”，\
+                 系统会沿用同一会话上下文继续推演。"
+                    .to_string(),
+            );
         }
     }
     lines
@@ -3804,13 +3933,22 @@ fn team_collaboration_contract_lines(
         .unwrap_or("主回答岗位");
     let mut lines = Vec::new();
     lines.push(format!(
-        "- **团队报告结构**：本轮不是把多个岗位回复简单拼接，而是由{}先收口主结论，其他虚拟员工各自完成独立判断，再把证据、动作、风险和待补数据交给主岗统一合成。",
+        "- **团队报告结构**：本轮不是把多个岗位回复简单拼接，而是由{}先收口主结论，\
+         其他虚拟员工各自完成独立判断，再把证据、动作、风险和待补数据交给主岗统一合成。",
         primary
     ));
     if is_unselected_product_task(root_task) {
-        lines.push("- **商品链路**：本轮没有使用任何默认商品或历史商品；只有用户在输入区手动勾选预设商品后，后端才会把该商品资料注入单品级分析。".to_string());
+        lines.push(
+            "- **商品链路**：本轮没有使用任何默认商品或历史商品；\
+             只有用户在输入区手动勾选预设商品后，后端才会把该商品资料注入单品级分析。"
+                .to_string(),
+        );
     }
-    lines.push("- **会话上下文**：同一会话内的上一轮问答会作为任务背景参与理解，但不会替代用户本轮的商品选择；这保证上下文连续，同时避免把旧商品误当成本轮商品。".to_string());
+    lines.push(
+        "- **会话上下文**：同一会话内的上一轮问答会作为任务背景参与理解，\
+         但不会替代用户本轮的商品选择；这保证上下文连续，同时避免把旧商品误当成本轮商品。"
+            .to_string(),
+    );
 
     for role in unique_role_order(&roles) {
         if let Some(line) = role_contract_line(role, &roles) {
@@ -3819,10 +3957,15 @@ fn team_collaboration_contract_lines(
     }
 
     if matches!(mode, TaskGraphAnswerMode::Execution) {
-        lines.push("- **丰富执行要求**：主回答岗位必须把岗位判断转成可执行清单、负责人、验收指标和风险边界；协作岗输出不是装饰，而是最终方案的证据来源。".to_string());
+        lines.push(
+            "- **丰富执行要求**：主回答岗位必须把岗位判断转成可执行清单、负责人、\
+             验收指标和风险边界；协作岗输出不是装饰，而是最终方案的证据来源。"
+                .to_string(),
+        );
     }
     lines.push(format!(
-        "- **过程文件**：后端会把最终答复沉淀为 `final_report`；{}如果产出结构化过程，也会进入对应 artifact，供后续预览、追问和导出。",
+        "- **过程文件**：后端会把最终答复沉淀为 \
+         `final_report`；{}如果产出结构化过程，也会进入对应 artifact，供后续预览、追问和导出。",
         artifact_role_summary(&roles)
     ));
     lines
@@ -3959,7 +4102,8 @@ fn artifact_role_summary(roles: &[&str]) -> String {
 fn role_contract_line(role: &str, roles: &[&str]) -> Option<String> {
     match role {
         "data" => Some(
-            "先把曝光、点击、加购、付款、咨询、退款等指标口径拆清楚；没有真实指标时输出待补数据清单和判断框架，不编造查询结果。"
+            "先把曝光、点击、加购、付款、咨询、退款等指标口径拆清楚；\
+             没有真实指标时输出待补数据清单和判断框架，不编造查询结果。"
                 .to_string(),
         ),
         "ops" => Some(format!(
@@ -3970,25 +4114,28 @@ fn role_contract_line(role: &str, roles: &[&str]) -> Option<String> {
             "把策略转成直播开场钩子、短视频脚本、标题利益点和 A/B 测试假设，负责让方案能变成素材。"
                 .to_string(),
         ),
-        "design" => {
-            Some("把卖点、信任证明、价格利益和行动按钮落到主图、详情页或直播间视觉承接上。".to_string())
-        }
+        "design" => Some(
+            "把卖点、信任证明、价格利益和行动按钮落到主图、详情页或直播间视觉承接上。".to_string(),
+        ),
         "service" => Some(
-            "补齐客服问答、异议处理、售后承诺、退款物流边界和异常升级 SOP，防止营销承诺超过履约能力。"
+            "补齐客服问答、异议处理、售后承诺、退款物流边界和异常升级 \
+             SOP，防止营销承诺超过履约能力。"
                 .to_string(),
         ),
-        "engineering" => {
-            Some("确认埋点、接口、数据刷新、报表口径和失败回滚，让后续复盘可以验证每个动作。".to_string())
-        }
-        "douyin_ads" => {
-            Some("拆解人群、素材组、出价、预算节奏和止损阈值，避免把投放结果只归因给单一因素。".to_string())
-        }
+        "engineering" => Some(
+            "确认埋点、接口、数据刷新、报表口径和失败回滚，让后续复盘可以验证每个动作。"
+                .to_string(),
+        ),
+        "douyin_ads" => Some(
+            "拆解人群、素材组、出价、预算节奏和止损阈值，避免把投放结果只归因给单一因素。"
+                .to_string(),
+        ),
         "accounting" => {
             Some("把毛利、优惠成本、广告费、退款率和现金流约束转成 CPA/ROI 止损线。".to_string())
         }
-        "web" => {
-            Some("补充搜索关键词、FAQ、页面结构和自然流量承接，避免站外流量进入低转化页面。".to_string())
-        }
+        "web" => Some(
+            "补充搜索关键词、FAQ、页面结构和自然流量承接，避免站外流量进入低转化页面。".to_string(),
+        ),
         _ => None,
     }
 }
@@ -4067,15 +4214,18 @@ fn ecommerce_team_execution_draft(
         "本轮按用户当前问题和已选择上下文处理；若需要单品级指标，必须以用户显式选择的商品资料为准。"
     };
     let first_sentence = if is_live_conversion_task(root_task) {
-        "判断直播间转化是否健康，不是只看最终付款，而是看曝光、点击、加购、付款、退款和咨询承接是否逐段稳定。"
+        "判断直播间转化是否健康，不是只看最终付款，而是看曝光、点击、加购、付款、\
+         退款和咨询承接是否逐段稳定。"
     } else if contains_any(root_task, &["咖啡", "饮品", "食品", "类目", "品类"]) {
-        "咖啡类商品应先按人群、场景、价格带、内容卖点、渠道承接和复购风险拆解，再进入单品级指标复核。"
+        "咖啡类商品应先按人群、场景、价格带、内容卖点、渠道承接和复购风险拆解，\
+         再进入单品级指标复核。"
     } else {
         "先把用户目标拆成指标、动作、风险和交付物四个层级，再由对应岗位分头判断。"
     };
 
     let mut lines = vec![format!(
-        "- **主结论**：{first_sentence}{category_line} {primary}负责把各岗位结论收敛为最终行动节奏。"
+        "- **主结论**：{first_sentence}{category_line} \
+         {primary}负责把各岗位结论收敛为最终行动节奏。"
     )];
     if matches!(mode, TaskGraphAnswerMode::Execution) {
         let rows = execution_action_table_rows(nodes, reports);
@@ -4088,28 +4238,53 @@ fn ecommerce_team_execution_draft(
         }
     }
     if roles.contains(&"data") {
-        lines.push("- **数据分析师**：先定义可复核口径，至少包括曝光、点击、加购、付款、退款、咨询量和渠道拆分；没有真实数据时输出诊断框架和待补齐清单，不编造数值。".to_string());
+        lines.push(
+            "- **数据分析师**：先定义可复核口径，至少包括曝光、点击、加购、付款、退款、\
+             咨询量和渠道拆分；没有真实数据时输出诊断框架和待补齐清单，不编造数值。"
+                .to_string(),
+        );
     }
     if roles.contains(&"ops") {
         lines.push(format!(
-            "- **运营策略师**：把{}合并为优先动作：先补关键口径，再做已参与岗位能承接的测试，最后建立日复盘节奏。",
+            "- **运营策略师**：把{}合并为优先动作：先补关键口径，再做已参与岗位能承接的测试，\
+             最后建立日复盘节奏。",
             support_scope_summary_from_roles(&roles, Some("ops"))
         ));
     }
     if roles.contains(&"creative") {
-        lines.push("- **内容创意师**：把判断转成可执行素材，例如直播开场钩子、利益点标题、短视频脚本和 A/B 测试假设。".to_string());
+        lines.push(
+            "- **内容创意师**：把判断转成可执行素材，例如直播开场钩子、利益点标题、短视频脚本和 \
+             A/B 测试假设。"
+                .to_string(),
+        );
     }
     if roles.contains(&"design") {
-        lines.push("- **设计师**：把卖点、信任证明、价格利益和行动按钮放进主图、详情页或直播间视觉承接，不让用户理解成本过高。".to_string());
+        lines.push(
+            "- **设计师**：把卖点、信任证明、价格利益和行动按钮放进主图、详情页或直播间视觉承接，\
+             不让用户理解成本过高。"
+                .to_string(),
+        );
     }
     if roles.contains(&"service") {
-        lines.push("- **客户成功专员**：同步客服问答、售后承诺、退款/物流边界和异常升级 SOP，避免营销话术超出履约能力。".to_string());
+        lines.push(
+            "- **客户成功专员**：同步客服问答、售后承诺、退款/物流边界和异常升级 \
+             SOP，避免营销话术超出履约能力。"
+                .to_string(),
+        );
     }
     if roles.contains(&"engineering") {
-        lines.push("- **技术架构师**：确认埋点、接口、数据刷新、报表口径和失败回滚，让后续复盘可以追踪到每一次改动。".to_string());
+        lines.push(
+            "- **技术架构师**：确认埋点、接口、数据刷新、报表口径和失败回滚，\
+             让后续复盘可以追踪到每一次改动。"
+                .to_string(),
+        );
     }
     if roles.contains(&"douyin_ads") {
-        lines.push("- **千川投放专员**：把人群、素材组、出价、预算节奏和止损阈值拆开，避免把投放问题全部归因给素材或主播。".to_string());
+        lines.push(
+            "- **千川投放专员**：把人群、素材组、出价、预算节奏和止损阈值拆开，\
+             避免把投放问题全部归因给素材或主播。"
+                .to_string(),
+        );
     }
     if roles.contains(&"accounting") {
         lines.push(
@@ -4118,9 +4293,18 @@ fn ecommerce_team_execution_draft(
         );
     }
     if roles.contains(&"web") {
-        lines.push("- **Web/SEO 专家**：补充搜索关键词、FAQ、页面结构和自然流量承接，不把站外曝光浪费在低承接页面。".to_string());
+        lines.push(
+            "- **Web/SEO \
+             专家**：补充搜索关键词、FAQ、页面结构和自然流量承接，不把站外曝光浪费在低承接页面。"
+                .to_string(),
+        );
     }
-    lines.push("- **交付物**：本轮会沉淀为 `final_report`，报告中保留岗位分工、过程依据、风险边界和下一步清单，方便后续在同一会话继续追问。".to_string());
+    lines.push(
+        "- **交付物**：本轮会沉淀为 \
+         `final_report`，报告中保留岗位分工、过程依据、风险边界和下一步清单，\
+         方便后续在同一会话继续追问。"
+            .to_string(),
+    );
     lines
 }
 
@@ -4200,7 +4384,8 @@ fn executive_team_brief(
     let mut lines = Vec::new();
     if let Some(primary) = primary_node {
         lines.push(format!(
-            "**团队判断**：{}先收敛主结论，其他岗位分别补充自己负责的证据、动作和风险；下面可以按“数据先定口径、业务再定动作、服务/工程兜底边界”的顺序执行。",
+            "**团队判断**：{}先收敛主结论，其他岗位分别补充自己负责的证据、动作和风险；\
+             下面可以按“数据先定口径、业务再定动作、服务/工程兜底边界”的顺序执行。",
             role_display_name(&primary.role)
         ));
     }
@@ -4301,7 +4486,8 @@ fn collaboration_handoffs(nodes: &[TaskNode]) -> Vec<String> {
                 .collect::<Vec<_>>()
                 .join("、");
             format!(
-                "- **{}**：先读取 {} 的结论、证据和风险边界，再补充自己的岗位判断，最后交给主回答岗位统一收敛。",
+                "- **{}**：先读取 {} \
+                 的结论、证据和风险边界，再补充自己的岗位判断，最后交给主回答岗位统一收敛。",
                 role_display_name(&node.role),
                 inputs
             )
@@ -4404,28 +4590,33 @@ fn missing_data_table_rows(root_task: &str, nodes: &[&TaskNode]) -> Vec<String> 
         .collect::<Vec<_>>();
     let mut rows = Vec::new();
     rows.push(
-        "| 曝光、点击、加购、付款、退款、咨询量 | 定位直播漏斗断点 | 数据分析师 | 只能输出诊断框架，不编造转化率 |"
+        "| 曝光、点击、加购、付款、退款、咨询量 | 定位直播漏斗断点 | 数据分析师 | \
+         只能输出诊断框架，不编造转化率 |"
             .to_string(),
     );
     rows.push(
-        "| 样本周期、渠道来源、直播 ID | 判断波动是否来自时间段或流量来源 | 数据分析师 | 只能做类目级方向判断 |"
+        "| 样本周期、渠道来源、直播 ID | 判断波动是否来自时间段或流量来源 | 数据分析师 | \
+         只能做类目级方向判断 |"
             .to_string(),
     );
     if roles.contains(&"creative") {
         rows.push(
-            "| 标题、脚本、短视频钩子、直播间话术 | 复盘内容是否承接人群和卖点 | 内容创意师 | 只能给素材假设，不能判断真实素材优劣 |"
+            "| 标题、脚本、短视频钩子、直播间话术 | 复盘内容是否承接人群和卖点 | 内容创意师 | \
+             只能给素材假设，不能判断真实素材优劣 |"
                 .to_string(),
         );
     }
     if roles.contains(&"ops") {
         rows.push(
-            "| 平台、预算、促销、库存和价格带 | 排执行优先级和复盘节奏 | 运营策略师 | 只能给执行顺序，不能替代单品级决策 |"
+            "| 平台、预算、促销、库存和价格带 | 排执行优先级和复盘节奏 | 运营策略师 | \
+             只能给执行顺序，不能替代单品级决策 |"
                 .to_string(),
         );
     }
     if is_unselected_product_task(root_task) || is_category_level_task(root_task) {
         rows.push(
-            "| 用户手动选择的预设商品资料 | 进入单品级回答链路 | 运营策略师 | 未选择时不注入默认商品或历史商品 |"
+            "| 用户手动选择的预设商品资料 | 进入单品级回答链路 | 运营策略师 | \
+             未选择时不注入默认商品或历史商品 |"
                 .to_string(),
         );
     }
@@ -5036,8 +5227,8 @@ fn contains_benchmark_number_claim(value: &str) -> bool {
     ];
     TERMS.iter().any(|term| {
         value.find(term).is_some_and(|index| {
-            let after = &value[index..];
-            let before = &value[..index];
+            let after = &value[index ..];
+            let before = &value[.. index];
             segment_after_contains_percent_or_range(after)
                 || segment_before_contains_percent_or_range(before)
         })
@@ -5112,7 +5303,7 @@ fn strip_list_marker(value: &str) -> &str {
             continue;
         }
         if saw_digit && matches!(ch, '.' | '、' | ')') {
-            return value[index + ch.len_utf8()..].trim_start();
+            return value[index + ch.len_utf8() ..].trim_start();
         }
         return value;
     }
@@ -5597,7 +5788,8 @@ mod tests {
 
     #[test]
     fn planner_routes_manual_live_metric_health_question_to_ecommerce_team_graph() {
-        let task = "请用Agent集群方式判断：直播间曝光1000、点击80、加购20、下单8、付款7是否健康，不引用任何预设商品，并说明各虚拟员工如何协作。";
+        let task = "请用Agent集群方式判断：直播间曝光1000、点击80、加购20、下单8、付款7是否健康，\
+                    不引用任何预设商品，并说明各虚拟员工如何协作。";
         let route = crate::roles::RoleRouter::default()
             .route_for_runtime_roles(
                 "ops",
@@ -5635,7 +5827,8 @@ mod tests {
 
     #[test]
     fn planner_manual_live_team_uses_requested_roles_without_auto_unregistered_roles() {
-        let task = "请用Agent集群方式判断：直播间曝光1000、点击80、加购20、下单8、付款7是否健康，不引用任何预设商品，并说明各虚拟员工如何协作。";
+        let task = "请用Agent集群方式判断：直播间曝光1000、点击80、加购20、下单8、付款7是否健康，\
+                    不引用任何预设商品，并说明各虚拟员工如何协作。";
         let route = crate::roles::RoleRouter::default()
             .route_for_runtime_roles(
                 "ops",
@@ -5669,7 +5862,8 @@ mod tests {
 
     #[test]
     fn planner_respects_text_explicit_three_role_limit() {
-        let task = "请用教学模式，只让运营、数据、内容三个岗位协作，分析咖啡类商品直播转化；不要引用任何预设商品。";
+        let task = "请用教学模式，只让运营、数据、内容三个岗位协作，分析咖啡类商品直播转化；\
+                    不要引用任何预设商品。";
         let route = crate::roles::RoleRouter::default().route(crate::roles::RoleRouteInput {
             message: task.to_string(),
             domain_id: Some("domain.general".to_string()),
@@ -6126,7 +6320,8 @@ mod tests {
             let mut report = report_from_assignment(&assignment, "咖啡类目分析完成");
             if let Some(output) = report.role_output.as_mut() {
                 output.evidence.push(
-                    "本轮未检测到 context.selected_summary；不注入任何预设商品资料，只按用户文本、会话历史和工作区上下文理解问题。"
+                    "本轮未检测到 context.selected_summary；不注入任何预设商品资料，只按用户文本、\
+                     会话历史和工作区上下文理解问题。"
                         .to_string(),
                 );
                 if !assignment.inputs.is_empty() {
@@ -6214,7 +6409,8 @@ mod tests {
             let mut report = report_from_assignment(&assignment, "类目级边界分析完成");
             if let Some(output) = report.role_output.as_mut() {
                 output.evidence.push(
-                    "本轮未检测到 context.selected_summary；不注入任何预设商品资料，只按用户文本、会话历史和工作区上下文理解问题。"
+                    "本轮未检测到 context.selected_summary；不注入任何预设商品资料，只按用户文本、\
+                     会话历史和工作区上下文理解问题。"
                         .to_string(),
                 );
                 output.risks.push(
@@ -6480,7 +6676,9 @@ mod tests {
                     "service",
                     "service",
                     "服务方案",
-                    "作为支持角色 service，基于主角色输入补充本岗位判断，并指出证据、风险和下一步：请分析咖啡类商品".to_string(),
+                    "作为支持角色 service，基于主角色输入补充本岗位判断，并指出证据、\
+                     风险和下一步：请分析咖啡类商品"
+                        .to_string(),
                     vec!["data"],
                     1,
                 ),
@@ -6639,7 +6837,9 @@ mod tests {
         let mut data_report = report_from_assignment(&data_assignment, "直播间数据边界");
         data_report.status = WorkerReportStatus::Failed;
         data_report.role_output = Some(RoleWorkOutput {
-            summary: "未选择预设商品时，直播间转化健康度只能先按曝光、点击、加购、付款和退款链路定义口径。".to_string(),
+            summary: "未选择预设商品时，直播间转化健康度只能先按曝光、点击、加购、\
+                      付款和退款链路定义口径。"
+                .to_string(),
             findings: vec!["缺少真实曝光、点击、加购和付款指标，不能编造转化率。".to_string()],
             recommendations: vec!["补齐直播间漏斗指标后，再判断各段转化是否健康。".to_string()],
             evidence: vec!["原始任务明确不引用任何预设商品。".to_string()],
@@ -6709,7 +6909,9 @@ mod tests {
     fn multi_role_live_conversion_answer_is_substantial_without_default_product() {
         let graph = TaskGraph {
             graph_id: TaskGraphId("graph-live-multi-role-quality".to_string()),
-            root_task: "请用Agent集群方式判断：直播间曝光1000、点击80、加购20、下单8、付款7是否健康，不引用任何预设商品，并说明各虚拟员工如何协作。".to_string(),
+            root_task: "请用Agent集群方式判断：直播间曝光1000、点击80、加购20、下单8、\
+                        付款7是否健康，不引用任何预设商品，并说明各虚拟员工如何协作。"
+                .to_string(),
             nodes: vec![
                 node(
                     "data",
@@ -6766,11 +6968,21 @@ mod tests {
             let mut report = report_from_assignment(&assignment, "直播间漏斗岗位产物");
             if let Some(output) = report.role_output.as_mut() {
                 output.summary = match node_id {
-                    "data" => "数据岗计算到曝光到点击、点击到加购、加购到下单、下单到付款和总转化，需要结合行业基准判断健康度。".to_string(),
-                    "service" => "客服岗认为需要同步咨询承接、优惠解释、退款边界和异常升级 SOP，避免支付前阻力被误判成流量问题。".to_string(),
-                    "creative" => "创意岗把漏斗问题转成直播开场钩子、利益点标题、短视频素材和 A/B 测试方向。".to_string(),
-                    "engineering" => "工程岗补充埋点、接口刷新、报表口径和回滚边界，保证后续复盘可追踪。".to_string(),
-                    _ => "运营主岗把数据、内容、服务和工程输入合成为优先动作、复盘节奏和 final_report。".to_string(),
+                    "data" => "数据岗计算到曝光到点击、点击到加购、加购到下单、\
+                               下单到付款和总转化，需要结合行业基准判断健康度。"
+                        .to_string(),
+                    "service" => "客服岗认为需要同步咨询承接、优惠解释、退款边界和异常升级 \
+                                  SOP，避免支付前阻力被误判成流量问题。"
+                        .to_string(),
+                    "creative" => "创意岗把漏斗问题转成直播开场钩子、利益点标题、短视频素材和 A/B \
+                                   测试方向。"
+                        .to_string(),
+                    "engineering" => "工程岗补充埋点、接口刷新、报表口径和回滚边界，\
+                                      保证后续复盘可追踪。"
+                        .to_string(),
+                    _ => "运营主岗把数据、内容、服务和工程输入合成为优先动作、复盘节奏和 \
+                          final_report。"
+                        .to_string(),
                 };
                 if node_id != "data" {
                     output
@@ -6880,9 +7092,13 @@ mod tests {
         let mut report = report_from_assignment(&assignment, "未选商品边界");
         report.status = WorkerReportStatus::Failed;
         report.role_output = Some(RoleWorkOutput {
-            summary: "本轮未检测到 context.selected_summary；不注入任何预设商品资料，只按用户文本和会话历史判断。".to_string(),
+            summary: "本轮未检测到 context.selected_summary；不注入任何预设商品资料，\
+                      只按用户文本和会话历史判断。"
+                .to_string(),
             findings: vec!["直播间健康度需要曝光、点击、加购、下单、付款等真实指标。".to_string()],
-            recommendations: vec!["先按用户提供的漏斗数字给出初判，缺行业基准时只列复核项。".to_string()],
+            recommendations: vec![
+                "先按用户提供的漏斗数字给出初判，缺行业基准时只列复核项。".to_string(),
+            ],
             evidence: vec![CATEGORY_LEVEL_BOUNDARY_MARKER.to_string()],
             risks: vec!["未选商品链路不能默认引用千乐咖啡或任何历史商品。".to_string()],
             open_questions: Vec::new(),
@@ -7152,7 +7368,10 @@ mod tests {
         assert!(!output.contains("接收 运营方案 的结果继续处理"));
         assert!(output.contains("数据诊断报告"));
         assert!(output.contains("## 团队执行稿"));
-        assert!(output.contains("判断直播间转化是否健康时，要把曝光、点击、加购、付款、退款、咨询承接和履约风险连成一条漏斗看"));
+        assert!(output.contains(
+            "判断直播间转化是否健康时，要把曝光、点击、加购、付款、退款、\
+             咨询承接和履约风险连成一条漏斗看"
+        ));
         assert!(output.contains("不会把任何历史商品、测试商品或默认商品注入为本轮商品"));
         assert!(output.contains("交付物"));
     }
@@ -7556,9 +7775,9 @@ mod tests {
     fn synthesis_filters_unsupported_benchmark_claims_but_keeps_benchmark_gaps() {
         let graph = TaskGraph {
             graph_id: TaskGraphId("graph-benchmark-claim".to_string()),
-            root_task:
-                "请判断直播间曝光1000、点击80、加购20、下单8、付款7是否健康，不引用任何预设商品。"
-                    .to_string(),
+            root_task: "请判断直播间曝光1000、点击80、加购20、下单8、付款7是否健康，\
+                        不引用任何预设商品。"
+                .to_string(),
             nodes: vec![node(
                 "data",
                 "data",
@@ -7606,9 +7825,9 @@ mod tests {
     fn synthesis_filters_unsupported_external_tool_claims() {
         let graph = TaskGraph {
             graph_id: TaskGraphId("graph-external-tool-claim".to_string()),
-            root_task:
-                "请判断直播间曝光1000、点击80、加购20、下单8、付款7是否健康，不引用任何预设商品。"
-                    .to_string(),
+            root_task: "请判断直播间曝光1000、点击80、加购20、下单8、付款7是否健康，\
+                        不引用任何预设商品。"
+                .to_string(),
             nodes: vec![node(
                 "data",
                 "data",
@@ -7715,7 +7934,9 @@ mod tests {
         runtime.mark_running(&ops_assignment);
         let mut ops_report = report_from_assignment(&ops_assignment, "运营整合结论完整");
         if let Some(output) = ops_report.role_output.as_mut() {
-            output.summary = "运营主岗结论：健康直播间要同时看点击率、加购率、付款率和退款/咨询风险，而不是只看单一转化率。".to_string();
+            output.summary = "运营主岗结论：健康直播间要同时看点击率、加购率、付款率和退款/\
+                              咨询风险，而不是只看单一转化率。"
+                .to_string();
             output.evidence = vec!["worker.assignment.input.creative".to_string()];
         }
         assert!(matches!(

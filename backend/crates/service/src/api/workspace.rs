@@ -5075,7 +5075,8 @@ fn conversation_file_context_warnings(items: &[WorkspaceContextPackItemResponse]
     let mut warnings = Vec::new();
     if metadata_only > 0 {
         warnings.push(format!(
-            "{metadata_only} conversation file(s) only have metadata; no extracted text was registered"
+            "{metadata_only} conversation file(s) only have metadata; no extracted text was \
+             registered"
         ));
     }
     if pending > 0 {
@@ -5090,7 +5091,8 @@ fn conversation_file_context_warnings(items: &[WorkspaceContextPackItemResponse]
     }
     if unsupported > 0 {
         warnings.push(format!(
-            "{unsupported} conversation file(s) are not supported by the current extraction adapter"
+            "{unsupported} conversation file(s) are not supported by the current extraction \
+             adapter"
         ));
     }
     warnings
@@ -5118,7 +5120,8 @@ fn build_context_summary_text(counts: &WorkspaceContextSummaryCounts, readiness:
         return "No active workspace context sources are ready for agent use.".to_string();
     }
     format!(
-        "Workspace context is {readiness}: {} conversation files, {} product assets, {} product materials, {} workspace artifacts are available for agent grounding and delivery.",
+        "Workspace context is {readiness}: {} conversation files, {} product assets, {} product \
+         materials, {} workspace artifacts are available for agent grounding and delivery.",
         counts.conversation_files,
         counts.product_assets,
         counts.product_materials,
@@ -5137,7 +5140,9 @@ fn build_context_pack_summary_text(
         return "No active workspace context text is ready for agent use.".to_string();
     }
     format!(
-        "Workspace context pack is {readiness}: {readable_items} readable item(s), {text_chars} text chars, {omitted_items} omitted item(s), from {} conversation files, {} product assets, {} product materials, {} workspace artifacts.",
+        "Workspace context pack is {readiness}: {readable_items} readable item(s), {text_chars} \
+         text chars, {omitted_items} omitted item(s), from {} conversation files, {} product \
+         assets, {} product materials, {} workspace artifacts.",
         counts.conversation_files,
         counts.product_assets,
         counts.product_materials,
@@ -7075,7 +7080,8 @@ fn build_quality_learning_drafts(
         drafts.push(LearningDraft {
             category: "general".to_string(),
             content: format!(
-                "Answer quality was acceptable; continue improving clarity and actionability for goal: {}",
+                "Answer quality was acceptable; continue improving clarity and actionability for \
+                 goal: {}",
                 compact_text(&run.goal, 240)
             ),
             confidence: quality.score.max(0.5),
@@ -7111,12 +7117,12 @@ mod tests {
     fn quality_checker_passes_actionable_ecommerce_answer() {
         let quality = evaluate_output_quality(
             "请给我一个电商新品投放复盘方案，包含风险和下一步执行。",
-            "基于现有信息，建议先按用户、运营、转化和成本四个维度复盘。\n\
-             1. 数据：检查曝光、点击、转化、客单价和退款率，确认主要问题。\n\
-             2. 执行：优先调整预算和素材，下一步把低转化计划降预算。\n\
-             3. 风险：当前数据可能受活动周期影响，需确认平台口径和样本量。\n\
-             4. 智能体岗位：运营负责节奏，数据岗位负责指标，创意岗位负责素材方案。\n\
-             这是一份可执行方案，可以先验证三天后再复盘。",
+            "基于现有信息，建议先按用户、运营、转化和成本四个维度复盘。\n1. \
+             数据：检查曝光、点击、转化、客单价和退款率，确认主要问题。\n2. \
+             执行：优先调整预算和素材，下一步把低转化计划降预算。\n3. \
+             风险：当前数据可能受活动周期影响，需确认平台口径和样本量。\n4. \
+             智能体岗位：运营负责节奏，数据岗位负责指标，创意岗位负责素材方案。\\
+             n这是一份可执行方案，可以先验证三天后再复盘。",
             &[],
         );
 
@@ -8676,7 +8682,7 @@ mod tests {
 
     #[test]
     fn explicit_workspace_context_refs_reject_too_many_refs() {
-        let refs = (0..21).map(|index| format!("artifact:{index}")).collect();
+        let refs = (0 .. 21).map(|index| format!("artifact:{index}")).collect();
         let err = explicit_workspace_context_refs(refs).expect_err("too many refs should fail");
 
         assert_eq!(err.code(), app_error::WORKSPACE_REQUEST_INVALID);

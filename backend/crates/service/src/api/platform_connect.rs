@@ -985,8 +985,9 @@ fn normalize_optional(value: Option<String>) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use serde_json::Value;
+
+    use super::*;
 
     fn test_connection(platform: &str) -> PlatformConnection {
         let now = OffsetDateTime::from_unix_timestamp(1_778_544_000).unwrap();
@@ -1193,7 +1194,7 @@ fn mask_secret(value: &str) -> String {
     if value.len() <= 8 {
         return "****".to_string();
     }
-    format!("{}****{}", &value[..4], &value[value.len() - 4..])
+    format!("{}****{}", &value[.. 4], &value[value.len() - 4 ..])
 }
 
 fn platform_display(platform: &str) -> String {

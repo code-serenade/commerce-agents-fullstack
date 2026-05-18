@@ -349,7 +349,10 @@ fn normalize_engineering_output(skill_id: &str, input: &Value, output: &mut Valu
     map.insert("summary".to_owned(), json!(engineering_summary(skill_id)));
     map.insert(
         "data_boundary".to_owned(),
-        json!("本阶段基于用户输入和内置工程分析规则生成，不读取真实代码仓库、日志、APM、监控系统、外部搜索或实时性能基准。"),
+        json!(
+            "本阶段基于用户输入和内置工程分析规则生成，不读取真实代码仓库、日志、APM、监控系统、\
+             外部搜索或实时性能基准。"
+        ),
     );
 }
 

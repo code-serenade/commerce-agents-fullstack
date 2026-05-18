@@ -977,7 +977,7 @@ fn compact_key_part(value: &str, max_chars: usize) -> String {
     value
         .chars()
         .map(|ch| match ch {
-            'a'..='z' | 'A'..='Z' | '0'..='9' | '-' | '_' | '.' => ch,
+            'a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '-' | '_' | '.' => ch,
             _ => '-',
         })
         .take(max_chars)
@@ -1106,7 +1106,9 @@ fn retrieval_summary_for_agent(context: &AgentRetrievalContextResponse) -> Optio
     if context.degraded {
         return context.degraded_reason.as_ref().map(|reason| {
             format!(
-                "Local commerce RAG retrieval found no matching product knowledge. {reason} Do not cite external search results unless a same-run search skill returns live sources."
+                "Local commerce RAG retrieval found no matching product knowledge. {reason} Do \
+                 not cite external search results unless a same-run search skill returns live \
+                 sources."
             )
         });
     }
@@ -1589,7 +1591,11 @@ mod tests {
             summary: String::new(),
             sources: Vec::new(),
             degraded: true,
-            degraded_reason: Some("No matching local product knowledge was found; external search adapter is not configured.".to_string()),
+            degraded_reason: Some(
+                "No matching local product knowledge was found; external search adapter is not \
+                 configured."
+                    .to_string(),
+            ),
             external_search_available: false,
         };
 
@@ -1616,7 +1622,12 @@ mod tests {
             summary: String::new(),
             sources: Vec::new(),
             degraded: true,
-            degraded_reason: Some("No matching local product knowledge was found; external search adapter is configured and search skills may request live sources when the task needs real-time market data.".to_string()),
+            degraded_reason: Some(
+                "No matching local product knowledge was found; external search adapter is \
+                 configured and search skills may request live sources when the task needs \
+                 real-time market data."
+                    .to_string(),
+            ),
             external_search_available: true,
         };
 
@@ -1752,7 +1763,8 @@ mod tests {
         assert_eq!(metadata["workspaceContext.readiness"], "ready");
         assert_eq!(
             metadata["context.combined_refs"],
-            "product:product-1,conversation_file:file-1,product_asset:asset-1,workspace_artifact:artifact-1"
+            "product:product-1,conversation_file:file-1,product_asset:asset-1,workspace_artifact:\
+             artifact-1"
         );
         assert!(metadata["context.summary"].contains("Selected product."));
         assert!(

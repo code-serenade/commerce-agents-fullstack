@@ -4074,9 +4074,9 @@ fn infer_creative_search_subject(text: &str, task: &Task) -> String {
         let Some(stop) = stop else {
             continue;
         };
-        let candidate = rest[..stop].trim();
+        let candidate = rest[.. stop].trim();
         let char_count = candidate.chars().count();
-        if (2..=20).contains(&char_count) {
+        if (2 ..= 20).contains(&char_count) {
             return candidate.to_string();
         }
     }
@@ -4093,7 +4093,7 @@ fn extract_creative_object_subject(text: &str) -> Option<String> {
         .iter()
         .filter_map(|token| text.find(token).map(|index| index + token.len()))
         .min()?;
-    let rest = text[action_index..].trim_start_matches(['一', '套', '篇', '个', '条', '份']);
+    let rest = text[action_index ..].trim_start_matches(['一', '套', '篇', '个', '条', '份']);
     let stop = [
         "直播",
         "短视频",
@@ -4116,9 +4116,9 @@ fn extract_creative_object_subject(text: &str) -> Option<String> {
     .iter()
     .filter_map(|token| rest.find(token))
     .min()?;
-    let candidate = rest[..stop].trim();
+    let candidate = rest[.. stop].trim();
     let char_count = candidate.chars().count();
-    if (2..=20).contains(&char_count) {
+    if (2 ..= 20).contains(&char_count) {
         Some(candidate.to_string())
     } else {
         None
@@ -7326,9 +7326,9 @@ fn segment_after_abc_history_label(text: &str, labels: &[&str]) -> Option<String
     }
     let (index, label) = best?;
     let start = index + label.len();
-    let tail = text[start..].trim();
+    let tail = text[start ..].trim();
     let end = tail.find(['；', ';', '\n']).unwrap_or(tail.len());
-    Some(tail[..end].trim().to_string())
+    Some(tail[.. end].trim().to_string())
 }
 
 fn infer_abc_xyz_sku_id(segment: &str) -> String {
@@ -7339,7 +7339,7 @@ fn infer_abc_xyz_sku_id(segment: &str) -> String {
     let lower = trimmed.to_ascii_lowercase();
     let trimmed = lower
         .rfind("sku")
-        .map(|index| trimmed[index..].trim())
+        .map(|index| trimmed[index ..].trim())
         .unwrap_or(trimmed);
     let metric_markers = [
         "GMV",
@@ -7357,7 +7357,7 @@ fn infer_abc_xyz_sku_id(segment: &str) -> String {
         .filter_map(|marker| lower.find(&marker.to_ascii_lowercase()))
         .min()
         .unwrap_or(trimmed.len());
-    let raw = trimmed[..end]
+    let raw = trimmed[.. end]
         .trim()
         .trim_matches(['：', ':', ',', '，', ';', '；', ' '])
         .trim();
@@ -7408,7 +7408,7 @@ fn infer_inventory_sku_name(segment: &str) -> String {
     let lower = trimmed.to_ascii_lowercase();
     let trimmed = lower
         .rfind("sku")
-        .map(|index| trimmed[index..].trim())
+        .map(|index| trimmed[index ..].trim())
         .unwrap_or(trimmed);
     let metric_markers = [
         "月销量",
@@ -7437,18 +7437,18 @@ fn infer_inventory_sku_name(segment: &str) -> String {
         })
         .min()
         .unwrap_or(trimmed.len());
-    let raw = trimmed[..end]
+    let raw = trimmed[.. end]
         .trim()
         .trim_matches(['：', ':', ',', '，', ';', '；', ' '])
         .trim();
     let raw = raw
         .rfind(['：', ':'])
-        .map(|index| raw[index + 1..].trim())
+        .map(|index| raw[index + 1 ..].trim())
         .unwrap_or(raw);
     let lower_raw = raw.to_ascii_lowercase();
     let raw = lower_raw
         .rfind("sku")
-        .map(|index| raw[index..].trim())
+        .map(|index| raw[index ..].trim())
         .unwrap_or(raw);
     if raw.is_empty() {
         "SKU".to_string()
@@ -7535,7 +7535,7 @@ fn extract_last_metric_value(text: &str, aliases: &[&str]) -> Option<f64> {
             continue;
         };
         let start = index + alias_lower.len();
-        if let Some(value) = parse_metric_number_after_alias(&text[start..]) {
+        if let Some(value) = parse_metric_number_after_alias(&text[start ..]) {
             return Some(value);
         }
     }
@@ -7676,7 +7676,7 @@ fn segment_after_label(text: &str, label: &str, labels: &[&str]) -> Option<Strin
             continue;
         }
         let other_lower = other.to_ascii_lowercase();
-        if let Some(offset) = lower[start..].find(&other_lower) {
+        if let Some(offset) = lower[start ..].find(&other_lower) {
             let candidate = start + offset;
             if candidate > start && candidate < end {
                 end = candidate;
@@ -7684,7 +7684,7 @@ fn segment_after_label(text: &str, label: &str, labels: &[&str]) -> Option<Strin
         }
     }
 
-    Some(text[start..end].trim().to_string())
+    Some(text[start .. end].trim().to_string())
 }
 
 fn canonical_channel_name(label: &str) -> &'static str {
@@ -7745,7 +7745,7 @@ fn parse_refund_item_segment(segment: &str) -> Option<serde_json::Value> {
 fn refund_item_name(segment: &str) -> Option<&str> {
     for alias in ["退款金额", "退款额", "退款", "退货金额", "退货"] {
         if let Some(index) = segment.find(alias) {
-            let name = segment[..index]
+            let name = segment[.. index]
                 .trim()
                 .trim_matches(['：', ':', '-', '，', ',', '；', ';', ' ']);
             return if name.is_empty() { None } else { Some(name) };
@@ -8275,7 +8275,7 @@ fn infer_search_max_results(text: &str) -> Option<i64> {
             continue;
         }
         if start > 0
-            && text[..start]
+            && text[.. start]
                 .chars()
                 .last()
                 .is_some_and(|prev| prev.is_ascii_digit() || prev == '.')
@@ -8285,7 +8285,7 @@ fn infer_search_max_results(text: &str) -> Option<i64> {
 
         let mut end = start + ch.len_utf8();
         let suffix_start = end;
-        for (offset, next) in text[suffix_start..].char_indices() {
+        for (offset, next) in text[suffix_start ..].char_indices() {
             if next.is_ascii_digit() {
                 end = suffix_start + offset + next.len_utf8();
                 continue;
@@ -8293,13 +8293,13 @@ fn infer_search_max_results(text: &str) -> Option<i64> {
             break;
         }
 
-        let Ok(value) = text[start..end].parse::<i64>() else {
+        let Ok(value) = text[start .. end].parse::<i64>() else {
             continue;
         };
         if value <= 0 {
             continue;
         }
-        let before = text[..start]
+        let before = text[.. start]
             .chars()
             .rev()
             .take(16)
@@ -8307,7 +8307,7 @@ fn infer_search_max_results(text: &str) -> Option<i64> {
             .into_iter()
             .rev()
             .collect::<String>();
-        let after = text[end..].chars().take(16).collect::<String>();
+        let after = text[end ..].chars().take(16).collect::<String>();
 
         if is_search_result_count_context(&before, &after) {
             return Some(value.clamp(1, 12));
@@ -8495,7 +8495,7 @@ fn extract_metric_value(text: &str, aliases: &[&str]) -> Option<f64> {
             continue;
         };
         let start = index + alias_lower.len();
-        if let Some(value) = parse_metric_number_after_alias(&text[start..]) {
+        if let Some(value) = parse_metric_number_after_alias(&text[start ..]) {
             return Some(value);
         }
     }
@@ -8526,7 +8526,7 @@ fn parse_metric_number_after_alias(segment: &str) -> Option<f64> {
     let start = number_start?;
     let mut end = start;
     let mut dot_seen = false;
-    for (index, ch) in segment[start..].char_indices() {
+    for (index, ch) in segment[start ..].char_indices() {
         if ch.is_ascii_digit() || ch == ',' {
             end = start + index + ch.len_utf8();
             continue;
@@ -8539,13 +8539,13 @@ fn parse_metric_number_after_alias(segment: &str) -> Option<f64> {
         break;
     }
 
-    let raw_number = segment[start..end].replace(',', "");
+    let raw_number = segment[start .. end].replace(',', "");
     let mut value = raw_number.parse::<f64>().ok()?;
     if !value.is_finite() {
         return None;
     }
 
-    let unit_tail = segment[end..].trim_start();
+    let unit_tail = segment[end ..].trim_start();
     if unit_tail.starts_with('亿') {
         value *= 100_000_000.0;
     } else if unit_tail.starts_with('万')
@@ -8865,7 +8865,7 @@ fn extract_labeled_token(text: &str, labels: &[&str]) -> Option<String> {
             continue;
         };
         let start = index + label_lower.len();
-        if let Some(token) = parse_token_after_label(&text[start..]) {
+        if let Some(token) = parse_token_after_label(&text[start ..]) {
             return Some(token);
         }
     }
@@ -8892,14 +8892,14 @@ fn parse_token_after_label(segment: &str) -> Option<String> {
 
     let start = token_start?;
     let mut end = start;
-    for (index, ch) in segment[start..].char_indices() {
+    for (index, ch) in segment[start ..].char_indices() {
         if ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-') {
             end = start + index + ch.len_utf8();
             continue;
         }
         break;
     }
-    let token = segment[start..end].trim();
+    let token = segment[start .. end].trim();
     if token.is_empty() {
         None
     } else {
@@ -8922,7 +8922,7 @@ fn infer_explicit_period_days(text: &str) -> Option<i64> {
             continue;
         }
         if start > 0
-            && text[..start]
+            && text[.. start]
                 .chars()
                 .last()
                 .is_some_and(|prev| prev.is_ascii_digit() || prev == '.')
@@ -8932,7 +8932,7 @@ fn infer_explicit_period_days(text: &str) -> Option<i64> {
 
         let mut end = start + ch.len_utf8();
         let suffix_start = end;
-        for (offset, next) in text[suffix_start..].char_indices() {
+        for (offset, next) in text[suffix_start ..].char_indices() {
             if next.is_ascii_digit() {
                 end = suffix_start + offset + next.len_utf8();
                 continue;
@@ -8940,19 +8940,19 @@ fn infer_explicit_period_days(text: &str) -> Option<i64> {
             break;
         }
 
-        let Ok(value) = text[start..end].parse::<i64>() else {
+        let Ok(value) = text[start .. end].parse::<i64>() else {
             continue;
         };
-        if !(1..=365).contains(&value) {
+        if !(1 ..= 365).contains(&value) {
             continue;
         }
 
-        let unit_tail = text[end..].trim_start();
+        let unit_tail = text[end ..].trim_start();
         let Some(multiplier) = explicit_period_multiplier(unit_tail) else {
             continue;
         };
 
-        let before = text[..start]
+        let before = text[.. start]
             .chars()
             .rev()
             .take(10)
@@ -9572,10 +9572,10 @@ fn infer_task_priority(text: &str) -> i64 {
 
 fn infer_task_acceptance(text: &str) -> String {
     if let Some(index) = text.find("验收") {
-        return compact_task_text(&text[index..]);
+        return compact_task_text(&text[index ..]);
     }
     if let Some(index) = text.find("目标") {
-        return compact_task_text(&text[index..]);
+        return compact_task_text(&text[index ..]);
     }
     "产出明确结果并可在工作区复用".to_string()
 }
@@ -9691,7 +9691,8 @@ fn conversation_aware_task_description(task: &Task) -> String {
     };
 
     format!(
-        "同一会话历史上下文（用于理解追问、继续、补充、按前面数据等表达；这不代表用户选择了任何预设商品）：\n{history}\n\n当前用户请求：\n{}",
+        "同一会话历史上下文（用于理解追问、继续、补充、按前面数据等表达；\
+         这不代表用户选择了任何预设商品）：\n{history}\n\n当前用户请求：\n{}",
         task.description
     )
 }
@@ -9703,13 +9704,16 @@ fn extend_runtime_strategy_facts(
     let mode = runtime_response_mode(metadata);
     let answer_style = match mode {
         "quick" => {
-            "回答模式：快速简答。该岗位只输出最关键的岗位判断、必要证据和下一步动作，避免长篇背景说明。"
+            "回答模式：快速简答。该岗位只输出最关键的岗位判断、必要证据和下一步动作，\
+             避免长篇背景说明。"
         }
         "execution" => {
-            "回答模式：丰富执行。该岗位需要输出可交给主岗汇总的完整岗位产物，包含发现、建议、证据、风险和可验收动作，适合表格化。"
+            "回答模式：丰富执行。该岗位需要输出可交给主岗汇总的完整岗位产物，包含发现、建议、证据、\
+             风险和可验收动作，适合表格化。"
         }
         _ => {
-            "回答模式：教学模式。该岗位在完成业务判断的同时，用学生能理解的话解释专业词、判断依据和动作原因。"
+            "回答模式：教学模式。该岗位在完成业务判断的同时，用学生能理解的话解释专业词、\
+             判断依据和动作原因。"
         }
     };
     facts.push(Fact {
@@ -9774,7 +9778,8 @@ fn extend_context_facts(
         facts.push(Fact {
             source: "conversation.history".to_string(),
             content: format!(
-                "同一会话历史上下文如下。回答追问、补充、继续、按前面数据等问题时，必须优先结合这段历史；不要要求用户重复已经在这里提供的信息。\n{history}"
+                "同一会话历史上下文如下。回答追问、补充、继续、按前面数据等问题时，\
+                 必须优先结合这段历史；不要要求用户重复已经在这里提供的信息。\n{history}"
             ),
             reliability: 1.0,
         });
@@ -9798,7 +9803,8 @@ fn extend_context_facts(
         facts,
         "context.combined_summary",
         "request.combined_context",
-        "本轮合并上下文摘要如下。它可能包含会话历史、工作区资料或 RAG 降级信息；只有 source 为 commerce.selected_product_context 时才代表用户手动指定商品。\n",
+        "本轮合并上下文摘要如下。它可能包含会话历史、工作区资料或 RAG 降级信息；只有 source 为 \
+         commerce.selected_product_context 时才代表用户手动指定商品。\n",
     );
     extend_named_context_fact(
         metadata,
@@ -10078,7 +10084,8 @@ fn merge_skill_results(
                     push_unique(
                         &mut role_output.evidence,
                         format!(
-                            "本轮返回缺数据或待适配状态；由于用户询问类目级问题且未选择预设商品，按数据边界降级展示，不阻塞岗位产物。能力边界：{}。",
+                            "本轮返回缺数据或待适配状态；由于用户询问类目级问题且未选择预设商品，\
+                             按数据边界降级展示，不阻塞岗位产物。能力边界：{}。",
                             category_skill_boundary_label(result.skill_id.as_str())
                         ),
                     );
@@ -10108,7 +10115,8 @@ fn merge_skill_results(
                     push_unique(
                         &mut role_output.evidence,
                         format!(
-                            "本轮有能力未形成可用结果；由于这是未选商品的类目级问题，该缺口只作为数据边界，不要求用户先指定预设商品。能力边界：{}。",
+                            "本轮有能力未形成可用结果；由于这是未选商品的类目级问题，\
+                             该缺口只作为数据边界，不要求用户先指定预设商品。能力边界：{}。",
                             category_skill_boundary_label(result.skill_id.as_str())
                         ),
                     );
@@ -10190,7 +10198,9 @@ fn normalize_worker_role_output(
     if removed_unsupported_benchmark_claims {
         push_unique(
             &mut output.risks,
-            "未接入真实外部行业基准时，不输出行业区间、行业均值或行业百分位；如需对标，应先接入外部搜索或行业基准来源。".to_string(),
+            "未接入真实外部行业基准时，不输出行业区间、行业均值或行业百分位；如需对标，\
+             应先接入外部搜索或行业基准来源。"
+                .to_string(),
         );
         while output.findings.len() < required_findings {
             output.findings.push(default_role_finding(
@@ -10242,14 +10252,18 @@ fn sanitize_category_level_runtime_artifacts(output: &mut RoleWorkOutput) {
             || !is_category_runtime_noise(item)
     });
     if is_category_runtime_noise(&output.summary) || contains_refusal_summary(&output.summary) {
-        output.summary = "本轮按类目级或未指定商品链路形成团队判断：不注入默认商品，不把未接入的单品指标或平台写操作视为回答失败。".to_string();
+        output.summary = "本轮按类目级或未指定商品链路形成团队判断：不注入默认商品，\
+                          不把未接入的单品指标或平台写操作视为回答失败。"
+            .to_string();
     }
 }
 
 fn sanitize_unsupported_benchmark_claims(output: &mut RoleWorkOutput) -> bool {
     let mut removed = false;
     if is_unsupported_benchmark_claim(&output.summary) {
-        output.summary = "本岗位已按可用数据形成判断；没有真实外部来源时，不输出行业区间、行业均值或行业百分位，只保留可复核指标、业务边界和待补基准。".to_string();
+        output.summary = "本岗位已按可用数据形成判断；没有真实外部来源时，不输出行业区间、\
+                          行业均值或行业百分位，只保留可复核指标、业务边界和待补基准。"
+            .to_string();
         removed = true;
     }
     removed |= retain_supported_benchmark_items(&mut output.findings);
@@ -10413,8 +10427,8 @@ fn contains_benchmark_number_claim(value: &str) -> bool {
     ];
     TERMS.iter().any(|term| {
         value.find(term).is_some_and(|index| {
-            let after = &value[index..];
-            let before = &value[..index];
+            let after = &value[index ..];
+            let before = &value[.. index];
             segment_after_contains_percent_or_range(after)
                 || segment_before_contains_percent_or_range(before)
         })
@@ -10612,15 +10626,17 @@ fn normalize_role_specific_findings(role: &str, findings: &mut Vec<String>, task
                 );
             }
         }
-        "engineering" => {
-            if !contains_any_in_items(findings, &["接口", "埋点", "技术", "系统", "稳定", "回滚"])
-            {
-                push_unique(
-                    findings,
-                    "工程岗位本轮作为协作岗位，负责确认埋点、接口、数据刷新和系统稳定性边界。"
-                        .to_string(),
-                );
-            }
+        "engineering"
+            if !contains_any_in_items(
+                findings,
+                &["接口", "埋点", "技术", "系统", "稳定", "回滚"],
+            ) =>
+        {
+            push_unique(
+                findings,
+                "工程岗位本轮作为协作岗位，负责确认埋点、接口、数据刷新和系统稳定性边界。"
+                    .to_string(),
+            );
         }
         _ => {}
     }
@@ -10654,15 +10670,17 @@ fn normalize_role_specific_recommendations(
                 );
             }
         }
-        "data" => {
-            if !contains_any_in_items(recommendations, &["曝光", "点击", "加购", "付款", "漏斗"])
-            {
-                push_unique(
-                    recommendations,
-                    "先补齐曝光、点击、加购、付款、退款、咨询量和渠道来源，再输出确定性结论。"
-                        .to_string(),
-                );
-            }
+        "data"
+            if !contains_any_in_items(
+                recommendations,
+                &["曝光", "点击", "加购", "付款", "漏斗"],
+            ) =>
+        {
+            push_unique(
+                recommendations,
+                "先补齐曝光、点击、加购、付款、退款、咨询量和渠道来源，再输出确定性结论。"
+                    .to_string(),
+            );
         }
         _ => {}
     }
@@ -10681,10 +10699,9 @@ fn normalize_role_specific_risks(role: &str, risks: &mut Vec<String>) {
 fn default_role_finding(role: &str, index: usize, task: &str) -> String {
     match (role, index) {
         ("data", 0) => format!("当前问题需要先明确指标口径、样本周期和漏斗节点：{task}"),
-        ("data", _) => {
-            "未提供真实曝光、点击、加购、付款等指标时，只能给出判断框架，不能编造转化率。"
-                .to_string()
-        }
+        ("data", _) => "未提供真实曝光、点击、加购、付款等指标时，只能给出判断框架，\
+                        不能编造转化率。"
+            .to_string(),
         ("service", _) => {
             "服务岗位本轮作为支持角色，重点识别用户承诺、售后风险和需要补齐的话术边界。".to_string()
         }
@@ -10757,7 +10774,8 @@ fn normalize_product_context_evidence(
 
     push_unique(
         &mut output.evidence,
-        "本轮未检测到 context.selected_summary；不注入任何预设商品资料，只按用户文本、会话历史和工作区上下文理解问题。"
+        "本轮未检测到 context.selected_summary；不注入任何预设商品资料，只按用户文本、\
+         会话历史和工作区上下文理解问题。"
             .to_string(),
     );
 }
@@ -10818,7 +10836,8 @@ fn normalize_category_level_product_requests(
 
     push_unique(
         &mut output.evidence,
-        "用户本轮没有手动选择预设商品；系统按类目/未指定商品链路回答，不把历史商品或默认商品注入本轮上下文。"
+        "用户本轮没有手动选择预设商品；系统按类目/未指定商品链路回答，\
+         不把历史商品或默认商品注入本轮上下文。"
             .to_string(),
     );
     push_unique(
@@ -10827,14 +10846,16 @@ fn normalize_category_level_product_requests(
     );
     push_unique(
         &mut output.risks,
-        "类目级或未指定商品结论只能用于方向判断，不能替代单品级库存、价格、素材、投放和历史转化数据复核。"
+        "类目级或未指定商品结论只能用于方向判断，不能替代单品级库存、价格、素材、\
+         投放和历史转化数据复核。"
             .to_string(),
     );
 
     if removed_product_specific_request {
         push_unique(
             &mut output.evidence,
-            "用户本轮询问的是类目级问题，未手动选择预设商品；系统先按类目通用链路分析，不把具体商品编号或历史商品作为前置条件。"
+            "用户本轮询问的是类目级问题，未手动选择预设商品；系统先按类目通用链路分析，\
+             不把具体商品编号或历史商品作为前置条件。"
                 .to_string(),
         );
         push_unique(
@@ -10843,7 +10864,8 @@ fn normalize_category_level_product_requests(
         );
         push_unique(
             &mut output.recommendations,
-            "如果后续要做单品级诊断，再由用户手动选择预设商品或补充商品资料；本轮先输出咖啡类目可执行判断。"
+            "如果后续要做单品级诊断，再由用户手动选择预设商品或补充商品资料；\
+             本轮先输出咖啡类目可执行判断。"
                 .to_string(),
         );
         push_unique(
@@ -10866,13 +10888,38 @@ fn apply_category_team_output_shape(
                 "数据岗按类目级链路先定义曝光、点击、加购、付款、退款、咨询量和渠道拆分口径。"
                     .to_string(),
             );
-            push_unique(&mut output.findings, "未选择具体商品时，数据岗不能把历史商品或默认商品当成本轮样本，只能输出诊断框架和待补数据清单。".to_string());
-            push_unique(&mut output.recommendations, "建立一张类目级漏斗表：渠道、曝光、点击率、加购率、付款率、退款率、客服咨询率、复购率逐列补齐。".to_string());
-            push_unique(&mut output.recommendations, "把后续单品级诊断的入口限定为用户手动选择预设商品或补充商品资料，避免默认商品污染结论。".to_string());
+            push_unique(
+                &mut output.findings,
+                "未选择具体商品时，数据岗不能把历史商品或默认商品当成本轮样本，\
+                 只能输出诊断框架和待补数据清单。"
+                    .to_string(),
+            );
+            push_unique(
+                &mut output.recommendations,
+                "建立一张类目级漏斗表：渠道、曝光、点击率、加购率、付款率、退款率、客服咨询率、\
+                 复购率逐列补齐。"
+                    .to_string(),
+            );
+            push_unique(
+                &mut output.recommendations,
+                "把后续单品级诊断的入口限定为用户手动选择预设商品或补充商品资料，\
+                 避免默认商品污染结论。"
+                    .to_string(),
+            );
         }
         "creative" => {
-            push_unique(&mut output.findings, "内容岗把咖啡类商品先拆成场景、人群、价格带、口味/功能卖点和首三秒钩子，而不是直接套用某个历史商品。".to_string());
-            push_unique(&mut output.recommendations, "准备三组可 A/B 测试素材：通勤提神、办公室囤货、礼盒送礼；每组包含标题、短视频开头和直播间话术。".to_string());
+            push_unique(
+                &mut output.findings,
+                "内容岗把咖啡类商品先拆成场景、人群、价格带、口味/功能卖点和首三秒钩子，\
+                 而不是直接套用某个历史商品。"
+                    .to_string(),
+            );
+            push_unique(
+                &mut output.recommendations,
+                "准备三组可 A/B 测试素材：通勤提神、办公室囤货、礼盒送礼；每组包含标题、\
+                 短视频开头和直播间话术。"
+                    .to_string(),
+            );
             push_unique(
                 &mut output.recommendations,
                 "每组素材都绑定数据岗定义的点击率、停留、加购和付款指标，避免只看播放量。"
@@ -10880,7 +10927,12 @@ fn apply_category_team_output_shape(
             );
         }
         "service" => {
-            push_unique(&mut output.findings, "服务岗按类目级链路识别咨询承接、售后承诺、物流时效、口味不符和退款争议对转化的影响。".to_string());
+            push_unique(
+                &mut output.findings,
+                "服务岗按类目级链路识别咨询承接、售后承诺、物流时效、\
+                 口味不符和退款争议对转化的影响。"
+                    .to_string(),
+            );
             push_unique(
                 &mut output.recommendations,
                 "先沉淀客服 SOP：口味选择、保质期、发货时效、退换货、优惠叠加和异常升级六类话术。"
@@ -10892,22 +10944,57 @@ fn apply_category_team_output_shape(
             );
         }
         "engineering" => {
-            push_unique(&mut output.findings, "工程岗负责确认埋点、报表刷新、商品/订单/客服数据接口和失败回滚边界，保证后续复盘可追踪。".to_string());
+            push_unique(
+                &mut output.findings,
+                "工程岗负责确认埋点、报表刷新、商品/订单/客服数据接口和失败回滚边界，\
+                 保证后续复盘可追踪。"
+                    .to_string(),
+            );
             push_unique(
                 &mut output.recommendations,
                 "补齐曝光、点击、加购、付款、退款和咨询事件的埋点校验，并记录报表刷新时间。"
                     .to_string(),
             );
-            push_unique(&mut output.recommendations, "若右侧过程或工作区写入失败，要保留本轮 SSE 事件和最终回答，避免用户以为任务仍在执行。".to_string());
+            push_unique(
+                &mut output.recommendations,
+                "若右侧过程或工作区写入失败，要保留本轮 SSE \
+                 事件和最终回答，避免用户以为任务仍在执行。"
+                    .to_string(),
+            );
         }
         "ops" => {
-            push_unique(&mut output.findings, "运营岗把数据、内容、服务和工程岗位的输入收敛成可执行节奏，先做类目级判断，再等待用户选择商品进入单品复核。".to_string());
-            push_unique(&mut output.recommendations, "第 1 步补齐类目漏斗口径，第 2 步上线三组内容/话术测试，第 3 步按日报复盘转化断点和服务风险。".to_string());
-            push_unique(&mut output.recommendations, "所有结论都标记为未指定商品链路；只有用户手动勾选预设商品后，才把对应商品资料注入下一轮回答。".to_string());
+            push_unique(
+                &mut output.findings,
+                "运营岗把数据、内容、服务和工程岗位的输入收敛成可执行节奏，先做类目级判断，\
+                 再等待用户选择商品进入单品复核。"
+                    .to_string(),
+            );
+            push_unique(
+                &mut output.recommendations,
+                "第 1 步补齐类目漏斗口径，第 2 步上线三组内容/话术测试，第 3 \
+                 步按日报复盘转化断点和服务风险。"
+                    .to_string(),
+            );
+            push_unique(
+                &mut output.recommendations,
+                "所有结论都标记为未指定商品链路；只有用户手动勾选预设商品后，\
+                 才把对应商品资料注入下一轮回答。"
+                    .to_string(),
+            );
         }
         "douyin_ads" => {
-            push_unique(&mut output.findings, "千川投放岗在未指定商品时只拆人群、素材组、预算节奏和 CPA/ROI 止损线，不承诺具体投放结果。".to_string());
-            push_unique(&mut output.recommendations, "按冷启动、放量、复盘三段设置预算护栏，并把素材点击、直播间停留和付款转化串联复盘。".to_string());
+            push_unique(
+                &mut output.findings,
+                "千川投放岗在未指定商品时只拆人群、素材组、预算节奏和 CPA/ROI \
+                 止损线，不承诺具体投放结果。"
+                    .to_string(),
+            );
+            push_unique(
+                &mut output.recommendations,
+                "按冷启动、放量、复盘三段设置预算护栏，并把素材点击、\
+                 直播间停留和付款转化串联复盘。"
+                    .to_string(),
+            );
         }
         "accounting" => {
             push_unique(
@@ -11066,7 +11153,8 @@ fn contains_runtime_data_gap(value: &str) -> bool {
 
 fn format_category_level_skill_boundary(result: &SkillExecutionResult) -> String {
     format!(
-        "数据边界：{}；本轮未手动选择预设商品，按类目级分析降级处理，不把缺少单品标识、外部适配器或工作区写入草案视为执行失败。",
+        "数据边界：{}；本轮未手动选择预设商品，按类目级分析降级处理，不把缺少单品标识、\
+         外部适配器或工作区写入草案视为执行失败。",
         category_skill_boundary_label(result.skill_id.as_str())
     )
 }
@@ -11163,13 +11251,15 @@ fn category_boundary_failure_report(
         findings: default_role_findings(role, &task_line),
         recommendations: default_role_recommendations(role, &task_line),
         evidence: vec![
-            "本轮未检测到 context.selected_summary；不注入任何预设商品资料，只按用户文本、会话历史和工作区上下文理解问题。"
+            "本轮未检测到 context.selected_summary；不注入任何预设商品资料，只按用户文本、\
+             会话历史和工作区上下文理解问题。"
                 .to_string(),
             CATEGORY_LEVEL_BOUNDARY_MARKER.to_string(),
             "部分岗位原始输出结构不完整，已按类目级业务边界降级为可复核的方向判断。".to_string(),
         ],
         risks: vec![
-            "类目级或未指定商品结论只能用于方向判断；内部执行细节不会作为用户结论展示，后续需要用真实经营数据复核。"
+            "类目级或未指定商品结论只能用于方向判断；内部执行细节不会作为用户结论展示，\
+             后续需要用真实经营数据复核。"
                 .to_string(),
         ],
         open_questions: Vec::new(),
@@ -11669,8 +11759,12 @@ mod tests {
     fn selected_product_summary() -> String {
         [
             "Commerce product context for selected user products.",
-            "Product source product:11111111-1111-1111-1111-111111111111 | name=五一咖啡组合 | platform=抖音 | category=咖啡饮品 | brand=Atlas | price=99 CNY | status=active | description=节日主推组合",
-            "Knowledge source product_knowledge:22222222-2222-2222-2222-222222222222 | product=11111111-1111-1111-1111-111111111111 | title=核心卖点 | type=selling_point | source=manual | confidence=0.90 | content=低糖、便携、适合五一出游",
+            "Product source product:11111111-1111-1111-1111-111111111111 | name=五一咖啡组合 | \
+             platform=抖音 | category=咖啡饮品 | brand=Atlas | price=99 CNY | status=active | \
+             description=节日主推组合",
+            "Knowledge source product_knowledge:22222222-2222-2222-2222-222222222222 | \
+             product=11111111-1111-1111-1111-111111111111 | title=核心卖点 | type=selling_point | \
+             source=manual | confidence=0.90 | content=低糖、便携、适合五一出游",
         ]
         .join("\n")
     }
@@ -11768,15 +11862,18 @@ mod tests {
                 "ops_assortment_planning",
             ),
             (
-                "给咖啡新品做智能定价：成本38，当前售价99，月销量820，竞品价89，竞品价109，库存天数45",
+                "给咖啡新品做智能定价：成本38，当前售价99，月销量820，竞品价89，竞品价109，\
+                 库存天数45",
                 "ops_smart_pricing",
             ),
             (
-                "做SKU库存优化和EOQ：SKU冷萃A 月销量300 成本40 库存500；SKU拿铁B 月销量180 成本35 库存160",
+                "做SKU库存优化和EOQ：SKU冷萃A 月销量300 成本40 库存500；SKU拿铁B 月销量180 成本35 \
+                 库存160",
                 "ops_inventory_optimizer",
             ),
             (
-                "做ABC-XYZ库存分类：SKU冷萃A GMV12万 历史销量100 102 98 101；SKU拿铁B GMV6万 历史销量60 88 44 96",
+                "做ABC-XYZ库存分类：SKU冷萃A GMV12万 历史销量100 102 98 101；SKU拿铁B GMV6万 \
+                 历史销量60 88 44 96",
                 "ops_abc_xyz_classifier",
             ),
             (
@@ -11837,7 +11934,8 @@ mod tests {
         let requests = autosuggest_skill_requests(
             &role("ops"),
             &task(
-                "给咖啡新品做动态定价和调价建议：成本38，当前售价99，月销量820，竞品价89，竞品价109，竞品价119，库存天数45，价格弹性1.6",
+                "给咖啡新品做动态定价和调价建议：成本38，当前售价99，月销量820，竞品价89，\
+                 竞品价109，竞品价119，库存天数45，价格弹性1.6",
             ),
             "{}",
         );
@@ -11968,7 +12066,8 @@ mod tests {
         let requests = autosuggest_skill_requests(
             &role("douyin_ads"),
             &task(
-                "诊断直播间漏斗：曝光10万，点击3200，进房1800，商品点击360，下单72，付款60，广告消耗1.2万，GMV4.2万",
+                "诊断直播间漏斗：曝光10万，点击3200，进房1800，商品点击360，下单72，付款60，\
+                 广告消耗1.2万，GMV4.2万",
             ),
             "{}",
         );
@@ -12151,7 +12250,8 @@ mod tests {
         let requests = autosuggest_skill_requests(
             &role("ops"),
             &task_with_metadata(
-                "给这个商品做智能定价：成本38，当前售价99，月销量820，竞品价89，竞品价109，库存天数45",
+                "给这个商品做智能定价：成本38，当前售价99，月销量820，竞品价89，竞品价109，\
+                 库存天数45",
                 &[("context.selected_summary", &summary)],
             ),
             "{}",
@@ -12377,7 +12477,8 @@ mod tests {
         let requests = autosuggest_skill_requests(
             &role("ops"),
             &task(
-                "做库存优化和安全库存：SKU冷萃A 月销量300 成本40 库存500；SKU拿铁B 月销量180 成本35 库存160，供货周期14，服务水平98%",
+                "做库存优化和安全库存：SKU冷萃A 月销量300 成本40 库存500；SKU拿铁B 月销量180 \
+                 成本35 库存160，供货周期14，服务水平98%",
             ),
             "{}",
         );
@@ -12442,7 +12543,8 @@ mod tests {
         let requests = autosuggest_skill_requests(
             &role("ops"),
             &task(
-                "做ABC-XYZ库存分类和九宫格库存矩阵：SKU冷萃A GMV12万 历史销量100 102 98 101；SKU拿铁B GMV6万 历史销量60 88 44 96，展示前2",
+                "做ABC-XYZ库存分类和九宫格库存矩阵：SKU冷萃A GMV12万 历史销量100 102 98 \
+                 101；SKU拿铁B GMV6万 历史销量60 88 44 96，展示前2",
             ),
             "{}",
         );
@@ -12523,7 +12625,8 @@ mod tests {
         let requests = autosuggest_skill_requests(
             &role("ops"),
             &task(
-                "检测广告疲劳和素材疲劳：抖音CTR基准3.2，近期CTR2.4，频次6，预算5000，ROAS3.2；淘宝CTR基准2.8，近期CTR1.7，曝光频次9，预算3000，ROAS2.1，总预算9000",
+                "检测广告疲劳和素材疲劳：抖音CTR基准3.2，近期CTR2.4，频次6，预算5000，ROAS3.2；\
+                 淘宝CTR基准2.8，近期CTR1.7，曝光频次9，预算3000，ROAS2.1，总预算9000",
             ),
             "{}",
         );
@@ -12593,7 +12696,8 @@ mod tests {
         let requests = autosuggest_skill_requests(
             &role("data"),
             &task(
-                "analyze conversion funnel: impressions 10000 clicks 500 cart 120 orders 60 payments 54",
+                "analyze conversion funnel: impressions 10000 clicks 500 cart 120 orders 60 \
+                 payments 54",
             ),
             "{}",
         );
@@ -12644,7 +12748,8 @@ mod tests {
         let requests = autosuggest_skill_requests(
             &role("data"),
             &task(
-                "做一次综合诊断，重点看增长：GMV26万，上期GMV23万，订单2100，UV6.2万，广告费7.2万，退款1.56万，毛利6.8万，目标GMV30万",
+                "做一次综合诊断，重点看增长：GMV26万，上期GMV23万，订单2100，UV6.2万，广告费7.\
+                 2万，退款1.56万，毛利6.8万，目标GMV30万",
             ),
             "{}",
         );
@@ -12668,7 +12773,8 @@ mod tests {
         let requests = autosuggest_skill_requests(
             &role("data"),
             &task_with_metadata(
-                "对这个商品做综合业务诊断：GMV26万，上期GMV23万，订单2100，UV6.2万，广告费7.2万，退款1.56万",
+                "对这个商品做综合业务诊断：GMV26万，上期GMV23万，订单2100，UV6.2万，广告费7.2万，\
+                 退款1.56万",
                 &[("context.selected_summary", &summary)],
             ),
             "{}",
@@ -12772,7 +12878,8 @@ mod tests {
         let requests = autosuggest_skill_requests(
             &role("data"),
             &task_with_metadata(
-                "分析这个商品价格弹性：价格90销量560，价格110销量440，成本42，当前售价99，并联网查实时市场定价和竞品价格区间",
+                "分析这个商品价格弹性：价格90销量560，价格110销量440，成本42，当前售价99，\
+                 并联网查实时市场定价和竞品价格区间",
                 &[("context.selected_summary", &summary)],
             ),
             "{}",
@@ -12801,7 +12908,8 @@ mod tests {
         let demand_requests = autosuggest_skill_requests(
             &role("data"),
             &task(
-                "做咖啡饮品需求预测和备货建议：最近订单120 128 134 145 151 162，并联网查最新市场趋势，最多4条来源",
+                "做咖啡饮品需求预测和备货建议：最近订单120 128 134 145 151 \
+                 162，并联网查最新市场趋势，最多4条来源",
             ),
             "{}",
         );
@@ -12873,7 +12981,8 @@ mod tests {
         let channel_requests = autosuggest_skill_requests(
             &role("data"),
             &task(
-                "复盘投放渠道ROI：抖音GMV12万，广告费3万，订单600，UV2万，并查行业ROI基准，最多3条来源",
+                "复盘投放渠道ROI：抖音GMV12万，广告费3万，订单600，UV2万，并查行业ROI基准，\
+                 最多3条来源",
             ),
             "{}",
         );
@@ -12967,7 +13076,8 @@ mod tests {
         let requests = autosuggest_skill_requests(
             &role("data"),
             &task(
-                "复盘投放渠道ROI：抖音GMV12万，广告费3万，订单600，UV2万；淘宝GMV8万，广告费2.6万，订单420，UV1.6万",
+                "复盘投放渠道ROI：抖音GMV12万，广告费3万，订单600，UV2万；淘宝GMV8万，广告费2.\
+                 6万，订单420，UV1.6万",
             ),
             "{}",
         );
@@ -12993,7 +13103,8 @@ mod tests {
         let requests = autosuggest_skill_requests(
             &role("data"),
             &task(
-                "做渠道归因分析，用时间衰减模型：抖音GMV18万，广告费4.8万，UV5万，转化率3.2；淘宝GMV12万，广告费2.2万，UV4.2万，转化率2.4",
+                "做渠道归因分析，用时间衰减模型：抖音GMV18万，广告费4.8万，UV5万，转化率3.2；\
+                 淘宝GMV12万，广告费2.2万，UV4.2万，转化率2.4",
             ),
             "{}",
         );
@@ -13043,7 +13154,8 @@ mod tests {
         let requests = autosuggest_skill_requests(
             &role("data"),
             &task_with_metadata(
-                "对这个商品做渠道归因分析：抖音GMV18万，广告费4.8万，UV5万；淘宝GMV12万，广告费2.2万，UV4.2万",
+                "对这个商品做渠道归因分析：抖音GMV18万，广告费4.8万，UV5万；淘宝GMV12万，广告费2.\
+                 2万，UV4.2万",
                 &[("context.selected_summary", &summary)],
             ),
             "{}",
@@ -13639,7 +13751,8 @@ mod tests {
         let requests = autosuggest_skill_requests(
             &role("data"),
             &task(
-                "做订单季节性分解，分析周内波动：120 132 141 150 168 181 190 128 139 149 158 176 188 201",
+                "做订单季节性分解，分析周内波动：120 132 141 150 168 181 190 128 139 149 158 176 \
+                 188 201",
             ),
             "{}",
         );
@@ -13662,7 +13775,8 @@ mod tests {
         let requests = autosuggest_skill_requests(
             &role("data"),
             &task_with_metadata(
-                "分析这个商品的订单季节性和周期波动：120 132 141 150 168 181 190 128 139 149 158 176 188 201",
+                "分析这个商品的订单季节性和周期波动：120 132 141 150 168 181 190 128 139 149 158 \
+                 176 188 201",
                 &[("context.selected_summary", &summary)],
             ),
             "{}",
@@ -13695,7 +13809,8 @@ mod tests {
         let requests = autosuggest_skill_requests(
             &role("data"),
             &task(
-                "查询店铺指标：GMV18万，订单1800，UV3.6万，点击7200，广告费3.6万，退款5400，毛利5.4万",
+                "查询店铺指标：GMV18万，订单1800，UV3.6万，点击7200，广告费3.6万，退款5400，毛利5.\
+                 4万",
             ),
             "{}",
         );
@@ -14025,7 +14140,9 @@ mod tests {
         let requests = autosuggest_skill_requests(
             &role("accounting"),
             &task(
-                "做一份财务健康诊断：GMV 500000，广告费50000，订单3000，并联网查最新电商行业毛利率、净利率和广告ROI财务基准，最多4条来源",
+                "做一份财务健康诊断：GMV \
+                 500000，广告费50000，订单3000，并联网查最新电商行业毛利率、\
+                 净利率和广告ROI财务基准，最多4条来源",
             ),
             "{}",
         );
@@ -15432,7 +15549,8 @@ mod tests {
         let bug_requests = autosuggest_skill_requests(
             &role("engineering"),
             &task(
-                "最近支付接口频繁报错，帮我排查bug根因，并联网查已知解决方案和最佳实践，最多4条来源",
+                "最近支付接口频繁报错，帮我排查bug根因，并联网查已知解决方案和最佳实践，\
+                 最多4条来源",
             ),
             "{}",
         );
@@ -15455,7 +15573,8 @@ mod tests {
         let tech_requests = autosuggest_skill_requests(
             &role("engineering"),
             &task(
-                "消息队列技术选型怎么做，团队现在主要是Rust和Postgres，查最新对比和性能benchmark，最多5条来源",
+                "消息队列技术选型怎么做，团队现在主要是Rust和Postgres，查最新对比和性能benchmark，\
+                 最多5条来源",
             ),
             "{}",
         );
@@ -15901,7 +16020,8 @@ mod tests {
 
         let normalized = normalize_worker_role_output_for_test(
             "data",
-            "请用Agent集群方式判断：直播间曝光1000、点击80、加购20、下单8、付款7是否健康，不引用任何预设商品。",
+            "请用Agent集群方式判断：直播间曝光1000、点击80、加购20、下单8、付款7是否健康，\
+             不引用任何预设商品。",
             parsed,
         );
         let output = normalized.role_output.expect("role output");
