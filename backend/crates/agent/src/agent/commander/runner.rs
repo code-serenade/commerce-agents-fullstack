@@ -817,6 +817,7 @@ impl Commander {
                 )),
                 description: format!(
                     "原始用户任务：{root_task}\n\n主回答岗位初稿：{primary_output}\n\\
+                     \
                      n作为{}支持角色，请基于同一上下文补充本岗位的独立判断、证据、\
                      风险和要交给主岗汇总的行动建议；不要只说“接收上游结果”。",
                     assignment.runtime_role

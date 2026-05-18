@@ -54,7 +54,7 @@ impl XtaskContext {
             entity_dir: project_root.join("crates/repo/src/entity"),
             db_container_name: env::var("DB_CONTAINER_NAME")
                 .unwrap_or_else(|_| "postgres".to_owned()),
-            pg_image: env::var("PG_IMAGE").unwrap_or_else(|_| "postgres:16".to_owned()),
+            pg_image: env::var("PG_IMAGE").unwrap_or_else(|_| "postgres:latest".to_owned()),
             pg_data_dir: env::var("PG_DATA_DIR")
                 .map(PathBuf::from)
                 .unwrap_or_else(|_| home_dir().join("db/db-center-template-postgres")),
@@ -114,8 +114,20 @@ impl XtaskContext {
             return Ok(false);
         }
 
-        let names = process::output("docker", &["ps", "--format", "{{.Names}}"])?;
-        Ok(names.lines().any(|name| name == self.db_container_name))
+        let output = process::output(
+            "docker",
+            &[
+                "inspect",
+                "-f",
+                "{{.State.Status}}",
+                &self.db_container_name,
+            ],
+        );
+
+        match output {
+            Ok(status) => Ok(status.trim() == "running"),
+            Err(_) => Ok(false),
+        }
     }
 
     pub fn wait_for_postgres(&self) -> Result<()> {

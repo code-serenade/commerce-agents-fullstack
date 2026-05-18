@@ -28,7 +28,7 @@ cargo xtask <command>
 APP_DATABASE_URL=postgres://postgres:123456@localhost:15433/test
 DATABASE_URL=postgres://postgres:123456@localhost:15433/test
 DB_CONTAINER_NAME=postgres
-PG_IMAGE=postgres:16
+PG_IMAGE=postgres:latest
 ```
 
 说明：

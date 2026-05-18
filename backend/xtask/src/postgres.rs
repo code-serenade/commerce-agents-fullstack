@@ -28,7 +28,7 @@ pub fn up() -> Result<()> {
         let port_mapping = format!("{}:5432", ctx.db_port);
         let user_env = format!("POSTGRES_USER={}", ctx.db_user);
         let password_env = format!("POSTGRES_PASSWORD={}", ctx.db_password);
-        let volume = format!("{}:/var/lib/postgresql/data", ctx.pg_data_dir.display());
+        let volume = format!("{}:/var/lib/postgresql", ctx.pg_data_dir.display());
 
         process::run(
             "docker",

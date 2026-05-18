@@ -30,7 +30,7 @@ case "$ACTION" in
         -e POSTGRES_USER="$DB_USER" \
         -e POSTGRES_PASSWORD="$DB_PASSWORD" \
         -e POSTGRES_DB=postgres \
-        -v "$PG_DATA_DIR":/var/lib/postgresql/data \
+        -v "$PG_DATA_DIR":/var/lib/postgresql \
         -p "$DB_PORT":5432 \
         "$PG_IMAGE" >/dev/null
     fi

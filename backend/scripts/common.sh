@@ -25,8 +25,8 @@ load_env() {
 
   : "${APP_DATABASE_URL:=postgres://postgres:123456@localhost:15432/app}"
   : "${DATABASE_URL:=$APP_DATABASE_URL}"
-  : "${DB_CONTAINER_NAME:=db-center-template-pg}"
-  : "${PG_IMAGE:=postgres:16}"
+  : "${DB_CONTAINER_NAME:=postgres}"
+  : "${PG_IMAGE:=postgres:latest}"
   : "${PG_DATA_DIR:=$HOME/db/db-center-template-postgres}"
 
   export DATABASE_URL
