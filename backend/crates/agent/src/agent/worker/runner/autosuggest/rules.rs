@@ -2,7 +2,7 @@ use super::config::{AutosuggestRule, AutosuggestRuleMode, WorkerAutosuggestPolic
 use crate::agent::worker::{
     Task,
     runner::{
-        inference::{context, metrics, numbers},
+        inference::{context, memory_task, metrics, numbers},
         types::ParsedSkillRequest,
     },
 };
@@ -87,6 +87,42 @@ fn render_template_string(template: &str, text: &str, task: &Task) -> String {
         .replace(
             "{{period_days}}",
             &numbers::infer_period_days(text).to_string(),
+        )
+        .replace(
+            "{{integer}}",
+            &numbers::infer_integer_or_default(text, 1).to_string(),
+        )
+        .replace(
+            "{{percent}}",
+            &numbers::infer_percent_number(text, 0.0).to_string(),
+        )
+        .replace(
+            "{{second_percent}}",
+            &numbers::infer_second_percent_number(text, 0.0).to_string(),
+        )
+        .replace("{{cohort_unit}}", metrics::infer_cohort_unit(text))
+        .replace(
+            "{{seasonal_period}}",
+            &metrics::infer_seasonal_period(text).to_string(),
+        )
+        .replace("{{memory_key}}", &memory_task::infer_memory_key(text))
+        .replace("{{memory_type}}", memory_task::infer_memory_type(text))
+        .replace(
+            "{{memory_content}}",
+            &memory_task::infer_memory_content(text, task),
+        )
+        .replace("{{task_title}}", &memory_task::infer_task_title(text, task))
+        .replace(
+            "{{task_owner_role}}",
+            memory_task::infer_task_owner_role(text),
+        )
+        .replace(
+            "{{task_priority}}",
+            &memory_task::infer_task_priority(text).to_string(),
+        )
+        .replace(
+            "{{task_acceptance}}",
+            &memory_task::infer_task_acceptance(text),
         )
         .replace(
             "{{selected_product_ref}}",

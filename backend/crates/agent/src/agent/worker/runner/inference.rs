@@ -1,5 +1,6 @@
 pub(super) mod config;
 pub(super) mod context;
+pub(super) mod memory_task;
 pub(super) mod metrics;
 pub(super) mod numbers;
 mod text;

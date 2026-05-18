@@ -57,6 +57,24 @@ pub(super) fn first_number(text: &str) -> Option<f64> {
     numbers_in_text(text).first().copied()
 }
 
+pub(in crate::agent::worker::runner) fn infer_cohort_unit(text: &str) -> &'static str {
+    let lower = text.to_ascii_lowercase();
+    if text.contains("月") || lower.contains("month") || lower.contains("monthly") {
+        "month"
+    } else {
+        "week"
+    }
+}
+
+pub(in crate::agent::worker::runner) fn infer_seasonal_period(text: &str) -> i64 {
+    let lower = text.to_ascii_lowercase();
+    if text.contains("月") || lower.contains("monthly") {
+        30
+    } else {
+        7
+    }
+}
+
 fn parse_metric_number_after_alias(segment: &str) -> Option<f64> {
     let mut chars = segment.char_indices().peekable();
     let mut number_start = None;
