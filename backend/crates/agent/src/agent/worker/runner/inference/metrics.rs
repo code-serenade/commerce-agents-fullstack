@@ -75,7 +75,7 @@ pub(in crate::agent::worker::runner) fn infer_seasonal_period(text: &str) -> i64
     }
 }
 
-fn parse_metric_number_after_alias(segment: &str) -> Option<f64> {
+pub(super) fn parse_metric_number_after_alias(segment: &str) -> Option<f64> {
     let mut chars = segment.char_indices().peekable();
     let mut number_start = None;
     while let Some((index, ch)) = chars.peek().copied() {

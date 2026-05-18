@@ -6,8 +6,4 @@ include!("inference/inventory.rs");
 include!("inference/campaign.rs");
 include!("inference/analytics.rs");
 include!("inference/search.rs");
-include!("inference/service.rs");
-include!("inference/design.rs");
-include!("inference/product.rs");
-include!("inference/engineering.rs");
 include!("inference/task_context.rs");

@@ -2,7 +2,7 @@ use super::config::{AutosuggestRule, AutosuggestRuleMode, WorkerAutosuggestPolic
 use crate::agent::worker::{
     Task,
     runner::{
-        inference::{context, memory_task, metrics, numbers},
+        inference::{context, domain, memory_task, metrics, numbers},
         types::ParsedSkillRequest,
     },
 };
@@ -123,6 +123,46 @@ fn render_template_string(template: &str, text: &str, task: &Task) -> String {
         .replace(
             "{{task_acceptance}}",
             &memory_task::infer_task_acceptance(text),
+        )
+        .replace("{{return_reason}}", &domain::infer_return_reason(text))
+        .replace(
+            "{{service_issue_type}}",
+            &domain::infer_service_issue_type(text),
+        )
+        .replace("{{service_emotion}}", &domain::infer_service_emotion(text))
+        .replace("{{design_usage}}", &domain::infer_design_usage(text))
+        .replace("{{design_style}}", &domain::infer_design_style(text))
+        .replace("{{page_type}}", &domain::infer_page_type(text))
+        .replace("{{discount_hint}}", &domain::infer_discount_hint(text))
+        .replace("{{video_type}}", &domain::infer_video_type(text))
+        .replace(
+            "{{video_duration_seconds}}",
+            &domain::infer_video_duration_seconds(text).to_string(),
+        )
+        .replace("{{audience}}", &domain::infer_audience(text))
+        .replace("{{category}}", &domain::infer_category(text))
+        .replace("{{product_name}}", &domain::infer_product_name(text))
+        .replace("{{campaign_name}}", &domain::infer_campaign_name(text))
+        .replace("{{campaign_type}}", &domain::infer_campaign_type(text))
+        .replace("{{system_type}}", &domain::infer_system_type(text))
+        .replace("{{bug_type}}", &domain::infer_bug_type(text))
+        .replace("{{bug_frequency}}", &domain::infer_bug_frequency(text))
+        .replace("{{perf_bottleneck}}", &domain::infer_perf_bottleneck(text))
+        .replace("{{stack_hint}}", &domain::infer_stack_hint(text))
+        .replace("{{tech_domain}}", &domain::infer_tech_domain(text))
+        .replace(
+            "{{status_query_type}}",
+            &domain::infer_status_query_type(text),
+        )
+        .replace(
+            "{{platform_health_check_platform}}",
+            &domain::infer_platform_health_check_platform(text),
+        )
+        .replace("{{learning_topic}}", &domain::infer_learning_topic(text))
+        .replace("{{learning_level}}", &domain::infer_learning_level(text))
+        .replace(
+            "{{learning_scenario}}",
+            &domain::infer_learning_scenario(text),
         )
         .replace(
             "{{selected_product_ref}}",

@@ -66,6 +66,26 @@ pub(in crate::agent::worker::runner) fn selected_product_name_or_task(task: &Tas
         .unwrap_or_else(|| compact_task_text(&task.description))
 }
 
+pub(in crate::agent::worker::runner) fn selected_product_platform_or_infer(
+    task: &Task,
+    text: &str,
+) -> String {
+    first_selected_product(task)
+        .and_then(|product| product.platform)
+        .filter(|platform| !platform.is_empty())
+        .unwrap_or_else(|| super::metrics::infer_platform(text))
+}
+
+pub(in crate::agent::worker::runner) fn selected_product_category_or_infer(
+    task: &Task,
+    text: &str,
+) -> String {
+    first_selected_product(task)
+        .and_then(|product| product.category)
+        .filter(|category| !category.is_empty())
+        .unwrap_or_else(|| super::domain::infer_category(text))
+}
+
 impl SelectedProductContext {
     pub(in crate::agent::worker::runner) fn name(&self) -> &str {
         &self.name
