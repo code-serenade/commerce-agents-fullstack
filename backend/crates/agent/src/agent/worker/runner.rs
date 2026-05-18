@@ -6,6 +6,7 @@
 mod autosuggest;
 mod context;
 mod execution;
+mod inference;
 mod output;
 mod output_normalization;
 mod policy;

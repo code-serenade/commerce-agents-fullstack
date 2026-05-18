@@ -1,5 +1,11 @@
 use super::config::{AutosuggestRule, AutosuggestRuleMode, WorkerAutosuggestPolicy};
-use crate::agent::worker::{Task, runner::types::ParsedSkillRequest};
+use crate::agent::worker::{
+    Task,
+    runner::{
+        inference::{context, metrics, numbers},
+        types::ParsedSkillRequest,
+    },
+};
 
 pub(super) fn configured_rule_requests(
     policy: &WorkerAutosuggestPolicy,
@@ -71,6 +77,25 @@ fn render_template_string(template: &str, text: &str, task: &Task) -> String {
         .replace("{{task_text}}", text.trim())
         .replace("{{task_description}}", task.description.trim())
         .replace("{{task_id}}", task.id.as_str())
+        .replace("{{platform}}", &metrics::infer_platform(text))
+        .replace(
+            "{{store_metrics_platform}}",
+            &metrics::infer_store_metrics_platform(text),
+        )
+        .replace("{{stage}}", &metrics::infer_stage(text))
+        .replace("{{metric}}", metrics::infer_metric(text))
+        .replace(
+            "{{period_days}}",
+            &numbers::infer_period_days(text).to_string(),
+        )
+        .replace(
+            "{{selected_product_ref}}",
+            context::selected_product_ref(task).as_deref().unwrap_or(""),
+        )
+        .replace(
+            "{{selected_product_name}}",
+            &context::selected_product_name_or_task(task),
+        )
 }
 
 fn contains_keyword(text: &str, needle: &str) -> bool {

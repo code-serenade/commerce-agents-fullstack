@@ -1,7 +1,6 @@
 mod benchmark;
 mod category_boundary;
 mod evidence;
-mod product_context;
 mod runtime_noise;
 mod util;
 

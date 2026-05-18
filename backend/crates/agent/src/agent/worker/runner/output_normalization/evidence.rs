@@ -1,8 +1,5 @@
-use super::{
-    RoleWorkOutput, product_context::first_selected_product,
-    util::merge_unique as merge_unique_items, worker_policies,
-};
-use crate::agent::worker::Task;
+use super::{RoleWorkOutput, util::merge_unique as merge_unique_items, worker_policies};
+use crate::agent::worker::{Task, runner::inference::context::first_selected_product};
 
 pub(super) fn normalize_product_context_evidence(task: &Task, output: &mut RoleWorkOutput) {
     if let Some(product) = first_selected_product(task) {
@@ -10,7 +7,7 @@ pub(super) fn normalize_product_context_evidence(task: &Task, output: &mut RoleW
             &mut output.evidence,
             worker_policies()
                 .output_normalization
-                .selected_product_evidence(&product.name, &product.ref_key()),
+                .selected_product_evidence(product.name(), &product.ref_key()),
         );
         return;
     }

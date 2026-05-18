@@ -1,11 +1,10 @@
 use super::{
     RoleWorkOutput,
-    product_context::first_selected_product,
     runtime_noise::asks_for_specific_product_identity,
     util::{CATEGORY_LEVEL_BOUNDARY_MARKER, compact_task_text, contains_any},
     worker_policies,
 };
-use crate::agent::worker::Task;
+use crate::agent::worker::{Task, runner::inference::context::first_selected_product};
 
 pub(in crate::agent::worker::runner) fn is_category_level_task(task: &str) -> bool {
     contains_any(

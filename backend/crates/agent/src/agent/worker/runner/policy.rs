@@ -13,8 +13,7 @@ const OUTPUT_NORMALIZATION_POLICY: &str =
 #[derive(Debug)]
 pub(super) struct WorkerPolicySet {
     pub(super) autosuggest: super::autosuggest::config::WorkerAutosuggestPolicy,
-    #[allow(dead_code)]
-    pub(super) inference: serde_json::Value,
+    pub(super) inference: super::inference::config::WorkerInferencePolicy,
     pub(super) output: WorkerOutputPolicy,
     pub(super) output_normalization: OutputNormalizationPolicy,
 }
@@ -487,12 +486,7 @@ pub(super) fn worker_policies() -> &'static WorkerPolicySet {
 fn load_worker_policies() -> WorkerPolicySet {
     WorkerPolicySet {
         autosuggest: super::autosuggest::load_autosuggest_policy(),
-        inference: load_policy(
-            "worker inference policy",
-            "config/json/agent/worker-inference-policy.json",
-            "CM_AGENT_WORKER_INFERENCE_POLICY",
-            INFERENCE_POLICY,
-        ),
+        inference: super::inference::load_inference_policy(),
         output: load_policy(
             "worker output policy",
             "config/json/agent/worker-output-policy.json",

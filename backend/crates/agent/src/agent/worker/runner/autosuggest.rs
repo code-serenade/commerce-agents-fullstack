@@ -5,7 +5,7 @@ use config::WorkerAutosuggestPolicy;
 pub(super) use config::load_autosuggest_policy;
 use rules::{configured_rule_requests, contains_any};
 
-use super::{policy::worker_policies, types::ParsedSkillRequest};
+use super::{inference::inference_text, policy::worker_policies, types::ParsedSkillRequest};
 use crate::agent::worker::Task;
 
 pub(super) fn autosuggest_skill_requests(
@@ -14,7 +14,7 @@ pub(super) fn autosuggest_skill_requests(
     existing_requests: &[ParsedSkillRequest],
 ) -> Vec<ParsedSkillRequest> {
     let policy = &worker_policies().autosuggest;
-    let text = autosuggest_text(task);
+    let text = inference_text(task);
     let Some(route) = policy
         .role_routes
         .iter()
@@ -113,18 +113,6 @@ fn learning_request(policy: &WorkerAutosuggestPolicy, text: &str) -> Option<Pars
         }),
         reason: Some("autosuggest:learning".to_string()),
     })
-}
-
-fn autosuggest_text(task: &Task) -> String {
-    let mut parts = vec![task.description.as_str()];
-    if let Some(assignment) = &task.assignment {
-        parts.push(assignment.objective.as_str());
-        parts.extend(assignment.inputs.iter().map(|input| input.content.as_str()));
-        if let Some(instruction) = &assignment.rework_instruction {
-            parts.push(instruction.as_str());
-        }
-    }
-    parts.join("\n")
 }
 
 fn extend_optional<T>(items: &mut Vec<T>, item: Option<T>) {
