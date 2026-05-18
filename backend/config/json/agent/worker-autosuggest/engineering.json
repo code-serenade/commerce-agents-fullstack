@@ -1,0 +1,126 @@
+{
+  "rules": [
+    {
+      "id": "engineering.arch_review",
+      "roles": [
+        "engineering"
+      ],
+      "match": {
+        "any_keywords": [
+          "架构",
+          "architecture",
+          "系统设计",
+          "架构评估"
+        ]
+      },
+      "skill_id": "engineering_arch_review",
+      "input": {
+        "system_type": "电商平台",
+        "pain_points": [
+          "{{task_description}}"
+        ]
+      },
+      "reason": "autosuggest:engineering.arch_review"
+    },
+    {
+      "id": "engineering.bug_analysis",
+      "roles": [
+        "engineering"
+      ],
+      "match": {
+        "any_keywords": [
+          "bug",
+          "Bug",
+          "故障",
+          "报错",
+          "异常",
+          "白屏",
+          "超时",
+          "支付失败",
+          "库存不一致",
+          "OOM",
+          "死锁"
+        ]
+      },
+      "skill_id": "engineering_bug_analysis",
+      "input": {
+        "error_type": "系统异常",
+        "error_message": "{{task_description}}"
+      },
+      "reason": "autosuggest:engineering.bug_analysis"
+    },
+    {
+      "id": "engineering.perf_optimize",
+      "roles": [
+        "engineering"
+      ],
+      "match": {
+        "any_keywords": [
+          "性能",
+          "perf",
+          "慢",
+          "卡顿",
+          "瓶颈",
+          "QPS",
+          "TPS",
+          "延迟"
+        ]
+      },
+      "skill_id": "engineering_perf_optimize",
+      "input": {
+        "bottleneck": "系统性能",
+        "metrics": {
+          "task": "{{task_description}}"
+        }
+      },
+      "reason": "autosuggest:engineering.perf_optimize"
+    },
+    {
+      "id": "engineering.tech_selection",
+      "roles": [
+        "engineering"
+      ],
+      "match": {
+        "any_keywords": [
+          "技术选型",
+          "选型",
+          "框架",
+          "数据库",
+          "消息队列",
+          "搜索引擎",
+          "缓存",
+          "容器",
+          "监控"
+        ]
+      },
+      "skill_id": "engineering_tech_selection",
+      "input": {
+        "domain": "技术选型",
+        "requirements": [
+          "{{task_description}}"
+        ]
+      },
+      "reason": "autosuggest:engineering.tech_selection"
+    },
+    {
+      "id": "engineering.system_check",
+      "roles": [
+        "engineering"
+      ],
+      "match": {
+        "any_keywords": [
+          "系统健康",
+          "接口健康",
+          "连通性",
+          "平台接口",
+          "health check"
+        ]
+      },
+      "skill_id": "engineering_system_check",
+      "input": {
+        "test_live": false
+      },
+      "reason": "autosuggest:engineering.system_check"
+    }
+  ]
+}

@@ -1,0 +1,150 @@
+{
+  "rules": [
+    {
+      "id": "web.seo_optimize",
+      "roles": [
+        "web"
+      ],
+      "match": {
+        "any_keywords": [
+          "seo",
+          "SEO",
+          "搜索优化",
+          "排名",
+          "提排"
+        ]
+      },
+      "skill_id": "web_seo_optimize",
+      "input": {
+        "target_keywords": [
+          "{{task_description}}"
+        ]
+      },
+      "reason": "autosuggest:web.seo_optimize"
+    },
+    {
+      "id": "web.keyword_research",
+      "roles": [
+        "web"
+      ],
+      "match": {
+        "any_keywords": [
+          "keyword",
+          "关键词",
+          "搜索词",
+          "长尾词",
+          "蓝海词"
+        ]
+      },
+      "skill_id": "web_keyword_research",
+      "input": {
+        "seed_keyword": "{{task_description}}"
+      },
+      "reason": "autosuggest:web.keyword_research"
+    },
+    {
+      "id": "web.title_generator",
+      "roles": [
+        "web"
+      ],
+      "match": {
+        "any_keywords": [
+          "标题",
+          "title",
+          "标题生成",
+          "起标题"
+        ]
+      },
+      "skill_id": "web_title_generator",
+      "input": {
+        "product_name": "{{task_description}}",
+        "keywords": [
+          "{{task_description}}"
+        ],
+        "style": "营销型"
+      },
+      "reason": "autosuggest:web.title_generator"
+    },
+    {
+      "id": "web.store_design",
+      "roles": [
+        "web"
+      ],
+      "match": {
+        "any_keywords": [
+          "店铺",
+          "装修",
+          "store"
+        ]
+      },
+      "skill_id": "web_store_design",
+      "input": {
+        "store_type": "电商店铺",
+        "brand_tone": "专业可信"
+      },
+      "reason": "autosuggest:web.store_design"
+    },
+    {
+      "id": "web.product_description",
+      "roles": [
+        "web"
+      ],
+      "match": {
+        "any_keywords": [
+          "详情文案",
+          "产品文案",
+          "卖点文案",
+          "description"
+        ]
+      },
+      "skill_id": "web_product_description",
+      "input": {
+        "product_name": "{{task_description}}",
+        "style": "营销型"
+      },
+      "reason": "autosuggest:web.product_description"
+    },
+    {
+      "id": "web.page_conversion",
+      "roles": [
+        "web"
+      ],
+      "match": {
+        "any_keywords": [
+          "page",
+          "conversion",
+          "页面",
+          "转化",
+          "详情页",
+          "落地页"
+        ]
+      },
+      "skill_id": "web_page_conversion",
+      "input": {
+        "page_type": "详情页"
+      },
+      "reason": "autosuggest:web.page_conversion"
+    },
+    {
+      "id": "web.title_seo_scorer",
+      "roles": [
+        "web"
+      ],
+      "match": {
+        "any_keywords": [
+          "标题评分",
+          "SEO评分",
+          "标题诊断"
+        ]
+      },
+      "skill_id": "web_title_seo_scorer",
+      "input": {
+        "title": "{{task_description}}",
+        "target_keywords": [
+          "{{task_description}}"
+        ]
+      },
+      "reason": "autosuggest:web.title_seo_scorer"
+    }
+  ]
+}

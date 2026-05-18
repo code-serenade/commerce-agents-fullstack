@@ -1,7 +1,11 @@
-use super::{
-    policy::{AutosuggestRule, AutosuggestRuleMode, WorkerAutosuggestPolicy, worker_policies},
-    types::ParsedSkillRequest,
-};
+pub(super) mod config;
+mod rules;
+
+use config::WorkerAutosuggestPolicy;
+pub(super) use config::load_autosuggest_policy;
+use rules::{configured_rule_requests, contains_any};
+
+use super::{policy::worker_policies, types::ParsedSkillRequest};
 use crate::agent::worker::Task;
 
 pub(super) fn autosuggest_skill_requests(
@@ -31,7 +35,13 @@ pub(super) fn autosuggest_skill_requests(
 
     match route.handler.as_str() {
         "chat" => extend_optional(&mut requests, chat_request(policy, &text, task)),
-        "search" => requests.extend(search_requests(policy, &text, task)),
+        "search" => requests.extend(configured_rule_requests(
+            policy,
+            role_runtime,
+            &text,
+            task,
+            &route.mode,
+        )),
         _ => requests.extend(configured_rule_requests(
             policy,
             role_runtime,
@@ -41,12 +51,19 @@ pub(super) fn autosuggest_skill_requests(
         )),
     }
 
-    if route.handler != "search" {
-        if route.mode == "requests" {
-            requests.extend(search_requests(policy, &text, task));
-        } else if requests.is_empty() {
-            extend_optional(&mut requests, first_search_request(policy, &text, task));
-        }
+    if route.handler != "search" && requests.is_empty() {
+        let fallback_mode = if route.mode == "requests" {
+            "requests"
+        } else {
+            "single"
+        };
+        requests.extend(configured_rule_requests(
+            policy,
+            "search",
+            &text,
+            task,
+            fallback_mode,
+        ));
     }
 
     dedupe_new_requests(requests, existing_requests)
@@ -98,132 +115,6 @@ fn learning_request(policy: &WorkerAutosuggestPolicy, text: &str) -> Option<Pars
     })
 }
 
-fn search_requests(
-    policy: &WorkerAutosuggestPolicy,
-    text: &str,
-    task: &Task,
-) -> Vec<ParsedSkillRequest> {
-    let mut requests = Vec::new();
-    if contains_any(text, &policy.search.competitor_keywords) {
-        requests.push(search_request(
-            policy.search.competitor_skill_id.clone(),
-            "competitor",
-            text,
-            task,
-        ));
-    }
-    if contains_any(text, &policy.search.trend_keywords) {
-        requests.push(search_request(
-            policy.search.trends_skill_id.clone(),
-            "trend",
-            text,
-            task,
-        ));
-    }
-    if contains_any(text, &policy.search.market_info_keywords) {
-        requests.push(search_request(
-            policy.search.market_info_skill_id.clone(),
-            "market_info",
-            text,
-            task,
-        ));
-    }
-    requests
-}
-
-fn first_search_request(
-    policy: &WorkerAutosuggestPolicy,
-    text: &str,
-    task: &Task,
-) -> Option<ParsedSkillRequest> {
-    search_requests(policy, text, task).into_iter().next()
-}
-
-fn search_request(
-    skill_id: String,
-    search_type: &str,
-    text: &str,
-    task: &Task,
-) -> ParsedSkillRequest {
-    ParsedSkillRequest {
-        skill_id,
-        input: serde_json::json!({
-            "query": text.trim(),
-            "subject": task.description.trim(),
-            "search_type": search_type
-        }),
-        reason: Some(format!("autosuggest:search.{search_type}")),
-    }
-}
-
-fn configured_rule_requests(
-    policy: &WorkerAutosuggestPolicy,
-    role_runtime: &str,
-    text: &str,
-    task: &Task,
-    route_mode: &str,
-) -> Vec<ParsedSkillRequest> {
-    let mut requests = Vec::new();
-    for rule in &policy.rules {
-        if !rule_matches(rule, role_runtime, text) {
-            continue;
-        }
-
-        requests.push(ParsedSkillRequest {
-            skill_id: rule.skill_id.clone(),
-            input: render_template_value(&rule.input, text, task),
-            reason: rule
-                .reason
-                .clone()
-                .or_else(|| Some(format!("autosuggest:{}", rule.id))),
-        });
-
-        if route_mode != "requests" || rule.mode == AutosuggestRuleMode::First {
-            break;
-        }
-    }
-    requests
-}
-
-fn rule_matches(rule: &AutosuggestRule, role_runtime: &str, text: &str) -> bool {
-    (rule.roles.is_empty() || rule.roles.iter().any(|role| role == role_runtime))
-        && (rule.r#match.any_keywords.is_empty() || contains_any(text, &rule.r#match.any_keywords))
-        && rule
-            .r#match
-            .all_keywords
-            .iter()
-            .all(|keyword| contains_keyword(text, keyword))
-        && !contains_any(text, &rule.r#match.none_keywords)
-}
-
-fn render_template_value(value: &serde_json::Value, text: &str, task: &Task) -> serde_json::Value {
-    match value {
-        serde_json::Value::String(template) => {
-            serde_json::Value::String(render_template_string(template, text, task))
-        }
-        serde_json::Value::Array(items) => serde_json::Value::Array(
-            items
-                .iter()
-                .map(|item| render_template_value(item, text, task))
-                .collect(),
-        ),
-        serde_json::Value::Object(object) => serde_json::Value::Object(
-            object
-                .iter()
-                .map(|(key, value)| (key.clone(), render_template_value(value, text, task)))
-                .collect(),
-        ),
-        _ => value.clone(),
-    }
-}
-
-fn render_template_string(template: &str, text: &str, task: &Task) -> String {
-    template
-        .replace("{{task_text}}", text.trim())
-        .replace("{{task_description}}", task.description.trim())
-        .replace("{{task_id}}", task.id.as_str())
-}
-
 fn autosuggest_text(task: &Task) -> String {
     let mut parts = vec![task.description.as_str()];
     if let Some(assignment) = &task.assignment {
@@ -258,13 +149,4 @@ fn dedupe_new_requests(
         }
     }
     unique
-}
-
-fn contains_any(text: &str, needles: &[String]) -> bool {
-    needles.iter().any(|needle| contains_keyword(text, needle))
-}
-
-fn contains_keyword(text: &str, needle: &str) -> bool {
-    let lower = text.to_ascii_lowercase();
-    text.contains(needle) || lower.contains(&needle.to_ascii_lowercase())
 }

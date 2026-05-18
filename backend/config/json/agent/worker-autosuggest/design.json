@@ -1,0 +1,103 @@
+{
+  "rules": [
+    {
+      "id": "design.main_image",
+      "roles": [
+        "design"
+      ],
+      "match": {
+        "any_keywords": [
+          "主图",
+          "首图",
+          "商品图",
+          "main image"
+        ]
+      },
+      "skill_id": "design_main_image",
+      "input": {
+        "product_name": "{{task_description}}",
+        "extra_requirements": "{{task_description}}"
+      },
+      "reason": "autosuggest:design.main_image"
+    },
+    {
+      "id": "design.detail_page",
+      "roles": [
+        "design"
+      ],
+      "match": {
+        "any_keywords": [
+          "详情页",
+          "详情设计",
+          "详情页设计"
+        ]
+      },
+      "skill_id": "design_detail_page",
+      "input": {
+        "product_name": "{{task_description}}",
+        "extra_requirements": "{{task_description}}"
+      },
+      "reason": "autosuggest:design.detail_page"
+    },
+    {
+      "id": "design.color_scheme",
+      "roles": [
+        "design"
+      ],
+      "match": {
+        "any_keywords": [
+          "配色",
+          "色彩",
+          "品牌色",
+          "color"
+        ]
+      },
+      "skill_id": "design_color_scheme",
+      "input": {
+        "brand_tone": "专业可信",
+        "extra_requirements": "{{task_description}}"
+      },
+      "reason": "autosuggest:design.color_scheme"
+    },
+    {
+      "id": "design.material_spec",
+      "roles": [
+        "design"
+      ],
+      "match": {
+        "any_keywords": [
+          "素材规范",
+          "尺寸",
+          "规格",
+          "format",
+          "安全区"
+        ]
+      },
+      "skill_id": "design_material_spec",
+      "input": {
+        "usage": "电商素材"
+      },
+      "reason": "autosuggest:design.material_spec"
+    },
+    {
+      "id": "design.campaign_poster",
+      "roles": [
+        "design"
+      ],
+      "match": {
+        "any_keywords": [
+          "海报",
+          "活动图",
+          "大促",
+          "poster",
+          "banner"
+        ]
+      },
+      "skill_id": "design_campaign_poster",
+      "input": {
+        "campaign_name": "{{task_description}}"
+      },
+      "reason": "autosuggest:design.campaign_poster"
+    }
+  ]
+}

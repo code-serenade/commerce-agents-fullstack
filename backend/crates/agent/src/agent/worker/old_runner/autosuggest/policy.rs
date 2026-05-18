@@ -242,7 +242,6 @@ fn autosuggest_for_handler(
     task: &Task,
 ) -> Option<ParsedSkillRequest> {
     match handler {
-        "chat" => autosuggest_chat(text, task),
         "ops" => autosuggest_ops(text, task),
         "data" => autosuggest_data(text, task),
         "accounting" => autosuggest_accounting(text, task),

@@ -1,0 +1,69 @@
+{
+  "role_routes": [
+    {
+      "role": "ops",
+      "handler": "ops",
+      "mode": "requests",
+      "learning_first": true
+    },
+    {
+      "role": "chat",
+      "handler": "chat",
+      "mode": "single",
+      "learning_first": true
+    },
+    {
+      "role": "service",
+      "handler": "service",
+      "mode": "requests"
+    },
+    {
+      "role": "data",
+      "handler": "data",
+      "mode": "requests"
+    },
+    {
+      "role": "creative",
+      "handler": "creative",
+      "mode": "requests"
+    },
+    {
+      "role": "web",
+      "handler": "web",
+      "mode": "requests"
+    },
+    {
+      "role": "accounting",
+      "handler": "accounting",
+      "mode": "requests"
+    },
+    {
+      "role": "design",
+      "handler": "design",
+      "mode": "requests"
+    },
+    {
+      "role": "douyin_ads",
+      "handler": "douyin_ads",
+      "mode": "requests"
+    },
+    {
+      "role": "engineering",
+      "handler": "engineering",
+      "mode": "requests"
+    }
+  ],
+  "files": [
+    "chat.json",
+    "search.json",
+    "service.json",
+    "web.json",
+    "design.json",
+    "engineering.json",
+    "douyin_ads.json",
+    "creative.json",
+    "accounting.json",
+    "data.json",
+    "ops.json"
+  ]
+}

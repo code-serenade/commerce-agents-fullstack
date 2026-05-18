@@ -3,8 +3,6 @@ use std::{fs, path::Path, sync::OnceLock};
 use serde::Deserialize;
 use tracing::warn;
 
-const AUTOSUGGEST_POLICY: &str =
-    include_str!("../../../../../../config/json/agent/worker-autosuggest-policy.json");
 const INFERENCE_POLICY: &str =
     include_str!("../../../../../../config/json/agent/worker-inference-policy.json");
 const OUTPUT_POLICY: &str =
@@ -14,149 +12,13 @@ const OUTPUT_NORMALIZATION_POLICY: &str =
 
 #[derive(Debug)]
 pub(super) struct WorkerPolicySet {
-    pub(super) autosuggest: WorkerAutosuggestPolicy,
+    pub(super) autosuggest: super::autosuggest::config::WorkerAutosuggestPolicy,
     #[allow(dead_code)]
     pub(super) inference: serde_json::Value,
     #[allow(dead_code)]
     pub(super) output: serde_json::Value,
     #[allow(dead_code)]
     pub(super) output_normalization: serde_json::Value,
-}
-
-#[derive(Debug, Clone, Default, Deserialize)]
-pub(super) struct WorkerAutosuggestPolicy {
-    #[serde(default)]
-    pub(super) role_routes: Vec<RoleAutosuggestRoute>,
-    #[serde(default)]
-    pub(super) chat: ChatAutosuggestPolicy,
-    #[serde(default)]
-    pub(super) learning: LearningAutosuggestPolicy,
-    #[serde(default)]
-    pub(super) search: SearchAutosuggestPolicy,
-    #[serde(default)]
-    pub(super) rules: Vec<AutosuggestRule>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub(super) struct RoleAutosuggestRoute {
-    pub(super) role: String,
-    pub(super) handler: String,
-    #[serde(default = "single_mode")]
-    pub(super) mode: String,
-    #[serde(default)]
-    pub(super) learning_first: bool,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub(super) struct ChatAutosuggestPolicy {
-    #[serde(default = "save_memory_skill_id")]
-    pub(super) save_memory_skill_id: String,
-    #[serde(default = "status_query_skill_id")]
-    pub(super) status_query_skill_id: String,
-    #[serde(default)]
-    pub(super) save_memory_keywords: Vec<String>,
-    #[serde(default)]
-    pub(super) status_query_keywords: Vec<String>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub(super) struct LearningAutosuggestPolicy {
-    #[serde(default = "learning_skill_id")]
-    pub(super) skill_id: String,
-    #[serde(default)]
-    pub(super) explicit_keywords: Vec<String>,
-    #[serde(default)]
-    pub(super) question_keywords: Vec<String>,
-    #[serde(default)]
-    pub(super) explanation_keywords: Vec<String>,
-    #[serde(default)]
-    pub(super) self_check_disabled_keywords: Vec<String>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub(super) struct SearchAutosuggestPolicy {
-    #[serde(default = "competitor_skill_id")]
-    pub(super) competitor_skill_id: String,
-    #[serde(default = "trends_skill_id")]
-    pub(super) trends_skill_id: String,
-    #[serde(default = "market_info_skill_id")]
-    pub(super) market_info_skill_id: String,
-    #[serde(default)]
-    pub(super) competitor_keywords: Vec<String>,
-    #[serde(default)]
-    pub(super) trend_keywords: Vec<String>,
-    #[serde(default)]
-    pub(super) market_info_keywords: Vec<String>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub(super) struct AutosuggestRule {
-    pub(super) id: String,
-    #[serde(default)]
-    pub(super) roles: Vec<String>,
-    #[serde(default)]
-    pub(super) mode: AutosuggestRuleMode,
-    #[serde(default)]
-    pub(super) r#match: AutosuggestRuleMatch,
-    pub(super) skill_id: String,
-    #[serde(default)]
-    pub(super) input: serde_json::Value,
-    #[serde(default)]
-    pub(super) reason: Option<String>,
-}
-
-#[derive(Debug, Clone, Copy, Default, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub(super) enum AutosuggestRuleMode {
-    #[default]
-    Append,
-    First,
-}
-
-#[derive(Debug, Clone, Default, Deserialize)]
-pub(super) struct AutosuggestRuleMatch {
-    #[serde(default)]
-    pub(super) any_keywords: Vec<String>,
-    #[serde(default)]
-    pub(super) all_keywords: Vec<String>,
-    #[serde(default)]
-    pub(super) none_keywords: Vec<String>,
-}
-
-impl Default for ChatAutosuggestPolicy {
-    fn default() -> Self {
-        Self {
-            save_memory_skill_id: save_memory_skill_id(),
-            status_query_skill_id: status_query_skill_id(),
-            save_memory_keywords: Vec::new(),
-            status_query_keywords: Vec::new(),
-        }
-    }
-}
-
-impl Default for LearningAutosuggestPolicy {
-    fn default() -> Self {
-        Self {
-            skill_id: learning_skill_id(),
-            explicit_keywords: Vec::new(),
-            question_keywords: Vec::new(),
-            explanation_keywords: Vec::new(),
-            self_check_disabled_keywords: Vec::new(),
-        }
-    }
-}
-
-impl Default for SearchAutosuggestPolicy {
-    fn default() -> Self {
-        Self {
-            competitor_skill_id: competitor_skill_id(),
-            trends_skill_id: trends_skill_id(),
-            market_info_skill_id: market_info_skill_id(),
-            competitor_keywords: Vec::new(),
-            trend_keywords: Vec::new(),
-            market_info_keywords: Vec::new(),
-        }
-    }
 }
 
 static POLICIES: OnceLock<WorkerPolicySet> = OnceLock::new();
@@ -167,12 +29,7 @@ pub(super) fn worker_policies() -> &'static WorkerPolicySet {
 
 fn load_worker_policies() -> WorkerPolicySet {
     WorkerPolicySet {
-        autosuggest: load_policy(
-            "worker autosuggest policy",
-            "config/json/agent/worker-autosuggest-policy.json",
-            "CM_AGENT_WORKER_AUTOSUGGEST_POLICY",
-            AUTOSUGGEST_POLICY,
-        ),
+        autosuggest: super::autosuggest::load_autosuggest_policy(),
         inference: load_policy(
             "worker inference policy",
             "config/json/agent/worker-inference-policy.json",
@@ -241,32 +98,4 @@ fn workspace_root() -> std::path::PathBuf {
         .and_then(Path::parent)
         .map(Path::to_path_buf)
         .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")))
-}
-
-fn single_mode() -> String {
-    "single".to_string()
-}
-
-fn save_memory_skill_id() -> String {
-    "coordination_save_memory".to_string()
-}
-
-fn status_query_skill_id() -> String {
-    "coordination_status_query".to_string()
-}
-
-fn learning_skill_id() -> String {
-    "learning_teaching_explain".to_string()
-}
-
-fn competitor_skill_id() -> String {
-    "search_competitor".to_string()
-}
-
-fn trends_skill_id() -> String {
-    "search_trends".to_string()
-}
-
-fn market_info_skill_id() -> String {
-    "search_market_info".to_string()
 }

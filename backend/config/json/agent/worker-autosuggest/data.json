@@ -1,0 +1,72 @@
+{
+  "rules": [
+    {
+      "id": "data.dashboard",
+      "roles": [
+        "data"
+      ],
+      "match": {
+        "any_keywords": [
+          "dashboard",
+          "看板",
+          "数据概览",
+          "经营概览",
+          "经营指标",
+          "核心指标",
+          "店铺大盘",
+          "大盘"
+        ]
+      },
+      "skill_id": "data_dashboard",
+      "input": {
+        "scope": "{{task_description}}"
+      },
+      "reason": "autosuggest:data.dashboard"
+    },
+    {
+      "id": "data.comprehensive_diagnosis",
+      "roles": [
+        "data"
+      ],
+      "match": {
+        "any_keywords": [
+          "comprehensive diagnosis",
+          "综合诊断",
+          "全面诊断",
+          "业务诊断",
+          "经营诊断",
+          "经营体检",
+          "业务体检",
+          "全链路诊断"
+        ]
+      },
+      "skill_id": "data_comprehensive_diagnosis",
+      "input": {
+        "scope": "{{task_description}}"
+      },
+      "reason": "autosuggest:data.comprehensive_diagnosis"
+    },
+    {
+      "id": "data.channel_roi",
+      "roles": [
+        "data"
+      ],
+      "match": {
+        "any_keywords": [
+          "channel roi",
+          "渠道roi",
+          "渠道 ROI",
+          "渠道 roi",
+          "投放渠道",
+          "渠道投产"
+        ]
+      },
+      "skill_id": "data_channel_roi",
+      "input": {
+        "days": 30,
+        "channels": []
+      },
+      "reason": "autosuggest:data.channel_roi"
+    }
+  ]
+}

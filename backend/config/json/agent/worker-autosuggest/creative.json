@@ -1,0 +1,65 @@
+{
+  "rules": [
+    {
+      "id": "creative.video_script",
+      "roles": [
+        "creative"
+      ],
+      "match": {
+        "any_keywords": [
+          "视频",
+          "短视频",
+          "脚本",
+          "分镜",
+          "口播"
+        ]
+      },
+      "skill_id": "creative_video_script",
+      "input": {
+        "product_name": "{{task_description}}",
+        "duration_seconds": 30
+      },
+      "reason": "autosuggest:creative.video_script"
+    },
+    {
+      "id": "creative.seeding_copy",
+      "roles": [
+        "creative"
+      ],
+      "match": {
+        "any_keywords": [
+          "种草",
+          "小红书",
+          "笔记",
+          "内容文案"
+        ]
+      },
+      "skill_id": "creative_seeding_copy",
+      "input": {
+        "product_name": "{{task_description}}",
+        "platform": "小红书"
+      },
+      "reason": "autosuggest:creative.seeding_copy"
+    },
+    {
+      "id": "creative.title_ctr",
+      "roles": [
+        "creative"
+      ],
+      "match": {
+        "any_keywords": [
+          "标题",
+          "点击率",
+          "CTR",
+          "ctr",
+          "高点击"
+        ]
+      },
+      "skill_id": "creative_title_ctr_scorer",
+      "input": {
+        "title": "{{task_description}}"
+      },
+      "reason": "autosuggest:creative.title_ctr"
+    }
+  ]
+}

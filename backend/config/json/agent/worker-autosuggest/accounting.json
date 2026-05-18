@@ -1,0 +1,60 @@
+{
+  "rules": [
+    {
+      "id": "accounting.roi",
+      "roles": [
+        "accounting"
+      ],
+      "match": {
+        "any_keywords": [
+          "roi",
+          "ROI",
+          "投入产出",
+          "投产",
+          "利润ROI",
+          "广告ROI"
+        ]
+      },
+      "skill_id": "accounting_roi_calc",
+      "input": {
+        "period": "{{task_description}}"
+      },
+      "reason": "autosuggest:accounting.roi"
+    },
+    {
+      "id": "accounting.profit",
+      "roles": [
+        "accounting"
+      ],
+      "match": {
+        "any_keywords": [
+          "利润",
+          "利润分析",
+          "毛利",
+          "净利",
+          "profit"
+        ]
+      },
+      "skill_id": "accounting_profit_analysis",
+      "input": {},
+      "reason": "autosuggest:accounting.profit"
+    },
+    {
+      "id": "accounting.budget",
+      "roles": [
+        "accounting"
+      ],
+      "match": {
+        "any_keywords": [
+          "预算",
+          "budget",
+          "预算编制",
+          "月度预算"
+        ]
+      },
+      "skill_id": "accounting_budget_plan",
+      "input": {},
+      "reason": "autosuggest:accounting.budget"
+    }
+  ]
+}

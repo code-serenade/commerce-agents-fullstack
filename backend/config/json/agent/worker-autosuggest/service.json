@@ -1,0 +1,180 @@
+{
+  "rules": [
+    {
+      "id": "service.ticket_handler",
+      "roles": [
+        "service"
+      ],
+      "match": {
+        "any_keywords": [
+          "ticket",
+          "工单",
+          "话术",
+          "客服话术",
+          "客户投诉",
+          "物流延迟",
+          "发错",
+          "质量问题"
+        ]
+      },
+      "skill_id": "service_ticket_handler",
+      "input": {
+        "issue_type": "售后咨询",
+        "customer_message": "{{task_description}}",
+        "customer_emotion": "普通"
+      },
+      "reason": "autosuggest:service.ticket_handler"
+    },
+    {
+      "id": "service.escalation_flow",
+      "roles": [
+        "service"
+      ],
+      "match": {
+        "any_keywords": [
+          "upgrade",
+          "escalation",
+          "升级",
+          "主管",
+          "投诉平台",
+          "平台介入",
+          "曝光",
+          "举报",
+          "维权",
+          "威胁投诉"
+        ]
+      },
+      "skill_id": "service_escalation_flow",
+      "input": {
+        "issue_description": "{{task_description}}",
+        "customer_emotion": "威胁投诉"
+      },
+      "reason": "autosuggest:service.escalation_flow"
+    },
+    {
+      "id": "service.return_handler",
+      "roles": [
+        "service"
+      ],
+      "match": {
+        "any_keywords": [
+          "return",
+          "refund",
+          "退款",
+          "退货",
+          "换货",
+          "售后"
+        ]
+      },
+      "skill_id": "service_return_handler",
+      "input": {
+        "reason": "售后咨询"
+      },
+      "reason": "autosuggest:service.return_handler"
+    },
+    {
+      "id": "service.faq_playbook",
+      "roles": [
+        "service"
+      ],
+      "match": {
+        "any_keywords": [
+          "faq",
+          "FAQ",
+          "常见问题",
+          "问答库",
+          "标准话术",
+          "话术库"
+        ]
+      },
+      "skill_id": "service_faq_playbook",
+      "input": {
+        "questions": [
+          "{{task_description}}"
+        ]
+      },
+      "reason": "autosuggest:service.faq_playbook"
+    },
+    {
+      "id": "service.query_product",
+      "roles": [
+        "service"
+      ],
+      "match": {
+        "any_keywords": [
+          "查询商品",
+          "查商品",
+          "商品信息",
+          "商品资料",
+          "商品上下文",
+          "商品详情",
+          "商品知识",
+          "引用商品",
+          "选中商品"
+        ]
+      },
+      "skill_id": "service_query_product",
+      "input": {
+        "product_name": "{{task_description}}"
+      },
+      "reason": "autosuggest:service.query_product"
+    },
+    {
+      "id": "service.sentiment",
+      "roles": [
+        "service"
+      ],
+      "match": {
+        "any_keywords": [
+          "情绪",
+          "情感",
+          "差评",
+          "不满意",
+          "愤怒",
+          "投诉"
+        ]
+      },
+      "skill_id": "service_sentiment_analyzer",
+      "input": {
+        "customer_text": "{{task_description}}"
+      },
+      "reason": "autosuggest:service.sentiment"
+    },
+    {
+      "id": "service.nps",
+      "roles": [
+        "service"
+      ],
+      "match": {
+        "any_keywords": [
+          "nps",
+          "NPS",
+          "满意度",
+          "推荐值",
+          "客户忠诚"
+        ]
+      },
+      "skill_id": "service_nps_analyzer",
+      "input": {},
+      "reason": "autosuggest:service.nps"
+    },
+    {
+      "id": "service.dsr",
+      "roles": [
+        "service"
+      ],
+      "match": {
+        "any_keywords": [
+          "dsr",
+          "DSR",
+          "服务评分",
+          "店铺评分",
+          "评分低"
+        ]
+      },
+      "skill_id": "service_dsr_improvement",
+      "input": {},
+      "reason": "autosuggest:service.dsr"
+    }
+  ]
+}

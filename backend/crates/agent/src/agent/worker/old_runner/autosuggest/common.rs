@@ -15,7 +15,6 @@ fn autosuggest_skill_requests(
 
 fn autosuggest_for_role(runtime_role: &str, text: &str, task: &Task) -> Option<ParsedSkillRequest> {
     match runtime_role {
-        "chat" => autosuggest_chat(text, task),
         "ops" => autosuggest_ops(text, task),
         "data" => autosuggest_data(text, task),
         "accounting" => autosuggest_accounting(text, task),

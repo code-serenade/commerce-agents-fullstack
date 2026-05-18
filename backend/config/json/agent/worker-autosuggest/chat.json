@@ -1,0 +1,79 @@
+{
+  "chat": {
+    "save_memory_skill_id": "coordination_save_memory",
+    "status_query_skill_id": "coordination_status_query",
+    "save_memory_keywords": [
+      "记住",
+      "记下来",
+      "保存记忆",
+      "保存这个结论",
+      "记忆一下",
+      "保存这个事实",
+      "记下这个决策",
+      "记住这个风险",
+      "remember this"
+    ],
+    "status_query_keywords": [
+      "当前状态",
+      "任务状态",
+      "运行状态",
+      "session状态",
+      "会话状态",
+      "workspace状态",
+      "工作区状态",
+      "进度怎么样",
+      "现在到哪了",
+      "agent状态",
+      "系统健康",
+      "system health"
+    ]
+  },
+  "learning": {
+    "skill_id": "learning_teaching_explain",
+    "explicit_keywords": [
+      "教学",
+      "讲解",
+      "解释",
+      "解释一下",
+      "解释下",
+      "什么是",
+      "是什么",
+      "区别",
+      "原理",
+      "为什么",
+      "怎么理解",
+      "常见误区",
+      "误区",
+      "自检",
+      "思考题",
+      "教我",
+      "学习",
+      "科普",
+      "tutorial",
+      "explain",
+      "what is",
+      "how to"
+    ],
+    "question_keywords": [
+      "为什么",
+      "怎么做",
+      "why"
+    ],
+    "explanation_keywords": [
+      "讲",
+      "解释",
+      "教",
+      "学习",
+      "概念",
+      "原理",
+      "误区",
+      "自检"
+    ],
+    "self_check_disabled_keywords": [
+      "不要自检",
+      "不用自检",
+      "不要题",
+      "no quiz"
+    ]
+  }
+}

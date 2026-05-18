@@ -1,0 +1,162 @@
+{
+  "rules": [
+    {
+      "id": "search.platform_policy",
+      "roles": [
+        "search"
+      ],
+      "match": {
+        "any_keywords": [
+          "平台规则",
+          "平台政策",
+          "规则变化",
+          "算法调整",
+          "流量政策",
+          "佣金",
+          "费率",
+          "大促规则",
+          "审核规则",
+          "违禁词",
+          "material",
+          "素材规范"
+        ]
+      },
+      "skill_id": "search_platform_policy",
+      "input": {
+        "platform": "电商平台",
+        "policy_type": "general",
+        "days": 30
+      },
+      "reason": "autosuggest:search.platform_policy"
+    },
+    {
+      "id": "search.product_reviews",
+      "roles": [
+        "search"
+      ],
+      "match": {
+        "any_keywords": [
+          "评价",
+          "口碑",
+          "差评",
+          "好评",
+          "用户反馈",
+          "买家反馈",
+          "评论",
+          "review",
+          "reviews"
+        ]
+      },
+      "skill_id": "search_product_reviews",
+      "input": {
+        "query": "{{task_description}}",
+        "focus": "overall"
+      },
+      "reason": "autosuggest:search.product_reviews"
+    },
+    {
+      "id": "search.industry_benchmarks",
+      "roles": [
+        "search"
+      ],
+      "match": {
+        "any_keywords": [
+          "行业基准",
+          "行业均值",
+          "行业平均",
+          "实时基准",
+          "最新基准",
+          "benchmark",
+          "转化率基准",
+          "客单价基准",
+          "NPS基准",
+          "DSR基准",
+          "退款率基准"
+        ]
+      },
+      "skill_id": "search_industry_benchmarks",
+      "input": {
+        "industry": "{{task_description}}",
+        "metric": "general"
+      },
+      "reason": "autosuggest:search.industry_benchmarks"
+    },
+    {
+      "id": "search.competitor",
+      "roles": [
+        "search"
+      ],
+      "match": {
+        "any_keywords": [
+          "competitor",
+          "竞品",
+          "竞对",
+          "竞争对手",
+          "对标",
+          "同类商品"
+        ]
+      },
+      "skill_id": "search_competitor",
+      "input": {
+        "query": "{{task_description}}",
+        "focus": "features"
+      },
+      "reason": "autosuggest:search.competitor"
+    },
+    {
+      "id": "search.trends",
+      "roles": [
+        "search"
+      ],
+      "match": {
+        "any_keywords": [
+          "trend",
+          "hot",
+          "趋势",
+          "热点",
+          "热卖",
+          "爆款",
+          "流行",
+          "消费趋势"
+        ]
+      },
+      "skill_id": "search_trends",
+      "input": {
+        "query": "{{task_description}}",
+        "days": 30
+      },
+      "reason": "autosuggest:search.trends"
+    },
+    {
+      "id": "search.market_info",
+      "roles": [
+        "search"
+      ],
+      "match": {
+        "any_keywords": [
+          "market",
+          "市场",
+          "行业",
+          "新闻",
+          "资讯",
+          "报告",
+          "行情",
+          "资料",
+          "公开来源",
+          "财务",
+          "财务基准",
+          "财务对标",
+          "毛利率",
+          "净利率"
+        ]
+      },
+      "skill_id": "search_market_info",
+      "input": {
+        "query": "{{task_description}}",
+        "topic": "general",
+        "days": 7
+      },
+      "reason": "autosuggest:search.market_info"
+    }
+  ]
+}
