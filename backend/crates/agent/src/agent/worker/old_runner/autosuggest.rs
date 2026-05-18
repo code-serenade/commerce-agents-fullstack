@@ -1,5 +1,3 @@
-include!("autosuggest/policy.rs");
-include!("autosuggest/common.rs");
 include!("autosuggest/ops.rs");
 include!("autosuggest/data.rs");
 include!("autosuggest/accounting.rs");

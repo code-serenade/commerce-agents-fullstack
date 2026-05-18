@@ -19,6 +19,22 @@ The chat memory/status routing is now handled by the new config-driven runner au
 - `coordination_save_memory`
 - `coordination_status_query`
 
+`common.rs`
+
+The role-level autosuggest dispatcher has been replaced by the new runner path:
+
+- `runner/autosuggest.rs`
+- `runner/autosuggest/rules.rs`
+- `backend/config/json/agent/worker-autosuggest/index.json`
+
+`policy.rs`
+
+The old single-file autosuggest policy loader has been replaced by:
+
+- `runner/autosuggest/config.rs`
+- `backend/config/json/agent/worker-autosuggest/`
+- legacy fallback to `backend/config/json/agent/worker-autosuggest-policy.json`
+
 ## Migrated In Place
 
 `search.rs`
@@ -56,7 +72,5 @@ The following files still contain old behavior that has only been partially move
 
 ## Still Shared Reference
 
-- `common.rs`
-- `policy.rs`
-
-These files remain as old-runner reference only. They are not compiled by the new runner.
+The remaining files are reference material for chained search behavior and input inference.
+They are not compiled by the new runner.
