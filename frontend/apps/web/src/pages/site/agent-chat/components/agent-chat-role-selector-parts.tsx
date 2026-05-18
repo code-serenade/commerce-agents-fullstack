@@ -80,6 +80,10 @@ export function PrimaryRoleButton({
       type="button"
       disabled={disabled}
       onClick={() => onSelect(role.runtimeRole)}
+      aria-label={`${badge}：${role.name}`}
+      aria-pressed={selected}
+      data-runtime-role={role.runtimeRole}
+      data-runtime-role-kind="primary"
       className={`flex min-w-0 items-start gap-2 rounded-lg border px-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
         selected
           ? "border-primary bg-primary/10 text-primary shadow-sm ring-2 ring-primary/25"
@@ -131,6 +135,10 @@ export function RoleToggle({
       type="button"
       disabled={disabled}
       onClick={() => onToggleRole(role.runtimeRole)}
+      aria-label={`${t("agentChat.composer.runtime.supportBadge")}：${role.name}`}
+      aria-pressed={selected}
+      data-runtime-role={role.runtimeRole}
+      data-runtime-role-kind="support"
       className={`flex min-w-0 items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
         selected
           ? "border-primary/60 bg-primary/10 text-primary ring-1 ring-primary/15"

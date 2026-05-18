@@ -13,7 +13,7 @@ use crate::{
         messaging::{MessageRx, MessageTx},
         protocol::{
             AgentId, DecisionIntent, Message, MessageContext, MessageId, Payload, SessionEvent,
-            TaskId, TaskSpec, WorkerId, WorkerProfile,
+            TaskGraph, TaskId, TaskSpec, WorkerId, WorkerProfile,
         },
     },
     roles::{
@@ -400,16 +400,12 @@ impl Commander {
         let Some(current_task) = self.current_task.clone() else {
             return false;
         };
-        if !self.force_collaboration()
-            && role_route
-                .map(primary_route_score)
-                .is_some_and(|score| score < self.fast_route_min_score)
-        {
-            return false;
-        }
 
         let task_id = TaskId(current_task.id);
         let graph = plan_task_graph(&task_id, &current_task.description, role_route);
+        if !self.should_run_task_graph(role_route, &graph) {
+            return false;
+        }
         if graph.nodes.iter().any(|node| {
             self.session_context
                 .get_worker_tx(&node.worker_id)
@@ -439,20 +435,42 @@ impl Commander {
         self.pending_support_workers.clear();
         self.completed_support_workers.clear();
         self.collaboration_outputs.clear();
-        let runtime = TaskGraphRuntime::new(graph).with_response_mode(
-            self.current_context
-                .metadata
-                .get("strategy.response_mode")
-                .map(String::as_str)
-                .or_else(|| {
-                    self.current_context
-                        .metadata
-                        .get("strategy.id")
-                        .map(String::as_str)
-                }),
-        );
+        let runtime = TaskGraphRuntime::new(graph)
+            .with_response_mode(
+                self.current_context
+                    .metadata
+                    .get("strategy.response_mode")
+                    .map(String::as_str)
+                    .or_else(|| {
+                        self.current_context
+                            .metadata
+                            .get("strategy.id")
+                            .map(String::as_str)
+                    }),
+            )
+            .with_learning_depth(
+                self.current_context
+                    .metadata
+                    .get("strategy.learning_level")
+                    .map(String::as_str),
+            );
         self.schedule_task_graph_runtime(runtime).await;
         true
+    }
+
+    fn should_run_task_graph(&self, role_route: Option<&RoleRoute>, graph: &TaskGraph) -> bool {
+        if self.force_collaboration() {
+            return true;
+        }
+        if graph.nodes.len() > 1 {
+            return true;
+        }
+        if primary_graph_role(graph) == Some("chat") {
+            return true;
+        }
+        role_route
+            .map(primary_route_score)
+            .is_none_or(|score| score >= self.fast_route_min_score)
     }
 
     fn force_collaboration(&self) -> bool {
@@ -1412,6 +1430,10 @@ fn primary_route_score(role_route: &RoleRoute) -> f32 {
         .unwrap_or(0.0)
 }
 
+fn primary_graph_role(graph: &TaskGraph) -> Option<&str> {
+    graph.nodes.first().map(|node| node.role.as_str())
+}
+
 fn final_worker_message(task_id: &TaskId, output: Option<&str>) -> String {
     output
         .filter(|value| !value.trim().is_empty())
@@ -1509,7 +1531,7 @@ fn synthesize_user_facing_collaboration_report(
     }
     lines.push(String::new());
 
-    lines.push("## 综合回答".to_string());
+    lines.push("## 总回答".to_string());
     if is_live_conversion_collaboration_task(task) {
         lines.push(format!(
             "- **团队判断**：{}先收敛主结论，{}分别补充指标、内容、服务、技术或预算边界；这不是多个回答的简单拼接，而是一组虚拟员工围绕同一上下文协作形成的 final_report。",
@@ -1906,7 +1928,7 @@ mod tests {
         );
 
         assert!(output.contains("虚拟员工分工"));
-        assert!(output.contains("综合回答"));
+        assert!(output.contains("总回答"));
         assert!(output.contains("各岗位独立输出"));
         assert!(output.contains("主岗综合方案"));
         assert!(output.contains("| 岗位 | 负责问题 | 独立判断 | 交给主岗的内容 |"));

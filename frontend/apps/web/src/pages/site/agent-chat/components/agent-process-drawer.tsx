@@ -29,11 +29,16 @@ export function AgentProcessDrawer({
   return (
     <div
       className="fixed inset-0 z-40 flex justify-end bg-background/35 p-3 backdrop-blur-[1px]"
+      data-agent-process-drawer="true"
       onPointerDown={onClose}
+      role="presentation"
     >
       <div
+        aria-label={t("agentChat.workbench.title")}
+        aria-modal="true"
         className="flex h-full w-[min(46rem,calc(100%-1rem))] max-w-full flex-col items-end xl:w-[min(48rem,42vw)] 2xl:w-[min(52rem,38vw)]"
         onPointerDown={(event) => event.stopPropagation()}
+        role="dialog"
       >
         <div className="pointer-events-auto mb-3 flex w-full items-center justify-between rounded-lg border border-border bg-background/95 px-4 py-3 shadow-lg backdrop-blur">
           <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">

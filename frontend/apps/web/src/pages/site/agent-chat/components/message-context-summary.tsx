@@ -30,16 +30,16 @@ export function MessageContextSummary({
             })
           : t("agentChat.thread.contextSummary.productNone"),
     },
-    {
-      icon: <FileText className="size-3.5" />,
-      label:
-        summary.sourceRefs.length > 0
-          ? t("agentChat.thread.contextSummary.sourceCount", {
-              count: summary.sourceRefs.length,
-            })
-          : t("agentChat.thread.contextSummary.sourceNone"),
-    },
   ]
+
+  if (summary.sourceRefs.length > 0) {
+    chips.push({
+      icon: <FileText className="size-3.5" />,
+      label: t("agentChat.thread.contextSummary.sourceCount", {
+        count: summary.sourceRefs.length,
+      }),
+    })
+  }
 
   if (summary.strategyId) {
     chips.push({

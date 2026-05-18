@@ -94,10 +94,11 @@ impl Worker {
         let requester = message.from.clone();
         let payload = match message.payload {
             Payload::WorkerAssignment { assignment } => {
+                let description = assignment_user_task(&assignment);
                 self.start_task(Task {
                     id: assignment.task_id.0.clone(),
                     context,
-                    description: assignment.objective.clone(),
+                    description,
                     requester,
                     assignment: Some(assignment),
                 });
@@ -10628,7 +10629,7 @@ fn normalize_role_specific_findings(role: &str, findings: &mut Vec<String>, task
 fn normalize_role_specific_recommendations(
     role: &str,
     recommendations: &mut Vec<String>,
-    task: &str,
+    _task: &str,
 ) {
     match role {
         "service" => {
@@ -10658,9 +10659,8 @@ fn normalize_role_specific_recommendations(
             {
                 push_unique(
                     recommendations,
-                    format!(
-                        "先补齐 {task} 对应的曝光、点击、加购、付款和退款漏斗，再输出确定性结论。"
-                    ),
+                    "先补齐曝光、点击、加购、付款、退款、咨询量和渠道来源，再输出确定性结论。"
+                        .to_string(),
                 );
             }
         }
@@ -10762,6 +10762,16 @@ fn normalize_product_context_evidence(
     );
 }
 
+fn assignment_user_task(assignment: &WorkerAssignment) -> String {
+    assignment
+        .objective
+        .rsplit_once('：')
+        .map(|(_, task)| task.trim())
+        .filter(|task| !task.is_empty())
+        .map(ToString::to_string)
+        .unwrap_or_else(|| assignment.objective.clone())
+}
+
 fn normalize_category_level_product_requests(
     role: &str,
     task: &Task,
@@ -10846,16 +10856,15 @@ fn normalize_category_level_product_requests(
 
 fn apply_category_team_output_shape(
     role: &str,
-    task: &str,
+    _task: &str,
     output: &mut crate::core::protocol::RoleWorkOutput,
 ) {
     match role {
         "data" => {
             push_unique(
                 &mut output.findings,
-                format!(
-                    "数据岗按类目级链路先定义 {task} 的曝光、点击、加购、付款、退款、咨询量和渠道拆分口径。"
-                ),
+                "数据岗按类目级链路先定义曝光、点击、加购、付款、退款、咨询量和渠道拆分口径。"
+                    .to_string(),
             );
             push_unique(&mut output.findings, "未选择具体商品时，数据岗不能把历史商品或默认商品当成本轮样本，只能输出诊断框架和待补数据清单。".to_string());
             push_unique(&mut output.recommendations, "建立一张类目级漏斗表：渠道、曝光、点击率、加购率、付款率、退款率、客服咨询率、复购率逐列补齐。".to_string());

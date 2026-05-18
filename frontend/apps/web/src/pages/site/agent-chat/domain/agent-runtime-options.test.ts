@@ -198,6 +198,25 @@ describe("agent runtime options", () => {
     })
   })
 
+  it("starts manual multi-role mode with a clear three-role team from auto defaults", () => {
+    expect(
+      setRuntimeCollaborationMode(
+        {
+          ...manualSelection,
+          collaborationMode: "auto",
+          primaryRole: "ops",
+          selectedRoles: [],
+        },
+        "manual"
+      )
+    ).toEqual({
+      ...manualSelection,
+      collaborationMode: "manual",
+      primaryRole: "ops",
+      selectedRoles: ["ops", "data", "creative"],
+    })
+  })
+
   it("does not remove the manual primary role while other roles remain selected", () => {
     expect(toggleRuntimeRole(manualSelection, "data")).toEqual(manualSelection)
   })

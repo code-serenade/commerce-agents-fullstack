@@ -27,6 +27,7 @@ Rules:
 - `default_llm` selects one entry by `name`. If omitted, runtime options and Agent runtime prefer a real configured Doubao entry whose `name` or `model` contains `doubao`; otherwise the first `[[llm]]` entry is used.
 - Model selection is server-side only. Frontend requests do not expose or override LLM config.
 - Local Ollama is still supported, for example `base_url = "http://127.0.0.1:11434"`.
+- Doubao is available only when a real Ark `[[llm]]` entry and API key exist in `services.toml`. The frontend must not display a fake Doubao option when the backend config does not contain one.
 
 Doubao Ark example:
 
@@ -40,16 +41,21 @@ max_tokens = 20000
 temperature = 0.2
 ```
 
-The current local config uses:
+The current local config in this repository uses Ollama-compatible remote entries:
 
 ```toml
 [[llm]]
+name = "ollama-gpt-oss-20b"
+base_url = "http://119.29.232.53:16814/v1"
+model = "gpt-oss:20b"
+
+[[llm]]
 name = "ollama-gemma4"
-base_url = "http://127.0.0.1:11434"
+base_url = "http://119.29.232.53:16814/v1"
 model = "gemma4:26b"
 ```
 
-If there is no service on that address, agent execution will plan the task graph but worker nodes will fail when they request `/v1/chat/completions`.
+There is no committed real Doubao Ark entry or real Ark API key in `backend/config/services.toml`. If a deployment needs Doubao, add the Ark entry on that machine and set `default_llm = "doubao-external"`. Do not commit real keys.
 
 ## Role
 
@@ -141,6 +147,27 @@ Important SSE events:
 - `task_node_rework_requested`: marks retry state.
 - `task_node_failed`: marks failed state and explains the blocker.
 - `task_graph_finished`: closes the execution run.
+
+Final Markdown output uses a stable core reading path across answer modes:
+
+```text
+# 多智能体协作结论
+## 总回答
+## 正文分析
+## 虚拟员工分工
+## 主岗综合方案
+## 总结与交付物
+```
+
+The backend may add process or execution sections between the core sections when data exists, for example `## 团队执行稿`, `## 丰富执行方案`, `## 岗位协作过程`, `## 协同关系`, `## 下一步`, and `## 执行检查清单`. These sections must not replace the core reading path; they only provide drill-down detail.
+
+`metadata.strategy.responseMode` changes density inside that layout:
+
+- `quick`: shorter answer, direct reasons, compact role table, no full execution table.
+- `learning`: student-friendly explanations, concepts, boundaries, and follow-up learning prompts.
+- `execution`: richer action table with owner, acceptance criteria, risk boundary, and review cadence.
+
+`metadata.strategy.learningLevel` further adjusts explanation depth inside teaching-oriented sections. Low depth reduces terminology and long process details; high depth adds reasoning, term explanation, risk boundary, and next-question suggestions.
 
 The Kimi-style panel is implemented in:
 

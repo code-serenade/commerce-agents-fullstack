@@ -48,6 +48,8 @@ export function AgentChatThread({
 }: AgentChatThreadProps) {
   const endRef = useRef<HTMLDivElement>(null)
   const scrollRootRef = useRef<HTMLElement>(null)
+  const followStreamingRef = useRef(true)
+  const ignoreScrollUntilRef = useRef(0)
   const hasStreamingMessage = messages.some(
     (message) => message.status === "streaming"
   )
@@ -61,24 +63,37 @@ export function AgentChatThread({
   const previousMessageIdentityRef = useRef("")
   const pendingScrollRestoreRef = useRef<ThreadScrollSnapshot | null>(null)
 
+  const scrollToEnd = useCallback((behavior: ScrollBehavior) => {
+    ignoreScrollUntilRef.current = Date.now() + 350
+    requestAnimationFrame(() => {
+      const root = scrollRootRef.current
+      if (root) {
+        root.scrollTo({ behavior, top: root.scrollHeight })
+      } else {
+        endRef.current?.scrollIntoView({ behavior, block: "end" })
+      }
+    })
+  }, [])
+
   useEffect(() => {
     if (messageIdentityKey === previousMessageIdentityRef.current) return
     previousMessageIdentityRef.current = messageIdentityKey
-    requestAnimationFrame(() => {
-      endRef.current?.scrollIntoView({ behavior: "auto", block: "end" })
-    })
-  }, [messageIdentityKey])
+    followStreamingRef.current = true
+    scrollToEnd("auto")
+  }, [messageIdentityKey, scrollToEnd])
 
   useEffect(() => {
-    if (!inlineIsStreaming || !lastMessage) return
+    if (!lastMessage) return
+    if (!inlineIsStreaming && lastMessage.role !== "assistant") return
     if (activeProcessMessageId) return
-    if (!isNearThreadBottom(scrollRootRef.current)) return
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
+    if (!followStreamingRef.current) return
+    scrollToEnd("smooth")
   }, [
     activeProcessMessageId,
     inlineIsStreaming,
     lastMessage,
     lastMessageContentLength,
+    scrollToEnd,
   ])
 
   useLayoutEffect(() => {
@@ -105,10 +120,16 @@ export function AgentChatThread({
     preserveThreadScroll(activeProcessMessageId, onCloseProcessPanel)
   }
 
+  const handleScroll = () => {
+    if (Date.now() < ignoreScrollUntilRef.current) return
+    followStreamingRef.current = isNearThreadBottom(scrollRootRef.current)
+  }
+
   return (
     <section
       ref={scrollRootRef}
       data-agent-chat-thread-scroll-root="true"
+      onScroll={handleScroll}
       className="min-h-0 flex-1 overflow-y-auto bg-background px-4 py-5 sm:px-6"
     >
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">

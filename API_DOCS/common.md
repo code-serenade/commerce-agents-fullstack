@@ -68,6 +68,8 @@ temperature = 0.2
 
 顶层 `default_llm` 可选，用于指定默认使用哪个 `[[llm]].name`。如果不配置，运行选项接口和 Agent runtime 都会优先选择真实配置的豆包模型（`name` 或 `model` 包含 `doubao`），否则使用第一个 `[[llm]]`。前端只展示 `services.toml` 里真实存在的模型，不会伪造豆包选项。
 
+当前仓库提交的 `backend/config/services.toml` 没有真实豆包 Ark 配置，也没有 Ark API key；因此当前本地运行时不会调用豆包。要启用豆包，必须在部署机器的 `services.toml` 中添加真实 `[[llm]]` 配置并设置 `default_llm`，不要把真实 key 提交到仓库。
+
 豆包 Ark 示例：
 
 ```toml

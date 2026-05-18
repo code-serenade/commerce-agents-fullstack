@@ -1702,6 +1702,106 @@ async fn stream_routes_default_funnel_question_to_data_skill_without_manual_coll
 }
 
 #[tokio::test]
+async fn stream_routes_auto_learning_commerce_task_to_team_graph() {
+    let runtime_roles = Arc::new(Mutex::new(HashSet::new()));
+    let worker_capture = Arc::clone(&runtime_roles);
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(move || {
+            Ok(Box::new(CapturingWorkerSetCognition {
+                runtime_roles: Arc::clone(&worker_capture),
+            }))
+        }),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert("strategy.response_mode".to_string(), "learning".to_string());
+    metadata.insert(
+        "strategy.collaboration_mode".to_string(),
+        "auto".to_string(),
+    );
+    metadata.insert(
+        "strategy.learning_level".to_string(),
+        "higher_vocational".to_string(),
+    );
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-auto-learning-team".to_string()),
+            input: "请用教学模式自动分配岗位，面向高职学生讲清楚咖啡直播首场怎么判断是否健康；不要引用商品。".to_string(),
+            metadata,
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    while let Some(event) = rx.recv().await {
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+
+    assert!(
+        events.iter().any(|event| {
+            matches!(
+                event,
+                SessionEvent::RouteDecided {
+                    strategy_id,
+                    response_mode,
+                    collaboration_mode,
+                    route_mode,
+                    primary_runtime_role,
+                    support_runtime_roles,
+                    ..
+                } if strategy_id.is_none()
+                    && response_mode.as_deref() == Some("learning")
+                    && collaboration_mode.as_deref() == Some("auto")
+                    && route_mode == "task_graph"
+                    && primary_runtime_role.as_deref() == Some("data")
+                    && support_runtime_roles.len() >= 2
+            )
+        }),
+        "events: {events:#?}"
+    );
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::TaskGraphPlanned { graph, .. }
+                if graph.nodes.len() > 1
+                    && graph.nodes.first().is_some_and(|node| node.role == "data")
+                    && graph.nodes.last().is_some_and(|node| node.role == "ops")
+        )
+    }));
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::Output { content, .. }
+                if content.contains("教学模式已完成")
+                    && content.contains("## 正文分析")
+                    && content.contains("## 虚拟员工分工")
+                    && content.contains("| 类型 | 岗位 | 负责问题 | 独立判断 | 交给团队的内容 |")
+                    && content.contains("## 团队执行稿")
+                    && !content.contains("对应的曝光、点击、加购、付款和退款漏斗")
+        )
+    }));
+
+    let runtime_roles = runtime_roles.lock().expect("lock role set capture");
+    assert!(runtime_roles.contains("data"));
+    assert!(runtime_roles.contains("ops"));
+    assert!(
+        runtime_roles.contains("creative") || runtime_roles.contains("service"),
+        "{runtime_roles:?}"
+    );
+    assert!(!runtime_roles.contains("chat"));
+}
+
+#[tokio::test]
 async fn stream_emits_context_loaded_event_from_request_metadata() {
     let manager = AgentManager::new(AgentManagerConfig::new(
         Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),

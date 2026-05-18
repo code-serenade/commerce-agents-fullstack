@@ -292,6 +292,12 @@ impl SessionRuntime {
                         .get("strategy.response_mode")
                         .map(String::as_str)
                         .or_else(|| self.context.metadata.get("strategy.id").map(String::as_str)),
+                )
+                .with_learning_depth(
+                    self.context
+                        .metadata
+                        .get("strategy.learning_level")
+                        .map(String::as_str),
                 );
                 let assignment = runtime.build_assignment(&runtime.ready_nodes().remove(0));
                 runtime.mark_running(&assignment);
@@ -531,13 +537,20 @@ impl SessionRuntime {
     }
 
     fn dispatch_chat_direct(&self, context: MessageContext, graph: TaskGraph) -> Result<()> {
-        let runtime = TaskGraphRuntime::new(graph).with_response_mode(
-            self.context
-                .metadata
-                .get("strategy.response_mode")
-                .map(String::as_str)
-                .or_else(|| self.context.metadata.get("strategy.id").map(String::as_str)),
-        );
+        let runtime = TaskGraphRuntime::new(graph)
+            .with_response_mode(
+                self.context
+                    .metadata
+                    .get("strategy.response_mode")
+                    .map(String::as_str)
+                    .or_else(|| self.context.metadata.get("strategy.id").map(String::as_str)),
+            )
+            .with_learning_depth(
+                self.context
+                    .metadata
+                    .get("strategy.learning_level")
+                    .map(String::as_str),
+            );
         let Some(node) = runtime.ready_nodes().into_iter().next() else {
             return Err(SettingsError::invalid("chat bypass graph has no ready node").into());
         };
