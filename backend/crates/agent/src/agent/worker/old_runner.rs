@@ -186,7 +186,7 @@ impl Worker {
             intent: Intent {
                 id: task.id.clone(),
                 kind: IntentKind::Planning,
-                description: conversation_aware_task_description(&task),
+                description: task.description.clone(),
             },
             context: self.build_cognition_context(&task),
         };
@@ -500,7 +500,4 @@ impl Worker {
 include!("runner/skill_resolution.rs");
 include!("runner/autosuggest.rs");
 include!("runner/inference.rs");
-include!("runner/context.rs");
-include!("runner/parsing.rs");
 include!("runner/output_normalization.rs");
-include!("runner/formatting.rs");

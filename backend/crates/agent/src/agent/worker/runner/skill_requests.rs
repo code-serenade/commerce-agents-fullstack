@@ -124,17 +124,60 @@ fn build_skill_context(
         .with_metadata("role_id", serde_json::json!(role.id.0))
         .with_metadata("role_name", serde_json::json!(role.name))
         .with_metadata("role_runtime", serde_json::json!(role.runtime_role));
+    if let Some(user_id) = &task.context.user_id {
+        context = context.with_metadata("message.user_id", serde_json::json!(user_id.0.clone()));
+    }
+    if let Some(workspace_id) = &task.context.workspace_id {
+        context = context.with_metadata(
+            "message.workspace_id",
+            serde_json::json!(workspace_id.0.clone()),
+        );
+    }
+    if let Some(agent_id) = &task.context.agent_id {
+        context = context.with_metadata("message.agent_id", serde_json::json!(agent_id.0.clone()));
+    }
     if let Some(session_id) = &task.context.session_id {
         context = context.with_session_id(session_id.0.clone());
+        context = context.with_metadata(
+            "message.session_id",
+            serde_json::json!(session_id.0.clone()),
+        );
+    }
+    if let Some(task_id) = &task.context.task_id {
+        context = context.with_metadata("message.task_id", serde_json::json!(task_id.0.clone()));
+    }
+    for (key, value) in &task.context.metadata {
+        context = context.with_metadata(format!("request.{key}"), serde_json::json!(value));
     }
     if let Some(reason) = &request.reason {
         context = context.with_metadata("request_reason", serde_json::json!(reason));
     }
     if let Some(assignment) = &task.assignment {
+        let upstream_roles = assignment
+            .inputs
+            .iter()
+            .map(|input| input.role.as_str())
+            .collect::<Vec<_>>()
+            .join(",");
         context = context
             .with_metadata("graph_id", serde_json::json!(assignment.graph_id.0))
             .with_metadata("node_id", serde_json::json!(assignment.node_id.0))
-            .with_metadata("attempt", serde_json::json!(assignment.attempt));
+            .with_metadata(
+                "assignment_role",
+                serde_json::json!(assignment.role.clone()),
+            )
+            .with_metadata("attempt", serde_json::json!(assignment.attempt))
+            .with_metadata(
+                "assignment_input_count",
+                serde_json::json!(assignment.inputs.len()),
+            )
+            .with_metadata("assignment_input_roles", serde_json::json!(upstream_roles));
+        if let Some(instruction) = &assignment.rework_instruction {
+            context = context.with_metadata(
+                "assignment_rework_instruction",
+                serde_json::json!(instruction),
+            );
+        }
     }
     context
 }

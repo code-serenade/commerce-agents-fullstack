@@ -36,6 +36,10 @@ fn build_context(
     metadata.insert("role.runtime_role".to_string(), role.runtime_role.clone());
     metadata.insert("phase".to_string(), format!("{phase:?}"));
 
+    for (key, value) in &task.context.metadata {
+        metadata.insert(format!("request.{key}"), value.clone());
+    }
+
     for (key, value) in &memory.state {
         metadata.insert(format!("memory.{key}"), value.clone());
     }
@@ -67,6 +71,8 @@ fn build_context(
     }
 
     let mut facts = Vec::new();
+    extend_context_facts(&task.context.metadata, &mut facts);
+
     if let Some(assignment) = &task.assignment {
         facts.push(Fact {
             source: "worker.assignment".to_string(),
@@ -103,4 +109,73 @@ fn build_context(
     }));
 
     Context { facts, metadata }
+}
+
+fn extend_context_facts(
+    metadata: &std::collections::BTreeMap<String, String>,
+    facts: &mut Vec<Fact>,
+) {
+    extend_named_context_fact(
+        metadata,
+        facts,
+        "conversation.history_summary",
+        "conversation.history",
+    );
+    extend_named_context_fact(
+        metadata,
+        facts,
+        "context.selected_summary",
+        "commerce.selected_product_context",
+    );
+    extend_named_context_fact(
+        metadata,
+        facts,
+        "context.sources_json",
+        "commerce.selected_product_context.sources",
+    );
+    extend_named_context_fact(
+        metadata,
+        facts,
+        "context.combined_summary",
+        "request.combined_context",
+    );
+    extend_named_context_fact(
+        metadata,
+        facts,
+        "workspaceContext.summary",
+        "workspace.context_summary",
+    );
+    extend_named_context_fact(
+        metadata,
+        facts,
+        "workspaceContextPack.summary",
+        "workspace.context_pack_summary",
+    );
+    extend_named_context_fact(
+        metadata,
+        facts,
+        "workspaceContextPack.items_json",
+        "workspace.context_pack.items",
+    );
+}
+
+fn extend_named_context_fact(
+    metadata: &std::collections::BTreeMap<String, String>,
+    facts: &mut Vec<Fact>,
+    key: &str,
+    source: &str,
+) {
+    let Some(value) = metadata
+        .get(key)
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
+    else {
+        return;
+    };
+
+    facts.push(Fact {
+        source: source.to_string(),
+        content: value.to_string(),
+        reliability: 1.0,
+    });
 }
