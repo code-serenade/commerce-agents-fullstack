@@ -7,6 +7,7 @@ mod autosuggest;
 mod context;
 mod execution;
 mod output;
+mod output_normalization;
 mod policy;
 mod skill_requests;
 mod types;

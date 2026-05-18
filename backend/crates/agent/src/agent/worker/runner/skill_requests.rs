@@ -1,5 +1,6 @@
 use super::{
     autosuggest::autosuggest_skill_requests,
+    output_normalization::is_category_level_task,
     policy::worker_policies,
     types::ParsedSkillRequest,
     util::{compact_event_text, metadata_string, skill_status_name},
@@ -136,20 +137,6 @@ fn should_defer_category_level_skill_request(request: &ParsedSkillRequest, task:
 fn has_selected_product_context(task: &Task) -> bool {
     metadata_value(task, "context.selected_summary").is_some()
         || metadata_value(task, "commerce.selected_product_context").is_some()
-}
-
-fn is_category_level_task(task: &str) -> bool {
-    let Some(items) = worker_policies()
-        .output_normalization
-        .get("category_level_task_keywords")
-        .and_then(serde_json::Value::as_array)
-    else {
-        return false;
-    };
-    items
-        .iter()
-        .filter_map(serde_json::Value::as_str)
-        .any(|keyword| !keyword.trim().is_empty() && task.contains(keyword))
 }
 
 fn is_category_level_deferred_skill(skill: &str) -> bool {

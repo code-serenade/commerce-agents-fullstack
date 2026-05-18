@@ -2,7 +2,8 @@ use tracing::warn;
 
 use super::{
     context::build_cognition_input,
-    output::{merge_skill_results, parse_worker_role_output},
+    output::parse_worker_role_output,
+    output_normalization::finalize_worker_role_output,
     skill_requests::execute_requested_skills,
     types::BoxedAction,
     util::{new_task_id, next_message_id},
@@ -277,7 +278,12 @@ impl Worker {
                             serde_json::from_str::<Vec<SkillExecutionResult>>(value).ok()
                         })
                         .unwrap_or_default();
-                    let parsed = merge_skill_results(parsed, &skill_results);
+                    let parsed = finalize_worker_role_output(
+                        &assignment.role,
+                        &task,
+                        parsed,
+                        &skill_results,
+                    );
 
                     Payload::WorkerReport {
                         report: crate::core::protocol::WorkerReport {
