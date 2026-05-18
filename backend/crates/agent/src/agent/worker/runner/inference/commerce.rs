@@ -22,48 +22,25 @@ pub(in crate::agent::worker::runner) fn infer_competitor_prices(text: &str) -> V
 }
 
 pub(in crate::agent::worker::runner) fn infer_cost(text: &str, fallback: f64) -> f64 {
-    extract_metric_value(
-        text,
-        &aliases("cost", &["单位成本", "单品成本", "成本", "cost"]),
-    )
-    .unwrap_or(fallback)
-    .max(number_default("rules/cost/result_min", 0.01))
+    extract_metric_value(text, &aliases("cost"))
+        .unwrap_or(fallback)
+        .max(number_default("rules/cost/result_min", 0.01))
 }
 
 pub(in crate::agent::worker::runner) fn infer_current_price(text: &str, fallback: f64) -> f64 {
-    extract_metric_value(
-        text,
-        &aliases(
-            "current_price",
-            &[
-                "当前售价",
-                "当前价格",
-                "现价",
-                "售价",
-                "current_price",
-                "price",
-            ],
-        ),
-    )
-    .unwrap_or(fallback)
-    .max(number_default("rules/current_price/result_min", 0.0))
+    extract_metric_value(text, &aliases("current_price"))
+        .unwrap_or(fallback)
+        .max(number_default("rules/current_price/result_min", 0.0))
 }
 
 pub(in crate::agent::worker::runner) fn infer_stock_days(text: &str, fallback: f64) -> f64 {
-    extract_metric_value(
-        text,
-        &aliases("stock_days", &["库存天数", "可售天数", "stock_days"]),
-    )
-    .unwrap_or(fallback)
-    .max(number_default("rules/stock_days/result_min", 0.0))
+    extract_metric_value(text, &aliases("stock_days"))
+        .unwrap_or(fallback)
+        .max(number_default("rules/stock_days/result_min", 0.0))
 }
 
 pub(in crate::agent::worker::runner) fn infer_elasticity(text: &str, fallback: f64) -> f64 {
-    let value = extract_metric_value(
-        text,
-        &aliases("elasticity", &["弹性系数", "价格弹性", "elasticity"]),
-    )
-    .unwrap_or(fallback);
+    let value = extract_metric_value(text, &aliases("elasticity")).unwrap_or(fallback);
     if bool_default("rules/elasticity/positive_values_are_negated", true) && value > 0.0 {
         -value
     } else {
@@ -161,10 +138,7 @@ pub(in crate::agent::worker::runner) fn infer_channel_strategy_input(
         "budget".to_string(),
         serde_json::json!(infer_budget(
             text,
-            &aliases(
-                "channel_strategy_budget",
-                &["渠道预算", "月预算", "预算", "budget"],
-            ),
+            &aliases("channel_strategy_budget"),
             number_default("defaults/channel_strategy_budget", 10_000.0),
         )),
     );
@@ -191,10 +165,7 @@ pub(in crate::agent::worker::runner) fn infer_assortment_planning_input(
         "budget".to_string(),
         serde_json::json!(infer_budget(
             text,
-            &aliases(
-                "assortment_planning_budget",
-                &["选品预算", "货盘预算", "采购预算", "预算", "budget"],
-            ),
+            &aliases("assortment_planning_budget"),
             number_default("defaults/assortment_planning_budget", 50_000.0),
         )),
     );
@@ -206,20 +177,8 @@ fn parse_price_quantity_segment(segment: &str) -> Option<serde_json::Value> {
     if trimmed.is_empty() {
         return None;
     }
-    let price = extract_last_metric_value(
-        trimmed,
-        &aliases(
-            "price_quantity_point_price",
-            &["价格点", "售价", "单价", "price", "价格"],
-        ),
-    )?;
-    let quantity = extract_metric_value(
-        trimmed,
-        &aliases(
-            "price_quantity_point_quantity",
-            &["销量", "销售量", "件数", "销量件数", "quantity", "qty"],
-        ),
-    )?;
+    let price = extract_last_metric_value(trimmed, &aliases("price_quantity_point_price"))?;
+    let quantity = extract_metric_value(trimmed, &aliases("price_quantity_point_quantity"))?;
     Some(serde_json::json!({
         "price": price,
         "quantity": quantity,
@@ -246,10 +205,10 @@ fn extract_last_metric_value<T: AsRef<str>>(text: &str, aliases: &[T]) -> Option
     None
 }
 
-fn aliases(key: &str, fallback: &[&str]) -> Vec<String> {
+fn aliases(key: &str) -> Vec<String> {
     worker_policies()
         .inference
-        .string_list_or("aliases", &format!("/{}", key), fallback)
+        .string_list("aliases", &format!("/{}", key))
 }
 
 fn number_default(pointer: &str, fallback: f64) -> f64 {

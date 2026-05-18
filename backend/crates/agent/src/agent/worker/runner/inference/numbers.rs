@@ -1,3 +1,5 @@
+use crate::agent::worker::runner::policy::worker_policies;
+
 pub(super) fn numbers_in_text(text: &str) -> Vec<f64> {
     let mut values = Vec::new();
     let mut current = String::new();
@@ -14,11 +16,13 @@ pub(super) fn numbers_in_text(text: &str) -> Vec<f64> {
 
 pub(in crate::agent::worker::runner) fn infer_period_days(text: &str) -> i64 {
     infer_explicit_period_days(text).unwrap_or_else(|| {
+        let min = config_i64("/period_days/min", 1) as f64;
+        let max = config_i64("/period_days/max", 365) as f64;
         numbers_in_text(text)
             .iter()
-            .find(|value| **value >= 1.0 && **value <= 365.0)
+            .find(|value| **value >= min && **value <= max)
             .map(|value| value.round() as i64)
-            .unwrap_or(30)
+            .unwrap_or_else(|| config_i64("/period_days/default", 30))
     })
 }
 
@@ -49,7 +53,9 @@ pub(super) fn infer_explicit_period_days(text: &str) -> Option<i64> {
         let Ok(value) = text[start .. end].parse::<i64>() else {
             continue;
         };
-        if !(1 ..= 365).contains(&value) {
+        if !(config_i64("/period_days/min", 1) ..= config_i64("/period_days/max", 365))
+            .contains(&value)
+        {
             continue;
         }
 
@@ -61,20 +67,22 @@ pub(super) fn infer_explicit_period_days(text: &str) -> Option<i64> {
         let before = text[.. start]
             .chars()
             .rev()
-            .take(10)
+            .take(config_i64("/explicit_period/scan_before_chars", 10).max(0) as usize)
             .collect::<Vec<_>>()
             .into_iter()
             .rev()
             .collect::<String>();
         if contains_any(
             &before,
-            &["最近", "近", "过去", "天内", "日内", "周内", "月内"],
-        ) || unit_tail.starts_with("天内")
-            || unit_tail.starts_with("日内")
-            || unit_tail.starts_with("周内")
-            || unit_tail.starts_with("月内")
-        {
-            return Some((value * multiplier).clamp(1, 365));
+            &config_string_list("/explicit_period/before_keywords"),
+        ) || starts_with_any(
+            unit_tail,
+            &config_string_list("/explicit_period/tail_keywords"),
+        ) {
+            return Some((value * multiplier).clamp(
+                config_i64("/period_days/min", 1),
+                config_i64("/period_days/max", 365),
+            ));
         }
     }
     None
@@ -82,17 +90,17 @@ pub(super) fn infer_explicit_period_days(text: &str) -> Option<i64> {
 
 fn explicit_period_multiplier(unit_tail: &str) -> Option<i64> {
     let lower = unit_tail.to_ascii_lowercase();
-    if unit_tail.starts_with('天') || unit_tail.starts_with('日') || lower.starts_with("day") {
-        Some(1)
-    } else if unit_tail.starts_with('周') || lower.starts_with("week") {
-        Some(7)
-    } else if unit_tail.starts_with('月') || lower.starts_with("month") {
-        Some(30)
-    } else if unit_tail.starts_with('年') || lower.starts_with("year") {
-        Some(365)
-    } else {
-        None
-    }
+    config_array("/explicit_period/units")
+        .into_iter()
+        .find_map(|unit| {
+            let multiplier = unit.get("multiplier")?.as_i64()?;
+            let prefixes = unit.get("prefixes")?.as_array()?;
+            prefixes
+                .iter()
+                .filter_map(serde_json::Value::as_str)
+                .any(|prefix| unit_tail.starts_with(prefix) || lower.starts_with(prefix))
+                .then_some(multiplier)
+        })
 }
 
 pub(in crate::agent::worker::runner) fn infer_integer_or_default(text: &str, default: i64) -> i64 {
@@ -114,11 +122,38 @@ pub(in crate::agent::worker::runner) fn infer_second_percent_number(
     numbers_in_text(text).get(1).copied().unwrap_or(default)
 }
 
-fn contains_any(text: &str, needles: &[&str]) -> bool {
+fn contains_any<T: AsRef<str>>(text: &str, needles: &[T]) -> bool {
     let lower = text.to_ascii_lowercase();
-    needles
+    needles.iter().any(|needle| {
+        let needle = needle.as_ref();
+        text.contains(needle) || lower.contains(&needle.to_ascii_lowercase())
+    })
+}
+
+fn starts_with_any<T: AsRef<str>>(text: &str, prefixes: &[T]) -> bool {
+    prefixes
         .iter()
-        .any(|needle| text.contains(needle) || lower.contains(&needle.to_ascii_lowercase()))
+        .any(|prefix| text.starts_with(prefix.as_ref()))
+}
+
+fn config_i64(pointer: &str, fallback: i64) -> i64 {
+    worker_policies()
+        .inference
+        .i64_or("numbers", pointer, fallback)
+}
+
+fn config_string_list(pointer: &str) -> Vec<String> {
+    worker_policies().inference.string_list("numbers", pointer)
+}
+
+fn config_array(pointer: &str) -> Vec<serde_json::Value> {
+    worker_policies()
+        .inference
+        .section("numbers")
+        .and_then(|value| value.pointer(pointer))
+        .and_then(serde_json::Value::as_array)
+        .cloned()
+        .unwrap_or_default()
 }
 
 fn push_parsed_number(values: &mut Vec<f64>, current: &mut String) {

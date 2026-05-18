@@ -6,6 +6,8 @@
     "inventory.json",
     "search.json",
     "context.json",
-    "douyin-ads.json"
+    "douyin-ads.json",
+    "memory-task.json",
+    "numbers.json"
   ]
 }

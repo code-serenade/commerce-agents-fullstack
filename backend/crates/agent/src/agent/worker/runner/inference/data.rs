@@ -11,27 +11,7 @@ pub(in crate::agent::worker::runner) fn infer_values(text: &str) -> Vec<f64> {
 pub(in crate::agent::worker::runner) fn infer_channel_roi_rows(
     text: &str,
 ) -> Vec<serde_json::Value> {
-    let platform_labels = string_list_or(
-        "platforms",
-        "/channel_roi_labels",
-        &[
-            "抖音",
-            "douyin",
-            "tiktok",
-            "淘宝",
-            "taobao",
-            "天猫",
-            "tmall",
-            "京东",
-            "jd",
-            "拼多多",
-            "pdd",
-            "小红书",
-            "xiaohongshu",
-            "快手",
-            "kuaishou",
-        ],
-    );
+    let platform_labels = string_list("platforms", "/channel_roi_labels");
     let mut rows = Vec::new();
     let mut seen = Vec::<String>::new();
     for label in &platform_labels {
@@ -79,11 +59,7 @@ pub(in crate::agent::worker::runner) fn infer_attribution_model(text: &str) -> &
 }
 
 pub(in crate::agent::worker::runner) fn infer_refund_items(text: &str) -> Vec<serde_json::Value> {
-    let separators = string_list_or(
-        "parsers",
-        "/refund_items/split_on",
-        &["，", ",", "；", ";", "、", "\n"],
-    );
+    let separators = string_list("parsers", "/refund_items/split_on");
     text.split(|ch: char| {
         separators
             .iter()
@@ -307,11 +283,7 @@ fn aliases(group: &str, key: &str) -> Vec<String> {
 }
 
 fn refund_amount_aliases() -> Vec<String> {
-    string_list_or(
-        "aliases",
-        "/refund_amount",
-        &["退款金额", "退款额", "退款", "退货金额", "退货"],
-    )
+    string_list("aliases", "/refund_amount")
 }
 
 fn classify_or(text: &str, classifier: &str, fallback: &'static str) -> &'static str {
@@ -398,12 +370,6 @@ fn string_or(section: &str, pointer: &str, fallback: &str) -> String {
 
 fn string_list(section: &str, pointer: &str) -> Vec<String> {
     worker_policies().inference.string_list(section, pointer)
-}
-
-fn string_list_or(section: &str, pointer: &str, fallback: &[&str]) -> Vec<String> {
-    worker_policies()
-        .inference
-        .string_list_or(section, pointer, fallback)
 }
 
 fn i64_list_or(section: &str, pointer: &str, fallback: &[i64]) -> Vec<i64> {

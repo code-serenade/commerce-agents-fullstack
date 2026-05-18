@@ -1,0 +1,32 @@
+{
+  "numbers": {
+    "period_days": {
+      "default": 30,
+      "min": 1,
+      "max": 365
+    },
+    "explicit_period": {
+      "scan_before_chars": 10,
+      "before_keywords": ["最近", "近", "过去", "天内", "日内", "周内", "月内"],
+      "tail_keywords": ["天内", "日内", "周内", "月内"],
+      "units": [
+        {
+          "multiplier": 1,
+          "prefixes": ["天", "日", "day"]
+        },
+        {
+          "multiplier": 7,
+          "prefixes": ["周", "week"]
+        },
+        {
+          "multiplier": 30,
+          "prefixes": ["月", "month"]
+        },
+        {
+          "multiplier": 365,
+          "prefixes": ["年", "year"]
+        }
+      ]
+    }
+  }
+}

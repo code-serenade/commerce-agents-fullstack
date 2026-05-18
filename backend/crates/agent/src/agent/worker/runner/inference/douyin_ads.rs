@@ -25,13 +25,7 @@ pub(in crate::agent::worker::runner) fn infer_days(text: &str) -> i64 {
 
 pub(in crate::agent::worker::runner) fn infer_product_name(text: &str, task: &Task) -> String {
     if context::first_selected_product(task).is_some()
-        || contains_any(
-            text,
-            &config_string_list(
-                "/product_name/intent_keywords",
-                &["商品", "产品", "咖啡", "SKU", "sku"],
-            ),
-        )
+        || contains_any(text, &config_string_list("/product_name/intent_keywords"))
     {
         context::selected_product_name_or_task(task)
     } else {
@@ -40,93 +34,36 @@ pub(in crate::agent::worker::runner) fn infer_product_name(text: &str, task: &Ta
 }
 
 pub(in crate::agent::worker::runner) fn infer_budget(text: &str) -> Option<f64> {
-    extract_metric_value(
-        text,
-        &metric_aliases(
-            "budget",
-            &[
-                "投放预算",
-                "广告预算",
-                "千川预算",
-                "总预算",
-                "人群预算",
-                "预算",
-                "budget",
-            ],
-        ),
-    )
+    extract_metric_value(text, &metric_aliases("budget"))
 }
 
 pub(in crate::agent::worker::runner) fn infer_target_roas(text: &str) -> Option<f64> {
-    extract_metric_value(
-        text,
-        &metric_aliases(
-            "target_roas",
-            &["目标ROAS", "目标roas", "目标投产", "目标ROI", "target_roas"],
-        ),
-    )
+    extract_metric_value(text, &metric_aliases("target_roas"))
 }
 
 pub(in crate::agent::worker::runner) fn infer_spend(text: &str) -> Option<f64> {
-    extract_metric_value(
-        text,
-        &metric_aliases(
-            "spend",
-            &[
-                "已消耗",
-                "消耗",
-                "花费",
-                "广告费",
-                "广告花费",
-                "spend",
-                "ad_spend",
-            ],
-        ),
-    )
+    extract_metric_value(text, &metric_aliases("spend"))
 }
 
 pub(in crate::agent::worker::runner) fn infer_gmv(text: &str) -> Option<f64> {
-    extract_metric_value(
-        text,
-        &metric_aliases("gmv", &["GMV", "gmv", "成交额", "销售额", "营收"]),
-    )
+    extract_metric_value(text, &metric_aliases("gmv"))
 }
 
 pub(in crate::agent::worker::runner) fn infer_current_roas(text: &str) -> Option<f64> {
     extract_metric_value(
         text,
-        &config_string_list(
-            "/metrics/current_roas/primary_aliases",
-            &[
-                "当前ROAS",
-                "当前roas",
-                "实际ROAS",
-                "实际roas",
-                "当前投产",
-                "实际投产",
-                "当前ROI",
-                "当前roi",
-                "实际ROI",
-                "实际roi",
-            ],
-        ),
+        &config_string_list("/metrics/current_roas/primary_aliases"),
     )
     .or_else(|| {
         if contains_any(
             text,
-            &config_string_list(
-                "/metrics/current_roas/blocked_when_target_alias_present",
-                &["目标ROAS", "目标roas", "目标投产", "目标ROI", "target_roas"],
-            ),
+            &config_string_list("/metrics/current_roas/blocked_when_target_alias_present"),
         ) {
             None
         } else {
             extract_metric_value(
                 text,
-                &config_string_list(
-                    "/metrics/current_roas/fallback_aliases",
-                    &["ROAS", "roas", "投产", "ROI", "roi"],
-                ),
+                &config_string_list("/metrics/current_roas/fallback_aliases"),
             )
         }
     })
@@ -137,7 +74,7 @@ pub(in crate::agent::worker::runner) fn infer_live_metric(text: &str, key: &str)
         "ad_spend" => infer_spend(text),
         "gmv" => infer_gmv(text),
         _ => {
-            let aliases = config_string_list(&format!("/live_metrics/{key}/aliases"), &[]);
+            let aliases = config_string_list(&format!("/live_metrics/{key}/aliases"));
             (!aliases.is_empty())
                 .then(|| extract_metric_value(text, &aliases))
                 .flatten()
@@ -179,14 +116,14 @@ fn config_string(pointer: &str, fallback: &str) -> String {
         .string_or("douyin_ads", pointer, fallback)
 }
 
-fn config_string_list(pointer: &str, fallback: &[&str]) -> Vec<String> {
+fn config_string_list(pointer: &str) -> Vec<String> {
     worker_policies()
         .inference
-        .string_list_or("douyin_ads", pointer, fallback)
+        .string_list("douyin_ads", pointer)
 }
 
-fn metric_aliases(key: &str, fallback: &[&str]) -> Vec<String> {
-    config_string_list(&format!("/metrics/{key}/aliases"), fallback)
+fn metric_aliases(key: &str) -> Vec<String> {
+    config_string_list(&format!("/metrics/{key}/aliases"))
 }
 
 fn string_list_from_value(value: Option<&serde_json::Value>) -> Vec<&str> {

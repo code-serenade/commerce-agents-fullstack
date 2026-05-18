@@ -37,28 +37,7 @@ pub(in crate::agent::worker::runner) fn platform_for_task(text: &str, task: &Tas
 pub(in crate::agent::worker::runner) fn bypass_cache(text: &str) -> bool {
     contains_any(
         text,
-        &config_string_list(
-            "/freshness/bypass_cache_keywords",
-            &[
-                "实时",
-                "最新",
-                "刚刚",
-                "今天",
-                "联网",
-                "公开来源",
-                "公开资料",
-                "外部资料",
-                "真实",
-                "真实评价",
-                "真实口碑",
-                "真实反馈",
-                "不要缓存",
-                "fresh",
-                "live",
-                "_needs_fresh_data",
-                "bypass_cache",
-            ],
-        ),
+        &config_string_list("/freshness/bypass_cache_keywords"),
     )
 }
 
@@ -165,12 +144,7 @@ fn infer_query(text: &str) -> String {
 fn extract_keyword_candidates(text: &str) -> Vec<String> {
     let min_chars = config_usize("/query/candidate_min_chars", 2);
     let max_chars = config_usize("/query/candidate_max_chars", 24);
-    let exclude_keywords = config_string_list(
-        "/query/candidate_exclude_keywords",
-        &[
-            "帮我", "请", "搜索", "查询", "分析", "最新", "实时", "行业", "数据",
-        ],
-    );
+    let exclude_keywords = config_string_list("/query/candidate_exclude_keywords");
     let delimiters = split_delimiters("/query/candidate_split_delimiters");
 
     text.split(|ch| delimiters.contains(&ch))
@@ -184,23 +158,7 @@ fn extract_keyword_candidates(text: &str) -> Vec<String> {
 fn refers_to_selected_product(text: &str) -> bool {
     contains_any(
         text,
-        &config_string_list(
-            "/query/selected_product_triggers",
-            &[
-                "这个商品",
-                "这个产品",
-                "该商品",
-                "该产品",
-                "本品",
-                "当前商品",
-                "所选商品",
-                "选中商品",
-                "这个SKU",
-                "该SKU",
-                "this product",
-                "selected product",
-            ],
-        ),
+        &config_string_list("/query/selected_product_triggers"),
     )
 }
 
@@ -208,41 +166,15 @@ fn is_result_count_context(before: &str, after: &str) -> bool {
     let trimmed_after = after.trim_start();
     let has_after_result_unit = starts_with_any(
         trimmed_after,
-        &config_string_list(
-            "/max_results/after_result_units",
-            &[
-                "条来源",
-                "个来源",
-                "条结果",
-                "个结果",
-                "条公开资料",
-                "个公开资料",
-                "条证据",
-                "个证据",
-                "篇资料",
-                "篇来源",
-                "sources",
-                "source",
-                "results",
-                "result",
-                "links",
-                "items",
-            ],
-        ),
+        &config_string_list("/max_results/after_result_units"),
     );
     let has_before_limit_word = contains_any(
         before,
-        &config_string_list(
-            "/max_results/before_limit_keywords",
-            &[
-                "最多", "至多", "只要", "只看", "返回", "给我", "列出", "展示", "查", "搜", "top",
-                "limit", "max", "maximum",
-            ],
-        ),
+        &config_string_list("/max_results/before_limit_keywords"),
     );
     let has_after_short_unit = starts_with_any(
         trimmed_after,
-        &config_string_list("/max_results/after_short_units", &["条", "个", "篇"]),
+        &config_string_list("/max_results/after_short_units"),
     );
 
     has_after_result_unit || (has_before_limit_word && has_after_short_unit)
@@ -279,10 +211,8 @@ fn config_string(pointer: &str, fallback: &str) -> String {
         .string_or("search", pointer, fallback)
 }
 
-fn config_string_list(pointer: &str, fallback: &[&str]) -> Vec<String> {
-    worker_policies()
-        .inference
-        .string_list_or("search", pointer, fallback)
+fn config_string_list(pointer: &str) -> Vec<String> {
+    worker_policies().inference.string_list("search", pointer)
 }
 
 fn config_i64(pointer: &str, fallback: i64) -> i64 {
@@ -296,7 +226,7 @@ fn config_usize(pointer: &str, fallback: usize) -> usize {
 }
 
 fn split_delimiters(pointer: &str) -> Vec<char> {
-    config_string_list(pointer, &["，", ",", "；", ";", "。", ".", "\n"])
+    config_string_list(pointer)
         .iter()
         .filter_map(|value| {
             let mut chars = value.chars();
