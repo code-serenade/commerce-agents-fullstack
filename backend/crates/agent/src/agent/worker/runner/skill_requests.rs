@@ -1,4 +1,5 @@
 use super::{
+    autosuggest::autosuggest_skill_requests,
     types::ParsedSkillRequest,
     util::{compact_event_text, metadata_string, skill_status_name},
 };
@@ -36,7 +37,12 @@ pub(super) async fn execute_requested_skills(
     executor: Option<SkillExecutorSet>,
     event_tx: Option<&crate::agent_session::SessionEventTx>,
 ) -> Vec<SkillExecutionResult> {
-    let requests = parse_skill_requests(output);
+    let mut requests = parse_skill_requests(output);
+    requests.extend(autosuggest_skill_requests(
+        &role.runtime_role,
+        task,
+        &requests,
+    ));
     if requests.is_empty() {
         return Vec::new();
     }

@@ -168,5 +168,401 @@
       "毛利率",
       "净利率"
     ]
-  }
+  },
+  "rules": [
+    {
+      "id": "service.ticket_handler",
+      "roles": ["service"],
+      "match": { "any_keywords": ["ticket", "工单", "话术", "客服话术", "客户投诉", "物流延迟", "发错", "质量问题"] },
+      "skill_id": "service_ticket_handler",
+      "input": {
+        "issue_type": "售后咨询",
+        "customer_message": "{{task_description}}",
+        "customer_emotion": "普通"
+      },
+      "reason": "autosuggest:service.ticket_handler"
+    },
+    {
+      "id": "service.escalation_flow",
+      "roles": ["service"],
+      "match": { "any_keywords": ["upgrade", "escalation", "升级", "主管", "投诉平台", "平台介入", "曝光", "举报", "维权", "威胁投诉"] },
+      "skill_id": "service_escalation_flow",
+      "input": {
+        "issue_description": "{{task_description}}",
+        "customer_emotion": "威胁投诉"
+      },
+      "reason": "autosuggest:service.escalation_flow"
+    },
+    {
+      "id": "service.return_handler",
+      "roles": ["service"],
+      "match": { "any_keywords": ["return", "refund", "退款", "退货", "换货", "售后"] },
+      "skill_id": "service_return_handler",
+      "input": {
+        "reason": "售后咨询"
+      },
+      "reason": "autosuggest:service.return_handler"
+    },
+    {
+      "id": "service.faq_playbook",
+      "roles": ["service"],
+      "match": { "any_keywords": ["faq", "FAQ", "常见问题", "问答库", "标准话术", "话术库"] },
+      "skill_id": "service_faq_playbook",
+      "input": {
+        "questions": ["{{task_description}}"]
+      },
+      "reason": "autosuggest:service.faq_playbook"
+    },
+    {
+      "id": "service.query_product",
+      "roles": ["service"],
+      "match": { "any_keywords": ["查询商品", "查商品", "商品信息", "商品资料", "商品上下文", "商品详情", "商品知识", "引用商品", "选中商品"] },
+      "skill_id": "service_query_product",
+      "input": {
+        "product_name": "{{task_description}}"
+      },
+      "reason": "autosuggest:service.query_product"
+    },
+    {
+      "id": "service.sentiment",
+      "roles": ["service"],
+      "match": { "any_keywords": ["情绪", "情感", "差评", "不满意", "愤怒", "投诉"] },
+      "skill_id": "service_sentiment_analyzer",
+      "input": {
+        "customer_text": "{{task_description}}"
+      },
+      "reason": "autosuggest:service.sentiment"
+    },
+    {
+      "id": "service.nps",
+      "roles": ["service"],
+      "match": { "any_keywords": ["nps", "NPS", "满意度", "推荐值", "客户忠诚"] },
+      "skill_id": "service_nps_analyzer",
+      "input": {},
+      "reason": "autosuggest:service.nps"
+    },
+    {
+      "id": "service.dsr",
+      "roles": ["service"],
+      "match": { "any_keywords": ["dsr", "DSR", "服务评分", "店铺评分", "评分低"] },
+      "skill_id": "service_dsr_improvement",
+      "input": {},
+      "reason": "autosuggest:service.dsr"
+    },
+    {
+      "id": "web.seo_optimize",
+      "roles": ["web"],
+      "match": { "any_keywords": ["seo", "SEO", "搜索优化", "排名", "提排"] },
+      "skill_id": "web_seo_optimize",
+      "input": {
+        "target_keywords": ["{{task_description}}"]
+      },
+      "reason": "autosuggest:web.seo_optimize"
+    },
+    {
+      "id": "web.keyword_research",
+      "roles": ["web"],
+      "match": { "any_keywords": ["keyword", "关键词", "搜索词", "长尾词", "蓝海词"] },
+      "skill_id": "web_keyword_research",
+      "input": {
+        "seed_keyword": "{{task_description}}"
+      },
+      "reason": "autosuggest:web.keyword_research"
+    },
+    {
+      "id": "web.title_generator",
+      "roles": ["web"],
+      "match": { "any_keywords": ["标题", "title", "标题生成", "起标题"] },
+      "skill_id": "web_title_generator",
+      "input": {
+        "product_name": "{{task_description}}",
+        "keywords": ["{{task_description}}"],
+        "style": "营销型"
+      },
+      "reason": "autosuggest:web.title_generator"
+    },
+    {
+      "id": "web.store_design",
+      "roles": ["web"],
+      "match": { "any_keywords": ["店铺", "装修", "store"] },
+      "skill_id": "web_store_design",
+      "input": {
+        "store_type": "电商店铺",
+        "brand_tone": "专业可信"
+      },
+      "reason": "autosuggest:web.store_design"
+    },
+    {
+      "id": "web.product_description",
+      "roles": ["web"],
+      "match": { "any_keywords": ["详情文案", "产品文案", "卖点文案", "description"] },
+      "skill_id": "web_product_description",
+      "input": {
+        "product_name": "{{task_description}}",
+        "style": "营销型"
+      },
+      "reason": "autosuggest:web.product_description"
+    },
+    {
+      "id": "web.page_conversion",
+      "roles": ["web"],
+      "match": { "any_keywords": ["page", "conversion", "页面", "转化", "详情页", "落地页"] },
+      "skill_id": "web_page_conversion",
+      "input": {
+        "page_type": "详情页"
+      },
+      "reason": "autosuggest:web.page_conversion"
+    },
+    {
+      "id": "web.title_seo_scorer",
+      "roles": ["web"],
+      "match": { "any_keywords": ["标题评分", "SEO评分", "标题诊断"] },
+      "skill_id": "web_title_seo_scorer",
+      "input": {
+        "title": "{{task_description}}",
+        "target_keywords": ["{{task_description}}"]
+      },
+      "reason": "autosuggest:web.title_seo_scorer"
+    },
+    {
+      "id": "design.main_image",
+      "roles": ["design"],
+      "match": { "any_keywords": ["主图", "首图", "商品图", "main image"] },
+      "skill_id": "design_main_image",
+      "input": {
+        "product_name": "{{task_description}}",
+        "extra_requirements": "{{task_description}}"
+      },
+      "reason": "autosuggest:design.main_image"
+    },
+    {
+      "id": "design.detail_page",
+      "roles": ["design"],
+      "match": { "any_keywords": ["详情页", "详情设计", "详情页设计"] },
+      "skill_id": "design_detail_page",
+      "input": {
+        "product_name": "{{task_description}}",
+        "extra_requirements": "{{task_description}}"
+      },
+      "reason": "autosuggest:design.detail_page"
+    },
+    {
+      "id": "design.color_scheme",
+      "roles": ["design"],
+      "match": { "any_keywords": ["配色", "色彩", "品牌色", "color"] },
+      "skill_id": "design_color_scheme",
+      "input": {
+        "brand_tone": "专业可信",
+        "extra_requirements": "{{task_description}}"
+      },
+      "reason": "autosuggest:design.color_scheme"
+    },
+    {
+      "id": "design.material_spec",
+      "roles": ["design"],
+      "match": { "any_keywords": ["素材规范", "尺寸", "规格", "format", "安全区"] },
+      "skill_id": "design_material_spec",
+      "input": {
+        "usage": "电商素材"
+      },
+      "reason": "autosuggest:design.material_spec"
+    },
+    {
+      "id": "design.campaign_poster",
+      "roles": ["design"],
+      "match": { "any_keywords": ["海报", "活动图", "大促", "poster", "banner"] },
+      "skill_id": "design_campaign_poster",
+      "input": {
+        "campaign_name": "{{task_description}}"
+      },
+      "reason": "autosuggest:design.campaign_poster"
+    },
+    {
+      "id": "engineering.arch_review",
+      "roles": ["engineering"],
+      "match": { "any_keywords": ["架构", "architecture", "系统设计", "架构评估"] },
+      "skill_id": "engineering_arch_review",
+      "input": {
+        "system_type": "电商平台",
+        "pain_points": ["{{task_description}}"]
+      },
+      "reason": "autosuggest:engineering.arch_review"
+    },
+    {
+      "id": "engineering.bug_analysis",
+      "roles": ["engineering"],
+      "match": { "any_keywords": ["bug", "Bug", "故障", "报错", "异常", "白屏", "超时", "支付失败", "库存不一致", "OOM", "死锁"] },
+      "skill_id": "engineering_bug_analysis",
+      "input": {
+        "error_type": "系统异常",
+        "error_message": "{{task_description}}"
+      },
+      "reason": "autosuggest:engineering.bug_analysis"
+    },
+    {
+      "id": "engineering.perf_optimize",
+      "roles": ["engineering"],
+      "match": { "any_keywords": ["性能", "perf", "慢", "卡顿", "瓶颈", "QPS", "TPS", "延迟"] },
+      "skill_id": "engineering_perf_optimize",
+      "input": {
+        "bottleneck": "系统性能",
+        "metrics": {
+          "task": "{{task_description}}"
+        }
+      },
+      "reason": "autosuggest:engineering.perf_optimize"
+    },
+    {
+      "id": "engineering.tech_selection",
+      "roles": ["engineering"],
+      "match": { "any_keywords": ["技术选型", "选型", "框架", "数据库", "消息队列", "搜索引擎", "缓存", "容器", "监控"] },
+      "skill_id": "engineering_tech_selection",
+      "input": {
+        "domain": "技术选型",
+        "requirements": ["{{task_description}}"]
+      },
+      "reason": "autosuggest:engineering.tech_selection"
+    },
+    {
+      "id": "engineering.system_check",
+      "roles": ["engineering"],
+      "match": { "any_keywords": ["系统健康", "接口健康", "连通性", "平台接口", "health check"] },
+      "skill_id": "engineering_system_check",
+      "input": {
+        "test_live": false
+      },
+      "reason": "autosuggest:engineering.system_check"
+    },
+    {
+      "id": "douyin_ads.plan_structure",
+      "roles": ["douyin_ads"],
+      "match": { "any_keywords": ["计划结构", "计划", "冷启动", "赛马", "投放结构"] },
+      "skill_id": "douyin_ads_plan_structure",
+      "input": {
+        "goal": "{{task_description}}",
+        "platform": "抖音"
+      },
+      "reason": "autosuggest:douyin_ads.plan_structure"
+    },
+    {
+      "id": "douyin_ads.audience_package",
+      "roles": ["douyin_ads"],
+      "match": { "any_keywords": ["人群", "人群包", "定向", "达人相似", "莱卡"] },
+      "skill_id": "douyin_ads_audience_package",
+      "input": {
+        "target_audience": "{{task_description}}",
+        "platform": "抖音"
+      },
+      "reason": "autosuggest:douyin_ads.audience_package"
+    },
+    {
+      "id": "douyin_ads.budget_pacing",
+      "roles": ["douyin_ads"],
+      "match": { "any_keywords": ["预算", "节奏", "放量", "止损", "roi", "ROI", "roas", "ROAS", "消耗"] },
+      "skill_id": "douyin_ads_budget_pacing",
+      "input": {
+        "platform": "抖音"
+      },
+      "reason": "autosuggest:douyin_ads.budget_pacing"
+    },
+    {
+      "id": "douyin_ads.live_funnel",
+      "roles": ["douyin_ads"],
+      "match": { "any_keywords": ["直播间", "漏斗", "进房", "商品点击", "付款", "转化"] },
+      "skill_id": "douyin_ads_live_funnel_diagnosis",
+      "input": {
+        "platform": "抖音"
+      },
+      "reason": "autosuggest:douyin_ads.live_funnel"
+    },
+    {
+      "id": "creative.video_script",
+      "roles": ["creative"],
+      "match": { "any_keywords": ["视频", "短视频", "脚本", "分镜", "口播"] },
+      "skill_id": "creative_video_script",
+      "input": {
+        "product_name": "{{task_description}}",
+        "duration_seconds": 30
+      },
+      "reason": "autosuggest:creative.video_script"
+    },
+    {
+      "id": "creative.seeding_copy",
+      "roles": ["creative"],
+      "match": { "any_keywords": ["种草", "小红书", "笔记", "内容文案"] },
+      "skill_id": "creative_seeding_copy",
+      "input": {
+        "product_name": "{{task_description}}",
+        "platform": "小红书"
+      },
+      "reason": "autosuggest:creative.seeding_copy"
+    },
+    {
+      "id": "creative.title_ctr",
+      "roles": ["creative"],
+      "match": { "any_keywords": ["标题", "点击率", "CTR", "ctr", "高点击"] },
+      "skill_id": "creative_title_ctr_scorer",
+      "input": {
+        "title": "{{task_description}}"
+      },
+      "reason": "autosuggest:creative.title_ctr"
+    },
+    {
+      "id": "accounting.roi",
+      "roles": ["accounting"],
+      "match": { "any_keywords": ["roi", "ROI", "投入产出", "投产", "利润ROI", "广告ROI"] },
+      "skill_id": "accounting_roi_calc",
+      "input": {
+        "period": "{{task_description}}"
+      },
+      "reason": "autosuggest:accounting.roi"
+    },
+    {
+      "id": "accounting.profit",
+      "roles": ["accounting"],
+      "match": { "any_keywords": ["利润", "利润分析", "毛利", "净利", "profit"] },
+      "skill_id": "accounting_profit_analysis",
+      "input": {},
+      "reason": "autosuggest:accounting.profit"
+    },
+    {
+      "id": "accounting.budget",
+      "roles": ["accounting"],
+      "match": { "any_keywords": ["预算", "budget", "预算编制", "月度预算"] },
+      "skill_id": "accounting_budget_plan",
+      "input": {},
+      "reason": "autosuggest:accounting.budget"
+    },
+    {
+      "id": "data.dashboard",
+      "roles": ["data"],
+      "match": { "any_keywords": ["dashboard", "看板", "数据概览", "经营概览", "经营指标", "核心指标", "店铺大盘", "大盘"] },
+      "skill_id": "data_dashboard",
+      "input": {
+        "scope": "{{task_description}}"
+      },
+      "reason": "autosuggest:data.dashboard"
+    },
+    {
+      "id": "data.comprehensive_diagnosis",
+      "roles": ["data"],
+      "match": { "any_keywords": ["comprehensive diagnosis", "综合诊断", "全面诊断", "业务诊断", "经营诊断", "经营体检", "业务体检", "全链路诊断"] },
+      "skill_id": "data_comprehensive_diagnosis",
+      "input": {
+        "scope": "{{task_description}}"
+      },
+      "reason": "autosuggest:data.comprehensive_diagnosis"
+    },
+    {
+      "id": "data.channel_roi",
+      "roles": ["data"],
+      "match": { "any_keywords": ["channel roi", "渠道roi", "渠道 ROI", "渠道 roi", "投放渠道", "渠道投产"] },
+      "skill_id": "data_channel_roi",
+      "input": {
+        "days": 30,
+        "channels": []
+      },
+      "reason": "autosuggest:data.channel_roi"
+    }
+  ]
 }
