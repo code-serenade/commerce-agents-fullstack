@@ -1,0 +1,231 @@
+pub fn specs() -> Vec<SkillSpec> {
+    vec![
+        service_ticket_handler_spec(),
+        service_faq_playbook_spec(),
+        service_escalation_flow_spec(),
+        service_dsr_improvement_spec(),
+        service_return_handler_spec(),
+        service_query_product_spec(),
+        service_nps_analyzer_spec(),
+        service_sentiment_analyzer_spec(),
+        service_nps_driver_analysis_spec(),
+    ]
+}
+
+pub fn service_ticket_handler_spec() -> SkillSpec {
+    SkillSpec::new(
+        "service_ticket_handler",
+        "工单处理",
+        "生成客服工单处理方案、优先级、SLA和完整话术包；不伪造实时平台政策",
+    )
+    .with_category(category())
+    .with_priority(SkillPriority::Critical)
+    .with_input(SkillInputField::required(
+        "issue_type",
+        "问题类型：物流延迟/质量问题/退款退货/发错货/售后咨询/投诉",
+        string_schema(),
+    ))
+    .with_input(SkillInputField::optional(
+        "customer_message",
+        "客户原始消息",
+        string_schema(),
+    ))
+    .with_input(SkillInputField::optional(
+        "customer_emotion",
+        "客户情绪：普通/焦虑/愤怒/满意",
+        string_schema(),
+    ))
+    .with_input(SkillInputField::optional(
+        "platform",
+        "平台：淘宝/京东/拼多多/抖音",
+        string_schema(),
+    ))
+    .with_input(SkillInputField::optional(
+        "product_ref",
+        "新产品商品引用，如 product:{uuid}；仅作为工单关联记录",
+        string_schema(),
+    ))
+    .with_input(SkillInputField::optional(
+        "product_id",
+        "旧整数商品ID（可选，用于工单字段记录）",
+        integer_schema(),
+    ))
+    .with_input(SkillInputField::optional(
+        "order_no",
+        "订单号（可选）",
+        string_schema(),
+    ))
+    .with_tag("deterministic")
+}
+
+pub fn service_faq_playbook_spec() -> SkillSpec {
+    SkillSpec::new(
+        "service_faq_playbook",
+        "FAQ话术库",
+        "按常见问题生成客服标准话术和处理指引；用户提供政策时优先引用",
+    )
+    .with_category(category())
+    .with_priority(SkillPriority::High)
+    .with_input(SkillInputField::optional(
+        "product_ref",
+        "新产品商品引用，如 product:{uuid}；作为FAQ适用范围记录",
+        string_schema(),
+    ))
+    .with_input(SkillInputField::optional(
+        "product_id",
+        "旧整数商品ID，作为FAQ适用范围记录",
+        integer_schema(),
+    ))
+    .with_input(SkillInputField::optional(
+        "questions",
+        "需要生成答案的问题列表（留空则生成通用FAQ）",
+        string_array_schema(),
+    ))
+    .with_input(SkillInputField::optional(
+        "platform",
+        "平台：淘宝/京东/拼多多/抖音",
+        string_schema(),
+    ))
+    .with_input(SkillInputField::optional(
+        "policies",
+        "店铺政策，如 {发货时效: '48小时', 退货政策: '7天无理由'}",
+        object_schema(),
+    ))
+    .with_tag("deterministic")
+}
+
+pub fn service_escalation_flow_spec() -> SkillSpec {
+    SkillSpec::new(
+        "service_escalation_flow",
+        "升级流程",
+        "生成客服升级处理流程、主管接管话术、复核点和纠纷预防动作",
+    )
+    .with_category(category())
+    .with_priority(SkillPriority::Critical)
+    .with_input(SkillInputField::required(
+        "issue_description",
+        "问题描述",
+        string_schema(),
+    ))
+    .with_input(SkillInputField::optional(
+        "customer_emotion",
+        "客户情绪：平静/不满/愤怒/威胁投诉",
+        string_schema(),
+    ))
+    .with_input(SkillInputField::optional(
+        "previous_contacts",
+        "此前联系次数",
+        integer_schema(),
+    ))
+    .with_input(SkillInputField::optional(
+        "product_ref",
+        "新产品商品引用，如 product:{uuid}",
+        string_schema(),
+    ))
+    .with_input(SkillInputField::optional(
+        "product_id",
+        "旧整数商品ID（可选）",
+        integer_schema(),
+    ))
+    .with_input(SkillInputField::optional(
+        "customer_history",
+        "客户历史（高价值/新客/疑似羊毛党）",
+        string_schema(),
+    ))
+    .with_tag("deterministic")
+}
+
+pub fn service_dsr_improvement_spec() -> SkillSpec {
+    SkillSpec::new(
+        "service_dsr_improvement",
+        "DSR提升方案",
+        "根据当前DSR评分（可自动从店铺数据加载），输出各维度提升方案",
+    )
+    .with_category(category())
+    .with_priority(SkillPriority::High)
+    .with_input(SkillInputField::optional(
+        "description_score",
+        "描述相符评分(1-5)；不填则自动加载",
+        number_schema(),
+    ))
+    .with_input(SkillInputField::optional(
+        "service_score",
+        "服务态度评分(1-5)；不填则自动加载",
+        number_schema(),
+    ))
+    .with_input(SkillInputField::optional(
+        "logistics_score",
+        "物流服务评分(1-5)；不填则自动加载",
+        number_schema(),
+    ))
+    .with_input(SkillInputField::optional(
+        "platform",
+        "平台：淘宝/京东/拼多多/抖音",
+        string_schema(),
+    ))
+    .with_tag("deterministic")
+}
+
+pub fn service_query_product_spec() -> SkillSpec {
+    SkillSpec::new(
+        "service_query_product",
+        "查询商品信息",
+        "根据本轮显式选择的商品上下文查询商品信息，用于客服应答；不默认注入未选择商品",
+    )
+    .with_category(category())
+    .with_priority(SkillPriority::High)
+    .with_input(SkillInputField::optional(
+        "product_ref",
+        "新产品商品引用，如 product:{uuid}；只匹配已显式注入的商品上下文",
+        string_schema(),
+    ))
+    .with_input(SkillInputField::optional(
+        "product_id",
+        "旧商品ID兼容字段，可为整数或字符串；只匹配已显式注入的商品上下文",
+        product_id_schema(),
+    ))
+    .with_input(SkillInputField::optional(
+        "product_name",
+        "商品名称关键词（当ID不明时使用）；只匹配已显式注入的商品上下文",
+        string_schema(),
+    ))
+    .with_tag("deterministic")
+    .with_tag("data_source")
+}
+
+pub fn service_return_handler_spec() -> SkillSpec {
+    SkillSpec::new(
+        "service_return_handler",
+        "退换货处理",
+        "根据退换货原因和订单信息，输出处理方案和运费承担方",
+    )
+    .with_category(category())
+    .with_priority(SkillPriority::Critical)
+    .with_input(SkillInputField::required(
+        "reason",
+        "退换货原因：不喜欢/质量问题/发错货/尺码不合/破损",
+        string_schema(),
+    ))
+    .with_input(SkillInputField::optional(
+        "order_amount",
+        "订单金额",
+        number_schema(),
+    ))
+    .with_input(SkillInputField::optional(
+        "days_since_receipt",
+        "收货天数",
+        integer_schema(),
+    ))
+    .with_input(SkillInputField::optional(
+        "product_ref",
+        "新产品商品引用，如 product:{uuid}；用于关联商品信息",
+        string_schema(),
+    ))
+    .with_input(SkillInputField::optional(
+        "product_id",
+        "旧整数商品ID（可选，用于关联商品信息）",
+        integer_schema(),
+    ))
+    .with_tag("deterministic")
+}
+
