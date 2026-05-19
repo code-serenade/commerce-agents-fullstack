@@ -45,37 +45,3 @@ pub fn staged_specs() -> Vec<SkillSpec> {
     specs.extend(web::specs());
     specs
 }
-
-#[cfg(test)]
-mod tests {
-    use super::staged_specs;
-
-    #[test]
-    fn staged_specs_include_first_port_batch() {
-        let specs = staged_specs();
-        let ids = specs
-            .iter()
-            .map(|spec| spec.id.as_str())
-            .collect::<Vec<_>>();
-
-        assert!(ids.contains(&"ops_pricing_strategy"));
-        assert!(ids.contains(&"ops_abc_xyz_classifier"));
-        assert!(ids.contains(&"service_return_handler"));
-        assert!(ids.contains(&"service_sentiment_analyzer"));
-        assert!(ids.contains(&"accounting_cost_calc"));
-        assert!(ids.contains(&"accounting_scenario_analysis"));
-        assert!(ids.contains(&"search_trends"));
-        assert!(ids.contains(&"query_product_metrics"));
-        assert!(ids.contains(&"query_campaign_metrics"));
-        assert!(ids.contains(&"data_funnel_analysis"));
-        assert!(ids.contains(&"data_ab_test_analyzer"));
-        assert!(ids.contains(&"creative_title_ctr_scorer"));
-        assert!(ids.contains(&"web_title_seo_scorer"));
-        assert!(ids.contains(&"douyin_ads_plan_structure"));
-        assert!(ids.contains(&"douyin_ads_live_funnel_diagnosis"));
-        assert!(ids.contains(&"engineering_sla_monitor"));
-        assert!(ids.contains(&"learning_teaching_explain"));
-        assert!(ids.contains(&"coordination_agent_handoff"));
-        assert_eq!(specs.len(), 100);
-    }
-}

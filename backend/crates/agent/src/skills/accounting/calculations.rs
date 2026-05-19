@@ -1,259 +1,11 @@
 use serde_json::{Value, json};
 
-use crate::skills::{
-    SkillCategory, SkillContext, SkillError, SkillInputField, SkillOutcome, SkillPriority,
-    SkillSpec,
+use super::support::{
+    average, calc_scenario, currency, deferred_accounting, deterministic_risk_samples, leak_advice,
+    num, nums, pct, percent, percentile, round2, signed_percent, string, variance, wf,
 };
 
-pub fn specs() -> Vec<SkillSpec> {
-    vec![
-        spec(
-            "accounting_cost_calc",
-            "成本核算",
-            "根据各项成本明细，计算单品综合成本和成本结构",
-            vec![
-                field("purchase_cost", "number", "采购成本（元）", true),
-                field("selling_price", "number", "售价（元）", true),
-                field("shipping_cost", "number", "物流成本，默认5", false),
-                field("packaging_cost", "number", "包装成本，默认2", false),
-                field("platform_fee_rate", "number", "平台佣金率%，默认5", false),
-                field("ad_cost_per_unit", "number", "单品推广成本，默认3", false),
-            ],
-        ),
-        spec(
-            "accounting_profit_analysis",
-            "利润分析",
-            "按营收、退款、商品成本、运营费用和广告支出分析利润结构",
-            vec![
-                field("revenue", "number", "总营收（元）", false),
-                field("cogs", "number", "商品成本，默认营收40%", false),
-                field(
-                    "operating_expenses",
-                    "number",
-                    "运营费用，默认营收10%",
-                    false,
-                ),
-                field("ad_spend", "number", "广告支出", false),
-                field("refund_amount", "number", "退款金额", false),
-                field("days", "integer", "统计天数，默认30", false),
-            ],
-        ),
-        spec(
-            "accounting_roi_calc",
-            "ROI计算",
-            "计算广告或项目投入产出、利润ROI、ACOS、CPA及盈亏状态",
-            vec![
-                field("investment", "number", "投入金额（元）", false),
-                field("revenue_generated", "number", "产出营收（元）", false),
-                field("cost_of_goods", "number", "商品成本，默认营收40%", false),
-                field("period", "string", "统计周期描述", false),
-                field("avg_order_value", "number", "客单价，默认150", false),
-            ],
-        ),
-        spec(
-            "accounting_budget_plan",
-            "预算编制",
-            "根据目标GMV、利润率和增长假设编制月度预算计划",
-            vec![
-                field("target_gmv", "number", "目标GMV（元），默认500000", false),
-                field("target_margin", "number", "目标利润率%，默认15", false),
-                field("month", "string", "预算月份，默认下月", false),
-                field("growth_rate", "number", "目标增长率%，默认20", false),
-            ],
-        ),
-        spec(
-            "accounting_break_even_calc",
-            "盈亏平衡分析",
-            "计算盈亏平衡点、贡献利润率和价格×销量敏感性矩阵",
-            vec![
-                field("fixed_costs", "number", "月固定成本", false),
-                field(
-                    "unit_variable_cost",
-                    "number",
-                    "单品变动成本，默认售价55%",
-                    false,
-                ),
-                field("selling_price", "number", "单品售价，默认100", false),
-            ],
-        ),
-        spec(
-            "accounting_compliance_check",
-            "合规检查",
-            "检查月营收、纳税类型、开票率和现金收款占比的财税风险",
-            vec![
-                field("monthly_revenue", "number", "月营收（元）", false),
-                field("tax_type", "string", "纳税类型：小规模/一般纳税人", false),
-                field("invoice_rate", "number", "开票率%，默认80", false),
-                field("cash_ratio", "number", "现金收款占比%，默认10", false),
-            ],
-        ),
-        spec(
-            "accounting_pl_statement",
-            "完整利润表",
-            "生成GMV到税后净利润的多层级P&L利润表",
-            vec![
-                field("gmv", "number", "GMV（元）", false),
-                field("ad_spend", "number", "广告投放费", false),
-                field("orders", "number", "订单量", false),
-                field("days", "integer", "统计天数，默认30", false),
-                field("cogs_rate", "number", "商品成本率%，默认40", false),
-                field("variable_cost_rate", "number", "变动成本率%，默认10", false),
-                field(
-                    "fixed_costs",
-                    "number",
-                    "固定成本，不填按净营收3%估算",
-                    false,
-                ),
-                field("tax_rate", "number", "所得税率%，默认25", false),
-                field("depreciation", "number", "折旧摊销，默认0", false),
-                field("refund_rate", "number", "退款率%，默认3", false),
-            ],
-        ),
-        spec(
-            "accounting_budget_vs_actual",
-            "预算vs实际分析",
-            "逐项对比预算与实际，计算差异、完成率、执行评分和风险项",
-            vec![
-                field("budget_gmv", "number", "预算GMV目标", false),
-                field("actual_gmv", "number", "实际GMV", false),
-                field("budget_ad_spend", "number", "预算广告投入", false),
-                field("actual_ad_spend", "number", "实际广告投入", false),
-                field(
-                    "budget_cogs_rate",
-                    "number",
-                    "预算商品成本率%，默认40",
-                    false,
-                ),
-                field(
-                    "actual_cogs_rate",
-                    "number",
-                    "实际商品成本率%，默认40",
-                    false,
-                ),
-                field(
-                    "budget_opex_rate",
-                    "number",
-                    "预算运营费用率%，默认10",
-                    false,
-                ),
-                field(
-                    "actual_opex_rate",
-                    "number",
-                    "实际运营费用率%，默认10",
-                    false,
-                ),
-                field(
-                    "budget_target_margin",
-                    "number",
-                    "预算目标利润率%，默认15",
-                    false,
-                ),
-                field("actual_refund_rate", "number", "实际退款率%，默认3", false),
-            ],
-        ),
-        spec(
-            "accounting_gmv_waterfall",
-            "GMV利润瀑布分析",
-            "分解GMV到税后净利润，识别最大利润漏损项和核心利润率",
-            vec![
-                field("gmv", "number", "GMV（元）", false),
-                field("ad_spend", "number", "广告投放费", false),
-                field("orders", "number", "订单量", false),
-                field("refund_rate", "number", "退款率%，默认3", false),
-                field("cogs_rate", "number", "商品成本率%，默认40", false),
-                field("logistics_rate", "number", "物流费率%，默认8", false),
-                field("platform_fee_rate", "number", "平台佣金率%，默认5", false),
-                field(
-                    "fixed_opex",
-                    "number",
-                    "固定运营成本，不填按净营收3%估算",
-                    false,
-                ),
-                field("tax_rate", "number", "综合税率%，默认3", false),
-            ],
-        ),
-        spec(
-            "accounting_scenario_analysis",
-            "情景财务分析",
-            "构建乐观/基准/悲观P&L，输出价格×流量敏感性矩阵和确定性风险摘要",
-            vec![
-                field("base_gmv", "number", "基准月GMV", true),
-                field("base_margin_pct", "number", "基准毛利率%，默认30", false),
-                field("base_ad_pct", "number", "广告费率%，默认8", false),
-                field("base_refund_pct", "number", "退款率%，默认5", false),
-                field("fixed_cost", "number", "固定成本/月", false),
-                field("optimistic_growth", "number", "乐观GMV增幅%，默认30", false),
-                field(
-                    "pessimistic_growth",
-                    "number",
-                    "悲观GMV增幅%，默认-20",
-                    false,
-                ),
-            ],
-        ),
-        spec(
-            "accounting_cash_flow_forecast",
-            "现金流预测",
-            "生成3个月经营、投资、筹资现金流滚动预测",
-            vec![
-                field("base_gmv", "number", "基期月GMV，默认500000", false),
-                field(
-                    "base_ad_spend",
-                    "number",
-                    "基期月广告费，默认GMV 10%",
-                    false,
-                ),
-                field(
-                    "growth_assumptions",
-                    "array<number>",
-                    "3个月GMV增长假设%，默认[5,8,12]",
-                    false,
-                ),
-                field("capex", "number", "月度资本性支出，默认0", false),
-                field("loan_repayment", "number", "月度还款，默认0", false),
-                field("opening_cash", "number", "期初现金余额，默认0", false),
-                field("days", "integer", "基期统计天数，默认30", false),
-            ],
-        ),
-        spec(
-            "accounting_financial_narrative",
-            "财务健康诊断",
-            "基于P&L关键指标生成确定性财务健康评级、风险识别和改善路径",
-            vec![
-                field("gmv", "number", "GMV（元），默认500000", false),
-                field("ad_spend", "number", "广告投放费，默认GMV 10%", false),
-                field("orders", "number", "订单量，默认GMV/150", false),
-                field("days", "integer", "统计天数，默认30", false),
-                field("context", "string", "额外背景信息", false),
-            ],
-        ),
-    ]
-}
-
-pub async fn execute(
-    skill_name: &str,
-    input: Value,
-    _context: &SkillContext,
-) -> Result<SkillOutcome, SkillError> {
-    let value = match skill_name {
-        "accounting_cost_calc" => cost_calc(&input),
-        "accounting_profit_analysis" => profit_analysis(&input),
-        "accounting_roi_calc" => roi_calc(&input),
-        "accounting_budget_plan" => budget_plan(&input),
-        "accounting_break_even_calc" => break_even_calc(&input),
-        "accounting_compliance_check" => compliance_check(&input),
-        "accounting_pl_statement" => pl_statement(&input),
-        "accounting_budget_vs_actual" => budget_vs_actual(&input),
-        "accounting_gmv_waterfall" => gmv_waterfall(&input),
-        "accounting_scenario_analysis" => scenario_analysis(&input),
-        "accounting_cash_flow_forecast" => cash_flow_forecast(&input),
-        "accounting_financial_narrative" => financial_narrative(&input),
-        other => return Err(invalid_input(format!("unknown accounting skill: {other}"))),
-    };
-    Ok(outcome(value))
-}
-
-fn cost_calc(input: &Value) -> Value {
+pub(super) fn cost_calc(input: &Value) -> Value {
     let purchase = num(input, "purchase_cost", 0.0);
     let shipping = num(input, "shipping_cost", 5.0);
     let packaging = num(input, "packaging_cost", 2.0);
@@ -297,7 +49,7 @@ fn cost_calc(input: &Value) -> Value {
     })
 }
 
-fn profit_analysis(input: &Value) -> Value {
+pub(super) fn profit_analysis(input: &Value) -> Value {
     let days = num(input, "days", 30.0).round();
     let revenue = num(input, "revenue", 0.0);
     if revenue <= 0.0 {
@@ -360,7 +112,7 @@ fn profit_analysis(input: &Value) -> Value {
     })
 }
 
-fn roi_calc(input: &Value) -> Value {
+pub(super) fn roi_calc(input: &Value) -> Value {
     let period = string(input, "period", "最近30天");
     let mut investment = num(input, "investment", 0.0);
     let revenue = num(input, "revenue_generated", 0.0);
@@ -421,7 +173,7 @@ fn roi_calc(input: &Value) -> Value {
     })
 }
 
-fn budget_plan(input: &Value) -> Value {
+pub(super) fn budget_plan(input: &Value) -> Value {
     let month = string(input, "month", "下月");
     let growth_rate = num(input, "growth_rate", 20.0);
     let target_gmv = num(input, "target_gmv", 500_000.0).max(0.0);
@@ -474,7 +226,7 @@ fn budget_plan(input: &Value) -> Value {
     })
 }
 
-fn break_even_calc(input: &Value) -> Value {
+pub(super) fn break_even_calc(input: &Value) -> Value {
     let price = num(input, "selling_price", 100.0);
     let unit_var = num(input, "unit_variable_cost", round2(price * 0.55));
     let fixed = num(input, "fixed_costs", round2(price * 200.0 * 0.13));
@@ -541,7 +293,7 @@ fn break_even_calc(input: &Value) -> Value {
     })
 }
 
-fn compliance_check(input: &Value) -> Value {
+pub(super) fn compliance_check(input: &Value) -> Value {
     let revenue = num(input, "monthly_revenue", 0.0);
     if revenue <= 0.0 {
         return deferred_accounting(
@@ -600,7 +352,7 @@ fn compliance_check(input: &Value) -> Value {
     })
 }
 
-fn pl_statement(input: &Value) -> Value {
+pub(super) fn pl_statement(input: &Value) -> Value {
     let gmv = num(input, "gmv", 0.0);
     if gmv <= 0.0 {
         return deferred_accounting(
@@ -686,7 +438,7 @@ fn pl_statement(input: &Value) -> Value {
     })
 }
 
-fn budget_vs_actual(input: &Value) -> Value {
+pub(super) fn budget_vs_actual(input: &Value) -> Value {
     let actual_gmv = num(input, "actual_gmv", 0.0);
     if actual_gmv <= 0.0 {
         return deferred_accounting(
@@ -785,7 +537,7 @@ fn budget_vs_actual(input: &Value) -> Value {
     })
 }
 
-fn cash_flow_forecast(input: &Value) -> Value {
+pub(super) fn cash_flow_forecast(input: &Value) -> Value {
     let days = num(input, "days", 30.0).max(1.0);
     let base_gmv = num(input, "base_gmv", 500_000.0).max(0.0);
     let base_ad = num(input, "base_ad_spend", round2(base_gmv * 0.10));
@@ -874,7 +626,7 @@ fn cash_flow_forecast(input: &Value) -> Value {
     })
 }
 
-fn financial_narrative(input: &Value) -> Value {
+pub(super) fn financial_narrative(input: &Value) -> Value {
     let days = num(input, "days", 30.0).round();
     let context = string(input, "context", "");
     let gmv = num(input, "gmv", 500_000.0).max(0.0);
@@ -945,7 +697,7 @@ fn financial_narrative(input: &Value) -> Value {
     })
 }
 
-fn gmv_waterfall(input: &Value) -> Value {
+pub(super) fn gmv_waterfall(input: &Value) -> Value {
     let gmv = num(input, "gmv", 0.0);
     if gmv <= 0.0 {
         return deferred_accounting(
@@ -1083,7 +835,7 @@ fn gmv_waterfall(input: &Value) -> Value {
     })
 }
 
-fn scenario_analysis(input: &Value) -> Value {
+pub(super) fn scenario_analysis(input: &Value) -> Value {
     let base_gmv = num(input, "base_gmv", 0.0);
     if base_gmv <= 0.0 {
         return deferred_accounting(
@@ -1203,424 +955,4 @@ fn scenario_analysis(input: &Value) -> Value {
             "固定成本/月": fixed_cost.round(),
         },
     })
-}
-
-fn spec(
-    name: &str,
-    display_name: &str,
-    description: &str,
-    input_fields: Vec<SkillInputField>,
-) -> SkillSpec {
-    let mut spec = SkillSpec::new(name, display_name, description)
-        .with_category(SkillCategory::Custom("accounting".to_owned()))
-        .with_priority(SkillPriority::Critical)
-        .with_tag("deterministic")
-        .with_tag("p0")
-        .with_version("0.1.0");
-    for input in input_fields {
-        spec = spec.with_input(input);
-    }
-    spec
-}
-
-fn field(name: &str, field_type: &str, description: &str, required: bool) -> SkillInputField {
-    SkillInputField::new(name, description, required, field_schema(field_type))
-}
-
-fn outcome(value: Value) -> SkillOutcome {
-    SkillOutcome::new(value)
-}
-
-fn deferred_accounting(skill: &str, reason: &str, input: &Value) -> Value {
-    json!({
-        "status": "deferred",
-        "skill": skill,
-        "deferred_reason": reason,
-        "received_params": input,
-        "side_effects": "none",
-        "expected_outputs": ["结构化财务指标", "诊断摘要", "可执行建议"]
-    })
-}
-
-fn invalid_input(message: String) -> SkillError {
-    SkillError::execution(message)
-}
-
-fn field_schema(field_type: &str) -> Value {
-    match field_type {
-        "string" => json!({"type": "string"}),
-        "number" => json!({"type": "number"}),
-        "integer" => json!({"type": "integer"}),
-        "array<number>" => json!({"type": "array", "items": {"type": "number"}}),
-        "array<object>" => json!({"type": "array", "items": {"type": "object"}}),
-        _ => json!({"type": "string"}),
-    }
-}
-
-fn num(input: &Value, key: &str, default: f64) -> f64 {
-    input[key]
-        .as_f64()
-        .or_else(|| input[key].as_i64().map(|v| v as f64))
-        .or_else(|| input[key].as_u64().map(|v| v as f64))
-        .unwrap_or(default)
-}
-
-fn nums(input: &Value, key: &str) -> Vec<f64> {
-    input[key]
-        .as_array()
-        .map(|items| {
-            items
-                .iter()
-                .filter_map(|v| {
-                    v.as_f64()
-                        .or_else(|| v.as_i64().map(|n| n as f64))
-                        .or_else(|| v.as_u64().map(|n| n as f64))
-                })
-                .collect()
-        })
-        .unwrap_or_default()
-}
-
-fn string(input: &Value, key: &str, default: &str) -> String {
-    input[key].as_str().unwrap_or(default).to_owned()
-}
-
-fn round2(v: f64) -> f64 {
-    (v * 100.0).round() / 100.0
-}
-
-fn pct(numerator: f64, denominator: f64) -> f64 {
-    if denominator.abs() > f64::EPSILON {
-        numerator / denominator * 100.0
-    } else {
-        0.0
-    }
-}
-
-fn percent(value: f64, decimals: usize) -> String {
-    format!("{value:.decimals$}%")
-}
-
-fn signed_percent(value: f64, decimals: usize) -> String {
-    format!("{value:+.decimals$}%")
-}
-
-fn currency(value: f64) -> String {
-    format!("¥{:.2}", round2(value))
-}
-
-fn variance(budget: f64, actual: f64, revenue_metric: bool) -> Value {
-    let abs_var = round2(actual - budget);
-    let pct_var = pct(abs_var, budget.abs().max(1.0));
-    let favorable = if revenue_metric {
-        abs_var >= 0.0
-    } else {
-        abs_var <= 0.0
-    };
-    json!({
-        "预算": round2(budget),
-        "实际": round2(actual),
-        "差异": abs_var,
-        "差异率": signed_percent(pct_var, 1),
-        "状态": if favorable { "有利" } else { "不利" },
-    })
-}
-
-fn wf(step: &str, amount: f64, denominator: f64, direction: &str, _gmv: f64) -> Value {
-    json!({
-        "步骤": step,
-        "金额": currency(amount),
-        "占GMV比": if direction == "扣减" { signed_percent(pct(amount, denominator), 1) } else { percent(pct(amount, denominator), 1) },
-        "方向": direction,
-    })
-}
-
-fn leak_advice(name: &str, amount: f64, gmv: f64) -> String {
-    let prefix = format!(
-        "当前最大成本耗损来自「{}」（{}，占GMV {}）；",
-        name,
-        currency(amount),
-        percent(pct(amount, gmv), 1)
-    );
-    let advice = match name {
-        "广告" => "建议优先优化广告ROI，降低单次获客成本",
-        "商品成本" => "建议与供应链谈判降低采购成本或提升商品附加值",
-        "物流" => "建议提升包装效率或与物流谈量价",
-        "退款" => "建议排查退款根因，优化商品描述和品控",
-        other => return format!("{prefix}建议精细化管控{other}支出"),
-    };
-    format!("{prefix}{advice}")
-}
-
-fn calc_scenario(
-    gmv: f64,
-    label: String,
-    base_margin: f64,
-    base_ad: f64,
-    base_refund: f64,
-    fixed_cost: f64,
-) -> Value {
-    let net_revenue = gmv * (1.0 - base_refund);
-    let gross_profit = net_revenue * base_margin;
-    let ad_spend = gmv * base_ad;
-    let platform_fee = gmv * 0.04;
-    let logistics = gmv * 0.06;
-    let contribution = gross_profit - ad_spend - platform_fee - logistics;
-    let operating_profit = contribution - fixed_cost;
-    let tax = (operating_profit * 0.25).max(0.0);
-    let net_profit = operating_profit - tax;
-    json!({
-        "情景": label,
-        "GMV": gmv.round(),
-        "退款后净收入": net_revenue.round(),
-        "毛利润": gross_profit.round(),
-        "广告费": ad_spend.round(),
-        "平台佣金": platform_fee.round(),
-        "物流成本": logistics.round(),
-        "贡献利润": contribution.round(),
-        "固定成本": fixed_cost.round(),
-        "营业利润": operating_profit.round(),
-        "税后净利润": net_profit.round(),
-        "净利率": percent(pct(net_profit, gmv), 1),
-        "盈亏状态": if net_profit > 0.0 { "盈利" } else { "亏损" },
-    })
-}
-
-fn deterministic_risk_samples(
-    base_gmv: f64,
-    base_margin: f64,
-    base_ad: f64,
-    base_refund: f64,
-    fixed_cost: f64,
-) -> Vec<f64> {
-    let mut samples = Vec::with_capacity(1000);
-    for i in 0 .. 1000 {
-        let t = i as f64;
-        let gmv_factor = (1.0 + 0.15 * (t * 12.9898).sin()).max(0.1);
-        let margin = (base_margin + 0.04 * (t * 78.233).cos()).max(0.01);
-        let ad = (base_ad + 0.02 * (t * 37.719).sin()).max(0.0);
-        let refund = (base_refund + 0.02 * (t * 19.191).cos()).max(0.0);
-        let gmv = base_gmv * gmv_factor;
-        let net_revenue = gmv * (1.0 - refund);
-        let gross = net_revenue * margin;
-        let contribution = gross - gmv * ad - gmv * 0.04 - gmv * 0.06;
-        let operating_profit = contribution - fixed_cost;
-        let tax = (operating_profit * 0.25).max(0.0);
-        samples.push(operating_profit - tax);
-    }
-    samples
-}
-
-fn average(values: &[f64]) -> f64 {
-    values.iter().sum::<f64>() / values.len().max(1) as f64
-}
-
-fn percentile(sorted: &[f64], p: f64) -> f64 {
-    if sorted.is_empty() {
-        return 0.0;
-    }
-    let idx = ((sorted.len() - 1) as f64 * p / 100.0).round() as usize;
-    sorted[idx.min(sorted.len() - 1)]
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn accounting_cost_calc_marks_success_for_user_input() {
-        let output = cost_calc(&json!({
-            "purchase_cost": 42.0,
-            "selling_price": 99.0,
-            "shipping_cost": 6.0,
-            "packaging_cost": 2.5,
-            "platform_fee_rate": 5.0,
-            "ad_cost_per_unit": 8.0
-        }));
-
-        assert_eq!(
-            output.get("status").and_then(Value::as_str),
-            Some("success")
-        );
-        assert_eq!(output.get("has_data").and_then(Value::as_bool), Some(true));
-        assert_eq!(
-            output.get("adapter_status").and_then(Value::as_str),
-            Some("manual_input")
-        );
-        assert!(
-            output
-                .get("summary")
-                .and_then(Value::as_str)
-                .unwrap_or_default()
-                .contains("成本核算完成")
-        );
-    }
-
-    #[test]
-    fn accounting_profit_analysis_marks_success_for_revenue() {
-        let output = profit_analysis(&json!({
-            "revenue": 260000.0,
-            "cogs": 98000.0,
-            "operating_expenses": 26000.0,
-            "ad_spend": 36000.0,
-            "refund_amount": 8000.0,
-            "days": 30
-        }));
-
-        assert_eq!(
-            output.get("status").and_then(Value::as_str),
-            Some("success")
-        );
-        assert_eq!(output.get("has_data").and_then(Value::as_bool), Some(true));
-        assert_eq!(
-            output.get("data_readiness").and_then(Value::as_str),
-            Some("user_provided")
-        );
-        assert!(output.get("利润分析").is_some());
-    }
-
-    #[test]
-    fn accounting_profit_analysis_defers_without_revenue() {
-        let output = profit_analysis(&json!({}));
-
-        assert_eq!(
-            output.get("status").and_then(Value::as_str),
-            Some("deferred")
-        );
-        assert_eq!(
-            output.get("skill").and_then(Value::as_str),
-            Some("accounting_profit_analysis")
-        );
-    }
-
-    #[test]
-    fn accounting_roi_calc_marks_success_for_investment_and_revenue() {
-        let output = roi_calc(&json!({
-            "investment": 30000.0,
-            "revenue_generated": 180000.0,
-            "cost_of_goods": 72000.0,
-            "avg_order_value": 150.0
-        }));
-
-        assert_eq!(
-            output.get("status").and_then(Value::as_str),
-            Some("success")
-        );
-        assert_eq!(output.get("has_data").and_then(Value::as_bool), Some(true));
-        assert!(output.get("ROI指标").is_some());
-    }
-
-    #[test]
-    fn accounting_budget_plan_marks_success_with_defaults_disclosed() {
-        let output = budget_plan(&json!({}));
-
-        assert_eq!(
-            output.get("status").and_then(Value::as_str),
-            Some("success")
-        );
-        assert_eq!(
-            output.get("data_readiness").and_then(Value::as_str),
-            Some("calculated_from_defaults")
-        );
-        assert!(output.get("预算明细").is_some());
-    }
-
-    #[test]
-    fn accounting_break_even_calc_marks_success_with_defaults_disclosed() {
-        let output = break_even_calc(&json!({
-            "selling_price": 128.0,
-            "unit_variable_cost": 68.0
-        }));
-
-        assert_eq!(
-            output.get("status").and_then(Value::as_str),
-            Some("success")
-        );
-        assert_eq!(
-            output.get("data_readiness").and_then(Value::as_str),
-            Some("calculated_from_defaults")
-        );
-        assert!(output.get("盈亏平衡点").is_some());
-    }
-
-    #[test]
-    fn accounting_compliance_check_defers_without_revenue() {
-        let output = compliance_check(&json!({}));
-
-        assert_eq!(
-            output.get("status").and_then(Value::as_str),
-            Some("deferred")
-        );
-        assert_eq!(
-            output.get("skill").and_then(Value::as_str),
-            Some("accounting_compliance_check")
-        );
-    }
-
-    #[test]
-    fn accounting_gmv_waterfall_marks_success_for_gmv() {
-        let output = gmv_waterfall(&json!({
-            "gmv": 520000.0,
-            "ad_spend": 56000.0,
-            "orders": 3600.0
-        }));
-
-        assert_eq!(
-            output.get("status").and_then(Value::as_str),
-            Some("success")
-        );
-        assert_eq!(
-            output.get("adapter_status").and_then(Value::as_str),
-            Some("manual_input")
-        );
-        assert!(output.get("GMV利润瀑布").is_some());
-    }
-
-    #[test]
-    fn accounting_scenario_analysis_defers_without_base_gmv() {
-        let output = scenario_analysis(&json!({}));
-
-        assert_eq!(
-            output.get("status").and_then(Value::as_str),
-            Some("deferred")
-        );
-        assert_eq!(
-            output.get("skill").and_then(Value::as_str),
-            Some("accounting_scenario_analysis")
-        );
-    }
-
-    #[test]
-    fn accounting_cash_flow_forecast_marks_success_with_defaults_disclosed() {
-        let output = cash_flow_forecast(&json!({}));
-
-        assert_eq!(
-            output.get("status").and_then(Value::as_str),
-            Some("success")
-        );
-        assert_eq!(
-            output.get("data_readiness").and_then(Value::as_str),
-            Some("calculated_from_defaults")
-        );
-        assert!(output.get("3个月现金流预测").is_some());
-    }
-
-    #[test]
-    fn accounting_financial_narrative_marks_success_with_defaults_disclosed() {
-        let output = financial_narrative(&json!({}));
-
-        assert_eq!(
-            output.get("status").and_then(Value::as_str),
-            Some("success")
-        );
-        assert_eq!(
-            output.get("adapter_status").and_then(Value::as_str),
-            Some("manual_input")
-        );
-        assert_eq!(
-            output.get("data_readiness").and_then(Value::as_str),
-            Some("calculated_from_defaults")
-        );
-        assert!(output.get("财务健康评级").is_some());
-    }
 }
