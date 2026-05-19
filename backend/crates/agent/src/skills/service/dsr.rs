@@ -1,3 +1,5 @@
+use super::*;
+
 pub struct ServiceDsrImprovement {
     spec: SkillSpec,
 }
@@ -91,7 +93,7 @@ fn dsr_action_plan(dimension: &str) -> Vec<&'static str> {
     }
 }
 
-fn default_faq_questions() -> Vec<String> {
+pub(super) fn default_faq_questions() -> Vec<String> {
     vec![
         "什么时候发货？".to_owned(),
         "支持退货退款吗？怎么操作？".to_owned(),
@@ -103,4 +105,3 @@ fn default_faq_questions() -> Vec<String> {
         "商品是正品吗？".to_owned(),
     ]
 }
-

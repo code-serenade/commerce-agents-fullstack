@@ -1,3 +1,18 @@
+use async_trait::async_trait;
+use serde_json::{Map, Value, json};
+
+use super::{
+    normalize::{normalize_web_output, web_native_output, web_summary},
+    specs::{
+        web_keyword_research_spec, web_product_description_spec, web_seo_optimize_spec,
+        web_store_design_spec, web_title_generator_spec,
+    },
+};
+use crate::skills::{
+    Skill, SkillContext, SkillOutcome, SkillResult, SkillSpec, object_params, optional_i64_param,
+    optional_string_param, optional_string_vec_param, string_param,
+};
+
 macro_rules! native_web_skill {
     ($type_name:ident, $spec_fn:ident, required [$($required:literal),*], defaults {$($key:literal => $value:expr),* $(,)?}) => {
         pub struct $type_name {

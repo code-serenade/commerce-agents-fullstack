@@ -1,4 +1,10 @@
-fn normalize_engineering_output(skill_id: &str, input: &Value, output: &mut Value) {
+use serde_json::{Map, Value, json};
+
+use super::reports::{
+    arch_review_output, bug_analysis_output, perf_optimize_output, tech_selection_output,
+};
+
+pub(super) fn normalize_engineering_output(skill_id: &str, input: &Value, output: &mut Value) {
     let Some(map) = output.as_object_mut() else {
         return;
     };
@@ -93,7 +99,7 @@ fn has_any_input(input: &Value, keys: &[&str]) -> bool {
     })
 }
 
-fn engineering_native_output(skill_id: &str, input: &Map<String, Value>) -> Value {
+pub(super) fn engineering_native_output(skill_id: &str, input: &Map<String, Value>) -> Value {
     match skill_id {
         "engineering_arch_review" => arch_review_output(input),
         "engineering_bug_analysis" => bug_analysis_output(input),
@@ -103,7 +109,7 @@ fn engineering_native_output(skill_id: &str, input: &Map<String, Value>) -> Valu
     }
 }
 
-fn engineering_summary(skill_id: &str) -> &'static str {
+pub(super) fn engineering_summary(skill_id: &str) -> &'static str {
     match skill_id {
         "engineering_arch_review" => "工程架构评估报告已生成",
         "engineering_bug_analysis" => "Bug排查方案已生成",

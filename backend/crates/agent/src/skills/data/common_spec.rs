@@ -1,4 +1,9 @@
-fn spec(
+use serde_json::{Value, json};
+
+use super::category;
+use crate::skills::{SkillError, SkillInputField, SkillPriority, SkillSpec};
+
+pub(super) fn spec(
     id: &str,
     name: &str,
     description: &str,
@@ -18,7 +23,7 @@ fn spec(
     skill
 }
 
-fn field(name: &str, kind: &str, description: &str, required: bool) -> SkillInputField {
+pub(super) fn field(name: &str, kind: &str, description: &str, required: bool) -> SkillInputField {
     let schema = match kind {
         "string" => json!({"type": "string"}),
         "integer" => json!({"type": "integer"}),
@@ -36,7 +41,7 @@ fn field(name: &str, kind: &str, description: &str, required: bool) -> SkillInpu
     }
 }
 
-fn ensure_object(input: &Value) -> Result<(), SkillError> {
+pub(super) fn ensure_object(input: &Value) -> Result<(), SkillError> {
     if input.is_object() {
         Ok(())
     } else {
@@ -44,7 +49,7 @@ fn ensure_object(input: &Value) -> Result<(), SkillError> {
     }
 }
 
-fn deferred(skill: &str, reason: &str, input: &Value) -> Value {
+pub(super) fn deferred(skill: &str, reason: &str, input: &Value) -> Value {
     json!({
         "status": "deferred",
         "skill": skill,

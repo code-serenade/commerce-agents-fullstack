@@ -1,4 +1,9 @@
-fn native_creative_outcome(skill_id: &str, input: Map<String, Value>) -> SkillOutcome {
+use serde_json::{Map, Value, json};
+
+use super::helpers::{normalized_f64, normalized_i64, normalized_string, normalized_string_vec};
+use crate::skills::SkillOutcome;
+
+pub(super) fn native_creative_outcome(skill_id: &str, input: Map<String, Value>) -> SkillOutcome {
     match skill_id {
         "creative_video_script" => {
             let product = normalized_string(&input, "product_name", "待推广商品");

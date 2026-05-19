@@ -1,4 +1,12 @@
-fn smart_pricing(input: &Value) -> Value {
+use serde_json::{Value, json};
+
+use super::common::{
+    average, commission_rate, currency, cv_xyz, elasticity_label, matrix_cells, matrix_strategy,
+    num, nums, pct, percent, price_position, round2, signed_currency, signed_percent, string,
+    val_num, value_nums,
+};
+
+pub(super) fn smart_pricing(input: &Value) -> Value {
     let cost = num(input, "cost", 0.0);
     let current_price = num(input, "current_price", 0.0);
     if cost <= 0.0 || current_price <= 0.0 {
@@ -144,7 +152,7 @@ fn smart_pricing(input: &Value) -> Value {
     result
 }
 
-fn inventory_optimizer(input: &Value) -> Value {
+pub(super) fn inventory_optimizer(input: &Value) -> Value {
     let skus = input["skus"].as_array().cloned().unwrap_or_default();
     let product_ref = string(input, "product_ref", "");
     if skus.is_empty() {
@@ -277,7 +285,7 @@ fn inventory_optimizer(input: &Value) -> Value {
     })
 }
 
-fn ad_fatigue_detector(input: &Value) -> Value {
+pub(super) fn ad_fatigue_detector(input: &Value) -> Value {
     let channels = input["channels"].as_array().cloned().unwrap_or_default();
     let product_ref = string(input, "product_ref", "");
     if channels.is_empty() {
@@ -387,7 +395,7 @@ fn ad_fatigue_detector(input: &Value) -> Value {
     result
 }
 
-fn abc_xyz_classifier(input: &Value) -> Value {
+pub(super) fn abc_xyz_classifier(input: &Value) -> Value {
     let mut skus = input["skus"].as_array().cloned().unwrap_or_default();
     let product_ref = string(input, "product_ref", "");
     if skus.is_empty() {

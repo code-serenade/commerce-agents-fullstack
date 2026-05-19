@@ -1,3 +1,16 @@
+use async_trait::async_trait;
+use serde_json::{Value, json};
+
+use super::{
+    helpers::{ctr_grade, score_aida, score_triggers},
+    normalize::normalize_creative_output,
+    specs::creative_title_ctr_scorer_spec,
+};
+use crate::skills::{
+    Skill, SkillContext, SkillError, SkillOutcome, SkillResult, SkillSpec, object_params,
+    optional_string_param,
+};
+
 pub struct CreativeTitleCtrScorer {
     spec: SkillSpec,
 }
@@ -49,7 +62,7 @@ impl Skill for CreativeTitleCtrScorer {
         let aida_score = (aida.weighted * 40.0).round() as i64;
         let trigger_score = (trigger.normalized * 35.0).round() as i64;
         let total = aida_score + trigger_score + struct_score;
-        let base_ctr = match platform.as_str() {
+        let base_ctr: f64 = match platform.as_str() {
             "淘宝" => 3.2,
             "京东" => 2.8,
             "拼多多" => 4.5,

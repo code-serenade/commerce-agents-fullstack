@@ -1,20 +1,22 @@
-fn push_unique_non_empty(out: &mut Vec<String>, value: String) {
+use super::*;
+
+pub(super) fn push_unique_non_empty(out: &mut Vec<String>, value: String) {
     let value = value.trim();
     if !value.is_empty() && !out.iter().any(|item| item == value) {
         out.push(value.to_owned());
     }
 }
 
-fn eq_ignore_ascii_case_trimmed(left: &str, right: &str) -> bool {
+pub(super) fn eq_ignore_ascii_case_trimmed(left: &str, right: &str) -> bool {
     left.trim().eq_ignore_ascii_case(right.trim())
 }
 
-fn text_contains_case_insensitive(text: &str, needle: &str) -> bool {
+pub(super) fn text_contains_case_insensitive(text: &str, needle: &str) -> bool {
     let needle = needle.trim();
     !needle.is_empty() && text.to_lowercase().contains(&needle.to_lowercase())
 }
 
-fn infer_customer_emotion(text: &str) -> &'static str {
+pub(super) fn infer_customer_emotion(text: &str) -> &'static str {
     if contains_any_local(
         text,
         &[
@@ -41,7 +43,7 @@ fn infer_customer_emotion(text: &str) -> &'static str {
     }
 }
 
-fn service_priority(
+pub(super) fn service_priority(
     issue_type: &str,
     customer_emotion: &str,
     customer_message: &str,
@@ -72,7 +74,7 @@ fn service_priority(
     }
 }
 
-fn service_sla(priority: &str) -> &'static str {
+pub(super) fn service_sla(priority: &str) -> &'static str {
     match priority {
         "P0" => "2分钟",
         "P1" => "30分钟",
@@ -80,14 +82,14 @@ fn service_sla(priority: &str) -> &'static str {
     }
 }
 
-fn is_seller_fault_issue(text: &str) -> bool {
+pub(super) fn is_seller_fault_issue(text: &str) -> bool {
     contains_any_local(
         text,
         &["质量", "发错", "破损", "少发", "漏发", "假货", "描述不符"],
     )
 }
 
-fn ticket_first_action(issue_type: &str) -> &'static str {
+pub(super) fn ticket_first_action(issue_type: &str) -> &'static str {
     if contains_any_local(issue_type, &["物流", "延迟", "未到", "快递"]) {
         "先核实物流节点和预计送达时间，必要时同步催派或补发方案"
     } else if contains_any_local(issue_type, &["质量", "破损", "发错"]) {
@@ -101,7 +103,7 @@ fn ticket_first_action(issue_type: &str) -> &'static str {
     }
 }
 
-fn ticket_solution(issue_type: &str, seller_fault: bool) -> String {
+pub(super) fn ticket_solution(issue_type: &str, seller_fault: bool) -> String {
     if contains_any_local(issue_type, &["物流", "延迟", "未到", "快递"]) {
         "我会马上核实物流轨迹并帮您催派；如果超过承诺时效，会同步补偿或补发可选方案。".to_owned()
     } else if contains_any_local(issue_type, &["退款", "退货", "换货", "售后"]) {
@@ -122,7 +124,7 @@ fn ticket_solution(issue_type: &str, seller_fault: bool) -> String {
     }
 }
 
-fn ticket_empathy_script(customer_emotion: &str) -> &'static str {
+pub(super) fn ticket_empathy_script(customer_emotion: &str) -> &'static str {
     if contains_any_local(customer_emotion, &["威胁投诉", "愤怒"]) {
         "确实让您有很差的体验了，这个问题我先帮您推进处理，不让您反复解释。"
     } else if contains_any_local(customer_emotion, &["焦虑", "不满"]) {
@@ -134,7 +136,7 @@ fn ticket_empathy_script(customer_emotion: &str) -> &'static str {
     }
 }
 
-fn faq_answer(question: &str, platform: &str, policies: &Map<String, Value>) -> Value {
+pub(super) fn faq_answer(question: &str, platform: &str, policies: &Map<String, Value>) -> Value {
     let policy_text = |keys: &[&str]| {
         keys.iter()
             .find_map(|key| {
@@ -227,7 +229,7 @@ fn faq_answer(question: &str, platform: &str, policies: &Map<String, Value>) -> 
     })
 }
 
-fn escalation_severity(
+pub(super) fn escalation_severity(
     issue_description: &str,
     customer_emotion: &str,
     previous_contacts: i64,
@@ -251,7 +253,7 @@ fn escalation_severity(
     }
 }
 
-fn escalation_path(severity: &str) -> Vec<&'static str> {
+pub(super) fn escalation_path(severity: &str) -> Vec<&'static str> {
     match severity {
         "S1" => vec![
             "一线客服立即停止争辩并记录完整事实",
@@ -279,7 +281,7 @@ fn escalation_path(severity: &str) -> Vec<&'static str> {
     }
 }
 
-fn escalation_manager_script(severity: &str) -> &'static str {
+pub(super) fn escalation_manager_script(severity: &str) -> &'static str {
     match severity {
         "S1" => {
             "您好，我是本店客服主管。这个问题我已经接管，会先保护您的权益并核实全部证据，\
@@ -294,7 +296,7 @@ fn escalation_manager_script(severity: &str) -> &'static str {
     }
 }
 
-fn compensation_suggestion(severity: &str) -> Value {
+pub(super) fn compensation_suggestion(severity: &str) -> Value {
     match severity {
         "S1" => json!({
             "建议": "暂停一线承诺，主管/法务/平台运营复核后给最终方案",
@@ -319,10 +321,9 @@ fn compensation_suggestion(severity: &str) -> Value {
     }
 }
 
-fn contains_any_local(text: &str, needles: &[&str]) -> bool {
+pub(super) fn contains_any_local(text: &str, needles: &[&str]) -> bool {
     let lower = text.to_ascii_lowercase();
     needles
         .iter()
         .any(|needle| text.contains(needle) || lower.contains(&needle.to_ascii_lowercase()))
 }
-

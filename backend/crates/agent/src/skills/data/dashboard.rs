@@ -1,4 +1,12 @@
-fn data_dashboard(input: &Value) -> Value {
+use serde_json::{Map, Value, json};
+
+use super::common::{
+    dashboard_actions, dashboard_health_score, efficiency_summary, growth_summary, has_any_input,
+    i, metric_card, n, number_from_any, pct, pct_delta, percent, risk_summary, round2, s,
+    signed_percent, value_pointer_number, value_string,
+};
+
+pub(super) fn data_dashboard(input: &Value) -> Value {
     let product_ref = s(input, "product_ref", "");
     let days = i(input, "days", 30).clamp(1, 365);
     let platform = s(input, "platform", "all");
@@ -121,7 +129,7 @@ fn data_dashboard(input: &Value) -> Value {
     })
 }
 
-fn store_metric_platform_rows(input: &Value, platform_filter: &str) -> Vec<Value> {
+pub(super) fn store_metric_platform_rows(input: &Value, platform_filter: &str) -> Vec<Value> {
     input
         .get("platforms")
         .and_then(Value::as_array)
@@ -181,7 +189,7 @@ fn store_metric_platform_rows(input: &Value, platform_filter: &str) -> Vec<Value
         .unwrap_or_default()
 }
 
-fn store_metric_totals(input: &Value, platform_rows: &[Value]) -> Value {
+pub(super) fn store_metric_totals(input: &Value, platform_rows: &[Value]) -> Value {
     if !platform_rows.is_empty() {
         let sum = |key: &str| {
             platform_rows
@@ -219,7 +227,7 @@ fn store_metric_totals(input: &Value, platform_rows: &[Value]) -> Value {
     })
 }
 
-fn store_metric_previous(input: &Value) -> Value {
+pub(super) fn store_metric_previous(input: &Value) -> Value {
     let (previous_gmv, has_previous_gmv) =
         number_from_any(input, &["previous_gmv", "last_gmv"], 0.0);
     let (previous_orders, has_previous_orders) =
@@ -234,7 +242,12 @@ fn store_metric_previous(input: &Value) -> Value {
     })
 }
 
-fn store_metric_week_over_week(gmv: f64, orders: f64, visitors: f64, previous: &Value) -> Value {
+pub(super) fn store_metric_week_over_week(
+    gmv: f64,
+    orders: f64,
+    visitors: f64,
+    previous: &Value,
+) -> Value {
     let mut entries = Map::new();
     if let Some(previous_gmv) = value_pointer_number(previous, "/gmv").filter(|value| *value > 0.0)
     {
@@ -274,7 +287,7 @@ fn store_metric_week_over_week(gmv: f64, orders: f64, visitors: f64, previous: &
     Value::Object(entries)
 }
 
-fn store_metric_anomalies(
+pub(super) fn store_metric_anomalies(
     gmv: f64,
     conversion_rate: f64,
     ad_roi: Option<f64>,
@@ -320,7 +333,7 @@ fn store_metric_anomalies(
     anomalies
 }
 
-fn product_metric_risks(
+pub(super) fn product_metric_risks(
     gmv: f64,
     conversion_rate: f64,
     ad_roi: Option<f64>,
@@ -346,7 +359,7 @@ fn product_metric_risks(
     risks
 }
 
-fn product_metric_actions(
+pub(super) fn product_metric_actions(
     conversion_rate: f64,
     ad_roi: Option<f64>,
     refund_rate: f64,
@@ -375,7 +388,7 @@ fn product_metric_actions(
     actions
 }
 
-fn campaign_metric_risks(
+pub(super) fn campaign_metric_risks(
     budget: f64,
     spend: f64,
     gmv: f64,
@@ -430,7 +443,7 @@ fn campaign_metric_risks(
     risks
 }
 
-fn campaign_metric_actions(
+pub(super) fn campaign_metric_actions(
     budget_usage: f64,
     conversion_rate: f64,
     roas: Option<f64>,
@@ -455,7 +468,7 @@ fn campaign_metric_actions(
     actions
 }
 
-fn normalize_metric_platform(input: &Value) -> String {
+pub(super) fn normalize_metric_platform(input: &Value) -> String {
     let platform = s(input, "platform", "all");
     if platform.trim().is_empty() {
         "all".to_owned()
@@ -464,7 +477,7 @@ fn normalize_metric_platform(input: &Value) -> String {
     }
 }
 
-fn empty_string_as_null(value: String) -> Value {
+pub(super) fn empty_string_as_null(value: String) -> Value {
     if value.trim().is_empty() {
         Value::Null
     } else {

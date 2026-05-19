@@ -1,4 +1,17 @@
-fn attribution_analysis(input: &Value) -> Value {
+use serde_json::{Map, Value, json};
+
+use super::{
+    common::{
+        AttributionChannel, attribution_models_to_show, empty_string_as_null, i, json_ok, n,
+        normal_confidence, normalize, normalized_rate, one_hot, pct, percent,
+        position_based_weights, required_i, round2, round4, s, signed_percent,
+    },
+    common_spec::deferred,
+    output_contract::data_summary,
+};
+use crate::skills::SkillError;
+
+pub(super) fn attribution_analysis(input: &Value) -> Value {
     let product_ref = s(input, "product_ref", "");
     let channels = input
         .get("channels")
@@ -169,7 +182,7 @@ fn attribution_deferred(skill: &str, reason: &str, input: &Value) -> Value {
     output
 }
 
-fn ltv_calculator(input: &Value) -> Value {
+pub(super) fn ltv_calculator(input: &Value) -> Value {
     let product_ref = s(input, "product_ref", "");
     let aov = n(input, "avg_order_value", 120.0);
     let freq = n(input, "purchase_frequency", 1.6);
@@ -189,7 +202,7 @@ fn ltv_calculator(input: &Value) -> Value {
     })
 }
 
-fn cohort_analysis(input: &Value) -> Value {
+pub(super) fn cohort_analysis(input: &Value) -> Value {
     let product_ref = s(input, "product_ref", "");
     let unit = s(input, "cohort_unit", "week");
     let label = if unit == "month" { "月" } else { "周" };
@@ -216,7 +229,7 @@ fn cohort_analysis(input: &Value) -> Value {
     })
 }
 
-fn ab_test_analyzer(input: &Value) -> Result<Value, SkillError> {
+pub(super) fn ab_test_analyzer(input: &Value) -> Result<Value, SkillError> {
     let product_ref = s(input, "product_ref", "");
     let ctrl_n = required_i(input, "control_visitors")?;
     let ctrl_c = required_i(input, "control_conversions")?;

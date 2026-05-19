@@ -1,3 +1,8 @@
+use serde_json::json;
+
+use super::category;
+use crate::skills::{SkillInputField, SkillPriority, SkillSpec};
+
 pub fn specs() -> Vec<SkillSpec> {
     vec![
         engineering_arch_review_spec(),
@@ -9,7 +14,7 @@ pub fn specs() -> Vec<SkillSpec> {
     ]
 }
 
-pub fn engineering_arch_review_spec() -> SkillSpec {
+pub(super) fn engineering_arch_review_spec() -> SkillSpec {
     native_spec(
         "engineering_arch_review",
         "架构评估",
@@ -40,7 +45,7 @@ pub fn engineering_arch_review_spec() -> SkillSpec {
     )
 }
 
-pub fn engineering_bug_analysis_spec() -> SkillSpec {
+pub(super) fn engineering_bug_analysis_spec() -> SkillSpec {
     native_spec(
         "engineering_bug_analysis",
         "Bug排查方案",
@@ -75,7 +80,7 @@ pub fn engineering_bug_analysis_spec() -> SkillSpec {
     )
 }
 
-pub fn engineering_perf_optimize_spec() -> SkillSpec {
+pub(super) fn engineering_perf_optimize_spec() -> SkillSpec {
     native_spec(
         "engineering_perf_optimize",
         "性能优化方案",
@@ -98,7 +103,7 @@ pub fn engineering_perf_optimize_spec() -> SkillSpec {
     )
 }
 
-pub fn engineering_tech_selection_spec() -> SkillSpec {
+pub(super) fn engineering_tech_selection_spec() -> SkillSpec {
     native_spec(
         "engineering_tech_selection",
         "技术选型",
@@ -129,7 +134,7 @@ pub fn engineering_tech_selection_spec() -> SkillSpec {
     )
 }
 
-pub fn engineering_system_check_spec() -> SkillSpec {
+pub(super) fn engineering_system_check_spec() -> SkillSpec {
     SkillSpec::new(
         "engineering_system_check",
         "平台接口健康检查",
@@ -151,7 +156,7 @@ pub fn engineering_system_check_spec() -> SkillSpec {
     .with_tag("pending_approval")
 }
 
-pub fn engineering_sla_monitor_spec() -> SkillSpec {
+pub(super) fn engineering_sla_monitor_spec() -> SkillSpec {
     SkillSpec::new(
         "engineering_sla_monitor",
         "SLA监控",
@@ -215,10 +220,6 @@ pub fn engineering_sla_monitor_spec() -> SkillSpec {
         json!({"type": "string"}),
     ))
     .with_tag("deterministic")
-}
-
-pub struct EngineeringSlaMonitor {
-    spec: SkillSpec,
 }
 
 fn native_spec(id: &str, name: &str, description: &str, inputs: Vec<SkillInputField>) -> SkillSpec {

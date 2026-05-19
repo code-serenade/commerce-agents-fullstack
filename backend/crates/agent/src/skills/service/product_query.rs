@@ -1,3 +1,5 @@
+use super::*;
+
 pub struct ServiceQueryProduct {
     spec: SkillSpec,
 }
@@ -509,25 +511,25 @@ fn source_product_id(source: &Value) -> Option<String> {
         })
 }
 
-fn option_string_json(value: Option<String>) -> Value {
+pub(super) fn option_string_json(value: Option<String>) -> Value {
     value
         .filter(|value| !value.trim().is_empty())
         .map(Value::String)
         .unwrap_or(Value::Null)
 }
 
-fn option_i64_json(value: Option<i64>) -> Value {
+pub(super) fn option_i64_json(value: Option<i64>) -> Value {
     value.map(|value| json!(value)).unwrap_or(Value::Null)
 }
 
-fn strip_product_ref_prefix(value: &str) -> Option<&str> {
+pub(super) fn strip_product_ref_prefix(value: &str) -> Option<&str> {
     value
         .strip_prefix("product:")
         .or_else(|| value.strip_prefix("product/"))
         .filter(|value| !value.trim().is_empty())
 }
 
-fn metadata_string_value(metadata: &Map<String, Value>, key: &str) -> Option<String> {
+pub(super) fn metadata_string_value(metadata: &Map<String, Value>, key: &str) -> Option<String> {
     match metadata.get(key)? {
         Value::String(text) if !text.trim().is_empty() => Some(text.trim().to_owned()),
         Value::Number(number) => Some(number.to_string()),
@@ -535,4 +537,3 @@ fn metadata_string_value(metadata: &Map<String, Value>, key: &str) -> Option<Str
         _ => None,
     }
 }
-

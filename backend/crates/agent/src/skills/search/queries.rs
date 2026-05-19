@@ -1,4 +1,9 @@
-fn build_trends_query(
+use serde_json::Value;
+
+use super::output::SearchPlan;
+use crate::skills::{optional_i64_param, optional_string_param};
+
+pub(super) fn build_trends_query(
     params: &Value,
     query: &str,
 ) -> Result<SearchPlan, crate::skills::SkillError> {
@@ -8,7 +13,7 @@ fn build_trends_query(
     Ok(SearchPlan::new(query, planned, "general", days))
 }
 
-fn build_competitor_query(
+pub(super) fn build_competitor_query(
     params: &Value,
     query: &str,
 ) -> Result<SearchPlan, crate::skills::SkillError> {
@@ -25,7 +30,7 @@ fn build_competitor_query(
     Ok(SearchPlan::new(query, planned, "general", 60))
 }
 
-fn build_market_info_query(
+pub(super) fn build_market_info_query(
     params: &Value,
     query: &str,
 ) -> Result<SearchPlan, crate::skills::SkillError> {
@@ -40,7 +45,7 @@ fn build_market_info_query(
     Ok(SearchPlan::new(query, planned, topic, days))
 }
 
-fn build_reviews_query(
+pub(super) fn build_reviews_query(
     params: &Value,
     query: &str,
 ) -> Result<SearchPlan, crate::skills::SkillError> {
@@ -55,7 +60,7 @@ fn build_reviews_query(
     Ok(SearchPlan::new(query, planned, "general", 90))
 }
 
-fn build_policy_query(
+pub(super) fn build_policy_query(
     params: &Value,
     platform: &str,
 ) -> Result<SearchPlan, crate::skills::SkillError> {
@@ -74,7 +79,7 @@ fn build_policy_query(
     Ok(SearchPlan::new(platform, planned, "news", days))
 }
 
-fn build_benchmark_query(
+pub(super) fn build_benchmark_query(
     params: &Value,
     industry: &str,
 ) -> Result<SearchPlan, crate::skills::SkillError> {

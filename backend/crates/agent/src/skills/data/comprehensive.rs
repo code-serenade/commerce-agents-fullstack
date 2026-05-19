@@ -1,4 +1,19 @@
-fn comprehensive_diagnosis(input: &Value) -> Value {
+use serde_json::{Value, json};
+
+use super::{
+    attribution::{attribution_analysis, ltv_calculator},
+    common::{
+        empty_string_as_null, has_any_input, i, input_array_missing_or_empty, nums, round2, s,
+        value_pointer_number, value_pointer_string, value_string, value_to_short_string,
+    },
+    dashboard::data_dashboard,
+    forecast::{demand_forecast, refund_decomposition},
+    funnel_forecast::{anomaly_diagnosis, funnel_analysis},
+    market::customer_segmentation,
+    output_contract::{data_deferred_reason, data_summary, normalize_data_output},
+};
+
+pub(super) fn comprehensive_diagnosis(input: &Value) -> Value {
     let product_ref = s(input, "product_ref", "");
     let days = i(input, "days", 30).clamp(1, 365);
     let focus = normalize_focus(&s(input, "focus", "all"));

@@ -1,4 +1,14 @@
-fn refund_decomposition(input: &Value) -> Value {
+use serde_json::{Value, json};
+
+use super::{
+    common::{
+        average, empty_string_as_null, i, ints, mape, metric_display, moving_average, n, nums, pct,
+        percent, round2, round4, s, ses_fitted, ses_level, signed_percent, stddev,
+    },
+    common_spec::deferred,
+};
+
+pub(super) fn refund_decomposition(input: &Value) -> Value {
     let product_ref = s(input, "product_ref", "");
     let items = input
         .get("items")
@@ -49,7 +59,7 @@ fn refund_decomposition(input: &Value) -> Value {
     })
 }
 
-fn seasonal_decompose(input: &Value) -> Value {
+pub(super) fn seasonal_decompose(input: &Value) -> Value {
     let product_ref = s(input, "product_ref", "");
     let series = nums(input, "values");
     let period = i(input, "period", 7).max(2) as usize;
@@ -84,7 +94,7 @@ fn seasonal_decompose(input: &Value) -> Value {
     })
 }
 
-fn price_elasticity(input: &Value) -> Value {
+pub(super) fn price_elasticity(input: &Value) -> Value {
     let product_ref = s(input, "product_ref", "");
     let points = input
         .get("price_points")
@@ -139,7 +149,7 @@ fn price_elasticity(input: &Value) -> Value {
     })
 }
 
-fn demand_forecast(input: &Value) -> Value {
+pub(super) fn demand_forecast(input: &Value) -> Value {
     let product_ref = s(input, "product_ref", "");
     let values = nums(input, "values");
     if values.len() < 3 {

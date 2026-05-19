@@ -1,19 +1,21 @@
-use async_trait::async_trait;
-use serde_json::{Map, Value, json};
-
-use crate::skills::{
-    Skill, SkillCategory, SkillContext, SkillInputField, SkillOutcome, SkillPriority, SkillResult,
-    SkillSpec, object_params, optional_bool_param, optional_f64_param, optional_i64_param,
-    optional_string_param, optional_string_vec_param, string_param,
-};
+use crate::skills::SkillCategory;
 
 fn category() -> SkillCategory {
     SkillCategory::Custom("engineering".to_owned())
 }
 
-include!("specs.rs");
-include!("native_macro.rs");
-include!("normalize.rs");
-include!("reports.rs");
-include!("system_check.rs");
-include!("sla_monitor.rs");
+mod helpers;
+mod native_macro;
+mod normalize;
+mod reports;
+mod sla_monitor;
+mod specs;
+mod system_check;
+
+pub use native_macro::{
+    EngineeringArchReview, EngineeringBugAnalysis, EngineeringPerfOptimize,
+    EngineeringTechSelection,
+};
+pub use sla_monitor::EngineeringSlaMonitor;
+pub use specs::specs;
+pub use system_check::EngineeringSystemCheck;

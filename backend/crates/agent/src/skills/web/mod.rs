@@ -1,20 +1,20 @@
-use async_trait::async_trait;
-use serde_json::{Map, Value, json};
+use crate::skills::SkillCategory;
 
-use crate::skills::{
-    Skill, SkillCategory, SkillContext, SkillError, SkillInputField, SkillOutcome, SkillPriority,
-    SkillResult, SkillSpec, object_params, optional_f64_param, optional_i64_param,
-    optional_string_param, optional_string_vec_param, string_param,
+mod conversion;
+mod helpers;
+mod native_macro;
+mod normalize;
+mod outcomes;
+mod specs;
+mod title_scorer;
+
+pub use conversion::WebPageConversion;
+pub use native_macro::{
+    WebKeywordResearch, WebProductDescription, WebSeoOptimize, WebStoreDesign, WebTitleGenerator,
 };
+pub use specs::specs;
+pub use title_scorer::WebTitleSeoScorer;
 
 fn category() -> SkillCategory {
     SkillCategory::Custom("web".to_owned())
 }
-
-include!("specs.rs");
-include!("title_scorer.rs");
-include!("native_macro.rs");
-include!("conversion.rs");
-include!("normalize.rs");
-include!("outcomes.rs");
-include!("helpers.rs");

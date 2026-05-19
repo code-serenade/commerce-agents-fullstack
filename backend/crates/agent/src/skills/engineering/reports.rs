@@ -1,4 +1,8 @@
-fn arch_review_output(input: &Map<String, Value>) -> Value {
+use serde_json::{Map, Value, json};
+
+use super::helpers::{f64_field, i64_field, opt_str_field, round1, str_field, string_vec_field};
+
+pub(super) fn arch_review_output(input: &Map<String, Value>) -> Value {
     let system_type = str_field(input, "system_type", "电商系统");
     let daily_orders = i64_field(input, "daily_orders").unwrap_or(1000).max(0);
     let tech_stack = string_vec_field(input, "tech_stack");
@@ -46,7 +50,7 @@ fn arch_review_output(input: &Map<String, Value>) -> Value {
     })
 }
 
-fn bug_analysis_output(input: &Map<String, Value>) -> Value {
+pub(super) fn bug_analysis_output(input: &Map<String, Value>) -> Value {
     let error_type = str_field(input, "error_type", "未知错误");
     let error_message = opt_str_field(input, "error_message");
     let frequency = str_field(input, "frequency", "偶发");
@@ -81,7 +85,7 @@ fn bug_analysis_output(input: &Map<String, Value>) -> Value {
     })
 }
 
-fn perf_optimize_output(input: &Map<String, Value>) -> Value {
+pub(super) fn perf_optimize_output(input: &Map<String, Value>) -> Value {
     let bottleneck = str_field(input, "bottleneck", "接口");
     let current_qps = f64_field(input, "current_qps").unwrap_or(500.0).max(0.0);
     let target_qps = f64_field(input, "target_qps").unwrap_or(2000.0).max(1.0);
@@ -119,7 +123,7 @@ fn perf_optimize_output(input: &Map<String, Value>) -> Value {
     })
 }
 
-fn tech_selection_output(input: &Map<String, Value>) -> Value {
+pub(super) fn tech_selection_output(input: &Map<String, Value>) -> Value {
     let domain = str_field(input, "domain", "Web框架");
     let requirements = string_vec_field(input, "requirements");
     let constraints = string_vec_field(input, "constraints");

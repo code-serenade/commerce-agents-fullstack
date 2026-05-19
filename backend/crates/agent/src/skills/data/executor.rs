@@ -1,3 +1,20 @@
+use async_trait::async_trait;
+use serde_json::Value;
+
+use super::{
+    attribution::{ab_test_analyzer, attribution_analysis, cohort_analysis, ltv_calculator},
+    common_spec::ensure_object,
+    comprehensive::comprehensive_diagnosis,
+    dashboard::data_dashboard,
+    forecast::{demand_forecast, price_elasticity, refund_decomposition, seasonal_decompose},
+    funnel_forecast::{anomaly_diagnosis, funnel_analysis, trend_forecast},
+    market::{channel_roi, competitor_analysis, customer_segmentation, multi_period_trend},
+    output_contract::normalize_data_output,
+    queries::{query_campaign_metrics, query_product_metrics, query_store_metrics},
+    specs::specs,
+};
+use crate::skills::{Skill, SkillContext, SkillError, SkillOutcome, SkillResult, SkillSpec};
+
 pub struct DataSkill {
     spec: SkillSpec,
 }

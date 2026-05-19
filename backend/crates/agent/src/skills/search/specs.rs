@@ -1,3 +1,8 @@
+use serde_json::json;
+
+use super::config::{MAX_RESULTS, category};
+use crate::skills::{SkillInputField, SkillPriority, SkillSpec};
+
 pub fn specs() -> Vec<SkillSpec> {
     vec![
         search_trends_spec(),
@@ -9,7 +14,7 @@ pub fn specs() -> Vec<SkillSpec> {
     ]
 }
 
-pub fn search_trends_spec() -> SkillSpec {
+pub(super) fn search_trends_spec() -> SkillSpec {
     search_spec(
         "search_trends",
         "市场趋势搜索",
@@ -34,7 +39,7 @@ pub fn search_trends_spec() -> SkillSpec {
     )
 }
 
-pub fn search_competitor_spec() -> SkillSpec {
+pub(super) fn search_competitor_spec() -> SkillSpec {
     search_spec(
         "search_competitor",
         "竞品信息搜索",
@@ -59,7 +64,7 @@ pub fn search_competitor_spec() -> SkillSpec {
     )
 }
 
-pub fn search_market_info_spec() -> SkillSpec {
+pub(super) fn search_market_info_spec() -> SkillSpec {
     search_spec(
         "search_market_info",
         "市场行情搜索",
@@ -84,7 +89,7 @@ pub fn search_market_info_spec() -> SkillSpec {
     )
 }
 
-pub fn search_product_reviews_spec() -> SkillSpec {
+pub(super) fn search_product_reviews_spec() -> SkillSpec {
     search_spec(
         "search_product_reviews",
         "用户评价搜索",
@@ -109,7 +114,7 @@ pub fn search_product_reviews_spec() -> SkillSpec {
     )
 }
 
-pub fn search_platform_policy_spec() -> SkillSpec {
+pub(super) fn search_platform_policy_spec() -> SkillSpec {
     search_spec(
         "search_platform_policy",
         "平台政策搜索",
@@ -134,7 +139,7 @@ pub fn search_platform_policy_spec() -> SkillSpec {
     )
 }
 
-pub fn search_industry_benchmarks_spec() -> SkillSpec {
+pub(super) fn search_industry_benchmarks_spec() -> SkillSpec {
     search_spec(
         "search_industry_benchmarks",
         "行业基准搜索",

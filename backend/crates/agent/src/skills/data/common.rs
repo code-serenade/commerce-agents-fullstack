@@ -1,4 +1,9 @@
-fn value_string(input: &Value, key: &str, default: &str) -> String {
+use serde_json::{Value, json};
+
+pub(super) use super::dashboard::empty_string_as_null;
+use crate::skills::SkillError;
+
+pub(super) fn value_string(input: &Value, key: &str, default: &str) -> String {
     input
         .get(key)
         .and_then(Value::as_str)
@@ -6,14 +11,14 @@ fn value_string(input: &Value, key: &str, default: &str) -> String {
         .to_owned()
 }
 
-fn value_pointer_string<'a>(input: &'a Value, path: &str, default: &'a str) -> &'a str {
+pub(super) fn value_pointer_string<'a>(input: &'a Value, path: &str, default: &'a str) -> &'a str {
     input
         .pointer(path)
         .and_then(Value::as_str)
         .unwrap_or(default)
 }
 
-fn value_pointer_number(input: &Value, path: &str) -> Option<f64> {
+pub(super) fn value_pointer_number(input: &Value, path: &str) -> Option<f64> {
     input.pointer(path).and_then(|value| {
         value
             .as_f64()
@@ -21,7 +26,7 @@ fn value_pointer_number(input: &Value, path: &str) -> Option<f64> {
     })
 }
 
-fn value_to_short_string(value: &Value) -> String {
+pub(super) fn value_to_short_string(value: &Value) -> String {
     match value {
         Value::String(value) => value.clone(),
         Value::Number(value) => value.to_string(),
@@ -30,7 +35,7 @@ fn value_to_short_string(value: &Value) -> String {
     }
 }
 
-fn number_from_any(input: &Value, keys: &[&str], default: f64) -> (f64, bool) {
+pub(super) fn number_from_any(input: &Value, keys: &[&str], default: f64) -> (f64, bool) {
     for key in keys {
         if let Some(value) = input.get(*key).and_then(Value::as_f64) {
             return (value.max(0.0), true);
@@ -43,15 +48,15 @@ fn number_from_any(input: &Value, keys: &[&str], default: f64) -> (f64, bool) {
 }
 
 #[derive(Debug, Clone)]
-struct AttributionChannel {
-    name: String,
-    gmv: f64,
-    uv: f64,
-    conversion_rate: f64,
-    ad_spend: f64,
+pub(super) struct AttributionChannel {
+    pub(super) name: String,
+    pub(super) gmv: f64,
+    pub(super) uv: f64,
+    pub(super) conversion_rate: f64,
+    pub(super) ad_spend: f64,
 }
 
-fn normalized_rate(value: f64) -> f64 {
+pub(super) fn normalized_rate(value: f64) -> f64 {
     if value > 1.0 {
         value / 100.0
     } else {
@@ -59,7 +64,7 @@ fn normalized_rate(value: f64) -> f64 {
     }
 }
 
-fn normalize(values: Vec<f64>) -> Vec<f64> {
+pub(super) fn normalize(values: Vec<f64>) -> Vec<f64> {
     let total = values.iter().sum::<f64>();
     if total.abs() < 1e-9 {
         let len = values.len().max(1);
@@ -69,13 +74,13 @@ fn normalize(values: Vec<f64>) -> Vec<f64> {
     }
 }
 
-fn one_hot(len: usize, active_idx: usize) -> Vec<f64> {
+pub(super) fn one_hot(len: usize, active_idx: usize) -> Vec<f64> {
     (0 .. len)
         .map(|idx| if idx == active_idx { 1.0 } else { 0.0 })
         .collect()
 }
 
-fn position_based_weights(len: usize) -> Vec<f64> {
+pub(super) fn position_based_weights(len: usize) -> Vec<f64> {
     match len {
         0 => Vec::new(),
         1 => vec![1.0],
@@ -92,7 +97,7 @@ fn position_based_weights(len: usize) -> Vec<f64> {
     }
 }
 
-fn attribution_models_to_show(model: &str) -> Vec<&'static str> {
+pub(super) fn attribution_models_to_show(model: &str) -> Vec<&'static str> {
     match model {
         "last_touch" => vec!["last_touch"],
         "linear" => vec!["linear"],
@@ -102,11 +107,11 @@ fn attribution_models_to_show(model: &str) -> Vec<&'static str> {
     }
 }
 
-fn pct_delta(current: f64, previous: f64) -> f64 {
+pub(super) fn pct_delta(current: f64, previous: f64) -> f64 {
     pct(current - previous, previous.max(1.0))
 }
 
-fn metric_card(label: &str, value: f64, unit: &str, delta: f64, note: &str) -> Value {
+pub(super) fn metric_card(label: &str, value: f64, unit: &str, delta: f64, note: &str) -> Value {
     json!({
         "指标": label,
         "数值": value,
@@ -117,7 +122,7 @@ fn metric_card(label: &str, value: f64, unit: &str, delta: f64, note: &str) -> V
     })
 }
 
-fn dashboard_health_score(
+pub(super) fn dashboard_health_score(
     gmv_growth: f64,
     conversion_rate: f64,
     ad_roi: f64,
@@ -135,7 +140,11 @@ fn dashboard_health_score(
     score.round().clamp(0.0, 100.0) as i64
 }
 
-fn growth_summary(gmv_growth: f64, order_growth: f64, visitor_growth: f64) -> &'static str {
+pub(super) fn growth_summary(
+    gmv_growth: f64,
+    order_growth: f64,
+    visitor_growth: f64,
+) -> &'static str {
     if gmv_growth >= 5.0 && order_growth >= 3.0 {
         "收入和成交同步增长，可继续放大有效渠道"
     } else if visitor_growth >= 5.0 && order_growth < 0.0 {
@@ -147,7 +156,7 @@ fn growth_summary(gmv_growth: f64, order_growth: f64, visitor_growth: f64) -> &'
     }
 }
 
-fn efficiency_summary(conversion_rate: f64, ad_roi: f64, aov: f64) -> String {
+pub(super) fn efficiency_summary(conversion_rate: f64, ad_roi: f64, aov: f64) -> String {
     if conversion_rate < 2.0 {
         "转化效率偏弱，先优化详情页和首屏卖点".to_string()
     } else if ad_roi < 2.0 {
@@ -157,7 +166,7 @@ fn efficiency_summary(conversion_rate: f64, ad_roi: f64, aov: f64) -> String {
     }
 }
 
-fn risk_summary(refund_rate: f64, gross_margin: f64) -> &'static str {
+pub(super) fn risk_summary(refund_rate: f64, gross_margin: f64) -> &'static str {
     if refund_rate > 6.0 {
         "售后风险偏高，优先拆解退款原因"
     } else if gross_margin < 20.0 {
@@ -167,7 +176,7 @@ fn risk_summary(refund_rate: f64, gross_margin: f64) -> &'static str {
     }
 }
 
-fn dashboard_actions(
+pub(super) fn dashboard_actions(
     gmv_growth: f64,
     conversion_rate: f64,
     ad_roi: f64,
@@ -196,11 +205,11 @@ fn dashboard_actions(
     actions
 }
 
-fn json_ok(value: Value) -> Result<Value, SkillError> {
+pub(super) fn json_ok(value: Value) -> Result<Value, SkillError> {
     Ok(value)
 }
 
-fn required_string(input: &Value, key: &str) -> Result<String, SkillError> {
+pub(super) fn required_string(input: &Value, key: &str) -> Result<String, SkillError> {
     input
         .get(key)
         .and_then(Value::as_str)
@@ -209,14 +218,14 @@ fn required_string(input: &Value, key: &str) -> Result<String, SkillError> {
         .ok_or_else(|| SkillError::missing_parameter(key))
 }
 
-fn required_i(input: &Value, key: &str) -> Result<i64, SkillError> {
+pub(super) fn required_i(input: &Value, key: &str) -> Result<i64, SkillError> {
     input
         .get(key)
         .and_then(Value::as_i64)
         .ok_or_else(|| SkillError::missing_parameter(key))
 }
 
-fn s(input: &Value, key: &str, default: &str) -> String {
+pub(super) fn s(input: &Value, key: &str, default: &str) -> String {
     input
         .get(key)
         .and_then(Value::as_str)
@@ -224,15 +233,15 @@ fn s(input: &Value, key: &str, default: &str) -> String {
         .to_owned()
 }
 
-fn i(input: &Value, key: &str, default: i64) -> i64 {
+pub(super) fn i(input: &Value, key: &str, default: i64) -> i64 {
     input.get(key).and_then(Value::as_i64).unwrap_or(default)
 }
 
-fn n(input: &Value, key: &str, default: f64) -> f64 {
+pub(super) fn n(input: &Value, key: &str, default: f64) -> f64 {
     input.get(key).and_then(Value::as_f64).unwrap_or(default)
 }
 
-fn nums(input: &Value, key: &str) -> Vec<f64> {
+pub(super) fn nums(input: &Value, key: &str) -> Vec<f64> {
     input
         .get(key)
         .and_then(Value::as_array)
@@ -240,7 +249,7 @@ fn nums(input: &Value, key: &str) -> Vec<f64> {
         .unwrap_or_default()
 }
 
-fn has_any_input(input: &Value, keys: &[&str]) -> bool {
+pub(super) fn has_any_input(input: &Value, keys: &[&str]) -> bool {
     keys.iter().any(|key| {
         input.get(*key).is_some_and(|value| match value {
             Value::Null => false,
@@ -252,7 +261,7 @@ fn has_any_input(input: &Value, keys: &[&str]) -> bool {
     })
 }
 
-fn input_array_missing_or_empty(input: &Value, key: &str) -> bool {
+pub(super) fn input_array_missing_or_empty(input: &Value, key: &str) -> bool {
     input
         .get(key)
         .and_then(Value::as_array)
@@ -260,7 +269,7 @@ fn input_array_missing_or_empty(input: &Value, key: &str) -> bool {
         .unwrap_or(true)
 }
 
-fn ints(input: &Value, key: &str, default: Vec<i64>) -> Vec<i64> {
+pub(super) fn ints(input: &Value, key: &str, default: Vec<i64>) -> Vec<i64> {
     input
         .get(key)
         .and_then(Value::as_array)
@@ -269,7 +278,7 @@ fn ints(input: &Value, key: &str, default: Vec<i64>) -> Vec<i64> {
         .unwrap_or(default)
 }
 
-fn average(values: &[f64]) -> f64 {
+pub(super) fn average(values: &[f64]) -> f64 {
     if values.is_empty() {
         0.0
     } else {
@@ -277,7 +286,7 @@ fn average(values: &[f64]) -> f64 {
     }
 }
 
-fn stddev(values: &[f64]) -> f64 {
+pub(super) fn stddev(values: &[f64]) -> f64 {
     if values.len() < 2 {
         return 0.0;
     }
@@ -285,7 +294,7 @@ fn stddev(values: &[f64]) -> f64 {
     (values.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / values.len() as f64).sqrt()
 }
 
-fn linear_fit(values: &[f64]) -> (f64, f64) {
+pub(super) fn linear_fit(values: &[f64]) -> (f64, f64) {
     let len = values.len() as f64;
     let x_mean = (len - 1.0) / 2.0;
     let y_mean = average(values);
@@ -305,7 +314,7 @@ fn linear_fit(values: &[f64]) -> (f64, f64) {
     (slope, y_mean - slope * x_mean)
 }
 
-fn moving_average(values: &[f64], window: usize) -> Vec<f64> {
+pub(super) fn moving_average(values: &[f64], window: usize) -> Vec<f64> {
     if values.is_empty() {
         return Vec::new();
     }
@@ -317,7 +326,7 @@ fn moving_average(values: &[f64], window: usize) -> Vec<f64> {
         .collect()
 }
 
-fn avg_growth(values: &[f64]) -> f64 {
+pub(super) fn avg_growth(values: &[f64]) -> f64 {
     let rates = values
         .windows(2)
         .filter_map(|pair| {
@@ -327,7 +336,7 @@ fn avg_growth(values: &[f64]) -> f64 {
     average(&rates)
 }
 
-fn ses_level(values: &[f64], alpha: f64) -> f64 {
+pub(super) fn ses_level(values: &[f64], alpha: f64) -> f64 {
     let mut level = values[0];
     for value in &values[1 ..] {
         level = alpha * *value + (1.0 - alpha) * level;
@@ -335,7 +344,7 @@ fn ses_level(values: &[f64], alpha: f64) -> f64 {
     level
 }
 
-fn ses_fitted(values: &[f64], alpha: f64) -> Vec<f64> {
+pub(super) fn ses_fitted(values: &[f64], alpha: f64) -> Vec<f64> {
     let mut level = values[0];
     let mut fitted = Vec::with_capacity(values.len().saturating_sub(1));
     for value in &values[1 ..] {
@@ -345,7 +354,7 @@ fn ses_fitted(values: &[f64], alpha: f64) -> Vec<f64> {
     fitted
 }
 
-fn mape(actual: &[f64], predicted: &[f64]) -> f64 {
+pub(super) fn mape(actual: &[f64], predicted: &[f64]) -> f64 {
     let errors = actual
         .iter()
         .zip(predicted)
@@ -356,7 +365,7 @@ fn mape(actual: &[f64], predicted: &[f64]) -> f64 {
     average(&errors)
 }
 
-fn normal_confidence(z_abs: f64) -> f64 {
+pub(super) fn normal_confidence(z_abs: f64) -> f64 {
     if z_abs >= 2.576 {
         0.99
     } else if z_abs >= 1.96 {
@@ -368,7 +377,7 @@ fn normal_confidence(z_abs: f64) -> f64 {
     }
 }
 
-fn metric_display(metric: &str) -> &str {
+pub(super) fn metric_display(metric: &str) -> &str {
     match metric {
         "gmv" => "GMV",
         "orders" => "订单数",
@@ -379,7 +388,7 @@ fn metric_display(metric: &str) -> &str {
     }
 }
 
-fn pct(num: f64, den: f64) -> f64 {
+pub(super) fn pct(num: f64, den: f64) -> f64 {
     if den.abs() < 1e-9 {
         0.0
     } else {
@@ -387,18 +396,18 @@ fn pct(num: f64, den: f64) -> f64 {
     }
 }
 
-fn percent(value: f64, decimals: usize) -> String {
+pub(super) fn percent(value: f64, decimals: usize) -> String {
     format!("{value:.decimals$}%")
 }
 
-fn signed_percent(value: f64, decimals: usize) -> String {
+pub(super) fn signed_percent(value: f64, decimals: usize) -> String {
     format!("{value:+.decimals$}%")
 }
 
-fn round2(value: f64) -> f64 {
+pub(super) fn round2(value: f64) -> f64 {
     (value * 100.0).round() / 100.0
 }
 
-fn round4(value: f64) -> f64 {
+pub(super) fn round4(value: f64) -> f64 {
     (value * 10000.0).round() / 10000.0
 }

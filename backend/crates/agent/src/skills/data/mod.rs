@@ -1,24 +1,21 @@
-use async_trait::async_trait;
-use serde_json::{Map, Value, json};
+mod attribution;
+mod common;
+mod common_spec;
+mod comprehensive;
+mod dashboard;
+mod executor;
+mod forecast;
+mod funnel_forecast;
+mod market;
+mod output_contract;
+mod queries;
+mod specs;
 
-use crate::skills::{
-    Skill, SkillCategory, SkillContext, SkillError, SkillInputField, SkillOutcome, SkillPriority,
-    SkillResult, SkillSpec,
-};
+use crate::skills::SkillCategory;
 
 fn category() -> SkillCategory {
     SkillCategory::Data
 }
 
-include!("specs.rs");
-include!("executor.rs");
-include!("common_spec.rs");
-include!("queries.rs");
-include!("output_contract.rs");
-include!("funnel_forecast.rs");
-include!("dashboard.rs");
-include!("market.rs");
-include!("attribution.rs");
-include!("forecast.rs");
-include!("comprehensive.rs");
-include!("common.rs");
+pub use executor::{DataSkill, execute};
+pub use specs::specs;

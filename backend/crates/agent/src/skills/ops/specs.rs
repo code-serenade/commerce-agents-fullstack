@@ -1,3 +1,6 @@
+use super::common::{field, spec};
+use crate::skills::SkillSpec;
+
 pub fn specs() -> Vec<SkillSpec> {
     vec![
         spec(

@@ -1,3 +1,5 @@
+use super::*;
+
 pub fn service_sentiment_analyzer_spec() -> SkillSpec {
     SkillSpec::new(
         "service_sentiment_analyzer",
@@ -159,4 +161,3 @@ impl Skill for ServiceSentimentAnalyzer {
         )
     }
 }
-

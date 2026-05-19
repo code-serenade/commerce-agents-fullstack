@@ -1,4 +1,14 @@
-fn funnel_analysis(input: &Value) -> Value {
+use serde_json::{Value, json};
+
+use super::{
+    common::{
+        average, avg_growth, empty_string_as_null, i, linear_fit, metric_display, n, nums, pct,
+        percent, round2, round4, s, stddev,
+    },
+    common_spec::deferred,
+};
+
+pub(super) fn funnel_analysis(input: &Value) -> Value {
     let product_ref = s(input, "product_ref", "");
     let impressions = i(input, "impressions", 0).max(i(input, "clicks", 0));
     let clicks = i(input, "clicks", 0);
@@ -85,7 +95,7 @@ fn funnel_analysis(input: &Value) -> Value {
     })
 }
 
-fn anomaly_diagnosis(input: &Value) -> Value {
+pub(super) fn anomaly_diagnosis(input: &Value) -> Value {
     let product_ref = s(input, "product_ref", "");
     let values = nums(input, "values");
     if values.len() < 3 {
@@ -117,7 +127,7 @@ fn anomaly_diagnosis(input: &Value) -> Value {
     })
 }
 
-fn trend_forecast(input: &Value) -> Value {
+pub(super) fn trend_forecast(input: &Value) -> Value {
     let product_ref = s(input, "product_ref", "");
     let values = nums(input, "values");
     if values.len() < 2 {

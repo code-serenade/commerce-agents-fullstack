@@ -1,36 +1,25 @@
-use std::collections::BTreeSet;
-
-use async_trait::async_trait;
 use serde::Deserialize;
 use serde_json::{Value, json};
-use time::{
-    Date, Duration, OffsetDateTime, format_description::well_known::Rfc3339,
-    macros::format_description,
-};
-use toolcraft_request::{HeaderMap, Request};
 
-use crate::skills::{
-    Skill, SkillCategory, SkillContext, SkillInputField, SkillOutcome, SkillPriority, SkillResult,
-    SkillSpec, object_params, optional_bool_param, optional_i64_param, optional_string_param,
-    string_param,
-};
+use crate::skills::SkillCategory;
 
-fn category() -> SkillCategory {
+pub(super) fn category() -> SkillCategory {
     SkillCategory::Custom("search".to_owned())
 }
 
-const SEARCH_ADAPTER_REQUIRED_CONFIG: &str = "search.provider / search endpoint not configured";
-const SEARCH_DEFERRED_REASON: &str = "外部搜索 adapter 尚未接入，不能伪造实时来源";
-const SEARCH_DEGRADED_REASON: &str =
+pub(super) const SEARCH_ADAPTER_REQUIRED_CONFIG: &str =
+    "search.provider / search endpoint not configured";
+pub(super) const SEARCH_DEFERRED_REASON: &str = "外部搜索 adapter 尚未接入，不能伪造实时来源";
+pub(super) const SEARCH_DEGRADED_REASON: &str =
     "Search adapter is not configured; planned query is returned for traceability.";
-const SEARCH_PROVIDER_EMPTY_REASON: &str =
+pub(super) const SEARCH_PROVIDER_EMPTY_REASON: &str =
     "External search provider returned no normalized sources; live sources were not accepted.";
-const SEARCH_PROVIDER_STALE_REASON: &str =
+pub(super) const SEARCH_PROVIDER_STALE_REASON: &str =
     "External search provider returned only sources outside the requested freshness window.";
-const VALID_TOPICS: &[&str] = &["general", "news", "finance"];
-const MAX_DAYS: i64 = 365;
-const MAX_RESULTS: i64 = 12;
-const DEFAULT_MAX_RESULTS: i64 = 6;
+pub(super) const VALID_TOPICS: &[&str] = &["general", "news", "finance"];
+pub(super) const MAX_DAYS: i64 = 365;
+pub(super) const MAX_RESULTS: i64 = 12;
+pub(super) const DEFAULT_MAX_RESULTS: i64 = 6;
 const DEFAULT_TIMEOUT_SEC: u64 = 10;
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
@@ -85,7 +74,7 @@ impl SearchAdapterConfig {
             .to_string()
     }
 
-    fn readiness(&self) -> Value {
+    pub(super) fn readiness(&self) -> Value {
         let mut missing_config = Vec::new();
         if !self.enabled {
             missing_config.push("external_search.enabled");

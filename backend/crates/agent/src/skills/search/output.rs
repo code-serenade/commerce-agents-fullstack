@@ -1,24 +1,39 @@
+use serde_json::{Value, json};
+
+use super::{
+    config::{
+        DEFAULT_MAX_RESULTS, MAX_DAYS, MAX_RESULTS, SEARCH_ADAPTER_REQUIRED_CONFIG,
+        SEARCH_DEFERRED_REASON, SEARCH_DEGRADED_REASON, SEARCH_PROVIDER_EMPTY_REASON,
+        SEARCH_PROVIDER_STALE_REASON, SearchAdapterConfig,
+    },
+    provider::{
+        build_provenance, build_search_evidence, estimate_confidence, normalize_sources,
+        normalize_topic, utc_now_rfc3339,
+    },
+};
+use crate::skills::SkillOutcome;
+
 #[derive(Debug, Clone)]
-struct SearchPlan {
-    raw: String,
-    planned: String,
-    topic: String,
-    days: i64,
-    max_results: i64,
-    bypass_cache: bool,
-    product_ref: Option<String>,
-    product_name: Option<String>,
-    product_category: Option<String>,
+pub(super) struct SearchPlan {
+    pub(super) raw: String,
+    pub(super) planned: String,
+    pub(super) topic: String,
+    pub(super) days: i64,
+    pub(super) max_results: i64,
+    pub(super) bypass_cache: bool,
+    pub(super) product_ref: Option<String>,
+    pub(super) product_name: Option<String>,
+    pub(super) product_category: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]
-struct SearchSourceSet {
-    sources: Vec<Value>,
-    stale_filtered_count: usize,
+pub(super) struct SearchSourceSet {
+    pub(super) sources: Vec<Value>,
+    pub(super) stale_filtered_count: usize,
 }
 
 impl SearchPlan {
-    fn new(
+    pub(super) fn new(
         raw: impl Into<String>,
         planned: impl Into<String>,
         topic: impl Into<String>,
@@ -37,12 +52,12 @@ impl SearchPlan {
         }
     }
 
-    fn with_bypass_cache(mut self, bypass_cache: bool) -> Self {
+    pub(super) fn with_bypass_cache(mut self, bypass_cache: bool) -> Self {
         self.bypass_cache = bypass_cache;
         self
     }
 
-    fn with_product_context(
+    pub(super) fn with_product_context(
         mut self,
         product_ref: Option<String>,
         product_name: Option<String>,
@@ -54,7 +69,7 @@ impl SearchPlan {
         self
     }
 
-    fn with_adapter_defaults(
+    pub(super) fn with_adapter_defaults(
         mut self,
         adapter: &SearchAdapterConfig,
     ) -> Result<Self, crate::skills::SkillError> {
@@ -67,7 +82,7 @@ impl SearchPlan {
         Ok(self)
     }
 
-    fn with_max_results(mut self, max_results: Option<i64>) -> Self {
+    pub(super) fn with_max_results(mut self, max_results: Option<i64>) -> Self {
         if let Some(value) = max_results {
             self.max_results = value.clamp(1, MAX_RESULTS);
         }
@@ -75,7 +90,7 @@ impl SearchPlan {
     }
 }
 
-fn deferred_search_output(
+pub(super) fn deferred_search_output(
     skill_id: &str,
     required_input: String,
     plan: SearchPlan,
@@ -136,7 +151,7 @@ fn deferred_search_output(
     .with_metadata("adapter_readiness", readiness)
 }
 
-fn degraded_search_output(
+pub(super) fn degraded_search_output(
     skill_id: &str,
     required_input: String,
     plan: SearchPlan,
@@ -204,7 +219,7 @@ fn degraded_search_output(
     .with_metadata("adapter_readiness", readiness)
 }
 
-fn live_search_output(
+pub(super) fn live_search_output(
     skill_id: &str,
     required_input: String,
     plan: SearchPlan,

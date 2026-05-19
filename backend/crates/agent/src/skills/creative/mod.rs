@@ -1,20 +1,21 @@
-use async_trait::async_trait;
-use serde_json::{Map, Value, json};
+mod calendar;
+mod helpers;
+mod native_macro;
+mod normalize;
+mod outcomes;
+mod specs;
+mod title_scorer;
 
-use crate::skills::{
-    Skill, SkillCategory, SkillContext, SkillError, SkillInputField, SkillOutcome, SkillPriority,
-    SkillResult, SkillSpec, object_params, optional_f64_param, optional_i64_param,
-    optional_string_param, optional_string_vec_param, string_param,
+pub use calendar::CreativeContentCalendar;
+pub use native_macro::{
+    CreativeIpBranding, CreativeLiveScript, CreativeProductArticle, CreativeSeedingCopy,
+    CreativeTrendCatch, CreativeVideoScript,
 };
+pub use specs::specs;
+pub use title_scorer::CreativeTitleCtrScorer;
 
-fn category() -> SkillCategory {
+use crate::skills::SkillCategory;
+
+pub(super) fn category() -> SkillCategory {
     SkillCategory::Custom("creative".to_owned())
 }
-
-include!("specs.rs");
-include!("title_scorer.rs");
-include!("native_macro.rs");
-include!("normalize.rs");
-include!("outcomes.rs");
-include!("calendar.rs");
-include!("helpers.rs");

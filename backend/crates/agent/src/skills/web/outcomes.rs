@@ -1,4 +1,11 @@
-fn seo_optimize(input: &Map<String, Value>) -> Value {
+use serde_json::{Map, Value, json};
+
+use super::helpers::{
+    display_product, i64_field, keyword_layers, opt_str_field, palette_name, str_field,
+    string_vec_field, title_rules,
+};
+
+pub(super) fn seo_optimize(input: &Map<String, Value>) -> Value {
     let platform = str_field(input, "platform", "淘宝");
     let mut keywords = string_vec_field(input, "target_keywords");
     if keywords.is_empty() {
@@ -29,7 +36,7 @@ fn seo_optimize(input: &Map<String, Value>) -> Value {
     })
 }
 
-fn title_generator(input: &Map<String, Value>) -> Value {
+pub(super) fn title_generator(input: &Map<String, Value>) -> Value {
     let product = display_product(input);
     let platform = str_field(input, "platform", "淘宝");
     let style = str_field(input, "style", "营销型");
@@ -57,7 +64,7 @@ fn title_generator(input: &Map<String, Value>) -> Value {
     })
 }
 
-fn keyword_research(input: &Map<String, Value>) -> Value {
+pub(super) fn keyword_research(input: &Map<String, Value>) -> Value {
     let seed = opt_str_field(input, "seed_keyword")
         .or_else(|| i64_field(input, "product_id").map(|id| format!("商品{id}")))
         .unwrap_or_else(|| str_field(input, "category", "电商消费品"));
@@ -86,7 +93,7 @@ fn keyword_research(input: &Map<String, Value>) -> Value {
     })
 }
 
-fn store_design(input: &Map<String, Value>) -> Value {
+pub(super) fn store_design(input: &Map<String, Value>) -> Value {
     let store_type = str_field(input, "store_type", "旗舰店");
     let category = str_field(input, "category", "通用");
     let platform = str_field(input, "platform", "淘宝");
@@ -116,7 +123,7 @@ fn store_design(input: &Map<String, Value>) -> Value {
     })
 }
 
-fn product_description(input: &Map<String, Value>) -> Value {
+pub(super) fn product_description(input: &Map<String, Value>) -> Value {
     let product = display_product(input);
     let platform = str_field(input, "platform", "淘宝");
     let style = str_field(input, "style", "营销型");

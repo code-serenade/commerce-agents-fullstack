@@ -1,4 +1,25 @@
-async fn query_provider(adapter: &SearchAdapterConfig, plan: &SearchPlan) -> Result<Value, String> {
+use std::collections::BTreeSet;
+
+use serde_json::{Value, json};
+use time::{
+    Date, Duration, OffsetDateTime, format_description::well_known::Rfc3339,
+    macros::format_description,
+};
+use toolcraft_request::{HeaderMap, Request};
+
+use super::{
+    config::{
+        DEFAULT_MAX_RESULTS, MAX_DAYS, MAX_RESULTS, SEARCH_ADAPTER_REQUIRED_CONFIG,
+        SearchAdapterConfig, VALID_TOPICS,
+    },
+    output::{SearchPlan, SearchSourceSet},
+};
+use crate::skills::{optional_bool_param, optional_i64_param, optional_string_param};
+
+pub(super) async fn query_provider(
+    adapter: &SearchAdapterConfig,
+    plan: &SearchPlan,
+) -> Result<Value, String> {
     let base_url = adapter
         .base_url
         .as_deref()
@@ -46,7 +67,7 @@ async fn query_provider(adapter: &SearchAdapterConfig, plan: &SearchPlan) -> Res
         .map_err(|err| format!("decode external search provider response failed: {err}"))
 }
 
-fn normalize_sources(payload: &Value, max_results: i64, days: i64) -> SearchSourceSet {
+pub(super) fn normalize_sources(payload: &Value, max_results: i64, days: i64) -> SearchSourceSet {
     let Some(items) = source_items(payload) else {
         return SearchSourceSet::default();
     };
@@ -148,7 +169,7 @@ fn normalized_source_key(source: &Value) -> Option<String> {
         .map(|value| value.trim_end_matches('/').to_ascii_lowercase())
 }
 
-fn build_provenance(sources: &[Value], stale_filtered_count: usize) -> Value {
+pub(super) fn build_provenance(sources: &[Value], stale_filtered_count: usize) -> Value {
     let domains = sources
         .iter()
         .filter_map(|item| item.get("domain").and_then(Value::as_str))
@@ -176,7 +197,7 @@ fn build_provenance(sources: &[Value], stale_filtered_count: usize) -> Value {
     })
 }
 
-fn build_search_evidence(sources: &[Value], stale_filtered_count: usize) -> Value {
+pub(super) fn build_search_evidence(sources: &[Value], stale_filtered_count: usize) -> Value {
     if sources.is_empty() {
         let summary = if stale_filtered_count > 0 {
             format!(
@@ -292,7 +313,7 @@ fn format_sources_for_llm(sources: &[Value], stale_filtered_count: usize) -> Str
     lines.join("\n")
 }
 
-fn estimate_confidence(sources: &[Value]) -> f64 {
+pub(super) fn estimate_confidence(sources: &[Value]) -> f64 {
     if sources.is_empty() {
         return 0.0;
     }
@@ -359,7 +380,7 @@ fn build_provider_headers(adapter: &SearchAdapterConfig) -> Result<Option<Header
     Ok(Some(headers))
 }
 
-fn normalize_topic(
+pub(super) fn normalize_topic(
     topic: &str,
     fallback: Option<&str>,
 ) -> Result<String, crate::skills::SkillError> {
@@ -382,18 +403,18 @@ fn normalize_topic(
     Ok(normalized)
 }
 
-fn search_bypass_cache(params: &Value) -> Result<bool, crate::skills::SkillError> {
+pub(super) fn search_bypass_cache(params: &Value) -> Result<bool, crate::skills::SkillError> {
     Ok(optional_bool_param(params, "bypass_cache")?
         .or(optional_bool_param(params, "bypassCache")?)
         .or(optional_bool_param(params, "_needs_fresh_data")?)
         .unwrap_or(false))
 }
 
-fn search_max_results(params: &Value) -> Result<Option<i64>, crate::skills::SkillError> {
+pub(super) fn search_max_results(params: &Value) -> Result<Option<i64>, crate::skills::SkillError> {
     Ok(optional_i64_param(params, "max_results")?.or(optional_i64_param(params, "maxResults")?))
 }
 
-fn optional_search_string_param(
+pub(super) fn optional_search_string_param(
     params: &Value,
     field: &str,
 ) -> Result<Option<String>, crate::skills::SkillError> {
@@ -465,7 +486,7 @@ fn compact_text(value: &str, max_chars: usize) -> String {
     trimmed.chars().take(max_chars).collect()
 }
 
-fn utc_now_rfc3339() -> String {
+pub(super) fn utc_now_rfc3339() -> String {
     OffsetDateTime::now_utc()
         .format(&Rfc3339)
         .unwrap_or_else(|_| "1970-01-01T00:00:00Z".to_string())

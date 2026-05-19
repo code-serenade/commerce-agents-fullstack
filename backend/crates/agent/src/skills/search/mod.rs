@@ -1,6 +1,13 @@
-include!("config.rs");
-include!("specs.rs");
-include!("output.rs");
-include!("provider.rs");
-include!("skills.rs");
-include!("queries.rs");
+mod config;
+mod output;
+mod provider;
+mod queries;
+mod skills;
+mod specs;
+
+pub use config::SearchAdapterConfig;
+pub use skills::{
+    SearchCompetitor, SearchIndustryBenchmarks, SearchMarketInfo, SearchPlatformPolicy,
+    SearchProductReviews, SearchTrends,
+};
+pub use specs::specs;

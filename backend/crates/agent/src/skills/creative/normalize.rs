@@ -1,4 +1,6 @@
-fn normalize_creative_output(skill_id: &str, input: &Value, output: &mut Value) {
+use serde_json::{Value, json};
+
+pub(super) fn normalize_creative_output(skill_id: &str, input: &Value, output: &mut Value) {
     let Some(map) = output.as_object_mut() else {
         return;
     };

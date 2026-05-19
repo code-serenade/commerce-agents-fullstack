@@ -1,3 +1,18 @@
+use async_trait::async_trait;
+use serde_json::{Value, json};
+
+use super::{
+    helpers::round1, normalize::normalize_engineering_output, specs::engineering_sla_monitor_spec,
+};
+use crate::skills::{
+    Skill, SkillContext, SkillOutcome, SkillResult, SkillSpec, object_params, optional_f64_param,
+    optional_i64_param, optional_string_param,
+};
+
+pub struct EngineeringSlaMonitor {
+    spec: SkillSpec,
+}
+
 impl EngineeringSlaMonitor {
     pub fn new() -> Self {
         Self {
@@ -139,10 +154,6 @@ fn percentile(mut data: Vec<f64>, pct: f64) -> f64 {
     let hi = (lo + 1).min(data.len() - 1);
     let frac = idx - lo as f64;
     data[lo] * (1.0 - frac) + data[hi] * frac
-}
-
-fn round1(value: f64) -> f64 {
-    (value * 10.0).round() / 10.0
 }
 
 fn round4(value: f64) -> f64 {

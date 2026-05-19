@@ -1,3 +1,18 @@
+use async_trait::async_trait;
+use serde_json::{Map, Value, json};
+
+use super::{
+    normalize::{engineering_native_output, engineering_summary, normalize_engineering_output},
+    specs::{
+        engineering_arch_review_spec, engineering_bug_analysis_spec,
+        engineering_perf_optimize_spec, engineering_tech_selection_spec,
+    },
+};
+use crate::skills::{
+    Skill, SkillContext, SkillOutcome, SkillResult, SkillSpec, object_params, optional_f64_param,
+    optional_i64_param, optional_string_param, optional_string_vec_param, string_param,
+};
+
 macro_rules! native_engineering_skill {
     ($type_name:ident, $spec_fn:ident, required [$($required:literal),*], defaults {$($key:literal => $value:expr),* $(,)?}) => {
         pub struct $type_name {

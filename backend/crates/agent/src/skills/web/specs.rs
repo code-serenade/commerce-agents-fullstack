@@ -1,3 +1,8 @@
+use serde_json::json;
+
+use super::category;
+use crate::skills::{SkillInputField, SkillPriority, SkillSpec};
+
 pub fn specs() -> Vec<SkillSpec> {
     vec![
         web_seo_optimize_spec(),
@@ -10,7 +15,7 @@ pub fn specs() -> Vec<SkillSpec> {
     ]
 }
 
-pub fn web_seo_optimize_spec() -> SkillSpec {
+pub(super) fn web_seo_optimize_spec() -> SkillSpec {
     native_spec(
         "web_seo_optimize",
         "SEO优化方案",
@@ -46,7 +51,7 @@ pub fn web_seo_optimize_spec() -> SkillSpec {
     )
 }
 
-pub fn web_title_generator_spec() -> SkillSpec {
+pub(super) fn web_title_generator_spec() -> SkillSpec {
     native_spec(
         "web_title_generator",
         "标题生成",
@@ -86,7 +91,7 @@ pub fn web_title_generator_spec() -> SkillSpec {
     )
 }
 
-pub fn web_title_seo_scorer_spec() -> SkillSpec {
+pub(super) fn web_title_seo_scorer_spec() -> SkillSpec {
     SkillSpec::new(
         "web_title_seo_scorer",
         "标题SEO评分",
@@ -127,7 +132,7 @@ pub fn web_title_seo_scorer_spec() -> SkillSpec {
     .with_tag("deterministic")
 }
 
-pub fn web_page_conversion_spec() -> SkillSpec {
+pub(super) fn web_page_conversion_spec() -> SkillSpec {
     SkillSpec::new(
         "web_page_conversion",
         "页面转化优化",
@@ -159,7 +164,7 @@ pub fn web_page_conversion_spec() -> SkillSpec {
     .with_tag("p1")
 }
 
-pub fn web_store_design_spec() -> SkillSpec {
+pub(super) fn web_store_design_spec() -> SkillSpec {
     native_spec(
         "web_store_design",
         "店铺装修方案",
@@ -178,7 +183,7 @@ pub fn web_store_design_spec() -> SkillSpec {
     )
 }
 
-pub fn web_keyword_research_spec() -> SkillSpec {
+pub(super) fn web_keyword_research_spec() -> SkillSpec {
     native_spec(
         "web_keyword_research",
         "关键词研究",
@@ -210,7 +215,7 @@ pub fn web_keyword_research_spec() -> SkillSpec {
     )
 }
 
-pub fn web_product_description_spec() -> SkillSpec {
+pub(super) fn web_product_description_spec() -> SkillSpec {
     native_spec(
         "web_product_description",
         "详情页文案",

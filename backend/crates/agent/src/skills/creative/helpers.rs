@@ -1,4 +1,6 @@
-fn normalized_string(input: &Map<String, Value>, key: &str, fallback: &str) -> String {
+use serde_json::{Map, Value, json};
+
+pub(super) fn normalized_string(input: &Map<String, Value>, key: &str, fallback: &str) -> String {
     input
         .get(key)
         .and_then(Value::as_str)
@@ -8,15 +10,15 @@ fn normalized_string(input: &Map<String, Value>, key: &str, fallback: &str) -> S
         .unwrap_or_else(|| fallback.to_owned())
 }
 
-fn normalized_i64(input: &Map<String, Value>, key: &str, fallback: i64) -> i64 {
+pub(super) fn normalized_i64(input: &Map<String, Value>, key: &str, fallback: i64) -> i64 {
     input.get(key).and_then(Value::as_i64).unwrap_or(fallback)
 }
 
-fn normalized_f64(input: &Map<String, Value>, key: &str, fallback: f64) -> f64 {
+pub(super) fn normalized_f64(input: &Map<String, Value>, key: &str, fallback: f64) -> f64 {
     input.get(key).and_then(Value::as_f64).unwrap_or(fallback)
 }
 
-fn normalized_string_vec(input: &Map<String, Value>, key: &str) -> Vec<String> {
+pub(super) fn normalized_string_vec(input: &Map<String, Value>, key: &str) -> Vec<String> {
     input
         .get(key)
         .and_then(Value::as_array)
@@ -32,9 +34,9 @@ fn normalized_string_vec(input: &Map<String, Value>, key: &str) -> Vec<String> {
         .unwrap_or_default()
 }
 
-struct AidaScore {
-    weighted: f64,
-    hits: Value,
+pub(super) struct AidaScore {
+    pub(super) weighted: f64,
+    pub(super) hits: Value,
 }
 
 const AIDA_GROUPS: &[(&str, f64, &[&str])] = &[
@@ -95,7 +97,7 @@ const AIDA_GROUPS: &[(&str, f64, &[&str])] = &[
     ),
 ];
 
-fn score_aida(title: &str) -> AidaScore {
+pub(super) fn score_aida(title: &str) -> AidaScore {
     let mut weighted = 0.0;
     let mut hits = serde_json::Map::new();
     for (name, weight, words) in AIDA_GROUPS {
@@ -116,9 +118,9 @@ fn score_aida(title: &str) -> AidaScore {
     }
 }
 
-struct TriggerScore {
-    normalized: f64,
-    words: Vec<&'static str>,
+pub(super) struct TriggerScore {
+    pub(super) normalized: f64,
+    pub(super) words: Vec<&'static str>,
 }
 
 const TRIGGER_GROUPS: &[(f64, &[&str])] = &[
@@ -193,7 +195,7 @@ const TRIGGER_GROUPS: &[(f64, &[&str])] = &[
     ),
 ];
 
-fn score_triggers(title: &str) -> TriggerScore {
+pub(super) fn score_triggers(title: &str) -> TriggerScore {
     let mut raw: f64 = 0.0;
     let mut words = Vec::new();
     for (weight, group) in TRIGGER_GROUPS {
@@ -210,7 +212,7 @@ fn score_triggers(title: &str) -> TriggerScore {
     }
 }
 
-fn ctr_grade(total: i64) -> &'static str {
+pub(super) fn ctr_grade(total: i64) -> &'static str {
     if total >= 85 {
         "S 高转化"
     } else if total >= 70 {

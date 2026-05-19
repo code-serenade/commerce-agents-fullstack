@@ -1,4 +1,10 @@
-fn spec(
+use serde_json::{Value, json};
+
+use crate::skills::{
+    SkillCategory, SkillError, SkillInputField, SkillOutcome, SkillPriority, SkillSpec,
+};
+
+pub(super) fn spec(
     name: &str,
     display_name: &str,
     description: &str,
@@ -16,15 +22,20 @@ fn spec(
     spec
 }
 
-fn field(name: &str, field_type: &str, description: &str, required: bool) -> SkillInputField {
+pub(super) fn field(
+    name: &str,
+    field_type: &str,
+    description: &str,
+    required: bool,
+) -> SkillInputField {
     SkillInputField::new(name, description, required, field_schema(field_type))
 }
 
-fn outcome(value: Value) -> SkillOutcome {
+pub(super) fn outcome(value: Value) -> SkillOutcome {
     SkillOutcome::new(value)
 }
 
-fn invalid_input(message: String) -> SkillError {
+pub(super) fn invalid_input(message: String) -> SkillError {
     SkillError::execution(message)
 }
 
@@ -40,11 +51,11 @@ fn field_schema(field_type: &str) -> Value {
     }
 }
 
-fn num(input: &Value, key: &str, default: f64) -> f64 {
+pub(super) fn num(input: &Value, key: &str, default: f64) -> f64 {
     val_num(input, key, default)
 }
 
-fn val_num(value: &Value, key: &str, default: f64) -> f64 {
+pub(super) fn val_num(value: &Value, key: &str, default: f64) -> f64 {
     value[key]
         .as_f64()
         .or_else(|| value[key].as_i64().map(|v| v as f64))
@@ -52,11 +63,11 @@ fn val_num(value: &Value, key: &str, default: f64) -> f64 {
         .unwrap_or(default)
 }
 
-fn nums(input: &Value, key: &str) -> Vec<f64> {
+pub(super) fn nums(input: &Value, key: &str) -> Vec<f64> {
     value_nums(&input[key])
 }
 
-fn strings(input: &Value, key: &str) -> Vec<String> {
+pub(super) fn strings(input: &Value, key: &str) -> Vec<String> {
     input[key]
         .as_array()
         .map(|items| {
@@ -68,7 +79,7 @@ fn strings(input: &Value, key: &str) -> Vec<String> {
         .unwrap_or_default()
 }
 
-fn value_nums(value: &Value) -> Vec<f64> {
+pub(super) fn value_nums(value: &Value) -> Vec<f64> {
     value
         .as_array()
         .map(|items| {
@@ -80,23 +91,23 @@ fn value_nums(value: &Value) -> Vec<f64> {
         .unwrap_or_default()
 }
 
-fn string(input: &Value, key: &str, default: &str) -> String {
+pub(super) fn string(input: &Value, key: &str, default: &str) -> String {
     input[key].as_str().unwrap_or(default).to_owned()
 }
 
-fn average(values: &[f64]) -> f64 {
+pub(super) fn average(values: &[f64]) -> f64 {
     values.iter().sum::<f64>() / values.len().max(1) as f64
 }
 
-fn round1(v: f64) -> f64 {
+pub(super) fn round1(v: f64) -> f64 {
     (v * 10.0).round() / 10.0
 }
 
-fn round2(v: f64) -> f64 {
+pub(super) fn round2(v: f64) -> f64 {
     (v * 100.0).round() / 100.0
 }
 
-fn pct(numerator: f64, denominator: f64) -> f64 {
+pub(super) fn pct(numerator: f64, denominator: f64) -> f64 {
     if denominator.abs() > f64::EPSILON {
         numerator / denominator * 100.0
     } else {
@@ -104,19 +115,19 @@ fn pct(numerator: f64, denominator: f64) -> f64 {
     }
 }
 
-fn percent(value: f64, decimals: usize) -> String {
+pub(super) fn percent(value: f64, decimals: usize) -> String {
     format!("{value:.decimals$}%")
 }
 
-fn signed_percent(value: f64, decimals: usize) -> String {
+pub(super) fn signed_percent(value: f64, decimals: usize) -> String {
     format!("{value:+.decimals$}%")
 }
 
-fn currency(value: f64) -> String {
+pub(super) fn currency(value: f64) -> String {
     format!("¥{:.2}", round2(value))
 }
 
-fn signed_currency(value: f64) -> String {
+pub(super) fn signed_currency(value: f64) -> String {
     if value >= 0.0 {
         format!("+{}", currency(value))
     } else {
@@ -124,7 +135,7 @@ fn signed_currency(value: f64) -> String {
     }
 }
 
-fn z_score(service_level: f64) -> f64 {
+pub(super) fn z_score(service_level: f64) -> f64 {
     if (service_level - 0.90).abs() < 0.001 {
         1.28
     } else if (service_level - 0.99).abs() < 0.001 {
@@ -134,7 +145,7 @@ fn z_score(service_level: f64) -> f64 {
     }
 }
 
-fn promo_phase(
+pub(super) fn promo_phase(
     name: &str,
     days: i64,
     budget: f64,
@@ -152,7 +163,7 @@ fn promo_phase(
     })
 }
 
-fn listing_keywords(name: &str, features: &[String], platform: &str) -> Value {
+pub(super) fn listing_keywords(name: &str, features: &[String], platform: &str) -> Value {
     let feature_words = features.iter().take(5).cloned().collect::<Vec<_>>();
     json!({
         "核心词": [name, platform],
@@ -162,7 +173,7 @@ fn listing_keywords(name: &str, features: &[String], platform: &str) -> Value {
     })
 }
 
-fn commission_rate(platform: &str) -> f64 {
+pub(super) fn commission_rate(platform: &str) -> f64 {
     match platform {
         "京东" => 0.08,
         "拼多多" => 0.03,
@@ -171,7 +182,7 @@ fn commission_rate(platform: &str) -> f64 {
     }
 }
 
-fn price_position(price: f64, avg_comp: f64) -> &'static str {
+pub(super) fn price_position(price: f64, avg_comp: f64) -> &'static str {
     if price < avg_comp * 0.95 {
         "低价"
     } else if price > avg_comp * 1.05 {
@@ -181,7 +192,7 @@ fn price_position(price: f64, avg_comp: f64) -> &'static str {
     }
 }
 
-fn elasticity_label(elasticity: f64) -> &'static str {
+pub(super) fn elasticity_label(elasticity: f64) -> &'static str {
     if elasticity <= -2.5 {
         "高弹性（价格敏感型买家，降价显著拉量）"
     } else if elasticity <= -1.5 {
@@ -193,7 +204,7 @@ fn elasticity_label(elasticity: f64) -> &'static str {
     }
 }
 
-fn cv_xyz(history: &[f64]) -> (f64, &'static str) {
+pub(super) fn cv_xyz(history: &[f64]) -> (f64, &'static str) {
     if history.len() < 2 {
         return (0.0, "Z");
     }
@@ -213,14 +224,14 @@ fn cv_xyz(history: &[f64]) -> (f64, &'static str) {
     (cv, xyz)
 }
 
-fn matrix_cells() -> std::collections::BTreeMap<String, (usize, f64)> {
+pub(super) fn matrix_cells() -> std::collections::BTreeMap<String, (usize, f64)> {
     ["AX", "AY", "AZ", "BX", "BY", "BZ", "CX", "CY", "CZ"]
         .into_iter()
         .map(|cell| (cell.to_owned(), (0, 0.0)))
         .collect()
 }
 
-fn matrix_strategy(cell: &str) -> (&'static str, f64) {
+pub(super) fn matrix_strategy(cell: &str) -> (&'static str, f64) {
     match cell {
         "AX" => ("持续补货，自动化补货触发，维持最低安全库存", 1.2),
         "AY" => ("提前预测补货，安全库存1.5倍需求，定期评估", 1.5),

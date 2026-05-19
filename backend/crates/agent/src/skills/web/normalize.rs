@@ -1,4 +1,10 @@
-fn normalize_web_output(skill_id: &str, input: &Value, output: &mut Value) {
+use serde_json::{Map, Value, json};
+
+use super::outcomes::{
+    keyword_research, product_description, seo_optimize, store_design, title_generator,
+};
+
+pub(super) fn normalize_web_output(skill_id: &str, input: &Value, output: &mut Value) {
     let Some(map) = output.as_object_mut() else {
         return;
     };
@@ -72,7 +78,7 @@ fn has_any_input(input: &Value, keys: &[&str]) -> bool {
     })
 }
 
-fn web_native_output(skill_id: &str, input: &Map<String, Value>) -> Value {
+pub(super) fn web_native_output(skill_id: &str, input: &Map<String, Value>) -> Value {
     match skill_id {
         "web_seo_optimize" => seo_optimize(input),
         "web_title_generator" => title_generator(input),
@@ -83,7 +89,7 @@ fn web_native_output(skill_id: &str, input: &Map<String, Value>) -> Value {
     }
 }
 
-fn web_summary(skill_id: &str) -> &'static str {
+pub(super) fn web_summary(skill_id: &str) -> &'static str {
     match skill_id {
         "web_seo_optimize" => "SEO优化方案已生成",
         "web_title_generator" => "标题候选已生成",

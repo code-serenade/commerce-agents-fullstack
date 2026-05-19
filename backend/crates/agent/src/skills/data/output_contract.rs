@@ -1,4 +1,8 @@
-fn normalize_data_output(skill_name: &str, input: &Value, output: &mut Value) {
+use serde_json::{Value, json};
+
+use super::common::{has_any_input, input_array_missing_or_empty};
+
+pub(super) fn normalize_data_output(skill_name: &str, input: &Value, output: &mut Value) {
     let Some(map) = output.as_object_mut() else {
         return;
     };
@@ -32,7 +36,7 @@ fn data_output_needs_user_input(map: &serde_json::Map<String, Value>) -> bool {
     map.contains_key("error") || matches!(map.get("has_data").and_then(Value::as_bool), Some(false))
 }
 
-fn data_deferred_reason(map: &serde_json::Map<String, Value>) -> String {
+pub(super) fn data_deferred_reason(map: &serde_json::Map<String, Value>) -> String {
     ["deferred_reason", "error", "hint", "提示"]
         .iter()
         .find_map(|key| {
@@ -87,7 +91,7 @@ fn data_readiness(skill_name: &str, input: &Value) -> &'static str {
     }
 }
 
-fn data_summary(skill_name: &str) -> &'static str {
+pub(super) fn data_summary(skill_name: &str) -> &'static str {
     match skill_name {
         "query_store_metrics" => "店铺指标查询结果已生成",
         "query_product_metrics" => "商品指标查询结果已生成",

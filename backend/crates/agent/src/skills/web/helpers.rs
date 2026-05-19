@@ -1,4 +1,6 @@
-fn keyword_layers(keywords: &[String]) -> Vec<Value> {
+use serde_json::{Map, Value, json};
+
+pub(super) fn keyword_layers(keywords: &[String]) -> Vec<Value> {
     let primary = keywords
         .first()
         .cloned()
@@ -10,7 +12,7 @@ fn keyword_layers(keywords: &[String]) -> Vec<Value> {
     ]
 }
 
-fn title_rules(platform: &str) -> Value {
+pub(super) fn title_rules(platform: &str) -> Value {
     match platform {
         "拼多多" => {
             json!({"推荐字数": "20-28字", "重点": "价格权益、包邮、场景词", "避免": "过度品牌化"})
@@ -27,7 +29,12 @@ fn title_rules(platform: &str) -> Value {
     }
 }
 
-fn conversion_findings(conv: f64, bounce: f64, stay: f64, benchmark: f64) -> Vec<String> {
+pub(super) fn conversion_findings(
+    conv: f64,
+    bounce: f64,
+    stay: f64,
+    benchmark: f64,
+) -> Vec<String> {
     let mut findings = Vec::new();
     if conv < benchmark {
         findings.push("转化率低于基准，首屏利益点、价格承诺或信任背书可能不足".to_owned());
@@ -44,7 +51,7 @@ fn conversion_findings(conv: f64, bounce: f64, stay: f64, benchmark: f64) -> Vec
     findings
 }
 
-fn conversion_actions(
+pub(super) fn conversion_actions(
     page_type: &str,
     conv: f64,
     bounce: f64,
@@ -77,18 +84,18 @@ fn conversion_actions(
     actions
 }
 
-fn display_product(input: &Map<String, Value>) -> String {
+pub(super) fn display_product(input: &Map<String, Value>) -> String {
     opt_str_field(input, "product_name")
         .filter(|value| !value.trim().is_empty())
         .or_else(|| i64_field(input, "product_id").map(|id| format!("商品ID {id}")))
         .unwrap_or_else(|| "主推商品".to_owned())
 }
 
-fn str_field(input: &Map<String, Value>, key: &str, default: &str) -> String {
+pub(super) fn str_field(input: &Map<String, Value>, key: &str, default: &str) -> String {
     opt_str_field(input, key).unwrap_or_else(|| default.to_owned())
 }
 
-fn opt_str_field(input: &Map<String, Value>, key: &str) -> Option<String> {
+pub(super) fn opt_str_field(input: &Map<String, Value>, key: &str) -> Option<String> {
     input
         .get(key)
         .and_then(Value::as_str)
@@ -97,7 +104,7 @@ fn opt_str_field(input: &Map<String, Value>, key: &str) -> Option<String> {
         .map(ToString::to_string)
 }
 
-fn string_vec_field(input: &Map<String, Value>, key: &str) -> Vec<String> {
+pub(super) fn string_vec_field(input: &Map<String, Value>, key: &str) -> Vec<String> {
     input
         .get(key)
         .and_then(Value::as_array)
@@ -113,11 +120,11 @@ fn string_vec_field(input: &Map<String, Value>, key: &str) -> Vec<String> {
         .unwrap_or_default()
 }
 
-fn i64_field(input: &Map<String, Value>, key: &str) -> Option<i64> {
+pub(super) fn i64_field(input: &Map<String, Value>, key: &str) -> Option<i64> {
     input.get(key).and_then(Value::as_i64)
 }
 
-fn palette_name(tone: &str) -> &'static str {
+pub(super) fn palette_name(tone: &str) -> &'static str {
     if tone.contains("高端") || tone.contains("奢华") {
         "深色底 + 金色强调 + 大留白"
     } else if tone.contains("年轻") || tone.contains("活力") {
@@ -131,7 +138,7 @@ fn palette_name(tone: &str) -> &'static str {
     }
 }
 
-fn keyword_position_score(title: &str, keyword: &str) -> i64 {
+pub(super) fn keyword_position_score(title: &str, keyword: &str) -> i64 {
     let Some(byte_idx) = title.to_lowercase().find(&keyword.to_lowercase()) else {
         return -20;
     };
@@ -150,7 +157,7 @@ fn keyword_position_score(title: &str, keyword: &str) -> i64 {
     }
 }
 
-fn repeated_char_penalty(title: &str) -> i64 {
+pub(super) fn repeated_char_penalty(title: &str) -> i64 {
     let mut last = None;
     let mut penalty = 0;
     for ch in title.chars() {
@@ -162,7 +169,7 @@ fn repeated_char_penalty(title: &str) -> i64 {
     penalty
 }
 
-fn seo_grade(total: i64) -> &'static str {
+pub(super) fn seo_grade(total: i64) -> &'static str {
     if total >= 85 {
         "S (优秀)"
     } else if total >= 70 {
@@ -176,7 +183,7 @@ fn seo_grade(total: i64) -> &'static str {
     }
 }
 
-fn build_seo_suggestions(
+pub(super) fn build_seo_suggestions(
     primary: &str,
     pos_bonus: i64,
     missing: &[String],

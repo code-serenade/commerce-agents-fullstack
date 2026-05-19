@@ -1,4 +1,16 @@
-fn query_store_metrics(input: &Value) -> Value {
+use serde_json::{Value, json};
+
+use super::{
+    common::{has_any_input, i, number_from_any, pct, percent, round2, s, value_pointer_number},
+    dashboard::{
+        campaign_metric_actions, campaign_metric_risks, empty_string_as_null,
+        normalize_metric_platform, product_metric_actions, product_metric_risks,
+        store_metric_anomalies, store_metric_platform_rows, store_metric_previous,
+        store_metric_totals, store_metric_week_over_week,
+    },
+};
+
+pub(super) fn query_store_metrics(input: &Value) -> Value {
     let days = i(input, "days", 30).clamp(1, 365);
     let platform_filter = {
         let value = s(input, "platform", "all");
@@ -126,7 +138,7 @@ fn query_store_metrics(input: &Value) -> Value {
     })
 }
 
-fn query_product_metrics(input: &Value) -> Value {
+pub(super) fn query_product_metrics(input: &Value) -> Value {
     let days = i(input, "days", 30).clamp(1, 365);
     let platform = normalize_metric_platform(input);
     let product_ref = s(input, "product_ref", "");
@@ -287,7 +299,7 @@ fn query_product_metrics(input: &Value) -> Value {
     })
 }
 
-fn query_campaign_metrics(input: &Value) -> Value {
+pub(super) fn query_campaign_metrics(input: &Value) -> Value {
     let days = i(input, "days", 30).clamp(1, 365);
     let platform = normalize_metric_platform(input);
     let campaign_id = s(input, "campaign_id", "");
@@ -452,4 +464,3 @@ fn query_campaign_metrics(input: &Value) -> Value {
         "说明": "本结果只基于本轮明确提供的活动指标，不代表已读取淘宝、抖音、千川或其它平台实时活动数据。"
     })
 }
-

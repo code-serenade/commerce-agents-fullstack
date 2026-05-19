@@ -1,4 +1,11 @@
-fn pricing_strategy(input: &Value) -> Value {
+use serde_json::{Value, json};
+
+use super::common::{
+    average, commission_rate, currency, listing_keywords, num, nums, pct, percent, promo_phase,
+    round1, round2, string, strings, z_score,
+};
+
+pub(super) fn pricing_strategy(input: &Value) -> Value {
     let cost = num(input, "cost", 0.0);
     let competitors = nums(input, "competitor_prices");
     let platform = string(input, "platform", "淘宝");
@@ -41,7 +48,7 @@ fn pricing_strategy(input: &Value) -> Value {
     })
 }
 
-fn promo_planning(input: &Value) -> Value {
+pub(super) fn promo_planning(input: &Value) -> Value {
     let product = string(input, "product", "通用商品");
     let product_ref = string(input, "product_ref", "");
     let budget = num(input, "budget", 10_000.0).max(0.0);
@@ -104,7 +111,7 @@ fn promo_planning(input: &Value) -> Value {
     })
 }
 
-fn channel_strategy(input: &Value) -> Value {
+pub(super) fn channel_strategy(input: &Value) -> Value {
     let product_type = string(input, "product_type", "通用");
     let product_ref = string(input, "product_ref", "");
     let budget = num(input, "budget", 10_000.0).max(0.0);
@@ -159,7 +166,7 @@ fn channel_strategy(input: &Value) -> Value {
     })
 }
 
-fn inventory_planning(input: &Value) -> Value {
+pub(super) fn inventory_planning(input: &Value) -> Value {
     let avg_demand = num(input, "avg_daily_demand", 100.0);
     let lead_time = num(input, "lead_time_days", 7.0).max(0.0);
     let product_ref = string(input, "product_ref", "");
@@ -188,7 +195,7 @@ fn inventory_planning(input: &Value) -> Value {
     })
 }
 
-fn listing_copy(input: &Value) -> Value {
+pub(super) fn listing_copy(input: &Value) -> Value {
     let product_name = string(input, "product_name", "");
     let product_ref = string(input, "product_ref", "");
     if product_name.is_empty() && product_ref.is_empty() && input.get("product_id").is_none() {
@@ -238,7 +245,7 @@ fn listing_copy(input: &Value) -> Value {
     })
 }
 
-fn assortment_planning(input: &Value) -> Value {
+pub(super) fn assortment_planning(input: &Value) -> Value {
     let category = string(input, "category", "通用");
     let product_ref = string(input, "product_ref", "");
     let budget = num(input, "budget", 50_000.0).max(0.0);
@@ -267,7 +274,7 @@ fn assortment_planning(input: &Value) -> Value {
     })
 }
 
-fn execution_plan(input: &Value) -> Value {
+pub(super) fn execution_plan(input: &Value) -> Value {
     let goal = string(input, "goal", "提升GMV");
     let stage = string(input, "stage", "成长期");
     let product_ref = string(input, "product_ref", "");

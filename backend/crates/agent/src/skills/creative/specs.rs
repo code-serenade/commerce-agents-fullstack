@@ -1,3 +1,8 @@
+use serde_json::json;
+
+use super::category;
+use crate::skills::{SkillInputField, SkillPriority, SkillSpec};
+
 pub fn specs() -> Vec<SkillSpec> {
     vec![
         creative_video_script_spec(),
@@ -11,7 +16,7 @@ pub fn specs() -> Vec<SkillSpec> {
     ]
 }
 
-pub fn creative_video_script_spec() -> SkillSpec {
+pub(super) fn creative_video_script_spec() -> SkillSpec {
     deferred_spec(
         "creative_video_script",
         "短视频脚本",
@@ -43,7 +48,7 @@ pub fn creative_video_script_spec() -> SkillSpec {
     )
 }
 
-pub fn creative_seeding_copy_spec() -> SkillSpec {
+pub(super) fn creative_seeding_copy_spec() -> SkillSpec {
     deferred_spec(
         "creative_seeding_copy",
         "种草文案",
@@ -75,7 +80,7 @@ pub fn creative_seeding_copy_spec() -> SkillSpec {
     )
 }
 
-pub fn creative_ip_branding_spec() -> SkillSpec {
+pub(super) fn creative_ip_branding_spec() -> SkillSpec {
     deferred_spec(
         "creative_ip_branding",
         "IP定位",
@@ -94,7 +99,7 @@ pub fn creative_ip_branding_spec() -> SkillSpec {
     )
 }
 
-pub fn creative_title_ctr_scorer_spec() -> SkillSpec {
+pub(super) fn creative_title_ctr_scorer_spec() -> SkillSpec {
     SkillSpec::new(
         "creative_title_ctr_scorer",
         "标题CTR预测评分",
@@ -125,7 +130,7 @@ pub fn creative_title_ctr_scorer_spec() -> SkillSpec {
     .with_tag("deterministic")
 }
 
-pub fn creative_content_calendar_spec() -> SkillSpec {
+pub(super) fn creative_content_calendar_spec() -> SkillSpec {
     SkillSpec::new(
         "creative_content_calendar",
         "内容排期",
@@ -156,7 +161,7 @@ pub fn creative_content_calendar_spec() -> SkillSpec {
     .with_tag("deterministic")
 }
 
-pub fn creative_trend_catch_spec() -> SkillSpec {
+pub(super) fn creative_trend_catch_spec() -> SkillSpec {
     deferred_spec(
         "creative_trend_catch",
         "趋势捕捉",
@@ -168,7 +173,7 @@ pub fn creative_trend_catch_spec() -> SkillSpec {
     )
 }
 
-pub fn creative_live_script_spec() -> SkillSpec {
+pub(super) fn creative_live_script_spec() -> SkillSpec {
     deferred_spec(
         "creative_live_script",
         "直播脚本",
@@ -208,7 +213,7 @@ pub fn creative_live_script_spec() -> SkillSpec {
     )
 }
 
-pub fn creative_product_article_spec() -> SkillSpec {
+pub(super) fn creative_product_article_spec() -> SkillSpec {
     deferred_spec(
         "creative_product_article",
         "产品软文",

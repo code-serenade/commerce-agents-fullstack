@@ -1,19 +1,21 @@
-fn round1(value: f64) -> f64 {
+use super::*;
+
+pub(super) fn round1(value: f64) -> f64 {
     (value * 10.0).round() / 10.0
 }
 
-fn round2(value: f64) -> f64 {
+pub(super) fn round2(value: f64) -> f64 {
     (value * 100.0).round() / 100.0
 }
 
-fn optional_string_vec_param_or_empty(
+pub(super) fn optional_string_vec_param_or_empty(
     params: &Value,
     name: &str,
 ) -> Result<Vec<String>, SkillError> {
     Ok(optional_string_vec_param(params, name)?.unwrap_or_default())
 }
 
-fn nps_grade(nps: f64) -> &'static str {
+pub(super) fn nps_grade(nps: f64) -> &'static str {
     if nps >= 70.0 {
         "极优秀（世界级）"
     } else if nps >= 50.0 {
@@ -27,7 +29,7 @@ fn nps_grade(nps: f64) -> &'static str {
     }
 }
 
-fn csat_grade(csat: f64) -> &'static str {
+pub(super) fn csat_grade(csat: f64) -> &'static str {
     if csat >= 90.0 {
         "优秀"
     } else if csat >= 75.0 {
@@ -37,14 +39,14 @@ fn csat_grade(csat: f64) -> &'static str {
     }
 }
 
-struct SentimentScore {
-    intensity: f64,
-    urgency: &'static str,
-    priority: i64,
-    triggered: Vec<&'static str>,
+pub(super) struct SentimentScore {
+    pub(super) intensity: f64,
+    pub(super) urgency: &'static str,
+    pub(super) priority: i64,
+    pub(super) triggered: Vec<&'static str>,
 }
 
-fn score_sentiment(text: &str) -> SentimentScore {
+pub(super) fn score_sentiment(text: &str) -> SentimentScore {
     let keywords = [
         ("骗子", -3.0),
         ("欺诈", -3.0),
@@ -120,7 +122,7 @@ fn score_sentiment(text: &str) -> SentimentScore {
     }
 }
 
-fn sentiment_state(intensity: f64) -> &'static str {
+pub(super) fn sentiment_state(intensity: f64) -> &'static str {
     if intensity < 2.0 {
         "极度负面"
     } else if intensity < 4.0 {
@@ -134,7 +136,7 @@ fn sentiment_state(intensity: f64) -> &'static str {
     }
 }
 
-fn sentiment_advice(intensity: f64) -> &'static str {
+pub(super) fn sentiment_advice(intensity: f64) -> &'static str {
     if intensity < 2.0 {
         "立即人工介入，先承认问题并给出明确补偿或升级路径"
     } else if intensity < 4.0 {
@@ -148,11 +150,13 @@ fn sentiment_advice(intensity: f64) -> &'static str {
     }
 }
 
-fn truncate_chars(text: &str, limit: usize) -> String {
+pub(super) fn truncate_chars(text: &str, limit: usize) -> String {
     text.chars().take(limit).collect()
 }
 
-fn parse_string_i64_map(value: Option<&Value>) -> Result<BTreeMap<String, i64>, SkillError> {
+pub(super) fn parse_string_i64_map(
+    value: Option<&Value>,
+) -> Result<BTreeMap<String, i64>, SkillError> {
     let mut out = BTreeMap::new();
     let Some(value) = value else {
         return Ok(out);
@@ -169,7 +173,7 @@ fn parse_string_i64_map(value: Option<&Value>) -> Result<BTreeMap<String, i64>, 
     Ok(out)
 }
 
-fn nps_coefficient(category: &str) -> f64 {
+pub(super) fn nps_coefficient(category: &str) -> f64 {
     match category {
         "物流配送" => -0.35,
         "商品质量" => -0.48,

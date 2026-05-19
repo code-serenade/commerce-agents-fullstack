@@ -1,3 +1,5 @@
+use super::*;
+
 pub fn service_nps_analyzer_spec() -> SkillSpec {
     SkillSpec::new(
         "service_nps_analyzer",
@@ -163,4 +165,3 @@ impl Skill for ServiceNpsAnalyzer {
         outcome(output, "NPS与CSAT分析已完成")
     }
 }
-

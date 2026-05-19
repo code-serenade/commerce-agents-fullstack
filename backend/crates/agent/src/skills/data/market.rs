@@ -1,4 +1,15 @@
-fn customer_segmentation(input: &Value) -> Value {
+use serde_json::{Value, json};
+
+use super::{
+    common::{
+        average, empty_string_as_null, i, ints, json_ok, linear_fit, metric_display,
+        moving_average, n, nums, pct, percent, required_string, round2, round4, s, signed_percent,
+    },
+    common_spec::deferred,
+};
+use crate::skills::SkillError;
+
+pub(super) fn customer_segmentation(input: &Value) -> Value {
     let product_ref = s(input, "product_ref", "");
     let total = i(input, "total_customers", 1000).max(1);
     let aov = n(input, "avg_order_value", 120.0);
@@ -23,7 +34,7 @@ fn customer_segmentation(input: &Value) -> Value {
     })
 }
 
-fn competitor_analysis(input: &Value) -> Result<Value, SkillError> {
+pub(super) fn competitor_analysis(input: &Value) -> Result<Value, SkillError> {
     let product_ref = s(input, "product_ref", "");
     let product = required_string(input, "our_product")?;
     let our_price = n(input, "our_price", 100.0).max(0.01);
@@ -72,7 +83,7 @@ fn competitor_analysis(input: &Value) -> Result<Value, SkillError> {
     }))
 }
 
-fn multi_period_trend(input: &Value) -> Value {
+pub(super) fn multi_period_trend(input: &Value) -> Value {
     let product_ref = s(input, "product_ref", "");
     let values = nums(input, "values");
     if values.len() < 4 {
@@ -104,7 +115,7 @@ fn multi_period_trend(input: &Value) -> Value {
     })
 }
 
-fn channel_roi(input: &Value) -> Value {
+pub(super) fn channel_roi(input: &Value) -> Value {
     let product_ref = s(input, "product_ref", "");
     let channels = input
         .get("channels")
