@@ -3,7 +3,7 @@ mod rules;
 
 use config::WorkerAutosuggestPolicy;
 pub(super) use config::load_autosuggest_policy;
-use rules::{configured_rule_requests, contains_any};
+use rules::{configured_rule_requests, contains_any, render_template_value};
 
 use super::{inference::inference_text, policy::worker_policies, types::ParsedSkillRequest};
 use crate::agent::worker::Task;
@@ -25,7 +25,7 @@ pub(super) fn autosuggest_skill_requests(
 
     let mut requests = Vec::new();
     if route.learning_first
-        && let Some(request) = learning_request(policy, &text)
+        && let Some(request) = learning_request(policy, &text, task)
     {
         requests.push(request);
         if route.mode != "requests" {
@@ -77,26 +77,25 @@ fn chat_request(
     if contains_any(text, &policy.chat.save_memory_keywords) {
         return Some(ParsedSkillRequest {
             skill_id: policy.chat.save_memory_skill_id.clone(),
-            input: serde_json::json!({
-                "content": task.description,
-                "memory_type": "user_instruction"
-            }),
+            input: render_template_value(&policy.chat.save_memory_input, text, task),
             reason: Some("autosuggest:chat.save_memory".to_string()),
         });
     }
     if contains_any(text, &policy.chat.status_query_keywords) {
         return Some(ParsedSkillRequest {
             skill_id: policy.chat.status_query_skill_id.clone(),
-            input: serde_json::json!({
-                "query_type": "session_status"
-            }),
+            input: render_template_value(&policy.chat.status_query_input, text, task),
             reason: Some("autosuggest:chat.status_query".to_string()),
         });
     }
-    learning_request(policy, text)
+    learning_request(policy, text, task)
 }
 
-fn learning_request(policy: &WorkerAutosuggestPolicy, text: &str) -> Option<ParsedSkillRequest> {
+fn learning_request(
+    policy: &WorkerAutosuggestPolicy,
+    text: &str,
+    task: &Task,
+) -> Option<ParsedSkillRequest> {
     let has_explicit_keyword = contains_any(text, &policy.learning.explicit_keywords);
     let has_question_with_explanation = contains_any(text, &policy.learning.question_keywords)
         && contains_any(text, &policy.learning.explanation_keywords);
@@ -106,13 +105,27 @@ fn learning_request(policy: &WorkerAutosuggestPolicy, text: &str) -> Option<Pars
 
     Some(ParsedSkillRequest {
         skill_id: policy.learning.skill_id.clone(),
-        input: serde_json::json!({
-            "topic": text.trim(),
-            "level": "practical",
-            "include_self_check": !contains_any(text, &policy.learning.self_check_disabled_keywords)
-        }),
+        input: render_learning_input(policy, text, task),
         reason: Some("autosuggest:learning".to_string()),
     })
+}
+
+fn render_learning_input(
+    policy: &WorkerAutosuggestPolicy,
+    text: &str,
+    task: &Task,
+) -> serde_json::Value {
+    let mut input = render_template_value(&policy.learning.input, text, task);
+    if let Some(object) = input.as_object_mut() {
+        object.insert(
+            "include_self_check".to_string(),
+            serde_json::json!(!contains_any(
+                text,
+                &policy.learning.self_check_disabled_keywords
+            )),
+        );
+    }
+    input
 }
 
 fn extend_optional<T>(items: &mut Vec<T>, item: Option<T>) {

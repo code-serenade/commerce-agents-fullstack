@@ -83,7 +83,11 @@ fn rule_matches(
         })
 }
 
-fn render_template_value(value: &serde_json::Value, text: &str, task: &Task) -> serde_json::Value {
+pub(super) fn render_template_value(
+    value: &serde_json::Value,
+    text: &str,
+    task: &Task,
+) -> serde_json::Value {
     match value {
         serde_json::Value::String(template) => render_template_scalar(template, text, task),
         serde_json::Value::Array(items) => serde_json::Value::Array(

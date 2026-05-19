@@ -1,4 +1,11 @@
 {
+  "defaults": {
+    "platform_default": "淘宝",
+    "stage": "成长期",
+    "metric_default": "gmv",
+    "cohort_unit": "week",
+    "seasonal_period": 7
+  },
   "rules": {
     "platform.store_metrics": [
       {
@@ -190,6 +197,49 @@
         "keywords": [
           "decline",
           "衰退"
+        ]
+      }
+    ],
+    "metric.default": [
+      {
+        "label": "conversion_rate",
+        "keywords": [
+          "转化",
+          "conversion",
+          "cvr"
+        ]
+      },
+      {
+        "label": "orders",
+        "keywords": [
+          "order",
+          "订单"
+        ]
+      },
+      {
+        "label": "uv",
+        "keywords": [
+          "uv",
+          "访客"
+        ]
+      }
+    ],
+    "cohort.unit": [
+      {
+        "label": "month",
+        "keywords": [
+          "月",
+          "month",
+          "monthly"
+        ]
+      }
+    ],
+    "seasonal.period": [
+      {
+        "label": "30",
+        "keywords": [
+          "月",
+          "monthly"
         ]
       }
     ],

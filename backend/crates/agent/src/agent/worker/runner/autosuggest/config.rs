@@ -44,6 +44,10 @@ pub(super) struct ChatAutosuggestPolicy {
     #[serde(default = "status_query_skill_id")]
     pub(super) status_query_skill_id: String,
     #[serde(default)]
+    pub(super) save_memory_input: serde_json::Value,
+    #[serde(default)]
+    pub(super) status_query_input: serde_json::Value,
+    #[serde(default)]
     pub(super) save_memory_keywords: Vec<String>,
     #[serde(default)]
     pub(super) status_query_keywords: Vec<String>,
@@ -53,6 +57,8 @@ pub(super) struct ChatAutosuggestPolicy {
 pub(super) struct LearningAutosuggestPolicy {
     #[serde(default = "learning_skill_id")]
     pub(super) skill_id: String,
+    #[serde(default)]
+    pub(super) input: serde_json::Value,
     #[serde(default)]
     pub(super) explicit_keywords: Vec<String>,
     #[serde(default)]
@@ -144,6 +150,8 @@ impl Default for ChatAutosuggestPolicy {
         Self {
             save_memory_skill_id: save_memory_skill_id(),
             status_query_skill_id: status_query_skill_id(),
+            save_memory_input: serde_json::Value::Object(serde_json::Map::new()),
+            status_query_input: serde_json::Value::Object(serde_json::Map::new()),
             save_memory_keywords: Vec::new(),
             status_query_keywords: Vec::new(),
         }
@@ -154,6 +162,7 @@ impl Default for LearningAutosuggestPolicy {
     fn default() -> Self {
         Self {
             skill_id: learning_skill_id(),
+            input: serde_json::Value::Object(serde_json::Map::new()),
             explicit_keywords: Vec::new(),
             question_keywords: Vec::new(),
             explanation_keywords: Vec::new(),

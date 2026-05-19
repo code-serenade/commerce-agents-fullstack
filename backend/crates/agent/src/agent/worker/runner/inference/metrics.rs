@@ -13,7 +13,7 @@ pub(in crate::agent::worker::runner) fn infer_platform(text: &str) -> String {
     worker_policies()
         .inference
         .match_label(text, "platform.default")
-        .unwrap_or("淘宝")
+        .unwrap_or_else(|| default_str("platform_default", ""))
         .to_string()
 }
 
@@ -21,21 +21,15 @@ pub(in crate::agent::worker::runner) fn infer_stage(text: &str) -> String {
     worker_policies()
         .inference
         .match_label(text, "stage")
-        .unwrap_or("成长期")
+        .unwrap_or_else(|| default_str("stage", ""))
         .to_string()
 }
 
 pub(in crate::agent::worker::runner) fn infer_metric(text: &str) -> &'static str {
-    let lower = text.to_ascii_lowercase();
-    if text.contains("转化") || lower.contains("conversion") || lower.contains("cvr") {
-        "conversion_rate"
-    } else if lower.contains("order") || text.contains("订单") {
-        "orders"
-    } else if lower.contains("uv") || text.contains("访客") {
-        "uv"
-    } else {
-        "gmv"
-    }
+    worker_policies()
+        .inference
+        .match_label(text, "metric.default")
+        .unwrap_or_else(|| default_str("metric_default", "gmv"))
 }
 
 pub(super) fn extract_metric_value<T: AsRef<str>>(text: &str, aliases: &[T]) -> Option<f64> {
@@ -59,21 +53,18 @@ pub(super) fn first_number(text: &str) -> Option<f64> {
 }
 
 pub(in crate::agent::worker::runner) fn infer_cohort_unit(text: &str) -> &'static str {
-    let lower = text.to_ascii_lowercase();
-    if text.contains("月") || lower.contains("month") || lower.contains("monthly") {
-        "month"
-    } else {
-        "week"
-    }
+    worker_policies()
+        .inference
+        .match_label(text, "cohort.unit")
+        .unwrap_or_else(|| default_str("cohort_unit", "week"))
 }
 
 pub(in crate::agent::worker::runner) fn infer_seasonal_period(text: &str) -> i64 {
-    let lower = text.to_ascii_lowercase();
-    if text.contains("月") || lower.contains("monthly") {
-        30
-    } else {
-        7
-    }
+    worker_policies()
+        .inference
+        .match_label(text, "seasonal.period")
+        .and_then(|value| value.parse::<i64>().ok())
+        .unwrap_or_else(|| default_i64("seasonal_period", 7))
 }
 
 pub(super) fn parse_metric_number_after_alias(segment: &str) -> Option<f64> {
@@ -134,4 +125,22 @@ pub(super) fn parse_metric_number_after_alias(segment: &str) -> Option<f64> {
         value *= 1_000.0;
     }
     Some(value.max(0.0))
+}
+
+fn default_str(key: &str, fallback: &'static str) -> &'static str {
+    worker_policies()
+        .inference
+        .section("defaults")
+        .and_then(|value| value.get(key))
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or(fallback)
+}
+
+fn default_i64(key: &str, fallback: i64) -> i64 {
+    worker_policies()
+        .inference
+        .section("defaults")
+        .and_then(|value| value.get(key))
+        .and_then(serde_json::Value::as_i64)
+        .unwrap_or(fallback)
 }

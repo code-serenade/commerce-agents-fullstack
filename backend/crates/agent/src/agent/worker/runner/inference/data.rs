@@ -235,24 +235,7 @@ fn canonical_channel_name(label: &str) -> String {
         return channel.to_string();
     }
 
-    let lower = label.to_ascii_lowercase();
-    if matches!(label, "抖音") || matches!(lower.as_str(), "douyin" | "tiktok") {
-        "抖音".to_string()
-    } else if matches!(label, "天猫") || lower == "tmall" {
-        "天猫".to_string()
-    } else if matches!(label, "淘宝") || lower == "taobao" {
-        "淘宝".to_string()
-    } else if matches!(label, "京东") || lower == "jd" {
-        "京东".to_string()
-    } else if matches!(label, "拼多多") || lower == "pdd" {
-        "拼多多".to_string()
-    } else if matches!(label, "小红书") || lower == "xiaohongshu" {
-        "小红书".to_string()
-    } else if matches!(label, "快手") || lower == "kuaishou" {
-        "快手".to_string()
-    } else {
-        string_or("platforms", "/unknown_channel", "未知渠道")
-    }
+    string_or("platforms", "/unknown_channel", "未知渠道")
 }
 
 fn insert_optional_number(

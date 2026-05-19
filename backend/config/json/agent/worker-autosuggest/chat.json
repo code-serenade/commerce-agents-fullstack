@@ -2,6 +2,13 @@
   "chat": {
     "save_memory_skill_id": "coordination_save_memory",
     "status_query_skill_id": "coordination_status_query",
+    "save_memory_input": {
+      "content": "{{task_description}}",
+      "memory_type": "user_instruction"
+    },
+    "status_query_input": {
+      "query_type": "session_status"
+    },
     "save_memory_keywords": [
       "记住",
       "记下来",
@@ -30,6 +37,10 @@
   },
   "learning": {
     "skill_id": "learning_teaching_explain",
+    "input": {
+      "topic": "{{task_text}}",
+      "level": "practical"
+    },
     "explicit_keywords": [
       "教学",
       "讲解",

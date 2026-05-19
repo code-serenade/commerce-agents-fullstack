@@ -1,5 +1,5 @@
 use super::text::compact_task_text;
-use crate::agent::worker::Task;
+use crate::agent::worker::{Task, runner::policy::worker_policies};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(in crate::agent::worker::runner) struct SelectedProductContext {
@@ -138,13 +138,7 @@ pub(in crate::agent::worker::runner) fn selected_product_article_platform_or_def
     first_selected_product(task)
         .and_then(|product| product.platform)
         .filter(|platform| !platform.is_empty())
-        .unwrap_or_else(|| {
-            if text.contains("小红书") {
-                "小红书".to_string()
-            } else {
-                "微信公众号".to_string()
-            }
-        })
+        .unwrap_or_else(|| infer_article_platform(text))
 }
 
 pub(in crate::agent::worker::runner) fn title_candidate_or_task(text: &str, task: &Task) -> String {
@@ -152,11 +146,17 @@ pub(in crate::agent::worker::runner) fn title_candidate_or_task(text: &str, task
 }
 
 pub(in crate::agent::worker::runner) fn keyword_candidates(text: &str) -> Vec<String> {
-    ["SEO", "关键词", "标题", "转化", "新品", "直播", "抖音"]
-        .iter()
-        .filter(|keyword| text.contains(**keyword))
-        .map(|keyword| (*keyword).to_string())
-        .take(4)
+    let config = context_section();
+    let max_items = config
+        .pointer("/keyword_candidates/max_items")
+        .and_then(serde_json::Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or(4);
+
+    string_list(config, "/keyword_candidates/keywords")
+        .into_iter()
+        .filter(|keyword| contains_keyword(text, keyword))
+        .take(max_items)
         .collect()
 }
 
@@ -204,8 +204,8 @@ fn parse_product_summary_line(line: &str) -> Option<SelectedProductContext> {
 }
 
 fn extract_title_candidate(text: &str) -> Option<String> {
-    for quote in ['"', '\'', '“', '”', '「', '」'] {
-        let mut parts = text.split(quote);
+    for delimiter in string_list(context_section(), "/title_candidate/quote_delimiters") {
+        let mut parts = text.split(&delimiter);
         let _ = parts.next();
         if let Some(candidate) = parts
             .next()
@@ -220,17 +220,9 @@ fn extract_title_candidate(text: &str) -> Option<String> {
 
 fn infer_feature_list(text: &str) -> Vec<String> {
     let mut features = Vec::new();
-    for keyword in [
-        "高性价比",
-        "低糖",
-        "便携",
-        "高蛋白",
-        "礼盒",
-        "新品",
-        "直播爆款",
-    ] {
-        if text.contains(keyword) {
-            features.push(keyword.to_string());
+    for keyword in string_list(context_section(), "/feature_inference/keywords") {
+        if contains_keyword(text, &keyword) {
+            features.push(keyword);
         }
     }
     if features.is_empty() {
@@ -272,4 +264,59 @@ fn non_empty_field(
         .map(|value| value.trim())
         .filter(|value| !value.is_empty())
         .map(ToOwned::to_owned)
+}
+
+fn infer_article_platform(text: &str) -> String {
+    let config = context_section();
+    if let Some(platform) = config
+        .pointer("/article_platform/keyword_platforms")
+        .and_then(serde_json::Value::as_array)
+        .and_then(|rules| {
+            rules.iter().find_map(|rule| {
+                let platform = rule.get("platform")?.as_str()?;
+                let keywords = rule.get("keywords")?.as_array()?;
+                keywords
+                    .iter()
+                    .filter_map(serde_json::Value::as_str)
+                    .any(|keyword| contains_keyword(text, keyword))
+                    .then_some(platform)
+            })
+        })
+    {
+        return platform.to_string();
+    }
+
+    config
+        .pointer("/article_platform/default")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or_default()
+        .to_string()
+}
+
+fn context_section() -> &'static serde_json::Value {
+    worker_policies()
+        .inference
+        .section("context")
+        .unwrap_or(&serde_json::Value::Null)
+}
+
+fn string_list(config: &serde_json::Value, pointer: &str) -> Vec<String> {
+    config
+        .pointer(pointer)
+        .and_then(serde_json::Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(serde_json::Value::as_str)
+                .map(ToOwned::to_owned)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn contains_keyword(text: &str, keyword: &str) -> bool {
+    text.contains(keyword)
+        || text
+            .to_ascii_lowercase()
+            .contains(&keyword.to_ascii_lowercase())
 }
