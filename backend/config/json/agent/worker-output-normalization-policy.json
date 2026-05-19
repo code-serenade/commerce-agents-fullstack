@@ -122,13 +122,13 @@
     "not configured",
     "adapter"
   ],
-  "category_runtime_summary_replacement": "本轮按类目级或未指定商品链路形成团队判断：不注入默认商品，不把未接入的单品指标或平台写操作视为回答失败。",
+  "category_runtime_summary_replacement": "本岗位按类目级或未指定商品链路形成判断：不注入默认商品，不把未接入的单品指标或平台写操作视为回答失败。",
   "default_summary_template": "{{role}}已基于本轮任务给出岗位判断：{{task}}",
   "category_product_summary_template": "{{role}}先按类目级或未指定商品链路回答：{{task}}",
   "default_evidence": "本轮用户任务和会话/工作区上下文",
   "selected_product_evidence_template": "用户本轮手动选择的预设商品资料：{{product_name}}（{{product_ref}}，来源 context.selected_summary）。",
   "unselected_product_evidence": "本轮未检测到 context.selected_summary；不注入任何预设商品资料，只按用户文本、会话历史和工作区上下文理解问题。",
-  "upstream_evidence_template": "worker.assignment.input.{{node_id}}：引用上游{{role}}岗位产物，保持本轮团队信息打通。",
+  "upstream_evidence_template": "worker.assignment.input.{{node_id}}：引用上游{{role}}岗位产物，作为本岗位判断依据。",
   "runtime_evidence_keep_markers": [
     "worker.assignment.input"
   ],

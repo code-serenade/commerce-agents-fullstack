@@ -67,7 +67,7 @@ pub(super) fn normalize_category_level_product_requests(
                 &task_line,
             ));
     }
-    apply_category_team_output_shape(role, output);
+    apply_category_role_output_shape(role, output);
     apply_category_boundary_output(output, removed_product_specific_request);
     super::push_unique(
         &mut output.evidence,
@@ -82,7 +82,7 @@ fn filter_product_identity_requests(items: &mut Vec<String>) -> bool {
     original_len != items.len()
 }
 
-fn apply_category_team_output_shape(role: &str, output: &mut RoleWorkOutput) {
+fn apply_category_role_output_shape(role: &str, output: &mut RoleWorkOutput) {
     let Some(role_policy) = worker_policies().output.role(role) else {
         return;
     };
