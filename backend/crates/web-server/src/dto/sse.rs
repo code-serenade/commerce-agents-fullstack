@@ -1,7 +1,11 @@
 use std::collections::BTreeMap;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use validator::Validate;
+
+const MAX_IMAGE_ATTACHMENTS: usize = 4;
+const MAX_IMAGE_URL_LEN: usize = 4096;
+const MAX_IMAGE_DATA_URL_LEN: usize = 8 * 1024 * 1024;
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
@@ -25,9 +29,25 @@ pub struct AgentStreamRequest {
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentStreamMetadata {
+    pub attachments: Option<AgentStreamAttachmentMetadata>,
     pub context: Option<AgentStreamContextMetadata>,
     pub model: Option<AgentStreamModelMetadata>,
     pub strategy: Option<AgentStreamStrategyMetadata>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentStreamAttachmentMetadata {
+    #[serde(default)]
+    pub images: Vec<AgentStreamImageAttachmentMetadata>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentStreamImageAttachmentMetadata {
+    pub url: String,
+    pub detail: Option<String>,
+    pub source_ref: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -76,6 +96,13 @@ pub struct AgentStreamModelSelection {
     pub name: Option<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct AgentStreamImageAttachmentSelection {
+    pub url: String,
+    pub detail: Option<String>,
+    pub source_ref: Option<String>,
+}
+
 impl AgentStreamMetadata {
     pub fn into_parts(
         self,
@@ -90,6 +117,17 @@ impl AgentStreamMetadata {
         let mut metadata = BTreeMap::new();
         let context = self.context_selection()?;
         let model = self.model_selection()?;
+        let images = self.image_attachments()?;
+
+        if !images.is_empty() {
+            metadata.insert(
+                "attachments.image_count".to_string(),
+                images.len().to_string(),
+            );
+            let images_json = serde_json::to_string(&images)
+                .map_err(|err| format!("metadata.attachments.images cannot be encoded: {err}"))?;
+            metadata.insert("attachments.images_json".to_string(), images_json);
+        }
 
         if let Some(strategy) = self.strategy {
             if let Some(id) = validate_strategy_value("strategy.id", strategy.id)? {
@@ -170,6 +208,13 @@ impl AgentStreamMetadata {
         Ok(AgentStreamModelSelection {
             name: validate_strategy_value("model.name", model.name.clone())?,
         })
+    }
+
+    fn image_attachments(&self) -> Result<Vec<AgentStreamImageAttachmentSelection>, String> {
+        let Some(attachments) = &self.attachments else {
+            return Ok(Vec::new());
+        };
+        validate_image_attachments(&attachments.images)
     }
 }
 
@@ -312,10 +357,81 @@ fn validate_strategy_values(
     Ok(normalized)
 }
 
+fn validate_image_attachments(
+    values: &[AgentStreamImageAttachmentMetadata],
+) -> Result<Vec<AgentStreamImageAttachmentSelection>, String> {
+    if values.len() > MAX_IMAGE_ATTACHMENTS {
+        return Err(format!(
+            "metadata.attachments.images must contain at most {MAX_IMAGE_ATTACHMENTS} items"
+        ));
+    }
+
+    let mut normalized = Vec::new();
+    for value in values {
+        let url = validate_image_url(&value.url)?;
+        let detail = validate_image_detail(value.detail.as_deref())?;
+        let source_ref = validate_optional_context_value(
+            "metadata.attachments.images.sourceRef",
+            &value.source_ref,
+            160,
+        )?;
+        if !normalized
+            .iter()
+            .any(|item: &AgentStreamImageAttachmentSelection| item.url == url)
+        {
+            normalized.push(AgentStreamImageAttachmentSelection {
+                url,
+                detail,
+                source_ref,
+            });
+        }
+    }
+    Ok(normalized)
+}
+
+fn validate_image_url(value: &str) -> Result<String, String> {
+    let value = value.trim();
+    if value.is_empty() {
+        return Err("metadata.attachments.images.url cannot be empty".to_string());
+    }
+    if value.starts_with("https://") {
+        if value.len() > MAX_IMAGE_URL_LEN {
+            return Err(format!(
+                "metadata.attachments.images.url must be at most {MAX_IMAGE_URL_LEN} characters"
+            ));
+        }
+        return Ok(value.to_string());
+    }
+    if is_allowed_image_data_url(value) {
+        if value.len() > MAX_IMAGE_DATA_URL_LEN {
+            return Err("metadata.attachments.images data URL is too large".to_string());
+        }
+        return Ok(value.to_string());
+    }
+    Err("metadata.attachments.images.url must be https or png/jpeg/webp data URL".to_string())
+}
+
+fn is_allowed_image_data_url(value: &str) -> bool {
+    value.starts_with("data:image/png;base64,")
+        || value.starts_with("data:image/jpeg;base64,")
+        || value.starts_with("data:image/webp;base64,")
+}
+
+fn validate_image_detail(value: Option<&str>) -> Result<Option<String>, String> {
+    let Some(value) = value.map(str::trim).filter(|value| !value.is_empty()) else {
+        return Ok(None);
+    };
+    match value {
+        "auto" | "low" | "high" => Ok(Some(value.to_string())),
+        _ => Err("metadata.attachments.images.detail must be auto, low or high".to_string()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        AgentStreamContextMetadata, AgentStreamMetadata, AgentStreamModelMetadata,
+        AgentStreamAttachmentMetadata, AgentStreamContextMetadata,
+        AgentStreamImageAttachmentMetadata, AgentStreamMetadata, AgentStreamModelMetadata,
         AgentStreamStrategyMetadata,
     };
 
@@ -323,6 +439,13 @@ mod tests {
     fn metadata_parts_include_strategy_and_context_selection() {
         let product_id = "11111111-1111-1111-1111-111111111111".to_string();
         let metadata = AgentStreamMetadata {
+            attachments: Some(AgentStreamAttachmentMetadata {
+                images: vec![AgentStreamImageAttachmentMetadata {
+                    url: "https://example.com/image.png".to_string(),
+                    detail: Some("high".to_string()),
+                    source_ref: Some("conversation_file:file-1".to_string()),
+                }],
+            }),
             context: Some(AgentStreamContextMetadata {
                 campaign_ids: vec!["22222222-2222-2222-2222-222222222222".to_string()],
                 conversation_id: Some("conversation-1".to_string()),
@@ -356,6 +479,17 @@ mod tests {
             Some("data,ops")
         );
         assert_eq!(model.name.as_deref(), Some("ollama-gpt-oss-20b"));
+        assert_eq!(
+            agent_metadata
+                .get("attachments.image_count")
+                .map(String::as_str),
+            Some("1")
+        );
+        assert!(
+            agent_metadata
+                .get("attachments.images_json")
+                .is_some_and(|value| value.contains("https://example.com/image.png"))
+        );
         assert_eq!(context.conversation_id.as_deref(), Some("conversation-1"));
         assert_eq!(
             context.campaign_ids,
@@ -368,6 +502,7 @@ mod tests {
     #[test]
     fn metadata_rejects_too_many_product_ids() {
         let metadata = AgentStreamMetadata {
+            attachments: None,
             context: Some(AgentStreamContextMetadata {
                 campaign_ids: Vec::new(),
                 conversation_id: None,
@@ -388,6 +523,7 @@ mod tests {
     #[test]
     fn metadata_parses_conversation_id_context_selection() {
         let metadata = AgentStreamMetadata {
+            attachments: None,
             context: Some(AgentStreamContextMetadata {
                 campaign_ids: Vec::new(),
                 conversation_id: Some("  conversation-uuid  ".to_string()),
@@ -412,6 +548,7 @@ mod tests {
     fn metadata_accepts_workspace_artifact_context_refs() {
         let artifact_ref = "workspace_artifact:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa".to_string();
         let metadata = AgentStreamMetadata {
+            attachments: None,
             context: Some(AgentStreamContextMetadata {
                 campaign_ids: Vec::new(),
                 conversation_id: None,
@@ -435,6 +572,7 @@ mod tests {
         let product_ref = "product:11111111-1111-1111-1111-111111111111".to_string();
         let artifact_ref = "workspace_artifact:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa".to_string();
         let metadata = AgentStreamMetadata {
+            attachments: None,
             context: Some(AgentStreamContextMetadata {
                 campaign_ids: Vec::new(),
                 conversation_id: None,
@@ -459,6 +597,7 @@ mod tests {
     fn metadata_accepts_campaign_context_refs() {
         let campaign_id = "22222222-2222-2222-2222-222222222222".to_string();
         let metadata = AgentStreamMetadata {
+            attachments: None,
             context: Some(AgentStreamContextMetadata {
                 campaign_ids: vec![campaign_id.clone()],
                 conversation_id: None,
@@ -482,6 +621,7 @@ mod tests {
     #[test]
     fn metadata_rejects_too_long_conversation_id() {
         let metadata = AgentStreamMetadata {
+            attachments: None,
             context: Some(AgentStreamContextMetadata {
                 campaign_ids: Vec::new(),
                 conversation_id: Some("x".repeat(65)),
@@ -497,5 +637,27 @@ mod tests {
             .expect_err("too long conversation id should fail");
 
         assert!(err.contains("context.conversationId"));
+    }
+
+    #[test]
+    fn metadata_rejects_invalid_image_url() {
+        let metadata = AgentStreamMetadata {
+            attachments: Some(AgentStreamAttachmentMetadata {
+                images: vec![AgentStreamImageAttachmentMetadata {
+                    url: "http://example.com/image.png".to_string(),
+                    detail: Some("high".to_string()),
+                    source_ref: None,
+                }],
+            }),
+            context: None,
+            model: None,
+            strategy: None,
+        };
+
+        let err = metadata
+            .into_parts()
+            .expect_err("http image url should fail");
+
+        assert!(err.contains("metadata.attachments.images.url"));
     }
 }

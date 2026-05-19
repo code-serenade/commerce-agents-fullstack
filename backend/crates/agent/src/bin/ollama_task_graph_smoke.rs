@@ -5,8 +5,8 @@ use std::{
 };
 
 use agent::api::{
-    AgentId, AgentLlmCfg, AgentManager, AgentRequest, AgentRuntimeCfg, SessionEvent, SessionId,
-    UserId, build_agent_manager,
+    AgentId, AgentLlmCfg, AgentLlmUsageCfg, AgentManager, AgentRequest, AgentRuntimeCfg,
+    SessionEvent, SessionId, UserId, build_agent_manager,
 };
 use serde::Deserialize;
 use toolcraft_config::load_settings;
@@ -18,6 +18,8 @@ const DEFAULT_TASK: &str = "基于数据诊断做详情页设计和预算风险�
 struct SmokeSettings {
     #[serde(default)]
     llm: Vec<AgentLlmCfg>,
+    #[serde(default)]
+    agent_llm_usage: AgentLlmUsageCfg,
 }
 
 #[tokio::main]
@@ -65,6 +67,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let manager = Arc::new(build_agent_manager(AgentRuntimeCfg {
         llm: settings.llm,
         default_llm,
+        llm_usage: settings.agent_llm_usage,
         search: Default::default(),
     })?);
     if matrix_mode {

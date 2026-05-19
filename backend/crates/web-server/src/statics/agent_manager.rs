@@ -1,12 +1,12 @@
 use std::{
-    collections::{BTreeMap, HashMap},
-    sync::{Arc, Mutex, OnceLock},
+    collections::BTreeMap,
+    sync::{Arc, OnceLock},
     time::{SystemTime, UNIX_EPOCH},
 };
 
 use agent::api::{
-    AgentId, AgentManager, AgentRequest, AgentRuntimeCfg, SessionEventRx, SessionId, UserId,
-    WorkspaceId, build_agent_manager,
+    AgentId, AgentLlmUsageCfg, AgentManager, AgentRequest, AgentRuntimeCfg, SessionEventRx,
+    SessionId, UserId, WorkspaceId, build_agent_manager,
 };
 use uuid::Uuid;
 
@@ -31,20 +31,21 @@ pub struct AgentRuntimeModelSelection {
 struct AgentManagerRegistry {
     config: AgentRuntimeCfg,
     default_model_name: String,
-    managers: Mutex<HashMap<String, Arc<AgentManager>>>,
+    llm_usage: AgentLlmUsageCfg,
+    manager: Arc<AgentManager>,
 }
 
 pub fn init_agent_manager(config: AgentRuntimeCfg) -> Result<()> {
     let default_model_name = resolve_default_model_name(&config)?;
-    let manager = build_manager_for_model(&config, &default_model_name)
+    let llm_usage = resolve_llm_usage(&config, &default_model_name)?;
+    let manager = build_agent_manager(config.clone())
         .map_err(|err| Error::Custom(format!("agent init failed: {err}")))?;
-    let mut managers = HashMap::new();
-    managers.insert(default_model_name.clone(), Arc::new(manager));
     AGENT_MANAGER_REGISTRY
         .set(AgentManagerRegistry {
             config,
             default_model_name,
-            managers: Mutex::new(managers),
+            llm_usage,
+            manager: Arc::new(manager),
         })
         .map_err(|_| Error::Custom("Agent manager already initialized".to_owned()))?;
     Ok(())
@@ -71,6 +72,11 @@ pub fn select_agent_runtime_model(
     registry.select_model(requested_model_name)
 }
 
+pub fn agent_runtime_llm_usage() -> Result<AgentLlmUsageCfg> {
+    let registry = registry()?;
+    Ok(registry.llm_usage.clone())
+}
+
 pub fn run_agent_stream(
     user_id: String,
     workspace_id: Option<String>,
@@ -82,7 +88,6 @@ pub fn run_agent_stream(
 ) -> Result<SessionEventRx> {
     let registry = registry()?;
     let selection = registry.select_model(requested_model_name.as_deref())?;
-    let manager = registry.manager_for_model(&selection.selected_name)?;
     metadata.insert("model.name".to_string(), selection.selected_name);
     metadata.insert("model.model".to_string(), selection.model);
     metadata.insert(
@@ -90,7 +95,8 @@ pub fn run_agent_stream(
         selection.selection_status,
     );
     let session_id = session_id.unwrap_or_else(new_session_id);
-    manager
+    registry
+        .manager
         .run_stream(AgentRequest {
             user_id: Some(UserId(user_id)),
             workspace_id: workspace_id.map(WorkspaceId),
@@ -129,28 +135,6 @@ impl AgentManagerRegistry {
             },
         })
     }
-
-    fn manager_for_model(&self, model_name: &str) -> Result<Arc<AgentManager>> {
-        if let Ok(managers) = self.managers.lock()
-            && let Some(manager) = managers.get(model_name)
-        {
-            return Ok(Arc::clone(manager));
-        }
-
-        let manager = Arc::new(
-            build_manager_for_model(&self.config, model_name)
-                .map_err(|err| Error::Custom(format!("agent init failed: {err}")))?,
-        );
-        let mut managers = self
-            .managers
-            .lock()
-            .map_err(|_| Error::Custom("Agent manager registry lock poisoned".to_string()))?;
-        Ok(Arc::clone(
-            managers
-                .entry(model_name.to_string())
-                .or_insert_with(|| manager),
-        ))
-    }
 }
 
 fn registry() -> Result<&'static AgentManagerRegistry> {
@@ -182,13 +166,36 @@ fn resolve_default_model_name(config: &AgentRuntimeCfg) -> Result<String> {
     }
 }
 
-fn build_manager_for_model(
+fn resolve_llm_usage(
     config: &AgentRuntimeCfg,
-    model_name: &str,
-) -> agent::api::Result<AgentManager> {
-    let mut selected_config = config.clone();
-    selected_config.default_llm = Some(model_name.to_string());
-    build_agent_manager(selected_config)
+    default_model_name: &str,
+) -> Result<AgentLlmUsageCfg> {
+    let resolve = |value: Option<&String>| -> Result<Option<String>> {
+        let Some(name) = value
+            .map(String::as_str)
+            .map(str::trim)
+            .filter(|name| !name.is_empty())
+        else {
+            return Ok(None);
+        };
+        if config.llm.iter().any(|llm| llm.name == name) {
+            return Ok(Some(name.to_string()));
+        }
+        Err(Error::Custom(format!("llm '{name}' not found")))
+    };
+
+    let default = resolve(config.llm_usage.default.as_ref())?
+        .or_else(|| Some(default_model_name.to_string()));
+    let fast = resolve(config.llm_usage.fast.as_ref())?.or_else(|| default.clone());
+    let thinking = resolve(config.llm_usage.thinking.as_ref())?.or_else(|| default.clone());
+    let vision = resolve(config.llm_usage.vision.as_ref())?;
+
+    Ok(AgentLlmUsageCfg {
+        default,
+        fast,
+        thinking,
+        vision,
+    })
 }
 
 fn new_session_id() -> String {
@@ -201,9 +208,9 @@ fn new_session_id() -> String {
 
 #[cfg(test)]
 mod tests {
-    use agent::api::{AgentLlmCfg, AgentRuntimeCfg};
+    use agent::api::{AgentLlmCfg, AgentLlmUsageCfg, AgentRuntimeCfg};
 
-    use super::resolve_default_model_name;
+    use super::{resolve_default_model_name, resolve_llm_usage};
 
     fn llm(name: &str, model: &str) -> AgentLlmCfg {
         AgentLlmCfg {
@@ -243,5 +250,27 @@ mod tests {
             resolve_default_model_name(&config).expect("default model"),
             "doubao-external"
         );
+    }
+
+    #[test]
+    fn resolves_llm_usage_with_default_fallback() {
+        let mut config = AgentRuntimeCfg::from_llm(vec![
+            llm("llm-fast", "fast-model"),
+            llm("llm-thinking", "thinking-model"),
+            llm("llm-vision", "vision-model"),
+        ]);
+        config.default_llm = Some("llm-thinking".to_string());
+        config.llm_usage = AgentLlmUsageCfg {
+            fast: Some("llm-fast".to_string()),
+            vision: Some("llm-vision".to_string()),
+            ..AgentLlmUsageCfg::default()
+        };
+
+        let usage = resolve_llm_usage(&config, "llm-thinking").expect("usage should resolve");
+
+        assert_eq!(usage.default.as_deref(), Some("llm-thinking"));
+        assert_eq!(usage.fast.as_deref(), Some("llm-fast"));
+        assert_eq!(usage.thinking.as_deref(), Some("llm-thinking"));
+        assert_eq!(usage.vision.as_deref(), Some("llm-vision"));
     }
 }

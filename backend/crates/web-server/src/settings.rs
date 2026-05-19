@@ -1,4 +1,4 @@
-use agent::api::{AgentLlmCfg, SearchAdapterConfig};
+use agent::api::{AgentLlmCfg, AgentLlmUsageCfg, SearchAdapterConfig};
 use db_core::DatabaseConfig;
 use serde::Deserialize;
 use service::dto::external_search::ExternalSearchConfig;
@@ -15,6 +15,8 @@ pub struct Settings {
     pub s3: StorageConfig,
     #[serde(default)]
     pub default_llm: Option<String>,
+    #[serde(default)]
+    pub agent_llm_usage: AgentLlmUsageCfg,
     #[serde(default)]
     pub llm: Vec<AgentLlmCfg>,
     #[serde(default)]

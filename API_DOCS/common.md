@@ -44,6 +44,12 @@ token = "dev-internal-token-change-me"
 ```toml
 default_llm = "ollama-gpt-oss-20b"
 
+[agent_llm_usage]
+default = "ollama-gpt-oss-20b"
+fast = "ollama-gpt-oss-20b"
+thinking = "ollama-gpt-oss-20b"
+vision = "vision-model"
+
 [[llm]]
 name = "ollama-gpt-oss-20b"
 base_url = "http://127.0.0.1:11434/v1"
@@ -67,6 +73,8 @@ temperature = 0.2
 | `chat_completions_endpoint` | 否 | 特殊 provider 覆盖 endpoint 时使用，普通情况不需要配置；当 `base_url` 已以 `/v1`、`/api/v1` 或 `/api/v3` 结尾时，客户端会自动请求 `chat/completions` |
 
 顶层 `default_llm` 可选，用于指定默认使用哪个 `[[llm]].name`。如果不配置，运行选项接口和 Agent runtime 都会优先选择真实配置的豆包模型（`name` 或 `model` 包含 `doubao`），否则使用第一个 `[[llm]]`。前端只展示 `services.toml` 里真实存在的模型，不会伪造豆包选项。
+
+`[agent_llm_usage]` 用于把 agent 内部能力映射到不同模型：`fast` 用于 commander 路由、chat worker 和快速回复；`thinking` 用于普通业务 worker、多角色分析和综合；`vision` 用于 `metadata.attachments.images` 图片输入。`vision` 未配置时，带图片请求会失败并返回明确错误，不会降级成文本模型。
 
 当前仓库提交的 `backend/config/services.toml` 没有真实豆包 Ark 配置，也没有 Ark API key；因此当前本地运行时不会调用豆包。要启用豆包，必须在部署机器的 `services.toml` 中添加真实 `[[llm]]` 配置并设置 `default_llm`，不要把真实 key 提交到仓库。
 

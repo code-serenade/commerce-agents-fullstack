@@ -31,6 +31,12 @@ crates/agent/src/runtime.rs
 ```toml
 default_llm = "ollama-gpt-oss-20b"
 
+[agent_llm_usage]
+default = "ollama-gpt-oss-20b"
+fast = "ollama-gpt-oss-20b"
+thinking = "ollama-gpt-oss-20b"
+vision = "vision-model"
+
 [[llm]]
 name = "ollama-gpt-oss-20b"
 base_url = "http://127.0.0.1:11434/v1"
@@ -53,7 +59,18 @@ temperature = 0.2
 | `reasoning_effort` | 否 | 支持 reasoning effort 的 provider 使用 |
 | `chat_completions_endpoint` | 否 | 特殊 provider 才需要覆盖，普通情况不要配置 |
 
-顶层 `default_llm` 可选，用于指定默认使用哪个 `[[llm]].name`。如果不配置，agent runtime 默认使用第一个 `[[llm]]`。如果后续需要 commander、worker 或不同 role 使用不同模型，应先扩展 `agent::api::AgentRuntimeCfg`，不要在 `web-server` 重新维护 LLM registry。
+顶层 `default_llm` 可选，用于指定默认使用哪个 `[[llm]].name`。如果不配置，agent runtime 默认优先使用真实 Doubao 配置，否则使用第一个 `[[llm]]`。
+
+`[agent_llm_usage]` 用于把 agent 功能映射到不同 `llm.name`：
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| `default` | 否 | 未命中特定用途时的 fallback |
+| `fast` | 否 | commander routing、chat worker、快速回复 |
+| `thinking` | 否 | 普通业务 worker、多角色分析和综合 |
+| `vision` | 否 | 图片输入和视觉理解 |
+
+模型用途路由必须在 `agent` crate 内处理，web-server 不维护第二套 LLM registry，也不在 handler 中创建模型 client。`vision` 未配置时，带图片输入的请求必须返回明确错误，不允许降级成文本模型假装看图。
 
 ---
 

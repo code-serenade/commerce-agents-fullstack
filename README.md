@@ -48,6 +48,16 @@ AI 负责：
 3. 一定先确认后端开发文档
 4. 前端开发应以根目录 `API_DOCS/` 里的接口文档为准
 
+## Agent LLM 配置
+
+后端从 `backend/config/services.toml` 读取多个 `[[llm]]`，并通过 `[agent_llm_usage]` 把 agent 能力映射到不同模型：
+
+- `fast`：路由、快速回复、chat worker
+- `thinking`：复杂业务分析、多角色 worker、综合输出
+- `vision`：图片输入和视觉理解
+
+真实 API key 只写在部署机器配置里，不要提交到仓库。完整字段说明见 `API_DOCS/common.md`。
+
 ## 常用命令
 
 本项目使用 `cargo manage` 管理本地前后端服务。

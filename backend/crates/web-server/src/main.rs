@@ -45,6 +45,7 @@ async fn main() {
     init_agent_manager(agent::api::AgentRuntimeCfg {
         llm: settings.llm.clone(),
         default_llm: settings.default_llm.clone(),
+        llm_usage: settings.agent_llm_usage.clone(),
         search: to_agent_search_config(&settings.external_search),
     })
     .expect("Agent manager initialization failed");

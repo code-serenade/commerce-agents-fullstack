@@ -56,6 +56,10 @@
 | `metadata.context.conversationId` | `string` | 否 | 绑定到本轮问答的会话 ID；后端会读取该会话下已注册的 active 附件，并注入工作区上下文摘要 |
 | `metadata.context.productIds` | `string[]` | 否 | 绑定到本轮问答的商品 ID，最多 5 个；后端会校验当前用户权限并读取真实商品/知识 |
 | `metadata.context.contextRefs` | `string[]` | 否 | 上下文引用，当前支持 `product:{productId}`、`conversation_file:{fileId}` / `file:{fileId}`、`product_asset:{assetId}` / `asset:{assetId}`、`product_material:{materialId}` / `material:{materialId}`、`workspace_artifact:{artifactId}` / `artifact:{artifactId}`，最多 20 个 |
+| `metadata.attachments.images` | `object[]` | 否 | 本轮传给 vision LLM 的图片输入，最多 4 张 |
+| `metadata.attachments.images[].url` | `string` | 是 | 图片 URL，允许 HTTPS URL 或 `data:image/png/jpeg/webp;base64,...` |
+| `metadata.attachments.images[].detail` | `string` | 否 | vision detail，允许 `auto`、`low`、`high` |
+| `metadata.attachments.images[].sourceRef` | `string` | 否 | 图片来源引用，例如 `conversation_file:{fileId}`，仅作来源标记，不绕过上下文权限校验 |
 | `metadata.model.name` | `string` | 否 | 指定本轮使用的后端 `llm.name`；不传时使用后端默认模型 |
 | `metadata.strategy.id` | `string` | 否 | 回答策略 ID，当前前端使用 `learning` / `quick` / `execution`；历史 `collab` 只作为兼容值处理 |
 | `metadata.strategy.responseMode` | `string` | 否 | 回答模式，当前前端使用 `learning` / `quick` / `execution` |
@@ -73,6 +77,8 @@
 当 `metadata.context.conversationId` 存在时，服务端会使用当前登录用户身份读取该会话最近的 user/assistant 消息，并把同一会话历史压缩为 `conversation.history_summary` 后追加到 `context.combined_summary`。当前这一次 `input` 会从历史摘要中排除，避免重复；历史摘要只用于“同一对话连续追问和补充信息”场景，例如用户先说明咖啡商品、后续补充价格、规格、促销活动时，Agent 能在下一轮继续使用这些补充信息。该读取仍受会话归属校验限制，不会跨用户、跨账号或跨会话注入历史。
 
 `metadata.model.name` 必须是 `GET /api/app/agent/runtime-options` 返回的 `models[].name`。如果模型名不存在，服务端返回 `400`，不会启动 Agent，也不会创建工作区运行记录。后端只把模型配置名和模型名写入 runtime metadata，不向前端暴露 `base_url` 或 `api_key`。
+
+`metadata.attachments.images` 存在时，Agent runtime 会自动选择 `[agent_llm_usage].vision` 对应的 LLM，并把图片按 OpenAI-compatible `image_url` content part 发送给模型。`vision` 未配置时，带图片请求会失败并返回明确错误；后端不会降级为文本模型。外部 HTTPS 图片 URL 不会由 web-server 下载或代理，provider 必须能够直接访问该 URL。若图片来自系统附件、商品资产、商品素材或工作区 artifact，前端仍应同步传入 `metadata.context.contextRefs` 让后端完成当前用户、active 状态和归属校验。
 
 `metadata.strategy.*` 仅允许小写字母、数字、`_`、`-`，单字段最大 64 字符。后端会把这些字段转换为 agent runtime metadata：`strategy.id`、`strategy.response_mode`、`strategy.collaboration_mode`、`strategy.learning_level`、`strategy.primary_role`、`strategy.selected_roles`。前端不得把策略说明拼进 `input` 来伪造后端策略行为。
 

@@ -139,6 +139,12 @@
 ```json
 {
   "defaultModelName": "ollama-gpt-oss-20b",
+  "llmUsage": {
+    "default": "ollama-gpt-oss-20b",
+    "fast": "ollama-gpt-oss-20b",
+    "thinking": "ollama-gpt-oss-20b",
+    "vision": null
+  },
   "models": [
     {
       "name": "ollama-gpt-oss-20b",
@@ -242,6 +248,7 @@
 
 - `models` 来自 `backend/config/services.toml` 的 `[[llm]]` 配置，只返回 `name`、`model`、`isDefault`，不返回 `base_url` 或 `api_key`
 - `defaultModelName` 是后端实际默认 `llm.name`。当 `default_llm` 有效时使用该配置；当 `default_llm` 未配置且存在真实豆包 `[[llm]]` 时优先豆包；否则使用第一个 `[[llm]]`。接口不会返回未配置的假豆包模型
+- `llmUsage` 来自 `backend/config/services.toml` 的 `[agent_llm_usage]`，表示 agent runtime 内部对 `fast`、`thinking`、`vision` 三类用途的模型映射；仅用于前端展示和调试，不要求普通用户手动选择
 - `strategies`、`responseModes`、`learningLevels`、`collaborationModes` 是后端认可的运行枚举，前端不应自行硬编码替代
 - `roles` 来自 Agent `RoleCatalog::configured()`，`runtimeRole` 用于 SSE `metadata.strategy.primaryRole` 和 `selectedRoles`
 

@@ -11,13 +11,15 @@ use crate::{
     dto::app::{
         AgentCapabilityCatalogResponse, AgentCapabilityCatalogSummaryResponse,
         AgentCapabilityRoleResponse, AgentCapabilitySkillInputResponse,
-        AgentCapabilitySkillResponse, AgentRuntimeChoiceResponse, AgentRuntimeModelOptionResponse,
-        AgentRuntimeOptionsResponse, AgentRuntimeRoleOptionResponse,
-        CommerceAgentPlaybookListResponse,
+        AgentCapabilitySkillResponse, AgentRuntimeChoiceResponse, AgentRuntimeLlmUsageResponse,
+        AgentRuntimeModelOptionResponse, AgentRuntimeOptionsResponse,
+        AgentRuntimeRoleOptionResponse, CommerceAgentPlaybookListResponse,
     },
     error::from_biz_error,
     statics::{
-        agent_manager::{list_agent_runtime_models, select_agent_runtime_model},
+        agent_manager::{
+            agent_runtime_llm_usage, list_agent_runtime_models, select_agent_runtime_model,
+        },
         db_manager::get_app_ctx,
     },
 };
@@ -44,6 +46,7 @@ pub async fn get_agent_runtime_options(
 
     let models = list_agent_runtime_models()?;
     let default_model = select_agent_runtime_model(None)?;
+    let llm_usage = agent_runtime_llm_usage()?;
     let roles = RoleCatalog::configured()
         .roles()
         .iter()
@@ -61,6 +64,12 @@ pub async fn get_agent_runtime_options(
 
     Ok(AgentRuntimeOptionsResponse {
         default_model_name: Some(default_model.selected_name),
+        llm_usage: AgentRuntimeLlmUsageResponse {
+            default: llm_usage.default,
+            fast: llm_usage.fast,
+            thinking: llm_usage.thinking,
+            vision: llm_usage.vision,
+        },
         models: models
             .into_iter()
             .map(|model| AgentRuntimeModelOptionResponse {

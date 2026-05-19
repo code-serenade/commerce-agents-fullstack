@@ -190,12 +190,22 @@ pub type ExternalSearchResponse = service::dto::external_search::ExternalSearchR
 #[serde(rename_all = "camelCase")]
 pub struct AgentRuntimeOptionsResponse {
     pub default_model_name: Option<String>,
+    pub llm_usage: AgentRuntimeLlmUsageResponse,
     pub models: Vec<AgentRuntimeModelOptionResponse>,
     pub strategies: Vec<AgentRuntimeChoiceResponse>,
     pub response_modes: Vec<AgentRuntimeChoiceResponse>,
     pub learning_levels: Vec<AgentRuntimeChoiceResponse>,
     pub collaboration_modes: Vec<AgentRuntimeChoiceResponse>,
     pub roles: Vec<AgentRuntimeRoleOptionResponse>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentRuntimeLlmUsageResponse {
+    pub default: Option<String>,
+    pub fast: Option<String>,
+    pub thinking: Option<String>,
+    pub vision: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
