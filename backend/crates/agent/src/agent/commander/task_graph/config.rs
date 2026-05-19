@@ -6,8 +6,7 @@ use std::{
 
 use super::validation::validate_task_graph_rules;
 
-const DEFAULT_TASK_GRAPH_RULES_PATH: &str = "config/json/agent/task-graph/rules.json";
-const LEGACY_TASK_GRAPH_RULES_PATH: &str = "config/json/agent/task-graph-rules.json";
+const DEFAULT_TASK_GRAPH_RULES_PATH: &str = "config/json/agent/task-graph/index.json";
 const TASK_GRAPH_RULES_ENV: &str = "CM_AGENT_TASK_GRAPH_RULES";
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -22,6 +21,20 @@ pub(super) struct TaskGraphRuleSet {
     pub(super) role_defaults: HashMap<String, TaskGraphRoleDefault>,
     #[serde(default)]
     pub(super) rules: Vec<TaskGraphRule>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+struct TaskGraphIndex {
+    #[serde(default = "default_task_graph_schema_version")]
+    schema_version: u32,
+    #[serde(default)]
+    defaults_file: Option<String>,
+    #[serde(default)]
+    role_aliases_file: Option<String>,
+    #[serde(default)]
+    role_defaults_file: Option<String>,
+    #[serde(default)]
+    files: Vec<String>,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -75,6 +88,10 @@ pub(super) struct TaskGraphDefaults {
     pub(super) node_acceptance: Vec<String>,
     #[serde(default)]
     pub(super) final_role: Option<String>,
+    #[serde(default)]
+    pub(super) role_order: Vec<String>,
+    #[serde(default)]
+    pub(super) explicit_team_keywords: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default, serde::Deserialize)]
@@ -201,17 +218,7 @@ pub(super) enum FinalNodeDependsOn {
 
 impl TaskGraphRuleSet {
     pub(super) fn default_role_order(&self) -> Vec<String> {
-        vec![
-            "data".to_string(),
-            "creative".to_string(),
-            "design".to_string(),
-            "service".to_string(),
-            "engineering".to_string(),
-            "douyin_ads".to_string(),
-            "accounting".to_string(),
-            "web".to_string(),
-            "ops".to_string(),
-        ]
+        self.defaults.role_order.clone()
     }
 }
 
@@ -230,7 +237,7 @@ pub(super) fn configured_task_graph_rules_path() -> Option<PathBuf> {
 fn resolve_task_graph_rules_path(path: &str) -> Option<PathBuf> {
     let candidate = Path::new(path);
     if candidate.exists() {
-        return Some(candidate.to_path_buf());
+        return Some(normalize_task_graph_path(candidate));
     }
     if path == DEFAULT_TASK_GRAPH_RULES_PATH {
         let repo_config_path = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -239,21 +246,84 @@ fn resolve_task_graph_rules_path(path: &str) -> Option<PathBuf> {
         if repo_config_path.exists() {
             return Some(repo_config_path);
         }
-
-        let legacy_repo_config_path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../")
-            .join(LEGACY_TASK_GRAPH_RULES_PATH);
-        return legacy_repo_config_path
-            .exists()
-            .then_some(legacy_repo_config_path);
     }
 
     None
 }
 
+fn normalize_task_graph_path(path: &Path) -> PathBuf {
+    if path.is_dir() {
+        path.join("index.json")
+    } else {
+        path.to_path_buf()
+    }
+}
+
 pub(super) fn load_task_graph_rules(path: impl AsRef<Path>) -> Result<TaskGraphRuleSet, String> {
-    let content = fs::read_to_string(path.as_ref()).map_err(|error| error.to_string())?;
+    let path = normalize_task_graph_path(path.as_ref());
+    if path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name == "index.json")
+    {
+        return load_task_graph_directory(&path);
+    }
+
+    let content = fs::read_to_string(&path).map_err(|error| error.to_string())?;
     parse_task_graph_rules(&content)
+}
+
+fn load_task_graph_directory(index_path: &Path) -> Result<TaskGraphRuleSet, String> {
+    let index_content = fs::read_to_string(index_path).map_err(|error| error.to_string())?;
+    let index = serde_json::from_str::<TaskGraphIndex>(&index_content)
+        .map_err(|error| format!("invalid task graph index json: {error}"))?;
+    if index.schema_version > 2 {
+        return Err(format!(
+            "unsupported task graph index schema_version {}",
+            index.schema_version
+        ));
+    }
+
+    let directory = index_path
+        .parent()
+        .ok_or_else(|| "task graph index must have a parent directory".to_string())?;
+    let mut rules = TaskGraphRuleSet {
+        schema_version: index.schema_version,
+        defaults: load_optional_fragment(directory, index.defaults_file.as_deref())?
+            .unwrap_or_default(),
+        role_aliases: load_optional_fragment(directory, index.role_aliases_file.as_deref())?
+            .unwrap_or_default(),
+        role_defaults: load_optional_fragment(directory, index.role_defaults_file.as_deref())?
+            .unwrap_or_default(),
+        rules: Vec::new(),
+    };
+
+    for file in index.files {
+        let rule_path = directory.join(&file);
+        let content = fs::read_to_string(&rule_path)
+            .map_err(|error| format!("read {}: {error}", rule_path.display()))?;
+        let rule = serde_json::from_str::<TaskGraphRule>(&content)
+            .map_err(|error| format!("invalid task graph rule {}: {error}", rule_path.display()))?;
+        rules.rules.push(rule);
+    }
+
+    validate_task_graph_rules(&rules)?;
+    Ok(rules)
+}
+
+fn load_optional_fragment<T>(directory: &Path, file: Option<&str>) -> Result<Option<T>, String>
+where
+    T: for<'de> serde::Deserialize<'de>,
+{
+    let Some(file) = file else {
+        return Ok(None);
+    };
+    let path = directory.join(file);
+    let content =
+        fs::read_to_string(&path).map_err(|error| format!("read {}: {error}", path.display()))?;
+    let fragment = serde_json::from_str::<T>(&content)
+        .map_err(|error| format!("invalid task graph fragment {}: {error}", path.display()))?;
+    Ok(Some(fragment))
 }
 
 fn parse_task_graph_rules(content: &str) -> Result<TaskGraphRuleSet, String> {

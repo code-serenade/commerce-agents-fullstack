@@ -1,0 +1,137 @@
+{
+  "id": "commerce_team_analysis",
+  "description": "电商、商品、类目、直播相关分析/策略/方案任务，启动多岗位协作",
+  "priority": 600,
+  "match": {
+    "any_keywords": [
+      "商品",
+      "产品",
+      "类目",
+      "品类",
+      "电商",
+      "咖啡",
+      "茶饮",
+      "食品",
+      "服饰",
+      "美妆",
+      "家居",
+      "店铺",
+      "货盘",
+      "选品",
+      "竞品",
+      "直播间",
+      "抖音",
+      "千川"
+    ],
+    "all_keyword_groups": [
+      [
+        "分析",
+        "诊断",
+        "方案",
+        "策略",
+        "规划",
+        "复盘",
+        "判断",
+        "健康",
+        "提升",
+        "增长",
+        "转化",
+        "营销",
+        "运营",
+        "启动",
+        "怎么做"
+      ]
+    ],
+    "none_keywords": ["只输出", "只回答", "一句话", "不要解释"],
+    "route_primary_any": [
+      "chat",
+      "ops",
+      "data",
+      "creative",
+      "douyin_ads",
+      "accounting",
+      "design"
+    ],
+    "allow_without_route": true
+  },
+  "nodes": [
+    {
+      "id": "data",
+      "role": "data",
+      "depends_on": []
+    },
+    {
+      "id": "creative",
+      "role": "creative",
+      "depends_on": ["data"]
+    },
+    {
+      "id": "service",
+      "role": "service",
+      "depends_on": ["data"]
+    },
+    {
+      "id": "engineering",
+      "role": "engineering",
+      "depends_on": ["data"]
+    }
+  ],
+  "conditional_nodes": [
+    {
+      "id": "douyin_ads",
+      "role": "douyin_ads",
+      "when": {
+        "any_keywords": ["抖音", "直播", "直播间", "短视频", "千川", "投流", "投放"]
+      },
+      "depends_on": ["data"]
+    },
+    {
+      "id": "accounting",
+      "role": "accounting",
+      "when": {
+        "any_keywords": [
+          "抖音",
+          "直播",
+          "千川",
+          "预算",
+          "成本",
+          "利润",
+          "roi",
+          "毛利",
+          "财务"
+        ]
+      },
+      "depends_on": ["data"]
+    },
+    {
+      "id": "design",
+      "role": "design",
+      "when": {
+        "any_keywords": ["详情页", "主图", "视觉", "设计", "页面", "素材"]
+      },
+      "depends_on": ["data"]
+    },
+    {
+      "id": "web",
+      "role": "web",
+      "when": {
+        "any_keywords": ["seo", "关键词", "搜索", "自然流量", "收录"]
+      },
+      "depends_on": ["data"]
+    }
+  ],
+  "dynamic_roles": {
+    "from_route": {
+      "enabled": true,
+      "include_primary": true,
+      "include_support": "when_requested_or_primary_data",
+      "exclude_roles": ["chat"]
+    }
+  },
+  "final_node": {
+    "enabled": true,
+    "id": "ops",
+    "role": "ops",
+    "depends_on": "$all_non_final"
+  }
+}

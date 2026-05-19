@@ -1,0 +1,34 @@
+{
+  "id": "direct_chat_short_answer",
+  "description": "用户明确要求简短、直接、只输出时，不启动多岗位任务图",
+  "priority": 1000,
+  "match": {
+    "any_keywords": [
+      "只输出",
+      "只给",
+      "只回答",
+      "只回复",
+      "不要解释",
+      "不用解释",
+      "无需解释",
+      "直接回答",
+      "直接给",
+      "简短回答",
+      "简要回答",
+      "一句话",
+      "only output",
+      "answer only",
+      "no explanation"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "chat",
+      "role": "chat",
+      "title": "直接回答",
+      "objective": "直接回答用户原始问题，必须遵守用户对简短、只输出、不要解释的要求，不启动多智能体：{{task}}",
+      "max_attempts": 1,
+      "acceptance": ["必须直接回答，不展开多岗位过程。"]
+    }
+  ]
+}

@@ -56,7 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "task_graph_rules_path={}",
         env_or_default(
             "CM_AGENT_TASK_GRAPH_RULES",
-            "config/json/agent/task-graph/rules.json"
+            "config/json/agent/task-graph/index.json"
         )
     );
     println!("task={task}");

@@ -93,16 +93,18 @@ Example:
 
 ## Graph
 
-Task graph rules are configured in `backend/config/json/agent/task-graph/rules.json`.
+Task graph rules are configured through `backend/config/json/agent/task-graph/index.json`.
+Each graph lives in its own file under `backend/config/json/agent/task-graph/graphs/`.
 
-The current Douyin holiday conversion rule maps a user task into:
+The current commerce team analysis graph maps a user task into:
 
 ```text
 data
-  -> accounting
-  -> douyin_ads
   -> creative
-accounting + douyin_ads + creative
+  -> service
+  -> engineering
+  -> douyin_ads/accounting/design/web when matched
+all non-final nodes
   -> ops
 ```
 

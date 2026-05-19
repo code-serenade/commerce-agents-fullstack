@@ -171,7 +171,7 @@ impl TaskGraphRuleMatch {
 }
 
 pub(super) fn explicit_team_keywords(rules: &TaskGraphRuleSet) -> Vec<String> {
-    let mut keywords = explicit_team_keywords_set();
+    let mut keywords = rules.defaults.explicit_team_keywords.clone();
     keywords.extend(rules.rules.iter().flat_map(|rule| {
         rule.dynamic_roles
             .from_explicit_request
@@ -179,19 +179,4 @@ pub(super) fn explicit_team_keywords(rules: &TaskGraphRuleSet) -> Vec<String> {
             .clone()
     }));
     keywords
-}
-
-pub(super) fn explicit_team_keywords_set() -> Vec<String> {
-    vec![
-        "agent集群".to_string(),
-        "agent 集群".to_string(),
-        "多智能体".to_string(),
-        "多岗位".to_string(),
-        "多角色".to_string(),
-        "协作".to_string(),
-        "协同".to_string(),
-        "一起".to_string(),
-        "分工".to_string(),
-        "虚拟员工".to_string(),
-    ]
 }

@@ -1,0 +1,35 @@
+{
+  "id": "explicit_requested_team",
+  "description": "用户明确指定哪些岗位参与时，按用户指定岗位生成任务图",
+  "priority": 800,
+  "match": {
+    "any_keywords": [
+      "只让",
+      "只用",
+      "仅让",
+      "仅用",
+      "限定",
+      "指定",
+      "三个岗位",
+      "3个岗位",
+      "三岗"
+    ]
+  },
+  "dynamic_roles": {
+    "from_explicit_request": {
+      "enabled": true,
+      "trigger_keywords": [
+        "只让",
+        "只用",
+        "仅让",
+        "仅用",
+        "限定",
+        "指定",
+        "三个岗位",
+        "3个岗位",
+        "三岗"
+      ],
+      "include_final_role_when_keywords": ["合成", "整合", "方案", "运营"]
+    }
+  }
+}

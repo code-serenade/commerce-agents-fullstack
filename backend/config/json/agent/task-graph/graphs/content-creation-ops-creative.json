@@ -1,0 +1,24 @@
+{
+  "id": "content_creation_ops_creative",
+  "description": "内容、标题、脚本、文案类任务，先由运营定位，再由创意产出",
+  "priority": 300,
+  "match": {
+    "any_keywords": ["文案", "脚本", "标题", "内容"],
+    "none_keywords": ["只输出", "只回答", "一句话", "不要解释"]
+  },
+  "nodes": [
+    {
+      "id": "ops",
+      "role": "ops",
+      "title": "运营定位",
+      "objective": "梳理内容任务目标、受众和运营约束：{{task}}"
+    },
+    {
+      "id": "creative",
+      "role": "creative",
+      "title": "创意产出",
+      "depends_on": ["ops"],
+      "objective": "基于运营定位，产出内容创意或文案。"
+    }
+  ]
+}

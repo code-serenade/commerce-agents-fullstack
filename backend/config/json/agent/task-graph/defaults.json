@@ -1,0 +1,30 @@
+{
+  "max_attempts": 2,
+  "node_acceptance": [
+    "输出必须围绕本岗位职责给出可复核的业务判断、依据、风险边界和下一步动作。"
+  ],
+  "final_role": "ops",
+  "role_order": [
+    "data",
+    "creative",
+    "design",
+    "service",
+    "engineering",
+    "douyin_ads",
+    "accounting",
+    "web",
+    "ops"
+  ],
+  "explicit_team_keywords": [
+    "agent集群",
+    "agent 集群",
+    "多智能体",
+    "多岗位",
+    "多角色",
+    "协作",
+    "协同",
+    "一起",
+    "分工",
+    "虚拟员工"
+  ]
+}

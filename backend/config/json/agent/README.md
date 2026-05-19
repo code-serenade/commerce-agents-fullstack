@@ -7,13 +7,42 @@
 | 路径 | 作用 |
 | --- | --- |
 | `roles.json` | 定义可用角色、角色关键词、能力边界和 runtime role。 |
-| `task-graph/` | 定义 commander 如何把用户任务拆成角色任务图。入口是 `task-graph/rules.json`。 |
+| `task-graph/` | 定义 commander 如何把用户任务拆成角色任务图。入口是 `task-graph/index.json`，单个图放在 `task-graph/graphs/`。 |
 | `worker-autosuggest/` | 定义 worker 在执行时自动追加哪些 skill request。 |
 | `worker-inference/` | 定义从用户文本里解析指标、别名、默认值、分类标签和搜索参数。 |
 | `worker-output-policy.json` | 定义 worker 输出缺省补全、角色默认 findings/recommendations/risks 和边界说明。 |
 | `worker-output-normalization-policy.json` | 定义输出清洗、风险降级、禁止伪造数据和文本替换策略。 |
 
-旧文件 `worker-autosuggest-policy.json` 和 `worker-inference-policy.json` 只作为兼容 fallback，新规则不要继续写进去。
+旧文件 `worker-autosuggest-policy.json` 和 `worker-inference-policy.json` 只作为兼容 fallback，新规则不要继续写进去。旧的 `task-graph-rules.json` 已删除，不再维护第二份 graph 配置。
+
+## Task Graph 配置
+
+入口文件：
+
+```text
+task-graph/index.json
+```
+
+目录结构：
+
+```text
+task-graph/
+  index.json
+  defaults.json
+  role-aliases.json
+  role-defaults.json
+  graphs/
+    commerce-team-analysis.json
+```
+
+`index.json` 定义：
+
+- `defaults_file`：全局默认尝试次数、验收要求、默认 role order 和显式团队关键词。
+- `role_aliases_file`：用户文本里角色别名到 runtime role 的映射。
+- `role_defaults_file`：每个 role 的默认 title/objective。
+- `files`：按顺序加载的 graph rule 文件。每个文件只放一个图。
+
+新增业务编排时，优先在 `graphs/` 下新增一个 JSON 文件，然后把路径加入 `index.json`。不要把业务编排写进 Rust。
 
 ## Prompts
 

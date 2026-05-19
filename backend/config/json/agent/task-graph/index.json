@@ -1,0 +1,14 @@
+{
+  "schema_version": 2,
+  "defaults_file": "defaults.json",
+  "role_aliases_file": "role-aliases.json",
+  "role_defaults_file": "role-defaults.json",
+  "files": [
+    "graphs/direct-chat-short-answer.json",
+    "graphs/chat-quick-reply.json",
+    "graphs/explicit-requested-team.json",
+    "graphs/selected-route-roles.json",
+    "graphs/commerce-team-analysis.json",
+    "graphs/content-creation-ops-creative.json"
+  ]
+}

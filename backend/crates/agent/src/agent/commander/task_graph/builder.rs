@@ -6,7 +6,6 @@ use super::{
         FinalNodeDependsOn, RouteSupportMode, TaskGraphConditionalNode, TaskGraphFinalNode,
         TaskGraphRule, TaskGraphRuleNode, TaskGraphRuleSet,
     },
-    planner::explicit_team_keywords_set,
     util::{contains_keyword, contains_string_any},
 };
 use crate::{
@@ -128,7 +127,7 @@ fn dynamic_node_specs(
         if rule.dynamic_roles.from_route.include_primary {
             roles.push(route.primary_runtime_role.clone());
         }
-        if should_include_route_support(rule, task, route) {
+        if should_include_route_support(rule, task, route, rules) {
             roles.extend(route.support_runtime_roles.iter().cloned());
         }
         for role in roles {
@@ -151,13 +150,18 @@ fn dynamic_node_specs(
     specs
 }
 
-fn should_include_route_support(rule: &TaskGraphRule, task: &str, route: &RoleRoute) -> bool {
+fn should_include_route_support(
+    rule: &TaskGraphRule,
+    task: &str,
+    route: &RoleRoute,
+    rules: &TaskGraphRuleSet,
+) -> bool {
     match rule.dynamic_roles.from_route.include_support {
         RouteSupportMode::Never => false,
         RouteSupportMode::Always => true,
         RouteSupportMode::WhenRequestedOrPrimaryData => {
             route.primary_runtime_role == "data"
-                || contains_string_any(task, &explicit_team_keywords_set())
+                || contains_string_any(task, &rules.defaults.explicit_team_keywords)
         }
     }
 }

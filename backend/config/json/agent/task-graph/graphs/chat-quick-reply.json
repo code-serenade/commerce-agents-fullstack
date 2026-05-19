@@ -1,0 +1,34 @@
+{
+  "id": "chat_quick_reply",
+  "description": "普通寒暄、轻量问候和快速对话，不启动多智能体协作",
+  "priority": 900,
+  "match": {
+    "any_keywords": [
+      "hi",
+      "hello",
+      "hey",
+      "你好",
+      "您好",
+      "嗨",
+      "哈喽",
+      "在吗",
+      "早上好",
+      "中午好",
+      "下午好",
+      "晚上好"
+    ],
+    "max_chars": 8
+  },
+  "nodes": [
+    {
+      "id": "chat",
+      "role": "chat",
+      "title": "快速对话",
+      "objective": "以对话助手身份快速、自然地回应用户，不启动多角色分析或业务编排：{{task}}",
+      "max_attempts": 1,
+      "acceptance": [
+        "回复应简短自然，直接回应问候或轻量对话，不启动多角色任务图。"
+      ]
+    }
+  ]
+}
