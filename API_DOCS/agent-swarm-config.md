@@ -93,7 +93,7 @@ Example:
 
 ## Graph
 
-Task graph rules are configured in `backend/config/json/agent/task-graph-rules.json`.
+Task graph rules are configured in `backend/config/json/agent/task-graph/rules.json`.
 
 The current Douyin holiday conversion rule maps a user task into:
 

@@ -6,7 +6,8 @@ use std::{
 
 use super::validation::validate_task_graph_rules;
 
-const DEFAULT_TASK_GRAPH_RULES_PATH: &str = "config/json/agent/task-graph-rules.json";
+const DEFAULT_TASK_GRAPH_RULES_PATH: &str = "config/json/agent/task-graph/rules.json";
+const LEGACY_TASK_GRAPH_RULES_PATH: &str = "config/json/agent/task-graph-rules.json";
 const TASK_GRAPH_RULES_ENV: &str = "CM_AGENT_TASK_GRAPH_RULES";
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -231,14 +232,23 @@ fn resolve_task_graph_rules_path(path: &str) -> Option<PathBuf> {
     if candidate.exists() {
         return Some(candidate.to_path_buf());
     }
-    if path != DEFAULT_TASK_GRAPH_RULES_PATH {
-        return None;
+    if path == DEFAULT_TASK_GRAPH_RULES_PATH {
+        let repo_config_path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../")
+            .join(DEFAULT_TASK_GRAPH_RULES_PATH);
+        if repo_config_path.exists() {
+            return Some(repo_config_path);
+        }
+
+        let legacy_repo_config_path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../")
+            .join(LEGACY_TASK_GRAPH_RULES_PATH);
+        return legacy_repo_config_path
+            .exists()
+            .then_some(legacy_repo_config_path);
     }
 
-    let repo_config_path = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../")
-        .join(DEFAULT_TASK_GRAPH_RULES_PATH);
-    repo_config_path.exists().then_some(repo_config_path)
+    None
 }
 
 pub(super) fn load_task_graph_rules(path: impl AsRef<Path>) -> Result<TaskGraphRuleSet, String> {

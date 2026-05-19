@@ -1,6 +1,5 @@
 use super::{
     builder::build_configured_task_graph,
-    chat::is_direct_answer_task,
     config::{
         TaskGraphRule, TaskGraphRuleMatch, TaskGraphRuleSet, configured_task_graph_rules_path,
         load_task_graph_rules,
@@ -30,9 +29,6 @@ pub(super) fn plan_configured_task_graph(
         }
     };
     let graph = plan_task_graph_from_rules(task_id, task, route, &rules)?;
-    if is_quick_chat_graph(&graph) && !is_quick_chat_task(task) {
-        return None;
-    }
     Some(graph)
 }
 
@@ -53,41 +49,6 @@ fn plan_task_graph_from_rules(
         })?;
     let graph = build_configured_task_graph(task_id, task, route, rules, rule);
     (!graph.nodes.is_empty()).then_some(graph)
-}
-
-fn is_quick_chat_graph(graph: &TaskGraph) -> bool {
-    let [node] = graph.nodes.as_slice() else {
-        return false;
-    };
-    node.role == "chat" && node.input_refs.is_empty()
-}
-
-fn is_quick_chat_task(task: &str) -> bool {
-    let task = task.trim().to_lowercase();
-    if task.is_empty() {
-        return false;
-    }
-    if is_direct_answer_task(&task) {
-        return true;
-    }
-    let exact = [
-        "hi",
-        "hello",
-        "hey",
-        "你好",
-        "您好",
-        "嗨",
-        "哈喽",
-        "在吗",
-        "早上好",
-        "中午好",
-        "下午好",
-        "晚上好",
-    ];
-    if exact.iter().any(|value| task == *value) {
-        return true;
-    }
-    task.chars().count() <= 8 && exact.iter().any(|value| task.contains(value))
 }
 
 impl TaskGraphRule {

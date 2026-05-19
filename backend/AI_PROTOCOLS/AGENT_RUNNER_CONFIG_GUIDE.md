@@ -15,7 +15,7 @@
 业务配置入口统一在：
 
 - `backend/config/json/agent/roles.json`
-- `backend/config/json/agent/task-graph-rules.json`
+- `backend/config/json/agent/task-graph/rules.json`
 - `backend/config/json/agent/worker-autosuggest/`
 - `backend/config/json/agent/worker-inference/`
 - `backend/config/json/agent/worker-output-policy.json`

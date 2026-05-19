@@ -1,0 +1,412 @@
+{
+  "schema_version": 2,
+  "defaults": {
+    "max_attempts": 2,
+    "node_acceptance": [
+      "输出必须围绕本岗位职责给出可复核的业务判断、依据、风险边界和下一步动作。"
+    ],
+    "final_role": "ops"
+  },
+  "role_aliases": {
+    "ops": ["运营", "运营策略", "运营策略师", "主岗"],
+    "data": ["数据", "数据分析", "数据分析师"],
+    "creative": ["内容", "创意", "内容创意", "内容创意师"],
+    "service": ["客服", "客户成功", "服务", "客户成功专员"],
+    "engineering": ["技术", "工程", "技术架构", "技术架构师"],
+    "douyin_ads": ["千川", "投放", "广告", "千川投放"],
+    "accounting": ["财务", "预算", "成本", "财务分析"],
+    "design": ["设计", "视觉", "设计师"],
+    "web": ["web", "seo", "搜索"]
+  },
+  "role_defaults": {
+    "chat": {
+      "title": "快速对话",
+      "objective": "以对话助手身份快速、自然地回应用户，不启动多角色分析或业务编排：{{task}}"
+    },
+    "ops": {
+      "title": "运营方案",
+      "objective": "作为主回答岗位运营策略师，整合所有协作岗位输入，形成最终团队结论、执行节奏、风险边界和 final_report：{{task}}"
+    },
+    "data": {
+      "title": "数据诊断",
+      "objective": "作为数据分析师，先定义类目、商品或直播转化问题的指标口径、样本周期、缺失数据和不能编造的边界：{{task}}"
+    },
+    "creative": {
+      "title": "创意产出",
+      "objective": "作为内容创意师，基于数据口径把业务判断转成标题、脚本、卖点、素材测试方向和可复盘假设：{{task}}"
+    },
+    "service": {
+      "title": "服务方案",
+      "objective": "作为客户成功专员，补充客服咨询、售后承诺、退款/履约边界和异常升级 SOP，说明这些如何影响转化：{{task}}"
+    },
+    "engineering": {
+      "title": "工程判断",
+      "objective": "作为技术架构师，确认埋点、接口、报表刷新、系统稳定性和回滚边界，让后续复盘可验证：{{task}}"
+    },
+    "douyin_ads": {
+      "title": "千川投放优化",
+      "objective": "作为千川投放专员，拆解人群包、素材组、出价、预算、ROI/CPA 止损线和直播/短视频承接：{{task}}"
+    },
+    "accounting": {
+      "title": "预算评估",
+      "objective": "作为财务分析师，评估预算、毛利、CPA/ROI 止损线和放量风险：{{task}}"
+    },
+    "design": {
+      "title": "体验设计",
+      "objective": "作为设计师，把卖点、信任证明、页面层级、主图和行动按钮承接成可测试方案：{{task}}"
+    },
+    "web": {
+      "title": "Web/SEO方案",
+      "objective": "作为 Web/SEO 专家，补充关键词、页面结构、FAQ 和自然流量承接方案：{{task}}"
+    }
+  },
+  "rules": [
+    {
+      "id": "direct_chat_short_answer",
+      "description": "用户明确要求简短、直接、只输出时，不启动多岗位任务图",
+      "priority": 1000,
+      "match": {
+        "any_keywords": [
+          "只输出",
+          "只给",
+          "只回答",
+          "只回复",
+          "不要解释",
+          "不用解释",
+          "无需解释",
+          "直接回答",
+          "直接给",
+          "简短回答",
+          "简要回答",
+          "一句话",
+          "only output",
+          "answer only",
+          "no explanation"
+        ]
+      },
+      "nodes": [
+        {
+          "id": "chat",
+          "role": "chat",
+          "title": "直接回答",
+          "objective": "直接回答用户原始问题，必须遵守用户对简短、只输出、不要解释的要求，不启动多智能体：{{task}}",
+          "max_attempts": 1,
+          "acceptance": [
+            "必须直接回答，不展开多岗位过程。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chat_quick_reply",
+      "description": "普通寒暄、轻量问候和快速对话，不启动多智能体协作",
+      "priority": 900,
+      "match": {
+        "any_keywords": [
+          "hi",
+          "hello",
+          "hey",
+          "你好",
+          "您好",
+          "嗨",
+          "哈喽",
+          "在吗",
+          "早上好",
+          "中午好",
+          "下午好",
+          "晚上好"
+        ],
+        "max_chars": 8
+      },
+      "nodes": [
+        {
+          "id": "chat",
+          "role": "chat",
+          "title": "快速对话",
+          "objective": "以对话助手身份快速、自然地回应用户，不启动多角色分析或业务编排：{{task}}",
+          "max_attempts": 1,
+          "acceptance": [
+            "回复应简短自然，直接回应问候或轻量对话，不启动多角色任务图。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "explicit_requested_team",
+      "description": "用户明确指定哪些岗位参与时，按用户指定岗位生成任务图",
+      "priority": 800,
+      "match": {
+        "any_keywords": [
+          "只让",
+          "只用",
+          "仅让",
+          "仅用",
+          "限定",
+          "指定",
+          "三个岗位",
+          "3个岗位",
+          "三岗"
+        ]
+      },
+      "role_order": [
+        "data",
+        "creative",
+        "design",
+        "service",
+        "engineering",
+        "douyin_ads",
+        "accounting",
+        "web",
+        "ops"
+      ],
+      "dynamic_roles": {
+        "from_explicit_request": {
+          "enabled": true,
+          "trigger_keywords": [
+            "只让",
+            "只用",
+            "仅让",
+            "仅用",
+            "限定",
+            "指定",
+            "三个岗位",
+            "3个岗位",
+            "三岗"
+          ],
+          "include_final_role_when_keywords": ["合成", "整合", "方案", "运营"]
+        }
+      }
+    },
+    {
+      "id": "selected_route_roles",
+      "description": "RoleRouter 高置信选中的多岗位路线，按 route primary/support roles 编排任务图",
+      "priority": 700,
+      "match": {
+        "route_score_min": 90,
+        "route_min_non_chat_roles": 1
+      },
+      "role_order": [
+        "data",
+        "creative",
+        "design",
+        "service",
+        "engineering",
+        "douyin_ads",
+        "accounting",
+        "web",
+        "ops"
+      ],
+      "dynamic_roles": {
+        "from_route": {
+          "enabled": true,
+          "include_primary": true,
+          "include_support": "when_requested_or_primary_data",
+          "exclude_roles": ["chat"]
+        }
+      }
+    },
+    {
+      "id": "commerce_team_analysis",
+      "description": "电商、商品、类目、直播相关分析/策略/方案任务，启动多岗位协作",
+      "priority": 600,
+      "match": {
+        "any_keywords": [
+          "商品",
+          "产品",
+          "类目",
+          "品类",
+          "电商",
+          "咖啡",
+          "茶饮",
+          "食品",
+          "服饰",
+          "美妆",
+          "家居",
+          "店铺",
+          "货盘",
+          "选品",
+          "竞品",
+          "直播间",
+          "抖音",
+          "千川"
+        ],
+        "all_keyword_groups": [
+          [
+            "分析",
+            "诊断",
+            "方案",
+            "策略",
+            "规划",
+            "复盘",
+            "判断",
+            "健康",
+            "提升",
+            "增长",
+            "转化",
+            "营销",
+            "运营",
+            "启动",
+            "怎么做"
+          ]
+        ],
+        "none_keywords": [
+          "只输出",
+          "只回答",
+          "一句话",
+          "不要解释"
+        ],
+        "route_primary_any": [
+          "chat",
+          "ops",
+          "data",
+          "creative",
+          "douyin_ads",
+          "accounting",
+          "design"
+        ],
+        "allow_without_route": true
+      },
+      "role_order": [
+        "data",
+        "creative",
+        "design",
+        "service",
+        "engineering",
+        "douyin_ads",
+        "accounting",
+        "web",
+        "ops"
+      ],
+      "nodes": [
+        {
+          "id": "data",
+          "role": "data",
+          "depends_on": []
+        },
+        {
+          "id": "creative",
+          "role": "creative",
+          "depends_on": ["data"]
+        },
+        {
+          "id": "service",
+          "role": "service",
+          "depends_on": ["data"]
+        },
+        {
+          "id": "engineering",
+          "role": "engineering",
+          "depends_on": ["data"]
+        }
+      ],
+      "conditional_nodes": [
+        {
+          "id": "douyin_ads",
+          "role": "douyin_ads",
+          "when": {
+            "any_keywords": [
+              "抖音",
+              "直播",
+              "直播间",
+              "短视频",
+              "千川",
+              "投流",
+              "投放"
+            ]
+          },
+          "depends_on": ["data"]
+        },
+        {
+          "id": "accounting",
+          "role": "accounting",
+          "when": {
+            "any_keywords": [
+              "抖音",
+              "直播",
+              "千川",
+              "预算",
+              "成本",
+              "利润",
+              "roi",
+              "毛利",
+              "财务"
+            ]
+          },
+          "depends_on": ["data"]
+        },
+        {
+          "id": "design",
+          "role": "design",
+          "when": {
+            "any_keywords": [
+              "详情页",
+              "主图",
+              "视觉",
+              "设计",
+              "页面",
+              "素材"
+            ]
+          },
+          "depends_on": ["data"]
+        },
+        {
+          "id": "web",
+          "role": "web",
+          "when": {
+            "any_keywords": [
+              "seo",
+              "关键词",
+              "搜索",
+              "自然流量",
+              "收录"
+            ]
+          },
+          "depends_on": ["data"]
+        }
+      ],
+      "dynamic_roles": {
+        "from_route": {
+          "enabled": true,
+          "include_primary": true,
+          "include_support": "when_requested_or_primary_data",
+          "exclude_roles": ["chat"]
+        }
+      },
+      "final_node": {
+        "enabled": true,
+        "id": "ops",
+        "role": "ops",
+        "depends_on": "$all_non_final"
+      }
+    },
+    {
+      "id": "content_creation_ops_creative",
+      "description": "内容、标题、脚本、文案类任务，先由运营定位，再由创意产出",
+      "priority": 300,
+      "match": {
+        "any_keywords": ["文案", "脚本", "标题", "内容"],
+        "none_keywords": [
+          "只输出",
+          "只回答",
+          "一句话",
+          "不要解释"
+        ]
+      },
+      "nodes": [
+        {
+          "id": "ops",
+          "role": "ops",
+          "title": "运营定位",
+          "objective": "梳理内容任务目标、受众和运营约束：{{task}}"
+        },
+        {
+          "id": "creative",
+          "role": "creative",
+          "title": "创意产出",
+          "depends_on": ["ops"],
+          "objective": "基于运营定位，产出内容创意或文案。"
+        }
+      ]
+    }
+  ]
+}

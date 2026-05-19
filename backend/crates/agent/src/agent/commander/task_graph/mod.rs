@@ -2,7 +2,6 @@ mod builder;
 mod chat;
 mod config;
 mod planner;
-mod policy;
 mod runtime;
 mod util;
 mod validation;

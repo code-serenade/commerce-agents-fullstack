@@ -7,7 +7,7 @@
 | 路径 | 作用 |
 | --- | --- |
 | `roles.json` | 定义可用角色、角色关键词、能力边界和 runtime role。 |
-| `task-graph-rules.json` | 定义 commander 如何把用户任务拆成角色任务图。 |
+| `task-graph/` | 定义 commander 如何把用户任务拆成角色任务图。入口是 `task-graph/rules.json`。 |
 | `worker-autosuggest/` | 定义 worker 在执行时自动追加哪些 skill request。 |
 | `worker-inference/` | 定义从用户文本里解析指标、别名、默认值、分类标签和搜索参数。 |
 | `worker-output-policy.json` | 定义 worker 输出缺省补全、角色默认 findings/recommendations/risks 和边界说明。 |
