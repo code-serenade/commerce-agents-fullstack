@@ -138,10 +138,12 @@ AI 需要先提炼出：
 - 图片识别
 - 多模型切换
 - OpenAI-compatible、Ollama 或其它模型服务
+- agent runner、worker autosuggest、worker inference、worker output 或 prompt 配置
 
 则必须同时阅读：
 
 - `LLM_CLIENT_GUIDE.md`
+- 如果涉及 runner 配置或 worker 行为，还必须阅读 `AGENT_RUNNER_CONFIG_GUIDE.md`
 
 必须遵守：
 
@@ -191,7 +193,8 @@ make entity-generate
 2. `TABLE_ADDING_PROTOCOL.md`
 3. 如果涉及登录用户：`AUTH_INTEGRATION_GUIDE.md`
 4. 如果涉及 AI/LLM：`LLM_CLIENT_GUIDE.md`
-5. 分层协议：
+5. 如果涉及 agent runner、autosuggest、inference、worker output 或 prompt 配置：`AGENT_RUNNER_CONFIG_GUIDE.md`
+6. 分层协议：
    - `MIGRATION_GUIDE.md`
    - `REPO_GUIDE.md`
    - `SERVICE_GUIDE.md`

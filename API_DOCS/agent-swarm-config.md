@@ -1,7 +1,7 @@
 # Agent Swarm Configuration
 
 This project keeps the existing commerce agent runtime and exposes it through a Kimi Agent Swarm style UI.
-The runtime is configured in four layers: LLM, role, graph, and prompt.
+The runtime is configuration-driven. Business changes should be made in `backend/config/`, not in runner Rust code.
 
 ## LLM
 
@@ -107,6 +107,25 @@ accounting + douyin_ads + creative
 ```
 
 The frontend swarm panel reads the live SSE `task_graph_planned` event, so new graph nodes will appear without hardcoding as long as the backend emits them.
+
+## Worker Runner
+
+Worker runner business behavior is configured in `backend/config/json/agent/`.
+
+| Config | Purpose |
+| --- | --- |
+| `worker-autosuggest/` | Automatically requests skills from worker text, role, and inferred context. |
+| `worker-inference/` | Parses aliases, numeric metrics, labels, defaults, search inputs, and selected-product context. |
+| `worker-output-policy.json` | Fills default role output, category boundaries, fallback findings, recommendations, and risks. |
+| `worker-output-normalization-policy.json` | Cleans runtime noise, downgrades missing data safely, and prevents unsupported benchmark claims. |
+
+Runner Rust should only load config, match rules, render templates, execute skills, and normalize generic output.
+Do not add business keywords, role scripts, platform policy text, or skill routing branches to runner Rust.
+
+For the full protocol and editing guide, see:
+
+- `backend/AI_PROTOCOLS/AGENT_RUNNER_CONFIG_GUIDE.md`
+- `backend/config/json/agent/README.md`
 
 ## Prompt
 
