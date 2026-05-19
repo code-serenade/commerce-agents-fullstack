@@ -1,0 +1,55 @@
+{
+  "id": "commerce_role_split_ops_data_creative",
+  "description": "用户要求按运营、数据、内容等虚拟员工分工输出时，稳定编排岗位任务图",
+  "priority": 740,
+  "match": {
+    "any_keywords": [
+      "虚拟员工",
+      "分工",
+      "参与",
+      "岗位",
+      "角色",
+      "运营",
+      "数据",
+      "内容",
+      "创意"
+    ],
+    "all_keyword_groups": [
+      ["分工", "参与", "岗位", "角色", "虚拟员工"],
+      ["运营", "数据", "内容", "创意"]
+    ],
+    "none_keywords": ["只输出", "只回答", "一句话", "不要解释"],
+    "allow_without_route": true
+  },
+  "nodes": [
+    {
+      "id": "ops",
+      "role": "ops",
+      "title": "运营方案",
+      "objective": "作为主运营虚拟员工，先框定业务目标、平台节奏、首周动作和需要协调的数据/内容输入：{{task}}",
+      "acceptance": [
+        "必须说明运营岗位负责什么、首周优先动作是什么、还缺哪些业务信息。"
+      ]
+    },
+    {
+      "id": "data",
+      "role": "data",
+      "title": "数据诊断",
+      "depends_on": ["ops"],
+      "objective": "基于运营目标，说明数据虚拟员工应追踪的指标、诊断口径、缺失数据和风险边界。",
+      "acceptance": [
+        "必须给出至少两个指标或数据口径，并说明缺失数据风险。"
+      ]
+    },
+    {
+      "id": "creative",
+      "role": "creative",
+      "title": "内容创意",
+      "depends_on": ["ops"],
+      "objective": "基于运营目标，说明内容创意虚拟员工应产出的素材方向、脚本/标题方向和测试节奏。",
+      "acceptance": [
+        "必须给出内容、标题、脚本或素材方向，且说明如何测试。"
+      ]
+    }
+  ]
+}

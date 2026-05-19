@@ -1,0 +1,31 @@
+{
+  "id": "service_support",
+  "description": "客服、售后、投诉、退款、满意度和服务承接问题由 service worker 处理",
+  "priority": 460,
+  "match": {
+    "any_keywords": [
+      "客服",
+      "售后",
+      "投诉",
+      "退款",
+      "退货",
+      "换货",
+      "满意度",
+      "nps",
+      "NPS",
+      "服务",
+      "DSR",
+      "dsr"
+    ],
+    "none_keywords": ["只输出", "只回答", "一句话", "不要解释"],
+    "allow_without_route": true
+  },
+  "nodes": [
+    {
+      "id": "service",
+      "role": "service",
+      "title": "服务方案",
+      "objective": "给出客服、售后、投诉、退款、满意度或服务承接处理方案：{{task}}"
+    }
+  ]
+}

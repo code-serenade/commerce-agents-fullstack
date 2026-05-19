@@ -1,0 +1,28 @@
+{
+  "id": "web_seo_growth",
+  "description": "SEO、关键词、搜索、自然流量、收录和独立站相关问题由 web worker 处理",
+  "priority": 450,
+  "match": {
+    "any_keywords": [
+      "seo",
+      "SEO",
+      "关键词",
+      "搜索",
+      "自然流量",
+      "收录",
+      "排名",
+      "标题优化",
+      "独立站"
+    ],
+    "none_keywords": ["只输出", "只回答", "一句话", "不要解释"],
+    "allow_without_route": true
+  },
+  "nodes": [
+    {
+      "id": "web",
+      "role": "web",
+      "title": "Web/SEO方案",
+      "objective": "给出 SEO、关键词、收录、标题或自然流量增长方案：{{task}}"
+    }
+  ]
+}

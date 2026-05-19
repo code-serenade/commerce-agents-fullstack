@@ -8,7 +8,13 @@
     "graphs/chat-quick-reply.json",
     "graphs/explicit-requested-team.json",
     "graphs/selected-route-roles.json",
+    "graphs/douyin-holiday-conversion.json",
+    "graphs/commerce-role-split-ops-data-creative.json",
     "graphs/commerce-team-analysis.json",
-    "graphs/content-creation-ops-creative.json"
+    "graphs/data-design-accounting-ops.json",
+    "graphs/content-creation-ops-creative.json",
+    "graphs/service-support.json",
+    "graphs/web-seo-growth.json",
+    "graphs/engineering-analysis.json"
   ]
 }

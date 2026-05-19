@@ -1,0 +1,74 @@
+{
+  "id": "data_design_accounting_ops",
+  "description": "详情页、设计、预算、财务风险与转化率相关的数据驱动运营方案",
+  "priority": 650,
+  "match": {
+    "any_keywords": [
+      "详情页",
+      "设计",
+      "页面",
+      "预算",
+      "成本",
+      "财务",
+      "风险",
+      "归因",
+      "漏斗",
+      "数据",
+      "转化率",
+      "指标"
+    ],
+    "all_keyword_groups": [
+      ["分析", "诊断", "方案", "策略", "调整", "优化", "提升", "复盘"]
+    ],
+    "none_keywords": ["只输出", "只回答", "一句话", "不要解释"],
+    "allow_without_route": true
+  },
+  "nodes": [
+    {
+      "id": "data",
+      "role": "data",
+      "title": "数据诊断",
+      "objective": "分析任务中的数据、指标、归因和约束：{{task}}"
+    }
+  ],
+  "conditional_nodes": [
+    {
+      "id": "design",
+      "role": "design",
+      "title": "体验设计",
+      "when": {
+        "any_keywords": ["详情页", "设计", "页面", "视觉", "主图"]
+      },
+      "depends_on": ["data"],
+      "objective": "基于上游数据诊断，提出详情页、页面体验或视觉承接优化方案。"
+    },
+    {
+      "id": "accounting",
+      "role": "accounting",
+      "title": "预算评估",
+      "when": {
+        "any_keywords": ["预算", "成本", "财务", "风险", "利润", "毛利", "roi", "ROI"]
+      },
+      "depends_on": ["data"],
+      "objective": "基于上游数据诊断，评估预算、成本、利润和经营风险。"
+    },
+    {
+      "id": "creative",
+      "role": "creative",
+      "title": "创意产出",
+      "when": {
+        "any_keywords": ["文案", "脚本", "标题", "内容", "素材", "活动", "营销"]
+      },
+      "depends_on": ["data"],
+      "objective": "基于上游数据诊断，产出内容创意、文案、脚本或素材测试方向。"
+    }
+  ],
+  "final_node": {
+    "enabled": true,
+    "id": "ops",
+    "role": "ops",
+    "title": "运营方案",
+    "depends_on": "$all_non_final",
+    "objective": "基于上游数据、设计、预算或创意结果，形成可执行运营调整方案。"
+  }
+}

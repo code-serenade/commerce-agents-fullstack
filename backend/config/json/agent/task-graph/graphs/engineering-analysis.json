@@ -1,0 +1,36 @@
+{
+  "id": "engineering_analysis",
+  "description": "代码、架构、接口、性能、故障、发布和系统稳定性问题由 engineering worker 处理",
+  "priority": 440,
+  "match": {
+    "any_keywords": [
+      "代码",
+      "rust",
+      "Rust",
+      "python",
+      "Python",
+      "架构",
+      "接口",
+      "性能",
+      "SLA",
+      "sla",
+      "故障",
+      "系统",
+      "发布",
+      "回滚",
+      "稳定性",
+      "bug",
+      "Bug"
+    ],
+    "none_keywords": ["只输出", "只回答", "一句话", "不要解释"],
+    "allow_without_route": true
+  },
+  "nodes": [
+    {
+      "id": "engineering",
+      "role": "engineering",
+      "title": "工程判断",
+      "objective": "给出工程分析、系统边界和实现建议：{{task}}"
+    }
+  ]
+}
