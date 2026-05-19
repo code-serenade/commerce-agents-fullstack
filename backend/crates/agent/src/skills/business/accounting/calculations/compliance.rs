@@ -2,7 +2,7 @@ use serde_json::{Value, json};
 
 use super::super::support::{currency, deferred_accounting, num, percent, round2, string};
 
-pub(in crate::skills::accounting) fn compliance_check(input: &Value) -> Value {
+pub(in crate::skills::business::accounting) fn compliance_check(input: &Value) -> Value {
     let revenue = num(input, "monthly_revenue", 0.0);
     if revenue <= 0.0 {
         return deferred_accounting(

@@ -2,7 +2,7 @@ use serde_json::{Value, json};
 
 use super::super::support::{currency, num, pct, percent, round2};
 
-pub(in crate::skills::accounting) fn cost_calc(input: &Value) -> Value {
+pub(in crate::skills::business::accounting) fn cost_calc(input: &Value) -> Value {
     let purchase = num(input, "purchase_cost", 0.0);
     let shipping = num(input, "shipping_cost", 5.0);
     let packaging = num(input, "packaging_cost", 2.0);

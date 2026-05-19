@@ -112,14 +112,14 @@ pub(super) fn matched_context_output(
     })
 }
 
-pub(in crate::skills::service) fn option_string_json(value: Option<String>) -> Value {
+pub(in crate::skills::business::service) fn option_string_json(value: Option<String>) -> Value {
     value
         .filter(|value| !value.trim().is_empty())
         .map(Value::String)
         .unwrap_or(Value::Null)
 }
 
-pub(in crate::skills::service) fn option_i64_json(value: Option<i64>) -> Value {
+pub(in crate::skills::business::service) fn option_i64_json(value: Option<i64>) -> Value {
     value.map(|value| json!(value)).unwrap_or(Value::Null)
 }
 

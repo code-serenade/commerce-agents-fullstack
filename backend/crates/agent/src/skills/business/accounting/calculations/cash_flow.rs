@@ -2,7 +2,7 @@ use serde_json::{Value, json};
 
 use super::super::support::{currency, num, nums, round2, signed_percent};
 
-pub(in crate::skills::accounting) fn cash_flow_forecast(input: &Value) -> Value {
+pub(in crate::skills::business::accounting) fn cash_flow_forecast(input: &Value) -> Value {
     let days = num(input, "days", 30.0).max(1.0);
     let base_gmv = num(input, "base_gmv", 500_000.0).max(0.0);
     let base_ad = num(input, "base_ad_spend", round2(base_gmv * 0.10));

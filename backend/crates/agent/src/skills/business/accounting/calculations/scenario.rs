@@ -5,7 +5,7 @@ use super::super::support::{
     percent, percentile, signed_percent,
 };
 
-pub(in crate::skills::accounting) fn scenario_analysis(input: &Value) -> Value {
+pub(in crate::skills::business::accounting) fn scenario_analysis(input: &Value) -> Value {
     let base_gmv = num(input, "base_gmv", 0.0);
     if base_gmv <= 0.0 {
         return deferred_accounting(

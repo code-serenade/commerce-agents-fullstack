@@ -2,7 +2,7 @@ use serde_json::{Value, json};
 
 use super::super::support::{currency, deferred_accounting, num, pct, percent, round2, string};
 
-pub(in crate::skills::accounting) fn roi_calc(input: &Value) -> Value {
+pub(in crate::skills::business::accounting) fn roi_calc(input: &Value) -> Value {
     let period = string(input, "period", "最近30天");
     let mut investment = num(input, "investment", 0.0);
     let revenue = num(input, "revenue_generated", 0.0);

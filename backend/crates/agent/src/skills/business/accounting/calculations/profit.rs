@@ -2,7 +2,7 @@ use serde_json::{Value, json};
 
 use super::super::support::{currency, deferred_accounting, num, pct, percent, round2};
 
-pub(in crate::skills::accounting) fn profit_analysis(input: &Value) -> Value {
+pub(in crate::skills::business::accounting) fn profit_analysis(input: &Value) -> Value {
     let days = num(input, "days", 30.0).round();
     let revenue = num(input, "revenue", 0.0);
     if revenue <= 0.0 {
@@ -65,7 +65,7 @@ pub(in crate::skills::accounting) fn profit_analysis(input: &Value) -> Value {
     })
 }
 
-pub(in crate::skills::accounting) fn break_even_calc(input: &Value) -> Value {
+pub(in crate::skills::business::accounting) fn break_even_calc(input: &Value) -> Value {
     let price = num(input, "selling_price", 100.0);
     let unit_var = num(input, "unit_variable_cost", round2(price * 0.55));
     let fixed = num(input, "fixed_costs", round2(price * 200.0 * 0.13));

@@ -4,7 +4,7 @@ use super::super::support::{
     currency, deferred_accounting, leak_advice, num, pct, percent, round2, string, wf,
 };
 
-pub(in crate::skills::accounting) fn pl_statement(input: &Value) -> Value {
+pub(in crate::skills::business::accounting) fn pl_statement(input: &Value) -> Value {
     let gmv = num(input, "gmv", 0.0);
     if gmv <= 0.0 {
         return deferred_accounting(
@@ -90,7 +90,7 @@ pub(in crate::skills::accounting) fn pl_statement(input: &Value) -> Value {
     })
 }
 
-pub(in crate::skills::accounting) fn financial_narrative(input: &Value) -> Value {
+pub(in crate::skills::business::accounting) fn financial_narrative(input: &Value) -> Value {
     let days = num(input, "days", 30.0).round();
     let context = string(input, "context", "");
     let gmv = num(input, "gmv", 500_000.0).max(0.0);
@@ -161,7 +161,7 @@ pub(in crate::skills::accounting) fn financial_narrative(input: &Value) -> Value
     })
 }
 
-pub(in crate::skills::accounting) fn gmv_waterfall(input: &Value) -> Value {
+pub(in crate::skills::business::accounting) fn gmv_waterfall(input: &Value) -> Value {
     let gmv = num(input, "gmv", 0.0);
     if gmv <= 0.0 {
         return deferred_accounting(

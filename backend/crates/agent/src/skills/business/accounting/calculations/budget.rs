@@ -4,7 +4,7 @@ use super::super::support::{
     currency, deferred_accounting, num, pct, percent, round2, signed_percent, string, variance,
 };
 
-pub(in crate::skills::accounting) fn budget_plan(input: &Value) -> Value {
+pub(in crate::skills::business::accounting) fn budget_plan(input: &Value) -> Value {
     let month = string(input, "month", "下月");
     let growth_rate = num(input, "growth_rate", 20.0);
     let target_gmv = num(input, "target_gmv", 500_000.0).max(0.0);
@@ -57,7 +57,7 @@ pub(in crate::skills::accounting) fn budget_plan(input: &Value) -> Value {
     })
 }
 
-pub(in crate::skills::accounting) fn budget_vs_actual(input: &Value) -> Value {
+pub(in crate::skills::business::accounting) fn budget_vs_actual(input: &Value) -> Value {
     let actual_gmv = num(input, "actual_gmv", 0.0);
     if actual_gmv <= 0.0 {
         return deferred_accounting(
