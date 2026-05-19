@@ -1,6 +1,20 @@
 # Agent 配置说明
 
-这个目录保存 agent runner 的业务配置。未来普通业务调整只改这里和 `backend/config/prompts/`，不要修改 runner Rust 代码。
+这个目录保存 agent commander、task graph 和 worker runner 的业务配置。未来普通业务调整只改这里和 `backend/config/prompts/`，不要修改 commander/task_graph/worker runner Rust 代码。
+
+## 架构边界
+
+agent 的职责分三层：
+
+| 层 | 职责 | 业务调整位置 |
+| --- | --- | --- |
+| commander | 接收用户任务，选择 task graph，调度 node，收集 worker report，完成 graph。 | `task-graph/` |
+| task graph | 描述多角色业务编排、节点依赖、最终汇总节点和验收要求。 | `task-graph/graphs/*.json` |
+| worker runner | 执行当前分配的单个节点，调用 cognition/skill，产出 `WorkerReport`。 | `worker-autosuggest/`、`worker-inference/`、output policy、prompts |
+
+`worker` 可以读取 `graph_id`、`node_id`、上游 inputs 和 assignment metadata，但只能把它们作为上下文透传给 cognition 和 skill。`worker` 不允许决定下一节点、不允许调度其它 worker、不允许判断整张 graph 是否完成、不允许生成跨 worker 的最终汇总结构。
+
+如果新增或修改“多个角色怎么协作、谁先谁后、最后谁汇总”，只能改 `task-graph/` 配置。如果新增或修改“单个 worker 执行时自动调用什么 skill、如何解析用户文本、输出如何补全或清洗”，只能改 worker 相关配置。
 
 ## 文件职责
 
@@ -43,6 +57,13 @@ task-graph/
 - `files`：按顺序加载的 graph rule 文件。每个文件只放一个图。
 
 新增业务编排时，优先在 `graphs/` 下新增一个 JSON 文件，然后把路径加入 `index.json`。不要把业务编排写进 Rust。
+
+不允许：
+
+- 在 `commander/task_graph/*.rs` 写业务 graph。
+- 在 `commander/runner/*.rs` 写具体行业流程。
+- 在 `worker/runner/*.rs` 写多角色协作流程。
+- 恢复旧的 `task-graph-rules.json`。
 
 ## Prompts
 

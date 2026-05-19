@@ -1,14 +1,16 @@
-# Agent Runner 配置化协议
+# Agent Runner 与 Task Graph 配置化协议
 
-本文档约束 `agent` crate 里的 worker runner。runner 的业务能力必须优先通过配置完成，Rust 代码只允许保留通用执行引擎。
+本文档约束 `agent` crate 里的 commander、task graph 和 worker runner。agent 的业务编排和 worker 业务能力必须优先通过配置完成，Rust 代码只允许保留通用编排引擎和通用执行引擎。
 
 ## 核心原则
 
-1. runner 是一次任务执行过程中的短生命周期组件，由外部 agent manager 监管；任务完成后释放。
-2. runner 不负责维护长期业务状态，不重新设计 memory、cognition、skill 或 manager。
-3. 角色、任务图、autosuggest、inference、输出策略和 prompt 都必须优先放在 `backend/config/` 下。
-4. 普通业务调整只允许修改配置文件，不允许修改 runner Rust 代码。
-5. Rust 侧只保留“读取配置、匹配配置、执行 skill、组装上下文、校验输出、降级处理”等通用能力。
+1. worker runner 是一次任务执行过程中的短生命周期组件，由外部 agent manager 和 commander 监管；任务完成后释放。
+2. commander 负责任务入口、task graph 规划、节点调度、重试、收集 worker report 和完成 graph；worker 只执行当前分配给自己的单个节点。
+3. task graph 是跨角色业务编排的唯一配置入口；worker 不决定多角色协作顺序，也不决定最终汇总节点。
+4. runner 不负责维护长期业务状态，不重新设计 memory、cognition、skill 或 manager。
+5. 角色、任务图、autosuggest、inference、输出策略和 prompt 都必须优先放在 `backend/config/` 下。
+6. 普通业务调整只允许修改配置文件，不允许修改 commander/task_graph/worker runner Rust 代码。
+7. Rust 侧只保留“读取配置、匹配配置、构建图、调度节点、执行 skill、组装上下文、校验输出、降级处理”等通用能力。
 
 ## 配置入口
 
@@ -31,7 +33,7 @@
 
 ## 允许修改 Rust 的情况
 
-只有下面情况可以修改 runner Rust 代码：
+只有下面情况可以修改 commander、task_graph 或 runner Rust 代码：
 
 1. 新增一种通用配置字段，并同步更新配置说明。
 2. 新增一种通用模板占位符求值器，例如把配置里的 `{{field}}` 解析为结构化 skill input。
@@ -39,17 +41,59 @@
 4. 接入新的通用 skill executor 边界。
 5. 删除已经被配置完全覆盖的旧代码。
 
-即使需要修改 Rust，也必须保持代码与业务解耦：Rust 里不能写具体行业方案、角色话术、业务关键词列表、平台规则文案或 skill 路由规则。
+即使需要修改 Rust，也必须保持代码与业务解耦：Rust 里不能写具体行业方案、角色话术、业务关键词列表、平台规则文案、跨角色业务流程或 skill 路由规则。
 
 ## 禁止事项
 
-1. 不允许在 runner Rust 文件里新增大段业务 if/else、match 或关键词数组。
+1. 不允许在 commander/task_graph/runner Rust 文件里新增大段业务 if/else、match 或关键词数组。
 2. 不允许把 role prompt、回答模板、教学深度、角色边界、输出格式写死进 Rust。
 3. 不允许把 autosuggest skill 路由写死进 Rust。
 4. 不允许把 inference 的别名、默认值、分类标签、搜索关键词写死进 Rust。
 5. 不允许在 runner 里重新实现 cognition；cognition 已有独立目录，prompt 从 `backend/config/prompts/` 读取。
 6. 不允许在 runner 里重新实现 memory；长期记忆和 session 记忆应走既有 agent session/memory 边界。
 7. 不允许把 `old_runner` 里的旧业务代码复制回新 runner。
+8. 不允许把 task graph 的业务编排写进 `commander/task_graph/*.rs` 或 `commander/runner/*.rs`。
+9. 不允许让 worker 根据业务意图自行选择其它 worker、插入新 graph 节点或决定最终汇总策略。
+
+## Commander 与 Task Graph 边界
+
+commander 是 graph 编排运行时，只负责通用调度：
+
+- 根据配置选择或构建 task graph。
+- 把 ready node 转换成 `WorkerAssignment` 发给对应 worker。
+- 接收 `WorkerReport`，更新 graph runtime。
+- 根据 graph 配置决定重试、rework、完成和最终输出。
+- 发出 session event，记录 graph 进度。
+
+task graph Rust 只允许做通用配置加载、校验、模板渲染、节点构建和依赖计算。新增业务编排时，必须修改：
+
+- `backend/config/json/agent/task-graph/index.json`
+- `backend/config/json/agent/task-graph/defaults.json`
+- `backend/config/json/agent/task-graph/role-aliases.json`
+- `backend/config/json/agent/task-graph/role-defaults.json`
+- `backend/config/json/agent/task-graph/graphs/*.json`
+
+新增一套业务流程时，优先在 `graphs/` 下新增单独 JSON 文件，并在 `index.json` 里登记。不要恢复旧的 `task-graph-rules.json`，不要在 Rust 里维护第二份 graph。
+
+## Worker Runner 边界
+
+worker runner 是单节点执行器，只负责当前 `WorkerAssignment`：
+
+- 接收 assignment 或单 worker task。
+- 构建 cognition input。
+- 执行显式或 autosuggest 生成的 skill request。
+- 解析 worker 输出并生成 `WorkerReport`。
+- 把 `graph_id`、`node_id`、上游 inputs 和 assignment metadata 透传给 cognition/skill context。
+
+worker 允许读取 assignment 的 graph 信息，但只能作为上下文使用。worker 不允许：
+
+- 选择下一节点。
+- 调度其它 worker。
+- 改写 graph 依赖关系。
+- 判断整张 graph 是否完成。
+- 生成跨 worker 的最终汇总结构。
+
+如果发现 worker 里出现这些职责，必须迁移到 task graph 配置或 commander 的通用 graph runtime。
 
 ## Autosuggest 规则
 

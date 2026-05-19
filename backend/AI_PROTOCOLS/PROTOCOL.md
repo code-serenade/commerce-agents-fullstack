@@ -15,7 +15,7 @@
    - 认证集成：`AI_PROTOCOLS/AUTH_INTEGRATION_GUIDE.md`
    - 错误码：`AI_PROTOCOLS/ERROR_CODE_GUIDE.md`
    - LLM client 或模型调用：`AI_PROTOCOLS/LLM_CLIENT_GUIDE.md`
-   - agent runner、autosuggest、inference、worker output 或 prompt 配置：`AI_PROTOCOLS/AGENT_RUNNER_CONFIG_GUIDE.md`
+   - agent commander、task graph、worker runner、autosuggest、inference、worker output 或 prompt 配置：`AI_PROTOCOLS/AGENT_RUNNER_CONFIG_GUIDE.md`
 
 ## 工作规则
 
@@ -23,8 +23,8 @@
 
 如果用户需求引入了 `AI_PROTOCOLS/` 尚未覆盖的新行为，必须在改代码的同时更新对应协议或 API 文档。
 
-## Agent runner 配置边界
+## Agent 编排与 runner 配置边界
 
-`agent` crate 的 worker runner 必须保持配置驱动。角色、任务图、autosuggest、inference、输出策略和 prompt 的业务调整，应优先修改 `backend/config/json/agent/` 和 `backend/config/prompts/`。
+`agent` crate 的 commander、task graph 和 worker runner 必须保持配置驱动。角色、任务图、autosuggest、inference、输出策略和 prompt 的业务调整，应优先修改 `backend/config/json/agent/` 和 `backend/config/prompts/`。
 
-除非是在扩展通用配置能力或修复通用执行逻辑，否则不允许为了业务规则修改 runner Rust 代码。
+除非是在扩展通用配置能力、修复通用执行逻辑或删除已被配置覆盖的旧代码，否则不允许为了业务规则修改 commander/task_graph/worker runner Rust 代码。
