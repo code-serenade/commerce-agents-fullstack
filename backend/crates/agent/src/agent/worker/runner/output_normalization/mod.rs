@@ -2,6 +2,7 @@ mod benchmark;
 mod category_boundary;
 mod evidence;
 mod runtime_noise;
+mod text_syntax;
 mod util;
 
 use benchmark::sanitize_unsupported_benchmark_claims;
@@ -9,6 +10,7 @@ pub(super) use category_boundary::is_category_level_task;
 use category_boundary::normalize_category_level_product_requests;
 use evidence::{merge_unique, normalize_product_context_evidence, normalize_upstream_evidence};
 use runtime_noise::{is_category_runtime_noise, sanitize_category_level_runtime_artifacts};
+use text_syntax::normalize_user_facing_text;
 use util::compact_task_text;
 
 use super::{
@@ -126,6 +128,7 @@ fn normalize_worker_role_output(
         output.risks = output_policy.default_role_risks(role);
     }
     output_policy.normalize_role_specific_risks(role, &mut output.risks);
+    normalize_user_facing_text(output);
 
     parsed.evidence = merge_unique(parsed.evidence, output.evidence.clone());
     parsed.risks = merge_unique(parsed.risks, output.risks.clone());
