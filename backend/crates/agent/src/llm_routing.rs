@@ -8,6 +8,7 @@ use model_gateway_rs::{
     },
 };
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 
 use crate::{
     Cognition, CognitionDecoder, CognitionFailure, CognitionInput, CognitionOutput,
@@ -243,7 +244,7 @@ where
             description: "LLM cognition did not run".to_string(),
         };
 
-        for attempt in 1 ..= max_attempts {
+        for attempt in 1..=max_attempts {
             let raw = match llm.chat_once(LlmInput { messages }).await {
                 Ok(output) => output.get_content().to_string(),
                 Err(err) => {
@@ -285,6 +286,12 @@ where
             match self.decoder.decode(&raw) {
                 Ok(output) => return CognitionResult::Success(output),
                 Err(failure) => {
+                    if self.kind == AgentCognitionKind::ChatWorker
+                        && let Some(output) = fallback_chat_output(&raw)
+                    {
+                        return CognitionResult::Success(output);
+                    }
+
                     let snippet = raw_snippet(&raw);
                     let message = format!(
                         "cognition decode failure on attempt {attempt}/{max_attempts}: \
@@ -426,13 +433,52 @@ fn repair_messages(
     let mut messages = base_messages.to_vec();
     messages.push(ChatMessage::assistant(raw.to_string()));
     messages.push(ChatMessage::user(format!(
-        "Repair attempt {next_attempt}: 上一条输出无法被系统解析为目标 JSON。\n请只返回合法 \
-         JSON，不要 Markdown，不要解释。\n必须满足系统提示词中的 JSON schema \
-         和字段结构。\n解析错误: {}\n原始输出片段: {}",
+        "Repair attempt {next_attempt}: 上一次输出解析失败：{}\n\
+         现在只修复输出格式，不改变业务含义。\n\
+         必须返回完整 JSON，包含 decision、summary、role_output。\n\
+         不要输出 Markdown、代码块或解释文字。\n\
+         原始输出片段: {}",
         failure.description,
         raw_snippet(raw)
     )));
     messages
+}
+
+fn fallback_chat_output(raw: &str) -> Option<CognitionOutput> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    let summary = match serde_json::from_str::<serde_json::Value>(trimmed) {
+        Ok(value) => value
+            .pointer("/role_output/summary")
+            .and_then(|value| value.as_str())
+            .or_else(|| value.pointer("/summary").and_then(|value| value.as_str()))?
+            .trim()
+            .to_string(),
+        Err(_) if trimmed.starts_with('{') || trimmed.starts_with('[') => return None,
+        Err(_) => trimmed.to_string(),
+    };
+
+    if summary.is_empty() {
+        return None;
+    }
+
+    Some(json!({
+        "decision": {
+            "kind": "NoAction"
+        },
+        "summary": summary,
+        "role_output": {
+            "summary": summary,
+            "findings": [],
+            "recommendations": [],
+            "evidence": [],
+            "risks": [],
+            "open_questions": []
+        }
+    }))
 }
 
 fn raw_snippet(raw: &str) -> String {
@@ -545,5 +591,40 @@ mod tests {
         };
 
         assert!(err.to_string().contains("llm 'missing' not found"));
+    }
+
+    #[test]
+    fn fallback_chat_output_wraps_plain_text() {
+        let output = fallback_chat_output("普通中文回复").expect("plain text should be wrapped");
+
+        assert_eq!(output["decision"]["kind"], "NoAction");
+        assert_eq!(output["summary"], "普通中文回复");
+        assert_eq!(output["role_output"]["summary"], "普通中文回复");
+        assert!(
+            output["role_output"]["findings"]
+                .as_array()
+                .unwrap()
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn fallback_chat_output_wraps_json_summary() {
+        let output = fallback_chat_output(r#"{"summary":"已有摘要"}"#)
+            .expect("json summary should be wrapped");
+
+        assert_eq!(output["decision"]["kind"], "NoAction");
+        assert_eq!(output["summary"], "已有摘要");
+        assert_eq!(output["role_output"]["summary"], "已有摘要");
+    }
+
+    #[test]
+    fn fallback_chat_output_rejects_invalid_json_like_text() {
+        assert!(fallback_chat_output(r#"{"summary":"缺少结尾""#).is_none());
+    }
+
+    #[test]
+    fn fallback_chat_output_rejects_empty_text() {
+        assert!(fallback_chat_output("  \n\t ").is_none());
     }
 }
