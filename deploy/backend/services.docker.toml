@@ -1,4 +1,4 @@
-default_llm = "ollama-thinking"
+default_llm = "doubao-thinking"
 
 [http]
 port = 19878
@@ -26,31 +26,31 @@ secret_key = "hBu3*64#hf(n)"
 user_key_salt = "KQgPM+etGa31+cj6M/0ao0+8yrEgHeGY/9bnbICoLs/wR2vJL8ED/J8v6vki0kESIHMUXqAmSLCs3ft5AUwmWA=="
 
 [agent_llm_usage]
-default = "ollama-thinking"
-fast = "ollama-fast"
-thinking = "ollama-thinking"
-vision = "ollama-vision"
+default = "doubao-thinking"
+fast = "doubao-fast"
+thinking = "doubao-thinking"
+vision = "doubao-vision"
 
 [[llm]]
-name = "ollama-fast"
-base_url = "http://10.100.11.245:11434"
-model = "gemma4:26b"
-api_key = "sk-local"
+name = "doubao-fast"
+base_url = "https://ark.cn-beijing.volces.com/api/v3"
+model = "doubao-seed-2-0-lite-260215"
+api_key = "e9cc641d-1992-40d1-9fbc-f725fd420611"
 max_tokens = 8000
 temperature = 0.2
 
 [[llm]]
-name = "ollama-thinking"
-base_url = "http://10.100.11.245:11434"
-model = "gemma4:26b"
-api_key = "sk-local"
+name = "doubao-thinking"
+base_url = "https://ark.cn-beijing.volces.com/api/v3"
+model = "doubao-seed-2-0-pro-260215"
+api_key = "e9cc641d-1992-40d1-9fbc-f725fd420611"
 max_tokens = 20000
 temperature = 0.2
 
 [[llm]]
-name = "ollama-vision"
-base_url = "http://10.100.11.245:11434"
-model = "minicpm-v:8b-2.6-q5_1"
-api_key = "sk-local"
+name = "doubao-vision"
+base_url = "https://ark.cn-beijing.volces.com/api/v3"
+model = "doubao-seed-2-0-pro-260215"
+api_key = "e9cc641d-1992-40d1-9fbc-f725fd420611"
 max_tokens = 12000
 temperature = 0.2
