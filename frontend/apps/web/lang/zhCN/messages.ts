@@ -2,8 +2,8 @@ const messages = {
   web: {
     shell: {
       brand: {
-        eyebrow: "Commerce AI",
-        title: "电商多智能体",
+        eyebrow: "TaskMate",
+        title: "TaskMate・塔克",
         description: "电商虚拟员工工作区",
       },
       navigation: {
@@ -793,10 +793,10 @@ const messages = {
       empty: "还没有历史对话",
     },
     shell: {
-      brandTitle: "电商多智能体",
+      brandTitle: "TaskMate・塔克",
       brandDescription: "电商虚拟员工工作区",
       topbarTitle: "输入电商问题",
-      topbarMeta: "Commerce Agents · 虚拟员工协作",
+      topbarMeta: "TaskMate・塔克 · 虚拟员工协作",
       sections: {
         create: "",
         workspace: "功能导航",
@@ -1847,7 +1847,7 @@ const messages = {
     },
   },
   login: {
-    brand: "电商多智能体",
+    brand: "TaskMate・塔克",
     hero: {
       titleLine1: "把电商问题交给",
       titleLine2: "虚拟员工协作处理。",
@@ -1882,16 +1882,16 @@ const messages = {
     },
   },
   register: {
-    brand: "AI 标准化开发框架",
+    brand: "TaskMate・塔克",
     hero: {
       titleLine1: "创建账号，",
-      titleLine2: "开始 AI 开发。",
-      desc1: "这里只创建共享账号；登录当前业务时再初始化当前业务身份。",
-      desc2: "同样支持主题切换、多语言和模块化结构，便于持续迭代。",
+      titleLine2: "进入电商虚拟员工工作区。",
+      desc1: "用一个账号保存会话、商品上下文、活动任务和交付资料。",
+      desc2: "注册后可以让虚拟员工继续协作处理选品、内容、投放、客服、成本和复盘问题。",
     },
     welcome: "创建新账号",
     title: "注册你的账号",
-    subtitle: "创建一次共享账号即可；当前业务用户会在登录时自动初始化。",
+    subtitle: "创建账号后即可进入 TaskMate・塔克，开始管理你的电商任务。",
     form: {
       password: {
         label: "密码",

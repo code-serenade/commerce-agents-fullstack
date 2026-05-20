@@ -403,11 +403,11 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
         contentScroll={isQuestionRoute ? "hidden" : "auto"}
         brandLogo={
           <div className="relative flex size-10 items-center justify-center rounded-xl bg-foreground font-mono text-base font-semibold text-background shadow-sm">
-            CA
+            TM
             <span className="absolute right-1 top-1 size-1.5 rounded-full bg-blue-500" />
           </div>
         }
-        brandEyebrow="Commerce Agent"
+        brandEyebrow="TaskMate"
         brandTitle={t("agentChat.shell.brandTitle")}
         brandDescription={t("agentChat.shell.brandDescription")}
         sections={sections}
