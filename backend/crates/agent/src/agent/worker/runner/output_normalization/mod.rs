@@ -186,8 +186,8 @@ mod tests {
         let output = normalize_worker_role_output("chat", &task, parsed);
         let role_output = output.role_output.expect("role output should exist");
 
-        assert_eq!(output.content, "回答\n- 先看真实资料");
-        assert_eq!(role_output.summary, "回答\n- 先看真实资料");
+        assert_eq!(output.content, "回答\n先看真实资料");
+        assert_eq!(role_output.summary, "回答\n先看真实资料");
         assert!(role_output.findings.is_empty());
         assert!(role_output.recommendations.is_empty());
         assert!(role_output.evidence.is_empty());
