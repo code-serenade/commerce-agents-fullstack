@@ -8,7 +8,7 @@ use model_gateway_rs::{
     },
 };
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json::{Value, json};
 
 use crate::{
     Cognition, CognitionDecoder, CognitionFailure, CognitionInput, CognitionOutput,
@@ -450,17 +450,35 @@ fn fallback_chat_output(raw: &str) -> Option<CognitionOutput> {
         return None;
     }
 
-    let summary = match serde_json::from_str::<serde_json::Value>(trimmed) {
-        Ok(value) => value
-            .pointer("/role_output/summary")
-            .and_then(|value| value.as_str())
-            .or_else(|| value.pointer("/summary").and_then(|value| value.as_str()))?
-            .trim()
-            .to_string(),
-        Err(_) if trimmed.starts_with('{') || trimmed.starts_with('[') => return None,
-        Err(_) => trimmed.to_string(),
-    };
+    let stripped = strip_code_fences(trimmed).trim();
+    if let Some(json_text) = extract_json_value(stripped).or_else(|| extract_json_value(trimmed)) {
+        if let Some(output) = fallback_chat_output_from_json(json_text) {
+            return Some(output);
+        }
+        if looks_json_like(stripped) || looks_json_like(trimmed) {
+            return None;
+        }
+    }
 
+    if looks_json_like(stripped) || looks_json_like(trimmed) {
+        return None;
+    }
+
+    build_fallback_chat_output(stripped)
+}
+
+fn fallback_chat_output_from_json(json_text: &str) -> Option<CognitionOutput> {
+    let value = serde_json::from_str::<Value>(json_text).ok()?;
+    let summary = value
+        .pointer("/role_output/summary")
+        .and_then(|value| value.as_str())
+        .or_else(|| value.pointer("/summary").and_then(|value| value.as_str()))?;
+
+    build_fallback_chat_output(summary)
+}
+
+fn build_fallback_chat_output(summary: &str) -> Option<CognitionOutput> {
+    let summary = summary.trim();
     if summary.is_empty() {
         return None;
     }
@@ -479,6 +497,107 @@ fn fallback_chat_output(raw: &str) -> Option<CognitionOutput> {
             "open_questions": []
         }
     }))
+}
+
+fn looks_json_like(input: &str) -> bool {
+    let trimmed = input.trim_start();
+    trimmed.starts_with('{') || trimmed.starts_with('[')
+}
+
+fn strip_code_fences(input: &str) -> &str {
+    let start = match input.find("```") {
+        Some(idx) => idx,
+        None => return input,
+    };
+    let after_start = &input[start + 3..];
+    let newline = after_start.find('\n');
+    let content_start = match newline {
+        Some(idx) => start + 3 + idx + 1,
+        None => start + 3,
+    };
+    if let Some(end_idx) = input[content_start..].find("```") {
+        let end = content_start + end_idx;
+        return &input[content_start..end];
+    }
+    input
+}
+
+fn extract_json_value(input: &str) -> Option<&str> {
+    let mut in_string = false;
+    let mut escape = false;
+
+    for (index, ch) in input.char_indices() {
+        if in_string {
+            if escape {
+                escape = false;
+                continue;
+            }
+            match ch {
+                '\\' => escape = true,
+                '"' => in_string = false,
+                _ => {}
+            }
+            continue;
+        }
+
+        match ch {
+            '"' => in_string = true,
+            '{' | '[' => {
+                if let Some(candidate) = extract_balanced_json(&input[index..], ch) {
+                    return Some(candidate);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+fn extract_balanced_json(input: &str, start_char: char) -> Option<&str> {
+    let end_char = match start_char {
+        '{' => '}',
+        '[' => ']',
+        _ => return None,
+    };
+    let mut in_string = false;
+    let mut escape = false;
+    let mut depth = 0usize;
+    let mut start = None;
+
+    for (index, ch) in input.char_indices() {
+        if in_string {
+            if escape {
+                escape = false;
+                continue;
+            }
+            match ch {
+                '\\' => escape = true,
+                '"' => in_string = false,
+                _ => {}
+            }
+            continue;
+        }
+
+        match ch {
+            '"' => in_string = true,
+            ch if ch == start_char => {
+                if depth == 0 {
+                    start = Some(index);
+                }
+                depth += 1;
+            }
+            ch if ch == end_char && depth > 0 => {
+                depth -= 1;
+                if depth == 0
+                    && let Some(start_index) = start
+                {
+                    return Some(&input[start_index..=index]);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
 }
 
 fn raw_snippet(raw: &str) -> String {
@@ -616,6 +735,30 @@ mod tests {
         assert_eq!(output["decision"]["kind"], "NoAction");
         assert_eq!(output["summary"], "已有摘要");
         assert_eq!(output["role_output"]["summary"], "已有摘要");
+    }
+
+    #[test]
+    fn fallback_chat_output_extracts_fenced_json_summary() {
+        let output = fallback_chat_output(
+            r#"```json
+{"summary":"代码块摘要"}
+```"#,
+        )
+        .expect("fenced json summary should be wrapped");
+
+        assert_eq!(output["decision"]["kind"], "NoAction");
+        assert_eq!(output["summary"], "代码块摘要");
+        assert_eq!(output["role_output"]["summary"], "代码块摘要");
+    }
+
+    #[test]
+    fn fallback_chat_output_extracts_embedded_json_summary() {
+        let output = fallback_chat_output(r#"说明：{"summary":"夹杂摘要"}，结束。"#)
+            .expect("embedded json summary should be wrapped");
+
+        assert_eq!(output["decision"]["kind"], "NoAction");
+        assert_eq!(output["summary"], "夹杂摘要");
+        assert_eq!(output["role_output"]["summary"], "夹杂摘要");
     }
 
     #[test]
