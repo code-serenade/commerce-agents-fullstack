@@ -185,6 +185,10 @@ impl TaskGraphRuntime {
     }
 
     pub fn synthesize(&self) -> String {
+        if let Some(final_output) = self.final_node_output() {
+            return final_output;
+        }
+
         let mut sections = Vec::new();
 
         for node in &self.graph.nodes {
@@ -223,6 +227,33 @@ impl TaskGraphRuntime {
         } else {
             sections.join("\n\n")
         }
+    }
+
+    pub fn final_node_output(&self) -> Option<String> {
+        let final_nodes = self
+            .graph
+            .nodes
+            .iter()
+            .filter(|candidate| {
+                looks_like_final_node(candidate)
+                    && !candidate.input_refs.is_empty()
+                    && matches!(
+                        self.states.get(&candidate.id),
+                        Some(TaskNodeRuntimeState::Passed)
+                    )
+                    && !self
+                        .graph
+                        .nodes
+                        .iter()
+                        .any(|node| node.input_refs.iter().any(|input| input == &candidate.id))
+            })
+            .collect::<Vec<_>>();
+        let [final_node] = final_nodes.as_slice() else {
+            return None;
+        };
+
+        let report = self.reports.get(&final_node.id)?;
+        user_facing_report_text(report)
     }
 
     pub fn direct_chat_output(&self) -> Option<String> {
@@ -445,6 +476,16 @@ impl TaskGraphRuntime {
             }
         }
     }
+}
+
+fn looks_like_final_node(node: &TaskNode) -> bool {
+    let id = node.id.0.to_ascii_lowercase();
+    id.contains("final")
+        || node.title.contains("综合")
+        || node.title.contains("总方案")
+        || node.title.contains("运营方案")
+        || node.objective.contains("综合成")
+        || node.objective.contains("形成可执行")
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -755,6 +796,31 @@ mod tests {
         assert!(output.contains("没有拿到可直接展示的完整内容"));
         assert!(!output.contains("none"));
         assert!(!output.contains("Passed worker reports"));
+    }
+
+    #[test]
+    fn task_graph_synthesis_prefers_terminal_final_node() {
+        let data = node("data", "Data", "data");
+        let mut ops = node("ops_final", "Final", "ops");
+        ops.input_refs = vec![TaskNodeId("data".to_string())];
+        let mut runtime = TaskGraphRuntime::new(TaskGraph {
+            graph_id: TaskGraphId("graph-final".to_string()),
+            root_task: "Build a plan.".to_string(),
+            nodes: vec![data.clone(), ops.clone()],
+        });
+        runtime.states.insert(data.id.clone(), TaskNodeRuntimeState::Passed);
+        runtime.states.insert(ops.id.clone(), TaskNodeRuntimeState::Passed);
+        runtime
+            .reports
+            .insert(data.id.clone(), report("data", "upstream draft"));
+        runtime
+            .reports
+            .insert(ops.id.clone(), report("ops_final", "final user plan"));
+
+        let output = runtime.synthesize();
+
+        assert_eq!(output, "final user plan");
+        assert!(!output.contains("upstream draft"));
     }
 
     fn node(id: &str, title: &str, role: &str) -> TaskNode {
