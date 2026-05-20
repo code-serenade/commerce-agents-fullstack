@@ -459,6 +459,20 @@
           "退货率",
           "帕累托",
           "退款分解"
+        ],
+        "none_keywords": [
+          "只看这张表",
+          "这张表最应该分析什么",
+          "列很多",
+          "不要逐行复述",
+          "先看哪里",
+          "先帮我判断这张表",
+          "只帮我看表",
+          "只分析附件",
+          "只看附件",
+          "字段",
+          "粒度",
+          "优先看"
         ]
       },
       "skill_id": "data_refund_decomposition",
@@ -485,6 +499,20 @@
           "加购",
           "下单",
           "付款"
+        ],
+        "none_keywords": [
+          "只看这张表",
+          "这张表最应该分析什么",
+          "列很多",
+          "不要逐行复述",
+          "先看哪里",
+          "先帮我判断这张表",
+          "只帮我看表",
+          "只分析附件",
+          "只看附件",
+          "字段",
+          "粒度",
+          "优先看"
         ]
       },
       "skill_id": "data_funnel_analysis",
@@ -498,7 +526,7 @@
         "platform": "{{store_metrics_platform}}",
         "days": "{{period_days}}"
       },
-      "reason": "autosuggest:data.funnel_analysis"
+      "reason": "autosuggest:data.funnel_analysis 自动补偿漏斗分析"
     },
     {
       "id": "data.seasonal_decompose",
@@ -653,7 +681,7 @@
         "query": "{{search_query}}",
         "platform": "{{search_platform}}",
         "focus": "price",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": true,
         "product_ref": "{{selected_product_ref}}",
         "product_name": "{{selected_product_name}}",
@@ -773,7 +801,7 @@
       "input": {
         "query": "{{search_query}}",
         "platform": "{{search_platform}}",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": true,
         "product_ref": "{{selected_product_ref}}",
         "product_name": "{{selected_product_name}}",
@@ -805,7 +833,7 @@
       "input": {
         "query": "{{search_query}}",
         "topic": "news",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": true,
         "product_ref": "{{selected_product_ref}}",
         "product_name": "{{selected_product_name}}",
@@ -852,7 +880,7 @@
       "input": {
         "query": "{{search_query}}",
         "topic": "general",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": true,
         "product_ref": "{{selected_product_ref}}",
         "product_name": "{{selected_product_name}}",

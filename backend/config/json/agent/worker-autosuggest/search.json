@@ -12,20 +12,23 @@
           "规则变化",
           "算法调整",
           "流量政策",
-          "佣金",
-          "费率",
           "大促规则",
           "审核规则",
           "违禁词",
-          "material",
           "素材规范"
+        ],
+        "none_keywords": [
+          "业务直接回答",
+          "直接回答用户本轮明确的业务交付物",
+          "不要启动多岗位过程",
+          "直接回答用户原始问题"
         ]
       },
       "skill_id": "search_platform_policy",
       "input": {
         "platform": "{{search_platform}}",
         "policy_type": "{{search_policy_type}}",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": "{{search_bypass_cache}}",
         "max_results": "{{search_max_results}}",
         "product_ref": "{{selected_product_ref}}",
@@ -50,6 +53,12 @@
           "评论",
           "review",
           "reviews"
+        ],
+        "none_keywords": [
+          "业务直接回答",
+          "直接回答用户本轮明确的业务交付物",
+          "不要启动多岗位过程",
+          "直接回答用户原始问题"
         ]
       },
       "skill_id": "search_product_reviews",
@@ -83,6 +92,12 @@
           "NPS基准",
           "DSR基准",
           "退款率基准"
+        ],
+        "none_keywords": [
+          "业务直接回答",
+          "直接回答用户本轮明确的业务交付物",
+          "不要启动多岗位过程",
+          "直接回答用户原始问题"
         ]
       },
       "skill_id": "search_industry_benchmarks",
@@ -111,6 +126,12 @@
           "竞争对手",
           "对标",
           "同类商品"
+        ],
+        "none_keywords": [
+          "业务直接回答",
+          "直接回答用户本轮明确的业务交付物",
+          "不要启动多岗位过程",
+          "直接回答用户原始问题"
         ]
       },
       "skill_id": "search_competitor",
@@ -141,13 +162,19 @@
           "爆款",
           "流行",
           "消费趋势"
+        ],
+        "none_keywords": [
+          "业务直接回答",
+          "直接回答用户本轮明确的业务交付物",
+          "不要启动多岗位过程",
+          "直接回答用户原始问题"
         ]
       },
       "skill_id": "search_trends",
       "input": {
         "query": "{{search_query}}",
         "platform": "{{search_platform}}",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": "{{search_bypass_cache}}",
         "max_results": "{{search_max_results}}",
         "product_ref": "{{selected_product_ref}}",
@@ -170,20 +197,45 @@
           "资讯",
           "报告",
           "行情",
-          "资料",
           "公开来源",
-          "财务",
           "财务基准",
           "财务对标",
           "毛利率",
           "净利率"
+        ],
+        "none_keywords": [
+          "只要标题",
+          "只给标题",
+          "只改标题",
+          "一个标题",
+          "标题和一句",
+          "一句提醒",
+          "回一句",
+          "回一句话",
+          "一句客服话术",
+          "一句话术",
+          "自然一点",
+          "不要像公告",
+          "不要完整方案",
+          "不要展开",
+          "不要解释",
+          "不用解释",
+          "无需解释",
+          "直接给标题",
+          "直接改",
+          "只看附件",
+          "只分析附件",
+          "业务直接回答",
+          "直接回答用户本轮明确的业务交付物",
+          "不要启动多岗位过程",
+          "直接回答用户原始问题"
         ]
       },
       "skill_id": "search_market_info",
       "input": {
         "query": "{{search_query}}",
         "topic": "{{search_topic}}",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": "{{search_bypass_cache}}",
         "max_results": "{{search_max_results}}",
         "product_ref": "{{selected_product_ref}}",
@@ -191,6 +243,370 @@
         "product_category": "{{category}}"
       },
       "reason": "autosuggest:search.market_info"
+    },
+    {
+      "id": "search.light_market_context.ops_data_web",
+      "roles": [
+        "ops",
+        "data",
+        "web"
+      ],
+      "fallback": true,
+      "match": {
+        "any_keywords": [
+          "商品",
+          "产品",
+          "类目",
+          "品类",
+          "电商",
+          "店铺",
+          "咖啡",
+          "茶饮",
+          "食品",
+          "服饰",
+          "美妆",
+          "家居",
+          "直播",
+          "抖音",
+          "千川",
+          "投放",
+          "转化",
+          "运营",
+          "营销",
+          "活动",
+          "定价",
+          "价格",
+          "利润",
+          "预算",
+          "数据",
+          "报表",
+          "表格",
+          "分析",
+          "方案",
+          "策略",
+          "规划",
+          "复盘",
+          "趋势"
+        ],
+        "none_keywords": [
+          "只看这张表",
+          "这张表最应该分析什么",
+          "列很多",
+          "不要逐行复述",
+          "先看哪里",
+          "先帮我判断这张表",
+          "只帮我看表",
+          "只分析附件",
+          "只看附件",
+          "图里",
+          "图上写了",
+          "最大问题",
+          "最大的问题",
+          "文案风险",
+          "先帮我看",
+          "帮我看",
+          "业务直接回答",
+          "直接回答用户本轮明确的业务交付物",
+          "不要启动多岗位过程",
+          "直接回答用户原始问题"
+        ],
+        "requires_no_skill_ids": [
+          "search_market_info",
+          "search_trends",
+          "search_competitor",
+          "search_product_reviews",
+          "search_platform_policy",
+          "search_industry_benchmarks"
+        ]
+      },
+      "skill_id": "search_market_info",
+      "input": {
+        "query": "{{search_query}}",
+        "topic": "{{search_topic}}",
+        "days": 30,
+        "_needs_fresh_data": true,
+        "max_results": 3,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:search.light_market_context"
+    },
+    {
+      "id": "search.light_market_context.creative_douyin",
+      "roles": [
+        "creative",
+        "douyin_ads"
+      ],
+      "fallback": true,
+      "match": {
+        "any_keywords": [
+          "商品",
+          "产品",
+          "类目",
+          "品类",
+          "电商",
+          "咖啡",
+          "茶饮",
+          "食品",
+          "美妆",
+          "服饰",
+          "内容",
+          "文案",
+          "标题",
+          "脚本",
+          "短视频",
+          "直播",
+          "抖音",
+          "千川",
+          "投放",
+          "素材",
+          "卖点",
+          "种草",
+          "热点",
+          "趋势",
+          "爆款",
+          "分析",
+          "方案"
+        ],
+        "none_keywords": [
+          "只帮我",
+          "不要给我运营方案",
+          "不要运营方案",
+          "不要方案",
+          "不要完整方案",
+          "改得",
+          "改写",
+          "帮我把",
+          "这句标题",
+          "可替换标题",
+          "直接改",
+          "上架一点",
+          "只改标题",
+          "只要标题",
+          "不用运营方案",
+          "业务直接回答",
+          "直接回答用户本轮明确的业务交付物",
+          "不要启动多岗位过程",
+          "直接回答用户原始问题"
+        ],
+        "requires_no_skill_ids": [
+          "search_market_info",
+          "search_trends",
+          "search_platform_policy",
+          "search_industry_benchmarks"
+        ]
+      },
+      "skill_id": "search_trends",
+      "input": {
+        "query": "{{search_query}}",
+        "platform": "{{search_platform}}",
+        "days": 30,
+        "_needs_fresh_data": true,
+        "max_results": 3,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:search.light_trend_context"
+    },
+    {
+      "id": "search.light_market_context.accounting_engineering",
+      "roles": [
+        "accounting",
+        "engineering"
+      ],
+      "fallback": true,
+      "match": {
+        "any_keywords": [
+          "商品",
+          "产品",
+          "类目",
+          "品类",
+          "电商",
+          "咖啡",
+          "食品",
+          "成本",
+          "利润",
+          "毛利",
+          "ROI",
+          "roi",
+          "预算",
+          "接口",
+          "API",
+          "api",
+          "对接",
+          "系统",
+          "平台",
+          "表格",
+          "报表",
+          "分析",
+          "方案",
+          "规则",
+          "资料"
+        ],
+        "none_keywords": [
+          "只看这张表",
+          "这张表最应该分析什么",
+          "列很多",
+          "不要逐行复述",
+          "先看哪里",
+          "先帮我判断这张表",
+          "只帮我看表",
+          "只分析附件",
+          "只看附件",
+          "业务直接回答",
+          "直接回答用户本轮明确的业务交付物",
+          "不要启动多岗位过程",
+          "直接回答用户原始问题"
+        ],
+        "requires_no_skill_ids": [
+          "search_market_info",
+          "search_industry_benchmarks"
+        ]
+      },
+      "skill_id": "search_market_info",
+      "input": {
+        "query": "{{search_query}}",
+        "topic": "{{search_topic}}",
+        "days": 30,
+        "_needs_fresh_data": true,
+        "max_results": 3,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:search.light_market_context"
+    },
+    {
+      "id": "search.light_market_context.service",
+      "roles": [
+        "service"
+      ],
+      "fallback": true,
+      "match": {
+        "any_keywords": [
+          "商品",
+          "产品",
+          "类目",
+          "品类",
+          "电商",
+          "咖啡",
+          "食品",
+          "客服",
+          "售前",
+          "售后",
+          "投诉",
+          "退款",
+          "退货",
+          "差评",
+          "评价",
+          "口碑",
+          "用户反馈",
+          "咨询",
+          "服务",
+          "话术",
+          "SOP",
+          "sop",
+          "分析",
+          "方案"
+        ],
+        "none_keywords": [
+          "只改话术",
+          "直接改话术",
+          "只帮我改",
+          "不要方案",
+          "不用方案",
+          "不要完整方案",
+          "业务直接回答",
+          "直接回答用户本轮明确的业务交付物",
+          "不要启动多岗位过程",
+          "直接回答用户原始问题"
+        ],
+        "requires_no_skill_ids": [
+          "search_product_reviews",
+          "search_platform_policy",
+          "search_industry_benchmarks"
+        ]
+      },
+      "skill_id": "search_product_reviews",
+      "input": {
+        "query": "{{search_query}}",
+        "platform": "{{search_platform}}",
+        "focus": "{{search_review_focus}}",
+        "_needs_fresh_data": true,
+        "max_results": 3,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:search.light_review_context"
+    },
+    {
+      "id": "search.light_market_context.design",
+      "roles": [
+        "design"
+      ],
+      "fallback": true,
+      "match": {
+        "any_keywords": [
+          "商品",
+          "产品",
+          "类目",
+          "品类",
+          "电商",
+          "咖啡",
+          "食品",
+          "主图",
+          "详情页",
+          "视觉",
+          "设计",
+          "页面",
+          "素材",
+          "海报",
+          "卖点",
+          "转化",
+          "爆款",
+          "趋势",
+          "分析",
+          "方案"
+        ],
+        "none_keywords": [
+          "最大问题",
+          "最大的问题",
+          "先帮我看",
+          "帮我看",
+          "风险",
+          "评审",
+          "哪里最影响",
+          "图上写了",
+          "图里",
+          "文案风险",
+          "不要完整",
+          "不要方案",
+          "不用方案",
+          "业务直接回答",
+          "直接回答用户本轮明确的业务交付物",
+          "不要启动多岗位过程",
+          "直接回答用户原始问题"
+        ],
+        "requires_no_skill_ids": [
+          "search_trends",
+          "search_platform_policy"
+        ]
+      },
+      "skill_id": "search_trends",
+      "input": {
+        "query": "{{search_query}}",
+        "platform": "{{search_platform}}",
+        "days": 30,
+        "_needs_fresh_data": true,
+        "max_results": 3,
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:search.light_design_trend_context"
     }
   ]
 }
