@@ -863,6 +863,78 @@ async fn explicit_manual_roles_do_not_use_direct_answer_chat_bypass() {
 }
 
 #[tokio::test]
+async fn vision_direct_answer_bypasses_selected_business_role() {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(|| Ok(Box::new(StructuredSummaryWorkerCognition))),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert("strategy.id".to_string(), "learning".to_string());
+    metadata.insert("strategy.response_mode".to_string(), "learning".to_string());
+    metadata.insert(
+        "strategy.collaboration_mode".to_string(),
+        "single".to_string(),
+    );
+    metadata.insert("strategy.primary_role".to_string(), "ops".to_string());
+    metadata.insert(
+        "attachments.images_json".to_string(),
+        r#"[{"url":"data:image/png;base64,AA==","detail":"high","source_ref":"conversation_file:file-1"}]"#
+            .to_string(),
+    );
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-vision-direct-answer".to_string()),
+            input: "图片的内容是什么".to_string(),
+            metadata,
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    while let Some(event) = rx.recv().await {
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::RouteDecided {
+                strategy_id,
+                collaboration_mode,
+                route_mode,
+                primary_runtime_role,
+                support_runtime_roles,
+                ..
+            } if strategy_id.as_deref() == Some("learning")
+                && collaboration_mode.as_deref() == Some("single")
+                && route_mode == "chat_bypass"
+                && primary_runtime_role.as_deref() == Some("chat")
+                && support_runtime_roles.is_empty()
+        )
+    }));
+    assert!(
+        !events
+            .iter()
+            .any(|event| matches!(event, SessionEvent::CommanderThinking { .. }))
+    );
+    assert!(
+        !events
+            .iter()
+            .any(|event| matches!(event, SessionEvent::TaskGraphPlanned { .. }))
+    );
+}
+
+#[tokio::test]
 async fn fast_worker_structured_output_returns_summary_not_json() {
     let manager = AgentManager::new(AgentManagerConfig::new(
         Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),

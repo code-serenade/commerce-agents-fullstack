@@ -58,6 +58,9 @@ impl TaskGraphRule {
         route: Option<&RoleRoute>,
         rules: &TaskGraphRuleSet,
     ) -> bool {
+        if self.id == "direct_chat_short_answer" && route_has_non_chat_roles(route) {
+            return false;
+        }
         self.legacy_match().matches(task, route)
             && self.r#match.matches(task, route)
             && (!self.r#match.explicit_team_request
@@ -168,6 +171,17 @@ impl TaskGraphRuleMatch {
         }
         true
     }
+}
+
+fn route_has_non_chat_roles(route: Option<&RoleRoute>) -> bool {
+    let Some(route) = route else {
+        return false;
+    };
+    route.primary_runtime_role != "chat"
+        || route
+            .support_runtime_roles
+            .iter()
+            .any(|role| role != "chat")
 }
 
 pub(super) fn explicit_team_keywords(rules: &TaskGraphRuleSet) -> Vec<String> {

@@ -256,7 +256,7 @@
 
 - 当前用户必须存在于 `app_users`，且状态为 `enabled`
 - 该接口只暴露问答工作台可选择的运行契约，不会动态修改模型配置或角色目录
-- 前端发送 SSE 时应把用户选择映射到 `metadata.model.name` 与 `metadata.strategy.*`
+- 前端发送 SSE 时只能把用户选择映射到 `metadata.strategy.*`；`metadata.model.name` 已废弃，服务端会忽略前端传入的模型名，LLM 只能由服务端 `services.toml` 配置决定
 - `learning`、`quick`、`execution` 会进入 Agent runtime 的 `strategy.id` / `strategy.response_mode`，后端会在 Commander 和 Worker 上下文中注入不同的回答风格事实；`beginner` / `higher_vocational` / `professional` 会作为讲解深度事实生效，不是纯前端展示字段
 
 ## 2.2.1 查询 Agent 能力目录
@@ -3182,7 +3182,7 @@
 - `contentKind=extraction_failed` 表示附件解析失败；失败原因位于 `metadata.metadata.extraction.failureReason`。
 - `contentKind=extraction_unsupported` 表示当前解析 adapter 不支持该附件。
 - `contentKind=unavailable` 表示该来源没有可读文本。
-- 该接口不会读取 object storage，不做 OCR，不解析 PDF/图片/视频，也不会把二进制附件伪造成已读正文。
+- 该接口不会读取 object storage，不做 OCR，不解析 PDF/图片/视频，也不会把二进制附件伪造成已读正文。Agent SSE 对 conversation 图片附件的 vision 输入是独立链路：服务端会在启动 runtime 前为 active 图片附件生成临时下载 URL 并写入 `attachments.images_json`，不会改变本 context-pack 的可读正文语义。
 - Agent SSE 会在 `workspace_context_loaded` 后自动调用该内容包能力，发送 `workspace_context_pack_loaded` 事件，并把可读文本追加进 runtime `context.summary`。
 - `contextRefs` 中的显式附件、营销活动、商品资产、商品素材和 artifact 会和 `conversationId`、`productId`、`runId` 范围来源合并去重后进入内容包；未显式引用的历史附件、历史活动、历史商品素材或历史 artifact 不会进入 SSE Agent 本轮上下文。
 

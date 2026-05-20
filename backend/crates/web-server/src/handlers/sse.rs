@@ -12,6 +12,7 @@ use axum::{
     },
 };
 use futures_util::Stream;
+use serde::Serialize;
 use serde_json::{Value, json};
 use service::{
     api::{
@@ -48,11 +49,19 @@ use crate::{
     dto::sse::AgentStreamRequest,
     error::{Error, from_biz_error},
     statics::{
-        agent_manager::{run_agent_stream, select_agent_runtime_model},
-        db_manager::get_app_ctx,
-        external_search::get_external_search_config,
+        agent_manager::run_agent_stream, db_manager::get_app_ctx,
+        external_search::get_external_search_config, storage_manager::get_storage,
     },
 };
+
+const MAX_AUTO_VISION_IMAGES: usize = 4;
+
+#[derive(Debug, Serialize)]
+struct AgentVisionImageAttachment {
+    url: String,
+    detail: String,
+    source_ref: String,
+}
 
 pub async fn stream_agent_session(
     Extension(auth_user): Extension<AuthUser>,
@@ -70,7 +79,7 @@ pub async fn stream_agent_session(
     let session_id = req.session_id.clone().unwrap_or_else(new_session_id);
     let requested_workspace_id = req.workspace_id.clone();
     let input = req.input.clone();
-    let (mut metadata, context_selection, model_selection) =
+    let (mut metadata, context_selection, _model_selection) =
         req.metadata.into_parts().map_err(bad_request)?;
     let conversation_id = context_selection.conversation_id.clone();
     let selected_product_id = context_selection
@@ -102,8 +111,6 @@ pub async fn stream_agent_session(
     api.get_current_user_permissions(user_id.clone())
         .await
         .map_err(from_biz_error)?;
-    select_agent_runtime_model(model_selection.name.as_deref())
-        .map_err(|err| bad_request(err.to_string()))?;
     if let Some(conversation_id) = conversation_id.as_ref() {
         let conversation = ConversationApi::new(get_app_ctx())
             .get_conversation(user_id.clone(), conversation_id.clone())
@@ -183,6 +190,9 @@ pub async fn stream_agent_session(
         .map_err(from_biz_error)?;
     merge_workspace_context_metadata(&mut metadata, &workspace_context)
         .map_err(|err| Error::Custom(format!("workspace context metadata failed: {err}")))?;
+    merge_conversation_file_image_attachments(&mut metadata, &user_id, &workspace_context)
+        .await
+        .map_err(Into::<ApiError>::into)?;
     let workspace_context_pack = workspace_api
         .context_pack(service::dto::workspace::GetWorkspaceContextPackRequest {
             user_id: user_id.clone(),
@@ -231,7 +241,6 @@ pub async fn stream_agent_session(
         agent_id,
         Some(session_id.clone()),
         input,
-        model_selection.name,
         metadata,
     )
     .map_err(Into::<ApiError>::into)?;
@@ -1321,6 +1330,81 @@ fn merge_workspace_context_metadata(
     Ok(())
 }
 
+async fn merge_conversation_file_image_attachments(
+    metadata: &mut std::collections::BTreeMap<String, String>,
+    user_id: &str,
+    context: &WorkspaceContextSummaryResponse,
+) -> Result<(), Error> {
+    if metadata
+        .get("attachments.images_json")
+        .is_some_and(|value| !value.trim().is_empty())
+    {
+        return Ok(());
+    }
+
+    let image_sources = auto_vision_conversation_file_sources(context);
+    if image_sources.is_empty() {
+        return Ok(());
+    }
+
+    let conversation_api = ConversationApi::new(get_app_ctx());
+    let mut images = Vec::new();
+    for source in image_sources {
+        let access = conversation_api
+            .file_access(get_storage(), user_id.to_string(), source.id.clone())
+            .await
+            .map_err(|err| {
+                Error::Custom(format!(
+                    "conversation image attachment access failed for {}: {:?}",
+                    source.ref_key, err,
+                ))
+            })?;
+        images.push(AgentVisionImageAttachment {
+            url: access.download_url,
+            detail: "high".to_string(),
+            source_ref: source.ref_key.clone(),
+        });
+    }
+
+    metadata.insert(
+        "attachments.image_count".to_string(),
+        images.len().to_string(),
+    );
+    metadata.insert(
+        "attachments.images_json".to_string(),
+        serde_json::to_string(&images)
+            .map_err(|err| Error::Custom(format!("agent image metadata failed: {err}")))?,
+    );
+    metadata.insert(
+        "attachments.image_source".to_string(),
+        "conversation_file_access".to_string(),
+    );
+    Ok(())
+}
+
+fn is_supported_vision_image_mime(value: &str) -> bool {
+    let value = value.to_ascii_lowercase();
+    matches!(value.as_str(), "image/png" | "image/jpeg" | "image/webp")
+}
+
+fn auto_vision_conversation_file_sources(
+    context: &WorkspaceContextSummaryResponse,
+) -> Vec<&WorkspaceContextSourceResponse> {
+    context
+        .attachment_sources
+        .iter()
+        .filter(|source| {
+            source.source_type == "conversation_file"
+                && source.status == "active"
+                && source
+                    .mime_type
+                    .as_deref()
+                    .is_some_and(is_supported_vision_image_mime)
+        })
+        .take(MAX_AUTO_VISION_IMAGES)
+        .collect()
+}
+
 fn merge_workspace_context_pack_metadata(
     metadata: &mut std::collections::BTreeMap<String, String>,
     context: &WorkspaceContextPackResponse,
@@ -1807,6 +1891,63 @@ mod tests {
     }
 
     #[test]
+    fn supported_vision_image_mime_allows_common_web_images_only() {
+        assert!(is_supported_vision_image_mime("image/png"));
+        assert!(is_supported_vision_image_mime("IMAGE/JPEG"));
+        assert!(is_supported_vision_image_mime("image/webp"));
+        assert!(!is_supported_vision_image_mime("image/gif"));
+        assert!(!is_supported_vision_image_mime("application/pdf"));
+    }
+
+    #[test]
+    fn auto_vision_sources_use_active_conversation_images_with_limit() {
+        let context = WorkspaceContextSummaryResponse {
+            workspace_id: "workspace-1".to_string(),
+            conversation_id: Some("conversation-1".to_string()),
+            product_id: None,
+            run_id: None,
+            readiness: "ready".to_string(),
+            summary: "Workspace context is ready.".to_string(),
+            counts: service::dto::workspace::WorkspaceContextSummaryCounts {
+                campaigns: 0,
+                conversation_files: 7,
+                product_assets: 0,
+                product_materials: 0,
+                workspace_artifacts: 0,
+            },
+            attachment_sources: vec![
+                workspace_context_source("conversation_file", "file-1", "image/png", "active"),
+                workspace_context_source("conversation_file", "file-2", "image/jpeg", "active"),
+                workspace_context_source(
+                    "conversation_file",
+                    "file-3",
+                    "application/pdf",
+                    "active",
+                ),
+                workspace_context_source("conversation_file", "file-4", "image/webp", "deleted"),
+                workspace_context_source("product_asset", "asset-1", "image/png", "active"),
+                workspace_context_source("conversation_file", "file-5", "image/webp", "active"),
+                workspace_context_source("conversation_file", "file-6", "IMAGE/JPEG", "active"),
+                workspace_context_source("conversation_file", "file-7", "image/png", "active"),
+            ],
+            campaign_sources: Vec::new(),
+            product_asset_sources: Vec::new(),
+            product_material_sources: Vec::new(),
+            artifact_sources: Vec::new(),
+            missing: Vec::new(),
+            warnings: Vec::new(),
+            agent_context: json!({}),
+        };
+
+        let ids = auto_vision_conversation_file_sources(&context)
+            .iter()
+            .map(|source| source.id.as_str())
+            .collect::<Vec<_>>();
+
+        assert_eq!(ids, vec!["file-1", "file-2", "file-5", "file-6"]);
+    }
+
+    #[test]
     fn workspace_context_pack_metadata_appends_readable_text() {
         let mut metadata = std::collections::BTreeMap::new();
         metadata.insert(
@@ -1931,6 +2072,25 @@ mod tests {
             sequence,
             created_at: time::OffsetDateTime::UNIX_EPOCH,
             updated_at: time::OffsetDateTime::UNIX_EPOCH,
+        }
+    }
+
+    fn workspace_context_source(
+        source_type: &str,
+        id: &str,
+        mime_type: &str,
+        status: &str,
+    ) -> WorkspaceContextSourceResponse {
+        WorkspaceContextSourceResponse {
+            source_type: source_type.to_string(),
+            id: id.to_string(),
+            title: Some(id.to_string()),
+            mime_type: Some(mime_type.to_string()),
+            file_size: Some(1024),
+            status: status.to_string(),
+            ref_key: format!("{source_type}:{id}"),
+            preview: Some(id.to_string()),
+            metadata: json!({}),
         }
     }
 }

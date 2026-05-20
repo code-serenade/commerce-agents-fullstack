@@ -1,0 +1,58 @@
+[http]
+port = 19878
+
+[jwt_verify]
+url = "http://1.85.61.130:29001/internal/jwt_verify_config"
+header = "x-internal-token"
+token = "dev-internal-token-change-me"
+
+
+[[db]]
+name = "app"
+url = "postgres://postgres:123456@localhost:15432/app"
+max_connections = 10
+min_connections = 1
+connect_timeout = 30
+idle_timeout = 600
+sql_logging = false
+
+[s3]
+endpoint = "http://10.100.11.246:9000"
+public_bucket = "public"
+private_bucket = "private"
+access_key = "btok"
+secret_key = "hBu3*64#hf(n)"
+user_key_salt = "KQgPM+etGa31+cj6M/0ao0+8yrEgHeGY/9bnbICoLs/wR2vJL8ED/J8v6vki0kESIHMUXqAmSLCs3ft5AUwmWA=="
+
+default_llm = "doubao-thinking"
+
+[agent_llm_usage]
+default = "doubao-thinking"
+fast = "doubao-fast"
+thinking = "doubao-thinking"
+vision = "doubao-vision"
+
+[[llm]]
+name = "doubao-fast"
+base_url = "https://ark.cn-beijing.volces.com/api/v3"
+model = "doubao-seed-1-6-flash-250828"
+api_key = "e9cc641d-1992-40d1-9fbc-f725fd420611"
+max_tokens = 8000
+temperature = 0.2
+
+[[llm]]
+name = "doubao-thinking"
+base_url = "https://ark.cn-beijing.volces.com/api/v3"
+model = "doubao-seed-2-0-pro-260215"
+api_key = "e9cc641d-1992-40d1-9fbc-f725fd420611"
+max_tokens = 20000
+temperature = 0.2
+reasoning_effort = "high"
+
+[[llm]]
+name = "doubao-vision"
+base_url = "https://ark.cn-beijing.volces.com/api/v3"
+model = "doubao-seed-1-6-vision-250815"
+api_key = "e9cc641d-1992-40d1-9fbc-f725fd420611"
+max_tokens = 12000
+temperature = 0.2

@@ -83,11 +83,10 @@ pub fn run_agent_stream(
     agent_id: Option<String>,
     session_id: Option<String>,
     input: String,
-    requested_model_name: Option<String>,
     mut metadata: BTreeMap<String, String>,
 ) -> Result<SessionEventRx> {
     let registry = registry()?;
-    let selection = registry.select_model(requested_model_name.as_deref())?;
+    let selection = registry.select_model(None)?;
     metadata.insert("model.name".to_string(), selection.selected_name);
     metadata.insert("model.model".to_string(), selection.model);
     metadata.insert(
