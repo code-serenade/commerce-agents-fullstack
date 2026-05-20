@@ -28,7 +28,7 @@ export function TaskMateLogo({
       {...props}
     >
       <img
-        src="/brand/taskmate-logo.svg"
+        src="/favicon.svg"
         alt=""
         className="size-full object-cover"
         draggable={false}
