@@ -28,6 +28,7 @@ import type { ProductDialogName } from "./use-products-page"
 import { productsQueryKey } from "./use-product-queries"
 import { createAssetRecord } from "./product-asset-action"
 import { useProductCompetitorActions } from "./use-product-competitor-actions"
+import { syncProductCache } from "./product-cache"
 
 export function useProductActions({
   assetFile,
@@ -69,6 +70,7 @@ export function useProductActions({
     mutationFn: (values: SimpleFormValues) =>
       createProductApi(productPayload(values)),
     onSuccess: async (product) => {
+      syncProductCache(queryClient, product)
       setSelectedProductId(product.id)
       setDialog(null)
       notifySuccess(t("commerce.products.notify.created"))
@@ -87,7 +89,8 @@ export function useProductActions({
         ...productPayload(values),
         metadata: target.metadata ?? {},
       }),
-    onSuccess: async () => {
+    onSuccess: async (product) => {
+      syncProductCache(queryClient, product)
       setDialog(null)
       notifySuccess(t("commerce.products.notify.updated"))
       await invalidateProducts()

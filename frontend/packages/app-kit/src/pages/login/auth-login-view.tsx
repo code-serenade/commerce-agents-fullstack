@@ -47,6 +47,7 @@ export interface AuthLoginNotice {
 
 export interface AuthLoginViewProps {
   labels: AuthLoginViewLabels
+  brandLogo?: ReactNode
   footerLink?: AuthLoginFooterLink
   notice?: AuthLoginNotice
   onSubmit: (values: AuthLoginSubmitValues) => void | Promise<void>
@@ -61,6 +62,7 @@ const authFooterClassName = "text-sm text-(--app-muted-text)"
 
 export function AuthLoginView({
   labels,
+  brandLogo,
   footerLink,
   notice,
   onSubmit,
@@ -86,9 +88,12 @@ export function AuthLoginView({
     <div className={authShellClassName}>
       <section className={authAsideClassName}>
         <div>
-          <p className="text-xs tracking-[0.22em] text-(--app-muted-text)">
-            {labels.brand}
-          </p>
+          <div className="flex items-center gap-3">
+            {brandLogo ? <div className="shrink-0">{brandLogo}</div> : null}
+            <p className="text-xs tracking-[0.22em] text-(--app-muted-text)">
+              {labels.brand}
+            </p>
+          </div>
           <h1 className="mt-4 text-4xl/tight font-semibold">
             {labels.heroTitleLine1}
             <br />
@@ -105,6 +110,14 @@ export function AuthLoginView({
       <section className={authContentClassName}>
         <div className="space-y-8">
           <div className="space-y-3">
+            {brandLogo ? (
+              <div className="mb-5 flex items-center gap-3 sm:hidden">
+                {brandLogo}
+                <span className="text-sm font-semibold text-(--app-text)">
+                  {labels.brand}
+                </span>
+              </div>
+            ) : null}
             <p className="text-xs font-medium tracking-[0.16em] text-(--app-muted-text)">
               {labels.welcome}
             </p>

@@ -1897,8 +1897,8 @@ const messages = {
       submit: "Sign in",
       submitting: "Signing in...",
       identifier: {
-        label: "Identifier",
-        placeholder: "Enter identifier",
+        label: "Account",
+        placeholder: "Enter username or email",
       },
     },
     footer: {
@@ -1908,7 +1908,7 @@ const messages = {
     error: {
       title: "Sign-in did not finish",
       invalidCredentials:
-        "Login failed, please check your identifier and password.",
+        "Login failed, please check your account and password.",
       workspaceUnavailable:
         "Your account was checked but the workspace did not finish loading. Confirm the backend service is running, then sign in again.",
     },

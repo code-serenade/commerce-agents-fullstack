@@ -1866,8 +1866,8 @@ const messages = {
       submit: "登录",
       submitting: "登录中...",
       identifier: {
-        label: "标识",
-        placeholder: "请输入标识",
+        label: "账号",
+        placeholder: "请输入用户名或邮箱",
       },
     },
     footer: {
@@ -1876,7 +1876,7 @@ const messages = {
     },
     error: {
       title: "登录没有完成",
-      invalidCredentials: "登录失败，请检查标识和密码。",
+      invalidCredentials: "登录失败，请检查账号和密码。",
       workspaceUnavailable:
         "账号验证后没有进入工作区，请确认后端服务已启动，然后重新登录。",
     },

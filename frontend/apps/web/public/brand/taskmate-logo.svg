@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
+  <title id="title">TaskMate logo</title>
+  <desc id="desc">A polished TaskMate brand mark combining task flow, checkmark, and commerce workspace signals.</desc>
+  <defs>
+    <linearGradient id="tm-bg" x1="18" y1="12" x2="82" y2="86" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#14213d"/>
+      <stop offset="0.55" stop-color="#0f766e"/>
+      <stop offset="1" stop-color="#0b3b3a"/>
+    </linearGradient>
+    <linearGradient id="tm-accent" x1="25" y1="66" x2="70" y2="26" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#67e8f9"/>
+      <stop offset="1" stop-color="#f8fafc"/>
+    </linearGradient>
+    <filter id="tm-shadow" x="10" y="8" width="76" height="80" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="8" stdDeviation="7" flood-color="#020617" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+  <rect width="96" height="96" rx="24" fill="url(#tm-bg)"/>
+  <path fill="#ffffff" fill-opacity="0.16" d="M25 18h38c9.9 0 18 8.1 18 18v34c0 4.4-3.6 8-8 8H43c-14.9 0-27-12.1-27-27V27c0-5 4-9 9-9z"/>
+  <g filter="url(#tm-shadow)">
+    <path fill="#f8fafc" d="M25 27c0-3.3 2.7-6 6-6h36c3.3 0 6 2.7 6 6v8H25v-8z"/>
+    <path fill="#f8fafc" d="M38 35h22v34c0 4.4-3.6 8-8 8h-6c-4.4 0-8-3.6-8-8V35z"/>
+    <path fill="url(#tm-accent)" d="M27.6 57.2a5 5 0 0 1 7.1 0L44.2 67l18.9-22.8a5 5 0 0 1 7.7 6.4L48.5 77.5a6 6 0 0 1-9 .3l-11.9-13.5a5 5 0 0 1 0-7.1z"/>
+  </g>
+  <circle cx="68" cy="28" r="5" fill="#facc15"/>
+  <circle cx="75" cy="60" r="4" fill="#67e8f9"/>
+  <circle cx="24" cy="70" r="3.5" fill="#f8fafc" fill-opacity="0.82"/>
+</svg>

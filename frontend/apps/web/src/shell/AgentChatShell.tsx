@@ -43,6 +43,7 @@ import {
 import type { RootState } from "@/store"
 import { logout } from "@/store/authSlice"
 import { resetAccess } from "@/store/accessSlice"
+import { TaskMateLogo } from "@/components/brand"
 import { AgentChatProvider } from "@/pages/site/agent-chat/components/agent-chat-provider"
 import { useAgentChatContext } from "@/pages/site/agent-chat/context/use-agent-chat-context"
 
@@ -401,12 +402,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       <SidebarShell
         defaultSidebarOpen
         contentScroll={isQuestionRoute ? "hidden" : "auto"}
-        brandLogo={
-          <div className="relative flex size-10 items-center justify-center rounded-xl bg-foreground font-mono text-base font-semibold text-background shadow-sm">
-            TM
-            <span className="absolute right-1 top-1 size-1.5 rounded-full bg-blue-500" />
-          </div>
-        }
+        brandLogo={<TaskMateLogo />}
         brandEyebrow="TaskMate"
         brandTitle={t("agentChat.shell.brandTitle")}
         brandDescription={t("agentChat.shell.brandDescription")}

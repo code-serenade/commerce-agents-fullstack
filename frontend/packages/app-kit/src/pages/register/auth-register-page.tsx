@@ -61,6 +61,7 @@ function createAuthRegisterSchema(t: Translate) {
 }
 
 export function AuthRegisterPage({
+  brandLogo,
   loginPath = "/login",
   onRegistered,
 }: AuthRegisterPageProps) {
@@ -104,9 +105,12 @@ export function AuthRegisterPage({
     <div className={authShellClassName}>
       <section className={authAsideClassName}>
         <div>
-          <p className="text-xs tracking-[0.22em] text-(--app-muted-text)">
-            {t("authRegister.brand", { ns: "pages" })}
-          </p>
+          <div className="flex items-center gap-3">
+            {brandLogo ? <div className="shrink-0">{brandLogo}</div> : null}
+            <p className="text-xs tracking-[0.22em] text-(--app-muted-text)">
+              {t("authRegister.brand", { ns: "pages" })}
+            </p>
+          </div>
           <h1 className="mt-4 text-4xl/tight font-semibold">
             {t("authRegister.hero.titleLine1", { ns: "pages" })}
             <br />
@@ -121,6 +125,14 @@ export function AuthRegisterPage({
 
       <section className={authContentClassName}>
         <div className="space-y-3">
+          {brandLogo ? (
+            <div className="mb-5 flex items-center gap-3 sm:hidden">
+              {brandLogo}
+              <span className="text-sm font-semibold text-(--app-text)">
+                {t("authRegister.brand", { ns: "pages" })}
+              </span>
+            </div>
+          ) : null}
           <p className="text-xs font-medium tracking-[0.16em] text-(--app-muted-text)">
             {t("authRegister.welcome", { ns: "pages" })}
           </p>
