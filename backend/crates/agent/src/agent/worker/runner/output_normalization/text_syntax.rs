@@ -265,6 +265,8 @@ fn normalize_template_phrases(mut text: String) -> String {
         ("比如", "可以按真实资料补充"),
         ("例如", "可以按真实资料补充"),
         ("譬如", "可以按真实资料补充"),
+        ("你可以继续这样问我：你可以围绕", "你可以继续这样问我：围绕"),
+        ("你可以继续这样问我: 你可以围绕", "你可以继续这样问我：围绕"),
         ("占位符需替换为真实信息", ""),
     ] {
         text = text.replace(from, to);
@@ -363,6 +365,16 @@ mod tests {
         assert_eq!(
             normalize_text(text),
             "避开无证据功效，保留1.5折这种真实表达。"
+        );
+    }
+
+    #[test]
+    fn smooths_duplicate_followup_intro() {
+        let text = "你可以继续这样问我：你可以围绕成本、客服继续问。";
+
+        assert_eq!(
+            normalize_text(text),
+            "你可以继续这样问我：围绕成本、客服继续问。"
         );
     }
 }
