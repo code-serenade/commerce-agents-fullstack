@@ -1,7 +1,4 @@
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{fs, path::Path};
 
 use serde::Deserialize;
 use tracing::warn;
@@ -197,8 +194,7 @@ pub(in crate::agent::worker::runner) fn load_autosuggest_policy() -> WorkerAutos
         }
     }
 
-    let root = workspace_root();
-    let directory_path = root.join(DEFAULT_AUTOSUGGEST_DIR);
+    let directory_path = Path::new(DEFAULT_AUTOSUGGEST_DIR);
     match load_autosuggest_directory(&directory_path) {
         Ok(policy) => return policy,
         Err(error) => warn!(
@@ -208,7 +204,7 @@ pub(in crate::agent::worker::runner) fn load_autosuggest_policy() -> WorkerAutos
         ),
     }
 
-    let legacy_path = root.join(LEGACY_AUTOSUGGEST_FILE);
+    let legacy_path = Path::new(LEGACY_AUTOSUGGEST_FILE);
     match load_legacy_file(&legacy_path) {
         Ok(policy) => policy,
         Err(error) => {
@@ -274,14 +270,6 @@ where
 {
     let content = fs::read_to_string(path).map_err(|error| format!("read: {error}"))?;
     serde_json::from_str(&content).map_err(|error| format!("invalid {name}: {error}"))
-}
-
-fn workspace_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .and_then(Path::parent)
-        .map(Path::to_path_buf)
-        .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")))
 }
 
 fn single_mode() -> String {
