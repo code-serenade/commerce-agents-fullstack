@@ -4,6 +4,7 @@
   "role_aliases_file": "role-aliases.json",
   "role_defaults_file": "role-defaults.json",
   "files": [
+    "graphs/direct-stable-business-answer.json",
     "graphs/direct-chat-short-answer.json",
     "graphs/direct-learning-followup-guidance.json",
     "graphs/direct-chat-high-risk-claim-boundary.json",

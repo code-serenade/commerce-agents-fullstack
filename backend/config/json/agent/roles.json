@@ -6,7 +6,7 @@
       "runtime_role": "chat",
       "priority": 5,
       "domains": ["domain.general", "domain.ecommerce", "domain.education"],
-      "keywords": ["你好", "hello", "hi", "问一下", "请问", "什么", "为什么", "怎么", "如何", "是否", "是不是", "能否", "可以吗", "解释", "说明", "区别", "概念", "什么意思", "聊聊"],
+      "keywords": ["你好", "hello", "hi", "问一下", "请问", "什么", "为什么", "怎么", "如何", "是否", "是不是", "能否", "可以吗", "解释", "说明", "区别", "概念", "什么意思", "聊聊", "不知道怎么问", "引导", "继续问", "老师点评", "课堂反馈", "批改", "学生"],
       "preferred_actions": ["answer", "query"],
       "required_capabilities": ["chat.answer", "chat.clarification"],
       "optional_capabilities": ["knowledge.explanation", "intent.classification"]
@@ -17,7 +17,7 @@
       "runtime_role": "ops",
       "priority": 10,
       "domains": ["domain.general", "domain.ecommerce", "domain.education"],
-      "keywords": ["运营", "增长", "策略", "活动", "投放", "推广", "转化", "复盘", "营销", "获客", "拉新", "促活", "留存", "复购"],
+      "keywords": ["运营", "增长", "策略", "活动", "推广", "转化", "复盘", "营销", "获客", "拉新", "促活", "留存", "复购", "选品", "供应链", "履约", "库存", "商品规划", "类目", "开卖", "怎么卖", "优先级", "平台运营"],
       "preferred_actions": ["plan", "optimize", "execute"],
       "required_capabilities": ["ops.strategy", "campaign.orchestration"],
       "optional_capabilities": ["data.analysis", "creative.content", "service.workflow"]
@@ -28,7 +28,7 @@
       "runtime_role": "data",
       "priority": 20,
       "domains": ["domain.general", "domain.ecommerce", "domain.education"],
-      "keywords": ["数据", "分析", "报表", "指标", "预测", "漏斗", "归因", "A/B"],
+      "keywords": ["数据", "分析", "报表", "指标", "预测", "漏斗", "归因", "A/B", "表格", "字段", "SKU", "sheet", "Excel", "CSV", "复盘字段", "能算什么", "缺什么字段"],
       "preferred_actions": ["analyze", "query", "plan"],
       "required_capabilities": ["data.analysis", "metrics.diagnosis"],
       "optional_capabilities": ["forecast.demand", "attribution.modeling"]
@@ -39,7 +39,7 @@
       "runtime_role": "service",
       "priority": 30,
       "domains": ["domain.general", "domain.ecommerce", "domain.education"],
-      "keywords": ["客服", "售后", "投诉", "退款", "满意度", "NPS", "服务"],
+      "keywords": ["客服", "售后", "投诉", "退款", "满意度", "NPS", "服务", "话术", "履约", "赔付", "租赁", "预约", "取消", "退换"],
       "preferred_actions": ["execute", "optimize", "query"],
       "required_capabilities": ["service.workflow", "service.sentiment"],
       "optional_capabilities": ["nps.analysis", "refund.process"]
@@ -50,7 +50,7 @@
       "runtime_role": "creative",
       "priority": 40,
       "domains": ["domain.general", "domain.ecommerce", "domain.education"],
-      "keywords": ["文案", "创意", "视频", "脚本", "种草", "直播", "标题"],
+      "keywords": ["文案", "创意", "视频", "脚本", "种草", "直播", "标题", "改标题", "卖点", "素材", "主图文案", "详情页文案"],
       "preferred_actions": ["create", "optimize"],
       "required_capabilities": ["creative.content"],
       "optional_capabilities": ["creative.video", "creative.copywriting", "seo.title"]
@@ -61,7 +61,7 @@
       "runtime_role": "engineering",
       "priority": 50,
       "domains": ["domain.general", "domain.ecommerce", "domain.education"],
-      "keywords": ["技术", "架构", "接口", "性能", "SLA", "故障", "系统"],
+      "keywords": ["技术", "架构", "接口", "性能", "SLA", "故障", "系统", "上传", "文件", "图片识别", "OCR", "附件", "表格解析", "埋点", "数据链路"],
       "preferred_actions": ["analyze", "execute", "optimize"],
       "required_capabilities": ["engineering.architecture", "engineering.reliability"],
       "optional_capabilities": ["engineering.sla", "data.pipeline"]
@@ -72,7 +72,7 @@
       "runtime_role": "accounting",
       "priority": 60,
       "domains": ["domain.general", "domain.ecommerce", "domain.education"],
-      "keywords": ["财务", "成本", "利润", "ROI", "预算", "现金流", "毛利"],
+      "keywords": ["财务", "成本", "利润", "ROI", "预算", "现金流", "毛利", "保本", "能赚吗", "赚钱", "亏损", "回本", "单件毛利"],
       "preferred_actions": ["analyze", "plan", "query"],
       "required_capabilities": ["finance.profitability", "finance.cashflow"],
       "optional_capabilities": ["budget.planning", "roi.modeling"]
@@ -83,7 +83,7 @@
       "runtime_role": "design",
       "priority": 70,
       "domains": ["domain.general", "domain.ecommerce", "domain.education"],
-      "keywords": ["设计", "视觉", "主图", "详情页", "海报", "排版", "版式", "UI", "UX"],
+      "keywords": ["设计", "视觉", "主图", "详情页", "海报", "排版", "版式", "UI", "UX", "页面承接", "信任证明", "素材视觉"],
       "preferred_actions": ["create", "optimize"],
       "required_capabilities": ["design.visual", "design.layout"],
       "optional_capabilities": ["creative.content", "conversion.optimization"]
@@ -94,7 +94,7 @@
       "runtime_role": "web",
       "priority": 80,
       "domains": ["domain.general", "domain.ecommerce", "domain.education"],
-      "keywords": ["SEO", "关键词", "搜索", "自然流量", "收录", "排名", "标题优化"],
+      "keywords": ["SEO", "关键词", "搜索", "自然流量", "收录", "排名", "标题优化", "市场研究", "竞品", "趋势", "最新", "政策", "规则", "平台规则", "公开来源"],
       "preferred_actions": ["analyze", "optimize", "create"],
       "required_capabilities": ["seo.optimization", "web.content"],
       "optional_capabilities": ["creative.copywriting", "data.analysis"]
@@ -105,7 +105,7 @@
       "runtime_role": "douyin_ads",
       "priority": 25,
       "domains": ["domain.ecommerce"],
-      "keywords": ["千川", "投流", "投放", "巨量千川", "ROI", "ROAS", "CPC", "CPA", "计划", "人群包", "短视频引流", "直播间转化"],
+      "keywords": ["千川", "投流", "投放", "巨量千川", "ROI", "ROAS", "CPC", "CPA", "计划", "人群包", "短视频引流", "直播间转化", "直播投放", "素材消耗", "预算消耗"],
       "preferred_actions": ["analyze", "optimize", "execute"],
       "required_capabilities": ["ads.optimization", "roi.control", "audience.segmentation", "campaign.pacing"],
       "optional_capabilities": ["data.analysis", "creative.content", "budget.planning", "conversion.optimization"]

@@ -5,6 +5,7 @@
   ],
   "final_role": "ops",
   "role_order": [
+    "chat",
     "data",
     "creative",
     "design",

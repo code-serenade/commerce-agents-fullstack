@@ -1,7 +1,7 @@
 {
   "id": "commerce_role_split_ops_data_creative",
   "description": "用户要求按运营、数据、内容等虚拟员工分工输出时，稳定编排岗位任务图",
-  "priority": 740,
+  "priority": 490,
   "match": {
     "any_keywords": [
       "虚拟员工",
