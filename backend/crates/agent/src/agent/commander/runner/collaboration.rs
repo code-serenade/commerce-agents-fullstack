@@ -3,6 +3,7 @@ use super::{
     primary_route_score, primary_worker_id,
 };
 use crate::{
+    agent::commander::no_user_facing_content_message,
     core::protocol::{
         AgentId, Message, MessageContext, Payload, SessionEvent, TaskId, TaskSpec, WorkerId,
     },
@@ -211,20 +212,26 @@ impl Commander {
     }
 
     async fn send_collaboration_done(&mut self, context: &MessageContext, task_id: &TaskId) {
-        let support_workers = self
+        let support_roles = self
             .completed_support_workers
             .iter()
-            .map(|worker| worker.0.clone())
+            .filter_map(|worker_id| {
+                self.active_collaboration
+                    .as_ref()
+                    .and_then(|plan| plan.assignment_for(worker_id))
+                    .map(|assignment| assignment.runtime_role.clone())
+                    .or_else(|| Some(worker_id.0.trim_start_matches("worker.").to_string()))
+            })
             .collect::<Vec<_>>()
             .join(", ");
-        let content = if support_workers.is_empty() {
+        let content = if support_roles.is_empty() {
             self.active_collaboration
                 .as_ref()
                 .and_then(|plan| self.collaboration_outputs.get(&plan.primary.worker_id))
                 .map(|contribution| contribution.content.clone())
-                .unwrap_or_else(|| format!("任务已完成: {}", task_id.0))
+                .unwrap_or_else(no_user_facing_content_message)
         } else {
-            self.synthesize_collaboration_output(task_id, &support_workers)
+            self.synthesize_collaboration_output(task_id, &support_roles)
         };
         let _ = self.sender.send(Message::new_with_context(
             next_message_id(),
@@ -245,7 +252,7 @@ impl Commander {
         self.state = CommanderState::Idle;
     }
 
-    fn synthesize_collaboration_output(&self, task_id: &TaskId, support_workers: &str) -> String {
+    fn synthesize_collaboration_output(&self, _task_id: &TaskId, support_roles: &str) -> String {
         let task = self
             .current_task
             .as_ref()
@@ -253,10 +260,9 @@ impl Commander {
             .unwrap_or_default();
         let Some(plan) = &self.active_collaboration else {
             return synthesize_user_facing_collaboration_report(
-                task_id,
                 &task,
                 None,
-                support_workers,
+                support_roles,
                 &[],
                 self.current_context
                     .metadata
@@ -275,10 +281,9 @@ impl Commander {
         }
 
         synthesize_user_facing_collaboration_report(
-            task_id,
             &task,
             Some(plan),
-            support_workers,
+            support_roles,
             &contributions,
             self.current_context
                 .metadata
@@ -295,10 +300,9 @@ impl Commander {
 }
 
 pub(super) fn synthesize_user_facing_collaboration_report(
-    task_id: &TaskId,
     task: &str,
     plan: Option<&RoleCollaborationPlan>,
-    support_workers: &str,
+    support_roles: &str,
     contributions: &[RoleContribution],
     selected_summary: Option<&String>,
 ) -> String {
@@ -307,7 +311,6 @@ pub(super) fn synthesize_user_facing_collaboration_report(
 
     lines.push("# 协作结果".to_string());
     lines.push(format!("**本轮请求**：{}", task.trim()));
-    lines.push(format!("**任务编号**：{}", task_id.0));
     if let Some(selected_summary) = selected_summary
         .map(|value| value.trim())
         .filter(|value| !value.is_empty())
@@ -317,8 +320,8 @@ pub(super) fn synthesize_user_facing_collaboration_report(
             compact_text(selected_summary, 140)
         ));
     }
-    if !support_workers.trim().is_empty() {
-        lines.push(format!("**参与 worker**：{}", support_workers.trim()));
+    if !support_roles.trim().is_empty() {
+        lines.push(format!("**参与角色**：{}", support_roles.trim()));
     }
     lines.push(String::new());
 
@@ -331,17 +334,12 @@ pub(super) fn synthesize_user_facing_collaboration_report(
     }
     lines.push(String::new());
 
-    lines.push("## 过程".to_string());
+    lines.push("## 协作说明".to_string());
     if roles.is_empty() {
         lines.push("- 未记录到参与角色。".to_string());
     } else {
         lines.push(format!("- 参与角色：{}", roles.join(", ")));
     }
-    lines.push(
-        "- 当前内容来自旧 fast-route 协作兜底，只做通用汇总；业务编排和最终结构应由 task graph \
-         配置的最终节点完成。"
-            .to_string(),
-    );
 
     lines.join("\n")
 }
@@ -438,10 +436,9 @@ mod tests {
         ];
 
         let output = synthesize_user_facing_collaboration_report(
-            &TaskId("task-collab".to_string()),
             task,
             Some(&plan),
-            "worker.data, worker.creative",
+            "data, creative",
             &contributions,
             None,
         );
@@ -452,7 +449,9 @@ mod tests {
         assert!(output.contains("**data**"));
         assert!(output.contains("**creative**"));
         assert!(output.contains("参与角色：ops, data, creative"));
-        assert!(output.contains("fast-route"));
+        assert!(!output.contains("任务编号"));
+        assert!(!output.contains("worker"));
+        assert!(!output.contains("fast-route"));
         assert!(!output.contains("legacy role table"));
         assert!(!output.contains("legacy primary plan"));
         assert!(!output.contains("final_report"));
@@ -475,10 +474,9 @@ mod tests {
         ];
 
         let output = synthesize_user_facing_collaboration_report(
-            &TaskId("task-noise".to_string()),
             task,
             Some(&plan),
-            "worker.data, worker.service",
+            "data, service",
             &contributions,
             None,
         );
@@ -488,6 +486,7 @@ mod tests {
         assert!(!lower.contains("data role should provide"));
         assert!(!lower.contains("service role output lacks"));
         assert!(!output.contains("任务已完成: task-123"));
+        assert!(!lower.contains("worker"));
     }
 
     fn assignment(runtime_role: &str) -> RoleAssignment {

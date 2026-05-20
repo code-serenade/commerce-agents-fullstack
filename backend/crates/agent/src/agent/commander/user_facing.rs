@@ -40,7 +40,12 @@ pub(crate) fn no_user_facing_content_message() -> String {
 fn clean_user_facing_line(line: &str) -> String {
     let line = strip_role_prefix(line.trim());
     let line = rewrite_note_prefix(&line);
-    compact_line_spacing(&line)
+    let line = compact_line_spacing(&line);
+    if is_empty_list_artifact(&line) {
+        String::new()
+    } else {
+        line
+    }
 }
 
 fn remove_placeholder_brackets(input: &str) -> String {
@@ -258,6 +263,9 @@ fn is_internal_noise_line(line: &str) -> bool {
         "missing key",
         "worker reported failed status",
         "support role",
+        "support worker",
+        "support_workers",
+        "task_id",
         "data role should provide",
         "service role output lacks",
         "engineering role output lacks",
@@ -268,11 +276,23 @@ fn is_internal_noise_line(line: &str) -> bool {
     .any(|marker| lower.contains(marker))
         || line.contains("任务图")
         || line.contains("岗位报告")
+        || line.starts_with("任务已完成")
+        || line.starts_with("支持角色已完成")
         || line.contains("正在思考中")
         || line.contains("用户未提供具体问题")
         || line.contains("占位符")
+        || lower.contains(" worker")
+        || lower.starts_with("worker")
         || line == "- none"
         || lower == "none"
+        || is_empty_list_artifact(line)
+}
+
+fn is_empty_list_artifact(line: &str) -> bool {
+    matches!(
+        line.trim(),
+        "-" | "*" | "•" | "-：" | "*：" | "•：" | "-:" | "*:" | "•:"
+    )
 }
 
 #[cfg(test)]
@@ -306,5 +326,24 @@ mod tests {
         assert!(!lower.contains("worker"));
         assert!(!lower.contains("role_output"));
         assert!(!lower.contains("raw="));
+    }
+
+    #[test]
+    fn removes_empty_role_shell_and_worker_artifacts() {
+        let raw = "Task graph completed. Task: 这个咖啡如何做营销\nPassed worker reports\n- 内容创意(creative): 【可直接测试的千乐咖啡营销创意（占位符需替换为真实信息）】\n1. 主推标题：千乐咖啡【真实品类（如挂耳/速溶/胶囊/咖啡豆）】日常口粮款\n备注：替换真实品类后即可上线，测试核心指标参考点击率";
+
+        let output = sanitize_user_facing_text(raw).expect("business content should remain");
+        let lower = output.to_ascii_lowercase();
+
+        assert!(output.contains("千乐咖啡真实品类日常口粮款"));
+        assert!(output.contains("说明：替换真实品类后即可上线"));
+        assert!(!lower.contains("task graph"));
+        assert!(!lower.contains("passed worker"));
+        assert!(!lower.contains("worker"));
+        assert!(!output.contains("内容创意(creative)"));
+        assert!(!output.contains("占位符"));
+        assert!(!output.contains("备注："));
+        assert!(!output.contains('【'));
+        assert!(!output.contains('】'));
     }
 }

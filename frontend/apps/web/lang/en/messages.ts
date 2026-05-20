@@ -1876,19 +1876,19 @@ const messages = {
     },
   },
   login: {
-    brand: "AI STANDARDIZED FRAMEWORK",
+    brand: "COMMERCE MULTI-AGENT",
     hero: {
-      titleLine1: "Describe your needs,",
-      titleLine2: "let AI code by the framework.",
+      titleLine1: "Hand commerce work to",
+      titleLine2: "virtual employees.",
       desc1:
-        "This is an AI-standardized development framework across pages, state, routes, APIs, and themes.",
+        "Break product, content, ads, service, cost, and review work into clear judgments and actions.",
       desc2:
-        "You provide requirements, and AI implements features while following the project conventions.",
+        "Sign in to continue conversations, product context, campaign tasks, and deliverables.",
     },
     welcome: "WELCOME BACK",
     title: "Sign in to your account",
     subtitle:
-      "Use your identifier and password to continue into the AI development workflow.",
+      "Use your account and password to enter the commerce virtual employee workspace.",
     form: {
       password: {
         label: "Password",
