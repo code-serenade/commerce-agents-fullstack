@@ -200,6 +200,8 @@ describe("agent chat message mapping", () => {
       },
     ])
     const expectedSummary = {
+      campaignIds: [],
+      campaigns: [],
       collaborationMode: "manual",
       learningLevel: "higher_vocational",
       modelName: "ollama-gpt-oss-20b",

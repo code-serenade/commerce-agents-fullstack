@@ -40,7 +40,6 @@ export default function CommerceOverviewPage() {
           approvals={page.approvals}
           executionQueue={page.executionQueue}
           loading={page.loading}
-          packages={page.packages}
           platforms={page.platforms}
         />
       </CommerceBody>

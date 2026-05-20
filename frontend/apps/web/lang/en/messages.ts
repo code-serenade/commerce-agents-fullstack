@@ -18,7 +18,6 @@ const messages = {
         platformConnect: "Platform connect",
         approvals: "Approvals",
         operations: "Operations",
-        packages: "Packages",
         agent: "Commerce Agents",
         agentOutput: "Deliverables",
         profile: "Profile",
@@ -208,7 +207,7 @@ const messages = {
       overview: {
         eyebrow: "Commerce Console",
         title: "Operations overview",
-        description: "Frontend entry points are organized around migrated backend capabilities: product context, campaigns, execution, platform, approvals, alerts, and package governance.",
+        description: "Frontend entry points are organized around migrated backend capabilities: product context, campaigns, execution, platform, approvals, and alerts.",
         boundaryTitle: "Runtime boundary",
         boundaryDescription: "This page connects ordinary backend business APIs. Agent-native dynamic package loading, tool replay, and automatic long-task execution still respect the agent crate boundary and are not claimed as enabled.",
       },
@@ -250,13 +249,6 @@ const messages = {
         boundaryTitle: "Execution boundary",
         boundaryDescription: "Long tasks and briefings are backend state records in this phase. They do not start real async executors or LLM generation jobs.",
       },
-      packages: {
-        eyebrow: "Package Governance",
-        title: "Package governance",
-        description: "The package page maps to backend catalog, validation, enable, disable, rollback, run locks, and drift checks.",
-        boundaryTitle: "Agent boundary",
-        boundaryDescription: "This manages database governance records and does not dynamically modify the Agent runtime catalog. Work requiring the agent crate remains recorded as a blocker.",
-      },
     },
     overview: {
       metrics: {
@@ -279,7 +271,7 @@ const messages = {
         platform: "Platform connect",
         platformDesc: "Platform summary comes from local connections and metric tables",
         governance: "Pending governance",
-        governanceDesc: "Execution suggestions, tool approvals, and package states",
+        governanceDesc: "Execution suggestions, tool approvals, and alert states",
         enterProducts: "Open products",
         enterCampaigns: "Open campaigns",
         enterWorkspaces: "Open execution",
@@ -732,62 +724,6 @@ const messages = {
         alertsClosed: "Alerts dismissed in bulk",
       },
     },
-    packages: {
-      metrics: {
-        packages: "Packages",
-        skills: "Skill",
-        skillsTail: "Skill package directory",
-        locks: "Run locks",
-        locksTail: "Current workspace/run",
-        disabled: "Disabled/deprecated",
-        disabledTail: "Governance state",
-      },
-      panels: {
-        catalog: "Package catalog",
-        catalogDesc: "Database governance catalog, not direct Agent runtime catalog changes",
-        syncLegacy: "Sync legacy packages",
-        savePackage: "Save package",
-        search: "Search package ID or name",
-        packageType: "Package type",
-        emptyPackages: "No packages",
-        detail: "Package detail",
-        detailDesc: "Validation, enable, disable, and rollback only affect governance records",
-        valid: "Validation passed",
-        invalid: "Validation failed",
-        noValidationIssues: "No errors or warnings",
-        locks: "Run package locks",
-        locksDesc: "Select an existing backend workspace and run to query and save lock records",
-        selectWorkspace: "Select workspace",
-        selectRun: "Select run",
-        lockContext: "Real run context connected",
-        lockContextDesc: "{{workspace}} / {{run}}",
-        checkDrift: "Check drift",
-        saveLock: "Save lock",
-        drift: "Drift check result",
-        emptyLocks: "No backend workspace or run is available yet",
-        emptyLocksForRun: "No package locks for the current run",
-      },
-      columns: {
-        package: "Package",
-        stateChange: "State change",
-        lockedPackage: "Locked package",
-      },
-      dialogs: {
-        package: "Save package",
-        lock: "Save run package lock",
-      },
-      notify: {
-        saved: "Package saved",
-        valid: "Package validation passed",
-        invalid: "Package validation failed",
-        activated: "Package activated",
-        deactivated: "Package deactivated",
-        rolledBack: "Package rolled back",
-        lockSaved: "Run package lock saved",
-        driftChecked: "Drift check completed",
-        legacySynced: "{{count}} legacy package records synced",
-      },
-    },
   },
   home: {
     welcome: "Welcome back",
@@ -861,8 +797,6 @@ const messages = {
       collapseHistory: "Collapse history",
       expandFunctionNav: "Expand function navigation",
       collapseFunctionNav: "Collapse function navigation",
-      expandGovernance: "Expand management and review",
-      collapseGovernance: "Collapse management and review",
       empty: "No conversations yet",
     },
     shell: {
@@ -873,7 +807,6 @@ const messages = {
       sections: {
         create: "",
         workspace: "Function navigation",
-        governance: "Management and Review",
         recents: "History",
       },
       navigation: {
@@ -890,7 +823,6 @@ const messages = {
         deliverables: "Deliverables",
         approvals: "Approvals",
         taskBoard: "Task board",
-        packages: "Reusable packages",
         systemDashboard: "System dashboard",
         team: "AI team",
         history: "History",
@@ -1157,7 +1089,6 @@ const messages = {
           "Deliverables store plans, checklists, and review language",
           "Alerts store budget, delivery, and conversion anomaly rules",
           "Daily briefing summarizes key progress and todos",
-          "Reusable packages support follow-up start, stop, and rollback flows",
         ],
       },
     },
@@ -1314,7 +1245,7 @@ const messages = {
         },
         governance: {
           label: "Governance",
-          detail: "Alerts, packages, approval rollback",
+          detail: "Alerts, approvals, and rollback",
         },
       },
       processStage: {
@@ -1420,7 +1351,7 @@ const messages = {
         },
         governance: {
           title: "Governance",
-          detail: "Alerts, package management, and approval rollback handle risk",
+          detail: "Alerts, approvals, and rollback handle risk",
         },
         review: {
           title: "Review",
@@ -1928,10 +1859,6 @@ const messages = {
         {
           title: "Platforms and operations",
           description: "Connects platforms, campaigns, metrics, briefings, alerts, and external data adapters.",
-        },
-        {
-          title: "Package governance",
-          description: "Manages skill packages, versions, run locks, validation, enable, disable, and rollback records.",
         },
         {
           title: "Approvals and delivery",
