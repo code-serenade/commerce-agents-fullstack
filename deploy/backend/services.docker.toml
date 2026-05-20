@@ -1,3 +1,5 @@
+default_llm = "ollama-thinking"
+
 [http]
 port = 19878
 
@@ -16,17 +18,39 @@ idle_timeout = 600
 sql_logging = false
 
 [s3]
-endpoint = "http://127.0.0.1:9000"
+endpoint = "https://y-s3.dy.dywxgz.com"
 public_bucket = "public"
 private_bucket = "private"
-region = "us-east-1"
-access_key = "CHANGE_ME"
-secret_key = "CHANGE_ME"
-user_key_salt = "please-change-to-random-long-string"
+access_key = "btok"
+secret_key = "hBu3*64#hf(n)"
+user_key_salt = "KQgPM+etGa31+cj6M/0ao0+8yrEgHeGY/9bnbICoLs/wR2vJL8ED/J8v6vki0kESIHMUXqAmSLCs3ft5AUwmWA=="
+
+[agent_llm_usage]
+default = "ollama-thinking"
+fast = "ollama-fast"
+thinking = "ollama-thinking"
+vision = "ollama-vision"
 
 [[llm]]
-name = "ollama-gemma4"
-base_url = "http://127.0.0.1:11434"
+name = "ollama-fast"
+base_url = "http://10.100.11.245:11434"
 model = "gemma4:26b"
+api_key = "sk-local"
+max_tokens = 8000
+temperature = 0.2
+
+[[llm]]
+name = "ollama-thinking"
+base_url = "http://10.100.11.245:11434"
+model = "gemma4:26b"
+api_key = "sk-local"
 max_tokens = 20000
+temperature = 0.2
+
+[[llm]]
+name = "ollama-vision"
+base_url = "http://10.100.11.245:11434"
+model = "minicpm-v:8b-2.6-q5_1"
+api_key = "sk-local"
+max_tokens = 12000
 temperature = 0.2
