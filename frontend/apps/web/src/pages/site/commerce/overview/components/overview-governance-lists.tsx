@@ -7,7 +7,6 @@ import {
 import type {
   CommerceOverviewApproval,
   CommerceOverviewExecution,
-  CommerceOverviewPackage,
   CommerceOverviewPlatform,
 } from "../use-commerce-overview-page"
 import { LinkButton } from "./overview-shared"
@@ -17,13 +16,11 @@ export function OverviewGovernanceLists({
   approvals,
   executionQueue,
   loading,
-  packages,
   platforms,
 }: {
   approvals: CommerceOverviewApproval[]
   executionQueue: CommerceOverviewExecution[]
   loading: boolean
-  packages: CommerceOverviewPackage[]
   platforms: CommerceOverviewPlatform[]
 }) {
   const { t } = useTranslation()
@@ -44,15 +41,8 @@ export function OverviewGovernanceLists({
           status: item.status,
           type: t("commerce.overview.itemTypes.approval"),
         })),
-        ...packages.slice(0, 4).map((item) => ({
-          id: `${item.packageType}:${item.packageId}`,
-          name: item.packageName,
-          note: item.version,
-          status: item.status,
-          type: item.packageType,
-        })),
       ].slice(0, 8),
-    [approvals, executionQueue, packages, t]
+    [approvals, executionQueue, t]
   )
 
   return (

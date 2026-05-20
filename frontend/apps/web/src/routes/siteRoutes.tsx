@@ -11,7 +11,6 @@ import {
   CommerceOverviewPage,
   HomePage,
   OperationsPage,
-  PackagesPage,
   PlatformConnectPage,
   ProductsPage,
   ProfilePage,
@@ -78,10 +77,6 @@ export const siteRoutes: RouteObject = {
         {
           path: "operations",
           element: withSuspense(<OperationsPage />),
-        },
-        {
-          path: "packages",
-          element: withSuspense(<PackagesPage />),
         },
         {
           path: "agent-output",

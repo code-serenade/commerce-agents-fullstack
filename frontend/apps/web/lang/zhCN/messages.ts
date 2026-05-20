@@ -18,7 +18,6 @@ const messages = {
         platformConnect: "平台连接",
         approvals: "审批审计",
         operations: "运营状态",
-        packages: "能力包治理",
         agent: "电商多智能体",
         agentOutput: "交付资料",
         profile: "个人资料",
@@ -207,9 +206,9 @@ const messages = {
       overview: {
         eyebrow: "Commerce Console",
         title: "运营总览",
-        description: "这里按后端已迁移能力组织前端入口：商品上下文、活动、执行、平台、审批、告警和能力包治理。",
+        description: "这里按后端已迁移能力组织前端入口：商品上下文、活动、执行、平台、审批和告警。",
         boundaryTitle: "运行边界",
-        boundaryDescription: "当前页面打通普通后端业务 API；Agent 原生动态能力包加载、工具重放、自动长任务执行仍遵守 agent crate 硬边界，暂不声称已启用。",
+        boundaryDescription: "当前页面只展示已接入的业务 API；工具重放和自动长任务执行仍按系统边界处理。",
       },
       products: {
         eyebrow: "Product Context",
@@ -249,13 +248,6 @@ const messages = {
         boundaryTitle: "执行边界",
         boundaryDescription: "长任务和日报是后端状态记录能力，本阶段不启动真实异步执行器或 LLM 生成任务。",
       },
-      packages: {
-        eyebrow: "Package Governance",
-        title: "能力包治理",
-        description: "能力包页适配后端治理目录、校验、启停、回滚、运行锁和漂移检查能力。",
-        boundaryTitle: "Agent 硬边界",
-        boundaryDescription: "这里管理数据库治理记录，不动态修改 agent runtime catalog；需要改 agent crate 的能力仍记录为阻塞项。",
-      },
     },
     overview: {
       metrics: {
@@ -278,7 +270,7 @@ const messages = {
         platform: "平台连接",
         platformDesc: "平台汇总来自本地连接和指标表",
         governance: "待处理治理",
-        governanceDesc: "执行建议、工具审批和能力包状态",
+        governanceDesc: "执行建议、工具审批和告警状态",
         enterProducts: "进入商品",
         enterCampaigns: "进入活动",
         enterWorkspaces: "进入执行",
@@ -729,62 +721,6 @@ const messages = {
         alertsClosed: "告警已批量关闭",
       },
     },
-    packages: {
-      metrics: {
-        packages: "能力包",
-        skills: "Skill",
-        skillsTail: "技能包目录",
-        locks: "运行锁",
-        locksTail: "当前工作区/运行记录",
-        disabled: "停用/废弃",
-        disabledTail: "治理状态",
-      },
-      panels: {
-        catalog: "能力包目录",
-        catalogDesc: "数据库治理目录，不直接改 Agent runtime catalog",
-        syncLegacy: "同步旧产品能力包",
-        savePackage: "保存能力包",
-        search: "搜索包 ID 或名称",
-        packageType: "包类型",
-        emptyPackages: "还没有能力包",
-        detail: "能力包详情",
-        detailDesc: "校验、启停、回滚只作用于治理记录",
-        valid: "校验通过",
-        invalid: "校验未通过",
-        noValidationIssues: "无错误或提醒",
-        locks: "运行能力包锁",
-        locksDesc: "从后端已有工作区和运行记录中选择上下文，查询和保存锁记录",
-        selectWorkspace: "选择工作区",
-        selectRun: "选择运行记录",
-        lockContext: "已连接真实运行上下文",
-        lockContextDesc: "{{workspace}} / {{run}}",
-        checkDrift: "检查漂移",
-        saveLock: "保存锁",
-        drift: "漂移检查结果",
-        emptyLocks: "后端暂无可用工作区或运行记录",
-        emptyLocksForRun: "当前运行记录还没有能力包锁",
-      },
-      columns: {
-        package: "能力包",
-        stateChange: "状态变化",
-        lockedPackage: "锁定包",
-      },
-      dialogs: {
-        package: "保存能力包",
-        lock: "保存运行能力包锁",
-      },
-      notify: {
-        saved: "能力包已保存",
-        valid: "能力包校验通过",
-        invalid: "能力包校验未通过",
-        activated: "能力包已启用",
-        deactivated: "能力包已停用",
-        rolledBack: "能力包已回滚",
-        lockSaved: "运行能力包锁已保存",
-        driftChecked: "漂移检查完成",
-        legacySynced: "已同步 {{count}} 个旧产品能力包记录",
-      },
-    },
   },
   home: {
     welcome: "欢迎回来",
@@ -854,8 +790,6 @@ const messages = {
       collapseHistory: "收起历史会话",
       expandFunctionNav: "展开功能导航",
       collapseFunctionNav: "收起功能导航",
-      expandGovernance: "展开管理与复盘",
-      collapseGovernance: "收起管理与复盘",
       empty: "还没有历史对话",
     },
     shell: {
@@ -866,7 +800,6 @@ const messages = {
       sections: {
         create: "",
         workspace: "功能导航",
-        governance: "管理与复盘",
         recents: "历史会话",
       },
       navigation: {
@@ -883,7 +816,6 @@ const messages = {
         deliverables: "交付资料",
         approvals: "审批审计",
         taskBoard: "执行清单",
-        packages: "通用化管理",
         systemDashboard: "系统看板",
         team: "AI 团队介绍",
         history: "历史会话",
@@ -1137,7 +1069,6 @@ const messages = {
           "交付资料沉淀方案、清单和复盘口径",
           "预警中心沉淀预算、投放和转化异常规则",
           "每日简报汇总重点进展和待办事项",
-          "通用化管理承接后续流程启停与回滚",
         ],
       },
     },
@@ -1293,7 +1224,7 @@ const messages = {
         },
         governance: {
           label: "治理",
-          detail: "预警中心、能力包管理、审批回滚",
+          detail: "预警中心、审批与回滚",
         },
       },
       processStage: {
@@ -1399,7 +1330,7 @@ const messages = {
         },
         governance: {
           title: "治理",
-          detail: "预警中心、能力包管理和审批回滚处理风险",
+          detail: "预警中心、审批和回滚处理风险",
         },
         review: {
           title: "复盘",
@@ -1899,10 +1830,6 @@ const messages = {
         {
           title: "平台与运营",
           description: "连接平台、活动、指标、日报、告警和外部数据 adapter。",
-        },
-        {
-          title: "能力包治理",
-          description: "管理 skill 能力包、版本、运行锁、校验、启停和回滚记录。",
         },
         {
           title: "审批与交付",

@@ -6,14 +6,12 @@ import {
   getPlatformSummaryApi,
   listCampaignsApi,
   listExecutionQueueApi,
-  listPackageCatalogApi,
   listProductsApi,
   listToolApprovalsApi,
   listWorkspacesApi,
   type AlertSummaryResponse,
   type CampaignResponse,
   type ExecutionQueueResponse,
-  type PackageResponse,
   type PlatformSummaryItem,
   type ProductResponse,
   type ToolApprovalResponse,
@@ -34,7 +32,6 @@ export function useCommerceOverviewPage() {
         executionQueue,
         approvals,
         alerts,
-        packages,
       ] = await Promise.all([
         listProductsApi({ status: "active" }),
         listCampaignsApi({ pageSize: 20 }),
@@ -43,7 +40,6 @@ export function useCommerceOverviewPage() {
         listExecutionQueueApi({ pageSize: 20, status: "pending" }),
         listToolApprovalsApi({ pageSize: 20, status: "pending" }),
         getAlertSummaryApi(),
-        listPackageCatalogApi({ includeDisabled: true, pageSize: 20 }),
       ])
 
       return {
@@ -51,7 +47,6 @@ export function useCommerceOverviewPage() {
         approvals: approvals.items,
         campaigns: campaigns.campaigns,
         executionQueue: executionQueue.items,
-        packages: packages.packages,
         platforms: platforms.platforms,
         products,
         workspaces: workspaces.workspaces,
@@ -71,7 +66,6 @@ export function useCommerceOverviewPage() {
     executionQueue: data?.executionQueue ?? [],
     loading: overviewQuery.isLoading,
     metricCards,
-    packages: data?.packages ?? [],
     platforms: data?.platforms ?? [],
     products: data?.products ?? [],
     workspaces: data?.workspaces ?? [],
@@ -83,7 +77,6 @@ export interface CommerceOverviewData {
   approvals: ToolApprovalResponse[]
   campaigns: CampaignResponse[]
   executionQueue: ExecutionQueueResponse[]
-  packages: PackageResponse[]
   platforms: PlatformSummaryItem[]
   products: ProductResponse[]
   workspaces: WorkspaceResponse[]
@@ -96,4 +89,3 @@ export type CommerceOverviewPlatform = PlatformSummaryItem
 export type CommerceOverviewExecution = ExecutionQueueResponse
 export type CommerceOverviewApproval = ToolApprovalResponse
 export type CommerceOverviewAlertSummary = AlertSummaryResponse
-export type CommerceOverviewPackage = PackageResponse

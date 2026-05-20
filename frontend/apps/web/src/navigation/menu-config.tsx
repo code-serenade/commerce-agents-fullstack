@@ -7,7 +7,6 @@ import {
   FileText,
   LayoutDashboard,
   Megaphone,
-  PackageCheck,
   PlugZap,
   ShoppingBag,
 } from "lucide-react"
@@ -85,12 +84,6 @@ export const webNavigationSections: WebNavigationSectionConfig[] = [
         labelKey: "web.shell.navigation.operations",
         path: "/operations",
         icon: <BellRing />,
-      },
-      {
-        id: "packages",
-        labelKey: "web.shell.navigation.packages",
-        path: "/packages",
-        icon: <PackageCheck />,
       },
     ],
   },
