@@ -112,6 +112,8 @@ impl TaskGraphRuntime {
             role: node.role.clone(),
             attempt,
             objective: node.objective.clone(),
+            llm_usage: node.llm_usage.clone(),
+            skill_autosuggest: node.skill_autosuggest,
             inputs,
             rework_instruction: self.rework_instructions.get(&node.id).cloned(),
         }
@@ -808,8 +810,12 @@ mod tests {
             root_task: "Build a plan.".to_string(),
             nodes: vec![data.clone(), ops.clone()],
         });
-        runtime.states.insert(data.id.clone(), TaskNodeRuntimeState::Passed);
-        runtime.states.insert(ops.id.clone(), TaskNodeRuntimeState::Passed);
+        runtime
+            .states
+            .insert(data.id.clone(), TaskNodeRuntimeState::Passed);
+        runtime
+            .states
+            .insert(ops.id.clone(), TaskNodeRuntimeState::Passed);
         runtime
             .reports
             .insert(data.id.clone(), report("data", "upstream draft"));
@@ -830,6 +836,8 @@ mod tests {
             worker_id: WorkerId(format!("worker.{role}")),
             title: title.to_string(),
             objective: "输出用户可直接理解的内容。".to_string(),
+            llm_usage: None,
+            skill_autosuggest: None,
             input_refs: Vec::new(),
             acceptance: Vec::new(),
             max_attempts: 1,

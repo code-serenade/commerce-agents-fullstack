@@ -41,11 +41,13 @@ pub(super) async fn execute_requested_skills(
 ) -> Vec<SkillExecutionResult> {
     let mut requests =
         normalize_explicit_skill_requests_for_task(parse_skill_requests(output), task);
-    requests.extend(autosuggest_skill_requests(
-        &role.runtime_role,
-        task,
-        &requests,
-    ));
+    if skill_autosuggest_enabled(task) {
+        requests.extend(autosuggest_skill_requests(
+            &role.runtime_role,
+            task,
+            &requests,
+        ));
+    }
     if requests.is_empty() {
         return Vec::new();
     }
@@ -137,6 +139,13 @@ fn should_defer_category_level_skill_request(request: &ParsedSkillRequest, task:
 fn has_selected_product_context(task: &Task) -> bool {
     metadata_value(task, "context.selected_summary").is_some()
         || metadata_value(task, "commerce.selected_product_context").is_some()
+}
+
+fn skill_autosuggest_enabled(task: &Task) -> bool {
+    task.assignment
+        .as_ref()
+        .and_then(|assignment| assignment.skill_autosuggest)
+        .unwrap_or(true)
 }
 
 fn is_category_level_deferred_skill(skill: &str) -> bool {
@@ -343,4 +352,76 @@ fn emit_skill_result(
             .get("approval_required")
             .and_then(serde_json::Value::as_bool),
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+
+    use super::*;
+    use crate::{
+        agent::worker::Task,
+        core::protocol::{
+            AgentId, MessageContext, TaskGraphId, TaskId, TaskNodeId, WorkerAssignment, WorkerId,
+        },
+        roles::RoleId,
+    };
+
+    fn role(runtime_role: &str) -> RoleProfile {
+        RoleProfile {
+            id: RoleId(runtime_role.to_string()),
+            name: runtime_role.to_string(),
+            runtime_role: runtime_role.to_string(),
+            priority: 0,
+            domains: Vec::new(),
+            keywords: Vec::new(),
+            preferred_actions: Vec::new(),
+            required_capabilities: Vec::new(),
+            optional_capabilities: Vec::new(),
+        }
+    }
+
+    fn task(skill_autosuggest: Option<bool>) -> Task {
+        Task {
+            id: "task-1".to_string(),
+            context: MessageContext {
+                user_id: None,
+                workspace_id: None,
+                agent_id: None,
+                session_id: None,
+                task_id: None,
+                metadata: BTreeMap::new(),
+            },
+            description: "帮我做校园零食小店运营方案".to_string(),
+            requester: AgentId("commander".to_string()),
+            assignment: Some(WorkerAssignment {
+                graph_id: TaskGraphId("graph-1".to_string()),
+                node_id: TaskNodeId("ops".to_string()),
+                task_id: TaskId("task-1".to_string()),
+                worker_id: WorkerId("worker.ops".to_string()),
+                role: "ops".to_string(),
+                attempt: 1,
+                objective: "帮我做校园零食小店运营方案".to_string(),
+                llm_usage: Some("fast".to_string()),
+                skill_autosuggest,
+                inputs: Vec::new(),
+                rework_instruction: None,
+            }),
+        }
+    }
+
+    #[tokio::test]
+    async fn skips_autosuggest_when_assignment_disables_it() {
+        let results = execute_requested_skills(
+            &AgentId("worker.ops".to_string()),
+            &role("ops"),
+            &task(Some(false)),
+            r#"{"summary":"直接回答","role_output":{"summary":"直接回答"}}"#,
+            None,
+            None,
+        )
+        .await;
+
+        assert!(results.is_empty());
+    }
 }

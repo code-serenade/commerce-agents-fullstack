@@ -74,7 +74,9 @@ temperature = 0.2
 
 顶层 `default_llm` 可选，用于指定默认使用哪个 `[[llm]].name`。如果不配置，运行选项接口和 Agent runtime 都会优先选择真实配置的豆包模型（`name` 或 `model` 包含 `doubao`），否则使用第一个 `[[llm]]`。前端只展示 `services.toml` 里真实存在的模型，不会伪造豆包选项。
 
-`[agent_llm_usage]` 用于把 agent 内部能力映射到不同模型：`fast` 用于 commander 路由、chat worker 和快速回复；`thinking` 用于普通业务 worker、多角色分析和综合；`vision` 用于 `metadata.attachments.images` 图片输入。`vision` 未配置时，带图片请求会失败并返回明确错误，不会降级成文本模型。
+`[agent_llm_usage]` 用于把 agent 内部能力映射到不同模型：`fast` 用于 commander 路由、chat worker、快速回复和配置为 `llm_usage = "fast"` 的 task graph 节点或动态角色；`thinking` 用于普通业务 worker、多角色分析和综合；`vision` 用于 `metadata.attachments.images` 图片输入。task graph 节点和动态角色配置可配置 `llm_usage` 为 `fast`、`thinking` 或 `default` 覆盖默认 worker 路由。`vision` 未配置时，带图片请求会失败并返回明确错误，不会降级成文本模型。
+
+task graph 节点和动态角色配置还可设置 `skill_autosuggest = false`，用于轻量协作或最终润色节点跳过自动技能建议，避免没有外部资料或工具适配器时产生无效调用。
 
 当前仓库提交的 `backend/config/services.toml` 没有真实豆包 Ark 配置，也没有 Ark API key；因此当前本地运行时不会调用豆包。要启用豆包，必须在部署机器的 `services.toml` 中添加真实 `[[llm]]` 配置并设置 `default_llm`，不要把真实 key 提交到仓库。
 
