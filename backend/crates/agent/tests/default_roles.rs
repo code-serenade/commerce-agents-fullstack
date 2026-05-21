@@ -945,16 +945,11 @@ async fn commander_dispatches_task_graph_roles_after_upstream_role() {
     assert!(runtime_roles.contains("data"));
     assert!(runtime_roles.contains("accounting"));
     assert!(runtime_roles.contains("creative"));
-    assert!(result.output.contains("多智能体协作结论"));
-    assert!(result.output.contains("教学模式已完成"));
-    assert!(result.output.contains("数据诊断"));
-    assert!(result.output.contains("数据分析师"));
-    assert!(result.output.contains("预算评估"));
-    assert!(result.output.contains("财务分析师"));
-    assert!(result.output.contains("创意产出"));
-    assert!(result.output.contains("内容创意师"));
-    assert!(result.output.contains("运营方案"));
-    assert!(result.output.contains("运营策略师"));
+    assert_eq!(result.task_graphs.len(), 1);
+    assert!(!result.output.contains("多智能体协作结论"));
+    assert!(!result.output.contains("教学模式已完成"));
+    assert!(!result.output.contains("虚拟员工分工"));
+    assert!(!result.output.contains("团队执行稿"));
 }
 
 #[tokio::test]
@@ -1784,11 +1779,9 @@ async fn stream_routes_auto_learning_commerce_task_to_team_graph() {
         matches!(
             event,
             SessionEvent::Output { content, .. }
-                if content.contains("教学模式已完成")
-                    && content.contains("## 正文分析")
-                    && content.contains("## 虚拟员工分工")
-                    && content.contains("| 类型 | 岗位 | 负责问题 | 独立判断 | 交给团队的内容 |")
-                    && content.contains("## 团队执行稿")
+                if !content.contains("教学模式已完成")
+                    && !content.contains("## 虚拟员工分工")
+                    && !content.contains("## 团队执行稿")
                     && !content.contains("对应的曝光、点击、加购、付款和退款漏斗")
         )
     }));

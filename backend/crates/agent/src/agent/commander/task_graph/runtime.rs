@@ -29,6 +29,8 @@ pub struct TaskGraphRuntime {
     pub reports: HashMap<TaskNodeId, WorkerReport>,
     pub rework_instructions: HashMap<TaskNodeId, String>,
     pub evaluations: Vec<Evaluation>,
+    response_mode: Option<String>,
+    learning_depth: Option<String>,
 }
 
 impl TaskGraphRuntime {
@@ -46,14 +48,24 @@ impl TaskGraphRuntime {
             reports: HashMap::new(),
             rework_instructions: HashMap::new(),
             evaluations: Vec::new(),
+            response_mode: None,
+            learning_depth: None,
         }
     }
 
-    pub fn with_response_mode(self, _response_mode: Option<&str>) -> Self {
+    pub fn with_response_mode(mut self, response_mode: Option<&str>) -> Self {
+        self.response_mode = response_mode
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_string);
         self
     }
 
-    pub fn with_learning_depth(self, _learning_depth: Option<&str>) -> Self {
+    pub fn with_learning_depth(mut self, learning_depth: Option<&str>) -> Self {
+        self.learning_depth = learning_depth
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_string);
         self
     }
 
@@ -185,6 +197,9 @@ impl TaskGraphRuntime {
     }
 
     pub fn synthesize(&self) -> String {
+        if self.response_mode.as_deref() != Some("quick") && self.graph.nodes.len() > 1 {
+            return self.learning_synthesis();
+        }
         if let Some(final_output) = self.final_node_output() {
             return final_output;
         }
@@ -211,6 +226,19 @@ impl TaskGraphRuntime {
         } else {
             sections.join("\n\n")
         }
+    }
+
+    fn learning_synthesis(&self) -> String {
+        self.final_node_output()
+            .or_else(|| {
+                self.graph
+                    .nodes
+                    .iter()
+                    .rev()
+                    .filter_map(|node| self.reports.get(&node.id))
+                    .find_map(user_facing_report_text)
+            })
+            .unwrap_or_else(no_user_facing_content_message)
     }
 
     pub fn final_node_output(&self) -> Option<String> {
@@ -308,7 +336,7 @@ impl TaskGraphRuntime {
             incomplete,
             panel: TaskGraphProcessPanel {
                 default_collapsed: true,
-                anchor: "task_graph_process".to_string(),
+                anchor: "answer_scoped_process".to_string(),
                 label: "Task graph process".to_string(),
                 reason: "Task graph runtime process details.".to_string(),
             },
