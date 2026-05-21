@@ -31,9 +31,7 @@
 本机测试启动：
 
 ```bash
-docker compose up -d postgres
-docker compose --profile tools run --rm db-init
-docker compose up -d backend web admin
+docker compose up -d
 ```
 
 前端镜像只使用 nginx，不在 Docker 里安装 Node 或 pnpm。`deploy/frontend/Dockerfile` 只会把本机已经生成的 `frontend/apps/web/dist` 或 `frontend/apps/admin/dist` 复制进 nginx 镜像。
@@ -110,7 +108,7 @@ postgres -> db-init -> backend -> web/admin
 4. xtask init-root
 ```
 
-初始化完成后，`db-init` 会在数据库中写入 `__app_init_state` 标记；重复执行时会跳过已完成的初始化。
+`db-init` 每次启动都会先执行 `migration up`，用于补齐新增表或表结构变更。种子初始化完成后，`db-init` 会在数据库中写入 `__app_init_state` 标记；重复执行时只跳过账号、权限和 root 用户等种子初始化。
 
 默认 root 账号初始化参数：
 
