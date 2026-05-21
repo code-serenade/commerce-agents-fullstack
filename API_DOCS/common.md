@@ -169,3 +169,48 @@ HTTP JSON 字段统一使用 `camelCase`。枚举值和权限码保持业务定�
 - `API_DOCS/app.md`
 - `API_DOCS/sse.md`
 - `API_DOCS/ws.md`
+
+## 7. 文件签名服务约定
+
+文件签名服务由独立 file-server 提供，不在本仓库 `backend/` 目录内实现。前端统一通过 `group=file` 调用该服务域，`group` 只表示目标服务域，不作为 URL 路径前缀。
+
+### 7.1 获取图片上传签名
+
+- 方法：`GET`
+- 路径：`/file/sign/upload/image`
+- 鉴权：需要 JWT
+
+Query：
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `ext` | `string` | 是 | 文件扩展名，不含点号，例如 `png` |
+| `filename` | `string` | 是 | 文件内容 SHA-256 十六进制摘要，前端由 `File` 内容计算 |
+
+成功响应 `data`：
+
+```json
+{
+  "method": "PUT",
+  "upload_url": "https://object-storage.example/upload",
+  "key": "image/sha256.png",
+  "already_uploaded": false,
+  "headers": {
+    "authorization": "AWS4-HMAC-SHA256 ...",
+    "x-amz-date": "20260521T000000Z",
+    "x-amz-content-sha256": "UNSIGNED-PAYLOAD",
+    "Content-Type": "image/png",
+    "Content-Disposition": "inline"
+  }
+}
+```
+
+如果 `already_uploaded=true`，前端应跳过对象存储 `PUT`，直接使用返回的 `key`。
+
+### 7.2 获取文档上传签名
+
+- 方法：`GET`
+- 路径：`/file/sign/upload/document`
+- 鉴权：需要 JWT
+
+Query 与响应结构同“获取图片上传签名”。

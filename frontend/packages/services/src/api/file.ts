@@ -12,6 +12,10 @@ export interface UploadExtQuery {
   ext: string
 }
 
+export interface UploadSignQuery extends UploadExtQuery {
+  filename: string
+}
+
 export interface SignedUploadHeaders {
   authorization: string
   "x-amz-date": string
@@ -24,6 +28,7 @@ export interface UploadSignResponse {
   method: "PUT"
   upload_url: string
   key: string
+  already_uploaded: boolean
   headers: SignedUploadHeaders
 }
 
@@ -71,9 +76,11 @@ export const getUploadAvatarSignApi = async (): Promise<UploadSignResponse> => {
 }
 
 export const getUploadDocumentSignApi = async (
-  query: UploadExtQuery
+  input: File | UploadSignQuery
 ): Promise<UploadSignResponse> => {
-  return request<UploadExtQuery, UploadSignResponse>({
+  const query = input instanceof File ? await createUploadSignQuery(input) : input
+
+  return request<UploadSignQuery, UploadSignResponse>({
     method: "GET",
     url: "/file/sign/upload/document",
     body: query,
@@ -82,9 +89,11 @@ export const getUploadDocumentSignApi = async (
 }
 
 export const getUploadImageSignApi = async (
-  query: UploadExtQuery
+  input: File | UploadSignQuery
 ): Promise<UploadSignResponse> => {
-  return request<UploadExtQuery, UploadSignResponse>({
+  const query = input instanceof File ? await createUploadSignQuery(input) : input
+
+  return request<UploadSignQuery, UploadSignResponse>({
     method: "GET",
     url: "/file/sign/upload/image",
     body: query,
@@ -101,6 +110,13 @@ export const uploadWithSignedUrlApi = async (
     credentials?: RequestCredentials
   }
 ): Promise<Response> => {
+  if (sign.already_uploaded) {
+    return new Response(null, {
+      status: 204,
+      statusText: "Already Uploaded",
+    })
+  }
+
   const headers = new Headers({
     Authorization: sign.headers.authorization,
     "x-amz-date": sign.headers["x-amz-date"],
@@ -133,6 +149,34 @@ export const uploadWithSignedUrlApi = async (
     throw new Error(`Upload failed: ${res.status}`)
   }
   return res
+}
+
+export async function createUploadSignQuery(
+  file: File
+): Promise<UploadSignQuery> {
+  return {
+    filename: await calculateFileSha256(file),
+    ext: getFileExtension(file),
+  }
+}
+
+export async function calculateFileSha256(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer()
+  const digest = await crypto.subtle.digest("SHA-256", buffer)
+
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("")
+}
+
+function getFileExtension(file: File): string {
+  const extension = file.name.split(".").pop()?.trim().toLowerCase()
+
+  if (!extension || extension === file.name.toLowerCase()) {
+    throw new Error("File extension is required")
+  }
+
+  return extension
 }
 
 export const deleteWithSignedUrlApi = async (
