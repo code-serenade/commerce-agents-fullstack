@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router"
 import type { AgentRuntimeEvent } from "./agent-chat-data"
 import { AgentChatComposer } from "./components/agent-chat-composer"
@@ -6,25 +6,52 @@ import { AgentProcessDrawer } from "./components/agent-process-drawer"
 import { AgentChatStatus } from "./components/agent-chat-status"
 import { AgentChatThread } from "./components/agent-chat-thread"
 import { useAgentChatContext } from "./context/use-agent-chat-context"
+import {
+  findLatestProcessTarget,
+  type AgentProcessTarget,
+} from "./view-model/agent-process-visibility-view-model"
 
-interface ActiveProcessTarget {
-  anchorLabel: string
-  messageId: string
-  task: string
-}
+type ActiveProcessTarget = AgentProcessTarget
 
 export default function AgentChatPage() {
   const chat = useAgentChatContext()
   const navigate = useNavigate()
   const [activeProcessTarget, setActiveProcessTarget] =
     useState<ActiveProcessTarget | null>(null)
+  const [dismissedProcessMessageId, setDismissedProcessMessageId] =
+    useState<string | null>(null)
+  const latestProcessTarget = useMemo(
+    () => findLatestProcessTarget(chat.messages, chat.runtimeEvents),
+    [chat.messages, chat.runtimeEvents]
+  )
   const activeProcessMessage = activeProcessTarget
     ? chat.messages.find((message) => message.id === activeProcessTarget.messageId)
     : null
   const activeRuntimeEvents: AgentRuntimeEvent[] =
-    activeProcessMessage?.runtimeEvents ?? []
+    activeProcessMessage?.runtimeEvents?.length
+      ? activeProcessMessage.runtimeEvents
+      : activeProcessMessage?.id === latestProcessTarget?.messageId
+        ? chat.runtimeEvents
+        : []
   const shouldShowProcessPanel =
     Boolean(activeProcessMessage && activeRuntimeEvents.length > 0)
+
+  useEffect(() => {
+    if (!latestProcessTarget) return
+    if (activeProcessTarget?.messageId === latestProcessTarget.messageId) return
+    if (dismissedProcessMessageId === latestProcessTarget.messageId) return
+    setActiveProcessTarget(latestProcessTarget)
+  }, [activeProcessTarget?.messageId, dismissedProcessMessageId, latestProcessTarget])
+
+  const closeProcessPanel = () => {
+    setDismissedProcessMessageId(activeProcessTarget?.messageId ?? null)
+    setActiveProcessTarget(null)
+  }
+
+  const openProcessPanel = (target: ActiveProcessTarget) => {
+    setDismissedProcessMessageId(null)
+    setActiveProcessTarget(target)
+  }
 
   const layoutClassName = "relative flex min-h-0 w-full flex-1 overflow-hidden p-2 sm:p-3"
 
@@ -45,8 +72,8 @@ export default function AgentChatPage() {
             activeProcessMessageId={activeProcessMessage?.id ?? null}
             isStreaming={chat.isStreaming}
             messages={chat.messages}
-            onCloseProcessPanel={() => setActiveProcessTarget(null)}
-            onOpenProcessPanel={setActiveProcessTarget}
+            onCloseProcessPanel={closeProcessPanel}
+            onOpenProcessPanel={openProcessPanel}
             runtimeEvents={chat.runtimeEvents}
             selectedStrategy={chat.selectedStrategy}
             showProcessPanelAction
@@ -97,7 +124,7 @@ export default function AgentChatPage() {
           anchorLabel={activeProcessTarget?.anchorLabel}
           isStreaming={activeProcessMessage?.status === "streaming" && chat.isStreaming}
           messageId={activeProcessMessage?.id}
-          onClose={() => setActiveProcessTarget(null)}
+          onClose={closeProcessPanel}
           runtimeEvents={activeRuntimeEvents}
           task={activeProcessTarget?.task}
         />

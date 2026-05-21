@@ -3,9 +3,9 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import type { AgentRuntimeEvent } from "@/api"
 import type { AgentChatMessage } from "../types"
-import { InlineSwarmTaskCard } from "./inline-swarm-task-card"
 import { MessageContextSummary } from "./message-context-summary"
 import { AssistantAnswer } from "./assistant-answer"
+import { AgentChatThreadTurn } from "./agent-chat-thread-turn"
 import {
   createThreadScrollSnapshot,
   restoreThreadScroll,
@@ -138,31 +138,21 @@ export function AgentChatThread({
           </div>
         ) : null}
         {messages.map((message, index) => (
-          <div
+          <AgentChatThreadTurn
             key={message.id}
-            data-message-id={message.id}
-            className="min-w-0 space-y-3"
-          >
-            {shouldRenderInlineProcess(message) ? (
-              <InlineSwarmTaskCard
-                messageId={message.id}
-                isStreaming={message.status === "streaming" && inlineIsStreaming}
-                onCloseProcessPanel={handleCloseProcessPanel}
-                onOpenProcessPanel={() =>
-                  handleOpenProcessPanel({
-                    anchorLabel: findTurnLabel(messages, index),
-                    messageId: message.id,
-                    task: findPreviousUserTask(messages, index),
-                  })
-                }
-                processPanelOpen={activeProcessMessageId === message.id}
-                runtimeEvents={message.runtimeEvents ?? runtimeEvents}
-                showProcessPanelAction={showProcessPanelAction}
-                task={findPreviousUserTask(messages, index)}
-              />
-            ) : null}
-            <ThreadMessage message={message} />
-          </div>
+            activeProcessMessageId={activeProcessMessageId}
+            index={index}
+            inlineIsStreaming={inlineIsStreaming}
+            message={message}
+            messages={messages}
+            onCloseProcessPanel={handleCloseProcessPanel}
+            onOpenProcessPanel={handleOpenProcessPanel}
+            renderMessage={(targetMessage) => (
+              <ThreadMessage message={targetMessage} />
+            )}
+            runtimeEvents={runtimeEvents}
+            showProcessPanelAction={showProcessPanelAction}
+          />
         ))}
         <div ref={endRef} />
       </div>
@@ -227,28 +217,6 @@ function ThreadMessage({ message }: { message: AgentChatMessage }) {
       ) : null}
     </article>
   )
-}
-
-function shouldRenderInlineProcess(message: AgentChatMessage) {
-  if (message.role !== "assistant") return false
-  const runtimeEvents = message.runtimeEvents ?? []
-  return runtimeEvents.length > 0
-}
-
-function findPreviousUserTask(messages: AgentChatMessage[], fromIndex: number) {
-  for (let index = fromIndex - 1; index >= 0; index -= 1) {
-    const message = messages[index]
-    if (message?.role === "user") return message.content
-  }
-  return ""
-}
-
-function findTurnLabel(messages: AgentChatMessage[], fromIndex: number) {
-  const turn = messages
-    .slice(0, fromIndex + 1)
-    .filter((message) => message.role === "assistant" && message.id !== "welcome")
-    .length
-  return `#${String(Math.max(turn, 1)).padStart(2, "0")}`
 }
 
 function isNearThreadBottom(root: HTMLElement | null) {
