@@ -261,8 +261,8 @@ mod tests {
             }],
         });
 
-        assert!(prompt.contains("质量标尺"));
-        assert!(prompt.contains("不要复述任务、岗位或内部过程"));
+        assert!(prompt.contains("## 合同"));
+        assert!(prompt.contains("不复述任务、岗位或内部过程"));
         assert!(prompt.contains("半成品"));
         assert!(prompt.contains("分析数据并写文案"));
         assert!(prompt.contains("数据贡献"));
