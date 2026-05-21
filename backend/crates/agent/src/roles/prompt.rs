@@ -193,7 +193,7 @@ mod tests {
         assert!(prompt.contains("prompt_source: config/prompts/zh/roles/data.md"));
         assert!(prompt.contains("可申请技能"));
         assert!(prompt.contains("data_funnel_analysis"));
-        assert!(prompt.contains("分析转化率下降"));
+        assert!(!prompt.contains("分析转化率下降"));
     }
 
     #[test]
@@ -248,8 +248,8 @@ mod tests {
             }],
         });
 
-        assert!(prompt.contains("汇总原则"));
-        assert!(prompt.contains("不能复述任务状态"));
+        assert!(prompt.contains("质量标尺"));
+        assert!(prompt.contains("不要复述任务状态"));
         assert!(prompt.contains("分析数据并写文案"));
         assert!(prompt.contains("数据贡献"));
         assert!(!prompt.contains("worker.creative"));

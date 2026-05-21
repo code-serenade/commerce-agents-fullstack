@@ -2,7 +2,7 @@ use crate::{
     agent::worker::{Task, TaskMemory, WorkerPhase},
     cognition::{CognitionInput, Context, Fact, Intent, IntentKind},
     core::protocol::AgentId,
-    roles::{RoleProfile, RolePromptBuilder, RolePromptInput},
+    roles::RoleProfile,
 };
 
 pub(super) fn build_cognition_input(
@@ -105,17 +105,6 @@ fn build_context(
         }
     }
 
-    let role_prompt = RolePromptBuilder::build_worker_prompt(&RolePromptInput {
-        role: role.clone(),
-        task: task.description.clone(),
-        facts: memory.progress.clone(),
-    });
-
-    facts.push(Fact {
-        source: "roles.prompt".to_string(),
-        content: role_prompt,
-        reliability: 1.0,
-    });
     facts.extend(memory.progress.iter().map(|entry| Fact {
         source: "worker.runtime".to_string(),
         content: entry.clone(),
