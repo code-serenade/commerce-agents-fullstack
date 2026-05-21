@@ -5,7 +5,6 @@ import type { AgentRuntimeEvent } from "@/api"
 import type { AgentChatMessage } from "../types"
 import { InlineSwarmTaskCard } from "./inline-swarm-task-card"
 import { MessageContextSummary } from "./message-context-summary"
-import { isChatOnlyRuntime } from "../view-model/thread-inline-view-model"
 import { AssistantAnswer } from "./assistant-answer"
 import {
   createThreadScrollSnapshot,
@@ -233,7 +232,7 @@ function ThreadMessage({ message }: { message: AgentChatMessage }) {
 function shouldRenderInlineProcess(message: AgentChatMessage) {
   if (message.role !== "assistant") return false
   const runtimeEvents = message.runtimeEvents ?? []
-  return runtimeEvents.length > 0 && !isChatOnlyRuntime(runtimeEvents)
+  return runtimeEvents.length > 0
 }
 
 function findPreviousUserTask(messages: AgentChatMessage[], fromIndex: number) {

@@ -55,7 +55,7 @@ export const WORKSPACE_LANES = [
   ["agentChat.swarm.lanes.context.label", "agentChat.swarm.lanes.context.value"],
   ["agentChat.swarm.lanes.execution.label", "agentChat.swarm.lanes.execution.value"],
   ["agentChat.swarm.lanes.delivery.label", "agentChat.swarm.lanes.delivery.value"],
-  ["agentChat.swarm.lanes.governance.label", "agentChat.swarm.lanes.governance.value"],
+  ["agentChat.swarm.lanes.review.label", "agentChat.swarm.lanes.review.value"],
 ] as const
 
 const AGENTS = [
@@ -134,14 +134,28 @@ export function getStageLabel(
     hasTask: boolean
     hasRuntime: boolean
     isStreaming: boolean
+    runtimeEvents: AgentRuntimeEvent[]
     runtimeNodeStates: Map<string, RuntimeNodeSnapshot>
   },
   t: TFunction
 ) {
-  const { agents, hasTask, hasRuntime, isStreaming, runtimeNodeStates } = input
+  const {
+    agents,
+    hasTask,
+    hasRuntime,
+    isStreaming,
+    runtimeEvents,
+    runtimeNodeStates,
+  } = input
   if (!hasTask) return t("agentChat.swarm.stage.waitingInput")
   if (!hasRuntime) {
     return isStreaming ? t("agentChat.swarm.stage.planning") : t("agentChat.swarm.stage.historyWaiting")
+  }
+  const routeEvent = runtimeEvents.find((event) => event.type === "route_decided")
+  if (routeEvent?.route_mode === "chat_bypass") {
+    return isStreaming
+      ? t("agentChat.swarm.stage.directRouting")
+      : t("agentChat.swarm.stage.directFinished")
   }
   const failedAgent = agents.find((agent) => runtimeNodeStates.get(agent.nodeId)?.state === "failed")
   if (failedAgent) return t("agentChat.swarm.stage.failedAgent", { agent: failedAgent.name })

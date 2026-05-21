@@ -49,15 +49,18 @@ export function InlineSwarmTaskCard({
     event.type === "failed" ||
     event.type === "finished"
   )
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(true)
   const agents = getInlineAgents(runtimeEvents, isStreaming, t)
   const steps = getInlineSteps(runtimeEvents, isStreaming, t)
   const completedCount = agents.filter((agent) =>
     agent.state === "done" || agent.state === "boundary"
   ).length
+  const visibleCompletedCount = isComplete
+    ? Math.max(completedCount, agents.length)
+    : completedCount
   const hasRuntime = runtimeEvents.length > 0
   const progressPercent = agents.length
-    ? Math.min(100, Math.round((completedCount / agents.length) * 100))
+    ? Math.min(100, Math.round((visibleCompletedCount / agents.length) * 100))
     : 0
   const hasFailedAgent = agents.some((agent) => agent.state === "failed")
   const activeAgent = agents.find(
@@ -70,7 +73,7 @@ export function InlineSwarmTaskCard({
   const handoffItems = getCommerceHandoffItems(t)
   const progressLabel = hasRuntime
     ? t("agentChat.thread.completedTasks", {
-        completed: completedCount,
+        completed: visibleCompletedCount,
         total: agents.length,
       })
     : isStreaming
@@ -79,7 +82,7 @@ export function InlineSwarmTaskCard({
 
   return (
     <article className="flex justify-start gap-3" data-process-message-id={messageId}>
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-card text-foreground">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-card text-primary">
         <GitBranch className="size-5" />
       </div>
       <div className="max-w-[min(43rem,92%)] min-w-0 space-y-3">
@@ -95,6 +98,9 @@ export function InlineSwarmTaskCard({
               <div className="flex flex-wrap items-center gap-2 text-sm font-semibold">
                 <Activity className="size-4 text-primary" />
                 {t("agentChat.thread.executionTitle")}
+                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                  {t("agentChat.thread.agentPipelineBadge")}
+                </span>
                 <span className="text-xs font-normal text-muted-foreground">
                   {progressLabel}
                 </span>
@@ -165,7 +171,7 @@ export function InlineSwarmTaskCard({
             <>
               <div className="mt-2 grid gap-2">
                 <InlineProgressSummary
-                  completedCount={completedCount}
+                  completedCount={visibleCompletedCount}
                   hasFailedAgent={hasFailedAgent}
                   hasRuntime={hasRuntime}
                   isStreaming={isStreaming}

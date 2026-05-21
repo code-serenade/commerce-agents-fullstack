@@ -70,8 +70,8 @@ export function OverviewGovernanceLists({
         description={t("commerce.overview.panels.governanceDesc")}
         actions={
           <LinkButton
-            to="/approvals"
-            label={t("commerce.overview.panels.enterApprovals")}
+            to="/operations"
+            label={t("commerce.overview.panels.enterOperations")}
           />
         }
       >

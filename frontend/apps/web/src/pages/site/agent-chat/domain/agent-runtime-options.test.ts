@@ -23,13 +23,13 @@ const higherVocationalCopy = "Higher vocational"
 describe("agent runtime options", () => {
   it("uses the same default answer setup before backend options finish loading", () => {
     expect(defaultRuntimeSelection(null)).toMatchObject({
-      collaborationMode: "auto",
+      collaborationMode: "manual",
       learningLevel: "higher_vocational",
       primaryRole: "ops",
     })
   })
 
-  it("defaults new commerce chats to backend auto role dispatch when available", () => {
+  it("defaults new commerce chats to visible multi-agent collaboration when available", () => {
     expect(
       defaultRuntimeSelection({
         collaborationModes: [
@@ -103,7 +103,7 @@ describe("agent runtime options", () => {
         strategies: [],
       })
     ).toEqual({
-      collaborationMode: "auto",
+      collaborationMode: "manual",
       learningLevel: "higher_vocational",
       modelName: "ollama-gpt-oss-20b",
       primaryRole: "ops",

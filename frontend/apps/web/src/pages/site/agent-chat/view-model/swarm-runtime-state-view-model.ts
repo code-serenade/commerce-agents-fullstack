@@ -60,6 +60,17 @@ export function getRuntimeNodeStates(runtimeEvents: AgentRuntimeEvent[]) {
       event.graph.nodes.forEach((node) => {
         ensureNode(readRuntimeId(node.id)).state = "queued"
       })
+    } else if (event.type === "route_decided") {
+      const primaryRole =
+        event.primaryRuntimeRole ?? event.primary_runtime_role ?? "ops"
+      const primaryNode = primaryRole === "chat" ? "ops" : primaryRole
+      const supportRoles =
+        event.supportRuntimeRoles ?? event.support_runtime_roles ?? []
+      ensureNode(primaryNode).state =
+        event.route_mode === "chat_bypass" ? "working" : "queued"
+      supportRoles.forEach((role) => {
+        if (role !== "chat") ensureNode(role).state = "queued"
+      })
     } else if (
       event.type === "context_loaded" ||
       event.type === "rag_context_loaded" ||
@@ -155,6 +166,7 @@ export function getRuntimeNodeStates(runtimeEvents: AgentRuntimeEvent[]) {
         state: "failed",
       })
     } else if (event.type === "finished") {
+      markWorkingNodesDone(states)
       ensureNode("delivery").state = "done"
     }
   })
@@ -216,6 +228,14 @@ function upsertSkillResult(
     return
   }
   snapshot.skillResults.push(result)
+}
+
+function markWorkingNodesDone(states: Map<string, RuntimeNodeSnapshot>) {
+  states.forEach((snapshot) => {
+    if (snapshot.state === "working" || snapshot.state === "queued") {
+      snapshot.state = "done"
+    }
+  })
 }
 
 function readRuntimeId(value: string | [string] | { 0: string }) {

@@ -6,7 +6,6 @@ import { AgentProcessDrawer } from "./components/agent-process-drawer"
 import { AgentChatStatus } from "./components/agent-chat-status"
 import { AgentChatThread } from "./components/agent-chat-thread"
 import { useAgentChatContext } from "./context/use-agent-chat-context"
-import { isChatOnlyRuntime } from "./view-model/thread-inline-view-model"
 
 interface ActiveProcessTarget {
   anchorLabel: string
@@ -25,7 +24,7 @@ export default function AgentChatPage() {
   const activeRuntimeEvents: AgentRuntimeEvent[] =
     activeProcessMessage?.runtimeEvents ?? []
   const shouldShowProcessPanel =
-    Boolean(activeProcessMessage && !isChatOnlyRuntime(activeRuntimeEvents))
+    Boolean(activeProcessMessage && activeRuntimeEvents.length > 0)
 
   const layoutClassName = "relative flex min-h-0 w-full flex-1 overflow-hidden p-2 sm:p-3"
 

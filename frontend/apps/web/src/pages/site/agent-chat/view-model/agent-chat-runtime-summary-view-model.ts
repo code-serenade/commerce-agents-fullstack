@@ -49,6 +49,11 @@ export function selectedRoleSummary({
     return t("agentChat.composer.settings.autoRolesSummary")
   }
 
+  if (runtimeSelection.collaborationMode === "manual") {
+    const count = runtimeSelection.selectedRoles.length
+    return t("agentChat.composer.settings.multiAgentSummary", { count })
+  }
+
   const roleName = (runtimeRole: string | undefined) => {
     if (!runtimeRole) return ""
     return (

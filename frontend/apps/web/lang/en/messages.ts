@@ -4,26 +4,26 @@ const messages = {
       brand: {
         eyebrow: "TaskMate",
         title: "TaskMate・塔克",
-        description: "Virtual employee workspace",
+        description: "Ecommerce AI training workspace",
       },
       navigation: {
         mobileLabel: "Primary navigation",
-        workspace: "Workspace",
-        governance: "Governance",
-        agentSection: "Agent",
-        home: "Overview",
-        products: "Products",
-        campaigns: "Campaigns",
-        workspaces: "Workspaces",
-        platformConnect: "Platform connect",
-        approvals: "Approvals",
-        operations: "Operations",
-        agent: "Commerce Agents",
-        agentOutput: "Deliverables",
+        workspace: "Training flow",
+        governance: "Review and records",
+        agentSection: "Training outputs",
+        home: "Data diagnosis",
+        products: "Product selection analysis",
+        campaigns: "Campaign planning practice",
+        workspaces: "Training tasks",
+        platformConnect: "Platform data",
+        approvals: "Teacher review records",
+        operations: "Operating results",
+        agent: "AI training assistant",
+        agentOutput: "Review report",
         profile: "Profile",
       },
       topbar: {
-        meta: "Personal workspace",
+        meta: "Personal training space",
       },
       account: {
         defaultName: "Member",
@@ -83,7 +83,7 @@ const messages = {
       manualDisable: "Frontend disable",
       manualRollback: "Frontend rollback",
       dialogDescription:
-        "Fill the backend business fields and save. Nothing is written before saving.",
+        "Fill the training-task fields and save. Nothing is written before saving.",
       countPending: "{{count}} pending",
       countRunning: "{{count}} running",
       countEnabled: "{{count}} enabled",
@@ -205,98 +205,115 @@ const messages = {
     },
     pages: {
       overview: {
-        eyebrow: "Commerce Console",
-        title: "Operations overview",
-        description: "Frontend entry points are organized around migrated backend capabilities: product context, campaigns, execution, platform, approvals, and alerts.",
-        boundaryTitle: "Runtime boundary",
-        boundaryDescription: "This page connects ordinary backend business APIs. Agent-native dynamic package loading, tool replay, and automatic long-task execution still respect the agent crate boundary and are not claimed as enabled.",
+        eyebrow: "Training Console",
+        title: "Data diagnosis",
+        description:
+          "Start with products, campaigns, operating data, and pending items to decide what this training task should solve first.",
+        boundaryTitle: "What students can do now",
+        boundaryDescription:
+          "This page helps students understand available materials and abnormal signals. It does not change platform data or publish content automatically.",
       },
       products: {
-        eyebrow: "Product Context",
-        title: "Products",
-        description: "Maintain products, product knowledge, file assets, material versions, competitors, and competitor changes as reusable backend business and Agent input context.",
+        eyebrow: "Product Training",
+        title: "Product selection analysis",
+        description:
+          "Review products, product knowledge, file assets, material versions, competitors, and changes as context for selection analysis and AI training questions.",
       },
       campaigns: {
-        eyebrow: "Campaigns",
-        title: "Campaigns",
-        description: "The campaign page maps directly to backend campaign capabilities for plans, budgets, periods, outputs, and action metadata.",
+        eyebrow: "Campaign Practice",
+        title: "Campaign planning practice",
+        description:
+          "Practice campaign planning around goals, budgets, periods, outputs, and action metadata.",
       },
       workspaces: {
-        eyebrow: "Execution Workspace",
-        title: "Workspaces",
-        description: "The workspace page connects backend tasks, runs, run-task snapshots, and execution suggestions for the manual execution loop after Agent output.",
+        eyebrow: "Training Tasks",
+        title: "Training tasks and deliverables",
+        description:
+          "Carry AI output into tasks, runs, snapshots, and execution suggestions so student work becomes checkable deliverables.",
         boundaryTitle: "Execution note",
-        boundaryDescription: "This phase stores execution records and suggestion decisions. It does not directly call Agent runtime or replay platform tools.",
+        boundaryDescription:
+          "This phase stores execution records and suggestion decisions. It does not directly call Agent runtime or replay platform tools.",
       },
       platform: {
-        eyebrow: "Platform Connect",
-        title: "Platform connect",
-        description: "The platform page maps to backend platform, channel, metric, sync status, adapter catalog, and platform execution preflight capabilities.",
-        boundaryTitle: "Connection boundary",
-        boundaryDescription: "The page now exposes backend platform execution readiness, adapter requests, and idempotency fields. When real platform write adapters are not connected, it clearly shows the action as not executable.",
+        eyebrow: "Platform Data",
+        title: "Platform data",
+        description:
+          "Check whether Douyin, Qianchuan, and other platform data are connected so clicks, conversion, ROI, and other metrics can support training analysis.",
+        boundaryTitle: "Data note",
+        boundaryDescription:
+          "This area is mainly for reading and checking data sources. Real platform writes or publishing actions require review.",
       },
       approvals: {
-        eyebrow: "Approvals",
-        title: "Approvals and audit",
-        description: "The approval page maps to tool approvals, execution queue failure results, and audit logs for manual approve, reject, and business traceability.",
-        boundaryTitle: "Approval boundary",
-        boundaryDescription: "Platform write approvals enter the backend execution queue and adapter outcome path. If a real platform adapter is not connected, the backend returns adapter_not_implemented.",
+        eyebrow: "Review Records",
+        title: "Teacher review records",
+        description:
+          "Review student submissions, teacher decisions, returned revisions, and key operation records so the training process stays checkable.",
+        boundaryTitle: "Review note",
+        boundaryDescription:
+          "This area records review results and comments. High-risk platform actions cannot bypass teacher or admin confirmation.",
       },
       operations: {
-        eyebrow: "Operations",
-        title: "Operations state",
-        description: "The operations page maps to long-task records, daily briefings, background notifications, and alerts.",
-        boundaryTitle: "Execution boundary",
-        boundaryDescription: "Long tasks and briefings are backend state records in this phase. They do not start real async executors or LLM generation jobs.",
+        eyebrow: "Operating Results",
+        title: "Operating results",
+        description:
+          "Track long-task records, daily briefings, background notifications, and alerts so students can review operating process and anomalies.",
+        boundaryTitle: "Result note",
+        boundaryDescription:
+          "Use this area to observe progress, anomalies, and results, then support the next review report.",
       },
     },
     overview: {
       metrics: {
         products: "Products",
-        productsTail: "Entry for products, knowledge, materials, and competitors",
+        productsTail: "Start with product materials, selling points, and competitors",
         campaigns: "Campaigns",
-        campaignsTail: "Campaign records and output storage connected",
-        workspaces: "Workspaces",
-        workspacesTail: "Tasks, runs, and execution suggestions",
+        campaignsTail: "Then plan goals, budgets, and cadence",
+        workspaces: "Training tasks",
+        workspacesTail: "Store tasks, submissions, and review materials",
         pending: "Pending",
-        pendingTail: "Suggestions, approvals, and alerts",
+        pendingTail: "Anomalies, execution queue, and missing materials",
       },
       panels: {
-        productContext: "Product context",
-        productContextDesc: "Backend product capabilities are exposed as an operable frontend entry",
-        campaigns: "Campaigns",
-        campaignsDesc: "Carries campaign output, budget, and action metadata",
-        workspaces: "Execution workspaces",
-        workspacesDesc: "Business destination for tasks, runs, and execution suggestions",
-        platform: "Platform connect",
-        platformDesc: "Platform summary comes from local connections and metric tables",
-        governance: "Pending governance",
-        governanceDesc: "Execution suggestions, tool approvals, and alert states",
-        enterProducts: "Open products",
-        enterCampaigns: "Open campaigns",
-        enterWorkspaces: "Open execution",
-        enterPlatform: "Open platform",
-        enterApprovals: "Open approvals",
+        productContext: "Start product analysis",
+        productContextDesc:
+          "Review product materials, selling points, assets, and competitors to decide which product this training task should analyze.",
+        campaigns: "Plan the campaign",
+        campaignsDesc:
+          "Fill campaign goals, budget, period, and outputs to form a submittable campaign plan.",
+        workspaces: "Submit training task",
+        workspacesDesc:
+          "Store AI output, checklists, and revisions as deliverables teachers can inspect.",
+        platform: "Check platform data",
+        platformDesc:
+          "Check Douyin, Qianchuan, and other metrics for diagnosis and review.",
+        governance: "Check risk reminders",
+        governanceDesc:
+          "Check anomaly reminders, execution queue items, and missing training materials.",
+        enterProducts: "Start product analysis",
+        enterCampaigns: "Start campaign planning",
+        enterWorkspaces: "Submit training task",
+        enterPlatform: "Check platform data",
+        enterOperations: "Check operating results",
       },
       columns: {
         product: "Product",
         campaign: "Campaign",
-        workspace: "Workspace",
+        workspace: "Training task",
         platform: "Platform",
         gmv30d: "30d GMV",
         roi: "ROI",
         item: "Item",
       },
       empty: {
-        products: "No product records",
-        campaigns: "No campaigns",
-        workspaces: "No workspaces",
-        platforms: "No platform connections or metrics",
-        governance: "No pending governance items",
+        products: "No product materials yet. Add one product for training analysis first.",
+        campaigns: "No campaign plan yet. Create a campaign planning exercise first.",
+        workspaces: "No training task yet. Generate or submit one from the AI training assistant.",
+        platforms: "No platform data yet. Connect data before diagnosis.",
+        governance: "No risk reminder or pending item right now.",
       },
       itemTypes: {
-        execution: "Execution suggestion",
-        approval: "Tool approval",
+        execution: "Training suggestion",
+        approval: "Risk reminder",
       },
     },
     products: {
@@ -306,34 +323,40 @@ const messages = {
         knowledge: "Knowledge items",
         knowledgeTail: "Product context and selling point storage",
         materials: "Materials and assets",
-        materialsTail: "{{assets}} file assets, {{materials}} content materials",
+        materialsTail:
+          "{{assets}} file assets, {{materials}} content materials",
         competitors: "Competitors",
         competitorsTail: "Manual competitors and change history",
       },
       panels: {
-        list: "Product list",
-        listDesc: "Products are the backend business context root; knowledge, materials, and competitors attach below them",
-        create: "Create product",
+        list: "Products to analyze",
+        listDesc:
+          "Choose one product, then review selling points, assets, price band, and competitors to form a product-selection judgment.",
+        create: "Add training product",
         search: "Search products, platform, category, or brand",
-        empty: "No products yet. Create one as business context first.",
-        detail: "Product detail",
-        detailDesc: "Select a product to maintain knowledge, materials, and competitors",
-        noProduct: "No product to maintain",
-        selectedDesc: "Knowledge, file assets, material versions, competitors, and change history for this product",
+        empty: "No product materials yet. Add one product for training analysis first.",
+        detail: "Product analysis materials",
+        detailDesc:
+          "Select a product to review selling points, assets, knowledge, and competitor clues.",
+        noProduct: "No product to analyze",
+        selectedDesc:
+          "Organize knowledge, assets, competitors, and changes around this product.",
         edit: "Edit product",
         archive: "Archive product",
         knowledgeTab: "Knowledge",
         assetsTab: "Assets",
         materialsTab: "Materials",
         competitorsTab: "Competitors",
-        createKnowledge: "Create knowledge",
-        registerAsset: "Register asset",
-        createMaterial: "Create material",
+        createKnowledge: "Add product knowledge",
+        registerAsset: "Upload file material",
+        createMaterial: "Add marketing material",
         materialVersions: "Material versions",
-        materialVersionsDesc: "Backend returns version history for the same material type under this product",
+        materialVersionsDesc:
+          "Compare different versions of the same material to decide which one fits the campaign.",
         createCompetitor: "Add competitor",
         competitorChanges: "Competitor changes",
-        competitorChangesDesc: "Manually record price, sales, rating, or strategy changes",
+        competitorChangesDesc:
+          "Manually record price, sales, rating, or strategy changes",
         recordChange: "Record change",
       },
       columns: {
@@ -398,11 +421,12 @@ const messages = {
         endedTail: "Outputs and action metadata retained",
       },
       panel: {
-        title: "Campaigns",
-        description: "Campaign records carry budgets, output content, and action metadata. This phase does not trigger automatic platform execution.",
-        create: "Create campaign",
+        title: "Campaign planning plan",
+        description:
+          "Fill the training goal, campaign budget, period, creative direction, and review metrics to form a submittable campaign plan.",
+        create: "Create campaign plan",
         search: "Search campaign name, type, or description",
-        empty: "No campaigns",
+        empty: "No campaign plan yet. Create a campaign planning exercise first.",
       },
       columns: {
         campaign: "Campaign",
@@ -428,84 +452,90 @@ const messages = {
     },
     workspaces: {
       metrics: {
-        workspaces: "Workspaces",
-        workspacesTail: "Business execution containers",
-        tasks: "Tasks",
-        runs: "Runs",
+        workspaces: "Training tasks",
+        workspacesTail: "Student submissions and revisions",
+        tasks: "Task items",
+        runs: "Submission records",
         runsTail: "Stores goals, requirements, and reports",
-        artifacts: "Artifacts",
+        artifacts: "Review materials",
         artifactsTail: "{{count}} accepted",
-        executions: "Execution suggestions",
+        executions: "Improvement suggestions",
       },
       panels: {
-        master: "Workspaces",
-        masterDesc: "Workspaces bind products and campaigns, then carry tasks, runs, and suggestions",
-        createWorkspace: "Create workspace",
-        search: "Search workspace title or type",
-        empty: "No workspaces",
-        detail: "Workspace detail",
-        detailDesc: "Select a workspace to maintain the execution chain",
-        noWorkspace: "No workspace",
-        selectedDesc: "Tasks, runs, run-task snapshots, artifacts, and execution suggestions all come from backend persistence",
-        archiveWorkspace: "Archive workspace",
-        tasksTab: "Tasks",
-        runsTab: "Runs",
-        artifactsTab: "Artifacts",
-        executionsTab: "Suggestions",
-        createTask: "Create task",
-        createRun: "Create run",
-        runSnapshot: "Run task snapshot",
-        runSnapshotDesc: "Stores task state inside each run",
+        master: "Training task list",
+        masterDesc:
+          "Each training task can bind products and campaigns, then store submission records, review materials, and improvement suggestions.",
+        createWorkspace: "Create training task",
+        search: "Search training task title or type",
+        empty: "No training task yet. Generate or create one from the AI training assistant.",
+        detail: "Training task detail",
+        detailDesc:
+          "Select a training task to maintain task items, submission records, and review materials.",
+        noWorkspace: "No training task",
+        selectedDesc:
+          "This area stores task items, submission records, review materials, and improvement suggestions teachers can inspect.",
+        archiveWorkspace: "Archive training task",
+        tasksTab: "Task items",
+        runsTab: "Submission records",
+        artifactsTab: "Review materials",
+        executionsTab: "Improvement suggestions",
+        createTask: "Add task item",
+        createRun: "Add submission record",
+        runSnapshot: "Submission task snapshot",
+        runSnapshotDesc: "Stores each task item's completion state at submission time.",
         createSnapshot: "Create snapshot",
-        createExecution: "Create suggestion",
+        createExecution: "Add improvement suggestion",
         artifactFormat: "Format",
         artifactStorage: "Storage",
         artifactFile: "File",
         artifactRun: "Run",
         artifactExport: "Export format",
         artifactExportSize: "Export chars",
-        skillRuns: "Skill run records",
-        skillRunsDesc: "Reads Agent skill execution records persisted by the backend, so each run shows which real capabilities were called",
+        skillRuns: "AI analysis records",
+        skillRunsDesc:
+          "Review which analyses AI performed in this training task for student review.",
         qualityLoop: "Quality and learning loop",
-        qualityLoopDesc: "Reads backend quality checks, learning records, and trust scores to show post-answer governance",
+        qualityLoopDesc:
+          "Review answer quality, learning records, and review notes to improve the next submission.",
       },
       actions: {
         copyExport: "Copy export",
         downloadExport: "Download export",
       },
       columns: {
-        workspace: "Workspace",
-        task: "Task",
+        workspace: "Training task",
+        task: "Task item",
         priority: "Priority",
-        runGoal: "Run goal",
+        runGoal: "Submission goal",
         snapshot: "Snapshot",
         acceptance: "Acceptance",
-        artifact: "Artifact",
+        artifact: "Review material",
         validation: "Validation",
-        suggestion: "Suggested action",
+        suggestion: "Improvement suggestion",
         skill: "Capability",
         executionMode: "Execution mode",
         summary: "Summary",
       },
       empty: {
-        tasks: "No tasks",
-        runs: "No runs",
-        runTasks: "No run task snapshots",
-        artifacts: "No artifacts",
-        artifactDetail: "Select an artifact to view detail",
-        artifactContent: "No content or preview saved by backend",
-        executions: "No execution suggestions",
-        skillRuns: "No skill run records for the current run",
+        tasks: "No task items yet",
+        runs: "No submission records yet",
+        runTasks: "No submission task snapshot yet",
+        artifacts: "No review materials yet",
+        artifactDetail: "Select a review material to view detail",
+        artifactContent: "No content or preview saved yet",
+        executions: "No improvement suggestions yet",
+        skillRuns: "No AI analysis records for this submission yet",
         qualityChecks: "No quality checks for the current run",
         qualityIssues: "No quality issues recorded",
-        learningRecords: "No learning records for this workspace",
+        learningRecords: "No learning records for this training task",
         trustScores: "No trust scores recorded yet",
       },
       quality: {
         latestCheck: "Latest quality check",
         trustScore: "Agent trust score",
         learningRecords: "Learning records",
-        learningRecordsDesc: "From quality checks, skill output, and user feedback",
+        learningRecordsDesc:
+          "From quality checks, skill output, and user feedback",
         issues: "Quality issues",
         learningSamples: "Learning samples",
         score: "{{score}}",
@@ -547,17 +577,22 @@ const messages = {
       },
       panels: {
         supportedPlatforms: "Supported platforms",
-        supportedPlatformsDesc: "Configurable platform list returned by backend",
+        supportedPlatformsDesc:
+          "Configurable platform list returned by backend",
         supportedChannels: "Supported channels",
-        supportedChannelsDesc: "Used for notifications, bots, and message delivery",
+        supportedChannelsDesc:
+          "Used for notifications, bots, and message delivery",
         platformConnections: "Platform connections",
-        platformConnectionsDesc: "This phase stores connection records and does not validate real platform credentials",
+        platformConnectionsDesc:
+          "This phase stores connection records and does not validate real platform credentials",
         savePlatform: "Save platform",
         channelConnections: "Channels",
-        channelConnectionsDesc: "Stores channel connection data such as WeCom and Feishu",
+        channelConnectionsDesc:
+          "Stores channel connection data such as WeCom and Feishu",
         saveChannel: "Save channel",
         localMetrics: "Local metrics",
-        localMetricsDesc: "Metrics power readonly platform summaries and business dashboards",
+        localMetricsDesc:
+          "Metrics power readonly platform summaries and business dashboards",
         saveMetric: "Write metric",
         summary: "Platform summary",
         summaryDesc: "Readonly summary from store_metrics",
@@ -586,7 +621,8 @@ const messages = {
         requiredParams: "Required params",
         idempotencyFields: "Idempotency fields",
         canExecuteNow: "Backend says executable now",
-        dispatchPending: "Approval required; no fake success when real adapter is missing",
+        dispatchPending:
+          "Approval required; no fake success when real adapter is missing",
       },
       externalSearch: {
         status: "Status",
@@ -630,11 +666,13 @@ const messages = {
       },
       panels: {
         requests: "Tool approval requests",
-        requestsDesc: "Stores approval status and manual decisions without Agent tool replay",
+        requestsDesc:
+          "Stores approval status and manual decisions without Agent tool replay",
         createRequest: "Create approval",
         emptyRequests: "No approval requests",
         audit: "Audit logs",
-        auditDesc: "Records approvals, execution suggestions, and manual review actions",
+        auditDesc:
+          "Records approvals, execution suggestions, and manual review actions",
         createAudit: "Write audit",
         emptyAudit: "No audit logs",
       },
@@ -672,15 +710,18 @@ const messages = {
       },
       panels: {
         longTasks: "Long tasks",
-        longTasksDesc: "Stores long-task progress records without starting a real async executor",
+        longTasksDesc:
+          "Stores long-task progress records without starting a real async executor",
         createLongTask: "Create long task",
         emptyLongTasks: "No long-task records",
         briefing: "Daily briefing",
-        briefingDesc: "Briefing summary can be derived from alerts and long-task state",
+        briefingDesc:
+          "Briefing summary can be derived from alerts and long-task state",
         saveBriefing: "Save briefing",
         emptyBriefing: "No briefing records",
         notifications: "Background notifications",
-        notificationsDesc: "Notifications can be marked read individually or in bulk",
+        notificationsDesc:
+          "Notifications can be marked read individually or in bulk",
         markAllRead: "Mark all read",
         createNotification: "Create notification",
         emptyNotifications: "No background notifications",
@@ -728,8 +769,9 @@ const messages = {
   home: {
     welcome: "Welcome back",
     publicWelcome: "Welcome",
-    publicTitle: "Web workspace",
-    publicSubtitle: "Public app pages use the same layout before and after sign-in.",
+    publicTitle: "Ecommerce AI training workspace",
+    publicSubtitle:
+      "Complete one training task through product selection, campaign planning, data diagnosis, submission, and review report.",
     fallbackName: "Member",
     actions: {
       profile: "Edit profile",
@@ -738,12 +780,12 @@ const messages = {
     account: {
       title: "Account ready",
       description:
-        "Your signed-in workspace is active. Private app data stays behind authentication.",
+        "Your training account is active. Conversations, task deliverables, and review materials stay with this account.",
     },
     publicAccount: {
-      title: "Public access",
+      title: "Before training",
       description:
-        "You can browse shared pages here. Private account data is only available after sign-in.",
+        "Sign in to continue training conversations, review product materials, submit tasks, and generate review reports.",
     },
     profile: {
       title: "Profile settings",
@@ -751,14 +793,14 @@ const messages = {
         "Update your display name, avatar, email, and password from your profile page.",
     },
     publicProfile: {
-      title: "Personal features",
+      title: "Personal training records",
       description:
-        "Sign in to manage your profile, avatar, email, and password.",
+        "Sign in to manage account details and keep your training process and deliverable records.",
     },
   },
   agentChat: {
     welcomeMessage:
-      "Hi, I am the ecommerce multi-agent workspace. Send an ecommerce question or business goal and I will coordinate virtual employee roles across product, data, support, content, ads, operations, finance, supply chain, and delivery, with process and artifacts on the right.",
+      "Hi, I am the AI training assistant. Enter a training task such as product selection, campaign planning, data anomaly diagnosis, or review report. I will detect the need, dispatch collaborating agents, and sync the process, conclusion, and deliverables.",
     answer: {
       sectionLabels: {
         final: "Final",
@@ -788,7 +830,7 @@ const messages = {
       newChat: "New task",
       search: "Search history",
       recents: "Recents",
-      chat: "Commerce Agents",
+      chat: "AI training assistant",
       more: "More",
       less: "Collapse",
       moreHistory: "Show {{count}} more",
@@ -801,75 +843,73 @@ const messages = {
     },
     shell: {
       brandTitle: "TaskMate・塔克",
-      brandDescription: "Virtual employee workspace",
-      topbarTitle: "Enter an ecommerce question",
-      topbarMeta: "TaskMate・塔克 · virtual employee collaboration",
+      brandDescription: "Ecommerce AI training workspace",
+      topbarTitle: "Enter a training question",
+      topbarMeta: "TaskMate・塔克 · AI training collaboration",
       sections: {
         create: "",
-        workspace: "Function navigation",
+        workspace: "Training navigation",
         recents: "History",
       },
       navigation: {
         newChat: "New chat",
-        capabilities: "Capabilities",
-        smartOps: "Multi-agent Q&A",
-        productBoard: "Product board",
-        campaigns: "Campaigns",
-        platform: "Platform connections",
-        marketResearch: "Market insights",
-        operations: "Operations",
+        capabilities: "Capability guide",
+        smartOps: "Multi-agent training assistant",
+        productBoard: "Product selection analysis",
+        campaigns: "Campaign planning practice",
+        platform: "Platform data",
+        marketResearch: "Data diagnosis",
+        operations: "Operating results",
         briefing: "Daily briefing",
         alerts: "Alerts",
-        deliverables: "Deliverables",
-        approvals: "Approvals",
-        taskBoard: "Task board",
+        deliverables: "Review report",
+        approvals: "Teacher review records",
+        taskBoard: "Training tasks",
         systemDashboard: "System dashboard",
         team: "AI team",
         history: "History",
       },
     },
     strategy: {
-      current: "Answer mode",
+      current: "Agent work mode",
       options: {
         learning: {
           label: "Teaching mode",
-          hint:
-            "For students and beginners: explain terms, reasoning, and actionable steps",
+          hint: "For students and beginners: explain terms, reasoning, and actionable steps",
           shortHint: "Teaching",
         },
         quick: {
           label: "Quick answer",
-          hint:
-            "Best for fast judgment: direct conclusion, key reason, and next steps without a long process",
+          hint: "Best for fast judgment: direct conclusion, key reason, and next steps without a long process",
           shortHint: "Short",
         },
         execution: {
           label: "Rich execution",
-          hint:
-            "Best for reports and delivery: full plan, role split, tables, risks, and acceptance checks",
+          hint: "Best for reports and delivery: full plan, role split, tables, risks, and acceptance checks",
           shortHint: "Full plan",
         },
       },
     },
     composer: {
       placeholder:
-        "Enter an ecommerce question, such as live-room conversion diagnosis, Qianchuan ads review, campaign budget, or creative breakdown...",
+        "Enter your training task directly. For example: split product selection, campaign, data, and review work for collaborating agents...",
       loginPlaceholder:
-        "Draft your ecommerce question here. Sign in when you are ready to run the cloud agent...",
+        "Draft your training question here. Sign in when you are ready to use the AI training assistant...",
       hint: "Business context connected",
       send: "Send",
       stop: "Stop",
       status: {
-        sending: "Calling the backend agent. You can stop this answer at any time.",
+        sending:
+          "The AI training assistant is analyzing. You can stop this answer at any time.",
       },
       attachTitle: "Upload attachment",
       attachShort: "Upload",
       attachPrompt:
         "Add the file or data constraints here, for example: product price, budget, inventory, target audience, current conversion rate, and platform account status.",
-      agentTitle: "Switch virtual employee mode",
-      agentName: "Commerce Agents",
+      agentTitle: "Choose collaborating agents",
+      agentName: "AI training assistant",
       productContext: {
-        label: "Backend product context",
+        label: "Products for this turn",
         compactLabel: "Product",
         noneCompactLabel: "No product",
         compactTitle: "Choose product context for this turn",
@@ -879,10 +919,14 @@ const messages = {
         choose: "Choose saved product",
         collapse: "Collapse products",
         clear: "Clear products",
-        noneHint: "This turn will not read saved product data and will answer as a general ecommerce question.",
-        manualHint: "Backend product data is loaded only after you manually select a saved product.",
-        searchPlaceholder: "Search product name, brand, category, platform, or status",
-        selectedHint: "This turn will read only the selected product's backend data.",
+        noneHint:
+          "This turn will not read saved product data and will answer as a general ecommerce question.",
+        manualHint:
+          "This answer references product materials only after you manually select a saved product.",
+        searchPlaceholder:
+          "Search product name, brand, category, platform, or status",
+        selectedHint:
+          "This turn references only the selected product materials.",
         selectedCount: "{{count}} product selected",
         moreCount: "{{count}} more",
         noSearchResult: "No matching product",
@@ -905,10 +949,14 @@ const messages = {
         choose: "Choose campaign",
         collapse: "Collapse campaigns",
         clear: "Clear campaigns",
-        noneHint: "This turn will not read saved campaign plans, budget, or execution data.",
-        manualHint: "Backend campaign data is loaded only after you manually select a campaign.",
-        searchPlaceholder: "Search campaign name, type, status, budget, or date",
-        selectedHint: "This turn will read the selected campaigns' goals, budget, dates, status, and saved outputs.",
+        noneHint:
+          "This turn will not read saved campaign plans, budget, or execution data.",
+        manualHint:
+          "This answer references campaign materials only after you manually select a campaign.",
+        searchPlaceholder:
+          "Search campaign name, type, status, budget, or date",
+        selectedHint:
+          "This turn will read the selected campaigns' goals, budget, dates, status, and saved outputs.",
         selectedCount: "{{count}} campaign selected",
         budget: "Budget {{value}}",
         noSearchResult: "No matching campaign",
@@ -930,9 +978,12 @@ const messages = {
         availableCount: "{{count}} available",
         readableCount: "{{count}} readable",
         clear: "Clear sources",
-        empty: "No uploaded files are available in this conversation. Upload a file first, then select it for this turn.",
-        manualHint: "Backend source context is loaded only after you manually select files for this turn.",
-        selectedHint: "This turn will read only the selected current-conversation sources.",
+        empty:
+          "No uploaded files are available in this conversation. Upload a file first, then select it for this turn.",
+        manualHint:
+          "This answer references these files only after you manually select them for this turn.",
+        selectedHint:
+          "This turn will read only the selected current-conversation sources.",
         readable: "Readable text",
         metadataOnly: "Metadata only",
         currentConversation: "Current conversation",
@@ -948,64 +999,67 @@ const messages = {
       },
       settings: {
         compactLabel: "Mode",
-        compactTitle: "Adjust answer mode, role assignment, and model",
+        compactTitle: "Adjust answer mode, agent collaboration, and model",
         toggle: "Task settings",
-        rolesCount: "{{count}} roles",
+        rolesCount: "{{count}} agents",
         depthSummary: "Depth: {{depth}}",
         selectedPrefix: "Selected",
         hideSelection: "Hide",
         showSelection: "Show selected mode",
-        autoRolesSummary: "Backend auto",
+        autoRolesSummary: "System auto",
+        multiAgentSummary: "{{count}} agents collaborating",
       },
       runtime: {
-        label: "Role assignment",
+        label: "Collaborating agents",
         loading: "Loading runtime",
         model: "Model",
         modelSettings: "Model settings",
         modelHint:
-          "The backend prefers a real configured Doubao model by default; if Doubao is not configured, only available models are shown.",
+          "The configured Doubao model is used by default. If it is not configured, only available models are shown.",
         learning: "Explanation level",
-        collaboration: "Role assignment",
-        roleMode: "Role assignment",
-        roles: "Support roles",
-        singleRole: "Selected role",
-        primary: "Lead",
-        leadRole: "Lead answer role",
-        supportRoles: "Support roles",
-        selectedRoles: "Select roles",
-        roleColumn: "Role",
-        primaryShort: "Lead",
+        collaboration: "Agent collaboration",
+        roleMode: "Collaboration mode",
+        roles: "Collaborating agents",
+        singleRole: "Selected agent",
+        primary: "Lead agent",
+        leadRole: "Lead agent",
+        supportRoles: "Supporting agents",
+        selectedRoles: "Select collaborating agents",
+        roleColumn: "Agent",
+        primaryShort: "Main answer",
         supportShort: "Support",
-        singleRoleHint: "Click a role card. That virtual employee answers this turn alone.",
-        leadRoleHint: "Click a role card to switch the lead answer role. The lead owns synthesis and the final plan.",
+        singleRoleHint:
+          "Click one agent card to let that agent lead this answer.",
+        leadRoleHint:
+          "Click an agent card to switch the lead agent. The lead owns synthesis and the final plan.",
         supportRolesHint:
-          "Select support roles that should add evidence, risks, assets, and action suggestions into the backend task graph.",
-        answerRoleBadge: "Answer role",
+          "Select supporting agents to add evidence, risks, materials, and action suggestions.",
+        answerRoleBadge: "Current agent",
         primaryBadge: "Lead answer",
         supportBadge: "Support",
-        currentLead: "Current lead",
-        currentSupport: "Support: {{roles}}",
-        noSupportRoles: "No support roles selected",
+        currentLead: "Current lead agent",
+        currentSupport: "Supporting agents: {{roles}}",
+        noSupportRoles: "No supporting agent selected",
         advanced: "More settings",
         explanationDepth: "Explanation depth",
         autoRolesHint:
-          "The backend will decide whether this turn needs one role or multiple collaborating roles.",
+          "The system decides whether this turn needs one or multiple agents.",
         manualRolesHint:
-          "Choose one lead role for synthesis, then select the support roles for collaboration.",
+          "Choose one lead agent for synthesis, then select supporting agents.",
         roleModeHint:
-          "Choose who answers this turn: automatic dispatch, one selected role, or selected multi-role collaboration.",
+          "Choose how this turn calls agents: automatic dispatch, one selected agent, or selected multi-agent collaboration.",
         roleModes: {
           auto: {
             label: "Auto dispatch",
             description: "Backend decides",
           },
           single: {
-            label: "Single role",
-            description: "One role",
+            label: "Single agent",
+            description: "One agent",
           },
           manual: {
-            label: "Multi-role",
-            description: "Team roles",
+            label: "Multi-agent",
+            description: "Collaborative output",
           },
         },
         strategyNotes: {
@@ -1014,7 +1068,7 @@ const messages = {
           quick:
             "Best for fast judgment: conclusion, key reason, and only a few next actions.",
           execution:
-            "Best for reports, reviews, and plans: use tables and checklists for role split, steps, risks, and acceptance checks.",
+            "Best for reports, reviews, and plans: use tables and checklists for agent split, steps, risks, and acceptance checks.",
         },
       },
       samples: {
@@ -1051,9 +1105,9 @@ const messages = {
       },
     },
     workbench: {
-      title: "Task process",
-      expand: "Expand task process",
-      collapse: "Collapse task process",
+      title: "Multi-agent process",
+      expand: "Expand agent process",
+      collapse: "Collapse agent process",
       close: "Close task process",
       closePanel: "Collapse process panel",
       progress: "Progress",
@@ -1116,49 +1170,57 @@ const messages = {
       },
     },
     thread: {
-      agentName: "Commerce Agents",
-      welcomeCapabilities: ["Ecommerce Q&A", "Virtual employee collaboration", "Store deliverables"],
-      receivingOutput: "Receiving business execution output",
-      waitingEvents: "Waiting for task process events",
-      stopped: "This answer was stopped, and the backend model call did not continue.",
-      completedTasks: "{{completed}}/{{total}} tasks completed",
-      planning: "Generating execution plan",
-      historyNotExecuted: "Historical message not executed",
-      executionTitle: "Business execution",
+      agentName: "AI training assistant",
+      welcomeCapabilities: [
+        "Need detection",
+        "Multi-agent collaboration",
+        "Process and deliverables",
+      ],
+      receivingOutput: "Receiving multi-agent output",
+      waitingEvents: "Waiting for agent process events",
+      stopped:
+        "This answer was stopped, and the backend model call did not continue.",
+      completedTasks: "{{completed}}/{{total}} agents completed",
+      planning: "Planning agent collaboration",
+      historyNotExecuted: "Historical message has no live process",
+      executionTitle: "Multi-agent collaboration process",
+      agentPipelineBadge:
+        "Need detection -> agent split -> collaborative output -> deliverables",
       statuses: {
-        executing: "Executing",
+        executing: "Agents collaborating",
         synced: "",
-        planning: "Planning",
-        waiting: "Waiting for a new run",
+        planning: "Assigning agents",
+        waiting: "Waiting for a new collaboration",
       },
       artifactsTitle: "Stage files",
       artifacts: {
         updating: "Updates with execution",
         preparing: "Preparing",
         pending: "Pending",
-        backendCreated: "Backend created {{type}}, status: {{status}}",
-        empty: "No backend deliverables yet. Demo files are not shown for this run.",
-        searchEvidence: "Backend saved real external search evidence.",
-        waitingBackend: "Waiting for backend deliverables or search evidence.",
+        backendCreated: "System created {{type}}, status: {{status}}",
+        empty:
+          "No review materials yet. Demo files are not shown for this run.",
+        searchEvidence: "System saved real external search evidence.",
+        waitingBackend: "Waiting for review materials or search evidence.",
       },
-      currentProgress: "Current progress {{completed}}/{{total}}",
-      collapseProcess: "Collapse process",
-      expandProcess: "Expand process",
-      openWorkbench: "View this process",
-      openWorkbenchForTurn: "View this answer process",
-      closeWorkbench: "Hide this process",
-      currentAnswerProcess: "Current answer",
+      currentProgress: "Agent progress {{completed}}/{{total}}",
+      collapseProcess: "Collapse agent process",
+      expandProcess: "Expand agent process",
+      openWorkbench: "View agent process",
+      openWorkbenchForTurn: "View agent collaboration",
+      closeWorkbench: "Hide agent process",
+      currentAnswerProcess: "Current agent process",
       processLinkedToAnswer: "Linked to this answer",
       processPanelActive: "Right panel open",
       contextSummary: {
-        label: "Backend context for this turn",
+        label: "Training materials for this turn",
         productNone: "No product",
         productCount: "{{count}} products",
         campaignCount: "{{count}} campaigns",
         sourceNone: "No files",
         sourceCount: "{{count}} files",
         strategy: "Mode: {{strategy}}",
-        roles: "Primary role: {{role}} / {{count}} roles",
+        roles: "Agents: lead {{role}} / {{count}} total",
         model: "Model: {{model}}",
         details: "Context details",
         productDetails: "Referenced products",
@@ -1174,7 +1236,8 @@ const messages = {
         standby: "Standby",
         data: {
           name: "Data diagnosis",
-          summary: "Identify metrics, attribution, and operating constraints first",
+          summary:
+            "Identify metrics, attribution, and operating constraints first",
         },
         accounting: {
           name: "Budget review",
@@ -1186,7 +1249,8 @@ const messages = {
         },
         creative: {
           name: "Creative output",
-          summary: "Generate short-video, live, and campaign content directions",
+          summary:
+            "Generate short-video, live, and campaign content directions",
         },
         ops: {
           name: "Ops plan",
@@ -1198,19 +1262,29 @@ const messages = {
         },
       },
       steps: {
-        readTarget: "Read target",
+        readTarget: "Identify training goal",
         planReady: "Execution plan generated",
         readingRules: "Reading ecommerce question and business rules",
         targetRules: "Ecommerce question and business rules",
-        assignTask: "Assign task",
+        assignTask: "Assign agents",
         taskRunning: "Task is running",
         waitingSync: "Waiting for execution status sync",
         checkingConstraints: "Checking model, budget, and ads constraints",
-        enrichMaterial: "Enrich materials",
+        enrichMaterial: "Retrieve sources and evidence",
         enrichByTask: "Enrich platform materials by task",
         enrichFallback: "Enrich industry and platform context",
-        directAnswer: "Direct answer without a multi-role task graph",
-        graphNodeReady: "Backend generated this step for the current task",
+        directAnswer: "Simple questions answer directly; complex tasks start multi-agent collaboration",
+        identifyNeed: "Identify user need",
+        directRoute: "Decide whether multi-agent collaboration is needed",
+        callModel: "Call agent runtime",
+        singleAgentAnswer: "Lead agent quickly organizes the answer",
+        chatOnlyRoute:
+          "This turn uses direct lead-agent answer; complex tasks continue into collaborating agents",
+        syncResult: "Sync process and result",
+        savedToReport: "Save the answer as reviewable material",
+        directSavedToReport:
+          "Keep this turn's process for follow-up questions or training-task conversion",
+        graphNodeReady: "System generated this agent step for the current task",
       },
       roleFallbackTitles: {
         chat: "Direct answer",
@@ -1226,7 +1300,8 @@ const messages = {
       },
       artifactSpecs: {
         dataStatus: "Data diagnosis, metric attribution, platform context",
-        adsStatus: "Qianchuan plan structure, audience packages, budget cadence",
+        adsStatus:
+          "Qianchuan plan structure, audience packages, budget cadence",
         deliveryFile: "operation.execution.plan.docx",
         deliveryStatus: "Final plan, checklist, and review language",
       },
@@ -1237,25 +1312,27 @@ const messages = {
         },
         execution: {
           label: "Execution",
-          detail: "Campaigns, task board, workspace tasks",
+          detail: "Campaigns, task board, training tasks",
         },
         delivery: {
           label: "Delivery",
           detail: "Deliverables, daily briefing, review history",
         },
-        governance: {
-          label: "Governance",
-          detail: "Alerts, approvals, and rollback",
+        review: {
+          label: "Review",
+          detail: "Process checks, risk reminders, follow-up questions",
         },
       },
       processStage: {
-        failed: "Execution blocked. Expand task process to inspect action items.",
-        finished: "Plan summarized. Review process and business links.",
-        saved: "Plan summarized. Review process and business links.",
-        running: "Execution plan is progressing",
-        planning: "Planning execution graph",
-        synced: "Expand to review this run",
-        history: "Historical chat. Expand task process to review this run.",
+        failed:
+          "Collaboration blocked. Expand agent process to inspect action items.",
+        finished: "Multi-agent output summarized. Review process and business links.",
+        saved: "Multi-agent output summarized. Review process and business links.",
+        running: "Agents are collaborating",
+        planning: "Planning agent collaboration",
+        synced: "Expand to review this agent process",
+        history: "Historical chat. Expand to review this agent process.",
+        direct: "Handled as direct answer. Expand to inspect the need decision.",
       },
       artifactState: {
         done: "Generated",
@@ -1280,45 +1357,55 @@ const messages = {
         context: { label: "Context", value: "Products/platform/insights" },
         execution: { label: "Execution", value: "Campaigns/tasks/budget" },
         delivery: { label: "Delivery", value: "Files/briefing/review" },
-        governance: { label: "Governance", value: "Alerts/approval/rollback" },
+        review: { label: "Review", value: "Checks/risks/follow-up" },
       },
       agents: {
         data: {
           name: "Data diagnosis",
-          summary: "Analyze data, metrics, attribution, and business constraints",
-          objective: "Analyze the task data, metrics, attribution, and constraints",
+          summary:
+            "Analyze data, metrics, attribution, and business constraints",
+          objective:
+            "Analyze the task data, metrics, attribution, and constraints",
         },
         accounting: {
           name: "Budget review",
           summary: "Review cost, budget, SKU, and operating risk",
-          objective: "Review campaign cost, traffic SKU, ads budget, and risk from the data diagnosis",
+          objective:
+            "Review campaign cost, traffic SKU, ads budget, and risk from the data diagnosis",
         },
         douyinAds: {
           name: "Qianchuan optimization",
-          summary: "Plan structure, audiences, budget cadence, and ROI stop-loss",
+          summary:
+            "Plan structure, audiences, budget cadence, and ROI stop-loss",
           objective:
             "Break down Qianchuan plan structure, audience packages, bids, budget, ROI stop-loss, and live or short-video handoff",
         },
         creative: {
           name: "Creative output",
           summary: "Produce short-video, live, or campaign creative ideas",
-          objective: "Create Douyin short-video, live, or campaign content ideas from the data diagnosis",
+          objective:
+            "Create Douyin short-video, live, or campaign content ideas from the data diagnosis",
         },
         ops: {
           name: "Ops plan",
-          summary: "Combine finance, Qianchuan, and creative output into an executable plan",
-          objective: "Combine finance, Qianchuan, and creative output into an executable operations plan",
+          summary:
+            "Combine finance, Qianchuan, and creative output into an executable plan",
+          objective:
+            "Combine finance, Qianchuan, and creative output into an executable operations plan",
         },
         delivery: {
           name: "Deliverable doc",
-          summary: "Store plan structure, checklist, and downloadable artifacts",
-          objective: "Turn the operations plan into a reusable customer document",
+          summary:
+            "Store plan structure, checklist, and downloadable artifacts",
+          objective:
+            "Turn the operations plan into a reusable customer document",
         },
       },
       phases: {
         data: {
           title: "Phase 1: Data diagnosis",
-          detail: "Identify metrics, attribution, platform context, and known constraints",
+          detail:
+            "Identify metrics, attribution, platform context, and known constraints",
         },
         parallel: {
           title: "Phase 2: Parallel work",
@@ -1326,7 +1413,8 @@ const messages = {
         },
         ops: {
           title: "Phase 3: Cross-check",
-          detail: "Merge upstream conclusions and cross-check budget, creative, and launch cadence",
+          detail:
+            "Merge upstream conclusions and cross-check budget, creative, and launch cadence",
         },
         delivery: {
           title: "Phase 4: Delivery summary",
@@ -1334,28 +1422,29 @@ const messages = {
         },
         dynamicTitle: "Phase {{index}}: {{title}}",
         dynamicDeliveryTitle: "Phase {{index}}: Delivery summary",
-        dynamicDeliveryDetail: "Summarize task results into a deliverable plan, checklist, and document.",
+        dynamicDeliveryDetail:
+          "Summarize task results into a deliverable plan, checklist, and document.",
       },
       handoffs: {
         context: {
           title: "Context",
-          detail: "Product board, platform connections, and insights become task input",
+          detail:
+            "Product board, platform connections, and insights become task input",
         },
         execution: {
           title: "Execution",
-          detail: "Campaigns, task board, and workspace tasks carry the actions",
+          detail:
+            "Campaigns, task board, and training tasks carry the actions",
         },
         delivery: {
           title: "Delivery",
-          detail: "Deliverables, daily briefing, and review history store results",
-        },
-        governance: {
-          title: "Governance",
-          detail: "Alerts, approvals, and rollback handle risk",
+          detail:
+            "Deliverables, daily briefing, and review history store results",
         },
         review: {
           title: "Review",
-          detail: "Chat history, execution records, and team capability notes stay reusable",
+          detail:
+            "Chat history, execution records, and team capability notes stay reusable",
         },
       },
       statePill: {
@@ -1382,6 +1471,9 @@ const messages = {
         waitingInput: "Waiting for task input",
         planning: "Planning execution graph",
         historyWaiting: "Historical chat, waiting for a new task",
+        directRouting: "Need detected. Lead agent is answering directly.",
+        directFinished:
+          "Direct answer completed. Continue asking or switch into multi-agent collaboration.",
         failedAgent: "Execution blocked: {{agent}}",
         reworkingAgent: "Retrying: {{agent}}",
         workingAgent: "Executing: {{agent}}",
@@ -1403,13 +1495,16 @@ const messages = {
           "The ops plan cross-checks and summarizes final delivery.",
         ],
         events: {
-          commanderThinking: "Analyzing the task and preparing the execution plan.",
-          routeDecided: "Backend applied {{strategy}} strategy, route mode {{mode}}, primary role {{role}}.",
-          graphPlanned: "Planned {{count}} processing steps.",
+          commanderThinking:
+            "Analyzing the task and preparing the execution plan.",
+          routeDecided:
+            "System identified the task type, applied {{strategy}} strategy, collaboration mode {{mode}}, lead agent {{role}}.",
+          graphPlanned: "Planned {{count}} agent processing steps.",
           nodeStarted: "{{agent}} started attempt {{attempt}}.",
           nodeRework: "{{agent}} entered retry: {{instruction}}",
           nodePassed: "{{agent}} passed acceptance.",
-          nodeBoundary: "{{agent}} completed category-level boundary output without blocking the final answer.",
+          nodeBoundary:
+            "{{agent}} completed category-level boundary output without blocking the final answer.",
           nodeFailed: "{{agent}} failed: {{reason}}",
           skillRequested: "{{role}} called capability {{skill}}.",
           skillResult: "Capability {{skill}} returned status: {{status}}.",
@@ -1417,25 +1512,28 @@ const messages = {
           workerStarted: "{{agent}} started processing.",
           workerFinished: "{{agent}} finished processing.",
           contextLoaded:
-            "Loaded {{products}} product(s) and {{knowledge}} knowledge record(s) from backend context.",
-          ragContextLoaded: "Knowledge retrieval complete: {{sources}} source(s).",
+            "Loaded {{products}} product(s) and {{knowledge}} product knowledge record(s).",
+          ragContextLoaded:
+            "Knowledge retrieval complete: {{sources}} source(s).",
           ragContextDegraded: "Knowledge retrieval degraded: {{reason}}",
           workspaceContextLoaded:
-            "Workspace context loaded: {{sources}} source(s), {{readiness}}.",
+            "Training materials loaded: {{sources}} source(s), {{readiness}}.",
           workspaceContextPackLoaded:
             "Readable context attached: {{readable}}/{{total}} source(s) can be used directly.",
-          workspaceRunLinked: "Workspace linked: {{title}}.",
-          workspaceTasksLinked: "Persisted {{count}} workspace task(s).",
-          workspaceTaskUpdated: "Workspace task status updated: {{status}}.",
-          workspaceTaskBoundary: "Workspace task recorded as boundary review: {{status}}.",
-          workspaceRunCompleted: "Final answer saved to the workspace run.",
-          workspaceArtifactCreated: "Deliverable created: {{title}}.",
-          agentLearningRecordCreated: "Workspace memory saved: {{category}}.",
+          workspaceRunLinked: "Training task linked: {{title}}.",
+          workspaceTasksLinked: "Saved {{count}} training task item(s).",
+          workspaceTaskUpdated: "Training task status updated: {{status}}.",
+          workspaceTaskBoundary:
+            "Training task recorded as boundary review: {{status}}.",
+          workspaceRunCompleted: "Final answer saved to the submission record.",
+          workspaceArtifactCreated: "Review material created: {{title}}.",
+          agentLearningRecordCreated: "Training memory saved: {{category}}.",
           qualityChecked: "Quality check complete: {{score}}, {{status}}.",
           qualityPassed: "passed",
           qualityNeedsWork: "needs work",
-          workspaceRunFailed: "Workspace run marked failed.",
-          workspacePersistenceError: "Workspace persistence failed: {{action}}.",
+          workspaceRunFailed: "Training submission marked failed.",
+          workspacePersistenceError:
+            "Training record persistence failed: {{action}}.",
           finished: "This answer finished.",
           failed: "This answer failed: {{reason}}",
           graphFinished: "Execution graph finished and summary output started.",
@@ -1447,13 +1545,15 @@ const messages = {
           planMeta: "Execution plan",
           userMeta: "User task",
           plannedDescription: "Split the task into {{count}} processing steps.",
-          inputDescription: "Reading the user goal and preparing the execution plan.",
+          inputDescription:
+            "Reading the user goal and preparing the execution plan.",
           waitingLine: "Waiting for customer business goal.",
         },
         assign: {
           title: "Assign tasks",
           meta: "Waiting assignment",
-          description: "Preparing processing steps, dependencies, and acceptance rules.",
+          description:
+            "Preparing processing steps, dependencies, and acceptance rules.",
           currentTask: "Current task: {{agent}}",
           stateLine: "Execution state: {{state}}",
           latestAction: "Latest action: {{action}}",
@@ -1463,35 +1563,48 @@ const messages = {
           reportTitle: "Task output",
           materialTitle: "Supplemental context",
           materialMeta: "Industry and platform context",
-          description: "After task output starts, this switches to real report summary, evidence, and risks.",
-          fallbackLines: ["Coffee conversion", "Qianchuan ads review", "Ops budget and launch cadence"],
+          description:
+            "After task output starts, this switches to real report summary, evidence, and risks.",
+          fallbackLines: [
+            "Coffee conversion",
+            "Qianchuan ads review",
+            "Ops budget and launch cadence",
+          ],
         },
         contextLoaded: {
-          title: "Product context",
+          title: "Product materials",
           meta: "{{products}} products / {{knowledge}} knowledge",
-          description: "Backend resolved user-owned product facts before the agent answered.",
+          description:
+            "User-owned product facts were loaded before the answer.",
           productLine: "Product id: {{id}}",
         },
         ragContext: {
           title: "Knowledge retrieval",
           meta: "{{sources}} sources / {{knowledge}} knowledge",
-          description: "Backend retrieved citable sources from local product knowledge.",
-          degradedDescription: "No local knowledge matched and the external search adapter is not connected.",
+          description:
+            "Citable sources were retrieved from local product knowledge.",
+          degradedDescription:
+            "No local knowledge matched and external search data is not connected.",
           sourceLine: "{{type}}: {{title}}",
           queryLine: "Query terms: {{terms}}",
           fallbackLine: "Degraded: {{reason}}",
         },
         workspaceContext: {
-          title: "Workspace context",
+          title: "Training materials",
           meta: "{{total}} sources / {{readiness}}",
-          packTitle: "Readable context",
+          packTitle: "Materials usable in the answer",
           packMeta: "{{readable}}/{{total}} source(s) readable",
-          readyDescription: "Backend attached files, materials, and deliverables as context for this answer.",
-          partialDescription: "Backend loaded partial files, materials, or deliverables; some context is missing.",
-          emptyDescription: "No files, materials, or deliverables are ready for this workspace.",
-          packReadyDescription: "Backend injected stored material text, deliverable text, and extracted attachment text into the answer path.",
-          packPartialDescription: "Only part of the sources have readable text; binary attachments are not treated as read.",
-          compactLine: "Workspace sources: {{total}}",
+          readyDescription:
+            "Files, materials, and review materials were attached for this answer.",
+          partialDescription:
+            "Some files, materials, or review materials were loaded; some materials are still missing.",
+          emptyDescription:
+            "No files, materials, or review materials are ready for this training task.",
+          packReadyDescription:
+            "Stored material text, review material text, and attachment text are used in this answer.",
+          packPartialDescription:
+            "Only part of the sources have readable text; binary attachments are not treated as read.",
+          compactLine: "Training material sources: {{total}}",
           readableLine: "Readable text: {{count}}",
           sourceLine: "{{type}}: {{title}}",
           packItemLine: "{{kind}}: {{title}}",
@@ -1500,46 +1613,56 @@ const messages = {
         skill: {
           title: "Capability call",
           statusLine: "Status: {{status}}",
-          requested: "The backend received a real skill request and is executing it or waiting for an adapter.",
+          requested:
+            "The system received a capability request and is executing it or waiting for external data.",
           completed: "The capability call returned a result.",
-          deferred: "This capability needs external data or an adapter and has been explicitly deferred.",
-          approvalRequired: "This capability is high-risk or writes to a platform, so approval is required before execution.",
+          deferred:
+            "This capability needs external data and has been explicitly deferred.",
+          approvalRequired:
+            "This capability is high-risk or writes to a platform, so approval is required before execution.",
         },
         rework: {
           title: "Recheck",
-          description: "Acceptance failed and the system triggered a rework instruction.",
+          description:
+            "Acceptance failed and the system triggered a rework instruction.",
         },
         boundary: {
           title: "Needs data",
-          description: "This node hit an unselected-product or missing-adapter boundary and does not block the final answer.",
+          description:
+            "This step lacks a selected product or connected external data, and does not block the final answer.",
           line: "Handled as a category-level boundary: keep missing data, risks, and next steps without showing it as execution failure.",
         },
         failed: {
           title: "Execution blocked",
-          description: "The current node failed. Check model service or upstream dependencies.",
+          description:
+            "The current node failed. Check model service or upstream dependencies.",
         },
         workspace: {
-          linkedTitle: "Workspace linked",
-          linkedDescription: "This answer is now attached to a backend workspace run.",
-          createdMeta: "Created workspace",
-          reusedMeta: "Reused workspace",
+          linkedTitle: "Training task linked",
+          linkedDescription:
+            "This answer is now attached to a training task record.",
+          createdMeta: "Created training task",
+          reusedMeta: "Reused training task",
           tasksLinkedTitle: "Tasks persisted",
           tasksMeta: "{{count}} tasks",
-          tasksLinkedDescription: "Task graph nodes were written as workspace task snapshots.",
+          tasksLinkedDescription:
+            "Processing steps were written as training task snapshots.",
           taskUpdatedTitle: "Task snapshot updated",
-          taskUpdatedDescription: "Virtual employee execution status was saved by the backend.",
+          taskUpdatedDescription:
+            "AI training analysis status was saved.",
           taskBoundaryTitle: "Needs data",
           taskBoundaryDescription:
             "This node is a category-level data boundary without a selected product. It is saved but does not block answer synthesis.",
           completedTitle: "Report saved",
-          completedDescription: "The final answer was written to the workspace run report.",
-          artifactCreatedTitle: "Deliverable created",
+          completedDescription:
+            "The final answer was written to the training submission record.",
+          artifactCreatedTitle: "Review material created",
           artifactCreatedDescription:
-            "The final answer is now a standalone deliverable that can be queried and reused in the workspace.",
+            "The final answer is now a standalone review material that can be queried, copied, and submitted.",
           approvalRequiredTitle: "Approval required",
           approvalRequiredMeta: "{{status}} / {{risk}}",
           approvalRequiredDescription:
-            "The high-risk platform write action has entered the backend approval queue and will not execute automatically.",
+            "The high-risk platform action has entered review and will not execute automatically.",
           approvalLine: "Approval {{id}}: {{status}}",
           approvalSkillLine: "Capability: {{skill}}",
           approvalReasonLine: "Reason: {{reason}}",
@@ -1548,18 +1671,20 @@ const messages = {
           qualityPassedMeta: "Passed",
           qualityNeedsWorkMeta: "Needs work",
           qualityCheckedDescription:
-            "Backend completed answer quality check, trust scoring, and learning persistence.",
+            "Answer quality check, trust scoring, and learning persistence are complete.",
           qualityScoreLine: "Quality score: {{score}}",
           trustScoreLine: "Trust score: {{score}} / {{level}}",
           learningRecordLine: "Learning records: {{count}}",
-          failedTitle: "Workspace run failed",
-          failedDescription: "The run failure reason was saved by the backend.",
+          failedTitle: "Training task run failed",
+          failedDescription: "The run failure reason was saved.",
           errorTitle: "Persistence issue",
-          errorDescription: "The LLM answer continues, but this workspace write needs inspection.",
+          errorDescription:
+            "The AI answer continues, but this training record needs inspection.",
           runLine: "Run {{id}}: {{status}}",
           runTaskLine: "Task {{id}}: {{status}}",
-          artifactLine: "Artifact {{id}}: {{title}}",
-          savedReportLine: "Final report saved and available after refreshing the workspace.",
+          artifactLine: "Review material {{id}}: {{title}}",
+          savedReportLine:
+            "Final report saved and available after refreshing the training task.",
         },
       },
       screen: {
@@ -1573,9 +1698,11 @@ const messages = {
       },
       runtimeDescriptions: {
         started: "{{agent}} started attempt {{attempt}}.",
-        reported: "{{agent}} submitted a report and is waiting for acceptance or summary.",
+        reported:
+          "{{agent}} submitted a report and is waiting for acceptance or summary.",
         passed: "{{agent}} passed acceptance.",
-        boundary: "{{agent}} produced a category-level boundary for the primary role to summarize.",
+        boundary:
+          "{{agent}} produced a category-level boundary for the primary role to summarize.",
         failed: "{{agent}} failed.",
         reworking: "{{agent}} is reorganizing output from feedback.",
         skillRequested: "Requested capability {{skill}}.",
@@ -1602,13 +1729,16 @@ const messages = {
         question: "Open question: {{question}}",
       },
       fallbackResponse: {
-        failed: "This task failed, usually because the model service, tools, or upstream dependencies were unavailable.",
+        failed:
+          "This task failed, usually because the model service, tools, or upstream dependencies were unavailable.",
         boundary:
-          "This role was limited by no selected product, missing live metrics, or an unavailable external adapter, so it produced a stage conclusion and missing-data list.",
-        reworking: "Acceptance failed. The task output is being reorganized from feedback.",
-        working: "{{agent}} is processing the request. Results will update here.",
+          "This agent was limited by no selected product, missing live metrics, or unavailable external data, so it produced a stage conclusion and missing-data list.",
+        reworking:
+          "Acceptance failed. The task output is being reorganized from feedback.",
+        working:
+          "{{agent}} is processing the request. Results will update here.",
         done: "{{agent}} is complete and waiting for final summary.",
-        idle: "After the task starts, this area shows the request, processing result, and artifact summary.",
+        idle: "After the task starts, this area shows the request, processing result, and review material summary.",
       },
     },
   },
@@ -1617,27 +1747,28 @@ const messages = {
       "I run coffee operations. My main marketing platform is Douyin, and May Day is coming soon. Can you help me write an operations plan to improve conversion rate?",
     sectionsNavigation: "Reading guide",
     backend: {
-      eyebrow: "Backend Artifacts",
-      title: "Backend deliverables",
+      eyebrow: "Review Materials",
+      title: "Review report materials",
       description:
-        "This reads backend workspaces and artifacts so the page shows deliverables persisted by the Agent Q&A path. If no real records exist yet, the demo plan below remains available for presentation support.",
+        "This page gathers plans, checklists, and reports generated by the AI training assistant so students can inspect, copy, download, and submit them.",
       refresh: "Refresh",
-      loading: "Loading backend deliverables",
-      listTitle: "Deliverables",
-      listDesc: "{{artifacts}} artifact(s) / {{workspaces}} workspace(s)",
-      emptyTitle: "No backend deliverables yet",
+      loading: "Loading review materials",
+      listTitle: "Review material list",
+      listDesc: "{{artifacts}} material(s) / {{workspaces}} training task(s)",
+      emptyTitle: "No review materials yet",
       emptyDescription:
-        "Return to multi-agent Q&A and send an ecommerce task. Once the backend writes workspace/artifact records, they will appear here.",
-      errorTitle: "Failed to load deliverables",
-      noSelectionTitle: "No deliverable selected",
-      noSelectionDescription: "Select a deliverable to inspect content, workspace source, and export metadata.",
-      noContent: "No content or preview saved by backend.",
+        "Return to the AI training assistant and send a training question. Generated plans or reports will appear here.",
+      errorTitle: "Failed to load review materials",
+      noSelectionTitle: "No material selected",
+      noSelectionDescription:
+        "Select a material to inspect content, source training task, and export metadata.",
+      noContent: "No content or preview saved.",
       copy: "Copy",
       download: "Download",
       meta: {
-        workspace: "Workspace",
-        artifactId: "Artifact ID",
-        runId: "Run ID",
+        workspace: "Training task",
+        artifactId: "Material ID",
+        runId: "Submission ID",
         format: "Format",
         storage: "Storage",
         size: "Chars/size",
@@ -1720,8 +1851,7 @@ const messages = {
         "Confirm coffee category, AOV, and inventory today so the entry SKU does not drag down gross margin.",
       benefit:
         "Unify the live-room first-screen offer into one sentence: stock May Day coffee today, buy three and save 20.",
-      hook:
-        "Use the first three seconds for a scene hook instead of the brand, such as a travel coffee price comparison.",
+      hook: "Use the first three seconds for a scene hook instead of the brand, such as a travel coffee price comparison.",
       comment:
         "Pin a comment asking users to share their May Day plan for a monthly coffee giveaway, while collecting scenario insights.",
     },
@@ -1774,26 +1904,26 @@ const messages = {
   },
   agentCapabilities: {
     header: {
-      eyebrow: "Capability Map",
-      title: "Commerce multi-agent capabilities",
+      eyebrow: "Training Guide",
+      title: "AI training capability guide",
       description:
-        "This page explains how the new product organizes ecommerce capabilities, virtual employee roles, and backend governance into one workspace.",
-      action: "Open Q&A",
+        "This page explains how students use AI Q&A, product analysis, campaign planning, data diagnosis, and review reports around one ecommerce training task.",
+      action: "Open AI training assistant",
     },
     principle: {
-      title: "How the product is used",
+      title: "How students use it",
       description:
-        "The user is not just using a chat box. They assign ecommerce work in the center, while the backend coordinates context, strategy, roles, skills, workspace records, and approvals.",
+        "Students do more than open a chat box. They ask around a training task, choose product and campaign context, then store AI output as tasks, review records, and report materials.",
     },
     capabilities: {
-      title: "Core capabilities",
+      title: "Core training capabilities",
       description:
-        "These capabilities are carried by real backend flows first. The frontend selects, displays process, and opens business destinations.",
+        "These entries reuse existing real capabilities while the frontend organizes them into a student-facing learning and task flow.",
       items: [
         {
-          title: "Product analysis",
+          title: "Product selection analysis",
           description:
-            "Uses only products, materials, selling points, and competitors manually selected by the user. Without selection, the flow stays as ordinary ecommerce Q&A.",
+            "Uses products, materials, selling points, and competitors manually selected by the student. Without selection, the flow stays as ordinary training Q&A.",
         },
         {
           title: "Selection and competitor research",
@@ -1803,92 +1933,100 @@ const messages = {
         {
           title: "External search and real-time data",
           description:
-            "Backend adapters return sourced data. When an integration is not configured, the UI states it clearly instead of fabricating results.",
+            "Returns sourced data. When an integration is not configured, the UI states it clearly instead of fabricating results.",
         },
         {
-          title: "Content and marketing generation",
+          title: "Campaign planning practice",
           description:
-            "Generates live scripts, short-video ideas, campaign rhythm, ads review, and operations plans.",
+            "Generates live scripts, short-video ideas, campaign rhythm, ads review, and operations plans to practice planning cadence.",
         },
         {
-          title: "Customer service handling",
+          title: "Data diagnosis and service suggestions",
           description:
-            "Organizes replies, attribution, and follow-up actions from product materials, service rules, and customer questions.",
+            "Organizes replies, attribution, and follow-up actions from product materials, service rules, and operating data.",
         },
         {
-          title: "Execution workspace",
+          title: "Training tasks and deliverables",
           description:
-            "Stores Agent output as tasks, runs, execution suggestions, and traceable business state.",
+            "Stores AI output as tasks, runs, execution suggestions, and traceable training deliverable states.",
         },
         {
-          title: "Deliverables",
+          title: "Review report",
           description:
-            "Stores plans, checklists, reports, and documents as artifacts for preview, copy, download, and archive.",
+            "Stores plans, checklists, reports, and documents as review materials for preview, copy, download, and archive.",
         },
         {
-          title: "Approval and audit",
+          title: "Teacher review records",
           description:
-            "Platform writes and high-risk actions must go through approval, execution queue, and audit logs.",
+            "High-risk actions and key submissions enter approvals, execution queue, and audit logs for teacher review.",
         },
       ],
     },
     flow: {
-      title: "How one task flows",
-      description: "The user-visible main flow should stay clear, continuous, and traceable.",
+      title: "How one training task flows",
+      description:
+        "The student-visible main flow should stay clear, continuous, and traceable.",
       items: [
-        "The user creates a new conversation or opens a historical one, then enters an ecommerce question.",
-        "The user may choose strategy, role mode, and manually selected product materials.",
-        "The backend plans the task, calls model, roles, and skills, and streams process through SSE.",
+        "The student creates a new conversation or opens a historical one, then enters a training question.",
+        "The student may choose answer mode, collaborating agents, and manually selected product materials.",
+        "The system plans the task, calls models and analysis capabilities, and shows the process in real time.",
         "Process cards appear above the answer and collapse after completion, so they do not block reading.",
-        "Final answers and deliverables are stored in workspace, deliverables, approvals, or operations pages.",
+        "Final answers and deliverables are stored in training tasks, review reports, teacher review, or operating results pages.",
       ],
     },
     lanes: {
-      title: "Business areas in function navigation",
+      title: "Training task areas in navigation",
       description:
-        "The left function navigation is not just a menu. It is where virtual employee abilities enter the backend business system.",
+        "The left navigation is not just a page menu. It exposes the most-used capability entries for students completing training tasks.",
       items: [
         {
-          title: "Multi-agent Q&A",
-          description: "The main entry for questions, strategy, product references, and process display.",
+          title: "AI training assistant",
+          description:
+            "The main entry for training questions, strategy, product references, and process display.",
         },
         {
-          title: "Products and context",
-          description: "Manages products, materials, knowledge, competitors, and manually selected task context.",
+          title: "Product selection analysis",
+          description:
+            "Manages products, materials, knowledge, competitors, and manually selected task context.",
         },
         {
-          title: "Platforms and operations",
-          description: "Connects platforms, campaigns, metrics, briefings, alerts, and external data adapters.",
+          title: "Campaigns, data, and results",
+          description:
+            "Connects platforms, campaigns, metrics, briefings, alerts, and external data.",
         },
         {
-          title: "Approvals and delivery",
-          description: "Carries high-risk approvals, audit, task lists, and final deliverables.",
+          title: "Tasks, review, and reports",
+          description:
+            "Carries training tasks, teacher review records, and final review reports.",
         },
       ],
     },
     boundary: {
       title: "Current design boundary",
       description:
-        "The capability map should make clear what is available now and what needs external integrations or later migration.",
-      backend: "The backend is the source of real capability. The frontend does not show fake buttons, fake states, or fake search results.",
-      context: "Product materials are injected only after the user manually selects them. Without a selection, the answer uses ordinary Q&A context.",
-      governance: "Actions such as platform writes, budget changes, publishing, and deletion should enter approval and audit.",
+        "Scheme A only reorganizes frontend entries and wording so students can understand existing capabilities; it does not add core capability.",
+      backend:
+        "Real capability still comes from the existing system. The frontend does not show fake buttons, fake states, or fake search results.",
+      context:
+        "Product materials are injected only after the user manually selects them. Without a selection, the answer uses ordinary Q&A context.",
+      governance:
+        "Actions such as platform writes, budget changes, publishing, and deletion should enter approval and audit.",
     },
   },
   login: {
     brand: "TaskMate・塔克",
     hero: {
-      titleLine1: "Hand commerce work to",
-      titleLine2: "virtual employees.",
+      titleLine1: "Enter ecommerce AI training,",
+      titleLine2: "finish selection, planning, and review.",
       desc1:
-        "Break product, content, ads, service, cost, and review work into clear judgments and actions.",
+        "Move through product selection, campaign planning, data diagnosis, task submission, and review report in one training flow.",
       desc2:
-        "Sign in to continue conversations, product context, campaign tasks, and deliverables.",
+        "Sign in to continue conversations, product materials, training tasks, teacher review, and review reports.",
     },
     welcome: "WELCOME BACK",
-    title: "Sign in to your account",
+    title: "Sign in to your training account",
     subtitle:
-      "Use your account and password to enter the commerce virtual employee workspace.",
+      "Use your account and password to enter the ecommerce AI training workspace.",
     form: {
       password: {
         label: "Password",
@@ -1910,22 +2048,23 @@ const messages = {
       invalidCredentials:
         "Login failed, please check your account and password.",
       workspaceUnavailable:
-        "Your account was checked but the workspace did not finish loading. Confirm the backend service is running, then sign in again.",
+        "Your account was checked but the training workspace did not finish loading. Confirm the local service is running, then sign in again.",
     },
   },
   register: {
     brand: "TaskMate・塔克",
     hero: {
       titleLine1: "Create your account,",
-      titleLine2: "enter the commerce workspace.",
+      titleLine2: "start ecommerce AI training.",
       desc1:
-        "Use one account to keep conversations, product context, campaign tasks, and deliverables.",
+        "Use one account to keep training conversations, product materials, campaign tasks, and review reports.",
       desc2:
-        "After registering, virtual employees can continue helping with products, content, ads, service, cost, and review work.",
+        "After registering, complete product selection, campaign planning, data diagnosis, and review submission around one training task.",
     },
     welcome: "CREATE ACCOUNT",
-    title: "Register your account",
-    subtitle: "Create an account to enter TaskMate・塔克 and manage your commerce tasks.",
+    title: "Register your training account",
+    subtitle:
+      "Create an account to enter TaskMate・塔克 and start your ecommerce AI training task.",
     form: {
       password: {
         label: "Password",

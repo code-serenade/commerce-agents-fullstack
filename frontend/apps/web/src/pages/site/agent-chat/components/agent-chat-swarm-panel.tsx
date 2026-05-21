@@ -72,7 +72,7 @@ export function AgentChatSwarmPanel({
   const activeNode = runtimeNodeStates.get(activeAgent.nodeId)
   const progress = `${getCompletedCount(agents, runtimeNodeStates)}/${agents.length}`
   const stage = getStageLabel(
-    { agents, hasTask, isStreaming, hasRuntime, runtimeNodeStates },
+    { agents, hasTask, isStreaming, hasRuntime, runtimeEvents, runtimeNodeStates },
     t
   )
   const phases = getPhases(graphNodes, t)

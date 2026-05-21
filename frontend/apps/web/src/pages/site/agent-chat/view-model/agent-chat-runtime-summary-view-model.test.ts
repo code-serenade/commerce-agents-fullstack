@@ -16,6 +16,7 @@ const t = ((key: string, values?: Record<string, unknown>) => {
     "agentChat.strategy.options.quick.shortHint": "Short",
     "agentChat.strategy.options.execution.shortHint": "Full",
     "agentChat.composer.settings.autoRolesSummary": "Backend auto",
+    "agentChat.composer.settings.multiAgentSummary": `${values?.count ?? 0} agents collaborating`,
     "agentChat.composer.settings.rolesCount": `${values?.count ?? 0} roles`,
   }
   return copy[key] ?? key
@@ -102,7 +103,7 @@ describe("agent chat runtime summary view model", () => {
     ).toBe("Teaching / Auto dispatch / Medium / Doubao / Backend auto")
   })
 
-  it("shows the lead role and support count for manual multi-role mode", () => {
+  it("shows agent collaboration count for manual multi-agent mode", () => {
     const selection: AgentChatRuntimeSelection = {
       collaborationMode: "manual",
       learningLevel: "professional",
@@ -117,7 +118,7 @@ describe("agent chat runtime summary view model", () => {
         runtimeSelection: selection,
         t,
       })
-    ).toBe("Data+2")
+    ).toBe("3 agents collaborating")
   })
 
   it("normalizes long model ids without hiding non-Doubao names", () => {

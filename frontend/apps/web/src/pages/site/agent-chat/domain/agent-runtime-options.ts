@@ -52,17 +52,16 @@ export type AgentChatRuntimeSelectionRestore = Partial<
   selectedRoles?: string[]
 }
 
-export function defaultRuntimeSelection(
-  options: AgentRuntimeOptions | null
-): AgentChatRuntimeSelection {
+export function defaultRuntimeSelection(options: AgentRuntimeOptions | null): AgentChatRuntimeSelection {
   const defaultModel =
     options?.defaultModelName ??
     options?.models.find((model) => model.isDefault)?.name ??
     options?.models[0]?.name
   const defaultCollaboration =
+    options?.collaborationModes.find((mode) => mode.id === "manual")?.id ??
     options?.collaborationModes.find((mode) => mode.id === "auto")?.id ??
     options?.collaborationModes.find((mode) => mode.isDefault)?.id ??
-    "auto"
+    "manual"
   const defaultLearning =
     options?.learningLevels.find((level) => level.isDefault)?.id ??
     "higher_vocational"

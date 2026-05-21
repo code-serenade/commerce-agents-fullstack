@@ -1,4 +1,4 @@
-import { FileText, ListChecks, PlugZap, ShieldAlert } from "lucide-react"
+import { FileText, ListChecks, PlugZap, SearchCheck } from "lucide-react"
 import type { TFunction } from "i18next"
 import type { AgentRuntimeEvent, AgentTaskNode } from "@/api"
 import {
@@ -71,8 +71,16 @@ export function getInlineSteps(
   if (isChatOnlyRuntime(runtimeEvents)) {
     return [
       [
-        t("agentChat.thread.steps.readTarget"),
-        t("agentChat.thread.steps.directAnswer"),
+        t("agentChat.thread.steps.identifyNeed"),
+        t("agentChat.thread.steps.directRoute"),
+      ],
+      [
+        t("agentChat.thread.steps.assignTask"),
+        t("agentChat.thread.steps.chatOnlyRoute"),
+      ],
+      [
+        t("agentChat.thread.steps.syncResult"),
+        t("agentChat.thread.steps.directSavedToReport"),
       ],
     ]
   }
@@ -107,10 +115,26 @@ export function getInlineSteps(
 
 export function getCommerceHandoffItems(t: TFunction) {
   return [
-    { icon: PlugZap, label: t("agentChat.thread.handoff.context.label"), detail: t("agentChat.thread.handoff.context.detail") },
-    { icon: ListChecks, label: t("agentChat.thread.handoff.execution.label"), detail: t("agentChat.thread.handoff.execution.detail") },
-    { icon: FileText, label: t("agentChat.thread.handoff.delivery.label"), detail: t("agentChat.thread.handoff.delivery.detail") },
-    { icon: ShieldAlert, label: t("agentChat.thread.handoff.governance.label"), detail: t("agentChat.thread.handoff.governance.detail") },
+    {
+      icon: PlugZap,
+      label: t("agentChat.thread.handoff.context.label"),
+      detail: t("agentChat.thread.handoff.context.detail"),
+    },
+    {
+      icon: ListChecks,
+      label: t("agentChat.thread.handoff.execution.label"),
+      detail: t("agentChat.thread.handoff.execution.detail"),
+    },
+    {
+      icon: SearchCheck,
+      label: t("agentChat.thread.handoff.review.label"),
+      detail: t("agentChat.thread.handoff.review.detail"),
+    },
+    {
+      icon: FileText,
+      label: t("agentChat.thread.handoff.delivery.label"),
+      detail: t("agentChat.thread.handoff.delivery.detail"),
+    },
   ]
 }
 
@@ -140,6 +164,9 @@ export function getInlineProcessStage(
     return hasRuntime
       ? t("agentChat.thread.processStage.running")
       : t("agentChat.thread.processStage.planning")
+  }
+  if (isChatOnlyRuntime(runtimeEvents)) {
+    return t("agentChat.thread.processStage.direct")
   }
   return hasRuntime
     ? t("agentChat.thread.processStage.synced")

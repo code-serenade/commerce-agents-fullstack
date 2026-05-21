@@ -5,7 +5,6 @@ import {
   FileText,
   MonitorCog,
   PlugZap,
-  ShieldAlert,
 } from "lucide-react"
 import type { ComponentType, SVGProps } from "react"
 import { useTranslation } from "react-i18next"
@@ -17,7 +16,6 @@ const WORKSPACE_HANDOFFS = [
   ["agentChat.swarm.handoffs.context.title", "agentChat.swarm.handoffs.context.detail", Database, "/products"],
   ["agentChat.swarm.handoffs.execution.title", "agentChat.swarm.handoffs.execution.detail", ClipboardCheck, "/workspaces"],
   ["agentChat.swarm.handoffs.delivery.title", "agentChat.swarm.handoffs.delivery.detail", FileText, "/agent-output"],
-  ["agentChat.swarm.handoffs.governance.title", "agentChat.swarm.handoffs.governance.detail", ShieldAlert, "/approvals"],
   ["agentChat.swarm.handoffs.review.title", "agentChat.swarm.handoffs.review.detail", Bot, "/overview"],
 ] as const
 

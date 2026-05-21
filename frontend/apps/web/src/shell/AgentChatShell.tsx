@@ -1,6 +1,7 @@
 import { type MouseEvent, type ReactNode, useState } from "react"
 import {
   Bot,
+  Boxes,
   Edit3,
   FileText,
   GitBranch,
@@ -59,10 +60,12 @@ const FUNCTION_NAV_ROUTE_PATHS = [
   "/agent-capabilities",
   "/commerce",
   "/campaigns",
+  "/agent-output",
   "/operations",
   "/overview",
   "/platform-connect",
   "/products",
+  "/workspaces",
 ] as const
 
 export function AgentChatShell({ children }: AgentChatShellProps) {
@@ -161,10 +164,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     closeRenameDialog()
   }
 
-  const trailing = [
-    <LanguageSwitch key="lang" />,
-    <ThemeToggle key="theme" />,
-  ]
+  const trailing = [<LanguageSwitch key="lang" />, <ThemeToggle key="theme" />]
   const recentConversations = chat.conversations.slice(
     0,
     visibleConversationCount
@@ -183,7 +183,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           title={t("agentChat.sidebar.newChat")}
           aria-label={t("agentChat.sidebar.newChat")}
           onClick={openNewConversation}
-          className="flex size-7 items-center justify-center rounded-md text-sidebar-foreground/70 ring-sidebar-ring transition-colors outline-hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2"
+          className="flex size-7 items-center justify-center rounded-md text-sidebar-foreground/70 ring-sidebar-ring outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2"
         >
           <Edit3 className="size-4" />
         </button>
@@ -301,18 +301,32 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           active: isRouteActive("/operations"),
           onSelect: () => navigateTo("/operations"),
         },
+        {
+          key: "task-board",
+          icon: <Boxes />,
+          label: t("agentChat.shell.navigation.taskBoard"),
+          active: isRouteActive("/workspaces"),
+          onSelect: () => navigateTo("/workspaces"),
+        },
+        {
+          key: "deliverables",
+          icon: <FileText />,
+          label: t("agentChat.shell.navigation.deliverables"),
+          active: isRouteActive("/agent-output"),
+          onSelect: () => navigateTo("/agent-output"),
+        },
       ],
     },
   ]
-  const mobileConversationItems = chat.conversations.slice(0, 5).map(
-    (conversation) => ({
+  const mobileConversationItems = chat.conversations
+    .slice(0, 5)
+    .map((conversation) => ({
       key: conversation.id,
       label: conversation.title,
       href: "/commerce",
       active: isQuestionRoute && conversation.id === chat.conversationId,
       onSelect: () => openConversation(conversation.id),
-    })
-  )
+    }))
   const mobileNavigationItems: MobileBottomNavItem[] = [
     {
       key: "recents",
@@ -330,13 +344,13 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
         ...(mobileConversationItems.length
           ? mobileConversationItems
           : [
-            {
-              key: "empty-recents",
-              label: t("agentChat.sidebar.empty"),
-              href: "/commerce",
-              onSelect: () => navigateTo("/commerce"),
-            },
-          ]),
+              {
+                key: "empty-recents",
+                label: t("agentChat.sidebar.empty"),
+                href: "/commerce",
+                onSelect: () => navigateTo("/commerce"),
+              },
+            ]),
       ],
     },
     {
@@ -349,7 +363,9 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
         isRouteActive("/products") ||
         isRouteActive("/campaigns") ||
         isRouteActive("/overview") ||
-        isRouteActive("/operations"),
+        isRouteActive("/operations") ||
+        isRouteActive("/workspaces") ||
+        isRouteActive("/agent-output"),
       subItems: [
         {
           key: "smart-ops",
@@ -393,6 +409,20 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           active: isRouteActive("/operations"),
           onSelect: () => navigateTo("/operations"),
         },
+        {
+          key: "task-board",
+          label: t("agentChat.shell.navigation.taskBoard"),
+          href: "/workspaces",
+          active: isRouteActive("/workspaces"),
+          onSelect: () => navigateTo("/workspaces"),
+        },
+        {
+          key: "deliverables",
+          label: t("agentChat.shell.navigation.deliverables"),
+          href: "/agent-output",
+          active: isRouteActive("/agent-output"),
+          onSelect: () => navigateTo("/agent-output"),
+        },
       ],
     },
   ]
@@ -416,7 +446,8 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           <TopBar
             title={
               isQuestionRoute
-                ? activeConversation?.title ?? t("agentChat.shell.topbarTitle")
+                ? (activeConversation?.title ??
+                  t("agentChat.shell.topbarTitle"))
                 : routeTitleKey
                   ? t(routeTitleKey)
                   : t("agentChat.shell.topbarTitle")
