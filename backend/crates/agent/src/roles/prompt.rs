@@ -143,14 +143,14 @@ fn format_contributions(contributions: &[RoleContribution]) -> String {
         .iter()
         .enumerate()
         .map(|(index, contribution)| {
-            let label = if index == 0 { "primary" } else { "support" };
+            let label = if index == 0 {
+                "主角色"
+            } else {
+                "协作角色"
+            };
             format!(
-                "- {} {} ({}) [{}]: {}",
-                label,
-                contribution.runtime_role,
-                contribution.worker_id.0,
-                contribution.task_id.0,
-                contribution.content
+                "- {} {}: {}",
+                label, contribution.runtime_role, contribution.content
             )
         })
         .collect::<Vec<_>>()
@@ -248,8 +248,10 @@ mod tests {
             }],
         });
 
-        assert!(prompt.contains("输出边界"));
+        assert!(prompt.contains("汇总原则"));
+        assert!(prompt.contains("不能复述任务状态"));
         assert!(prompt.contains("分析数据并写文案"));
         assert!(prompt.contains("数据贡献"));
+        assert!(!prompt.contains("worker.creative"));
     }
 }

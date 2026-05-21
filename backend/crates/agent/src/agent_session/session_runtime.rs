@@ -8,7 +8,8 @@ use crate::{
     agent::{
         commander::{
             Commander, CommanderChannels, CommanderOptions, CommanderSessionContext,
-            TaskGraphRuntime, plan_forced_chat_graph, plan_quick_chat_graph,
+            TaskGraphRuntime, no_user_facing_content_message, plan_forced_chat_graph,
+            plan_quick_chat_graph, sanitize_user_facing_text,
         },
         worker::Worker,
     },
@@ -311,6 +312,8 @@ impl SessionRuntime {
             }
             _ => "session returned non-text response".to_string(),
         };
+        let output =
+            sanitize_user_facing_text(&output).unwrap_or_else(no_user_facing_content_message);
 
         self.emit_event(SessionEvent::Output {
             session_id: self.session_id.clone(),

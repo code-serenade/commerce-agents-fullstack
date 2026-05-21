@@ -121,20 +121,51 @@ impl AgentLlmRegistry {
         kind: AgentCognitionKind,
         requires_vision: bool,
     ) -> Result<Arc<AgentLlmClient>> {
-        let name = if requires_vision {
-            self.usage.vision.as_deref().ok_or_else(|| {
-                SettingsError::missing_llm_usage("vision llm is not configured for image input")
-            })?
-        } else {
-            match kind {
-                AgentCognitionKind::Commander | AgentCognitionKind::ChatWorker => &self.usage.fast,
-                AgentCognitionKind::Worker => &self.usage.thinking,
-            }
-        };
+        let name = self.usage_name_for_kind(kind, requires_vision)?;
 
         self.clients.get(name).cloned().ok_or_else(|| {
             SettingsError::missing_llm_usage(format!("llm '{name}' not found")).into()
         })
+    }
+
+    fn usage_name_for_kind(&self, kind: AgentCognitionKind, requires_vision: bool) -> Result<&str> {
+        if requires_vision {
+            return self.usage.vision.as_deref().ok_or_else(|| {
+                SettingsError::missing_llm_usage("vision llm is not configured for image input")
+                    .into()
+            });
+        }
+
+        Ok(match kind {
+            AgentCognitionKind::Commander => &self.usage.fast,
+            AgentCognitionKind::ChatWorker => &self.usage.fast,
+            AgentCognitionKind::Worker => &self.usage.thinking,
+        })
+    }
+
+    fn usage_name_for_input(
+        &self,
+        kind: AgentCognitionKind,
+        requires_vision: bool,
+        input: &CognitionInput,
+    ) -> Result<&str> {
+        if requires_vision {
+            return self.usage_name_for_kind(kind, requires_vision);
+        }
+
+        match input
+            .context
+            .metadata
+            .get("assignment.llm_usage")
+            .map(String::as_str)
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            Some("fast") => Ok(&self.usage.fast),
+            Some("thinking") => Ok(&self.usage.thinking),
+            Some("default") => Ok(&self.usage.default),
+            _ => self.usage_name_for_kind(kind, requires_vision),
+        }
     }
 }
 
@@ -225,12 +256,24 @@ where
             Err(failure) => return CognitionResult::Failure(failure),
         };
         let requires_vision = !images.is_empty();
-        let llm = match self.llms.client_for_kind(self.kind, requires_vision) {
-            Ok(llm) => llm,
+        let usage_name = match self
+            .llms
+            .usage_name_for_input(self.kind, requires_vision, &input)
+        {
+            Ok(name) => name,
             Err(err) => {
                 return CognitionResult::Failure(CognitionFailure {
                     reason: FailureReason::InternalError,
                     description: err.to_string(),
+                });
+            }
+        };
+        let llm = match self.llms.clients.get(usage_name).cloned() {
+            Some(llm) => llm,
+            None => {
+                return CognitionResult::Failure(CognitionFailure {
+                    reason: FailureReason::InternalError,
+                    description: format!("llm '{usage_name}' not found"),
                 });
             }
         };
@@ -644,6 +687,7 @@ fn render_input(input: &CognitionInput) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::cognition::{Context, Intent, IntentKind};
 
     fn llm(name: &str, model: &str) -> AgentLlmCfg {
         AgentLlmCfg {
@@ -655,6 +699,17 @@ mod tests {
             temperature: None,
             reasoning_effort: None,
             chat_completions_endpoint: None,
+        }
+    }
+
+    fn input() -> CognitionInput {
+        CognitionInput {
+            intent: Intent {
+                id: "test".to_string(),
+                kind: IntentKind::Planning,
+                description: "test task".to_string(),
+            },
+            context: Context::default(),
         }
     }
 
@@ -693,6 +748,91 @@ mod tests {
         assert_eq!(registry.usage().fast.as_deref(), Some("llm-fast"));
         assert_eq!(registry.usage().thinking.as_deref(), Some("llm-thinking"));
         assert_eq!(registry.usage().vision.as_deref(), Some("llm-vision"));
+    }
+
+    #[test]
+    fn registry_routes_chat_worker_to_fast_usage() {
+        let registry = AgentLlmRegistry::new(
+            &[
+                llm("llm-fast", "fast-model"),
+                llm("llm-thinking", "thinking-model"),
+            ],
+            None,
+            &AgentLlmUsageCfg {
+                fast: Some("llm-fast".to_string()),
+                thinking: Some("llm-thinking".to_string()),
+                ..AgentLlmUsageCfg::default()
+            },
+        )
+        .expect("registry should initialize");
+
+        assert_eq!(
+            registry
+                .usage_name_for_kind(AgentCognitionKind::Commander, false)
+                .expect("commander usage should resolve"),
+            "llm-fast"
+        );
+        assert_eq!(
+            registry
+                .usage_name_for_kind(AgentCognitionKind::ChatWorker, false)
+                .expect("chat worker usage should resolve"),
+            "llm-fast"
+        );
+        assert_eq!(
+            registry
+                .usage_name_for_kind(AgentCognitionKind::Worker, false)
+                .expect("worker usage should resolve"),
+            "llm-thinking"
+        );
+    }
+
+    #[test]
+    fn assignment_llm_usage_overrides_worker_usage() {
+        let registry = AgentLlmRegistry::new(
+            &[
+                llm("llm-default", "default-model"),
+                llm("llm-fast", "fast-model"),
+                llm("llm-thinking", "thinking-model"),
+            ],
+            None,
+            &AgentLlmUsageCfg {
+                default: Some("llm-default".to_string()),
+                fast: Some("llm-fast".to_string()),
+                thinking: Some("llm-thinking".to_string()),
+                ..AgentLlmUsageCfg::default()
+            },
+        )
+        .expect("registry should initialize");
+
+        let mut input = input();
+        assert_eq!(
+            registry
+                .usage_name_for_input(AgentCognitionKind::Worker, false, &input)
+                .expect("worker usage should resolve"),
+            "llm-thinking"
+        );
+
+        input
+            .context
+            .metadata
+            .insert("assignment.llm_usage".to_string(), "fast".to_string());
+        assert_eq!(
+            registry
+                .usage_name_for_input(AgentCognitionKind::Worker, false, &input)
+                .expect("worker usage should resolve"),
+            "llm-fast"
+        );
+
+        input
+            .context
+            .metadata
+            .insert("assignment.llm_usage".to_string(), "default".to_string());
+        assert_eq!(
+            registry
+                .usage_name_for_input(AgentCognitionKind::Worker, false, &input)
+                .expect("worker usage should resolve"),
+            "llm-default"
+        );
     }
 
     #[test]

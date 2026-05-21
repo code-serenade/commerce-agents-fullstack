@@ -48,6 +48,20 @@ fn normalize_worker_role_output(
             normalization_policy.default_summary(output_policy.role_display_name(role), &task_line);
     }
 
+    if role == "chat" {
+        output.findings.clear();
+        output.recommendations.clear();
+        output.evidence.clear();
+        output.risks.clear();
+        output.open_questions.clear();
+        normalize_user_facing_text(output);
+        parsed.evidence.clear();
+        parsed.risks.clear();
+        parsed.open_questions.clear();
+        parsed.content = output.summary.trim().to_string();
+        return parsed;
+    }
+
     if output.findings.is_empty() {
         output.findings = output_policy.default_role_findings(role, &task_line);
     }
@@ -135,4 +149,52 @@ fn normalize_worker_role_output(
     parsed.open_questions = merge_unique(parsed.open_questions, output.open_questions.clone());
     parsed.content = format_role_work_output_content(output);
     parsed
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{RoleWorkOutput, normalize_worker_role_output};
+    use crate::{
+        agent::worker::{Task, runner::types::ParsedWorkerRoleOutput},
+        core::protocol::{AgentId, MessageContext},
+    };
+
+    #[test]
+    fn chat_role_keeps_only_user_facing_summary() {
+        let parsed = ParsedWorkerRoleOutput {
+            content: String::new(),
+            role_output: Some(RoleWorkOutput {
+                summary: "### 回答\n1. **先看真实资料**".to_string(),
+                findings: vec!["不应展示的发现".to_string()],
+                recommendations: vec!["不应展示的建议".to_string()],
+                evidence: vec!["不应展示的依据".to_string()],
+                risks: vec!["不应展示的风险".to_string()],
+                open_questions: vec!["不应展示的待确认".to_string()],
+            }),
+            evidence: vec!["外层依据".to_string()],
+            risks: vec!["外层风险".to_string()],
+            open_questions: vec!["外层问题".to_string()],
+        };
+        let task = Task {
+            id: "task-1".to_string(),
+            context: MessageContext::default(),
+            description: "咖啡怎么卖？".to_string(),
+            requester: AgentId("user-1".to_string()),
+            assignment: None,
+        };
+
+        let output = normalize_worker_role_output("chat", &task, parsed);
+        let role_output = output.role_output.expect("role output should exist");
+
+        assert_eq!(output.content, "回答\n先看真实资料");
+        assert_eq!(role_output.summary, "回答\n先看真实资料");
+        assert!(role_output.findings.is_empty());
+        assert!(role_output.recommendations.is_empty());
+        assert!(role_output.evidence.is_empty());
+        assert!(role_output.risks.is_empty());
+        assert!(role_output.open_questions.is_empty());
+        assert!(output.evidence.is_empty());
+        assert!(output.risks.is_empty());
+        assert!(output.open_questions.is_empty());
+    }
 }

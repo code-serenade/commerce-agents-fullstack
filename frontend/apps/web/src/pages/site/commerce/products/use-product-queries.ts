@@ -15,6 +15,11 @@ import {
 } from "@/api"
 
 export const productsQueryKey = ["commerce", "products"]
+export const productListQueryKey = (keyword: string) => [
+  ...productsQueryKey,
+  "list",
+  { keyword: keyword || "", status: "active" },
+]
 
 export function useProductQueries({
   keyword,
@@ -32,7 +37,7 @@ export function useProductQueries({
   selectedProductId: string | null
 }) {
   const productsQuery = useQuery({
-    queryKey: [...productsQueryKey, keyword],
+    queryKey: productListQueryKey(keyword),
     queryFn: () =>
       listProductsApi({
         status: "active",

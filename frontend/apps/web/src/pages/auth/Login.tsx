@@ -15,6 +15,7 @@ import {
 } from "@/api"
 import { resetAccess, setAccess } from "@/store/accessSlice"
 import { loginSuccess, logout } from "@/store/authSlice"
+import { TaskMateLogo } from "@/components/brand"
 
 const authLinkClassName =
   "font-medium text-(--app-text) underline-offset-4 transition hover:underline"
@@ -83,6 +84,7 @@ export default function LoginPage() {
   return (
     <AuthLoginView
       labels={createLoginLabels(t)}
+      brandLogo={<TaskMateLogo size="lg" />}
       notice={
         loginError
           ? {

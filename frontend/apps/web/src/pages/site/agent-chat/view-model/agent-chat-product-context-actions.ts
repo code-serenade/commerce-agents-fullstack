@@ -6,20 +6,10 @@ import {
   type AgentChatProductContextSelection,
 } from "../domain/agent-chat-context-selection"
 
-export interface AgentChatProductContextState {
-  setAvailableProducts: Dispatch<SetStateAction<AgentChatProductContextSelection[]>>
-  setIsLoadingProducts: Dispatch<SetStateAction<boolean>>
-  setSelectedProducts: Dispatch<SetStateAction<AgentChatProductContextSelection[]>>
-}
-
-export function resetAgentChatProductContext(state: AgentChatProductContextState) {
-  state.setAvailableProducts([])
-  state.setSelectedProducts([])
-  state.setIsLoadingProducts(false)
-}
-
 export function restoreAgentChatProductContext(
-  state: Pick<AgentChatProductContextState, "setSelectedProducts">,
+  state: {
+    setSelectedProducts: Dispatch<SetStateAction<AgentChatProductContextSelection[]>>
+  },
   availableProducts: AgentChatProductContextSelection[],
   productIds: string[]
 ) {
@@ -31,44 +21,25 @@ export function restoreAgentChatProductContext(
   )
 }
 
-export function loadAgentChatProductContext(
-  state: AgentChatProductContextState,
-  isCancelled: () => boolean
-) {
-  state.setIsLoadingProducts(true)
-  return Promise.all([
+export async function fetchAgentChatProductContext() {
+  const productGroups = await Promise.all([
     agentChatData.listProducts({ status: "active" }),
     agentChatData.listProducts({ status: "listing" }),
     agentChatData.listProducts({ status: "draft" }),
   ])
-    .then((productGroups) => {
-      if (isCancelled()) return
-      const products = productGroups.flat()
-      const mapped = products
-        .map(mapProductToContextSelection)
-        .filter(
-          (product, index, items) =>
-            items.findIndex((item) => item.id === product.id) === index
-        )
-      state.setAvailableProducts(mapped)
-      state.setSelectedProducts((current) =>
-        current.filter((selected) =>
-          mapped.some((product) => product.id === selected.id)
-        )
-      )
-    })
-    .catch(() => {
-      if (isCancelled()) return
-      state.setAvailableProducts([])
-      state.setSelectedProducts([])
-    })
-    .finally(() => {
-      if (!isCancelled()) state.setIsLoadingProducts(false)
-    })
+  return productGroups
+    .flat()
+    .map(mapProductToContextSelection)
+    .filter(
+      (product, index, items) =>
+        items.findIndex((item) => item.id === product.id) === index
+    )
 }
 
 export function toggleAgentChatProductContext(
-  state: Pick<AgentChatProductContextState, "setSelectedProducts">,
+  state: {
+    setSelectedProducts: Dispatch<SetStateAction<AgentChatProductContextSelection[]>>
+  },
   product: AgentChatProductContextSelection
 ) {
   state.setSelectedProducts((current) =>

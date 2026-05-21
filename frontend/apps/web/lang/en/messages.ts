@@ -2,8 +2,8 @@ const messages = {
   web: {
     shell: {
       brand: {
-        eyebrow: "Commerce AI",
-        title: "Commerce Agents",
+        eyebrow: "TaskMate",
+        title: "TaskMate・塔克",
         description: "Virtual employee workspace",
       },
       navigation: {
@@ -800,10 +800,10 @@ const messages = {
       empty: "No conversations yet",
     },
     shell: {
-      brandTitle: "Commerce Agents",
+      brandTitle: "TaskMate・塔克",
       brandDescription: "Virtual employee workspace",
       topbarTitle: "Enter an ecommerce question",
-      topbarMeta: "Commerce Agents · virtual employee collaboration",
+      topbarMeta: "TaskMate・塔克 · virtual employee collaboration",
       sections: {
         create: "",
         workspace: "Function navigation",
@@ -1876,19 +1876,19 @@ const messages = {
     },
   },
   login: {
-    brand: "AI STANDARDIZED FRAMEWORK",
+    brand: "TaskMate・塔克",
     hero: {
-      titleLine1: "Describe your needs,",
-      titleLine2: "let AI code by the framework.",
+      titleLine1: "Hand commerce work to",
+      titleLine2: "virtual employees.",
       desc1:
-        "This is an AI-standardized development framework across pages, state, routes, APIs, and themes.",
+        "Break product, content, ads, service, cost, and review work into clear judgments and actions.",
       desc2:
-        "You provide requirements, and AI implements features while following the project conventions.",
+        "Sign in to continue conversations, product context, campaign tasks, and deliverables.",
     },
     welcome: "WELCOME BACK",
     title: "Sign in to your account",
     subtitle:
-      "Use your identifier and password to continue into the AI development workflow.",
+      "Use your account and password to enter the commerce virtual employee workspace.",
     form: {
       password: {
         label: "Password",
@@ -1897,8 +1897,8 @@ const messages = {
       submit: "Sign in",
       submitting: "Signing in...",
       identifier: {
-        label: "Identifier",
-        placeholder: "Enter identifier",
+        label: "Account",
+        placeholder: "Enter username or email",
       },
     },
     footer: {
@@ -1908,24 +1908,24 @@ const messages = {
     error: {
       title: "Sign-in did not finish",
       invalidCredentials:
-        "Login failed, please check your identifier and password.",
+        "Login failed, please check your account and password.",
       workspaceUnavailable:
         "Your account was checked but the workspace did not finish loading. Confirm the backend service is running, then sign in again.",
     },
   },
   register: {
-    brand: "AI STANDARDIZED FRAMEWORK",
+    brand: "TaskMate・塔克",
     hero: {
       titleLine1: "Create your account,",
-      titleLine2: "start AI development.",
+      titleLine2: "enter the commerce workspace.",
       desc1:
-        "Register once for the shared account system, then join this app when you sign in.",
+        "Use one account to keep conversations, product context, campaign tasks, and deliverables.",
       desc2:
-        "Theme mode, i18n, and modular structure are ready for scalable iteration.",
+        "After registering, virtual employees can continue helping with products, content, ads, service, cost, and review work.",
     },
     welcome: "CREATE ACCOUNT",
     title: "Register your account",
-    subtitle: "Create the shared account. This app will initialize its member record when you sign in.",
+    subtitle: "Create an account to enter TaskMate・塔克 and manage your commerce tasks.",
     form: {
       password: {
         label: "Password",

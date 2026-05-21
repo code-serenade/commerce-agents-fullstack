@@ -2,8 +2,8 @@ const messages = {
   web: {
     shell: {
       brand: {
-        eyebrow: "Commerce AI",
-        title: "电商多智能体",
+        eyebrow: "TaskMate",
+        title: "TaskMate・塔克",
         description: "电商虚拟员工工作区",
       },
       navigation: {
@@ -793,10 +793,10 @@ const messages = {
       empty: "还没有历史对话",
     },
     shell: {
-      brandTitle: "电商多智能体",
+      brandTitle: "TaskMate・塔克",
       brandDescription: "电商虚拟员工工作区",
       topbarTitle: "输入电商问题",
-      topbarMeta: "Commerce Agents · 虚拟员工协作",
+      topbarMeta: "TaskMate・塔克 · 虚拟员工协作",
       sections: {
         create: "",
         workspace: "功能导航",
@@ -1847,17 +1847,17 @@ const messages = {
     },
   },
   login: {
-    brand: "AI 标准化开发框架",
+    brand: "TaskMate・塔克",
     hero: {
-      titleLine1: "说出你的需求，",
-      titleLine2: "让 AI 按框架写代码。",
+      titleLine1: "把电商问题交给",
+      titleLine2: "虚拟员工协作处理。",
       desc1:
-        "这是一个 AI 标准化开发框架，覆盖页面、状态、路由、接口与主题约束。",
-      desc2: "你只需要描述需求，AI 会基于项目规范完成实现并保持结构一致。",
+        "围绕商品、内容、投放、客服、成本和复盘，把一次电商任务拆成可执行的判断和动作。",
+      desc2: "登录后可以继续查看历史会话、商品上下文、活动任务和交付资料。",
     },
     welcome: "欢迎回来",
     title: "登录你的账号",
-    subtitle: "请输入标识和密码后继续体验 AI 开发流程。",
+    subtitle: "请输入账号和密码，进入电商虚拟员工工作区。",
     form: {
       password: {
         label: "密码",
@@ -1866,8 +1866,8 @@ const messages = {
       submit: "登录",
       submitting: "登录中...",
       identifier: {
-        label: "标识",
-        placeholder: "请输入标识",
+        label: "账号",
+        placeholder: "请输入用户名或邮箱",
       },
     },
     footer: {
@@ -1876,22 +1876,22 @@ const messages = {
     },
     error: {
       title: "登录没有完成",
-      invalidCredentials: "登录失败，请检查标识和密码。",
+      invalidCredentials: "登录失败，请检查账号和密码。",
       workspaceUnavailable:
         "账号验证后没有进入工作区，请确认后端服务已启动，然后重新登录。",
     },
   },
   register: {
-    brand: "AI 标准化开发框架",
+    brand: "TaskMate・塔克",
     hero: {
       titleLine1: "创建账号，",
-      titleLine2: "开始 AI 开发。",
-      desc1: "这里只创建共享账号；登录当前业务时再初始化当前业务身份。",
-      desc2: "同样支持主题切换、多语言和模块化结构，便于持续迭代。",
+      titleLine2: "进入电商虚拟员工工作区。",
+      desc1: "用一个账号保存会话、商品上下文、活动任务和交付资料。",
+      desc2: "注册后可以让虚拟员工继续协作处理选品、内容、投放、客服、成本和复盘问题。",
     },
     welcome: "创建新账号",
     title: "注册你的账号",
-    subtitle: "创建一次共享账号即可；当前业务用户会在登录时自动初始化。",
+    subtitle: "创建账号后即可进入 TaskMate・塔克，开始管理你的电商任务。",
     form: {
       password: {
         label: "密码",

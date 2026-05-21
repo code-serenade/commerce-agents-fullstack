@@ -1,18 +1,18 @@
 const pages = {
   authRegister: {
-    brand: "AI STANDARDIZED FRAMEWORK",
+    brand: "TaskMate・塔克",
     hero: {
       titleLine1: "Create your account,",
-      titleLine2: "start AI development.",
+      titleLine2: "enter the commerce workspace.",
       desc1:
-        "Register once for the shared account system, then join each app when you sign in.",
+        "Use one account to keep conversations, product context, campaign tasks, and deliverables.",
       desc2:
-        "Theme mode, i18n, and modular structure are ready for scalable iteration.",
+        "After registering, virtual employees can continue helping with products, content, ads, service, cost, and review work.",
     },
     welcome: "CREATE ACCOUNT",
     title: "Register your account",
     subtitle:
-      "Create the shared account. Each app will initialize its own member record when you sign in.",
+      "Create an account to enter TaskMate・塔克 and manage your commerce tasks.",
     form: {
       password: {
         label: "Password",

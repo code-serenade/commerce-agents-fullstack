@@ -11,6 +11,8 @@
 5. 角色、任务图、autosuggest、inference、输出策略和 prompt 都必须优先放在 `backend/config/` 下。
 6. 普通业务调整只允许修改配置文件，不允许修改 commander/task_graph/worker runner Rust 代码。
 7. Rust 侧只保留“读取配置、匹配配置、构建图、调度节点、执行 skill、组装上下文、校验输出、降级处理”等通用能力。
+8. task graph 节点和动态角色配置可以配置 `llm_usage`，取值只使用 `fast`、`thinking` 或 `default`，用于路由到 `services.toml` 的 `[agent_llm_usage]`。轻量短答、上游草案或显式岗位协作的动态角色可以用 `fast`；最终综合、财务测算或复杂证据综合的节点保留默认 `thinking`。不要在 Rust 里按行业或业务关键词硬编码模型选择。
+9. task graph 节点和动态角色配置可以配置 `skill_autosuggest`。显式多岗位轻量协作、最终润色或不需要外部适配器的节点可以设为 `false`，避免自动技能请求拖慢和污染输出；需要后台、搜索、投放、财务等真实工具能力的深度图保持默认开启。
 
 ## 配置入口
 

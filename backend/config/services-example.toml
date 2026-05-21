@@ -36,48 +36,41 @@ default_topic = "general"
 default_days = 30
 default_max_results = 6
 
-# Agent runtime uses default_llm as the fallback model. agent_llm_usage maps
-# runtime features to configured [[llm]].name values. Do not commit real keys.
-# default_llm = "llm-thinking"
+# Agent runtime uses Doubao by default. agent_llm_usage maps runtime features
+# to configured [[llm]].name values. Do not commit real keys.
+# default_llm = "doubao-thinking"
 #
 # [agent_llm_usage]
-# default = "llm-thinking"
-# fast = "llm-fast"
-# thinking = "llm-thinking"
-# vision = "llm-vision"
+# default = "doubao-thinking"
+# fast = "doubao-fast"
+# thinking = "doubao-thinking"
+# vision = "doubao-vision"
 
 [[llm]]
-name = "llm-thinking"
-base_url = "http://127.0.0.1:11434"
-model = "gemma4:26b"
+name = "doubao-thinking"
+base_url = "https://ark.cn-beijing.volces.com/api/v3"
+model = "doubao-seed-2-0-pro-260215"
+api_key = "CHANGE_ME"
 max_tokens = 20000
 temperature = 0.2
+reasoning_effort = "high"
 
 # [[llm]]
-# name = "llm-fast"
-# base_url = "http://127.0.0.1:11434"
-# model = "gemma4:26b"
-# max_tokens = 4000
+# name = "doubao-fast"
+# base_url = "https://ark.cn-beijing.volces.com/api/v3"
+# model = "doubao-seed-1-6-flash-250828"
+# api_key = "CHANGE_ME"
+# max_tokens = 8000
 # temperature = 0.2
 #
 # [[llm]]
-# name = "llm-vision"
-# base_url = "https://CHANGE_ME_OPENAI_COMPATIBLE_BASE_URL/v1"
-# model = "CHANGE_ME_VISION_MODEL"
+# name = "doubao-vision"
+# base_url = "https://ark.cn-beijing.volces.com/api/v3"
+# model = "doubao-seed-1-6-vision-250815"
 # api_key = "CHANGE_ME"
 # max_tokens = 12000
 # temperature = 0.2
 
-# Doubao Ark uses an OpenAI-compatible chat completions endpoint. Fill this
-# with a real ARK API key on the deployment machine before setting it default.
-#
-# [[llm]]
-# name = "llm-thinking"
-# base_url = "https://ark.cn-beijing.volces.com/api/v3"
-# model = "doubao-seed-2-0-pro-260215"
-# api_key = "CHANGE_ME"
-# max_tokens = 20000
-# temperature = 0.2
 # The client automatically calls chat/completions when base_url ends with
 # /api/v3. Only set chat_completions_endpoint for providers with a non-standard
 # path.

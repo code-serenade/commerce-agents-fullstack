@@ -77,6 +77,10 @@ pub(super) struct TaskGraphRuleNode {
     #[serde(default)]
     pub(super) max_attempts: Option<u8>,
     #[serde(default)]
+    pub(super) llm_usage: Option<String>,
+    #[serde(default)]
+    pub(super) skill_autosuggest: Option<bool>,
+    #[serde(default)]
     pub(super) acceptance: Vec<String>,
 }
 
@@ -147,6 +151,10 @@ pub(super) struct TaskGraphConditionalNode {
     #[serde(default)]
     pub(super) max_attempts: Option<u8>,
     #[serde(default)]
+    pub(super) llm_usage: Option<String>,
+    #[serde(default)]
+    pub(super) skill_autosuggest: Option<bool>,
+    #[serde(default)]
     pub(super) acceptance: Vec<String>,
 }
 
@@ -166,6 +174,10 @@ pub(super) struct ExplicitRequestRoles {
     pub(super) trigger_keywords: Vec<String>,
     #[serde(default)]
     pub(super) include_final_role_when_keywords: Vec<String>,
+    #[serde(default)]
+    pub(super) llm_usage: Option<String>,
+    #[serde(default)]
+    pub(super) skill_autosuggest: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default, serde::Deserialize)]
@@ -178,6 +190,10 @@ pub(super) struct RouteRoles {
     pub(super) include_support: RouteSupportMode,
     #[serde(default)]
     pub(super) exclude_roles: Vec<String>,
+    #[serde(default)]
+    pub(super) llm_usage: Option<String>,
+    #[serde(default)]
+    pub(super) skill_autosuggest: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default, serde::Deserialize, PartialEq, Eq)]
@@ -203,6 +219,10 @@ pub(super) struct TaskGraphFinalNode {
     pub(super) depends_on: FinalNodeDependsOn,
     #[serde(default)]
     pub(super) max_attempts: Option<u8>,
+    #[serde(default)]
+    pub(super) llm_usage: Option<String>,
+    #[serde(default)]
+    pub(super) skill_autosuggest: Option<bool>,
     #[serde(default)]
     pub(super) acceptance: Vec<String>,
 }

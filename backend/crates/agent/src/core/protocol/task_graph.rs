@@ -22,6 +22,10 @@ pub struct TaskNode {
     pub worker_id: WorkerId,
     pub title: String,
     pub objective: String,
+    #[serde(default)]
+    pub llm_usage: Option<String>,
+    #[serde(default)]
+    pub skill_autosuggest: Option<bool>,
     pub input_refs: Vec<TaskNodeId>,
     pub acceptance: Vec<String>,
     pub max_attempts: u8,
@@ -36,6 +40,10 @@ pub struct WorkerAssignment {
     pub role: String,
     pub attempt: u8,
     pub objective: String,
+    #[serde(default)]
+    pub llm_usage: Option<String>,
+    #[serde(default)]
+    pub skill_autosuggest: Option<bool>,
     pub inputs: Vec<WorkerReport>,
     pub rework_instruction: Option<String>,
 }

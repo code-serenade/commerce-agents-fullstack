@@ -58,6 +58,20 @@ fn build_context(
             "assignment.attempt".to_string(),
             assignment.attempt.to_string(),
         );
+        if let Some(llm_usage) = assignment
+            .llm_usage
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            metadata.insert("assignment.llm_usage".to_string(), llm_usage.to_string());
+        }
+        if let Some(skill_autosuggest) = assignment.skill_autosuggest {
+            metadata.insert(
+                "assignment.skill_autosuggest".to_string(),
+                skill_autosuggest.to_string(),
+            );
+        }
         metadata.insert(
             "assignment.input_count".to_string(),
             assignment.inputs.len().to_string(),

@@ -1,55 +1,70 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
+import { productsQueryKey } from "../../commerce/products/use-product-queries"
 import type { AgentChatProductContextSelection } from "../domain/agent-chat-context-selection"
 import {
-  loadAgentChatProductContext,
-  resetAgentChatProductContext,
+  fetchAgentChatProductContext,
   restoreAgentChatProductContext,
   toggleAgentChatProductContext,
 } from "./agent-chat-product-context-actions"
+
+const agentChatProductContextQueryKey = [
+  ...productsQueryKey,
+  "context",
+  "agent-chat",
+]
 
 export function useAgentChatProductContext(input: {
   enabled: boolean
   isStreaming: boolean
 }) {
-  const [availableProducts, setAvailableProducts] = useState<AgentChatProductContextSelection[]>([])
-  const [selectedProducts, setSelectedProducts] = useState<AgentChatProductContextSelection[]>([])
+  const [selectedProductState, setSelectedProducts] = useState<AgentChatProductContextSelection[]>([])
   const pendingSelectedProductIdsRef = useRef<string[]>([])
-  const [isLoadingProducts, setIsLoadingProducts] = useState(false)
+  const productsQuery = useQuery({
+    enabled: input.enabled,
+    queryFn: fetchAgentChatProductContext,
+    queryKey: agentChatProductContextQueryKey,
+  })
+  const availableProducts = useMemo(
+    () => (input.enabled ? productsQuery.data ?? [] : []),
+    [input.enabled, productsQuery.data]
+  )
   const state = useMemo(
     () => ({
-      setAvailableProducts,
-      setIsLoadingProducts,
       setSelectedProducts,
     }),
     []
   )
-
   useEffect(() => {
-    let cancelled = false
+    if (!input.enabled) pendingSelectedProductIdsRef.current = []
+  }, [input.enabled])
+  const selectedProducts = useMemo(
+    () => {
+      if (!input.enabled) return []
 
-    if (!input.enabled) {
-      resetAgentChatProductContext(state)
-      pendingSelectedProductIdsRef.current = []
-      return
-    }
-
-    void loadAgentChatProductContext(state, () => cancelled)
-
-    return () => {
-      cancelled = true
-    }
-  }, [input.enabled, state])
+      const availableProductMap = new Map(
+        availableProducts.map((product) => [product.id, product])
+      )
+      return selectedProductState
+        .map((selected) => availableProductMap.get(selected.id))
+        .filter(
+          (product): product is AgentChatProductContextSelection =>
+            product !== undefined
+        )
+    },
+    [availableProducts, input.enabled, selectedProductState]
+  )
 
   useEffect(() => {
     const pendingSelectedProductIds = pendingSelectedProductIdsRef.current
-    if (isLoadingProducts || pendingSelectedProductIds.length === 0) return
+    if (productsQuery.isLoading || pendingSelectedProductIds.length === 0) return
     restoreAgentChatProductContext(
       state,
       availableProducts,
       pendingSelectedProductIds
     )
     pendingSelectedProductIdsRef.current = []
-  }, [availableProducts, isLoadingProducts, state])
+  }, [availableProducts, productsQuery.isLoading, state])
 
   const toggleProductContext = useCallback(
     (product: AgentChatProductContextSelection) => {
@@ -76,7 +91,7 @@ export function useAgentChatProductContext(input: {
   return {
     availableProducts,
     clearSelectedProducts,
-    isLoadingProducts,
+    isLoadingProducts: productsQuery.isLoading,
     restoreSelectedProducts,
     selectedProducts,
     toggleProductContext,

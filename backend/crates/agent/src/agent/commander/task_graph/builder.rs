@@ -66,6 +66,8 @@ enum TaskGraphNodeSpec {
         id: String,
         role: String,
         depends_on: Vec<String>,
+        llm_usage: Option<String>,
+        skill_autosuggest: Option<bool>,
     },
 }
 
@@ -100,6 +102,8 @@ fn dynamic_node_specs(
                 id: role.clone(),
                 depends_on: default_dynamic_depends_on(&role, &specs),
                 role,
+                llm_usage: rule.dynamic_roles.from_explicit_request.llm_usage.clone(),
+                skill_autosuggest: rule.dynamic_roles.from_explicit_request.skill_autosuggest,
             });
         }
         if let Some(final_role) = rules.defaults.final_role.as_ref()
@@ -116,6 +120,8 @@ fn dynamic_node_specs(
                 id: final_role.clone(),
                 role: final_role.clone(),
                 depends_on: Vec::new(),
+                llm_usage: rule.dynamic_roles.from_explicit_request.llm_usage.clone(),
+                skill_autosuggest: rule.dynamic_roles.from_explicit_request.skill_autosuggest,
             });
         }
     }
@@ -144,6 +150,8 @@ fn dynamic_node_specs(
                 id: role.clone(),
                 depends_on: default_dynamic_depends_on(&role, &specs),
                 role,
+                llm_usage: rule.dynamic_roles.from_route.llm_usage.clone(),
+                skill_autosuggest: rule.dynamic_roles.from_route.skill_autosuggest,
             });
         }
     }
@@ -211,6 +219,8 @@ fn task_node_from_spec(
             &node.objective,
             &node.depends_on,
             node.max_attempts,
+            node.llm_usage.as_deref(),
+            node.skill_autosuggest,
             &node.acceptance,
             task,
             rules,
@@ -223,6 +233,8 @@ fn task_node_from_spec(
             &node.objective,
             &node.depends_on,
             node.max_attempts,
+            node.llm_usage.as_deref(),
+            node.skill_autosuggest,
             &node.acceptance,
             task,
             rules,
@@ -232,7 +244,22 @@ fn task_node_from_spec(
             id,
             role,
             depends_on,
-        } => concrete_task_node(id, role, "", "", depends_on, None, &[], task, rules, rule),
+            llm_usage,
+            skill_autosuggest,
+        } => concrete_task_node(
+            id,
+            role,
+            "",
+            "",
+            depends_on,
+            None,
+            llm_usage.as_deref(),
+            *skill_autosuggest,
+            &[],
+            task,
+            rules,
+            rule,
+        ),
     }
 }
 
@@ -244,6 +271,8 @@ fn concrete_task_node(
     objective: &str,
     depends_on: &[String],
     max_attempts: Option<u8>,
+    llm_usage: Option<&str>,
+    skill_autosuggest: Option<bool>,
     acceptance: &[String],
     task: &str,
     rules: &TaskGraphRuleSet,
@@ -284,6 +313,11 @@ fn concrete_task_node(
         worker_id: WorkerId(format!("worker.{role}")),
         title: render_rule_template(title, task, rule),
         objective: render_rule_template(objective, task, rule),
+        llm_usage: llm_usage
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_string),
+        skill_autosuggest,
         input_refs: depends_on
             .iter()
             .map(|dep| TaskNodeId(dep.clone()))
@@ -315,6 +349,8 @@ fn add_final_node(
         &final_node.objective,
         &depends_on,
         final_node.max_attempts,
+        final_node.llm_usage.as_deref(),
+        final_node.skill_autosuggest,
         &final_node.acceptance,
         task,
         rules,
