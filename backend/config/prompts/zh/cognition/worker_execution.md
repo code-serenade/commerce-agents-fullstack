@@ -19,11 +19,4 @@
 {{facts}}
 
 JSON schema:
-{
-  "decision":{"kind":"NoAction","action":{"action_type":"","parameters":{}},"state_change":{"key":"","value":""},"strategy":{"priority":0,"hint":""}},
-  "confidence":1.0,
-  "rationale":{"primary":"","evidence":[],"alternatives_considered":[]},
-  "skill_requests":[],
-  "summary":"...",
-  "role_output":{"summary":"...","findings":[],"recommendations":[],"evidence":[],"risks":[],"open_questions":[]}
-}
+{"decision":{"kind":"NoAction","action":{"action_type":"","parameters":{}},"state_change":{"key":"","value":""},"strategy":{"priority":0,"hint":""}},"confidence":1.0,"rationale":{"primary":"","evidence":[],"alternatives_considered":[]},"skill_requests":[],"summary":"...","role_output":{"summary":"...","findings":[],"recommendations":[],"evidence":[],"risks":[],"open_questions":[]}}

@@ -8,29 +8,6 @@
 
 JSON schema:
 
-{
-  "decision": {
-    "kind": "RouteTask|KeepCurrentAssignment|AskForClarification|NoRoute",
-    "route": {
-      "target_agent_id": "",
-      "task_summary": "",
-      "goal": "",
-      "constraints": []
-    },
-    "handoff": {
-      "why_this_agent": "",
-      "expected_output": ""
-    },
-    "clarification": {
-      "question": ""
-    }
-  },
-  "confidence": 0.0,
-  "rationale": {
-    "primary": "",
-    "evidence": [],
-    "alternatives_considered": []
-  }
-}
+{"decision":{"kind":"RouteTask|KeepCurrentAssignment|AskForClarification|NoRoute","route":{"target_agent_id":"","task_summary":"","goal":"","constraints":[]},"handoff":{"why_this_agent":"","expected_output":""},"clarification":{"question":""}},"confidence":0.0,"rationale":{"primary":"","evidence":[],"alternatives_considered":[]}}
 
 字段规则：`RouteTask` 填 `route`/`handoff`；`AskForClarification` 只填 `clarification.question`；`NoRoute` 路由和澄清为空；`confidence` 取 0.0 到 1.0；直接采纳 role route 时 `alternatives_considered=[]`。
