@@ -51,5 +51,21 @@ services:
     ports:
       - "29202:80"
 
+  admin:
+    build:
+      context: .
+      dockerfile: deploy/frontend/Dockerfile
+      args:
+        APP_NAME: admin
+    image: ${IMAGE_PREFIX:-commerce-agents}-admin:local
+    environment:
+      API_UPSTREAM: ${API_UPSTREAM:-http://backend:19878}
+      AUTH_UPSTREAM: ${AUTH_UPSTREAM:-http://1.85.61.130:29001}
+      FILE_UPSTREAM: ${FILE_UPSTREAM:-http://1.85.61.130:29002}
+    depends_on:
+      - backend
+    ports:
+      - "8081:80"
+
 volumes:
   postgres_data:
