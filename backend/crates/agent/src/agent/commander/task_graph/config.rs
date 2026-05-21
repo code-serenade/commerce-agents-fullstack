@@ -77,6 +77,10 @@ pub(super) struct TaskGraphRuleNode {
     #[serde(default)]
     pub(super) max_attempts: Option<u8>,
     #[serde(default)]
+    pub(super) llm_usage: Option<String>,
+    #[serde(default)]
+    pub(super) skill_autosuggest: Option<bool>,
+    #[serde(default)]
     pub(super) acceptance: Vec<String>,
 }
 
@@ -147,6 +151,10 @@ pub(super) struct TaskGraphConditionalNode {
     #[serde(default)]
     pub(super) max_attempts: Option<u8>,
     #[serde(default)]
+    pub(super) llm_usage: Option<String>,
+    #[serde(default)]
+    pub(super) skill_autosuggest: Option<bool>,
+    #[serde(default)]
     pub(super) acceptance: Vec<String>,
 }
 
@@ -166,6 +174,10 @@ pub(super) struct ExplicitRequestRoles {
     pub(super) trigger_keywords: Vec<String>,
     #[serde(default)]
     pub(super) include_final_role_when_keywords: Vec<String>,
+    #[serde(default)]
+    pub(super) llm_usage: Option<String>,
+    #[serde(default)]
+    pub(super) skill_autosuggest: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default, serde::Deserialize)]
@@ -178,6 +190,10 @@ pub(super) struct RouteRoles {
     pub(super) include_support: RouteSupportMode,
     #[serde(default)]
     pub(super) exclude_roles: Vec<String>,
+    #[serde(default)]
+    pub(super) llm_usage: Option<String>,
+    #[serde(default)]
+    pub(super) skill_autosuggest: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default, serde::Deserialize, PartialEq, Eq)]
@@ -203,6 +219,10 @@ pub(super) struct TaskGraphFinalNode {
     pub(super) depends_on: FinalNodeDependsOn,
     #[serde(default)]
     pub(super) max_attempts: Option<u8>,
+    #[serde(default)]
+    pub(super) llm_usage: Option<String>,
+    #[serde(default)]
+    pub(super) skill_autosuggest: Option<bool>,
     #[serde(default)]
     pub(super) acceptance: Vec<String>,
 }
@@ -238,14 +258,6 @@ fn resolve_task_graph_rules_path(path: &str) -> Option<PathBuf> {
     let candidate = Path::new(path);
     if candidate.exists() {
         return Some(normalize_task_graph_path(candidate));
-    }
-    if path == DEFAULT_TASK_GRAPH_RULES_PATH {
-        let repo_config_path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../")
-            .join(DEFAULT_TASK_GRAPH_RULES_PATH);
-        if repo_config_path.exists() {
-            return Some(repo_config_path);
-        }
     }
 
     None

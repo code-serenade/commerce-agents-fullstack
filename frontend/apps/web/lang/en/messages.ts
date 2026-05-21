@@ -2,8 +2,8 @@ const messages = {
   web: {
     shell: {
       brand: {
-        eyebrow: "Commerce AI",
-        title: "Commerce Agents",
+        eyebrow: "TaskMate",
+        title: "TaskMate・塔克",
         description: "Virtual employee workspace",
       },
       navigation: {
@@ -18,7 +18,6 @@ const messages = {
         platformConnect: "Platform connect",
         approvals: "Approvals",
         operations: "Operations",
-        packages: "Packages",
         agent: "Commerce Agents",
         agentOutput: "Deliverables",
         profile: "Profile",
@@ -208,7 +207,7 @@ const messages = {
       overview: {
         eyebrow: "Commerce Console",
         title: "Operations overview",
-        description: "Frontend entry points are organized around migrated backend capabilities: product context, campaigns, execution, platform, approvals, alerts, and package governance.",
+        description: "Frontend entry points are organized around migrated backend capabilities: product context, campaigns, execution, platform, approvals, and alerts.",
         boundaryTitle: "Runtime boundary",
         boundaryDescription: "This page connects ordinary backend business APIs. Agent-native dynamic package loading, tool replay, and automatic long-task execution still respect the agent crate boundary and are not claimed as enabled.",
       },
@@ -250,13 +249,6 @@ const messages = {
         boundaryTitle: "Execution boundary",
         boundaryDescription: "Long tasks and briefings are backend state records in this phase. They do not start real async executors or LLM generation jobs.",
       },
-      packages: {
-        eyebrow: "Package Governance",
-        title: "Package governance",
-        description: "The package page maps to backend catalog, validation, enable, disable, rollback, run locks, and drift checks.",
-        boundaryTitle: "Agent boundary",
-        boundaryDescription: "This manages database governance records and does not dynamically modify the Agent runtime catalog. Work requiring the agent crate remains recorded as a blocker.",
-      },
     },
     overview: {
       metrics: {
@@ -279,7 +271,7 @@ const messages = {
         platform: "Platform connect",
         platformDesc: "Platform summary comes from local connections and metric tables",
         governance: "Pending governance",
-        governanceDesc: "Execution suggestions, tool approvals, and package states",
+        governanceDesc: "Execution suggestions, tool approvals, and alert states",
         enterProducts: "Open products",
         enterCampaigns: "Open campaigns",
         enterWorkspaces: "Open execution",
@@ -732,62 +724,6 @@ const messages = {
         alertsClosed: "Alerts dismissed in bulk",
       },
     },
-    packages: {
-      metrics: {
-        packages: "Packages",
-        skills: "Skill",
-        skillsTail: "Skill package directory",
-        locks: "Run locks",
-        locksTail: "Current workspace/run",
-        disabled: "Disabled/deprecated",
-        disabledTail: "Governance state",
-      },
-      panels: {
-        catalog: "Package catalog",
-        catalogDesc: "Database governance catalog, not direct Agent runtime catalog changes",
-        syncLegacy: "Sync legacy packages",
-        savePackage: "Save package",
-        search: "Search package ID or name",
-        packageType: "Package type",
-        emptyPackages: "No packages",
-        detail: "Package detail",
-        detailDesc: "Validation, enable, disable, and rollback only affect governance records",
-        valid: "Validation passed",
-        invalid: "Validation failed",
-        noValidationIssues: "No errors or warnings",
-        locks: "Run package locks",
-        locksDesc: "Select an existing backend workspace and run to query and save lock records",
-        selectWorkspace: "Select workspace",
-        selectRun: "Select run",
-        lockContext: "Real run context connected",
-        lockContextDesc: "{{workspace}} / {{run}}",
-        checkDrift: "Check drift",
-        saveLock: "Save lock",
-        drift: "Drift check result",
-        emptyLocks: "No backend workspace or run is available yet",
-        emptyLocksForRun: "No package locks for the current run",
-      },
-      columns: {
-        package: "Package",
-        stateChange: "State change",
-        lockedPackage: "Locked package",
-      },
-      dialogs: {
-        package: "Save package",
-        lock: "Save run package lock",
-      },
-      notify: {
-        saved: "Package saved",
-        valid: "Package validation passed",
-        invalid: "Package validation failed",
-        activated: "Package activated",
-        deactivated: "Package deactivated",
-        rolledBack: "Package rolled back",
-        lockSaved: "Run package lock saved",
-        driftChecked: "Drift check completed",
-        legacySynced: "{{count}} legacy package records synced",
-      },
-    },
   },
   home: {
     welcome: "Welcome back",
@@ -861,19 +797,16 @@ const messages = {
       collapseHistory: "Collapse history",
       expandFunctionNav: "Expand function navigation",
       collapseFunctionNav: "Collapse function navigation",
-      expandGovernance: "Expand management and review",
-      collapseGovernance: "Collapse management and review",
       empty: "No conversations yet",
     },
     shell: {
-      brandTitle: "Commerce Agents",
+      brandTitle: "TaskMate・塔克",
       brandDescription: "Virtual employee workspace",
       topbarTitle: "Enter an ecommerce question",
-      topbarMeta: "Commerce Agents · virtual employee collaboration",
+      topbarMeta: "TaskMate・塔克 · virtual employee collaboration",
       sections: {
         create: "",
         workspace: "Function navigation",
-        governance: "Management and Review",
         recents: "History",
       },
       navigation: {
@@ -890,7 +823,6 @@ const messages = {
         deliverables: "Deliverables",
         approvals: "Approvals",
         taskBoard: "Task board",
-        packages: "Reusable packages",
         systemDashboard: "System dashboard",
         team: "AI team",
         history: "History",
@@ -1157,7 +1089,6 @@ const messages = {
           "Deliverables store plans, checklists, and review language",
           "Alerts store budget, delivery, and conversion anomaly rules",
           "Daily briefing summarizes key progress and todos",
-          "Reusable packages support follow-up start, stop, and rollback flows",
         ],
       },
     },
@@ -1314,7 +1245,7 @@ const messages = {
         },
         governance: {
           label: "Governance",
-          detail: "Alerts, packages, approval rollback",
+          detail: "Alerts, approvals, and rollback",
         },
       },
       processStage: {
@@ -1420,7 +1351,7 @@ const messages = {
         },
         governance: {
           title: "Governance",
-          detail: "Alerts, package management, and approval rollback handle risk",
+          detail: "Alerts, approvals, and rollback handle risk",
         },
         review: {
           title: "Review",
@@ -1930,10 +1861,6 @@ const messages = {
           description: "Connects platforms, campaigns, metrics, briefings, alerts, and external data adapters.",
         },
         {
-          title: "Package governance",
-          description: "Manages skill packages, versions, run locks, validation, enable, disable, and rollback records.",
-        },
-        {
           title: "Approvals and delivery",
           description: "Carries high-risk approvals, audit, task lists, and final deliverables.",
         },
@@ -1949,19 +1876,19 @@ const messages = {
     },
   },
   login: {
-    brand: "AI STANDARDIZED FRAMEWORK",
+    brand: "TaskMate・塔克",
     hero: {
-      titleLine1: "Describe your needs,",
-      titleLine2: "let AI code by the framework.",
+      titleLine1: "Hand commerce work to",
+      titleLine2: "virtual employees.",
       desc1:
-        "This is an AI-standardized development framework across pages, state, routes, APIs, and themes.",
+        "Break product, content, ads, service, cost, and review work into clear judgments and actions.",
       desc2:
-        "You provide requirements, and AI implements features while following the project conventions.",
+        "Sign in to continue conversations, product context, campaign tasks, and deliverables.",
     },
     welcome: "WELCOME BACK",
     title: "Sign in to your account",
     subtitle:
-      "Use your identifier and password to continue into the AI development workflow.",
+      "Use your account and password to enter the commerce virtual employee workspace.",
     form: {
       password: {
         label: "Password",
@@ -1970,8 +1897,8 @@ const messages = {
       submit: "Sign in",
       submitting: "Signing in...",
       identifier: {
-        label: "Identifier",
-        placeholder: "Enter identifier",
+        label: "Account",
+        placeholder: "Enter username or email",
       },
     },
     footer: {
@@ -1981,24 +1908,24 @@ const messages = {
     error: {
       title: "Sign-in did not finish",
       invalidCredentials:
-        "Login failed, please check your identifier and password.",
+        "Login failed, please check your account and password.",
       workspaceUnavailable:
         "Your account was checked but the workspace did not finish loading. Confirm the backend service is running, then sign in again.",
     },
   },
   register: {
-    brand: "AI STANDARDIZED FRAMEWORK",
+    brand: "TaskMate・塔克",
     hero: {
       titleLine1: "Create your account,",
-      titleLine2: "start AI development.",
+      titleLine2: "enter the commerce workspace.",
       desc1:
-        "Register once for the shared account system, then join this app when you sign in.",
+        "Use one account to keep conversations, product context, campaign tasks, and deliverables.",
       desc2:
-        "Theme mode, i18n, and modular structure are ready for scalable iteration.",
+        "After registering, virtual employees can continue helping with products, content, ads, service, cost, and review work.",
     },
     welcome: "CREATE ACCOUNT",
     title: "Register your account",
-    subtitle: "Create the shared account. This app will initialize its member record when you sign in.",
+    subtitle: "Create an account to enter TaskMate・塔克 and manage your commerce tasks.",
     form: {
       password: {
         label: "Password",

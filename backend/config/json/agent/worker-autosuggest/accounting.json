@@ -229,7 +229,7 @@
       "input": {
         "query": "{{search_query}}",
         "topic": "finance",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": true,
         "product_ref": "{{selected_product_ref}}",
         "product_name": "{{selected_product_name}}",

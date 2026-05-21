@@ -9,6 +9,7 @@ mod runner;
 mod state;
 mod task;
 mod task_graph;
+mod user_facing;
 
 pub use memory::*;
 pub use routing::*;
@@ -16,3 +17,4 @@ pub use runner::*;
 pub use state::*;
 pub use task::*;
 pub use task_graph::*;
+pub(crate) use user_facing::*;

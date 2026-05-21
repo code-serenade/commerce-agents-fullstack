@@ -1,7 +1,7 @@
 use std::{
     collections::{HashMap, HashSet},
     fs,
-    path::{Path, PathBuf},
+    path::Path,
 };
 
 use serde::Deserialize;
@@ -110,8 +110,7 @@ pub(in crate::agent::worker::runner) fn load_inference_policy() -> WorkerInferen
         }
     }
 
-    let root = workspace_root();
-    let directory_path = root.join(DEFAULT_INFERENCE_DIR);
+    let directory_path = Path::new(DEFAULT_INFERENCE_DIR);
     match load_inference_directory(&directory_path) {
         Ok(policy) => policy,
         Err(error) => {
@@ -121,7 +120,7 @@ pub(in crate::agent::worker::runner) fn load_inference_policy() -> WorkerInferen
                 "failed to load worker inference directory; trying legacy file"
             );
 
-            let legacy_path = root.join(DEFAULT_INFERENCE_FILE);
+            let legacy_path = Path::new(DEFAULT_INFERENCE_FILE);
             match parse_inference_file(&legacy_path) {
                 Ok(policy) => policy,
                 Err(error) => {
@@ -260,12 +259,4 @@ where
 {
     let content = fs::read_to_string(path).map_err(|error| format!("read: {error}"))?;
     serde_json::from_str(&content).map_err(|error| format!("invalid {name}: {error}"))
-}
-
-fn workspace_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .and_then(Path::parent)
-        .map(Path::to_path_buf)
-        .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")))
 }

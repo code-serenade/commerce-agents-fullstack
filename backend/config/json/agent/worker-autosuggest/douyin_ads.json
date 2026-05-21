@@ -39,6 +39,15 @@
           "定向",
           "达人相似",
           "莱卡"
+        ],
+        "none_keywords": [
+          "停投",
+          "止损",
+          "客单价",
+          "毛利",
+          "退款",
+          "什么时候该停投",
+          "保本线"
         ]
       },
       "skill_id": "douyin_ads_audience_package",
@@ -151,7 +160,7 @@
       "input": {
         "platform": "{{search_platform}}",
         "policy_type": "algorithm",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": true,
         "product_ref": "{{selected_product_ref}}",
         "product_name": "{{selected_product_name}}",
@@ -186,7 +195,7 @@
         "industry": "{{search_industry}}",
         "metric": "roi",
         "platform": "{{search_platform}}",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": true,
         "product_ref": "{{selected_product_ref}}",
         "product_name": "{{selected_product_name}}",
@@ -214,7 +223,7 @@
       "input": {
         "query": "{{search_query}}",
         "platform": "抖音",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": true,
         "product_ref": "{{selected_product_ref}}",
         "product_name": "{{selected_product_name}}",
@@ -268,7 +277,7 @@
       "input": {
         "query": "{{search_query}}",
         "topic": "general",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": true,
         "product_ref": "{{selected_product_ref}}",
         "product_name": "{{selected_product_name}}",

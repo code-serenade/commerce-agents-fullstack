@@ -18,6 +18,34 @@ describe("agent chat answer sanitizer", () => {
     ).toBe("Suggestion: improve the entry point\nNext step: add more data")
   })
 
+  it("hides task graph shells, role labels, placeholders, and note labels", () => {
+    const raw = [
+      `Task graph completed. Task: ${textFromCodes([36825, 20010, 21654, 21857, 22914, 20309, 20570, 33829, 38144])}`,
+      "Passed worker reports",
+      `- ${textFromCodes([20869, 23481, 21019, 24847, 40, 99, 114, 101, 97, 116, 105, 118, 101, 41])}: ${textFromCodes([12304, 21487, 30452, 25509, 27979, 35797, 30340, 21315, 20048, 21654, 21857, 33829, 38144, 21019, 24847, 65288, 21344, 20301, 31526, 38656, 26367, 25442, 20026, 30495, 23454, 20449, 24687, 65289, 12305])}`,
+      textFromCodes([49, 46, 32, 20027, 25512, 26631, 39064, 65306, 21315, 20048, 21654, 21857, 12304, 30495, 23454, 21697, 31867, 65288, 22914, 25346, 32819, 47, 36895, 28342, 47, 33014, 22218, 47, 21654, 21857, 35910, 65289, 12305, 26085, 24120, 21475, 31918, 27454]),
+      textFromCodes([22791, 27880, 65306, 26367, 25442, 30495, 23454, 21697, 31867, 21518, 21363, 21487, 19978, 32447, 65292, 27979, 35797, 26680, 24515, 25351, 26631, 21442, 32771, 28857, 20987, 29575]),
+    ].join("\n")
+
+    const formatted = formatAgentUiMessage(raw, copy)
+    const lower = formatted.toLowerCase()
+
+    expect(formatted).toContain(
+      [textFromCodes([21315, 20048, 21654, 21857]), textFromCodes([30495, 23454, 21697, 31867, 26085, 24120, 21475, 31918, 27454])].join("")
+    )
+    expect(formatted).toContain(
+      textFromCodes([35828, 26126, 65306, 26367, 25442, 30495, 23454, 21697, 31867, 21518, 21363, 21487, 19978, 32447])
+    )
+    expect(lower).not.toContain("task graph")
+    expect(lower).not.toContain("passed worker")
+    expect(lower).not.toContain("worker")
+    expect(formatted).not.toContain(textFromCodes([20869, 23481, 21019, 24847, 40, 99, 114, 101, 97, 116, 105, 118, 101, 41]))
+    expect(formatted).not.toContain(textFromCodes([21344, 20301, 31526]))
+    expect(formatted).not.toContain(textFromCodes([22791, 27880, 65306]))
+    expect(formatted).not.toContain("【")
+    expect(formatted).not.toContain("】")
+  })
+
   it("hides legacy internal role quality failures from persisted answers", () => {
     const raw = [
       textFromCodes([22810, 26234, 33021, 20307, 20219, 21153, 22270, 24050, 23436, 25104, 12290]),
@@ -28,14 +56,14 @@ describe("agent chat answer sanitizer", () => {
       `- ${textFromCodes([26381, 21153, 26041, 26696])}(service) failed: service role output lacks service-specific content`,
     ].join("\n")
     const formatted = formatAgentUiMessage(raw, copy)
-    const opsLine = [
-      textFromCodes([36816, 33829, 26041, 26696]),
-      "(ops): ",
-      textFromCodes([24050, 24418, 25104, 31867, 30446, 32423, 21028, 26029, 12290]),
-    ].join("")
+    const opsRoleLabel = [textFromCodes([36816, 33829, 26041, 26696]), "(ops)"].join("")
+    const opsContent = textFromCodes([
+      24050, 24418, 25104, 31867, 30446, 32423, 21028, 26029, 12290,
+    ])
 
-    expect(formatted).toContain(opsLine)
+    expect(formatted).toContain(opsContent)
     expect(formatted).toContain(copy.boundaryNotice)
+    expect(formatted).not.toContain(opsRoleLabel)
     expect(formatted).not.toContain("data role should provide")
     expect(formatted).not.toContain("service role output")
   })

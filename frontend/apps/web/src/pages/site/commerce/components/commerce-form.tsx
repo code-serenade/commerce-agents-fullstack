@@ -60,7 +60,7 @@ export function SimpleFormDialog({
             {t("commerce.common.dialogDescription")}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
+        <div className="min-h-0 max-h-[calc(100vh-16rem)] space-y-3 overflow-y-auto pr-1 [scrollbar-gutter:stable]">
           {fields.map((field) => (
             <label key={field.key} className="block space-y-1.5">
               <span className="text-sm font-medium text-foreground">

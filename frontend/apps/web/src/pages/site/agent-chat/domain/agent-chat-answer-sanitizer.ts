@@ -1,3 +1,5 @@
+import { normalizeUserFacingAnswer } from "./agent-chat-user-facing-normalizer"
+
 const INTERNAL_FAILURE_PATTERNS = [
   /data role should provide at least two findings/i,
   /data role should mark data or interpretation risks/i,
@@ -165,7 +167,7 @@ export function sanitizeAgentAnswerContent(
 
   const cleaned = removeInternalFailureBlock(lines, copy).join("\n")
 
-  return cleaned
+  return normalizeUserFacingAnswer(cleaned)
     .replace(/\n{3,}/g, "\n\n")
     .trim()
 }

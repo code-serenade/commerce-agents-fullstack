@@ -11,6 +11,19 @@
           "首图",
           "商品图",
           "main image"
+        ],
+        "none_keywords": [
+          "最大问题",
+          "最大的问题",
+          "先帮我看",
+          "帮我看",
+          "风险",
+          "评审",
+          "哪里最影响",
+          "图上写了",
+          "文案风险",
+          "不要完整",
+          "不要方案"
         ]
       },
       "skill_id": "design_main_image",
@@ -30,6 +43,19 @@
           "详情页",
           "详情设计",
           "详情页设计"
+        ],
+        "none_keywords": [
+          "最大问题",
+          "最大的问题",
+          "先帮我看",
+          "帮我看",
+          "风险",
+          "评审",
+          "哪里最影响",
+          "图上写了",
+          "文案风险",
+          "不要完整",
+          "不要方案"
         ]
       },
       "skill_id": "design_detail_page",
@@ -50,6 +76,16 @@
           "色彩",
           "品牌色",
           "color"
+        ],
+        "none_keywords": [
+          "最大问题",
+          "最大的问题",
+          "先帮我看",
+          "帮我看",
+          "风险",
+          "评审",
+          "图上写了",
+          "文案风险"
         ]
       },
       "skill_id": "design_color_scheme",
@@ -71,6 +107,16 @@
           "规格",
           "format",
           "安全区"
+        ],
+        "none_keywords": [
+          "最大问题",
+          "最大的问题",
+          "先帮我看",
+          "帮我看",
+          "风险",
+          "评审",
+          "图上写了",
+          "文案风险"
         ]
       },
       "skill_id": "design_material_spec",
@@ -91,6 +137,16 @@
           "大促",
           "poster",
           "banner"
+        ],
+        "none_keywords": [
+          "最大问题",
+          "最大的问题",
+          "先帮我看",
+          "帮我看",
+          "风险",
+          "评审",
+          "图上写了",
+          "文案风险"
         ]
       },
       "skill_id": "design_campaign_poster",
@@ -144,7 +200,7 @@
       "input": {
         "query": "{{search_query}}",
         "platform": "{{search_platform}}",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": true,
         "product_ref": "{{selected_product_ref}}",
         "product_name": "{{selected_product_name}}",
@@ -174,7 +230,7 @@
       "input": {
         "query": "{{search_query}}",
         "platform": "{{search_platform}}",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": true,
         "product_ref": "{{selected_product_ref}}",
         "product_name": "{{selected_product_name}}",
@@ -214,7 +270,7 @@
       "input": {
         "platform": "{{search_platform}}",
         "policy_type": "material",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": true,
         "product_ref": "{{selected_product_ref}}",
         "product_name": "{{selected_product_name}}",
@@ -228,6 +284,21 @@
         "design"
       ],
       "fallback": true,
+      "match": {
+        "none_keywords": [
+          "最大问题",
+          "最大的问题",
+          "先帮我看",
+          "帮我看",
+          "风险",
+          "评审",
+          "哪里最影响",
+          "图上写了",
+          "文案风险",
+          "不要完整",
+          "不要方案"
+        ]
+      },
       "skill_id": "design_main_image",
       "input": {
         "product_name": "{{selected_product_name}}",

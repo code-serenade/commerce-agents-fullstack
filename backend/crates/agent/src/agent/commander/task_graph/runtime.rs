@@ -2,6 +2,9 @@ use std::collections::{HashMap, HashSet};
 
 use super::{chat, planner};
 use crate::{
+    agent::commander::{
+        no_user_facing_content_message, sanitize_user_facing_text, user_facing_report_text,
+    },
     agent_session::{RoleMemorySummary, TaskGraphMemorySummary, WorkerDetail},
     core::protocol::{
         Evaluation, RoleWorkOutput, TaskGraph, TaskGraphHandoff, TaskGraphProcessGap,
@@ -109,6 +112,8 @@ impl TaskGraphRuntime {
             role: node.role.clone(),
             attempt,
             objective: node.objective.clone(),
+            llm_usage: node.llm_usage.clone(),
+            skill_autosuggest: node.skill_autosuggest,
             inputs,
             rework_instruction: self.rework_instructions.get(&node.id).cloned(),
         }
@@ -182,13 +187,11 @@ impl TaskGraphRuntime {
     }
 
     pub fn synthesize(&self) -> String {
-        let mut lines = vec![
-            "Task graph completed.".to_string(),
-            format!("Task: {}", self.graph.root_task),
-            String::new(),
-            "Passed worker reports:".to_string(),
-        ];
-        let mut passed_count = 0;
+        if let Some(final_output) = self.final_node_output() {
+            return final_output;
+        }
+
+        let mut sections = Vec::new();
 
         for node in &self.graph.nodes {
             if !matches!(
@@ -197,46 +200,62 @@ impl TaskGraphRuntime {
             ) {
                 continue;
             }
-            passed_count += 1;
             let Some(report) = self.reports.get(&node.id) else {
                 continue;
             };
-            let summary = report
-                .role_output
-                .as_ref()
-                .map(|output| output.summary.trim())
-                .filter(|summary| !summary.is_empty())
-                .unwrap_or_else(|| report.content.trim());
-            lines.push(format!("- {}({}): {}", node.title, node.role, summary));
+            if let Some(summary) = user_facing_report_text(report) {
+                sections.push(summary);
+            }
         }
 
-        if passed_count == 0 {
-            lines.push("- none".to_string());
-        }
-
-        let gaps = self
+        let incomplete = self
             .graph
             .nodes
             .iter()
             .filter_map(|node| match self.states.get(&node.id) {
-                Some(TaskNodeRuntimeState::Failed(reason)) => Some(format!(
-                    "- {}({}) failed: {}",
-                    node.title, node.role, reason
-                )),
-                Some(TaskNodeRuntimeState::Skipped(reason)) => Some(format!(
-                    "- {}({}) skipped: {}",
-                    node.title, node.role, reason
-                )),
+                Some(TaskNodeRuntimeState::Failed(reason)) => sanitize_user_facing_text(reason)
+                    .map(|reason| format!("{}未完成：{}", node.title, reason)),
+                Some(TaskNodeRuntimeState::Skipped(reason)) => sanitize_user_facing_text(reason)
+                    .map(|reason| format!("{}暂未继续：{}", node.title, reason)),
                 _ => None,
             })
             .collect::<Vec<_>>();
-        if !gaps.is_empty() {
-            lines.push(String::new());
-            lines.push("Incomplete nodes:".to_string());
-            lines.extend(gaps);
+        if !incomplete.is_empty() {
+            sections.push(format!("还有这些部分需要补齐：{}", incomplete.join("；")));
         }
 
-        lines.join("\n")
+        if sections.is_empty() {
+            no_user_facing_content_message()
+        } else {
+            sections.join("\n\n")
+        }
+    }
+
+    pub fn final_node_output(&self) -> Option<String> {
+        let final_nodes = self
+            .graph
+            .nodes
+            .iter()
+            .filter(|candidate| {
+                looks_like_final_node(candidate)
+                    && !candidate.input_refs.is_empty()
+                    && matches!(
+                        self.states.get(&candidate.id),
+                        Some(TaskNodeRuntimeState::Passed)
+                    )
+                    && !self
+                        .graph
+                        .nodes
+                        .iter()
+                        .any(|node| node.input_refs.iter().any(|input| input == &candidate.id))
+            })
+            .collect::<Vec<_>>();
+        let [final_node] = final_nodes.as_slice() else {
+            return None;
+        };
+
+        let report = self.reports.get(&final_node.id)?;
+        user_facing_report_text(report)
     }
 
     pub fn direct_chat_output(&self) -> Option<String> {
@@ -254,16 +273,7 @@ impl TaskGraphRuntime {
         }
 
         let report = self.reports.get(&node.id)?;
-        report
-            .role_output
-            .as_ref()
-            .map(|output| output.summary.trim())
-            .filter(|summary| !summary.is_empty())
-            .map(str::to_string)
-            .or_else(|| {
-                let content = report.content.trim();
-                (!content.is_empty()).then(|| content.to_string())
-            })
+        user_facing_report_text(report)
     }
 
     pub fn process_summary(&self) -> TaskGraphProcessSummary {
@@ -468,6 +478,16 @@ impl TaskGraphRuntime {
             }
         }
     }
+}
+
+fn looks_like_final_node(node: &TaskNode) -> bool {
+    let id = node.id.0.to_ascii_lowercase();
+    id.contains("final")
+        || node.title.contains("综合")
+        || node.title.contains("总方案")
+        || node.title.contains("运营方案")
+        || node.objective.contains("综合成")
+        || node.objective.contains("形成可执行")
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -691,4 +711,159 @@ fn unique_strings(items: Vec<String>) -> Vec<String> {
         }
         unique
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{TaskGraphRuntime, TaskNodeRuntimeState};
+    use crate::core::protocol::{
+        RoleWorkOutput, TaskGraph, TaskGraphId, TaskId, TaskNode, TaskNodeId, WorkerId,
+        WorkerReport, WorkerReportStatus,
+    };
+
+    #[test]
+    fn task_graph_synthesis_hides_internal_report_shell() {
+        let mut runtime = TaskGraphRuntime::new(TaskGraph {
+            graph_id: TaskGraphId("graph-user-facing".to_string()),
+            root_task: "帮我做一段咖啡商品讲解。".to_string(),
+            nodes: vec![node("creative", "内容创意", "creative")],
+        });
+        runtime.states.insert(
+            TaskNodeId("creative".to_string()),
+            TaskNodeRuntimeState::Passed,
+        );
+        runtime.reports.insert(
+            TaskNodeId("creative".to_string()),
+            report(
+                "creative",
+                "内容创意(creative): 【可直接测试的讲解（占位符需替换为真实信息）】突出【真实品类，如挂耳/速溶/胶囊】和【真实规格/到手价】。\n备注：这是教学模式。",
+            ),
+        );
+
+        let output = runtime.synthesize();
+        let lower = output.to_ascii_lowercase();
+
+        assert!(output.contains("突出真实品类和真实规格、到手价。"));
+        assert!(output.contains("说明：这是教学模式。"));
+        assert!(!lower.contains("task graph"));
+        assert!(!lower.contains("passed worker reports"));
+        assert!(!lower.contains("worker"));
+        assert!(!lower.contains("role_output"));
+        assert!(!output.contains("内容创意(creative)"));
+        assert!(!output.contains("占位符"));
+        assert!(!output.contains("备注："));
+        assert!(!output.contains('【'));
+        assert!(!output.contains('】'));
+    }
+
+    #[test]
+    fn direct_chat_output_uses_same_user_facing_cleanup() {
+        let mut runtime = TaskGraphRuntime::new(TaskGraph {
+            graph_id: TaskGraphId("graph-chat".to_string()),
+            root_task: "帮我写一句自然回复。".to_string(),
+            nodes: vec![node("chat", "直接回复", "chat")],
+        });
+        runtime
+            .states
+            .insert(TaskNodeId("chat".to_string()), TaskNodeRuntimeState::Passed);
+        runtime.reports.insert(
+            TaskNodeId("chat".to_string()),
+            report(
+                "chat",
+                "chat(worker.chat): 【可直接发送的回复（占位符需替换为真实信息）】先确认用户问题。\n备注：教学模式下可以解释原因。",
+            ),
+        );
+
+        let output = runtime
+            .direct_chat_output()
+            .expect("chat output should be available");
+
+        assert!(output.contains("先确认用户问题。"));
+        assert!(output.contains("说明：教学模式下可以解释原因。"));
+        assert!(!output.contains("chat(worker.chat)"));
+        assert!(!output.contains("占位符"));
+        assert!(!output.contains("备注："));
+    }
+
+    #[test]
+    fn task_graph_synthesis_uses_readable_empty_fallback() {
+        let runtime = TaskGraphRuntime::new(TaskGraph {
+            graph_id: TaskGraphId("graph-empty".to_string()),
+            root_task: "帮我回答问题。".to_string(),
+            nodes: vec![node("creative", "内容创意", "creative")],
+        });
+
+        let output = runtime.synthesize();
+
+        assert!(output.contains("没有拿到可直接展示的完整内容"));
+        assert!(!output.contains("none"));
+        assert!(!output.contains("Passed worker reports"));
+    }
+
+    #[test]
+    fn task_graph_synthesis_prefers_terminal_final_node() {
+        let data = node("data", "Data", "data");
+        let mut ops = node("ops_final", "Final", "ops");
+        ops.input_refs = vec![TaskNodeId("data".to_string())];
+        let mut runtime = TaskGraphRuntime::new(TaskGraph {
+            graph_id: TaskGraphId("graph-final".to_string()),
+            root_task: "Build a plan.".to_string(),
+            nodes: vec![data.clone(), ops.clone()],
+        });
+        runtime
+            .states
+            .insert(data.id.clone(), TaskNodeRuntimeState::Passed);
+        runtime
+            .states
+            .insert(ops.id.clone(), TaskNodeRuntimeState::Passed);
+        runtime
+            .reports
+            .insert(data.id.clone(), report("data", "upstream draft"));
+        runtime
+            .reports
+            .insert(ops.id.clone(), report("ops_final", "final user plan"));
+
+        let output = runtime.synthesize();
+
+        assert_eq!(output, "final user plan");
+        assert!(!output.contains("upstream draft"));
+    }
+
+    fn node(id: &str, title: &str, role: &str) -> TaskNode {
+        TaskNode {
+            id: TaskNodeId(id.to_string()),
+            role: role.to_string(),
+            worker_id: WorkerId(format!("worker.{role}")),
+            title: title.to_string(),
+            objective: "输出用户可直接理解的内容。".to_string(),
+            llm_usage: None,
+            skill_autosuggest: None,
+            input_refs: Vec::new(),
+            acceptance: Vec::new(),
+            max_attempts: 1,
+        }
+    }
+
+    fn report(node_id: &str, summary: &str) -> WorkerReport {
+        WorkerReport {
+            graph_id: TaskGraphId("graph-user-facing".to_string()),
+            node_id: TaskNodeId(node_id.to_string()),
+            task_id: TaskId(format!("task-{node_id}")),
+            worker_id: WorkerId(format!("worker.{node_id}")),
+            role: node_id.to_string(),
+            content: String::new(),
+            role_output: Some(RoleWorkOutput {
+                summary: summary.to_string(),
+                findings: Vec::new(),
+                recommendations: Vec::new(),
+                evidence: Vec::new(),
+                risks: Vec::new(),
+                open_questions: Vec::new(),
+            }),
+            evidence: Vec::new(),
+            risks: Vec::new(),
+            open_questions: Vec::new(),
+            status: WorkerReportStatus::Completed,
+        }
+    }
 }

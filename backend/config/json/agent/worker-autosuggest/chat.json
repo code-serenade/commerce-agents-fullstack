@@ -44,7 +44,6 @@
     "explicit_keywords": [
       "教学",
       "讲解",
-      "解释",
       "解释一下",
       "解释下",
       "什么是",
@@ -67,12 +66,10 @@
     ],
     "question_keywords": [
       "为什么",
-      "怎么做",
       "why"
     ],
     "explanation_keywords": [
       "讲",
-      "解释",
       "教",
       "学习",
       "概念",

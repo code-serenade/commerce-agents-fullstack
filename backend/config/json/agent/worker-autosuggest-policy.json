@@ -87,7 +87,6 @@
     "explicit_keywords": [
       "教学",
       "讲解",
-      "解释",
       "解释一下",
       "解释下",
       "什么是",
@@ -110,12 +109,10 @@
     ],
     "question_keywords": [
       "为什么",
-      "怎么做",
       "why"
     ],
     "explanation_keywords": [
       "讲",
-      "解释",
       "教",
       "学习",
       "概念",
@@ -160,9 +157,7 @@
       "资讯",
       "报告",
       "行情",
-      "资料",
       "公开来源",
-      "财务",
       "财务基准",
       "财务对标",
       "毛利率",
@@ -173,7 +168,10 @@
     {
       "id": "search.platform_policy",
       "roles": ["search"],
-      "match": { "any_keywords": ["平台规则", "平台政策", "规则变化", "算法调整", "流量政策", "佣金", "费率", "大促规则", "审核规则", "违禁词", "material", "素材规范"] },
+      "match": {
+        "any_keywords": ["平台规则", "平台政策", "规则变化", "算法调整", "流量政策", "大促规则", "审核规则", "违禁词", "素材规范"],
+        "none_keywords": ["业务直接回答", "直接回答用户本轮明确的业务交付物", "不要启动多岗位过程", "直接回答用户原始问题"]
+      },
       "skill_id": "search_platform_policy",
       "input": {
         "platform": "电商平台",
@@ -185,7 +183,10 @@
     {
       "id": "search.product_reviews",
       "roles": ["search"],
-      "match": { "any_keywords": ["评价", "口碑", "差评", "好评", "用户反馈", "买家反馈", "评论", "review", "reviews"] },
+      "match": {
+        "any_keywords": ["评价", "口碑", "差评", "好评", "用户反馈", "买家反馈", "评论", "review", "reviews"],
+        "none_keywords": ["业务直接回答", "直接回答用户本轮明确的业务交付物", "不要启动多岗位过程", "直接回答用户原始问题"]
+      },
       "skill_id": "search_product_reviews",
       "input": {
         "query": "{{task_description}}",
@@ -196,7 +197,10 @@
     {
       "id": "search.industry_benchmarks",
       "roles": ["search"],
-      "match": { "any_keywords": ["行业基准", "行业均值", "行业平均", "实时基准", "最新基准", "benchmark", "转化率基准", "客单价基准", "NPS基准", "DSR基准", "退款率基准"] },
+      "match": {
+        "any_keywords": ["行业基准", "行业均值", "行业平均", "实时基准", "最新基准", "benchmark", "转化率基准", "客单价基准", "NPS基准", "DSR基准", "退款率基准"],
+        "none_keywords": ["业务直接回答", "直接回答用户本轮明确的业务交付物", "不要启动多岗位过程", "直接回答用户原始问题"]
+      },
       "skill_id": "search_industry_benchmarks",
       "input": {
         "industry": "{{task_description}}",
@@ -207,7 +211,10 @@
     {
       "id": "search.competitor",
       "roles": ["search"],
-      "match": { "any_keywords": ["competitor", "竞品", "竞对", "竞争对手", "对标", "同类商品"] },
+      "match": {
+        "any_keywords": ["competitor", "竞品", "竞对", "竞争对手", "对标", "同类商品"],
+        "none_keywords": ["业务直接回答", "直接回答用户本轮明确的业务交付物", "不要启动多岗位过程", "直接回答用户原始问题"]
+      },
       "skill_id": "search_competitor",
       "input": {
         "query": "{{task_description}}",
@@ -218,7 +225,10 @@
     {
       "id": "search.trends",
       "roles": ["search"],
-      "match": { "any_keywords": ["trend", "hot", "趋势", "热点", "热卖", "爆款", "流行", "消费趋势"] },
+      "match": {
+        "any_keywords": ["trend", "hot", "趋势", "热点", "热卖", "爆款", "流行", "消费趋势"],
+        "none_keywords": ["业务直接回答", "直接回答用户本轮明确的业务交付物", "不要启动多岗位过程", "直接回答用户原始问题"]
+      },
       "skill_id": "search_trends",
       "input": {
         "query": "{{task_description}}",
@@ -229,7 +239,36 @@
     {
       "id": "search.market_info",
       "roles": ["search"],
-      "match": { "any_keywords": ["market", "市场", "行业", "新闻", "资讯", "报告", "行情", "资料", "公开来源", "财务", "财务基准", "财务对标", "毛利率", "净利率"] },
+      "match": {
+        "any_keywords": ["market", "市场", "行业", "新闻", "资讯", "报告", "行情", "公开来源", "财务基准", "财务对标", "毛利率", "净利率"],
+        "none_keywords": [
+          "只要标题",
+          "只给标题",
+          "只改标题",
+          "一个标题",
+          "标题和一句",
+          "一句提醒",
+          "回一句",
+          "回一句话",
+          "一句客服话术",
+          "一句话术",
+          "自然一点",
+          "不要像公告",
+          "不要完整方案",
+          "不要展开",
+          "不要解释",
+          "不用解释",
+          "无需解释",
+          "直接给标题",
+          "直接改",
+          "只看附件",
+          "只分析附件",
+          "业务直接回答",
+          "直接回答用户本轮明确的业务交付物",
+          "不要启动多岗位过程",
+          "直接回答用户原始问题"
+        ]
+      },
       "skill_id": "search_market_info",
       "input": {
         "query": "{{task_description}}",

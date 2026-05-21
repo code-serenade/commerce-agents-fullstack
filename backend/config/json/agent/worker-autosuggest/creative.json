@@ -12,6 +12,20 @@
           "脚本",
           "分镜",
           "口播"
+        ],
+        "none_keywords": [
+          "标题",
+          "只帮我",
+          "不要给我运营方案",
+          "不要运营方案",
+          "不要方案",
+          "改得",
+          "改写",
+          "帮我把",
+          "这句标题",
+          "可替换标题",
+          "直接改",
+          "上架一点"
         ]
       },
       "skill_id": "creative_video_script",
@@ -35,6 +49,19 @@
           "小红书",
           "笔记",
           "内容文案"
+        ],
+        "none_keywords": [
+          "只要标题",
+          "只给标题",
+          "只改标题",
+          "一个标题",
+          "一句提醒",
+          "不要完整方案",
+          "不要方案",
+          "不要展开",
+          "不要解释",
+          "直接给标题",
+          "标题和一句"
         ]
       },
       "skill_id": "creative_seeding_copy",
@@ -59,6 +86,19 @@
           "CTR",
           "ctr",
           "高点击"
+        ],
+        "none_keywords": [
+          "只帮我",
+          "不要给我运营方案",
+          "不要运营方案",
+          "不要方案",
+          "改得",
+          "改写",
+          "帮我把",
+          "这句标题",
+          "可替换标题",
+          "直接改",
+          "上架一点"
         ]
       },
       "skill_id": "creative_title_ctr_scorer",
@@ -105,10 +145,11 @@
           "品牌定位"
         ]
       },
-      "skill_id": "creative_ip_positioning",
+      "skill_id": "creative_ip_branding",
       "input": {
         "brand_name": "{{selected_product_brand_name}}",
         "product_name": "{{selected_product_name}}",
+        "category": "{{category}}",
         "target_audience": "{{audience}}"
       },
       "reason": "autosuggest:creative.ip_positioning"
@@ -198,16 +239,30 @@
           "creative_video_script",
           "creative_seeding_copy",
           "creative_live_script",
-          "creative_ip_positioning",
+          "creative_ip_branding",
           "creative_article_brief",
           "creative_title_ctr_scorer"
+        ],
+        "none_keywords": [
+          "标题",
+          "只帮我",
+          "不要给我运营方案",
+          "不要运营方案",
+          "不要方案",
+          "改得",
+          "改写",
+          "帮我把",
+          "这句标题",
+          "可替换标题",
+          "直接改",
+          "上架一点"
         ]
       },
       "skill_id": "search_trends",
       "input": {
         "query": "{{search_query}}",
         "platform": "{{search_platform}}",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": true,
         "product_ref": "{{selected_product_ref}}",
         "product_name": "{{selected_product_name}}",
@@ -236,7 +291,7 @@
       "input": {
         "query": "{{search_query}}",
         "topic": "news",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": true,
         "product_ref": "{{selected_product_ref}}",
         "product_name": "{{selected_product_name}}",
@@ -250,6 +305,21 @@
         "creative"
       ],
       "fallback": true,
+      "match": {
+        "none_keywords": [
+          "只帮我",
+          "不要给我运营方案",
+          "不要运营方案",
+          "不要方案",
+          "改得",
+          "改写",
+          "帮我把",
+          "这句标题",
+          "可替换标题",
+          "直接改",
+          "上架一点"
+        ]
+      },
       "skill_id": "creative_title_ctr_scorer",
       "input": {
         "title": "{{title_candidate}}",

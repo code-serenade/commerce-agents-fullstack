@@ -169,7 +169,7 @@
       "input": {
         "query": "{{search_query}}",
         "topic": "general",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": true
       },
       "reason": "autosuggest:engineering.knowledge_search"

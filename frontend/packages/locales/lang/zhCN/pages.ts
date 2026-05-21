@@ -1,15 +1,15 @@
 const pages = {
   authRegister: {
-    brand: "AI 标准化开发框架",
+    brand: "TaskMate・塔克",
     hero: {
       titleLine1: "创建账号，",
-      titleLine2: "开始 AI 开发。",
-      desc1: "这里只创建共享账号；登录具体业务时再初始化该业务身份。",
-      desc2: "同样支持主题切换、多语言和模块化结构，便于持续迭代。",
+      titleLine2: "进入电商虚拟员工工作区。",
+      desc1: "用一个账号保存会话、商品上下文、活动任务和交付资料。",
+      desc2: "注册后可以让虚拟员工继续协作处理选品、内容、投放、客服、成本和复盘问题。",
     },
     welcome: "创建新账号",
     title: "注册你的账号",
-    subtitle: "创建一次共享账号即可；每个业务会在登录时初始化自己的用户记录。",
+    subtitle: "创建账号后即可进入 TaskMate・塔克，开始管理你的电商任务。",
     form: {
       password: {
         label: "密码",

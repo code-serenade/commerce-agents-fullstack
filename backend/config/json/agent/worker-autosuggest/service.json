@@ -15,6 +15,17 @@
           "物流延迟",
           "发错",
           "质量问题"
+        ],
+        "none_keywords": [
+          "一句话",
+          "一句客服话术",
+          "一句话术",
+          "回一句",
+          "自然一点",
+          "不要像公告",
+          "不要完整 SOP",
+          "不要SOP",
+          "别展开"
         ]
       },
       "skill_id": "service_ticket_handler",
@@ -64,6 +75,17 @@
           "退货",
           "换货",
           "售后"
+        ],
+        "none_keywords": [
+          "一句话",
+          "一句客服话术",
+          "一句话术",
+          "回一句",
+          "自然一点",
+          "不要像公告",
+          "不要完整 SOP",
+          "不要SOP",
+          "别展开"
         ]
       },
       "skill_id": "service_return_handler",
@@ -149,7 +171,6 @@
         "any_keywords": [
           "nps",
           "NPS",
-          "满意度",
           "推荐值",
           "客户忠诚"
         ]
@@ -227,7 +248,7 @@
         "industry": "{{search_industry}}",
         "metric": "{{search_benchmark_metric}}",
         "platform": "{{search_platform}}",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": true,
         "product_ref": "{{selected_product_ref}}",
         "product_name": "{{selected_product_name}}",
@@ -265,7 +286,7 @@
       "input": {
         "platform": "{{search_platform}}",
         "policy_type": "general",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": true,
         "product_ref": "{{selected_product_ref}}",
         "product_name": "{{selected_product_name}}",
@@ -304,7 +325,7 @@
         "query": "{{search_query}}",
         "platform": "{{search_platform}}",
         "focus": "{{search_review_focus}}",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": true,
         "product_ref": "{{selected_product_ref}}",
         "product_name": "{{selected_product_name}}",
@@ -318,6 +339,19 @@
         "service"
       ],
       "fallback": true,
+      "match": {
+        "none_keywords": [
+          "一句话",
+          "一句客服话术",
+          "一句话术",
+          "回一句",
+          "自然一点",
+          "不要像公告",
+          "不要完整 SOP",
+          "不要SOP",
+          "别展开"
+        ]
+      },
       "skill_id": "service_dsr_improvement",
       "input": {
         "platform": "{{platform}}"

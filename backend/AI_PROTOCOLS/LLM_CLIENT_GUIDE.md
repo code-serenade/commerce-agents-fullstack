@@ -66,9 +66,13 @@ temperature = 0.2
 | 字段 | 必填 | 说明 |
 | --- | --- | --- |
 | `default` | 否 | 未命中特定用途时的 fallback |
-| `fast` | 否 | commander routing、chat worker、快速回复 |
+| `fast` | 否 | commander routing、chat worker、快速回复、配置为 `llm_usage = "fast"` 的 task graph 节点 |
 | `thinking` | 否 | 普通业务 worker、多角色分析和综合 |
 | `vision` | 否 | 图片输入和视觉理解 |
+
+task graph 节点和动态角色配置可以用 `llm_usage` 覆盖默认 worker 路由。合法值为 `fast`、`thinking` 或 `default`；未配置时普通业务 worker 走 `thinking`，chat worker 走 `fast`。
+
+轻量协作图还可以在节点或动态角色配置里设置 `skill_autosuggest = false`，用于跳过自动技能建议，减少没有外部资料或工具适配器时的无效调用。
 
 模型用途路由必须在 `agent` crate 内处理，web-server 不维护第二套 LLM registry，也不在 handler 中创建模型 client。`vision` 未配置时，带图片输入的请求必须返回明确错误，不允许降级成文本模型假装看图。
 

@@ -30,9 +30,7 @@ impl Prompt {
     }
 
     pub fn load_from_repo(relative: impl AsRef<Path>) -> Result<Self> {
-        let base = workspace_root();
-        let path = base.join(relative.as_ref());
-        Self::load(path)
+        Self::load(relative)
     }
 
     pub fn to_message(&self, role: Role) -> ChatMessage {
@@ -74,14 +72,6 @@ impl Prompt {
         }
         rendered
     }
-}
-
-fn workspace_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .and_then(Path::parent)
-        .map(Path::to_path_buf)
-        .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")))
 }
 
 fn extract_json_value(input: &str) -> Option<&str> {

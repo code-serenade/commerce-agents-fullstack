@@ -11,7 +11,6 @@ export const CommerceOverviewPage = lazy(
   () => import("@/pages/site/commerce/overview")
 )
 export const OperationsPage = lazy(() => import("@/pages/site/commerce/operations"))
-export const PackagesPage = lazy(() => import("@/pages/site/commerce/packages"))
 export const PlatformConnectPage = lazy(
   () => import("@/pages/site/commerce/platform-connect")
 )

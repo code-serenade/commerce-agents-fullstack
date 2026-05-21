@@ -26,8 +26,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    profiles:
-      - tools
 
   backend:
     build:
@@ -35,8 +33,8 @@ services:
       dockerfile: deploy/backend/Dockerfile
     image: ${IMAGE_PREFIX:-commerce-agents}-backend:local
     depends_on:
-      postgres:
-        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
   web:
     build:
       context: .
@@ -51,7 +49,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "8080:80"
+      - "29202:80"
 
   admin:
     build:

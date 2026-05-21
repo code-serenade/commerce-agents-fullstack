@@ -10,12 +10,13 @@ export APP_DATABASE_URL DATABASE_URL="$APP_DATABASE_URL" CONFIG_PATH ROOT_IDENTI
 psql "$APP_DATABASE_URL" -v ON_ERROR_STOP=1 -c \
   'CREATE TABLE IF NOT EXISTS __app_init_state (name text PRIMARY KEY, created_at timestamptz NOT NULL DEFAULT now());'
 
+migration up
+
 if psql "$APP_DATABASE_URL" -tAc "SELECT 1 FROM __app_init_state WHERE name = 'db-init'" | grep -q 1; then
-  echo "db-init already completed; skipping."
+  echo "db-init seed data already completed; skipping seed steps."
   exit 0
 fi
 
-migration up
 xtask init-permissions
 xtask init-app-permissions
 xtask init-root

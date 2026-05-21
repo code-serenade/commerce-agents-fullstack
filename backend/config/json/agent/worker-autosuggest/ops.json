@@ -371,7 +371,7 @@
         "query": "{{search_query}}",
         "platform": "{{search_platform}}",
         "focus": "price",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": true,
         "product_ref": "{{selected_product_ref}}",
         "product_name": "{{selected_product_name}}",
@@ -404,7 +404,7 @@
       "input": {
         "platform": "{{search_platform}}",
         "policy_type": "promotion",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": true,
         "product_ref": "{{selected_product_ref}}",
         "product_name": "{{selected_product_name}}",
@@ -435,7 +435,7 @@
       "input": {
         "query": "{{search_query}}",
         "topic": "news",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": true,
         "product_ref": "{{selected_product_ref}}",
         "product_name": "{{selected_product_name}}",
@@ -503,7 +503,7 @@
       "input": {
         "query": "{{search_query}}",
         "topic": "general",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": true,
         "product_ref": "{{selected_product_ref}}",
         "product_name": "{{selected_product_name}}",
@@ -535,7 +535,7 @@
       "input": {
         "query": "{{search_query}}",
         "platform": "{{search_platform}}",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": true,
         "product_ref": "{{selected_product_ref}}",
         "product_name": "{{selected_product_name}}",
@@ -570,7 +570,7 @@
       "input": {
         "platform": "{{search_platform}}",
         "policy_type": "content",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": true,
         "product_ref": "{{selected_product_ref}}",
         "product_name": "{{selected_product_name}}",
@@ -606,7 +606,7 @@
         "query": "{{search_query}}",
         "platform": "{{search_platform}}",
         "focus": "{{search_review_focus}}",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": true,
         "product_ref": "{{selected_product_ref}}",
         "product_name": "{{selected_product_name}}",
@@ -639,7 +639,7 @@
       "input": {
         "query": "{{search_query}}",
         "topic": "general",
-        "days": "{{search_days}}",
+        "days": 30,
         "_needs_fresh_data": true,
         "product_ref": "{{selected_product_ref}}",
         "product_name": "{{selected_product_name}}",
