@@ -329,8 +329,10 @@ where
             match self.decoder.decode(&raw) {
                 Ok(output) => return CognitionResult::Success(output),
                 Err(failure) => {
-                    if self.kind == AgentCognitionKind::ChatWorker
-                        && let Some(output) = fallback_chat_output(&raw)
+                    if matches!(
+                        self.kind,
+                        AgentCognitionKind::ChatWorker | AgentCognitionKind::Worker
+                    ) && let Some(output) = fallback_chat_output(&raw)
                     {
                         return CognitionResult::Success(output);
                     }

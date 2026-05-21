@@ -2,9 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use super::{chat, planner};
 use crate::{
-    agent::commander::{
-        no_user_facing_content_message, sanitize_user_facing_text, user_facing_report_text,
-    },
+    agent::commander::{no_user_facing_content_message, user_facing_report_text},
     agent_session::{RoleMemorySummary, TaskGraphMemorySummary, WorkerDetail},
     core::protocol::{
         Evaluation, RoleWorkOutput, TaskGraph, TaskGraphHandoff, TaskGraphProcessGap,
@@ -206,22 +204,6 @@ impl TaskGraphRuntime {
             if let Some(summary) = user_facing_report_text(report) {
                 sections.push(summary);
             }
-        }
-
-        let incomplete = self
-            .graph
-            .nodes
-            .iter()
-            .filter_map(|node| match self.states.get(&node.id) {
-                Some(TaskNodeRuntimeState::Failed(reason)) => sanitize_user_facing_text(reason)
-                    .map(|reason| format!("{}未完成：{}", node.title, reason)),
-                Some(TaskNodeRuntimeState::Skipped(reason)) => sanitize_user_facing_text(reason)
-                    .map(|reason| format!("{}暂未继续：{}", node.title, reason)),
-                _ => None,
-            })
-            .collect::<Vec<_>>();
-        if !incomplete.is_empty() {
-            sections.push(format!("还有这些部分需要补齐：{}", incomplete.join("；")));
         }
 
         if sections.is_empty() {
@@ -827,6 +809,34 @@ mod tests {
 
         assert_eq!(output, "final user plan");
         assert!(!output.contains("upstream draft"));
+    }
+
+    #[test]
+    fn task_graph_synthesis_hides_failed_descendant_reason() {
+        let data = node("data", "Data", "data");
+        let mut ops = node("ops_final", "Final", "ops");
+        ops.input_refs = vec![TaskNodeId("data".to_string())];
+        let mut runtime = TaskGraphRuntime::new(TaskGraph {
+            graph_id: TaskGraphId("graph-partial".to_string()),
+            root_task: "Build a plan.".to_string(),
+            nodes: vec![data.clone(), ops.clone()],
+        });
+        runtime
+            .states
+            .insert(data.id.clone(), TaskNodeRuntimeState::Passed);
+        runtime.states.insert(
+            ops.id.clone(),
+            TaskNodeRuntimeState::Failed("dependency did not pass".to_string()),
+        );
+        runtime
+            .reports
+            .insert(data.id.clone(), report("data", "usable upstream answer"));
+
+        let output = runtime.synthesize();
+
+        assert_eq!(output, "usable upstream answer");
+        assert!(!output.contains("dependency did not pass"));
+        assert!(!output.contains("还有这些部分需要补齐"));
     }
 
     fn node(id: &str, title: &str, role: &str) -> TaskNode {
