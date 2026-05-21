@@ -747,8 +747,47 @@ const messages = {
       "围绕选品、活动策划、数据诊断、任务提交和复盘报告完成一次实训。",
     fallbackName: "用户",
     actions: {
+      assistant: "直接问 AI 助手",
       profile: "编辑个人资料",
       login: "登录",
+    },
+    studentPath: {
+      eyebrow: "学生实训路径",
+      title: "不知道从哪开始，就按这 5 步走",
+      description:
+        "页面入口按学生完成一次电商实训的顺序组织：先把问题交给多智能体，再进入资料、策划、交付和复盘。",
+      steps: {
+        assistant: {
+          title: "先问多智能体",
+          description:
+            "直接输入商品、活动或数据问题，系统会识别任务并展示协作过程。",
+          action: "开始提问",
+        },
+        products: {
+          title: "补充选品资料",
+          description:
+            "查看商品、素材、竞品和知识资料，让后续分析有真实上下文。",
+          action: "看选品",
+        },
+        campaigns: {
+          title: "做活动策划",
+          description:
+            "围绕预算、节奏、脚本和投放目标整理可执行的活动方案。",
+          action: "做策划",
+        },
+        tasks: {
+          title: "提交实训任务",
+          description:
+            "把 AI 输出沉淀成任务、运行记录和可检查的交付材料。",
+          action: "看任务",
+        },
+        reports: {
+          title: "生成复盘报告",
+          description:
+            "把结论、过程、清单和改进建议整理成最终复盘材料。",
+          action: "看复盘",
+        },
+      },
     },
     account: {
       title: "账号已就绪",
@@ -863,7 +902,7 @@ const messages = {
     },
     composer: {
       placeholder:
-        "直接输入你的实训任务，例如：帮我拆解选品、活动、数据和复盘，多个智能体会协作输出...",
+        "直接输入实训任务，例如：帮我判断这个商品能不能做活动，并给出选品、策划、数据和复盘步骤...",
       loginPlaceholder:
         "可以先整理你的实训问题，准备调用 AI 实训助手时再登录...",
       hint: "已连接实训资料",
@@ -1127,7 +1166,13 @@ const messages = {
     },
     thread: {
       agentName: "多智能体实训助手",
-      welcomeCapabilities: ["需求识别", "多智能体协作", "过程与交付"],
+      welcomeCapabilities: ["先说你的任务", "过程会自动展开", "结果可沉淀交付"],
+      startHere: "可以直接点一个例子开始",
+      examplePrompts: [
+        "帮我判断这个商品适不适合做实训选品，并说明理由",
+        "根据 3000 元预算做一份电商活动策划和执行清单",
+        "把本次分析整理成可提交的实训任务和复盘报告",
+      ],
       receivingOutput: "正在接收多智能体输出",
       waitingEvents: "正在等待智能体过程事件",
       stopped: "本轮回答已停止，没有继续调用 AI 模型。",
@@ -1896,8 +1941,11 @@ const messages = {
       titleLine1: "进入电商 AI 实训，",
       titleLine2: "完成选品、策划和复盘。",
       desc1:
-        "从选品分析到活动策划，再到数据诊断、任务提交和复盘报告，按实训任务线推进。",
-      desc2: "登录后继续查看历史会话、选品资料、实训任务、老师审核和复盘报告。",
+        "第一步先问多智能体实训助手，它会识别你的任务并展示分析过程。",
+      desc2:
+        "第二步按需要进入选品资料、活动策划、实训任务和复盘报告页面。",
+      desc3:
+        "登录后可保存历史会话、引用商品资料、提交任务，并查看老师审核和复盘材料。",
     },
     welcome: "欢迎回来",
     title: "登录实训账号",
@@ -1921,8 +1969,12 @@ const messages = {
     error: {
       title: "登录没有完成",
       invalidCredentials: "登录失败，请检查账号和密码。",
+      authUnavailable:
+        "账号服务暂时不可用，请确认认证服务网络正常后再登录。",
+      backendUnavailable:
+        "账号已验证，但本地业务后端没有响应。请先启动 19878 后端服务和 15432 数据库，再重新登录。",
       workspaceUnavailable:
-        "账号验证后没有进入实训工作台，请确认本地服务已启动，然后重新登录。",
+        "账号已验证，但实训工作台权限没有恢复。请确认当前账号已初始化到本产品，或稍后重新登录。",
     },
   },
   register: {

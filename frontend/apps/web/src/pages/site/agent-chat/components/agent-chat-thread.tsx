@@ -25,6 +25,7 @@ export interface AgentChatThreadProps {
   isStreaming: boolean
   messages: AgentChatMessage[]
   onCloseProcessPanel: () => void
+  onExamplePromptSelect?: (prompt: string) => void
   onOpenProcessPanel: (target: {
     anchorLabel: string
     messageId: string
@@ -40,6 +41,7 @@ export function AgentChatThread({
   isStreaming,
   messages,
   onCloseProcessPanel,
+  onExamplePromptSelect,
   onOpenProcessPanel,
   runtimeEvents,
   selectedStrategy,
@@ -148,7 +150,10 @@ export function AgentChatThread({
             onCloseProcessPanel={handleCloseProcessPanel}
             onOpenProcessPanel={handleOpenProcessPanel}
             renderMessage={(targetMessage) => (
-              <ThreadMessage message={targetMessage} />
+              <ThreadMessage
+                message={targetMessage}
+                onExamplePromptSelect={onExamplePromptSelect}
+              />
             )}
             runtimeEvents={runtimeEvents}
             showProcessPanelAction={showProcessPanelAction}
@@ -160,7 +165,13 @@ export function AgentChatThread({
   )
 }
 
-function ThreadMessage({ message }: { message: AgentChatMessage }) {
+function ThreadMessage({
+  message,
+  onExamplePromptSelect,
+}: {
+  message: AgentChatMessage
+  onExamplePromptSelect?: (prompt: string) => void
+}) {
   const { t } = useTranslation()
   const isUser = message.role === "user"
   const isWelcome = message.id === "welcome" && !isUser
@@ -181,7 +192,10 @@ function ThreadMessage({ message }: { message: AgentChatMessage }) {
           }`}
         >
           {isWelcome ? (
-            <WelcomeCard content={message.content} />
+            <WelcomeCard
+              content={message.content}
+              onSelectExamplePrompt={onExamplePromptSelect}
+            />
           ) : message.content && isUser ? (
             <p className="wrap-break-word whitespace-pre-wrap">
               {message.content}

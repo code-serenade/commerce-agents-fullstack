@@ -71,6 +71,7 @@ export default function AgentChatPage() {
             isStreaming={chat.isStreaming}
             messages={chat.messages}
             onCloseProcessPanel={closeProcessPanel}
+            onExamplePromptSelect={chat.setInput}
             onOpenProcessPanel={openProcessPanel}
             runtimeEvents={chat.runtimeEvents}
             selectedStrategy={chat.selectedStrategy}

@@ -4,13 +4,23 @@ import {
   CircleStop,
   ListChecks,
   Loader2,
+  Sparkles,
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type { AgentChatStrategy } from "../domain/agent-chat-strategy"
 
-export function WelcomeCard({ content }: { content: string }) {
+export function WelcomeCard({
+  content,
+  onSelectExamplePrompt,
+}: {
+  content: string
+  onSelectExamplePrompt?: (prompt: string) => void
+}) {
   const { t } = useTranslation()
   const capabilities = t("agentChat.thread.welcomeCapabilities", {
+    returnObjects: true,
+  }) as string[]
+  const examplePrompts = t("agentChat.thread.examplePrompts", {
     returnObjects: true,
   }) as string[]
 
@@ -37,6 +47,24 @@ export function WelcomeCard({ content }: { content: string }) {
             {item}
           </div>
         ))}
+      </div>
+      <div className="mt-5 space-y-2">
+        <p className="text-xs font-medium text-muted-foreground">
+          {t("agentChat.thread.startHere")}
+        </p>
+        <div className="grid gap-2">
+          {examplePrompts.map((prompt) => (
+            <button
+              key={prompt}
+              type="button"
+              className="group flex min-h-10 items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-left text-xs/5 text-foreground transition hover:border-foreground/30 hover:bg-muted"
+              onClick={() => onSelectExamplePrompt?.(prompt)}
+            >
+              <Sparkles className="size-3.5 shrink-0 text-blue-500" />
+              <span className="min-w-0 flex-1">{prompt}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )

@@ -16,6 +16,7 @@ import {
 import { resetAccess, setAccess } from "@/store/accessSlice"
 import { loginSuccess, logout } from "@/store/authSlice"
 import { TaskMateLogo } from "@/components/brand"
+import { loginErrorCopyKey, type LoginStage } from "./login-error-copy"
 
 const authLinkClassName =
   "font-medium text-(--app-text) underline-offset-4 transition hover:underline"
@@ -27,7 +28,11 @@ function createLoginLabels(
     brand: t("login.brand"),
     heroTitleLine1: t("login.hero.titleLine1"),
     heroTitleLine2: t("login.hero.titleLine2"),
-    heroDescriptions: [t("login.hero.desc1"), t("login.hero.desc2")],
+    heroDescriptions: [
+      t("login.hero.desc1"),
+      t("login.hero.desc2"),
+      t("login.hero.desc3"),
+    ],
     welcome: t("login.welcome"),
     title: t("login.title"),
     subtitle: t("login.subtitle"),
@@ -50,6 +55,7 @@ export default function LoginPage() {
 
   const handleLogin = async (values: AuthLoginSubmitValues) => {
     setLoginError(null)
+    let loginStage: LoginStage = "credentials"
     try {
       const res = await loginApi(values)
       const token = res.accessToken
@@ -58,7 +64,9 @@ export default function LoginPage() {
       localStorage.setItem("token", token)
       localStorage.setItem("refreshToken", refreshToken)
 
+      loginStage = "profile"
       const user = await meApi()
+      loginStage = "workspace"
       const access = await ensureCurrentAppUserPermissions(user)
 
       dispatch(loginSuccess({ token, user }))
@@ -77,7 +85,7 @@ export default function LoginPage() {
       localStorage.removeItem("refreshToken")
       dispatch(logout())
       dispatch(resetAccess())
-      setLoginError(t(loginErrorCopyKey(requestError.status)))
+      setLoginError(t(loginErrorCopyKey(requestError, loginStage)))
     }
   }
 
@@ -104,12 +112,4 @@ export default function LoginPage() {
       onSubmit={handleLogin}
     />
   )
-}
-
-function loginErrorCopyKey(status?: number) {
-  if (status === 400 || status === 401 || status === 403) {
-    return "login.error.invalidCredentials"
-  }
-
-  return "login.error.workspaceUnavailable"
 }

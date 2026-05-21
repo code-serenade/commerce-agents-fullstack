@@ -774,8 +774,47 @@ const messages = {
       "Complete one training task through product selection, campaign planning, data diagnosis, submission, and review report.",
     fallbackName: "Member",
     actions: {
+      assistant: "Ask AI assistant",
       profile: "Edit profile",
       login: "Sign in",
+    },
+    studentPath: {
+      eyebrow: "Student training path",
+      title: "Start here if you are not sure what to do",
+      description:
+        "Entries follow the way a student completes one ecommerce training task: ask the multi-agent assistant, then use materials, planning, submission, and review.",
+      steps: {
+        assistant: {
+          title: "Ask multi-agent AI",
+          description:
+            "Enter a product, campaign, or data question. The system detects the task and shows the collaboration process.",
+          action: "Start asking",
+        },
+        products: {
+          title: "Add product context",
+          description:
+            "Review products, materials, competitors, and knowledge so later analysis has real context.",
+          action: "Open products",
+        },
+        campaigns: {
+          title: "Plan campaign",
+          description:
+            "Turn budget, rhythm, scripts, and goals into an executable campaign plan.",
+          action: "Plan campaign",
+        },
+        tasks: {
+          title: "Submit task",
+          description:
+            "Save AI output as a task, run record, and checkable training deliverable.",
+          action: "Open tasks",
+        },
+        reports: {
+          title: "Build review report",
+          description:
+            "Organize conclusions, process, checklists, and improvements into final review materials.",
+          action: "Open report",
+        },
+      },
     },
     account: {
       title: "Account ready",
@@ -892,7 +931,7 @@ const messages = {
     },
     composer: {
       placeholder:
-        "Enter your training task directly. For example: split product selection, campaign, data, and review work for collaborating agents...",
+        "Enter a training task. For example: judge whether this product can run a campaign, then give product, planning, data, and review steps...",
       loginPlaceholder:
         "Draft your training question here. Sign in when you are ready to use the AI training assistant...",
       hint: "Business context connected",
@@ -1172,9 +1211,15 @@ const messages = {
     thread: {
       agentName: "AI training assistant",
       welcomeCapabilities: [
-        "Need detection",
-        "Multi-agent collaboration",
-        "Process and deliverables",
+        "Describe your task first",
+        "Process opens automatically",
+        "Results become deliverables",
+      ],
+      startHere: "Click an example to start",
+      examplePrompts: [
+        "Judge whether this product is suitable for training product selection and explain why",
+        "Create an ecommerce campaign plan and execution checklist for a 3000 budget",
+        "Turn this analysis into a submittable training task and review report",
       ],
       receivingOutput: "Receiving multi-agent output",
       waitingEvents: "Waiting for agent process events",
@@ -2007,9 +2052,11 @@ const messages = {
       titleLine1: "Enter ecommerce AI training,",
       titleLine2: "finish selection, planning, and review.",
       desc1:
-        "Move through product selection, campaign planning, data diagnosis, task submission, and review report in one training flow.",
+        "First ask the multi-agent training assistant. It detects your task and shows the analysis process.",
       desc2:
-        "Sign in to continue conversations, product materials, training tasks, teacher review, and review reports.",
+        "Then move into product materials, campaign planning, training tasks, and review reports as needed.",
+      desc3:
+        "After signing in, you can save conversations, reference product materials, submit tasks, and review teacher feedback.",
     },
     welcome: "WELCOME BACK",
     title: "Sign in to your training account",
@@ -2035,8 +2082,12 @@ const messages = {
       title: "Sign-in did not finish",
       invalidCredentials:
         "Login failed, please check your account and password.",
+      authUnavailable:
+        "The account service is temporarily unavailable. Confirm the auth service network is reachable, then sign in again.",
+      backendUnavailable:
+        "Your account was verified, but the local business backend did not respond. Start the 19878 backend service and 15432 database, then sign in again.",
       workspaceUnavailable:
-        "Your account was checked but the training workspace did not finish loading. Confirm the local service is running, then sign in again.",
+        "Your account was verified, but training workspace permissions were not restored. Confirm this account is initialized for this product, or try again later.",
     },
   },
   register: {
