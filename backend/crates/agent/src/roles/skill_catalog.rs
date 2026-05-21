@@ -46,9 +46,9 @@ impl RoleSkillCatalog {
         specs
             .into_iter()
             .take(16)
-            .map(format_skill_line)
+            .map(|spec| spec.id.as_str())
             .collect::<Vec<_>>()
-            .join("\n")
+            .join(", ")
     }
 }
 
@@ -154,51 +154,6 @@ fn matches_role_category(runtime_role: &str, category: &SkillCategory) -> bool {
     }
 }
 
-fn format_skill_line(spec: &SkillSpec) -> String {
-    let required = spec
-        .inputs
-        .iter()
-        .filter(|input| input.required)
-        .map(|input| input.name.as_str())
-        .collect::<Vec<_>>();
-    let optional = spec
-        .inputs
-        .iter()
-        .filter(|input| !input.required)
-        .map(|input| input.name.as_str())
-        .take(4)
-        .collect::<Vec<_>>();
-    let mode = if matches!(&spec.category, SkillCategory::Custom(value) if value == "search")
-        || spec.tags.iter().any(|tag| tag == "adapter")
-    {
-        "adapter"
-    } else if spec.tags.iter().any(|tag| tag == "pending_approval")
-        || spec.id.starts_with("platform_")
-    {
-        "pending_approval"
-    } else if spec.tags.iter().any(|tag| tag == "deferred") {
-        "deferred"
-    } else {
-        "local"
-    };
-
-    format!(
-        "- `{}` mode={} required=[{}] optional=[{}]",
-        spec.id,
-        mode,
-        if required.is_empty() {
-            "none".to_string()
-        } else {
-            required.join(", ")
-        },
-        if optional.is_empty() {
-            "none".to_string()
-        } else {
-            optional.join(", ")
-        }
-    )
-}
-
 fn skill_priority_rank(priority: SkillPriority) -> u8 {
     match priority {
         SkillPriority::Low => 0,
@@ -229,7 +184,7 @@ mod tests {
 
         assert!(prompt.contains("web_title_seo_scorer"));
         assert!(prompt.contains("web_keyword_research"));
-        assert!(prompt.contains("mode="));
+        assert!(!prompt.contains("mode="));
     }
 
     #[test]
