@@ -55,12 +55,9 @@ export function InlineSwarmTaskCard({
   const completedCount = agents.filter((agent) =>
     agent.state === "done" || agent.state === "boundary"
   ).length
-  const visibleCompletedCount = isComplete
-    ? Math.max(completedCount, agents.length)
-    : completedCount
   const hasRuntime = runtimeEvents.length > 0
   const progressPercent = agents.length
-    ? Math.min(100, Math.round((visibleCompletedCount / agents.length) * 100))
+    ? Math.min(100, Math.round((completedCount / agents.length) * 100))
     : 0
   const hasFailedAgent = agents.some((agent) => agent.state === "failed")
   const activeAgent = agents.find(
@@ -73,7 +70,7 @@ export function InlineSwarmTaskCard({
   const handoffItems = getCommerceHandoffItems(t)
   const progressLabel = hasRuntime
     ? t("agentChat.thread.completedTasks", {
-        completed: visibleCompletedCount,
+        completed: completedCount,
         total: agents.length,
       })
     : isStreaming
@@ -98,9 +95,6 @@ export function InlineSwarmTaskCard({
               <div className="flex flex-wrap items-center gap-2 text-sm font-semibold">
                 <Activity className="size-4 text-primary" />
                 {t("agentChat.thread.executionTitle")}
-                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
-                  {t("agentChat.thread.agentPipelineBadge")}
-                </span>
                 <span className="text-xs font-normal text-muted-foreground">
                   {progressLabel}
                 </span>
@@ -171,7 +165,7 @@ export function InlineSwarmTaskCard({
             <>
               <div className="mt-2 grid gap-2">
                 <InlineProgressSummary
-                  completedCount={visibleCompletedCount}
+                  completedCount={completedCount}
                   hasFailedAgent={hasFailedAgent}
                   hasRuntime={hasRuntime}
                   isStreaming={isStreaming}

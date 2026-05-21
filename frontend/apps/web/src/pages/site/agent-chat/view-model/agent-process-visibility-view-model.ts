@@ -1,5 +1,6 @@
 import type { AgentRuntimeEvent } from "@/api"
 import type { AgentChatMessage } from "../types"
+import { isChatOnlyRuntime } from "./thread-inline-view-model"
 
 export interface AgentProcessTarget {
   anchorLabel: string
@@ -22,7 +23,11 @@ export function shouldRenderMessageProcess(
   message: AgentChatMessage,
   runtimeEvents: AgentRuntimeEvent[]
 ) {
-  return message.role === "assistant" && runtimeEvents.length > 0
+  return (
+    message.role === "assistant" &&
+    runtimeEvents.length > 0 &&
+    !isChatOnlyRuntime(runtimeEvents)
+  )
 }
 
 export function findLatestProcessTarget(

@@ -71,16 +71,8 @@ export function getInlineSteps(
   if (isChatOnlyRuntime(runtimeEvents)) {
     return [
       [
-        t("agentChat.thread.steps.identifyNeed"),
-        t("agentChat.thread.steps.directRoute"),
-      ],
-      [
-        t("agentChat.thread.steps.assignTask"),
-        t("agentChat.thread.steps.chatOnlyRoute"),
-      ],
-      [
-        t("agentChat.thread.steps.syncResult"),
-        t("agentChat.thread.steps.directSavedToReport"),
+        t("agentChat.thread.steps.readTarget"),
+        t("agentChat.thread.steps.directAnswer"),
       ],
     ]
   }
@@ -164,9 +156,6 @@ export function getInlineProcessStage(
     return hasRuntime
       ? t("agentChat.thread.processStage.running")
       : t("agentChat.thread.processStage.planning")
-  }
-  if (isChatOnlyRuntime(runtimeEvents)) {
-    return t("agentChat.thread.processStage.direct")
   }
   return hasRuntime
     ? t("agentChat.thread.processStage.synced")

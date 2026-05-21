@@ -4,14 +4,8 @@ import { getInlineSteps } from "./thread-inline-view-model"
 
 const t = ((key: string) => {
   if (key === "agentChat.thread.steps.assignTask") return "assign task"
-  if (key === "agentChat.thread.steps.chatOnlyRoute") return "direct answer"
-  if (key === "agentChat.thread.steps.directRoute") return "direct route"
-  if (key === "agentChat.thread.steps.directSavedToReport") {
-    return "direct saved"
-  }
-  if (key === "agentChat.thread.steps.identifyNeed") return "identify need"
   if (key === "agentChat.thread.steps.readTarget") return "read target"
-  if (key === "agentChat.thread.steps.syncResult") return "sync result"
+  if (key === "agentChat.thread.steps.directAnswer") return "direct answer"
   if (key === "agentChat.thread.roleFallbackTitles.data") {
     return "Data diagnosis"
   }
@@ -62,7 +56,7 @@ describe("getInlineSteps", () => {
     ])
   })
 
-  it("keeps need detection visible for direct-answer runs", () => {
+  it("keeps direct-answer runs as direct answers instead of fake cluster steps", () => {
     const events: AgentRuntimeEvent[] = [
       {
         type: "route_decided",
@@ -73,9 +67,7 @@ describe("getInlineSteps", () => {
     ]
 
     expect(getInlineSteps(events, false, t)).toEqual([
-      ["identify need", "direct route"],
-      ["assign task", "direct answer"],
-      ["sync result", "direct saved"],
+      ["read target", "direct answer"],
     ])
   })
 })

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { useNavigate } from "react-router"
 import type { AgentRuntimeEvent } from "./agent-chat-data"
 import { AgentChatComposer } from "./components/agent-chat-composer"
@@ -24,8 +24,13 @@ export default function AgentChatPage() {
     () => findLatestProcessTarget(chat.messages, chat.runtimeEvents),
     [chat.messages, chat.runtimeEvents]
   )
-  const activeProcessMessage = activeProcessTarget
-    ? chat.messages.find((message) => message.id === activeProcessTarget.messageId)
+  const visibleProcessTarget =
+    activeProcessTarget ??
+    (latestProcessTarget?.messageId === dismissedProcessMessageId
+      ? null
+      : latestProcessTarget)
+  const activeProcessMessage = visibleProcessTarget
+    ? chat.messages.find((message) => message.id === visibleProcessTarget.messageId)
     : null
   const activeRuntimeEvents: AgentRuntimeEvent[] =
     activeProcessMessage?.runtimeEvents?.length
@@ -36,15 +41,8 @@ export default function AgentChatPage() {
   const shouldShowProcessPanel =
     Boolean(activeProcessMessage && activeRuntimeEvents.length > 0)
 
-  useEffect(() => {
-    if (!latestProcessTarget) return
-    if (activeProcessTarget?.messageId === latestProcessTarget.messageId) return
-    if (dismissedProcessMessageId === latestProcessTarget.messageId) return
-    setActiveProcessTarget(latestProcessTarget)
-  }, [activeProcessTarget?.messageId, dismissedProcessMessageId, latestProcessTarget])
-
   const closeProcessPanel = () => {
-    setDismissedProcessMessageId(activeProcessTarget?.messageId ?? null)
+    setDismissedProcessMessageId(visibleProcessTarget?.messageId ?? null)
     setActiveProcessTarget(null)
   }
 
@@ -121,12 +119,12 @@ export default function AgentChatPage() {
       </div>
       {shouldShowProcessPanel ? (
         <AgentProcessDrawer
-          anchorLabel={activeProcessTarget?.anchorLabel}
+          anchorLabel={visibleProcessTarget?.anchorLabel}
           isStreaming={activeProcessMessage?.status === "streaming" && chat.isStreaming}
           messageId={activeProcessMessage?.id}
           onClose={closeProcessPanel}
           runtimeEvents={activeRuntimeEvents}
-          task={activeProcessTarget?.task}
+          task={visibleProcessTarget?.task}
         />
       ) : null}
     </div>

@@ -1184,8 +1184,6 @@ const messages = {
       planning: "Planning agent collaboration",
       historyNotExecuted: "Historical message has no live process",
       executionTitle: "Multi-agent collaboration process",
-      agentPipelineBadge:
-        "Need detection -> agent split -> collaborative output -> deliverables",
       statuses: {
         executing: "Agents collaborating",
         synced: "",
@@ -1274,16 +1272,9 @@ const messages = {
         enrichByTask: "Enrich platform materials by task",
         enrichFallback: "Enrich industry and platform context",
         directAnswer: "Simple questions answer directly; complex tasks start multi-agent collaboration",
-        identifyNeed: "Identify user need",
-        directRoute: "Decide whether multi-agent collaboration is needed",
         callModel: "Call agent runtime",
         singleAgentAnswer: "Lead agent quickly organizes the answer",
-        chatOnlyRoute:
-          "This turn uses direct lead-agent answer; complex tasks continue into collaborating agents",
-        syncResult: "Sync process and result",
         savedToReport: "Save the answer as reviewable material",
-        directSavedToReport:
-          "Keep this turn's process for follow-up questions or training-task conversion",
         graphNodeReady: "System generated this agent step for the current task",
       },
       roleFallbackTitles: {
@@ -1471,9 +1462,6 @@ const messages = {
         waitingInput: "Waiting for task input",
         planning: "Planning execution graph",
         historyWaiting: "Historical chat, waiting for a new task",
-        directRouting: "Need detected. Lead agent is answering directly.",
-        directFinished:
-          "Direct answer completed. Continue asking or switch into multi-agent collaboration.",
         failedAgent: "Execution blocked: {{agent}}",
         reworkingAgent: "Retrying: {{agent}}",
         workingAgent: "Executing: {{agent}}",
