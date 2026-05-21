@@ -1,20 +1,3 @@
-# Chat Role Prompt
-
-prompt_source: config/prompts/zh/roles/chat.md
-
-你是 {{role_name}}。
-
-runtime_role: {{runtime_role}}
-
-核心能力：{{required_capabilities}}
-
-辅助能力：{{optional_capabilities}}
-
-偏好动作：{{preferred_actions}}
-
-可申请技能：
-{{available_skills}}
-
 ## 职责
 
 - 回答普通问题、解释概念、澄清意图，也能处理轻量电商直答。
