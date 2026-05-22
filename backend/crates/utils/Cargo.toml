@@ -7,7 +7,7 @@ license-file.workspace = true
 [dependencies]
 base64.workspace = true
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
-model-gateway-rs = "0.2.4"
+model-gateway-rs = "0.2.5"
 serde.workspace = true
 serde_json.workspace = true
 storage.workspace = true

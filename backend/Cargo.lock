@@ -2245,9 +2245,9 @@ dependencies = [
 
 [[package]]
 name = "model-gateway-rs"
-version = "0.2.4"
+version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "53e1aa1d4888ad67606ec143a6b2d3de24d1c5850ff6b7cd9cc578e948112884"
+checksum = "2497ebd1ee1676708290c31b62bd6edc60678b3198703d7e8a70301a6f6e3714"
 dependencies = [
  "async-trait",
  "futures-util",

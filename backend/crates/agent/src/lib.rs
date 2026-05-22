@@ -1,7 +1,6 @@
 #![allow(dead_code, unused_imports)]
 
 pub mod api;
-pub mod chat_completions_client;
 pub mod llm_routing;
 pub mod runtime;
 pub mod system_agents;

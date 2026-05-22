@@ -1,7 +1,7 @@
 use std::{collections::HashMap, path::Path, sync::Arc};
 
 use model_gateway_rs::{
-    llm::Llm,
+    llm::{Llm, chat_completions::ChatCompletionsLlm},
     model::{
         llm::{ChatContentPart, ChatMessage, LlmInput},
         role::Role,
@@ -16,10 +16,9 @@ use crate::{
     CognitionResult, FailureReason, JsonTemplateDecoder,
     agent_error::{Error, LlmError, Result, SettingsError},
     agent_utils::prompt::Prompt,
-    chat_completions_client::AgentChatCompletionsLlm,
 };
 
-pub type AgentLlmClient = AgentChatCompletionsLlm;
+pub type AgentLlmClient = ChatCompletionsLlm;
 
 const ATTACHMENTS_IMAGES_JSON: &str = "attachments.images_json";
 const REQUEST_ATTACHMENTS_IMAGES_JSON: &str = "request.attachments.images_json";
@@ -447,7 +446,7 @@ struct AgentImageSummaryInput {
 
 fn build_llm_client(config: &AgentLlmCfg) -> Result<AgentLlmClient> {
     let mut client =
-        AgentChatCompletionsLlm::new(&config.base_url, &config.model, config.api_key.as_deref())
+        ChatCompletionsLlm::new(&config.base_url, &config.model, config.api_key.as_deref())
             .map_err(|err| {
                 Error::from(LlmError::message(format!(
                     "init llm client '{}' failed: {err}",
@@ -456,14 +455,32 @@ fn build_llm_client(config: &AgentLlmCfg) -> Result<AgentLlmClient> {
             })?
             .with_max_tokens(config.max_tokens)
             .with_temperature(config.temperature)
-            .with_reasoning_effort(config.reasoning_effort.as_deref())
-            .with_thinking(config.thinking);
+            .with_reasoning_effort(config.reasoning_effort.as_deref());
+
+    if let Some(thinking) = json_thinking_config(config.thinking) {
+        client = client
+            .with_extra_body_param("thinking", thinking)
+            .map_err(|err| {
+                Error::from(LlmError::message(format!(
+                    "init llm client '{}' thinking config failed: {err}",
+                    config.name
+                )))
+            })?;
+    }
 
     if let Some(endpoint) = &config.chat_completions_endpoint {
         client = client.with_chat_completions_endpoint(endpoint.clone());
     }
 
     Ok(client)
+}
+
+fn json_thinking_config(thinking: Option<bool>) -> Option<Value> {
+    thinking.map(|enabled| {
+        json!({
+            "type": if enabled { "enabled" } else { "disabled" },
+        })
+    })
 }
 
 fn resolve_usage_name(llm_configs: &[AgentLlmCfg], name: Option<&str>) -> Option<String> {
