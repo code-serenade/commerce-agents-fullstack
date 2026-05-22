@@ -23,14 +23,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    profiles:
-      - tools
 
   backend:
     image: ${IMAGE_PREFIX:-commerce-agents}-backend:local
     depends_on:
-      postgres:
-        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
 
   web:
     image: ${IMAGE_PREFIX:-commerce-agents}-web:local

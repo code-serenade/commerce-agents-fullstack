@@ -261,14 +261,6 @@ fn resolve_task_graph_rules_path(path: &str) -> Option<PathBuf> {
     if candidate.exists() {
         return Some(normalize_task_graph_path(candidate));
     }
-    if path == DEFAULT_TASK_GRAPH_RULES_PATH {
-        let repo_config_path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../")
-            .join(DEFAULT_TASK_GRAPH_RULES_PATH);
-        if repo_config_path.exists() {
-            return Some(repo_config_path);
-        }
-    }
 
     None
 }

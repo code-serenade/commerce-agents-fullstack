@@ -17,7 +17,7 @@
 2. 加载 commerce-agents-images.tar
 3. 创建 .env
 4. 启动 postgres
-5. 通过 `docker compose run --rm db-init` 执行一次性数据库初始化
+5. 运行 db-init，先执行 migration，再执行一次性种子初始化
 6. 启动 backend、web、admin
 ```
 
@@ -35,5 +35,7 @@ Admin: http://服务器IP:8081
 ```bash
 docker compose up -d
 ```
+
+`db-init` 会在每次启动时先执行 `migration up`，所以新增表或表结构变更会自动补齐；账号、权限和 root 用户种子初始化仍然只执行一次。
 
 数据库数据默认保存在安装目录下的 `./data/postgres`，可通过 `.env` 中的 `POSTGRES_DATA_DIR` 修改。

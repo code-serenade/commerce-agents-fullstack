@@ -518,15 +518,15 @@ where
         }
     }
 
-    let workspace_path = workspace_root().join(relative_path);
-    match parse_policy_file(name, &workspace_path) {
+    let runtime_path = Path::new(relative_path);
+    match parse_policy_file(name, runtime_path) {
         Ok(policy) => policy,
         Err(error) => {
             warn!(
                 policy = name,
-                path = %workspace_path.display(),
+                path = %runtime_path.display(),
                 error,
-                "failed to load workspace policy; using embedded policy"
+                "failed to load runtime policy; using embedded policy"
             );
             serde_json::from_str(embedded).unwrap_or_else(|error| {
                 panic!("embedded {name} is invalid: {error}");
@@ -541,12 +541,4 @@ where
 {
     let content = fs::read_to_string(path).map_err(|error| format!("read: {error}"))?;
     serde_json::from_str(&content).map_err(|error| format!("invalid {name}: {error}"))
-}
-
-fn workspace_root() -> std::path::PathBuf {
-    std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .and_then(Path::parent)
-        .map(Path::to_path_buf)
-        .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")))
 }

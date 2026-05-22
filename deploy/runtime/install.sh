@@ -39,9 +39,7 @@ if [ ! -f .env ]; then
 fi
 
 docker load -i "$IMAGE_TAR"
-compose up -d postgres
-compose --profile tools run --rm db-init
-compose up -d backend web admin
+compose up -d
 
 echo "安装完成"
 echo "Web:   http://localhost:${WEB_PORT:-8080}"
