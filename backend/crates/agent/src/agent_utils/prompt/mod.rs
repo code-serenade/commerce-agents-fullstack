@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 
 use model_gateway_rs::model::{llm::ChatMessage, role::Role};
 use serde_json::Value;
+use utils::llm_json;
 
 use crate::{
     agent_error::{PromptError, Result},
@@ -49,7 +50,7 @@ impl Prompt {
         })?;
 
         let schema_region = &self.content[start + marker.len() ..];
-        let schema_text = extract_json_value(schema_region).ok_or_else(|| {
+        let schema_text = llm_json::extract_json_value(schema_region).ok_or_else(|| {
             let err = PromptError::internal("failed to extract JSON schema from prompt");
             log_error!(err);
             err
@@ -72,62 +73,6 @@ impl Prompt {
         }
         rendered
     }
-}
-
-fn extract_json_value(input: &str) -> Option<&str> {
-    for start_char in ['{', '['] {
-        if let Some(candidate) = extract_balanced_json(input, start_char) {
-            return Some(candidate);
-        }
-    }
-    None
-}
-
-fn extract_balanced_json(input: &str, start_char: char) -> Option<&str> {
-    let end_char = match start_char {
-        '{' => '}',
-        '[' => ']',
-        _ => return None,
-    };
-    let mut in_string = false;
-    let mut escape = false;
-    let mut depth = 0usize;
-    let mut start = None;
-
-    for (index, ch) in input.char_indices() {
-        if in_string {
-            if escape {
-                escape = false;
-                continue;
-            }
-            match ch {
-                '\\' => escape = true,
-                '"' => in_string = false,
-                _ => {}
-            }
-            continue;
-        }
-
-        match ch {
-            '"' => in_string = true,
-            ch if ch == start_char => {
-                if depth == 0 {
-                    start = Some(index);
-                }
-                depth += 1;
-            }
-            ch if ch == end_char && depth > 0 => {
-                depth -= 1;
-                if depth == 0
-                    && let Some(start_index) = start
-                {
-                    return Some(&input[start_index ..= index]);
-                }
-            }
-            _ => {}
-        }
-    }
-    None
 }
 
 #[cfg(test)]

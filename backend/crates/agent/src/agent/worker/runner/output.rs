@@ -1,3 +1,5 @@
+use utils::llm_json;
+
 use super::{
     types::ParsedWorkerRoleOutput,
     util::{compact_event_text, push_unique},
@@ -9,7 +11,7 @@ use crate::{
 
 pub(super) fn parse_worker_role_output(output: &str) -> ParsedWorkerRoleOutput {
     let trimmed = output.trim();
-    let Ok(value) = serde_json::from_str::<serde_json::Value>(trimmed) else {
+    let Ok(value) = llm_json::parse_llm_json_value(trimmed) else {
         return ParsedWorkerRoleOutput {
             content: trimmed.to_string(),
             ..ParsedWorkerRoleOutput::default()
@@ -145,7 +147,7 @@ fn has_role_work_output_content(output: &RoleWorkOutput) -> bool {
 
 fn extract_worker_content(output: &str) -> String {
     let trimmed = output.trim();
-    let Ok(value) = serde_json::from_str::<serde_json::Value>(trimmed) else {
+    let Ok(value) = llm_json::parse_llm_json_value(trimmed) else {
         return trimmed.to_string();
     };
 

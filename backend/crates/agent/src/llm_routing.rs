@@ -9,6 +9,7 @@ use model_gateway_rs::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use utils::llm_json;
 
 use crate::{
     Cognition, CognitionDecoder, CognitionFailure, CognitionInput, CognitionOutput,
@@ -583,8 +584,10 @@ fn fallback_chat_output(raw: &str) -> Option<CognitionOutput> {
         return None;
     }
 
-    let stripped = strip_code_fences(trimmed).trim();
-    if let Some(json_text) = extract_json_value(stripped).or_else(|| extract_json_value(trimmed)) {
+    let stripped = llm_json::strip_code_fences(trimmed).trim();
+    if let Some(json_text) =
+        llm_json::extract_json_value(stripped).or_else(|| llm_json::extract_json_value(trimmed))
+    {
         if let Some(output) = fallback_chat_output_from_json(json_text) {
             return Some(output);
         }
@@ -601,7 +604,7 @@ fn fallback_chat_output(raw: &str) -> Option<CognitionOutput> {
 }
 
 fn fallback_chat_output_from_json(json_text: &str) -> Option<CognitionOutput> {
-    let value = serde_json::from_str::<Value>(json_text).ok()?;
+    let value = llm_json::parse_llm_json_value(json_text).ok()?;
     let summary = value
         .pointer("/role_output/summary")
         .and_then(|value| value.as_str())
@@ -635,102 +638,6 @@ fn build_fallback_chat_output(summary: &str) -> Option<CognitionOutput> {
 fn looks_json_like(input: &str) -> bool {
     let trimmed = input.trim_start();
     trimmed.starts_with('{') || trimmed.starts_with('[')
-}
-
-fn strip_code_fences(input: &str) -> &str {
-    let start = match input.find("```") {
-        Some(idx) => idx,
-        None => return input,
-    };
-    let after_start = &input[start + 3 ..];
-    let newline = after_start.find('\n');
-    let content_start = match newline {
-        Some(idx) => start + 3 + idx + 1,
-        None => start + 3,
-    };
-    if let Some(end_idx) = input[content_start ..].find("```") {
-        let end = content_start + end_idx;
-        return &input[content_start .. end];
-    }
-    input
-}
-
-fn extract_json_value(input: &str) -> Option<&str> {
-    let mut in_string = false;
-    let mut escape = false;
-
-    for (index, ch) in input.char_indices() {
-        if in_string {
-            if escape {
-                escape = false;
-                continue;
-            }
-            match ch {
-                '\\' => escape = true,
-                '"' => in_string = false,
-                _ => {}
-            }
-            continue;
-        }
-
-        match ch {
-            '"' => in_string = true,
-            '{' | '[' => {
-                if let Some(candidate) = extract_balanced_json(&input[index ..], ch) {
-                    return Some(candidate);
-                }
-            }
-            _ => {}
-        }
-    }
-    None
-}
-
-fn extract_balanced_json(input: &str, start_char: char) -> Option<&str> {
-    let end_char = match start_char {
-        '{' => '}',
-        '[' => ']',
-        _ => return None,
-    };
-    let mut in_string = false;
-    let mut escape = false;
-    let mut depth = 0usize;
-    let mut start = None;
-
-    for (index, ch) in input.char_indices() {
-        if in_string {
-            if escape {
-                escape = false;
-                continue;
-            }
-            match ch {
-                '\\' => escape = true,
-                '"' => in_string = false,
-                _ => {}
-            }
-            continue;
-        }
-
-        match ch {
-            '"' => in_string = true,
-            ch if ch == start_char => {
-                if depth == 0 {
-                    start = Some(index);
-                }
-                depth += 1;
-            }
-            ch if ch == end_char && depth > 0 => {
-                depth -= 1;
-                if depth == 0
-                    && let Some(start_index) = start
-                {
-                    return Some(&input[start_index ..= index]);
-                }
-            }
-            _ => {}
-        }
-    }
-    None
 }
 
 fn raw_snippet(raw: &str) -> String {

@@ -10,6 +10,7 @@ use model_gateway_rs::{
     model::llm::{ChatMessage, LlmInput},
 };
 use serde_json::{Value, json};
+use utils::llm_json;
 
 const ENABLE_ENV: &str = "CM_AGENT_RUN_LOCAL_LLM_SMOKE";
 const DEFAULT_OLLAMA_BASE_URL: &str = "http://127.0.0.1:11434";
@@ -178,9 +179,7 @@ fn fallback_output(role: &str, raw: &str) -> Value {
 }
 
 fn parse_json_object(raw: &str) -> Option<Value> {
-    serde_json::from_str(raw)
-        .ok()
-        .or_else(|| extract_json_object(raw).and_then(|value| serde_json::from_str(value).ok()))
+    llm_json::parse_llm_json_value(raw).ok()
 }
 
 fn has_role_output_summary(value: &Value) -> bool {
@@ -188,47 +187,6 @@ fn has_role_output_summary(value: &Value) -> bool {
         .pointer("/role_output/summary")
         .and_then(Value::as_str)
         .is_some_and(|summary| !summary.trim().is_empty())
-}
-
-fn extract_json_object(input: &str) -> Option<&str> {
-    let mut in_string = false;
-    let mut escape = false;
-    let mut depth = 0usize;
-    let mut start = None;
-
-    for (index, ch) in input.char_indices() {
-        if in_string {
-            if escape {
-                escape = false;
-                continue;
-            }
-            match ch {
-                '\\' => escape = true,
-                '"' => in_string = false,
-                _ => {}
-            }
-            continue;
-        }
-
-        match ch {
-            '"' => in_string = true,
-            '{' => {
-                if depth == 0 {
-                    start = Some(index);
-                }
-                depth += 1;
-            }
-            '}' if depth > 0 => {
-                depth -= 1;
-                if depth == 0 {
-                    return start.map(|start_index| &input[start_index ..= index]);
-                }
-            }
-            _ => {}
-        }
-    }
-
-    None
 }
 
 fn truncate(value: &str, max_chars: usize) -> String {

@@ -1,4 +1,5 @@
 use serde_json::Value;
+use utils::llm_json;
 
 use crate::{CognitionFailure, CognitionOutput, FailureReason};
 
@@ -29,10 +30,7 @@ impl JsonTemplateDecoder {
 
 impl CognitionDecoder for JsonTemplateDecoder {
     fn decode(&self, raw: &str) -> Result<CognitionOutput, CognitionFailure> {
-        let trimmed = raw.trim();
-        let fenced = strip_code_fences(trimmed);
-        let cleaned = extract_json_value(fenced).unwrap_or_else(|| fenced.to_string());
-        let value: Value = serde_json::from_str(&cleaned).map_err(|err| CognitionFailure {
+        let value = llm_json::parse_llm_json_value(raw).map_err(|err| CognitionFailure {
             reason: FailureReason::InternalError,
             description: format!("invalid json: {err}"),
         })?;
@@ -88,102 +86,6 @@ fn shape_failure(path: &str, message: &str) -> CognitionFailure {
         reason: FailureReason::InternalError,
         description: format!("json template validation failed at {path}: {message}"),
     }
-}
-
-fn strip_code_fences(input: &str) -> &str {
-    let start = match input.find("```") {
-        Some(idx) => idx,
-        None => return input,
-    };
-    let after_start = &input[start + 3 ..];
-    let newline = after_start.find('\n');
-    let content_start = match newline {
-        Some(idx) => start + 3 + idx + 1,
-        None => start + 3,
-    };
-    if let Some(end_idx) = input[content_start ..].find("```") {
-        let end = content_start + end_idx;
-        return &input[content_start .. end];
-    }
-    input
-}
-
-fn extract_json_value(input: &str) -> Option<String> {
-    let mut in_string = false;
-    let mut escape = false;
-
-    for (index, ch) in input.char_indices() {
-        if in_string {
-            if escape {
-                escape = false;
-                continue;
-            }
-            match ch {
-                '\\' => escape = true,
-                '"' => in_string = false,
-                _ => {}
-            }
-            continue;
-        }
-
-        match ch {
-            '"' => in_string = true,
-            '{' | '[' => {
-                if let Some(candidate) = extract_balanced_json(&input[index ..], ch) {
-                    return Some(candidate.to_string());
-                }
-            }
-            _ => {}
-        }
-    }
-    None
-}
-
-fn extract_balanced_json(input: &str, start_char: char) -> Option<&str> {
-    let end_char = match start_char {
-        '{' => '}',
-        '[' => ']',
-        _ => return None,
-    };
-    let mut in_string = false;
-    let mut escape = false;
-    let mut depth = 0usize;
-    let mut start = None;
-
-    for (index, ch) in input.char_indices() {
-        if in_string {
-            if escape {
-                escape = false;
-                continue;
-            }
-            match ch {
-                '\\' => escape = true,
-                '"' => in_string = false,
-                _ => {}
-            }
-            continue;
-        }
-
-        match ch {
-            '"' => in_string = true,
-            ch if ch == start_char => {
-                if depth == 0 {
-                    start = Some(index);
-                }
-                depth += 1;
-            }
-            ch if ch == end_char && depth > 0 => {
-                depth -= 1;
-                if depth == 0
-                    && let Some(start_index) = start
-                {
-                    return Some(&input[start_index ..= index]);
-                }
-            }
-            _ => {}
-        }
-    }
-    None
 }
 
 #[cfg(test)]

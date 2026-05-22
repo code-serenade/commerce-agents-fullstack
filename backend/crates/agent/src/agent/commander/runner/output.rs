@@ -1,3 +1,5 @@
+use utils::llm_json;
+
 use crate::{
     agent::commander::{
         no_user_facing_content_message, sanitize_user_facing_text, user_facing_report_text,
@@ -29,7 +31,7 @@ pub(super) fn build_contribution(
 
 fn extract_worker_content(output: &str) -> String {
     let trimmed = output.trim();
-    let Ok(value) = serde_json::from_str::<serde_json::Value>(trimmed) else {
+    let Ok(value) = llm_json::parse_llm_json_value(trimmed) else {
         return trimmed.to_string();
     };
 

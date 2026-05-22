@@ -1,3 +1,5 @@
+use utils::llm_json;
+
 use super::{
     autosuggest::autosuggest_skill_requests,
     output_normalization::is_category_level_task,
@@ -16,7 +18,7 @@ use crate::{
 };
 
 pub(super) fn parse_skill_requests(output: &str) -> Vec<ParsedSkillRequest> {
-    let Ok(value) = serde_json::from_str::<serde_json::Value>(output.trim()) else {
+    let Ok(value) = llm_json::parse_llm_json_value(output.trim()) else {
         return Vec::new();
     };
     value

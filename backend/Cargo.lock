@@ -27,6 +27,7 @@ dependencies = [
  "toolcraft-request",
  "tracing",
  "tracing-subscriber",
+ "utils",
 ]
 
 [[package]]
@@ -4716,6 +4717,7 @@ dependencies = [
  "image",
  "model-gateway-rs",
  "serde",
+ "serde_json",
  "storage",
  "thiserror",
  "tokio",
