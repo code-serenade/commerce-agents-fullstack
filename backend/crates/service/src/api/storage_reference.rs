@@ -7,10 +7,7 @@ use repo::table::{
         CreateStorageObjectRef, StorageObjectRef, StorageObjectRefService, StorageObjectRefStatus,
         UpdateStorageObjectRefStatus,
     },
-    storage_objects::{
-        CreateStorageObject, StorageObject, StorageObjectService, StorageObjectStatus,
-        UpdateStorageObjectReferenceState,
-    },
+    storage_objects::{CreateStorageObject, StorageObject, StorageObjectService},
 };
 use serde_json::{Value, json};
 use time::OffsetDateTime;
@@ -75,36 +72,35 @@ impl StorageReferenceApi {
         &self,
         req: RetainStorageReferenceRequest,
     ) -> BizResult<StorageObjectRef> {
-        let now = OffsetDateTime::now_utc();
-        let object = self.find_or_create_object(&req, now).await?;
+        let object = self.find_or_create_object(&req).await?;
 
         if let Some(existing_ref) = self
             .ref_svc
             .get_active_by_source(&req.source_type, req.source_id)
             .await?
         {
-            if existing_ref.storage_object_id == object.id {
-                self.refresh_object_ref_count(object, now).await?;
+            if existing_ref.storage_object_sha256 == object.sha256 {
                 return Ok(existing_ref);
             }
 
-            self.release_active_ref(existing_ref, now).await?;
+            self.release_active_ref(existing_ref, OffsetDateTime::now_utc())
+                .await?;
         }
 
-        let storage_ref = self
-            .ref_svc
+        self.ref_svc
             .create(CreateStorageObjectRef {
                 id: Uuid::new_v4(),
-                storage_object_id: object.id,
+                storage_object_sha256: object.sha256,
                 user_id: req.user_id,
                 source_type: req.source_type,
                 source_id: req.source_id,
-                metadata: req.metadata,
+                metadata: json!({
+                    "bucket": req.bucket,
+                    "objectKey": req.object_key,
+                    "source": req.metadata,
+                }),
             })
-            .await?;
-        self.refresh_object_ref_count(object, now).await?;
-
-        Ok(storage_ref)
+            .await
     }
 
     pub async fn release_in_current_context(
@@ -127,37 +123,36 @@ impl StorageReferenceApi {
     async fn find_or_create_object(
         &self,
         req: &RetainStorageReferenceRequest,
-        now: OffsetDateTime,
     ) -> BizResult<StorageObject> {
-        if let Some(object) = self
-            .object_svc
-            .get_by_user_object(req.user_id, &req.bucket, &req.object_key)
-            .await?
-        {
+        let sha256 = req
+            .sha256
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .ok_or_else(|| {
+                BizError::new(
+                    STORAGE_REFERENCE_ERROR,
+                    "storage object requires sha256".to_string(),
+                )
+            })?;
+
+        if let Some(object) = self.object_svc.get_by_sha256(sha256).await? {
             return Ok(object);
         }
 
-        let object = self
-            .object_svc
+        self.object_svc
             .create(CreateStorageObject {
-                id: Uuid::new_v4(),
-                user_id: req.user_id,
-                bucket: req.bucket.clone(),
-                object_key: req.object_key.clone(),
-                sha256: req.sha256.clone(),
+                sha256: sha256.to_string(),
                 mime_type: req.mime_type.clone(),
                 file_size: req.file_size,
                 metadata: json!({
                     "createdFrom": {
                         "sourceType": req.source_type,
                         "sourceId": req.source_id,
-                        "retainedAt": now,
                     }
                 }),
             })
-            .await?;
-
-        Ok(object)
+            .await
     }
 
     async fn release_active_ref(
@@ -172,51 +167,7 @@ impl StorageReferenceApi {
                 released_at: Some(now),
             })
             .await?;
-
-        let object = self
-            .object_svc
-            .get_by_id(storage_ref.storage_object_id)
-            .await?
-            .ok_or_else(|| {
-                BizError::new(
-                    STORAGE_REFERENCE_ERROR,
-                    "storage object not found for active reference".to_string(),
-                )
-            })?;
-        self.refresh_object_ref_count(object, now).await?;
-
         Ok(())
-    }
-
-    async fn refresh_object_ref_count(
-        &self,
-        object: StorageObject,
-        now: OffsetDateTime,
-    ) -> BizResult<StorageObject> {
-        let ref_count = self.ref_svc.count_active_by_object(object.id).await? as i64;
-        let (status, orphaned_at) = if ref_count == 0 {
-            (
-                StorageObjectStatus::Orphaned,
-                object.orphaned_at.or(Some(now)),
-            )
-        } else {
-            (StorageObjectStatus::Active, None)
-        };
-
-        self.object_svc
-            .update_reference_state(UpdateStorageObjectReferenceState {
-                id: object.id,
-                status,
-                ref_count,
-                last_referenced_at: if ref_count > 0 {
-                    Some(now)
-                } else {
-                    object.last_referenced_at
-                },
-                orphaned_at,
-                deleted_at: None,
-            })
-            .await
     }
 }
 

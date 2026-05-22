@@ -7,22 +7,9 @@ use serde::{Deserialize, Serialize};
 #[sea_orm(table_name = "storage_objects")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub id: Uuid,
-    #[sea_orm(unique_key = "uk_storage_objects_user_object")]
-    pub user_id: Uuid,
-    #[sea_orm(unique_key = "uk_storage_objects_user_object")]
-    pub bucket: String,
-    #[sea_orm(column_type = "Text", unique_key = "uk_storage_objects_user_object")]
-    pub object_key: String,
-    pub sha256: Option<String>,
+    pub sha256: String,
     pub mime_type: Option<String>,
     pub file_size: Option<i64>,
-    pub storage_provider: String,
-    pub status: String,
-    pub ref_count: i64,
-    pub last_referenced_at: Option<TimeDateTimeWithTimeZone>,
-    pub orphaned_at: Option<TimeDateTimeWithTimeZone>,
-    pub deleted_at: Option<TimeDateTimeWithTimeZone>,
     #[sea_orm(column_type = "JsonBinary")]
     pub metadata: Json,
     pub created_at: TimeDateTimeWithTimeZone,
@@ -31,22 +18,8 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(
-        belongs_to = "super::app_users::Entity",
-        from = "Column::UserId",
-        to = "super::app_users::Column::UserId",
-        on_update = "NoAction",
-        on_delete = "Cascade"
-    )]
-    AppUsers,
     #[sea_orm(has_many = "super::storage_object_refs::Entity")]
     StorageObjectRefs,
-}
-
-impl Related<super::app_users::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::AppUsers.def()
-    }
 }
 
 impl Related<super::storage_object_refs::Entity> for Entity {

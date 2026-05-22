@@ -21,6 +21,8 @@ pub type AgentLlmClient = ChatCompletionsLlm;
 
 const ATTACHMENTS_IMAGES_JSON: &str = "attachments.images_json";
 const REQUEST_ATTACHMENTS_IMAGES_JSON: &str = "request.attachments.images_json";
+const ATTACHMENTS_IMAGE_SUMMARIES_JSON: &str = "attachments.image_summaries_json";
+const REQUEST_ATTACHMENTS_IMAGE_SUMMARIES_JSON: &str = "request.attachments.image_summaries_json";
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct AgentLlmCfg {
@@ -52,6 +54,7 @@ pub enum AgentCognitionKind {
 #[derive(Clone)]
 pub struct AgentLlmRegistry {
     clients: HashMap<String, Arc<AgentLlmClient>>,
+    models: HashMap<String, String>,
     usage: ResolvedAgentLlmUsage,
 }
 
@@ -93,12 +96,15 @@ impl AgentLlmRegistry {
         }
 
         let mut clients = HashMap::new();
+        let mut models = HashMap::new();
         for config in llm_configs {
             clients.insert(config.name.clone(), Arc::new(build_llm_client(config)?));
+            models.insert(config.name.clone(), config.model.clone());
         }
 
         Ok(Self {
             clients,
+            models,
             usage: ResolvedAgentLlmUsage {
                 default,
                 fast,
@@ -117,6 +123,16 @@ impl AgentLlmRegistry {
         }
     }
 
+    pub(crate) fn client_by_name(&self, name: &str) -> Result<Arc<AgentLlmClient>> {
+        self.clients.get(name).cloned().ok_or_else(|| {
+            SettingsError::missing_llm_usage(format!("llm '{name}' not found")).into()
+        })
+    }
+
+    pub(crate) fn model_by_name(&self, name: &str) -> Option<&str> {
+        self.models.get(name).map(String::as_str)
+    }
+
     fn client_for_kind(
         &self,
         kind: AgentCognitionKind,
@@ -124,9 +140,7 @@ impl AgentLlmRegistry {
     ) -> Result<Arc<AgentLlmClient>> {
         let name = self.usage_name_for_kind(kind, requires_vision)?;
 
-        self.clients.get(name).cloned().ok_or_else(|| {
-            SettingsError::missing_llm_usage(format!("llm '{name}' not found")).into()
-        })
+        self.client_by_name(name)
     }
 
     fn usage_name_for_kind(&self, kind: AgentCognitionKind, requires_vision: bool) -> Result<&str> {
@@ -256,10 +270,15 @@ where
             Ok(images) => images,
             Err(failure) => return CognitionResult::Failure(failure),
         };
+        let image_summaries = match parse_image_summary_inputs(&input) {
+            Ok(summaries) => summaries,
+            Err(failure) => return CognitionResult::Failure(failure),
+        };
         let requires_vision = !images.is_empty();
         tracing::debug!(
             kind = ?self.kind,
             image_count = images.len(),
+            image_summary_count = image_summaries.len(),
             requires_vision,
             "llm routing image input parsed"
         );
@@ -291,7 +310,7 @@ where
             }
         };
         let mut base_messages = self.system_messages.clone();
-        base_messages.push(render_user_message(&input, &images));
+        base_messages.push(render_user_message(&input, &images, &image_summaries));
 
         let max_attempts = self.retry_policy.max_attempts();
         let mut messages = base_messages.clone();
@@ -403,6 +422,17 @@ struct AgentImageInput {
     source_ref: Option<String>,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+struct AgentImageSummaryInput {
+    source_ref: String,
+    object_key: String,
+    summary: String,
+    agent_context: Option<String>,
+    analysis_id: String,
+    prompt_version: Option<String>,
+    llm_name: Option<String>,
+}
+
 fn build_llm_client(config: &AgentLlmCfg) -> Result<AgentLlmClient> {
     let mut client =
         ChatCompletionsLlm::new(&config.base_url, &config.model, config.api_key.as_deref())
@@ -471,8 +501,37 @@ fn parse_image_inputs(
     })
 }
 
-fn render_user_message(input: &CognitionInput, images: &[AgentImageInput]) -> ChatMessage {
-    let text = render_input(input);
+fn parse_image_summary_inputs(
+    input: &CognitionInput,
+) -> std::result::Result<Vec<AgentImageSummaryInput>, CognitionFailure> {
+    let Some(raw) = input
+        .context
+        .metadata
+        .get(ATTACHMENTS_IMAGE_SUMMARIES_JSON)
+        .or_else(|| {
+            input
+                .context
+                .metadata
+                .get(REQUEST_ATTACHMENTS_IMAGE_SUMMARIES_JSON)
+        })
+    else {
+        return Ok(Vec::new());
+    };
+    if raw.trim().is_empty() {
+        return Ok(Vec::new());
+    }
+    serde_json::from_str::<Vec<AgentImageSummaryInput>>(raw).map_err(|err| CognitionFailure {
+        reason: FailureReason::InternalError,
+        description: format!("invalid image summary attachment metadata: {err}"),
+    })
+}
+
+fn render_user_message(
+    input: &CognitionInput,
+    images: &[AgentImageInput],
+    image_summaries: &[AgentImageSummaryInput],
+) -> ChatMessage {
+    let text = render_input(input, image_summaries);
     if images.is_empty() {
         return ChatMessage::user(text);
     }
@@ -678,7 +737,7 @@ fn raw_snippet(raw: &str) -> String {
     raw.trim().chars().take(500).collect()
 }
 
-fn render_input(input: &CognitionInput) -> String {
+fn render_input(input: &CognitionInput, image_summaries: &[AgentImageSummaryInput]) -> String {
     let facts = if input.context.facts.is_empty() {
         "- (none)".to_string()
     } else {
@@ -708,10 +767,52 @@ fn render_input(input: &CognitionInput) -> String {
             .join("\n")
     };
 
+    let image_summary_context = render_image_summary_context(image_summaries);
+
     format!(
         "Intent:\n- id: {}\n- kind: {:?}\n- description: {}\n\nContext facts:\n{}\n\nContext \
-         metadata:\n{}",
-        input.intent.id, input.intent.kind, input.intent.description, facts, metadata
+         metadata:\n{}\n\n{}",
+        input.intent.id,
+        input.intent.kind,
+        input.intent.description,
+        facts,
+        metadata,
+        image_summary_context
+    )
+}
+
+fn render_image_summary_context(image_summaries: &[AgentImageSummaryInput]) -> String {
+    if image_summaries.is_empty() {
+        return "Preprocessed image context:\n- (none)".to_string();
+    }
+
+    let lines = image_summaries
+        .iter()
+        .map(|item| {
+            let context = item
+                .agent_context
+                .as_deref()
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .unwrap_or(item.summary.trim());
+            format!(
+                "- source_ref: {} | object_key: {} | analysis_id: {} | prompt_version: {} | \
+                 llm_name: {} | summary: {}",
+                item.source_ref,
+                item.object_key,
+                item.analysis_id,
+                item.prompt_version.as_deref().unwrap_or("unknown"),
+                item.llm_name.as_deref().unwrap_or("unknown"),
+                context
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    format!(
+        "Preprocessed image context:\n{}\n\nUse this cached image context as the image content \
+         grounding. Do not request live vision unless raw image inputs are also present.",
+        lines
     )
 }
 

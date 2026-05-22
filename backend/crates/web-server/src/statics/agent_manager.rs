@@ -6,7 +6,8 @@ use std::{
 
 use agent::api::{
     AgentId, AgentLlmUsageCfg, AgentManager, AgentRequest, AgentRuntimeCfg, SessionEventRx,
-    SessionId, UserId, WorkspaceId, build_agent_manager,
+    SessionId, UserId, VisionPreprocessAgent, VisionPreprocessAgentConfig, VisionPreprocessInput,
+    VisionPreprocessResult, WorkspaceId, build_agent_manager,
 };
 use uuid::Uuid;
 
@@ -75,6 +76,47 @@ pub fn select_agent_runtime_model(
 pub fn agent_runtime_llm_usage() -> Result<AgentLlmUsageCfg> {
     let registry = registry()?;
     Ok(registry.llm_usage.clone())
+}
+
+pub fn vision_preprocess_config() -> Result<VisionPreprocessAgentConfig> {
+    VisionPreprocessAgentConfig::load_default()
+        .map_err(|err| Error::Custom(format!("vision preprocess config failed: {err}")))
+}
+
+pub async fn run_vision_preprocess(input: VisionPreprocessInput) -> Result<VisionPreprocessResult> {
+    let registry = registry()?;
+    let config = vision_preprocess_config()?;
+    tracing::debug!(
+        system_agent_id = %config.id,
+        analysis_kind = %config.analysis_kind,
+        prompt = %config.prompt,
+        prompt_version = %config.prompt_version,
+        object_key = %input.object_key,
+        mime_type = ?input.mime_type,
+        file_size = ?input.file_size,
+        "vision preprocess runtime initializing"
+    );
+    let agent = VisionPreprocessAgent::new(
+        config,
+        &registry.config.llm,
+        registry.config.default_llm.as_deref(),
+        &registry.config.llm_usage,
+    )
+    .map_err(|err| Error::Custom(format!("vision preprocess init failed: {err}")))?;
+    let result = agent
+        .run(input)
+        .await
+        .map_err(|err| Error::Custom(format!("vision preprocess failed: {err}")))?;
+    tracing::debug!(
+        analysis_kind = %result.analysis_kind,
+        prompt_key = %result.prompt_key,
+        prompt_version = %result.prompt_version,
+        llm_name = %result.llm_name,
+        llm_model = ?result.llm_model,
+        summary_chars = result.summary.chars().count(),
+        "vision preprocess runtime finished"
+    );
+    Ok(result)
 }
 
 pub fn run_agent_stream(

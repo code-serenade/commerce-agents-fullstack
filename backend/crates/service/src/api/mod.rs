@@ -15,6 +15,8 @@ pub mod product_asset;
 pub mod product_competitor;
 pub mod product_knowledge;
 pub mod product_material;
+pub mod storage_object_analysis;
 pub mod storage_reference;
 pub mod storage_resource_manager;
+pub mod vision_preprocess_manager;
 pub mod workspace;

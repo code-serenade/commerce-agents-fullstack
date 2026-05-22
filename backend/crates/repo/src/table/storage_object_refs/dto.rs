@@ -22,7 +22,7 @@ impl StorageObjectRefStatus {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StorageObjectRef {
     pub id: Uuid,
-    pub storage_object_id: Uuid,
+    pub storage_object_sha256: String,
     pub user_id: Uuid,
     pub source_type: String,
     pub source_id: Uuid,
@@ -36,7 +36,7 @@ pub struct StorageObjectRef {
 #[derive(Debug, Clone, Deserialize)]
 pub struct CreateStorageObjectRef {
     pub id: Uuid,
-    pub storage_object_id: Uuid,
+    pub storage_object_sha256: String,
     pub user_id: Uuid,
     pub source_type: String,
     pub source_id: Uuid,

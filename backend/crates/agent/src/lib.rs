@@ -3,6 +3,7 @@
 pub mod api;
 pub mod llm_routing;
 pub mod runtime;
+pub mod system_agents;
 
 #[path = "action/lib.rs"]
 pub(crate) mod action;

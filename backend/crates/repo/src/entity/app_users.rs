@@ -67,8 +67,6 @@ pub enum Relation {
     Products,
     #[sea_orm(has_many = "super::storage_object_refs::Entity")]
     StorageObjectRefs,
-    #[sea_orm(has_many = "super::storage_objects::Entity")]
-    StorageObjects,
     #[sea_orm(has_many = "super::store_metrics::Entity")]
     StoreMetrics,
     #[sea_orm(has_many = "super::workspace_artifacts::Entity")]
@@ -226,12 +224,6 @@ impl Related<super::products::Entity> for Entity {
 impl Related<super::storage_object_refs::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::StorageObjectRefs.def()
-    }
-}
-
-impl Related<super::storage_objects::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::StorageObjects.def()
     }
 }
 

@@ -34,5 +34,9 @@ pub use crate::{
         SkillPriority, SkillRegistry, SkillRiskLevel, SkillSpec, adapter_kinds_for_spec,
         execution_mode_for_spec, risk_level_for_spec,
     },
+    system_agents::vision_preprocess::{
+        VisionPreprocessAgent, VisionPreprocessAgentConfig, VisionPreprocessInput,
+        VisionPreprocessOutput, VisionPreprocessResult,
+    },
     web_error::{code_for_error, to_biz_error},
 };

@@ -36,7 +36,7 @@ impl StorageObjectRefService {
     pub async fn create(&self, input: CreateStorageObjectRef) -> BizResult<StorageObjectRef> {
         let model = storage_object_refs::ActiveModel {
             id: Set(input.id),
-            storage_object_id: Set(input.storage_object_id),
+            storage_object_sha256: Set(input.storage_object_sha256),
             user_id: Set(input.user_id),
             source_type: Set(input.source_type),
             source_id: Set(input.source_id),
@@ -79,9 +79,9 @@ impl StorageObjectRefService {
         Ok(Self::from_model(self.repo.update(model).await?))
     }
 
-    pub async fn count_active_by_object(&self, storage_object_id: Uuid) -> BizResult<u64> {
+    pub async fn count_active_by_object(&self, storage_object_sha256: &str) -> BizResult<u64> {
         let count = storage_object_refs::Entity::find()
-            .filter(storage_object_refs::Column::StorageObjectId.eq(storage_object_id))
+            .filter(storage_object_refs::Column::StorageObjectSha256.eq(storage_object_sha256))
             .filter(storage_object_refs::Column::Status.eq(StorageObjectRefStatus::Active.as_str()))
             .count(self.repo.db())
             .await
@@ -93,7 +93,7 @@ impl StorageObjectRefService {
     fn from_model(model: storage_object_refs::Model) -> StorageObjectRef {
         StorageObjectRef {
             id: model.id,
-            storage_object_id: model.storage_object_id,
+            storage_object_sha256: model.storage_object_sha256,
             user_id: model.user_id,
             source_type: model.source_type,
             source_id: model.source_id,

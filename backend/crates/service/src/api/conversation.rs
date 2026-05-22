@@ -20,10 +20,7 @@ use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use uuid::Uuid;
 
 use crate::{
-    api::{
-        storage_reference::{RetainStorageReferenceRequest, StorageReferenceApi},
-        storage_resource_manager::{CleanupOrphanedStorageObjectsRequest, StorageResourceManager},
-    },
+    api::storage_reference::{RetainStorageReferenceRequest, StorageReferenceApi},
     dto::conversation::{
         AddConversationMessageRequest, ConversationDetailResponse, ConversationFileAccessResponse,
         ConversationFileResponse, ConversationMessageResponse, ConversationResponse,
@@ -329,7 +326,7 @@ impl ConversationApi {
 
     pub async fn delete_file(
         &self,
-        storage: &ObjectStorage,
+        _storage: &ObjectStorage,
         req: DeleteConversationFileRequest,
     ) -> BizResult<()> {
         let user_id = parse_user_id(&req.user_id)?;
@@ -357,13 +354,6 @@ impl ConversationApi {
         .await;
 
         commit_or_rollback(tx, result).await?;
-
-        StorageResourceManager::new(self.db.clone())
-            .cleanup_orphaned_objects(
-                storage,
-                CleanupOrphanedStorageObjectsRequest { limit: Some(10) },
-            )
-            .await?;
 
         Ok(())
     }

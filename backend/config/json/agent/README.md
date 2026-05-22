@@ -21,6 +21,7 @@ agent 的职责分三层：
 | 路径 | 作用 |
 | --- | --- |
 | `roles.json` | 定义可用角色、角色关键词、能力边界和 runtime role。 |
+| `system-agents/` | 定义系统内部一次性 agent，例如图片预识别；这些 agent 不进入 `roles.json`，不允许用户选择，也不参与普通 task graph 路由。 |
 | `task-graph/` | 定义 commander 如何把用户任务拆成角色任务图。入口是 `task-graph/index.json`，单个图放在 `task-graph/graphs/`。 |
 | `worker-autosuggest/` | 定义 worker 在执行时自动追加哪些 skill request。 |
 | `worker-inference/` | 定义从用户文本里解析指标、别名、默认值、分类标签和搜索参数。 |
@@ -211,7 +212,7 @@ worker-inference/index.json
 
 ```bash
 cd backend
-jq empty config/json/agent/*.json config/json/agent/worker-autosuggest/*.json config/json/agent/worker-inference/*.json
+jq empty config/json/agent/*.json config/json/agent/system-agents/*.json config/json/agent/worker-autosuggest/*.json config/json/agent/worker-inference/*.json
 ```
 
 如果改了 Rust 或新增配置字段，再运行：

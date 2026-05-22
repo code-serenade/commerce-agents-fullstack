@@ -1,0 +1,11 @@
+{
+  "id": "vision_preprocessor",
+  "kind": "system_agent",
+  "visibility": "system",
+  "user_selectable": false,
+  "auto_route": false,
+  "llm_usage": "vision",
+  "prompt": "zh/vision/image_preprocess.md",
+  "analysis_kind": "image_preprocess",
+  "prompt_version": "v1"
+}

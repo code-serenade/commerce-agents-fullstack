@@ -17,7 +17,8 @@ use serde_json::{Value, json};
 use service::{
     api::{
         agent_context::AgentContextApi, app::AppApi, approval_audit::ApprovalAuditApi,
-        briefing_ops::BriefingOpsApi, conversation::ConversationApi, workspace::WorkspaceApi,
+        briefing_ops::BriefingOpsApi, conversation::ConversationApi,
+        vision_preprocess_manager::VisionPreprocessManager, workspace::WorkspaceApi,
     },
     dto::{
         agent_context::{
@@ -63,6 +64,18 @@ struct AgentVisionImageAttachment {
     url: String,
     detail: String,
     source_ref: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AgentVisionImageSummaryAttachment {
+    source_ref: String,
+    object_key: String,
+    summary: String,
+    agent_context: Option<String>,
+    analysis_id: String,
+    prompt_version: Option<String>,
+    llm_name: Option<String>,
 }
 
 pub async fn stream_agent_session(
@@ -1362,7 +1375,9 @@ async fn merge_conversation_file_image_attachments(
         return Ok(());
     }
 
+    let preprocess_manager = VisionPreprocessManager::new(get_app_ctx());
     let mut images = Vec::new();
+    let mut image_summaries = Vec::new();
     for source in image_sources {
         let object_key = source
             .metadata
@@ -1380,6 +1395,47 @@ async fn merge_conversation_file_image_attachments(
                 source.ref_key
             ))
         })?;
+        let file_id = Uuid::parse_str(&source.id).map_err(|err| {
+            Error::Custom(format!(
+                "conversation image attachment invalid file id for {}: {}",
+                source.ref_key, err
+            ))
+        })?;
+        if let Some(analysis) = preprocess_manager
+            .latest_succeeded_for_file(file_id)
+            .await
+            .map_err(|err| {
+                Error::Custom(format!(
+                    "conversation image attachment summary lookup failed: {err:?}"
+                ))
+            })?
+            && let Some(summary) = analysis.summary.as_deref().map(str::trim)
+            && !summary.is_empty()
+        {
+            let agent_context = analysis
+                .result_json
+                .as_ref()
+                .and_then(|value| value.get("agentContext"))
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_string);
+            image_summaries.push(AgentVisionImageSummaryAttachment {
+                source_ref: source.ref_key.clone(),
+                object_key: object_key.to_string(),
+                summary: summary.to_string(),
+                agent_context,
+                analysis_id: analysis.id.to_string(),
+                prompt_version: Some(analysis.prompt_version),
+                llm_name: Some(analysis.llm_name),
+            });
+            tracing::debug!(
+                ref_key = %source.ref_key,
+                object_key,
+                "conversation image attachment using preprocessed summary"
+            );
+            continue;
+        }
         tracing::debug!(
             user_id,
             ref_key = %source.ref_key,
@@ -1439,18 +1495,42 @@ async fn merge_conversation_file_image_attachments(
         images.len().to_string(),
     );
     metadata.insert(
-        "attachments.images_json".to_string(),
-        serde_json::to_string(&images)
-            .map_err(|err| Error::Custom(format!("agent image metadata failed: {err}")))?,
+        "attachments.image_summary_count".to_string(),
+        image_summaries.len().to_string(),
     );
+    if !images.is_empty() {
+        metadata.insert(
+            "attachments.images_json".to_string(),
+            serde_json::to_string(&images)
+                .map_err(|err| Error::Custom(format!("agent image metadata failed: {err}")))?,
+        );
+    }
+    if !image_summaries.is_empty() {
+        metadata.insert(
+            "attachments.image_summaries_json".to_string(),
+            serde_json::to_string(&image_summaries).map_err(|err| {
+                Error::Custom(format!("agent image summary metadata failed: {err}"))
+            })?,
+        );
+    }
+    let image_source = match (images.is_empty(), image_summaries.is_empty()) {
+        (false, false) => "conversation_file_mixed",
+        (false, true) => "conversation_file_data_url",
+        (true, false) => "conversation_file_preprocessed_summary",
+        (true, true) => "conversation_file_empty",
+    };
     metadata.insert(
         "attachments.image_source".to_string(),
-        "conversation_file_data_url".to_string(),
+        image_source.to_string(),
     );
     tracing::debug!(
         image_count = images.len(),
+        image_summary_count = image_summaries.len(),
         images_json_bytes = metadata
             .get("attachments.images_json")
+            .map_or(0, |value| value.len()),
+        image_summaries_json_bytes = metadata
+            .get("attachments.image_summaries_json")
             .map_or(0, |value| value.len()),
         "sse image attachment metadata written"
     );

@@ -689,6 +689,7 @@
 - 如果传入 `sha256`，服务端会校验 object key 文件名部分与 `sha256` 一致
 - 同一个会话重复注册同一个 active `objectKey` 时，服务端会直接返回已有附件记录；不同会话可以引用同一个 S3 对象
 - 注册成功后服务端会为 `conversation_file:{fileId}` 保留一条对象存储引用；业务表只保存 S3 地址和附件元数据
+- 注册 `image/png`、`image/jpeg`、`image/jpg`、`image/webp` 附件后，服务端会异步创建系统图片预识别任务。该任务调用配置中的 vision LLM，把图片摘要写入 `storage_object_analyses`，不阻塞本接口响应；失败只记录分析状态，不影响附件注册。
 
 ## 11. 登记会话附件抽取状态 / 文本
 
