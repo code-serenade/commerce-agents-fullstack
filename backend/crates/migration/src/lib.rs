@@ -17,6 +17,7 @@ mod m20260507_183000_create_package_governance;
 mod m20260509_095358_create_workspace_artifacts;
 mod m20260509_105058_create_agent_quality_learning;
 mod m20260512_090000_create_agent_skill_runs;
+mod m20260522_100000_update_conversation_file_object_uniqueness;
 
 pub struct Migrator;
 
@@ -41,6 +42,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260509_095358_create_workspace_artifacts::Migration),
             Box::new(m20260509_105058_create_agent_quality_learning::Migration),
             Box::new(m20260512_090000_create_agent_skill_runs::Migration),
+            Box::new(m20260522_100000_update_conversation_file_object_uniqueness::Migration),
         ]
     }
 }

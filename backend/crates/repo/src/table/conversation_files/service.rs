@@ -56,6 +56,23 @@ impl ConversationFileService {
         Ok(self.repo.find_by_id(id).await?.map(Self::from_model))
     }
 
+    pub async fn get_active_by_conversation_object(
+        &self,
+        conversation_id: Uuid,
+        bucket: &str,
+        object_key: &str,
+    ) -> BizResult<Option<ConversationFile>> {
+        let query = self
+            .repo
+            .query()
+            .filter(conversation_files::Column::ConversationId.eq(conversation_id))
+            .filter(conversation_files::Column::Bucket.eq(bucket))
+            .filter(conversation_files::Column::ObjectKey.eq(object_key))
+            .filter(conversation_files::Column::Status.eq("active"));
+
+        Ok(self.repo.select_one(query).await?.map(Self::from_model))
+    }
+
     pub async fn list_by_conversation_id(
         &self,
         conversation_id: Uuid,

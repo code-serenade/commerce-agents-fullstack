@@ -214,18 +214,10 @@ impl ConversationApi {
         let user_id = parse_user_id(&req.user_id)?;
         self.ensure_app_user_enabled(user_id).await?;
         let conversation_id = parse_uuid(&req.conversation_id, "conversation_id")?;
-        let conversation = self
-            .ensure_active_conversation_owner(user_id, conversation_id)
+        self.ensure_active_conversation_owner(user_id, conversation_id)
             .await?;
 
-        self.conversation_svc
-            .update(repo::table::conversations::UpdateConversation {
-                id: conversation.id,
-                title: conversation.title,
-                status: "deleted".to_string(),
-                archived_at: Some(OffsetDateTime::now_utc()),
-            })
-            .await?;
+        self.conversation_svc.delete_by_id(conversation_id).await?;
 
         Ok(())
     }
@@ -249,6 +241,14 @@ impl ConversationApi {
         ensure_file_service_object_key(&object_key, &user_id)?;
         if let Some(sha256) = normalize_optional(req.sha256.clone()) {
             ensure_object_key_sha256_matches(&object_key, &sha256)?;
+        }
+
+        if let Some(existing) = self
+            .file_svc
+            .get_active_by_conversation_object(conversation_id, "private", &object_key)
+            .await?
+        {
+            return Ok(Self::map_file(existing));
         }
 
         let file = self

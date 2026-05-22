@@ -75,6 +75,10 @@ impl ConversationService {
         Ok(Self::from_model(self.repo.update(model).await?))
     }
 
+    pub async fn delete_by_id(&self, id: Uuid) -> BizResult<u64> {
+        Ok(self.repo.delete_by_id(id).await?.rows_affected)
+    }
+
     fn from_model(model: conversations::Model) -> Conversation {
         Conversation {
             id: model.id,
