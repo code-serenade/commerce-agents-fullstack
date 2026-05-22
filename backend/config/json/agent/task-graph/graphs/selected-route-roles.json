@@ -4,7 +4,17 @@
   "priority": 1200,
   "match": {
     "route_score_min": 90,
-    "route_min_non_chat_roles": 2
+    "route_min_non_chat_roles": 2,
+    "none_keywords": [
+      "老师点评",
+      "课堂反馈",
+      "课堂点评",
+      "批改",
+      "不要写成岗位报告",
+      "不写成岗位报告",
+      "不要岗位报告",
+      "不是岗位报告"
+    ]
   },
   "dynamic_roles": {
     "from_route": {
