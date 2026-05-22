@@ -1,10 +1,10 @@
 {
   "id": "selected_route_roles",
   "description": "RoleRouter 高置信选中的多岗位路线，按 route primary/support roles 编排任务图",
-  "priority": 700,
+  "priority": 1200,
   "match": {
     "route_score_min": 90,
-    "route_min_non_chat_roles": 1
+    "route_min_non_chat_roles": 2
   },
   "dynamic_roles": {
     "from_route": {
