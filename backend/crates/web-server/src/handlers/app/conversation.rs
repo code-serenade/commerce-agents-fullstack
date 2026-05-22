@@ -442,8 +442,7 @@ async fn run_vision_preprocess_task(
     config: VisionPreprocessConfig,
 ) -> Result<(), Error> {
     use service::api::storage_object_analysis::{
-        CompleteStorageObjectAnalysisRequest, FailStorageObjectAnalysisRequest,
-        StorageObjectAnalysisApi,
+        CompleteStorageObjectAnalysisRequest, StorageObjectAnalysisApi,
     };
 
     tracing::debug!(
@@ -570,15 +569,11 @@ async fn run_vision_preprocess_task(
         }
         Err(err) => {
             analysis_api
-                .mark_failed(FailStorageObjectAnalysisRequest {
-                    id: task.analysis.id,
-                    llm_model: task.analysis.llm_model,
-                    error_message: err.to_string(),
-                })
+                .delete(task.analysis.id)
                 .await
-                .map_err(|mark_err| {
+                .map_err(|delete_err| {
                     Error::Custom(format!(
-                        "vision preprocess mark failed failed: {mark_err:?}"
+                        "vision preprocess delete failed analysis failed: {delete_err:?}"
                     ))
                 })?;
             return Err(err);

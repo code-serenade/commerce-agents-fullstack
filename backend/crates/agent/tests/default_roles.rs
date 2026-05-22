@@ -863,7 +863,7 @@ async fn explicit_manual_roles_do_not_use_direct_answer_chat_bypass() {
 }
 
 #[tokio::test]
-async fn vision_direct_answer_bypasses_selected_business_role() {
+async fn raw_image_input_is_rejected_for_role_agents() {
     let manager = AgentManager::new(AgentManagerConfig::new(
         Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
         Arc::new(|| Ok(Box::new(StructuredSummaryWorkerCognition))),
@@ -882,7 +882,7 @@ async fn vision_direct_answer_bypasses_selected_business_role() {
             .to_string(),
     );
 
-    let mut rx = manager
+    let err = manager
         .run_stream(AgentRequest {
             user_id: Some(UserId("role-user".to_string())),
             workspace_id: None,
@@ -891,46 +891,11 @@ async fn vision_direct_answer_bypasses_selected_business_role() {
             input: "图片的内容是什么".to_string(),
             metadata,
         })
-        .expect("stream should start");
+        .expect_err("raw image input should be rejected before session starts");
 
-    let mut events = Vec::new();
-    while let Some(event) = rx.recv().await {
-        let terminal = matches!(
-            event,
-            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
-        );
-        events.push(event);
-        if terminal {
-            break;
-        }
-    }
-
-    assert!(events.iter().any(|event| {
-        matches!(
-            event,
-            SessionEvent::RouteDecided {
-                strategy_id,
-                collaboration_mode,
-                route_mode,
-                primary_runtime_role,
-                support_runtime_roles,
-                ..
-            } if strategy_id.as_deref() == Some("learning")
-                && collaboration_mode.as_deref() == Some("single")
-                && route_mode == "chat_bypass"
-                && primary_runtime_role.as_deref() == Some("chat")
-                && support_runtime_roles.is_empty()
-        )
-    }));
     assert!(
-        !events
-            .iter()
-            .any(|event| matches!(event, SessionEvent::CommanderThinking { .. }))
-    );
-    assert!(
-        !events
-            .iter()
-            .any(|event| matches!(event, SessionEvent::TaskGraphPlanned { .. }))
+        err.to_string()
+            .contains("raw image inputs are restricted to system vision preprocess")
     );
 }
 

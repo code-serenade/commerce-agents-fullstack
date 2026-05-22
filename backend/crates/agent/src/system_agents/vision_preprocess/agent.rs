@@ -85,9 +85,21 @@ impl VisionPreprocessAgent {
             object_key = %input.object_key,
             llm_name = %llm_name,
             output_chars = raw.chars().count(),
+            output_preview = %preview_text(&raw, 2000),
             "vision preprocess llm response received"
         );
-        let output = decode_output(&raw)?;
+        let output = decode_output(&raw).map_err(|err| {
+            tracing::debug!(
+                system_agent_id = %self.config.id,
+                object_key = %input.object_key,
+                llm_name = %llm_name,
+                output_chars = raw.chars().count(),
+                output_preview = %preview_text(&raw, 4000),
+                error = %err,
+                "vision preprocess llm response decode failed"
+            );
+            err
+        })?;
         let (summary, result_json) = output.into_result_parts()?;
         tracing::debug!(
             system_agent_id = %self.config.id,
@@ -132,4 +144,12 @@ fn decode_output(raw: &str) -> Result<VisionPreprocessOutput> {
     utils::llm_json::parse_llm_json::<VisionPreprocessOutput>(raw).map_err(|err| {
         CognitionError::decode(format!("invalid vision preprocess JSON: {err}")).into()
     })
+}
+
+fn preview_text(value: &str, max_chars: usize) -> String {
+    let mut preview = value.chars().take(max_chars).collect::<String>();
+    if value.chars().count() > max_chars {
+        preview.push_str("...");
+    }
+    preview
 }

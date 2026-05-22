@@ -77,11 +77,3 @@ pub struct UpdateStorageObjectAnalysisSucceeded {
     pub result_json: Value,
     pub finished_at: OffsetDateTime,
 }
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct UpdateStorageObjectAnalysisFailed {
-    pub id: Uuid,
-    pub llm_model: Option<String>,
-    pub error_message: String,
-    pub finished_at: OffsetDateTime,
-}

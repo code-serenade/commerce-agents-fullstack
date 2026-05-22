@@ -9,8 +9,8 @@ use crate::{
     entity::storage_object_analyses,
     table::storage_object_analyses::dto::{
         CreateStorageObjectAnalysis, StorageObjectAnalysis, StorageObjectAnalysisIdentity,
-        StorageObjectAnalysisStatus, UpdateStorageObjectAnalysisFailed,
-        UpdateStorageObjectAnalysisProcessing, UpdateStorageObjectAnalysisSucceeded,
+        StorageObjectAnalysisStatus, UpdateStorageObjectAnalysisProcessing,
+        UpdateStorageObjectAnalysisSucceeded,
     },
 };
 
@@ -127,20 +127,8 @@ impl StorageObjectAnalysisService {
         Ok(Self::from_model(self.repo.update(model).await?))
     }
 
-    pub async fn mark_failed(
-        &self,
-        input: UpdateStorageObjectAnalysisFailed,
-    ) -> BizResult<StorageObjectAnalysis> {
-        let model = storage_object_analyses::ActiveModel {
-            id: Unchanged(input.id),
-            status: Set(StorageObjectAnalysisStatus::Failed.as_str().to_string()),
-            llm_model: Set(input.llm_model),
-            error_message: Set(Some(input.error_message)),
-            finished_at: Set(Some(input.finished_at)),
-            ..Default::default()
-        };
-
-        Ok(Self::from_model(self.repo.update(model).await?))
+    pub async fn delete_by_id(&self, id: Uuid) -> BizResult<u64> {
+        Ok(self.repo.delete_by_id(id).await?.rows_affected)
     }
 
     fn from_model(model: storage_object_analyses::Model) -> StorageObjectAnalysis {

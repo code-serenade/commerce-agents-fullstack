@@ -271,11 +271,18 @@ where
             Ok(images) => images,
             Err(failure) => return CognitionResult::Failure(failure),
         };
+        if !images.is_empty() {
+            return CognitionResult::Failure(CognitionFailure {
+                reason: FailureReason::InternalError,
+                description: "raw image inputs are restricted to system vision preprocess"
+                    .to_string(),
+            });
+        }
         let image_summaries = match parse_image_summary_inputs(&input) {
             Ok(summaries) => summaries,
             Err(failure) => return CognitionResult::Failure(failure),
         };
-        let requires_vision = !images.is_empty();
+        let requires_vision = false;
         tracing::debug!(
             kind = ?self.kind,
             image_count = images.len(),
@@ -718,7 +725,7 @@ fn render_image_summary_context(image_summaries: &[AgentImageSummaryInput]) -> S
 
     format!(
         "Preprocessed image context:\n{}\n\nUse this cached image context as the image content \
-         grounding. Do not request live vision unless raw image inputs are also present.",
+         grounding. Raw image inputs are reserved for system vision preprocess.",
         lines
     )
 }
@@ -892,7 +899,7 @@ mod tests {
     }
 
     #[test]
-    fn parse_image_inputs_accepts_worker_request_metadata_key() {
+    fn parse_image_inputs_detects_forbidden_worker_request_metadata_key() {
         let mut input = input();
         input.context.metadata.insert(
             REQUEST_ATTACHMENTS_IMAGES_JSON.to_string(),

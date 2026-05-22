@@ -42,9 +42,8 @@ use service::{
         },
     },
 };
-use storage::{BucketKind, DownloadObjectRequest};
 use toolcraft_axum_kit::{ApiError, CommonError, middleware::auth_mw::AuthUser};
-use utils::image::{is_supported_vision_mime, vision_image_data_url};
+use utils::image::is_supported_vision_mime;
 use uuid::Uuid;
 use validator::Validate;
 
@@ -53,18 +52,11 @@ use crate::{
     error::{Error, from_biz_error},
     statics::{
         agent_manager::run_agent_stream, db_manager::get_app_ctx,
-        external_search::get_external_search_config, storage_manager::get_storage,
+        external_search::get_external_search_config,
     },
 };
 
 const MAX_AUTO_VISION_IMAGES: usize = 4;
-
-#[derive(Debug, Serialize)]
-struct AgentVisionImageAttachment {
-    url: String,
-    detail: String,
-    source_ref: String,
-}
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -1355,14 +1347,8 @@ async fn merge_conversation_file_image_attachments(
     user_id: &str,
     context: &WorkspaceContextSummaryResponse,
 ) -> Result<(), Error> {
-    if metadata
-        .get("attachments.images_json")
-        .is_some_and(|value| !value.trim().is_empty())
-    {
-        tracing::debug!(
-            "sse image attachment merge skipped: metadata already contains images_json"
-        );
-        return Ok(());
+    if metadata.remove("attachments.images_json").is_some() {
+        tracing::debug!("sse raw image attachment metadata removed: live vision is system-only");
     }
 
     let image_sources = auto_vision_conversation_file_sources(context);
@@ -1376,7 +1362,6 @@ async fn merge_conversation_file_image_attachments(
     }
 
     let preprocess_manager = VisionPreprocessManager::new(get_app_ctx());
-    let mut images = Vec::new();
     let mut image_summaries = Vec::new();
     for source in image_sources {
         let object_key = source
@@ -1442,69 +1427,15 @@ async fn merge_conversation_file_image_attachments(
             object_key,
             mime_type,
             file_size = ?source.file_size,
-            "sse image attachment download starting"
+            "sse image attachment skipped: preprocessed summary unavailable"
         );
-        let bytes = tokio::time::timeout(
-            Duration::from_secs(15),
-            get_storage().download_object(DownloadObjectRequest {
-                bucket: BucketKind::Private,
-                key: object_key.to_string(),
-            }),
-        )
-        .await
-        .map_err(|_| {
-            Error::Custom(format!(
-                "conversation image attachment download timed out for {}",
-                source.ref_key,
-            ))
-        })?
-        .map_err(|err| {
-            Error::Custom(format!(
-                "conversation image attachment download failed for {}: {}",
-                source.ref_key, err,
-            ))
-        })?;
-        let original_bytes = bytes.len();
-        tracing::debug!(
-            ref_key = %source.ref_key,
-            original_bytes,
-            "sse image attachment download finished"
-        );
-        let data_url = vision_image_data_url(mime_type, &bytes).map_err(|err| {
-            Error::Custom(format!(
-                "conversation image attachment data url failed for {}: {}",
-                source.ref_key, err,
-            ))
-        })?;
-        tracing::debug!(
-            ref_key = %source.ref_key,
-            mime_type,
-            original_bytes,
-            data_url_bytes = data_url.len(),
-            "conversation image attachment prepared for vision"
-        );
-        images.push(AgentVisionImageAttachment {
-            url: data_url,
-            detail: "high".to_string(),
-            source_ref: source.ref_key.clone(),
-        });
     }
 
-    metadata.insert(
-        "attachments.image_count".to_string(),
-        images.len().to_string(),
-    );
+    metadata.insert("attachments.image_count".to_string(), "0".to_string());
     metadata.insert(
         "attachments.image_summary_count".to_string(),
         image_summaries.len().to_string(),
     );
-    if !images.is_empty() {
-        metadata.insert(
-            "attachments.images_json".to_string(),
-            serde_json::to_string(&images)
-                .map_err(|err| Error::Custom(format!("agent image metadata failed: {err}")))?,
-        );
-    }
     if !image_summaries.is_empty() {
         metadata.insert(
             "attachments.image_summaries_json".to_string(),
@@ -1512,29 +1443,49 @@ async fn merge_conversation_file_image_attachments(
                 Error::Custom(format!("agent image summary metadata failed: {err}"))
             })?,
         );
+        append_context_summary_section(
+            metadata,
+            "Preprocessed conversation image context:",
+            &format_image_summary_context(&image_summaries),
+        );
     }
-    let image_source = match (images.is_empty(), image_summaries.is_empty()) {
-        (false, false) => "conversation_file_mixed",
-        (false, true) => "conversation_file_data_url",
-        (true, false) => "conversation_file_preprocessed_summary",
-        (true, true) => "conversation_file_empty",
+    let image_source = if image_summaries.is_empty() {
+        "conversation_file_unavailable"
+    } else {
+        "conversation_file_preprocessed_summary"
     };
     metadata.insert(
         "attachments.image_source".to_string(),
         image_source.to_string(),
     );
     tracing::debug!(
-        image_count = images.len(),
+        image_count = 0,
         image_summary_count = image_summaries.len(),
-        images_json_bytes = metadata
-            .get("attachments.images_json")
-            .map_or(0, |value| value.len()),
         image_summaries_json_bytes = metadata
             .get("attachments.image_summaries_json")
             .map_or(0, |value| value.len()),
         "sse image attachment metadata written"
     );
     Ok(())
+}
+
+fn format_image_summary_context(image_summaries: &[AgentVisionImageSummaryAttachment]) -> String {
+    image_summaries
+        .iter()
+        .map(|item| {
+            let summary = item
+                .agent_context
+                .as_deref()
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .unwrap_or_else(|| item.summary.trim());
+            format!(
+                "- source_ref: {} | object_key: {} | analysis_id: {} | summary: {}",
+                item.source_ref, item.object_key, item.analysis_id, summary
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 fn is_supported_vision_image_mime(value: &str) -> bool {
@@ -2099,6 +2050,38 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert_eq!(ids, vec!["file-1", "file-2", "file-5", "file-6"]);
+    }
+
+    #[test]
+    fn image_summary_context_appends_to_combined_summary() {
+        let mut metadata = std::collections::BTreeMap::new();
+        metadata.insert(
+            "context.combined_summary".to_string(),
+            "Existing context.".to_string(),
+        );
+        let image_summaries = vec![AgentVisionImageSummaryAttachment {
+            source_ref: "conversation_file:file-1".to_string(),
+            object_key: "images/file-1.png".to_string(),
+            summary: "图片是一张冷萃咖啡促销海报。".to_string(),
+            agent_context: Some("海报主标题是低糖冷萃，包含买二送一促销。".to_string()),
+            analysis_id: "analysis-1".to_string(),
+            prompt_version: Some("1".to_string()),
+            llm_name: Some("vision-llm".to_string()),
+        }];
+
+        append_context_summary_section(
+            &mut metadata,
+            "Preprocessed conversation image context:",
+            &format_image_summary_context(&image_summaries),
+        );
+
+        let combined = metadata
+            .get("context.combined_summary")
+            .expect("combined summary should exist");
+        assert!(combined.contains("Existing context."));
+        assert!(combined.contains("Preprocessed conversation image context:"));
+        assert!(combined.contains("conversation_file:file-1"));
+        assert!(combined.contains("海报主标题是低糖冷萃"));
     }
 
     #[test]

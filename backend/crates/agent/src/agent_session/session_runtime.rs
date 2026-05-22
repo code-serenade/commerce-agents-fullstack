@@ -409,10 +409,6 @@ impl SessionRuntime {
             return Some(plan_forced_chat_graph(task_id, &task_for_worker));
         }
         let graph = plan_quick_chat_graph(task_id, &self.task_description)?;
-        if is_vision_direct_answer_chat_graph(&graph) {
-            let task_for_worker = self.task_description_with_conversation_history();
-            return Some(chat_graph_with_task_context(graph, &task_for_worker));
-        }
         if self.has_explicit_non_chat_role_selection() {
             return None;
         }
@@ -618,13 +614,6 @@ fn is_direct_answer_chat_graph(graph: &TaskGraph) -> bool {
         return false;
     };
     node.role == "chat" && node.title == "直接回答"
-}
-
-fn is_vision_direct_answer_chat_graph(graph: &TaskGraph) -> bool {
-    let [node] = graph.nodes.as_slice() else {
-        return false;
-    };
-    node.role == "chat" && node.title == "图片直答"
 }
 
 fn chat_graph_with_task_context(mut graph: TaskGraph, task: &str) -> TaskGraph {

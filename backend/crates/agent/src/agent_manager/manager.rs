@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
 use crate::{
-    agent_error::Result,
+    agent_error::{Result, SettingsError},
     agent_session::{
         AgentSession, AgentSessionConfig, AgentSessionScope, CognitionFactory, MemoryStore,
         NoopMemoryStore, RoleCognitionFactory, SessionEventRx, SessionResult, SessionRuntimeConfig,
@@ -71,6 +71,7 @@ impl AgentManager {
     }
 
     pub async fn run_request(&self, request: AgentRequest) -> Result<SessionResult> {
+        reject_raw_image_inputs(&request)?;
         self.register_session(&request.session_id);
         let session = self.create_session(&request);
         let result = session.run_once(request.input).await;
@@ -79,6 +80,7 @@ impl AgentManager {
     }
 
     pub fn run_stream(&self, request: AgentRequest) -> Result<SessionEventRx> {
+        reject_raw_image_inputs(&request)?;
         self.register_session(&request.session_id);
         let session_id = request.session_id.clone();
         let input = request.input.clone();
@@ -144,6 +146,21 @@ impl AgentManager {
     fn remove_session(&self, session_id: &SessionId) {
         remove_session_from(&self.active_sessions, session_id);
     }
+}
+
+fn reject_raw_image_inputs(request: &AgentRequest) -> Result<()> {
+    if request
+        .metadata
+        .get("attachments.images_json")
+        .or_else(|| request.metadata.get("request.attachments.images_json"))
+        .is_some_and(|value| !value.trim().is_empty())
+    {
+        return Err(SettingsError::invalid(
+            "raw image inputs are restricted to system vision preprocess",
+        )
+        .into());
+    }
+    Ok(())
 }
 
 fn remove_session_from(

@@ -117,16 +117,13 @@ impl AgentStreamMetadata {
         let mut metadata = BTreeMap::new();
         let context = self.context_selection()?;
         let model = self.model_selection()?;
-        let images = self.image_attachments()?;
+        let image_count = self.image_attachments()?.len();
 
-        if !images.is_empty() {
+        if image_count > 0 {
             metadata.insert(
                 "attachments.image_count".to_string(),
-                images.len().to_string(),
+                image_count.to_string(),
             );
-            let images_json = serde_json::to_string(&images)
-                .map_err(|err| format!("metadata.attachments.images cannot be encoded: {err}"))?;
-            metadata.insert("attachments.images_json".to_string(), images_json);
         }
 
         if let Some(strategy) = self.strategy {
@@ -485,11 +482,7 @@ mod tests {
                 .map(String::as_str),
             Some("1")
         );
-        assert!(
-            agent_metadata
-                .get("attachments.images_json")
-                .is_some_and(|value| value.contains("https://example.com/image.png"))
-        );
+        assert!(!agent_metadata.contains_key("attachments.images_json"));
         assert_eq!(context.conversation_id.as_deref(), Some("conversation-1"));
         assert_eq!(
             context.campaign_ids,
