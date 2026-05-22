@@ -119,7 +119,7 @@ fn validate_configured_roles(configured: &[RoleProfile]) -> Result<(), String> {
         if !runtime_roles.insert(role.runtime_role.clone()) {
             return Err(format!("duplicate runtime_role '{}'", role.runtime_role));
         }
-        if role.keywords.is_empty() {
+        if role.runtime_role != "chat" && role.keywords.is_empty() {
             return Err(format!(
                 "role '{}' should declare at least one keyword",
                 role.id.0
@@ -202,6 +202,31 @@ mod tests {
             role.required_capabilities
                 .contains(&"ads.optimization".to_string())
         );
+    }
+
+    #[test]
+    fn chat_role_can_be_keywordless_fallback() {
+        let configured = parse_configured_roles(
+            r#"{
+              "roles": [
+                {
+                  "id": "role.chat",
+                  "name": "对话助手",
+                  "runtime_role": "chat",
+                  "priority": 5,
+                  "domains": ["domain.general"],
+                  "keywords": [],
+                  "preferred_actions": ["answer"],
+                  "required_capabilities": ["chat.answer"],
+                  "optional_capabilities": []
+                }
+              ]
+            }"#,
+        )
+        .expect("chat fallback role should allow empty keywords");
+
+        assert_eq!(configured[0].runtime_role, "chat");
+        assert!(configured[0].keywords.is_empty());
     }
 
     #[test]

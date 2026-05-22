@@ -6,7 +6,7 @@
       "runtime_role": "chat",
       "priority": 5,
       "domains": ["domain.general", "domain.ecommerce", "domain.education"],
-      "keywords": ["你好", "hello", "hi", "问一下", "请问", "什么", "为什么", "怎么", "如何", "是否", "是不是", "能否", "可以吗", "解释", "说明", "区别", "概念", "什么意思", "聊聊", "不知道怎么问", "引导", "继续问", "老师点评", "课堂反馈", "批改", "学生"],
+      "keywords": [],
       "preferred_actions": ["answer", "query"],
       "required_capabilities": ["chat.answer", "chat.clarification"],
       "optional_capabilities": ["knowledge.explanation", "intent.classification"]

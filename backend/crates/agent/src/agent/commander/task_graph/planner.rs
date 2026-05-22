@@ -194,3 +194,53 @@ pub(super) fn explicit_team_keywords(rules: &TaskGraphRuleSet) -> Vec<String> {
     }));
     keywords
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{load_task_graph_rules, plan_task_graph_from_rules};
+    use crate::core::protocol::TaskId;
+
+    fn configured_rules_path() -> String {
+        format!(
+            "{}/../../config/json/agent/task-graph/index.json",
+            env!("CARGO_MANIFEST_DIR")
+        )
+    }
+
+    #[test]
+    fn image_content_question_routes_to_single_chat_graph() {
+        let rules =
+            load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
+        let graph = plan_task_graph_from_rules(
+            &TaskId("task-image-question".to_string()),
+            "图片内容是什么",
+            None,
+            &rules,
+        )
+        .expect("image question should match a graph");
+
+        assert_eq!(graph.nodes.len(), 1);
+        assert_eq!(graph.nodes[0].id.0, "chat");
+        assert_eq!(graph.nodes[0].role, "chat");
+        assert_eq!(graph.nodes[0].title, "图片直答");
+    }
+
+    #[test]
+    fn generic_content_word_does_not_route_to_content_creation_team() {
+        let rules =
+            load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
+        let graph = plan_task_graph_from_rules(
+            &TaskId("task-content-word".to_string()),
+            "这个资料内容是什么",
+            None,
+            &rules,
+        );
+
+        assert!(
+            graph
+                .as_ref()
+                .is_none_or(|graph| graph.nodes.iter().all(|node| node.role == "chat")),
+            "generic content question must not start a non-chat team graph"
+        );
+    }
+}

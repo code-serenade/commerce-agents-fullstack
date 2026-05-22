@@ -57,6 +57,7 @@ temperature = 0.2
 | `max_tokens` | 否 | 默认输出 token 上限 |
 | `temperature` | 否 | 默认温度 |
 | `reasoning_effort` | 否 | 支持 reasoning effort 的 provider 使用 |
+| `thinking` | 否 | 是否启用 provider 的思考输出；当前 Chat Completions client 会把 `false` 转成火山方舟 `thinking = { type = "disabled" }` 请求字段 |
 | `chat_completions_endpoint` | 否 | 特殊 provider 才需要覆盖，普通情况不要配置 |
 
 顶层 `default_llm` 可选，用于指定默认使用哪个 `[[llm]].name`。如果不配置，agent runtime 默认优先使用真实 Doubao 配置，否则使用第一个 `[[llm]]`。

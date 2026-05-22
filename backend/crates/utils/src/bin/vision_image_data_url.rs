@@ -193,6 +193,7 @@ struct AgentLlmCfg {
     max_tokens: Option<u32>,
     temperature: Option<f32>,
     reasoning_effort: Option<String>,
+    thinking: Option<bool>,
     chat_completions_endpoint: Option<String>,
 }
 

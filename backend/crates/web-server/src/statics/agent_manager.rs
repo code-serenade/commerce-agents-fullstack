@@ -262,6 +262,7 @@ mod tests {
             max_tokens: None,
             temperature: None,
             reasoning_effort: None,
+            thinking: None,
             chat_completions_endpoint: None,
         }
     }

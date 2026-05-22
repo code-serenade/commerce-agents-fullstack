@@ -1,7 +1,7 @@
 use std::{collections::HashMap, path::Path, sync::Arc};
 
 use model_gateway_rs::{
-    llm::{Llm, chat_completions::ChatCompletionsLlm},
+    llm::Llm,
     model::{
         llm::{ChatContentPart, ChatMessage, LlmInput},
         role::Role,
@@ -16,9 +16,10 @@ use crate::{
     CognitionResult, FailureReason, JsonTemplateDecoder,
     agent_error::{Error, LlmError, Result, SettingsError},
     agent_utils::prompt::Prompt,
+    chat_completions_client::AgentChatCompletionsLlm,
 };
 
-pub type AgentLlmClient = ChatCompletionsLlm;
+pub type AgentLlmClient = AgentChatCompletionsLlm;
 
 const ATTACHMENTS_IMAGES_JSON: &str = "attachments.images_json";
 const REQUEST_ATTACHMENTS_IMAGES_JSON: &str = "request.attachments.images_json";
@@ -34,6 +35,7 @@ pub struct AgentLlmCfg {
     pub max_tokens: Option<u32>,
     pub temperature: Option<f32>,
     pub reasoning_effort: Option<String>,
+    pub thinking: Option<bool>,
     pub chat_completions_endpoint: Option<String>,
 }
 
@@ -424,6 +426,7 @@ where
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct AgentImageInput {
     url: String,
     detail: Option<String>,
@@ -431,6 +434,7 @@ struct AgentImageInput {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct AgentImageSummaryInput {
     source_ref: String,
     object_key: String,
@@ -443,7 +447,7 @@ struct AgentImageSummaryInput {
 
 fn build_llm_client(config: &AgentLlmCfg) -> Result<AgentLlmClient> {
     let mut client =
-        ChatCompletionsLlm::new(&config.base_url, &config.model, config.api_key.as_deref())
+        AgentChatCompletionsLlm::new(&config.base_url, &config.model, config.api_key.as_deref())
             .map_err(|err| {
                 Error::from(LlmError::message(format!(
                     "init llm client '{}' failed: {err}",
@@ -452,7 +456,8 @@ fn build_llm_client(config: &AgentLlmCfg) -> Result<AgentLlmClient> {
             })?
             .with_max_tokens(config.max_tokens)
             .with_temperature(config.temperature)
-            .with_reasoning_effort(config.reasoning_effort.as_deref());
+            .with_reasoning_effort(config.reasoning_effort.as_deref())
+            .with_thinking(config.thinking);
 
     if let Some(endpoint) = &config.chat_completions_endpoint {
         client = client.with_chat_completions_endpoint(endpoint.clone());
@@ -744,6 +749,7 @@ mod tests {
             max_tokens: None,
             temperature: None,
             reasoning_effort: None,
+            thinking: None,
             chat_completions_endpoint: None,
         }
     }
@@ -903,7 +909,7 @@ mod tests {
         let mut input = input();
         input.context.metadata.insert(
             REQUEST_ATTACHMENTS_IMAGES_JSON.to_string(),
-            r#"[{"url":"data:image/png;base64,AA==","detail":"high","source_ref":"conversation_file:file-1"}]"#
+            r#"[{"url":"data:image/png;base64,AA==","detail":"high","sourceRef":"conversation_file:file-1"}]"#
                 .to_string(),
         );
 
@@ -916,6 +922,27 @@ mod tests {
             images[0].source_ref.as_deref(),
             Some("conversation_file:file-1")
         );
+    }
+
+    #[test]
+    fn parse_image_summary_inputs_accepts_camel_case_metadata() {
+        let mut input = input();
+        input.context.metadata.insert(
+            ATTACHMENTS_IMAGE_SUMMARIES_JSON.to_string(),
+            r#"[{"sourceRef":"conversation_file:file-1","objectKey":"users/u/images/a.jpg","summary":"图片摘要","agentContext":"图片上下文","analysisId":"analysis-1","promptVersion":"v1","llmName":"vision"}]"#
+                .to_string(),
+        );
+
+        let summaries = parse_image_summary_inputs(&input).expect("summary metadata should parse");
+
+        assert_eq!(summaries.len(), 1);
+        assert_eq!(summaries[0].source_ref, "conversation_file:file-1");
+        assert_eq!(summaries[0].object_key, "users/u/images/a.jpg");
+        assert_eq!(summaries[0].summary, "图片摘要");
+        assert_eq!(summaries[0].agent_context.as_deref(), Some("图片上下文"));
+        assert_eq!(summaries[0].analysis_id, "analysis-1");
+        assert_eq!(summaries[0].prompt_version.as_deref(), Some("v1"));
+        assert_eq!(summaries[0].llm_name.as_deref(), Some("vision"));
     }
 
     #[test]
