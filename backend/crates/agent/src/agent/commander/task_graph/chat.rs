@@ -18,5 +18,6 @@ pub(super) fn plan_single_chat_graph(task_id: &TaskId, task: &str, role: &str) -
             acceptance: vec![DEFAULT_NODE_ACCEPTANCE.to_string()],
             max_attempts: 1,
         }],
+        adaptive_hint: None,
     }
 }

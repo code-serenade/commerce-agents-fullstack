@@ -62,6 +62,16 @@ pub(super) struct TaskGraphRule {
     pub(super) dynamic_roles: TaskGraphDynamicRoles,
     #[serde(default)]
     pub(super) final_node: Option<TaskGraphFinalNode>,
+    #[serde(default)]
+    pub(super) adaptive_hint: Option<TaskGraphAdaptiveHintConfig>,
+}
+
+#[derive(Debug, Clone, Default, serde::Deserialize)]
+pub(super) struct TaskGraphAdaptiveHintConfig {
+    #[serde(default)]
+    pub(super) min_level: Option<String>,
+    #[serde(default)]
+    pub(super) reason: Option<String>,
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]

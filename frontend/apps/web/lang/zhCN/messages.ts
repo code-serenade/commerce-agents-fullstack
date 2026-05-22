@@ -8,18 +8,18 @@ const messages = {
       },
       navigation: {
         mobileLabel: "主导航",
-        workspace: "实训流程",
+        workspace: "实训导航",
         governance: "管理与复盘",
         agentSection: "实训成果",
-        home: "数据诊断",
-        products: "商品资料",
-        campaigns: "活动方案",
-        workspaces: "任务与提交",
+        home: "数据诊断建议",
+        products: "选品与商品分析",
+        campaigns: "活动策划训练",
+        workspaces: "实训任务与交付",
         platformConnect: "平台数据连接",
         approvals: "老师审核与记录",
-        operations: "结果记录",
+        operations: "经营结果跟踪",
         agent: "多智能体实训助手",
-        agentOutput: "报告材料",
+        agentOutput: "复盘报告",
         profile: "个人资料",
       },
       topbar: {
@@ -205,7 +205,7 @@ const messages = {
     pages: {
       overview: {
         eyebrow: "Training Console",
-        title: "数据诊断",
+        title: "数据诊断建议",
         description:
           "先看商品、活动、经营数据和待处理事项，判断这次实训最该优先解决什么问题。",
         boundaryTitle: "当前可做",
@@ -214,19 +214,19 @@ const messages = {
       },
       products: {
         eyebrow: "Product Training",
-        title: "商品资料",
+        title: "选品与商品分析",
         description:
           "围绕实训任务查看商品资料、商品知识、素材版本、竞品和变化记录，作为选品分析和 AI 问答上下文。",
       },
       campaigns: {
         eyebrow: "Campaign Practice",
-        title: "活动方案",
+        title: "活动策划训练",
         description:
-          "围绕活动目标、预算、周期、产出和动作元数据整理可提交的营销活动方案。",
+          "围绕活动目标、预算、周期、产出和动作元数据完成营销活动策划训练。",
       },
       workspaces: {
         eyebrow: "Training Tasks",
-        title: "任务与提交",
+        title: "实训任务与交付",
         description:
           "承接 AI 输出后的任务、运行记录、任务快照和执行建议，帮助学生把方案变成可检查的实训交付。",
         boundaryTitle: "执行说明",
@@ -253,7 +253,7 @@ const messages = {
       },
       operations: {
         eyebrow: "Operating Results",
-        title: "结果记录",
+        title: "经营结果跟踪",
         description:
           "跟踪长任务记录、每日简报、实训通知和告警中心，帮助学生复盘经营过程和异常信号。",
         boundaryTitle: "结果说明",
@@ -755,7 +755,7 @@ const messages = {
       eyebrow: "学生实训路径",
       title: "不知道从哪开始，就按这 5 步走",
       description:
-        "页面入口按学生完成一次电商实训的顺序组织：先把问题交给多智能体，再进入资料、策划、交付和复盘。",
+        "页面入口按学生完成一次电商实训的顺序组织：先把问题交给多智能体，再进入选品分析、活动策划、交付和复盘。",
       steps: {
         assistant: {
           title: "先问多智能体",
@@ -847,8 +847,8 @@ const messages = {
       lessHistory: "收起到最近 5 个",
       expandHistory: "展开历史会话",
       collapseHistory: "收起历史会话",
-      expandFunctionNav: "展开功能导航",
-      collapseFunctionNav: "收起功能导航",
+      expandFunctionNav: "展开实训导航",
+      collapseFunctionNav: "收起实训导航",
       empty: "还没有历史对话",
     },
     shell: {
@@ -860,22 +860,23 @@ const messages = {
       sections: {
         create: "",
         workspace: "实训导航",
+        governance: "管理与复盘",
         recents: "历史会话",
       },
       navigation: {
         newChat: "新建会话",
         capabilities: "能力与使用指南",
         smartOps: "多智能体实训助手",
-        productBoard: "商品资料",
-        campaigns: "活动方案",
+        productBoard: "选品与商品分析",
+        campaigns: "活动策划训练",
         platform: "平台数据连接",
-        marketResearch: "数据诊断",
-        operations: "结果记录",
+        marketResearch: "数据诊断建议",
+        operations: "经营结果跟踪",
         briefing: "每日简报",
         alerts: "预警中心",
-        deliverables: "报告材料",
+        deliverables: "复盘报告",
         approvals: "老师审核与记录",
-        taskBoard: "任务与提交",
+        taskBoard: "实训任务与交付",
         systemDashboard: "系统看板",
         team: "AI 团队介绍",
         history: "历史会话",
@@ -905,12 +906,12 @@ const messages = {
       placeholder:
         "直接输入实训任务，例如：帮我判断这个商品能不能做活动，并给出选品、策划、数据和复盘步骤...",
       loginPlaceholder:
-        "可以先整理你的实训问题，准备调用 AI 实训助手时再登录...",
+        "可以先整理你的实训问题，准备调用多智能体实训助手时再登录...",
       hint: "已连接实训资料",
       send: "发送",
       stop: "停止",
       status: {
-        sending: "AI 实训助手正在分析，可随时停止本轮回答。",
+        sending: "多智能体实训助手正在分析，可随时停止本轮回答。",
       },
       attachTitle: "上传附件",
       attachShort: "上传",
@@ -945,14 +946,14 @@ const messages = {
         },
       },
       campaignContext: {
-        label: "营销活动上下文",
+        label: "活动方案上下文",
         compactLabel: "活动",
         noneCompactLabel: "未选活动",
         compactTitle: "选择本轮引用活动",
         loading: "正在读取活动",
-        empty: "暂无可用营销活动",
+        empty: "暂无可用活动方案",
         noneSelected: "未指定活动",
-        choose: "选择营销活动",
+        choose: "选择活动方案",
         collapse: "收起活动",
         clear: "清空活动",
         noneHint:
@@ -1114,6 +1115,7 @@ const messages = {
       closePanel: "收起右侧过程",
       progress: "进度",
       activity: "本轮动态",
+      adaptiveDispatch: "自适应调度",
       record: "本轮记录",
       recordCountSuffix: "条",
       businessInput: "业务输入",
@@ -1136,8 +1138,8 @@ const messages = {
         pending: "待执行",
         lines: [
           "数据诊断识别指标、归因和经营约束",
-          "商品看板提供商品知识、卖点素材和竞品线索",
-          "营销活动承接活动策划、执行节奏和复盘结果",
+          "选品与商品分析提供商品知识、卖点素材和竞品线索",
+          "活动策划训练承接活动目标、执行节奏和复盘结果",
           "平台连接提供抖音、千川等同步状态",
           "预算评估、投放优化、创意产出并行处理",
           "运营方案汇总预算、素材、投放节奏",
@@ -1176,7 +1178,7 @@ const messages = {
       examplePrompts: [
         "我是第一次使用，请先告诉我该怎样开始一个电商实训任务",
         "帮我判断一个商品适不适合做实训选品，需要我补哪些资料",
-        "根据 3000 元预算做一份电商活动策划、执行清单和复盘指标",
+        "根据 3000 元预算做一份活动策划、执行清单和复盘指标",
       ],
       studentFlow: {
         title: "第一次使用就按这条线走",
@@ -1410,11 +1412,11 @@ const messages = {
       handoff: {
           context: {
             label: "上下文",
-            detail: "商品看板、平台连接、智能洞察",
+            detail: "选品与商品分析、平台连接、数据诊断建议",
           },
           execution: {
             label: "执行",
-            detail: "营销活动、执行清单、实训任务",
+            detail: "活动策划训练、执行清单、实训任务",
           },
         delivery: {
           label: "交付",
@@ -1456,6 +1458,11 @@ const messages = {
         plan: {
           label: "后端调度计划",
           detail: "{{difficulty}} 难度，路线 {{mode}}",
+        },
+        adaptive: {
+          label: "自适应调度",
+          detail:
+            "{{level}} / {{pressure}} 上下文，{{roles}} 个岗位，{{steps}} 个步骤，{{skills}} 个计划 Skill，置信度 {{confidence}}",
         },
         reasoning: {
           label: "调度理由",
@@ -1543,6 +1550,7 @@ const messages = {
           heading: "# {{mode}}",
           request: "业务输入：{{request}}",
           summary: "调度说明：{{summary}}",
+          adaptive: "自适应调度：{{summary}}",
           progress: "进度：{{completed}}/{{total}} | {{stage}}",
           step: "{{index}} {{title}}：{{detail}}",
           fact: "{{label}}：{{detail}}",
@@ -1717,11 +1725,11 @@ const messages = {
       handoffs: {
         context: {
           title: "上下文",
-          detail: "商品看板、平台连接、智能洞察会作为任务输入",
+          detail: "选品与商品分析、平台连接、数据诊断建议会作为任务输入",
         },
         execution: {
           title: "执行",
-          detail: "营销活动、执行清单和实训任务承接动作",
+          detail: "活动策划训练、执行清单和实训任务承接动作",
         },
         delivery: {
           title: "交付",
@@ -2002,14 +2010,14 @@ const messages = {
       eyebrow: "Review Materials",
       title: "复盘报告材料",
       description:
-        "这里汇总 AI 实训助手生成的方案、清单和报告材料，方便学生检查、复制、下载和提交。",
+        "这里汇总多智能体实训助手生成的方案、清单和报告材料，方便学生检查、复制、下载和提交。",
       refresh: "刷新",
       loading: "正在读取复盘材料",
       listTitle: "复盘材料列表",
       listDesc: "{{artifacts}} 份材料 / {{workspaces}} 个实训任务",
       emptyTitle: "还没有复盘材料",
       emptyDescription:
-        "先回到 AI 实训助手发送一个实训问题，生成方案或报告后会出现在这里。",
+        "先回到多智能体实训助手发送一个实训问题，生成方案或报告后会出现在这里。",
       errorTitle: "复盘材料读取失败",
       noSelectionTitle: "暂无可查看材料",
       noSelectionDescription:
@@ -2158,47 +2166,47 @@ const messages = {
       title: "AI 实训能力与使用指南",
       description:
         "这里说明学生如何围绕一次电商实训任务使用 AI 问答、商品分析、活动策划、数据诊断和复盘报告。",
-      action: "进入 AI 实训助手",
+      action: "进入多智能体实训助手",
     },
     principle: {
-      title: "学生使用方式",
+      title: "学生怎么使用",
       description:
         "学生不是只打开一个聊天框，而是围绕实训任务提出问题、选择商品和活动上下文，再把 AI 输出沉淀为任务、审核记录和复盘材料。",
     },
-      capabilities: {
-        title: "核心实训能力",
-        description:
-        "这些入口沿用现有真实能力，并整理成学生更容易理解的学习和任务流程。",
+    capabilities: {
+      title: "核心功能入口",
+      description:
+        "这些入口沿用现有真实能力，并按学生完成一次实训任务的学习动作来说明。",
       items: [
         {
-          title: "商品资料",
+          title: "多智能体实训助手",
+          description:
+            "统一入口，学生直接说要解决的问题，系统识别任务、调用智能体并展示过程。",
+        },
+        {
+          title: "选品与商品分析",
           description:
             "引用学生手动选择的商品、素材、卖点和竞品资料；未选择商品时走普通实训问答链路。",
         },
         {
-          title: "选品与竞品研究",
+          title: "活动策划训练",
           description:
-            "围绕品类、价格带、消费者需求、平台趋势和竞品动作形成分析结论。",
+            "围绕活动目标、预算、节奏、脚本、投放和执行清单整理可提交策划方案。",
         },
         {
-          title: "外部搜索与实时数据",
+          title: "数据诊断建议",
           description:
-            "返回带来源的数据；未配置接口时明确显示未接入，不伪造结果。",
+            "分析商品、平台数据、异常指标、竞品和规则边界，帮助学生判断下一步。",
         },
         {
-          title: "活动方案",
+          title: "经营结果跟踪",
           description:
-            "生成直播脚本、短视频创意、活动节奏、投放复盘和运营计划，帮助整理策划和执行节奏。",
+            "查看过程记录、通知、告警和阶段结果，知道实训推进到哪里、哪里需要复盘。",
         },
         {
-          title: "数据诊断与服务建议",
+          title: "实训任务与交付",
           description:
-            "根据商品资料、售后规则和经营数据组织回复、归因和后续动作建议。",
-        },
-        {
-          title: "任务与提交",
-          description:
-            "把 AI 输出沉淀为任务、运行记录、执行建议和可追踪的实训交付状态。",
+            "把 AI 输出整理成任务、运行记录、执行建议和老师可检查的提交内容。",
         },
         {
           title: "复盘报告",
@@ -2217,8 +2225,8 @@ const messages = {
       description: "学生可感知的主链路应该清楚、连续、可追踪。",
       items: [
         "学生新建会话或选择历史会话，输入实训问题。",
-        "按需选择回答模式、协作智能体和自己勾选的商品资料。",
-        "系统规划任务，调用模型和分析能力，并实时展示过程。",
+        "按需选择回答模式、协作智能体，并勾选商品资料或活动方案里的上下文。",
+        "系统规划任务，调用模型、数据诊断和分析能力，并实时展示过程。",
         "过程卡片先显示在正文上方，回答结束后默认折叠，避免挡住正文。",
         "最终回答和可交付内容沉淀到实训任务、复盘报告、老师审核或经营结果页面。",
       ],
@@ -2226,29 +2234,29 @@ const messages = {
     lanes: {
       title: "实训导航对应的任务分区",
       description:
-        "左侧导航不只是页面菜单，而是学生完成实训任务时最常用的能力入口。",
+        "左侧导航不只是页面菜单，而是学生完成实训任务时最常用的功能入口。",
       items: [
         {
-          title: "AI 实训助手",
+          title: "多智能体实训助手",
           description: "统一入口，承接实训问题、策略选择、商品引用和过程展示。",
         },
         {
-          title: "商品资料",
+          title: "选品与商品分析",
           description: "管理商品、素材、知识、竞品和学生手动选择的任务上下文。",
         },
         {
-          title: "活动、数据与经营结果",
-          description: "连接平台、活动、指标、日报、告警和外部数据。",
+          title: "活动策划训练、数据诊断建议、经营结果跟踪",
+          description: "承接活动策划、指标归因、过程记录、日报、告警和来源边界。",
         },
         {
-          title: "任务、审核与复盘",
+          title: "实训任务与交付、审核与复盘报告",
           description: "承接实训任务、老师审核记录和最终复盘报告。",
         },
       ],
     },
-      boundary: {
-        title: "当前设计边界",
-        description:
+    boundary: {
+      title: "当前设计边界",
+      description:
         "方案 A 只重组前端入口和表达方式，让学生更好理解现有能力；没有新增底层能力。",
       backend: "真实能力仍来自现有系统，前端不放假按钮、假状态或假搜索结果。",
       context:
@@ -2263,9 +2271,9 @@ const messages = {
       titleLine1: "进入电商 AI 实训，",
       titleLine2: "完成选品、策划和复盘。",
       desc1:
-        "第一步先问多智能体实训助手，它会识别你的任务并展示分析过程。",
+        "第一步先进入多智能体实训助手，直接说你要解决的电商实训问题。",
       desc2:
-        "第二步按需要进入选品资料、活动策划、实训任务和复盘报告页面。",
+        "第二步按需要进入选品资料、活动策划、数据诊断、实训任务和复盘报告页面。",
       desc3:
         "登录后可保存历史会话、引用商品资料、提交任务，并查看老师审核和复盘材料。",
     },

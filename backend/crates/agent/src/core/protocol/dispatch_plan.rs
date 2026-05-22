@@ -19,5 +19,20 @@ pub struct DispatchContextBudget {
     pub explicit_context_ref_count: usize,
     pub workspace_context_ref_count: usize,
     pub workspace_pack_item_count: usize,
+    pub task_input_chars: usize,
     pub approximate_input_chars: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AdaptiveDispatchProfile {
+    pub level: String,
+    pub route_mode: String,
+    pub role_count: usize,
+    pub step_count: usize,
+    pub skill_count: usize,
+    pub context_signal_count: usize,
+    pub context_pressure: String,
+    pub confidence: String,
+    pub reasons: Vec<String>,
+    pub student_summary: String,
 }

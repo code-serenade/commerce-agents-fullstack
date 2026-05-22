@@ -60,6 +60,9 @@
       "role": "data",
       "title": "数据诊断",
       "objective": "把用户问题转成可复盘数据口径：字段、粒度、缺失数据和不编造边界；按当前品类补最相关字段，不默认铺满漏斗：{{task}}",
+      "max_attempts": 1,
+      "llm_usage": "fast",
+      "skill_autosuggest": true,
       "acceptance": [
         "必须说明能算什么、缺什么字段、下一步如何用表格或后台数据复核。"
       ],
@@ -70,6 +73,9 @@
       "role": "creative",
       "title": "内容创意",
       "objective": "基于数据口径，把类目判断转成可测试的标题、开头、话术或素材假设；无资料时给自然成品句和发布前核验提醒，不留占位符，不编规格/价格/功效：{{task}}",
+      "max_attempts": 1,
+      "llm_usage": "fast",
+      "skill_autosuggest": true,
       "acceptance": [
         "必须按任务复杂度给出可直接改用的标题、脚本开头或话术，并标注要看哪个真实反馈。"
       ],
@@ -80,6 +86,9 @@
       "role": "service",
       "title": "客服承接",
       "objective": "补充售前疑问、售后风险、不能承诺的话、可复制客服话术和异常升级条件：{{task}}",
+      "max_attempts": 1,
+      "llm_usage": "fast",
+      "skill_autosuggest": true,
       "acceptance": [
         "必须给出可复制话术或 SOP，并写清不能承诺的边界。"
       ],
@@ -90,6 +99,9 @@
       "role": "engineering",
       "title": "系统与资料读取",
       "objective": "确认附件、图片、表格、埋点、接口、报表刷新和回滚边界；资料不可读时说明替代路径：{{task}}",
+      "max_attempts": 1,
+      "llm_usage": "fast",
+      "skill_autosuggest": true,
       "acceptance": [
         "必须说明本轮资料/表格/接口可用性和后续验证路径。"
       ],
@@ -102,6 +114,9 @@
       "role": "douyin_ads",
       "title": "抖音投放",
       "objective": "给投放测试结构、预算节奏、止损口径和复盘指标；缺后台数据、毛利和预算时不假装已调参，不给固定 ROI/ROAS 阈值。",
+      "max_attempts": 1,
+      "llm_usage": "fast",
+      "skill_autosuggest": true,
       "when": {
         "any_keywords": ["抖音", "直播", "直播间", "短视频", "千川", "投流", "投放"]
       },
@@ -112,6 +127,9 @@
       "role": "accounting",
       "title": "财务测算",
       "objective": "评估成本、毛利、CPA/ROI、预算风险和补数字段；无真实数字时只给字段和计算方法，不写固定阈值。",
+      "max_attempts": 1,
+      "llm_usage": "fast",
+      "skill_autosuggest": true,
       "when": {
         "any_keywords": [
           "抖音",
@@ -132,6 +150,9 @@
       "role": "design",
       "title": "视觉承接",
       "objective": "把卖点和场景转成主图、详情页、信任证明和行动按钮结构；缺素材时给低风险页面结构。",
+      "max_attempts": 1,
+      "llm_usage": "fast",
+      "skill_autosuggest": true,
       "when": {
         "any_keywords": ["详情页", "主图", "视觉", "设计", "页面", "素材"]
       },
@@ -142,6 +163,9 @@
       "role": "web",
       "title": "搜索承接",
       "objective": "补关键词、FAQ、标题和页面承接；缺搜索量时只给假设词池和复核方法，不编热度排名。",
+      "max_attempts": 1,
+      "llm_usage": "fast",
+      "skill_autosuggest": true,
       "when": {
         "any_keywords": ["seo", "关键词", "搜索", "自然流量", "收录"]
       },
@@ -153,7 +177,9 @@
       "enabled": true,
       "include_primary": true,
       "include_support": "when_requested_or_primary_data",
-      "exclude_roles": ["chat"]
+      "exclude_roles": ["chat"],
+      "llm_usage": "fast",
+      "skill_autosuggest": true
     }
   },
   "final_node": {
@@ -162,6 +188,9 @@
     "role": "ops",
     "title": "运营总方案",
     "objective": "整合上游输入，输出学生能执行的电商闭环：对象、平台/渠道、素材、页面/客服、成本/预算、复盘、风险和后续追问。资料不足也给可试跑版本，但不编规格、价格、优惠、销量或实时数据。",
-    "depends_on": "$all_non_final"
+    "depends_on": "$all_non_final",
+    "max_attempts": 1,
+    "llm_usage": "fast",
+    "skill_autosuggest": false
   }
 }

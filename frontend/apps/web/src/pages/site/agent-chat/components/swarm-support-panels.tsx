@@ -63,10 +63,12 @@ export function WorkspaceHandoffRail({ compact = false }: { compact?: boolean })
 export function CompactInfoBlock({
   icon: Icon,
   items,
+  maxItems = 3,
   title,
 }: {
   icon: ComponentType<SVGProps<SVGSVGElement>>
   items: string[]
+  maxItems?: number
   title: string
 }) {
   return (
@@ -76,7 +78,7 @@ export function CompactInfoBlock({
         <span className="truncate">{title}</span>
       </div>
       <div className="space-y-1">
-        {items.slice(0, 3).map((item, index) => (
+        {items.slice(0, maxItems).map((item, index) => (
           <div
             key={`${index}-${item}`}
             className="flex items-center gap-2 text-xs text-muted-foreground"

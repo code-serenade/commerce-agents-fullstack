@@ -1,6 +1,20 @@
 {
   "rules": [
     {
+      "id": "ops.fallback_execution_plan",
+      "roles": [
+        "ops"
+      ],
+      "fallback": true,
+      "skill_id": "ops_execution_plan",
+      "input": {
+        "goal": "{{task_description}}",
+        "stage": "{{stage}}",
+        "product_ref": "{{selected_product_ref}}"
+      },
+      "reason": "autosuggest:ops.fallback_execution_plan"
+    },
+    {
       "id": "ops.create_task",
       "roles": [
         "ops"

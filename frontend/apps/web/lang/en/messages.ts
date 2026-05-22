@@ -8,18 +8,18 @@ const messages = {
       },
       navigation: {
         mobileLabel: "Primary navigation",
-        workspace: "Training flow",
-        governance: "Review and records",
+        workspace: "Training navigation",
+        governance: "Manage and review",
         agentSection: "Training outputs",
-        home: "Data diagnosis",
-        products: "Product materials",
-        campaigns: "Campaign plans",
-        workspaces: "Tasks and submissions",
+        home: "Data diagnosis guidance",
+        products: "Product selection analysis",
+        campaigns: "Campaign planning practice",
+        workspaces: "Training tasks and deliverables",
         platformConnect: "Platform data",
         approvals: "Teacher review records",
-        operations: "Result records",
-        agent: "AI training assistant",
-        agentOutput: "Report materials",
+        operations: "Business result tracking",
+        agent: "Multi-agent training assistant",
+        agentOutput: "Review report",
         profile: "Profile",
       },
       topbar: {
@@ -206,7 +206,7 @@ const messages = {
     pages: {
       overview: {
         eyebrow: "Training Console",
-        title: "Data diagnosis",
+        title: "Data diagnosis guidance",
         description:
           "Start with products, campaigns, operating data, and pending items to decide what this training task should solve first.",
         boundaryTitle: "What students can do now",
@@ -215,19 +215,19 @@ const messages = {
       },
       products: {
         eyebrow: "Product Training",
-        title: "Product materials",
+        title: "Product selection analysis",
         description:
           "Review products, product knowledge, file assets, material versions, competitors, and changes as context for selection analysis and AI training questions.",
       },
       campaigns: {
         eyebrow: "Campaign Practice",
-        title: "Campaign plans",
+        title: "Campaign planning practice",
         description:
-          "Organize campaign goals, budgets, periods, outputs, and action metadata into a submittable plan.",
+          "Practice campaign planning around goals, budgets, periods, outputs, and action metadata.",
       },
       workspaces: {
         eyebrow: "Training Tasks",
-        title: "Tasks and submissions",
+        title: "Training tasks and deliverables",
         description:
           "Carry AI output into tasks, runs, snapshots, and execution suggestions so student work becomes checkable deliverables.",
         boundaryTitle: "Execution note",
@@ -254,7 +254,7 @@ const messages = {
       },
       operations: {
         eyebrow: "Operating Results",
-        title: "Result records",
+        title: "Business result tracking",
         description:
           "Track long-task records, daily briefings, background notifications, and alerts so students can review operating process and anomalies.",
         boundaryTitle: "Result note",
@@ -782,7 +782,7 @@ const messages = {
       eyebrow: "Student training path",
       title: "Start here if you are not sure what to do",
       description:
-        "Entries follow the way a student completes one ecommerce training task: ask the multi-agent assistant, then use materials, planning, submission, and review.",
+        "Entries follow the way a student completes one ecommerce training task: ask the multi-agent assistant, then use selection analysis, planning, submission, and review.",
       steps: {
         assistant: {
           title: "Ask multi-agent AI",
@@ -876,8 +876,8 @@ const messages = {
       lessHistory: "Collapse to latest 5",
       expandHistory: "Expand history",
       collapseHistory: "Collapse history",
-      expandFunctionNav: "Expand function navigation",
-      collapseFunctionNav: "Collapse function navigation",
+      expandFunctionNav: "Expand training navigation",
+      collapseFunctionNav: "Collapse training navigation",
       empty: "No conversations yet",
     },
     shell: {
@@ -889,22 +889,23 @@ const messages = {
       sections: {
         create: "",
         workspace: "Training navigation",
+        governance: "Manage and review",
         recents: "History",
       },
       navigation: {
         newChat: "New chat",
-        capabilities: "Capability guide",
+        capabilities: "Capability and usage guide",
         smartOps: "Multi-agent training assistant",
-        productBoard: "Product materials",
-        campaigns: "Campaign plans",
+        productBoard: "Product selection analysis",
+        campaigns: "Campaign planning practice",
         platform: "Platform data",
-        marketResearch: "Data diagnosis",
-        operations: "Result records",
+        marketResearch: "Data diagnosis guidance",
+        operations: "Business result tracking",
         briefing: "Daily briefing",
         alerts: "Alerts",
-        deliverables: "Report materials",
+        deliverables: "Review report",
         approvals: "Teacher review records",
-        taskBoard: "Tasks and submissions",
+        taskBoard: "Training tasks and deliverables",
         systemDashboard: "System dashboard",
         team: "AI team",
         history: "History",
@@ -1156,6 +1157,7 @@ const messages = {
       closePanel: "Collapse process panel",
       progress: "Progress",
       activity: "Run activity",
+      adaptiveDispatch: "Adaptive dispatch",
       record: "Run records",
       recordCountSuffix: "items",
       businessInput: "Business input",
@@ -1179,7 +1181,7 @@ const messages = {
         pending: "Pending",
         lines: [
           "Data diagnosis identifies metrics, attribution, and operating constraints",
-          "Product board provides product knowledge, selling points, and competitor clues",
+          "Product selection analysis provides product knowledge, selling points, and competitor clues",
           "Campaigns carry planning, execution cadence, and review results",
           "Platform connections sync Douyin and Qianchuan status",
           "Budget, ads optimization, and creative work run in parallel",
@@ -1479,7 +1481,7 @@ const messages = {
       handoff: {
         context: {
           label: "Context",
-          detail: "Product board, platform connections, insights",
+          detail: "Product selection analysis, platform connections, diagnosis guidance",
         },
         execution: {
           label: "Execution",
@@ -1526,6 +1528,11 @@ const messages = {
         plan: {
           label: "Backend dispatch plan",
           detail: "{{difficulty}} difficulty, route {{mode}}",
+        },
+        adaptive: {
+          label: "Adaptive dispatch",
+          detail:
+            "{{level}} / {{pressure}} context, {{roles}} role(s), {{steps}} step(s), {{skills}} planned Skill(s), confidence {{confidence}}",
         },
         reasoning: {
           label: "Plan reason",
@@ -1615,6 +1622,7 @@ const messages = {
           heading: "# {{mode}}",
           request: "Business input: {{request}}",
           summary: "Dispatch note: {{summary}}",
+          adaptive: "Adaptive dispatch: {{summary}}",
           progress: "Progress: {{completed}}/{{total}} | {{stage}}",
           step: "{{index}} {{title}}: {{detail}}",
           fact: "{{label}}: {{detail}}",
@@ -1802,7 +1810,7 @@ const messages = {
         context: {
           title: "Context",
           detail:
-            "Product board, platform connections, and insights become task input",
+            "Product selection analysis, platform connections, and diagnosis guidance become task input",
         },
         execution: {
           title: "Execution",
@@ -2123,14 +2131,14 @@ const messages = {
       eyebrow: "Review Materials",
       title: "Review report materials",
       description:
-        "This page gathers plans, checklists, and reports generated by the AI training assistant so students can inspect, copy, download, and submit them.",
+        "This page gathers plans, checklists, and review materials generated by the AI training assistant so students can inspect, copy, download, and submit them.",
       refresh: "Refresh",
       loading: "Loading review materials",
       listTitle: "Review material list",
       listDesc: "{{artifacts}} material(s) / {{workspaces}} training task(s)",
       emptyTitle: "No review materials yet",
       emptyDescription:
-        "Return to the AI training assistant and send a training question. Generated plans or reports will appear here.",
+        "Return to the multi-agent training assistant and send a training question. Generated plans or reports will appear here.",
       errorTitle: "Failed to load review materials",
       noSelectionTitle: "No material selected",
       noSelectionDescription:
@@ -2278,50 +2286,50 @@ const messages = {
   agentCapabilities: {
     header: {
       eyebrow: "Training Guide",
-      title: "AI training capability guide",
+      title: "AI training capability and usage guide",
       description:
         "This page explains how students use AI Q&A, product analysis, campaign planning, data diagnosis, and review reports around one ecommerce training task.",
-      action: "Open AI training assistant",
+      action: "Open multi-agent training assistant",
     },
     principle: {
       title: "How students use it",
       description:
-        "Students do more than open a chat box. They ask around a training task, choose product and campaign context, then store AI output as tasks, review records, and report materials.",
+        "Students do not just open a chat box. They ask around a training task, choose product and campaign context, then store AI output as tasks, review records, and review materials.",
     },
     capabilities: {
-      title: "Core training capabilities",
+      title: "Core feature entries",
       description:
-        "These entries reuse existing real capabilities while the frontend organizes them into a student-facing learning and task flow.",
+        "These entries reuse real existing capabilities, but rename and explain them around common student training actions.",
       items: [
         {
-          title: "Product materials",
+          title: "Multi-agent training assistant",
           description:
-            "Uses products, materials, selling points, and competitors manually selected by the student. Without selection, the flow stays as ordinary training Q&A.",
+            "The main entry where students state the problem, the system identifies the task, calls agents, and shows the process.",
         },
         {
-          title: "Selection and competitor research",
+          title: "Product selection analysis",
           description:
-            "Analyzes categories, price bands, consumer demand, platform trends, and competitor actions.",
+            "Uses manually selected products, assets, selling points, and competitor materials; without selection, the answer stays as a general training Q&A.",
         },
         {
-          title: "External search and real-time data",
+          title: "Campaign planning practice",
           description:
-            "Returns sourced data. When an integration is not configured, the UI states it clearly instead of fabricating results.",
+            "Organizes goals, budget, rhythm, scripts, ads, and execution lists into submit-ready campaign planning work.",
         },
         {
-          title: "Campaign plans",
+          title: "Data diagnosis guidance",
           description:
-            "Generates live scripts, short-video ideas, campaign rhythm, ads review, and operations plans for planning and execution.",
+            "Analyzes products, platform data, anomaly metrics, competitors, and rule boundaries to help students decide the next move.",
         },
         {
-          title: "Data diagnosis and service suggestions",
+          title: "Business result tracking",
           description:
-            "Organizes replies, attribution, and follow-up actions from product materials, service rules, and operating data.",
+            "Shows process records, notifications, alerts, and stage results so students know progress and review needs.",
         },
         {
-          title: "Tasks and submissions",
+          title: "Training tasks and deliverables",
           description:
-            "Stores AI output as tasks, runs, execution suggestions, and traceable training deliverable states.",
+            "Turns AI output into tasks, runs, execution suggestions, and teacher-checkable submissions.",
         },
         {
           title: "Review report",
@@ -2341,34 +2349,34 @@ const messages = {
         "The student-visible main flow should stay clear, continuous, and traceable.",
       items: [
         "The student creates a new conversation or opens a historical one, then enters a training question.",
-        "The student may choose answer mode, collaborating agents, and manually selected product materials.",
-        "The system plans the task, calls models and analysis capabilities, and shows the process in real time.",
+        "The student may choose answer mode, collaborating agents, and product or campaign-plan context.",
+        "The system plans the task, calls models, data diagnosis, and analysis capabilities, and shows the process in real time.",
         "Process cards appear above the answer and collapse after completion, so they do not block reading.",
-        "Final answers and deliverables are stored in training tasks, review reports, teacher review, or operating results pages.",
+        "Final answers and deliverables are stored in training tasks, review reports, teacher review, or business result pages.",
       ],
     },
     lanes: {
-      title: "Training task areas in navigation",
+      title: "Training navigation task areas",
       description:
-        "The left navigation is not just a page menu. It exposes the most-used capability entries for students completing training tasks.",
+        "The left navigation is not just a page menu. It exposes the most-used feature entries for students completing training tasks.",
       items: [
         {
-          title: "AI training assistant",
+          title: "Multi-agent training assistant",
           description:
             "The main entry for training questions, strategy, product references, and process display.",
         },
         {
-          title: "Product materials",
+          title: "Product selection analysis",
           description:
             "Manages products, materials, knowledge, competitors, and manually selected task context.",
         },
         {
-          title: "Campaigns, data, and results",
+          title: "Campaign planning practice, data diagnosis guidance, business result tracking",
           description:
-            "Connects platforms, campaigns, metrics, briefings, alerts, and external data.",
+            "Connects campaign planning, metric attribution, process records, briefings, alerts, and source boundaries.",
         },
         {
-          title: "Tasks, review, and reports",
+          title: "Training tasks, review, and review report",
           description:
             "Carries training tasks, teacher review records, and final review reports.",
         },
@@ -2392,11 +2400,11 @@ const messages = {
       titleLine1: "Enter ecommerce AI training,",
       titleLine2: "finish selection, planning, and review.",
       desc1:
-        "First ask the multi-agent training assistant. It detects your task and shows the analysis process.",
+        "First open the multi-agent training assistant and state the ecommerce training problem you want to solve.",
       desc2:
-        "Then move into product materials, campaign planning, training tasks, and review reports as needed.",
+        "Then use product selection materials, campaign planning, data diagnosis, training tasks, and review reports as needed.",
       desc3:
-        "After signing in, you can save conversations, reference product materials, submit tasks, and review teacher feedback.",
+        "After signing in, you can save conversations, reference product materials, submit tasks, and review teacher feedback and review materials.",
     },
     welcome: "WELCOME BACK",
     title: "Sign in to your training account",
@@ -2436,7 +2444,7 @@ const messages = {
       titleLine1: "Create your account,",
       titleLine2: "start ecommerce AI training.",
       desc1:
-        "Use one account to keep training conversations, product materials, campaign tasks, and review reports.",
+        "Use one account to keep training conversations, product selection materials, campaign tasks, and review reports.",
       desc2:
         "After registering, complete product selection, campaign planning, data diagnosis, and review submission around one training task.",
     },

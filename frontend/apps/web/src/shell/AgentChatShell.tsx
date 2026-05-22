@@ -301,6 +301,19 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           active: isRouteActive("/operations"),
           onSelect: () => navigateTo("/operations"),
         },
+      ],
+    },
+    {
+      key: "governance",
+      label: t("agentChat.shell.sections.governance"),
+      collapsible: true,
+      maxContentHeight: "sm",
+      open: functionNavOpen,
+      toggleLabel: functionNavOpen
+        ? t("agentChat.sidebar.collapseFunctionNav")
+        : t("agentChat.sidebar.expandFunctionNav"),
+      onOpenChange: setFunctionNavOpen,
+      items: [
         {
           key: "task-board",
           icon: <Boxes />,
@@ -363,9 +376,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
         isRouteActive("/products") ||
         isRouteActive("/campaigns") ||
         isRouteActive("/overview") ||
-        isRouteActive("/operations") ||
-        isRouteActive("/workspaces") ||
-        isRouteActive("/agent-output"),
+        isRouteActive("/operations"),
       subItems: [
         {
           key: "smart-ops",
@@ -409,6 +420,14 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           active: isRouteActive("/operations"),
           onSelect: () => navigateTo("/operations"),
         },
+      ],
+    },
+    {
+      key: "governance",
+      icon: <Boxes />,
+      label: t("agentChat.shell.sections.governance"),
+      active: isRouteActive("/workspaces") || isRouteActive("/agent-output"),
+      subItems: [
         {
           key: "task-board",
           label: t("agentChat.shell.navigation.taskBoard"),

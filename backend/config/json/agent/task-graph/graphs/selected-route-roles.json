@@ -1,7 +1,7 @@
 {
   "id": "selected_route_roles",
   "description": "RoleRouter 高置信选中的多岗位路线，按 route primary/support roles 编排任务图",
-  "priority": 1200,
+  "priority": 1800,
   "match": {
     "route_score_min": 90,
     "route_min_non_chat_roles": 2,
@@ -23,8 +23,31 @@
     "from_route": {
       "enabled": true,
       "include_primary": true,
-      "include_support": "when_requested_or_primary_data",
-      "exclude_roles": ["chat"]
+      "include_support": "always",
+      "exclude_roles": ["chat"],
+      "llm_usage": "fast",
+      "skill_autosuggest": true
     }
+  },
+  "final_node": {
+    "enabled": true,
+    "id": "ops_final",
+    "role": "ops",
+    "title": "运营综合方案",
+    "objective": "整合本轮 route primary/support roles 的真实岗位判断，输出学生能直接执行的方案：{{task}}。必须说明调度为何选择这些岗位、每个岗位的关键贡献、下一步动作、需要补的数据和风险边界；资料不足时给验证路径，不编平台实时数据、商品事实或固定阈值。",
+    "depends_on": "$all_non_final",
+    "max_attempts": 1,
+    "llm_usage": "fast",
+    "skill_autosuggest": false,
+    "acceptance": [
+      "必须综合真实 route 选出的主岗和支持岗输入，输出自然可执行的学生侧答案。",
+      "必须写清为什么本轮需要这些岗位协作，以及哪些资料或历史影响了判断。",
+      "不得暴露 worker、graph、内部 prompt 或原始上下文全文。",
+      "不得编造商品事实、平台实时政策、销量、价格、预算或未来结果。"
+    ]
+  },
+  "adaptive_hint": {
+    "min_level": "complex",
+    "reason": "本轮用户已指定或系统已高置信选出多个非 chat 岗位，过程面板展示主岗、支持岗和候选 Skill。"
   }
 }

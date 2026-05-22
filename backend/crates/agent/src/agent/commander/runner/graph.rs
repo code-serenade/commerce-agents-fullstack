@@ -68,6 +68,7 @@ impl Commander {
         self.pending_support_workers.clear();
         self.completed_support_workers.clear();
         self.collaboration_outputs.clear();
+        self.collaboration_reports.clear();
         let runtime = TaskGraphRuntime::new(graph)
             .with_response_mode(
                 self.current_context

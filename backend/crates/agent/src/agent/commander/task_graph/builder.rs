@@ -9,7 +9,9 @@ use super::{
     util::{contains_keyword, contains_string_any},
 };
 use crate::{
-    core::protocol::{TaskGraph, TaskGraphId, TaskId, TaskNode, TaskNodeId, WorkerId},
+    core::protocol::{
+        TaskGraph, TaskGraphAdaptiveHint, TaskGraphId, TaskId, TaskNode, TaskNodeId, WorkerId,
+    },
     roles::RoleRoute,
 };
 
@@ -50,6 +52,13 @@ pub(super) fn build_configured_task_graph(
         graph_id,
         root_task: task.to_string(),
         nodes,
+        adaptive_hint: rule
+            .adaptive_hint
+            .as_ref()
+            .map(|hint| TaskGraphAdaptiveHint {
+                min_level: hint.min_level.clone(),
+                reason: hint.reason.clone(),
+            }),
     }
 }
 

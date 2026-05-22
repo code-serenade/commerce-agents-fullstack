@@ -58,10 +58,10 @@ export function defaultRuntimeSelection(options: AgentRuntimeOptions | null): Ag
     options?.models.find((model) => model.isDefault)?.name ??
     options?.models[0]?.name
   const defaultCollaboration =
-    options?.collaborationModes.find((mode) => mode.id === "manual")?.id ??
     options?.collaborationModes.find((mode) => mode.id === "auto")?.id ??
     options?.collaborationModes.find((mode) => mode.isDefault)?.id ??
-    "manual"
+    options?.collaborationModes.find((mode) => mode.id === "manual")?.id ??
+    "auto"
   const defaultLearning =
     options?.learningLevels.find((level) => level.isDefault)?.id ??
     "higher_vocational"
@@ -76,7 +76,7 @@ export function defaultRuntimeSelection(options: AgentRuntimeOptions | null): Ag
     learningLevel: defaultLearning,
     modelName: defaultModel ?? undefined,
     primaryRole: preferredRuntimePrimaryRole(defaultRoles),
-    selectedRoles: defaultRoles,
+    selectedRoles: defaultCollaboration === "auto" ? [] : defaultRoles,
   }
 }
 

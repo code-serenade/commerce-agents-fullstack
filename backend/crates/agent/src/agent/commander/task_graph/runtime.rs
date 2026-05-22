@@ -549,7 +549,7 @@ fn evaluate_report(
     {
         reasons.push("content is empty".to_string());
     }
-    if report.role_output.is_none() {
+    if report.role_output.is_none() && !accepts_unstructured_fast_output(report, node) {
         reasons.push("structured role output is missing".to_string());
     }
     if let (Some(node), Some(output)) = (node, report.role_output.as_ref()) {
@@ -565,6 +565,20 @@ fn evaluate_report(
         rework_instruction: (!passed)
             .then_some("content must be specific and non-empty".to_string()),
     }
+}
+
+fn accepts_unstructured_fast_output(report: &WorkerReport, node: Option<&TaskNode>) -> bool {
+    if report.status == WorkerReportStatus::Failed || report.content.trim().is_empty() {
+        return false;
+    }
+    node.is_some_and(|node| {
+        node.skill_autosuggest == Some(false)
+            && node.max_attempts <= 1
+            && node
+                .llm_usage
+                .as_deref()
+                .is_none_or(|usage| usage == "fast")
+    })
 }
 
 fn evaluate_upstream_evidence(
@@ -726,9 +740,12 @@ fn unique_strings(items: Vec<String>) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::{TaskGraphRuntime, TaskNodeRuntimeState};
-    use crate::core::protocol::{
-        RoleWorkOutput, TaskGraph, TaskGraphId, TaskId, TaskNode, TaskNodeId, WorkerId,
-        WorkerReport, WorkerReportStatus,
+    use crate::{
+        core::protocol::{
+            RoleWorkOutput, TaskGraph, TaskGraphId, TaskId, TaskNode, TaskNodeId, WorkerId,
+            WorkerReport, WorkerReportStatus,
+        },
+        roles::{RoleId, RoleRoute, RoleScore},
     };
 
     #[test]
@@ -737,6 +754,7 @@ mod tests {
             graph_id: TaskGraphId("graph-user-facing".to_string()),
             root_task: "帮我做一段咖啡商品讲解。".to_string(),
             nodes: vec![node("creative", "内容创意", "creative")],
+            adaptive_hint: None,
         });
         runtime.states.insert(
             TaskNodeId("creative".to_string()),
@@ -772,6 +790,7 @@ mod tests {
             graph_id: TaskGraphId("graph-chat".to_string()),
             root_task: "帮我写一句自然回复。".to_string(),
             nodes: vec![node("chat", "直接回复", "chat")],
+            adaptive_hint: None,
         });
         runtime
             .states
@@ -801,6 +820,7 @@ mod tests {
             graph_id: TaskGraphId("graph-empty".to_string()),
             root_task: "帮我回答问题。".to_string(),
             nodes: vec![node("creative", "内容创意", "creative")],
+            adaptive_hint: None,
         });
 
         let output = runtime.synthesize();
@@ -819,6 +839,7 @@ mod tests {
             graph_id: TaskGraphId("graph-final".to_string()),
             root_task: "Build a plan.".to_string(),
             nodes: vec![data.clone(), ops.clone()],
+            adaptive_hint: None,
         });
         runtime
             .states
@@ -848,6 +869,7 @@ mod tests {
             graph_id: TaskGraphId("graph-partial".to_string()),
             root_task: "Build a plan.".to_string(),
             nodes: vec![data.clone(), ops.clone()],
+            adaptive_hint: None,
         });
         runtime
             .states
@@ -865,6 +887,93 @@ mod tests {
         assert_eq!(output, "usable upstream answer");
         assert!(!output.contains("dependency did not pass"));
         assert!(!output.contains("还有这些部分需要补齐"));
+    }
+
+    #[test]
+    fn fast_no_skill_node_accepts_readable_unstructured_output() {
+        let mut node = node("data", "Data", "data");
+        node.llm_usage = Some("fast".to_string());
+        node.skill_autosuggest = Some(false);
+        node.max_attempts = 1;
+        let runtime = TaskGraphRuntime::new(TaskGraph {
+            graph_id: TaskGraphId("graph-fast".to_string()),
+            root_task: "Build a plan.".to_string(),
+            nodes: vec![node.clone()],
+            adaptive_hint: None,
+        });
+        let outcome = runtime.evaluate_for_test(WorkerReport {
+            graph_id: TaskGraphId("graph-fast".to_string()),
+            node_id: node.id.clone(),
+            task_id: TaskId("task-fast".to_string()),
+            worker_id: node.worker_id.clone(),
+            role: node.role.clone(),
+            content: "先用真实成本、售价、退款原因和投放消耗判断能否继续。".to_string(),
+            role_output: None,
+            evidence: Vec::new(),
+            risks: Vec::new(),
+            open_questions: Vec::new(),
+            status: WorkerReportStatus::Completed,
+        });
+
+        assert!(outcome.passed);
+        assert!(
+            !outcome
+                .reasons
+                .contains(&"structured role output is missing".to_string())
+        );
+    }
+
+    #[test]
+    fn selected_route_roles_graph_keeps_manual_support_roles_and_skills() {
+        let route = RoleRoute {
+            primary_role: RoleId("role.ops-strategist".to_string()),
+            primary_runtime_role: "ops".to_string(),
+            support_roles: vec![
+                RoleId("role.data-analyst".to_string()),
+                RoleId("role.creative-studio".to_string()),
+            ],
+            support_runtime_roles: vec!["data".to_string(), "creative".to_string()],
+            scores: vec![
+                role_score("role.ops-strategist", "ops", 100.0),
+                role_score("role.data-analyst", "data", 90.0),
+                role_score("role.creative-studio", "creative", 90.0),
+            ],
+        };
+
+        let graph = super::plan_task_graph(
+            &TaskId("task-manual-route".to_string()),
+            "我想在学校卖冷萃咖啡，预算3000，目标两周内验证，帮我拆商品定位、内容、投放、复购、利润测算和数据复盘。",
+            Some(&route),
+        );
+        let roles = graph
+            .nodes
+            .iter()
+            .map(|node| node.role.as_str())
+            .collect::<Vec<_>>();
+
+        assert_eq!(roles, vec!["data", "creative", "ops", "ops"]);
+        assert!(
+            graph
+                .nodes
+                .iter()
+                .filter(|node| node.id.0 != "ops_final")
+                .all(|node| node.skill_autosuggest == Some(true))
+        );
+        assert_eq!(
+            graph.adaptive_hint.and_then(|hint| hint.min_level),
+            Some("complex".to_string())
+        );
+    }
+
+    impl TaskGraphRuntime {
+        fn evaluate_for_test(&self, report: WorkerReport) -> crate::core::protocol::Evaluation {
+            let node = self
+                .graph
+                .nodes
+                .iter()
+                .find(|node| node.id == report.node_id);
+            super::evaluate_report(&report, node, &self.reports)
+        }
     }
 
     fn node(id: &str, title: &str, role: &str) -> TaskNode {
@@ -902,6 +1011,15 @@ mod tests {
             risks: Vec::new(),
             open_questions: Vec::new(),
             status: WorkerReportStatus::Completed,
+        }
+    }
+
+    fn role_score(role_id: &str, runtime_role: &str, score: f32) -> RoleScore {
+        RoleScore {
+            role_id: RoleId(role_id.to_string()),
+            runtime_role: runtime_role.to_string(),
+            score,
+            keyword_hits: 0,
         }
     }
 }

@@ -6,10 +6,11 @@ import {
   getDispatchPlanRouteMode,
   getDispatchPlanSkills,
   getLatestRouteEvent,
+  getLatestDispatchPlan,
   getRouteMode,
   getRoutePrimaryRole,
-  getLatestDispatchPlan,
 } from "./agent-process-runtime-view-model"
+import { getAdaptiveDispatchFact } from "./agent-adaptive-dispatch-fact-view-model"
 import { formatRuntimeRole, type AgentDispatchFact } from "./agent-process-kind-view-model"
 
 export function getDispatchFacts(
@@ -54,6 +55,9 @@ function appendDispatchPlanFact(
     label: t("agentChat.thread.dispatchFacts.plan.label"),
     tone: "success",
   })
+
+  const adaptiveFact = getAdaptiveDispatchFact(plan, t)
+  if (adaptiveFact) facts.push(adaptiveFact)
 
   const reasoning = getDispatchPlanReasoningSummary(plan)
   if (reasoning.trim()) {

@@ -1,8 +1,11 @@
-import { Activity, PanelRightClose, MonitorCog } from "lucide-react"
+import { Activity, GitBranch, PanelRightClose, MonitorCog } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type { AgentRuntimeEvent } from "@/api"
 import type { AgentChatMessage } from "../types"
-import { getAgentProcessKind } from "../view-model/agent-process-kind-view-model"
+import {
+  getAgentProcessKind,
+  getDispatchFacts,
+} from "../view-model/agent-process-kind-view-model"
 import type { AgentRunFeedbackState } from "../view-model/use-agent-run-feedback"
 import {
   getAgents,
@@ -92,6 +95,9 @@ export function AgentChatSwarmPanel({
   )
   const phases = getPhases(graphNodes, t)
   const timeline = getTimeline(runtimeEvents, agents, hasTask, isStreaming, t)
+  const dispatchFactItems = getDispatchFacts(runtimeEvents, t)
+    .slice(0, 3)
+    .map((fact) => `${fact.label}: ${fact.detail}`)
 
   return (
     <aside className="h-full min-h-0 min-w-0 overflow-hidden bg-background">
@@ -159,7 +165,13 @@ export function AgentChatSwarmPanel({
             />
           )}
 
-          <section className="mt-3 grid gap-2 min-[1500px]:grid-cols-3">
+          <section className="mt-3 grid gap-2 min-[1500px]:grid-cols-4">
+            <CompactInfoBlock
+              icon={GitBranch}
+              title={t("agentChat.workbench.adaptiveDispatch")}
+              items={dispatchFactItems}
+              maxItems={4}
+            />
             <WorkspaceHandoffRail compact />
             <AgentRunFeedbackPanel compact feedback={feedback} />
             <CompactInfoBlock

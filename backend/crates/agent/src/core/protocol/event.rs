@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::protocol::{
-    DispatchContextBudget, DispatchPlannedStep, Evaluation, SessionId, TaskGraph, TaskGraphId,
-    TaskGraphProcessSummary, TaskId, TaskNodeId, WorkerId, WorkerReport,
+    AdaptiveDispatchProfile, DispatchContextBudget, DispatchPlannedStep, Evaluation, SessionId,
+    TaskGraph, TaskGraphId, TaskGraphProcessSummary, TaskId, TaskNodeId, WorkerId, WorkerReport,
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -64,6 +64,7 @@ pub enum SessionEvent {
         selected_skills: Vec<String>,
         planned_steps: Vec<DispatchPlannedStep>,
         context_budget: DispatchContextBudget,
+        adaptive_profile: AdaptiveDispatchProfile,
         reasoning_summary: String,
         student_visible_explanation: String,
     },

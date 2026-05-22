@@ -18,8 +18,9 @@ use crate::{
     core::{
         messaging::MessageRx,
         protocol::{
-            AgentId, DispatchContextBudget, DispatchPlannedStep, Message, MessageContext,
-            MessageId, Payload, SessionEvent, SessionId, TaskGraph, TaskId, TaskSpec, WorkerId,
+            AdaptiveDispatchProfile, AgentId, DispatchContextBudget, DispatchPlannedStep, Message,
+            MessageContext, MessageId, Payload, SessionEvent, SessionId, TaskGraph, TaskId,
+            TaskSpec, WorkerId,
         },
     },
     roles::{RoleCatalog, RoleProfile, RoleRouter},
@@ -288,6 +289,7 @@ impl SessionRuntime {
                                 SettingsError::invalid("chat bypass graph is unavailable")
                             })?,
                     ],
+                    adaptive_hint: None,
                 })
                 .with_response_mode(
                     self.context
@@ -484,28 +486,43 @@ impl SessionRuntime {
     async fn emit_dispatch_planned_for_graph(&self, route_mode: &str, graph: &TaskGraph) {
         let (primary_runtime_role, support_runtime_roles) =
             dispatch_runtime_roles_from_graph(graph);
-        let context_budget = dispatch_context_budget(&self.context, self.memory_record_count());
-        let difficulty = dispatch_difficulty(
+        let context_budget = dispatch_context_budget(
+            &self.context,
+            self.memory_record_count(),
+            graph.root_task.as_str(),
+        );
+        let role_count =
+            dispatch_runtime_role_count(primary_runtime_role.as_deref(), &support_runtime_roles);
+        let selected_skills = dispatch_selected_skills(route_mode, graph);
+        let adaptive_profile = dispatch_adaptive_profile(
             route_mode,
-            dispatch_runtime_role_count(primary_runtime_role.as_deref(), &support_runtime_roles),
+            graph,
+            role_count,
+            selected_skills.len(),
             &context_budget,
         );
         let planned_steps = dispatch_steps_from_graph(route_mode, graph, &context_budget);
         let student_visible_explanation = dispatch_student_explanation_with_context(
             route_mode,
+            role_count,
             graph.nodes.len(),
             &context_budget,
         );
         self.emit_event(SessionEvent::DispatchPlanned {
             session_id: self.session_id.clone(),
-            difficulty: difficulty.to_string(),
+            difficulty: adaptive_profile.level.clone(),
             route_mode: route_mode.to_string(),
             primary_runtime_role,
             support_runtime_roles,
-            selected_skills: dispatch_selected_skills(route_mode, graph),
+            selected_skills,
             planned_steps,
             context_budget,
-            reasoning_summary: dispatch_reasoning_summary(route_mode, graph.nodes.len()),
+            adaptive_profile,
+            reasoning_summary: dispatch_reasoning_summary(
+                route_mode,
+                role_count,
+                graph.nodes.len(),
+            ),
             student_visible_explanation,
         })
         .await;
@@ -784,7 +801,10 @@ pub(crate) fn dispatch_steps_from_graph(
 pub(crate) fn dispatch_context_budget(
     context: &MessageContext,
     memory_record_count: usize,
+    task_description: &str,
 ) -> DispatchContextBudget {
+    let task_input_chars = task_description.trim().chars().count();
+    let approximate_context_chars = approximate_context_chars(context);
     DispatchContextBudget {
         memory_record_count,
         history_summary_available: context
@@ -818,7 +838,8 @@ pub(crate) fn dispatch_context_budget(
             context.metadata.get("workspaceContextPack.item_count"),
         )
         .max(split_metadata_list(context.metadata.get("workspaceContextPack.refs")).len()),
-        approximate_input_chars: approximate_context_chars(context),
+        task_input_chars,
+        approximate_input_chars: task_input_chars + approximate_context_chars,
     }
 }
 
@@ -845,51 +866,372 @@ pub(crate) fn dispatch_selected_skills(route_mode: &str, graph: &TaskGraph) -> V
     skills
 }
 
-pub(crate) fn dispatch_difficulty(
+pub(crate) fn dispatch_adaptive_profile(
     route_mode: &str,
-    step_count: usize,
+    graph: &TaskGraph,
+    role_count: usize,
+    skill_count: usize,
     context_budget: &DispatchContextBudget,
+) -> AdaptiveDispatchProfile {
+    let step_count = graph.nodes.len();
+    let context_signal_count = dispatch_material_signal_count(context_budget);
+    let context_pressure = dispatch_context_pressure(context_budget);
+    let mut level = dispatch_adaptive_level(
+        route_mode,
+        role_count,
+        step_count,
+        skill_count,
+        context_budget,
+        context_pressure,
+    );
+    if let Some(min_level) = graph
+        .adaptive_hint
+        .as_ref()
+        .and_then(|hint| hint.min_level.as_deref())
+    {
+        level = stronger_adaptive_level(level, min_level);
+    }
+    let confidence = dispatch_adaptive_confidence(route_mode, step_count, context_budget);
+    let reasons = dispatch_adaptive_reasons(DispatchAdaptiveReasonInput {
+        route_mode,
+        role_count,
+        step_count,
+        skill_count,
+        context_signal_count,
+        context_pressure,
+        context_budget,
+        adaptive_hint_reason: graph
+            .adaptive_hint
+            .as_ref()
+            .and_then(|hint| hint.reason.as_deref()),
+    });
+    let student_summary = dispatch_adaptive_student_summary(
+        level,
+        route_mode,
+        role_count,
+        step_count,
+        skill_count,
+        context_pressure,
+        context_budget,
+    );
+
+    AdaptiveDispatchProfile {
+        level: level.to_string(),
+        route_mode: route_mode.to_string(),
+        role_count,
+        step_count,
+        skill_count,
+        context_signal_count,
+        context_pressure: context_pressure.to_string(),
+        confidence: confidence.to_string(),
+        reasons,
+        student_summary,
+    }
+}
+
+fn dispatch_adaptive_level(
+    route_mode: &str,
+    role_count: usize,
+    step_count: usize,
+    skill_count: usize,
+    context_budget: &DispatchContextBudget,
+    context_pressure: &str,
 ) -> &'static str {
-    if route_mode == "chat_bypass" && step_count <= 1 {
-        return "simple";
+    if step_count >= 6
+        || role_count >= 5
+        || (skill_count >= 6 && (role_count >= 3 || step_count >= 4))
+        || context_pressure == "heavy"
+        || context_budget.history_total_message_count >= 18
+        || context_budget.approximate_input_chars >= 12_000
+    {
+        return "expert";
     }
     if step_count >= 4
+        || role_count >= 3
+        || skill_count >= 4
+        || context_pressure == "medium"
         || context_budget.history_summary_available
         || context_budget.history_truncated
-        || context_budget.recent_history_message_count >= 8
-        || context_budget.approximate_input_chars >= 6000
-        || context_budget.explicit_context_ref_count + context_budget.workspace_context_ref_count
-            >= 4
     {
         return "complex";
     }
-    if step_count >= 2 || context_budget.explicit_product_count > 0 {
+    if route_mode == "task_graph"
+        || route_mode == "fast_worker"
+        || step_count >= 2
+        || role_count >= 2
+        || skill_count > 0
+        || dispatch_material_signal_count(context_budget) > 0
+    {
         return "normal";
     }
     "simple"
 }
 
-pub(crate) fn dispatch_reasoning_summary(route_mode: &str, step_count: usize) -> String {
+fn stronger_adaptive_level(current: &str, minimum: &str) -> &'static str {
+    let current_rank = adaptive_level_rank(current);
+    let minimum_rank = adaptive_level_rank(minimum);
+    if minimum_rank > current_rank {
+        normalized_adaptive_level(minimum)
+    } else {
+        normalized_adaptive_level(current)
+    }
+}
+
+fn adaptive_level_rank(level: &str) -> usize {
+    match level {
+        "expert" => 3,
+        "complex" => 2,
+        "normal" => 1,
+        _ => 0,
+    }
+}
+
+fn normalized_adaptive_level(level: &str) -> &'static str {
+    match level {
+        "expert" => "expert",
+        "complex" => "complex",
+        "normal" => "normal",
+        _ => "simple",
+    }
+}
+
+pub(crate) fn dispatch_context_pressure(context_budget: &DispatchContextBudget) -> &'static str {
+    let material_count = dispatch_material_signal_count(context_budget);
+    if context_budget.history_truncated
+        || context_budget.history_total_message_count >= 18
+        || context_budget.recent_history_message_count >= 12
+        || context_budget.approximate_input_chars >= 10_000
+        || context_budget.task_input_chars >= 8_000
+        || material_count >= 8
+    {
+        return "heavy";
+    }
+    if context_budget.history_summary_available
+        || context_budget.history_older_summary_available
+        || context_budget.recent_history_message_count >= 6
+        || context_budget.approximate_input_chars >= 4_000
+        || context_budget.task_input_chars >= 2_500
+        || material_count >= 3
+    {
+        return "medium";
+    }
+    "light"
+}
+
+fn dispatch_adaptive_confidence(
+    route_mode: &str,
+    step_count: usize,
+    context_budget: &DispatchContextBudget,
+) -> &'static str {
+    if route_mode == "chat_bypass"
+        && step_count <= 1
+        && dispatch_context_pressure(context_budget) == "light"
+    {
+        return "high";
+    }
+    if route_mode == "task_graph" && step_count >= 2 {
+        return "high";
+    }
+    if context_budget.history_truncated || context_budget.approximate_input_chars >= 10_000 {
+        return "medium";
+    }
+    if step_count > 0 {
+        return "medium";
+    }
+    "low"
+}
+
+struct DispatchAdaptiveReasonInput<'a> {
+    route_mode: &'a str,
+    role_count: usize,
+    step_count: usize,
+    skill_count: usize,
+    context_signal_count: usize,
+    context_pressure: &'a str,
+    context_budget: &'a DispatchContextBudget,
+    adaptive_hint_reason: Option<&'a str>,
+}
+
+fn dispatch_adaptive_reasons(input: DispatchAdaptiveReasonInput<'_>) -> Vec<String> {
+    let DispatchAdaptiveReasonInput {
+        route_mode,
+        role_count,
+        step_count,
+        skill_count,
+        context_signal_count,
+        context_pressure,
+        context_budget,
+        adaptive_hint_reason,
+    } = input;
+    let mut reasons = Vec::new();
+    reasons.push(match route_mode {
+        "chat_bypass" => "本轮问题适合短链路直接处理。".to_string(),
+        "fast_worker" if role_count > 1 => {
+            "本轮问题已匹配到主岗位，并安排支持岗位协作。".to_string()
+        }
+        "fast_worker" => "本轮问题已匹配到一个主要处理岗位。".to_string(),
+        "task_graph" if step_count <= 1 => {
+            "本轮问题按任务图进入单岗位处理，不额外展开多岗位协作。".to_string()
+        }
+        "task_graph" => "本轮问题需要按任务图拆成多步骤协作。".to_string(),
+        _ => format!("调度中心选择 {route_mode} 路线。"),
+    });
+
+    reasons.push(format!(
+        "计划 {role_count} 个岗位、{step_count} 个执行步骤、{skill_count} 个候选 Skill。"
+    ));
+
+    if context_signal_count > 0 {
+        reasons.push(format!(
+            "已读取 {context_signal_count} 个上下文信号，包含历史记忆、已选资料或工作区内容。"
+        ));
+    } else {
+        reasons.push("本轮没有显式资料信号，主要依据当前问题和会话上下文。".to_string());
+    }
+
+    if context_budget.task_input_chars >= 2_500 {
+        reasons.push(format!(
+            "本轮用户输入约 {} 字，调度会把它按较长任务信息处理。",
+            context_budget.task_input_chars
+        ));
+    }
+
+    match context_pressure {
+        "heavy" => {
+            reasons.push("上下文压力较高，因此调度会保留更完整的历史和资料判断。".to_string())
+        }
+        "medium" => {
+            reasons.push("上下文压力中等，调度会同时考虑本轮问题、历史摘要和资料信号。".to_string())
+        }
+        _ => reasons.push("上下文压力较轻，调度优先走更快的处理链路。".to_string()),
+    }
+
+    if context_budget.history_truncated {
+        reasons.push(format!(
+            "同会话历史较长，已使用最近 {}/{} 条消息和早期压缩摘要。",
+            context_budget.recent_history_message_count, context_budget.history_total_message_count
+        ));
+    } else if context_budget.recent_history_message_count > 0 {
+        reasons.push(format!(
+            "已读取同会话最近 {} 条历史消息。",
+            context_budget.recent_history_message_count
+        ));
+    }
+
+    if let Some(reason) = adaptive_hint_reason
+        && !reason.trim().is_empty()
+    {
+        reasons.push(reason.trim().to_string());
+    }
+
+    reasons
+}
+
+fn dispatch_adaptive_student_summary(
+    level: &str,
+    route_mode: &str,
+    role_count: usize,
+    step_count: usize,
+    skill_count: usize,
+    context_pressure: &str,
+    context_budget: &DispatchContextBudget,
+) -> String {
+    let route_text = match route_mode {
+        "chat_bypass" => "快速回答",
+        "fast_worker" if role_count > 1 => "主岗协作处理",
+        "fast_worker" => "单岗位处理",
+        "task_graph" if step_count <= 1 => "单岗位任务处理",
+        "task_graph" => "多步骤协作",
+        _ => "自适应处理",
+    };
+    let level_text = match level {
+        "expert" => "高复杂",
+        "complex" => "复杂",
+        "normal" => "常规",
+        _ => "简单",
+    };
+    let pressure_text = match context_pressure {
+        "heavy" => "上下文较重",
+        "medium" => "上下文适中",
+        _ => "上下文较轻",
+    };
+    let history_text = if context_budget.history_truncated {
+        format!(
+            "，已压缩早期历史并读取最近 {}/{} 条消息",
+            context_budget.recent_history_message_count, context_budget.history_total_message_count
+        )
+    } else if context_budget.recent_history_message_count > 0 {
+        format!(
+            "，已读取最近 {} 条同会话历史",
+            context_budget.recent_history_message_count
+        )
+    } else {
+        String::new()
+    };
+    let input_text = if context_budget.task_input_chars >= 2_500 {
+        format!("，本轮输入约 {} 字", context_budget.task_input_chars)
+    } else {
+        String::new()
+    };
+
+    format!(
+        "本轮被判断为{level_text}任务，采用{route_text}路线；计划 {role_count} 个岗位、{step_count} 个步骤、{skill_count} 个候选 Skill，{pressure_text}{history_text}{input_text}。"
+    )
+}
+
+pub(crate) fn dispatch_reasoning_summary(
+    route_mode: &str,
+    role_count: usize,
+    step_count: usize,
+) -> String {
     match route_mode {
         "chat_bypass" => {
             "问题可以用轻量上下文和直接回答完成，因此走快速调度；如有同会话历史，会作为追问背景读取。".to_string()
         }
-        "fast_worker" => "问题匹配到一个主要岗位，先由该岗位处理，并按本岗位策略自动补充合适 Skill。".to_string(),
-        "task_graph" => format!("问题需要拆成 {step_count} 个岗位步骤协作，按任务图顺序执行。"),
+        "fast_worker" if role_count > 1 => {
+            format!(
+                "问题匹配到一个主岗位，并安排 {} 个支持岗位补充判断；过程会展示主岗初稿、支持岗补充和最终汇总。",
+                role_count.saturating_sub(1)
+            )
+        }
+        "fast_worker" => {
+            "问题匹配到一个主要岗位，先由该岗位处理，并按本岗位策略自动补充合适 Skill。".to_string()
+        }
+        "task_graph" if step_count <= 1 => {
+            "问题进入单岗位任务处理，系统仍会展示读取上下文、判断路线和汇总回答的过程。".to_string()
+        }
+        "task_graph" => {
+            format!("问题需要拆成 {role_count} 个岗位、{step_count} 个步骤协作，按任务图顺序执行。")
+        }
         _ => format!("调度中心已选择 {route_mode} 路线。"),
     }
 }
 
-pub(crate) fn dispatch_student_explanation(route_mode: &str, step_count: usize) -> String {
+pub(crate) fn dispatch_student_explanation(
+    route_mode: &str,
+    role_count: usize,
+    step_count: usize,
+) -> String {
     match route_mode {
         "chat_bypass" => {
-            "这是一个简单问题，系统会快速读取本轮资料和同会话历史，再直接给出结果。".to_string()
+            "系统会先读取本轮问题、资料和同会话历史，再选择最快可用的处理链路给出结果。".to_string()
+        }
+        "fast_worker" if role_count > 1 => {
+            format!(
+                "这个问题会由主岗位先处理，再由支持岗位补充判断；本轮共 {role_count} 个岗位、{step_count} 个步骤。"
+            )
         }
         "fast_worker" => {
             "这个问题主要由一个合适岗位处理，并会按需要调用对应 Skill 完成分析。".to_string()
         }
+        "task_graph" if step_count <= 1 => {
+            "这个问题由 1 个合适岗位处理，系统会展示读取上下文、判断路线和汇总回答的过程。"
+                .to_string()
+        }
         "task_graph" => {
-            format!("这个问题会拆给 {step_count} 个岗位/步骤协作，过程更长但结果会更完整。")
+            format!(
+                "这个问题会由 {role_count} 个岗位、{step_count} 个步骤协作处理，过程更长但结果会更完整。"
+            )
         }
         _ => "系统会根据本轮问题和上下文选择合适流程。".to_string(),
     }
@@ -897,10 +1239,11 @@ pub(crate) fn dispatch_student_explanation(route_mode: &str, step_count: usize) 
 
 pub(crate) fn dispatch_student_explanation_with_context(
     route_mode: &str,
+    role_count: usize,
     step_count: usize,
     context_budget: &DispatchContextBudget,
 ) -> String {
-    let base = dispatch_student_explanation(route_mode, step_count);
+    let base = dispatch_student_explanation(route_mode, role_count, step_count);
     let context_hint = dispatch_context_student_hint(context_budget);
     if context_hint.is_empty() {
         return base;
@@ -936,6 +1279,12 @@ fn dispatch_context_step_detail(context_budget: &DispatchContextBudget) -> Strin
         (false, _, _, _, materials) if materials > 0 => {
             format!("读取本轮问题、会话记忆和 {materials} 个资料信号。")
         }
+        _ if context_budget.task_input_chars >= 2_500 => {
+            format!(
+                "读取本轮约 {} 字输入，并检查会话记忆、商品资料、工作区资料和检索上下文。",
+                context_budget.task_input_chars
+            )
+        }
         _ => "读取本轮问题、会话记忆、商品资料、工作区资料和检索上下文。".to_string(),
     }
 }
@@ -964,6 +1313,12 @@ fn dispatch_context_student_hint(context_budget: &DispatchContextBudget) -> Stri
     }
     if material_count > 0 {
         return format!("本轮已读取 {material_count} 个资料信号，回答会优先围绕这些资料展开。");
+    }
+    if context_budget.task_input_chars >= 2_500 {
+        return format!(
+            "本轮输入约 {} 字，调度会按更复杂的任务信息处理。",
+            context_budget.task_input_chars
+        );
     }
     if context_budget.approximate_input_chars >= 6000 {
         return "本轮输入较长，调度会按更复杂的上下文处理。".to_string();
@@ -1052,4 +1407,176 @@ fn compact_event_text(value: &str, max_chars: usize) -> String {
     let mut output = trimmed.chars().take(max_chars).collect::<String>();
     output.push_str("...");
     output
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::protocol::{TaskGraphAdaptiveHint, TaskGraphId, TaskNode, TaskNodeId};
+
+    fn empty_budget() -> DispatchContextBudget {
+        DispatchContextBudget {
+            memory_record_count: 0,
+            history_summary_available: false,
+            recent_history_message_count: 0,
+            history_total_message_count: 0,
+            history_truncated: false,
+            history_older_summary_available: false,
+            explicit_product_count: 0,
+            explicit_context_ref_count: 0,
+            workspace_context_ref_count: 0,
+            workspace_pack_item_count: 0,
+            task_input_chars: 0,
+            approximate_input_chars: 0,
+        }
+    }
+
+    fn graph_with_roles(roles: &[&str]) -> TaskGraph {
+        TaskGraph {
+            graph_id: TaskGraphId("graph.test".to_string()),
+            root_task: "test".to_string(),
+            nodes: roles
+                .iter()
+                .enumerate()
+                .map(|(index, role)| TaskNode {
+                    id: TaskNodeId(format!("node-{index}")),
+                    role: (*role).to_string(),
+                    worker_id: WorkerId(format!("worker.{role}")),
+                    title: format!("step {index}"),
+                    objective: "test objective".to_string(),
+                    llm_usage: None,
+                    skill_autosuggest: Some(true),
+                    input_refs: Vec::new(),
+                    acceptance: Vec::new(),
+                    max_attempts: 1,
+                })
+                .collect(),
+            adaptive_hint: None,
+        }
+    }
+
+    #[test]
+    fn adaptive_profile_keeps_simple_chat_short() {
+        let budget = empty_budget();
+        let graph = graph_with_roles(&["chat"]);
+        let profile = dispatch_adaptive_profile("chat_bypass", &graph, 1, 0, &budget);
+
+        assert_eq!(profile.level, "simple");
+        assert_eq!(profile.context_pressure, "light");
+        assert_eq!(profile.role_count, 1);
+        assert_eq!(profile.step_count, 1);
+        assert!(
+            profile
+                .reasons
+                .iter()
+                .any(|reason| reason.contains("短链路"))
+        );
+    }
+
+    #[test]
+    fn adaptive_profile_expands_for_complex_graph_and_context() {
+        let mut budget = empty_budget();
+        budget.history_truncated = true;
+        budget.recent_history_message_count = 12;
+        budget.history_total_message_count = 24;
+        budget.explicit_context_ref_count = 3;
+        budget.workspace_pack_item_count = 2;
+        budget.approximate_input_chars = 12_500;
+
+        let graph = graph_with_roles(&["data", "ops", "creative", "accounting", "service"]);
+        let skills = dispatch_selected_skills("task_graph", &graph);
+        let profile = dispatch_adaptive_profile("task_graph", &graph, 5, skills.len(), &budget);
+
+        assert_eq!(profile.level, "expert");
+        assert_eq!(profile.context_pressure, "heavy");
+        assert_eq!(profile.role_count, 5);
+        assert_eq!(profile.context_signal_count, 5);
+        assert!(profile.student_summary.contains("高复杂"));
+    }
+
+    #[test]
+    fn dispatch_selected_skills_respects_node_autosuggest() {
+        let mut graph = graph_with_roles(&["data", "accounting", "ops"]);
+        graph.nodes[1].skill_autosuggest = Some(false);
+        graph.nodes[2].skill_autosuggest = Some(false);
+
+        let skills = dispatch_selected_skills("task_graph", &graph);
+
+        assert!(skills.contains(&"query_store_metrics".to_string()));
+        assert!(skills.contains(&"data_dashboard".to_string()));
+        assert!(!skills.contains(&"accounting_roi_calc".to_string()));
+        assert!(!skills.contains(&"coordination_skill_chain_planner".to_string()));
+    }
+
+    #[test]
+    fn dispatch_selected_skills_keeps_chat_bypass_empty() {
+        let graph = graph_with_roles(&["chat", "data"]);
+
+        let skills = dispatch_selected_skills("chat_bypass", &graph);
+
+        assert!(skills.is_empty());
+    }
+
+    #[test]
+    fn adaptive_profile_keeps_single_node_graph_normal() {
+        let budget = empty_budget();
+        let graph = graph_with_roles(&["chat"]);
+        let profile = dispatch_adaptive_profile("task_graph", &graph, 1, 0, &budget);
+
+        assert_eq!(profile.level, "normal");
+        assert_eq!(profile.role_count, 1);
+        assert_eq!(profile.step_count, 1);
+        assert!(profile.student_summary.contains("常规"));
+    }
+
+    #[test]
+    fn context_budget_counts_current_task_input() {
+        let mut context = MessageContext::default();
+        context.metadata.insert(
+            "conversation.history_summary".to_string(),
+            "history".to_string(),
+        );
+        let budget = dispatch_context_budget(&context, 0, "冷萃咖啡".repeat(900).as_str());
+
+        assert!(budget.task_input_chars >= 3600);
+        assert!(budget.approximate_input_chars > budget.task_input_chars);
+        assert_eq!(dispatch_context_pressure(&budget), "medium");
+    }
+
+    #[test]
+    fn adaptive_profile_uses_configured_minimum_level_hint() {
+        let budget = empty_budget();
+        let mut graph = graph_with_roles(&["chat"]);
+        graph.adaptive_hint = Some(TaskGraphAdaptiveHint {
+            min_level: Some("normal".to_string()),
+            reason: Some("配置提示：该直答需要稳定核验，不标记为简单闲聊。".to_string()),
+        });
+        let profile = dispatch_adaptive_profile("chat_bypass", &graph, 1, 0, &budget);
+
+        assert_eq!(profile.level, "normal");
+        assert!(
+            profile
+                .reasons
+                .iter()
+                .any(|reason| reason.contains("稳定核验"))
+        );
+    }
+
+    #[test]
+    fn student_explanation_separates_roles_and_steps() {
+        let explanation = dispatch_student_explanation("task_graph", 3, 4);
+
+        assert!(explanation.contains("3 个岗位、4 个步骤"));
+        assert!(!explanation.contains("岗位/步骤"));
+    }
+
+    #[test]
+    fn fast_worker_multi_role_explanation_uses_collaboration_wording() {
+        let explanation = dispatch_student_explanation("fast_worker", 3, 3);
+        let summary = dispatch_reasoning_summary("fast_worker", 3, 3);
+
+        assert!(explanation.contains("支持岗位"));
+        assert!(summary.contains("支持岗位"));
+        assert!(!explanation.contains("主要由一个合适岗位"));
+    }
 }

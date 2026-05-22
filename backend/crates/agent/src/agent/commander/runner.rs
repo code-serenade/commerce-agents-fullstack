@@ -21,7 +21,7 @@ use super::{
 };
 use crate::{
     agent_session::session_runtime::{
-        dispatch_context_budget, dispatch_difficulty, dispatch_reasoning_summary,
+        dispatch_adaptive_profile, dispatch_context_budget, dispatch_reasoning_summary,
         dispatch_runtime_role_count, dispatch_runtime_roles_from_graph, dispatch_selected_skills,
         dispatch_steps_from_graph, dispatch_student_explanation_with_context,
         unique_support_runtime_roles,
@@ -32,7 +32,7 @@ use crate::{
         messaging::{MessageRx, MessageTx},
         protocol::{
             AgentId, DecisionIntent, Message, MessageContext, Payload, SessionEvent, TaskGraph,
-            TaskId, TaskSpec, WorkerId, WorkerProfile,
+            TaskId, TaskSpec, WorkerId, WorkerProfile, WorkerReport,
         },
     },
     roles::{RoleCollaborationPlan, RoleContribution, RoleRoute, RoleRouteInput, RoleRouter},
@@ -83,6 +83,7 @@ pub struct Commander {
     pending_support_workers: Vec<WorkerId>,
     completed_support_workers: Vec<WorkerId>,
     collaboration_outputs: HashMap<WorkerId, RoleContribution>,
+    collaboration_reports: HashMap<WorkerId, WorkerReport>,
     active_task_graph: Option<TaskGraphRuntime>,
 }
 
@@ -117,6 +118,7 @@ impl Commander {
             pending_support_workers: Vec::new(),
             completed_support_workers: Vec::new(),
             collaboration_outputs: HashMap::new(),
+            collaboration_reports: HashMap::new(),
             active_task_graph: None,
         }
     }
@@ -225,6 +227,12 @@ impl Commander {
                 self.state = CommanderState::Idle;
             }
             Payload::WorkerReport { report } => {
+                if self
+                    .handle_collaboration_worker_report(report.clone(), &context)
+                    .await
+                {
+                    return;
+                }
                 self.handle_task_graph_report(report, &context).await;
             }
             Payload::Control { signal, .. } => {
@@ -250,6 +258,7 @@ impl Commander {
         self.pending_support_workers.clear();
         self.completed_support_workers.clear();
         self.collaboration_outputs.clear();
+        self.collaboration_reports.clear();
         self.active_task_graph = None;
         self.memory.push_progress("human command received");
         self.memory
@@ -445,28 +454,40 @@ impl Commander {
         let context_budget = dispatch_context_budget(
             &self.current_context,
             self.session_context.memory_records().len(),
+            graph.root_task.as_str(),
         );
-        let difficulty = dispatch_difficulty(
+        let role_count =
+            dispatch_runtime_role_count(primary_runtime_role.as_deref(), &support_runtime_roles);
+        let selected_skills = dispatch_selected_skills(route_mode, graph);
+        let adaptive_profile = dispatch_adaptive_profile(
             route_mode,
-            dispatch_runtime_role_count(primary_runtime_role.as_deref(), &support_runtime_roles),
+            graph,
+            role_count,
+            selected_skills.len(),
             &context_budget,
         );
         let planned_steps = dispatch_steps_from_graph(route_mode, graph, &context_budget);
         let student_visible_explanation = dispatch_student_explanation_with_context(
             route_mode,
+            role_count,
             graph.nodes.len(),
             &context_budget,
         );
         self.emit_event(SessionEvent::DispatchPlanned {
             session_id: self.session_id_from_context(&self.current_context),
-            difficulty: difficulty.to_string(),
+            difficulty: adaptive_profile.level.clone(),
             route_mode: route_mode.to_string(),
             primary_runtime_role,
             support_runtime_roles,
-            selected_skills: dispatch_selected_skills(route_mode, graph),
+            selected_skills,
             planned_steps,
             context_budget,
-            reasoning_summary: dispatch_reasoning_summary(route_mode, graph.nodes.len()),
+            adaptive_profile,
+            reasoning_summary: dispatch_reasoning_summary(
+                route_mode,
+                role_count,
+                graph.nodes.len(),
+            ),
             student_visible_explanation,
         });
     }

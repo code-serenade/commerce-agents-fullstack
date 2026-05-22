@@ -1,6 +1,31 @@
 {
   "rules": [
     {
+      "id": "data.fallback_dashboard",
+      "roles": [
+        "data"
+      ],
+      "fallback": true,
+      "skill_id": "data_dashboard",
+      "input": {
+        "days": "{{period_days}}",
+        "platform": "{{store_metrics_platform}}",
+        "product_ref": "{{selected_product_ref}}",
+        "gmv": "{{data_gmv}}",
+        "previous_gmv": "{{data_previous_gmv}}",
+        "orders": "{{data_orders}}",
+        "previous_orders": "{{data_previous_orders}}",
+        "visitors": "{{data_visitors}}",
+        "previous_visitors": "{{data_previous_visitors}}",
+        "clicks": "{{data_clicks}}",
+        "ad_spend": "{{data_ad_spend}}",
+        "refund_amount": "{{data_refund_amount}}",
+        "gross_profit": "{{data_gross_profit}}",
+        "target_gmv": "{{data_target_gmv}}"
+      },
+      "reason": "autosuggest:data.fallback_dashboard"
+    },
+    {
       "id": "data.dashboard",
       "roles": [
         "data"

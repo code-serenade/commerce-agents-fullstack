@@ -1,0 +1,52 @@
+{
+  "id": "adaptive_route_team",
+  "description": "自动路由识别到至少三个非 chat 岗位时，按真实 route primary/support roles 生成自适应协作任务图",
+  "priority": 850,
+  "match": {
+    "route_min_non_chat_roles": 3,
+    "none_keywords": [
+      "只输出",
+      "只回答",
+      "一句话",
+      "不要解释",
+      "老师点评",
+      "课堂反馈",
+      "课堂点评",
+      "批改",
+      "不要写成岗位报告",
+      "不写成岗位报告",
+      "不要岗位报告",
+      "不是岗位报告",
+      "岗位报告",
+      "机械罗列岗位报告",
+      "不要机械罗列岗位报告"
+    ]
+  },
+  "dynamic_roles": {
+    "from_route": {
+      "enabled": true,
+      "include_primary": true,
+      "include_support": "always",
+      "exclude_roles": ["chat"],
+      "llm_usage": "fast",
+      "skill_autosuggest": true
+    }
+  },
+  "final_node": {
+    "enabled": true,
+    "id": "ops_final",
+    "role": "ops",
+    "title": "运营综合方案",
+    "objective": "整合本轮自动调度出的岗位判断，输出学生能直接执行和复盘的方案：{{task}}。必须说明已读取的上下文、关键判断、执行动作、需要补的数据和风险边界；资料不足时给验证路径，不编平台实时数据、商品事实或固定阈值。",
+    "depends_on": "$all_non_final",
+    "max_attempts": 1,
+    "llm_usage": "fast",
+    "skill_autosuggest": false,
+    "acceptance": [
+      "必须综合真实 route 选出的岗位输入，输出自然可执行的学生侧答案。",
+      "必须写清为什么本轮需要多岗位协作，以及哪些资料或历史影响了判断。",
+      "不得暴露 worker、graph、内部 prompt 或原始上下文全文。",
+      "不得编造商品事实、平台实时政策、销量、价格、预算或未来结果。"
+    ]
+  }
+}

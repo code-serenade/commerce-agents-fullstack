@@ -18,8 +18,8 @@ pub use crate::{
         CognitionResult, Context, Fact, FailureReason, Intent, IntentKind, JsonTemplateDecoder,
     },
     core::protocol::{
-        AgentId, DispatchContextBudget, DispatchPlannedStep, SessionEvent, SessionId,
-        TaskGraphHandoff, TaskGraphId, TaskGraphProcessGap, TaskGraphProcessPanel,
+        AdaptiveDispatchProfile, AgentId, DispatchContextBudget, DispatchPlannedStep, SessionEvent,
+        SessionId, TaskGraphHandoff, TaskGraphId, TaskGraphProcessGap, TaskGraphProcessPanel,
         TaskGraphProcessRole, TaskGraphProcessSummary, TaskId, TaskNodeId, UserId, WorkerId,
         WorkerReportStatus, WorkspaceId,
     },

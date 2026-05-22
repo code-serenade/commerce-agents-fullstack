@@ -117,6 +117,12 @@ export function getDispatchPlanContextBudget(
   return event.contextBudget ?? event.context_budget ?? null
 }
 
+export function getDispatchPlanAdaptiveProfile(
+  event: Extract<AgentRuntimeEvent, { type: "dispatch_planned" }>
+) {
+  return event.adaptiveProfile ?? event.adaptive_profile ?? null
+}
+
 export function getRuntimeWorkerRoles(runtimeEvents: AgentRuntimeEvent[]) {
   const roles = new Set<string>()
   runtimeEvents.forEach((event) => {

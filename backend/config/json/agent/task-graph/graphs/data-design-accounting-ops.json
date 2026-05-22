@@ -17,12 +17,18 @@
       "预算",
       "成本",
       "财务",
+      "利润测算",
+      "预算测算",
       "风险",
       "归因",
       "漏斗",
       "数据",
       "转化率",
-      "指标"
+      "指标",
+      "投放",
+      "复购",
+      "商品定位",
+      "内容"
     ],
     "all_keyword_groups": [
       ["分析", "诊断", "方案", "策略", "调整", "优化", "提升", "复盘", "评审", "看", "改"]
@@ -35,7 +41,10 @@
       "id": "data",
       "role": "data",
       "title": "数据诊断",
-      "objective": "分析任务中的数据、指标、归因和约束：{{task}}"
+      "objective": "分析任务中的数据、指标、归因和约束：{{task}}",
+      "max_attempts": 1,
+      "llm_usage": "fast",
+      "skill_autosuggest": true
     }
   ],
   "conditional_nodes": [
@@ -47,7 +56,10 @@
         "any_keywords": ["详情页", "设计", "页面", "视觉", "主图"]
       },
       "depends_on": ["data"],
-      "objective": "基于上游数据诊断，提出详情页、页面体验或视觉承接优化方案。"
+      "objective": "基于上游数据诊断，提出详情页、页面体验或视觉承接优化方案。",
+      "max_attempts": 1,
+      "llm_usage": "fast",
+      "skill_autosuggest": true
     },
     {
       "id": "accounting",
@@ -57,17 +69,36 @@
         "any_keywords": ["预算", "成本", "财务", "风险", "利润", "毛利", "roi", "ROI"]
       },
       "depends_on": ["data"],
-      "objective": "基于上游数据诊断，评估预算、成本、利润和经营风险。"
+      "objective": "基于上游数据诊断，评估预算、成本、利润和经营风险。",
+      "max_attempts": 1,
+      "llm_usage": "fast",
+      "skill_autosuggest": true
     },
     {
       "id": "creative",
       "role": "creative",
       "title": "创意产出",
       "when": {
-        "any_keywords": ["文案", "脚本", "标题", "内容", "素材", "活动", "营销"]
+        "any_keywords": ["文案", "脚本", "标题", "内容", "素材", "营销", "商品定位"]
       },
       "depends_on": ["data"],
-      "objective": "基于上游数据诊断，产出内容创意、文案、脚本或素材测试方向。"
+      "objective": "基于上游数据诊断，产出内容创意、文案、脚本或素材测试方向。",
+      "max_attempts": 1,
+      "llm_usage": "fast",
+      "skill_autosuggest": true
+    },
+    {
+      "id": "douyin_ads",
+      "role": "douyin_ads",
+      "title": "投放判断",
+      "when": {
+        "any_keywords": ["投放", "投流", "千川", "短视频引流", "预算消耗"]
+      },
+      "depends_on": ["data"],
+      "objective": "基于预算和上游数据诊断，给出投放测试结构、止损口径和复盘指标；缺后台数据和毛利时不编固定阈值。",
+      "max_attempts": 1,
+      "llm_usage": "fast",
+      "skill_autosuggest": true
     }
   ],
   "final_node": {
@@ -76,6 +107,9 @@
     "role": "ops",
     "title": "运营方案",
     "depends_on": "$all_non_final",
-    "objective": "基于上游数据、设计、预算或创意结果，形成可执行运营调整方案。"
+    "objective": "基于上游数据、设计、预算或创意结果，形成可执行运营调整方案。",
+    "max_attempts": 1,
+    "llm_usage": "fast",
+    "skill_autosuggest": false
   }
 }

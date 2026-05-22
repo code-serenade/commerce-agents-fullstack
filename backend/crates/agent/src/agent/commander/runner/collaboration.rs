@@ -5,8 +5,9 @@ use super::{
 use crate::{
     agent::commander::no_user_facing_content_message,
     core::protocol::{
-        AgentId, Message, MessageContext, Payload, SessionEvent, TaskGraph, TaskId, TaskNode,
-        TaskNodeId, TaskSpec, WorkerId,
+        AgentId, Message, MessageContext, Payload, SessionEvent, TaskGraph, TaskGraphAdaptiveHint,
+        TaskGraphId, TaskId, TaskNode, TaskNodeId, TaskSpec, WorkerAssignment, WorkerId,
+        WorkerReport,
     },
     roles::{RoleCollaborationPlan, RoleContribution},
 };
@@ -16,6 +17,9 @@ impl Commander {
         let Some(role_route) = role_route else {
             return false;
         };
+        if self.should_preserve_task_graph_for_manual_multi_role(role_route) {
+            return false;
+        }
         if primary_route_score(role_route) < self.fast_route_min_score {
             return false;
         }
@@ -38,11 +42,14 @@ impl Commander {
             Some(role_route.primary_runtime_role.clone()),
             role_route.support_runtime_roles.clone(),
         );
-        self.emit_dispatch_planned_for_graph(
-            "fast_worker",
-            &single_worker_dispatch_graph(&task, role_route),
-        );
-        if !self.dispatch_task_to_worker(task, Some(target_worker)) {
+        let dispatch_graph = role_route_dispatch_graph(&task, role_route);
+        self.emit_dispatch_planned_for_graph("fast_worker", &dispatch_graph);
+        let dispatched = if dispatch_graph.nodes.len() > 1 {
+            self.dispatch_collaboration_primary_assignment(&task, &dispatch_graph, &target_worker)
+        } else {
+            self.dispatch_task_to_worker(task, Some(target_worker))
+        };
+        if !dispatched {
             let _ = self.sender.send(Message::new_with_context(
                 next_message_id(),
                 self.current_context.clone(),
@@ -55,6 +62,26 @@ impl Commander {
         }
 
         true
+    }
+
+    fn should_preserve_task_graph_for_manual_multi_role(
+        &self,
+        role_route: &crate::roles::RoleRoute,
+    ) -> bool {
+        if self
+            .current_context
+            .metadata
+            .get("strategy.collaboration_mode")
+            .is_none_or(|value| value != "manual")
+        {
+            return false;
+        }
+
+        std::iter::once(role_route.primary_runtime_role.as_str())
+            .chain(role_route.support_runtime_roles.iter().map(String::as_str))
+            .filter(|role| *role != "chat")
+            .count()
+            >= 2
     }
 
     pub(super) fn prepare_collaboration(
@@ -99,6 +126,7 @@ impl Commander {
         self.pending_support_workers.clear();
         self.completed_support_workers.clear();
         self.collaboration_outputs.clear();
+        self.collaboration_reports.clear();
     }
 
     pub(super) async fn handle_collaboration_worker_finished(
@@ -166,6 +194,110 @@ impl Commander {
         false
     }
 
+    fn dispatch_collaboration_primary_assignment(
+        &self,
+        task: &TaskSpec,
+        graph: &TaskGraph,
+        target_worker: &WorkerId,
+    ) -> bool {
+        let Some(node) = graph.nodes.first() else {
+            return false;
+        };
+        let assignment = WorkerAssignment {
+            graph_id: graph.graph_id.clone(),
+            node_id: node.id.clone(),
+            task_id: task.id.clone(),
+            worker_id: target_worker.clone(),
+            role: node.role.clone(),
+            attempt: 1,
+            objective: format!(
+                "{}\n\n本轮是轻量主岗协作，直接输出可供支持岗位复核的初稿，\
+                 不请求外部 Skill 或工具。",
+                node.objective
+            ),
+            llm_usage: Some("fast".to_string()),
+            skill_autosuggest: Some(false),
+            inputs: Vec::new(),
+            rework_instruction: None,
+        };
+        self.dispatch_assignment_to_worker(assignment)
+    }
+
+    pub(super) async fn handle_collaboration_worker_report(
+        &mut self,
+        report: WorkerReport,
+        context: &MessageContext,
+    ) -> bool {
+        let Some(plan) = self.active_collaboration.clone() else {
+            return false;
+        };
+        if plan.assignment_for(&report.worker_id).is_none() {
+            return false;
+        }
+
+        self.memory.push_progress(format!(
+            "collaboration node {} reported by {}",
+            report.node_id.0, report.worker_id.0
+        ));
+        self.emit_event(SessionEvent::WorkerFinished {
+            session_id: self.session_id_from_context(context),
+            worker_id: report.worker_id.clone(),
+            task_id: report.task_id.clone(),
+        });
+        let worker_id = report.worker_id.clone();
+        let task_id = report.task_id.clone();
+        self.collaboration_reports
+            .insert(worker_id.clone(), report.clone());
+        let output = crate::agent::commander::user_facing_report_text(&report)
+            .unwrap_or_else(|| report.content.clone());
+
+        if worker_id == plan.primary.worker_id && !plan.support.is_empty() {
+            self.active_collaboration_task_id = Some(task_id.clone());
+            self.collaboration_outputs.insert(
+                worker_id.clone(),
+                build_contribution(&plan.primary, &task_id, &output),
+            );
+            self.emit_event(SessionEvent::CollaborationWorkerFinished {
+                session_id: self.session_id_from_context(context),
+                worker_id,
+                task_id: task_id.clone(),
+                content: Some(output),
+            });
+            self.dispatch_support_workers(&plan, &task_id).await;
+            return true;
+        }
+
+        if self
+            .pending_support_workers
+            .iter()
+            .any(|item| item == &worker_id)
+        {
+            self.pending_support_workers
+                .retain(|item| item != &worker_id);
+            self.completed_support_workers.push(worker_id.clone());
+            if let Some(assignment) = plan.assignment_for(&worker_id) {
+                self.collaboration_outputs.insert(
+                    worker_id.clone(),
+                    build_contribution(assignment, &task_id, &output),
+                );
+            }
+            self.emit_event(SessionEvent::CollaborationWorkerFinished {
+                session_id: self.session_id_from_context(context),
+                worker_id,
+                task_id: task_id.clone(),
+                content: Some(output),
+            });
+            if self.pending_support_workers.is_empty() {
+                let primary_task_id = self.active_collaboration_task_id.clone().unwrap_or(task_id);
+                self.send_collaboration_done(context, &primary_task_id)
+                    .await;
+            }
+            return true;
+        }
+
+        false
+    }
+
     async fn dispatch_support_workers(
         &mut self,
         plan: &RoleCollaborationPlan,
@@ -183,26 +315,43 @@ impl Commander {
             .as_ref()
             .map(|task| task.description.as_str())
             .unwrap_or_default();
+        let primary_report = self
+            .collaboration_reports
+            .get(&plan.primary.worker_id)
+            .cloned();
         let primary_output = self
             .collaboration_outputs
             .get(&plan.primary.worker_id)
             .map(|contribution| contribution.content.as_str())
             .filter(|content| !content.trim().is_empty())
-            .unwrap_or("主角色已完成初稿，但没有返回可读摘要。");
+            .unwrap_or("主角色已完成初稿，但没有返回可读摘要。")
+            .to_string();
+        let graph_id = TaskGraphId(format!("graph-{}", primary_task_id.0));
         for assignment in &plan.support {
-            let task = TaskSpec {
-                id: TaskId(format!(
-                    "{}:support:{}",
-                    primary_task_id.0, assignment.runtime_role
-                )),
-                description: format!(
+            let support_task_id = TaskId(format!(
+                "{}:support:{}",
+                primary_task_id.0, assignment.runtime_role
+            ));
+            let worker_assignment = WorkerAssignment {
+                graph_id: graph_id.clone(),
+                node_id: TaskNodeId(format!("support_{}", assignment.runtime_role)),
+                task_id: support_task_id,
+                worker_id: assignment.worker_id.clone(),
+                role: assignment.runtime_role.clone(),
+                attempt: 1,
+                objective: format!(
                     "原始用户任务：{root_task}\n\n主角色初稿：{primary_output}\n作为 {} \
                      角色，请基于同一上下文补充本角色的独立判断、证据、风险和下一步建议；\
-                     不要只说“接收上游结果”。",
+                     不要只说“接收上游结果”。本轮是轻量协作补充，直接输出可汇总内容，\
+                     不请求外部 Skill 或工具。",
                     assignment.runtime_role
                 ),
+                llm_usage: Some("fast".to_string()),
+                skill_autosuggest: Some(false),
+                inputs: primary_report.clone().into_iter().collect(),
+                rework_instruction: None,
             };
-            if self.dispatch_task_to_worker(task, Some(assignment.worker_id.clone())) {
+            if self.dispatch_assignment_to_worker(worker_assignment) {
                 dispatched.push(assignment.worker_id.clone());
             }
         }
@@ -253,6 +402,7 @@ impl Commander {
         self.pending_support_workers.clear();
         self.completed_support_workers.clear();
         self.collaboration_outputs.clear();
+        self.collaboration_reports.clear();
         self.phase = CommanderPhase::Idle;
         self.state = CommanderState::Idle;
     }
@@ -349,25 +499,83 @@ pub(super) fn synthesize_user_facing_collaboration_report(
     lines.join("\n")
 }
 
-fn single_worker_dispatch_graph(
-    task: &TaskSpec,
-    role_route: &crate::roles::RoleRoute,
-) -> TaskGraph {
+fn role_route_dispatch_graph(task: &TaskSpec, role_route: &crate::roles::RoleRoute) -> TaskGraph {
+    let primary_role = role_route.primary_runtime_role.trim();
+    let primary_id = TaskNodeId(primary_role.to_string());
+    let mut nodes = vec![TaskNode {
+        id: primary_id.clone(),
+        role: primary_role.to_string(),
+        worker_id: WorkerId(format!("worker.{primary_role}")),
+        title: role_step_title(primary_role, true),
+        objective: format!(
+            "作为本轮主岗位先完成核心判断，并给支持岗位可复核的初稿：{}",
+            task.description
+        ),
+        llm_usage: None,
+        skill_autosuggest: Some(false),
+        input_refs: Vec::new(),
+        acceptance: vec!["必须先给出本岗位的核心判断、依据、风险和下一步建议。".to_string()],
+        max_attempts: 1,
+    }];
+
+    for support_role in &role_route.support_runtime_roles {
+        let support_role = support_role.trim();
+        if support_role.is_empty() || support_role == primary_role {
+            continue;
+        }
+        if nodes.iter().any(|node| node.role == support_role) {
+            continue;
+        }
+        nodes.push(TaskNode {
+            id: TaskNodeId(support_role.to_string()),
+            role: support_role.to_string(),
+            worker_id: WorkerId(format!("worker.{support_role}")),
+            title: role_step_title(support_role, false),
+            objective: format!(
+                "基于主岗位初稿补充本岗位的独立判断、证据、风险和下一步建议：{}",
+                task.description
+            ),
+            llm_usage: None,
+            skill_autosuggest: Some(false),
+            input_refs: vec![primary_id.clone()],
+            acceptance: vec!["必须补充本岗位独立贡献，不能只复述主岗位结论。".to_string()],
+            max_attempts: 1,
+        });
+    }
+
+    let adaptive_hint = (nodes.len() > 1).then(|| TaskGraphAdaptiveHint {
+        min_level: Some("complex".to_string()),
+        reason: Some(
+            "本轮调度已形成主岗位加支持岗位的协作链路，过程面板会展示实际参与岗位。".to_string(),
+        ),
+    });
+
     TaskGraph {
         graph_id: crate::core::protocol::TaskGraphId(format!("graph-{}", task.id.0)),
         root_task: task.description.clone(),
-        nodes: vec![TaskNode {
-            id: TaskNodeId(role_route.primary_runtime_role.clone()),
-            role: role_route.primary_runtime_role.clone(),
-            worker_id: WorkerId(format!("worker.{}", role_route.primary_runtime_role)),
-            title: role_route.primary_runtime_role.clone(),
-            objective: task.description.clone(),
-            llm_usage: None,
-            skill_autosuggest: None,
-            input_refs: Vec::new(),
-            acceptance: Vec::new(),
-            max_attempts: 1,
-        }],
+        nodes,
+        adaptive_hint,
+    }
+}
+
+fn role_step_title(runtime_role: &str, primary: bool) -> String {
+    let role_label = match runtime_role {
+        "chat" => "快速对话",
+        "data" => "数据诊断",
+        "ops" => "运营方案",
+        "creative" => "创意产出",
+        "service" => "客服承接",
+        "engineering" => "资料与系统",
+        "douyin_ads" => "投放判断",
+        "accounting" => "预算评估",
+        "design" => "体验设计",
+        "web" => "市场与搜索",
+        other => other,
+    };
+    if primary {
+        format!("{role_label}主判断")
+    } else {
+        format!("{role_label}协作补充")
     }
 }
 
@@ -443,10 +651,10 @@ fn compact_text(content: &str, max_chars: usize) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::synthesize_user_facing_collaboration_report;
+    use super::{role_route_dispatch_graph, synthesize_user_facing_collaboration_report};
     use crate::{
         core::protocol::{TaskId, WorkerId},
-        roles::{RoleAssignment, RoleCollaborationPlan, RoleContribution, RoleId},
+        roles::{RoleAssignment, RoleCollaborationPlan, RoleContribution, RoleId, RoleRoute},
     };
 
     #[test]
@@ -514,6 +722,43 @@ mod tests {
         assert!(!lower.contains("service role output lacks"));
         assert!(!output.contains("任务已完成: task-123"));
         assert!(!lower.contains("worker"));
+    }
+
+    #[test]
+    fn fast_route_dispatch_graph_keeps_support_roles_visible() {
+        let task = crate::core::protocol::TaskSpec {
+            id: TaskId("task-1".to_string()),
+            description: "请数据、运营、创意三个岗位一起设计校园手机壳上新方案。".to_string(),
+        };
+        let route = RoleRoute {
+            primary_role: RoleId("role.ops-strategist".to_string()),
+            primary_runtime_role: "ops".to_string(),
+            support_roles: vec![
+                RoleId("role.data-analyst".to_string()),
+                RoleId("role.creative-studio".to_string()),
+            ],
+            support_runtime_roles: vec!["data".to_string(), "creative".to_string()],
+            scores: Vec::new(),
+        };
+
+        let graph = role_route_dispatch_graph(&task, &route);
+
+        assert_eq!(graph.nodes.len(), 3);
+        assert_eq!(graph.nodes[0].role, "ops");
+        assert_eq!(graph.nodes[1].role, "data");
+        assert_eq!(graph.nodes[2].role, "creative");
+        assert_eq!(graph.nodes[1].input_refs, vec![graph.nodes[0].id.clone()]);
+        assert_eq!(graph.nodes[2].input_refs, vec![graph.nodes[0].id.clone()]);
+        assert_eq!(
+            graph.adaptive_hint.and_then(|hint| hint.min_level),
+            Some("complex".to_string())
+        );
+        assert!(
+            graph
+                .nodes
+                .iter()
+                .all(|node| node.skill_autosuggest == Some(false))
+        );
     }
 
     fn assignment(runtime_role: &str) -> RoleAssignment {

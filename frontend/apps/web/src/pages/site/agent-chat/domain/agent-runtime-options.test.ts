@@ -23,9 +23,10 @@ const higherVocationalCopy = "Higher vocational"
 describe("agent runtime options", () => {
   it("uses the same default answer setup before backend options finish loading", () => {
     expect(defaultRuntimeSelection(null)).toMatchObject({
-      collaborationMode: "manual",
+      collaborationMode: "auto",
       learningLevel: "higher_vocational",
       primaryRole: "ops",
+      selectedRoles: [],
     })
   })
 
@@ -103,11 +104,11 @@ describe("agent runtime options", () => {
         strategies: [],
       })
     ).toEqual({
-      collaborationMode: "manual",
+      collaborationMode: "auto",
       learningLevel: "higher_vocational",
       modelName: "ollama-gpt-oss-20b",
       primaryRole: "ops",
-      selectedRoles: ["ops", "data", "creative", "service", "engineering"],
+      selectedRoles: [],
     })
   })
 
