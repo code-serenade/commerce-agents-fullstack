@@ -688,6 +688,7 @@
 - 允许的 key 前缀为 `users/{userScope}/docs/` 和 `users/{userScope}/images/`
 - 如果传入 `sha256`，服务端会校验 object key 文件名部分与 `sha256` 一致
 - 同一个会话重复注册同一个 active `objectKey` 时，服务端会直接返回已有附件记录；不同会话可以引用同一个 S3 对象
+- 注册成功后服务端会为 `conversation_file:{fileId}` 保留一条对象存储引用；业务表只保存 S3 地址和附件元数据
 
 ## 11. 登记会话附件抽取状态 / 文本
 
@@ -815,8 +816,9 @@
 补充说明：
 
 - 服务端会校验文件属于当前登录用户。
-- 删除时先删除 S3 对象，再将会话附件记录标记为 `deleted`。
-- 删除失败时不会更新数据库状态，前端可重试。
+- 删除时会释放 `conversation_file:{fileId}` 对对象存储的引用，并将会话附件记录标记为 `deleted`。
+- 本接口不会直接删除 S3 物理对象；若多个会话或商品资产引用同一对象，资源会继续保留。引用数归零后对象进入 `orphaned` 状态，后续由对象存储资源管理器确认无 active 引用后删除。
+- 释放引用或更新数据库失败时会整体回滚，前端可重试。
 
 ## 14. 查询我的商品列表
 
@@ -1340,6 +1342,7 @@
 - 服务端会校验 `objectKey` 是否位于当前用户当前商品路径下
 - `assetType` 不传时默认 `docs`
 - 只登记对象元数据，不直接接收文件二进制
+- 登记成功后服务端会为 `product_asset:{assetId}` 保留一条对象存储引用；同一商品重复登记同一个 active `objectKey` 时直接返回已有资产记录
 
 ## 25. 获取商品资产下载签名
 
@@ -1396,7 +1399,8 @@
 补充说明：
 
 - 当前实现为软删除，设置 `status = archived`
-- 不在本接口直接删除对象存储里的物理文件
+- 归档时会释放 `product_asset:{assetId}` 对对象存储的引用
+- 本接口不会直接删除 S3 物理对象；若其它会话或商品资产仍引用同一对象，资源会继续保留。引用数归零后对象进入 `orphaned` 状态，后续由对象存储资源管理器确认无 active 引用后删除。
 
 ## 28. 查询商品素材列表
 
@@ -3179,7 +3183,7 @@
 - `contentKind=extraction_failed` 表示附件解析失败；失败原因位于 `metadata.metadata.extraction.failureReason`。
 - `contentKind=extraction_unsupported` 表示当前解析 adapter 不支持该附件。
 - `contentKind=unavailable` 表示该来源没有可读文本。
-- 该接口不会读取 object storage，不做 OCR，不解析 PDF/图片/视频，也不会把二进制附件伪造成已读正文。Agent SSE 对 conversation 图片附件的 vision 输入是独立链路：服务端会在启动 runtime 前为 active 图片附件生成临时下载 URL 并写入 `attachments.images_json`，不会改变本 context-pack 的可读正文语义。
+- 该接口不会读取 object storage，不做 OCR，不解析 PDF/图片/视频，也不会把二进制附件伪造成已读正文。Agent SSE 对 conversation 图片附件的 vision 输入是独立链路：服务端会在启动 runtime 前下载 active 图片附件并转成 `data:image/...;base64,...` 写入 `attachments.images_json`，不会改变本 context-pack 的可读正文语义。
 - Agent SSE 会在 `workspace_context_loaded` 后自动调用该内容包能力，发送 `workspace_context_pack_loaded` 事件，并把可读文本追加进 runtime `context.summary`。
 - `contextRefs` 中的显式附件、营销活动、商品资产、商品素材和 artifact 会和 `conversationId`、`productId`、`runId` 范围来源合并去重后进入内容包；未显式引用的历史附件、历史活动、历史商品素材或历史 artifact 不会进入 SSE Agent 本轮上下文。
 

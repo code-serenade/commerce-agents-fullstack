@@ -14,15 +14,19 @@ use repo::table::{
 use serde_json::json;
 use uuid::Uuid;
 
-use crate::dto::product_asset::{
-    DeleteProductAssetRequest, GetProductAssetRequest, ListProductAssetsRequest,
-    ProductAssetResponse, RegisterProductAssetRequest, UpdateProductAssetRequest,
+use crate::{
+    api::storage_reference::{RetainStorageReferenceRequest, StorageReferenceApi},
+    dto::product_asset::{
+        DeleteProductAssetRequest, GetProductAssetRequest, ListProductAssetsRequest,
+        ProductAssetResponse, RegisterProductAssetRequest, UpdateProductAssetRequest,
+    },
 };
 
 const DEFAULT_LIST_LIMIT: u64 = 200;
 const DEFAULT_ASSET_TYPE: &str = "docs";
 
 pub struct ProductAssetApi {
+    db: DbContext,
     app_user_svc: AppUserService,
     product_svc: ProductService,
     asset_svc: ProductAssetService,
@@ -31,6 +35,7 @@ pub struct ProductAssetApi {
 impl ProductAssetApi {
     pub fn new(db: DbContext) -> Self {
         Self {
+            db: db.clone(),
             app_user_svc: AppUserService::new(db.clone()),
             product_svc: ProductService::new(db.clone()),
             asset_svc: ProductAssetService::new(db),
@@ -78,25 +83,69 @@ impl ProductAssetApi {
             &product_id.to_string(),
         )?;
 
-        let asset = self
+        let bucket = normalize_required(req.bucket, "bucket")?;
+        let object_key = normalize_required(req.object_key, "object_key")?;
+        if let Some(existing) = self
             .asset_svc
-            .create(CreateProductAsset {
-                id: Uuid::new_v4(),
-                user_id,
-                product_id,
-                bucket: normalize_required(req.bucket, "bucket")?,
-                object_key: normalize_required(req.object_key, "object_key")?,
-                asset_type: normalize_optional(req.asset_type)
-                    .unwrap_or_else(|| DEFAULT_ASSET_TYPE.to_string()),
-                file_name: normalize_optional(req.file_name),
-                mime_type: normalize_optional(req.mime_type),
-                file_size: req.file_size,
-                description: normalize_optional(req.description),
-                metadata: req.metadata.unwrap_or_else(|| json!({})),
-            })
-            .await?;
+            .get_active_by_product_object(product_id, &bucket, &object_key)
+            .await?
+        {
+            StorageReferenceApi::new(self.db.clone())
+                .retain(RetainStorageReferenceRequest {
+                    user_id,
+                    bucket: existing.bucket.clone(),
+                    object_key: existing.object_key.clone(),
+                    sha256: None,
+                    mime_type: existing.mime_type.clone(),
+                    file_size: existing.file_size,
+                    source_type: "product_asset".to_string(),
+                    source_id: existing.id,
+                    metadata: json!({}),
+                })
+                .await?;
+            return Self::map_asset(existing);
+        }
 
-        Self::map_asset(asset)
+        let tx = self.db.begin().await?;
+        let result: BizResult<ProductAssetResponse> = async {
+            let api = ProductAssetApi::new(tx.clone());
+            let asset = api
+                .asset_svc
+                .create(CreateProductAsset {
+                    id: Uuid::new_v4(),
+                    user_id,
+                    product_id,
+                    bucket,
+                    object_key,
+                    asset_type: normalize_optional(req.asset_type)
+                        .unwrap_or_else(|| DEFAULT_ASSET_TYPE.to_string()),
+                    file_name: normalize_optional(req.file_name),
+                    mime_type: normalize_optional(req.mime_type),
+                    file_size: req.file_size,
+                    description: normalize_optional(req.description),
+                    metadata: req.metadata.unwrap_or_else(|| json!({})),
+                })
+                .await?;
+
+            StorageReferenceApi::new(tx.clone())
+                .retain_in_current_context(RetainStorageReferenceRequest {
+                    user_id,
+                    bucket: asset.bucket.clone(),
+                    object_key: asset.object_key.clone(),
+                    sha256: None,
+                    mime_type: asset.mime_type.clone(),
+                    file_size: asset.file_size,
+                    source_type: "product_asset".to_string(),
+                    source_id: asset.id,
+                    metadata: json!({}),
+                })
+                .await?;
+
+            Self::map_asset(asset)
+        }
+        .await;
+
+        commit_or_rollback(tx, result).await
     }
 
     pub async fn get_asset(&self, req: GetProductAssetRequest) -> BizResult<ProductAssetResponse> {
@@ -163,20 +212,30 @@ impl ProductAssetApi {
             .ensure_active_asset_owner(user_id, product_id, asset_id)
             .await?;
 
-        self.asset_svc
-            .update(UpdateProductAsset {
-                id: current.id,
-                asset_type: current.asset_type,
-                file_name: current.file_name,
-                mime_type: current.mime_type,
-                file_size: current.file_size,
-                description: current.description,
-                status: ProductAssetStatus::Archived,
-                metadata: current.metadata,
-            })
-            .await?;
+        let tx = self.db.begin().await?;
+        let result: BizResult<()> = async {
+            let api = ProductAssetApi::new(tx.clone());
+            StorageReferenceApi::new(tx.clone())
+                .release_in_current_context("product_asset", current.id)
+                .await?;
+            api.asset_svc
+                .update(UpdateProductAsset {
+                    id: current.id,
+                    asset_type: current.asset_type,
+                    file_name: current.file_name,
+                    mime_type: current.mime_type,
+                    file_size: current.file_size,
+                    description: current.description,
+                    status: ProductAssetStatus::Archived,
+                    metadata: current.metadata,
+                })
+                .await?;
 
-        Ok(())
+            Ok(())
+        }
+        .await;
+
+        commit_or_rollback(tx, result).await
     }
 
     async fn ensure_app_user_enabled(&self, user_id: Uuid) -> BizResult<()> {
@@ -365,4 +424,17 @@ fn normalize_optional(value: Option<String>) -> Option<String> {
 fn normalize_string(value: String) -> Option<String> {
     let value = value.trim().to_string();
     (!value.is_empty()).then_some(value)
+}
+
+async fn commit_or_rollback<T>(tx: DbContext, result: BizResult<T>) -> BizResult<T> {
+    match result {
+        Ok(value) => {
+            tx.commit().await?;
+            Ok(value)
+        }
+        Err(err) => {
+            tx.rollback().await?;
+            Err(err)
+        }
+    }
 }

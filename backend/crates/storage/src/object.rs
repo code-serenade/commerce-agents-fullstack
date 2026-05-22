@@ -31,6 +31,12 @@ pub struct DeleteObjectRequest {
 }
 
 #[derive(Debug, Clone)]
+pub struct DownloadObjectRequest {
+    pub bucket: BucketKind,
+    pub key: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct PresignUploadRequest {
     pub bucket: BucketKind,
     pub key: String,

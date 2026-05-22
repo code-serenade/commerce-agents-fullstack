@@ -15,16 +15,22 @@ use repo::table::{
     conversations::{Conversation, ConversationService, CreateConversation},
 };
 use serde_json::{Map, Value, json};
-use storage::{BucketKind, DeleteObjectRequest, ObjectStorage, PresignDownloadRequest};
+use storage::{BucketKind, ObjectStorage, PresignDownloadRequest};
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use uuid::Uuid;
 
-use crate::dto::conversation::{
-    AddConversationMessageRequest, ConversationDetailResponse, ConversationFileAccessResponse,
-    ConversationFileResponse, ConversationMessageResponse, ConversationResponse,
-    CreateConversationRequest, DeleteConversationFileRequest, DeleteConversationRequest,
-    RegisterConversationFileRequest, UpdateConversationFileExtractionRequest,
-    UpdateConversationRequest, uuid_to_string,
+use crate::{
+    api::{
+        storage_reference::{RetainStorageReferenceRequest, StorageReferenceApi},
+        storage_resource_manager::{CleanupOrphanedStorageObjectsRequest, StorageResourceManager},
+    },
+    dto::conversation::{
+        AddConversationMessageRequest, ConversationDetailResponse, ConversationFileAccessResponse,
+        ConversationFileResponse, ConversationMessageResponse, ConversationResponse,
+        CreateConversationRequest, DeleteConversationFileRequest, DeleteConversationRequest,
+        RegisterConversationFileRequest, UpdateConversationFileExtractionRequest,
+        UpdateConversationRequest, uuid_to_string,
+    },
 };
 
 const DEFAULT_LIST_LIMIT: u64 = 50;
@@ -217,9 +223,25 @@ impl ConversationApi {
         self.ensure_active_conversation_owner(user_id, conversation_id)
             .await?;
 
-        self.conversation_svc.delete_by_id(conversation_id).await?;
+        let tx = self.db.begin().await?;
+        let result: BizResult<()> = async {
+            let api = ConversationApi::new(tx.clone());
+            let storage_ref_api = StorageReferenceApi::new(tx.clone());
+            let files = api
+                .file_svc
+                .list_by_conversation_id(conversation_id)
+                .await?;
+            for file in files {
+                storage_ref_api
+                    .release_in_current_context("conversation_file", file.id)
+                    .await?;
+            }
+            api.conversation_svc.delete_by_id(conversation_id).await?;
+            Ok(())
+        }
+        .await;
 
-        Ok(())
+        commit_or_rollback(tx, result).await
     }
 
     pub async fn register_file(
@@ -248,26 +270,61 @@ impl ConversationApi {
             .get_active_by_conversation_object(conversation_id, "private", &object_key)
             .await?
         {
+            StorageReferenceApi::new(self.db.clone())
+                .retain(RetainStorageReferenceRequest {
+                    user_id,
+                    bucket: existing.bucket.clone(),
+                    object_key: existing.object_key.clone(),
+                    sha256: existing.sha256.clone(),
+                    mime_type: existing.mime_type.clone(),
+                    file_size: existing.file_size,
+                    source_type: "conversation_file".to_string(),
+                    source_id: existing.id,
+                    metadata: json!({}),
+                })
+                .await?;
             return Ok(Self::map_file(existing));
         }
 
-        let file = self
-            .file_svc
-            .create(CreateConversationFile {
-                id: Uuid::new_v4(),
-                user_id,
-                conversation_id,
-                message_id,
-                bucket: "private".to_string(),
-                object_key,
-                file_name: normalize_optional(req.file_name),
-                mime_type: normalize_optional(req.mime_type),
-                file_size: req.file_size,
-                sha256: normalize_optional(req.sha256),
-                metadata: build_initial_file_extraction_metadata(),
-            })
-            .await?;
-        Ok(Self::map_file(file))
+        let tx = self.db.begin().await?;
+        let result: BizResult<ConversationFileResponse> = async {
+            let api = ConversationApi::new(tx.clone());
+            let file = api
+                .file_svc
+                .create(CreateConversationFile {
+                    id: Uuid::new_v4(),
+                    user_id,
+                    conversation_id,
+                    message_id,
+                    bucket: "private".to_string(),
+                    object_key,
+                    file_name: normalize_optional(req.file_name),
+                    mime_type: normalize_optional(req.mime_type),
+                    file_size: req.file_size,
+                    sha256: normalize_optional(req.sha256),
+                    metadata: build_initial_file_extraction_metadata(),
+                })
+                .await?;
+
+            StorageReferenceApi::new(tx.clone())
+                .retain_in_current_context(RetainStorageReferenceRequest {
+                    user_id,
+                    bucket: file.bucket.clone(),
+                    object_key: file.object_key.clone(),
+                    sha256: file.sha256.clone(),
+                    mime_type: file.mime_type.clone(),
+                    file_size: file.file_size,
+                    source_type: "conversation_file".to_string(),
+                    source_id: file.id,
+                    metadata: json!({}),
+                })
+                .await?;
+
+            Ok(Self::map_file(file))
+        }
+        .await;
+
+        commit_or_rollback(tx, result).await
     }
 
     pub async fn delete_file(
@@ -282,22 +339,30 @@ impl ConversationApi {
         self.ensure_active_conversation_owner(user_id, file.conversation_id)
             .await?;
 
-        storage
-            .delete_object(DeleteObjectRequest {
-                bucket: bucket_kind_from_name(&file.bucket, storage)?,
-                key: file.object_key.clone(),
-            })
-            .await
-            .map_err(|err| {
-                BizError::new(app_error::CONVERSATION_REQUEST_INVALID, err.to_string())
-            })?;
+        let tx = self.db.begin().await?;
+        let result: BizResult<()> = async {
+            let api = ConversationApi::new(tx.clone());
+            StorageReferenceApi::new(tx.clone())
+                .release_in_current_context("conversation_file", file.id)
+                .await?;
+            api.file_svc
+                .update_status(UpdateConversationFileStatus {
+                    id: file.id,
+                    status: "deleted".to_string(),
+                    deleted_at: Some(OffsetDateTime::now_utc()),
+                })
+                .await?;
+            Ok(())
+        }
+        .await;
 
-        self.file_svc
-            .update_status(UpdateConversationFileStatus {
-                id: file.id,
-                status: "deleted".to_string(),
-                deleted_at: Some(OffsetDateTime::now_utc()),
-            })
+        commit_or_rollback(tx, result).await?;
+
+        StorageResourceManager::new(self.db.clone())
+            .cleanup_orphaned_objects(
+                storage,
+                CleanupOrphanedStorageObjectsRequest { limit: Some(10) },
+            )
             .await?;
 
         Ok(())
@@ -654,20 +719,6 @@ fn encode_base62_u128(mut value: u128) -> String {
         value /= 62;
     }
     output.iter().rev().collect()
-}
-
-fn bucket_kind_from_name(bucket: &str, storage: &ObjectStorage) -> BizResult<BucketKind> {
-    let config = storage.config();
-    if bucket == "private" || bucket == config.private_bucket {
-        Ok(BucketKind::Private)
-    } else if bucket == "public" || bucket == config.public_bucket {
-        Ok(BucketKind::Public)
-    } else {
-        Err(BizError::new(
-            app_error::CONVERSATION_REQUEST_INVALID,
-            "invalid bucket".to_string(),
-        ))
-    }
 }
 
 fn normalize_extraction_status(value: Option<String>) -> BizResult<String> {

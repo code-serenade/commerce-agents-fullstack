@@ -58,6 +58,26 @@ impl ProductAssetService {
             .transpose()
     }
 
+    pub async fn get_active_by_product_object(
+        &self,
+        product_id: Uuid,
+        bucket: &str,
+        object_key: &str,
+    ) -> BizResult<Option<ProductAsset>> {
+        self.repo
+            .select_one(
+                self.repo
+                    .query()
+                    .filter(product_assets::Column::ProductId.eq(product_id))
+                    .filter(product_assets::Column::Bucket.eq(bucket))
+                    .filter(product_assets::Column::ObjectKey.eq(object_key))
+                    .filter(product_assets::Column::Status.eq(ProductAssetStatus::Active.as_str())),
+            )
+            .await?
+            .map(Self::from_model)
+            .transpose()
+    }
+
     pub async fn list(&self, filter: ProductAssetFilter) -> BizResult<Vec<ProductAsset>> {
         let mut query = self
             .repo

@@ -57,7 +57,7 @@
 | `metadata.context.productIds` | `string[]` | 否 | 绑定到本轮问答的商品 ID，最多 5 个；后端会校验当前用户权限并读取真实商品/知识 |
 | `metadata.context.contextRefs` | `string[]` | 否 | 上下文引用，当前支持 `product:{productId}`、`conversation_file:{fileId}` / `file:{fileId}`、`product_asset:{assetId}` / `asset:{assetId}`、`product_material:{materialId}` / `material:{materialId}`、`workspace_artifact:{artifactId}` / `artifact:{artifactId}`，最多 20 个 |
 | `metadata.attachments.images` | `object[]` | 否 | 本轮传给 vision LLM 的图片输入，最多 4 张 |
-| `metadata.attachments.images[].url` | `string` | 是 | 图片 URL，允许 HTTPS URL 或 `data:image/png/jpeg/webp;base64,...` |
+| `metadata.attachments.images[].url` | `string` | 是 | 图片 URL，允许 HTTPS URL 或 `data:image/png/jpeg/webp;base64,...`；本地 Ollama 等不能拉外部 URL 的 provider 建议使用 data URL |
 | `metadata.attachments.images[].detail` | `string` | 否 | vision detail，允许 `auto`、`low`、`high` |
 | `metadata.attachments.images[].sourceRef` | `string` | 否 | 图片来源引用，例如 `conversation_file:{fileId}`，仅作来源标记，不绕过上下文权限校验 |
 | `metadata.model.name` | `string` | 否 | 已废弃；服务端会忽略该字段，前端不能控制本轮 LLM |
@@ -78,7 +78,7 @@
 
 `metadata.model.name` 已废弃。Agent SSE 不接受前端选择本轮 LLM；服务端始终使用 `backend/config/services.toml` 中的 `default_llm` 和 `[agent_llm_usage]` 路由配置。即使请求体里带了旧的模型名，后端也会忽略该字段，不会因为旧前端缓存的模型名不存在而拒绝本轮请求。后端只把最终服务端选中的模型配置名和模型名写入 runtime metadata，不向前端暴露 `base_url` 或 `api_key`。
 
-`metadata.attachments.images` 存在时，Agent runtime 会自动选择 `[agent_llm_usage].vision` 对应的 LLM，并把图片按 OpenAI-compatible `image_url` content part 发送给模型。`vision` 未配置时，带图片请求会失败并返回明确错误；后端不会降级为文本模型。外部 HTTPS 图片 URL 不会由 web-server 下载或代理，provider 必须能够直接访问该 URL。若图片来自系统附件、商品资产、商品素材或工作区 artifact，前端仍应同步传入 `metadata.context.contextRefs` 让后端完成当前用户、active 状态和归属校验。当前若前端只传 `metadata.context.conversationId` 且没有显式传 `metadata.attachments.images`，服务端会自动从该会话 active 附件中筛选 `image/png`、`image/jpeg`、`image/webp`，最多 4 张，通过私有对象存储临时下载 URL 写入 runtime `attachments.images_json`，让本轮 Agent 使用 vision LLM 解析图片；该临时 URL 仅用于 provider 拉取图片，不会进入 `workspace_context_pack_loaded` 的可读正文。
+`metadata.attachments.images` 存在时，Agent runtime 会自动选择 `[agent_llm_usage].vision` 对应的 LLM，并把图片按 OpenAI-compatible `image_url` content part 发送给模型。`vision` 未配置时，带图片请求会失败并返回明确错误；后端不会降级为文本模型。外部 HTTPS 图片 URL 不会由 web-server 下载或代理，provider 必须能够直接访问该 URL。若图片来自系统附件、商品资产、商品素材或工作区 artifact，前端仍应同步传入 `metadata.context.contextRefs` 让后端完成当前用户、active 状态和归属校验。当前若前端只传 `metadata.context.conversationId` 且没有显式传 `metadata.attachments.images`，服务端会自动从该会话 active 附件中筛选 `image/png`、`image/jpeg`、`image/jpg`、`image/webp`，最多 4 张，从私有对象存储下载图片并转成 `data:image/...;base64,...` 写入 runtime `attachments.images_json`，让本轮 Agent 使用 vision LLM 解析图片；该 data URL 仅用于 runtime 模型输入，不会进入 `workspace_context_pack_loaded` 的可读正文。
 
 `metadata.strategy.*` 仅允许小写字母、数字、`_`、`-`，单字段最大 64 字符。后端会把这些字段转换为 agent runtime metadata：`strategy.id`、`strategy.response_mode`、`strategy.collaboration_mode`、`strategy.learning_level`、`strategy.primary_role`、`strategy.selected_roles`。前端不得把策略说明拼进 `input` 来伪造后端策略行为。
 

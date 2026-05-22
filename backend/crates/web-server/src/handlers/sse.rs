@@ -41,7 +41,9 @@ use service::{
         },
     },
 };
+use storage::{BucketKind, DownloadObjectRequest};
 use toolcraft_axum_kit::{ApiError, CommonError, middleware::auth_mw::AuthUser};
+use utils::image::{is_supported_vision_mime, vision_image_data_url};
 use uuid::Uuid;
 use validator::Validate;
 
@@ -188,6 +190,11 @@ pub async fn stream_agent_session(
         })
         .await
         .map_err(from_biz_error)?;
+    tracing::debug!(
+        conversation_id = ?workspace_context.conversation_id,
+        attachment_sources = workspace_context.attachment_sources.len(),
+        "sse workspace context summary loaded"
+    );
     merge_workspace_context_metadata(&mut metadata, &workspace_context)
         .map_err(|err| Error::Custom(format!("workspace context metadata failed: {err}")))?;
     merge_conversation_file_image_attachments(&mut metadata, &user_id, &workspace_context)
@@ -1339,28 +1346,89 @@ async fn merge_conversation_file_image_attachments(
         .get("attachments.images_json")
         .is_some_and(|value| !value.trim().is_empty())
     {
+        tracing::debug!(
+            "sse image attachment merge skipped: metadata already contains images_json"
+        );
         return Ok(());
     }
 
     let image_sources = auto_vision_conversation_file_sources(context);
+    tracing::debug!(
+        attachment_sources = context.attachment_sources.len(),
+        image_sources = image_sources.len(),
+        "sse image attachment source scan finished"
+    );
     if image_sources.is_empty() {
         return Ok(());
     }
 
-    let conversation_api = ConversationApi::new(get_app_ctx());
     let mut images = Vec::new();
     for source in image_sources {
-        let access = conversation_api
-            .file_access(get_storage(), user_id.to_string(), source.id.clone())
-            .await
-            .map_err(|err| {
+        let object_key = source
+            .metadata
+            .get("objectKey")
+            .and_then(Value::as_str)
+            .ok_or_else(|| {
                 Error::Custom(format!(
-                    "conversation image attachment access failed for {}: {:?}",
-                    source.ref_key, err,
+                    "conversation image attachment missing objectKey for {}",
+                    source.ref_key
                 ))
             })?;
+        let mime_type = source.mime_type.as_deref().ok_or_else(|| {
+            Error::Custom(format!(
+                "conversation image attachment missing mimeType for {}",
+                source.ref_key
+            ))
+        })?;
+        tracing::debug!(
+            user_id,
+            ref_key = %source.ref_key,
+            object_key,
+            mime_type,
+            file_size = ?source.file_size,
+            "sse image attachment download starting"
+        );
+        let bytes = tokio::time::timeout(
+            Duration::from_secs(15),
+            get_storage().download_object(DownloadObjectRequest {
+                bucket: BucketKind::Private,
+                key: object_key.to_string(),
+            }),
+        )
+        .await
+        .map_err(|_| {
+            Error::Custom(format!(
+                "conversation image attachment download timed out for {}",
+                source.ref_key,
+            ))
+        })?
+        .map_err(|err| {
+            Error::Custom(format!(
+                "conversation image attachment download failed for {}: {}",
+                source.ref_key, err,
+            ))
+        })?;
+        let original_bytes = bytes.len();
+        tracing::debug!(
+            ref_key = %source.ref_key,
+            original_bytes,
+            "sse image attachment download finished"
+        );
+        let data_url = vision_image_data_url(mime_type, &bytes).map_err(|err| {
+            Error::Custom(format!(
+                "conversation image attachment data url failed for {}: {}",
+                source.ref_key, err,
+            ))
+        })?;
+        tracing::debug!(
+            ref_key = %source.ref_key,
+            mime_type,
+            original_bytes,
+            data_url_bytes = data_url.len(),
+            "conversation image attachment prepared for vision"
+        );
         images.push(AgentVisionImageAttachment {
-            url: access.download_url,
+            url: data_url,
             detail: "high".to_string(),
             source_ref: source.ref_key.clone(),
         });
@@ -1377,14 +1445,20 @@ async fn merge_conversation_file_image_attachments(
     );
     metadata.insert(
         "attachments.image_source".to_string(),
-        "conversation_file_access".to_string(),
+        "conversation_file_data_url".to_string(),
+    );
+    tracing::debug!(
+        image_count = images.len(),
+        images_json_bytes = metadata
+            .get("attachments.images_json")
+            .map_or(0, |value| value.len()),
+        "sse image attachment metadata written"
     );
     Ok(())
 }
 
 fn is_supported_vision_image_mime(value: &str) -> bool {
-    let value = value.to_ascii_lowercase();
-    matches!(value.as_str(), "image/png" | "image/jpeg" | "image/webp")
+    is_supported_vision_mime(value)
 }
 
 fn auto_vision_conversation_file_sources(

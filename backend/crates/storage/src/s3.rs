@@ -3,8 +3,9 @@ use std::sync::Arc;
 use toolcraft_s3_kit::{BucketClient, S3Client};
 
 use crate::{
-    BucketKind, DeleteObjectRequest, ObjectLocation, PresignDownloadRequest, PresignUploadRequest,
-    Result, SignedDownload, SignedUpload, StorageConfig, UploadObjectRequest, key,
+    BucketKind, DeleteObjectRequest, DownloadObjectRequest, ObjectLocation, PresignDownloadRequest,
+    PresignUploadRequest, Result, SignedDownload, SignedUpload, StorageConfig, UploadObjectRequest,
+    key,
 };
 
 #[derive(Clone)]
@@ -61,6 +62,11 @@ impl ObjectStorage {
             bucket: bucket_name,
             key: req.key,
         })
+    }
+
+    pub async fn download_object(&self, req: DownloadObjectRequest) -> Result<bytes::Bytes> {
+        key::validate_object_key(&req.key)?;
+        Ok(self.bucket(req.bucket).download_object(&req.key).await?)
     }
 
     pub fn presign_upload(&self, req: PresignUploadRequest) -> Result<SignedUpload> {

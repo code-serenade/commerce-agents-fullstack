@@ -20,6 +20,7 @@ use crate::{
 pub type AgentLlmClient = ChatCompletionsLlm;
 
 const ATTACHMENTS_IMAGES_JSON: &str = "attachments.images_json";
+const REQUEST_ATTACHMENTS_IMAGES_JSON: &str = "request.attachments.images_json";
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct AgentLlmCfg {
@@ -256,6 +257,12 @@ where
             Err(failure) => return CognitionResult::Failure(failure),
         };
         let requires_vision = !images.is_empty();
+        tracing::debug!(
+            kind = ?self.kind,
+            image_count = images.len(),
+            requires_vision,
+            "llm routing image input parsed"
+        );
         let usage_name = match self
             .llms
             .usage_name_for_input(self.kind, requires_vision, &input)
@@ -268,6 +275,12 @@ where
                 });
             }
         };
+        tracing::debug!(
+            kind = ?self.kind,
+            image_count = images.len(),
+            usage_name,
+            "llm routing selected llm"
+        );
         let llm = match self.llms.clients.get(usage_name).cloned() {
             Some(llm) => llm,
             None => {
@@ -288,6 +301,14 @@ where
         };
 
         for attempt in 1 ..= max_attempts {
+            tracing::debug!(
+                kind = ?self.kind,
+                attempt,
+                max_attempts,
+                image_count = images.len(),
+                usage_name,
+                "llm routing request starting"
+            );
             let raw = match llm.chat_once(LlmInput { messages }).await {
                 Ok(output) => output.get_content().to_string(),
                 Err(err) => {
@@ -307,6 +328,13 @@ where
                     break;
                 }
             };
+            tracing::debug!(
+                kind = ?self.kind,
+                attempt,
+                output_chars = raw.chars().count(),
+                usage_name,
+                "llm routing response received"
+            );
 
             if raw.trim().is_empty() {
                 crate::log_error_msg!("LLM returned empty response");
@@ -426,7 +454,12 @@ fn is_doubao_llm(llm: &AgentLlmCfg) -> bool {
 fn parse_image_inputs(
     input: &CognitionInput,
 ) -> std::result::Result<Vec<AgentImageInput>, CognitionFailure> {
-    let Some(raw) = input.context.metadata.get(ATTACHMENTS_IMAGES_JSON) else {
+    let Some(raw) = input
+        .context
+        .metadata
+        .get(ATTACHMENTS_IMAGES_JSON)
+        .or_else(|| input.context.metadata.get(REQUEST_ATTACHMENTS_IMAGES_JSON))
+    else {
         return Ok(Vec::new());
     };
     if raw.trim().is_empty() {
@@ -848,6 +881,26 @@ mod tests {
         };
 
         assert!(err.to_string().contains("llm 'missing' not found"));
+    }
+
+    #[test]
+    fn parse_image_inputs_accepts_worker_request_metadata_key() {
+        let mut input = input();
+        input.context.metadata.insert(
+            REQUEST_ATTACHMENTS_IMAGES_JSON.to_string(),
+            r#"[{"url":"data:image/png;base64,AA==","detail":"high","source_ref":"conversation_file:file-1"}]"#
+                .to_string(),
+        );
+
+        let images = parse_image_inputs(&input).expect("image metadata should parse");
+
+        assert_eq!(images.len(), 1);
+        assert_eq!(images[0].url, "data:image/png;base64,AA==");
+        assert_eq!(images[0].detail.as_deref(), Some("high"));
+        assert_eq!(
+            images[0].source_ref.as_deref(),
+            Some("conversation_file:file-1")
+        );
     }
 
     #[test]

@@ -111,7 +111,7 @@ pub(in crate::agent::worker::runner) fn load_inference_policy() -> WorkerInferen
     }
 
     let directory_path = Path::new(DEFAULT_INFERENCE_DIR);
-    match load_inference_directory(&directory_path) {
+    match load_inference_directory(directory_path) {
         Ok(policy) => policy,
         Err(error) => {
             warn!(
@@ -121,7 +121,7 @@ pub(in crate::agent::worker::runner) fn load_inference_policy() -> WorkerInferen
             );
 
             let legacy_path = Path::new(DEFAULT_INFERENCE_FILE);
-            match parse_inference_file(&legacy_path) {
+            match parse_inference_file(legacy_path) {
                 Ok(policy) => policy,
                 Err(error) => {
                     warn!(

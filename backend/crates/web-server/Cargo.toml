@@ -11,6 +11,7 @@ service.workspace = true
 error-code.workspace = true
 agent.workspace = true
 storage.workspace = true
+utils.workspace = true
 
 # external dependencies
 tracing.workspace = true

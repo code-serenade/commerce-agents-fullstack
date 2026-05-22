@@ -195,7 +195,7 @@ pub(in crate::agent::worker::runner) fn load_autosuggest_policy() -> WorkerAutos
     }
 
     let directory_path = Path::new(DEFAULT_AUTOSUGGEST_DIR);
-    match load_autosuggest_directory(&directory_path) {
+    match load_autosuggest_directory(directory_path) {
         Ok(policy) => return policy,
         Err(error) => warn!(
             path = %directory_path.display(),
@@ -205,7 +205,7 @@ pub(in crate::agent::worker::runner) fn load_autosuggest_policy() -> WorkerAutos
     }
 
     let legacy_path = Path::new(LEGACY_AUTOSUGGEST_FILE);
-    match load_legacy_file(&legacy_path) {
+    match load_legacy_file(legacy_path) {
         Ok(policy) => policy,
         Err(error) => {
             warn!(
