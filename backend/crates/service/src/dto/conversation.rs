@@ -29,6 +29,13 @@ pub struct UpdateConversationRequest {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct UpdateConversationMemoryRequest {
+    pub user_id: String,
+    pub conversation_id: String,
+    pub memory: Value,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct DeleteConversationRequest {
     pub user_id: String,
     pub conversation_id: String,
@@ -58,6 +65,14 @@ pub struct UpdateConversationFileExtractionRequest {
     pub language: Option<String>,
     pub failure_reason: Option<String>,
     pub metadata: Option<Value>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct TriggerConversationFileExtractionJobRequest {
+    pub user_id: String,
+    pub file_id: String,
+    pub mode: Option<String>,
+    pub force: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -121,6 +136,38 @@ pub struct ConversationFileAccessResponse {
     pub method: String,
     pub download_url: String,
     pub expires_secs: u64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConversationFileExtractionStatusResponse {
+    pub file_id: String,
+    pub status: String,
+    pub content_kind: Option<String>,
+    pub parser: Option<String>,
+    pub source: Option<String>,
+    pub language: Option<String>,
+    pub summary: Option<String>,
+    pub text_chars: usize,
+    pub readable: bool,
+    pub vision_ready: bool,
+    pub failure_reason: Option<String>,
+    pub metadata: Value,
+    #[serde(with = "time::serde::rfc3339")]
+    pub updated_at: OffsetDateTime,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConversationFileExtractionJobResponse {
+    pub job_id: String,
+    pub file_id: String,
+    pub status: String,
+    pub content_kind: Option<String>,
+    pub parser: Option<String>,
+    pub source: Option<String>,
+    pub message: String,
+    pub metadata: Value,
 }
 
 pub(crate) fn uuid_to_string(value: Uuid) -> String {

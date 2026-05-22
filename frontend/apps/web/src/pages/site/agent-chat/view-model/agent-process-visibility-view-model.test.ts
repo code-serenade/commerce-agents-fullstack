@@ -71,7 +71,7 @@ describe("agent process visibility", () => {
     expect(getProcessRuntimeEvents(messages, 3, liveEvents)).toBe(liveEvents)
   })
 
-  it("does not expose the cluster process panel for direct chat routes", () => {
+  it("exposes a stable light process panel for direct chat routes", () => {
     const directEvents: AgentRuntimeEvent[] = [
       {
         type: "route_decided",
@@ -85,11 +85,32 @@ describe("agent process visibility", () => {
       { id: "assistant-1", role: "assistant", content: "short answer" },
     ]
 
-    expect(shouldRenderMessageProcess(messages[1]!, directEvents)).toBe(false)
-    expect(findLatestProcessTarget(messages, directEvents)).toBeNull()
+    expect(shouldRenderMessageProcess(messages[1]!, directEvents)).toBe(true)
+    expect(findLatestProcessTarget(messages, directEvents)).toEqual({
+      anchorLabel: "#01",
+      messageId: "assistant-1",
+      task: "short question",
+    })
   })
 
-  it("does not expose the cluster process panel for a single chat task node", () => {
+  it("shows a waiting process card for the latest streaming assistant before events arrive", () => {
+    const messages: AgentChatMessage[] = [
+      { id: "welcome", role: "assistant", content: "welcome" },
+      { id: "user-1", role: "user", content: "short question" },
+      { id: "assistant-1", role: "assistant", content: "", status: "streaming" },
+    ]
+    const processEvents = getProcessRuntimeEvents(messages, 2, [])
+
+    expect(processEvents).toEqual([])
+    expect(shouldRenderMessageProcess(messages[2]!, processEvents)).toBe(true)
+    expect(findLatestProcessTarget(messages, [])).toEqual({
+      anchorLabel: "#01",
+      messageId: "assistant-1",
+      task: "short question",
+    })
+  })
+
+  it("exposes a stable light process panel for a single chat task node", () => {
     const chatNodeEvents: AgentRuntimeEvent[] = [
       {
         type: "task_graph_planned",
@@ -116,7 +137,11 @@ describe("agent process visibility", () => {
       { id: "assistant-1", role: "assistant", content: "short answer" },
     ]
 
-    expect(shouldRenderMessageProcess(messages[1]!, chatNodeEvents)).toBe(false)
-    expect(findLatestProcessTarget(messages, chatNodeEvents)).toBeNull()
+    expect(shouldRenderMessageProcess(messages[1]!, chatNodeEvents)).toBe(true)
+    expect(findLatestProcessTarget(messages, chatNodeEvents)).toEqual({
+      anchorLabel: "#01",
+      messageId: "assistant-1",
+      task: "short question",
+    })
   })
 })

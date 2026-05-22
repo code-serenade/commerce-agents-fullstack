@@ -26,13 +26,15 @@ pub(super) fn build_configured_task_graph(
     specs.extend(
         rule.conditional_nodes
             .iter()
-            .filter(|node| node.when.matches(task, route))
+            .filter(|node| node.when.matches(task, route, rules))
             .cloned()
+            .map(Box::new)
             .map(TaskGraphNodeSpec::Conditional),
     );
     specs.extend(dynamic_node_specs(task, route, rules, rule));
     dedupe_node_specs(&mut specs);
-    sort_node_specs(&mut specs, &rule.role_order);
+    let role_order = active_role_order(rule, rules);
+    sort_node_specs(&mut specs, &role_order);
 
     let mut nodes = specs
         .iter()
@@ -61,7 +63,7 @@ fn render_rule_template(template: &str, task: &str, rule: &TaskGraphRule) -> Str
 #[derive(Debug, Clone)]
 enum TaskGraphNodeSpec {
     Node(TaskGraphRuleNode),
-    Conditional(TaskGraphConditionalNode),
+    Conditional(Box<TaskGraphConditionalNode>),
     Dynamic {
         id: String,
         role: String,
@@ -203,6 +205,14 @@ fn sort_node_specs(specs: &mut [TaskGraphNodeSpec], role_order: &[String]) {
             .cmp(&role_rank(right.role(), role_order))
             .then_with(|| left.id().cmp(right.id()))
     });
+}
+
+fn active_role_order(rule: &TaskGraphRule, rules: &TaskGraphRuleSet) -> Vec<String> {
+    if rule.role_order.is_empty() {
+        rules.default_role_order()
+    } else {
+        rule.role_order.clone()
+    }
 }
 
 fn task_node_from_spec(

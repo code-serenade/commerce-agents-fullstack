@@ -215,7 +215,7 @@ fn normalize_query(
             .unwrap_or(DEFAULT_DAYS)
             .clamp(1, MAX_DAYS)
     });
-    if !(1 ..= MAX_DAYS).contains(&days) {
+    if !(1..=MAX_DAYS).contains(&days) {
         return Err(BizError::new(
             app_error::EXTERNAL_SEARCH_REQUEST_INVALID,
             format!("days must be between 1 and {MAX_DAYS}"),
@@ -228,7 +228,7 @@ fn normalize_query(
             .unwrap_or(DEFAULT_MAX_RESULTS)
             .clamp(1, MAX_RESULTS)
     });
-    if !(1 ..= MAX_RESULTS).contains(&max_results) {
+    if !(1..=MAX_RESULTS).contains(&max_results) {
         return Err(BizError::new(
             app_error::EXTERNAL_SEARCH_REQUEST_INVALID,
             format!("maxResults must be between 1 and {MAX_RESULTS}"),

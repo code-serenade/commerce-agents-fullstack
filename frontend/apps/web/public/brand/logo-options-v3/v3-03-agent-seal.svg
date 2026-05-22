@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
+  <title id="title">TaskMate V3 03 Agent Seal</title>
+  <desc id="desc">A restrained agent seal with four interlocked execution paths.</desc>
+  <rect width="96" height="96" rx="24" fill="#111111"/>
+  <circle cx="48" cy="48" r="31" fill="none" stroke="#d9d2c3" stroke-width="4"/>
+  <path fill="none" stroke="#d9d2c3" stroke-linecap="round" stroke-width="9" d="M48 22v23M74 48H51M48 74V51M22 48h23"/>
+  <circle cx="48" cy="48" r="8" fill="#b8a06a"/>
+  <circle cx="48" cy="22" r="4" fill="#d9d2c3"/>
+  <circle cx="74" cy="48" r="4" fill="#d9d2c3"/>
+  <circle cx="48" cy="74" r="4" fill="#d9d2c3"/>
+  <circle cx="22" cy="48" r="4" fill="#d9d2c3"/>
+</svg>

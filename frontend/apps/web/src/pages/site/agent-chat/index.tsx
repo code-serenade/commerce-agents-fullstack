@@ -16,19 +16,14 @@ type ActiveProcessTarget = AgentProcessTarget
 export default function AgentChatPage() {
   const chat = useAgentChatContext()
   const navigate = useNavigate()
+  const [composerFocusVersion, setComposerFocusVersion] = useState(0)
   const [activeProcessTarget, setActiveProcessTarget] =
     useState<ActiveProcessTarget | null>(null)
-  const [dismissedProcessMessageId, setDismissedProcessMessageId] =
-    useState<string | null>(null)
   const latestProcessTarget = useMemo(
     () => findLatestProcessTarget(chat.messages, chat.runtimeEvents),
     [chat.messages, chat.runtimeEvents]
   )
-  const visibleProcessTarget =
-    activeProcessTarget ??
-    (latestProcessTarget?.messageId === dismissedProcessMessageId
-      ? null
-      : latestProcessTarget)
+  const visibleProcessTarget = activeProcessTarget
   const activeProcessMessage = visibleProcessTarget
     ? chat.messages.find((message) => message.id === visibleProcessTarget.messageId)
     : null
@@ -42,13 +37,21 @@ export default function AgentChatPage() {
     Boolean(activeProcessMessage && activeRuntimeEvents.length > 0)
 
   const closeProcessPanel = () => {
-    setDismissedProcessMessageId(visibleProcessTarget?.messageId ?? null)
     setActiveProcessTarget(null)
   }
 
   const openProcessPanel = (target: ActiveProcessTarget) => {
-    setDismissedProcessMessageId(null)
     setActiveProcessTarget(target)
+  }
+
+  const sendMessage = () => {
+    setActiveProcessTarget(null)
+    void chat.sendMessage()
+  }
+
+  const selectExamplePrompt = (prompt: string) => {
+    chat.setInput(prompt)
+    setComposerFocusVersion((current) => current + 1)
   }
 
   const layoutClassName = "relative flex min-h-0 w-full flex-1 overflow-hidden p-2 sm:p-3"
@@ -71,7 +74,7 @@ export default function AgentChatPage() {
             isStreaming={chat.isStreaming}
             messages={chat.messages}
             onCloseProcessPanel={closeProcessPanel}
-            onExamplePromptSelect={chat.setInput}
+            onExamplePromptSelect={selectExamplePrompt}
             onOpenProcessPanel={openProcessPanel}
             runtimeEvents={chat.runtimeEvents}
             selectedStrategy={chat.selectedStrategy}
@@ -85,6 +88,7 @@ export default function AgentChatPage() {
             canSend={chat.canSend}
             error={chat.error}
             input={chat.input}
+            focusVersion={composerFocusVersion}
             isLoggedIn={chat.isLoggedIn}
             isLoadingCampaigns={chat.isLoadingCampaigns}
             isLoadingPlaybooks={chat.isLoadingPlaybooks}
@@ -98,7 +102,7 @@ export default function AgentChatPage() {
             onRuntimePrimaryRoleChange={chat.setRuntimePrimaryRole}
             onToggleRuntimeRole={chat.toggleRuntimeRole}
             onSelectPlaybook={chat.selectPlaybook}
-            onSend={chat.sendMessage}
+            onSend={sendMessage}
             onStop={chat.stopStreaming}
             onStrategyChange={chat.setStrategyId}
             onClearCampaignContext={chat.clearSelectedCampaigns}

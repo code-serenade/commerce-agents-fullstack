@@ -6,6 +6,7 @@ import {
   getInlineProcessFailureState,
   readInlineId,
 } from "./thread-inline-node-states"
+import { getProcessStepRows } from "./agent-process-kind-view-model"
 
 export type InlineAgentState =
   | "idle"
@@ -60,49 +61,7 @@ export function getInlineSteps(
   isStreaming: boolean,
   t: TFunction
 ) {
-  const graphNodes = getInlineGraphNodes(runtimeEvents)
-  if (graphNodes.length > 0) {
-    return graphNodes.slice(0, 8).map((node) => [
-      node.title || routeRoleFallbackTitle(node.role, t),
-      node.objective || t("agentChat.thread.steps.graphNodeReady"),
-    ])
-  }
-
-  if (isChatOnlyRuntime(runtimeEvents)) {
-    return [
-      [
-        t("agentChat.thread.steps.readTarget"),
-        t("agentChat.thread.steps.directAnswer"),
-      ],
-    ]
-  }
-
-  const hasNodeStarted = runtimeEvents.some(
-    (event) => event.type === "task_node_started"
-  )
-
-  return [
-    [
-      t("agentChat.thread.steps.readTarget"),
-      isStreaming
-          ? t("agentChat.thread.steps.readingRules")
-          : t("agentChat.thread.steps.targetRules"),
-    ],
-    [
-      t("agentChat.thread.steps.assignTask"),
-      hasNodeStarted
-        ? t("agentChat.thread.steps.taskRunning")
-        : isStreaming
-          ? t("agentChat.thread.steps.waitingSync")
-          : t("agentChat.thread.steps.checkingConstraints"),
-    ],
-    [
-      t("agentChat.thread.steps.enrichMaterial"),
-      hasNodeStarted
-        ? t("agentChat.thread.steps.enrichByTask")
-        : t("agentChat.thread.steps.enrichFallback"),
-    ],
-  ]
+  return getProcessStepRows(runtimeEvents, isStreaming, t)
 }
 
 export function getCommerceHandoffItems(t: TFunction) {
@@ -234,11 +193,6 @@ function mapGraphNodeToInlineAgent(
     status: t("agentChat.thread.inlineState.queued"),
     state: "queued",
   }
-}
-
-function routeRoleFallbackTitle(role: string, t: TFunction) {
-  const key = role.trim() || "chat"
-  return t(`agentChat.thread.roleFallbackTitles.${key}`)
 }
 
 function getFallbackInlineState(index: number, isStreaming: boolean): InlineAgentState {

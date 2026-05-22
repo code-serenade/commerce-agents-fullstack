@@ -18,6 +18,7 @@ export interface AgentChatComposerProps {
   availableSources: AgentChatSourceContextSelection[]
   canSend: boolean
   error: string | null
+  focusVersion?: number
   input: string
   isLoggedIn: boolean
   isLoadingPlaybooks: boolean

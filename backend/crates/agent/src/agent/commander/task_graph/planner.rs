@@ -58,8 +58,8 @@ impl TaskGraphRule {
         route: Option<&RoleRoute>,
         rules: &TaskGraphRuleSet,
     ) -> bool {
-        self.legacy_match().matches(task, route)
-            && self.r#match.matches(task, route)
+        self.legacy_match().matches(task, route, rules)
+            && self.r#match.matches(task, route, rules)
             && (!self.r#match.explicit_team_request
                 || contains_string_any(task, &explicit_team_keywords(rules)))
             && (!self.dynamic_roles.from_explicit_request.enabled
@@ -86,7 +86,12 @@ impl TaskGraphRule {
 }
 
 impl TaskGraphRuleMatch {
-    pub(super) fn matches(&self, task: &str, route: Option<&RoleRoute>) -> bool {
+    pub(super) fn matches(
+        &self,
+        task: &str,
+        route: Option<&RoleRoute>,
+        rules: &TaskGraphRuleSet,
+    ) -> bool {
         if let Some(max_chars) = self.max_chars
             && task.trim().chars().count() > max_chars
         {
@@ -120,6 +125,16 @@ impl TaskGraphRuleMatch {
             .any(|keyword| contains_keyword(task, keyword))
         {
             return false;
+        }
+        if let Some(min_aliases) = self.min_explicit_role_aliases {
+            let explicit_role_count = rules
+                .role_aliases
+                .values()
+                .filter(|aliases| aliases.iter().any(|alias| contains_keyword(task, alias)))
+                .count();
+            if explicit_role_count < min_aliases {
+                return false;
+            }
         }
         self.route_matches(route)
     }

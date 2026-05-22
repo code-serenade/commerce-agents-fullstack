@@ -32,7 +32,7 @@ pub(super) fn infer_explicit_period_days(text: &str) -> Option<i64> {
             continue;
         }
         if start > 0
-            && text[.. start]
+            && text[..start]
                 .chars()
                 .last()
                 .is_some_and(|prev| prev.is_ascii_digit() || prev == '.')
@@ -42,7 +42,7 @@ pub(super) fn infer_explicit_period_days(text: &str) -> Option<i64> {
 
         let mut end = start + ch.len_utf8();
         let suffix_start = end;
-        for (offset, next) in text[suffix_start ..].char_indices() {
+        for (offset, next) in text[suffix_start..].char_indices() {
             if next.is_ascii_digit() {
                 end = suffix_start + offset + next.len_utf8();
                 continue;
@@ -50,21 +50,21 @@ pub(super) fn infer_explicit_period_days(text: &str) -> Option<i64> {
             break;
         }
 
-        let Ok(value) = text[start .. end].parse::<i64>() else {
+        let Ok(value) = text[start..end].parse::<i64>() else {
             continue;
         };
-        if !(config_i64("/period_days/min", 1) ..= config_i64("/period_days/max", 365))
+        if !(config_i64("/period_days/min", 1)..=config_i64("/period_days/max", 365))
             .contains(&value)
         {
             continue;
         }
 
-        let unit_tail = text[end ..].trim_start();
+        let unit_tail = text[end..].trim_start();
         let Some(multiplier) = explicit_period_multiplier(unit_tail) else {
             continue;
         };
 
-        let before = text[.. start]
+        let before = text[..start]
             .chars()
             .rev()
             .take(config_i64("/explicit_period/scan_before_chars", 10).max(0) as usize)

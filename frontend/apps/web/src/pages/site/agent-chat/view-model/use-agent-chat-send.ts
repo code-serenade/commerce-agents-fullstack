@@ -9,11 +9,16 @@ import type {
 import type { AgentChatMessageFormatCopy } from "../domain/agent-chat-message-mapping"
 import type { AgentChatStrategy } from "../domain/agent-chat-strategy"
 import type { AgentChatRuntimeSelection } from "../domain/agent-runtime-options"
-import type { AgentChatConversationItem, AgentChatMessage } from "../types"
+import type {
+  AgentChatAttachmentItem,
+  AgentChatConversationItem,
+  AgentChatMessage,
+} from "../types"
 import { sendAgentChatMessage } from "./agent-chat-send-message"
 
 export function useAgentChatSend(input: {
   abortRef: MutableRefObject<AbortController | null>
+  attachments: AgentChatAttachmentItem[]
   conversationId: string | null
   fallbackConversationTitle: string
   inputValue: string
@@ -38,6 +43,7 @@ export function useAgentChatSend(input: {
 }) {
   const {
     abortRef,
+    attachments,
     conversationId,
     fallbackConversationTitle,
     inputValue,
@@ -77,6 +83,7 @@ export function useAgentChatSend(input: {
       onController: (controller) => {
         abortRef.current = controller
       },
+      attachments,
       runtimeSelection,
       selectedCampaigns,
       selectedProducts,
@@ -98,6 +105,7 @@ export function useAgentChatSend(input: {
     }
   }, [
     abortRef,
+    attachments,
     conversationId,
     fallbackConversationTitle,
     inputValue,

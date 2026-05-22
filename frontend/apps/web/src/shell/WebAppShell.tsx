@@ -16,7 +16,7 @@ import type { RootState } from "@/store"
 import { logout } from "@/store/authSlice"
 import { resetAccess } from "@/store/accessSlice"
 import { webNavigationSections } from "@/navigation"
-import { TaskMateLogo } from "@/components/brand"
+import { CommerceAgentLogo } from "@/components/brand"
 
 export interface WebAppShellProps {
   children: ReactNode
@@ -117,7 +117,7 @@ export function WebAppShell({ children }: WebAppShellProps) {
 
   return (
     <SidebarShell
-      brandLogo={<TaskMateLogo />}
+      brandLogo={<CommerceAgentLogo />}
       brandEyebrow={t("web.shell.brand.eyebrow")}
       brandTitle={t("web.shell.brand.title")}
       brandDescription={t("web.shell.brand.description")}

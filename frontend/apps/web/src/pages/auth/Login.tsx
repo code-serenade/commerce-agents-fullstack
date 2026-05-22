@@ -15,7 +15,7 @@ import {
 } from "@/api"
 import { resetAccess, setAccess } from "@/store/accessSlice"
 import { loginSuccess, logout } from "@/store/authSlice"
-import { TaskMateLogo } from "@/components/brand"
+import { CommerceAgentLogo } from "@/components/brand"
 import { loginErrorCopyKey, type LoginStage } from "./login-error-copy"
 
 const authLinkClassName =
@@ -92,7 +92,7 @@ export default function LoginPage() {
   return (
     <AuthLoginView
       labels={createLoginLabels(t)}
-      brandLogo={<TaskMateLogo size="lg" />}
+      brandLogo={<CommerceAgentLogo size="lg" />}
       notice={
         loginError
           ? {

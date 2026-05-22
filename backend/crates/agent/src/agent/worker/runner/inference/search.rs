@@ -47,7 +47,7 @@ pub(in crate::agent::worker::runner) fn max_results(text: &str) -> Option<i64> {
             continue;
         }
         if start > 0
-            && text[.. start]
+            && text[..start]
                 .chars()
                 .last()
                 .is_some_and(|prev| prev.is_ascii_digit() || prev == '.')
@@ -57,7 +57,7 @@ pub(in crate::agent::worker::runner) fn max_results(text: &str) -> Option<i64> {
 
         let mut end = start + ch.len_utf8();
         let suffix_start = end;
-        for (offset, next) in text[suffix_start ..].char_indices() {
+        for (offset, next) in text[suffix_start..].char_indices() {
             if next.is_ascii_digit() {
                 end = suffix_start + offset + next.len_utf8();
                 continue;
@@ -65,13 +65,13 @@ pub(in crate::agent::worker::runner) fn max_results(text: &str) -> Option<i64> {
             break;
         }
 
-        let Ok(value) = text[start .. end].parse::<i64>() else {
+        let Ok(value) = text[start..end].parse::<i64>() else {
             continue;
         };
         if value <= 0 {
             continue;
         }
-        let before = text[.. start]
+        let before = text[..start]
             .chars()
             .rev()
             .take(config_usize("/max_results/scan_before_chars", 16))
@@ -79,7 +79,7 @@ pub(in crate::agent::worker::runner) fn max_results(text: &str) -> Option<i64> {
             .into_iter()
             .rev()
             .collect::<String>();
-        let after = text[end ..]
+        let after = text[end..]
             .chars()
             .take(config_usize("/max_results/scan_after_chars", 16))
             .collect::<String>();

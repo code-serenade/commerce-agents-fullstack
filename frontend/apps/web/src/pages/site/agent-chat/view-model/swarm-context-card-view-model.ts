@@ -91,15 +91,32 @@ export function getContextCard(
   if (workspacePackEvent) {
     const readableCount = getWorkspaceContextPackReadableCount(workspacePackEvent)
     const warnings = workspacePackEvent.warnings ?? []
+    const omitted = workspacePackEvent.omitted ?? []
+    const omittedDetails = workspacePackEvent.omittedDetails ?? workspacePackEvent.omitted_details ?? []
     const readiness = workspacePackEvent.readiness ?? "empty"
-    const itemLines = (workspacePackEvent.items ?? [])
-      .slice(0, 3)
-      .map((item) =>
-        t("agentChat.swarm.cards.workspaceContext.packItemLine", {
-          kind: item.contentKind ?? item.content_kind ?? "metadata",
-          title: item.title ?? item.refKey ?? item.ref_key ?? item.id,
-        })
-      )
+    const itemLines = (workspacePackEvent.items ?? []).map((item) =>
+      t("agentChat.swarm.cards.workspaceContext.packItemLine", {
+        kind: item.contentKind ?? item.content_kind ?? "metadata",
+        title: item.title ?? item.refKey ?? item.ref_key ?? item.id,
+      })
+    )
+    const warningLines = warnings.slice(0, 1).map((warning) =>
+      t("agentChat.swarm.cards.workspaceContext.warningLine", {
+        warning,
+      })
+    )
+    const omittedLines = (omittedDetails.length
+      ? omittedDetails
+          .slice(0, 2)
+          .map((item) => `${item.refKey ?? item.ref_key ?? "-"} (${item.reason ?? "omitted"})`)
+      : omitted.slice(0, 2)
+    ).map((ref) =>
+      t("agentChat.swarm.cards.workspaceContext.omittedLine", {
+        ref,
+      })
+    )
+    const detailLines = [...warningLines, ...omittedLines]
+    const visibleItemCount = Math.max(1, 4 - detailLines.length)
     return {
       id: "workspace-context-pack-loaded",
       title: t("agentChat.swarm.cards.workspaceContext.packTitle"),
@@ -113,12 +130,8 @@ export function getContextCard(
           : t("agentChat.swarm.cards.workspaceContext.packPartialDescription"),
       icon: readiness === "empty" || readableCount === 0 ? TriangleAlert : FolderSearch,
       lines: [
-        ...itemLines,
-        ...warnings.slice(0, 1).map((warning) =>
-          t("agentChat.swarm.cards.workspaceContext.warningLine", {
-            warning,
-          })
-        ),
+        ...itemLines.slice(0, visibleItemCount),
+        ...detailLines,
         ...(workspacePackEvent.summary ? [workspacePackEvent.summary] : []),
       ].slice(0, 4),
       state: readiness === "empty" || readableCount === 0 ? "reworking" : "done",

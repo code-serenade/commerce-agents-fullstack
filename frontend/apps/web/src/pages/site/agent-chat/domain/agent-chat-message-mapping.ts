@@ -128,13 +128,52 @@ function readRuntimeEvents(contentJson: unknown): AgentRuntimeEvent[] {
 function mapConversationFile(
   file: ConversationFileResponse
 ): AgentChatAttachmentItem {
+  const extraction = readMetadataRecord(file.metadata, "extraction")
+  const extractionMetadata = extraction
+    ? readMetadataRecord(extraction, "metadata")
+    : undefined
+  const imageDataUrl =
+    readMetadataString(file.metadata, "imageDataUrl") ??
+    (extractionMetadata
+      ? readMetadataString(extractionMetadata, "imageDataUrl")
+      : undefined)
+  const extractionStatus =
+    readMetadataString(file.metadata, "extractionStatus") ??
+    (extraction ? readMetadataString(extraction, "status") : undefined)
+  const failureReason = extraction
+    ? readMetadataString(extraction, "failureReason")
+    : undefined
+  const isVisionReady =
+    isVisionConversationFile(file) &&
+    (readMetadataBoolean(file.metadata, "visionReady") ||
+      Boolean(
+        extractionMetadata &&
+          readMetadataBoolean(extractionMetadata, "visionReady")
+      )) &&
+    Boolean(imageDataUrl)
+  const readable = isReadableConversationFile(file) || isVisionReady
   return {
     id: file.id,
     fileId: file.id,
+    kind: isVisionConversationFile(file) ? "image" : "file",
     name: file.fileName || file.objectKey.split("/").at(-1) || file.objectKey,
-    readable: isReadableConversationFile(file),
-    status: file.status === "failed" ? "failed" : "uploaded",
+    imageDataUrl,
+    imageDetail: isVisionReady ? "auto" : undefined,
+    readable,
+    status: mapConversationFileAttachmentStatus(file.status, extractionStatus),
+    unsupportedReason: failureReason,
   }
+}
+
+function mapConversationFileAttachmentStatus(
+  fileStatus: string,
+  extractionStatus?: string
+): AgentChatAttachmentItem["status"] {
+  if (fileStatus === "failed") return "failed"
+  if (extractionStatus === "unsupported") return "unsupported"
+  if (extractionStatus === "failed") return "failed"
+  if (extractionStatus === "pending") return "pending"
+  return "uploaded"
 }
 
 function isReadableConversationFile(file: ConversationFileResponse) {
@@ -150,6 +189,34 @@ function isReadableConversationFile(file: ConversationFileResponse) {
     return true
   }
   return /\.(csv|json|md|markdown|txt)$/i.test(file.fileName ?? file.objectKey)
+}
+
+function isVisionConversationFile(file: ConversationFileResponse) {
+  const mimeType = file.mimeType?.toLowerCase() ?? ""
+  return (
+    ["image/png", "image/jpeg", "image/webp"].includes(mimeType) ||
+    /\.(png|jpe?g|webp)$/i.test(file.fileName ?? file.objectKey)
+  )
+}
+
+function readMetadataBoolean(metadata: Record<string, unknown>, key: string) {
+  return metadata[key] === true
+}
+
+function readMetadataString(
+  metadata: Record<string, unknown>,
+  key: string
+): string | undefined {
+  const value = metadata[key]
+  return typeof value === "string" && value.trim() ? value : undefined
+}
+
+function readMetadataRecord(
+  metadata: Record<string, unknown>,
+  key: string
+): Record<string, unknown> | undefined {
+  const value = metadata[key]
+  return isRecord(value) ? value : undefined
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

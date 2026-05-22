@@ -36,7 +36,7 @@ export function AgentProcessDrawer({
       <div
         aria-label={t("agentChat.workbench.title")}
         aria-modal="true"
-        className="flex h-full w-[min(46rem,calc(100%-1rem))] max-w-full flex-col items-end xl:w-[min(48rem,42vw)] 2xl:w-[min(52rem,38vw)]"
+        className="flex h-full w-[min(46rem,calc(100%-1rem))] max-w-full min-w-0 flex-col items-end xl:w-[min(48rem,42vw)] 2xl:w-[min(52rem,38vw)]"
         onPointerDown={(event) => event.stopPropagation()}
         role="dialog"
       >
@@ -84,7 +84,7 @@ export function AgentProcessDrawer({
             </button>
           </div>
         </div>
-        <div className="pointer-events-auto min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-background shadow-xl">
+        <div className="pointer-events-auto min-h-0 w-full max-w-full min-w-0 flex-1 overflow-hidden rounded-lg border border-border bg-background shadow-xl">
           <AgentChatSwarmPanel
             feedback={chat.feedback}
             isStreaming={isStreaming}

@@ -13,6 +13,8 @@ import {
 } from "./agent-chat-context-selection"
 
 const sourceTitle = "brief.md"
+const imageSourceTitle = "shelf.png"
+const pendingSourceTitle = "dataset.bin"
 
 describe("agent chat context selection", () => {
   it("combines product, campaign, and explicit source refs without duplicates", () => {
@@ -64,7 +66,7 @@ describe("agent chat context selection", () => {
     ).toEqual([campaign])
   })
 
-  it("maps only uploaded conversation files into selectable source refs", () => {
+  it("maps registered conversation files into selectable source refs", () => {
     expect(
       mapAttachmentToSourceContextSelection({
         fileId: "file-a",
@@ -80,6 +82,7 @@ describe("agent chat context selection", () => {
       ref: "conversation_file:file-a",
       status: "uploaded",
       title: sourceTitle,
+      visionReady: false,
     })
 
     expect(
@@ -90,6 +93,46 @@ describe("agent chat context selection", () => {
         status: "uploading",
       })
     ).toBeNull()
+
+    expect(
+      mapAttachmentToSourceContextSelection({
+        fileId: "file-pending",
+        id: "local-pending",
+        name: pendingSourceTitle,
+        readable: false,
+        status: "pending",
+      })
+    ).toEqual({
+      id: "file-pending",
+      kind: "conversation_file",
+      readable: false,
+      ref: "conversation_file:file-pending",
+      status: "pending",
+      title: pendingSourceTitle,
+      visionReady: false,
+    })
+  })
+
+  it("marks uploaded vision images as selectable source refs", () => {
+    expect(
+      mapAttachmentToSourceContextSelection({
+        fileId: "file-image",
+        id: "local-image",
+        imageDataUrl: "data:image/png;base64,aW1hZ2U=",
+        kind: "image",
+        name: imageSourceTitle,
+        readable: true,
+        status: "uploaded",
+      })
+    ).toEqual({
+      id: "file-image",
+      kind: "conversation_file",
+      readable: true,
+      ref: "conversation_file:file-image",
+      status: "uploaded",
+      title: imageSourceTitle,
+      visionReady: true,
+    })
   })
 
   it("toggles explicit source selections by ref", () => {

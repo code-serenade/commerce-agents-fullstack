@@ -36,6 +36,15 @@ export function formatTimelineEvent(
       tone: "success" as const,
     }
   }
+  if (event.type === "conversation_context_loaded") {
+    return {
+      label: t("agentChat.swarm.timeline.events.conversationContextLoaded", {
+        recent: event.messageCount ?? event.message_count ?? 0,
+        total: event.totalMessageCount ?? event.total_message_count ?? 0,
+      }),
+      tone: event.readiness === "empty" ? "default" as const : "success" as const,
+    }
+  }
   if (event.type === "rag_context_loaded") {
     const reason = event.degradedReason ?? event.degraded_reason
     return {

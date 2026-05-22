@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
+  <title id="title">TaskMate V3 06 Nexus Cut</title>
+  <desc id="desc">A high-end cut-paper nexus mark for connected agents.</desc>
+  <rect width="96" height="96" rx="24" fill="#101828"/>
+  <path fill="#f4f1ea" d="M48 16 78 33v30L48 80 18 63V33l30-17z"/>
+  <path fill="#101828" d="M48 29 65 39v18L48 67 31 57V39l17-10z"/>
+  <path fill="#0f766e" d="M48 29v20L31 57V39l17-10z"/>
+  <path fill="#b8a06a" d="M48 49v18L31 57l17-8z"/>
+</svg>

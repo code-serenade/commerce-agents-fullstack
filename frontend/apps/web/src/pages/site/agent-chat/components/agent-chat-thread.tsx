@@ -16,9 +16,11 @@ import {
   AgentStoppedCard,
   StrategyStatusPill,
   MessageActions,
+  StudentNextActions,
   WelcomeCard,
 } from "./thread-message-blocks"
 import type { AgentChatStrategy } from "../domain/agent-chat-strategy"
+import { shouldShowStudentNextActions } from "../view-model/student-next-actions-view-model"
 
 export interface AgentChatThreadProps {
   activeProcessMessageId: string | null
@@ -218,6 +220,12 @@ function ThreadMessage({
           ) : null}
           {!isUser && message.content && !isWelcome ? (
             <MessageActions content={message.content} />
+          ) : null}
+          {shouldShowStudentNextActions(message) ? (
+            <StudentNextActions
+              message={message}
+              onSelectPrompt={onExamplePromptSelect}
+            />
           ) : null}
         </div>
         {isUser ? (

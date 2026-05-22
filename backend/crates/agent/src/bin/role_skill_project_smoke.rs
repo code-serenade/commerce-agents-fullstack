@@ -631,7 +631,7 @@ fn extract_json_object(input: &str) -> Option<&str> {
             '}' if depth > 0 => {
                 depth -= 1;
                 if depth == 0 {
-                    return start.map(|start_index| &input[start_index ..= index]);
+                    return start.map(|start_index| &input[start_index..=index]);
                 }
             }
             _ => {}

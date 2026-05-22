@@ -5,7 +5,8 @@ use super::{
 use crate::{
     agent::commander::no_user_facing_content_message,
     core::protocol::{
-        AgentId, Message, MessageContext, Payload, SessionEvent, TaskId, TaskSpec, WorkerId,
+        AgentId, Message, MessageContext, Payload, SessionEvent, TaskGraph, TaskId, TaskNode,
+        TaskNodeId, TaskSpec, WorkerId,
     },
     roles::{RoleCollaborationPlan, RoleContribution},
 };
@@ -36,6 +37,10 @@ impl Commander {
             "fast_worker",
             Some(role_route.primary_runtime_role.clone()),
             role_route.support_runtime_roles.clone(),
+        );
+        self.emit_dispatch_planned_for_graph(
+            "fast_worker",
+            &single_worker_dispatch_graph(&task, role_route),
         );
         if !self.dispatch_task_to_worker(task, Some(target_worker)) {
             let _ = self.sender.send(Message::new_with_context(
@@ -342,6 +347,28 @@ pub(super) fn synthesize_user_facing_collaboration_report(
     }
 
     lines.join("\n")
+}
+
+fn single_worker_dispatch_graph(
+    task: &TaskSpec,
+    role_route: &crate::roles::RoleRoute,
+) -> TaskGraph {
+    TaskGraph {
+        graph_id: crate::core::protocol::TaskGraphId(format!("graph-{}", task.id.0)),
+        root_task: task.description.clone(),
+        nodes: vec![TaskNode {
+            id: TaskNodeId(role_route.primary_runtime_role.clone()),
+            role: role_route.primary_runtime_role.clone(),
+            worker_id: WorkerId(format!("worker.{}", role_route.primary_runtime_role)),
+            title: role_route.primary_runtime_role.clone(),
+            objective: task.description.clone(),
+            llm_usage: None,
+            skill_autosuggest: None,
+            input_refs: Vec::new(),
+            acceptance: Vec::new(),
+            max_attempts: 1,
+        }],
+    }
 }
 
 fn collaboration_roles(

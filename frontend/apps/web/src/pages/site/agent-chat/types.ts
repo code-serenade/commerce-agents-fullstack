@@ -42,9 +42,13 @@ export interface AgentChatConversationItem {
 export interface AgentChatAttachmentItem {
   id: string
   fileId?: string
+  imageDataUrl?: string
+  imageDetail?: "auto" | "low" | "high"
+  kind?: "image" | "file"
   name: string
-  status: "uploading" | "uploaded" | "failed"
+  status: "uploading" | "uploaded" | "pending" | "failed" | "unsupported"
   readable: boolean
+  unsupportedReason?: string
 }
 
 export interface AgentChatMessageStrategy {

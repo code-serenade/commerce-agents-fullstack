@@ -20,13 +20,19 @@ use super::{
     decision_intent_from_json,
 };
 use crate::{
+    agent_session::session_runtime::{
+        dispatch_context_budget, dispatch_difficulty, dispatch_reasoning_summary,
+        dispatch_runtime_role_count, dispatch_runtime_roles_from_graph, dispatch_selected_skills,
+        dispatch_steps_from_graph, dispatch_student_explanation_with_context,
+        unique_support_runtime_roles,
+    },
     agent_session::{MemoryRecord, TaskGraphMemorySummary},
     cognition::{Cognition, CognitionInput, CognitionResult, Context, Fact, Intent, IntentKind},
     core::{
         messaging::{MessageRx, MessageTx},
         protocol::{
-            AgentId, DecisionIntent, Message, MessageContext, Payload, SessionEvent, TaskId,
-            TaskSpec, WorkerId, WorkerProfile,
+            AgentId, DecisionIntent, Message, MessageContext, Payload, SessionEvent, TaskGraph,
+            TaskId, TaskSpec, WorkerId, WorkerProfile,
         },
     },
     roles::{RoleCollaborationPlan, RoleContribution, RoleRoute, RoleRouteInput, RoleRouter},
@@ -231,9 +237,11 @@ impl Commander {
     }
 
     fn on_human_command(&mut self, task: TaskSpec, context: MessageContext) {
+        let description =
+            task_description_with_conversation_history(&task.description, &context.metadata);
         let incoming_task = CommanderTask {
             id: task.id.0,
-            description: task.description,
+            description,
         };
 
         self.memory.clear();
@@ -390,6 +398,8 @@ impl Commander {
         primary_runtime_role: Option<String>,
         support_runtime_roles: Vec<String>,
     ) {
+        let support_runtime_roles =
+            unique_support_runtime_roles(primary_runtime_role.as_deref(), support_runtime_roles);
         self.emit_event(SessionEvent::RouteDecided {
             session_id: self.session_id_from_context(&self.current_context),
             strategy_id: self.current_context.metadata.get("strategy.id").cloned(),
@@ -413,6 +423,75 @@ impl Commander {
             primary_runtime_role,
             support_runtime_roles,
         });
+    }
+
+    fn emit_dispatch_planned_for_graph(&self, route_mode: &str, graph: &TaskGraph) {
+        let (primary_runtime_role, support_runtime_roles) =
+            dispatch_runtime_roles_from_graph(graph);
+        self.emit_dispatch_planned_for_graph_with_roles(
+            route_mode,
+            graph,
+            (primary_runtime_role, support_runtime_roles),
+        );
+    }
+
+    fn emit_dispatch_planned_for_graph_with_roles(
+        &self,
+        route_mode: &str,
+        graph: &TaskGraph,
+        display_roles: (Option<String>, Vec<String>),
+    ) {
+        let (primary_runtime_role, support_runtime_roles) = display_roles;
+        let context_budget = dispatch_context_budget(
+            &self.current_context,
+            self.session_context.memory_records().len(),
+        );
+        let difficulty = dispatch_difficulty(
+            route_mode,
+            dispatch_runtime_role_count(primary_runtime_role.as_deref(), &support_runtime_roles),
+            &context_budget,
+        );
+        let planned_steps = dispatch_steps_from_graph(route_mode, graph, &context_budget);
+        let student_visible_explanation = dispatch_student_explanation_with_context(
+            route_mode,
+            graph.nodes.len(),
+            &context_budget,
+        );
+        self.emit_event(SessionEvent::DispatchPlanned {
+            session_id: self.session_id_from_context(&self.current_context),
+            difficulty: difficulty.to_string(),
+            route_mode: route_mode.to_string(),
+            primary_runtime_role,
+            support_runtime_roles,
+            selected_skills: dispatch_selected_skills(route_mode, graph),
+            planned_steps,
+            context_budget,
+            reasoning_summary: dispatch_reasoning_summary(route_mode, graph.nodes.len()),
+            student_visible_explanation,
+        });
+    }
+
+    fn task_graph_display_roles(
+        &self,
+        role_route: Option<&RoleRoute>,
+        graph: &TaskGraph,
+    ) -> (Option<String>, Vec<String>) {
+        if self
+            .current_context
+            .metadata
+            .get("strategy.collaboration_mode")
+            .is_some_and(|value| value == "manual")
+            && let Some(route) = role_route
+        {
+            return (
+                Some(route.primary_runtime_role.clone()),
+                unique_support_runtime_roles(
+                    Some(route.primary_runtime_role.as_str()),
+                    route.support_runtime_roles.clone(),
+                ),
+            );
+        }
+        dispatch_runtime_roles_from_graph(graph)
     }
 
     fn format_collaboration_outputs(&self) -> String {
@@ -621,4 +700,26 @@ impl Commander {
 
         self.role_router.route_for_runtime_roles(&primary, &support)
     }
+}
+
+fn task_description_with_conversation_history(
+    task_description: &str,
+    metadata: &std::collections::BTreeMap<String, String>,
+) -> String {
+    let Some(history) = metadata
+        .get("conversation.history_summary")
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
+    else {
+        return task_description.to_string();
+    };
+
+    if task_description.contains("同一会话历史上下文") {
+        return task_description.to_string();
+    }
+
+    format!(
+        "同一会话历史上下文（这是同一用户同一会话内此前消息，用于理解“继续、刚才、按前面、\
+         补充后、沿用这些数据”等追问；这不代表用户选择了任何预设商品）：\n{history}\n\n当前用户请求：\n{task_description}"
+    )
 }

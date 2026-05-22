@@ -96,6 +96,38 @@ export interface UpdateConversationFileExtractionRequest {
   metadata?: Record<string, unknown> | null
 }
 
+export interface TriggerConversationFileExtractionJobRequest {
+  mode?: string | null
+  force?: boolean
+}
+
+export interface ConversationFileExtractionStatusResponse {
+  fileId: string
+  status: "pending" | "extracted" | "failed" | "unsupported" | string
+  contentKind?: string | null
+  parser?: string | null
+  source?: string | null
+  language?: string | null
+  summary?: string | null
+  textChars: number
+  readable: boolean
+  visionReady: boolean
+  failureReason?: string | null
+  metadata: Record<string, unknown>
+  updatedAt: string
+}
+
+export interface ConversationFileExtractionJobResponse {
+  jobId: string
+  fileId: string
+  status: "pending" | "extracted" | "failed" | "unsupported" | string
+  contentKind?: string | null
+  parser?: string | null
+  source?: string | null
+  message: string
+  metadata: Record<string, unknown>
+}
+
 export const listConversationsApi = async (): Promise<ConversationResponse[]> => {
   return request<undefined, ConversationResponse[]>({
     method: "GET",
@@ -209,6 +241,29 @@ export const updateConversationFileExtractionApi = async (
   >({
     method: "PUT",
     url: `/api/app/conversation-files/${fileId}/extraction`,
+    body,
+  })
+}
+
+export const getConversationFileExtractionApi = async (
+  fileId: string
+): Promise<ConversationFileExtractionStatusResponse> => {
+  return request<undefined, ConversationFileExtractionStatusResponse>({
+    method: "GET",
+    url: `/api/app/conversation-files/${fileId}/extraction`,
+  })
+}
+
+export const triggerConversationFileExtractionJobApi = async (
+  fileId: string,
+  body: TriggerConversationFileExtractionJobRequest = {}
+): Promise<ConversationFileExtractionJobResponse> => {
+  return request<
+    TriggerConversationFileExtractionJobRequest,
+    ConversationFileExtractionJobResponse
+  >({
+    method: "POST",
+    url: `/api/app/conversation-files/${fileId}/extraction-jobs`,
     body,
   })
 }

@@ -8,6 +8,15 @@ import {
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { AgentRuntimeEvent } from "@/api"
+import {
+  getAgentProcessBadge,
+  getAgentProcessKind,
+  getAgentProcessProgress,
+  getAgentProcessSummary,
+  getAgentProcessTitle,
+  getDispatchFacts,
+  shouldShowProcessAgentGrid,
+} from "../view-model/agent-process-kind-view-model"
 import { getInlineArtifactsFromRuntime } from "../view-model/thread-artifacts-view-model"
 import {
   getCommerceHandoffItems,
@@ -17,6 +26,7 @@ import {
 import { InlineArtifactsPanel } from "./inline-artifacts-panel"
 import {
   InlineAgentGrid,
+  InlineDispatchFactGrid,
   InlineProgressSummary,
   InlineRuntimeBadge,
   InlineStepStrip,
@@ -49,16 +59,14 @@ export function InlineSwarmTaskCard({
     event.type === "failed" ||
     event.type === "finished"
   )
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
+  const processKind = getAgentProcessKind(runtimeEvents)
   const agents = getInlineAgents(runtimeEvents, isStreaming, t)
   const steps = getInlineSteps(runtimeEvents, isStreaming, t)
   const completedCount = agents.filter((agent) =>
     agent.state === "done" || agent.state === "boundary"
   ).length
   const hasRuntime = runtimeEvents.length > 0
-  const progressPercent = agents.length
-    ? Math.min(100, Math.round((completedCount / agents.length) * 100))
-    : 0
   const hasFailedAgent = agents.some((agent) => agent.state === "failed")
   const activeAgent = agents.find(
     (agent) =>
@@ -68,14 +76,34 @@ export function InlineSwarmTaskCard({
   )
   const artifacts = getInlineArtifactsFromRuntime(runtimeEvents, t)
   const handoffItems = getCommerceHandoffItems(t)
-  const progressLabel = hasRuntime
-    ? t("agentChat.thread.completedTasks", {
-        completed: completedCount,
-        total: agents.length,
-      })
-    : isStreaming
-      ? t("agentChat.thread.planning")
-      : t("agentChat.thread.historyNotExecuted")
+  const processProgress = getAgentProcessProgress(
+    {
+      completedCount,
+      isStreaming,
+      runtimeEvents,
+      totalCount: agents.length,
+    },
+    t
+  )
+  const processSummary = getAgentProcessSummary(runtimeEvents, task, t)
+  const processTitle = hasRuntime
+    ? getAgentProcessTitle(runtimeEvents, t)
+    : t("agentChat.thread.processKinds.waiting.title")
+  const processBadge = hasRuntime
+    ? getAgentProcessBadge(runtimeEvents, t)
+    : t("agentChat.thread.processKinds.waiting.badge")
+  const processLabel = hasRuntime
+    ? processProgress.label
+    : t("agentChat.thread.processKinds.waiting.progress")
+  const processDetail = hasRuntime
+    ? processKind === "quick_dispatch"
+      ? processSummary
+      : activeAgent
+        ? `${activeAgent.name} ${activeAgent.status}: ${task}`
+        : processSummary
+    : t("agentChat.thread.processKinds.waiting.summary")
+  const showAgentGrid = shouldShowProcessAgentGrid(processKind)
+  const dispatchFacts = getDispatchFacts(runtimeEvents, t)
 
   return (
     <article className="flex justify-start gap-3" data-process-message-id={messageId}>
@@ -94,9 +122,12 @@ export function InlineSwarmTaskCard({
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 text-sm font-semibold">
                 <Activity className="size-4 text-primary" />
-                {t("agentChat.thread.executionTitle")}
+                {processTitle}
+                <span className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-secondary-foreground">
+                  {processBadge}
+                </span>
                 <span className="text-xs font-normal text-muted-foreground">
-                  {progressLabel}
+                  {processLabel}
                 </span>
                 {processPanelOpen ? (
                   <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
@@ -105,9 +136,7 @@ export function InlineSwarmTaskCard({
                 ) : null}
               </div>
               <p className="mt-1.5 line-clamp-1 text-xs/5 text-muted-foreground">
-                {activeAgent
-                  ? `${activeAgent.name} ${activeAgent.status}: ${task}`
-                : task}
+                {processDetail}
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap items-center justify-start gap-2 sm:justify-end">
@@ -162,18 +191,22 @@ export function InlineSwarmTaskCard({
             </div>
           </div>
           {open ? (
-            <>
+            <div className="mt-2 max-h-[min(24rem,46vh)] overflow-y-auto pr-1 [scrollbar-gutter:stable]">
               <div className="mt-2 grid gap-2">
                 <InlineProgressSummary
-                  completedCount={completedCount}
+                  completedCount={processProgress.completed}
                   hasFailedAgent={hasFailedAgent}
                   hasRuntime={hasRuntime}
                   isStreaming={isStreaming}
-                  progressPercent={progressPercent}
+                  progressPercent={processProgress.percent}
                   runtimeEvents={runtimeEvents}
-                  totalCount={agents.length}
+                  totalCount={processProgress.total}
                 />
-                <InlineAgentGrid agents={agents} compact={isComplete} />
+                {showAgentGrid ? (
+                  <InlineAgentGrid agents={agents} compact={isComplete} />
+                ) : (
+                  <InlineDispatchFactGrid facts={dispatchFacts} />
+                )}
               </div>
               <div className="mt-2">
                 <InlineStepStrip steps={steps} />
@@ -200,7 +233,7 @@ export function InlineSwarmTaskCard({
                   )
                 })}
               </div>
-            </>
+            </div>
           ) : null}
         </div>
       </div>

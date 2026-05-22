@@ -7,7 +7,9 @@ use uuid::Uuid;
 
 use crate::{
     entity::conversations,
-    table::conversations::dto::{Conversation, CreateConversation, UpdateConversation},
+    table::conversations::dto::{
+        Conversation, CreateConversation, UpdateConversation, UpdateConversationMetadata,
+    },
 };
 
 db_core::impl_repository!(
@@ -70,6 +72,18 @@ impl ConversationService {
             title: Set(input.title),
             status: Set(input.status),
             archived_at: Set(input.archived_at),
+            ..Default::default()
+        };
+        Ok(Self::from_model(self.repo.update(model).await?))
+    }
+
+    pub async fn update_metadata(
+        &self,
+        input: UpdateConversationMetadata,
+    ) -> BizResult<Conversation> {
+        let model = conversations::ActiveModel {
+            id: Unchanged(input.id),
+            metadata: Set(input.metadata),
             ..Default::default()
         };
         Ok(Self::from_model(self.repo.update(model).await?))

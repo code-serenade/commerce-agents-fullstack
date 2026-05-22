@@ -86,6 +86,51 @@ impl Cognition for RouteWithoutTargetCommanderCognition {
     }
 }
 
+struct TwoStepTaskGraphCommanderCognition;
+
+#[async_trait]
+impl Cognition for TwoStepTaskGraphCommanderCognition {
+    async fn evaluate(&self, _input: CognitionInput) -> CognitionResult {
+        CognitionResult::Success(json!({
+            "decision": {
+                "kind": "ExecuteTaskGraph",
+                "graph": {
+                    "graph_id": "history-aware-graph",
+                    "root_task": "continue with conversation history",
+                    "nodes": [
+                        {
+                            "id": "data",
+                            "role": "data",
+                            "worker_id": "worker.data",
+                            "title": "数据诊断",
+                            "objective": "沿用历史数据判断关键指标和缺口",
+                            "input_refs": [],
+                            "acceptance": ["说明历史数据是否进入判断"],
+                            "max_attempts": 1
+                        },
+                        {
+                            "id": "ops",
+                            "role": "ops",
+                            "worker_id": "worker.ops",
+                            "title": "运营清单",
+                            "objective": "把数据结论转成今天可执行动作",
+                            "input_refs": ["data"],
+                            "acceptance": ["给出执行顺序"],
+                            "max_attempts": 1
+                        }
+                    ]
+                }
+            },
+            "confidence": 1.0,
+            "rationale": {
+                "primary": "history-aware graph test",
+                "evidence": [],
+                "alternatives_considered": []
+            }
+        }))
+    }
+}
+
 struct NoopWorkerCognition;
 
 #[async_trait]
@@ -673,7 +718,6 @@ async fn collab_strategy_direct_answer_bypasses_task_graph() {
             break;
         }
     }
-
     assert!(events.iter().any(|event| {
         matches!(
             event,
@@ -685,6 +729,21 @@ async fn collab_strategy_direct_answer_bypasses_task_graph() {
             } if strategy_id.as_deref() == Some("collab")
                 && collaboration_mode.as_deref() == Some("manual")
                 && route_mode == "chat_bypass"
+        )
+    }));
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::DispatchPlanned {
+                difficulty,
+                route_mode,
+                primary_runtime_role,
+                planned_steps,
+                ..
+            } if difficulty == "simple"
+                && route_mode == "chat_bypass"
+                && primary_runtime_role.as_deref() == Some("chat")
+                && planned_steps.len() >= 3
         )
     }));
     assert!(events.iter().any(|event| {
@@ -746,7 +805,6 @@ async fn explicit_chat_role_selection_bypasses_task_graph_for_execution_strategy
             break;
         }
     }
-
     assert!(events.iter().any(|event| {
         matches!(
             event,
@@ -826,7 +884,6 @@ async fn explicit_manual_roles_do_not_use_direct_answer_chat_bypass() {
             break;
         }
     }
-
     assert!(events.iter().any(|event| {
         matches!(
             event,
@@ -842,6 +899,23 @@ async fn explicit_manual_roles_do_not_use_direct_answer_chat_bypass() {
                 && route_mode == "task_graph"
                 && primary_runtime_role.as_deref() == Some("data")
                 && support_runtime_roles == &vec!["ops".to_string()]
+        )
+    }));
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::DispatchPlanned {
+                difficulty,
+                route_mode,
+                primary_runtime_role,
+                support_runtime_roles,
+                planned_steps,
+                ..
+            } if difficulty == "normal"
+                && route_mode == "task_graph"
+                && primary_runtime_role.as_deref() == Some("data")
+                && support_runtime_roles == &vec!["ops".to_string()]
+                && planned_steps.len() >= 4
         )
     }));
     assert!(
@@ -1170,7 +1244,6 @@ async fn collab_strategy_metadata_emits_route_decision_and_task_graph() {
             break;
         }
     }
-
     assert!(events.iter().any(|event| {
         matches!(
             event,
@@ -1237,7 +1310,6 @@ async fn manual_strategy_metadata_routes_requested_roles() {
             break;
         }
     }
-
     assert!(events.iter().any(|event| {
         matches!(
             event,
@@ -1257,6 +1329,117 @@ async fn manual_strategy_metadata_routes_requested_roles() {
                 && route_mode == "task_graph"
                 && primary_runtime_role.as_deref() == Some("creative")
                 && support_runtime_roles == &vec!["data".to_string(), "ops".to_string()]
+        )
+    }));
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::DispatchPlanned {
+                difficulty,
+                route_mode,
+                primary_runtime_role,
+                support_runtime_roles,
+                context_budget,
+                ..
+            } if difficulty == "normal"
+                && route_mode == "task_graph"
+                && primary_runtime_role.as_deref() == Some("creative")
+                && support_runtime_roles == &vec!["data".to_string(), "ops".to_string()]
+                && context_budget.history_summary_available == false
+                && context_budget.recent_history_message_count == 0
+                && context_budget.history_total_message_count == 0
+                && !context_budget.history_truncated
+                && !context_budget.history_older_summary_available
+        )
+    }));
+}
+
+#[tokio::test]
+async fn dispatch_plan_explains_history_and_material_context() {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(TwoStepTaskGraphCommanderCognition))),
+        Arc::new(|| Ok(Box::new(StructuredSummaryWorkerCognition))),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert(
+        "conversation.history_summary".to_string(),
+        "User: 直播间曝光8000、点击640、加购160、下单80、付款72。".to_string(),
+    );
+    metadata.insert(
+        "conversation.history_message_count".to_string(),
+        "5".to_string(),
+    );
+    metadata.insert(
+        "conversation.history_total_message_count".to_string(),
+        "16".to_string(),
+    );
+    metadata.insert(
+        "conversation.history_truncated".to_string(),
+        "true".to_string(),
+    );
+    metadata.insert(
+        "conversation.history_older_summary".to_string(),
+        "Earlier summary: 前 4 轮都围绕咖啡直播预算和复盘指标。".to_string(),
+    );
+    metadata.insert(
+        "context.product_ids".to_string(),
+        "coffee-product".to_string(),
+    );
+    metadata.insert(
+        "workspaceContext.refs".to_string(),
+        "workspace:file-a,workspace:file-b".to_string(),
+    );
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-dispatch-history-context".to_string()),
+            input: "继续沿用前面的漏斗数据，把今天的运营动作排出来。".to_string(),
+            metadata,
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    while let Some(event) = rx.recv().await {
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::DispatchPlanned {
+                difficulty,
+                route_mode,
+                context_budget,
+                planned_steps,
+                student_visible_explanation,
+                ..
+            } if difficulty == "complex"
+                && route_mode == "task_graph"
+                && context_budget.history_summary_available
+                && context_budget.recent_history_message_count == 5
+                && context_budget.history_total_message_count == 16
+                && context_budget.history_truncated
+                && context_budget.history_older_summary_available
+                && context_budget.explicit_product_count == 1
+                && context_budget.workspace_context_ref_count == 2
+                && planned_steps.first().is_some_and(|step| {
+                    step.detail.contains("最近 5/16 条同会话历史")
+                        && step.detail.contains("早期压缩摘要")
+                        && step.detail.contains("3 个资料信号")
+                })
+                && student_visible_explanation.contains("历史较长")
+                && student_visible_explanation.contains("最近 5/16 条消息")
+                && student_visible_explanation.contains("3 个资料信号")
         )
     }));
 }

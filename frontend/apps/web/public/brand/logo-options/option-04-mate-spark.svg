@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
+  <title id="title">TaskMate logo option 04</title>
+  <desc id="desc">Clean assistant spark and task lane mark.</desc>
+  <rect width="96" height="96" rx="22" fill="#12312b"/>
+  <path fill="#ffffff" d="M24 30a8 8 0 0 1 8-8h32a8 8 0 0 1 8 8v8H24v-8z"/>
+  <path fill="#ffffff" fill-opacity=".9" d="M38 38h20v30a10 10 0 0 1-20 0V38z"/>
+  <path fill="#2dd4bf" d="M69.5 47 74 58l11 4.5L74 67l-4.5 11L65 67l-11-4.5L65 58l4.5-11z"/>
+  <circle cx="27" cy="64" r="5" fill="#fbbf24"/>
+</svg>

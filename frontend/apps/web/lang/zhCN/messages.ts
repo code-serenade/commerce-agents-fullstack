@@ -2,8 +2,8 @@ const messages = {
   web: {
     shell: {
       brand: {
-        eyebrow: "TaskMate",
-        title: "TaskMate・塔克",
+        eyebrow: "电商多智能体",
+        title: "电商多智能体",
         description: "电商 AI 实训工作台",
       },
       navigation: {
@@ -11,15 +11,15 @@ const messages = {
         workspace: "实训流程",
         governance: "管理与复盘",
         agentSection: "实训成果",
-        home: "数据诊断建议",
-        products: "选品与商品分析",
-        campaigns: "活动策划训练",
-        workspaces: "实训任务与交付",
+        home: "数据诊断",
+        products: "商品资料",
+        campaigns: "活动方案",
+        workspaces: "任务与提交",
         platformConnect: "平台数据连接",
         approvals: "老师审核与记录",
-        operations: "经营结果跟踪",
+        operations: "结果记录",
         agent: "多智能体实训助手",
-        agentOutput: "复盘报告",
+        agentOutput: "报告材料",
         profile: "个人资料",
       },
       topbar: {
@@ -205,7 +205,7 @@ const messages = {
     pages: {
       overview: {
         eyebrow: "Training Console",
-        title: "数据诊断建议",
+        title: "数据诊断",
         description:
           "先看商品、活动、经营数据和待处理事项，判断这次实训最该优先解决什么问题。",
         boundaryTitle: "当前可做",
@@ -214,19 +214,19 @@ const messages = {
       },
       products: {
         eyebrow: "Product Training",
-        title: "选品与商品分析",
+        title: "商品资料",
         description:
           "围绕实训任务查看商品资料、商品知识、素材版本、竞品和变化记录，作为选品分析和 AI 问答上下文。",
       },
       campaigns: {
         eyebrow: "Campaign Practice",
-        title: "活动策划训练",
+        title: "活动方案",
         description:
-          "围绕活动目标、预算、周期、产出和动作元数据完成营销活动策划训练。",
+          "围绕活动目标、预算、周期、产出和动作元数据整理可提交的营销活动方案。",
       },
       workspaces: {
         eyebrow: "Training Tasks",
-        title: "实训任务与交付",
+        title: "任务与提交",
         description:
           "承接 AI 输出后的任务、运行记录、任务快照和执行建议，帮助学生把方案变成可检查的实训交付。",
         boundaryTitle: "执行说明",
@@ -253,7 +253,7 @@ const messages = {
       },
       operations: {
         eyebrow: "Operating Results",
-        title: "经营结果跟踪",
+        title: "结果记录",
         description:
           "跟踪长任务记录、每日简报、实训通知和告警中心，帮助学生复盘经营过程和异常信号。",
         boundaryTitle: "结果说明",
@@ -852,10 +852,11 @@ const messages = {
       empty: "还没有历史对话",
     },
     shell: {
-      brandTitle: "TaskMate・塔克",
+      brandEyebrow: "电商多智能体",
+      brandTitle: "电商多智能体",
       brandDescription: "电商 AI 实训工作台",
       topbarTitle: "输入实训问题",
-      topbarMeta: "TaskMate・塔克 · 电商 AI 实训",
+      topbarMeta: "电商多智能体 · 电商 AI 实训",
       sections: {
         create: "",
         workspace: "实训导航",
@@ -865,16 +866,16 @@ const messages = {
         newChat: "新建会话",
         capabilities: "能力与使用指南",
         smartOps: "多智能体实训助手",
-        productBoard: "选品与商品分析",
-        campaigns: "活动策划训练",
+        productBoard: "商品资料",
+        campaigns: "活动方案",
         platform: "平台数据连接",
-        marketResearch: "数据诊断建议",
-        operations: "经营结果跟踪",
+        marketResearch: "数据诊断",
+        operations: "结果记录",
         briefing: "每日简报",
         alerts: "预警中心",
-        deliverables: "复盘报告",
+        deliverables: "报告材料",
         approvals: "老师审核与记录",
-        taskBoard: "实训任务与交付",
+        taskBoard: "任务与提交",
         systemDashboard: "系统看板",
         team: "AI 团队介绍",
         history: "历史会话",
@@ -986,13 +987,17 @@ const messages = {
         manualHint: "只有手动勾选后，本轮回答才会引用这些资料。",
         selectedHint: "本轮将只读取已勾选的当前会话资料。",
         readable: "可读正文",
+        vision: "读图",
+        visionReady: "可读图片",
         metadataOnly: "仅元数据",
         currentConversation: "当前会话",
       },
       attachments: {
         uploading: "上传中",
         uploaded: "已接入",
+        pending: "待解析",
         failed: "失败",
+        unsupported: "不支持",
       },
       playbooks: {
         loading: "正在读取场景",
@@ -1102,7 +1107,7 @@ const messages = {
       },
     },
     workbench: {
-      title: "多智能体过程",
+      title: "任务过程",
       expand: "展开智能体过程",
       collapse: "收起智能体过程",
       close: "关闭任务过程",
@@ -1166,20 +1171,117 @@ const messages = {
     },
     thread: {
       agentName: "多智能体实训助手",
-      welcomeCapabilities: ["先说你的任务", "过程会自动展开", "结果可沉淀交付"],
-      startHere: "可以直接点一个例子开始",
+      welcomeCapabilities: ["先提任务或补资料", "系统自动判断流程", "跟着下一步交付"],
+      startHere: "直接从一个学习任务开始",
       examplePrompts: [
-        "帮我判断这个商品适不适合做实训选品，并说明理由",
-        "根据 3000 元预算做一份电商活动策划和执行清单",
-        "把本次分析整理成可提交的实训任务和复盘报告",
+        "我是第一次使用，请先告诉我该怎样开始一个电商实训任务",
+        "帮我判断一个商品适不适合做实训选品，需要我补哪些资料",
+        "根据 3000 元预算做一份电商活动策划、执行清单和复盘指标",
       ],
+      studentFlow: {
+        title: "第一次使用就按这条线走",
+        subtitle: "先问清任务，再看系统怎样调度，最后把结果变成实训材料。",
+        ask: {
+          title: "1. 说清任务",
+          detail: "先说目标；不确定怎么问时，直接说商品、预算、平台和想完成的作业。",
+        },
+        watch: {
+          title: "2. 看过程",
+          detail: "每次回答都会显示调度过程；简单任务短，复杂任务会展开多岗位和 Skill。",
+        },
+        deliver: {
+          title: "3. 拿结果",
+          detail: "按回答继续补资料，或整理成任务步骤、活动方案、复盘报告。",
+        },
+      },
+      processPromise:
+        "过程面板展示后端真实调度：调度中心会读取本轮问题和同会话历史，再决定快速回答、单岗处理或多智能体协作。",
+      studentPromptRecipe: {
+        title: "不知道怎么描述时，就按这四项写",
+        subtitle: "不需要先学菜单；把任务说完整，调度中心会自动判断该走哪条流程。",
+        goal: {
+          label: "目标",
+          value: "想判断、生成、优化、复盘什么",
+        },
+        material: {
+          label: "资料",
+          value: "商品、预算、平台、数据、老师要求",
+        },
+        limit: {
+          label: "限制",
+          value: "时间、预算、格式、必须遵守的规则",
+        },
+        output: {
+          label: "结果",
+          value: "要方案、清单、表格、报告或下一步",
+        },
+      },
+      studentTaskEntries: {
+        title: "不知道怎么问时，先选一种任务",
+        subtitle: "这些入口会直接填入输入框，学生不用先理解所有功能菜单。",
+        start: {
+          title: "我刚开始用",
+          detail: "让系统先说明需要准备哪些资料，以及第一轮怎么问最清楚。",
+          prompt: "我是第一次使用，请带我开始一个电商实训任务，并告诉我需要准备哪些资料",
+        },
+        analyze: {
+          title: "判断商品或数据",
+          detail: "适合选品、预算、转化漏斗、风险判断这类需要分析的问题。",
+          prompt: "请判断这个商品或数据是否适合继续做实训，并说明还缺哪些关键资料",
+        },
+        plan: {
+          title: "生成执行方案",
+          detail: "适合活动策划、上架执行、内容脚本、客服承接和复盘指标。",
+          prompt: "请把我的目标拆成活动策划、执行清单、岗位分工和复盘指标",
+        },
+        review: {
+          title: "整理作业或复盘",
+          detail: "适合把回答整理成课堂作业、实训报告、复盘材料或下一步清单。",
+          prompt: "请把上面的结论整理成学生可提交的实训复盘报告",
+        },
+      },
       receivingOutput: "正在接收多智能体输出",
       waitingEvents: "正在等待智能体过程事件",
       stopped: "本轮回答已停止，没有继续调用 AI 模型。",
-      completedTasks: "{{completed}}/{{total}} 个智能体完成",
+      completedTasks: "{{completed}}/{{total}} 个步骤完成",
       planning: "正在规划智能体分工",
       historyNotExecuted: "历史消息未记录过程",
       executionTitle: "多智能体协作流程",
+      processKinds: {
+        waiting: {
+          title: "等待后端调度",
+          badge: "即将生成",
+          progress: "调度事件同步中",
+          summary: "本轮回答已开始，正在等待后端返回真实路线、上下文和步骤事件。",
+        },
+        quick_dispatch: {
+          title: "快速调度过程",
+          badge: "轻量流程",
+          progress: "{{completed}}/{{total}} 个调度步骤",
+          summary: "调度中心判断本轮适合由 {{role}} 直接处理：{{task}}",
+          stageRunning: "正在快速读取上下文并组织回答",
+          stageFinished: "快速调度已完成，可查看真实判断链路",
+          stageSynced: "已同步本轮快速调度链路",
+        },
+        single_agent: {
+          title: "单智能体处理过程",
+          badge: "单岗处理",
+          progress: "{{completed}}/{{total}} 个岗位完成",
+          summary: "调度中心选择 {{role}} 主处理：{{task}}",
+          stageRunning: "主智能体正在处理本轮任务",
+          stageFinished: "主智能体已完成，可查看处理链路",
+          stageSynced: "已同步本轮单智能体处理链路",
+        },
+        multi_agent: {
+          title: "多智能体协作流程",
+          badge: "岗位协作",
+          progress: "{{completed}}/{{total}} 个岗位完成",
+          summary: "调度中心已拆分岗位协作：{{task}}",
+          stageRunning: "多智能体协作中",
+          stageFinished: "多智能体已汇总，可查看过程和业务落点",
+          stageSynced: "可展开查看本轮智能体过程",
+        },
+      },
       statuses: {
         executing: "智能体协作中",
         synced: "",
@@ -1199,10 +1301,10 @@ const messages = {
       currentProgress: "智能体进度 {{completed}}/{{total}}",
       collapseProcess: "折叠智能体过程",
       expandProcess: "展开智能体过程",
-      openWorkbench: "查看智能体过程",
-      openWorkbenchForTurn: "查看智能体协作",
-      closeWorkbench: "收起智能体过程",
-      currentAnswerProcess: "当前智能体过程",
+      openWorkbench: "查看任务过程",
+      openWorkbenchForTurn: "查看任务过程",
+      closeWorkbench: "收起任务过程",
+      currentAnswerProcess: "当前任务过程",
       processLinkedToAnswer: "对应本条回答",
       processPanelActive: "右侧已打开",
       contextSummary: {
@@ -1213,6 +1315,7 @@ const messages = {
         sourceNone: "未选资料",
         sourceCount: "{{count}} 份资料",
         strategy: "模式：{{strategy}}",
+        autoRoles: "智能体：系统自动分配",
         roles: "智能体：主导 {{role}} / 共 {{count}} 个",
         model: "模型：{{model}}",
         details: "引用明细",
@@ -1258,6 +1361,22 @@ const messages = {
         readingRules: "正在读取电商问题与业务规则",
         targetRules: "电商问题与业务规则",
         assignTask: "分配智能体",
+        dispatchJudge: "判断处理难度",
+        dispatchRoute: "{{mode}}，主处理 {{role}}",
+        dispatchWaiting: "等待调度结果",
+        runtimeAction: "执行必要动作",
+        answerReady: "形成回答",
+        answerFinished: "回答和过程已同步完成",
+        answerStreaming: "正在生成回答",
+        answerSynced: "回答已生成",
+        workspaceContext: "读取到 {{readable}}/{{total}} 份可用资料",
+        contextLoaded: "商品 {{products}} 个，知识 {{knowledge}} 条",
+        memoryLoaded: "读取 {{count}} 条运行记忆",
+        skillRequested: "已请求 {{count}} 个 Skill，最新 {{skill}}",
+        skillResult: "已返回 {{count}} 个 Skill，最新 {{skill}} / {{status}}",
+        modelRunning: "模型正在组织输出",
+        noExtraSkill: "本轮无需额外 Skill",
+        singleAgentRoute: "由 {{role}} 单岗处理",
         taskRunning: "任务正在执行",
         waitingSync: "等待执行状态同步",
         checkingConstraints: "检查模型、预算与投放约束",
@@ -1288,7 +1407,7 @@ const messages = {
         deliveryFile: "运营全流程执行方案.docx",
         deliveryStatus: "最终方案、执行清单、复盘口径",
       },
-        handoff: {
+      handoff: {
           context: {
             label: "上下文",
             detail: "商品看板、平台连接、智能洞察",
@@ -1332,6 +1451,206 @@ const messages = {
         failed: "失败",
         queued: "排队中",
         idle: "待命",
+      },
+      dispatchFacts: {
+        plan: {
+          label: "后端调度计划",
+          detail: "{{difficulty}} 难度，路线 {{mode}}",
+        },
+        reasoning: {
+          label: "调度理由",
+        },
+        plannedSkills: {
+          label: "计划 Skill",
+        },
+        contextBudget: {
+          label: "上下文预算",
+          detail: "{{history}} 条历史消息，{{materials}} 个已选资料信号",
+        },
+        historyWindow: {
+          label: "历史窗口",
+          full: "本轮读取了全部 {{total}} 条同会话历史。",
+          truncated: "本轮读取最近 {{recent}}/{{total}} 条历史，并纳入早期压缩摘要。",
+        },
+          memory: {
+            label: "历史记忆",
+            detail: "读取 {{count}} 条，类型 {{kinds}}",
+          },
+          conversationContext: {
+            label: "同会话上下文",
+            detail: "读取最近 {{recent}}/{{total}} 条历史，回捞 {{relevantOlder}} 条早期相关消息",
+          },
+          context: {
+            label: "资料上下文",
+            detail: "商品 {{products}} 个，知识 {{knowledge}} 条，来源 {{sources}} 个",
+        },
+        rag: {
+          label: "知识检索",
+          detail: "命中 {{sources}} 个本地来源",
+          degraded: "本轮检索降级：{{reason}}",
+        },
+        workspace: {
+          label: "工作区资料",
+          detail: "{{readiness}}，可读 {{readable}}/{{total}} 份",
+        },
+        workspaceWarning: {
+          label: "资料读取提示",
+          detail: "{{warning}}",
+        },
+        workspaceOmitted: {
+          label: "未进入上下文",
+          detail: "{{count}} 个来源被省略：{{refs}}",
+        },
+        route: {
+          label: "调度判断",
+          detail: "{{mode}}，主处理 {{role}}，策略 {{strategy}}",
+        },
+        skill: {
+          label: "Skill 调用",
+          detail: "本轮已有 {{count}} 个真实 Skill 事件",
+        },
+        output: {
+          label: "输出完成",
+          detail: "回答和工作区沉淀事件已返回",
+        },
+        empty: {
+          label: "等待事件",
+          detail: "本轮过程事件同步后会显示在这里",
+        },
+      },
+      dispatchPanel: {
+        title: "本轮真实调度链路",
+        workbenchTitle: "任务过程",
+        steps: "处理步骤",
+        routeType: "处理路线",
+        studentReadTitle: "本轮为什么这样处理",
+        emptyTask: "等待本轮任务输入",
+        waitingStepTitle: "等待调度事件",
+        waitingStepDetail: "后端同步路线、上下文和步骤后会显示在这里",
+        compactedStepDetail:
+          "系统已读取本轮问题、同会话历史和可用资料，并按当前路线组织回答；详细内部上下文不在学生端展开。",
+        routeModes: {
+          chat_bypass: "快速回答路线",
+          task_graph: "多步骤任务路线",
+          single_agent: "单岗处理路线",
+        },
+        previewFiles: {
+          quick_dispatch: "quick.dispatch.process.md",
+          single_agent: "single.agent.process.md",
+          multi_agent: "multi.agent.process.md",
+        },
+        preview: {
+          heading: "# {{mode}}",
+          request: "业务输入：{{request}}",
+          summary: "调度说明：{{summary}}",
+          progress: "进度：{{completed}}/{{total}} | {{stage}}",
+          step: "{{index}} {{title}}：{{detail}}",
+          fact: "{{label}}：{{detail}}",
+        },
+        stableDetail:
+          "无论问题简单还是复杂，系统都会先规划过程；区别只是步骤数量、岗位数量和 Skill 数量不同。",
+        studentUseTitle: "学生应该怎么看",
+        studentUseDetail:
+          "先看路线和上下文预算，确认系统有没有读到你的历史、商品和资料；再看步骤和 Skill，判断结果是快速回答、单岗分析还是多智能体协作。",
+        difficultyTitle: "为什么有的流程短、有的流程长",
+        difficultyDetail:
+          "调度中心会按本轮问题、所选模式和同会话历史判断难度。简单问题通常只需要读取上下文和快速回答；复杂任务会增加岗位、Skill 和汇总步骤。",
+        realnessTitle: "为什么不显示一整排岗位",
+        realnessDetail:
+          "本轮后端没有规划多岗位任务图，所以这里只展示真实 route/context/skill/output 事件；复杂任务才显示多岗位协作。",
+      },
+      nextActions: {
+        title: "下一步可以这样继续",
+        meta: {
+          default: {
+            label: "按本轮回答",
+            detail: "这些建议会结合当前回答内容变化，不是固定模板。",
+          },
+          quick: {
+            label: "快速回答",
+            detail: "当前回答偏简洁，可以继续追问步骤、依据或风险。",
+          },
+          product: {
+            label: "商品语境",
+            detail: "当前回答围绕已选商品，可继续补卖点、人群、风险或活动方向。",
+          },
+          productNoMaterial: {
+            label: "缺商品资料",
+            detail: "当前问题需要更多商品信息，建议先补齐资料再复核判断。",
+          },
+          campaign: {
+            label: "活动语境",
+            detail: "当前回答围绕活动方案，可继续拆目标、预算、节奏和执行清单。",
+          },
+          data: {
+            label: "数据语境",
+            detail: "当前回答围绕指标和异常，可继续补数据、查原因和列验证办法。",
+          },
+          task: {
+            label: "任务语境",
+            detail: "当前回答适合沉淀为任务，可以继续整理步骤、清单和提交要求。",
+          },
+          report: {
+            label: "报告语境",
+            detail: "当前回答适合整理成复盘材料，可以继续补过程、依据和改进建议。",
+          },
+        },
+        prompts: [
+          "我补充商品资料后，请重新判断选品和风险",
+          "把上面的结论整理成实训任务步骤",
+          "继续生成活动策划、预算和执行清单",
+          "把这次回答整理成复盘报告",
+        ],
+        groups: {
+          default: [
+            "把这次结论整理成我下一步要做的 3 件事",
+            "列出还缺哪些资料，方便我继续补充",
+            "按课堂提交格式整理成一版任务说明",
+            "把风险、依据和建议分别列清楚",
+          ],
+          quick: [
+            "把刚才的简答展开成可操作步骤",
+            "只保留结论和判断依据，整理成提交说明",
+            "继续追问这个结论最关键的风险",
+            "按学生能执行的顺序重写一遍",
+          ],
+          product: [
+            "基于已选商品，重新判断卖点、人群和风险",
+            "把商品结论整理成选品分析表",
+            "继续生成适合这个商品的活动方向",
+            "列出还需要补充的商品资料",
+          ],
+          productNoMaterial: [
+            "告诉我需要补哪些商品资料才能判断",
+            "先按现有信息做一版初步选品判断",
+            "给我一个商品资料填写清单",
+            "把可能风险列出来，等我补资料后再复核",
+          ],
+          campaign: [
+            "把活动方案拆成目标、预算、节奏和动作",
+            "继续补一版活动执行清单",
+            "检查这个活动方案有哪些风险",
+            "把活动方案整理成可提交版本",
+          ],
+          data: [
+            "把数据问题拆成指标、原因和验证办法",
+            "列出我还需要补哪些经营数据",
+            "把诊断结论整理成改进建议清单",
+            "继续追问最可能影响结果的关键指标",
+          ],
+          task: [
+            "把上面的内容整理成任务步骤和提交要求",
+            "生成一版我可以照着完成的检查清单",
+            "把任务拆成今天要做和后续要做",
+            "检查这份任务还缺哪些材料",
+          ],
+          report: [
+            "把这次回答整理成复盘报告草稿",
+            "补充报告里的过程、依据和改进建议",
+            "按老师检查视角列出报告缺口",
+            "把报告压缩成课堂展示版",
+          ],
+        },
       },
     },
     swarm: {
@@ -1471,9 +1790,11 @@ const messages = {
           skillResult: "能力 {{skill}} 返回状态：{{status}}。",
           approvalRequired: "审批已创建：{{skill}}，风险 {{risk}}。",
           workerStarted: "{{agent}} 开始处理。",
-          workerFinished: "{{agent}} 已完成处理。",
-          contextLoaded: "已读取 {{products}} 个商品和 {{knowledge}} 条商品知识。",
-          ragContextLoaded: "知识检索完成：{{sources}} 个来源。",
+            workerFinished: "{{agent}} 已完成处理。",
+            contextLoaded: "已读取 {{products}} 个商品和 {{knowledge}} 条商品知识。",
+            conversationContextLoaded:
+              "同会话上下文已读取：最近 {{recent}}/{{total}} 条历史。",
+            ragContextLoaded: "知识检索完成：{{sources}} 个来源。",
           ragContextDegraded: "知识检索降级：{{reason}}",
           workspaceContextLoaded:
             "实训资料已加载：{{sources}} 个来源，状态 {{readiness}}。",
@@ -1555,6 +1876,7 @@ const messages = {
           sourceLine: "{{type}}：{{title}}",
           packItemLine: "{{kind}}：{{title}}",
           warningLine: "提示：{{warning}}",
+          omittedLine: "未进入上下文：{{ref}}",
         },
         skill: {
           title: "能力调用",
@@ -1849,7 +2171,7 @@ const messages = {
         "这些入口沿用现有真实能力，并整理成学生更容易理解的学习和任务流程。",
       items: [
         {
-          title: "选品与商品分析",
+          title: "商品资料",
           description:
             "引用学生手动选择的商品、素材、卖点和竞品资料；未选择商品时走普通实训问答链路。",
         },
@@ -1864,9 +2186,9 @@ const messages = {
             "返回带来源的数据；未配置接口时明确显示未接入，不伪造结果。",
         },
         {
-          title: "活动策划训练",
+          title: "活动方案",
           description:
-            "生成直播脚本、短视频创意、活动节奏、投放复盘和运营计划，训练策划和执行节奏。",
+            "生成直播脚本、短视频创意、活动节奏、投放复盘和运营计划，帮助整理策划和执行节奏。",
         },
         {
           title: "数据诊断与服务建议",
@@ -1874,7 +2196,7 @@ const messages = {
             "根据商品资料、售后规则和经营数据组织回复、归因和后续动作建议。",
         },
         {
-          title: "实训任务与交付",
+          title: "任务与提交",
           description:
             "把 AI 输出沉淀为任务、运行记录、执行建议和可追踪的实训交付状态。",
         },
@@ -1911,7 +2233,7 @@ const messages = {
           description: "统一入口，承接实训问题、策略选择、商品引用和过程展示。",
         },
         {
-          title: "选品与商品分析",
+          title: "商品资料",
           description: "管理商品、素材、知识、竞品和学生手动选择的任务上下文。",
         },
         {
@@ -1936,7 +2258,7 @@ const messages = {
     },
   },
   login: {
-    brand: "TaskMate・塔克",
+    brand: "电商多智能体",
     hero: {
       titleLine1: "进入电商 AI 实训，",
       titleLine2: "完成选品、策划和复盘。",
@@ -1978,7 +2300,7 @@ const messages = {
     },
   },
   register: {
-    brand: "TaskMate・塔克",
+    brand: "电商多智能体",
     hero: {
       titleLine1: "创建账号，",
       titleLine2: "开始电商 AI 实训。",
@@ -1988,7 +2310,7 @@ const messages = {
     },
     welcome: "创建新账号",
     title: "注册实训账号",
-    subtitle: "创建账号后即可进入 TaskMate・塔克，开始你的电商 AI 实训任务。",
+    subtitle: "创建账号后即可进入电商多智能体，开始你的电商 AI 实训任务。",
     form: {
       password: {
         label: "密码",

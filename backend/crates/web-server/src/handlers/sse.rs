@@ -70,9 +70,12 @@ pub async fn stream_agent_session(
     let session_id = req.session_id.clone().unwrap_or_else(new_session_id);
     let requested_workspace_id = req.workspace_id.clone();
     let input = req.input.clone();
+    let input_for_memory = input.clone();
     let (mut metadata, context_selection, model_selection) =
         req.metadata.into_parts().map_err(bad_request)?;
     let conversation_id = context_selection.conversation_id.clone();
+    let mut conversation_memory_summary: Option<Value> = None;
+    let mut conversation_context_loaded: Option<Value> = None;
     let selected_product_id = context_selection
         .product_ids
         .first()
@@ -105,16 +108,30 @@ pub async fn stream_agent_session(
     select_agent_runtime_model(model_selection.name.as_deref())
         .map_err(|err| bad_request(err.to_string()))?;
     if let Some(conversation_id) = conversation_id.as_ref() {
-        let conversation = ConversationApi::new(get_app_ctx())
+        let conversation_api = ConversationApi::new(get_app_ctx());
+        let conversation = conversation_api
             .get_conversation(user_id.clone(), conversation_id.clone())
             .await
             .map_err(from_biz_error)?;
-        merge_conversation_history_metadata(
+        let previous_memory = conversation_api
+            .get_conversation_memory(user_id.clone(), conversation_id.clone())
+            .await
+            .map_err(from_biz_error)?;
+        let conversation_history_summary = merge_conversation_history_metadata(
             &mut metadata,
             conversation_id,
             &conversation.messages,
             &input,
+            previous_memory.as_ref(),
         );
+        conversation_context_loaded = Some(build_conversation_context_loaded_event(
+            conversation_id,
+            &conversation_history_summary,
+            previous_memory.is_some(),
+        ));
+        if conversation_history_summary.total_message_count > 0 {
+            conversation_memory_summary = Some(conversation_history_summary.memory_json.clone());
+        }
     }
     let context_api = AgentContextApi::new(get_app_ctx());
     let external_search_available = get_external_search_config().is_configured();
@@ -173,7 +190,7 @@ pub async fn stream_agent_session(
         .context_summary(service::dto::workspace::GetWorkspaceContextSummaryRequest {
             user_id: user_id.clone(),
             workspace_id: linked_workspace.workspace.id.clone(),
-            conversation_id,
+            conversation_id: conversation_id.clone(),
             product_id: selected_product_id,
             include_workspace_product_context: false,
             run_id: active_run_id.clone(),
@@ -194,6 +211,7 @@ pub async fn stream_agent_session(
             context_refs: workspace_context_refs,
             max_items: Some(20),
             max_chars: Some(12_000),
+            query: Some(input.clone()),
         })
         .await
         .map_err(from_biz_error)?;
@@ -243,6 +261,9 @@ pub async fn stream_agent_session(
         run_id: linked_workspace.run.id.clone(),
         latest_output: None,
         completed: false,
+        conversation_id,
+        input: input_for_memory,
+        conversation_memory_summary,
     };
 
     let stream = async_stream::stream! {
@@ -256,6 +277,12 @@ pub async fn stream_agent_session(
             serde_json::to_value(&linked_workspace)
                 .unwrap_or_else(|_| json!({ "type": "workspace_run_linked" })),
         ));
+        if let Some(conversation_context_loaded) = conversation_context_loaded {
+            yield Ok(typed_camel_json_event(
+                "conversation_context_loaded",
+                conversation_context_loaded,
+            ));
+        }
         yield Ok(typed_camel_json_event(
             "workspace_context_loaded",
             serde_json::to_value(&workspace_context)
@@ -808,6 +835,34 @@ pub async fn stream_agent_session(
                                     )),
                                     Err(err) => yield Ok(persistence_error_event("evaluate_agent_run", err)),
                                 }
+                                if let Some(conversation_id) = link_state.conversation_id.clone()
+                                    && let Some(memory) =
+                                        build_completed_conversation_memory(&link_state)
+                                {
+                                    let response = ConversationApi::new(get_app_ctx())
+                                        .update_conversation_memory(
+                                            service::dto::conversation::UpdateConversationMemoryRequest {
+                                                user_id: link_state.user_id.clone(),
+                                                conversation_id,
+                                                memory,
+                                            },
+                                        )
+                                        .await;
+                                    match response {
+                                        Ok(value) => yield Ok(typed_camel_json_event(
+                                            "conversation_memory_updated",
+                                            serde_json::to_value(value).unwrap_or_else(
+                                                |_| json!({ "type": "conversation_memory_updated" }),
+                                            ),
+                                        )),
+                                        Err(err) => {
+                                            yield Ok(persistence_error_event(
+                                                "update_conversation_memory",
+                                                err,
+                                            ));
+                                        }
+                                    }
+                                }
                             }
                             Err(err) => yield Ok(persistence_error_event("complete_agent_run", err)),
                         }
@@ -835,6 +890,9 @@ struct AgentWorkspaceLinkState {
     run_id: String,
     latest_output: Option<String>,
     completed: bool,
+    conversation_id: Option<String>,
+    input: String,
+    conversation_memory_summary: Option<Value>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -917,6 +975,96 @@ fn persistence_error_event(action: &'static str, err: db_core::error::BizError) 
     )
 }
 
+fn build_completed_conversation_memory(link_state: &AgentWorkspaceLinkState) -> Option<Value> {
+    let latest_output =
+        normalize_history_text(link_state.latest_output.as_deref().unwrap_or_default());
+    if latest_output.is_empty() && link_state.conversation_memory_summary.is_none() {
+        return None;
+    }
+
+    let mut memory = link_state
+        .conversation_memory_summary
+        .clone()
+        .filter(Value::is_object)
+        .unwrap_or_else(|| {
+            json!({
+                "kind": "conversation_memory_summary",
+                "rollingSummary": "No older compressed history is needed for this turn.",
+                "facts": [],
+                "decisions": [],
+                "constraints": [],
+                "openQuestions": [],
+                "sourceMap": {}
+            })
+        });
+    if let Some(object) = memory.as_object_mut() {
+        object.insert(
+            "lastUserInput".to_string(),
+            Value::String(truncate_chars(
+                &normalize_history_text(&link_state.input),
+                CONVERSATION_MEMORY_LAST_USER_INPUT_MAX_CHARS,
+            )),
+        );
+        if !latest_output.is_empty() {
+            object.insert(
+                "lastAssistantOutput".to_string(),
+                Value::String(truncate_chars(
+                    &latest_output,
+                    CONVERSATION_MEMORY_LAST_ASSISTANT_OUTPUT_MAX_CHARS,
+                )),
+            );
+            upsert_memory_array_item(
+                object,
+                "decisions",
+                json!({
+                    "source": format!("agent_session:{}", link_state.session_id),
+                    "text": truncate_chars(&latest_output, 220),
+                    "confidence": "generated",
+                }),
+                CONVERSATION_MEMORY_DECISIONS_MAX_ITEMS,
+            );
+        }
+        object.insert(
+            "updatedAt".to_string(),
+            Value::String(current_unix_millis().to_string()),
+        );
+        if let Some(source_map) = object
+            .entry("sourceMap".to_string())
+            .or_insert_with(|| json!({}))
+            .as_object_mut()
+        {
+            source_map.insert(
+                "lastSessionId".to_string(),
+                Value::String(link_state.session_id.clone()),
+            );
+            source_map.insert("persisted".to_string(), Value::Bool(true));
+        }
+    }
+    Some(compact_conversation_memory_json(memory))
+}
+
+fn upsert_memory_array_item(
+    object: &mut serde_json::Map<String, Value>,
+    key: &str,
+    item: Value,
+    max_items: usize,
+) {
+    let mut items = object
+        .remove(key)
+        .and_then(|value| value.as_array().cloned())
+        .unwrap_or_default();
+    items.insert(0, item);
+    items.truncate(max_items);
+    object.insert(key.to_string(), Value::Array(items));
+}
+
+fn current_unix_millis() -> u128 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_millis())
+        .unwrap_or_default()
+}
+
 fn skill_requires_approval(status: &str, approval_required: Option<bool>) -> bool {
     status == "pending_approval" || approval_required.unwrap_or(false)
 }
@@ -995,7 +1143,7 @@ fn compact_key_part(value: &str, max_chars: usize) -> String {
     value
         .chars()
         .map(|ch| match ch {
-            'a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '-' | '_' | '.' => ch,
+            'a'..='z' | 'A'..='Z' | '0'..='9' | '-' | '_' | '.' => ch,
             _ => '-',
         })
         .take(max_chars)
@@ -1140,17 +1288,32 @@ fn append_context_summary(
     append_context_summary_section(metadata, "Retrieved local knowledge context:", summary);
 }
 
-const CONVERSATION_HISTORY_MAX_MESSAGES: usize = 12;
+const CONVERSATION_HISTORY_RECENT_MESSAGES: usize = 12;
 const CONVERSATION_HISTORY_MAX_CHARS: usize = 6_000;
 const CONVERSATION_MESSAGE_MAX_CHARS: usize = 1_200;
+const CONVERSATION_HISTORY_OLDER_SUMMARY_MESSAGES: usize = 8;
+const CONVERSATION_HISTORY_OLDER_SUMMARY_MAX_CHARS: usize = 1_600;
+const CONVERSATION_HISTORY_RELEVANT_OLDER_MESSAGES: usize = 4;
+const CONVERSATION_MEMORY_ROLLING_SUMMARY_MAX_CHARS: usize = 1_400;
+const CONVERSATION_MEMORY_ITEM_MAX_CHARS: usize = 260;
+const CONVERSATION_MEMORY_SOURCE_MAX_CHARS: usize = 120;
+const CONVERSATION_MEMORY_CONFIDENCE_MAX_CHARS: usize = 40;
+const CONVERSATION_MEMORY_FACTS_MAX_ITEMS: usize = 10;
+const CONVERSATION_MEMORY_DECISIONS_MAX_ITEMS: usize = 6;
+const CONVERSATION_MEMORY_CONSTRAINTS_MAX_ITEMS: usize = 8;
+const CONVERSATION_MEMORY_OPEN_QUESTIONS_MAX_ITEMS: usize = 5;
+const CONVERSATION_MEMORY_LAST_USER_INPUT_MAX_CHARS: usize = 500;
+const CONVERSATION_MEMORY_LAST_ASSISTANT_OUTPUT_MAX_CHARS: usize = 700;
+const CONVERSATION_MEMORY_TEXT_MAX_CHARS: usize = 2_400;
 
 fn merge_conversation_history_metadata(
     metadata: &mut std::collections::BTreeMap<String, String>,
     conversation_id: &str,
     messages: &[ConversationMessageResponse],
     current_input: &str,
-) {
-    let summary = build_conversation_history_summary(messages, current_input);
+    previous_memory: Option<&Value>,
+) -> ConversationHistorySummary {
+    let summary = build_conversation_history_summary(messages, current_input, previous_memory);
     metadata.insert(
         "conversation.conversation_id".to_string(),
         conversation_id.to_string(),
@@ -1159,8 +1322,37 @@ fn merge_conversation_history_metadata(
         "conversation.history_message_count".to_string(),
         summary.message_count.to_string(),
     );
+    metadata.insert(
+        "conversation.history_total_message_count".to_string(),
+        summary.total_message_count.to_string(),
+    );
+    metadata.insert(
+        "conversation.history_truncated".to_string(),
+        summary.truncated.to_string(),
+    );
+    metadata.insert(
+        "conversation.history_relevant_older_count".to_string(),
+        summary.relevant_older_count.to_string(),
+    );
+    if !summary.older_summary.trim().is_empty() {
+        metadata.insert(
+            "conversation.history_older_summary".to_string(),
+            summary.older_summary.clone(),
+        );
+    }
+    if summary.total_message_count > 0 {
+        metadata.insert(
+            "conversation.memory_summary_json".to_string(),
+            summary.memory_json.to_string(),
+        );
+        append_context_summary_section(
+            metadata,
+            "Same conversation structured memory:",
+            &summary.memory_text,
+        );
+    }
     if summary.text.trim().is_empty() {
-        return;
+        return summary;
     }
     metadata.insert(
         "conversation.history_summary".to_string(),
@@ -1171,17 +1363,90 @@ fn merge_conversation_history_metadata(
         "Same conversation history context:",
         &summary.text,
     );
+    summary
+}
+
+fn build_conversation_context_loaded_event(
+    conversation_id: &str,
+    summary: &ConversationHistorySummary,
+    previous_memory_available: bool,
+) -> Value {
+    json!({
+        "conversationId": conversation_id,
+        "readiness": if summary.total_message_count > 0 { "ready" } else { "empty" },
+        "messageCount": summary.message_count,
+        "totalMessageCount": summary.total_message_count,
+        "truncated": summary.truncated,
+        "relevantOlderCount": summary.relevant_older_count,
+        "olderSummaryAvailable": !summary.older_summary.trim().is_empty(),
+        "memoryAvailable": previous_memory_available || summary.total_message_count > 0,
+        "previousMemoryAvailable": previous_memory_available,
+        "historyChars": summary.text.chars().count(),
+        "memoryChars": summary.memory_text.chars().count(),
+        "summary": build_conversation_context_loaded_summary(summary, previous_memory_available),
+        "memory": {
+            "kind": summary.memory_json.get("kind").cloned().unwrap_or(Value::Null),
+            "rollingSummary": summary.memory_json
+                .get("rollingSummary")
+                .and_then(Value::as_str)
+                .map(|value| truncate_chars(value, 500)),
+            "factCount": summary.memory_json
+                .get("facts")
+                .and_then(Value::as_array)
+                .map(Vec::len)
+                .unwrap_or_default(),
+            "decisionCount": summary.memory_json
+                .get("decisions")
+                .and_then(Value::as_array)
+                .map(Vec::len)
+                .unwrap_or_default(),
+            "constraintCount": summary.memory_json
+                .get("constraints")
+                .and_then(Value::as_array)
+                .map(Vec::len)
+                .unwrap_or_default(),
+            "openQuestionCount": summary.memory_json
+                .get("openQuestions")
+                .and_then(Value::as_array)
+                .map(Vec::len)
+                .unwrap_or_default(),
+        }
+    })
+}
+
+fn build_conversation_context_loaded_summary(
+    summary: &ConversationHistorySummary,
+    previous_memory_available: bool,
+) -> String {
+    if summary.total_message_count == 0 {
+        return "No same-conversation history was available for this turn.".to_string();
+    }
+    format!(
+        "Same conversation context loaded: {}/{} recent message(s), truncated={}, relevant older message(s)={}, previous memory={}.",
+        summary.message_count,
+        summary.total_message_count,
+        summary.truncated,
+        summary.relevant_older_count,
+        previous_memory_available
+    )
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct ConversationHistorySummary {
-    message_count: usize,
-    text: String,
+pub(crate) struct ConversationHistorySummary {
+    pub(crate) message_count: usize,
+    pub(crate) total_message_count: usize,
+    pub(crate) truncated: bool,
+    pub(crate) relevant_older_count: usize,
+    pub(crate) older_summary: String,
+    pub(crate) memory_json: Value,
+    pub(crate) memory_text: String,
+    pub(crate) text: String,
 }
 
-fn build_conversation_history_summary(
+pub(crate) fn build_conversation_history_summary(
     messages: &[ConversationMessageResponse],
     current_input: &str,
+    previous_memory: Option<&Value>,
 ) -> ConversationHistorySummary {
     let current_input = normalize_history_text(current_input);
     let mut candidates = messages
@@ -1204,14 +1469,32 @@ fn build_conversation_history_summary(
         candidates.remove(index);
     }
 
-    let mut selected = candidates
+    let total_message_count = candidates.len();
+    let truncated = total_message_count > CONVERSATION_HISTORY_RECENT_MESSAGES;
+    let recent_start = total_message_count.saturating_sub(CONVERSATION_HISTORY_RECENT_MESSAGES);
+    let older_summary = build_older_conversation_summary(&candidates[..recent_start]);
+    let relevant_older =
+        select_relevant_older_conversation_messages(&candidates[..recent_start], &current_input);
+    let memory = build_conversation_memory_summary(&candidates, &older_summary, previous_memory);
+
+    let selected = candidates
         .into_iter()
-        .rev()
-        .take(CONVERSATION_HISTORY_MAX_MESSAGES)
+        .skip(recent_start)
         .collect::<Vec<_>>();
-    selected.reverse();
+    let selected_count = selected.len();
 
     let mut lines = Vec::new();
+    if !older_summary.is_empty() {
+        lines.push(format!("Earlier summary: {older_summary}"));
+    }
+    if !relevant_older.is_empty() {
+        lines.push("Relevant earlier messages:".to_string());
+        lines.extend(
+            relevant_older
+                .iter()
+                .map(|(_, role, content)| format!("- {role}: {}", truncate_chars(content, 360))),
+        );
+    }
     let mut used_chars = 0usize;
     for (_, role, content) in selected {
         let content = truncate_chars(&content, CONVERSATION_MESSAGE_MAX_CHARS);
@@ -1225,9 +1508,612 @@ fn build_conversation_history_summary(
     }
 
     ConversationHistorySummary {
-        message_count: lines.len(),
+        message_count: selected_count,
+        total_message_count,
+        truncated,
+        relevant_older_count: relevant_older.len(),
+        older_summary,
+        memory_text: memory_text_from_json(&memory),
+        memory_json: memory,
         text: lines.join("\n"),
     }
+}
+
+fn select_relevant_older_conversation_messages(
+    candidates: &[(i64, &'static str, String)],
+    current_input: &str,
+) -> Vec<(i64, &'static str, String)> {
+    let query_terms = tokenize_history_query(current_input);
+    if query_terms.is_empty() || candidates.is_empty() {
+        return Vec::new();
+    }
+    let mut scored = candidates
+        .iter()
+        .map(|(sequence, role, content)| {
+            (
+                *sequence,
+                *role,
+                content.clone(),
+                score_history_text(content, &query_terms),
+            )
+        })
+        .filter(|(_, _, _, score)| *score > 0)
+        .collect::<Vec<_>>();
+    scored.sort_by(|left, right| right.3.cmp(&left.3).then_with(|| left.0.cmp(&right.0)));
+    scored.truncate(CONVERSATION_HISTORY_RELEVANT_OLDER_MESSAGES);
+    scored.sort_by_key(|(sequence, _, _, _)| *sequence);
+    scored
+        .into_iter()
+        .map(|(sequence, role, content, _)| (sequence, role, content))
+        .collect()
+}
+
+fn score_history_text(text: &str, query_terms: &[String]) -> usize {
+    let normalized = normalize_history_text(text).to_ascii_lowercase();
+    query_terms
+        .iter()
+        .map(|term| normalized.matches(term).count() * term.chars().count().max(1))
+        .sum()
+}
+
+fn tokenize_history_query(query: &str) -> Vec<String> {
+    let normalized = normalize_history_text(query).to_ascii_lowercase();
+    let mut terms = Vec::new();
+    let mut current = String::new();
+    let mut current_is_cjk = false;
+    for ch in normalized.chars() {
+        if ch.is_ascii_alphanumeric() {
+            if current_is_cjk {
+                add_history_query_token(&mut terms, &current, true);
+                current.clear();
+            }
+            current_is_cjk = false;
+            current.push(ch);
+        } else if is_cjk(ch) {
+            if !current.is_empty() && !current_is_cjk {
+                add_history_query_token(&mut terms, &current, false);
+                current.clear();
+            }
+            current_is_cjk = true;
+            current.push(ch);
+        } else if !current.is_empty() {
+            add_history_query_token(&mut terms, &current, current_is_cjk);
+            current.clear();
+        }
+        if terms.len() >= 24 {
+            break;
+        }
+    }
+    if !current.is_empty() && terms.len() < 24 {
+        add_history_query_token(&mut terms, &current, current_is_cjk);
+    }
+    terms
+}
+
+fn add_history_query_token(terms: &mut Vec<String>, token: &str, cjk: bool) {
+    if cjk {
+        let chars = token.chars().collect::<Vec<_>>();
+        if chars.len() == 2 {
+            push_history_query_term(terms, token.to_string());
+        } else if chars.len() > 2 {
+            for window in chars.windows(2) {
+                push_history_query_term(terms, window.iter().collect::<String>());
+                if terms.len() >= 24 {
+                    return;
+                }
+            }
+            for window in chars.windows(3) {
+                push_history_query_term(terms, window.iter().collect::<String>());
+                if terms.len() >= 24 {
+                    return;
+                }
+            }
+        }
+        return;
+    }
+    if token.len() > 1 {
+        push_history_query_term(terms, token.to_string());
+    }
+}
+
+fn push_history_query_term(terms: &mut Vec<String>, term: String) {
+    if !term.trim().is_empty() && !terms.iter().any(|existing| existing == &term) {
+        terms.push(term);
+    }
+}
+
+fn is_cjk(ch: char) -> bool {
+    ('\u{4e00}'..='\u{9fff}').contains(&ch)
+        || ('\u{3400}'..='\u{4dbf}').contains(&ch)
+        || ('\u{f900}'..='\u{faff}').contains(&ch)
+}
+
+fn build_conversation_memory_summary(
+    candidates: &[(i64, &'static str, String)],
+    older_summary: &str,
+    previous_memory: Option<&Value>,
+) -> Value {
+    let recent_user_messages = candidates
+        .iter()
+        .rev()
+        .filter(|(_, role, _)| *role == "User")
+        .take(6)
+        .map(|(sequence, _, content)| {
+            json!({
+                "source": format!("conversation_message:{sequence}"),
+                "text": truncate_chars(content, 240),
+                "confidence": "explicit",
+            })
+        })
+        .collect::<Vec<_>>();
+    let recent_assistant_notes = candidates
+        .iter()
+        .rev()
+        .filter(|(_, role, _)| *role == "Assistant")
+        .take(3)
+        .map(|(sequence, _, content)| {
+            json!({
+                "source": format!("conversation_message:{sequence}"),
+                "text": truncate_chars(content, 220),
+                "confidence": "generated",
+            })
+        })
+        .collect::<Vec<_>>();
+    let previous_facts = previous_memory_array(
+        previous_memory,
+        "facts",
+        CONVERSATION_MEMORY_FACTS_MAX_ITEMS,
+    );
+    let previous_decisions = previous_memory_array(
+        previous_memory,
+        "decisions",
+        CONVERSATION_MEMORY_DECISIONS_MAX_ITEMS,
+    );
+    let previous_constraints = previous_memory_array(
+        previous_memory,
+        "constraints",
+        CONVERSATION_MEMORY_CONSTRAINTS_MAX_ITEMS,
+    );
+    let previous_open_questions = previous_memory_array(
+        previous_memory,
+        "openQuestions",
+        CONVERSATION_MEMORY_OPEN_QUESTIONS_MAX_ITEMS,
+    );
+    let previous_rolling_summary = previous_memory
+        .and_then(|value| value.get("rollingSummary"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+    let rolling_summary = if !older_summary.trim().is_empty() {
+        match previous_rolling_summary {
+            Some(previous)
+                if previous != "No older compressed history is needed for this turn." =>
+            {
+                truncate_chars(
+                    &format!("{previous}\n{older_summary}"),
+                    CONVERSATION_MEMORY_ROLLING_SUMMARY_MAX_CHARS,
+                )
+            }
+            _ => older_summary.to_string(),
+        }
+    } else {
+        previous_rolling_summary
+            .unwrap_or("No older compressed history is needed for this turn.")
+            .to_string()
+    };
+
+    compact_conversation_memory_json(json!({
+        "kind": "conversation_memory_summary",
+        "rollingSummary": rolling_summary,
+        "facts": merge_memory_items(
+            recent_user_messages,
+            previous_facts,
+            CONVERSATION_MEMORY_FACTS_MAX_ITEMS,
+        ),
+        "decisions": merge_memory_items(
+            recent_assistant_notes,
+            previous_decisions,
+            CONVERSATION_MEMORY_DECISIONS_MAX_ITEMS,
+        ),
+        "constraints": merge_memory_items(
+            extract_history_constraints(candidates),
+            previous_constraints,
+            CONVERSATION_MEMORY_CONSTRAINTS_MAX_ITEMS,
+        ),
+        "openQuestions": previous_open_questions,
+        "sourceMap": {
+            "messageCount": candidates.len(),
+            "recentWindow": CONVERSATION_HISTORY_RECENT_MESSAGES,
+            "previousMemoryAvailable": previous_memory.is_some(),
+        }
+    }))
+}
+
+fn previous_memory_array(
+    previous_memory: Option<&Value>,
+    key: &str,
+    max_items: usize,
+) -> Vec<Value> {
+    previous_memory
+        .and_then(|value| value.get(key))
+        .and_then(Value::as_array)
+        .map(|items| items.iter().take(max_items).cloned().collect())
+        .unwrap_or_default()
+}
+
+fn merge_memory_items(primary: Vec<Value>, secondary: Vec<Value>, max_items: usize) -> Vec<Value> {
+    let mut output = Vec::new();
+    for item in primary.into_iter().chain(secondary) {
+        let Some(item) = sanitize_memory_item(&item, "previous") else {
+            continue;
+        };
+        if !upsert_compact_memory_item(&mut output, item, max_items) {
+            continue;
+        }
+    }
+    output
+}
+
+fn compact_conversation_memory_json(memory: Value) -> Value {
+    let object = memory.as_object();
+    let rolling_summary = object
+        .and_then(|object| object.get("rollingSummary"))
+        .and_then(Value::as_str)
+        .map(normalize_history_text)
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| "No older compressed history is needed for this turn.".to_string());
+    let mut compacted = serde_json::Map::new();
+    compacted.insert(
+        "kind".to_string(),
+        Value::String("conversation_memory_summary".to_string()),
+    );
+    compacted.insert(
+        "rollingSummary".to_string(),
+        Value::String(truncate_chars(
+            &rolling_summary,
+            CONVERSATION_MEMORY_ROLLING_SUMMARY_MAX_CHARS,
+        )),
+    );
+    compacted.insert(
+        "facts".to_string(),
+        Value::Array(compact_memory_array(
+            object.and_then(|object| object.get("facts")),
+            CONVERSATION_MEMORY_FACTS_MAX_ITEMS,
+            "explicit",
+        )),
+    );
+    compacted.insert(
+        "decisions".to_string(),
+        Value::Array(compact_memory_array(
+            object.and_then(|object| object.get("decisions")),
+            CONVERSATION_MEMORY_DECISIONS_MAX_ITEMS,
+            "generated",
+        )),
+    );
+    compacted.insert(
+        "constraints".to_string(),
+        Value::Array(compact_memory_array(
+            object.and_then(|object| object.get("constraints")),
+            CONVERSATION_MEMORY_CONSTRAINTS_MAX_ITEMS,
+            "explicit",
+        )),
+    );
+    compacted.insert(
+        "openQuestions".to_string(),
+        Value::Array(compact_open_questions(
+            object.and_then(|object| object.get("openQuestions")),
+            CONVERSATION_MEMORY_OPEN_QUESTIONS_MAX_ITEMS,
+        )),
+    );
+    if let Some(value) = compact_optional_string_field(
+        object,
+        "lastUserInput",
+        CONVERSATION_MEMORY_LAST_USER_INPUT_MAX_CHARS,
+    ) {
+        compacted.insert("lastUserInput".to_string(), Value::String(value));
+    }
+    if let Some(value) = compact_optional_string_field(
+        object,
+        "lastAssistantOutput",
+        CONVERSATION_MEMORY_LAST_ASSISTANT_OUTPUT_MAX_CHARS,
+    ) {
+        compacted.insert("lastAssistantOutput".to_string(), Value::String(value));
+    }
+    if let Some(value) = compact_optional_string_field(object, "updatedAt", 40) {
+        compacted.insert("updatedAt".to_string(), Value::String(value));
+    }
+    compacted.insert(
+        "sourceMap".to_string(),
+        compact_memory_source_map(object.and_then(|object| object.get("sourceMap"))),
+    );
+    Value::Object(compacted)
+}
+
+fn compact_memory_array(
+    value: Option<&Value>,
+    max_items: usize,
+    default_confidence: &str,
+) -> Vec<Value> {
+    let mut output = Vec::new();
+    let Some(items) = value.and_then(Value::as_array) else {
+        return output;
+    };
+    for item in items {
+        let Some(item) = sanitize_memory_item(item, default_confidence) else {
+            continue;
+        };
+        if !upsert_compact_memory_item(&mut output, item, max_items) {
+            continue;
+        }
+    }
+    output
+}
+
+fn upsert_compact_memory_item(output: &mut Vec<Value>, item: Value, max_items: usize) -> bool {
+    let item_key = memory_item_dedupe_key(&item);
+    if item_key.is_empty() {
+        return false;
+    }
+    if let Some(existing_index) = output
+        .iter()
+        .position(|existing| memory_items_overlap(existing, &item_key))
+    {
+        let existing_len = output[existing_index]
+            .get("text")
+            .and_then(Value::as_str)
+            .map(|value| value.chars().count())
+            .unwrap_or_default();
+        let item_len = item
+            .get("text")
+            .and_then(Value::as_str)
+            .map(|value| value.chars().count())
+            .unwrap_or_default();
+        if item_len > existing_len {
+            output[existing_index] = item;
+        }
+        return false;
+    }
+    if output.len() >= max_items {
+        return false;
+    }
+    output.push(item);
+    true
+}
+
+fn sanitize_memory_item(item: &Value, default_confidence: &str) -> Option<Value> {
+    let object = item.as_object();
+    let text = item
+        .as_str()
+        .or_else(|| {
+            object
+                .and_then(|object| object.get("text"))
+                .and_then(Value::as_str)
+        })
+        .map(normalize_history_text)
+        .filter(|value| !value.trim().is_empty())?;
+    let source = object
+        .and_then(|object| object.get("source"))
+        .and_then(Value::as_str)
+        .map(normalize_history_text)
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| "previous_memory".to_string());
+    let confidence = object
+        .and_then(|object| object.get("confidence"))
+        .and_then(Value::as_str)
+        .map(normalize_history_text)
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| default_confidence.to_string());
+    Some(json!({
+        "source": truncate_chars(&source, CONVERSATION_MEMORY_SOURCE_MAX_CHARS),
+        "text": truncate_chars(&text, CONVERSATION_MEMORY_ITEM_MAX_CHARS),
+        "confidence": truncate_chars(&confidence, CONVERSATION_MEMORY_CONFIDENCE_MAX_CHARS),
+    }))
+}
+
+fn memory_item_dedupe_key(item: &Value) -> String {
+    item.get("text")
+        .and_then(Value::as_str)
+        .map(normalize_history_text)
+        .unwrap_or_default()
+        .to_ascii_lowercase()
+}
+
+fn memory_items_overlap(existing: &Value, item_key: &str) -> bool {
+    let existing_key = memory_item_dedupe_key(existing);
+    if existing_key.is_empty() || item_key.is_empty() {
+        return false;
+    }
+    existing_key == item_key
+        || (existing_key.chars().count() >= 8 && item_key.contains(&existing_key))
+        || (item_key.chars().count() >= 8 && existing_key.contains(item_key))
+}
+
+fn compact_open_questions(value: Option<&Value>, max_items: usize) -> Vec<Value> {
+    let mut output = Vec::new();
+    let mut seen = Vec::<String>::new();
+    let Some(items) = value.and_then(Value::as_array) else {
+        return output;
+    };
+    for item in items {
+        let compacted = if let Some(question) = item.as_str() {
+            let question = normalize_history_text(question);
+            if question.is_empty() {
+                None
+            } else {
+                Some(Value::String(truncate_chars(
+                    &question,
+                    CONVERSATION_MEMORY_ITEM_MAX_CHARS,
+                )))
+            }
+        } else {
+            sanitize_memory_item(item, "open")
+        };
+        let Some(compacted) = compacted else {
+            continue;
+        };
+        let key = memory_open_question_key(&compacted);
+        if key.is_empty() || seen.iter().any(|existing| existing == &key) {
+            continue;
+        }
+        seen.push(key);
+        output.push(compacted);
+        if output.len() >= max_items {
+            break;
+        }
+    }
+    output
+}
+
+fn memory_open_question_key(item: &Value) -> String {
+    item.as_str()
+        .or_else(|| item.get("text").and_then(Value::as_str))
+        .map(normalize_history_text)
+        .unwrap_or_default()
+        .to_ascii_lowercase()
+}
+
+fn compact_optional_string_field(
+    object: Option<&serde_json::Map<String, Value>>,
+    key: &str,
+    max_chars: usize,
+) -> Option<String> {
+    object
+        .and_then(|object| object.get(key))
+        .and_then(Value::as_str)
+        .map(normalize_history_text)
+        .filter(|value| !value.trim().is_empty())
+        .map(|value| truncate_chars(&value, max_chars))
+}
+
+fn compact_memory_source_map(value: Option<&Value>) -> Value {
+    let mut source_map = serde_json::Map::new();
+    if let Some(object) = value.and_then(Value::as_object) {
+        copy_memory_source_map_field(object, &mut source_map, "messageCount");
+        copy_memory_source_map_field(object, &mut source_map, "recentWindow");
+        copy_memory_source_map_field(object, &mut source_map, "previousMemoryAvailable");
+        copy_memory_source_map_field(object, &mut source_map, "lastSessionId");
+        copy_memory_source_map_field(object, &mut source_map, "persisted");
+    }
+    source_map.insert(
+        "memoryBudget".to_string(),
+        json!({
+            "rollingSummaryMaxChars": CONVERSATION_MEMORY_ROLLING_SUMMARY_MAX_CHARS,
+            "itemMaxChars": CONVERSATION_MEMORY_ITEM_MAX_CHARS,
+            "factsMaxItems": CONVERSATION_MEMORY_FACTS_MAX_ITEMS,
+            "decisionsMaxItems": CONVERSATION_MEMORY_DECISIONS_MAX_ITEMS,
+            "constraintsMaxItems": CONVERSATION_MEMORY_CONSTRAINTS_MAX_ITEMS,
+            "openQuestionsMaxItems": CONVERSATION_MEMORY_OPEN_QUESTIONS_MAX_ITEMS,
+            "lastUserInputMaxChars": CONVERSATION_MEMORY_LAST_USER_INPUT_MAX_CHARS,
+            "lastAssistantOutputMaxChars": CONVERSATION_MEMORY_LAST_ASSISTANT_OUTPUT_MAX_CHARS,
+            "memoryTextMaxChars": CONVERSATION_MEMORY_TEXT_MAX_CHARS,
+        }),
+    );
+    Value::Object(source_map)
+}
+
+fn copy_memory_source_map_field(
+    source: &serde_json::Map<String, Value>,
+    target: &mut serde_json::Map<String, Value>,
+    key: &str,
+) {
+    let Some(value) = source.get(key) else {
+        return;
+    };
+    match value {
+        Value::Bool(_) | Value::Number(_) => {
+            target.insert(key.to_string(), value.clone());
+        }
+        Value::String(value) => {
+            let value = normalize_history_text(value);
+            if !value.is_empty() {
+                target.insert(
+                    key.to_string(),
+                    Value::String(truncate_chars(&value, CONVERSATION_MEMORY_SOURCE_MAX_CHARS)),
+                );
+            }
+        }
+        _ => {}
+    }
+}
+
+fn extract_history_constraints(candidates: &[(i64, &'static str, String)]) -> Vec<Value> {
+    let markers = [
+        "不要",
+        "不能",
+        "必须",
+        "只",
+        "不引用",
+        "do not",
+        "must",
+        "only",
+    ];
+    candidates
+        .iter()
+        .filter(|(_, role, _)| *role == "User")
+        .filter(|(_, _, content)| {
+            let lower = content.to_ascii_lowercase();
+            markers.iter().any(|marker| lower.contains(marker))
+        })
+        .rev()
+        .take(5)
+        .map(|(sequence, _, content)| {
+            json!({
+                "source": format!("conversation_message:{sequence}"),
+                "text": truncate_chars(content, 220),
+                "confidence": "explicit",
+            })
+        })
+        .collect()
+}
+
+fn memory_text_from_json(memory: &Value) -> String {
+    let mut lines = Vec::new();
+    if let Some(summary) = memory.get("rollingSummary").and_then(Value::as_str) {
+        lines.push(format!("Rolling summary: {summary}"));
+    }
+    if let Some(facts) = memory.get("facts").and_then(Value::as_array)
+        && !facts.is_empty()
+    {
+        lines.push("Recent user facts:".to_string());
+        lines.extend(
+            facts
+                .iter()
+                .take(6)
+                .filter_map(|item| item.get("text").and_then(Value::as_str))
+                .map(|text| format!("- {text}")),
+        );
+    }
+    if let Some(constraints) = memory.get("constraints").and_then(Value::as_array)
+        && !constraints.is_empty()
+    {
+        lines.push("User constraints:".to_string());
+        lines.extend(
+            constraints
+                .iter()
+                .take(5)
+                .filter_map(|item| item.get("text").and_then(Value::as_str))
+                .map(|text| format!("- {text}")),
+        );
+    }
+    truncate_chars(&lines.join("\n"), CONVERSATION_MEMORY_TEXT_MAX_CHARS)
+}
+
+fn build_older_conversation_summary(candidates: &[(i64, &'static str, String)]) -> String {
+    if candidates.is_empty() {
+        return String::new();
+    }
+    let mut parts = Vec::new();
+    let start = candidates
+        .len()
+        .saturating_sub(CONVERSATION_HISTORY_OLDER_SUMMARY_MESSAGES);
+    for (_, role, content) in candidates.iter().skip(start) {
+        let brief = truncate_chars(content, 180);
+        parts.push(format!("{role}: {brief}"));
+    }
+    truncate_chars(
+        &parts.join(" / "),
+        CONVERSATION_HISTORY_OLDER_SUMMARY_MAX_CHARS,
+    )
 }
 
 fn conversation_history_role(role: &str) -> Option<&'static str> {
@@ -1342,8 +2228,16 @@ fn merge_workspace_context_pack_metadata(
         serde_json::to_string(&context.items)?,
     );
     metadata.insert(
+        "workspaceContextPack.item_count".to_string(),
+        context.items.len().to_string(),
+    );
+    metadata.insert(
         "workspaceContextPack.omitted_json".to_string(),
         serde_json::to_string(&context.omitted)?,
+    );
+    metadata.insert(
+        "workspaceContextPack.omitted_details_json".to_string(),
+        serde_json::to_string(&context.omitted_details)?,
     );
     metadata.insert(
         "workspaceContextPack.warnings_json".to_string(),
@@ -1358,7 +2252,50 @@ fn merge_workspace_context_pack_metadata(
     if !refs.is_empty() {
         append_context_refs(metadata, &refs);
     }
+    append_context_injection_budget(metadata, context)?;
     append_workspace_context_pack_summary(metadata, context);
+    Ok(())
+}
+
+fn append_context_injection_budget(
+    metadata: &mut std::collections::BTreeMap<String, String>,
+    context: &WorkspaceContextPackResponse,
+) -> Result<(), serde_json::Error> {
+    let readable_refs = context
+        .items
+        .iter()
+        .filter(|item| item.text.is_some())
+        .map(|item| item.ref_key.clone())
+        .collect::<Vec<_>>();
+    let metadata_only_refs = context
+        .items
+        .iter()
+        .filter(|item| item.text.is_none())
+        .map(|item| item.ref_key.clone())
+        .collect::<Vec<_>>();
+    let approximate_chars = context
+        .items
+        .iter()
+        .map(|item| item.text_chars)
+        .sum::<usize>();
+    let budget = json!({
+        "kind": "context_injection_budget",
+        "workspacePack": {
+            "readiness": context.readiness,
+            "itemCount": context.items.len(),
+            "readableItemCount": readable_refs.len(),
+            "metadataOnlyItemCount": metadata_only_refs.len(),
+            "omittedCount": context.omitted_details.len(),
+            "approximateChars": approximate_chars,
+        },
+        "includedRefs": readable_refs,
+        "metadataOnlyRefs": metadata_only_refs,
+        "omitted": context.omitted_details,
+    });
+    metadata.insert(
+        "context.injection_budget_json".to_string(),
+        serde_json::to_string(&budget)?,
+    );
     Ok(())
 }
 
@@ -1674,11 +2611,263 @@ mod tests {
         ];
 
         let summary =
-            build_conversation_history_summary(&messages, "请直接根据前面补充的信息完成方案");
+            build_conversation_history_summary(&messages, "请直接根据前面补充的信息完成方案", None);
 
         assert_eq!(summary.message_count, 3);
+        assert_eq!(summary.total_message_count, 3);
+        assert!(!summary.truncated);
         assert!(summary.text.contains("单价100"));
         assert!(!summary.text.contains("请直接根据前面补充的信息完成方案"));
+    }
+
+    #[test]
+    fn conversation_history_keeps_recent_window_and_summarizes_older_messages() {
+        let mut messages = Vec::new();
+        for index in 1..=18 {
+            let role = if index % 2 == 0 { "assistant" } else { "user" };
+            messages.push(conversation_message(
+                index,
+                role,
+                &format!("第 {index} 轮关于咖啡商品、预算和复盘指标的上下文"),
+            ));
+        }
+
+        let summary =
+            build_conversation_history_summary(&messages, "继续看咖啡预算和复盘指标", None);
+
+        assert_eq!(summary.message_count, 12);
+        assert_eq!(summary.total_message_count, 18);
+        assert!(summary.truncated);
+        assert_eq!(summary.relevant_older_count, 4);
+        assert!(summary.older_summary.contains("第 6 轮"));
+        assert!(summary.text.contains("Relevant earlier messages:"));
+        assert!(summary.text.contains("Earlier summary:"));
+        assert!(summary.text.contains("第 18 轮"));
+        assert!(summary.text.contains("第 7 轮"));
+        assert!(!summary.text.contains("\nUser: 第 5 轮"));
+    }
+
+    #[test]
+    fn conversation_history_merges_previous_memory() {
+        let messages = vec![conversation_message(
+            1,
+            "user",
+            "本轮补充：预算不能超过 3000",
+        )];
+        let previous_memory = json!({
+            "kind": "conversation_memory_summary",
+            "rollingSummary": "用户之前确认目标是提升夏季防晒商品转化。",
+            "facts": [
+                {
+                    "source": "conversation_message:old",
+                    "text": "用户主推轻薄防晒衣",
+                    "confidence": "explicit"
+                }
+            ],
+            "decisions": [],
+            "constraints": [],
+            "openQuestions": ["是否需要按渠道拆分预算"]
+        });
+
+        let summary = build_conversation_history_summary(&messages, "继续", Some(&previous_memory));
+
+        assert!(summary.memory_text.contains("轻薄防晒衣"));
+        assert!(
+            summary
+                .memory_json
+                .get("rollingSummary")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .contains("夏季防晒商品")
+        );
+        assert_eq!(
+            summary.memory_json["sourceMap"]["previousMemoryAvailable"],
+            true
+        );
+        assert!(
+            summary
+                .memory_json
+                .get("constraints")
+                .and_then(Value::as_array)
+                .unwrap()
+                .iter()
+                .any(|item| item["text"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .contains("不能超过"))
+        );
+    }
+
+    #[test]
+    fn conversation_history_compacts_previous_memory_budget() {
+        let long_fact = format!("用户主推轻薄防晒衣 {}", "长描述".repeat(180));
+        let long_summary = "旧摘要 ".repeat(600);
+        let previous_memory = json!({
+            "kind": "conversation_memory_summary",
+            "rollingSummary": long_summary,
+            "facts": [
+                {
+                    "source": "conversation_message:old",
+                    "text": long_fact,
+                    "confidence": "explicit"
+                },
+                {
+                    "source": "conversation_message:duplicate",
+                    "text": " 用户主推轻薄防晒衣 ",
+                    "confidence": "explicit"
+                }
+            ],
+            "decisions": [
+                {"source": "old", "text": "保留价格约束", "confidence": "generated"},
+                {"source": "old-2", "text": "保留价格约束", "confidence": "generated"}
+            ],
+            "constraints": [
+                {"source": "old", "text": "预算不能超过 3000", "confidence": "explicit"}
+            ],
+            "openQuestions": [
+                "是否需要按渠道拆分预算",
+                "是否需要按渠道拆分预算",
+                {"source": "old", "text": "是否继续做直播脚本", "confidence": "open"}
+            ],
+            "sourceMap": {
+                "previousMemoryAvailable": true,
+                "lastSessionId": "session-with-extra-long-suffix".repeat(20),
+                "ignoredNested": {"x": 1}
+            }
+        });
+
+        let messages = vec![
+            conversation_message(1, "user", "本轮补充：预算不能超过 3000"),
+            conversation_message(2, "user", "用户主推轻薄防晒衣"),
+        ];
+        let summary = build_conversation_history_summary(&messages, "继续", Some(&previous_memory));
+        let memory = summary.memory_json;
+        let facts = memory["facts"].as_array().unwrap();
+        let decisions = memory["decisions"].as_array().unwrap();
+        let open_questions = memory["openQuestions"].as_array().unwrap();
+
+        assert!(
+            memory["rollingSummary"]
+                .as_str()
+                .unwrap_or_default()
+                .chars()
+                .count()
+                <= CONVERSATION_MEMORY_ROLLING_SUMMARY_MAX_CHARS + 3
+        );
+        assert!(facts.len() <= CONVERSATION_MEMORY_FACTS_MAX_ITEMS);
+        assert_eq!(
+            facts
+                .iter()
+                .filter(|item| item["text"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .contains("用户主推轻薄防晒衣"))
+                .count(),
+            1
+        );
+        assert_eq!(
+            decisions
+                .iter()
+                .filter(|item| item["text"].as_str() == Some("保留价格约束"))
+                .count(),
+            1
+        );
+        assert_eq!(open_questions.len(), 2);
+        assert_eq!(
+            memory["sourceMap"]["memoryBudget"]["factsMaxItems"],
+            CONVERSATION_MEMORY_FACTS_MAX_ITEMS
+        );
+        assert!(memory["sourceMap"].get("ignoredNested").is_none());
+    }
+
+    #[test]
+    fn completed_conversation_memory_adds_last_turn_output() {
+        let link_state = AgentWorkspaceLinkState {
+            user_id: "user-1".to_string(),
+            session_id: "session-1".to_string(),
+            workspace_id: "workspace-1".to_string(),
+            run_id: "run-1".to_string(),
+            latest_output: Some("建议把主卖点压缩成三条，并保留价格约束。".to_string()),
+            completed: true,
+            conversation_id: Some("conversation-1".to_string()),
+            input: "继续完善方案".to_string(),
+            conversation_memory_summary: Some(json!({
+                "kind": "conversation_memory_summary",
+                "rollingSummary": "已有商品定位。",
+                "facts": [],
+                "decisions": [],
+                "constraints": [],
+                "openQuestions": [],
+                "sourceMap": {}
+            })),
+        };
+
+        let memory = build_completed_conversation_memory(&link_state).unwrap();
+
+        assert_eq!(memory["lastUserInput"], "继续完善方案");
+        assert!(
+            memory["lastAssistantOutput"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("主卖点")
+        );
+        assert_eq!(memory["sourceMap"]["lastSessionId"], "session-1");
+        assert_eq!(memory["sourceMap"]["persisted"], true);
+    }
+
+    #[test]
+    fn completed_conversation_memory_clamps_last_turn_output() {
+        let long_output = format!("建议保留利润率判断。{}", "后续执行细节".repeat(200));
+        let link_state = AgentWorkspaceLinkState {
+            user_id: "user-1".to_string(),
+            session_id: "session-1".to_string(),
+            workspace_id: "workspace-1".to_string(),
+            run_id: "run-1".to_string(),
+            latest_output: Some(long_output),
+            completed: true,
+            conversation_id: Some("conversation-1".to_string()),
+            input: "请继续完善利润率方案。".repeat(80),
+            conversation_memory_summary: Some(json!({
+                "kind": "conversation_memory_summary",
+                "rollingSummary": "已有商品定位。",
+                "facts": [],
+                "decisions": [],
+                "constraints": [],
+                "openQuestions": [],
+                "sourceMap": {}
+            })),
+        };
+
+        let memory = build_completed_conversation_memory(&link_state).unwrap();
+
+        assert!(
+            memory["lastUserInput"]
+                .as_str()
+                .unwrap_or_default()
+                .chars()
+                .count()
+                <= CONVERSATION_MEMORY_LAST_USER_INPUT_MAX_CHARS + 3
+        );
+        assert!(
+            memory["lastAssistantOutput"]
+                .as_str()
+                .unwrap_or_default()
+                .chars()
+                .count()
+                <= CONVERSATION_MEMORY_LAST_ASSISTANT_OUTPUT_MAX_CHARS + 3
+        );
+        assert_eq!(
+            memory["sourceMap"]["memoryBudget"]["lastAssistantOutputMaxChars"],
+            CONVERSATION_MEMORY_LAST_ASSISTANT_OUTPUT_MAX_CHARS
+        );
+        assert!(
+            memory["decisions"][0]["text"]
+                .as_str()
+                .unwrap_or_default()
+                .chars()
+                .count()
+                <= CONVERSATION_MEMORY_ITEM_MAX_CHARS + 3
+        );
     }
 
     #[test]
@@ -1699,10 +2888,14 @@ mod tests {
             "conversation-1",
             &messages,
             "继续生成方案",
+            None,
         );
 
         assert_eq!(metadata["conversation.conversation_id"], "conversation-1");
         assert_eq!(metadata["conversation.history_message_count"], "3");
+        assert_eq!(metadata["conversation.history_total_message_count"], "3");
+        assert_eq!(metadata["conversation.history_truncated"], "false");
+        assert_eq!(metadata["conversation.history_relevant_older_count"], "0");
         assert!(metadata["conversation.history_summary"].contains("客单价100"));
         assert!(
             metadata["context.combined_summary"].contains("Same conversation history context:")
@@ -1852,6 +3045,7 @@ mod tests {
                 },
             ],
             omitted: Vec::new(),
+            omitted_details: Vec::new(),
             warnings: vec![
                 "1 conversation file(s) only have metadata; binary content was not read"
                     .to_string(),

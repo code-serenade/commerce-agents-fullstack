@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::protocol::{
-    Evaluation, SessionId, TaskGraph, TaskGraphId, TaskGraphProcessSummary, TaskId, TaskNodeId,
-    WorkerId, WorkerReport,
+    DispatchContextBudget, DispatchPlannedStep, Evaluation, SessionId, TaskGraph, TaskGraphId,
+    TaskGraphProcessSummary, TaskId, TaskNodeId, WorkerId, WorkerReport,
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -54,6 +54,18 @@ pub enum SessionEvent {
         route_mode: String,
         primary_runtime_role: Option<String>,
         support_runtime_roles: Vec<String>,
+    },
+    DispatchPlanned {
+        session_id: SessionId,
+        difficulty: String,
+        route_mode: String,
+        primary_runtime_role: Option<String>,
+        support_runtime_roles: Vec<String>,
+        selected_skills: Vec<String>,
+        planned_steps: Vec<DispatchPlannedStep>,
+        context_budget: DispatchContextBudget,
+        reasoning_summary: String,
+        student_visible_explanation: String,
     },
     WorkerStarted {
         session_id: SessionId,
@@ -189,6 +201,7 @@ impl SessionEvent {
             Self::ContextLoaded { .. } => "context_loaded",
             Self::CommanderThinking { .. } => "commander_thinking",
             Self::RouteDecided { .. } => "route_decided",
+            Self::DispatchPlanned { .. } => "dispatch_planned",
             Self::WorkerStarted { .. } => "worker_started",
             Self::SkillRequested { .. } => "skill_requested",
             Self::SkillResult { .. } => "skill_result",

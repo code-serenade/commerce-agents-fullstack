@@ -1,6 +1,6 @@
 import type { HTMLAttributes } from "react"
 
-export interface TaskMateLogoProps extends HTMLAttributes<HTMLDivElement> {
+export interface CommerceAgentLogoProps extends HTMLAttributes<HTMLDivElement> {
   size?: "sm" | "md" | "lg"
 }
 
@@ -10,11 +10,11 @@ const sizeClassNames = {
   lg: "size-12 rounded-2xl",
 } as const
 
-export function TaskMateLogo({
+export function CommerceAgentLogo({
   className,
   size = "md",
   ...props
-}: TaskMateLogoProps) {
+}: CommerceAgentLogoProps) {
   return (
     <div
       aria-hidden="true"

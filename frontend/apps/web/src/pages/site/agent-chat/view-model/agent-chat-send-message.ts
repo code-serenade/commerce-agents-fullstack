@@ -16,9 +16,15 @@ import {
 } from "../domain/agent-chat-context-selection"
 import type { AgentChatRuntimeSelection } from "../domain/agent-runtime-options"
 import type { AgentChatStrategy } from "../domain/agent-chat-strategy"
-import type { AgentChatConversationItem, AgentChatMessage } from "../types"
+import type {
+  AgentChatAttachmentItem,
+  AgentChatConversationItem,
+  AgentChatMessage,
+} from "../types"
+import { MAX_VISION_IMAGE_ATTACHMENTS } from "./agent-chat-image-attachments"
 
 interface SendAgentChatMessageInput {
+  attachments: AgentChatAttachmentItem[]
   content: string
   conversationId: string | null
   fallbackConversationTitle: string
@@ -62,6 +68,10 @@ export async function sendAgentChatMessage(
     ),
     productIds: input.selectedProducts.map((product) => product.id),
   }
+  const imageAttachments = createImageAttachments(
+    input.attachments,
+    contextMeta.contextRefs
+  )
   const contextSummary = createMessageContextSummary({
     ...contextMeta,
     collaborationMode: strategyMeta.collaborationMode,
@@ -125,6 +135,9 @@ export async function sendAgentChatMessage(
         input: input.content,
         agentId: AGENT_ID,
         metadata: {
+          ...(imageAttachments.length
+            ? { attachments: { images: imageAttachments } }
+            : {}),
           model: input.runtimeSelection.modelName
             ? { name: input.runtimeSelection.modelName }
             : undefined,
@@ -253,4 +266,26 @@ export async function sendAgentChatMessage(
   }
 
   return controller
+}
+
+function createImageAttachments(
+  attachments: AgentChatAttachmentItem[],
+  contextRefs: string[]
+) {
+  return attachments
+    .filter(
+      (attachment) =>
+        attachment.status === "uploaded" &&
+        Boolean(attachment.fileId) &&
+        Boolean(attachment.imageDataUrl)
+    )
+    .filter((attachment) =>
+      contextRefs.includes(`conversation_file:${attachment.fileId}`)
+    )
+    .slice(0, MAX_VISION_IMAGE_ATTACHMENTS)
+    .map((attachment) => ({
+      detail: attachment.imageDetail ?? "auto",
+      sourceRef: `conversation_file:${attachment.fileId}`,
+      url: attachment.imageDataUrl!,
+    }))
 }

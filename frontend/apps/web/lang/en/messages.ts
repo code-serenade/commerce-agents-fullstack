@@ -2,8 +2,8 @@ const messages = {
   web: {
     shell: {
       brand: {
-        eyebrow: "TaskMate",
-        title: "TaskMate・塔克",
+        eyebrow: "电商多智能体",
+        title: "电商多智能体",
         description: "Ecommerce AI training workspace",
       },
       navigation: {
@@ -12,14 +12,14 @@ const messages = {
         governance: "Review and records",
         agentSection: "Training outputs",
         home: "Data diagnosis",
-        products: "Product selection analysis",
-        campaigns: "Campaign planning practice",
-        workspaces: "Training tasks",
+        products: "Product materials",
+        campaigns: "Campaign plans",
+        workspaces: "Tasks and submissions",
         platformConnect: "Platform data",
         approvals: "Teacher review records",
-        operations: "Operating results",
+        operations: "Result records",
         agent: "AI training assistant",
-        agentOutput: "Review report",
+        agentOutput: "Report materials",
         profile: "Profile",
       },
       topbar: {
@@ -215,19 +215,19 @@ const messages = {
       },
       products: {
         eyebrow: "Product Training",
-        title: "Product selection analysis",
+        title: "Product materials",
         description:
           "Review products, product knowledge, file assets, material versions, competitors, and changes as context for selection analysis and AI training questions.",
       },
       campaigns: {
         eyebrow: "Campaign Practice",
-        title: "Campaign planning practice",
+        title: "Campaign plans",
         description:
-          "Practice campaign planning around goals, budgets, periods, outputs, and action metadata.",
+          "Organize campaign goals, budgets, periods, outputs, and action metadata into a submittable plan.",
       },
       workspaces: {
         eyebrow: "Training Tasks",
-        title: "Training tasks and deliverables",
+        title: "Tasks and submissions",
         description:
           "Carry AI output into tasks, runs, snapshots, and execution suggestions so student work becomes checkable deliverables.",
         boundaryTitle: "Execution note",
@@ -254,7 +254,7 @@ const messages = {
       },
       operations: {
         eyebrow: "Operating Results",
-        title: "Operating results",
+        title: "Result records",
         description:
           "Track long-task records, daily briefings, background notifications, and alerts so students can review operating process and anomalies.",
         boundaryTitle: "Result note",
@@ -881,10 +881,11 @@ const messages = {
       empty: "No conversations yet",
     },
     shell: {
-      brandTitle: "TaskMate・塔克",
+      brandEyebrow: "电商多智能体",
+      brandTitle: "电商多智能体",
       brandDescription: "Ecommerce AI training workspace",
       topbarTitle: "Enter a training question",
-      topbarMeta: "TaskMate・塔克 · AI training collaboration",
+      topbarMeta: "电商多智能体 · AI training collaboration",
       sections: {
         create: "",
         workspace: "Training navigation",
@@ -894,16 +895,16 @@ const messages = {
         newChat: "New chat",
         capabilities: "Capability guide",
         smartOps: "Multi-agent training assistant",
-        productBoard: "Product selection analysis",
-        campaigns: "Campaign planning practice",
+        productBoard: "Product materials",
+        campaigns: "Campaign plans",
         platform: "Platform data",
         marketResearch: "Data diagnosis",
-        operations: "Operating results",
+        operations: "Result records",
         briefing: "Daily briefing",
         alerts: "Alerts",
-        deliverables: "Review report",
+        deliverables: "Report materials",
         approvals: "Teacher review records",
-        taskBoard: "Training tasks",
+        taskBoard: "Tasks and submissions",
         systemDashboard: "System dashboard",
         team: "AI team",
         history: "History",
@@ -1024,13 +1025,17 @@ const messages = {
         selectedHint:
           "This turn will read only the selected current-conversation sources.",
         readable: "Readable text",
+        vision: "Vision",
+        visionReady: "Vision ready",
         metadataOnly: "Metadata only",
         currentConversation: "Current conversation",
       },
       attachments: {
         uploading: "Uploading",
         uploaded: "Attached",
+        pending: "Pending",
         failed: "Failed",
+        unsupported: "Unsupported",
       },
       playbooks: {
         loading: "Loading scenarios",
@@ -1144,7 +1149,7 @@ const messages = {
       },
     },
     workbench: {
-      title: "Multi-agent process",
+      title: "Task process",
       expand: "Expand agent process",
       collapse: "Collapse agent process",
       close: "Close task process",
@@ -1211,24 +1216,137 @@ const messages = {
     thread: {
       agentName: "AI training assistant",
       welcomeCapabilities: [
-        "Describe your task first",
-        "Process opens automatically",
-        "Results become deliverables",
+        "Ask or add materials",
+        "System chooses the flow",
+        "Follow up into deliverables",
       ],
-      startHere: "Click an example to start",
+      startHere: "Start from a training task",
       examplePrompts: [
-        "Judge whether this product is suitable for training product selection and explain why",
-        "Create an ecommerce campaign plan and execution checklist for a 3000 budget",
-        "Turn this analysis into a submittable training task and review report",
+        "I am using this for the first time. Tell me how to start an ecommerce training task",
+        "Judge whether a product is suitable for training product selection and what materials I should add",
+        "Create a campaign plan, execution checklist, and review metrics for a 3000 budget",
       ],
+      studentFlow: {
+        title: "Follow this path on first use",
+        subtitle:
+          "State the task, watch how the system dispatches it, then turn the result into training material.",
+        ask: {
+          title: "1. State the task",
+          detail:
+            "Start with the goal. If unsure, mention the product, budget, platform, and assignment you need.",
+        },
+        watch: {
+          title: "2. Watch the process",
+          detail:
+            "Every answer shows a dispatch process. Simple tasks are short; complex work expands into roles and Skills.",
+        },
+        deliver: {
+          title: "3. Use the result",
+          detail:
+            "Continue with more materials, or turn the answer into task steps, a campaign plan, or a review report.",
+        },
+      },
+      processPromise:
+        "The process panel reflects real backend dispatch: the dispatcher reads this question and same-conversation history, then chooses quick answer, single role, or multi-agent collaboration.",
+      studentPromptRecipe: {
+        title: "When unsure how to describe it, use these four parts",
+        subtitle:
+          "Students do not need to learn the menus first. State the task clearly, and the dispatcher chooses the right flow.",
+        goal: {
+          label: "Goal",
+          value: "What to judge, create, improve, or review",
+        },
+        material: {
+          label: "Materials",
+          value: "Product, budget, platform, data, teacher requirements",
+        },
+        limit: {
+          label: "Limits",
+          value: "Time, budget, format, required rules",
+        },
+        output: {
+          label: "Output",
+          value: "Plan, checklist, table, report, or next step",
+        },
+      },
+      studentTaskEntries: {
+        title: "If unsure what to ask, choose a task type",
+        subtitle:
+          "These starters fill the input directly, so students do not need to understand every feature menu first.",
+        start: {
+          title: "I am starting",
+          detail:
+            "Ask the system what materials to prepare and how to phrase the first turn clearly.",
+          prompt:
+            "I am using this for the first time. Guide me through an ecommerce training task and tell me what materials to prepare",
+        },
+        analyze: {
+          title: "Judge product or data",
+          detail:
+            "Use this for product fit, budget, funnel, and risk analysis.",
+          prompt:
+            "Judge whether this product or data is suitable for the training task, and list the key missing materials",
+        },
+        plan: {
+          title: "Create an execution plan",
+          detail:
+            "Use this for campaigns, listing execution, scripts, service handoff, and review metrics.",
+          prompt:
+            "Break my goal into a campaign plan, execution checklist, role split, and review metrics",
+        },
+        review: {
+          title: "Prepare report or review",
+          detail:
+            "Use this to turn an answer into coursework, a training report, review material, or next steps.",
+          prompt:
+            "Turn the conclusion above into a training review report that a student can submit",
+        },
+      },
       receivingOutput: "Receiving multi-agent output",
       waitingEvents: "Waiting for agent process events",
       stopped:
         "This answer was stopped, and the backend model call did not continue.",
-      completedTasks: "{{completed}}/{{total}} agents completed",
+      completedTasks: "{{completed}}/{{total}} steps completed",
       planning: "Planning agent collaboration",
       historyNotExecuted: "Historical message has no live process",
       executionTitle: "Multi-agent collaboration process",
+      processKinds: {
+        waiting: {
+          title: "Waiting for backend dispatch",
+          badge: "Syncing",
+          progress: "Dispatch events syncing",
+          summary:
+            "This turn has started. Waiting for the backend to return the real route, context, and step events.",
+        },
+        quick_dispatch: {
+          title: "Quick dispatch process",
+          badge: "Light flow",
+          progress: "{{completed}}/{{total}} dispatch steps",
+          summary:
+            "Dispatcher chose {{role}} for this turn: {{task}}",
+          stageRunning: "Reading context and organizing a quick answer",
+          stageFinished: "Quick dispatch finished. Inspect the real decision chain.",
+          stageSynced: "Quick dispatch chain synced for this turn",
+        },
+        single_agent: {
+          title: "Single-agent process",
+          badge: "Single role",
+          progress: "{{completed}}/{{total}} roles completed",
+          summary: "Dispatcher selected {{role}} as lead: {{task}}",
+          stageRunning: "Lead agent is processing this task",
+          stageFinished: "Lead agent finished. Inspect the processing chain.",
+          stageSynced: "Single-agent processing chain synced",
+        },
+        multi_agent: {
+          title: "Multi-agent collaboration process",
+          badge: "Role collaboration",
+          progress: "{{completed}}/{{total}} roles completed",
+          summary: "Dispatcher split this into role collaboration: {{task}}",
+          stageRunning: "Agents are collaborating",
+          stageFinished: "Multi-agent output summarized. Review process and business links.",
+          stageSynced: "Expand to review this agent process",
+        },
+      },
       statuses: {
         executing: "Agents collaborating",
         synced: "",
@@ -1249,10 +1367,10 @@ const messages = {
       currentProgress: "Agent progress {{completed}}/{{total}}",
       collapseProcess: "Collapse agent process",
       expandProcess: "Expand agent process",
-      openWorkbench: "View agent process",
-      openWorkbenchForTurn: "View agent collaboration",
-      closeWorkbench: "Hide agent process",
-      currentAnswerProcess: "Current agent process",
+      openWorkbench: "View task process",
+      openWorkbenchForTurn: "View task process",
+      closeWorkbench: "Hide task process",
+      currentAnswerProcess: "Current task process",
       processLinkedToAnswer: "Linked to this answer",
       processPanelActive: "Right panel open",
       contextSummary: {
@@ -1263,6 +1381,7 @@ const messages = {
         sourceNone: "No files",
         sourceCount: "{{count}} files",
         strategy: "Mode: {{strategy}}",
+        autoRoles: "Agents: assigned automatically",
         roles: "Agents: lead {{role}} / {{count}} total",
         model: "Model: {{model}}",
         details: "Context details",
@@ -1310,6 +1429,22 @@ const messages = {
         readingRules: "Reading ecommerce question and business rules",
         targetRules: "Ecommerce question and business rules",
         assignTask: "Assign agents",
+        dispatchJudge: "Judge task difficulty",
+        dispatchRoute: "{{mode}}, lead {{role}}",
+        dispatchWaiting: "Waiting for dispatch result",
+        runtimeAction: "Run required actions",
+        answerReady: "Compose answer",
+        answerFinished: "Answer and process completed",
+        answerStreaming: "Generating answer",
+        answerSynced: "Answer generated",
+        workspaceContext: "Read {{readable}}/{{total}} usable materials",
+        contextLoaded: "{{products}} products, {{knowledge}} knowledge records",
+        memoryLoaded: "Loaded {{count}} runtime memories",
+        skillRequested: "{{count}} Skill request(s), latest {{skill}}",
+        skillResult: "{{count}} Skill result(s), latest {{skill}} / {{status}}",
+        modelRunning: "Model is organizing output",
+        noExtraSkill: "No extra Skill needed for this turn",
+        singleAgentRoute: "{{role}} handles this as one role",
         taskRunning: "Task is running",
         waitingSync: "Waiting for execution status sync",
         checkingConstraints: "Checking model, budget, and ads constraints",
@@ -1386,6 +1521,208 @@ const messages = {
         failed: "Failed",
         queued: "Queued",
         idle: "Standby",
+      },
+      dispatchFacts: {
+        plan: {
+          label: "Backend dispatch plan",
+          detail: "{{difficulty}} difficulty, route {{mode}}",
+        },
+        reasoning: {
+          label: "Plan reason",
+        },
+        plannedSkills: {
+          label: "Planned Skills",
+        },
+        contextBudget: {
+          label: "Context budget",
+          detail: "{{history}} history messages, {{materials}} selected material signals",
+        },
+        historyWindow: {
+          label: "History window",
+          full: "This turn read all {{total}} same-conversation messages.",
+          truncated:
+            "This turn read the latest {{recent}}/{{total}} history messages and included an older compressed summary.",
+        },
+          memory: {
+            label: "History memory",
+            detail: "Loaded {{count}} records, kinds {{kinds}}",
+          },
+          conversationContext: {
+            label: "Conversation context",
+            detail:
+              "Read latest {{recent}}/{{total}} history messages and recovered {{relevantOlder}} older relevant message(s)",
+          },
+          context: {
+            label: "Context",
+            detail: "{{products}} products, {{knowledge}} knowledge records, {{sources}} sources",
+        },
+        rag: {
+          label: "Knowledge retrieval",
+          detail: "Matched {{sources}} local sources",
+          degraded: "Retrieval degraded: {{reason}}",
+        },
+        workspace: {
+          label: "Workspace materials",
+          detail: "{{readiness}}, readable {{readable}}/{{total}}",
+        },
+        workspaceWarning: {
+          label: "Material note",
+          detail: "{{warning}}",
+        },
+        workspaceOmitted: {
+          label: "Not in context",
+          detail: "{{count}} source(s) omitted: {{refs}}",
+        },
+        route: {
+          label: "Dispatch decision",
+          detail: "{{mode}}, lead {{role}}, strategy {{strategy}}",
+        },
+        skill: {
+          label: "Skill calls",
+          detail: "{{count}} real Skill events in this turn",
+        },
+        output: {
+          label: "Output complete",
+          detail: "Answer and workspace persistence events returned",
+        },
+        empty: {
+          label: "Waiting for events",
+          detail: "This turn's process events will appear here after sync",
+        },
+      },
+      dispatchPanel: {
+        title: "Real dispatch chain for this turn",
+        workbenchTitle: "Task process",
+        steps: "Processing steps",
+        routeType: "Route",
+        studentReadTitle: "Why this route was used",
+        emptyTask: "Waiting for this turn's task",
+        waitingStepTitle: "Waiting for dispatch events",
+        waitingStepDetail: "The route, context, and steps will appear after backend sync.",
+        compactedStepDetail:
+          "The system read this question, same-conversation history, and available materials, then organized the answer through the selected route. Internal context is not expanded in the student view.",
+        routeModes: {
+          chat_bypass: "quick answer route",
+          task_graph: "multi-step task route",
+          single_agent: "single-role route",
+        },
+        previewFiles: {
+          quick_dispatch: "quick.dispatch.process.md",
+          single_agent: "single.agent.process.md",
+          multi_agent: "multi.agent.process.md",
+        },
+        preview: {
+          heading: "# {{mode}}",
+          request: "Business input: {{request}}",
+          summary: "Dispatch note: {{summary}}",
+          progress: "Progress: {{completed}}/{{total}} | {{stage}}",
+          step: "{{index}} {{title}}: {{detail}}",
+          fact: "{{label}}: {{detail}}",
+        },
+        stableDetail:
+          "Simple or complex, every question is planned first; only the number of steps, roles, and Skills changes.",
+        studentUseTitle: "How students should read it",
+        studentUseDetail:
+          "Check the route and context budget first to see whether history, products, and materials were read. Then inspect steps and Skills to tell whether this was a quick answer, one-role analysis, or multi-agent collaboration.",
+        difficultyTitle: "Why some flows are short and others are long",
+        difficultyDetail:
+          "The dispatcher judges difficulty from this question, selected mode, and same-conversation history. Simple questions usually only read context and answer quickly; complex tasks add roles, Skills, and synthesis steps.",
+        realnessTitle: "Why a full role row is not shown",
+        realnessDetail:
+          "The backend did not plan a multi-agent task graph for this turn, so only real route/context/skill/output events are shown. Complex tasks show multi-role collaboration.",
+      },
+      nextActions: {
+        title: "Useful next steps",
+        meta: {
+          default: {
+            label: "Current answer",
+            detail: "These suggestions change with the current answer instead of staying as a fixed template.",
+          },
+          quick: {
+            label: "Quick answer",
+            detail: "This answer is concise, so you can continue with steps, evidence, or risks.",
+          },
+          product: {
+            label: "Product context",
+            detail: "This answer uses selected product context, so you can continue with selling points, audience, risks, or campaign direction.",
+          },
+          productNoMaterial: {
+            label: "Needs product info",
+            detail: "This question needs more product information; add materials first, then review the judgment.",
+          },
+          campaign: {
+            label: "Campaign context",
+            detail: "This answer is about campaign planning, so you can continue with goals, budget, rhythm, and an execution checklist.",
+          },
+          data: {
+            label: "Data context",
+            detail: "This answer is about metrics or anomalies, so you can add data, check causes, and list validation steps.",
+          },
+          task: {
+            label: "Task context",
+            detail: "This answer can become a task, so you can organize steps, checklists, and submission requirements.",
+          },
+          report: {
+            label: "Report context",
+            detail: "This answer can become review material, so you can add process, evidence, and improvement suggestions.",
+          },
+        },
+        prompts: [
+          "I will add product materials; judge product fit and risks again",
+          "Turn the conclusion above into training task steps",
+          "Continue with a campaign plan, budget, and execution checklist",
+          "Turn this answer into a review report",
+        ],
+        groups: {
+          default: [
+            "Turn this conclusion into the 3 things I should do next",
+            "List the missing materials I should add",
+            "Format this as a coursework task brief",
+            "Separate the risks, evidence, and suggestions",
+          ],
+          quick: [
+            "Expand the short answer into actionable steps",
+            "Keep only the conclusion and evidence for submission",
+            "Ask about the key risk behind this conclusion",
+            "Rewrite it in the order a student can execute",
+          ],
+          product: [
+            "Recheck selling points, audience, and risks for the selected product",
+            "Turn the product conclusion into a selection analysis table",
+            "Continue with campaign directions for this product",
+            "List product materials still needed",
+          ],
+          productNoMaterial: [
+            "Tell me what product materials are needed before judging",
+            "Make an initial selection judgment from current information",
+            "Give me a product material checklist",
+            "List possible risks now, then recheck after I add materials",
+          ],
+          campaign: [
+            "Split the campaign into goal, budget, timing, and actions",
+            "Continue with an execution checklist",
+            "Check the campaign risks",
+            "Format the campaign plan for submission",
+          ],
+          data: [
+            "Break the data issue into metrics, causes, and validation",
+            "List the operating data I still need to add",
+            "Turn the diagnosis into an improvement checklist",
+            "Follow up on the key metric most likely to affect results",
+          ],
+          task: [
+            "Turn this into task steps and submission requirements",
+            "Generate a checklist I can follow",
+            "Split the task into today and later",
+            "Check what materials this task still lacks",
+          ],
+          report: [
+            "Turn this answer into a review report draft",
+            "Add process, evidence, and improvement suggestions",
+            "List report gaps from a teacher review perspective",
+            "Compress the report into a class presentation version",
+          ],
+        },
       },
     },
     swarm: {
@@ -1543,11 +1880,13 @@ const messages = {
           skillResult: "Capability {{skill}} returned status: {{status}}.",
           approvalRequired: "Approval created: {{skill}}, risk {{risk}}.",
           workerStarted: "{{agent}} started processing.",
-          workerFinished: "{{agent}} finished processing.",
-          contextLoaded:
-            "Loaded {{products}} product(s) and {{knowledge}} product knowledge record(s).",
-          ragContextLoaded:
-            "Knowledge retrieval complete: {{sources}} source(s).",
+            workerFinished: "{{agent}} finished processing.",
+            contextLoaded:
+              "Loaded {{products}} product(s) and {{knowledge}} product knowledge record(s).",
+            conversationContextLoaded:
+              "Same-conversation context loaded: latest {{recent}}/{{total}} history messages.",
+            ragContextLoaded:
+              "Knowledge retrieval complete: {{sources}} source(s).",
           ragContextDegraded: "Knowledge retrieval degraded: {{reason}}",
           workspaceContextLoaded:
             "Training materials loaded: {{sources}} source(s), {{readiness}}.",
@@ -1642,6 +1981,7 @@ const messages = {
           sourceLine: "{{type}}: {{title}}",
           packItemLine: "{{kind}}: {{title}}",
           warningLine: "Note: {{warning}}",
+          omittedLine: "Not in context: {{ref}}",
         },
         skill: {
           title: "Capability call",
@@ -1954,7 +2294,7 @@ const messages = {
         "These entries reuse existing real capabilities while the frontend organizes them into a student-facing learning and task flow.",
       items: [
         {
-          title: "Product selection analysis",
+          title: "Product materials",
           description:
             "Uses products, materials, selling points, and competitors manually selected by the student. Without selection, the flow stays as ordinary training Q&A.",
         },
@@ -1969,9 +2309,9 @@ const messages = {
             "Returns sourced data. When an integration is not configured, the UI states it clearly instead of fabricating results.",
         },
         {
-          title: "Campaign planning practice",
+          title: "Campaign plans",
           description:
-            "Generates live scripts, short-video ideas, campaign rhythm, ads review, and operations plans to practice planning cadence.",
+            "Generates live scripts, short-video ideas, campaign rhythm, ads review, and operations plans for planning and execution.",
         },
         {
           title: "Data diagnosis and service suggestions",
@@ -1979,7 +2319,7 @@ const messages = {
             "Organizes replies, attribution, and follow-up actions from product materials, service rules, and operating data.",
         },
         {
-          title: "Training tasks and deliverables",
+          title: "Tasks and submissions",
           description:
             "Stores AI output as tasks, runs, execution suggestions, and traceable training deliverable states.",
         },
@@ -2018,7 +2358,7 @@ const messages = {
             "The main entry for training questions, strategy, product references, and process display.",
         },
         {
-          title: "Product selection analysis",
+          title: "Product materials",
           description:
             "Manages products, materials, knowledge, competitors, and manually selected task context.",
         },
@@ -2047,7 +2387,7 @@ const messages = {
     },
   },
   login: {
-    brand: "TaskMate・塔克",
+    brand: "电商多智能体",
     hero: {
       titleLine1: "Enter ecommerce AI training,",
       titleLine2: "finish selection, planning, and review.",
@@ -2091,7 +2431,7 @@ const messages = {
     },
   },
   register: {
-    brand: "TaskMate・塔克",
+    brand: "电商多智能体",
     hero: {
       titleLine1: "Create your account,",
       titleLine2: "start ecommerce AI training.",
@@ -2103,7 +2443,7 @@ const messages = {
     welcome: "CREATE ACCOUNT",
     title: "Register your training account",
     subtitle:
-      "Create an account to enter TaskMate・塔克 and start your ecommerce AI training task.",
+      "Create an account to enter 电商多智能体 and start your ecommerce AI training task.",
     form: {
       password: {
         label: "Password",
