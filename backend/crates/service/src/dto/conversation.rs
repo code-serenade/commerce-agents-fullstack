@@ -35,6 +35,12 @@ pub struct DeleteConversationRequest {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct DeleteConversationFileRequest {
+    pub user_id: String,
+    pub file_id: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct RegisterConversationFileRequest {
     pub user_id: String,
     pub conversation_id: String,

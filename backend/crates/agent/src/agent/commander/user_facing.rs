@@ -58,14 +58,14 @@ fn replace_placeholder_pairs(input: &str, open: char, close: char) -> String {
     let mut rest = input;
 
     while let Some(start) = rest.find(open) {
-        output.push_str(&rest[..start]);
+        output.push_str(&rest[.. start]);
         let segment_start = start + open.len_utf8();
-        let Some(end) = rest[segment_start..].find(close) else {
-            output.push_str(&rest[start..]);
+        let Some(end) = rest[segment_start ..].find(close) else {
+            output.push_str(&rest[start ..]);
             return output;
         };
         let segment_end = segment_start + end;
-        let segment = &rest[segment_start..segment_end];
+        let segment = &rest[segment_start .. segment_end];
         if placeholder_segment(segment) {
             if let Some(replacement) = placeholder_replacement(segment) {
                 output.push_str(&replacement);
@@ -75,7 +75,7 @@ fn replace_placeholder_pairs(input: &str, open: char, close: char) -> String {
             output.push_str(segment);
             output.push(close);
         }
-        rest = &rest[segment_end + close.len_utf8()..];
+        rest = &rest[segment_end + close.len_utf8() ..];
     }
 
     output.push_str(rest);
@@ -159,14 +159,17 @@ fn strip_role_prefix(line: &str) -> String {
     let Some((colon_index, colon_width)) = first_colon(body) else {
         return line.trim().to_string();
     };
-    let label = body[..colon_index].trim();
+    let label = body[.. colon_index].trim();
     if !looks_like_internal_role_label(label) {
         return line.trim().to_string();
     }
 
-    format!("{prefix}{}", body[colon_index + colon_width..].trim_start())
-        .trim()
-        .to_string()
+    format!(
+        "{prefix}{}",
+        body[colon_index + colon_width ..].trim_start()
+    )
+    .trim()
+    .to_string()
 }
 
 fn split_list_prefix(line: &str) -> (&str, &str) {
@@ -197,10 +200,10 @@ fn looks_like_internal_role_label(label: &str) -> bool {
     let Some(start) = label.find('(') else {
         return false;
     };
-    let Some(end) = label[start + 1..].find(')') else {
+    let Some(end) = label[start + 1 ..].find(')') else {
         return false;
     };
-    let role = &label[start + 1..start + 1 + end];
+    let role = &label[start + 1 .. start + 1 + end];
     !role.is_empty()
         && role.chars().all(|ch| {
             ch.is_ascii_lowercase() || ch.is_ascii_digit() || matches!(ch, '_' | '-' | '.')
@@ -301,7 +304,9 @@ mod tests {
 
     #[test]
     fn sanitizes_placeholder_and_note_language() {
-        let raw = "内容创意(creative): 【可直接测试的方案（占位符需替换为真实信息）】建议突出【真实品类，如挂耳/速溶/胶囊】和【真实规格/到手价】。\n备注：这是教学模式说明。";
+        let raw = "内容创意(creative): \
+                   【可直接测试的方案（占位符需替换为真实信息）】建议突出【真实品类，如挂耳/速溶/\
+                   胶囊】和【真实规格/到手价】。\n备注：这是教学模式说明。";
 
         let output = sanitize_user_facing_text(raw).expect("output should remain readable");
 
@@ -316,7 +321,8 @@ mod tests {
 
     #[test]
     fn filters_internal_task_graph_lines() {
-        let raw = "Task graph completed.\nPassed worker reports:\n- creative(worker.creative): raw={\"role_output\":{}}\n真正可用的建议：先补商品信息。";
+        let raw = "Task graph completed.\nPassed worker reports:\n- creative(worker.creative): \
+                   raw={\"role_output\":{}}\n真正可用的建议：先补商品信息。";
 
         let output = sanitize_user_facing_text(raw).expect("valid line should remain");
         let lower = output.to_ascii_lowercase();
@@ -330,7 +336,11 @@ mod tests {
 
     #[test]
     fn removes_empty_role_shell_and_worker_artifacts() {
-        let raw = "Task graph completed. Task: 这个咖啡如何做营销\nPassed worker reports\n- 内容创意(creative): 【可直接测试的千乐咖啡营销创意（占位符需替换为真实信息）】\n1. 主推标题：千乐咖啡【真实品类（如挂耳/速溶/胶囊/咖啡豆）】日常口粮款\n备注：替换真实品类后即可上线，测试核心指标参考点击率";
+        let raw = "Task graph completed. Task: 这个咖啡如何做营销\nPassed worker reports\n- \
+                   内容创意(creative): \
+                   【可直接测试的千乐咖啡营销创意（占位符需替换为真实信息）】\n1. \
+                   主推标题：千乐咖啡【真实品类（如挂耳/速溶/胶囊/咖啡豆）】日常口粮款\n备注：\
+                   替换真实品类后即可上线，测试核心指标参考点击率";
 
         let output = sanitize_user_facing_text(raw).expect("business content should remain");
         let lower = output.to_ascii_lowercase();

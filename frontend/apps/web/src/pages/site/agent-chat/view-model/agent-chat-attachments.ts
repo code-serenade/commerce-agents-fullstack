@@ -85,16 +85,18 @@ async function uploadOneAttachment(
   }
 ) {
   try {
-    const sign = await agentChatData.presignConversationFileUpload(conversationId, {
-      contentType: file.type || "application/octet-stream",
-      extension: extensionFromFile(file),
+    const sign = isImageFile(file)
+      ? await agentChatData.getUploadImageSign(file)
+      : await agentChatData.getUploadDocumentSign(file)
+    await agentChatData.uploadWithSignedUrl(file, sign, {
+      contentType: file.type || sign.headers["Content-Type"] || "application/octet-stream",
     })
-    await agentChatData.uploadConversationFile(file, sign)
     const registered = await agentChatData.registerConversationFile(conversationId, {
-      fileName: file.name || sign.objectKey.split("/").at(-1),
+      fileName: file.name || sign.key.split("/").at(-1),
       fileSize: file.size,
-      mimeType: file.type || sign.contentType || "application/octet-stream",
-      objectKey: sign.objectKey,
+      mimeType: file.type || sign.headers["Content-Type"] || "application/octet-stream",
+      objectKey: sign.key,
+      sha256: sign.key.split("/").at(-1)?.split(".").at(0),
     })
     const extraction = await createBrowserExtractionRequest(file)
     const extractionUpdated = await updateRegisteredFileExtraction(
@@ -214,6 +216,10 @@ function isReadableTextFile(file: File) {
     READABLE_TEXT_TYPES.has(type) ||
     /\.(csv|json|md|markdown|txt)$/i.test(file.name)
   )
+}
+
+function isImageFile(file: File) {
+  return file.type.startsWith("image/") || /\.(gif|jpe?g|png|webp)$/i.test(file.name)
 }
 
 function contentKindForFile(file: File) {

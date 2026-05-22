@@ -19,7 +19,7 @@ use service::api::{
     product_material::ProductMaterialApi,
     workspace::WorkspaceApi,
 };
-use storage::{BucketKind, FileKind, PresignDownloadRequest, PresignUploadRequest};
+use storage::PresignDownloadRequest;
 use toolcraft_axum_kit::{IntoCommonResponse, ResponseResult, middleware::auth_mw::AuthUser};
 use validator::Validate;
 
@@ -74,8 +74,6 @@ use crate::{
     error::{Error, from_biz_error},
     statics::{db_manager::get_app_ctx, storage_manager::get_storage},
 };
-
-const FILE_UPLOAD_EXPIRES_SECS: u64 = 600;
 
 pub async fn list_conversations(
     Extension(auth_user): Extension<AuthUser>,
@@ -194,44 +192,11 @@ pub async fn presign_conversation_file_upload(
     Json(req): Json<PresignConversationFileUploadRequest>,
 ) -> ResponseResult<PresignConversationFileUploadResponse> {
     req.validate().map_err(Error::from)?;
-    let api = ConversationApi::new(get_app_ctx());
-    api.get_conversation(auth_user.user_id.clone(), conversation_id.clone())
-        .await
-        .map_err(from_biz_error)?;
-
-    let storage = get_storage();
-    let ext = FileKind::ChatAttachment
-        .normalize_ext(&req.extension)
-        .map_err(|err| Error::Custom(err.to_string()))?;
-    let content_type = req.content_type.or_else(|| {
-        Some(
-            FileKind::ChatAttachment
-                .content_type_for_ext(&ext)
-                .to_string(),
-        )
-    });
-    let user_scope = storage.user_scope_key(&auth_user.user_id);
-    let object_key = storage::key::chat_attachment_key(&user_scope, &conversation_id, &ext)
-        .map_err(|err| Error::Custom(err.to_string()))?;
-    let signed = storage
-        .presign_upload(PresignUploadRequest {
-            bucket: BucketKind::Private,
-            key: object_key,
-            content_type,
-            expires_secs: Some(FILE_UPLOAD_EXPIRES_SECS),
-        })
-        .map_err(|err| Error::Custom(err.to_string()))?;
-
-    Ok(PresignConversationFileUploadResponse {
-        method: signed.method,
-        upload_url: signed.upload_url,
-        bucket: signed.bucket,
-        object_key: signed.key,
-        content_type: signed.content_type,
-        expires_secs: signed.expires_secs,
-    }
-    .into_common_response()
-    .to_json())
+    let _ = (auth_user, conversation_id, req);
+    Err(
+        Error::Custom("conversation file upload signing has moved to file-service".to_string())
+            .into(),
+    )
 }
 
 pub async fn register_conversation_file(
@@ -240,12 +205,6 @@ pub async fn register_conversation_file(
     Json(req): Json<RegisterConversationFileRequest>,
 ) -> ResponseResult<ConversationFileResponse> {
     req.validate().map_err(Error::from)?;
-    let storage = get_storage();
-    let user_scope = storage.user_scope_key(&auth_user.user_id);
-    let expected_prefix = format!("chat/{user_scope}/{conversation_id}/");
-    if !req.object_key.starts_with(&expected_prefix) {
-        return Err(Error::Custom("invalid conversation file object key".to_string()).into());
-    }
     let api = ConversationApi::new(get_app_ctx());
     let file = api
         .register_file(
@@ -284,6 +243,24 @@ pub async fn get_conversation_file_access(
     }
     .into_common_response()
     .to_json())
+}
+
+pub async fn delete_conversation_file(
+    Extension(auth_user): Extension<AuthUser>,
+    Path(file_id): Path<String>,
+) -> ResponseResult<()> {
+    let api = ConversationApi::new(get_app_ctx());
+    api.delete_file(
+        get_storage(),
+        service::dto::conversation::DeleteConversationFileRequest {
+            user_id: auth_user.user_id,
+            file_id,
+        },
+    )
+    .await
+    .map_err(from_biz_error)?;
+
+    Ok(().into_common_response().to_json())
 }
 
 pub async fn update_conversation_file_extraction(

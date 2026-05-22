@@ -43,3 +43,10 @@ pub struct UpdateConversationFileMetadata {
     pub id: Uuid,
     pub metadata: Value,
 }
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct UpdateConversationFileStatus {
+    pub id: Uuid,
+    pub status: String,
+    pub deleted_at: Option<OffsetDateTime>,
+}

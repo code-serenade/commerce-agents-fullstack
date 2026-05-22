@@ -85,7 +85,9 @@ mod tests {
         let output = final_worker_message(
             &TaskId("task-fast".to_string()),
             Some(
-                "内容创意(creative): 【可直接测试的讲解（占位符需替换为真实信息）】突出【真实品类，如挂耳/速溶/胶囊】。\n备注：教学讲解。",
+                "内容创意(creative): \
+                 【可直接测试的讲解（占位符需替换为真实信息）】突出【真实品类，如挂耳/速溶/\
+                 胶囊】。\n备注：教学讲解。",
             ),
         );
 
@@ -116,7 +118,8 @@ mod tests {
         let contribution = build_contribution(
             &assignment,
             &TaskId("task-creative".to_string()),
-            "creative(worker.creative): 【客服话术（占位符需替换为真实信息）】先确认用户诉求。\n备注：只用于教学。",
+            "creative(worker.creative): \
+             【客服话术（占位符需替换为真实信息）】先确认用户诉求。\n备注：只用于教学。",
         );
 
         assert_eq!(contribution.content, "先确认用户诉求。\n说明：只用于教学。");

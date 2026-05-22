@@ -9,6 +9,7 @@ use crate::{
     entity::conversation_files,
     table::conversation_files::dto::{
         ConversationFile, CreateConversationFile, UpdateConversationFileMetadata,
+        UpdateConversationFileStatus,
     },
 };
 
@@ -81,6 +82,20 @@ impl ConversationFileService {
         let model = conversation_files::ActiveModel {
             id: Unchanged(input.id),
             metadata: Set(input.metadata),
+            ..Default::default()
+        };
+
+        Ok(Self::from_model(self.repo.update(model).await?))
+    }
+
+    pub async fn update_status(
+        &self,
+        input: UpdateConversationFileStatus,
+    ) -> BizResult<ConversationFile> {
+        let model = conversation_files::ActiveModel {
+            id: Unchanged(input.id),
+            status: Set(input.status),
+            deleted_at: Set(input.deleted_at),
             ..Default::default()
         };
 

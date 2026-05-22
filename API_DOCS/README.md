@@ -62,9 +62,10 @@
 6. `PATCH /api/app/conversations/{conversationId}`
 7. `DELETE /api/app/conversations/{conversationId}`
 8. `POST /api/app/conversations/{conversationId}/messages`
-9. `POST /api/app/conversations/{conversationId}/files/presign-upload`
+9. `POST /api/app/conversations/{conversationId}/files/presign-upload` deprecated
 10. `POST /api/app/conversations/{conversationId}/files`
 11. `GET /api/app/conversation-files/{fileId}/access`
+12. `DELETE /api/app/conversation-files/{fileId}`
 
 ### SSE
 

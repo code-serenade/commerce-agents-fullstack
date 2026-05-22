@@ -111,7 +111,7 @@ fn strip_ordered_marker(line: &str) -> Option<&str> {
         }
         if saw_digit && matches!(ch, '.' | '、' | ')') {
             let end = index + ch.len_utf8();
-            if ch != '.' || line[end..].chars().next().is_some_and(char::is_whitespace) {
+            if ch != '.' || line[end ..].chars().next().is_some_and(char::is_whitespace) {
                 marker_end = Some(end);
             }
         }
@@ -133,7 +133,7 @@ fn strip_ordered_marker(line: &str) -> Option<&str> {
     }
 
     let end = marker_end?;
-    let content = line[end..].trim_start();
+    let content = line[end ..].trim_start();
     (!content.is_empty()).then_some(content)
 }
 
@@ -194,7 +194,7 @@ fn remove_parenthetical_examples(text: &str) -> String {
             continue;
         };
 
-        let Some(end) = chars[index + 1..]
+        let Some(end) = chars[index + 1 ..]
             .iter()
             .position(|ch| *ch == close)
             .map(|offset| index + 1 + offset)
@@ -204,7 +204,7 @@ fn remove_parenthetical_examples(text: &str) -> String {
             continue;
         };
 
-        let content = chars[index + 1..end]
+        let content = chars[index + 1 .. end]
             .iter()
             .collect::<String>()
             .trim()
@@ -325,15 +325,15 @@ fn smooth_inline_unordered_markers(mut text: String) -> String {
 fn smooth_template_tail(mut text: String) -> String {
     for marker in ["等和", "等与"] {
         let mut search_from = 0;
-        while let Some(relative_start) = text[search_from..].find(marker) {
+        while let Some(relative_start) = text[search_from ..].find(marker) {
             let start = search_from + relative_start;
             let after_marker = start + marker.len();
-            let Some(relative_end) = text[after_marker..].find("相关的具体问题") else {
+            let Some(relative_end) = text[after_marker ..].find("相关的具体问题") else {
                 search_from = after_marker;
                 continue;
             };
             let end = after_marker + relative_end + "相关的具体问题".len();
-            text.replace_range(start..end, "");
+            text.replace_range(start .. end, "");
             search_from = start;
         }
     }
@@ -433,11 +433,13 @@ mod tests {
 
     #[test]
     fn repairs_inline_unordered_markers() {
-        let text = "接下来先理清几个模块：- 服务清单：明确设备范围- 交付范围：只承接能履约的订单- 损坏赔付：先定规则";
+        let text = "接下来先理清几个模块：- 服务清单：明确设备范围- 交付范围：只承接能履约的订单- \
+                    损坏赔付：先定规则";
 
         assert_eq!(
             normalize_text(text),
-            "接下来先理清几个模块：\n服务清单：明确设备范围\n交付范围：只承接能履约的订单\n损坏赔付：先定规则"
+            "接下来先理清几个模块：\n服务清单：明确设备范围\n交付范围：只承接能履约的订单\\
+             n损坏赔付：先定规则"
         );
     }
 

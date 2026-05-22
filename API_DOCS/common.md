@@ -174,6 +174,16 @@ HTTP JSON 字段统一使用 `camelCase`。枚举值和权限码保持业务定�
 
 文件签名服务由独立 file-server 提供，不在本仓库 `backend/` 目录内实现。前端统一通过 `group=file` 调用该服务域，`group` 只表示目标服务域，不作为 URL 路径前缀。
 
+对象路径由 file-server 统一生成：
+
+```text
+private bucket:
+  users/{userScope}/images/{sha256}.{ext}
+  users/{userScope}/docs/{sha256}.{ext}
+```
+
+`userScope` 由 file-server 根据 JWT 当前用户生成。客户端不得自行拼接 S3 key。
+
 ### 7.1 获取图片上传签名
 
 - 方法：`GET`
@@ -192,8 +202,8 @@ Query：
 ```json
 {
   "method": "PUT",
-  "upload_url": "https://object-storage.example/upload",
-  "key": "image/sha256.png",
+  "upload_url": "https://object-storage.example/private/users/{userScope}/images/{sha256}.png",
+  "key": "users/{userScope}/images/{sha256}.png",
   "already_uploaded": false,
   "headers": {
     "authorization": "AWS4-HMAC-SHA256 ...",
@@ -214,3 +224,11 @@ Query：
 - 鉴权：需要 JWT
 
 Query 与响应结构同“获取图片上传签名”。
+
+文档 key 示例：
+
+```json
+{
+  "key": "users/{userScope}/docs/{sha256}.pdf"
+}
+```

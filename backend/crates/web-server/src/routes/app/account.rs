@@ -1,11 +1,11 @@
 use axum::{
     Router,
-    routing::{get, post, put},
+    routing::{delete, get, post, put},
 };
 
 use crate::handlers::app::{
     add_conversation_message, create_conversation, current_user_permissions, delete_conversation,
-    get_conversation, get_conversation_file_access, list_conversations,
+    delete_conversation_file, get_conversation, get_conversation_file_access, list_conversations,
     presign_conversation_file_upload, register_app_user, register_conversation_file,
     update_conversation, update_conversation_file_extraction,
 };
@@ -39,6 +39,10 @@ pub fn account_routes() -> Router {
         .route(
             "/conversation-files/{file_id}/access",
             get(get_conversation_file_access),
+        )
+        .route(
+            "/conversation-files/{file_id}",
+            delete(delete_conversation_file),
         )
         .route(
             "/conversation-files/{file_id}/extraction",

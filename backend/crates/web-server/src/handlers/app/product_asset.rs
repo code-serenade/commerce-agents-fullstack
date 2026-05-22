@@ -19,7 +19,9 @@ use service::api::{
     product_material::ProductMaterialApi,
     workspace::WorkspaceApi,
 };
-use storage::{BucketKind, FileKind, PresignDownloadRequest, PresignUploadRequest};
+use storage::{
+    BucketKind, DeleteObjectRequest, FileKind, PresignDownloadRequest, PresignUploadRequest,
+};
 use toolcraft_axum_kit::{IntoCommonResponse, ResponseResult, middleware::auth_mw::AuthUser};
 use validator::Validate;
 
@@ -236,6 +238,23 @@ pub async fn delete_product_asset(
     Path((product_id, asset_id)): Path<(String, String)>,
 ) -> ResponseResult<()> {
     let api = ProductAssetApi::new(get_app_ctx());
+    let asset = api
+        .get_asset(service::dto::product_asset::GetProductAssetRequest {
+            user_id: auth_user.user_id.clone(),
+            product_id: product_id.clone(),
+            asset_id: asset_id.clone(),
+        })
+        .await
+        .map_err(from_biz_error)?;
+    let storage = get_storage();
+    storage
+        .delete_object(DeleteObjectRequest {
+            bucket: bucket_kind_from_name(&asset.bucket, storage)?,
+            key: asset.object_key,
+        })
+        .await
+        .map_err(|err| Error::Custom(err.to_string()))?;
+
     api.delete_asset(service::dto::product_asset::DeleteProductAssetRequest {
         user_id: auth_user.user_id,
         product_id,
@@ -245,6 +264,20 @@ pub async fn delete_product_asset(
     .map_err(from_biz_error)?;
 
     Ok(().into_common_response().to_json())
+}
+
+fn bucket_kind_from_name(
+    bucket: &str,
+    storage: &storage::ObjectStorage,
+) -> Result<BucketKind, Error> {
+    let config = storage.config();
+    if bucket == "private" || bucket == config.private_bucket {
+        Ok(BucketKind::Private)
+    } else if bucket == "public" || bucket == config.public_bucket {
+        Ok(BucketKind::Public)
+    } else {
+        Err(Error::Custom("invalid asset bucket".to_string()))
+    }
 }
 
 fn map_product_asset_response(

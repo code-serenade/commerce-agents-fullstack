@@ -7,7 +7,7 @@ use repo::table::{
     app_users::{AppUserService, AppUserStatus},
     conversation_files::{
         ConversationFile, ConversationFileService, CreateConversationFile,
-        UpdateConversationFileMetadata,
+        UpdateConversationFileMetadata, UpdateConversationFileStatus,
     },
     conversation_messages::{
         ConversationMessage, ConversationMessageService, CreateConversationMessage,
@@ -15,15 +15,16 @@ use repo::table::{
     conversations::{Conversation, ConversationService, CreateConversation},
 };
 use serde_json::{Map, Value, json};
-use storage::{BucketKind, ObjectStorage, PresignDownloadRequest};
+use storage::{BucketKind, DeleteObjectRequest, ObjectStorage, PresignDownloadRequest};
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use uuid::Uuid;
 
 use crate::dto::conversation::{
     AddConversationMessageRequest, ConversationDetailResponse, ConversationFileAccessResponse,
     ConversationFileResponse, ConversationMessageResponse, ConversationResponse,
-    CreateConversationRequest, DeleteConversationRequest, RegisterConversationFileRequest,
-    UpdateConversationFileExtractionRequest, UpdateConversationRequest, uuid_to_string,
+    CreateConversationRequest, DeleteConversationFileRequest, DeleteConversationRequest,
+    RegisterConversationFileRequest, UpdateConversationFileExtractionRequest,
+    UpdateConversationRequest, uuid_to_string,
 };
 
 const DEFAULT_LIST_LIMIT: u64 = 50;
@@ -236,13 +237,19 @@ impl ConversationApi {
         let user_id = parse_user_id(&req.user_id)?;
         self.ensure_app_user_enabled(user_id).await?;
         let conversation_id = parse_uuid(&req.conversation_id, "conversation_id")?;
-        self.ensure_conversation_owner(user_id, conversation_id)
+        self.ensure_active_conversation_owner(user_id, conversation_id)
             .await?;
         let message_id = req
             .message_id
             .as_deref()
             .map(|value| parse_uuid(value, "message_id"))
             .transpose()?;
+
+        let object_key = normalize_required_text(req.object_key, "object_key")?;
+        ensure_file_service_object_key(&object_key, &user_id)?;
+        if let Some(sha256) = normalize_optional(req.sha256.clone()) {
+            ensure_object_key_sha256_matches(&object_key, &sha256)?;
+        }
 
         let file = self
             .file_svc
@@ -252,7 +259,7 @@ impl ConversationApi {
                 conversation_id,
                 message_id,
                 bucket: "private".to_string(),
-                object_key: req.object_key,
+                object_key,
                 file_name: normalize_optional(req.file_name),
                 mime_type: normalize_optional(req.mime_type),
                 file_size: req.file_size,
@@ -261,6 +268,39 @@ impl ConversationApi {
             })
             .await?;
         Ok(Self::map_file(file))
+    }
+
+    pub async fn delete_file(
+        &self,
+        storage: &ObjectStorage,
+        req: DeleteConversationFileRequest,
+    ) -> BizResult<()> {
+        let user_id = parse_user_id(&req.user_id)?;
+        self.ensure_app_user_enabled(user_id).await?;
+        let file_id = parse_uuid(&req.file_id, "file_id")?;
+        let file = self.ensure_active_file_owner(user_id, file_id).await?;
+        self.ensure_active_conversation_owner(user_id, file.conversation_id)
+            .await?;
+
+        storage
+            .delete_object(DeleteObjectRequest {
+                bucket: bucket_kind_from_name(&file.bucket, storage)?,
+                key: file.object_key.clone(),
+            })
+            .await
+            .map_err(|err| {
+                BizError::new(app_error::CONVERSATION_REQUEST_INVALID, err.to_string())
+            })?;
+
+        self.file_svc
+            .update_status(UpdateConversationFileStatus {
+                id: file.id,
+                status: "deleted".to_string(),
+                deleted_at: Some(OffsetDateTime::now_utc()),
+            })
+            .await?;
+
+        Ok(())
     }
 
     pub async fn file_access(
@@ -544,6 +584,90 @@ fn normalize_required_text(value: String, label: &str) -> BizResult<String> {
         ));
     }
     Ok(value)
+}
+
+fn ensure_file_service_object_key(object_key: &str, user_id: &Uuid) -> BizResult<()> {
+    storage::key::validate_object_key(object_key)
+        .map_err(|err| BizError::new(app_error::CONVERSATION_REQUEST_INVALID, err.to_string()))?;
+
+    let user_scope = file_service_user_scope_key(user_id);
+    let docs_prefix = format!("users/{user_scope}/docs/");
+    let images_prefix = format!("users/{user_scope}/images/");
+    if object_key.starts_with(&docs_prefix) || object_key.starts_with(&images_prefix) {
+        return Ok(());
+    }
+
+    Err(BizError::new(
+        app_error::CONVERSATION_REQUEST_INVALID,
+        "invalid conversation file object key".to_string(),
+    ))
+}
+
+fn ensure_object_key_sha256_matches(object_key: &str, sha256: &str) -> BizResult<()> {
+    let sha256 = normalize_sha256(sha256)?;
+    let file_stem = object_key
+        .rsplit('/')
+        .next()
+        .and_then(|file_name| file_name.split('.').next())
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+
+    if file_stem == sha256 {
+        return Ok(());
+    }
+
+    Err(BizError::new(
+        app_error::CONVERSATION_REQUEST_INVALID,
+        "object key does not match sha256".to_string(),
+    ))
+}
+
+fn normalize_sha256(value: &str) -> BizResult<String> {
+    let value = value
+        .trim()
+        .trim_end_matches(".sha256")
+        .to_ascii_lowercase();
+    if value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        Ok(value)
+    } else {
+        Err(BizError::new(
+            app_error::CONVERSATION_REQUEST_INVALID,
+            "invalid sha256".to_string(),
+        ))
+    }
+}
+
+fn file_service_user_scope_key(user_id: &Uuid) -> String {
+    encode_base62_u128(user_id.as_u128())
+}
+
+fn encode_base62_u128(mut value: u128) -> String {
+    const ALPHABET: &[u8; 62] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    if value == 0 {
+        return "0".to_string();
+    }
+
+    let mut output = Vec::new();
+    while value > 0 {
+        let index = (value % 62) as usize;
+        output.push(ALPHABET[index] as char);
+        value /= 62;
+    }
+    output.iter().rev().collect()
+}
+
+fn bucket_kind_from_name(bucket: &str, storage: &ObjectStorage) -> BizResult<BucketKind> {
+    let config = storage.config();
+    if bucket == "private" || bucket == config.private_bucket {
+        Ok(BucketKind::Private)
+    } else if bucket == "public" || bucket == config.public_bucket {
+        Ok(BucketKind::Public)
+    } else {
+        Err(BizError::new(
+            app_error::CONVERSATION_REQUEST_INVALID,
+            "invalid bucket".to_string(),
+        ))
+    }
 }
 
 fn normalize_extraction_status(value: Option<String>) -> BizResult<String> {

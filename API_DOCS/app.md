@@ -628,38 +628,17 @@
 - `role` 只能是 `user`、`assistant`、`system`、`tool`
 - `contentText` 和 `contentJson` 至少需要一个有值
 
-## 9. 获取会话附件上传签名
+## 9. 获取会话附件上传签名（已废弃）
 
 - 方法：`POST`
 - 路径：`/api/app/conversations/{conversationId}/files/presign-upload`
 - 鉴权：有效 App 用户 JWT
 
-请求体：
-
-```json
-{
-  "extension": "png",
-  "contentType": "image/png"
-}
-```
-
-成功响应 `data`：
-
-```json
-{
-  "method": "PUT",
-  "uploadUrl": "http://s3.example/private/chat/...",
-  "bucket": "private",
-  "objectKey": "chat/userScope/conversationId/file.png",
-  "contentType": "image/png",
-  "expiresSecs": 600
-}
-```
-
 补充说明：
 
-- 聊天附件固定使用 private bucket
-- 前端使用 `uploadUrl` 上传成功后，再调用注册附件接口写入业务表
+- 本接口已废弃，服务端会返回错误提示客户端改用 file-service。
+- 前端应通过 `API_DOCS/common.md` 中的 file-service 上传签名接口上传文件。
+- 文件上传成功或 `already_uploaded=true` 后，再调用注册附件接口写入业务表。
 
 ## 10. 注册会话附件
 
@@ -672,11 +651,11 @@
 ```json
 {
   "messageId": null,
-  "objectKey": "chat/userScope/conversationId/file.png",
-  "fileName": "file.png",
-  "mimeType": "image/png",
+  "objectKey": "users/{userScope}/docs/{sha256}.pdf",
+  "fileName": "brief.pdf",
+  "mimeType": "application/pdf",
   "fileSize": 12345,
-  "sha256": "optional"
+  "sha256": "{sha256}"
 }
 ```
 
@@ -690,11 +669,11 @@
   "conversationId": "conversation-uuid",
   "messageId": null,
   "bucket": "private",
-  "objectKey": "chat/userScope/conversationId/file.png",
-  "fileName": "file.png",
-  "mimeType": "image/png",
+  "objectKey": "users/{userScope}/docs/{sha256}.pdf",
+  "fileName": "brief.pdf",
+  "mimeType": "application/pdf",
   "fileSize": 12345,
-  "sha256": null,
+  "sha256": "{sha256}",
   "status": "active",
   "metadata": {},
   "createdAt": "2026-05-06T00:00:00Z"
@@ -704,7 +683,9 @@
 补充说明：
 
 - `bucket` 不由前端传入，服务端固定写入 `private`
-- `objectKey` 必须来自当前用户当前会话的上传签名路径
+- `objectKey` 必须来自当前用户 file-service 上传签名返回的 `key`
+- 允许的 key 前缀为 `users/{userScope}/docs/` 和 `users/{userScope}/images/`
+- 如果传入 `sha256`，服务端会校验 object key 文件名部分与 `sha256` 一致
 
 ## 11. 登记会话附件抽取状态 / 文本
 
@@ -806,22 +787,36 @@
     "conversationId": "conversation-uuid",
     "messageId": null,
     "bucket": "private",
-    "objectKey": "chat/userScope/conversationId/file.png",
-    "fileName": "file.png",
-    "mimeType": "image/png",
+    "objectKey": "users/{userScope}/docs/{sha256}.pdf",
+    "fileName": "brief.pdf",
+    "mimeType": "application/pdf",
     "fileSize": 12345,
-    "sha256": null,
+    "sha256": "{sha256}",
     "status": "active",
     "metadata": {},
     "createdAt": "2026-05-06T00:00:00Z"
   },
   "method": "GET",
-  "downloadUrl": "http://s3.example/private/chat/...",
+  "downloadUrl": "http://s3.example/private/users/{userScope}/docs/{sha256}.pdf?...",
   "expiresSecs": 600
 }
 ```
 
-## 12. 查询我的商品列表
+## 13. 删除会话附件
+
+- 方法：`DELETE`
+- 路径：`/api/app/conversation-files/{fileId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`null`。
+
+补充说明：
+
+- 服务端会校验文件属于当前登录用户。
+- 删除时先删除 S3 对象，再将会话附件记录标记为 `deleted`。
+- 删除失败时不会更新数据库状态，前端可重试。
+
+## 14. 查询我的商品列表
 
 - 方法：`GET`
 - 路径：`/api/app/products`

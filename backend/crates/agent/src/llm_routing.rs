@@ -287,7 +287,7 @@ where
             description: "LLM cognition did not run".to_string(),
         };
 
-        for attempt in 1..=max_attempts {
+        for attempt in 1 ..= max_attempts {
             let raw = match llm.chat_once(LlmInput { messages }).await {
                 Ok(output) => output.get_content().to_string(),
                 Err(err) => {
@@ -476,11 +476,9 @@ fn repair_messages(
     let mut messages = base_messages.to_vec();
     messages.push(ChatMessage::assistant(raw.to_string()));
     messages.push(ChatMessage::user(format!(
-        "Repair attempt {next_attempt}: 上一次输出解析失败：{}\n\
-         现在只修复输出格式，不改变业务含义。\n\
-         必须返回完整 JSON，包含 decision、summary、role_output。\n\
-         不要输出 Markdown、代码块或解释文字。\n\
-         原始输出片段: {}",
+        "Repair attempt {next_attempt}: \
+         上一次输出解析失败：{}\n现在只修复输出格式，不改变业务含义。\n必须返回完整 JSON，包含 \
+         decision、summary、role_output。\n不要输出 Markdown、代码块或解释文字。\n原始输出片段: {}",
         failure.description,
         raw_snippet(raw)
     )));
@@ -552,15 +550,15 @@ fn strip_code_fences(input: &str) -> &str {
         Some(idx) => idx,
         None => return input,
     };
-    let after_start = &input[start + 3..];
+    let after_start = &input[start + 3 ..];
     let newline = after_start.find('\n');
     let content_start = match newline {
         Some(idx) => start + 3 + idx + 1,
         None => start + 3,
     };
-    if let Some(end_idx) = input[content_start..].find("```") {
+    if let Some(end_idx) = input[content_start ..].find("```") {
         let end = content_start + end_idx;
-        return &input[content_start..end];
+        return &input[content_start .. end];
     }
     input
 }
@@ -586,7 +584,7 @@ fn extract_json_value(input: &str) -> Option<&str> {
         match ch {
             '"' => in_string = true,
             '{' | '[' => {
-                if let Some(candidate) = extract_balanced_json(&input[index..], ch) {
+                if let Some(candidate) = extract_balanced_json(&input[index ..], ch) {
                     return Some(candidate);
                 }
             }
@@ -634,7 +632,7 @@ fn extract_balanced_json(input: &str, start_char: char) -> Option<&str> {
                 if depth == 0
                     && let Some(start_index) = start
                 {
-                    return Some(&input[start_index..=index]);
+                    return Some(&input[start_index ..= index]);
                 }
             }
             _ => {}
