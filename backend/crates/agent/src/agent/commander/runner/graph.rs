@@ -52,16 +52,13 @@ impl Commander {
 
         self.memory
             .push_progress(format!("task graph planned: {} nodes", graph.nodes.len()));
+        let display_roles = self.task_graph_display_roles(role_route, &graph);
         self.emit_route_decided(
             "task_graph",
-            graph.nodes.first().map(|node| node.role.clone()),
-            graph
-                .nodes
-                .iter()
-                .skip(1)
-                .map(|node| node.role.clone())
-                .collect(),
+            display_roles.0.clone(),
+            display_roles.1.clone(),
         );
+        self.emit_dispatch_planned_for_graph_with_roles("task_graph", &graph, display_roles);
         self.emit_event(SessionEvent::TaskGraphPlanned {
             session_id: self.session_id_from_context(&self.current_context),
             graph: graph.clone(),

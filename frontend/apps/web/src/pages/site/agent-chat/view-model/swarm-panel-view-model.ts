@@ -55,7 +55,7 @@ export const WORKSPACE_LANES = [
   ["agentChat.swarm.lanes.context.label", "agentChat.swarm.lanes.context.value"],
   ["agentChat.swarm.lanes.execution.label", "agentChat.swarm.lanes.execution.value"],
   ["agentChat.swarm.lanes.delivery.label", "agentChat.swarm.lanes.delivery.value"],
-  ["agentChat.swarm.lanes.governance.label", "agentChat.swarm.lanes.governance.value"],
+  ["agentChat.swarm.lanes.review.label", "agentChat.swarm.lanes.review.value"],
 ] as const
 
 const AGENTS = [

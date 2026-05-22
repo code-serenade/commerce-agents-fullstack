@@ -2,9 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use super::{chat, planner};
 use crate::{
-    agent::commander::{
-        no_user_facing_content_message, sanitize_user_facing_text, user_facing_report_text,
-    },
+    agent::commander::{no_user_facing_content_message, user_facing_report_text},
     agent_session::{RoleMemorySummary, TaskGraphMemorySummary, WorkerDetail},
     core::protocol::{
         Evaluation, RoleWorkOutput, TaskGraph, TaskGraphHandoff, TaskGraphProcessGap,
@@ -31,6 +29,8 @@ pub struct TaskGraphRuntime {
     pub reports: HashMap<TaskNodeId, WorkerReport>,
     pub rework_instructions: HashMap<TaskNodeId, String>,
     pub evaluations: Vec<Evaluation>,
+    response_mode: Option<String>,
+    learning_depth: Option<String>,
 }
 
 impl TaskGraphRuntime {
@@ -48,14 +48,24 @@ impl TaskGraphRuntime {
             reports: HashMap::new(),
             rework_instructions: HashMap::new(),
             evaluations: Vec::new(),
+            response_mode: None,
+            learning_depth: None,
         }
     }
 
-    pub fn with_response_mode(self, _response_mode: Option<&str>) -> Self {
+    pub fn with_response_mode(mut self, response_mode: Option<&str>) -> Self {
+        self.response_mode = response_mode
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_string);
         self
     }
 
-    pub fn with_learning_depth(self, _learning_depth: Option<&str>) -> Self {
+    pub fn with_learning_depth(mut self, learning_depth: Option<&str>) -> Self {
+        self.learning_depth = learning_depth
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_string);
         self
     }
 
@@ -187,6 +197,9 @@ impl TaskGraphRuntime {
     }
 
     pub fn synthesize(&self) -> String {
+        if self.response_mode.as_deref() != Some("quick") && self.graph.nodes.len() > 1 {
+            return self.learning_synthesis();
+        }
         if let Some(final_output) = self.final_node_output() {
             return final_output;
         }
@@ -208,27 +221,24 @@ impl TaskGraphRuntime {
             }
         }
 
-        let incomplete = self
-            .graph
-            .nodes
-            .iter()
-            .filter_map(|node| match self.states.get(&node.id) {
-                Some(TaskNodeRuntimeState::Failed(reason)) => sanitize_user_facing_text(reason)
-                    .map(|reason| format!("{}未完成：{}", node.title, reason)),
-                Some(TaskNodeRuntimeState::Skipped(reason)) => sanitize_user_facing_text(reason)
-                    .map(|reason| format!("{}暂未继续：{}", node.title, reason)),
-                _ => None,
-            })
-            .collect::<Vec<_>>();
-        if !incomplete.is_empty() {
-            sections.push(format!("还有这些部分需要补齐：{}", incomplete.join("；")));
-        }
-
         if sections.is_empty() {
             no_user_facing_content_message()
         } else {
             sections.join("\n\n")
         }
+    }
+
+    fn learning_synthesis(&self) -> String {
+        self.final_node_output()
+            .or_else(|| {
+                self.graph
+                    .nodes
+                    .iter()
+                    .rev()
+                    .filter_map(|node| self.reports.get(&node.id))
+                    .find_map(user_facing_report_text)
+            })
+            .unwrap_or_else(no_user_facing_content_message)
     }
 
     pub fn final_node_output(&self) -> Option<String> {
@@ -326,7 +336,7 @@ impl TaskGraphRuntime {
             incomplete,
             panel: TaskGraphProcessPanel {
                 default_collapsed: true,
-                anchor: "task_graph_process".to_string(),
+                anchor: "answer_scoped_process".to_string(),
                 label: "Task graph process".to_string(),
                 reason: "Task graph runtime process details.".to_string(),
             },
@@ -831,6 +841,34 @@ mod tests {
 
         assert_eq!(output, "final user plan");
         assert!(!output.contains("upstream draft"));
+    }
+
+    #[test]
+    fn task_graph_synthesis_hides_failed_descendant_reason() {
+        let data = node("data", "Data", "data");
+        let mut ops = node("ops_final", "Final", "ops");
+        ops.input_refs = vec![TaskNodeId("data".to_string())];
+        let mut runtime = TaskGraphRuntime::new(TaskGraph {
+            graph_id: TaskGraphId("graph-partial".to_string()),
+            root_task: "Build a plan.".to_string(),
+            nodes: vec![data.clone(), ops.clone()],
+        });
+        runtime
+            .states
+            .insert(data.id.clone(), TaskNodeRuntimeState::Passed);
+        runtime.states.insert(
+            ops.id.clone(),
+            TaskNodeRuntimeState::Failed("dependency did not pass".to_string()),
+        );
+        runtime
+            .reports
+            .insert(data.id.clone(), report("data", "usable upstream answer"));
+
+        let output = runtime.synthesize();
+
+        assert_eq!(output, "usable upstream answer");
+        assert!(!output.contains("dependency did not pass"));
+        assert!(!output.contains("还有这些部分需要补齐"));
     }
 
     fn node(id: &str, title: &str, role: &str) -> TaskNode {

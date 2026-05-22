@@ -244,9 +244,17 @@ describe("agent chat message mapping", () => {
     ]
 
     expect(mapConversationAttachments(detail)).toEqual([
-      { fileId: "file-1", id: "file-1", name: "brief.md", readable: true, status: "uploaded" },
+      {
+        fileId: "file-1",
+        id: "file-1",
+        kind: "file",
+        name: "brief.md",
+        readable: true,
+        status: "uploaded",
+      },
     ])
   })
+
 })
 
 function conversationDetail(

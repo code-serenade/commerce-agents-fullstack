@@ -143,6 +143,7 @@ export function useAgentChatPage() {
 
   const sendMessage = useAgentChatSend({
     abortRef,
+    attachments,
     conversationId,
     fallbackConversationTitle,
     inputValue: input,

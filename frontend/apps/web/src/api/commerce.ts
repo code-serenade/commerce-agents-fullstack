@@ -93,15 +93,6 @@ export interface ProductAssetResponse extends JsonRecord {
   updatedAt?: string
 }
 
-export interface ProductAssetUploadSignResponse extends JsonRecord {
-  method: "PUT"
-  uploadUrl: string
-  bucket: string
-  objectKey: string
-  contentType: string
-  expiresSecs: number
-}
-
 export interface ProductAssetAccessResponse extends JsonRecord {
   asset: ProductAssetResponse
   method: "GET"
@@ -1082,35 +1073,6 @@ export const archiveProductKnowledgeApi = async (
     method: "DELETE",
     url: `/api/app/products/${productId}/knowledge/${knowledgeId}`,
   })
-
-export const presignProductAssetUploadApi = async (
-  productId: string,
-  body: JsonRecord
-): Promise<ProductAssetUploadSignResponse> =>
-  request<JsonRecord, ProductAssetUploadSignResponse>({
-    method: "POST",
-    url: `/api/app/products/${productId}/assets/presign-upload`,
-    body,
-  })
-
-export const uploadProductAssetFileApi = async (
-  file: File,
-  sign: ProductAssetUploadSignResponse
-): Promise<Response> => {
-  const response = await fetch(sign.uploadUrl, {
-    method: sign.method,
-    headers: {
-      "Content-Type": sign.contentType || file.type,
-    },
-    body: file,
-  })
-
-  if (!response.ok) {
-    throw new Error(`Upload failed: ${response.status}`)
-  }
-
-  return response
-}
 
 export const listProductAssetsApi = async (
   productId: string,

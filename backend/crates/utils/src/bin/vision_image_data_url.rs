@@ -5,6 +5,7 @@ use model_gateway_rs::{
     model::llm::{ChatContentPart, ChatMessage, LlmInput},
 };
 use serde::Deserialize;
+use serde_json::json;
 use storage::{BucketKind, DownloadObjectRequest, ObjectStorage, StorageConfig};
 use utils::image::{normalize_image_mime, vision_image_data_url};
 
@@ -207,6 +208,9 @@ async fn ask_vision_llm(
         .with_reasoning_effort(llm.reasoning_effort.as_deref());
     if let Some(endpoint) = &llm.chat_completions_endpoint {
         client = client.with_chat_completions_endpoint(endpoint.clone());
+    }
+    if let Some(thinking) = llm.thinking {
+        client = client.with_extra_body_param("thinking", json!({ "type": thinking }))?;
     }
     let output = client
         .chat_once(LlmInput {

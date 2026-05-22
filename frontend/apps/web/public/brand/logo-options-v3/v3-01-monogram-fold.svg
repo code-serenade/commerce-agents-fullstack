@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
+  <title id="title">TaskMate V3 01 Monogram Fold</title>
+  <desc id="desc">Luxury monogram mark with folded T and M geometry.</desc>
+  <rect width="96" height="96" rx="24" fill="#09090b"/>
+  <path fill="#f4f1ea" d="M22 25h52v11H55v35H42V36H22V25z"/>
+  <path fill="#b8a06a" d="M30 71V46h10l8 10 8-10h10v25H55V60l-7 8-7-8v11H30z"/>
+  <path fill="#ffffff" fill-opacity=".12" d="M55 36h19L55 47V36z"/>
+</svg>

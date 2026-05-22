@@ -19,6 +19,7 @@ export function AgentChatComposer({
   availableSources,
   canSend,
   error,
+  focusVersion,
   input,
   isLoggedIn,
   isLoadingCampaigns,
@@ -101,6 +102,11 @@ export function AgentChatComposer({
     textarea.style.height = "auto"
     textarea.style.height = `${Math.min(textarea.scrollHeight, 180)}px`
   }, [input])
+
+  useEffect(() => {
+    if (!focusVersion || isStreaming) return
+    textareaRef.current?.focus()
+  }, [focusVersion, isStreaming])
 
   const sendAndClosePanels = () => {
     closePanels()

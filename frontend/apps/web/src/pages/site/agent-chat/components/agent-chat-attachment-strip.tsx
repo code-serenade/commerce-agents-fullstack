@@ -1,4 +1,4 @@
-import { CheckCircle2, Loader2, Paperclip, XCircle } from "lucide-react"
+import { CheckCircle2, Eye, Image, Loader2, Paperclip, XCircle } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type { AgentChatAttachmentItem } from "../types"
 
@@ -22,20 +22,27 @@ export function AgentChatAttachmentStrip({
             ? CheckCircle2
             : attachment.status === "failed"
               ? XCircle
-              : Loader2
+              : attachment.status === "unsupported"
+                ? XCircle
+                : Loader2
+        const KindIcon = attachment.kind === "image" ? Image : Paperclip
         return (
           <span
             key={attachment.id}
             className="flex max-w-56 min-w-0 items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-xs text-muted-foreground"
-            title={attachment.name}
+            title={attachment.unsupportedReason || attachment.name}
           >
             <Icon
               className={`size-3.5 shrink-0 ${
-                attachment.status === "uploading" ? "animate-spin" : ""
+                attachment.status === "uploading" ||
+                attachment.status === "pending"
+                  ? "animate-spin"
+                  : ""
               }`}
             />
-            <Paperclip className="size-3.5 shrink-0" />
+            <KindIcon className="size-3.5 shrink-0" />
             <span className="truncate">{attachment.name}</span>
+            {attachment.imageDataUrl ? <Eye className="size-3.5 shrink-0" /> : null}
             <span className="shrink-0">
               {t(`agentChat.composer.attachments.${attachment.status}`)}
             </span>

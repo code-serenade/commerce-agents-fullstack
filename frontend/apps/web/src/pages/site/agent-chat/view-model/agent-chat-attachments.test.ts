@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { resolveAttachmentExtractionState } from "./agent-chat-attachment-extraction-state"
 import { createBrowserExtractionRequest } from "./agent-chat-attachments"
 
 describe("agent chat attachment extraction", () => {
@@ -41,5 +42,75 @@ describe("agent chat attachment extraction", () => {
     expect(result.request.status).toBe("unsupported")
     expect(result.request.contentKind).toBe("unsupported")
     expect(result.request.failureReason).toContain("plain text")
+  })
+
+  it("prepares png images for vision input", async () => {
+    const file = new File(["image"], "shelf.png", { type: "image/png" })
+
+    const result = await createBrowserExtractionRequest(file)
+
+    expect(result.readable).toBe(true)
+    expect(result.imageDataUrl).toMatch(/^data:image\/png;base64,/)
+    expect(result.request.status).toBe("extracted")
+    expect(result.request.contentKind).toBe("image_vision_input")
+    expect(result.request.parser).toBe("browser_image")
+    expect(result.request.text).toContain("Image attachment prepared")
+    expect(result.request.metadata).toMatchObject({
+      sourceFileName: "shelf.png",
+      visionDetail: "auto",
+      visionReady: true,
+    })
+  })
+
+  it("keeps server pending extraction visible instead of marking it readable", () => {
+    expect(
+      resolveAttachmentExtractionState({
+        browserReadable: false,
+        fallbackReason: "Browser text extraction supports plain text only.",
+        serverExtraction: {
+          contentKind: "unknown",
+          fileId: "file-bin",
+          jobId: "server-extraction-file-bin",
+          message:
+            "file is waiting for a text extraction adapter or trusted extraction upload",
+          metadata: {},
+          parser: "server_status_classifier",
+          source: "server_job",
+          status: "pending",
+        },
+        status: "unsupported",
+      })
+    ).toEqual({
+      readable: false,
+      status: "pending",
+      unsupportedReason:
+        "file is waiting for a text extraction adapter or trusted extraction upload",
+    })
+  })
+
+  it("keeps server unsupported extraction visible instead of marking it readable", () => {
+    expect(
+      resolveAttachmentExtractionState({
+        browserReadable: false,
+        fallbackReason: "Browser text extraction supports plain text only.",
+        serverExtraction: {
+          contentKind: "pdf",
+          fileId: "file-pdf",
+          jobId: "server-extraction-file-pdf",
+          message:
+            "server parser is not enabled for this file type; file remains unavailable as readable text",
+          metadata: {},
+          parser: "server_status_classifier",
+          source: "server_job",
+          status: "unsupported",
+        },
+        status: "unsupported",
+      })
+    ).toEqual({
+      readable: false,
+      status: "unsupported",
+      unsupportedReason:
+        "server parser is not enabled for this file type; file remains unavailable as readable text",
+    })
   })
 })

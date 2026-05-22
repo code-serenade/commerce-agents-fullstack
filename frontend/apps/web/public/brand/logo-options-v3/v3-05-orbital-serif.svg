@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
+  <title id="title">TaskMate V3 05 Orbital Serif</title>
+  <desc id="desc">Elegant orbital T mark for a premium AI commerce assistant.</desc>
+  <rect width="96" height="96" rx="24" fill="#0b0b0c"/>
+  <ellipse cx="48" cy="48" rx="33" ry="20" fill="none" stroke="#b8a06a" stroke-width="5" transform="rotate(-28 48 48)"/>
+  <path fill="#f4f1ea" d="M27 26h42v10H53v36H42V36H27V26z"/>
+  <circle cx="72" cy="31" r="5" fill="#f4f1ea"/>
+</svg>

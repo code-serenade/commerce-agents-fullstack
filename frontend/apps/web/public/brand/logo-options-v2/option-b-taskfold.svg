@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
+  <title id="title">TaskMate option B TaskFold</title>
+  <desc id="desc">A folded task ribbon with a clear completion direction.</desc>
+  <rect width="96" height="96" rx="21" fill="#111827"/>
+  <path fill="#f8fafc" d="M25 26h46v13H38v11h25v12H38v8H25V26z"/>
+  <path fill="#14b8a6" d="M57 51h18L55 72 43 60h18l-4-9z"/>
+  <circle cx="72" cy="29" r="5" fill="#f59e0b"/>
+</svg>

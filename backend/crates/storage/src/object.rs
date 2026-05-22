@@ -104,7 +104,11 @@ impl FileKind {
             "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             "txt" => "text/plain; charset=utf-8",
             "md" => "text/markdown; charset=utf-8",
+            "markdown" => "text/markdown; charset=utf-8",
             "json" => "application/json",
+            "csv" => "text/csv; charset=utf-8",
+            "tsv" => "text/tab-separated-values; charset=utf-8",
+            "html" | "htm" => "text/html; charset=utf-8",
             _ => match self {
                 Self::Avatar | Self::Image => "application/octet-stream",
                 Self::Document | Self::ChatAttachment => "application/octet-stream",
@@ -115,5 +119,6 @@ impl FileKind {
 
 const IMAGE_ALLOWED_EXTS: &[&str] = &["jpg", "jpeg", "png", "webp", "gif"];
 const GENERAL_ALLOWED_EXTS: &[&str] = &[
-    "jpg", "jpeg", "png", "webp", "gif", "pdf", "doc", "docx", "xls", "xlsx", "txt", "md", "json",
+    "jpg", "jpeg", "png", "webp", "gif", "pdf", "doc", "docx", "xls", "xlsx", "txt", "md",
+    "markdown", "json", "csv", "tsv", "html", "htm",
 ];

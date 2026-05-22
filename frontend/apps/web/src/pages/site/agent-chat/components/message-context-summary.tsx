@@ -60,7 +60,12 @@ export function MessageContextSummary({
     })
   }
 
-  if (summary.primaryRole || summary.selectedRoles.length > 0) {
+  if (summary.collaborationMode === "auto" && summary.selectedRoles.length === 0) {
+    chips.push({
+      icon: <UsersRound className="size-3.5" />,
+      label: t("agentChat.thread.contextSummary.autoRoles"),
+    })
+  } else if (summary.primaryRole || summary.selectedRoles.length > 0) {
     chips.push({
       icon: <UsersRound className="size-3.5" />,
       label: t("agentChat.thread.contextSummary.roles", {

@@ -129,6 +129,8 @@ pub(super) struct TaskGraphRuleMatch {
     #[serde(default)]
     pub(super) route_min_non_chat_roles: Option<usize>,
     #[serde(default)]
+    pub(super) min_explicit_role_aliases: Option<usize>,
+    #[serde(default)]
     pub(super) allow_without_route: bool,
     #[serde(default)]
     pub(super) explicit_team_request: bool,

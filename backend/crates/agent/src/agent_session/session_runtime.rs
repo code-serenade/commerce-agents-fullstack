@@ -18,8 +18,8 @@ use crate::{
     core::{
         messaging::MessageRx,
         protocol::{
-            AgentId, Message, MessageContext, MessageId, Payload, SessionEvent, SessionId,
-            TaskGraph, TaskId, TaskSpec, WorkerId,
+            AgentId, DispatchContextBudget, DispatchPlannedStep, Message, MessageContext,
+            MessageId, Payload, SessionEvent, SessionId, TaskGraph, TaskId, TaskSpec, WorkerId,
         },
     },
     roles::{RoleCatalog, RoleProfile, RoleRouter},
@@ -225,6 +225,8 @@ impl SessionRuntime {
                 Some(graph.nodes.iter().map(|node| node.role.clone()).collect()),
             )
             .await;
+            self.emit_dispatch_planned_for_graph("chat_bypass", &graph)
+                .await;
             self.dispatch_chat_direct(context.clone(), graph)?;
         } else {
             let message = Message::new_with_context(
@@ -458,7 +460,10 @@ impl SessionRuntime {
             .cloned();
         let roles = roles.unwrap_or_default();
         let primary_runtime_role = roles.first().cloned();
-        let support_runtime_roles = roles.into_iter().skip(1).collect();
+        let support_runtime_roles = unique_support_runtime_roles(
+            primary_runtime_role.as_deref(),
+            roles.into_iter().skip(1).collect(),
+        );
         self.emit_event(SessionEvent::RouteDecided {
             session_id: self.session_id.clone(),
             strategy_id,
@@ -475,6 +480,43 @@ impl SessionRuntime {
             support_runtime_roles,
         })
         .await;
+    }
+
+    async fn emit_dispatch_planned_for_graph(&self, route_mode: &str, graph: &TaskGraph) {
+        let (primary_runtime_role, support_runtime_roles) =
+            dispatch_runtime_roles_from_graph(graph);
+        let context_budget = dispatch_context_budget(&self.context, self.memory_record_count());
+        let difficulty = dispatch_difficulty(
+            route_mode,
+            dispatch_runtime_role_count(primary_runtime_role.as_deref(), &support_runtime_roles),
+            &context_budget,
+        );
+        let planned_steps = dispatch_steps_from_graph(route_mode, graph, &context_budget);
+        let student_visible_explanation = dispatch_student_explanation_with_context(
+            route_mode,
+            graph.nodes.len(),
+            &context_budget,
+        );
+        self.emit_event(SessionEvent::DispatchPlanned {
+            session_id: self.session_id.clone(),
+            difficulty: difficulty.to_string(),
+            route_mode: route_mode.to_string(),
+            primary_runtime_role,
+            support_runtime_roles,
+            selected_skills: dispatch_selected_skills(route_mode, graph),
+            planned_steps,
+            context_budget,
+            reasoning_summary: dispatch_reasoning_summary(route_mode, graph.nodes.len()),
+            student_visible_explanation,
+        })
+        .await;
+    }
+
+    fn memory_record_count(&self) -> usize {
+        self.session_context
+            .extensions()
+            .with::<MemoryBundle, _>(|bundle| bundle.records.len())
+            .unwrap_or_default()
     }
 
     fn force_collaboration(&self) -> bool {
@@ -609,6 +651,51 @@ fn unique_strings(items: Vec<String>) -> Vec<String> {
     })
 }
 
+pub(crate) fn dispatch_runtime_roles_from_graph(
+    graph: &TaskGraph,
+) -> (Option<String>, Vec<String>) {
+    let primary_runtime_role = graph.nodes.first().map(|node| node.role.clone());
+    let support_runtime_roles = unique_support_runtime_roles(
+        primary_runtime_role.as_deref(),
+        graph
+            .nodes
+            .iter()
+            .skip(1)
+            .map(|node| node.role.clone())
+            .collect(),
+    );
+
+    (primary_runtime_role, support_runtime_roles)
+}
+
+pub(crate) fn unique_support_runtime_roles(
+    primary_runtime_role: Option<&str>,
+    roles: Vec<String>,
+) -> Vec<String> {
+    let primary_runtime_role = primary_runtime_role.map(str::trim).unwrap_or_default();
+    roles.into_iter().fold(Vec::new(), |mut unique, role| {
+        let role = role.trim();
+        if !role.is_empty()
+            && role != primary_runtime_role
+            && !unique.iter().any(|item| item == role)
+        {
+            unique.push(role.to_string());
+        }
+        unique
+    })
+}
+
+pub(crate) fn dispatch_runtime_role_count(
+    primary_runtime_role: Option<&str>,
+    support_runtime_roles: &[String],
+) -> usize {
+    usize::from(
+        primary_runtime_role
+            .map(str::trim)
+            .is_some_and(|role| !role.is_empty()),
+    ) + support_runtime_roles.len()
+}
+
 fn is_direct_answer_chat_graph(graph: &TaskGraph) -> bool {
     let [node] = graph.nodes.as_slice() else {
         return false;
@@ -661,6 +748,287 @@ fn context_loaded_event(session_id: &SessionId, context: &MessageContext) -> Opt
         summary,
         sources_json,
     })
+}
+
+pub(crate) fn dispatch_steps_from_graph(
+    route_mode: &str,
+    graph: &TaskGraph,
+    context_budget: &DispatchContextBudget,
+) -> Vec<DispatchPlannedStep> {
+    let mut steps = Vec::new();
+    steps.push(DispatchPlannedStep {
+        id: "context".to_string(),
+        title: "读取上下文".to_string(),
+        detail: dispatch_context_step_detail(context_budget),
+    });
+    steps.push(DispatchPlannedStep {
+        id: "route".to_string(),
+        title: "判断任务难度和路线".to_string(),
+        detail: format!(
+            "调度中心选择 {route_mode}，计划 {} 个执行步骤。",
+            graph.nodes.len()
+        ),
+    });
+    steps.extend(graph.nodes.iter().take(6).map(|node| DispatchPlannedStep {
+        id: node.id.0.clone(),
+        title: node.title.clone(),
+        detail: node.objective.clone(),
+    }));
+    steps.push(DispatchPlannedStep {
+        id: "answer".to_string(),
+        title: "汇总回答".to_string(),
+        detail: "把执行结果整理为学生可直接使用的回答和下一步建议。".to_string(),
+    });
+    steps
+}
+
+pub(crate) fn dispatch_context_budget(
+    context: &MessageContext,
+    memory_record_count: usize,
+) -> DispatchContextBudget {
+    DispatchContextBudget {
+        memory_record_count,
+        history_summary_available: context
+            .metadata
+            .get("conversation.history_summary")
+            .is_some_and(|value| !value.trim().is_empty()),
+        recent_history_message_count: parse_usize_metadata(
+            context.metadata.get("conversation.history_message_count"),
+        ),
+        history_total_message_count: parse_usize_metadata(
+            context
+                .metadata
+                .get("conversation.history_total_message_count"),
+        ),
+        history_truncated: context
+            .metadata
+            .get("conversation.history_truncated")
+            .is_some_and(|value| value == "true"),
+        history_older_summary_available: context
+            .metadata
+            .get("conversation.history_older_summary")
+            .is_some_and(|value| !value.trim().is_empty()),
+        explicit_product_count: split_metadata_list(context.metadata.get("context.product_ids"))
+            .len(),
+        explicit_context_ref_count: split_metadata_list(context.metadata.get("context.refs")).len(),
+        workspace_context_ref_count: split_metadata_list(
+            context.metadata.get("workspaceContext.refs"),
+        )
+        .len(),
+        workspace_pack_item_count: parse_usize_metadata(
+            context.metadata.get("workspaceContextPack.item_count"),
+        )
+        .max(split_metadata_list(context.metadata.get("workspaceContextPack.refs")).len()),
+        approximate_input_chars: approximate_context_chars(context),
+    }
+}
+
+pub(crate) fn dispatch_selected_skills(route_mode: &str, graph: &TaskGraph) -> Vec<String> {
+    if route_mode == "chat_bypass" {
+        return Vec::new();
+    }
+
+    let mut skills = Vec::new();
+    for node in graph
+        .nodes
+        .iter()
+        .filter(|node| node.skill_autosuggest.unwrap_or(true))
+    {
+        for skill in planned_skills_for_role(&node.role) {
+            if !skills.iter().any(|item| item == skill) {
+                skills.push(skill.to_string());
+            }
+            if skills.len() >= 8 {
+                return skills;
+            }
+        }
+    }
+    skills
+}
+
+pub(crate) fn dispatch_difficulty(
+    route_mode: &str,
+    step_count: usize,
+    context_budget: &DispatchContextBudget,
+) -> &'static str {
+    if route_mode == "chat_bypass" && step_count <= 1 {
+        return "simple";
+    }
+    if step_count >= 4
+        || context_budget.history_summary_available
+        || context_budget.history_truncated
+        || context_budget.recent_history_message_count >= 8
+        || context_budget.approximate_input_chars >= 6000
+        || context_budget.explicit_context_ref_count + context_budget.workspace_context_ref_count
+            >= 4
+    {
+        return "complex";
+    }
+    if step_count >= 2 || context_budget.explicit_product_count > 0 {
+        return "normal";
+    }
+    "simple"
+}
+
+pub(crate) fn dispatch_reasoning_summary(route_mode: &str, step_count: usize) -> String {
+    match route_mode {
+        "chat_bypass" => "问题可以用轻量上下文和直接回答完成，因此走快速调度；如有同会话历史，\
+                          会作为追问背景读取。"
+            .to_string(),
+        "fast_worker" => {
+            "问题匹配到一个主要岗位，先由该岗位处理，并按本岗位策略自动补充合适 Skill。".to_string()
+        }
+        "task_graph" => format!("问题需要拆成 {step_count} 个岗位步骤协作，按任务图顺序执行。"),
+        _ => format!("调度中心已选择 {route_mode} 路线。"),
+    }
+}
+
+pub(crate) fn dispatch_student_explanation(route_mode: &str, step_count: usize) -> String {
+    match route_mode {
+        "chat_bypass" => {
+            "这是一个简单问题，系统会快速读取本轮资料和同会话历史，再直接给出结果。".to_string()
+        }
+        "fast_worker" => {
+            "这个问题主要由一个合适岗位处理，并会按需要调用对应 Skill 完成分析。".to_string()
+        }
+        "task_graph" => {
+            format!("这个问题会拆给 {step_count} 个岗位/步骤协作，过程更长但结果会更完整。")
+        }
+        _ => "系统会根据本轮问题和上下文选择合适流程。".to_string(),
+    }
+}
+
+pub(crate) fn dispatch_student_explanation_with_context(
+    route_mode: &str,
+    step_count: usize,
+    context_budget: &DispatchContextBudget,
+) -> String {
+    let base = dispatch_student_explanation(route_mode, step_count);
+    let context_hint = dispatch_context_student_hint(context_budget);
+    if context_hint.is_empty() {
+        return base;
+    }
+    format!("{base} {context_hint}")
+}
+
+fn dispatch_context_step_detail(context_budget: &DispatchContextBudget) -> String {
+    let material_count = dispatch_material_signal_count(context_budget);
+    match (
+        context_budget.history_summary_available,
+        context_budget.recent_history_message_count,
+        context_budget.history_total_message_count,
+        context_budget.history_truncated,
+        material_count,
+    ) {
+        (true, history_count, total_count, true, materials) if materials > 0 => {
+            format!(
+                "读取本轮问题、最近 {history_count}/{total_count} 条同会话历史、早期压缩摘要和 \
+                 {materials} 个资料信号。"
+            )
+        }
+        (true, history_count, total_count, true, _) => {
+            format!("读取本轮问题、最近 {history_count}/{total_count} 条同会话历史和早期压缩摘要。")
+        }
+        (true, history_count, _, false, materials) if materials > 0 => {
+            format!(
+                "读取本轮问题、同会话历史摘要（约 {history_count} 条历史消息）和 {materials} \
+                 个资料信号。"
+            )
+        }
+        (true, history_count, _, false, _) => {
+            format!("读取本轮问题和同会话历史摘要（约 {history_count} 条历史消息）。")
+        }
+        (false, _, _, _, materials) if materials > 0 => {
+            format!("读取本轮问题、会话记忆和 {materials} 个资料信号。")
+        }
+        _ => "读取本轮问题、会话记忆、商品资料、工作区资料和检索上下文。".to_string(),
+    }
+}
+
+fn dispatch_context_student_hint(context_budget: &DispatchContextBudget) -> String {
+    let material_count = dispatch_material_signal_count(context_budget);
+    if context_budget.history_truncated && material_count > 0 {
+        return format!(
+            "本轮历史较长，已读取最近 {}/{} 条消息并纳入早期压缩摘要，同时读取 {material_count} \
+             个资料信号。",
+            context_budget.recent_history_message_count, context_budget.history_total_message_count
+        );
+    }
+    if context_budget.history_truncated {
+        return format!(
+            "本轮历史较长，已读取最近 {}/{} 条消息并纳入早期压缩摘要。",
+            context_budget.recent_history_message_count, context_budget.history_total_message_count
+        );
+    }
+    if context_budget.history_summary_available && material_count > 0 {
+        return format!(
+            "本轮已把同会话历史和 {material_count} 个资料信号纳入调度，所以过程会更重视前后文。"
+        );
+    }
+    if context_budget.history_summary_available {
+        return "本轮已把同会话历史纳入调度，适合继续追问或沿用前面数据。".to_string();
+    }
+    if material_count > 0 {
+        return format!("本轮已读取 {material_count} 个资料信号，回答会优先围绕这些资料展开。");
+    }
+    if context_budget.approximate_input_chars >= 6000 {
+        return "本轮输入较长，调度会按更复杂的上下文处理。".to_string();
+    }
+    String::new()
+}
+
+fn dispatch_material_signal_count(context_budget: &DispatchContextBudget) -> usize {
+    context_budget.explicit_product_count
+        + context_budget.explicit_context_ref_count
+        + context_budget.workspace_context_ref_count
+        + context_budget.workspace_pack_item_count
+        + context_budget.memory_record_count
+}
+
+fn planned_skills_for_role(role: &str) -> &'static [&'static str] {
+    match role {
+        "chat" => &["learning_teaching_explain"],
+        "data" => &[
+            "query_store_metrics",
+            "data_dashboard",
+            "data_funnel_analysis",
+        ],
+        "ops" => &[
+            "coordination_skill_chain_planner",
+            "coordination_create_task",
+            "query_campaign_metrics",
+        ],
+        "creative" => &["creative_title_ctr_scorer", "creative_video_script"],
+        "web" => &[
+            "web_keyword_research",
+            "web_title_generator",
+            "web_seo_optimize",
+        ],
+        "service" => &["service_ticket_handler", "service_sentiment_analyzer"],
+        "accounting" => &["accounting_roi_calc", "accounting_profit_analysis"],
+        "douyin_ads" => &["douyin_ads_plan_structure", "douyin_ads_budget_pacing"],
+        "design" => &["design_material_spec", "creative_title_ctr_scorer"],
+        "engineering" => &[
+            "engineering_system_check",
+            "engineering_data_readiness_check",
+        ],
+        _ => &[],
+    }
+}
+
+fn approximate_context_chars(context: &MessageContext) -> usize {
+    [
+        "conversation.history_summary",
+        "context.selected_summary",
+        "context.combined_summary",
+        "rag.summary",
+        "workspaceContext.summary",
+        "workspaceContextPack.summary",
+    ]
+    .iter()
+    .filter_map(|key| context.metadata.get(*key))
+    .map(|value| value.chars().count())
+    .sum()
 }
 
 fn split_metadata_list(value: Option<&String>) -> Vec<String> {

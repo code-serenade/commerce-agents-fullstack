@@ -692,6 +692,7 @@ pub async fn get_workspace_context_pack(
             context_refs: parse_context_refs_query(req.context_refs)?,
             max_items: req.max_items,
             max_chars: req.max_chars,
+            query: req.query,
         })
         .await
         .map_err(from_biz_error)?;

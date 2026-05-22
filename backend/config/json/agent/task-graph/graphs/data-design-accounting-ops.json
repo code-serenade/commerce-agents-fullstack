@@ -2,6 +2,7 @@
   "id": "data_design_accounting_ops",
   "description": "详情页、设计、预算、财务风险与转化率相关的数据驱动运营方案",
   "priority": 650,
+  "role_order": ["data", "design", "accounting", "creative", "ops"],
   "match": {
     "any_keywords": [
       "详情页",

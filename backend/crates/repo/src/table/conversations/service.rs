@@ -7,7 +7,9 @@ use uuid::Uuid;
 
 use crate::{
     entity::conversations,
-    table::conversations::dto::{Conversation, CreateConversation, UpdateConversation},
+    table::conversations::dto::{
+        Conversation, CreateConversation, UpdateConversation, UpdateConversationMetadata,
+    },
 };
 
 db_core::impl_repository!(
@@ -77,6 +79,18 @@ impl ConversationService {
 
     pub async fn delete_by_id(&self, id: Uuid) -> BizResult<u64> {
         Ok(self.repo.delete_by_id(id).await?.rows_affected)
+    }
+
+    pub async fn update_metadata(
+        &self,
+        input: UpdateConversationMetadata,
+    ) -> BizResult<Conversation> {
+        let model = conversations::ActiveModel {
+            id: Unchanged(input.id),
+            metadata: Set(input.metadata),
+            ..Default::default()
+        };
+        Ok(Self::from_model(self.repo.update(model).await?))
     }
 
     fn from_model(model: conversations::Model) -> Conversation {

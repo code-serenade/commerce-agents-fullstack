@@ -25,11 +25,11 @@ pub struct RolePromptBuilder;
 
 impl RolePromptBuilder {
     pub fn build_worker_system_prompt(role: &RoleProfile) -> String {
-        Self::render_role_prompt(role, "", &[])
+        Self::render_role_prompt(role)
     }
 
     pub fn build_worker_prompt(input: &RolePromptInput) -> String {
-        Self::render_role_prompt(&input.role, &input.task, &input.facts)
+        Self::render_role_prompt(&input.role)
     }
 
     pub fn prompt_path_for(role: &RoleProfile) -> PathBuf {
@@ -76,7 +76,7 @@ impl RolePromptBuilder {
         ])
     }
 
-    fn render_role_prompt(role: &RoleProfile, task: &str, facts: &[String]) -> String {
+    fn render_role_prompt(role: &RoleProfile) -> String {
         let prompt_path = Self::prompt_path_for(role);
         let prompt = match Prompt::load_from_repo(&prompt_path) {
             Ok(prompt) => prompt,
@@ -89,7 +89,7 @@ impl RolePromptBuilder {
             }
         };
 
-        prompt.render(&[
+        let body = prompt.render(&[
             ("role_name", role.name.clone()),
             ("runtime_role", role.runtime_role.clone()),
             (
@@ -105,16 +105,29 @@ impl RolePromptBuilder {
                 "available_skills",
                 RoleSkillCatalog::staged().format_for_prompt(role),
             ),
-            (
-                "task",
-                if task.trim().is_empty() {
-                    "none".to_string()
-                } else {
-                    task.to_string()
-                },
-            ),
-            ("facts", join_or_none(facts)),
-        ])
+        ]);
+
+        format!("{}\n\n{}", role_prompt_header(role), body.trim())
+    }
+}
+
+fn role_prompt_header(role: &RoleProfile) -> String {
+    let capabilities = compact_capabilities(role);
+    let actions = role_actions(role);
+    let skills = RoleSkillCatalog::staged().format_for_prompt(role);
+    format!(
+        "角色: {} ({})\n能力: {}\n动作: {}\n技能:\n{}",
+        role.name, role.runtime_role, capabilities, actions, skills
+    )
+}
+
+fn compact_capabilities(role: &RoleProfile) -> String {
+    let required = join_or_none(&role.required_capabilities);
+    let optional = join_or_none(&role.optional_capabilities);
+    if optional == "none" {
+        required
+    } else {
+        format!("{required}; {optional}")
     }
 }
 
@@ -189,11 +202,11 @@ mod tests {
         });
 
         assert!(prompt.contains("数据分析师"));
-        assert!(prompt.contains("runtime_role: data"));
-        assert!(prompt.contains("prompt_source: config/prompts/zh/roles/data.md"));
-        assert!(prompt.contains("可申请技能"));
+        assert!(prompt.contains("角色: 数据分析师 (data)"));
+        assert!(!prompt.contains("prompt_source:"));
+        assert!(prompt.contains("技能:"));
         assert!(prompt.contains("data_funnel_analysis"));
-        assert!(prompt.contains("分析转化率下降"));
+        assert!(!prompt.contains("分析转化率下降"));
     }
 
     #[test]
@@ -208,8 +221,8 @@ mod tests {
         let prompt = RolePromptBuilder::build_worker_system_prompt(&role);
 
         assert!(prompt.contains("内容创意师"));
-        assert!(prompt.contains("runtime_role: creative"));
-        assert!(prompt.contains("prompt_source: config/prompts/zh/roles/creative.md"));
+        assert!(prompt.contains("角色: 内容创意师 (creative)"));
+        assert!(!prompt.contains("prompt_source:"));
     }
 
     #[test]
@@ -248,8 +261,9 @@ mod tests {
             }],
         });
 
-        assert!(prompt.contains("汇总原则"));
-        assert!(prompt.contains("不能复述任务状态"));
+        assert!(prompt.contains("## 合同"));
+        assert!(prompt.contains("不复述任务、岗位或内部过程"));
+        assert!(prompt.contains("半成品"));
         assert!(prompt.contains("分析数据并写文案"));
         assert!(prompt.contains("数据贡献"));
         assert!(!prompt.contains("worker.creative"));

@@ -1,13 +1,15 @@
 use axum::{
     Router,
-    routing::{delete, get, post, put},
+    routing::{delete, get, post},
 };
 
 use crate::handlers::app::{
     add_conversation_message, create_conversation, current_user_permissions, delete_conversation,
-    delete_conversation_file, get_conversation, get_conversation_file_access, list_conversations,
-    presign_conversation_file_upload, register_app_user, register_conversation_file,
-    update_conversation, update_conversation_file_extraction,
+    delete_conversation_file, get_conversation, get_conversation_file_access,
+    get_conversation_file_extraction, list_conversations, presign_conversation_file_upload,
+    preview_agent_context, register_app_user, register_conversation_file,
+    trigger_conversation_file_extraction_job, update_conversation,
+    update_conversation_file_extraction,
 };
 
 pub fn account_routes() -> Router {
@@ -46,6 +48,11 @@ pub fn account_routes() -> Router {
         )
         .route(
             "/conversation-files/{file_id}/extraction",
-            put(update_conversation_file_extraction),
+            get(get_conversation_file_extraction).put(update_conversation_file_extraction),
         )
+        .route(
+            "/conversation-files/{file_id}/extraction-jobs",
+            post(trigger_conversation_file_extraction_job),
+        )
+        .route("/agent/context-preview", post(preview_agent_context))
 }

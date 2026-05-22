@@ -284,7 +284,10 @@ fn is_internal_noise_line(line: &str) -> bool {
         || line.contains("正在思考中")
         || line.contains("用户未提供具体问题")
         || line.contains("占位符")
-        || lower.contains(" worker")
+        || lower.contains(" worker.")
+        || lower.contains(" worker:")
+        || lower.contains(" worker_id")
+        || lower.contains(" worker report")
         || lower.starts_with("worker")
         || line == "- none"
         || lower == "none"

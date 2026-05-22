@@ -74,7 +74,9 @@
 
 商品型 skill input 的新产品商品引用使用 `product_ref` 或 `product_refs`，值为 `product:{uuid}`。旧字段 `product_id` 仍保留为旧整数参数兼容字段，后端不会把 UUID 写入 `product_id`。
 
-当 `metadata.context.conversationId` 存在时，服务端会使用当前登录用户身份读取该会话最近的 user/assistant 消息，并把同一会话历史压缩为 `conversation.history_summary` 后追加到 `context.combined_summary`。当前这一次 `input` 会从历史摘要中排除，避免重复；历史摘要只用于“同一对话连续追问和补充信息”场景，例如用户先说明咖啡商品、后续补充价格、规格、促销活动时，Agent 能在下一轮继续使用这些补充信息。该读取仍受会话归属校验限制，不会跨用户、跨账号或跨会话注入历史。
+当 `metadata.context.conversationId` 存在时，服务端会使用当前登录用户身份读取该会话最近的 user/assistant 消息，并把同一会话历史压缩为 `conversation.history_summary` 后追加到 `context.combined_summary`。当前这一次 `input` 会从历史摘要中排除，避免重复；历史摘要只用于“同一对话连续追问和补充信息”场景，例如用户先说明咖啡商品、后续补充价格、规格、促销活动时，Agent 能在下一轮继续使用这些补充信息。长会话会保留最近窗口，同时从更早历史中按本轮问题挑选少量相关原文片段，并在 `conversation.history_relevant_older_count` 记录数量。服务端还会读取 `conversations.metadata.memorySummary`，合并旧 facts、constraints、decisions 与本轮最近消息，生成 `conversation.memory_summary_json` 并追加 `Same conversation structured memory` 到 `context.combined_summary`。本轮正常完成后，服务端会把更新后的结构化 memory 写回当前会话 metadata，并发送 `conversation_memory_updated` 事件；该读取和写回都受会话归属校验限制，不会跨用户、跨账号或跨会话注入历史。
+
+写回 `memorySummary` 前会做轻量压缩和预算治理：`rollingSummary` 最多 1400 字符，facts 最多 10 条，decisions 最多 6 条，constraints 最多 8 条，openQuestions 最多 5 条，单条记忆文本最多 260 字符，`lastUserInput` 最多 500 字符，`lastAssistantOutput` 最多 700 字符，实际注入到模型的 memory 文本最多 2400 字符。旧 memory 中的超长字段、重复字段、空字段和无关嵌套对象会被清洗；文本完全相同或一条文本明显包含另一条文本时，会保留信息更完整的一条。预算值会写入 `conversation.memory_summary_json.sourceMap.memoryBudget`，方便前端或调试工具解释为什么没有全量带入历史。
 
 `metadata.model.name` 已废弃。Agent SSE 不接受前端选择本轮 LLM；服务端始终使用 `backend/config/services.toml` 中的 `default_llm` 和 `[agent_llm_usage]` 路由配置。即使请求体里带了旧的模型名，后端也会忽略该字段，不会因为旧前端缓存的模型名不存在而拒绝本轮请求。后端只把最终服务端选中的模型配置名和模型名写入 runtime metadata，不向前端暴露 `base_url` 或 `api_key`。
 
@@ -86,7 +88,7 @@
 
 当 `metadata.strategy.collaborationMode` 为 `manual` 或 `single`，且 `primaryRole` 或 `selectedRoles` 中包含非 `chat` 岗位时，后端会优先尊重这次显式岗位选择并进入 commander/任务图路由；即使用户输入文本本身像“只输出/answer only”这类短答请求，也不会被 `chat_bypass` 吞掉。没有显式非 `chat` 岗位选择的短答请求仍可走 `route_decided.route_mode=chat_bypass`，用于普通轻问答。
 
-每次 SSE Agent 调用都会先在 service 层绑定工作区运行记录：如果 `workspaceId` 合法且属于当前用户，则写入该工作区；如果不传 `workspaceId`，后端会创建或复用当前用户的默认 `agent_chat` 工作区。绑定成功后，agent runtime metadata 会追加 `workspace.workspace_id`、`workspace.run_id` 和 `workspace.source=agent_session`。随后后端会调用 `WorkspaceApi::context_summary` 和 `WorkspaceApi::context_pack`，但 Agent SSE 内部默认只按本次新建的 `workspace_run.id` 聚合工作区 artifact，避免未选择商品时把同一工作区历史交付物自动注入模型。若本轮 `metadata.context.contextRefs` 显式传入附件、商品资产、商品素材或 artifact 引用，后端会额外校验当前用户、active 状态和所属资源，并和 `conversationId` / `productId` / 当前 run 范围来源合并去重后进入 `workspace_context_loaded` / `workspace_context_pack_loaded`。显式商品资产 / 商品素材不会反向把所属商品当成本轮“已选商品”；如果需要商品知识和商品型 skill 输入，仍必须通过 `productIds` 或 `product:{uuid}` 显式选择商品。后端会发送 `workspace_context_loaded` 与 `workspace_context_pack_loaded` 事件，并把这两个事件中的本轮上下文 metadata 注入 Agent runtime。Agent SSE 场景下，工作区绑定过商品也不会被当成本轮默认商品；必须由本轮 `metadata.context.productIds/contextRefs` 显式选择后，商品资产和商品素材才会进入本轮上下文。如果绑定或上下文归属校验失败，SSE 不会启动，接口直接返回业务错误，避免前端误以为本次结果已沉淀或已读取资料。
+每次 SSE Agent 调用都会先在 service 层绑定工作区运行记录：如果 `workspaceId` 合法且属于当前用户，则写入该工作区；如果不传 `workspaceId`，后端会创建或复用当前用户的默认 `agent_chat` 工作区。绑定成功后，agent runtime metadata 会追加 `workspace.workspace_id`、`workspace.run_id` 和 `workspace.source=agent_session`。随后后端会调用 `WorkspaceApi::context_summary` 和 `WorkspaceApi::context_pack`，但 Agent SSE 内部默认只按本次新建的 `workspace_run.id` 聚合工作区 artifact，避免未选择商品时把同一工作区历史交付物自动注入模型。若本轮 `metadata.context.contextRefs` 显式传入附件、商品资产、商品素材或 artifact 引用，后端会额外校验当前用户、active 状态和所属资源，并和 `conversationId` / `productId` / 当前 run 范围来源合并去重后进入 `workspace_context_loaded` / `workspace_context_pack_loaded`。SSE 会把本轮 `input` 作为 context pack 的 `query`，长文本来源会优先抽取与本轮问题相关的片段，命中时在 `items[].metadata.relevanceSelection` 中记录片段选择策略；没有命中或文本较短时仍保持顺序截断。CSV/TSV 大表格会生成 `table_profile`，JSON/JSONL 大结构化文本会生成 `json_profile`，都不会默认把完整原文 inline 到模型上下文。显式商品资产 / 商品素材不会反向把所属商品当成本轮“已选商品”；如果需要商品知识和商品型 skill 输入，仍必须通过 `productIds` 或 `product:{uuid}` 显式选择商品。后端会发送 `workspace_context_loaded` 与 `workspace_context_pack_loaded` 事件，并把这两个事件中的本轮上下文 metadata 注入 Agent runtime。Agent SSE 场景下，工作区绑定过商品也不会被当成本轮默认商品；必须由本轮 `metadata.context.productIds/contextRefs` 显式选择后，商品资产和商品素材才会进入本轮上下文。如果绑定或上下文归属校验失败，SSE 不会启动，接口直接返回业务错误，避免前端误以为本次结果已沉淀或已读取资料。
 
 SSE 事件分为三类：
 
@@ -103,11 +105,20 @@ data: {"type":"started","session_id":"session-001"}
 event: route_decided
 data: {"type":"route_decided","session_id":"session-001","strategy_id":"execution","response_mode":"execution","collaboration_mode":"manual","learning_level":"higher_vocational","model_name":"ollama-gpt-oss-20b","route_mode":"task_graph","primary_runtime_role":"data","support_runtime_roles":["ops","creative"]}
 
+event: dispatch_planned
+data: {"type":"dispatch_planned","session_id":"session-001","difficulty":"complex","route_mode":"task_graph","primary_runtime_role":"data","support_runtime_roles":["ops","creative"],"selected_skills":["query_store_metrics","data_dashboard","data_funnel_analysis","coordination_skill_chain_planner"],"planned_steps":[{"id":"context","title":"读取上下文","detail":"读取本轮问题、最近 12/18 条同会话历史、早期压缩摘要和 7 个资料信号。"},{"id":"route","title":"判断任务难度和路线","detail":"调度中心选择 task_graph，计划 3 个执行步骤。"},{"id":"answer","title":"汇总回答","detail":"把执行结果整理为学生可直接使用的回答和下一步建议。"}],"context_budget":{"memory_record_count":1,"history_summary_available":true,"recent_history_message_count":12,"history_total_message_count":18,"history_truncated":true,"history_older_summary_available":true,"explicit_product_count":1,"explicit_context_ref_count":2,"workspace_context_ref_count":1,"workspace_pack_item_count":2,"approximate_input_chars":3600},"reasoning_summary":"问题需要拆成 3 个岗位步骤协作，按任务图顺序执行。","student_visible_explanation":"这个问题会拆给 3 个岗位/步骤协作，过程更长但结果会更完整。 本轮历史较长，已读取最近 12/18 条消息并纳入早期压缩摘要，同时读取 7 个资料信号。"}
+
 event: context_loaded
 data: {"type":"context_loaded","session_id":"session-001","product_ids":["product-uuid"],"refs":["product:product-uuid"],"product_count":1,"knowledge_count":3,"source_count":4,"summary":"Product source product:...","sources_json":"[...]"}
 
 event: rag_context_loaded
 data: {"type":"rag_context_loaded","mode":"local_product_knowledge","queryTerms":["咖啡","转化"],"productIds":["product-uuid"],"knowledgeCount":3,"sourceCount":4,"summary":"Local commerce RAG context...","sources":[{"sourceType":"product_knowledge","id":"knowledge-uuid","productId":"product-uuid","title":"核心卖点"}],"degraded":false,"degradedReason":null,"externalSearchAvailable":true}
+
+event: conversation_context_loaded
+data: {"type":"conversation_context_loaded","conversationId":"conversation-uuid","readiness":"ready","messageCount":12,"totalMessageCount":18,"truncated":true,"relevantOlderCount":4,"olderSummaryAvailable":true,"memoryAvailable":true,"previousMemoryAvailable":true,"historyChars":3600,"memoryChars":900,"summary":"Same conversation context loaded: 12/18 recent message(s), truncated=true, relevant older message(s)=4, previous memory=true.","memory":{"kind":"conversation_memory_summary","rollingSummary":"用户正在围绕咖啡商品转化连续追问。","factCount":6,"decisionCount":2,"constraintCount":1,"openQuestionCount":1}}
+
+event: conversation_memory_updated
+data: {"type":"conversation_memory_updated","conversationId":"conversation-uuid","memorySummary":{"kind":"conversation_memory_summary","rollingSummary":"用户正在围绕咖啡商品转化连续追问。","facts":[{"source":"conversation_message:12","text":"预算不能超过 3000","confidence":"explicit"}],"decisions":[{"source":"agent_session:session-001","text":"建议优先保留利润率和退款率判断。","confidence":"generated"}],"constraints":[],"openQuestions":[],"lastUserInput":"继续分析利润","lastAssistantOutput":"建议优先保留利润率和退款率判断。","sourceMap":{"messageCount":12,"recentWindow":12,"previousMemoryAvailable":true,"lastSessionId":"session-001","persisted":true,"memoryBudget":{"rollingSummaryMaxChars":1400,"itemMaxChars":260,"factsMaxItems":10,"decisionsMaxItems":6,"constraintsMaxItems":8,"openQuestionsMaxItems":5,"lastUserInputMaxChars":500,"lastAssistantOutputMaxChars":700,"memoryTextMaxChars":2400}}}}
 
 event: workspace_context_loaded
 data: {"type":"workspace_context_loaded","workspaceId":"workspace-uuid","conversationId":"conversation-uuid","productId":"product-uuid","runId":null,"readiness":"ready","summary":"Workspace context is ready: 1 conversation files, 2 product assets, 3 product materials, 4 workspace artifacts are available for agent grounding and delivery.","counts":{"conversationFiles":1,"productAssets":2,"productMaterials":3,"workspaceArtifacts":4},"attachmentSources":[{"sourceType":"conversation_file","id":"file-uuid","title":"brief.pdf","mimeType":"application/pdf","fileSize":123456,"status":"active","refKey":"conversation_file:file-uuid","preview":"brief.pdf","metadata":{}}],"productAssetSources":[],"productMaterialSources":[],"artifactSources":[],"missing":[],"warnings":[],"agentContext":{"kind":"workspace_context_summary","refs":["conversation_file:file-uuid"]}}
@@ -168,11 +179,13 @@ data: {"type":"approval_required","approval":{"id":"approval-uuid","workspaceId"
 | `started` | agent session 已开始 |
 | `memory_loaded` / `memory_persisted` / `memory_compacted` | 记忆加载、保存或压缩 |
 | `context_loaded` | 后端已读取并注入真实业务上下文，当前包含商品 ID、context refs、商品数量、知识数量、来源数量、摘要和来源 JSON |
+| `conversation_context_loaded` | 后端已读取同会话历史、滚动记忆和早期相关片段，并返回消息数量、是否截断、是否使用旧 memory、字符量和结构化记忆计数；该事件用于可观测性，不额外发送完整历史原文 |
 | `rag_context_loaded` | 后端已根据用户问题检索当前用户自己的本地商品知识，返回检索模式、关键词、来源、摘要、是否降级和外部搜索可用状态 |
 | `workspace_context_loaded` | 后端已聚合当前工作区的会话附件、商品资产、商品素材和工作区交付物，返回 `ready/partial/empty`、来源计数、引用 key、缺失项和警告，并已把摘要注入 agent metadata |
 | `workspace_context_pack_loaded` | 后端已把可读上下文内容包注入 Agent metadata；内容只来自数据库已有文本字段或 `extractionStatus=extracted` 的附件抽取文本，不读取 object storage、不做 OCR、不伪造二进制附件正文 |
 | `commander_thinking` | commander 正在规划或调度 |
 | `route_decided` | 后端已识别策略和路由模式，包含策略、学习层级、实际模型、主角色和支持角色 |
+| `dispatch_planned` | 后端已生成本轮学生可见调度计划，包含难度、路线、主/支持 runtime role、计划 Skill、步骤、上下文预算、调度理由摘要和学生可读说明；简单问题也会发送该事件，只是 `planned_steps` 和 `selected_skills` 更少。`context_budget` 会暴露同会话历史是否可用、最近历史消息数、历史总消息数、是否截断、是否包含早期压缩摘要、资料信号数和近似输入字符数 |
 | `worker_started` / `worker_finished` | 单个 worker 开始或完成 |
 | `skill_requested` | worker 请求调用某个 skill，包含请求 ID、skill ID、角色和原因；请求来源可能是模型显式 `skill_requests`，也可能是后端按岗位/任务自动补偿的代表 skill |
 | `skill_result` | skill 已返回执行结果，包含状态、摘要、错误、可选结构化 `output`、执行模式、风险等级和是否需要审批 |
@@ -251,7 +264,7 @@ data: {"type":"approval_required","approval":{"id":"approval-uuid","workspaceId"
 
 `workspace_context_loaded` 当前只聚合来源元数据，不读取文件正文，不做 OCR，不伪造素材总结。普通工作区查询接口可以按请求参数查看历史 workspace artifact；但 SSE Agent 自动注入时默认只使用本次 run 范围，避免历史报告影响未指定商品的普通问答。用户显式传入的 `conversation_file:{fileId}` / `file:{fileId}`、`product_asset:{assetId}` / `asset:{assetId}`、`product_material:{materialId}` / `material:{materialId}`、`workspace_artifact:{artifactId}` / `artifact:{artifactId}` 例外，会在权限校验后加入本轮上下文来源。若同一会话存在 active 图片附件，Agent SSE 会额外注入最多 4 张支持格式图片的 runtime 输入：使用已沉淀的 `storage_object_analyses.image_preprocess` 摘要，并同步追加到 runtime `context.combined_summary`；这属于 runtime 模型输入，不等同于把 object storage 二进制内容写入 context pack。服务端会把 `agentContext.refs` 追加到 runtime `context.combined_refs`，把 `summary` 和图片预处理摘要追加到 `context.combined_summary`，并写入 `workspaceContext.readiness`、`workspaceContext.counts_json`、`workspaceContext.refs`、`workspaceContext.sources_json`、`workspaceContext.missing_json`、`workspaceContext.warnings_json`。`readiness=empty` 表示没有可用附件、素材或交付物，前端应展示明确空状态；这不是外部搜索或附件解析结果。
 
-`workspace_context_pack_loaded` 会继续把可读正文追加到 runtime `context.combined_summary`，并写入 `workspaceContextPack.readiness`、`workspaceContextPack.counts_json`、`workspaceContextPack.items_json`、`workspaceContextPack.refs`、`workspaceContextPack.omitted_json`、`workspaceContextPack.warnings_json`。可读来源包括本轮明确 product_id 下的 `product_material.content`、`product_asset.description`、`workspace_artifact.content/preview`，以及 `conversation_file.metadata.extractionStatus=extracted` 时的 `extractedText/textContent/plainText/markdown/text/content/preview/summary` 等字段。`artifactType=search_evidence` 且 `metadata.kind=agent_search_evidence` 的交付物进入内容包时使用 `contentKind=search_evidence_summary`，后端从已沉淀的搜索 JSON 中整理 query、显式商品上下文、证据摘要、来源数量、置信度、域名和 Top sources；这不会触发新搜索，也不会从 query 或历史推断商品。未成功抽取的附件会返回 `contentKind=metadata_only`、`extraction_pending`、`extraction_failed` 或 `extraction_unsupported`，不会被当成已读取正文。
+`workspace_context_pack_loaded` 会继续把可读正文追加到 runtime `context.combined_summary`，并写入 `workspaceContextPack.readiness`、`workspaceContextPack.counts_json`、`workspaceContextPack.items_json`、`workspaceContextPack.refs`、`workspaceContextPack.omitted_json`、`workspaceContextPack.warnings_json`。可读来源包括本轮明确 product_id 下的 `product_material.content`、`product_asset.description`、`workspace_artifact.content/preview`，以及 `conversation_file.metadata.extractionStatus=extracted` 时的 `extractedText/textContent/plainText/markdown/text/content/preview/summary` 等字段。长文本来源如果按本轮问题抽取了相关片段，会在 item metadata 写入 `relevanceSelection.strategy=query_keyword_chunks`、`chunkCount`、`totalChunkCount`、`queryTerms` 和 `chunks[]`；每个 chunk 记录 `chunkIndex/displayIndex/startChar/endChar/score/preview`，用于解释哪些原文区间进入了本轮模型上下文。CSV/TSV 或疑似表格文本进入内容包时使用 `contentKind=table_profile`，不会整表 inline；表格 profile 会保留 schema、样例行、query 相关列、query 相关样例行和可解析数值列的 `count/sum/avg/min/max`，并对“利润/成本/退款/投产/转化/库存”等常见中文电商指标词做轻量表头别名匹配；样例行选择策略记录在 `metadata.tableProfile.sampleRowSelection/sampleRowIndexes`。当表头能识别常见电商字段时，`metadata.tableProfile.derivedMetrics` 会额外给出 `net_revenue/gross_profit/gross_margin/refund_rate/ad_roi/conversion_rate/click_through_rate/inventory_to_orders` 等确定性派生指标，包含公式、格式化值和输入列；这些指标只来自已抽取表格文本，不代表平台实时数据。较大的 JSON/JSONL 文本进入内容包时使用 `contentKind=json_profile`，不会整份 inline；JSON profile 会保留结构路径、样例值、对象/数组/标量计数、最大深度和 query 相关路径，策略与命中结果记录在 `metadata.jsonProfile.strategy/queryMatches/queryMatchCount`。`artifactType=search_evidence` 且 `metadata.kind=agent_search_evidence` 的交付物进入内容包时使用 `contentKind=search_evidence_summary`，后端从已沉淀的搜索 JSON 中整理 query、显式商品上下文、证据摘要、来源数量、置信度、域名和 Top sources；这不会触发新搜索，也不会从 query 或历史推断商品。未成功抽取的附件会返回 `contentKind=metadata_only`、`extraction_pending`、`extraction_failed` 或 `extraction_unsupported`，不会被当成已读取正文。
 
 工作区沉淀事件：
 
@@ -302,6 +315,8 @@ data: {"message":"agent failed"}
 
 前端消费规则：
 
+- 新前端应优先消费 `dispatch_planned` 作为过程面板的第一来源；如果旧后端没有该事件，再回退到 `route_decided`、`task_graph_planned`、`skill_requested` 和 `skill_result` 推导展示。
+- 前端不得根据 UI 关键词伪造岗位、Skill 或多智能体过程；`dispatch_planned.selected_skills` 是计划提示，不等于已经执行，实际执行仍以 `skill_requested` / `skill_result` 为准。
 - 新前端应监听所有原始过程事件，用于展示 agent、worker、任务图和任务节点过程
 - 新前端应监听工作区沉淀事件，用于展示“本轮回答已保存到哪个工作区、哪些岗位任务已沉淀、最终报告和交付物是否可刷新后查看”
 - 文本回复仍然监听 `delta`，把 `data.content` 追加到当前回复文本

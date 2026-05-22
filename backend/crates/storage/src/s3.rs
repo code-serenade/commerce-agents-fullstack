@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use bytes::Bytes;
 use toolcraft_s3_kit::{BucketClient, S3Client};
 
 use crate::{
@@ -64,7 +65,7 @@ impl ObjectStorage {
         })
     }
 
-    pub async fn download_object(&self, req: DownloadObjectRequest) -> Result<bytes::Bytes> {
+    pub async fn download_object(&self, req: DownloadObjectRequest) -> Result<Bytes> {
         key::validate_object_key(&req.key)?;
         Ok(self.bucket(req.bucket).download_object(&req.key).await?)
     }

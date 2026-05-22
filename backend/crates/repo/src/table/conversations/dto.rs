@@ -36,3 +36,9 @@ pub struct UpdateConversation {
     pub status: String,
     pub archived_at: Option<OffsetDateTime>,
 }
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct UpdateConversationMetadata {
+    pub id: Uuid,
+    pub metadata: Value,
+}
