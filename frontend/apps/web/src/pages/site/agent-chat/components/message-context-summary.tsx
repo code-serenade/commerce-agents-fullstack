@@ -1,7 +1,6 @@
 import {
   BrainCircuit,
   ChevronDown,
-  Cpu,
   FileText,
   Megaphone,
   ShoppingBag,
@@ -73,15 +72,6 @@ export function MessageContextSummary({
         role: formatContextValue(
           summary.primaryRole ?? summary.selectedRoles[0] ?? ""
         ),
-      }),
-    })
-  }
-
-  if (summary.modelName) {
-    chips.push({
-      icon: <Cpu className="size-3.5" />,
-      label: t("agentChat.thread.contextSummary.model", {
-        model: summary.modelName,
       }),
     })
   }

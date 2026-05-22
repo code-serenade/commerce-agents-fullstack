@@ -7,7 +7,6 @@ import type {
 import {
   buildCompactRuntimeSummary,
   selectedRoleSummary,
-  shortModelName,
 } from "./agent-chat-runtime-summary-view-model"
 
 const t = ((key: string, values?: Record<string, unknown>) => {
@@ -51,7 +50,6 @@ const runtimeOptions: AgentRuntimeOptions = {
       isDefault: false,
     },
   ],
-  models: [],
   responseModes: [],
   roles: [
     {
@@ -88,7 +86,6 @@ describe("agent chat runtime summary view model", () => {
     const selection: AgentChatRuntimeSelection = {
       collaborationMode: "auto",
       learningLevel: "higher_vocational",
-      modelName: "doubao-pro-32k",
       primaryRole: "ops",
       selectedRoles: [],
     }
@@ -100,14 +97,13 @@ describe("agent chat runtime summary view model", () => {
         strategyId: "learning",
         t,
       })
-    ).toBe("Teaching / Auto dispatch / Medium / Doubao / Backend auto")
+    ).toBe("Teaching / Auto dispatch / Medium / Backend auto")
   })
 
   it("shows agent collaboration count for manual multi-agent mode", () => {
     const selection: AgentChatRuntimeSelection = {
       collaborationMode: "manual",
       learningLevel: "professional",
-      modelName: "llm.commerce-model",
       primaryRole: "data",
       selectedRoles: ["data", "ops", "creative"],
     }
@@ -121,8 +117,4 @@ describe("agent chat runtime summary view model", () => {
     ).toBe("3 agents collaborating")
   })
 
-  it("normalizes long model ids without hiding non-Doubao names", () => {
-    expect(shortModelName("doubao-pro-32k")).toBe("Doubao")
-    expect(shortModelName("llm.commerce-model")).toBe("commerce")
-  })
 })

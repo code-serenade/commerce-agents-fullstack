@@ -16,9 +16,6 @@ export interface AgentStreamRequest {
       contextRefs?: string[]
       productIds?: string[]
     }
-    model?: {
-      name?: string
-    }
     strategy?: {
       collaborationMode?: string
       id?: string
@@ -104,8 +101,6 @@ export type AgentRuntimeEvent =
       collaborationMode?: string | null
       learning_level?: string | null
       learningLevel?: string | null
-      model_name?: string | null
-      modelName?: string | null
       primary_runtime_role?: string | null
       primaryRuntimeRole?: string | null
       response_mode?: string | null
@@ -1179,7 +1174,6 @@ function normalizeAgentRuntimeEvent(event: AgentRuntimeEvent): AgentRuntimeEvent
   copyIfMissing(normalized, raw, "nodeId", "node_id")
   copyIfMissing(normalized, raw, "collaborationMode", "collaboration_mode")
   copyIfMissing(normalized, raw, "learningLevel", "learning_level")
-  copyIfMissing(normalized, raw, "modelName", "model_name")
   copyIfMissing(normalized, raw, "primaryRuntimeRole", "primary_runtime_role")
   copyIfMissing(normalized, raw, "plannedSteps", "planned_steps")
   copyIfMissing(normalized, raw, "responseMode", "response_mode")

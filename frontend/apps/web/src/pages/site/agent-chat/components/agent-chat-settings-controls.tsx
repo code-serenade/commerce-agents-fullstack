@@ -11,7 +11,6 @@ export function AgentChatSettingsControls({
   isStreaming,
   onCollaborationModeChange,
   onLearningLevelChange,
-  onModelChange,
   onPrimaryRoleChange,
   onStrategyChange,
   onToggleRole,
@@ -23,7 +22,6 @@ export function AgentChatSettingsControls({
   isStreaming: boolean
   onCollaborationModeChange: (value: string) => void
   onLearningLevelChange: (value: string) => void
-  onModelChange: (value: string) => void
   onPrimaryRoleChange: (value: string) => void
   onStrategyChange: (strategyId: AgentChatStrategyId) => void
   onToggleRole: (value: string) => void
@@ -43,7 +41,6 @@ export function AgentChatSettingsControls({
         isLoadingRuntimeOptions={isLoadingRuntimeOptions}
         onCollaborationModeChange={onCollaborationModeChange}
         onLearningLevelChange={onLearningLevelChange}
-        onModelChange={onModelChange}
         onPrimaryRoleChange={onPrimaryRoleChange}
         onToggleRole={onToggleRole}
         runtimeOptions={runtimeOptions}

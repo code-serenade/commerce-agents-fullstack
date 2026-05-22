@@ -61,7 +61,6 @@ export interface AgentChatPageViewModelInput {
   setInput: (value: string) => void
   setRuntimeCollaborationMode: (value: string) => void
   setRuntimeLearningLevel: (value: string) => void
-  setRuntimeModelName: (value: string) => void
   setRuntimePrimaryRole: (value: string) => void
   setStrategyId: (value: AgentChatStrategyId) => void
   strategyId: AgentChatStrategyId
@@ -113,7 +112,6 @@ export function createAgentChatPageViewModel(input: AgentChatPageViewModelInput)
     setInput: input.setInput,
     setRuntimeCollaborationMode: input.setRuntimeCollaborationMode,
     setRuntimeLearningLevel: input.setRuntimeLearningLevel,
-    setRuntimeModelName: input.setRuntimeModelName,
     setRuntimePrimaryRole: input.setRuntimePrimaryRole,
     setStrategyId: input.setStrategyId,
     startNewConversation: input.commands.startNewConversation,

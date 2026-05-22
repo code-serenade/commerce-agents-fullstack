@@ -60,7 +60,6 @@ describe("sendAgentChatMessage image attachments", () => {
       runtimeSelection: {
         collaborationMode: "manual",
         learningLevel: "higher_vocational",
-        modelName: "doubao-vision",
         primaryRole: "ops",
         selectedRoles: ["ops"],
       },

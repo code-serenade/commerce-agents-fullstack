@@ -37,9 +37,6 @@
       "learningLevel": "higher_vocational",
       "primaryRole": "data",
       "selectedRoles": ["data", "ops", "creative"]
-    },
-    "model": {
-      "name": "ollama-gpt-oss-20b"
     }
   }
 }
@@ -60,7 +57,6 @@
 | `metadata.attachments.images[].url` | `string` | 是 | 图片 URL，允许 HTTPS URL 或 `data:image/png/jpeg/webp;base64,...`；本地 Ollama 等不能拉外部 URL 的 provider 建议使用 data URL |
 | `metadata.attachments.images[].detail` | `string` | 否 | vision detail，允许 `auto`、`low`、`high` |
 | `metadata.attachments.images[].sourceRef` | `string` | 否 | 图片来源引用，例如 `conversation_file:{fileId}`，仅作来源标记，不绕过上下文权限校验 |
-| `metadata.model.name` | `string` | 否 | 已废弃；服务端会忽略该字段，前端不能控制本轮 LLM |
 | `metadata.strategy.id` | `string` | 否 | 回答策略 ID，当前前端使用 `learning` / `quick` / `execution`；历史 `collab` 只作为兼容值处理 |
 | `metadata.strategy.responseMode` | `string` | 否 | 回答模式，当前前端使用 `learning` / `quick` / `execution` |
 | `metadata.strategy.collaborationMode` | `string` | 否 | 岗位分配模式，当前前端使用 `auto` / `single` / `manual`；`auto` 由后端判断单岗或多岗，`manual` 会要求后端优先进入多角色任务图 |
@@ -78,7 +74,7 @@
 
 写回 `memorySummary` 前会做轻量压缩和预算治理：`rollingSummary` 最多 1400 字符，facts 最多 10 条，decisions 最多 6 条，constraints 最多 8 条，openQuestions 最多 5 条，单条记忆文本最多 260 字符，`lastUserInput` 最多 500 字符，`lastAssistantOutput` 最多 700 字符，实际注入到模型的 memory 文本最多 2400 字符。旧 memory 中的超长字段、重复字段、空字段和无关嵌套对象会被清洗；文本完全相同或一条文本明显包含另一条文本时，会保留信息更完整的一条。预算值会写入 `conversation.memory_summary_json.sourceMap.memoryBudget`，方便前端或调试工具解释为什么没有全量带入历史。
 
-`metadata.model.name` 已废弃。Agent SSE 不接受前端选择本轮 LLM；服务端始终使用 `backend/config/services.toml` 中的 `default_llm` 和 `[agent_llm_usage]` 路由配置。即使请求体里带了旧的模型名，后端也会忽略该字段，不会因为旧前端缓存的模型名不存在而拒绝本轮请求。后端只把最终服务端选中的模型配置名和模型名写入 runtime metadata，不向前端暴露 `base_url` 或 `api_key`。
+Agent SSE 不接受前端选择本轮 LLM；前端不得发送 `metadata.model`，不得展示、缓存或让用户选择模型。服务端始终使用 `backend/config/services.toml` 中的 `default_llm` 和 `[agent_llm_usage]` 路由配置。即使旧请求体里带了模型名，后端也会忽略该字段，不会因为旧前端缓存的模型名不存在而拒绝本轮请求；普通前端接口不暴露模型名称、模型映射、`base_url` 或 `api_key`。
 
 `metadata.attachments.images` 存在时，普通 Agent 会话不会直接使用原始图片输入；原始图片输入仅保留给系统图片预处理流程。外部 HTTPS 图片 URL 不会由 web-server 下载或代理。若图片来自系统附件、商品资产、商品素材或工作区 artifact，前端仍应同步传入 `metadata.context.contextRefs` 或 `metadata.context.conversationId`，让后端完成当前用户、active 状态和归属校验。当前若前端传入 `metadata.context.conversationId`，服务端会自动从该会话 active 附件中筛选 `image/png`、`image/jpeg`、`image/jpg`、`image/webp`，最多 4 张。若附件对应对象已有成功的 `image_preprocess` 分析，服务端会把摘要写入 runtime `attachments.image_summaries_json`，并追加到 `context.combined_summary`，让本轮请求 LLM 时带上“图片内容是什么”的文本上下文。若没有摘要，服务端不会回退为实时 vision 解析，也不会把原始图片 data URL 发送给普通 Agent LLM；前端应等待预处理完成后再发起基于图片内容的提问。预识别摘要仅用于 runtime 模型输入，不会进入 `workspace_context_pack_loaded` 的可读正文。
 
@@ -103,7 +99,7 @@ event: started
 data: {"type":"started","session_id":"session-001"}
 
 event: route_decided
-data: {"type":"route_decided","session_id":"session-001","strategy_id":"execution","response_mode":"execution","collaboration_mode":"manual","learning_level":"higher_vocational","model_name":"ollama-gpt-oss-20b","route_mode":"task_graph","primary_runtime_role":"data","support_runtime_roles":["ops","creative"]}
+data: {"type":"route_decided","session_id":"session-001","strategy_id":"execution","response_mode":"execution","collaboration_mode":"manual","learning_level":"higher_vocational","route_mode":"task_graph","primary_runtime_role":"data","support_runtime_roles":["ops","creative"]}
 
 event: dispatch_planned
 data: {"type":"dispatch_planned","session_id":"session-001","difficulty":"complex","route_mode":"task_graph","primary_runtime_role":"data","support_runtime_roles":["ops","creative"],"selected_skills":["query_store_metrics","data_dashboard","data_funnel_analysis","coordination_skill_chain_planner"],"planned_steps":[{"id":"context","title":"读取上下文","detail":"读取本轮问题、最近 12/18 条同会话历史、早期压缩摘要和 7 个资料信号。"},{"id":"route","title":"判断任务难度和路线","detail":"调度中心选择 task_graph，计划 3 个执行步骤。"},{"id":"answer","title":"汇总回答","detail":"把执行结果整理为学生可直接使用的回答和下一步建议。"}],"context_budget":{"memory_record_count":1,"history_summary_available":true,"recent_history_message_count":12,"history_total_message_count":18,"history_truncated":true,"history_older_summary_available":true,"explicit_product_count":1,"explicit_context_ref_count":2,"workspace_context_ref_count":1,"workspace_pack_item_count":2,"approximate_input_chars":3600},"reasoning_summary":"问题需要拆成 3 个岗位步骤协作，按任务图顺序执行。","student_visible_explanation":"这个问题会拆给 3 个岗位/步骤协作，过程更长但结果会更完整。 本轮历史较长，已读取最近 12/18 条消息并纳入早期压缩摘要，同时读取 7 个资料信号。"}

@@ -57,7 +57,6 @@ export async function sendAgentChatMessage(
     learningLevel: input.runtimeSelection.learningLevel,
     primaryRole: input.runtimeSelection.primaryRole,
     selectedRoles: input.runtimeSelection.selectedRoles,
-    modelName: input.runtimeSelection.modelName,
   }
   const contextMeta = {
     campaignIds: input.selectedCampaigns.map((campaign) => campaign.id),
@@ -76,7 +75,6 @@ export async function sendAgentChatMessage(
     ...contextMeta,
     collaborationMode: strategyMeta.collaborationMode,
     learningLevel: strategyMeta.learningLevel,
-    modelName: strategyMeta.modelName,
     primaryRole: strategyMeta.primaryRole,
     campaignIds: contextMeta.campaignIds,
     campaigns: input.selectedCampaigns,
@@ -138,9 +136,6 @@ export async function sendAgentChatMessage(
           ...(imageAttachments.length
             ? { attachments: { images: imageAttachments } }
             : {}),
-          model: input.runtimeSelection.modelName
-            ? { name: input.runtimeSelection.modelName }
-            : undefined,
           strategy: {
             id: input.strategy.id,
             responseMode: input.strategy.responseMode,

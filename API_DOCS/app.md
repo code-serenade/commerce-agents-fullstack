@@ -138,20 +138,6 @@
 
 ```json
 {
-  "defaultModelName": "ollama-gpt-oss-20b",
-  "llmUsage": {
-    "default": "ollama-gpt-oss-20b",
-    "fast": "ollama-gpt-oss-20b",
-    "thinking": "ollama-gpt-oss-20b",
-    "vision": null
-  },
-  "models": [
-    {
-      "name": "ollama-gpt-oss-20b",
-      "model": "gpt-oss:20b",
-      "isDefault": true
-    }
-  ],
   "strategies": [
     {
       "id": "learning",
@@ -246,17 +232,14 @@
 
 字段说明：
 
-- `models` 来自 `backend/config/services.toml` 的 `[[llm]]` 配置，只返回 `name`、`model`、`isDefault`，不返回 `base_url` 或 `api_key`
-- `defaultModelName` 是后端实际默认 `llm.name`。当 `default_llm` 有效时使用该配置；当 `default_llm` 未配置且存在真实豆包 `[[llm]]` 时优先豆包；否则使用第一个 `[[llm]]`。接口不会返回未配置的假豆包模型
-- `llmUsage` 来自 `backend/config/services.toml` 的 `[agent_llm_usage]`，表示 agent runtime 内部对 `fast`、`thinking`、`vision` 三类用途的模型映射；仅用于前端展示和调试，不要求普通用户手动选择
 - `strategies`、`responseModes`、`learningLevels`、`collaborationModes` 是后端认可的运行枚举，前端不应自行硬编码替代
 - `roles` 来自 Agent `RoleCatalog::configured()`，`runtimeRole` 用于 SSE `metadata.strategy.primaryRole` 和 `selectedRoles`
 
 补充说明：
 
 - 当前用户必须存在于 `app_users`，且状态为 `enabled`
-- 该接口只暴露问答工作台可选择的运行契约，不会动态修改模型配置或角色目录
-- 前端发送 SSE 时只能把用户选择映射到 `metadata.strategy.*`；`metadata.model.name` 已废弃，服务端会忽略前端传入的模型名，LLM 只能由服务端 `services.toml` 配置决定
+- 该接口只暴露问答工作台可选择的运行契约，不会动态修改模型配置或角色目录，也不会向普通前端返回模型名称、模型映射、`base_url` 或 `api_key`
+- 前端发送 SSE 时只能把用户选择映射到 `metadata.strategy.*`；不允许发送 `metadata.model`，不允许展示或缓存“当前使用的模型”。LLM 只能由服务端 `services.toml` 的 `default_llm` 和 `[agent_llm_usage]` 决定
 - `learning`、`quick`、`execution` 会进入 Agent runtime 的 `strategy.id` / `strategy.response_mode`，后端会在 Commander 和 Worker 上下文中注入不同的回答风格事实；`beginner` / `higher_vocational` / `professional` 会作为讲解深度事实生效，不是纯前端展示字段
 
 ## 2.2.1 查询 Agent 能力目录

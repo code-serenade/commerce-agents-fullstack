@@ -14,12 +14,6 @@ export interface AgentRuntimeChoice {
   isDefault: boolean
 }
 
-export interface AgentRuntimeModelOption {
-  name: string
-  model: string
-  isDefault: boolean
-}
-
 export interface AgentRuntimeRoleOption {
   id: string
   name: string
@@ -30,9 +24,7 @@ export interface AgentRuntimeRoleOption {
 
 export interface AgentRuntimeOptions {
   collaborationModes: AgentRuntimeChoice[]
-  defaultModelName?: string | null
   learningLevels: AgentRuntimeChoice[]
-  models: AgentRuntimeModelOption[]
   responseModes: AgentRuntimeChoice[]
   roles: AgentRuntimeRoleOption[]
   strategies: AgentRuntimeChoice[]
@@ -41,7 +33,6 @@ export interface AgentRuntimeOptions {
 export interface AgentChatRuntimeSelection {
   collaborationMode: string
   learningLevel: string
-  modelName?: string
   primaryRole?: string
   selectedRoles: string[]
 }
@@ -53,10 +44,6 @@ export type AgentChatRuntimeSelectionRestore = Partial<
 }
 
 export function defaultRuntimeSelection(options: AgentRuntimeOptions | null): AgentChatRuntimeSelection {
-  const defaultModel =
-    options?.defaultModelName ??
-    options?.models.find((model) => model.isDefault)?.name ??
-    options?.models[0]?.name
   const defaultCollaboration =
     options?.collaborationModes.find((mode) => mode.id === "manual")?.id ??
     options?.collaborationModes.find((mode) => mode.id === "auto")?.id ??
@@ -74,7 +61,6 @@ export function defaultRuntimeSelection(options: AgentRuntimeOptions | null): Ag
   return {
     collaborationMode: defaultCollaboration,
     learningLevel: defaultLearning,
-    modelName: defaultModel ?? undefined,
     primaryRole: preferredRuntimePrimaryRole(defaultRoles),
     selectedRoles: defaultRoles,
   }
@@ -85,7 +71,6 @@ export function normalizeRuntimeSelection(
   options: AgentRuntimeOptions | null
 ): AgentChatRuntimeSelection {
   if (!options) return current
-  const modelNames = new Set(options.models.map((model) => model.name))
   const roleNames = new Set(options.roles.map((role) => role.runtimeRole))
   const collaborationModes = new Set(
     options.collaborationModes.map((mode) => mode.id)
@@ -107,10 +92,6 @@ export function normalizeRuntimeSelection(
     learningLevel: learningLevels.has(current.learningLevel)
       ? current.learningLevel
       : fallback.learningLevel,
-    modelName:
-      current.modelName && modelNames.has(current.modelName)
-        ? current.modelName
-        : fallback.modelName,
     primaryRole,
     selectedRoles: selectedRoles.length ? selectedRoles : fallback.selectedRoles,
   }
@@ -125,7 +106,6 @@ export function restoreRuntimeSelection(
     ...current,
     collaborationMode: restored.collaborationMode ?? current.collaborationMode,
     learningLevel: restored.learningLevel ?? current.learningLevel,
-    modelName: restored.modelName ?? current.modelName,
     primaryRole: restored.primaryRole ?? current.primaryRole,
     selectedRoles:
       restored.selectedRoles && restored.selectedRoles.length > 0

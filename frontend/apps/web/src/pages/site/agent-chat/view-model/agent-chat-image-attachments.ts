@@ -4,9 +4,9 @@ export const MAX_VISION_IMAGE_ATTACHMENTS = 4
 
 const MAX_IMAGE_DATA_URL_CHARS = 8 * 1024 * 1024
 const UNSUPPORTED_IMAGE_EXTRACTION_REASON =
-  "Image upload is available for vision, but only PNG, JPEG, and WebP images can be sent to the vision model."
+  "Image upload is available for image analysis, but only PNG, JPEG, and WebP images can be sent."
 const IMAGE_TOO_LARGE_REASON =
-  "Image is too large to send to the vision model. Upload a smaller PNG, JPEG, or WebP image."
+  "Image is too large for image analysis. Upload a smaller PNG, JPEG, or WebP image."
 const FAILED_IMAGE_EXTRACTION_REASON = "Browser image preparation failed."
 
 export interface BrowserImageExtractionRequestResult {
@@ -114,5 +114,5 @@ function fileToDataUrl(file: File) {
 }
 
 function imageVisionPlaceholderText(file: File) {
-  return `Image attachment prepared for vision model: ${file.name || "image"}`
+  return `Image attachment prepared for image analysis: ${file.name || "image"}`
 }

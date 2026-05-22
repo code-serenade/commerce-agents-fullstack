@@ -474,7 +474,6 @@ impl SessionRuntime {
                 .metadata
                 .get("strategy.learning_level")
                 .cloned(),
-            model_name: self.context.metadata.get("model.name").cloned(),
             route_mode: route_mode.to_string(),
             primary_runtime_role,
             support_runtime_roles,

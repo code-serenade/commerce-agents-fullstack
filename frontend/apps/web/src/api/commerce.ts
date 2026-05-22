@@ -860,12 +860,6 @@ export interface AgentRuntimeChoiceResponse extends JsonRecord {
   isDefault: boolean
 }
 
-export interface AgentRuntimeModelOptionResponse extends JsonRecord {
-  name: string
-  model: string
-  isDefault: boolean
-}
-
 export interface AgentRuntimeRoleOptionResponse extends JsonRecord {
   id: string
   name: string
@@ -875,8 +869,6 @@ export interface AgentRuntimeRoleOptionResponse extends JsonRecord {
 }
 
 export interface AgentRuntimeOptionsResponse extends JsonRecord {
-  defaultModelName?: string | null
-  models: AgentRuntimeModelOptionResponse[]
   strategies: AgentRuntimeChoiceResponse[]
   responseModes: AgentRuntimeChoiceResponse[]
   learningLevels: AgentRuntimeChoiceResponse[]

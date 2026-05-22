@@ -98,7 +98,6 @@ export default function AgentChatPage() {
             onInputChange={chat.setInput}
             onRuntimeCollaborationModeChange={chat.setRuntimeCollaborationMode}
             onRuntimeLearningLevelChange={chat.setRuntimeLearningLevel}
-            onRuntimeModelChange={chat.setRuntimeModelName}
             onRuntimePrimaryRoleChange={chat.setRuntimePrimaryRole}
             onToggleRuntimeRole={chat.toggleRuntimeRole}
             onSelectPlaybook={chat.selectPlaybook}

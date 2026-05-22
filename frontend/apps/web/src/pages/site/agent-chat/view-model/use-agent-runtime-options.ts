@@ -60,9 +60,6 @@ export function useAgentRuntimeOptions(input: { enabled: boolean }) {
       setLearningLevel: (learningLevel: string) => {
         setRuntimeSelection((current) => ({ ...current, learningLevel }))
       },
-      setModelName: (modelName: string) => {
-        setRuntimeSelection((current) => ({ ...current, modelName }))
-      },
       setPrimaryRole: (primaryRole: string) => {
         setRuntimeSelection((current) =>
           setRuntimePrimaryRole(current, primaryRole)

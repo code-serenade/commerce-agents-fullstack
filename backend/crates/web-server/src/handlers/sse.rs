@@ -51,8 +51,7 @@ use crate::{
     dto::sse::AgentStreamRequest,
     error::{Error, from_biz_error},
     statics::{
-        agent_manager::{run_agent_stream, select_agent_runtime_model},
-        db_manager::get_app_ctx,
+        agent_manager::run_agent_stream, db_manager::get_app_ctx,
         external_search::get_external_search_config,
     },
 };
@@ -88,8 +87,7 @@ pub async fn stream_agent_session(
     let requested_workspace_id = req.workspace_id.clone();
     let input = req.input.clone();
     let input_for_memory = input.clone();
-    let (mut metadata, context_selection, model_selection) =
-        req.metadata.into_parts().map_err(bad_request)?;
+    let (mut metadata, context_selection) = req.metadata.into_parts().map_err(bad_request)?;
     let conversation_id = context_selection.conversation_id.clone();
     let mut conversation_memory_summary: Option<Value> = None;
     let mut conversation_context_loaded: Option<Value> = None;
@@ -122,8 +120,6 @@ pub async fn stream_agent_session(
     api.get_current_user_permissions(user_id.clone())
         .await
         .map_err(from_biz_error)?;
-    select_agent_runtime_model(model_selection.name.as_deref())
-        .map_err(|err| bad_request(err.to_string()))?;
     if let Some(conversation_id) = conversation_id.as_ref() {
         let conversation_api = ConversationApi::new(get_app_ctx());
         let conversation = conversation_api

@@ -50,7 +50,6 @@ describe("sendAgentChatMessage", () => {
       runtimeSelection: {
         collaborationMode: "manual",
         learningLevel: "higher_vocational",
-        modelName: "ollama-gpt-oss-20b",
         primaryRole: "ops",
         selectedRoles: ["ops", "data"],
       },
@@ -158,7 +157,6 @@ describe("sendAgentChatMessage", () => {
       runtimeSelection: {
         collaborationMode: "manual",
         learningLevel: "higher_vocational",
-        modelName: "ollama-gpt-oss-20b",
         primaryRole: "ops",
         selectedRoles: ["ops", "data"],
       },
@@ -236,7 +234,6 @@ describe("sendAgentChatMessage", () => {
       runtimeSelection: {
         collaborationMode: "manual",
         learningLevel: "higher_vocational",
-        modelName: "ollama-gpt-oss-20b",
         primaryRole: "ops",
         selectedRoles: ["ops", "data", "creative"],
       },

@@ -30,7 +30,6 @@ export function AgentChatComposer({
   onInputChange,
   onRuntimeCollaborationModeChange,
   onRuntimeLearningLevelChange,
-  onRuntimeModelChange,
   onRuntimePrimaryRoleChange,
   onToggleRuntimeRole,
   onSelectPlaybook,
@@ -149,7 +148,6 @@ export function AgentChatComposer({
             onFocusComposer={() => textareaRef.current?.focus()}
             onRuntimeCollaborationModeChange={onRuntimeCollaborationModeChange}
             onRuntimeLearningLevelChange={onRuntimeLearningLevelChange}
-            onRuntimeModelChange={onRuntimeModelChange}
             onRuntimePrimaryRoleChange={onRuntimePrimaryRoleChange}
             onSelectPlaybook={onSelectPlaybook}
             onStrategyChange={onStrategyChange}
@@ -209,7 +207,6 @@ export function AgentChatComposer({
               onAttach={() => fileInputRef.current?.click()}
               onRuntimeCollaborationModeChange={onRuntimeCollaborationModeChange}
               onRuntimeLearningLevelChange={onRuntimeLearningLevelChange}
-              onRuntimeModelChange={onRuntimeModelChange}
               onRuntimePrimaryRoleChange={onRuntimePrimaryRoleChange}
               onSelectPlaybook={(playbook) => {
                 onSelectPlaybook(playbook)

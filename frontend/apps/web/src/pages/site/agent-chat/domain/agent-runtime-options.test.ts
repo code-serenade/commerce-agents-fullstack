@@ -12,7 +12,6 @@ import {
 const manualSelection: AgentChatRuntimeSelection = {
   collaborationMode: "manual",
   learningLevel: "higher_vocational",
-  modelName: "ollama-gpt-oss-20b",
   primaryRole: "data",
   selectedRoles: ["data", "ops"],
 }
@@ -46,19 +45,11 @@ describe("agent runtime options", () => {
             isDefault: true,
           },
         ],
-        defaultModelName: "ollama-gpt-oss-20b",
         learningLevels: [
           {
             id: "higher_vocational",
             label: higherVocationalCopy,
             description: higherVocationalCopy,
-            isDefault: true,
-          },
-        ],
-        models: [
-          {
-            name: "ollama-gpt-oss-20b",
-            model: "gpt-oss:20b",
             isDefault: true,
           },
         ],
@@ -105,7 +96,6 @@ describe("agent runtime options", () => {
     ).toEqual({
       collaborationMode: "manual",
       learningLevel: "higher_vocational",
-      modelName: "ollama-gpt-oss-20b",
       primaryRole: "ops",
       selectedRoles: ["ops", "data", "creative", "service", "engineering"],
     })
@@ -255,7 +245,6 @@ describe("agent runtime options", () => {
         {
           collaborationMode: "manual",
           learningLevel: "higher_vocational",
-          modelName: "ollama-gpt-oss-20b",
           primaryRole: "creative",
           selectedRoles: ["creative", "missing"],
         },
@@ -268,19 +257,11 @@ describe("agent runtime options", () => {
               isDefault: true,
             },
           ],
-          defaultModelName: "ollama-gpt-oss-20b",
           learningLevels: [
             {
               id: "higher_vocational",
               label: higherVocationalCopy,
               description: higherVocationalCopy,
-              isDefault: true,
-            },
-          ],
-          models: [
-            {
-              name: "ollama-gpt-oss-20b",
-              model: "gpt-oss:20b",
               isDefault: true,
             },
           ],
@@ -307,7 +288,6 @@ describe("agent runtime options", () => {
     ).toEqual({
       collaborationMode: "manual",
       learningLevel: "higher_vocational",
-      modelName: "ollama-gpt-oss-20b",
       primaryRole: "creative",
       selectedRoles: ["creative"],
     })

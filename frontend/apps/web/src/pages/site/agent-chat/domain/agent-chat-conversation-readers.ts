@@ -121,12 +121,10 @@ function readRuntimeSelection(
   const selection: AgentChatRuntimeSelectionRestore = {}
   const collaborationMode = readString(strategy.collaborationMode)
   const learningLevel = readString(strategy.learningLevel)
-  const modelName = readString(strategy.modelName)
   const primaryRole = readString(strategy.primaryRole)
   const selectedRoles = readStringArray(strategy.selectedRoles)
   if (collaborationMode) selection.collaborationMode = collaborationMode
   if (learningLevel) selection.learningLevel = learningLevel
-  if (modelName) selection.modelName = modelName
   if (primaryRole) selection.primaryRole = primaryRole
   if (selectedRoles.length > 0) selection.selectedRoles = selectedRoles
   return Object.keys(selection).length > 0 ? selection : null

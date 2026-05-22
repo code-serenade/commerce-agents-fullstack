@@ -16,14 +16,7 @@ use crate::error::{Error, Result};
 static AGENT_MANAGER_REGISTRY: OnceLock<AgentManagerRegistry> = OnceLock::new();
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AgentRuntimeModelOption {
-    pub name: String,
-    pub model: String,
-    pub is_default: bool,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AgentRuntimeModelSelection {
+struct AgentRuntimeModelSelection {
     pub selected_name: String,
     pub model: String,
     pub selection_status: String,
@@ -50,27 +43,6 @@ pub fn init_agent_manager(config: AgentRuntimeCfg) -> Result<()> {
         })
         .map_err(|_| Error::Custom("Agent manager already initialized".to_owned()))?;
     Ok(())
-}
-
-pub fn list_agent_runtime_models() -> Result<Vec<AgentRuntimeModelOption>> {
-    let registry = registry()?;
-    Ok(registry
-        .config
-        .llm
-        .iter()
-        .map(|llm| AgentRuntimeModelOption {
-            name: llm.name.clone(),
-            model: llm.model.clone(),
-            is_default: llm.name == registry.default_model_name,
-        })
-        .collect())
-}
-
-pub fn select_agent_runtime_model(
-    requested_model_name: Option<&str>,
-) -> Result<AgentRuntimeModelSelection> {
-    let registry = registry()?;
-    registry.select_model(requested_model_name)
 }
 
 pub fn agent_runtime_llm_usage() -> Result<AgentLlmUsageCfg> {
