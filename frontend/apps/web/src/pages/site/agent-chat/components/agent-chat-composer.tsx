@@ -31,6 +31,7 @@ export function AgentChatComposer({
   onRuntimeCollaborationModeChange,
   onRuntimeLearningLevelChange,
   onRuntimePrimaryRoleChange,
+  onRuntimeRoutingModeChange,
   onToggleRuntimeRole,
   onSelectPlaybook,
   onSend,
@@ -149,6 +150,7 @@ export function AgentChatComposer({
             onRuntimeCollaborationModeChange={onRuntimeCollaborationModeChange}
             onRuntimeLearningLevelChange={onRuntimeLearningLevelChange}
             onRuntimePrimaryRoleChange={onRuntimePrimaryRoleChange}
+            onRuntimeRoutingModeChange={onRuntimeRoutingModeChange}
             onSelectPlaybook={onSelectPlaybook}
             onStrategyChange={onStrategyChange}
             onClearCampaignContext={onClearCampaignContext}
@@ -208,6 +210,7 @@ export function AgentChatComposer({
               onRuntimeCollaborationModeChange={onRuntimeCollaborationModeChange}
               onRuntimeLearningLevelChange={onRuntimeLearningLevelChange}
               onRuntimePrimaryRoleChange={onRuntimePrimaryRoleChange}
+              onRuntimeRoutingModeChange={onRuntimeRoutingModeChange}
               onSelectPlaybook={(playbook) => {
                 onSelectPlaybook(playbook)
                 queueMicrotask(() => textareaRef.current?.focus())

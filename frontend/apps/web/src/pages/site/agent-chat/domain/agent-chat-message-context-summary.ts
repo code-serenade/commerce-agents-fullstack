@@ -34,6 +34,7 @@ export function createMessageContextSummary(input: {
   primaryRole?: string
   productIds: string[]
   products?: MessageContextSummaryProductInput[]
+  routingMode?: string
   selectedRoles?: string[]
   sources?: MessageContextSummarySourceInput[]
   strategyId?: string
@@ -92,6 +93,7 @@ export function createMessageContextSummary(input: {
   if (strategyId) summary.strategyId = strategyId
   if (input.collaborationMode) summary.collaborationMode = input.collaborationMode
   if (input.learningLevel) summary.learningLevel = input.learningLevel
+  if (input.routingMode) summary.routingMode = input.routingMode
   if (input.primaryRole) summary.primaryRole = input.primaryRole
 
   return summaryHasContent(summary) ? summary : undefined
@@ -111,6 +113,7 @@ export function readMessageContextSummary(
     collaborationMode: readString(strategy?.collaborationMode) ?? undefined,
     contextRefs: hasContext ? readStringArray(context.contextRefs) : [],
     learningLevel: readString(strategy?.learningLevel) ?? undefined,
+    routingMode: readString(strategy?.routingMode) ?? undefined,
     primaryRole: readString(strategy?.primaryRole) ?? undefined,
     campaignIds: hasContext ? readStringArray(context.campaignIds) : [],
     productIds: hasContext ? readStringArray(context.productIds) : [],
@@ -185,6 +188,7 @@ function summaryHasContent(summary: AgentChatMessageContextSummary) {
       summary.strategyId ||
       summary.collaborationMode ||
       summary.learningLevel ||
+      summary.routingMode ||
       summary.primaryRole ||
       summary.selectedRoles.length
   )

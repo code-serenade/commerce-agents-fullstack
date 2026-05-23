@@ -99,6 +99,7 @@ export default function AgentChatPage() {
             onRuntimeCollaborationModeChange={chat.setRuntimeCollaborationMode}
             onRuntimeLearningLevelChange={chat.setRuntimeLearningLevel}
             onRuntimePrimaryRoleChange={chat.setRuntimePrimaryRole}
+            onRuntimeRoutingModeChange={chat.setRuntimeRoutingMode}
             onToggleRuntimeRole={chat.toggleRuntimeRole}
             onSelectPlaybook={chat.selectPlaybook}
             onSend={sendMessage}

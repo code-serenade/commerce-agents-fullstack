@@ -1062,6 +1062,7 @@ const messages = {
           "The configured Doubao model is used by default. If it is not configured, only available models are shown.",
         learning: "Explanation level",
         collaboration: "Agent collaboration",
+        routingMode: "Routing mode",
         roleMode: "Collaboration mode",
         roles: "Collaborating agents",
         singleRole: "Selected agent",
@@ -1104,6 +1105,16 @@ const messages = {
           manual: {
             label: "Multi-agent",
             description: "Collaborative output",
+          },
+        },
+        routingModes: {
+          commander: {
+            label: "Commander",
+            description: "Commander analyzes first",
+          },
+          fast: {
+            label: "Fast route",
+            description: "Match configured task graph first",
           },
         },
         strategyNotes: {

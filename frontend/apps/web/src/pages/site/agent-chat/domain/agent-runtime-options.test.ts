@@ -13,6 +13,7 @@ const manualSelection: AgentChatRuntimeSelection = {
   collaborationMode: "manual",
   learningLevel: "higher_vocational",
   primaryRole: "data",
+  routingMode: "commander",
   selectedRoles: ["data", "ops"],
 }
 const manualCopy = "Manual"
@@ -54,6 +55,7 @@ describe("agent runtime options", () => {
           },
         ],
         responseModes: [],
+        routingModes: [],
         roles: [
           {
             id: "role-engineering",
@@ -97,6 +99,7 @@ describe("agent runtime options", () => {
       collaborationMode: "manual",
       learningLevel: "higher_vocational",
       primaryRole: "ops",
+      routingMode: "commander",
       selectedRoles: ["ops", "data", "creative", "service", "engineering"],
     })
   })
@@ -266,6 +269,7 @@ describe("agent runtime options", () => {
             },
           ],
           responseModes: [],
+          routingModes: [],
           roles: [
             {
               id: "role-data",
@@ -289,6 +293,7 @@ describe("agent runtime options", () => {
       collaborationMode: "manual",
       learningLevel: "higher_vocational",
       primaryRole: "creative",
+      routingMode: "commander",
       selectedRoles: ["creative"],
     })
   })

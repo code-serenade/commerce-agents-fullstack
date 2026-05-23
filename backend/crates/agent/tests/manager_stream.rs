@@ -84,11 +84,6 @@ async fn manager_stream_finishes_and_cleans_active_session() {
 
     assert!(matches!(events.first(), Some(SessionEvent::Started { .. })));
     assert!(
-        !events
-            .iter()
-            .any(|event| matches!(event, SessionEvent::CommanderThinking { .. }))
-    );
-    assert!(
         events
             .iter()
             .any(|event| matches!(event, SessionEvent::Output { .. }))

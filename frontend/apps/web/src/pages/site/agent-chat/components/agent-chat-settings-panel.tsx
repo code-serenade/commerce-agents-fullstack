@@ -17,6 +17,7 @@ export interface AgentChatSettingsPanelProps {
   onCollaborationModeChange: (value: string) => void
   onLearningLevelChange: (value: string) => void
   onPrimaryRoleChange: (value: string) => void
+  onRoutingModeChange: (value: string) => void
   onSelectPlaybook?: unknown
   onStrategyChange: (strategyId: AgentChatStrategyId) => void
   onToggleOpen: () => void
@@ -35,6 +36,7 @@ export function AgentChatSettingsPanel({
   onCollaborationModeChange,
   onLearningLevelChange,
   onPrimaryRoleChange,
+  onRoutingModeChange,
   onStrategyChange,
   onToggleOpen,
   onToggleRole,
@@ -92,6 +94,7 @@ export function AgentChatSettingsPanel({
           onCollaborationModeChange={onCollaborationModeChange}
           onLearningLevelChange={onLearningLevelChange}
           onPrimaryRoleChange={onPrimaryRoleChange}
+          onRoutingModeChange={onRoutingModeChange}
           onStrategyChange={onStrategyChange}
           onToggleRole={onToggleRole}
           runtimeOptions={runtimeOptions}
@@ -199,6 +202,7 @@ export function AgentChatSettingsPanel({
             onCollaborationModeChange={onCollaborationModeChange}
             onLearningLevelChange={onLearningLevelChange}
             onPrimaryRoleChange={onPrimaryRoleChange}
+            onRoutingModeChange={onRoutingModeChange}
             onStrategyChange={onStrategyChange}
             onToggleRole={onToggleRole}
             runtimeOptions={runtimeOptions}

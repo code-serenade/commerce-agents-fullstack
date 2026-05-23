@@ -232,7 +232,7 @@
 
 字段说明：
 
-- `strategies`、`responseModes`、`learningLevels`、`collaborationModes` 是后端认可的运行枚举，前端不应自行硬编码替代
+- `strategies`、`responseModes`、`routingModes`、`learningLevels`、`collaborationModes` 是后端认可的运行枚举，前端不应自行硬编码替代
 - `roles` 来自 Agent `RoleCatalog::configured()`，`runtimeRole` 用于 SSE `metadata.strategy.primaryRole` 和 `selectedRoles`
 
 补充说明：
@@ -240,7 +240,7 @@
 - 当前用户必须存在于 `app_users`，且状态为 `enabled`
 - 该接口只暴露问答工作台可选择的运行契约，不会动态修改模型配置或角色目录，也不会向普通前端返回模型名称、模型映射、`base_url` 或 `api_key`
 - 前端发送 SSE 时只能把用户选择映射到 `metadata.strategy.*`；不允许发送 `metadata.model`，不允许展示或缓存“当前使用的模型”。LLM 只能由服务端 `services.toml` 的 `default_llm` 和 `[agent_llm_usage]` 决定
-- `learning`、`quick`、`execution` 会进入 Agent runtime 的 `strategy.id` / `strategy.response_mode`，后端会在 Commander 和 Worker 上下文中注入不同的回答风格事实；`beginner` / `higher_vocational` / `professional` 会作为讲解深度事实生效，不是纯前端展示字段
+- `learning`、`quick`、`execution` 会进入 Agent runtime 的 `strategy.id` / `strategy.response_mode`，后端会在 Commander 和 Worker 上下文中注入不同的回答风格事实；`commander` / `fast` 会进入 `strategy.routing_mode`，只决定是否允许前置 fast route；`beginner` / `higher_vocational` / `professional` 会作为讲解深度事实生效，不是纯前端展示字段
 
 ## 2.2.1 查询 Agent 能力目录
 

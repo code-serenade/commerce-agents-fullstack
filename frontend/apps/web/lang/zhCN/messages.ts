@@ -1023,6 +1023,7 @@ const messages = {
         modelHint: "默认优先使用已配置的豆包；未配置豆包时只显示可用模型。",
         learning: "讲解层级",
         collaboration: "智能体协作",
+        routingMode: "路由模式",
         roleMode: "协作方式",
         roles: "协作智能体",
         singleRole: "指定智能体",
@@ -1063,6 +1064,16 @@ const messages = {
           manual: {
             label: "多智能体",
             description: "协作输出",
+          },
+        },
+        routingModes: {
+          commander: {
+            label: "深度决策",
+            description: "先由 Commander 分析",
+          },
+          fast: {
+            label: "快速路由",
+            description: "优先匹配配置任务图",
           },
         },
         strategyNotes: {

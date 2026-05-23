@@ -24,13 +24,17 @@ export function buildCompactRuntimeSummary({
     runtimeOptions?.collaborationModes.find(
       (mode) => mode.id === runtimeSelection.collaborationMode
     )?.label ?? runtimeSelection.collaborationMode
+  const routingLabel =
+    runtimeOptions?.routingModes.find(
+      (mode) => mode.id === runtimeSelection.routingMode
+    )?.label ?? runtimeSelection.routingMode
   const roleLabel = selectedRoleSummary({
     runtimeOptions,
     runtimeSelection,
     t,
   })
 
-  return [strategyShort, roleModeLabel, depthLabel, roleLabel]
+  return [strategyShort, routingLabel, roleModeLabel, depthLabel, roleLabel]
     .filter(Boolean)
     .join(" / ")
 }

@@ -30,6 +30,7 @@ export interface AgentChatComposerProps {
   onRuntimeCollaborationModeChange: (value: string) => void
   onRuntimeLearningLevelChange: (value: string) => void
   onRuntimePrimaryRoleChange: (value: string) => void
+  onRuntimeRoutingModeChange: (value: string) => void
   onToggleRuntimeRole: (value: string) => void
   onSelectPlaybook: (playbook: AgentChatPlaybookSelection) => void
   onSend: () => void

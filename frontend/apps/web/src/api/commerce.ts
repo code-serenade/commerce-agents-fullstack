@@ -871,6 +871,7 @@ export interface AgentRuntimeRoleOptionResponse extends JsonRecord {
 export interface AgentRuntimeOptionsResponse extends JsonRecord {
   strategies: AgentRuntimeChoiceResponse[]
   responseModes: AgentRuntimeChoiceResponse[]
+  routingModes: AgentRuntimeChoiceResponse[]
   learningLevels: AgentRuntimeChoiceResponse[]
   collaborationModes: AgentRuntimeChoiceResponse[]
   roles: AgentRuntimeRoleOptionResponse[]

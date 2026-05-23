@@ -201,6 +201,7 @@ export function useAgentChatPage() {
     setRuntimeCollaborationMode: runtimeContext.setCollaborationMode,
     setRuntimeLearningLevel: runtimeContext.setLearningLevel,
     setRuntimePrimaryRole: runtimeContext.setPrimaryRole,
+    setRuntimeRoutingMode: runtimeContext.setRoutingMode,
     setStrategyId,
     strategyId,
     toggleProductContext: productContext.toggleProductContext,

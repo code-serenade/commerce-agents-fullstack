@@ -7,6 +7,7 @@ import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
 import { AdvancedRuntimeOptions } from "./agent-chat-advanced-runtime-options"
 import { RoleSelector } from "./agent-chat-role-selector"
 import {
+  choiceToOption,
   roleModeToOption,
   sortRoleModes,
 } from "../view-model/agent-chat-runtime-options-view-model"
@@ -18,6 +19,7 @@ export interface AgentChatRuntimeOptionsBarProps {
   onCollaborationModeChange: (value: string) => void
   onLearningLevelChange: (value: string) => void
   onPrimaryRoleChange: (value: string) => void
+  onRoutingModeChange: (value: string) => void
   onToggleRole: (value: string) => void
   runtimeOptions: AgentRuntimeOptions | null
   runtimeSelection: AgentChatRuntimeSelection
@@ -30,6 +32,7 @@ export function AgentChatRuntimeOptionsBar({
   onCollaborationModeChange,
   onLearningLevelChange,
   onPrimaryRoleChange,
+  onRoutingModeChange,
   onToggleRole,
   runtimeOptions,
   runtimeSelection,
@@ -58,6 +61,14 @@ export function AgentChatRuntimeOptionsBar({
             learningLevels={runtimeOptions.learningLevels}
             onLearningLevelChange={onLearningLevelChange}
             runtimeSelection={runtimeSelection}
+          />
+          <OptionSegment
+            disabled={controlDisabled}
+            columns={2}
+            label={t("agentChat.composer.runtime.routingMode")}
+            onValueChange={onRoutingModeChange}
+            options={runtimeOptions.routingModes.map(choiceToOption)}
+            value={runtimeSelection.routingMode}
           />
           <OptionSegment
             disabled={controlDisabled}

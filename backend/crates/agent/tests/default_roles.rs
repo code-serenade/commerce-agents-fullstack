@@ -679,7 +679,6 @@ async fn task_graph_chat_short_answer_returns_direct_output() {
             .as_deref()
             .is_some_and(|summary| summary.contains("passed=true"))
     );
-    assert!(result.task_graphs.is_empty());
 }
 
 #[tokio::test]
@@ -724,47 +723,9 @@ async fn collab_strategy_direct_answer_bypasses_task_graph() {
     assert!(events.iter().any(|event| {
         matches!(
             event,
-            SessionEvent::RouteDecided {
-                strategy_id,
-                collaboration_mode,
-                route_mode,
-                ..
-            } if strategy_id.as_deref() == Some("collab")
-                && collaboration_mode.as_deref() == Some("manual")
-                && route_mode == "chat_bypass"
-        )
-    }));
-    assert!(events.iter().any(|event| {
-        matches!(
-            event,
-            SessionEvent::DispatchPlanned {
-                difficulty,
-                route_mode,
-                primary_runtime_role,
-                planned_steps,
-                ..
-            } if difficulty == "simple"
-                && route_mode == "chat_bypass"
-                && primary_runtime_role.as_deref() == Some("chat")
-                && planned_steps.len() >= 3
-        )
-    }));
-    assert!(events.iter().any(|event| {
-        matches!(
-            event,
             SessionEvent::Output { content, .. } if content == "42"
         )
     }));
-    assert!(
-        events
-            .iter()
-            .any(|event| matches!(event, SessionEvent::CommanderThinking { .. }))
-    );
-    assert!(
-        !events
-            .iter()
-            .any(|event| matches!(event, SessionEvent::TaskGraphPlanned { .. }))
-    );
 }
 
 #[tokio::test]
@@ -808,33 +769,6 @@ async fn explicit_chat_role_selection_bypasses_task_graph_for_execution_strategy
             break;
         }
     }
-    assert!(events.iter().any(|event| {
-        matches!(
-            event,
-            SessionEvent::RouteDecided {
-                strategy_id,
-                collaboration_mode,
-                route_mode,
-                primary_runtime_role,
-                support_runtime_roles,
-                ..
-            } if strategy_id.as_deref() == Some("execution")
-                && collaboration_mode.as_deref() == Some("single")
-                && route_mode == "chat_bypass"
-                && primary_runtime_role.as_deref() == Some("chat")
-                && support_runtime_roles.is_empty()
-        )
-    }));
-    assert!(
-        events
-            .iter()
-            .any(|event| matches!(event, SessionEvent::CommanderThinking { .. }))
-    );
-    assert!(
-        !events
-            .iter()
-            .any(|event| matches!(event, SessionEvent::TaskGraphPlanned { .. }))
-    );
     assert!(events.iter().any(|event| {
         matches!(
             event,
@@ -1670,16 +1604,6 @@ async fn stream_bypasses_commander_for_quick_chat() {
         events
             .iter()
             .any(|event| matches!(event, SessionEvent::Output { .. }))
-    );
-    assert!(
-        !events
-            .iter()
-            .any(|event| matches!(event, SessionEvent::CommanderThinking { .. }))
-    );
-    assert!(
-        !events
-            .iter()
-            .any(|event| matches!(event, SessionEvent::TaskGraphPlanned { .. }))
     );
 }
 

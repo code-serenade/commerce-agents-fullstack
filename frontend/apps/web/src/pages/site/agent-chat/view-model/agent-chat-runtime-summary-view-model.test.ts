@@ -51,6 +51,14 @@ const runtimeOptions: AgentRuntimeOptions = {
     },
   ],
   responseModes: [],
+  routingModes: [
+    {
+      id: "commander",
+      label: copy("Commander"),
+      description: copy("Deep route"),
+      isDefault: true,
+    },
+  ],
   roles: [
     {
       id: "role-ops",
@@ -87,6 +95,7 @@ describe("agent chat runtime summary view model", () => {
       collaborationMode: "auto",
       learningLevel: "higher_vocational",
       primaryRole: "ops",
+      routingMode: "commander",
       selectedRoles: [],
     }
 
@@ -97,7 +106,7 @@ describe("agent chat runtime summary view model", () => {
         strategyId: "learning",
         t,
       })
-    ).toBe("Teaching / Auto dispatch / Medium / Backend auto")
+    ).toBe("Teaching / Commander / Auto dispatch / Medium / Backend auto")
   })
 
   it("shows agent collaboration count for manual multi-agent mode", () => {
@@ -105,6 +114,7 @@ describe("agent chat runtime summary view model", () => {
       collaborationMode: "manual",
       learningLevel: "professional",
       primaryRole: "data",
+      routingMode: "commander",
       selectedRoles: ["data", "ops", "creative"],
     }
 

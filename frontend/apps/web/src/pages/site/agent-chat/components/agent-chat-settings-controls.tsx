@@ -12,6 +12,7 @@ export function AgentChatSettingsControls({
   onCollaborationModeChange,
   onLearningLevelChange,
   onPrimaryRoleChange,
+  onRoutingModeChange,
   onStrategyChange,
   onToggleRole,
   runtimeOptions,
@@ -23,6 +24,7 @@ export function AgentChatSettingsControls({
   onCollaborationModeChange: (value: string) => void
   onLearningLevelChange: (value: string) => void
   onPrimaryRoleChange: (value: string) => void
+  onRoutingModeChange: (value: string) => void
   onStrategyChange: (strategyId: AgentChatStrategyId) => void
   onToggleRole: (value: string) => void
   runtimeOptions: AgentRuntimeOptions | null
@@ -42,6 +44,7 @@ export function AgentChatSettingsControls({
         onCollaborationModeChange={onCollaborationModeChange}
         onLearningLevelChange={onLearningLevelChange}
         onPrimaryRoleChange={onPrimaryRoleChange}
+        onRoutingModeChange={onRoutingModeChange}
         onToggleRole={onToggleRole}
         runtimeOptions={runtimeOptions}
         runtimeSelection={runtimeSelection}

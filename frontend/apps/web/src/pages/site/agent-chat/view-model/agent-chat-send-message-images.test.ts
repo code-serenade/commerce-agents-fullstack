@@ -61,6 +61,7 @@ describe("sendAgentChatMessage image attachments", () => {
         collaborationMode: "manual",
         learningLevel: "higher_vocational",
         primaryRole: "ops",
+        routingMode: "commander",
         selectedRoles: ["ops"],
       },
       selectedProducts: [],

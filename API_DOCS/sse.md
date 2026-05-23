@@ -33,6 +33,7 @@
     "strategy": {
       "id": "execution",
       "responseMode": "execution",
+      "routingMode": "commander",
       "collaborationMode": "manual",
       "learningLevel": "higher_vocational",
       "primaryRole": "data",
@@ -59,6 +60,7 @@
 | `metadata.attachments.images[].sourceRef` | `string` | 否 | 图片来源引用，例如 `conversation_file:{fileId}`，仅作来源标记，不绕过上下文权限校验 |
 | `metadata.strategy.id` | `string` | 否 | 回答策略 ID，当前前端使用 `learning` / `quick` / `execution`；历史 `collab` 只作为兼容值处理 |
 | `metadata.strategy.responseMode` | `string` | 否 | 回答模式，当前前端使用 `learning` / `quick` / `execution` |
+| `metadata.strategy.routingMode` | `string` | 否 | 路由模式，允许 `commander` / `fast`；默认按 `commander` 处理，先由 Commander 分析；`fast` 才允许后端前置配置规则/快速任务图匹配 |
 | `metadata.strategy.collaborationMode` | `string` | 否 | 岗位分配模式，当前前端使用 `auto` / `single` / `manual`；`auto` 由后端判断单岗或多岗，`manual` 会要求后端优先进入多角色任务图 |
 | `metadata.strategy.learningLevel` | `string` | 否 | 讲解深度，当前前端使用 `beginner`（低） / `higher_vocational`（中） / `professional`（高） |
 | `metadata.strategy.primaryRole` | `string` | 否 | 用户指定的主岗位 runtime role，例如 `data`、`ops`、`creative` |
@@ -78,9 +80,11 @@ Agent SSE 不接受前端选择本轮 LLM；前端不得发送 `metadata.model`�
 
 `metadata.attachments.images` 存在时，普通 Agent 会话不会直接使用原始图片输入；原始图片输入仅保留给系统图片预处理流程。外部 HTTPS 图片 URL 不会由 web-server 下载或代理。若图片来自系统附件、商品资产、商品素材或工作区 artifact，前端仍应同步传入 `metadata.context.contextRefs` 或 `metadata.context.conversationId`，让后端完成当前用户、active 状态和归属校验。当前若前端传入 `metadata.context.conversationId`，服务端会自动从该会话 active 附件中筛选 `image/png`、`image/jpeg`、`image/jpg`、`image/webp`，最多 4 张。若附件对应对象已有成功的 `image_preprocess` 分析，服务端会把摘要写入 runtime `attachments.image_summaries_json`，并追加到 `context.combined_summary`，让本轮请求 LLM 时带上“图片内容是什么”的文本上下文。若没有摘要，服务端不会回退为实时 vision 解析，也不会把原始图片 data URL 发送给普通 Agent LLM；前端应等待预处理完成后再发起基于图片内容的提问。预识别摘要仅用于 runtime 模型输入，不会进入 `workspace_context_pack_loaded` 的可读正文。
 
-`metadata.strategy.*` 仅允许小写字母、数字、`_`、`-`，单字段最大 64 字符。后端会把这些字段转换为 agent runtime metadata：`strategy.id`、`strategy.response_mode`、`strategy.collaboration_mode`、`strategy.learning_level`、`strategy.primary_role`、`strategy.selected_roles`。前端不得把策略说明拼进 `input` 来伪造后端策略行为。
+`metadata.strategy.*` 仅允许小写字母、数字、`_`、`-`，单字段最大 64 字符。后端会把这些字段转换为 agent runtime metadata：`strategy.id`、`strategy.response_mode`、`strategy.routing_mode`、`strategy.collaboration_mode`、`strategy.learning_level`、`strategy.primary_role`、`strategy.selected_roles`。前端不得把策略说明拼进 `input` 来伪造后端策略行为。
 
 `metadata.strategy.id/responseMode` 的三种新产品模式必须真实影响 Agent runtime：`learning` 注入教学表达和术语解释要求，`quick` 注入短链路结论要求并在自动分配时倾向单岗，`execution` 注入完整执行方案、表格清单、岗位分工、风险和验收要求。`metadata.strategy.learningLevel` 会进入 Commander / Worker cognition context，控制讲解深度，不是纯 UI 文案。
+
+`metadata.strategy.routingMode` 只决定路由链路，不决定回答长短：`commander` 会跳过前置 fast route/chat bypass，先进入 Commander cognition 进行决策；`fast` 会先尝试配置任务图和快速路由，未命中时再降级。显式选择 `chat` role 仍可直接进入 chat worker，因为这是用户指定岗位，不属于兜底。
 
 当 `metadata.strategy.collaborationMode` 为 `manual` 或 `single`，且 `primaryRole` 或 `selectedRoles` 中包含非 `chat` 岗位时，后端会优先尊重这次显式岗位选择并进入 commander/任务图路由；即使用户输入文本本身像“只输出/answer only”这类短答请求，也不会被 `chat_bypass` 吞掉。没有显式非 `chat` 岗位选择的短答请求仍可走 `route_decided.route_mode=chat_bypass`，用于普通轻问答。
 

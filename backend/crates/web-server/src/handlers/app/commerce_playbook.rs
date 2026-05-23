@@ -94,6 +94,20 @@ pub async fn get_agent_runtime_options(
                 false,
             ),
         ]),
+        routing_modes: runtime_choices(&[
+            (
+                "commander",
+                "深度决策",
+                "先由 Commander 分析，再生成或选择任务图。",
+                true,
+            ),
+            (
+                "fast",
+                "快速路由",
+                "优先按配置规则匹配任务图，未命中时再兜底。",
+                false,
+            ),
+        ]),
         learning_levels: runtime_choices(&[
             ("beginner", "低", "减少术语，强调操作顺序。", false),
             ("higher_vocational", "中", "按电商岗位应用口径解释。", true),
@@ -373,6 +387,20 @@ mod tests {
                 false,
             ),
         ]);
+        let routing_modes = runtime_choices(&[
+            (
+                "commander",
+                "深度决策",
+                "先由 Commander 分析，再生成或选择任务图。",
+                true,
+            ),
+            (
+                "fast",
+                "快速路由",
+                "优先按配置规则匹配任务图，未命中时再兜底。",
+                false,
+            ),
+        ]);
         let collaboration_modes = runtime_choices(&[
             (
                 "auto",
@@ -402,6 +430,11 @@ mod tests {
                 .any(|choice| choice.id == "higher_vocational"
                     && choice.label == "中"
                     && choice.is_default)
+        );
+        assert!(
+            routing_modes
+                .iter()
+                .any(|choice| choice.id == "commander" && choice.is_default)
         );
         assert!(
             collaboration_modes

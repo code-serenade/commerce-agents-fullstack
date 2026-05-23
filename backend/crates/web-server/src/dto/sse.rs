@@ -69,6 +69,7 @@ pub struct AgentStreamContextMetadata {
 pub struct AgentStreamStrategyMetadata {
     pub id: Option<String>,
     pub response_mode: Option<String>,
+    pub routing_mode: Option<String>,
     pub collaboration_mode: Option<String>,
     pub learning_level: Option<String>,
     pub primary_role: Option<String>,
@@ -114,6 +115,14 @@ impl AgentStreamMetadata {
                 validate_strategy_value("strategy.responseMode", strategy.response_mode)?
             {
                 metadata.insert("strategy.response_mode".to_string(), response_mode);
+            }
+            if let Some(routing_mode) =
+                validate_strategy_value("strategy.routingMode", strategy.routing_mode)?
+            {
+                if !matches!(routing_mode.as_str(), "fast" | "commander") {
+                    return Err("strategy.routingMode must be either fast or commander".to_string());
+                }
+                metadata.insert("strategy.routing_mode".to_string(), routing_mode);
             }
             if let Some(collaboration_mode) =
                 validate_strategy_value("strategy.collaborationMode", strategy.collaboration_mode)?
@@ -422,6 +431,7 @@ mod tests {
             strategy: Some(AgentStreamStrategyMetadata {
                 id: Some("collab".to_string()),
                 response_mode: Some("execution".to_string()),
+                routing_mode: Some("commander".to_string()),
                 collaboration_mode: Some("manual".to_string()),
                 learning_level: Some("higher_vocational".to_string()),
                 primary_role: Some("data".to_string()),

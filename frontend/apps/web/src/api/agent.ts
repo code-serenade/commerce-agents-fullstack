@@ -23,6 +23,7 @@ export interface AgentStreamRequest {
       outputFormat?: string
       primaryRole?: string
       responseMode?: string
+      routingMode?: string
       selectedRoles?: string[]
     }
   }

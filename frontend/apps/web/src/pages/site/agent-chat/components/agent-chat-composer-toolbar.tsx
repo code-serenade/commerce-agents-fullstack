@@ -31,6 +31,7 @@ export function AgentChatComposerToolbar({
   onRuntimeCollaborationModeChange,
   onRuntimeLearningLevelChange,
   onRuntimePrimaryRoleChange,
+  onRuntimeRoutingModeChange,
   onSelectPlaybook,
   onSend,
   onStop,
@@ -72,6 +73,7 @@ export function AgentChatComposerToolbar({
   onRuntimeCollaborationModeChange: (value: string) => void
   onRuntimeLearningLevelChange: (value: string) => void
   onRuntimePrimaryRoleChange: (value: string) => void
+  onRuntimeRoutingModeChange: (value: string) => void
   onSelectPlaybook: (playbook: AgentChatPlaybookSelection) => void
   onSend: () => void
   onStop: () => void
@@ -154,6 +156,7 @@ export function AgentChatComposerToolbar({
           onCollaborationModeChange={onRuntimeCollaborationModeChange}
           onLearningLevelChange={onRuntimeLearningLevelChange}
           onPrimaryRoleChange={onRuntimePrimaryRoleChange}
+          onRoutingModeChange={onRuntimeRoutingModeChange}
           onSelectPlaybook={onSelectPlaybook}
           onStrategyChange={onStrategyChange}
           onToggleOpen={onToggleSettingsPanel}

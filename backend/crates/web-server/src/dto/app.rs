@@ -191,6 +191,7 @@ pub type ExternalSearchResponse = service::dto::external_search::ExternalSearchR
 pub struct AgentRuntimeOptionsResponse {
     pub strategies: Vec<AgentRuntimeChoiceResponse>,
     pub response_modes: Vec<AgentRuntimeChoiceResponse>,
+    pub routing_modes: Vec<AgentRuntimeChoiceResponse>,
     pub learning_levels: Vec<AgentRuntimeChoiceResponse>,
     pub collaboration_modes: Vec<AgentRuntimeChoiceResponse>,
     pub roles: Vec<AgentRuntimeRoleOptionResponse>,

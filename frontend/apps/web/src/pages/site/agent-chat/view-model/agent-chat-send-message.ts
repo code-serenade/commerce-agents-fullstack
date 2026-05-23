@@ -53,6 +53,7 @@ export async function sendAgentChatMessage(
   const strategyMeta = {
     strategyId: input.strategy.id,
     responseMode: input.strategy.responseMode,
+    routingMode: input.runtimeSelection.routingMode,
     collaborationMode: input.runtimeSelection.collaborationMode,
     learningLevel: input.runtimeSelection.learningLevel,
     primaryRole: input.runtimeSelection.primaryRole,
@@ -75,6 +76,7 @@ export async function sendAgentChatMessage(
     ...contextMeta,
     collaborationMode: strategyMeta.collaborationMode,
     learningLevel: strategyMeta.learningLevel,
+    routingMode: strategyMeta.routingMode,
     primaryRole: strategyMeta.primaryRole,
     campaignIds: contextMeta.campaignIds,
     campaigns: input.selectedCampaigns,
@@ -139,6 +141,7 @@ export async function sendAgentChatMessage(
           strategy: {
             id: input.strategy.id,
             responseMode: input.strategy.responseMode,
+            routingMode: input.runtimeSelection.routingMode,
             collaborationMode: input.runtimeSelection.collaborationMode,
             outputFormat: "structured_markdown",
             learningLevel: input.runtimeSelection.learningLevel,

@@ -162,7 +162,8 @@ impl SessionRuntime {
             session_context.clone(),
             RoleRouter::new(role_catalog),
             CommanderOptions {
-                fast_route_enabled: input.config.commander_fast_route,
+                fast_route_enabled: input.config.commander_fast_route
+                    && routing_mode_allows_fast_route(&input.context),
                 fast_route_min_score: input.config.commander_fast_route_min_score,
             },
         );
@@ -403,12 +404,12 @@ impl SessionRuntime {
     }
 
     fn chat_bypass_graph(&self, task_id: &TaskId) -> Option<TaskGraph> {
-        if self.commander_fast_route_disabled() {
-            return None;
-        }
         if self.is_explicit_chat_role_selection() {
             let task_for_worker = self.task_description_with_conversation_history();
             return Some(plan_forced_chat_graph(task_id, &task_for_worker));
+        }
+        if self.commander_fast_route_disabled() || !self.context_allows_fast_route() {
+            return None;
         }
         let graph = plan_quick_chat_graph(task_id, &self.task_description)?;
         if self.has_explicit_non_chat_role_selection() {
@@ -582,6 +583,10 @@ impl SessionRuntime {
         !self.commander_fast_route
     }
 
+    fn context_allows_fast_route(&self) -> bool {
+        routing_mode_allows_fast_route(&self.context)
+    }
+
     fn dispatch_chat_direct(&self, context: MessageContext, graph: TaskGraph) -> Result<()> {
         let runtime = TaskGraphRuntime::new(graph)
             .with_response_mode(
@@ -623,6 +628,13 @@ impl SessionRuntime {
             let _ = event_tx.send(event).await;
         }
     }
+}
+
+fn routing_mode_allows_fast_route(context: &MessageContext) -> bool {
+    context
+        .metadata
+        .get("strategy.routing_mode")
+        .is_some_and(|value| value == "fast")
 }
 
 fn next_id(prefix: &str) -> String {

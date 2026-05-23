@@ -6,6 +6,7 @@ import {
   selectedSupportRoleCount,
   uniqueRuntimeRoles,
 } from "./agent-runtime-role-utils"
+import { normalizeRoutingMode, type AgentRoutingMode } from "./agent-routing-mode"
 
 export interface AgentRuntimeChoice {
   id: string
@@ -26,6 +27,7 @@ export interface AgentRuntimeOptions {
   collaborationModes: AgentRuntimeChoice[]
   learningLevels: AgentRuntimeChoice[]
   responseModes: AgentRuntimeChoice[]
+  routingModes: AgentRuntimeChoice[]
   roles: AgentRuntimeRoleOption[]
   strategies: AgentRuntimeChoice[]
 }
@@ -34,6 +36,7 @@ export interface AgentChatRuntimeSelection {
   collaborationMode: string
   learningLevel: string
   primaryRole?: string
+  routingMode: AgentRoutingMode
   selectedRoles: string[]
 }
 
@@ -52,6 +55,9 @@ export function defaultRuntimeSelection(options: AgentRuntimeOptions | null): Ag
   const defaultLearning =
     options?.learningLevels.find((level) => level.isDefault)?.id ??
     "higher_vocational"
+  const defaultRouting = normalizeRoutingMode(
+    options?.routingModes.find((mode) => mode.isDefault)?.id
+  )
   const defaultRoles = orderDefaultCommerceTeamRoles(
     options?.roles
       .filter((role) => role.runtimeRole !== "chat")
@@ -62,6 +68,7 @@ export function defaultRuntimeSelection(options: AgentRuntimeOptions | null): Ag
     collaborationMode: defaultCollaboration,
     learningLevel: defaultLearning,
     primaryRole: preferredRuntimePrimaryRole(defaultRoles),
+    routingMode: defaultRouting,
     selectedRoles: defaultRoles,
   }
 }
@@ -93,6 +100,7 @@ export function normalizeRuntimeSelection(
       ? current.learningLevel
       : fallback.learningLevel,
     primaryRole,
+    routingMode: normalizeRoutingMode(current.routingMode),
     selectedRoles: selectedRoles.length ? selectedRoles : fallback.selectedRoles,
   }
 }
@@ -107,6 +115,7 @@ export function restoreRuntimeSelection(
     collaborationMode: restored.collaborationMode ?? current.collaborationMode,
     learningLevel: restored.learningLevel ?? current.learningLevel,
     primaryRole: restored.primaryRole ?? current.primaryRole,
+    routingMode: normalizeRoutingMode(restored.routingMode ?? current.routingMode),
     selectedRoles:
       restored.selectedRoles && restored.selectedRoles.length > 0
         ? restored.selectedRoles
@@ -114,6 +123,16 @@ export function restoreRuntimeSelection(
   }
 
   return normalizeRuntimeSelection(nextSelection, options)
+}
+
+export function setRuntimeRoutingMode(
+  selection: AgentChatRuntimeSelection,
+  routingMode: string
+): AgentChatRuntimeSelection {
+  return {
+    ...selection,
+    routingMode: normalizeRoutingMode(routingMode),
+  }
 }
 
 export function runtimeSelectionForStrategy(

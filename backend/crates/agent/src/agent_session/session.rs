@@ -218,7 +218,12 @@ fn select_roles_for_task<'a>(
         max_roles: auto_route_max_roles(metadata),
     });
 
-    if runtime_roles.is_empty() && runtime.commander_fast_route {
+    if runtime_roles.is_empty()
+        && runtime.commander_fast_route
+        && metadata
+            .get("strategy.routing_mode")
+            .is_some_and(|value| value == "fast")
+    {
         let graph = crate::agent::commander::plan_task_graph(
             &TaskId("preselect".to_string()),
             input,

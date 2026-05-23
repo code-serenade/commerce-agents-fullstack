@@ -19,6 +19,7 @@ export interface AgentChatMessageContextSummary {
   strategyId?: AgentChatStrategyId
   collaborationMode?: string
   learningLevel?: string
+  routingMode?: string
   primaryRole?: string
   selectedRoles: string[]
 }
