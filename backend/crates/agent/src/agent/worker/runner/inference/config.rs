@@ -1,7 +1,7 @@
 use std::{
     collections::{HashMap, HashSet},
     fs,
-    path::Path,
+    path::{Path, PathBuf},
 };
 
 use serde::Deserialize;
@@ -101,7 +101,7 @@ pub(in crate::agent::worker::runner) fn load_inference_policy() -> WorkerInferen
     if let Ok(path) = std::env::var(INFERENCE_ENV)
         && !path.trim().is_empty()
     {
-        match load_inference_path(Path::new(&path)) {
+        match load_inference_path(&resolve_policy_path(&path)) {
             Ok(policy) => return policy,
             Err(error) => warn!(
                 path,
@@ -110,8 +110,8 @@ pub(in crate::agent::worker::runner) fn load_inference_policy() -> WorkerInferen
         }
     }
 
-    let directory_path = Path::new(DEFAULT_INFERENCE_DIR);
-    match load_inference_directory(directory_path) {
+    let directory_path = resolve_policy_path(DEFAULT_INFERENCE_DIR);
+    match load_inference_directory(&directory_path) {
         Ok(policy) => policy,
         Err(error) => {
             warn!(
@@ -120,8 +120,8 @@ pub(in crate::agent::worker::runner) fn load_inference_policy() -> WorkerInferen
                 "failed to load worker inference directory; trying legacy file"
             );
 
-            let legacy_path = Path::new(DEFAULT_INFERENCE_FILE);
-            match parse_inference_file(legacy_path) {
+            let legacy_path = resolve_policy_path(DEFAULT_INFERENCE_FILE);
+            match parse_inference_file(&legacy_path) {
                 Ok(policy) => policy,
                 Err(error) => {
                     warn!(
@@ -135,6 +135,16 @@ pub(in crate::agent::worker::runner) fn load_inference_policy() -> WorkerInferen
             }
         }
     }
+}
+
+fn resolve_policy_path(path: &str) -> PathBuf {
+    let candidate = Path::new(path);
+    if candidate.exists() || candidate.is_absolute() {
+        return candidate.to_path_buf();
+    }
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../..")
+        .join(candidate)
 }
 
 fn load_inference_path(path: &Path) -> Result<WorkerInferencePolicy, String> {

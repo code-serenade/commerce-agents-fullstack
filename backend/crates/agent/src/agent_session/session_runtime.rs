@@ -162,8 +162,7 @@ impl SessionRuntime {
             session_context.clone(),
             RoleRouter::new(role_catalog),
             CommanderOptions {
-                fast_route_enabled: input.config.commander_fast_route
-                    && routing_mode_allows_fast_route(&input.context),
+                fast_route_enabled: input.config.commander_fast_route,
                 fast_route_min_score: input.config.commander_fast_route_min_score,
             },
         );

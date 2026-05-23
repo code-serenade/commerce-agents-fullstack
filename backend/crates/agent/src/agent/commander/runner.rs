@@ -17,7 +17,7 @@ use route::{
 
 use super::{
     CommanderPhase, CommanderState, CommanderTask, RoutedDecision, TaskGraphRuntime, TaskMemory,
-    decision_intent_from_json,
+    decision_intent_from_json, plan_configured_non_chat_task_graph, plan_task_graph,
 };
 use crate::{
     agent_session::{
@@ -264,12 +264,15 @@ impl Commander {
 
     async fn step_thinking(&mut self) {
         let role_route = self.current_role_route();
-        if self.fast_route_enabled && self.try_task_graph_route(role_route.as_ref()).await {
+        if self
+            .try_configured_task_graph_route(role_route.as_ref())
+            .await
+        {
             self.phase = CommanderPhase::Idle;
             self.state = CommanderState::Idle;
             return;
         }
-        if self.fast_route_enabled && self.try_fast_route(role_route.as_ref()) {
+        if self.context_allows_fast_route() && self.try_fast_route(role_route.as_ref()) {
             self.phase = CommanderPhase::Idle;
             self.state = CommanderState::Idle;
             return;
@@ -289,6 +292,7 @@ impl Commander {
                 RoutedDecision {
                     intent: DecisionIntent::Ignore,
                     target_worker_id: None,
+                    task_graph: None,
                     clarification: None,
                 }
             }
@@ -296,6 +300,31 @@ impl Commander {
 
         match routed.intent {
             DecisionIntent::ExecuteTask { task } => {
+                let route = self.routed_decision_role_route(
+                    role_route.as_ref(),
+                    routed.target_worker_id.as_ref(),
+                );
+                let graph = routed.task_graph.or_else(|| {
+                    plan_configured_non_chat_task_graph(&task.id, &task.description, route.as_ref())
+                });
+                let graph = graph.unwrap_or_else(|| {
+                    if route
+                        .as_ref()
+                        .is_some_and(|route| route.primary_runtime_role != "chat")
+                    {
+                        plan_task_graph(&task.id, &task.description, route.as_ref())
+                    } else {
+                        self.route_graph_from_worker_profiles(&task.id, &task.description)
+                    }
+                });
+                if self
+                    .schedule_planned_task_graph("task_graph", route.as_ref(), graph)
+                    .await
+                {
+                    self.phase = CommanderPhase::Idle;
+                    self.state = CommanderState::Idle;
+                    return;
+                }
                 let target_worker = routed
                     .target_worker_id
                     .or_else(|| role_route.as_ref().map(primary_worker_id));
@@ -373,6 +402,70 @@ impl Commander {
 
         self.phase = CommanderPhase::Idle;
         self.state = CommanderState::Idle;
+    }
+
+    fn routed_decision_role_route(
+        &self,
+        fallback: Option<&RoleRoute>,
+        target_worker_id: Option<&WorkerId>,
+    ) -> Option<RoleRoute> {
+        let target_role = target_worker_id
+            .and_then(|worker_id| worker_id.0.strip_prefix("worker."))
+            .filter(|role| !role.trim().is_empty())?;
+        if fallback.is_some_and(|route| route.primary_runtime_role == target_role) {
+            return fallback.cloned();
+        }
+        self.role_router
+            .route_for_runtime_roles(target_role, &Vec::new())
+    }
+
+    fn route_graph_from_worker_profiles(&self, task_id: &TaskId, task: &str) -> TaskGraph {
+        let mut nodes = self
+            .session_context
+            .list_worker_profiles()
+            .into_iter()
+            .filter_map(|worker| {
+                worker
+                    .worker_id
+                    .0
+                    .strip_prefix("worker.")
+                    .map(|role| (worker.worker_id.clone(), role.to_string()))
+            })
+            .filter(|(_, role)| role != "chat")
+            .map(|(worker_id, role)| crate::core::protocol::TaskNode {
+                id: crate::core::protocol::TaskNodeId(role.clone()),
+                role,
+                worker_id,
+                title: "Commander 生成节点".to_string(),
+                objective: task.to_string(),
+                llm_usage: None,
+                skill_autosuggest: None,
+                input_refs: Vec::new(),
+                acceptance: vec![
+                    "输出必须围绕本岗位职责给出可复核的业务判断、依据、风险边界和下一步动作。"
+                        .to_string(),
+                ],
+                max_attempts: 1,
+            })
+            .collect::<Vec<_>>();
+        if nodes.is_empty() {
+            return plan_task_graph(task_id, task, None);
+        }
+        nodes.truncate(3);
+        TaskGraph {
+            graph_id: crate::core::protocol::TaskGraphId(format!("graph-{}", task_id.0)),
+            root_task: task.to_string(),
+            nodes,
+        }
+    }
+
+    fn context_allows_fast_route(&self) -> bool {
+        self.fast_route_enabled
+            && self
+                .current_context
+                .metadata
+                .get("strategy.routing_mode")
+                .is_some_and(|value| value == "fast")
     }
 
     fn dispatch_task_to_worker(&self, task: TaskSpec, target_worker: Option<WorkerId>) -> bool {

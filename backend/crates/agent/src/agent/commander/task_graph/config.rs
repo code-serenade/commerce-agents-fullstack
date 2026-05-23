@@ -262,6 +262,15 @@ fn resolve_task_graph_rules_path(path: &str) -> Option<PathBuf> {
         return Some(normalize_task_graph_path(candidate));
     }
 
+    if candidate.is_relative() {
+        let manifest_relative = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../..")
+            .join(candidate);
+        if manifest_relative.exists() {
+            return Some(normalize_task_graph_path(&manifest_relative));
+        }
+    }
+
     None
 }
 

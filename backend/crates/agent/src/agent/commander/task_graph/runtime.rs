@@ -511,13 +511,29 @@ pub enum EvaluationOutcome {
 }
 
 pub fn plan_task_graph(task_id: &TaskId, task: &str, route: Option<&RoleRoute>) -> TaskGraph {
-    planner::plan_configured_task_graph(task_id, task, route)
+    plan_configured_task_graph(task_id, task, route)
         .or_else(|| {
             route.map(|route| {
                 chat::plan_single_chat_graph(task_id, task, &route.primary_runtime_role)
             })
         })
         .unwrap_or_else(|| chat::plan_single_chat_graph(task_id, task, "chat"))
+}
+
+pub fn plan_configured_task_graph(
+    task_id: &TaskId,
+    task: &str,
+    route: Option<&RoleRoute>,
+) -> Option<TaskGraph> {
+    planner::plan_configured_task_graph(task_id, task, route)
+}
+
+pub fn plan_configured_non_chat_task_graph(
+    task_id: &TaskId,
+    task: &str,
+    route: Option<&RoleRoute>,
+) -> Option<TaskGraph> {
+    planner::plan_configured_non_chat_task_graph(task_id, task, route)
 }
 
 pub fn plan_quick_chat_graph(task_id: &TaskId, task: &str) -> Option<TaskGraph> {

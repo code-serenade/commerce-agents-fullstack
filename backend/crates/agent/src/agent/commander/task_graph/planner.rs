@@ -1,3 +1,5 @@
+use tracing::debug;
+
 use super::{
     builder::build_configured_task_graph,
     config::{
@@ -32,23 +34,70 @@ pub(super) fn plan_configured_task_graph(
     Some(graph)
 }
 
+pub(super) fn plan_configured_non_chat_task_graph(
+    task_id: &TaskId,
+    task: &str,
+    route: Option<&RoleRoute>,
+) -> Option<TaskGraph> {
+    let path = configured_task_graph_rules_path()?;
+
+    let rules = match load_task_graph_rules(&path) {
+        Ok(rules) => rules,
+        Err(error) => {
+            crate::log_error_msg!(&format!(
+                "task graph rules ignored: path={}, error={error}",
+                path.display()
+            ));
+            return None;
+        }
+    };
+    let graph = plan_task_graph_from_rules_matching(task_id, task, route, &rules, |graph| {
+        let matches = graph_has_non_chat_role(graph);
+        if !matches {
+            debug!(
+                graph_id = %graph.graph_id.0,
+                roles = ?graph.nodes.iter().map(|node| node.role.as_str()).collect::<Vec<_>>(),
+                "configured task graph skipped because it has no non-chat roles"
+            );
+        }
+        matches
+    })?;
+    Some(graph)
+}
+
 fn plan_task_graph_from_rules(
     task_id: &TaskId,
     task: &str,
     route: Option<&RoleRoute>,
     rules: &TaskGraphRuleSet,
 ) -> Option<TaskGraph> {
+    plan_task_graph_from_rules_matching(task_id, task, route, rules, |_| true)
+}
+
+fn plan_task_graph_from_rules_matching(
+    task_id: &TaskId,
+    task: &str,
+    route: Option<&RoleRoute>,
+    rules: &TaskGraphRuleSet,
+    graph_matches: impl Fn(&TaskGraph) -> bool,
+) -> Option<TaskGraph> {
     let rule = rules
         .rules
         .iter()
-        .filter(|rule| rule.matches(task, route, rules))
+        .filter_map(|rule| {
+            if !rule.matches(task, route, rules) {
+                return None;
+            }
+            let graph = build_configured_task_graph(task_id, task, route, rules, rule);
+            (!graph.nodes.is_empty() && graph_matches(&graph)).then_some((rule, graph))
+        })
         .max_by(|left, right| {
-            left.priority
-                .cmp(&right.priority)
-                .then_with(|| right.id.cmp(&left.id))
+            left.0
+                .priority
+                .cmp(&right.0.priority)
+                .then_with(|| right.0.id.cmp(&left.0.id))
         })?;
-    let graph = build_configured_task_graph(task_id, task, route, rules, rule);
-    (!graph.nodes.is_empty()).then_some(graph)
+    Some(rule.1)
 }
 
 impl TaskGraphRule {
@@ -197,6 +246,10 @@ fn route_has_non_chat_roles(route: Option<&RoleRoute>) -> bool {
             .support_runtime_roles
             .iter()
             .any(|role| role != "chat")
+}
+
+fn graph_has_non_chat_role(graph: &TaskGraph) -> bool {
+    graph.nodes.iter().any(|node| node.role != "chat")
 }
 
 pub(super) fn explicit_team_keywords(rules: &TaskGraphRuleSet) -> Vec<String> {
