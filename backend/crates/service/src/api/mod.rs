@@ -6,6 +6,7 @@ pub mod briefing_ops;
 pub mod campaign;
 pub mod commerce_playbook;
 pub mod conversation;
+pub mod document_text_extraction_manager;
 pub mod external_search;
 pub mod package_governance;
 pub mod platform_connect;

@@ -13,8 +13,6 @@ import {
 } from "./agent-chat-image-attachments"
 
 const MAX_INLINE_TEXT_CHARS = 100_000
-const UNSUPPORTED_TEXT_EXTRACTION_REASON =
-  "Browser text extraction supports plain text, CSV, JSON, Markdown, and HTML files only."
 const EMPTY_TEXT_EXTRACTION_REASON = "File contains no readable text."
 const FAILED_TEXT_EXTRACTION_REASON = "Browser text extraction failed."
 const READABLE_TEXT_TYPES = new Set([
@@ -105,12 +103,10 @@ async function uploadOneAttachment(
       sha256: sign.key.split("/").at(-1)?.split(".").at(0),
     })
     const extraction = await createBrowserExtractionRequest(file)
-    const extractionUpdated = await updateRegisteredFileExtraction(
-      registered.id,
-      extraction.request
-    )
-    const shouldTriggerServerExtraction =
-      extraction.request.status === "unsupported"
+    const extractionUpdated = extraction.request
+      ? await updateRegisteredFileExtraction(registered.id, extraction.request)
+      : false
+    const shouldTriggerServerExtraction = !extraction.request && !isImageFile(file)
     const serverExtraction =
       extractionUpdated && extraction.readable
         ? null
@@ -119,10 +115,10 @@ async function uploadOneAttachment(
           : null
     const resolved = resolveAttachmentExtractionState({
       browserReadable: extraction.readable && extractionUpdated,
-      fallbackReason: extraction.request.failureReason ?? undefined,
+      fallbackReason: extraction.request?.failureReason ?? undefined,
       imageDataUrl: extraction.imageDataUrl,
       serverExtraction,
-      status: extraction.request.status,
+      status: extraction.request?.status,
     })
     setAttachments((current) =>
       current.map((item) =>
@@ -151,7 +147,7 @@ async function uploadOneAttachment(
 export interface BrowserExtractionRequestResult {
   imageDataUrl?: string
   readable: boolean
-  request: UpdateConversationFileExtractionRequest
+  request: UpdateConversationFileExtractionRequest | null
 }
 
 export async function createBrowserExtractionRequest(
@@ -164,14 +160,7 @@ export async function createBrowserExtractionRequest(
     }
     return {
       readable: false,
-      request: {
-        contentKind: "unsupported",
-        failureReason: UNSUPPORTED_TEXT_EXTRACTION_REASON,
-        metadata,
-        parser: "browser_text",
-        source: "browser_upload",
-        status: "unsupported",
-      },
+      request: null,
     }
   }
 

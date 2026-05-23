@@ -11,6 +11,8 @@ describe("agent chat attachment extraction", () => {
     const result = await createBrowserExtractionRequest(file)
 
     expect(result.readable).toBe(true)
+    expect(result.request).not.toBeNull()
+    if (!result.request) return
     expect(result.request.status).toBe("extracted")
     expect(result.request.contentKind).toBe("markdown")
     expect(result.request.parser).toBe("browser_text")
@@ -28,20 +30,20 @@ describe("agent chat attachment extraction", () => {
     const result = await createBrowserExtractionRequest(file)
 
     expect(result.readable).toBe(false)
+    expect(result.request).not.toBeNull()
+    if (!result.request) return
     expect(result.request.status).toBe("failed")
     expect(result.request.failureReason).toContain("no readable text")
     expect(result.request.text).toBeUndefined()
   })
 
-  it("marks binary files as unsupported extraction", async () => {
+  it("defers binary document extraction to the server", async () => {
     const file = new File(["fake"], "brief.pdf", { type: "application/pdf" })
 
     const result = await createBrowserExtractionRequest(file)
 
     expect(result.readable).toBe(false)
-    expect(result.request.status).toBe("unsupported")
-    expect(result.request.contentKind).toBe("unsupported")
-    expect(result.request.failureReason).toContain("plain text")
+    expect(result.request).toBeNull()
   })
 
   it("prepares png images for vision input", async () => {
@@ -51,6 +53,8 @@ describe("agent chat attachment extraction", () => {
 
     expect(result.readable).toBe(true)
     expect(result.imageDataUrl).toMatch(/^data:image\/png;base64,/)
+    expect(result.request).not.toBeNull()
+    if (!result.request) return
     expect(result.request.status).toBe("extracted")
     expect(result.request.contentKind).toBe("image_vision_input")
     expect(result.request.parser).toBe("browser_image")

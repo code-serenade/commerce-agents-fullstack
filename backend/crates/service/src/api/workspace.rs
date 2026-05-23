@@ -60,9 +60,12 @@ use serde_json::{Value, json};
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-use crate::dto::{
-    campaign::{CampaignDraftResponse, CampaignDraftSourceResponse, CampaignResponse},
-    workspace::*,
+use crate::{
+    api::document_text_extraction_manager::DocumentTextExtractionManager,
+    dto::{
+        campaign::{CampaignDraftResponse, CampaignDraftSourceResponse, CampaignResponse},
+        workspace::*,
+    },
 };
 
 const DEFAULT_PAGE: u64 = 1;
@@ -1235,9 +1238,16 @@ impl WorkspaceApi {
             .unwrap_or(DEFAULT_CONTEXT_PACK_MAX_CHARS)
             .clamp(1, MAX_CONTEXT_PACK_MAX_CHARS);
         let query = normalize_string(req.query.unwrap_or_default());
-        let candidates = conversation_files
+        let mut conversation_file_candidates = Vec::new();
+        for file in conversation_files {
+            conversation_file_candidates.push(
+                self.context_pack_conversation_file_candidate(file, query.as_deref())
+                    .await?,
+            );
+        }
+
+        let candidates = conversation_file_candidates
             .into_iter()
-            .map(|file| context_pack_conversation_file_candidate(file, query.as_deref()))
             .chain(campaigns.into_iter().map(context_pack_campaign_candidate))
             .chain(
                 product_assets
@@ -1341,6 +1351,44 @@ impl WorkspaceApi {
             warnings,
             agent_context,
         })
+    }
+
+    async fn context_pack_conversation_file_candidate(
+        &self,
+        item: ConversationFile,
+        query: Option<&str>,
+    ) -> BizResult<WorkspaceContextPackCandidate> {
+        let mut candidate = context_pack_conversation_file_candidate(item.clone(), query);
+        if candidate.extraction_status.as_deref() != Some("extracted") || candidate.text.is_some() {
+            return Ok(candidate);
+        }
+
+        if let Some(analysis) = DocumentTextExtractionManager::new(self.db.clone())
+            .latest_succeeded_for_file(item.id)
+            .await?
+        {
+            let text = analysis
+                .result_json
+                .as_ref()
+                .and_then(|value| value.get("text"))
+                .and_then(Value::as_str)
+                .and_then(|value| normalize_string(value.to_string()));
+            if text.is_some() {
+                candidate.content_kind = "extracted_text".to_string();
+                candidate.text = text;
+                apply_conversation_file_text_profile(&item, query, &mut candidate);
+                candidate.metadata["documentTextAnalysis"] = json!({
+                    "analysisId": analysis.id,
+                    "analysisKind": analysis.analysis_kind,
+                    "storageObjectSha256": analysis.storage_object_sha256,
+                    "promptKey": analysis.prompt_key,
+                    "promptVersion": analysis.prompt_version,
+                    "llmName": analysis.llm_name,
+                });
+            }
+        }
+
+        Ok(candidate)
     }
 
     pub async fn link_agent_run(
@@ -4518,6 +4566,31 @@ fn context_pack_conversation_file_candidate(
             }),
             profile_metadata,
         ),
+    }
+}
+
+fn apply_conversation_file_text_profile(
+    item: &ConversationFile,
+    query: Option<&str>,
+    candidate: &mut WorkspaceContextPackCandidate,
+) {
+    let Some(text) = candidate.text.clone() else {
+        return;
+    };
+    if conversation_file_looks_like_table(item, Some(&text)) {
+        let Some(profile) = build_table_context_profile(&text, query) else {
+            return;
+        };
+        candidate.content_kind = "table_profile".to_string();
+        candidate.text = Some(profile.text);
+        candidate.metadata = merge_json_object(candidate.metadata.clone(), profile.metadata);
+    } else if conversation_file_looks_like_json(item, Some(&text)) {
+        let Some(profile) = build_json_context_profile(&text, query) else {
+            return;
+        };
+        candidate.content_kind = "json_profile".to_string();
+        candidate.text = Some(profile.text);
+        candidate.metadata = merge_json_object(candidate.metadata.clone(), profile.metadata);
     }
 }
 
