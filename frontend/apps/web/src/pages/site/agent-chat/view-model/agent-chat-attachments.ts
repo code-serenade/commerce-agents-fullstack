@@ -8,8 +8,6 @@ import type {
 } from "../types"
 
 const MAX_INLINE_TEXT_CHARS = 100_000
-const UNSUPPORTED_TEXT_EXTRACTION_REASON =
-  "Browser text extraction supports plain text, CSV, JSON, Markdown, and HTML files only."
 const EMPTY_TEXT_EXTRACTION_REASON = "File contains no readable text."
 const FAILED_TEXT_EXTRACTION_REASON = "Browser text extraction failed."
 const READABLE_TEXT_TYPES = new Set([
@@ -98,18 +96,13 @@ async function uploadOneAttachment(
       objectKey: sign.key,
       sha256: sign.key.split("/").at(-1)?.split(".").at(0),
     })
-    const extraction = await createBrowserExtractionRequest(file)
-    const extractionUpdated = await updateRegisteredFileExtraction(
-      registered.id,
-      extraction.request
-    )
     setAttachments((current) =>
       current.map((item) =>
         item.id === localId
           ? {
               ...item,
               fileId: registered.id,
-              readable: extraction.readable && extractionUpdated,
+              readable: isReadableTextFile(file),
               status: "uploaded",
             }
           : item
@@ -126,7 +119,7 @@ async function uploadOneAttachment(
 
 export interface BrowserExtractionRequestResult {
   readable: boolean
-  request: UpdateConversationFileExtractionRequest
+  request: UpdateConversationFileExtractionRequest | null
 }
 
 export async function createBrowserExtractionRequest(
@@ -136,14 +129,7 @@ export async function createBrowserExtractionRequest(
   if (!isReadableTextFile(file)) {
     return {
       readable: false,
-      request: {
-        contentKind: "unsupported",
-        failureReason: UNSUPPORTED_TEXT_EXTRACTION_REASON,
-        metadata,
-        parser: "browser_text",
-        source: "browser_upload",
-        status: "unsupported",
-      },
+      request: null,
     }
   }
 
@@ -194,18 +180,6 @@ export async function createBrowserExtractionRequest(
       status: "extracted",
       text: truncated ? trimmed.slice(0, MAX_INLINE_TEXT_CHARS) : trimmed,
     },
-  }
-}
-
-async function updateRegisteredFileExtraction(
-  fileId: string,
-  request: UpdateConversationFileExtractionRequest
-) {
-  try {
-    await agentChatData.updateConversationFileExtraction(fileId, request)
-    return true
-  } catch {
-    return false
   }
 }
 

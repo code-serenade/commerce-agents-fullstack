@@ -3,6 +3,7 @@ use db_core::{
     error::{BizError, BizResult},
 };
 use error_code::app as app_error;
+use file_ingest::ViewOptions;
 use repo::table::{
     app_users::{AppUserService, AppUserStatus},
     conversation_files::{
@@ -15,7 +16,7 @@ use repo::table::{
     conversations::{Conversation, ConversationService, CreateConversation},
 };
 use serde_json::{Map, Value, json};
-use storage::{BucketKind, ObjectStorage, PresignDownloadRequest};
+use storage::{BucketKind, DownloadObjectRequest, ObjectStorage, PresignDownloadRequest};
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use uuid::Uuid;
 
@@ -37,6 +38,8 @@ const EXTRACTION_STATUS_PENDING: &str = "pending";
 const EXTRACTION_STATUS_EXTRACTED: &str = "extracted";
 const EXTRACTION_STATUS_FAILED: &str = "failed";
 const EXTRACTION_STATUS_UNSUPPORTED: &str = "unsupported";
+const FILE_INGEST_PARSER: &str = "file-ingest";
+const FILE_INGEST_PARSER_VERSION: &str = "0.1.1";
 
 pub struct ConversationApi {
     db: DbContext,
@@ -479,6 +482,147 @@ impl ConversationApi {
         Ok(Self::map_file(updated))
     }
 
+    pub async fn extract_file_text(
+        &self,
+        storage: &ObjectStorage,
+        user_id: String,
+        file_id: String,
+    ) -> BizResult<ConversationFileResponse> {
+        let user_id = parse_user_id(&user_id)?;
+        self.ensure_app_user_enabled(user_id).await?;
+        let file_id = parse_uuid(&file_id, "file_id")?;
+        let file = self.ensure_active_file_owner(user_id, file_id).await?;
+        self.ensure_active_conversation_owner(user_id, file.conversation_id)
+            .await?;
+
+        if !is_file_ingest_supported(&file) {
+            return self
+                .update_file_extraction(UpdateConversationFileExtractionRequest {
+                    user_id: user_id.to_string(),
+                    file_id: file_id.to_string(),
+                    status: Some(EXTRACTION_STATUS_UNSUPPORTED.to_string()),
+                    text: None,
+                    content_kind: Some("unsupported".to_string()),
+                    source: Some("server_file_ingest".to_string()),
+                    parser: Some(FILE_INGEST_PARSER.to_string()),
+                    language: None,
+                    failure_reason: Some("unsupported document type".to_string()),
+                    metadata: Some(json!({
+                        "parserVersion": FILE_INGEST_PARSER_VERSION,
+                    })),
+                })
+                .await;
+        }
+
+        let bytes = match storage
+            .download_object(DownloadObjectRequest {
+                bucket: BucketKind::Private,
+                key: file.object_key.clone(),
+            })
+            .await
+        {
+            Ok(bytes) => bytes,
+            Err(err) => {
+                return self
+                    .update_file_extraction(UpdateConversationFileExtractionRequest {
+                        user_id: user_id.to_string(),
+                        file_id: file_id.to_string(),
+                        status: Some(EXTRACTION_STATUS_FAILED.to_string()),
+                        text: None,
+                        content_kind: Some("document_text".to_string()),
+                        source: Some("server_file_ingest".to_string()),
+                        parser: Some(FILE_INGEST_PARSER.to_string()),
+                        language: None,
+                        failure_reason: Some(format!("download failed: {err}")),
+                        metadata: Some(json!({
+                            "parserVersion": FILE_INGEST_PARSER_VERSION,
+                        })),
+                    })
+                    .await;
+            }
+        };
+
+        let source_name = file
+            .file_name
+            .as_deref()
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or(file.object_key.as_str());
+        let document = match file_ingest::ingest_bytes(source_name, &bytes) {
+            Ok(document) => document,
+            Err(err) => {
+                return self
+                    .update_file_extraction(UpdateConversationFileExtractionRequest {
+                        user_id: user_id.to_string(),
+                        file_id: file_id.to_string(),
+                        status: Some(EXTRACTION_STATUS_FAILED.to_string()),
+                        text: None,
+                        content_kind: Some("document_text".to_string()),
+                        source: Some("server_file_ingest".to_string()),
+                        parser: Some(FILE_INGEST_PARSER.to_string()),
+                        language: None,
+                        failure_reason: Some(format!("parse failed: {err}")),
+                        metadata: Some(json!({
+                            "parserVersion": FILE_INGEST_PARSER_VERSION,
+                        })),
+                    })
+                    .await;
+            }
+        };
+
+        let text = document.to_ai_text_with_options(&ViewOptions {
+            max_table_rows: 100,
+            max_cell_chars: 240,
+        });
+        let text = match normalize_required_text(text, "text") {
+            Ok(text) => text,
+            Err(_) => {
+                return self
+                    .update_file_extraction(UpdateConversationFileExtractionRequest {
+                        user_id: user_id.to_string(),
+                        file_id: file_id.to_string(),
+                        status: Some(EXTRACTION_STATUS_FAILED.to_string()),
+                        text: None,
+                        content_kind: Some("document_text".to_string()),
+                        source: Some("server_file_ingest".to_string()),
+                        parser: Some(FILE_INGEST_PARSER.to_string()),
+                        language: None,
+                        failure_reason: Some("document contains no readable text".to_string()),
+                        metadata: Some(json!({
+                            "parserVersion": FILE_INGEST_PARSER_VERSION,
+                        })),
+                    })
+                    .await;
+            }
+        };
+        let original_text_chars = text.chars().count();
+        let truncated = original_text_chars > MAX_EXTRACTED_TEXT_CHARS;
+        let text = if truncated {
+            text.chars().take(MAX_EXTRACTED_TEXT_CHARS).collect()
+        } else {
+            text
+        };
+
+        self.update_file_extraction(UpdateConversationFileExtractionRequest {
+            user_id: user_id.to_string(),
+            file_id: file_id.to_string(),
+            status: Some(EXTRACTION_STATUS_EXTRACTED.to_string()),
+            text: Some(text),
+            content_kind: Some("document_text".to_string()),
+            source: Some("server_file_ingest".to_string()),
+            parser: Some(FILE_INGEST_PARSER.to_string()),
+            language: None,
+            failure_reason: None,
+            metadata: Some(json!({
+                "parserVersion": FILE_INGEST_PARSER_VERSION,
+                "fileKind": document.kind,
+                "checksumSha256": document.checksum_sha256,
+                "originalTextChars": original_text_chars,
+                "truncated": truncated,
+            })),
+        })
+        .await
+    }
+
     async fn ensure_app_user_enabled(&self, user_id: Uuid) -> BizResult<()> {
         let user = self
             .app_user_svc
@@ -784,6 +928,7 @@ fn build_file_extraction_metadata(current: Value, patch: FileExtractionMetadataP
         "textChars".to_string(),
         Value::Number(serde_json::Number::from(patch.text_chars)),
     );
+    merge_extraction_extra_metadata(&mut extraction, patch.extra_metadata);
     extraction.insert("updatedAt".to_string(), Value::String(now_rfc3339()));
     match patch.language {
         Some(language) => {
@@ -801,10 +946,83 @@ fn build_file_extraction_metadata(current: Value, patch: FileExtractionMetadataP
             extraction.remove("failureReason");
         }
     }
-    extraction.insert("metadata".to_string(), patch.extra_metadata);
     object.insert("extraction".to_string(), Value::Object(extraction));
 
     Value::Object(object)
+}
+
+fn merge_extraction_extra_metadata(extraction: &mut Map<String, Value>, extra_metadata: Value) {
+    let Value::Object(mut extra_metadata) = extra_metadata else {
+        extraction.insert("metadata".to_string(), json!({}));
+        return;
+    };
+    for key in [
+        "parserVersion",
+        "fileKind",
+        "checksumSha256",
+        "originalTextChars",
+        "truncated",
+    ] {
+        if let Some(value) = extra_metadata.remove(key) {
+            extraction.insert(key.to_string(), value);
+        } else {
+            extraction.remove(key);
+        }
+    }
+    extraction.insert("metadata".to_string(), Value::Object(extra_metadata));
+}
+
+fn is_file_ingest_supported(file: &ConversationFile) -> bool {
+    file.mime_type
+        .as_deref()
+        .is_some_and(is_file_ingest_supported_mime)
+        || file
+            .file_name
+            .as_deref()
+            .is_some_and(is_file_ingest_supported_name)
+        || is_file_ingest_supported_name(&file.object_key)
+}
+
+fn is_file_ingest_supported_mime(value: &str) -> bool {
+    let mime = value
+        .split(';')
+        .next()
+        .unwrap_or_default()
+        .trim()
+        .to_ascii_lowercase();
+    matches!(
+        mime.as_str(),
+        "application/pdf"
+            | "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            | "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            | "application/vnd.ms-excel"
+            | "text/csv"
+            | "text/plain"
+            | "text/markdown"
+            | "application/json"
+    )
+}
+
+fn is_file_ingest_supported_name(value: &str) -> bool {
+    let extension = value
+        .rsplit_once('.')
+        .map(|(_, extension)| extension.trim().to_ascii_lowercase());
+    matches!(
+        extension.as_deref(),
+        Some(
+            "pdf"
+                | "docx"
+                | "xlsx"
+                | "xlsm"
+                | "xlsb"
+                | "xls"
+                | "csv"
+                | "txt"
+                | "md"
+                | "markdown"
+                | "json"
+        )
+    )
 }
 
 fn now_rfc3339() -> String {

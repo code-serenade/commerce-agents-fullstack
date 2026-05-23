@@ -223,6 +223,7 @@ pub async fn register_conversation_file(
     );
     req.validate().map_err(Error::from)?;
     let user_id_for_log = auth_user.user_id.clone();
+    let user_id_for_extraction = auth_user.user_id.clone();
     let conversation_id_for_log = conversation_id.clone();
     let api = ConversationApi::new(get_app_ctx());
     let file = api
@@ -251,6 +252,7 @@ pub async fn register_conversation_file(
     );
 
     spawn_vision_preprocess_if_needed(&file);
+    spawn_document_text_extraction_if_needed(&user_id_for_extraction, &file);
 
     Ok(map_file_response(file).into_common_response().to_json())
 }
@@ -435,6 +437,86 @@ fn spawn_vision_preprocess_if_needed(file: &service::dto::conversation::Conversa
             );
         }
     });
+}
+
+fn spawn_document_text_extraction_if_needed(
+    user_id: &str,
+    file: &service::dto::conversation::ConversationFileResponse,
+) {
+    if is_supported_text_document_mime(file.mime_type.as_deref())
+        || file
+            .file_name
+            .as_deref()
+            .is_some_and(is_supported_text_document_name)
+        || is_supported_text_document_name(&file.object_key)
+    {
+        let user_id = user_id.to_string();
+        let file_id = file.id.clone();
+        tracing::debug!(
+            file_id = %file_id,
+            object_key = %file.object_key,
+            mime_type = ?file.mime_type,
+            "document text extraction task spawned"
+        );
+        tokio::spawn(async move {
+            let api = ConversationApi::new(get_app_ctx());
+            if let Err(err) = api
+                .extract_file_text(get_storage(), user_id, file_id.clone())
+                .await
+            {
+                tracing::warn!(
+                    file_id = %file_id,
+                    error = ?err,
+                    "document text extraction task failed"
+                );
+            }
+        });
+    }
+}
+
+fn is_supported_text_document_mime(value: Option<&str>) -> bool {
+    let Some(value) = value else {
+        return false;
+    };
+    let mime = value
+        .split(';')
+        .next()
+        .unwrap_or_default()
+        .trim()
+        .to_ascii_lowercase();
+    matches!(
+        mime.as_str(),
+        "application/pdf"
+            | "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            | "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            | "application/vnd.ms-excel"
+            | "text/csv"
+            | "text/plain"
+            | "text/markdown"
+            | "application/json"
+    )
+}
+
+fn is_supported_text_document_name(value: &str) -> bool {
+    let extension = value
+        .rsplit_once('.')
+        .map(|(_, extension)| extension.trim().to_ascii_lowercase());
+    matches!(
+        extension.as_deref(),
+        Some(
+            "pdf"
+                | "docx"
+                | "xlsx"
+                | "xlsm"
+                | "xlsb"
+                | "xls"
+                | "csv"
+                | "txt"
+                | "md"
+                | "markdown"
+                | "json"
+        )
+    )
 }
 
 async fn run_vision_preprocess_task(
