@@ -1,7 +1,7 @@
 use db_core::{DbContext, error::BizResult};
 use repo::table::storage_object_analyses::{
     CreateStorageObjectAnalysis, StorageObjectAnalysis, StorageObjectAnalysisIdentity,
-    StorageObjectAnalysisService, StorageObjectAnalysisStatus,
+    StorageObjectAnalysisService, StorageObjectAnalysisStatus, UpdateStorageObjectAnalysisFailed,
     UpdateStorageObjectAnalysisProcessing, UpdateStorageObjectAnalysisSucceeded,
 };
 use serde_json::Value;
@@ -28,6 +28,12 @@ pub struct CompleteStorageObjectAnalysisRequest {
     pub llm_model: Option<String>,
     pub summary: String,
     pub result_json: Value,
+}
+
+#[derive(Debug, Clone)]
+pub struct FailStorageObjectAnalysisRequest {
+    pub id: Uuid,
+    pub error_message: String,
 }
 
 impl StorageObjectAnalysisApi {
@@ -94,6 +100,17 @@ impl StorageObjectAnalysisApi {
                 llm_model: req.llm_model,
                 summary: req.summary,
                 result_json: req.result_json,
+                finished_at: OffsetDateTime::now_utc(),
+            })
+            .await?;
+        Ok(())
+    }
+
+    pub async fn mark_failed(&self, req: FailStorageObjectAnalysisRequest) -> BizResult<()> {
+        self.analysis_svc
+            .mark_failed(UpdateStorageObjectAnalysisFailed {
+                id: req.id,
+                error_message: req.error_message,
                 finished_at: OffsetDateTime::now_utc(),
             })
             .await?;

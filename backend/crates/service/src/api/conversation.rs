@@ -21,7 +21,14 @@ use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use uuid::Uuid;
 
 use crate::{
-    api::storage_reference::{RetainStorageReferenceRequest, StorageReferenceApi},
+    api::{
+        document_text_extraction_manager::DocumentTextExtractionManager,
+        storage_object_analysis::{
+            CompleteStorageObjectAnalysisRequest, FailStorageObjectAnalysisRequest,
+            StorageObjectAnalysisApi,
+        },
+        storage_reference::{RetainStorageReferenceRequest, StorageReferenceApi},
+    },
     dto::conversation::{
         AddConversationMessageRequest, ConversationDetailResponse, ConversationFileAccessResponse,
         ConversationFileResponse, ConversationMessageResponse, ConversationResponse,
@@ -38,8 +45,10 @@ const EXTRACTION_STATUS_PENDING: &str = "pending";
 const EXTRACTION_STATUS_EXTRACTED: &str = "extracted";
 const EXTRACTION_STATUS_FAILED: &str = "failed";
 const EXTRACTION_STATUS_UNSUPPORTED: &str = "unsupported";
-const FILE_INGEST_PARSER: &str = "file-ingest";
-const FILE_INGEST_PARSER_VERSION: &str = "0.1.1";
+const FILE_INGEST_PARSER: &str =
+    crate::api::document_text_extraction_manager::DOCUMENT_TEXT_EXTRACTION_PROMPT_KEY;
+const FILE_INGEST_PARSER_VERSION: &str =
+    crate::api::document_text_extraction_manager::DOCUMENT_TEXT_EXTRACTION_PROMPT_VERSION;
 
 pub struct ConversationApi {
     db: DbContext,
@@ -495,7 +504,8 @@ impl ConversationApi {
         self.ensure_active_conversation_owner(user_id, file.conversation_id)
             .await?;
 
-        if !is_file_ingest_supported(&file) {
+        let manager = DocumentTextExtractionManager::new(self.db.clone());
+        let Some(task) = manager.ensure_task_for_conversation_file(file.id).await? else {
             return self
                 .update_file_extraction(UpdateConversationFileExtractionRequest {
                     user_id: user_id.to_string(),
@@ -512,7 +522,35 @@ impl ConversationApi {
                     })),
                 })
                 .await;
+        };
+
+        let analysis_api = StorageObjectAnalysisApi::new(self.db.clone());
+        if !StorageObjectAnalysisApi::can_process(&task.analysis.status) {
+            return self
+                .update_file_extraction(UpdateConversationFileExtractionRequest {
+                    user_id: user_id.to_string(),
+                    file_id: file_id.to_string(),
+                    status: Some(EXTRACTION_STATUS_EXTRACTED.to_string()),
+                    text: Some(format!(
+                        "Document text extraction is already available in analysis {}.",
+                        task.analysis.id
+                    )),
+                    content_kind: Some("document_text_analysis_ref".to_string()),
+                    source: Some("server_file_ingest".to_string()),
+                    parser: Some(FILE_INGEST_PARSER.to_string()),
+                    language: None,
+                    failure_reason: None,
+                    metadata: Some(json!({
+                        "parserVersion": FILE_INGEST_PARSER_VERSION,
+                        "analysisId": task.analysis.id,
+                        "analysisKind": task.analysis.analysis_kind,
+                        "storageObjectSha256": task.object.sha256,
+                    })),
+                })
+                .await;
         }
+
+        analysis_api.mark_processing(task.analysis.id, None).await?;
 
         let bytes = match storage
             .download_object(DownloadObjectRequest {
@@ -523,6 +561,13 @@ impl ConversationApi {
         {
             Ok(bytes) => bytes,
             Err(err) => {
+                let error_message = format!("download failed: {err}");
+                analysis_api
+                    .mark_failed(FailStorageObjectAnalysisRequest {
+                        id: task.analysis.id,
+                        error_message: error_message.clone(),
+                    })
+                    .await?;
                 return self
                     .update_file_extraction(UpdateConversationFileExtractionRequest {
                         user_id: user_id.to_string(),
@@ -533,9 +578,12 @@ impl ConversationApi {
                         source: Some("server_file_ingest".to_string()),
                         parser: Some(FILE_INGEST_PARSER.to_string()),
                         language: None,
-                        failure_reason: Some(format!("download failed: {err}")),
+                        failure_reason: Some(error_message),
                         metadata: Some(json!({
                             "parserVersion": FILE_INGEST_PARSER_VERSION,
+                            "analysisId": task.analysis.id,
+                            "analysisKind": task.analysis.analysis_kind,
+                            "storageObjectSha256": task.object.sha256,
                         })),
                     })
                     .await;
@@ -550,6 +598,13 @@ impl ConversationApi {
         let document = match file_ingest::ingest_bytes(source_name, &bytes) {
             Ok(document) => document,
             Err(err) => {
+                let error_message = format!("parse failed: {err}");
+                analysis_api
+                    .mark_failed(FailStorageObjectAnalysisRequest {
+                        id: task.analysis.id,
+                        error_message: error_message.clone(),
+                    })
+                    .await?;
                 return self
                     .update_file_extraction(UpdateConversationFileExtractionRequest {
                         user_id: user_id.to_string(),
@@ -560,9 +615,12 @@ impl ConversationApi {
                         source: Some("server_file_ingest".to_string()),
                         parser: Some(FILE_INGEST_PARSER.to_string()),
                         language: None,
-                        failure_reason: Some(format!("parse failed: {err}")),
+                        failure_reason: Some(error_message),
                         metadata: Some(json!({
                             "parserVersion": FILE_INGEST_PARSER_VERSION,
+                            "analysisId": task.analysis.id,
+                            "analysisKind": task.analysis.analysis_kind,
+                            "storageObjectSha256": task.object.sha256,
                         })),
                     })
                     .await;
@@ -576,6 +634,13 @@ impl ConversationApi {
         let text = match normalize_required_text(text, "text") {
             Ok(text) => text,
             Err(_) => {
+                let error_message = "document contains no readable text".to_string();
+                analysis_api
+                    .mark_failed(FailStorageObjectAnalysisRequest {
+                        id: task.analysis.id,
+                        error_message: error_message.clone(),
+                    })
+                    .await?;
                 return self
                     .update_file_extraction(UpdateConversationFileExtractionRequest {
                         user_id: user_id.to_string(),
@@ -586,9 +651,12 @@ impl ConversationApi {
                         source: Some("server_file_ingest".to_string()),
                         parser: Some(FILE_INGEST_PARSER.to_string()),
                         language: None,
-                        failure_reason: Some("document contains no readable text".to_string()),
+                        failure_reason: Some(error_message),
                         metadata: Some(json!({
                             "parserVersion": FILE_INGEST_PARSER_VERSION,
+                            "analysisId": task.analysis.id,
+                            "analysisKind": task.analysis.analysis_kind,
+                            "storageObjectSha256": task.object.sha256,
                         })),
                     })
                     .await;
@@ -602,20 +670,46 @@ impl ConversationApi {
             text
         };
 
+        let text_chars = text.chars().count();
+        analysis_api
+            .mark_succeeded(CompleteStorageObjectAnalysisRequest {
+                id: task.analysis.id,
+                llm_model: None,
+                summary: compact_text(&text, 2000),
+                result_json: json!({
+                    "kind": "document_text_extraction",
+                    "parser": FILE_INGEST_PARSER,
+                    "parserVersion": FILE_INGEST_PARSER_VERSION,
+                    "fileKind": document.kind,
+                    "text": text,
+                    "textChars": text_chars,
+                    "originalTextChars": original_text_chars,
+                    "truncated": truncated,
+                    "checksumSha256": document.checksum_sha256,
+                    "storageObjectSha256": task.object.sha256,
+                    "sourceName": source_name,
+                }),
+            })
+            .await?;
+
         self.update_file_extraction(UpdateConversationFileExtractionRequest {
             user_id: user_id.to_string(),
             file_id: file_id.to_string(),
             status: Some(EXTRACTION_STATUS_EXTRACTED.to_string()),
-            text: Some(text),
-            content_kind: Some("document_text".to_string()),
+            text: Some(format!(
+                "Document text extraction is stored in analysis {}.",
+                task.analysis.id
+            )),
+            content_kind: Some("document_text_analysis_ref".to_string()),
             source: Some("server_file_ingest".to_string()),
             parser: Some(FILE_INGEST_PARSER.to_string()),
             language: None,
             failure_reason: None,
             metadata: Some(json!({
                 "parserVersion": FILE_INGEST_PARSER_VERSION,
-                "fileKind": document.kind,
-                "checksumSha256": document.checksum_sha256,
+                "analysisId": task.analysis.id,
+                "analysisKind": task.analysis.analysis_kind,
+                "storageObjectSha256": task.object.sha256,
                 "originalTextChars": original_text_chars,
                 "truncated": truncated,
             })),
@@ -785,6 +879,16 @@ fn normalize_required_text(value: String, label: &str) -> BizResult<String> {
     Ok(value)
 }
 
+fn compact_text(value: &str, max_chars: usize) -> String {
+    let trimmed = value.trim();
+    if trimmed.chars().count() <= max_chars {
+        return trimmed.to_string();
+    }
+    let mut output = trimmed.chars().take(max_chars).collect::<String>();
+    output.push_str("...");
+    output
+}
+
 fn ensure_file_service_object_key(object_key: &str, user_id: &Uuid) -> BizResult<()> {
     storage::key::validate_object_key(object_key)
         .map_err(|err| BizError::new(app_error::CONVERSATION_REQUEST_INVALID, err.to_string()))?;
@@ -899,11 +1003,12 @@ struct FileExtractionMetadataPatch {
 
 fn build_file_extraction_metadata(current: Value, patch: FileExtractionMetadataPatch) -> Value {
     let mut object = current.as_object().cloned().unwrap_or_default();
+    let store_inline_text = patch.content_kind != "document_text_analysis_ref";
     object.insert(
         "extractionStatus".to_string(),
         Value::String(patch.status.clone()),
     );
-    if let Some(text) = patch.text.as_ref() {
+    if let Some(text) = patch.text.as_ref().filter(|_| store_inline_text) {
         object.insert("extractedText".to_string(), Value::String(text.clone()));
         object.insert("textContent".to_string(), Value::String(text.clone()));
     } else {
@@ -919,7 +1024,7 @@ fn build_file_extraction_metadata(current: Value, patch: FileExtractionMetadataP
     extraction.insert("contentKind".to_string(), Value::String(patch.content_kind));
     extraction.insert("source".to_string(), Value::String(patch.source));
     extraction.insert("parser".to_string(), Value::String(patch.parser));
-    if let Some(text) = patch.text {
+    if let Some(text) = patch.text.filter(|_| store_inline_text) {
         extraction.insert("text".to_string(), Value::String(text));
     } else {
         extraction.remove("text");
@@ -962,6 +1067,9 @@ fn merge_extraction_extra_metadata(extraction: &mut Map<String, Value>, extra_me
         "checksumSha256",
         "originalTextChars",
         "truncated",
+        "analysisId",
+        "analysisKind",
+        "storageObjectSha256",
     ] {
         if let Some(value) = extra_metadata.remove(key) {
             extraction.insert(key.to_string(), value);
@@ -970,59 +1078,6 @@ fn merge_extraction_extra_metadata(extraction: &mut Map<String, Value>, extra_me
         }
     }
     extraction.insert("metadata".to_string(), Value::Object(extra_metadata));
-}
-
-fn is_file_ingest_supported(file: &ConversationFile) -> bool {
-    file.mime_type
-        .as_deref()
-        .is_some_and(is_file_ingest_supported_mime)
-        || file
-            .file_name
-            .as_deref()
-            .is_some_and(is_file_ingest_supported_name)
-        || is_file_ingest_supported_name(&file.object_key)
-}
-
-fn is_file_ingest_supported_mime(value: &str) -> bool {
-    let mime = value
-        .split(';')
-        .next()
-        .unwrap_or_default()
-        .trim()
-        .to_ascii_lowercase();
-    matches!(
-        mime.as_str(),
-        "application/pdf"
-            | "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            | "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            | "application/vnd.ms-excel"
-            | "text/csv"
-            | "text/plain"
-            | "text/markdown"
-            | "application/json"
-    )
-}
-
-fn is_file_ingest_supported_name(value: &str) -> bool {
-    let extension = value
-        .rsplit_once('.')
-        .map(|(_, extension)| extension.trim().to_ascii_lowercase());
-    matches!(
-        extension.as_deref(),
-        Some(
-            "pdf"
-                | "docx"
-                | "xlsx"
-                | "xlsm"
-                | "xlsb"
-                | "xls"
-                | "csv"
-                | "txt"
-                | "md"
-                | "markdown"
-                | "json"
-        )
-    )
 }
 
 fn now_rfc3339() -> String {
@@ -1128,6 +1183,41 @@ mod tests {
         assert!(metadata.get("textContent").is_none());
         assert_eq!(metadata["extraction"]["status"], EXTRACTION_STATUS_FAILED);
         assert_eq!(metadata["extraction"]["failureReason"], "encrypted pdf");
+        assert!(metadata["extraction"].get("text").is_none());
+    }
+
+    #[test]
+    fn conversation_file_analysis_ref_does_not_store_inline_text() {
+        let metadata = build_file_extraction_metadata(
+            json!({}),
+            FileExtractionMetadataPatch {
+                status: EXTRACTION_STATUS_EXTRACTED.to_string(),
+                text: Some("正文保存在 analysis.result_json.text".to_string()),
+                content_kind: "document_text_analysis_ref".to_string(),
+                source: "server_file_ingest".to_string(),
+                parser: "file-ingest".to_string(),
+                language: None,
+                failure_reason: None,
+                text_chars: 0,
+                extra_metadata: json!({
+                    "analysisId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+                    "analysisKind": "document_text_extraction",
+                    "storageObjectSha256": "sha256",
+                }),
+            },
+        );
+
+        assert_eq!(metadata["extractionStatus"], EXTRACTION_STATUS_EXTRACTED);
+        assert_eq!(
+            metadata["extraction"]["contentKind"],
+            "document_text_analysis_ref"
+        );
+        assert_eq!(
+            metadata["extraction"]["analysisKind"],
+            "document_text_extraction"
+        );
+        assert!(metadata.get("extractedText").is_none());
+        assert!(metadata.get("textContent").is_none());
         assert!(metadata["extraction"].get("text").is_none());
     }
 
