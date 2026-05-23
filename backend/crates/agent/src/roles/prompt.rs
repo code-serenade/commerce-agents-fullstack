@@ -194,6 +194,7 @@ mod tests {
             .find(|role| role.runtime_role == "data")
             .expect("data role exists")
             .clone();
+        let role_name = role.name.clone();
 
         let prompt = RolePromptBuilder::build_worker_prompt(&RolePromptInput {
             role,
@@ -201,7 +202,7 @@ mod tests {
             facts: vec!["用户提供了转化率指标".to_string()],
         });
 
-        assert!(prompt.contains("数据分析师"));
+        assert!(prompt.contains(&role_name));
         assert!(prompt.contains("角色: 数据分析师 (data)"));
         assert!(!prompt.contains("prompt_source:"));
         assert!(prompt.contains("技能:"));
@@ -220,7 +221,7 @@ mod tests {
 
         let prompt = RolePromptBuilder::build_worker_system_prompt(&role);
 
-        assert!(prompt.contains("内容创意师"));
+        assert!(prompt.contains(&role.name));
         assert!(prompt.contains("角色: 内容创意师 (creative)"));
         assert!(!prompt.contains("prompt_source:"));
     }
@@ -261,7 +262,7 @@ mod tests {
             }],
         });
 
-        assert!(prompt.contains("## 合同"));
+        assert!(prompt.contains("## 汇总合同"));
         assert!(prompt.contains("不复述任务、岗位或内部过程"));
         assert!(prompt.contains("半成品"));
         assert!(prompt.contains("分析数据并写文案"));

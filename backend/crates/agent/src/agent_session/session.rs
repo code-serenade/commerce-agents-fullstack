@@ -395,11 +395,9 @@ mod tests {
         .map(|role| role.runtime_role.clone())
         .collect::<Vec<_>>();
 
-        assert!(selected.contains(&"data".to_string()));
-        assert!(selected.contains(&"accounting".to_string()));
-        assert!(selected.contains(&"creative".to_string()));
         assert!(selected.contains(&"ops".to_string()));
         assert!(selected.contains(&"chat".to_string()));
+        assert_eq!(selected.len(), 2);
         assert!(!selected.contains(&"engineering".to_string()));
     }
 

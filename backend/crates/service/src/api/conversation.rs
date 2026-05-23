@@ -559,9 +559,26 @@ impl ConversationApi {
         let file = self.ensure_active_file_owner(user_id, file_id).await?;
         self.ensure_active_conversation_owner(user_id, file.conversation_id)
             .await?;
+        tracing::debug!(
+            file_id = %file.id,
+            conversation_id = %file.conversation_id,
+            object_key = %file.object_key,
+            file_name = ?file.file_name,
+            mime_type = ?file.mime_type,
+            file_size = ?file.file_size,
+            sha256 = ?file.sha256,
+            "document text extraction requested"
+        );
 
         let manager = DocumentTextExtractionManager::new(self.db.clone());
         let Some(task) = manager.ensure_task_for_conversation_file(file.id).await? else {
+            tracing::debug!(
+                file_id = %file.id,
+                object_key = %file.object_key,
+                file_name = ?file.file_name,
+                mime_type = ?file.mime_type,
+                "document text extraction skipped: unsupported document type"
+            );
             return self
                 .update_file_extraction(UpdateConversationFileExtractionRequest {
                     user_id: user_id.to_string(),
@@ -582,6 +599,14 @@ impl ConversationApi {
 
         let analysis_api = StorageObjectAnalysisApi::new(self.db.clone());
         if !StorageObjectAnalysisApi::can_process(&task.analysis.status) {
+            tracing::debug!(
+                file_id = %file.id,
+                analysis_id = %task.analysis.id,
+                analysis_status = %task.analysis.status,
+                analysis_kind = %task.analysis.analysis_kind,
+                storage_object_sha256 = %task.object.sha256,
+                "document text extraction reused existing analysis"
+            );
             return self
                 .update_file_extraction(UpdateConversationFileExtractionRequest {
                     user_id: user_id.to_string(),
@@ -606,6 +631,14 @@ impl ConversationApi {
                 .await;
         }
 
+        tracing::debug!(
+            file_id = %file.id,
+            analysis_id = %task.analysis.id,
+            analysis_kind = %task.analysis.analysis_kind,
+            storage_object_sha256 = %task.object.sha256,
+            object_key = %file.object_key,
+            "document text extraction started"
+        );
         analysis_api.mark_processing(task.analysis.id, None).await?;
 
         let bytes = match storage
@@ -618,6 +651,13 @@ impl ConversationApi {
             Ok(bytes) => bytes,
             Err(err) => {
                 let error_message = format!("download failed: {err}");
+                tracing::warn!(
+                    file_id = %file.id,
+                    analysis_id = %task.analysis.id,
+                    object_key = %file.object_key,
+                    error = %err,
+                    "document text extraction download failed"
+                );
                 analysis_api
                     .mark_failed(FailStorageObjectAnalysisRequest {
                         id: task.analysis.id,
@@ -645,6 +685,13 @@ impl ConversationApi {
                     .await;
             }
         };
+        tracing::debug!(
+            file_id = %file.id,
+            analysis_id = %task.analysis.id,
+            object_key = %file.object_key,
+            bytes_len = bytes.len(),
+            "document text extraction downloaded object"
+        );
 
         let source_name = file
             .file_name
@@ -655,6 +702,15 @@ impl ConversationApi {
             Ok(document) => document,
             Err(err) => {
                 let error_message = format!("parse failed: {err}");
+                tracing::warn!(
+                    file_id = %file.id,
+                    analysis_id = %task.analysis.id,
+                    source_name = %source_name,
+                    object_key = %file.object_key,
+                    bytes_len = bytes.len(),
+                    error = %err,
+                    "document text extraction parse failed"
+                );
                 analysis_api
                     .mark_failed(FailStorageObjectAnalysisRequest {
                         id: task.analysis.id,
@@ -682,6 +738,14 @@ impl ConversationApi {
                     .await;
             }
         };
+        tracing::debug!(
+            file_id = %file.id,
+            analysis_id = %task.analysis.id,
+            source_name = %source_name,
+            file_kind = ?document.kind,
+            checksum_sha256 = ?document.checksum_sha256,
+            "document text extraction parsed document"
+        );
 
         let text = document.to_ai_text_with_options(&ViewOptions {
             max_table_rows: 100,
@@ -691,6 +755,13 @@ impl ConversationApi {
             Ok(text) => text,
             Err(_) => {
                 let error_message = "document contains no readable text".to_string();
+                tracing::warn!(
+                    file_id = %file.id,
+                    analysis_id = %task.analysis.id,
+                    source_name = %source_name,
+                    file_kind = ?document.kind,
+                    "document text extraction produced empty text"
+                );
                 analysis_api
                     .mark_failed(FailStorageObjectAnalysisRequest {
                         id: task.analysis.id,
@@ -727,6 +798,16 @@ impl ConversationApi {
         };
 
         let text_chars = text.chars().count();
+        tracing::debug!(
+            file_id = %file.id,
+            analysis_id = %task.analysis.id,
+            source_name = %source_name,
+            file_kind = ?document.kind,
+            text_chars,
+            original_text_chars,
+            truncated,
+            "document text extraction succeeded"
+        );
         analysis_api
             .mark_succeeded(CompleteStorageObjectAnalysisRequest {
                 id: task.analysis.id,

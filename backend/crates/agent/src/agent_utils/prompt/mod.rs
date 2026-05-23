@@ -31,7 +31,14 @@ impl Prompt {
     }
 
     pub fn load_from_repo(relative: impl AsRef<Path>) -> Result<Self> {
-        Self::load(relative)
+        let relative = relative.as_ref();
+        if relative.exists() {
+            return Self::load(relative);
+        }
+        let manifest_relative = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../..")
+            .join(relative);
+        Self::load(manifest_relative)
     }
 
     pub fn to_message(&self, role: Role) -> ChatMessage {

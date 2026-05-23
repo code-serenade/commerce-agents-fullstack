@@ -14,5 +14,6 @@ storage.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 uuid.workspace = true
+tracing.workspace = true
 file-ingest = "=0.1.1"
 toolcraft-request = { version = "0.2.3" }
