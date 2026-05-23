@@ -490,7 +490,7 @@ mod tests {
             strategy: None,
         };
 
-        let (_, context, _) = metadata.into_parts().expect("metadata should parse");
+        let (_, context) = metadata.into_parts().expect("metadata should parse");
 
         assert_eq!(
             context.conversation_id.as_deref(),
@@ -514,7 +514,7 @@ mod tests {
             strategy: None,
         };
 
-        let (_, context, _) = metadata.into_parts().expect("metadata should parse");
+        let (_, context) = metadata.into_parts().expect("metadata should parse");
 
         assert_eq!(context.context_refs, vec![artifact_ref]);
         assert!(!context.context_refs.is_empty());
@@ -537,7 +537,7 @@ mod tests {
             strategy: None,
         };
 
-        let (_, context, _) = metadata.into_parts().expect("metadata should parse");
+        let (_, context) = metadata.into_parts().expect("metadata should parse");
 
         assert!(context.has_product_context());
         assert_eq!(context.product_context_refs(), vec![product_ref]);
@@ -561,7 +561,7 @@ mod tests {
             strategy: None,
         };
 
-        let (_, context, _) = metadata.into_parts().expect("metadata should parse");
+        let (_, context) = metadata.into_parts().expect("metadata should parse");
 
         assert_eq!(context.campaign_ids, vec![campaign_id.clone()]);
         assert_eq!(
