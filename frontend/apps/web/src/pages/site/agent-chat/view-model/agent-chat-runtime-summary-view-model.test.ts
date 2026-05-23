@@ -7,7 +7,6 @@ import type {
 import {
   buildCompactRuntimeSummary,
   selectedRoleSummary,
-  shortModelName,
 } from "./agent-chat-runtime-summary-view-model"
 
 const t = ((key: string, values?: Record<string, unknown>) => {
@@ -16,6 +15,7 @@ const t = ((key: string, values?: Record<string, unknown>) => {
     "agentChat.strategy.options.quick.shortHint": "Short",
     "agentChat.strategy.options.execution.shortHint": "Full",
     "agentChat.composer.settings.autoRolesSummary": "Backend auto",
+    "agentChat.composer.settings.multiAgentSummary": `${values?.count ?? 0} agents collaborating`,
     "agentChat.composer.settings.rolesCount": `${values?.count ?? 0} roles`,
   }
   return copy[key] ?? key
@@ -50,8 +50,15 @@ const runtimeOptions: AgentRuntimeOptions = {
       isDefault: false,
     },
   ],
-  models: [],
   responseModes: [],
+  routingModes: [
+    {
+      id: "commander",
+      label: copy("Commander"),
+      description: copy("Deep route"),
+      isDefault: true,
+    },
+  ],
   roles: [
     {
       id: "role-ops",
@@ -87,8 +94,8 @@ describe("agent chat runtime summary view model", () => {
     const selection: AgentChatRuntimeSelection = {
       collaborationMode: "auto",
       learningLevel: "higher_vocational",
-      modelName: "doubao-pro-32k",
       primaryRole: "ops",
+      routingMode: "commander",
       selectedRoles: [],
     }
 
@@ -99,15 +106,15 @@ describe("agent chat runtime summary view model", () => {
         strategyId: "learning",
         t,
       })
-    ).toBe("Teaching / Auto dispatch / Medium / Doubao / Backend auto")
+    ).toBe("Teaching / Commander / Auto dispatch / Medium / Backend auto")
   })
 
-  it("shows the lead role and support count for manual multi-role mode", () => {
+  it("shows agent collaboration count for manual multi-agent mode", () => {
     const selection: AgentChatRuntimeSelection = {
       collaborationMode: "manual",
       learningLevel: "professional",
-      modelName: "llm.commerce-model",
       primaryRole: "data",
+      routingMode: "commander",
       selectedRoles: ["data", "ops", "creative"],
     }
 
@@ -117,11 +124,7 @@ describe("agent chat runtime summary view model", () => {
         runtimeSelection: selection,
         t,
       })
-    ).toBe("Data+2")
+    ).toBe("3 agents collaborating")
   })
 
-  it("normalizes long model ids without hiding non-Doubao names", () => {
-    expect(shortModelName("doubao-pro-32k")).toBe("Doubao")
-    expect(shortModelName("llm.commerce-model")).toBe("commerce")
-  })
 })

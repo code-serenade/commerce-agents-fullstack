@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
+  <title id="title">TaskMate option J Minimal Compass</title>
+  <desc id="desc">A minimal decision compass for intelligent ecommerce execution.</desc>
+  <rect width="96" height="96" rx="21" fill="#0c1f1f"/>
+  <circle cx="48" cy="48" r="29" fill="none" stroke="#164e4a" stroke-width="10"/>
+  <path fill="#f8fafc" d="M58 24 51 51 24 58l21-21 13-13z"/>
+  <path fill="#2dd4bf" d="M38 72 45 45l27-7-21 21-13 13z"/>
+  <circle cx="48" cy="48" r="5" fill="#fbbf24"/>
+</svg>

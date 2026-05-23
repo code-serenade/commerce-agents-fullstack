@@ -25,8 +25,8 @@ export function AgentChatComposerPanels({
   isStreaming,
   onRuntimeCollaborationModeChange,
   onRuntimeLearningLevelChange,
-  onRuntimeModelChange,
   onRuntimePrimaryRoleChange,
+  onRuntimeRoutingModeChange,
   onSelectPlaybook,
   onStrategyChange,
   onClearCampaignContext,
@@ -59,8 +59,8 @@ export function AgentChatComposerPanels({
   onFocusComposer?: () => void
   onRuntimeCollaborationModeChange: (value: string) => void
   onRuntimeLearningLevelChange: (value: string) => void
-  onRuntimeModelChange: (value: string) => void
   onRuntimePrimaryRoleChange: (value: string) => void
+  onRuntimeRoutingModeChange: (value: string) => void
   onSelectPlaybook: (playbook: AgentChatPlaybookSelection) => void
   onStrategyChange: (strategyId: AgentChatStrategyId) => void
   onClearCampaignContext: () => void
@@ -143,8 +143,8 @@ export function AgentChatComposerPanels({
             isStreaming={isStreaming}
             onCollaborationModeChange={onRuntimeCollaborationModeChange}
             onLearningLevelChange={onRuntimeLearningLevelChange}
-            onModelChange={onRuntimeModelChange}
             onPrimaryRoleChange={onRuntimePrimaryRoleChange}
+            onRoutingModeChange={onRuntimeRoutingModeChange}
             onSelectPlaybook={onSelectPlaybook}
             onStrategyChange={onStrategyChange}
             onToggleOpen={() => undefined}

@@ -143,6 +143,7 @@ export function useAgentChatPage() {
 
   const sendMessage = useAgentChatSend({
     abortRef,
+    attachments,
     conversationId,
     fallbackConversationTitle,
     inputValue: input,
@@ -199,8 +200,8 @@ export function useAgentChatPage() {
     setInput,
     setRuntimeCollaborationMode: runtimeContext.setCollaborationMode,
     setRuntimeLearningLevel: runtimeContext.setLearningLevel,
-    setRuntimeModelName: runtimeContext.setModelName,
     setRuntimePrimaryRole: runtimeContext.setPrimaryRole,
+    setRuntimeRoutingMode: runtimeContext.setRoutingMode,
     setStrategyId,
     strategyId,
     toggleProductContext: productContext.toggleProductContext,

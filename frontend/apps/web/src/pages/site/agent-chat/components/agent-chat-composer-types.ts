@@ -18,6 +18,7 @@ export interface AgentChatComposerProps {
   availableSources: AgentChatSourceContextSelection[]
   canSend: boolean
   error: string | null
+  focusVersion?: number
   input: string
   isLoggedIn: boolean
   isLoadingPlaybooks: boolean
@@ -28,8 +29,8 @@ export interface AgentChatComposerProps {
   onInputChange: (value: string) => void
   onRuntimeCollaborationModeChange: (value: string) => void
   onRuntimeLearningLevelChange: (value: string) => void
-  onRuntimeModelChange: (value: string) => void
   onRuntimePrimaryRoleChange: (value: string) => void
+  onRuntimeRoutingModeChange: (value: string) => void
   onToggleRuntimeRole: (value: string) => void
   onSelectPlaybook: (playbook: AgentChatPlaybookSelection) => void
   onSend: () => void

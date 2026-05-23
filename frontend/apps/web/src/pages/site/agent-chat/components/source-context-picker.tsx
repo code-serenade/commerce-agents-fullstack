@@ -1,4 +1,4 @@
-import { Check, FileText, Info } from "lucide-react"
+import { Check, Eye, FileText, Info } from "lucide-react"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import type { AgentChatSourceContextSelection } from "../domain/agent-chat-context-selection"
@@ -130,10 +130,18 @@ function SourceContextButton({
         </span>
         <span className="mt-1 flex min-w-0 flex-wrap gap-1.5">
           <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-            {source.readable
+            {source.visionReady
+              ? t("agentChat.composer.sourceContext.visionReady")
+              : source.readable
               ? t("agentChat.composer.sourceContext.readable")
               : t("agentChat.composer.sourceContext.metadataOnly")}
           </span>
+          {source.visionReady ? (
+            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+              <Eye className="size-3" />
+              {t("agentChat.composer.sourceContext.vision")}
+            </span>
+          ) : null}
           <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
             {t("agentChat.composer.sourceContext.currentConversation")}
           </span>

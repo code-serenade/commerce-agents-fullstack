@@ -38,6 +38,7 @@ describe("sendAgentChatMessage", () => {
 
     await sendAgentChatMessage({
       content: "Analyze coffee category products.",
+      attachments: [],
       conversationId: null,
       fallbackConversationTitle: "New chat",
       messageFormatCopy: {
@@ -49,8 +50,8 @@ describe("sendAgentChatMessage", () => {
       runtimeSelection: {
         collaborationMode: "manual",
         learningLevel: "higher_vocational",
-        modelName: "ollama-gpt-oss-20b",
         primaryRole: "ops",
+        routingMode: "commander",
         selectedRoles: ["ops", "data"],
       },
       selectedProducts: [],
@@ -102,6 +103,7 @@ describe("sendAgentChatMessage", () => {
             id: "execution",
             outputFormat: "structured_markdown",
             responseMode: "execution",
+            routingMode: "commander",
             selectedRoles: ["ops", "data"],
           }),
         }),
@@ -145,6 +147,7 @@ describe("sendAgentChatMessage", () => {
 
     await sendAgentChatMessage({
       content: `${textFromCodes([35831, 20998, 26512, 21654, 21857, 31867, 21830, 21697])}，${textFromCodes([19981, 24341, 29992, 20219, 20309, 39044, 35774, 21830, 21697])}。`,
+      attachments: [],
       conversationId: null,
       fallbackConversationTitle: "New chat",
       messageFormatCopy: {
@@ -156,8 +159,8 @@ describe("sendAgentChatMessage", () => {
       runtimeSelection: {
         collaborationMode: "manual",
         learningLevel: "higher_vocational",
-        modelName: "ollama-gpt-oss-20b",
         primaryRole: "ops",
+        routingMode: "commander",
         selectedRoles: ["ops", "data"],
       },
       selectedProducts: [],
@@ -222,6 +225,7 @@ describe("sendAgentChatMessage", () => {
 
     await sendAgentChatMessage({
       content: `${textFromCodes([35831, 29992, 22810, 23703, 20301, 21327, 20316, 20998, 26512, 30452, 25773, 38388, 28431, 26007])}，${textFromCodes([19981, 24341, 29992, 20219, 20309, 39044, 35774, 21830, 21697])}。`,
+      attachments: [],
       conversationId: null,
       fallbackConversationTitle: "New chat",
       messageFormatCopy: {
@@ -233,8 +237,8 @@ describe("sendAgentChatMessage", () => {
       runtimeSelection: {
         collaborationMode: "manual",
         learningLevel: "higher_vocational",
-        modelName: "ollama-gpt-oss-20b",
         primaryRole: "ops",
+        routingMode: "commander",
         selectedRoles: ["ops", "data", "creative"],
       },
       selectedProducts: [],

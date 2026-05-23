@@ -1,4 +1,7 @@
-use std::{fs, path::Path};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 use serde::Deserialize;
 use tracing::warn;
@@ -185,7 +188,7 @@ pub(in crate::agent::worker::runner) fn load_autosuggest_policy() -> WorkerAutos
     if let Ok(path) = std::env::var(AUTOSUGGEST_ENV)
         && !path.trim().is_empty()
     {
-        match load_autosuggest_path(Path::new(&path)) {
+        match load_autosuggest_path(&resolve_policy_path(&path)) {
             Ok(policy) => return policy,
             Err(error) => warn!(
                 path,
@@ -194,8 +197,8 @@ pub(in crate::agent::worker::runner) fn load_autosuggest_policy() -> WorkerAutos
         }
     }
 
-    let directory_path = Path::new(DEFAULT_AUTOSUGGEST_DIR);
-    match load_autosuggest_directory(directory_path) {
+    let directory_path = resolve_policy_path(DEFAULT_AUTOSUGGEST_DIR);
+    match load_autosuggest_directory(&directory_path) {
         Ok(policy) => return policy,
         Err(error) => warn!(
             path = %directory_path.display(),
@@ -204,8 +207,8 @@ pub(in crate::agent::worker::runner) fn load_autosuggest_policy() -> WorkerAutos
         ),
     }
 
-    let legacy_path = Path::new(LEGACY_AUTOSUGGEST_FILE);
-    match load_legacy_file(legacy_path) {
+    let legacy_path = resolve_policy_path(LEGACY_AUTOSUGGEST_FILE);
+    match load_legacy_file(&legacy_path) {
         Ok(policy) => policy,
         Err(error) => {
             warn!(
@@ -217,6 +220,16 @@ pub(in crate::agent::worker::runner) fn load_autosuggest_policy() -> WorkerAutos
                 .expect("embedded worker autosuggest policy must be valid")
         }
     }
+}
+
+fn resolve_policy_path(path: &str) -> PathBuf {
+    let candidate = Path::new(path);
+    if candidate.exists() || candidate.is_absolute() {
+        return candidate.to_path_buf();
+    }
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../..")
+        .join(candidate)
 }
 
 fn load_autosuggest_path(path: &Path) -> Result<WorkerAutosuggestPolicy, String> {

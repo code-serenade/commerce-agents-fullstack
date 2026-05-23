@@ -11,17 +11,11 @@ use crate::{
     dto::app::{
         AgentCapabilityCatalogResponse, AgentCapabilityCatalogSummaryResponse,
         AgentCapabilityRoleResponse, AgentCapabilitySkillInputResponse,
-        AgentCapabilitySkillResponse, AgentRuntimeChoiceResponse, AgentRuntimeLlmUsageResponse,
-        AgentRuntimeModelOptionResponse, AgentRuntimeOptionsResponse,
+        AgentCapabilitySkillResponse, AgentRuntimeChoiceResponse, AgentRuntimeOptionsResponse,
         AgentRuntimeRoleOptionResponse, CommerceAgentPlaybookListResponse,
     },
     error::from_biz_error,
-    statics::{
-        agent_manager::{
-            agent_runtime_llm_usage, list_agent_runtime_models, select_agent_runtime_model,
-        },
-        db_manager::get_app_ctx,
-    },
+    statics::db_manager::get_app_ctx,
 };
 
 pub async fn list_commerce_agent_playbooks(
@@ -44,9 +38,6 @@ pub async fn get_agent_runtime_options(
         .await
         .map_err(from_biz_error)?;
 
-    let models = list_agent_runtime_models()?;
-    let default_model = select_agent_runtime_model(None)?;
-    let llm_usage = agent_runtime_llm_usage()?;
     let roles = RoleCatalog::configured()
         .roles()
         .iter()
@@ -63,21 +54,6 @@ pub async fn get_agent_runtime_options(
         .collect::<Vec<_>>();
 
     Ok(AgentRuntimeOptionsResponse {
-        default_model_name: Some(default_model.selected_name),
-        llm_usage: AgentRuntimeLlmUsageResponse {
-            default: llm_usage.default,
-            fast: llm_usage.fast,
-            thinking: llm_usage.thinking,
-            vision: llm_usage.vision,
-        },
-        models: models
-            .into_iter()
-            .map(|model| AgentRuntimeModelOptionResponse {
-                name: model.name,
-                model: model.model,
-                is_default: model.is_default,
-            })
-            .collect(),
         strategies: runtime_choices(&[
             (
                 "learning",
@@ -115,6 +91,20 @@ pub async fn get_agent_runtime_options(
                 "execution",
                 "丰富执行",
                 "输出完整方案、表格清单、风险边界和落地动作。",
+                false,
+            ),
+        ]),
+        routing_modes: runtime_choices(&[
+            (
+                "commander",
+                "深度决策",
+                "先由 Commander 分析，再生成或选择任务图。",
+                true,
+            ),
+            (
+                "fast",
+                "快速路由",
+                "优先按配置规则匹配任务图，未命中时再兜底。",
                 false,
             ),
         ]),
@@ -397,6 +387,20 @@ mod tests {
                 false,
             ),
         ]);
+        let routing_modes = runtime_choices(&[
+            (
+                "commander",
+                "深度决策",
+                "先由 Commander 分析，再生成或选择任务图。",
+                true,
+            ),
+            (
+                "fast",
+                "快速路由",
+                "优先按配置规则匹配任务图，未命中时再兜底。",
+                false,
+            ),
+        ]);
         let collaboration_modes = runtime_choices(&[
             (
                 "auto",
@@ -426,6 +430,11 @@ mod tests {
                 .any(|choice| choice.id == "higher_vocational"
                     && choice.label == "中"
                     && choice.is_default)
+        );
+        assert!(
+            routing_modes
+                .iter()
+                .any(|choice| choice.id == "commander" && choice.is_default)
         );
         assert!(
             collaboration_modes

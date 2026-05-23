@@ -154,7 +154,6 @@ describe("agent chat message mapping", () => {
           strategy: {
             collaborationMode: "manual",
             learningLevel: "higher_vocational",
-            modelName: "ollama-gpt-oss-20b",
             primaryRole: "data",
             selectedRoles: ["data", "creative"],
             strategyId: "collab",
@@ -168,7 +167,6 @@ describe("agent chat message mapping", () => {
     expect(readConversationRuntimeSelection(detail)).toEqual({
       collaborationMode: "manual",
       learningLevel: "higher_vocational",
-      modelName: "ollama-gpt-oss-20b",
       primaryRole: "data",
       selectedRoles: ["data", "creative"],
     })
@@ -184,7 +182,6 @@ describe("agent chat message mapping", () => {
       strategy: {
         collaborationMode: "manual",
         learningLevel: "higher_vocational",
-        modelName: "ollama-gpt-oss-20b",
         primaryRole: "data",
         selectedRoles: ["data", "creative"],
         strategyId: "collab",
@@ -204,7 +201,6 @@ describe("agent chat message mapping", () => {
       campaigns: [],
       collaborationMode: "manual",
       learningLevel: "higher_vocational",
-      modelName: "ollama-gpt-oss-20b",
       primaryRole: "data",
       productIds: ["product-a"],
       products: [{ id: "product-a" }],
@@ -244,9 +240,17 @@ describe("agent chat message mapping", () => {
     ]
 
     expect(mapConversationAttachments(detail)).toEqual([
-      { fileId: "file-1", id: "file-1", name: "brief.md", readable: true, status: "uploaded" },
+      {
+        fileId: "file-1",
+        id: "file-1",
+        kind: "file",
+        name: "brief.md",
+        readable: true,
+        status: "uploaded",
+      },
     ])
   })
+
 })
 
 function conversationDetail(
@@ -260,8 +264,7 @@ function conversationDetail(
 ): ConversationDetailResponse {
   return {
     conversation: {
-      agentId: "web-agent", createdAt: "2026-05-13T00:00:00.000Z", id: "c1",
-      modelName: null, source: "agent_chat", status: "active", title: null,
+      agentId: "web-agent", createdAt: "2026-05-13T00:00:00.000Z", id: "c1", modelName: null, source: "agent_chat", status: "active", title: null,
       updatedAt: "2026-05-13T00:00:00.000Z", userId: "u1",
     },
     files: [],

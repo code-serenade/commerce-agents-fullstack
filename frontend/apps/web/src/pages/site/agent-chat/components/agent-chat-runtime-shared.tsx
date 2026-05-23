@@ -27,12 +27,14 @@ export function SettingsRow({
 
 export function OptionSegment({
   disabled,
+  columns = 3,
   label,
   onValueChange,
   options,
   value,
 }: {
   disabled: boolean
+  columns?: 2 | 3
   label: string
   onValueChange: (value: string) => void
   options: { description?: string; label: string; value: string }[]
@@ -40,7 +42,7 @@ export function OptionSegment({
 }) {
   return (
     <SettingsRow label={label}>
-      <div className="grid grid-cols-3 gap-1.5">
+      <div className={columns === 2 ? "grid grid-cols-2 gap-1.5" : "grid grid-cols-3 gap-1.5"}>
         {options.map((option) => {
           const active = option.value === value
           return (

@@ -1,6 +1,5 @@
 import type {
   AgentRuntimeChoice,
-  AgentRuntimeModelOption,
   AgentRuntimeRoleOption,
 } from "../domain/agent-runtime-options"
 
@@ -54,13 +53,6 @@ export function choiceToSelectOption(choice: AgentRuntimeChoice) {
   return {
     label: choice.label,
     value: choice.id,
-  }
-}
-
-export function modelToSelectOption(model: AgentRuntimeModelOption) {
-  return {
-    label: `${model.name} / ${model.model}`,
-    value: model.name,
   }
 }
 

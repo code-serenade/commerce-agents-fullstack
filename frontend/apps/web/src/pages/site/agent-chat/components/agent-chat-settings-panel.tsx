@@ -16,8 +16,8 @@ export interface AgentChatSettingsPanelProps {
   isStreaming: boolean
   onCollaborationModeChange: (value: string) => void
   onLearningLevelChange: (value: string) => void
-  onModelChange: (value: string) => void
   onPrimaryRoleChange: (value: string) => void
+  onRoutingModeChange: (value: string) => void
   onSelectPlaybook?: unknown
   onStrategyChange: (strategyId: AgentChatStrategyId) => void
   onToggleOpen: () => void
@@ -35,8 +35,8 @@ export function AgentChatSettingsPanel({
   isStreaming,
   onCollaborationModeChange,
   onLearningLevelChange,
-  onModelChange,
   onPrimaryRoleChange,
+  onRoutingModeChange,
   onStrategyChange,
   onToggleOpen,
   onToggleRole,
@@ -52,12 +52,10 @@ export function AgentChatSettingsPanel({
     runtimeOptions?.learningLevels.find(
       (level) => level.id === runtimeSelection.learningLevel
     )?.label ?? runtimeSelection.learningLevel
-  const modelLabel = runtimeSelection.modelName
   const roleModeLabel = roleModeCopyKey(runtimeSelection.collaborationMode)
     ? t(roleModeCopyKey(runtimeSelection.collaborationMode))
     : runtimeSelection.collaborationMode
   const runtimeLabel = [
-    modelLabel,
     t("agentChat.composer.settings.depthSummary", { depth: depthLabel }),
     roleModeLabel,
     runtimeSelection.primaryRole,
@@ -95,8 +93,8 @@ export function AgentChatSettingsPanel({
           isStreaming={isStreaming}
           onCollaborationModeChange={onCollaborationModeChange}
           onLearningLevelChange={onLearningLevelChange}
-          onModelChange={onModelChange}
           onPrimaryRoleChange={onPrimaryRoleChange}
+          onRoutingModeChange={onRoutingModeChange}
           onStrategyChange={onStrategyChange}
           onToggleRole={onToggleRole}
           runtimeOptions={runtimeOptions}
@@ -203,8 +201,8 @@ export function AgentChatSettingsPanel({
             isStreaming={isStreaming}
             onCollaborationModeChange={onCollaborationModeChange}
             onLearningLevelChange={onLearningLevelChange}
-            onModelChange={onModelChange}
             onPrimaryRoleChange={onPrimaryRoleChange}
+            onRoutingModeChange={onRoutingModeChange}
             onStrategyChange={onStrategyChange}
             onToggleRole={onToggleRole}
             runtimeOptions={runtimeOptions}

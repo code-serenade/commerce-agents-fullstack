@@ -3,13 +3,16 @@ use serde_json::Value;
 use super::CommanderTask;
 use crate::{
     cognition::CognitionOutput,
-    core::protocol::{DecisionIntent, TaskSpec, WorkerId},
+    core::protocol::{
+        DecisionIntent, TaskGraph, TaskGraphId, TaskNode, TaskNodeId, TaskSpec, WorkerId,
+    },
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RoutedDecision {
     pub intent: DecisionIntent,
     pub target_worker_id: Option<WorkerId>,
+    pub task_graph: Option<TaskGraph>,
     pub clarification: Option<String>,
 }
 
@@ -24,14 +27,32 @@ pub fn decision_intent_from_json(
 
     match kind {
         Some("RouteTask") => route_task(decision, current_task),
+        Some("ExecuteTaskGraph") => RoutedDecision {
+            intent: DecisionIntent::ExecuteTask {
+                task: current_task
+                    .clone()
+                    .map(task_to_spec)
+                    .unwrap_or_else(|| TaskSpec {
+                        id: crate::core::protocol::TaskId("commander-graph".to_string()),
+                        description: parse_task_graph(decision)
+                            .map(|graph| graph.root_task)
+                            .unwrap_or_default(),
+                    }),
+            },
+            target_worker_id: None,
+            task_graph: parse_task_graph(decision),
+            clarification: None,
+        },
         Some("KeepCurrentAssignment") => RoutedDecision {
             intent: DecisionIntent::KeepCurrentTask,
             target_worker_id: parse_target_worker_id(decision),
+            task_graph: None,
             clarification: None,
         },
         Some("AskForClarification") => RoutedDecision {
             intent: DecisionIntent::Ignore,
             target_worker_id: None,
+            task_graph: None,
             clarification: decision
                 .and_then(|value| value.get("clarification"))
                 .and_then(|value| value.get("question"))
@@ -41,11 +62,13 @@ pub fn decision_intent_from_json(
         Some("NoRoute") => RoutedDecision {
             intent: DecisionIntent::IgnoreNewTask,
             target_worker_id: None,
+            task_graph: None,
             clarification: None,
         },
         Some("NoAction") => RoutedDecision {
             intent: DecisionIntent::IgnoreNewTask,
             target_worker_id: None,
+            task_graph: None,
             clarification: None,
         },
         Some("ActionIntent") => RoutedDecision {
@@ -54,6 +77,7 @@ pub fn decision_intent_from_json(
                 .map(|task| DecisionIntent::ExecuteTask { task })
                 .unwrap_or(DecisionIntent::Ignore),
             target_worker_id: parse_target_worker_id(decision),
+            task_graph: None,
             clarification: None,
         },
         Some("StateProposal") => {
@@ -73,6 +97,7 @@ pub fn decision_intent_from_json(
             RoutedDecision {
                 intent,
                 target_worker_id: None,
+                task_graph: None,
                 clarification: None,
             }
         }
@@ -86,11 +111,13 @@ pub fn decision_intent_from_json(
                     .to_string(),
             },
             target_worker_id: None,
+            task_graph: None,
             clarification: None,
         },
         _ => RoutedDecision {
             intent: DecisionIntent::Ignore,
             target_worker_id: None,
+            task_graph: None,
             clarification: None,
         },
     }
@@ -105,6 +132,7 @@ fn route_task(decision: Option<&Value>, current_task: Option<CommanderTask>) -> 
     RoutedDecision {
         intent,
         target_worker_id: parse_target_worker_id(decision),
+        task_graph: None,
         clarification: None,
     }
 }
@@ -125,6 +153,96 @@ fn task_to_spec(task: CommanderTask) -> TaskSpec {
         id: crate::core::protocol::TaskId(task.id),
         description: task.description,
     }
+}
+
+fn parse_task_graph(decision: Option<&Value>) -> Option<TaskGraph> {
+    let graph = decision.and_then(|value| value.get("graph"))?;
+    let nodes = graph
+        .get("nodes")?
+        .as_array()?
+        .iter()
+        .filter_map(parse_task_node)
+        .collect::<Vec<_>>();
+    if nodes.is_empty() {
+        return None;
+    }
+    Some(TaskGraph {
+        graph_id: TaskGraphId(
+            graph
+                .get("graph_id")
+                .and_then(Value::as_str)
+                .filter(|value| !value.trim().is_empty())
+                .unwrap_or("commander-generated-graph")
+                .to_string(),
+        ),
+        root_task: graph
+            .get("root_task")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string(),
+        nodes,
+    })
+}
+
+fn parse_task_node(value: &Value) -> Option<TaskNode> {
+    let id = value.get("id").and_then(Value::as_str)?.trim();
+    let role = value.get("role").and_then(Value::as_str)?.trim();
+    if id.is_empty() || role.is_empty() {
+        return None;
+    }
+    Some(TaskNode {
+        id: TaskNodeId(id.to_string()),
+        role: role.to_string(),
+        worker_id: value
+            .get("worker_id")
+            .and_then(Value::as_str)
+            .map(str::trim)
+            .filter(|worker_id| !worker_id.is_empty())
+            .map(|worker_id| WorkerId(worker_id.to_string()))
+            .unwrap_or_else(|| WorkerId(format!("worker.{role}"))),
+        title: value
+            .get("title")
+            .and_then(Value::as_str)
+            .unwrap_or(role)
+            .to_string(),
+        objective: value
+            .get("objective")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string(),
+        llm_usage: value
+            .get("llm_usage")
+            .and_then(Value::as_str)
+            .map(str::to_string),
+        skill_autosuggest: value.get("skill_autosuggest").and_then(Value::as_bool),
+        input_refs: value
+            .get("input_refs")
+            .and_then(Value::as_array)
+            .map(|refs| {
+                refs.iter()
+                    .filter_map(Value::as_str)
+                    .map(|item| TaskNodeId(item.to_string()))
+                    .collect()
+            })
+            .unwrap_or_default(),
+        acceptance: value
+            .get("acceptance")
+            .and_then(Value::as_array)
+            .map(|items| {
+                items
+                    .iter()
+                    .filter_map(Value::as_str)
+                    .map(str::to_string)
+                    .collect()
+            })
+            .unwrap_or_default(),
+        max_attempts: value
+            .get("max_attempts")
+            .and_then(Value::as_u64)
+            .and_then(|value| u8::try_from(value).ok())
+            .unwrap_or(1)
+            .max(1),
+    })
 }
 
 #[cfg(test)]

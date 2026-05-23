@@ -129,6 +129,8 @@ pub(super) struct TaskGraphRuleMatch {
     #[serde(default)]
     pub(super) route_min_non_chat_roles: Option<usize>,
     #[serde(default)]
+    pub(super) min_explicit_role_aliases: Option<usize>,
+    #[serde(default)]
     pub(super) allow_without_route: bool,
     #[serde(default)]
     pub(super) explicit_team_request: bool,
@@ -258,6 +260,15 @@ fn resolve_task_graph_rules_path(path: &str) -> Option<PathBuf> {
     let candidate = Path::new(path);
     if candidate.exists() {
         return Some(normalize_task_graph_path(candidate));
+    }
+
+    if candidate.is_relative() {
+        let manifest_relative = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../..")
+            .join(candidate);
+        if manifest_relative.exists() {
+            return Some(normalize_task_graph_path(&manifest_relative));
+        }
     }
 
     None

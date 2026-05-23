@@ -2,6 +2,7 @@ import { Activity, PanelRightClose, MonitorCog } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type { AgentRuntimeEvent } from "@/api"
 import type { AgentChatMessage } from "../types"
+import { getAgentProcessKind } from "../view-model/agent-process-kind-view-model"
 import type { AgentRunFeedbackState } from "../view-model/use-agent-run-feedback"
 import {
   getAgents,
@@ -22,6 +23,7 @@ import {
   WorkspaceHandoffRail,
 } from "./swarm-support-panels"
 import { AgentRunFeedbackPanel } from "./agent-run-feedback-panel"
+import { AgentDispatchProcessPanel } from "./agent-dispatch-process-panel"
 
 interface AgentChatSwarmPanelProps {
   feedback: AgentRunFeedbackState
@@ -45,6 +47,19 @@ export function AgentChatSwarmPanel({
   const lastTask = task ?? userMessages.at(-1)?.content
   const hasTask = Boolean(lastTask)
   const hasRuntime = runtimeEvents.length > 0
+  const processKind = getAgentProcessKind(runtimeEvents)
+  if (processKind !== "multi_agent") {
+    return (
+      <AgentDispatchProcessPanel
+        feedback={feedback}
+        isStreaming={isStreaming}
+        onCollapse={onCollapse}
+        runtimeEvents={runtimeEvents}
+        task={lastTask}
+      />
+    )
+  }
+
   const graphNodes = getPlannedGraph(runtimeEvents)?.nodes ?? []
   const runtimeNodeStates = getRuntimeNodeStates(runtimeEvents)
   const agents = getAgents(graphNodes, t)
@@ -79,7 +94,7 @@ export function AgentChatSwarmPanel({
   const timeline = getTimeline(runtimeEvents, agents, hasTask, isStreaming, t)
 
   return (
-    <aside className="h-full min-h-124 min-w-0 overflow-hidden bg-background 2xl:min-h-0">
+    <aside className="h-full min-h-0 min-w-0 overflow-hidden bg-background">
       <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
         <header className="sticky top-0 z-10 shrink-0 border-b border-border bg-background/95 px-4 py-3 backdrop-blur">
           <div className="flex items-start justify-between gap-3">

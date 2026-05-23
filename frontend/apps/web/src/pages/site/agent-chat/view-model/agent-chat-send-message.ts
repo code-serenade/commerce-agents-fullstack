@@ -16,9 +16,15 @@ import {
 } from "../domain/agent-chat-context-selection"
 import type { AgentChatRuntimeSelection } from "../domain/agent-runtime-options"
 import type { AgentChatStrategy } from "../domain/agent-chat-strategy"
-import type { AgentChatConversationItem, AgentChatMessage } from "../types"
+import type {
+  AgentChatAttachmentItem,
+  AgentChatConversationItem,
+  AgentChatMessage,
+} from "../types"
+import { MAX_VISION_IMAGE_ATTACHMENTS } from "./agent-chat-image-attachments"
 
 interface SendAgentChatMessageInput {
+  attachments: AgentChatAttachmentItem[]
   content: string
   conversationId: string | null
   fallbackConversationTitle: string
@@ -47,11 +53,11 @@ export async function sendAgentChatMessage(
   const strategyMeta = {
     strategyId: input.strategy.id,
     responseMode: input.strategy.responseMode,
+    routingMode: input.runtimeSelection.routingMode,
     collaborationMode: input.runtimeSelection.collaborationMode,
     learningLevel: input.runtimeSelection.learningLevel,
     primaryRole: input.runtimeSelection.primaryRole,
     selectedRoles: input.runtimeSelection.selectedRoles,
-    modelName: input.runtimeSelection.modelName,
   }
   const contextMeta = {
     campaignIds: input.selectedCampaigns.map((campaign) => campaign.id),
@@ -62,11 +68,15 @@ export async function sendAgentChatMessage(
     ),
     productIds: input.selectedProducts.map((product) => product.id),
   }
+  const imageAttachments = createImageAttachments(
+    input.attachments,
+    contextMeta.contextRefs
+  )
   const contextSummary = createMessageContextSummary({
     ...contextMeta,
     collaborationMode: strategyMeta.collaborationMode,
     learningLevel: strategyMeta.learningLevel,
-    modelName: strategyMeta.modelName,
+    routingMode: strategyMeta.routingMode,
     primaryRole: strategyMeta.primaryRole,
     campaignIds: contextMeta.campaignIds,
     campaigns: input.selectedCampaigns,
@@ -125,12 +135,13 @@ export async function sendAgentChatMessage(
         input: input.content,
         agentId: AGENT_ID,
         metadata: {
-          model: input.runtimeSelection.modelName
-            ? { name: input.runtimeSelection.modelName }
-            : undefined,
+          ...(imageAttachments.length
+            ? { attachments: { images: imageAttachments } }
+            : {}),
           strategy: {
             id: input.strategy.id,
             responseMode: input.strategy.responseMode,
+            routingMode: input.runtimeSelection.routingMode,
             collaborationMode: input.runtimeSelection.collaborationMode,
             outputFormat: "structured_markdown",
             learningLevel: input.runtimeSelection.learningLevel,
@@ -253,4 +264,26 @@ export async function sendAgentChatMessage(
   }
 
   return controller
+}
+
+function createImageAttachments(
+  attachments: AgentChatAttachmentItem[],
+  contextRefs: string[]
+) {
+  return attachments
+    .filter(
+      (attachment) =>
+        attachment.status === "uploaded" &&
+        Boolean(attachment.fileId) &&
+        Boolean(attachment.imageDataUrl)
+    )
+    .filter((attachment) =>
+      contextRefs.includes(`conversation_file:${attachment.fileId}`)
+    )
+    .slice(0, MAX_VISION_IMAGE_ATTACHMENTS)
+    .map((attachment) => ({
+      detail: attachment.imageDetail ?? "auto",
+      sourceRef: `conversation_file:${attachment.fileId}`,
+      url: attachment.imageDataUrl!,
+    }))
 }

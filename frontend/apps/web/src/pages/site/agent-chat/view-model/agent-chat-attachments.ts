@@ -6,6 +6,11 @@ import type {
   AgentChatAttachmentItem,
   AgentChatConversationItem,
 } from "../types"
+import { resolveAttachmentExtractionState } from "./agent-chat-attachment-extraction-state"
+import {
+  createBrowserImageExtractionRequest,
+  isVisionImageFile,
+} from "./agent-chat-image-attachments"
 
 const MAX_INLINE_TEXT_CHARS = 100_000
 const EMPTY_TEXT_EXTRACTION_REASON = "File contains no readable text."
@@ -55,8 +60,9 @@ export async function uploadAgentChatAttachments({
 
   const pendingItems = files.map((file) => ({
     id: createAttachmentId(file),
+    kind: isVisionImageFile(file) ? ("image" as const) : ("file" as const),
     name: file.name,
-    readable: isReadableTextFile(file),
+    readable: isReadableTextFile(file) || isVisionImageFile(file),
     status: "uploading" as const,
   }))
   setAttachments((current) => [...current, ...pendingItems])
@@ -96,14 +102,35 @@ async function uploadOneAttachment(
       objectKey: sign.key,
       sha256: sign.key.split("/").at(-1)?.split(".").at(0),
     })
+    const extraction = await createBrowserExtractionRequest(file)
+    const extractionUpdated = extraction.request
+      ? await updateRegisteredFileExtraction(registered.id, extraction.request)
+      : false
+    const shouldTriggerServerExtraction = !extraction.request && !isImageFile(file)
+    const serverExtraction =
+      extractionUpdated && extraction.readable
+        ? null
+        : shouldTriggerServerExtraction
+          ? await triggerServerExtractionStatus(registered.id)
+          : null
+    const resolved = resolveAttachmentExtractionState({
+      browserReadable: extraction.readable && extractionUpdated,
+      fallbackReason: extraction.request?.failureReason ?? undefined,
+      imageDataUrl: extraction.imageDataUrl,
+      serverExtraction,
+      status: extraction.request?.status,
+    })
     setAttachments((current) =>
       current.map((item) =>
         item.id === localId
           ? {
               ...item,
               fileId: registered.id,
-              readable: isReadableTextFile(file),
-              status: "uploaded",
+              imageDataUrl: extraction.imageDataUrl,
+              imageDetail: extraction.imageDataUrl ? "auto" : undefined,
+              readable: resolved.readable,
+              status: resolved.status,
+              unsupportedReason: resolved.unsupportedReason,
             }
           : item
       )
@@ -118,6 +145,7 @@ async function uploadOneAttachment(
 }
 
 export interface BrowserExtractionRequestResult {
+  imageDataUrl?: string
   readable: boolean
   request: UpdateConversationFileExtractionRequest | null
 }
@@ -127,6 +155,9 @@ export async function createBrowserExtractionRequest(
 ): Promise<BrowserExtractionRequestResult> {
   const metadata = browserExtractionMetadata(file)
   if (!isReadableTextFile(file)) {
+    if (isImageFile(file)) {
+      return createBrowserImageExtractionRequest(file, metadata)
+    }
     return {
       readable: false,
       request: null,
@@ -180,6 +211,29 @@ export async function createBrowserExtractionRequest(
       status: "extracted",
       text: truncated ? trimmed.slice(0, MAX_INLINE_TEXT_CHARS) : trimmed,
     },
+  }
+}
+
+async function updateRegisteredFileExtraction(
+  fileId: string,
+  request: UpdateConversationFileExtractionRequest
+) {
+  try {
+    await agentChatData.updateConversationFileExtraction(fileId, request)
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function triggerServerExtractionStatus(fileId: string) {
+  try {
+    return await agentChatData.triggerConversationFileExtractionJob(fileId, {
+      mode: "auto",
+      force: false,
+    })
+  } catch {
+    return null
   }
 }
 

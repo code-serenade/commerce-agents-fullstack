@@ -21,6 +21,20 @@ export function getInlineNodeStates(runtimeEvents: AgentRuntimeEvent[]) {
   runtimeEvents.forEach((event) => {
     if (event.type === "task_graph_planned") {
       event.graph.nodes.forEach((node) => setQueued(states, readInlineId(node.id)))
+    } else if (event.type === "route_decided") {
+      const primaryRole =
+        event.primaryRuntimeRole ?? event.primary_runtime_role ?? "ops"
+      const primaryNodeId = primaryRole === "chat" ? "ops" : primaryRole
+      const supportRoles =
+        event.supportRuntimeRoles ?? event.support_runtime_roles ?? []
+      if (event.route_mode === "chat_bypass") {
+        setWorking(states, primaryNodeId)
+      } else {
+        setQueued(states, primaryNodeId)
+      }
+      supportRoles.forEach((role) => {
+        if (role !== "chat") setQueued(states, role)
+      })
     } else if (event.type === "task_node_ready") {
       setQueued(states, readRuntimeNodeId(event))
     } else if (event.type === "task_node_started") {
@@ -62,6 +76,7 @@ export function getInlineNodeStates(runtimeEvents: AgentRuntimeEvent[]) {
     } else if (event.type === "failed") {
       states.set("ops", "failed")
     } else if (event.type === "finished") {
+      markWorkingNodesDone(states)
       states.set("delivery", "done")
     }
   })
@@ -96,6 +111,14 @@ function setDoneUnlessBoundary(
   nodeId: string
 ) {
   if (states.get(nodeId) !== "boundary") states.set(nodeId, "done")
+}
+
+function markWorkingNodesDone(states: Map<string, InlineAgentState>) {
+  states.forEach((state, nodeId) => {
+    if (state === "working" || state === "queued") {
+      states.set(nodeId, "done")
+    }
+  })
 }
 
 function setEvaluationState(

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
+  <title id="title">TaskMate V3 08 Quiet Loop</title>
+  <desc id="desc">A quiet premium loop mark for orchestration and trust.</desc>
+  <rect width="96" height="96" rx="24" fill="#0b1220"/>
+  <path fill="none" stroke="#f4f1ea" stroke-linecap="round" stroke-width="12" d="M27 50c0-12 9-21 21-21h17"/>
+  <path fill="none" stroke="#b8a06a" stroke-linecap="round" stroke-width="12" d="M69 46c0 12-9 21-21 21H31"/>
+  <path fill="none" stroke="#0f766e" stroke-linecap="round" stroke-width="7" d="m58 34 11 12-11 12"/>
+</svg>

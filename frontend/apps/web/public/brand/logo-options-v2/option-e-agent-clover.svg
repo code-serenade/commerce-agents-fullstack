@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
+  <title id="title">TaskMate option E Agent Clover</title>
+  <desc id="desc">A four-role agent mark around a shared center.</desc>
+  <rect width="96" height="96" rx="21" fill="#111827"/>
+  <path fill="#f8fafc" d="M48 19c11 0 17 8 13 17l-7 15H42l-7-15c-4-9 2-17 13-17z"/>
+  <path fill="#14b8a6" d="M77 48c0 11-8 17-17 13l-15-7V42l15-7c9-4 17 2 17 13z"/>
+  <path fill="#38bdf8" d="M48 77c-11 0-17-8-13-17l7-15h12l7 15c4 9-2 17-13 17z"/>
+  <path fill="#fbbf24" d="M19 48c0-11 8-17 17-13l15 7v12l-15 7c-9 4-17-2-17-13z"/>
+  <circle cx="48" cy="48" r="7" fill="#111827"/>
+</svg>

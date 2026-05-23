@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
+  <title id="title">TaskMate option A LoopMate</title>
+  <desc id="desc">A minimal interlocking loop mark for multi-agent collaboration.</desc>
+  <rect width="96" height="96" rx="21" fill="#0b1220"/>
+  <g fill="none" stroke-linecap="round" stroke-width="11">
+    <path stroke="#f8fafc" d="M29 50c0-15 12-27 27-27 8 0 15 3 20 8"/>
+    <path stroke="#22c55e" d="M67 46c0 15-12 27-27 27-8 0-15-3-20-8"/>
+    <path stroke="#38bdf8" d="M32 27h24c13 0 23 10 23 23"/>
+    <path stroke="#fbbf24" d="M64 69H40c-13 0-23-10-23-23"/>
+  </g>
+</svg>

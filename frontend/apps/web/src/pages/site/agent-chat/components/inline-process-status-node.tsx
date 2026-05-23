@@ -1,10 +1,8 @@
 import { CheckCircle2, MonitorCog } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type { AgentRuntimeEvent } from "@/api"
-import {
-  getInlineAgents,
-  getInlineProcessStage,
-} from "../view-model/thread-inline-view-model"
+import { getAgentProcessProgress } from "../view-model/agent-process-kind-view-model"
+import { getInlineAgents } from "../view-model/thread-inline-view-model"
 
 export function InlineProcessStatusNode({
   isStreaming,
@@ -16,10 +14,15 @@ export function InlineProcessStatusNode({
   const { t } = useTranslation()
   const agents = getInlineAgents(runtimeEvents, isStreaming, t)
   const completedCount = agents.filter((agent) => agent.state === "done").length
-  const hasRuntime = runtimeEvents.length > 0
-  const progressPercent = agents.length
-    ? Math.min(100, Math.round((completedCount / agents.length) * 100))
-    : 0
+  const processProgress = getAgentProcessProgress(
+    {
+      completedCount,
+      isStreaming,
+      runtimeEvents,
+      totalCount: agents.length,
+    },
+    t
+  )
   const hasFailedAgent = agents.some((agent) => agent.state === "failed")
 
   return (
@@ -39,13 +42,13 @@ export function InlineProcessStatusNode({
                 />
                 <span className="shrink-0 font-medium text-foreground">
                   {t("agentChat.thread.currentProgress", {
-                    completed: completedCount,
-                    total: agents.length,
+                    completed: processProgress.completed,
+                    total: processProgress.total,
                   })}
                 </span>
                 <span className="hidden text-muted-foreground sm:inline">|</span>
                 <span className="min-w-0 truncate text-muted-foreground">
-                  {getInlineProcessStage({ hasRuntime, isStreaming, runtimeEvents }, t)}
+                  {processProgress.stage}
                 </span>
               </div>
               <div className="mt-1.5 h-px overflow-hidden rounded-full bg-muted">
@@ -53,7 +56,7 @@ export function InlineProcessStatusNode({
                   className={`block h-full rounded-full ${
                     hasFailedAgent ? "bg-destructive" : "bg-emerald-500"
                   }`}
-                  style={{ width: `${progressPercent}%` }}
+                  style={{ width: `${processProgress.percent}%` }}
                 />
               </div>
             </div>

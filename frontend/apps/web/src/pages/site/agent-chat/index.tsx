@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useNavigate } from "react-router"
 import type { AgentRuntimeEvent } from "./agent-chat-data"
 import { AgentChatComposer } from "./components/agent-chat-composer"
@@ -6,26 +6,53 @@ import { AgentProcessDrawer } from "./components/agent-process-drawer"
 import { AgentChatStatus } from "./components/agent-chat-status"
 import { AgentChatThread } from "./components/agent-chat-thread"
 import { useAgentChatContext } from "./context/use-agent-chat-context"
-import { isChatOnlyRuntime } from "./view-model/thread-inline-view-model"
+import {
+  findLatestProcessTarget,
+  type AgentProcessTarget,
+} from "./view-model/agent-process-visibility-view-model"
 
-interface ActiveProcessTarget {
-  anchorLabel: string
-  messageId: string
-  task: string
-}
+type ActiveProcessTarget = AgentProcessTarget
 
 export default function AgentChatPage() {
   const chat = useAgentChatContext()
   const navigate = useNavigate()
+  const [composerFocusVersion, setComposerFocusVersion] = useState(0)
   const [activeProcessTarget, setActiveProcessTarget] =
     useState<ActiveProcessTarget | null>(null)
-  const activeProcessMessage = activeProcessTarget
-    ? chat.messages.find((message) => message.id === activeProcessTarget.messageId)
+  const latestProcessTarget = useMemo(
+    () => findLatestProcessTarget(chat.messages, chat.runtimeEvents),
+    [chat.messages, chat.runtimeEvents]
+  )
+  const visibleProcessTarget = activeProcessTarget
+  const activeProcessMessage = visibleProcessTarget
+    ? chat.messages.find((message) => message.id === visibleProcessTarget.messageId)
     : null
   const activeRuntimeEvents: AgentRuntimeEvent[] =
-    activeProcessMessage?.runtimeEvents ?? []
+    activeProcessMessage?.runtimeEvents?.length
+      ? activeProcessMessage.runtimeEvents
+      : activeProcessMessage?.id === latestProcessTarget?.messageId
+        ? chat.runtimeEvents
+        : []
   const shouldShowProcessPanel =
-    Boolean(activeProcessMessage && !isChatOnlyRuntime(activeRuntimeEvents))
+    Boolean(activeProcessMessage && activeRuntimeEvents.length > 0)
+
+  const closeProcessPanel = () => {
+    setActiveProcessTarget(null)
+  }
+
+  const openProcessPanel = (target: ActiveProcessTarget) => {
+    setActiveProcessTarget(target)
+  }
+
+  const sendMessage = () => {
+    setActiveProcessTarget(null)
+    void chat.sendMessage()
+  }
+
+  const selectExamplePrompt = (prompt: string) => {
+    chat.setInput(prompt)
+    setComposerFocusVersion((current) => current + 1)
+  }
 
   const layoutClassName = "relative flex min-h-0 w-full flex-1 overflow-hidden p-2 sm:p-3"
 
@@ -46,8 +73,9 @@ export default function AgentChatPage() {
             activeProcessMessageId={activeProcessMessage?.id ?? null}
             isStreaming={chat.isStreaming}
             messages={chat.messages}
-            onCloseProcessPanel={() => setActiveProcessTarget(null)}
-            onOpenProcessPanel={setActiveProcessTarget}
+            onCloseProcessPanel={closeProcessPanel}
+            onExamplePromptSelect={selectExamplePrompt}
+            onOpenProcessPanel={openProcessPanel}
             runtimeEvents={chat.runtimeEvents}
             selectedStrategy={chat.selectedStrategy}
             showProcessPanelAction
@@ -60,6 +88,7 @@ export default function AgentChatPage() {
             canSend={chat.canSend}
             error={chat.error}
             input={chat.input}
+            focusVersion={composerFocusVersion}
             isLoggedIn={chat.isLoggedIn}
             isLoadingCampaigns={chat.isLoadingCampaigns}
             isLoadingPlaybooks={chat.isLoadingPlaybooks}
@@ -69,11 +98,11 @@ export default function AgentChatPage() {
             onInputChange={chat.setInput}
             onRuntimeCollaborationModeChange={chat.setRuntimeCollaborationMode}
             onRuntimeLearningLevelChange={chat.setRuntimeLearningLevel}
-            onRuntimeModelChange={chat.setRuntimeModelName}
             onRuntimePrimaryRoleChange={chat.setRuntimePrimaryRole}
+            onRuntimeRoutingModeChange={chat.setRuntimeRoutingMode}
             onToggleRuntimeRole={chat.toggleRuntimeRole}
             onSelectPlaybook={chat.selectPlaybook}
-            onSend={chat.sendMessage}
+            onSend={sendMessage}
             onStop={chat.stopStreaming}
             onStrategyChange={chat.setStrategyId}
             onClearCampaignContext={chat.clearSelectedCampaigns}
@@ -95,12 +124,12 @@ export default function AgentChatPage() {
       </div>
       {shouldShowProcessPanel ? (
         <AgentProcessDrawer
-          anchorLabel={activeProcessTarget?.anchorLabel}
+          anchorLabel={visibleProcessTarget?.anchorLabel}
           isStreaming={activeProcessMessage?.status === "streaming" && chat.isStreaming}
           messageId={activeProcessMessage?.id}
-          onClose={() => setActiveProcessTarget(null)}
+          onClose={closeProcessPanel}
           runtimeEvents={activeRuntimeEvents}
-          task={activeProcessTarget?.task}
+          task={visibleProcessTarget?.task}
         />
       ) : null}
     </div>

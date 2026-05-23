@@ -11,6 +11,7 @@ import {
   restoreRuntimeSelection,
   setRuntimeCollaborationMode,
   setRuntimePrimaryRole,
+  setRuntimeRoutingMode,
   toggleRuntimeRole,
 } from "../domain/agent-runtime-options"
 import { agentChatData } from "../agent-chat-data"
@@ -60,8 +61,10 @@ export function useAgentRuntimeOptions(input: { enabled: boolean }) {
       setLearningLevel: (learningLevel: string) => {
         setRuntimeSelection((current) => ({ ...current, learningLevel }))
       },
-      setModelName: (modelName: string) => {
-        setRuntimeSelection((current) => ({ ...current, modelName }))
+      setRoutingMode: (routingMode: string) => {
+        setRuntimeSelection((current) =>
+          setRuntimeRoutingMode(current, routingMode)
+        )
       },
       setPrimaryRole: (primaryRole: string) => {
         setRuntimeSelection((current) =>

@@ -32,6 +32,7 @@ export interface AgentChatSourceContextSelection {
   ref: string
   status: AgentChatAttachmentItem["status"]
   title: string
+  visionReady?: boolean
 }
 
 export function mapProductToContextSelection(
@@ -109,7 +110,12 @@ export function toggleProductContextSelection(
 export function mapAttachmentToSourceContextSelection(
   attachment: AgentChatAttachmentItem
 ): AgentChatSourceContextSelection | null {
-  if (!attachment.fileId || attachment.status !== "uploaded") return null
+  if (
+    !attachment.fileId ||
+    !["uploaded", "pending", "unsupported"].includes(attachment.status)
+  ) {
+    return null
+  }
 
   return {
     id: attachment.fileId,
@@ -118,6 +124,7 @@ export function mapAttachmentToSourceContextSelection(
     ref: `conversation_file:${attachment.fileId}`,
     status: attachment.status,
     title: attachment.name,
+    visionReady: Boolean(attachment.imageDataUrl),
   }
 }
 

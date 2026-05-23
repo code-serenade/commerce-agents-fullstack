@@ -3,6 +3,7 @@ use std::{collections::BTreeMap, sync::Arc};
 use crate::{
     MemoryQuery, MemoryScope, MemoryStore, SessionEventRx, SessionResult, SessionRuntime,
     SessionRuntimeConfig, SessionRuntimeInput, SessionSnapshot,
+    agent::commander::plan_configured_non_chat_task_graph,
     agent_error::Result,
     cognition::Cognition,
     core::protocol::{
@@ -219,12 +220,11 @@ fn select_roles_for_task<'a>(
     });
 
     if runtime_roles.is_empty() && runtime.commander_fast_route {
-        let graph = crate::agent::commander::plan_task_graph(
-            &TaskId("preselect".to_string()),
-            input,
-            Some(&role_route),
-        );
-        runtime_roles.extend(graph.nodes.into_iter().map(|node| node.role));
+        let task_id = TaskId("preselect".to_string());
+        if let Some(graph) = plan_configured_non_chat_task_graph(&task_id, input, Some(&role_route))
+        {
+            runtime_roles.extend(graph.nodes.into_iter().map(|node| node.role));
+        }
     }
 
     if runtime_roles.is_empty() {
@@ -395,9 +395,6 @@ mod tests {
         .map(|role| role.runtime_role.clone())
         .collect::<Vec<_>>();
 
-        assert!(selected.contains(&"data".to_string()));
-        assert!(selected.contains(&"accounting".to_string()));
-        assert!(selected.contains(&"creative".to_string()));
         assert!(selected.contains(&"ops".to_string()));
         assert!(selected.contains(&"chat".to_string()));
         assert!(!selected.contains(&"engineering".to_string()));

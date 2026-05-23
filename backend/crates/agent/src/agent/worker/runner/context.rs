@@ -2,7 +2,7 @@ use crate::{
     agent::worker::{Task, TaskMemory, WorkerPhase},
     cognition::{CognitionInput, Context, Fact, Intent, IntentKind},
     core::protocol::AgentId,
-    roles::{RoleProfile, RolePromptBuilder, RolePromptInput},
+    roles::RoleProfile,
 };
 
 pub(super) fn build_cognition_input(
@@ -85,6 +85,7 @@ fn build_context(
     }
 
     let mut facts = Vec::new();
+    extend_runtime_strategy_facts(&task.context.metadata, &mut facts);
     extend_context_facts(&task.context.metadata, &mut facts);
 
     if let Some(assignment) = &task.assignment {
@@ -105,17 +106,6 @@ fn build_context(
         }
     }
 
-    let role_prompt = RolePromptBuilder::build_worker_prompt(&RolePromptInput {
-        role: role.clone(),
-        task: task.description.clone(),
-        facts: memory.progress.clone(),
-    });
-
-    facts.push(Fact {
-        source: "roles.prompt".to_string(),
-        content: role_prompt,
-        reliability: 1.0,
-    });
     facts.extend(memory.progress.iter().map(|entry| Fact {
         source: "worker.runtime".to_string(),
         content: entry.clone(),
@@ -125,16 +115,78 @@ fn build_context(
     Context { facts, metadata }
 }
 
+fn extend_runtime_strategy_facts(
+    metadata: &std::collections::BTreeMap<String, String>,
+    facts: &mut Vec<Fact>,
+) {
+    let mode = runtime_response_mode(metadata);
+    let answer_style = match mode {
+        "quick" => {
+            "回答模式：快速简答。优先给直接结论、关键理由和最多 3 \
+             个下一步动作；减少铺垫、过程展开和长篇教学，除非用户明确要求详细推导。"
+        }
+        "execution" => {
+            "回答模式：丰富执行。按用户要的交付物决定展开程度；用户要完整方案时给可执行动作、\
+             风险边界和复盘字段；用户只要标题、话术、字段或短判断时仍直接交付，不强制岗位报告、\
+             表格或完整方案。"
+        }
+        _ => {
+            "回答模式：教学模式。默认面向电商学生和新手，先给可用结论，再用通俗语言解释概念、\
+             判断过程、为什么这么做和下一步怎么练。"
+        }
+    };
+    facts.push(Fact {
+        source: "runtime.answer_style".to_string(),
+        content: answer_style.to_string(),
+        reliability: 1.0,
+    });
+
+    let explanation_depth = match runtime_learning_level(metadata) {
+        "beginner" => {
+            "讲解深度：低。尽量少用术语，遇到 \
+             ROI、转化率、漏斗、客单价等专业词要用白话解释，并给简单例子。"
+        }
+        "professional" => {
+            "讲解深度：高。保留关键指标、推导路径、约束假设、风险边界和可复核口径，\
+             适合汇报和专业复盘。"
+        }
+        _ => "讲解深度：中。按电商岗位应用口径解释，术语不过度展开，但关键概念和动作口径要说清楚。",
+    };
+    facts.push(Fact {
+        source: "runtime.explanation_depth".to_string(),
+        content: explanation_depth.to_string(),
+        reliability: 1.0,
+    });
+}
+
+fn runtime_response_mode(metadata: &std::collections::BTreeMap<String, String>) -> &str {
+    if let Some(response_mode) = metadata
+        .get("strategy.response_mode")
+        .map(String::as_str)
+        .filter(|value| matches!(*value, "learning" | "quick" | "execution"))
+    {
+        return response_mode;
+    }
+    metadata
+        .get("strategy.id")
+        .map(String::as_str)
+        .filter(|value| matches!(*value, "learning" | "quick" | "execution"))
+        .unwrap_or("learning")
+}
+
+fn runtime_learning_level(metadata: &std::collections::BTreeMap<String, String>) -> &str {
+    metadata
+        .get("strategy.learning_level")
+        .map(String::as_str)
+        .filter(|value| matches!(*value, "beginner" | "higher_vocational" | "professional"))
+        .unwrap_or("higher_vocational")
+}
+
 fn extend_context_facts(
     metadata: &std::collections::BTreeMap<String, String>,
     facts: &mut Vec<Fact>,
 ) {
-    extend_named_context_fact(
-        metadata,
-        facts,
-        "conversation.history_summary",
-        "conversation.history",
-    );
+    extend_conversation_history_fact(metadata, facts);
     extend_named_context_fact(
         metadata,
         facts,
@@ -171,6 +223,29 @@ fn extend_context_facts(
         "workspaceContextPack.items_json",
         "workspace.context_pack.items",
     );
+}
+
+fn extend_conversation_history_fact(
+    metadata: &std::collections::BTreeMap<String, String>,
+    facts: &mut Vec<Fact>,
+) {
+    let Some(value) = metadata
+        .get("conversation.history_summary")
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
+    else {
+        return;
+    };
+
+    facts.push(Fact {
+        source: "conversation.history".to_string(),
+        content: format!(
+            "conversation.history：同一会话历史上下文如下。回答追问、补充、继续、\
+             按前面数据等问题时，必须优先结合这段历史；不要要求用户重复已经在这里提供的信息。\\
+             n{value}"
+        ),
+        reliability: 1.0,
+    });
 }
 
 fn extend_named_context_fact(

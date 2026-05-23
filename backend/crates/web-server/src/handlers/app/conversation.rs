@@ -30,12 +30,14 @@ use validator::Validate;
 
 use crate::{
     dto::app::{
-        ActAlertRequest, AddConversationMessageRequest, AlertListResponse, AlertResponse,
-        AlertSummaryResponse, AppUserResponse, AuditLogListResponse, AuditLogResponse,
-        BackgroundEventListResponse, BackgroundEventResponse, BatchUpdateResponse,
-        CampaignListResponse, CampaignResponse, CancelLongTaskRequest, ChannelCatalogResponse,
-        ChannelConnectionListResponse, ChannelConnectionResponse, CompetitorChangeResponse,
-        ConsumeBackgroundEventsRequest, ConversationDetailResponse, ConversationFileAccessResponse,
+        ActAlertRequest, AddConversationMessageRequest, AgentContextPreviewRequest,
+        AgentContextPreviewResponse, AlertListResponse, AlertResponse, AlertSummaryResponse,
+        AppUserResponse, AuditLogListResponse, AuditLogResponse, BackgroundEventListResponse,
+        BackgroundEventResponse, BatchUpdateResponse, CampaignListResponse, CampaignResponse,
+        CancelLongTaskRequest, ChannelCatalogResponse, ChannelConnectionListResponse,
+        ChannelConnectionResponse, CompetitorChangeResponse, ConsumeBackgroundEventsRequest,
+        ConversationDetailResponse, ConversationFileAccessResponse,
+        ConversationFileExtractionJobResponse, ConversationFileExtractionStatusResponse,
         ConversationFileResponse, ConversationMessageResponse, ConversationResponse,
         CreateAlertRequest, CreateAuditLogRequest, CreateBackgroundEventRequest,
         CreateCampaignRequest, CreateCompetitorChangeRequest, CreateConversationRequest,
@@ -66,17 +68,18 @@ use crate::{
         RegisterConversationFileRequest, RegisterProductAssetRequest, SaveChannelConnectionRequest,
         SavePackageLocksRequest, SavePlatformConnectionRequest, SaveStoreMetricRequest,
         SnoozeAlertRequest, StoreMetricListResponse, StoreMetricResponse, ToolApprovalListResponse,
-        ToolApprovalResponse, UpdateCampaignRequest, UpdateChannelConnectionRequest,
-        UpdateConversationFileExtractionRequest, UpdateConversationRequest, UpdateLongTaskRequest,
-        UpdatePackageRequest, UpdatePlatformConnectionRequest, UpdateProductAssetRequest,
-        UpdateProductCompetitorRequest, UpdateProductKnowledgeRequest,
-        UpdateProductMaterialRequest, UpdateProductRequest, UpdateWorkspaceRequest,
-        UpdateWorkspaceRunRequest, UpdateWorkspaceRunTaskRequest, UpdateWorkspaceTaskRequest,
-        UpsertDailyBriefingRecordRequest, UpsertPackageRequest, WorkspaceListResponse,
-        WorkspaceResponse, WorkspaceRunListResponse, WorkspaceRunResponse,
+        ToolApprovalResponse, TriggerConversationFileExtractionJobRequest, UpdateCampaignRequest,
+        UpdateChannelConnectionRequest, UpdateConversationFileExtractionRequest,
+        UpdateConversationRequest, UpdateLongTaskRequest, UpdatePackageRequest,
+        UpdatePlatformConnectionRequest, UpdateProductAssetRequest, UpdateProductCompetitorRequest,
+        UpdateProductKnowledgeRequest, UpdateProductMaterialRequest, UpdateProductRequest,
+        UpdateWorkspaceRequest, UpdateWorkspaceRunRequest, UpdateWorkspaceRunTaskRequest,
+        UpdateWorkspaceTaskRequest, UpsertDailyBriefingRecordRequest, UpsertPackageRequest,
+        WorkspaceListResponse, WorkspaceResponse, WorkspaceRunListResponse, WorkspaceRunResponse,
         WorkspaceRunTaskResponse, WorkspaceTaskListResponse, WorkspaceTaskResponse,
     },
     error::{Error, from_biz_error},
+    handlers::sse::build_conversation_history_summary,
     statics::{
         agent_manager::{agent_runtime_llm_usage, run_vision_preprocess, vision_preprocess_config},
         db_manager::get_app_ctx,
@@ -321,6 +324,186 @@ pub async fn update_conversation_file_extraction(
         .map_err(from_biz_error)?;
 
     Ok(map_file_response(file).into_common_response().to_json())
+}
+
+pub async fn get_conversation_file_extraction(
+    Extension(auth_user): Extension<AuthUser>,
+    Path(file_id): Path<String>,
+) -> ResponseResult<ConversationFileExtractionStatusResponse> {
+    let api = ConversationApi::new(get_app_ctx());
+    let status = api
+        .get_file_extraction_status(auth_user.user_id, file_id)
+        .await
+        .map_err(from_biz_error)?;
+    Ok(status.into_common_response().to_json())
+}
+
+pub async fn trigger_conversation_file_extraction_job(
+    Extension(auth_user): Extension<AuthUser>,
+    Path(file_id): Path<String>,
+    Json(req): Json<TriggerConversationFileExtractionJobRequest>,
+) -> ResponseResult<ConversationFileExtractionJobResponse> {
+    req.validate().map_err(Error::from)?;
+    let api = ConversationApi::new(get_app_ctx());
+    let job = api
+        .trigger_file_extraction_job(
+            get_storage(),
+            service::dto::conversation::TriggerConversationFileExtractionJobRequest {
+                user_id: auth_user.user_id,
+                file_id,
+                mode: req.mode,
+                force: req.force,
+            },
+        )
+        .await
+        .map_err(from_biz_error)?;
+    Ok(job.into_common_response().to_json())
+}
+
+pub async fn preview_agent_context(
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<AgentContextPreviewRequest>,
+) -> ResponseResult<AgentContextPreviewResponse> {
+    req.validate().map_err(Error::from)?;
+    let user_id = auth_user.user_id;
+    let conversation_api = ConversationApi::new(get_app_ctx());
+    let conversation_preview = if let Some(conversation_id) = req.conversation_id.as_ref() {
+        let conversation = conversation_api
+            .get_conversation(user_id.clone(), conversation_id.clone())
+            .await
+            .map_err(from_biz_error)?;
+        let previous_memory = conversation_api
+            .get_conversation_memory(user_id.clone(), conversation_id.clone())
+            .await
+            .map_err(from_biz_error)?;
+        Some(build_conversation_history_summary(
+            &conversation.messages,
+            &req.input,
+            previous_memory.as_ref(),
+        ))
+    } else {
+        None
+    };
+    let workspace_api = WorkspaceApi::new(get_app_ctx());
+    let workspace_context = workspace_api
+        .context_summary(service::dto::workspace::GetWorkspaceContextSummaryRequest {
+            user_id: user_id.clone(),
+            workspace_id: req.workspace_id.clone().unwrap_or_default(),
+            conversation_id: req.conversation_id.clone(),
+            product_id: req.product_id.clone(),
+            include_workspace_product_context: true,
+            run_id: None,
+            context_refs: normalize_preview_context_refs(req.context_refs.clone()),
+        })
+        .await
+        .map_err(from_biz_error)?;
+    let workspace_pack = workspace_api
+        .context_pack(service::dto::workspace::GetWorkspaceContextPackRequest {
+            user_id,
+            workspace_id: workspace_context.workspace_id.clone(),
+            conversation_id: workspace_context.conversation_id.clone(),
+            product_id: workspace_context.product_id.clone(),
+            include_workspace_product_context: true,
+            run_id: None,
+            context_refs: normalize_preview_context_refs(req.context_refs),
+            max_items: req.max_items,
+            max_chars: req.max_chars,
+            query: Some(req.input.clone()),
+        })
+        .await
+        .map_err(from_biz_error)?;
+    let included_refs = workspace_pack
+        .items
+        .iter()
+        .filter(|item| item.text.is_some())
+        .map(|item| item.ref_key.clone())
+        .collect::<Vec<_>>();
+    let metadata_only_refs = workspace_pack
+        .items
+        .iter()
+        .filter(|item| item.text.is_none())
+        .map(|item| item.ref_key.clone())
+        .collect::<Vec<_>>();
+    let omitted_refs = workspace_pack.omitted.clone();
+    let warnings = workspace_pack.warnings.clone();
+    let approximate_chars = workspace_pack
+        .items
+        .iter()
+        .map(|item| item.text_chars)
+        .sum::<usize>();
+    let history_chars = conversation_preview
+        .as_ref()
+        .map(|summary| summary.text.chars().count())
+        .unwrap_or_default();
+    let memory_chars = conversation_preview
+        .as_ref()
+        .map(|summary| summary.memory_text.chars().count())
+        .unwrap_or_default();
+    let budget = serde_json::json!({
+        "inputChars": req.input.chars().count(),
+        "conversationHistoryChars": history_chars,
+        "conversationMemoryChars": memory_chars,
+        "workspacePackChars": approximate_chars,
+        "workspacePackItems": workspace_pack.items.len(),
+        "historyMessageCount": conversation_preview
+            .as_ref()
+            .map(|summary| summary.message_count)
+            .unwrap_or_default(),
+        "historyTotalMessageCount": conversation_preview
+            .as_ref()
+            .map(|summary| summary.total_message_count)
+            .unwrap_or_default(),
+        "historyTruncated": conversation_preview
+            .as_ref()
+            .map(|summary| summary.truncated)
+            .unwrap_or(false),
+        "includedRefs": included_refs.len(),
+        "metadataOnlyRefs": metadata_only_refs.len(),
+        "omittedRefs": omitted_refs.len(),
+        "strategy": "recent_history_plus_structured_memory_plus_workspace_pack",
+    });
+    let conversation_history = conversation_preview.as_ref().map(|summary| {
+        serde_json::json!({
+            "conversationId": workspace_context.conversation_id.clone(),
+            "messageCount": summary.message_count,
+            "totalMessageCount": summary.total_message_count,
+            "truncated": summary.truncated,
+            "relevantOlderCount": summary.relevant_older_count,
+            "olderSummary": summary.older_summary.clone(),
+            "text": summary.text.clone(),
+        })
+    });
+    let conversation_memory = conversation_preview
+        .as_ref()
+        .map(|summary| summary.memory_json.clone());
+
+    Ok(AgentContextPreviewResponse {
+        workspace_context,
+        workspace_pack,
+        conversation_history,
+        conversation_memory,
+        budget,
+        included_refs,
+        metadata_only_refs,
+        omitted_refs,
+        warnings,
+    }
+    .into_common_response()
+    .to_json())
+}
+
+fn normalize_preview_context_refs(values: Vec<String>) -> Vec<String> {
+    let mut refs = Vec::new();
+    for value in values {
+        let value = value.trim();
+        if value.is_empty() {
+            continue;
+        }
+        if !refs.iter().any(|item| item == value) {
+            refs.push(value.to_string());
+        }
+    }
+    refs
 }
 
 fn map_conversation_detail_response(

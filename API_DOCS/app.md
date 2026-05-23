@@ -138,20 +138,6 @@
 
 ```json
 {
-  "defaultModelName": "ollama-gpt-oss-20b",
-  "llmUsage": {
-    "default": "ollama-gpt-oss-20b",
-    "fast": "ollama-gpt-oss-20b",
-    "thinking": "ollama-gpt-oss-20b",
-    "vision": null
-  },
-  "models": [
-    {
-      "name": "ollama-gpt-oss-20b",
-      "model": "gpt-oss:20b",
-      "isDefault": true
-    }
-  ],
   "strategies": [
     {
       "id": "learning",
@@ -246,18 +232,15 @@
 
 字段说明：
 
-- `models` 来自 `backend/config/services.toml` 的 `[[llm]]` 配置，只返回 `name`、`model`、`isDefault`，不返回 `base_url` 或 `api_key`
-- `defaultModelName` 是后端实际默认 `llm.name`。当 `default_llm` 有效时使用该配置；当 `default_llm` 未配置且存在真实豆包 `[[llm]]` 时优先豆包；否则使用第一个 `[[llm]]`。接口不会返回未配置的假豆包模型
-- `llmUsage` 来自 `backend/config/services.toml` 的 `[agent_llm_usage]`，表示 agent runtime 内部对 `fast`、`thinking`、`vision` 三类用途的模型映射；仅用于前端展示和调试，不要求普通用户手动选择
-- `strategies`、`responseModes`、`learningLevels`、`collaborationModes` 是后端认可的运行枚举，前端不应自行硬编码替代
+- `strategies`、`responseModes`、`routingModes`、`learningLevels`、`collaborationModes` 是后端认可的运行枚举，前端不应自行硬编码替代
 - `roles` 来自 Agent `RoleCatalog::configured()`，`runtimeRole` 用于 SSE `metadata.strategy.primaryRole` 和 `selectedRoles`
 
 补充说明：
 
 - 当前用户必须存在于 `app_users`，且状态为 `enabled`
-- 该接口只暴露问答工作台可选择的运行契约，不会动态修改模型配置或角色目录
-- 前端发送 SSE 时只能把用户选择映射到 `metadata.strategy.*`；`metadata.model.name` 已废弃，服务端会忽略前端传入的模型名，LLM 只能由服务端 `services.toml` 配置决定
-- `learning`、`quick`、`execution` 会进入 Agent runtime 的 `strategy.id` / `strategy.response_mode`，后端会在 Commander 和 Worker 上下文中注入不同的回答风格事实；`beginner` / `higher_vocational` / `professional` 会作为讲解深度事实生效，不是纯前端展示字段
+- 该接口只暴露问答工作台可选择的运行契约，不会动态修改模型配置或角色目录，也不会向普通前端返回模型名称、模型映射、`base_url` 或 `api_key`
+- 前端发送 SSE 时只能把用户选择映射到 `metadata.strategy.*`；不允许发送 `metadata.model`，不允许展示或缓存“当前使用的模型”。LLM 只能由服务端 `services.toml` 的 `default_llm` 和 `[agent_llm_usage]` 决定
+- `learning`、`quick`、`execution` 会进入 Agent runtime 的 `strategy.id` / `strategy.response_mode`，后端会在 Commander 和 Worker 上下文中注入不同的回答风格事实；`commander` / `fast` 会进入 `strategy.routing_mode`，只决定是否允许前置 fast route；`beginner` / `higher_vocational` / `professional` 会作为讲解深度事实生效，不是纯前端展示字段
 
 ## 2.2.1 查询 Agent 能力目录
 
@@ -770,11 +753,146 @@
 
 - 本接口只登记可信抽取状态和文本，不负责 OCR、PDF 解析、图片识别或 object storage 文件读取
 - 新上传会话附件会初始化为 `metadata.extractionStatus=pending`
-- Agent Chat 前端在浏览器可直接读取的文本类附件上传后会调用本接口登记 `status=extracted`；文本为空或读取失败会登记 `status=failed`；PDF、图片、Office 等非浏览器文本类附件会登记 `status=unsupported`
+- Agent Chat 前端在浏览器可直接读取的文本类附件上传后会调用本接口登记 `status=extracted`；文本为空或读取失败会登记 `status=failed`；PDF、Office 等非浏览器文本类附件会登记 `status=unsupported`
+- PNG/JPEG/WebP 会话图片上传后，前端会登记 `contentKind=image_vision_input`、`parser=browser_image`、`metadata.visionReady=true`、`metadata.imageDataUrl` 和占位 `text`；这只表示该图片可被本轮 SSE 作为 `metadata.attachments.images` 传给 vision LLM，不表示后端已完成 OCR 或生成了稳定图片摘要
 - 只有 `status=extracted` 的附件正文会被工作区 `context-pack` 读取
 - `status=pending/failed/unsupported` 不会进入 Agent 可读上下文
 - `metadata` 必须是 JSON object
 - 写入后的 `metadata.extractedText` 会被工作区 `context-pack` 读取，并进入 Agent 问答上下文
+
+## 11.1 查询会话附件解析状态
+
+- 方法：`GET`
+- 路径：`/api/app/conversation-files/{fileId}/extraction`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：
+
+```json
+{
+  "fileId": "file-uuid",
+  "status": "extracted",
+  "contentKind": "plain_text",
+  "parser": "external_adapter",
+  "source": "trusted_api",
+  "language": "zh-CN",
+  "summary": "附件抽取出的正文内容，可被 Agent 上下文读取",
+  "textChars": 23,
+  "readable": true,
+  "visionReady": false,
+  "failureReason": null,
+  "metadata": {
+    "extractionStatus": "extracted",
+    "extraction": {
+      "status": "extracted",
+      "contentKind": "plain_text",
+      "source": "trusted_api",
+      "parser": "external_adapter",
+      "textChars": 23,
+      "metadata": {}
+    }
+  },
+  "updatedAt": "2026-05-10T00:00:00Z"
+}
+```
+
+字段说明：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `status` | `pending \| extracted \| failed \| unsupported` | 当前附件解析状态 |
+| `summary` | `string \| null` | 已抽取正文的最多 500 字摘要，不返回完整大文本 |
+| `textChars` | `number` | 已登记正文字符数；大于 0 时 `readable=true` |
+| `readable` | `boolean` | 是否已有可进入 `context-pack` 的文本 |
+| `visionReady` | `boolean` | 是否可作为图片多模态输入；仅代表前端显式选择后可随 SSE `metadata.attachments.images` 发送，不代表已 OCR |
+| `failureReason` | `string \| null` | 失败或不支持原因 |
+| `metadata` | `object` | 附件原始解析 metadata，供调试面板展示 |
+
+补充说明：
+
+- 当前用户只能查询自己的附件
+- 该接口只读，不触发文件下载、OCR、PDF/Office 解析或 LLM 调用
+- 如果附件尚未登记抽取文本，`status` 通常为 `pending`，`readable=false`
+
+## 11.2 触发会话附件解析状态任务
+
+- 方法：`POST`
+- 路径：`/api/app/conversation-files/{fileId}/extraction-jobs`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "mode": "auto",
+  "force": false
+}
+```
+
+字段说明：
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `mode` | `string` | 否 | 任务模式标记，最长 32 字符，当前默认 `auto` |
+| `force` | `boolean` | 否 | 已有可读正文时是否强制刷新状态；默认 false |
+
+成功响应 `data`：
+
+```json
+{
+  "jobId": "server-extraction-file-uuid",
+  "fileId": "file-uuid",
+  "status": "extracted",
+  "contentKind": "markdown",
+  "parser": "server_text",
+  "source": "server_job",
+  "message": "server extracted UTF-8 text from object storage",
+  "metadata": {
+    "extractionStatus": "extracted",
+    "extractedText": "# 商品说明\n轻薄防晒，适合夏季通勤。",
+    "textContent": "# 商品说明\n轻薄防晒，适合夏季通勤。",
+    "extraction": {
+      "status": "extracted",
+      "contentKind": "markdown",
+      "source": "server_job",
+      "parser": "server_text",
+      "text": "# 商品说明\n轻薄防晒，适合夏季通勤。",
+      "textChars": 20,
+      "metadata": {
+        "jobId": "server-extraction-file-uuid",
+        "mode": "auto",
+        "serverCanReadObjectBody": true,
+        "adapter": "server_text",
+        "objectBytes": 49,
+        "originalTextChars": 20,
+        "truncated": false,
+        "maxObjectBytes": 1000000,
+        "maxTextChars": 100000,
+        "visionReady": false
+      }
+    }
+  }
+}
+```
+
+当前服务端触发规则：
+
+- 如果附件已有可读正文且 `force=false`，返回 `noop-*` 任务，不覆盖现有抽取结果
+- UTF-8 文本类附件会尝试从私有对象存储读取并登记为 `status=extracted`：支持 `text/*`、`application/json`、`application/ld+json`、`application/markdown`，以及 `.txt/.md/.markdown/.json/.jsonl/.csv/.tsv/.yaml/.yml/.toml/.xml/.html/.htm/.log/.sql/.rs/.go/.py/.js/.jsx/.ts/.tsx/.css/.scss/.sh/.ps1`
+- 服务端文本读取有硬限制：对象体最多 `1000000` bytes；抽取正文最多 `100000` chars，超过字符上限会截断并在 `metadata.extraction.metadata.truncated=true` 中记录原始字符数
+- PDF 会尝试进行轻量文本层抽取：仅当对象体可下载、未加密、且 PDF 内存在可读 literal/hex 文本字符串时登记为 `status=extracted`、`contentKind=pdf`、`parser=server_pdf_text`；`metadata.extraction.metadata.parserScope=literal_pdf_text_strings_only` 表示这不是完整版面解析。扫描件、需要 OCR 的 PDF、复杂压缩流、加密 PDF 或无可读文本层时会登记为 `status=failed` 或保持待后续 parser 处理，不会伪造成已读。
+- DOCX/XLSX 会尝试进行 P1-lite OOXML 文本层抽取：仅当对象体可下载，且 ZIP local entry 是未压缩的 XML 时，服务端会从 `word/document.xml`、`word/header*`、`word/footer*`、`xl/sharedStrings.xml`、`xl/worksheets/sheet*.xml` 等 entry 中抽取文本，登记为 `status=extracted`、`parser=server_ooxml_text`；`metadata.extraction.metadata.parserScope=stored_zip_xml_entries_only` 表示这不是完整 Office 解析。真实 Office 文件通常使用 deflate 压缩 entry；当前无 ZIP deflate 依赖时会保持 `status=pending`、`parser=server_ooxml_text_guard`，并在 `failureReason` 中说明需要 ZIP deflate 支持或外部 adapter，不会伪造成已读。
+- CSV/TSV 这类表格文本可以先被登记为可读文本；进入上下文时仍会由 context pack 生成表格 profile，不默认整表塞入模型上下文。表格 profile 会优先展示与本轮 query 相关的列，并对可解析数值列输出基础统计。
+- JSON/JSONL 这类结构化文本可以先被登记为可读文本；较大的 JSON/JSONL 进入上下文时会由 context pack 生成 `json_profile`，包含结构路径、样例值、对象/数组/标量计数和 query 相关路径，不默认把整份 JSON 原文塞入模型上下文。
+- PNG/JPEG/WebP 会标记为 `status=extracted`、`contentKind=image_vision_input`、`visionReady=true`；它表示图片可在用户显式选择后作为多模态输入发送，不表示服务端完成 OCR
+- 旧版 DOC/XLS 二进制 Office 文件仍会标记为 `status=unsupported`，并写入 `failureReason=server object-body parser is not enabled for this file type yet`
+- 未知二进制格式会保持 `status=pending`，等待可信抽取、外部解析 adapter 或后续 chunk parser 接入
+- 文本类对象下载失败、非 UTF-8 或空正文会标记为 `status=failed`，不会作为可读上下文提供给模型
+
+补充说明：
+
+- 当前后端已支持小型 UTF-8 文本类 object body 读取、轻量 PDF 文本层抽取和 P1-lite OOXML 未压缩 XML entry 抽取，但还没有完整 Office ZIP/deflate 解析、OCR、复杂 PDF 版面解析和真实异步解析 worker；因此本接口不会伪造压缩 Office、OCR、扫描 PDF 或大表格完整解析结果
+- 后续接入异步解析 worker、chunk/向量检索、表格计算工具和 OCR/caption 持久化后，本接口可升级为真正的异步解析任务入口
 
 ## 12. 获取会话附件下载签名
 
@@ -3111,6 +3229,7 @@
 | `contextRefs` | `string` | 否 | 逗号分隔的显式上下文引用，当前支持 `conversation_file:{fileId}`、`file:{fileId}`、`campaign:{campaignId}`、`campaign/{campaignId}`、`product_asset:{assetId}`、`asset:{assetId}`、`product_material:{materialId}`、`material:{materialId}`、`workspace_artifact:{artifactId}` 和 `artifact:{artifactId}`，最多 20 个 |
 | `maxItems` | `number` | 否 | 返回来源上限，默认 20，最大 50 |
 | `maxChars` | `number` | 否 | 返回文本总字符上限，默认 12000，最大 24000 |
+| `query` | `string` | 否 | 本轮用户问题或检索意图；传入后，长文本来源会优先选择与 query 相关的片段，再进入 `maxChars` 预算 |
 
 成功响应 `data`：
 
@@ -3184,7 +3303,10 @@
 - `contentKind=extraction_failed` 表示附件解析失败；失败原因位于 `metadata.metadata.extraction.failureReason`。
 - `contentKind=extraction_unsupported` 表示当前解析 adapter 不支持该附件。
 - `contentKind=unavailable` 表示该来源没有可读文本。
-- 该接口不会读取 object storage，不做 OCR，不解析 PDF/图片/视频，也不会把二进制附件伪造成已读正文。Agent SSE 对 conversation 图片附件的 vision 输入是独立链路：服务端会在启动 runtime 前下载 active 图片附件并转成 `data:image/...;base64,...` 写入 `attachments.images_json`，不会改变本 context-pack 的可读正文语义。
+- 当请求带 `query` 且某个可读来源文本较长时，服务端会按 query 关键词选择相关片段，`items[].metadata.relevanceSelection.strategy=query_keyword_chunks` 会标记该来源使用了片段选择；`relevanceSelection.totalChunkCount` 是候选 chunk 总数，`chunkCount` 是实际注入数量，`chunks[]` 会记录 `chunkIndex/displayIndex/startChar/endChar/score/preview`，用于解释哪些原文片段进入了模型上下文；没有 `query` 或短文本时保持顺序截断。
+- `contentKind=table_profile` 表示 CSV/TSV/XLSX 或疑似表格文本没有整表 inline，而是生成 schema、样例行和基础统计；`metadata.tableProfile.visibleColumns` 是本轮展示列，`metadata.tableProfile.numericSummaries` 包含可解析数值列的 `count/sum/avg/min/max`，带 `query` 时优先选择相关列和命中关键词的样例行，且会对“利润/成本/退款/投产/转化/库存”等常见中文电商指标词做轻量表头别名匹配；样例行策略记录在 `metadata.tableProfile.sampleRowSelection/sampleRowIndexes`。当表头能识别 GMV/营收、退款、成本、广告费、订单、访客、点击、曝光、库存等常见字段时，`metadata.tableProfile.derivedMetrics` 会给出确定性派生指标，如 `net_revenue/gross_profit/gross_margin/refund_rate/ad_roi/conversion_rate/click_through_rate/inventory_to_orders`，每项包含 `formula`、`formattedValue` 和参与计算的输入列；这些指标只来自已抽取表格文本，不代表平台实时数据。
+- `contentKind=json_profile` 表示较大的 JSON/JSONL 附件没有整份 inline，而是生成结构画像；`metadata.jsonProfile.paths` 记录有限数量的结构路径，`metadata.jsonProfile.queryMatches` 记录与本轮 query 命中的路径，`metadata.jsonProfile.sourceFormat` 区分 `json/jsonl`，`parsedItemCount/objectCount/arrayCount/scalarCount/maxDepth` 用于解释读取规模。
+- 该接口不会读取 object storage，不做 OCR，不解析 PDF/图片/视频，也不会把二进制附件伪造成已读正文。Agent SSE 对 conversation 图片附件使用独立的系统预处理链路：服务端会读取 active 图片附件已有的 `image_preprocess` 分析摘要并写入 runtime `attachments.image_summaries_json` / `context.combined_summary`，不会改变本 context-pack 的可读正文语义。
 - Agent SSE 会在 `workspace_context_loaded` 后自动调用该内容包能力，发送 `workspace_context_pack_loaded` 事件，并把可读文本追加进 runtime `context.summary`。
 - `contextRefs` 中的显式附件、营销活动、商品资产、商品素材和 artifact 会和 `conversationId`、`productId`、`runId` 范围来源合并去重后进入内容包；未显式引用的历史附件、历史活动、历史商品素材或历史 artifact 不会进入 SSE Agent 本轮上下文。
 
@@ -4527,6 +4649,112 @@
 
 - 漂移类型包括包缺失、版本变化、状态变化、必需包未启用
 - 当前阶段只做治理和审计，不强制 Agent 执行链路按锁运行
+
+## 126. 预览本轮 Agent 上下文
+
+- 方法：`POST`
+- 路径：`/api/app/agent/context-preview`
+- 鉴权：有效 App 用户 JWT
+
+用途：在不触发模型调用的情况下，预览本轮问题会读取哪些工作区资料、哪些资料只有元数据、哪些资料因预算或限制未进入上下文。
+
+请求体：
+
+```json
+{
+  "workspaceId": "optional workspace id",
+  "conversationId": "optional conversation id",
+  "productId": "optional product id",
+  "input": "请根据我上传的表格分析利润",
+  "contextRefs": ["conversation_file:uuid"],
+  "maxItems": 20,
+  "maxChars": 12000
+}
+```
+
+成功响应 `data`：
+
+```json
+{
+  "workspaceContext": {
+    "readiness": "ready",
+    "counts": {}
+  },
+  "workspacePack": {
+    "readiness": "partial",
+    "items": [],
+    "omitted": [],
+    "omittedDetails": [
+      {
+        "refKey": "conversation_file:uuid",
+        "reason": "max_chars_exceeded",
+        "sourceType": "conversation_file",
+        "title": "orders.csv"
+      }
+    ],
+    "warnings": []
+  },
+  "conversationHistory": {
+    "conversationId": "conversation-uuid",
+    "messageCount": 8,
+    "totalMessageCount": 16,
+    "truncated": true,
+    "relevantOlderCount": 2,
+    "olderSummary": "User: 之前确认目标是提升利润...",
+    "text": "Earlier summary: ...\nUser: 请分析这份订单表..."
+  },
+  "conversationMemory": {
+    "kind": "conversation_memory_summary",
+    "rollingSummary": "用户正在围绕订单利润分析连续追问。",
+    "facts": [],
+    "decisions": [],
+    "constraints": [],
+    "openQuestions": [],
+    "sourceMap": {
+      "messageCount": 16,
+      "recentWindow": 12,
+      "previousMemoryAvailable": true,
+      "memoryBudget": {
+        "rollingSummaryMaxChars": 1400,
+        "itemMaxChars": 260,
+        "factsMaxItems": 10,
+        "decisionsMaxItems": 6,
+        "constraintsMaxItems": 8,
+        "openQuestionsMaxItems": 5,
+        "lastUserInputMaxChars": 500,
+        "lastAssistantOutputMaxChars": 700,
+        "memoryTextMaxChars": 2400
+      }
+    }
+  },
+  "budget": {
+    "inputChars": 14,
+    "conversationHistoryChars": 2200,
+    "conversationMemoryChars": 900,
+    "workspacePackChars": 2400,
+    "workspacePackItems": 3,
+    "historyMessageCount": 8,
+    "historyTotalMessageCount": 16,
+    "historyTruncated": true,
+    "includedRefs": 2,
+    "metadataOnlyRefs": 1,
+    "omittedRefs": 1,
+    "strategy": "recent_history_plus_structured_memory_plus_workspace_pack"
+  },
+  "includedRefs": ["conversation_file:uuid"],
+  "metadataOnlyRefs": [],
+  "omittedRefs": [],
+  "warnings": []
+}
+```
+
+补充说明：
+
+- 该接口复用正式 SSE 前的 `workspace_context` 与 `workspace_context_pack` 构建逻辑。
+- 当传入 `conversationId` 时，该接口会按当前 JWT 用户权限读取同会话历史和 `conversations.metadata.memorySummary`，返回 `conversationHistory` 与 `conversationMemory`，用于预览本轮是否会参考历史；长会话会保留最近窗口，并从更早历史中按本轮问题挑选少量相关原文片段；预览本身不会写回 memory。
+- `conversationMemory` 与正式 SSE 使用同一套轻量压缩和预算治理：`rollingSummary` 最多 1400 字符，facts 最多 10 条，decisions 最多 6 条，constraints 最多 8 条，openQuestions 最多 5 条，单条记忆文本最多 260 字符，注入模型的 memory 文本最多 2400 字符；重复、空值、超长和无关嵌套字段会被清洗，预算值会出现在 `sourceMap.memoryBudget`。
+- CSV/TSV/XLSX 等表格型资料不会默认整表塞入模型上下文；当前会优先生成 schema、列名、行数、基础数值统计和样例行 profile；带本轮问题时，样例行会优先选择命中问题关键词的行，再用表头附近行补足。
+- `workspacePack.omittedDetails` 给出具体省略原因，前端应优先展示给用户，避免“上传成功”等同于“模型已读取”的误解。
 
 ## 会话接口权限与错误
 

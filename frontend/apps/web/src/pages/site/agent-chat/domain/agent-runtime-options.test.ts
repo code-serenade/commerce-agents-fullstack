@@ -12,8 +12,8 @@ import {
 const manualSelection: AgentChatRuntimeSelection = {
   collaborationMode: "manual",
   learningLevel: "higher_vocational",
-  modelName: "ollama-gpt-oss-20b",
   primaryRole: "data",
+  routingMode: "commander",
   selectedRoles: ["data", "ops"],
 }
 const manualCopy = "Manual"
@@ -23,13 +23,13 @@ const higherVocationalCopy = "Higher vocational"
 describe("agent runtime options", () => {
   it("uses the same default answer setup before backend options finish loading", () => {
     expect(defaultRuntimeSelection(null)).toMatchObject({
-      collaborationMode: "auto",
+      collaborationMode: "manual",
       learningLevel: "higher_vocational",
       primaryRole: "ops",
     })
   })
 
-  it("defaults new commerce chats to backend auto role dispatch when available", () => {
+  it("defaults new commerce chats to visible multi-agent collaboration when available", () => {
     expect(
       defaultRuntimeSelection({
         collaborationModes: [
@@ -46,7 +46,6 @@ describe("agent runtime options", () => {
             isDefault: true,
           },
         ],
-        defaultModelName: "ollama-gpt-oss-20b",
         learningLevels: [
           {
             id: "higher_vocational",
@@ -55,14 +54,8 @@ describe("agent runtime options", () => {
             isDefault: true,
           },
         ],
-        models: [
-          {
-            name: "ollama-gpt-oss-20b",
-            model: "gpt-oss:20b",
-            isDefault: true,
-          },
-        ],
         responseModes: [],
+        routingModes: [],
         roles: [
           {
             id: "role-engineering",
@@ -103,10 +96,10 @@ describe("agent runtime options", () => {
         strategies: [],
       })
     ).toEqual({
-      collaborationMode: "auto",
+      collaborationMode: "manual",
       learningLevel: "higher_vocational",
-      modelName: "ollama-gpt-oss-20b",
       primaryRole: "ops",
+      routingMode: "commander",
       selectedRoles: ["ops", "data", "creative", "service", "engineering"],
     })
   })
@@ -255,7 +248,6 @@ describe("agent runtime options", () => {
         {
           collaborationMode: "manual",
           learningLevel: "higher_vocational",
-          modelName: "ollama-gpt-oss-20b",
           primaryRole: "creative",
           selectedRoles: ["creative", "missing"],
         },
@@ -268,7 +260,6 @@ describe("agent runtime options", () => {
               isDefault: true,
             },
           ],
-          defaultModelName: "ollama-gpt-oss-20b",
           learningLevels: [
             {
               id: "higher_vocational",
@@ -277,14 +268,8 @@ describe("agent runtime options", () => {
               isDefault: true,
             },
           ],
-          models: [
-            {
-              name: "ollama-gpt-oss-20b",
-              model: "gpt-oss:20b",
-              isDefault: true,
-            },
-          ],
           responseModes: [],
+          routingModes: [],
           roles: [
             {
               id: "role-data",
@@ -307,8 +292,8 @@ describe("agent runtime options", () => {
     ).toEqual({
       collaborationMode: "manual",
       learningLevel: "higher_vocational",
-      modelName: "ollama-gpt-oss-20b",
       primaryRole: "creative",
+      routingMode: "commander",
       selectedRoles: ["creative"],
     })
   })

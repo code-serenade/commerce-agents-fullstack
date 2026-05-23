@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
+  <title id="title">TaskMate V3 04 Signal Monolith</title>
+  <desc id="desc">A monolithic commerce signal mark with premium restraint.</desc>
+  <rect width="96" height="96" rx="24" fill="#06110f"/>
+  <path fill="#f4f1ea" d="M31 20h34c4 0 7 3 7 7v42c0 4-3 7-7 7H31c-4 0-7-3-7-7V27c0-4 3-7 7-7z"/>
+  <path fill="#06110f" d="M36 35h24v8H36v-8zM36 50h16v8H36v-8z"/>
+  <path fill="#0f766e" d="M57 54h15v22H50l7-22z"/>
+  <circle cx="62" cy="39" r="4" fill="#b8a06a"/>
+</svg>

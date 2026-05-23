@@ -1,7 +1,8 @@
 import {
   createProductAssetApi,
-  presignProductAssetUploadApi,
-  uploadProductAssetFileApi,
+  getUploadDocumentSignApi,
+  getUploadImageSignApi,
+  uploadWithSignedUrlApi,
 } from "@/api"
 import {
   toNumberOrNull,
@@ -21,35 +22,29 @@ export async function createAssetRecord({
   if (!file) {
     throw new Error("Asset file is required")
   }
-  const extension =
-    extensionFromFileName(file.name) ||
-    extensionFromFileName(values.fileName) ||
-    extensionFromMimeType(values.mimeType) ||
-    "bin"
-  const sign = await presignProductAssetUploadApi(productId, {
-    contentType: file.type || values.mimeType || "application/octet-stream",
-    extension,
+  const sign = isImageFile(file)
+    ? await getUploadImageSignApi(file)
+    : await getUploadDocumentSignApi(file)
+  await uploadWithSignedUrlApi(file, sign, {
+    contentType:
+      file.type ||
+      values.mimeType ||
+      sign.headers["Content-Type"] ||
+      "application/octet-stream",
   })
-  await uploadProductAssetFileApi(file, sign)
 
   return createProductAssetApi(productId, {
     assetType: values.assetType || "docs",
-    bucket: sign.bucket,
+    bucket: "private",
     description: toOptionalString(values.description),
-    fileName: values.fileName || file.name || sign.objectKey.split("/").at(-1),
+    fileName: values.fileName || file.name || sign.key.split("/").at(-1),
     fileSize: file.size ?? toNumberOrNull(values.fileSize),
     metadata: {},
     mimeType: file.type || values.mimeType || "application/octet-stream",
-    objectKey: sign.objectKey,
+    objectKey: sign.key,
   })
 }
 
-function extensionFromFileName(fileName: string | undefined) {
-  const match = fileName?.match(/\.([^.]+)$/)
-  return match?.[1] || null
-}
-
-function extensionFromMimeType(mimeType: string | undefined) {
-  const subtype = mimeType?.split("/")[1]?.split(";")[0]?.trim()
-  return subtype || null
+function isImageFile(file: File) {
+  return file.type.toLowerCase().startsWith("image/")
 }

@@ -5,7 +5,6 @@ import {
   FileText,
   MonitorCog,
   PlugZap,
-  ShieldAlert,
 } from "lucide-react"
 import type { ComponentType, SVGProps } from "react"
 import { useTranslation } from "react-i18next"
@@ -17,7 +16,6 @@ const WORKSPACE_HANDOFFS = [
   ["agentChat.swarm.handoffs.context.title", "agentChat.swarm.handoffs.context.detail", Database, "/products"],
   ["agentChat.swarm.handoffs.execution.title", "agentChat.swarm.handoffs.execution.detail", ClipboardCheck, "/workspaces"],
   ["agentChat.swarm.handoffs.delivery.title", "agentChat.swarm.handoffs.delivery.detail", FileText, "/agent-output"],
-  ["agentChat.swarm.handoffs.governance.title", "agentChat.swarm.handoffs.governance.detail", ShieldAlert, "/approvals"],
   ["agentChat.swarm.handoffs.review.title", "agentChat.swarm.handoffs.review.detail", Bot, "/overview"],
 ] as const
 
@@ -108,7 +106,7 @@ export function SwarmIdleDetail({
   }) as string[]
 
   return (
-    <div className="p-3">
+    <div className="min-h-0">
       <div className="min-w-0 overflow-hidden rounded-lg border border-border bg-card">
         <div className="flex items-center justify-between gap-3 border-b border-border bg-card px-5 py-3">
           <div className="flex min-w-0 items-center gap-2">
@@ -124,7 +122,7 @@ export function SwarmIdleDetail({
           </div>
           <StatePill state={isStreaming ? "working" : "idle"} />
         </div>
-        <div className="grid min-h-92 grid-rows-[auto_minmax(0,1fr)_auto]">
+        <div className="grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto]">
           <div className="border-b border-border bg-card px-5 py-3">
             <span className="text-xs font-medium text-muted-foreground">
               {t("agentChat.workbench.businessInput")}
@@ -166,7 +164,7 @@ function IdlePreview({
 
   return (
     <div className="min-h-0 bg-card p-3">
-          <div className="flex h-full min-h-64 flex-col overflow-hidden rounded-md border border-border bg-background">
+      <div className="flex max-h-56 min-h-0 flex-col overflow-hidden rounded-md border border-border bg-background">
         <div className="flex items-center justify-between gap-2 border-b border-border bg-card px-4 py-2.5">
           <div className="flex min-w-0 items-center gap-2">
             <FileText className="size-4 text-muted-foreground" />

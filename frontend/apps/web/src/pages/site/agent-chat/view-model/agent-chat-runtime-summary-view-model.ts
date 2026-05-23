@@ -24,14 +24,17 @@ export function buildCompactRuntimeSummary({
     runtimeOptions?.collaborationModes.find(
       (mode) => mode.id === runtimeSelection.collaborationMode
     )?.label ?? runtimeSelection.collaborationMode
-  const modelLabel = shortModelName(runtimeSelection.modelName)
+  const routingLabel =
+    runtimeOptions?.routingModes.find(
+      (mode) => mode.id === runtimeSelection.routingMode
+    )?.label ?? runtimeSelection.routingMode
   const roleLabel = selectedRoleSummary({
     runtimeOptions,
     runtimeSelection,
     t,
   })
 
-  return [strategyShort, roleModeLabel, depthLabel, modelLabel, roleLabel]
+  return [strategyShort, routingLabel, roleModeLabel, depthLabel, roleLabel]
     .filter(Boolean)
     .join(" / ")
 }
@@ -47,6 +50,11 @@ export function selectedRoleSummary({
 }) {
   if (runtimeSelection.collaborationMode === "auto") {
     return t("agentChat.composer.settings.autoRolesSummary")
+  }
+
+  if (runtimeSelection.collaborationMode === "manual") {
+    const count = runtimeSelection.selectedRoles.length
+    return t("agentChat.composer.settings.multiAgentSummary", { count })
   }
 
   const roleName = (runtimeRole: string | undefined) => {
@@ -72,10 +80,4 @@ export function selectedRoleSummary({
   }
   if (supportCount <= 0) return lead
   return `${lead}+${supportCount}`
-}
-
-export function shortModelName(modelName: string | undefined) {
-  if (!modelName) return ""
-  if (/doubao/i.test(modelName)) return "Doubao"
-  return modelName.replace(/^llm[._-]/i, "").replace(/[-_]?model$/i, "")
 }

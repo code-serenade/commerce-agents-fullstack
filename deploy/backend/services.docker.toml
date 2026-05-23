@@ -34,10 +34,11 @@ vision = "doubao-vision"
 [[llm]]
 name = "doubao-fast"
 base_url = "https://ark.cn-beijing.volces.com/api/v3"
-model = "doubao-seed-2-0-lite-260215"
+model = "doubao-seed-2-0-lite-260428"
 api_key = "e9cc641d-1992-40d1-9fbc-f725fd420611"
 max_tokens = 8000
 temperature = 0.2
+thinking = false
 
 [[llm]]
 name = "doubao-thinking"
@@ -46,11 +47,13 @@ model = "doubao-seed-2-0-pro-260215"
 api_key = "e9cc641d-1992-40d1-9fbc-f725fd420611"
 max_tokens = 20000
 temperature = 0.2
+thinking = true
 
 [[llm]]
 name = "doubao-vision"
 base_url = "https://ark.cn-beijing.volces.com/api/v3"
-model = "doubao-seed-2-0-pro-260215"
+model = "doubao-seed-2-0-lite-260428"
 api_key = "e9cc641d-1992-40d1-9fbc-f725fd420611"
 max_tokens = 12000
 temperature = 0.2
+thinking = false

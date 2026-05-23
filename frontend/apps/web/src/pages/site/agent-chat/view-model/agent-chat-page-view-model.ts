@@ -61,8 +61,8 @@ export interface AgentChatPageViewModelInput {
   setInput: (value: string) => void
   setRuntimeCollaborationMode: (value: string) => void
   setRuntimeLearningLevel: (value: string) => void
-  setRuntimeModelName: (value: string) => void
   setRuntimePrimaryRole: (value: string) => void
+  setRuntimeRoutingMode: (value: string) => void
   setStrategyId: (value: AgentChatStrategyId) => void
   strategyId: AgentChatStrategyId
   toggleProductContext: (product: AgentChatProductContextSelection) => void
@@ -113,8 +113,8 @@ export function createAgentChatPageViewModel(input: AgentChatPageViewModelInput)
     setInput: input.setInput,
     setRuntimeCollaborationMode: input.setRuntimeCollaborationMode,
     setRuntimeLearningLevel: input.setRuntimeLearningLevel,
-    setRuntimeModelName: input.setRuntimeModelName,
     setRuntimePrimaryRole: input.setRuntimePrimaryRole,
+    setRuntimeRoutingMode: input.setRuntimeRoutingMode,
     setStrategyId: input.setStrategyId,
     startNewConversation: input.commands.startNewConversation,
     stopStreaming: input.commands.stopStreaming,

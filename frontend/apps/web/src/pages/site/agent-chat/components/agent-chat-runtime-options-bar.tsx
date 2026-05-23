@@ -7,23 +7,19 @@ import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
 import { AdvancedRuntimeOptions } from "./agent-chat-advanced-runtime-options"
 import { RoleSelector } from "./agent-chat-role-selector"
 import {
-  modelToSelectOption,
+  choiceToOption,
   roleModeToOption,
   sortRoleModes,
 } from "../view-model/agent-chat-runtime-options-view-model"
-import {
-  OptionSegment,
-  RuntimeSelect,
-  SettingsRow,
-} from "./agent-chat-runtime-shared"
+import { OptionSegment } from "./agent-chat-runtime-shared"
 
 export interface AgentChatRuntimeOptionsBarProps {
   disabled: boolean
   isLoadingRuntimeOptions: boolean
   onCollaborationModeChange: (value: string) => void
   onLearningLevelChange: (value: string) => void
-  onModelChange: (value: string) => void
   onPrimaryRoleChange: (value: string) => void
+  onRoutingModeChange: (value: string) => void
   onToggleRole: (value: string) => void
   runtimeOptions: AgentRuntimeOptions | null
   runtimeSelection: AgentChatRuntimeSelection
@@ -35,8 +31,8 @@ export function AgentChatRuntimeOptionsBar({
   isLoadingRuntimeOptions,
   onCollaborationModeChange,
   onLearningLevelChange,
-  onModelChange,
   onPrimaryRoleChange,
+  onRoutingModeChange,
   onToggleRole,
   runtimeOptions,
   runtimeSelection,
@@ -68,6 +64,14 @@ export function AgentChatRuntimeOptionsBar({
           />
           <OptionSegment
             disabled={controlDisabled}
+            columns={2}
+            label={t("agentChat.composer.runtime.routingMode")}
+            onValueChange={onRoutingModeChange}
+            options={runtimeOptions.routingModes.map(choiceToOption)}
+            value={runtimeSelection.routingMode}
+          />
+          <OptionSegment
+            disabled={controlDisabled}
             label={t("agentChat.composer.runtime.roleMode")}
             onValueChange={onCollaborationModeChange}
             options={roleModes.map((mode) => roleModeToOption(mode, t))}
@@ -80,22 +84,6 @@ export function AgentChatRuntimeOptionsBar({
             roles={specialistRoles}
             runtimeSelection={runtimeSelection}
           />
-          <SettingsRow label={t("agentChat.composer.runtime.modelSettings")}>
-            <div className="flex min-w-0 flex-wrap items-center justify-start gap-2">
-              {isLoadingRuntimeOptions ? (
-                <span className="rounded-full border border-border bg-background/70 px-3 py-1.5 text-xs text-muted-foreground">
-                  {t("agentChat.composer.runtime.loading")}
-                </span>
-              ) : null}
-              <RuntimeSelect
-                disabled={controlDisabled}
-                label={t("agentChat.composer.runtime.model")}
-                onValueChange={onModelChange}
-                options={runtimeOptions.models.map(modelToSelectOption)}
-                value={runtimeSelection.modelName ?? ""}
-              />
-            </div>
-          </SettingsRow>
         </>
       ) : null}
     </section>

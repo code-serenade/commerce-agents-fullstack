@@ -19,6 +19,7 @@ export function AgentChatComposer({
   availableSources,
   canSend,
   error,
+  focusVersion,
   input,
   isLoggedIn,
   isLoadingCampaigns,
@@ -29,8 +30,8 @@ export function AgentChatComposer({
   onInputChange,
   onRuntimeCollaborationModeChange,
   onRuntimeLearningLevelChange,
-  onRuntimeModelChange,
   onRuntimePrimaryRoleChange,
+  onRuntimeRoutingModeChange,
   onToggleRuntimeRole,
   onSelectPlaybook,
   onSend,
@@ -102,6 +103,11 @@ export function AgentChatComposer({
     textarea.style.height = `${Math.min(textarea.scrollHeight, 180)}px`
   }, [input])
 
+  useEffect(() => {
+    if (!focusVersion || isStreaming) return
+    textareaRef.current?.focus()
+  }, [focusVersion, isStreaming])
+
   const sendAndClosePanels = () => {
     closePanels()
     onSend()
@@ -143,8 +149,8 @@ export function AgentChatComposer({
             onFocusComposer={() => textareaRef.current?.focus()}
             onRuntimeCollaborationModeChange={onRuntimeCollaborationModeChange}
             onRuntimeLearningLevelChange={onRuntimeLearningLevelChange}
-            onRuntimeModelChange={onRuntimeModelChange}
             onRuntimePrimaryRoleChange={onRuntimePrimaryRoleChange}
+            onRuntimeRoutingModeChange={onRuntimeRoutingModeChange}
             onSelectPlaybook={onSelectPlaybook}
             onStrategyChange={onStrategyChange}
             onClearCampaignContext={onClearCampaignContext}
@@ -203,8 +209,8 @@ export function AgentChatComposer({
               onAttach={() => fileInputRef.current?.click()}
               onRuntimeCollaborationModeChange={onRuntimeCollaborationModeChange}
               onRuntimeLearningLevelChange={onRuntimeLearningLevelChange}
-              onRuntimeModelChange={onRuntimeModelChange}
               onRuntimePrimaryRoleChange={onRuntimePrimaryRoleChange}
+              onRuntimeRoutingModeChange={onRuntimeRoutingModeChange}
               onSelectPlaybook={(playbook) => {
                 onSelectPlaybook(playbook)
                 queueMicrotask(() => textareaRef.current?.focus())

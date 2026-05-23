@@ -1,9 +1,12 @@
+use std::collections::HashSet;
+
 use tracing::warn;
 
 use super::{Commander, CommanderPhase, CommanderState, next_message_id, primary_route_score};
 use crate::{
     agent::commander::{
-        EvaluationOutcome, TaskGraphRuntime, plan_task_graph,
+        EvaluationOutcome, TaskGraphRuntime, plan_configured_non_chat_task_graph,
+        plan_configured_task_graph, plan_task_graph,
         runner::{output::direct_chat_report_output, route::primary_graph_role},
     },
     core::protocol::{
@@ -39,29 +42,46 @@ impl Commander {
 
         let task_id = crate::core::protocol::TaskId(current_task.id);
         let graph = plan_task_graph(&task_id, &current_task.description, role_route);
-        if !self.should_run_task_graph(role_route, &graph) {
+        self.schedule_planned_task_graph("task_graph", role_route, graph)
+            .await
+    }
+
+    pub(super) async fn try_configured_task_graph_route(
+        &mut self,
+        role_route: Option<&RoleRoute>,
+    ) -> bool {
+        let Some(current_task) = self.current_task.clone() else {
             return false;
-        }
-        if graph.nodes.iter().any(|node| {
-            self.session_context
-                .get_worker_tx(&node.worker_id)
-                .is_none()
-        }) {
+        };
+
+        let task_id = crate::core::protocol::TaskId(current_task.id);
+        let graph = if self.context_allows_direct_chat_graph(role_route) {
+            plan_configured_task_graph(&task_id, &current_task.description, role_route)
+        } else {
+            plan_configured_non_chat_task_graph(&task_id, &current_task.description, role_route)
+        };
+        let Some(graph) = graph else {
             return false;
-        }
+        };
+        self.schedule_planned_task_graph("task_graph", role_route, graph)
+            .await
+    }
+
+    pub(super) async fn schedule_planned_task_graph(
+        &mut self,
+        route_mode: &str,
+        role_route: Option<&RoleRoute>,
+        graph: TaskGraph,
+    ) -> bool {
+        let Some(graph) = self.runnable_task_graph(graph) else {
+            return false;
+        };
 
         self.memory
             .push_progress(format!("task graph planned: {} nodes", graph.nodes.len()));
-        self.emit_route_decided(
-            "task_graph",
-            graph.nodes.first().map(|node| node.role.clone()),
-            graph
-                .nodes
-                .iter()
-                .skip(1)
-                .map(|node| node.role.clone())
-                .collect(),
-        );
+        let display_roles = self.task_graph_display_roles(role_route, &graph);
+        self.emit_route_decided(route_mode, display_roles.0.clone(), display_roles.1.clone());
+        self.emit_dispatch_planned_for_graph_with_roles(route_mode, &graph, display_roles);
         self.emit_event(SessionEvent::TaskGraphPlanned {
             session_id: self.session_id_from_context(&self.current_context),
             graph: graph.clone(),
@@ -102,7 +122,11 @@ impl Commander {
             return true;
         }
         if primary_graph_role(graph) == Some("chat") {
-            return true;
+            return self
+                .current_context
+                .metadata
+                .get("strategy.routing_mode")
+                .is_some_and(|value| value == "fast");
         }
         role_route
             .map(primary_route_score)
@@ -119,6 +143,40 @@ impl Commander {
                 .metadata
                 .get("strategy.id")
                 .is_some_and(|value| value == "collab")
+    }
+
+    fn context_allows_direct_chat_graph(&self, _role_route: Option<&RoleRoute>) -> bool {
+        self.current_context
+            .metadata
+            .get("strategy.routing_mode")
+            .is_some_and(|value| value == "fast")
+            || self
+                .current_context
+                .metadata
+                .get("strategy.selected_roles")
+                .is_some_and(|value| value.split(',').map(str::trim).all(|role| role == "chat"))
+    }
+
+    fn runnable_task_graph(&self, mut graph: TaskGraph) -> Option<TaskGraph> {
+        let available = graph
+            .nodes
+            .iter()
+            .filter(|node| {
+                self.session_context
+                    .get_worker_tx(&node.worker_id)
+                    .is_some()
+            })
+            .map(|node| node.id.clone())
+            .collect::<HashSet<_>>();
+        graph.nodes.retain(|node| available.contains(&node.id));
+        if graph.nodes.is_empty() {
+            return None;
+        }
+        for node in &mut graph.nodes {
+            node.input_refs
+                .retain(|input_ref| available.contains(input_ref));
+        }
+        Some(graph)
     }
 
     pub(super) async fn handle_task_graph_report(

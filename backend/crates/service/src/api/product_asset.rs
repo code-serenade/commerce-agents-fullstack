@@ -77,11 +77,7 @@ impl ProductAssetApi {
         let product_id = parse_uuid(&req.product_id, "product_id")?;
         self.ensure_active_product_owner(user_id, product_id)
             .await?;
-        ensure_product_asset_object_key(
-            &req.object_key,
-            &user_id.to_string(),
-            &product_id.to_string(),
-        )?;
+        ensure_product_asset_object_key(&req.object_key, &user_id)?;
 
         let bucket = normalize_required(req.bucket, "bucket")?;
         let object_key = normalize_required(req.object_key, "object_key")?;
@@ -364,19 +360,24 @@ pub fn expected_product_asset_prefix(user_scope: &str, product_id: &str) -> Stri
     format!("products/{user_scope}/{product_id}/assets/")
 }
 
-fn ensure_product_asset_object_key(
-    object_key: &str,
-    user_scope: &str,
-    product_id: &str,
-) -> BizResult<()> {
-    let expected_prefix = expected_product_asset_prefix(user_scope, product_id);
-    if !object_key.starts_with(&expected_prefix) {
-        return Err(BizError::new(
-            app_error::PRODUCT_ASSET_REQUEST_INVALID,
-            "invalid product asset object key".to_string(),
-        ));
+fn ensure_product_asset_object_key(object_key: &str, user_id: &Uuid) -> BizResult<()> {
+    storage::key::validate_object_key(object_key)
+        .map_err(|err| BizError::new(app_error::PRODUCT_ASSET_REQUEST_INVALID, err.to_string()))?;
+
+    let user_scope = storage::key::user_scope_key(&user_id.to_string(), None);
+    for prefix in [
+        format!("users/{user_scope}/docs/"),
+        format!("users/{user_scope}/images/"),
+    ] {
+        if object_key.starts_with(&prefix) {
+            return Ok(());
+        }
     }
-    Ok(())
+
+    Err(BizError::new(
+        app_error::PRODUCT_ASSET_REQUEST_INVALID,
+        "invalid product asset object key".to_string(),
+    ))
 }
 
 fn parse_user_id(user_id: &str) -> BizResult<Uuid> {

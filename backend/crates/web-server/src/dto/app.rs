@@ -189,31 +189,12 @@ pub type ExternalSearchResponse = service::dto::external_search::ExternalSearchR
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentRuntimeOptionsResponse {
-    pub default_model_name: Option<String>,
-    pub llm_usage: AgentRuntimeLlmUsageResponse,
-    pub models: Vec<AgentRuntimeModelOptionResponse>,
     pub strategies: Vec<AgentRuntimeChoiceResponse>,
     pub response_modes: Vec<AgentRuntimeChoiceResponse>,
+    pub routing_modes: Vec<AgentRuntimeChoiceResponse>,
     pub learning_levels: Vec<AgentRuntimeChoiceResponse>,
     pub collaboration_modes: Vec<AgentRuntimeChoiceResponse>,
     pub roles: Vec<AgentRuntimeRoleOptionResponse>,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AgentRuntimeLlmUsageResponse {
-    pub default: Option<String>,
-    pub fast: Option<String>,
-    pub thinking: Option<String>,
-    pub vision: Option<String>,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AgentRuntimeModelOptionResponse {
-    pub name: String,
-    pub model: String,
-    pub is_default: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -376,6 +357,15 @@ pub struct UpdateConversationFileExtractionRequest {
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
+pub struct TriggerConversationFileExtractionJobRequest {
+    #[validate(length(max = 32))]
+    pub mode: Option<String>,
+    #[serde(default)]
+    pub force: bool,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
 pub struct PresignConversationFileUploadRequest {
     #[validate(length(min = 1, max = 32))]
     pub extension: String,
@@ -461,6 +451,11 @@ pub struct ConversationFileAccessResponse {
     pub download_url: String,
     pub expires_secs: u64,
 }
+
+pub type ConversationFileExtractionStatusResponse =
+    service::dto::conversation::ConversationFileExtractionStatusResponse;
+pub type ConversationFileExtractionJobResponse =
+    service::dto::conversation::ConversationFileExtractionJobResponse;
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
@@ -1564,6 +1559,41 @@ pub struct WorkspaceContextPackQuery {
     pub max_items: Option<usize>,
     #[validate(range(min = 1, max = 24000))]
     pub max_chars: Option<usize>,
+    #[validate(length(max = 20000))]
+    pub query: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentContextPreviewRequest {
+    #[validate(length(min = 1, max = 128))]
+    pub workspace_id: Option<String>,
+    #[validate(length(max = 64))]
+    pub conversation_id: Option<String>,
+    #[validate(length(max = 64))]
+    pub product_id: Option<String>,
+    #[validate(length(min = 1, max = 20000))]
+    pub input: String,
+    #[serde(default)]
+    pub context_refs: Vec<String>,
+    #[validate(range(min = 1, max = 50))]
+    pub max_items: Option<usize>,
+    #[validate(range(min = 1, max = 24000))]
+    pub max_chars: Option<usize>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentContextPreviewResponse {
+    pub workspace_context: WorkspaceContextSummaryResponse,
+    pub workspace_pack: WorkspaceContextPackResponse,
+    pub conversation_history: Option<Value>,
+    pub conversation_memory: Option<Value>,
+    pub budget: Value,
+    pub included_refs: Vec<String>,
+    pub metadata_only_refs: Vec<String>,
+    pub omitted_refs: Vec<String>,
+    pub warnings: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]

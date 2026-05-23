@@ -79,6 +79,20 @@ const MAX_CONTEXT_PACK_MAX_ITEMS: usize = 50;
 const DEFAULT_CONTEXT_PACK_MAX_CHARS: usize = 12_000;
 const MAX_CONTEXT_PACK_MAX_CHARS: usize = 24_000;
 const DEFAULT_CONTEXT_PACK_ITEM_CHARS: usize = 2_400;
+const CONTEXT_PACK_RELEVANT_TEXT_MIN_CHARS: usize = 3_200;
+const CONTEXT_PACK_RELEVANT_CHUNK_CHARS: usize = 700;
+const CONTEXT_PACK_RELEVANT_CHUNKS: usize = 4;
+const JSON_PROFILE_MIN_CHARS: usize = 3_200;
+const JSON_PROFILE_MAX_DEPTH: usize = 5;
+const JSON_PROFILE_MAX_PATHS: usize = 18;
+const JSON_PROFILE_MAX_SAMPLES: usize = 8;
+const JSON_PROFILE_MAX_ARRAY_ITEMS: usize = 5;
+const JSON_PROFILE_MAX_QUERY_MATCHES: usize = 8;
+const TABLE_PROFILE_MIN_CHARS: usize = 8_000;
+const TABLE_PROFILE_MAX_ROWS: usize = 5;
+const TABLE_PROFILE_MAX_COLUMNS: usize = 12;
+const TABLE_PROFILE_RELEVANT_ROWS: usize = 3;
+const TABLE_PROFILE_MAX_DERIVED_METRICS: usize = 10;
 const DEFAULT_ARTIFACT_EXPORT_FORMAT: &str = "markdown";
 const MAX_CONTEXT_REFS: usize = 20;
 const MAX_CONTEXT_REF_CHARS: usize = 160;
@@ -1223,10 +1237,13 @@ impl WorkspaceApi {
             .max_chars
             .unwrap_or(DEFAULT_CONTEXT_PACK_MAX_CHARS)
             .clamp(1, MAX_CONTEXT_PACK_MAX_CHARS);
+        let query = normalize_string(req.query.unwrap_or_default());
         let mut conversation_file_candidates = Vec::new();
         for file in conversation_files {
-            conversation_file_candidates
-                .push(self.context_pack_conversation_file_candidate(file).await?);
+            conversation_file_candidates.push(
+                self.context_pack_conversation_file_candidate(file, query.as_deref())
+                    .await?,
+            );
         }
 
         let candidates = conversation_file_candidates
@@ -1248,7 +1265,7 @@ impl WorkspaceApi {
                     .map(context_pack_artifact_candidate),
             )
             .collect::<Vec<_>>();
-        let pack = build_context_pack_items(candidates, max_items, max_chars);
+        let pack = build_context_pack_items(candidates, max_items, max_chars, query.as_deref());
         let mut warnings = Vec::new();
         if counts.total() == 0 {
             warnings.push("no active workspace context sources were found".to_string());
@@ -1265,10 +1282,10 @@ impl WorkspaceApi {
         if pack.truncated {
             warnings.push("workspace context pack text was truncated by safety limits".to_string());
         }
-        if !pack.omitted.is_empty() {
+        if !pack.omitted_details.is_empty() {
             warnings.push(format!(
                 "{} workspace context source(s) were omitted by item or character limits",
-                pack.omitted.len()
+                pack.omitted_details.len()
             ));
         }
         let readiness = if counts.total() == 0 {
@@ -1316,6 +1333,7 @@ impl WorkspaceApi {
             "contentRefs": content_refs,
             "items": pack.items,
             "omitted": pack.omitted,
+            "omittedDetails": pack.omitted_details,
             "warnings": warnings,
         });
 
@@ -1329,6 +1347,7 @@ impl WorkspaceApi {
             counts,
             items: pack.items,
             omitted: pack.omitted,
+            omitted_details: pack.omitted_details,
             warnings,
             agent_context,
         })
@@ -1337,8 +1356,9 @@ impl WorkspaceApi {
     async fn context_pack_conversation_file_candidate(
         &self,
         item: ConversationFile,
+        query: Option<&str>,
     ) -> BizResult<WorkspaceContextPackCandidate> {
-        let mut candidate = context_pack_conversation_file_candidate(item.clone());
+        let mut candidate = context_pack_conversation_file_candidate(item.clone(), query);
         if candidate.extraction_status.as_deref() != Some("extracted") || candidate.text.is_some() {
             return Ok(candidate);
         }
@@ -1356,6 +1376,7 @@ impl WorkspaceApi {
             if text.is_some() {
                 candidate.content_kind = "extracted_text".to_string();
                 candidate.text = text;
+                apply_conversation_file_text_profile(&item, query, &mut candidate);
                 candidate.metadata["documentTextAnalysis"] = json!({
                     "analysisId": analysis.id,
                     "analysisKind": analysis.analysis_kind,
@@ -4462,6 +4483,7 @@ struct WorkspaceContextPackCandidate {
 struct BuiltWorkspaceContextPack {
     items: Vec<WorkspaceContextPackItemResponse>,
     omitted: Vec<String>,
+    omitted_details: Vec<WorkspaceContextPackOmittedResponse>,
     readable_items: usize,
     text_chars: usize,
     truncated: bool,
@@ -4469,22 +4491,53 @@ struct BuiltWorkspaceContextPack {
 
 fn context_pack_conversation_file_candidate(
     item: ConversationFile,
+    query: Option<&str>,
 ) -> WorkspaceContextPackCandidate {
     let id = item.id.to_string();
     let extraction_status = conversation_file_extraction_status(&item.metadata);
-    let text = if extraction_status == "extracted" {
-        conversation_file_extracted_text(&item.metadata)
+    let (text, content_kind_override, profile_metadata) = if extraction_status == "extracted" {
+        let extracted = conversation_file_extracted_text(&item.metadata);
+        let looks_like_table = conversation_file_looks_like_table(&item, extracted.as_deref());
+        if looks_like_table {
+            match extracted
+                .as_deref()
+                .and_then(|text| build_table_context_profile(text, query))
+            {
+                Some(profile) => (
+                    Some(profile.text),
+                    Some("table_profile".to_string()),
+                    profile.metadata,
+                ),
+                None => (extracted, None, json!({})),
+            }
+        } else if conversation_file_looks_like_json(&item, extracted.as_deref()) {
+            match extracted
+                .as_deref()
+                .and_then(|text| build_json_context_profile(text, query))
+            {
+                Some(profile) => (
+                    Some(profile.text),
+                    Some("json_profile".to_string()),
+                    profile.metadata,
+                ),
+                None => (extracted, None, json!({})),
+            }
+        } else {
+            (extracted, None, json!({}))
+        }
     } else {
-        None
+        (None, None, json!({}))
     };
-    let content_kind = match (extraction_status.as_str(), text.is_some()) {
-        ("extracted", true) => "extracted_text".to_string(),
-        ("extracted", false) => "metadata_only".to_string(),
-        ("failed", _) => "extraction_failed".to_string(),
-        ("unsupported", _) => "extraction_unsupported".to_string(),
-        ("pending", _) => "extraction_pending".to_string(),
-        _ => "metadata_only".to_string(),
-    };
+    let content_kind = content_kind_override.unwrap_or_else(|| {
+        match (extraction_status.as_str(), text.is_some()) {
+            ("extracted", true) => "extracted_text".to_string(),
+            ("extracted", false) => "metadata_only".to_string(),
+            ("failed", _) => "extraction_failed".to_string(),
+            ("unsupported", _) => "extraction_unsupported".to_string(),
+            ("pending", _) => "extraction_pending".to_string(),
+            _ => "metadata_only".to_string(),
+        }
+    });
     WorkspaceContextPackCandidate {
         source_type: "conversation_file".to_string(),
         id: id.clone(),
@@ -4496,20 +4549,48 @@ fn context_pack_conversation_file_candidate(
         content_kind,
         text,
         extraction_status: Some(extraction_status),
-        metadata: json!({
-            "conversationId": item.conversation_id,
-            "messageId": item.message_id,
-            "bucket": item.bucket,
-            "objectKey": item.object_key,
-            "fileName": item.file_name,
-            "mimeType": item.mime_type,
-            "fileSize": item.file_size,
-            "sha256": item.sha256,
-            "visibility": item.visibility,
-            "storageProvider": item.storage_provider,
-            "status": item.status,
-            "metadata": item.metadata,
-        }),
+        metadata: merge_json_object(
+            json!({
+                "conversationId": item.conversation_id,
+                "messageId": item.message_id,
+                "bucket": item.bucket,
+                "objectKey": item.object_key,
+                "fileName": item.file_name,
+                "mimeType": item.mime_type,
+                "fileSize": item.file_size,
+                "sha256": item.sha256,
+                "visibility": item.visibility,
+                "storageProvider": item.storage_provider,
+                "status": item.status,
+                "metadata": item.metadata,
+            }),
+            profile_metadata,
+        ),
+    }
+}
+
+fn apply_conversation_file_text_profile(
+    item: &ConversationFile,
+    query: Option<&str>,
+    candidate: &mut WorkspaceContextPackCandidate,
+) {
+    let Some(text) = candidate.text.clone() else {
+        return;
+    };
+    if conversation_file_looks_like_table(item, Some(&text)) {
+        let Some(profile) = build_table_context_profile(&text, query) else {
+            return;
+        };
+        candidate.content_kind = "table_profile".to_string();
+        candidate.text = Some(profile.text);
+        candidate.metadata = merge_json_object(candidate.metadata.clone(), profile.metadata);
+    } else if conversation_file_looks_like_json(item, Some(&text)) {
+        let Some(profile) = build_json_context_profile(&text, query) else {
+            return;
+        };
+        candidate.content_kind = "json_profile".to_string();
+        candidate.text = Some(profile.text);
+        candidate.metadata = merge_json_object(candidate.metadata.clone(), profile.metadata);
     }
 }
 
@@ -4929,6 +5010,997 @@ fn conversation_file_extraction_status(metadata: &Value) -> String {
         })
 }
 
+#[derive(Debug, Clone)]
+struct TableContextProfile {
+    text: String,
+    metadata: Value,
+}
+
+fn conversation_file_looks_like_table(item: &ConversationFile, text: Option<&str>) -> bool {
+    let mime_type = item
+        .mime_type
+        .as_deref()
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    let file_name = item
+        .file_name
+        .as_deref()
+        .or_else(|| item.object_key.rsplit('/').next())
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    let content_kind = item
+        .metadata
+        .get("extraction")
+        .and_then(|value| value.get("contentKind"))
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    mime_type.contains("csv")
+        || mime_type.contains("tab-separated")
+        || mime_type.contains("spreadsheet")
+        || file_name.ends_with(".csv")
+        || file_name.ends_with(".tsv")
+        || file_name.ends_with(".xlsx")
+        || file_name.ends_with(".xls")
+        || content_kind.contains("csv")
+        || content_kind.contains("tsv")
+        || content_kind.contains("sheet")
+        || text
+            .map(|value| value.chars().count() >= TABLE_PROFILE_MIN_CHARS && looks_tabular(value))
+            .unwrap_or(false)
+}
+
+fn conversation_file_looks_like_json(item: &ConversationFile, text: Option<&str>) -> bool {
+    let mime_type = item
+        .mime_type
+        .as_deref()
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    let file_name = item
+        .file_name
+        .as_deref()
+        .or_else(|| item.object_key.rsplit('/').next())
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    let content_kind = item
+        .metadata
+        .get("extraction")
+        .and_then(|value| value.get("contentKind"))
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_ascii_lowercase();
+    (mime_type.contains("json")
+        || file_name.ends_with(".json")
+        || file_name.ends_with(".jsonl")
+        || content_kind.contains("json"))
+        && text
+            .map(|value| value.chars().count() >= JSON_PROFILE_MIN_CHARS)
+            .unwrap_or(false)
+}
+
+fn looks_tabular(text: &str) -> bool {
+    let lines = text.lines().take(12).collect::<Vec<_>>();
+    if lines.len() < 2 {
+        return false;
+    }
+    let comma_rows = lines
+        .iter()
+        .filter(|line| line.split(',').take(3).count() >= 3)
+        .count();
+    let tab_rows = lines
+        .iter()
+        .filter(|line| line.split('\t').take(3).count() >= 3)
+        .count();
+    comma_rows >= 2 || tab_rows >= 2
+}
+
+#[derive(Debug, Clone)]
+struct JsonContextProfile {
+    text: String,
+    metadata: Value,
+}
+
+#[derive(Debug, Clone)]
+struct JsonProfileEntry {
+    path: String,
+    kind: String,
+    preview: Option<String>,
+    score: usize,
+}
+
+#[derive(Debug, Clone, Default)]
+struct JsonProfileStats {
+    object_count: usize,
+    array_count: usize,
+    scalar_count: usize,
+    max_depth: usize,
+}
+
+fn build_json_context_profile(text: &str, query: Option<&str>) -> Option<JsonContextProfile> {
+    let (json_value, source_format, parsed_item_count) = parse_json_profile_value(text)?;
+    let query_terms = query.map(tokenize_context_query).unwrap_or_default();
+    let mut stats = JsonProfileStats::default();
+    let mut entries = Vec::new();
+    collect_json_profile_entries("$", &json_value, 0, &query_terms, &mut stats, &mut entries);
+    if entries.is_empty() {
+        return None;
+    }
+
+    let mut selected_entries = entries.clone();
+    selected_entries.sort_by(|left, right| {
+        right
+            .score
+            .cmp(&left.score)
+            .then_with(|| left.path.cmp(&right.path))
+    });
+    selected_entries.truncate(JSON_PROFILE_MAX_QUERY_MATCHES);
+    let query_matches = selected_entries
+        .iter()
+        .filter(|entry| entry.score > 0)
+        .cloned()
+        .collect::<Vec<_>>();
+    let query_match_count = query_matches.len();
+
+    let mut structural_entries = entries;
+    structural_entries.sort_by(|left, right| left.path.cmp(&right.path));
+    structural_entries.truncate(JSON_PROFILE_MAX_PATHS);
+
+    let sample_values = build_json_profile_samples(&json_value);
+    let mut lines = vec![
+        "Large JSON profile; full JSON is not inlined into the model context.".to_string(),
+        format!("Source format: {source_format}; parsed item count: {parsed_item_count}"),
+        format!(
+            "Objects: {}; arrays: {}; scalar values: {}; max depth: {}",
+            stats.object_count, stats.array_count, stats.scalar_count, stats.max_depth
+        ),
+    ];
+    if !structural_entries.is_empty() {
+        lines.push("Structural paths:".to_string());
+        lines.extend(structural_entries.iter().map(format_json_profile_entry));
+    }
+    if !query_matches.is_empty() {
+        lines.push("Query relevant paths:".to_string());
+        lines.extend(query_matches.iter().map(format_json_profile_entry));
+    }
+    if !sample_values.is_empty() {
+        lines.push("Sample values:".to_string());
+        lines.extend(sample_values.iter().map(|value| format!("- {value}")));
+    }
+
+    Some(JsonContextProfile {
+        text: lines.join("\n"),
+        metadata: json!({
+            "jsonProfile": {
+                "sourceFormat": source_format,
+                "parsedItemCount": parsed_item_count,
+                "objectCount": stats.object_count,
+                "arrayCount": stats.array_count,
+                "scalarCount": stats.scalar_count,
+                "maxDepth": stats.max_depth,
+                "strategy": if query.is_some() {
+                    "query_relevant_json_structure_profile"
+                } else {
+                    "json_structure_profile"
+                },
+                "queryMatchCount": query_match_count,
+                "paths": structural_entries
+                    .iter()
+                    .map(json_profile_entry_metadata)
+                    .collect::<Vec<_>>(),
+                "queryMatches": query_matches
+                    .iter()
+                    .map(json_profile_entry_metadata)
+                    .collect::<Vec<_>>(),
+            }
+        }),
+    })
+}
+
+fn parse_json_profile_value(text: &str) -> Option<(Value, &'static str, usize)> {
+    if let Ok(value) = serde_json::from_str::<Value>(text) {
+        return Some((value, "json", 1));
+    }
+    let values = text
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .filter_map(|line| serde_json::from_str::<Value>(line).ok())
+        .take(JSON_PROFILE_MAX_ARRAY_ITEMS * 4)
+        .collect::<Vec<_>>();
+    if values.is_empty() {
+        return None;
+    }
+    let count = values.len();
+    Some((Value::Array(values), "jsonl", count))
+}
+
+fn collect_json_profile_entries(
+    path: &str,
+    value: &Value,
+    depth: usize,
+    query_terms: &[String],
+    stats: &mut JsonProfileStats,
+    entries: &mut Vec<JsonProfileEntry>,
+) {
+    stats.max_depth = stats.max_depth.max(depth);
+    if depth > JSON_PROFILE_MAX_DEPTH {
+        return;
+    }
+    match value {
+        Value::Object(object) => {
+            stats.object_count += 1;
+            entries.push(JsonProfileEntry {
+                path: path.to_string(),
+                kind: format!("object({})", object.len()),
+                preview: Some(
+                    object
+                        .keys()
+                        .take(JSON_PROFILE_MAX_SAMPLES)
+                        .cloned()
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                )
+                .filter(|value| !value.is_empty()),
+                score: score_json_profile_entry(path, None, query_terms),
+            });
+            for (key, child) in object.iter().take(JSON_PROFILE_MAX_PATHS) {
+                collect_json_profile_entries(
+                    &format!("{path}.{}", compact_json_path_segment(key)),
+                    child,
+                    depth + 1,
+                    query_terms,
+                    stats,
+                    entries,
+                );
+            }
+        }
+        Value::Array(items) => {
+            stats.array_count += 1;
+            entries.push(JsonProfileEntry {
+                path: path.to_string(),
+                kind: format!("array({})", items.len()),
+                preview: items.first().map(json_scalar_preview),
+                score: score_json_profile_entry(path, items.first(), query_terms),
+            });
+            for (index, child) in items.iter().take(JSON_PROFILE_MAX_ARRAY_ITEMS).enumerate() {
+                collect_json_profile_entries(
+                    &format!("{path}[{index}]"),
+                    child,
+                    depth + 1,
+                    query_terms,
+                    stats,
+                    entries,
+                );
+            }
+        }
+        _ => {
+            stats.scalar_count += 1;
+            let preview = json_scalar_preview(value);
+            entries.push(JsonProfileEntry {
+                path: path.to_string(),
+                kind: json_value_kind(value).to_string(),
+                preview: Some(preview.clone()),
+                score: score_json_profile_entry(path, Some(value), query_terms),
+            });
+        }
+    }
+}
+
+fn score_json_profile_entry(path: &str, value: Option<&Value>, query_terms: &[String]) -> usize {
+    if query_terms.is_empty() {
+        return 0;
+    }
+    let mut haystack = normalize_query_match_text(path);
+    if let Some(value) = value {
+        haystack.push(' ');
+        haystack.push_str(&normalize_query_match_text(&json_scalar_preview(value)));
+    }
+    query_terms
+        .iter()
+        .map(|term| haystack.matches(term).count() * term.chars().count().max(1))
+        .sum()
+}
+
+fn format_json_profile_entry(entry: &JsonProfileEntry) -> String {
+    match entry.preview.as_deref() {
+        Some(preview) if !preview.is_empty() => {
+            format!(
+                "- {}: {}; sample={}",
+                entry.path,
+                entry.kind,
+                compact_text(preview, 120)
+            )
+        }
+        _ => format!("- {}: {}", entry.path, entry.kind),
+    }
+}
+
+fn json_profile_entry_metadata(entry: &JsonProfileEntry) -> Value {
+    json!({
+        "path": entry.path.clone(),
+        "kind": entry.kind.clone(),
+        "preview": entry.preview.clone(),
+        "score": entry.score,
+    })
+}
+
+fn build_json_profile_samples(value: &Value) -> Vec<String> {
+    let mut samples = Vec::new();
+    collect_json_profile_samples("$", value, 0, &mut samples);
+    samples
+}
+
+fn collect_json_profile_samples(
+    path: &str,
+    value: &Value,
+    depth: usize,
+    samples: &mut Vec<String>,
+) {
+    if samples.len() >= JSON_PROFILE_MAX_SAMPLES || depth > JSON_PROFILE_MAX_DEPTH {
+        return;
+    }
+    match value {
+        Value::Object(object) => {
+            for (key, child) in object {
+                collect_json_profile_samples(
+                    &format!("{path}.{}", compact_json_path_segment(key)),
+                    child,
+                    depth + 1,
+                    samples,
+                );
+                if samples.len() >= JSON_PROFILE_MAX_SAMPLES {
+                    break;
+                }
+            }
+        }
+        Value::Array(items) => {
+            for (index, child) in items.iter().take(JSON_PROFILE_MAX_ARRAY_ITEMS).enumerate() {
+                collect_json_profile_samples(
+                    &format!("{path}[{index}]"),
+                    child,
+                    depth + 1,
+                    samples,
+                );
+                if samples.len() >= JSON_PROFILE_MAX_SAMPLES {
+                    break;
+                }
+            }
+        }
+        _ => samples.push(format!("{path}={}", json_scalar_preview(value))),
+    }
+}
+
+fn compact_json_path_segment(value: &str) -> String {
+    value
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || ch == '_' || ch == '-' {
+                ch
+            } else {
+                '_'
+            }
+        })
+        .collect()
+}
+
+fn json_scalar_preview(value: &Value) -> String {
+    match value {
+        Value::String(value) => compact_text(value, 160),
+        Value::Number(value) => value.to_string(),
+        Value::Bool(value) => value.to_string(),
+        Value::Null => "null".to_string(),
+        Value::Array(items) => format!("array({})", items.len()),
+        Value::Object(object) => {
+            let keys = object
+                .keys()
+                .take(JSON_PROFILE_MAX_SAMPLES)
+                .cloned()
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("object({}): {keys}", object.len())
+        }
+    }
+}
+
+fn json_value_kind(value: &Value) -> &'static str {
+    match value {
+        Value::Null => "null",
+        Value::Bool(_) => "boolean",
+        Value::Number(_) => "number",
+        Value::String(_) => "string",
+        Value::Array(_) => "array",
+        Value::Object(_) => "object",
+    }
+}
+
+fn build_table_context_profile(text: &str, query: Option<&str>) -> Option<TableContextProfile> {
+    let delimiter = detect_table_delimiter(text)?;
+    let mut rows = text
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>();
+    if rows.is_empty() {
+        return None;
+    }
+    let header = parse_table_row(rows.remove(0), delimiter);
+    if header.len() < 2 {
+        return None;
+    }
+    let total_rows = rows.len();
+    let parsed_rows = rows
+        .iter()
+        .map(|row| parse_table_row(row, delimiter))
+        .collect::<Vec<_>>();
+    let selected_indices = select_table_profile_columns(&header, query);
+    let sample_selection = select_table_profile_sample_rows(&parsed_rows, query);
+    let sample_rows = sample_selection
+        .iter()
+        .filter_map(|index| parsed_rows.get(*index).cloned())
+        .collect::<Vec<_>>();
+    let columns = selected_indices
+        .iter()
+        .filter_map(|index| header.get(*index).cloned())
+        .collect::<Vec<_>>();
+    let sample_lines = sample_rows
+        .iter()
+        .map(|row| {
+            selected_indices
+                .iter()
+                .filter_map(|index| {
+                    let column = header.get(*index)?;
+                    row.get(*index)
+                        .filter(|value| !value.trim().is_empty())
+                        .map(|value| format!("{column}={}", compact_text(value, 80)))
+                })
+                .collect::<Vec<_>>()
+                .join("; ")
+        })
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>();
+    let column_line = columns.join(", ");
+    let omitted_columns = header.len().saturating_sub(columns.len());
+    let mut lines = vec![
+        "Large table profile; full rows are not inlined into the model context.".to_string(),
+        format!("Rows: {total_rows}; columns: {}", header.len()),
+        format!("Visible columns: {column_line}"),
+    ];
+    if omitted_columns > 0 {
+        lines.push(format!(
+            "{omitted_columns} additional column(s) were omitted from the inline profile."
+        ));
+    }
+    if !sample_lines.is_empty() {
+        lines.push("Sample rows:".to_string());
+        lines.extend(sample_lines.into_iter().map(|line| format!("- {line}")));
+    }
+    let numeric_summaries = build_table_numeric_summaries(&header, &parsed_rows, &selected_indices);
+    if !numeric_summaries.is_empty() {
+        lines.push("Numeric column summaries:".to_string());
+        lines.extend(numeric_summaries.iter().map(|summary| {
+            format!(
+                "- {}: count={}, sum={}, avg={}, min={}, max={}",
+                summary.column,
+                summary.count,
+                format_table_number(summary.sum),
+                format_table_number(summary.avg),
+                format_table_number(summary.min),
+                format_table_number(summary.max)
+            )
+        }));
+    }
+    let derived_metrics = build_table_derived_metrics(&header, &parsed_rows);
+    if !derived_metrics.is_empty() {
+        lines.push("Derived ecommerce metrics:".to_string());
+        lines.extend(derived_metrics.iter().map(|metric| {
+            format!(
+                "- {}: {} ({})",
+                metric.key, metric.formatted_value, metric.formula
+            )
+        }));
+    }
+    Some(TableContextProfile {
+        text: lines.join("\n"),
+        metadata: json!({
+            "tableProfile": {
+                "rowCount": total_rows,
+                "columnCount": header.len(),
+                "visibleColumns": columns,
+                "omittedColumnCount": omitted_columns,
+                "sampleRowCount": sample_rows.len(),
+                "sampleRowSelection": if query.is_some() {
+                    "query_relevant_rows_then_head"
+                } else {
+                    "head_rows"
+                },
+                "sampleRowIndexes": sample_selection,
+                "delimiter": delimiter.to_string(),
+                "strategy": if query.is_some() {
+                    "query_relevant_schema_sample_and_numeric_profile"
+                } else {
+                    "schema_sample_and_numeric_profile"
+                },
+                "numericSummaries": numeric_summaries
+                    .iter()
+                    .map(|summary| json!({
+                        "column": summary.column,
+                        "count": summary.count,
+                        "sum": summary.sum,
+                        "avg": summary.avg,
+                        "min": summary.min,
+                        "max": summary.max,
+                    }))
+                    .collect::<Vec<_>>(),
+                "derivedMetrics": derived_metrics
+                    .iter()
+                    .map(table_derived_metric_metadata)
+                    .collect::<Vec<_>>()
+            }
+        }),
+    })
+}
+
+#[derive(Debug, Clone)]
+struct TableNumericSummary {
+    column: String,
+    count: usize,
+    sum: f64,
+    avg: f64,
+    min: f64,
+    max: f64,
+}
+
+#[derive(Debug, Clone)]
+struct TableDerivedMetric {
+    key: String,
+    label: String,
+    value: f64,
+    formatted_value: String,
+    formula: String,
+    inputs: Vec<TableDerivedMetricInput>,
+}
+
+#[derive(Debug, Clone)]
+struct TableDerivedMetricInput {
+    key: String,
+    column: String,
+    count: usize,
+    sum: f64,
+}
+
+fn select_table_profile_columns(header: &[String], query: Option<&str>) -> Vec<usize> {
+    let query_terms = query.map(tokenize_context_query).unwrap_or_default();
+    let expanded_terms = expand_table_profile_query_terms(&query_terms);
+    let mut scored = header
+        .iter()
+        .enumerate()
+        .map(|(index, column)| {
+            let normalized_column = normalize_query_match_text(column);
+            let score = expanded_terms
+                .iter()
+                .map(|term| normalized_column.matches(term).count() * term.chars().count().max(1))
+                .sum::<usize>();
+            (index, score)
+        })
+        .collect::<Vec<_>>();
+    scored.sort_by(|left, right| right.1.cmp(&left.1).then_with(|| left.0.cmp(&right.0)));
+    let mut selected = scored
+        .iter()
+        .filter(|(_, score)| *score > 0)
+        .take(TABLE_PROFILE_MAX_COLUMNS)
+        .map(|(index, _)| *index)
+        .collect::<Vec<_>>();
+    for index in 0 .. header.len().min(TABLE_PROFILE_MAX_COLUMNS) {
+        if selected.len() >= TABLE_PROFILE_MAX_COLUMNS {
+            break;
+        }
+        if !selected.contains(&index) {
+            selected.push(index);
+        }
+    }
+    selected.sort_unstable();
+    selected
+}
+
+fn expand_table_profile_query_terms(query_terms: &[String]) -> Vec<String> {
+    let mut terms = query_terms.to_vec();
+    for term in query_terms {
+        for alias in table_profile_metric_aliases(term) {
+            push_context_query_term(&mut terms, alias.to_string());
+        }
+    }
+    terms
+}
+
+fn table_profile_metric_aliases(term: &str) -> &'static [&'static str] {
+    match term {
+        "利润" | "毛利" | "盈利" | "收益" => &[
+            "profit",
+            "margin",
+            "gross",
+            "amount",
+            "grossamount",
+            "gross_amount",
+            "refund",
+            "refundamount",
+            "refund_amount",
+            "cost",
+            "roi",
+        ],
+        "成本" | "花费" | "支出" => &["cost", "expense", "spend", "fee", "cogs"],
+        "退款" | "退货" | "售后" => &["refund", "refundamount", "refund_amount", "return"],
+        "投产" | "回报" => &["roi", "roas", "return", "profit", "margin"],
+        "转化" | "成交" | "下单" | "付款" => &[
+            "conversion",
+            "order",
+            "orders",
+            "paid",
+            "payment",
+            "purchase",
+            "click",
+            "clicks",
+        ],
+        "曝光" | "展现" | "流量" => {
+            &["impression", "impressions", "view", "views", "traffic"]
+        }
+        "点击" | "访问" => &["click", "clicks", "visit", "visits"],
+        "库存" | "存货" => &["inventory", "stock", "qty", "quantity"],
+        "销量" | "销售" => &["sales", "sold", "quantity", "qty", "orders"],
+        "客单" | "客单价" => &["aov", "averageorder", "price", "amount", "sales"],
+        _ => &[],
+    }
+}
+
+fn select_table_profile_sample_rows(rows: &[Vec<String>], query: Option<&str>) -> Vec<usize> {
+    let query_terms = query.map(tokenize_context_query).unwrap_or_default();
+    let mut selected = Vec::new();
+    if !query_terms.is_empty() {
+        let mut scored = rows
+            .iter()
+            .enumerate()
+            .map(|(index, row)| (index, score_context_chunk(&row.join(" "), &query_terms)))
+            .filter(|(_, score)| *score > 0)
+            .collect::<Vec<_>>();
+        scored.sort_by(|left, right| right.1.cmp(&left.1).then_with(|| left.0.cmp(&right.0)));
+        selected.extend(
+            scored
+                .into_iter()
+                .take(TABLE_PROFILE_RELEVANT_ROWS)
+                .map(|(index, _)| index),
+        );
+    }
+    for index in 0 .. rows.len().min(TABLE_PROFILE_MAX_ROWS) {
+        if selected.len() >= TABLE_PROFILE_MAX_ROWS {
+            break;
+        }
+        if !selected.contains(&index) {
+            selected.push(index);
+        }
+    }
+    selected.sort_unstable();
+    selected
+}
+
+fn build_table_numeric_summaries(
+    header: &[String],
+    rows: &[Vec<String>],
+    selected_indices: &[usize],
+) -> Vec<TableNumericSummary> {
+    selected_indices
+        .iter()
+        .filter_map(|index| {
+            let column = header.get(*index)?;
+            let mut values = rows
+                .iter()
+                .filter_map(|row| row.get(*index))
+                .filter_map(|value| parse_table_number(value))
+                .collect::<Vec<_>>();
+            if values.is_empty() {
+                return None;
+            }
+            values.sort_by(|left, right| left.total_cmp(right));
+            let count = values.len();
+            let sum = values.iter().sum::<f64>();
+            Some(TableNumericSummary {
+                column: column.clone(),
+                count,
+                sum,
+                avg: sum / count as f64,
+                min: *values.first().unwrap_or(&0.0),
+                max: *values.last().unwrap_or(&0.0),
+            })
+        })
+        .take(6)
+        .collect()
+}
+
+fn build_table_derived_metrics(header: &[String], rows: &[Vec<String>]) -> Vec<TableDerivedMetric> {
+    let column_sums = build_table_column_metric_sums(header, rows);
+    let mut metrics = Vec::new();
+    let gross = table_metric_sum(
+        &column_sums,
+        &["gross_amount", "gmv", "revenue", "sales_amount"],
+    );
+    let refund = table_metric_sum(&column_sums, &["refund_amount", "refunds", "return_amount"]);
+    let cost = table_metric_sum(&column_sums, &["cost", "cogs", "product_cost"]);
+    let ad_spend = table_metric_sum(
+        &column_sums,
+        &["ad_spend", "ad_cost", "spend", "marketing_spend"],
+    );
+    let orders = table_metric_sum(&column_sums, &["orders", "order_count", "paid_orders"]);
+    let visitors = table_metric_sum(&column_sums, &["uv", "visitors", "visitor_count"]);
+    let clicks = table_metric_sum(&column_sums, &["clicks", "click_count"]);
+    let impressions = table_metric_sum(&column_sums, &["impressions", "exposure", "views"]);
+    let inventory = table_metric_sum(&column_sums, &["inventory", "stock", "stock_qty"]);
+
+    if let Some(gross) = gross.as_ref() {
+        if let Some(refund) = refund.as_ref() {
+            push_table_derived_metric(
+                &mut metrics,
+                "net_revenue",
+                "Net revenue",
+                gross.sum - refund.sum,
+                "gross_amount - refund_amount",
+                &[gross, refund],
+                false,
+            );
+            if gross.sum.abs() > f64::EPSILON {
+                push_table_derived_metric(
+                    &mut metrics,
+                    "refund_rate",
+                    "Refund rate",
+                    refund.sum / gross.sum,
+                    "refund_amount / gross_amount",
+                    &[refund, gross],
+                    true,
+                );
+            }
+        }
+        if let Some(cost) = cost.as_ref() {
+            push_table_derived_metric(
+                &mut metrics,
+                "gross_profit",
+                "Gross profit",
+                gross.sum - refund.as_ref().map(|value| value.sum).unwrap_or(0.0) - cost.sum,
+                "gross_amount - refund_amount - cost",
+                &[gross, cost],
+                false,
+            );
+            if gross.sum.abs() > f64::EPSILON {
+                push_table_derived_metric(
+                    &mut metrics,
+                    "gross_margin",
+                    "Gross margin",
+                    (gross.sum - refund.as_ref().map(|value| value.sum).unwrap_or(0.0) - cost.sum)
+                        / gross.sum,
+                    "(gross_amount - refund_amount - cost) / gross_amount",
+                    &[gross, cost],
+                    true,
+                );
+            }
+        }
+        if let Some(orders) = orders.as_ref()
+            && orders.sum.abs() > f64::EPSILON
+        {
+            push_table_derived_metric(
+                &mut metrics,
+                "aov",
+                "Average order value",
+                gross.sum / orders.sum,
+                "gross_amount / orders",
+                &[gross, orders],
+                false,
+            );
+        }
+        if let Some(ad_spend) = ad_spend.as_ref()
+            && ad_spend.sum.abs() > f64::EPSILON
+        {
+            push_table_derived_metric(
+                &mut metrics,
+                "ad_roi",
+                "Ad ROI",
+                gross.sum / ad_spend.sum,
+                "gross_amount / ad_spend",
+                &[gross, ad_spend],
+                false,
+            );
+        }
+    }
+
+    if let (Some(orders), Some(visitors)) = (orders.as_ref(), visitors.as_ref())
+        && visitors.sum.abs() > f64::EPSILON
+    {
+        push_table_derived_metric(
+            &mut metrics,
+            "conversion_rate",
+            "Conversion rate",
+            orders.sum / visitors.sum,
+            "orders / visitors",
+            &[orders, visitors],
+            true,
+        );
+    }
+    if let (Some(clicks), Some(impressions)) = (clicks.as_ref(), impressions.as_ref())
+        && impressions.sum.abs() > f64::EPSILON
+    {
+        push_table_derived_metric(
+            &mut metrics,
+            "click_through_rate",
+            "Click-through rate",
+            clicks.sum / impressions.sum,
+            "clicks / impressions",
+            &[clicks, impressions],
+            true,
+        );
+    }
+    if let (Some(inventory), Some(orders)) = (inventory.as_ref(), orders.as_ref())
+        && orders.sum.abs() > f64::EPSILON
+    {
+        push_table_derived_metric(
+            &mut metrics,
+            "inventory_to_orders",
+            "Inventory to orders",
+            inventory.sum / orders.sum,
+            "inventory / orders",
+            &[inventory, orders],
+            false,
+        );
+    }
+
+    metrics.truncate(TABLE_PROFILE_MAX_DERIVED_METRICS);
+    metrics
+}
+
+fn build_table_column_metric_sums(
+    header: &[String],
+    rows: &[Vec<String>],
+) -> Vec<TableDerivedMetricInput> {
+    header
+        .iter()
+        .enumerate()
+        .filter_map(|(index, column)| {
+            let key = normalize_table_metric_key(column);
+            if key.is_empty() {
+                return None;
+            }
+            let values = rows
+                .iter()
+                .filter_map(|row| row.get(index))
+                .filter_map(|value| parse_table_number(value))
+                .collect::<Vec<_>>();
+            if values.is_empty() {
+                return None;
+            }
+            Some(TableDerivedMetricInput {
+                key,
+                column: column.clone(),
+                count: values.len(),
+                sum: values.iter().sum::<f64>(),
+            })
+        })
+        .collect()
+}
+
+fn normalize_table_metric_key(value: &str) -> String {
+    normalize_query_match_text(value)
+        .chars()
+        .filter(|ch| ch.is_ascii_alphanumeric() || is_cjk(*ch))
+        .collect::<String>()
+}
+
+fn table_metric_sum(
+    sums: &[TableDerivedMetricInput],
+    aliases: &[&str],
+) -> Option<TableDerivedMetricInput> {
+    let normalized_aliases = aliases
+        .iter()
+        .flat_map(|alias| {
+            let alias = normalize_table_metric_key(alias);
+            let compact_alias = alias.replace('_', "");
+            [alias, compact_alias]
+        })
+        .filter(|alias| !alias.is_empty())
+        .collect::<Vec<_>>();
+    sums.iter()
+        .find(|sum| {
+            normalized_aliases
+                .iter()
+                .any(|alias| sum.key == *alias || sum.key.contains(alias))
+        })
+        .cloned()
+}
+
+fn push_table_derived_metric(
+    metrics: &mut Vec<TableDerivedMetric>,
+    key: &str,
+    label: &str,
+    value: f64,
+    formula: &str,
+    inputs: &[&TableDerivedMetricInput],
+    percent: bool,
+) {
+    if !value.is_finite() || metrics.iter().any(|metric| metric.key == key) {
+        return;
+    }
+    metrics.push(TableDerivedMetric {
+        key: key.to_string(),
+        label: label.to_string(),
+        value,
+        formatted_value: if percent {
+            format!("{:.2}%", value * 100.0)
+        } else {
+            format_table_number(value)
+        },
+        formula: formula.to_string(),
+        inputs: inputs.iter().map(|input| (*input).clone()).collect(),
+    });
+}
+
+fn table_derived_metric_metadata(metric: &TableDerivedMetric) -> Value {
+    json!({
+        "key": metric.key,
+        "label": metric.label,
+        "value": metric.value,
+        "formattedValue": metric.formatted_value,
+        "formula": metric.formula,
+        "inputs": metric.inputs
+            .iter()
+            .map(|input| json!({
+                "key": input.key,
+                "column": input.column,
+                "count": input.count,
+                "sum": input.sum,
+            }))
+            .collect::<Vec<_>>(),
+    })
+}
+
+fn parse_table_number(value: &str) -> Option<f64> {
+    let cleaned = value
+        .trim()
+        .trim_matches('"')
+        .trim_matches('\'')
+        .replace([',', '¥', '$', '%'], "");
+    if cleaned.is_empty() {
+        return None;
+    }
+    cleaned
+        .parse::<f64>()
+        .ok()
+        .filter(|value| value.is_finite())
+}
+
+fn format_table_number(value: f64) -> String {
+    if value.fract().abs() < 0.000_001 {
+        format!("{value:.0}")
+    } else {
+        format!("{value:.2}")
+    }
+}
+
+fn detect_table_delimiter(text: &str) -> Option<char> {
+    let first_lines = text.lines().take(8).collect::<Vec<_>>();
+    let comma_score = first_lines
+        .iter()
+        .filter(|line| line.matches(',').count() >= 1)
+        .count();
+    let tab_score = first_lines
+        .iter()
+        .filter(|line| line.matches('\t').count() >= 1)
+        .count();
+    match (comma_score, tab_score) {
+        (0, 0) => None,
+        (comma, tab) if tab > comma => Some('\t'),
+        _ => Some(','),
+    }
+}
+
+fn parse_table_row(row: &str, delimiter: char) -> Vec<String> {
+    row.split(delimiter)
+        .map(|value| value.trim().trim_matches('"').to_string())
+        .collect()
+}
+
 fn normalize_conversation_file_extraction_status(value: &str) -> String {
     match value.trim() {
         "ready" | "success" | "extracted" => "extracted".to_string(),
@@ -5209,6 +6281,7 @@ fn build_context_pack_items(
     candidates: Vec<WorkspaceContextPackCandidate>,
     max_items: usize,
     max_chars: usize,
+    query: Option<&str>,
 ) -> BuiltWorkspaceContextPack {
     let mut pack = BuiltWorkspaceContextPack::default();
     let mut ordered = candidates
@@ -5224,18 +6297,34 @@ fn build_context_pack_items(
 
     for candidate in ordered {
         if pack.items.len() >= max_items {
-            pack.omitted.push(candidate.ref_key.clone());
+            push_context_pack_omitted(&mut pack, candidate, "max_items_exceeded");
             continue;
         }
         if pack.text_chars >= max_chars && candidate.text.is_some() {
-            pack.omitted.push(candidate.ref_key.clone());
+            push_context_pack_omitted(&mut pack, candidate, "max_chars_exceeded");
             pack.truncated = true;
             continue;
         }
+        let relevant = candidate.text.as_deref().and_then(|text| {
+            build_relevant_context_pack_text(text, query, max_chars - pack.text_chars)
+        });
         let (text, text_chars, truncated) = candidate
             .text
             .as_deref()
-            .map(|text| truncate_context_pack_text(text, max_chars - pack.text_chars))
+            .map(|text| {
+                relevant
+                    .as_ref()
+                    .map(|selection| {
+                        (
+                            Some(selection.text.clone()),
+                            selection.text_chars,
+                            selection.truncated,
+                        )
+                    })
+                    .unwrap_or_else(|| {
+                        truncate_context_pack_text(text, max_chars - pack.text_chars)
+                    })
+            })
             .unwrap_or((None, 0, false));
         if truncated {
             pack.truncated = true;
@@ -5255,14 +6344,352 @@ fn build_context_pack_items(
             truncated,
             metadata: match &candidate.extraction_status {
                 Some(status) => merge_json_object(
-                    candidate.metadata.clone(),
+                    merge_relevant_selection_metadata(
+                        candidate.metadata.clone(),
+                        relevant.as_ref(),
+                    ),
                     json!({ "extractionStatus": status }),
                 ),
-                None => candidate.metadata.clone(),
+                None => {
+                    merge_relevant_selection_metadata(candidate.metadata.clone(), relevant.as_ref())
+                }
             },
         });
     }
     pack
+}
+
+#[derive(Debug, Clone)]
+struct RelevantContextSelection {
+    text: String,
+    text_chars: usize,
+    truncated: bool,
+    chunk_count: usize,
+    total_chunk_count: usize,
+    query_terms: Vec<String>,
+    chunks: Vec<RelevantContextChunkSelection>,
+}
+
+#[derive(Debug, Clone)]
+struct RelevantContextChunkSelection {
+    index: usize,
+    start_char: usize,
+    end_char: usize,
+    score: usize,
+    preview: String,
+}
+
+fn build_relevant_context_pack_text(
+    text: &str,
+    query: Option<&str>,
+    remaining_chars: usize,
+) -> Option<RelevantContextSelection> {
+    let query_terms = tokenize_context_query(query?);
+    if query_terms.is_empty() || remaining_chars == 0 {
+        return None;
+    }
+    let text_chars = text.chars().count();
+    if text_chars < CONTEXT_PACK_RELEVANT_TEXT_MIN_CHARS {
+        return None;
+    }
+    let item_limit = remaining_chars.min(DEFAULT_CONTEXT_PACK_ITEM_CHARS);
+    if item_limit < 200 || text_chars <= item_limit {
+        return None;
+    }
+    let mut chunks = split_context_text_chunks(text, CONTEXT_PACK_RELEVANT_CHUNK_CHARS);
+    let total_chunk_count = chunks.len();
+    for chunk in &mut chunks {
+        chunk.score = score_context_chunk(&chunk.text, &query_terms);
+    }
+    let mut scored = chunks
+        .iter()
+        .filter(|chunk| chunk.score > 0)
+        .cloned()
+        .collect::<Vec<_>>();
+    if scored.is_empty() {
+        return None;
+    }
+    scored.sort_by(|left, right| {
+        right
+            .score
+            .cmp(&left.score)
+            .then_with(|| left.index.cmp(&right.index))
+    });
+    scored.truncate(CONTEXT_PACK_RELEVANT_CHUNKS);
+    scored.sort_by_key(|chunk| chunk.index);
+    let selected_chunks = scored
+        .iter()
+        .map(|chunk| RelevantContextChunkSelection {
+            index: chunk.index,
+            start_char: chunk.start_char,
+            end_char: chunk.end_char,
+            score: chunk.score,
+            preview: compact_text(&chunk.text, 180),
+        })
+        .collect::<Vec<_>>();
+    let mut selected = Vec::new();
+    for chunk in &scored {
+        selected.push(format!(
+            "[relevant chunk {}]\n{}",
+            chunk.index + 1,
+            chunk.text
+        ));
+    }
+    let joined = selected.join("\n\n");
+    let (text, text_chars, _truncated) = truncate_context_pack_text(&joined, item_limit);
+    text.map(|text| RelevantContextSelection {
+        text,
+        text_chars,
+        truncated: true,
+        chunk_count: selected.len(),
+        total_chunk_count,
+        query_terms,
+        chunks: selected_chunks,
+    })
+}
+
+#[derive(Debug, Clone)]
+struct ContextTextChunk {
+    index: usize,
+    text: String,
+    score: usize,
+    start_char: usize,
+    end_char: usize,
+}
+
+fn split_context_text_chunks(text: &str, chunk_chars: usize) -> Vec<ContextTextChunk> {
+    let mut chunks = Vec::new();
+    let mut current = String::new();
+    let mut current_chars = 0usize;
+    let mut current_start_char = None;
+    let mut current_end_char = 0usize;
+    let mut source_char_offset = 0usize;
+    for raw_line in text.split_inclusive('\n') {
+        let raw_line_chars = raw_line.chars().count();
+        let line_without_break = raw_line.trim_end_matches(['\r', '\n']);
+        let leading_trim_chars = line_without_break
+            .chars()
+            .take_while(|ch| ch.is_whitespace())
+            .count();
+        let line = line_without_break.trim();
+        let line_start_char = source_char_offset + leading_trim_chars;
+        source_char_offset += raw_line_chars;
+        if line.is_empty() {
+            continue;
+        }
+        let line_chars = line.chars().count();
+        if line_chars > chunk_chars {
+            push_context_text_chunk(
+                &mut chunks,
+                &mut current,
+                &mut current_chars,
+                &mut current_start_char,
+                &mut current_end_char,
+            );
+            let chars = line.chars().collect::<Vec<_>>();
+            let mut chunk_start = line_start_char;
+            for chunk in chars.chunks(chunk_chars) {
+                let chunk_len = chunk.len();
+                chunks.push(ContextTextChunk {
+                    index: chunks.len(),
+                    text: chunk.iter().collect::<String>(),
+                    score: 0,
+                    start_char: chunk_start,
+                    end_char: chunk_start + chunk_len,
+                });
+                chunk_start += chunk_len;
+            }
+            continue;
+        }
+        if current_chars > 0 && current_chars + line_chars + 1 > chunk_chars {
+            push_context_text_chunk(
+                &mut chunks,
+                &mut current,
+                &mut current_chars,
+                &mut current_start_char,
+                &mut current_end_char,
+            );
+        }
+        if current_start_char.is_none() {
+            current_start_char = Some(line_start_char);
+        }
+        if !current.is_empty() {
+            current.push('\n');
+            current_chars += 1;
+        }
+        current.push_str(line);
+        current_chars += line_chars;
+        current_end_char = line_start_char + line_chars;
+    }
+    push_context_text_chunk(
+        &mut chunks,
+        &mut current,
+        &mut current_chars,
+        &mut current_start_char,
+        &mut current_end_char,
+    );
+    chunks
+}
+
+fn push_context_text_chunk(
+    chunks: &mut Vec<ContextTextChunk>,
+    current: &mut String,
+    current_chars: &mut usize,
+    current_start_char: &mut Option<usize>,
+    current_end_char: &mut usize,
+) {
+    if !current.trim().is_empty() {
+        chunks.push(ContextTextChunk {
+            index: chunks.len(),
+            text: current.trim().to_string(),
+            score: 0,
+            start_char: current_start_char.unwrap_or(0),
+            end_char: *current_end_char,
+        });
+    }
+    current.clear();
+    *current_chars = 0;
+    *current_start_char = None;
+    *current_end_char = 0;
+}
+
+fn score_context_chunk(text: &str, query_terms: &[String]) -> usize {
+    let normalized = normalize_query_match_text(text);
+    query_terms
+        .iter()
+        .map(|term| normalized.matches(term).count() * term.chars().count().max(1))
+        .sum()
+}
+
+fn tokenize_context_query(query: &str) -> Vec<String> {
+    let normalized = normalize_query_match_text(query);
+    let mut terms = Vec::new();
+    let mut current = String::new();
+    let mut current_is_cjk = false;
+    for ch in normalized.chars() {
+        if ch.is_ascii_alphanumeric() {
+            if current_is_cjk {
+                add_context_query_token(&mut terms, &current, true);
+                current.clear();
+            }
+            current_is_cjk = false;
+            current.push(ch);
+        } else if is_cjk(ch) {
+            if !current.is_empty() && !current_is_cjk {
+                add_context_query_token(&mut terms, &current, false);
+                current.clear();
+            }
+            current_is_cjk = true;
+            current.push(ch);
+        } else if !current.is_empty() {
+            add_context_query_token(&mut terms, &current, current_is_cjk);
+            current.clear();
+        }
+        if terms.len() >= 24 {
+            break;
+        }
+    }
+    if !current.is_empty() && terms.len() < 24 {
+        add_context_query_token(&mut terms, &current, current_is_cjk);
+    }
+    terms
+}
+
+fn add_context_query_token(terms: &mut Vec<String>, token: &str, cjk: bool) {
+    if cjk {
+        let chars = token.chars().collect::<Vec<_>>();
+        if chars.len() == 2 {
+            push_context_query_term(terms, token.to_string());
+        } else if chars.len() > 2 {
+            for window in chars.windows(2) {
+                push_context_query_term(terms, window.iter().collect::<String>());
+                if terms.len() >= 24 {
+                    return;
+                }
+            }
+            for window in chars.windows(3) {
+                push_context_query_term(terms, window.iter().collect::<String>());
+                if terms.len() >= 24 {
+                    return;
+                }
+            }
+        }
+        return;
+    }
+    if token.len() > 1 {
+        push_context_query_term(terms, token.to_string());
+    }
+}
+
+fn push_context_query_term(terms: &mut Vec<String>, term: String) {
+    if !term.trim().is_empty() && !terms.iter().any(|existing| existing == &term) {
+        terms.push(term);
+    }
+}
+
+fn normalize_query_match_text(value: &str) -> String {
+    value
+        .chars()
+        .flat_map(char::to_lowercase)
+        .collect::<String>()
+}
+
+fn is_cjk(ch: char) -> bool {
+    matches!(
+        ch as u32,
+        0x4E00..=0x9FFF | 0x3400..=0x4DBF | 0xF900..=0xFAFF
+    )
+}
+
+fn merge_relevant_selection_metadata(
+    metadata: Value,
+    selection: Option<&RelevantContextSelection>,
+) -> Value {
+    let Some(selection) = selection else {
+        return metadata;
+    };
+    merge_json_object(
+        metadata,
+        json!({
+            "relevanceSelection": {
+                "strategy": "query_keyword_chunks",
+                "chunkCount": selection.chunk_count,
+                "totalChunkCount": selection.total_chunk_count,
+                "queryTerms": selection.query_terms.clone(),
+                "chunks": selection
+                    .chunks
+                    .iter()
+                    .map(relevant_context_chunk_selection_metadata)
+                    .collect::<Vec<_>>(),
+            }
+        }),
+    )
+}
+
+fn relevant_context_chunk_selection_metadata(selection: &RelevantContextChunkSelection) -> Value {
+    json!({
+        "chunkIndex": selection.index,
+        "displayIndex": selection.index + 1,
+        "startChar": selection.start_char,
+        "endChar": selection.end_char,
+        "score": selection.score,
+        "preview": selection.preview.clone(),
+    })
+}
+
+fn push_context_pack_omitted(
+    pack: &mut BuiltWorkspaceContextPack,
+    candidate: &WorkspaceContextPackCandidate,
+    reason: &str,
+) {
+    pack.omitted.push(candidate.ref_key.clone());
+    pack.omitted_details
+        .push(WorkspaceContextPackOmittedResponse {
+            ref_key: candidate.ref_key.clone(),
+            reason: reason.to_string(),
+            source_type: candidate.source_type.clone(),
+            title: candidate.title.clone(),
+        });
 }
 
 fn conversation_file_context_warnings(items: &[WorkspaceContextPackItemResponse]) -> Vec<String> {
@@ -8954,7 +10381,7 @@ mod tests {
             },
         ];
 
-        let pack = build_context_pack_items(candidates, 2, 24);
+        let pack = build_context_pack_items(candidates, 2, 24, None);
 
         assert_eq!(pack.items[0].ref_key, "product_material:material-1");
         assert_eq!(pack.readable_items, 1);
@@ -8967,6 +10394,485 @@ mod tests {
         );
         assert_eq!(pack.items[1].content_kind, "metadata_only");
         assert!(pack.items[1].text.is_none());
+    }
+
+    #[test]
+    fn context_pack_profiles_large_tables_instead_of_inlining_all_rows() {
+        let table_text = [
+            "sku,channel,gross_amount,refund_amount",
+            "A,live,100,5",
+            "B,search,80,0",
+            "C,live,120,8",
+            "D,shop,50,0",
+            "E,live,200,10",
+            "F,search,60,0",
+        ]
+        .join("\n");
+        let file = ConversationFile {
+            id: Uuid::new_v4(),
+            user_id: Uuid::new_v4(),
+            conversation_id: Uuid::new_v4(),
+            message_id: None,
+            bucket: "private".to_string(),
+            object_key: "chat/u/c/orders.csv".to_string(),
+            file_name: Some("orders.csv".to_string()),
+            mime_type: Some("text/csv".to_string()),
+            file_size: Some(4096),
+            sha256: None,
+            visibility: "private".to_string(),
+            storage_provider: "s3".to_string(),
+            status: "active".to_string(),
+            metadata: json!({
+                "extractionStatus": "extracted",
+                "extraction": {
+                    "status": "extracted",
+                    "contentKind": "csv",
+                    "text": table_text
+                }
+            }),
+            created_at: OffsetDateTime::now_utc(),
+            deleted_at: None,
+        };
+
+        let candidate = context_pack_conversation_file_candidate(file, None);
+
+        assert_eq!(candidate.content_kind, "table_profile");
+        let text = candidate.text.expect("table profile should be readable");
+        assert!(text.contains("Large table profile"));
+        assert!(text.contains("Rows: 6"));
+        assert!(text.contains("Visible columns: sku, channel, gross_amount, refund_amount"));
+        assert!(text.contains("Numeric column summaries:"));
+        assert!(text.contains("gross_amount: count=6, sum=610"));
+        assert_eq!(candidate.metadata["tableProfile"]["rowCount"], 6);
+        assert_eq!(
+            candidate.metadata["tableProfile"]["strategy"],
+            "schema_sample_and_numeric_profile"
+        );
+        assert_eq!(
+            candidate.metadata["tableProfile"]["numericSummaries"][0]["column"],
+            "gross_amount"
+        );
+    }
+
+    #[test]
+    fn context_pack_table_profile_prefers_query_relevant_columns() {
+        let table_text = [
+            "sku,title,category,impressions,clicks,gross_amount,refund_amount,cost,roi,inventory",
+            "A,防晒衣,服饰,1000,80,100,5,40,2.38,20",
+            "B,遮阳帽,服饰,800,40,80,0,30,2.67,12",
+            "C,冰袖,配件,1200,90,120,8,70,1.60,30",
+            "D,雨伞,日用,500,20,50,0,20,2.50,8",
+            "E,高利润雨衣,服饰,300,50,500,0,60,7.33,5",
+            "F,成本异常防水包,箱包,200,12,90,3,120,0.72,2",
+        ]
+        .join("\n");
+
+        let profile = build_table_context_profile(&table_text, Some("利润 ROI 成本 refund"))
+            .expect("table profile should be built");
+
+        assert!(profile.text.contains("gross_amount"));
+        assert!(profile.text.contains("refund_amount"));
+        assert!(profile.text.contains("cost"));
+        assert!(profile.text.contains("roi"));
+        assert_eq!(
+            profile.metadata["tableProfile"]["strategy"],
+            "query_relevant_schema_sample_and_numeric_profile"
+        );
+        assert!(
+            profile.metadata["tableProfile"]["visibleColumns"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|value| value == "roi")
+        );
+        assert!(
+            profile.metadata["tableProfile"]["numericSummaries"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|value| value["column"] == "roi" && value["count"] == 6)
+        );
+        assert!(profile.text.contains("高利润雨衣"));
+        assert!(profile.text.contains("成本异常防水包"));
+        assert_eq!(
+            profile.metadata["tableProfile"]["sampleRowSelection"],
+            "query_relevant_rows_then_head"
+        );
+        assert!(
+            profile.metadata["tableProfile"]["sampleRowIndexes"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|value| value == 4)
+        );
+    }
+
+    #[test]
+    fn context_pack_table_profile_expands_chinese_metric_terms() {
+        let table_text = [
+            "sku,title,gross_amount,refund_amount,cost,roi,inventory",
+            "A,防晒衣,100,5,40,2.38,20",
+            "B,遮阳帽,80,0,30,2.67,12",
+            "C,冰袖,120,8,70,1.60,30",
+        ]
+        .join("\n");
+
+        let profile = build_table_context_profile(&table_text, Some("利润和库存是否健康"))
+            .expect("table profile should be built");
+        let visible_columns = profile.metadata["tableProfile"]["visibleColumns"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|value| value.as_str())
+            .collect::<Vec<_>>();
+
+        assert!(visible_columns.contains(&"gross_amount"));
+        assert!(visible_columns.contains(&"refund_amount"));
+        assert!(visible_columns.contains(&"cost"));
+        assert!(visible_columns.contains(&"roi"));
+        assert!(visible_columns.contains(&"inventory"));
+    }
+
+    #[test]
+    fn context_pack_table_profile_builds_derived_ecommerce_metrics() {
+        let table_text = [
+            "sku,gross_amount,refund_amount,cost,ad_spend,orders,uv,clicks,impressions,inventory",
+            "A,1000,50,400,200,10,200,60,1000,30",
+            "B,500,0,250,100,5,100,30,500,20",
+        ]
+        .join("\n");
+
+        let profile = build_table_context_profile(&table_text, Some("利润 ROI 退款 转化"))
+            .expect("table profile should be built");
+
+        assert!(profile.text.contains("Derived ecommerce metrics:"));
+        assert!(profile.text.contains("net_revenue: 1450"));
+        assert!(profile.text.contains("gross_profit: 800"));
+        assert!(profile.text.contains("gross_margin: 53.33%"));
+        assert!(profile.text.contains("ad_roi: 5"));
+        assert!(profile.text.contains("conversion_rate: 5.00%"));
+
+        let derived_metrics = profile.metadata["tableProfile"]["derivedMetrics"]
+            .as_array()
+            .expect("derived metrics should be present");
+        assert!(derived_metrics.iter().any(|metric| {
+            metric["key"] == "net_revenue"
+                && metric["value"]
+                    .as_f64()
+                    .is_some_and(|value| value == 1450.0)
+        }));
+        assert!(derived_metrics.iter().any(|metric| {
+            metric["key"] == "refund_rate" && metric["formattedValue"] == "3.33%"
+        }));
+        assert!(derived_metrics.iter().any(|metric| {
+            metric["key"] == "click_through_rate" && metric["formattedValue"] == "6.00%"
+        }));
+        assert!(derived_metrics.iter().any(|metric| {
+            metric["key"] == "inventory_to_orders"
+                && metric["value"]
+                    .as_f64()
+                    .is_some_and(|value| (value - 3.3333).abs() < 0.001)
+        }));
+    }
+
+    #[test]
+    fn context_pack_profiles_large_json_instead_of_inlining_full_payload() {
+        let orders = (0 .. 90)
+            .map(|index| {
+                json!({
+                    "order_id": format!("O-{index}"),
+                    "sku": format!("SKU-{index}"),
+                    "gross_amount": 100 + index,
+                    "refund_amount": if index % 5 == 0 { 8 } else { 0 },
+                    "cost": 40 + index,
+                    "roi": 2.1,
+                    "customer": {
+                        "city": "上海",
+                        "segment": "new"
+                    },
+                    "notes": "利润 退款 成本 分析".repeat(3)
+                })
+            })
+            .collect::<Vec<_>>();
+        let json_text = serde_json::to_string(&json!({
+            "store": "demo",
+            "orders": orders,
+            "summary": {
+                "gross_amount": 12345,
+                "refund_amount": 456,
+                "cost": 7890,
+                "roi": 1.53
+            }
+        }))
+        .unwrap();
+        assert!(json_text.chars().count() >= JSON_PROFILE_MIN_CHARS);
+
+        let file = ConversationFile {
+            id: Uuid::new_v4(),
+            user_id: Uuid::new_v4(),
+            conversation_id: Uuid::new_v4(),
+            message_id: None,
+            bucket: "private".to_string(),
+            object_key: "chat/u/c/orders.json".to_string(),
+            file_name: Some("orders.json".to_string()),
+            mime_type: Some("application/json".to_string()),
+            file_size: Some(json_text.len() as i64),
+            sha256: None,
+            visibility: "private".to_string(),
+            storage_provider: "s3".to_string(),
+            status: "active".to_string(),
+            metadata: json!({
+                "extractionStatus": "extracted",
+                "extraction": {
+                    "status": "extracted",
+                    "contentKind": "json",
+                    "text": json_text
+                }
+            }),
+            created_at: OffsetDateTime::now_utc(),
+            deleted_at: None,
+        };
+
+        let candidate = context_pack_conversation_file_candidate(file, Some("利润 refund roi"));
+
+        assert_eq!(candidate.content_kind, "json_profile");
+        let text = candidate.text.expect("json profile should be readable");
+        assert!(text.contains("Large JSON profile"));
+        assert!(text.contains("Source format: json"));
+        assert!(text.contains("$.orders"));
+        assert!(text.contains("gross_amount"));
+        assert!(text.contains("refund_amount"));
+        assert!(text.contains("roi"));
+        assert!(!text.contains("SKU-89"));
+        assert_eq!(
+            candidate.metadata["jsonProfile"]["strategy"],
+            "query_relevant_json_structure_profile"
+        );
+        assert_eq!(candidate.metadata["jsonProfile"]["sourceFormat"], "json");
+        assert!(
+            candidate.metadata["jsonProfile"]["queryMatchCount"]
+                .as_u64()
+                .is_some_and(|count| count > 0)
+        );
+        assert!(
+            candidate.metadata["jsonProfile"]["queryMatches"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|value| value["path"]
+                    .as_str()
+                    .is_some_and(|path| path.contains("refund_amount")))
+        );
+    }
+
+    #[test]
+    fn context_pack_profiles_jsonl_sources() {
+        let jsonl_text = (0 .. 40)
+            .map(|index| {
+                json!({
+                    "event": "order_update",
+                    "order_id": format!("O-{index}"),
+                    "gross_amount": 100 + index,
+                    "refund_amount": if index % 4 == 0 { 9 } else { 0 },
+                    "roi": 1.2 + (index as f64 / 100.0),
+                    "payload": {
+                        "note": "利润 退款 ROI 观察".repeat(5),
+                        "channel": if index % 2 == 0 { "live" } else { "search" }
+                    }
+                })
+                .to_string()
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(jsonl_text.chars().count() >= JSON_PROFILE_MIN_CHARS);
+
+        let file = ConversationFile {
+            id: Uuid::new_v4(),
+            user_id: Uuid::new_v4(),
+            conversation_id: Uuid::new_v4(),
+            message_id: None,
+            bucket: "private".to_string(),
+            object_key: "chat/u/c/events.jsonl".to_string(),
+            file_name: Some("events.jsonl".to_string()),
+            mime_type: Some("application/x-ndjson".to_string()),
+            file_size: Some(jsonl_text.len() as i64),
+            sha256: None,
+            visibility: "private".to_string(),
+            storage_provider: "s3".to_string(),
+            status: "active".to_string(),
+            metadata: json!({
+                "extractionStatus": "extracted",
+                "extraction": {
+                    "status": "extracted",
+                    "contentKind": "jsonl",
+                    "text": jsonl_text
+                }
+            }),
+            created_at: OffsetDateTime::now_utc(),
+            deleted_at: None,
+        };
+
+        let candidate = context_pack_conversation_file_candidate(file, Some("退款 roi"));
+
+        assert_eq!(candidate.content_kind, "json_profile");
+        let text = candidate.text.expect("jsonl profile should be readable");
+        assert!(text.contains("Source format: jsonl"));
+        assert!(text.contains("$[0]"));
+        assert_eq!(candidate.metadata["jsonProfile"]["sourceFormat"], "jsonl");
+        assert!(
+            candidate.metadata["jsonProfile"]["parsedItemCount"]
+                .as_u64()
+                .is_some_and(|count| count > 1)
+        );
+        assert!(
+            candidate.metadata["jsonProfile"]["queryMatchCount"]
+                .as_u64()
+                .is_some_and(|count| count > 0)
+        );
+    }
+
+    #[test]
+    fn context_pack_records_omitted_reasons() {
+        let candidates = vec![
+            WorkspaceContextPackCandidate {
+                source_type: "product_material".to_string(),
+                id: "material-1".to_string(),
+                title: Some("A".to_string()),
+                ref_key: "product_material:material-1".to_string(),
+                content_kind: "content".to_string(),
+                text: Some("A".to_string()),
+                extraction_status: None,
+                metadata: json!({}),
+            },
+            WorkspaceContextPackCandidate {
+                source_type: "product_material".to_string(),
+                id: "material-2".to_string(),
+                title: Some("B".to_string()),
+                ref_key: "product_material:material-2".to_string(),
+                content_kind: "content".to_string(),
+                text: Some("B".to_string()),
+                extraction_status: None,
+                metadata: json!({}),
+            },
+        ];
+
+        let pack = build_context_pack_items(candidates, 1, 100, None);
+
+        assert_eq!(pack.omitted, vec!["product_material:material-2"]);
+        assert_eq!(pack.omitted_details[0].reason, "max_items_exceeded");
+        assert_eq!(pack.omitted_details[0].source_type, "product_material");
+    }
+
+    #[test]
+    fn context_pack_selects_query_relevant_chunks_for_long_text() {
+        let long_text = format!(
+            "{}\n{}\n{}",
+            "无关内容：直播节奏、视觉素材、客服话术。".repeat(120),
+            "关键内容：利润分析需要关注 gross_amount、refund_amount、cost 和 roi。",
+            "其它内容：标题优化、详情页结构、评论区互动。".repeat(120)
+        );
+        let candidates = vec![WorkspaceContextPackCandidate {
+            source_type: "conversation_file".to_string(),
+            id: "file-1".to_string(),
+            title: Some("orders.md".to_string()),
+            ref_key: "conversation_file:file-1".to_string(),
+            content_kind: "extracted_text".to_string(),
+            text: Some(long_text),
+            extraction_status: Some("extracted".to_string()),
+            metadata: json!({}),
+        }];
+
+        let pack = build_context_pack_items(candidates, 1, 900, Some("利润 ROI cost"));
+
+        assert_eq!(pack.readable_items, 1);
+        assert!(pack.items[0].truncated);
+        let text = pack.items[0].text.as_deref().unwrap_or_default();
+        assert!(text.contains("relevant chunk"));
+        assert!(text.contains("gross_amount"));
+        assert!(text.contains("roi"));
+        assert_eq!(
+            pack.items[0].metadata["relevanceSelection"]["strategy"],
+            "query_keyword_chunks"
+        );
+        assert!(
+            pack.items[0].metadata["relevanceSelection"]["totalChunkCount"]
+                .as_u64()
+                .is_some_and(|count| count > 1)
+        );
+        assert!(
+            pack.items[0].metadata["relevanceSelection"]["chunkCount"]
+                .as_u64()
+                .is_some_and(|count| count >= 1)
+        );
+        let selected_chunks = pack.items[0].metadata["relevanceSelection"]["chunks"]
+            .as_array()
+            .expect("selected chunk metadata should be present");
+        assert!(!selected_chunks.is_empty());
+        assert!(selected_chunks.iter().all(|chunk| {
+            chunk["startChar"].as_u64().is_some()
+                && chunk["endChar"].as_u64().is_some()
+                && chunk["score"].as_u64().is_some_and(|score| score > 0)
+                && chunk["preview"]
+                    .as_str()
+                    .is_some_and(|preview| !preview.is_empty())
+        }));
+    }
+
+    #[test]
+    fn context_pack_relevant_chunks_record_offsets_for_long_lines() {
+        let long_line = format!(
+            "{}{}{}",
+            "普通描述".repeat(500),
+            "利润 ROI refund cost 关键段落",
+            "后续描述".repeat(500)
+        );
+        let chunks = split_context_text_chunks(&long_line, CONTEXT_PACK_RELEVANT_CHUNK_CHARS);
+
+        assert!(chunks.len() > 1);
+        assert_eq!(chunks[0].start_char, 0);
+        assert!(
+            chunks
+                .windows(2)
+                .all(|pair| pair[0].end_char <= pair[1].start_char)
+        );
+
+        let selection = build_relevant_context_pack_text(
+            &long_line,
+            Some("利润 refund roi"),
+            DEFAULT_CONTEXT_PACK_ITEM_CHARS,
+        )
+        .expect("long line should produce relevant chunk selection");
+
+        assert_eq!(selection.total_chunk_count, chunks.len());
+        assert!(selection.chunks.iter().any(|chunk| {
+            let matched_text = long_line
+                .chars()
+                .skip(chunk.start_char)
+                .take(chunk.end_char.saturating_sub(chunk.start_char))
+                .collect::<String>();
+            matched_text.contains("利润") && matched_text.contains("refund")
+        }));
+    }
+
+    #[test]
+    fn context_pack_keeps_sequential_truncation_without_query() {
+        let candidates = vec![WorkspaceContextPackCandidate {
+            source_type: "product_material".to_string(),
+            id: "material-1".to_string(),
+            title: Some("素材".to_string()),
+            ref_key: "product_material:material-1".to_string(),
+            content_kind: "content".to_string(),
+            text: Some(format!("{}{}", "开头内容".repeat(200), "利润 ROI 结尾")),
+            extraction_status: None,
+            metadata: json!({}),
+        }];
+
+        let pack = build_context_pack_items(candidates, 1, 60, None);
+
+        let text = pack.items[0].text.as_deref().unwrap_or_default();
+        assert!(text.starts_with("开头内容"));
+        assert!(!text.contains("relevant chunk"));
+        assert!(pack.items[0].metadata.get("relevanceSelection").is_none());
     }
 
     #[test]
@@ -8987,83 +10893,92 @@ mod tests {
 
     #[test]
     fn context_pack_respects_attachment_extraction_status() {
-        let pending = context_pack_conversation_file_candidate(ConversationFile {
-            id: Uuid::new_v4(),
-            user_id: Uuid::new_v4(),
-            conversation_id: Uuid::new_v4(),
-            message_id: None,
-            bucket: "private".to_string(),
-            object_key: "chat/u/c/file.pdf".to_string(),
-            file_name: Some("file.pdf".to_string()),
-            mime_type: Some("application/pdf".to_string()),
-            file_size: Some(128),
-            sha256: None,
-            visibility: "private".to_string(),
-            storage_provider: "s3".to_string(),
-            status: "active".to_string(),
-            metadata: json!({
-                "extractionStatus": "pending",
-                "extraction": {
-                    "status": "pending",
-                    "text": "不应被读取"
-                }
-            }),
-            created_at: OffsetDateTime::now_utc(),
-            deleted_at: None,
-        });
+        let pending = context_pack_conversation_file_candidate(
+            ConversationFile {
+                id: Uuid::new_v4(),
+                user_id: Uuid::new_v4(),
+                conversation_id: Uuid::new_v4(),
+                message_id: None,
+                bucket: "private".to_string(),
+                object_key: "chat/u/c/file.pdf".to_string(),
+                file_name: Some("file.pdf".to_string()),
+                mime_type: Some("application/pdf".to_string()),
+                file_size: Some(128),
+                sha256: None,
+                visibility: "private".to_string(),
+                storage_provider: "s3".to_string(),
+                status: "active".to_string(),
+                metadata: json!({
+                    "extractionStatus": "pending",
+                    "extraction": {
+                        "status": "pending",
+                        "text": "不应被读取"
+                    }
+                }),
+                created_at: OffsetDateTime::now_utc(),
+                deleted_at: None,
+            },
+            None,
+        );
         assert_eq!(pending.content_kind, "extraction_pending");
         assert!(pending.text.is_none());
 
-        let failed = context_pack_conversation_file_candidate(ConversationFile {
-            id: Uuid::new_v4(),
-            user_id: Uuid::new_v4(),
-            conversation_id: Uuid::new_v4(),
-            message_id: None,
-            bucket: "private".to_string(),
-            object_key: "chat/u/c/file.pdf".to_string(),
-            file_name: Some("file.pdf".to_string()),
-            mime_type: Some("application/pdf".to_string()),
-            file_size: Some(128),
-            sha256: None,
-            visibility: "private".to_string(),
-            storage_provider: "s3".to_string(),
-            status: "active".to_string(),
-            metadata: json!({
-                "extraction": {
-                    "status": "failed",
-                    "failureReason": "encrypted"
-                }
-            }),
-            created_at: OffsetDateTime::now_utc(),
-            deleted_at: None,
-        });
+        let failed = context_pack_conversation_file_candidate(
+            ConversationFile {
+                id: Uuid::new_v4(),
+                user_id: Uuid::new_v4(),
+                conversation_id: Uuid::new_v4(),
+                message_id: None,
+                bucket: "private".to_string(),
+                object_key: "chat/u/c/file.pdf".to_string(),
+                file_name: Some("file.pdf".to_string()),
+                mime_type: Some("application/pdf".to_string()),
+                file_size: Some(128),
+                sha256: None,
+                visibility: "private".to_string(),
+                storage_provider: "s3".to_string(),
+                status: "active".to_string(),
+                metadata: json!({
+                    "extraction": {
+                        "status": "failed",
+                        "failureReason": "encrypted"
+                    }
+                }),
+                created_at: OffsetDateTime::now_utc(),
+                deleted_at: None,
+            },
+            None,
+        );
         assert_eq!(failed.content_kind, "extraction_failed");
         assert!(failed.text.is_none());
 
-        let extracted = context_pack_conversation_file_candidate(ConversationFile {
-            id: Uuid::new_v4(),
-            user_id: Uuid::new_v4(),
-            conversation_id: Uuid::new_v4(),
-            message_id: None,
-            bucket: "private".to_string(),
-            object_key: "chat/u/c/file.pdf".to_string(),
-            file_name: Some("file.pdf".to_string()),
-            mime_type: Some("application/pdf".to_string()),
-            file_size: Some(128),
-            sha256: None,
-            visibility: "private".to_string(),
-            storage_provider: "s3".to_string(),
-            status: "active".to_string(),
-            metadata: json!({
-                "extractionStatus": "extracted",
-                "extraction": {
-                    "status": "extracted",
-                    "text": "可读正文"
-                }
-            }),
-            created_at: OffsetDateTime::now_utc(),
-            deleted_at: None,
-        });
+        let extracted = context_pack_conversation_file_candidate(
+            ConversationFile {
+                id: Uuid::new_v4(),
+                user_id: Uuid::new_v4(),
+                conversation_id: Uuid::new_v4(),
+                message_id: None,
+                bucket: "private".to_string(),
+                object_key: "chat/u/c/file.pdf".to_string(),
+                file_name: Some("file.pdf".to_string()),
+                mime_type: Some("application/pdf".to_string()),
+                file_size: Some(128),
+                sha256: None,
+                visibility: "private".to_string(),
+                storage_provider: "s3".to_string(),
+                status: "active".to_string(),
+                metadata: json!({
+                    "extractionStatus": "extracted",
+                    "extraction": {
+                        "status": "extracted",
+                        "text": "可读正文"
+                    }
+                }),
+                created_at: OffsetDateTime::now_utc(),
+                deleted_at: None,
+            },
+            None,
+        );
         assert_eq!(extracted.content_kind, "extracted_text");
         assert_eq!(extracted.text, Some("可读正文".to_string()));
     }

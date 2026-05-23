@@ -1,6 +1,13 @@
-import { CheckCircle2, Loader2, MonitorCog } from "lucide-react"
+import {
+  CheckCircle2,
+  CircleAlert,
+  Info,
+  Loader2,
+  MonitorCog,
+} from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type { AgentRuntimeEvent } from "@/api"
+import type { AgentDispatchFact } from "../view-model/agent-process-kind-view-model"
 import {
   getInlineAgents,
   getInlineProcessStage,
@@ -74,6 +81,44 @@ export function InlineStepStrip({ steps }: { steps: string[][] }) {
             <span className="hidden min-w-0 truncate text-xs text-muted-foreground sm:inline">
               {detail}
             </span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+export function InlineDispatchFactGrid({
+  facts,
+}: {
+  facts: AgentDispatchFact[]
+}) {
+  return (
+    <div className="grid gap-1.5 sm:grid-cols-2">
+      {facts.map((fact, index) => {
+        const Icon = fact.tone === "warning" || fact.tone === "error"
+          ? CircleAlert
+          : fact.tone === "success"
+            ? CheckCircle2
+            : Info
+        return (
+          <div
+            key={`${index}-${fact.label}`}
+            className={`flex min-w-0 items-start gap-2 rounded-md border px-3 py-2 text-xs ${
+              fact.tone === "warning"
+                ? "border-amber-200 bg-amber-50/70 text-amber-950 dark:border-amber-900/60 dark:bg-amber-950/20 dark:text-amber-100"
+                : fact.tone === "error"
+                  ? "border-destructive/25 bg-destructive/10"
+                  : "border-border bg-background"
+            }`}
+          >
+            <Icon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+            <div className="min-w-0">
+              <p className="truncate font-medium text-foreground">{fact.label}</p>
+              <p className="mt-0.5 line-clamp-2 text-muted-foreground">
+                {fact.detail}
+              </p>
+            </div>
           </div>
         )
       })}
@@ -173,7 +218,7 @@ function InlinePixels({
       {Array.from({ length: 12 }).map((_, pixelIndex) => (
         <span
           key={pixelIndex}
-          className={`size-1 rounded-[1px] ${
+          className={`size-1 rounded-xs ${
             shouldLightInlinePixel(state, pixelIndex)
               ? state === "failed"
                 ? "bg-destructive"

@@ -299,6 +299,7 @@ pub struct GetWorkspaceContextPackRequest {
     pub context_refs: Vec<String>,
     pub max_items: Option<usize>,
     pub max_chars: Option<usize>,
+    pub query: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -876,6 +877,7 @@ pub struct WorkspaceContextPackResponse {
     pub counts: WorkspaceContextSummaryCounts,
     pub items: Vec<WorkspaceContextPackItemResponse>,
     pub omitted: Vec<String>,
+    pub omitted_details: Vec<WorkspaceContextPackOmittedResponse>,
     pub warnings: Vec<String>,
     pub agent_context: Value,
 }
@@ -892,6 +894,15 @@ pub struct WorkspaceContextPackItemResponse {
     pub text_chars: usize,
     pub truncated: bool,
     pub metadata: Value,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkspaceContextPackOmittedResponse {
+    pub ref_key: String,
+    pub reason: String,
+    pub source_type: String,
+    pub title: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]

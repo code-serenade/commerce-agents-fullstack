@@ -7,14 +7,14 @@ export interface AgentStreamRequest {
   input: string
   agentId?: string
   metadata?: {
+    attachments?: {
+      images?: AgentStreamImageAttachment[]
+    }
     context?: {
       campaignIds?: string[]
       conversationId?: string
       contextRefs?: string[]
       productIds?: string[]
-    }
-    model?: {
-      name?: string
     }
     strategy?: {
       collaborationMode?: string
@@ -23,11 +23,18 @@ export interface AgentStreamRequest {
       outputFormat?: string
       primaryRole?: string
       responseMode?: string
+      routingMode?: string
       selectedRoles?: string[]
     }
   }
   sessionId?: string
   workspaceId?: string
+}
+
+export interface AgentStreamImageAttachment {
+  detail?: "auto" | "low" | "high"
+  sourceRef?: string
+  url: string
 }
 
 export interface AgentStreamHandlers {
@@ -59,6 +66,7 @@ export type AgentRuntimeEvent =
       sources_json?: string | null
       summary?: string | null
     }
+  | ({ type: "conversation_context_loaded" } & AgentConversationContextLoaded)
   | ({ type: "rag_context_loaded" } & AgentRagContextLoaded)
   | ({ type: "workspace_context_loaded" } & AgentWorkspaceContextLoaded)
   | ({ type: "workspace_context_pack_loaded" } & AgentWorkspaceContextPackLoaded)
@@ -68,13 +76,32 @@ export type AgentRuntimeEvent =
   | { type: "llm_chunk"; content: string; session_id?: string }
   | { type: "commander_thinking" }
   | {
+      type: "dispatch_planned"
+      context_budget?: AgentDispatchContextBudget
+      contextBudget?: AgentDispatchContextBudget
+      difficulty: "simple" | "normal" | "complex" | "expert" | string
+      planned_steps?: AgentDispatchPlannedStep[]
+      plannedSteps?: AgentDispatchPlannedStep[]
+      primary_runtime_role?: string | null
+      primaryRuntimeRole?: string | null
+      reasoning_summary?: string
+      reasoningSummary?: string
+      route_mode: string
+      routeMode?: string
+      selected_skills?: string[]
+      selectedSkills?: string[]
+      session_id?: string
+      student_visible_explanation?: string
+      studentVisibleExplanation?: string
+      support_runtime_roles: string[]
+      supportRuntimeRoles?: string[]
+    }
+  | {
       type: "route_decided"
       collaboration_mode?: string | null
       collaborationMode?: string | null
       learning_level?: string | null
       learningLevel?: string | null
-      model_name?: string | null
-      modelName?: string | null
       primary_runtime_role?: string | null
       primaryRuntimeRole?: string | null
       response_mode?: string | null
@@ -244,6 +271,7 @@ const AGENT_RUNTIME_EVENT_TYPES = new Set<string>([
   "started",
   "memory_loaded",
   "context_loaded",
+  "conversation_context_loaded",
   "rag_context_loaded",
   "workspace_context_loaded",
   "workspace_context_pack_loaded",
@@ -252,6 +280,7 @@ const AGENT_RUNTIME_EVENT_TYPES = new Set<string>([
   "output",
   "llm_chunk",
   "commander_thinking",
+  "dispatch_planned",
   "route_decided",
   "worker_started",
   "worker_finished",
@@ -328,6 +357,37 @@ export interface AgentWorkerReport {
   open_questions: string[]
   openQuestions?: string[]
   status: string
+}
+
+export interface AgentDispatchPlannedStep {
+  detail: string
+  id: string
+  title: string
+}
+
+export interface AgentDispatchContextBudget {
+  approximate_input_chars?: number
+  approximateInputChars?: number
+  explicit_context_ref_count?: number
+  explicitContextRefCount?: number
+  explicit_product_count?: number
+  explicitProductCount?: number
+  history_summary_available?: boolean
+  historySummaryAvailable?: boolean
+  history_older_summary_available?: boolean
+  historyOlderSummaryAvailable?: boolean
+  history_total_message_count?: number
+  historyTotalMessageCount?: number
+  history_truncated?: boolean
+  historyTruncated?: boolean
+  memory_record_count?: number
+  memoryRecordCount?: number
+  recent_history_message_count?: number
+  recentHistoryMessageCount?: number
+  workspace_context_ref_count?: number
+  workspaceContextRefCount?: number
+  workspace_pack_item_count?: number
+  workspacePackItemCount?: number
 }
 
 export interface AgentTaskEvaluation {
@@ -539,6 +599,43 @@ export interface AgentRagContextLoaded {
   summary?: string | null
 }
 
+export interface AgentConversationContextLoaded {
+  conversationId?: string | null
+  conversation_id?: string | null
+  historyChars?: number
+  history_chars?: number
+  memory?: {
+    constraintCount?: number
+    constraint_count?: number
+    decisionCount?: number
+    decision_count?: number
+    factCount?: number
+    fact_count?: number
+    kind?: string | null
+    openQuestionCount?: number
+    open_question_count?: number
+    rollingSummary?: string | null
+    rolling_summary?: string | null
+  }
+  memoryAvailable?: boolean
+  memoryChars?: number
+  memory_available?: boolean
+  memory_chars?: number
+  messageCount?: number
+  message_count?: number
+  olderSummaryAvailable?: boolean
+  older_summary_available?: boolean
+  previousMemoryAvailable?: boolean
+  previous_memory_available?: boolean
+  readiness?: string
+  relevantOlderCount?: number
+  relevant_older_count?: number
+  summary?: string | null
+  totalMessageCount?: number
+  total_message_count?: number
+  truncated?: boolean
+}
+
 export interface AgentRagContextSource {
   id: string
   productId?: string | null
@@ -619,6 +716,8 @@ export interface AgentWorkspaceContextPackLoaded {
   }
   items?: AgentWorkspaceContextPackItem[]
   omitted?: string[]
+  omittedDetails?: AgentWorkspaceContextPackOmitted[]
+  omitted_details?: AgentWorkspaceContextPackOmitted[]
   productId?: string | null
   product_id?: string | null
   readiness?: string
@@ -628,6 +727,15 @@ export interface AgentWorkspaceContextPackLoaded {
   warnings?: string[]
   workspaceId?: string
   workspace_id?: string
+}
+
+export interface AgentWorkspaceContextPackOmitted {
+  reason?: string
+  refKey?: string
+  ref_key?: string
+  sourceType?: string
+  source_type?: string
+  title?: string | null
 }
 
 export interface AgentWorkspaceContextPackItem {
@@ -1067,12 +1175,17 @@ function normalizeAgentRuntimeEvent(event: AgentRuntimeEvent): AgentRuntimeEvent
   copyIfMissing(normalized, raw, "nodeId", "node_id")
   copyIfMissing(normalized, raw, "collaborationMode", "collaboration_mode")
   copyIfMissing(normalized, raw, "learningLevel", "learning_level")
-  copyIfMissing(normalized, raw, "modelName", "model_name")
   copyIfMissing(normalized, raw, "primaryRuntimeRole", "primary_runtime_role")
+  copyIfMissing(normalized, raw, "plannedSteps", "planned_steps")
   copyIfMissing(normalized, raw, "responseMode", "response_mode")
+  copyIfMissing(normalized, raw, "reasoningSummary", "reasoning_summary")
   copyIfMissing(normalized, raw, "routeMode", "route_mode")
+  copyIfMissing(normalized, raw, "selectedSkills", "selected_skills")
   copyIfMissing(normalized, raw, "strategyId", "strategy_id")
+  copyIfMissing(normalized, raw, "studentVisibleExplanation", "student_visible_explanation")
   copyIfMissing(normalized, raw, "supportRuntimeRoles", "support_runtime_roles")
+  copyIfMissing(normalized, raw, "contextBudget", "context_budget")
+  normalizeDispatchContextBudget(normalized)
   copyIfMissing(normalized, raw, "primaryWorkerId", "primary_worker_id")
   copyIfMissing(normalized, raw, "supportWorkerIds", "support_worker_ids")
   copyIfMissing(normalized, raw, "productIds", "product_ids")
@@ -1118,6 +1231,23 @@ function normalizeAgentRuntimeEvent(event: AgentRuntimeEvent): AgentRuntimeEvent
   copyIfMissing(normalized, raw, "updatedAt", "updated_at")
 
   return normalized
+}
+
+function normalizeDispatchContextBudget(event: Record<string, unknown>) {
+  const budget = event.contextBudget
+  if (!budget || typeof budget !== "object") return
+  const normalized = budget as Record<string, unknown>
+  copyIfMissing(normalized, normalized, "approximateInputChars", "approximate_input_chars")
+  copyIfMissing(normalized, normalized, "explicitContextRefCount", "explicit_context_ref_count")
+  copyIfMissing(normalized, normalized, "explicitProductCount", "explicit_product_count")
+  copyIfMissing(normalized, normalized, "historyOlderSummaryAvailable", "history_older_summary_available")
+  copyIfMissing(normalized, normalized, "historySummaryAvailable", "history_summary_available")
+  copyIfMissing(normalized, normalized, "historyTotalMessageCount", "history_total_message_count")
+  copyIfMissing(normalized, normalized, "historyTruncated", "history_truncated")
+  copyIfMissing(normalized, normalized, "memoryRecordCount", "memory_record_count")
+  copyIfMissing(normalized, normalized, "recentHistoryMessageCount", "recent_history_message_count")
+  copyIfMissing(normalized, normalized, "workspaceContextRefCount", "workspace_context_ref_count")
+  copyIfMissing(normalized, normalized, "workspacePackItemCount", "workspace_pack_item_count")
 }
 
 function copyIfMissing(

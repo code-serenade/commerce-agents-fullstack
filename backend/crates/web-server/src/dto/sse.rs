@@ -31,7 +31,6 @@ pub struct AgentStreamRequest {
 pub struct AgentStreamMetadata {
     pub attachments: Option<AgentStreamAttachmentMetadata>,
     pub context: Option<AgentStreamContextMetadata>,
-    pub model: Option<AgentStreamModelMetadata>,
     pub strategy: Option<AgentStreamStrategyMetadata>,
 }
 
@@ -67,15 +66,10 @@ pub struct AgentStreamContextMetadata {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AgentStreamModelMetadata {
-    pub name: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct AgentStreamStrategyMetadata {
     pub id: Option<String>,
     pub response_mode: Option<String>,
+    pub routing_mode: Option<String>,
     pub collaboration_mode: Option<String>,
     pub learning_level: Option<String>,
     pub primary_role: Option<String>,
@@ -91,11 +85,6 @@ pub struct AgentStreamContextSelection {
     pub context_refs: Vec<String>,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct AgentStreamModelSelection {
-    pub name: Option<String>,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct AgentStreamImageAttachmentSelection {
     pub url: String,
@@ -106,17 +95,9 @@ pub struct AgentStreamImageAttachmentSelection {
 impl AgentStreamMetadata {
     pub fn into_parts(
         self,
-    ) -> Result<
-        (
-            BTreeMap<String, String>,
-            AgentStreamContextSelection,
-            AgentStreamModelSelection,
-        ),
-        String,
-    > {
+    ) -> Result<(BTreeMap<String, String>, AgentStreamContextSelection), String> {
         let mut metadata = BTreeMap::new();
         let context = self.context_selection()?;
-        let model = self.model_selection()?;
         let image_count = self.image_attachments()?.len();
 
         if image_count > 0 {
@@ -134,6 +115,14 @@ impl AgentStreamMetadata {
                 validate_strategy_value("strategy.responseMode", strategy.response_mode)?
             {
                 metadata.insert("strategy.response_mode".to_string(), response_mode);
+            }
+            if let Some(routing_mode) =
+                validate_strategy_value("strategy.routingMode", strategy.routing_mode)?
+            {
+                if !matches!(routing_mode.as_str(), "fast" | "commander") {
+                    return Err("strategy.routingMode must be either fast or commander".to_string());
+                }
+                metadata.insert("strategy.routing_mode".to_string(), routing_mode);
             }
             if let Some(collaboration_mode) =
                 validate_strategy_value("strategy.collaborationMode", strategy.collaboration_mode)?
@@ -163,7 +152,7 @@ impl AgentStreamMetadata {
             }
         }
 
-        Ok((metadata, context, model))
+        Ok((metadata, context))
     }
 
     fn context_selection(&self) -> Result<AgentStreamContextSelection, String> {
@@ -195,15 +184,6 @@ impl AgentStreamMetadata {
                 20,
                 160,
             )?,
-        })
-    }
-
-    fn model_selection(&self) -> Result<AgentStreamModelSelection, String> {
-        let Some(model) = &self.model else {
-            return Ok(AgentStreamModelSelection::default());
-        };
-        Ok(AgentStreamModelSelection {
-            name: validate_strategy_value("model.name", model.name.clone())?,
         })
     }
 
@@ -428,8 +408,7 @@ fn validate_image_detail(value: Option<&str>) -> Result<Option<String>, String> 
 mod tests {
     use super::{
         AgentStreamAttachmentMetadata, AgentStreamContextMetadata,
-        AgentStreamImageAttachmentMetadata, AgentStreamMetadata, AgentStreamModelMetadata,
-        AgentStreamStrategyMetadata,
+        AgentStreamImageAttachmentMetadata, AgentStreamMetadata, AgentStreamStrategyMetadata,
     };
 
     #[test]
@@ -449,12 +428,10 @@ mod tests {
                 product_ids: vec![product_id.clone(), product_id.clone()],
                 context_refs: vec![format!("product:{product_id}")],
             }),
-            model: Some(AgentStreamModelMetadata {
-                name: Some("ollama-gpt-oss-20b".to_string()),
-            }),
             strategy: Some(AgentStreamStrategyMetadata {
                 id: Some("collab".to_string()),
                 response_mode: Some("execution".to_string()),
+                routing_mode: Some("commander".to_string()),
                 collaboration_mode: Some("manual".to_string()),
                 learning_level: Some("higher_vocational".to_string()),
                 primary_role: Some("data".to_string()),
@@ -462,8 +439,7 @@ mod tests {
             }),
         };
 
-        let (agent_metadata, context, model) =
-            metadata.into_parts().expect("metadata should parse");
+        let (agent_metadata, context) = metadata.into_parts().expect("metadata should parse");
 
         assert_eq!(
             agent_metadata.get("strategy.id").map(String::as_str),
@@ -475,7 +451,6 @@ mod tests {
                 .map(String::as_str),
             Some("data,ops")
         );
-        assert_eq!(model.name.as_deref(), Some("ollama-gpt-oss-20b"));
         assert_eq!(
             agent_metadata
                 .get("attachments.image_count")
@@ -502,7 +477,6 @@ mod tests {
                 product_ids: (0 .. 6).map(|index| format!("product-{index}")).collect(),
                 context_refs: Vec::new(),
             }),
-            model: None,
             strategy: None,
         };
 
@@ -523,11 +497,10 @@ mod tests {
                 product_ids: Vec::new(),
                 context_refs: Vec::new(),
             }),
-            model: None,
             strategy: None,
         };
 
-        let (_, context, _) = metadata.into_parts().expect("metadata should parse");
+        let (_, context) = metadata.into_parts().expect("metadata should parse");
 
         assert_eq!(
             context.conversation_id.as_deref(),
@@ -548,11 +521,10 @@ mod tests {
                 product_ids: Vec::new(),
                 context_refs: vec![artifact_ref.clone(), artifact_ref.clone()],
             }),
-            model: None,
             strategy: None,
         };
 
-        let (_, context, _) = metadata.into_parts().expect("metadata should parse");
+        let (_, context) = metadata.into_parts().expect("metadata should parse");
 
         assert_eq!(context.context_refs, vec![artifact_ref]);
         assert!(!context.context_refs.is_empty());
@@ -572,11 +544,10 @@ mod tests {
                 product_ids: Vec::new(),
                 context_refs: vec![product_ref.clone(), artifact_ref],
             }),
-            model: None,
             strategy: None,
         };
 
-        let (_, context, _) = metadata.into_parts().expect("metadata should parse");
+        let (_, context) = metadata.into_parts().expect("metadata should parse");
 
         assert!(context.has_product_context());
         assert_eq!(context.product_context_refs(), vec![product_ref]);
@@ -597,11 +568,10 @@ mod tests {
                 product_ids: Vec::new(),
                 context_refs: vec![format!("campaign:{campaign_id}")],
             }),
-            model: None,
             strategy: None,
         };
 
-        let (_, context, _) = metadata.into_parts().expect("metadata should parse");
+        let (_, context) = metadata.into_parts().expect("metadata should parse");
 
         assert_eq!(context.campaign_ids, vec![campaign_id.clone()]);
         assert_eq!(
@@ -621,7 +591,6 @@ mod tests {
                 product_ids: Vec::new(),
                 context_refs: Vec::new(),
             }),
-            model: None,
             strategy: None,
         };
 
@@ -643,7 +612,6 @@ mod tests {
                 }],
             }),
             context: None,
-            model: None,
             strategy: None,
         };
 
