@@ -4,6 +4,7 @@ import type { InlineAgentState } from "./thread-inline-view-model"
 
 export interface InlineArtifact {
   filename: string
+  id: string
   meta: string
   nodeId: string
   status: string
@@ -25,6 +26,7 @@ export function getInlineArtifactsFromRuntime(
     )
     .map((event) => ({
       filename: readArtifactFilename(event),
+      id: event.id,
       meta: readArtifactMeta(event),
       nodeId: "delivery",
       status: readArtifactStatus(event, t),

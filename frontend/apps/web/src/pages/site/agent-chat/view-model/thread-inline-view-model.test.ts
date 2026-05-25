@@ -116,6 +116,7 @@ describe("getInlineArtifactsFromRuntime", () => {
     expect(artifacts).toEqual([
       {
         filename: finalReportTitle,
+        id: "artifact-1",
         meta: finalReportType,
         nodeId: "delivery",
         status: finalReportBody,
@@ -123,6 +124,7 @@ describe("getInlineArtifactsFromRuntime", () => {
       },
       {
         filename: searchEvidenceTitle,
+        id: "artifact-2",
         meta: searchEvidenceType,
         nodeId: "delivery",
         status: searchEvidenceStatus,
@@ -144,6 +146,7 @@ describe("getInlineArtifactsFromRuntime", () => {
 
     expect(getInlineArtifactsFromRuntime(events, t)).toEqual([])
   })
+
 })
 
 describe("thread process boundary states", () => {

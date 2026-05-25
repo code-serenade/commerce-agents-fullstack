@@ -37,7 +37,7 @@ export function InlineArtifactsPanel({
         <div className="mt-3 grid gap-2">
           {artifacts.map((artifact) => (
             <InlineArtifactCard
-              key={`${artifact.meta}-${artifact.filename}`}
+              key={artifact.id}
               artifact={artifact}
             />
           ))}
