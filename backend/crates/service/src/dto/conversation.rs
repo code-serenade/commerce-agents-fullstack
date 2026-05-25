@@ -19,6 +19,11 @@ pub struct AddConversationMessageRequest {
     pub role: String,
     pub content_text: Option<String>,
     pub content_json: Option<Value>,
+    pub strategy_id: Option<String>,
+    pub response_mode: Option<String>,
+    pub routing_mode: Option<String>,
+    pub collaboration_mode: Option<String>,
+    pub learning_level: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -113,6 +118,11 @@ pub struct ConversationMessageResponse {
     pub content_json: Option<Value>,
     pub status: String,
     pub sequence: i64,
+    pub strategy_id: Option<String>,
+    pub response_mode: Option<String>,
+    pub routing_mode: Option<String>,
+    pub collaboration_mode: Option<String>,
+    pub learning_level: Option<String>,
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
     #[serde(with = "time::serde::rfc3339")]

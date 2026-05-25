@@ -38,6 +38,7 @@ pub mod product_competitors;
 pub mod product_knowledge;
 pub mod product_materials;
 pub mod products;
+pub mod sea_orm_active_enums;
 pub mod storage_object_analyses;
 pub mod storage_object_refs;
 pub mod storage_objects;

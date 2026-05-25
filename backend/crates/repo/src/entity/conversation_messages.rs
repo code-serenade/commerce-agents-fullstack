@@ -3,6 +3,11 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use super::sea_orm_active_enums::{
+    ConversationCollaborationMode, ConversationLearningLevel, ConversationResponseMode,
+    ConversationRoutingMode, ConversationStrategyId,
+};
+
 #[derive(Clone, Debug, PartialEq, Eq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "conversation_messages")]
 pub struct Model {
@@ -24,6 +29,11 @@ pub struct Model {
     pub metadata: Json,
     pub created_at: TimeDateTimeWithTimeZone,
     pub updated_at: TimeDateTimeWithTimeZone,
+    pub strategy_id: Option<ConversationStrategyId>,
+    pub response_mode: Option<ConversationResponseMode>,
+    pub routing_mode: Option<ConversationRoutingMode>,
+    pub collaboration_mode: Option<ConversationCollaborationMode>,
+    pub learning_level: Option<ConversationLearningLevel>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

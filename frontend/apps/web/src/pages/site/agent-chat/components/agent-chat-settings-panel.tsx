@@ -128,7 +128,7 @@ export function AgentChatSettingsPanel({
 
     return (
       <div
-        className="flex min-w-0 shrink items-center gap-1.5"
+        className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden"
         data-composer-interactive="true"
       >
         <button
@@ -151,8 +151,8 @@ export function AgentChatSettingsPanel({
           <ChevronIndicator open={isOpen} />
         </button>
         {summaryVisible ? (
-          <div className="flex min-w-0 shrink items-center gap-1 text-xs text-muted-foreground">
-            <span className="min-w-0 max-w-[min(48vw,26rem)] truncate">
+          <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-xs text-muted-foreground">
+            <span className="min-w-0 flex-1 truncate">
               <span className="text-[11px] text-muted-foreground/75">
                 {t("agentChat.composer.settings.selectedPrefix")}
               </span>

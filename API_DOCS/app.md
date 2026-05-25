@@ -601,7 +601,12 @@
 {
   "role": "user",
   "contentText": "hello",
-  "contentJson": null
+  "contentJson": null,
+  "strategyId": "learning",
+  "responseMode": "learning",
+  "routingMode": "commander",
+  "collaborationMode": "auto",
+  "learningLevel": "higher_vocational"
 }
 ```
 
@@ -611,6 +616,11 @@
 
 - `role` 只能是 `user`、`assistant`、`system`、`tool`
 - `contentText` 和 `contentJson` 至少需要一个有值
+- Agent 对话配置必须使用 enum/id/code，不允许提交展示文案；服务端会把 `strategyId`、`responseMode`、`routingMode`、`collaborationMode`、`learningLevel` 同步写入 `conversation_messages` 的结构化字段，`contentJson.strategy` 仅作为兼容历史消息和上下文摘要使用
+- `strategyId` / `responseMode` 允许值：`learning`、`quick`、`execution`
+- `routingMode` 允许值：`commander`、`fast`
+- `collaborationMode` 允许值：`auto`、`single`、`manual`
+- `learningLevel` 允许值：`beginner`、`higher_vocational`、`professional`
 
 ## 9. 获取会话附件上传签名（已废弃）
 

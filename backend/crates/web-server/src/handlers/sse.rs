@@ -3401,6 +3401,11 @@ mod tests {
             content_json: None,
             status: "active".to_string(),
             sequence,
+            strategy_id: None,
+            response_mode: None,
+            routing_mode: None,
+            collaboration_mode: None,
+            learning_level: None,
             created_at: time::OffsetDateTime::UNIX_EPOCH,
             updated_at: time::OffsetDateTime::UNIX_EPOCH,
         }

@@ -153,6 +153,11 @@ pub async fn add_conversation_message(
             role: req.role,
             content_text: req.content_text,
             content_json: req.content_json,
+            strategy_id: req.strategy_id,
+            response_mode: req.response_mode,
+            routing_mode: req.routing_mode,
+            collaboration_mode: req.collaboration_mode,
+            learning_level: req.learning_level,
         })
         .await
         .map_err(from_biz_error)?;
@@ -548,6 +553,11 @@ fn map_message_response(
         content_json: item.content_json,
         status: item.status,
         sequence: item.sequence,
+        strategy_id: item.strategy_id,
+        response_mode: item.response_mode,
+        routing_mode: item.routing_mode,
+        collaboration_mode: item.collaboration_mode,
+        learning_level: item.learning_level,
         created_at: item.created_at,
         updated_at: item.updated_at,
     }

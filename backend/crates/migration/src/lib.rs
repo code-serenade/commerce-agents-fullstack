@@ -22,6 +22,7 @@ mod m20260522_110000_create_storage_references;
 mod m20260522_120000_backfill_storage_references;
 mod m20260522_130000_create_storage_object_analyses;
 mod m20260522_140000_storage_objects_sha256_identity;
+mod m20260525_090000_add_conversation_message_strategy_enums;
 
 pub struct Migrator;
 
@@ -51,6 +52,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260522_120000_backfill_storage_references::Migration),
             Box::new(m20260522_130000_create_storage_object_analyses::Migration),
             Box::new(m20260522_140000_storage_objects_sha256_identity::Migration),
+            Box::new(m20260525_090000_add_conversation_message_strategy_enums::Migration),
         ]
     }
 }

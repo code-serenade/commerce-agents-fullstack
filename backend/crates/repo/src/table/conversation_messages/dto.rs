@@ -15,6 +15,11 @@ pub struct ConversationMessage {
     pub sequence: i64,
     pub token_count: Option<i32>,
     pub metadata: Value,
+    pub strategy_id: Option<String>,
+    pub response_mode: Option<String>,
+    pub routing_mode: Option<String>,
+    pub collaboration_mode: Option<String>,
+    pub learning_level: Option<String>,
     pub created_at: OffsetDateTime,
     pub updated_at: OffsetDateTime,
 }
@@ -30,4 +35,9 @@ pub struct CreateConversationMessage {
     pub sequence: i64,
     pub token_count: Option<i32>,
     pub metadata: Value,
+    pub strategy_id: Option<String>,
+    pub response_mode: Option<String>,
+    pub routing_mode: Option<String>,
+    pub collaboration_mode: Option<String>,
+    pub learning_level: Option<String>,
 }

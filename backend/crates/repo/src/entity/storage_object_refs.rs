@@ -8,8 +8,6 @@ use serde::{Deserialize, Serialize};
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    #[sea_orm(unique_key = "uk_storage_object_refs_active_object_source")]
-    pub storage_object_sha256: String,
     pub user_id: Uuid,
     #[sea_orm(unique_key = "uk_storage_object_refs_active_object_source")]
     pub source_type: String,
@@ -21,6 +19,8 @@ pub struct Model {
     pub metadata: Json,
     pub created_at: TimeDateTimeWithTimeZone,
     pub updated_at: TimeDateTimeWithTimeZone,
+    #[sea_orm(unique_key = "uk_storage_object_refs_active_object_source")]
+    pub storage_object_sha256: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

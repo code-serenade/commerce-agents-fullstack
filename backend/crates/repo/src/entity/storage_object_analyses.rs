@@ -9,8 +9,6 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     #[sea_orm(unique_key = "uk_storage_object_analyses_identity")]
-    pub storage_object_sha256: String,
-    #[sea_orm(unique_key = "uk_storage_object_analyses_identity")]
     pub analysis_kind: String,
     pub status: String,
     #[sea_orm(unique_key = "uk_storage_object_analyses_identity")]
@@ -30,6 +28,8 @@ pub struct Model {
     pub finished_at: Option<TimeDateTimeWithTimeZone>,
     pub created_at: TimeDateTimeWithTimeZone,
     pub updated_at: TimeDateTimeWithTimeZone,
+    #[sea_orm(unique_key = "uk_storage_object_analyses_identity")]
+    pub storage_object_sha256: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

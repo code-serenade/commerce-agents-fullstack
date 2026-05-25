@@ -125,6 +125,11 @@ export async function sendAgentChatMessage(
       role: "user",
       contentText: input.content,
       contentJson: { context: contextMeta, strategy: strategyMeta },
+      strategyId: strategyMeta.strategyId,
+      responseMode: strategyMeta.responseMode,
+      routingMode: strategyMeta.routingMode,
+      collaborationMode: strategyMeta.collaborationMode,
+      learningLevel: strategyMeta.learningLevel,
     })
 
     let assistantContent = ""

@@ -123,6 +123,11 @@ impl ConversationApi {
                             sequence: 1,
                             token_count: None,
                             metadata: json!({}),
+                            strategy_id: None,
+                            response_mode: None,
+                            routing_mode: None,
+                            collaboration_mode: None,
+                            learning_level: None,
                         })
                         .await?,
                 );
@@ -177,6 +182,36 @@ impl ConversationApi {
         let role = normalize_role(&req.role)?;
         let content_text = normalize_optional(req.content_text);
         let content_json = req.content_json;
+        let strategy_id = normalize_strategy_enum(
+            "strategy_id",
+            req.strategy_id
+                .or_else(|| read_strategy_string(&content_json, "strategyId")),
+            &["learning", "quick", "execution"],
+        )?;
+        let response_mode = normalize_strategy_enum(
+            "response_mode",
+            req.response_mode
+                .or_else(|| read_strategy_string(&content_json, "responseMode")),
+            &["learning", "quick", "execution"],
+        )?;
+        let routing_mode = normalize_strategy_enum(
+            "routing_mode",
+            req.routing_mode
+                .or_else(|| read_strategy_string(&content_json, "routingMode")),
+            &["commander", "fast"],
+        )?;
+        let collaboration_mode = normalize_strategy_enum(
+            "collaboration_mode",
+            req.collaboration_mode
+                .or_else(|| read_strategy_string(&content_json, "collaborationMode")),
+            &["auto", "single", "manual"],
+        )?;
+        let learning_level = normalize_strategy_enum(
+            "learning_level",
+            req.learning_level
+                .or_else(|| read_strategy_string(&content_json, "learningLevel")),
+            &["beginner", "higher_vocational", "professional"],
+        )?;
         if content_text.is_none() && content_json.is_none() {
             return Err(BizError::new(
                 app_error::CONVERSATION_REQUEST_INVALID,
@@ -197,6 +232,11 @@ impl ConversationApi {
                 sequence,
                 token_count: None,
                 metadata: json!({}),
+                strategy_id,
+                response_mode,
+                routing_mode,
+                collaboration_mode,
+                learning_level,
             })
             .await?;
         Ok(Self::map_message(message))
@@ -1020,6 +1060,11 @@ impl ConversationApi {
             content_json: item.content_json,
             status: item.status,
             sequence: item.sequence,
+            strategy_id: item.strategy_id,
+            response_mode: item.response_mode,
+            routing_mode: item.routing_mode,
+            collaboration_mode: item.collaboration_mode,
+            learning_level: item.learning_level,
             created_at: item.created_at,
             updated_at: item.updated_at,
         }
@@ -1048,6 +1093,32 @@ fn normalize_optional(value: Option<String>) -> Option<String> {
         let value = value.trim().to_string();
         (!value.is_empty()).then_some(value)
     })
+}
+
+fn normalize_strategy_enum(
+    field: &str,
+    value: Option<String>,
+    allowed: &[&str],
+) -> BizResult<Option<String>> {
+    let Some(value) = normalize_optional(value) else {
+        return Ok(None);
+    };
+    if allowed.iter().any(|allowed| *allowed == value) {
+        return Ok(Some(value));
+    }
+    Err(BizError::new(
+        app_error::CONVERSATION_REQUEST_INVALID,
+        format!("{field} has unsupported value '{value}'"),
+    ))
+}
+
+fn read_strategy_string(content_json: &Option<Value>, key: &str) -> Option<String> {
+    content_json
+        .as_ref()
+        .and_then(|value| value.get("strategy"))
+        .and_then(|strategy| strategy.get(key))
+        .and_then(Value::as_str)
+        .map(str::to_string)
 }
 
 fn normalize_role(value: &str) -> BizResult<String> {

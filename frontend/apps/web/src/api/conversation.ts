@@ -21,6 +21,11 @@ export interface ConversationMessageResponse {
   contentJson: unknown | null
   status: string
   sequence: number
+  strategyId?: string | null
+  responseMode?: string | null
+  routingMode?: string | null
+  collaborationMode?: string | null
+  learningLevel?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -65,6 +70,11 @@ export interface AddConversationMessageRequest {
   role: "user" | "assistant" | "system" | "tool"
   contentText?: string | null
   contentJson?: unknown | null
+  strategyId?: string | null
+  responseMode?: string | null
+  routingMode?: string | null
+  collaborationMode?: string | null
+  learningLevel?: string | null
 }
 
 export interface UpdateConversationRequest {

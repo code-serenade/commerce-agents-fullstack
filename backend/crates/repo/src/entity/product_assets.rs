@@ -10,7 +10,9 @@ pub struct Model {
     pub id: Uuid,
     #[sea_orm(unique_key = "idx_product_assets_user_object_key")]
     pub user_id: Uuid,
+    #[sea_orm(unique_key = "uk_product_assets_active_object")]
     pub product_id: Uuid,
+    #[sea_orm(unique_key = "uk_product_assets_active_object")]
     pub bucket: String,
     #[sea_orm(unique_key = "idx_product_assets_user_object_key")]
     pub object_key: String,

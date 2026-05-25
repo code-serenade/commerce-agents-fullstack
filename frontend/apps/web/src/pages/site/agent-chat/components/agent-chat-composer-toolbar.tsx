@@ -105,7 +105,7 @@ export function AgentChatComposerToolbar({
 
   return (
     <div className="flex min-w-0 items-center justify-between gap-2">
-      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+      <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
         <button
           type="button"
           className="flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
