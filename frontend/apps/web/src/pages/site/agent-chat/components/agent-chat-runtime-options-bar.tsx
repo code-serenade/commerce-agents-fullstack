@@ -8,6 +8,7 @@ import { AdvancedRuntimeOptions } from "./agent-chat-advanced-runtime-options"
 import { RoleSelector } from "./agent-chat-role-selector"
 import {
   choiceToOption,
+  localizedRoleOption,
   roleModeToOption,
   sortRoleModes,
 } from "../view-model/agent-chat-runtime-options-view-model"
@@ -45,7 +46,7 @@ export function AgentChatRuntimeOptionsBar({
   const roleModes = sortRoleModes(runtimeOptions?.collaborationModes ?? [])
   const specialistRoles = (runtimeOptions?.roles ?? []).filter(
     (role) => role.runtimeRole !== "chat"
-  )
+  ).map((role) => localizedRoleOption(role, t))
 
   return (
     <section className="grid gap-2">
@@ -67,7 +68,9 @@ export function AgentChatRuntimeOptionsBar({
             columns={2}
             label={t("agentChat.composer.runtime.routingMode")}
             onValueChange={onRoutingModeChange}
-            options={runtimeOptions.routingModes.map(choiceToOption)}
+            options={runtimeOptions.routingModes.map((choice) =>
+              choiceToOption(choice, t, "routingModes")
+            )}
             value={runtimeSelection.routingMode}
           />
           <OptionSegment

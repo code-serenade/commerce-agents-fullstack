@@ -38,14 +38,14 @@ export function RoleSelector({
         label={t("agentChat.composer.runtime.selectedRoles")}
       >
         <div className="grid min-w-0 gap-1.5">
-          <div className="grid grid-cols-[minmax(0,1fr)_4.75rem_4.75rem] items-center gap-1.5 px-2 text-xs font-medium text-muted-foreground">
+          <div className="grid grid-cols-[minmax(0,1fr)_6rem_5rem] items-center gap-1.5 px-2 text-xs font-medium text-muted-foreground">
             <span className="truncate">
               {t("agentChat.composer.runtime.roleColumn")}
             </span>
-            <span className="text-center">
+            <span className="text-center leading-tight">
               {t("agentChat.composer.runtime.primaryShort")}
             </span>
-            <span className="text-center">
+            <span className="text-center leading-tight">
               {t("agentChat.composer.runtime.supportShort")}
             </span>
           </div>

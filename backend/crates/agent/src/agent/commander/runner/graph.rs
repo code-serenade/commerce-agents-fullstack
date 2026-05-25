@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use tracing::warn;
+use tracing::{debug, warn};
 
 use super::{Commander, CommanderPhase, CommanderState, next_message_id, primary_route_score};
 use crate::{
@@ -56,13 +56,50 @@ impl Commander {
 
         let task_id = crate::core::protocol::TaskId(current_task.id);
         let graph = if self.context_allows_direct_chat_graph(role_route) {
+            debug!(
+                task_id = %task_id.0,
+                routing_mode = self
+                    .current_context
+                    .metadata
+                    .get("strategy.routing_mode")
+                    .map(String::as_str)
+                    .unwrap_or("<missing>"),
+                "commander configured graph lookup allows direct chat graph"
+            );
             plan_configured_task_graph(&task_id, &current_task.description, role_route)
         } else {
+            debug!(
+                task_id = %task_id.0,
+                routing_mode = self
+                    .current_context
+                    .metadata
+                    .get("strategy.routing_mode")
+                    .map(String::as_str)
+                    .unwrap_or("<missing>"),
+                "commander configured graph lookup requires non-chat graph"
+            );
             plan_configured_non_chat_task_graph(&task_id, &current_task.description, role_route)
         };
         let Some(graph) = graph else {
+            debug!(
+                task_id = %task_id.0,
+                routing_mode = self
+                    .current_context
+                    .metadata
+                    .get("strategy.routing_mode")
+                    .map(String::as_str)
+                    .unwrap_or("<missing>"),
+                "commander configured graph lookup missed"
+            );
             return false;
         };
+        debug!(
+            task_id = %task_id.0,
+            graph_id = %graph.graph_id.0,
+            node_count = graph.nodes.len(),
+            roles = ?graph.nodes.iter().map(|node| node.role.as_str()).collect::<Vec<_>>(),
+            "commander configured graph lookup hit"
+        );
         self.schedule_planned_task_graph("task_graph", role_route, graph)
             .await
     }
@@ -74,12 +111,21 @@ impl Commander {
         graph: TaskGraph,
     ) -> bool {
         let Some(graph) = self.runnable_task_graph(graph) else {
+            debug!("commander task graph skipped: no runnable nodes");
             return false;
         };
 
         self.memory
             .push_progress(format!("task graph planned: {} nodes", graph.nodes.len()));
         let display_roles = self.task_graph_display_roles(role_route, &graph);
+        debug!(
+            route_mode,
+            graph_id = %graph.graph_id.0,
+            node_count = graph.nodes.len(),
+            primary_role = display_roles.0.as_deref().unwrap_or("<none>"),
+            support_roles = ?display_roles.1,
+            "commander scheduling task graph"
+        );
         self.emit_route_decided(route_mode, display_roles.0.clone(), display_roles.1.clone());
         self.emit_dispatch_planned_for_graph_with_roles(route_mode, &graph, display_roles);
         self.emit_event(SessionEvent::TaskGraphPlanned {

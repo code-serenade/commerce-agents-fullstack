@@ -189,6 +189,41 @@ impl SessionRuntime {
     }
 
     pub async fn run_until_complete(&mut self) -> Result<SessionResult> {
+        tracing::debug!(
+            session_id = %self.session_id.0,
+            routing_mode = self
+                .context
+                .metadata
+                .get("strategy.routing_mode")
+                .map(String::as_str)
+                .unwrap_or("<missing>"),
+            response_mode = self
+                .context
+                .metadata
+                .get("strategy.response_mode")
+                .map(String::as_str)
+                .unwrap_or("<missing>"),
+            strategy_id = self
+                .context
+                .metadata
+                .get("strategy.id")
+                .map(String::as_str)
+                .unwrap_or("<missing>"),
+            collaboration_mode = self
+                .context
+                .metadata
+                .get("strategy.collaboration_mode")
+                .map(String::as_str)
+                .unwrap_or("<missing>"),
+            selected_roles = self
+                .context
+                .metadata
+                .get("strategy.selected_roles")
+                .map(String::as_str)
+                .unwrap_or("<none>"),
+            commander_fast_route = self.commander_fast_route,
+            "agent session runtime started"
+        );
         self.emit_event(SessionEvent::Started {
             session_id: self.session_id.clone(),
         })
@@ -220,6 +255,18 @@ impl SessionRuntime {
         context.task_id = Some(task_id.clone());
 
         if let Some(graph) = self.chat_bypass_graph(&task_id) {
+            tracing::debug!(
+                session_id = %self.session_id.0,
+                task_id = %task_id.0,
+                routing_mode = self
+                    .context
+                    .metadata
+                    .get("strategy.routing_mode")
+                    .map(String::as_str)
+                    .unwrap_or("<missing>"),
+                roles = ?graph.nodes.iter().map(|node| node.role.as_str()).collect::<Vec<_>>(),
+                "agent session selected chat bypass graph"
+            );
             self.emit_route_decided(
                 "chat_bypass",
                 Some(graph.nodes.iter().map(|node| node.role.clone()).collect()),
@@ -229,6 +276,17 @@ impl SessionRuntime {
                 .await;
             self.dispatch_chat_direct(context.clone(), graph)?;
         } else {
+            tracing::debug!(
+                session_id = %self.session_id.0,
+                task_id = %task_id.0,
+                routing_mode = self
+                    .context
+                    .metadata
+                    .get("strategy.routing_mode")
+                    .map(String::as_str)
+                    .unwrap_or("<missing>"),
+                "agent session sending task to commander"
+            );
             let message = Message::new_with_context(
                 MessageId(next_id("msg")),
                 context,
@@ -404,23 +462,63 @@ impl SessionRuntime {
 
     fn chat_bypass_graph(&self, task_id: &TaskId) -> Option<TaskGraph> {
         if self.is_explicit_chat_role_selection() {
+            tracing::debug!(
+                session_id = %self.session_id.0,
+                task_id = %task_id.0,
+                "chat bypass allowed: explicit chat role selection"
+            );
             let task_for_worker = self.task_description_with_conversation_history();
             return Some(plan_forced_chat_graph(task_id, &task_for_worker));
         }
         if self.commander_fast_route_disabled() || !self.context_allows_fast_route() {
+            tracing::debug!(
+                session_id = %self.session_id.0,
+                task_id = %task_id.0,
+                commander_fast_route = self.commander_fast_route,
+                routing_mode = self
+                    .context
+                    .metadata
+                    .get("strategy.routing_mode")
+                    .map(String::as_str)
+                    .unwrap_or("<missing>"),
+                "chat bypass skipped: fast route not allowed"
+            );
             return None;
         }
         let graph = plan_quick_chat_graph(task_id, &self.task_description)?;
         if self.has_explicit_non_chat_role_selection() {
+            tracing::debug!(
+                session_id = %self.session_id.0,
+                task_id = %task_id.0,
+                "chat bypass skipped: explicit non-chat role selection"
+            );
             return None;
         }
         if self.force_collaboration() && !is_direct_answer_chat_graph(&graph) {
+            tracing::debug!(
+                session_id = %self.session_id.0,
+                task_id = %task_id.0,
+                "chat bypass skipped: collaboration requires non-direct graph"
+            );
             return None;
         }
         let [node] = graph.nodes.as_slice() else {
+            tracing::debug!(
+                session_id = %self.session_id.0,
+                task_id = %task_id.0,
+                node_count = graph.nodes.len(),
+                "chat bypass skipped: quick graph is not single-node"
+            );
             return None;
         };
         if node.role != "chat" || !node.input_refs.is_empty() {
+            tracing::debug!(
+                session_id = %self.session_id.0,
+                task_id = %task_id.0,
+                role = %node.role,
+                input_ref_count = node.input_refs.len(),
+                "chat bypass skipped: quick graph is not direct chat"
+            );
             return None;
         }
         let task_for_worker = self.task_description_with_conversation_history();

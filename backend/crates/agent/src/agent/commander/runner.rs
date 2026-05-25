@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 mod collaboration;
 mod context;
@@ -264,15 +264,47 @@ impl Commander {
 
     async fn step_thinking(&mut self) {
         let role_route = self.current_role_route();
+        debug!(
+            task_id = self
+                .current_task
+                .as_ref()
+                .map(|task| task.id.as_str())
+                .unwrap_or("<none>"),
+            routing_mode = self
+                .current_context
+                .metadata
+                .get("strategy.routing_mode")
+                .map(String::as_str)
+                .unwrap_or("<missing>"),
+            response_mode = self
+                .current_context
+                .metadata
+                .get("strategy.response_mode")
+                .map(String::as_str)
+                .unwrap_or("<missing>"),
+            primary_role = role_route
+                .as_ref()
+                .map(|route| route.primary_runtime_role.as_str())
+                .unwrap_or("<none>"),
+            support_roles = ?role_route
+                .as_ref()
+                .map(|route| route.support_runtime_roles.as_slice())
+                .unwrap_or(&[]),
+            fast_route_enabled = self.fast_route_enabled,
+            fast_route_allowed = self.context_allows_fast_route(),
+            "commander routing started"
+        );
         if self
             .try_configured_task_graph_route(role_route.as_ref())
             .await
         {
+            debug!("commander routing completed via configured task graph");
             self.phase = CommanderPhase::Idle;
             self.state = CommanderState::Idle;
             return;
         }
         if self.context_allows_fast_route() && self.try_fast_route(role_route.as_ref()) {
+            debug!("commander routing completed via fast worker route");
             self.phase = CommanderPhase::Idle;
             self.state = CommanderState::Idle;
             return;
@@ -312,8 +344,28 @@ impl Commander {
                         .as_ref()
                         .is_some_and(|route| route.primary_runtime_role != "chat")
                     {
+                        debug!(
+                            target_worker = routed
+                                .target_worker_id
+                                .as_ref()
+                                .map(|worker| worker.0.as_str())
+                                .unwrap_or("<none>"),
+                            primary_role = route
+                                .as_ref()
+                                .map(|route| route.primary_runtime_role.as_str())
+                                .unwrap_or("<none>"),
+                            "commander fallback planning task graph from routed role"
+                        );
                         plan_task_graph(&task.id, &task.description, route.as_ref())
                     } else {
+                        debug!(
+                            target_worker = routed
+                                .target_worker_id
+                                .as_ref()
+                                .map(|worker| worker.0.as_str())
+                                .unwrap_or("<none>"),
+                            "commander fallback planning graph from available worker profiles"
+                        );
                         self.route_graph_from_worker_profiles(&task.id, &task.description)
                     }
                 });

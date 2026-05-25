@@ -48,17 +48,29 @@ export function AgentChatSettingsPanel({
   const { t } = useTranslation()
   const [summaryVisible, setSummaryVisible] = useState(true)
   const activeStrategyLabel = t(`agentChat.strategy.options.${strategyId}.label`)
-  const depthLabel =
-    runtimeOptions?.learningLevels.find(
-      (level) => level.id === runtimeSelection.learningLevel
-    )?.label ?? runtimeSelection.learningLevel
+  const depthChoice = runtimeOptions?.learningLevels.find(
+    (level) => level.id === runtimeSelection.learningLevel
+  )
+  const depthLabel = depthChoice
+    ? translateOrFallback(
+        t,
+        `agentChat.composer.runtime.learningLevels.${runtimeSelection.learningLevel}.label`,
+        depthChoice.label
+      )
+    : runtimeSelection.learningLevel
   const roleModeLabel = roleModeCopyKey(runtimeSelection.collaborationMode)
     ? t(roleModeCopyKey(runtimeSelection.collaborationMode))
     : runtimeSelection.collaborationMode
   const runtimeLabel = [
     t("agentChat.composer.settings.depthSummary", { depth: depthLabel }),
     roleModeLabel,
-    runtimeSelection.primaryRole,
+    runtimeSelection.primaryRole
+      ? translateOrFallback(
+          t,
+          `agentChat.composer.runtime.roleLabels.${runtimeSelection.primaryRole}.name`,
+          runtimeSelection.primaryRole
+        )
+      : null,
     runtimeSelection.selectedRoles.length
       ? t("agentChat.composer.settings.rolesCount", {
           count: runtimeSelection.selectedRoles.length,
@@ -213,6 +225,15 @@ export function AgentChatSettingsPanel({
       ) : null}
     </>
   )
+}
+
+function translateOrFallback(
+  t: (key: string) => string,
+  key: string,
+  fallback: string
+) {
+  const translated = t(key)
+  return translated === key ? fallback : translated
 }
 
 function roleModeCopyKey(mode: string) {

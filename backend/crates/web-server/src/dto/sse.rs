@@ -152,6 +152,31 @@ impl AgentStreamMetadata {
             }
         }
 
+        tracing::debug!(
+            routing_mode = metadata
+                .get("strategy.routing_mode")
+                .map(String::as_str)
+                .unwrap_or("<missing>"),
+            response_mode = metadata
+                .get("strategy.response_mode")
+                .map(String::as_str)
+                .unwrap_or("<missing>"),
+            strategy_id = metadata
+                .get("strategy.id")
+                .map(String::as_str)
+                .unwrap_or("<missing>"),
+            collaboration_mode = metadata
+                .get("strategy.collaboration_mode")
+                .map(String::as_str)
+                .unwrap_or("<missing>"),
+            selected_roles = metadata
+                .get("strategy.selected_roles")
+                .map(String::as_str)
+                .unwrap_or("<none>"),
+            image_count,
+            "agent stream metadata parsed"
+        );
+
         Ok((metadata, context))
     }
 

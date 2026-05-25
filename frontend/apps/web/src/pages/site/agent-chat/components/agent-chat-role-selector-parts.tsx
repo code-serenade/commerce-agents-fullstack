@@ -69,7 +69,7 @@ export function RoleAssignmentRow({
 
   return (
     <div
-      className={`grid min-w-0 grid-cols-[minmax(0,1fr)_4.75rem_4.75rem] items-center gap-1.5 rounded-md border px-2 py-1.5 ${
+      className={`grid min-w-0 grid-cols-[minmax(0,1fr)_6rem_5rem] items-center gap-1.5 rounded-md border px-2 py-1.5 ${
         isPrimary || isSupport
           ? "border-primary/25 bg-primary/5"
           : "border-border bg-card"
@@ -94,7 +94,7 @@ export function RoleAssignmentRow({
         disabled={disabled}
         onClick={() => onPrimaryRoleChange(role.runtimeRole)}
         aria-pressed={isPrimary}
-        className={`h-8 rounded-md border px-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+        className={`min-h-8 rounded-md border px-2 py-1 text-xs/tight font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
           isPrimary
             ? "border-primary/60 bg-primary text-primary-foreground"
             : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -107,7 +107,7 @@ export function RoleAssignmentRow({
         disabled={disabled || isPrimary}
         onClick={() => onToggleRole(role.runtimeRole)}
         aria-pressed={isSupport}
-        className={`h-8 rounded-md border px-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+        className={`min-h-8 rounded-md border px-2 py-1 text-xs/tight font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
           isSupport
             ? "border-primary/60 bg-primary/10 text-primary"
             : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"

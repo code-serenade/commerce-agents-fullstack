@@ -12,13 +12,13 @@ export function SettingsRow({
 }) {
   const rowClassName =
     align === "start"
-      ? "grid grid-cols-[5.5rem_minmax(0,1fr)] gap-2 items-start"
-      : "grid grid-cols-[5.5rem_minmax(0,1fr)] gap-2 items-center"
+      ? "grid gap-1.5 sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:gap-2 sm:items-start"
+      : "grid gap-1.5 sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:gap-2 sm:items-center"
 
   return (
     <div className={rowClassName}>
-      <div className="min-w-0 text-sm/8 font-semibold text-foreground">
-        <span className="truncate">{label}</span>
+      <div className="min-w-0 text-sm/6 font-semibold text-foreground sm:text-sm/8">
+        <span className="wrap-break-word">{label}</span>
       </div>
       <div className="min-w-0">{children}</div>
     </div>
@@ -42,7 +42,13 @@ export function OptionSegment({
 }) {
   return (
     <SettingsRow label={label}>
-      <div className={columns === 2 ? "grid grid-cols-2 gap-1.5" : "grid grid-cols-3 gap-1.5"}>
+      <div
+        className={
+          columns === 2
+            ? "grid grid-cols-2 gap-1.5"
+            : "grid grid-cols-1 gap-1.5 sm:grid-cols-3"
+        }
+      >
         {options.map((option) => {
           const active = option.value === value
           return (
@@ -51,7 +57,7 @@ export function OptionSegment({
               type="button"
               disabled={disabled}
               onClick={() => onValueChange(option.value)}
-              className={`flex h-8 min-w-0 items-center justify-center rounded-md border px-2 text-center transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+              className={`flex min-h-8 min-w-0 items-center justify-center rounded-md border px-2 py-1.5 text-center transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                 active
                   ? "border-primary/60 bg-primary/10 text-primary ring-1 ring-primary/10"
                   : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -59,7 +65,7 @@ export function OptionSegment({
               title={option.description}
               aria-pressed={active}
             >
-              <span className="min-w-0 truncate text-sm font-semibold leading-none">
+              <span className="min-w-0 text-sm/tight font-semibold">
                 {option.label}
               </span>
             </button>

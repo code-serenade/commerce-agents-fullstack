@@ -1,3 +1,5 @@
+use tracing::debug;
+
 use super::{
     Commander, CommanderPhase, CommanderState, next_message_id, output::build_contribution,
     primary_route_score, primary_worker_id,
@@ -14,17 +16,29 @@ use crate::{
 impl Commander {
     pub(super) fn try_fast_route(&mut self, role_route: Option<&crate::roles::RoleRoute>) -> bool {
         let Some(role_route) = role_route else {
+            debug!("commander fast route skipped: no role route");
             return false;
         };
         if primary_route_score(role_route) < self.fast_route_min_score {
+            debug!(
+                score = primary_route_score(role_route),
+                min_score = self.fast_route_min_score,
+                primary_role = %role_route.primary_runtime_role,
+                "commander fast route skipped: score below threshold"
+            );
             return false;
         }
         let Some(current_task) = self.current_task.clone() else {
+            debug!("commander fast route skipped: no current task");
             return false;
         };
 
         let target_worker = primary_worker_id(role_route);
         if self.session_context.get_worker_tx(&target_worker).is_none() {
+            debug!(
+                worker_id = %target_worker.0,
+                "commander fast route skipped: worker unavailable"
+            );
             return false;
         }
 
@@ -33,6 +47,12 @@ impl Commander {
             description: current_task.description,
         };
         self.prepare_collaboration(Some(role_route), Some(&target_worker));
+        debug!(
+            worker_id = %target_worker.0,
+            primary_role = %role_route.primary_runtime_role,
+            support_roles = ?role_route.support_runtime_roles,
+            "commander fast route selected"
+        );
         self.emit_route_decided(
             "fast_worker",
             Some(role_route.primary_runtime_role.clone()),

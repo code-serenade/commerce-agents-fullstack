@@ -24,7 +24,9 @@ export function AdvancedRuntimeOptions({
       disabled={disabled}
       label={t("agentChat.composer.runtime.explanationDepth")}
       onValueChange={onLearningLevelChange}
-      options={learningLevels.map(choiceToOption)}
+      options={learningLevels.map((choice) =>
+        choiceToOption(choice, t, "learningLevels")
+      )}
       value={runtimeSelection.learningLevel}
     />
   )

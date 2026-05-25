@@ -4,6 +4,41 @@ import type {
 } from "../domain/agent-runtime-options"
 
 const ROLE_MODE_ORDER = ["auto", "single", "manual"]
+const CHOICE_COPY_KEYS = {
+  learningLevels: {
+    beginner: {
+      descriptionKey:
+        "agentChat.composer.runtime.learningLevels.beginner.description",
+      labelKey: "agentChat.composer.runtime.learningLevels.beginner.label",
+    },
+    higher_vocational: {
+      descriptionKey:
+        "agentChat.composer.runtime.learningLevels.higher_vocational.description",
+      labelKey:
+        "agentChat.composer.runtime.learningLevels.higher_vocational.label",
+    },
+    professional: {
+      descriptionKey:
+        "agentChat.composer.runtime.learningLevels.professional.description",
+      labelKey: "agentChat.composer.runtime.learningLevels.professional.label",
+    },
+  },
+  routingModes: {
+    commander: {
+      descriptionKey:
+        "agentChat.composer.runtime.routingModes.commander.description",
+      labelKey: "agentChat.composer.runtime.routingModes.commander.label",
+    },
+    fast: {
+      descriptionKey: "agentChat.composer.runtime.routingModes.fast.description",
+      labelKey: "agentChat.composer.runtime.routingModes.fast.label",
+    },
+  },
+} as const
+type ChoiceCopyKey = {
+  descriptionKey: string
+  labelKey: string
+}
 const ROLE_MODE_COPY_KEYS = {
   auto: {
     descriptionKey: "agentChat.composer.runtime.roleModes.auto.description",
@@ -27,10 +62,18 @@ export function sortRoleModes(choices: AgentRuntimeChoice[]) {
   })
 }
 
-export function choiceToOption(choice: AgentRuntimeChoice) {
+export function choiceToOption(
+  choice: AgentRuntimeChoice,
+  t?: (key: string) => string,
+  group?: keyof typeof CHOICE_COPY_KEYS
+) {
+  const copyKeys: Record<string, ChoiceCopyKey> | undefined = group
+    ? CHOICE_COPY_KEYS[group]
+    : undefined
+  const copyKey = copyKeys?.[choice.id]
   return {
-    description: choice.description,
-    label: choice.label,
+    description: copyKey && t ? t(copyKey.descriptionKey) : choice.description,
+    label: copyKey && t ? t(copyKey.labelKey) : choice.label,
     value: choice.id,
   }
 }
@@ -61,6 +104,36 @@ export function roleToSelectOption(role: AgentRuntimeRoleOption) {
     label: role.name,
     value: role.runtimeRole,
   }
+}
+
+export function localizedRoleOption(
+  role: AgentRuntimeRoleOption,
+  t: (key: string) => string
+): AgentRuntimeRoleOption {
+  return {
+    ...role,
+    capabilities: role.capabilities.map((capability) =>
+      translateOrFallback(
+        t,
+        `agentChat.composer.runtime.capabilityLabels.${capability}`,
+        capability
+      )
+    ),
+    name: translateOrFallback(
+      t,
+      `agentChat.composer.runtime.roleLabels.${role.runtimeRole}.name`,
+      role.name
+    ),
+  }
+}
+
+function translateOrFallback(
+  t: (key: string) => string,
+  key: string,
+  fallback: string
+) {
+  const translated = t(key)
+  return translated === key ? fallback : translated
 }
 
 function normalizedOrder(index: number) {

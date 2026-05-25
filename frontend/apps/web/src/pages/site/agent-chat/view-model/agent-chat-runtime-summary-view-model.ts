@@ -17,17 +17,36 @@ export function buildCompactRuntimeSummary({
   t: TFunction
 }) {
   const strategyShort = t(`agentChat.strategy.options.${strategyId}.shortHint`)
-  const depthLabel = runtimeOptions?.learningLevels.find(
+  const depthChoice = runtimeOptions?.learningLevels.find(
     (level) => level.id === runtimeSelection.learningLevel
-  )?.label ?? runtimeSelection.learningLevel
-  const roleModeLabel =
-    runtimeOptions?.collaborationModes.find(
-      (mode) => mode.id === runtimeSelection.collaborationMode
-    )?.label ?? runtimeSelection.collaborationMode
-  const routingLabel =
-    runtimeOptions?.routingModes.find(
-      (mode) => mode.id === runtimeSelection.routingMode
-    )?.label ?? runtimeSelection.routingMode
+  )
+  const depthLabel = depthChoice
+    ? translateOrFallback(
+        t,
+        `agentChat.composer.runtime.learningLevels.${runtimeSelection.learningLevel}.label`,
+        depthChoice.label
+      )
+    : runtimeSelection.learningLevel
+  const roleModeChoice = runtimeOptions?.collaborationModes.find(
+    (mode) => mode.id === runtimeSelection.collaborationMode
+  )
+  const roleModeLabel = roleModeChoice
+    ? translateOrFallback(
+        t,
+        `agentChat.composer.runtime.roleModes.${runtimeSelection.collaborationMode}.label`,
+        roleModeChoice.label
+      )
+    : runtimeSelection.collaborationMode
+  const routingChoice = runtimeOptions?.routingModes.find(
+    (mode) => mode.id === runtimeSelection.routingMode
+  )
+  const routingLabel = routingChoice
+    ? translateOrFallback(
+        t,
+        `agentChat.composer.runtime.routingModes.${runtimeSelection.routingMode}.label`,
+        routingChoice.label
+      )
+    : runtimeSelection.routingMode
   const roleLabel = selectedRoleSummary({
     runtimeOptions,
     runtimeSelection,
@@ -59,10 +78,16 @@ export function selectedRoleSummary({
 
   const roleName = (runtimeRole: string | undefined) => {
     if (!runtimeRole) return ""
-    return (
-      runtimeOptions?.roles.find((role) => role.runtimeRole === runtimeRole)
-        ?.name ?? runtimeRole
+    const role = runtimeOptions?.roles.find(
+      (role) => role.runtimeRole === runtimeRole
     )
+    return role
+      ? translateOrFallback(
+          t,
+          `agentChat.composer.runtime.roleLabels.${runtimeRole}.name`,
+          role.name
+        )
+      : runtimeRole
   }
 
   if (runtimeSelection.collaborationMode === "single") {
@@ -80,4 +105,13 @@ export function selectedRoleSummary({
   }
   if (supportCount <= 0) return lead
   return `${lead}+${supportCount}`
+}
+
+function translateOrFallback(
+  t: TFunction,
+  key: string,
+  fallback: string
+) {
+  const translated = t(key)
+  return translated === key ? fallback : translated
 }
