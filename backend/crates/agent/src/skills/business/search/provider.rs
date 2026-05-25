@@ -5,7 +5,7 @@ use time::{
     Date, Duration, OffsetDateTime, format_description::well_known::Rfc3339,
     macros::format_description,
 };
-use toolcraft_request::{HeaderMap, Request};
+use toolcraft_request::HeaderMap;
 
 use super::{
     config::{
@@ -14,7 +14,10 @@ use super::{
     },
     output::{SearchPlan, SearchSourceSet},
 };
-use crate::skills::{optional_bool_param, optional_i64_param, optional_string_param};
+use crate::{
+    http::request as http_request,
+    skills::{optional_bool_param, optional_i64_param, optional_string_param},
+};
 
 pub(super) async fn query_provider(
     adapter: &SearchAdapterConfig,
@@ -32,12 +35,6 @@ pub(super) async fn query_provider(
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .ok_or_else(|| SEARCH_ADAPTER_REQUIRED_CONFIG.to_string())?;
-    let mut client = Request::with_timeout(adapter.timeout_sec.unwrap_or(10).max(1))
-        .map_err(|err| format!("init search request client failed: {err}"))?;
-    client
-        .set_base_url(base_url)
-        .map_err(|err| format!("invalid search base_url: {err}"))?;
-
     let query = vec![
         ("q".to_string(), plan.planned.clone()),
         ("topic".to_string(), plan.topic.clone()),
@@ -45,26 +42,47 @@ pub(super) async fn query_provider(
         ("max_results".to_string(), plan.max_results.to_string()),
         ("bypass_cache".to_string(), plan.bypass_cache.to_string()),
     ];
-    let response = client
-        .get(endpoint, Some(query), build_provider_headers(adapter)?)
-        .await
-        .map_err(|err| format!("external search provider request failed: {err}"))?;
-    let status = response.status();
-    if !status.is_success() {
-        let body = response
-            .text()
-            .await
-            .unwrap_or_else(|_| "<unreadable body>".to_string());
+    let payload = http_request::get_json(
+        base_url,
+        endpoint,
+        Some(query),
+        build_provider_headers(adapter)?,
+        adapter.timeout_sec.unwrap_or(10).max(1),
+    )
+    .await
+    .map_err(|err| format!("external search provider request failed: {err}"))?;
+    unwrap_provider_payload(payload)
+}
+
+fn unwrap_provider_payload(payload: Value) -> Result<Value, String> {
+    let Some(code) = payload.get("code") else {
+        return Ok(payload);
+    };
+
+    let success = match code {
+        Value::Number(number) => number.as_i64() == Some(0),
+        Value::String(text) => text.trim() == "0" || text.trim().eq_ignore_ascii_case("success"),
+        _ => false,
+    };
+    let message = payload
+        .get("message")
+        .or_else(|| payload.get("msg"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or("external search provider returned an error envelope");
+
+    if !success {
         return Err(format!(
-            "external search provider returned status {}: {}",
-            status.as_u16(),
-            compact_text(&body, 240)
+            "external search provider returned code {}: {}",
+            code, message
         ));
     }
-    response
-        .json::<Value>()
-        .await
-        .map_err(|err| format!("decode external search provider response failed: {err}"))
+
+    payload
+        .get("data")
+        .cloned()
+        .ok_or_else(|| "external search provider success envelope missing data".to_string())
 }
 
 pub(super) fn normalize_sources(payload: &Value, max_results: i64, days: i64) -> SearchSourceSet {
@@ -490,4 +508,46 @@ pub(super) fn utc_now_rfc3339() -> String {
     OffsetDateTime::now_utc()
         .format(&Rfc3339)
         .unwrap_or_else(|_| "1970-01-01T00:00:00Z".to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::{normalize_sources, unwrap_provider_payload};
+
+    #[test]
+    fn unwrap_provider_payload_accepts_common_envelope() {
+        let payload = unwrap_provider_payload(json!({
+            "code": 0,
+            "message": "Success",
+            "data": {
+                "key": "search",
+                "engine": "codex-web-search",
+                "data": {
+                    "items": [{
+                        "title": "Rust release",
+                        "url": "https://blog.rust-lang.org/release",
+                        "snippet": "Release notes"
+                    }]
+                }
+            }
+        }))
+        .expect("success envelope should unwrap");
+
+        let sources = normalize_sources(&payload, 6, 30);
+        assert_eq!(sources.sources.len(), 1);
+        assert_eq!(sources.sources[0]["domain"], "blog.rust-lang.org");
+    }
+
+    #[test]
+    fn unwrap_provider_payload_rejects_error_envelope() {
+        let err = unwrap_provider_payload(json!({
+            "code": 500,
+            "message": "provider unavailable"
+        }))
+        .expect_err("error envelope should fail");
+
+        assert!(err.contains("provider unavailable"));
+    }
 }

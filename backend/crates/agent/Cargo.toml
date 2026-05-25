@@ -29,7 +29,7 @@ thiserror = "2"
 time.workspace = true
 tokio = { version = "1.50", features = ["macros", "rt-multi-thread", "sync", "time"] }
 toolcraft-config = { version = "0.2.0" }
-toolcraft-request = { version = "0.2.3" }
+toolcraft-request = { version = "0.2.5" }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
 utils.workspace = true

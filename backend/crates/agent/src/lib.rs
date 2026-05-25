@@ -21,6 +21,7 @@ pub(crate) mod agent_utils;
 pub(crate) mod cognition;
 #[path = "core/lib.rs"]
 pub(crate) mod core;
+pub(crate) mod http;
 #[path = "perception/lib.rs"]
 pub(crate) mod perception;
 #[path = "roles/lib.rs"]
