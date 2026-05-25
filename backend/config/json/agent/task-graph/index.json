@@ -11,6 +11,7 @@
     "graphs/direct-chat-high-risk-claim-boundary.json",
     "graphs/direct-service-result-claim-boundary.json",
     "graphs/direct-chat-realtime-platform-boundary.json",
+    "graphs/direct-search-source-evidence.json",
     "graphs/direct-campus-category-trend-boundary.json",
     "graphs/direct-risky-page-copy-boundary.json",
     "graphs/direct-image-table-claim-boundary.json",

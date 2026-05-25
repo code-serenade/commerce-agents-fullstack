@@ -73,6 +73,14 @@ pub(in crate::agent::worker::runner) fn selected_product_name_or_task(task: &Tas
         .unwrap_or_else(|| compact_task_text(&task.description))
 }
 
+pub(in crate::agent::worker::runner) fn selected_product_name(task: &Task) -> Option<String> {
+    first_selected_product(task).map(|product| product.name)
+}
+
+pub(in crate::agent::worker::runner) fn selected_product_category(task: &Task) -> Option<String> {
+    first_selected_product(task).and_then(|product| product.category)
+}
+
 pub(in crate::agent::worker::runner) fn selected_product_brand_name_or_task(task: &Task) -> String {
     first_selected_product(task)
         .and_then(|product| {

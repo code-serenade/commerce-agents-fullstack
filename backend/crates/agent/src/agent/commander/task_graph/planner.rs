@@ -266,7 +266,10 @@ pub(super) fn explicit_team_keywords(rules: &TaskGraphRuleSet) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::{load_task_graph_rules, plan_task_graph_from_rules};
-    use crate::core::protocol::TaskId;
+    use crate::{
+        core::protocol::TaskId,
+        roles::{RoleId, RoleRoute, RoleScore},
+    };
 
     fn configured_rules_path() -> String {
         format!(
@@ -310,5 +313,62 @@ mod tests {
                 .is_none_or(|graph| graph.nodes.iter().all(|node| node.role == "chat")),
             "generic content question must not start a non-chat team graph"
         );
+    }
+
+    #[test]
+    fn explicit_source_search_routes_to_web_search_graph() {
+        let rules =
+            load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
+        let graph = plan_task_graph_from_rules(
+            &TaskId("task-source-search".to_string()),
+            "请联网搜索并给出来源链接：最近30天抖音电商关于价格合规、低价引流、\
+             虚假宣传的官方公开规则或公告；只输出来源标题、链接、发布日期和适用风险点。",
+            None,
+            &rules,
+        )
+        .expect("explicit source search should match a graph");
+
+        assert_eq!(graph.nodes.len(), 1);
+        assert_eq!(graph.nodes[0].id.0, "ops_search");
+        assert_eq!(graph.nodes[0].role, "ops");
+        assert_eq!(graph.nodes[0].title, "实时来源搜索");
+    }
+
+    #[test]
+    fn explicit_source_search_route_beats_role_route_graph() {
+        let rules =
+            load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
+        let route = RoleRoute {
+            primary_role: RoleId("role.data-analyst".to_string()),
+            primary_runtime_role: "data".to_string(),
+            support_roles: vec![RoleId("role.ops-strategist".to_string())],
+            support_runtime_roles: vec!["ops".to_string()],
+            scores: vec![
+                RoleScore {
+                    role_id: RoleId("role.data-analyst".to_string()),
+                    runtime_role: "data".to_string(),
+                    score: 95.0,
+                    keyword_hits: 2,
+                },
+                RoleScore {
+                    role_id: RoleId("role.ops-strategist".to_string()),
+                    runtime_role: "ops".to_string(),
+                    score: 95.0,
+                    keyword_hits: 2,
+                },
+            ],
+        };
+        let graph = plan_task_graph_from_rules(
+            &TaskId("task-source-search-route".to_string()),
+            "请联网搜索并给出来源链接：最近30天抖音电商关于价格合规、低价引流、\
+             虚假宣传的官方公开规则或公告；只输出来源标题、链接、发布日期和适用风险点。",
+            Some(&route),
+            &rules,
+        )
+        .expect("explicit source search should match a graph");
+
+        assert_eq!(graph.nodes.len(), 1);
+        assert_eq!(graph.nodes[0].id.0, "ops_search");
+        assert_eq!(graph.nodes[0].role, "ops");
     }
 }

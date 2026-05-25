@@ -63,9 +63,17 @@ impl SearchPlan {
         product_name: Option<String>,
         product_category: Option<String>,
     ) -> Self {
-        self.product_ref = product_ref;
-        self.product_name = product_name;
-        self.product_category = product_category;
+        self.product_ref = product_ref
+            .map(|value| value.trim().to_owned())
+            .filter(|value| !value.is_empty());
+        if self.product_ref.is_some() {
+            self.product_name = product_name
+                .map(|value| value.trim().to_owned())
+                .filter(|value| !value.is_empty());
+            self.product_category = product_category
+                .map(|value| value.trim().to_owned())
+                .filter(|value| !value.is_empty());
+        }
         self
     }
 

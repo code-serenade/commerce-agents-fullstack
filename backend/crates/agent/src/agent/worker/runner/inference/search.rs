@@ -13,6 +13,20 @@ pub(in crate::agent::worker::runner) fn query_for_task(text: &str, task: &Task) 
     infer_query(text)
 }
 
+pub(in crate::agent::worker::runner) fn policy_query_for_task(text: &str, task: &Task) -> String {
+    let content = policy_source_text(text, task);
+    let platform = platform_for_task(&content, task);
+    let keywords = extract_keyword_candidates(&content)
+        .into_iter()
+        .filter(|keyword| keyword != &platform)
+        .take(6)
+        .collect::<Vec<_>>();
+    if keywords.is_empty() {
+        return infer_query(&content);
+    }
+    keywords.join(" ")
+}
+
 pub(in crate::agent::worker::runner) fn industry_for_task(text: &str, task: &Task) -> String {
     if refers_to_selected_product(text)
         && let Some(product) = context::first_selected_product(task)
@@ -98,6 +112,18 @@ pub(in crate::agent::worker::runner) fn policy_type(text: &str) -> &'static str 
     match_configured_label(text, "policy_type", "general")
 }
 
+pub(in crate::agent::worker::runner) fn policy_type_for_task(
+    text: &str,
+    task: &Task,
+) -> &'static str {
+    let content = policy_source_text(text, task);
+    let label = policy_type(&content);
+    if label != "general" {
+        return label;
+    }
+    policy_type(text)
+}
+
 pub(in crate::agent::worker::runner) fn review_focus(text: &str) -> &'static str {
     match_configured_label(text, "review_focus", "overall")
 }
@@ -139,6 +165,22 @@ fn infer_query(text: &str) -> String {
         return keyword.clone();
     }
     compact_task_text(text)
+}
+
+fn policy_source_text(text: &str, task: &Task) -> String {
+    if let Some(root_task) = task
+        .assignment
+        .as_ref()
+        .map(|assignment| assignment.root_task.trim())
+        .filter(|value| !value.is_empty())
+    {
+        return root_task.to_string();
+    }
+    let description = task.description.trim();
+    if !description.is_empty() {
+        return description.to_string();
+    }
+    text.trim().to_string()
 }
 
 fn extract_keyword_candidates(text: &str) -> Vec<String> {
@@ -234,4 +276,102 @@ fn split_delimiters(pointer: &str) -> Vec<char> {
             chars.next().is_none().then_some(ch)
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        agent::worker::{Task, runner::inference::search},
+        core::protocol::{AgentId, MessageContext},
+    };
+
+    fn task(description: &str) -> Task {
+        Task {
+            id: "task-1".to_string(),
+            context: MessageContext::default(),
+            description: description.to_string(),
+            requester: AgentId("commander".to_string()),
+            assignment: None,
+        }
+    }
+
+    fn graph_task(root_task: &str, objective: &str) -> Task {
+        use crate::core::protocol::{TaskGraphId, TaskId, TaskNodeId, WorkerAssignment, WorkerId};
+
+        Task {
+            id: "task-1".to_string(),
+            context: MessageContext::default(),
+            description: objective.to_string(),
+            requester: AgentId("commander".to_string()),
+            assignment: Some(WorkerAssignment {
+                graph_id: TaskGraphId("graph-1".to_string()),
+                node_id: TaskNodeId("ops_search".to_string()),
+                task_id: TaskId("task-1".to_string()),
+                worker_id: WorkerId("worker.ops".to_string()),
+                role: "ops".to_string(),
+                attempt: 1,
+                root_task: root_task.to_string(),
+                objective: objective.to_string(),
+                llm_usage: None,
+                skill_autosuggest: None,
+                inputs: Vec::new(),
+                rework_instruction: None,
+            }),
+        }
+    }
+
+    #[test]
+    fn policy_query_uses_task_description_instead_of_worker_objective() {
+        let task = task(
+            "请联网搜索并给出来源链接：最近30天抖音电商关于价格合规、低价引流、\
+             虚假宣传的官方公开规则或公告；只输出来源标题、链接、发布日期和适用风险点。",
+        );
+        let query = search::policy_query_for_task(
+            "通过搜索 skill \
+             获取用户要求的公开来源证据，并按用户要求输出来源标题、链接、发布日期和适用风险点。",
+            &task,
+        );
+
+        assert!(query.contains("价格合规"));
+        assert!(query.contains("低价引流"));
+        assert!(query.contains("虚假宣传"));
+        assert!(!query.contains("通过搜索 skill"));
+        assert!(!query.contains("按用户要求输出"));
+    }
+
+    #[test]
+    fn policy_type_uses_task_description_before_worker_objective() {
+        let task = task("抖音电商价格合规、低价引流、虚假宣传官方规则");
+        let label = search::policy_type_for_task("搜索算法 流量规则", &task);
+
+        assert_eq!(label, "content");
+    }
+
+    #[test]
+    fn policy_type_prefers_specific_policy_keywords_over_generic_search_word() {
+        let task = task(
+            "请联网搜索并给出来源链接：最近30天抖音电商关于价格合规、低价引流、\
+             虚假宣传的官方公开规则或公告。",
+        );
+        let label = search::policy_type_for_task("", &task);
+
+        assert_eq!(label, "content");
+    }
+
+    #[test]
+    fn policy_query_uses_graph_root_task_before_node_objective() {
+        let task = graph_task(
+            "最近30天抖音电商价格合规、低价引流、虚假宣传官方规则",
+            "通过搜索 skill \
+             获取用户要求的公开来源证据，并按用户要求输出来源标题、链接、发布日期和适用风险点。",
+        );
+        let query = search::policy_query_for_task(
+            "通过搜索 skill \
+             获取用户要求的公开来源证据，并按用户要求输出来源标题、链接、发布日期和适用风险点。",
+            &task,
+        );
+
+        assert!(query.contains("价格合规"));
+        assert!(!query.contains("通过搜索 skill"));
+    }
 }

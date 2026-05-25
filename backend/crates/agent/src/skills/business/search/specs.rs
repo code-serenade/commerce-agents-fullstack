@@ -126,6 +126,11 @@ pub(super) fn search_platform_policy_spec() -> SkillSpec {
                 json!({"type": "string"}),
             ),
             SkillInputField::optional(
+                "query",
+                "政策/规则关注点关键词，如价格合规、低价引流、虚假宣传",
+                json!({"type": "string"}),
+            ),
+            SkillInputField::optional(
                 "policy_type",
                 "政策类型：algorithm/fee/promotion/content/material/general",
                 json!({"type": "string"}),

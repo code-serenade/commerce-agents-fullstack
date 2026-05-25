@@ -4,13 +4,67 @@ pub(crate) fn user_facing_report_text(report: &WorkerReport) -> Option<String> {
     report
         .role_output
         .as_ref()
-        .and_then(|output| {
-            std::iter::once(output.summary.as_str())
-                .chain(output.recommendations.iter().map(String::as_str))
-                .chain(output.findings.iter().map(String::as_str))
-                .find_map(sanitize_user_facing_text)
-        })
+        .and_then(role_output_user_facing_text)
         .or_else(|| sanitize_user_facing_text(&report.content))
+}
+
+fn role_output_user_facing_text(output: &crate::core::protocol::RoleWorkOutput) -> Option<String> {
+    if let Some(text) = live_search_user_facing_text(output) {
+        return Some(text);
+    }
+
+    std::iter::once(output.summary.as_str())
+        .chain(output.recommendations.iter().map(String::as_str))
+        .chain(output.findings.iter().map(String::as_str))
+        .find_map(sanitize_user_facing_text)
+}
+
+fn live_search_user_facing_text(output: &crate::core::protocol::RoleWorkOutput) -> Option<String> {
+    let live_evidence = output
+        .evidence
+        .iter()
+        .filter(|item| looks_like_live_search_evidence(item))
+        .filter_map(|item| sanitize_user_facing_text(item))
+        .fold(Vec::<String>::new(), |mut items, item| {
+            if !items.iter().any(|existing| existing == &item) {
+                items.push(item);
+            }
+            items
+        });
+    if live_evidence.is_empty() {
+        return None;
+    }
+
+    let mut sections = Vec::new();
+    if let Some(summary) = sanitize_user_facing_text(&output.summary)
+        .filter(|summary| !looks_like_no_source_claim(summary))
+    {
+        sections.push(summary);
+    } else {
+        sections.push("本轮已通过外部搜索取得实时来源。".to_string());
+    }
+    sections.extend(live_evidence);
+
+    (!sections.is_empty()).then_some(sections.join("\n\n"))
+}
+
+fn looks_like_live_search_evidence(item: &str) -> bool {
+    let item = item.trim();
+    item.contains("实时搜索来源") || (item.contains("http://") || item.contains("https://"))
+}
+
+fn looks_like_no_source_claim(item: &str) -> bool {
+    [
+        "本轮未拿到",
+        "未拿到实时来源",
+        "没有可采信实时来源",
+        "缺少官方发布",
+        "缺少抖音电商官方发布",
+        "无法给出具体的合规要求细则和对应来源信息",
+        "不能直接给出对应规则明细",
+    ]
+    .iter()
+    .any(|marker| item.contains(marker))
 }
 
 pub(crate) fn sanitize_user_facing_text(raw: &str) -> Option<String> {
@@ -303,7 +357,10 @@ fn is_empty_list_artifact(line: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::sanitize_user_facing_text;
+    use super::{sanitize_user_facing_text, user_facing_report_text};
+    use crate::core::protocol::{
+        RoleWorkOutput, TaskGraphId, TaskId, TaskNodeId, WorkerId, WorkerReport, WorkerReportStatus,
+    };
 
     #[test]
     fn sanitizes_placeholder_and_note_language() {
@@ -358,5 +415,37 @@ mod tests {
         assert!(!output.contains("备注："));
         assert!(!output.contains('【'));
         assert!(!output.contains('】'));
+    }
+
+    #[test]
+    fn includes_live_search_evidence_in_user_facing_text() {
+        let report = WorkerReport {
+            graph_id: TaskGraphId("graph-search".to_string()),
+            node_id: TaskNodeId("search".to_string()),
+            task_id: TaskId("task-search".to_string()),
+            worker_id: WorkerId("worker.search".to_string()),
+            role: "search".to_string(),
+            content: String::new(),
+            role_output: Some(RoleWorkOutput {
+                summary: "本轮未拿到实时来源，不能直接给出对应规则明细。".to_string(),
+                evidence: vec![
+                    "实时搜索来源（search_platform_policy）：1 个可采信来源\n\
+                     1. 官方公告 | 2026-05-20 | https://example.com/policy | 风险点：价格合规"
+                        .to_string(),
+                ],
+                ..RoleWorkOutput::default()
+            }),
+            evidence: Vec::new(),
+            risks: Vec::new(),
+            open_questions: Vec::new(),
+            status: WorkerReportStatus::Completed,
+        };
+
+        let output = user_facing_report_text(&report).expect("live evidence should be visible");
+
+        assert!(output.contains("本轮已通过外部搜索取得实时来源"));
+        assert!(output.contains("实时搜索来源"));
+        assert!(output.contains("https://example.com/policy"));
+        assert!(!output.contains("本轮未拿到"));
     }
 }

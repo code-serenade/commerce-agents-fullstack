@@ -144,6 +144,49 @@
       "reason": "autosuggest:web.title_seo_scorer"
     },
     {
+      "id": "web.explicit_source_policy_search",
+      "roles": [
+        "web"
+      ],
+      "match": {
+        "any_keywords": [
+          "联网搜索",
+          "来源链接",
+          "来源清单",
+          "官方来源",
+          "官方公开规则",
+          "公开规则",
+          "官方规则",
+          "官方公告",
+          "规则原文",
+          "只输出来源",
+          "只给来源",
+          "给出来源",
+          "发布日期",
+          "适用风险点",
+          "价格合规",
+          "低价引流",
+          "虚假宣传",
+          "合规规则"
+        ],
+        "requires_no_skill_ids": [
+          "search_platform_policy"
+        ]
+      },
+      "skill_id": "search_platform_policy",
+      "input": {
+        "platform": "{{search_platform}}",
+        "policy_type": "{{search_policy_type}}",
+        "days": 30,
+        "_needs_fresh_data": true,
+        "max_results": "{{search_max_results}}",
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:web.explicit_source_policy_search"
+    },
+    {
       "id": "web.seo_policy_search",
       "roles": [
         "web"

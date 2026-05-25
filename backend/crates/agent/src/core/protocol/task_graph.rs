@@ -39,6 +39,8 @@ pub struct WorkerAssignment {
     pub worker_id: WorkerId,
     pub role: String,
     pub attempt: u8,
+    #[serde(default)]
+    pub root_task: String,
     pub objective: String,
     #[serde(default)]
     pub llm_usage: Option<String>,

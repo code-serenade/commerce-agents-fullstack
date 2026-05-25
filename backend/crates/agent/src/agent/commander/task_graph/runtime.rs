@@ -121,6 +121,7 @@ impl TaskGraphRuntime {
             worker_id: node.worker_id.clone(),
             role: node.role.clone(),
             attempt,
+            root_task: self.graph.root_task.clone(),
             objective: node.objective.clone(),
             llm_usage: node.llm_usage.clone(),
             skill_autosuggest: node.skill_autosuggest,

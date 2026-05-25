@@ -64,6 +64,9 @@ pub(super) fn build_policy_query(
     params: &Value,
     platform: &str,
 ) -> Result<SearchPlan, crate::skills::SkillError> {
+    let query = optional_string_param(params, "query")?
+        .map(|value| value.trim().to_owned())
+        .filter(|value| !value.is_empty());
     let policy_type =
         optional_string_param(params, "policy_type")?.unwrap_or_else(|| "general".to_owned());
     let days = optional_i64_param(params, "days")?.unwrap_or(30);
@@ -75,7 +78,11 @@ pub(super) fn build_policy_query(
         "material" => "素材尺寸 广告位规格 上传格式 文件大小 安全区 审核要求",
         _ => "规则变化 政策更新 新规 公告",
     };
-    let planned = format!("{platform} {type_text} 最新 2026");
+    let planned = if let Some(query) = &query {
+        format!("{platform} {query} {type_text} 官方规则 公告 最新 2026")
+    } else {
+        format!("{platform} {type_text} 最新 2026")
+    };
     Ok(SearchPlan::new(platform, planned, "news", days))
 }
 

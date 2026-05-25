@@ -249,7 +249,16 @@
         "none_keywords": [
           "智能定价",
           "动态定价",
-          "价格优化"
+          "价格优化",
+          "价格合规",
+          "低价引流",
+          "虚假宣传",
+          "官方规则",
+          "官方公告",
+          "规则原文",
+          "合规规则",
+          "来源链接",
+          "来源清单"
         ]
       },
       "skill_id": "ops_pricing_strategy",
@@ -368,7 +377,7 @@
       },
       "skill_id": "search_competitor",
       "input": {
-        "query": "{{search_query}}",
+        "query": "{{search_policy_query}}",
         "platform": "{{search_platform}}",
         "focus": "price",
         "days": 30,
@@ -378,6 +387,46 @@
         "product_category": "{{category}}"
       },
       "reason": "autosuggest:ops.pricing_competitor_search"
+    },
+    {
+      "id": "ops.policy_source_search",
+      "mode": "first",
+      "roles": [
+        "ops"
+      ],
+      "match": {
+        "any_keywords": [
+          "联网搜索",
+          "来源链接",
+          "来源清单",
+          "官方来源",
+          "官方公开规则",
+          "公开规则",
+          "官方规则",
+          "官方公告",
+          "规则原文",
+          "价格合规",
+          "低价引流",
+          "虚假宣传",
+          "合规规则"
+        ],
+        "requires_no_skill_ids": [
+          "search_platform_policy"
+        ]
+      },
+      "skill_id": "search_platform_policy",
+      "input": {
+        "platform": "{{search_platform}}",
+        "query": "{{search_policy_query}}",
+        "policy_type": "{{search_policy_type}}",
+        "days": 30,
+        "_needs_fresh_data": true,
+        "max_results": "{{search_max_results}}",
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "product_category": "{{category}}"
+      },
+      "reason": "autosuggest:ops.policy_source_search"
     },
     {
       "id": "ops.promo_policy_search",
@@ -394,7 +443,16 @@
           "平台玩法",
           "佣金",
           "费率",
-          "平台公告"
+          "平台公告",
+          "官方公告",
+          "官方规则",
+          "官方公开规则",
+          "公开规则",
+          "规则原文",
+          "价格合规",
+          "低价引流",
+          "虚假宣传",
+          "合规规则"
         ],
         "requires_any_skill_ids": [
           "ops_promo_planning"

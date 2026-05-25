@@ -31,14 +31,23 @@ struct InferenceRule {
 impl WorkerInferencePolicy {
     pub(super) fn match_label(&self, text: &str, rule_set: &str) -> Option<&str> {
         let lower = text.to_ascii_lowercase();
-        self.rules.get(rule_set)?.iter().find_map(|rule| {
-            rule.keywords
-                .iter()
-                .any(|keyword| {
-                    text.contains(keyword) || lower.contains(&keyword.to_ascii_lowercase())
-                })
-                .then_some(rule.label.as_str())
-        })
+        self.rules
+            .get(rule_set)?
+            .iter()
+            .filter_map(|rule| {
+                let best_keyword_len = rule
+                    .keywords
+                    .iter()
+                    .filter(|keyword| {
+                        let keyword = keyword.as_str();
+                        text.contains(keyword) || lower.contains(&keyword.to_ascii_lowercase())
+                    })
+                    .map(|keyword| keyword.chars().count())
+                    .max()?;
+                Some((rule.label.as_str(), best_keyword_len))
+            })
+            .max_by_key(|(_, keyword_len)| *keyword_len)
+            .map(|(label, _)| label)
     }
 
     pub(super) fn section(&self, name: &str) -> Option<&serde_json::Value> {

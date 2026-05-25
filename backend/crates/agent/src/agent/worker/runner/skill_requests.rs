@@ -403,6 +403,7 @@ mod tests {
                 worker_id: WorkerId("worker.ops".to_string()),
                 role: "ops".to_string(),
                 attempt: 1,
+                root_task: "帮我做校园零食小店运营方案".to_string(),
                 objective: "帮我做校园零食小店运营方案".to_string(),
                 llm_usage: Some("fast".to_string()),
                 skill_autosuggest,

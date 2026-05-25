@@ -295,9 +295,21 @@ fn render_exact_template_value(
             "campaign_id",
         ))),
         "{{search_max_results}}" => Some(optional_integer(search::max_results(text))),
+        "{{search_policy_type}}" => {
+            Some(serde_json::json!(search::policy_type_for_task(text, task)))
+        }
+        "{{search_policy_query}}" => {
+            Some(serde_json::json!(search::policy_query_for_task(text, task)))
+        }
         "{{search_bypass_cache}}" => Some(serde_json::json!(search::bypass_cache(text))),
         "{{selected_product_refs}}" => {
             Some(serde_json::json!(context::selected_product_refs(task)))
+        }
+        "{{selected_product_name_optional}}" => {
+            Some(optional_string(context::selected_product_name(task)))
+        }
+        "{{selected_product_category_optional}}" => {
+            Some(optional_string(context::selected_product_category(task)))
         }
         "{{selected_product_features}}" => Some(serde_json::json!(
             context::selected_product_features_or_infer(task, text)
@@ -527,7 +539,10 @@ fn render_template_string(template: &str, text: &str, task: &Task) -> String {
                 "false"
             },
         )
-        .replace("{{search_policy_type}}", search::policy_type(text))
+        .replace(
+            "{{search_policy_type}}",
+            search::policy_type_for_task(text, task),
+        )
         .replace("{{search_review_focus}}", search::review_focus(text))
         .replace(
             "{{search_competitor_focus}}",
