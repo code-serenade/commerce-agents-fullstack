@@ -4244,14 +4244,12 @@ version = "0.1.0"
 dependencies = [
  "db-core-rs",
  "error-code",
- "file-ingest",
  "repo",
  "serde",
  "serde_json",
  "storage",
  "thiserror",
  "time",
- "toolcraft-request",
  "tracing",
  "uuid",
 ]
@@ -5590,6 +5588,7 @@ dependencies = [
  "axum",
  "db-core-rs",
  "error-code",
+ "file-ingest",
  "futures-util",
  "serde",
  "serde_json",

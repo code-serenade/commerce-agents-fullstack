@@ -4,12 +4,16 @@ use axum::{
     Extension, Json,
     extract::{Path, Query},
 };
+use file_ingest::ViewOptions;
 use service::api::{
     app::AppApi,
     approval_audit::ApprovalAuditApi,
     briefing_ops::BriefingOpsApi,
     campaign::CampaignApi,
     conversation::ConversationApi,
+    document_text_extraction_manager::{
+        DOCUMENT_TEXT_EXTRACTION_PROMPT_KEY, DOCUMENT_TEXT_EXTRACTION_PROMPT_VERSION,
+    },
     package_governance::PackageGovernanceApi,
     platform_connect::PlatformConnectApi,
     product::ProductApi,
@@ -86,6 +90,9 @@ use crate::{
         storage_manager::get_storage,
     },
 };
+
+const FILE_ACCESS_EXPIRES_SECS: u64 = 600;
+const MAX_EXTRACTED_TEXT_CHARS: usize = 100_000;
 
 pub async fn list_conversations(
     Extension(auth_user): Extension<AuthUser>,
@@ -270,16 +277,23 @@ pub async fn get_conversation_file_access(
     Path(file_id): Path<String>,
 ) -> ResponseResult<ConversationFileAccessResponse> {
     let api = ConversationApi::new(get_app_ctx());
-    let access = api
-        .file_access(get_storage(), auth_user.user_id, file_id)
+    let file = api
+        .get_active_file_for_user(auth_user.user_id, file_id)
         .await
         .map_err(from_biz_error)?;
+    let signed = get_storage()
+        .presign_download(PresignDownloadRequest {
+            bucket: BucketKind::Private,
+            key: file.object_key.clone(),
+            expires_secs: Some(FILE_ACCESS_EXPIRES_SECS),
+        })
+        .map_err(|err| Error::Custom(err.to_string()))?;
 
     Ok(ConversationFileAccessResponse {
-        file: map_file_response(access.file),
-        method: access.method,
-        download_url: access.download_url,
-        expires_secs: access.expires_secs,
+        file: map_file_response(file),
+        method: signed.method,
+        download_url: signed.download_url,
+        expires_secs: FILE_ACCESS_EXPIRES_SECS,
     }
     .into_common_response()
     .to_json())
@@ -290,13 +304,10 @@ pub async fn delete_conversation_file(
     Path(file_id): Path<String>,
 ) -> ResponseResult<()> {
     let api = ConversationApi::new(get_app_ctx());
-    api.delete_file(
-        get_storage(),
-        service::dto::conversation::DeleteConversationFileRequest {
-            user_id: auth_user.user_id,
-            file_id,
-        },
-    )
+    api.delete_file(service::dto::conversation::DeleteConversationFileRequest {
+        user_id: auth_user.user_id,
+        file_id,
+    })
     .await
     .map_err(from_biz_error)?;
 
@@ -349,19 +360,10 @@ pub async fn trigger_conversation_file_extraction_job(
     Json(req): Json<TriggerConversationFileExtractionJobRequest>,
 ) -> ResponseResult<ConversationFileExtractionJobResponse> {
     req.validate().map_err(Error::from)?;
-    let api = ConversationApi::new(get_app_ctx());
-    let job = api
-        .trigger_file_extraction_job(
-            get_storage(),
-            service::dto::conversation::TriggerConversationFileExtractionJobRequest {
-                user_id: auth_user.user_id,
-                file_id,
-                mode: req.mode,
-                force: req.force,
-            },
-        )
+    let _force = req.force;
+    let job = run_document_text_extraction_task(auth_user.user_id, file_id)
         .await
-        .map_err(from_biz_error)?;
+        .map_err(|err| Error::Custom(format!("document text extraction failed: {err}")))?;
     Ok(job.into_common_response().to_json())
 }
 
@@ -652,11 +654,7 @@ fn spawn_document_text_extraction_if_needed(
             "document text extraction task spawned"
         );
         tokio::spawn(async move {
-            let api = ConversationApi::new(get_app_ctx());
-            if let Err(err) = api
-                .extract_file_text(get_storage(), user_id, file_id.clone())
-                .await
-            {
+            if let Err(err) = run_document_text_extraction_task(user_id, file_id.clone()).await {
                 tracing::warn!(
                     file_id = %file_id,
                     error = ?err,
@@ -665,6 +663,328 @@ fn spawn_document_text_extraction_if_needed(
             }
         });
     }
+}
+
+async fn run_document_text_extraction_task(
+    user_id: String,
+    file_id: String,
+) -> Result<ConversationFileExtractionJobResponse, Error> {
+    use service::api::storage_object_analysis::{
+        CompleteStorageObjectAnalysisRequest, FailStorageObjectAnalysisRequest,
+        StorageObjectAnalysisApi,
+    };
+
+    let api = ConversationApi::new(get_app_ctx());
+    let target = api
+        .prepare_file_extraction_target(user_id.clone(), file_id.clone())
+        .await
+        .map_err(internal_biz_error)?;
+    let status = extraction_job_status_from_file(&target.file);
+    if target.already_available {
+        return Ok(status);
+    }
+
+    let analysis_id = Uuid::parse_str(&target.analysis_id)
+        .map_err(|err| Error::Custom(format!("invalid analysis id: {err}")))?;
+    let analysis_api = StorageObjectAnalysisApi::new(get_app_ctx());
+    analysis_api
+        .mark_processing(analysis_id, None)
+        .await
+        .map_err(internal_biz_error)?;
+
+    let result = run_document_text_extraction_io(&target.file).await;
+    match result {
+        Ok(output) => {
+            analysis_api
+                .mark_succeeded(CompleteStorageObjectAnalysisRequest {
+                    id: analysis_id,
+                    llm_model: None,
+                    summary: compact_text(&output.text, 2000),
+                    result_json: serde_json::json!({
+                        "kind": "document_text_extraction",
+                        "parser": DOCUMENT_TEXT_EXTRACTION_PROMPT_KEY,
+                        "parserVersion": DOCUMENT_TEXT_EXTRACTION_PROMPT_VERSION,
+                        "fileKind": output.file_kind,
+                        "text": output.text,
+                        "textChars": output.text_chars,
+                        "originalTextChars": output.original_text_chars,
+                        "truncated": output.truncated,
+                        "checksumSha256": output.checksum_sha256,
+                        "storageObjectSha256": target.storage_object_sha256,
+                        "sourceName": output.source_name,
+                    }),
+                })
+                .await
+                .map_err(internal_biz_error)?;
+
+            let updated = api
+                .update_file_extraction(
+                    service::dto::conversation::UpdateConversationFileExtractionRequest {
+                        user_id,
+                        file_id,
+                        status: Some("extracted".to_string()),
+                        text: Some(format!(
+                            "Document text extraction is stored in analysis {}.",
+                            analysis_id
+                        )),
+                        content_kind: Some("document_text_analysis_ref".to_string()),
+                        source: Some("server_file_ingest".to_string()),
+                        parser: Some(DOCUMENT_TEXT_EXTRACTION_PROMPT_KEY.to_string()),
+                        language: None,
+                        failure_reason: None,
+                        metadata: Some(serde_json::json!({
+                            "parserVersion": DOCUMENT_TEXT_EXTRACTION_PROMPT_VERSION,
+                            "analysisId": analysis_id,
+                            "analysisKind": target.analysis_kind,
+                            "storageObjectSha256": target.storage_object_sha256,
+                            "originalTextChars": output.original_text_chars,
+                            "truncated": output.truncated,
+                        })),
+                    },
+                )
+                .await
+                .map_err(internal_biz_error)?;
+            Ok(extraction_job_status_from_file(&updated))
+        }
+        Err(err) => {
+            let error_message = err.to_string();
+            analysis_api
+                .mark_failed(FailStorageObjectAnalysisRequest {
+                    id: analysis_id,
+                    error_message: error_message.clone(),
+                })
+                .await
+                .map_err(internal_biz_error)?;
+
+            let updated = api
+                .update_file_extraction(
+                    service::dto::conversation::UpdateConversationFileExtractionRequest {
+                        user_id,
+                        file_id,
+                        status: Some("failed".to_string()),
+                        text: None,
+                        content_kind: Some("document_text".to_string()),
+                        source: Some("server_file_ingest".to_string()),
+                        parser: Some(DOCUMENT_TEXT_EXTRACTION_PROMPT_KEY.to_string()),
+                        language: None,
+                        failure_reason: Some(error_message),
+                        metadata: Some(serde_json::json!({
+                            "parserVersion": DOCUMENT_TEXT_EXTRACTION_PROMPT_VERSION,
+                            "analysisId": analysis_id,
+                            "analysisKind": target.analysis_kind,
+                            "storageObjectSha256": target.storage_object_sha256,
+                        })),
+                    },
+                )
+                .await
+                .map_err(internal_biz_error)?;
+            Ok(extraction_job_status_from_file(&updated))
+        }
+    }
+}
+
+struct DocumentTextExtractionOutput {
+    source_name: String,
+    file_kind: String,
+    text: String,
+    text_chars: usize,
+    original_text_chars: usize,
+    truncated: bool,
+    checksum_sha256: Option<String>,
+}
+
+async fn run_document_text_extraction_io(
+    file: &service::dto::conversation::ConversationFileResponse,
+) -> Result<DocumentTextExtractionOutput, Error> {
+    let bytes = get_storage()
+        .download_object(DownloadObjectRequest {
+            bucket: BucketKind::Private,
+            key: file.object_key.clone(),
+        })
+        .await
+        .map_err(|err| Error::Custom(format!("download failed: {err}")))?;
+    let source_name = file
+        .file_name
+        .as_deref()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or(file.object_key.as_str())
+        .to_string();
+    let document = file_ingest::ingest_bytes(&source_name, &bytes)
+        .map_err(|err| Error::Custom(format!("parse failed: {err}")))?;
+    let text = document.to_ai_text_with_options(&ViewOptions {
+        max_table_rows: 100,
+        max_cell_chars: 240,
+    });
+    let text = normalize_required_handler_text(text, "text")?;
+    let original_text_chars = text.chars().count();
+    let truncated = original_text_chars > MAX_EXTRACTED_TEXT_CHARS;
+    let text = if truncated {
+        text.chars().take(MAX_EXTRACTED_TEXT_CHARS).collect()
+    } else {
+        text
+    };
+    let text_chars = text.chars().count();
+
+    Ok(DocumentTextExtractionOutput {
+        source_name,
+        file_kind: format!("{:?}", document.kind),
+        text,
+        text_chars,
+        original_text_chars,
+        truncated,
+        checksum_sha256: document.checksum_sha256,
+    })
+}
+
+fn extraction_job_status_from_file(
+    file: &service::dto::conversation::ConversationFileResponse,
+) -> ConversationFileExtractionJobResponse {
+    let status = conversation_file_extraction_status_from_metadata(file);
+    let message = match status.status.as_str() {
+        "extracted" => "document text extraction is stored in storage_object_analyses".to_string(),
+        "failed" => status
+            .failure_reason
+            .clone()
+            .unwrap_or_else(|| "document text extraction failed".to_string()),
+        "unsupported" => status
+            .failure_reason
+            .clone()
+            .unwrap_or_else(|| "document type is not supported".to_string()),
+        _ => "document text extraction is pending".to_string(),
+    };
+
+    ConversationFileExtractionJobResponse {
+        job_id: format!("document-text-extraction-{}", file.id),
+        file_id: status.file_id,
+        status: status.status,
+        content_kind: status.content_kind,
+        parser: status.parser,
+        source: status.source,
+        message,
+        metadata: status.metadata,
+    }
+}
+
+fn conversation_file_extraction_status_from_metadata(
+    file: &service::dto::conversation::ConversationFileResponse,
+) -> ConversationFileExtractionStatusResponse {
+    let extraction = file
+        .metadata
+        .get("extraction")
+        .and_then(serde_json::Value::as_object);
+    let status = file
+        .metadata
+        .get("extractionStatus")
+        .and_then(serde_json::Value::as_str)
+        .or_else(|| {
+            extraction.and_then(|value| value.get("status").and_then(serde_json::Value::as_str))
+        })
+        .map(normalize_file_extraction_status_value)
+        .unwrap_or_else(|| "pending".to_string());
+    let content_kind = extraction
+        .and_then(|value| value.get("contentKind"))
+        .and_then(serde_json::Value::as_str)
+        .map(ToString::to_string);
+    let parser = extraction
+        .and_then(|value| value.get("parser"))
+        .and_then(serde_json::Value::as_str)
+        .map(ToString::to_string);
+    let source = extraction
+        .and_then(|value| value.get("source"))
+        .and_then(serde_json::Value::as_str)
+        .map(ToString::to_string);
+    let language = extraction
+        .and_then(|value| value.get("language"))
+        .and_then(serde_json::Value::as_str)
+        .map(ToString::to_string);
+    let failure_reason = extraction
+        .and_then(|value| value.get("failureReason"))
+        .and_then(serde_json::Value::as_str)
+        .map(ToString::to_string);
+    let text = file_extraction_inline_text(&file.metadata);
+    let text_chars = extraction
+        .and_then(|value| value.get("textChars"))
+        .and_then(serde_json::Value::as_u64)
+        .map(|value| value as usize)
+        .or_else(|| text.as_deref().map(str::chars).map(Iterator::count))
+        .unwrap_or(0);
+    let vision_ready = extraction
+        .and_then(|value| value.get("visionReady"))
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or_else(|| content_kind.as_deref() == Some("image_vision_input"));
+    let readable = status == "extracted"
+        && (text_chars > 0
+            || content_kind.as_deref() == Some("document_text_analysis_ref")
+            || vision_ready);
+
+    ConversationFileExtractionStatusResponse {
+        file_id: file.id.clone(),
+        status,
+        content_kind,
+        parser,
+        source,
+        language,
+        summary: text.as_deref().map(|value| compact_text(value, 240)),
+        text_chars,
+        readable,
+        vision_ready,
+        failure_reason,
+        metadata: file.metadata.clone(),
+        updated_at: file.created_at,
+    }
+}
+
+fn normalize_file_extraction_status_value(value: &str) -> String {
+    match value.trim() {
+        "ready" | "success" | "extracted" => "extracted".to_string(),
+        "error" | "failed" => "failed".to_string(),
+        "unsupported" => "unsupported".to_string(),
+        "queued" | "processing" | "pending" => "pending".to_string(),
+        _ => "pending".to_string(),
+    }
+}
+
+fn file_extraction_inline_text(metadata: &serde_json::Value) -> Option<String> {
+    metadata_text_field(metadata, &["extractedText", "textContent"])
+        .or_else(|| metadata_nested_text_field(metadata, "extraction"))
+}
+
+fn metadata_nested_text_field(metadata: &serde_json::Value, key: &str) -> Option<String> {
+    metadata
+        .get(key)
+        .and_then(|value| metadata_text_field(value, &["text"]))
+}
+
+fn metadata_text_field(metadata: &serde_json::Value, keys: &[&str]) -> Option<String> {
+    keys.iter()
+        .filter_map(|key| metadata.get(*key))
+        .filter_map(serde_json::Value::as_str)
+        .find_map(|value| {
+            let trimmed = value.trim();
+            (!trimmed.is_empty()).then(|| trimmed.to_string())
+        })
+}
+
+fn normalize_required_handler_text(value: String, label: &str) -> Result<String, Error> {
+    let value = value.trim().to_string();
+    if value.is_empty() {
+        return Err(Error::Custom(format!("{label} cannot be empty")));
+    }
+    Ok(value)
+}
+
+fn compact_text(value: &str, max_chars: usize) -> String {
+    let trimmed = value.trim();
+    if trimmed.chars().count() <= max_chars {
+        return trimmed.to_string();
+    }
+    let mut output = trimmed.chars().take(max_chars).collect::<String>();
+    output.push_str("...");
+    output
+}
+
+fn internal_biz_error(err: db_core::error::BizError) -> Error {
+    Error::Custom(format!("{err:?}"))
 }
 
 fn is_supported_text_document_mime(value: Option<&str>) -> bool {

@@ -183,8 +183,6 @@ pub struct CurrentUserPermissionsResponse {
 
 pub type CommerceAgentPlaybookListResponse =
     service::dto::commerce_playbook::CommerceAgentPlaybookListResponse;
-pub type ExternalSearchStatusResponse = service::dto::external_search::ExternalSearchStatusResponse;
-pub type ExternalSearchResponse = service::dto::external_search::ExternalSearchResponse;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -275,20 +273,6 @@ pub struct AgentCapabilitySkillInputResponse {
     pub required: bool,
     pub schema: Value,
     pub default: Option<Value>,
-}
-
-#[derive(Debug, Deserialize, Validate)]
-#[serde(rename_all = "camelCase")]
-pub struct ExternalSearchQuery {
-    #[validate(length(min = 1, max = 500))]
-    pub q: String,
-    #[validate(length(max = 32))]
-    pub topic: Option<String>,
-    #[validate(range(min = 1, max = 365))]
-    pub days: Option<u64>,
-    #[validate(range(min = 1, max = 12))]
-    pub max_results: Option<u64>,
-    pub bypass_cache: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Validate)]

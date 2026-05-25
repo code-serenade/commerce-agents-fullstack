@@ -319,206 +319,25 @@
 - 该接口只读，不调用 LLM，不执行 skill，不创建任务，不触发平台写操作
 - 该接口用于“功能导航 / 虚拟员工能力介绍”前端适配，前端不应继续维护一份脱离后端的能力说明
 
-## 2.3 查询外部搜索 Adapter 状态
+## 2.3 外部搜索入口说明
 
-- 方法：`GET`
-- 路径：`/api/app/external-search/status`
-- 鉴权：有效 App 用户 JWT
+当前不提供 `/api/app/external-search/*` HTTP 业务入口。外部搜索只允许通过 Agent `search_*` skill 执行：
 
-成功响应 `data`：
-
-```json
-{
-  "adapter": "external_search",
-  "enabled": false,
-  "configured": false,
-  "provider": null,
-  "requiredConfig": "external_search.enabled=true, base_url and search_endpoint are required",
-  "status": "degraded",
-  "readiness": {
-    "status": "disabled",
-    "enabled": false,
-    "configured": false,
-    "provider": "external_search",
-    "missingConfig": [
-      "external_search.enabled",
-      "external_search.base_url",
-      "external_search.search_endpoint"
-    ],
-    "hasApiKey": false,
-    "timeoutSec": 10,
-    "defaultTopic": "general",
-    "defaultDays": 30,
-    "defaultMaxResults": 6,
-    "maxResultsLimit": 12,
-    "message": "外部搜索 adapter 未启用，当前不会查询外部实时来源。"
-  }
-}
-```
-
-字段说明：
-
-- `enabled` 来自 `backend/config/services.toml` 的 `[external_search].enabled`
-- `configured=true` 需要 `enabled=true` 且配置了 `base_url`、`search_endpoint`
-- `provider` 仅在配置完整时返回 provider 名称
-- `status=configured` 表示后端具备向外部搜索 provider 发起请求的配置；`status=degraded` 表示当前不会查询外部搜索
-- `readiness` 是搜索 adapter 可用性诊断，不包含 `api_key` 原文；`status=disabled` 表示未启用，`status=missing_config` 表示已启用但缺 `base_url` 或 `search_endpoint`，`status=configured` 表示后端会尝试请求真实 provider，但 provider 仍可能因失败、无来源或来源过期而降级
-- `readiness.missingConfig` 只返回缺失配置项名称，供前端展示和运维排查；前端不得据此伪造搜索结果
-- `readiness.defaultMaxResults` 与 `readiness.maxResultsLimit` 分别表示默认来源数和后端硬上限
-
-补充说明：
-
-- 当前用户必须存在于 `app_users`，且状态为 `enabled`
-- 该接口只暴露搜索 adapter 可用状态，不返回 `api_key`
-- 未配置时前端必须展示“外部搜索未接入”，不能伪造来源
-
-## 2.4 查询外部搜索
-
-- 方法：`GET`
-- 路径：`/api/app/external-search/search`
-- 鉴权：有效 App 用户 JWT
-
-查询参数：
-
-| 参数 | 必填 | 说明 |
-| --- | --- | --- |
-| `q` | 是 | 查询词，1 到 500 字符 |
-| `topic` | 否 | `general`、`news`、`finance`，默认 `general` |
-| `days` | 否 | 最近 N 天，1 到 365，默认 30 |
-| `maxResults` | 否 | 最大结果数，1 到 12，默认 6 |
-| `bypassCache` | 否 | 是否要求 provider 绕过缓存，默认 false |
-
-未配置 adapter 时成功响应 `data`：
-
-```json
-{
-  "adapter": "external_search",
-  "key": "search",
-  "status": "degraded",
-  "query": "咖啡 趋势",
-  "engine": null,
-  "requestedAt": "2026-05-10T00:00:00Z",
-  "topic": "general",
-  "freshnessDays": 30,
-  "maxResults": 6,
-  "bypassCache": false,
-  "confidence": 0.0,
-  "provenance": {
-    "sourceCount": 0,
-    "domainCount": 0,
-    "domains": [],
-    "publishedCount": 0,
-    "latestPublishedAt": null,
-    "staleFilteredCount": 0
-  },
-  "data": {
-    "items": []
-  },
-  "evidence": {
-    "summary": "没有可采信实时来源；当前结果只能作为降级状态，不可当作联网证据。",
-    "sourceTitles": [],
-    "sourceDomains": [],
-    "llmContext": "（本次没有可采信实时来源。回答时必须说明外部搜索未返回来源，不能引用不存在的联网数据。）"
-  },
-  "readiness": {
-    "status": "disabled",
-    "enabled": false,
-    "configured": false,
-    "provider": "external_search",
-    "missingConfig": [
-      "external_search.enabled",
-      "external_search.base_url",
-      "external_search.search_endpoint"
-    ],
-    "hasApiKey": false,
-    "timeoutSec": 10,
-    "defaultTopic": "general",
-    "defaultDays": 30,
-    "defaultMaxResults": 6,
-    "maxResultsLimit": 12,
-    "message": "外部搜索 adapter 未启用，当前不会查询外部实时来源。"
-  },
-  "notice": "未获取到可靠公开来源，当前不能伪造实时搜索结果。",
-  "degraded": true,
-  "degradedReason": "External search adapter is not configured; no live sources were queried."
-}
-```
-
-配置 adapter 且 provider 返回来源时成功响应 `data`：
-
-```json
-{
-  "adapter": "external_search",
-  "key": "search",
-  "status": "live",
-  "query": "咖啡 趋势",
-  "engine": "custom",
-  "requestedAt": "2026-05-10T00:00:00Z",
-  "topic": "news",
-  "freshnessDays": 14,
-  "maxResults": 6,
-  "bypassCache": true,
-  "confidence": 0.72,
-  "provenance": {
-    "sourceCount": 2,
-    "domainCount": 2,
-    "domains": ["example.com", "report.example.cn"],
-    "publishedCount": 1,
-    "latestPublishedAt": "2026-05-01T00:00:00Z",
-    "staleFilteredCount": 1
-  },
-  "data": {
-    "items": [
-      {
-        "rank": 1,
-        "title": "咖啡消费趋势",
-        "snippet": "冷萃咖啡增长",
-        "url": "https://www.example.com/a",
-        "domain": "example.com",
-        "publishedAt": "2026-05-01T00:00:00Z"
-      }
-    ]
-  },
-  "evidence": {
-    "summary": "共 2 条实时来源，覆盖 2 个域名；已过滤 1 条超出请求时间范围的来源；回答应优先引用这些来源，并注明时效性和置信度。",
-    "sourceTitles": ["咖啡消费趋势", "咖啡行业报告"],
-    "sourceDomains": ["example.com", "report.example.cn"],
-    "llmContext": "（共2条实时来源，优先从中提取具体数字、结论和出处；若来源不足，明确说明数据不足。）"
-  },
-  "readiness": {
-    "status": "configured",
-    "enabled": true,
-    "configured": true,
-    "provider": "custom",
-    "missingConfig": [],
-    "hasApiKey": true,
-    "timeoutSec": 10,
-    "defaultTopic": "general",
-    "defaultDays": 30,
-    "defaultMaxResults": 6,
-    "maxResultsLimit": 12,
-    "message": "外部搜索 adapter 已配置，后端会尝试请求真实 provider；provider 仍可能因无可信来源而降级。"
-  },
-  "notice": null,
-  "degraded": false,
-  "degradedReason": null
-}
+```text
+用户请求
+-> Agent session
+-> worker / skill executor
+-> search_* skill
+-> [external_search] provider
+-> skill_result.output.sources / evidence
 ```
 
 补充说明：
 
-- 当前用户必须存在于 `app_users`，且状态为 `enabled`
-- provider HTTP 失败、返回结构无法解析或没有可归一化来源时，接口返回 200 + `status=degraded`
-- 该接口是 Rust 后端外部搜索 adapter 的 App 侧入口；Agent `search_*` skill 已接入同一份 `[external_search]` 配置，并复用相同字段语义
-- `maxResults` 和 `bypassCache` 是后端实际使用的搜索控制参数回显；`maxResults` 不只会转发给 provider，后端在归一化 provider 返回后也会按该值截断 `data.items`、`provenance` 和 `evidence`；`bypassCache=true` 会转发给 provider，但 provider 是否真的绕过缓存由 provider 自身决定
-- `evidence` 是后端归一化后的搜索证据摘要：`sourceTitles`、`sourceDomains` 用于前端来源面板，`llmContext` 用于 Agent/后端复用来源文本
-- `readiness` 与 `/external-search/status` 的字段语义一致；即使本次响应为 `status=degraded`，前端也能通过 `readiness.status` 区分未启用、缺配置、已配置但 provider 本次失败或无可信来源
-- provider 返回重复 URL 时，后端会去重并重新生成 `rank`
-- provider 来源数组兼容 `data.items`、`data.results`、`data.sources`、`data.organic`、`data.organic_results`、`data.webPages.value`、`items`、`sources`、`results`、`organic`、`organic_results`、`webPages.value` 和 `value`
-- provider 来源字段兼容 `title/name/headline`、`url/link/href/source_url/sourceUrl`、`snippet/body/summary/content/description/text/excerpt` 和 `published_at/publishedAt/pubDate/published/datePublished/date`
-- 只有带可追溯 URL 且可从 URL 本身形成 domain 的来源会进入 `data.items` / `evidence`；只有标题、摘要、相对路径或无 URL 的弱结果会被过滤，过滤后没有可信来源时仍返回 `status=degraded`
-- 对有可解析发布时间的来源，后端会按请求 `days/freshnessDays` 过滤超出时间窗口的结果，过滤数量写入 `provenance.staleFilteredCount`；无发布时间或日期无法解析的来源会保留，但不会提升 freshness 可信度
-- 当前不会在前端伪造搜索结果；只有 `status=live` 且 `data.items` 非空时，前端才可展示为实时来源
+- `[external_search]` 只作为 Agent runtime 的 search adapter 配置读取。
+- 前端不得直接调用外部搜索 provider，也不得通过 App API 绕过 Agent skill。
+- 搜索类 skill 的输出契约、降级语义和来源证据见 `API_DOCS/sse.md` 的 `skill_result` 说明。
+- 未配置或 provider 未返回可信来源时，Agent search skill 必须降级，不能伪造实时来源。
 
 ## 3. 查询我的会话列表
 

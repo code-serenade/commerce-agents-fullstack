@@ -147,11 +147,13 @@ pub struct ConversationFileResponse {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct ConversationFileAccessResponse {
+pub struct ConversationFileExtractionTargetResponse {
     pub file: ConversationFileResponse,
-    pub method: String,
-    pub download_url: String,
-    pub expires_secs: u64,
+    pub analysis_id: String,
+    pub analysis_kind: String,
+    pub analysis_status: String,
+    pub storage_object_sha256: String,
+    pub already_available: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]

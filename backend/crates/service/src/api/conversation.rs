@@ -3,7 +3,6 @@ use db_core::{
     error::{BizError, BizResult},
 };
 use error_code::app as app_error;
-use file_ingest::ViewOptions;
 use repo::table::{
     app_users::{AppUserService, AppUserStatus},
     conversation_files::{
@@ -16,32 +15,26 @@ use repo::table::{
     conversations::{Conversation, ConversationService, CreateConversation},
 };
 use serde_json::{Map, Value, json};
-use storage::{BucketKind, DownloadObjectRequest, ObjectStorage, PresignDownloadRequest};
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use uuid::Uuid;
 
 use crate::{
     api::{
         document_text_extraction_manager::DocumentTextExtractionManager,
-        storage_object_analysis::{
-            CompleteStorageObjectAnalysisRequest, FailStorageObjectAnalysisRequest,
-            StorageObjectAnalysisApi,
-        },
+        storage_object_analysis::StorageObjectAnalysisApi,
         storage_reference::{RetainStorageReferenceRequest, StorageReferenceApi},
     },
     dto::conversation::{
-        AddConversationMessageRequest, ConversationDetailResponse, ConversationFileAccessResponse,
-        ConversationFileExtractionJobResponse, ConversationFileExtractionStatusResponse,
+        AddConversationMessageRequest, ConversationDetailResponse,
+        ConversationFileExtractionStatusResponse, ConversationFileExtractionTargetResponse,
         ConversationFileResponse, ConversationMessageResponse, ConversationResponse,
         CreateConversationRequest, DeleteConversationFileRequest, DeleteConversationRequest,
-        RegisterConversationFileRequest, TriggerConversationFileExtractionJobRequest,
-        UpdateConversationFileExtractionRequest, UpdateConversationMemoryRequest,
-        UpdateConversationRequest, uuid_to_string,
+        RegisterConversationFileRequest, UpdateConversationFileExtractionRequest,
+        UpdateConversationMemoryRequest, UpdateConversationRequest, uuid_to_string,
     },
 };
 
 const DEFAULT_LIST_LIMIT: u64 = 50;
-const FILE_ACCESS_EXPIRES_SECS: u64 = 600;
 const MAX_EXTRACTED_TEXT_CHARS: usize = 100_000;
 const EXTRACTION_STATUS_PENDING: &str = "pending";
 const EXTRACTION_STATUS_EXTRACTED: &str = "extracted";
@@ -432,11 +425,7 @@ impl ConversationApi {
         commit_or_rollback(tx, result).await
     }
 
-    pub async fn delete_file(
-        &self,
-        _storage: &ObjectStorage,
-        req: DeleteConversationFileRequest,
-    ) -> BizResult<()> {
+    pub async fn delete_file(&self, req: DeleteConversationFileRequest) -> BizResult<()> {
         let user_id = parse_user_id(&req.user_id)?;
         self.ensure_app_user_enabled(user_id).await?;
         let file_id = parse_uuid(&req.file_id, "file_id")?;
@@ -466,44 +455,19 @@ impl ConversationApi {
         Ok(())
     }
 
-    pub async fn file_access(
+    pub async fn get_active_file_for_user(
         &self,
-        storage: &ObjectStorage,
         user_id: String,
         file_id: String,
-    ) -> BizResult<ConversationFileAccessResponse> {
+    ) -> BizResult<ConversationFileResponse> {
         let user_id = parse_user_id(&user_id)?;
         self.ensure_app_user_enabled(user_id).await?;
         let file_id = parse_uuid(&file_id, "file_id")?;
-        let file = self.file_svc.get_by_id(file_id).await?.ok_or_else(|| {
-            BizError::new(
-                app_error::CONVERSATION_FILE_NOT_FOUND,
-                "file not found".to_string(),
-            )
-        })?;
-        if file.user_id != user_id {
-            return Err(BizError::new(
-                app_error::CONVERSATION_FILE_FORBIDDEN,
-                "file does not belong to current user".to_string(),
-            ));
-        }
+        let file = self.ensure_active_file_owner(user_id, file_id).await?;
+        self.ensure_active_conversation_owner(user_id, file.conversation_id)
+            .await?;
 
-        let signed = storage
-            .presign_download(PresignDownloadRequest {
-                bucket: BucketKind::Private,
-                key: file.object_key.clone(),
-                expires_secs: Some(FILE_ACCESS_EXPIRES_SECS),
-            })
-            .map_err(|err| {
-                BizError::new(app_error::CONVERSATION_REQUEST_INVALID, err.to_string())
-            })?;
-
-        Ok(ConversationFileAccessResponse {
-            file: Self::map_file(file),
-            method: signed.method,
-            download_url: signed.download_url,
-            expires_secs: FILE_ACCESS_EXPIRES_SECS,
-        })
+        Ok(Self::map_file(file))
     }
 
     pub async fn update_file_extraction(
@@ -587,12 +551,11 @@ impl ConversationApi {
         Ok(Self::map_file(updated))
     }
 
-    pub async fn extract_file_text(
+    pub async fn prepare_file_extraction_target(
         &self,
-        storage: &ObjectStorage,
         user_id: String,
         file_id: String,
-    ) -> BizResult<ConversationFileResponse> {
+    ) -> BizResult<ConversationFileExtractionTargetResponse> {
         let user_id = parse_user_id(&user_id)?;
         self.ensure_app_user_enabled(user_id).await?;
         let file_id = parse_uuid(&file_id, "file_id")?;
@@ -634,10 +597,17 @@ impl ConversationApi {
                         "parserVersion": FILE_INGEST_PARSER_VERSION,
                     })),
                 })
-                .await;
+                .await
+                .map(|file| ConversationFileExtractionTargetResponse {
+                    file,
+                    analysis_id: String::new(),
+                    analysis_kind: String::new(),
+                    analysis_status: EXTRACTION_STATUS_UNSUPPORTED.to_string(),
+                    storage_object_sha256: String::new(),
+                    already_available: true,
+                });
         };
 
-        let analysis_api = StorageObjectAnalysisApi::new(self.db.clone());
         if !StorageObjectAnalysisApi::can_process(&task.analysis.status) {
             tracing::debug!(
                 file_id = %file.id,
@@ -668,7 +638,15 @@ impl ConversationApi {
                         "storageObjectSha256": task.object.sha256,
                     })),
                 })
-                .await;
+                .await
+                .map(|file| ConversationFileExtractionTargetResponse {
+                    file,
+                    analysis_id: task.analysis.id.to_string(),
+                    analysis_kind: task.analysis.analysis_kind,
+                    analysis_status: task.analysis.status,
+                    storage_object_sha256: task.object.sha256,
+                    already_available: true,
+                });
         }
 
         tracing::debug!(
@@ -679,219 +657,14 @@ impl ConversationApi {
             object_key = %file.object_key,
             "document text extraction started"
         );
-        analysis_api.mark_processing(task.analysis.id, None).await?;
-
-        let bytes = match storage
-            .download_object(DownloadObjectRequest {
-                bucket: BucketKind::Private,
-                key: file.object_key.clone(),
-            })
-            .await
-        {
-            Ok(bytes) => bytes,
-            Err(err) => {
-                let error_message = format!("download failed: {err}");
-                tracing::warn!(
-                    file_id = %file.id,
-                    analysis_id = %task.analysis.id,
-                    object_key = %file.object_key,
-                    error = %err,
-                    "document text extraction download failed"
-                );
-                analysis_api
-                    .mark_failed(FailStorageObjectAnalysisRequest {
-                        id: task.analysis.id,
-                        error_message: error_message.clone(),
-                    })
-                    .await?;
-                return self
-                    .update_file_extraction(UpdateConversationFileExtractionRequest {
-                        user_id: user_id.to_string(),
-                        file_id: file_id.to_string(),
-                        status: Some(EXTRACTION_STATUS_FAILED.to_string()),
-                        text: None,
-                        content_kind: Some("document_text".to_string()),
-                        source: Some("server_file_ingest".to_string()),
-                        parser: Some(FILE_INGEST_PARSER.to_string()),
-                        language: None,
-                        failure_reason: Some(error_message),
-                        metadata: Some(json!({
-                            "parserVersion": FILE_INGEST_PARSER_VERSION,
-                            "analysisId": task.analysis.id,
-                            "analysisKind": task.analysis.analysis_kind,
-                            "storageObjectSha256": task.object.sha256,
-                        })),
-                    })
-                    .await;
-            }
-        };
-        tracing::debug!(
-            file_id = %file.id,
-            analysis_id = %task.analysis.id,
-            object_key = %file.object_key,
-            bytes_len = bytes.len(),
-            "document text extraction downloaded object"
-        );
-
-        let source_name = file
-            .file_name
-            .as_deref()
-            .filter(|value| !value.trim().is_empty())
-            .unwrap_or(file.object_key.as_str());
-        let document = match file_ingest::ingest_bytes(source_name, &bytes) {
-            Ok(document) => document,
-            Err(err) => {
-                let error_message = format!("parse failed: {err}");
-                tracing::warn!(
-                    file_id = %file.id,
-                    analysis_id = %task.analysis.id,
-                    source_name = %source_name,
-                    object_key = %file.object_key,
-                    bytes_len = bytes.len(),
-                    error = %err,
-                    "document text extraction parse failed"
-                );
-                analysis_api
-                    .mark_failed(FailStorageObjectAnalysisRequest {
-                        id: task.analysis.id,
-                        error_message: error_message.clone(),
-                    })
-                    .await?;
-                return self
-                    .update_file_extraction(UpdateConversationFileExtractionRequest {
-                        user_id: user_id.to_string(),
-                        file_id: file_id.to_string(),
-                        status: Some(EXTRACTION_STATUS_FAILED.to_string()),
-                        text: None,
-                        content_kind: Some("document_text".to_string()),
-                        source: Some("server_file_ingest".to_string()),
-                        parser: Some(FILE_INGEST_PARSER.to_string()),
-                        language: None,
-                        failure_reason: Some(error_message),
-                        metadata: Some(json!({
-                            "parserVersion": FILE_INGEST_PARSER_VERSION,
-                            "analysisId": task.analysis.id,
-                            "analysisKind": task.analysis.analysis_kind,
-                            "storageObjectSha256": task.object.sha256,
-                        })),
-                    })
-                    .await;
-            }
-        };
-        tracing::debug!(
-            file_id = %file.id,
-            analysis_id = %task.analysis.id,
-            source_name = %source_name,
-            file_kind = ?document.kind,
-            checksum_sha256 = ?document.checksum_sha256,
-            "document text extraction parsed document"
-        );
-
-        let text = document.to_ai_text_with_options(&ViewOptions {
-            max_table_rows: 100,
-            max_cell_chars: 240,
-        });
-        let text = match normalize_required_text(text, "text") {
-            Ok(text) => text,
-            Err(_) => {
-                let error_message = "document contains no readable text".to_string();
-                tracing::warn!(
-                    file_id = %file.id,
-                    analysis_id = %task.analysis.id,
-                    source_name = %source_name,
-                    file_kind = ?document.kind,
-                    "document text extraction produced empty text"
-                );
-                analysis_api
-                    .mark_failed(FailStorageObjectAnalysisRequest {
-                        id: task.analysis.id,
-                        error_message: error_message.clone(),
-                    })
-                    .await?;
-                return self
-                    .update_file_extraction(UpdateConversationFileExtractionRequest {
-                        user_id: user_id.to_string(),
-                        file_id: file_id.to_string(),
-                        status: Some(EXTRACTION_STATUS_FAILED.to_string()),
-                        text: None,
-                        content_kind: Some("document_text".to_string()),
-                        source: Some("server_file_ingest".to_string()),
-                        parser: Some(FILE_INGEST_PARSER.to_string()),
-                        language: None,
-                        failure_reason: Some(error_message),
-                        metadata: Some(json!({
-                            "parserVersion": FILE_INGEST_PARSER_VERSION,
-                            "analysisId": task.analysis.id,
-                            "analysisKind": task.analysis.analysis_kind,
-                            "storageObjectSha256": task.object.sha256,
-                        })),
-                    })
-                    .await;
-            }
-        };
-        let original_text_chars = text.chars().count();
-        let truncated = original_text_chars > MAX_EXTRACTED_TEXT_CHARS;
-        let text = if truncated {
-            text.chars().take(MAX_EXTRACTED_TEXT_CHARS).collect()
-        } else {
-            text
-        };
-
-        let text_chars = text.chars().count();
-        tracing::debug!(
-            file_id = %file.id,
-            analysis_id = %task.analysis.id,
-            source_name = %source_name,
-            file_kind = ?document.kind,
-            text_chars,
-            original_text_chars,
-            truncated,
-            "document text extraction succeeded"
-        );
-        analysis_api
-            .mark_succeeded(CompleteStorageObjectAnalysisRequest {
-                id: task.analysis.id,
-                llm_model: None,
-                summary: compact_text(&text, 2000),
-                result_json: json!({
-                    "kind": "document_text_extraction",
-                    "parser": FILE_INGEST_PARSER,
-                    "parserVersion": FILE_INGEST_PARSER_VERSION,
-                    "fileKind": document.kind,
-                    "text": text,
-                    "textChars": text_chars,
-                    "originalTextChars": original_text_chars,
-                    "truncated": truncated,
-                    "checksumSha256": document.checksum_sha256,
-                    "storageObjectSha256": task.object.sha256,
-                    "sourceName": source_name,
-                }),
-            })
-            .await?;
-
-        self.update_file_extraction(UpdateConversationFileExtractionRequest {
-            user_id: user_id.to_string(),
-            file_id: file_id.to_string(),
-            status: Some(EXTRACTION_STATUS_EXTRACTED.to_string()),
-            text: Some(format!(
-                "Document text extraction is stored in analysis {}.",
-                task.analysis.id
-            )),
-            content_kind: Some("document_text_analysis_ref".to_string()),
-            source: Some("server_file_ingest".to_string()),
-            parser: Some(FILE_INGEST_PARSER.to_string()),
-            language: None,
-            failure_reason: None,
-            metadata: Some(json!({
-                "parserVersion": FILE_INGEST_PARSER_VERSION,
-                "analysisId": task.analysis.id,
-                "analysisKind": task.analysis.analysis_kind,
-                "storageObjectSha256": task.object.sha256,
-                "originalTextChars": original_text_chars,
-                "truncated": truncated,
-            })),
+        Ok(ConversationFileExtractionTargetResponse {
+            file: Self::map_file(file),
+            analysis_id: task.analysis.id.to_string(),
+            analysis_kind: task.analysis.analysis_kind,
+            analysis_status: task.analysis.status,
+            storage_object_sha256: task.object.sha256,
+            already_available: false,
         })
-        .await
     }
 
     pub async fn get_file_extraction_status(
@@ -907,46 +680,6 @@ impl ConversationApi {
             .await?;
 
         Ok(build_file_extraction_status_response(&file))
-    }
-
-    pub async fn trigger_file_extraction_job(
-        &self,
-        storage: &ObjectStorage,
-        req: TriggerConversationFileExtractionJobRequest,
-    ) -> BizResult<ConversationFileExtractionJobResponse> {
-        let updated = self
-            .extract_file_text(storage, req.user_id, req.file_id)
-            .await?;
-        let status = build_file_extraction_status_response_from_parts(
-            &updated.id,
-            &updated.metadata,
-            updated.created_at,
-        );
-        let message = match status.status.as_str() {
-            EXTRACTION_STATUS_EXTRACTED => {
-                "document text extraction is stored in storage_object_analyses".to_string()
-            }
-            EXTRACTION_STATUS_FAILED => status
-                .failure_reason
-                .clone()
-                .unwrap_or_else(|| "document text extraction failed".to_string()),
-            EXTRACTION_STATUS_UNSUPPORTED => status
-                .failure_reason
-                .clone()
-                .unwrap_or_else(|| "document type is not supported".to_string()),
-            _ => "document text extraction is pending".to_string(),
-        };
-
-        Ok(ConversationFileExtractionJobResponse {
-            job_id: format!("document-text-extraction-{}", updated.id),
-            file_id: status.file_id,
-            status: status.status,
-            content_kind: status.content_kind,
-            parser: status.parser,
-            source: status.source,
-            message,
-            metadata: status.metadata,
-        })
     }
 
     async fn ensure_app_user_enabled(&self, user_id: Uuid) -> BizResult<()> {

@@ -32,3 +32,4 @@ toolcraft-config= {version = "0.2.0"}
 toolcraft-jwt= {version = "0.3.6"}
 toolcraft-request= {version = "0.2.3"}
 toolcraft-utils= {version = "0.2.2"}
+file-ingest = "=0.1.1"

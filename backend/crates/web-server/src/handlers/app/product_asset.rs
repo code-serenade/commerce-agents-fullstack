@@ -17,7 +17,6 @@ use service::api::{
     product_competitor::ProductCompetitorApi,
     product_knowledge::ProductKnowledgeApi,
     product_material::ProductMaterialApi,
-    storage_resource_manager::{CleanupOrphanedStorageObjectsRequest, StorageResourceManager},
     workspace::WorkspaceApi,
 };
 use storage::{BucketKind, FileKind, PresignDownloadRequest, PresignUploadRequest};
@@ -244,13 +243,6 @@ pub async fn delete_product_asset(
     })
     .await
     .map_err(from_biz_error)?;
-    StorageResourceManager::new(get_app_ctx())
-        .cleanup_orphaned_objects(
-            get_storage(),
-            CleanupOrphanedStorageObjectsRequest { limit: Some(50) },
-        )
-        .await
-        .map_err(from_biz_error)?;
 
     Ok(().into_common_response().to_json())
 }
