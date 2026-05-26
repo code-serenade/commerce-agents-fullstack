@@ -89,6 +89,18 @@ postgres://postgres:123456@postgres:5432/app
 
 注意容器内不能使用本机开发环境的 `localhost:15432`，必须用 Compose 服务名 `postgres`。
 
+外部搜索 adapter 也在 `deploy/backend/services.docker.toml` 中配置：
+
+```toml
+[external_search]
+enabled = true
+provider = "codex-web-search"
+base_url = "http://tools-server:18080"
+search_endpoint = "/api/external/search"
+```
+
+`search_endpoint` 会由 agent search skill 作为 GET 接口调用。`base_url` 必须填写后端容器可访问的 tools-server 地址；如果 tools-server 不在同一个 Compose 网络中，不能使用 `tools-server` 服务名，需要改成实际内网地址或域名。
+
 `backend/config/json` 和 `backend/config/prompts` 是服务端业务紧耦合配置，会在构建 `backend` 镜像时直接复制到容器内 `/app/config/json` 和 `/app/config/prompts`。不要在 `deploy/` 下维护这两个目录的副本；只有 `services.toml` 这类环境相关配置放在 `deploy/backend/`。
 
 数据库结构不会在 `docker build` 阶段初始化。镜像构建时没有最终运行中的 PostgreSQL，也没有最终数据 volume；初始化应该发生在 `docker compose up` 的运行阶段。

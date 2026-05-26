@@ -25,6 +25,16 @@ access_key = "btok"
 secret_key = "hBu3*64#hf(n)"
 user_key_salt = "KQgPM+etGa31+cj6M/0ao0+8yrEgHeGY/9bnbICoLs/wR2vJL8ED/J8v6vki0kESIHMUXqAmSLCs3ft5AUwmWA=="
 
+[external_search]
+enabled = true
+provider = "codex-web-search"
+base_url = "http://localhost:29003"
+search_endpoint = "/api/external/search"
+timeout_sec = 180
+default_topic = "general"
+default_days = 30
+default_max_results = 6
+
 [agent_llm_usage]
 default = "doubao-thinking"
 fast = "doubao-fast"
