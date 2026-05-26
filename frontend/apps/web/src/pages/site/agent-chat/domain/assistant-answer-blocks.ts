@@ -4,7 +4,15 @@ export type AssistantAnswerBlock =
   | { kind: "list"; ordered: boolean; items: string[] }
   | { kind: "paragraph"; text: string }
   | { kind: "quote"; text: string }
+  | { kind: "sources"; intro?: string; sources: AssistantAnswerSource[] }
   | { kind: "table"; header: string[]; rows: string[][] }
+
+export type AssistantAnswerSource = {
+  publishedAt?: string
+  snippet?: string
+  title: string
+  url: string
+}
 
 const MAX_INLINE_HEADING_LENGTH = 28
 
@@ -21,7 +29,21 @@ export function parseAnswerBlocks(content: string): AssistantAnswerBlock[] {
   const flushParagraph = () => {
     if (!paragraphLines.length) return
     const text = paragraphLines.join(" ").replace(/\s+/g, " ").trim()
-    if (text) blocks.push({ kind: "paragraph", text })
+    if (text) {
+      const sourceList = readInlineSourceList(text)
+      if (sourceList) {
+        if (sourceList.before) {
+          blocks.push({ kind: "paragraph", text: sourceList.before })
+        }
+        blocks.push({
+          intro: sourceList.intro,
+          kind: "sources",
+          sources: sourceList.sources,
+        })
+      } else {
+        blocks.push({ kind: "paragraph", text })
+      }
+    }
     paragraphLines.length = 0
   }
 
@@ -163,6 +185,65 @@ function normalizeTableRow(row: string[], cellCount: number) {
   if (row.length === cellCount) return row
   if (row.length > cellCount) return row.slice(0, cellCount)
   return [...row, ...Array.from({ length: cellCount - row.length }, () => "")]
+}
+
+function readInlineSourceList(text: string) {
+  const marker = text.match(
+    /实时搜索来源（[^）]+）：\s*\d+\s*个可采信来源/
+  )
+  if (!marker || marker.index === undefined) return null
+
+  const markerEnd = marker.index + marker[0].length
+  const before = text.slice(0, marker.index).trim()
+  const rest = text.slice(markerEnd).trim()
+  if (!rest.includes("http")) return null
+
+  const sourceStartPattern =
+    /(?:^|\s)([^|。！？\n]{2,120}?)\s*\|\s*([^|]{1,80})\s*\|\s*(https?:\/\/\S+)/g
+  const matches = Array.from(rest.matchAll(sourceStartPattern))
+  if (!matches.length) return null
+
+  const sources: AssistantAnswerSource[] = []
+
+  for (let index = 0; index < matches.length; index += 1) {
+    const match = matches[index]
+    const start = match.index ?? 0
+    const nextStart = matches[index + 1]?.index ?? rest.length
+    const segment = rest.slice(start, nextStart).trim()
+    const parts = segment.split("|").map((part) => part.trim())
+    const title = cleanupSourceTitle(parts[0] ?? "")
+    const publishedAt = cleanupSourceDate(parts[1] ?? "")
+    const url = cleanupSourceUrl(parts[2] ?? "")
+    const snippet = parts.slice(3).join(" | ").trim()
+
+    if (!title || !url.startsWith("http")) continue
+    sources.push({
+      publishedAt: publishedAt || undefined,
+      snippet: snippet || undefined,
+      title,
+      url,
+    })
+  }
+
+  if (!sources.length) return null
+
+  return {
+    before,
+    intro: marker[0],
+    sources,
+  }
+}
+
+function cleanupSourceTitle(text: string) {
+  return text.replace(/^[。！？\s]+/g, "").trim()
+}
+
+function cleanupSourceDate(text: string) {
+  return text.replace(/^[：:\s]+/g, "").trim()
+}
+
+function cleanupSourceUrl(text: string) {
+  return text.replace(/[，。；;、]+$/g, "").trim()
 }
 
 function readHeading(line: string): AssistantAnswerBlock | null {

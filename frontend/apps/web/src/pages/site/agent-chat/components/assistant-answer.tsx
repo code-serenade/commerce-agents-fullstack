@@ -1,4 +1,3 @@
-import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import {
   Table,
@@ -12,6 +11,8 @@ import {
   parseAnswerBlocks,
   type AssistantAnswerBlock,
 } from "../domain/assistant-answer-blocks"
+import { renderInlineMarkdown } from "./assistant-inline-markdown"
+import { SourcesBlock } from "./assistant-source-block"
 
 export function AssistantAnswer({ content }: { content: string }) {
   const { t } = useTranslation()
@@ -54,6 +55,7 @@ function AnswerBlockView({
   if (block.kind === "list") return <ListBlock block={block} />
   if (block.kind === "quote") return <QuoteBlock text={block.text} />
   if (block.kind === "code") return <CodeBlock code={block.code} />
+  if (block.kind === "sources") return <SourcesBlock block={block} />
   if (block.kind === "table") return <TableBlock block={block} />
 
   return (
@@ -196,24 +198,4 @@ function resolveSectionLabel(text: string, labels: SectionLabels) {
   }
   if (/^(教学讲解)/.test(text)) return labels.team
   return ""
-}
-
-function renderInlineMarkdown(text: string): ReactNode[] {
-  const nodes: ReactNode[] = []
-  const pattern = /\*\*([^*]+)\*\*/g
-  let lastIndex = 0
-  let match: RegExpExecArray | null
-
-  while ((match = pattern.exec(text)) !== null) {
-    if (match.index > lastIndex) nodes.push(text.slice(lastIndex, match.index))
-    nodes.push(
-      <strong key={`${match.index}-${match[1]}`} className="font-semibold">
-        {match[1]}
-      </strong>
-    )
-    lastIndex = pattern.lastIndex
-  }
-
-  if (lastIndex < text.length) nodes.push(text.slice(lastIndex))
-  return nodes.length ? nodes : [text]
 }
