@@ -264,6 +264,7 @@ fn dynamic_depends_on(
         .collect::<Vec<_>>();
     if depends_on.is_empty()
         && role != "data"
+        && !is_configured_upstream_role(role, depends_on_roles)
         && let Some((data_id, _)) = available
             .iter()
             .find(|(_, candidate_role)| candidate_role == "data")
@@ -271,6 +272,17 @@ fn dynamic_depends_on(
         depends_on.push(data_id.clone());
     }
     dedupe_strings(depends_on)
+}
+
+fn is_configured_upstream_role(
+    role: &str,
+    depends_on_roles: &HashMap<String, Vec<String>>,
+) -> bool {
+    depends_on_roles
+        .iter()
+        .any(|(downstream_role, upstream_roles)| {
+            downstream_role != role && upstream_roles.iter().any(|upstream| upstream == role)
+        })
 }
 
 fn dedupe_node_specs(specs: &mut Vec<TaskGraphNodeSpec>) {

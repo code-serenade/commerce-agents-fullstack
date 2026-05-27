@@ -492,6 +492,46 @@ mod tests {
     }
 
     #[test]
+    fn explicit_team_search_remains_ready_when_data_and_other_roles_depend_on_search() {
+        let rules =
+            load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
+        let graph = plan_task_graph_from_rules(
+            &TaskId("task-explicit-search-data-creative-team".to_string()),
+            "请指定运营、资料搜索员、数据、创意、视觉设计、抖音投放和网页岗位一起协作，\
+             搜索校园冷萃咖啡竞品价格后判断数据口径、内容方向、设计表达、投放风险和页面承接。",
+            None,
+            &rules,
+        )
+        .expect("explicit search/data/creative team should match a graph");
+
+        let search = graph
+            .nodes
+            .iter()
+            .find(|node| node.role == "search")
+            .expect("search node should exist");
+        assert!(
+            search.input_refs.is_empty(),
+            "search should remain an upstream ready node when other roles depend on it; input_refs={:?}",
+            search.input_refs
+        );
+
+        for role in ["data", "creative", "design", "douyin_ads", "web"] {
+            let node = graph
+                .nodes
+                .iter()
+                .find(|node| node.role == role)
+                .unwrap_or_else(|| panic!("{role} node should exist"));
+            assert!(
+                node.input_refs
+                    .iter()
+                    .any(|input_ref| input_ref.0 == search.id.0),
+                "{role} should depend on search evidence; input_refs={:?}",
+                node.input_refs
+            );
+        }
+    }
+
+    #[test]
     fn selected_route_keeps_manual_ops_data_roles_without_text_collaboration_keyword() {
         let rules =
             load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");

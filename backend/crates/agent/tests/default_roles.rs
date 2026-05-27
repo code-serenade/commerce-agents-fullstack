@@ -403,10 +403,28 @@ impl Cognition for SearchEvidenceStateAwareWorkerCognition {
             .find(|fact| fact.source == "worker.assignment.input.search.evidence_packet")
             .map(|fact| fact.content.as_str())
             .unwrap_or_default();
-        let summary = if packet.contains("\"adapter_status\":\"live\"")
+        let search_summary = if packet.contains("\"adapter_status\":\"live\"")
+            && packet.contains("\"source_state\":\"has_reliable_sources\"")
+            && packet.contains("\"duplicate_filtered_count\":")
+            && !packet.contains("\"duplicate_filtered_count\":0")
+        {
+            "已拿到可采信实时来源：可以引用保留下来的 12-19 元价格带，但重复来源已过滤，不能把重复条目当成多方验证。"
+        } else if packet.contains("\"adapter_status\":\"live\"")
             && packet.contains("\"source_state\":\"has_reliable_sources\"")
         {
             "已拿到可采信实时来源：可以把 12-19 元竞品价格带作为低置信参考，但仍要说明来源时效。"
+        } else if packet.contains("\"adapter_status\":\"degraded\"")
+            && packet.contains("\"stale_filtered_count\":")
+            && !packet.contains("\"stale_filtered_count\":0")
+        {
+            "本轮搜索只返回过期来源，已降级且不能把 12-19 元当作当前事实；只能提示重新搜索或扩大核验来源。"
+        } else if packet.contains("\"adapter_status\":\"degraded\"")
+            && ((packet.contains("\"untraceable_domain_filtered_count\":")
+                && !packet.contains("\"untraceable_domain_filtered_count\":0"))
+                || (packet.contains("\"missing_url_filtered_count\":")
+                    && !packet.contains("\"missing_url_filtered_count\":0")))
+        {
+            "本轮搜索返回了不可追踪来源，已降级且不能把 12-19 元当作事实；需要补充可打开 URL 或官方来源。"
         } else if packet.contains("\"adapter_status\":\"degraded\"")
             || packet.contains("\"source_state\":\"no_reliable_sources\"")
         {
@@ -418,6 +436,21 @@ impl Cognition for SearchEvidenceStateAwareWorkerCognition {
         } else {
             "搜索证据状态不明确：不能当作实时来源引用。"
         };
+        let answer_style = input
+            .context
+            .facts
+            .iter()
+            .find(|fact| fact.source == "runtime.answer_style")
+            .map(|fact| fact.content.as_str())
+            .unwrap_or("回答模式：未提供。");
+        let explanation_depth = input
+            .context
+            .facts
+            .iter()
+            .find(|fact| fact.source == "runtime.explanation_depth")
+            .map(|fact| fact.content.as_str())
+            .unwrap_or("讲解深度：未提供。");
+        let summary = format!("{answer_style}\n{explanation_depth}\n{search_summary}");
 
         CognitionResult::Success(json!({
             "decision": {
@@ -855,10 +888,18 @@ async fn collab_strategy_direct_answer_bypasses_task_graph() {
         .expect("stream should start");
 
     let mut events = Vec::new();
-    while let Some(event) = rx.recv().await {
+    loop {
+        let Some(event) = tokio::time::timeout(std::time::Duration::from_secs(10), rx.recv())
+            .await
+            .expect("extended selected roles stream should keep making progress")
+        else {
+            break;
+        };
         let terminal = matches!(
             event,
-            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+            SessionEvent::TaskGraphFinished { .. }
+                | SessionEvent::Finished { .. }
+                | SessionEvent::Failed { .. }
         );
         events.push(event);
         if terminal {
@@ -904,10 +945,18 @@ async fn explicit_chat_role_selection_bypasses_task_graph_for_execution_strategy
         .expect("stream should start");
 
     let mut events = Vec::new();
-    while let Some(event) = rx.recv().await {
+    loop {
+        let Some(event) = tokio::time::timeout(std::time::Duration::from_secs(10), rx.recv())
+            .await
+            .expect("extended selected roles stream should keep making progress")
+        else {
+            break;
+        };
         let terminal = matches!(
             event,
-            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+            SessionEvent::TaskGraphFinished { .. }
+                | SessionEvent::Finished { .. }
+                | SessionEvent::Failed { .. }
         );
         events.push(event);
         if terminal {
@@ -1218,11 +1267,35 @@ async fn explicit_manual_search_ops_downstream_answer_distinguishes_search_adapt
             "不能把 12-19 元当作事实",
         ),
         (
+            "live-duplicate-filtered",
+            r#"{"intent":"competitor_price_or_benchmark","skill":"search_competitor","adapter_status":"live","source_state":"has_reliable_sources","query":"校园冷萃咖啡 竞品价格","search_strength":"standard","filter_stats":{"missing_url_filtered_count":0,"untraceable_domain_filtered_count":0,"duplicate_filtered_count":2,"stale_filtered_count":0,"total_filtered_count":2},"sources":[{"title":"冷萃咖啡竞品价格参考","url":"https://example.com/price","claim":"竞品价格集中在 12-19 元。"}],"usable_claims":["竞品价格集中在 12-19 元。"],"gaps":["过滤 2 条重复来源"],"confidence":0.68}"#,
+            "search_evidence_trace: skill=search_competitor status=success adapter_status=live intent=competitor_price_or_benchmark strength=standard sources=1 usable_claims=1 gaps=1 confidence=0.68 filtered=2 stale=0 missing_url=0 untraceable=0 duplicate=2 query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"过滤 2 条重复来源\"",
+            "已拿到可采信实时来源",
+            "重复来源已过滤",
+            "只返回过期来源",
+        ),
+        (
             "degraded",
-            r#"{"intent":"competitor_price_or_benchmark","skill":"search_competitor","adapter_status":"degraded","source_state":"no_reliable_sources","query":"校园冷萃咖啡 竞品价格","search_strength":"standard","sources":[],"usable_claims":[],"gaps":["provider timeout"],"confidence":0.0}"#,
+            r#"{"intent":"competitor_price_or_benchmark","skill":"search_competitor","adapter_status":"degraded","source_state":"no_reliable_sources","query":"校园冷萃咖啡 竞品价格","search_strength":"standard","filter_stats":{"missing_url_filtered_count":0,"untraceable_domain_filtered_count":0,"duplicate_filtered_count":0,"stale_filtered_count":0,"total_filtered_count":0},"sources":[],"usable_claims":[],"gaps":["provider timeout"],"confidence":0.0}"#,
             "search_evidence_trace: skill=search_competitor status=deferred adapter_status=degraded intent=competitor_price_or_benchmark strength=standard sources=0 usable_claims=0 gaps=1 confidence=0.00 query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"provider timeout\"",
             "本轮搜索已降级且没有可采信实时来源",
             "不能把 12-19 元当作事实",
+            "已拿到可采信实时来源",
+        ),
+        (
+            "stale",
+            r#"{"intent":"competitor_price_or_benchmark","skill":"search_competitor","adapter_status":"degraded","source_state":"no_reliable_sources","query":"校园冷萃咖啡 竞品价格","search_strength":"standard","filter_stats":{"missing_url_filtered_count":0,"untraceable_domain_filtered_count":0,"duplicate_filtered_count":0,"stale_filtered_count":2,"total_filtered_count":2},"sources":[],"usable_claims":[],"gaps":["过滤 2 条过期来源"],"confidence":0.0}"#,
+            "search_evidence_trace: skill=search_competitor status=deferred adapter_status=degraded intent=competitor_price_or_benchmark strength=standard sources=0 usable_claims=0 gaps=1 confidence=0.00 filtered=2 stale=2 missing_url=0 untraceable=0 duplicate=0 query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"过滤 2 条过期来源\"",
+            "本轮搜索只返回过期来源",
+            "不能把 12-19 元当作当前事实",
+            "已拿到可采信实时来源",
+        ),
+        (
+            "untraceable",
+            r#"{"intent":"competitor_price_or_benchmark","skill":"search_competitor","adapter_status":"degraded","source_state":"no_reliable_sources","query":"校园冷萃咖啡 竞品价格","search_strength":"standard","filter_stats":{"missing_url_filtered_count":1,"untraceable_domain_filtered_count":2,"duplicate_filtered_count":0,"stale_filtered_count":0,"total_filtered_count":3},"sources":[],"usable_claims":[],"gaps":["过滤 3 条缺 URL 或不可追踪域名来源"],"confidence":0.0}"#,
+            "search_evidence_trace: skill=search_competitor status=deferred adapter_status=degraded intent=competitor_price_or_benchmark strength=standard sources=0 usable_claims=0 gaps=1 confidence=0.00 filtered=3 stale=0 missing_url=1 untraceable=2 duplicate=0 query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"过滤 3 条缺 URL 或不可追踪域名来源\"",
+            "本轮搜索返回了不可追踪来源",
+            "需要补充可打开 URL",
             "已拿到可采信实时来源",
         ),
         (
@@ -1287,6 +1360,273 @@ async fn explicit_manual_search_ops_downstream_answer_distinguishes_search_adapt
     }
 }
 
+#[tokio::test]
+async fn explicit_manual_search_multi_downstream_roles_distinguish_search_filter_states() {
+    let cases = [
+        (
+            "stale",
+            r#"{"intent":"competitor_price_or_benchmark","skill":"search_competitor","adapter_status":"degraded","source_state":"no_reliable_sources","query":"校园冷萃咖啡 竞品价格","search_strength":"standard","filter_stats":{"missing_url_filtered_count":0,"untraceable_domain_filtered_count":0,"duplicate_filtered_count":0,"stale_filtered_count":2,"total_filtered_count":2},"sources":[],"usable_claims":[],"gaps":["过滤 2 条过期来源"],"confidence":0.0}"#,
+            "search_evidence_trace: skill=search_competitor status=deferred adapter_status=degraded intent=competitor_price_or_benchmark strength=standard sources=0 usable_claims=0 gaps=1 confidence=0.00 filtered=2 stale=2 missing_url=0 untraceable=0 duplicate=0 query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"过滤 2 条过期来源\"",
+            "本轮搜索只返回过期来源",
+            "不能把 12-19 元当作当前事实",
+            "已拿到可采信实时来源",
+        ),
+        (
+            "untraceable",
+            r#"{"intent":"competitor_price_or_benchmark","skill":"search_competitor","adapter_status":"degraded","source_state":"no_reliable_sources","query":"校园冷萃咖啡 竞品价格","search_strength":"standard","filter_stats":{"missing_url_filtered_count":1,"untraceable_domain_filtered_count":2,"duplicate_filtered_count":0,"stale_filtered_count":0,"total_filtered_count":3},"sources":[],"usable_claims":[],"gaps":["过滤 3 条缺 URL 或不可追踪域名来源"],"confidence":0.0}"#,
+            "search_evidence_trace: skill=search_competitor status=deferred adapter_status=degraded intent=competitor_price_or_benchmark strength=standard sources=0 usable_claims=0 gaps=1 confidence=0.00 filtered=3 stale=0 missing_url=1 untraceable=2 duplicate=0 query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"过滤 3 条缺 URL 或不可追踪域名来源\"",
+            "本轮搜索返回了不可追踪来源",
+            "需要补充可打开 URL",
+            "已拿到可采信实时来源",
+        ),
+        (
+            "duplicate-live",
+            r#"{"intent":"competitor_price_or_benchmark","skill":"search_competitor","adapter_status":"live","source_state":"has_reliable_sources","query":"校园冷萃咖啡 竞品价格","search_strength":"standard","filter_stats":{"missing_url_filtered_count":0,"untraceable_domain_filtered_count":0,"duplicate_filtered_count":2,"stale_filtered_count":0,"total_filtered_count":2},"sources":[{"title":"冷萃咖啡竞品价格参考","url":"https://example.com/price","claim":"竞品价格集中在 12-19 元。"}],"usable_claims":["竞品价格集中在 12-19 元。"],"gaps":["过滤 2 条重复来源"],"confidence":0.68}"#,
+            "search_evidence_trace: skill=search_competitor status=success adapter_status=live intent=competitor_price_or_benchmark strength=standard sources=1 usable_claims=1 gaps=1 confidence=0.68 filtered=2 stale=0 missing_url=0 untraceable=0 duplicate=2 query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"过滤 2 条重复来源\"",
+            "已拿到可采信实时来源",
+            "重复来源已过滤",
+            "只返回过期来源",
+        ),
+    ];
+
+    for (case_name, packet, trace, expected, expected_boundary, forbidden) in cases {
+        let events =
+            run_manual_search_multi_downstream_with_state_packet(packet, trace, case_name).await;
+        assert_task_graph_covers_runtime_roles(
+            &events,
+            &["search", "accounting", "service", "engineering"],
+        );
+
+        let graph = events
+            .iter()
+            .find_map(|event| match event {
+                SessionEvent::TaskGraphPlanned { graph, .. } => Some(graph),
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("{case_name} should plan task graph"));
+        for role in ["accounting", "service", "engineering"] {
+            let node = graph
+                .nodes
+                .iter()
+                .find(|node| node.role == role)
+                .unwrap_or_else(|| panic!("{case_name}/{role} node should be planned"));
+            assert!(
+                node.input_refs
+                    .iter()
+                    .any(|input_ref| input_ref.0 == "search"),
+                "{case_name}/{role} should depend on search evidence; input_refs={:?}",
+                node.input_refs
+            );
+        }
+
+        for role in ["accounting", "service", "engineering"] {
+            let summary = role_report_summary(&events, role)
+                .unwrap_or_else(|| panic!("{case_name}/{role} should report role output"));
+            assert!(
+                summary.contains(expected),
+                "{case_name}/{role} should contain state wording; summary={summary}"
+            );
+            assert!(
+                summary.contains(expected_boundary),
+                "{case_name}/{role} should contain boundary wording; summary={summary}"
+            );
+            assert!(
+                !summary.contains(forbidden),
+                "{case_name}/{role} should not use opposite search-state wording; summary={summary}"
+            );
+            assert!(
+                !summary.contains("search_evidence_packet"),
+                "{case_name}/{role} should hide internal packet marker; summary={summary}"
+            );
+            assert!(
+                !summary.contains("search_evidence_trace"),
+                "{case_name}/{role} should hide internal trace marker; summary={summary}"
+            );
+        }
+    }
+}
+
+#[tokio::test]
+async fn explicit_manual_search_extended_selected_roles_receive_evidence_without_unselected_roles()
+{
+    let packet = r#"{"intent":"competitor_price_or_benchmark","skill":"search_competitor","adapter_status":"degraded","source_state":"no_reliable_sources","query":"校园冷萃咖啡 竞品价格","search_strength":"standard","filter_stats":{"missing_url_filtered_count":0,"untraceable_domain_filtered_count":0,"duplicate_filtered_count":0,"stale_filtered_count":2,"total_filtered_count":2},"sources":[],"usable_claims":[],"gaps":["过滤 2 条过期来源"],"confidence":0.0}"#;
+    let trace = "search_evidence_trace: skill=search_competitor status=deferred adapter_status=degraded intent=competitor_price_or_benchmark strength=standard sources=0 usable_claims=0 gaps=1 confidence=0.00 filtered=2 stale=2 missing_url=0 untraceable=0 duplicate=0 query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"过滤 2 条过期来源\"";
+    let selected_roles = [
+        "search",
+        "ops",
+        "data",
+        "creative",
+        "design",
+        "douyin_ads",
+        "web",
+    ];
+    let downstream_roles = ["data", "creative", "design", "douyin_ads", "web"];
+    let unselected_roles = ["service", "accounting", "engineering", "chat"];
+
+    let events = run_manual_search_extended_roles_with_state_packet(
+        packet,
+        trace,
+        "extended-selected-roles",
+        &selected_roles.join(","),
+        "ops",
+    )
+    .await;
+
+    let graph = events
+        .iter()
+        .find_map(|event| match event {
+            SessionEvent::TaskGraphPlanned { graph, .. } => Some(graph),
+            _ => None,
+        })
+        .expect("selected role graph should be planned");
+    for role in selected_roles {
+        assert!(
+            graph.nodes.iter().any(|node| node.role == role),
+            "selected role {role} should be planned; nodes={:?}",
+            graph
+                .nodes
+                .iter()
+                .map(|node| node.role.as_str())
+                .collect::<Vec<_>>()
+        );
+        assert!(
+            role_report_summary(&events, role).is_some(),
+            "selected role {role} should report within smoke window; events={:?}",
+            events
+                .iter()
+                .map(SessionEvent::event_name)
+                .collect::<Vec<_>>()
+        );
+    }
+
+    for role in downstream_roles {
+        let node = graph
+            .nodes
+            .iter()
+            .find(|node| node.role == role)
+            .unwrap_or_else(|| panic!("{role} node should be planned"));
+        assert!(
+            node.input_refs
+                .iter()
+                .any(|input_ref| input_ref.0 == "search"),
+            "{role} should depend on search evidence; input_refs={:?}",
+            node.input_refs
+        );
+
+        let summary = role_report_summary(&events, role)
+            .unwrap_or_else(|| panic!("{role} should report role output"));
+        assert!(
+            summary.contains("本轮搜索只返回过期来源"),
+            "{role} should preserve stale search boundary; summary={summary}"
+        );
+        assert!(
+            summary.contains("不能把 12-19 元当作当前事实"),
+            "{role} should preserve source reliability boundary; summary={summary}"
+        );
+        assert!(
+            !summary.contains("已拿到可采信实时来源"),
+            "{role} should not claim reliable live search; summary={summary}"
+        );
+        assert!(
+            !summary.contains("search_evidence_packet"),
+            "{role} should hide internal packet marker; summary={summary}"
+        );
+    }
+
+    for role in unselected_roles {
+        assert!(
+            graph.nodes.iter().all(|node| node.role != role),
+            "unselected role {role} should not be planned; nodes={:?}",
+            graph
+                .nodes
+                .iter()
+                .map(|node| node.role.as_str())
+                .collect::<Vec<_>>()
+        );
+        assert!(
+            role_report_summary(&events, role).is_none(),
+            "unselected role {role} should not report"
+        );
+    }
+}
+
+#[tokio::test]
+async fn explicit_manual_search_ops_response_modes_keep_style_and_search_boundaries() {
+    let packet = r#"{"intent":"competitor_price_or_benchmark","skill":"search_competitor","adapter_status":"degraded","source_state":"no_reliable_sources","query":"校园冷萃咖啡 竞品价格","search_strength":"standard","filter_stats":{"missing_url_filtered_count":0,"untraceable_domain_filtered_count":0,"duplicate_filtered_count":0,"stale_filtered_count":2,"total_filtered_count":2},"sources":[],"usable_claims":[],"gaps":["过滤 2 条过期来源"],"confidence":0.0}"#;
+    let trace = "search_evidence_trace: skill=search_competitor status=deferred adapter_status=degraded intent=competitor_price_or_benchmark strength=standard sources=0 usable_claims=0 gaps=1 confidence=0.00 filtered=2 stale=2 missing_url=0 untraceable=0 duplicate=0 query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"过滤 2 条过期来源\"";
+    let cases = [
+        (
+            "quick",
+            "higher_vocational",
+            "回答模式：快速简答",
+            "讲解深度：中",
+        ),
+        ("learning", "beginner", "回答模式：教学模式", "讲解深度：低"),
+        (
+            "execution",
+            "professional",
+            "回答模式：丰富执行",
+            "讲解深度：高",
+        ),
+    ];
+
+    for (response_mode, learning_level, expected_style, expected_depth) in cases {
+        let events = run_manual_search_ops_mode_with_state_packet(
+            packet,
+            trace,
+            response_mode,
+            learning_level,
+        )
+        .await;
+        assert_task_graph_covers_runtime_roles(&events, &["search", "ops"]);
+
+        let summary = role_report_summary(&events, "ops")
+            .unwrap_or_else(|| panic!("{response_mode} should report ops role output"));
+        assert!(
+            summary.contains(expected_style),
+            "{response_mode} should preserve response style fact; summary={summary}"
+        );
+        assert!(
+            summary.contains(expected_depth),
+            "{response_mode} should preserve explanation depth fact; summary={summary}"
+        );
+        assert!(
+            summary.contains("本轮搜索只返回过期来源"),
+            "{response_mode} should preserve stale search boundary; summary={summary}"
+        );
+        assert!(
+            summary.contains("不能把 12-19 元当作当前事实"),
+            "{response_mode} should preserve source reliability boundary; summary={summary}"
+        );
+        assert!(
+            !summary.contains("已拿到可采信实时来源"),
+            "{response_mode} should not claim reliable live search; summary={summary}"
+        );
+        assert!(
+            !summary.contains("search_evidence_packet"),
+            "{response_mode} should hide internal packet marker; summary={summary}"
+        );
+
+        assert!(events.iter().any(|event| {
+            matches!(
+                event,
+                SessionEvent::RouteDecided {
+                    response_mode: decided_mode,
+                    collaboration_mode,
+                    route_mode,
+                    primary_runtime_role,
+                    support_runtime_roles,
+                    ..
+                } if decided_mode.as_deref() == Some(response_mode)
+                    && collaboration_mode.as_deref() == Some("manual")
+                    && route_mode == "task_graph"
+                    && primary_runtime_role.as_deref() == Some("ops")
+                    && support_runtime_roles == &vec!["search".to_string()]
+            )
+        }));
+    }
+}
+
 async fn run_manual_search_ops_with_state_packet(
     packet: &'static str,
     trace: &'static str,
@@ -1344,10 +1684,216 @@ async fn run_manual_search_ops_with_state_packet(
     events
 }
 
+async fn run_manual_search_ops_mode_with_state_packet(
+    packet: &'static str,
+    trace: &'static str,
+    response_mode: &str,
+    learning_level: &str,
+) -> Vec<SessionEvent> {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(move || {
+            Ok(Box::new(SearchEvidenceStateAwareWorkerCognition {
+                packet,
+                trace,
+            }))
+        }),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert("strategy.id".to_string(), response_mode.to_string());
+    metadata.insert(
+        "strategy.response_mode".to_string(),
+        response_mode.to_string(),
+    );
+    metadata.insert(
+        "strategy.learning_level".to_string(),
+        learning_level.to_string(),
+    );
+    metadata.insert(
+        "strategy.collaboration_mode".to_string(),
+        "manual".to_string(),
+    );
+    metadata.insert("strategy.primary_role".to_string(), "ops".to_string());
+    metadata.insert(
+        "strategy.selected_roles".to_string(),
+        "search,ops".to_string(),
+    );
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId(format!("role-session-search-mode-{response_mode}")),
+            input: format!(
+                "请指定资料搜索员和运营一起协作，按 {response_mode} 模式搜索校园冷萃咖啡竞品价格后给定价建议。"
+            ),
+            metadata,
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    while let Some(event) = rx.recv().await {
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+    events
+}
+
+async fn run_manual_search_multi_downstream_with_state_packet(
+    packet: &'static str,
+    trace: &'static str,
+    case_name: &str,
+) -> Vec<SessionEvent> {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(move || {
+            Ok(Box::new(SearchEvidenceStateAwareWorkerCognition {
+                packet,
+                trace,
+            }))
+        }),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert("strategy.id".to_string(), "collab".to_string());
+    metadata.insert(
+        "strategy.response_mode".to_string(),
+        "execution".to_string(),
+    );
+    metadata.insert(
+        "strategy.collaboration_mode".to_string(),
+        "manual".to_string(),
+    );
+    metadata.insert(
+        "strategy.primary_role".to_string(),
+        "accounting".to_string(),
+    );
+    metadata.insert(
+        "strategy.selected_roles".to_string(),
+        "search,accounting,service,engineering".to_string(),
+    );
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId(format!(
+                "role-session-search-multi-downstream-{case_name}"
+            )),
+            input: format!(
+                "请指定资料搜索员、财务、客服和技术架构师一起协作，搜索校园冷萃咖啡竞品价格后，判断定价毛利、售后承诺和上传链路风险。case={case_name}"
+            ),
+            metadata,
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    while let Some(event) = rx.recv().await {
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+    events
+}
+
+async fn run_manual_search_extended_roles_with_state_packet(
+    packet: &'static str,
+    trace: &'static str,
+    case_name: &str,
+    selected_roles: &str,
+    primary_role: &str,
+) -> Vec<SessionEvent> {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(move || {
+            Ok(Box::new(SearchEvidenceStateAwareWorkerCognition {
+                packet,
+                trace,
+            }))
+        }),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert("strategy.id".to_string(), "collab".to_string());
+    metadata.insert(
+        "strategy.response_mode".to_string(),
+        "execution".to_string(),
+    );
+    metadata.insert(
+        "strategy.collaboration_mode".to_string(),
+        "manual".to_string(),
+    );
+    metadata.insert(
+        "strategy.primary_role".to_string(),
+        primary_role.to_string(),
+    );
+    metadata.insert(
+        "strategy.selected_roles".to_string(),
+        selected_roles.to_string(),
+    );
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId(format!("role-session-search-extended-{case_name}")),
+            input: format!(
+                "请指定运营、资料搜索员、数据、创意、视觉设计、抖音投放和网页岗位一起协作，搜索校园冷萃咖啡竞品价格后判断数据口径、内容方向、设计表达、投放风险和页面承接。case={case_name}"
+            ),
+            metadata,
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    loop {
+        let Some(event) =
+            (match tokio::time::timeout(std::time::Duration::from_secs(10), rx.recv()).await {
+                Ok(event) => event,
+                Err(_) => break,
+            })
+        else {
+            break;
+        };
+        let terminal = matches!(
+            event,
+            SessionEvent::TaskGraphFinished { .. }
+                | SessionEvent::Finished { .. }
+                | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+    events
+}
+
+fn role_report_summary(events: &[SessionEvent], role: &str) -> Option<String> {
+    events.iter().find_map(|event| match event {
+        SessionEvent::TaskNodeReported { report, .. } if report.role == role => report
+            .role_output
+            .as_ref()
+            .map(|role_output| role_output.summary.clone()),
+        _ => None,
+    })
+}
+
 fn expected_trace_state(case_name: &str) -> &'static str {
     match case_name {
-        "live" => "状态 live",
-        "degraded" => "状态 degraded",
+        "live" | "live-duplicate-filtered" => "状态 live",
+        "degraded" | "stale" | "untraceable" => "状态 degraded",
         "adapter-required" => "状态 adapter_required",
         _ => "状态",
     }

@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use crate::core::protocol::{SessionEvent, WorkerReport};
 
@@ -114,6 +115,11 @@ pub struct SessionEventSearchDiagnostic {
     pub sources: usize,
     pub usable_claims: usize,
     pub gaps: usize,
+    pub stale_filtered_count: usize,
+    pub missing_url_filtered_count: usize,
+    pub untraceable_domain_filtered_count: usize,
+    pub duplicate_filtered_count: usize,
+    pub total_filtered_count: usize,
     pub confidence: Option<f32>,
 }
 
@@ -205,7 +211,7 @@ pub fn render_session_event_diagnostic_audit(audit: &SessionEventDiagnosticAudit
     }
     for item in &audit.search_diagnostics {
         lines.push(format!(
-            "search_diagnostic: role={} node={} skill={} status={} adapter={} sources={} usable_claims={} gaps={} confidence={}",
+            "search_diagnostic: role={} node={} skill={} status={} adapter={} sources={} usable_claims={} gaps={} filtered={} stale={} missing_url={} untraceable={} duplicate={} confidence={}",
             item.role,
             item.node_id,
             item.skill,
@@ -214,6 +220,11 @@ pub fn render_session_event_diagnostic_audit(audit: &SessionEventDiagnosticAudit
             item.sources,
             item.usable_claims,
             item.gaps,
+            item.total_filtered_count,
+            item.stale_filtered_count,
+            item.missing_url_filtered_count,
+            item.untraceable_domain_filtered_count,
+            item.duplicate_filtered_count,
             item.confidence
                 .map(|value| format!("{value:.2}"))
                 .unwrap_or_else(|| "unknown".to_string())
@@ -532,6 +543,7 @@ pub fn render_session_event_role_audit(audit: &SessionEventRoleAudit) -> String 
 
 fn audit_worker_report_diagnostics(audit: &mut SessionEventDiagnosticAudit, report: &WorkerReport) {
     let mut has_typed_failure = false;
+    let mut has_typed_search_evidence = false;
     for diagnostic in &report.diagnostics {
         match diagnostic.kind.as_str() {
             "failure" => {
@@ -589,34 +601,16 @@ fn audit_worker_report_diagnostics(audit: &mut SessionEventDiagnosticAudit, repo
                 }
             }
             "search_evidence" => {
-                audit.search_evidence_count += 1;
-                audit.search_diagnostics.push(SessionEventSearchDiagnostic {
-                    role: report.role.clone(),
-                    node_id: report.node_id.0.clone(),
-                    skill: diagnostic
-                        .fields
-                        .get("skill")
-                        .map(String::as_str)
-                        .filter(|value| !value.trim().is_empty())
-                        .unwrap_or(diagnostic.source.as_str())
-                        .to_string(),
-                    status: diagnostic_field(diagnostic, "status", "unknown"),
-                    adapter_status: diagnostic
-                        .fields
-                        .get("adapter_status")
-                        .or_else(|| diagnostic.fields.get("status"))
-                        .cloned()
-                        .unwrap_or_else(|| "unknown".to_string()),
-                    sources: diagnostic_usize(diagnostic, "sources"),
-                    usable_claims: diagnostic_usize(diagnostic, "usable_claims"),
-                    gaps: diagnostic_usize(diagnostic, "gaps"),
-                    confidence: diagnostic
-                        .fields
-                        .get("confidence")
-                        .and_then(|value| value.parse::<f32>().ok()),
-                });
+                has_typed_search_evidence = true;
+                push_search_diagnostic(audit, typed_search_diagnostic(report, diagnostic));
             }
             _ => {}
+        }
+    }
+
+    if !has_typed_search_evidence {
+        for diagnostic in legacy_search_diagnostics(report) {
+            push_search_diagnostic(audit, diagnostic);
         }
     }
 
@@ -642,6 +636,74 @@ fn audit_worker_report_diagnostics(audit: &mut SessionEventDiagnosticAudit, repo
     }
 }
 
+fn typed_search_diagnostic(
+    report: &WorkerReport,
+    diagnostic: &crate::core::protocol::WorkerDiagnostic,
+) -> SessionEventSearchDiagnostic {
+    let stale_filtered_count = diagnostic_usize_any(diagnostic, &["stale_filtered_count", "stale"]);
+    let missing_url_filtered_count =
+        diagnostic_usize_any(diagnostic, &["missing_url_filtered_count", "missing_url"]);
+    let untraceable_domain_filtered_count = diagnostic_usize_any(
+        diagnostic,
+        &["untraceable_domain_filtered_count", "untraceable"],
+    );
+    let duplicate_filtered_count =
+        diagnostic_usize_any(diagnostic, &["duplicate_filtered_count", "duplicate"]);
+    let total_filtered_count =
+        diagnostic_usize_any(diagnostic, &["total_filtered_count", "filtered"]).max(
+            stale_filtered_count
+                + missing_url_filtered_count
+                + untraceable_domain_filtered_count
+                + duplicate_filtered_count,
+        );
+
+    SessionEventSearchDiagnostic {
+        role: report.role.clone(),
+        node_id: report.node_id.0.clone(),
+        skill: diagnostic
+            .fields
+            .get("skill")
+            .map(String::as_str)
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or(diagnostic.source.as_str())
+            .to_string(),
+        status: diagnostic_field(diagnostic, "status", "unknown"),
+        adapter_status: diagnostic
+            .fields
+            .get("adapter_status")
+            .or_else(|| diagnostic.fields.get("status"))
+            .cloned()
+            .unwrap_or_else(|| "unknown".to_string()),
+        sources: diagnostic_usize(diagnostic, "sources"),
+        usable_claims: diagnostic_usize(diagnostic, "usable_claims"),
+        gaps: diagnostic_usize(diagnostic, "gaps"),
+        stale_filtered_count,
+        missing_url_filtered_count,
+        untraceable_domain_filtered_count,
+        duplicate_filtered_count,
+        total_filtered_count,
+        confidence: diagnostic
+            .fields
+            .get("confidence")
+            .and_then(|value| value.parse::<f32>().ok()),
+    }
+}
+
+fn push_search_diagnostic(
+    audit: &mut SessionEventDiagnosticAudit,
+    diagnostic: SessionEventSearchDiagnostic,
+) {
+    if audit
+        .search_diagnostics
+        .iter()
+        .any(|item| item == &diagnostic)
+    {
+        return;
+    }
+    audit.search_evidence_count += 1;
+    audit.search_diagnostics.push(diagnostic);
+}
+
 fn diagnostic_field(
     diagnostic: &crate::core::protocol::WorkerDiagnostic,
     key: &str,
@@ -664,6 +726,16 @@ fn diagnostic_usize(diagnostic: &crate::core::protocol::WorkerDiagnostic, key: &
         .unwrap_or(0)
 }
 
+fn diagnostic_usize_any(
+    diagnostic: &crate::core::protocol::WorkerDiagnostic,
+    keys: &[&str],
+) -> usize {
+    keys.iter()
+        .find_map(|key| diagnostic.fields.get(*key))
+        .and_then(|value| value.parse::<usize>().ok())
+        .unwrap_or(0)
+}
+
 fn legacy_failure_markers(report: &WorkerReport) -> Vec<String> {
     let mut markers = Vec::new();
     for item in report_evidence_items(report) {
@@ -679,6 +751,206 @@ fn legacy_failure_markers(report: &WorkerReport) -> Vec<String> {
         }
     }
     markers
+}
+
+fn legacy_search_diagnostics(report: &WorkerReport) -> Vec<SessionEventSearchDiagnostic> {
+    let items = report_evidence_items(report);
+    let mut traces = Vec::new();
+    for item in &items {
+        if let Some(trace) = item
+            .find("search_evidence_trace:")
+            .map(|index| &item[index + "search_evidence_trace:".len()..])
+            && let Some(diagnostic) = legacy_search_trace_diagnostic(report, trace)
+        {
+            push_unique_search_diagnostic(&mut traces, diagnostic);
+        }
+    }
+    if !traces.is_empty() {
+        return traces;
+    }
+
+    let mut packets = Vec::new();
+    for item in &items {
+        if let Some(packet) = item
+            .find("search_evidence_packet:")
+            .map(|index| &item[index + "search_evidence_packet:".len()..])
+            && let Some(diagnostic) = legacy_search_packet_diagnostic(report, packet)
+        {
+            push_unique_search_diagnostic(&mut packets, diagnostic);
+        }
+    }
+    packets
+}
+
+fn legacy_search_trace_diagnostic(
+    report: &WorkerReport,
+    trace: &str,
+) -> Option<SessionEventSearchDiagnostic> {
+    let fields = parse_legacy_search_trace_fields(trace);
+    if fields.is_empty() {
+        return None;
+    }
+    let stale_filtered_count = legacy_usize_any(&fields, &["stale_filtered_count", "stale"]);
+    let missing_url_filtered_count =
+        legacy_usize_any(&fields, &["missing_url_filtered_count", "missing_url"]);
+    let untraceable_domain_filtered_count = legacy_usize_any(
+        &fields,
+        &["untraceable_domain_filtered_count", "untraceable"],
+    );
+    let duplicate_filtered_count =
+        legacy_usize_any(&fields, &["duplicate_filtered_count", "duplicate"]);
+    let total_filtered_count = legacy_usize_any(&fields, &["total_filtered_count", "filtered"])
+        .max(
+            stale_filtered_count
+                + missing_url_filtered_count
+                + untraceable_domain_filtered_count
+                + duplicate_filtered_count,
+        );
+    Some(SessionEventSearchDiagnostic {
+        role: report.role.clone(),
+        node_id: report.node_id.0.clone(),
+        skill: legacy_field(&fields, "skill", "search_evidence_trace"),
+        status: legacy_field(&fields, "status", "unknown"),
+        adapter_status: fields
+            .get("adapter_status")
+            .or_else(|| fields.get("status"))
+            .cloned()
+            .unwrap_or_else(|| "unknown".to_string()),
+        sources: legacy_usize(&fields, "sources"),
+        usable_claims: legacy_usize(&fields, "usable_claims"),
+        gaps: legacy_usize(&fields, "gaps"),
+        stale_filtered_count,
+        missing_url_filtered_count,
+        untraceable_domain_filtered_count,
+        duplicate_filtered_count,
+        total_filtered_count,
+        confidence: fields
+            .get("confidence")
+            .and_then(|value| value.parse::<f32>().ok()),
+    })
+}
+
+fn legacy_search_packet_diagnostic(
+    report: &WorkerReport,
+    packet: &str,
+) -> Option<SessionEventSearchDiagnostic> {
+    let value: Value = serde_json::from_str(packet.trim()).ok()?;
+    let adapter_status = json_string(&value, "adapter_status")
+        .or_else(|| json_string(&value, "source_state"))
+        .unwrap_or_else(|| "unknown".to_string());
+    let stale_filtered_count = json_usize_deep(&value, "stale_filtered_count");
+    let missing_url_filtered_count = json_usize_deep(&value, "missing_url_filtered_count");
+    let untraceable_domain_filtered_count =
+        json_usize_deep(&value, "untraceable_domain_filtered_count");
+    let duplicate_filtered_count = json_usize_deep(&value, "duplicate_filtered_count");
+    let total_filtered_count = json_usize_deep(&value, "total_filtered_count").max(
+        stale_filtered_count
+            + missing_url_filtered_count
+            + untraceable_domain_filtered_count
+            + duplicate_filtered_count,
+    );
+    Some(SessionEventSearchDiagnostic {
+        role: report.role.clone(),
+        node_id: report.node_id.0.clone(),
+        skill: json_string(&value, "skill").unwrap_or_else(|| "search_evidence_packet".to_string()),
+        status: json_string(&value, "status").unwrap_or_else(|| {
+            if adapter_status == "live" {
+                "success".to_string()
+            } else if adapter_status == "unknown" {
+                "unknown".to_string()
+            } else {
+                "deferred".to_string()
+            }
+        }),
+        adapter_status,
+        sources: json_array_len(&value, "sources")
+            .or_else(|| json_array_len(&value, "evidence"))
+            .unwrap_or(0),
+        usable_claims: json_array_len(&value, "usable_claims").unwrap_or(0),
+        gaps: json_array_len(&value, "gaps").unwrap_or(0),
+        stale_filtered_count,
+        missing_url_filtered_count,
+        untraceable_domain_filtered_count,
+        duplicate_filtered_count,
+        total_filtered_count,
+        confidence: value
+            .get("confidence")
+            .and_then(Value::as_f64)
+            .map(|value| value as f32),
+    })
+}
+
+fn parse_legacy_search_trace_fields(trace: &str) -> BTreeMap<String, String> {
+    let mut fields = BTreeMap::new();
+    for token in trace.split_whitespace() {
+        let Some((key, value)) = token.split_once('=') else {
+            continue;
+        };
+        let key = key.trim();
+        if key.is_empty() {
+            continue;
+        }
+        let value = value
+            .trim()
+            .trim_matches(|ch: char| matches!(ch, ',' | ';' | '"' | '\''))
+            .to_string();
+        fields.insert(key.to_string(), value);
+    }
+    fields
+}
+
+fn legacy_field(fields: &BTreeMap<String, String>, key: &str, fallback: &str) -> String {
+    fields
+        .get(key)
+        .map(String::as_str)
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or(fallback)
+        .to_string()
+}
+
+fn legacy_usize(fields: &BTreeMap<String, String>, key: &str) -> usize {
+    fields
+        .get(key)
+        .and_then(|value| value.parse::<usize>().ok())
+        .unwrap_or(0)
+}
+
+fn legacy_usize_any(fields: &BTreeMap<String, String>, keys: &[&str]) -> usize {
+    keys.iter()
+        .find_map(|key| fields.get(*key))
+        .and_then(|value| value.parse::<usize>().ok())
+        .unwrap_or(0)
+}
+
+fn json_string(value: &Value, key: &str) -> Option<String> {
+    value
+        .get(key)
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+}
+
+fn json_array_len(value: &Value, key: &str) -> Option<usize> {
+    value.get(key).and_then(Value::as_array).map(Vec::len)
+}
+
+fn json_usize_deep(value: &Value, key: &str) -> usize {
+    value
+        .pointer(&format!("/filter_stats/{key}"))
+        .or_else(|| value.get(key))
+        .and_then(Value::as_u64)
+        .map(|value| value as usize)
+        .unwrap_or(0)
+}
+
+fn push_unique_search_diagnostic(
+    items: &mut Vec<SessionEventSearchDiagnostic>,
+    diagnostic: SessionEventSearchDiagnostic,
+) {
+    if !items.iter().any(|item| item == &diagnostic) {
+        items.push(diagnostic);
+    }
 }
 
 fn report_evidence_items(report: &WorkerReport) -> Vec<String> {
@@ -1033,6 +1305,11 @@ mod tests {
                         ("sources", "2"),
                         ("usable_claims", "4"),
                         ("gaps", "1"),
+                        ("stale_filtered_count", "2"),
+                        ("missing_url_filtered_count", "1"),
+                        ("untraceable_domain_filtered_count", "1"),
+                        ("duplicate_filtered_count", "1"),
+                        ("total_filtered_count", "5"),
                         ("confidence", "0.72"),
                     ]
                     .into_iter()
@@ -1069,11 +1346,20 @@ mod tests {
         assert_eq!(audit.context_pack_failures[0].readiness, "partial");
         assert_eq!(audit.context_pack_failures[0].item_count, 3);
         assert_eq!(audit.search_diagnostics[0].sources, 2);
+        assert_eq!(audit.search_diagnostics[0].stale_filtered_count, 2);
+        assert_eq!(audit.search_diagnostics[0].missing_url_filtered_count, 1);
+        assert_eq!(
+            audit.search_diagnostics[0].untraceable_domain_filtered_count,
+            1
+        );
+        assert_eq!(audit.search_diagnostics[0].duplicate_filtered_count, 1);
+        assert_eq!(audit.search_diagnostics[0].total_filtered_count, 5);
         assert_eq!(audit.search_diagnostics[0].confidence, Some(0.72));
         let rendered = render_session_event_diagnostic_audit(&audit);
         assert!(rendered.contains("skill_failure: role=ops"));
         assert!(rendered.contains("context_pack_failure: role=data"));
         assert!(rendered.contains("search_diagnostic: role=search"));
+        assert!(rendered.contains("filtered=5 stale=2 missing_url=1 untraceable=1 duplicate=1"));
     }
 
     #[test]
@@ -1129,6 +1415,95 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec!["legacy_context_issue", "legacy_skill_issue"]
         );
+    }
+
+    #[test]
+    fn audit_counts_legacy_search_trace_when_typed_search_diagnostic_is_absent() {
+        let events = vec![reported_event_with(
+            "search",
+            Vec::new(),
+            vec![
+                "search_evidence_trace: skill=search_competitor status=success adapter_status=live intent=competitor_price_or_benchmark strength=standard sources=2 usable_claims=1 gaps=0 confidence=0.72 filtered=4 stale=1 missing_url=1 untraceable=1 duplicate=1 query=\"校园冷萃咖啡 竞品价格\""
+                    .to_string(),
+            ],
+            Vec::new(),
+        )];
+
+        let audit = audit_session_event_diagnostics(&events);
+
+        assert_eq!(audit.search_evidence_count, 1);
+        assert_eq!(audit.search_diagnostics[0].skill, "search_competitor");
+        assert_eq!(audit.search_diagnostics[0].status, "success");
+        assert_eq!(audit.search_diagnostics[0].adapter_status, "live");
+        assert_eq!(audit.search_diagnostics[0].sources, 2);
+        assert_eq!(audit.search_diagnostics[0].usable_claims, 1);
+        assert_eq!(audit.search_diagnostics[0].gaps, 0);
+        assert_eq!(audit.search_diagnostics[0].stale_filtered_count, 1);
+        assert_eq!(audit.search_diagnostics[0].missing_url_filtered_count, 1);
+        assert_eq!(
+            audit.search_diagnostics[0].untraceable_domain_filtered_count,
+            1
+        );
+        assert_eq!(audit.search_diagnostics[0].duplicate_filtered_count, 1);
+        assert_eq!(audit.search_diagnostics[0].total_filtered_count, 4);
+        assert_eq!(audit.search_diagnostics[0].confidence, Some(0.72));
+    }
+
+    #[test]
+    fn audit_counts_legacy_search_packet_when_trace_is_absent() {
+        let events = vec![reported_event_with(
+            "search",
+            Vec::new(),
+            vec![
+                r#"search_evidence_packet:{"skill":"search_market_info","status":"deferred","adapter_status":"degraded","sources":[],"usable_claims":[],"gaps":["provider timeout"],"filter_stats":{"missing_url_filtered_count":1,"untraceable_domain_filtered_count":2,"duplicate_filtered_count":0,"stale_filtered_count":3,"total_filtered_count":6},"confidence":0.0}"#
+                    .to_string(),
+            ],
+            Vec::new(),
+        )];
+
+        let audit = audit_session_event_diagnostics(&events);
+
+        assert_eq!(audit.search_evidence_count, 1);
+        assert_eq!(audit.search_diagnostics[0].skill, "search_market_info");
+        assert_eq!(audit.search_diagnostics[0].status, "deferred");
+        assert_eq!(audit.search_diagnostics[0].adapter_status, "degraded");
+        assert_eq!(audit.search_diagnostics[0].sources, 0);
+        assert_eq!(audit.search_diagnostics[0].usable_claims, 0);
+        assert_eq!(audit.search_diagnostics[0].gaps, 1);
+        assert_eq!(audit.search_diagnostics[0].stale_filtered_count, 3);
+        assert_eq!(audit.search_diagnostics[0].missing_url_filtered_count, 1);
+        assert_eq!(
+            audit.search_diagnostics[0].untraceable_domain_filtered_count,
+            2
+        );
+        assert_eq!(audit.search_diagnostics[0].duplicate_filtered_count, 0);
+        assert_eq!(audit.search_diagnostics[0].total_filtered_count, 6);
+        assert_eq!(audit.search_diagnostics[0].confidence, Some(0.0));
+    }
+
+    #[test]
+    fn diagnostic_consistency_accepts_legacy_search_trace_as_search_evidence() {
+        let events = vec![
+            reported_event_with(
+                "search",
+                Vec::new(),
+                vec![
+                    "search_evidence_trace: skill=search_competitor status=success adapter_status=live sources=1 usable_claims=1 gaps=0 confidence=0.80"
+                        .to_string(),
+                ],
+                Vec::new(),
+            ),
+            output_event("根据实时搜索结果，竞品价格需要继续核验。"),
+        ];
+
+        let audit = audit_session_event_diagnostic_consistency(
+            &events,
+            SessionEventDiagnosticConsistencyOptions {
+                expect_search_evidence: true,
+            },
+        );
+
+        assert!(audit.is_clean(), "{audit:?}");
     }
 
     #[test]

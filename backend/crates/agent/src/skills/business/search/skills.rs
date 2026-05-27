@@ -3,7 +3,9 @@ use serde_json::Value;
 
 use super::{
     config::SearchAdapterConfig,
-    output::{deferred_search_output, degraded_search_output, live_search_output},
+    output::{
+        SearchSourceFilterStats, deferred_search_output, degraded_search_output, live_search_output,
+    },
     provider::{
         optional_search_string_param, query_provider, search_bypass_cache, search_max_results,
     },
@@ -65,7 +67,7 @@ macro_rules! deferred_search_skill {
                             plan,
                             adapter,
                             reason,
-                            0,
+                            SearchSourceFilterStats::default(),
                         ));
                     }
                 };

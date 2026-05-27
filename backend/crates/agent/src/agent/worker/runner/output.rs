@@ -152,7 +152,8 @@ fn search_diagnostics_from_evidence(evidence: &[String]) -> Vec<WorkerDiagnostic
 }
 
 fn search_trace_diagnostic(trace: &str) -> Option<WorkerDiagnostic> {
-    let fields = parse_search_trace_fields(trace)?;
+    let mut fields = parse_search_trace_fields(trace)?;
+    normalize_search_trace_filter_fields(&mut fields);
     let source = fields
         .get("skill")
         .map(String::as_str)
@@ -164,6 +165,42 @@ fn search_trace_diagnostic(trace: &str) -> Option<WorkerDiagnostic> {
         source,
         fields,
     })
+}
+
+fn normalize_search_trace_filter_fields(fields: &mut std::collections::BTreeMap<String, String>) {
+    for (alias, canonical) in [
+        ("filtered", "total_filtered_count"),
+        ("stale", "stale_filtered_count"),
+        ("missing_url", "missing_url_filtered_count"),
+        ("untraceable", "untraceable_domain_filtered_count"),
+        ("duplicate", "duplicate_filtered_count"),
+    ] {
+        if fields.contains_key(canonical) {
+            continue;
+        }
+        if let Some(value) = fields.get(alias).cloned() {
+            fields.insert(canonical.to_string(), value);
+        }
+    }
+
+    if !fields.contains_key("total_filtered_count") {
+        let total = [
+            "stale_filtered_count",
+            "missing_url_filtered_count",
+            "untraceable_domain_filtered_count",
+            "duplicate_filtered_count",
+        ]
+        .into_iter()
+        .filter_map(|key| {
+            fields
+                .get(key)
+                .and_then(|value| value.parse::<usize>().ok())
+        })
+        .sum::<usize>();
+        if total > 0 {
+            fields.insert("total_filtered_count".to_string(), total.to_string());
+        }
+    }
 }
 
 fn parse_search_trace_fields(trace: &str) -> Option<std::collections::BTreeMap<String, String>> {
@@ -258,6 +295,7 @@ fn format_search_evidence_diagnostic(result: &SkillExecutionResult) -> Option<Wo
         "sources",
         search_source_count(output, packet).to_string(),
     );
+    push_filter_stat_fields(&mut fields, output, packet);
     push_field(
         &mut fields,
         "usable_claims",
@@ -495,9 +533,10 @@ fn format_search_evidence_trace(result: &SkillExecutionResult) -> Option<String>
         .take(2)
         .collect::<Vec<_>>()
         .join(" | ");
+    let filter_stats = search_filter_stats(output, packet);
 
     let mut trace = format!(
-        "search_evidence_trace: skill={} status={} adapter_status={} intent={} strength={} sources={} usable_claims={} gaps={} confidence={} query=\"{}\"",
+        "search_evidence_trace: skill={} status={} adapter_status={} intent={} strength={} sources={} usable_claims={} gaps={} confidence={} filtered={} stale={} missing_url={} untraceable={} duplicate={} query=\"{}\"",
         result.skill_id.as_str(),
         output_status,
         adapter_status,
@@ -507,6 +546,11 @@ fn format_search_evidence_trace(result: &SkillExecutionResult) -> Option<String>
         claim_count,
         gap_count,
         confidence,
+        filter_stats.total_filtered_count,
+        filter_stats.stale_filtered_count,
+        filter_stats.missing_url_filtered_count,
+        filter_stats.untraceable_domain_filtered_count,
+        filter_stats.duplicate_filtered_count,
         compact_inline(query, 180)
     );
     if !gap_preview.is_empty() {
@@ -525,6 +569,92 @@ fn search_source_count(output: &serde_json::Value, packet: &serde_json::Value) -
         .or_else(|| source_array_count(output, "sources"))
         .or_else(|| source_array_count(packet, "sources"))
         .unwrap_or(0)
+}
+
+#[derive(Debug, Default)]
+struct SearchFilterStats {
+    missing_url_filtered_count: u64,
+    untraceable_domain_filtered_count: u64,
+    duplicate_filtered_count: u64,
+    stale_filtered_count: u64,
+    total_filtered_count: u64,
+}
+
+fn push_filter_stat_fields(
+    fields: &mut std::collections::BTreeMap<String, String>,
+    output: &serde_json::Value,
+    packet: &serde_json::Value,
+) {
+    let stats = search_filter_stats(output, packet);
+    push_field(
+        fields,
+        "missing_url_filtered_count",
+        stats.missing_url_filtered_count.to_string(),
+    );
+    push_field(
+        fields,
+        "untraceable_domain_filtered_count",
+        stats.untraceable_domain_filtered_count.to_string(),
+    );
+    push_field(
+        fields,
+        "duplicate_filtered_count",
+        stats.duplicate_filtered_count.to_string(),
+    );
+    push_field(
+        fields,
+        "stale_filtered_count",
+        stats.stale_filtered_count.to_string(),
+    );
+    push_field(
+        fields,
+        "total_filtered_count",
+        stats.total_filtered_count.to_string(),
+    );
+}
+
+fn search_filter_stats(
+    output: &serde_json::Value,
+    packet: &serde_json::Value,
+) -> SearchFilterStats {
+    let missing_url_filtered_count =
+        search_filter_stat(output, packet, "missing_url_filtered_count");
+    let untraceable_domain_filtered_count =
+        search_filter_stat(output, packet, "untraceable_domain_filtered_count");
+    let duplicate_filtered_count = search_filter_stat(output, packet, "duplicate_filtered_count");
+    let stale_filtered_count = search_filter_stat(output, packet, "stale_filtered_count");
+    let total_filtered_count = search_filter_stat(output, packet, "total_filtered_count")
+        .unwrap_or_else(|| {
+            missing_url_filtered_count.unwrap_or(0)
+                + untraceable_domain_filtered_count.unwrap_or(0)
+                + duplicate_filtered_count.unwrap_or(0)
+                + stale_filtered_count.unwrap_or(0)
+        });
+
+    SearchFilterStats {
+        missing_url_filtered_count: missing_url_filtered_count.unwrap_or(0),
+        untraceable_domain_filtered_count: untraceable_domain_filtered_count.unwrap_or(0),
+        duplicate_filtered_count: duplicate_filtered_count.unwrap_or(0),
+        stale_filtered_count: stale_filtered_count.unwrap_or(0),
+        total_filtered_count,
+    }
+}
+
+fn search_filter_stat(
+    output: &serde_json::Value,
+    packet: &serde_json::Value,
+    key: &str,
+) -> Option<u64> {
+    [
+        packet.pointer(&format!("/filter_stats/{key}")),
+        output.pointer(&format!("/filter_stats/{key}")),
+        output.pointer(&format!("/provenance/filter_stats/{key}")),
+        output.pointer(&format!("/provenance/{key}")),
+        output.pointer(&format!("/freshness/{key}")),
+    ]
+    .into_iter()
+    .flatten()
+    .find_map(serde_json::Value::as_u64)
 }
 
 fn source_array_count(value: &serde_json::Value, key: &str) -> Option<u64> {
@@ -820,6 +950,13 @@ mod tests {
                     "adapter_status": "live",
                     "source_state": "has_reliable_sources",
                     "search_strength": "standard",
+                    "filter_stats": {
+                        "missing_url_filtered_count": 1,
+                        "untraceable_domain_filtered_count": 0,
+                        "duplicate_filtered_count": 1,
+                        "stale_filtered_count": 0,
+                        "total_filtered_count": 2
+                    },
                     "usable_claims": ["竞品价格集中在 12-19 元。"],
                     "gaps": [],
                     "confidence": 0.72
@@ -855,6 +992,9 @@ mod tests {
                     && item.contains("skill=search_competitor")
                     && item.contains("adapter_status=live")
                     && item.contains("intent=competitor_price_or_benchmark")
+                    && item.contains("filtered=2")
+                    && item.contains("missing_url=1")
+                    && item.contains("duplicate=1")
             }),
             "search evidence trace should summarize the live search path"
         );
@@ -869,6 +1009,17 @@ mod tests {
                     && item.fields.get("usable_claims").map(String::as_str) == Some("1")
                     && item.fields.get("gaps").map(String::as_str) == Some("0")
                     && item.fields.get("confidence").map(String::as_str) == Some("0.72")
+                    && item
+                        .fields
+                        .get("missing_url_filtered_count")
+                        .map(String::as_str)
+                        == Some("1")
+                    && item
+                        .fields
+                        .get("duplicate_filtered_count")
+                        .map(String::as_str)
+                        == Some("1")
+                    && item.fields.get("total_filtered_count").map(String::as_str) == Some("2")
             }),
             "search evidence diagnostic should expose typed live adapter state"
         );
@@ -897,6 +1048,13 @@ mod tests {
                         "source_state": "no_reliable_sources",
                         "query": "抖音 价格合规 官方规则 最新 2026",
                         "search_strength": "standard",
+                        "filter_stats": {
+                            "missing_url_filtered_count": 0,
+                            "untraceable_domain_filtered_count": 1,
+                            "duplicate_filtered_count": 0,
+                            "stale_filtered_count": 2,
+                            "total_filtered_count": 3
+                        },
                         "sources": [],
                     "usable_claims": [],
                     "gaps": ["provider timeout"],
@@ -926,6 +1084,9 @@ mod tests {
                     && item.contains("adapter_status=degraded")
                     && item.contains("sources=0")
                     && item.contains("gaps=1")
+                    && item.contains("filtered=3")
+                    && item.contains("stale=2")
+                    && item.contains("untraceable=1")
                     && item.contains("provider timeout")
             }),
             "degraded search trace should expose status, source count, gaps and query"
@@ -948,6 +1109,13 @@ mod tests {
                     && item.fields.get("usable_claims").map(String::as_str) == Some("0")
                     && item.fields.get("gaps").map(String::as_str) == Some("1")
                     && item.fields.get("confidence").map(String::as_str) == Some("0.00")
+                    && item.fields.get("stale_filtered_count").map(String::as_str) == Some("2")
+                    && item
+                        .fields
+                        .get("untraceable_domain_filtered_count")
+                        .map(String::as_str)
+                        == Some("1")
+                    && item.fields.get("total_filtered_count").map(String::as_str) == Some("3")
             }),
             "search evidence diagnostic should expose typed degraded adapter state"
         );
@@ -956,7 +1124,7 @@ mod tests {
     #[test]
     fn parse_worker_role_output_promotes_search_trace_to_typed_diagnostic() {
         let parsed = parse_worker_role_output(
-            r#"{"role_output":{"summary":"搜索岗已整理证据。","evidence":["search_evidence_packet:{\"intent\":\"competitor_price_or_benchmark\"}","search_evidence_trace: skill=search_competitor status=success adapter_status=live intent=competitor_price_or_benchmark strength=standard sources=1 usable_claims=1 gaps=0 confidence=0.72 query=\"校园冷萃咖啡 竞品价格\""]}}"#,
+            r#"{"role_output":{"summary":"搜索岗已整理证据。","evidence":["search_evidence_packet:{\"intent\":\"competitor_price_or_benchmark\"}","search_evidence_trace: skill=search_competitor status=success adapter_status=live intent=competitor_price_or_benchmark strength=standard sources=1 usable_claims=1 gaps=0 confidence=0.72 filtered=4 stale=1 missing_url=1 untraceable=1 duplicate=1 query=\"校园冷萃咖啡 竞品价格\""]}}"#,
         );
 
         assert!(
@@ -968,6 +1136,23 @@ mod tests {
                     && item.fields.get("usable_claims").map(String::as_str) == Some("1")
                     && item.fields.get("gaps").map(String::as_str) == Some("0")
                     && item.fields.get("confidence").map(String::as_str) == Some("0.72")
+                    && item.fields.get("total_filtered_count").map(String::as_str) == Some("4")
+                    && item.fields.get("stale_filtered_count").map(String::as_str) == Some("1")
+                    && item
+                        .fields
+                        .get("missing_url_filtered_count")
+                        .map(String::as_str)
+                        == Some("1")
+                    && item
+                        .fields
+                        .get("untraceable_domain_filtered_count")
+                        .map(String::as_str)
+                        == Some("1")
+                    && item
+                        .fields
+                        .get("duplicate_filtered_count")
+                        .map(String::as_str)
+                        == Some("1")
             }),
             "legacy search_evidence_trace should be promoted to typed diagnostics"
         );

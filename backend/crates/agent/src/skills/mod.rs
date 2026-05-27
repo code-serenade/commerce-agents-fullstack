@@ -37,7 +37,10 @@ pub use execution::{
     SkillRiskLevel, SkillRuntimeError, adapter_kinds_for_spec, execution_mode_for_spec,
     risk_level_for_spec,
 };
-pub use search::SearchAdapterConfig;
+pub use search::{
+    SearchAdapterConfig, SearchProviderSmokeContractCheck, SearchProviderSmokeReport,
+    SearchProviderSmokeRequest, run_search_provider_smoke,
+};
 
 /// Specs that have been ported into Rust but are intentionally not registered
 /// into the runtime tool graph yet.

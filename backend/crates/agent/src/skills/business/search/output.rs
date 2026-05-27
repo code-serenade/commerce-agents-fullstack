@@ -4,7 +4,7 @@ use super::{
     config::{
         DEFAULT_MAX_RESULTS, MAX_DAYS, MAX_RESULTS, SEARCH_ADAPTER_REQUIRED_CONFIG,
         SEARCH_DEFERRED_REASON, SEARCH_DEGRADED_REASON, SEARCH_PROVIDER_EMPTY_REASON,
-        SEARCH_PROVIDER_STALE_REASON, SearchAdapterConfig,
+        SEARCH_PROVIDER_STALE_REASON, SEARCH_PROVIDER_UNRELIABLE_REASON, SearchAdapterConfig,
     },
     provider::{
         build_provenance, build_search_evidence, build_search_evidence_packet, estimate_confidence,
@@ -29,7 +29,41 @@ pub(super) struct SearchPlan {
 #[derive(Debug, Clone, Default)]
 pub(super) struct SearchSourceSet {
     pub(super) sources: Vec<Value>,
+    pub(super) filter_stats: SearchSourceFilterStats,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(super) struct SearchSourceFilterStats {
+    pub(super) missing_url_filtered_count: usize,
+    pub(super) untraceable_domain_filtered_count: usize,
+    pub(super) duplicate_filtered_count: usize,
     pub(super) stale_filtered_count: usize,
+}
+
+impl SearchSourceFilterStats {
+    pub(super) fn from_stale_filtered_count(stale_filtered_count: usize) -> Self {
+        Self {
+            stale_filtered_count,
+            ..Self::default()
+        }
+    }
+
+    pub(super) fn total_filtered_count(&self) -> usize {
+        self.missing_url_filtered_count
+            + self.untraceable_domain_filtered_count
+            + self.duplicate_filtered_count
+            + self.stale_filtered_count
+    }
+
+    pub(super) fn as_json(&self) -> Value {
+        json!({
+            "missing_url_filtered_count": self.missing_url_filtered_count,
+            "untraceable_domain_filtered_count": self.untraceable_domain_filtered_count,
+            "duplicate_filtered_count": self.duplicate_filtered_count,
+            "stale_filtered_count": self.stale_filtered_count,
+            "total_filtered_count": self.total_filtered_count()
+        })
+    }
 }
 
 impl SearchPlan {
@@ -105,11 +139,12 @@ pub(super) fn deferred_search_output(
     adapter: &SearchAdapterConfig,
 ) -> SkillOutcome {
     let readiness = adapter.readiness();
+    let filter_stats = SearchSourceFilterStats::default();
     let evidence_packet = build_search_evidence_packet(
         skill_id,
         &plan,
         &[],
-        0,
+        &filter_stats,
         0.0,
         "adapter_required",
         Some(SEARCH_DEGRADED_REASON),
@@ -143,21 +178,15 @@ pub(super) fn deferred_search_output(
             "items": []
         },
         "sources": [],
-        "provenance": {
-            "source_count": 0,
-            "domain_count": 0,
-            "domains": [],
-            "published_count": 0,
-            "latest_published_at": null,
-            "stale_filtered_count": 0
-        },
+        "provenance": build_provenance(&[], &filter_stats),
         "confidence": 0.0,
         "freshness": {
             "requested_days": plan.days,
             "requested_at": null,
             "stale_filtered_count": 0
         },
-        "evidence": build_search_evidence(&[], 0),
+        "filter_stats": filter_stats.as_json(),
+        "evidence": build_search_evidence(&[], &filter_stats),
         "evidence_packet": evidence_packet,
         "degraded": true,
         "degraded_reason": SEARCH_DEGRADED_REASON,
@@ -175,15 +204,16 @@ pub(super) fn degraded_search_output(
     plan: SearchPlan,
     adapter: &SearchAdapterConfig,
     reason: impl Into<String>,
-    stale_filtered_count: usize,
+    filter_stats: SearchSourceFilterStats,
 ) -> SkillOutcome {
     let reason = reason.into();
     let readiness = adapter.readiness();
+    let stale_filtered_count = filter_stats.stale_filtered_count;
     let evidence_packet = build_search_evidence_packet(
         skill_id,
         &plan,
         &[],
-        stale_filtered_count,
+        &filter_stats,
         0.0,
         "degraded",
         Some(&reason),
@@ -218,21 +248,15 @@ pub(super) fn degraded_search_output(
             "items": []
         },
         "sources": [],
-        "provenance": {
-            "source_count": 0,
-            "domain_count": 0,
-            "domains": [],
-            "published_count": 0,
-            "latest_published_at": null,
-            "stale_filtered_count": stale_filtered_count
-        },
+        "provenance": build_provenance(&[], &filter_stats),
         "confidence": 0.0,
         "freshness": {
             "requested_days": plan.days,
             "requested_at": utc_now_rfc3339(),
             "stale_filtered_count": stale_filtered_count
         },
-        "evidence": build_search_evidence(&[], stale_filtered_count),
+        "filter_stats": filter_stats.as_json(),
+        "evidence": build_search_evidence(&[], &filter_stats),
         "evidence_packet": evidence_packet,
         "notice": "未获取到可靠公开来源，当前不能伪造实时搜索结果。",
         "degraded": true,
@@ -244,6 +268,22 @@ pub(super) fn degraded_search_output(
     .with_metadata("adapter_kind", json!("search"))
     .with_metadata("provider", json!(adapter.provider_name()))
     .with_metadata("stale_filtered_count", json!(stale_filtered_count))
+    .with_metadata(
+        "missing_url_filtered_count",
+        json!(filter_stats.missing_url_filtered_count),
+    )
+    .with_metadata(
+        "untraceable_domain_filtered_count",
+        json!(filter_stats.untraceable_domain_filtered_count),
+    )
+    .with_metadata(
+        "duplicate_filtered_count",
+        json!(filter_stats.duplicate_filtered_count),
+    )
+    .with_metadata(
+        "total_filtered_count",
+        json!(filter_stats.total_filtered_count()),
+    )
     .with_metadata("adapter_readiness", readiness)
 }
 
@@ -255,10 +295,15 @@ pub(super) fn live_search_output(
     payload: &Value,
 ) -> SkillOutcome {
     let source_set = normalize_sources(payload, plan.max_results, plan.days);
+    let filter_stats = source_set.filter_stats;
     let sources = source_set.sources;
     if sources.is_empty() {
-        let reason = if source_set.stale_filtered_count > 0 {
+        let reason = if filter_stats.stale_filtered_count > 0
+            && filter_stats.total_filtered_count() == filter_stats.stale_filtered_count
+        {
             SEARCH_PROVIDER_STALE_REASON
+        } else if filter_stats.total_filtered_count() > 0 {
+            SEARCH_PROVIDER_UNRELIABLE_REASON
         } else {
             SEARCH_PROVIDER_EMPTY_REASON
         };
@@ -268,12 +313,12 @@ pub(super) fn live_search_output(
             plan,
             adapter,
             reason,
-            source_set.stale_filtered_count,
+            filter_stats,
         );
     }
 
-    let provenance = build_provenance(&sources, source_set.stale_filtered_count);
-    let evidence = build_search_evidence(&sources, source_set.stale_filtered_count);
+    let provenance = build_provenance(&sources, &filter_stats);
+    let evidence = build_search_evidence(&sources, &filter_stats);
     let confidence = payload
         .get("confidence")
         .and_then(Value::as_f64)
@@ -303,7 +348,7 @@ pub(super) fn live_search_output(
         skill_id,
         &plan,
         &sources,
-        source_set.stale_filtered_count,
+        &filter_stats,
         confidence,
         "live",
         None,
@@ -344,8 +389,9 @@ pub(super) fn live_search_output(
         "freshness": {
             "requested_days": plan.days,
             "requested_at": requested_at,
-            "stale_filtered_count": source_set.stale_filtered_count
+            "stale_filtered_count": filter_stats.stale_filtered_count
         },
+        "filter_stats": filter_stats.as_json(),
         "evidence": evidence,
         "evidence_packet": evidence_packet,
         "degraded": false,
@@ -360,7 +406,23 @@ pub(super) fn live_search_output(
     .with_metadata("adapter_readiness", readiness)
     .with_metadata(
         "stale_filtered_count",
-        json!(source_set.stale_filtered_count),
+        json!(filter_stats.stale_filtered_count),
+    )
+    .with_metadata(
+        "missing_url_filtered_count",
+        json!(filter_stats.missing_url_filtered_count),
+    )
+    .with_metadata(
+        "untraceable_domain_filtered_count",
+        json!(filter_stats.untraceable_domain_filtered_count),
+    )
+    .with_metadata(
+        "duplicate_filtered_count",
+        json!(filter_stats.duplicate_filtered_count),
+    )
+    .with_metadata(
+        "total_filtered_count",
+        json!(filter_stats.total_filtered_count()),
     )
 }
 
@@ -368,7 +430,10 @@ pub(super) fn live_search_output(
 mod tests {
     use serde_json::json;
 
-    use super::{SearchPlan, deferred_search_output, degraded_search_output, live_search_output};
+    use super::{
+        SearchPlan, SearchSourceFilterStats, deferred_search_output, degraded_search_output,
+        live_search_output,
+    };
     use crate::skills::SearchAdapterConfig;
 
     fn adapter() -> SearchAdapterConfig {
@@ -447,7 +512,7 @@ mod tests {
             plan,
             &adapter(),
             "provider timeout",
-            2,
+            SearchSourceFilterStats::from_stale_filtered_count(2),
         );
         let packet = outcome
             .output
@@ -463,6 +528,8 @@ mod tests {
                 .unwrap_or_default()
                 .contains("provider timeout")
         }));
+        assert_eq!(packet["filter_stats"]["stale_filtered_count"], 2);
+        assert_eq!(packet["filter_stats"]["total_filtered_count"], 2);
         assert!(
             packet["gaps"]
                 .as_array()
@@ -506,5 +573,142 @@ mod tests {
                 .unwrap_or_default()
                 .contains("不能编造来源")
         );
+    }
+
+    #[test]
+    fn live_search_output_degrades_empty_provider_sources() {
+        let plan = SearchPlan::new("校园冷萃咖啡", "校园冷萃咖啡 价格", "general", 30);
+        let payload = json!({
+            "engine": "codex-web-search",
+            "data": {
+                "items": []
+            }
+        });
+
+        let outcome = live_search_output(
+            "search_competitor",
+            "校园冷萃咖啡".to_string(),
+            plan,
+            &adapter(),
+            &payload,
+        );
+        let packet = outcome
+            .output
+            .get("evidence_packet")
+            .expect("evidence packet should exist");
+
+        assert_eq!(outcome.output["status"], "deferred");
+        assert_eq!(outcome.output["adapter_status"], "degraded");
+        assert_eq!(packet["source_state"], "no_reliable_sources");
+        assert_eq!(packet["sources"].as_array().unwrap().len(), 0);
+        assert!(
+            outcome.output["degraded_reason"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("no normalized sources")
+        );
+    }
+
+    #[test]
+    fn live_search_output_degrades_only_stale_provider_sources() {
+        let plan = SearchPlan::new("抖音平台政策", "抖音 平台政策", "news", 30);
+        let payload = json!({
+            "engine": "codex-web-search",
+            "data": {
+                "items": [
+                    {
+                        "title": "旧平台政策",
+                        "url": "https://policy.example.com/old",
+                        "snippet": "旧政策。",
+                        "published_at": "2000-01-01"
+                    }
+                ]
+            }
+        });
+
+        let outcome = live_search_output(
+            "search_platform_policy",
+            "抖音平台政策".to_string(),
+            plan,
+            &adapter(),
+            &payload,
+        );
+        let packet = outcome
+            .output
+            .get("evidence_packet")
+            .expect("evidence packet should exist");
+
+        assert_eq!(outcome.output["status"], "deferred");
+        assert_eq!(outcome.output["adapter_status"], "degraded");
+        assert_eq!(outcome.output["freshness"]["stale_filtered_count"], 1);
+        assert_eq!(outcome.output["filter_stats"]["stale_filtered_count"], 1);
+        assert_eq!(outcome.output["filter_stats"]["total_filtered_count"], 1);
+        assert_eq!(packet["filter_stats"]["stale_filtered_count"], 1);
+        assert_eq!(packet["source_state"], "no_reliable_sources");
+        assert!(
+            packet["gaps"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|gap| { gap.as_str().unwrap_or_default().contains("已过滤 1 条") })
+        );
+        assert!(
+            outcome.output["degraded_reason"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("outside the requested freshness window")
+        );
+    }
+
+    #[test]
+    fn live_search_output_degrades_untraceable_provider_sources() {
+        let plan = SearchPlan::new("校园冷萃咖啡", "校园冷萃咖啡 价格", "general", 30);
+        let payload = json!({
+            "engine": "codex-web-search",
+            "data": {
+                "items": [
+                    {
+                        "title": "无 URL",
+                        "snippet": "没有可追溯链接。"
+                    },
+                    {
+                        "title": "本地调试",
+                        "url": "http://localhost/search",
+                        "snippet": "不是公开可追踪来源。"
+                    }
+                ]
+            }
+        });
+
+        let outcome = live_search_output(
+            "search_competitor",
+            "校园冷萃咖啡".to_string(),
+            plan,
+            &adapter(),
+            &payload,
+        );
+        let packet = outcome
+            .output
+            .get("evidence_packet")
+            .expect("evidence packet should exist");
+
+        assert_eq!(outcome.output["status"], "deferred");
+        assert_eq!(outcome.output["adapter_status"], "degraded");
+        assert_eq!(
+            outcome.output["filter_stats"]["missing_url_filtered_count"],
+            1
+        );
+        assert_eq!(
+            outcome.output["filter_stats"]["untraceable_domain_filtered_count"],
+            1
+        );
+        assert_eq!(outcome.output["filter_stats"]["total_filtered_count"], 2);
+        assert_eq!(packet["filter_stats"]["missing_url_filtered_count"], 1);
+        assert_eq!(
+            packet["filter_stats"]["untraceable_domain_filtered_count"],
+            1
+        );
+        assert_eq!(packet["source_state"], "no_reliable_sources");
+        assert_eq!(packet["sources"].as_array().unwrap().len(), 0);
     }
 }

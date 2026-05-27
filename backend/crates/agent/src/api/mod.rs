@@ -39,9 +39,11 @@ pub use crate::{
     },
     runtime::{AgentRuntimeCfg, build_agent_manager},
     skills::{
-        SearchAdapterConfig, SkillAdapterKind, SkillCategory, SkillExecutionMode, SkillInputField,
-        SkillPriority, SkillRegistry, SkillRiskLevel, SkillSpec, adapter_kinds_for_spec,
-        execution_mode_for_spec, risk_level_for_spec,
+        SearchAdapterConfig, SearchProviderSmokeContractCheck, SearchProviderSmokeReport,
+        SearchProviderSmokeRequest, SkillAdapterKind, SkillCategory, SkillExecutionMode,
+        SkillInputField, SkillPriority, SkillRegistry, SkillRiskLevel, SkillSpec,
+        adapter_kinds_for_spec, execution_mode_for_spec, risk_level_for_spec,
+        run_search_provider_smoke,
     },
     system_agents::vision_preprocess::{
         VisionPreprocessAgent, VisionPreprocessAgentConfig, VisionPreprocessInput,

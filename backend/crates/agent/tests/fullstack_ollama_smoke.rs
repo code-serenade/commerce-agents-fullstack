@@ -17,6 +17,7 @@ use serde_json::{Value, json};
 use utils::llm_json;
 
 const ENABLE_ENV: &str = "CM_AGENT_RUN_LOCAL_LLM_SMOKE";
+const FAIL_ON_DIAGNOSTIC_CONSISTENCY_ENV: &str = "CM_AGENT_SMOKE_FAIL_ON_DIAGNOSTIC_CONSISTENCY";
 const DEFAULT_OLLAMA_BASE_URL: &str = "http://127.0.0.1:11434";
 const DEFAULT_OLLAMA_MODEL: &str = "gemma4:26b";
 const DEFAULT_TASK: &str = "请用一句话解释这个 agent 框架现在是否可以运行。";
@@ -84,6 +85,16 @@ async fn fullstack_workspace_runs_agent_with_local_ollama() {
         "{}",
         render_session_event_diagnostic_consistency_audit(&consistency_audit)
     );
+    if env::var(FAIL_ON_DIAGNOSTIC_CONSISTENCY_ENV).as_deref() == Ok("1") {
+        assert!(
+            !consistency_audit
+                .issues
+                .iter()
+                .any(|issue| issue.severity == "high"),
+            "{}",
+            render_session_event_diagnostic_consistency_audit(&consistency_audit)
+        );
+    }
     assert!(
         !audit.has_task_graph() || audit.is_clean(),
         "{}",

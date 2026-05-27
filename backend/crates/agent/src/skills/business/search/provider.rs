@@ -12,7 +12,7 @@ use super::{
         DEFAULT_MAX_RESULTS, MAX_DAYS, MAX_RESULTS, SEARCH_ADAPTER_REQUIRED_CONFIG,
         SearchAdapterConfig, VALID_TOPICS,
     },
-    output::{SearchPlan, SearchSourceSet},
+    output::{SearchPlan, SearchSourceFilterStats, SearchSourceSet},
 };
 use crate::{
     http::request as http_request,
@@ -94,21 +94,32 @@ pub(super) fn normalize_sources(payload: &Value, max_results: i64, days: i64) ->
     let requested_days = days.clamp(1, MAX_DAYS);
     let mut seen = BTreeSet::new();
     let mut sources = Vec::new();
-    let mut stale_filtered_count = 0;
+    let mut filter_stats = SearchSourceFilterStats::default();
     for item in items {
         let rank = sources.len() as u64 + 1;
-        let Some(source) = normalize_source(rank, item) else {
-            continue;
+        let source = match normalize_source(rank, item) {
+            Ok(source) => source,
+            Err(SourceRejectReason::MissingUrl) => {
+                filter_stats.missing_url_filtered_count += 1;
+                continue;
+            }
+            Err(SourceRejectReason::UntraceableDomain) => {
+                filter_stats.untraceable_domain_filtered_count += 1;
+                continue;
+            }
         };
         if is_source_outside_freshness_window(&source, requested_days) {
-            stale_filtered_count += 1;
+            filter_stats.stale_filtered_count += 1;
             continue;
         }
         let Some(key) = normalized_source_key(&source) else {
+            filter_stats.missing_url_filtered_count += 1;
             continue;
         };
         if seen.insert(key) {
             sources.push(source);
+        } else {
+            filter_stats.duplicate_filtered_count += 1;
         }
         if sources.len() >= result_limit {
             break;
@@ -116,11 +127,16 @@ pub(super) fn normalize_sources(payload: &Value, max_results: i64, days: i64) ->
     }
     SearchSourceSet {
         sources,
-        stale_filtered_count,
+        filter_stats,
     }
 }
 
-fn normalize_source(rank: u64, item: &Value) -> Option<Value> {
+enum SourceRejectReason {
+    MissingUrl,
+    UntraceableDomain,
+}
+
+fn normalize_source(rank: u64, item: &Value) -> Result<Value, SourceRejectReason> {
     let title = string_field(item, &["title", "name", "headline"])
         .map(|value| compact_text(&value, 180))
         .unwrap_or_else(|| "未命名来源".to_string());
@@ -128,11 +144,11 @@ fn normalize_source(rank: u64, item: &Value) -> Option<Value> {
         .map(|value| compact_text(&value, 400))
         .unwrap_or_default();
     if url.trim().is_empty() {
-        return None;
+        return Err(SourceRejectReason::MissingUrl);
     }
     let domain = extract_domain(&url);
     if !is_traceable_domain(&domain) {
-        return None;
+        return Err(SourceRejectReason::UntraceableDomain);
     }
     let snippet = string_field(
         item,
@@ -162,7 +178,7 @@ fn normalize_source(rank: u64, item: &Value) -> Option<Value> {
     .map(|value| compact_text(&value, 64))
     .filter(|value| !value.is_empty());
 
-    Some(json!({
+    Ok(json!({
         "rank": rank,
         "title": title,
         "snippet": snippet,
@@ -187,7 +203,7 @@ fn normalized_source_key(source: &Value) -> Option<String> {
         .map(|value| value.trim_end_matches('/').to_ascii_lowercase())
 }
 
-pub(super) fn build_provenance(sources: &[Value], stale_filtered_count: usize) -> Value {
+pub(super) fn build_provenance(sources: &[Value], filter_stats: &SearchSourceFilterStats) -> Value {
     let domains = sources
         .iter()
         .filter_map(|item| item.get("domain").and_then(Value::as_str))
@@ -211,16 +227,28 @@ pub(super) fn build_provenance(sources: &[Value], stale_filtered_count: usize) -
         "domains": domains,
         "published_count": published.len(),
         "latest_published_at": latest_published_at,
-        "stale_filtered_count": stale_filtered_count
+        "stale_filtered_count": filter_stats.stale_filtered_count,
+        "missing_url_filtered_count": filter_stats.missing_url_filtered_count,
+        "untraceable_domain_filtered_count": filter_stats.untraceable_domain_filtered_count,
+        "duplicate_filtered_count": filter_stats.duplicate_filtered_count,
+        "total_filtered_count": filter_stats.total_filtered_count(),
+        "filter_stats": filter_stats.as_json()
     })
 }
 
-pub(super) fn build_search_evidence(sources: &[Value], stale_filtered_count: usize) -> Value {
+pub(super) fn build_search_evidence(
+    sources: &[Value],
+    filter_stats: &SearchSourceFilterStats,
+) -> Value {
     if sources.is_empty() {
-        let summary = if stale_filtered_count > 0 {
+        let summary = if filter_stats.total_filtered_count() > 0 {
             format!(
-                "没有可采信实时来源；已过滤 {stale_filtered_count} \
-                 条超出请求时间范围的来源，当前结果只能作为降级状态。"
+                "没有可采信实时来源；provider 返回内容中有 {} 条被过滤（过期 {}、缺 URL {}、域名不可追溯 {}、重复 {}），当前结果只能作为降级状态。",
+                filter_stats.total_filtered_count(),
+                filter_stats.stale_filtered_count,
+                filter_stats.missing_url_filtered_count,
+                filter_stats.untraceable_domain_filtered_count,
+                filter_stats.duplicate_filtered_count
             )
         } else {
             "没有可采信实时来源；当前结果只能作为降级状态，不可当作联网证据。".to_string()
@@ -251,8 +279,15 @@ pub(super) fn build_search_evidence(sources: &[Value], stale_filtered_count: usi
         .take(8)
         .map(ToOwned::to_owned)
         .collect::<Vec<_>>();
-    let stale_note = if stale_filtered_count > 0 {
-        format!("已过滤 {stale_filtered_count} 条超出请求时间范围的来源；")
+    let filtered_note = if filter_stats.total_filtered_count() > 0 {
+        format!(
+            "已过滤 {} 条不可采信来源（过期 {}、缺 URL {}、域名不可追溯 {}、重复 {}）；",
+            filter_stats.total_filtered_count(),
+            filter_stats.stale_filtered_count,
+            filter_stats.missing_url_filtered_count,
+            filter_stats.untraceable_domain_filtered_count,
+            filter_stats.duplicate_filtered_count
+        )
     } else {
         String::new()
     };
@@ -260,14 +295,14 @@ pub(super) fn build_search_evidence(sources: &[Value], stale_filtered_count: usi
         "共 {} 条实时来源，覆盖 {} 个域名；{}回答应优先引用这些来源，并注明时效性和置信度。",
         sources.len(),
         domains.len(),
-        stale_note
+        filtered_note
     );
 
     json!({
         "summary": summary,
         "source_titles": titles,
         "source_domains": domains,
-        "llm_context": format_sources_for_llm(sources, stale_filtered_count)
+        "llm_context": format_sources_for_llm(sources, filter_stats)
     })
 }
 
@@ -275,14 +310,14 @@ pub(super) fn build_search_evidence_packet(
     skill_id: &str,
     plan: &SearchPlan,
     sources: &[Value],
-    stale_filtered_count: usize,
+    filter_stats: &SearchSourceFilterStats,
     confidence: f64,
     adapter_status: &str,
     degraded_reason: Option<&str>,
 ) -> Value {
     let strength = search_strength(plan.max_results);
     let usable_claims = usable_claims_from_sources(sources);
-    let gaps = search_gaps(sources, stale_filtered_count, degraded_reason);
+    let gaps = search_gaps(sources, filter_stats, degraded_reason);
     let adapter_status = normalized_adapter_status(adapter_status);
     let source_state = search_source_state(sources, adapter_status, degraded_reason);
 
@@ -303,6 +338,7 @@ pub(super) fn build_search_evidence_packet(
             "product_name": plan.product_name,
             "product_category": plan.product_category
         },
+        "filter_stats": filter_stats.as_json(),
         "sources": evidence_packet_sources(sources),
         "usable_claims": usable_claims,
         "gaps": gaps,
@@ -409,16 +445,35 @@ fn usable_claims_from_sources(sources: &[Value]) -> Vec<String> {
 
 fn search_gaps(
     sources: &[Value],
-    stale_filtered_count: usize,
+    filter_stats: &SearchSourceFilterStats,
     degraded_reason: Option<&str>,
 ) -> Vec<String> {
     let mut gaps = Vec::new();
     if sources.is_empty() {
         gaps.push("本次没有可采信公开来源，不能当作实时搜索结论。".to_string());
     }
-    if stale_filtered_count > 0 {
+    if filter_stats.stale_filtered_count > 0 {
         gaps.push(format!(
-            "已过滤 {stale_filtered_count} 条超出请求时间范围的来源，过期来源不能引用。"
+            "已过滤 {} 条超出请求时间范围的来源，过期来源不能引用。",
+            filter_stats.stale_filtered_count
+        ));
+    }
+    if filter_stats.missing_url_filtered_count > 0 {
+        gaps.push(format!(
+            "已过滤 {} 条缺少可追溯 URL 的来源，不能当作引用证据。",
+            filter_stats.missing_url_filtered_count
+        ));
+    }
+    if filter_stats.untraceable_domain_filtered_count > 0 {
+        gaps.push(format!(
+            "已过滤 {} 条域名不可追溯的来源，不能当作公开网页证据。",
+            filter_stats.untraceable_domain_filtered_count
+        ));
+    }
+    if filter_stats.duplicate_filtered_count > 0 {
+        gaps.push(format!(
+            "已过滤 {} 条重复 URL 来源，避免重复计算证据。",
+            filter_stats.duplicate_filtered_count
         ));
     }
     if let Some(reason) = degraded_reason
@@ -490,7 +545,7 @@ fn source_relevance(source: &Value) -> &'static str {
     }
 }
 
-fn format_sources_for_llm(sources: &[Value], stale_filtered_count: usize) -> String {
+fn format_sources_for_llm(sources: &[Value], filter_stats: &SearchSourceFilterStats) -> String {
     if sources.is_empty() {
         return "（本次没有可采信实时来源。回答时必须说明外部搜索未返回来源，\
                 不能引用不存在的联网数据。）"
@@ -501,10 +556,21 @@ fn format_sources_for_llm(sources: &[Value], stale_filtered_count: usize) -> Str
         "（共{}条实时来源，优先从中提取具体数字、结论和出处；若来源不足，明确说明数据不足。）",
         sources.len().min(5)
     )];
-    if stale_filtered_count > 0 {
+    if filter_stats.stale_filtered_count > 0 {
         lines.push(format!(
             "已过滤{}条超出请求时间范围的来源；不要引用这些过期来源。",
-            stale_filtered_count
+            filter_stats.stale_filtered_count
+        ));
+    }
+    if filter_stats.missing_url_filtered_count > 0
+        || filter_stats.untraceable_domain_filtered_count > 0
+        || filter_stats.duplicate_filtered_count > 0
+    {
+        lines.push(format!(
+            "另有{}条缺少URL、{}条域名不可追溯、{}条重复来源被过滤；不要把这些结果当作证据。",
+            filter_stats.missing_url_filtered_count,
+            filter_stats.untraceable_domain_filtered_count,
+            filter_stats.duplicate_filtered_count
         ));
     }
     for (index, source) in sources.iter().take(5).enumerate() {
@@ -768,5 +834,150 @@ mod tests {
         .expect_err("error envelope should fail");
 
         assert!(err.contains("provider unavailable"));
+    }
+
+    #[test]
+    fn normalize_sources_accepts_common_provider_shapes_and_deduplicates_urls() {
+        let payload = json!({
+            "data": {
+                "organic_results": [
+                    {
+                        "name": "冷萃竞品价格",
+                        "link": "https://example.com/cold-brew",
+                        "description": "竞品价格集中在 12-19 元。",
+                        "datePublished": "2999-05-20"
+                    },
+                    {
+                        "title": "重复来源",
+                        "url": "https://example.com/cold-brew/",
+                        "snippet": "重复 URL 不应重复进入证据包。",
+                        "published_at": "2999-05-21"
+                    },
+                    {
+                        "headline": "平台规则",
+                        "href": "https://news.example.org/rules?from=search",
+                        "excerpt": "平台规则更新。",
+                        "pubDate": "2999-05-22"
+                    }
+                ]
+            }
+        });
+
+        let sources = normalize_sources(&payload, 6, 30);
+
+        assert_eq!(sources.sources.len(), 2);
+        assert_eq!(sources.sources[0]["title"], "冷萃竞品价格");
+        assert_eq!(sources.sources[0]["url"], "https://example.com/cold-brew");
+        assert_eq!(sources.sources[0]["domain"], "example.com");
+        assert_eq!(sources.sources[0]["snippet"], "竞品价格集中在 12-19 元。");
+        assert_eq!(sources.sources[1]["domain"], "news.example.org");
+        assert_eq!(sources.filter_stats.stale_filtered_count, 0);
+        assert_eq!(sources.filter_stats.duplicate_filtered_count, 1);
+    }
+
+    #[test]
+    fn normalize_sources_filters_missing_url_and_untraceable_domains() {
+        let payload = json!({
+            "items": [
+                {
+                    "title": "没有 URL",
+                    "snippet": "不能追溯来源。"
+                },
+                {
+                    "title": "localhost 调试地址",
+                    "url": "http://localhost/search-result",
+                    "snippet": "不能当作公开可追踪来源。"
+                },
+                {
+                    "title": "空格域名",
+                    "url": "https://bad domain.example/path",
+                    "snippet": "域名包含空格。"
+                },
+                {
+                    "title": "有效来源",
+                    "url": "https://valid.example.com/article",
+                    "snippet": "可采信公开来源。",
+                    "published_at": "2999-01-01"
+                }
+            ]
+        });
+
+        let sources = normalize_sources(&payload, 6, 365);
+
+        assert_eq!(sources.sources.len(), 1);
+        assert_eq!(sources.sources[0]["title"], "有效来源");
+        assert_eq!(sources.sources[0]["domain"], "valid.example.com");
+        assert_eq!(sources.filter_stats.missing_url_filtered_count, 1);
+        assert_eq!(sources.filter_stats.untraceable_domain_filtered_count, 2);
+        assert_eq!(sources.filter_stats.total_filtered_count(), 3);
+    }
+
+    #[test]
+    fn normalize_sources_filters_stale_sources_and_reports_count() {
+        let payload = json!({
+            "sources": [
+                {
+                    "title": "过期政策",
+                    "url": "https://policy.example.com/old",
+                    "snippet": "旧政策。",
+                    "published_at": "2000-01-01"
+                },
+                {
+                    "title": "新政策",
+                    "url": "https://policy.example.com/new",
+                    "snippet": "新政策。",
+                    "published_at": "2999-01-01T00:00:00Z"
+                }
+            ]
+        });
+
+        let sources = normalize_sources(&payload, 6, 30);
+
+        assert_eq!(sources.sources.len(), 1);
+        assert_eq!(sources.sources[0]["title"], "新政策");
+        assert_eq!(sources.filter_stats.stale_filtered_count, 1);
+    }
+
+    #[test]
+    fn normalize_sources_respects_max_results_limit() {
+        let payload = json!({
+            "results": [
+                {"title": "A", "url": "https://a.example.com/1"},
+                {"title": "B", "url": "https://b.example.com/1"},
+                {"title": "C", "url": "https://c.example.com/1"}
+            ]
+        });
+
+        let sources = normalize_sources(&payload, 2, 30);
+
+        assert_eq!(sources.sources.len(), 2);
+        assert_eq!(sources.sources[0]["title"], "A");
+        assert_eq!(sources.sources[1]["title"], "B");
+    }
+
+    #[test]
+    fn normalize_sources_reports_all_filter_reasons() {
+        let payload = json!({
+            "items": [
+                {"title": "没有 URL"},
+                {"title": "本地地址", "url": "http://localhost/search"},
+                {
+                    "title": "旧来源",
+                    "url": "https://old.example.com/a",
+                    "published_at": "2000-01-01"
+                },
+                {"title": "有效来源", "url": "https://valid.example.com/a"},
+                {"title": "重复来源", "url": "https://valid.example.com/a/"}
+            ]
+        });
+
+        let sources = normalize_sources(&payload, 6, 30);
+
+        assert_eq!(sources.sources.len(), 1);
+        assert_eq!(sources.filter_stats.missing_url_filtered_count, 1);
+        assert_eq!(sources.filter_stats.untraceable_domain_filtered_count, 1);
+        assert_eq!(sources.filter_stats.stale_filtered_count, 1);
+        assert_eq!(sources.filter_stats.duplicate_filtered_count, 1);
+        assert_eq!(sources.filter_stats.total_filtered_count(), 4);
     }
 }
