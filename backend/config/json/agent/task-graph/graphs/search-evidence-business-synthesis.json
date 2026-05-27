@@ -70,7 +70,9 @@
       "role": "search",
       "title": "搜索证据",
       "objective": "通过搜索 skill 获取用户要求的公开来源、竞品价格、平台规则或实时趋势证据，并整理 evidence_packet：intent、query、search_strength、sources、usable_claims、gaps、confidence。只做证据层，不替业务岗位下方案：{{task}}",
+      "llm_usage": "fast",
       "skill_autosuggest": true,
+      "timeout_sec": 35,
       "max_attempts": 1,
       "acceptance": [
         "必须尝试匹配最具体的 search skill，例如竞品价格走 search_competitor，平台规则走 search_platform_policy。",
@@ -87,7 +89,9 @@
     "objective": "基于上游搜索证据回答用户原始业务问题：{{task}}。先给业务结论、建议或定价判断，再用搜索证据包里的 usable_claims、gaps、confidence 支撑判断；搜索来源只能作为依据区，不得覆盖业务答案。若证据不足，要明确哪些判断只能作为低置信参考，并给下一步核验动作。",
     "depends_on": "$all_non_final",
     "max_attempts": 1,
+    "llm_usage": "fast",
     "skill_autosuggest": false,
+    "timeout_sec": 35,
     "acceptance": [
       "最终回答必须包含业务结论或可执行建议，而不是只列来源。",
       "必须区分搜索证据、业务判断、证据缺口和下一步核验。",

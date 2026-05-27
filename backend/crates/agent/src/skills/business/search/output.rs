@@ -105,8 +105,15 @@ pub(super) fn deferred_search_output(
     adapter: &SearchAdapterConfig,
 ) -> SkillOutcome {
     let readiness = adapter.readiness();
-    let evidence_packet =
-        build_search_evidence_packet(skill_id, &plan, &[], 0, 0.0, Some(SEARCH_DEGRADED_REASON));
+    let evidence_packet = build_search_evidence_packet(
+        skill_id,
+        &plan,
+        &[],
+        0,
+        0.0,
+        "adapter_required",
+        Some(SEARCH_DEGRADED_REASON),
+    );
     SkillOutcome::new(json!({
         "status": "deferred",
         "adapter_status": "adapter_required",
@@ -178,6 +185,7 @@ pub(super) fn degraded_search_output(
         &[],
         stale_filtered_count,
         0.0,
+        "degraded",
         Some(&reason),
     );
     SkillOutcome::new(json!({
@@ -297,6 +305,7 @@ pub(super) fn live_search_output(
         &sources,
         source_set.stale_filtered_count,
         confidence,
+        "live",
         None,
     );
 
@@ -359,7 +368,7 @@ pub(super) fn live_search_output(
 mod tests {
     use serde_json::json;
 
-    use super::{SearchPlan, degraded_search_output, live_search_output};
+    use super::{SearchPlan, deferred_search_output, degraded_search_output, live_search_output};
     use crate::skills::SearchAdapterConfig;
 
     fn adapter() -> SearchAdapterConfig {
@@ -409,6 +418,8 @@ mod tests {
             .expect("evidence packet should exist");
 
         assert_eq!(packet["intent"], "competitor_price_or_benchmark");
+        assert_eq!(packet["adapter_status"], "live");
+        assert_eq!(packet["source_state"], "has_reliable_sources");
         assert_eq!(packet["search_strength"], "standard");
         assert_eq!(packet["confidence"], 0.72);
         assert_eq!(packet["sources"].as_array().unwrap().len(), 1);
@@ -444,6 +455,8 @@ mod tests {
             .expect("evidence packet should exist");
 
         assert_eq!(packet["intent"], "platform_policy_or_compliance");
+        assert_eq!(packet["adapter_status"], "degraded");
+        assert_eq!(packet["source_state"], "no_reliable_sources");
         assert_eq!(packet["confidence"], 0.0);
         assert!(packet["gaps"].as_array().unwrap().iter().any(|gap| {
             gap.as_str()
@@ -456,6 +469,42 @@ mod tests {
                 .unwrap()
                 .iter()
                 .any(|gap| gap.as_str().unwrap_or_default().contains("已过滤 2 条"))
+        );
+    }
+
+    #[test]
+    fn deferred_search_output_marks_adapter_required_in_evidence_packet() {
+        let plan = SearchPlan::new(
+            "校园冷萃咖啡",
+            "校园冷萃咖啡 价格 定价 价位 售价 2026",
+            "general",
+            30,
+        );
+
+        let outcome = deferred_search_output(
+            "search_competitor",
+            "校园冷萃咖啡".to_string(),
+            plan,
+            &SearchAdapterConfig::default(),
+        );
+        let packet = outcome
+            .output
+            .get("evidence_packet")
+            .expect("evidence packet should exist");
+
+        assert_eq!(packet["adapter_status"], "adapter_required");
+        assert_eq!(packet["source_state"], "adapter_required");
+        assert_eq!(packet["confidence"], 0.0);
+        assert!(packet["gaps"].as_array().unwrap().iter().any(|gap| {
+            gap.as_str()
+                .unwrap_or_default()
+                .contains("本次没有可采信公开来源")
+        }));
+        assert!(
+            packet["usage"]
+                .as_str()
+                .unwrap_or_default()
+                .contains("不能编造来源")
         );
     }
 }

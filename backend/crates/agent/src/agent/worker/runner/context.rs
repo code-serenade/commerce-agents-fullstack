@@ -72,6 +72,12 @@ fn build_context(
                 skill_autosuggest.to_string(),
             );
         }
+        if let Some(timeout_sec) = assignment.timeout_sec {
+            metadata.insert(
+                "assignment.timeout_sec".to_string(),
+                timeout_sec.to_string(),
+            );
+        }
         metadata.insert(
             "assignment.input_count".to_string(),
             assignment.inputs.len().to_string(),
@@ -113,6 +119,21 @@ fn build_context(
                             input.node_id.0
                         ),
                         content: packet.to_string(),
+                        reliability: 1.0,
+                    })
+            }));
+            facts.extend(input.diagnostics.iter().filter_map(|diagnostic| {
+                if diagnostic.kind != "search_evidence" {
+                    return None;
+                }
+                serde_json::to_string(&diagnostic.fields)
+                    .ok()
+                    .map(|content| Fact {
+                        source: format!(
+                            "worker.assignment.input.{}.search_diagnostic",
+                            input.node_id.0
+                        ),
+                        content,
                         reliability: 1.0,
                     })
             }));
@@ -285,18 +306,40 @@ fn extend_named_context_fact(
 #[cfg(test)]
 mod tests {
     use super::build_cognition_input;
+    use std::collections::BTreeMap;
+
     use crate::{
         agent::worker::{Task, TaskMemory, WorkerPhase},
         core::protocol::{
             AgentId, MessageContext, RoleWorkOutput, TaskGraphId, TaskId, TaskNodeId,
-            WorkerAssignment, WorkerId, WorkerReport, WorkerReportStatus,
+            WorkerAssignment, WorkerDiagnostic, WorkerId, WorkerReport, WorkerReportStatus,
         },
         roles::{RoleId, RoleProfile},
     };
 
     #[test]
     fn assignment_input_search_evidence_packet_becomes_context_fact() {
-        let packet = r#"{"intent":"competitor_price_or_benchmark","usable_claims":["competitor prices cluster at 12-19 CNY"],"gaps":[],"confidence":0.72}"#;
+        let packet = r#"{"intent":"competitor_price_or_benchmark","adapter_status":"live","source_state":"has_reliable_sources","usable_claims":["competitor prices cluster at 12-19 CNY"],"gaps":[],"confidence":0.72}"#;
+        let diagnostics = vec![WorkerDiagnostic {
+            kind: "search_evidence".to_string(),
+            source: "search_competitor".to_string(),
+            fields: BTreeMap::from([
+                ("skill".to_string(), "search_competitor".to_string()),
+                ("adapter_status".to_string(), "live".to_string()),
+                (
+                    "source_state".to_string(),
+                    "has_reliable_sources".to_string(),
+                ),
+                (
+                    "intent".to_string(),
+                    "competitor_price_or_benchmark".to_string(),
+                ),
+                ("sources".to_string(), "2".to_string()),
+                ("usable_claims".to_string(), "1".to_string()),
+                ("gaps".to_string(), "0".to_string()),
+                ("confidence".to_string(), "0.72".to_string()),
+            ]),
+        }];
         let search_report = WorkerReport {
             graph_id: TaskGraphId("graph-search".to_string()),
             node_id: TaskNodeId("search".to_string()),
@@ -312,6 +355,7 @@ mod tests {
             evidence: vec![format!("search_evidence_packet:{packet}")],
             risks: Vec::new(),
             open_questions: Vec::new(),
+            diagnostics,
             status: WorkerReportStatus::Completed,
         };
         let task = Task {
@@ -330,6 +374,7 @@ mod tests {
                 objective: "Synthesize search evidence into an action plan.".to_string(),
                 llm_usage: None,
                 skill_autosuggest: Some(false),
+                timeout_sec: None,
                 inputs: vec![search_report],
                 rework_instruction: None,
             }),
@@ -358,8 +403,23 @@ mod tests {
                 fact.source == "worker.assignment.input.search.evidence_packet"
                     && fact.content.contains("usable_claims")
                     && fact.content.contains("competitor_price_or_benchmark")
+                    && fact.content.contains("\"adapter_status\":\"live\"")
+                    && fact
+                        .content
+                        .contains("\"source_state\":\"has_reliable_sources\"")
             }),
             "search evidence packet should be available as a downstream cognition fact"
+        );
+        assert!(
+            input.context.facts.iter().any(|fact| {
+                fact.source == "worker.assignment.input.search.search_diagnostic"
+                    && fact.content.contains("\"adapter_status\":\"live\"")
+                    && fact
+                        .content
+                        .contains("\"source_state\":\"has_reliable_sources\"")
+                    && fact.content.contains("competitor_price_or_benchmark")
+            }),
+            "typed search diagnostics should be available as a downstream cognition fact"
         );
     }
 }

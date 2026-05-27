@@ -174,6 +174,7 @@ mod tests {
             evidence: vec!["外层依据".to_string()],
             risks: vec!["外层风险".to_string()],
             open_questions: vec!["外层问题".to_string()],
+            diagnostics: Vec::new(),
         };
         let task = Task {
             id: "task-1".to_string(),
@@ -213,6 +214,7 @@ mod tests {
             evidence: vec![],
             risks: vec![],
             open_questions: vec![],
+            diagnostics: Vec::new(),
         };
         let task = Task {
             id: "task-review".to_string(),
@@ -282,6 +284,7 @@ mod tests {
             evidence: vec![],
             risks: vec![],
             open_questions: vec![],
+            diagnostics: Vec::new(),
         };
         let task = Task {
             id: "task-campaign".to_string(),

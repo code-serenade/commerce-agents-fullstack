@@ -4,16 +4,20 @@ import { CommercePanel } from "../../commerce/components/commerce-ui"
 import { capabilityIcons, laneIcons } from "./agent-capability-icons"
 
 export function AgentCapabilityCorePanel({
+  descriptionKey = "agentCapabilities.capabilities.description",
   items,
+  titleKey = "agentCapabilities.capabilities.title",
 }: {
+  descriptionKey?: string
   items: Array<{ title: string; description: string }>
+  titleKey?: string
 }) {
   const { t } = useTranslation()
 
   return (
     <CommercePanel
-      title={t("agentCapabilities.capabilities.title")}
-      description={t("agentCapabilities.capabilities.description")}
+      title={t(titleKey)}
+      description={t(descriptionKey)}
     >
       <div className="grid gap-3 sm:grid-cols-2">
         {items.map((item, index) => {
@@ -28,7 +32,7 @@ export function AgentCapabilityCorePanel({
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-foreground">
                   <Icon className="size-4" />
                 </span>
-                <h2 className="truncate text-sm font-semibold text-foreground">
+                <h2 className="min-w-0 text-sm/5 font-semibold text-foreground">
                   {item.title}
                 </h2>
               </div>

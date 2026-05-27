@@ -72,12 +72,20 @@ const FUNCTION_NAV_ROUTE_PATHS = [
   "/workspaces",
 ] as const
 
+const NEW_CONVERSATION_KEY = "new-conversation"
+
 const STUDENT_NAV_ITEMS: Array<{
   key: string
   icon: LucideIcon
   labelKey: string
   path: string
 }> = [
+  {
+    key: "getting-started",
+    icon: BookOpenText,
+    labelKey: "agentChat.shell.navigation.gettingStarted",
+    path: "/agent-capabilities",
+  },
   {
     key: "smart-ops",
     icon: Sparkles,
@@ -126,12 +134,6 @@ const STUDENT_NAV_ITEMS: Array<{
     labelKey: "agentChat.shell.navigation.deliverables",
     path: "/agent-output",
   },
-  {
-    key: "capabilities",
-    icon: BookOpenText,
-    labelKey: "agentChat.shell.navigation.capabilities",
-    path: "/agent-capabilities",
-  },
 ]
 
 export function AgentChatShell({ children }: AgentChatShellProps) {
@@ -176,6 +178,8 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   const functionNavOpen = functionNavRouteActive
     ? functionNavCollapsedPath !== location.pathname
     : functionNavManualOpen
+  const isNewConversationActive =
+    isQuestionRoute && chat.conversationId === null
 
   const handleLogout = () => {
     localStorage.removeItem("token")
@@ -208,6 +212,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   const openNewConversation = () => {
     chat.startNewConversation()
     navigateTo("/commerce")
+    setHistoryOpen(true)
   }
 
   const openConversation = (conversationId: string) => {
@@ -241,14 +246,86 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   )
   const studentNavEntries = STUDENT_NAV_ITEMS.map((item) => {
     const Icon = item.icon
+    const isSmartOpsEntry = item.path === "/commerce"
+    const active =
+      isRouteActive(item.path) &&
+      !(isSmartOpsEntry && isNewConversationActive)
+
     return {
       key: item.key,
       icon: <Icon />,
       label: t(item.labelKey),
-      active: isRouteActive(item.path),
+      active,
       onSelect: () => navigateTo(item.path),
     }
   })
+  const isStudentNavItemActive = (path: string) => {
+    return (
+      isRouteActive(path) &&
+      !(path === "/commerce" && isNewConversationActive)
+    )
+  }
+  const recentSectionItems = [
+    {
+      key: NEW_CONVERSATION_KEY,
+      icon: <Edit3 />,
+      label: t("agentChat.sidebar.newChat"),
+      active: isNewConversationActive,
+      onSelect: openNewConversation,
+    },
+    ...(recentConversations.length
+      ? [
+          ...recentConversations.map((conversation) => ({
+            key: conversation.id,
+            icon: <MessageSquareText />,
+            label: conversation.title,
+            active:
+              isQuestionRoute && conversation.id === chat.conversationId,
+            onSelect: () => openConversation(conversation.id),
+            action: (
+              <ConversationActionMenu
+                actionLabel={t("pages:agentChat.conversation.actionLabel")}
+                deleteLabel={t("common:actions.delete")}
+                disabled={chat.isStreaming}
+                onDelete={() => chat.deleteConversation(conversation.id)}
+                onRename={() => openRenameDialog(conversation)}
+                renameLabel={t("common:actions.rename")}
+              />
+            ),
+          })),
+          ...(hiddenConversationCount > 0
+            ? [
+                {
+                  key: "more-recents",
+                  icon: <MoreHorizontal />,
+                  label: t("agentChat.sidebar.moreHistory", {
+                    count: Math.min(5, hiddenConversationCount),
+                  }),
+                  onSelect: () =>
+                    setVisibleConversationCount((current) =>
+                      Math.min(current + 5, chat.conversations.length)
+                    ),
+                },
+              ]
+            : visibleConversationCount > 5 && chat.conversations.length > 5
+              ? [
+                  {
+                    key: "less-recents",
+                    icon: <MoreHorizontal />,
+                    label: t("agentChat.sidebar.lessHistory"),
+                    onSelect: () => setVisibleConversationCount(5),
+                  },
+                ]
+              : []),
+        ]
+      : [
+          {
+            key: "empty-recents",
+            icon: <MessageSquareText />,
+            label: t("agentChat.sidebar.empty"),
+          },
+        ]),
+  ]
   const sections: SidebarShellSection[] = [
     {
       key: "recents",
@@ -271,58 +348,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
         ? t("agentChat.sidebar.collapseHistory")
         : t("agentChat.sidebar.expandHistory"),
       onOpenChange: setHistoryOpen,
-      items: recentConversations.length
-        ? [
-            ...recentConversations.map((conversation) => ({
-              key: conversation.id,
-              icon: <MessageSquareText />,
-              label: conversation.title,
-              active:
-                isQuestionRoute && conversation.id === chat.conversationId,
-              onSelect: () => openConversation(conversation.id),
-              action: (
-                <ConversationActionMenu
-                  actionLabel={t("pages:agentChat.conversation.actionLabel")}
-                  deleteLabel={t("common:actions.delete")}
-                  disabled={chat.isStreaming}
-                  onDelete={() => chat.deleteConversation(conversation.id)}
-                  onRename={() => openRenameDialog(conversation)}
-                  renameLabel={t("common:actions.rename")}
-                />
-              ),
-            })),
-            ...(hiddenConversationCount > 0
-              ? [
-                  {
-                    key: "more-recents",
-                    icon: <MoreHorizontal />,
-                    label: t("agentChat.sidebar.moreHistory", {
-                      count: Math.min(5, hiddenConversationCount),
-                    }),
-                    onSelect: () =>
-                      setVisibleConversationCount((current) =>
-                        Math.min(current + 5, chat.conversations.length)
-                      ),
-                  },
-                ]
-              : visibleConversationCount > 5 && chat.conversations.length > 5
-                ? [
-                    {
-                      key: "less-recents",
-                      icon: <MoreHorizontal />,
-                      label: t("agentChat.sidebar.lessHistory"),
-                      onSelect: () => setVisibleConversationCount(5),
-                    },
-                  ]
-                : []),
-          ]
-        : [
-            {
-              key: "empty-recents",
-              icon: <MessageSquareText />,
-              label: t("agentChat.sidebar.empty"),
-            },
-          ],
+      items: recentSectionItems,
     },
     {
       key: "workspace",
@@ -351,13 +377,13 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       key: "recents",
       icon: <MessageSquareText />,
       label: t("agentChat.shell.sections.recents"),
-      active: chat.conversationId !== null,
+      active: isQuestionRoute,
       subItems: [
         {
           key: "new-chat",
           label: t("agentChat.sidebar.newChat"),
           href: "/commerce",
-          active: !chat.conversationId && isRouteActive("/commerce"),
+          active: isNewConversationActive,
           onSelect: openNewConversation,
         },
         ...(mobileConversationItems.length
@@ -376,12 +402,14 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       key: "workspace",
       icon: <Sparkles />,
       label: t("agentChat.shell.sections.workspace"),
-      active: STUDENT_NAV_ITEMS.some((item) => isRouteActive(item.path)),
+      active: STUDENT_NAV_ITEMS.some((item) =>
+        isStudentNavItemActive(item.path)
+      ),
       subItems: STUDENT_NAV_ITEMS.map((item) => ({
         key: item.key,
         label: t(item.labelKey),
         href: item.path,
-        active: isRouteActive(item.path),
+        active: isStudentNavItemActive(item.path),
         onSelect: () => navigateTo(item.path),
       })),
     },
@@ -501,7 +529,7 @@ function isAgentChatRouteActive(pathname: string, path: string) {
 
 function getRouteTitleKey(pathname: string) {
   if (pathname === "/agent-capabilities") {
-    return "agentChat.shell.navigation.capabilities"
+    return "agentChat.shell.navigation.gettingStarted"
   }
   if (pathname === "/products") {
     return "agentChat.shell.navigation.productBoard"

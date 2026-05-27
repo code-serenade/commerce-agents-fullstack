@@ -75,7 +75,18 @@ task graph 节点和动态角色配置可以用 `llm_usage` 覆盖默认 worker 
 
 轻量协作图还可以在节点或动态角色配置里设置 `skill_autosuggest = false`，用于跳过自动技能建议，减少没有外部资料或工具适配器时的无效调用。
 
+`[agent_runtime]` 可配置交互式 worker 单节点 LLM 思考超时：
+
+```toml
+[agent_runtime]
+worker_cognition_timeout_sec = 45
+```
+
+task graph 节点、动态角色和最终节点也可以配置 `timeout_sec` 覆盖本节点超时。节点超时只约束 worker cognition 等待，不改变 session 总超时；超时后 worker 必须返回结构化 `WorkerReportStatus::TimedOut`，Commander 继续发出 `task_node_failed`、`task_graph_finished` 和过程缺口，不能让 SSE 一直等待到整轮 session 超时。
+
 模型用途路由必须在 `agent` crate 内处理，web-server 不维护第二套 LLM registry，也不在 handler 中创建模型 client。`vision` 未配置时，带图片输入的请求必须返回明确错误，不允许降级成文本模型假装看图。
+
+当 OpenAI-compatible provider 对所选模型返回 401/403、`Forbidden` 或 `AccessDenied` 时，LLM routing 必须把错误归类为 `llm_access_denied`。worker report 保持 `status=failed`，但 `evidence` 要包含 `failure_kind:llm_access_denied`，最终用户回答要明确提示“模型服务配置不可用，请检查 `services.toml` 的 `[agent_llm_usage]`、模型名和 API Key 权限”。这类错误不应被包装成“用户问题不清楚”或普通空回答，也不得在 SSE、日志摘要或最终回答中暴露 API key、provider request id 或完整 provider 原始错误。
 
 ---
 

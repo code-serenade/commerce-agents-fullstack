@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use super::{MemoryCompactionPolicy, MemoryWriteOutcome};
 use crate::core::protocol::{
     AgentId, Evaluation, RoleWorkOutput, SessionId, TaskGraphId, TaskGraphProcessSummary, TaskId,
-    TaskNodeId, UserId, WorkerId, WorkerReportStatus, WorkspaceId,
+    TaskNodeId, UserId, WorkerDiagnostic, WorkerId, WorkerReportStatus, WorkspaceId,
 };
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -92,6 +92,8 @@ pub struct WorkerDetail {
     pub evidence: Vec<String>,
     pub risks: Vec<String>,
     pub open_questions: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub diagnostics: Vec<WorkerDiagnostic>,
     pub evaluation: Option<Evaluation>,
 }
 

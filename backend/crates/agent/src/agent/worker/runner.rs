@@ -14,5 +14,5 @@ mod skill_requests;
 mod types;
 mod util;
 
-pub use execution::Worker;
+pub use execution::{Worker, WorkerRuntimeConfig};
 pub use types::BoxedAction;

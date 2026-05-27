@@ -58,6 +58,15 @@ AI 负责：
 
 真实 API key 只写在部署机器配置里，不要提交到仓库。完整字段说明见 `API_DOCS/common.md`。
 
+Agent worker 还有单节点思考超时保护，可在 `backend/config/services.toml` 配置：
+
+```toml
+[agent_runtime]
+worker_cognition_timeout_sec = 45
+```
+
+单个节点超时后会返回结构化失败过程，避免前端 SSE 一直等待到整轮 session 超时。
+
 ## 常用命令
 
 本项目使用 `cargo manage` 管理本地前后端服务。

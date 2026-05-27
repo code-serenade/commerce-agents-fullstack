@@ -1,6 +1,7 @@
-import { Link } from "react-router"
 import { useTranslation } from "react-i18next"
+import { useNavigate } from "react-router"
 import { Button } from "@workspace/ui-components"
+import { useAgentChatContext } from "../agent-chat/context/use-agent-chat-context"
 import {
   CommerceBody,
   CommercePageHeader,
@@ -16,6 +17,8 @@ import {
 
 export default function AgentCapabilitiesPage() {
   const { t } = useTranslation()
+  const chat = useAgentChatContext()
+  const navigate = useNavigate()
   const capabilities = t("agentCapabilities.capabilities.items", {
     returnObjects: true,
   }) as Array<{ title: string; description: string }>
@@ -25,6 +28,16 @@ export default function AgentCapabilitiesPage() {
   const flow = t("agentCapabilities.flow.items", {
     returnObjects: true,
   }) as string[]
+  const modes = t("agentCapabilities.modes.items", {
+    returnObjects: true,
+  }) as Array<{ title: string; description: string }>
+  const qa = t("agentCapabilities.qa.items", {
+    returnObjects: true,
+  }) as Array<{ question: string; answer: string }>
+  const startNewConversation = () => {
+    chat.startNewConversation()
+    navigate("/commerce")
+  }
 
   return (
     <CommerceSurface>
@@ -33,11 +46,9 @@ export default function AgentCapabilitiesPage() {
         title={t("agentCapabilities.header.title")}
         description={t("agentCapabilities.header.description")}
         actions={
-          <Link to="/commerce">
-            <Button size="sm" variant="outline">
-              {t("agentCapabilities.header.action")}
-            </Button>
-          </Link>
+          <Button size="sm" variant="outline" onClick={startNewConversation}>
+            {t("agentCapabilities.header.action")}
+          </Button>
         }
       />
       <CommerceBody>
@@ -50,6 +61,22 @@ export default function AgentCapabilitiesPage() {
         <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
           <AgentCapabilityCorePanel items={capabilities} />
           <AgentCapabilityFlowPanel items={flow} />
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
+          <AgentCapabilityCorePanel
+            descriptionKey="agentCapabilities.modes.description"
+            items={modes}
+            titleKey="agentCapabilities.modes.title"
+          />
+          <AgentCapabilityCorePanel
+            descriptionKey="agentCapabilities.qa.description"
+            items={qa.map((item) => ({
+              title: item.question,
+              description: item.answer,
+            }))}
+            titleKey="agentCapabilities.qa.title"
+          />
         </div>
 
         <AgentCapabilityLanePanel items={lanes} />

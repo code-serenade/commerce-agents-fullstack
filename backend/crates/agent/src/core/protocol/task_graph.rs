@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
 
 use crate::protocol::{TaskId, WorkerId};
@@ -26,6 +28,8 @@ pub struct TaskNode {
     pub llm_usage: Option<String>,
     #[serde(default)]
     pub skill_autosuggest: Option<bool>,
+    #[serde(default)]
+    pub timeout_sec: Option<u64>,
     pub input_refs: Vec<TaskNodeId>,
     pub acceptance: Vec<String>,
     pub max_attempts: u8,
@@ -46,6 +50,8 @@ pub struct WorkerAssignment {
     pub llm_usage: Option<String>,
     #[serde(default)]
     pub skill_autosuggest: Option<bool>,
+    #[serde(default)]
+    pub timeout_sec: Option<u64>,
     pub inputs: Vec<WorkerReport>,
     pub rework_instruction: Option<String>,
 }
@@ -62,7 +68,17 @@ pub struct WorkerReport {
     pub evidence: Vec<String>,
     pub risks: Vec<String>,
     pub open_questions: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub diagnostics: Vec<WorkerDiagnostic>,
     pub status: WorkerReportStatus,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkerDiagnostic {
+    pub kind: String,
+    pub source: String,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub fields: BTreeMap<String, String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -80,6 +96,7 @@ pub struct RoleWorkOutput {
 pub enum WorkerReportStatus {
     Completed,
     Failed,
+    TimedOut,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

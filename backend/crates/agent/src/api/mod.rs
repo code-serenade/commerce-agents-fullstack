@@ -10,8 +10,16 @@ pub use crate::{
         InMemoryMemoryStore, MemoryBudget, MemoryBundle, MemoryCompactionPolicy,
         MemoryCompactionStats, MemoryCompactor, MemoryId, MemoryKind, MemoryQuery, MemoryRecord,
         MemoryScope, MemorySource, MemoryStore, MemoryWriteOutcome, NoopMemoryStore,
-        RoleCognitionFactory, RoleMemorySummary, SessionEventRx, SessionEventTx, SessionResult,
+        RoleCognitionFactory, RoleMemorySummary, SessionEventContextPackFailure,
+        SessionEventDiagnosticAudit, SessionEventDiagnosticConsistencyAudit,
+        SessionEventDiagnosticConsistencyIssue, SessionEventDiagnosticConsistencyOptions,
+        SessionEventLegacyFailureMarker, SessionEventRoleAudit, SessionEventRx,
+        SessionEventSearchDiagnostic, SessionEventSkillFailure, SessionEventTx, SessionResult,
         SessionRuntimeConfig, SessionSnapshot, TaskGraphMemorySummary, WorkerDetail,
+        audit_diagnostic_consistency, audit_session_event_diagnostic_consistency,
+        audit_session_event_diagnostics, audit_session_event_roles,
+        audit_session_event_roles_against, render_session_event_diagnostic_audit,
+        render_session_event_diagnostic_consistency_audit, render_session_event_role_audit,
     },
     cognition::{
         Cognition, CognitionEngine, CognitionFailure, CognitionInput, CognitionOutput,
@@ -20,8 +28,8 @@ pub use crate::{
     core::protocol::{
         AgentId, DispatchContextBudget, DispatchPlannedStep, SessionEvent, SessionId,
         TaskGraphHandoff, TaskGraphId, TaskGraphProcessGap, TaskGraphProcessPanel,
-        TaskGraphProcessRole, TaskGraphProcessSummary, TaskId, TaskNodeId, UserId, WorkerId,
-        WorkerReportStatus, WorkspaceId,
+        TaskGraphProcessRole, TaskGraphProcessSummary, TaskId, TaskNodeId, UserId,
+        WorkerDiagnostic, WorkerId, WorkerReportStatus, WorkspaceId,
     },
     llm_routing::{AgentLlmCfg, AgentLlmUsageCfg},
     roles::{

@@ -152,6 +152,23 @@ describe("agent runtime options", () => {
     })
   })
 
+  it("preserves explicit manual support roles when changing the primary role", () => {
+    expect(
+      setRuntimePrimaryRole(
+        {
+          ...manualSelection,
+          primaryRole: "data",
+          selectedRoles: ["data", "service", "accounting", "engineering"],
+        },
+        "search"
+      )
+    ).toEqual({
+      ...manualSelection,
+      primaryRole: "search",
+      selectedRoles: ["search", "data", "service", "accounting", "engineering"],
+    })
+  })
+
   it("keeps one selected role in single-role assignment", () => {
     const single = setRuntimeCollaborationMode(manualSelection, "single")
 

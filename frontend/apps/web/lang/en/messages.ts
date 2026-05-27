@@ -1047,7 +1047,7 @@ const messages = {
       action: "Sign in",
     },
     sidebar: {
-      newChat: "New task",
+      newChat: "New chat",
       search: "Search history",
       recents: "Recents",
       chat: "AI training assistant",
@@ -1074,7 +1074,8 @@ const messages = {
       },
       navigation: {
         newChat: "New chat",
-        capabilities: "How to use this system",
+        gettingStarted: "Getting started",
+        capabilities: "Getting started",
         smartOps: "Ask AI for training",
         materials: "Upload and manage materials",
         productBoard: "Product and material setup",
@@ -1302,7 +1303,7 @@ const messages = {
           "The configured Doubao model is used by default. If it is not configured, only available models are shown.",
         learning: "Explanation level",
         collaboration: "Agent collaboration",
-        routingMode: "Question handling",
+        routingMode: "Use ecommerce agents for non-ecommerce questions?",
         roleMode: "Agent collaboration",
         roles: "Collaborating agents",
         singleRole: "Selected agent",
@@ -1349,12 +1350,14 @@ const messages = {
         },
         routingModes: {
           commander: {
-            label: "Analyze as ecommerce training",
-            description: "Prioritize product, campaign, data, and review context",
+            label: "Yes, analyze as ecommerce training",
+            description:
+              "Whenever possible, answer through product, campaign, data, and review angles",
           },
           fast: {
-            label: "Identify quickly, then answer",
-            description: "Answer simple questions directly; route complex ones",
+            label: "No, judge the question first",
+            description:
+              "Answer unrelated questions normally; use ecommerce agents only when clearly relevant",
           },
         },
         learningLevels: {
@@ -1375,7 +1378,8 @@ const messages = {
           chat: { name: "Chat assistant" },
           ops: { name: "Operations strategist" },
           data: { name: "Data analyst" },
-          service: { name: "Customer success specialist" },
+          search: { name: "Research assistant" },
+          service: { name: "Customer experience specialist" },
           creative: { name: "Content creative" },
           engineering: { name: "Technical architect" },
           accounting: { name: "Finance analyst" },
@@ -1386,6 +1390,7 @@ const messages = {
         capabilityLabels: {
           "role.chat": "chat role",
           "role.ops": "ops role",
+          "role.search": "research role",
           "role.data": "data role",
           "role.service": "service role",
           "role.creative": "creative role",
@@ -1396,6 +1401,7 @@ const messages = {
           "role.douyin_ads": "Douyin ads role",
           "chat.answer": "chat answer",
           "chat.clarification": "clarification",
+          "search.evidence": "search evidence",
           "knowledge.explanation": "knowledge explanation",
           "intent.classification": "intent classification",
           "ops.strategy": "ops strategy",
@@ -2648,28 +2654,28 @@ const messages = {
   agentCapabilities: {
     header: {
       eyebrow: "Training Guide",
-      title: "AI training capability guide",
+      title: "Getting started guide",
       description:
-        "This page explains how students prepare materials first, then use AI Q&A, product analysis, campaign planning, data diagnosis, and review reports around one ecommerce training task.",
-      action: "Open AI training assistant",
+        "Start here: complete one ecommerce AI training task by preparing materials, asking a question, choosing a mode, and saving the result.",
+      action: "Start a new chat",
     },
     principle: {
-      title: "How students use it",
+      title: "Start from the task, not the menu",
       description:
-        "Students do more than open a chat box. They prepare files and product materials first, ask around a training task, choose context, then store AI output as tasks, review records, and report materials.",
+        "When you are unsure where to begin, type your training goal in Ask AI for training. The system can choose materials, products, campaigns, agents, and deliverable style based on the question; the left navigation is for managing materials, products, tasks, and reports afterward.",
     },
     capabilities: {
-      title: "Core training capabilities",
+      title: "What each function does",
       description:
-        "These entries reuse existing real capabilities while the frontend organizes them into a student-facing learning and task flow.",
+        "These entries reuse existing real capabilities and explain them in the order students usually complete a training task.",
       items: [
         {
-          title: "File manager",
+          title: "Upload and manage materials",
           description:
             "Manage uploaded images, PDF, Word, Excel, and text materials in one place. Add common materials to the current conversation and select them for reading instead of uploading again.",
         },
         {
-          title: "Product materials",
+          title: "Product and material setup",
           description:
             "Uses products, materials, selling points, and competitors manually selected by the student. Without selection, the flow stays as ordinary training Q&A.",
         },
@@ -2711,9 +2717,9 @@ const messages = {
       ],
     },
     flow: {
-      title: "How one training task flows",
+      title: "Use these 6 steps first",
       description:
-        "The student-visible main flow should stay clear, continuous, and traceable.",
+        "Follow this order to finish a full round from question to submission materials.",
       items: [
         "The student first prepares images, PDF, Word, Excel, and text materials in the file manager or the composer Upload materials panel.",
         "The student creates a new conversation or opens a historical one, then enters a training question.",
@@ -2729,7 +2735,12 @@ const messages = {
         "The left navigation is not just a page menu. It exposes the most-used capability entries for students completing training tasks.",
       items: [
         {
-          title: "File manager",
+          title: "Getting started",
+          description:
+            "Understand how to use the system, choose modes, upload materials, and know where results are saved.",
+        },
+        {
+          title: "Materials",
           description:
             "Prepare and reuse images, PDF, Word, Excel, and text materials before deciding which materials enter the current conversation.",
         },
@@ -2752,6 +2763,64 @@ const messages = {
           title: "Tasks, review, and reports",
           description:
             "Carries training tasks, teacher review records, and final review reports.",
+        },
+      ],
+    },
+    modes: {
+      title: "How to choose modes",
+      description:
+        "Modes control answer length, explanation style, whether non-ecommerce questions should also use ecommerce agents, and which specialist agents participate.",
+      items: [
+        {
+          title: "Teaching mode",
+          description:
+            "Use this for beginners and classroom learning. The answer explains terms, reasoning, and follow-up questions in a teacher-like style.",
+        },
+        {
+          title: "Quick answer",
+          description:
+            "Use this when you only need a conclusion. The answer stays short while keeping the key reason and next action.",
+        },
+        {
+          title: "Rich execution",
+          description:
+            "Use this for homework, reports, and reviews. It gives fuller plans, tables, risks, and check items.",
+        },
+        {
+          title: "Use ecommerce agents for non-ecommerce questions?",
+          description:
+            "Choose Yes to pull questions into ecommerce training. Choose No to judge first and use ecommerce agents only when the question clearly fits.",
+        },
+        {
+          title: "Auto, single-agent, and multi-agent",
+          description:
+            "Auto is best when you are unsure who should answer. Single-agent forces one role. Multi-agent lets operations, data, creative, service, and other roles collaborate.",
+        },
+      ],
+    },
+    qa: {
+      title: "Common questions",
+      description: "These are the points first-time students most often miss.",
+      items: [
+        {
+          question: "What is the difference between Upload materials and the library?",
+          answer:
+            "The composer Upload materials panel is a quick check before this answer. Upload and manage materials is the full library for long-term search, filtering, and reuse.",
+        },
+        {
+          question: "Why do I need to select materials after uploading?",
+          answer:
+            "This prevents AI from reading unrelated files. Only selected materials, products, and campaigns are sent as context for the current question.",
+        },
+        {
+          question: "How should I use new chat and history?",
+          answer:
+            "Use New chat to start a new training task. Use history to continue a previous task. One training topic per chat is easiest to review later.",
+        },
+        {
+          question: "When should I use search or the research assistant?",
+          answer:
+            "Use them when the question needs current platform trends, policy, competitors, or external evidence. The answer should explain the evidence source.",
         },
       ],
     },

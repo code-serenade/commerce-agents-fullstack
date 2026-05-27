@@ -24,6 +24,8 @@ pub struct AgentRuntimeCfg {
     pub llm_usage: AgentLlmUsageCfg,
     #[serde(default)]
     pub search: SearchAdapterConfig,
+    #[serde(default = "default_worker_cognition_timeout_sec")]
+    pub worker_cognition_timeout_sec: u64,
 }
 
 impl AgentRuntimeCfg {
@@ -33,8 +35,13 @@ impl AgentRuntimeCfg {
             default_llm: None,
             llm_usage: AgentLlmUsageCfg::default(),
             search: SearchAdapterConfig::default(),
+            worker_cognition_timeout_sec: default_worker_cognition_timeout_sec(),
         }
     }
+}
+
+fn default_worker_cognition_timeout_sec() -> u64 {
+    45
 }
 
 pub fn build_agent_manager(config: AgentRuntimeCfg) -> Result<AgentManager> {
@@ -75,6 +82,8 @@ pub fn build_agent_manager(config: AgentRuntimeCfg) -> Result<AgentManager> {
 
     let mut manager_config = AgentManagerConfig::new_role_aware(commander, worker);
     manager_config.runtime.response_timeout = Duration::from_secs(900);
+    manager_config.runtime.worker_cognition_timeout =
+        Duration::from_secs(config.worker_cognition_timeout_sec.max(1));
     manager_config.runtime.commander_fast_route = true;
     manager_config.runtime.commander_fast_route_min_score = 2.0;
     manager_config.runtime.search = search;

@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use tracing::{debug, warn};
 
 use super::{Commander, CommanderPhase, CommanderState, next_message_id, primary_route_score};
@@ -10,7 +8,8 @@ use crate::{
         runner::{output::direct_chat_report_output, route::primary_graph_role},
     },
     core::protocol::{
-        AgentId, Message, MessageContext, Payload, SessionEvent, TaskGraph, WorkerAssignment,
+        AgentId, Message, MessageContext, Payload, RoleWorkOutput, SessionEvent, TaskGraph,
+        WorkerAssignment, WorkerDiagnostic, WorkerReport, WorkerReportStatus,
     },
     roles::RoleRoute,
 };
@@ -203,24 +202,9 @@ impl Commander {
                 .is_some_and(|value| value.split(',').map(str::trim).all(|role| role == "chat"))
     }
 
-    fn runnable_task_graph(&self, mut graph: TaskGraph) -> Option<TaskGraph> {
-        let available = graph
-            .nodes
-            .iter()
-            .filter(|node| {
-                self.session_context
-                    .get_worker_tx(&node.worker_id)
-                    .is_some()
-            })
-            .map(|node| node.id.clone())
-            .collect::<HashSet<_>>();
-        graph.nodes.retain(|node| available.contains(&node.id));
+    fn runnable_task_graph(&self, graph: TaskGraph) -> Option<TaskGraph> {
         if graph.nodes.is_empty() {
             return None;
-        }
-        for node in &mut graph.nodes {
-            node.input_refs
-                .retain(|input_ref| available.contains(input_ref));
         }
         Some(graph)
     }
@@ -254,6 +238,71 @@ impl Commander {
             }
             return;
         };
+        self.emit_and_apply_task_graph_report(&mut runtime, report, context);
+
+        self.schedule_task_graph_runtime(runtime).await;
+    }
+
+    async fn schedule_task_graph_runtime(&mut self, mut runtime: TaskGraphRuntime) {
+        loop {
+            if runtime.is_finished() {
+                self.finish_task_graph(runtime).await;
+                return;
+            }
+
+            let ready_nodes = runtime.ready_nodes();
+            if ready_nodes.is_empty() {
+                self.active_task_graph = Some(runtime);
+                return;
+            }
+
+            let mut had_inline_failure = false;
+            for node in ready_nodes {
+                self.emit_event(SessionEvent::TaskNodeReady {
+                    session_id: self.session_id_from_context(&self.current_context),
+                    graph_id: runtime.graph.graph_id.clone(),
+                    node_id: node.id.clone(),
+                    worker_id: node.worker_id.clone(),
+                });
+                let assignment = runtime.build_assignment(&node);
+                if self.dispatch_assignment_to_worker(assignment.clone()) {
+                    runtime.mark_running(&assignment);
+                    self.emit_event(SessionEvent::WorkerStarted {
+                        session_id: self.session_id_from_context(&self.current_context),
+                        worker_id: assignment.worker_id.clone(),
+                        task_id: assignment.task_id.clone(),
+                    });
+                    self.emit_event(SessionEvent::TaskNodeStarted {
+                        session_id: self.session_id_from_context(&self.current_context),
+                        graph_id: assignment.graph_id,
+                        node_id: assignment.node_id,
+                        worker_id: assignment.worker_id,
+                        attempt: assignment.attempt,
+                    });
+                } else {
+                    had_inline_failure = true;
+                    runtime
+                        .attempts
+                        .insert(node.id.clone(), node.max_attempts.max(assignment.attempt));
+                    let context = self.current_context.clone();
+                    let report = worker_unavailable_report(&assignment);
+                    self.emit_and_apply_task_graph_report(&mut runtime, report, &context);
+                }
+            }
+
+            if !had_inline_failure {
+                self.active_task_graph = Some(runtime);
+                return;
+            }
+        }
+    }
+
+    fn emit_and_apply_task_graph_report(
+        &mut self,
+        runtime: &mut TaskGraphRuntime,
+        report: WorkerReport,
+        context: &MessageContext,
+    ) {
         self.emit_event(SessionEvent::TaskNodeReported {
             session_id: self.session_id_from_context(context),
             graph_id: report.graph_id.clone(),
@@ -265,7 +314,26 @@ impl Commander {
         let worker_id = report.worker_id.clone();
         let node_id = report.node_id.clone();
         let outcome = runtime.apply_report(report);
+        let rework_attempt = runtime.attempts.get(&node_id).copied().unwrap_or(1) + 1;
+        self.emit_task_graph_evaluation_outcome(
+            context,
+            graph_id,
+            worker_id,
+            node_id,
+            rework_attempt,
+            outcome,
+        );
+    }
 
+    fn emit_task_graph_evaluation_outcome(
+        &mut self,
+        context: &MessageContext,
+        graph_id: crate::core::protocol::TaskGraphId,
+        worker_id: crate::core::protocol::WorkerId,
+        node_id: crate::core::protocol::TaskNodeId,
+        rework_attempt: u8,
+        outcome: EvaluationOutcome,
+    ) {
         match outcome {
             EvaluationOutcome::Passed(evaluation) => {
                 self.emit_event(SessionEvent::TaskNodeEvaluated {
@@ -283,7 +351,6 @@ impl Commander {
                 evaluation,
                 instruction,
             } => {
-                let attempt = runtime.attempts.get(&node_id).copied().unwrap_or(1) + 1;
                 self.emit_event(SessionEvent::TaskNodeEvaluated {
                     session_id: self.session_id_from_context(context),
                     graph_id: graph_id.clone(),
@@ -294,7 +361,7 @@ impl Commander {
                     graph_id,
                     node_id,
                     worker_id,
-                    attempt,
+                    attempt: rework_attempt,
                     instruction,
                 });
             }
@@ -313,43 +380,6 @@ impl Commander {
                 });
             }
         }
-
-        self.schedule_task_graph_runtime(runtime).await;
-    }
-
-    async fn schedule_task_graph_runtime(&mut self, mut runtime: TaskGraphRuntime) {
-        if runtime.is_finished() {
-            self.finish_task_graph(runtime).await;
-            return;
-        }
-
-        let ready_nodes = runtime.ready_nodes();
-        for node in ready_nodes {
-            self.emit_event(SessionEvent::TaskNodeReady {
-                session_id: self.session_id_from_context(&self.current_context),
-                graph_id: runtime.graph.graph_id.clone(),
-                node_id: node.id.clone(),
-                worker_id: node.worker_id.clone(),
-            });
-            let assignment = runtime.build_assignment(&node);
-            if self.dispatch_assignment_to_worker(assignment.clone()) {
-                runtime.mark_running(&assignment);
-                self.emit_event(SessionEvent::WorkerStarted {
-                    session_id: self.session_id_from_context(&self.current_context),
-                    worker_id: assignment.worker_id.clone(),
-                    task_id: assignment.task_id.clone(),
-                });
-                self.emit_event(SessionEvent::TaskNodeStarted {
-                    session_id: self.session_id_from_context(&self.current_context),
-                    graph_id: assignment.graph_id,
-                    node_id: assignment.node_id,
-                    worker_id: assignment.worker_id,
-                    attempt: assignment.attempt,
-                });
-            }
-        }
-
-        self.active_task_graph = Some(runtime);
     }
 
     async fn finish_task_graph(&mut self, runtime: TaskGraphRuntime) {
@@ -374,5 +404,59 @@ impl Commander {
         self.active_task_graph = None;
         self.phase = CommanderPhase::Idle;
         self.state = CommanderState::Idle;
+    }
+}
+
+fn worker_unavailable_report(assignment: &WorkerAssignment) -> WorkerReport {
+    let failure_kind = "worker_unavailable";
+    let summary = format!(
+        "{} 岗位未能执行：当前服务端没有注册可用的该岗位执行器。",
+        assignment.role
+    );
+    WorkerReport {
+        graph_id: assignment.graph_id.clone(),
+        node_id: assignment.node_id.clone(),
+        task_id: assignment.task_id.clone(),
+        worker_id: assignment.worker_id.clone(),
+        role: assignment.role.clone(),
+        content: summary.clone(),
+        role_output: Some(RoleWorkOutput {
+            summary,
+            findings: Vec::new(),
+            recommendations: Vec::new(),
+            evidence: vec!["failure_kind:worker_unavailable".to_string()],
+            risks: vec![
+                "已选择的岗位没有实际执行，最终回答不能代表完整多岗位协作结果。".to_string(),
+            ],
+            open_questions: vec!["请检查服务端岗位配置和 worker 注册状态后重试。".to_string()],
+        }),
+        evidence: vec![format!("failure_kind:{failure_kind}")],
+        risks: vec!["已选择的岗位没有实际执行，最终回答不能代表完整多岗位协作结果。".to_string()],
+        open_questions: vec!["请检查服务端岗位配置和 worker 注册状态后重试。".to_string()],
+        diagnostics: vec![worker_unavailable_diagnostic(assignment, failure_kind)],
+        status: WorkerReportStatus::Failed,
+    }
+}
+
+fn worker_unavailable_diagnostic(
+    assignment: &WorkerAssignment,
+    failure_kind: &str,
+) -> WorkerDiagnostic {
+    let mut fields = std::collections::BTreeMap::new();
+    fields.insert("failure_kind".to_string(), failure_kind.to_string());
+    fields.insert("status".to_string(), "failed".to_string());
+    fields.insert("role".to_string(), assignment.role.clone());
+    fields.insert("node_id".to_string(), assignment.node_id.0.clone());
+    fields.insert("graph_id".to_string(), assignment.graph_id.0.clone());
+    fields.insert("worker_id".to_string(), assignment.worker_id.0.clone());
+    fields.insert(
+        "reason".to_string(),
+        "no registered executor for selected role".to_string(),
+    );
+
+    WorkerDiagnostic {
+        kind: "failure".to_string(),
+        source: failure_kind.to_string(),
+        fields,
     }
 }

@@ -79,6 +79,15 @@ temperature = 0.2
 
 task graph 节点和动态角色配置还可设置 `skill_autosuggest = false`，用于轻量协作或最终润色节点跳过自动技能建议，避免没有外部资料或工具适配器时产生无效调用。
 
+Agent runtime 还支持 worker 单节点交互超时：
+
+```toml
+[agent_runtime]
+worker_cognition_timeout_sec = 45
+```
+
+该值限制单个 worker 等待 LLM cognition 的时间。task graph 节点、动态角色和最终节点可以用 `timeout_sec` 覆盖单节点超时；超时后后端会把节点报告为 `timed_out`，并继续产生 `task_node_failed` / `task_graph_finished` 过程事件，避免 SSE 等到整轮 session 超时才失败。
+
 当前仓库提交的 `backend/config/services.toml` 没有真实豆包 Ark 配置，也没有 Ark API key；因此当前本地运行时不会调用豆包。要启用豆包，必须在部署机器的 `services.toml` 中添加真实 `[[llm]]` 配置并设置 `default_llm`，不要把真实 key 提交到仓库。
 
 豆包 Ark 示例：

@@ -70,6 +70,7 @@ enum TaskGraphNodeSpec {
         depends_on: Vec<String>,
         llm_usage: Option<String>,
         skill_autosuggest: Option<bool>,
+        timeout_sec: Option<u64>,
     },
 }
 
@@ -110,10 +111,11 @@ fn dynamic_node_specs(
             );
             specs.push(TaskGraphNodeSpec::Dynamic {
                 id: role.clone(),
-                depends_on: default_dynamic_depends_on(&role, &specs),
+                depends_on: Vec::new(),
                 role,
                 llm_usage: rule.dynamic_roles.from_explicit_request.llm_usage.clone(),
                 skill_autosuggest,
+                timeout_sec: rule.dynamic_roles.from_explicit_request.timeout_sec,
             });
         }
         if let Some(final_role) = rules.defaults.final_role.as_ref()
@@ -139,8 +141,13 @@ fn dynamic_node_specs(
                     final_role,
                     rule.dynamic_roles.from_explicit_request.skill_autosuggest,
                 ),
+                timeout_sec: rule.dynamic_roles.from_explicit_request.timeout_sec,
             });
         }
+        apply_dynamic_role_dependencies(
+            &mut specs,
+            &rule.dynamic_roles.from_explicit_request.depends_on_roles,
+        );
     }
 
     if rule.dynamic_roles.from_route.enabled
@@ -170,12 +177,17 @@ fn dynamic_node_specs(
             );
             specs.push(TaskGraphNodeSpec::Dynamic {
                 id: role.clone(),
-                depends_on: default_dynamic_depends_on(&role, &specs),
+                depends_on: Vec::new(),
                 role,
                 llm_usage: rule.dynamic_roles.from_route.llm_usage.clone(),
                 skill_autosuggest,
+                timeout_sec: rule.dynamic_roles.from_route.timeout_sec,
             });
         }
+        apply_dynamic_role_dependencies(
+            &mut specs,
+            &rule.dynamic_roles.from_route.depends_on_roles,
+        );
     }
     specs
 }
@@ -214,12 +226,51 @@ fn explicit_roles_from_aliases(task: &str, rules: &TaskGraphRuleSet) -> Vec<Stri
     order_roles(roles, &rules.default_role_order())
 }
 
-fn default_dynamic_depends_on(role: &str, existing: &[TaskGraphNodeSpec]) -> Vec<String> {
-    if role == "data" || !existing.iter().any(|spec| spec.role() == "data") {
-        Vec::new()
-    } else {
-        vec!["data".to_string()]
+fn apply_dynamic_role_dependencies(
+    specs: &mut [TaskGraphNodeSpec],
+    depends_on_roles: &HashMap<String, Vec<String>>,
+) {
+    let available = specs
+        .iter()
+        .map(|spec| (spec.id().to_string(), spec.role().to_string()))
+        .collect::<Vec<_>>();
+    for spec in specs {
+        let TaskGraphNodeSpec::Dynamic {
+            role, depends_on, ..
+        } = spec
+        else {
+            continue;
+        };
+        *depends_on = dynamic_depends_on(role, &available, depends_on_roles);
     }
+}
+
+fn dynamic_depends_on(
+    role: &str,
+    available: &[(String, String)],
+    depends_on_roles: &HashMap<String, Vec<String>>,
+) -> Vec<String> {
+    let mut depends_on = depends_on_roles
+        .get(role)
+        .into_iter()
+        .flatten()
+        .filter_map(|upstream_role| {
+            available
+                .iter()
+                .find(|(_, candidate_role)| candidate_role == upstream_role)
+                .map(|(id, _)| id.clone())
+        })
+        .filter(|id| id != role)
+        .collect::<Vec<_>>();
+    if depends_on.is_empty()
+        && role != "data"
+        && let Some((data_id, _)) = available
+            .iter()
+            .find(|(_, candidate_role)| candidate_role == "data")
+    {
+        depends_on.push(data_id.clone());
+    }
+    dedupe_strings(depends_on)
 }
 
 fn dedupe_node_specs(specs: &mut Vec<TaskGraphNodeSpec>) {
@@ -233,6 +284,15 @@ fn sort_node_specs(specs: &mut [TaskGraphNodeSpec], role_order: &[String]) {
             .cmp(&role_rank(right.role(), role_order))
             .then_with(|| left.id().cmp(right.id()))
     });
+}
+
+fn dedupe_strings(items: Vec<String>) -> Vec<String> {
+    items.into_iter().fold(Vec::new(), |mut unique, item| {
+        if !item.trim().is_empty() && !unique.contains(&item) {
+            unique.push(item);
+        }
+        unique
+    })
 }
 
 fn active_role_order(rule: &TaskGraphRule, rules: &TaskGraphRuleSet) -> Vec<String> {
@@ -259,6 +319,7 @@ fn task_node_from_spec(
             node.max_attempts,
             node.llm_usage.as_deref(),
             node.skill_autosuggest,
+            node.timeout_sec,
             &node.acceptance,
             task,
             rules,
@@ -273,6 +334,7 @@ fn task_node_from_spec(
             node.max_attempts,
             node.llm_usage.as_deref(),
             node.skill_autosuggest,
+            node.timeout_sec,
             &node.acceptance,
             task,
             rules,
@@ -284,6 +346,7 @@ fn task_node_from_spec(
             depends_on,
             llm_usage,
             skill_autosuggest,
+            timeout_sec,
         } => concrete_task_node(
             id,
             role,
@@ -293,6 +356,7 @@ fn task_node_from_spec(
             None,
             llm_usage.as_deref(),
             *skill_autosuggest,
+            *timeout_sec,
             &[],
             task,
             rules,
@@ -311,6 +375,7 @@ fn concrete_task_node(
     max_attempts: Option<u8>,
     llm_usage: Option<&str>,
     skill_autosuggest: Option<bool>,
+    timeout_sec: Option<u64>,
     acceptance: &[String],
     task: &str,
     rules: &TaskGraphRuleSet,
@@ -356,6 +421,10 @@ fn concrete_task_node(
             .filter(|value| !value.is_empty())
             .map(str::to_string),
         skill_autosuggest,
+        timeout_sec: timeout_sec
+            .or_else(|| role_default.and_then(|default| default.timeout_sec))
+            .or(rules.defaults.timeout_sec)
+            .map(|value| value.max(1)),
         input_refs: depends_on
             .iter()
             .map(|dep| TaskNodeId(dep.clone()))
@@ -389,6 +458,7 @@ fn add_final_node(
         final_node.max_attempts,
         final_node.llm_usage.as_deref(),
         final_node.skill_autosuggest,
+        final_node.timeout_sec,
         &final_node.acceptance,
         task,
         rules,

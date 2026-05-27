@@ -14,7 +14,10 @@ use crate::{
 };
 
 impl Commander {
-    pub(super) fn try_fast_route(&mut self, role_route: Option<&crate::roles::RoleRoute>) -> bool {
+    pub(super) async fn try_fast_route(
+        &mut self,
+        role_route: Option<&crate::roles::RoleRoute>,
+    ) -> bool {
         let Some(role_route) = role_route else {
             debug!("commander fast route skipped: no role route");
             return false;
@@ -46,23 +49,17 @@ impl Commander {
             id: TaskId(current_task.id),
             description: current_task.description,
         };
-        self.prepare_collaboration(Some(role_route), Some(&target_worker));
         debug!(
             worker_id = %target_worker.0,
             primary_role = %role_route.primary_runtime_role,
             support_roles = ?role_route.support_runtime_roles,
             "commander fast route selected"
         );
-        self.emit_route_decided(
-            "fast_worker",
-            Some(role_route.primary_runtime_role.clone()),
-            role_route.support_runtime_roles.clone(),
-        );
-        self.emit_dispatch_planned_for_graph(
-            "fast_worker",
-            &single_worker_dispatch_graph(&task, role_route),
-        );
-        if !self.dispatch_task_to_worker(task, Some(target_worker)) {
+        let graph = single_worker_dispatch_graph(&task, role_route);
+        if !self
+            .schedule_planned_task_graph("fast_worker", Some(role_route), graph)
+            .await
+        {
             let _ = self.sender.send(Message::new_with_context(
                 next_message_id(),
                 self.current_context.clone(),
@@ -382,8 +379,9 @@ fn single_worker_dispatch_graph(
             worker_id: WorkerId(format!("worker.{}", role_route.primary_runtime_role)),
             title: role_route.primary_runtime_role.clone(),
             objective: task.description.clone(),
-            llm_usage: None,
+            llm_usage: Some("fast".to_string()),
             skill_autosuggest: None,
+            timeout_sec: None,
             input_refs: Vec::new(),
             acceptance: Vec::new(),
             max_attempts: 1,

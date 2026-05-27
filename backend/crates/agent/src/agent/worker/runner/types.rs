@@ -16,4 +16,5 @@ pub(super) struct ParsedWorkerRoleOutput {
     pub(super) evidence: Vec<String>,
     pub(super) risks: Vec<String>,
     pub(super) open_questions: Vec<String>,
+    pub(super) diagnostics: Vec<crate::core::protocol::WorkerDiagnostic>,
 }

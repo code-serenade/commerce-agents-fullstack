@@ -303,7 +303,7 @@ impl Commander {
             self.state = CommanderState::Idle;
             return;
         }
-        if self.context_allows_fast_route() && self.try_fast_route(role_route.as_ref()) {
+        if self.context_allows_fast_route() && self.try_fast_route(role_route.as_ref()).await {
             debug!("commander routing completed via fast worker route");
             self.phase = CommanderPhase::Idle;
             self.state = CommanderState::Idle;
@@ -492,6 +492,7 @@ impl Commander {
                 objective: task.to_string(),
                 llm_usage: None,
                 skill_autosuggest: None,
+                timeout_sec: None,
                 input_refs: Vec::new(),
                 acceptance: vec![
                     "输出必须围绕本岗位职责给出可复核的业务判断、依据、风险边界和下一步动作。"

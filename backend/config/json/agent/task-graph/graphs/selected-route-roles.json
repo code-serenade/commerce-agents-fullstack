@@ -24,7 +24,24 @@
       "enabled": true,
       "include_primary": true,
       "include_support": "always",
-      "exclude_roles": ["chat"]
+      "exclude_roles": ["chat"],
+      "llm_usage": "fast",
+      "skill_autosuggest": false,
+      "timeout_sec": 35,
+      "skill_autosuggest_by_role": {
+        "search": true
+      },
+      "depends_on_roles": {
+        "ops": ["search"],
+        "data": ["search"],
+        "creative": ["search"],
+        "design": ["search"],
+        "service": ["search"],
+        "engineering": ["search"],
+        "accounting": ["search"],
+        "douyin_ads": ["search"],
+        "web": ["search"]
+      }
     }
   },
   "final_node": {
@@ -35,7 +52,9 @@
     "objective": "把本轮真实执行的上游岗位输入合成一份自然可读的学生答案：{{task}}。只整合实际产生 report 的岗位，不补写未调度或未产出岗位；搜索来源只作为证据包引用，不得覆盖运营、数据、客服、财务、设计等岗位判断。教学模式要解释难词、讲清判断逻辑并引导下一步追问；快速模式要短而有信息量；执行模式要输出可提交方案、清单、风险和检查点。去除重复来源、重复结论和内部运行状态。",
     "depends_on": "$all_non_final",
     "max_attempts": 1,
+    "llm_usage": "fast",
     "skill_autosuggest": false,
+    "timeout_sec": 35,
     "acceptance": [
       "最终回答只能体现真实执行并产生上游输入的岗位。",
       "搜索证据不得替代业务岗位回答，也不得重复展示多次来源。",

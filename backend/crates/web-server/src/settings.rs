@@ -20,6 +20,14 @@ pub struct Settings {
     pub llm: Vec<AgentLlmCfg>,
     #[serde(default)]
     pub external_search: SearchAdapterConfig,
+    #[serde(default)]
+    pub agent_runtime: AgentRuntimeSettings,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct AgentRuntimeSettings {
+    #[serde(default)]
+    pub worker_cognition_timeout_sec: Option<u64>,
 }
 
 #[derive(Debug, Deserialize)]

@@ -36,6 +36,12 @@ default_topic = "general"
 default_days = 30
 default_max_results = 6
 
+[agent_runtime]
+# Per worker LLM cognition timeout for interactive Agent turns.
+# A timed-out node reports a structured task_node_failed/task_graph_finished
+# instead of leaving the SSE stream waiting until the whole session times out.
+worker_cognition_timeout_sec = 45
+
 # Agent runtime uses Doubao by default. agent_llm_usage maps runtime features
 # to configured [[llm]].name values. Do not commit real keys.
 # default_llm = "doubao-thinking"

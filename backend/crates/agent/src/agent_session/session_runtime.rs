@@ -11,7 +11,7 @@ use crate::{
             TaskGraphRuntime, no_user_facing_content_message, plan_forced_chat_graph,
             plan_quick_chat_graph, sanitize_user_facing_text,
         },
-        worker::Worker,
+        worker::{Worker, WorkerRuntimeConfig},
     },
     agent_error::{Result, SettingsError},
     cognition::Cognition,
@@ -35,6 +35,7 @@ pub struct SessionRuntimeConfig {
     pub event_buffer: usize,
     pub commander_fast_route: bool,
     pub commander_fast_route_min_score: f32,
+    pub worker_cognition_timeout: Duration,
     pub search: SearchAdapterConfig,
 }
 
@@ -45,6 +46,7 @@ impl Default for SessionRuntimeConfig {
             event_buffer: 1024,
             commander_fast_route: true,
             commander_fast_route_min_score: 2.0,
+            worker_cognition_timeout: Duration::from_secs(45),
             search: SearchAdapterConfig::default(),
         }
     }
@@ -133,13 +135,16 @@ impl SessionRuntime {
                     error
                 })
                 .ok();
-            let worker = Worker::new(
+            let worker = Worker::new_with_config(
                 worker_input.role,
                 worker_input.cognition,
                 worker_rx,
                 commander_tx.clone(),
                 input.event_tx.clone(),
                 skill_executor,
+                WorkerRuntimeConfig {
+                    cognition_timeout: input.config.worker_cognition_timeout,
+                },
             );
             let worker_loop = tokio::spawn(async move {
                 let mut worker = worker;

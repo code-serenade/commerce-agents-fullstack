@@ -47,7 +47,7 @@ pub(super) async fn query_provider(
         endpoint,
         Some(query),
         build_provider_headers(adapter)?,
-        adapter.timeout_sec.unwrap_or(10).max(1),
+        adapter.effective_timeout_sec(),
     )
     .await
     .map_err(|err| format!("external search provider request failed: {err}"))?;
@@ -277,15 +277,20 @@ pub(super) fn build_search_evidence_packet(
     sources: &[Value],
     stale_filtered_count: usize,
     confidence: f64,
+    adapter_status: &str,
     degraded_reason: Option<&str>,
 ) -> Value {
     let strength = search_strength(plan.max_results);
     let usable_claims = usable_claims_from_sources(sources);
     let gaps = search_gaps(sources, stale_filtered_count, degraded_reason);
+    let adapter_status = normalized_adapter_status(adapter_status);
+    let source_state = search_source_state(sources, adapter_status, degraded_reason);
 
     json!({
         "intent": search_intent(skill_id),
         "skill": skill_id,
+        "adapter_status": adapter_status,
+        "source_state": source_state,
         "query": plan.planned,
         "raw_query": plan.raw,
         "search_strength": strength,
@@ -302,8 +307,33 @@ pub(super) fn build_search_evidence_packet(
         "usable_claims": usable_claims,
         "gaps": gaps,
         "confidence": confidence,
-        "usage": "搜索岗只把本字段作为证据包交给下游岗位；业务岗位引用 usable_claims 时必须保留来源边界，不把来源摘要直接扩写成最终方案。"
+        "usage": "搜索岗只把本字段作为证据包交给下游岗位；业务岗位必须先看 adapter_status/source_state：live/has_reliable_sources 才能当作实时来源引用；degraded、adapter_required 或 no_reliable_sources 只能说明未拿到可采信来源和核验路径，不能编造来源、价格、政策或趋势。"
     })
+}
+
+fn normalized_adapter_status(status: &str) -> &'static str {
+    match status.trim() {
+        "live" => "live",
+        "degraded" => "degraded",
+        "adapter_required" => "adapter_required",
+        _ => "unknown",
+    }
+}
+
+fn search_source_state(
+    sources: &[Value],
+    adapter_status: &str,
+    degraded_reason: Option<&str>,
+) -> &'static str {
+    if adapter_status == "live" && !sources.is_empty() {
+        "has_reliable_sources"
+    } else if adapter_status == "adapter_required" {
+        "adapter_required"
+    } else if degraded_reason.is_some() || adapter_status == "degraded" {
+        "no_reliable_sources"
+    } else {
+        "unknown"
+    }
 }
 
 fn search_intent(skill_id: &str) -> &'static str {

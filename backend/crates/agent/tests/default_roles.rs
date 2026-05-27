@@ -6,12 +6,34 @@ use std::{
 use agent::api::{
     AgentId, AgentManager, AgentManagerConfig, AgentRequest, Cognition, CognitionInput,
     CognitionResult, InMemoryMemoryStore, RoleProfile, SessionEvent, SessionId, UserId,
+    audit_session_event_roles_against, render_session_event_role_audit,
 };
 use async_trait::async_trait;
 use serde_json::json;
 
 const CONFIGURED_DOUYIN_CONVERSION_INPUT: &str =
     "我是做咖啡运营的，主要营销平台是抖音，现在马上就五一了，请给提升转化率的运营方案";
+
+fn assert_task_graph_covers_runtime_roles(events: &[SessionEvent], expected_roles: &[&str]) {
+    let audit = audit_session_event_roles_against(events, expected_roles);
+    let rendered = render_session_event_role_audit(&audit);
+    assert!(
+        audit.has_task_graph(),
+        "task graph planned/finished event should be emitted\n{rendered}"
+    );
+    assert!(
+        audit.missing_expected_planned_roles.is_empty(),
+        "planned graph should contain selected roles\n{rendered}"
+    );
+    assert!(
+        audit.missing_expected_finished_roles.is_empty(),
+        "finished process should contain terminal selected roles\n{rendered}"
+    );
+    assert!(
+        audit.missing_expected_reported_roles.is_empty(),
+        "selected roles should either report or be explicitly skipped\n{rendered}"
+    );
+}
 
 struct CapturingCommanderCognition {
     available_workers: Arc<Mutex<Option<String>>>,
@@ -285,6 +307,130 @@ impl Cognition for CapturingWorkerCognition {
                 "kind": "NoAction"
             },
             "role_output": test_role_output(&input)
+        }))
+    }
+}
+
+struct CapturingSearchEvidencePacketWorkerCognition {
+    captured_by_role: Arc<Mutex<BTreeMap<String, Option<String>>>>,
+}
+
+#[async_trait]
+impl Cognition for CapturingSearchEvidencePacketWorkerCognition {
+    async fn evaluate(&self, input: CognitionInput) -> CognitionResult {
+        let role = input
+            .context
+            .metadata
+            .get("role.runtime_role")
+            .cloned()
+            .unwrap_or_else(|| "chat".to_string());
+        let packet = input
+            .context
+            .facts
+            .iter()
+            .find(|fact| fact.source == "worker.assignment.input.search.evidence_packet")
+            .map(|fact| fact.content.clone());
+        self.captured_by_role
+            .lock()
+            .expect("lock search evidence packet capture")
+            .insert(role.clone(), packet);
+
+        if role == "search" {
+            return CognitionResult::Success(json!({
+                "decision": {
+                    "kind": "NoAction"
+                },
+                "role_output": {
+                    "summary": "搜索岗已整理校园冷萃咖啡竞品价格证据包。",
+                    "findings": ["竞品价格集中在 12-19 元区间"],
+                    "recommendations": ["下游岗位需按来源置信度保守引用"],
+                    "evidence": [
+                        "search_evidence_packet:{\"intent\":\"competitor_price_or_benchmark\",\"usable_claims\":[\"竞品价格集中在 12-19 元区间\"],\"gaps\":[],\"confidence\":0.72}",
+                        "search_evidence_trace: skill=search_competitor status=success adapter_status=live intent=competitor_price_or_benchmark strength=standard sources=2 usable_claims=1 gaps=0 confidence=0.72 query=\"校园冷萃咖啡 竞品价格\""
+                    ],
+                    "risks": [],
+                    "open_questions": []
+                }
+            }));
+        }
+
+        CognitionResult::Success(json!({
+            "decision": {
+                "kind": "NoAction"
+            },
+            "role_output": test_role_output(&input)
+        }))
+    }
+}
+
+struct SearchEvidenceStateAwareWorkerCognition {
+    packet: &'static str,
+    trace: &'static str,
+}
+
+#[async_trait]
+impl Cognition for SearchEvidenceStateAwareWorkerCognition {
+    async fn evaluate(&self, input: CognitionInput) -> CognitionResult {
+        let role = input
+            .context
+            .metadata
+            .get("role.runtime_role")
+            .map(String::as_str)
+            .unwrap_or("chat");
+        if role == "search" {
+            return CognitionResult::Success(json!({
+                "decision": {
+                    "kind": "NoAction"
+                },
+                "role_output": {
+                    "summary": "搜索岗已按当前 adapter 状态整理证据包。",
+                    "findings": ["搜索证据状态已写入 evidence_packet"],
+                    "recommendations": ["下游岗位必须按 adapter_status 和 source_state 决定引用边界"],
+                    "evidence": [
+                        format!("search_evidence_packet:{}", self.packet),
+                        self.trace
+                    ],
+                    "risks": [],
+                    "open_questions": []
+                }
+            }));
+        }
+
+        let packet = input
+            .context
+            .facts
+            .iter()
+            .find(|fact| fact.source == "worker.assignment.input.search.evidence_packet")
+            .map(|fact| fact.content.as_str())
+            .unwrap_or_default();
+        let summary = if packet.contains("\"adapter_status\":\"live\"")
+            && packet.contains("\"source_state\":\"has_reliable_sources\"")
+        {
+            "已拿到可采信实时来源：可以把 12-19 元竞品价格带作为低置信参考，但仍要说明来源时效。"
+        } else if packet.contains("\"adapter_status\":\"degraded\"")
+            || packet.contains("\"source_state\":\"no_reliable_sources\"")
+        {
+            "本轮搜索已降级且没有可采信实时来源：不能把 12-19 元当作事实，只能给核验路径和待补来源。"
+        } else if packet.contains("\"adapter_status\":\"adapter_required\"")
+            || packet.contains("\"source_state\":\"adapter_required\"")
+        {
+            "外部搜索 adapter 未接入：不能声称已经联网，只能说明需要配置搜索工具后再核验价格或平台规则。"
+        } else {
+            "搜索证据状态不明确：不能当作实时来源引用。"
+        };
+
+        CognitionResult::Success(json!({
+            "decision": {
+                "kind": "NoAction"
+            },
+            "role_output": {
+                "summary": summary,
+                "findings": ["worker.assignment.input.search.evidence_packet 已进入下游岗位上下文"],
+                "recommendations": ["按来源状态决定能否引用实时结论"],
+                "evidence": ["worker.assignment.input.search.evidence_packet"],
+                "risks": [],
+                "open_questions": []
+            }
         }))
     }
 }
@@ -864,12 +1010,411 @@ async fn explicit_manual_roles_do_not_use_direct_answer_chat_bypass() {
             .iter()
             .any(|event| matches!(event, SessionEvent::TaskGraphPlanned { .. }))
     );
+    assert_task_graph_covers_runtime_roles(&events, &["data", "ops"]);
     assert!(!events.iter().any(|event| {
         matches!(
             event,
             SessionEvent::RouteDecided { route_mode, .. } if route_mode == "chat_bypass"
         )
     }));
+}
+
+#[tokio::test]
+async fn explicit_manual_search_ops_roles_keep_search_skill_autosuggest() {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(|| Ok(Box::new(NoopWorkerCognition))),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert("strategy.id".to_string(), "collab".to_string());
+    metadata.insert(
+        "strategy.response_mode".to_string(),
+        "execution".to_string(),
+    );
+    metadata.insert(
+        "strategy.collaboration_mode".to_string(),
+        "manual".to_string(),
+    );
+    metadata.insert("strategy.primary_role".to_string(), "ops".to_string());
+    metadata.insert(
+        "strategy.selected_roles".to_string(),
+        "search,ops".to_string(),
+    );
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-manual-search-ops".to_string()),
+            input: "请指定运营和资料搜索员一起协作，搜索校园冷萃咖啡竞品价格后给定价建议。"
+                .to_string(),
+            metadata,
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    while let Some(event) = rx.recv().await {
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::RouteDecided {
+                strategy_id,
+                collaboration_mode,
+                route_mode,
+                primary_runtime_role,
+                support_runtime_roles,
+                ..
+            } if strategy_id.as_deref() == Some("collab")
+                && collaboration_mode.as_deref() == Some("manual")
+                && route_mode == "task_graph"
+                && primary_runtime_role.as_deref() == Some("ops")
+                && support_runtime_roles == &vec!["search".to_string()]
+        )
+    }));
+    assert_task_graph_covers_runtime_roles(&events, &["search", "ops"]);
+
+    let search_node = events
+        .iter()
+        .find_map(|event| match event {
+            SessionEvent::TaskGraphPlanned { graph, .. } => {
+                graph.nodes.iter().find(|node| node.role == "search")
+            }
+            _ => None,
+        })
+        .expect("planned graph should contain search node");
+    assert_eq!(search_node.skill_autosuggest, Some(true));
+    assert_eq!(search_node.llm_usage.as_deref(), Some("fast"));
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::SkillRequested {
+                skill_id,
+                role,
+                reason,
+                ..
+            } if skill_id == "search_competitor"
+                && role == "search"
+                && reason.as_deref() == Some("autosuggest:search.competitor")
+        )
+    }));
+}
+
+#[tokio::test]
+async fn explicit_manual_search_accounting_service_engineering_passes_evidence_packet_downstream() {
+    let captured_packets = Arc::new(Mutex::new(BTreeMap::new()));
+    let worker_capture = Arc::clone(&captured_packets);
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(move || {
+            Ok(Box::new(CapturingSearchEvidencePacketWorkerCognition {
+                captured_by_role: Arc::clone(&worker_capture),
+            }))
+        }),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert("strategy.id".to_string(), "collab".to_string());
+    metadata.insert(
+        "strategy.response_mode".to_string(),
+        "execution".to_string(),
+    );
+    metadata.insert(
+        "strategy.collaboration_mode".to_string(),
+        "manual".to_string(),
+    );
+    metadata.insert(
+        "strategy.primary_role".to_string(),
+        "accounting".to_string(),
+    );
+    metadata.insert(
+        "strategy.selected_roles".to_string(),
+        "search,accounting,service,engineering".to_string(),
+    );
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId(
+                "role-session-manual-search-accounting-service-engineering".to_string(),
+            ),
+            input: "请指定资料搜索员、财务、客服和技术架构师一起协作，搜索校园冷萃咖啡竞品价格后，判断定价毛利、售后承诺和上传链路风险。"
+                .to_string(),
+            metadata,
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    while let Some(event) = rx.recv().await {
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+
+    assert_task_graph_covers_runtime_roles(
+        &events,
+        &["search", "accounting", "service", "engineering"],
+    );
+    let graph = events
+        .iter()
+        .find_map(|event| match event {
+            SessionEvent::TaskGraphPlanned { graph, .. } => Some(graph),
+            _ => None,
+        })
+        .expect("task graph planned event should be emitted");
+    for role in ["accounting", "service", "engineering"] {
+        let node = graph
+            .nodes
+            .iter()
+            .find(|node| node.role == role)
+            .unwrap_or_else(|| panic!("{role} node should be planned"));
+        assert!(
+            node.input_refs
+                .iter()
+                .any(|input_ref| input_ref.0 == "search"),
+            "{role} node should depend on search evidence; input_refs={:?}",
+            node.input_refs
+        );
+    }
+
+    let packets = captured_packets
+        .lock()
+        .expect("lock captured search evidence packets");
+    for role in ["accounting", "service", "engineering"] {
+        let packet = packets
+            .get(role)
+            .and_then(|packet| packet.as_deref())
+            .unwrap_or_else(|| panic!("{role} should receive search evidence packet fact"));
+        assert!(packet.contains("competitor_price_or_benchmark"));
+        assert!(packet.contains("竞品价格集中在 12-19 元区间"));
+    }
+}
+
+#[tokio::test]
+async fn explicit_manual_search_ops_downstream_answer_distinguishes_search_adapter_states() {
+    let cases = [
+        (
+            "live",
+            r#"{"intent":"competitor_price_or_benchmark","skill":"search_competitor","adapter_status":"live","source_state":"has_reliable_sources","query":"校园冷萃咖啡 竞品价格","search_strength":"standard","sources":[{"title":"冷萃咖啡竞品价格参考","url":"https://example.com/price","claim":"竞品价格集中在 12-19 元。"}],"usable_claims":["竞品价格集中在 12-19 元。"],"gaps":[],"confidence":0.72}"#,
+            "search_evidence_trace: skill=search_competitor status=success adapter_status=live intent=competitor_price_or_benchmark strength=standard sources=1 usable_claims=1 gaps=0 confidence=0.72 query=\"校园冷萃咖啡 竞品价格\"",
+            "已拿到可采信实时来源",
+            "12-19 元竞品价格带作为低置信参考",
+            "不能把 12-19 元当作事实",
+        ),
+        (
+            "degraded",
+            r#"{"intent":"competitor_price_or_benchmark","skill":"search_competitor","adapter_status":"degraded","source_state":"no_reliable_sources","query":"校园冷萃咖啡 竞品价格","search_strength":"standard","sources":[],"usable_claims":[],"gaps":["provider timeout"],"confidence":0.0}"#,
+            "search_evidence_trace: skill=search_competitor status=deferred adapter_status=degraded intent=competitor_price_or_benchmark strength=standard sources=0 usable_claims=0 gaps=1 confidence=0.00 query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"provider timeout\"",
+            "本轮搜索已降级且没有可采信实时来源",
+            "不能把 12-19 元当作事实",
+            "已拿到可采信实时来源",
+        ),
+        (
+            "adapter-required",
+            r#"{"intent":"competitor_price_or_benchmark","skill":"search_competitor","adapter_status":"adapter_required","source_state":"adapter_required","query":"校园冷萃咖啡 竞品价格","search_strength":"standard","sources":[],"usable_claims":[],"gaps":["外部搜索 adapter 尚未接入"],"confidence":0.0}"#,
+            "search_evidence_trace: skill=search_competitor status=deferred adapter_status=adapter_required intent=competitor_price_or_benchmark strength=standard sources=0 usable_claims=0 gaps=1 confidence=0.00 query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"外部搜索 adapter 尚未接入\"",
+            "外部搜索 adapter 未接入",
+            "不能声称已经联网",
+            "已拿到可采信实时来源",
+        ),
+    ];
+
+    for (case_name, packet, trace, expected, expected_boundary, forbidden) in cases {
+        let events = run_manual_search_ops_with_state_packet(packet, trace, case_name).await;
+        assert_task_graph_covers_runtime_roles(&events, &["search", "ops"]);
+        let output = events
+            .iter()
+            .find_map(|event| match event {
+                SessionEvent::Output { content, .. } => Some(content.as_str()),
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("{case_name} should emit output"));
+
+        assert!(
+            output.contains(expected),
+            "{case_name} output should contain state-specific wording; output={output}"
+        );
+        assert!(
+            output.contains(expected_boundary),
+            "{case_name} output should contain source boundary wording; output={output}"
+        );
+        assert!(
+            !output.contains(forbidden),
+            "{case_name} output should not use opposite search-state wording; output={output}"
+        );
+        assert!(
+            !output.contains("search_evidence_packet"),
+            "{case_name} output should hide internal packet marker; output={output}"
+        );
+        assert!(
+            !output.contains("search_evidence_trace"),
+            "{case_name} output should hide internal trace marker; output={output}"
+        );
+
+        let process = events
+            .iter()
+            .rev()
+            .find_map(|event| match event {
+                SessionEvent::TaskGraphFinished { process, .. } => Some(process),
+                _ => None,
+            })
+            .unwrap_or_else(|| panic!("{case_name} should finish task graph"));
+        assert!(
+            process
+                .check_items
+                .iter()
+                .any(|item| item.contains("搜索核对")
+                    && item.contains(expected_trace_state(case_name))),
+            "{case_name} process should expose readable search status; check_items={:?}",
+            process.check_items
+        );
+    }
+}
+
+async fn run_manual_search_ops_with_state_packet(
+    packet: &'static str,
+    trace: &'static str,
+    case_name: &str,
+) -> Vec<SessionEvent> {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(move || {
+            Ok(Box::new(SearchEvidenceStateAwareWorkerCognition {
+                packet,
+                trace,
+            }))
+        }),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert("strategy.id".to_string(), "collab".to_string());
+    metadata.insert(
+        "strategy.response_mode".to_string(),
+        "execution".to_string(),
+    );
+    metadata.insert(
+        "strategy.collaboration_mode".to_string(),
+        "manual".to_string(),
+    );
+    metadata.insert("strategy.primary_role".to_string(), "ops".to_string());
+    metadata.insert(
+        "strategy.selected_roles".to_string(),
+        "search,ops".to_string(),
+    );
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId(format!("role-session-search-state-{case_name}")),
+            input: format!(
+                "请指定资料搜索员和运营一起协作，搜索校园冷萃咖啡竞品价格后给定价建议。case={case_name}"
+            ),
+            metadata,
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    while let Some(event) = rx.recv().await {
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+    events
+}
+
+fn expected_trace_state(case_name: &str) -> &'static str {
+    match case_name {
+        "live" => "状态 live",
+        "degraded" => "状态 degraded",
+        "adapter-required" => "状态 adapter_required",
+        _ => "状态",
+    }
+}
+
+#[tokio::test]
+async fn explicit_manual_service_accounting_engineering_roles_keep_terminal_events() {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(|| Ok(Box::new(NoopWorkerCognition))),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert("strategy.id".to_string(), "collab".to_string());
+    metadata.insert("strategy.response_mode".to_string(), "learning".to_string());
+    metadata.insert(
+        "strategy.collaboration_mode".to_string(),
+        "manual".to_string(),
+    );
+    metadata.insert("strategy.primary_role".to_string(), "service".to_string());
+    metadata.insert(
+        "strategy.selected_roles".to_string(),
+        "service,accounting,engineering".to_string(),
+    );
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-manual-service-accounting-engineering".to_string()),
+            input: "请指定客服、财务和技术架构师一起协作，判断校园租赁服务的退款赔付、毛利和上传链路风险。"
+                .to_string(),
+            metadata,
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    while let Some(event) = rx.recv().await {
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::RouteDecided {
+                response_mode,
+                collaboration_mode,
+                route_mode,
+                primary_runtime_role,
+                support_runtime_roles,
+                ..
+            } if response_mode.as_deref() == Some("learning")
+                && collaboration_mode.as_deref() == Some("manual")
+                && route_mode == "task_graph"
+                && primary_runtime_role.as_deref() == Some("service")
+                && support_runtime_roles
+                    == &vec!["accounting".to_string(), "engineering".to_string()]
+        )
+    }));
+    assert_task_graph_covers_runtime_roles(&events, &["service", "accounting", "engineering"]);
 }
 
 #[tokio::test]
@@ -1291,6 +1836,7 @@ async fn manual_strategy_metadata_routes_requested_roles() {
                 && !context_budget.history_older_summary_available
         )
     }));
+    assert_task_graph_covers_runtime_roles(&events, &["creative", "data", "ops"]);
 }
 
 #[tokio::test]

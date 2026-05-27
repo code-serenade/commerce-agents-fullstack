@@ -24,6 +24,8 @@ const ATTACHMENTS_IMAGES_JSON: &str = "attachments.images_json";
 const REQUEST_ATTACHMENTS_IMAGES_JSON: &str = "request.attachments.images_json";
 const ATTACHMENTS_IMAGE_SUMMARIES_JSON: &str = "attachments.image_summaries_json";
 const REQUEST_ATTACHMENTS_IMAGE_SUMMARIES_JSON: &str = "request.attachments.image_summaries_json";
+pub const LLM_ACCESS_DENIED_MARKER: &str = "llm_access_denied";
+const LLM_ACCESS_DENIED_USER_MESSAGE: &str = "当前 AI 模型服务配置不可用，模型服务返回权限错误，所以本轮 Agent 岗位没有形成有效回答。请管理员检查服务端 services.toml 中的 [agent_llm_usage]、模型名和 API Key 权限后重试。";
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct AgentLlmCfg {
@@ -318,10 +320,12 @@ where
                 });
             }
         };
+        let model_name = self.llms.model_by_name(usage_name).unwrap_or("unknown");
         let mut base_messages = self.system_messages.clone();
         base_messages.push(render_user_message(&input, &images, &image_summaries));
 
         let max_attempts = self.retry_policy.max_attempts();
+        let mut attempts_run = 0;
         let mut messages = base_messages.clone();
         let mut last_failure = CognitionFailure {
             reason: FailureReason::InternalError,
@@ -329,6 +333,7 @@ where
         };
 
         for attempt in 1..=max_attempts {
+            attempts_run = attempt;
             tracing::debug!(
                 kind = ?self.kind,
                 attempt,
@@ -341,9 +346,20 @@ where
                 Ok(output) => output.get_content().to_string(),
                 Err(err) => {
                     crate::log_error!(err);
+                    let err_text = err.to_string();
+                    if is_llm_access_denied_message(&err_text) {
+                        tracing::warn!(
+                            kind = ?self.kind,
+                            usage_name,
+                            model = model_name,
+                            "llm provider denied access to selected model"
+                        );
+                        last_failure = llm_access_denied_failure();
+                        break;
+                    }
                     last_failure = CognitionFailure {
                         reason: FailureReason::InternalError,
-                        description: format!("LLM request failed on attempt {attempt}: {err}"),
+                        description: format!("LLM request failed on attempt {attempt}: {err_text}"),
                     };
                     if attempt < max_attempts && self.retry_policy.retry_llm_error {
                         messages = retry_messages(
@@ -416,10 +432,15 @@ where
             }
         }
 
+        if is_llm_access_denied_message(&last_failure.description) {
+            return CognitionResult::Failure(last_failure);
+        }
+
         CognitionResult::Failure(CognitionFailure {
             reason: last_failure.reason,
             description: format!(
-                "cognition failed after {max_attempts} attempt(s): {}",
+                "cognition failed after {} attempt(s): {}",
+                attempts_run.max(1),
                 last_failure.description
             ),
         })
@@ -511,6 +532,39 @@ fn is_doubao_llm(llm: &AgentLlmCfg) -> bool {
     let name = llm.name.to_ascii_lowercase();
     let model = llm.model.to_ascii_lowercase();
     name.contains("doubao") || model.contains("doubao")
+}
+
+pub fn is_llm_access_denied_message(message: &str) -> bool {
+    let lower = message.to_ascii_lowercase();
+    lower.contains(LLM_ACCESS_DENIED_MARKER)
+        || lower.contains("accessdenied")
+        || lower.contains("access denied")
+        || lower.contains("do not have access to the requested resource")
+        || lower.contains("status=403")
+        || lower.contains("status: 403")
+        || (lower.contains("forbidden")
+            && (lower.contains("api error")
+                || lower.contains("requested resource")
+                || lower.contains("llm")
+                || lower.contains("model")))
+        || ((lower.contains("status=401")
+            || lower.contains("status: 401")
+            || lower.contains("unauthorized"))
+            && lower.contains("api"))
+}
+
+pub fn llm_access_denied_user_message() -> &'static str {
+    LLM_ACCESS_DENIED_USER_MESSAGE
+}
+
+fn llm_access_denied_failure() -> CognitionFailure {
+    CognitionFailure {
+        reason: FailureReason::InternalError,
+        description: format!(
+            "{LLM_ACCESS_DENIED_MARKER}: {}",
+            llm_access_denied_user_message()
+        ),
+    }
 }
 
 fn parse_image_inputs(
@@ -921,6 +975,26 @@ mod tests {
         };
 
         assert!(err.to_string().contains("llm 'missing' not found"));
+    }
+
+    #[test]
+    fn llm_access_denied_classifier_matches_provider_auth_errors() {
+        assert!(is_llm_access_denied_message(
+            "api error: status=403, message=The request failed because you do not have access to \
+             the requested resource., type=Forbidden, code=AccessDenied"
+        ));
+        assert!(is_llm_access_denied_message(
+            "llm_access_denied: 当前 AI 模型服务配置不可用"
+        ));
+        assert!(is_llm_access_denied_message(
+            "api error: status: 401, message=Unauthorized"
+        ));
+        assert!(!is_llm_access_denied_message(
+            "LLM returned empty response on attempt 1"
+        ));
+        assert!(!is_llm_access_denied_message(
+            "decode failed on attempt 1/3: missing key role_output"
+        ));
     }
 
     #[test]

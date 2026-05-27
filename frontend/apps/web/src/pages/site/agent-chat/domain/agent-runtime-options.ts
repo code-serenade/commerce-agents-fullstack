@@ -1,6 +1,5 @@
 import {
   ensureManualRoleTeam,
-  manualSupportFallbackRoles,
   orderDefaultCommerceTeamRoles,
   preferredRuntimePrimaryRole,
   selectedSupportRoleCount,
@@ -184,11 +183,13 @@ export function setRuntimePrimaryRole(
     return {
       ...selection,
       primaryRole,
-      selectedRoles: uniqueRuntimeRoles([
-        primaryRole,
-        ...selection.selectedRoles.filter((role) => role !== primaryRole),
-        ...manualSupportFallbackRoles(primaryRole),
-      ]).slice(0, 3),
+      selectedRoles: ensureManualRoleTeam(
+        [
+          primaryRole,
+          ...selection.selectedRoles.filter((role) => role !== primaryRole),
+        ],
+        primaryRole
+      ),
     }
   }
 

@@ -2,7 +2,11 @@ use std::{env, sync::Arc, time::Duration};
 
 use agent::api::{
     AgentId, AgentManager, AgentManagerConfig, AgentRequest, Cognition, CognitionEngine,
-    CognitionInput, CognitionResult, RoleCognitionFactory, RoleProfile, SessionId, UserId,
+    CognitionInput, CognitionResult, RoleCognitionFactory, RoleProfile, SessionEvent,
+    SessionEventDiagnosticConsistencyOptions, SessionId, UserId,
+    audit_session_event_diagnostic_consistency, audit_session_event_diagnostics,
+    audit_session_event_roles, render_session_event_diagnostic_audit,
+    render_session_event_diagnostic_consistency_audit, render_session_event_role_audit,
 };
 use async_trait::async_trait;
 use model_gateway_rs::{
@@ -34,32 +38,77 @@ async fn fullstack_workspace_runs_agent_with_local_ollama() {
             .with_max_tokens(Some(512)),
     );
     let manager = build_manager(llm).expect("manager should initialize");
+    let request = AgentRequest {
+        user_id: Some(UserId("fullstack-smoke-user".to_string())),
+        workspace_id: None,
+        agent_id: AgentId("fullstack-smoke-agent".to_string()),
+        session_id: SessionId("fullstack-ollama-smoke".to_string()),
+        input: task,
+        metadata: Default::default(),
+    };
 
-    let result = manager
-        .run_request(AgentRequest {
-            user_id: Some(UserId("fullstack-smoke-user".to_string())),
-            workspace_id: None,
-            agent_id: AgentId("fullstack-smoke-agent".to_string()),
-            session_id: SessionId("fullstack-ollama-smoke".to_string()),
-            input: task,
-            metadata: Default::default(),
-        })
+    let events = collect_smoke_events(&manager, request)
         .await
-        .expect("agent session should complete");
-
+        .expect("agent event stream should complete");
     assert!(
-        !result.output.trim().is_empty(),
+        events.iter().any(|event| matches!(
+            event,
+            SessionEvent::Output { content, .. } if !content.trim().is_empty()
+        )),
         "agent output should not be empty"
     );
-    assert_eq!(result.task_graphs.len(), 1);
-    assert!(!result.worker_details.is_empty());
-    assert!(result.worker_details.iter().any(|detail| {
-        detail
-            .role_output
-            .as_ref()
-            .is_some_and(|output| !output.summary.trim().is_empty())
-    }));
+    assert!(events.iter().any(|event| matches!(
+        event,
+        SessionEvent::TaskGraphFinished { process, .. } if !process.roles.is_empty()
+    )));
+    assert!(events.iter().any(|event| matches!(
+        event,
+        SessionEvent::TaskNodeReported { report, .. }
+            if report
+                .role_output
+                .as_ref()
+                .is_some_and(|output| !output.summary.trim().is_empty())
+    )));
+    let audit = audit_session_event_roles(&events);
+    eprintln!("{}", render_session_event_role_audit(&audit));
+    let diagnostic_audit = audit_session_event_diagnostics(&events);
+    eprintln!(
+        "{}",
+        render_session_event_diagnostic_audit(&diagnostic_audit)
+    );
+    let consistency_audit = audit_session_event_diagnostic_consistency(
+        &events,
+        SessionEventDiagnosticConsistencyOptions::default(),
+    );
+    eprintln!(
+        "{}",
+        render_session_event_diagnostic_consistency_audit(&consistency_audit)
+    );
+    assert!(
+        !audit.has_task_graph() || audit.is_clean(),
+        "{}",
+        render_session_event_role_audit(&audit)
+    );
     assert_eq!(manager.active_session_count(), 0);
+}
+
+async fn collect_smoke_events(
+    manager: &AgentManager,
+    request: AgentRequest,
+) -> agent::api::Result<Vec<SessionEvent>> {
+    let mut rx = manager.run_stream(request)?;
+    let mut events = Vec::new();
+    while let Some(event) = rx.recv().await {
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+    Ok(events)
 }
 
 fn build_manager(llm: Arc<ChatCompletionsLlm>) -> agent::api::Result<AgentManager> {

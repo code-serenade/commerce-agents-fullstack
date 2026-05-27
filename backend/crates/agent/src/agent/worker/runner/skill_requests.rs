@@ -407,6 +407,7 @@ mod tests {
                 objective: "帮我做校园零食小店运营方案".to_string(),
                 llm_usage: Some("fast".to_string()),
                 skill_autosuggest,
+                timeout_sec: None,
                 inputs: Vec::new(),
                 rework_instruction: None,
             }),

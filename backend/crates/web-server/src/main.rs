@@ -47,6 +47,10 @@ async fn main() {
         default_llm: settings.default_llm.clone(),
         llm_usage: settings.agent_llm_usage.clone(),
         search: settings.external_search.clone(),
+        worker_cognition_timeout_sec: settings
+            .agent_runtime
+            .worker_cognition_timeout_sec
+            .unwrap_or(45),
     })
     .expect("Agent manager initialization failed");
     init_external_search(settings.external_search.clone())

@@ -5,7 +5,7 @@ use super::{
     util::{compact_event_text, push_unique},
 };
 use crate::{
-    core::protocol::RoleWorkOutput,
+    core::protocol::{RoleWorkOutput, WorkerDiagnostic},
     skills::{SkillExecutionResult, SkillExecutionStatus},
 };
 
@@ -39,6 +39,7 @@ pub(super) fn parse_worker_role_output(output: &str) -> ParsedWorkerRoleOutput {
         .map(format_role_work_output_content)
         .filter(|content| !content.trim().is_empty())
         .unwrap_or_else(|| extract_worker_content(trimmed));
+    let diagnostics = search_diagnostics_from_evidence(&evidence);
 
     ParsedWorkerRoleOutput {
         content,
@@ -46,6 +47,7 @@ pub(super) fn parse_worker_role_output(output: &str) -> ParsedWorkerRoleOutput {
         evidence,
         risks,
         open_questions,
+        diagnostics,
     }
 }
 
@@ -105,6 +107,23 @@ pub(super) fn merge_skill_results(
                 push_unique(&mut role_output.open_questions, risk);
             }
         }
+
+        if !matches!(result.status, SkillExecutionStatus::Success)
+            && let Some(evidence_packet) = format_search_evidence_packet(result)
+        {
+            push_unique(&mut parsed.evidence, evidence_packet.clone());
+            push_unique(&mut role_output.evidence, evidence_packet);
+        }
+        if let Some(trace) = format_search_evidence_trace(result) {
+            push_unique(&mut parsed.evidence, trace.clone());
+            push_unique(&mut role_output.evidence, trace);
+        }
+        if let Some(diagnostic) = format_search_evidence_diagnostic(result) {
+            push_unique_diagnostic(&mut parsed.diagnostics, diagnostic);
+        }
+        if let Some(diagnostic) = format_skill_failure_diagnostic(result) {
+            push_unique_diagnostic(&mut parsed.diagnostics, diagnostic);
+        }
     }
 
     parsed.content = parsed
@@ -114,6 +133,53 @@ pub(super) fn merge_skill_results(
         .filter(|content| !content.trim().is_empty())
         .unwrap_or(parsed.content);
     parsed
+}
+
+fn push_unique_diagnostic(items: &mut Vec<WorkerDiagnostic>, diagnostic: WorkerDiagnostic) {
+    if !items.contains(&diagnostic) {
+        items.push(diagnostic);
+    }
+}
+
+fn search_diagnostics_from_evidence(evidence: &[String]) -> Vec<WorkerDiagnostic> {
+    let mut diagnostics = Vec::new();
+    for item in evidence {
+        if let Some(diagnostic) = search_trace_diagnostic(item) {
+            push_unique_diagnostic(&mut diagnostics, diagnostic);
+        }
+    }
+    diagnostics
+}
+
+fn search_trace_diagnostic(trace: &str) -> Option<WorkerDiagnostic> {
+    let fields = parse_search_trace_fields(trace)?;
+    let source = fields
+        .get("skill")
+        .map(String::as_str)
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or("search")
+        .to_string();
+    Some(WorkerDiagnostic {
+        kind: "search_evidence".to_string(),
+        source,
+        fields,
+    })
+}
+
+fn parse_search_trace_fields(trace: &str) -> Option<std::collections::BTreeMap<String, String>> {
+    let rest = trace.trim().strip_prefix("search_evidence_trace:")?;
+    let fields = rest
+        .split_whitespace()
+        .filter_map(|part| part.split_once('='))
+        .map(|(key, value)| {
+            (
+                key.trim().to_string(),
+                value.trim().trim_matches('"').to_string(),
+            )
+        })
+        .filter(|(key, value)| !key.is_empty() && !value.is_empty())
+        .collect::<std::collections::BTreeMap<_, _>>();
+    (!fields.is_empty()).then_some(fields)
 }
 
 fn remove_success_skill_evidence(items: &mut Vec<String>, skill_id: &str, summary: Option<&str>) {
@@ -140,6 +206,225 @@ pub(super) fn format_role_work_output_content(output: &RoleWorkOutput) -> String
     lines.join("\n")
 }
 
+fn format_search_evidence_diagnostic(result: &SkillExecutionResult) -> Option<WorkerDiagnostic> {
+    if !result.skill_id.as_str().starts_with("search_") {
+        return None;
+    }
+    let output = result.output.as_ref()?;
+    let packet = output.get("evidence_packet")?;
+    let mut fields = std::collections::BTreeMap::new();
+
+    push_field(&mut fields, "skill", result.skill_id.as_str());
+    push_field(
+        &mut fields,
+        "status",
+        output
+            .get("status")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or_else(|| skill_status_label(result.status)),
+    );
+    push_field(
+        &mut fields,
+        "adapter_status",
+        output
+            .get("adapter_status")
+            .and_then(serde_json::Value::as_str)
+            .or_else(|| packet_text(packet, "adapter_status"))
+            .or_else(|| {
+                result
+                    .metadata
+                    .get("adapter_status")
+                    .and_then(serde_json::Value::as_str)
+            })
+            .unwrap_or("unknown"),
+    );
+    push_field(
+        &mut fields,
+        "source_state",
+        packet_text(packet, "source_state").unwrap_or("unknown"),
+    );
+    push_field(
+        &mut fields,
+        "intent",
+        packet_text(packet, "intent").unwrap_or("general_search_evidence"),
+    );
+    push_field(
+        &mut fields,
+        "strength",
+        packet_text(packet, "search_strength").unwrap_or("unknown"),
+    );
+    push_field(
+        &mut fields,
+        "sources",
+        search_source_count(output, packet).to_string(),
+    );
+    push_field(
+        &mut fields,
+        "usable_claims",
+        packet
+            .get("usable_claims")
+            .and_then(serde_json::Value::as_array)
+            .map_or(0, Vec::len)
+            .to_string(),
+    );
+
+    let gaps = packet
+        .get("gaps")
+        .and_then(serde_json::Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    push_field(&mut fields, "gaps", gaps.len().to_string());
+    if let Some(confidence) = packet.get("confidence").and_then(serde_json::Value::as_f64) {
+        push_field(&mut fields, "confidence", format!("{confidence:.2}"));
+    }
+    if let Some(query) = packet_text(packet, "query").or_else(|| {
+        output
+            .get("planned_query")
+            .and_then(serde_json::Value::as_str)
+    }) {
+        push_field(&mut fields, "query", compact_inline(query, 180));
+    }
+
+    let gap_preview = gaps
+        .iter()
+        .filter_map(serde_json::Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .take(2)
+        .collect::<Vec<_>>()
+        .join(" | ");
+    if !gap_preview.is_empty() {
+        push_field(
+            &mut fields,
+            "gap_preview",
+            compact_inline(&gap_preview, 220),
+        );
+    }
+
+    Some(WorkerDiagnostic {
+        kind: "search_evidence".to_string(),
+        source: result.skill_id.as_str().to_string(),
+        fields,
+    })
+}
+
+fn format_skill_failure_diagnostic(result: &SkillExecutionResult) -> Option<WorkerDiagnostic> {
+    if matches!(result.status, SkillExecutionStatus::Success) {
+        return None;
+    }
+
+    let failure_kind = skill_failure_kind(result)?;
+    let mut fields = std::collections::BTreeMap::new();
+    push_field(&mut fields, "failure_kind", failure_kind);
+    push_field(&mut fields, "status", skill_status_label(result.status));
+    push_field(&mut fields, "skill", result.skill_id.as_str());
+    push_field(&mut fields, "request_id", &result.request_id);
+    if let Some(reason) = skill_failure_reason(result) {
+        push_field(&mut fields, "reason", compact_inline(&reason, 220));
+    }
+    for key in [
+        "execution_mode",
+        "risk_level",
+        "adapter_status",
+        "data_readiness",
+    ] {
+        if let Some(value) = result.metadata.get(key).and_then(serde_json::Value::as_str) {
+            push_field(&mut fields, key, value);
+        }
+    }
+    if let Some(value) = result
+        .metadata
+        .get("approval_required")
+        .and_then(serde_json::Value::as_bool)
+    {
+        push_field(&mut fields, "approval_required", value.to_string());
+    }
+    if let Some(output) = result.output.as_ref() {
+        if let Some(value) = output
+            .get("adapter_status")
+            .and_then(serde_json::Value::as_str)
+        {
+            push_field(&mut fields, "adapter_status", value);
+        }
+        if let Some(value) = output
+            .get("data_readiness")
+            .and_then(serde_json::Value::as_str)
+        {
+            push_field(&mut fields, "data_readiness", value);
+        }
+    }
+
+    Some(WorkerDiagnostic {
+        kind: "failure".to_string(),
+        source: failure_kind.to_string(),
+        fields,
+    })
+}
+
+fn skill_failure_kind(result: &SkillExecutionResult) -> Option<&'static str> {
+    let reason = skill_failure_reason(result).unwrap_or_default();
+    let lower = reason.to_ascii_lowercase();
+    if lower.contains("timed out") || lower.contains("timeout") {
+        return Some("skill_adapter_timeout");
+    }
+
+    match result.status {
+        SkillExecutionStatus::Success => None,
+        SkillExecutionStatus::Deferred => {
+            if lower.contains("adapter")
+                || lower.contains("executor unavailable")
+                || lower.contains("not implemented")
+                || lower.contains("尚未接入")
+                || lower.contains("未接入")
+            {
+                Some("skill_adapter_unavailable")
+            } else {
+                Some("skill_deferred")
+            }
+        }
+        SkillExecutionStatus::PendingApproval => Some("skill_pending_approval"),
+        SkillExecutionStatus::NotFound => Some("skill_not_found"),
+        SkillExecutionStatus::ValidationError => Some("skill_validation_error"),
+        SkillExecutionStatus::Failed => Some("skill_execution_failed"),
+    }
+}
+
+fn skill_failure_reason(result: &SkillExecutionResult) -> Option<String> {
+    result
+        .error
+        .as_deref()
+        .or(result.summary.as_deref())
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToString::to_string)
+        .or_else(|| {
+            result
+                .output
+                .as_ref()
+                .and_then(|output| {
+                    output
+                        .get("message")
+                        .or_else(|| output.get("reason"))
+                        .or_else(|| output.get("error"))
+                })
+                .and_then(serde_json::Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(ToString::to_string)
+        })
+}
+
+fn push_field(
+    fields: &mut std::collections::BTreeMap<String, String>,
+    key: impl Into<String>,
+    value: impl Into<String>,
+) {
+    let value = value.into();
+    if !value.trim().is_empty() {
+        fields.insert(key.into(), value);
+    }
+}
+
 fn format_search_evidence_packet(result: &SkillExecutionResult) -> Option<String> {
     if !result.skill_id.as_str().starts_with("search_") {
         return None;
@@ -150,6 +435,122 @@ fn format_search_evidence_packet(result: &SkillExecutionResult) -> Option<String
         "search_evidence_packet:{}",
         compact_inline(&serialized, 2400)
     ))
+}
+
+fn format_search_evidence_trace(result: &SkillExecutionResult) -> Option<String> {
+    if !result.skill_id.as_str().starts_with("search_") {
+        return None;
+    }
+    let output = result.output.as_ref()?;
+    let packet = output.get("evidence_packet")?;
+    let intent = packet_text(packet, "intent").unwrap_or("general_search_evidence");
+    let query = packet_text(packet, "query")
+        .or_else(|| {
+            output
+                .get("planned_query")
+                .and_then(serde_json::Value::as_str)
+        })
+        .unwrap_or("");
+    let strength = packet_text(packet, "search_strength").unwrap_or("unknown");
+    let adapter_status = output
+        .get("adapter_status")
+        .and_then(serde_json::Value::as_str)
+        .or_else(|| {
+            result
+                .metadata
+                .get("adapter_status")
+                .and_then(serde_json::Value::as_str)
+        })
+        .unwrap_or("unknown");
+    let output_status = output
+        .get("status")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or_else(|| skill_status_label(result.status));
+    let source_count = output
+        .pointer("/provenance/source_count")
+        .and_then(serde_json::Value::as_u64)
+        .or_else(|| source_array_count(output, "sources"))
+        .or_else(|| source_array_count(packet, "sources"))
+        .unwrap_or(0);
+    let claim_count = packet
+        .get("usable_claims")
+        .and_then(serde_json::Value::as_array)
+        .map_or(0, Vec::len);
+    let gaps = packet
+        .get("gaps")
+        .and_then(serde_json::Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let gap_count = gaps.len();
+    let confidence = packet
+        .get("confidence")
+        .and_then(serde_json::Value::as_f64)
+        .map(|value| format!("{value:.2}"))
+        .unwrap_or_else(|| "unknown".to_string());
+    let gap_preview = gaps
+        .iter()
+        .filter_map(serde_json::Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .take(2)
+        .collect::<Vec<_>>()
+        .join(" | ");
+
+    let mut trace = format!(
+        "search_evidence_trace: skill={} status={} adapter_status={} intent={} strength={} sources={} usable_claims={} gaps={} confidence={} query=\"{}\"",
+        result.skill_id.as_str(),
+        output_status,
+        adapter_status,
+        intent,
+        strength,
+        source_count,
+        claim_count,
+        gap_count,
+        confidence,
+        compact_inline(query, 180)
+    );
+    if !gap_preview.is_empty() {
+        trace.push_str(&format!(
+            " gap_preview=\"{}\"",
+            compact_inline(&gap_preview, 220)
+        ));
+    }
+    Some(trace)
+}
+
+fn search_source_count(output: &serde_json::Value, packet: &serde_json::Value) -> u64 {
+    output
+        .pointer("/provenance/source_count")
+        .and_then(serde_json::Value::as_u64)
+        .or_else(|| source_array_count(output, "sources"))
+        .or_else(|| source_array_count(packet, "sources"))
+        .unwrap_or(0)
+}
+
+fn source_array_count(value: &serde_json::Value, key: &str) -> Option<u64> {
+    value
+        .get(key)
+        .and_then(serde_json::Value::as_array)
+        .map(|items| items.len() as u64)
+}
+
+fn packet_text<'a>(packet: &'a serde_json::Value, key: &str) -> Option<&'a str> {
+    packet
+        .get(key)
+        .and_then(serde_json::Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+}
+
+fn skill_status_label(status: SkillExecutionStatus) -> &'static str {
+    match status {
+        SkillExecutionStatus::Success => "success",
+        SkillExecutionStatus::Deferred => "deferred",
+        SkillExecutionStatus::PendingApproval => "pending_approval",
+        SkillExecutionStatus::NotFound => "not_found",
+        SkillExecutionStatus::ValidationError => "validation_error",
+        SkillExecutionStatus::Failed => "failed",
+    }
 }
 
 fn format_live_search_evidence(result: &SkillExecutionResult) -> Option<String> {
@@ -416,6 +817,9 @@ mod tests {
                 }],
                 "evidence_packet": {
                     "intent": "competitor_price_or_benchmark",
+                    "adapter_status": "live",
+                    "source_state": "has_reliable_sources",
+                    "search_strength": "standard",
                     "usable_claims": ["竞品价格集中在 12-19 元。"],
                     "gaps": [],
                     "confidence": 0.72
@@ -427,6 +831,7 @@ mod tests {
         }];
 
         let merged = merge_skill_results(parsed, &results);
+        let diagnostics = merged.diagnostics.clone();
         let evidence = merged
             .role_output
             .expect("role output should exist")
@@ -443,6 +848,192 @@ mod tests {
                 .iter()
                 .any(|item| item.contains("实时搜索来源（search_competitor）")),
             "human-readable live source list should still be preserved"
+        );
+        assert!(
+            evidence.iter().any(|item| {
+                item.starts_with("search_evidence_trace:")
+                    && item.contains("skill=search_competitor")
+                    && item.contains("adapter_status=live")
+                    && item.contains("intent=competitor_price_or_benchmark")
+            }),
+            "search evidence trace should summarize the live search path"
+        );
+        assert!(
+            diagnostics.iter().any(|item| {
+                item.kind == "search_evidence"
+                    && item.source == "search_competitor"
+                    && item.fields.get("adapter_status").map(String::as_str) == Some("live")
+                    && item.fields.get("source_state").map(String::as_str)
+                        == Some("has_reliable_sources")
+                    && item.fields.get("sources").map(String::as_str) == Some("1")
+                    && item.fields.get("usable_claims").map(String::as_str) == Some("1")
+                    && item.fields.get("gaps").map(String::as_str) == Some("0")
+                    && item.fields.get("confidence").map(String::as_str) == Some("0.72")
+            }),
+            "search evidence diagnostic should expose typed live adapter state"
+        );
+    }
+
+    #[test]
+    fn merge_skill_results_keeps_degraded_search_evidence_packet_for_downstream_workers() {
+        let parsed = parse_worker_role_output(
+            r#"{"role_output":{"summary":"本轮搜索未拿到来源，但需要把缺口交给下游。","evidence":[]}}"#,
+        );
+        let results = vec![SkillExecutionResult {
+            request_id: "req-search".to_string(),
+            skill_id: SkillId::new("search_platform_policy"),
+            status: SkillExecutionStatus::Deferred,
+            output: Some(json!({
+                "status": "deferred",
+                "adapter_status": "degraded",
+                "planned_query": "抖音 价格合规 官方规则 最新 2026",
+                "provenance": {
+                    "source_count": 0
+                },
+                    "evidence_packet": {
+                        "intent": "platform_policy_or_compliance",
+                        "skill": "search_platform_policy",
+                        "adapter_status": "degraded",
+                        "source_state": "no_reliable_sources",
+                        "query": "抖音 价格合规 官方规则 最新 2026",
+                        "search_strength": "standard",
+                        "sources": [],
+                    "usable_claims": [],
+                    "gaps": ["provider timeout"],
+                    "confidence": 0.0
+                }
+            })),
+            summary: Some("外部搜索 adapter 未返回可采信来源，已按降级结果处理".to_string()),
+            metadata: Map::new(),
+            error: None,
+        }];
+
+        let merged = merge_skill_results(parsed, &results);
+        let diagnostics = merged.diagnostics.clone();
+        let role_output = merged.role_output.expect("role output should exist");
+
+        assert!(
+            role_output
+                .evidence
+                .iter()
+                .any(|item| item.starts_with("search_evidence_packet:")),
+            "degraded search evidence packet should still be preserved in report evidence"
+        );
+        assert!(
+            role_output.evidence.iter().any(|item| {
+                item.starts_with("search_evidence_trace:")
+                    && item.contains("skill=search_platform_policy")
+                    && item.contains("adapter_status=degraded")
+                    && item.contains("sources=0")
+                    && item.contains("gaps=1")
+                    && item.contains("provider timeout")
+            }),
+            "degraded search trace should expose status, source count, gaps and query"
+        );
+        assert!(
+            role_output
+                .risks
+                .iter()
+                .any(|item| item.contains("search_platform_policy")),
+            "degraded search should still keep the incomplete skill risk"
+        );
+        assert!(
+            diagnostics.iter().any(|item| {
+                item.kind == "search_evidence"
+                    && item.source == "search_platform_policy"
+                    && item.fields.get("adapter_status").map(String::as_str) == Some("degraded")
+                    && item.fields.get("source_state").map(String::as_str)
+                        == Some("no_reliable_sources")
+                    && item.fields.get("sources").map(String::as_str) == Some("0")
+                    && item.fields.get("usable_claims").map(String::as_str) == Some("0")
+                    && item.fields.get("gaps").map(String::as_str) == Some("1")
+                    && item.fields.get("confidence").map(String::as_str) == Some("0.00")
+            }),
+            "search evidence diagnostic should expose typed degraded adapter state"
+        );
+    }
+
+    #[test]
+    fn parse_worker_role_output_promotes_search_trace_to_typed_diagnostic() {
+        let parsed = parse_worker_role_output(
+            r#"{"role_output":{"summary":"搜索岗已整理证据。","evidence":["search_evidence_packet:{\"intent\":\"competitor_price_or_benchmark\"}","search_evidence_trace: skill=search_competitor status=success adapter_status=live intent=competitor_price_or_benchmark strength=standard sources=1 usable_claims=1 gaps=0 confidence=0.72 query=\"校园冷萃咖啡 竞品价格\""]}}"#,
+        );
+
+        assert!(
+            parsed.diagnostics.iter().any(|item| {
+                item.kind == "search_evidence"
+                    && item.source == "search_competitor"
+                    && item.fields.get("adapter_status").map(String::as_str) == Some("live")
+                    && item.fields.get("sources").map(String::as_str) == Some("1")
+                    && item.fields.get("usable_claims").map(String::as_str) == Some("1")
+                    && item.fields.get("gaps").map(String::as_str) == Some("0")
+                    && item.fields.get("confidence").map(String::as_str) == Some("0.72")
+            }),
+            "legacy search_evidence_trace should be promoted to typed diagnostics"
+        );
+    }
+
+    #[test]
+    fn merge_skill_results_adds_typed_failure_diagnostics_for_skill_errors() {
+        let parsed = parse_worker_role_output(
+            r#"{"role_output":{"summary":"本轮先尝试调用指标 Skill。","evidence":[]}}"#,
+        );
+        let results = vec![
+            SkillExecutionResult {
+                request_id: "req-validation".to_string(),
+                skill_id: SkillId::new("query_store_metrics"),
+                status: SkillExecutionStatus::ValidationError,
+                output: None,
+                summary: None,
+                metadata: Map::new(),
+                error: Some("missing required metric input".to_string()),
+            },
+            SkillExecutionResult {
+                request_id: "req-adapter".to_string(),
+                skill_id: SkillId::new("platform_update_price"),
+                status: SkillExecutionStatus::Deferred,
+                output: Some(json!({
+                    "adapter_status": "adapter_not_implemented",
+                    "data_readiness": "adapter_required",
+                    "message": "Platform execution adapter is not implemented yet."
+                })),
+                summary: Some("平台执行 adapter 尚未接入".to_string()),
+                metadata: Map::new(),
+                error: None,
+            },
+        ];
+
+        let merged = merge_skill_results(parsed, &results);
+
+        assert!(
+            merged.diagnostics.iter().any(|item| {
+                item.kind == "failure"
+                    && item.source == "skill_validation_error"
+                    && item.fields.get("failure_kind").map(String::as_str)
+                        == Some("skill_validation_error")
+                    && item.fields.get("status").map(String::as_str) == Some("validation_error")
+                    && item.fields.get("skill").map(String::as_str) == Some("query_store_metrics")
+                    && item
+                        .fields
+                        .get("reason")
+                        .is_some_and(|value| value.contains("missing required metric input"))
+            }),
+            "validation errors should become typed failure diagnostics"
+        );
+        assert!(
+            merged.diagnostics.iter().any(|item| {
+                item.kind == "failure"
+                    && item.source == "skill_adapter_unavailable"
+                    && item.fields.get("failure_kind").map(String::as_str)
+                        == Some("skill_adapter_unavailable")
+                    && item.fields.get("status").map(String::as_str) == Some("deferred")
+                    && item.fields.get("skill").map(String::as_str) == Some("platform_update_price")
+                    && item.fields.get("adapter_status").map(String::as_str)
+                        == Some("adapter_not_implemented")
+                    && item.fields.get("data_readiness").map(String::as_str)
+                        == Some("adapter_required")
+            }),
+            "adapter unavailable states should become typed failure diagnostics"
         );
     }
 }

@@ -15,6 +15,16 @@
 9. task graph 节点和动态角色配置可以配置 `skill_autosuggest`。显式多岗位轻量协作、最终润色或不需要外部适配器的节点可以设为 `false`，避免自动技能请求拖慢和污染输出；需要后台、搜索、投放、财务等真实工具能力的深度图保持默认开启。动态角色还可以配置 `skill_autosuggest_by_role`，用于在同一条规则里覆盖某个 runtime role 的自动技能开关，例如轻量显式团队默认关闭 autosuggest，但对 `search` 证据岗单独打开。
 10. task graph 的 `match.min_explicit_role_aliases` 是通用匹配条件，用于要求用户文本至少命中若干个 `role-aliases.json` 中的岗位别名。它只表达“是否真的点名了岗位”，不在 Rust 里写业务岗位词。
 11. worker inference 的搜索配置可以在 `search.max_results.response_mode_defaults` 中按 `strategy.response_mode` 配置搜索默认强度。该默认值只在 autosuggest 已经触发搜索且用户未显式指定条数、深度/标准/轻量强度时补齐，不得反向触发搜索。
+12. task graph 节点、动态角色和最终节点可以配置 `timeout_sec`。该字段是通用执行保护，用于限制单个 worker cognition 等待时间；不表达业务优先级，也不允许在 Rust 中按行业、岗位或关键词硬编码超时。未配置时使用 `defaults.timeout_sec`，再回落到 `[agent_runtime].worker_cognition_timeout_sec`。
+13. dynamic roles 的 `from_explicit_request.depends_on_roles` 和 `from_route.depends_on_roles` 是通用依赖配置，用于声明某类动态角色应依赖哪些上游 runtime role，例如业务岗位依赖 `search` 证据岗。Rust 只按配置把已存在的上游 role 映射为 node `input_refs`，不写具体行业流程；如果上游 role 未被本轮规划，则该依赖自动忽略。
+14. worker cognition 遇到模型访问权限错误时必须形成结构化失败诊断。`llm_access_denied` 代表服务端模型配置或 provider 权限不可用，worker report 应保留兼容 marker `failure_kind:llm_access_denied`，同时写入 `WorkerReport.diagnostics[]` 的 `kind=failure`、`fields.failure_kind=llm_access_denied`；task graph 最终合成应优先向用户说明模型配置不可用；不能把它伪装成岗位业务失败、资料不足或“请补充更明确问题”。
+15. 搜索证据的 `WorkerReport.diagnostics[]`、`search_evidence_packet:{...}` 和 `search_evidence_trace: ...` 是过程核对信息，只能留在 worker report、task graph process、smoke 报告、session memory 和后台日志里。最终用户回答必须通过 user-facing sanitizer 过滤内部 packet/trace，只保留自然语言结论和可读的“实时搜索来源”。新增搜索 evidence/diagnostics 字段时也要遵守同一边界，避免把内部 JSON、trace 或调试语句直接展示给学生。
+16. `task_graph_finished.process.check_items[]` 可以承载由 runtime 从内部 diagnostics/evidence 提炼的可读核对项，例如搜索核对。该字段只做展示摘要，不替代 `WorkerReport.diagnostics[]` 或 `WorkerReport.evidence` 里的结构化事实；搜索核对应优先读取 `diagnostics.kind=search_evidence`，仅在缺少 typed diagnostic 时兼容解析旧 `search_evidence_trace`。新增 check item 时不得要求前端解析 Markdown 或 provider 原始 JSON，也不得把 API key、provider request id、完整内部 trace 或未脱敏调试信息写入用户可见过程面板。
+17. commander 不允许因为某个 worker 当前未注册或发送失败而在 `TaskGraphPlanned` 前静默删除该岗位节点。任务图应保留用户显式选择或配置规划出的完整节点；如果 ready node 无法派发，commander 必须生成 `status=failed` 的结构化 `WorkerReport`，在 evidence 中保留兼容 marker `failure_kind:worker_unavailable`，同时写入 `WorkerReport.diagnostics[]` 的 `kind=failure`、`fields.failure_kind=worker_unavailable`，并让 task graph runtime 统一产生 `task_node_reported`、`task_node_failed`、`task_graph_finished.process.incomplete[]` 和可读“岗位核对”项。最终回答不能把这类执行缺口伪装成“请补充材料”。
+18. smoke、浏览器回归或接口回归需要核对多岗位执行链路时，应优先复用 `agent::api::audit_session_event_roles*` 和 `render_session_event_role_audit`，对 `route_decided`、`task_graph_planned`、`task_node_reported`、`task_graph_finished.process.roles[]` 和 `process.incomplete[]` 做统一差异报告。不要在各测试里重新写一套 planned/reported/finished 对比逻辑；审计逻辑只读取事件，不改变 SSE 协议或业务编排。
+19. skill 执行失败、待执行、待审批、缺 adapter 或入参校验失败时，worker report 必须优先写入 `WorkerReport.diagnostics[]` 的 `kind=failure`。`fields.failure_kind` 使用通用值，例如 `skill_adapter_timeout`、`skill_adapter_unavailable`、`skill_pending_approval`、`skill_not_found`、`skill_validation_error`、`skill_execution_failed`、`skill_deferred`；`fields.skill`、`fields.status`、`fields.request_id` 和脱敏短 `fields.reason` 用于后台核对。`task_graph_finished.process.check_items[]` 可以把这些 typed diagnostics 提炼为“Skill核对”可读项；普通最终回答不得暴露 diagnostic JSON、adapter 原始异常或 provider 调试细节。
+20. `workspaceContextPack.*` 资料上下文包若不是完整 `ready`，或存在 omitted、metadata only、解析中、解析失败、解析不支持等状态，worker report 应写入 `WorkerReport.diagnostics[]` 的 `kind=failure`。`fields.failure_kind` 使用 `context_pack_extraction_failed`、`context_pack_extraction_unsupported`、`context_pack_extraction_pending`、`context_pack_omitted`、`context_pack_empty`、`context_pack_partial` 等通用值；`fields.readiness`、`item_count`、`omitted_count`、`extraction_*_count` 和脱敏短 `warning_preview` 用于后台核对。`task_graph_finished.process.check_items[]` 可以提炼为“资料核对”可读项；最终回答不得把未解析、未进入上下文或仅元数据的资料说成已读取全文，也不得暴露 object key、storage path、内部 parser 异常或原始调试 JSON。
+21. smoke、浏览器回归、模式矩阵或接口回归需要统计搜索、Skill、资料包、worker 不可用、超时或模型权限等后台异常时，应优先复用 `WorkerReport.diagnostics[]` 和 `agent::api::audit_session_event_diagnostics` / `render_session_event_diagnostic_audit`。旧 evidence marker（如 `failure_kind:*`、`search_evidence_trace:*`）只能作为兼容 fallback；当同一 report 已有 typed failure diagnostic 时，不得重复统计旧 marker，避免报告里同一问题被算两次。回归报告还应检查 diagnostic 与最终回答的一致性，例如资料包失败时最终回答不得声称已读取全文，Skill 失败时不得声称已完成外部执行动作，缺少搜索证据时不得声称已完成实时搜索。
 
 ## 配置入口
 
@@ -27,6 +37,7 @@
 - `backend/config/json/agent/worker-output-policy.json`
 - `backend/config/json/agent/worker-output-normalization-policy.json`
 - `backend/config/prompts/`
+- `backend/config/services.toml` 的 `[agent_runtime]`
 
 旧的单文件策略：
 

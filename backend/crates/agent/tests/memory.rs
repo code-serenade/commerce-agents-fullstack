@@ -583,6 +583,7 @@ fn session_snapshot_persists_role_risks_questions_and_evaluation() {
         evidence: vec!["原始任务".to_string()],
         risks: vec!["口径不一致会导致误判".to_string()],
         open_questions: vec!["需要确认 GMV 统计口径".to_string()],
+        diagnostics: Vec::new(),
         evaluation: None,
     };
     let process_summary = TaskGraphProcessSummary {

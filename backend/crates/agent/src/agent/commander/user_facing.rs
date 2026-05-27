@@ -1,11 +1,69 @@
-use crate::core::protocol::WorkerReport;
+use crate::{
+    core::protocol::WorkerReport,
+    llm_routing::{is_llm_access_denied_message, llm_access_denied_user_message},
+};
 
 pub(crate) fn user_facing_report_text(report: &WorkerReport) -> Option<String> {
+    if report_has_llm_access_denied(report) {
+        return Some(llm_access_denied_user_message().to_string());
+    }
+
     report
         .role_output
         .as_ref()
         .and_then(|output| role_output_user_facing_text(&report.role, output))
         .or_else(|| sanitize_user_facing_text(&report.content))
+}
+
+pub(crate) fn report_has_llm_access_denied(report: &WorkerReport) -> bool {
+    report_has_failure_diagnostic(report, "llm_access_denied")
+        || is_llm_access_denied_message(&report.content)
+        || report
+            .open_questions
+            .iter()
+            .any(|item| is_llm_access_denied_message(item))
+        || report
+            .risks
+            .iter()
+            .any(|item| is_llm_access_denied_message(item))
+        || report
+            .evidence
+            .iter()
+            .any(|item| is_llm_access_denied_message(item))
+        || report.role_output.as_ref().is_some_and(|output| {
+            is_llm_access_denied_message(&output.summary)
+                || output
+                    .findings
+                    .iter()
+                    .any(|item| is_llm_access_denied_message(item))
+                || output
+                    .recommendations
+                    .iter()
+                    .any(|item| is_llm_access_denied_message(item))
+                || output
+                    .open_questions
+                    .iter()
+                    .any(|item| is_llm_access_denied_message(item))
+                || output
+                    .risks
+                    .iter()
+                    .any(|item| is_llm_access_denied_message(item))
+                || output
+                    .evidence
+                    .iter()
+                    .any(|item| is_llm_access_denied_message(item))
+        })
+}
+
+pub(crate) fn report_has_failure_diagnostic(report: &WorkerReport, failure_kind: &str) -> bool {
+    report.diagnostics.iter().any(|diagnostic| {
+        diagnostic.kind == "failure"
+            && (diagnostic.source == failure_kind
+                || diagnostic
+                    .fields
+                    .get("failure_kind")
+                    .is_some_and(|value| value == failure_kind))
+    })
 }
 
 fn role_output_user_facing_text(
@@ -120,6 +178,7 @@ pub(crate) fn sanitize_user_facing_text(raw: &str) -> Option<String> {
         }
         lines.push(line);
     }
+    let lines = drop_orphan_section_headings(lines);
 
     let output = normalize_blank_lines(lines);
     (!output.is_empty() && !is_internal_noise_line(&output)).then_some(output)
@@ -344,6 +403,39 @@ fn normalize_blank_lines(lines: Vec<String>) -> String {
     normalized.join("\n")
 }
 
+fn drop_orphan_section_headings(lines: Vec<String>) -> Vec<String> {
+    lines
+        .iter()
+        .enumerate()
+        .filter_map(|(index, line)| {
+            if is_generated_section_heading(line)
+                && lines
+                    .get(index + 1)
+                    .is_none_or(|next| is_generated_section_heading(next))
+            {
+                return None;
+            }
+            Some(line.clone())
+        })
+        .collect()
+}
+
+fn is_generated_section_heading(line: &str) -> bool {
+    matches!(
+        line.trim(),
+        "发现:"
+            | "发现："
+            | "建议:"
+            | "建议："
+            | "依据:"
+            | "依据："
+            | "风险:"
+            | "风险："
+            | "待确认:"
+            | "待确认："
+    )
+}
+
 fn collapse_repeated_blocks(lines: Vec<String>) -> Vec<String> {
     let lines = collapse_repeated_line_sequence(lines);
     let lines = collapse_non_adjacent_repeated_line_runs(lines);
@@ -469,6 +561,8 @@ fn is_internal_noise_line(line: &str) -> bool {
         "json template validation failed",
         "missing key",
         "worker reported failed status",
+        "search_evidence_packet:",
+        "search_evidence_trace:",
         "support role",
         "support worker",
         "support_workers",
@@ -492,6 +586,8 @@ fn is_internal_noise_line(line: &str) -> bool {
         || lower.contains(" worker:")
         || lower.contains(" worker_id")
         || lower.contains(" worker report")
+        || lower.contains("search_evidence_packet")
+        || lower.contains("search_evidence_trace")
         || lower.starts_with("worker")
         || line == "- none"
         || lower == "none"
@@ -547,6 +643,31 @@ mod tests {
     }
 
     #[test]
+    fn failed_report_surfaces_llm_access_denied_user_message() {
+        let report = WorkerReport {
+            graph_id: TaskGraphId("graph-llm".to_string()),
+            node_id: TaskNodeId("data".to_string()),
+            task_id: TaskId("task-data".to_string()),
+            worker_id: WorkerId("worker.data".to_string()),
+            role: "data".to_string(),
+            content: "llm_access_denied: 当前 AI 模型服务配置不可用".to_string(),
+            role_output: None,
+            evidence: vec!["failure_kind:llm_access_denied".to_string()],
+            risks: Vec::new(),
+            open_questions: Vec::new(),
+            diagnostics: Vec::new(),
+            status: WorkerReportStatus::Failed,
+        };
+
+        let output = user_facing_report_text(&report).expect("diagnostic should be visible");
+
+        assert!(output.contains("模型服务配置不可用"));
+        assert!(output.contains("services.toml"));
+        assert!(!output.contains("api_key"));
+        assert!(!output.contains("Request id"));
+    }
+
+    #[test]
     fn removes_empty_role_shell_and_worker_artifacts() {
         let raw = "Task graph completed. Task: 这个咖啡如何做营销\nPassed worker reports\n- \
                    内容创意(creative): \
@@ -590,6 +711,7 @@ mod tests {
             evidence: Vec::new(),
             risks: Vec::new(),
             open_questions: Vec::new(),
+            diagnostics: Vec::new(),
             status: WorkerReportStatus::Completed,
         };
 
@@ -599,6 +721,58 @@ mod tests {
         assert!(output.contains("实时搜索来源"));
         assert!(output.contains("https://example.com/policy"));
         assert!(!output.contains("本轮未拿到"));
+    }
+
+    #[test]
+    fn filters_internal_search_evidence_trace_and_packet_from_user_answer() {
+        let report = WorkerReport {
+            graph_id: TaskGraphId("graph-search".to_string()),
+            node_id: TaskNodeId("search".to_string()),
+            task_id: TaskId("task-search".to_string()),
+            worker_id: WorkerId("worker.search".to_string()),
+            role: "search".to_string(),
+            content: String::new(),
+            role_output: Some(RoleWorkOutput {
+                summary: "本轮已核对竞品价格，建议先用 12-19 元价格带做小样本测试。".to_string(),
+                evidence: vec![
+                    "实时搜索来源（search_competitor）：1 个可采信来源\n\
+                     1. 冷萃咖啡竞品价格参考 | 2026-05-20 | \
+                     https://example.com/cold-brew-price | 竞品价格集中在 12-19 元。"
+                        .to_string(),
+                    "search_evidence_packet:{\"sources\":[{\"url\":\"https://example.com/raw\"}]}"
+                        .to_string(),
+                    "search_evidence_trace: skill=search_competitor status=success \
+                     adapter_status=live intent=competitor_price_or_benchmark sources=1 \
+                     usable_claims=1 gaps=0 confidence=0.72 query=\"冷萃咖啡 竞品价格\""
+                        .to_string(),
+                ],
+                ..RoleWorkOutput::default()
+            }),
+            evidence: Vec::new(),
+            risks: Vec::new(),
+            open_questions: Vec::new(),
+            diagnostics: Vec::new(),
+            status: WorkerReportStatus::Completed,
+        };
+
+        let output = user_facing_report_text(&report).expect("answer should remain readable");
+
+        assert!(output.contains("本轮已核对竞品价格"));
+        assert!(output.contains("实时搜索来源"));
+        assert!(output.contains("https://example.com/cold-brew-price"));
+        assert!(!output.contains("search_evidence_packet"));
+        assert!(!output.contains("search_evidence_trace"));
+        assert!(!output.contains("https://example.com/raw"));
+    }
+
+    #[test]
+    fn drops_empty_evidence_heading_after_internal_trace_filtering() {
+        let raw = "建议先检查竞品价格。\n依据:\n- search_evidence_trace: \
+                   skill=search_competitor status=success adapter_status=live";
+
+        let output = sanitize_user_facing_text(raw).expect("business line should remain");
+
+        assert_eq!(output, "建议先检查竞品价格。");
     }
 
     #[test]
@@ -623,6 +797,7 @@ mod tests {
             evidence: Vec::new(),
             risks: Vec::new(),
             open_questions: Vec::new(),
+            diagnostics: Vec::new(),
             status: WorkerReportStatus::Completed,
         };
 

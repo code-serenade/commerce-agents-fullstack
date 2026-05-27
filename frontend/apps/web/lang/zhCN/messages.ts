@@ -1017,7 +1017,7 @@ const messages = {
       action: "去登录",
     },
     sidebar: {
-      newChat: "新任务",
+      newChat: "新建对话",
       search: "搜索历史记录",
       recents: "最近",
       chat: "多智能体实训助手",
@@ -1044,7 +1044,8 @@ const messages = {
       },
       navigation: {
         newChat: "新建会话",
-        capabilities: "怎么用这个系统",
+        gettingStarted: "新手入门指南",
+        capabilities: "新手入门指南",
         smartOps: "问 AI 做实训",
         materials: "上传与管理资料",
         productBoard: "选品和商品资料",
@@ -1262,7 +1263,7 @@ const messages = {
         modelHint: "默认优先使用已配置的豆包；未配置豆包时只显示可用模型。",
         learning: "讲解层级",
         collaboration: "智能体协作",
-        routingMode: "问题处理方式",
+        routingMode: "非电商问题也用电商智能体吗",
         roleMode: "智能体协作方式",
         roles: "协作智能体",
         singleRole: "指定智能体",
@@ -1307,12 +1308,12 @@ const messages = {
         },
         routingModes: {
           commander: {
-            label: "按电商实训深入分析",
-            description: "优先拉回商品、活动、数据和复盘场景",
+            label: "是，按电商实训分析",
+            description: "即使问题不典型，也尽量用选品、活动、数据和复盘角度回答",
           },
           fast: {
-            label: "快速识别后回答",
-            description: "简单问题直接答，复杂问题再进实训链路",
+            label: "否，先判断问题类型",
+            description: "非电商问题先正常回答，明显相关时再调用电商智能体",
           },
         },
         learningLevels: {
@@ -1333,7 +1334,8 @@ const messages = {
           chat: { name: "对话助手" },
           ops: { name: "运营策略师" },
           data: { name: "数据分析师" },
-          service: { name: "客户成功专员" },
+          search: { name: "资料搜索员" },
+          service: { name: "客服体验师" },
           creative: { name: "内容创意师" },
           engineering: { name: "技术架构师" },
           accounting: { name: "财务分析师" },
@@ -1344,6 +1346,7 @@ const messages = {
         capabilityLabels: {
           "role.chat": "对话角色",
           "role.ops": "运营角色",
+          "role.search": "资料搜索角色",
           "role.data": "数据角色",
           "role.service": "客服角色",
           "role.creative": "创意角色",
@@ -1354,6 +1357,7 @@ const messages = {
           "role.douyin_ads": "千川投放角色",
           "chat.answer": "对话回答",
           "chat.clarification": "澄清问题",
+          "search.evidence": "搜索证据",
           "knowledge.explanation": "知识解释",
           "intent.classification": "意图识别",
           "ops.strategy": "运营策略",
@@ -2524,28 +2528,28 @@ const messages = {
   agentCapabilities: {
     header: {
       eyebrow: "Training Guide",
-      title: "AI 实训能力与使用指南",
+      title: "新手入门指南",
       description:
-        "这里说明学生如何先准备资料，再围绕一次电商实训任务使用 AI 问答、商品分析、活动策划、数据诊断和复盘报告。",
-      action: "进入 AI 实训助手",
+        "第一次使用先看这里：按“准备资料、提出问题、选择模式、保存结果”的顺序完成一次电商 AI 实训。",
+      action: "开始新对话",
     },
     principle: {
-      title: "学生使用方式",
+      title: "先按任务来，不用先学菜单",
       description:
-        "学生不是只打开一个聊天框，而是先准备文件和商品资料，再围绕实训任务提出问题、选择上下文，并把 AI 输出沉淀为任务、审核记录和复盘材料。",
+        "不知道从哪里开始时，直接在“问 AI 做实训”输入你的实训目标。系统会根据问题选择资料、商品、活动、智能体和交付方式；左侧导航用于后续管理资料、商品、任务和报告。",
     },
-      capabilities: {
-        title: "核心实训能力",
-        description:
-        "这些入口沿用现有真实能力，并整理成学生更容易理解的学习和任务流程。",
+    capabilities: {
+      title: "主要功能能做什么",
+      description:
+        "这些入口沿用现有真实能力，并按学生完成实训任务的顺序说明。",
       items: [
         {
-          title: "文件管理器",
+          title: "上传与管理资料",
           description:
             "集中管理上传过的图片、PDF、Word、Excel 和文本资料；常用资料可加入当前会话后勾选读取，不用重复上传。",
         },
         {
-          title: "商品资料",
+          title: "选品和商品资料",
           description:
             "引用学生手动选择的商品、素材、卖点和竞品资料；未选择商品时走普通实训问答链路。",
         },
@@ -2587,8 +2591,8 @@ const messages = {
       ],
     },
     flow: {
-      title: "一次实训怎样流转",
-      description: "学生可感知的主链路应该清楚、连续、可追踪。",
+      title: "第一次使用按这 6 步走",
+      description: "照这个顺序做，基本可以完成从提问到提交材料的一轮实训。",
       items: [
         "学生先在文件管理器或输入框的“上传资料”面板准备图片、PDF、Word、Excel 和文本资料。",
         "学生新建会话或选择历史会话，输入实训问题。",
@@ -2604,7 +2608,12 @@ const messages = {
         "左侧导航不只是页面菜单，而是学生完成实训任务时最常用的能力入口。",
       items: [
         {
-          title: "文件管理器",
+          title: "新手入门",
+          description:
+            "先了解整个系统怎么用、模式怎么选、资料怎么上传、结果保存到哪里。",
+        },
+        {
+          title: "资料管理",
           description:
             "先准备和复用图片、PDF、Word、Excel、文本资料，再决定哪些资料进入当前会话。",
         },
@@ -2626,9 +2635,67 @@ const messages = {
         },
       ],
     },
-      boundary: {
-        title: "当前设计边界",
-        description:
+    modes: {
+      title: "模式怎么选",
+      description:
+        "模式决定回答长短、解释方式、非电商问题是否也交给电商智能体，以及由哪些岗位智能体参与。",
+      items: [
+        {
+          title: "边学边做",
+          description:
+            "适合新手和课堂学习。回答会解释关键名词、判断原因和下一步追问方向，语气更像老师带着做。",
+        },
+        {
+          title: "快速简答",
+          description:
+            "适合只想要结论。回答更短，但仍保留关键理由和下一步动作。",
+        },
+        {
+          title: "交付方案",
+          description:
+            "适合作业、汇报和复盘。会输出更完整的方案、表格、风险和检查项。",
+        },
+        {
+          title: "非电商问题也用电商智能体吗",
+          description:
+            "选“是，按电商实训分析”会尽量把问题拉回电商任务；选“否，先判断问题类型”会先识别问题，只有明显相关时才调用电商智能体。",
+        },
+        {
+          title: "自动分配、单智能体、多智能体",
+          description:
+            "自动分配适合不确定该找谁；单智能体适合指定一个岗位主回答；多智能体适合让运营、数据、创意、客服等岗位一起给方案。",
+        },
+      ],
+    },
+    qa: {
+      title: "常见问题",
+      description: "这些问题是学生第一次使用时最容易卡住的地方。",
+      items: [
+        {
+          question: "上传资料和资料库有什么区别？",
+          answer:
+            "输入框里的“上传资料”适合本轮提问前快速勾选；“上传与管理资料”是完整资料库，适合长期管理、搜索和复用常用文件。",
+        },
+        {
+          question: "为什么上传后还要勾选？",
+          answer:
+            "为了避免 AI 误读不相关文件。只有本轮勾选的资料、商品和活动，才会作为当前问题的上下文。",
+        },
+        {
+          question: "新建对话和历史会话怎么用？",
+          answer:
+            "新建对话用于开始一个新任务；历史会话用于继续之前的任务。建议一个实训主题对应一个会话，方便回看过程和结果。",
+        },
+        {
+          question: "什么时候用搜索或资料搜索员？",
+          answer:
+            "当问题需要最新平台趋势、政策、竞品或外部资料时，可以选择资料搜索员或让系统自动分配；回答应说明证据来源。",
+        },
+      ],
+    },
+    boundary: {
+      title: "当前设计边界",
+      description:
         "方案 A 只重组前端入口和表达方式，让学生更好理解现有能力；没有新增底层能力。",
       backend: "真实能力仍来自现有系统，前端不放假按钮、假状态或假搜索结果。",
       context:

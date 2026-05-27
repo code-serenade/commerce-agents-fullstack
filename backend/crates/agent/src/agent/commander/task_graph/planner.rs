@@ -482,6 +482,13 @@ mod tests {
 
         assert_eq!(ops.skill_autosuggest, Some(false));
         assert_eq!(search.skill_autosuggest, Some(true));
+        assert_eq!(search.llm_usage.as_deref(), Some("fast"));
+        assert!(
+            ops.input_refs
+                .iter()
+                .any(|input_ref| input_ref.0 == search.id.0),
+            "ops should depend on search evidence when both roles are explicitly requested"
+        );
     }
 
     #[test]
@@ -504,6 +511,10 @@ mod tests {
             .collect::<Vec<_>>();
         assert!(roles.contains(&"data"), "data role must be scheduled");
         assert!(roles.contains(&"ops"), "ops role must be scheduled");
+        for node in graph.nodes.iter().filter(|node| node.id.0 != "ops_final") {
+            assert_eq!(node.llm_usage.as_deref(), Some("fast"));
+            assert_eq!(node.skill_autosuggest, Some(false));
+        }
 
         let final_node = graph
             .nodes
@@ -517,6 +528,51 @@ mod tests {
             .collect::<Vec<_>>();
         assert!(input_refs.contains(&"data"));
         assert!(input_refs.contains(&"ops"));
+        assert_eq!(final_node.llm_usage.as_deref(), Some("fast"));
+        assert_eq!(final_node.skill_autosuggest, Some(false));
+    }
+
+    #[test]
+    fn selected_route_keeps_search_autosuggest_enabled_but_fast() {
+        let rules =
+            load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
+        let route = manual_route("search", &["ops"]);
+        let graph = plan_task_graph_from_rules(
+            &TaskId("task-manual-search-ops".to_string()),
+            "请结合公开搜索资料判断抖音电商保温杯内容趋势，并说明哪些结论来自搜索资料。",
+            Some(&route),
+            &rules,
+        )
+        .expect("manual search and ops route should match a graph");
+
+        let search = graph
+            .nodes
+            .iter()
+            .find(|node| node.role == "search")
+            .expect("search node must be scheduled");
+        let ops = graph
+            .nodes
+            .iter()
+            .find(|node| node.role == "ops" && node.id.0 == "ops")
+            .expect("ops node must be scheduled");
+        let final_node = graph
+            .nodes
+            .iter()
+            .find(|node| node.id.0 == "ops_final")
+            .expect("manual search graph should have final synthesis node");
+
+        assert_eq!(search.llm_usage.as_deref(), Some("fast"));
+        assert_eq!(search.skill_autosuggest, Some(true));
+        assert_eq!(ops.llm_usage.as_deref(), Some("fast"));
+        assert_eq!(ops.skill_autosuggest, Some(false));
+        assert!(
+            ops.input_refs
+                .iter()
+                .any(|input_ref| input_ref.0 == search.id.0),
+            "route-selected ops should depend on search evidence"
+        );
+        assert_eq!(final_node.llm_usage.as_deref(), Some("fast"));
+        assert_eq!(final_node.skill_autosuggest, Some(false));
     }
 
     #[test]

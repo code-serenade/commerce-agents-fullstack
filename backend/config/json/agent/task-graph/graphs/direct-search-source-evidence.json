@@ -49,7 +49,9 @@
       "role": "search",
       "title": "实时来源搜索",
       "objective": "通过搜索 skill 获取用户要求的公开来源证据，并按用户要求输出来源标题、链接、发布日期和适用风险点：{{task}}。如果 search skill 返回 sources，最终回答只整理证据包，不扩写成运营方案；没有 sources 时才说明未拿到实时来源并给核验路径。",
+      "llm_usage": "fast",
       "skill_autosuggest": true,
+      "timeout_sec": 35,
       "max_attempts": 1,
       "acceptance": [
         "显式联网搜索或来源链接请求必须尝试 search skill。",

@@ -409,7 +409,10 @@ pub async fn stream_agent_session(
                             evidence: report.evidence.clone(),
                             risks: report.risks.clone(),
                             open_questions: report.open_questions.clone(),
-                            status: if report.status == WorkerReportStatus::Failed {
+                            status: if matches!(
+                                report.status,
+                                WorkerReportStatus::Failed | WorkerReportStatus::TimedOut
+                            ) {
                                 "failed".to_string()
                             } else {
                                 "completed".to_string()

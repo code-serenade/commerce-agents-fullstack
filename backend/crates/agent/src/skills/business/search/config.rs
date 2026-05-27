@@ -21,6 +21,7 @@ pub(super) const MAX_DAYS: i64 = 365;
 pub(super) const MAX_RESULTS: i64 = 12;
 pub(super) const DEFAULT_MAX_RESULTS: i64 = 6;
 const DEFAULT_TIMEOUT_SEC: u64 = 10;
+const INTERACTIVE_TIMEOUT_CAP_SEC: u64 = 25;
 
 #[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 #[serde(default)]
@@ -74,6 +75,12 @@ impl SearchAdapterConfig {
             .to_string()
     }
 
+    pub(super) fn effective_timeout_sec(&self) -> u64 {
+        self.timeout_sec
+            .unwrap_or(DEFAULT_TIMEOUT_SEC)
+            .clamp(1, INTERACTIVE_TIMEOUT_CAP_SEC)
+    }
+
     pub(super) fn readiness(&self) -> Value {
         let mut missing_config = Vec::new();
         if !self.enabled {
@@ -121,7 +128,8 @@ impl SearchAdapterConfig {
                 .api_key
                 .as_deref()
                 .is_some_and(|value| !value.trim().is_empty()),
-            "timeout_sec": self.timeout_sec.unwrap_or(DEFAULT_TIMEOUT_SEC).max(1),
+            "timeout_sec": self.effective_timeout_sec(),
+            "configured_timeout_sec": self.timeout_sec.unwrap_or(DEFAULT_TIMEOUT_SEC).max(1),
             "default_topic": self
                 .default_topic
                 .as_deref()
@@ -136,5 +144,20 @@ impl SearchAdapterConfig {
             "max_results_limit": MAX_RESULTS,
             "message": message
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{INTERACTIVE_TIMEOUT_CAP_SEC, SearchAdapterConfig};
+
+    #[test]
+    fn effective_timeout_caps_overlong_interactive_search_waits() {
+        let config = SearchAdapterConfig {
+            timeout_sec: Some(180),
+            ..SearchAdapterConfig::default()
+        };
+
+        assert_eq!(config.effective_timeout_sec(), INTERACTIVE_TIMEOUT_CAP_SEC);
     }
 }

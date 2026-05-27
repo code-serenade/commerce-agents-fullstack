@@ -215,6 +215,7 @@ fn parse_task_node(value: &Value) -> Option<TaskNode> {
             .and_then(Value::as_str)
             .map(str::to_string),
         skill_autosuggest: value.get("skill_autosuggest").and_then(Value::as_bool),
+        timeout_sec: value.get("timeout_sec").and_then(Value::as_u64),
         input_refs: value
             .get("input_refs")
             .and_then(Value::as_array)

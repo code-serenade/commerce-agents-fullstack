@@ -444,6 +444,7 @@ mod tests {
                 objective: objective.to_string(),
                 llm_usage: None,
                 skill_autosuggest: None,
+                timeout_sec: None,
                 inputs: Vec::new(),
                 rework_instruction: None,
             }),
