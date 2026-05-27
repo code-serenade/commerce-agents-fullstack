@@ -1,15 +1,12 @@
-import {
-  type ChangeEvent,
-  type MouseEvent,
-  useEffect,
-  useRef,
-} from "react"
+import { useEffect, useRef } from "react"
 import type { AgentChatComposerProps } from "./agent-chat-composer-types"
 import { AgentChatAttachmentStrip } from "./agent-chat-attachment-strip"
 import { AgentChatComposerInput } from "./agent-chat-composer-input"
 import { AgentChatComposerPanels } from "./agent-chat-composer-panels"
 import { AgentChatComposerStatus } from "./agent-chat-composer-status"
 import { AgentChatComposerToolbar } from "./agent-chat-composer-toolbar"
+import { useAgentChatComposerEvents } from "../view-model/use-agent-chat-composer-events"
+import { useAgentChatComposerPanelMaxHeight } from "../view-model/use-agent-chat-composer-panel-layout"
 import { useAgentChatPanelState } from "../view-model/use-agent-chat-panel-state"
 
 export function AgentChatComposer({
@@ -20,12 +17,15 @@ export function AgentChatComposer({
   canSend,
   error,
   focusVersion,
+  requestedPanel,
+  requestedPanelVersion,
   input,
   isLoggedIn,
   isLoadingCampaigns,
   isLoadingPlaybooks,
   isLoadingProducts,
   isLoadingRuntimeOptions,
+  isLoadingSourceLibrary,
   isStreaming,
   onInputChange,
   onRuntimeCollaborationModeChange,
@@ -43,10 +43,14 @@ export function AgentChatComposer({
   onToggleCampaignContext,
   onToggleProductContext,
   onToggleSourceContext,
+  onDeleteSelectedSources,
+  onAttachExistingSource,
   onUploadAttachments,
   selectedCampaigns,
   selectedProducts,
   selectedSources,
+  sourceLibrary,
+  sourceLibraryError,
   playbooks,
   runtimeOptions,
   runtimeSelection,
@@ -55,7 +59,12 @@ export function AgentChatComposer({
   const composerRootRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const panels = useAgentChatPanelState()
+  const panelMaxHeight =
+    useAgentChatComposerPanelMaxHeight(composerRootRef)
+  const panels = useAgentChatPanelState({
+    requestedPanel,
+    requestedPanelVersion,
+  })
   const {
     campaignContextOpen,
     closePanels,
@@ -67,6 +76,14 @@ export function AgentChatComposer({
     sourceContextOpen,
     toggleSettingsPanel,
   } = panels
+  const composerEvents = useAgentChatComposerEvents({
+    closePanels,
+    fileInputRef,
+    isStreaming,
+    onSend,
+    onUploadAttachments,
+    textareaRef,
+  })
 
   useEffect(() => {
     if (!campaignContextOpen && !productContextOpen && !sourceContextOpen && !settingsOpen) return
@@ -108,33 +125,13 @@ export function AgentChatComposer({
     textareaRef.current?.focus()
   }, [focusVersion, isStreaming])
 
-  const sendAndClosePanels = () => {
-    closePanels()
-    onSend()
-  }
-
-  const focusComposer = (event: MouseEvent<HTMLDivElement>) => {
-    if (isStreaming) return
-    const target = event.target
-    if (!(target instanceof HTMLElement)) return
-    if (target.closest("button, select, textarea, [data-composer-interactive='true']"))
-      return
-    textareaRef.current?.focus()
-  }
-
-  const handleAttachmentChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files ?? [])
-    event.target.value = ""
-    if (!files.length) return
-    onUploadAttachments(files)
-  }
-
   return (
     <footer className="relative z-30 shrink-0 bg-linear-to-t from-background via-background/95 to-background/70 px-3 pb-3 pt-2 sm:px-5">
       <div
         ref={composerRootRef}
+        data-agent-chat-composer-root="true"
         className="mx-auto flex w-full max-w-4xl flex-col gap-2 rounded-xl border border-muted-foreground/35 bg-background p-1 shadow-lg shadow-black/10 transition-colors focus-within:border-foreground/40 focus-within:ring-2 focus-within:ring-ring/15 dark:bg-card"
-        onMouseDown={focusComposer}
+        onMouseDown={composerEvents.focusComposer}
       >
         <div className="relative">
           <AgentChatComposerPanels
@@ -145,6 +142,7 @@ export function AgentChatComposer({
             isLoadingPlaybooks={isLoadingPlaybooks}
             isLoadingProducts={isLoadingProducts}
             isLoadingRuntimeOptions={isLoadingRuntimeOptions}
+            isLoadingSourceLibrary={isLoadingSourceLibrary}
             isStreaming={isStreaming}
             onFocusComposer={() => textareaRef.current?.focus()}
             onRuntimeCollaborationModeChange={onRuntimeCollaborationModeChange}
@@ -159,7 +157,12 @@ export function AgentChatComposer({
             onToggleCampaignContext={onToggleCampaignContext}
             onToggleProductContext={onToggleProductContext}
             onToggleSourceContext={onToggleSourceContext}
+            onUploadClick={composerEvents.openUploadFilePicker}
+            onDeleteSelectedSources={onDeleteSelectedSources}
+            onAttachExistingSource={onAttachExistingSource}
+            onManageSources={composerEvents.manageSources}
             onToggleRuntimeRole={onToggleRuntimeRole}
+            panelMaxHeight={panelMaxHeight}
             playbooks={playbooks}
             campaignContextOpen={campaignContextOpen}
             productContextOpen={productContextOpen}
@@ -168,6 +171,8 @@ export function AgentChatComposer({
             selectedCampaigns={selectedCampaigns}
             selectedProducts={selectedProducts}
             selectedSources={selectedSources}
+            sourceLibrary={sourceLibrary}
+            sourceLibraryError={sourceLibraryError}
             settingsOpen={settingsOpen}
             sourceContextOpen={sourceContextOpen}
             strategyId={strategyId}
@@ -186,9 +191,9 @@ export function AgentChatComposer({
               input={input}
               isLoggedIn={isLoggedIn}
               isStreaming={isStreaming}
-              onAttachmentChange={handleAttachmentChange}
+              onAttachmentChange={composerEvents.handleAttachmentChange}
               onInputChange={onInputChange}
-              onSend={sendAndClosePanels}
+              onSend={composerEvents.sendAndClosePanels}
               onStop={onStop}
               textareaRef={textareaRef}
             />
@@ -206,7 +211,6 @@ export function AgentChatComposer({
               isLoadingProducts={isLoadingProducts}
               isLoadingRuntimeOptions={isLoadingRuntimeOptions}
               isStreaming={isStreaming}
-              onAttach={() => fileInputRef.current?.click()}
               onRuntimeCollaborationModeChange={onRuntimeCollaborationModeChange}
               onRuntimeLearningLevelChange={onRuntimeLearningLevelChange}
               onRuntimePrimaryRoleChange={onRuntimePrimaryRoleChange}
@@ -215,7 +219,7 @@ export function AgentChatComposer({
                 onSelectPlaybook(playbook)
                 queueMicrotask(() => textareaRef.current?.focus())
               }}
-              onSend={sendAndClosePanels}
+              onSend={composerEvents.sendAndClosePanels}
               onStop={onStop}
               onStrategyChange={onStrategyChange}
               onClearCampaignContext={onClearCampaignContext}

@@ -1,0 +1,323 @@
+{
+  "rules": [
+    {
+      "id": "material.table_profiler",
+      "mode": "first",
+      "roles": [
+        "chat",
+        "ops",
+        "data",
+        "service",
+        "creative",
+        "web",
+        "design",
+        "accounting",
+        "douyin_ads",
+        "engineering"
+      ],
+      "match": {
+        "any_keywords": [
+          "Excel",
+          "excel",
+          "CSV",
+          "csv",
+          "表格",
+          "sheet",
+          "Sheet",
+          "字段",
+          "列名",
+          "数据表",
+          "透视",
+          "口径",
+          "指标口径",
+          "字段识别",
+          "表格剖析",
+          "剖析表格",
+          "分析表格",
+          "读取表格",
+          "上传的表",
+          "附件里的表"
+        ],
+        "none_keywords": [
+          "深度搜索",
+          "联网搜索",
+          "搜索行业",
+          "外部搜索",
+          "外部资料",
+          "公开来源",
+          "公开资料",
+          "公开数据",
+          "来源链接",
+          "行业财务",
+          "行业报告",
+          "财务报告",
+          "官方规则"
+        ],
+        "requires_no_skill_ids": [
+          "material_table_profiler"
+        ]
+      },
+      "skill_id": "material_table_profiler",
+      "input": {
+        "table_name": "{{task_description}}",
+        "user_question": "{{task_description}}"
+      },
+      "reason": "autosuggest:material.table_profiler"
+    },
+    {
+      "id": "material.image_diagnosis",
+      "mode": "first",
+      "roles": [
+        "chat",
+        "ops",
+        "data",
+        "service",
+        "creative",
+        "web",
+        "design",
+        "accounting",
+        "douyin_ads",
+        "engineering"
+      ],
+      "match": {
+        "any_keywords": [
+          "图片诊断",
+          "读图",
+          "主图",
+          "详情页截图",
+          "详情页图片",
+          "海报",
+          "封面图",
+          "商品图",
+          "视觉",
+          "构图",
+          "卖点呈现",
+          "文案可读性",
+          "OCR",
+          "ocr",
+          "截图",
+          "看这张图",
+          "分析这张图",
+          "上传的图片"
+        ],
+        "none_keywords": [
+          "深度搜索",
+          "联网搜索",
+          "搜索行业",
+          "外部搜索",
+          "外部资料",
+          "公开来源",
+          "公开资料",
+          "公开数据",
+          "来源链接",
+          "行业财务",
+          "行业报告",
+          "财务报告",
+          "官方规则"
+        ],
+        "requires_no_skill_ids": [
+          "material_image_diagnosis"
+        ]
+      },
+      "skill_id": "material_image_diagnosis",
+      "input": {
+        "image_name": "{{task_description}}",
+        "image_type": "unknown",
+        "user_question": "{{task_description}}"
+      },
+      "reason": "autosuggest:material.image_diagnosis"
+    },
+    {
+      "id": "material.evidence_extractor",
+      "mode": "first",
+      "roles": [
+        "chat",
+        "ops",
+        "data",
+        "service",
+        "creative",
+        "web",
+        "design",
+        "accounting",
+        "douyin_ads",
+        "engineering"
+      ],
+      "match": {
+        "any_keywords": [
+          "提取证据",
+          "抽取证据",
+          "证据链",
+          "证据包",
+          "引用证据",
+          "引用依据",
+          "可引用证据",
+          "资料依据",
+          "根据资料找证据",
+          "找出依据",
+          "找出证据",
+          "哪些句子能引用",
+          "可引用片段",
+          "来源依据",
+          "标注来源",
+          "提炼证据"
+        ],
+        "none_keywords": [
+          "深度搜索",
+          "联网搜索",
+          "搜索行业",
+          "外部搜索",
+          "外部资料",
+          "公开来源",
+          "公开资料",
+          "公开数据",
+          "来源链接",
+          "行业财务",
+          "行业报告",
+          "财务报告",
+          "官方规则"
+        ],
+        "requires_no_skill_ids": [
+          "material_evidence_extractor"
+        ]
+      },
+      "skill_id": "material_evidence_extractor",
+      "input": {
+        "material_name": "{{task_description}}",
+        "user_question": "{{task_description}}"
+      },
+      "reason": "autosuggest:material.evidence_extractor"
+    },
+    {
+      "id": "material.multi_file_compare",
+      "mode": "first",
+      "roles": [
+        "chat",
+        "ops",
+        "data",
+        "service",
+        "creative",
+        "web",
+        "design",
+        "accounting",
+        "douyin_ads",
+        "engineering"
+      ],
+      "match": {
+        "any_keywords": [
+          "多资料对比",
+          "多文件对比",
+          "对比资料",
+          "对比文件",
+          "比较资料",
+          "比较文件",
+          "两份资料",
+          "多个文件",
+          "多份文件",
+          "多份资料",
+          "共同点",
+          "差异点",
+          "冲突点",
+          "版本差异",
+          "版本变化",
+          "前后对比",
+          "资料冲突",
+          "文件冲突"
+        ],
+        "none_keywords": [
+          "深度搜索",
+          "联网搜索",
+          "搜索行业",
+          "外部搜索",
+          "外部资料",
+          "公开来源",
+          "公开资料",
+          "公开数据",
+          "来源链接",
+          "行业财务",
+          "行业报告",
+          "财务报告",
+          "官方规则"
+        ],
+        "requires_no_skill_ids": [
+          "material_multi_file_compare"
+        ]
+      },
+      "skill_id": "material_multi_file_compare",
+      "input": {
+        "user_question": "{{task_description}}"
+      },
+      "reason": "autosuggest:material.multi_file_compare"
+    },
+    {
+      "id": "material.file_understanding",
+      "mode": "first",
+      "roles": [
+        "chat",
+        "ops",
+        "data",
+        "service",
+        "creative",
+        "web",
+        "design",
+        "accounting",
+        "douyin_ads",
+        "engineering"
+      ],
+      "match": {
+        "any_keywords": [
+          "上传资料",
+          "上传文件",
+          "上传的文件",
+          "附件",
+          "资料",
+          "文件",
+          "PDF",
+          "pdf",
+          "Word",
+          "word",
+          "Excel",
+          "excel",
+          "表格",
+          "图片",
+          "OCR",
+          "ocr",
+          "读图",
+          "读文件",
+          "读取文件",
+          "读取资料",
+          "分析这个文件",
+          "分析这份资料",
+          "总结这个文件",
+          "总结这份资料",
+          "看这个文件",
+          "看这张图"
+        ],
+        "none_keywords": [
+          "深度搜索",
+          "联网搜索",
+          "搜索行业",
+          "外部搜索",
+          "外部资料",
+          "公开来源",
+          "公开资料",
+          "公开数据",
+          "来源链接",
+          "行业财务",
+          "行业报告",
+          "财务报告",
+          "官方规则"
+        ],
+        "requires_no_skill_ids": [
+          "material_file_understanding"
+        ]
+      },
+      "skill_id": "material_file_understanding",
+      "input": {
+        "material_name": "{{task_description}}",
+        "material_type": "unknown",
+        "user_question": "{{task_description}}"
+      },
+      "reason": "autosuggest:material.file_understanding"
+    }
+  ]
+}

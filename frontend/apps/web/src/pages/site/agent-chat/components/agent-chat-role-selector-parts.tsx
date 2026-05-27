@@ -31,7 +31,7 @@ export function RoleChoiceButton({
       aria-pressed={selected}
       data-runtime-role={role.runtimeRole}
       data-runtime-role-kind={variant}
-      className={`group flex h-9 min-w-0 items-center justify-center gap-1.5 rounded-md border px-2 text-center transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+      className={`group flex h-8 min-w-0 items-center justify-center gap-1.5 rounded-md border px-2 text-center transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
         selected
           ? "border-primary/60 bg-primary/10 text-primary ring-1 ring-primary/15"
           : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -69,7 +69,7 @@ export function RoleAssignmentRow({
 
   return (
     <div
-      className={`grid min-w-0 grid-cols-[minmax(0,1fr)_6rem_5rem] items-center gap-1.5 rounded-md border px-2 py-1.5 ${
+      className={`grid min-w-0 grid-cols-[minmax(0,1fr)_5.25rem_4.5rem] items-center gap-1.5 rounded-md border px-2 py-1 ${
         isPrimary || isSupport
           ? "border-primary/25 bg-primary/5"
           : "border-border bg-card"
@@ -82,10 +82,10 @@ export function RoleAssignmentRow({
         className="min-w-0 text-left disabled:cursor-not-allowed disabled:opacity-50"
         title={role.capabilities.join(" / ")}
       >
-        <span className="block truncate text-sm font-semibold text-foreground">
+        <span className="block truncate text-sm/5 font-semibold text-foreground">
           {role.name}
         </span>
-        <span className="block truncate text-xs text-muted-foreground">
+        <span className="block truncate text-[11px]/4 text-muted-foreground">
           {role.capabilities.slice(0, 2).join(" / ")}
         </span>
       </button>
@@ -94,7 +94,7 @@ export function RoleAssignmentRow({
         disabled={disabled}
         onClick={() => onPrimaryRoleChange(role.runtimeRole)}
         aria-pressed={isPrimary}
-        className={`min-h-8 rounded-md border px-2 py-1 text-xs/tight font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+        className={`min-h-7 rounded-md border px-2 py-1 text-xs/tight font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
           isPrimary
             ? "border-primary/60 bg-primary text-primary-foreground"
             : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -107,7 +107,7 @@ export function RoleAssignmentRow({
         disabled={disabled || isPrimary}
         onClick={() => onToggleRole(role.runtimeRole)}
         aria-pressed={isSupport}
-        className={`min-h-8 rounded-md border px-2 py-1 text-xs/tight font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+        className={`min-h-7 rounded-md border px-2 py-1 text-xs/tight font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
           isSupport
             ? "border-primary/60 bg-primary/10 text-primary"
             : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"

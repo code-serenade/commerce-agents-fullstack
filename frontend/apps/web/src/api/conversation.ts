@@ -97,6 +97,18 @@ export interface TriggerConversationFileExtractionJobRequest {
   force?: boolean
 }
 
+export interface ListUserFilesQuery {
+  limit?: number | null
+}
+
+export interface AttachConversationFileRequest {
+  conversationId: string
+}
+
+export interface BulkDeleteUserFilesRequest {
+  fileIds: string[]
+}
+
 export interface ConversationFileExtractionStatusResponse {
   fileId: string
   status: "pending" | "extracted" | "failed" | "unsupported" | string
@@ -191,6 +203,54 @@ export const registerConversationFileApi = async (
     method: "POST",
     url: `/api/app/conversations/${conversationId}/files`,
     body,
+  })
+}
+
+export const listUserFilesApi = async (
+  query: ListUserFilesQuery = {}
+): Promise<ConversationFileResponse[]> => {
+  return request<ListUserFilesQuery, ConversationFileResponse[]>({
+    method: "GET",
+    url: "/api/app/files",
+    body: query,
+    suppressGlobalError: true,
+  })
+}
+
+export const attachConversationFileApi = async (
+  fileId: string,
+  body: AttachConversationFileRequest
+): Promise<ConversationFileResponse> => {
+  return request<AttachConversationFileRequest, ConversationFileResponse>({
+    method: "POST",
+    url: `/api/app/files/${fileId}/attach-to-conversation`,
+    body,
+  })
+}
+
+export const deleteUserFileApi = async (fileId: string): Promise<void> => {
+  return request<undefined, void>({
+    method: "DELETE",
+    url: `/api/app/files/${fileId}`,
+  })
+}
+
+export const bulkDeleteUserFilesApi = async (
+  body: BulkDeleteUserFilesRequest
+): Promise<void> => {
+  return request<BulkDeleteUserFilesRequest, void>({
+    method: "POST",
+    url: "/api/app/files/bulk-delete",
+    body,
+  })
+}
+
+export const deleteConversationFileApi = async (
+  fileId: string
+): Promise<void> => {
+  return request<undefined, void>({
+    method: "DELETE",
+    url: `/api/app/conversation-files/${fileId}`,
   })
 }
 

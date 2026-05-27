@@ -1,7 +1,7 @@
 use db_core::{DbContext, Repository, error::BizResult};
 use sea_orm::{
     ActiveValue::{Set, Unchanged},
-    ColumnTrait, QueryFilter, QueryOrder,
+    ColumnTrait, QueryFilter, QueryOrder, QuerySelect,
 };
 use uuid::Uuid;
 
@@ -83,6 +83,50 @@ impl ConversationFileService {
             .filter(conversation_files::Column::ConversationId.eq(conversation_id))
             .filter(conversation_files::Column::Status.eq("active"))
             .order_by_asc(conversation_files::Column::CreatedAt);
+        Ok(self
+            .repo
+            .select_all(query)
+            .await?
+            .into_iter()
+            .map(Self::from_model)
+            .collect())
+    }
+
+    pub async fn list_active_by_user_id(
+        &self,
+        user_id: Uuid,
+        limit: u64,
+    ) -> BizResult<Vec<ConversationFile>> {
+        let query = self
+            .repo
+            .query()
+            .filter(conversation_files::Column::UserId.eq(user_id))
+            .filter(conversation_files::Column::Status.eq("active"))
+            .order_by_desc(conversation_files::Column::CreatedAt)
+            .limit(limit);
+        Ok(self
+            .repo
+            .select_all(query)
+            .await?
+            .into_iter()
+            .map(Self::from_model)
+            .collect())
+    }
+
+    pub async fn list_active_by_user_object(
+        &self,
+        user_id: Uuid,
+        bucket: &str,
+        object_key: &str,
+    ) -> BizResult<Vec<ConversationFile>> {
+        let query = self
+            .repo
+            .query()
+            .filter(conversation_files::Column::UserId.eq(user_id))
+            .filter(conversation_files::Column::Bucket.eq(bucket))
+            .filter(conversation_files::Column::ObjectKey.eq(object_key))
+            .filter(conversation_files::Column::Status.eq("active"))
+            .order_by_desc(conversation_files::Column::CreatedAt);
         Ok(self
             .repo
             .select_all(query)

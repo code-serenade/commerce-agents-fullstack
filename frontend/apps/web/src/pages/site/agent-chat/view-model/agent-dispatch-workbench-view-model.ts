@@ -154,6 +154,7 @@ const KNOWN_ROLE_IDS = new Set([
   "design",
   "douyin_ads",
   "engineering",
+  "search",
   "ops",
   "service",
   "web",
@@ -261,14 +262,14 @@ function buildPreviewLines(input: {
       stage: progress.stage,
       total: progress.total,
     }),
-    ...steps.slice(0, 6).map((step) =>
+    ...steps.map((step) =>
       t("agentChat.thread.dispatchPanel.preview.step", {
         detail: step.detail,
         index: String(step.index + 1).padStart(2, "0"),
         title: step.title,
       })
     ),
-    ...facts.slice(0, 3).map((fact) =>
+    ...facts.map((fact) =>
       t("agentChat.thread.dispatchPanel.preview.fact", {
         detail: fact.detail,
         label: fact.label,

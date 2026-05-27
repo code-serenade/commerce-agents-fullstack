@@ -80,13 +80,19 @@ export function AgentChatRuntimeOptionsBar({
             options={roleModes.map((mode) => roleModeToOption(mode, t))}
             value={runtimeSelection.collaborationMode}
           />
-          <RoleSelector
-            disabled={controlDisabled}
-            onPrimaryRoleChange={onPrimaryRoleChange}
-            onToggleRole={onToggleRole}
-            roles={specialistRoles}
-            runtimeSelection={runtimeSelection}
-          />
+          {runtimeSelection.collaborationMode === "auto" ? (
+            <p className="rounded-lg border border-dashed border-border bg-muted/25 px-3 py-2 text-xs text-muted-foreground">
+              {t("agentChat.composer.runtime.autoRolesHint")}
+            </p>
+          ) : (
+            <RoleSelector
+              disabled={controlDisabled}
+              onPrimaryRoleChange={onPrimaryRoleChange}
+              onToggleRole={onToggleRole}
+              roles={specialistRoles}
+              runtimeSelection={runtimeSelection}
+            />
+          )}
         </>
       ) : null}
     </section>

@@ -53,6 +53,31 @@ pub struct DeleteConversationFileRequest {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct DeleteUserFileRequest {
+    pub user_id: String,
+    pub file_id: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct BulkDeleteUserFilesRequest {
+    pub user_id: String,
+    pub file_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ListUserFilesRequest {
+    pub user_id: String,
+    pub limit: Option<u64>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct AttachConversationFileRequest {
+    pub user_id: String,
+    pub file_id: String,
+    pub conversation_id: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct RegisterConversationFileRequest {
     pub user_id: String,
     pub conversation_id: String,

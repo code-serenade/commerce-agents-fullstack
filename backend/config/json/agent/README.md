@@ -16,6 +16,8 @@ agent 的职责分三层：
 
 如果新增或修改“多个角色怎么协作、谁先谁后、最后谁汇总”，只能改 `task-graph/` 配置。如果新增或修改“单个 worker 执行时自动调用什么 skill、如何解析用户文本、输出如何补全或清洗”，只能改 worker 相关配置。
 
+动态角色规则可以用 `skill_autosuggest` 统一控制自动技能请求；如果同一规则里只有个别 runtime role 需要例外，可以加 `skill_autosuggest_by_role` 覆盖，例如显式多岗位轻量协作默认关闭 autosuggest，但对 `search` 证据岗保持开启。
+
 ## 文件职责
 
 | 路径 | 作用 |
@@ -164,6 +166,8 @@ worker-inference/index.json
 - `defaults`：默认预算、默认天数、默认平台等。
 - `labels`：分类标签和关键词。
 - `rules`：解析限制、过滤条件、clamp 范围等。
+
+搜索强度配置位于 `worker-inference/search.json` 的 `search.max_results`。`strength_defaults` 按用户文本中的“深度搜索、联网搜索、轻量搜索”等强度词推断 `max_results`；`response_mode_defaults` 在搜索已经由 autosuggest 触发、且用户没有显式条数或强度词时，按 `strategy.response_mode` 补默认搜索数量，例如快速/教学默认轻量、执行默认标准。该配置只控制搜索请求强度，不负责触发搜索。
 
 ## Output 配置
 

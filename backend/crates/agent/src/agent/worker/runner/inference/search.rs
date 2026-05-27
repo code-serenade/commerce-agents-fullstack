@@ -61,7 +61,7 @@ pub(in crate::agent::worker::runner) fn max_results(text: &str) -> Option<i64> {
             continue;
         }
         if start > 0
-            && text[.. start]
+            && text[..start]
                 .chars()
                 .last()
                 .is_some_and(|prev| prev.is_ascii_digit() || prev == '.')
@@ -71,7 +71,7 @@ pub(in crate::agent::worker::runner) fn max_results(text: &str) -> Option<i64> {
 
         let mut end = start + ch.len_utf8();
         let suffix_start = end;
-        for (offset, next) in text[suffix_start ..].char_indices() {
+        for (offset, next) in text[suffix_start..].char_indices() {
             if next.is_ascii_digit() {
                 end = suffix_start + offset + next.len_utf8();
                 continue;
@@ -79,13 +79,13 @@ pub(in crate::agent::worker::runner) fn max_results(text: &str) -> Option<i64> {
             break;
         }
 
-        let Ok(value) = text[start .. end].parse::<i64>() else {
+        let Ok(value) = text[start..end].parse::<i64>() else {
             continue;
         };
         if value <= 0 {
             continue;
         }
-        let before = text[.. start]
+        let before = text[..start]
             .chars()
             .rev()
             .take(config_usize("/max_results/scan_before_chars", 16))
@@ -93,7 +93,7 @@ pub(in crate::agent::worker::runner) fn max_results(text: &str) -> Option<i64> {
             .into_iter()
             .rev()
             .collect::<String>();
-        let after = text[end ..]
+        let after = text[end..]
             .chars()
             .take(config_usize("/max_results/scan_after_chars", 16))
             .collect::<String>();
@@ -105,7 +105,14 @@ pub(in crate::agent::worker::runner) fn max_results(text: &str) -> Option<i64> {
             ));
         }
     }
-    None
+    configured_strength_max_results(text)
+}
+
+pub(in crate::agent::worker::runner) fn max_results_for_task(
+    text: &str,
+    task: &Task,
+) -> Option<i64> {
+    max_results(text).or_else(|| configured_response_mode_max_results(task))
 }
 
 pub(in crate::agent::worker::runner) fn policy_type(text: &str) -> &'static str {
@@ -156,13 +163,13 @@ fn infer_platform(text: &str) -> String {
 }
 
 fn infer_query(text: &str) -> String {
-    let category = domain::infer_category(text);
-    if category != config_string("/query/generic_category_label", "电商消费品") {
-        return category;
-    }
     let keywords = extract_keyword_candidates(text);
     if let Some(keyword) = keywords.first() {
         return keyword.clone();
+    }
+    let category = domain::infer_category(text);
+    if category != config_string("/query/generic_category_label", "电商消费品") {
+        return category;
     }
     compact_task_text(text)
 }
@@ -190,11 +197,64 @@ fn extract_keyword_candidates(text: &str) -> Vec<String> {
     let delimiters = split_delimiters("/query/candidate_split_delimiters");
 
     text.split(|ch| delimiters.contains(&ch))
-        .map(str::trim)
+        .filter_map(|value| clean_keyword_candidate(value, &exclude_keywords))
         .filter(|value| value.chars().count() >= min_chars && value.chars().count() <= max_chars)
-        .filter(|value| !contains_any(value, &exclude_keywords))
-        .map(ToOwned::to_owned)
         .collect()
+}
+
+fn clean_keyword_candidate(value: &str, exclude_keywords: &[String]) -> Option<String> {
+    let mut candidate = value.trim().to_string();
+    for keyword in exclude_keywords {
+        let keyword = keyword.trim();
+        if !keyword.is_empty() {
+            candidate = replace_keyword_case_insensitive(&candidate, keyword, " ");
+        }
+    }
+    let candidate = candidate
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .trim_matches(|ch: char| {
+            ch.is_whitespace()
+                || matches!(
+                    ch,
+                    '，' | ','
+                        | '：'
+                        | ':'
+                        | '、'
+                        | '；'
+                        | ';'
+                        | '。'
+                        | '.'
+                        | '！'
+                        | '!'
+                        | '？'
+                        | '?'
+                )
+        })
+        .trim()
+        .to_string();
+    (!candidate.is_empty()).then_some(candidate)
+}
+
+fn replace_keyword_case_insensitive(input: &str, needle: &str, replacement: &str) -> String {
+    if needle.is_empty() {
+        return input.to_string();
+    }
+
+    let lower_input = input.to_ascii_lowercase();
+    let lower_needle = needle.to_ascii_lowercase();
+    let mut output = String::new();
+    let mut cursor = 0;
+    while let Some(relative) = lower_input[cursor..].find(&lower_needle) {
+        let start = cursor + relative;
+        let end = start + needle.len();
+        output.push_str(&input[cursor..start]);
+        output.push_str(replacement);
+        cursor = end;
+    }
+    output.push_str(&input[cursor..]);
+    output
 }
 
 fn refers_to_selected_product(text: &str) -> bool {
@@ -220,6 +280,67 @@ fn is_result_count_context(before: &str, after: &str) -> bool {
     );
 
     has_after_result_unit || (has_before_limit_word && has_after_short_unit)
+}
+
+fn configured_strength_max_results(text: &str) -> Option<i64> {
+    let rules = worker_policies()
+        .inference
+        .section("search")?
+        .pointer("/max_results/strength_defaults")?
+        .as_array()?;
+    rules.iter().find_map(|rule| {
+        let keywords = rule
+            .get("keywords")
+            .and_then(serde_json::Value::as_array)?
+            .iter()
+            .filter_map(serde_json::Value::as_str)
+            .collect::<Vec<_>>();
+        if !contains_any(text, &keywords) {
+            return None;
+        }
+        rule.get("max_results")
+            .and_then(serde_json::Value::as_i64)
+            .map(|value| {
+                value.clamp(
+                    config_i64("/max_results/min", 1),
+                    config_i64("/max_results/max", 12),
+                )
+            })
+    })
+}
+
+fn configured_response_mode_max_results(task: &Task) -> Option<i64> {
+    let response_mode = task_response_mode(task)?;
+    let rules = worker_policies()
+        .inference
+        .section("search")?
+        .pointer("/max_results/response_mode_defaults")?
+        .as_array()?;
+    rules.iter().find_map(|rule| {
+        let configured_mode = rule
+            .get("response_mode")
+            .and_then(serde_json::Value::as_str)?;
+        if configured_mode != response_mode {
+            return None;
+        }
+        rule.get("max_results")
+            .and_then(serde_json::Value::as_i64)
+            .map(|value| {
+                value.clamp(
+                    config_i64("/max_results/min", 1),
+                    config_i64("/max_results/max", 12),
+                )
+            })
+    })
+}
+
+fn task_response_mode(task: &Task) -> Option<&str> {
+    task.context
+        .metadata
+        .get("strategy.response_mode")
+        .or_else(|| task.context.metadata.get("strategy.id"))
+        .map(String::as_str)
+        .filter(|value| matches!(*value, "learning" | "quick" | "execution"))
 }
 
 fn match_configured_label(text: &str, field: &str, fallback: &'static str) -> &'static str {
@@ -293,6 +414,15 @@ mod tests {
             requester: AgentId("commander".to_string()),
             assignment: None,
         }
+    }
+
+    fn task_with_response_mode(description: &str, response_mode: &str) -> Task {
+        let mut task = task(description);
+        task.context.metadata.insert(
+            "strategy.response_mode".to_string(),
+            response_mode.to_string(),
+        );
+        task
     }
 
     fn graph_task(root_task: &str, objective: &str) -> Task {
@@ -373,5 +503,53 @@ mod tests {
 
         assert!(query.contains("价格合规"));
         assert!(!query.contains("通过搜索 skill"));
+    }
+
+    #[test]
+    fn query_for_task_preserves_specific_competitor_terms_before_category() {
+        let task = task("请搜索并对比校园冷萃咖啡竞品定价");
+        let query = search::query_for_task(&task.description, &task);
+
+        assert!(query.contains("校园冷萃咖啡"));
+        assert!(query.contains("竞品定价"));
+        assert_ne!(query, "咖啡饮品");
+    }
+
+    #[test]
+    fn max_results_uses_configured_search_strength_when_no_explicit_count() {
+        assert_eq!(
+            search::max_results("请联网搜索校园冷萃咖啡竞品价格"),
+            Some(6)
+        );
+        assert_eq!(search::max_results("请深度搜索并整理公开资料"), Some(10));
+        assert_eq!(search::max_results("简单搜一下咖啡趋势"), Some(3));
+    }
+
+    #[test]
+    fn max_results_for_task_uses_response_mode_default_without_explicit_strength() {
+        assert_eq!(
+            search::max_results_for_task(
+                "请搜索校园冷萃咖啡消费趋势",
+                &task_with_response_mode("请搜索校园冷萃咖啡消费趋势", "quick")
+            ),
+            Some(3)
+        );
+        assert_eq!(
+            search::max_results_for_task(
+                "请搜索校园冷萃咖啡消费趋势",
+                &task_with_response_mode("请搜索校园冷萃咖啡消费趋势", "execution")
+            ),
+            Some(6)
+        );
+    }
+
+    #[test]
+    fn max_results_for_task_prefers_explicit_strength_over_response_mode_default() {
+        let task = task_with_response_mode("请深度搜索校园冷萃咖啡消费趋势", "quick");
+
+        assert_eq!(
+            search::max_results_for_task(&task.description, &task),
+            Some(10)
+        );
     }
 }

@@ -1,19 +1,22 @@
 import { type MouseEvent, type ReactNode, useState } from "react"
 import {
-  Bot,
+  BookOpenText,
   Boxes,
   Edit3,
+  FileCheck2,
   FileText,
-  GitBranch,
+  FolderOpen,
   LogIn,
   Megaphone,
   MoreHorizontal,
   MessageSquareText,
   Search,
   ShoppingBag,
+  Sparkles,
   Trash2,
   UserPlus,
   UserRound,
+  type LucideIcon,
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useDispatch, useSelector } from "react-redux"
@@ -60,6 +63,7 @@ const FUNCTION_NAV_ROUTE_PATHS = [
   "/agent-capabilities",
   "/commerce",
   "/campaigns",
+  "/materials",
   "/agent-output",
   "/operations",
   "/overview",
@@ -67,6 +71,68 @@ const FUNCTION_NAV_ROUTE_PATHS = [
   "/products",
   "/workspaces",
 ] as const
+
+const STUDENT_NAV_ITEMS: Array<{
+  key: string
+  icon: LucideIcon
+  labelKey: string
+  path: string
+}> = [
+  {
+    key: "smart-ops",
+    icon: Sparkles,
+    labelKey: "agentChat.shell.navigation.smartOps",
+    path: "/commerce",
+  },
+  {
+    key: "materials",
+    icon: FolderOpen,
+    labelKey: "agentChat.shell.navigation.materials",
+    path: "/materials",
+  },
+  {
+    key: "product-board",
+    icon: ShoppingBag,
+    labelKey: "agentChat.shell.navigation.productBoard",
+    path: "/products",
+  },
+  {
+    key: "campaigns",
+    icon: Megaphone,
+    labelKey: "agentChat.shell.navigation.campaigns",
+    path: "/campaigns",
+  },
+  {
+    key: "market-research",
+    icon: Search,
+    labelKey: "agentChat.shell.navigation.marketResearch",
+    path: "/overview",
+  },
+  {
+    key: "operations",
+    icon: FileCheck2,
+    labelKey: "agentChat.shell.navigation.operations",
+    path: "/operations",
+  },
+  {
+    key: "task-board",
+    icon: Boxes,
+    labelKey: "agentChat.shell.navigation.taskBoard",
+    path: "/workspaces",
+  },
+  {
+    key: "deliverables",
+    icon: FileText,
+    labelKey: "agentChat.shell.navigation.deliverables",
+    path: "/agent-output",
+  },
+  {
+    key: "capabilities",
+    icon: BookOpenText,
+    labelKey: "agentChat.shell.navigation.capabilities",
+    path: "/agent-capabilities",
+  },
+]
 
 export function AgentChatShell({ children }: AgentChatShellProps) {
   return (
@@ -173,6 +239,16 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     chat.conversations.length - recentConversations.length,
     0
   )
+  const studentNavEntries = STUDENT_NAV_ITEMS.map((item) => {
+    const Icon = item.icon
+    return {
+      key: item.key,
+      icon: <Icon />,
+      label: t(item.labelKey),
+      active: isRouteActive(item.path),
+      onSelect: () => navigateTo(item.path),
+    }
+  })
   const sections: SidebarShellSection[] = [
     {
       key: "recents",
@@ -258,64 +334,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
         ? t("agentChat.sidebar.collapseFunctionNav")
         : t("agentChat.sidebar.expandFunctionNav"),
       onOpenChange: setFunctionNavOpen,
-      items: [
-        {
-          key: "smart-ops",
-          icon: <GitBranch />,
-          label: t("agentChat.shell.navigation.smartOps"),
-          active: isRouteActive("/commerce"),
-          onSelect: () => navigateTo("/commerce"),
-        },
-        {
-          key: "capabilities",
-          icon: <Bot />,
-          label: t("agentChat.shell.navigation.capabilities"),
-          active: isRouteActive("/agent-capabilities"),
-          onSelect: () => navigateTo("/agent-capabilities"),
-        },
-        {
-          key: "product-board",
-          icon: <ShoppingBag />,
-          label: t("agentChat.shell.navigation.productBoard"),
-          active: isRouteActive("/products"),
-          onSelect: () => navigateTo("/products"),
-        },
-        {
-          key: "campaigns",
-          icon: <Megaphone />,
-          label: t("agentChat.shell.navigation.campaigns"),
-          active: isRouteActive("/campaigns"),
-          onSelect: () => navigateTo("/campaigns"),
-        },
-        {
-          key: "market-research",
-          icon: <Search />,
-          label: t("agentChat.shell.navigation.marketResearch"),
-          active: isRouteActive("/overview"),
-          onSelect: () => navigateTo("/overview"),
-        },
-        {
-          key: "operations",
-          icon: <FileText />,
-          label: t("agentChat.shell.navigation.operations"),
-          active: isRouteActive("/operations"),
-          onSelect: () => navigateTo("/operations"),
-        },
-        {
-          key: "task-board",
-          icon: <Boxes />,
-          label: t("agentChat.shell.navigation.taskBoard"),
-          active: isRouteActive("/workspaces"),
-          onSelect: () => navigateTo("/workspaces"),
-        },
-        {
-          key: "deliverables",
-          icon: <FileText />,
-          label: t("agentChat.shell.navigation.deliverables"),
-          active: isRouteActive("/agent-output"),
-          onSelect: () => navigateTo("/agent-output"),
-        },
-      ],
+      items: studentNavEntries,
     },
   ]
   const mobileConversationItems = chat.conversations
@@ -355,75 +374,16 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     },
     {
       key: "workspace",
-      icon: <Bot />,
+      icon: <Sparkles />,
       label: t("agentChat.shell.sections.workspace"),
-      active:
-        isRouteActive("/agent-capabilities") ||
-        isRouteActive("/commerce") ||
-        isRouteActive("/products") ||
-        isRouteActive("/campaigns") ||
-        isRouteActive("/overview") ||
-        isRouteActive("/operations") ||
-        isRouteActive("/workspaces") ||
-        isRouteActive("/agent-output"),
-      subItems: [
-        {
-          key: "smart-ops",
-          label: t("agentChat.shell.navigation.smartOps"),
-          href: "/commerce",
-          active: isRouteActive("/commerce"),
-          onSelect: () => navigateTo("/commerce"),
-        },
-        {
-          key: "capabilities",
-          label: t("agentChat.shell.navigation.capabilities"),
-          href: "/agent-capabilities",
-          active: isRouteActive("/agent-capabilities"),
-          onSelect: () => navigateTo("/agent-capabilities"),
-        },
-        {
-          key: "product-board",
-          label: t("agentChat.shell.navigation.productBoard"),
-          href: "/products",
-          active: isRouteActive("/products"),
-          onSelect: () => navigateTo("/products"),
-        },
-        {
-          key: "campaigns",
-          label: t("agentChat.shell.navigation.campaigns"),
-          href: "/campaigns",
-          active: isRouteActive("/campaigns"),
-          onSelect: () => navigateTo("/campaigns"),
-        },
-        {
-          key: "market-research",
-          label: t("agentChat.shell.navigation.marketResearch"),
-          href: "/overview",
-          active: isRouteActive("/overview"),
-          onSelect: () => navigateTo("/overview"),
-        },
-        {
-          key: "operations",
-          label: t("agentChat.shell.navigation.operations"),
-          href: "/operations",
-          active: isRouteActive("/operations"),
-          onSelect: () => navigateTo("/operations"),
-        },
-        {
-          key: "task-board",
-          label: t("agentChat.shell.navigation.taskBoard"),
-          href: "/workspaces",
-          active: isRouteActive("/workspaces"),
-          onSelect: () => navigateTo("/workspaces"),
-        },
-        {
-          key: "deliverables",
-          label: t("agentChat.shell.navigation.deliverables"),
-          href: "/agent-output",
-          active: isRouteActive("/agent-output"),
-          onSelect: () => navigateTo("/agent-output"),
-        },
-      ],
+      active: STUDENT_NAV_ITEMS.some((item) => isRouteActive(item.path)),
+      subItems: STUDENT_NAV_ITEMS.map((item) => ({
+        key: item.key,
+        label: t(item.labelKey),
+        href: item.path,
+        active: isRouteActive(item.path),
+        onSelect: () => navigateTo(item.path),
+      })),
     },
   ]
 
@@ -545,6 +505,9 @@ function getRouteTitleKey(pathname: string) {
   }
   if (pathname === "/products") {
     return "agentChat.shell.navigation.productBoard"
+  }
+  if (pathname === "/materials") {
+    return "agentChat.shell.navigation.materials"
   }
   if (pathname === "/campaigns") {
     return "agentChat.shell.navigation.campaigns"

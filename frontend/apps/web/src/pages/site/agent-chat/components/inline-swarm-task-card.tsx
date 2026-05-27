@@ -203,7 +203,10 @@ export function InlineSwarmTaskCard({
                   totalCount={processProgress.total}
                 />
                 {showAgentGrid ? (
-                  <InlineAgentGrid agents={agents} compact={isComplete} />
+                  <>
+                    <InlineAgentGrid agents={agents} compact={isComplete} />
+                    <InlineDispatchFactGrid facts={dispatchFacts} />
+                  </>
                 ) : (
                   <InlineDispatchFactGrid facts={dispatchFacts} />
                 )}

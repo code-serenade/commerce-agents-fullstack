@@ -5590,7 +5590,7 @@ fn select_table_profile_columns(header: &[String], query: Option<&str>) -> Vec<u
         .take(TABLE_PROFILE_MAX_COLUMNS)
         .map(|(index, _)| *index)
         .collect::<Vec<_>>();
-    for index in 0 .. header.len().min(TABLE_PROFILE_MAX_COLUMNS) {
+    for index in 0..header.len().min(TABLE_PROFILE_MAX_COLUMNS) {
         if selected.len() >= TABLE_PROFILE_MAX_COLUMNS {
             break;
         }
@@ -5669,7 +5669,7 @@ fn select_table_profile_sample_rows(rows: &[Vec<String>], query: Option<&str>) -
                 .map(|(index, _)| index),
         );
     }
-    for index in 0 .. rows.len().min(TABLE_PROFILE_MAX_ROWS) {
+    for index in 0..rows.len().min(TABLE_PROFILE_MAX_ROWS) {
         if selected.len() >= TABLE_PROFILE_MAX_ROWS {
             break;
         }
@@ -7516,6 +7516,30 @@ fn build_content_artifact_from_skill_output(
             "ops_promo_plan",
             "Ops promotion plan",
             "ops promotion planning artifact generated",
+        ),
+        "product_opportunity_score" => (
+            "ops",
+            "ops_product_opportunity_report",
+            "Ops product opportunity report",
+            "ops product opportunity score artifact generated",
+        ),
+        "product_market_fit_diagnosis" => (
+            "ops",
+            "ops_product_market_fit_report",
+            "Ops product market fit report",
+            "ops product market fit diagnosis artifact generated",
+        ),
+        "experiment_mvp_plan" => (
+            "ops",
+            "ops_experiment_mvp_plan",
+            "Ops experiment MVP plan",
+            "ops experiment MVP plan artifact generated",
+        ),
+        "experiment_review_report" => (
+            "ops",
+            "ops_experiment_review_report",
+            "Ops experiment review report",
+            "ops experiment review report artifact generated",
         ),
         "ops_pricing_strategy" => (
             "ops",
@@ -9876,6 +9900,103 @@ mod tests {
     }
 
     #[test]
+    fn content_artifact_builds_from_product_opportunity_output() {
+        let output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "data_readiness": "user_provided",
+            "summary": "商品机会评分已生成",
+            "商品": "低糖冷萃咖啡",
+            "机会总分": 76.2,
+            "建议决策": "小预算验证"
+        });
+
+        let draft = build_content_artifact_from_skill_output("product_opportunity_score", &output)
+            .expect("product opportunity output should be materializable");
+
+        assert_eq!(draft.content_category, "ops");
+        assert_eq!(draft.artifact_type, "ops_product_opportunity_report");
+        assert_eq!(draft.title, "Ops product opportunity report");
+        assert_eq!(draft.file_name, "ops_product_opportunity_report.md");
+        assert!(draft.preview.contains("商品机会评分已生成"));
+        assert!(draft.content.contains("# Ops product opportunity report"));
+    }
+
+    #[test]
+    fn content_artifact_builds_from_product_market_fit_output() {
+        let output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "data_readiness": "user_provided",
+            "summary": "商品市场匹配诊断已生成",
+            "商品": "低糖冷萃咖啡",
+            "PMF匹配总分": 74.6,
+            "PMF阶段判断": "可进入定向验证"
+        });
+
+        let draft =
+            build_content_artifact_from_skill_output("product_market_fit_diagnosis", &output)
+                .expect("product market fit output should be materializable");
+
+        assert_eq!(draft.content_category, "ops");
+        assert_eq!(draft.artifact_type, "ops_product_market_fit_report");
+        assert_eq!(draft.title, "Ops product market fit report");
+        assert_eq!(draft.file_name, "ops_product_market_fit_report.md");
+        assert!(draft.preview.contains("商品市场匹配诊断已生成"));
+        assert!(draft.content.contains("# Ops product market fit report"));
+    }
+
+    #[test]
+    fn content_artifact_builds_from_experiment_mvp_plan_output() {
+        let output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "data_readiness": "user_provided",
+            "summary": "MVP实验计划已生成",
+            "商品": "低糖冷萃咖啡",
+            "实验周期": "14天",
+            "总预算": "¥3000.00"
+        });
+
+        let draft = build_content_artifact_from_skill_output("experiment_mvp_plan", &output)
+            .expect("experiment MVP plan output should be materializable");
+
+        assert_eq!(draft.content_category, "ops");
+        assert_eq!(draft.artifact_type, "ops_experiment_mvp_plan");
+        assert_eq!(draft.title, "Ops experiment MVP plan");
+        assert_eq!(draft.file_name, "ops_experiment_mvp_plan.md");
+        assert!(draft.preview.contains("MVP实验计划已生成"));
+        assert!(draft.content.contains("# Ops experiment MVP plan"));
+    }
+
+    #[test]
+    fn content_artifact_builds_from_experiment_review_report_output() {
+        let output = json!({
+            "status": "success",
+            "has_data": true,
+            "adapter_status": "manual_input",
+            "data_readiness": "user_provided",
+            "summary": "MVP实验复盘报告已生成",
+            "商品": "低糖冷萃咖啡",
+            "复盘结论": "可小步放量",
+            "推荐动作": "保留赢家组合并小步放量"
+        });
+
+        let draft = build_content_artifact_from_skill_output("experiment_review_report", &output)
+            .expect("experiment review report output should be materializable");
+
+        assert_eq!(draft.content_category, "ops");
+        assert_eq!(draft.artifact_type, "ops_experiment_review_report");
+        assert_eq!(draft.title, "Ops experiment review report");
+        assert_eq!(draft.file_name, "ops_experiment_review_report.md");
+        assert!(draft.preview.contains("MVP实验复盘报告已生成"));
+        assert!(draft.content.contains("# Ops experiment review report"));
+    }
+
+    #[test]
     fn content_artifact_builds_from_douyin_ads_skill_output() {
         let output = json!({
             "status": "success",
@@ -10350,7 +10471,7 @@ mod tests {
 
     #[test]
     fn explicit_workspace_context_refs_reject_too_many_refs() {
-        let refs = (0 .. 21).map(|index| format!("artifact:{index}")).collect();
+        let refs = (0..21).map(|index| format!("artifact:{index}")).collect();
         let err = explicit_workspace_context_refs(refs).expect_err("too many refs should fail");
 
         assert_eq!(err.code(), app_error::WORKSPACE_REQUEST_INVALID);
@@ -10577,7 +10698,7 @@ mod tests {
 
     #[test]
     fn context_pack_profiles_large_json_instead_of_inlining_full_payload() {
-        let orders = (0 .. 90)
+        let orders = (0..90)
             .map(|index| {
                 json!({
                     "order_id": format!("O-{index}"),
@@ -10667,7 +10788,7 @@ mod tests {
 
     #[test]
     fn context_pack_profiles_jsonl_sources() {
-        let jsonl_text = (0 .. 40)
+        let jsonl_text = (0..40)
             .map(|index| {
                 json!({
                     "event": "order_update",

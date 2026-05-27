@@ -4,33 +4,57 @@ pub(crate) fn user_facing_report_text(report: &WorkerReport) -> Option<String> {
     report
         .role_output
         .as_ref()
-        .and_then(role_output_user_facing_text)
+        .and_then(|output| role_output_user_facing_text(&report.role, output))
         .or_else(|| sanitize_user_facing_text(&report.content))
 }
 
-fn role_output_user_facing_text(output: &crate::core::protocol::RoleWorkOutput) -> Option<String> {
-    if let Some(text) = live_search_user_facing_text(output) {
-        return Some(text);
+fn role_output_user_facing_text(
+    role: &str,
+    output: &crate::core::protocol::RoleWorkOutput,
+) -> Option<String> {
+    let live_search = live_search_user_facing_text(output);
+    if role == "search" {
+        return live_search.or_else(|| role_output_business_text(output));
     }
 
+    let business_text = role_output_business_text(output);
+    if let Some(text) = business_text
+        .as_ref()
+        .filter(|text| !looks_like_no_source_claim(text))
+    {
+        return Some(append_live_search_evidence_once(text, output));
+    }
+
+    live_search.or(business_text)
+}
+
+fn role_output_business_text(output: &crate::core::protocol::RoleWorkOutput) -> Option<String> {
     std::iter::once(output.summary.as_str())
         .chain(output.recommendations.iter().map(String::as_str))
         .chain(output.findings.iter().map(String::as_str))
+        .filter(|item| !looks_like_live_search_evidence(item))
         .find_map(sanitize_user_facing_text)
 }
 
+fn append_live_search_evidence_once(
+    business_text: &str,
+    output: &crate::core::protocol::RoleWorkOutput,
+) -> String {
+    if looks_like_live_search_evidence(business_text) {
+        return business_text.to_string();
+    }
+    let evidence = live_search_evidence_sections(output);
+    if evidence.is_empty() {
+        return business_text.to_string();
+    }
+
+    let mut sections = vec![business_text.to_string()];
+    sections.extend(evidence);
+    sections.join("\n\n")
+}
+
 fn live_search_user_facing_text(output: &crate::core::protocol::RoleWorkOutput) -> Option<String> {
-    let live_evidence = output
-        .evidence
-        .iter()
-        .filter(|item| looks_like_live_search_evidence(item))
-        .filter_map(|item| sanitize_user_facing_text(item))
-        .fold(Vec::<String>::new(), |mut items, item| {
-            if !items.iter().any(|existing| existing == &item) {
-                items.push(item);
-            }
-            items
-        });
+    let live_evidence = live_search_evidence_sections(output);
     if live_evidence.is_empty() {
         return None;
     }
@@ -46,6 +70,20 @@ fn live_search_user_facing_text(output: &crate::core::protocol::RoleWorkOutput) 
     sections.extend(live_evidence);
 
     (!sections.is_empty()).then_some(sections.join("\n\n"))
+}
+
+fn live_search_evidence_sections(output: &crate::core::protocol::RoleWorkOutput) -> Vec<String> {
+    output
+        .evidence
+        .iter()
+        .filter(|item| looks_like_live_search_evidence(item))
+        .filter_map(|item| sanitize_user_facing_text(item))
+        .fold(Vec::<String>::new(), |mut items, item| {
+            if !items.iter().any(|existing| existing == &item) {
+                items.push(item);
+            }
+            items
+        })
 }
 
 fn looks_like_live_search_evidence(item: &str) -> bool {
@@ -87,6 +125,13 @@ pub(crate) fn sanitize_user_facing_text(raw: &str) -> Option<String> {
     (!output.is_empty() && !is_internal_noise_line(&output)).then_some(output)
 }
 
+pub(crate) fn sanitize_final_user_facing_text(raw: &str) -> Option<String> {
+    let output = sanitize_user_facing_text(raw)?;
+    let lines = output.lines().map(str::to_string).collect::<Vec<_>>();
+    let output = collapse_repeated_blocks(lines).join("\n");
+    (!output.is_empty() && !is_internal_noise_line(&output)).then_some(output)
+}
+
 pub(crate) fn no_user_facing_content_message() -> String {
     "这次没有拿到可直接展示的完整内容。请补充更明确的问题或关键材料，我再继续整理。".to_string()
 }
@@ -112,14 +157,14 @@ fn replace_placeholder_pairs(input: &str, open: char, close: char) -> String {
     let mut rest = input;
 
     while let Some(start) = rest.find(open) {
-        output.push_str(&rest[.. start]);
+        output.push_str(&rest[..start]);
         let segment_start = start + open.len_utf8();
-        let Some(end) = rest[segment_start ..].find(close) else {
-            output.push_str(&rest[start ..]);
+        let Some(end) = rest[segment_start..].find(close) else {
+            output.push_str(&rest[start..]);
             return output;
         };
         let segment_end = segment_start + end;
-        let segment = &rest[segment_start .. segment_end];
+        let segment = &rest[segment_start..segment_end];
         if placeholder_segment(segment) {
             if let Some(replacement) = placeholder_replacement(segment) {
                 output.push_str(&replacement);
@@ -129,7 +174,7 @@ fn replace_placeholder_pairs(input: &str, open: char, close: char) -> String {
             output.push_str(segment);
             output.push(close);
         }
-        rest = &rest[segment_end + close.len_utf8() ..];
+        rest = &rest[segment_end + close.len_utf8()..];
     }
 
     output.push_str(rest);
@@ -213,17 +258,14 @@ fn strip_role_prefix(line: &str) -> String {
     let Some((colon_index, colon_width)) = first_colon(body) else {
         return line.trim().to_string();
     };
-    let label = body[.. colon_index].trim();
+    let label = body[..colon_index].trim();
     if !looks_like_internal_role_label(label) {
         return line.trim().to_string();
     }
 
-    format!(
-        "{prefix}{}",
-        body[colon_index + colon_width ..].trim_start()
-    )
-    .trim()
-    .to_string()
+    format!("{prefix}{}", body[colon_index + colon_width..].trim_start())
+        .trim()
+        .to_string()
 }
 
 fn split_list_prefix(line: &str) -> (&str, &str) {
@@ -254,10 +296,10 @@ fn looks_like_internal_role_label(label: &str) -> bool {
     let Some(start) = label.find('(') else {
         return false;
     };
-    let Some(end) = label[start + 1 ..].find(')') else {
+    let Some(end) = label[start + 1..].find(')') else {
         return false;
     };
-    let role = &label[start + 1 .. start + 1 + end];
+    let role = &label[start + 1..start + 1 + end];
     !role.is_empty()
         && role.chars().all(|ch| {
             ch.is_ascii_lowercase() || ch.is_ascii_digit() || matches!(ch, '_' | '-' | '.')
@@ -298,7 +340,115 @@ fn normalize_blank_lines(lines: Vec<String>) -> String {
         normalized.pop();
     }
 
+    let normalized = collapse_repeated_blocks(normalized);
     normalized.join("\n")
+}
+
+fn collapse_repeated_blocks(lines: Vec<String>) -> Vec<String> {
+    let lines = collapse_repeated_line_sequence(lines);
+    let lines = collapse_non_adjacent_repeated_line_runs(lines);
+    let mut blocks = lines_to_blocks(lines);
+    if blocks.is_empty() {
+        return Vec::new();
+    }
+
+    blocks = collapse_adjacent_duplicate_blocks(blocks);
+    blocks = collapse_duplicate_blocks(blocks);
+    if blocks.len().is_multiple_of(2) {
+        let half = blocks.len() / 2;
+        if blocks[..half] == blocks[half..] {
+            blocks.truncate(half);
+        }
+    }
+
+    blocks_to_lines(blocks)
+}
+
+fn collapse_non_adjacent_repeated_line_runs(lines: Vec<String>) -> Vec<String> {
+    let mut output = Vec::new();
+    let mut cursor = 0;
+    while cursor < lines.len() {
+        if let Some(run_len) = longest_seen_line_run(&output, &lines[cursor..]) {
+            cursor += run_len;
+            continue;
+        }
+        output.push(lines[cursor].clone());
+        cursor += 1;
+    }
+    output
+}
+
+fn longest_seen_line_run(seen: &[String], remaining: &[String]) -> Option<usize> {
+    let max_len = remaining.len().min(seen.len());
+    (2..=max_len).rev().find(|run_len| {
+        seen.windows(*run_len)
+            .any(|window| window == &remaining[..*run_len])
+    })
+}
+
+fn collapse_repeated_line_sequence(mut lines: Vec<String>) -> Vec<String> {
+    loop {
+        let len = lines.len();
+        if len <= 1 || !len.is_multiple_of(2) || lines[..len / 2] != lines[len / 2..] {
+            break;
+        }
+        lines.truncate(len / 2);
+    }
+
+    lines.into_iter().fold(Vec::new(), |mut unique, line| {
+        if unique.last().is_none_or(|existing| existing != &line) {
+            unique.push(line);
+        }
+        unique
+    })
+}
+
+fn lines_to_blocks(lines: Vec<String>) -> Vec<Vec<String>> {
+    let mut blocks = Vec::new();
+    let mut current = Vec::new();
+    for line in lines {
+        if line.trim().is_empty() {
+            if !current.is_empty() {
+                blocks.push(current);
+                current = Vec::new();
+            }
+            continue;
+        }
+        current.push(line);
+    }
+    if !current.is_empty() {
+        blocks.push(current);
+    }
+    blocks
+}
+
+fn collapse_adjacent_duplicate_blocks(blocks: Vec<Vec<String>>) -> Vec<Vec<String>> {
+    blocks.into_iter().fold(Vec::new(), |mut unique, block| {
+        if unique.last().is_none_or(|existing| existing != &block) {
+            unique.push(block);
+        }
+        unique
+    })
+}
+
+fn collapse_duplicate_blocks(blocks: Vec<Vec<String>>) -> Vec<Vec<String>> {
+    blocks.into_iter().fold(Vec::new(), |mut unique, block| {
+        if !unique.iter().any(|existing| existing == &block) {
+            unique.push(block);
+        }
+        unique
+    })
+}
+
+fn blocks_to_lines(blocks: Vec<Vec<String>>) -> Vec<String> {
+    let mut lines = Vec::new();
+    for block in blocks {
+        if !lines.is_empty() {
+            lines.push(String::new());
+        }
+        lines.extend(block);
+    }
+    lines
 }
 
 fn is_internal_noise_line(line: &str) -> bool {
@@ -357,7 +507,9 @@ fn is_empty_list_artifact(line: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{sanitize_user_facing_text, user_facing_report_text};
+    use super::{
+        sanitize_final_user_facing_text, sanitize_user_facing_text, user_facing_report_text,
+    };
     use crate::core::protocol::{
         RoleWorkOutput, TaskGraphId, TaskId, TaskNodeId, WorkerId, WorkerReport, WorkerReportStatus,
     };
@@ -447,5 +599,61 @@ mod tests {
         assert!(output.contains("实时搜索来源"));
         assert!(output.contains("https://example.com/policy"));
         assert!(!output.contains("本轮未拿到"));
+    }
+
+    #[test]
+    fn non_search_role_keeps_business_answer_before_live_search_evidence() {
+        let report = WorkerReport {
+            graph_id: TaskGraphId("graph-final".to_string()),
+            node_id: TaskNodeId("ops_final".to_string()),
+            task_id: TaskId("task-final".to_string()),
+            worker_id: WorkerId("worker.ops".to_string()),
+            role: "ops".to_string(),
+            content: String::new(),
+            role_output: Some(RoleWorkOutput {
+                summary: "建议先用校园内小范围试卖验证冷萃咖啡价格带，再按毛利和复购反馈调整。"
+                    .to_string(),
+                evidence: vec![
+                    "实时搜索来源（search_competitor）：1 个可采信来源\n\
+                     1. 竞品价格参考 | 2026-05-20 | https://example.com/price | 价格区间"
+                        .to_string(),
+                ],
+                ..RoleWorkOutput::default()
+            }),
+            evidence: Vec::new(),
+            risks: Vec::new(),
+            open_questions: Vec::new(),
+            status: WorkerReportStatus::Completed,
+        };
+
+        let output = user_facing_report_text(&report).expect("business answer should be visible");
+
+        assert!(output.starts_with("建议先用校园内小范围试卖"));
+        assert!(output.contains("实时搜索来源"));
+        assert!(output.contains("https://example.com/price"));
+    }
+
+    #[test]
+    fn sanitizing_collapses_repeated_answer_blocks() {
+        let raw =
+            "先看毛利，再看销量。\n- 补齐成本字段。\n\n先看毛利，再看销量。\n- 补齐成本字段。";
+
+        let output = sanitize_user_facing_text(raw).expect("deduped output should remain");
+
+        assert_eq!(output, "先看毛利，再看销量。\n- 补齐成本字段。");
+    }
+
+    #[test]
+    fn final_sanitizing_collapses_non_adjacent_duplicate_blocks() {
+        let raw = "先看毛利，再看销量。\n- 补齐成本字段。\n\n\
+                   资料边界：附件成本字段仍需核验。\n\n\
+                   先看毛利，再看销量。\n- 补齐成本字段。";
+
+        let output = sanitize_final_user_facing_text(raw).expect("deduped output should remain");
+
+        assert_eq!(
+            output,
+            "先看毛利，再看销量。\n- 补齐成本字段。\n资料边界：附件成本字段仍需核验。"
+        );
     }
 }

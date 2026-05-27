@@ -360,6 +360,26 @@ pub struct TriggerConversationFileExtractionJobRequest {
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
+pub struct ListUserFilesQuery {
+    pub limit: Option<u64>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct AttachConversationFileRequest {
+    #[validate(length(min = 1, max = 128))]
+    pub conversation_id: String,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct BulkDeleteUserFilesRequest {
+    #[validate(length(min = 1, max = 100))]
+    pub file_ids: Vec<String>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
 pub struct PresignConversationFileUploadRequest {
     #[validate(length(min = 1, max = 32))]
     pub extension: String,

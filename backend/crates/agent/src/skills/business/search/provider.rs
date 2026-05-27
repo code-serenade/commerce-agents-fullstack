@@ -271,6 +271,195 @@ pub(super) fn build_search_evidence(sources: &[Value], stale_filtered_count: usi
     })
 }
 
+pub(super) fn build_search_evidence_packet(
+    skill_id: &str,
+    plan: &SearchPlan,
+    sources: &[Value],
+    stale_filtered_count: usize,
+    confidence: f64,
+    degraded_reason: Option<&str>,
+) -> Value {
+    let strength = search_strength(plan.max_results);
+    let usable_claims = usable_claims_from_sources(sources);
+    let gaps = search_gaps(sources, stale_filtered_count, degraded_reason);
+
+    json!({
+        "intent": search_intent(skill_id),
+        "skill": skill_id,
+        "query": plan.planned,
+        "raw_query": plan.raw,
+        "search_strength": strength,
+        "requested": {
+            "topic": plan.topic,
+            "days": plan.days,
+            "max_results": plan.max_results,
+            "bypass_cache": plan.bypass_cache,
+            "product_ref": plan.product_ref,
+            "product_name": plan.product_name,
+            "product_category": plan.product_category
+        },
+        "sources": evidence_packet_sources(sources),
+        "usable_claims": usable_claims,
+        "gaps": gaps,
+        "confidence": confidence,
+        "usage": "搜索岗只把本字段作为证据包交给下游岗位；业务岗位引用 usable_claims 时必须保留来源边界，不把来源摘要直接扩写成最终方案。"
+    })
+}
+
+fn search_intent(skill_id: &str) -> &'static str {
+    match skill_id {
+        "search_competitor" => "competitor_price_or_benchmark",
+        "search_platform_policy" => "platform_policy_or_compliance",
+        "search_trends" => "market_trend",
+        "search_product_reviews" => "product_review_or_reputation",
+        "search_industry_benchmarks" => "industry_metric_benchmark",
+        "search_market_info" => "market_context",
+        _ => "general_search_evidence",
+    }
+}
+
+fn search_strength(max_results: i64) -> &'static str {
+    if max_results >= 8 {
+        "deep"
+    } else if max_results >= 4 {
+        "standard"
+    } else {
+        "light"
+    }
+}
+
+fn evidence_packet_sources(sources: &[Value]) -> Vec<Value> {
+    sources
+        .iter()
+        .take(12)
+        .map(|source| {
+            json!({
+                "title": source.get("title").and_then(Value::as_str).unwrap_or("未命名来源"),
+                "url": source.get("url").and_then(Value::as_str).unwrap_or(""),
+                "published_at": source.get("published_at").cloned().unwrap_or(Value::Null),
+                "source_type": classify_source_type(source),
+                "claim": source_claim(source),
+                "relevance": source_relevance(source)
+            })
+        })
+        .collect()
+}
+
+fn usable_claims_from_sources(sources: &[Value]) -> Vec<String> {
+    sources
+        .iter()
+        .filter_map(|source| {
+            let title = source
+                .get("title")
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .unwrap_or("未命名来源");
+            let snippet = source
+                .get("snippet")
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty());
+            let domain = source
+                .get("domain")
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty());
+            snippet
+                .or(domain)
+                .map(|detail| compact_text(&format!("{title}：{detail}"), 220))
+        })
+        .fold(Vec::<String>::new(), |mut claims, claim| {
+            if !claims.iter().any(|item| item == &claim) {
+                claims.push(claim);
+            }
+            claims
+        })
+}
+
+fn search_gaps(
+    sources: &[Value],
+    stale_filtered_count: usize,
+    degraded_reason: Option<&str>,
+) -> Vec<String> {
+    let mut gaps = Vec::new();
+    if sources.is_empty() {
+        gaps.push("本次没有可采信公开来源，不能当作实时搜索结论。".to_string());
+    }
+    if stale_filtered_count > 0 {
+        gaps.push(format!(
+            "已过滤 {stale_filtered_count} 条超出请求时间范围的来源，过期来源不能引用。"
+        ));
+    }
+    if let Some(reason) = degraded_reason
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        gaps.push(format!("搜索降级原因：{reason}"));
+    }
+    if !sources.is_empty() && sources.len() < 3 {
+        gaps.push("可采信来源少于 3 条，只能作为低置信参考。".to_string());
+    }
+    if sources.iter().any(|source| {
+        source
+            .get("published_at")
+            .and_then(Value::as_str)
+            .is_none_or(|value| value.trim().is_empty())
+    }) {
+        gaps.push("部分来源没有发布时间，使用时需要说明时效性不确定。".to_string());
+    }
+
+    gaps
+}
+
+fn classify_source_type(source: &Value) -> &'static str {
+    let domain = source
+        .get("domain")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    if domain.contains("gov.") || domain.ends_with(".gov") {
+        "official_government"
+    } else if domain.contains("edu.") || domain.ends_with(".edu") {
+        "education"
+    } else if domain.contains("tmall")
+        || domain.contains("taobao")
+        || domain.contains("jd.")
+        || domain.contains("douyin")
+        || domain.contains("pinduoduo")
+    {
+        "platform_or_marketplace"
+    } else {
+        "public_web"
+    }
+}
+
+fn source_claim(source: &Value) -> String {
+    let snippet = source
+        .get("snippet")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+    let title = source
+        .get("title")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or("未命名来源");
+    compact_text(snippet.unwrap_or(title), 220)
+}
+
+fn source_relevance(source: &Value) -> &'static str {
+    if source
+        .get("snippet")
+        .and_then(Value::as_str)
+        .is_some_and(|value| !value.trim().is_empty())
+    {
+        "direct"
+    } else {
+        "context"
+    }
+}
+
 fn format_sources_for_llm(sources: &[Value], stale_filtered_count: usize) -> String {
     if sources.is_empty() {
         return "（本次没有可采信实时来源。回答时必须说明外部搜索未返回来源，\

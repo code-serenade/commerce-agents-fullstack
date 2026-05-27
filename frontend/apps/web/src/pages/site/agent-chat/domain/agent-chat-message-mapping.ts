@@ -125,7 +125,7 @@ function readRuntimeEvents(contentJson: unknown): AgentRuntimeEvent[] {
   return runtimeEvents.filter(isAgentRuntimeEvent)
 }
 
-function mapConversationFile(
+export function mapConversationFile(
   file: ConversationFileResponse
 ): AgentChatAttachmentItem {
   const extraction = readMetadataRecord(file.metadata, "extraction")
@@ -151,12 +151,17 @@ function mapConversationFile(
           readMetadataBoolean(extractionMetadata, "visionReady")
       )) &&
     Boolean(imageDataUrl)
-  const readable = isReadableConversationFile(file) || isVisionReady
+  const readable =
+    isReadableConversationFile(file) ||
+    isExtractedConversationFile(extractionStatus) ||
+    isVisionReady
   return {
     id: file.id,
+    bucket: file.bucket,
     fileId: file.id,
     kind: isVisionConversationFile(file) ? "image" : "file",
     name: file.fileName || file.objectKey.split("/").at(-1) || file.objectKey,
+    objectKey: file.objectKey,
     imageDataUrl,
     imageDetail: isVisionReady ? "auto" : undefined,
     readable,
@@ -189,6 +194,10 @@ function isReadableConversationFile(file: ConversationFileResponse) {
     return true
   }
   return /\.(csv|json|md|markdown|txt)$/i.test(file.fileName ?? file.objectKey)
+}
+
+function isExtractedConversationFile(extractionStatus?: string) {
+  return extractionStatus === "extracted" || extractionStatus === "ready"
 }
 
 function isVisionConversationFile(file: ConversationFileResponse) {

@@ -59,7 +59,7 @@ export function DispatchPreviewDocument({
 export function DispatchFactChips({ facts }: { facts: AgentDispatchFact[] }) {
   return (
     <div className="grid min-w-0 gap-1.5 min-[1500px]:grid-cols-2">
-      {facts.slice(0, 2).map((fact, index) => {
+      {facts.map((fact, index) => {
         const Icon = fact.tone === "warning" || fact.tone === "error"
           ? CircleAlert
           : CheckCircle2
@@ -67,16 +67,16 @@ export function DispatchFactChips({ facts }: { facts: AgentDispatchFact[] }) {
         return (
           <article
             key={`${index}-${fact.label}`}
-            className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs"
+            className="flex min-w-0 items-start gap-2 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs"
             title={`${fact.label} ${fact.detail}`}
           >
-            <Icon className="size-3.5 shrink-0 text-muted-foreground" />
-            <span className="min-w-0 flex-1 truncate font-medium">
-              {fact.label}
-            </span>
-            <span className="min-w-0 truncate text-[11px] text-muted-foreground">
-              {fact.detail}
-            </span>
+            <Icon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-foreground">{fact.label}</p>
+              <p className="mt-0.5 wrap-break-word text-[11px] text-muted-foreground">
+                {fact.detail}
+              </p>
+            </div>
           </article>
         )
       })}
@@ -96,8 +96,8 @@ export function DispatchStepDock({ steps }: { steps: DispatchWorkbenchStep[] }) 
           return (
             <article
               key={step.id}
-              title={`${formatAgentNumber(step.index)} ${step.title} ${getDockStateLabel(step.state, t)}`}
-              className={`flex min-w-0 items-center gap-2 rounded-md border px-2 py-1.5 transition-colors ${
+              title={`${formatAgentNumber(step.index)} ${step.title} ${getDockStateLabel(step.state, t)} ${step.detail}`}
+              className={`flex min-w-0 items-start gap-2 rounded-md border px-2 py-1.5 transition-colors ${
                 isActive
                   ? "border-foreground bg-background shadow-sm"
                   : "border-border bg-background/70 text-muted-foreground"
@@ -122,6 +122,9 @@ export function DispatchStepDock({ steps }: { steps: DispatchWorkbenchStep[] }) 
                     {getDockStateLabel(step.state, t)}
                   </span>
                 </div>
+                <p className="mt-1 wrap-break-word text-[11px]/4 text-muted-foreground">
+                  {step.detail}
+                </p>
               </div>
             </article>
           )

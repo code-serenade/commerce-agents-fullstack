@@ -2,7 +2,7 @@ use serde_json::Value;
 
 use crate::skills::{
     SearchAdapterConfig, Skill, SkillContext, SkillError, SkillOutcome, accounting, coordination,
-    creative, data, design, douyin_ads, engineering, learning, ops, search, service, web,
+    creative, data, design, douyin_ads, engineering, learning, material, ops, search, service, web,
 };
 
 pub(super) async fn run_known_skill(
@@ -20,6 +20,10 @@ pub(super) async fn run_known_skill(
     }
 
     match id {
+        "product_opportunity_score" => ops::execute(id, input, &context).await,
+        "product_market_fit_diagnosis" => ops::execute(id, input, &context).await,
+        "experiment_mvp_plan" => ops::execute(id, input, &context).await,
+        "experiment_review_report" => ops::execute(id, input, &context).await,
         "search_trends" => {
             search::SearchTrends::new()
                 .run_with_adapter(input, context, search_config)
@@ -175,6 +179,31 @@ pub(super) async fn run_known_skill(
         }
         "learning_teaching_explain" => {
             learning::LearningTeachingExplain::new()
+                .run(input, context)
+                .await
+        }
+        "material_file_understanding" => {
+            material::MaterialFileUnderstanding::new()
+                .run(input, context)
+                .await
+        }
+        "material_table_profiler" => {
+            material::MaterialTableProfiler::new()
+                .run(input, context)
+                .await
+        }
+        "material_image_diagnosis" => {
+            material::MaterialImageDiagnosis::new()
+                .run(input, context)
+                .await
+        }
+        "material_evidence_extractor" => {
+            material::MaterialEvidenceExtractor::new()
+                .run(input, context)
+                .await
+        }
+        "material_multi_file_compare" => {
+            material::MaterialMultiFileCompare::new()
                 .run(input, context)
                 .await
         }

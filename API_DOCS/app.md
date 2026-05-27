@@ -253,11 +253,11 @@
 ```json
 {
   "source": "agent_runtime",
-  "version": "post_8_137",
+  "version": "post_8_146_experiment_review_report",
   "summary": {
     "roleCount": 10,
-    "skillCount": 100,
-    "nativeSkillCount": 82,
+    "skillCount": 109,
+    "nativeSkillCount": 91,
     "adapterSkillCount": 18,
     "approvalSkillCount": 4
   },
@@ -767,6 +767,92 @@
 - 删除时会释放 `conversation_file:{fileId}` 对对象存储的引用，并将会话附件记录标记为 `deleted`。
 - 本接口不会直接删除 S3 物理对象；若多个会话或商品资产引用同一对象，资源会继续保留。引用数归零后对象进入 `orphaned` 状态，后续由对象存储资源管理器确认无 active 引用后删除。
 - 释放引用或更新数据库失败时会整体回滚，前端可重试。
+
+## 13.1 查询我的资料文件
+
+- 方法：`GET`
+- 路径：`/api/app/files`
+- 鉴权：有效 App 用户 JWT
+
+查询参数：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `limit` | `number` | 否 | 返回最近文件数量；不传时由服务端使用默认数量 |
+
+成功响应 `data`：`ConversationFileResponse[]`。
+
+补充说明：
+
+- 本接口用于资料库 / 文件管理器展示当前用户已上传且仍为 `active` 的会话资料。
+- 服务端按对象存储 key 和哈希去重，避免同一文件在多个会话重复展示。
+- 返回结构复用 `ConversationFileResponse`，其中 `conversationId` 表示该文件原始所属或当前可追溯的会话。
+- 本接口只返回当前登录用户自己的文件，不返回其他用户或已删除文件。
+
+## 13.2 删除资料文件
+
+- 方法：`DELETE`
+- 路径：`/api/app/files/{fileId}`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`null`。
+
+补充说明：
+
+- 服务端会校验文件属于当前登录用户。
+- 删除动作会按同一对象 key / sha256 找到当前用户下的关联会话附件并批量标记为 `deleted`，同时释放对应对象存储引用。
+- 本接口不会直接删除仍被 active 引用的 S3 物理对象；引用归零后的清理仍由对象存储资源管理器处理。
+
+## 13.3 批量删除资料文件
+
+- 方法：`POST`
+- 路径：`/api/app/files/bulk-delete`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "fileIds": ["file-uuid-1", "file-uuid-2"]
+}
+```
+
+字段说明：
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `fileIds` | `string[]` | 是 | 要删除的文件 ID，至少 1 个，最多 100 个 |
+
+成功响应 `data`：`null`。
+
+补充说明：
+
+- 前端应通过用户显式勾选后调用本接口，不提供一键全量删除。
+- 服务端会逐个校验文件归属，只处理当前用户自己的文件。
+- 任一文件不属于当前用户或不存在时返回错误，前端可刷新资料库后重试。
+
+## 13.4 将资料文件挂接到会话
+
+- 方法：`POST`
+- 路径：`/api/app/files/{fileId}/attach-to-conversation`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "conversationId": "conversation-uuid"
+}
+```
+
+成功响应 `data`：`ConversationFileResponse`。
+
+补充说明：
+
+- 本接口用于把资料库中的既有文件加入当前对话上下文，避免用户重复上传常用资料。
+- 服务端会校验源文件和目标会话均属于当前登录用户。
+- 挂接后会创建新的会话附件记录，复用同一个对象存储文件，并写入来源附件 ID 到 metadata。
+- 如果挂接的是图片或可解析文档，后续仍按会话附件的既有解析 / 预识别流程进入 Agent 上下文。
 
 ## 14. 查询我的商品列表
 
@@ -2403,7 +2489,7 @@
 | `runId` | `uuid` | 否 | 只查询某次运行产生的交付物 |
 | `workspaceTaskId` | `uuid` | 否 | 只查询某个工作区任务关联的交付物 |
 | `runTaskId` | `uuid` | 否 | 只查询某个运行任务快照关联的交付物 |
-| `artifactType` | `string` | 否 | 交付物类型，例如 `final_report`、`search_evidence`、`video_script`、`seeding_copy`、`ip_branding`、`content_calendar`、`live_script`、`product_article`、`creative_trend_report`、`creative_title_ctr_score`、`design_main_image_brief`、`design_detail_page_brief`、`design_color_scheme`、`design_material_spec`、`design_campaign_poster_brief`、`data_dashboard`、`data_funnel_report`、`data_channel_roi_report`、`data_refund_report`、`data_anomaly_report`、`data_trend_forecast_report`、`data_customer_segmentation_report`、`data_competitor_report`、`data_ab_test_report`、`data_attribution_report`、`data_multi_period_trend_report`、`data_ltv_report`、`data_cohort_report`、`data_seasonal_decompose_report`、`data_price_elasticity_report`、`data_demand_forecast_report`、`data_comprehensive_diagnosis_report`、`accounting_cost_report`、`accounting_profit_report`、`accounting_roi_report`、`accounting_budget_plan`、`accounting_break_even_report`、`accounting_compliance_report`、`accounting_pl_statement`、`accounting_budget_vs_actual_report`、`accounting_gmv_waterfall_report`、`accounting_scenario_report`、`accounting_cash_flow_forecast_report`、`accounting_financial_narrative_report`、`service_ticket_playbook`、`service_faq_playbook`、`service_escalation_playbook`、`service_dsr_improvement_plan`、`service_return_plan`、`service_nps_report`、`service_sentiment_report`、`service_nps_driver_report`、`ops_promo_plan`、`ops_pricing_strategy`、`ops_channel_strategy`、`ops_inventory_plan`、`ops_listing_copy`、`ops_assortment_plan`、`ops_execution_plan`、`ops_smart_pricing_report`、`ops_inventory_optimization_report`、`ops_ad_fatigue_report`、`ops_abc_xyz_report`、`douyin_ads_plan_structure`、`douyin_ads_audience_package`、`douyin_ads_budget_pacing`、`douyin_ads_live_funnel_report`、`web_seo_plan`、`web_title_candidates`、`web_conversion_plan`、`web_store_design_brief`、`web_keyword_matrix`、`web_product_description`、`web_title_seo_score`、`engineering_arch_review_report`、`engineering_bug_analysis_report`、`engineering_perf_plan`、`engineering_tech_selection_report`、`engineering_sla_report`、`learning_teaching_explain`、`role_report`、`file` |
+| `artifactType` | `string` | 否 | 交付物类型，例如 `final_report`、`search_evidence`、`video_script`、`seeding_copy`、`ip_branding`、`content_calendar`、`live_script`、`product_article`、`creative_trend_report`、`creative_title_ctr_score`、`design_main_image_brief`、`design_detail_page_brief`、`design_color_scheme`、`design_material_spec`、`design_campaign_poster_brief`、`data_dashboard`、`data_funnel_report`、`data_channel_roi_report`、`data_refund_report`、`data_anomaly_report`、`data_trend_forecast_report`、`data_customer_segmentation_report`、`data_competitor_report`、`data_ab_test_report`、`data_attribution_report`、`data_multi_period_trend_report`、`data_ltv_report`、`data_cohort_report`、`data_seasonal_decompose_report`、`data_price_elasticity_report`、`data_demand_forecast_report`、`data_comprehensive_diagnosis_report`、`accounting_cost_report`、`accounting_profit_report`、`accounting_roi_report`、`accounting_budget_plan`、`accounting_break_even_report`、`accounting_compliance_report`、`accounting_pl_statement`、`accounting_budget_vs_actual_report`、`accounting_gmv_waterfall_report`、`accounting_scenario_report`、`accounting_cash_flow_forecast_report`、`accounting_financial_narrative_report`、`service_ticket_playbook`、`service_faq_playbook`、`service_escalation_playbook`、`service_dsr_improvement_plan`、`service_return_plan`、`service_nps_report`、`service_sentiment_report`、`service_nps_driver_report`、`ops_promo_plan`、`ops_product_opportunity_report`、`ops_product_market_fit_report`、`ops_experiment_mvp_plan`、`ops_experiment_review_report`、`ops_pricing_strategy`、`ops_channel_strategy`、`ops_inventory_plan`、`ops_listing_copy`、`ops_assortment_plan`、`ops_execution_plan`、`ops_smart_pricing_report`、`ops_inventory_optimization_report`、`ops_ad_fatigue_report`、`ops_abc_xyz_report`、`douyin_ads_plan_structure`、`douyin_ads_audience_package`、`douyin_ads_budget_pacing`、`douyin_ads_live_funnel_report`、`web_seo_plan`、`web_title_candidates`、`web_conversion_plan`、`web_store_design_brief`、`web_keyword_matrix`、`web_product_description`、`web_title_seo_score`、`engineering_arch_review_report`、`engineering_bug_analysis_report`、`engineering_perf_plan`、`engineering_tech_selection_report`、`engineering_sla_report`、`learning_teaching_explain`、`role_report`、`file` |
 | `status` | `active \| archived` | 否 | 不传时默认查询 `active` |
 | `keyword` | `string` | 否 | 匹配标题、预览、文件名、对象 key |
 | `page` | `number` | 否 | 默认 1 |
@@ -2458,7 +2544,7 @@
 - 未显式选商品时不会写空商品字段，也不会从 query 文本、历史对话、工作区摘要或预设商品推断商品
 - 只有真实 live 来源会创建该交付物；adapter 未配置、provider 失败或无来源时不会创建假搜索证据
 
-`artifactType=video_script / seeding_copy / ip_branding / content_calendar / live_script / product_article / creative_trend_report / creative_title_ctr_score / design_main_image_brief / design_detail_page_brief / design_color_scheme / design_material_spec / design_campaign_poster_brief / data_dashboard / data_funnel_report / data_channel_roi_report / data_refund_report / data_anomaly_report / data_trend_forecast_report / data_customer_segmentation_report / data_competitor_report / data_ab_test_report / data_attribution_report / data_multi_period_trend_report / data_ltv_report / data_cohort_report / data_seasonal_decompose_report / data_price_elasticity_report / data_demand_forecast_report / data_comprehensive_diagnosis_report / accounting_cost_report / accounting_profit_report / accounting_roi_report / accounting_budget_plan / accounting_break_even_report / accounting_compliance_report / accounting_pl_statement / accounting_budget_vs_actual_report / accounting_gmv_waterfall_report / accounting_scenario_report / accounting_cash_flow_forecast_report / accounting_financial_narrative_report / service_ticket_playbook / service_faq_playbook / service_escalation_playbook / service_dsr_improvement_plan / service_return_plan / service_nps_report / service_sentiment_report / service_nps_driver_report / ops_promo_plan / ops_pricing_strategy / ops_channel_strategy / ops_inventory_plan / ops_listing_copy / ops_assortment_plan / ops_execution_plan / ops_smart_pricing_report / ops_inventory_optimization_report / ops_ad_fatigue_report / ops_abc_xyz_report / douyin_ads_plan_structure / douyin_ads_audience_package / douyin_ads_budget_pacing / douyin_ads_live_funnel_report / web_seo_plan / web_title_candidates / web_conversion_plan / web_store_design_brief / web_keyword_matrix / web_product_description / web_title_seo_score / engineering_arch_review_report / engineering_bug_analysis_report / engineering_perf_plan / engineering_tech_selection_report / engineering_sla_report / learning_teaching_explain` 时：
+`artifactType=video_script / seeding_copy / ip_branding / content_calendar / live_script / product_article / creative_trend_report / creative_title_ctr_score / design_main_image_brief / design_detail_page_brief / design_color_scheme / design_material_spec / design_campaign_poster_brief / data_dashboard / data_funnel_report / data_channel_roi_report / data_refund_report / data_anomaly_report / data_trend_forecast_report / data_customer_segmentation_report / data_competitor_report / data_ab_test_report / data_attribution_report / data_multi_period_trend_report / data_ltv_report / data_cohort_report / data_seasonal_decompose_report / data_price_elasticity_report / data_demand_forecast_report / data_comprehensive_diagnosis_report / accounting_cost_report / accounting_profit_report / accounting_roi_report / accounting_budget_plan / accounting_break_even_report / accounting_compliance_report / accounting_pl_statement / accounting_budget_vs_actual_report / accounting_gmv_waterfall_report / accounting_scenario_report / accounting_cash_flow_forecast_report / accounting_financial_narrative_report / service_ticket_playbook / service_faq_playbook / service_escalation_playbook / service_dsr_improvement_plan / service_return_plan / service_nps_report / service_sentiment_report / service_nps_driver_report / ops_promo_plan / ops_product_opportunity_report / ops_product_market_fit_report / ops_experiment_mvp_plan / ops_experiment_review_report / ops_pricing_strategy / ops_channel_strategy / ops_inventory_plan / ops_listing_copy / ops_assortment_plan / ops_execution_plan / ops_smart_pricing_report / ops_inventory_optimization_report / ops_ad_fatigue_report / ops_abc_xyz_report / douyin_ads_plan_structure / douyin_ads_audience_package / douyin_ads_budget_pacing / douyin_ads_live_funnel_report / web_seo_plan / web_title_candidates / web_conversion_plan / web_store_design_brief / web_keyword_matrix / web_product_description / web_title_seo_score / engineering_arch_review_report / engineering_bug_analysis_report / engineering_perf_plan / engineering_tech_selection_report / engineering_sla_report / learning_teaching_explain` 时：
 
 - `content` 是后端将对应 creative、design、data、accounting、service、ops、web 或 engineering skill 成功输出包装成 markdown 的结果
 - `preview` 是后端从 skill 输出摘要或正文中截取的预览
@@ -2482,7 +2568,7 @@
 - `service_ticket_playbook`、`service_faq_playbook`、`service_escalation_playbook` 和 `service_dsr_improvement_plan` 来自客服支持类 skill 的真实成功输出；DSR 如使用默认样例评分，会在输出中以 `data_readiness=calculated_from_defaults` 明示
 - `service_return_plan`、`service_nps_report`、`service_sentiment_report` 和 `service_nps_driver_report` 来自客服售后/洞察类 skill 的真实成功输出；NPS 或驱动因素分析如使用默认样例数据，会在输出中以 `data_readiness=calculated_from_defaults` 明示
 - 客服工单、FAQ、升级和退换货场景中，如果用户明确要求最新平台规则、售后政策、赔付标准、运费规则或投诉 / 平台介入规则，Agent SSE 可能同时产生客服 native 内容交付物和 `artifactType=search_evidence` 搜索证据交付物。客服内容交付物只来自 native skill 的真实成功输出；平台规则搜索证据只来自 `search_platform_policy` 的 live 可信来源，两者独立沉淀。adapter 未配置或无可信来源时不会伪造平台政策、赔付标准或售后规则
-- `ops_promo_plan`、`ops_pricing_strategy`、`ops_channel_strategy`、`ops_inventory_plan`、`ops_listing_copy`、`ops_assortment_plan` 和 `ops_execution_plan` 来自运营岗位核心计划类 skill 的真实成功输出；缺少必要用户输入时后端返回 `deferred`，不会创建假运营交付物
+- `ops_promo_plan`、`ops_product_opportunity_report`、`ops_product_market_fit_report`、`ops_experiment_mvp_plan`、`ops_experiment_review_report`、`ops_pricing_strategy`、`ops_channel_strategy`、`ops_inventory_plan`、`ops_listing_copy`、`ops_assortment_plan` 和 `ops_execution_plan` 来自运营岗位核心计划类 skill 的真实成功输出；商品机会评分只基于本轮显式商品、卖点、成本售价、竞品价、预算和风险线索，商品市场匹配诊断只基于本轮显式商品、人群、场景、渠道、卖点和价格带，MVP实验计划只基于本轮显式商品、卖点、人群、渠道、预算、周期和上游评分生成实验假设、分组、成功线与止损线，MVP实验复盘只基于本轮显式传入的实验组结果、基线、售价、成本和约束判断是否放量、调整重测、暂停或补样本；这些运营交付物不联网、不读取实时平台后台，缺少必要用户输入时后端返回 `deferred`，不会创建假运营交付物，也不会声称实验已经发生
 - 运营上架文案在用户明确要求最新标题规则、上架 / 发布 / 内容规范、搜索量、标题趋势、买家痛点或真实评价时，Agent SSE 可能同时产生 `ops_listing_copy` 内容交付物和 `artifactType=search_evidence` 搜索证据交付物。上架内容交付物只来自 `ops_listing_copy` 的真实成功输出；标题 / 发布规则搜索证据只来自 `search_platform_policy(policy_type=content)` 的 live 可信来源；买家痛点 / 真实评价只来自 `search_product_reviews` 的 live 可信来源；标题趋势 / 搜索量只来自 `search_market_info` 的 live 可信来源。adapter 未配置或无可信来源时不会伪造平台规则、买家评价或热搜数据。
 - `ops_smart_pricing_report`、`ops_inventory_optimization_report`、`ops_ad_fatigue_report` 和 `ops_abc_xyz_report` 来自运营岗位高级分析类 skill 的真实成功输出；智能定价缺少竞品价格或 ABC-XYZ 使用演示 SKU 时会以 `data_readiness=calculated_from_defaults` 明示，库存优化和广告疲劳检测缺少必要 SKU/渠道输入时返回 `deferred`，不会创建假高级运营交付物
 - `douyin_ads_plan_structure`、`douyin_ads_audience_package`、`douyin_ads_budget_pacing` 和 `douyin_ads_live_funnel_report` 来自千川投放岗位 native skill 的真实成功输出；计划结构和人群包可基于确定性默认策略生成并以 `data_readiness=calculated_from_defaults` 明示，预算节奏缺少预算或 ROAS / GMV / 消耗时返回 `deferred`，直播漏斗缺少曝光和点击时返回 `deferred`。这些交付物只基于本轮用户显式输入和显式选品上下文，不读取或伪造巨量千川、抖音罗盘、直播间或广告后台实时数据。

@@ -9,6 +9,7 @@ import {
 import { useTranslation } from "react-i18next"
 import type {
   AgentChatMessageContextReference,
+  AgentChatSourceReadiness,
   AgentChatMessageContextSummary,
 } from "../types"
 
@@ -19,6 +20,7 @@ export function MessageContextSummary({
 }) {
   const { t } = useTranslation()
   if (!summary) return null
+  const sourceReadiness = summarizeSourceReadiness(summary.sources)
 
   const chips = [
     {
@@ -35,9 +37,15 @@ export function MessageContextSummary({
   if (summary.sourceRefs.length > 0) {
     chips.push({
       icon: <FileText className="size-3.5" />,
-      label: t("agentChat.thread.contextSummary.sourceCount", {
-        count: summary.sourceRefs.length,
-      }),
+      label: sourceReadiness.total
+        ? t("agentChat.thread.contextSummary.sourceCountWithReadiness", {
+            count: summary.sourceRefs.length,
+            readable: sourceReadiness.readable,
+            unreadable: summary.sourceRefs.length - sourceReadiness.readable,
+          })
+        : t("agentChat.thread.contextSummary.sourceCount", {
+            count: summary.sourceRefs.length,
+          }),
     })
   }
 
@@ -114,6 +122,9 @@ export function MessageContextSummary({
             <ContextReferenceGroup
               icon={<FileText className="size-3.5" />}
               items={summary.sources}
+              readinessLabel={(readiness) =>
+                t(`agentChat.thread.contextSummary.sourceReadiness.${readiness}`)
+              }
               title={t("agentChat.thread.contextSummary.sourceDetails")}
             />
           </div>
@@ -126,10 +137,12 @@ export function MessageContextSummary({
 function ContextReferenceGroup({
   icon,
   items,
+  readinessLabel,
   title,
 }: {
   icon: React.ReactNode
   items: AgentChatMessageContextReference[]
+  readinessLabel?: (readiness: AgentChatSourceReadiness) => string
   title: string
 }) {
   if (items.length === 0) return null
@@ -150,6 +163,13 @@ function ContextReferenceGroup({
             <div className="truncate text-foreground">
               {item.label ?? item.id}
             </div>
+            {item.readiness && readinessLabel ? (
+              <div className="mt-1">
+                <span className="rounded-full bg-muted-foreground/10 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                  {readinessLabel(item.readiness)}
+                </span>
+              </div>
+            ) : null}
             {item.secondary ? (
               <div className="truncate">{item.secondary}</div>
             ) : item.label ? (
@@ -164,4 +184,20 @@ function ContextReferenceGroup({
 
 function formatContextValue(value: string) {
   return value.replace(/_/g, " ")
+}
+
+function summarizeSourceReadiness(items: AgentChatMessageContextReference[]) {
+  return items.reduce(
+    (summary, item) => {
+      if (!item.readiness) return summary
+      summary.total += 1
+      if (item.readiness === "readable") {
+        summary.readable += 1
+      } else {
+        summary.unreadable += 1
+      }
+      return summary
+    },
+    { readable: 0, total: 0, unreadable: 0 }
+  )
 }

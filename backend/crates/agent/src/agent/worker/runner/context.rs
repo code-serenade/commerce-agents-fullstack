@@ -103,6 +103,19 @@ fn build_context(
                 content: input.content.clone(),
                 reliability: 1.0,
             });
+            facts.extend(input.evidence.iter().filter_map(|item| {
+                item.strip_prefix("search_evidence_packet:")
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+                    .map(|packet| Fact {
+                        source: format!(
+                            "worker.assignment.input.{}.evidence_packet",
+                            input.node_id.0
+                        ),
+                        content: packet.to_string(),
+                        reliability: 1.0,
+                    })
+            }));
         }
     }
 
@@ -267,4 +280,86 @@ fn extend_named_context_fact(
         content: value.to_string(),
         reliability: 1.0,
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::build_cognition_input;
+    use crate::{
+        agent::worker::{Task, TaskMemory, WorkerPhase},
+        core::protocol::{
+            AgentId, MessageContext, RoleWorkOutput, TaskGraphId, TaskId, TaskNodeId,
+            WorkerAssignment, WorkerId, WorkerReport, WorkerReportStatus,
+        },
+        roles::{RoleId, RoleProfile},
+    };
+
+    #[test]
+    fn assignment_input_search_evidence_packet_becomes_context_fact() {
+        let packet = r#"{"intent":"competitor_price_or_benchmark","usable_claims":["competitor prices cluster at 12-19 CNY"],"gaps":[],"confidence":0.72}"#;
+        let search_report = WorkerReport {
+            graph_id: TaskGraphId("graph-search".to_string()),
+            node_id: TaskNodeId("search".to_string()),
+            task_id: TaskId("task-search".to_string()),
+            worker_id: WorkerId("worker.search".to_string()),
+            role: "search".to_string(),
+            content: "Search evidence prepared.".to_string(),
+            role_output: Some(RoleWorkOutput {
+                summary: "Search evidence prepared.".to_string(),
+                evidence: vec![format!("search_evidence_packet:{packet}")],
+                ..RoleWorkOutput::default()
+            }),
+            evidence: vec![format!("search_evidence_packet:{packet}")],
+            risks: Vec::new(),
+            open_questions: Vec::new(),
+            status: WorkerReportStatus::Completed,
+        };
+        let task = Task {
+            id: "task-final".to_string(),
+            context: MessageContext::default(),
+            description: "Give a pricing recommendation from search evidence.".to_string(),
+            requester: AgentId("commander".to_string()),
+            assignment: Some(WorkerAssignment {
+                graph_id: TaskGraphId("graph-final".to_string()),
+                node_id: TaskNodeId("ops_final".to_string()),
+                task_id: TaskId("task-final".to_string()),
+                worker_id: WorkerId("worker.ops".to_string()),
+                role: "ops".to_string(),
+                attempt: 1,
+                root_task: "Give a pricing recommendation.".to_string(),
+                objective: "Synthesize search evidence into an action plan.".to_string(),
+                llm_usage: None,
+                skill_autosuggest: Some(false),
+                inputs: vec![search_report],
+                rework_instruction: None,
+            }),
+        };
+        let role = RoleProfile {
+            id: RoleId("role.ops".to_string()),
+            name: "Operations".to_string(),
+            runtime_role: "ops".to_string(),
+            priority: 1,
+            domains: Vec::new(),
+            keywords: Vec::new(),
+            preferred_actions: Vec::new(),
+            required_capabilities: Vec::new(),
+            optional_capabilities: Vec::new(),
+        };
+        let input = build_cognition_input(
+            AgentId("worker.ops".to_string()),
+            WorkerPhase::Thinking,
+            &TaskMemory::default(),
+            &role,
+            &task,
+        );
+
+        assert!(
+            input.context.facts.iter().any(|fact| {
+                fact.source == "worker.assignment.input.search.evidence_packet"
+                    && fact.content.contains("usable_claims")
+                    && fact.content.contains("competitor_price_or_benchmark")
+            }),
+            "search evidence packet should be available as a downstream cognition fact"
+        );
+    }
 }

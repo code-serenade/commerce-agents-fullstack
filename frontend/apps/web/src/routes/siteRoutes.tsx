@@ -9,6 +9,7 @@ import {
   ApprovalsPage,
   CampaignsPage,
   CommerceOverviewPage,
+  FilesPage,
   HomePage,
   OperationsPage,
   PlatformConnectPage,
@@ -53,6 +54,10 @@ export const siteRoutes: RouteObject = {
         {
           path: "overview",
           element: withSuspense(<CommerceOverviewPage />),
+        },
+        {
+          path: "materials",
+          element: withSuspense(<FilesPage />),
         },
         {
           path: "products",

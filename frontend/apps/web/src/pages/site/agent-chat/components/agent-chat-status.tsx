@@ -18,23 +18,32 @@ export function AgentChatStatus({
   if (!error && !loginRequired) return null
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl shrink-0 flex-col gap-2 px-4 pt-4 sm:px-6">
+    <div className="mx-auto flex w-full max-w-6xl shrink-0 flex-col gap-2 px-4 pt-3 sm:px-6 sm:pt-4">
       {loginRequired ? (
-        <div className="flex flex-col gap-2 rounded-lg border border-border bg-card p-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-foreground">
+        <div
+          className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card p-2.5 shadow-sm sm:p-3"
+          data-agent-chat-status-card="true"
+        >
+          <div className="min-w-0 flex-1">
+            <p className="text-sm/tight font-medium text-foreground">
               {t("agentChat.loginRequired.title")}
             </p>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 line-clamp-2 text-xs/5 text-muted-foreground sm:text-sm">
               {t("agentChat.loginRequired.description")}
             </p>
           </div>
-          <Button size="sm" onClick={onLogin}>
-            {t("agentChat.loginRequired.action")}
-          </Button>
+          <span className="shrink-0">
+            <Button size="sm" onClick={onLogin}>
+              {t("agentChat.loginRequired.action")}
+            </Button>
+          </span>
         </div>
       ) : null}
-      {error ? <Alert variant="error" description={error} /> : null}
+      {error ? (
+        <div data-agent-chat-status-card="true">
+          <Alert variant="error" description={error} />
+        </div>
+      ) : null}
     </div>
   )
 }

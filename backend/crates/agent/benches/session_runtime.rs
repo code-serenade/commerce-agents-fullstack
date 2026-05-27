@@ -82,7 +82,7 @@ fn bench_concurrent_sessions(c: &mut Criterion) {
             b.iter(|| {
                 runtime.block_on(async move {
                     let manager = Arc::new(build_manager());
-                    let handles = (0 .. total)
+                    let handles = (0..total)
                         .map(|index| {
                             let manager = Arc::clone(&manager);
                             tokio::spawn(async move {

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest"
-import { createMessageContextSummary } from "./agent-chat-message-context-summary"
+import {
+  createMessageContextSummary,
+  readMessageContextSummary,
+} from "./agent-chat-message-context-summary"
 
 describe("agent chat message context summary", () => {
   it("keeps selected product, campaign, and source names for the optimistic user message", () => {
@@ -30,6 +33,7 @@ describe("agent chat message context summary", () => {
       ],
       sources: [
         {
+          readiness: "readable",
           ref: "conversation_file:file-a",
           [sourceTitleKey]: "brief.md",
         },
@@ -50,6 +54,48 @@ describe("agent chat message context summary", () => {
     expect(summary?.sourceRefs).toEqual(["conversation_file:file-a"])
     expect(summary?.sources[0]?.id).toBe("conversation_file:file-a")
     expect(summary?.sources[0]?.label).toBe("brief.md")
+    expect(summary?.sources[0]?.readiness).toBe("readable")
     expect(summary?.strategyId).toBe("execution")
+  })
+
+  it("restores selected source readiness from persisted message context", () => {
+    const sourceTitleKey = "title"
+    const readableFileTitle = "readable.pdf"
+    const pendingFileTitle = "pending.docx"
+    const summary = readMessageContextSummary({
+      context: {
+        campaignIds: [],
+        contextRefs: ["conversation_file:file-readable", "conversation_file:file-pending"],
+        productIds: [],
+        sources: [
+          {
+            readiness: "readable",
+            ref: "conversation_file:file-readable",
+            [sourceTitleKey]: readableFileTitle,
+          },
+          {
+            readiness: "pending",
+            ref: "conversation_file:file-pending",
+            [sourceTitleKey]: pendingFileTitle,
+          },
+        ],
+      },
+      strategy: {
+        strategyId: "execution",
+      },
+    })
+
+    expect(summary?.sources).toEqual([
+      {
+        id: "conversation_file:file-readable",
+        label: readableFileTitle,
+        readiness: "readable",
+      },
+      {
+        id: "conversation_file:file-pending",
+        label: pendingFileTitle,
+        readiness: "pending",
+      },
+    ])
   })
 })

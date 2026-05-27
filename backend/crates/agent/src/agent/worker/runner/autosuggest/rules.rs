@@ -294,7 +294,9 @@ fn render_exact_template_value(
             text,
             "campaign_id",
         ))),
-        "{{search_max_results}}" => Some(optional_integer(search::max_results(text))),
+        "{{search_max_results}}" => {
+            Some(optional_integer(search::max_results_for_task(text, task)))
+        }
         "{{search_policy_type}}" => {
             Some(serde_json::json!(search::policy_type_for_task(text, task)))
         }

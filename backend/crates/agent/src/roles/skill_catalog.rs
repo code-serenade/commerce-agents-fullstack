@@ -75,6 +75,32 @@ pub fn role_can_use_skill(runtime_role: &str, spec: &SkillSpec) -> bool {
         );
     }
 
+    if spec.id.starts_with("material_") {
+        return matches!(
+            runtime_role,
+            "chat"
+                | "ops"
+                | "data"
+                | "service"
+                | "creative"
+                | "web"
+                | "design"
+                | "accounting"
+                | "douyin_ads"
+                | "engineering"
+        );
+    }
+
+    if matches!(
+        spec.id.as_str(),
+        "product_opportunity_score"
+            | "product_market_fit_diagnosis"
+            | "experiment_mvp_plan"
+            | "experiment_review_report"
+    ) {
+        return matches!(runtime_role, "chat" | "ops" | "data" | "accounting");
+    }
+
     if matches_role_category(runtime_role, &spec.category) {
         return true;
     }
@@ -204,6 +230,32 @@ mod tests {
         assert!(catalog.can_role_use_skill(&role("ops"), "learning_teaching_explain"));
         assert!(catalog.can_role_use_skill(&role("data"), "learning_teaching_explain"));
         assert!(catalog.can_role_use_skill(&role("douyin_ads"), "learning_teaching_explain"));
+        assert!(catalog.can_role_use_skill(&role("chat"), "material_file_understanding"));
+        assert!(catalog.can_role_use_skill(&role("ops"), "material_file_understanding"));
+        assert!(catalog.can_role_use_skill(&role("data"), "material_file_understanding"));
+        assert!(catalog.can_role_use_skill(&role("creative"), "material_file_understanding"));
+        assert!(catalog.can_role_use_skill(&role("design"), "material_file_understanding"));
+        assert!(catalog.can_role_use_skill(&role("design"), "material_image_diagnosis"));
+        assert!(catalog.can_role_use_skill(&role("chat"), "material_evidence_extractor"));
+        assert!(catalog.can_role_use_skill(&role("chat"), "material_multi_file_compare"));
+        assert!(catalog.can_role_use_skill(&role("chat"), "product_opportunity_score"));
+        assert!(catalog.can_role_use_skill(&role("chat"), "product_market_fit_diagnosis"));
+        assert!(catalog.can_role_use_skill(&role("chat"), "experiment_mvp_plan"));
+        assert!(catalog.can_role_use_skill(&role("chat"), "experiment_review_report"));
+        assert!(catalog.can_role_use_skill(&role("ops"), "product_opportunity_score"));
+        assert!(catalog.can_role_use_skill(&role("ops"), "product_market_fit_diagnosis"));
+        assert!(catalog.can_role_use_skill(&role("ops"), "experiment_mvp_plan"));
+        assert!(catalog.can_role_use_skill(&role("ops"), "experiment_review_report"));
+        assert!(catalog.can_role_use_skill(&role("data"), "product_opportunity_score"));
+        assert!(catalog.can_role_use_skill(&role("data"), "product_market_fit_diagnosis"));
+        assert!(catalog.can_role_use_skill(&role("data"), "experiment_mvp_plan"));
+        assert!(catalog.can_role_use_skill(&role("data"), "experiment_review_report"));
+        assert!(catalog.can_role_use_skill(&role("accounting"), "material_file_understanding"));
+        assert!(catalog.can_role_use_skill(&role("accounting"), "product_opportunity_score"));
+        assert!(catalog.can_role_use_skill(&role("accounting"), "product_market_fit_diagnosis"));
+        assert!(catalog.can_role_use_skill(&role("accounting"), "experiment_mvp_plan"));
+        assert!(catalog.can_role_use_skill(&role("accounting"), "experiment_review_report"));
+        assert!(catalog.can_role_use_skill(&role("service"), "material_file_understanding"));
         assert!(catalog.can_role_use_skill(&role("service"), "search_industry_benchmarks"));
         assert!(catalog.can_role_use_skill(&role("ops"), "search_product_reviews"));
         assert!(catalog.can_role_use_skill(&role("douyin_ads"), "douyin_ads_plan_structure"));

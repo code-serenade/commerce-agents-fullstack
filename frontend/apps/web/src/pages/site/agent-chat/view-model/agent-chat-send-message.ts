@@ -8,6 +8,7 @@ import {
   type AgentChatMessageFormatCopy,
 } from "../domain/agent-chat-message-mapping"
 import { createMessageContextSummary } from "../domain/agent-chat-message-context-summary"
+import { sourceReadinessKey } from "../domain/agent-chat-source-readiness"
 import {
   createContextRefs,
   type AgentChatCampaignContextSelection,
@@ -68,6 +69,11 @@ export async function sendAgentChatMessage(
     ),
     productIds: input.selectedProducts.map((product) => product.id),
   }
+  const sourceContextDetails = input.selectedSources.map((source) => ({
+    readiness: sourceReadinessKey(source),
+    ref: source.ref,
+    title: source.title,
+  }))
   const imageAttachments = createImageAttachments(
     input.attachments,
     contextMeta.contextRefs
@@ -82,10 +88,7 @@ export async function sendAgentChatMessage(
     campaigns: input.selectedCampaigns,
     products: input.selectedProducts,
     selectedRoles: strategyMeta.selectedRoles,
-    sources: input.selectedSources.map((source) => ({
-      ref: source.ref,
-      title: source.title,
-    })),
+    sources: sourceContextDetails,
     strategyId: strategyMeta.strategyId,
   })
   input.setInput("")
@@ -124,7 +127,10 @@ export async function sendAgentChatMessage(
     await agentChatData.addConversationMessage(activeConversationId, {
       role: "user",
       contentText: input.content,
-      contentJson: { context: contextMeta, strategy: strategyMeta },
+      contentJson: {
+        context: { ...contextMeta, sources: sourceContextDetails },
+        strategy: strategyMeta,
+      },
       strategyId: strategyMeta.strategyId,
       responseMode: strategyMeta.responseMode,
       routingMode: strategyMeta.routingMode,

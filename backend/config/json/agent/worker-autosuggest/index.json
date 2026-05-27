@@ -51,6 +51,11 @@
       "role": "engineering",
       "handler": "engineering",
       "mode": "requests"
+    },
+    {
+      "role": "search",
+      "handler": "search",
+      "mode": "requests"
     }
   ],
   "files": [
@@ -62,6 +67,7 @@
     "engineering.json",
     "douyin_ads.json",
     "creative.json",
+    "material.json",
     "accounting.json",
     "data.json",
     "ops.json"

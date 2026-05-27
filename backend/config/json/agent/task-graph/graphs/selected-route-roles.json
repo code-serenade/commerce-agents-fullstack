@@ -23,8 +23,24 @@
     "from_route": {
       "enabled": true,
       "include_primary": true,
-      "include_support": "when_requested_or_primary_data",
+      "include_support": "always",
       "exclude_roles": ["chat"]
     }
+  },
+  "final_node": {
+    "enabled": true,
+    "id": "ops_final",
+    "role": "ops",
+    "title": "多岗位综合回答",
+    "objective": "把本轮真实执行的上游岗位输入合成一份自然可读的学生答案：{{task}}。只整合实际产生 report 的岗位，不补写未调度或未产出岗位；搜索来源只作为证据包引用，不得覆盖运营、数据、客服、财务、设计等岗位判断。教学模式要解释难词、讲清判断逻辑并引导下一步追问；快速模式要短而有信息量；执行模式要输出可提交方案、清单、风险和检查点。去除重复来源、重复结论和内部运行状态。",
+    "depends_on": "$all_non_final",
+    "max_attempts": 1,
+    "skill_autosuggest": false,
+    "acceptance": [
+      "最终回答只能体现真实执行并产生上游输入的岗位。",
+      "搜索证据不得替代业务岗位回答，也不得重复展示多次来源。",
+      "不同回答模式必须在表达方式、展开程度和交付物结构上可区分。",
+      "不得输出任务图完成、worker report 等内部状态。"
+    ]
   }
 }

@@ -36,34 +36,35 @@ use crate::{
     dto::app::{
         ActAlertRequest, AddConversationMessageRequest, AgentContextPreviewRequest,
         AgentContextPreviewResponse, AlertListResponse, AlertResponse, AlertSummaryResponse,
-        AppUserResponse, AuditLogListResponse, AuditLogResponse, BackgroundEventListResponse,
-        BackgroundEventResponse, BatchUpdateResponse, CampaignListResponse, CampaignResponse,
-        CancelLongTaskRequest, ChannelCatalogResponse, ChannelConnectionListResponse,
-        ChannelConnectionResponse, CompetitorChangeResponse, ConsumeBackgroundEventsRequest,
-        ConversationDetailResponse, ConversationFileAccessResponse,
-        ConversationFileExtractionJobResponse, ConversationFileExtractionStatusResponse,
-        ConversationFileResponse, ConversationMessageResponse, ConversationResponse,
-        CreateAlertRequest, CreateAuditLogRequest, CreateBackgroundEventRequest,
-        CreateCampaignRequest, CreateCompetitorChangeRequest, CreateConversationRequest,
-        CreateExecutionQueueRequest, CreateLongTaskRequest, CreateProductCompetitorRequest,
-        CreateProductKnowledgeRequest, CreateProductMaterialRequest, CreateProductRequest,
-        CreateToolApprovalRequest, CreateWorkspaceRequest, CreateWorkspaceRunRequest,
-        CreateWorkspaceRunTaskRequest, CreateWorkspaceTaskRequest, CurrentUserPermissionsResponse,
-        DailyBriefingListResponse, DailyBriefingQuery, DailyBriefingResponse,
-        DailyBriefingSummaryResponse, DecideExecutionQueueRequest, DecideToolApprovalRequest,
-        DismissAlertRequest, DismissAllAlertsRequest, ExecutionQueueListResponse,
-        ExecutionQueueResponse, ListAlertsQuery, ListAuditLogsQuery, ListBackgroundEventsQuery,
-        ListCampaignsQuery, ListChannelConnectionsQuery, ListCompetitorChangesQuery,
-        ListDailyBriefingRecordsQuery, ListExecutionQueueQuery, ListLongTasksQuery,
-        ListPackageCatalogQuery, ListPackageHistoryQuery, ListPlatformConnectionsQuery,
-        ListProductAssetsQuery, ListProductCompetitorsQuery, ListProductKnowledgeQuery,
-        ListProductMaterialsQuery, ListProductsQuery, ListStoreMetricsQuery,
-        ListToolApprovalsQuery, ListWorkspaceRunTasksQuery, ListWorkspaceRunsQuery,
-        ListWorkspaceTasksQuery, ListWorkspacesQuery, LongTaskListResponse, LongTaskResponse,
-        PackageCatalogResponse, PackageHistoryListResponse, PackageLockDriftResponse,
-        PackageLockListResponse, PackageResponse, PackageStatusChangeRequest,
-        PackageValidationResponse, PlatformCatalogResponse, PlatformConnectionListResponse,
-        PlatformConnectionResponse, PlatformSummaryResponse, PlatformSyncStatusListResponse,
+        AppUserResponse, AttachConversationFileRequest, AuditLogListResponse, AuditLogResponse,
+        BackgroundEventListResponse, BackgroundEventResponse, BatchUpdateResponse,
+        BulkDeleteUserFilesRequest, CampaignListResponse, CampaignResponse, CancelLongTaskRequest,
+        ChannelCatalogResponse, ChannelConnectionListResponse, ChannelConnectionResponse,
+        CompetitorChangeResponse, ConsumeBackgroundEventsRequest, ConversationDetailResponse,
+        ConversationFileAccessResponse, ConversationFileExtractionJobResponse,
+        ConversationFileExtractionStatusResponse, ConversationFileResponse,
+        ConversationMessageResponse, ConversationResponse, CreateAlertRequest,
+        CreateAuditLogRequest, CreateBackgroundEventRequest, CreateCampaignRequest,
+        CreateCompetitorChangeRequest, CreateConversationRequest, CreateExecutionQueueRequest,
+        CreateLongTaskRequest, CreateProductCompetitorRequest, CreateProductKnowledgeRequest,
+        CreateProductMaterialRequest, CreateProductRequest, CreateToolApprovalRequest,
+        CreateWorkspaceRequest, CreateWorkspaceRunRequest, CreateWorkspaceRunTaskRequest,
+        CreateWorkspaceTaskRequest, CurrentUserPermissionsResponse, DailyBriefingListResponse,
+        DailyBriefingQuery, DailyBriefingResponse, DailyBriefingSummaryResponse,
+        DecideExecutionQueueRequest, DecideToolApprovalRequest, DismissAlertRequest,
+        DismissAllAlertsRequest, ExecutionQueueListResponse, ExecutionQueueResponse,
+        ListAlertsQuery, ListAuditLogsQuery, ListBackgroundEventsQuery, ListCampaignsQuery,
+        ListChannelConnectionsQuery, ListCompetitorChangesQuery, ListDailyBriefingRecordsQuery,
+        ListExecutionQueueQuery, ListLongTasksQuery, ListPackageCatalogQuery,
+        ListPackageHistoryQuery, ListPlatformConnectionsQuery, ListProductAssetsQuery,
+        ListProductCompetitorsQuery, ListProductKnowledgeQuery, ListProductMaterialsQuery,
+        ListProductsQuery, ListStoreMetricsQuery, ListToolApprovalsQuery, ListUserFilesQuery,
+        ListWorkspaceRunTasksQuery, ListWorkspaceRunsQuery, ListWorkspaceTasksQuery,
+        ListWorkspacesQuery, LongTaskListResponse, LongTaskResponse, PackageCatalogResponse,
+        PackageHistoryListResponse, PackageLockDriftResponse, PackageLockListResponse,
+        PackageResponse, PackageStatusChangeRequest, PackageValidationResponse,
+        PlatformCatalogResponse, PlatformConnectionListResponse, PlatformConnectionResponse,
+        PlatformSummaryResponse, PlatformSyncStatusListResponse,
         PresignConversationFileUploadRequest, PresignConversationFileUploadResponse,
         PresignProductAssetUploadRequest, PresignProductAssetUploadResponse,
         ProductAssetAccessResponse, ProductAssetResponse, ProductCompetitorResponse,
@@ -312,6 +313,80 @@ pub async fn delete_conversation_file(
     .map_err(from_biz_error)?;
 
     Ok(().into_common_response().to_json())
+}
+
+pub async fn delete_user_file(
+    Extension(auth_user): Extension<AuthUser>,
+    Path(file_id): Path<String>,
+) -> ResponseResult<()> {
+    let api = ConversationApi::new(get_app_ctx());
+    api.delete_user_file(service::dto::conversation::DeleteUserFileRequest {
+        user_id: auth_user.user_id,
+        file_id,
+    })
+    .await
+    .map_err(from_biz_error)?;
+
+    Ok(().into_common_response().to_json())
+}
+
+pub async fn bulk_delete_user_files(
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<BulkDeleteUserFilesRequest>,
+) -> ResponseResult<()> {
+    req.validate().map_err(Error::from)?;
+    let api = ConversationApi::new(get_app_ctx());
+    api.bulk_delete_user_files(service::dto::conversation::BulkDeleteUserFilesRequest {
+        user_id: auth_user.user_id,
+        file_ids: req.file_ids,
+    })
+    .await
+    .map_err(from_biz_error)?;
+
+    Ok(().into_common_response().to_json())
+}
+
+pub async fn list_user_files(
+    Extension(auth_user): Extension<AuthUser>,
+    Query(query): Query<ListUserFilesQuery>,
+) -> ResponseResult<Vec<ConversationFileResponse>> {
+    query.validate().map_err(Error::from)?;
+    let api = ConversationApi::new(get_app_ctx());
+    let files: Vec<ConversationFileResponse> = api
+        .list_user_files(service::dto::conversation::ListUserFilesRequest {
+            user_id: auth_user.user_id,
+            limit: query.limit,
+        })
+        .await
+        .map_err(from_biz_error)?
+        .into_iter()
+        .map(map_file_response)
+        .collect();
+
+    Ok(files.into_common_response().to_json())
+}
+
+pub async fn attach_conversation_file(
+    Extension(auth_user): Extension<AuthUser>,
+    Path(file_id): Path<String>,
+    Json(req): Json<AttachConversationFileRequest>,
+) -> ResponseResult<ConversationFileResponse> {
+    req.validate().map_err(Error::from)?;
+    let user_id_for_extraction = auth_user.user_id.clone();
+    let api = ConversationApi::new(get_app_ctx());
+    let file = api
+        .attach_file_to_conversation(service::dto::conversation::AttachConversationFileRequest {
+            user_id: auth_user.user_id,
+            file_id,
+            conversation_id: req.conversation_id,
+        })
+        .await
+        .map_err(from_biz_error)?;
+
+    spawn_vision_preprocess_if_needed(&file);
+    spawn_document_text_extraction_if_needed(&user_id_for_extraction, &file);
+
+    Ok(map_file_response(file).into_common_response().to_json())
 }
 
 pub async fn update_conversation_file_extraction(

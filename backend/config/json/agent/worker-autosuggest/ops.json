@@ -40,6 +40,18 @@
           "流量渠道",
           "渠道分配",
           "渠道策略"
+        ],
+        "none_keywords": [
+          "PMF",
+          "pmf",
+          "市场匹配",
+          "商品市场匹配",
+          "人群匹配",
+          "渠道匹配",
+          "场景匹配",
+          "适合哪个渠道",
+          "适合什么渠道",
+          "商品人群渠道"
         ]
       },
       "skill_id": "ops_channel_strategy",
@@ -75,6 +87,212 @@
         "platform": "{{platform}}"
       },
       "reason": "autosuggest:ops.listing_copy"
+    },
+    {
+      "id": "ops.experiment_review_report",
+      "roles": [
+        "ops"
+      ],
+      "mode": "first",
+      "match": {
+        "any_keywords": [
+          "MVP复盘",
+          "mvp复盘",
+          "实验复盘",
+          "测品复盘",
+          "验证复盘",
+          "实验结果",
+          "测品结果",
+          "复盘报告",
+          "是否放量",
+          "能不能放量",
+          "放量判断",
+          "继续放量",
+          "是否停止",
+          "是否暂停",
+          "继续测试",
+          "重测",
+          "赢家组合",
+          "哪组效果好"
+        ],
+        "exclude_keywords": [
+          "搜索",
+          "查一下",
+          "最新",
+          "实时",
+          "外部资料",
+          "行业报告",
+          "来源链接",
+          "官方规则",
+          "规则原文"
+        ]
+      },
+      "skill_id": "experiment_review_report",
+      "input": {
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "category": "{{category}}",
+        "platform": "{{platform}}",
+        "experiment_goal": "{{task_description}}",
+        "experiment_groups": [],
+        "budget": "{{budget}}",
+        "price": "{{current_price}}"
+      },
+      "reason": "autosuggest:ops.experiment_review_report"
+    },
+    {
+      "id": "ops.experiment_mvp_plan",
+      "roles": [
+        "ops"
+      ],
+      "mode": "first",
+      "match": {
+        "any_keywords": [
+          "MVP实验",
+          "mvp实验",
+          "MVP实验计划",
+          "mvp实验计划",
+          "测品计划",
+          "测品实验",
+          "验证计划",
+          "实验计划",
+          "实验分组",
+          "实验设计",
+          "止损线",
+          "成功线",
+          "放量条件",
+          "复盘指标",
+          "两周验证",
+          "14天验证"
+        ],
+        "none_keywords": [
+          "外部搜索",
+          "联网搜索",
+          "公开资料",
+          "行业报告",
+          "来源链接",
+          "官方规则",
+          "规则原文"
+        ]
+      },
+      "skill_id": "experiment_mvp_plan",
+      "input": {
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "category": "{{category}}",
+        "platform": "{{platform}}",
+        "target_audience": "{{audience}}",
+        "selling_points": [
+          "{{task_description}}"
+        ],
+        "budget": "{{budget}}",
+        "days": 14,
+        "price": "{{current_price}}"
+      },
+      "reason": "autosuggest:ops.experiment_mvp_plan"
+    },
+    {
+      "id": "ops.product_opportunity_score",
+      "roles": [
+        "ops"
+      ],
+      "match": {
+        "any_keywords": [
+          "商品机会",
+          "机会评分",
+          "机会分",
+          "值不值得做",
+          "是否值得做",
+          "能不能做",
+          "适不适合做",
+          "商品判断",
+          "选品判断",
+          "测品优先级",
+          "测品评分",
+          "新品机会",
+          "机会等级",
+          "值得测试",
+          "是否测试",
+          "小预算验证",
+          "MVP验证",
+          "mvp验证"
+        ],
+        "none_keywords": [
+          "外部搜索",
+          "联网搜索",
+          "公开资料",
+          "行业报告",
+          "来源链接",
+          "官方规则",
+          "规则原文"
+        ]
+      },
+      "skill_id": "product_opportunity_score",
+      "input": {
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "category": "{{category}}",
+        "platform": "{{platform}}",
+        "target_audience": "{{audience}}",
+        "selling_points": [
+          "{{task_description}}"
+        ],
+        "cost": "{{cost}}",
+        "price": "{{current_price}}",
+        "competitor_prices": "{{pricing_strategy_competitor_prices}}",
+        "budget": "{{budget}}"
+      },
+      "reason": "autosuggest:ops.product_opportunity_score"
+    },
+    {
+      "id": "ops.product_market_fit_diagnosis",
+      "roles": [
+        "ops"
+      ],
+      "match": {
+        "any_keywords": [
+          "PMF",
+          "pmf",
+          "市场匹配",
+          "商品市场匹配",
+          "人群匹配",
+          "渠道匹配",
+          "场景匹配",
+          "卖点匹配",
+          "价格带匹配",
+          "适合什么人群",
+          "适合哪些人群",
+          "适合哪个渠道",
+          "适合什么渠道",
+          "商品定位",
+          "定位诊断",
+          "目标人群诊断",
+          "商品人群渠道"
+        ],
+        "none_keywords": [
+          "外部搜索",
+          "联网搜索",
+          "公开资料",
+          "行业报告",
+          "来源链接",
+          "官方规则",
+          "规则原文"
+        ]
+      },
+      "skill_id": "product_market_fit_diagnosis",
+      "input": {
+        "product_ref": "{{selected_product_ref}}",
+        "product_name": "{{selected_product_name}}",
+        "category": "{{category}}",
+        "platform": "{{platform}}",
+        "target_audience": "{{audience}}",
+        "selling_points": [
+          "{{task_description}}"
+        ],
+        "price": "{{current_price}}",
+        "competitor_prices": "{{pricing_strategy_competitor_prices}}"
+      },
+      "reason": "autosuggest:ops.product_market_fit_diagnosis"
     },
     {
       "id": "ops.assortment_planning",
@@ -358,6 +576,14 @@
       ],
       "match": {
         "any_keywords": [
+          "竞品定价",
+          "竞品价格",
+          "竞品售价",
+          "竞对定价",
+          "竞对价格",
+          "对标价格",
+          "同类商品价格",
+          "市场价格",
           "市场定价",
           "竞品价格区间",
           "实时价格",
@@ -373,15 +599,19 @@
         "requires_any_skill_ids": [
           "ops_pricing_strategy",
           "ops_smart_pricing"
+        ],
+        "requires_no_skill_ids": [
+          "search_competitor"
         ]
       },
       "skill_id": "search_competitor",
       "input": {
-        "query": "{{search_policy_query}}",
+        "query": "{{search_query}}",
         "platform": "{{search_platform}}",
         "focus": "price",
         "days": 30,
         "_needs_fresh_data": true,
+        "max_results": "{{search_max_results}}",
         "product_ref": "{{selected_product_ref}}",
         "product_name": "{{selected_product_name}}",
         "product_category": "{{category}}"

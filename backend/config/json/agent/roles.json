@@ -23,6 +23,17 @@
       "optional_capabilities": ["data.analysis", "creative.content", "service.workflow"]
     },
     {
+      "id": "role.search-evidence",
+      "name": "资料搜索员",
+      "runtime_role": "search",
+      "priority": 18,
+      "domains": ["domain.general", "domain.ecommerce", "domain.education"],
+      "keywords": ["搜索", "联网", "实时", "最新", "公开来源", "来源链接", "官方规则", "竞品价格", "竞品资料", "平台公告"],
+      "preferred_actions": ["query", "analyze"],
+      "required_capabilities": ["search.evidence", "source.verification"],
+      "optional_capabilities": ["data.analysis", "platform.policy"]
+    },
+    {
       "id": "role.data-analyst",
       "name": "数据分析师",
       "runtime_role": "data",

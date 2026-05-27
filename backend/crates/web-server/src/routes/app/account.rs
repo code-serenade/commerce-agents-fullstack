@@ -4,11 +4,12 @@ use axum::{
 };
 
 use crate::handlers::app::{
-    add_conversation_message, create_conversation, current_user_permissions, delete_conversation,
-    delete_conversation_file, get_conversation, get_conversation_file_access,
-    get_conversation_file_extraction, list_conversations, presign_conversation_file_upload,
-    preview_agent_context, register_app_user, register_conversation_file,
-    trigger_conversation_file_extraction_job, update_conversation,
+    add_conversation_message, attach_conversation_file, bulk_delete_user_files,
+    create_conversation, current_user_permissions, delete_conversation, delete_conversation_file,
+    delete_user_file, get_conversation, get_conversation_file_access,
+    get_conversation_file_extraction, list_conversations, list_user_files,
+    presign_conversation_file_upload, preview_agent_context, register_app_user,
+    register_conversation_file, trigger_conversation_file_extraction_job, update_conversation,
     update_conversation_file_extraction,
 };
 
@@ -45,6 +46,13 @@ pub fn account_routes() -> Router {
         .route(
             "/conversation-files/{file_id}",
             delete(delete_conversation_file),
+        )
+        .route("/files", get(list_user_files))
+        .route("/files/bulk-delete", post(bulk_delete_user_files))
+        .route("/files/{file_id}", delete(delete_user_file))
+        .route(
+            "/files/{file_id}/attach-to-conversation",
+            post(attach_conversation_file),
         )
         .route(
             "/conversation-files/{file_id}/extraction",

@@ -117,6 +117,7 @@ pub(super) fn skill_chain_prerequisite_gaps(chain: &[(&'static str, &'static str
 
 fn skill_chain_prerequisites(skill: &str) -> Vec<&'static str> {
     match skill {
+        "experiment_review_report" => vec!["experiment_mvp_plan"],
         "data_dashboard"
         | "data_anomaly_diagnosis"
         | "data_multi_period_trend"
@@ -128,6 +129,9 @@ fn skill_chain_prerequisites(skill: &str) -> Vec<&'static str> {
         | "data_seasonal_decompose"
         | "data_customer_segmentation"
         | "data_comprehensive_diagnosis"
+        | "product_opportunity_score"
+        | "product_market_fit_diagnosis"
+        | "experiment_mvp_plan"
         | "ops_execution_plan"
         | "ops_assortment_planning"
         | "ops_smart_pricing"

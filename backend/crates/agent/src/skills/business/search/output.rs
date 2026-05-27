@@ -7,8 +7,8 @@ use super::{
         SEARCH_PROVIDER_STALE_REASON, SearchAdapterConfig,
     },
     provider::{
-        build_provenance, build_search_evidence, estimate_confidence, normalize_sources,
-        normalize_topic, utc_now_rfc3339,
+        build_provenance, build_search_evidence, build_search_evidence_packet, estimate_confidence,
+        normalize_sources, normalize_topic, utc_now_rfc3339,
     },
 };
 use crate::skills::SkillOutcome;
@@ -105,6 +105,8 @@ pub(super) fn deferred_search_output(
     adapter: &SearchAdapterConfig,
 ) -> SkillOutcome {
     let readiness = adapter.readiness();
+    let evidence_packet =
+        build_search_evidence_packet(skill_id, &plan, &[], 0, 0.0, Some(SEARCH_DEGRADED_REASON));
     SkillOutcome::new(json!({
         "status": "deferred",
         "adapter_status": "adapter_required",
@@ -149,9 +151,10 @@ pub(super) fn deferred_search_output(
             "stale_filtered_count": 0
         },
         "evidence": build_search_evidence(&[], 0),
+        "evidence_packet": evidence_packet,
         "degraded": true,
         "degraded_reason": SEARCH_DEGRADED_REASON,
-        "expected_outputs": ["分析摘要", "结构化要点", "sources", "engine"]
+        "expected_outputs": ["分析摘要", "结构化要点", "sources", "engine", "evidence_packet"]
     }))
     .with_summary("外部搜索 adapter 未接入，已返回结构化降级契约")
     .with_metadata("adapter_status", json!("adapter_required"))
@@ -169,6 +172,14 @@ pub(super) fn degraded_search_output(
 ) -> SkillOutcome {
     let reason = reason.into();
     let readiness = adapter.readiness();
+    let evidence_packet = build_search_evidence_packet(
+        skill_id,
+        &plan,
+        &[],
+        stale_filtered_count,
+        0.0,
+        Some(&reason),
+    );
     SkillOutcome::new(json!({
         "status": "deferred",
         "adapter_status": "degraded",
@@ -214,10 +225,11 @@ pub(super) fn degraded_search_output(
             "stale_filtered_count": stale_filtered_count
         },
         "evidence": build_search_evidence(&[], stale_filtered_count),
+        "evidence_packet": evidence_packet,
         "notice": "未获取到可靠公开来源，当前不能伪造实时搜索结果。",
         "degraded": true,
         "degraded_reason": reason,
-        "expected_outputs": ["分析摘要", "结构化要点", "sources", "engine"]
+        "expected_outputs": ["分析摘要", "结构化要点", "sources", "engine", "evidence_packet"]
     }))
     .with_summary("外部搜索 adapter 未返回可采信来源，已按降级结果处理")
     .with_metadata("adapter_status", json!("degraded"))
@@ -279,6 +291,14 @@ pub(super) fn live_search_output(
         .and_then(Value::as_u64)
         .unwrap_or(sources.len() as u64);
     let readiness = adapter.readiness();
+    let evidence_packet = build_search_evidence_packet(
+        skill_id,
+        &plan,
+        &sources,
+        source_set.stale_filtered_count,
+        confidence,
+        None,
+    );
 
     SkillOutcome::new(json!({
         "status": "live",
@@ -318,9 +338,10 @@ pub(super) fn live_search_output(
             "stale_filtered_count": source_set.stale_filtered_count
         },
         "evidence": evidence,
+        "evidence_packet": evidence_packet,
         "degraded": false,
         "degraded_reason": null,
-        "expected_outputs": ["分析摘要", "结构化要点", "sources", "engine"]
+        "expected_outputs": ["分析摘要", "结构化要点", "sources", "engine", "evidence_packet"]
     }))
     .with_summary(format!("外部搜索已返回 {source_count} 个可采信来源"))
     .with_metadata("adapter_status", json!("live"))
@@ -332,4 +353,109 @@ pub(super) fn live_search_output(
         "stale_filtered_count",
         json!(source_set.stale_filtered_count),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::{SearchPlan, degraded_search_output, live_search_output};
+    use crate::skills::SearchAdapterConfig;
+
+    fn adapter() -> SearchAdapterConfig {
+        SearchAdapterConfig {
+            enabled: true,
+            provider: Some("codex-web-search".to_string()),
+            base_url: Some("http://search.test".to_string()),
+            search_endpoint: Some("/api/external/search".to_string()),
+            ..SearchAdapterConfig::default()
+        }
+    }
+
+    #[test]
+    fn live_search_output_includes_structured_evidence_packet() {
+        let plan = SearchPlan::new(
+            "校园冷萃咖啡",
+            "校园冷萃咖啡 价格 定价 价位 售价 2026",
+            "general",
+            60,
+        )
+        .with_max_results(Some(6));
+        let payload = json!({
+            "engine": "codex-web-search",
+            "confidence": 0.72,
+            "data": {
+                "items": [
+                    {
+                        "title": "冷萃咖啡竞品价格参考",
+                        "url": "https://example.com/cold-brew-price",
+                        "snippet": "竞品价格集中在 12-19 元。",
+                        "published_at": "2026-05-20"
+                    }
+                ]
+            }
+        });
+
+        let outcome = live_search_output(
+            "search_competitor",
+            "校园冷萃咖啡".to_string(),
+            plan,
+            &adapter(),
+            &payload,
+        );
+        let packet = outcome
+            .output
+            .get("evidence_packet")
+            .expect("evidence packet should exist");
+
+        assert_eq!(packet["intent"], "competitor_price_or_benchmark");
+        assert_eq!(packet["search_strength"], "standard");
+        assert_eq!(packet["confidence"], 0.72);
+        assert_eq!(packet["sources"].as_array().unwrap().len(), 1);
+        assert!(
+            packet["usable_claims"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|claim| claim.as_str().unwrap_or_default().contains("竞品价格"))
+        );
+    }
+
+    #[test]
+    fn degraded_search_output_includes_evidence_packet_gaps() {
+        let plan = SearchPlan::new(
+            "抖音价格合规",
+            "抖音 价格合规 官方规则 公告 最新 2026",
+            "news",
+            30,
+        );
+
+        let outcome = degraded_search_output(
+            "search_platform_policy",
+            "抖音价格合规".to_string(),
+            plan,
+            &adapter(),
+            "provider timeout",
+            2,
+        );
+        let packet = outcome
+            .output
+            .get("evidence_packet")
+            .expect("evidence packet should exist");
+
+        assert_eq!(packet["intent"], "platform_policy_or_compliance");
+        assert_eq!(packet["confidence"], 0.0);
+        assert!(packet["gaps"].as_array().unwrap().iter().any(|gap| {
+            gap.as_str()
+                .unwrap_or_default()
+                .contains("provider timeout")
+        }));
+        assert!(
+            packet["gaps"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|gap| gap.as_str().unwrap_or_default().contains("已过滤 2 条"))
+        );
+    }
 }

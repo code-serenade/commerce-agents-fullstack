@@ -7,6 +7,7 @@ pub mod business {
     pub mod douyin_ads;
     pub mod engineering;
     pub mod learning;
+    pub mod material;
     pub mod ops;
     pub mod search;
     pub mod service;
@@ -27,8 +28,8 @@ pub use core::spec::{
 };
 
 pub use business::{
-    accounting, coordination, creative, data, design, douyin_ads, engineering, learning, ops,
-    search, service, web,
+    accounting, coordination, creative, data, design, douyin_ads, engineering, learning, material,
+    ops, search, service, web,
 };
 pub use execution::{
     LocalSkillExecutor, SkillAdapterKind, SkillExecutionMode, SkillExecutionResult,
@@ -50,6 +51,7 @@ pub fn staged_specs() -> Vec<SkillSpec> {
     specs.extend(douyin_ads::specs());
     specs.extend(engineering::specs());
     specs.extend(learning::specs());
+    specs.extend(material::specs());
     specs.extend(ops::specs());
     specs.extend(search::specs());
     specs.extend(service::specs());

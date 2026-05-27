@@ -34,12 +34,14 @@ describe("agent chat conversation attachment mapping", () => {
 
     expect(mapConversationAttachments(detail)).toEqual([
       {
+        bucket: "agent-files",
         fileId: "file-image",
         id: "file-image",
         imageDataUrl: "data:image/png;base64,aW1hZ2U=",
         imageDetail: "auto",
         kind: "image",
         name: imageTitle,
+        objectKey: "conversation/file-image.png",
         readable: true,
         status: "uploaded",
         unsupportedReason: undefined,
@@ -104,6 +106,39 @@ describe("agent chat conversation attachment mapping", () => {
         status: "unsupported",
         unsupportedReason:
           "server object-body parser is not enabled for this file type yet",
+      }),
+    ])
+  })
+
+  it("maps server extracted binary documents as readable attachments", () => {
+    const detail = conversationDetail()
+    detail.files = [
+      {
+        bucket: "agent-files",
+        conversationId: "c1",
+        createdAt: "2026-05-13T00:00:00.000Z",
+        fileName: "brief.pdf",
+        fileSize: 120,
+        id: "file-pdf",
+        messageId: null,
+        metadata: {
+          extraction: {
+            status: "extracted",
+          },
+          extractionStatus: "extracted",
+        },
+        mimeType: "application/pdf",
+        objectKey: "conversation/brief.pdf",
+        sha256: null,
+        status: "active",
+      },
+    ]
+
+    expect(mapConversationAttachments(detail)).toEqual([
+      expect.objectContaining({
+        fileId: "file-pdf",
+        readable: true,
+        status: "uploaded",
       }),
     ])
   })

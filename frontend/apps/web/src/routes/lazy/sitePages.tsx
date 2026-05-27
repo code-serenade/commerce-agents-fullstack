@@ -10,6 +10,7 @@ export const CampaignsPage = lazy(() => import("@/pages/site/commerce/campaigns"
 export const CommerceOverviewPage = lazy(
   () => import("@/pages/site/commerce/overview")
 )
+export const FilesPage = lazy(() => import("@/pages/site/commerce/files"))
 export const OperationsPage = lazy(() => import("@/pages/site/commerce/operations"))
 export const PlatformConnectPage = lazy(
   () => import("@/pages/site/commerce/platform-connect")

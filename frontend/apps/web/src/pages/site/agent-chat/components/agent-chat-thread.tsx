@@ -65,6 +65,8 @@ export function AgentChatThread({
   const lastMessageContentLength = lastMessage?.content.length ?? 0
   const previousMessageIdentityRef = useRef("")
   const pendingScrollRestoreRef = useRef<ThreadScrollSnapshot | null>(null)
+  const hasOnlyWelcomeMessage =
+    messages.length === 1 && messages[0]?.id === "welcome"
 
   const scrollToEnd = useCallback((behavior: ScrollBehavior) => {
     ignoreScrollUntilRef.current = Date.now() + 350
@@ -81,11 +83,13 @@ export function AgentChatThread({
   useEffect(() => {
     if (messageIdentityKey === previousMessageIdentityRef.current) return
     previousMessageIdentityRef.current = messageIdentityKey
+    if (hasOnlyWelcomeMessage) return
     followStreamingRef.current = true
     scrollToEnd("auto")
-  }, [messageIdentityKey, scrollToEnd])
+  }, [hasOnlyWelcomeMessage, messageIdentityKey, scrollToEnd])
 
   useEffect(() => {
+    if (hasOnlyWelcomeMessage) return
     if (!lastMessage) return
     if (!inlineIsStreaming && lastMessage.role !== "assistant") return
     if (activeProcessMessageId) return
@@ -93,6 +97,7 @@ export function AgentChatThread({
     scrollToEnd("smooth")
   }, [
     activeProcessMessageId,
+    hasOnlyWelcomeMessage,
     inlineIsStreaming,
     lastMessage,
     lastMessageContentLength,

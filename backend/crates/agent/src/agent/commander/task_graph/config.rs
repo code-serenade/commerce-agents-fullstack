@@ -180,6 +180,8 @@ pub(super) struct ExplicitRequestRoles {
     pub(super) llm_usage: Option<String>,
     #[serde(default)]
     pub(super) skill_autosuggest: Option<bool>,
+    #[serde(default)]
+    pub(super) skill_autosuggest_by_role: HashMap<String, bool>,
 }
 
 #[derive(Debug, Clone, Default, serde::Deserialize)]
@@ -196,6 +198,8 @@ pub(super) struct RouteRoles {
     pub(super) llm_usage: Option<String>,
     #[serde(default)]
     pub(super) skill_autosuggest: Option<bool>,
+    #[serde(default)]
+    pub(super) skill_autosuggest_by_role: HashMap<String, bool>,
 }
 
 #[derive(Debug, Clone, Default, serde::Deserialize, PartialEq, Eq)]

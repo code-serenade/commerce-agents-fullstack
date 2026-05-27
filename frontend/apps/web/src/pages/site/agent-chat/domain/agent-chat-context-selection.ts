@@ -1,4 +1,8 @@
-import type { CampaignResponse, ProductResponse } from "@/api"
+import type {
+  CampaignResponse,
+  ConversationFileResponse,
+  ProductResponse,
+} from "@/api"
 import type { AgentChatAttachmentItem } from "../types"
 
 export interface AgentChatCampaignContextSelection {
@@ -26,13 +30,35 @@ export interface AgentChatProductContextSelection {
 export type AgentChatSourceContextKind = "conversation_file"
 
 export interface AgentChatSourceContextSelection {
+  bucket?: string
   id: string
   kind: AgentChatSourceContextKind
+  objectKey?: string
   readable: boolean
   ref: string
   status: AgentChatAttachmentItem["status"]
   title: string
   visionReady?: boolean
+}
+
+export type AgentChatSourceLibraryStatus =
+  | "readable"
+  | "pending"
+  | "failed"
+  | "unsupported"
+
+export interface AgentChatSourceLibraryItem {
+  attached: boolean
+  bucket: string
+  createdAt: string
+  fileSize: number | null
+  id: string
+  mimeType: string | null
+  objectKey: string
+  readable: boolean
+  status: AgentChatSourceLibraryStatus
+  title: string
+  visionReady: boolean
 }
 
 export function mapProductToContextSelection(
@@ -118,13 +144,37 @@ export function mapAttachmentToSourceContextSelection(
   }
 
   return {
+    bucket: attachment.bucket,
     id: attachment.fileId,
     kind: "conversation_file",
+    objectKey: attachment.objectKey,
     readable: attachment.readable,
     ref: `conversation_file:${attachment.fileId}`,
     status: attachment.status,
     title: attachment.name,
     visionReady: Boolean(attachment.imageDataUrl),
+  }
+}
+
+export function mapConversationFileToSourceLibraryItem(
+  file: ConversationFileResponse,
+  attachedObjectKeys: Set<string> = new Set()
+): AgentChatSourceLibraryItem {
+  const status = conversationFileReadableState(file)
+  const visionReady = isVisionConversationFile(file)
+
+  return {
+    attached: attachedObjectKeys.has(conversationFileObjectKey(file)),
+    bucket: file.bucket,
+    createdAt: file.createdAt,
+    fileSize: file.fileSize,
+    id: file.id,
+    mimeType: file.mimeType,
+    objectKey: file.objectKey,
+    readable: status === "readable" || visionReady,
+    status,
+    title: file.fileName || file.objectKey.split("/").at(-1) || file.id,
+    visionReady,
   }
 }
 
@@ -157,4 +207,47 @@ function uniqueContextRefs(refs: string[]) {
     if (normalized && !result.includes(normalized)) result.push(normalized)
   })
   return result
+}
+
+function conversationFileObjectKey(file: ConversationFileResponse) {
+  return `${file.bucket}:${file.objectKey}`
+}
+
+function conversationFileReadableState(
+  file: ConversationFileResponse
+): AgentChatSourceLibraryStatus {
+  const extraction = metadataRecord(file.metadata, "extraction")
+  const status =
+    metadataString(file.metadata, "extractionStatus") ||
+    (extraction ? metadataString(extraction, "status") : undefined)
+  if (status === "extracted" || status === "ready") return "readable"
+  if (status === "failed") return "failed"
+  if (status === "unsupported") return "unsupported"
+  return "pending"
+}
+
+function isVisionConversationFile(file: ConversationFileResponse) {
+  const mimeType = file.mimeType?.toLowerCase() ?? ""
+  return (
+    ["image/png", "image/jpeg", "image/webp"].includes(mimeType) ||
+    /\.(png|jpe?g|webp)$/i.test(file.fileName ?? file.objectKey)
+  )
+}
+
+function metadataString(
+  metadata: Record<string, unknown>,
+  key: string
+): string | undefined {
+  const value = metadata[key]
+  return typeof value === "string" && value.trim() ? value : undefined
+}
+
+function metadataRecord(
+  metadata: Record<string, unknown>,
+  key: string
+): Record<string, unknown> | undefined {
+  const value = metadata[key]
+  return typeof value === "object" && value !== null
+    ? (value as Record<string, unknown>)
+    : undefined
 }

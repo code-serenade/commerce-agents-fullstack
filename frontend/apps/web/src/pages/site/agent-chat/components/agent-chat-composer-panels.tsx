@@ -2,6 +2,7 @@ import type {
   AgentChatCampaignContextSelection,
   AgentChatProductContextSelection,
   AgentChatSourceContextSelection,
+  AgentChatSourceLibraryItem,
 } from "../domain/agent-chat-context-selection"
 import type { AgentChatPlaybookSelection } from "../domain/agent-chat-playbook"
 import type {
@@ -9,6 +10,7 @@ import type {
   AgentRuntimeOptions,
 } from "../domain/agent-runtime-options"
 import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
+import { AgentChatComposerPanelShell } from "./agent-chat-composer-panel-shell"
 import { AgentChatCampaignContextBar } from "./agent-chat-campaign-context-bar"
 import { AgentChatProductContextBar } from "./agent-chat-product-context-bar"
 import { AgentChatSettingsPanel } from "./agent-chat-settings-panel"
@@ -22,6 +24,7 @@ export function AgentChatComposerPanels({
   isLoadingPlaybooks,
   isLoadingProducts,
   isLoadingRuntimeOptions,
+  isLoadingSourceLibrary,
   isStreaming,
   onRuntimeCollaborationModeChange,
   onRuntimeLearningLevelChange,
@@ -32,10 +35,15 @@ export function AgentChatComposerPanels({
   onClearCampaignContext,
   onClearProductContext,
   onClearSourceContext,
+  onDeleteSelectedSources,
+  onManageSources,
   onToggleCampaignContext,
   onToggleProductContext,
   onToggleSourceContext,
   onToggleRuntimeRole,
+  onUploadClick,
+  onAttachExistingSource,
+  panelMaxHeight,
   playbooks,
   campaignContextOpen,
   productContextOpen,
@@ -44,6 +52,8 @@ export function AgentChatComposerPanels({
   selectedCampaigns,
   selectedProducts,
   selectedSources,
+  sourceLibrary,
+  sourceLibraryError,
   settingsOpen,
   sourceContextOpen,
   strategyId,
@@ -55,6 +65,7 @@ export function AgentChatComposerPanels({
   isLoadingPlaybooks: boolean
   isLoadingProducts: boolean
   isLoadingRuntimeOptions: boolean
+  isLoadingSourceLibrary: boolean
   isStreaming: boolean
   onFocusComposer?: () => void
   onRuntimeCollaborationModeChange: (value: string) => void
@@ -66,10 +77,15 @@ export function AgentChatComposerPanels({
   onClearCampaignContext: () => void
   onClearProductContext: () => void
   onClearSourceContext: () => void
+  onDeleteSelectedSources: () => void
+  onManageSources: () => void
   onToggleCampaignContext: (campaign: AgentChatCampaignContextSelection) => void
   onToggleProductContext: (product: AgentChatProductContextSelection) => void
   onToggleSourceContext: (source: AgentChatSourceContextSelection) => void
   onToggleRuntimeRole: (value: string) => void
+  onUploadClick: () => void
+  onAttachExistingSource: (fileId: string) => void
+  panelMaxHeight: number
   playbooks: AgentChatPlaybookSelection[]
   campaignContextOpen: boolean
   productContextOpen: boolean
@@ -78,6 +94,8 @@ export function AgentChatComposerPanels({
   selectedCampaigns: AgentChatCampaignContextSelection[]
   selectedProducts: AgentChatProductContextSelection[]
   selectedSources: AgentChatSourceContextSelection[]
+  sourceLibrary: AgentChatSourceLibraryItem[]
+  sourceLibraryError: string | null
   settingsOpen: boolean
   sourceContextOpen: boolean
   strategyId: AgentChatStrategyId
@@ -85,10 +103,7 @@ export function AgentChatComposerPanels({
   return (
     <>
       {productContextOpen ? (
-        <div
-          className="absolute inset-x-0 bottom-full z-50 mb-2 rounded-xl border border-border bg-background p-3 shadow-2xl shadow-black/15"
-          data-composer-interactive="true"
-        >
+        <AgentChatComposerPanelShell maxHeight={panelMaxHeight}>
           <AgentChatProductContextBar
             availableProducts={availableProducts}
             disabled={isStreaming}
@@ -98,13 +113,10 @@ export function AgentChatComposerPanels({
             selectedProducts={selectedProducts}
             variant="panel"
           />
-        </div>
+        </AgentChatComposerPanelShell>
       ) : null}
       {campaignContextOpen ? (
-        <div
-          className="absolute inset-x-0 bottom-full z-50 mb-2 rounded-xl border border-border bg-background p-3 shadow-2xl shadow-black/15"
-          data-composer-interactive="true"
-        >
+        <AgentChatComposerPanelShell maxHeight={panelMaxHeight}>
           <AgentChatCampaignContextBar
             availableCampaigns={availableCampaigns}
             disabled={isStreaming}
@@ -114,28 +126,29 @@ export function AgentChatComposerPanels({
             selectedCampaigns={selectedCampaigns}
             variant="panel"
           />
-        </div>
+        </AgentChatComposerPanelShell>
       ) : null}
       {sourceContextOpen ? (
-        <div
-          className="absolute inset-x-0 bottom-full z-50 mb-2 rounded-xl border border-border bg-background p-3 shadow-2xl shadow-black/15"
-          data-composer-interactive="true"
-        >
+        <AgentChatComposerPanelShell maxHeight={panelMaxHeight} size="wide">
           <AgentChatSourceContextBar
             availableSources={availableSources}
             disabled={isStreaming}
+            isLoadingSourceLibrary={isLoadingSourceLibrary}
+            sourceLibrary={sourceLibrary}
+            sourceLibraryError={sourceLibraryError}
+            onDeleteSelectedSources={onDeleteSelectedSources}
+            onAttachExistingSource={onAttachExistingSource}
+            onManageSources={onManageSources}
+            onUploadClick={onUploadClick}
             onClearSourceContext={onClearSourceContext}
             onToggleSourceContext={onToggleSourceContext}
             selectedSources={selectedSources}
             variant="panel"
           />
-        </div>
+        </AgentChatComposerPanelShell>
       ) : null}
       {settingsOpen ? (
-        <div
-          className="absolute inset-x-0 bottom-full z-50 mb-2 grid max-h-[min(30rem,72vh)] gap-2 overflow-y-auto rounded-xl border border-border bg-background p-2 shadow-2xl shadow-black/15"
-          data-composer-interactive="true"
-        >
+        <AgentChatComposerPanelShell maxHeight={panelMaxHeight} size="wide">
           <AgentChatSettingsPanel
             isLoadingPlaybooks={isLoadingPlaybooks}
             isLoadingRuntimeOptions={isLoadingRuntimeOptions}
@@ -155,7 +168,7 @@ export function AgentChatComposerPanels({
             strategyId={strategyId}
             variant="panel"
           />
-        </div>
+        </AgentChatComposerPanelShell>
       ) : null}
     </>
   )

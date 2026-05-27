@@ -1,4 +1,5 @@
 import type { AgentChatMessageContextSummary } from "../types"
+import type { SourceReadinessKey } from "./agent-chat-source-readiness"
 import { normalizeAgentChatStrategyId } from "./agent-chat-strategy"
 
 export interface MessageContextSummaryProductInput {
@@ -21,6 +22,7 @@ export interface MessageContextSummaryCampaignInput {
 }
 
 export interface MessageContextSummarySourceInput {
+  readiness?: SourceReadinessKey
   ref: string
   title?: string | null
 }
@@ -76,6 +78,7 @@ export function createMessageContextSummary(input: {
     return {
       id: ref,
       ...(source?.title ? { label: source.title } : {}),
+      ...(source?.readiness ? { readiness: source.readiness } : {}),
     }
   })
   const strategyId =
@@ -118,6 +121,7 @@ export function readMessageContextSummary(
     campaignIds: hasContext ? readStringArray(context.campaignIds) : [],
     productIds: hasContext ? readStringArray(context.productIds) : [],
     selectedRoles: readStringArray(strategy?.selectedRoles),
+    sources: hasContext ? readSourceInputs(context.sources) : [],
     strategyId: readString(strategy?.strategyId) ?? undefined,
   })
 }
@@ -131,6 +135,37 @@ function readStrategyRecord(contentJson: unknown) {
 function readStringArray(value: unknown) {
   if (!Array.isArray(value)) return []
   return value.filter((item): item is string => typeof item === "string")
+}
+
+function readSourceInputs(value: unknown): MessageContextSummarySourceInput[] {
+  if (!Array.isArray(value)) return []
+  const sources: MessageContextSummarySourceInput[] = []
+  value.forEach((item) => {
+    if (!isRecord(item)) return
+    const ref = readString(item.ref)
+    if (!ref) return
+    const readiness = readSourceReadiness(item.readiness)
+    const title = readString(item.title)
+    sources.push({
+      ref,
+      ...(readiness ? { readiness } : {}),
+      ...(title ? { title } : {}),
+    })
+  })
+  return sources
+}
+
+function readSourceReadiness(value: unknown): SourceReadinessKey | undefined {
+  if (
+    value === "failed" ||
+    value === "metadataOnly" ||
+    value === "pending" ||
+    value === "readable" ||
+    value === "unsupported"
+  ) {
+    return value
+  }
+  return undefined
 }
 
 function readString(value: unknown) {

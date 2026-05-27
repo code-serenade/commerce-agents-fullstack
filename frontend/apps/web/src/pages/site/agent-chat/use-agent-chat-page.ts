@@ -20,6 +20,8 @@ import { useAgentRuntimeOptions } from "./view-model/use-agent-runtime-options"
 import { useAgentRunFeedback } from "./view-model/use-agent-run-feedback"
 import { useAgentChatSend } from "./view-model/use-agent-chat-send"
 import { useAgentChatSourceContext } from "./view-model/use-agent-chat-source-context"
+import { useAgentChatSourceActions } from "./view-model/use-agent-chat-source-actions"
+import { useAgentChatSourceLibrary } from "./view-model/use-agent-chat-source-library"
 
 export function useAgentChatPage() {
   const { t } = useTranslation()
@@ -35,9 +37,7 @@ export function useAgentChatPage() {
   )
   const user = useSelector((state: RootState) => state.auth.user)
   const [input, setInput] = useState("")
-  const [strategyId, setStrategyId] = useState<AgentChatStrategyId>(
-    DEFAULT_AGENT_CHAT_STRATEGY_ID
-  )
+  const [strategyId, setStrategyId] = useState<AgentChatStrategyId>(DEFAULT_AGENT_CHAT_STRATEGY_ID)
   const [messages, setMessages] = useState<AgentChatMessage[]>(() => [
     {
       id: "welcome",
@@ -53,11 +53,13 @@ export function useAgentChatPage() {
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const sessionIdRef = useRef(createSessionId())
-  const productContext = useAgentChatProductContext({ enabled: Boolean(user), isStreaming })
-  const campaignContext = useAgentChatCampaignContext({ enabled: Boolean(user), isStreaming })
+  const isLoggedIn = Boolean(user)
+  const productContext = useAgentChatProductContext({ enabled: isLoggedIn, isStreaming })
+  const campaignContext = useAgentChatCampaignContext({ enabled: isLoggedIn, isStreaming })
   const sourceContext = useAgentChatSourceContext({ attachments, isStreaming })
-  const playbookContext = useAgentChatPlaybooks({ enabled: Boolean(user) })
-  const runtimeContext = useAgentRuntimeOptions({ enabled: Boolean(user) })
+  const { isLoadingSourceLibrary, sourceLibrary, sourceLibraryError } = useAgentChatSourceLibrary({ availableSources: sourceContext.availableSources, enabled: isLoggedIn })
+  const playbookContext = useAgentChatPlaybooks({ enabled: isLoggedIn })
+  const runtimeContext = useAgentRuntimeOptions({ enabled: isLoggedIn })
   const feedback = useAgentRunFeedback({
     isLoggedIn: Boolean(user),
     isStreaming,
@@ -76,15 +78,8 @@ export function useAgentChatPage() {
     restoreSelectedProducts: productContext.restoreSelectedProducts,
     restoreSelectedSources: sourceContext.restoreSelectedSources,
     sessionIdRef,
-    setAttachments,
-    setConversationId,
-    setConversations,
-    setError,
-    setInput,
-    setIsStreaming,
-    setMessages,
-    setRuntimeEvents,
-    setStrategyId,
+    setAttachments, setConversationId, setConversations, setError, setInput,
+    setIsStreaming, setMessages, setRuntimeEvents, setStrategyId,
     tError: t("agentChat.error"),
     welcomeMessage: t("agentChat.welcomeMessage"),
   })
@@ -111,18 +106,12 @@ export function useAgentChatPage() {
   }, [userBootstrapKey])
 
   const canSend = input.trim().length > 0 && !isStreaming
-  const selectedStrategy = useMemo(
-    () => getAgentChatStrategy(strategyId),
-    [strategyId]
-  )
-  const selectedRuntime = useMemo(
-    () => runtimeSelectionForStrategy(runtimeContext.runtimeSelection),
-    [runtimeContext.runtimeSelection]
-  )
+  const selectedStrategy = useMemo(() => getAgentChatStrategy(strategyId), [strategyId])
+  const selectedRuntime = useMemo(() => runtimeSelectionForStrategy(runtimeContext.runtimeSelection), [runtimeContext.runtimeSelection])
   const commands = useAgentChatPageCommands({
     actionState,
     conversationId,
-    isLoggedIn: Boolean(user),
+    isLoggedIn,
     isStreaming,
     setInput,
     setStrategyId,
@@ -130,15 +119,24 @@ export function useAgentChatPage() {
   const uploadAttachments = useAgentChatAttachmentUploads({
     conversationId,
     fallbackConversationTitle,
-    isLoggedIn: Boolean(user),
+    isLoggedIn,
     isStreaming,
     messageFormatCopy,
+    restoreSelectedSources: sourceContext.restoreSelectedSources,
+    selectedSources: sourceContext.selectedSources,
     sessionIdRef,
-    setAttachments,
-    setConversationId,
-    setConversations,
-    setError,
+    setAttachments, setConversationId, setConversations, setError,
     tError: t("agentChat.error"),
+  })
+  const sourceActions = useAgentChatSourceActions({
+    conversationId,
+    fallbackConversationTitle,
+    isLoggedIn,
+    isStreaming,
+    restoreSelectedSources: sourceContext.restoreSelectedSources,
+    selectedSources: sourceContext.selectedSources,
+    sessionIdRef,
+    setAttachments, setConversationId, setConversations, setError,
   })
 
   const sendMessage = useAgentChatSend({
@@ -147,7 +145,7 @@ export function useAgentChatPage() {
     conversationId,
     fallbackConversationTitle,
     inputValue: input,
-    isLoggedIn: Boolean(user),
+    isLoggedIn,
     isStreaming,
     loginRequiredMessage,
     messageFormatCopy,
@@ -156,13 +154,8 @@ export function useAgentChatPage() {
     selectedProducts: productContext.selectedProducts,
     selectedSources: sourceContext.selectedSources,
     sessionIdRef,
-    setConversationId,
-    setConversations,
-    setError,
-    setInput,
-    setIsStreaming,
-    setMessages,
-    setRuntimeEvents,
+    setConversationId, setConversations, setError, setInput, setIsStreaming,
+    setMessages, setRuntimeEvents,
     strategy: selectedStrategy,
     tError: t("agentChat.error"),
   })
@@ -181,11 +174,12 @@ export function useAgentChatPage() {
     error,
     feedback,
     input,
-    isLoggedIn: Boolean(user),
+    isLoggedIn,
     isLoadingCampaigns: campaignContext.isLoadingCampaigns,
     isLoadingPlaybooks: playbookContext.isLoadingPlaybooks,
     isLoadingProducts: productContext.isLoadingProducts,
     isLoadingRuntimeOptions: runtimeContext.isLoadingRuntimeOptions,
+    isLoadingSourceLibrary,
     isStreaming,
     messages,
     playbooks: playbookContext.playbooks,
@@ -197,6 +191,8 @@ export function useAgentChatPage() {
     selectedStrategy,
     selectedSources: sourceContext.selectedSources,
     sendMessage,
+    sourceLibrary,
+    sourceLibraryError,
     setInput,
     setRuntimeCollaborationMode: runtimeContext.setCollaborationMode,
     setRuntimeLearningLevel: runtimeContext.setLearningLevel,
@@ -208,6 +204,9 @@ export function useAgentChatPage() {
     toggleCampaignContext: campaignContext.toggleCampaignContext,
     toggleRuntimeRole: runtimeContext.toggleRole,
     toggleSourceContext: sourceContext.toggleSourceContext,
+    deleteSelectedSources: sourceActions.deleteSelectedSources,
+    attachExistingSource: sourceActions.attachExistingSource,
+    removeSourcesByObjects: sourceActions.removeSourcesByObjects,
     uploadAttachments,
   })
 }

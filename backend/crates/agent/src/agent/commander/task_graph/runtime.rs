@@ -2,7 +2,9 @@ use std::collections::{HashMap, HashSet};
 
 use super::{chat, planner};
 use crate::{
-    agent::commander::{no_user_facing_content_message, user_facing_report_text},
+    agent::commander::{
+        no_user_facing_content_message, sanitize_final_user_facing_text, user_facing_report_text,
+    },
     agent_session::{RoleMemorySummary, TaskGraphMemorySummary, WorkerDetail},
     core::protocol::{
         Evaluation, RoleWorkOutput, TaskGraph, TaskGraphHandoff, TaskGraphProcessGap,
@@ -225,7 +227,8 @@ impl TaskGraphRuntime {
         if sections.is_empty() {
             no_user_facing_content_message()
         } else {
-            sections.join("\n\n")
+            sanitize_final_user_facing_text(&sections.join("\n\n"))
+                .unwrap_or_else(no_user_facing_content_message)
         }
     }
 
@@ -886,6 +889,49 @@ mod tests {
         assert_eq!(output, "usable upstream answer");
         assert!(!output.contains("dependency did not pass"));
         assert!(!output.contains("还有这些部分需要补齐"));
+    }
+
+    #[test]
+    fn quick_task_graph_synthesis_dedupes_repeated_cross_worker_blocks() {
+        let ops = node("ops", "Ops", "ops");
+        let data = node("data", "Data", "data");
+        let creative = node("creative", "Creative", "creative");
+        let mut runtime = TaskGraphRuntime::new(TaskGraph {
+            graph_id: TaskGraphId("graph-quick".to_string()),
+            root_task: "快速判断这个冷萃咖啡怎么卖。".to_string(),
+            nodes: vec![ops.clone(), data.clone(), creative.clone()],
+        })
+        .with_response_mode(Some("quick"));
+        for node in [&ops, &data, &creative] {
+            runtime
+                .states
+                .insert(node.id.clone(), TaskNodeRuntimeState::Passed);
+        }
+        runtime.reports.insert(
+            ops.id.clone(),
+            report(
+                "ops",
+                "先看毛利，再看销量。\n- 补齐成本字段。\n\n运营上先做小范围试卖。",
+            ),
+        );
+        runtime.reports.insert(
+            data.id.clone(),
+            report("data", "先看毛利，再看销量。\n- 补齐成本字段。"),
+        );
+        runtime.reports.insert(
+            creative.id.clone(),
+            report("creative", "标题先突出低糖冷萃和校园场景。"),
+        );
+
+        let output = runtime.synthesize();
+
+        assert_eq!(
+            output.matches("先看毛利，再看销量。").count(),
+            1,
+            "{output}"
+        );
+        assert!(output.contains("运营上先做小范围试卖。"));
+        assert!(output.contains("标题先突出低糖冷萃和校园场景。"));
     }
 
     fn node(id: &str, title: &str, role: &str) -> TaskNode {

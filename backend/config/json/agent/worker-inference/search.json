@@ -37,6 +37,7 @@
         "搜索",
         "查询",
         "分析",
+        "对比",
         "最新",
         "实时",
         "联网",
@@ -81,6 +82,68 @@
     "max_results": {
       "min": 1,
       "max": 12,
+      "strength_defaults": [
+        {
+          "label": "deep",
+          "keywords": [
+            "深度搜索",
+            "详细搜索",
+            "完整来源",
+            "来源清单",
+            "搜索报告",
+            "调研报告",
+            "公开资料",
+            "证据清单",
+            "请联网搜索并给出来源链接",
+            "只输出来源标题、链接、发布日期和适用风险点"
+          ],
+          "max_results": 10
+        },
+        {
+          "label": "standard",
+          "keywords": [
+            "联网搜索",
+            "来源链接",
+            "给出来源",
+            "公开来源",
+            "竞品对比",
+            "竞品定价",
+            "竞品价格",
+            "竞对价格",
+            "同类商品价格",
+            "市场价格",
+            "官方规则",
+            "官方公告",
+            "平台规则"
+          ],
+          "max_results": 6
+        },
+        {
+          "label": "light",
+          "keywords": [
+            "简单搜",
+            "大概搜",
+            "简单查",
+            "轻量搜索",
+            "快速搜索"
+          ],
+          "max_results": 3
+        }
+      ],
+      "response_mode_defaults": [
+        {
+          "response_mode": "quick",
+          "max_results": 3
+        },
+        {
+          "response_mode": "learning",
+          "max_results": 3
+        },
+        {
+          "response_mode": "execution",
+          "max_results": 6
+        }
+      ],
       "scan_before_chars": 16,
       "scan_after_chars": 16,
       "after_result_units": [

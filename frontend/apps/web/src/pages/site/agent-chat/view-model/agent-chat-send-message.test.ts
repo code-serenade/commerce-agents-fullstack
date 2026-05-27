@@ -81,11 +81,11 @@ describe("sendAgentChatMessage", () => {
       "conversation-a",
       expect.objectContaining({
         contentJson: expect.objectContaining({
-          context: {
+          context: expect.objectContaining({
             campaignIds: [],
             contextRefs: [],
             productIds: [],
-          },
+          }),
         }),
       })
     )

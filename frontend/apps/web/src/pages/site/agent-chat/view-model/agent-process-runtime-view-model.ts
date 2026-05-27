@@ -150,6 +150,7 @@ export function normalizeRuntimeRole(role: string) {
   if (normalized.includes("service")) return "service"
   if (normalized.includes("design")) return "design"
   if (normalized.includes("engineer")) return "engineering"
+  if (normalized.includes("search")) return "search"
   if (normalized.includes("data")) return "data"
   if (normalized.includes("web") || normalized.includes("seo")) return "web"
   return normalized

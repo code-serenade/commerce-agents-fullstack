@@ -113,5 +113,6 @@ function translateOrFallback(
   fallback: string
 ) {
   const translated = t(key)
-  return translated === key ? fallback : translated
+  if (translated !== key) return translated
+  return fallback || ""
 }

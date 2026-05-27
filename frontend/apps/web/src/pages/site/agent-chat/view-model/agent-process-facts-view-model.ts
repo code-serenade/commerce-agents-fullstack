@@ -11,6 +11,10 @@ import {
   getLatestDispatchPlan,
 } from "./agent-process-runtime-view-model"
 import { formatRuntimeRole, type AgentDispatchFact } from "./agent-process-kind-view-model"
+import { appendAuditFacts } from "./agent-process-audit-facts-view-model"
+import { selectDispatchFacts } from "./agent-dispatch-fact-selection"
+import { appendMaterialContextFacts } from "./agent-material-context-facts-view-model"
+import { appendSkillAuditFact } from "./agent-process-skill-audit-facts-view-model"
 
 export function getDispatchFacts(
   runtimeEvents: AgentRuntimeEvent[],
@@ -18,17 +22,18 @@ export function getDispatchFacts(
 ): AgentDispatchFact[] {
   const facts: AgentDispatchFact[] = []
   appendDispatchPlanFact(facts, runtimeEvents, t)
+  appendRouteFact(facts, runtimeEvents, t)
+  appendAuditFacts(facts, runtimeEvents, t)
+  appendSkillAuditFact(facts, runtimeEvents, t)
+  appendMaterialContextFacts(facts, runtimeEvents, t)
   appendMemoryFact(facts, runtimeEvents, t)
   appendConversationContextFact(facts, runtimeEvents, t)
   appendContextFact(facts, runtimeEvents, t)
   appendRagFact(facts, runtimeEvents, t)
-  appendWorkspaceFact(facts, runtimeEvents, t)
-  appendRouteFact(facts, runtimeEvents, t)
-  appendSkillFact(facts, runtimeEvents, t)
   appendOutputFact(facts, runtimeEvents, t)
 
   return facts.length
-    ? facts.slice(0, 6)
+    ? selectDispatchFacts(facts, t)
     : [
         {
           detail: t("agentChat.thread.dispatchFacts.empty.detail"),
@@ -205,54 +210,6 @@ function appendRagFact(
   })
 }
 
-function appendWorkspaceFact(
-  facts: AgentDispatchFact[],
-  runtimeEvents: AgentRuntimeEvent[],
-  t: TFunction
-) {
-  const workspace = [...runtimeEvents]
-    .reverse()
-    .find((event) => event.type === "workspace_context_pack_loaded")
-  if (!workspace) return
-
-  const readable = (workspace.items ?? []).filter((item) => Boolean(item.text)).length
-  facts.push({
-    detail: t("agentChat.thread.dispatchFacts.workspace.detail", {
-      readiness: workspace.readiness ?? "empty",
-      readable,
-      total: workspace.items?.length ?? 0,
-    }),
-    label: t("agentChat.thread.dispatchFacts.workspace.label"),
-    tone: readable > 0 ? "success" : "warning",
-  })
-
-  const warning = workspace.warnings?.[0]
-  if (warning) {
-    facts.push({
-      detail: t("agentChat.thread.dispatchFacts.workspaceWarning.detail", {
-        warning,
-      }),
-      label: t("agentChat.thread.dispatchFacts.workspaceWarning.label"),
-      tone: "warning",
-    })
-  }
-
-  const omittedDetails = workspace.omittedDetails ?? workspace.omitted_details ?? []
-  const omitted = omittedDetails.length
-    ? omittedDetails.map((item) => item.refKey ?? item.ref_key ?? "-")
-    : (workspace.omitted ?? [])
-  if (omitted.length > 0) {
-    facts.push({
-      detail: t("agentChat.thread.dispatchFacts.workspaceOmitted.detail", {
-        count: omitted.length,
-        refs: omitted.slice(0, 3).join(", "),
-      }),
-      label: t("agentChat.thread.dispatchFacts.workspaceOmitted.label"),
-      tone: "warning",
-    })
-  }
-}
-
 function appendRouteFact(
   facts: AgentDispatchFact[],
   runtimeEvents: AgentRuntimeEvent[],
@@ -269,25 +226,6 @@ function appendRouteFact(
     }),
     label: t("agentChat.thread.dispatchFacts.route.label"),
     tone: getRouteMode(route) === "chat_bypass" ? "default" : "success",
-  })
-}
-
-function appendSkillFact(
-  facts: AgentDispatchFact[],
-  runtimeEvents: AgentRuntimeEvent[],
-  t: TFunction
-) {
-  const skillCount = runtimeEvents.filter(
-    (event) => event.type === "skill_requested" || event.type === "skill_result"
-  ).length
-  if (skillCount === 0) return
-
-  facts.push({
-    detail: t("agentChat.thread.dispatchFacts.skill.detail", {
-      count: skillCount,
-    }),
-    label: t("agentChat.thread.dispatchFacts.skill.label"),
-    tone: "success",
   })
 }
 

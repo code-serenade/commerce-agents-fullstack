@@ -89,16 +89,16 @@ export function AgentChatSettingsPanel({
   if (variant === "panel") {
     return (
       <>
-        <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">
-            {activeStrategyLabel}
-          </span>
-          {runtimeLabel ? (
-            <>
-              <span>·</span>
-              <span className="truncate">{runtimeLabel}</span>
-            </>
-          ) : null}
+        <div className="flex min-w-0 flex-col gap-0.5 rounded-lg border border-border bg-muted/25 px-2.5 py-2 sm:px-3">
+          <p className="text-xs/5 font-semibold text-foreground">
+            {t("agentChat.composer.settings.panelTitle")}
+          </p>
+          <p className="text-[11px]/4 text-muted-foreground">
+            {t("agentChat.composer.settings.panelHint", {
+              mode: activeStrategyLabel,
+              summary: runtimeLabel,
+            })}
+          </p>
         </div>
         <AgentChatSettingsControls
           isLoadingRuntimeOptions={isLoadingRuntimeOptions}
@@ -128,7 +128,7 @@ export function AgentChatSettingsPanel({
 
     return (
       <div
-        className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden"
+        className="flex min-w-0 shrink-0 items-center gap-1.5 overflow-hidden sm:flex-1"
         data-composer-interactive="true"
       >
         <button
@@ -151,7 +151,7 @@ export function AgentChatSettingsPanel({
           <ChevronIndicator open={isOpen} />
         </button>
         {summaryVisible ? (
-          <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden text-xs text-muted-foreground">
+          <div className="hidden min-w-0 flex-1 items-center gap-1 overflow-hidden text-xs text-muted-foreground sm:flex">
             <span className="min-w-0 flex-1 truncate">
               <span className="text-[11px] text-muted-foreground/75">
                 {t("agentChat.composer.settings.selectedPrefix")}

@@ -43,7 +43,7 @@ export function DispatchWorkbenchContent({
             <span className="text-xs font-semibold text-foreground">
               {t("agentChat.workbench.businessInput")}
             </span>
-            <p className="mt-1 line-clamp-2 text-sm/6 text-foreground">
+            <p className="mt-1 wrap-break-word text-sm/6 text-foreground">
               {model.request}
             </p>
           </div>
@@ -61,7 +61,7 @@ export function DispatchWorkbenchContent({
                   {model.activeStep.title} | {getDockStateLabel(model.activeStep.state, t)}
                 </span>
               </div>
-              <p className="mt-1 line-clamp-1 text-[11px] text-muted-foreground">
+              <p className="mt-1 wrap-break-word text-[11px] text-muted-foreground">
                 {model.activeStep.detail}
               </p>
             </div>

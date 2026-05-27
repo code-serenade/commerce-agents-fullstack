@@ -44,6 +44,7 @@ fn field_schema(field_type: &str) -> Value {
         "string" => json!({"type": "string"}),
         "number" => json!({"type": "number"}),
         "integer" => json!({"type": "integer"}),
+        "object" => json!({"type": "object"}),
         "array<number>" => json!({"type": "array", "items": {"type": "number"}}),
         "array<string>" => json!({"type": "array", "items": {"type": "string"}}),
         "array<object>" => json!({"type": "array", "items": {"type": "object"}}),

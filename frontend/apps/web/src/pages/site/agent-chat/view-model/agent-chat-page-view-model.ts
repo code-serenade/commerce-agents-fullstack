@@ -8,6 +8,7 @@ import type {
   AgentChatCampaignContextSelection,
   AgentChatProductContextSelection,
   AgentChatSourceContextSelection,
+  AgentChatSourceLibraryItem,
 } from "../domain/agent-chat-context-selection"
 import type { AgentChatPlaybookSelection } from "../domain/agent-chat-playbook"
 import type {
@@ -47,6 +48,7 @@ export interface AgentChatPageViewModelInput {
   isLoadingPlaybooks: boolean
   isLoadingProducts: boolean
   isLoadingRuntimeOptions: boolean
+  isLoadingSourceLibrary: boolean
   isStreaming: boolean
   messages: AgentChatMessage[]
   playbooks: AgentChatPlaybookSelection[]
@@ -58,6 +60,8 @@ export interface AgentChatPageViewModelInput {
   selectedSources: AgentChatSourceContextSelection[]
   selectedStrategy: AgentChatStrategy
   sendMessage: () => Promise<void>
+  sourceLibrary: AgentChatSourceLibraryItem[]
+  sourceLibraryError: string | null
   setInput: (value: string) => void
   setRuntimeCollaborationMode: (value: string) => void
   setRuntimeLearningLevel: (value: string) => void
@@ -69,6 +73,9 @@ export interface AgentChatPageViewModelInput {
   toggleCampaignContext: (campaign: AgentChatCampaignContextSelection) => void
   toggleRuntimeRole: (value: string) => void
   toggleSourceContext: (source: AgentChatSourceContextSelection) => void
+  deleteSelectedSources: () => Promise<void>
+  attachExistingSource: (fileId: string) => Promise<void>
+  removeSourcesByObjects: (objects: { bucket: string; objectKey: string }[]) => void
   clearSelectedCampaigns: () => void
   clearSelectedProducts: () => void
   clearSelectedSources: () => void
@@ -88,6 +95,7 @@ export function createAgentChatPageViewModel(input: AgentChatPageViewModelInput)
     conversationId: input.conversationId,
     conversations: input.conversations,
     deleteConversation: input.commands.deleteConversation,
+    deleteSelectedSources: input.deleteSelectedSources,
     error: input.error,
     feedback: input.feedback,
     input: input.input,
@@ -96,6 +104,7 @@ export function createAgentChatPageViewModel(input: AgentChatPageViewModelInput)
     isLoadingPlaybooks: input.isLoadingPlaybooks,
     isLoadingProducts: input.isLoadingProducts,
     isLoadingRuntimeOptions: input.isLoadingRuntimeOptions,
+    isLoadingSourceLibrary: input.isLoadingSourceLibrary,
     isStreaming: input.isStreaming,
     messages: input.messages,
     playbooks: input.playbooks,
@@ -110,6 +119,8 @@ export function createAgentChatPageViewModel(input: AgentChatPageViewModelInput)
     selectedSources: input.selectedSources,
     selectedStrategy: input.selectedStrategy,
     sendMessage: input.sendMessage,
+    sourceLibrary: input.sourceLibrary,
+    sourceLibraryError: input.sourceLibraryError,
     setInput: input.setInput,
     setRuntimeCollaborationMode: input.setRuntimeCollaborationMode,
     setRuntimeLearningLevel: input.setRuntimeLearningLevel,
@@ -123,6 +134,8 @@ export function createAgentChatPageViewModel(input: AgentChatPageViewModelInput)
     toggleCampaignContext: input.toggleCampaignContext,
     toggleRuntimeRole: input.toggleRuntimeRole,
     toggleSourceContext: input.toggleSourceContext,
+    attachExistingSource: input.attachExistingSource,
+    removeSourcesByObjects: input.removeSourcesByObjects,
     uploadAttachments: input.uploadAttachments,
   }
 }

@@ -115,7 +115,7 @@ export function InlineDispatchFactGrid({
             <Icon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
             <div className="min-w-0">
               <p className="truncate font-medium text-foreground">{fact.label}</p>
-              <p className="mt-0.5 line-clamp-2 text-muted-foreground">
+              <p className="mt-0.5 wrap-break-word text-muted-foreground">
                 {fact.detail}
               </p>
             </div>
@@ -152,12 +152,11 @@ export function InlineRuntimeBadge({
 
 export function InlineAgentGrid({
   agents,
-  compact = false,
 }: {
   agents: InlineAgent[]
   compact?: boolean
 }) {
-  const visibleAgents = compact ? agents.slice(0, 4) : agents.slice(0, 8)
+  const visibleAgents = agents.slice(0, 8)
 
   return (
     <div className="grid gap-1.5">

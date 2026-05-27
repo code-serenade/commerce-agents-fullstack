@@ -15,6 +15,7 @@ use repo::table::{
     conversations::{Conversation, ConversationService, CreateConversation},
 };
 use serde_json::{Map, Value, json};
+use std::collections::HashSet;
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use uuid::Uuid;
 
@@ -25,16 +26,20 @@ use crate::{
         storage_reference::{RetainStorageReferenceRequest, StorageReferenceApi},
     },
     dto::conversation::{
-        AddConversationMessageRequest, ConversationDetailResponse,
-        ConversationFileExtractionStatusResponse, ConversationFileExtractionTargetResponse,
-        ConversationFileResponse, ConversationMessageResponse, ConversationResponse,
-        CreateConversationRequest, DeleteConversationFileRequest, DeleteConversationRequest,
-        RegisterConversationFileRequest, UpdateConversationFileExtractionRequest,
-        UpdateConversationMemoryRequest, UpdateConversationRequest, uuid_to_string,
+        AddConversationMessageRequest, AttachConversationFileRequest, BulkDeleteUserFilesRequest,
+        ConversationDetailResponse, ConversationFileExtractionStatusResponse,
+        ConversationFileExtractionTargetResponse, ConversationFileResponse,
+        ConversationMessageResponse, ConversationResponse, CreateConversationRequest,
+        DeleteConversationFileRequest, DeleteConversationRequest, DeleteUserFileRequest,
+        ListUserFilesRequest, RegisterConversationFileRequest,
+        UpdateConversationFileExtractionRequest, UpdateConversationMemoryRequest,
+        UpdateConversationRequest, uuid_to_string,
     },
 };
 
 const DEFAULT_LIST_LIMIT: u64 = 50;
+const DEFAULT_FILE_LIST_LIMIT: u64 = 100;
+const MAX_FILE_LIST_LIMIT: u64 = 500;
 const MAX_EXTRACTED_TEXT_CHARS: usize = 100_000;
 const EXTRACTION_STATUS_PENDING: &str = "pending";
 const EXTRACTION_STATUS_EXTRACTED: &str = "extracted";
@@ -453,6 +458,184 @@ impl ConversationApi {
         commit_or_rollback(tx, result).await?;
 
         Ok(())
+    }
+
+    pub async fn list_user_files(
+        &self,
+        req: ListUserFilesRequest,
+    ) -> BizResult<Vec<ConversationFileResponse>> {
+        let user_id = parse_user_id(&req.user_id)?;
+        self.ensure_app_user_enabled(user_id).await?;
+        let limit = req
+            .limit
+            .unwrap_or(DEFAULT_FILE_LIST_LIMIT)
+            .clamp(1, MAX_FILE_LIST_LIMIT);
+        Ok(self
+            .file_svc
+            .list_active_by_user_id(user_id, limit)
+            .await?
+            .into_iter()
+            .fold(Vec::<ConversationFile>::new(), |mut unique, file| {
+                let exists = unique
+                    .iter()
+                    .any(|item| item.bucket == file.bucket && item.object_key == file.object_key);
+                if !exists {
+                    unique.push(file);
+                }
+                unique
+            })
+            .into_iter()
+            .map(Self::map_file)
+            .collect())
+    }
+
+    pub async fn delete_user_file(&self, req: DeleteUserFileRequest) -> BizResult<()> {
+        self.bulk_delete_user_files(BulkDeleteUserFilesRequest {
+            user_id: req.user_id,
+            file_ids: vec![req.file_id],
+        })
+        .await
+    }
+
+    pub async fn bulk_delete_user_files(&self, req: BulkDeleteUserFilesRequest) -> BizResult<()> {
+        let user_id = parse_user_id(&req.user_id)?;
+        self.ensure_app_user_enabled(user_id).await?;
+
+        let mut target_objects = Vec::new();
+        let mut seen_objects = HashSet::new();
+        for raw_file_id in req.file_ids {
+            let file_id = parse_uuid(raw_file_id.trim(), "file_id")?;
+            let file = self.ensure_active_file_owner(user_id, file_id).await?;
+            self.ensure_active_conversation_owner(user_id, file.conversation_id)
+                .await?;
+            if seen_objects.insert((file.bucket.clone(), file.object_key.clone())) {
+                target_objects.push((file.bucket, file.object_key));
+            }
+        }
+
+        if target_objects.is_empty() {
+            return Err(BizError::new(
+                app_error::CONVERSATION_REQUEST_INVALID,
+                "file_ids must not be empty".to_string(),
+            ));
+        }
+
+        let mut files = Vec::new();
+        let mut seen_file_ids = HashSet::new();
+        for (bucket, object_key) in target_objects {
+            for file in self
+                .file_svc
+                .list_active_by_user_object(user_id, &bucket, &object_key)
+                .await?
+            {
+                if seen_file_ids.insert(file.id) {
+                    files.push(file);
+                }
+            }
+        }
+
+        if files.is_empty() {
+            return Ok(());
+        }
+
+        let tx = self.db.begin().await?;
+        let result: BizResult<()> = async {
+            let api = ConversationApi::new(tx.clone());
+            let storage_ref_api = StorageReferenceApi::new(tx.clone());
+            let now = OffsetDateTime::now_utc();
+
+            for file in files {
+                api.ensure_active_conversation_owner(user_id, file.conversation_id)
+                    .await?;
+                storage_ref_api
+                    .release_in_current_context("conversation_file", file.id)
+                    .await?;
+                api.file_svc
+                    .update_status(UpdateConversationFileStatus {
+                        id: file.id,
+                        status: "deleted".to_string(),
+                        deleted_at: Some(now),
+                    })
+                    .await?;
+            }
+
+            Ok(())
+        }
+        .await;
+
+        commit_or_rollback(tx, result).await
+    }
+
+    pub async fn attach_file_to_conversation(
+        &self,
+        req: AttachConversationFileRequest,
+    ) -> BizResult<ConversationFileResponse> {
+        let user_id = parse_user_id(&req.user_id)?;
+        self.ensure_app_user_enabled(user_id).await?;
+        let source_file_id = parse_uuid(&req.file_id, "file_id")?;
+        let conversation_id = parse_uuid(&req.conversation_id, "conversation_id")?;
+        let source_file = self
+            .ensure_active_file_owner(user_id, source_file_id)
+            .await?;
+        self.ensure_active_conversation_owner(user_id, source_file.conversation_id)
+            .await?;
+        self.ensure_active_conversation_owner(user_id, conversation_id)
+            .await?;
+
+        if let Some(existing) = self
+            .file_svc
+            .get_active_by_conversation_object(
+                conversation_id,
+                &source_file.bucket,
+                &source_file.object_key,
+            )
+            .await?
+        {
+            return Ok(Self::map_file(existing));
+        }
+
+        let tx = self.db.begin().await?;
+        let result: BizResult<ConversationFileResponse> = async {
+            let api = ConversationApi::new(tx.clone());
+            let file = api
+                .file_svc
+                .create(CreateConversationFile {
+                    id: Uuid::new_v4(),
+                    user_id,
+                    conversation_id,
+                    message_id: None,
+                    bucket: source_file.bucket.clone(),
+                    object_key: source_file.object_key.clone(),
+                    file_name: source_file.file_name.clone(),
+                    mime_type: source_file.mime_type.clone(),
+                    file_size: source_file.file_size,
+                    sha256: source_file.sha256.clone(),
+                    metadata: source_file.metadata.clone(),
+                })
+                .await?;
+
+            StorageReferenceApi::new(tx.clone())
+                .retain_in_current_context(RetainStorageReferenceRequest {
+                    user_id,
+                    bucket: file.bucket.clone(),
+                    object_key: file.object_key.clone(),
+                    sha256: file.sha256.clone(),
+                    mime_type: file.mime_type.clone(),
+                    file_size: file.file_size,
+                    source_type: "conversation_file".to_string(),
+                    source_id: file.id,
+                    metadata: json!({
+                        "attachedFromConversationFileId": source_file.id,
+                        "attachedFromConversationId": source_file.conversation_id,
+                    }),
+                })
+                .await?;
+
+            Ok(Self::map_file(file))
+        }
+        .await;
+
+        commit_or_rollback(tx, result).await
     }
 
     pub async fn get_active_file_for_user(

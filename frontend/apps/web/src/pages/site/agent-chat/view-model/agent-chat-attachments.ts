@@ -1,30 +1,31 @@
 import type { Dispatch, SetStateAction } from "react"
-import type { UpdateConversationFileExtractionRequest } from "@/api"
+import type {
+  ConversationFileResponse,
+  UpdateConversationFileExtractionRequest,
+} from "@/api"
 import { AGENT_ID, agentChatData } from "../agent-chat-data"
-import { mapConversationItem } from "../domain/agent-chat-message-mapping"
+import {
+  mapConversationFile,
+  mapConversationItem,
+} from "../domain/agent-chat-message-mapping"
 import type {
   AgentChatAttachmentItem,
   AgentChatConversationItem,
 } from "../types"
 import { resolveAttachmentExtractionState } from "./agent-chat-attachment-extraction-state"
 import {
-  createBrowserImageExtractionRequest,
+  createAttachmentId,
+  createBrowserExtractionRequest,
+  isReadableTextFile,
+  isUploadImageFile,
+} from "./agent-chat-browser-extraction"
+export {
+  createBrowserExtractionRequest,
+  type BrowserExtractionRequestResult,
+} from "./agent-chat-browser-extraction"
+import {
   isVisionImageFile,
 } from "./agent-chat-image-attachments"
-
-const MAX_INLINE_TEXT_CHARS = 100_000
-const EMPTY_TEXT_EXTRACTION_REASON = "File contains no readable text."
-const FAILED_TEXT_EXTRACTION_REASON = "Browser text extraction failed."
-const READABLE_TEXT_TYPES = new Set([
-  "application/json",
-  "application/ld+json",
-  "application/markdown",
-  "text/csv",
-  "text/html",
-  "text/markdown",
-  "text/plain",
-  "text/tab-separated-values",
-])
 
 export interface UploadAgentChatAttachmentsInput {
   conversationId: string | null
@@ -42,8 +43,11 @@ export async function uploadAgentChatAttachments({
   setAttachments,
   setConversationId,
   setConversations,
-}: UploadAgentChatAttachmentsInput): Promise<string | null> {
-  if (!files.length) return conversationId
+}: UploadAgentChatAttachmentsInput): Promise<{
+  conversationId: string | null
+  fileIds: string[]
+}> {
+  if (!files.length) return { conversationId, fileIds: [] }
   let activeConversationId = conversationId
   if (!activeConversationId) {
     const detail = await agentChatData.createConversation({
@@ -67,15 +71,49 @@ export async function uploadAgentChatAttachments({
   }))
   setAttachments((current) => [...current, ...pendingItems])
 
-  await Promise.all(
+  const fileIds = (
+    await Promise.all(
     files.map((file, index) =>
       uploadOneAttachment(activeConversationId!, file, pendingItems[index].id, {
         setAttachments,
       })
     )
-  )
+    )
+  ).filter((fileId): fileId is string => Boolean(fileId))
 
-  return activeConversationId
+  return { conversationId: activeConversationId, fileIds }
+}
+
+export async function deleteAgentChatAttachments({
+  fileIds,
+  setAttachments,
+}: {
+  fileIds: string[]
+  setAttachments: Dispatch<SetStateAction<AgentChatAttachmentItem[]>>
+}) {
+  const uniqueFileIds = Array.from(new Set(fileIds.filter(Boolean)))
+  if (!uniqueFileIds.length) return
+
+  await Promise.all(
+    uniqueFileIds.map((fileId) => agentChatData.deleteConversationFile(fileId))
+  )
+  setAttachments((current) =>
+    current.filter((item) => !item.fileId || !uniqueFileIds.includes(item.fileId))
+  )
+}
+
+export function mapConversationFileToAttachment(
+  file: ConversationFileResponse
+): AgentChatAttachmentItem {
+  return mapConversationFile(file)
+}
+
+export function mergeConversationFileAttachment(
+  current: AgentChatAttachmentItem[],
+  file: ConversationFileResponse
+) {
+  const next = mapConversationFileToAttachment(file)
+  return [...current.filter((item) => item.fileId !== file.id), next]
 }
 
 async function uploadOneAttachment(
@@ -89,7 +127,7 @@ async function uploadOneAttachment(
   }
 ) {
   try {
-    const sign = isImageFile(file)
+    const sign = isUploadImageFile(file)
       ? await agentChatData.getUploadImageSign(file)
       : await agentChatData.getUploadDocumentSign(file)
     await agentChatData.uploadWithSignedUrl(file, sign, {
@@ -106,7 +144,8 @@ async function uploadOneAttachment(
     const extractionUpdated = extraction.request
       ? await updateRegisteredFileExtraction(registered.id, extraction.request)
       : false
-    const shouldTriggerServerExtraction = !extraction.request && !isImageFile(file)
+    const shouldTriggerServerExtraction =
+      !extraction.request && !isUploadImageFile(file)
     const serverExtraction =
       extractionUpdated && extraction.readable
         ? null
@@ -125,9 +164,11 @@ async function uploadOneAttachment(
         item.id === localId
           ? {
               ...item,
+              bucket: registered.bucket,
               fileId: registered.id,
               imageDataUrl: extraction.imageDataUrl,
               imageDetail: extraction.imageDataUrl ? "auto" : undefined,
+              objectKey: registered.objectKey,
               readable: resolved.readable,
               status: resolved.status,
               unsupportedReason: resolved.unsupportedReason,
@@ -135,82 +176,14 @@ async function uploadOneAttachment(
           : item
       )
     )
+    return registered.id
   } catch {
     setAttachments((current) =>
       current.map((item) =>
         item.id === localId ? { ...item, status: "failed" } : item
       )
     )
-  }
-}
-
-export interface BrowserExtractionRequestResult {
-  imageDataUrl?: string
-  readable: boolean
-  request: UpdateConversationFileExtractionRequest | null
-}
-
-export async function createBrowserExtractionRequest(
-  file: File
-): Promise<BrowserExtractionRequestResult> {
-  const metadata = browserExtractionMetadata(file)
-  if (!isReadableTextFile(file)) {
-    if (isImageFile(file)) {
-      return createBrowserImageExtractionRequest(file, metadata)
-    }
-    return {
-      readable: false,
-      request: null,
-    }
-  }
-
-  let text = ""
-  try {
-    text = await file.text()
-  } catch {
-    return {
-      readable: false,
-      request: {
-        contentKind: contentKindForFile(file),
-        failureReason: FAILED_TEXT_EXTRACTION_REASON,
-        metadata,
-        parser: "browser_text",
-        source: "browser_upload",
-        status: "failed",
-      },
-    }
-  }
-
-  const trimmed = text.trim()
-  if (!trimmed) {
-    return {
-      readable: false,
-      request: {
-        contentKind: contentKindForFile(file),
-        failureReason: EMPTY_TEXT_EXTRACTION_REASON,
-        metadata,
-        parser: "browser_text",
-        source: "browser_upload",
-        status: "failed",
-      },
-    }
-  }
-
-  const truncated = trimmed.length > MAX_INLINE_TEXT_CHARS
-  return {
-    readable: true,
-    request: {
-      contentKind: contentKindForFile(file),
-      metadata: {
-        ...metadata,
-        originalTextChars: trimmed.length,
-        truncated,
-      },
-      parser: "browser_text",
-      source: "browser_upload",
-      status: "extracted",
-      text: truncated ? trimmed.slice(0, MAX_INLINE_TEXT_CHARS) : trimmed,
-    },
+    return null
   }
 }
 
@@ -235,46 +208,4 @@ async function triggerServerExtractionStatus(fileId: string) {
   } catch {
     return null
   }
-}
-
-function isReadableTextFile(file: File) {
-  const type = file.type.toLowerCase()
-  return (
-    type.startsWith("text/") ||
-    READABLE_TEXT_TYPES.has(type) ||
-    /\.(csv|json|md|markdown|txt)$/i.test(file.name)
-  )
-}
-
-function isImageFile(file: File) {
-  return file.type.startsWith("image/") || /\.(gif|jpe?g|png|webp)$/i.test(file.name)
-}
-
-function contentKindForFile(file: File) {
-  const extension = extensionFromFile(file)
-  if (extension === "json") return "json"
-  if (extension === "csv") return "csv"
-  if (extension === "md" || extension === "markdown") return "markdown"
-  return "plain_text"
-}
-
-function extensionFromFile(file: File) {
-  const extension = file.name.match(/\.([^.]+)$/)?.[1]
-  if (extension) return extension.toLowerCase()
-  const subtype = file.type.split("/")[1]?.split(";")[0]?.trim()
-  return subtype || "bin"
-}
-
-function browserExtractionMetadata(file: File) {
-  return {
-    fileSize: file.size,
-    mimeType: file.type || null,
-    sourceFileName: file.name,
-  }
-}
-
-function createAttachmentId(file: File) {
-  return `attachment-${file.name}-${file.size}-${Date.now()}-${Math.random()
-    .toString(36)
-    .slice(2, 8)}`
 }

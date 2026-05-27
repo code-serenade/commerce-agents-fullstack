@@ -39,16 +39,16 @@ export function WorkspaceHandoffRail({ compact = false }: { compact?: boolean })
           <button
             key={titleKey}
             type="button"
-            className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-card px-2 py-1.5 text-left transition-colors hover:bg-muted"
+            className="flex min-w-0 items-start gap-2 rounded-md border border-border bg-card px-2 py-1.5 text-left transition-colors hover:bg-muted"
             onClick={() => navigate(path)}
           >
-            <div className="flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+            <div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
               <Icon className="size-3.5" />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="truncate text-xs font-medium">{t(titleKey)}</p>
               {compact ? null : (
-                <p className="mt-1 line-clamp-2 text-xs/5 text-muted-foreground">
+                <p className="mt-1 wrap-break-word text-xs/5 text-muted-foreground">
                   {t(detailKey)}
                 </p>
               )}
@@ -127,7 +127,7 @@ export function SwarmIdleDetail({
             <span className="text-xs font-medium text-muted-foreground">
               {t("agentChat.workbench.businessInput")}
             </span>
-            <p className="mt-1 line-clamp-2 text-sm/6 text-foreground">
+            <p className="mt-1 wrap-break-word text-sm/6 text-foreground">
               {lastTask ?? idleState.description}
             </p>
           </div>

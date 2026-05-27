@@ -3,8 +3,9 @@ use serde_json::{Value, json};
 use super::{
     common::{invalid_input, nums, outcome, strings},
     core_ops::{
-        assortment_planning, channel_strategy, execution_plan, inventory_planning, listing_copy,
-        pricing_strategy, promo_planning,
+        assortment_planning, channel_strategy, execution_plan, experiment_mvp_plan,
+        experiment_review_report, inventory_planning, listing_copy, pricing_strategy,
+        product_market_fit_diagnosis, product_opportunity_score, promo_planning,
     },
     optimization::{abc_xyz_classifier, ad_fatigue_detector, inventory_optimizer, smart_pricing},
 };
@@ -17,6 +18,10 @@ pub async fn execute(
 ) -> Result<SkillOutcome, SkillError> {
     let mut value = match skill_name {
         "ops_pricing_strategy" => pricing_strategy(&input),
+        "product_opportunity_score" => product_opportunity_score(&input),
+        "product_market_fit_diagnosis" => product_market_fit_diagnosis(&input),
+        "experiment_mvp_plan" => experiment_mvp_plan(&input),
+        "experiment_review_report" => experiment_review_report(&input),
         "ops_promo_planning" => promo_planning(&input),
         "ops_channel_strategy" => channel_strategy(&input),
         "ops_inventory_planning" => inventory_planning(&input),
@@ -81,6 +86,10 @@ fn ops_data_readiness(skill_name: &str, input: &Value) -> &'static str {
 fn ops_summary(skill_name: &str) -> &'static str {
     match skill_name {
         "ops_promo_planning" => "促销策划方案已生成",
+        "product_opportunity_score" => "商品机会评分已生成",
+        "product_market_fit_diagnosis" => "商品市场匹配诊断已生成",
+        "experiment_mvp_plan" => "MVP实验计划已生成",
+        "experiment_review_report" => "MVP实验复盘报告已生成",
         "ops_pricing_strategy" => "定价策略已生成",
         "ops_channel_strategy" => "渠道策略已生成",
         "ops_inventory_planning" => "库存规划已生成",

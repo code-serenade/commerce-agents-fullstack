@@ -6,10 +6,17 @@ export type AgentChatComposerPanelId =
   | "settings"
   | "source"
 
-export function useAgentChatPanelState() {
-  const [activePanel, setActivePanel] = useState<AgentChatComposerPanelId | null>(
-    null
-  )
+export function useAgentChatPanelState({
+  requestedPanel = null,
+  requestedPanelVersion = 0,
+}: {
+  requestedPanel?: AgentChatComposerPanelId | null
+  requestedPanelVersion?: number
+} = {}) {
+  const [activePanel, setActivePanel] =
+    useState<AgentChatComposerPanelId | null>(() =>
+      requestedPanelVersion ? requestedPanel : null
+    )
 
   const closePanels = useCallback(() => {
     setActivePanel(null)

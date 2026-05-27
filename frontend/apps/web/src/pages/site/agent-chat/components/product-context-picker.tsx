@@ -1,10 +1,14 @@
-import { Check, PackageSearch } from "lucide-react"
 import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Badge, SearchInput } from "@workspace/ui-components"
 import type { AgentChatProductContextSelection } from "../domain/agent-chat-context-selection"
+import { productStatusTranslationKey } from "./product-context-picker-helpers"
+import {
+  ProductContextButton,
+  ProductPickerContent,
+} from "./product-context-picker-parts"
 
-const PRODUCT_STATUS_KEYS = new Set(["active", "draft", "listing", "archived"])
+const PRODUCT_PAGE_SIZE = 6
 
 export function ProductContextPicker({
   availableProducts,
@@ -23,9 +27,15 @@ export function ProductContextPicker({
 }) {
   const { t } = useTranslation()
   const [query, setQuery] = useState("")
+  const [visibleCount, setVisibleCount] = useState(PRODUCT_PAGE_SIZE)
   const filteredProducts = useMemo(
     () => filterProducts(availableProducts, query),
     [availableProducts, query]
+  )
+  const visibleProducts = filteredProducts.slice(0, visibleCount)
+  const hiddenProductCount = Math.max(
+    filteredProducts.length - visibleProducts.length,
+    0
   )
   const statusSummary = useMemo(
     () => summarizeProducts(availableProducts),
@@ -61,26 +71,45 @@ export function ProductContextPicker({
         </div>
         <SearchInput
           value={query}
-          onValueChange={setQuery}
+          onValueChange={(value) => {
+            setQuery(value)
+            setVisibleCount(PRODUCT_PAGE_SIZE)
+          }}
           placeholder={t("agentChat.composer.productContext.searchPlaceholder")}
           disabled={disabled || isLoadingProducts}
         />
         {selectedProducts.length ? (
-          <div className="flex justify-end">
-            <button
-              type="button"
-              disabled={disabled}
-              onClick={onClearProductContext}
-              className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {t("agentChat.composer.productContext.clear")}
-            </button>
+          <div className="grid gap-2 rounded-lg border border-border bg-muted/25 p-2">
+            <div className="flex min-w-0 items-center justify-between gap-2">
+              <p className="text-[11px] font-semibold text-foreground">
+                {t("agentChat.composer.productContext.selectedSection")}
+              </p>
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={onClearProductContext}
+                className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {t("agentChat.composer.productContext.clear")}
+              </button>
+            </div>
+            <div className="grid min-w-0 gap-1.5 sm:grid-cols-2">
+              {selectedProducts.map((product) => (
+                <ProductContextButton
+                  key={product.id}
+                  disabled={disabled}
+                  onToggleProductContext={onToggleProductContext}
+                  product={product}
+                  selected
+                />
+              ))}
+            </div>
           </div>
         ) : null}
       </div>
-      <div className="grid max-h-72 min-w-0 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+      <div className="grid min-w-0 gap-2 sm:grid-cols-2">
         <ProductPickerContent
-          availableProducts={filteredProducts}
+          availableProducts={visibleProducts}
           disabled={disabled}
           isLoadingProducts={isLoadingProducts}
           onToggleProductContext={onToggleProductContext}
@@ -88,115 +117,23 @@ export function ProductContextPicker({
           selectedProducts={selectedProducts}
         />
       </div>
-    </>
-  )
-}
-
-function ProductPickerContent({
-  availableProducts,
-  disabled,
-  isLoadingProducts,
-  onToggleProductContext,
-  query,
-  selectedProducts,
-}: {
-  availableProducts: AgentChatProductContextSelection[]
-  disabled: boolean
-  isLoadingProducts: boolean
-  onToggleProductContext: (product: AgentChatProductContextSelection) => void
-  query: string
-  selectedProducts: AgentChatProductContextSelection[]
-}) {
-  const { t } = useTranslation()
-
-  if (isLoadingProducts) {
-    return (
-      <span className="rounded-full border border-border bg-background/70 px-3 py-1.5 text-xs text-muted-foreground">
-        {t("agentChat.composer.productContext.loading")}
-      </span>
-    )
-  }
-
-  if (!availableProducts.length) {
-    return (
-      <div className="col-span-full rounded-lg border border-dashed border-border bg-background/60 p-3 text-xs text-muted-foreground">
-        {query.trim()
-          ? t("agentChat.composer.productContext.noSearchResult")
-          : t("agentChat.composer.productContext.empty")}
-      </div>
-    )
-  }
-
-  return (
-    <>
-      {selectedProducts.length === 0 ? (
-        <div className="col-span-full flex items-start gap-2 rounded-lg border border-dashed border-border bg-background/60 p-3 text-xs text-muted-foreground">
-          <PackageSearch className="mt-0.5 size-4 shrink-0" />
-          <span>{t("agentChat.composer.productContext.noneHint")}</span>
+      {hiddenProductCount > 0 ? (
+        <div className="mt-2 flex justify-center">
+          <button
+            type="button"
+            disabled={disabled || isLoadingProducts}
+            onClick={() =>
+              setVisibleCount((current) => current + PRODUCT_PAGE_SIZE)
+            }
+            className="rounded-full border border-border bg-background px-3 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {t("agentChat.composer.productContext.showMore", {
+              count: Math.min(hiddenProductCount, PRODUCT_PAGE_SIZE),
+            })}
+          </button>
         </div>
       ) : null}
-      {availableProducts.map((product) => (
-        <ProductContextButton
-          key={product.id}
-          disabled={disabled}
-          onToggleProductContext={onToggleProductContext}
-          product={product}
-          selected={selectedProducts.some((item) => item.id === product.id)}
-        />
-      ))}
     </>
-  )
-}
-
-function ProductContextButton({
-  disabled,
-  onToggleProductContext,
-  product,
-  selected,
-}: {
-  disabled: boolean
-  onToggleProductContext: (product: AgentChatProductContextSelection) => void
-  product: AgentChatProductContextSelection
-  selected: boolean
-}) {
-  const { t } = useTranslation()
-
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={() => onToggleProductContext(product)}
-      aria-pressed={selected}
-      className={`flex min-w-0 items-start gap-2 rounded-lg border px-3 py-2 text-left text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-        selected
-          ? "border-emerald-500/70 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200"
-          : "border-border bg-background/70 text-muted-foreground hover:bg-muted hover:text-foreground"
-      }`}
-      title={product.name}
-    >
-      {selected ? (
-        <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-emerald-500 bg-emerald-500 text-white">
-          <Check className="size-3" />
-        </span>
-      ) : (
-        <span className="mt-0.5 size-4 shrink-0 rounded-[4px] border border-border bg-background shadow-inner" />
-      )}
-      <span className="min-w-0">
-        <span className="block truncate font-medium text-foreground">
-          {product.name}
-        </span>
-        <span className="mt-1 flex min-w-0 flex-wrap gap-1.5">
-          {readProductMeta(product, t).map((item) => (
-            <span
-              key={item}
-              className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
-            >
-              {item}
-            </span>
-          ))}
-        </span>
-      </span>
-    </button>
   )
 }
 
@@ -231,28 +168,4 @@ function summarizeProducts(products: AgentChatProductContextSelection[]) {
   return Array.from(counts.entries())
     .map(([status, count]) => ({ count, status }))
     .sort((left, right) => left.status.localeCompare(right.status))
-}
-
-function readProductMeta(
-  product: AgentChatProductContextSelection,
-  t: ReturnType<typeof useTranslation>["t"]
-) {
-  return [
-    product.status
-      ? t(productStatusTranslationKey(product.status))
-      : null,
-    product.platform,
-    product.category,
-    product.brand,
-    product.price,
-  ]
-    .filter((value): value is string => Boolean(value))
-    .slice(0, 4)
-}
-
-function productStatusTranslationKey(status: string) {
-  const normalized = status.trim().toLowerCase()
-  return `agentChat.composer.productContext.status.${
-    PRODUCT_STATUS_KEYS.has(normalized) ? normalized : "unknown"
-  }`
 }

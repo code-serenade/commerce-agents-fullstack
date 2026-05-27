@@ -12,8 +12,9 @@
 6. 普通业务调整只允许修改配置文件，不允许修改 commander/task_graph/worker runner Rust 代码。
 7. Rust 侧只保留“读取配置、匹配配置、构建图、调度节点、执行 skill、组装上下文、校验输出、降级处理”等通用能力。
 8. task graph 节点和动态角色配置可以配置 `llm_usage`，取值只使用 `fast`、`thinking` 或 `default`，用于路由到 `services.toml` 的 `[agent_llm_usage]`。轻量短答、上游草案或显式岗位协作的动态角色可以用 `fast`；最终综合、财务测算或复杂证据综合的节点保留默认 `thinking`。不要在 Rust 里按行业或业务关键词硬编码模型选择。
-9. task graph 节点和动态角色配置可以配置 `skill_autosuggest`。显式多岗位轻量协作、最终润色或不需要外部适配器的节点可以设为 `false`，避免自动技能请求拖慢和污染输出；需要后台、搜索、投放、财务等真实工具能力的深度图保持默认开启。
+9. task graph 节点和动态角色配置可以配置 `skill_autosuggest`。显式多岗位轻量协作、最终润色或不需要外部适配器的节点可以设为 `false`，避免自动技能请求拖慢和污染输出；需要后台、搜索、投放、财务等真实工具能力的深度图保持默认开启。动态角色还可以配置 `skill_autosuggest_by_role`，用于在同一条规则里覆盖某个 runtime role 的自动技能开关，例如轻量显式团队默认关闭 autosuggest，但对 `search` 证据岗单独打开。
 10. task graph 的 `match.min_explicit_role_aliases` 是通用匹配条件，用于要求用户文本至少命中若干个 `role-aliases.json` 中的岗位别名。它只表达“是否真的点名了岗位”，不在 Rust 里写业务岗位词。
+11. worker inference 的搜索配置可以在 `search.max_results.response_mode_defaults` 中按 `strategy.response_mode` 配置搜索默认强度。该默认值只在 autosuggest 已经触发搜索且用户未显式指定条数、深度/标准/轻量强度时补齐，不得反向触发搜索。
 
 ## 配置入口
 
@@ -122,6 +123,7 @@ Rust 只负责：
 - 通用 metric 解析。
 - 根据配置读取 alias、defaults、labels、rules。
 - 为 autosuggest 模板提供结构化值。
+- 在搜索已触发时，根据 `search.max_results` 的显式条数、强度关键词和 `response_mode_defaults` 依次推断 `max_results`。
 
 新增别名、分类标签、默认预算、默认天数、搜索参数、平台/行业识别，优先修改 JSON 配置。
 
@@ -133,6 +135,14 @@ Rust 只负责：
 - `backend/config/json/agent/worker-output-normalization-policy.json`
 
 回答风格、角色边界、教学深度和输出格式优先放在 prompt 或 output policy，不写进 runner。
+
+`worker-output-policy.json` 中的 `finding_rules`、`recommendation_rules` 和 `risk_rules` 是通用输出补全规则：
+
+- `absent_any`：当前输出条目中缺少任一关键词时，追加 `message`。
+- `task_any`：可选；非空时，仅当任务文本命中其中任一关键词才启用该规则。
+- `task_none`：可选；非空时，任务文本命中其中任一关键词则跳过该规则。
+
+新增角色级业务补全时，应优先用 `task_any/task_none` 做任务门控，避免某个细分业务规则污染同角色的普通问题。
 
 ## Prompt 规则
 

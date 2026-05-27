@@ -4,6 +4,7 @@ import type {
   AgentChatRuntimeSelection,
   AgentRuntimeOptions,
 } from "../domain/agent-runtime-options"
+import { DEFAULT_AGENT_RUNTIME_OPTIONS } from "../domain/default-agent-runtime-options"
 import {
   buildCompactRuntimeSummary,
   selectedRoleSummary,
@@ -14,6 +15,12 @@ const t = ((key: string, values?: Record<string, unknown>) => {
     "agentChat.strategy.options.learning.shortHint": "Teaching",
     "agentChat.strategy.options.quick.shortHint": "Short",
     "agentChat.strategy.options.execution.shortHint": "Full",
+    "agentChat.composer.runtime.learningLevels.higher_vocational.label":
+      "Applied",
+    "agentChat.composer.runtime.roleLabels.ops.name": "Ops",
+    "agentChat.composer.runtime.roleModes.manual.label": "Multi-agent",
+    "agentChat.composer.runtime.routingModes.commander.label":
+      "Training route",
     "agentChat.composer.settings.autoRolesSummary": "Backend auto",
     "agentChat.composer.settings.multiAgentSummary": `${values?.count ?? 0} agents collaborating`,
     "agentChat.composer.settings.rolesCount": `${values?.count ?? 0} roles`,
@@ -106,7 +113,7 @@ describe("agent chat runtime summary view model", () => {
         strategyId: "learning",
         t,
       })
-    ).toBe("Teaching / Commander / Auto dispatch / Medium / Backend auto")
+    ).toBe("Teaching / Training route / Auto dispatch / Applied / Backend auto")
   })
 
   it("shows agent collaboration count for manual multi-agent mode", () => {
@@ -127,4 +134,22 @@ describe("agent chat runtime summary view model", () => {
     ).toBe("3 agents collaborating")
   })
 
+  it("uses locale copy for fallback runtime options without showing internal ids", () => {
+    const selection: AgentChatRuntimeSelection = {
+      collaborationMode: "manual",
+      learningLevel: "higher_vocational",
+      primaryRole: "ops",
+      routingMode: "commander",
+      selectedRoles: ["ops", "data", "creative"],
+    }
+
+    expect(
+      buildCompactRuntimeSummary({
+        runtimeOptions: DEFAULT_AGENT_RUNTIME_OPTIONS,
+        runtimeSelection: selection,
+        strategyId: "learning",
+        t,
+      })
+    ).toBe("Teaching / Training route / Multi-agent / Applied / 3 agents collaborating")
+  })
 })

@@ -269,4 +269,30 @@ mod tests {
         assert!(prompt.contains("数据贡献"));
         assert!(!prompt.contains("worker.creative"));
     }
+
+    #[test]
+    fn final_synthesis_prompt_guides_experiment_review_modes() {
+        let prompt = RolePromptBuilder::build_final_synthesis_prompt(&FinalSynthesisPromptInput {
+            task_id: TaskId("task-review".to_string()),
+            task: "复盘低糖冷萃咖啡MVP实验，判断是否放量".to_string(),
+            support_workers: "worker.ops".to_string(),
+            contributions: vec![RoleContribution {
+                role_id: RoleId("role.ops-strategist".to_string()),
+                runtime_role: "ops".to_string(),
+                worker_id: WorkerId("worker.ops".to_string()),
+                task_id: TaskId("task-review".to_string()),
+                content: "experiment_review_report: MVP实验复盘报告已生成；复盘结论：可小步放量；赢家组合：G1；放量/重测/停止依据：样本达标。".to_string(),
+                confidence: None,
+                needs_follow_up: false,
+            }],
+        });
+
+        assert!(prompt.contains("实验复盘"));
+        assert!(prompt.contains("放量 / 调整重测 / 暂停停止 / 样本不足"));
+        assert!(prompt.contains("ROAS、获客成本、毛利扣消耗、转化率、退款差评率"));
+        assert!(prompt.contains("不要把实验计划当成已发生结果"));
+        assert!(prompt.contains("experiment_review_report"));
+        assert!(prompt.contains("MVP实验复盘报告已生成"));
+        assert!(!prompt.contains("worker.ops"));
+    }
 }

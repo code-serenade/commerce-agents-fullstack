@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use super::{
     DEFAULT_NODE_ACCEPTANCE,
@@ -100,12 +100,20 @@ fn dynamic_node_specs(
     let mut specs = Vec::new();
     if rule.dynamic_roles.from_explicit_request.enabled {
         for role in explicit_roles_from_aliases(task, rules) {
+            let skill_autosuggest = skill_autosuggest_for_role(
+                &rule
+                    .dynamic_roles
+                    .from_explicit_request
+                    .skill_autosuggest_by_role,
+                &role,
+                rule.dynamic_roles.from_explicit_request.skill_autosuggest,
+            );
             specs.push(TaskGraphNodeSpec::Dynamic {
                 id: role.clone(),
                 depends_on: default_dynamic_depends_on(&role, &specs),
                 role,
                 llm_usage: rule.dynamic_roles.from_explicit_request.llm_usage.clone(),
-                skill_autosuggest: rule.dynamic_roles.from_explicit_request.skill_autosuggest,
+                skill_autosuggest,
             });
         }
         if let Some(final_role) = rules.defaults.final_role.as_ref()
@@ -123,7 +131,14 @@ fn dynamic_node_specs(
                 role: final_role.clone(),
                 depends_on: Vec::new(),
                 llm_usage: rule.dynamic_roles.from_explicit_request.llm_usage.clone(),
-                skill_autosuggest: rule.dynamic_roles.from_explicit_request.skill_autosuggest,
+                skill_autosuggest: skill_autosuggest_for_role(
+                    &rule
+                        .dynamic_roles
+                        .from_explicit_request
+                        .skill_autosuggest_by_role,
+                    final_role,
+                    rule.dynamic_roles.from_explicit_request.skill_autosuggest,
+                ),
             });
         }
     }
@@ -148,16 +163,29 @@ fn dynamic_node_specs(
             {
                 continue;
             }
+            let skill_autosuggest = skill_autosuggest_for_role(
+                &rule.dynamic_roles.from_route.skill_autosuggest_by_role,
+                &role,
+                rule.dynamic_roles.from_route.skill_autosuggest,
+            );
             specs.push(TaskGraphNodeSpec::Dynamic {
                 id: role.clone(),
                 depends_on: default_dynamic_depends_on(&role, &specs),
                 role,
                 llm_usage: rule.dynamic_roles.from_route.llm_usage.clone(),
-                skill_autosuggest: rule.dynamic_roles.from_route.skill_autosuggest,
+                skill_autosuggest,
             });
         }
     }
     specs
+}
+
+fn skill_autosuggest_for_role(
+    by_role: &HashMap<String, bool>,
+    role: &str,
+    fallback: Option<bool>,
+) -> Option<bool> {
+    by_role.get(role).copied().or(fallback)
 }
 
 fn should_include_route_support(

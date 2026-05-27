@@ -82,6 +82,10 @@ async fn data_role_executes_native_data_skills_with_manual_inputs() {
 async fn ops_role_executes_native_optimization_skills_with_manual_inputs() {
     let events = run_skill_batch("ops", "做库存优化、智能定价、广告疲劳和 ABC-XYZ 分类").await;
 
+    assert_skill_status(&events, "product_opportunity_score", "success");
+    assert_skill_status(&events, "product_market_fit_diagnosis", "success");
+    assert_skill_status(&events, "experiment_mvp_plan", "success");
+    assert_skill_status(&events, "experiment_review_report", "success");
     assert_skill_status(&events, "ops_smart_pricing", "success");
     assert_skill_status(&events, "ops_inventory_optimizer", "success");
     assert_skill_status(&events, "ops_ad_fatigue_detector", "success");
@@ -92,6 +96,17 @@ async fn ops_role_executes_native_optimization_skills_with_manual_inputs() {
 #[tokio::test]
 async fn creative_design_web_service_and_coordination_native_skills_execute() {
     for (role, input, expected) in [
+        (
+            "chat",
+            "读取上传资料并提炼证据",
+            vec![
+                "material_file_understanding",
+                "material_table_profiler",
+                "material_image_diagnosis",
+                "material_evidence_extractor",
+                "material_multi_file_compare",
+            ],
+        ),
         (
             "creative",
             "生成标题评分和种草内容",
@@ -288,6 +303,78 @@ fn skill_requests_for_role(runtime_role: &str) -> Value {
         ],
         "ops" => vec![
             request(
+                "product_opportunity_score",
+                json!({
+                    "product_name": "低糖冷萃咖啡",
+                    "category": "饮品",
+                    "platform": "抖音",
+                    "target_audience": "校园学生和通勤人群",
+                    "selling_points": ["低糖", "即饮", "便携"],
+                    "cost": 8,
+                    "price": 19.9,
+                    "competitor_prices": [16.9, 19.9, 22.9],
+                    "budget": 3000,
+                    "search_demand_score": 72,
+                    "review_pain_score": 68,
+                    "supply_score": 75
+                }),
+            ),
+            request(
+                "product_market_fit_diagnosis",
+                json!({
+                    "product_name": "低糖冷萃咖啡",
+                    "category": "饮品",
+                    "platform": "抖音",
+                    "target_audience": "校园学生、通勤白领",
+                    "audience_segments": ["早八学生", "控糖健身人群", "通勤白领"],
+                    "selling_points": ["低糖", "即饮", "便携"],
+                    "channels": ["校园社群", "抖音短视频", "小红书种草"],
+                    "use_scenarios": ["早八提神", "通勤路上", "健身后控糖"],
+                    "pain_points": ["想提神但怕糖高", "不方便现磨咖啡"],
+                    "price": 19.9,
+                    "competitor_prices": [16.9, 19.9, 22.9],
+                    "opportunity_score": 76,
+                    "review_pain_score": 68
+                }),
+            ),
+            request(
+                "experiment_mvp_plan",
+                json!({
+                    "product_name": "低糖冷萃咖啡",
+                    "category": "饮品",
+                    "platform": "抖音",
+                    "target_audience": "校园学生、通勤白领",
+                    "audience_segments": ["早八学生", "控糖健身人群", "通勤白领"],
+                    "selling_points": ["低糖", "即饮", "便携"],
+                    "channels": ["校园社群", "抖音短视频", "小红书种草"],
+                    "use_scenarios": ["早八提神", "通勤路上", "健身后控糖"],
+                    "budget": 3000,
+                    "days": 14,
+                    "price": 19.9,
+                    "cost": 8,
+                    "opportunity_score": 76,
+                    "market_fit_score": 74
+                }),
+            ),
+            request(
+                "experiment_review_report",
+                json!({
+                    "product_name": "低糖冷萃咖啡",
+                    "category": "饮品",
+                    "platform": "抖音",
+                    "experiment_name": "14天MVP测品",
+                    "budget": 3000,
+                    "days": 14,
+                    "price": 19.9,
+                    "cost": 8,
+                    "experiment_groups": [
+                        {"name": "G1", "audience": "早八学生", "channel": "校园社群", "selling_point": "低糖提神", "spend": 1000, "impressions": 18000, "clicks": 620, "consultations": 54, "add_to_cart": 38, "orders": 18, "gmv": 358.2, "refunds": 1, "negative_reviews": 0},
+                        {"name": "G2", "audience": "通勤白领", "channel": "抖音短视频", "selling_point": "便携即饮", "spend": 1100, "impressions": 22000, "clicks": 520, "consultations": 31, "add_to_cart": 22, "orders": 9, "gmv": 179.1, "refunds": 0, "negative_reviews": 1},
+                        {"name": "G3", "audience": "控糖健身", "channel": "小红书种草", "selling_point": "低糖控卡", "spend": 900, "impressions": 15000, "clicks": 450, "consultations": 40, "add_to_cart": 30, "orders": 12, "gmv": 238.8, "refunds": 0, "negative_reviews": 0}
+                    ]
+                }),
+            ),
+            request(
                 "ops_smart_pricing",
                 json!({
                     "cost": 68,
@@ -432,6 +519,67 @@ fn skill_requests_for_role(runtime_role: &str) -> Value {
             request(
                 "service_nps_analyzer",
                 json!({"promoters": 620, "passives": 210, "detractors": 70, "csat": 88}),
+            ),
+        ],
+        "chat" => vec![
+            request(
+                "material_file_understanding",
+                json!({
+                    "material_name": "profit.xlsx",
+                    "material_type": "excel",
+                    "content_text": "商品A 成本 12 元，售价 29 元，月销量 300 件。",
+                    "user_question": "请根据上传资料分析利润空间",
+                    "context_refs": ["conversation_file:file-1"]
+                }),
+            ),
+            request(
+                "material_table_profiler",
+                json!({
+                    "table_name": "profit.xlsx",
+                    "table_text": "商品,GMV,成本,广告费,访客,订单\nA,12000,7000,1200,3000,180\nB,8000,5200,900,2400,120",
+                    "user_question": "请根据上传表格分析利润和 ROAS",
+                    "context_refs": ["conversation_file:file-1"]
+                }),
+            ),
+            request(
+                "material_image_diagnosis",
+                json!({
+                    "image_name": "main-image.png",
+                    "image_type": "main_image",
+                    "vision_summary": "画面中心是冷萃咖啡瓶，背景偏暗，右上角有低糖0脂卖点，底部价格19.9元。",
+                    "ocr_text": "低糖0脂 冷萃咖啡 19.9元",
+                    "user_question": "请诊断这张主图的卖点和风险",
+                    "context_refs": ["conversation_file:image-1"]
+                }),
+            ),
+            request(
+                "material_evidence_extractor",
+                json!({
+                    "material_name": "mixed-materials",
+                    "content_text": "商品A 成本 12 元，售价 29 元，月销量 300 件。\n客服评价集中在发货慢和包装破损。\n平台规则提示不得使用全网最低等绝对化表述。",
+                    "user_question": "请提取利润、客服和合规风险证据",
+                    "context_refs": ["conversation_file:file-1"]
+                }),
+            ),
+            request(
+                "material_multi_file_compare",
+                json!({
+                    "materials": [
+                        {
+                            "ref": "conversation_file:file-1",
+                            "title": "活动前复盘",
+                            "type": "text",
+                            "summary": "GMV 12000 元，转化率 3.2%，客服反馈发货慢。"
+                        },
+                        {
+                            "ref": "conversation_file:file-2",
+                            "title": "活动后复盘",
+                            "type": "text",
+                            "summary": "GMV 18000 元，转化率 4.5%，客服反馈发货慢，库存不足。"
+                        }
+                    ],
+                    "user_question": "请对比两份资料的共同点、差异点和冲突点"
+                }),
             ),
         ],
         _ => Vec::new(),

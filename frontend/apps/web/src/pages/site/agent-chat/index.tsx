@@ -10,6 +10,7 @@ import {
   findLatestProcessTarget,
   type AgentProcessTarget,
 } from "./view-model/agent-process-visibility-view-model"
+import { useAgentChatRequestedComposerPanel } from "./view-model/use-agent-chat-requested-composer-panel"
 
 type ActiveProcessTarget = AgentProcessTarget
 
@@ -17,6 +18,7 @@ export default function AgentChatPage() {
   const chat = useAgentChatContext()
   const navigate = useNavigate()
   const [composerFocusVersion, setComposerFocusVersion] = useState(0)
+  const requestedComposerPanel = useAgentChatRequestedComposerPanel()
   const [activeProcessTarget, setActiveProcessTarget] =
     useState<ActiveProcessTarget | null>(null)
   const latestProcessTarget = useMemo(
@@ -88,12 +90,17 @@ export default function AgentChatPage() {
             canSend={chat.canSend}
             error={chat.error}
             input={chat.input}
-            focusVersion={composerFocusVersion}
+            focusVersion={
+              composerFocusVersion + requestedComposerPanel.focusVersion
+            }
+            requestedPanel={requestedComposerPanel.panel}
+            requestedPanelVersion={requestedComposerPanel.version}
             isLoggedIn={chat.isLoggedIn}
             isLoadingCampaigns={chat.isLoadingCampaigns}
             isLoadingPlaybooks={chat.isLoadingPlaybooks}
             isLoadingProducts={chat.isLoadingProducts}
             isLoadingRuntimeOptions={chat.isLoadingRuntimeOptions}
+            isLoadingSourceLibrary={chat.isLoadingSourceLibrary}
             isStreaming={chat.isStreaming}
             onInputChange={chat.setInput}
             onRuntimeCollaborationModeChange={chat.setRuntimeCollaborationMode}
@@ -111,10 +118,16 @@ export default function AgentChatPage() {
             onToggleCampaignContext={chat.toggleCampaignContext}
             onToggleProductContext={chat.toggleProductContext}
             onToggleSourceContext={chat.toggleSourceContext}
+            onDeleteSelectedSources={() => void chat.deleteSelectedSources()}
+            onAttachExistingSource={(fileId) =>
+              void chat.attachExistingSource(fileId)
+            }
             onUploadAttachments={chat.uploadAttachments}
             selectedCampaigns={chat.selectedCampaigns}
             selectedProducts={chat.selectedProducts}
             selectedSources={chat.selectedSources}
+            sourceLibrary={chat.sourceLibrary}
+            sourceLibraryError={chat.sourceLibraryError}
             playbooks={chat.playbooks}
             runtimeOptions={chat.runtimeOptions}
             runtimeSelection={chat.runtimeSelection}

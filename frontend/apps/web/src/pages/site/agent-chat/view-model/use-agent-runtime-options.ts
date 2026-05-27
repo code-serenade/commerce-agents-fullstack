@@ -14,6 +14,7 @@ import {
   setRuntimeRoutingMode,
   toggleRuntimeRole,
 } from "../domain/agent-runtime-options"
+import { DEFAULT_AGENT_RUNTIME_OPTIONS } from "../domain/default-agent-runtime-options"
 import { agentChatData } from "../agent-chat-data"
 
 interface AgentRuntimeOptionsState {
@@ -24,7 +25,7 @@ interface AgentRuntimeOptionsState {
 
 export function useAgentRuntimeOptions(input: { enabled: boolean }) {
   const [runtimeOptions, setRuntimeOptions] =
-    useState<AgentRuntimeOptions | null>(null)
+    useState<AgentRuntimeOptions | null>(DEFAULT_AGENT_RUNTIME_OPTIONS)
   const [isLoadingRuntimeOptions, setIsLoadingRuntimeOptions] = useState(false)
   const [runtimeSelection, setRuntimeSelection] =
     useState<AgentChatRuntimeSelection>(() => defaultRuntimeSelection(null))
@@ -88,10 +89,8 @@ export function useAgentRuntimeOptions(input: { enabled: boolean }) {
 
   return {
     isLoadingRuntimeOptions: input.enabled && isLoadingRuntimeOptions,
-    runtimeOptions: input.enabled ? runtimeOptions : null,
-    runtimeSelection: input.enabled
-      ? runtimeSelection
-      : defaultRuntimeSelection(null),
+    runtimeOptions: runtimeOptions ?? DEFAULT_AGENT_RUNTIME_OPTIONS,
+    runtimeSelection,
     ...commands,
   }
 }
@@ -112,7 +111,10 @@ function loadAgentRuntimeOptions(
     })
     .catch(() => {
       if (isCancelled()) return
-      state.setRuntimeOptions(null)
+      state.setRuntimeOptions(DEFAULT_AGENT_RUNTIME_OPTIONS)
+      state.setRuntimeSelection((current) =>
+        normalizeRuntimeSelection(current, DEFAULT_AGENT_RUNTIME_OPTIONS)
+      )
     })
     .finally(() => {
       if (!isCancelled()) state.setIsLoadingRuntimeOptions(false)

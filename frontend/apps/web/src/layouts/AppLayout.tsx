@@ -1,21 +1,10 @@
 import { Outlet, useLocation } from "react-router"
 import { AgentChatShell, WebAppShell } from "@/shell"
+import { isAgentShellRoute } from "./app-layout-routes"
 
 export default function AppLayout() {
   const location = useLocation()
-  const isAgentChatRoute =
-    location.pathname === "/" ||
-    location.pathname === "/commerce" ||
-    location.pathname === "/agent" ||
-    location.pathname === "/agent-capabilities" ||
-    location.pathname === "/overview" ||
-    location.pathname === "/products" ||
-    location.pathname === "/campaigns" ||
-    location.pathname === "/workspaces" ||
-    location.pathname === "/platform-connect" ||
-    location.pathname === "/approvals" ||
-    location.pathname === "/operations" ||
-    location.pathname === "/agent-output"
+  const isAgentChatRoute = isAgentShellRoute(location.pathname)
 
   if (isAgentChatRoute) {
     return (

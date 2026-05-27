@@ -8,6 +8,7 @@ import type {
   AgentChatAttachmentItem,
   AgentChatConversationItem,
 } from "../types"
+import type { AgentChatSourceContextSelection } from "../domain/agent-chat-context-selection"
 import { uploadAgentChatAttachments } from "./agent-chat-attachments"
 
 export function useAgentChatAttachmentUploads(input: {
@@ -17,6 +18,8 @@ export function useAgentChatAttachmentUploads(input: {
   isStreaming: boolean
   messageFormatCopy: AgentChatMessageFormatCopy
   sessionIdRef: MutableRefObject<string>
+  restoreSelectedSources: (sourceRefs: string[]) => void
+  selectedSources: AgentChatSourceContextSelection[]
   setAttachments: Dispatch<SetStateAction<AgentChatAttachmentItem[]>>
   setConversationId: Dispatch<SetStateAction<string | null>>
   setConversations: Dispatch<SetStateAction<AgentChatConversationItem[]>>
@@ -29,6 +32,8 @@ export function useAgentChatAttachmentUploads(input: {
     isLoggedIn,
     isStreaming,
     messageFormatCopy,
+    restoreSelectedSources,
+    selectedSources,
     sessionIdRef,
     setAttachments,
     setConversationId,
@@ -42,7 +47,7 @@ export function useAgentChatAttachmentUploads(input: {
       if (!isLoggedIn || isStreaming || files.length === 0) return
       setError(null)
       try {
-        const activeConversationId = await uploadAgentChatAttachments({
+        const result = await uploadAgentChatAttachments({
           conversationId,
           fallbackConversationTitle,
           files,
@@ -50,8 +55,15 @@ export function useAgentChatAttachmentUploads(input: {
           setConversationId,
           setConversations,
         })
-        if (activeConversationId) {
-          sessionIdRef.current = activeConversationId
+        if (result.conversationId) {
+          sessionIdRef.current = result.conversationId
+        }
+        if (result.fileIds.length) {
+          const sourceRefs = [
+            ...selectedSources.map((source) => source.ref),
+            ...result.fileIds.map((fileId) => `conversation_file:${fileId}`),
+          ]
+          restoreSelectedSources(Array.from(new Set(sourceRefs)))
         }
       } catch (err) {
         setError(
@@ -68,6 +80,8 @@ export function useAgentChatAttachmentUploads(input: {
       isLoggedIn,
       isStreaming,
       messageFormatCopy,
+      restoreSelectedSources,
+      selectedSources,
       sessionIdRef,
       setAttachments,
       setConversationId,

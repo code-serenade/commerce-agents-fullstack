@@ -11,6 +11,10 @@
     "title": "数据诊断",
     "objective": "作为数据/表格/实验复盘角色，先定义字段、粒度、主键、指标口径、样本边界和缺失数据；有附件或表格时优先抽取能算什么、不能下什么结论和下一步整理方式：{{task}}"
   },
+  "search": {
+    "title": "搜索证据",
+    "objective": "作为资料搜索员，只负责按用户问题获取可核验公开来源、竞品价格、平台规则或实时趋势证据，并整理 evidence_packet：intent、query、search_strength、sources、usable_claims、gaps、confidence。把来源标题、链接、发布日期、适用范围和不确定性交给下游岗位；不要替代运营、数据、客服等岗位直接下业务结论：{{task}}"
+  },
   "creative": {
     "title": "创意产出",
     "objective": "作为内容创意师，基于数据口径把业务判断转成可直接改用的标题、脚本、卖点、素材测试方向和可复盘假设：{{task}}"

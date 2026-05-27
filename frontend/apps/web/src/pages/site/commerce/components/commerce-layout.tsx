@@ -16,15 +16,15 @@ export function CommercePageHeader({
   title,
 }: CommercePageHeaderProps) {
   return (
-    <div className="flex min-w-0 flex-col gap-3 border-b border-(--app-border) bg-(--app-bg) p-4 sm:flex-row sm:items-start sm:justify-between sm:px-5">
+    <div className="flex min-w-0 flex-col gap-2 border-b border-(--app-border) bg-(--app-bg) px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
       <div className="min-w-0">
-        <p className="text-xs font-medium tracking-normal text-muted-foreground">
+        <p className="text-[11px] font-medium tracking-normal text-muted-foreground">
           {eyebrow}
         </p>
-        <h1 className="mt-1 text-2xl/tight font-semibold text-foreground">
+        <h1 className="mt-0.5 text-xl/tight font-semibold text-foreground">
           {title}
         </h1>
-        <p className="mt-1 max-w-3xl text-sm/6 text-muted-foreground">
+        <p className="mt-0.5 max-w-3xl text-xs/5 text-muted-foreground sm:text-sm/5">
           {description}
         </p>
       </div>

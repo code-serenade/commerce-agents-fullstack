@@ -1,57 +1,12 @@
 import { describe, expect, it } from "vitest"
 import type { AgentRuntimeEvent } from "@/api"
 import { getDispatchFacts } from "./agent-process-facts-view-model"
-
-const planLabel = "Plan"
-const planDetail = "complex task_graph"
-const contextBudgetLabel = "Context budget"
-const contextBudgetDetail = "12 history 3 materials"
-const historyWindowLabel = "History window"
-const historyWindowDetail = "recent 12 total 18"
-const workspaceLabel = "Workspace materials"
-const workspaceDetail = "partial 1/3"
-const workspaceWarningLabel = "Material note"
-const workspaceWarningDetail = "unsupported pdf"
-const workspaceOmittedLabel = "Not in context"
-const workspaceOmittedDetail = "2 omitted file-b, file-c"
-
-const t = ((key: string, params?: Record<string, unknown>) => {
-  if (key === "agentChat.thread.dispatchFacts.plan.label") return planLabel
-  if (key === "agentChat.thread.dispatchFacts.plan.detail") {
-    return `${params?.difficulty} ${params?.mode}`
-  }
-  if (key === "agentChat.thread.dispatchFacts.contextBudget.label") {
-    return contextBudgetLabel
-  }
-  if (key === "agentChat.thread.dispatchFacts.contextBudget.detail") {
-    return `${params?.history} history ${params?.materials} materials`
-  }
-  if (key === "agentChat.thread.dispatchFacts.historyWindow.label") {
-    return historyWindowLabel
-  }
-  if (key === "agentChat.thread.dispatchFacts.historyWindow.truncated") {
-    return `recent ${params?.recent} total ${params?.total}`
-  }
-  if (key === "agentChat.thread.dispatchFacts.workspace.label") {
-    return workspaceLabel
-  }
-  if (key === "agentChat.thread.dispatchFacts.workspace.detail") {
-    return `${params?.readiness} ${params?.readable}/${params?.total}`
-  }
-  if (key === "agentChat.thread.dispatchFacts.workspaceWarning.label") {
-    return workspaceWarningLabel
-  }
-  if (key === "agentChat.thread.dispatchFacts.workspaceWarning.detail") {
-    return String(params?.warning)
-  }
-  if (key === "agentChat.thread.dispatchFacts.workspaceOmitted.label") {
-    return workspaceOmittedLabel
-  }
-  if (key === "agentChat.thread.dispatchFacts.workspaceOmitted.detail") {
-    return `${params?.count} omitted ${params?.refs}`
-  }
-  return key
-}) as never
+import {
+  dispatchFactTestLabels,
+  node,
+  reported,
+  t,
+} from "./agent-process-facts-test-helpers"
 
 describe("getDispatchFacts", () => {
   it("shows truncated conversation history window from backend dispatch budget", () => {
@@ -84,18 +39,18 @@ describe("getDispatchFacts", () => {
 
     expect(getDispatchFacts(events, t)).toEqual([
       {
-        detail: planDetail,
-        label: planLabel,
+        detail: dispatchFactTestLabels.planDetail,
+        label: dispatchFactTestLabels.planLabel,
         tone: "success",
       },
       {
-        detail: contextBudgetDetail,
-        label: contextBudgetLabel,
+        detail: dispatchFactTestLabels.contextBudgetDetail,
+        label: dispatchFactTestLabels.contextBudgetLabel,
         tone: "success",
       },
       {
-        detail: historyWindowDetail,
-        label: historyWindowLabel,
+        detail: dispatchFactTestLabels.historyWindowDetail,
+        label: dispatchFactTestLabels.historyWindowLabel,
         tone: "success",
       },
     ])
@@ -118,20 +73,152 @@ describe("getDispatchFacts", () => {
 
     expect(getDispatchFacts(events, t)).toEqual([
       {
-        detail: workspaceDetail,
-        label: workspaceLabel,
+        detail:
+          "omitted 2 selected 0 packed 3 readable 1 missing 0 omitted 2 unreadable 2 warnings 1 readiness partial",
+        label: dispatchFactTestLabels.materialAuditLabel,
+        tone: "warning",
+      },
+      {
+        detail: dispatchFactTestLabels.workspaceDetail,
+        label: dispatchFactTestLabels.workspaceLabel,
         tone: "success",
       },
       {
-        detail: workspaceWarningDetail,
-        label: workspaceWarningLabel,
+        detail: dispatchFactTestLabels.workspaceWarningDetail,
+        label: dispatchFactTestLabels.workspaceWarningLabel,
         tone: "warning",
       },
       {
-        detail: workspaceOmittedDetail,
-        label: workspaceOmittedLabel,
+        detail: dispatchFactTestLabels.workspaceOmittedDetail,
+        label: dispatchFactTestLabels.workspaceOmittedLabel,
         tone: "warning",
       },
     ])
+  })
+
+  it("shows selected material refs against readable workspace pack items", () => {
+    const events: AgentRuntimeEvent[] = [
+      {
+        type: "context_loaded",
+        contextRefs: [
+          "conversation_file:file-a",
+          "product:product-a",
+          "product_material:material-a",
+        ],
+        knowledge_count: 0,
+        product_count: 1,
+        refs: ["conversation_file:file-a"],
+        source_count: 2,
+      },
+      {
+        type: "workspace_context_pack_loaded",
+        items: [
+          { id: "file-a", refKey: "conversation_file:file-a", text: "readable text" },
+          { id: "material-a", ref_key: "product_material:material-a", text: "rows" },
+        ],
+        readiness: "ready",
+      },
+    ]
+
+    expect(getDispatchFacts(events, t)).toContainEqual({
+      detail:
+        "ready selected 2 packed 2 readable 2 missing 0 omitted 0 unreadable 0 warnings 0 readiness ready",
+      label: dispatchFactTestLabels.materialAuditLabel,
+      tone: "success",
+    })
+  })
+
+  it("warns when selected material refs have not reached the workspace pack", () => {
+    const events: AgentRuntimeEvent[] = [
+      {
+        type: "context_loaded",
+        contextRefs: ["conversation_file:file-a", "product:product-a"],
+        knowledge_count: 0,
+        product_count: 1,
+        source_count: 1,
+      },
+    ]
+
+    expect(getDispatchFacts(events, t)).toContainEqual({
+      detail:
+        "pending pack selected 1 packed 0 readable 0 missing 1 omitted 0 unreadable 0 warnings 0 readiness pending",
+      label: dispatchFactTestLabels.materialAuditLabel,
+      tone: "warning",
+    })
+  })
+
+  it("warns when selected material refs are missing from a loaded workspace pack", () => {
+    const events: AgentRuntimeEvent[] = [
+      {
+        type: "context_loaded",
+        contextRefs: ["conversation_file:file-a", "conversation_file:file-b"],
+        knowledge_count: 0,
+        product_count: 0,
+        source_count: 2,
+      },
+      {
+        type: "workspace_context_pack_loaded",
+        items: [
+          { id: "file-a", refKey: "conversation_file:file-a", text: "readable text" },
+        ],
+        readiness: "ready",
+      },
+    ]
+
+    expect(getDispatchFacts(events, t)).toContainEqual({
+      detail:
+        "missing pack 1 selected 2 packed 1 readable 1 missing 1 omitted 0 unreadable 0 warnings 0 readiness ready",
+      label: dispatchFactTestLabels.materialAuditLabel,
+      tone: "warning",
+    })
+  })
+
+  it("shows planned and executed role coverage for task graph events", () => {
+    const events: AgentRuntimeEvent[] = [
+      {
+        type: "task_graph_planned",
+        graph: {
+          graph_id: "graph-1",
+          root_task: "diagnose campaign",
+          nodes: [
+            node("data", "data"),
+            node("ops", "ops"),
+            node("ops_final", "ops"),
+          ],
+        },
+      },
+      reported("data", "data"),
+      reported("ops", "ops"),
+      reported("ops_final", "ops"),
+    ]
+
+    expect(getDispatchFacts(events, t)).toContainEqual({
+      detail: dispatchFactTestLabels.roleAuditDetail,
+      label: dispatchFactTestLabels.roleAuditLabel,
+      tone: "success",
+    })
+  })
+
+  it("warns when a planned role has not produced a report", () => {
+    const events: AgentRuntimeEvent[] = [
+      {
+        type: "task_graph_planned",
+        graph: {
+          graph_id: "graph-1",
+          root_task: "diagnose campaign",
+          nodes: [
+            node("data", "data"),
+            node("ops", "ops"),
+          ],
+        },
+      },
+      reported("data", "data"),
+    ]
+
+    expect(getDispatchFacts(events, t)).toContainEqual({
+      detail: dispatchFactTestLabels.roleAuditWarning,
+      label: dispatchFactTestLabels.roleAuditLabel,
+      tone: "warning",
+    })
   })
 })

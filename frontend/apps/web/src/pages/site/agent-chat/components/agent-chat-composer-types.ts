@@ -2,6 +2,7 @@ import type {
   AgentChatCampaignContextSelection,
   AgentChatProductContextSelection,
   AgentChatSourceContextSelection,
+  AgentChatSourceLibraryItem,
 } from "../domain/agent-chat-context-selection"
 import type { AgentChatPlaybookSelection } from "../domain/agent-chat-playbook"
 import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
@@ -10,6 +11,7 @@ import type {
   AgentRuntimeOptions,
 } from "../domain/agent-runtime-options"
 import type { AgentChatAttachmentItem } from "../types"
+import type { AgentChatComposerPanelId } from "../view-model/use-agent-chat-panel-state"
 
 export interface AgentChatComposerProps {
   attachments: AgentChatAttachmentItem[]
@@ -19,12 +21,15 @@ export interface AgentChatComposerProps {
   canSend: boolean
   error: string | null
   focusVersion?: number
+  requestedPanel?: AgentChatComposerPanelId | null
+  requestedPanelVersion?: number
   input: string
   isLoggedIn: boolean
   isLoadingPlaybooks: boolean
   isLoadingCampaigns: boolean
   isLoadingProducts: boolean
   isLoadingRuntimeOptions: boolean
+  isLoadingSourceLibrary: boolean
   isStreaming: boolean
   onInputChange: (value: string) => void
   onRuntimeCollaborationModeChange: (value: string) => void
@@ -42,10 +47,14 @@ export interface AgentChatComposerProps {
   onToggleCampaignContext: (campaign: AgentChatCampaignContextSelection) => void
   onToggleProductContext: (product: AgentChatProductContextSelection) => void
   onToggleSourceContext: (source: AgentChatSourceContextSelection) => void
+  onDeleteSelectedSources: () => void
+  onAttachExistingSource: (fileId: string) => void
   onUploadAttachments: (files: File[]) => void
   selectedProducts: AgentChatProductContextSelection[]
   selectedCampaigns: AgentChatCampaignContextSelection[]
   selectedSources: AgentChatSourceContextSelection[]
+  sourceLibrary: AgentChatSourceLibraryItem[]
+  sourceLibraryError: string | null
   playbooks: AgentChatPlaybookSelection[]
   runtimeOptions: AgentRuntimeOptions | null
   runtimeSelection: AgentChatRuntimeSelection

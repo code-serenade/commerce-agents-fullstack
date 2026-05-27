@@ -1,4 +1,4 @@
-import { FileUp, LockKeyhole, Send, Square } from "lucide-react"
+import { LockKeyhole, Send, Square } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type {
   AgentChatCampaignContextSelection,
@@ -27,7 +27,6 @@ export function AgentChatComposerToolbar({
   isLoadingProducts,
   isLoadingRuntimeOptions,
   isStreaming,
-  onAttach,
   onRuntimeCollaborationModeChange,
   onRuntimeLearningLevelChange,
   onRuntimePrimaryRoleChange,
@@ -69,7 +68,6 @@ export function AgentChatComposerToolbar({
   isLoadingProducts: boolean
   isLoadingRuntimeOptions: boolean
   isStreaming: boolean
-  onAttach: () => void
   onRuntimeCollaborationModeChange: (value: string) => void
   onRuntimeLearningLevelChange: (value: string) => void
   onRuntimePrimaryRoleChange: (value: string) => void
@@ -101,21 +99,19 @@ export function AgentChatComposerToolbar({
   sourceContextOpen: boolean
   strategyId: AgentChatStrategyId
 }) {
-  const { t } = useTranslation()
-
   return (
     <div className="flex min-w-0 items-center justify-between gap-2">
-      <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
-        <button
-          type="button"
-          className="flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+      <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto overflow-y-hidden pb-1 [scrollbar-gutter:stable] sm:overflow-hidden sm:pb-0">
+        <AgentChatSourceContextBar
+          availableSources={availableSources}
           disabled={isStreaming || !isLoggedIn}
-          onClick={onAttach}
-          title={t("agentChat.composer.attachTitle")}
-        >
-          <FileUp className="size-3.5" />
-          <span>{t("agentChat.composer.attachShort")}</span>
-        </button>
+          isOpen={sourceContextOpen}
+          onClearSourceContext={onClearSourceContext}
+          onOpenChange={onToggleSourcePanel}
+          onToggleSourceContext={onToggleSourceContext}
+          selectedSources={selectedSources}
+          variant="compact"
+        />
         <AgentChatProductContextBar
           availableProducts={availableProducts}
           disabled={isStreaming}
@@ -136,16 +132,6 @@ export function AgentChatComposerToolbar({
           onOpenChange={onToggleCampaignPanel}
           onToggleCampaignContext={onToggleCampaignContext}
           selectedCampaigns={selectedCampaigns}
-          variant="compact"
-        />
-        <AgentChatSourceContextBar
-          availableSources={availableSources}
-          disabled={isStreaming}
-          isOpen={sourceContextOpen}
-          onClearSourceContext={onClearSourceContext}
-          onOpenChange={onToggleSourcePanel}
-          onToggleSourceContext={onToggleSourceContext}
-          selectedSources={selectedSources}
           variant="compact"
         />
         <AgentChatSettingsPanel

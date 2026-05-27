@@ -80,6 +80,10 @@ pub(super) struct RoleOutputPolicy {
 struct OutputRule {
     #[serde(default)]
     absent_any: Vec<String>,
+    #[serde(default)]
+    task_any: Vec<String>,
+    #[serde(default)]
+    task_none: Vec<String>,
     message: String,
 }
 
@@ -253,10 +257,15 @@ impl WorkerOutputPolicy {
         );
     }
 
-    pub(super) fn normalize_role_specific_risks(&self, role: &str, risks: &mut Vec<String>) {
+    pub(super) fn normalize_role_specific_risks(
+        &self,
+        role: &str,
+        risks: &mut Vec<String>,
+        task: &str,
+    ) {
         apply_rules(
             risks,
-            "",
+            task,
             self.role(role)
                 .map(|role| role.risk_rules.as_slice())
                 .unwrap_or(&[]),
@@ -446,6 +455,12 @@ impl UnsupportedBenchmarkPolicy {
 
 fn apply_rules(items: &mut Vec<String>, task: &str, rules: &[OutputRule]) {
     for rule in rules {
+        if !rule.task_any.is_empty() && !contains_any_in_text(task, &rule.task_any) {
+            continue;
+        }
+        if !rule.task_none.is_empty() && contains_any_in_text(task, &rule.task_none) {
+            continue;
+        }
         if !contains_any_in_items(items, &rule.absent_any) {
             super::util::push_unique(items, render(&rule.message, task));
         }
@@ -475,6 +490,18 @@ fn contains_any_in_items(items: &[String], needles: &[String]) -> bool {
     items
         .iter()
         .any(|item| needles.iter().any(|needle| item.contains(needle)))
+}
+
+fn contains_any_in_text(text: &str, needles: &[String]) -> bool {
+    if needles.is_empty() || text.is_empty() {
+        return false;
+    }
+    let normalized_text = text.to_lowercase();
+    needles.iter().any(|needle| {
+        let needle = needle.trim();
+        !needle.is_empty()
+            && (text.contains(needle) || normalized_text.contains(&needle.to_lowercase()))
+    })
 }
 
 static POLICIES: OnceLock<WorkerPolicySet> = OnceLock::new();

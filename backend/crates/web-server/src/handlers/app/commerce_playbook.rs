@@ -178,7 +178,7 @@ pub async fn get_agent_capability_catalog(
 
     Ok(AgentCapabilityCatalogResponse {
         source: "agent_runtime".to_string(),
-        version: "post_8_137".to_string(),
+        version: "post_8_146_experiment_review_report".to_string(),
         summary: capability_summary(&registry),
         roles,
     }

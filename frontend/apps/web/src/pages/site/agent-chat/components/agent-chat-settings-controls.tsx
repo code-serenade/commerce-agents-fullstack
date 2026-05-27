@@ -32,7 +32,7 @@ export function AgentChatSettingsControls({
   strategyId: AgentChatStrategyId
 }) {
   return (
-    <div className="grid gap-3 rounded-xl border border-border bg-background p-3">
+    <div className="grid gap-2 rounded-lg border border-border bg-background p-2.5">
       <AgentChatStrategyBar
         disabled={isStreaming}
         onStrategyChange={onStrategyChange}

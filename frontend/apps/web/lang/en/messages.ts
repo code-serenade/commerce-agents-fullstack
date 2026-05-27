@@ -11,13 +11,13 @@ const messages = {
         workspace: "Training flow",
         governance: "Review and records",
         agentSection: "Training outputs",
-        home: "Data diagnosis",
-        products: "Product materials",
-        campaigns: "Campaign plans",
-        workspaces: "Tasks and submissions",
+        home: "Data analysis",
+        products: "Product selection and materials",
+        campaigns: "Campaign planning",
+        workspaces: "Task submission",
         platformConnect: "Platform data",
         approvals: "Teacher review records",
-        operations: "Result records",
+        operations: "Training outcomes",
         agent: "AI training assistant",
         agentOutput: "Report materials",
         profile: "Profile",
@@ -206,7 +206,7 @@ const messages = {
     pages: {
       overview: {
         eyebrow: "Training Console",
-        title: "Data diagnosis",
+        title: "Data analysis",
         description:
           "Start with products, campaigns, operating data, and pending items to decide what this training task should solve first.",
         boundaryTitle: "What students can do now",
@@ -215,19 +215,28 @@ const messages = {
       },
       products: {
         eyebrow: "Product Training",
-        title: "Product materials",
+        title: "Product selection and materials",
         description:
           "Review products, product knowledge, file assets, material versions, competitors, and changes as context for selection analysis and AI training questions.",
       },
+      files: {
+        eyebrow: "Training Materials",
+        title: "File manager",
+        description:
+          "Manage uploaded images, PDF, Word, Excel, and text files, then reuse them in the current AI training conversation.",
+        boundaryTitle: "How materials are used",
+        boundaryDescription:
+          "This is the full materials library. Upload, search, filter, add to the current conversation, and select files for this turn here. The composer Upload materials panel is only the lightweight pre-send check.",
+      },
       campaigns: {
         eyebrow: "Campaign Practice",
-        title: "Campaign plans",
+        title: "Campaign planning",
         description:
           "Organize campaign goals, budgets, periods, outputs, and action metadata into a submittable plan.",
       },
       workspaces: {
         eyebrow: "Training Tasks",
-        title: "Tasks and submissions",
+        title: "Task submission",
         description:
           "Carry AI output into tasks, runs, snapshots, and execution suggestions so student work becomes checkable deliverables.",
         boundaryTitle: "Execution note",
@@ -254,12 +263,184 @@ const messages = {
       },
       operations: {
         eyebrow: "Operating Results",
-        title: "Result records",
+        title: "Training outcomes",
         description:
           "Track long-task records, daily briefings, background notifications, and alerts so students can review operating process and anomalies.",
         boundaryTitle: "Result note",
         boundaryDescription:
           "Use this area to observe progress, anomalies, and results, then support the next review report.",
+      },
+    },
+    files: {
+      panelTitle: "My material files",
+      panelDescription:
+        "Previously uploaded usable files appear here. Add common materials to the current conversation without uploading again.",
+      searchPlaceholder: "Search file name, type, status, or upload time",
+      emptyTitle: "No reusable materials yet",
+      empty:
+        "No reusable materials yet. Use Upload materials on this page; images, PDF, Word, Excel, and text files will stay here for reuse.",
+      emptyAction: "Upload materials",
+      noFilterResultTitle: "No matching materials",
+      noFilterResult:
+        "The library has files, but the current search term, type, or read-status filter has no matches. Adjust filters and try again.",
+      clearFilters: "Clear filters",
+      errorTitle: "Failed to load materials",
+      uploadAction: "Upload materials",
+      uploadingAction: "Uploading",
+      clearSelection: "Clear selection",
+      deleteSelected: "Delete selected {{count}}",
+      detailDialog: {
+        title: "Material details",
+        description:
+          "Check this material's upload record, storage location, and read result to confirm whether AI can use it.",
+        close: "Close",
+        yes: "Yes",
+        no: "No",
+        sections: {
+          file: "File information",
+          metadata: "Raw metadata",
+          storage: "Storage location",
+          reading: "Read result",
+          usage: "Usage state",
+        },
+        metadata: {
+          copy: "Copy metadata",
+          description:
+            "Use this to inspect backend extraction fields, browser parsing results, and Agent context-packaging clues.",
+        },
+        fields: {
+          bucket: "Bucket",
+          contentKind: "Content kind",
+          conversationId: "Conversation ID",
+          createdAt: "Uploaded",
+          displayName: "File name",
+          failureReason: "Failure reason",
+          fileId: "File ID",
+          aiReadableThisTurn: "Read this turn",
+          messageId: "Message ID",
+          mimeType: "MIME type",
+          objectKey: "Object key",
+          objectRef: "Object reference",
+          parser: "Parser",
+          readStatus: "Read status",
+          recordStatus: "Record status",
+          sha256: "SHA-256",
+          size: "Size",
+          summary: "Read summary",
+          textChars: "Text chars",
+          truncated: "Truncated",
+          type: "Material type",
+          usageState: "Material usage state",
+        },
+        usageHint: {
+          available:
+            "This material is not in the current conversation yet, so this turn will not read it. Use Add material in the list before asking.",
+          attached:
+            "This material is in the current conversation, but it is not selected for this turn yet. Use it this turn before asking.",
+          selectedForTurn:
+            "This material is selected for this turn and will be sent to Agent with context refs on the next message.",
+        },
+        usageState: {
+          available: "Not in conversation",
+          attached: "In conversation",
+          selectedForTurn: "Selected this turn",
+        },
+      },
+      filterSummary: {
+        all: "Showing all {{total}} material(s)",
+        filtered: "Showing {{filtered}} / {{total}} material(s)",
+      },
+      readSummary: {
+        contentKind: "Kind {{kind}}",
+        failure: "Failure: {{reason}}",
+        parser: "Parser {{parser}}",
+        summary: "Summary: {{summary}}",
+        textChars: "{{count}} text chars",
+        truncated: "Truncated",
+      },
+      summary: {
+        total: {
+          label: "Library files",
+          value: "{{count}} file(s)",
+        },
+        readable: {
+          label: "Readable materials",
+          value: "{{count}} file(s)",
+        },
+        attached: {
+          label: "Current conversation",
+          value: "{{count}} file(s)",
+        },
+        selectedForTurn: {
+          label: "Selected this turn",
+          value: "{{count}} file(s)",
+        },
+      },
+      turnSelection: {
+        action: "Show this turn",
+        clearAction: "Remove all this turn",
+        empty:
+          "No material will be sent with the next message. Use Add material or Use this turn in the list first.",
+        files: "Will read: {{names}}. {{hidden}} more are not expanded.",
+        title: "Next message will read {{count}} material(s)",
+      },
+      filters: {
+        kind: {
+          all: "All types",
+          image: "Images",
+          pdf: "PDF",
+          word: "Word",
+          sheet: "Sheets",
+          text: "Text",
+          other: "Other",
+        },
+        readStatus: {
+          all: "All read statuses",
+          readable: "Readable",
+          pending: "Parsing",
+          failed: "Failed",
+          unsupported: "Unsupported",
+        },
+        usage: {
+          all: "All usage states",
+          available: "Not in conversation",
+          attached: "In conversation",
+          selectedForTurn: "Selected this turn",
+        },
+      },
+      deleteDialog: {
+        title: "Delete selected materials",
+        description:
+          "This will delete the {{count}} selected materials from the library and remove them from related conversation material lists. Object files still referenced by other business records are not deleted directly.",
+        impactTitle: "Check the impact before deleting",
+        impactSummary:
+          "{{total}} material(s) selected. {{selectedForTurn}} are selected for this turn, {{attached}} are in the current conversation, and {{readable}} already have readable content.",
+        targetNames: "Deleting: {{names}}. {{hidden}} more are not expanded here.",
+        cancel: "Keep materials",
+        confirm: "Delete materials",
+      },
+      status: {
+        readable: "Readable",
+        pending: "Parsing",
+        failed: "Failed",
+        unsupported: "Unsupported",
+      },
+      table: {
+        name: "Material",
+        status: "Read status",
+        useStateHeader: "Usage state",
+        size: "Size",
+        createdAt: "Uploaded",
+        actions: "Actions",
+        attach: "Add to conversation",
+        attached: "In conversation",
+        detail: "Details",
+        using: "Working",
+        useState: {
+          available: "Add material",
+          attached: "Use this turn",
+          selectedForTurn: "Remove this turn",
+        },
       },
     },
     overview: {
@@ -893,18 +1074,19 @@ const messages = {
       },
       navigation: {
         newChat: "New chat",
-        capabilities: "Capability guide",
-        smartOps: "Multi-agent training assistant",
-        productBoard: "Product materials",
-        campaigns: "Campaign plans",
+        capabilities: "How to use this system",
+        smartOps: "Ask AI for training",
+        materials: "Upload and manage materials",
+        productBoard: "Product and material setup",
+        campaigns: "Design campaign plan",
         platform: "Platform data",
-        marketResearch: "Data diagnosis",
-        operations: "Result records",
+        marketResearch: "Find issues in data",
+        operations: "Review training outcomes",
         briefing: "Daily briefing",
         alerts: "Alerts",
-        deliverables: "Report materials",
+        deliverables: "Organize report materials",
         approvals: "Teacher review records",
-        taskBoard: "Tasks and submissions",
+        taskBoard: "Submit training task",
         systemDashboard: "System dashboard",
         team: "AI team",
         history: "History",
@@ -942,8 +1124,8 @@ const messages = {
         sending:
           "The AI training assistant is analyzing. You can stop this answer at any time.",
       },
-      attachTitle: "Upload attachment",
-      attachShort: "Upload",
+      attachTitle: "Upload materials",
+      attachShort: "Upload materials",
       attachPrompt:
         "Add the file or data constraints here, for example: product price, budget, inventory, target audience, current conversion rate, and platform account status.",
       agentTitle: "Choose collaborating agents",
@@ -968,8 +1150,10 @@ const messages = {
         selectedHint:
           "This turn references only the selected product materials.",
         selectedCount: "{{count}} product selected",
+        selectedSection: "Selected products kept for this turn",
         moreCount: "{{count}} more",
         noSearchResult: "No matching product",
+        showMore: "Show {{count}} more products",
         status: {
           active: "Active",
           draft: "Draft",
@@ -998,8 +1182,10 @@ const messages = {
         selectedHint:
           "This turn will read the selected campaigns' goals, budget, dates, status, and saved outputs.",
         selectedCount: "{{count}} campaign selected",
+        selectedSection: "Selected campaigns kept for this turn",
         budget: "Budget {{value}}",
         noSearchResult: "No matching campaign",
+        showMore: "Show {{count}} more campaigns",
         status: {
           active: "Active",
           draft: "Draft",
@@ -1010,20 +1196,72 @@ const messages = {
         },
       },
       sourceContext: {
-        compactLabel: "Sources",
+        compactLabel: "Upload materials",
         noneCompactLabel: "No sources",
         compactTitle: "Choose sources for this turn",
+        compactReadinessTitle: "Selected material status: {{status}}",
+        panelTitle: "Upload materials and choose what AI reads",
+        panelHint:
+          "Upload images, PDF, Word, Excel, or text files, then select the files needed for this answer.",
+        upload: "Upload materials",
+        manageLibrary: "Manage library",
         noneSelected: "No source selected",
         selectedCount: "{{count}} source selected",
+        selectedPreview: "This turn will read: {{names}}{{hiddenText}}",
+        selectedPreviewHidden: "; {{count}} more not expanded",
+        selectedReadinessLabel: "Selected material status",
+        selectedReadiness: {
+          readable: "{{count}} readable",
+          pending: "{{count}} parsing",
+          failed: "{{count}} failed",
+          unsupported: "{{count}} unsupported",
+          metadataOnly: "{{count}} metadata-only",
+        },
         availableCount: "{{count}} available",
         readableCount: "{{count}} readable",
-        clear: "Clear sources",
+        clear: "Deselect",
+        deleteSelected: "Delete selected",
+        deleteConfirm:
+          "Delete the {{count}} selected materials? Deleting: {{names}}{{hiddenText}}. They will be removed from the current conversation materials. If you only want this turn not to read them, use Deselect.",
+        deleteConfirmHidden: "; {{count}} more not expanded",
         empty:
           "No uploaded files are available in this conversation. Upload a file first, then select it for this turn.",
+        currentSection: "Current conversation materials",
+        currentSectionHint: "Select to read this turn",
+        librarySection: "Recent library files",
+        libraryHint:
+          "Add common materials to this conversation, then select them above before this turn reads them.",
+        libraryLoading: "Loading materials library",
+        currentSearch: "Search current conversation materials",
+        currentNoSearchResult: "No matching current material",
+        librarySearch: "Search library file name, type, or read status",
+        libraryNoSearchResult: "No matching library material",
+        showMoreCurrent: "Show {{count}} more current materials",
+        showMoreLibrary: "Show {{count}} more library files",
+        libraryEmpty:
+          "No recent reusable files are in the library yet. Open the file manager to upload, filter, and manage common materials.",
+        libraryEmptyAction: "Open file manager",
+        libraryAttach: "Add to conversation",
+        libraryAttached: "In conversation",
+        libraryStatus: {
+          readable: "Readable text",
+          pending: "Parsing",
+          failed: "Parse failed",
+          unsupported: "Unsupported",
+          visionReady: "Vision ready",
+        },
         manualHint:
           "This answer references these files only after you manually select them for this turn.",
         selectedHint:
           "This turn will read only the selected current-conversation sources.",
+        sourceStatus: {
+          readable: "Readable text",
+          visionReady: "Vision ready",
+          pending: "Parsing",
+          failed: "Parse failed",
+          unsupported: "Unsupported",
+          metadataOnly: "Metadata only",
+        },
         readable: "Readable text",
         vision: "Vision",
         visionReady: "Vision ready",
@@ -1044,6 +1282,8 @@ const messages = {
       settings: {
         compactLabel: "Mode",
         compactTitle: "Adjust answer mode, agent collaboration, and model",
+        panelTitle: "Answer mode settings",
+        panelHint: "Current: {{mode}}; {{summary}}. Choose answer length, whether to pull the question into ecommerce training analysis, and which agents collaborate.",
         toggle: "Task settings",
         rolesCount: "{{count}} agents",
         depthSummary: "Depth: {{depth}}",
@@ -1062,8 +1302,8 @@ const messages = {
           "The configured Doubao model is used by default. If it is not configured, only available models are shown.",
         learning: "Explanation level",
         collaboration: "Agent collaboration",
-        routingMode: "Routing mode",
-        roleMode: "Collaboration mode",
+        routingMode: "Question handling",
+        roleMode: "Agent collaboration",
         roles: "Collaborating agents",
         singleRole: "Selected agent",
         primary: "Lead agent",
@@ -1086,9 +1326,9 @@ const messages = {
         currentSupport: "Supporting agents: {{roles}}",
         noSupportRoles: "No supporting agent selected",
         advanced: "More settings",
-        explanationDepth: "Explanation depth",
+        explanationDepth: "Explanation detail",
         autoRolesHint:
-          "The system decides whether this turn needs one or multiple agents.",
+          "The system chooses agents based on this question. Switch to single-agent or multi-agent only when you want to force the roles.",
         manualRolesHint:
           "Choose one lead agent for synthesis, then select supporting agents.",
         roleModeHint:
@@ -1096,25 +1336,25 @@ const messages = {
         roleModes: {
           auto: {
             label: "Auto dispatch",
-            description: "Backend decides",
+            description: "System chooses roles",
           },
           single: {
             label: "Single agent",
-            description: "One agent",
+            description: "One role answers",
           },
           manual: {
             label: "Multi-agent",
-            description: "Collaborative output",
+            description: "Choose roles manually",
           },
         },
         routingModes: {
           commander: {
-            label: "Commander",
-            description: "Commander analyzes first",
+            label: "Analyze as ecommerce training",
+            description: "Prioritize product, campaign, data, and review context",
           },
           fast: {
-            label: "Fast route",
-            description: "Match configured task graph first",
+            label: "Identify quickly, then answer",
+            description: "Answer simple questions directly; route complex ones",
           },
         },
         learningLevels: {
@@ -1471,6 +1711,8 @@ const messages = {
         campaignCount: "{{count}} campaigns",
         sourceNone: "No files",
         sourceCount: "{{count}} files",
+        sourceCountWithReadiness:
+          "{{count}} files, {{readable}} readable, {{unreadable}} need review",
         strategy: "Mode: {{strategy}}",
         autoRoles: "Agents: assigned automatically",
         roles: "Agents: lead {{role}} / {{count}} total",
@@ -1479,6 +1721,13 @@ const messages = {
         productDetails: "Referenced products",
         campaignDetails: "Referenced campaigns",
         sourceDetails: "Referenced files",
+        sourceReadiness: {
+          readable: "Readable when sent",
+          pending: "Parsing when sent",
+          failed: "Parse failed when sent",
+          unsupported: "Unsupported when sent",
+          metadataOnly: "Metadata only when sent",
+        },
       },
       actions: {
         copy: "Copy",
@@ -1556,6 +1805,7 @@ const messages = {
         design: "Experience design",
         accounting: "Budget review",
         engineering: "Engineering judgment",
+        search: "Search evidence",
         web: "Web/SEO plan",
         douyin_ads: "Qianchuan ads optimization",
         ops: "Operations plan",
@@ -1624,6 +1874,30 @@ const messages = {
         plannedSkills: {
           label: "Planned Skills",
         },
+        roleAudit: {
+          label: "Role audit",
+          detail: "Planned {{planned}}; executed {{executed}}",
+          warning: "Planned {{planned}}; executed {{executed}}; missing {{missing}}; extra {{extra}}",
+        },
+        searchAudit: {
+          label: "Search audit",
+          detail: "Planned {{planned}}; returned {{executed}}; sources {{sources}}, claims {{claims}}, gaps {{gaps}}, confidence {{confidence}}, strength {{strength}}",
+          pending: "Planned {{planned}}; requested {{requested}}, waiting for result",
+        },
+        materialAudit: {
+          label: "Material read audit",
+          detail: "{{summary}}; selected {{selected}}; packed {{packed}}; readable {{readable}}; missing {{missing}}; omitted {{omitted}}; unreadable {{unreadable}}; warnings {{warnings}}; readiness {{readiness}}",
+          summary: {
+            empty: "No material selected",
+            missingPack: "{{missing}} selected materials did not enter context",
+            notReady: "Material context needs review: {{readiness}}",
+            omitted: "{{omitted}} materials were omitted from context packing",
+            pendingPack: "Selected materials are still waiting for context packing",
+            ready: "Selected materials entered readable context",
+            unreadablePacked: "{{unreadable}} materials entered context without readable text",
+            warnings: "Material reading returned {{warnings}} warnings",
+          },
+        },
         contextBudget: {
           label: "Context budget",
           detail: "{{history}} history messages, {{materials}} selected material signals",
@@ -1671,6 +1945,11 @@ const messages = {
         skill: {
           label: "Skill calls",
           detail: "{{count}} real Skill events in this turn",
+        },
+        skillAudit: {
+          label: "Skill audit",
+          detail:
+            "Planned {{planned}}; requested {{requested}}; succeeded {{succeeded}}; failed {{failed}}; pending {{pending}}",
         },
         output: {
           label: "Output complete",
@@ -2371,19 +2650,24 @@ const messages = {
       eyebrow: "Training Guide",
       title: "AI training capability guide",
       description:
-        "This page explains how students use AI Q&A, product analysis, campaign planning, data diagnosis, and review reports around one ecommerce training task.",
+        "This page explains how students prepare materials first, then use AI Q&A, product analysis, campaign planning, data diagnosis, and review reports around one ecommerce training task.",
       action: "Open AI training assistant",
     },
     principle: {
       title: "How students use it",
       description:
-        "Students do more than open a chat box. They ask around a training task, choose product and campaign context, then store AI output as tasks, review records, and report materials.",
+        "Students do more than open a chat box. They prepare files and product materials first, ask around a training task, choose context, then store AI output as tasks, review records, and report materials.",
     },
     capabilities: {
       title: "Core training capabilities",
       description:
         "These entries reuse existing real capabilities while the frontend organizes them into a student-facing learning and task flow.",
       items: [
+        {
+          title: "File manager",
+          description:
+            "Manage uploaded images, PDF, Word, Excel, and text materials in one place. Add common materials to the current conversation and select them for reading instead of uploading again.",
+        },
         {
           title: "Product materials",
           description:
@@ -2431,6 +2715,7 @@ const messages = {
       description:
         "The student-visible main flow should stay clear, continuous, and traceable.",
       items: [
+        "The student first prepares images, PDF, Word, Excel, and text materials in the file manager or the composer Upload materials panel.",
         "The student creates a new conversation or opens a historical one, then enters a training question.",
         "The student may choose answer mode, collaborating agents, and manually selected product materials.",
         "The system plans the task, calls models and analysis capabilities, and shows the process in real time.",
@@ -2443,6 +2728,11 @@ const messages = {
       description:
         "The left navigation is not just a page menu. It exposes the most-used capability entries for students completing training tasks.",
       items: [
+        {
+          title: "File manager",
+          description:
+            "Prepare and reuse images, PDF, Word, Excel, and text materials before deciding which materials enter the current conversation.",
+        },
         {
           title: "AI training assistant",
           description:

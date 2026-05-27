@@ -141,7 +141,7 @@ fn normalize_worker_role_output(
     if output.risks.is_empty() && output_policy.role_requires_risk(role) {
         output.risks = output_policy.default_role_risks(role);
     }
-    output_policy.normalize_role_specific_risks(role, &mut output.risks);
+    output_policy.normalize_role_specific_risks(role, &mut output.risks, &task_line);
     normalize_user_facing_text(output);
 
     parsed.evidence = merge_unique(parsed.evidence, output.evidence.clone());
@@ -196,5 +196,112 @@ mod tests {
         assert!(output.evidence.is_empty());
         assert!(output.risks.is_empty());
         assert!(output.open_questions.is_empty());
+    }
+
+    #[test]
+    fn ops_experiment_review_output_policy_adds_review_completion_rules() {
+        let parsed = ParsedWorkerRoleOutput {
+            content: String::new(),
+            role_output: Some(RoleWorkOutput {
+                summary: "MVP实验复盘报告已生成".to_string(),
+                findings: vec!["G1 当前表现较好。".to_string()],
+                recommendations: vec!["建议继续观察。".to_string()],
+                evidence: vec!["experiment_review_report".to_string()],
+                risks: vec![],
+                open_questions: vec![],
+            }),
+            evidence: vec![],
+            risks: vec![],
+            open_questions: vec![],
+        };
+        let task = Task {
+            id: "task-review".to_string(),
+            context: MessageContext::default(),
+            description: "低糖冷萃咖啡实验复盘，判断哪组效果好、是否放量还是停止".to_string(),
+            requester: AgentId("user-1".to_string()),
+            assignment: None,
+        };
+
+        let output = normalize_worker_role_output("ops", &task, parsed);
+        let role_output = output.role_output.expect("role output should exist");
+
+        assert!(
+            role_output
+                .findings
+                .iter()
+                .any(|value| value.contains("放量、调整重测、暂停停止或样本不足"))
+        );
+        assert!(
+            role_output
+                .findings
+                .iter()
+                .any(|value| value.contains("赢家组合"))
+        );
+        assert!(
+            role_output
+                .recommendations
+                .iter()
+                .any(|value| value.contains("预算护栏"))
+        );
+        assert!(
+            role_output
+                .recommendations
+                .iter()
+                .any(|value| value.contains("获客成本"))
+        );
+        assert!(
+            role_output
+                .risks
+                .iter()
+                .any(|value| value.contains("不能编造曝光、点击、成交、GMV、ROAS 或风险率"))
+        );
+        assert!(
+            role_output
+                .risks
+                .iter()
+                .any(|value| value.contains("退款、差评、履约和售后"))
+        );
+    }
+
+    #[test]
+    fn ops_non_review_output_policy_does_not_add_experiment_review_rules() {
+        let parsed = ParsedWorkerRoleOutput {
+            content: String::new(),
+            role_output: Some(RoleWorkOutput {
+                summary: "运营活动建议已生成".to_string(),
+                findings: vec!["这次重点是活动节奏和客服承接。".to_string()],
+                recommendations: vec![
+                    "先确定活动目标、主推商品和页面承接。".to_string(),
+                    "准备客服答疑和售后承诺边界。".to_string(),
+                    "活动后按点击、加购和成交复盘。".to_string(),
+                ],
+                evidence: vec!["用户当前活动需求".to_string()],
+                risks: vec!["不要承诺无法履约的发货时效。".to_string()],
+                open_questions: vec![],
+            }),
+            evidence: vec![],
+            risks: vec![],
+            open_questions: vec![],
+        };
+        let task = Task {
+            id: "task-campaign".to_string(),
+            context: MessageContext::default(),
+            description: "帮我做一版端午节促销活动计划".to_string(),
+            requester: AgentId("user-1".to_string()),
+            assignment: None,
+        };
+
+        let output = normalize_worker_role_output("ops", &task, parsed);
+        let role_output = output.role_output.expect("role output should exist");
+        let combined = format!(
+            "{}\n{}\n{}",
+            role_output.findings.join("\n"),
+            role_output.recommendations.join("\n"),
+            role_output.risks.join("\n")
+        );
+
+        assert!(!combined.contains("放量、调整重测、暂停停止或样本不足"));
+        assert!(!combined.contains("实验复盘需要明确当前相对赢家组合"));
+        assert!(!combined.contains("不能编造曝光、点击、成交、GMV、ROAS 或风险率"));
     }
 }

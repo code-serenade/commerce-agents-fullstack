@@ -82,6 +82,10 @@ pub(super) fn merge_skill_results(
                     push_unique(&mut role_output.evidence, search_evidence);
                     normalize_content_after_live_search(role_output);
                 }
+                if let Some(evidence_packet) = format_search_evidence_packet(result) {
+                    push_unique(&mut parsed.evidence, evidence_packet.clone());
+                    push_unique(&mut role_output.evidence, evidence_packet);
+                }
             }
             SkillExecutionStatus::Deferred | SkillExecutionStatus::PendingApproval => {
                 let risk = format_incomplete_skill_risk(result);
@@ -134,6 +138,18 @@ pub(super) fn format_role_work_output_content(output: &RoleWorkOutput) -> String
     extend_section(&mut lines, "风险", &output.risks);
     extend_section(&mut lines, "待确认", &output.open_questions);
     lines.join("\n")
+}
+
+fn format_search_evidence_packet(result: &SkillExecutionResult) -> Option<String> {
+    if !result.skill_id.as_str().starts_with("search_") {
+        return None;
+    }
+    let packet = result.output.as_ref()?.get("evidence_packet")?;
+    let serialized = serde_json::to_string(packet).ok()?;
+    Some(format!(
+        "search_evidence_packet:{}",
+        compact_inline(&serialized, 2400)
+    ))
 }
 
 fn format_live_search_evidence(result: &SkillExecutionResult) -> Option<String> {
@@ -372,4 +388,61 @@ fn format_failed_skill_risk(result: &SkillExecutionResult) -> String {
 
 fn compact_json_preview(value: &serde_json::Value) -> String {
     compact_event_text(value.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::{Map, json};
+
+    use super::{merge_skill_results, parse_worker_role_output};
+    use crate::skills::{SkillExecutionResult, SkillExecutionStatus, SkillId};
+
+    #[test]
+    fn merge_skill_results_keeps_search_evidence_packet_for_downstream_workers() {
+        let parsed = parse_worker_role_output(
+            r#"{"role_output":{"summary":"本轮先整理搜索证据。","evidence":[]}}"#,
+        );
+        let results = vec![SkillExecutionResult {
+            request_id: "req-search".to_string(),
+            skill_id: SkillId::new("search_competitor"),
+            status: SkillExecutionStatus::Success,
+            output: Some(json!({
+                "adapter_status": "live",
+                "sources": [{
+                    "title": "冷萃咖啡竞品价格参考",
+                    "url": "https://example.com/cold-brew-price",
+                    "published_at": "2026-05-20",
+                    "snippet": "竞品价格集中在 12-19 元。"
+                }],
+                "evidence_packet": {
+                    "intent": "competitor_price_or_benchmark",
+                    "usable_claims": ["竞品价格集中在 12-19 元。"],
+                    "gaps": [],
+                    "confidence": 0.72
+                }
+            })),
+            summary: Some("外部搜索已返回 1 个可采信来源".to_string()),
+            metadata: Map::new(),
+            error: None,
+        }];
+
+        let merged = merge_skill_results(parsed, &results);
+        let evidence = merged
+            .role_output
+            .expect("role output should exist")
+            .evidence;
+
+        assert!(
+            evidence
+                .iter()
+                .any(|item| item.starts_with("search_evidence_packet:")),
+            "search evidence packet should be preserved in report evidence"
+        );
+        assert!(
+            evidence
+                .iter()
+                .any(|item| item.contains("实时搜索来源（search_competitor）")),
+            "human-readable live source list should still be preserved"
+        );
+    }
 }

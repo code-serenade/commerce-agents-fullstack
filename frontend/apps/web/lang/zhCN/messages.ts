@@ -11,14 +11,14 @@ const messages = {
         workspace: "实训流程",
         governance: "管理与复盘",
         agentSection: "实训成果",
-        home: "数据诊断",
-        products: "商品资料",
-        campaigns: "活动方案",
-        workspaces: "任务与提交",
+        home: "数据分析",
+        products: "选品与商品资料",
+        campaigns: "活动策划",
+        workspaces: "任务提交",
         platformConnect: "平台数据连接",
         approvals: "老师审核与记录",
-        operations: "结果记录",
-        agent: "多智能体实训助手",
+        operations: "实训成果",
+        agent: "AI 实训助手",
         agentOutput: "报告材料",
         profile: "个人资料",
       },
@@ -205,7 +205,7 @@ const messages = {
     pages: {
       overview: {
         eyebrow: "Training Console",
-        title: "数据诊断",
+        title: "数据分析",
         description:
           "先看商品、活动、经营数据和待处理事项，判断这次实训最该优先解决什么问题。",
         boundaryTitle: "当前可做",
@@ -214,19 +214,28 @@ const messages = {
       },
       products: {
         eyebrow: "Product Training",
-        title: "商品资料",
+        title: "选品与商品资料",
         description:
           "围绕实训任务查看商品资料、商品知识、素材版本、竞品和变化记录，作为选品分析和 AI 问答上下文。",
       },
+      files: {
+        eyebrow: "Training Materials",
+        title: "文件管理器",
+        description:
+          "集中管理已上传的图片、PDF、Word、Excel 和文本资料，需要时挂到当前 AI 实训会话继续使用。",
+        boundaryTitle: "资料使用说明",
+        boundaryDescription:
+          "这里是完整资料库，可以直接上传、搜索、筛选、加入当前会话并选入本轮。输入框里的“上传资料”面板只是提问前的轻量核对入口。",
+      },
       campaigns: {
         eyebrow: "Campaign Practice",
-        title: "活动方案",
+        title: "活动策划",
         description:
           "围绕活动目标、预算、周期、产出和动作元数据整理可提交的营销活动方案。",
       },
       workspaces: {
         eyebrow: "Training Tasks",
-        title: "任务与提交",
+        title: "任务提交",
         description:
           "承接 AI 输出后的任务、运行记录、任务快照和执行建议，帮助学生把方案变成可检查的实训交付。",
         boundaryTitle: "执行说明",
@@ -253,12 +262,183 @@ const messages = {
       },
       operations: {
         eyebrow: "Operating Results",
-        title: "结果记录",
+        title: "实训成果",
         description:
           "跟踪长任务记录、每日简报、实训通知和告警中心，帮助学生复盘经营过程和异常信号。",
         boundaryTitle: "结果说明",
         boundaryDescription:
           "这里用于观察实训过程中的进展、异常和结果，为后续复盘报告提供依据。",
+      },
+    },
+    files: {
+      panelTitle: "我的资料文件",
+      panelDescription:
+        "这里显示你历史上传并仍可用的文件。常用资料可以直接加入当前会话，不需要重复上传。",
+      searchPlaceholder: "搜索文件名、类型、状态或上传时间",
+      emptyTitle: "还没有可复用资料",
+      empty:
+        "还没有可复用资料。直接点击本页右上角“上传资料”，上传后这里会保留图片、PDF、Word、Excel 和文本资料。",
+      emptyAction: "去上传资料",
+      noFilterResultTitle: "没有匹配的资料",
+      noFilterResult:
+        "资料库里有文件，但当前搜索词、类型或读取状态筛选没有匹配结果。调整筛选条件后再查看。",
+      clearFilters: "清空筛选",
+      errorTitle: "资料加载失败",
+      uploadAction: "上传资料",
+      uploadingAction: "上传中",
+      clearSelection: "取消选择",
+      deleteSelected: "删除所选 {{count}}",
+      detailDialog: {
+        title: "资料详情",
+        description:
+          "核对这份资料的上传记录、存储位置和读取结果，便于判断 AI 是否能使用它。",
+        close: "关闭",
+        yes: "是",
+        no: "否",
+        sections: {
+          file: "文件信息",
+          metadata: "原始 Metadata",
+          storage: "存储定位",
+          reading: "读取结果",
+          usage: "使用状态",
+        },
+        metadata: {
+          copy: "复制 Metadata",
+          description:
+            "用于核对后端抽取字段、浏览器解析结果和 Agent 上下文打包线索。",
+        },
+        fields: {
+          bucket: "Bucket",
+          contentKind: "内容类型",
+          conversationId: "会话 ID",
+          createdAt: "上传时间",
+          displayName: "文件名",
+          failureReason: "失败原因",
+          fileId: "文件 ID",
+          aiReadableThisTurn: "本轮是否读取",
+          messageId: "消息 ID",
+          mimeType: "MIME 类型",
+          objectKey: "对象 Key",
+          objectRef: "对象引用",
+          parser: "解析器",
+          readStatus: "读取状态",
+          recordStatus: "记录状态",
+          sha256: "SHA-256",
+          size: "大小",
+          summary: "读取摘要",
+          textChars: "正文字数",
+          truncated: "是否截断",
+          type: "资料类型",
+          usageState: "资料使用状态",
+        },
+        usageHint: {
+          available:
+            "这份资料还没有加入当前会话，本轮提问不会读取它。点击列表里的加入资料后再提问。",
+          attached:
+            "这份资料已在当前会话，但尚未选入本轮。本轮提问前需要点击选入本轮。",
+          selectedForTurn:
+            "这份资料已选入本轮，下一次发送问题时会随 context refs 一起提交给 Agent。",
+        },
+        usageState: {
+          available: "未加入会话",
+          attached: "已加入会话",
+          selectedForTurn: "本轮已选",
+        },
+      },
+      filterSummary: {
+        all: "当前显示全部 {{total}} 份资料",
+        filtered: "当前筛选显示 {{filtered}} / {{total}} 份资料",
+      },
+      readSummary: {
+        contentKind: "内容 {{kind}}",
+        failure: "失败原因：{{reason}}",
+        parser: "解析器 {{parser}}",
+        summary: "摘要：{{summary}}",
+        textChars: "正文 {{count}} 字",
+        truncated: "已截断",
+      },
+      summary: {
+        total: {
+          label: "资料库文件",
+          value: "{{count}} 份",
+        },
+        readable: {
+          label: "可读取资料",
+          value: "{{count}} 份",
+        },
+        attached: {
+          label: "当前会话",
+          value: "{{count}} 份",
+        },
+        selectedForTurn: {
+          label: "本轮已选",
+          value: "{{count}} 份",
+        },
+      },
+      turnSelection: {
+        action: "查看本轮资料",
+        clearAction: "取消全部本轮引用",
+        empty: "当前没有资料会随下一次提问发送。先在列表中点击加入资料或选入本轮。",
+        files: "将读取：{{names}}；另有 {{hidden}} 份未展开。",
+        title: "下一次提问将读取 {{count}} 份资料",
+      },
+      filters: {
+        kind: {
+          all: "全部类型",
+          image: "图片",
+          pdf: "PDF",
+          word: "Word",
+          sheet: "表格",
+          text: "文本",
+          other: "其他",
+        },
+        readStatus: {
+          all: "全部读取状态",
+          readable: "可读取",
+          pending: "解析中",
+          failed: "解析失败",
+          unsupported: "不支持",
+        },
+        usage: {
+          all: "全部使用状态",
+          available: "未加入会话",
+          attached: "已加入会话",
+          selectedForTurn: "本轮已选",
+        },
+      },
+      deleteDialog: {
+        title: "删除所选资料",
+        description:
+          "将从文件管理器删除已勾选的 {{count}} 份资料，并从相关会话资料列表中移除。不会直接删除仍被其它业务引用的对象文件。",
+        impactTitle: "删除前请确认影响范围",
+        impactSummary:
+          "本次选择 {{total}} 份资料，其中 {{selectedForTurn}} 份正在本轮读取，{{attached}} 份已加入当前会话，{{readable}} 份已有可读内容。",
+        targetNames: "将删除：{{names}}；另有 {{hidden}} 份未在此处展开。",
+        cancel: "先不删除",
+        confirm: "确认删除",
+      },
+      status: {
+        readable: "可读取",
+        pending: "解析中",
+        failed: "解析失败",
+        unsupported: "不支持",
+      },
+      table: {
+        name: "资料",
+        status: "读取状态",
+        useStateHeader: "使用状态",
+        size: "大小",
+        createdAt: "上传时间",
+        actions: "操作",
+        attach: "加入当前会话",
+        attached: "已在当前会话",
+        detail: "详情",
+        using: "处理中",
+        useState: {
+          available: "加入资料",
+          attached: "选入本轮",
+          selectedForTurn: "取消本轮",
+        },
       },
     },
     overview: {
@@ -864,18 +1044,19 @@ const messages = {
       },
       navigation: {
         newChat: "新建会话",
-        capabilities: "能力与使用指南",
-        smartOps: "多智能体实训助手",
-        productBoard: "商品资料",
-        campaigns: "活动方案",
+        capabilities: "怎么用这个系统",
+        smartOps: "问 AI 做实训",
+        materials: "上传与管理资料",
+        productBoard: "选品和商品资料",
+        campaigns: "设计活动方案",
         platform: "平台数据连接",
-        marketResearch: "数据诊断",
-        operations: "结果记录",
+        marketResearch: "看数据找问题",
+        operations: "查看实训成果",
         briefing: "每日简报",
         alerts: "预警中心",
-        deliverables: "报告材料",
+        deliverables: "整理报告材料",
         approvals: "老师审核与记录",
-        taskBoard: "任务与提交",
+        taskBoard: "提交实训任务",
         systemDashboard: "系统看板",
         team: "AI 团队介绍",
         history: "历史会话",
@@ -912,8 +1093,8 @@ const messages = {
       status: {
         sending: "AI 实训助手正在分析，可随时停止本轮回答。",
       },
-      attachTitle: "上传附件",
-      attachShort: "上传",
+      attachTitle: "上传资料",
+      attachShort: "上传资料",
       attachPrompt:
         "请在这里补充文件或数据约束，例如商品价格、预算、库存、目标人群、当前转化率和平台账号状态。",
       agentTitle: "选择协作智能体",
@@ -934,8 +1115,10 @@ const messages = {
         searchPlaceholder: "搜索商品名称、品牌、品类、平台或状态",
         selectedHint: "本轮只引用已勾选商品的资料。",
         selectedCount: "已指定 {{count}} 个商品",
+        selectedSection: "已选商品，本轮会保留",
         moreCount: "另有 {{count}} 个",
         noSearchResult: "没有匹配的商品",
+        showMore: "再显示 {{count}} 个商品",
         status: {
           active: "在售",
           draft: "草稿",
@@ -962,8 +1145,10 @@ const messages = {
         selectedHint:
           "本轮将读取已勾选活动的目标、预算、时间、状态和沉淀输出。",
         selectedCount: "已引用 {{count}} 个活动",
+        selectedSection: "已选活动，本轮会保留",
         budget: "预算 {{value}}",
         noSearchResult: "没有匹配的活动",
+        showMore: "再显示 {{count}} 个活动",
         status: {
           active: "进行中",
           draft: "草稿",
@@ -974,18 +1159,70 @@ const messages = {
         },
       },
       sourceContext: {
-        compactLabel: "资料",
+        compactLabel: "上传资料",
         noneCompactLabel: "未选资料",
         compactTitle: "选择本轮引用资料",
+        compactReadinessTitle: "已选资料状态：{{status}}",
+        panelTitle: "上传资料并选择本轮要读取的内容",
+        panelHint:
+          "先上传图片、PDF、Word、Excel 或文本资料，再勾选本轮需要 AI 读取的文件。",
+        upload: "上传资料",
+        manageLibrary: "管理资料库",
         noneSelected: "未指定资料",
         selectedCount: "已引用 {{count}} 份资料",
+        selectedPreview: "本轮将读取：{{names}}{{hiddenText}}",
+        selectedPreviewHidden: "；另有 {{count}} 份未展开",
+        selectedReadinessLabel: "已选资料状态",
+        selectedReadiness: {
+          readable: "可读 {{count}}",
+          pending: "解析中 {{count}}",
+          failed: "失败 {{count}}",
+          unsupported: "不支持 {{count}}",
+          metadataOnly: "仅元数据 {{count}}",
+        },
         availableCount: "{{count}} 份可选",
         readableCount: "{{count}} 份可读",
-        clear: "清空资料",
+        clear: "取消勾选",
+        deleteSelected: "删除所选",
+        deleteConfirm:
+          "确定删除已勾选的 {{count}} 份资料吗？将删除：{{names}}{{hiddenText}}。删除后会从当前会话资料中移除；如果只是本轮不读取，请点取消勾选。",
+        deleteConfirmHidden: "；另有 {{count}} 份未展开",
         empty:
           "当前会话还没有可引用的已上传文件。先上传文件，再手动勾选进入本轮回答。",
+        currentSection: "当前会话资料",
+        currentSectionHint: "勾选后本轮读取",
+        librarySection: "资料库最近文件",
+        libraryHint:
+          "常用资料可直接加入当前会话，加入后再从上方勾选本轮读取。",
+        libraryLoading: "正在读取资料库",
+        currentSearch: "搜索当前会话资料",
+        currentNoSearchResult: "当前会话资料中没有匹配项",
+        librarySearch: "搜索资料库文件名、类型或读取状态",
+        libraryNoSearchResult: "资料库中没有匹配项",
+        showMoreCurrent: "再显示 {{count}} 份当前资料",
+        showMoreLibrary: "再显示 {{count}} 份资料库文件",
+        libraryEmpty:
+          "资料库还没有最近可复用文件。可以进入文件管理器集中上传、筛选和管理常用资料。",
+        libraryEmptyAction: "打开文件管理器",
+        libraryAttach: "加入当前会话",
+        libraryAttached: "已在当前会话",
+        libraryStatus: {
+          readable: "可读正文",
+          pending: "解析中",
+          failed: "解析失败",
+          unsupported: "不支持读取",
+          visionReady: "可读图片",
+        },
         manualHint: "只有手动勾选后，本轮回答才会引用这些资料。",
         selectedHint: "本轮将只读取已勾选的当前会话资料。",
+        sourceStatus: {
+          readable: "可读正文",
+          visionReady: "可读图片",
+          pending: "解析中",
+          failed: "解析失败",
+          unsupported: "不支持读取",
+          metadataOnly: "仅元数据",
+        },
         readable: "可读正文",
         vision: "读图",
         visionReady: "可读图片",
@@ -1006,6 +1243,8 @@ const messages = {
       settings: {
         compactLabel: "模式",
         compactTitle: "调整回答方式、协作智能体和模型",
+        panelTitle: "回答方式设置",
+        panelHint: "当前：{{mode}}；{{summary}}。这里决定回答长短、是否按电商实训链路分析，以及由哪些智能体协作。",
         toggle: "任务设置",
         rolesCount: "{{count}} 个智能体",
         depthSummary: "深度：{{depth}}",
@@ -1023,8 +1262,8 @@ const messages = {
         modelHint: "默认优先使用已配置的豆包；未配置豆包时只显示可用模型。",
         learning: "讲解层级",
         collaboration: "智能体协作",
-        routingMode: "路由模式",
-        roleMode: "协作方式",
+        routingMode: "问题处理方式",
+        roleMode: "智能体协作方式",
         roles: "协作智能体",
         singleRole: "指定智能体",
         primary: "主智能体",
@@ -1046,34 +1285,34 @@ const messages = {
         currentSupport: "协作智能体：{{roles}}",
         noSupportRoles: "暂未选择协作智能体",
         advanced: "补充设置",
-        explanationDepth: "讲解深度",
+        explanationDepth: "解释详细度",
         autoRolesHint:
-          "系统会根据本轮问题自动判断需要一个还是多个智能体参与。",
+          "系统会根据本轮问题自动选择岗位。需要强制指定岗位时，再切到单智能体或多智能体。",
         manualRolesHint: "选择一个主导智能体负责汇总，再勾选需要参与协作的智能体。",
         roleModeHint:
           "这里决定本轮如何调用智能体：系统自动分配、指定一个智能体，或指定多个智能体协作。",
         roleModes: {
           auto: {
             label: "自动分配",
-            description: "系统判断",
+            description: "系统按问题选择岗位",
           },
           single: {
             label: "单智能体",
-            description: "一个智能体",
+            description: "只让一个岗位主回答",
           },
           manual: {
             label: "多智能体",
-            description: "协作输出",
+            description: "手动指定多个岗位协作",
           },
         },
         routingModes: {
           commander: {
-            label: "深度决策",
-            description: "先由 Commander 分析",
+            label: "按电商实训深入分析",
+            description: "优先拉回商品、活动、数据和复盘场景",
           },
           fast: {
-            label: "快速路由",
-            description: "优先匹配配置任务图",
+            label: "快速识别后回答",
+            description: "简单问题直接答，复杂问题再进实训链路",
           },
         },
         learningLevels: {
@@ -1405,6 +1644,8 @@ const messages = {
         campaignCount: "{{count}} 个活动",
         sourceNone: "未选资料",
         sourceCount: "{{count}} 份资料",
+        sourceCountWithReadiness:
+          "{{count}} 份资料，可读 {{readable}}，需核对 {{unreadable}}",
         strategy: "模式：{{strategy}}",
         autoRoles: "智能体：系统自动分配",
         roles: "智能体：主导 {{role}} / 共 {{count}} 个",
@@ -1413,6 +1654,13 @@ const messages = {
         productDetails: "引用商品",
         campaignDetails: "引用活动",
         sourceDetails: "引用资料",
+        sourceReadiness: {
+          readable: "发送时可读",
+          pending: "发送时解析中",
+          failed: "发送时解析失败",
+          unsupported: "发送时不支持读取",
+          metadataOnly: "发送时仅元数据",
+        },
       },
       actions: {
         copy: "复制",
@@ -1488,6 +1736,7 @@ const messages = {
         design: "体验设计",
         accounting: "预算评估",
         engineering: "工程判断",
+        search: "搜索证据",
         web: "Web/SEO方案",
         douyin_ads: "千川投放优化",
         ops: "运营方案",
@@ -1554,6 +1803,30 @@ const messages = {
         plannedSkills: {
           label: "计划 Skill",
         },
+        roleAudit: {
+          label: "岗位核对",
+          detail: "计划 {{planned}}；已执行 {{executed}}",
+          warning: "计划 {{planned}}；已执行 {{executed}}；缺失 {{missing}}；额外 {{extra}}",
+        },
+        searchAudit: {
+          label: "搜索核对",
+          detail: "计划 {{planned}}；已返回 {{executed}}；来源 {{sources}}，结论 {{claims}}，缺口 {{gaps}}，置信度 {{confidence}}，强度 {{strength}}",
+          pending: "计划 {{planned}}；已请求 {{requested}}，等待结果返回",
+        },
+        materialAudit: {
+          label: "资料读取核对",
+          detail: "{{summary}}；已选 {{selected}}；进入上下文 {{packed}}；可读 {{readable}}；未进入 {{missing}}；省略 {{omitted}}；不可读 {{unreadable}}；提示 {{warnings}}；状态 {{readiness}}",
+          summary: {
+            empty: "未选择资料",
+            missingPack: "{{missing}} 份已选资料未进入上下文",
+            notReady: "资料上下文状态需核对：{{readiness}}",
+            omitted: "{{omitted}} 份资料被上下文打包省略",
+            pendingPack: "已选资料尚未完成上下文打包",
+            ready: "已选资料已进入可读上下文",
+            unreadablePacked: "{{unreadable}} 份资料进入上下文但无可读正文",
+            warnings: "资料读取返回 {{warnings}} 条提示",
+          },
+        },
         contextBudget: {
           label: "上下文预算",
           detail: "{{history}} 条历史消息，{{materials}} 个已选资料信号",
@@ -1599,6 +1872,11 @@ const messages = {
         skill: {
           label: "Skill 调用",
           detail: "本轮已有 {{count}} 个真实 Skill 事件",
+        },
+        skillAudit: {
+          label: "Skill 核对",
+          detail:
+            "计划 {{planned}}；已请求 {{requested}}；已成功 {{succeeded}}；失败 {{failed}}；待确认 {{pending}}",
         },
         output: {
           label: "输出完成",
@@ -2248,19 +2526,24 @@ const messages = {
       eyebrow: "Training Guide",
       title: "AI 实训能力与使用指南",
       description:
-        "这里说明学生如何围绕一次电商实训任务使用 AI 问答、商品分析、活动策划、数据诊断和复盘报告。",
+        "这里说明学生如何先准备资料，再围绕一次电商实训任务使用 AI 问答、商品分析、活动策划、数据诊断和复盘报告。",
       action: "进入 AI 实训助手",
     },
     principle: {
       title: "学生使用方式",
       description:
-        "学生不是只打开一个聊天框，而是围绕实训任务提出问题、选择商品和活动上下文，再把 AI 输出沉淀为任务、审核记录和复盘材料。",
+        "学生不是只打开一个聊天框，而是先准备文件和商品资料，再围绕实训任务提出问题、选择上下文，并把 AI 输出沉淀为任务、审核记录和复盘材料。",
     },
       capabilities: {
         title: "核心实训能力",
         description:
         "这些入口沿用现有真实能力，并整理成学生更容易理解的学习和任务流程。",
       items: [
+        {
+          title: "文件管理器",
+          description:
+            "集中管理上传过的图片、PDF、Word、Excel 和文本资料；常用资料可加入当前会话后勾选读取，不用重复上传。",
+        },
         {
           title: "商品资料",
           description:
@@ -2307,6 +2590,7 @@ const messages = {
       title: "一次实训怎样流转",
       description: "学生可感知的主链路应该清楚、连续、可追踪。",
       items: [
+        "学生先在文件管理器或输入框的“上传资料”面板准备图片、PDF、Word、Excel 和文本资料。",
         "学生新建会话或选择历史会话，输入实训问题。",
         "按需选择回答模式、协作智能体和自己勾选的商品资料。",
         "系统规划任务，调用模型和分析能力，并实时展示过程。",
@@ -2319,6 +2603,11 @@ const messages = {
       description:
         "左侧导航不只是页面菜单，而是学生完成实训任务时最常用的能力入口。",
       items: [
+        {
+          title: "文件管理器",
+          description:
+            "先准备和复用图片、PDF、Word、Excel、文本资料，再决定哪些资料进入当前会话。",
+        },
         {
           title: "AI 实训助手",
           description: "统一入口，承接实训问题、策略选择、商品引用和过程展示。",

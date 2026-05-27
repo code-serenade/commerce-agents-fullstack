@@ -35,7 +35,7 @@ export function WelcomeCard({
   const taskEntries = getStudentTaskEntries(t)
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+    <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5">
       <div className="flex items-start gap-3">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-foreground text-background">
           <BrainCircuit className="size-5" />
@@ -45,6 +45,54 @@ export function WelcomeCard({
             {t("agentChat.thread.agentName")}
           </p>
           <p className="mt-1 text-sm/6 text-muted-foreground">{content}</p>
+        </div>
+      </div>
+      <div className="mt-4 rounded-lg border border-border bg-background">
+        <div className="border-b border-border px-3 py-2">
+          <p className="text-xs font-semibold text-foreground">
+            {t("agentChat.thread.studentTaskEntries.title")}
+          </p>
+          <p className="mt-1 text-[11px]/5 text-muted-foreground">
+            {t("agentChat.thread.studentTaskEntries.subtitle")}
+          </p>
+        </div>
+        <div className="grid gap-2 p-3 sm:grid-cols-2">
+          {taskEntries.map((entry) => (
+            <button
+              key={entry.title}
+              type="button"
+              className="group min-h-20 rounded-md border border-border bg-card px-3 py-2 text-left transition hover:border-foreground/30 hover:bg-muted"
+              onClick={() => onSelectExamplePrompt?.(entry.prompt)}
+            >
+              <span className="block text-xs font-semibold text-foreground">
+                {entry.title}
+              </span>
+              <span className="mt-1 block text-[11px]/5 text-muted-foreground">
+                {entry.detail}
+              </span>
+              <span className="mt-2 line-clamp-2 block text-[11px]/5 text-blue-600 group-hover:text-blue-700">
+                {entry.prompt}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="mt-4">
+        <p className="text-xs font-medium text-muted-foreground">
+          {t("agentChat.thread.startHere")}
+        </p>
+        <div className="mt-2 grid gap-2">
+          {examplePrompts.map((prompt) => (
+            <button
+              key={prompt}
+              type="button"
+              className="group flex min-h-10 items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-left text-xs/5 text-foreground transition hover:border-foreground/30 hover:bg-muted"
+              onClick={() => onSelectExamplePrompt?.(prompt)}
+            >
+              <Sparkles className="size-3.5 shrink-0 text-blue-500" />
+              <span className="min-w-0 flex-1">{prompt}</span>
+            </button>
+          ))}
         </div>
       </div>
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
@@ -58,7 +106,7 @@ export function WelcomeCard({
           </div>
         ))}
       </div>
-      <div className="mt-5 rounded-lg border border-border bg-background">
+      <div className="mt-4 rounded-lg border border-border bg-background">
         <div className="border-b border-border px-3 py-2">
           <p className="text-xs font-semibold text-foreground">
             {t("agentChat.thread.studentFlow.title")}
@@ -89,54 +137,6 @@ export function WelcomeCard({
         {t("agentChat.thread.processPromise")}
       </div>
       <StudentPromptRecipe />
-      <div className="mt-5 rounded-lg border border-border bg-background">
-        <div className="border-b border-border px-3 py-2">
-          <p className="text-xs font-semibold text-foreground">
-            {t("agentChat.thread.studentTaskEntries.title")}
-          </p>
-          <p className="mt-1 text-[11px]/5 text-muted-foreground">
-            {t("agentChat.thread.studentTaskEntries.subtitle")}
-          </p>
-        </div>
-        <div className="grid gap-2 p-3 sm:grid-cols-2">
-          {taskEntries.map((entry) => (
-            <button
-              key={entry.title}
-              type="button"
-              className="group min-h-20 rounded-md border border-border bg-card px-3 py-2 text-left transition hover:border-foreground/30 hover:bg-muted"
-              onClick={() => onSelectExamplePrompt?.(entry.prompt)}
-            >
-              <span className="block text-xs font-semibold text-foreground">
-                {entry.title}
-              </span>
-              <span className="mt-1 block text-[11px]/5 text-muted-foreground">
-                {entry.detail}
-              </span>
-              <span className="mt-2 block text-[11px]/5 text-blue-600 group-hover:text-blue-700">
-                {entry.prompt}
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="mt-5 space-y-2">
-        <p className="text-xs font-medium text-muted-foreground">
-          {t("agentChat.thread.startHere")}
-        </p>
-        <div className="grid gap-2">
-          {examplePrompts.map((prompt) => (
-            <button
-              key={prompt}
-              type="button"
-              className="group flex min-h-10 items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-left text-xs/5 text-foreground transition hover:border-foreground/30 hover:bg-muted"
-              onClick={() => onSelectExamplePrompt?.(prompt)}
-            >
-              <Sparkles className="size-3.5 shrink-0 text-blue-500" />
-              <span className="min-w-0 flex-1">{prompt}</span>
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   )
 }
