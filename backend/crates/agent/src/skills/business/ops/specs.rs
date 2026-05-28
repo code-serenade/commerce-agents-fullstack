@@ -6,7 +6,8 @@ pub fn specs() -> Vec<SkillSpec> {
         spec(
             "product_opportunity_score",
             "商品机会评分",
-            "根据商品、类目、成本售价、竞品价格、预算、卖点和风险线索，判断商品是否值得进入小预算验证",
+            "根据商品、类目、成本售价、竞品价格、预算、卖点和风险线索，\
+             判断商品是否值得进入小预算验证",
             vec![
                 field("product_name", "string", "商品名称", false),
                 field("category", "string", "商品类目", false),
@@ -59,7 +60,8 @@ pub fn specs() -> Vec<SkillSpec> {
         spec(
             "product_market_fit_diagnosis",
             "商品市场匹配诊断",
-            "诊断商品、目标人群、使用场景、渠道、价格带和信任风险是否匹配，输出PMF阶段判断和验证问题",
+            "诊断商品、目标人群、使用场景、渠道、价格带和信任风险是否匹配，\
+             输出PMF阶段判断和验证问题",
             vec![
                 field("product_name", "string", "商品名称", false),
                 field("category", "string", "商品类目", false),
@@ -174,7 +176,9 @@ pub fn specs() -> Vec<SkillSpec> {
                 field(
                     "experiment_groups",
                     "array<object>",
-                    "实验组结果；每组可包含 name、audience、channel、selling_point、spend、impressions、clicks、consultations、add_to_cart、orders、gmv、refunds、negative_reviews",
+                    "实验组结果；每组可包含 \
+                     name、audience、channel、selling_point、spend、impressions、clicks、\
+                     consultations、add_to_cart、orders、gmv、refunds、negative_reviews",
                     true,
                 ),
                 field("baseline", "object", "可选基线或对照组数据", false),

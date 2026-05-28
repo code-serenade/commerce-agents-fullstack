@@ -4,7 +4,7 @@ use super::{Commander, CommanderPhase, CommanderState, next_message_id, primary_
 use crate::{
     agent::commander::{
         EvaluationOutcome, TaskGraphRuntime, plan_configured_non_chat_task_graph,
-        plan_configured_task_graph, plan_task_graph,
+        plan_configured_task_graph, plan_forced_role_graph, plan_task_graph,
         runner::{output::direct_chat_report_output, route::primary_graph_role},
     },
     core::protocol::{
@@ -54,7 +54,11 @@ impl Commander {
         };
 
         let task_id = crate::core::protocol::TaskId(current_task.id);
-        let graph = if self.context_allows_direct_chat_graph(role_route) {
+        let graph = if let Some(graph) =
+            self.single_role_task_graph(&task_id, &current_task.description, role_route)
+        {
+            Some(graph)
+        } else if self.context_allows_direct_chat_graph(role_route) {
             debug!(
                 task_id = %task_id.0,
                 routing_mode = self
@@ -101,6 +105,28 @@ impl Commander {
         );
         self.schedule_planned_task_graph("task_graph", role_route, graph)
             .await
+    }
+
+    pub(super) fn single_role_task_graph(
+        &self,
+        task_id: &crate::core::protocol::TaskId,
+        task: &str,
+        role_route: Option<&RoleRoute>,
+    ) -> Option<TaskGraph> {
+        if !self
+            .current_context
+            .metadata
+            .get("strategy.collaboration_mode")
+            .is_some_and(|value| value == "single")
+        {
+            return None;
+        }
+        let route = role_route?;
+        Some(plan_forced_role_graph(
+            task_id,
+            task,
+            &route.primary_runtime_role,
+        ))
     }
 
     pub(super) async fn schedule_planned_task_graph(

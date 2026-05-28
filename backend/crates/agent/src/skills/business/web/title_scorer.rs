@@ -51,7 +51,7 @@ impl Skill for WebTitleSeoScorer {
             _ => (24, 34),
         };
         let mut deductions = Vec::new();
-        let len_score = if (lo..=hi).contains(&len) {
+        let len_score = if (lo ..= hi).contains(&len) {
             25
         } else if len < lo {
             let score = (25 - (lo - len) * 2).max(0);

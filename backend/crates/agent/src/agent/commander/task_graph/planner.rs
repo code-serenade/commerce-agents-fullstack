@@ -511,7 +511,8 @@ mod tests {
             .expect("search node should exist");
         assert!(
             search.input_refs.is_empty(),
-            "search should remain an upstream ready node when other roles depend on it; input_refs={:?}",
+            "search should remain an upstream ready node when other roles depend on it; \
+             input_refs={:?}",
             search.input_refs
         );
 

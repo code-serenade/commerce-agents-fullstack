@@ -408,7 +408,8 @@ impl Cognition for SearchEvidenceStateAwareWorkerCognition {
             && packet.contains("\"duplicate_filtered_count\":")
             && !packet.contains("\"duplicate_filtered_count\":0")
         {
-            "已拿到可采信实时来源：可以引用保留下来的 12-19 元价格带，但重复来源已过滤，不能把重复条目当成多方验证。"
+            "已拿到可采信实时来源：可以引用保留下来的 12-19 \
+             元价格带，但重复来源已过滤，不能把重复条目当成多方验证。"
         } else if packet.contains("\"adapter_status\":\"live\"")
             && packet.contains("\"source_state\":\"has_reliable_sources\"")
         {
@@ -417,22 +418,26 @@ impl Cognition for SearchEvidenceStateAwareWorkerCognition {
             && packet.contains("\"stale_filtered_count\":")
             && !packet.contains("\"stale_filtered_count\":0")
         {
-            "本轮搜索只返回过期来源，已降级且不能把 12-19 元当作当前事实；只能提示重新搜索或扩大核验来源。"
+            "本轮搜索只返回过期来源，已降级且不能把 12-19 \
+             元当作当前事实；只能提示重新搜索或扩大核验来源。"
         } else if packet.contains("\"adapter_status\":\"degraded\"")
             && ((packet.contains("\"untraceable_domain_filtered_count\":")
                 && !packet.contains("\"untraceable_domain_filtered_count\":0"))
                 || (packet.contains("\"missing_url_filtered_count\":")
                     && !packet.contains("\"missing_url_filtered_count\":0")))
         {
-            "本轮搜索返回了不可追踪来源，已降级且不能把 12-19 元当作事实；需要补充可打开 URL 或官方来源。"
+            "本轮搜索返回了不可追踪来源，已降级且不能把 12-19 元当作事实；需要补充可打开 URL \
+             或官方来源。"
         } else if packet.contains("\"adapter_status\":\"degraded\"")
             || packet.contains("\"source_state\":\"no_reliable_sources\"")
         {
-            "本轮搜索已降级且没有可采信实时来源：不能把 12-19 元当作事实，只能给核验路径和待补来源。"
+            "本轮搜索已降级且没有可采信实时来源：不能把 12-19 \
+             元当作事实，只能给核验路径和待补来源。"
         } else if packet.contains("\"adapter_status\":\"adapter_required\"")
             || packet.contains("\"source_state\":\"adapter_required\"")
         {
-            "外部搜索 adapter 未接入：不能声称已经联网，只能说明需要配置搜索工具后再核验价格或平台规则。"
+            "外部搜索 adapter \
+             未接入：不能声称已经联网，只能说明需要配置搜索工具后再核验价格或平台规则。"
         } else {
             "搜索证据状态不明确：不能当作实时来源引用。"
         };
@@ -897,9 +902,7 @@ async fn collab_strategy_direct_answer_bypasses_task_graph() {
         };
         let terminal = matches!(
             event,
-            SessionEvent::TaskGraphFinished { .. }
-                | SessionEvent::Finished { .. }
-                | SessionEvent::Failed { .. }
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
         );
         events.push(event);
         if terminal {
@@ -1198,7 +1201,8 @@ async fn explicit_manual_search_accounting_service_engineering_passes_evidence_p
             session_id: SessionId(
                 "role-session-manual-search-accounting-service-engineering".to_string(),
             ),
-            input: "请指定资料搜索员、财务、客服和技术架构师一起协作，搜索校园冷萃咖啡竞品价格后，判断定价毛利、售后承诺和上传链路风险。"
+            input: "请指定资料搜索员、财务、客服和技术架构师一起协作，搜索校园冷萃咖啡竞品价格后，\
+                    判断定价毛利、售后承诺和上传链路风险。"
                 .to_string(),
             metadata,
         })
@@ -1261,7 +1265,9 @@ async fn explicit_manual_search_ops_downstream_answer_distinguishes_search_adapt
         (
             "live",
             r#"{"intent":"competitor_price_or_benchmark","skill":"search_competitor","adapter_status":"live","source_state":"has_reliable_sources","query":"校园冷萃咖啡 竞品价格","search_strength":"standard","sources":[{"title":"冷萃咖啡竞品价格参考","url":"https://example.com/price","claim":"竞品价格集中在 12-19 元。"}],"usable_claims":["竞品价格集中在 12-19 元。"],"gaps":[],"confidence":0.72}"#,
-            "search_evidence_trace: skill=search_competitor status=success adapter_status=live intent=competitor_price_or_benchmark strength=standard sources=1 usable_claims=1 gaps=0 confidence=0.72 query=\"校园冷萃咖啡 竞品价格\"",
+            "search_evidence_trace: skill=search_competitor status=success adapter_status=live \
+             intent=competitor_price_or_benchmark strength=standard sources=1 usable_claims=1 \
+             gaps=0 confidence=0.72 query=\"校园冷萃咖啡 竞品价格\"",
             "已拿到可采信实时来源",
             "12-19 元竞品价格带作为低置信参考",
             "不能把 12-19 元当作事实",
@@ -1269,7 +1275,10 @@ async fn explicit_manual_search_ops_downstream_answer_distinguishes_search_adapt
         (
             "live-duplicate-filtered",
             r#"{"intent":"competitor_price_or_benchmark","skill":"search_competitor","adapter_status":"live","source_state":"has_reliable_sources","query":"校园冷萃咖啡 竞品价格","search_strength":"standard","filter_stats":{"missing_url_filtered_count":0,"untraceable_domain_filtered_count":0,"duplicate_filtered_count":2,"stale_filtered_count":0,"total_filtered_count":2},"sources":[{"title":"冷萃咖啡竞品价格参考","url":"https://example.com/price","claim":"竞品价格集中在 12-19 元。"}],"usable_claims":["竞品价格集中在 12-19 元。"],"gaps":["过滤 2 条重复来源"],"confidence":0.68}"#,
-            "search_evidence_trace: skill=search_competitor status=success adapter_status=live intent=competitor_price_or_benchmark strength=standard sources=1 usable_claims=1 gaps=1 confidence=0.68 filtered=2 stale=0 missing_url=0 untraceable=0 duplicate=2 query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"过滤 2 条重复来源\"",
+            "search_evidence_trace: skill=search_competitor status=success adapter_status=live \
+             intent=competitor_price_or_benchmark strength=standard sources=1 usable_claims=1 \
+             gaps=1 confidence=0.68 filtered=2 stale=0 missing_url=0 untraceable=0 duplicate=2 \
+             query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"过滤 2 条重复来源\"",
             "已拿到可采信实时来源",
             "重复来源已过滤",
             "只返回过期来源",
@@ -1277,7 +1286,10 @@ async fn explicit_manual_search_ops_downstream_answer_distinguishes_search_adapt
         (
             "degraded",
             r#"{"intent":"competitor_price_or_benchmark","skill":"search_competitor","adapter_status":"degraded","source_state":"no_reliable_sources","query":"校园冷萃咖啡 竞品价格","search_strength":"standard","filter_stats":{"missing_url_filtered_count":0,"untraceable_domain_filtered_count":0,"duplicate_filtered_count":0,"stale_filtered_count":0,"total_filtered_count":0},"sources":[],"usable_claims":[],"gaps":["provider timeout"],"confidence":0.0}"#,
-            "search_evidence_trace: skill=search_competitor status=deferred adapter_status=degraded intent=competitor_price_or_benchmark strength=standard sources=0 usable_claims=0 gaps=1 confidence=0.00 query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"provider timeout\"",
+            "search_evidence_trace: skill=search_competitor status=deferred \
+             adapter_status=degraded intent=competitor_price_or_benchmark strength=standard \
+             sources=0 usable_claims=0 gaps=1 confidence=0.00 query=\"校园冷萃咖啡 竞品价格\" \
+             gap_preview=\"provider timeout\"",
             "本轮搜索已降级且没有可采信实时来源",
             "不能把 12-19 元当作事实",
             "已拿到可采信实时来源",
@@ -1285,7 +1297,11 @@ async fn explicit_manual_search_ops_downstream_answer_distinguishes_search_adapt
         (
             "stale",
             r#"{"intent":"competitor_price_or_benchmark","skill":"search_competitor","adapter_status":"degraded","source_state":"no_reliable_sources","query":"校园冷萃咖啡 竞品价格","search_strength":"standard","filter_stats":{"missing_url_filtered_count":0,"untraceable_domain_filtered_count":0,"duplicate_filtered_count":0,"stale_filtered_count":2,"total_filtered_count":2},"sources":[],"usable_claims":[],"gaps":["过滤 2 条过期来源"],"confidence":0.0}"#,
-            "search_evidence_trace: skill=search_competitor status=deferred adapter_status=degraded intent=competitor_price_or_benchmark strength=standard sources=0 usable_claims=0 gaps=1 confidence=0.00 filtered=2 stale=2 missing_url=0 untraceable=0 duplicate=0 query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"过滤 2 条过期来源\"",
+            "search_evidence_trace: skill=search_competitor status=deferred \
+             adapter_status=degraded intent=competitor_price_or_benchmark strength=standard \
+             sources=0 usable_claims=0 gaps=1 confidence=0.00 filtered=2 stale=2 missing_url=0 \
+             untraceable=0 duplicate=0 query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"过滤 2 \
+             条过期来源\"",
             "本轮搜索只返回过期来源",
             "不能把 12-19 元当作当前事实",
             "已拿到可采信实时来源",
@@ -1293,7 +1309,11 @@ async fn explicit_manual_search_ops_downstream_answer_distinguishes_search_adapt
         (
             "untraceable",
             r#"{"intent":"competitor_price_or_benchmark","skill":"search_competitor","adapter_status":"degraded","source_state":"no_reliable_sources","query":"校园冷萃咖啡 竞品价格","search_strength":"standard","filter_stats":{"missing_url_filtered_count":1,"untraceable_domain_filtered_count":2,"duplicate_filtered_count":0,"stale_filtered_count":0,"total_filtered_count":3},"sources":[],"usable_claims":[],"gaps":["过滤 3 条缺 URL 或不可追踪域名来源"],"confidence":0.0}"#,
-            "search_evidence_trace: skill=search_competitor status=deferred adapter_status=degraded intent=competitor_price_or_benchmark strength=standard sources=0 usable_claims=0 gaps=1 confidence=0.00 filtered=3 stale=0 missing_url=1 untraceable=2 duplicate=0 query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"过滤 3 条缺 URL 或不可追踪域名来源\"",
+            "search_evidence_trace: skill=search_competitor status=deferred \
+             adapter_status=degraded intent=competitor_price_or_benchmark strength=standard \
+             sources=0 usable_claims=0 gaps=1 confidence=0.00 filtered=3 stale=0 missing_url=1 \
+             untraceable=2 duplicate=0 query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"过滤 3 条缺 \
+             URL 或不可追踪域名来源\"",
             "本轮搜索返回了不可追踪来源",
             "需要补充可打开 URL",
             "已拿到可采信实时来源",
@@ -1301,7 +1321,10 @@ async fn explicit_manual_search_ops_downstream_answer_distinguishes_search_adapt
         (
             "adapter-required",
             r#"{"intent":"competitor_price_or_benchmark","skill":"search_competitor","adapter_status":"adapter_required","source_state":"adapter_required","query":"校园冷萃咖啡 竞品价格","search_strength":"standard","sources":[],"usable_claims":[],"gaps":["外部搜索 adapter 尚未接入"],"confidence":0.0}"#,
-            "search_evidence_trace: skill=search_competitor status=deferred adapter_status=adapter_required intent=competitor_price_or_benchmark strength=standard sources=0 usable_claims=0 gaps=1 confidence=0.00 query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"外部搜索 adapter 尚未接入\"",
+            "search_evidence_trace: skill=search_competitor status=deferred \
+             adapter_status=adapter_required intent=competitor_price_or_benchmark \
+             strength=standard sources=0 usable_claims=0 gaps=1 confidence=0.00 \
+             query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"外部搜索 adapter 尚未接入\"",
             "外部搜索 adapter 未接入",
             "不能声称已经联网",
             "已拿到可采信实时来源",
@@ -1366,7 +1389,11 @@ async fn explicit_manual_search_multi_downstream_roles_distinguish_search_filter
         (
             "stale",
             r#"{"intent":"competitor_price_or_benchmark","skill":"search_competitor","adapter_status":"degraded","source_state":"no_reliable_sources","query":"校园冷萃咖啡 竞品价格","search_strength":"standard","filter_stats":{"missing_url_filtered_count":0,"untraceable_domain_filtered_count":0,"duplicate_filtered_count":0,"stale_filtered_count":2,"total_filtered_count":2},"sources":[],"usable_claims":[],"gaps":["过滤 2 条过期来源"],"confidence":0.0}"#,
-            "search_evidence_trace: skill=search_competitor status=deferred adapter_status=degraded intent=competitor_price_or_benchmark strength=standard sources=0 usable_claims=0 gaps=1 confidence=0.00 filtered=2 stale=2 missing_url=0 untraceable=0 duplicate=0 query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"过滤 2 条过期来源\"",
+            "search_evidence_trace: skill=search_competitor status=deferred \
+             adapter_status=degraded intent=competitor_price_or_benchmark strength=standard \
+             sources=0 usable_claims=0 gaps=1 confidence=0.00 filtered=2 stale=2 missing_url=0 \
+             untraceable=0 duplicate=0 query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"过滤 2 \
+             条过期来源\"",
             "本轮搜索只返回过期来源",
             "不能把 12-19 元当作当前事实",
             "已拿到可采信实时来源",
@@ -1374,7 +1401,11 @@ async fn explicit_manual_search_multi_downstream_roles_distinguish_search_filter
         (
             "untraceable",
             r#"{"intent":"competitor_price_or_benchmark","skill":"search_competitor","adapter_status":"degraded","source_state":"no_reliable_sources","query":"校园冷萃咖啡 竞品价格","search_strength":"standard","filter_stats":{"missing_url_filtered_count":1,"untraceable_domain_filtered_count":2,"duplicate_filtered_count":0,"stale_filtered_count":0,"total_filtered_count":3},"sources":[],"usable_claims":[],"gaps":["过滤 3 条缺 URL 或不可追踪域名来源"],"confidence":0.0}"#,
-            "search_evidence_trace: skill=search_competitor status=deferred adapter_status=degraded intent=competitor_price_or_benchmark strength=standard sources=0 usable_claims=0 gaps=1 confidence=0.00 filtered=3 stale=0 missing_url=1 untraceable=2 duplicate=0 query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"过滤 3 条缺 URL 或不可追踪域名来源\"",
+            "search_evidence_trace: skill=search_competitor status=deferred \
+             adapter_status=degraded intent=competitor_price_or_benchmark strength=standard \
+             sources=0 usable_claims=0 gaps=1 confidence=0.00 filtered=3 stale=0 missing_url=1 \
+             untraceable=2 duplicate=0 query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"过滤 3 条缺 \
+             URL 或不可追踪域名来源\"",
             "本轮搜索返回了不可追踪来源",
             "需要补充可打开 URL",
             "已拿到可采信实时来源",
@@ -1382,7 +1413,10 @@ async fn explicit_manual_search_multi_downstream_roles_distinguish_search_filter
         (
             "duplicate-live",
             r#"{"intent":"competitor_price_or_benchmark","skill":"search_competitor","adapter_status":"live","source_state":"has_reliable_sources","query":"校园冷萃咖啡 竞品价格","search_strength":"standard","filter_stats":{"missing_url_filtered_count":0,"untraceable_domain_filtered_count":0,"duplicate_filtered_count":2,"stale_filtered_count":0,"total_filtered_count":2},"sources":[{"title":"冷萃咖啡竞品价格参考","url":"https://example.com/price","claim":"竞品价格集中在 12-19 元。"}],"usable_claims":["竞品价格集中在 12-19 元。"],"gaps":["过滤 2 条重复来源"],"confidence":0.68}"#,
-            "search_evidence_trace: skill=search_competitor status=success adapter_status=live intent=competitor_price_or_benchmark strength=standard sources=1 usable_claims=1 gaps=1 confidence=0.68 filtered=2 stale=0 missing_url=0 untraceable=0 duplicate=2 query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"过滤 2 条重复来源\"",
+            "search_evidence_trace: skill=search_competitor status=success adapter_status=live \
+             intent=competitor_price_or_benchmark strength=standard sources=1 usable_claims=1 \
+             gaps=1 confidence=0.68 filtered=2 stale=0 missing_url=0 untraceable=0 duplicate=2 \
+             query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"过滤 2 条重复来源\"",
             "已拿到可采信实时来源",
             "重复来源已过滤",
             "只返回过期来源",
@@ -1432,7 +1466,8 @@ async fn explicit_manual_search_multi_downstream_roles_distinguish_search_filter
             );
             assert!(
                 !summary.contains(forbidden),
-                "{case_name}/{role} should not use opposite search-state wording; summary={summary}"
+                "{case_name}/{role} should not use opposite search-state wording; \
+                 summary={summary}"
             );
             assert!(
                 !summary.contains("search_evidence_packet"),
@@ -1450,7 +1485,11 @@ async fn explicit_manual_search_multi_downstream_roles_distinguish_search_filter
 async fn explicit_manual_search_extended_selected_roles_receive_evidence_without_unselected_roles()
 {
     let packet = r#"{"intent":"competitor_price_or_benchmark","skill":"search_competitor","adapter_status":"degraded","source_state":"no_reliable_sources","query":"校园冷萃咖啡 竞品价格","search_strength":"standard","filter_stats":{"missing_url_filtered_count":0,"untraceable_domain_filtered_count":0,"duplicate_filtered_count":0,"stale_filtered_count":2,"total_filtered_count":2},"sources":[],"usable_claims":[],"gaps":["过滤 2 条过期来源"],"confidence":0.0}"#;
-    let trace = "search_evidence_trace: skill=search_competitor status=deferred adapter_status=degraded intent=competitor_price_or_benchmark strength=standard sources=0 usable_claims=0 gaps=1 confidence=0.00 filtered=2 stale=2 missing_url=0 untraceable=0 duplicate=0 query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"过滤 2 条过期来源\"";
+    let trace = "search_evidence_trace: skill=search_competitor status=deferred \
+                 adapter_status=degraded intent=competitor_price_or_benchmark strength=standard \
+                 sources=0 usable_claims=0 gaps=1 confidence=0.00 filtered=2 stale=2 \
+                 missing_url=0 untraceable=0 duplicate=0 query=\"校园冷萃咖啡 竞品价格\" \
+                 gap_preview=\"过滤 2 条过期来源\"";
     let selected_roles = [
         "search",
         "ops",
@@ -1553,7 +1592,11 @@ async fn explicit_manual_search_extended_selected_roles_receive_evidence_without
 #[tokio::test]
 async fn explicit_manual_search_ops_response_modes_keep_style_and_search_boundaries() {
     let packet = r#"{"intent":"competitor_price_or_benchmark","skill":"search_competitor","adapter_status":"degraded","source_state":"no_reliable_sources","query":"校园冷萃咖啡 竞品价格","search_strength":"standard","filter_stats":{"missing_url_filtered_count":0,"untraceable_domain_filtered_count":0,"duplicate_filtered_count":0,"stale_filtered_count":2,"total_filtered_count":2},"sources":[],"usable_claims":[],"gaps":["过滤 2 条过期来源"],"confidence":0.0}"#;
-    let trace = "search_evidence_trace: skill=search_competitor status=deferred adapter_status=degraded intent=competitor_price_or_benchmark strength=standard sources=0 usable_claims=0 gaps=1 confidence=0.00 filtered=2 stale=2 missing_url=0 untraceable=0 duplicate=0 query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"过滤 2 条过期来源\"";
+    let trace = "search_evidence_trace: skill=search_competitor status=deferred \
+                 adapter_status=degraded intent=competitor_price_or_benchmark strength=standard \
+                 sources=0 usable_claims=0 gaps=1 confidence=0.00 filtered=2 stale=2 \
+                 missing_url=0 untraceable=0 duplicate=0 query=\"校园冷萃咖啡 竞品价格\" \
+                 gap_preview=\"过滤 2 条过期来源\"";
     let cases = [
         (
             "quick",
@@ -1664,7 +1707,8 @@ async fn run_manual_search_ops_with_state_packet(
             agent_id: AgentId("role-agent".to_string()),
             session_id: SessionId(format!("role-session-search-state-{case_name}")),
             input: format!(
-                "请指定资料搜索员和运营一起协作，搜索校园冷萃咖啡竞品价格后给定价建议。case={case_name}"
+                "请指定资料搜索员和运营一起协作，搜索校园冷萃咖啡竞品价格后给定价建议。\
+                 case={case_name}"
             ),
             metadata,
         })
@@ -1726,7 +1770,8 @@ async fn run_manual_search_ops_mode_with_state_packet(
             agent_id: AgentId("role-agent".to_string()),
             session_id: SessionId(format!("role-session-search-mode-{response_mode}")),
             input: format!(
-                "请指定资料搜索员和运营一起协作，按 {response_mode} 模式搜索校园冷萃咖啡竞品价格后给定价建议。"
+                "请指定资料搜索员和运营一起协作，按 {response_mode} \
+                 模式搜索校园冷萃咖啡竞品价格后给定价建议。"
             ),
             metadata,
         })
@@ -1784,11 +1829,10 @@ async fn run_manual_search_multi_downstream_with_state_packet(
             user_id: Some(UserId("role-user".to_string())),
             workspace_id: None,
             agent_id: AgentId("role-agent".to_string()),
-            session_id: SessionId(format!(
-                "role-session-search-multi-downstream-{case_name}"
-            )),
+            session_id: SessionId(format!("role-session-search-multi-downstream-{case_name}")),
             input: format!(
-                "请指定资料搜索员、财务、客服和技术架构师一起协作，搜索校园冷萃咖啡竞品价格后，判断定价毛利、售后承诺和上传链路风险。case={case_name}"
+                "请指定资料搜索员、财务、客服和技术架构师一起协作，搜索校园冷萃咖啡竞品价格后，\
+                 判断定价毛利、售后承诺和上传链路风险。case={case_name}"
             ),
             metadata,
         })
@@ -1850,7 +1894,9 @@ async fn run_manual_search_extended_roles_with_state_packet(
             agent_id: AgentId("role-agent".to_string()),
             session_id: SessionId(format!("role-session-search-extended-{case_name}")),
             input: format!(
-                "请指定运营、资料搜索员、数据、创意、视觉设计、抖音投放和网页岗位一起协作，搜索校园冷萃咖啡竞品价格后判断数据口径、内容方向、设计表达、投放风险和页面承接。case={case_name}"
+                "请指定运营、资料搜索员、数据、创意、视觉设计、抖音投放和网页岗位一起协作，\
+                 搜索校园冷萃咖啡竞品价格后判断数据口径、内容方向、设计表达、投放风险和页面承接。\
+                 case={case_name}"
             ),
             metadata,
         })
@@ -1924,7 +1970,8 @@ async fn explicit_manual_service_accounting_engineering_roles_keep_terminal_even
             workspace_id: None,
             agent_id: AgentId("role-agent".to_string()),
             session_id: SessionId("role-session-manual-service-accounting-engineering".to_string()),
-            input: "请指定客服、财务和技术架构师一起协作，判断校园租赁服务的退款赔付、毛利和上传链路风险。"
+            input: "请指定客服、财务和技术架构师一起协作，判断校园租赁服务的退款赔付、\
+                    毛利和上传链路风险。"
                 .to_string(),
             metadata,
         })

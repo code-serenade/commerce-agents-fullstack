@@ -68,7 +68,7 @@ pub(in crate::agent::worker::runner) fn infer_task_priority(text: &str) -> i64 {
 pub(in crate::agent::worker::runner) fn infer_task_acceptance(text: &str) -> String {
     for marker in config_string_list("/task_acceptance/section_markers") {
         if let Some(index) = text.find(&marker) {
-            return compact_task_text(&text[index..]);
+            return compact_task_text(&text[index ..]);
         }
     }
     config_string("/defaults/task_acceptance", "产出明确结果并可在工作区复用")

@@ -57,7 +57,7 @@ pub fn extract_json_value(input: &str) -> Option<&str> {
         match ch {
             '"' => in_string = true,
             '{' | '[' => {
-                if let Some(candidate) = extract_balanced_json(&input[index..], ch) {
+                if let Some(candidate) = extract_balanced_json(&input[index ..], ch) {
                     return Some(candidate);
                 }
             }
@@ -72,15 +72,15 @@ pub fn strip_code_fences(input: &str) -> &str {
         Some(idx) => idx,
         None => return input,
     };
-    let after_start = &input[start + 3..];
+    let after_start = &input[start + 3 ..];
     let newline = after_start.find('\n');
     let content_start = match newline {
         Some(idx) => start + 3 + idx + 1,
         None => start + 3,
     };
-    if let Some(end_idx) = input[content_start..].find("```") {
+    if let Some(end_idx) = input[content_start ..].find("```") {
         let end = content_start + end_idx;
-        return input[content_start..end].trim();
+        return input[content_start .. end].trim();
     }
     input
 }
@@ -176,7 +176,7 @@ fn extract_balanced_json(input: &str, start_char: char) -> Option<&str> {
                 if depth == 0
                     && let Some(start_index) = start
                 {
-                    return Some(&input[start_index..=index]);
+                    return Some(&input[start_index ..= index]);
                 }
             }
             _ => {}

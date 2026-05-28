@@ -227,12 +227,15 @@ fn build_contract_check(
             }
             if usable_claim_count == 0 {
                 warnings.push(
-                    "live adapter returned sources but no usable_claims; downstream answer may lack concrete evidence".to_string(),
+                    "live adapter returned sources but no usable_claims; downstream answer may \
+                     lack concrete evidence"
+                        .to_string(),
                 );
             }
             if source_count < 3 {
                 warnings.push(format!(
-                    "live adapter returned only {source_count} accepted source(s); downstream roles must treat it as low confidence"
+                    "live adapter returned only {source_count} accepted source(s); downstream \
+                     roles must treat it as low confidence"
                 ));
             }
         }
@@ -253,7 +256,8 @@ fn build_contract_check(
         "adapter_required" => {
             if source_state != "adapter_required" {
                 failures.push(format!(
-                    "adapter_required status must expose adapter_required source_state, got {source_state}"
+                    "adapter_required status must expose adapter_required source_state, got \
+                     {source_state}"
                 ));
             }
             if source_count > 0 || packet_source_count > 0 {
@@ -375,7 +379,9 @@ fn evidence_trace_from_output(output: &Value, packet: &Value, source_count: usiz
         .unwrap_or_else(|| "unknown".to_string());
 
     let mut trace = format!(
-        "search_evidence_trace: skill={} status={} adapter_status={} intent={} strength={} sources={} usable_claims={} gaps={} confidence={} filtered={} stale={} missing_url={} untraceable={} duplicate={} query=\"{}\"",
+        "search_evidence_trace: skill={} status={} adapter_status={} intent={} strength={} \
+         sources={} usable_claims={} gaps={} confidence={} filtered={} stale={} missing_url={} \
+         untraceable={} duplicate={} query=\"{}\"",
         compact_token(&skill),
         compact_token(&status),
         compact_token(&adapter_status),

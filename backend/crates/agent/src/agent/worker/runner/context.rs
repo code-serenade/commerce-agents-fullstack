@@ -305,9 +305,9 @@ fn extend_named_context_fact(
 
 #[cfg(test)]
 mod tests {
-    use super::build_cognition_input;
     use std::collections::BTreeMap;
 
+    use super::build_cognition_input;
     use crate::{
         agent::worker::{Task, TaskMemory, WorkerPhase},
         core::protocol::{

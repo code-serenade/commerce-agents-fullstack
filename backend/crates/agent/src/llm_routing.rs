@@ -25,7 +25,10 @@ const REQUEST_ATTACHMENTS_IMAGES_JSON: &str = "request.attachments.images_json";
 const ATTACHMENTS_IMAGE_SUMMARIES_JSON: &str = "attachments.image_summaries_json";
 const REQUEST_ATTACHMENTS_IMAGE_SUMMARIES_JSON: &str = "request.attachments.image_summaries_json";
 pub const LLM_ACCESS_DENIED_MARKER: &str = "llm_access_denied";
-const LLM_ACCESS_DENIED_USER_MESSAGE: &str = "当前 AI 模型服务配置不可用，模型服务返回权限错误，所以本轮 Agent 岗位没有形成有效回答。请管理员检查服务端 services.toml 中的 [agent_llm_usage]、模型名和 API Key 权限后重试。";
+const LLM_ACCESS_DENIED_USER_MESSAGE: &str =
+    "当前 AI 模型服务配置不可用，模型服务返回权限错误，所以本轮 Agent \
+     岗位没有形成有效回答。请管理员检查服务端 services.toml 中的 [agent_llm_usage]、模型名和 API \
+     Key 权限后重试。";
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct AgentLlmCfg {
@@ -332,7 +335,7 @@ where
             description: "LLM cognition did not run".to_string(),
         };
 
-        for attempt in 1..=max_attempts {
+        for attempt in 1 ..= max_attempts {
             attempts_run = attempt;
             tracing::debug!(
                 kind = ?self.kind,

@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use db_core::{
     DbContext,
     error::{BizError, BizResult},
@@ -15,7 +17,6 @@ use repo::table::{
     conversations::{Conversation, ConversationService, CreateConversation},
 };
 use serde_json::{Map, Value, json};
-use std::collections::HashSet;
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 use uuid::Uuid;
 

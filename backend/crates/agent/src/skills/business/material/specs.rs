@@ -20,8 +20,9 @@ pub fn material_file_understanding_spec() -> SkillSpec {
     SkillSpec::new(
         "material_file_understanding",
         "资料理解",
-        "理解本轮上传或选中的 PDF、Word、Excel、图片 OCR、文本资料，输出摘要、关键事实、可引用证据、\
-         适用场景、缺失信息和风险边界；没有正文时必须明确只看到了元数据。",
+        "理解本轮上传或选中的 PDF、Word、Excel、图片 \
+         OCR、文本资料，输出摘要、关键事实、可引用证据、适用场景、缺失信息和风险边界；\
+         没有正文时必须明确只看到了元数据。",
     )
     .with_category(category())
     .with_priority(SkillPriority::Critical)
@@ -122,7 +123,8 @@ pub fn material_image_diagnosis_spec() -> SkillSpec {
         "material_image_diagnosis",
         "图片诊断",
         "基于本轮图片的视觉摘要、OCR、图片说明或上下文元数据，诊断主图、详情页、海报、截图的主体、\
-         卖点、文案可读性、价格促销表达、合规风险和转化阻碍；没有视觉摘要或 OCR 时必须明确只看到了元数据。",
+         卖点、文案可读性、价格促销表达、合规风险和转化阻碍；没有视觉摘要或 OCR \
+         时必须明确只看到了元数据。",
     )
     .with_category(category())
     .with_priority(SkillPriority::Critical)
@@ -223,8 +225,8 @@ pub fn material_multi_file_compare_spec() -> SkillSpec {
     SkillSpec::new(
         "material_multi_file_compare",
         "多资料对比",
-        "比较本轮多份上传或选中的文档、表格摘要、图片摘要或资料上下文，输出共同点、差异点、冲突点、\
-         版本变化、可合并结论和缺失资料；资料少于两份或没有可读内容时必须明确待补充。",
+        "比较本轮多份上传或选中的文档、表格摘要、图片摘要或资料上下文，输出共同点、差异点、\
+         冲突点、版本变化、可合并结论和缺失资料；资料少于两份或没有可读内容时必须明确待补充。",
     )
     .with_category(category())
     .with_priority(SkillPriority::Critical)

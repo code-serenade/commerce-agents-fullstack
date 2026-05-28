@@ -1166,7 +1166,7 @@ fn compact_key_part(value: &str, max_chars: usize) -> String {
     value
         .chars()
         .map(|ch| match ch {
-            'a'..='z' | 'A'..='Z' | '0'..='9' | '-' | '_' | '.' => ch,
+            'a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '-' | '_' | '.' => ch,
             _ => '-',
         })
         .take(max_chars)
@@ -1496,9 +1496,9 @@ pub(crate) fn build_conversation_history_summary(
     let total_message_count = candidates.len();
     let truncated = total_message_count > CONVERSATION_HISTORY_RECENT_MESSAGES;
     let recent_start = total_message_count.saturating_sub(CONVERSATION_HISTORY_RECENT_MESSAGES);
-    let older_summary = build_older_conversation_summary(&candidates[..recent_start]);
+    let older_summary = build_older_conversation_summary(&candidates[.. recent_start]);
     let relevant_older =
-        select_relevant_older_conversation_messages(&candidates[..recent_start], &current_input);
+        select_relevant_older_conversation_messages(&candidates[.. recent_start], &current_input);
     let memory = build_conversation_memory_summary(&candidates, &older_summary, previous_memory);
 
     let selected = candidates
@@ -1647,9 +1647,9 @@ fn push_history_query_term(terms: &mut Vec<String>, term: String) {
 }
 
 fn is_cjk(ch: char) -> bool {
-    ('\u{4e00}'..='\u{9fff}').contains(&ch)
-        || ('\u{3400}'..='\u{4dbf}').contains(&ch)
-        || ('\u{f900}'..='\u{faff}').contains(&ch)
+    ('\u{4e00}' ..= '\u{9fff}').contains(&ch)
+        || ('\u{3400}' ..= '\u{4dbf}').contains(&ch)
+        || ('\u{f900}' ..= '\u{faff}').contains(&ch)
 }
 
 fn build_conversation_memory_summary(
@@ -2815,7 +2815,7 @@ mod tests {
     #[test]
     fn conversation_history_keeps_recent_window_and_summarizes_older_messages() {
         let mut messages = Vec::new();
-        for index in 1..=18 {
+        for index in 1 ..= 18 {
             let role = if index % 2 == 0 { "assistant" } else { "user" };
             messages.push(conversation_message(
                 index,

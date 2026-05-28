@@ -216,14 +216,14 @@ fn replace_placeholder_pairs(input: &str, open: char, close: char) -> String {
     let mut rest = input;
 
     while let Some(start) = rest.find(open) {
-        output.push_str(&rest[..start]);
+        output.push_str(&rest[.. start]);
         let segment_start = start + open.len_utf8();
-        let Some(end) = rest[segment_start..].find(close) else {
-            output.push_str(&rest[start..]);
+        let Some(end) = rest[segment_start ..].find(close) else {
+            output.push_str(&rest[start ..]);
             return output;
         };
         let segment_end = segment_start + end;
-        let segment = &rest[segment_start..segment_end];
+        let segment = &rest[segment_start .. segment_end];
         if placeholder_segment(segment) {
             if let Some(replacement) = placeholder_replacement(segment) {
                 output.push_str(&replacement);
@@ -233,7 +233,7 @@ fn replace_placeholder_pairs(input: &str, open: char, close: char) -> String {
             output.push_str(segment);
             output.push(close);
         }
-        rest = &rest[segment_end + close.len_utf8()..];
+        rest = &rest[segment_end + close.len_utf8() ..];
     }
 
     output.push_str(rest);
@@ -317,14 +317,17 @@ fn strip_role_prefix(line: &str) -> String {
     let Some((colon_index, colon_width)) = first_colon(body) else {
         return line.trim().to_string();
     };
-    let label = body[..colon_index].trim();
+    let label = body[.. colon_index].trim();
     if !looks_like_internal_role_label(label) {
         return line.trim().to_string();
     }
 
-    format!("{prefix}{}", body[colon_index + colon_width..].trim_start())
-        .trim()
-        .to_string()
+    format!(
+        "{prefix}{}",
+        body[colon_index + colon_width ..].trim_start()
+    )
+    .trim()
+    .to_string()
 }
 
 fn split_list_prefix(line: &str) -> (&str, &str) {
@@ -355,10 +358,10 @@ fn looks_like_internal_role_label(label: &str) -> bool {
     let Some(start) = label.find('(') else {
         return false;
     };
-    let Some(end) = label[start + 1..].find(')') else {
+    let Some(end) = label[start + 1 ..].find(')') else {
         return false;
     };
-    let role = &label[start + 1..start + 1 + end];
+    let role = &label[start + 1 .. start + 1 + end];
     !role.is_empty()
         && role.chars().all(|ch| {
             ch.is_ascii_lowercase() || ch.is_ascii_digit() || matches!(ch, '_' | '-' | '.')
@@ -448,7 +451,7 @@ fn collapse_repeated_blocks(lines: Vec<String>) -> Vec<String> {
     blocks = collapse_duplicate_blocks(blocks);
     if blocks.len().is_multiple_of(2) {
         let half = blocks.len() / 2;
-        if blocks[..half] == blocks[half..] {
+        if blocks[.. half] == blocks[half ..] {
             blocks.truncate(half);
         }
     }
@@ -460,7 +463,7 @@ fn collapse_non_adjacent_repeated_line_runs(lines: Vec<String>) -> Vec<String> {
     let mut output = Vec::new();
     let mut cursor = 0;
     while cursor < lines.len() {
-        if let Some(run_len) = longest_seen_line_run(&output, &lines[cursor..]) {
+        if let Some(run_len) = longest_seen_line_run(&output, &lines[cursor ..]) {
             cursor += run_len;
             continue;
         }
@@ -472,16 +475,16 @@ fn collapse_non_adjacent_repeated_line_runs(lines: Vec<String>) -> Vec<String> {
 
 fn longest_seen_line_run(seen: &[String], remaining: &[String]) -> Option<usize> {
     let max_len = remaining.len().min(seen.len());
-    (2..=max_len).rev().find(|run_len| {
+    (2 ..= max_len).rev().find(|run_len| {
         seen.windows(*run_len)
-            .any(|window| window == &remaining[..*run_len])
+            .any(|window| window == &remaining[.. *run_len])
     })
 }
 
 fn collapse_repeated_line_sequence(mut lines: Vec<String>) -> Vec<String> {
     loop {
         let len = lines.len();
-        if len <= 1 || !len.is_multiple_of(2) || lines[..len / 2] != lines[len / 2..] {
+        if len <= 1 || !len.is_multiple_of(2) || lines[.. len / 2] != lines[len / 2 ..] {
             break;
         }
         lines.truncate(len / 2);
@@ -767,8 +770,8 @@ mod tests {
 
     #[test]
     fn drops_empty_evidence_heading_after_internal_trace_filtering() {
-        let raw = "建议先检查竞品价格。\n依据:\n- search_evidence_trace: \
-                   skill=search_competitor status=success adapter_status=live";
+        let raw = "建议先检查竞品价格。\n依据:\n- search_evidence_trace: skill=search_competitor \
+                   status=success adapter_status=live";
 
         let output = sanitize_user_facing_text(raw).expect("business line should remain");
 
@@ -820,9 +823,9 @@ mod tests {
 
     #[test]
     fn final_sanitizing_collapses_non_adjacent_duplicate_blocks() {
-        let raw = "先看毛利，再看销量。\n- 补齐成本字段。\n\n\
-                   资料边界：附件成本字段仍需核验。\n\n\
-                   先看毛利，再看销量。\n- 补齐成本字段。";
+        let raw = "先看毛利，再看销量。\n- \
+                   补齐成本字段。\n\n资料边界：附件成本字段仍需核验。\n\n先看毛利，再看销量。\n- \
+                   补齐成本字段。";
 
         let output = sanitize_final_user_facing_text(raw).expect("deduped output should remain");
 

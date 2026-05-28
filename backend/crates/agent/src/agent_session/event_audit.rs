@@ -164,7 +164,8 @@ pub fn audit_session_event_diagnostics(events: &[SessionEvent]) -> SessionEventD
 
 pub fn render_session_event_diagnostic_audit(audit: &SessionEventDiagnosticAudit) -> String {
     let mut lines = vec![format!(
-        "Agent diagnostic audit: failures={}, search={}, skill_failures={}, context_pack_failures={}, legacy_markers={}",
+        "Agent diagnostic audit: failures={}, search={}, skill_failures={}, \
+         context_pack_failures={}, legacy_markers={}",
         audit.failure_count,
         audit.search_evidence_count,
         audit.skill_failure_count,
@@ -197,7 +198,8 @@ pub fn render_session_event_diagnostic_audit(audit: &SessionEventDiagnosticAudit
     }
     for item in &audit.context_pack_failures {
         lines.push(format!(
-            "context_pack_failure: role={} node={} readiness={} kind={} items={} omitted={} pending={} failed={} unsupported={}",
+            "context_pack_failure: role={} node={} readiness={} kind={} items={} omitted={} \
+             pending={} failed={} unsupported={}",
             item.role,
             item.node_id,
             item.readiness,
@@ -211,7 +213,9 @@ pub fn render_session_event_diagnostic_audit(audit: &SessionEventDiagnosticAudit
     }
     for item in &audit.search_diagnostics {
         lines.push(format!(
-            "search_diagnostic: role={} node={} skill={} status={} adapter={} sources={} usable_claims={} gaps={} filtered={} stale={} missing_url={} untraceable={} duplicate={} confidence={}",
+            "search_diagnostic: role={} node={} skill={} status={} adapter={} sources={} \
+             usable_claims={} gaps={} filtered={} stale={} missing_url={} untraceable={} \
+             duplicate={} confidence={}",
             item.role,
             item.node_id,
             item.skill,
@@ -271,7 +275,9 @@ pub fn audit_diagnostic_consistency(
         issues.push(SessionEventDiagnosticConsistencyIssue {
             code: "context_pack_failure_overclaimed_read".to_string(),
             severity: "high".to_string(),
-            reason: "context_pack_* diagnostic exists, but the final answer claims full document/file reading".to_string(),
+            reason: "context_pack_* diagnostic exists, but the final answer claims full \
+                     document/file reading"
+                .to_string(),
             role: failure.map(|item| item.role.clone()),
             node_id: failure.map(|item| item.node_id.clone()),
             skill: None,
@@ -289,7 +295,9 @@ pub fn audit_diagnostic_consistency(
             issues.push(SessionEventDiagnosticConsistencyIssue {
                 code: "skill_failure_overclaimed_execution".to_string(),
                 severity: "high".to_string(),
-                reason: "skill_* failure diagnostic exists, but the final answer claims an external action completed".to_string(),
+                reason: "skill_* failure diagnostic exists, but the final answer claims an \
+                         external action completed"
+                    .to_string(),
                 role: Some(failure.role.clone()),
                 node_id: Some(failure.node_id.clone()),
                 skill: Some(failure.skill.clone()),
@@ -307,7 +315,9 @@ pub fn audit_diagnostic_consistency(
         issues.push(SessionEventDiagnosticConsistencyIssue {
             code: "missing_search_evidence_overclaimed_live_search".to_string(),
             severity: "medium".to_string(),
-            reason: "search evidence was expected and no typed search evidence was observed, but the final answer claims live search".to_string(),
+            reason: "search evidence was expected and no typed search evidence was observed, but \
+                     the final answer claims live search"
+                .to_string(),
             role: None,
             node_id: None,
             skill: None,
@@ -333,7 +343,8 @@ pub fn render_session_event_diagnostic_consistency_audit(
     )];
     for issue in &audit.issues {
         lines.push(format!(
-            "diagnostic_consistency_issue: code={} severity={} role={} node={} skill={} kind={} reason={}",
+            "diagnostic_consistency_issue: code={} severity={} role={} node={} skill={} kind={} \
+             reason={}",
             issue.code,
             issue.severity,
             issue.role.as_deref().unwrap_or("<none>"),
@@ -759,7 +770,7 @@ fn legacy_search_diagnostics(report: &WorkerReport) -> Vec<SessionEventSearchDia
     for item in &items {
         if let Some(trace) = item
             .find("search_evidence_trace:")
-            .map(|index| &item[index + "search_evidence_trace:".len()..])
+            .map(|index| &item[index + "search_evidence_trace:".len() ..])
             && let Some(diagnostic) = legacy_search_trace_diagnostic(report, trace)
         {
             push_unique_search_diagnostic(&mut traces, diagnostic);
@@ -773,7 +784,7 @@ fn legacy_search_diagnostics(report: &WorkerReport) -> Vec<SessionEventSearchDia
     for item in &items {
         if let Some(packet) = item
             .find("search_evidence_packet:")
-            .map(|index| &item[index + "search_evidence_packet:".len()..])
+            .map(|index| &item[index + "search_evidence_packet:".len() ..])
             && let Some(diagnostic) = legacy_search_packet_diagnostic(report, packet)
         {
             push_unique_search_diagnostic(&mut packets, diagnostic);
@@ -1423,7 +1434,10 @@ mod tests {
             "search",
             Vec::new(),
             vec![
-                "search_evidence_trace: skill=search_competitor status=success adapter_status=live intent=competitor_price_or_benchmark strength=standard sources=2 usable_claims=1 gaps=0 confidence=0.72 filtered=4 stale=1 missing_url=1 untraceable=1 duplicate=1 query=\"校园冷萃咖啡 竞品价格\""
+                "search_evidence_trace: skill=search_competitor status=success \
+                 adapter_status=live intent=competitor_price_or_benchmark strength=standard \
+                 sources=2 usable_claims=1 gaps=0 confidence=0.72 filtered=4 stale=1 \
+                 missing_url=1 untraceable=1 duplicate=1 query=\"校园冷萃咖啡 竞品价格\""
                     .to_string(),
             ],
             Vec::new(),
@@ -1488,7 +1502,8 @@ mod tests {
                 "search",
                 Vec::new(),
                 vec![
-                    "search_evidence_trace: skill=search_competitor status=success adapter_status=live sources=1 usable_claims=1 gaps=0 confidence=0.80"
+                    "search_evidence_trace: skill=search_competitor status=success \
+                     adapter_status=live sources=1 usable_claims=1 gaps=0 confidence=0.80"
                         .to_string(),
                 ],
                 Vec::new(),

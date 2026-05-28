@@ -551,7 +551,7 @@ fn differentiation_score(selling_points: &[String], review_pain_score: f64) -> f
         0 => 45.0,
         1 => 58.0,
         2 => 68.0,
-        3..=4 => 78.0,
+        3 ..= 4 => 78.0,
         _ => 82.0,
     };
     if review_pain_score > 0.0 {
@@ -1358,7 +1358,7 @@ fn experiment_groups(
     } else {
         channels
     };
-    (0..3)
+    (0 .. 3)
         .map(|idx| {
             json!({
                 "实验组": format!("G{}", idx + 1),
@@ -1802,7 +1802,9 @@ fn experiment_review_decision(
         return ExperimentReviewDecision {
             kind: "stop",
             label: "暂停/停止",
-            action: "多组都没有形成有效咨询、加购或成交信号，建议停止当前组合，回到人群、卖点或渠道假设重做。".to_string(),
+            action: "多组都没有形成有效咨询、加购或成交信号，建议停止当前组合，回到人群、\
+                     卖点或渠道假设重做。"
+                .to_string(),
             reasons: vec![
                 json!("所有实验组有效反馈不足"),
                 json!("继续消耗预算难以提高结论质量"),
@@ -1814,7 +1816,9 @@ fn experiment_review_decision(
         return ExperimentReviewDecision {
             kind: "stop",
             label: "暂停/排查风险",
-            action: "赢家组合存在退款、差评或投诉风险，先暂停放量，完成履约、质量和售后排查后再决定是否重测。".to_string(),
+            action: "赢家组合存在退款、差评或投诉风险，先暂停放量，完成履约、\
+                     质量和售后排查后再决定是否重测。"
+                .to_string(),
             reasons: vec![
                 json!(format!(
                     "赢家风险率为{}，超过可直接放量阈值",
@@ -1828,11 +1832,24 @@ fn experiment_review_decision(
         return ExperimentReviewDecision {
             kind: "scale",
             label: "可小步放量",
-            action: "保留当前赢家组合，单日预算先按 1.5 倍以内小步放大，并保留对照组观察转化、毛利和风险是否稳定。".to_string(),
+            action: "保留当前赢家组合，单日预算先按 1.5 \
+                     倍以内小步放大，并保留对照组观察转化、毛利和风险是否稳定。"
+                .to_string(),
             reasons: vec![
-                json!(format!("赢家综合分 {}，与第二名差距 {} 分", round1(winner.score), round1(score_gap))),
-                json!(format!("样本达到基础判断线：点击 {}，成交 {}", round1(winner.clicks), round1(winner.orders))),
-                json!(format!("毛利扣消耗后参考为 {}", currency(winner.gross_profit_after_spend))),
+                json!(format!(
+                    "赢家综合分 {}，与第二名差距 {} 分",
+                    round1(winner.score),
+                    round1(score_gap)
+                )),
+                json!(format!(
+                    "样本达到基础判断线：点击 {}，成交 {}",
+                    round1(winner.clicks),
+                    round1(winner.orders)
+                )),
+                json!(format!(
+                    "毛利扣消耗后参考为 {}",
+                    currency(winner.gross_profit_after_spend)
+                )),
                 json!("未发现高风险退款或差评信号"),
             ],
         };
@@ -1841,9 +1858,15 @@ fn experiment_review_decision(
         return ExperimentReviewDecision {
             kind: "inconclusive",
             label: "样本不足，暂不决策",
-            action: "当前点击或成交样本不足，不建议直接放量；先延长测试或集中预算到高反馈组合，补齐判断样本。".to_string(),
+            action: "当前点击或成交样本不足，不建议直接放量；先延长测试或集中预算到高反馈组合，\
+                     补齐判断样本。"
+                .to_string(),
             reasons: vec![
-                json!(format!("赢家点击 {}、成交 {}，尚未达到基础判断线", round1(winner.clicks), round1(winner.orders))),
+                json!(format!(
+                    "赢家点击 {}、成交 {}，尚未达到基础判断线",
+                    round1(winner.clicks),
+                    round1(winner.orders)
+                )),
                 json!("样本不足时，单组偶然成交或单日波动容易误导决策"),
             ],
         };
@@ -1852,11 +1875,19 @@ fn experiment_review_decision(
         return ExperimentReviewDecision {
             kind: "adjust_retest",
             label: "调整后重测",
-            action: "保留有信号的赢家方向，但先调整卖点表达、价格承接、详情页或客服话术，再做第二轮小预算重测。".to_string(),
+            action: "保留有信号的赢家方向，但先调整卖点表达、价格承接、详情页或客服话术，\
+                     再做第二轮小预算重测。"
+                .to_string(),
             reasons: vec![
                 json!("已有点击、咨询、加购或成交信号，但利润、差距或稳定性暂未达到放量线"),
-                json!(format!("当前赢家毛利扣消耗后参考为 {}", currency(winner.gross_profit_after_spend))),
-                json!(format!("赢家与第二名差距 {} 分，仍需复测确认", round1(score_gap))),
+                json!(format!(
+                    "当前赢家毛利扣消耗后参考为 {}",
+                    currency(winner.gross_profit_after_spend)
+                )),
+                json!(format!(
+                    "赢家与第二名差距 {} 分，仍需复测确认",
+                    round1(score_gap)
+                )),
             ],
         };
     }

@@ -610,6 +610,10 @@ pub fn plan_forced_chat_graph(task_id: &TaskId, task: &str) -> TaskGraph {
     chat::plan_single_chat_graph(task_id, task, "chat")
 }
 
+pub fn plan_forced_role_graph(task_id: &TaskId, task: &str, role: &str) -> TaskGraph {
+    chat::plan_single_chat_graph(task_id, task, role)
+}
+
 fn evaluate_report(
     report: &WorkerReport,
     node: Option<&TaskNode>,
@@ -930,7 +934,8 @@ fn context_pack_failure_check_item(
         .unwrap_or_else(|| user_facing_gap_reason(&diagnostic.source));
 
     format!(
-        "资料核对：{} 的资料包状态 {}，进入上下文 {} 项，省略 {} 项，解析中 {} 项，解析失败 {} 项，不支持 {} 项，原因 {}",
+        "资料核对：{} 的资料包状态 {}，进入上下文 {} 项，省略 {} 项，解析中 {} 项，解析失败 {} \
+         项，不支持 {} 项，原因 {}",
         node.role,
         readiness,
         item_count,
@@ -1153,9 +1158,9 @@ fn unique_strings(items: Vec<String>) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{TaskGraphRuntime, TaskNodeRuntimeState};
     use std::collections::BTreeMap;
 
+    use super::{TaskGraphRuntime, TaskNodeRuntimeState};
     use crate::core::protocol::{
         RoleWorkOutput, TaskGraph, TaskGraphId, TaskId, TaskNode, TaskNodeId, WorkerDiagnostic,
         WorkerId, WorkerReport, WorkerReportStatus,

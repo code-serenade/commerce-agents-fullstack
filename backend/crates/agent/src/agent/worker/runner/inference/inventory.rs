@@ -206,7 +206,7 @@ fn normalize_sku_prefix(segment: &str) -> &str {
     }
     lower
         .rfind(&sku_prefix_marker.to_ascii_lowercase())
-        .map(|index| trimmed[index..].trim())
+        .map(|index| trimmed[index ..].trim())
         .unwrap_or(trimmed)
 }
 
@@ -218,20 +218,20 @@ fn clean_sku_label<T: AsRef<str>>(segment: &str, markers: &[T], fallback: &str) 
         .min()
         .unwrap_or(segment.len());
     let trim_delimiters = sku_trim_delimiters();
-    let raw = segment[..end]
+    let raw = segment[.. end]
         .trim()
         .trim_matches(|ch| trim_delimiters.contains(&ch))
         .trim();
     let raw = raw
         .rfind(|ch| trim_delimiters.contains(&ch))
-        .map(|index| raw[index + 1..].trim())
+        .map(|index| raw[index + 1 ..].trim())
         .unwrap_or(raw);
     let lower_raw = raw.to_ascii_lowercase();
     let sku_prefix_marker = string_default("rules/sku_label_cleanup/sku_prefix_marker", "sku");
     let raw = if bool_default("rules/sku_label_cleanup/prefer_last_sku_prefix", true) {
         lower_raw
             .rfind(&sku_prefix_marker.to_ascii_lowercase())
-            .map(|index| raw[index..].trim())
+            .map(|index| raw[index ..].trim())
             .unwrap_or(raw)
     } else {
         raw
@@ -273,10 +273,10 @@ fn segment_after_abc_history_label<T: AsRef<str>>(text: &str, labels: &[T]) -> O
     }
     let (index, label) = best?;
     let start = index + label.len();
-    let tail = text[start..].trim();
+    let tail = text[start ..].trim();
     let split_on = parser_string_list("abc_xyz_skus", "/history_split_on");
     let end = find_first_delimiter(tail, &split_on).unwrap_or(tail.len());
-    Some(tail[..end].trim().to_string())
+    Some(tail[.. end].trim().to_string())
 }
 
 fn extract_last_metric_value<T: AsRef<str>>(text: &str, aliases: &[T]) -> Option<f64> {
@@ -292,7 +292,7 @@ fn extract_last_metric_value<T: AsRef<str>>(text: &str, aliases: &[T]) -> Option
             continue;
         };
         let start = index + alias_lower.len();
-        if let Some(value) = super::metrics::parse_metric_number_after_alias(&text[start..]) {
+        if let Some(value) = super::metrics::parse_metric_number_after_alias(&text[start ..]) {
             return Some(value);
         }
     }
@@ -304,7 +304,7 @@ fn segment_after_label<T: AsRef<str>>(text: &str, label: &str, labels: &[T]) -> 
     let label_lower = label.to_ascii_lowercase();
     let index = lower.find(&label_lower)?;
     let start = index + label.len();
-    let tail = &text[start..];
+    let tail = &text[start ..];
     let tail_lower = tail.to_ascii_lowercase();
     let next = labels
         .iter()
@@ -313,7 +313,7 @@ fn segment_after_label<T: AsRef<str>>(text: &str, label: &str, labels: &[T]) -> 
         .filter_map(|other| tail_lower.find(&other.to_ascii_lowercase()))
         .min()
         .unwrap_or(tail.len());
-    Some(tail[..next].to_string())
+    Some(tail[.. next].to_string())
 }
 
 fn canonical_ad_channel_name(label: &str) -> String {

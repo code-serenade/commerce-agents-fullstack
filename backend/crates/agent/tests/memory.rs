@@ -332,7 +332,7 @@ fn scope_kind_compaction_prunes_unkeyed_records() {
             0.8,
         ),
     );
-    for index in 0..10 {
+    for index in 0 .. 10 {
         MemoryStore::upsert_record(
             &store,
             test_memory_record(
@@ -381,7 +381,7 @@ fn load_bundle_respects_char_budget_even_after_store_compaction() {
         session_id: None,
         task_id: None,
     };
-    for index in 0..4 {
+    for index in 0 .. 4 {
         MemoryStore::upsert_record(
             &store,
             test_memory_record(

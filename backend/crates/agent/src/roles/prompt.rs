@@ -281,7 +281,10 @@ mod tests {
                 runtime_role: "ops".to_string(),
                 worker_id: WorkerId("worker.ops".to_string()),
                 task_id: TaskId("task-review".to_string()),
-                content: "experiment_review_report: MVP实验复盘报告已生成；复盘结论：可小步放量；赢家组合：G1；放量/重测/停止依据：样本达标。".to_string(),
+                content: "experiment_review_report: \
+                          MVP实验复盘报告已生成；复盘结论：可小步放量；赢家组合：G1；放量/重测/\
+                          停止依据：样本达标。"
+                    .to_string(),
                 confidence: None,
                 needs_follow_up: false,
             }],

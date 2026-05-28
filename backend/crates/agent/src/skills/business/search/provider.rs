@@ -243,7 +243,8 @@ pub(super) fn build_search_evidence(
     if sources.is_empty() {
         let summary = if filter_stats.total_filtered_count() > 0 {
             format!(
-                "没有可采信实时来源；provider 返回内容中有 {} 条被过滤（过期 {}、缺 URL {}、域名不可追溯 {}、重复 {}），当前结果只能作为降级状态。",
+                "没有可采信实时来源；provider 返回内容中有 {} 条被过滤（过期 {}、缺 URL \
+                 {}、域名不可追溯 {}、重复 {}），当前结果只能作为降级状态。",
                 filter_stats.total_filtered_count(),
                 filter_stats.stale_filtered_count,
                 filter_stats.missing_url_filtered_count,

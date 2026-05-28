@@ -56,7 +56,7 @@ impl Prompt {
             err
         })?;
 
-        let schema_region = &self.content[start + marker.len()..];
+        let schema_region = &self.content[start + marker.len() ..];
         let schema_text = llm_json::extract_json_value(schema_region).ok_or_else(|| {
             let err = PromptError::internal("failed to extract JSON schema from prompt");
             log_error!(err);

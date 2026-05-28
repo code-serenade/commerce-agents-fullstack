@@ -31,7 +31,8 @@ const MAX_RETRIEVAL_SUMMARY_CHARS: usize = 5000;
 const LOCAL_RAG_MODE: &str = "local_product_knowledge";
 const EXTERNAL_SEARCH_UNAVAILABLE_REASON: &str =
     "No matching local product knowledge was found; external search adapter is not configured.";
-const EXTERNAL_SEARCH_AVAILABLE_REASON: &str = "No matching local product knowledge was found; external search adapter is configured and \
+const EXTERNAL_SEARCH_AVAILABLE_REASON: &str =
+    "No matching local product knowledge was found; external search adapter is configured and \
      search skills may request live sources when the task needs real-time market data.";
 
 pub struct AgentContextApi {
@@ -592,13 +593,13 @@ const COMMERCE_QUERY_TERMS: &[&str] = &[
 fn contains_cjk(value: &str) -> bool {
     value
         .chars()
-        .any(|ch| ('\u{4e00}'..='\u{9fff}').contains(&ch))
+        .any(|ch| ('\u{4e00}' ..= '\u{9fff}').contains(&ch))
 }
 
 fn cjk_windows(value: &str, window: usize) -> Vec<String> {
     let chars = value
         .chars()
-        .filter(|ch| ('\u{4e00}'..='\u{9fff}').contains(ch))
+        .filter(|ch| ('\u{4e00}' ..= '\u{9fff}').contains(ch))
         .collect::<Vec<_>>();
     if chars.len() < window {
         return Vec::new();
@@ -698,7 +699,7 @@ mod tests {
 
     #[test]
     fn rejects_too_many_context_refs() {
-        let refs = (0..21).map(|index| format!("ref-{index}")).collect();
+        let refs = (0 .. 21).map(|index| format!("ref-{index}")).collect();
 
         let err = normalize_context_refs(refs).expect_err("too many refs should fail");
 

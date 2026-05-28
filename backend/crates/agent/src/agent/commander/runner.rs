@@ -627,7 +627,7 @@ impl Commander {
             .current_context
             .metadata
             .get("strategy.collaboration_mode")
-            .is_some_and(|value| value == "manual")
+            .is_some_and(|value| value == "manual" || value == "single")
             && let Some(route) = role_route
         {
             return (

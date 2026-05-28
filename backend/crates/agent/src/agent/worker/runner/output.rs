@@ -536,7 +536,9 @@ fn format_search_evidence_trace(result: &SkillExecutionResult) -> Option<String>
     let filter_stats = search_filter_stats(output, packet);
 
     let mut trace = format!(
-        "search_evidence_trace: skill={} status={} adapter_status={} intent={} strength={} sources={} usable_claims={} gaps={} confidence={} filtered={} stale={} missing_url={} untraceable={} duplicate={} query=\"{}\"",
+        "search_evidence_trace: skill={} status={} adapter_status={} intent={} strength={} \
+         sources={} usable_claims={} gaps={} confidence={} filtered={} stale={} missing_url={} \
+         untraceable={} duplicate={} query=\"{}\"",
         result.skill_id.as_str(),
         output_status,
         adapter_status,
