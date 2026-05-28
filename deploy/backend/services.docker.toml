@@ -1,5 +1,3 @@
-default_llm = "doubao-thinking"
-
 [http]
 port = 19878
 
@@ -43,7 +41,8 @@ vision = "doubao-vision"
 
 [[llm]]
 name = "doubao-fast"
-base_url = "https://ark.cn-beijing.volces.com/api/v3"
+provider = "doubao"
+base_url = "http://10.100.11.51:4000/v1"
 model = "doubao-seed-2-0-lite-260428"
 api_key = "e9cc641d-1992-40d1-9fbc-f725fd420611"
 max_tokens = 8000
@@ -52,7 +51,8 @@ thinking = false
 
 [[llm]]
 name = "doubao-thinking"
-base_url = "https://ark.cn-beijing.volces.com/api/v3"
+provider = "doubao"
+base_url = "http://10.100.11.51:4000/v1"
 model = "doubao-seed-2-0-pro-260215"
 api_key = "e9cc641d-1992-40d1-9fbc-f725fd420611"
 max_tokens = 20000
@@ -61,7 +61,8 @@ thinking = true
 
 [[llm]]
 name = "doubao-vision"
-base_url = "https://ark.cn-beijing.volces.com/api/v3"
+provider = "doubao"
+base_url = "http://10.100.11.51:4000/v1"
 model = "doubao-seed-2-0-lite-260428"
 api_key = "e9cc641d-1992-40d1-9fbc-f725fd420611"
 max_tokens = 12000

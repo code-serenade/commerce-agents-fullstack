@@ -1,6 +1,5 @@
 {
   "max_attempts": 2,
-  "timeout_sec": 45,
   "node_acceptance": [
     "输出必须围绕本岗位职责给出可复核的业务判断、依据、风险边界和下一步动作。"
   ],

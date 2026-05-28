@@ -81,8 +81,6 @@ pub(super) struct TaskGraphRuleNode {
     #[serde(default)]
     pub(super) skill_autosuggest: Option<bool>,
     #[serde(default)]
-    pub(super) timeout_sec: Option<u64>,
-    #[serde(default)]
     pub(super) acceptance: Vec<String>,
 }
 
@@ -90,8 +88,6 @@ pub(super) struct TaskGraphRuleNode {
 pub(super) struct TaskGraphDefaults {
     #[serde(default)]
     pub(super) max_attempts: Option<u8>,
-    #[serde(default)]
-    pub(super) timeout_sec: Option<u64>,
     #[serde(default)]
     pub(super) node_acceptance: Vec<String>,
     #[serde(default)]
@@ -112,8 +108,6 @@ pub(super) struct TaskGraphRoleDefault {
     pub(super) acceptance: Vec<String>,
     #[serde(default)]
     pub(super) max_attempts: Option<u8>,
-    #[serde(default)]
-    pub(super) timeout_sec: Option<u64>,
 }
 
 #[derive(Debug, Clone, Default, serde::Deserialize)]
@@ -163,8 +157,6 @@ pub(super) struct TaskGraphConditionalNode {
     #[serde(default)]
     pub(super) skill_autosuggest: Option<bool>,
     #[serde(default)]
-    pub(super) timeout_sec: Option<u64>,
-    #[serde(default)]
     pub(super) acceptance: Vec<String>,
 }
 
@@ -192,8 +184,6 @@ pub(super) struct ExplicitRequestRoles {
     pub(super) skill_autosuggest_by_role: HashMap<String, bool>,
     #[serde(default)]
     pub(super) depends_on_roles: HashMap<String, Vec<String>>,
-    #[serde(default)]
-    pub(super) timeout_sec: Option<u64>,
 }
 
 #[derive(Debug, Clone, Default, serde::Deserialize)]
@@ -214,8 +204,6 @@ pub(super) struct RouteRoles {
     pub(super) skill_autosuggest_by_role: HashMap<String, bool>,
     #[serde(default)]
     pub(super) depends_on_roles: HashMap<String, Vec<String>>,
-    #[serde(default)]
-    pub(super) timeout_sec: Option<u64>,
 }
 
 #[derive(Debug, Clone, Default, serde::Deserialize, PartialEq, Eq)]
@@ -245,8 +233,6 @@ pub(super) struct TaskGraphFinalNode {
     pub(super) llm_usage: Option<String>,
     #[serde(default)]
     pub(super) skill_autosuggest: Option<bool>,
-    #[serde(default)]
-    pub(super) timeout_sec: Option<u64>,
     #[serde(default)]
     pub(super) acceptance: Vec<String>,
 }

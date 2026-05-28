@@ -42,9 +42,37 @@ async fn main() {
         .await
         .expect("DatabaseManager initialization failed");
     init_storage(settings.s3.clone()).expect("Storage initialization failed");
+    tracing::info!(
+        usage_default = ?settings.agent_llm_usage.default,
+        usage_fast = ?settings.agent_llm_usage.fast,
+        usage_thinking = ?settings.agent_llm_usage.thinking,
+        usage_vision = ?settings.agent_llm_usage.vision,
+        llm_count = settings.llm.len(),
+        llms = ?settings
+            .llm
+            .iter()
+            .map(|llm| {
+                format!(
+                    "{}:{} thinking={:?} reasoning_effort={:?} endpoint={:?}",
+                    llm.name,
+                    llm.model,
+                    llm.thinking,
+                    llm.reasoning_effort,
+                    llm.chat_completions_endpoint
+                )
+            })
+            .collect::<Vec<_>>(),
+        search_enabled = settings.external_search.enabled,
+        search_base_url = ?settings.external_search.base_url,
+        search_endpoint = ?settings.external_search.search_endpoint,
+        worker_cognition_timeout_sec = settings
+            .agent_runtime
+            .worker_cognition_timeout_sec
+            .unwrap_or(45),
+        "agent runtime config loaded"
+    );
     init_agent_manager(agent::api::AgentRuntimeCfg {
         llm: settings.llm.clone(),
-        default_llm: settings.default_llm.clone(),
         llm_usage: settings.agent_llm_usage.clone(),
         search: settings.external_search.clone(),
         worker_cognition_timeout_sec: settings

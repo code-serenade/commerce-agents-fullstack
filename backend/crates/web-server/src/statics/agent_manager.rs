@@ -24,20 +24,29 @@ struct AgentRuntimeModelSelection {
 
 struct AgentManagerRegistry {
     config: AgentRuntimeCfg,
-    default_model_name: String,
     llm_usage: AgentLlmUsageCfg,
     manager: Arc<AgentManager>,
 }
 
 pub fn init_agent_manager(config: AgentRuntimeCfg) -> Result<()> {
-    let default_model_name = resolve_default_model_name(&config)?;
-    let llm_usage = resolve_llm_usage(&config, &default_model_name)?;
+    let llm_usage = resolve_llm_usage(&config)?;
+    tracing::info!(
+        usage_default = ?llm_usage.default,
+        usage_fast = ?llm_usage.fast,
+        usage_thinking = ?llm_usage.thinking,
+        usage_vision = ?llm_usage.vision,
+        configured_llms = ?config
+            .llm
+            .iter()
+            .map(|llm| format!("{}:{}", llm.name, llm.model))
+            .collect::<Vec<_>>(),
+        "agent manager llm usage resolved"
+    );
     let manager = build_agent_manager(config.clone())
         .map_err(|err| Error::Custom(format!("agent init failed: {err}")))?;
     AGENT_MANAGER_REGISTRY
         .set(AgentManagerRegistry {
             config,
-            default_model_name,
             llm_usage,
             manager: Arc::new(manager),
         })
@@ -68,13 +77,9 @@ pub async fn run_vision_preprocess(input: VisionPreprocessInput) -> Result<Visio
         file_size = ?input.file_size,
         "vision preprocess runtime initializing"
     );
-    let agent = VisionPreprocessAgent::new(
-        config,
-        &registry.config.llm,
-        registry.config.default_llm.as_deref(),
-        &registry.config.llm_usage,
-    )
-    .map_err(|err| Error::Custom(format!("vision preprocess init failed: {err}")))?;
+    let agent =
+        VisionPreprocessAgent::new(config, &registry.config.llm, &registry.config.llm_usage)
+            .map_err(|err| Error::Custom(format!("vision preprocess init failed: {err}")))?;
     let result = agent
         .run(input)
         .await
@@ -129,7 +134,9 @@ impl AgentManagerRegistry {
         let requested = requested_model_name
             .map(str::trim)
             .filter(|name| !name.is_empty());
-        let selected_name = requested.unwrap_or(&self.default_model_name);
+        let selected_name = requested
+            .or(self.llm_usage.default.as_deref())
+            .ok_or_else(|| Error::Custom("agent default llm usage is not configured".to_owned()))?;
         let llm = self
             .config
             .llm
@@ -156,33 +163,10 @@ fn registry() -> Result<&'static AgentManagerRegistry> {
         .ok_or_else(|| Error::Custom("Agent manager not initialized".to_owned()))
 }
 
-fn resolve_default_model_name(config: &AgentRuntimeCfg) -> Result<String> {
-    if config.llm.is_empty() {
-        return Err(Error::Custom(
-            "agent runtime requires at least one [[llm]] entry".to_string(),
-        ));
-    }
-    match config.default_llm.as_deref() {
-        Some(name) if config.llm.iter().any(|llm| llm.name == name) => Ok(name.to_string()),
-        Some(name) => Err(Error::Custom(format!("llm '{name}' not found"))),
-        None => Ok(config
-            .llm
-            .iter()
-            .find(|llm| {
-                llm.name.to_ascii_lowercase().contains("doubao")
-                    || llm.model.to_ascii_lowercase().contains("doubao")
-            })
-            .or_else(|| config.llm.first())
-            .expect("checked non-empty llm config above")
-            .name
-            .clone()),
-    }
-}
-
-fn resolve_llm_usage(
-    config: &AgentRuntimeCfg,
-    default_model_name: &str,
-) -> Result<AgentLlmUsageCfg> {
+fn resolve_llm_usage(config: &AgentRuntimeCfg) -> Result<AgentLlmUsageCfg> {
+    let first_llm = config.llm.first().ok_or_else(|| {
+        Error::Custom("agent runtime requires at least one [[llm]] entry".to_string())
+    })?;
     let resolve = |value: Option<&String>| -> Result<Option<String>> {
         let Some(name) = value
             .map(String::as_str)
@@ -197,8 +181,8 @@ fn resolve_llm_usage(
         Err(Error::Custom(format!("llm '{name}' not found")))
     };
 
-    let default = resolve(config.llm_usage.default.as_ref())?
-        .or_else(|| Some(default_model_name.to_string()));
+    let default =
+        resolve(config.llm_usage.default.as_ref())?.or_else(|| Some(first_llm.name.clone()));
     let fast = resolve(config.llm_usage.fast.as_ref())?.or_else(|| default.clone());
     let thinking = resolve(config.llm_usage.thinking.as_ref())?.or_else(|| default.clone());
     let vision = resolve(config.llm_usage.vision.as_ref())?;
@@ -223,11 +207,12 @@ fn new_session_id() -> String {
 mod tests {
     use agent::api::{AgentLlmCfg, AgentLlmUsageCfg, AgentRuntimeCfg};
 
-    use super::{resolve_default_model_name, resolve_llm_usage};
+    use super::resolve_llm_usage;
 
     fn llm(name: &str, model: &str) -> AgentLlmCfg {
         AgentLlmCfg {
             name: name.to_string(),
+            provider: Default::default(),
             base_url: "http://127.0.0.1:11434/v1".to_string(),
             model: model.to_string(),
             api_key: None,
@@ -240,51 +225,42 @@ mod tests {
     }
 
     #[test]
-    fn default_model_prefers_configured_default_llm() {
-        let mut config = AgentRuntimeCfg::from_llm(vec![
-            llm("doubao-external", "doubao-seed-2-0-pro-260215"),
-            llm("ollama-gpt", "gpt-oss:20b"),
-        ]);
-        config.default_llm = Some("ollama-gpt".to_string());
-
-        assert_eq!(
-            resolve_default_model_name(&config).expect("default model"),
-            "ollama-gpt"
-        );
-    }
-
-    #[test]
-    fn default_model_prefers_doubao_when_no_default_is_set() {
-        let config = AgentRuntimeCfg::from_llm(vec![
-            llm("ollama-gpt", "gpt-oss:20b"),
-            llm("doubao-external", "doubao-seed-2-0-pro-260215"),
-        ]);
-
-        assert_eq!(
-            resolve_default_model_name(&config).expect("default model"),
-            "doubao-external"
-        );
-    }
-
-    #[test]
     fn resolves_llm_usage_with_default_fallback() {
         let mut config = AgentRuntimeCfg::from_llm(vec![
             llm("llm-fast", "fast-model"),
             llm("llm-thinking", "thinking-model"),
             llm("llm-vision", "vision-model"),
         ]);
-        config.default_llm = Some("llm-thinking".to_string());
         config.llm_usage = AgentLlmUsageCfg {
+            default: Some("llm-thinking".to_string()),
             fast: Some("llm-fast".to_string()),
             vision: Some("llm-vision".to_string()),
-            ..AgentLlmUsageCfg::default()
+            thinking: None,
         };
 
-        let usage = resolve_llm_usage(&config, "llm-thinking").expect("usage should resolve");
+        let usage = resolve_llm_usage(&config).expect("usage should resolve");
 
         assert_eq!(usage.default.as_deref(), Some("llm-thinking"));
         assert_eq!(usage.fast.as_deref(), Some("llm-fast"));
         assert_eq!(usage.thinking.as_deref(), Some("llm-thinking"));
         assert_eq!(usage.vision.as_deref(), Some("llm-vision"));
+    }
+
+    #[test]
+    fn resolves_llm_usage_default_to_first_llm_when_omitted() {
+        let mut config = AgentRuntimeCfg::from_llm(vec![
+            llm("first-llm", "first-model"),
+            llm("second-llm", "second-model"),
+        ]);
+        config.llm_usage = AgentLlmUsageCfg {
+            fast: Some("second-llm".to_string()),
+            ..AgentLlmUsageCfg::default()
+        };
+
+        let usage = resolve_llm_usage(&config).expect("usage should resolve");
+
+        assert_eq!(usage.default.as_deref(), Some("first-llm"));
+        assert_eq!(usage.fast.as_deref(), Some("second-llm"));
+        assert_eq!(usage.thinking.as_deref(), Some("first-llm"));
     }
 }

@@ -13,8 +13,6 @@ pub struct Settings {
     pub db: Vec<DatabaseConfig>,
     pub s3: StorageConfig,
     #[serde(default)]
-    pub default_llm: Option<String>,
-    #[serde(default)]
     pub agent_llm_usage: AgentLlmUsageCfg,
     #[serde(default)]
     pub llm: Vec<AgentLlmCfg>,

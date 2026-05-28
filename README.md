@@ -56,6 +56,8 @@ AI 负责：
 - `thinking`：复杂业务分析、多角色 worker、综合输出
 - `vision`：图片输入和视觉理解
 
+每个 `[[llm]]` 可以用 `provider` 指定 `model-gateway-rs` 客户端类型：`chat_completions`、`ollama` 或 `doubao`；不配置时默认 `chat_completions`。
+
 真实 API key 只写在部署机器配置里，不要提交到仓库。完整字段说明见 `API_DOCS/common.md`。
 
 Agent worker 还有单节点思考超时保护，可在 `backend/config/services.toml` 配置：

@@ -72,7 +72,6 @@
       "objective": "通过搜索 skill 获取用户要求的公开来源、竞品价格、平台规则或实时趋势证据，并整理 evidence_packet：intent、query、search_strength、sources、usable_claims、gaps、confidence。只做证据层，不替业务岗位下方案：{{task}}",
       "llm_usage": "fast",
       "skill_autosuggest": true,
-      "timeout_sec": 35,
       "max_attempts": 1,
       "acceptance": [
         "必须尝试匹配最具体的 search skill，例如竞品价格走 search_competitor，平台规则走 search_platform_policy。",
@@ -91,7 +90,6 @@
     "max_attempts": 1,
     "llm_usage": "fast",
     "skill_autosuggest": false,
-    "timeout_sec": 35,
     "acceptance": [
       "最终回答必须包含业务结论或可执行建议，而不是只列来源。",
       "必须区分搜索证据、业务判断、证据缺口和下一步核验。",

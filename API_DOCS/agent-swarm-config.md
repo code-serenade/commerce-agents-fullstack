@@ -8,10 +8,14 @@ The runtime is configuration-driven. Business changes should be made in `backend
 Runtime LLMs are configured in `backend/config/services.toml`.
 
 ```toml
-default_llm = "external-main"
+[agent_llm_usage]
+default = "external-main"
+fast = "external-main"
+thinking = "external-main"
 
 [[llm]]
 name = "external-main"
+provider = "chat_completions"
 base_url = "https://CHANGE_ME_PUBLIC_OPENAI_COMPATIBLE_BASE_URL"
 model = "CHANGE_ME_MODEL_NAME"
 api_key = "CHANGE_ME"
@@ -22,11 +26,11 @@ temperature = 0.2
 Rules:
 
 - `base_url` must be reachable from the backend machine.
-- The client calls an OpenAI-compatible chat completions API.
-- If the provider path is not the default, set `chat_completions_endpoint`. When `base_url` already ends with `/v1`, `/api/v1`, or `/api/v3`, the client automatically calls `chat/completions`.
-- `default_llm` selects one entry by `name`. If omitted, runtime options and Agent runtime prefer a real configured Doubao entry whose `name` or `model` contains `doubao`; otherwise the first `[[llm]]` entry is used.
+- `provider` selects the model-gateway-rs client: `chat_completions`, `ollama`, or `doubao`.
+- If the `chat_completions` provider path is not the default, set `chat_completions_endpoint`.
+- `[agent_llm_usage]` is the only model routing entry. `default` selects the fallback `[[llm]].name`; if omitted, the first `[[llm]]` entry is used.
 - Model selection is server-side only. Frontend requests do not expose or override LLM config.
-- Local Ollama is still supported, for example `base_url = "http://127.0.0.1:11434"`.
+- Local Ollama is supported with `provider = "ollama"` and a root URL such as `base_url = "http://127.0.0.1:11434"`.
 - Doubao is available only when a real Ark `[[llm]]` entry and API key exist in `services.toml`. The frontend must not display a fake Doubao option when the backend config does not contain one.
 
 Doubao Ark example:
@@ -34,6 +38,7 @@ Doubao Ark example:
 ```toml
 [[llm]]
 name = "doubao-external"
+provider = "doubao"
 base_url = "https://ark.cn-beijing.volces.com/api/v3"
 model = "doubao-seed-2-0-pro-260215"
 api_key = "CHANGE_ME"
@@ -55,7 +60,7 @@ base_url = "http://119.29.232.53:16814/v1"
 model = "gemma4:26b"
 ```
 
-There is no committed real Doubao Ark entry or real Ark API key in `backend/config/services.toml`. If a deployment needs Doubao, add the Ark entry on that machine and set `default_llm = "doubao-external"`. Do not commit real keys.
+If a deployment needs Doubao, add the Ark entry on that machine and map `[agent_llm_usage]` to that `llm.name`. Do not commit real keys.
 
 ## Role
 
@@ -158,7 +163,7 @@ Request body:
 }
 ```
 
-The backend uses `default_llm` from `backend/config/services.toml`. If it is omitted and a real Doubao entry is configured, both runtime options and Agent runtime default to that Doubao entry; otherwise they default to the first configured LLM.
+The backend uses `[agent_llm_usage]` from `backend/config/services.toml`. If `default` is omitted, runtime options and Agent runtime default to the first configured `[[llm]]`.
 
 Important SSE events:
 

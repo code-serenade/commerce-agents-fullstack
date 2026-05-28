@@ -65,7 +65,6 @@
       ],
       "llm_usage": "fast",
       "skill_autosuggest": false,
-      "timeout_sec": 35,
       "skill_autosuggest_by_role": {
         "search": true
       },
@@ -92,7 +91,6 @@
     "max_attempts": 1,
     "llm_usage": "fast",
     "skill_autosuggest": false,
-    "timeout_sec": 35,
     "acceptance": [
       "必须综合上游岗位输入，输出用户可直接执行的方案，不展示岗位报告外壳。",
       "只能体现用户点名且实际执行的岗位能力和承接关系，不补未点名岗位。",

@@ -76,7 +76,7 @@
 
 写回 `memorySummary` 前会做轻量压缩和预算治理：`rollingSummary` 最多 1400 字符，facts 最多 10 条，decisions 最多 6 条，constraints 最多 8 条，openQuestions 最多 5 条，单条记忆文本最多 260 字符，`lastUserInput` 最多 500 字符，`lastAssistantOutput` 最多 700 字符，实际注入到模型的 memory 文本最多 2400 字符。旧 memory 中的超长字段、重复字段、空字段和无关嵌套对象会被清洗；文本完全相同或一条文本明显包含另一条文本时，会保留信息更完整的一条。预算值会写入 `conversation.memory_summary_json.sourceMap.memoryBudget`，方便前端或调试工具解释为什么没有全量带入历史。
 
-Agent SSE 不接受前端选择本轮 LLM；前端不得发送 `metadata.model`，不得展示、缓存或让用户选择模型。服务端始终使用 `backend/config/services.toml` 中的 `default_llm` 和 `[agent_llm_usage]` 路由配置。即使旧请求体里带了模型名，后端也会忽略该字段，不会因为旧前端缓存的模型名不存在而拒绝本轮请求；普通前端接口不暴露模型名称、模型映射、`base_url` 或 `api_key`。
+Agent SSE 不接受前端选择本轮 LLM；前端不得发送 `metadata.model`，不得展示、缓存或让用户选择模型。服务端始终使用 `backend/config/services.toml` 中的 `[agent_llm_usage]` 路由配置。即使旧请求体里带了模型名，后端也会忽略该字段，不会因为旧前端缓存的模型名不存在而拒绝本轮请求；普通前端接口不暴露模型名称、模型映射、`base_url` 或 `api_key`。
 
 如果上游模型服务返回 401/403、`Forbidden` 或 `AccessDenied`，Agent runtime 会把本轮 worker 标记为结构化失败：`task_node_reported.report.status=failed`，`report.evidence` 包含兼容 marker `failure_kind:llm_access_denied`，`report.diagnostics[]` 包含 `kind=failure`、`fields.failure_kind=llm_access_denied`，`report.openQuestions` 和最终输出会给出“模型服务配置不可用”的用户可理解诊断。该诊断只提示检查服务端 `services.toml` 的 `[agent_llm_usage]`、模型名和 API Key 权限，不会通过 SSE 暴露 `api_key`、provider request id 或完整 provider 原始错误。
 
@@ -202,7 +202,7 @@ data: {"type":"approval_required","approval":{"id":"approval-uuid","workspaceId"
 | `failed` | agent session 失败 |
 | `finished` | agent session 完成 |
 
-如果单个 worker LLM cognition 超过后端配置的 `[agent_runtime].worker_cognition_timeout_sec` 或 task graph 节点 `timeout_sec`，后端会把该节点的 `task_node_reported.report.status` 标记为 `timed_out`，在 `report.evidence[]` 中保留兼容 marker `failure_kind:timeout`，并在 `report.diagnostics[]` 写入 `kind=failure`、`fields.failure_kind=timeout`；随后发出 `task_node_failed`，并在 `task_graph_finished.process.incomplete[]` 中记录该节点缺口；下游依赖节点会被标记为 skipped。前端应把 `timed_out` 当作失败节点展示，但不要把整轮 SSE 误判为网络断开。
+如果单个 worker LLM cognition 超过后端配置的 `[agent_runtime].worker_cognition_timeout_sec`，后端会把该节点的 `task_node_reported.report.status` 标记为 `timed_out`，在 `report.evidence[]` 中保留兼容 marker `failure_kind:timeout`，并在 `report.diagnostics[]` 写入 `kind=failure`、`fields.failure_kind=timeout`；随后发出 `task_node_failed`，并在 `task_graph_finished.process.incomplete[]` 中记录该节点缺口；下游依赖节点会被标记为 skipped。前端应把 `timed_out` 当作失败节点展示，但不要把整轮 SSE 误判为网络断开。
 
 Skill typed diagnostics：
 

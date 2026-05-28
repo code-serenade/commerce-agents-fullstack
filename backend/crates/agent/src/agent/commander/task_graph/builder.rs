@@ -70,7 +70,6 @@ enum TaskGraphNodeSpec {
         depends_on: Vec<String>,
         llm_usage: Option<String>,
         skill_autosuggest: Option<bool>,
-        timeout_sec: Option<u64>,
     },
 }
 
@@ -115,7 +114,6 @@ fn dynamic_node_specs(
                 role,
                 llm_usage: rule.dynamic_roles.from_explicit_request.llm_usage.clone(),
                 skill_autosuggest,
-                timeout_sec: rule.dynamic_roles.from_explicit_request.timeout_sec,
             });
         }
         if let Some(final_role) = rules.defaults.final_role.as_ref()
@@ -141,7 +139,6 @@ fn dynamic_node_specs(
                     final_role,
                     rule.dynamic_roles.from_explicit_request.skill_autosuggest,
                 ),
-                timeout_sec: rule.dynamic_roles.from_explicit_request.timeout_sec,
             });
         }
         apply_dynamic_role_dependencies(
@@ -181,7 +178,6 @@ fn dynamic_node_specs(
                 role,
                 llm_usage: rule.dynamic_roles.from_route.llm_usage.clone(),
                 skill_autosuggest,
-                timeout_sec: rule.dynamic_roles.from_route.timeout_sec,
             });
         }
         apply_dynamic_role_dependencies(
@@ -331,7 +327,6 @@ fn task_node_from_spec(
             node.max_attempts,
             node.llm_usage.as_deref(),
             node.skill_autosuggest,
-            node.timeout_sec,
             &node.acceptance,
             task,
             rules,
@@ -346,7 +341,6 @@ fn task_node_from_spec(
             node.max_attempts,
             node.llm_usage.as_deref(),
             node.skill_autosuggest,
-            node.timeout_sec,
             &node.acceptance,
             task,
             rules,
@@ -358,7 +352,6 @@ fn task_node_from_spec(
             depends_on,
             llm_usage,
             skill_autosuggest,
-            timeout_sec,
         } => concrete_task_node(
             id,
             role,
@@ -368,7 +361,6 @@ fn task_node_from_spec(
             None,
             llm_usage.as_deref(),
             *skill_autosuggest,
-            *timeout_sec,
             &[],
             task,
             rules,
@@ -387,7 +379,6 @@ fn concrete_task_node(
     max_attempts: Option<u8>,
     llm_usage: Option<&str>,
     skill_autosuggest: Option<bool>,
-    timeout_sec: Option<u64>,
     acceptance: &[String],
     task: &str,
     rules: &TaskGraphRuleSet,
@@ -433,10 +424,7 @@ fn concrete_task_node(
             .filter(|value| !value.is_empty())
             .map(str::to_string),
         skill_autosuggest,
-        timeout_sec: timeout_sec
-            .or_else(|| role_default.and_then(|default| default.timeout_sec))
-            .or(rules.defaults.timeout_sec)
-            .map(|value| value.max(1)),
+        timeout_sec: None,
         input_refs: depends_on
             .iter()
             .map(|dep| TaskNodeId(dep.clone()))
@@ -470,7 +458,6 @@ fn add_final_node(
         final_node.max_attempts,
         final_node.llm_usage.as_deref(),
         final_node.skill_autosuggest,
-        final_node.timeout_sec,
         &final_node.acceptance,
         task,
         rules,

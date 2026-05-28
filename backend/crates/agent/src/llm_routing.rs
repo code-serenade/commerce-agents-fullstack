@@ -1,7 +1,12 @@
 use std::{collections::HashMap, path::Path, sync::Arc};
 
 use model_gateway_rs::{
-    llm::{Llm, chat_completions::ChatCompletionsLlm},
+    llm::{
+        Llm,
+        chat_completions::ChatCompletionsLlm,
+        doubao::{DoubaoLlm, DoubaoThinking},
+        ollama::OllamaLlm,
+    },
     model::{
         llm::{ChatContentPart, ChatMessage, LlmInput},
         role::Role,
@@ -18,7 +23,7 @@ use crate::{
     agent_utils::prompt::Prompt,
 };
 
-pub type AgentLlmClient = ChatCompletionsLlm;
+pub type AgentLlmClient = dyn Llm + Send + Sync;
 
 const ATTACHMENTS_IMAGES_JSON: &str = "attachments.images_json";
 const REQUEST_ATTACHMENTS_IMAGES_JSON: &str = "request.attachments.images_json";
@@ -33,6 +38,8 @@ const LLM_ACCESS_DENIED_USER_MESSAGE: &str =
 #[derive(Debug, Clone, Deserialize)]
 pub struct AgentLlmCfg {
     pub name: String,
+    #[serde(default)]
+    pub provider: AgentLlmProvider,
     pub base_url: String,
     pub model: String,
     pub api_key: Option<String>,
@@ -41,6 +48,15 @@ pub struct AgentLlmCfg {
     pub reasoning_effort: Option<String>,
     pub thinking: Option<bool>,
     pub chat_completions_endpoint: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum AgentLlmProvider {
+    #[default]
+    ChatCompletions,
+    Ollama,
+    Doubao,
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
@@ -74,11 +90,7 @@ struct ResolvedAgentLlmUsage {
 }
 
 impl AgentLlmRegistry {
-    pub fn new(
-        llm_configs: &[AgentLlmCfg],
-        default_llm: Option<&str>,
-        usage: &AgentLlmUsageCfg,
-    ) -> Result<Self> {
+    pub fn new(llm_configs: &[AgentLlmCfg], usage: &AgentLlmUsageCfg) -> Result<Self> {
         if llm_configs.is_empty() {
             return Err(SettingsError::missing_llm_usage(
                 "agent runtime requires at least one [[llm]] entry",
@@ -86,8 +98,8 @@ impl AgentLlmRegistry {
             .into());
         }
 
-        let default = resolve_usage_name(llm_configs, usage.default.as_deref().or(default_llm))
-            .unwrap_or_else(|| select_implicit_default_llm(llm_configs).name.clone());
+        let default = resolve_usage_name(llm_configs, usage.default.as_deref())
+            .unwrap_or_else(|| select_first_llm(llm_configs).name.clone());
         ensure_llm_exists(llm_configs, &default)?;
 
         let fast = resolve_usage_name(llm_configs, usage.fast.as_deref())
@@ -105,7 +117,20 @@ impl AgentLlmRegistry {
         let mut clients = HashMap::new();
         let mut models = HashMap::new();
         for config in llm_configs {
-            clients.insert(config.name.clone(), Arc::new(build_llm_client(config)?));
+            tracing::info!(
+                llm_name = %config.name,
+                model = %config.model,
+                base_url = %config.base_url,
+                provider = ?config.provider,
+                max_tokens = ?config.max_tokens,
+                temperature = ?config.temperature,
+                reasoning_effort = ?config.reasoning_effort,
+                thinking = ?config.thinking,
+                chat_completions_endpoint = ?config.chat_completions_endpoint,
+                has_api_key = config.api_key.as_ref().is_some_and(|key| !key.trim().is_empty()),
+                "agent llm client configured"
+            );
+            clients.insert(config.name.clone(), build_llm_client(config)?);
             models.insert(config.name.clone(), config.model.clone());
         }
 
@@ -312,6 +337,11 @@ where
             kind = ?self.kind,
             image_count = images.len(),
             usage_name,
+            model = %self.llms.model_by_name(usage_name).unwrap_or("unknown"),
+            assignment_llm_usage = ?input
+                .context
+                .metadata
+                .get("assignment.llm_usage"),
             "llm routing selected llm"
         );
         let llm = match self.llms.clients.get(usage_name).cloned() {
@@ -350,6 +380,14 @@ where
                 Err(err) => {
                     crate::log_error!(err);
                     let err_text = err.to_string();
+                    tracing::error!(
+                        kind = ?self.kind,
+                        usage_name,
+                        model = model_name,
+                        attempt,
+                        error = %err_text,
+                        "llm provider request failed"
+                    );
                     if is_llm_access_denied_message(&err_text) {
                         tracing::warn!(
                             kind = ?self.kind,
@@ -470,15 +508,18 @@ struct AgentImageSummaryInput {
     llm_name: Option<String>,
 }
 
-fn build_llm_client(config: &AgentLlmCfg) -> Result<AgentLlmClient> {
+fn build_llm_client(config: &AgentLlmCfg) -> Result<Arc<AgentLlmClient>> {
+    match config.provider {
+        AgentLlmProvider::ChatCompletions => build_chat_completions_client(config),
+        AgentLlmProvider::Ollama => build_ollama_client(config),
+        AgentLlmProvider::Doubao => build_doubao_client(config),
+    }
+}
+
+fn build_chat_completions_client(config: &AgentLlmCfg) -> Result<Arc<AgentLlmClient>> {
     let mut client =
         ChatCompletionsLlm::new(&config.base_url, &config.model, config.api_key.as_deref())
-            .map_err(|err| {
-                Error::from(LlmError::message(format!(
-                    "init llm client '{}' failed: {err}",
-                    config.name
-                )))
-            })?
+            .map_err(|err| llm_init_error(config, err))?
             .with_max_tokens(config.max_tokens)
             .with_temperature(config.temperature)
             .with_reasoning_effort(config.reasoning_effort.as_deref());
@@ -486,19 +527,102 @@ fn build_llm_client(config: &AgentLlmCfg) -> Result<AgentLlmClient> {
     if let Some(thinking) = json_thinking_config(config.thinking) {
         client = client
             .with_extra_body_param("thinking", thinking)
-            .map_err(|err| {
-                Error::from(LlmError::message(format!(
-                    "init llm client '{}' thinking config failed: {err}",
-                    config.name
-                )))
-            })?;
+            .map_err(|err| llm_init_field_error(config, "thinking", err))?;
     }
 
     if let Some(endpoint) = &config.chat_completions_endpoint {
         client = client.with_chat_completions_endpoint(endpoint.clone());
     }
 
-    Ok(client)
+    Ok(Arc::new(client))
+}
+
+fn build_ollama_client(config: &AgentLlmCfg) -> Result<Arc<AgentLlmClient>> {
+    if config
+        .api_key
+        .as_ref()
+        .is_some_and(|key| !key.trim().is_empty())
+    {
+        tracing::warn!(
+            llm_name = %config.name,
+            "ollama provider ignores configured api_key"
+        );
+    }
+    if config.reasoning_effort.is_some() {
+        tracing::warn!(
+            llm_name = %config.name,
+            "ollama provider ignores configured reasoning_effort"
+        );
+    }
+
+    let mut client = OllamaLlm::new(&config.base_url, &config.model)
+        .map_err(|err| llm_init_error(config, err))?
+        .with_max_tokens(config.max_tokens)
+        .map_err(|err| llm_init_field_error(config, "max_tokens", err))?
+        .with_temperature(config.temperature)
+        .map_err(|err| llm_init_field_error(config, "temperature", err))?;
+
+    if matches!(config.thinking, Some(false)) {
+        client = client.without_thinking();
+    }
+
+    if let Some(endpoint) = &config.chat_completions_endpoint {
+        client = client.with_chat_endpoint(endpoint.clone());
+    }
+
+    Ok(Arc::new(client))
+}
+
+fn build_doubao_client(config: &AgentLlmCfg) -> Result<Arc<AgentLlmClient>> {
+    let api_key = config
+        .api_key
+        .as_deref()
+        .map(str::trim)
+        .filter(|key| !key.is_empty())
+        .ok_or_else(|| {
+            Error::from(SettingsError::missing_llm_usage(format!(
+                "llm '{}' provider 'doubao' requires api_key",
+                config.name
+            )))
+        })?;
+
+    if config.reasoning_effort.is_some() {
+        tracing::warn!(
+            llm_name = %config.name,
+            "doubao provider ignores configured reasoning_effort"
+        );
+    }
+
+    let mut client = DoubaoLlm::new(&config.base_url, &config.model, api_key)
+        .map_err(|err| llm_init_error(config, err))?
+        .with_max_tokens(config.max_tokens)
+        .with_temperature(config.temperature);
+
+    if let Some(thinking) = doubao_thinking_config(config.thinking) {
+        client = client
+            .with_thinking(Some(thinking))
+            .map_err(|err| llm_init_field_error(config, "thinking", err))?;
+    }
+
+    if let Some(endpoint) = &config.chat_completions_endpoint {
+        client = client.with_chat_endpoint(endpoint.clone());
+    }
+
+    Ok(Arc::new(client))
+}
+
+fn llm_init_error(config: &AgentLlmCfg, err: impl std::fmt::Display) -> Error {
+    Error::from(LlmError::message(format!(
+        "init llm client '{}' failed: {err}",
+        config.name
+    )))
+}
+
+fn llm_init_field_error(config: &AgentLlmCfg, field: &str, err: impl std::fmt::Display) -> Error {
+    Error::from(LlmError::message(format!(
+        "init llm client '{}' {field} config failed: {err}",
+        config.name
+    )))
 }
 
 fn json_thinking_config(thinking: Option<bool>) -> Option<Value> {
@@ -506,6 +630,16 @@ fn json_thinking_config(thinking: Option<bool>) -> Option<Value> {
         json!({
             "type": if enabled { "enabled" } else { "disabled" },
         })
+    })
+}
+
+fn doubao_thinking_config(thinking: Option<bool>) -> Option<DoubaoThinking> {
+    thinking.map(|enabled| {
+        if enabled {
+            DoubaoThinking::enabled()
+        } else {
+            DoubaoThinking::disabled()
+        }
     })
 }
 
@@ -523,11 +657,9 @@ fn ensure_llm_exists(llm_configs: &[AgentLlmCfg], name: &str) -> Result<()> {
     Err(SettingsError::missing_llm_usage(format!("llm '{name}' not found")).into())
 }
 
-fn select_implicit_default_llm(llm_configs: &[AgentLlmCfg]) -> &AgentLlmCfg {
+fn select_first_llm(llm_configs: &[AgentLlmCfg]) -> &AgentLlmCfg {
     llm_configs
-        .iter()
-        .find(|llm| is_doubao_llm(llm))
-        .or_else(|| llm_configs.first())
+        .first()
         .expect("checked non-empty llm config above")
 }
 
@@ -819,6 +951,7 @@ mod tests {
     fn llm(name: &str, model: &str) -> AgentLlmCfg {
         AgentLlmCfg {
             name: name.to_string(),
+            provider: AgentLlmProvider::ChatCompletions,
             base_url: "http://127.0.0.1:11434/v1".to_string(),
             model: model.to_string(),
             api_key: None,
@@ -826,6 +959,26 @@ mod tests {
             temperature: None,
             reasoning_effort: None,
             thinking: None,
+            chat_completions_endpoint: None,
+        }
+    }
+
+    fn llm_with_provider(
+        name: &str,
+        provider: AgentLlmProvider,
+        base_url: &str,
+        api_key: Option<&str>,
+    ) -> AgentLlmCfg {
+        AgentLlmCfg {
+            name: name.to_string(),
+            provider,
+            base_url: base_url.to_string(),
+            model: "test-model".to_string(),
+            api_key: api_key.map(str::to_string),
+            max_tokens: Some(128),
+            temperature: Some(0.2),
+            reasoning_effort: None,
+            thinking: Some(false),
             chat_completions_endpoint: None,
         }
     }
@@ -855,6 +1008,49 @@ mod tests {
     }
 
     #[test]
+    fn build_llm_client_supports_configured_providers() {
+        let chat = llm_with_provider(
+            "chat",
+            AgentLlmProvider::ChatCompletions,
+            "http://127.0.0.1:4000/v1",
+            Some("sk-test"),
+        );
+        build_llm_client(&chat).expect("chat completions client");
+
+        let ollama = llm_with_provider(
+            "ollama",
+            AgentLlmProvider::Ollama,
+            "http://127.0.0.1:11434",
+            None,
+        );
+        build_llm_client(&ollama).expect("ollama client");
+
+        let doubao = llm_with_provider(
+            "doubao",
+            AgentLlmProvider::Doubao,
+            "https://ark.cn-beijing.volces.com/api/v3",
+            Some("sk-test"),
+        );
+        build_llm_client(&doubao).expect("doubao client");
+    }
+
+    #[test]
+    fn doubao_provider_requires_api_key() {
+        let config = llm_with_provider(
+            "doubao",
+            AgentLlmProvider::Doubao,
+            "https://ark.cn-beijing.volces.com/api/v3",
+            None,
+        );
+
+        let err = match build_llm_client(&config) {
+            Ok(_) => panic!("missing api key should fail"),
+            Err(err) => err,
+        };
+        assert!(err.to_string().contains("requires api_key"));
+    }
+
+    #[test]
     fn registry_resolves_usage_with_fallbacks() {
         let registry = AgentLlmRegistry::new(
             &[
@@ -862,12 +1058,11 @@ mod tests {
                 llm("llm-thinking", "thinking-model"),
                 llm("llm-vision", "vision-model"),
             ],
-            Some("llm-thinking"),
             &AgentLlmUsageCfg {
+                default: Some("llm-thinking".to_string()),
                 fast: Some("llm-fast".to_string()),
                 thinking: Some("llm-thinking".to_string()),
                 vision: Some("llm-vision".to_string()),
-                default: None,
             },
         )
         .expect("registry should initialize");
@@ -885,7 +1080,6 @@ mod tests {
                 llm("llm-fast", "fast-model"),
                 llm("llm-thinking", "thinking-model"),
             ],
-            None,
             &AgentLlmUsageCfg {
                 fast: Some("llm-fast".to_string()),
                 thinking: Some("llm-thinking".to_string()),
@@ -922,7 +1116,6 @@ mod tests {
                 llm("llm-fast", "fast-model"),
                 llm("llm-thinking", "thinking-model"),
             ],
-            None,
             &AgentLlmUsageCfg {
                 default: Some("llm-default".to_string()),
                 fast: Some("llm-fast".to_string()),
@@ -967,7 +1160,6 @@ mod tests {
     fn registry_rejects_missing_usage_target() {
         let err = match AgentLlmRegistry::new(
             &[llm("llm-thinking", "thinking-model")],
-            Some("llm-thinking"),
             &AgentLlmUsageCfg {
                 fast: Some("missing".to_string()),
                 ..AgentLlmUsageCfg::default()

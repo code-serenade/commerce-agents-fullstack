@@ -27,7 +27,6 @@
       "exclude_roles": ["chat"],
       "llm_usage": "fast",
       "skill_autosuggest": false,
-      "timeout_sec": 35,
       "skill_autosuggest_by_role": {
         "search": true
       },
@@ -54,7 +53,6 @@
     "max_attempts": 1,
     "llm_usage": "fast",
     "skill_autosuggest": false,
-    "timeout_sec": 35,
     "acceptance": [
       "最终回答只能体现真实执行并产生上游输入的岗位。",
       "搜索证据不得替代业务岗位回答，也不得重复展示多次来源。",

@@ -19,8 +19,6 @@ pub struct AgentRuntimeCfg {
     #[serde(default)]
     pub llm: Vec<AgentLlmCfg>,
     #[serde(default)]
-    pub default_llm: Option<String>,
-    #[serde(default)]
     pub llm_usage: AgentLlmUsageCfg,
     #[serde(default)]
     pub search: SearchAdapterConfig,
@@ -32,7 +30,6 @@ impl AgentRuntimeCfg {
     pub fn from_llm(llm: Vec<AgentLlmCfg>) -> Self {
         Self {
             llm,
-            default_llm: None,
             llm_usage: AgentLlmUsageCfg::default(),
             search: SearchAdapterConfig::default(),
             worker_cognition_timeout_sec: default_worker_cognition_timeout_sec(),
@@ -46,11 +43,7 @@ fn default_worker_cognition_timeout_sec() -> u64 {
 
 pub fn build_agent_manager(config: AgentRuntimeCfg) -> Result<AgentManager> {
     let search = config.search.clone();
-    let llms = AgentLlmRegistry::new(
-        &config.llm,
-        config.default_llm.as_deref(),
-        &config.llm_usage,
-    )?;
+    let llms = AgentLlmRegistry::new(&config.llm, &config.llm_usage)?;
 
     let commander_llms = llms.clone();
     let commander = Arc::new(move || {

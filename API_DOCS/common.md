@@ -37,13 +37,11 @@ token = "dev-internal-token-change-me"
 
 ## 1.1 Agent LLM 配置
 
-项目通过 `agent` crate 接入 OpenAI-compatible Chat Completions 服务。服务启动时会读取 `config/services.toml` 中的多个 `[[llm]]` 配置，并用这些配置初始化 agent runtime。
+项目通过 `agent` crate 接入 `model-gateway-rs` 的 LLM client。服务启动时会读取 `config/services.toml` 中的多个 `[[llm]]` 配置，并用这些配置初始化 agent runtime。
 
 配置样例：
 
 ```toml
-default_llm = "ollama-gpt-oss-20b"
-
 [agent_llm_usage]
 default = "ollama-gpt-oss-20b"
 fast = "ollama-gpt-oss-20b"
@@ -52,9 +50,9 @@ vision = "vision-model"
 
 [[llm]]
 name = "ollama-gpt-oss-20b"
-base_url = "http://127.0.0.1:11434/v1"
+provider = "ollama"
+base_url = "http://127.0.0.1:11434"
 model = "gpt-oss:20b"
-api_key = "sk-local"
 max_tokens = 20000
 temperature = 0.2
 ```
@@ -64,18 +62,17 @@ temperature = 0.2
 | 字段 | 必填 | 说明 |
 | --- | --- | --- |
 | `name` | 是 | LLM 配置名称，必须唯一 |
-| `base_url` | 是 | OpenAI-compatible 服务地址；可以是根地址，也可以是带 `/v1` 的 API base |
+| `provider` | 否 | LLM client 类型：`chat_completions`、`ollama` 或 `doubao`；不配置时默认为 `chat_completions` |
+| `base_url` | 是 | 模型服务地址；`ollama` 通常使用根地址如 `http://127.0.0.1:11434`，`doubao` 和 `chat_completions` 可使用根地址或版本化 API base |
 | `model` | 是 | 模型名 |
-| `api_key` | 否 | 远程 provider 需要鉴权时使用 |
+| `api_key` | 否 | 远程 provider 需要鉴权时使用；`doubao` provider 必填 |
 | `max_tokens` | 否 | 默认输出 token 上限 |
 | `temperature` | 否 | 默认温度 |
-| `reasoning_effort` | 否 | 支持 reasoning effort 的 provider 使用 |
-| `thinking` | 否 | 是否启用 provider 的思考输出；`false` 会在 Chat Completions 请求中发送火山方舟兼容的 `thinking.type=disabled` |
-| `chat_completions_endpoint` | 否 | 特殊 provider 覆盖 endpoint 时使用，普通情况不需要配置；当 `base_url` 已以 `/v1`、`/api/v1` 或 `/api/v3` 结尾时，客户端会自动请求 `chat/completions` |
+| `reasoning_effort` | 否 | `chat_completions` provider 且上游支持 reasoning effort 时使用 |
+| `thinking` | 否 | 是否启用 provider 的思考输出；`ollama` 和 `doubao` provider 会转成各自原生参数，`chat_completions` 会发送 OpenAI-compatible 扩展字段 |
+| `chat_completions_endpoint` | 否 | 特殊 provider 覆盖 endpoint 时使用，普通情况不需要配置 |
 
-顶层 `default_llm` 可选，用于指定默认使用哪个 `[[llm]].name`。如果不配置，Agent runtime 会优先选择真实配置的豆包模型（`name` 或 `model` 包含 `doubao`），否则使用第一个 `[[llm]]`。模型配置是服务端边界，普通前端不允许配置、展示、缓存或提交模型名称。
-
-`[agent_llm_usage]` 用于把 agent 内部能力映射到不同模型：`fast` 用于 commander 路由、chat worker、快速回复和配置为 `llm_usage = "fast"` 的 task graph 节点或动态角色；`thinking` 用于普通业务 worker、多角色分析和综合；`vision` 用于图片理解和系统图片预处理。task graph 节点和动态角色配置可配置 `llm_usage` 为 `fast`、`thinking` 或 `default` 覆盖默认 worker 路由。`vision` 未配置时，带图片处理请求会失败并返回明确错误，不会降级成文本模型。
+`[agent_llm_usage]` 是唯一的模型用途路由入口。`default` 用于未命中特定用途时的 fallback；如果省略 `default`，Agent runtime 使用第一个 `[[llm]]`。`fast` 用于 commander 路由、chat worker、快速回复和配置为 `llm_usage = "fast"` 的 task graph 节点或动态角色；`thinking` 用于普通业务 worker、多角色分析和综合；`vision` 用于图片理解和系统图片预处理。task graph 节点和动态角色配置可配置 `llm_usage` 为 `fast`、`thinking` 或 `default` 覆盖默认 worker 路由。`vision` 未配置时，带图片处理请求会失败并返回明确错误，不会降级成文本模型。模型配置是服务端边界，普通前端不允许配置、展示、缓存或提交模型名称。
 
 task graph 节点和动态角色配置还可设置 `skill_autosuggest = false`，用于轻量协作或最终润色节点跳过自动技能建议，避免没有外部资料或工具适配器时产生无效调用。
 
@@ -86,15 +83,16 @@ Agent runtime 还支持 worker 单节点交互超时：
 worker_cognition_timeout_sec = 45
 ```
 
-该值限制单个 worker 等待 LLM cognition 的时间。task graph 节点、动态角色和最终节点可以用 `timeout_sec` 覆盖单节点超时；超时后后端会把节点报告为 `timed_out`，并继续产生 `task_node_failed` / `task_graph_finished` 过程事件，避免 SSE 等到整轮 session 超时才失败。
+该值统一限制单个 worker 等待 LLM cognition 的时间。task graph 节点、动态角色和最终节点不配置单独超时；超时后后端会把节点报告为 `timed_out`，并继续产生 `task_node_failed` / `task_graph_finished` 过程事件，避免 SSE 等到整轮 session 超时才失败。
 
-当前仓库提交的 `backend/config/services.toml` 没有真实豆包 Ark 配置，也没有 Ark API key；因此当前本地运行时不会调用豆包。要启用豆包，必须在部署机器的 `services.toml` 中添加真实 `[[llm]]` 配置并设置 `default_llm`，不要把真实 key 提交到仓库。
+要启用豆包，必须在部署机器的 `services.toml` 中添加真实 `[[llm]]` 配置和 `[agent_llm_usage]` 映射，不要把真实 key 提交到仓库。
 
 豆包 Ark 示例：
 
 ```toml
 [[llm]]
 name = "doubao-external"
+provider = "doubao"
 base_url = "https://ark.cn-beijing.volces.com/api/v3"
 model = "doubao-seed-2-0-pro-260215"
 api_key = "CHANGE_ME"

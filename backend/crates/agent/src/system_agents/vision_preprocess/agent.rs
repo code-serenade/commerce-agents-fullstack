@@ -41,12 +41,11 @@ impl VisionPreprocessAgent {
     pub fn new(
         config: VisionPreprocessAgentConfig,
         llm_configs: &[AgentLlmCfg],
-        default_llm: Option<&str>,
         usage: &AgentLlmUsageCfg,
     ) -> Result<Self> {
         Ok(Self {
             config,
-            llms: AgentLlmRegistry::new(llm_configs, default_llm, usage)?,
+            llms: AgentLlmRegistry::new(llm_configs, usage)?,
         })
     }
 
