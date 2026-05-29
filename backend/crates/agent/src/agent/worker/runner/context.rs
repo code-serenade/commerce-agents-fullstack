@@ -242,6 +242,12 @@ fn extend_context_facts(
     extend_named_context_fact(
         metadata,
         facts,
+        "attachments.image_summaries_json",
+        "conversation.image_preprocess_summary",
+    );
+    extend_named_context_fact(
+        metadata,
+        facts,
         "workspaceContext.summary",
         "workspace.context_summary",
     );
@@ -421,5 +427,46 @@ mod tests {
             }),
             "typed search diagnostics should be available as a downstream cognition fact"
         );
+    }
+
+    #[test]
+    fn image_preprocess_summary_becomes_context_fact() {
+        let mut context = MessageContext::default();
+        context.metadata.insert(
+            "attachments.image_summaries_json".to_string(),
+            r#"[{"sourceRef":"conversation_file:file-1","summary":"画面中心是一位年轻男性肖像。"}]"#
+                .to_string(),
+        );
+        let task = Task {
+            id: "task-image".to_string(),
+            context,
+            description: "图片的内容是什么？".to_string(),
+            requester: AgentId("commander".to_string()),
+            assignment: None,
+        };
+        let role = RoleProfile {
+            id: RoleId("role.chat".to_string()),
+            name: "Chat".to_string(),
+            runtime_role: "chat".to_string(),
+            priority: 1,
+            domains: Vec::new(),
+            keywords: Vec::new(),
+            preferred_actions: Vec::new(),
+            required_capabilities: Vec::new(),
+            optional_capabilities: Vec::new(),
+        };
+
+        let input = build_cognition_input(
+            AgentId("worker.chat".to_string()),
+            WorkerPhase::Thinking,
+            &TaskMemory::default(),
+            &role,
+            &task,
+        );
+
+        assert!(input.context.facts.iter().any(|fact| {
+            fact.source == "conversation.image_preprocess_summary"
+                && fact.content.contains("年轻男性肖像")
+        }));
     }
 }

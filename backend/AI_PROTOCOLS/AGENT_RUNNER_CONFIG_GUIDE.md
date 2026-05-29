@@ -13,7 +13,7 @@
 7. Rust 侧只保留“读取配置、匹配配置、构建图、调度节点、执行 skill、组装上下文、校验输出、降级处理”等通用能力。
 8. task graph 节点和动态角色配置可以配置 `llm_usage`，取值只使用 `fast`、`thinking` 或 `default`，用于路由到 `services.toml` 的 `[agent_llm_usage]`。轻量短答、上游草案或显式岗位协作的动态角色可以用 `fast`；最终综合、财务测算或复杂证据综合的节点保留默认 `thinking`。不要在 Rust 里按行业或业务关键词硬编码模型选择。
 9. task graph 节点和动态角色配置可以配置 `skill_autosuggest`。显式多岗位轻量协作、最终润色或不需要外部适配器的节点可以设为 `false`，避免自动技能请求拖慢和污染输出；需要后台、搜索、投放、财务等真实工具能力的深度图保持默认开启。动态角色还可以配置 `skill_autosuggest_by_role`，用于在同一条规则里覆盖某个 runtime role 的自动技能开关，例如轻量显式团队默认关闭 autosuggest，但对 `search` 证据岗单独打开。
-10. task graph 的 `match.min_explicit_role_aliases` 是通用匹配条件，用于要求用户文本至少命中若干个 `role-aliases.json` 中的岗位别名。它只表达“是否真的点名了岗位”，不在 Rust 里写业务岗位词。
+10. task graph 的 `match.min_explicit_role_aliases` 是通用匹配条件，用于要求用户文本至少命中若干个 `role-aliases.json` 中的岗位别名。它只表达“是否真的点名了岗位”，不在 Rust 里写业务岗位词。`match.min_chars` / `match.max_chars` 是通用长度门控，用于区分短寒暄、短答、视觉直答和需要进入业务编排的任务文本；它只能表达文本长度边界，不得替代业务关键词、岗位别名或运行时超时配置。
 11. worker inference 的搜索配置可以在 `search.max_results.response_mode_defaults` 中按 `strategy.response_mode` 配置搜索默认强度。该默认值只在 autosuggest 已经触发搜索且用户未显式指定条数、深度/标准/轻量强度时补齐，不得反向触发搜索。
 12. worker cognition 超时只能通过 `backend/config/services.toml` 的 `[agent_runtime].worker_cognition_timeout_sec` 统一配置。task graph 节点、动态角色、最终节点、role defaults 和 task graph defaults 都不允许配置 `timeout_sec`；业务编排 JSON 只描述角色、依赖、prompt 目标、llm_usage、skill_autosuggest、验收条件等业务调度信息，不承载运行时保护时间。
 13. dynamic roles 的 `from_explicit_request.depends_on_roles` 和 `from_route.depends_on_roles` 是通用依赖配置，用于声明某类动态角色应依赖哪些上游 runtime role，例如业务岗位依赖 `search` 证据岗。Rust 只按配置把已存在的上游 role 映射为 node `input_refs`，不写具体行业流程；如果上游 role 未被本轮规划，则该依赖自动忽略。

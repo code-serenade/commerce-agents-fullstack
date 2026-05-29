@@ -144,8 +144,14 @@ impl TaskGraphRuleMatch {
         route: Option<&RoleRoute>,
         rules: &TaskGraphRuleSet,
     ) -> bool {
+        let task_chars = task.trim().chars().count();
+        if let Some(min_chars) = self.min_chars
+            && task_chars < min_chars
+        {
+            return false;
+        }
         if let Some(max_chars) = self.max_chars
-            && task.trim().chars().count() > max_chars
+            && task_chars > max_chars
         {
             return false;
         }
@@ -571,6 +577,25 @@ mod tests {
         assert!(input_refs.contains(&"ops"));
         assert_eq!(final_node.llm_usage.as_deref(), Some("fast"));
         assert_eq!(final_node.skill_autosuggest, Some(false));
+    }
+
+    #[test]
+    fn selected_route_does_not_override_short_greeting_chat_graph() {
+        let rules =
+            load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
+        let route = manual_route("ops", &["data", "creative", "service"]);
+        let graph = plan_task_graph_from_rules(
+            &TaskId("task-short-greeting-manual-route".to_string()),
+            "hi",
+            Some(&route),
+            &rules,
+        )
+        .expect("short greeting should still match quick chat graph");
+
+        assert_eq!(graph.nodes.len(), 1);
+        assert_eq!(graph.nodes[0].id.0, "chat");
+        assert_eq!(graph.nodes[0].role, "chat");
+        assert_eq!(graph.nodes[0].title, "快速对话");
     }
 
     #[test]

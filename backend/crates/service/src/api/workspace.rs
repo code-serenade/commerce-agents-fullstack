@@ -61,7 +61,10 @@ use time::OffsetDateTime;
 use uuid::Uuid;
 
 use crate::{
-    api::document_text_extraction_manager::DocumentTextExtractionManager,
+    api::{
+        document_text_extraction_manager::DocumentTextExtractionManager,
+        vision_preprocess_manager::{VisionPreprocessManager, is_supported_image_mime},
+    },
     dto::{
         campaign::{CampaignDraftResponse, CampaignDraftSourceResponse, CampaignResponse},
         workspace::*,
@@ -1359,6 +1362,31 @@ impl WorkspaceApi {
         query: Option<&str>,
     ) -> BizResult<WorkspaceContextPackCandidate> {
         let mut candidate = context_pack_conversation_file_candidate(item.clone(), query);
+        if is_supported_image_mime(item.mime_type.as_deref()) {
+            if let Some(analysis) = VisionPreprocessManager::new(self.db.clone())
+                .latest_succeeded_for_file(item.id)
+                .await?
+            {
+                let text = image_preprocess_analysis_text(
+                    analysis.result_json.as_ref(),
+                    analysis.summary.as_deref(),
+                );
+                if text.is_some() {
+                    candidate.content_kind = "image_preprocess_summary".to_string();
+                    candidate.text = text;
+                    candidate.extraction_status = Some("extracted".to_string());
+                    candidate.metadata["imagePreprocessAnalysis"] = json!({
+                        "analysisId": analysis.id,
+                        "analysisKind": analysis.analysis_kind,
+                        "storageObjectSha256": analysis.storage_object_sha256,
+                        "promptKey": analysis.prompt_key,
+                        "promptVersion": analysis.prompt_version,
+                        "llmName": analysis.llm_name,
+                    });
+                }
+            }
+            return Ok(candidate);
+        }
         if candidate.extraction_status.as_deref() != Some("extracted") || candidate.text.is_some() {
             return Ok(candidate);
         }
@@ -4549,7 +4577,7 @@ fn context_pack_conversation_file_candidate(
         content_kind,
         text,
         extraction_status: Some(extraction_status),
-        metadata: merge_json_object(
+        metadata: sanitize_context_pack_metadata(merge_json_object(
             json!({
                 "conversationId": item.conversation_id,
                 "messageId": item.message_id,
@@ -4565,7 +4593,7 @@ fn context_pack_conversation_file_candidate(
                 "metadata": item.metadata,
             }),
             profile_metadata,
-        ),
+        )),
     }
 }
 
@@ -4988,6 +5016,65 @@ fn conversation_file_extracted_text(metadata: &Value) -> Option<String> {
     )
     .or_else(|| metadata_nested_text_field(metadata, "extraction"))
     .or_else(|| metadata_nested_text_field(metadata, "parsed"))
+}
+
+fn image_preprocess_analysis_text(
+    result_json: Option<&Value>,
+    summary: Option<&str>,
+) -> Option<String> {
+    let summary = summary.and_then(|value| normalize_string(value.to_string()));
+    let agent_context = result_json
+        .and_then(|value| value.get("agentContext"))
+        .and_then(Value::as_str)
+        .and_then(|value| normalize_string(value.to_string()));
+
+    match (summary, agent_context) {
+        (Some(summary), Some(agent_context)) if summary == agent_context => Some(summary),
+        (Some(summary), Some(agent_context)) => Some(format!(
+            "图片摘要：{summary}\n\n图片详细上下文：{agent_context}"
+        )),
+        (Some(summary), None) => Some(format!("图片摘要：{summary}")),
+        (None, Some(agent_context)) => Some(format!("图片详细上下文：{agent_context}")),
+        (None, None) => None,
+    }
+}
+
+fn sanitize_context_pack_metadata(value: Value) -> Value {
+    match value {
+        Value::Object(map) => Value::Object(
+            map.into_iter()
+                .map(|(key, value)| {
+                    let sanitized = if should_omit_context_pack_metadata_value(&key, &value) {
+                        json!({
+                            "omitted": true,
+                            "reason": "large_inline_image_payload",
+                        })
+                    } else {
+                        sanitize_context_pack_metadata(value)
+                    };
+                    (key, sanitized)
+                })
+                .collect(),
+        ),
+        Value::Array(items) => Value::Array(
+            items
+                .into_iter()
+                .map(sanitize_context_pack_metadata)
+                .collect(),
+        ),
+        other => other,
+    }
+}
+
+fn should_omit_context_pack_metadata_value(key: &str, value: &Value) -> bool {
+    let normalized_key = key.trim().to_ascii_lowercase();
+    if normalized_key == "imagedataurl" {
+        return true;
+    }
+    value.as_str().is_some_and(|text| {
+        text.starts_with("data:image/")
+            && (normalized_key.contains("dataurl") || normalized_key.contains("image"))
+    })
 }
 
 fn conversation_file_extraction_status(metadata: &Value) -> String {
@@ -11010,6 +11097,68 @@ mod tests {
             Some("附件里写了活动预算和目标 ROI。".to_string())
         );
         assert!(conversation_file_extracted_text(&json!({"objectKey": "raw.pdf"})).is_none());
+    }
+
+    #[test]
+    fn image_preprocess_analysis_text_prefers_agent_context() {
+        let result_json = json!({
+            "agentContext": "图片预处理上下文：画面中心是人物肖像。",
+        });
+
+        let combined = image_preprocess_analysis_text(Some(&result_json), Some("备用摘要"))
+            .expect("both summary and agent context should be combined");
+        assert!(combined.contains("图片摘要：备用摘要"));
+        assert!(combined.contains("图片详细上下文：图片预处理上下文：画面中心是人物肖像。"));
+
+        assert_eq!(
+            image_preprocess_analysis_text(Some(&json!({})), Some("备用摘要")),
+            Some("图片摘要：备用摘要".to_string())
+        );
+        assert_eq!(
+            image_preprocess_analysis_text(Some(&result_json), None),
+            Some("图片详细上下文：图片预处理上下文：画面中心是人物肖像。".to_string())
+        );
+    }
+
+    #[test]
+    fn context_pack_omits_inline_image_data_url_metadata() {
+        let candidate = context_pack_conversation_file_candidate(
+            ConversationFile {
+                id: Uuid::new_v4(),
+                user_id: Uuid::new_v4(),
+                conversation_id: Uuid::new_v4(),
+                message_id: None,
+                bucket: "private".to_string(),
+                object_key: "chat/u/c/icon.jpg".to_string(),
+                file_name: Some("icon.jpg".to_string()),
+                mime_type: Some("image/jpeg".to_string()),
+                file_size: Some(128),
+                sha256: Some("sha".to_string()),
+                visibility: "private".to_string(),
+                storage_provider: "s3".to_string(),
+                status: "active".to_string(),
+                metadata: json!({
+                    "extractionStatus": "extracted",
+                    "extractedText": "Image attachment prepared for image analysis: icon.jpg",
+                    "extraction": {
+                        "metadata": {
+                            "imageDataUrl": "data:image/jpeg;base64,abc",
+                            "dataUrlChars": 806863,
+                            "mimeType": "image/jpeg"
+                        }
+                    }
+                }),
+                created_at: OffsetDateTime::now_utc(),
+                deleted_at: None,
+            },
+            None,
+        );
+
+        assert_eq!(
+            candidate.metadata["metadata"]["extraction"]["metadata"]["imageDataUrl"]["reason"],
+            "large_inline_image_payload"
+        );
+        assert!(!candidate.metadata.to_string().contains("data:image/jpeg"));
     }
 
     #[test]

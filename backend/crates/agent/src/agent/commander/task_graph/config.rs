@@ -135,6 +135,8 @@ pub(super) struct TaskGraphRuleMatch {
     #[serde(default)]
     pub(super) explicit_team_request: bool,
     #[serde(default)]
+    pub(super) min_chars: Option<usize>,
+    #[serde(default)]
     pub(super) max_chars: Option<usize>,
 }
 

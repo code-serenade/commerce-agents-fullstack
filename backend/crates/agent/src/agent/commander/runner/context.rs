@@ -162,6 +162,13 @@ pub(super) fn extend_context_facts(
     extend_named_context_fact(
         metadata,
         facts,
+        "attachments.image_summaries_json",
+        "conversation.image_preprocess_summary",
+        "本轮已上传图片的系统预处理摘要如下；回答图片内容相关问题时，应优先使用这段摘要。\n",
+    );
+    extend_named_context_fact(
+        metadata,
+        facts,
         "workspaceContext.summary",
         "workspace.context_summary",
         "本轮工作区上下文可用性摘要如下；它不是用户手动选择的商品资料。\n",

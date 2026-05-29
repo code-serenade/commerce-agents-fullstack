@@ -3,6 +3,7 @@
   "description": "RoleRouter 高置信选中的多岗位路线，按 route primary/support roles 编排任务图",
   "priority": 1200,
   "match": {
+    "min_chars": 9,
     "route_score_min": 90,
     "route_min_non_chat_roles": 2,
     "none_keywords": [
