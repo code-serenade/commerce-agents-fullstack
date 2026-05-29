@@ -8,7 +8,7 @@ token = "dev-internal-token-change-me"
 
 [[db]]
 name = "app"
-url = "postgres://postgres:123456@localhost:15432/app"
+url = "postgres://postgres:123456@postgres:5432/app"
 max_connections = 10
 min_connections = 1
 connect_timeout = 30
@@ -26,15 +26,12 @@ user_key_salt = "KQgPM+etGa31+cj6M/0ao0+8yrEgHeGY/9bnbICoLs/wR2vJL8ED/J8v6vki0kE
 [external_search]
 enabled = true
 provider = "codex-web-search"
-base_url = "http://1.85.61.130:29003"
+base_url = "http://localhost:29003"
 search_endpoint = "/api/external/search"
 timeout_sec = 180
 default_topic = "general"
 default_days = 30
 default_max_results = 6
-
-[agent_runtime]
-worker_cognition_timeout_sec = 300
 
 [agent_llm_usage]
 default = "doubao-thinking"
@@ -48,7 +45,7 @@ provider = "doubao"
 base_url = "http://10.100.11.51:4000/v1"
 model = "doubao-seed-2-0-lite-260428"
 api_key = "sk-dgUWMIEHuNBOoXBhhVUA5A"
-max_tokens = 12000
+max_tokens = 8000
 temperature = 0.2
 thinking = false
 
@@ -71,4 +68,3 @@ api_key = "sk-dgUWMIEHuNBOoXBhhVUA5A"
 max_tokens = 12000
 temperature = 0.2
 thinking = false
-
