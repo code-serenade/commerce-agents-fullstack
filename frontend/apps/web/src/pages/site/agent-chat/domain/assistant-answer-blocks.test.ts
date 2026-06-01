@@ -1,173 +1,32 @@
 import { describe, expect, it } from "vitest"
 import { parseAnswerBlocks } from "./assistant-answer-blocks"
-
-const sourceIntro = String.fromCharCode(
-  0x672c,
-  0x8f6e,
-  0x5df2,
-  0x901a,
-  0x8fc7,
-  0x5916,
-  0x90e8,
-  0x641c,
-  0x7d22,
-  0x53d6,
-  0x5f97,
-  0x5b9e,
-  0x65f6,
-  0x6765,
-  0x6e90,
-  0xff1b,
-  0x4ee5,
-  0x4e0b,
-  0x4f9d,
-  0x636e,
-  0x5217,
-  0x8868,
-  0x4e3a,
-  0x540e,
-  0x7eed,
-  0x5224,
-  0x65ad,
-  0x7684,
-  0x51fa,
-  0x5904,
-  0xff0c,
-  0x82e5,
-  0x6765,
-  0x6e90,
-  0x4e0e,
-  0x901a,
-  0x7528,
-  0x7ecf,
-  0x9a8c,
-  0x51b2,
-  0x7a81,
-  0xff0c,
-  0x4ee5,
-  0x5b9e,
-  0x65f6,
-  0x6765,
-  0x6e90,
-  0x4e3a,
-  0x51c6,
-  0x3002
-)
-const sourceMarker = String.fromCharCode(
-  0x5b9e,
-  0x65f6,
-  0x641c,
-  0x7d22,
-  0x6765,
-  0x6e90,
-  0xff08,
-  0x73,
-  0x65,
-  0x61,
-  0x72,
-  0x63,
-  0x68,
-  0x5f,
-  0x70,
-  0x6c,
-  0x61,
-  0x74,
-  0x66,
-  0x6f,
-  0x72,
-  0x6d,
-  0x5f,
-  0x70,
-  0x6f,
-  0x6c,
-  0x69,
-  0x63,
-  0x79,
-  0xff09,
-  0xff1a,
-  0x32,
-  0x20,
-  0x4e2a,
-  0x53ef,
-  0x91c7,
-  0x4fe1,
-  0x6765,
-  0x6e90
-)
-const ruleCenterTitle = String.fromCharCode(
-  0x6296,
-  0x97f3,
-  0x7535,
-  0x5546,
-  0x5b66,
-  0x4e60,
-  0x4e2d,
-  0x5fc3,
-  0x2d,
-  0x89c4,
-  0x5219,
-  0x4e2d,
-  0x5fc3
-)
-const ruleCenterSnippet = String.fromCharCode(
-  0x6296,
-  0x97f3,
-  0x7535,
-  0x5546,
-  0x5b98,
-  0x65b9,
-  0x89c4,
-  0x5219,
-  0x4e2d,
-  0x5fc3,
-  0x3002
-)
-const lowPriceTitle = String.fromCharCode(
-  0x4f4e,
-  0x4ef7,
-  0x5f15,
-  0x6d41,
-  0x4e13,
-  0x9879,
-  0x6cbb,
-  0x7406,
-  0x516c,
-  0x544a,
-  0x2d,
-  0x6296,
-  0x97f3,
-  0x7535,
-  0x5546,
-  0x5b66,
-  0x4e60,
-  0x4e2d,
-  0x5fc3
-)
-const dateMissing = String.fromCharCode(
-  0x53d1,
-  0x5e03,
-  0x65e5,
-  0x671f,
-  0x672a,
-  0x6807,
-  0x6ce8
-)
-const lowPriceSnippet = String.fromCharCode(
-  0x53ef,
-  0x4f5c,
-  0x4e3a,
-  0x4f4e,
-  0x4ef7,
-  0x5f15,
-  0x6d41,
-  0x6cbb,
-  0x7406,
-  0x89c4,
-  0x5219,
-  0x6765,
-  0x6e90,
-  0x3002
-)
+import {
+  dateMissing,
+  denseBracketComplianceHeading,
+  denseBracketComplianceText,
+  denseBracketCertainHeading,
+  denseBracketCoreHeading,
+  denseBracketIntro,
+  denseBracketPractice,
+  denseBracketPracticeHeading,
+  denseBracketPracticeText,
+  denseBracketProductFit,
+  denseBracketSourceHeading,
+  denseBracketSourceText,
+  denseColonActionHeading,
+  denseColonActionText,
+  denseColonFitHeading,
+  denseColonFitText,
+  denseColonIntro,
+  denseColonRiskHeading,
+  denseColonRiskText,
+  lowPriceSnippet,
+  lowPriceTitle,
+  ruleCenterSnippet,
+  ruleCenterTitle,
+  sourceIntro,
+  sourceMarker,
+} from "./assistant-answer-blocks.fixtures"
 
 describe("assistant answer blocks", () => {
   it("parses markdown tables into table blocks", () => {
@@ -197,6 +56,81 @@ describe("assistant answer blocks", () => {
   it("keeps non-table pipe text as paragraph content", () => {
     expect(parseAnswerBlocks("A | B")).toEqual([
       { kind: "paragraph", text: "A | B" },
+    ])
+  })
+
+  it("restores readable blocks from dense bracket-heading answers", () => {
+    expect(
+      parseAnswerBlocks(
+        [
+          denseBracketIntro,
+          denseBracketCoreHeading,
+          denseBracketProductFit,
+          denseBracketCertainHeading,
+          denseBracketPractice,
+          denseBracketSourceHeading,
+          denseBracketSourceText,
+        ].join("")
+      )
+    ).toEqual([
+      {
+        kind: "paragraph",
+        text: denseBracketIntro,
+      },
+      { depth: 3, kind: "heading", text: denseBracketCoreHeading.slice(1, -1) },
+      {
+        kind: "paragraph",
+        text: denseBracketProductFit,
+      },
+      {
+        depth: 3,
+        kind: "heading",
+        text: denseBracketCertainHeading.slice(1, -1),
+      },
+      {
+        depth: 3,
+        kind: "heading",
+        text: denseBracketPracticeHeading,
+      },
+      {
+        kind: "paragraph",
+        text: denseBracketPracticeText,
+      },
+      {
+        depth: 3,
+        kind: "heading",
+        text: denseBracketComplianceHeading,
+      },
+      {
+        kind: "paragraph",
+        text: denseBracketComplianceText,
+      },
+      { depth: 3, kind: "heading", text: denseBracketSourceHeading.slice(1, -1) },
+      { kind: "paragraph", text: denseBracketSourceText },
+    ])
+  })
+
+  it("restores readable blocks from dense colon-heading answers", () => {
+    expect(
+      parseAnswerBlocks(
+        [
+          denseColonIntro,
+          denseColonFitHeading,
+          denseColonFitText,
+          denseColonRiskHeading,
+          denseColonRiskText,
+          denseColonActionHeading,
+          denseColonActionText,
+        ].join("")
+      )
+    ).toEqual([
+      { kind: "paragraph", text: denseColonIntro },
+      { depth: 3, kind: "heading", text: denseColonFitHeading.slice(0, -1) },
+      { kind: "paragraph", text: denseColonFitText },
+      { depth: 3, kind: "heading", text: denseColonRiskHeading.slice(0, -1) },
+      { kind: "paragraph", text: denseColonRiskText },
+      { depth: 3, kind: "heading", text: denseColonActionHeading.slice(0, -1) },
+      { kind: "paragraph", text: denseColonActionText },
     ])
   })
 

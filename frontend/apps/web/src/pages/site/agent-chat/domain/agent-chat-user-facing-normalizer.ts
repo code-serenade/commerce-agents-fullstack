@@ -44,9 +44,10 @@ export function normalizeUserFacingAnswer(content: string) {
     .map(cleanUserFacingLine)
     .filter((line) => {
       const trimmedLine = line.trim()
-      return Boolean(trimmedLine) && !isInternalNoiseLine(trimmedLine)
+      return line === "" || (Boolean(trimmedLine) && !isInternalNoiseLine(trimmedLine))
     })
     .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
 }
 
 function cleanUserFacingLine(line: string) {

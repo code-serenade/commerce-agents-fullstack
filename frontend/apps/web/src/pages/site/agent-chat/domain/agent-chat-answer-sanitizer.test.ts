@@ -18,6 +18,28 @@ describe("agent chat answer sanitizer", () => {
     ).toBe("Suggestion: improve the entry point\nNext step: add more data")
   })
 
+  it("keeps paragraph breaks from backend final answer formatting", () => {
+    const conclusion = textFromCodes([32467, 35770, 20808, 30475, 21830, 21697, 36164, 26009, 12290])
+    const coreHeading = textFromCodes([12304, 26680, 24515, 19994, 21153, 32467, 35770, 19982, 23450, 20215, 21028, 26029, 12305])
+    const productFit = textFromCodes([36825, 27454, 21830, 21697, 36866, 21512, 20808, 20570, 36873, 21697, 23450, 20301, 12290])
+    const sourceHeading = textFromCodes([12304, 20381, 25454, 35828, 26126, 12305])
+    const sourceText = textFromCodes([24403, 21069, 20381, 25454, 26469, 33258, 21830, 21697, 36164, 26009, 12290])
+    const formattedAnswer = [
+      conclusion,
+      coreHeading,
+      productFit,
+      sourceHeading,
+      sourceText,
+    ].join("\n\n")
+
+    expect(
+      formatAgentUiMessage(
+        formattedAnswer,
+        copy
+      )
+    ).toBe(formattedAnswer)
+  })
+
   it("hides task graph shells, role labels, placeholders, and note labels", () => {
     const raw = [
       `Task graph completed. Task: ${textFromCodes([36825, 20010, 21654, 21857, 22914, 20309, 20570, 33829, 38144])}`,
@@ -42,8 +64,8 @@ describe("agent chat answer sanitizer", () => {
     expect(formatted).not.toContain(textFromCodes([20869, 23481, 21019, 24847, 40, 99, 114, 101, 97, 116, 105, 118, 101, 41]))
     expect(formatted).not.toContain(textFromCodes([21344, 20301, 31526]))
     expect(formatted).not.toContain(textFromCodes([22791, 27880, 65306]))
-    expect(formatted).not.toContain("【")
-    expect(formatted).not.toContain("】")
+    expect(formatted).not.toContain(textFromCodes([12304]))
+    expect(formatted).not.toContain(textFromCodes([12305]))
   })
 
   it("hides legacy internal role quality failures from persisted answers", () => {

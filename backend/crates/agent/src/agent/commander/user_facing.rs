@@ -273,6 +273,10 @@ pub(crate) fn sanitize_user_facing_text(raw: &str) -> Option<String> {
     ));
     let mut lines = Vec::new();
     for line in text.lines() {
+        if line.trim().is_empty() {
+            lines.push(String::new());
+            continue;
+        }
         let line = clean_user_facing_line(line);
         if line.is_empty() || is_internal_noise_line(&line) {
             continue;
@@ -287,6 +291,7 @@ pub(crate) fn sanitize_user_facing_text(raw: &str) -> Option<String> {
 
 pub(crate) fn sanitize_final_user_facing_text(raw: &str) -> Option<String> {
     let output = sanitize_user_facing_text(raw)?;
+    let output = restore_readable_answer_layout(&output);
     let lines = output.lines().map(str::to_string).collect::<Vec<_>>();
     let output = collapse_repeated_blocks(lines).join("\n");
     (!output.is_empty() && !is_internal_noise_line(&output)).then_some(output)
@@ -321,6 +326,10 @@ fn remove_internal_context_fragments(input: &str) -> String {
 }
 
 fn trim_internal_context_fragment(line: &str) -> Option<String> {
+    if line.trim().is_empty() {
+        return Some(String::new());
+    }
+
     let mut keep_end = line.len();
     let lower = line.to_ascii_lowercase();
 
@@ -566,6 +575,224 @@ fn rewrite_note_prefix(line: &str) -> String {
     line.replace("备注：", "说明：").replace("备注:", "说明：")
 }
 
+fn restore_readable_answer_layout(text: &str) -> String {
+    let text = insert_breaks_before_bracket_headings(text);
+    let text = insert_breaks_after_bracket_headings(&text);
+    let text = insert_breaks_around_inline_colon_headings(&text);
+    normalize_blank_lines(text.lines().map(str::to_string).collect())
+}
+
+fn insert_breaks_before_bracket_headings(text: &str) -> String {
+    let mut output = String::new();
+    let mut chars = text.chars().peekable();
+    let mut at_line_start = true;
+    while let Some(ch) = chars.next() {
+        if ch == '【' && !at_line_start && looks_like_bracket_heading_ahead(chars.clone()) {
+            trim_trailing_spaces(&mut output);
+            ensure_paragraph_break(&mut output);
+        }
+        output.push(ch);
+        at_line_start = ch == '\n';
+    }
+    output
+}
+
+fn looks_like_bracket_heading_ahead<I>(chars: I) -> bool
+where
+    I: Iterator<Item = char>,
+{
+    let mut content = String::new();
+    for ch in chars.take(36) {
+        if ch == '】' {
+            return !content.is_empty()
+                && content.chars().count() <= 24
+                && content
+                    .chars()
+                    .any(|ch| ch.is_ascii_alphabetic() || is_cjk(ch))
+                && !content.contains("如")
+                && !content.contains('/')
+                && !content.contains(',');
+        }
+        if ch == '\n' {
+            return false;
+        }
+        content.push(ch);
+    }
+    false
+}
+
+fn insert_breaks_after_bracket_headings(text: &str) -> String {
+    let mut output = String::new();
+    let mut chars = text.chars().peekable();
+    while let Some(ch) = chars.next() {
+        output.push(ch);
+        if ch == '】' {
+            let heading_start = output.rfind('【').unwrap_or(output.len());
+            let heading = &output[heading_start..];
+            if looks_like_complete_bracket_heading(heading)
+                && chars.peek().is_some_and(|next| *next != '\n')
+            {
+                output.push_str("\n\n");
+            }
+        }
+    }
+    output
+}
+
+fn looks_like_complete_bracket_heading(value: &str) -> bool {
+    let value = value.trim();
+    value.starts_with('【')
+        && value.ends_with('】')
+        && value.chars().count() <= 26
+        && value.chars().any(is_cjk)
+        && !value.contains("如")
+        && !value.contains('/')
+}
+
+fn insert_breaks_around_inline_colon_headings(text: &str) -> String {
+    let chars = text.chars().collect::<Vec<_>>();
+    if chars.is_empty() {
+        return String::new();
+    }
+
+    let mut break_before = vec![false; chars.len()];
+    let mut break_after = vec![false; chars.len()];
+    for (index, ch) in chars.iter().enumerate() {
+        if !is_heading_colon(*ch) {
+            continue;
+        }
+        let Some(start) = inline_colon_heading_start(&chars, index) else {
+            continue;
+        };
+        let heading = chars[start..index].iter().collect::<String>();
+        if !looks_like_inline_colon_heading(&heading) {
+            continue;
+        }
+        if start > 0 && chars[start - 1] != '\n' {
+            break_before[start] = true;
+        }
+        if chars.get(index + 1).is_some_and(|next| *next != '\n') {
+            break_after[index] = true;
+        }
+    }
+
+    let mut output = String::new();
+    for (index, ch) in chars.into_iter().enumerate() {
+        if break_before[index] {
+            trim_trailing_spaces(&mut output);
+            ensure_paragraph_break(&mut output);
+        }
+        output.push(ch);
+        if break_after[index] {
+            ensure_paragraph_break(&mut output);
+        }
+    }
+    output
+}
+
+fn is_heading_colon(ch: char) -> bool {
+    matches!(ch, ':' | '：')
+}
+
+fn inline_colon_heading_start(chars: &[char], colon_index: usize) -> Option<usize> {
+    if colon_index == 0 {
+        return None;
+    }
+
+    let mut start = colon_index;
+    while start > 0 {
+        let prev = chars[start - 1];
+        if prev == '\n' || is_sentence_boundary(prev) {
+            break;
+        }
+        start -= 1;
+    }
+    while start < colon_index && chars[start].is_whitespace() {
+        start += 1;
+    }
+    (start < colon_index).then_some(start)
+}
+
+fn is_sentence_boundary(ch: char) -> bool {
+    matches!(ch, '。' | '！' | '？' | '；' | ';' | '!' | '?')
+}
+
+fn looks_like_inline_colon_heading(heading: &str) -> bool {
+    let heading = heading.trim();
+    let char_count = heading.chars().count();
+    (2..=28).contains(&char_count)
+        && heading.chars().any(is_cjk)
+        && heading
+            .chars()
+            .all(|ch| is_heading_text_char(ch) || ch.is_whitespace())
+        && !heading.contains("如")
+        && heading_has_section_suffix(heading)
+}
+
+fn is_heading_text_char(ch: char) -> bool {
+    is_cjk(ch)
+        || ch.is_ascii_alphanumeric()
+        || matches!(ch, '%' | '％' | '、' | '·' | '-' | '_' | ' ')
+}
+
+fn heading_has_section_suffix(heading: &str) -> bool {
+    [
+        "结论",
+        "判断",
+        "说明",
+        "依据",
+        "动作",
+        "建议",
+        "边界",
+        "风险",
+        "问题",
+        "清单",
+        "计划",
+        "练习",
+        "训练",
+        "实训",
+        "方案",
+        "策略",
+        "步骤",
+        "重点",
+        "环节",
+        "部分",
+        "方向",
+        "角度",
+        "资料",
+        "数据",
+        "原因",
+        "限制",
+        "核验",
+        "下一步",
+        "适合",
+        "不适合",
+    ]
+    .iter()
+    .any(|suffix| heading.ends_with(suffix))
+}
+
+fn trim_trailing_spaces(output: &mut String) {
+    while output.ends_with(' ') || output.ends_with('\t') {
+        output.pop();
+    }
+}
+
+fn ensure_paragraph_break(output: &mut String) {
+    if output.is_empty() || output.ends_with("\n\n") {
+        return;
+    }
+    if output.ends_with('\n') {
+        output.push('\n');
+    } else {
+        output.push_str("\n\n");
+    }
+}
+
+fn is_cjk(ch: char) -> bool {
+    matches!(ch as u32, 0x4E00..=0x9FFF | 0x3400..=0x4DBF)
+}
+
 fn rewrite_internal_evidence_terms(line: &str) -> String {
     let mut text = line.to_string();
     for phrase in [
@@ -590,6 +817,8 @@ fn rewrite_internal_evidence_terms(line: &str) -> String {
     text = rewrite_confidence_phrases(&text);
     text = text.replace("资料可信度较高", "资料来源较明确");
     text = text.replace("资料可信度", "资料来源");
+    text = text.replace("资料来源较明确，资料来源较明确", "资料来源较明确");
+    text = text.replace("资料来源较明确、资料来源较明确", "资料来源较明确");
     text
 }
 
@@ -1361,6 +1590,63 @@ mod tests {
         assert!(!output.contains("低置信"));
         assert!(!output.contains("置信度"));
         assert!(!lower.contains("confidence"));
+    }
+
+    #[test]
+    fn final_sanitizing_restores_readable_sections_without_internal_terms() {
+        let raw = "同学们好，基于当前你手动引用的QA矩阵智能保温杯全部资料，现将这款商品适合和不适合做学生电商实训的地方明确梳理如下：【核心业务结论与定价判断】这款商品当前129元的售价完全符合不低于119元的定价安全线，定价合规性明确，整体规则边界清晰。【100%确定、可直接落地的适合实训环节】选品定位练习：商品有明确的客群边界，严格禁止学生党低价定位。内容合规练习：首屏文案必须包含温显、防漏、礼盒三个核心卖点。【当前资料缺失、暂不适合开展的实训环节】当前没有实际曝光、点击、成交、成本、退款等真实运营数据。【依据说明】确定部分的支撑来源：QA矩阵智能保温杯商品锚点、QA矩阵商品知识、QA矩阵卖点素材，置信度0.96。【下一步核验动作】你可以优先核验抖音平台智能保温杯类目的公开运营规则。";
+
+        let output = sanitize_final_user_facing_text(raw).expect("answer should remain readable");
+        let lower = output.to_ascii_lowercase();
+
+        assert!(output.contains("【核心业务结论与定价判断】\n\n这款商品"));
+        assert!(output.contains("\n\n【100%确定、可直接落地的适合实训环节】\n\n选品定位练习"));
+        assert!(
+            output.contains("\n\n【当前资料缺失、暂不适合开展的实训环节】\n\n当前没有实际曝光")
+        );
+        assert!(output.contains("\n\n【依据说明】\n\n确定部分的支撑来源"));
+        assert!(output.contains("商品资料、QA矩阵商品知识"));
+        assert!(output.contains("资料来源较明确"));
+        assert!(!output.contains("商品锚点"));
+        assert!(!output.contains("置信度"));
+        assert!(!lower.contains("confidence"));
+    }
+
+    #[test]
+    fn final_sanitizing_keeps_existing_paragraph_breaks() {
+        let raw = "先给结论：这款商品可以作为学生实训样例，但不能直接当成低价引流品。\n\n适合部分：商品卖点、价格边界和场景都比较清楚，可以练选品定位。\n\n依据说明：支撑来自QA矩阵智能保温杯商品锚点，置信度0.96。";
+
+        let output = sanitize_final_user_facing_text(raw).expect("answer should remain readable");
+        let lower = output.to_ascii_lowercase();
+
+        assert!(output.contains("样例，但不能直接当成低价引流品。\n\n适合部分："));
+        assert!(output.contains("选品定位。\n\n依据说明："));
+        assert!(output.contains("QA矩阵智能保温杯商品资料"));
+        assert!(output.contains("资料来源较明确"));
+        assert!(!output.contains("商品锚点"));
+        assert!(!output.contains("置信度"));
+        assert!(!lower.contains("confidence"));
+    }
+
+    #[test]
+    fn final_sanitizing_restores_generic_inline_colon_headings() {
+        let raw = "这款商品可以做实训，但要先限定任务范围。适合部分：围绕卖点、价格和场景做选品定位。不适合部分：没有真实投放数据时，不要做确定性ROI判断。核验动作：补成本、退款和平台规则资料。";
+
+        let output = sanitize_final_user_facing_text(raw).expect("answer should remain readable");
+
+        assert!(output.contains("限定任务范围。\n\n适合部分：\n\n围绕卖点"));
+        assert!(output.contains("选品定位。\n\n不适合部分：\n\n没有真实投放数据"));
+        assert!(output.contains("ROI判断。\n\n核验动作：\n\n补成本"));
+    }
+
+    #[test]
+    fn final_sanitizing_restores_inline_practice_headings() {
+        let raw = "当前暂不适合做进阶判断。进阶数据类实训：没有曝光、点击、成交数据，暂不做转化测算。行业对比类实训：没有可采信公开来源，暂不做行业对标。";
+
+        let output = sanitize_final_user_facing_text(raw).expect("answer should remain readable");
+
+        assert!(output.contains("进阶判断。\n\n进阶数据类实训：\n\n没有曝光"));
+        assert!(output.contains("转化测算。\n\n行业对比类实训：\n\n没有可采信"));
     }
 
     #[test]

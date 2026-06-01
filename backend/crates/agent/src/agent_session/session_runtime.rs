@@ -9,7 +9,7 @@ use crate::{
         commander::{
             Commander, CommanderChannels, CommanderOptions, CommanderSessionContext,
             TaskGraphRuntime, no_user_facing_content_message, plan_forced_chat_graph,
-            plan_quick_chat_graph, sanitize_user_facing_text,
+            plan_quick_chat_graph, sanitize_final_user_facing_text,
         },
         worker::{Worker, WorkerRuntimeConfig},
     },
@@ -381,8 +381,7 @@ impl SessionRuntime {
             }
             _ => "session returned non-text response".to_string(),
         };
-        let output =
-            sanitize_user_facing_text(&output).unwrap_or_else(no_user_facing_content_message);
+        let output = sanitize_session_final_output(&output);
 
         self.emit_event(SessionEvent::Output {
             session_id: self.session_id.clone(),
@@ -1175,4 +1174,29 @@ fn compact_event_text(value: &str, max_chars: usize) -> String {
     let mut output = trimmed.chars().take(max_chars).collect::<String>();
     output.push_str("...");
     output
+}
+
+fn sanitize_session_final_output(output: &str) -> String {
+    sanitize_final_user_facing_text(output).unwrap_or_else(no_user_facing_content_message)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::sanitize_session_final_output;
+
+    #[test]
+    fn session_final_output_restores_readable_answer_layout() {
+        let raw = "同学们好，基于当前你手动引用的QA矩阵智能保温杯资料，结论如下：【核心业务结论与定价判断】这款商品当前129元的售价符合定价安全线，适合先做选品和卖点拆解。【100%确定、可直接落地的适合实训环节】选品定位练习：围绕温显、防漏、礼盒卖点做客群判断。内容合规练习：避免学生党低价定位。【依据说明】支撑来源是QA矩阵智能保温杯商品锚点，置信度0.96。";
+
+        let output = sanitize_session_final_output(raw);
+        let lower = output.to_ascii_lowercase();
+
+        assert!(output.contains("结论如下：\n\n【核心业务结论与定价判断】\n\n这款商品"));
+        assert!(output.contains("\n\n【100%确定、可直接落地的适合实训环节】\n\n选品定位练习"));
+        assert!(output.contains("\n\n【依据说明】\n\n支撑来源是QA矩阵智能保温杯商品资料"));
+        assert!(output.contains("资料来源较明确"));
+        assert!(!output.contains("商品锚点"));
+        assert!(!output.contains("置信度"));
+        assert!(!lower.contains("confidence"));
+    }
 }

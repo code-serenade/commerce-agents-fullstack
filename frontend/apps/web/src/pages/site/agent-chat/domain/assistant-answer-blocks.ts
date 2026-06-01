@@ -1,3 +1,8 @@
+import {
+  normalizeAnswerLayout,
+  readBracketHeadingText,
+} from "./assistant-answer-layout"
+
 export type AssistantAnswerBlock =
   | { kind: "code"; code: string; language?: string }
   | { kind: "heading"; depth: number; text: string }
@@ -17,7 +22,7 @@ export type AssistantAnswerSource = {
 const MAX_INLINE_HEADING_LENGTH = 28
 
 export function parseAnswerBlocks(content: string): AssistantAnswerBlock[] {
-  const normalized = content.replace(/\r\n/g, "\n").trim()
+  const normalized = normalizeAnswerLayout(content.replace(/\r\n/g, "\n")).trim()
   if (!normalized) return []
 
   const lines = normalized.split("\n")
@@ -259,6 +264,11 @@ function readHeading(line: string): AssistantAnswerBlock | null {
   const strongHeading = line.match(/^\*\*(.+)\*\*[:：]?$/)
   if (strongHeading) {
     return { depth: 3, kind: "heading", text: cleanupHeading(strongHeading[1]) }
+  }
+
+  const bracketHeading = readBracketHeadingText(line)
+  if (bracketHeading) {
+    return { depth: 3, kind: "heading", text: cleanupHeading(bracketHeading) }
   }
 
   if (

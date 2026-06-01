@@ -22,6 +22,8 @@ const INTERNAL_FAILURE_PATTERNS = [
   /worker reported failed status/i,
 ]
 
+const PRESERVED_BLANK_LINE = "__AGENT_CHAT_PRESERVED_BLANK_LINE__"
+
 const ASSERTIVE_BENCHMARK_TERMS = terms([
   [25972, 20307, 20559, 22909],
   [30495, 27491, 20559, 22909],
@@ -160,12 +162,19 @@ export function sanitizeAgentAnswerContent(
   const lines = content
     .split("\n")
     .map((line) => {
+      const wasBlankLine = !line.trim()
       const trimmedLine = line.trim()
       if (/^skill:[^\n]+/i.test(trimmedLine)) return ""
-      return line.replace(/[;；]?\s*skill:[^\n。；;]+(?:[。.;])?/gi, "").trimEnd()
+      const cleanedLine = line
+        .replace(/[;；]?\s*skill:[^\n。；;]+(?:[。.;])?/gi, "")
+        .trimEnd()
+      if (wasBlankLine && !cleanedLine.trim()) return PRESERVED_BLANK_LINE
+      return cleanedLine
     })
 
-  const cleaned = removeInternalFailureBlock(lines, copy).join("\n")
+  const cleaned = removeInternalFailureBlock(lines, copy)
+    .join("\n")
+    .replaceAll(PRESERVED_BLANK_LINE, "")
 
   return normalizeUserFacingAnswer(cleaned)
     .replace(/\n{3,}/g, "\n\n")
@@ -210,9 +219,9 @@ function removeInternalFailureBlock(
     result.push(line)
   }
 
-  if (!skippedInternalFailure) return result.filter((line) => Boolean(line.trim()))
+  if (!skippedInternalFailure) return result.filter(hasVisibleUserFacingLine)
 
-  const output = result.filter((line) => Boolean(line.trim()))
+  const output = result.filter(hasVisibleUserFacingLine)
   if (!hasBoundaryNotice(output.join("\n"))) {
     output.push(
       copy?.boundaryNotice ||
@@ -220,6 +229,10 @@ function removeInternalFailureBlock(
     )
   }
   return output
+}
+
+function hasVisibleUserFacingLine(line: string) {
+  return line === PRESERVED_BLANK_LINE || Boolean(line.trim())
 }
 
 function isInternalFailureHeading(value: string) {
