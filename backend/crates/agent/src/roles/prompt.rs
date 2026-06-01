@@ -227,6 +227,25 @@ mod tests {
     }
 
     #[test]
+    fn every_builtin_role_has_prompt_file() {
+        for role in RoleCatalog::builtin().roles() {
+            let prompt = RolePromptBuilder::build_worker_system_prompt(role);
+
+            assert!(
+                !prompt.contains("role_prompt_unavailable"),
+                "role {} should have a prompt file, got: {}",
+                role.runtime_role,
+                prompt
+            );
+            assert!(
+                prompt.contains(&format!("角色: {} ({})", role.name, role.runtime_role)),
+                "role {} prompt should include role header",
+                role.runtime_role
+            );
+        }
+    }
+
+    #[test]
     fn resolves_prompt_path_from_runtime_role() {
         let role = RoleCatalog::builtin()
             .roles()

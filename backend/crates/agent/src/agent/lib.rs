@@ -5,4 +5,5 @@
 //! - Worker
 
 pub mod commander;
+pub(crate) mod context_text;
 pub mod worker;

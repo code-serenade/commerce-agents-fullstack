@@ -2,7 +2,8 @@ use utils::llm_json;
 
 use crate::{
     agent::commander::{
-        no_user_facing_content_message, sanitize_user_facing_text, user_facing_report_text,
+        no_user_facing_content_message, sanitize_final_user_facing_text, sanitize_user_facing_text,
+        user_facing_report_text,
     },
     core::protocol::{MessageId, TaskId},
     roles::{RoleAssignment, RoleContribution},
@@ -17,7 +18,9 @@ pub(super) fn final_worker_message(_task_id: &TaskId, output: Option<&str>) -> S
 }
 
 pub(super) fn direct_chat_report_output(report: &crate::core::protocol::WorkerReport) -> String {
-    user_facing_report_text(report).unwrap_or_else(no_user_facing_content_message)
+    user_facing_report_text(report)
+        .and_then(|text| sanitize_final_user_facing_text(&text))
+        .unwrap_or_else(no_user_facing_content_message)
 }
 
 pub(super) fn build_contribution(

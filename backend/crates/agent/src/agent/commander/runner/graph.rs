@@ -3,9 +3,11 @@ use tracing::{debug, warn};
 use super::{Commander, CommanderPhase, CommanderState, next_message_id, primary_route_score};
 use crate::{
     agent::commander::{
-        EvaluationOutcome, TaskGraphRuntime, plan_configured_non_chat_task_graph,
-        plan_configured_task_graph, plan_forced_role_graph, plan_task_graph,
+        EvaluationOutcome, TaskGraphRuntime, no_user_facing_content_message,
+        plan_configured_non_chat_task_graph, plan_configured_task_graph, plan_forced_role_graph,
+        plan_task_graph,
         runner::{output::direct_chat_report_output, route::primary_graph_role},
+        sanitize_final_user_facing_text,
     },
     core::protocol::{
         AgentId, Message, MessageContext, Payload, RoleWorkOutput, SessionEvent, TaskGraph,
@@ -409,9 +411,11 @@ impl Commander {
     }
 
     async fn finish_task_graph(&mut self, runtime: TaskGraphRuntime) {
-        let content = runtime
+        let raw_content = runtime
             .direct_chat_output()
             .unwrap_or_else(|| runtime.synthesize());
+        let content = sanitize_final_user_facing_text(&raw_content)
+            .unwrap_or_else(no_user_facing_content_message);
         let process = runtime.process_summary();
         self.session_context
             .record_task_graph_memory(runtime.memory_summary());

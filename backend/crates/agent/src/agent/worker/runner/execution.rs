@@ -453,7 +453,17 @@ impl Worker {
 }
 
 fn assignment_user_task(assignment: &WorkerAssignment) -> String {
-    assignment.objective.clone()
+    let root_task = assignment.root_task.trim();
+    let objective = assignment.objective.trim();
+
+    if root_task.is_empty() {
+        return objective.to_string();
+    }
+    if objective.is_empty() || objective == root_task {
+        return root_task.to_string();
+    }
+
+    format!("{root_task}\n\n当前岗位任务：\n{objective}")
 }
 
 fn format_duration(duration: Duration) -> String {

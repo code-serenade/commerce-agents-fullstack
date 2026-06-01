@@ -321,19 +321,11 @@ impl TaskGraphRuntime {
             return None;
         }
 
-        let mut lines = Vec::new();
-        lines.push("本轮没有形成完整回答，原因是部分岗位没有成功执行。".to_string());
-        for gap in gaps.iter().take(4) {
-            lines.push(format!(
-                "- {}：{}",
-                gap.role,
-                user_facing_gap_reason(&gap.reason)
-            ));
-        }
-        if gaps.len() > 4 {
-            lines.push(format!("- 还有 {} 个岗位/节点未完成。", gaps.len() - 4));
-        }
-        lines.push("请检查服务端岗位配置、模型配置或工具连接状态后重试。".to_string());
+        let lines = [
+            "这次没有形成完整答案：系统内部的协作步骤没有全部完成，所以不能把结果当成可靠结论。"
+                .to_string(),
+            "请稍后重试；如果问题很急，可以先切到普通问答或只指定一个岗位继续问。".to_string(),
+        ];
 
         sanitize_final_user_facing_text(&lines.join("\n")).or_else(|| Some(lines.join("\n")))
     }
@@ -1295,7 +1287,7 @@ mod tests {
     }
 
     #[test]
-    fn task_graph_synthesis_surfaces_execution_gap_when_roles_do_not_run() {
+    fn task_graph_synthesis_uses_safe_gap_message_when_roles_do_not_run() {
         let data = node("data", "Data", "data");
         let mut ops = node("ops_final", "Final", "ops");
         ops.input_refs = vec![TaskNodeId("data".to_string())];
@@ -1339,11 +1331,12 @@ mod tests {
 
         let output = runtime.synthesize();
 
-        assert!(output.contains("部分岗位没有成功执行"));
-        assert!(output.contains("data"));
-        assert!(output.contains("服务端没有可用的该岗位执行器"));
-        assert!(output.contains("ops"));
-        assert!(output.contains("上游依赖岗位未成功完成"));
+        assert!(output.contains("没有形成完整答案"));
+        assert!(output.contains("协作步骤没有全部完成"));
+        assert!(!output.contains("data"));
+        assert!(!output.contains("服务端没有可用的该岗位执行器"));
+        assert!(!output.contains("ops"));
+        assert!(!output.contains("上游依赖岗位未成功完成"));
         assert!(!output.contains("没有拿到可直接展示的完整内容"));
         assert!(!output.contains("failure_kind"));
     }

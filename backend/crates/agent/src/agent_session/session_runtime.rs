@@ -55,6 +55,7 @@ impl Default for SessionRuntimeConfig {
 pub struct SessionRuntimeWorkerInput {
     pub role: RoleProfile,
     pub cognition: Box<dyn Cognition + Send>,
+    pub routable: bool,
 }
 
 pub struct SessionRuntimeInput {
@@ -118,6 +119,7 @@ impl SessionRuntime {
             input
                 .workers
                 .iter()
+                .filter(|worker| worker.routable)
                 .map(|worker| worker.role.clone())
                 .collect(),
         );
@@ -127,7 +129,9 @@ impl SessionRuntime {
             session_context
                 .directory()
                 .register_worker_tx(profile.worker_id.clone(), worker_tx.clone());
-            session_context.worker_catalog().register(profile.clone());
+            if worker_input.routable {
+                session_context.worker_catalog().register(profile.clone());
+            }
 
             let skill_executor = SkillExecutorSet::staged_with_search(input.config.search.clone())
                 .map_err(|error| {

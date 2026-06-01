@@ -91,11 +91,13 @@ impl AgentSession {
             &input,
             &self.scope.metadata,
         );
-        let workers = selected_roles
+        let worker_roles = session_worker_roles(&self.config.roles, selected_roles);
+        let workers = worker_roles
             .iter()
-            .map(|role| {
+            .map(|(role, routable)| {
                 Ok(crate::agent_session::SessionRuntimeWorkerInput {
                     role: (*role).clone(),
+                    routable: *routable,
                     cognition: (self.config.worker_cognition)(role)?,
                 })
             })
@@ -204,7 +206,7 @@ impl AgentSession {
 
 fn select_roles_for_task<'a>(
     catalog: &'a RoleCatalog,
-    runtime: &SessionRuntimeConfig,
+    _runtime: &SessionRuntimeConfig,
     input: &str,
     metadata: &BTreeMap<String, String>,
 ) -> Vec<&'a RoleProfile> {
@@ -223,14 +225,11 @@ fn select_roles_for_task<'a>(
         max_roles: auto_route_max_roles(metadata),
     });
 
-    let configured_graph_roles = if runtime.commander_fast_route {
-        let task_id = TaskId("preselect".to_string());
+    let task_id = TaskId("preselect".to_string());
+    let configured_graph_roles =
         plan_configured_non_chat_task_graph(&task_id, input, Some(&role_route))
             .map(|graph| graph.nodes.into_iter().map(|node| node.role).collect())
-            .unwrap_or_default()
-    } else {
-        Vec::new()
-    };
+            .unwrap_or_default();
 
     if runtime_roles.is_empty() {
         runtime_roles.extend(configured_graph_roles);
@@ -268,6 +267,37 @@ fn select_roles_for_task<'a>(
         selected.push(role);
     }
     selected
+}
+
+fn session_worker_roles<'a>(
+    catalog: &'a RoleCatalog,
+    selected_roles: Vec<&'a RoleProfile>,
+) -> Vec<(&'a RoleProfile, bool)> {
+    let mut roles: Vec<(&'a RoleProfile, bool)> = Vec::new();
+    for role in selected_roles {
+        if roles
+            .iter()
+            .any(|(selected, _)| selected.runtime_role == role.runtime_role)
+        {
+            continue;
+        }
+        roles.push((role, true));
+    }
+    for role in catalog.roles() {
+        if roles
+            .iter()
+            .any(|(selected, _)| selected.runtime_role == role.runtime_role)
+        {
+            continue;
+        }
+        roles.push((role, false));
+    }
+    if roles.is_empty()
+        && let Some(role) = catalog.roles().first()
+    {
+        roles.push((role, true));
+    }
+    roles
 }
 
 fn selected_runtime_roles(metadata: &BTreeMap<String, String>) -> Vec<String> {
@@ -393,7 +423,7 @@ fn append_missing_runtime_roles(runtime_roles: &mut Vec<String>, additional_role
 mod tests {
     use std::{collections::BTreeMap, time::Duration};
 
-    use super::select_roles_for_task;
+    use super::{select_roles_for_task, session_worker_roles};
     use crate::{RoleCatalog, SessionRuntimeConfig};
 
     #[test]
@@ -419,6 +449,36 @@ mod tests {
         assert!(selected.contains(&"ops".to_string()));
         assert!(selected.contains(&"chat".to_string()));
         assert!(!selected.contains(&"engineering".to_string()));
+    }
+
+    #[test]
+    fn session_worker_roles_register_full_catalog_as_executor_safety_net() {
+        let roles = RoleCatalog::builtin();
+        let selected = select_roles_for_task(
+            &roles,
+            &SessionRuntimeConfig::default(),
+            "帮我分析漏斗指标和归因口径",
+            &BTreeMap::new(),
+        );
+
+        let worker_roles = session_worker_roles(&roles, selected)
+            .into_iter()
+            .map(|(role, routable)| (role.runtime_role.clone(), routable))
+            .collect::<Vec<_>>();
+
+        assert!(worker_roles.contains(&("chat".to_string(), true)));
+        assert!(worker_roles.iter().any(|(role, _)| role == "data"));
+        assert!(worker_roles.iter().any(|(role, _)| role == "ops"));
+        assert!(worker_roles.iter().any(|(role, _)| role == "creative"));
+        assert!(worker_roles.iter().any(|(role, _)| role == "service"));
+        assert!(worker_roles.contains(&("engineering".to_string(), false)));
+        assert_eq!(
+            worker_roles
+                .iter()
+                .filter(|(role, _)| role.as_str() == "data")
+                .count(),
+            1
+        );
     }
 
     #[test]

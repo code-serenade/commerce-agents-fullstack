@@ -517,12 +517,23 @@ impl Cognition for CapturingContextWorkerCognition {
                     .get("request.context.summary")
                     .cloned()
             });
-        *self.fact_value.lock().expect("lock fact capture") = input
-            .context
-            .facts
-            .iter()
-            .find(|fact| fact.source == "commerce.selected_product_context")
-            .map(|fact| fact.content.clone());
+        *self.fact_value.lock().expect("lock fact capture") = Some(
+            input
+                .context
+                .facts
+                .iter()
+                .filter(|fact| {
+                    matches!(
+                        fact.source.as_str(),
+                        "commerce.selected_product_priority"
+                            | "commerce.selected_product_context"
+                            | "conversation.history"
+                    )
+                })
+                .map(|fact| format!("{}: {}", fact.source, fact.content))
+                .collect::<Vec<_>>()
+                .join("\n"),
+        );
 
         CognitionResult::Success(json!({
             "decision": {
@@ -698,7 +709,7 @@ async fn role_worker_receives_role_context() {
 }
 
 #[tokio::test]
-async fn role_aware_worker_factory_receives_selected_roles() {
+async fn role_aware_worker_factory_registers_full_executor_catalog() {
     let available_workers = Arc::new(Mutex::new(None));
     let constructed_roles = Arc::new(Mutex::new(HashSet::new()));
     let commander_capture = Arc::clone(&available_workers);
@@ -733,8 +744,10 @@ async fn role_aware_worker_factory_receives_selected_roles() {
     let constructed_roles = constructed_roles.lock().expect("lock constructed roles");
     assert!(constructed_roles.contains("chat"));
     assert!(constructed_roles.contains("ops"));
-    assert!(!constructed_roles.contains("engineering"));
-    assert!(!constructed_roles.contains("web"));
+    assert!(constructed_roles.contains("data"));
+    assert!(constructed_roles.contains("creative"));
+    assert!(constructed_roles.contains("engineering"));
+    assert!(constructed_roles.contains("web"));
 }
 
 #[tokio::test]
@@ -2693,6 +2706,7 @@ async fn single_strategy_metadata_routes_only_requested_primary_role() {
     assert!(runtime_roles.contains("data"));
     assert!(!runtime_roles.contains("creative"));
     assert!(!runtime_roles.contains("ops"));
+    assert!(!runtime_roles.contains("chat"));
 }
 
 #[tokio::test]
@@ -3204,8 +3218,61 @@ async fn worker_cognition_receives_product_context_metadata_and_fact() {
             .lock()
             .expect("lock fact result")
             .as_deref()
-            .is_some_and(|value| value.contains("五一咖啡组合"))
+            .is_some_and(|value| {
+                value.contains("五一咖啡组合")
+                    && value.contains("本轮手动选择")
+                    && value.contains("优先于同会话历史")
+            })
     );
+}
+
+#[tokio::test]
+async fn selected_product_context_overrides_conflicting_history_in_worker_context() {
+    let fact_value = Arc::new(Mutex::new(None));
+    let fact_capture = Arc::clone(&fact_value);
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(move || {
+            Ok(Box::new(CapturingContextWorkerCognition {
+                metadata_value: Arc::new(Mutex::new(None)),
+                fact_value: Arc::clone(&fact_capture),
+            }))
+        }),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert(
+        "conversation.history_summary".to_string(),
+        "User: 请分析校园冷萃咖啡，售价19.9元，成本8元。\nAssistant: 已给出冷萃咖啡选品建议。"
+            .to_string(),
+    );
+    metadata.insert(
+        "context.selected_summary".to_string(),
+        "Product source product:222 | name=QA矩阵智能保温杯 | category=智能保温杯 | brand=QA矩阵品牌"
+            .to_string(),
+    );
+
+    manager
+        .run_request(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-selected-product-priority".to_string()),
+            input: "请分析这个商品，判断是否适合做电商实训选品。".to_string(),
+            metadata,
+        })
+        .await
+        .expect("request should complete");
+
+    let facts = fact_value
+        .lock()
+        .expect("lock fact result")
+        .clone()
+        .expect("captured facts");
+    assert!(facts.contains("QA矩阵智能保温杯"));
+    assert!(facts.contains("校园冷萃咖啡"));
+    assert!(facts.contains("本轮手动选择的商品/知识上下文优先于同会话历史"));
+    assert!(facts.contains("不得把历史里的商品"));
+    assert!(facts.contains("以本轮手动选择的商品为准"));
 }
 
 #[tokio::test]

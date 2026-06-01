@@ -1,4 +1,5 @@
 use crate::{
+    agent::context_text,
     agent::worker::{Task, TaskMemory, WorkerPhase},
     cognition::{CognitionInput, Context, Fact, Intent, IntentKind},
     core::protocol::AgentId,
@@ -230,20 +231,22 @@ fn extend_context_facts(
     metadata: &std::collections::BTreeMap<String, String>,
     facts: &mut Vec<Fact>,
 ) {
-    extend_conversation_history_fact(metadata, facts);
-    extend_named_context_fact(
+    let has_selected_product_context = metadata
+        .get("context.selected_summary")
+        .map(|value| !value.trim().is_empty())
+        .unwrap_or(false);
+
+    extend_selected_product_priority_fact(metadata, facts);
+    extend_selected_product_context_fact(
         metadata,
         facts,
         "context.selected_summary",
         "commerce.selected_product_context",
+        "用户本轮手动选择的商品/知识上下文如下。凡是用户说“这个商品”“该商品”“引用的商品”或要求单品分析，\
+         都必须优先以这里的商品为当前对象；同会话历史只能补充背景，不能覆盖本轮手动选择。\n",
     );
-    extend_named_context_fact(
-        metadata,
-        facts,
-        "context.sources_json",
-        "commerce.selected_product_context.sources",
-    );
-    extend_named_context_fact(
+    extend_conversation_history_fact(metadata, facts, has_selected_product_context);
+    extend_context_summary_fact(
         metadata,
         facts,
         "context.combined_summary",
@@ -278,6 +281,7 @@ fn extend_context_facts(
 fn extend_conversation_history_fact(
     metadata: &std::collections::BTreeMap<String, String>,
     facts: &mut Vec<Fact>,
+    has_selected_product_context: bool,
 ) {
     let Some(value) = metadata
         .get("conversation.history_summary")
@@ -287,18 +291,74 @@ fn extend_conversation_history_fact(
         return;
     };
 
+    let instruction = if has_selected_product_context {
+        "conversation.history：同一会话历史上下文如下。它只能用于理解追问背景、用户偏好和前后文。\
+         本轮已经存在用户手动选择的商品/知识上下文时，回答“这个商品”“该商品”、单品分析、\
+         选品、定价、运营或创意建议，必须以本轮手动选择的商品为准；不得把历史里的商品、\
+         价格、数据或结论当成本轮当前商品。"
+    } else {
+        "conversation.history：同一会话历史上下文如下。回答追问、补充、继续、\
+         按前面数据等问题时，必须优先结合这段历史；不要要求用户重复已经在这里提供的信息。"
+    };
+
     facts.push(Fact {
         source: "conversation.history".to_string(),
+        content: format!("{instruction}\n{value}"),
+        reliability: 1.0,
+    });
+}
+
+fn extend_selected_product_priority_fact(
+    metadata: &std::collections::BTreeMap<String, String>,
+    facts: &mut Vec<Fact>,
+) {
+    let Some(value) = metadata
+        .get("context.selected_summary")
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
+    else {
+        return;
+    };
+
+    let visible = context_text::user_visible_selected_product_context(value)
+        .unwrap_or_else(|| "当前轮已手动选择商品，但商品资料摘要为空。".to_string());
+
+    facts.push(Fact {
+        source: "commerce.selected_product_priority".to_string(),
         content: format!(
-            "conversation.history：同一会话历史上下文如下。回答追问、补充、继续、\
-             按前面数据等问题时，必须优先结合这段历史；不要要求用户重复已经在这里提供的信息。\\
-             n{value}"
+            "本轮手动选择的商品/知识上下文优先于同会话历史。先据此识别当前商品，\
+             再使用历史做辅助背景。若这里的商品与历史中的商品不一致，以这里为准；若这里缺少某项指标，\
+             只能说明该指标缺失，不能借用历史商品的数据。\n{visible}"
         ),
         reliability: 1.0,
     });
 }
 
-fn extend_named_context_fact(
+fn extend_selected_product_context_fact(
+    metadata: &std::collections::BTreeMap<String, String>,
+    facts: &mut Vec<Fact>,
+    key: &str,
+    source: &str,
+    prefix: &str,
+) {
+    let Some(value) = metadata
+        .get(key)
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
+    else {
+        return;
+    };
+    let value = context_text::user_visible_selected_product_context(value)
+        .unwrap_or_else(|| "当前轮已手动选择商品，但商品资料摘要为空。".to_string());
+
+    facts.push(Fact {
+        source: source.to_string(),
+        content: format!("{prefix}{value}"),
+        reliability: 1.0,
+    });
+}
+
+fn extend_context_summary_fact(
     metadata: &std::collections::BTreeMap<String, String>,
     facts: &mut Vec<Fact>,
     key: &str,
@@ -311,10 +371,44 @@ fn extend_named_context_fact(
     else {
         return;
     };
+    let Some(value) = context_text::user_visible_context_summary(value) else {
+        return;
+    };
 
     facts.push(Fact {
         source: source.to_string(),
-        content: value.to_string(),
+        content: value,
+        reliability: 1.0,
+    });
+}
+
+fn extend_named_context_fact(
+    metadata: &std::collections::BTreeMap<String, String>,
+    facts: &mut Vec<Fact>,
+    key: &str,
+    source: &str,
+) {
+    extend_named_context_fact_with_prefix(metadata, facts, key, source, "");
+}
+
+fn extend_named_context_fact_with_prefix(
+    metadata: &std::collections::BTreeMap<String, String>,
+    facts: &mut Vec<Fact>,
+    key: &str,
+    source: &str,
+    prefix: &str,
+) {
+    let Some(value) = metadata
+        .get(key)
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
+    else {
+        return;
+    };
+
+    facts.push(Fact {
+        source: source.to_string(),
+        content: format!("{prefix}{value}"),
         reliability: 1.0,
     });
 }

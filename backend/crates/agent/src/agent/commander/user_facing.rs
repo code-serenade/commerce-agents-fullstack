@@ -299,6 +299,7 @@ pub(crate) fn no_user_facing_content_message() -> String {
 fn clean_user_facing_line(line: &str) -> String {
     let line = strip_role_prefix(line.trim());
     let line = rewrite_note_prefix(&line);
+    let line = rewrite_internal_evidence_terms(&line);
     let line = rewrite_selected_product_source_line(&line);
     let line = rewrite_internal_skill_names(&line);
     let line = rewrite_business_phrases(&line);
@@ -563,6 +564,113 @@ fn remove_placeholder_phrases(input: &str) -> String {
 
 fn rewrite_note_prefix(line: &str) -> String {
     line.replace("备注：", "说明：").replace("备注:", "说明：")
+}
+
+fn rewrite_internal_evidence_terms(line: &str) -> String {
+    let mut text = line.to_string();
+    for phrase in [
+        "商品锚点：",
+        "商品锚点:",
+        "资料锚点：",
+        "资料锚点:",
+        "QA文件锚点：",
+        "QA文件锚点:",
+        "文件锚点：",
+        "文件锚点:",
+    ] {
+        text = text.replace(phrase, "");
+    }
+    text = text.replace("低置信参考", "仍需核验的参考");
+    text = text.replace("低置信度", "仍需核验");
+    text = text.replace("低置信", "仍需核验");
+    text = text.replace("商品锚点", "商品资料");
+    text = text.replace("资料锚点", "资料依据");
+    text = text.replace("QA文件锚点", "资料依据");
+    text = text.replace("文件锚点", "资料依据");
+    text = rewrite_confidence_phrases(&text);
+    text = text.replace("资料可信度较高", "资料来源较明确");
+    text = text.replace("资料可信度", "资料来源");
+    text
+}
+
+fn rewrite_confidence_phrases(line: &str) -> String {
+    let text = rewrite_chinese_confidence_phrases(line);
+    rewrite_ascii_confidence_phrases(&text)
+}
+
+fn rewrite_chinese_confidence_phrases(line: &str) -> String {
+    let mut output = String::new();
+    let mut rest = line;
+    while let Some(index) = rest.find("置信度") {
+        output.push_str(&rest[..index]);
+        let after_marker = &rest[index + "置信度".len()..];
+        let consumed = trim_confidence_value(after_marker);
+        if consumed == 0 {
+            output.push_str("资料来源");
+        } else {
+            output.push_str("资料来源较明确");
+        }
+        rest = &after_marker[consumed..];
+    }
+    output.push_str(rest);
+    output
+}
+
+fn rewrite_ascii_confidence_phrases(line: &str) -> String {
+    let mut output = String::new();
+    let mut rest = line;
+    loop {
+        let lower = rest.to_ascii_lowercase();
+        let Some(index) = lower.find("confidence") else {
+            output.push_str(rest);
+            break;
+        };
+        output.push_str(&rest[..index]);
+        let after_marker = &rest[index + "confidence".len()..];
+        let consumed = trim_confidence_value(after_marker);
+        if consumed == 0 {
+            output.push_str("资料来源");
+        } else {
+            output.push_str("资料来源较明确");
+        }
+        rest = &after_marker[consumed..];
+    }
+    output
+}
+
+fn trim_confidence_value(input: &str) -> usize {
+    let mut consumed = 0;
+    for ch in input.chars() {
+        if ch.is_whitespace() || matches!(ch, '=' | '：' | ':' | '约' | '为') {
+            consumed += ch.len_utf8();
+            continue;
+        }
+        break;
+    }
+
+    let value_start = consumed;
+    let mut has_digit = false;
+    for ch in input[value_start..].chars() {
+        if ch.is_ascii_digit() || matches!(ch, '.' | '%' | '％') {
+            has_digit = true;
+            consumed += ch.len_utf8();
+            continue;
+        }
+        break;
+    }
+
+    if has_digit {
+        for ch in input[consumed..].chars() {
+            if ch.is_whitespace() {
+                consumed += ch.len_utf8();
+                continue;
+            }
+            break;
+        }
+        consumed
+    } else {
+        0
+    }
 }
 
 fn rewrite_selected_product_source_line(line: &str) -> String {
@@ -857,6 +965,7 @@ fn is_internal_noise_line(line: &str) -> bool {
         "context.combined_summary",
         "commerce.selected_product_context",
         "productcontextsummary",
+        "confidence=",
         "raw=",
         "fast-route",
     ]
@@ -864,6 +973,8 @@ fn is_internal_noise_line(line: &str) -> bool {
     .any(|marker| lower.contains(marker))
         || line.contains("任务图")
         || line.contains("岗位报告")
+        || line.contains("Product source product")
+        || line.contains("Knowledge source product_knowledge")
         || line.starts_with("任务已完成")
         || line.starts_with("支持角色已完成")
         || line.contains("正在思考中")
@@ -1229,6 +1340,27 @@ mod tests {
         assert!(!lower.contains("platform=unknown"));
         assert!(!lower.contains("product:"));
         assert!(!output.contains("ce3f729c-a8bd-45ca-9859-7f2591d5973f"));
+    }
+
+    #[test]
+    fn rewrites_internal_evidence_terms_from_final_answer() {
+        let raw = "QA矩阵智能保温杯适合做学生电商实训，因为商品锚点：温显、防漏、礼盒都清楚。\n\
+                   资料边界：低置信参考只能作为补充，置信度0.96 的内容仍要用真实素材核对，confidence=0.72 不能直接展示给学生。\n\
+                   建议先围绕宿舍、社团礼品和冬季热饮三个场景做短视频测试。";
+
+        let output = sanitize_final_user_facing_text(raw).expect("answer should remain readable");
+        let lower = output.to_ascii_lowercase();
+
+        assert!(output.contains("QA矩阵智能保温杯"));
+        assert!(output.contains("温显、防漏、礼盒"));
+        assert!(output.contains("仍需核验的参考"));
+        assert!(output.contains("资料来源较明确"));
+        assert!(output.contains("不能直接展示给学生"));
+        assert!(output.contains("短视频测试"));
+        assert!(!output.contains("商品锚点"));
+        assert!(!output.contains("低置信"));
+        assert!(!output.contains("置信度"));
+        assert!(!lower.contains("confidence"));
     }
 
     #[test]
