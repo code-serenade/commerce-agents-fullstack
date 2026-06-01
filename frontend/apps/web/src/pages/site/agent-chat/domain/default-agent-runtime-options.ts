@@ -7,7 +7,7 @@ export const DEFAULT_AGENT_RUNTIME_OPTIONS: AgentRuntimeOptions = {
     {
       description: runtimeCopyFallback,
       id: "auto",
-      isDefault: false,
+      isDefault: true,
       label: runtimeCopyFallback,
     },
     {
@@ -19,7 +19,7 @@ export const DEFAULT_AGENT_RUNTIME_OPTIONS: AgentRuntimeOptions = {
     {
       description: runtimeCopyFallback,
       id: "manual",
-      isDefault: true,
+      isDefault: false,
       label: runtimeCopyFallback,
     },
   ],

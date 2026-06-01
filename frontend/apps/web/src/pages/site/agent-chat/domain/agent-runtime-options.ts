@@ -45,10 +45,10 @@ export type AgentChatRuntimeSelectionRestore = Partial<Omit<AgentChatRuntimeSele
 
 export function defaultRuntimeSelection(options: AgentRuntimeOptions | null): AgentChatRuntimeSelection {
   const defaultCollaboration =
-    options?.collaborationModes.find((mode) => mode.id === "manual")?.id ??
-    options?.collaborationModes.find((mode) => mode.id === "auto")?.id ??
     options?.collaborationModes.find((mode) => mode.isDefault)?.id ??
-    "manual"
+    options?.collaborationModes.find((mode) => mode.id === "auto")?.id ??
+    options?.collaborationModes.find((mode) => mode.id === "manual")?.id ??
+    "auto"
   const defaultLearning =
     options?.learningLevels.find((level) => level.isDefault)?.id ??
     "higher_vocational"
@@ -66,7 +66,7 @@ export function defaultRuntimeSelection(options: AgentRuntimeOptions | null): Ag
     learningLevel: defaultLearning,
     primaryRole: preferredRuntimePrimaryRole(defaultRoles),
     routingMode: defaultRouting,
-    selectedRoles: defaultRoles,
+    selectedRoles: defaultCollaboration === "auto" ? [] : defaultRoles,
   }
 }
 

@@ -23,13 +23,14 @@ const higherVocationalCopy = "Higher vocational"
 describe("agent runtime options", () => {
   it("uses the same default answer setup before backend options finish loading", () => {
     expect(defaultRuntimeSelection(null)).toMatchObject({
-      collaborationMode: "manual",
+      collaborationMode: "auto",
       learningLevel: "higher_vocational",
       primaryRole: "ops",
+      selectedRoles: [],
     })
   })
 
-  it("defaults new commerce chats to visible multi-agent collaboration when available", () => {
+  it("defaults new commerce chats to backend-dispatched role selection when available", () => {
     expect(
       defaultRuntimeSelection({
         collaborationModes: [
@@ -37,13 +38,13 @@ describe("agent runtime options", () => {
             id: "auto",
             label: autoCopy,
             description: autoCopy,
-            isDefault: false,
+            isDefault: true,
           },
           {
             id: "manual",
             label: manualCopy,
             description: manualCopy,
-            isDefault: true,
+            isDefault: false,
           },
         ],
         learningLevels: [
@@ -96,11 +97,11 @@ describe("agent runtime options", () => {
         strategies: [],
       })
     ).toEqual({
-      collaborationMode: "manual",
+      collaborationMode: "auto",
       learningLevel: "higher_vocational",
       primaryRole: "ops",
       routingMode: "commander",
-      selectedRoles: ["ops", "data", "creative", "service", "engineering"],
+      selectedRoles: [],
     })
   })
 
