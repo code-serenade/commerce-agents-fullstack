@@ -62,7 +62,10 @@ use uuid::Uuid;
 
 use crate::{
     api::{
-        document_text_extraction_manager::DocumentTextExtractionManager,
+        document_text_extraction_manager::{
+            DOCUMENT_TEXT_EXTRACTION_ANALYSIS_KIND, DocumentTextExtractionManager,
+        },
+        storage_object_analysis::StorageObjectAnalysisApi,
         vision_preprocess_manager::{VisionPreprocessManager, is_supported_image_mime},
     },
     dto::{
@@ -918,12 +921,17 @@ impl WorkspaceApi {
         if let Some(run_id) = run_id {
             self.ensure_run_owner(user_id, workspace_id, run_id).await?;
         }
+        let has_explicit_context_scope = has_explicit_context_ref_values(&req.context_refs);
         let explicit_context_refs = explicit_workspace_context_refs(req.context_refs)?;
 
-        let mut conversation_files = if let Some(conversation_id) = conversation_id {
-            self.conversation_file_svc
-                .list_by_conversation_id(conversation_id)
-                .await?
+        let mut conversation_files = if !has_explicit_context_scope {
+            if let Some(conversation_id) = conversation_id {
+                self.conversation_file_svc
+                    .list_by_conversation_id(conversation_id)
+                    .await?
+            } else {
+                Vec::new()
+            }
         } else {
             Vec::new()
         };
@@ -1137,12 +1145,17 @@ impl WorkspaceApi {
         if let Some(run_id) = run_id {
             self.ensure_run_owner(user_id, workspace_id, run_id).await?;
         }
+        let has_explicit_context_scope = has_explicit_context_ref_values(&req.context_refs);
         let explicit_context_refs = explicit_workspace_context_refs(req.context_refs)?;
 
-        let mut conversation_files = if let Some(conversation_id) = conversation_id {
-            self.conversation_file_svc
-                .list_by_conversation_id(conversation_id)
-                .await?
+        let mut conversation_files = if !has_explicit_context_scope {
+            if let Some(conversation_id) = conversation_id {
+                self.conversation_file_svc
+                    .list_by_conversation_id(conversation_id)
+                    .await?
+            } else {
+                Vec::new()
+            }
         } else {
             Vec::new()
         };
@@ -1391,16 +1404,24 @@ impl WorkspaceApi {
             return Ok(candidate);
         }
 
-        if let Some(analysis) = DocumentTextExtractionManager::new(self.db.clone())
+        let mut text_analysis = DocumentTextExtractionManager::new(self.db.clone())
             .latest_succeeded_for_file(item.id)
-            .await?
+            .await?;
+        if text_analysis.is_none()
+            && let Some(storage_object_sha256) = conversation_file_analysis_storage_sha(&item)
         {
-            let text = analysis
-                .result_json
-                .as_ref()
-                .and_then(|value| value.get("text"))
-                .and_then(Value::as_str)
-                .and_then(|value| normalize_string(value.to_string()));
+            text_analysis = StorageObjectAnalysisApi::new(self.db.clone())
+                .latest_succeeded_for_object(
+                    &storage_object_sha256,
+                    DOCUMENT_TEXT_EXTRACTION_ANALYSIS_KIND,
+                )
+                .await?;
+        }
+        if let Some(analysis) = text_analysis {
+            let text = document_text_analysis_text(
+                analysis.result_json.as_ref(),
+                analysis.summary.as_deref(),
+            );
             if text.is_some() {
                 candidate.content_kind = "extracted_text".to_string();
                 candidate.text = text;
@@ -5018,6 +5039,39 @@ fn conversation_file_extracted_text(metadata: &Value) -> Option<String> {
     .or_else(|| metadata_nested_text_field(metadata, "parsed"))
 }
 
+fn conversation_file_analysis_storage_sha(item: &ConversationFile) -> Option<String> {
+    item.metadata
+        .get("extraction")
+        .and_then(|value| value.get("storageObjectSha256"))
+        .and_then(Value::as_str)
+        .or(item.sha256.as_deref())
+        .and_then(|value| normalize_string(value.to_string()))
+}
+
+fn document_text_analysis_text(
+    result_json: Option<&Value>,
+    summary: Option<&str>,
+) -> Option<String> {
+    result_json
+        .and_then(|value| {
+            metadata_text_field(
+                value,
+                &[
+                    "text",
+                    "extractedText",
+                    "extracted_text",
+                    "textContent",
+                    "text_content",
+                    "plainText",
+                    "plain_text",
+                    "markdown",
+                    "content",
+                ],
+            )
+        })
+        .or_else(|| summary.and_then(|value| normalize_string(value.to_string())))
+}
+
 fn image_preprocess_analysis_text(
     result_json: Option<&Value>,
     summary: Option<&str>,
@@ -5677,7 +5731,7 @@ fn select_table_profile_columns(header: &[String], query: Option<&str>) -> Vec<u
         .take(TABLE_PROFILE_MAX_COLUMNS)
         .map(|(index, _)| *index)
         .collect::<Vec<_>>();
-    for index in 0 .. header.len().min(TABLE_PROFILE_MAX_COLUMNS) {
+    for index in 0..header.len().min(TABLE_PROFILE_MAX_COLUMNS) {
         if selected.len() >= TABLE_PROFILE_MAX_COLUMNS {
             break;
         }
@@ -5756,7 +5810,7 @@ fn select_table_profile_sample_rows(rows: &[Vec<String>], query: Option<&str>) -
                 .map(|(index, _)| index),
         );
     }
-    for index in 0 .. rows.len().min(TABLE_PROFILE_MAX_ROWS) {
+    for index in 0..rows.len().min(TABLE_PROFILE_MAX_ROWS) {
         if selected.len() >= TABLE_PROFILE_MAX_ROWS {
             break;
         }
@@ -6940,6 +6994,10 @@ fn normalize_context_refs(context_refs: Vec<String>) -> BizResult<Vec<String>> {
         }
     }
     Ok(refs)
+}
+
+fn has_explicit_context_ref_values(context_refs: &[String]) -> bool {
+    context_refs.iter().any(|item| !item.trim().is_empty())
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -10558,7 +10616,7 @@ mod tests {
 
     #[test]
     fn explicit_workspace_context_refs_reject_too_many_refs() {
-        let refs = (0 .. 21).map(|index| format!("artifact:{index}")).collect();
+        let refs = (0..21).map(|index| format!("artifact:{index}")).collect();
         let err = explicit_workspace_context_refs(refs).expect_err("too many refs should fail");
 
         assert_eq!(err.code(), app_error::WORKSPACE_REQUEST_INVALID);
@@ -10785,7 +10843,7 @@ mod tests {
 
     #[test]
     fn context_pack_profiles_large_json_instead_of_inlining_full_payload() {
-        let orders = (0 .. 90)
+        let orders = (0..90)
             .map(|index| {
                 json!({
                     "order_id": format!("O-{index}"),
@@ -10875,7 +10933,7 @@ mod tests {
 
     #[test]
     fn context_pack_profiles_jsonl_sources() {
-        let jsonl_text = (0 .. 40)
+        let jsonl_text = (0..40)
             .map(|index| {
                 json!({
                     "event": "order_update",
@@ -11097,6 +11155,56 @@ mod tests {
             Some("附件里写了活动预算和目标 ROI。".to_string())
         );
         assert!(conversation_file_extracted_text(&json!({"objectKey": "raw.pdf"})).is_none());
+    }
+
+    #[test]
+    fn document_text_analysis_text_reads_result_json_before_summary() {
+        let result_json = json!({
+            "kind": "document_text_extraction",
+            "text": "QA文件锚点：退款率=18%，CTR=1.2%。",
+        });
+
+        assert_eq!(
+            document_text_analysis_text(Some(&result_json), Some("备用摘要")),
+            Some("QA文件锚点：退款率=18%，CTR=1.2%。".to_string())
+        );
+        assert_eq!(
+            document_text_analysis_text(Some(&json!({})), Some("备用摘要")),
+            Some("备用摘要".to_string())
+        );
+        assert_eq!(document_text_analysis_text(Some(&json!({})), None), None);
+    }
+
+    #[test]
+    fn conversation_file_analysis_storage_sha_prefers_extraction_metadata() {
+        let file = ConversationFile {
+            id: Uuid::new_v4(),
+            user_id: Uuid::new_v4(),
+            conversation_id: Uuid::new_v4(),
+            message_id: None,
+            bucket: "private".to_string(),
+            object_key: "chat/u/c/file.txt".to_string(),
+            file_name: Some("file.txt".to_string()),
+            mime_type: Some("text/plain".to_string()),
+            file_size: Some(128),
+            sha256: Some("file-sha".to_string()),
+            visibility: "private".to_string(),
+            storage_provider: "s3".to_string(),
+            status: "active".to_string(),
+            metadata: json!({
+                "extraction": {
+                    "contentKind": "document_text_analysis_ref",
+                    "storageObjectSha256": "analysis-sha"
+                }
+            }),
+            created_at: OffsetDateTime::now_utc(),
+            deleted_at: None,
+        };
+
+        assert_eq!(
+            conversation_file_analysis_storage_sha(&file),
+            Some("analysis-sha".to_string())
+        );
     }
 
     #[test]

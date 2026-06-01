@@ -28,7 +28,6 @@
           "列名",
           "数据表",
           "透视",
-          "口径",
           "指标口径",
           "字段识别",
           "表格剖析",
@@ -250,7 +249,6 @@
     },
     {
       "id": "material.file_understanding",
-      "mode": "first",
       "roles": [
         "chat",
         "ops",

@@ -1194,7 +1194,7 @@ fn mask_secret(value: &str) -> String {
     if value.len() <= 8 {
         return "****".to_string();
     }
-    format!("{}****{}", &value[.. 4], &value[value.len() - 4 ..])
+    format!("{}****{}", &value[..4], &value[value.len() - 4..])
 }
 
 fn platform_display(platform: &str) -> String {

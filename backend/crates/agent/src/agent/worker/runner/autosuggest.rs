@@ -260,6 +260,27 @@ mod tests {
     }
 
     #[test]
+    fn accounting_budget_boundary_uses_finance_skills_before_material_profiler() {
+        let skills = skill_ids(
+            "accounting",
+            "作为财务分析师，评估预算、毛利、CPA/ROI 止损口径和放量风险；资料不足时给可补数的成本结构表和公式，不能给固定止损阈值：基于选中商品和活动，输出一份执行方案，包含卖点、预算边界、客服承接和复盘指标。",
+        );
+
+        assert!(
+            skills.contains(&"accounting_roi_calc".to_string()),
+            "ROI wording should trigger accounting ROI skill: {skills:?}"
+        );
+        assert!(
+            skills.contains(&"accounting_budget_plan".to_string()),
+            "budget boundary wording should trigger accounting budget skill: {skills:?}"
+        );
+        assert!(
+            !skills.contains(&"material_table_profiler".to_string()),
+            "cost structure wording alone must not mask finance skills as a table task: {skills:?}"
+        );
+    }
+
+    #[test]
     fn material_keywords_trigger_file_understanding_without_search() {
         let skills = skill_ids("ops", "请读取上传的 PDF 和 Word，结合附件资料做运营诊断");
 

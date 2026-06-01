@@ -6,6 +6,7 @@ use validator::Validate;
 const MAX_IMAGE_ATTACHMENTS: usize = 4;
 const MAX_IMAGE_URL_LEN: usize = 4096;
 const MAX_IMAGE_DATA_URL_LEN: usize = 8 * 1024 * 1024;
+const MAX_CONTEXT_REFS: usize = 20;
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
@@ -97,8 +98,14 @@ impl AgentStreamMetadata {
         self,
     ) -> Result<(BTreeMap<String, String>, AgentStreamContextSelection), String> {
         let mut metadata = BTreeMap::new();
-        let context = self.context_selection()?;
-        let image_count = self.image_attachments()?.len();
+        let mut context = self.context_selection()?;
+        let image_attachments = self.image_attachments()?;
+        for image in &image_attachments {
+            if let Some(source_ref) = image.source_ref.as_ref() {
+                push_unique_context_ref(&mut context.context_refs, source_ref)?;
+            }
+        }
+        let image_count = image_attachments.len();
 
         if image_count > 0 {
             metadata.insert(
@@ -206,7 +213,7 @@ impl AgentStreamMetadata {
             context_refs: validate_context_values(
                 "context.contextRefs",
                 &context.context_refs,
-                20,
+                MAX_CONTEXT_REFS,
                 160,
             )?,
         })
@@ -270,6 +277,19 @@ fn product_id_from_context_ref(value: &str) -> Option<&str> {
     value
         .strip_prefix("product:")
         .or_else(|| value.strip_prefix("product/"))
+}
+
+fn push_unique_context_ref(values: &mut Vec<String>, value: &str) -> Result<(), String> {
+    if values.iter().any(|item| item == value) {
+        return Ok(());
+    }
+    if values.len() >= MAX_CONTEXT_REFS {
+        return Err(format!(
+            "context.contextRefs must contain at most {MAX_CONTEXT_REFS} items"
+        ));
+    }
+    values.push(value.to_string());
+    Ok(())
 }
 
 fn validate_optional_context_value(
@@ -489,7 +509,13 @@ mod tests {
             vec!["22222222-2222-2222-2222-222222222222".to_string()]
         );
         assert_eq!(context.product_ids, vec![product_id.clone()]);
-        assert_eq!(context.context_refs, vec![format!("product:{product_id}")]);
+        assert_eq!(
+            context.context_refs,
+            vec![
+                format!("product:{product_id}"),
+                "conversation_file:file-1".to_string(),
+            ]
+        );
     }
 
     #[test]
@@ -499,7 +525,7 @@ mod tests {
             context: Some(AgentStreamContextMetadata {
                 campaign_ids: Vec::new(),
                 conversation_id: None,
-                product_ids: (0 .. 6).map(|index| format!("product-{index}")).collect(),
+                product_ids: (0..6).map(|index| format!("product-{index}")).collect(),
                 context_refs: Vec::new(),
             }),
             strategy: None,
@@ -555,6 +581,39 @@ mod tests {
         assert!(!context.context_refs.is_empty());
         assert!(!context.has_product_context());
         assert!(context.product_context_refs().is_empty());
+    }
+
+    #[test]
+    fn metadata_adds_image_source_ref_to_context_refs() {
+        let metadata = AgentStreamMetadata {
+            attachments: Some(AgentStreamAttachmentMetadata {
+                images: vec![AgentStreamImageAttachmentMetadata {
+                    url: "data:image/png;base64,aW1hZ2U=".to_string(),
+                    detail: Some("high".to_string()),
+                    source_ref: Some("conversation_file:file-image".to_string()),
+                }],
+            }),
+            context: Some(AgentStreamContextMetadata {
+                campaign_ids: Vec::new(),
+                conversation_id: Some("conversation-1".to_string()),
+                product_ids: Vec::new(),
+                context_refs: Vec::new(),
+            }),
+            strategy: None,
+        };
+
+        let (agent_metadata, context) = metadata.into_parts().expect("metadata should parse");
+
+        assert_eq!(
+            agent_metadata
+                .get("attachments.image_count")
+                .map(String::as_str),
+            Some("1")
+        );
+        assert_eq!(
+            context.context_refs,
+            vec!["conversation_file:file-image".to_string()]
+        );
     }
 
     #[test]

@@ -41,7 +41,7 @@ pub(super) fn extract_metric_value<T: AsRef<str>>(text: &str, aliases: &[T]) -> 
             continue;
         };
         let start = index + alias_lower.len();
-        if let Some(value) = parse_metric_number_after_alias(&text[start ..]) {
+        if let Some(value) = parse_metric_number_after_alias(&text[start..]) {
             return Some(value);
         }
     }
@@ -91,7 +91,7 @@ pub(super) fn parse_metric_number_after_alias(segment: &str) -> Option<f64> {
     let start = number_start?;
     let mut end = start;
     let mut dot_seen = false;
-    for (index, ch) in segment[start ..].char_indices() {
+    for (index, ch) in segment[start..].char_indices() {
         if ch.is_ascii_digit() || ch == ',' {
             end = start + index + ch.len_utf8();
             continue;
@@ -104,13 +104,13 @@ pub(super) fn parse_metric_number_after_alias(segment: &str) -> Option<f64> {
         break;
     }
 
-    let raw_number = segment[start .. end].replace(',', "");
+    let raw_number = segment[start..end].replace(',', "");
     let mut value = raw_number.parse::<f64>().ok()?;
     if !value.is_finite() {
         return None;
     }
 
-    let unit_tail = segment[end ..].trim_start();
+    let unit_tail = segment[end..].trim_start();
     if unit_tail.starts_with('亿') {
         value *= 100_000_000.0;
     } else if unit_tail.starts_with('万')

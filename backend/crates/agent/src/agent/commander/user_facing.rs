@@ -87,11 +87,107 @@ fn role_output_user_facing_text(
 }
 
 fn role_output_business_text(output: &crate::core::protocol::RoleWorkOutput) -> Option<String> {
-    std::iter::once(output.summary.as_str())
+    let has_material_evidence = output
+        .evidence
+        .iter()
+        .chain(output.findings.iter())
+        .any(|item| looks_like_material_evidence(item));
+    let text = std::iter::once(output.summary.as_str())
         .chain(output.recommendations.iter().map(String::as_str))
         .chain(output.findings.iter().map(String::as_str))
         .filter(|item| !looks_like_live_search_evidence(item))
-        .find_map(sanitize_user_facing_text)
+        .find_map(|item| {
+            let text = sanitize_user_facing_text(item)?;
+            if has_material_evidence && looks_like_no_source_claim(&text) {
+                None
+            } else {
+                Some(text)
+            }
+        })
+        .or_else(|| material_evidence_sections(output).into_iter().next())?;
+    Some(append_material_evidence_once(&text, output))
+}
+
+fn append_material_evidence_once(
+    business_text: &str,
+    output: &crate::core::protocol::RoleWorkOutput,
+) -> String {
+    if business_text.contains("资料依据：") || business_text.contains("资料关键事实：")
+    {
+        return business_text.to_string();
+    }
+    let evidence = material_evidence_sections(output);
+    if evidence.is_empty() || material_evidence_already_covered(business_text, &evidence) {
+        return business_text.to_string();
+    }
+
+    let mut sections = vec![business_text.to_string()];
+    sections.extend(evidence);
+    sections.join("\n\n")
+}
+
+fn material_evidence_sections(output: &crate::core::protocol::RoleWorkOutput) -> Vec<String> {
+    output
+        .evidence
+        .iter()
+        .chain(output.findings.iter())
+        .filter(|item| looks_like_material_evidence(item))
+        .filter_map(|item| sanitize_user_facing_text(item))
+        .fold(Vec::<String>::new(), |mut items, item| {
+            if !items.iter().any(|existing| existing == &item) {
+                items.push(item);
+            }
+            items
+        })
+}
+
+fn looks_like_material_evidence(item: &str) -> bool {
+    let item = item.trim();
+    (item.starts_with("资料依据：")
+        || item.starts_with("资料关键事实：")
+        || item.starts_with("资料摘要："))
+        && !looks_like_live_search_evidence(item)
+}
+
+fn material_evidence_already_covered(business_text: &str, evidence: &[String]) -> bool {
+    let numeric_tokens = evidence
+        .iter()
+        .flat_map(|item| numeric_tokens(item))
+        .collect::<Vec<_>>();
+    !numeric_tokens.is_empty()
+        && numeric_tokens
+            .iter()
+            .any(|token| business_text.contains(token.as_str()))
+}
+
+fn numeric_tokens(text: &str) -> Vec<String> {
+    let mut tokens = Vec::new();
+    let mut current = String::new();
+    for ch in text.chars() {
+        if ch.is_ascii_digit()
+            || matches!(
+                ch,
+                '.' | '%' | ',' | '元' | '万' | '亿' | 'k' | 'K' | 'w' | 'W'
+            )
+        {
+            current.push(ch);
+            continue;
+        }
+        push_numeric_token(&mut tokens, &mut current);
+    }
+    push_numeric_token(&mut tokens, &mut current);
+    tokens
+}
+
+fn push_numeric_token(tokens: &mut Vec<String>, current: &mut String) {
+    let token = current.trim_matches(',').trim();
+    if token.chars().any(|ch| ch.is_ascii_digit()) && token.chars().count() >= 2 {
+        let token = token.to_string();
+        if !tokens.iter().any(|existing| existing == &token) {
+            tokens.push(token);
+        }
+    }
+    current.clear();
 }
 
 fn append_live_search_evidence_once(
@@ -153,6 +249,9 @@ fn looks_like_no_source_claim(item: &str) -> bool {
     [
         "本轮未拿到",
         "未拿到实时来源",
+        "没有可引用的实时外部来源",
+        "没有可引用的实时来源",
+        "无实时外部来源",
         "没有可采信实时来源",
         "缺少官方发布",
         "缺少抖音电商官方发布",
@@ -169,7 +268,9 @@ pub(crate) fn sanitize_user_facing_text(raw: &str) -> Option<String> {
         return None;
     }
 
-    let text = remove_placeholder_phrases(&remove_placeholder_brackets(raw));
+    let text = remove_internal_context_fragments(&remove_placeholder_phrases(
+        &remove_placeholder_brackets(raw),
+    ));
     let mut lines = Vec::new();
     for line in text.lines() {
         let line = clean_user_facing_line(line);
@@ -198,12 +299,164 @@ pub(crate) fn no_user_facing_content_message() -> String {
 fn clean_user_facing_line(line: &str) -> String {
     let line = strip_role_prefix(line.trim());
     let line = rewrite_note_prefix(&line);
+    let line = rewrite_selected_product_source_line(&line);
+    let line = rewrite_internal_skill_names(&line);
+    let line = rewrite_business_phrases(&line);
+    let line = hide_internal_ids(&line);
     let line = compact_line_spacing(&line);
     if is_empty_list_artifact(&line) {
         String::new()
     } else {
         line
     }
+}
+
+fn remove_internal_context_fragments(input: &str) -> String {
+    input
+        .lines()
+        .filter_map(trim_internal_context_fragment)
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn trim_internal_context_fragment(line: &str) -> Option<String> {
+    let mut keep_end = line.len();
+    let lower = line.to_ascii_lowercase();
+
+    for marker in [
+        "commerce product context resolved",
+        "use these facts when relevant",
+        "relevant, cite product",
+        "do not invent missing product details",
+        "product source product:",
+        "knowledge source product_knowledge:",
+        "requested context refs:",
+        "local commerce rag context",
+        "local commerce rag retrieval",
+        "retrieval query terms:",
+        "retrieved knowledge source",
+        "no matching local product knowledge",
+        "context.selected_summary",
+        "context.combined_summary",
+        "commerce.selected_product_context",
+        "productcontextsummary",
+        "workspacecontext.summary",
+        "workspacecontextpack.summary",
+    ] {
+        if let Some(index) = lower.find(marker) {
+            keep_end = keep_end.min(index);
+        }
+    }
+
+    let candidate = line[..keep_end].trim_end();
+    (!candidate.trim().is_empty()).then(|| candidate.to_string())
+}
+
+fn rewrite_internal_skill_names(line: &str) -> String {
+    let mut text = line.to_string();
+    for (from, to) in [
+        ("material_table_profiler", "表格资料分析"),
+        ("material_file_understanding", "文件资料理解"),
+        ("material_image_diagnosis", "图片资料分析"),
+        ("material_multi_file_compare", "多资料对比分析"),
+        ("search_platform_policy", "平台规则搜索"),
+        ("search_competitor", "竞品搜索"),
+        ("search_trends", "趋势搜索"),
+        ("search_market_info", "市场信息搜索"),
+        ("search_industry_benchmarks", "行业基准搜索"),
+        ("search_product_reviews", "用户评价搜索"),
+        ("service_ticket_handler", "客服工单处理"),
+        ("service_escalation_flow", "客服升级处理"),
+        ("service_return_handler", "退换货处理"),
+        ("service_query_product", "商品资料查询"),
+        ("service_sentiment_analyzer", "客服情绪判断"),
+        ("accounting_profit_analysis", "利润分析"),
+        ("accounting_budget_plan", "预算规划"),
+        ("accounting_cost_calc", "成本核算"),
+        ("engineering_arch_review", "技术链路检查"),
+        ("engineering_system_check", "系统检查"),
+        ("douyin_ads_plan_structure", "投放结构规划"),
+        ("douyin_ads_budget_pacing", "预算节奏分析"),
+        ("creative_ip_branding", "内容卖点梳理"),
+        ("creative_live_script", "直播脚本梳理"),
+        ("web_seo_optimize", "搜索优化"),
+        ("web_keyword_research", "关键词研究"),
+        ("web_title_generator", "标题优化"),
+        ("web_product_description", "商品描述优化"),
+        ("web_page_conversion", "页面转化优化"),
+    ] {
+        text = text.replace(from, to);
+    }
+    text
+}
+
+fn rewrite_business_phrases(line: &str) -> String {
+    line.replace("并非点击率不足", "点击率不是主要矛盾")
+        .replace("并不是点击率不足", "点击率不是主要矛盾")
+        .replace("不是点击率不足", "点击率不是主要矛盾")
+}
+
+fn hide_internal_ids(line: &str) -> String {
+    let line = replace_uuid_like_tokens(line);
+    let mut text = line
+        .replace("商品ID 已选商品、", "")
+        .replace("商品ID已选商品、", "")
+        .replace("商品ID 已选商品，", "")
+        .replace("商品ID已选商品，", "")
+        .replace("商品ID 已选商品,", "")
+        .replace("商品ID已选商品,", "")
+        .replace("商品ID 已选商品", "已选商品")
+        .replace("商品ID已选商品", "已选商品")
+        .replace("product:已选商品", "已选商品")
+        .replace("product=已选商品", "已选商品");
+    while text.contains("  ") {
+        text = text.replace("  ", " ");
+    }
+    text
+}
+
+fn replace_uuid_like_tokens(input: &str) -> String {
+    let mut output = String::new();
+    let mut index = 0;
+
+    while index < input.len() {
+        if index + 36 <= input.len()
+            && input.is_char_boundary(index)
+            && input.is_char_boundary(index + 36)
+            && is_uuid_boundary(input, index, true)
+            && is_uuid_boundary(input, index + 36, false)
+            && is_uuid_like(&input[index..index + 36])
+        {
+            output.push_str("已选商品");
+            index += 36;
+            continue;
+        }
+
+        let Some(ch) = input[index..].chars().next() else {
+            break;
+        };
+        output.push(ch);
+        index += ch.len_utf8();
+    }
+
+    output
+}
+
+fn is_uuid_boundary(input: &str, index: usize, before: bool) -> bool {
+    let ch = if before {
+        input[..index].chars().next_back()
+    } else {
+        input[index..].chars().next()
+    };
+    ch.is_none_or(|ch| !ch.is_ascii_hexdigit() && ch != '-')
+}
+
+fn is_uuid_like(value: &str) -> bool {
+    value.len() == 36
+        && value.char_indices().all(|(index, ch)| match index {
+            8 | 13 | 18 | 23 => ch == '-',
+            _ => ch.is_ascii_hexdigit(),
+        })
 }
 
 fn remove_placeholder_brackets(input: &str) -> String {
@@ -216,14 +469,14 @@ fn replace_placeholder_pairs(input: &str, open: char, close: char) -> String {
     let mut rest = input;
 
     while let Some(start) = rest.find(open) {
-        output.push_str(&rest[.. start]);
+        output.push_str(&rest[..start]);
         let segment_start = start + open.len_utf8();
-        let Some(end) = rest[segment_start ..].find(close) else {
-            output.push_str(&rest[start ..]);
+        let Some(end) = rest[segment_start..].find(close) else {
+            output.push_str(&rest[start..]);
             return output;
         };
         let segment_end = segment_start + end;
-        let segment = &rest[segment_start .. segment_end];
+        let segment = &rest[segment_start..segment_end];
         if placeholder_segment(segment) {
             if let Some(replacement) = placeholder_replacement(segment) {
                 output.push_str(&replacement);
@@ -233,7 +486,7 @@ fn replace_placeholder_pairs(input: &str, open: char, close: char) -> String {
             output.push_str(segment);
             output.push(close);
         }
-        rest = &rest[segment_end + close.len_utf8() ..];
+        rest = &rest[segment_end + close.len_utf8()..];
     }
 
     output.push_str(rest);
@@ -312,22 +565,39 @@ fn rewrite_note_prefix(line: &str) -> String {
     line.replace("备注：", "说明：").replace("备注:", "说明：")
 }
 
+fn rewrite_selected_product_source_line(line: &str) -> String {
+    let marker = "用户本轮手动选择的预设商品资料：";
+    let Some(index) = line.find(marker) else {
+        return line.to_string();
+    };
+
+    let mut product = line[index + marker.len()..].trim().to_string();
+    for delimiter in ["（", "(", "，来源", ", source", "来源"] {
+        if let Some(delimiter_index) = product.find(delimiter) {
+            product.truncate(delimiter_index);
+        }
+    }
+    let product = product.trim().trim_matches(['。', '.', '：', ':']).trim();
+    if product.is_empty() {
+        "本轮已使用你选中的商品资料。".to_string()
+    } else {
+        format!("本轮已使用你选中的商品资料：{product}。")
+    }
+}
+
 fn strip_role_prefix(line: &str) -> String {
     let (prefix, body) = split_list_prefix(line);
     let Some((colon_index, colon_width)) = first_colon(body) else {
         return line.trim().to_string();
     };
-    let label = body[.. colon_index].trim();
+    let label = body[..colon_index].trim();
     if !looks_like_internal_role_label(label) {
         return line.trim().to_string();
     }
 
-    format!(
-        "{prefix}{}",
-        body[colon_index + colon_width ..].trim_start()
-    )
-    .trim()
-    .to_string()
+    format!("{prefix}{}", body[colon_index + colon_width..].trim_start())
+        .trim()
+        .to_string()
 }
 
 fn split_list_prefix(line: &str) -> (&str, &str) {
@@ -358,10 +628,10 @@ fn looks_like_internal_role_label(label: &str) -> bool {
     let Some(start) = label.find('(') else {
         return false;
     };
-    let Some(end) = label[start + 1 ..].find(')') else {
+    let Some(end) = label[start + 1..].find(')') else {
         return false;
     };
-    let role = &label[start + 1 .. start + 1 + end];
+    let role = &label[start + 1..start + 1 + end];
     !role.is_empty()
         && role.chars().all(|ch| {
             ch.is_ascii_lowercase() || ch.is_ascii_digit() || matches!(ch, '_' | '-' | '.')
@@ -451,7 +721,7 @@ fn collapse_repeated_blocks(lines: Vec<String>) -> Vec<String> {
     blocks = collapse_duplicate_blocks(blocks);
     if blocks.len().is_multiple_of(2) {
         let half = blocks.len() / 2;
-        if blocks[.. half] == blocks[half ..] {
+        if blocks[..half] == blocks[half..] {
             blocks.truncate(half);
         }
     }
@@ -463,7 +733,7 @@ fn collapse_non_adjacent_repeated_line_runs(lines: Vec<String>) -> Vec<String> {
     let mut output = Vec::new();
     let mut cursor = 0;
     while cursor < lines.len() {
-        if let Some(run_len) = longest_seen_line_run(&output, &lines[cursor ..]) {
+        if let Some(run_len) = longest_seen_line_run(&output, &lines[cursor..]) {
             cursor += run_len;
             continue;
         }
@@ -475,16 +745,16 @@ fn collapse_non_adjacent_repeated_line_runs(lines: Vec<String>) -> Vec<String> {
 
 fn longest_seen_line_run(seen: &[String], remaining: &[String]) -> Option<usize> {
     let max_len = remaining.len().min(seen.len());
-    (2 ..= max_len).rev().find(|run_len| {
+    (2..=max_len).rev().find(|run_len| {
         seen.windows(*run_len)
-            .any(|window| window == &remaining[.. *run_len])
+            .any(|window| window == &remaining[..*run_len])
     })
 }
 
 fn collapse_repeated_line_sequence(mut lines: Vec<String>) -> Vec<String> {
     loop {
         let len = lines.len();
-        if len <= 1 || !len.is_multiple_of(2) || lines[.. len / 2] != lines[len / 2 ..] {
+        if len <= 1 || !len.is_multiple_of(2) || lines[..len / 2] != lines[len / 2..] {
             break;
         }
         lines.truncate(len / 2);
@@ -573,6 +843,20 @@ fn is_internal_noise_line(line: &str) -> bool {
         "data role should provide",
         "service role output lacks",
         "engineering role output lacks",
+        "skill:",
+        "skill=",
+        "adapter_status",
+        "requested context refs",
+        "product source product:",
+        "knowledge source product_knowledge:",
+        "commerce product context resolved",
+        "local commerce rag context",
+        "local commerce rag retrieval",
+        "retrieved knowledge source",
+        "context.selected_summary",
+        "context.combined_summary",
+        "commerce.selected_product_context",
+        "productcontextsummary",
         "raw=",
         "fast-route",
     ]
@@ -591,10 +875,31 @@ fn is_internal_noise_line(line: &str) -> bool {
         || lower.contains(" worker report")
         || lower.contains("search_evidence_packet")
         || lower.contains("search_evidence_trace")
+        || lower.starts_with("skill:")
+        || (lower.contains(" status=") && lower.contains("skill"))
+        || (lower.contains("product:") && contains_uuid_like(line))
+        || (lower.contains(" | name=") && lower.contains(" | platform="))
         || lower.starts_with("worker")
         || line == "- none"
         || lower == "none"
         || is_empty_list_artifact(line)
+}
+
+fn contains_uuid_like(line: &str) -> bool {
+    let mut index = 0;
+    while index + 36 <= line.len() {
+        if line.is_char_boundary(index)
+            && line.is_char_boundary(index + 36)
+            && is_uuid_like(&line[index..index + 36])
+        {
+            return true;
+        }
+        let Some(ch) = line[index..].chars().next() else {
+            break;
+        };
+        index += ch.len_utf8();
+    }
+    false
 }
 
 fn is_empty_list_artifact(line: &str) -> bool {
@@ -812,6 +1117,78 @@ mod tests {
     }
 
     #[test]
+    fn non_search_role_keeps_material_evidence_when_summary_is_too_generic() {
+        let report = WorkerReport {
+            graph_id: TaskGraphId("graph-material".to_string()),
+            node_id: TaskNodeId("data_final".to_string()),
+            task_id: TaskId("task-material".to_string()),
+            worker_id: WorkerId("worker.data".to_string()),
+            role: "data".to_string(),
+            content: String::new(),
+            role_output: Some(RoleWorkOutput {
+                summary: "根据选中文件的广告数据，当前最大问题是退款率偏高，并非点击率不足。"
+                    .to_string(),
+                evidence: vec![
+                    "资料依据：广告数据里点击率 CTR=1.2%、转化率 CVR=2.1%、退款率=18%，最大问题是退款率偏高，不是点击率不足。"
+                        .to_string(),
+                    "skill:material_file_understanding status=success summary=已形成资料理解。"
+                        .to_string(),
+                ],
+                ..RoleWorkOutput::default()
+            }),
+            evidence: Vec::new(),
+            risks: Vec::new(),
+            open_questions: Vec::new(),
+            diagnostics: Vec::new(),
+            status: WorkerReportStatus::Completed,
+        };
+
+        let output = user_facing_report_text(&report).expect("answer should include evidence");
+
+        assert!(output.contains("当前最大问题是退款率偏高"));
+        assert!(output.contains("资料依据"));
+        assert!(output.contains("退款率=18%"));
+        assert!(output.contains("点击率 CTR=1.2%"));
+        assert!(output.contains("点击率不是主要矛盾"));
+        assert!(!output.contains("点击率不足"));
+        assert!(!output.contains("skill:"));
+        assert!(!output.contains("material_file_understanding"));
+    }
+
+    #[test]
+    fn material_evidence_suppresses_irrelevant_no_live_source_fallback() {
+        let report = WorkerReport {
+            graph_id: TaskGraphId("graph-material".to_string()),
+            node_id: TaskNodeId("data_final".to_string()),
+            task_id: TaskId("task-material".to_string()),
+            worker_id: WorkerId("worker.data".to_string()),
+            role: "data".to_string(),
+            content: String::new(),
+            role_output: Some(RoleWorkOutput {
+                summary: "本轮没有可引用的实时外部来源，所以先不给平均数、排名或确定性对标。"
+                    .to_string(),
+                evidence: vec![
+                    "资料依据：广告数据里点击率 CTR=1.2%、转化率 CVR=2.1%、退款率=18%，最大问题是退款率偏高。"
+                        .to_string(),
+                ],
+                ..RoleWorkOutput::default()
+            }),
+            evidence: Vec::new(),
+            risks: Vec::new(),
+            open_questions: Vec::new(),
+            diagnostics: Vec::new(),
+            status: WorkerReportStatus::Completed,
+        };
+
+        let output = user_facing_report_text(&report).expect("material evidence should answer");
+
+        assert!(output.contains("资料依据"));
+        assert!(output.contains("退款率=18%"));
+        assert!(!output.contains("实时外部来源"));
+        assert!(!output.contains("平均数、排名"));
+    }
+
+    #[test]
     fn sanitizing_collapses_repeated_answer_blocks() {
         let raw =
             "先看毛利，再看销量。\n- 补齐成本字段。\n\n先看毛利，再看销量。\n- 补齐成本字段。";
@@ -833,5 +1210,54 @@ mod tests {
             output,
             "先看毛利，再看销量。\n- 补齐成本字段。\n资料边界：附件成本字段仍需核验。"
         );
+    }
+
+    #[test]
+    fn filters_internal_context_prompt_leakage_from_final_answer() {
+        let raw = "针对千乐咖啡，当前只确认了名称、售价和在售状态，缺少品类、平台和成本数据。\n\
+                   Commerce product context resolved from current user's backend data. Use these facts when relevant, cite product or knowledge titles, and do not invent missing product details. Product source product:ce3f729c-a8bd-45ca-9859-7f2591d5973f | name=千乐咖啡 | platform=unknown | category=unknown | brand=unknown | price=100 CNY | status=active | description=适合于白领 Requested context refs: product:ce3f729c-a8bd-45ca-9859-7f2591d5973f\n\
+                   建议先补真实成本、目标平台和用户反馈，再判断是否继续做活动。";
+
+        let output = sanitize_final_user_facing_text(raw).expect("business content should remain");
+        let lower = output.to_ascii_lowercase();
+
+        assert!(output.contains("针对千乐咖啡"));
+        assert!(output.contains("建议先补真实成本"));
+        assert!(!lower.contains("commerce product context"));
+        assert!(!lower.contains("product source product"));
+        assert!(!lower.contains("requested context refs"));
+        assert!(!lower.contains("platform=unknown"));
+        assert!(!lower.contains("product:"));
+        assert!(!output.contains("ce3f729c-a8bd-45ca-9859-7f2591d5973f"));
+    }
+
+    #[test]
+    fn rewrites_internal_skill_ids_for_student_answer() {
+        let raw = "本地无匹配商品知识库，当前无其他工作区数据源可用，\
+                   material_table_profiler技能未收到可剖析的表格行数据，暂无法产出结果。";
+
+        let output = sanitize_user_facing_text(raw).expect("answer should remain readable");
+
+        assert!(output.contains("表格资料分析"));
+        assert!(!output.contains("material_table_profiler"));
+        assert!(!output.contains("skill"));
+    }
+
+    #[test]
+    fn filters_runtime_skill_event_lines_from_answer() {
+        let raw = "当前只掌握商品名称和售价，先补成本、平台和用户反馈。\n\
+                   skill:learning_teaching_explain status=success summary=教学解释已生成。\n\
+                   用户本轮手动选择的预设商品资料：千乐咖啡（已选商品，来源 context.selected_summary）。\n\
+                   后续再做毛利核算和转化分析。";
+
+        let output = sanitize_final_user_facing_text(raw).expect("answer should remain readable");
+        let lower = output.to_ascii_lowercase();
+
+        assert!(output.contains("当前只掌握商品名称和售价"));
+        assert!(output.contains("本轮已使用你选中的商品资料：千乐咖啡。"));
+        assert!(output.contains("后续再做毛利核算"));
+        assert!(!lower.contains("skill:"));
+        assert!(!lower.contains("status="));
+        assert!(!lower.contains("context.selected_summary"));
     }
 }

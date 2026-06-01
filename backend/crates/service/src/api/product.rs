@@ -543,7 +543,7 @@ fn merge_lifecycle_metadata(
     history.push(transition.clone());
     if history.len() > PRODUCT_LIFECYCLE_HISTORY_LIMIT {
         let overflow = history.len() - PRODUCT_LIFECYCLE_HISTORY_LIMIT;
-        history.drain(0 .. overflow);
+        history.drain(0..overflow);
     }
 
     lifecycle.insert(

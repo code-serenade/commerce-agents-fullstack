@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use serde_json::Value;
+use std::time::Duration;
 
 use super::{
     config::SearchAdapterConfig,
@@ -58,19 +59,37 @@ macro_rules! deferred_search_skill {
                     ));
                 }
 
-                let payload = match query_provider(adapter, &plan).await {
-                    Ok(payload) => payload,
-                    Err(reason) => {
-                        return Ok(degraded_search_output(
-                            &self.spec.id,
-                            required_value,
-                            plan,
-                            adapter,
-                            reason,
-                            SearchSourceFilterStats::default(),
-                        ));
-                    }
-                };
+                let provider_timeout =
+                    Duration::from_secs(adapter.effective_timeout_sec().saturating_add(2));
+                let payload =
+                    match tokio::time::timeout(provider_timeout, query_provider(adapter, &plan))
+                        .await
+                    {
+                        Ok(Ok(payload)) => payload,
+                        Ok(Err(reason)) => {
+                            return Ok(degraded_search_output(
+                                &self.spec.id,
+                                required_value,
+                                plan,
+                                adapter,
+                                reason,
+                                SearchSourceFilterStats::default(),
+                            ));
+                        }
+                        Err(_) => {
+                            return Ok(degraded_search_output(
+                                &self.spec.id,
+                                required_value,
+                                plan,
+                                adapter,
+                                format!(
+                                    "external search provider request timed out after {} seconds",
+                                    provider_timeout.as_secs()
+                                ),
+                                SearchSourceFilterStats::default(),
+                            ));
+                        }
+                    };
                 Ok(live_search_output(
                     &self.spec.id,
                     required_value,

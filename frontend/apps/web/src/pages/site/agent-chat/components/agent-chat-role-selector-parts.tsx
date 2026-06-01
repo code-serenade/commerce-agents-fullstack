@@ -57,6 +57,7 @@ export function RoleAssignmentRow({
   onPrimaryRoleChange,
   onToggleRole,
   role,
+  supportDisabled = false,
 }: {
   disabled: boolean
   isPrimary: boolean
@@ -64,6 +65,7 @@ export function RoleAssignmentRow({
   onPrimaryRoleChange: (value: string) => void
   onToggleRole: (value: string) => void
   role: AgentRuntimeRoleOption
+  supportDisabled?: boolean
 }) {
   const { t } = useTranslation()
 
@@ -104,7 +106,7 @@ export function RoleAssignmentRow({
       </button>
       <button
         type="button"
-        disabled={disabled || isPrimary}
+        disabled={disabled || isPrimary || supportDisabled}
         onClick={() => onToggleRole(role.runtimeRole)}
         aria-pressed={isSupport}
         className={`min-h-7 rounded-md border px-2 py-1 text-xs/tight font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${

@@ -69,6 +69,18 @@ pub(super) fn merge_skill_results(
                 let evidence = format_success_skill_evidence(result);
                 push_unique(&mut parsed.evidence, evidence.clone());
                 push_unique(&mut role_output.evidence, evidence);
+                if promote_material_skill_result(&mut parsed.evidence, role_output, result) {
+                    remove_success_skill_evidence(
+                        &mut parsed.evidence,
+                        result.skill_id.as_str(),
+                        result.summary.as_deref(),
+                    );
+                    remove_success_skill_evidence(
+                        &mut role_output.evidence,
+                        result.skill_id.as_str(),
+                        result.summary.as_deref(),
+                    );
+                }
                 if let Some(search_evidence) = format_live_search_evidence(result) {
                     remove_success_skill_evidence(
                         &mut parsed.evidence,
@@ -227,7 +239,11 @@ fn remove_success_skill_evidence(items: &mut Vec<String>, skill_id: &str, summar
         "Skill {skill_id} 完成：{}",
         compact_event_text(summary.to_string())
     );
-    items.retain(|item| item != &expected);
+    let current = format!(
+        "skill:{skill_id} status=success summary={}",
+        compact_event_text(summary.to_string())
+    );
+    items.retain(|item| item != &expected && item != &current);
 }
 
 pub(super) fn format_role_work_output_content(output: &RoleWorkOutput) -> String {
@@ -763,6 +779,157 @@ fn normalize_content_after_live_search(output: &mut RoleWorkOutput) {
         .retain(|item| !NO_SOURCE_MARKERS.iter().any(|marker| item.contains(marker)));
 }
 
+fn promote_material_skill_result(
+    parsed_evidence: &mut Vec<String>,
+    output: &mut RoleWorkOutput,
+    result: &SkillExecutionResult,
+) -> bool {
+    if !result.skill_id.as_str().starts_with("material_") {
+        return false;
+    }
+    let Some(skill_output) = result.output.as_ref() else {
+        return false;
+    };
+    if !material_skill_has_readable_content(skill_output) {
+        return false;
+    }
+
+    let mut promoted = false;
+
+    for item in material_string_array_field(skill_output, "关键事实")
+        .into_iter()
+        .filter_map(clean_material_user_text)
+        .take(4)
+    {
+        let line = format!("资料关键事实：{item}");
+        push_unique(&mut output.findings, line.clone());
+        push_unique(parsed_evidence, line.clone());
+        push_unique(&mut output.evidence, line);
+        promoted = true;
+    }
+
+    for item in material_string_array_field(skill_output, "可引用证据")
+        .into_iter()
+        .filter_map(clean_material_user_text)
+        .take(4)
+    {
+        let line = format!("资料依据：{item}");
+        push_unique(parsed_evidence, line.clone());
+        push_unique(&mut output.evidence, line);
+        promoted = true;
+    }
+
+    if !promoted
+        && let Some(summary) =
+            material_string_field(skill_output, "资料摘要").and_then(clean_material_user_text)
+    {
+        let line = format!("资料摘要：{summary}");
+        push_unique(parsed_evidence, line.clone());
+        push_unique(&mut output.evidence, line);
+        promoted = true;
+    }
+
+    if promoted && looks_like_no_readable_material_claim(&output.summary) {
+        output.summary =
+            "已读取到本轮资料，后续判断应以资料依据中的具体数字和结论为准。".to_string();
+    }
+    promoted
+}
+
+fn material_skill_has_readable_content(output: &serde_json::Value) -> bool {
+    let has_data = output
+        .get("has_data")
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false);
+    let readiness = output
+        .get("data_readiness")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or_default();
+    has_data || matches!(readiness, "readable" | "readable_truncated")
+}
+
+fn material_string_field(value: &serde_json::Value, key: &str) -> Option<String> {
+    value
+        .get(key)
+        .and_then(serde_json::Value::as_str)
+        .map(str::trim)
+        .filter(|item| !item.is_empty())
+        .map(ToString::to_string)
+}
+
+fn material_string_array_field(value: &serde_json::Value, key: &str) -> Vec<String> {
+    value
+        .get(key)
+        .and_then(serde_json::Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(serde_json::Value::as_str)
+                .map(str::trim)
+                .filter(|item| !item.is_empty())
+                .map(ToString::to_string)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn clean_material_user_text(value: String) -> Option<String> {
+    let mut text = value.trim().to_string();
+    for prefix in ["QA文件锚点：", "QA文件锚点:", "文件锚点：", "文件锚点:"] {
+        if let Some(rest) = text.strip_prefix(prefix) {
+            text = rest.trim().to_string();
+        }
+    }
+    text = text
+        .replace("CTR=", "点击率 CTR=")
+        .replace("CTR =", "点击率 CTR=")
+        .replace("CVR=", "转化率 CVR=")
+        .replace("CVR =", "转化率 CVR=")
+        .replace("ROAS=", "投产比 ROAS=")
+        .replace("ROAS =", "投产比 ROAS=")
+        .replace("不是点击率不足", "点击率不是主要矛盾");
+    text = compact_inline(&text, 280);
+    let lower = text.to_ascii_lowercase();
+    if text.is_empty()
+        || lower.contains("skill:")
+        || lower.contains("skill=")
+        || lower.contains("adapter_status")
+        || lower.contains("workspacecontext")
+        || lower.contains("workspace context")
+        || lower.contains("workspace file")
+        || lower.contains("workspace readable")
+        || lower.contains("workspace artifact")
+        || lower.contains("conversation_file")
+        || lower.contains("product assets")
+        || lower.contains("product materials")
+        || lower.contains("agent grounding")
+        || lower.starts_with("refs:")
+        || lower.starts_with("[conversation_file:")
+        || lower.contains("contextrefs")
+        || lower.contains("source_ref")
+    {
+        None
+    } else {
+        Some(text)
+    }
+}
+
+fn looks_like_no_readable_material_claim(item: &str) -> bool {
+    [
+        "未拿到完整的业务数据",
+        "未拿到完整业务数据",
+        "只获取到选中文件的文本提取内容",
+        "只获取到选中文件文本提取内容",
+        "尚未收到可读取正文",
+        "未读取到正文",
+        "未读取到资料正文",
+        "无法生成确定性",
+        "缺少完整数据",
+    ]
+    .iter()
+    .any(|marker| item.contains(marker))
+}
+
 fn source_text<'a>(source: &'a serde_json::Value, key: &str) -> Option<&'a str> {
     source
         .get(key)
@@ -1158,6 +1325,92 @@ mod tests {
             }),
             "legacy search_evidence_trace should be promoted to typed diagnostics"
         );
+    }
+
+    #[test]
+    fn merge_skill_results_promotes_material_file_evidence_for_final_answer() {
+        let parsed = parse_worker_role_output(
+            r#"{"role_output":{"summary":"当前仅获取到选中文件的文本提取内容，未拿到完整的业务数据，无法生成确定性复盘结论。","evidence":[]}}"#,
+        );
+        let results = vec![SkillExecutionResult {
+            request_id: "req-material".to_string(),
+            skill_id: SkillId::new("material_file_understanding"),
+            status: SkillExecutionStatus::Success,
+            output: Some(json!({
+                "has_data": true,
+                "data_readiness": "readable",
+                "资料摘要": "QA文件锚点：广告数据里 CTR=1.2%、CVR=2.1%、退款率=18%，最大问题是退款率偏高，不是点击率不足。",
+                "关键事实": [
+                    "QA文件锚点：广告数据里 CTR=1.2%、CVR=2.1%、退款率=18%，最大问题是退款率偏高，不是点击率不足。"
+                ],
+                "可引用证据": [
+                    "QA文件锚点：广告数据里 CTR=1.2%、CVR=2.1%、退款率=18%，最大问题是退款率偏高，不是点击率不足。"
+                ]
+            })),
+            summary: Some(
+                "已形成资料理解：选中文件，抽取 1 条关键事实、1 条可引用证据。".to_string(),
+            ),
+            metadata: Map::new(),
+            error: None,
+        }];
+
+        let merged = merge_skill_results(parsed, &results);
+        let role_output = merged.role_output.expect("role output should exist");
+        let content = role_output.evidence.join("\n");
+
+        assert!(
+            role_output.summary.contains("已读取到本轮资料"),
+            "stale no-data summary should be replaced after readable material evidence exists"
+        );
+        assert!(content.contains("退款率=18%"));
+        assert!(content.contains("点击率 CTR=1.2%"));
+        assert!(content.contains("转化率 CVR=2.1%"));
+        assert!(content.contains("点击率不是主要矛盾"));
+        assert!(!content.contains("点击率不足"));
+        assert!(!content.contains("QA文件锚点"));
+        assert!(!content.contains("material_file_understanding"));
+    }
+
+    #[test]
+    fn merge_skill_results_filters_workspace_context_lines_from_material_evidence() {
+        let parsed = parse_worker_role_output(
+            r#"{"role_output":{"summary":"根据选中文件判断，退款率偏高。","evidence":[]}}"#,
+        );
+        let results = vec![SkillExecutionResult {
+            request_id: "req-material".to_string(),
+            skill_id: SkillId::new("material_file_understanding"),
+            status: SkillExecutionStatus::Success,
+            output: Some(json!({
+                "has_data": true,
+                "data_readiness": "readable",
+                "关键事实": [
+                    "Workspace file/material/artifact context:",
+                    "Workspace context pack is ready: 1 readable item(s), 58 text chars, from 1 conversation files",
+                    "Refs: conversation_file:0a7737ac-d9e6-4ef5-9f50-b9b5ee7fb621",
+                    "[conversation_file:0a7737ac-d9e6-4ef5-9f50-b9b5ee7fb621] qa-deep-data.txt (extracted_text)",
+                    "广告数据里 CTR=1.2%、CVR=2.1%、退款率=18%，最大问题是退款率偏高。"
+                ],
+                "可引用证据": [
+                    "广告数据里 CTR=1.2%、CVR=2.1%、退款率=18%，最大问题是退款率偏高。"
+                ]
+            })),
+            summary: Some("已形成资料理解。".to_string()),
+            metadata: Map::new(),
+            error: None,
+        }];
+
+        let merged = merge_skill_results(parsed, &results);
+        let content = merged
+            .role_output
+            .expect("role output should exist")
+            .evidence
+            .join("\n");
+
+        assert!(content.contains("退款率=18%"));
+        assert!(!content.to_ascii_lowercase().contains("workspace context"));
+        assert!(!content.to_ascii_lowercase().contains("conversation_file"));
+        assert!(!content.contains("Refs:"));
+        assert!(!content.contains("已选商品"));
     }
 
     #[test]

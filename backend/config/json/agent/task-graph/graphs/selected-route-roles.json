@@ -29,6 +29,15 @@
       "llm_usage": "fast",
       "skill_autosuggest": false,
       "skill_autosuggest_by_role": {
+        "ops": true,
+        "data": true,
+        "creative": true,
+        "design": true,
+        "service": true,
+        "engineering": true,
+        "accounting": true,
+        "douyin_ads": true,
+        "web": true,
         "search": true
       },
       "depends_on_roles": {

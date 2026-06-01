@@ -1,3 +1,5 @@
+export const MAX_SELECTED_RUNTIME_ROLES = 6
+
 export function preferredRuntimePrimaryRole(roles: string[]) {
   const nonChatRoles = roles.filter((role) => role !== "chat")
   if (nonChatRoles.includes("ops")) return "ops"
@@ -22,15 +24,19 @@ export function uniqueRuntimeRoles(roles: string[]) {
 }
 
 export function ensureManualRoleTeam(roles: string[], primaryRole: string) {
-  const nextRoles = uniqueRuntimeRoles([
+  const nextRoles = limitRuntimeRoles([
     primaryRole,
     ...roles.filter((role) => role !== primaryRole),
   ])
   if (selectedSupportRoleCount(nextRoles, primaryRole) > 0) return nextRoles
-  return uniqueRuntimeRoles([
+  return limitRuntimeRoles([
     ...nextRoles,
     manualSupportFallbackRoles(primaryRole)[0] ?? "ops",
   ])
+}
+
+export function limitRuntimeRoles(roles: string[]) {
+  return uniqueRuntimeRoles(roles).slice(0, MAX_SELECTED_RUNTIME_ROLES)
 }
 
 export function selectedSupportRoleCount(

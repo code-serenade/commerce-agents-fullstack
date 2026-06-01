@@ -3,6 +3,7 @@ import type {
   AgentChatRuntimeSelection,
   AgentRuntimeRoleOption,
 } from "../domain/agent-runtime-options"
+import { MAX_SELECTED_RUNTIME_ROLES } from "../domain/agent-runtime-role-utils"
 import {
   RoleAssignmentRow,
   RoleChoiceButton,
@@ -32,6 +33,9 @@ export function RoleSelector({
   }
 
   if (isManual) {
+    const reachedRoleLimit =
+      runtimeSelection.selectedRoles.length >= MAX_SELECTED_RUNTIME_ROLES
+
     return (
       <SettingsRow
         align="start"
@@ -63,6 +67,10 @@ export function RoleSelector({
                 onPrimaryRoleChange={onPrimaryRoleChange}
                 onToggleRole={onToggleRole}
                 role={role}
+                supportDisabled={
+                  reachedRoleLimit &&
+                  !runtimeSelection.selectedRoles.includes(role.runtimeRole)
+                }
               />
             )
           })}

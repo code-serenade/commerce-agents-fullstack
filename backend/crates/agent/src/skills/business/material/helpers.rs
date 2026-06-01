@@ -94,7 +94,7 @@ pub(super) fn question_terms(question: &str) -> Vec<String> {
     for token in normalized.split_whitespace() {
         let token = token.trim();
         let char_count = token.chars().count();
-        if (2 ..= 20).contains(&char_count) && !is_question_stop_word(token) {
+        if (2..=20).contains(&char_count) && !is_question_stop_word(token) {
             push_unique(&mut terms, token.to_owned());
         }
     }

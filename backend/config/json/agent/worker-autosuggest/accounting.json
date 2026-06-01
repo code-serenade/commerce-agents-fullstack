@@ -9,10 +9,14 @@
         "any_keywords": [
           "roi",
           "ROI",
+          "roas",
+          "ROAS",
           "投入产出",
           "投产",
           "利润ROI",
-          "广告ROI"
+          "广告ROI",
+          "广告ROAS",
+          "投放产出"
         ]
       },
       "skill_id": "accounting_roi_calc",
@@ -49,7 +53,13 @@
           "预算",
           "budget",
           "预算编制",
-          "月度预算"
+          "月度预算",
+          "预算边界",
+          "预算上限",
+          "预算下限",
+          "止损",
+          "回本",
+          "保本"
         ]
       },
       "skill_id": "accounting_budget_plan",

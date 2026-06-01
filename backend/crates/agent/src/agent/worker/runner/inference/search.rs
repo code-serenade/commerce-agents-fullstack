@@ -61,7 +61,7 @@ pub(in crate::agent::worker::runner) fn max_results(text: &str) -> Option<i64> {
             continue;
         }
         if start > 0
-            && text[.. start]
+            && text[..start]
                 .chars()
                 .last()
                 .is_some_and(|prev| prev.is_ascii_digit() || prev == '.')
@@ -71,7 +71,7 @@ pub(in crate::agent::worker::runner) fn max_results(text: &str) -> Option<i64> {
 
         let mut end = start + ch.len_utf8();
         let suffix_start = end;
-        for (offset, next) in text[suffix_start ..].char_indices() {
+        for (offset, next) in text[suffix_start..].char_indices() {
             if next.is_ascii_digit() {
                 end = suffix_start + offset + next.len_utf8();
                 continue;
@@ -79,13 +79,13 @@ pub(in crate::agent::worker::runner) fn max_results(text: &str) -> Option<i64> {
             break;
         }
 
-        let Ok(value) = text[start .. end].parse::<i64>() else {
+        let Ok(value) = text[start..end].parse::<i64>() else {
             continue;
         };
         if value <= 0 {
             continue;
         }
-        let before = text[.. start]
+        let before = text[..start]
             .chars()
             .rev()
             .take(config_usize("/max_results/scan_before_chars", 16))
@@ -93,7 +93,7 @@ pub(in crate::agent::worker::runner) fn max_results(text: &str) -> Option<i64> {
             .into_iter()
             .rev()
             .collect::<String>();
-        let after = text[end ..]
+        let after = text[end..]
             .chars()
             .take(config_usize("/max_results/scan_after_chars", 16))
             .collect::<String>();
@@ -246,14 +246,14 @@ fn replace_keyword_case_insensitive(input: &str, needle: &str, replacement: &str
     let lower_needle = needle.to_ascii_lowercase();
     let mut output = String::new();
     let mut cursor = 0;
-    while let Some(relative) = lower_input[cursor ..].find(&lower_needle) {
+    while let Some(relative) = lower_input[cursor..].find(&lower_needle) {
         let start = cursor + relative;
         let end = start + needle.len();
-        output.push_str(&input[cursor .. start]);
+        output.push_str(&input[cursor..start]);
         output.push_str(replacement);
         cursor = end;
     }
-    output.push_str(&input[cursor ..]);
+    output.push_str(&input[cursor..]);
     output
 }
 

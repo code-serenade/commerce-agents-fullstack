@@ -1,12 +1,12 @@
 import {
   ensureManualRoleTeam,
+  limitRuntimeRoles,
   orderDefaultCommerceTeamRoles,
   preferredRuntimePrimaryRole,
   selectedSupportRoleCount,
   uniqueRuntimeRoles,
 } from "./agent-runtime-role-utils"
 import { normalizeRoutingMode, type AgentRoutingMode } from "./agent-routing-mode"
-
 export interface AgentRuntimeChoice {
   id: string
   label: string
@@ -39,9 +39,7 @@ export interface AgentChatRuntimeSelection {
   selectedRoles: string[]
 }
 
-export type AgentChatRuntimeSelectionRestore = Partial<
-  Omit<AgentChatRuntimeSelection, "selectedRoles">
-> & {
+export type AgentChatRuntimeSelectionRestore = Partial<Omit<AgentChatRuntimeSelection, "selectedRoles">> & {
   selectedRoles?: string[]
 }
 
@@ -83,8 +81,8 @@ export function normalizeRuntimeSelection(
   )
   const learningLevels = new Set(options.learningLevels.map((level) => level.id))
   const fallback = defaultRuntimeSelection(options)
-  const selectedRoles = current.selectedRoles.filter((role) =>
-    roleNames.has(role)
+  const selectedRoles = limitRuntimeRoles(
+    current.selectedRoles.filter((role) => roleNames.has(role))
   )
   const primaryRole =
     current.primaryRole && selectedRoles.includes(current.primaryRole)
@@ -146,7 +144,9 @@ export function runtimeSelectionForStrategy(
   }
 
   const roles = uniqueRuntimeRoles(selection.selectedRoles)
-  const nonChatRoles = roles.filter((role) => role !== "chat")
+  const nonChatRoles = limitRuntimeRoles(
+    roles.filter((role) => role !== "chat")
+  )
   if (nonChatRoles.length === 0) {
     return {
       ...selection,
@@ -197,8 +197,8 @@ export function setRuntimePrimaryRole(
     ...selection,
     primaryRole,
     selectedRoles: selection.selectedRoles.includes(primaryRole)
-      ? selection.selectedRoles
-      : [primaryRole, ...selection.selectedRoles],
+      ? limitRuntimeRoles(selection.selectedRoles)
+      : limitRuntimeRoles([primaryRole, ...selection.selectedRoles]),
   }
 }
 
@@ -238,7 +238,7 @@ export function setRuntimeCollaborationMode(
       ...selection,
       collaborationMode,
       primaryRole,
-      selectedRoles: uniqueRuntimeRoles([
+      selectedRoles: limitRuntimeRoles([
         primaryRole,
         "ops",
         "data",
@@ -247,10 +247,10 @@ export function setRuntimeCollaborationMode(
     }
   }
 
-  const roles = uniqueRuntimeRoles(selection.selectedRoles).filter(
+  const roles = limitRuntimeRoles(selection.selectedRoles).filter(
     (role) => role !== "chat"
   )
-  const fallbackRoles = uniqueRuntimeRoles([
+  const fallbackRoles = limitRuntimeRoles([
     selection.primaryRole ?? "",
     ...roles,
     "ops",
@@ -292,7 +292,7 @@ export function toggleRuntimeRole(
   const exists = selection.selectedRoles.includes(runtimeRole)
   const selectedRoles = exists
     ? selection.selectedRoles.filter((role) => role !== runtimeRole)
-    : [...selection.selectedRoles, runtimeRole]
+    : limitRuntimeRoles([...selection.selectedRoles, runtimeRole])
   const primaryCandidate =
     selection.primaryRole && selection.primaryRole !== "chat"
       ? selection.primaryRole
@@ -301,7 +301,7 @@ export function toggleRuntimeRole(
     selection.collaborationMode === "manual"
       ? ensureManualRoleTeam(selectedRoles, primaryCandidate)
       : selectedRoles.length
-        ? selectedRoles
+        ? limitRuntimeRoles(selectedRoles)
         : [runtimeRole]
   const primaryRole =
     selection.primaryRole &&

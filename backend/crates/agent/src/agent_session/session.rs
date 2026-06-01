@@ -208,6 +208,10 @@ fn select_roles_for_task<'a>(
     input: &str,
     metadata: &BTreeMap<String, String>,
 ) -> Vec<&'a RoleProfile> {
+    let collaboration_mode = metadata
+        .get("strategy.collaboration_mode")
+        .map(String::as_str)
+        .unwrap_or_default();
     let mut runtime_roles = Vec::new();
     runtime_roles.extend(selected_runtime_roles(metadata));
 
@@ -219,12 +223,19 @@ fn select_roles_for_task<'a>(
         max_roles: auto_route_max_roles(metadata),
     });
 
-    if runtime_roles.is_empty() && runtime.commander_fast_route {
+    let configured_graph_roles = if runtime.commander_fast_route {
         let task_id = TaskId("preselect".to_string());
-        if let Some(graph) = plan_configured_non_chat_task_graph(&task_id, input, Some(&role_route))
-        {
-            runtime_roles.extend(graph.nodes.into_iter().map(|node| node.role));
-        }
+        plan_configured_non_chat_task_graph(&task_id, input, Some(&role_route))
+            .map(|graph| graph.nodes.into_iter().map(|node| node.role).collect())
+            .unwrap_or_default()
+    } else {
+        Vec::new()
+    };
+
+    if runtime_roles.is_empty() {
+        runtime_roles.extend(configured_graph_roles);
+    } else if collaboration_mode == "manual" {
+        append_missing_runtime_roles(&mut runtime_roles, configured_graph_roles);
     }
 
     if runtime_roles.is_empty() {
@@ -369,6 +380,15 @@ fn unique_runtime_roles(roles: Vec<String>) -> Vec<String> {
     })
 }
 
+fn append_missing_runtime_roles(runtime_roles: &mut Vec<String>, additional_roles: Vec<String>) {
+    for role in additional_roles {
+        let role = role.trim().to_string();
+        if !role.is_empty() && !runtime_roles.contains(&role) {
+            runtime_roles.push(role);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::{collections::BTreeMap, time::Duration};
@@ -428,6 +448,37 @@ mod tests {
         assert_eq!(selected[0], "creative");
         assert!(selected.contains(&"data".to_string()));
         assert!(selected.contains(&"ops".to_string()));
+        assert!(selected.contains(&"chat".to_string()));
+    }
+
+    #[test]
+    fn manual_roles_include_configured_task_graph_dependencies() {
+        let roles = RoleCatalog::builtin();
+        let mut metadata = BTreeMap::new();
+        metadata.insert(
+            "strategy.collaboration_mode".to_string(),
+            "manual".to_string(),
+        );
+        metadata.insert("strategy.primary_role".to_string(), "ops".to_string());
+        metadata.insert(
+            "strategy.selected_roles".to_string(),
+            "ops,data,creative".to_string(),
+        );
+
+        let selected = select_roles_for_task(
+            &roles,
+            &SessionRuntimeConfig::default(),
+            "结合最新公开来源搜索证据，给这个商品一个可执行运营建议",
+            &metadata,
+        )
+        .into_iter()
+        .map(|role| role.runtime_role.clone())
+        .collect::<Vec<_>>();
+
+        assert_eq!(selected[0], "ops");
+        assert!(selected.contains(&"data".to_string()));
+        assert!(selected.contains(&"creative".to_string()));
+        assert!(selected.contains(&"search".to_string()));
         assert!(selected.contains(&"chat".to_string()));
     }
 

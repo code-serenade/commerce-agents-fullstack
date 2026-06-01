@@ -1,5 +1,7 @@
 use utils::llm_json;
 
+use futures::future::join_all;
+
 use super::{
     autosuggest::autosuggest_skill_requests,
     output_normalization::is_category_level_task,
@@ -66,25 +68,27 @@ pub(super) async fn execute_requested_skills(
         return results;
     };
 
-    for (index, request) in requests.into_iter().enumerate() {
-        let request_id = format!("{}-skill-{}", task.id, index + 1);
-        emit_skill_requested(worker_id, role, task, &request_id, &request, event_tx);
-        if !RoleSkillCatalog::staged().can_role_use_skill(role, &request.skill_id) {
-            let result = skill_not_allowed_result(request_id, request.skill_id, &role.runtime_role);
+    join_all(requests.into_iter().enumerate().map(|(index, request)| {
+        let executor = executor.clone();
+        async move {
+            let request_id = format!("{}-skill-{}", task.id, index + 1);
+            emit_skill_requested(worker_id, role, task, &request_id, &request, event_tx);
+            if !RoleSkillCatalog::staged().can_role_use_skill(role, &request.skill_id) {
+                let result =
+                    skill_not_allowed_result(request_id, request.skill_id, &role.runtime_role);
+                emit_skill_result(worker_id, role, task, &result, event_tx);
+                return result;
+            }
+
+            let context = build_skill_context(worker_id, role, task, &request, &request_id);
+            let runtime_request = SkillRequest::new(request_id, request.skill_id, request.input)
+                .with_context(context);
+            let result = executor.execute(runtime_request).await;
             emit_skill_result(worker_id, role, task, &result, event_tx);
-            results.push(result);
-            continue;
+            result
         }
-
-        let context = build_skill_context(worker_id, role, task, &request, &request_id);
-        let runtime_request =
-            SkillRequest::new(request_id, request.skill_id, request.input).with_context(context);
-        let result = executor.execute(runtime_request).await;
-        emit_skill_result(worker_id, role, task, &result, event_tx);
-        results.push(result);
-    }
-
-    results
+    }))
+    .await
 }
 
 fn parse_skill_request(value: &serde_json::Value) -> Option<ParsedSkillRequest> {

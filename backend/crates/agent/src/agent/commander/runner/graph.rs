@@ -113,11 +113,11 @@ impl Commander {
         task: &str,
         role_route: Option<&RoleRoute>,
     ) -> Option<TaskGraph> {
-        if !self
+        if self
             .current_context
             .metadata
             .get("strategy.collaboration_mode")
-            .is_some_and(|value| value == "single")
+            .is_none_or(|value| value != "single")
         {
             return None;
         }

@@ -86,7 +86,7 @@ pub(in crate::agent::worker::runner) fn extract_labeled_token(
             continue;
         };
         let start = index + label_lower.len();
-        if let Some(token) = parse_token_after_label(&text[start ..]) {
+        if let Some(token) = parse_token_after_label(&text[start..]) {
             return Some(token);
         }
     }
@@ -211,14 +211,14 @@ fn parse_token_after_label(segment: &str) -> Option<String> {
 
     let start = token_start?;
     let mut end = start;
-    for (index, ch) in segment[start ..].char_indices() {
+    for (index, ch) in segment[start..].char_indices() {
         if ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-') {
             end = start + index + ch.len_utf8();
             continue;
         }
         break;
     }
-    let token = segment[start .. end].trim();
+    let token = segment[start..end].trim();
     if token.is_empty() {
         None
     } else {

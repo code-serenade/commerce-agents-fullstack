@@ -15,6 +15,7 @@ use repo::table::{
         ConversationMessage, ConversationMessageService, CreateConversationMessage,
     },
     conversations::{Conversation, ConversationService, CreateConversation},
+    storage_object_analyses::{StorageObjectAnalysis, StorageObjectAnalysisStatus},
 };
 use serde_json::{Map, Value, json};
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
@@ -693,6 +694,16 @@ impl ConversationApi {
         let content_kind =
             normalize_optional(req.content_kind).unwrap_or_else(|| "plain_text".into());
         let source = normalize_optional(req.source).unwrap_or_else(|| "trusted_api".into());
+        if source == "server_file_ingest"
+            && file_has_readable_inline_extraction(&file.metadata)
+            && file_extraction_source(&file.metadata).as_deref() != Some("server_file_ingest")
+        {
+            tracing::debug!(
+                file_id = %file.id,
+                "server file ingest extraction update skipped: readable inline extraction already exists"
+            );
+            return Ok(Self::map_file(file));
+        }
         let parser = normalize_optional(req.parser).unwrap_or_else(|| {
             if source == "manual" {
                 "manual".into()
@@ -757,6 +768,21 @@ impl ConversationApi {
             "document text extraction requested"
         );
 
+        if file_has_readable_inline_extraction(&file.metadata) {
+            tracing::debug!(
+                file_id = %file.id,
+                "document text extraction skipped: file already has readable inline text"
+            );
+            return Ok(ConversationFileExtractionTargetResponse {
+                file: Self::map_file(file),
+                analysis_id: String::new(),
+                analysis_kind: String::new(),
+                analysis_status: EXTRACTION_STATUS_EXTRACTED.to_string(),
+                storage_object_sha256: String::new(),
+                already_available: true,
+            });
+        }
+
         let manager = DocumentTextExtractionManager::new(self.db.clone());
         let Some(task) = manager.ensure_task_for_conversation_file(file.id).await? else {
             tracing::debug!(
@@ -801,20 +827,19 @@ impl ConversationApi {
                 storage_object_sha256 = %task.object.sha256,
                 "document text extraction reused existing analysis"
             );
+            let (status, text, failure_reason) =
+                extraction_patch_for_existing_document_analysis(&task.analysis);
             return self
                 .update_file_extraction(UpdateConversationFileExtractionRequest {
                     user_id: user_id.to_string(),
                     file_id: file_id.to_string(),
-                    status: Some(EXTRACTION_STATUS_EXTRACTED.to_string()),
-                    text: Some(format!(
-                        "Document text extraction is already available in analysis {}.",
-                        task.analysis.id
-                    )),
+                    status: Some(status),
+                    text,
                     content_kind: Some("document_text_analysis_ref".to_string()),
                     source: Some("server_file_ingest".to_string()),
                     parser: Some(FILE_INGEST_PARSER.to_string()),
                     language: None,
-                    failure_reason: None,
+                    failure_reason,
                     metadata: Some(json!({
                         "parserVersion": FILE_INGEST_PARSER_VERSION,
                         "analysisId": task.analysis.id,
@@ -1146,6 +1171,94 @@ fn build_file_extraction_status_response_from_parts(
         metadata: metadata.clone(),
         updated_at,
     }
+}
+
+fn file_has_readable_inline_extraction(metadata: &Value) -> bool {
+    let status = metadata
+        .get("extractionStatus")
+        .and_then(Value::as_str)
+        .or_else(|| {
+            metadata
+                .get("extraction")
+                .and_then(|value| value.get("status"))
+                .and_then(Value::as_str)
+        })
+        .map(normalize_file_extraction_status_value)
+        .unwrap_or_else(|| EXTRACTION_STATUS_PENDING.to_string());
+    status == EXTRACTION_STATUS_EXTRACTED && file_extraction_inline_text(metadata).is_some()
+}
+
+fn file_extraction_source(metadata: &Value) -> Option<String> {
+    metadata
+        .get("extraction")
+        .and_then(|value| value.get("source"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToString::to_string)
+}
+
+fn extraction_patch_for_existing_document_analysis(
+    analysis: &StorageObjectAnalysis,
+) -> (String, Option<String>, Option<String>) {
+    match analysis.status.as_str() {
+        status if status == StorageObjectAnalysisStatus::Succeeded.as_str() => {
+            if let Some(text) = document_text_analysis_text(
+                analysis.result_json.as_ref(),
+                analysis.summary.as_deref(),
+            ) {
+                (EXTRACTION_STATUS_EXTRACTED.to_string(), Some(text), None)
+            } else {
+                (
+                    EXTRACTION_STATUS_FAILED.to_string(),
+                    None,
+                    Some("document text analysis completed without readable text".to_string()),
+                )
+            }
+        }
+        status if status == StorageObjectAnalysisStatus::Failed.as_str() => (
+            EXTRACTION_STATUS_FAILED.to_string(),
+            None,
+            analysis
+                .error_message
+                .clone()
+                .or_else(|| Some("document text extraction failed".to_string())),
+        ),
+        status if status == StorageObjectAnalysisStatus::Processing.as_str() => {
+            (EXTRACTION_STATUS_PENDING.to_string(), None, None)
+        }
+        _ => (EXTRACTION_STATUS_PENDING.to_string(), None, None),
+    }
+}
+
+fn document_text_analysis_text(
+    result_json: Option<&Value>,
+    summary: Option<&str>,
+) -> Option<String> {
+    result_json
+        .and_then(|value| {
+            metadata_text_field(
+                value,
+                &[
+                    "text",
+                    "extractedText",
+                    "extracted_text",
+                    "textContent",
+                    "text_content",
+                    "plainText",
+                    "plain_text",
+                    "markdown",
+                    "content",
+                    "summary",
+                ],
+            )
+        })
+        .or_else(|| {
+            summary
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(ToString::to_string)
+        })
 }
 
 fn file_extraction_inline_text(metadata: &Value) -> Option<String> {
@@ -1510,6 +1623,70 @@ mod tests {
         assert!(metadata.get("extractedText").is_none());
         assert!(metadata.get("textContent").is_none());
         assert!(metadata["extraction"].get("text").is_none());
+    }
+
+    #[test]
+    fn readable_inline_extraction_blocks_background_ingest_overwrite() {
+        let metadata = json!({
+            "extractionStatus": "extracted",
+            "extractedText": "QA文件锚点：退款率=18%，CTR=1.2%。",
+            "extraction": {
+                "status": "extracted",
+                "source": "qa_deep_upload",
+                "text": "QA文件锚点：退款率=18%，CTR=1.2%。"
+            }
+        });
+
+        assert!(file_has_readable_inline_extraction(&metadata));
+        assert_eq!(
+            file_extraction_source(&metadata),
+            Some("qa_deep_upload".to_string())
+        );
+    }
+
+    #[test]
+    fn existing_document_analysis_patch_only_marks_succeeded_text_readable() {
+        let analysis = StorageObjectAnalysis {
+            id: Uuid::new_v4(),
+            storage_object_sha256: "sha256".to_string(),
+            analysis_kind: "document_text_extraction".to_string(),
+            status: StorageObjectAnalysisStatus::Processing.as_str().to_string(),
+            prompt_key: FILE_INGEST_PARSER.to_string(),
+            prompt_version: FILE_INGEST_PARSER_VERSION.to_string(),
+            llm_name: "none".to_string(),
+            llm_model: None,
+            summary: None,
+            result_json: None,
+            error_message: None,
+            started_at: None,
+            finished_at: None,
+            created_at: OffsetDateTime::now_utc(),
+            updated_at: OffsetDateTime::now_utc(),
+        };
+        assert_eq!(
+            extraction_patch_for_existing_document_analysis(&analysis).0,
+            EXTRACTION_STATUS_PENDING
+        );
+
+        let mut succeeded = analysis.clone();
+        succeeded.status = StorageObjectAnalysisStatus::Succeeded.as_str().to_string();
+        succeeded.result_json = Some(json!({
+            "text": "QA文件锚点：退款率=18%，CTR=1.2%。"
+        }));
+        let (status, text, failure_reason) =
+            extraction_patch_for_existing_document_analysis(&succeeded);
+        assert_eq!(status, EXTRACTION_STATUS_EXTRACTED);
+        assert_eq!(text, Some("QA文件锚点：退款率=18%，CTR=1.2%。".to_string()));
+        assert!(failure_reason.is_none());
+
+        let mut failed = analysis;
+        failed.status = StorageObjectAnalysisStatus::Failed.as_str().to_string();
+        failed.error_message = Some("parse failed".to_string());
+        let (status, text, failure_reason) =
+            extraction_patch_for_existing_document_analysis(&failed);
+        assert_eq!(status, EXTRACTION_STATUS_FAILED);
+        assert!(text.is_none());
+        assert_eq!(failure_reason, Some("parse failed".to_string()));
     }
 
     #[test]

@@ -68,6 +68,16 @@ pub(super) fn extend_runtime_strategy_facts(
         content: role_dispatch.to_string(),
         reliability: 1.0,
     });
+    facts.push(Fact {
+        source: "runtime.user_visible_boundary".to_string(),
+        content: "展示边界：最终回答必须写给普通学生或商家看。可以使用系统提供的商品、资料、\
+                  RAG 和工作区上下文做判断，但不得原样展示 context.selected_summary、\
+                  context.combined_summary、Product source product、Knowledge source、\
+                  Requested context refs、product:UUID、workspaceContext、内部 skill id、\
+                  worker id 或其它变量名；要改写成自然中文事实和业务判断。"
+            .to_string(),
+        reliability: 1.0,
+    });
 }
 
 pub(super) fn runtime_response_mode(metadata: &std::collections::BTreeMap<String, String>) -> &str {

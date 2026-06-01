@@ -409,6 +409,25 @@ mod tests {
     }
 
     #[test]
+    fn ecommerce_term_question_routes_to_light_business_explanation() {
+        let rules =
+            load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
+        let graph = plan_task_graph_from_rules(
+            &TaskId("task-term-explanation".to_string()),
+            "电商转化率是什么？一句话解释。",
+            None,
+            &rules,
+        )
+        .expect("ecommerce term question should match direct explanation graph");
+
+        assert_eq!(graph.nodes.len(), 1);
+        assert_eq!(graph.graph_id.0, "graph-task-term-explanation");
+        assert_eq!(graph.nodes[0].role, "data");
+        assert_eq!(graph.nodes[0].title, "电商术语解释");
+        assert_eq!(graph.nodes[0].skill_autosuggest, Some(false));
+    }
+
+    #[test]
     fn source_only_search_stays_evidence_only_without_final_synthesis() {
         let rules =
             load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
@@ -464,7 +483,7 @@ mod tests {
     }
 
     #[test]
-    fn explicit_team_keeps_search_autosuggest_enabled_by_role_override() {
+    fn explicit_team_enables_business_role_autosuggest_by_role_override() {
         let rules =
             load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
         let graph = plan_task_graph_from_rules(
@@ -486,7 +505,7 @@ mod tests {
             .find(|node| node.role == "search")
             .expect("search node should exist");
 
-        assert_eq!(ops.skill_autosuggest, Some(false));
+        assert_eq!(ops.skill_autosuggest, Some(true));
         assert_eq!(search.skill_autosuggest, Some(true));
         assert_eq!(search.llm_usage.as_deref(), Some("fast"));
         assert!(
@@ -539,7 +558,7 @@ mod tests {
     }
 
     #[test]
-    fn selected_route_keeps_manual_ops_data_roles_without_text_collaboration_keyword() {
+    fn selected_route_keeps_manual_ops_data_roles_with_autosuggest() {
         let rules =
             load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
         let route = manual_route("ops", &["data"]);
@@ -560,7 +579,7 @@ mod tests {
         assert!(roles.contains(&"ops"), "ops role must be scheduled");
         for node in graph.nodes.iter().filter(|node| node.id.0 != "ops_final") {
             assert_eq!(node.llm_usage.as_deref(), Some("fast"));
-            assert_eq!(node.skill_autosuggest, Some(false));
+            assert_eq!(node.skill_autosuggest, Some(true));
         }
 
         let final_node = graph
@@ -599,6 +618,66 @@ mod tests {
     }
 
     #[test]
+    fn forced_single_business_role_keeps_autosuggest_enabled() {
+        let graph = crate::agent::commander::task_graph::plan_forced_role_graph(
+            &TaskId("task-forced-service".to_string()),
+            "客户投诉保温杯漏水，请以客服岗位生成处理流程。",
+            "service",
+        );
+
+        assert_eq!(graph.nodes.len(), 1);
+        assert_eq!(graph.nodes[0].role, "service");
+        assert_eq!(graph.nodes[0].skill_autosuggest, Some(true));
+    }
+
+    #[test]
+    fn forced_chat_graph_keeps_autosuggest_disabled() {
+        let graph = crate::agent::commander::task_graph::plan_forced_chat_graph(
+            &TaskId("task-forced-chat".to_string()),
+            "你好",
+        );
+
+        assert_eq!(graph.nodes.len(), 1);
+        assert_eq!(graph.nodes[0].role, "chat");
+        assert_eq!(graph.nodes[0].skill_autosuggest, Some(false));
+    }
+
+    #[test]
+    fn negative_classroom_format_request_does_not_route_to_teacher_feedback() {
+        let rules =
+            load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
+        let graph = plan_task_graph_from_rules(
+            &TaskId("task-not-classroom-homework".to_string()),
+            "分析这个商品，给出电商运营建议。不要写课堂作业格式。",
+            None,
+            &rules,
+        )
+        .expect("business analysis should still match a direct graph");
+
+        assert_eq!(graph.nodes.len(), 1);
+        assert_eq!(graph.nodes[0].role, "chat");
+        assert_ne!(graph.graph_id.0, "direct_teacher_feedback_boundary");
+        assert_ne!(graph.nodes[0].title, "老师点评边界回答");
+    }
+
+    #[test]
+    fn explicit_homework_review_still_routes_to_teacher_feedback() {
+        let rules =
+            load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
+        let graph = plan_task_graph_from_rules(
+            &TaskId("task-homework-review".to_string()),
+            "请像老师点评一样批改这个作业，指出哪里只是口号。",
+            None,
+            &rules,
+        )
+        .expect("explicit teacher review should match a direct graph");
+
+        assert_eq!(graph.nodes.len(), 1);
+        assert_eq!(graph.nodes[0].role, "chat");
+        assert_eq!(graph.nodes[0].title, "老师点评边界回答");
+    }
+
+    #[test]
     fn selected_route_keeps_search_autosuggest_enabled_but_fast() {
         let rules =
             load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
@@ -630,7 +709,7 @@ mod tests {
         assert_eq!(search.llm_usage.as_deref(), Some("fast"));
         assert_eq!(search.skill_autosuggest, Some(true));
         assert_eq!(ops.llm_usage.as_deref(), Some("fast"));
-        assert_eq!(ops.skill_autosuggest, Some(false));
+        assert_eq!(ops.skill_autosuggest, Some(true));
         assert!(
             ops.input_refs
                 .iter()
