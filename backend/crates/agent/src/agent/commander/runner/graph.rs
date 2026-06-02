@@ -5,7 +5,7 @@ use crate::{
     agent::commander::{
         EvaluationOutcome, TaskGraphRuntime, no_user_facing_content_message,
         plan_configured_non_chat_task_graph, plan_configured_task_graph, plan_forced_role_graph,
-        plan_task_graph,
+        plan_forced_selected_roles_graph, plan_task_graph,
         runner::{output::direct_chat_report_output, route::primary_graph_role},
         sanitize_final_user_facing_text,
     },
@@ -58,6 +58,10 @@ impl Commander {
         let task_id = crate::core::protocol::TaskId(current_task.id);
         let graph = if let Some(graph) =
             self.single_role_task_graph(&task_id, &current_task.description, role_route)
+        {
+            Some(graph)
+        } else if let Some(graph) =
+            self.manual_role_task_graph(&task_id, &current_task.description, role_route)
         {
             Some(graph)
         } else if self.context_allows_direct_chat_graph(role_route) {
@@ -129,6 +133,33 @@ impl Commander {
             task,
             &route.primary_runtime_role,
         ))
+    }
+
+    pub(super) fn manual_role_task_graph(
+        &self,
+        task_id: &crate::core::protocol::TaskId,
+        task: &str,
+        role_route: Option<&RoleRoute>,
+    ) -> Option<TaskGraph> {
+        if self
+            .current_context
+            .metadata
+            .get("strategy.collaboration_mode")
+            .is_none_or(|value| value != "manual")
+        {
+            return None;
+        }
+        let route = role_route?;
+        let roles = std::iter::once(route.primary_runtime_role.clone())
+            .chain(route.support_runtime_roles.iter().cloned())
+            .filter(|role| role != "chat")
+            .fold(Vec::<String>::new(), |mut unique, role| {
+                if !unique.iter().any(|item| item == &role) {
+                    unique.push(role);
+                }
+                unique
+            });
+        (!roles.is_empty()).then(|| plan_forced_selected_roles_graph(task_id, task, &roles))
     }
 
     pub(super) async fn schedule_planned_task_graph(

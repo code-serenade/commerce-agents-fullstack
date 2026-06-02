@@ -298,7 +298,11 @@ fn extend_conversation_history_fact(
          价格、数据或结论当成本轮当前商品。"
     } else {
         "conversation.history：同一会话历史上下文如下。回答追问、补充、继续、\
-         按前面数据等问题时，必须优先结合这段历史；不要要求用户重复已经在这里提供的信息。"
+         按前面数据、上一轮、这些、同一个等明显延续问题时，必须优先结合这段历史；\
+         不要要求用户重复已经在这里提供的信息。若当前问题明确说“新话题”“换个问题”\
+         “不引用任何商品/活动/资料”“不要沿用前面”，或本轮没有显式选择商品、活动、文件、\
+         图片等引用且问题本身是独立泛问，历史只能作为背景，不能把历史商品、活动、文件数据\
+         或上一轮结论当成本轮当前对象。"
     };
 
     facts.push(Fact {
@@ -572,5 +576,51 @@ mod tests {
             fact.source == "conversation.image_preprocess_summary"
                 && fact.content.contains("年轻男性肖像")
         }));
+    }
+
+    #[test]
+    fn history_fact_marks_independent_new_topic_as_background_only() {
+        let mut context = MessageContext::default();
+        context.metadata.insert(
+            "conversation.history_summary".to_string(),
+            "上一轮分析了 QA矩阵智能保温杯 和 618 活动。".to_string(),
+        );
+        let task = Task {
+            id: "task-new-topic".to_string(),
+            context,
+            description: "新话题，不引用任何商品：学生开店第一周看什么指标？".to_string(),
+            requester: AgentId("commander".to_string()),
+            assignment: None,
+        };
+        let role = RoleProfile {
+            id: RoleId("role.chat".to_string()),
+            name: "Chat".to_string(),
+            runtime_role: "chat".to_string(),
+            priority: 1,
+            domains: Vec::new(),
+            keywords: Vec::new(),
+            preferred_actions: Vec::new(),
+            required_capabilities: Vec::new(),
+            optional_capabilities: Vec::new(),
+        };
+
+        let input = build_cognition_input(
+            AgentId("worker.chat".to_string()),
+            WorkerPhase::Thinking,
+            &TaskMemory::default(),
+            &role,
+            &task,
+        );
+        let history = input
+            .context
+            .facts
+            .iter()
+            .find(|fact| fact.source == "conversation.history")
+            .expect("history fact should be injected");
+
+        assert!(history.content.contains("新话题"));
+        assert!(history.content.contains("不引用任何商品"));
+        assert!(history.content.contains("历史只能作为背景"));
+        assert!(history.content.contains("不能把历史商品"));
     }
 }

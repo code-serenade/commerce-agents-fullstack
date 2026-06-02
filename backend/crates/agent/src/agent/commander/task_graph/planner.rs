@@ -757,4 +757,37 @@ mod tests {
         assert!(input_refs.contains(&"accounting"));
         assert!(input_refs.contains(&"ops"));
     }
+
+    #[test]
+    fn selected_route_rule_itself_keeps_manual_creative_design_image_roles() {
+        let rules =
+            load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
+        let route = manual_route("creative", &["design"]);
+        let graph = plan_task_graph_from_rules(
+            &TaskId("task-manual-creative-design".to_string()),
+            "只按创意和设计岗位分析这张主图，指出普通用户第一眼会不会看懂卖点。",
+            Some(&route),
+            &rules,
+        )
+        .expect("manual creative and design route should match selected-route graph");
+
+        let roles = graph
+            .nodes
+            .iter()
+            .map(|node| node.role.as_str())
+            .collect::<Vec<_>>();
+        assert!(
+            roles.contains(&"creative"),
+            "creative role must be scheduled"
+        );
+        assert!(roles.contains(&"design"), "design role must be scheduled");
+        assert!(
+            !roles.contains(&"data"),
+            "selected route graph itself must not inject data"
+        );
+        assert!(
+            !roles.contains(&"accounting"),
+            "selected route graph itself must not inject accounting"
+        );
+    }
 }

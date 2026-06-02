@@ -239,11 +239,9 @@ impl Commander {
     }
 
     fn on_human_command(&mut self, task: TaskSpec, context: MessageContext) {
-        let description =
-            task_description_with_conversation_history(&task.description, &context.metadata);
         let incoming_task = CommanderTask {
             id: task.id.0,
-            description,
+            description: task.description,
         };
 
         self.memory.clear();
@@ -847,27 +845,4 @@ impl Commander {
 
         self.role_router.route_for_runtime_roles(&primary, &support)
     }
-}
-
-fn task_description_with_conversation_history(
-    task_description: &str,
-    metadata: &std::collections::BTreeMap<String, String>,
-) -> String {
-    let Some(history) = metadata
-        .get("conversation.history_summary")
-        .map(|value| value.trim())
-        .filter(|value| !value.is_empty())
-    else {
-        return task_description.to_string();
-    };
-
-    if task_description.contains("同一会话历史上下文") {
-        return task_description.to_string();
-    }
-
-    format!(
-        "同一会话历史上下文（这是同一用户同一会话内此前消息，用于理解“继续、刚才、按前面、补充后、\
-         沿用这些数据”等追问；这不代表用户选择了任何预设商品）：\n{history}\n\n当前用户请求：\\
-         n{task_description}"
-    )
 }

@@ -606,6 +606,14 @@ pub fn plan_forced_role_graph(task_id: &TaskId, task: &str, role: &str) -> TaskG
     chat::plan_single_chat_graph(task_id, task, role)
 }
 
+pub fn plan_forced_selected_roles_graph(
+    task_id: &TaskId,
+    task: &str,
+    roles: &[String],
+) -> TaskGraph {
+    chat::plan_selected_roles_graph(task_id, task, roles)
+}
+
 fn evaluate_report(
     report: &WorkerReport,
     node: Option<&TaskNode>,
@@ -1152,7 +1160,7 @@ fn unique_strings(items: Vec<String>) -> Vec<String> {
 mod tests {
     use std::collections::BTreeMap;
 
-    use super::{TaskGraphRuntime, TaskNodeRuntimeState};
+    use super::{TaskGraphRuntime, TaskNodeRuntimeState, plan_forced_selected_roles_graph};
     use crate::core::protocol::{
         RoleWorkOutput, TaskGraph, TaskGraphId, TaskId, TaskNode, TaskNodeId, WorkerDiagnostic,
         WorkerId, WorkerReport, WorkerReportStatus,
@@ -1339,6 +1347,35 @@ mod tests {
         assert!(!output.contains("上游依赖岗位未成功完成"));
         assert!(!output.contains("没有拿到可直接展示的完整内容"));
         assert!(!output.contains("failure_kind"));
+    }
+
+    #[test]
+    fn forced_selected_roles_graph_only_uses_manual_roles() {
+        let roles = vec!["creative".to_string(), "design".to_string()];
+        let graph = plan_forced_selected_roles_graph(
+            &TaskId("task-manual-image".to_string()),
+            "只按创意和设计岗位分析这张主图。",
+            &roles,
+        );
+
+        let graph_roles = graph
+            .nodes
+            .iter()
+            .map(|node| node.role.as_str())
+            .collect::<Vec<_>>();
+
+        assert_eq!(graph_roles, vec!["creative", "design", "creative"]);
+        assert!(graph.nodes.iter().all(|node| node.role != "data"));
+        assert!(graph.nodes.iter().all(|node| node.role != "accounting"));
+        assert_eq!(graph.nodes[2].id.0, "creative_final");
+        assert_eq!(
+            graph.nodes[2]
+                .input_refs
+                .iter()
+                .map(|input| input.0.as_str())
+                .collect::<Vec<_>>(),
+            vec!["creative", "design"]
+        );
     }
 
     #[test]

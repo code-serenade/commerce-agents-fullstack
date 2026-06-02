@@ -900,6 +900,10 @@ fn clean_material_user_text(value: String) -> Option<String> {
         || lower.contains("workspace readable")
         || lower.contains("workspace artifact")
         || lower.contains("conversation_file")
+        || lower.contains("同一会话历史上下文")
+        || lower.contains("当前用户请求")
+        || lower.contains("user:")
+        || lower.contains("assistant:")
         || lower.contains("product assets")
         || lower.contains("product materials")
         || lower.contains("agent grounding")
@@ -1094,7 +1098,7 @@ fn compact_json_preview(value: &serde_json::Value) -> String {
 mod tests {
     use serde_json::{Map, json};
 
-    use super::{merge_skill_results, parse_worker_role_output};
+    use super::{clean_material_user_text, merge_skill_results, parse_worker_role_output};
     use crate::skills::{SkillExecutionResult, SkillExecutionStatus, SkillId};
 
     #[test]
@@ -1191,6 +1195,20 @@ mod tests {
                     && item.fields.get("total_filtered_count").map(String::as_str) == Some("2")
             }),
             "search evidence diagnostic should expose typed live adapter state"
+        );
+    }
+
+    #[test]
+    fn material_user_text_rejects_conversation_history_wrappers() {
+        assert!(clean_material_user_text("User: 请分析这个商品".to_string()).is_none());
+        assert!(clean_material_user_text("Assistant: 上一轮回答".to_string()).is_none());
+        assert!(clean_material_user_text("当前用户请求：继续给三条文案".to_string()).is_none());
+        assert!(
+            clean_material_user_text(
+                "广告数据里 CTR=1.2%、CVR=2.1%、退款率=18%，最大问题是退款率偏高。".to_string(),
+            )
+            .expect("real material text should remain")
+            .contains("点击率 CTR=1.2%")
         );
     }
 

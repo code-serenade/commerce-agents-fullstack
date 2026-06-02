@@ -335,27 +335,41 @@ fn trim_internal_context_fragment(line: &str) -> Option<String> {
 
     for marker in [
         "commerce product context resolved",
+        "同一会话历史上下文",
+        "当前用户请求：",
+        "current user request:",
         "use these facts when relevant",
         "relevant, cite product",
         "do not invent missing product details",
         "product source product:",
         "knowledge source product_knowledge:",
         "requested context refs:",
+        "当前岗位任务",
+        "user:",
+        "assistant:",
         "local commerce rag context",
         "local commerce rag retrieval",
         "retrieval query terms:",
         "retrieved knowledge source",
+        "product_knowledge:",
+        "campaign_knowledge:",
+        "conversation_file:",
         "no matching local product knowledge",
-        "context.selected_summary",
         "context.combined_summary",
         "commerce.selected_product_context",
         "productcontextsummary",
         "workspacecontext.summary",
         "workspacecontextpack.summary",
+        "| title=",
     ] {
         if let Some(index) = lower.find(marker) {
             keep_end = keep_end.min(index);
         }
+    }
+    if lower.contains("product_knowledge:")
+        && let Some(index) = lower.find(" title=")
+    {
+        keep_end = keep_end.min(index);
     }
 
     let candidate = line[..keep_end].trim_end();
@@ -726,6 +740,8 @@ fn looks_like_inline_colon_heading(heading: &str) -> bool {
             .chars()
             .all(|ch| is_heading_text_char(ch) || ch.is_whitespace())
         && !heading.contains("如")
+        && !matches!(heading, "说明" | "资料边界" | "资料依据" | "依据说明")
+        && !heading.starts_with("本轮已使用")
         && heading_has_section_suffix(heading)
 }
 
@@ -1048,7 +1064,7 @@ fn is_generated_section_heading(line: &str) -> bool {
 
 fn collapse_repeated_blocks(lines: Vec<String>) -> Vec<String> {
     let lines = collapse_repeated_line_sequence(lines);
-    let lines = collapse_non_adjacent_repeated_line_runs(lines);
+    let lines = collapse_blank_line_runs(collapse_non_adjacent_repeated_line_runs(lines));
     let mut blocks = lines_to_blocks(lines);
     if blocks.is_empty() {
         return Vec::new();
@@ -1064,6 +1080,16 @@ fn collapse_repeated_blocks(lines: Vec<String>) -> Vec<String> {
     }
 
     blocks_to_lines(blocks)
+}
+
+fn collapse_blank_line_runs(lines: Vec<String>) -> Vec<String> {
+    lines.into_iter().fold(Vec::new(), |mut output, line| {
+        if line.trim().is_empty() && output.last().is_none_or(|last| last.trim().is_empty()) {
+            return output;
+        }
+        output.push(line);
+        output
+    })
 }
 
 fn collapse_non_adjacent_repeated_line_runs(lines: Vec<String>) -> Vec<String> {
@@ -1167,6 +1193,10 @@ fn is_internal_noise_line(line: &str) -> bool {
         "task graph",
         "role_output",
         "final_report",
+        "同一会话历史上下文",
+        "当前用户请求：",
+        "current user request:",
+        "基于上游数据、设计、预算或创意结果，形成可执行运营调整方案",
         "cognition failure",
         "json template validation failed",
         "missing key",
@@ -1184,13 +1214,18 @@ fn is_internal_noise_line(line: &str) -> bool {
         "skill=",
         "adapter_status",
         "requested context refs",
+        "当前岗位任务",
+        "user:",
+        "assistant:",
         "product source product:",
         "knowledge source product_knowledge:",
+        "product_knowledge:",
+        "campaign_knowledge:",
+        "conversation_file:",
         "commerce product context resolved",
         "local commerce rag context",
         "local commerce rag retrieval",
         "retrieved knowledge source",
-        "context.selected_summary",
         "context.combined_summary",
         "commerce.selected_product_context",
         "productcontextsummary",
@@ -1204,6 +1239,8 @@ fn is_internal_noise_line(line: &str) -> bool {
         || line.contains("岗位报告")
         || line.contains("Product source product")
         || line.contains("Knowledge source product_knowledge")
+        || line.contains("已选商品 已选商品")
+        || looks_like_task_objective_shell(line)
         || line.starts_with("任务已完成")
         || line.starts_with("支持角色已完成")
         || line.contains("正在思考中")
@@ -1217,12 +1254,68 @@ fn is_internal_noise_line(line: &str) -> bool {
         || lower.contains("search_evidence_trace")
         || lower.starts_with("skill:")
         || (lower.contains(" status=") && lower.contains("skill"))
+        || lower.starts_with("context.selected_summary")
+        || lower.contains(" context.selected_summary=")
         || (lower.contains("product:") && contains_uuid_like(line))
         || (lower.contains(" | name=") && lower.contains(" | platform="))
+        || (lower.contains(" title=") && lower.contains('|'))
+        || (lower.contains(" product=") && lower.contains('|'))
+        || looks_like_history_as_material_evidence(line)
         || lower.starts_with("worker")
         || line == "- none"
         || lower == "none"
         || is_empty_list_artifact(line)
+}
+
+fn looks_like_task_objective_shell(line: &str) -> bool {
+    let line = line.trim();
+    line.chars().count() <= 80
+        && line.contains('整')
+        && line.contains('合')
+        && line.contains("结果")
+        && (line.contains("形成可执行") || line.contains("形成可提交"))
+        && (line.contains("方案") || line.contains("运营"))
+}
+
+fn looks_like_history_as_material_evidence(line: &str) -> bool {
+    let line = line.trim();
+    if !(line.starts_with("资料依据：")
+        || line.starts_with("资料关键事实：")
+        || line.starts_with("资料摘要："))
+    {
+        return false;
+    }
+    let body = line
+        .trim_start_matches("资料依据：")
+        .trim_start_matches("资料关键事实：")
+        .trim_start_matches("资料摘要：")
+        .trim();
+    body.starts_with('-')
+        || body.starts_with("请")
+        || body.starts_with("继续")
+        || body.starts_with("新话题")
+        || body.contains("上一轮")
+        || body.contains("这个商品")
+        || body.contains("同一个商品")
+        || body.contains("618返场")
+        || looks_like_historical_product_material(body)
+        || body.to_ascii_lowercase().contains("user:")
+        || body.to_ascii_lowercase().contains("assistant:")
+}
+
+fn looks_like_historical_product_material(body: &str) -> bool {
+    let product_markers = ["商品资料", "活动", "客群", "低价", "价格", "卖点"];
+    let metric_markers = [
+        "CTR",
+        "CVR",
+        "ROAS",
+        "退款率",
+        "点击率",
+        "转化率",
+        "投产比",
+    ];
+    product_markers.iter().filter(|marker| body.contains(*marker)).count() >= 2
+        && !metric_markers.iter().any(|marker| body.contains(*marker))
 }
 
 fn contains_uuid_like(line: &str) -> bool {
@@ -1545,10 +1638,9 @@ mod tests {
                    补齐成本字段。";
 
         let output = sanitize_final_user_facing_text(raw).expect("deduped output should remain");
-
         assert_eq!(
             output,
-            "先看毛利，再看销量。\n- 补齐成本字段。\n资料边界：附件成本字段仍需核验。"
+            "先看毛利，再看销量。\n- 补齐成本字段。\n\n资料边界：附件成本字段仍需核验。"
         );
     }
 
@@ -1569,6 +1661,81 @@ mod tests {
         assert!(!lower.contains("platform=unknown"));
         assert!(!lower.contains("product:"));
         assert!(!output.contains("ce3f729c-a8bd-45ca-9859-7f2591d5973f"));
+    }
+
+    #[test]
+    fn filters_inline_context_fields_without_destroying_answer_layout() {
+        let raw = "本轮已通过外部搜索取得实时来源。\n\
+                   当前岗位任务：整合已选商品 已选商品 title=QA矩阵智能保温杯 | product_knowledge:已选商品 title=QA矩阵商品知识 | confidence=0.96\n\
+                   先给结论：这款商品应该主打温显、防漏和礼盒感，不要做学生低价定位。\n\n\
+                   建议动作：\n\
+                   - 主图第一屏放温显和防漏场景。\n\
+                   - 活动页强调三件套礼盒。";
+
+        let output = sanitize_final_user_facing_text(raw).expect("answer should remain readable");
+        let lower = output.to_ascii_lowercase();
+
+        assert!(output.contains("先给结论："));
+        assert!(output.contains("这款商品应该主打温显、防漏和礼盒感"));
+        assert!(output.contains("建议动作：\n- 主图第一屏"));
+        assert!(!output.contains("当前岗位任务"));
+        assert!(!output.contains("title="));
+        assert!(!lower.contains("product_knowledge"));
+        assert!(!lower.contains("confidence"));
+    }
+
+    #[test]
+    fn filters_conversation_history_wrappers_from_final_answer() {
+        let raw = "给新手学生的三条618返场短视频开头文案：\n\n\
+                   1. 办公室姐妹看过来，温显防漏保温杯返场了。\n\n\
+                   User: 请分析这个商品。\n\
+                   Assistant: 这个商品在618返场活动里最应该主打温显、防漏、礼盒。\n\
+                   当前用户请求：\\\n\
+                   n继续同一个商品和活动，给我三条短视频开头文案。\n\n\
+                   基于上游数据、设计、预算或创意结果，形成可执行运营调整方案。\n\
+                   已选商品 已选商品\n\
+                   落地注意：每天看退款率，超过8%就调整素材。";
+
+        let output = sanitize_final_user_facing_text(raw).expect("answer should remain readable");
+        let lower = output.to_ascii_lowercase();
+
+        assert!(output.contains("办公室姐妹看过来"));
+        assert!(output.contains("落地注意"));
+        assert!(!lower.contains("user:"));
+        assert!(!lower.contains("assistant:"));
+        assert!(!output.contains("当前用户请求"));
+        assert!(!output.contains("基于上游数据、设计、预算或创意结果"));
+        assert!(!output.contains("已选商品 已选商品"));
+    }
+
+    #[test]
+    fn filters_generic_task_objective_shell_from_final_answer() {
+        let raw = "给新手学生的三条618返场短视频开头文案：\n\n\
+                   1. 办公室姐妹看过来，温显防漏保温杯返场了。\n\n\
+                   整合财务、千川投放和创意结果，形成可执行运营方案。\n\n\
+                   落地注意：每天看退款率，超过8%就调整素材。";
+
+        let output = sanitize_final_user_facing_text(raw).expect("answer should remain readable");
+
+        assert!(output.contains("办公室姐妹看过来"));
+        assert!(output.contains("落地注意"));
+        assert!(!output.contains("整合财务、千川投放和创意结果"));
+    }
+
+    #[test]
+    fn filters_history_questions_misclassified_as_material_evidence() {
+        let raw = "学生开网店第一周先看访客数、点击率和咨询加购率。\n\n\
+                   资料依据：- 请分析这个商品在618返场活动里最应该主打什么卖点？回答给新手学生看\n\n\
+                   资料依据：原因是商品资料明确要求主打这三个点，活动针对的是办公室女性客群。\n\n\
+                   资料依据：广告数据里点击率 CTR=1.2%、转化率 CVR=2.1%、退款率=18%，最大问题是退款率偏高。";
+
+        let output = sanitize_final_user_facing_text(raw).expect("answer should remain readable");
+
+        assert!(output.contains("学生开网店第一周先看访客数"));
+        assert!(output.contains("退款率=18%"));
+        assert!(!output.contains("请分析这个商品"));
+        assert!(!output.contains("618返场活动"));
+        assert!(!output.contains("办公室女性客群"));
     }
 
     #[test]
@@ -1670,7 +1837,6 @@ mod tests {
 
         let output = sanitize_final_user_facing_text(raw).expect("answer should remain readable");
         let lower = output.to_ascii_lowercase();
-
         assert!(output.contains("当前只掌握商品名称和售价"));
         assert!(output.contains("本轮已使用你选中的商品资料：千乐咖啡。"));
         assert!(output.contains("后续再做毛利核算"));
