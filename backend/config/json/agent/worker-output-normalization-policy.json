@@ -165,8 +165,8 @@
   "default_summary_template": "{{role}}直接回答用户当前任务：{{task}}。资料不足时也要给一版低风险可执行答案，只提示最影响结论的业务缺口；不要回显内部任务说明、附件原文、数量、渠道、平台政策或未提供的商品事实。",
   "category_product_summary_template": "{{role}}按用户当前问题直接回答：{{task}}。没有绑定预设商品也不要卡住；先按用户给出的品类、商品或服务给低风险可用答案。多岗位协作题保留岗位分工、交付物和承接关系；完整运营方案先提示关键资料缺口，再给起步动作、学生分工、复盘字段和风险；短问只给不编默认渠道和数字的起步切口；表格字段只讲粒度、主键、能算什么、不能判断什么、缺什么字段和下一步整理。不要要求用户先选择预设商品，不要把多岗位或完整方案错写成短问模板。",
   "default_evidence": "本轮用户任务和会话/工作区上下文",
-  "selected_product_evidence_template": "用户本轮手动选择的预设商品资料：{{product_name}}（{{product_ref}}，来源 context.selected_summary）。",
-  "unselected_product_evidence": "本轮未检测到 context.selected_summary；不注入任何预设商品资料，只按用户文本、会话历史和工作区上下文理解问题。",
+  "selected_product_evidence_template": "用户本轮手动选择的商品资料：{{product_name}}（{{product_ref}}）。",
+  "unselected_product_evidence": "本轮没有手动选择具体商品；只按用户文本、会话历史和工作区上下文理解问题。",
   "upstream_evidence_template": "worker.assignment.input.{{node_id}}：引用上游{{role}}岗位产物，作为本岗位判断依据。",
   "runtime_evidence_keep_markers": [
     "worker.assignment.input"

@@ -4,7 +4,8 @@ use super::{chat, planner};
 use crate::{
     agent::commander::{
         no_user_facing_content_message, report_has_failure_diagnostic,
-        report_has_llm_access_denied, sanitize_final_user_facing_text, user_facing_report_text,
+        report_has_llm_access_denied, report_has_llm_provider_error,
+        sanitize_final_user_facing_text, user_facing_report_text,
     },
     agent_session::{RoleMemorySummary, TaskGraphMemorySummary, WorkerDetail},
     core::protocol::{
@@ -205,6 +206,9 @@ impl TaskGraphRuntime {
         if let Some(message) = self.llm_access_denied_message() {
             return message;
         }
+        if let Some(message) = self.llm_provider_error_message() {
+            return message;
+        }
         if self.response_mode.as_deref() != Some("quick") && self.graph.nodes.len() > 1 {
             return self.learning_synthesis();
         }
@@ -242,6 +246,9 @@ impl TaskGraphRuntime {
         if let Some(message) = self.llm_access_denied_message() {
             return message;
         }
+        if let Some(message) = self.llm_provider_error_message() {
+            return message;
+        }
         self.final_node_output()
             .or_else(|| {
                 self.graph
@@ -267,6 +274,15 @@ impl TaskGraphRuntime {
             .iter()
             .filter_map(|node| self.reports.get(&node.id))
             .find(|report| report_has_llm_access_denied(report))
+            .and_then(user_facing_report_text)
+    }
+
+    fn llm_provider_error_message(&self) -> Option<String> {
+        self.graph
+            .nodes
+            .iter()
+            .filter_map(|node| self.reports.get(&node.id))
+            .find(|report| report_has_llm_provider_error(report))
             .and_then(user_facing_report_text)
     }
 
@@ -632,6 +648,9 @@ fn evaluate_report(
     if report_has_llm_access_denied(report) {
         reasons.push("llm access denied: model configuration unavailable".to_string());
     }
+    if report_has_llm_provider_error(report) {
+        reasons.push("llm provider error: upstream model service unavailable".to_string());
+    }
     if report_has_failure_diagnostic(report, "worker_unavailable")
         || report_has_evidence_marker(report, "failure_kind:worker_unavailable")
     {
@@ -735,7 +754,7 @@ fn process_role_summary(node: &TaskNode, runtime: &TaskGraphRuntime) -> TaskGrap
         task_id: report.map(|report| report.task_id.clone()),
         worker_id: node.worker_id.clone(),
         role: node.role.clone(),
-        role_label: node.role.clone(),
+        role_label: process_node_label(node),
         title: node.title.clone(),
         objective: node.objective.clone(),
         status,
@@ -773,9 +792,13 @@ fn process_handoffs(nodes: &[TaskNode]) -> Vec<TaskGraphHandoff> {
                     to_node_id: node.id.clone(),
                     from_role: upstream.role.clone(),
                     to_role: node.role.clone(),
-                    from_role_label: upstream.role.clone(),
-                    to_role_label: node.role.clone(),
-                    summary: format!("{} depends on {}", node.id.0, upstream.id.0),
+                    from_role_label: process_node_label(upstream),
+                    to_role_label: process_node_label(node),
+                    summary: format!(
+                        "{} 需要参考 {} 的结果",
+                        process_node_label(node),
+                        process_node_label(upstream)
+                    ),
                 })
             })
         })
@@ -787,18 +810,18 @@ fn process_gap_summary(node: &TaskNode, runtime: &TaskGraphRuntime) -> Option<Ta
         Some(TaskNodeRuntimeState::Failed(reason)) => Some(TaskGraphProcessGap {
             node_id: node.id.clone(),
             role: node.role.clone(),
-            role_label: node.role.clone(),
+            role_label: process_node_label(node),
             title: node.title.clone(),
             state: "failed".to_string(),
-            reason: reason.clone(),
+            reason: user_facing_gap_reason(reason),
         }),
         Some(TaskNodeRuntimeState::Skipped(reason)) => Some(TaskGraphProcessGap {
             node_id: node.id.clone(),
             role: node.role.clone(),
-            role_label: node.role.clone(),
+            role_label: process_node_label(node),
             title: node.title.clone(),
             state: "skipped".to_string(),
-            reason: reason.clone(),
+            reason: user_facing_gap_reason(reason),
         }),
         _ => None,
     }
@@ -879,11 +902,10 @@ fn process_check_items(
             }
         }
     }
-    for gap in runtime.execution_gaps() {
+    for (index, gap) in runtime.execution_gaps().into_iter().enumerate() {
         let item = format!(
-            "岗位核对：{} 未完成，状态 {}，原因 {}",
-            gap.role,
-            gap.state,
+            "协作核对：{}未完成，原因 {}",
+            user_facing_gap_label(&gap, index),
             user_facing_gap_reason(&gap.reason)
         );
         if !items.contains(&item) {
@@ -891,6 +913,48 @@ fn process_check_items(
         }
     }
     items
+}
+
+fn process_node_label(node: &TaskNode) -> String {
+    let title = node.title.trim();
+    if !title.is_empty() && contains_cjk(title) && !looks_like_internal_runtime_label(title) {
+        return title.to_string();
+    }
+    "协作步骤".to_string()
+}
+
+fn user_facing_gap_label(gap: &TaskGraphProcessGap, index: usize) -> String {
+    let label = gap.role_label.trim();
+    if !label.is_empty() && !looks_like_internal_runtime_label(label) {
+        return format!("{label} ");
+    }
+    format!("协作步骤{} ", index + 1)
+}
+
+fn looks_like_internal_runtime_label(value: &str) -> bool {
+    let lower = value.trim().to_ascii_lowercase();
+    matches!(
+        lower.as_str(),
+        "chat"
+            | "ops"
+            | "data"
+            | "creative"
+            | "service"
+            | "engineering"
+            | "accounting"
+            | "design"
+            | "web"
+            | "search"
+            | "douyin_ads"
+    ) || lower.ends_with("_final")
+        || lower.starts_with("worker.")
+        || lower.starts_with("role.")
+}
+
+fn contains_cjk(value: &str) -> bool {
+    value
+        .chars()
+        .any(|ch| ('\u{4e00}'..='\u{9fff}').contains(&ch))
 }
 
 fn context_pack_failure_check_item(
@@ -936,7 +1000,7 @@ fn context_pack_failure_check_item(
     format!(
         "资料核对：{} 的资料包状态 {}，进入上下文 {} 项，省略 {} 项，解析中 {} 项，解析失败 {} \
          项，不支持 {} 项，原因 {}",
-        node.role,
+        process_node_label(node),
         readiness,
         item_count,
         omitted_count,
@@ -969,7 +1033,10 @@ fn skill_failure_check_item(
 
     format!(
         "Skill核对：{} / {} 未完成，状态 {}，原因 {}",
-        node.role, skill, status, reason
+        process_node_label(node),
+        skill,
+        status,
+        reason
     )
 }
 
@@ -1022,58 +1089,82 @@ fn search_diagnostic_check_item(
 
     format!(
         "搜索核对：{} / {}，状态 {}，意图 {}，强度 {}，来源 {}，可用结论 {}，缺口 {}，置信度 {}",
-        node.role, skill, status, intent, strength, sources, usable_claims, gaps, confidence
+        process_node_label(node),
+        skill,
+        status,
+        intent,
+        strength,
+        sources,
+        usable_claims,
+        gaps,
+        confidence
     )
 }
 
 fn user_facing_gap_reason(reason: &str) -> String {
     let reason = reason.trim();
-    if reason.contains("worker_unavailable")
-        || reason.contains("worker unavailable")
+    let lower = reason.to_ascii_lowercase();
+    if lower.contains("llm_provider_error") || lower.contains("provider error") {
+        "模型服务临时不可用".to_string()
+    } else if lower.contains("worker_unavailable")
+        || lower.contains("worker unavailable")
         || reason.contains("没有注册可用")
     {
-        "服务端没有可用的该岗位执行器或岗位执行失败".to_string()
-    } else if reason.contains("worker reported failed status") {
-        "岗位执行失败".to_string()
-    } else if reason.contains("llm access denied") || reason.contains("llm_access_denied") {
+        "协作步骤没有成功启动".to_string()
+    } else if lower.contains("worker reported failed status") {
+        "协作步骤没有成功完成".to_string()
+    } else if lower.contains("llm access denied") || lower.contains("llm_access_denied") {
         "模型服务配置不可用".to_string()
-    } else if reason.contains("skill_adapter_timeout") {
+    } else if lower.contains("skill_adapter_timeout") {
         "Skill 适配器执行超时".to_string()
-    } else if reason.contains("skill_adapter_unavailable") {
+    } else if lower.contains("skill_adapter_unavailable") {
         "Skill 适配器未接入或当前不可用".to_string()
-    } else if reason.contains("skill_pending_approval") {
+    } else if lower.contains("skill_pending_approval") {
         "Skill 需要审批后才能执行".to_string()
-    } else if reason.contains("skill_not_found") {
+    } else if lower.contains("skill_not_found") {
         "Skill 未注册或不存在".to_string()
-    } else if reason.contains("skill_validation_error") {
+    } else if lower.contains("skill_validation_error") {
         "Skill 入参不完整或校验失败".to_string()
-    } else if reason.contains("skill_execution_failed") {
+    } else if lower.contains("skill_execution_failed") {
         "Skill 执行失败".to_string()
-    } else if reason.contains("skill_deferred") {
+    } else if lower.contains("skill_deferred") {
         "Skill 当前只能返回待执行或缺数据状态".to_string()
-    } else if reason.contains("context_pack_extraction_failed") {
+    } else if lower.contains("context_pack_extraction_failed") {
         "部分资料抽取失败，不能当作已读取正文".to_string()
-    } else if reason.contains("context_pack_extraction_unsupported") {
+    } else if lower.contains("context_pack_extraction_unsupported") {
         "部分资料类型当前不支持抽取正文".to_string()
-    } else if reason.contains("context_pack_extraction_pending") {
+    } else if lower.contains("context_pack_extraction_pending") {
         "部分资料仍在解析中，当前只能使用已解析内容或元数据".to_string()
-    } else if reason.contains("context_pack_omitted") {
+    } else if lower.contains("context_pack_omitted") {
         "部分资料因条数或字数限制未进入本轮上下文".to_string()
-    } else if reason.contains("context_pack_empty") {
+    } else if lower.contains("context_pack_empty") {
         "本轮没有可读资料进入上下文".to_string()
-    } else if reason.contains("context_pack_partial") {
+    } else if lower.contains("context_pack_partial") {
         "本轮资料包不完整，只能基于已进入上下文的内容回答".to_string()
-    } else if reason.contains("timed out") || reason.contains("timeout") {
-        "岗位执行超时".to_string()
-    } else if reason.contains("dependency did not pass") || reason.contains("依赖") {
-        "上游依赖岗位未成功完成".to_string()
-    } else if reason.contains("content is empty") {
-        "岗位没有产出可用内容".to_string()
+    } else if lower.contains("timed out") || lower.contains("timeout") {
+        "协作步骤执行超时".to_string()
+    } else if lower.contains("dependency did not pass") || reason.contains("依赖") {
+        "前置协作步骤没有完成".to_string()
+    } else if lower.contains("content is empty") {
+        "协作步骤没有产出可用内容".to_string()
     } else if reason.is_empty() {
         "未记录具体原因".to_string()
+    } else if looks_like_internal_failure_reason(reason) {
+        "协作步骤没有成功完成".to_string()
     } else {
         reason.to_string()
     }
+}
+
+fn looks_like_internal_failure_reason(reason: &str) -> bool {
+    let lower = reason.to_ascii_lowercase();
+    lower.contains("failure_kind")
+        || lower.contains("worker")
+        || lower.contains("executor")
+        || lower.contains("diagnostic")
+        || lower.contains("role")
+        || lower.contains("node")
+        || lower.contains("graph")
 }
 
 fn report_evidence_items(report: &WorkerReport) -> Vec<String> {
@@ -1113,7 +1204,15 @@ fn search_trace_check_item(node: &TaskNode, evidence: &str) -> Option<String> {
 
     Some(format!(
         "搜索核对：{} / {}，状态 {}，意图 {}，强度 {}，来源 {}，可用结论 {}，缺口 {}，置信度 {}",
-        node.role, skill, status, intent, strength, sources, usable_claims, gaps, confidence
+        process_node_label(node),
+        skill,
+        status,
+        intent,
+        strength,
+        sources,
+        usable_claims,
+        gaps,
+        confidence
     ))
 }
 
@@ -1290,7 +1389,66 @@ mod tests {
         let output = runtime.synthesize();
 
         assert!(output.contains("模型服务配置不可用"));
-        assert!(output.contains("services.toml"));
+        assert!(!output.contains("services.toml"));
+        assert!(!output.contains("[agent_llm_usage]"));
+        assert!(!output.contains("API Key"));
+        assert!(!output.contains("没有拿到可直接展示的完整内容"));
+    }
+
+    #[test]
+    fn task_graph_synthesis_surfaces_llm_provider_error_before_empty_fallback() {
+        let data = node("data", "Data", "data");
+        let mut ops = node("ops_final", "Final", "ops");
+        ops.input_refs = vec![TaskNodeId("data".to_string())];
+        let mut runtime = TaskGraphRuntime::new(TaskGraph {
+            graph_id: TaskGraphId("graph-provider-error".to_string()),
+            root_task: "Build a plan.".to_string(),
+            nodes: vec![data.clone(), ops.clone()],
+        });
+        runtime.states.insert(
+            data.id.clone(),
+            TaskNodeRuntimeState::Failed(
+                "worker reported failed status; llm provider error: upstream model service unavailable; structured role output is missing".to_string(),
+            ),
+        );
+        runtime.states.insert(
+            ops.id.clone(),
+            TaskNodeRuntimeState::Skipped("dependency did not pass".to_string()),
+        );
+        let mut fields = std::collections::BTreeMap::new();
+        fields.insert("failure_kind".to_string(), "llm_provider_error".to_string());
+        fields.insert("status".to_string(), "failed".to_string());
+        fields.insert("role".to_string(), "data".to_string());
+        runtime.reports.insert(
+            data.id.clone(),
+            WorkerReport {
+                graph_id: TaskGraphId("graph-provider-error".to_string()),
+                node_id: data.id.clone(),
+                task_id: TaskId("task-data".to_string()),
+                worker_id: WorkerId("worker.data".to_string()),
+                role: "data".to_string(),
+                content: "llm_provider_error: 当前 AI 模型服务临时不可用".to_string(),
+                role_output: None,
+                evidence: vec!["failure_kind:llm_provider_error".to_string()],
+                risks: Vec::new(),
+                open_questions: vec!["llm_provider_error: 当前 AI 模型服务临时不可用".to_string()],
+                diagnostics: vec![WorkerDiagnostic {
+                    kind: "failure".to_string(),
+                    source: "llm_provider_error".to_string(),
+                    fields,
+                }],
+                status: WorkerReportStatus::Failed,
+            },
+        );
+
+        let output = runtime.synthesize();
+
+        assert!(output.contains("模型服务临时不可用"));
+        assert!(output.contains("模型网关"));
+        assert!(!output.contains("services.toml"));
+        assert!(!output.contains("[agent_llm_usage]"));
+        assert!(!output.contains("base_url"));
+        assert!(!output.contains("structured role output"));
         assert!(!output.contains("没有拿到可直接展示的完整内容"));
     }
 
@@ -1478,13 +1636,13 @@ mod tests {
             process
                 .incomplete
                 .iter()
-                .any(|gap| gap.node_id == search.id && gap.reason.contains("timed out"))
+                .any(|gap| gap.node_id == search.id && gap.reason == "协作步骤执行超时")
         );
     }
 
     #[test]
     fn process_summary_adds_readable_search_check_item_from_trace() {
-        let search = node("search", "Search", "search");
+        let search = node("search", "搜索证据", "search");
         let mut runtime = TaskGraphRuntime::new(TaskGraph {
             graph_id: TaskGraphId("graph-search-process".to_string()),
             root_task: "Search competitor prices.".to_string(),
@@ -1528,7 +1686,7 @@ mod tests {
             .find(|item| item.contains("搜索核对"))
             .expect("search check item should be exposed in process summary");
 
-        assert!(item.contains("search / search_competitor"));
+        assert!(item.contains("搜索证据 / search_competitor"));
         assert!(item.contains("状态 live"));
         assert!(item.contains("来源 2"));
         assert!(item.contains("可用结论 2"));
@@ -1541,7 +1699,7 @@ mod tests {
 
     #[test]
     fn process_summary_prefers_typed_search_diagnostic_check_item() {
-        let search = node("search", "Search", "search");
+        let search = node("search", "搜索证据", "search");
         let mut runtime = TaskGraphRuntime::new(TaskGraph {
             graph_id: TaskGraphId("graph-search-diagnostic-process".to_string()),
             root_task: "Search competitor prices.".to_string(),
@@ -1597,7 +1755,7 @@ mod tests {
             .find(|item| item.contains("搜索核对"))
             .expect("typed search diagnostic should be exposed in process summary");
 
-        assert!(item.contains("search / search_competitor"));
+        assert!(item.contains("搜索证据 / search_competitor"));
         assert!(item.contains("状态 degraded"));
         assert!(item.contains("来源 0"));
         assert!(item.contains("可用结论 0"));
@@ -1618,9 +1776,9 @@ mod tests {
     }
 
     #[test]
-    fn process_summary_adds_readable_role_execution_gap_check_items() {
-        let data = node("data", "Data", "data");
-        let mut ops = node("ops_final", "Final", "ops");
+    fn process_summary_adds_readable_execution_gap_check_items_without_internal_roles() {
+        let data = node("data", "数据诊断", "data");
+        let mut ops = node("ops_final", "运营总方案", "ops");
         ops.input_refs = vec![TaskNodeId("data".to_string())];
         let mut runtime = TaskGraphRuntime::new(TaskGraph {
             graph_id: TaskGraphId("graph-role-gap-process".to_string()),
@@ -1644,28 +1802,32 @@ mod tests {
             process
                 .check_items
                 .iter()
-                .any(|item| item.contains("岗位核对：data 未完成")
-                    && item.contains("服务端没有可用的该岗位执行器"))
+                .any(|item| item.contains("协作核对：数据诊断 未完成")
+                    && item.contains("协作步骤没有成功启动"))
         );
         assert!(
             process
                 .check_items
                 .iter()
-                .any(|item| item.contains("岗位核对：ops 未完成")
-                    && item.contains("上游依赖岗位未成功完成"))
+                .any(|item| item.contains("协作核对：运营总方案 未完成")
+                    && item.contains("前置协作步骤没有完成"))
         );
-        assert!(
-            process
-                .incomplete
-                .iter()
-                .any(|gap| gap.role == "data" && gap.state == "failed")
-        );
+        assert!(process.incomplete.iter().any(|gap| gap.role == "data"
+            && gap.role_label == "数据诊断"
+            && gap.state == "failed"
+            && gap.reason == "协作步骤没有成功启动"));
+        let rendered = process.check_items.join("\n");
+        assert!(!rendered.contains("岗位核对"));
+        assert!(!rendered.contains("data"));
+        assert!(!rendered.contains("ops"));
+        assert!(!rendered.contains("岗位执行器"));
+        assert!(!rendered.contains("failure_kind"));
     }
 
     #[test]
     fn typed_worker_unavailable_diagnostic_fails_node_and_adds_check_item() {
-        let data = node("data", "Data", "data");
-        let mut ops = node("ops_final", "Final", "ops");
+        let data = node("data", "数据诊断", "data");
+        let mut ops = node("ops_final", "运营总方案", "ops");
         ops.input_refs = vec![TaskNodeId("data".to_string())];
         let mut runtime = TaskGraphRuntime::new(TaskGraph {
             graph_id: TaskGraphId("graph-typed-worker-unavailable".to_string()),
@@ -1715,14 +1877,19 @@ mod tests {
             process
                 .check_items
                 .iter()
-                .any(|item| item.contains("岗位核对：data 未完成")
-                    && item.contains("服务端没有可用的该岗位执行器"))
+                .any(|item| item.contains("协作核对：数据诊断 未完成")
+                    && item.contains("协作步骤没有成功启动"))
         );
+        assert!(process.incomplete.iter().any(|gap| {
+            gap.role == "data"
+                && gap.role_label == "数据诊断"
+                && gap.reason == "协作步骤没有成功启动"
+        }));
     }
 
     #[test]
     fn process_summary_adds_readable_skill_failure_check_item_from_typed_diagnostic() {
-        let ops = node("ops", "Ops", "ops");
+        let ops = node("ops", "运营方案", "ops");
         let mut runtime = TaskGraphRuntime::new(TaskGraph {
             graph_id: TaskGraphId("graph-skill-failure-process".to_string()),
             root_task: "Create an execution plan.".to_string(),
@@ -1771,7 +1938,7 @@ mod tests {
         let process = runtime.process_summary();
 
         assert!(process.check_items.iter().any(|item| {
-            item.contains("Skill核对：ops / platform_update_price 未完成")
+            item.contains("Skill核对：运营方案 / platform_update_price 未完成")
                 && item.contains("状态 deferred")
                 && item.contains("Skill 适配器未接入或当前不可用")
         }));
@@ -1785,7 +1952,7 @@ mod tests {
 
     #[test]
     fn process_summary_adds_readable_context_pack_failure_check_item_from_typed_diagnostic() {
-        let ops = node("ops", "Ops", "ops");
+        let ops = node("ops", "运营方案", "ops");
         let mut runtime = TaskGraphRuntime::new(TaskGraph {
             graph_id: TaskGraphId("graph-context-pack-process".to_string()),
             root_task: "读取资料并给出运营建议。".to_string(),
@@ -1837,7 +2004,7 @@ mod tests {
         let process = runtime.process_summary();
 
         assert!(process.check_items.iter().any(|item| {
-            item.contains("资料核对：ops 的资料包状态 partial")
+            item.contains("资料核对：运营方案 的资料包状态 partial")
                 && item.contains("进入上下文 2 项")
                 && item.contains("省略 1 项")
                 && item.contains("解析失败 1 项")

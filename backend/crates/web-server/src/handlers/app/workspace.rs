@@ -666,6 +666,7 @@ pub async fn get_workspace_context_summary(
             conversation_id: req.conversation_id,
             product_id: req.product_id,
             include_workspace_product_context: true,
+            include_implicit_conversation_files: true,
             run_id: req.run_id,
             context_refs: parse_context_refs_query(req.context_refs)?,
         })
@@ -688,6 +689,7 @@ pub async fn get_workspace_context_pack(
             conversation_id: req.conversation_id,
             product_id: req.product_id,
             include_workspace_product_context: true,
+            include_implicit_conversation_files: true,
             run_id: req.run_id,
             context_refs: parse_context_refs_query(req.context_refs)?,
             max_items: req.max_items,

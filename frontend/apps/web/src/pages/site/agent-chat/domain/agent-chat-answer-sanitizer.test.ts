@@ -120,6 +120,45 @@ describe("agent chat answer sanitizer", () => {
     expect(formatted).not.toContain("engineering role should")
   })
 
+  it("removes role executor failure blocks with plain internal role ids", () => {
+    const raw = [
+      textFromCodes([
+        26412, 36718, 27809, 26377, 24418, 25104, 23436, 25972, 22238, 31572,
+        65292, 21407, 22240, 26159, 37096, 20998, 23703, 20301, 27809, 26377,
+        25104, 21151, 25191, 34892, 12290,
+      ]),
+      "",
+      `- data: ${textFromCodes([
+        26381, 21153, 31471, 27809, 26377, 21487, 29992, 30340, 35813, 23703,
+        20301, 25191, 34892, 22120, 25110, 23703, 20301, 25191, 34892, 22833,
+        36133,
+      ])}`,
+      `- creative: ${textFromCodes([
+        19978, 28216, 20381, 36182, 23703, 20301, 26410, 25104, 21151, 23436,
+        25104,
+      ])}`,
+      `- ops: ${textFromCodes([
+        19978, 28216, 20381, 36182, 23703, 20301, 26410, 25104, 21151, 23436,
+        25104,
+      ])}`,
+      "",
+      textFromCodes([
+        35831, 26816, 26597, 26381, 21153, 31471, 23703, 20301, 37197, 32622,
+        12289, 27169, 22411, 37197, 32622, 25110, 24037, 20855, 36830, 25509,
+        29366, 24577, 21518, 37325, 35797, 12290,
+      ]),
+    ].join("\n")
+
+    const formatted = formatAgentUiMessage(raw, copy)
+
+    expect(formatted).toBe(copy.boundaryNotice)
+    expect(formatted).not.toContain("data:")
+    expect(formatted).not.toContain("creative:")
+    expect(formatted).not.toContain("ops:")
+    expect(formatted).not.toContain(textFromCodes([23703, 20301]))
+    expect(formatted).not.toContain(textFromCodes([25191, 34892, 22120]))
+  })
+
   it("removes unsupported industry benchmark ranges but keeps benchmark gaps", () => {
     const unsupportedIndustryRange = textFromCodes([21457, 29616, 65306, 26333, 20809, 21040, 28857, 20987, 36716, 21270, 29575, 56, 37, 20302, 20110, 34892, 19994, 53, 45, 49, 48, 37, 21306, 38388, 65292, 25552, 31034, 27969, 37327, 25110, 26631, 39064, 47, 23553, 38754, 21560, 24341, 21147, 19981, 36275, 12290])
     const unsupportedCommonClaim = textFromCodes([21457, 29616, 65306, 28857, 20987, 21040, 21152, 36141, 29575, 32422, 50, 53, 46, 48, 37, 65292, 31526, 21512, 22810, 25968, 30005, 21830, 30452, 25773, 30340, 21152, 36141, 36716, 21270, 29575, 12290])

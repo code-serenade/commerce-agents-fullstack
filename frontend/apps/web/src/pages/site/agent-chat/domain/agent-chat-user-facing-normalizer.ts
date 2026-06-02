@@ -24,6 +24,12 @@ const CJK_EXCLAMATION = cjk(65281)
 const CJK_QUESTION = cjk(65311)
 const THINKING = cjk(27491, 22312, 24605, 32771, 20013)
 const MISSING_USER_QUESTION = cjk(29992, 25143, 26410, 25552, 20379, 20855, 20307, 38382, 39064)
+const LEGACY_INCOMPLETE_ANSWER = cjk(26412, 36718, 27809, 26377, 24418, 25104, 23436, 25972, 22238, 31572)
+const PARTIAL_ROLE_FAILURE = cjk(37096, 20998, 23703, 20301, 27809, 26377, 25104, 21151, 25191, 34892)
+const ROLE_EXECUTOR_UNAVAILABLE = cjk(26381, 21153, 31471, 27809, 26377, 21487, 29992, 30340, 35813, 23703, 20301, 25191, 34892, 22120)
+const UPSTREAM_ROLE_INCOMPLETE = cjk(19978, 28216, 20381, 36182, 23703, 20301, 26410, 25104, 21151, 23436, 25104)
+const CHECK_SERVER_ROLE_CONFIG = cjk(35831, 26816, 26597, 26381, 21153, 31471, 23703, 20301, 37197, 32622)
+const ROLE_EXECUTION_FAILED = cjk(23703, 20301, 25191, 34892, 22833, 36133)
 
 const PLACEHOLDER_PHRASES = [
   cjk(65288, 21344, 20301, 31526, 38656, 26367, 25442, 20026, 30495, 23454, 20449, 24687, 65289),
@@ -87,6 +93,7 @@ function firstColon(value: string) {
 
 function looksLikeInternalRoleLabel(label: string) {
   const lower = label.toLowerCase()
+  if (isInternalRuntimeRoleLabel(lower)) return true
   if (
     lower.startsWith("primary ") ||
     lower.startsWith("support ") ||
@@ -99,6 +106,23 @@ function looksLikeInternalRoleLabel(label: string) {
   const match = label.match(/\(([^)]+)\)/)
   if (!match) return false
   return /^[a-z0-9_.-]+$/.test(match[1] ?? "")
+}
+
+function isInternalRuntimeRoleLabel(label: string) {
+  const normalized = label.trim().replace(/_final$/i, "")
+  return [
+    "chat",
+    "ops",
+    "data",
+    "creative",
+    "service",
+    "engineering",
+    "accounting",
+    "design",
+    "web",
+    "search",
+    "douyin_ads",
+  ].includes(normalized)
 }
 
 function removePlaceholderBrackets(input: string) {
@@ -222,6 +246,9 @@ function isInternalNoiseLine(line: string) {
       "json template validation failed",
       "missing key",
       "worker reported failed status",
+      "worker_unavailable",
+      "llm_provider_error",
+      "failure_kind",
       "support role",
       "support worker",
       "support_workers",
@@ -231,6 +258,12 @@ function isInternalNoiseLine(line: string) {
     ].some((marker) => lower.includes(marker)) ||
     line.includes(INTERNAL_GRAPH) ||
     line.includes(INTERNAL_REPORT) ||
+    line.includes(LEGACY_INCOMPLETE_ANSWER) ||
+    line.includes(PARTIAL_ROLE_FAILURE) ||
+    line.includes(ROLE_EXECUTOR_UNAVAILABLE) ||
+    line.includes(UPSTREAM_ROLE_INCOMPLETE) ||
+    line.includes(CHECK_SERVER_ROLE_CONFIG) ||
+    line.includes(ROLE_EXECUTION_FAILED) ||
     line.startsWith(TASK_DONE) ||
     line.startsWith(SUPPORT_DONE) ||
     line.includes(THINKING) ||

@@ -921,20 +921,22 @@ impl WorkspaceApi {
         if let Some(run_id) = run_id {
             self.ensure_run_owner(user_id, workspace_id, run_id).await?;
         }
+        let include_implicit_conversation_files = req.include_implicit_conversation_files;
         let has_explicit_context_scope = has_explicit_context_ref_values(&req.context_refs);
         let explicit_context_refs = explicit_workspace_context_refs(req.context_refs)?;
 
-        let mut conversation_files = if !has_explicit_context_scope {
-            if let Some(conversation_id) = conversation_id {
-                self.conversation_file_svc
-                    .list_by_conversation_id(conversation_id)
-                    .await?
+        let mut conversation_files =
+            if include_implicit_conversation_files && !has_explicit_context_scope {
+                if let Some(conversation_id) = conversation_id {
+                    self.conversation_file_svc
+                        .list_by_conversation_id(conversation_id)
+                        .await?
+                } else {
+                    Vec::new()
+                }
             } else {
                 Vec::new()
-            }
-        } else {
-            Vec::new()
-        };
+            };
         for file_id in explicit_context_refs.conversation_file_ids {
             let file = self
                 .ensure_active_conversation_file_owner(user_id, file_id)
@@ -1145,20 +1147,22 @@ impl WorkspaceApi {
         if let Some(run_id) = run_id {
             self.ensure_run_owner(user_id, workspace_id, run_id).await?;
         }
+        let include_implicit_conversation_files = req.include_implicit_conversation_files;
         let has_explicit_context_scope = has_explicit_context_ref_values(&req.context_refs);
         let explicit_context_refs = explicit_workspace_context_refs(req.context_refs)?;
 
-        let mut conversation_files = if !has_explicit_context_scope {
-            if let Some(conversation_id) = conversation_id {
-                self.conversation_file_svc
-                    .list_by_conversation_id(conversation_id)
-                    .await?
+        let mut conversation_files =
+            if include_implicit_conversation_files && !has_explicit_context_scope {
+                if let Some(conversation_id) = conversation_id {
+                    self.conversation_file_svc
+                        .list_by_conversation_id(conversation_id)
+                        .await?
+                } else {
+                    Vec::new()
+                }
             } else {
                 Vec::new()
-            }
-        } else {
-            Vec::new()
-        };
+            };
         for file_id in explicit_context_refs.conversation_file_ids {
             let file = self
                 .ensure_active_conversation_file_owner(user_id, file_id)
@@ -5019,6 +5023,12 @@ fn search_evidence_context_sources(output: Option<&Value>) -> Vec<Value> {
 }
 
 fn conversation_file_extracted_text(metadata: &Value) -> Option<String> {
+    conversation_file_top_level_text(metadata)
+        .or_else(|| metadata_nested_text_field(metadata, "extraction"))
+        .or_else(|| metadata_nested_text_field(metadata, "parsed"))
+}
+
+fn conversation_file_top_level_text(metadata: &Value) -> Option<String> {
     metadata_text_field(
         metadata,
         &[
@@ -5035,8 +5045,6 @@ fn conversation_file_extracted_text(metadata: &Value) -> Option<String> {
             "summary",
         ],
     )
-    .or_else(|| metadata_nested_text_field(metadata, "extraction"))
-    .or_else(|| metadata_nested_text_field(metadata, "parsed"))
 }
 
 fn conversation_file_analysis_storage_sha(item: &ConversationFile) -> Option<String> {
@@ -5132,6 +5140,10 @@ fn should_omit_context_pack_metadata_value(key: &str, value: &Value) -> bool {
 }
 
 fn conversation_file_extraction_status(metadata: &Value) -> String {
+    if conversation_file_top_level_text(metadata).is_some() {
+        return "extracted".to_string();
+    }
+
     metadata
         .get("extractionStatus")
         .and_then(Value::as_str)
@@ -5142,13 +5154,7 @@ fn conversation_file_extraction_status(metadata: &Value) -> String {
                 .and_then(Value::as_str)
         })
         .map(normalize_conversation_file_extraction_status)
-        .unwrap_or_else(|| {
-            if conversation_file_extracted_text(metadata).is_some() {
-                "extracted".to_string()
-            } else {
-                "pending".to_string()
-            }
-        })
+        .unwrap_or_else(|| "pending".to_string())
 }
 
 #[derive(Debug, Clone)]
@@ -11359,6 +11365,47 @@ mod tests {
         );
         assert_eq!(extracted.content_kind, "extracted_text");
         assert_eq!(extracted.text, Some("可读正文".to_string()));
+    }
+
+    #[test]
+    fn context_pack_prefers_readable_attachment_text_over_failed_status() {
+        let candidate = context_pack_conversation_file_candidate(
+            ConversationFile {
+                id: Uuid::new_v4(),
+                user_id: Uuid::new_v4(),
+                conversation_id: Uuid::new_v4(),
+                message_id: None,
+                bucket: "private".to_string(),
+                object_key: "chat/u/c/metrics.csv".to_string(),
+                file_name: Some("metrics.csv".to_string()),
+                mime_type: Some("text/csv".to_string()),
+                file_size: Some(128),
+                sha256: None,
+                visibility: "private".to_string(),
+                storage_provider: "s3".to_string(),
+                status: "active".to_string(),
+                metadata: json!({
+                    "extractionStatus": "failed",
+                    "extractedText": "日期,展现,点击,成交,退款率\n2026-06-01,1000,12,2,18%",
+                    "extraction": {
+                        "status": "failed",
+                        "failureReason": "background ingest could not download object"
+                    }
+                }),
+                created_at: OffsetDateTime::now_utc(),
+                deleted_at: None,
+            },
+            Some("退款率"),
+        );
+
+        assert_eq!(candidate.extraction_status.as_deref(), Some("extracted"));
+        assert_eq!(candidate.content_kind, "table_profile");
+        assert!(
+            candidate
+                .text
+                .as_deref()
+                .is_some_and(|text| text.contains("退款率"))
+        );
     }
 
     #[test]

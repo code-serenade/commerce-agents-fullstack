@@ -474,6 +474,7 @@ pub async fn preview_agent_context(
             conversation_id: req.conversation_id.clone(),
             product_id: req.product_id.clone(),
             include_workspace_product_context: true,
+            include_implicit_conversation_files: true,
             run_id: None,
             context_refs: normalize_preview_context_refs(req.context_refs.clone()),
         })
@@ -486,6 +487,7 @@ pub async fn preview_agent_context(
             conversation_id: workspace_context.conversation_id.clone(),
             product_id: workspace_context.product_id.clone(),
             include_workspace_product_context: true,
+            include_implicit_conversation_files: true,
             run_id: None,
             context_refs: normalize_preview_context_refs(req.context_refs),
             max_items: req.max_items,

@@ -1808,7 +1808,7 @@ const messages = {
           label: "计划 Skill",
         },
         roleAudit: {
-          label: "岗位核对",
+          label: "协作核对",
           detail: "计划 {{planned}}；已执行 {{executed}}",
           warning: "计划 {{planned}}；已执行 {{executed}}；缺失 {{missing}}；额外 {{extra}}",
         },

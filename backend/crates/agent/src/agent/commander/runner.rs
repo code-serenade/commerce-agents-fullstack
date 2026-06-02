@@ -18,6 +18,7 @@ use route::{
 use super::{
     CommanderPhase, CommanderState, CommanderTask, RoutedDecision, TaskGraphRuntime, TaskMemory,
     decision_intent_from_json, plan_configured_non_chat_task_graph, plan_task_graph,
+    role_dispatch_debug::{log_request_received, log_route_decided},
 };
 use crate::{
     agent_session::{
@@ -243,6 +244,8 @@ impl Commander {
             id: task.id.0,
             description: task.description,
         };
+        let worker_profiles = self.session_context.list_worker_profiles();
+        log_request_received(&context, &incoming_task.description, &worker_profiles);
 
         self.memory.clear();
         self.active_collaboration = None;
@@ -262,6 +265,8 @@ impl Commander {
 
     async fn step_thinking(&mut self) {
         let role_route = self.current_role_route();
+        let worker_profiles = self.session_context.list_worker_profiles();
+        log_route_decided(&self.current_context, role_route.as_ref(), &worker_profiles);
         debug!(
             task_id = self
                 .current_task
@@ -319,12 +324,26 @@ impl Commander {
                 warn!(error = %failure.description, "commander cognition failure");
                 self.memory
                     .set_error(format!("cognition failure: {}", failure.description));
-                RoutedDecision {
-                    intent: DecisionIntent::Ignore,
-                    target_worker_id: None,
-                    task_graph: None,
-                    clarification: None,
-                }
+                let content = if crate::llm_routing::is_llm_access_denied_message(
+                    &failure.description,
+                ) {
+                    crate::llm_routing::llm_access_denied_user_message().to_string()
+                } else if crate::llm_routing::is_llm_provider_error_message(&failure.description) {
+                    crate::llm_routing::llm_provider_error_user_message().to_string()
+                } else {
+                    "当前 AI 调度模型没有成功返回结果，所以这轮没有开始可靠的岗位协作。请稍后重试；如果连续出现，请管理员检查模型服务日志。"
+                            .to_string()
+                };
+                let _ = self.sender.send(Message::new_with_context(
+                    next_message_id(),
+                    self.current_context.clone(),
+                    self.id.clone(),
+                    self.host_id.clone(),
+                    Payload::Text { content },
+                ));
+                self.phase = CommanderPhase::Idle;
+                self.state = CommanderState::Idle;
+                return;
             }
         };
 

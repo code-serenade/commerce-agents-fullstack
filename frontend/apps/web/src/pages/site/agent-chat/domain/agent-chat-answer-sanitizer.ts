@@ -20,6 +20,9 @@ const INTERNAL_FAILURE_PATTERNS = [
   /role output has open questions/i,
   /open questions remain/i,
   /worker reported failed status/i,
+  /worker_unavailable/i,
+  /llm_provider_error/i,
+  /failure_kind/i,
 ]
 
 const PRESERVED_BLANK_LINE = "__AGENT_CHAT_PRESERVED_BLANK_LINE__"
@@ -106,6 +109,15 @@ const BENCHMARK_GAP_TERMS = terms([
 const INTERNAL_FAILURE_HEADINGS = terms([
   [26410, 23436, 25104, 33410, 28857],
   [26410, 23436, 25104, 25110, 38656, 22797, 26680],
+  [26412, 36718, 27809, 26377, 24418, 25104, 23436, 25972, 22238, 31572],
+])
+
+const INTERNAL_FAILURE_TEXT_TERMS = terms([
+  [37096, 20998, 23703, 20301, 27809, 26377, 25104, 21151, 25191, 34892],
+  [26381, 21153, 31471, 27809, 26377, 21487, 29992, 30340, 35813, 23703, 20301, 25191, 34892, 22120],
+  [19978, 28216, 20381, 36182, 23703, 20301, 26410, 25104, 21151, 23436, 25104],
+  [23703, 20301, 25191, 34892, 22833, 36133],
+  [35831, 26816, 26597, 26381, 21153, 31471, 23703, 20301, 37197, 32622],
 ])
 
 const BOUNDARY_NOTICE_TERMS = terms([
@@ -246,6 +258,8 @@ function isInternalFailureHeading(value: string) {
 function hasInternalFailureText(value: string) {
   if (!value) return false
   if (/^-\s*.+\(.+\)\s*failed:/i.test(value)) return true
+  if (/^-\s*(?:data|ops|creative|service|engineering|accounting|design|web|search|chat)\s*[:：]/i.test(value)) return true
+  if (containsAnyTerm(value, INTERNAL_FAILURE_TEXT_TERMS)) return true
   return INTERNAL_FAILURE_PATTERNS.some((pattern) => pattern.test(value))
 }
 

@@ -284,6 +284,7 @@ pub struct GetWorkspaceContextSummaryRequest {
     pub conversation_id: Option<String>,
     pub product_id: Option<String>,
     pub include_workspace_product_context: bool,
+    pub include_implicit_conversation_files: bool,
     pub run_id: Option<String>,
     pub context_refs: Vec<String>,
 }
@@ -295,6 +296,7 @@ pub struct GetWorkspaceContextPackRequest {
     pub conversation_id: Option<String>,
     pub product_id: Option<String>,
     pub include_workspace_product_context: bool,
+    pub include_implicit_conversation_files: bool,
     pub run_id: Option<String>,
     pub context_refs: Vec<String>,
     pub max_items: Option<usize>,

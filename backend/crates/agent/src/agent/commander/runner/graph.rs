@@ -1,6 +1,9 @@
 use tracing::{debug, warn};
 
 use super::{Commander, CommanderPhase, CommanderState, next_message_id, primary_route_score};
+use crate::agent::commander::role_dispatch_debug::{
+    log_assignment_dispatch, log_task_graph_planned, log_task_node_failed, log_worker_report,
+};
 use crate::{
     agent::commander::{
         EvaluationOutcome, TaskGraphRuntime, no_user_facing_content_message,
@@ -18,10 +21,18 @@ use crate::{
 
 impl Commander {
     pub(super) fn dispatch_assignment_to_worker(&self, assignment: WorkerAssignment) -> bool {
+        let worker_profiles = self.session_context.list_worker_profiles();
         let Some(worker_tx) = self.session_context.get_worker_tx(&assignment.worker_id) else {
             warn!(
                 worker_id = %assignment.worker_id.0,
                 "no worker tx available for task graph assignment"
+            );
+            log_assignment_dispatch(
+                &self.current_context,
+                &assignment,
+                &worker_profiles,
+                false,
+                Some("worker_tx_missing"),
             );
             return false;
         };
@@ -31,9 +42,19 @@ impl Commander {
             self.current_context.clone(),
             self.id.clone(),
             AgentId(assignment.worker_id.0.clone()),
-            Payload::WorkerAssignment { assignment },
+            Payload::WorkerAssignment {
+                assignment: assignment.clone(),
+            },
         );
-        worker_tx.send(task_message).is_ok()
+        let dispatched = worker_tx.send(task_message).is_ok();
+        log_assignment_dispatch(
+            &self.current_context,
+            &assignment,
+            &worker_profiles,
+            dispatched,
+            (!dispatched).then_some("worker_channel_send_failed"),
+        );
+        dispatched
     }
 
     pub(super) async fn try_task_graph_route(&mut self, role_route: Option<&RoleRoute>) -> bool {
@@ -184,6 +205,8 @@ impl Commander {
             support_roles = ?display_roles.1,
             "commander scheduling task graph"
         );
+        let worker_profiles = self.session_context.list_worker_profiles();
+        log_task_graph_planned(&self.current_context, route_mode, &graph, &worker_profiles);
         self.emit_route_decided(route_mode, display_roles.0.clone(), display_roles.1.clone());
         self.emit_dispatch_planned_for_graph_with_roles(route_mode, &graph, display_roles);
         self.emit_event(SessionEvent::TaskGraphPlanned {
@@ -362,6 +385,7 @@ impl Commander {
         report: WorkerReport,
         context: &MessageContext,
     ) {
+        log_worker_report(context, &report);
         self.emit_event(SessionEvent::TaskNodeReported {
             session_id: self.session_id_from_context(context),
             graph_id: report.graph_id.clone(),
@@ -426,6 +450,7 @@ impl Commander {
             }
             EvaluationOutcome::Failed(evaluation) => {
                 let reason = evaluation.reasons.join("; ");
+                log_task_node_failed(context, &graph_id.0, &node_id.0, &reason);
                 self.emit_event(SessionEvent::TaskNodeEvaluated {
                     session_id: self.session_id_from_context(context),
                     graph_id: graph_id.clone(),
@@ -470,10 +495,10 @@ impl Commander {
 
 fn worker_unavailable_report(assignment: &WorkerAssignment) -> WorkerReport {
     let failure_kind = "worker_unavailable";
-    let summary = format!(
-        "{} 岗位未能执行：当前服务端没有注册可用的该岗位执行器。",
-        assignment.role
-    );
+    let summary = "本轮有一个协作步骤没有成功启动，不能把结果当成完整协作结论。".to_string();
+    let risk = "部分协作步骤没有实际完成，最终回答不能代表完整协作结果。".to_string();
+    let open_question =
+        "请稍后重试；如果问题很急，可以先切到普通问答或只指定一个角色继续问。".to_string();
     WorkerReport {
         graph_id: assignment.graph_id.clone(),
         node_id: assignment.node_id.clone(),
@@ -486,14 +511,12 @@ fn worker_unavailable_report(assignment: &WorkerAssignment) -> WorkerReport {
             findings: Vec::new(),
             recommendations: Vec::new(),
             evidence: vec!["failure_kind:worker_unavailable".to_string()],
-            risks: vec![
-                "已选择的岗位没有实际执行，最终回答不能代表完整多岗位协作结果。".to_string(),
-            ],
-            open_questions: vec!["请检查服务端岗位配置和 worker 注册状态后重试。".to_string()],
+            risks: vec![risk.clone()],
+            open_questions: vec![open_question.clone()],
         }),
         evidence: vec![format!("failure_kind:{failure_kind}")],
-        risks: vec!["已选择的岗位没有实际执行，最终回答不能代表完整多岗位协作结果。".to_string()],
-        open_questions: vec!["请检查服务端岗位配置和 worker 注册状态后重试。".to_string()],
+        risks: vec![risk],
+        open_questions: vec![open_question],
         diagnostics: vec![worker_unavailable_diagnostic(assignment, failure_kind)],
         status: WorkerReportStatus::Failed,
     }

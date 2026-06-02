@@ -30,9 +30,11 @@ const REQUEST_ATTACHMENTS_IMAGES_JSON: &str = "request.attachments.images_json";
 const ATTACHMENTS_IMAGE_SUMMARIES_JSON: &str = "attachments.image_summaries_json";
 const REQUEST_ATTACHMENTS_IMAGE_SUMMARIES_JSON: &str = "request.attachments.image_summaries_json";
 pub const LLM_ACCESS_DENIED_MARKER: &str = "llm_access_denied";
-const LLM_ACCESS_DENIED_USER_MESSAGE: &str = "当前 AI 模型服务配置不可用，模型服务返回权限错误，所以本轮 Agent \
-     岗位没有形成有效回答。请管理员检查服务端 services.toml 中的 [agent_llm_usage]、模型名和 API \
-     Key 权限后重试。";
+pub const LLM_PROVIDER_ERROR_MARKER: &str = "llm_provider_error";
+const LLM_ACCESS_DENIED_USER_MESSAGE: &str = "当前 AI 模型服务配置不可用，模型服务返回权限错误，所以本轮没有形成有效回答。\
+     请联系管理员检查模型服务配置和权限后重试。";
+const LLM_PROVIDER_ERROR_USER_MESSAGE: &str = "当前 AI 模型服务临时不可用，模型网关返回服务端错误，所以本轮没有形成可靠回答。\
+     请稍后重试；如果连续出现，请联系管理员检查模型网关状态。";
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct AgentLlmCfg {
@@ -397,10 +399,17 @@ where
                         last_failure = llm_access_denied_failure();
                         break;
                     }
-                    last_failure = CognitionFailure {
-                        reason: FailureReason::InternalError,
-                        description: format!("LLM request failed on attempt {attempt}: {err_text}"),
-                    };
+                    if is_llm_provider_error_message(&err_text) {
+                        last_failure =
+                            llm_provider_error_failure(attempt, usage_name, model_name, &err_text);
+                    } else {
+                        last_failure = CognitionFailure {
+                            reason: FailureReason::InternalError,
+                            description: format!(
+                                "LLM request failed on attempt {attempt}: {err_text}"
+                            ),
+                        };
+                    }
                     if attempt < max_attempts && self.retry_policy.retry_llm_error {
                         messages = retry_messages(
                             &base_messages,
@@ -472,7 +481,9 @@ where
             }
         }
 
-        if is_llm_access_denied_message(&last_failure.description) {
+        if is_llm_access_denied_message(&last_failure.description)
+            || is_llm_provider_error_message(&last_failure.description)
+        {
             return CognitionResult::Failure(last_failure);
         }
 
@@ -691,6 +702,37 @@ pub fn llm_access_denied_user_message() -> &'static str {
     LLM_ACCESS_DENIED_USER_MESSAGE
 }
 
+pub fn is_llm_provider_error_message(message: &str) -> bool {
+    let lower = message.to_ascii_lowercase();
+    lower.contains(LLM_PROVIDER_ERROR_MARKER)
+        || ((lower.contains("api error")
+            || lower.contains("llm request failed")
+            || lower.contains("provider request failed"))
+            && (contains_status_code(&lower, "500")
+                || contains_status_code(&lower, "502")
+                || contains_status_code(&lower, "503")
+                || contains_status_code(&lower, "504")
+                || lower.contains("internal server error")
+                || lower.contains("bad gateway")
+                || lower.contains("service unavailable")
+                || lower.contains("gateway timeout")))
+}
+
+pub fn llm_provider_error_user_message() -> &'static str {
+    LLM_PROVIDER_ERROR_USER_MESSAGE
+}
+
+fn contains_status_code(message: &str, code: &str) -> bool {
+    [
+        format!("status={code}"),
+        format!("status: {code}"),
+        format!("status:{code}"),
+        format!("status {code}"),
+    ]
+    .iter()
+    .any(|pattern| message.contains(pattern))
+}
+
 fn llm_access_denied_failure() -> CognitionFailure {
     CognitionFailure {
         reason: FailureReason::InternalError,
@@ -699,6 +741,25 @@ fn llm_access_denied_failure() -> CognitionFailure {
             llm_access_denied_user_message()
         ),
     }
+}
+
+fn llm_provider_error_failure(
+    attempt: usize,
+    usage_name: &str,
+    model_name: &str,
+    err_text: &str,
+) -> CognitionFailure {
+    CognitionFailure {
+        reason: FailureReason::InternalError,
+        description: format!(
+            "{LLM_PROVIDER_ERROR_MARKER}: attempt={attempt}; llm_usage={usage_name}; model={model_name}; error={}",
+            compact_provider_error(err_text)
+        ),
+    }
+}
+
+fn compact_provider_error(message: &str) -> String {
+    message.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 fn parse_image_inputs(
@@ -1187,6 +1248,25 @@ mod tests {
             "LLM returned empty response on attempt 1"
         ));
         assert!(!is_llm_access_denied_message(
+            "decode failed on attempt 1/3: missing key role_output"
+        ));
+    }
+
+    #[test]
+    fn llm_provider_error_classifier_matches_upstream_5xx_errors() {
+        assert!(is_llm_provider_error_message(
+            "LLM request failed on attempt 3: api error: status=500, body=Internal Server Error"
+        ));
+        assert!(is_llm_provider_error_message(
+            "provider request failed: api error: status: 503, message=Service Unavailable"
+        ));
+        assert!(is_llm_provider_error_message(
+            "llm_provider_error: attempt=3; llm_usage=doubao-thinking; model=DouBao-Seed-2.0"
+        ));
+        assert!(!is_llm_provider_error_message(
+            "api error: status=403, code=AccessDenied"
+        ));
+        assert!(!is_llm_provider_error_message(
             "decode failed on attempt 1/3: missing key role_output"
         ));
     }

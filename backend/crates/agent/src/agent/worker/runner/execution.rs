@@ -245,6 +245,15 @@ impl Worker {
                     ));
                     return;
                 }
+                if crate::llm_routing::is_llm_provider_error_message(&failure.description) {
+                    self.memory.set_state("failure_kind", "llm_provider_error");
+                    self.memory.set_error(format!(
+                        "llm_provider_error: {}",
+                        crate::llm_routing::llm_provider_error_user_message()
+                    ));
+                    return;
+                }
+                self.memory.set_state("failure_kind", "cognition_failure");
                 self.memory
                     .set_error(format!("cognition failure: {}", failure.description));
             }
@@ -728,6 +737,7 @@ mod tests {
 
     struct SlowCognition;
     struct AccessDeniedCognition;
+    struct ProviderErrorCognition;
     struct SuccessfulCognition;
 
     #[async_trait]
@@ -748,6 +758,16 @@ mod tests {
             CognitionResult::Failure(CognitionFailure {
                 reason: FailureReason::InternalError,
                 description: "llm_access_denied: 当前 AI 模型服务配置不可用".to_string(),
+            })
+        }
+    }
+
+    #[async_trait]
+    impl Cognition for ProviderErrorCognition {
+        async fn evaluate(&self, _input: CognitionInput) -> CognitionResult {
+            CognitionResult::Failure(CognitionFailure {
+                reason: FailureReason::InternalError,
+                description: "llm_provider_error: attempt=3; llm_usage=doubao-thinking; model=DouBao-Seed-2.0; error=api error: status=500, body=Internal Server Error".to_string(),
             })
         }
     }
@@ -987,6 +1007,97 @@ mod tests {
                 .open_questions
                 .iter()
                 .any(|item| item.contains("模型服务配置不可用"))
+        );
+
+        worker_tx
+            .send(Message::new(
+                next_message_id(),
+                AgentId("test".to_string()),
+                AgentId("worker.data".to_string()),
+                Payload::Text {
+                    content: "control:shutdown".to_string(),
+                },
+            ))
+            .expect("worker should accept shutdown");
+        tokio::time::timeout(Duration::from_secs(1), worker_loop)
+            .await
+            .expect("worker loop should stop")
+            .expect("worker task should not panic");
+    }
+
+    #[tokio::test]
+    async fn worker_reports_llm_provider_error_as_structured_failure() {
+        let (worker_tx, worker_rx) = mpsc::unbounded_channel();
+        let (commander_tx, mut commander_rx) = mpsc::unbounded_channel();
+        let mut worker = Worker::new_with_config(
+            role("data"),
+            Box::new(ProviderErrorCognition),
+            worker_rx,
+            commander_tx,
+            None,
+            None,
+            WorkerRuntimeConfig {
+                cognition_timeout: Duration::from_secs(1),
+            },
+        );
+
+        let worker_loop = tokio::spawn(async move {
+            worker.run().await;
+        });
+        worker_tx
+            .send(Message::new_with_context(
+                next_message_id(),
+                MessageContext::default(),
+                AgentId("commander".to_string()),
+                AgentId("worker.data".to_string()),
+                Payload::WorkerAssignment {
+                    assignment: assignment(None),
+                },
+            ))
+            .expect("worker should accept assignment");
+
+        let mut report = None;
+        for _ in 0..3 {
+            let message = tokio::time::timeout(Duration::from_secs(1), commander_rx.recv())
+                .await
+                .expect("worker should report before test timeout")
+                .expect("commander channel should remain open");
+            if let Payload::WorkerReport { report: item } = message.payload {
+                report = Some(item);
+                break;
+            }
+        }
+
+        let report = report.expect("worker should emit a structured failure report");
+        assert_eq!(report.status, WorkerReportStatus::Failed);
+        assert!(report.content.contains("llm_provider_error"));
+        assert!(
+            report
+                .evidence
+                .iter()
+                .any(|item| item == "failure_kind:llm_provider_error")
+        );
+        assert!(report.diagnostics.iter().any(|diagnostic| {
+            diagnostic.kind == "failure"
+                && diagnostic.source == "llm_provider_error"
+                && diagnostic
+                    .fields
+                    .get("failure_kind")
+                    .is_some_and(|value| value == "llm_provider_error")
+                && diagnostic
+                    .fields
+                    .get("status")
+                    .is_some_and(|value| value == "failed")
+                && diagnostic
+                    .fields
+                    .get("role")
+                    .is_some_and(|value| value == "ops")
+        }));
+        assert!(
+            report
+                .open_questions
+                .iter()
+                .any(|item| item.contains("模型服务临时不可用"))
         );
 
         worker_tx

@@ -1,11 +1,17 @@
 use crate::{
     core::protocol::WorkerReport,
-    llm_routing::{is_llm_access_denied_message, llm_access_denied_user_message},
+    llm_routing::{
+        is_llm_access_denied_message, is_llm_provider_error_message,
+        llm_access_denied_user_message, llm_provider_error_user_message,
+    },
 };
 
 pub(crate) fn user_facing_report_text(report: &WorkerReport) -> Option<String> {
     if report_has_llm_access_denied(report) {
         return Some(llm_access_denied_user_message().to_string());
+    }
+    if report_has_llm_provider_error(report) {
+        return Some(llm_provider_error_user_message().to_string());
     }
 
     report
@@ -55,6 +61,46 @@ pub(crate) fn report_has_llm_access_denied(report: &WorkerReport) -> bool {
         })
 }
 
+pub(crate) fn report_has_llm_provider_error(report: &WorkerReport) -> bool {
+    report_has_failure_diagnostic(report, "llm_provider_error")
+        || is_llm_provider_error_message(&report.content)
+        || report
+            .open_questions
+            .iter()
+            .any(|item| is_llm_provider_error_message(item))
+        || report
+            .risks
+            .iter()
+            .any(|item| is_llm_provider_error_message(item))
+        || report
+            .evidence
+            .iter()
+            .any(|item| is_llm_provider_error_message(item))
+        || report.role_output.as_ref().is_some_and(|output| {
+            is_llm_provider_error_message(&output.summary)
+                || output
+                    .findings
+                    .iter()
+                    .any(|item| is_llm_provider_error_message(item))
+                || output
+                    .recommendations
+                    .iter()
+                    .any(|item| is_llm_provider_error_message(item))
+                || output
+                    .open_questions
+                    .iter()
+                    .any(|item| is_llm_provider_error_message(item))
+                || output
+                    .risks
+                    .iter()
+                    .any(|item| is_llm_provider_error_message(item))
+                || output
+                    .evidence
+                    .iter()
+                    .any(|item| is_llm_provider_error_message(item))
+        })
+}
+
 pub(crate) fn report_has_failure_diagnostic(report: &WorkerReport, failure_kind: &str) -> bool {
     report.diagnostics.iter().any(|diagnostic| {
         diagnostic.kind == "failure"
@@ -70,12 +116,19 @@ fn role_output_user_facing_text(
     role: &str,
     output: &crate::core::protocol::RoleWorkOutput,
 ) -> Option<String> {
+    let has_live_search = has_reliable_live_search_evidence(output);
     let live_search = live_search_user_facing_text(output);
     if role == "search" {
-        return live_search.or_else(|| role_output_business_text(output));
+        return live_search.or_else(|| {
+            role_output_business_text(output)
+                .map(|text| remove_unverified_live_search_success_claims(&text, has_live_search))
+                .filter(|text| !text.trim().is_empty())
+        });
     }
 
-    let business_text = role_output_business_text(output);
+    let business_text = role_output_business_text(output)
+        .map(|text| remove_unverified_live_search_success_claims(&text, has_live_search))
+        .filter(|text| !text.trim().is_empty());
     if let Some(text) = business_text
         .as_ref()
         .filter(|text| !looks_like_no_source_claim(text))
@@ -240,9 +293,65 @@ fn live_search_evidence_sections(output: &crate::core::protocol::RoleWorkOutput)
         })
 }
 
+fn has_reliable_live_search_evidence(output: &crate::core::protocol::RoleWorkOutput) -> bool {
+    output
+        .evidence
+        .iter()
+        .chain(output.findings.iter())
+        .any(|item| looks_like_live_search_evidence(item))
+}
+
 fn looks_like_live_search_evidence(item: &str) -> bool {
     let item = item.trim();
-    item.contains("实时搜索来源") || (item.contains("http://") || item.contains("https://"))
+    let lower = item.to_ascii_lowercase();
+    if lower.contains("search_evidence_packet")
+        || lower.contains("search_evidence_trace")
+        || lower.contains("adapter_status=degraded")
+        || lower.contains("\"adapter_status\":\"degraded\"")
+        || lower.contains("adapter_status=adapter_required")
+        || lower.contains("\"adapter_status\":\"adapter_required\"")
+        || lower.contains("no_reliable_sources")
+        || item.contains("没有可采信实时来源")
+        || item.contains("没有可采信公开来源")
+        || item.contains("不能当作实时搜索结论")
+        || item.contains("当前结果只能作为降级状态")
+        || item.contains("0 个可采信来源")
+        || item.contains("0个可采信来源")
+    {
+        return false;
+    }
+
+    item.contains("实时搜索来源")
+        && (item.contains("可采信来源") || item.contains("http://") || item.contains("https://"))
+}
+
+fn remove_unverified_live_search_success_claims(text: &str, has_live_search: bool) -> String {
+    if has_live_search {
+        return text.to_string();
+    }
+
+    let lines = text
+        .lines()
+        .filter_map(strip_unverified_live_search_success_claim_line)
+        .collect::<Vec<_>>();
+    normalize_blank_lines(lines)
+}
+
+fn strip_unverified_live_search_success_claim_line(line: &str) -> Option<String> {
+    let mut text = line.to_string();
+    for phrase in [
+        "本轮已通过外部搜索取得实时来源。",
+        "本轮已通过外部搜索取得实时来源",
+        "已通过外部搜索取得实时来源。",
+        "已通过外部搜索取得实时来源",
+        "本轮已取得实时来源。",
+        "本轮已取得实时来源",
+    ] {
+        text = text.replace(phrase, "");
+    }
+
+    let trimmed = text.trim();
+    (!trimmed.is_empty()).then(|| trimmed.to_string())
 }
 
 fn looks_like_no_source_claim(item: &str) -> bool {
@@ -593,6 +702,7 @@ fn restore_readable_answer_layout(text: &str) -> String {
     let text = insert_breaks_before_bracket_headings(text);
     let text = insert_breaks_after_bracket_headings(&text);
     let text = insert_breaks_around_inline_colon_headings(&text);
+    let text = insert_breaks_before_inline_numbered_items(&text);
     normalize_blank_lines(text.lines().map(str::to_string).collect())
 }
 
@@ -788,6 +898,73 @@ fn heading_has_section_suffix(heading: &str) -> bool {
     .any(|suffix| heading.ends_with(suffix))
 }
 
+fn insert_breaks_before_inline_numbered_items(text: &str) -> String {
+    let chars = text.chars().collect::<Vec<_>>();
+    if chars.is_empty() {
+        return String::new();
+    }
+
+    let mut output = String::new();
+    for (index, ch) in chars.iter().enumerate() {
+        if should_break_before_inline_numbered_item(&chars, index) {
+            trim_trailing_spaces(&mut output);
+            ensure_paragraph_break(&mut output);
+        }
+        output.push(*ch);
+    }
+    output
+}
+
+fn should_break_before_inline_numbered_item(chars: &[char], index: usize) -> bool {
+    if index == 0 || chars[index - 1] == '\n' {
+        return false;
+    }
+    if !has_inline_numbered_item_marker(chars, index) {
+        return false;
+    }
+    if !previous_context_allows_inline_numbered_break(chars, index) {
+        return false;
+    }
+    following_text_looks_like_list_item(chars, index)
+}
+
+fn has_inline_numbered_item_marker(chars: &[char], index: usize) -> bool {
+    if matches!(chars[index], '①'..='⑳') {
+        return true;
+    }
+    chars[index].is_ascii_digit()
+        && chars
+            .get(index + 1)
+            .is_some_and(|next| matches!(*next, '.' | '、' | '．'))
+        && chars
+            .get(index + 2)
+            .is_some_and(|next| next.is_whitespace() || is_cjk(*next))
+}
+
+fn previous_context_allows_inline_numbered_break(chars: &[char], index: usize) -> bool {
+    let previous = chars[..index]
+        .iter()
+        .rev()
+        .find(|ch| !ch.is_whitespace())
+        .copied();
+    matches!(
+        previous,
+        Some('：' | ':' | '；' | ';' | '。' | '！' | '？' | ',' | '，' | '、')
+    )
+}
+
+fn following_text_looks_like_list_item(chars: &[char], index: usize) -> bool {
+    let mut cursor = if matches!(chars[index], '①'..='⑳') {
+        index + 1
+    } else {
+        index + 2
+    };
+    while cursor < chars.len() && chars[cursor].is_whitespace() {
+        cursor += 1;
+    }
+    chars.get(cursor).is_some_and(|ch| is_cjk(*ch))
+}
+
 fn trim_trailing_spaces(output: &mut String) {
     while output.ends_with(' ') || output.ends_with('\t') {
         output.pop();
@@ -835,6 +1012,31 @@ fn rewrite_internal_evidence_terms(line: &str) -> String {
     text = text.replace("资料可信度", "资料来源");
     text = text.replace("资料来源较明确，资料来源较明确", "资料来源较明确");
     text = text.replace("资料来源较明确、资料来源较明确", "资料来源较明确");
+    text = rewrite_internal_context_field_terms(&text);
+    text
+}
+
+fn rewrite_internal_context_field_terms(line: &str) -> String {
+    let mut text = line.to_string();
+    for phrase in [
+        "本轮未检测到 context.selected_summary；",
+        "本轮未检测到 context.selected_summary;",
+        "未检测到 context.selected_summary；",
+        "未检测到 context.selected_summary;",
+        "没有检测到 context.selected_summary；",
+        "没有检测到 context.selected_summary;",
+    ] {
+        text = text.replace(phrase, "本轮没有手动选择具体商品；");
+    }
+    text = text.replace("来源 context.selected_summary", "来源为本轮选择的商品资料");
+    text = text.replace(
+        "source context.selected_summary",
+        "source selected product context",
+    );
+    text = text.replace("context.selected_summary", "本轮选择的商品资料");
+    text = text.replace("context.combined_summary", "本轮可用上下文");
+    text = text.replace("workspaceContext", "工作区资料");
+    text = text.replace("workspace_context", "工作区资料");
     text
 }
 
@@ -919,8 +1121,17 @@ fn trim_confidence_value(input: &str) -> usize {
 }
 
 fn rewrite_selected_product_source_line(line: &str) -> String {
-    let marker = "用户本轮手动选择的预设商品资料：";
-    let Some(index) = line.find(marker) else {
+    let mut marker_match = None;
+    for marker in [
+        "用户本轮手动选择的预设商品资料：",
+        "用户本轮手动选择的商品资料：",
+    ] {
+        if let Some(index) = line.find(marker) {
+            marker_match = Some((index, marker));
+            break;
+        }
+    }
+    let Some((index, marker)) = marker_match else {
         return line.to_string();
     };
 
@@ -970,6 +1181,9 @@ fn first_colon(text: &str) -> Option<(usize, usize)> {
 
 fn looks_like_internal_role_label(label: &str) -> bool {
     let lower = label.to_ascii_lowercase();
+    if is_internal_runtime_role_label(&lower) {
+        return true;
+    }
     if lower.starts_with("primary ")
         || lower.starts_with("support ")
         || lower.starts_with("worker.")
@@ -989,6 +1203,24 @@ fn looks_like_internal_role_label(label: &str) -> bool {
         && role.chars().all(|ch| {
             ch.is_ascii_lowercase() || ch.is_ascii_digit() || matches!(ch, '_' | '-' | '.')
         })
+}
+
+fn is_internal_runtime_role_label(label: &str) -> bool {
+    let label = label.trim().trim_end_matches("_final");
+    matches!(
+        label,
+        "chat"
+            | "ops"
+            | "data"
+            | "creative"
+            | "service"
+            | "engineering"
+            | "accounting"
+            | "design"
+            | "web"
+            | "search"
+            | "douyin_ads"
+    )
 }
 
 fn compact_line_spacing(line: &str) -> String {
@@ -1201,6 +1433,9 @@ fn is_internal_noise_line(line: &str) -> bool {
         "json template validation failed",
         "missing key",
         "worker reported failed status",
+        "worker_unavailable",
+        "llm_provider_error",
+        "failure_kind",
         "search_evidence_packet:",
         "search_evidence_trace:",
         "support role",
@@ -1237,6 +1472,13 @@ fn is_internal_noise_line(line: &str) -> bool {
     .any(|marker| lower.contains(marker))
         || line.contains("任务图")
         || line.contains("岗位报告")
+        || line.contains("本轮没有形成完整回答")
+        || line.contains("部分岗位没有成功执行")
+        || line.contains("服务端没有可用的该岗位执行器")
+        || line.contains("上游依赖岗位未成功完成")
+        || line.contains("岗位执行失败")
+        || line.contains("请检查服务端岗位配置")
+        || line.contains("当前服务端没有注册可用")
         || line.contains("Product source product")
         || line.contains("Knowledge source product_knowledge")
         || line.contains("已选商品 已选商品")
@@ -1305,16 +1547,12 @@ fn looks_like_history_as_material_evidence(line: &str) -> bool {
 
 fn looks_like_historical_product_material(body: &str) -> bool {
     let product_markers = ["商品资料", "活动", "客群", "低价", "价格", "卖点"];
-    let metric_markers = [
-        "CTR",
-        "CVR",
-        "ROAS",
-        "退款率",
-        "点击率",
-        "转化率",
-        "投产比",
-    ];
-    product_markers.iter().filter(|marker| body.contains(*marker)).count() >= 2
+    let metric_markers = ["CTR", "CVR", "ROAS", "退款率", "点击率", "转化率", "投产比"];
+    product_markers
+        .iter()
+        .filter(|marker| body.contains(*marker))
+        .count()
+        >= 2
         && !metric_markers.iter().any(|marker| body.contains(*marker))
 }
 
@@ -1403,7 +1641,9 @@ mod tests {
         let output = user_facing_report_text(&report).expect("diagnostic should be visible");
 
         assert!(output.contains("模型服务配置不可用"));
-        assert!(output.contains("services.toml"));
+        assert!(!output.contains("services.toml"));
+        assert!(!output.contains("[agent_llm_usage]"));
+        assert!(!output.contains("API Key"));
         assert!(!output.contains("api_key"));
         assert!(!output.contains("Request id"));
     }
@@ -1504,6 +1744,44 @@ mod tests {
         assert!(!output.contains("search_evidence_packet"));
         assert!(!output.contains("search_evidence_trace"));
         assert!(!output.contains("https://example.com/raw"));
+    }
+
+    #[test]
+    fn degraded_search_packet_does_not_claim_live_sources() {
+        let report = WorkerReport {
+            graph_id: TaskGraphId("graph-search".to_string()),
+            node_id: TaskNodeId("search".to_string()),
+            task_id: TaskId("task-search".to_string()),
+            worker_id: WorkerId("worker.search".to_string()),
+            role: "search".to_string(),
+            content: String::new(),
+            role_output: Some(RoleWorkOutput {
+                summary: "本轮已通过外部搜索取得实时来源。\n继续按星河杯方案，标题强调温显、防漏和礼盒感。"
+                    .to_string(),
+                evidence: vec![
+                    "search_evidence_packet:{\"adapter_status\":\"degraded\",\"source_state\":\"no_reliable_sources\",\"sources\":[],\"gaps\":[\"external search provider request failed: http://1.85.61.130:29003/api/external/search?q=test\"]}"
+                        .to_string(),
+                    "search_evidence_trace: skill=search_market_info status=deferred adapter_status=degraded sources=0 usable_claims=0 gaps=2 confidence=0.00"
+                        .to_string(),
+                ],
+                ..RoleWorkOutput::default()
+            }),
+            evidence: Vec::new(),
+            risks: Vec::new(),
+            open_questions: Vec::new(),
+            diagnostics: Vec::new(),
+            status: WorkerReportStatus::Completed,
+        };
+
+        let output = user_facing_report_text(&report).expect("business answer should remain");
+
+        assert!(output.contains("继续按星河杯方案"));
+        assert!(!output.contains("本轮已通过外部搜索取得实时来源"));
+        assert!(!output.contains("实时搜索来源"));
+        assert!(!output.contains("search_evidence_packet"));
+        assert!(!output.contains("search_evidence_trace"));
+        assert!(!output.contains("adapter_status"));
+        assert!(!output.contains("1.85.61.130"));
     }
 
     #[test]
@@ -1817,6 +2095,18 @@ mod tests {
     }
 
     #[test]
+    fn final_sanitizing_restores_inline_numbered_lists() {
+        let raw = "以下是给电商学生的全品类通用选品复盘清单，包含核心复盘模块、字段及风险提示：1. 前置说明：本清单为通用运营规则；2. 选品启动前复盘：核验选品依据；3. 小范围试卖后复盘：统计曝光、点击、咨询。风险边界：无对应资质不得进入高风险品类。";
+
+        let output = sanitize_final_user_facing_text(raw).expect("answer should remain readable");
+
+        assert!(output.contains("风险提示：\n\n1. 前置说明："));
+        assert!(output.contains("通用运营规则；\n\n2. 选品启动前复盘："));
+        assert!(output.contains("核验选品依据；\n\n3. 小范围试卖后复盘："));
+        assert!(output.contains("咨询。\n\n风险边界："));
+    }
+
+    #[test]
     fn rewrites_internal_skill_ids_for_student_answer() {
         let raw = "本地无匹配商品知识库，当前无其他工作区数据源可用，\
                    material_table_profiler技能未收到可剖析的表格行数据，暂无法产出结果。";
@@ -1833,12 +2123,14 @@ mod tests {
         let raw = "当前只掌握商品名称和售价，先补成本、平台和用户反馈。\n\
                    skill:learning_teaching_explain status=success summary=教学解释已生成。\n\
                    用户本轮手动选择的预设商品资料：千乐咖啡（已选商品，来源 context.selected_summary）。\n\
+                   本轮未检测到 context.selected_summary；不注入任何预设商品资料，只按用户文本、会话历史和工作区上下文理解问题。\n\
                    后续再做毛利核算和转化分析。";
 
         let output = sanitize_final_user_facing_text(raw).expect("answer should remain readable");
         let lower = output.to_ascii_lowercase();
         assert!(output.contains("当前只掌握商品名称和售价"));
         assert!(output.contains("本轮已使用你选中的商品资料：千乐咖啡。"));
+        assert!(output.contains("本轮没有手动选择具体商品"));
         assert!(output.contains("后续再做毛利核算"));
         assert!(!lower.contains("skill:"));
         assert!(!lower.contains("status="));

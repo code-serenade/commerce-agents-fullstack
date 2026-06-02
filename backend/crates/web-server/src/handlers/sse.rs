@@ -48,7 +48,7 @@ use uuid::Uuid;
 use validator::Validate;
 
 use crate::{
-    dto::sse::AgentStreamRequest,
+    dto::sse::{AgentStreamContextSelection, AgentStreamRequest},
     error::{Error, from_biz_error},
     statics::{
         agent_manager::run_agent_stream, db_manager::get_app_ctx,
@@ -57,6 +57,265 @@ use crate::{
 };
 
 const MAX_AUTO_VISION_IMAGES: usize = 4;
+
+fn should_include_implicit_conversation_files(
+    input: &str,
+    context: &AgentStreamContextSelection,
+) -> bool {
+    if has_explicit_turn_context(context) || input_requests_independent_context(input) {
+        return false;
+    }
+    input_requests_previous_conversation_files(input)
+}
+
+fn should_include_conversation_history_grounding(
+    input: &str,
+    context: &AgentStreamContextSelection,
+) -> bool {
+    if input_requests_independent_context(input) {
+        return false;
+    }
+    has_explicit_turn_context(context) || input_requests_previous_conversation_context(input)
+}
+
+fn effective_context_selection_for_input(
+    input: &str,
+    mut context: AgentStreamContextSelection,
+) -> (AgentStreamContextSelection, Option<&'static str>) {
+    if !has_explicit_turn_context(&context)
+        || !input_requests_generic_category_answer(input)
+        || input_requests_selected_turn_context(input)
+    {
+        return (context, None);
+    }
+
+    context.product_ids.clear();
+    context.campaign_ids.clear();
+    context.context_refs.clear();
+    (
+        context,
+        Some("generic_category_question_without_selected_context_request"),
+    )
+}
+
+fn has_explicit_turn_context(context: &AgentStreamContextSelection) -> bool {
+    !context.product_ids.is_empty()
+        || !context.campaign_ids.is_empty()
+        || !context.context_refs.is_empty()
+        || context.first_product_ref_id().is_some()
+        || !context.campaign_context_refs().is_empty()
+}
+
+fn input_requests_independent_context(input: &str) -> bool {
+    let lower = input.to_ascii_lowercase();
+    [
+        "新话题",
+        "换个问题",
+        "独立问题",
+        "独立泛问",
+        "不引用",
+        "不要引用",
+        "不沿用",
+        "不要沿用",
+        "不看前面",
+        "不要看前面",
+        "别看前面",
+        "no reference",
+        "without reference",
+        "do not reference",
+        "ignore previous",
+    ]
+    .iter()
+    .any(|marker| lower.contains(marker))
+}
+
+fn input_requests_generic_category_answer(input: &str) -> bool {
+    let lower = input.to_ascii_lowercase();
+    let direct_markers = [
+        "各类商品",
+        "各种商品",
+        "多类商品",
+        "所有商品",
+        "全品类",
+        "多品类",
+        "类目级",
+        "品类级",
+        "商品通用",
+        "产品通用",
+        "商品类",
+        "类商品",
+        "不指定商品",
+        "不绑定商品",
+        "不选择商品",
+        "all products",
+        "product categories",
+        "generic product",
+    ];
+    if direct_markers.iter().any(|marker| lower.contains(marker)) {
+        return true;
+    }
+
+    lower.contains("通用")
+        && [
+            "框架",
+            "判断",
+            "方法",
+            "流程",
+            "模型",
+            "运营",
+            "商品",
+            "产品",
+            "电商",
+            "framework",
+            "method",
+            "product",
+            "commerce",
+        ]
+        .iter()
+        .any(|marker| lower.contains(marker))
+}
+
+fn input_requests_selected_turn_context(input: &str) -> bool {
+    let lower = input.to_ascii_lowercase();
+    let selected_context_markers = [
+        "这个商品",
+        "该商品",
+        "这款商品",
+        "选中商品",
+        "所选商品",
+        "引用商品",
+        "引用的商品",
+        "当前商品",
+        "这个产品",
+        "该产品",
+        "这款产品",
+        "选中产品",
+        "所选产品",
+        "引用产品",
+        "引用的产品",
+        "当前产品",
+        "这个活动",
+        "该活动",
+        "这场活动",
+        "选中活动",
+        "引用活动",
+        "引用的活动",
+        "这份资料",
+        "这个资料",
+        "这份文件",
+        "这个文件",
+        "这份附件",
+        "这个附件",
+        "这份表格",
+        "这个表格",
+        "这张图",
+        "这张图片",
+        "这幅图",
+        "图里",
+        "截图",
+        "上传的",
+        "根据这份",
+        "结合这份",
+        "基于这份",
+        "根据这个商品",
+        "结合这个商品",
+        "基于这个商品",
+        "根据选中",
+        "结合选中",
+        "基于选中",
+        "selected product",
+        "this product",
+        "current product",
+        "selected file",
+        "this file",
+        "uploaded file",
+        "this image",
+        "attached file",
+    ];
+    selected_context_markers
+        .iter()
+        .any(|marker| lower.contains(marker))
+}
+
+fn input_requests_previous_conversation_files(input: &str) -> bool {
+    let lower = input.to_ascii_lowercase();
+    let material_markers = [
+        "文件",
+        "资料",
+        "附件",
+        "图片",
+        "截图",
+        "图里",
+        "这张图",
+        "上传",
+        "表格",
+        "csv",
+        "excel",
+        "pdf",
+        "docx",
+        "file",
+        "image",
+        "attachment",
+        "spreadsheet",
+    ];
+    let followup_markers = [
+        "刚才",
+        "刚刚",
+        "前面",
+        "上面",
+        "之前",
+        "上一轮",
+        "这个",
+        "这份",
+        "这张",
+        "继续",
+        "还是",
+        "根据",
+        "按",
+        "里面",
+        "里头",
+        "uploaded",
+        "previous",
+        "above",
+        "earlier",
+        "this",
+    ];
+    material_markers.iter().any(|marker| lower.contains(marker))
+        && followup_markers.iter().any(|marker| lower.contains(marker))
+}
+
+fn input_requests_previous_conversation_context(input: &str) -> bool {
+    let lower = input.to_ascii_lowercase();
+    [
+        "继续",
+        "接着",
+        "沿用",
+        "根据前面",
+        "按前面",
+        "前面",
+        "刚才",
+        "刚刚",
+        "上面",
+        "之前",
+        "上一轮",
+        "同一个",
+        "这个商品",
+        "这个活动",
+        "这款商品",
+        "这些",
+        "再给",
+        "再写",
+        "补充",
+        "follow up",
+        "same",
+        "previous",
+        "above",
+        "earlier",
+        "continue",
+    ]
+    .iter()
+    .any(|marker| lower.contains(marker))
+}
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -88,6 +347,14 @@ pub async fn stream_agent_session(
     let input = req.input.clone();
     let input_for_memory = input.clone();
     let (mut metadata, context_selection) = req.metadata.into_parts().map_err(bad_request)?;
+    let (context_selection, ignored_context_reason) =
+        effective_context_selection_for_input(&input, context_selection);
+    if let Some(reason) = ignored_context_reason {
+        metadata.insert(
+            "context.explicitSelectionIgnored".to_string(),
+            reason.to_string(),
+        );
+    }
     let conversation_id = context_selection.conversation_id.clone();
     let mut conversation_memory_summary: Option<Value> = None;
     let mut conversation_context_loaded: Option<Value> = None;
@@ -97,6 +364,8 @@ pub async fn stream_agent_session(
         .cloned()
         .or_else(|| context_selection.first_product_ref_id());
     let mut workspace_context_refs = context_selection.context_refs.clone();
+    let include_implicit_conversation_files =
+        should_include_implicit_conversation_files(&input, &context_selection);
     for campaign_id in &context_selection.campaign_ids {
         let campaign_ref = format!("campaign:{campaign_id}");
         if !workspace_context_refs
@@ -130,12 +399,15 @@ pub async fn stream_agent_session(
             .get_conversation_memory(user_id.clone(), conversation_id.clone())
             .await
             .map_err(from_biz_error)?;
+        let include_conversation_history_grounding =
+            should_include_conversation_history_grounding(&input, &context_selection);
         let conversation_history_summary = merge_conversation_history_metadata(
             &mut metadata,
             conversation_id,
             &conversation.messages,
             &input,
             previous_memory.as_ref(),
+            include_conversation_history_grounding,
         );
         conversation_context_loaded = Some(build_conversation_context_loaded_event(
             conversation_id,
@@ -198,6 +470,10 @@ pub async fn stream_agent_session(
         linked_workspace.run.id.clone(),
     );
     metadata.insert("workspace.source".to_string(), "agent_session".to_string());
+    metadata.insert(
+        "workspaceContext.includeImplicitConversationFiles".to_string(),
+        include_implicit_conversation_files.to_string(),
+    );
     let active_run_id = Some(linked_workspace.run.id.clone());
     let workspace_context = workspace_api
         .context_summary(service::dto::workspace::GetWorkspaceContextSummaryRequest {
@@ -206,6 +482,7 @@ pub async fn stream_agent_session(
             conversation_id: conversation_id.clone(),
             product_id: selected_product_id,
             include_workspace_product_context: false,
+            include_implicit_conversation_files,
             run_id: active_run_id.clone(),
             context_refs: workspace_context_refs.clone(),
         })
@@ -228,6 +505,7 @@ pub async fn stream_agent_session(
             conversation_id: workspace_context.conversation_id.clone(),
             product_id: workspace_context.product_id.clone(),
             include_workspace_product_context: false,
+            include_implicit_conversation_files,
             run_id: active_run_id,
             context_refs: workspace_context_refs,
             max_items: Some(20),
@@ -1335,6 +1613,7 @@ fn merge_conversation_history_metadata(
     messages: &[ConversationMessageResponse],
     current_input: &str,
     previous_memory: Option<&Value>,
+    include_grounding: bool,
 ) -> ConversationHistorySummary {
     let summary = build_conversation_history_summary(messages, current_input, previous_memory);
     metadata.insert(
@@ -1357,6 +1636,13 @@ fn merge_conversation_history_metadata(
         "conversation.history_relevant_older_count".to_string(),
         summary.relevant_older_count.to_string(),
     );
+    metadata.insert(
+        "conversation.history_grounding_enabled".to_string(),
+        include_grounding.to_string(),
+    );
+    if !include_grounding {
+        return summary;
+    }
     if !summary.older_summary.trim().is_empty() {
         metadata.insert(
             "conversation.history_older_summary".to_string(),
@@ -2658,6 +2944,179 @@ mod tests {
     use super::*;
 
     #[test]
+    fn implicit_conversation_files_are_disabled_for_independent_turns() {
+        let context = AgentStreamContextSelection {
+            conversation_id: Some("conversation-1".to_string()),
+            ..AgentStreamContextSelection::default()
+        };
+
+        assert!(!should_include_implicit_conversation_files(
+            "新话题，不引用任何前面商品、活动、图片或文件：给学生一个通用判断框架。",
+            &context,
+        ));
+    }
+
+    #[test]
+    fn implicit_conversation_files_are_disabled_when_turn_has_explicit_context() {
+        let product_context = AgentStreamContextSelection {
+            product_ids: vec!["product-1".to_string()],
+            conversation_id: Some("conversation-1".to_string()),
+            ..AgentStreamContextSelection::default()
+        };
+        let file_context = AgentStreamContextSelection {
+            context_refs: vec!["conversation_file:file-1".to_string()],
+            conversation_id: Some("conversation-1".to_string()),
+            ..AgentStreamContextSelection::default()
+        };
+
+        assert!(!should_include_implicit_conversation_files(
+            "分析这个商品",
+            &product_context,
+        ));
+        assert!(!should_include_implicit_conversation_files(
+            "分析这份文件",
+            &file_context,
+        ));
+    }
+
+    #[test]
+    fn implicit_conversation_files_are_enabled_for_file_followups_only() {
+        let context = AgentStreamContextSelection {
+            conversation_id: Some("conversation-1".to_string()),
+            ..AgentStreamContextSelection::default()
+        };
+
+        assert!(should_include_implicit_conversation_files(
+            "继续看刚才上传的表格，退款率最高的问题是什么？",
+            &context,
+        ));
+        assert!(!should_include_implicit_conversation_files(
+            "学生开店第一周应该看什么指标？",
+            &context,
+        ));
+    }
+
+    #[test]
+    fn conversation_history_grounding_is_disabled_for_independent_turns() {
+        let context = AgentStreamContextSelection {
+            conversation_id: Some("conversation-1".to_string()),
+            ..AgentStreamContextSelection::default()
+        };
+
+        assert!(!should_include_conversation_history_grounding(
+            "新话题，不引用任何前面商品、活动、图片或文件：给学生一个通用判断框架。",
+            &context,
+        ));
+        assert!(!should_include_conversation_history_grounding(
+            "学生开店第一周应该看什么指标？",
+            &context,
+        ));
+    }
+
+    #[test]
+    fn conversation_history_grounding_is_enabled_for_followups_and_explicit_context() {
+        let followup_context = AgentStreamContextSelection {
+            conversation_id: Some("conversation-1".to_string()),
+            ..AgentStreamContextSelection::default()
+        };
+        let product_context = AgentStreamContextSelection {
+            product_ids: vec!["product-1".to_string()],
+            conversation_id: Some("conversation-1".to_string()),
+            ..AgentStreamContextSelection::default()
+        };
+
+        assert!(should_include_conversation_history_grounding(
+            "继续同一个商品和活动，给我三条短视频开头文案。",
+            &followup_context,
+        ));
+        assert!(should_include_conversation_history_grounding(
+            "分析这个商品",
+            &product_context,
+        ));
+    }
+
+    #[test]
+    fn generic_category_question_ignores_stale_explicit_context() {
+        let context = AgentStreamContextSelection {
+            product_ids: vec!["product-1".to_string()],
+            campaign_ids: vec!["campaign-1".to_string()],
+            context_refs: vec![
+                "product:product-1".to_string(),
+                "conversation_file:file-1".to_string(),
+            ],
+            conversation_id: Some("conversation-1".to_string()),
+        };
+
+        let (effective, reason) = effective_context_selection_for_input(
+            "大篇幅研究和回答各类商品，先给电商学生一个通用判断框架。",
+            context,
+        );
+
+        assert_eq!(
+            reason,
+            Some("generic_category_question_without_selected_context_request")
+        );
+        assert!(effective.product_ids.is_empty());
+        assert!(effective.campaign_ids.is_empty());
+        assert!(effective.context_refs.is_empty());
+        assert_eq!(effective.conversation_id.as_deref(), Some("conversation-1"));
+    }
+
+    #[test]
+    fn selected_context_question_keeps_explicit_context() {
+        let context = AgentStreamContextSelection {
+            product_ids: vec!["product-1".to_string()],
+            context_refs: vec![
+                "product:product-1".to_string(),
+                "conversation_file:file-1".to_string(),
+            ],
+            conversation_id: Some("conversation-1".to_string()),
+            ..AgentStreamContextSelection::default()
+        };
+
+        let (effective, reason) =
+            effective_context_selection_for_input("分析这个商品，并结合这份资料。", context);
+
+        assert!(reason.is_none());
+        assert_eq!(effective.product_ids, vec!["product-1"]);
+        assert_eq!(
+            effective.context_refs,
+            vec!["product:product-1", "conversation_file:file-1"]
+        );
+    }
+
+    #[test]
+    fn conversation_history_metadata_can_skip_grounding_text() {
+        let messages = vec![
+            conversation_message(1, "user", "请分析这个商品"),
+            conversation_message(
+                2,
+                "assistant",
+                "上一轮分析了 QA矩阵智能保温杯 和 618 活动。",
+            ),
+        ];
+        let mut metadata = std::collections::BTreeMap::new();
+
+        let summary = merge_conversation_history_metadata(
+            &mut metadata,
+            "conversation-1",
+            &messages,
+            "新话题，不引用前面资料：给学生一个通用判断框架。",
+            None,
+            false,
+        );
+
+        assert_eq!(summary.total_message_count, 2);
+        assert_eq!(metadata["conversation.history_grounding_enabled"], "false");
+        assert!(!metadata.contains_key("conversation.history_summary"));
+        assert!(
+            !metadata
+                .get("context.combined_summary")
+                .is_some_and(|value| value.contains("QA矩阵智能保温杯"))
+        );
+    }
+
+    #[test]
     fn approval_detection_matches_skill_result_contract() {
         assert!(skill_requires_approval("pending_approval", None));
         assert!(skill_requires_approval("success", Some(true)));
@@ -3081,6 +3540,7 @@ mod tests {
             &messages,
             "继续生成方案",
             None,
+            true,
         );
 
         assert_eq!(metadata["conversation.conversation_id"], "conversation-1");

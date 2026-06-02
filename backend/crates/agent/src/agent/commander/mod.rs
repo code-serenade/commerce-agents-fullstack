@@ -4,6 +4,7 @@
 //! 负责接收消息、调用认知、调度 Worker 并汇总结果。
 
 mod memory;
+mod role_dispatch_debug;
 mod routing;
 mod runner;
 mod state;
