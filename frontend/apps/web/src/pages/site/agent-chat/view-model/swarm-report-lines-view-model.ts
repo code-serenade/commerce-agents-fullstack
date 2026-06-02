@@ -1,6 +1,7 @@
 import type { TFunction } from "i18next"
 import type { AgentWorkerReport } from "@/api"
 import { isUnsupportedBenchmarkClaim } from "../domain/agent-chat-answer-sanitizer"
+import { isInternalRuntimeReason } from "./swarm-runtime-reason-view-model"
 
 export function readReportDocumentLines(
   report: AgentWorkerReport | undefined,
@@ -60,12 +61,20 @@ export function readReportLines(
 export function isInternalRuntimeLine(value: string) {
   const text = value.trim()
   if (!text) return false
+  if (isInternalRuntimeReason(text)) return true
   return [
     "content must be specific and non-empty",
     "data role should provide",
     "service role output lacks",
     "engineering role output lacks",
     "worker reported failed status",
+    "structured role output is missing",
+    "llm provider error",
+    "upstream model service unavailable",
+    "failure_kind",
+    "worker_unavailable",
+    "llm_provider_error",
+    "llm access denied",
     "json template validation",
     "decode failed",
     "cognition failure",

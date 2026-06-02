@@ -407,7 +407,23 @@ pub(crate) fn sanitize_final_user_facing_text(raw: &str) -> Option<String> {
 }
 
 pub(crate) fn no_user_facing_content_message() -> String {
-    "这次没有拿到可直接展示的完整内容。请补充更明确的问题或关键材料，我再继续整理。".to_string()
+    [
+        "## 当前状态",
+        "",
+        "这次没有拿到可直接展示的完整内容。",
+        "",
+        "## 可能原因",
+        "",
+        "- 问题目标还不够明确。",
+        "- 本轮选择的商品、活动或资料不足以形成可靠结论。",
+        "- 协作步骤没有产出可直接展示的结果。",
+        "",
+        "## 下一步",
+        "",
+        "- 可以补充更明确的问题、商品、活动或关键材料。",
+        "- 也可以换成普通问答或只指定一个岗位继续问。",
+    ]
+    .join("\n")
 }
 
 fn clean_user_facing_line(line: &str) -> String {

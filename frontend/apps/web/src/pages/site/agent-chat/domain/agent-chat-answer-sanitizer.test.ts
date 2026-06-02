@@ -7,6 +7,39 @@ const copy = {
   missingStructuredOutput: "missing structured output",
   streamTimedOut: "stream timed out",
 }
+const fallbackStatusHeading = textFromCodes([24403, 21069, 29366, 24577])
+const fallbackStatusParagraph = textFromCodes([
+  27169, 22411, 26381, 21153, 20020, 26102, 19981, 21487, 29992, 65292,
+  19978, 28216, 27169, 22411, 26381, 21153, 36820, 22238, 26381, 21153,
+  31471, 38169, 35823, 65292, 25152, 20197, 26412, 36718, 27809, 26377,
+  24418, 25104, 21487, 38752, 22238, 31572, 12290,
+])
+const fallbackImpactHeading = textFromCodes([
+  23545, 26412, 36718, 22238, 31572, 30340, 24433, 21709,
+])
+const fallbackReceivedItem = textFromCodes([
+  24050, 25910, 21040, 20320, 30340, 38382, 39064, 21644, 26412, 36718,
+  36873, 25321, 30340, 36164, 26009, 12290,
+])
+const fallbackGenerationItem = textFromCodes([
+  38656, 35201, 27169, 22411, 29983, 25104, 30340, 20998, 26512, 12289,
+  24635, 32467, 21644, 21327, 20316, 32467, 26524, 26242, 26102, 26080,
+  27861, 23436, 25104, 12290,
+])
+const fallbackNextStepHeading = textFromCodes([19979, 19968, 27493])
+const fallbackRetryItem = textFromCodes([
+  21487, 20197, 31245, 21518, 37325, 35797, 21516, 19968, 20010, 38382,
+  39064, 12290,
+])
+const legacyModelUnavailableFallback = textFromCodes([
+  24403, 21069, 32, 65, 73, 32, 27169, 22411, 26381, 21153, 20020, 26102,
+  19981, 21487, 29992, 65292, 27169, 22411, 32593, 20851, 36820, 22238,
+  26381, 21153, 31471, 38169, 35823, 65292, 25152, 20197, 26412, 36718,
+  27809, 26377, 24418, 25104, 21487, 38752, 22238, 31572, 12290, 35831,
+  31245, 21518, 37325, 35797, 65307, 22914, 26524, 36830, 32493, 20986,
+  29616, 65292, 35831, 32852, 31995, 31649, 29702, 21592, 26816, 26597,
+  27169, 22411, 32593, 20851, 29366, 24577, 12290,
+])
 
 describe("agent chat answer sanitizer", () => {
   it("hides backend skill marker text from persisted assistant answers", () => {
@@ -38,6 +71,36 @@ describe("agent chat answer sanitizer", () => {
         copy
       )
     ).toBe(formattedAnswer)
+  })
+
+  it("keeps structured fallback answer formatting", () => {
+    const formattedAnswer = [
+      `## ${fallbackStatusHeading}`,
+      "",
+      fallbackStatusParagraph,
+      "",
+      `## ${fallbackImpactHeading}`,
+      "",
+      `- ${fallbackReceivedItem}`,
+      `- ${fallbackGenerationItem}`,
+      "",
+      `## ${fallbackNextStepHeading}`,
+      "",
+      `- ${fallbackRetryItem}`,
+    ].join("\n")
+
+    expect(formatAgentUiMessage(formattedAnswer, copy)).toBe(formattedAnswer)
+  })
+
+  it("restores legacy one-paragraph fallback formatting", () => {
+    const formatted = formatAgentUiMessage(legacyModelUnavailableFallback, copy)
+
+    expect(formatted).toContain(`## ${fallbackStatusHeading}`)
+    expect(formatted).toContain(`## ${fallbackImpactHeading}`)
+    expect(formatted).toContain(`## ${fallbackNextStepHeading}`)
+    expect(formatted).toContain(`- ${fallbackReceivedItem}`)
+    expect(formatted).toContain(`- ${fallbackRetryItem}`)
+    expect(formatted).not.toBe(legacyModelUnavailableFallback)
   })
 
   it("hides task graph shells, role labels, placeholders, and note labels", () => {

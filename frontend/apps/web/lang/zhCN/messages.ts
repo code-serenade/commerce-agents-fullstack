@@ -2352,6 +2352,13 @@ const messages = {
         graphFinished: "执行计划结束",
         synced: "状态已同步",
       },
+      runtimeReasons: {
+        modelUnavailable: "模型服务临时不可用，当前步骤没有形成可靠结果。",
+        modelConfigUnavailable: "模型服务配置不可用，当前步骤没有形成可靠结果。",
+        workerUnavailable: "协作步骤没有成功启动。",
+        timedOut: "协作步骤执行超时。",
+        collaborationIncomplete: "协作步骤没有形成可用结果。",
+      },
       reportLines: {
         risk: "风险: {{risk}}",
         question: "待确认: {{question}}",

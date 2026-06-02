@@ -31,10 +31,34 @@ const ATTACHMENTS_IMAGE_SUMMARIES_JSON: &str = "attachments.image_summaries_json
 const REQUEST_ATTACHMENTS_IMAGE_SUMMARIES_JSON: &str = "request.attachments.image_summaries_json";
 pub const LLM_ACCESS_DENIED_MARKER: &str = "llm_access_denied";
 pub const LLM_PROVIDER_ERROR_MARKER: &str = "llm_provider_error";
-const LLM_ACCESS_DENIED_USER_MESSAGE: &str = "当前 AI 模型服务配置不可用，模型服务返回权限错误，所以本轮没有形成有效回答。\
-     请联系管理员检查模型服务配置和权限后重试。";
-const LLM_PROVIDER_ERROR_USER_MESSAGE: &str = "当前 AI 模型服务临时不可用，模型网关返回服务端错误，所以本轮没有形成可靠回答。\
-     请稍后重试；如果连续出现，请联系管理员检查模型网关状态。";
+const LLM_ACCESS_DENIED_USER_MESSAGE: &str = r#"## 当前状态
+
+模型服务配置不可用，模型服务返回权限错误，所以本轮没有形成可靠回答。
+
+## 对本轮回答的影响
+
+- 已收到你的问题和本轮选择的资料。
+- 需要模型生成的分析、总结和协作结果暂时无法完成。
+- 这不是商品、活动或资料本身的判断结果。
+
+## 下一步
+
+- 请稍后重试同一个问题。
+- 如果连续出现，请联系管理员检查模型服务配置和权限。"#;
+const LLM_PROVIDER_ERROR_USER_MESSAGE: &str = r#"## 当前状态
+
+模型服务临时不可用，上游模型服务返回服务端错误，所以本轮没有形成可靠回答。
+
+## 对本轮回答的影响
+
+- 已收到你的问题和本轮选择的资料。
+- 需要模型生成的分析、总结和协作结果暂时无法完成。
+- 这不是商品、活动或资料本身的判断结果。
+
+## 下一步
+
+- 可以稍后重试同一个问题。
+- 如果连续出现，请联系管理员检查模型服务状态。"#;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct AgentLlmCfg {
@@ -1269,6 +1293,27 @@ mod tests {
         assert!(!is_llm_provider_error_message(
             "decode failed on attempt 1/3: missing key role_output"
         ));
+    }
+
+    #[test]
+    fn llm_failure_user_messages_keep_readable_layout_without_internal_config() {
+        for message in [
+            llm_access_denied_user_message(),
+            llm_provider_error_user_message(),
+        ] {
+            assert!(message.starts_with("## 当前状态"));
+            assert!(message.contains("\n\n## 对本轮回答的影响\n\n- "));
+            assert!(message.contains("\n\n## 下一步\n\n- "));
+            assert!(!message.contains("services.toml"));
+            assert!(!message.contains("[agent_llm_usage]"));
+            assert!(!message.contains("base_url"));
+            assert!(!message.contains("api_key"));
+            assert!(!message.contains("API Key"));
+            assert!(!message.contains("llm_provider_error"));
+            assert!(!message.contains("llm_access_denied"));
+            assert!(!message.contains("failure_kind"));
+            assert!(!message.contains("worker"));
+        }
     }
 
     #[test]

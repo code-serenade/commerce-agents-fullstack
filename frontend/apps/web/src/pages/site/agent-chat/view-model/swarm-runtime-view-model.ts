@@ -12,6 +12,7 @@ import {
   formatRuntimeEventDescription,
   getRuntimeActionLabel,
 } from "./swarm-runtime-event-label-view-model"
+import { formatUserFacingRuntimeReason } from "./swarm-runtime-reason-view-model"
 import {
   compactPreviewLines,
   isInternalRuntimeLine,
@@ -83,7 +84,7 @@ export function getComputerCards(input: {
       meta: getAgentName(readRuntimeNodeId(failedEvent), agents),
       description: t("agentChat.swarm.cards.failed.description"),
       icon: TerminalSquare,
-      lines: [failedEvent.reason],
+      lines: [formatUserFacingRuntimeReason(failedEvent.reason, t)],
       state: "failed",
     })
   }

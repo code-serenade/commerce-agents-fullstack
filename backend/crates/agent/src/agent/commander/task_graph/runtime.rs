@@ -338,9 +338,20 @@ impl TaskGraphRuntime {
         }
 
         let lines = [
-            "这次没有形成完整答案：系统内部的协作步骤没有全部完成，所以不能把结果当成可靠结论。"
-                .to_string(),
-            "请稍后重试；如果问题很急，可以先切到普通问答或只指定一个岗位继续问。".to_string(),
+            "## 当前状态".to_string(),
+            String::new(),
+            "这次没有形成完整答案，协作步骤没有全部完成，所以不能把结果当成可靠结论。".to_string(),
+            String::new(),
+            "## 对本轮回答的影响".to_string(),
+            String::new(),
+            "- 已收到你的问题和本轮选择的资料。".to_string(),
+            "- 部分分析步骤没有形成可用结果。".to_string(),
+            "- 当前内容不能作为完整的商品、活动或资料判断。".to_string(),
+            String::new(),
+            "## 下一步".to_string(),
+            String::new(),
+            "- 可以稍后重试同一个问题。".to_string(),
+            "- 如果问题很急，可以先切到普通问答或只指定一个岗位继续问。".to_string(),
         ];
 
         sanitize_final_user_facing_text(&lines.join("\n")).or_else(|| Some(lines.join("\n")))
@@ -1101,7 +1112,7 @@ fn search_diagnostic_check_item(
     )
 }
 
-fn user_facing_gap_reason(reason: &str) -> String {
+pub(crate) fn user_facing_gap_reason(reason: &str) -> String {
     let reason = reason.trim();
     let lower = reason.to_ascii_lowercase();
     if lower.contains("llm_provider_error") || lower.contains("provider error") {
@@ -1344,6 +1355,10 @@ mod tests {
         let output = runtime.synthesize();
 
         assert!(output.contains("没有拿到可直接展示的完整内容"));
+        assert!(output.contains("## 当前状态"));
+        assert!(output.contains("## 可能原因"));
+        assert!(output.contains("## 下一步"));
+        assert!(output.contains("- 问题目标还不够明确。"));
         assert!(!output.contains("none"));
         assert!(!output.contains("Passed worker reports"));
     }
@@ -1389,6 +1404,10 @@ mod tests {
         let output = runtime.synthesize();
 
         assert!(output.contains("模型服务配置不可用"));
+        assert!(output.contains("## 当前状态"));
+        assert!(output.contains("## 对本轮回答的影响"));
+        assert!(output.contains("## 下一步"));
+        assert!(output.contains("- 已收到你的问题和本轮选择的资料。"));
         assert!(!output.contains("services.toml"));
         assert!(!output.contains("[agent_llm_usage]"));
         assert!(!output.contains("API Key"));
@@ -1444,7 +1463,10 @@ mod tests {
         let output = runtime.synthesize();
 
         assert!(output.contains("模型服务临时不可用"));
-        assert!(output.contains("模型网关"));
+        assert!(output.contains("## 当前状态"));
+        assert!(output.contains("## 对本轮回答的影响"));
+        assert!(output.contains("## 下一步"));
+        assert!(output.contains("- 已收到你的问题和本轮选择的资料。"));
         assert!(!output.contains("services.toml"));
         assert!(!output.contains("[agent_llm_usage]"));
         assert!(!output.contains("base_url"));
@@ -1498,6 +1520,10 @@ mod tests {
         let output = runtime.synthesize();
 
         assert!(output.contains("没有形成完整答案"));
+        assert!(output.contains("## 当前状态"));
+        assert!(output.contains("## 对本轮回答的影响"));
+        assert!(output.contains("## 下一步"));
+        assert!(output.contains("- 部分分析步骤没有形成可用结果。"));
         assert!(output.contains("协作步骤没有全部完成"));
         assert!(!output.contains("data"));
         assert!(!output.contains("服务端没有可用的该岗位执行器"));

@@ -2473,6 +2473,16 @@ const messages = {
         graphFinished: "Execution plan finished",
         synced: "State synced",
       },
+      runtimeReasons: {
+        modelUnavailable:
+          "The model service is temporarily unavailable, so this step did not produce a reliable result.",
+        modelConfigUnavailable:
+          "The model service configuration is unavailable, so this step did not produce a reliable result.",
+        workerUnavailable: "The collaboration step did not start successfully.",
+        timedOut: "The collaboration step timed out.",
+        collaborationIncomplete:
+          "The collaboration step did not produce a usable result.",
+      },
       reportLines: {
         risk: "Risk: {{risk}}",
         question: "Open question: {{question}}",

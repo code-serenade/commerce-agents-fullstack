@@ -10,7 +10,7 @@ use crate::{
         plan_configured_non_chat_task_graph, plan_configured_task_graph, plan_forced_role_graph,
         plan_forced_selected_roles_graph, plan_task_graph,
         runner::{output::direct_chat_report_output, route::primary_graph_role},
-        sanitize_final_user_facing_text,
+        sanitize_final_user_facing_text, user_facing_gap_reason,
     },
     core::protocol::{
         AgentId, Message, MessageContext, Payload, RoleWorkOutput, SessionEvent, TaskGraph,
@@ -451,6 +451,7 @@ impl Commander {
             EvaluationOutcome::Failed(evaluation) => {
                 let reason = evaluation.reasons.join("; ");
                 log_task_node_failed(context, &graph_id.0, &node_id.0, &reason);
+                let user_facing_reason = user_facing_gap_reason(&reason);
                 self.emit_event(SessionEvent::TaskNodeEvaluated {
                     session_id: self.session_id_from_context(context),
                     graph_id: graph_id.clone(),
@@ -460,7 +461,7 @@ impl Commander {
                     session_id: self.session_id_from_context(context),
                     graph_id,
                     node_id,
-                    reason,
+                    reason: user_facing_reason,
                 });
             }
         }

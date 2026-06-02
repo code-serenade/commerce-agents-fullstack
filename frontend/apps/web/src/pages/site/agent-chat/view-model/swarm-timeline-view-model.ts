@@ -6,6 +6,7 @@ import {
   isNonBlockingWorkspaceFailure,
   isNonBlockingSkillGap,
 } from "./thread-boundary-state-view-model"
+import { formatUserFacingRuntimeReason } from "./swarm-runtime-reason-view-model"
 import type { SwarmAgent } from "./swarm-panel-view-model"
 
 export function formatTimelineEvent(
@@ -191,7 +192,13 @@ export function formatTimelineEvent(
     if (isNonBlockingNodeFailure(event, runtimeEvents)) {
       return { label: t("agentChat.swarm.timeline.events.nodeBoundary", { agent: getTimelineAgentName(readRuntimeNodeId(event), agents) }), tone: "warning" as const }
     }
-    return { label: t("agentChat.swarm.timeline.events.nodeFailed", { agent: getTimelineAgentName(readRuntimeNodeId(event), agents), reason: event.reason }), tone: "error" as const }
+    return {
+      label: t("agentChat.swarm.timeline.events.nodeFailed", {
+        agent: getTimelineAgentName(readRuntimeNodeId(event), agents),
+        reason: formatUserFacingRuntimeReason(event.reason, t),
+      }),
+      tone: "error" as const,
+    }
   }
   if (event.type === "skill_requested") {
     return {
@@ -231,7 +238,12 @@ export function formatTimelineEvent(
     return { label: t("agentChat.swarm.timeline.events.finished"), tone: "success" as const }
   }
   if (event.type === "failed") {
-    return { label: t("agentChat.swarm.timeline.events.failed", { reason: event.reason }), tone: "error" as const }
+    return {
+      label: t("agentChat.swarm.timeline.events.failed", {
+        reason: formatUserFacingRuntimeReason(event.reason, t),
+      }),
+      tone: "error" as const,
+    }
   }
   if (event.type === "task_graph_finished") {
     return { label: t("agentChat.swarm.timeline.events.graphFinished"), tone: "success" as const }

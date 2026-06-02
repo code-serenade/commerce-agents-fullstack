@@ -324,16 +324,32 @@ impl Commander {
                 warn!(error = %failure.description, "commander cognition failure");
                 self.memory
                     .set_error(format!("cognition failure: {}", failure.description));
-                let content = if crate::llm_routing::is_llm_access_denied_message(
-                    &failure.description,
-                ) {
-                    crate::llm_routing::llm_access_denied_user_message().to_string()
-                } else if crate::llm_routing::is_llm_provider_error_message(&failure.description) {
-                    crate::llm_routing::llm_provider_error_user_message().to_string()
-                } else {
-                    "当前 AI 调度模型没有成功返回结果，所以这轮没有开始可靠的岗位协作。请稍后重试；如果连续出现，请管理员检查模型服务日志。"
-                            .to_string()
-                };
+                let content =
+                    if crate::llm_routing::is_llm_access_denied_message(&failure.description) {
+                        crate::llm_routing::llm_access_denied_user_message().to_string()
+                    } else if crate::llm_routing::is_llm_provider_error_message(
+                        &failure.description,
+                    ) {
+                        crate::llm_routing::llm_provider_error_user_message().to_string()
+                    } else {
+                        [
+                            "## 当前状态",
+                            "",
+                            "当前 AI 调度没有成功返回结果，所以这轮没有开始可靠的岗位协作。",
+                            "",
+                            "## 对本轮回答的影响",
+                            "",
+                            "- 已收到你的问题和本轮选择的资料。",
+                            "- 系统暂时无法可靠判断应该走哪条协作链路。",
+                            "- 这不是商品、活动或资料本身的判断结果。",
+                            "",
+                            "## 下一步",
+                            "",
+                            "- 可以稍后重试同一个问题。",
+                            "- 如果连续出现，请联系管理员检查模型服务日志。",
+                        ]
+                        .join("\n")
+                    };
                 let _ = self.sender.send(Message::new_with_context(
                     next_message_id(),
                     self.current_context.clone(),
@@ -413,8 +429,11 @@ impl Commander {
             DecisionIntent::Ignore => {
                 let content = routed
                     .clarification
-                    .map(|question| format!("需要补充信息后再路由：{question}"))
-                    .unwrap_or_else(|| "已评估当前输入：本轮无需执行新任务。".to_string());
+                    .map(|question| format!("还需要补充一点信息：{question}"))
+                    .unwrap_or_else(|| {
+                        "我还不能从这句话里确定要处理的电商任务。请补充要分析的商品、活动、资料或希望输出的结果。"
+                            .to_string()
+                    });
                 let _ = self.sender.send(Message::new_with_context(
                     next_message_id(),
                     self.current_context.clone(),
@@ -430,7 +449,8 @@ impl Commander {
                     self.id.clone(),
                     self.host_id.clone(),
                     Payload::Text {
-                        content: "已评估该请求：当前策略是暂不接收新任务。".to_string(),
+                        content: "当前还有任务在处理中，请先等这一轮完成，或说明要调整的下一步。"
+                            .to_string(),
                     },
                 ));
             }
@@ -441,7 +461,9 @@ impl Commander {
                     self.id.clone(),
                     self.host_id.clone(),
                     Payload::Text {
-                        content: "已评估当前输入：继续保持当前任务。".to_string(),
+                        content:
+                            "我会沿用当前对话里的任务继续处理。请直接补充新的要求或下一步目标。"
+                                .to_string(),
                     },
                 ));
             }

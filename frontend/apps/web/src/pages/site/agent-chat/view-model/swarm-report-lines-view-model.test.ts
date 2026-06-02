@@ -27,6 +27,8 @@ describe("swarm report lines view model", () => {
   it("classifies internal runtime lines", () => {
     expect(isInternalRuntimeLine("content must be specific and non-empty")).toBe(true)
     expect(isInternalRuntimeLine("worker reported failed status")).toBe(true)
+    expect(isInternalRuntimeLine("structured role output is missing")).toBe(true)
+    expect(isInternalRuntimeLine("llm provider error: upstream model service unavailable")).toBe(true)
     expect(
       isInternalRuntimeLine(textFromCodes([38656, 35201, 34917, 40784, 34892, 19994, 22522, 20934, 21518, 20877, 22797, 26680]))
     ).toBe(false)
