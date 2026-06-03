@@ -1096,6 +1096,8 @@ const messages = {
         compactLabel: "Mode",
         compactTitle: "Adjust answer mode, agent collaboration, and model",
         toggle: "Task settings",
+        panelTitle: "Answer settings",
+        panelHint: "Current mode: {{mode}}; {{summary}}",
         rolesCount: "{{count}} agents",
         depthSummary: "Depth: {{depth}}",
         selectedPrefix: "Selected",
@@ -1113,7 +1115,7 @@ const messages = {
           "The configured Doubao model is used by default. If it is not configured, only available models are shown.",
         learning: "Explanation level",
         collaboration: "Agent collaboration",
-        routingMode: "Routing mode",
+        routingMode: "Processing path",
         roleMode: "Collaboration mode",
         roles: "Collaborating agents",
         singleRole: "Selected agent",
@@ -1144,6 +1146,63 @@ const messages = {
           "Choose one lead agent for synthesis, then select supporting agents.",
         roleModeHint:
           "Choose how this turn calls agents: automatic dispatch, one selected agent, or selected multi-agent collaboration.",
+        learningLevels: {
+          beginner: {
+            label: "Basic",
+            description: "Use fewer terms and clear steps",
+          },
+          higher_vocational: {
+            label: "Applied",
+            description: "Explain in ecommerce training terms",
+          },
+          professional: {
+            label: "Professional",
+            description: "Keep metrics, strategy, and risk reasoning",
+          },
+        },
+        roleLabels: {
+          chat: {
+            name: "General assistant",
+          },
+          ops: {
+            name: "Operations strategist",
+          },
+          data: {
+            name: "Data analyst",
+          },
+          creative: {
+            name: "Creative planner",
+          },
+          service: {
+            name: "Customer experience specialist",
+          },
+          douyin_ads: {
+            name: "Ads optimizer",
+          },
+          accounting: {
+            name: "Finance analyst",
+          },
+          search: {
+            name: "Platform researcher",
+          },
+          engineering: {
+            name: "Technical support",
+          },
+        },
+        capabilityLabels: {
+          "ops.strategy": "Operations strategy",
+          "campaign.orchestration": "Campaign orchestration",
+          "data.analysis": "Data analysis",
+          "metrics.diagnosis": "Metric diagnosis",
+          "creative.content": "Creative content",
+          "creative.copywriting": "Copywriting",
+          "service.workflow": "Service workflow",
+          "service.sentiment": "Customer sentiment",
+          "ads.optimization": "Ads optimization",
+          "roi.control": "ROI control",
+          "finance.profitability": "Profitability",
+          "budget.planning": "Budget planning",
+        },
         roleModes: {
           auto: {
             label: "Auto dispatch",
@@ -1160,12 +1219,12 @@ const messages = {
         },
         routingModes: {
           commander: {
-            label: "Deep route",
-            description: "Commander plans before dispatch",
+            label: "Full planning",
+            description: "Analyze the task before arranging steps",
           },
           fast: {
-            label: "Fast route",
-            description: "Prefer configured graph matches",
+            label: "Fast handling",
+            description: "Prefer an existing processing path",
           },
         },
         strategyNotes: {

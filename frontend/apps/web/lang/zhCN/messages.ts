@@ -1057,6 +1057,8 @@ const messages = {
         compactLabel: "模式",
         compactTitle: "调整回答方式、协作智能体和模型",
         toggle: "任务设置",
+        panelTitle: "本轮回答设置",
+        panelHint: "当前模式：{{mode}}；{{summary}}",
         rolesCount: "{{count}} 个智能体",
         depthSummary: "深度：{{depth}}",
         selectedPrefix: "已选",
@@ -1073,7 +1075,7 @@ const messages = {
         modelHint: "默认优先使用已配置的豆包；未配置豆包时只显示可用模型。",
         learning: "讲解层级",
         collaboration: "智能体协作",
-        routingMode: "路由方式",
+        routingMode: "处理路线",
         roleMode: "协作方式",
         roles: "协作智能体",
         singleRole: "指定智能体",
@@ -1102,6 +1104,63 @@ const messages = {
         manualRolesHint: "选择一个主导智能体负责汇总，再勾选需要参与协作的智能体。",
         roleModeHint:
           "这里决定本轮如何调用智能体：系统自动分配、指定一个智能体，或指定多个智能体协作。",
+        learningLevels: {
+          beginner: {
+            label: "基础",
+            description: "少术语，按步骤讲清楚",
+          },
+          higher_vocational: {
+            label: "实训",
+            description: "按电商岗位实训口径解释",
+          },
+          professional: {
+            label: "专业",
+            description: "保留指标、策略和风险推导",
+          },
+        },
+        roleLabels: {
+          chat: {
+            name: "通用助手",
+          },
+          ops: {
+            name: "运营策略师",
+          },
+          data: {
+            name: "数据分析师",
+          },
+          creative: {
+            name: "创意策划师",
+          },
+          service: {
+            name: "客服体验师",
+          },
+          douyin_ads: {
+            name: "投放优化师",
+          },
+          accounting: {
+            name: "财务测算师",
+          },
+          search: {
+            name: "平台检索师",
+          },
+          engineering: {
+            name: "技术支持师",
+          },
+        },
+        capabilityLabels: {
+          "ops.strategy": "运营策略",
+          "campaign.orchestration": "活动组织",
+          "data.analysis": "数据分析",
+          "metrics.diagnosis": "指标诊断",
+          "creative.content": "内容创意",
+          "creative.copywriting": "文案策划",
+          "service.workflow": "服务流程",
+          "service.sentiment": "咨询情绪",
+          "ads.optimization": "投放优化",
+          "roi.control": "ROI 控制",
+          "finance.profitability": "利润测算",
+          "budget.planning": "预算规划",
+        },
         roleModes: {
           auto: {
             label: "自动分配",
@@ -1118,12 +1177,12 @@ const messages = {
         },
         routingModes: {
           commander: {
-            label: "深度路由",
-            description: "先由 Commander 规划再调度",
+            label: "完整规划",
+            description: "先分析任务，再安排处理步骤",
           },
           fast: {
-            label: "快速路由",
-            description: "优先匹配已配置任务图",
+            label: "快速处理",
+            description: "优先匹配已有处理路线",
           },
         },
         strategyNotes: {
