@@ -283,9 +283,14 @@ mod tests {
 
         assert!(prompt.contains("## 汇总合同"));
         assert!(prompt.contains("不复述任务、岗位或内部过程"));
+        assert!(prompt.contains("只有用户明确要求虚拟员工或岗位分工时"));
         assert!(prompt.contains("半成品"));
+        assert!(prompt.contains("中文小标题"));
+        assert!(prompt.contains("【核心业务结论与定价判断】"));
+        assert!(prompt.contains("Markdown 管道表格"));
         assert!(prompt.contains("分析数据并写文案"));
         assert!(prompt.contains("数据贡献"));
+        assert!(!prompt.contains("# 多智能体协作结论"));
         assert!(!prompt.contains("worker.creative"));
     }
 

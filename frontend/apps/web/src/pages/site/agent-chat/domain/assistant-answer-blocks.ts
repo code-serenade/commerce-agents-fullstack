@@ -2,6 +2,8 @@ import {
   normalizeAnswerLayout,
   readBracketHeadingText,
 } from "./assistant-answer-layout"
+import { isReadableBareHeading } from "./assistant-answer-heading"
+import { readAnswerTable } from "./assistant-answer-table"
 
 export type AssistantAnswerBlock =
   | { kind: "code"; code: string; language?: string }
@@ -33,8 +35,12 @@ export function parseAnswerBlocks(content: string): AssistantAnswerBlock[] {
 
   const flushParagraph = () => {
     if (!paragraphLines.length) return
-    const text = paragraphLines.join(" ").replace(/\s+/g, " ").trim()
-    if (text) {
+    const texts = shouldPreservePlainLineBreaks(paragraphLines)
+      ? paragraphLines.map((line) => line.replace(/\s+/g, " ").trim())
+      : [paragraphLines.join(" ").replace(/\s+/g, " ").trim()]
+
+    for (const text of texts) {
+      if (!text) continue
       const sourceList = readInlineSourceList(text)
       if (sourceList) {
         if (sourceList.before) {
@@ -88,7 +94,7 @@ export function parseAnswerBlocks(content: string): AssistantAnswerBlock[] {
       continue
     }
 
-    const table = readTable(lines, index)
+    const table = readAnswerTable(lines, index)
     if (table) {
       flushParagraph()
       flushList()
@@ -139,57 +145,6 @@ export function parseAnswerBlocks(content: string): AssistantAnswerBlock[] {
   flushCode()
 
   return blocks
-}
-
-function readTable(lines: string[], startIndex: number) {
-  const headerLine = lines[startIndex]?.trim() ?? ""
-  const separatorLine = lines[startIndex + 1]?.trim() ?? ""
-  if (!isTableRow(headerLine) || !isTableSeparator(separatorLine)) return null
-
-  const header = splitTableCells(headerLine)
-  const rows: string[][] = []
-  let nextIndex = startIndex + 2
-
-  while (nextIndex < lines.length) {
-    const line = lines[nextIndex]?.trim() ?? ""
-    if (!isTableRow(line) || isTableSeparator(line)) break
-    const row = splitTableCells(line)
-    rows.push(normalizeTableRow(row, header.length))
-    nextIndex += 1
-  }
-
-  if (header.length === 0 || rows.length === 0) return null
-  return {
-    block: {
-      header,
-      kind: "table" as const,
-      rows,
-    },
-    nextIndex,
-  }
-}
-
-function isTableRow(line: string) {
-  return line.includes("|") && splitTableCells(line).length >= 2
-}
-
-function isTableSeparator(line: string) {
-  const cells = splitTableCells(line)
-  return (
-    cells.length >= 2 &&
-    cells.every((cell) => /^:?-{3,}:?$/.test(cell.replace(/\s+/g, "")))
-  )
-}
-
-function splitTableCells(line: string) {
-  const trimmed = line.trim().replace(/^\|/, "").replace(/\|$/, "")
-  return trimmed.split("|").map((cell) => cell.trim())
-}
-
-function normalizeTableRow(row: string[], cellCount: number) {
-  if (row.length === cellCount) return row
-  if (row.length > cellCount) return row.slice(0, cellCount)
-  return [...row, ...Array.from({ length: cellCount - row.length }, () => "")]
 }
 
 function readInlineSourceList(text: string) {
@@ -278,6 +233,10 @@ function readHeading(line: string): AssistantAnswerBlock | null {
     return { depth: 3, kind: "heading", text: cleanupHeading(line) }
   }
 
+  if (isReadableBareHeading(line)) {
+    return { depth: 3, kind: "heading", text: cleanupHeading(line) }
+  }
+
   return null
 }
 
@@ -293,4 +252,11 @@ function readListItem(line: string) {
 
 function cleanupHeading(text: string) {
   return text.replace(/[*#：:]+$/g, "").trim()
+}
+
+function shouldPreservePlainLineBreaks(lines: string[]) {
+  if (lines.length < 3) return false
+  const joined = lines.join(" ")
+  if (joined.includes("http") || readInlineSourceList(joined)) return false
+  return lines.some((line) => Array.from(line.trim()).length <= 48)
 }

@@ -174,18 +174,17 @@ Important SSE events:
 - `task_node_failed`: marks failed state and explains the blocker.
 - `task_graph_finished`: closes the execution run.
 
-Final Markdown output uses a stable core reading path across answer modes:
+Final Markdown output must stay readable across answer modes and use the existing answer renderer's supported shapes: Chinese headings, blank lines, bullet points, bracket headings, colon headings, and Markdown pipe tables when tabular delivery is useful.
 
 ```text
-# 多智能体协作结论
-## 总回答
-## 正文分析
-## 虚拟员工分工
-## 主岗综合方案
-## 总结与交付物
+## 综合回答
+## 关键判断
+## 执行方案
+## 风险边界
+## 下一步
 ```
 
-The backend may add process or execution sections between the core sections when data exists, for example `## 团队执行稿`, `## 丰富执行方案`, `## 岗位协作过程`, `## 协同关系`, `## 下一步`, and `## 执行检查清单`. These sections must not replace the core reading path; they only provide drill-down detail.
+The exact headings are chosen by the current deliverable. Product-material answers may also use headings such as `【核心业务结论与定价判断】`, `适合部分：`, and `核验动作：`; execution answers may use `## 执行方案` plus a Markdown pipe table; teaching answers may use `## 判断逻辑` and `## 下一步练习`. The answer should not mechanically force every mode into a fixed six-section skeleton.
 
 `metadata.strategy.responseMode` changes density inside that layout:
 

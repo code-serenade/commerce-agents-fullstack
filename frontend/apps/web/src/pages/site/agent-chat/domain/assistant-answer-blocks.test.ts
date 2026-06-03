@@ -248,6 +248,7 @@ describe("assistant answer blocks", () => {
       },
     ])
   })
+
 })
 
 function textFromCodes(codes: number[]) {
