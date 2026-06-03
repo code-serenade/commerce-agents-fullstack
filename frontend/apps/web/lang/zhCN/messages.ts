@@ -975,7 +975,7 @@ const messages = {
         },
       },
       sourceContext: {
-        compactLabel: "资料",
+        compactLabel: "上传资料",
         noneCompactLabel: "未选资料",
         compactTitle: "选择本轮引用资料",
         compactReadinessTitle: "{{status}}",

@@ -1011,7 +1011,7 @@ const messages = {
         },
       },
       sourceContext: {
-        compactLabel: "Sources",
+        compactLabel: "Upload sources",
         noneCompactLabel: "No sources",
         compactTitle: "Choose sources for this turn",
         compactReadinessTitle: "{{status}}",
