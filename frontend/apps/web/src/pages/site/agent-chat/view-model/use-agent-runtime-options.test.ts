@@ -21,7 +21,7 @@ describe("useAgentRuntimeOptions", () => {
       expect(result.current.isLoadingRuntimeOptions).toBe(false)
     })
 
-    expect(result.current.runtimeOptions?.routingModes.map((mode) => mode.id))
+    expect(result.current.runtimeOptions?.routingModes?.map((mode) => mode.id))
       .toEqual(["commander", "fast"])
     expect(
       result.current.runtimeOptions?.collaborationModes.map((mode) => mode.id)

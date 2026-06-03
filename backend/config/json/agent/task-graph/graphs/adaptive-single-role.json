@@ -1,0 +1,39 @@
+{
+  "id": "adaptive_single_role",
+  "description": "自动路由只识别到一个非 chat 岗位时，使用角色默认配置生成学生可读的单岗位任务图",
+  "priority": 120,
+  "match": {
+    "route_min_non_chat_roles": 1,
+    "none_keywords": [
+      "只输出",
+      "只回答",
+      "一句话",
+      "不要解释",
+      "老师点评",
+      "课堂反馈",
+      "课堂点评",
+      "批改",
+      "不要写成岗位报告",
+      "不写成岗位报告",
+      "不要岗位报告",
+      "不是岗位报告",
+      "岗位报告",
+      "机械罗列岗位报告",
+      "不要机械罗列岗位报告"
+    ]
+  },
+  "dynamic_roles": {
+    "from_route": {
+      "enabled": true,
+      "include_primary": true,
+      "include_support": "never",
+      "exclude_roles": ["chat"],
+      "llm_usage": "fast",
+      "skill_autosuggest": false
+    }
+  },
+  "adaptive_hint": {
+    "min_level": "normal",
+    "reason": "本轮已由调度中心识别到一个明确岗位，使用该岗位的默认职责完成轻量处理。"
+  }
+}

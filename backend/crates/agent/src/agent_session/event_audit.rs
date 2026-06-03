@@ -1662,6 +1662,7 @@ mod tests {
                         max_attempts: 1,
                     })
                     .collect(),
+                adaptive_hint: None,
             },
         }
     }

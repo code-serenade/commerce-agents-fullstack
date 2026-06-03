@@ -1,22 +1,19 @@
 import { type MouseEvent, type ReactNode, useState } from "react"
 import {
-  BookOpenText,
+  Bot,
   Boxes,
   Edit3,
-  FileCheck2,
   FileText,
-  FolderOpen,
+  GitBranch,
   LogIn,
   Megaphone,
   MoreHorizontal,
   MessageSquareText,
   Search,
   ShoppingBag,
-  Sparkles,
   Trash2,
   UserPlus,
   UserRound,
-  type LucideIcon,
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useDispatch, useSelector } from "react-redux"
@@ -63,7 +60,6 @@ const FUNCTION_NAV_ROUTE_PATHS = [
   "/agent-capabilities",
   "/commerce",
   "/campaigns",
-  "/materials",
   "/agent-output",
   "/operations",
   "/overview",
@@ -71,70 +67,6 @@ const FUNCTION_NAV_ROUTE_PATHS = [
   "/products",
   "/workspaces",
 ] as const
-
-const NEW_CONVERSATION_KEY = "new-conversation"
-
-const STUDENT_NAV_ITEMS: Array<{
-  key: string
-  icon: LucideIcon
-  labelKey: string
-  path: string
-}> = [
-  {
-    key: "getting-started",
-    icon: BookOpenText,
-    labelKey: "agentChat.shell.navigation.gettingStarted",
-    path: "/agent-capabilities",
-  },
-  {
-    key: "smart-ops",
-    icon: Sparkles,
-    labelKey: "agentChat.shell.navigation.smartOps",
-    path: "/commerce",
-  },
-  {
-    key: "materials",
-    icon: FolderOpen,
-    labelKey: "agentChat.shell.navigation.materials",
-    path: "/materials",
-  },
-  {
-    key: "product-board",
-    icon: ShoppingBag,
-    labelKey: "agentChat.shell.navigation.productBoard",
-    path: "/products",
-  },
-  {
-    key: "campaigns",
-    icon: Megaphone,
-    labelKey: "agentChat.shell.navigation.campaigns",
-    path: "/campaigns",
-  },
-  {
-    key: "market-research",
-    icon: Search,
-    labelKey: "agentChat.shell.navigation.marketResearch",
-    path: "/overview",
-  },
-  {
-    key: "operations",
-    icon: FileCheck2,
-    labelKey: "agentChat.shell.navigation.operations",
-    path: "/operations",
-  },
-  {
-    key: "task-board",
-    icon: Boxes,
-    labelKey: "agentChat.shell.navigation.taskBoard",
-    path: "/workspaces",
-  },
-  {
-    key: "deliverables",
-    icon: FileText,
-    labelKey: "agentChat.shell.navigation.deliverables",
-    path: "/agent-output",
-  },
-]
 
 export function AgentChatShell({ children }: AgentChatShellProps) {
   return (
@@ -178,8 +110,6 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   const functionNavOpen = functionNavRouteActive
     ? functionNavCollapsedPath !== location.pathname
     : functionNavManualOpen
-  const isNewConversationActive =
-    isQuestionRoute && chat.conversationId === null
 
   const handleLogout = () => {
     localStorage.removeItem("token")
@@ -212,7 +142,6 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   const openNewConversation = () => {
     chat.startNewConversation()
     navigateTo("/commerce")
-    setHistoryOpen(true)
   }
 
   const openConversation = (conversationId: string) => {
@@ -244,88 +173,6 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     chat.conversations.length - recentConversations.length,
     0
   )
-  const studentNavEntries = STUDENT_NAV_ITEMS.map((item) => {
-    const Icon = item.icon
-    const isSmartOpsEntry = item.path === "/commerce"
-    const active =
-      isRouteActive(item.path) &&
-      !(isSmartOpsEntry && isNewConversationActive)
-
-    return {
-      key: item.key,
-      icon: <Icon />,
-      label: t(item.labelKey),
-      active,
-      onSelect: () => navigateTo(item.path),
-    }
-  })
-  const isStudentNavItemActive = (path: string) => {
-    return (
-      isRouteActive(path) &&
-      !(path === "/commerce" && isNewConversationActive)
-    )
-  }
-  const recentSectionItems = [
-    {
-      key: NEW_CONVERSATION_KEY,
-      icon: <Edit3 />,
-      label: t("agentChat.sidebar.newChat"),
-      active: isNewConversationActive,
-      onSelect: openNewConversation,
-    },
-    ...(recentConversations.length
-      ? [
-          ...recentConversations.map((conversation) => ({
-            key: conversation.id,
-            icon: <MessageSquareText />,
-            label: conversation.title,
-            active:
-              isQuestionRoute && conversation.id === chat.conversationId,
-            onSelect: () => openConversation(conversation.id),
-            action: (
-              <ConversationActionMenu
-                actionLabel={t("pages:agentChat.conversation.actionLabel")}
-                deleteLabel={t("common:actions.delete")}
-                disabled={chat.isStreaming}
-                onDelete={() => chat.deleteConversation(conversation.id)}
-                onRename={() => openRenameDialog(conversation)}
-                renameLabel={t("common:actions.rename")}
-              />
-            ),
-          })),
-          ...(hiddenConversationCount > 0
-            ? [
-                {
-                  key: "more-recents",
-                  icon: <MoreHorizontal />,
-                  label: t("agentChat.sidebar.moreHistory", {
-                    count: Math.min(5, hiddenConversationCount),
-                  }),
-                  onSelect: () =>
-                    setVisibleConversationCount((current) =>
-                      Math.min(current + 5, chat.conversations.length)
-                    ),
-                },
-              ]
-            : visibleConversationCount > 5 && chat.conversations.length > 5
-              ? [
-                  {
-                    key: "less-recents",
-                    icon: <MoreHorizontal />,
-                    label: t("agentChat.sidebar.lessHistory"),
-                    onSelect: () => setVisibleConversationCount(5),
-                  },
-                ]
-              : []),
-        ]
-      : [
-          {
-            key: "empty-recents",
-            icon: <MessageSquareText />,
-            label: t("agentChat.sidebar.empty"),
-          },
-        ]),
-  ]
   const sections: SidebarShellSection[] = [
     {
       key: "recents",
@@ -348,7 +195,58 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
         ? t("agentChat.sidebar.collapseHistory")
         : t("agentChat.sidebar.expandHistory"),
       onOpenChange: setHistoryOpen,
-      items: recentSectionItems,
+      items: recentConversations.length
+        ? [
+            ...recentConversations.map((conversation) => ({
+              key: conversation.id,
+              icon: <MessageSquareText />,
+              label: conversation.title,
+              active:
+                isQuestionRoute && conversation.id === chat.conversationId,
+              onSelect: () => openConversation(conversation.id),
+              action: (
+                <ConversationActionMenu
+                  actionLabel={t("pages:agentChat.conversation.actionLabel")}
+                  deleteLabel={t("common:actions.delete")}
+                  disabled={chat.isStreaming}
+                  onDelete={() => chat.deleteConversation(conversation.id)}
+                  onRename={() => openRenameDialog(conversation)}
+                  renameLabel={t("common:actions.rename")}
+                />
+              ),
+            })),
+            ...(hiddenConversationCount > 0
+              ? [
+                  {
+                    key: "more-recents",
+                    icon: <MoreHorizontal />,
+                    label: t("agentChat.sidebar.moreHistory", {
+                      count: Math.min(5, hiddenConversationCount),
+                    }),
+                    onSelect: () =>
+                      setVisibleConversationCount((current) =>
+                        Math.min(current + 5, chat.conversations.length)
+                      ),
+                  },
+                ]
+              : visibleConversationCount > 5 && chat.conversations.length > 5
+                ? [
+                    {
+                      key: "less-recents",
+                      icon: <MoreHorizontal />,
+                      label: t("agentChat.sidebar.lessHistory"),
+                      onSelect: () => setVisibleConversationCount(5),
+                    },
+                  ]
+                : []),
+          ]
+        : [
+            {
+              key: "empty-recents",
+              icon: <MessageSquareText />,
+              label: t("agentChat.sidebar.empty"),
+            },
+          ],
     },
     {
       key: "workspace",
@@ -360,7 +258,77 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
         ? t("agentChat.sidebar.collapseFunctionNav")
         : t("agentChat.sidebar.expandFunctionNav"),
       onOpenChange: setFunctionNavOpen,
-      items: studentNavEntries,
+      items: [
+        {
+          key: "smart-ops",
+          icon: <GitBranch />,
+          label: t("agentChat.shell.navigation.smartOps"),
+          active: isRouteActive("/commerce"),
+          onSelect: () => navigateTo("/commerce"),
+        },
+        {
+          key: "capabilities",
+          icon: <Bot />,
+          label: t("agentChat.shell.navigation.capabilities"),
+          active: isRouteActive("/agent-capabilities"),
+          onSelect: () => navigateTo("/agent-capabilities"),
+        },
+        {
+          key: "product-board",
+          icon: <ShoppingBag />,
+          label: t("agentChat.shell.navigation.productBoard"),
+          active: isRouteActive("/products"),
+          onSelect: () => navigateTo("/products"),
+        },
+        {
+          key: "campaigns",
+          icon: <Megaphone />,
+          label: t("agentChat.shell.navigation.campaigns"),
+          active: isRouteActive("/campaigns"),
+          onSelect: () => navigateTo("/campaigns"),
+        },
+        {
+          key: "market-research",
+          icon: <Search />,
+          label: t("agentChat.shell.navigation.marketResearch"),
+          active: isRouteActive("/overview"),
+          onSelect: () => navigateTo("/overview"),
+        },
+        {
+          key: "operations",
+          icon: <FileText />,
+          label: t("agentChat.shell.navigation.operations"),
+          active: isRouteActive("/operations"),
+          onSelect: () => navigateTo("/operations"),
+        },
+      ],
+    },
+    {
+      key: "governance",
+      label: t("agentChat.shell.sections.governance"),
+      collapsible: true,
+      maxContentHeight: "sm",
+      open: functionNavOpen,
+      toggleLabel: functionNavOpen
+        ? t("agentChat.sidebar.collapseFunctionNav")
+        : t("agentChat.sidebar.expandFunctionNav"),
+      onOpenChange: setFunctionNavOpen,
+      items: [
+        {
+          key: "task-board",
+          icon: <Boxes />,
+          label: t("agentChat.shell.navigation.taskBoard"),
+          active: isRouteActive("/workspaces"),
+          onSelect: () => navigateTo("/workspaces"),
+        },
+        {
+          key: "deliverables",
+          icon: <FileText />,
+          label: t("agentChat.shell.navigation.deliverables"),
+          active: isRouteActive("/agent-output"),
+          onSelect: () => navigateTo("/agent-output"),
+        },
+      ],
     },
   ]
   const mobileConversationItems = chat.conversations
@@ -377,13 +345,13 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       key: "recents",
       icon: <MessageSquareText />,
       label: t("agentChat.shell.sections.recents"),
-      active: isQuestionRoute,
+      active: chat.conversationId !== null,
       subItems: [
         {
           key: "new-chat",
           label: t("agentChat.sidebar.newChat"),
           href: "/commerce",
-          active: isNewConversationActive,
+          active: !chat.conversationId && isRouteActive("/commerce"),
           onSelect: openNewConversation,
         },
         ...(mobileConversationItems.length
@@ -400,18 +368,81 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     },
     {
       key: "workspace",
-      icon: <Sparkles />,
+      icon: <Bot />,
       label: t("agentChat.shell.sections.workspace"),
-      active: STUDENT_NAV_ITEMS.some((item) =>
-        isStudentNavItemActive(item.path)
-      ),
-      subItems: STUDENT_NAV_ITEMS.map((item) => ({
-        key: item.key,
-        label: t(item.labelKey),
-        href: item.path,
-        active: isStudentNavItemActive(item.path),
-        onSelect: () => navigateTo(item.path),
-      })),
+      active:
+        isRouteActive("/agent-capabilities") ||
+        isRouteActive("/commerce") ||
+        isRouteActive("/products") ||
+        isRouteActive("/campaigns") ||
+        isRouteActive("/overview") ||
+        isRouteActive("/operations"),
+      subItems: [
+        {
+          key: "smart-ops",
+          label: t("agentChat.shell.navigation.smartOps"),
+          href: "/commerce",
+          active: isRouteActive("/commerce"),
+          onSelect: () => navigateTo("/commerce"),
+        },
+        {
+          key: "capabilities",
+          label: t("agentChat.shell.navigation.capabilities"),
+          href: "/agent-capabilities",
+          active: isRouteActive("/agent-capabilities"),
+          onSelect: () => navigateTo("/agent-capabilities"),
+        },
+        {
+          key: "product-board",
+          label: t("agentChat.shell.navigation.productBoard"),
+          href: "/products",
+          active: isRouteActive("/products"),
+          onSelect: () => navigateTo("/products"),
+        },
+        {
+          key: "campaigns",
+          label: t("agentChat.shell.navigation.campaigns"),
+          href: "/campaigns",
+          active: isRouteActive("/campaigns"),
+          onSelect: () => navigateTo("/campaigns"),
+        },
+        {
+          key: "market-research",
+          label: t("agentChat.shell.navigation.marketResearch"),
+          href: "/overview",
+          active: isRouteActive("/overview"),
+          onSelect: () => navigateTo("/overview"),
+        },
+        {
+          key: "operations",
+          label: t("agentChat.shell.navigation.operations"),
+          href: "/operations",
+          active: isRouteActive("/operations"),
+          onSelect: () => navigateTo("/operations"),
+        },
+      ],
+    },
+    {
+      key: "governance",
+      icon: <Boxes />,
+      label: t("agentChat.shell.sections.governance"),
+      active: isRouteActive("/workspaces") || isRouteActive("/agent-output"),
+      subItems: [
+        {
+          key: "task-board",
+          label: t("agentChat.shell.navigation.taskBoard"),
+          href: "/workspaces",
+          active: isRouteActive("/workspaces"),
+          onSelect: () => navigateTo("/workspaces"),
+        },
+        {
+          key: "deliverables",
+          label: t("agentChat.shell.navigation.deliverables"),
+          href: "/agent-output",
+          active: isRouteActive("/agent-output"),
+          onSelect: () => navigateTo("/agent-output"),
+        },
+      ],
     },
   ]
 
@@ -529,13 +560,10 @@ function isAgentChatRouteActive(pathname: string, path: string) {
 
 function getRouteTitleKey(pathname: string) {
   if (pathname === "/agent-capabilities") {
-    return "agentChat.shell.navigation.gettingStarted"
+    return "agentChat.shell.navigation.capabilities"
   }
   if (pathname === "/products") {
     return "agentChat.shell.navigation.productBoard"
-  }
-  if (pathname === "/materials") {
-    return "agentChat.shell.navigation.materials"
   }
   if (pathname === "/campaigns") {
     return "agentChat.shell.navigation.campaigns"

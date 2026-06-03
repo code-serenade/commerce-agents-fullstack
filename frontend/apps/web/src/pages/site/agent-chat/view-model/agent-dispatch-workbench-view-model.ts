@@ -13,6 +13,8 @@ import {
   type AgentProcessProgress,
 } from "./agent-process-kind-view-model"
 import {
+  getDispatchPlanAdaptiveProfile,
+  getLatestDispatchPlan,
   hasFinished,
   normalizeRuntimeRole,
 } from "./agent-process-runtime-view-model"
@@ -88,6 +90,11 @@ export function getDispatchWorkbenchModel(
   const request = task?.trim() || t("agentChat.thread.dispatchPanel.emptyTask")
   const summary = getAgentProcessSummary(runtimeEvents, request, t)
   const modeLabel = getAgentProcessTitle(runtimeEvents, t)
+  const adaptiveProfile = getLatestDispatchPlan(runtimeEvents)
+  const adaptiveSummary = adaptiveProfile
+    ? getDispatchPlanAdaptiveProfile(adaptiveProfile)?.studentSummary ??
+      getDispatchPlanAdaptiveProfile(adaptiveProfile)?.student_summary
+    : undefined
 
   return {
     activeStep,
@@ -97,6 +104,7 @@ export function getDispatchWorkbenchModel(
     kind,
     modeLabel,
     previewLines: buildPreviewLines({
+      adaptiveSummary,
       facts,
       modeLabel,
       progress,
@@ -244,6 +252,7 @@ function hasFailed(runtimeEvents: AgentRuntimeEvent[]) {
 }
 
 function buildPreviewLines(input: {
+  adaptiveSummary?: string
   facts: AgentDispatchFact[]
   modeLabel: string
   progress: AgentProcessProgress
@@ -252,11 +261,18 @@ function buildPreviewLines(input: {
   summary: string
   t: TFunction
 }) {
-  const { facts, modeLabel, progress, request, steps, summary, t } = input
+  const { adaptiveSummary, facts, modeLabel, progress, request, steps, summary, t } = input
   return [
     t("agentChat.thread.dispatchPanel.preview.heading", { mode: modeLabel }),
     t("agentChat.thread.dispatchPanel.preview.request", { request }),
     t("agentChat.thread.dispatchPanel.preview.summary", { summary }),
+    ...(adaptiveSummary
+      ? [
+          t("agentChat.thread.dispatchPanel.preview.adaptive", {
+            summary: adaptiveSummary,
+          }),
+        ]
+      : []),
     t("agentChat.thread.dispatchPanel.preview.progress", {
       completed: progress.completed,
       stage: progress.stage,

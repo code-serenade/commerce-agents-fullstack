@@ -37,7 +37,7 @@ export function buildCompactRuntimeSummary({
         roleModeChoice.label
       )
     : runtimeSelection.collaborationMode
-  const routingChoice = runtimeOptions?.routingModes.find(
+  const routingChoice = runtimeOptions?.routingModes?.find(
     (mode) => mode.id === runtimeSelection.routingMode
   )
   const routingLabel = routingChoice

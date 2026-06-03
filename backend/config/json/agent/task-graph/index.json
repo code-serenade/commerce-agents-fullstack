@@ -33,6 +33,8 @@
     "graphs/explicit-secondhand-textbook-team.json",
     "graphs/explicit-requested-team.json",
     "graphs/selected-route-roles.json",
+    "graphs/adaptive-single-role.json",
+    "graphs/adaptive-route-team.json",
     "graphs/douyin-holiday-conversion.json",
     "graphs/commerce-role-split-ops-data-creative.json",
     "graphs/commerce-team-analysis.json",

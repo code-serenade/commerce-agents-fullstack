@@ -181,6 +181,7 @@ fn parse_task_graph(decision: Option<&Value>) -> Option<TaskGraph> {
             .unwrap_or_default()
             .to_string(),
         nodes,
+        adaptive_hint: None,
     })
 }
 

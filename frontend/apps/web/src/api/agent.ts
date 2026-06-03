@@ -77,6 +77,8 @@ export type AgentRuntimeEvent =
   | { type: "commander_thinking" }
   | {
       type: "dispatch_planned"
+      adaptive_profile?: AgentAdaptiveDispatchProfile
+      adaptiveProfile?: AgentAdaptiveDispatchProfile
       context_budget?: AgentDispatchContextBudget
       contextBudget?: AgentDispatchContextBudget
       difficulty: "simple" | "normal" | "complex" | "expert" | string
@@ -384,10 +386,32 @@ export interface AgentDispatchContextBudget {
   memoryRecordCount?: number
   recent_history_message_count?: number
   recentHistoryMessageCount?: number
+  task_input_chars?: number
+  taskInputChars?: number
   workspace_context_ref_count?: number
   workspaceContextRefCount?: number
   workspace_pack_item_count?: number
   workspacePackItemCount?: number
+}
+
+export interface AgentAdaptiveDispatchProfile {
+  confidence?: string
+  context_pressure?: "light" | "medium" | "heavy" | string
+  context_signal_count?: number
+  contextPressure?: "light" | "medium" | "heavy" | string
+  contextSignalCount?: number
+  level?: "simple" | "normal" | "complex" | "expert" | string
+  reasons?: string[]
+  role_count?: number
+  roleCount?: number
+  route_mode?: string
+  routeMode?: string
+  skill_count?: number
+  skillCount?: number
+  step_count?: number
+  stepCount?: number
+  student_summary?: string
+  studentSummary?: string
 }
 
 export interface AgentTaskEvaluation {
@@ -1185,7 +1209,9 @@ function normalizeAgentRuntimeEvent(event: AgentRuntimeEvent): AgentRuntimeEvent
   copyIfMissing(normalized, raw, "studentVisibleExplanation", "student_visible_explanation")
   copyIfMissing(normalized, raw, "supportRuntimeRoles", "support_runtime_roles")
   copyIfMissing(normalized, raw, "contextBudget", "context_budget")
+  copyIfMissing(normalized, raw, "adaptiveProfile", "adaptive_profile")
   normalizeDispatchContextBudget(normalized)
+  normalizeAdaptiveDispatchProfile(normalized)
   copyIfMissing(normalized, raw, "primaryWorkerId", "primary_worker_id")
   copyIfMissing(normalized, raw, "supportWorkerIds", "support_worker_ids")
   copyIfMissing(normalized, raw, "productIds", "product_ids")
@@ -1246,8 +1272,22 @@ function normalizeDispatchContextBudget(event: Record<string, unknown>) {
   copyIfMissing(normalized, normalized, "historyTruncated", "history_truncated")
   copyIfMissing(normalized, normalized, "memoryRecordCount", "memory_record_count")
   copyIfMissing(normalized, normalized, "recentHistoryMessageCount", "recent_history_message_count")
+  copyIfMissing(normalized, normalized, "taskInputChars", "task_input_chars")
   copyIfMissing(normalized, normalized, "workspaceContextRefCount", "workspace_context_ref_count")
   copyIfMissing(normalized, normalized, "workspacePackItemCount", "workspace_pack_item_count")
+}
+
+function normalizeAdaptiveDispatchProfile(event: Record<string, unknown>) {
+  const profile = event.adaptiveProfile
+  if (!profile || typeof profile !== "object") return
+  const normalized = profile as Record<string, unknown>
+  copyIfMissing(normalized, normalized, "contextPressure", "context_pressure")
+  copyIfMissing(normalized, normalized, "contextSignalCount", "context_signal_count")
+  copyIfMissing(normalized, normalized, "roleCount", "role_count")
+  copyIfMissing(normalized, normalized, "routeMode", "route_mode")
+  copyIfMissing(normalized, normalized, "skillCount", "skill_count")
+  copyIfMissing(normalized, normalized, "stepCount", "step_count")
+  copyIfMissing(normalized, normalized, "studentSummary", "student_summary")
 }
 
 function copyIfMissing(

@@ -44,6 +44,7 @@ export function AgentChatRuntimeOptionsBar({
 
   const controlDisabled = disabled || isLoadingRuntimeOptions
   const roleModes = sortRoleModes(runtimeOptions?.collaborationModes ?? [])
+  const routingModes = runtimeOptions?.routingModes ?? []
   const specialistRoles = (runtimeOptions?.roles ?? []).filter(
     (role) => role.runtimeRole !== "chat"
   ).map((role) => localizedRoleOption(role, t))
@@ -68,10 +69,10 @@ export function AgentChatRuntimeOptionsBar({
             columns={2}
             label={t("agentChat.composer.runtime.routingMode")}
             onValueChange={onRoutingModeChange}
-            options={runtimeOptions.routingModes.map((choice) =>
+            options={routingModes.map((choice) =>
               choiceToOption(choice, t, "routingModes")
             )}
-            value={runtimeSelection.routingMode}
+            value={runtimeSelection.routingMode ?? "commander"}
           />
           <OptionSegment
             disabled={controlDisabled}

@@ -24,7 +24,8 @@ use crate::{
     agent_session::{
         MemoryRecord, TaskGraphMemorySummary,
         session_runtime::{
-            dispatch_context_budget, dispatch_difficulty, dispatch_reasoning_summary,
+            DispatchAdaptiveProfileInput, dispatch_adaptive_profile, dispatch_context_budget,
+            dispatch_difficulty, dispatch_effective_difficulty, dispatch_reasoning_summary,
             dispatch_runtime_role_count, dispatch_runtime_roles_from_graph,
             dispatch_selected_skills, dispatch_steps_from_graph,
             dispatch_student_explanation_with_context, unique_support_runtime_roles,
@@ -575,6 +576,7 @@ impl Commander {
             graph_id: crate::core::protocol::TaskGraphId(format!("graph-{}", task_id.0)),
             root_task: task.to_string(),
             nodes,
+            adaptive_hint: None,
         }
     }
 
@@ -673,27 +675,47 @@ impl Commander {
         let context_budget = dispatch_context_budget(
             &self.current_context,
             self.session_context.memory_records().len(),
+            self.current_task
+                .as_ref()
+                .map(|task| task.description.as_str())
+                .unwrap_or_default(),
         );
         let difficulty = dispatch_difficulty(
             route_mode,
             dispatch_runtime_role_count(primary_runtime_role.as_deref(), &support_runtime_roles),
             &context_budget,
-        );
+        )
+        .to_string();
+        let difficulty = dispatch_effective_difficulty(&difficulty, graph);
         let planned_steps = dispatch_steps_from_graph(route_mode, graph, &context_budget);
         let student_visible_explanation = dispatch_student_explanation_with_context(
             route_mode,
             graph.nodes.len(),
             &context_budget,
         );
+        let selected_skills = dispatch_selected_skills(route_mode, graph);
+        let adaptive_profile = dispatch_adaptive_profile(
+            graph,
+            DispatchAdaptiveProfileInput {
+                route_mode,
+                primary_runtime_role: primary_runtime_role.as_deref(),
+                support_runtime_roles: &support_runtime_roles,
+                selected_skills: &selected_skills,
+                context_budget: &context_budget,
+                difficulty: &difficulty,
+                student_visible_explanation: &student_visible_explanation,
+            },
+        );
         self.emit_event(SessionEvent::DispatchPlanned {
             session_id: self.session_id_from_context(&self.current_context),
-            difficulty: difficulty.to_string(),
+            difficulty,
             route_mode: route_mode.to_string(),
             primary_runtime_role,
             support_runtime_roles,
-            selected_skills: dispatch_selected_skills(route_mode, graph),
+            selected_skills,
             planned_steps,
             context_budget,
+            adaptive_profile,
             reasoning_summary: dispatch_reasoning_summary(route_mode, graph.nodes.len()),
             student_visible_explanation,
         });

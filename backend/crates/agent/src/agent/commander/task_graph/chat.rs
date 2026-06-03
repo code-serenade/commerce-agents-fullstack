@@ -19,6 +19,7 @@ pub(super) fn plan_single_chat_graph(task_id: &TaskId, task: &str, role: &str) -
             acceptance: vec![DEFAULT_NODE_ACCEPTANCE.to_string()],
             max_attempts: 1,
         }],
+        adaptive_hint: None,
     }
 }
 
@@ -73,6 +74,7 @@ pub(super) fn plan_selected_roles_graph(
         graph_id: TaskGraphId(format!("graph-{}", task_id.0)),
         root_task: task.to_string(),
         nodes,
+        adaptive_hint: None,
     }
 }
 

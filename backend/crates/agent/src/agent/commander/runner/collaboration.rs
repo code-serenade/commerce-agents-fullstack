@@ -386,6 +386,7 @@ fn single_worker_dispatch_graph(
             acceptance: Vec::new(),
             max_attempts: 1,
         }],
+        adaptive_hint: None,
     }
 }
 

@@ -718,6 +718,49 @@ impl Cognition for CapturingWorkerSetCognition {
     }
 }
 
+struct CapturingWorkerAndAssignmentSetCognition {
+    runtime_roles: Arc<Mutex<HashSet<String>>>,
+    assignment_roles: Arc<Mutex<HashSet<String>>>,
+    skill_autosuggest_roles: Arc<Mutex<HashSet<String>>>,
+}
+
+#[async_trait]
+impl Cognition for CapturingWorkerAndAssignmentSetCognition {
+    async fn evaluate(&self, input: CognitionInput) -> CognitionResult {
+        if let Some(runtime_role) = input.context.metadata.get("role.runtime_role") {
+            self.runtime_roles
+                .lock()
+                .expect("lock role set capture")
+                .insert(runtime_role.clone());
+        }
+        if let Some(assignment_role) = input.context.metadata.get("assignment.role") {
+            self.assignment_roles
+                .lock()
+                .expect("lock assignment role set capture")
+                .insert(assignment_role.clone());
+        }
+        if input
+            .context
+            .metadata
+            .get("assignment.skill_autosuggest")
+            .is_some_and(|value| value == "true")
+            && let Some(runtime_role) = input.context.metadata.get("role.runtime_role")
+        {
+            self.skill_autosuggest_roles
+                .lock()
+                .expect("lock skill autosuggest role set capture")
+                .insert(runtime_role.clone());
+        }
+
+        CognitionResult::Success(json!({
+            "decision": {
+                "kind": "NoAction"
+            },
+            "role_output": test_role_output(&input)
+        }))
+    }
+}
+
 fn test_role_output(input: &CognitionInput) -> serde_json::Value {
     let role = input
         .context
@@ -1355,7 +1398,7 @@ async fn explicit_manual_roles_do_not_use_direct_answer_chat_bypass() {
                 support_runtime_roles,
                 planned_steps,
                 ..
-            } if difficulty == "normal"
+            } if matches!(difficulty.as_str(), "complex" | "expert")
                 && route_mode == "task_graph"
                 && primary_runtime_role.as_deref() == Some("data")
                 && support_runtime_roles == &vec!["ops".to_string()]
@@ -2801,7 +2844,7 @@ async fn manual_strategy_metadata_routes_requested_roles() {
                 support_runtime_roles,
                 context_budget,
                 ..
-            } if difficulty == "normal"
+            } if matches!(difficulty.as_str(), "complex" | "expert")
                 && route_mode == "task_graph"
                 && primary_runtime_role.as_deref() == Some("creative")
                 && support_runtime_roles == &vec!["data".to_string(), "ops".to_string()]
@@ -2813,6 +2856,149 @@ async fn manual_strategy_metadata_routes_requested_roles() {
         )
     }));
     assert_task_graph_covers_runtime_roles(&events, &["creative", "data", "ops"]);
+}
+
+#[tokio::test]
+async fn manual_learning_three_roles_uses_task_graph_for_phone_case_plan() {
+    let runtime_roles = Arc::new(Mutex::new(HashSet::new()));
+    let assignment_roles = Arc::new(Mutex::new(HashSet::new()));
+    let skill_autosuggest_roles = Arc::new(Mutex::new(HashSet::new()));
+    let worker_runtime_roles = Arc::clone(&runtime_roles);
+    let worker_assignment_roles = Arc::clone(&assignment_roles);
+    let worker_skill_autosuggest_roles = Arc::clone(&skill_autosuggest_roles);
+    let manager = AgentManager::new(AgentManagerConfig::new_role_aware(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(move |_role: &RoleProfile| {
+            Ok(Box::new(CapturingWorkerAndAssignmentSetCognition {
+                runtime_roles: Arc::clone(&worker_runtime_roles),
+                assignment_roles: Arc::clone(&worker_assignment_roles),
+                skill_autosuggest_roles: Arc::clone(&worker_skill_autosuggest_roles),
+            }))
+        }),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert("strategy.id".to_string(), "learning".to_string());
+    metadata.insert("strategy.response_mode".to_string(), "learning".to_string());
+    metadata.insert(
+        "strategy.learning_level".to_string(),
+        "higher_vocational".to_string(),
+    );
+    metadata.insert(
+        "strategy.collaboration_mode".to_string(),
+        "manual".to_string(),
+    );
+    metadata.insert("strategy.primary_role".to_string(), "ops".to_string());
+    metadata.insert(
+        "strategy.selected_roles".to_string(),
+        "data,ops,creative".to_string(),
+    );
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-manual-learning-phone-case".to_string()),
+            input: "请数据、运营、创意三个岗位一起帮我设计校园手机壳上新方案。".to_string(),
+            metadata,
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    while let Some(event) = rx.recv().await {
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::RouteDecided {
+                strategy_id,
+                response_mode,
+                collaboration_mode,
+                route_mode,
+                primary_runtime_role,
+                support_runtime_roles,
+                ..
+            } if strategy_id.as_deref() == Some("learning")
+                && response_mode.as_deref() == Some("learning")
+                && collaboration_mode.as_deref() == Some("manual")
+                && route_mode == "task_graph"
+                && primary_runtime_role.as_deref() == Some("ops")
+                && support_runtime_roles == &vec!["data".to_string(), "creative".to_string()]
+        )
+    }));
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::DispatchPlanned {
+                difficulty,
+                route_mode,
+                selected_skills,
+                adaptive_profile,
+                ..
+            } if matches!(difficulty.as_str(), "complex" | "expert")
+                && route_mode == "task_graph"
+                && !selected_skills.is_empty()
+                && adaptive_profile.role_count == 3
+                && adaptive_profile.step_count >= 4
+        )
+    }));
+    assert!(events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::TaskGraphPlanned { graph, .. }
+                if graph.nodes.iter().map(|node| node.role.as_str()).collect::<Vec<_>>()
+                    == vec!["data", "creative", "ops", "ops"]
+        )
+    }));
+    assert!(!events.iter().any(|event| {
+        matches!(
+            event,
+            SessionEvent::RouteDecided { route_mode, .. } if route_mode == "fast_worker"
+        )
+    }));
+    assert_eq!(
+        runtime_roles
+            .lock()
+            .expect("lock runtime roles")
+            .iter()
+            .cloned()
+            .collect::<HashSet<_>>(),
+        ["ops", "data", "creative"]
+            .into_iter()
+            .map(str::to_string)
+            .collect::<HashSet<_>>()
+    );
+    assert_eq!(
+        assignment_roles
+            .lock()
+            .expect("lock assignment roles")
+            .iter()
+            .cloned()
+            .collect::<HashSet<_>>(),
+        ["ops", "data", "creative"]
+            .into_iter()
+            .map(str::to_string)
+            .collect::<HashSet<_>>()
+    );
+    assert!(
+        skill_autosuggest_roles
+            .lock()
+            .expect("lock skill autosuggest roles")
+            .is_superset(
+                &["ops", "data", "creative"]
+                    .into_iter()
+                    .map(str::to_string)
+                    .collect::<HashSet<_>>()
+            )
+    );
 }
 
 #[tokio::test]
@@ -2873,7 +3059,6 @@ async fn dispatch_plan_explains_history_and_material_context() {
             break;
         }
     }
-
     assert!(events.iter().any(|event| {
         matches!(
             event,
@@ -2884,7 +3069,7 @@ async fn dispatch_plan_explains_history_and_material_context() {
                 planned_steps,
                 student_visible_explanation,
                 ..
-            } if difficulty == "complex"
+            } if matches!(difficulty.as_str(), "complex" | "expert")
                 && route_mode == "task_graph"
                 && context_budget.history_summary_available
                 && context_budget.recent_history_message_count == 5

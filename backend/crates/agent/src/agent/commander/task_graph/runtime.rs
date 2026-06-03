@@ -1568,6 +1568,7 @@ mod tests {
             graph_id: TaskGraphId("graph-user-facing".to_string()),
             root_task: "帮我做一段咖啡商品讲解。".to_string(),
             nodes: vec![node("creative", "内容创意", "creative")],
+            adaptive_hint: None,
         });
         runtime.states.insert(
             TaskNodeId("creative".to_string()),
@@ -1605,6 +1606,7 @@ mod tests {
             graph_id: TaskGraphId("graph-chat".to_string()),
             root_task: "帮我写一句自然回复。".to_string(),
             nodes: vec![node("chat", "直接回复", "chat")],
+            adaptive_hint: None,
         });
         runtime
             .states
@@ -1636,6 +1638,7 @@ mod tests {
             graph_id: TaskGraphId("graph-empty".to_string()),
             root_task: "帮我回答问题。".to_string(),
             nodes: vec![node("creative", "内容创意", "creative")],
+            adaptive_hint: None,
         });
 
         let output = runtime.synthesize();
@@ -1658,6 +1661,7 @@ mod tests {
             graph_id: TaskGraphId("graph-access-denied".to_string()),
             root_task: "Build a plan.".to_string(),
             nodes: vec![data.clone(), ops.clone()],
+            adaptive_hint: None,
         });
         runtime.states.insert(
             data.id.clone(),
@@ -1709,6 +1713,7 @@ mod tests {
             graph_id: TaskGraphId("graph-provider-error".to_string()),
             root_task: "Build a plan.".to_string(),
             nodes: vec![data.clone(), ops.clone()],
+            adaptive_hint: None,
         });
         runtime.states.insert(
             data.id.clone(),
@@ -1769,6 +1774,7 @@ mod tests {
             graph_id: TaskGraphId("graph-worker-unavailable".to_string()),
             root_task: "请数据和运营一起判断这个商品怎么卖。".to_string(),
             nodes: vec![data.clone(), ops.clone()],
+            adaptive_hint: None,
         });
         runtime.states.insert(
             data.id.clone(),
@@ -1885,6 +1891,7 @@ mod tests {
             graph_id: TaskGraphId("graph-final".to_string()),
             root_task: "Build a plan.".to_string(),
             nodes: vec![data.clone(), ops.clone()],
+            adaptive_hint: None,
         });
         runtime
             .states
@@ -1922,6 +1929,7 @@ mod tests {
             graph_id: TaskGraphId("graph-material-gap-final".to_string()),
             root_task: "学生书包开学季小促销方案，要求有表格、有标题示例、有风险边界。".to_string(),
             nodes: vec![data.clone(), creative.clone(), ops.clone()],
+            adaptive_hint: None,
         });
         runtime
             .states
@@ -1980,6 +1988,7 @@ mod tests {
             graph_id: TaskGraphId("graph-new-gap-final".to_string()),
             root_task: "现在切换成手动多智能体：数据、创意、运营一起给一个学生书包开学季小促销方案，要求有表格、有标题示例、有风险边界。".to_string(),
             nodes: vec![data.clone(), creative.clone(), ops.clone()],
+            adaptive_hint: None,
         });
         runtime
             .states
@@ -2029,6 +2038,7 @@ mod tests {
             graph_id: TaskGraphId("graph-format-table-gap".to_string()),
             root_task: "不上传任何表格，只要求你把学生书包的分析输出成表格：列出指标、怎么看、可能问题、下一步动作。".to_string(),
             nodes: vec![data.clone(), ops.clone()],
+            adaptive_hint: None,
         });
         runtime
             .states
@@ -2070,6 +2080,7 @@ mod tests {
             graph_id: TaskGraphId("graph-partial".to_string()),
             root_task: "Build a plan.".to_string(),
             nodes: vec![data.clone(), ops.clone()],
+            adaptive_hint: None,
         });
         runtime
             .states
@@ -2098,6 +2109,7 @@ mod tests {
             graph_id: TaskGraphId("graph-timeout".to_string()),
             root_task: "Search then synthesize.".to_string(),
             nodes: vec![search.clone(), ops.clone()],
+            adaptive_hint: None,
         });
         let assignment = runtime.build_assignment(&search);
         runtime.mark_running(&assignment);
@@ -2143,6 +2155,7 @@ mod tests {
             graph_id: TaskGraphId("graph-search-process".to_string()),
             root_task: "Search competitor prices.".to_string(),
             nodes: vec![search.clone()],
+            adaptive_hint: None,
         });
         runtime
             .states
@@ -2200,6 +2213,7 @@ mod tests {
             graph_id: TaskGraphId("graph-search-diagnostic-process".to_string()),
             root_task: "Search competitor prices.".to_string(),
             nodes: vec![search.clone()],
+            adaptive_hint: None,
         });
         runtime
             .states
@@ -2280,6 +2294,7 @@ mod tests {
             graph_id: TaskGraphId("graph-role-gap-process".to_string()),
             root_task: "Data then ops.".to_string(),
             nodes: vec![data.clone(), ops.clone()],
+            adaptive_hint: None,
         });
         runtime.states.insert(
             data.id.clone(),
@@ -2329,6 +2344,7 @@ mod tests {
             graph_id: TaskGraphId("graph-typed-worker-unavailable".to_string()),
             root_task: "Data then ops.".to_string(),
             nodes: vec![data.clone(), ops.clone()],
+            adaptive_hint: None,
         });
 
         let outcome = runtime.apply_report(WorkerReport {
@@ -2390,6 +2406,7 @@ mod tests {
             graph_id: TaskGraphId("graph-skill-failure-process".to_string()),
             root_task: "Create an execution plan.".to_string(),
             nodes: vec![ops.clone()],
+            adaptive_hint: None,
         });
         runtime
             .states
@@ -2453,6 +2470,7 @@ mod tests {
             graph_id: TaskGraphId("graph-context-pack-process".to_string()),
             root_task: "读取资料并给出运营建议。".to_string(),
             nodes: vec![ops.clone()],
+            adaptive_hint: None,
         });
         runtime
             .states
@@ -2523,6 +2541,7 @@ mod tests {
             graph_id: TaskGraphId("graph-quick".to_string()),
             root_task: "快速判断这个冷萃咖啡怎么卖。".to_string(),
             nodes: vec![ops.clone(), data.clone(), creative.clone()],
+            adaptive_hint: None,
         })
         .with_response_mode(Some("quick"));
         for node in [&ops, &data, &creative] {
@@ -2567,6 +2586,7 @@ mod tests {
             graph_id: TaskGraphId("graph-thin-final".to_string()),
             root_task: "给出复盘：稳定部分、风险部分、下一步。".to_string(),
             nodes: vec![data.clone(), design.clone(), ops_final.clone()],
+            adaptive_hint: None,
         })
         .with_response_mode(Some("learning"));
         for node in [&data, &design, &ops_final] {
@@ -2629,6 +2649,7 @@ mod tests {
             graph_id: TaskGraphId("graph-complete-final".to_string()),
             root_task: "整理完整方案。".to_string(),
             nodes: vec![data.clone(), ops_final.clone()],
+            adaptive_hint: None,
         })
         .with_response_mode(Some("execution"));
         for node in [&data, &ops_final] {

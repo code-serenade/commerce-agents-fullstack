@@ -15,6 +15,16 @@ pub struct TaskGraph {
     pub graph_id: TaskGraphId,
     pub root_task: String,
     pub nodes: Vec<TaskNode>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub adaptive_hint: Option<TaskGraphAdaptiveHint>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TaskGraphAdaptiveHint {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min_level: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

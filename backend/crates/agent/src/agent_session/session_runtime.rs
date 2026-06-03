@@ -18,8 +18,9 @@ use crate::{
     core::{
         messaging::MessageRx,
         protocol::{
-            AgentId, DispatchContextBudget, DispatchPlannedStep, Message, MessageContext,
-            MessageId, Payload, SessionEvent, SessionId, TaskGraph, TaskId, TaskSpec, WorkerId,
+            AdaptiveDispatchProfile, AgentId, DispatchContextBudget, DispatchPlannedStep, Message,
+            MessageContext, MessageId, Payload, SessionEvent, SessionId, TaskGraph, TaskId,
+            TaskSpec, WorkerId,
         },
     },
     roles::{RoleCatalog, RoleProfile, RoleRouter},
@@ -355,6 +356,7 @@ impl SessionRuntime {
                                 SettingsError::invalid("chat bypass graph is unavailable")
                             })?,
                     ],
+                    adaptive_hint: None,
                 })
                 .with_response_mode(
                     self.context
@@ -589,27 +591,47 @@ impl SessionRuntime {
     async fn emit_dispatch_planned_for_graph(&self, route_mode: &str, graph: &TaskGraph) {
         let (primary_runtime_role, support_runtime_roles) =
             dispatch_runtime_roles_from_graph(graph);
-        let context_budget = dispatch_context_budget(&self.context, self.memory_record_count());
+        let context_budget = dispatch_context_budget(
+            &self.context,
+            self.memory_record_count(),
+            &self.task_description,
+        );
         let difficulty = dispatch_difficulty(
             route_mode,
             dispatch_runtime_role_count(primary_runtime_role.as_deref(), &support_runtime_roles),
             &context_budget,
-        );
+        )
+        .to_string();
+        let difficulty = dispatch_effective_difficulty(&difficulty, graph);
         let planned_steps = dispatch_steps_from_graph(route_mode, graph, &context_budget);
         let student_visible_explanation = dispatch_student_explanation_with_context(
             route_mode,
             graph.nodes.len(),
             &context_budget,
         );
+        let selected_skills = dispatch_selected_skills(route_mode, graph);
+        let adaptive_profile = dispatch_adaptive_profile(
+            graph,
+            DispatchAdaptiveProfileInput {
+                route_mode,
+                primary_runtime_role: primary_runtime_role.as_deref(),
+                support_runtime_roles: &support_runtime_roles,
+                selected_skills: &selected_skills,
+                context_budget: &context_budget,
+                difficulty: &difficulty,
+                student_visible_explanation: &student_visible_explanation,
+            },
+        );
         self.emit_event(SessionEvent::DispatchPlanned {
             session_id: self.session_id.clone(),
-            difficulty: difficulty.to_string(),
+            difficulty,
             route_mode: route_mode.to_string(),
             primary_runtime_role,
             support_runtime_roles,
-            selected_skills: dispatch_selected_skills(route_mode, graph),
+            selected_skills,
             planned_steps,
             context_budget,
+            adaptive_profile,
             reasoning_summary: dispatch_reasoning_summary(route_mode, graph.nodes.len()),
             student_visible_explanation,
         })
@@ -900,7 +922,9 @@ pub(crate) fn dispatch_steps_from_graph(
 pub(crate) fn dispatch_context_budget(
     context: &MessageContext,
     memory_record_count: usize,
+    task_input: &str,
 ) -> DispatchContextBudget {
+    let task_input_chars = task_input.chars().count();
     DispatchContextBudget {
         memory_record_count,
         history_summary_available: context
@@ -934,7 +958,93 @@ pub(crate) fn dispatch_context_budget(
             context.metadata.get("workspaceContextPack.item_count"),
         )
         .max(split_metadata_list(context.metadata.get("workspaceContextPack.refs")).len()),
-        approximate_input_chars: approximate_context_chars(context),
+        task_input_chars,
+        approximate_input_chars: approximate_context_chars(context) + task_input_chars,
+    }
+}
+
+pub(crate) fn dispatch_effective_difficulty(base: &str, graph: &TaskGraph) -> String {
+    let mut difficulty = base.to_string();
+    if let Some(min_level) = graph
+        .adaptive_hint
+        .as_ref()
+        .and_then(|hint| hint.min_level.as_deref())
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .filter(|level| difficulty_rank(level) > difficulty_rank(&difficulty))
+    {
+        difficulty = min_level.to_string();
+    }
+    difficulty
+}
+
+pub(crate) struct DispatchAdaptiveProfileInput<'a> {
+    pub(crate) route_mode: &'a str,
+    pub(crate) primary_runtime_role: Option<&'a str>,
+    pub(crate) support_runtime_roles: &'a [String],
+    pub(crate) selected_skills: &'a [String],
+    pub(crate) context_budget: &'a DispatchContextBudget,
+    pub(crate) difficulty: &'a str,
+    pub(crate) student_visible_explanation: &'a str,
+}
+
+pub(crate) fn dispatch_adaptive_profile(
+    graph: &TaskGraph,
+    input: DispatchAdaptiveProfileInput<'_>,
+) -> AdaptiveDispatchProfile {
+    let route_mode = input.route_mode;
+    let context_budget = input.context_budget;
+    let difficulty = input.difficulty;
+    let role_count =
+        dispatch_runtime_role_count(input.primary_runtime_role, input.support_runtime_roles);
+    let step_count = graph.nodes.len();
+    let skill_count = input.selected_skills.len();
+    let context_signal_count = dispatch_material_signal_count(context_budget);
+    let context_pressure = dispatch_context_pressure(context_budget, context_signal_count);
+    let confidence = dispatch_profile_confidence(route_mode, role_count, step_count, skill_count);
+    let mut reasons = vec![
+        dispatch_route_reason(route_mode, role_count, step_count),
+        format!("计划 {role_count} 个岗位、{step_count} 个执行步骤、{skill_count} 个候选 Skill。"),
+    ];
+
+    if context_signal_count > 0 {
+        reasons.push(format!(
+            "已读取 {context_signal_count} 个上下文信号，包含历史记忆、已选资料或工作区内容。"
+        ));
+    } else {
+        reasons.push("本轮主要依据用户当前输入，不强行补入未选择的商品或历史资料。".to_string());
+    }
+
+    if let Some(reason) = graph
+        .adaptive_hint
+        .as_ref()
+        .and_then(|hint| hint.reason.as_deref())
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        reasons.push(reason.to_string());
+    }
+
+    AdaptiveDispatchProfile {
+        level: difficulty.to_string(),
+        route_mode: route_mode.to_string(),
+        role_count,
+        step_count,
+        skill_count,
+        context_signal_count,
+        context_pressure: context_pressure.to_string(),
+        confidence: confidence.to_string(),
+        reasons,
+        student_summary: dispatch_adaptive_student_summary(
+            difficulty,
+            route_mode,
+            role_count,
+            step_count,
+            skill_count,
+            context_pressure,
+            context_budget,
+            input.student_visible_explanation,
+        ),
     }
 }
 
@@ -1024,6 +1134,110 @@ pub(crate) fn dispatch_student_explanation_with_context(
         return base;
     }
     format!("{base} {context_hint}")
+}
+
+fn difficulty_rank(level: &str) -> u8 {
+    match level {
+        "expert" => 4,
+        "complex" => 3,
+        "normal" => 2,
+        "simple" => 1,
+        _ => 0,
+    }
+}
+
+fn dispatch_context_pressure(
+    context_budget: &DispatchContextBudget,
+    context_signal_count: usize,
+) -> &'static str {
+    if context_budget.history_truncated
+        || context_budget.approximate_input_chars >= 6000
+        || context_signal_count >= 6
+    {
+        "heavy"
+    } else if context_budget.history_summary_available
+        || context_signal_count >= 2
+        || context_budget.task_input_chars >= 1000
+    {
+        "medium"
+    } else {
+        "light"
+    }
+}
+
+fn dispatch_profile_confidence(
+    route_mode: &str,
+    role_count: usize,
+    step_count: usize,
+    skill_count: usize,
+) -> &'static str {
+    if route_mode == "task_graph" && role_count >= 2 && step_count >= 2 {
+        "high"
+    } else if skill_count > 0 || role_count > 0 {
+        "medium"
+    } else {
+        "low"
+    }
+}
+
+fn dispatch_route_reason(route_mode: &str, role_count: usize, step_count: usize) -> String {
+    match route_mode {
+        "chat_bypass" => "本轮问题可以用直接回答完成，不需要展开多岗位协作。".to_string(),
+        "fast_worker" => "本轮问题匹配到一个主要岗位，先走单岗位快速处理。".to_string(),
+        "task_graph" => {
+            format!("本轮问题需要按任务图拆成 {role_count} 个岗位、{step_count} 个步骤协作。")
+        }
+        _ => format!("调度中心选择 {route_mode} 路线处理本轮问题。"),
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn dispatch_adaptive_student_summary(
+    difficulty: &str,
+    route_mode: &str,
+    role_count: usize,
+    step_count: usize,
+    skill_count: usize,
+    context_pressure: &str,
+    context_budget: &DispatchContextBudget,
+    fallback: &str,
+) -> String {
+    let route_summary = match route_mode {
+        "chat_bypass" => "采用直接回答路线",
+        "fast_worker" => "采用单岗位快速路线",
+        "task_graph" => "采用多步骤协作路线",
+        _ => "采用当前调度路线",
+    };
+    let pressure_summary = match context_pressure {
+        "heavy" => "上下文较重",
+        "medium" => "上下文中等",
+        _ => "上下文较轻",
+    };
+    let mut summary = format!(
+        "本轮被判断为{difficulty}任务，{route_summary}；计划 {role_count} 个岗位、\
+         {step_count} 个步骤、{skill_count} 个候选 Skill，{pressure_summary}"
+    );
+
+    if context_budget.history_truncated {
+        summary.push_str(&format!(
+            "，已压缩早期历史并读取最近 {}/{} 条消息",
+            context_budget.recent_history_message_count, context_budget.history_total_message_count
+        ));
+    } else if context_budget.history_summary_available {
+        summary.push_str("，已读取同会话历史摘要");
+    }
+
+    let material_count = dispatch_material_signal_count(context_budget);
+    if material_count > 0 {
+        summary.push_str(&format!("，并读取 {material_count} 个资料信号"));
+    }
+
+    if summary.chars().count() < 40 && !fallback.trim().is_empty() {
+        return fallback.to_string();
+    }
+
+    summary.push('。');
+    summary
 }
 
 fn dispatch_context_step_detail(context_budget: &DispatchContextBudget) -> String {
