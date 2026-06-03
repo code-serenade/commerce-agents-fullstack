@@ -2463,6 +2463,60 @@ const messages = {
         },
       ],
     },
+    modes: {
+      title: "How to choose answer modes",
+      description:
+        "The same question can use different answer styles based on the classroom goal, so students do not only receive generic conclusions.",
+      items: [
+        {
+          title: "Teaching mode",
+          description:
+            "Good for learning while doing. The answer adds reasoning, operating steps, and review metrics.",
+        },
+        {
+          title: "Brief answer",
+          description:
+            "Good for quickly confirming direction. The answer prioritizes conclusions, key actions, and missing inputs.",
+        },
+        {
+          title: "Full planning",
+          description:
+            "Good for assignments or plans. The answer covers goals, path, risks, checklists, and next steps.",
+        },
+        {
+          title: "Auto dispatch",
+          description:
+            "The system decides whether product, campaign, data-diagnosis, or other specialist collaboration is needed.",
+        },
+      ],
+    },
+    qa: {
+      title: "Common usage questions",
+      description:
+        "These questions help students know when to add materials and when to keep asking follow-up questions.",
+      items: [
+        {
+          question: "Can I ask without selecting a product?",
+          answer:
+            "Yes. The system answers as a general ecommerce training question, but it will not invent specific inventory, price, material, or historical conversion data.",
+        },
+        {
+          question: "When should I reference a product or campaign?",
+          answer:
+            "Reference materials when the question involves a specific SKU, selling point, asset, campaign budget, rhythm, or review metric.",
+        },
+        {
+          question: "Can the answer be submitted as the final assignment?",
+          answer:
+            "Not directly. Students should verify data sources, add classroom requirements, and organize the execution process and evidence.",
+        },
+        {
+          question: "Will historical context keep being used?",
+          answer:
+            "The same conversation keeps the task context, but after changing products, campaigns, or modes, state the current goal again in the question.",
+        },
+      ],
+    },
     flow: {
       title: "How one training task flows",
       description:
