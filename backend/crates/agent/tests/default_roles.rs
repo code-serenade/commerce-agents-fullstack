@@ -4,9 +4,9 @@ use std::{
 };
 
 use agent::api::{
-    AgentId, AgentManager, AgentManagerConfig, AgentRequest, Cognition, CognitionInput,
-    CognitionResult, InMemoryMemoryStore, RoleProfile, SessionEvent, SessionId, UserId,
-    audit_session_event_roles_against, render_session_event_role_audit,
+    AgentId, AgentManager, AgentManagerConfig, AgentRequest, Cognition, CognitionFailure,
+    CognitionInput, CognitionResult, FailureReason, InMemoryMemoryStore, RoleProfile, SessionEvent,
+    SessionId, UserId, audit_session_event_roles_against, render_session_event_role_audit,
 };
 use async_trait::async_trait;
 use serde_json::json;
@@ -101,6 +101,133 @@ impl Cognition for RouteWithoutTargetCommanderCognition {
             "confidence": 1.0,
             "rationale": {
                 "primary": "role router fallback test",
+                "evidence": [],
+                "alternatives_considered": []
+            }
+        }))
+    }
+}
+
+struct DecodeFailingCommanderCognition;
+
+#[async_trait]
+impl Cognition for DecodeFailingCommanderCognition {
+    async fn evaluate(&self, _input: CognitionInput) -> CognitionResult {
+        CognitionResult::Failure(CognitionFailure {
+            reason: FailureReason::InternalError,
+            description: "decode failed on attempt 3/3: json template validation failed at $.decision: missing key 'clarification'".to_string(),
+        })
+    }
+}
+
+struct ChatTargetCommanderCognition;
+
+#[async_trait]
+impl Cognition for ChatTargetCommanderCognition {
+    async fn evaluate(&self, _input: CognitionInput) -> CognitionResult {
+        CognitionResult::Success(json!({
+            "decision": {
+                "kind": "RouteTask",
+                "route": {
+                    "target_agent_id": "worker.chat",
+                    "task_summary": "chat target",
+                    "goal": "answer directly",
+                    "constraints": []
+                },
+                "handoff": {
+                    "why_this_agent": "model selected chat",
+                    "expected_output": "answer"
+                },
+                "clarification": {
+                    "question": ""
+                }
+            },
+            "confidence": 0.9,
+            "rationale": {
+                "primary": "model route",
+                "evidence": [],
+                "alternatives_considered": []
+            }
+        }))
+    }
+}
+
+struct ChatOnlyGraphCommanderCognition;
+
+#[async_trait]
+impl Cognition for ChatOnlyGraphCommanderCognition {
+    async fn evaluate(&self, _input: CognitionInput) -> CognitionResult {
+        CognitionResult::Success(json!({
+            "decision": {
+                "kind": "ExecuteTaskGraph",
+                "route": {
+                    "target_agent_id": "worker.chat",
+                    "task_summary": "chat only graph",
+                    "goal": "answer directly",
+                    "constraints": []
+                },
+                "handoff": {
+                    "why_this_agent": "model generated chat-only graph",
+                    "expected_output": "answer"
+                },
+                "clarification": {
+                    "question": ""
+                },
+                "graph": {
+                    "graph_id": "chat-only-graph",
+                    "root_task": "answer directly",
+                    "nodes": [
+                        {
+                            "id": "chat",
+                            "role": "chat",
+                            "worker_id": "worker.chat",
+                            "title": "业务直接回答",
+                            "objective": "answer",
+                            "input_refs": [],
+                            "acceptance": ["answer"],
+                            "max_attempts": 1
+                        }
+                    ]
+                }
+            },
+            "confidence": 0.9,
+            "rationale": {
+                "primary": "model graph",
+                "evidence": [],
+                "alternatives_considered": []
+            }
+        }))
+    }
+}
+
+struct ChatOnlyGraphWithoutTargetCommanderCognition;
+
+#[async_trait]
+impl Cognition for ChatOnlyGraphWithoutTargetCommanderCognition {
+    async fn evaluate(&self, _input: CognitionInput) -> CognitionResult {
+        CognitionResult::Success(json!({
+            "decision": {
+                "kind": "ExecuteTaskGraph",
+                "graph": {
+                    "graph_id": "chat-only-graph-without-target",
+                    "root_task": "answer directly",
+                    "nodes": [
+                        {
+                            "id": "chat",
+                            "role": "chat",
+                            "worker_id": "worker.chat",
+                            "title": "业务直接回答",
+                            "objective": "answer",
+                            "input_refs": [],
+                            "acceptance": ["answer"],
+                            "max_attempts": 1
+                        }
+                    ]
+                }
+            },
+            "confidence": 0.9,
+            "rationale": {
+                "primary": "model graph without route target",
                 "evidence": [],
                 "alternatives_considered": []
             }
@@ -311,12 +438,12 @@ impl Cognition for CapturingWorkerCognition {
     }
 }
 
-struct CapturingSearchEvidencePacketWorkerCognition {
+struct CapturingSearchEvidenceWorkerCognition {
     captured_by_role: Arc<Mutex<BTreeMap<String, Option<String>>>>,
 }
 
 #[async_trait]
-impl Cognition for CapturingSearchEvidencePacketWorkerCognition {
+impl Cognition for CapturingSearchEvidenceWorkerCognition {
     async fn evaluate(&self, input: CognitionInput) -> CognitionResult {
         let role = input
             .context
@@ -324,16 +451,16 @@ impl Cognition for CapturingSearchEvidencePacketWorkerCognition {
             .get("role.runtime_role")
             .cloned()
             .unwrap_or_else(|| "chat".to_string());
-        let packet = input
+        let evidence = input
             .context
             .facts
             .iter()
-            .find(|fact| fact.source == "worker.assignment.input.search.evidence_packet")
+            .find(|fact| fact.source == "worker.assignment.input.search.evidence")
             .map(|fact| fact.content.clone());
         self.captured_by_role
             .lock()
-            .expect("lock search evidence packet capture")
-            .insert(role.clone(), packet);
+            .expect("lock search evidence capture")
+            .insert(role.clone(), evidence);
 
         if role == "search" {
             return CognitionResult::Success(json!({
@@ -341,7 +468,7 @@ impl Cognition for CapturingSearchEvidencePacketWorkerCognition {
                     "kind": "NoAction"
                 },
                 "role_output": {
-                    "summary": "搜索岗已整理校园冷萃咖啡竞品价格证据包。",
+                    "summary": "搜索岗已整理校园冷萃咖啡竞品价格证据。",
                     "findings": ["竞品价格集中在 12-19 元区间"],
                     "recommendations": ["下游岗位需按来源置信度保守引用"],
                     "evidence": [
@@ -383,9 +510,9 @@ impl Cognition for SearchEvidenceStateAwareWorkerCognition {
                     "kind": "NoAction"
                 },
                 "role_output": {
-                    "summary": "搜索岗已按当前 adapter 状态整理证据包。",
-                    "findings": ["搜索证据状态已写入 evidence_packet"],
-                    "recommendations": ["下游岗位必须按 adapter_status 和 source_state 决定引用边界"],
+                    "summary": "搜索岗已按当前搜索状态整理可读证据。",
+                    "findings": ["搜索证据状态已写入可读摘要"],
+                    "recommendations": ["下游岗位必须按可读搜索状态决定引用边界"],
                     "evidence": [
                         format!("search_evidence_packet:{}", self.packet),
                         self.trace
@@ -396,48 +523,40 @@ impl Cognition for SearchEvidenceStateAwareWorkerCognition {
             }));
         }
 
-        let packet = input
+        let search_context = input
             .context
             .facts
             .iter()
-            .find(|fact| fact.source == "worker.assignment.input.search.evidence_packet")
+            .filter(|fact| {
+                fact.source == "worker.assignment.input.search.evidence"
+                    || fact.source == "worker.assignment.input.search.diagnostic"
+            })
             .map(|fact| fact.content.as_str())
-            .unwrap_or_default();
-        let search_summary = if packet.contains("\"adapter_status\":\"live\"")
-            && packet.contains("\"source_state\":\"has_reliable_sources\"")
-            && packet.contains("\"duplicate_filtered_count\":")
-            && !packet.contains("\"duplicate_filtered_count\":0")
+            .collect::<Vec<_>>()
+            .join("\n");
+        let search_summary = if search_context.contains("搜索工具可用")
+            && search_context.contains("有可采信来源")
+            && search_context.contains("重复来源已过滤")
         {
             "已拿到可采信实时来源：可以引用保留下来的 12-19 \
              元价格带，但重复来源已过滤，不能把重复条目当成多方验证。"
-        } else if packet.contains("\"adapter_status\":\"live\"")
-            && packet.contains("\"source_state\":\"has_reliable_sources\"")
+        } else if search_context.contains("搜索工具可用") && search_context.contains("有可采信来源")
         {
             "已拿到可采信实时来源：可以把 12-19 元竞品价格带作为低置信参考，但仍要说明来源时效。"
-        } else if packet.contains("\"adapter_status\":\"degraded\"")
-            && packet.contains("\"stale_filtered_count\":")
-            && !packet.contains("\"stale_filtered_count\":0")
-        {
+        } else if search_context.contains("本轮搜索只返回过期来源") {
             "本轮搜索只返回过期来源，已降级且不能把 12-19 \
              元当作当前事实；只能提示重新搜索或扩大核验来源。"
-        } else if packet.contains("\"adapter_status\":\"degraded\"")
-            && ((packet.contains("\"untraceable_domain_filtered_count\":")
-                && !packet.contains("\"untraceable_domain_filtered_count\":0"))
-                || (packet.contains("\"missing_url_filtered_count\":")
-                    && !packet.contains("\"missing_url_filtered_count\":0")))
-        {
+        } else if search_context.contains("本轮搜索返回了不可追踪来源") {
             "本轮搜索返回了不可追踪来源，已降级且不能把 12-19 元当作事实；需要补充可打开 URL \
              或官方来源。"
-        } else if packet.contains("\"adapter_status\":\"degraded\"")
-            || packet.contains("\"source_state\":\"no_reliable_sources\"")
+        } else if search_context.contains("搜索已降级") || search_context.contains("没有可采信来源")
         {
             "本轮搜索已降级且没有可采信实时来源：不能把 12-19 \
              元当作事实，只能给核验路径和待补来源。"
-        } else if packet.contains("\"adapter_status\":\"adapter_required\"")
-            || packet.contains("\"source_state\":\"adapter_required\"")
+        } else if search_context.contains("外部搜索工具未接入")
+            || search_context.contains("需要接入外部搜索工具")
         {
-            "外部搜索 adapter \
-             未接入：不能声称已经联网，只能说明需要配置搜索工具后再核验价格或平台规则。"
+            "外部搜索工具未接入：不能声称已经联网，只能说明需要配置搜索工具后再核验价格或平台规则。"
         } else {
             "搜索证据状态不明确：不能当作实时来源引用。"
         };
@@ -463,9 +582,9 @@ impl Cognition for SearchEvidenceStateAwareWorkerCognition {
             },
             "role_output": {
                 "summary": summary,
-                "findings": ["worker.assignment.input.search.evidence_packet 已进入下游岗位上下文"],
+                "findings": ["worker.assignment.input.search.evidence 已进入下游岗位上下文"],
                 "recommendations": ["按来源状态决定能否引用实时结论"],
-                "evidence": ["worker.assignment.input.search.evidence_packet"],
+                "evidence": ["worker.assignment.input.search.evidence"],
                 "risks": [],
                 "open_questions": []
             }
@@ -988,6 +1107,184 @@ async fn explicit_chat_role_selection_bypasses_task_graph_for_execution_strategy
 }
 
 #[tokio::test]
+async fn commander_decode_failure_falls_back_to_deterministic_task_graph_route() {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(DecodeFailingCommanderCognition))),
+        Arc::new(|| Ok(Box::new(StructuredSummaryWorkerCognition))),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert("strategy.id".to_string(), "learning".to_string());
+    metadata.insert("strategy.response_mode".to_string(), "learning".to_string());
+    metadata.insert("strategy.routing_mode".to_string(), "commander".to_string());
+    metadata.insert(
+        "strategy.collaboration_mode".to_string(),
+        "auto".to_string(),
+    );
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-commander-decode-fallback".to_string()),
+            input: "请分析商品转化率和主图点击率，给学生能执行的下一步。".to_string(),
+            metadata,
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    loop {
+        let Some(event) = tokio::time::timeout(std::time::Duration::from_secs(10), rx.recv())
+            .await
+            .expect("fallback stream should keep making progress")
+        else {
+            break;
+        };
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+
+    assert!(events.iter().any(|event| matches!(
+        event,
+        SessionEvent::RouteDecided {
+            route_mode,
+            primary_runtime_role,
+            ..
+        } if route_mode == "task_graph" && primary_runtime_role.as_deref() == Some("data")
+    )));
+    assert!(
+        events
+            .iter()
+            .any(|event| matches!(event, SessionEvent::TaskGraphPlanned { .. }))
+    );
+    assert!(events.iter().any(|event| matches!(
+        event,
+        SessionEvent::Output { content, .. }
+            if content.contains("已经接入问答模型")
+                && !content.contains("当前 AI 调度没有成功返回结果")
+    )));
+}
+
+#[tokio::test]
+async fn commander_chat_target_does_not_override_non_chat_auto_route() {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(ChatTargetCommanderCognition))),
+        Arc::new(|| Ok(Box::new(StructuredSummaryWorkerCognition))),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert("strategy.id".to_string(), "learning".to_string());
+    metadata.insert("strategy.response_mode".to_string(), "learning".to_string());
+    metadata.insert("strategy.routing_mode".to_string(), "commander".to_string());
+    metadata.insert(
+        "strategy.collaboration_mode".to_string(),
+        "auto".to_string(),
+    );
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-chat-target-keeps-commerce-route".to_string()),
+            input: "请分析商品转化率和主图点击率，给学生能执行的下一步。".to_string(),
+            metadata,
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    loop {
+        let Some(event) = tokio::time::timeout(std::time::Duration::from_secs(10), rx.recv())
+            .await
+            .expect("commerce route stream should keep making progress")
+        else {
+            break;
+        };
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+
+    assert!(events.iter().any(|event| matches!(
+        event,
+        SessionEvent::RouteDecided {
+            route_mode,
+            primary_runtime_role,
+            ..
+        } if route_mode == "task_graph" && primary_runtime_role.as_deref() == Some("data")
+    )));
+    assert!(events.iter().any(|event| matches!(
+        event,
+        SessionEvent::TaskGraphPlanned { graph, .. }
+            if graph.nodes.iter().any(|node| node.role == "data")
+                && graph.nodes.iter().all(|node| node.role != "chat")
+    )));
+}
+
+#[tokio::test]
+async fn commander_chat_only_graph_does_not_override_non_chat_auto_route() {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(ChatOnlyGraphCommanderCognition))),
+        Arc::new(|| Ok(Box::new(StructuredSummaryWorkerCognition))),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert("strategy.id".to_string(), "learning".to_string());
+    metadata.insert("strategy.response_mode".to_string(), "learning".to_string());
+    metadata.insert("strategy.routing_mode".to_string(), "commander".to_string());
+    metadata.insert(
+        "strategy.collaboration_mode".to_string(),
+        "auto".to_string(),
+    );
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-chat-graph-keeps-commerce-route".to_string()),
+            input: "请分析商品转化率和主图点击率，给学生能执行的下一步。".to_string(),
+            metadata,
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    loop {
+        let Some(event) = tokio::time::timeout(std::time::Duration::from_secs(10), rx.recv())
+            .await
+            .expect("commerce graph stream should keep making progress")
+        else {
+            break;
+        };
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+
+    assert!(events.iter().any(|event| matches!(
+        event,
+        SessionEvent::TaskGraphPlanned { graph, .. }
+            if graph.graph_id.0 != "chat-only-graph"
+                && graph.nodes.iter().any(|node| node.role == "data")
+                && graph.nodes.iter().all(|node| node.role != "chat")
+    )));
+}
+
+#[tokio::test]
 async fn explicit_manual_roles_do_not_use_direct_answer_chat_bypass() {
     let manager = AgentManager::new(AgentManagerConfig::new(
         Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
@@ -1176,13 +1473,84 @@ async fn explicit_manual_search_ops_roles_keep_search_skill_autosuggest() {
 }
 
 #[tokio::test]
-async fn explicit_manual_search_accounting_service_engineering_passes_evidence_packet_downstream() {
-    let captured_packets = Arc::new(Mutex::new(BTreeMap::new()));
-    let worker_capture = Arc::clone(&captured_packets);
+async fn manual_selected_search_ops_preempts_generic_commerce_graph() {
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
+        Arc::new(|| Ok(Box::new(NoopWorkerCognition))),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert("strategy.id".to_string(), "execution".to_string());
+    metadata.insert(
+        "strategy.response_mode".to_string(),
+        "execution".to_string(),
+    );
+    metadata.insert("strategy.routing_mode".to_string(), "commander".to_string());
+    metadata.insert(
+        "strategy.collaboration_mode".to_string(),
+        "manual".to_string(),
+    );
+    metadata.insert("strategy.primary_role".to_string(), "ops".to_string());
+    metadata.insert(
+        "strategy.selected_roles".to_string(),
+        "search,ops".to_string(),
+    );
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-manual-search-commerce".to_string()),
+            input: "手动指定资料搜索员和运营一起协作：如果能搜索就核对二手教材竞品价格和平台规则，再给这个618返场活动的低风险动作；没有实时来源就明确说边界，不要假装搜索成功。"
+                .to_string(),
+            metadata,
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    while let Some(event) = rx.recv().await {
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+
+    assert_task_graph_covers_runtime_roles(&events, &["search", "ops"]);
+    let graph_roles = events
+        .iter()
+        .find_map(|event| match event {
+            SessionEvent::TaskGraphPlanned { graph, .. } => Some(
+                graph
+                    .nodes
+                    .iter()
+                    .map(|node| node.role.as_str())
+                    .collect::<Vec<_>>(),
+            ),
+            _ => None,
+        })
+        .expect("task graph should be planned");
+
+    assert_eq!(graph_roles.last().copied(), Some("ops"));
+    assert!(graph_roles.contains(&"search"));
+    assert!(graph_roles.contains(&"ops"));
+    assert!(!graph_roles.contains(&"data"));
+    assert!(!graph_roles.contains(&"creative"));
+    assert!(!graph_roles.contains(&"service"));
+}
+
+#[tokio::test]
+async fn explicit_manual_search_accounting_service_engineering_passes_compact_evidence_downstream()
+{
+    let captured_evidence = Arc::new(Mutex::new(BTreeMap::new()));
+    let worker_capture = Arc::clone(&captured_evidence);
     let manager = AgentManager::new(AgentManagerConfig::new(
         Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
         Arc::new(move || {
-            Ok(Box::new(CapturingSearchEvidencePacketWorkerCognition {
+            Ok(Box::new(CapturingSearchEvidenceWorkerCognition {
                 captured_by_role: Arc::clone(&worker_capture),
             }))
         }),
@@ -1259,16 +1627,18 @@ async fn explicit_manual_search_accounting_service_engineering_passes_evidence_p
         );
     }
 
-    let packets = captured_packets
+    let evidence_by_role = captured_evidence
         .lock()
-        .expect("lock captured search evidence packets");
+        .expect("lock captured search evidence");
     for role in ["accounting", "service", "engineering"] {
-        let packet = packets
+        let evidence = evidence_by_role
             .get(role)
-            .and_then(|packet| packet.as_deref())
-            .unwrap_or_else(|| panic!("{role} should receive search evidence packet fact"));
-        assert!(packet.contains("competitor_price_or_benchmark"));
-        assert!(packet.contains("竞品价格集中在 12-19 元区间"));
+            .and_then(|evidence| evidence.as_deref())
+            .unwrap_or_else(|| panic!("{role} should receive compact search evidence fact"));
+        assert!(evidence.contains("搜索证据摘要"));
+        assert!(evidence.contains("竞品价格集中在 12-19 元区间"));
+        assert!(!evidence.contains("search_evidence_packet"));
+        assert!(!evidence.contains("\"adapter_status\""));
     }
 }
 
@@ -1282,7 +1652,7 @@ async fn explicit_manual_search_ops_downstream_answer_distinguishes_search_adapt
              intent=competitor_price_or_benchmark strength=standard sources=1 usable_claims=1 \
              gaps=0 confidence=0.72 query=\"校园冷萃咖啡 竞品价格\"",
             "已拿到可采信实时来源",
-            "12-19 元竞品价格带作为低置信参考",
+            "12-19 元竞品价格带作为仍需核验的参考",
             "不能把 12-19 元当作事实",
         ),
         (
@@ -1338,7 +1708,7 @@ async fn explicit_manual_search_ops_downstream_answer_distinguishes_search_adapt
              adapter_status=adapter_required intent=competitor_price_or_benchmark \
              strength=standard sources=0 usable_claims=0 gaps=1 confidence=0.00 \
              query=\"校园冷萃咖啡 竞品价格\" gap_preview=\"外部搜索 adapter 尚未接入\"",
-            "外部搜索 adapter 未接入",
+            "外部搜索工具未接入",
             "不能声称已经联网",
             "已拿到可采信实时来源",
         ),
@@ -3060,6 +3430,66 @@ async fn stream_routes_auto_learning_commerce_task_to_team_graph() {
 }
 
 #[tokio::test]
+async fn commander_chat_only_graph_without_target_uses_non_chat_auto_route() {
+    let runtime_roles = Arc::new(Mutex::new(HashSet::new()));
+    let worker_capture = Arc::clone(&runtime_roles);
+    let manager = AgentManager::new(AgentManagerConfig::new(
+        Arc::new(|| Ok(Box::new(ChatOnlyGraphWithoutTargetCommanderCognition))),
+        Arc::new(move || {
+            Ok(Box::new(CapturingWorkerSetCognition {
+                runtime_roles: Arc::clone(&worker_capture),
+            }))
+        }),
+    ));
+    let mut metadata = BTreeMap::new();
+    metadata.insert("strategy.response_mode".to_string(), "learning".to_string());
+    metadata.insert(
+        "strategy.collaboration_mode".to_string(),
+        "auto".to_string(),
+    );
+    metadata.insert("strategy.learning_level".to_string(), "middle".to_string());
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("role-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("role-agent".to_string()),
+            session_id: SessionId("role-session-chat-only-no-target".to_string()),
+            input: "请分析商品转化率、主图点击率和标题卖点，给学生能执行的优化清单。".to_string(),
+            metadata,
+        })
+        .expect("stream should start");
+
+    let mut events = Vec::new();
+    while let Some(event) = rx.recv().await {
+        let terminal = matches!(
+            event,
+            SessionEvent::Finished { .. } | SessionEvent::Failed { .. }
+        );
+        events.push(event);
+        if terminal {
+            break;
+        }
+    }
+
+    assert!(
+        events.iter().any(|event| {
+            matches!(
+                event,
+                SessionEvent::TaskGraphPlanned { graph, .. }
+                    if graph.nodes.len() > 1
+                        && graph.nodes.iter().any(|node| node.role == "data")
+                        && graph.nodes.iter().all(|node| node.role != "chat")
+            )
+        }),
+        "chat-only commander graph should be replaced by non-chat auto route\n{events:#?}"
+    );
+    let runtime_roles = runtime_roles.lock().expect("lock role set capture");
+    assert!(runtime_roles.contains("data"), "{runtime_roles:?}");
+    assert!(!runtime_roles.contains("chat"), "{runtime_roles:?}");
+}
+
+#[tokio::test]
 async fn stream_emits_context_loaded_event_from_request_metadata() {
     let manager = AgentManager::new(AgentManagerConfig::new(
         Arc::new(|| Ok(Box::new(RouteWithoutTargetCommanderCognition))),
@@ -3313,17 +3743,7 @@ async fn worker_cognition_receives_conversation_history_as_dedicated_fact() {
         .await
         .expect("request should complete");
 
-    assert!(
-        intent_value
-            .lock()
-            .expect("lock intent result")
-            .as_deref()
-            .is_some_and(|value| {
-                value.contains("同一会话历史上下文")
-                    && value.contains("曝光8000")
-                    && value.contains("当前用户请求")
-            })
-    );
+    assert!(intent_value.lock().expect("lock intent result").is_some());
     assert!(
         metadata_value
             .lock()
@@ -3337,8 +3757,9 @@ async fn worker_cognition_receives_conversation_history_as_dedicated_fact() {
             .expect("lock fact result")
             .as_deref()
             .is_some_and(|value| {
-                value.contains("conversation")
-                    || (value.contains("同一会话历史上下文") && value.contains("付款72"))
+                value.contains("同一会话历史上下文")
+                    && value.contains("曝光8000")
+                    && value.contains("付款72")
             })
     );
     assert!(

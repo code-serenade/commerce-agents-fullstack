@@ -3,7 +3,8 @@ use utils::llm_json;
 use futures::future::join_all;
 
 use super::{
-    autosuggest::autosuggest_skill_requests,
+    autosuggest::{autosuggest_skill_requests, rules::looks_like_material_table_input_task},
+    inference::autosuggest_match_text,
     output_normalization::is_category_level_task,
     policy::worker_policies,
     types::ParsedSkillRequest,
@@ -130,10 +131,18 @@ fn normalize_explicit_skill_requests_for_task(
             if should_defer_category_level_skill_request(&request, task) {
                 return None;
             }
+            if should_drop_material_table_profiler_request(&request, task) {
+                return None;
+            }
             normalize_parsed_skill_request(&mut request);
             Some(request)
         })
         .collect()
+}
+
+fn should_drop_material_table_profiler_request(request: &ParsedSkillRequest, task: &Task) -> bool {
+    request.skill_id == "material_table_profiler"
+        && !looks_like_material_table_input_task(&autosuggest_match_text(task))
 }
 
 fn should_defer_category_level_skill_request(request: &ParsedSkillRequest, task: &Task) -> bool {
@@ -418,6 +427,23 @@ mod tests {
         }
     }
 
+    fn task_with_description(description: &str) -> Task {
+        Task {
+            id: "task-1".to_string(),
+            context: MessageContext {
+                user_id: None,
+                workspace_id: None,
+                agent_id: None,
+                session_id: None,
+                task_id: None,
+                metadata: BTreeMap::new(),
+            },
+            description: description.to_string(),
+            requester: AgentId("commander".to_string()),
+            assignment: None,
+        }
+    }
+
     #[tokio::test]
     async fn skips_autosuggest_when_assignment_disables_it() {
         let results = execute_requested_skills(
@@ -431,5 +457,53 @@ mod tests {
         .await;
 
         assert!(results.is_empty());
+    }
+
+    #[test]
+    fn drops_explicit_table_profiler_when_user_only_requests_answer_table() {
+        let requests = normalize_explicit_skill_requests_for_task(
+            parse_skill_requests(
+                r#"{
+                    "skill_requests": [
+                        {
+                            "skill_id": "material_table_profiler",
+                            "input": {
+                                "user_question": "要求有表格"
+                            }
+                        }
+                    ]
+                }"#,
+            ),
+            &task_with_description(
+                "学生书包开学季小促销方案，要求有表格、有标题示例、有风险边界。",
+            ),
+        );
+
+        assert!(
+            requests.is_empty(),
+            "answer-format table request must not execute uploaded-table profiler: {requests:?}"
+        );
+    }
+
+    #[test]
+    fn keeps_explicit_table_profiler_for_real_uploaded_table_task() {
+        let requests = normalize_explicit_skill_requests_for_task(
+            parse_skill_requests(
+                r#"{
+                    "skill_requests": [
+                        {
+                            "skill_id": "material_table_profiler",
+                            "input": {
+                                "user_question": "请剖析上传的 Excel 表格字段"
+                            }
+                        }
+                    ]
+                }"#,
+            ),
+            &task_with_description("请剖析上传的 Excel 表格字段和指标口径"),
+        );
+
+        assert_eq!(requests.len(), 1);
+        assert_eq!(requests[0].skill_id, "material_table_profiler");
     }
 }

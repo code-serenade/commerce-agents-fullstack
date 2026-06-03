@@ -12,4 +12,4 @@ pub(super) mod search;
 mod text;
 
 pub(super) use config::load_inference_policy;
-pub(super) use text::inference_text;
+pub(super) use text::{autosuggest_match_text, inference_text, task_user_description};

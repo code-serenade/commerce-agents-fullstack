@@ -102,12 +102,17 @@ pub(super) fn merge_skill_results(
                 }
             }
             SkillExecutionStatus::Deferred | SkillExecutionStatus::PendingApproval => {
-                let risk = format_incomplete_skill_risk(result);
-                let question = format_incomplete_skill_question(result);
-                push_unique(&mut parsed.risks, risk.clone());
-                push_unique(&mut parsed.open_questions, question.clone());
-                push_unique(&mut role_output.risks, risk);
-                push_unique(&mut role_output.open_questions, question);
+                if let Some(boundary) = format_incomplete_material_skill_boundary(result) {
+                    push_unique(&mut parsed.risks, boundary.clone());
+                    push_unique(&mut role_output.risks, boundary);
+                } else {
+                    let risk = format_incomplete_skill_risk(result);
+                    let question = format_incomplete_skill_question(result);
+                    push_unique(&mut parsed.risks, risk.clone());
+                    push_unique(&mut parsed.open_questions, question.clone());
+                    push_unique(&mut role_output.risks, risk);
+                    push_unique(&mut role_output.open_questions, question);
+                }
             }
             SkillExecutionStatus::NotFound
             | SkillExecutionStatus::ValidationError
@@ -1074,6 +1079,43 @@ fn format_incomplete_skill_risk(result: &SkillExecutionResult) -> String {
     )
 }
 
+fn format_incomplete_material_skill_boundary(result: &SkillExecutionResult) -> Option<String> {
+    if !result.skill_id.as_str().starts_with("material_") {
+        return None;
+    }
+    let readiness = result
+        .output
+        .as_ref()
+        .and_then(|output| output.get("data_readiness"))
+        .and_then(serde_json::Value::as_str)
+        .or_else(|| {
+            result
+                .metadata
+                .get("data_readiness")
+                .and_then(serde_json::Value::as_str)
+        })
+        .unwrap_or_default();
+    let label = match result.skill_id.as_str() {
+        "material_table_profiler" => "表格资料分析",
+        "material_file_understanding" => "文件资料理解",
+        "material_image_diagnosis" => "图片资料分析",
+        "material_evidence_extractor" => "资料证据提取",
+        "material_multi_file_compare" => "多资料对比分析",
+        _ => "资料分析",
+    };
+    let detail = match readiness {
+        "missing_table" => "本轮没有收到可解析的表格行或表格文本",
+        "metadata_only" => "本轮只收到资料引用或元数据，没有可读取正文",
+        "single_material_only" => "本轮只有一份可读资料，不足以做多资料对比",
+        "ocr_only" => "本轮只收到 OCR 文字，不能判断完整画面细节",
+        "" => "本轮没有收到可直接分析的资料内容",
+        _ => "本轮资料内容不足，不能当作已完整读取",
+    };
+    Some(format!(
+        "资料边界：{label}没有产出可引用资料；{detail}。以下业务判断只能先按用户文字和已进入上下文的信息给出，等补齐资料后再复核。"
+    ))
+}
+
 fn format_incomplete_skill_question(result: &SkillExecutionResult) -> String {
     format!(
         "skill:{} 尚未产出可用结果，需要补齐适配器、审批或外部执行后再判断。",
@@ -1210,6 +1252,41 @@ mod tests {
             .expect("real material text should remain")
             .contains("点击率 CTR=1.2%")
         );
+    }
+
+    #[test]
+    fn merge_skill_results_keeps_material_missing_input_as_readable_boundary() {
+        let parsed = parse_worker_role_output(
+            r#"{"role_output":{"summary":"数据岗先给商品分析字段框架。","evidence":[]}}"#,
+        );
+        let results = vec![SkillExecutionResult {
+            request_id: "req-material".to_string(),
+            skill_id: SkillId::new("material_table_profiler"),
+            status: SkillExecutionStatus::Deferred,
+            output: Some(json!({
+                "status": "deferred",
+                "has_data": false,
+                "adapter_status": "manual_or_context_input",
+                "data_readiness": "missing_table",
+                "summary": "未收到可剖析的表格行数据：未命名表格。"
+            })),
+            summary: Some("未收到可剖析的表格行数据：未命名表格。".to_string()),
+            metadata: Map::new(),
+            error: None,
+        }];
+
+        let merged = merge_skill_results(parsed, &results);
+        let role_output = merged.role_output.expect("role output should exist");
+        let risks = role_output.risks.join("\n");
+        let open_questions = role_output.open_questions.join("\n");
+
+        assert!(risks.contains("资料边界：表格资料分析没有产出可引用资料"));
+        assert!(risks.contains("本轮没有收到可解析的表格行或表格文本"));
+        assert!(!risks.contains("skill:"));
+        assert!(!risks.contains("status="));
+        assert!(!risks.contains("material_table_profiler"));
+        assert!(!open_questions.contains("skill:"));
+        assert!(role_output.summary.contains("数据岗先给商品分析字段框架"));
     }
 
     #[test]

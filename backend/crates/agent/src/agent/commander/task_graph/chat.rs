@@ -45,11 +45,19 @@ pub(super) fn plan_selected_roles_graph(
         );
     }
 
+    let has_search = roles.iter().any(|role| role == "search");
     let mut nodes = roles
         .iter()
-        .map(|role| selected_role_node(role, task, Vec::new(), true))
+        .map(|role| {
+            let depends_on = if has_search && role != "search" {
+                vec!["search".to_string()]
+            } else {
+                Vec::new()
+            };
+            selected_role_node(role, task, depends_on, true)
+        })
         .collect::<Vec<_>>();
-    let primary_role = roles.first().cloned().unwrap_or_else(|| "ops".to_string());
+    let primary_role = selected_roles_final_role(&roles);
     nodes.push(selected_role_node(
         &format!("{primary_role}_final"),
         &format!(
@@ -66,6 +74,16 @@ pub(super) fn plan_selected_roles_graph(
         root_task: task.to_string(),
         nodes,
     }
+}
+
+fn selected_roles_final_role(roles: &[String]) -> String {
+    roles
+        .iter()
+        .find(|role| role.as_str() == "ops")
+        .or_else(|| roles.iter().find(|role| role.as_str() != "search"))
+        .cloned()
+        .or_else(|| roles.first().cloned())
+        .unwrap_or_else(|| "ops".to_string())
 }
 
 fn selected_role_node(

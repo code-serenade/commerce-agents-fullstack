@@ -324,6 +324,21 @@ impl Commander {
                 warn!(error = %failure.description, "commander cognition failure");
                 self.memory
                     .set_error(format!("cognition failure: {}", failure.description));
+                if !crate::llm_routing::is_llm_access_denied_message(&failure.description)
+                    && !crate::llm_routing::is_llm_provider_error_message(&failure.description)
+                    && !crate::llm_routing::is_llm_context_length_error_message(
+                        &failure.description,
+                    )
+                    && self.try_task_graph_route(role_route.as_ref()).await
+                {
+                    debug!(
+                        error = %failure.description,
+                        "commander cognition failed; continuing with deterministic role route"
+                    );
+                    self.phase = CommanderPhase::Idle;
+                    self.state = CommanderState::Idle;
+                    return;
+                }
                 let content =
                     if crate::llm_routing::is_llm_access_denied_message(&failure.description) {
                         crate::llm_routing::llm_access_denied_user_message().to_string()
@@ -365,11 +380,20 @@ impl Commander {
 
         match routed.intent {
             DecisionIntent::ExecuteTask { task } => {
-                let route = self.routed_decision_role_route(
+                let decision_route = self.routed_decision_role_route(
                     role_route.as_ref(),
                     routed.target_worker_id.as_ref(),
                 );
-                let graph = routed.task_graph.or_else(|| {
+                let route = decision_route.or_else(|| {
+                    role_route
+                        .clone()
+                        .filter(|route| Self::fallback_has_non_chat_role(Some(route)))
+                });
+                let routed_graph = routed.task_graph.filter(|graph| {
+                    !Self::fallback_has_non_chat_role(route.as_ref())
+                        || !Self::graph_is_chat_only(graph)
+                });
+                let graph = routed_graph.or_else(|| {
                     plan_configured_non_chat_task_graph(&task.id, &task.description, route.as_ref())
                 });
                 let graph = graph.unwrap_or_else(|| {
@@ -503,6 +527,9 @@ impl Commander {
         let target_role = target_worker_id
             .and_then(|worker_id| worker_id.0.strip_prefix("worker."))
             .filter(|role| !role.trim().is_empty())?;
+        if target_role == "chat" && Self::fallback_has_non_chat_role(fallback) {
+            return fallback.cloned();
+        }
         if fallback.is_some_and(|route| route.primary_runtime_role == target_role) {
             return fallback.cloned();
         }
@@ -549,6 +576,21 @@ impl Commander {
             root_task: task.to_string(),
             nodes,
         }
+    }
+
+    fn fallback_has_non_chat_role(fallback: Option<&RoleRoute>) -> bool {
+        let Some(route) = fallback else {
+            return false;
+        };
+        route.primary_runtime_role != "chat"
+            || route
+                .support_runtime_roles
+                .iter()
+                .any(|role| role != "chat")
+    }
+
+    fn graph_is_chat_only(graph: &TaskGraph) -> bool {
+        !graph.nodes.is_empty() && graph.nodes.iter().all(|node| node.role == "chat")
     }
 
     fn context_allows_fast_route(&self) -> bool {

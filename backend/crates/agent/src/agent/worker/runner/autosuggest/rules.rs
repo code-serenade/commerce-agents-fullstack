@@ -4,7 +4,7 @@ use crate::agent::worker::{
     runner::{
         inference::{
             commerce, context, data, domain, douyin_ads, inventory, memory_task, metrics, numbers,
-            search,
+            search, task_user_description,
         },
         types::ParsedSkillRequest,
     },
@@ -13,20 +13,21 @@ use crate::agent::worker::{
 pub(super) fn configured_rule_requests(
     policy: &WorkerAutosuggestPolicy,
     role_runtime: &str,
-    text: &str,
+    match_text: &str,
+    render_text: &str,
     task: &Task,
     route_mode: &str,
 ) -> Vec<ParsedSkillRequest> {
     let mut requests = Vec::new();
     let mut fallbacks = Vec::new();
     for rule in &policy.rules {
-        if !rule_matches(rule, role_runtime, text, &requests) {
+        if !rule_matches(rule, role_runtime, match_text, &requests) {
             continue;
         }
 
         let request = ParsedSkillRequest {
             skill_id: rule.skill_id.clone(),
-            input: render_template_value(&rule.input, text, task),
+            input: render_template_value(&rule.input, render_text, task),
             reason: rule
                 .reason
                 .clone()
@@ -60,6 +61,9 @@ fn rule_matches(
     text: &str,
     current_requests: &[ParsedSkillRequest],
 ) -> bool {
+    if rule.skill_id == "material_table_profiler" && !looks_like_material_table_input_task(text) {
+        return false;
+    }
     (rule.roles.is_empty() || rule.roles.iter().any(|role| role == role_runtime))
         && (rule.r#match.any_keywords.is_empty() || contains_any(text, &rule.r#match.any_keywords))
         && rule
@@ -81,6 +85,75 @@ fn rule_matches(
                 .iter()
                 .any(|skill_id| skill_id == &request.skill_id)
         })
+}
+
+pub(in crate::agent::worker::runner) fn looks_like_material_table_input_task(text: &str) -> bool {
+    let lower = text.to_ascii_lowercase();
+    if [
+        "输出表格",
+        "输出一个表格",
+        "输出成表格",
+        "用表格输出",
+        "整理成表格",
+        "做成表格",
+        "给我一个表格",
+        "要求有表格",
+        "要有表格",
+        "包含表格",
+        "表格形式",
+        "表格呈现",
+    ]
+    .iter()
+    .any(|marker| text.contains(marker))
+        && ![
+            "上传",
+            "附件",
+            "文件",
+            "excel",
+            "Excel",
+            "csv",
+            "CSV",
+            "sheet",
+            "Sheet",
+            "表格数据",
+            "表格行",
+            "表头",
+            "列名",
+            "读取表格",
+            "分析表格",
+            "剖析表格",
+            "表格字段",
+            "字段识别",
+        ]
+        .iter()
+        .any(|marker| text.contains(marker) || lower.contains(&marker.to_ascii_lowercase()))
+    {
+        return false;
+    }
+
+    [
+        "上传",
+        "附件",
+        "文件",
+        "excel",
+        "csv",
+        "sheet",
+        "表格数据",
+        "表格行",
+        "数据表",
+        "表头",
+        "列名",
+        "读取表格",
+        "分析表格",
+        "剖析表格",
+        "表格剖析",
+        "表格字段",
+        "字段识别",
+        "指标口径",
+        "透视",
+    ]
+    .iter()
+    .any(|marker| text.contains(marker) || lower.contains(&marker.to_ascii_lowercase()))
 }
 
 pub(super) fn render_template_value(
@@ -362,9 +435,10 @@ fn optional_string(value: Option<String>) -> serde_json::Value {
 }
 
 fn render_template_string(template: &str, text: &str, task: &Task) -> String {
+    let task_description = task_user_description(task);
     template
         .replace("{{task_text}}", text.trim())
-        .replace("{{task_description}}", task.description.trim())
+        .replace("{{task_description}}", task_description.trim())
         .replace("{{task_id}}", task.id.as_str())
         .replace("{{platform}}", &metrics::infer_platform(text))
         .replace(

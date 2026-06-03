@@ -144,6 +144,20 @@ pub(crate) fn log_worker_report(context: &MessageContext, report: &WorkerReport)
             "worker_id": report.worker_id.0,
             "role": report.role,
             "status": worker_status(&report.status),
+            "content_chars": report.content.chars().count(),
+            "content_preview": preview(&report.content),
+            "role_output": report.role_output.as_ref().map(|output| json!({
+                "summary_chars": output.summary.chars().count(),
+                "summary_preview": preview(&output.summary),
+                "findings_count": output.findings.len(),
+                "recommendations_count": output.recommendations.len(),
+                "evidence_count": output.evidence.len(),
+                "risks_count": output.risks.len(),
+                "open_questions_count": output.open_questions.len(),
+                "first_finding_preview": output.findings.first().map(|item| preview(item)),
+                "first_recommendation_preview": output.recommendations.first().map(|item| preview(item)),
+                "first_risk_preview": output.risks.first().map(|item| preview(item)),
+            })),
             "diagnostics": report
                 .diagnostics
                 .iter()

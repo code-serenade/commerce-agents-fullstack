@@ -47,6 +47,10 @@ fn normalize_worker_role_output(
         output.summary =
             normalization_policy.default_summary(output_policy.role_display_name(role), &task_line);
     }
+    if role != "chat" && is_material_gap_dominant_summary(&output.summary) {
+        output.summary =
+            normalization_policy.default_summary(output_policy.role_display_name(role), &task_line);
+    }
 
     if role == "chat" {
         output.findings.clear();
@@ -62,22 +66,30 @@ fn normalize_worker_role_output(
         return parsed;
     }
 
-    if output.findings.is_empty() {
+    let deliverable_only = is_direct_deliverable_only_task(&task.description, &output.summary);
+
+    if output.findings.is_empty() && !deliverable_only {
         output.findings = output_policy.default_role_findings(role, &task_line);
     }
-    while output.findings.len() < output_policy.required_findings_for_role(role) {
+    while !deliverable_only
+        && output.findings.len() < output_policy.required_findings_for_role(role)
+    {
         output.findings.push(output_policy.default_role_finding(
             role,
             output.findings.len(),
             &task_line,
         ));
     }
-    output_policy.normalize_role_specific_findings(role, &mut output.findings, &task_line);
+    if !deliverable_only {
+        output_policy.normalize_role_specific_findings(role, &mut output.findings, &task_line);
+    }
 
-    if output.recommendations.is_empty() {
+    if output.recommendations.is_empty() && !deliverable_only {
         output.recommendations = output_policy.default_role_recommendations(role, &task_line);
     }
-    while output.recommendations.len() < output_policy.required_recommendations_for_role(role) {
+    while !deliverable_only
+        && output.recommendations.len() < output_policy.required_recommendations_for_role(role)
+    {
         output
             .recommendations
             .push(output_policy.default_role_recommendation(
@@ -86,11 +98,13 @@ fn normalize_worker_role_output(
                 &task_line,
             ));
     }
-    output_policy.normalize_role_specific_recommendations(
-        role,
-        &mut output.recommendations,
-        &task_line,
-    );
+    if !deliverable_only {
+        output_policy.normalize_role_specific_recommendations(
+            role,
+            &mut output.recommendations,
+            &task_line,
+        );
+    }
 
     normalize_product_context_evidence(task, output);
     normalize_upstream_evidence(task, output);
@@ -151,6 +165,82 @@ fn normalize_worker_role_output(
     parsed
 }
 
+fn is_material_gap_dominant_summary(value: &str) -> bool {
+    let text = value.trim();
+    if text.is_empty() {
+        return false;
+    }
+    let mentions_material_gap = [
+        "未收到可剖析的表格",
+        "未收到可解析的表格",
+        "未收到可理解的资料",
+        "未收到可诊断的图片",
+        "未收到可提取证据",
+        "未收到可对比",
+        "尚未收到可读取正文",
+        "未读取到资料正文",
+        "只收到资料元数据",
+        "缺少可读取正文",
+        "缺少 rows 数组",
+        "缺少表格内容",
+        "未提供附件或表格",
+        "未找到附件或表格数据",
+        "未找到可用的附件或表格数据",
+        "等待用户提供附件或表格数据",
+        "建议用户提供附件或表格数据",
+        "无法直接抽取",
+        "无法进行进一步分析",
+        "无法提供具体的表格",
+        "无法生成确定性",
+        "暂无法产出结果",
+    ]
+    .iter()
+    .any(|marker| text.contains(marker));
+    if !mentions_material_gap {
+        return false;
+    }
+    let has_business_answer = [
+        "建议",
+        "先看",
+        "下一步",
+        "检查",
+        "优化",
+        "标题",
+        "主图",
+        "指标",
+        "清单",
+        "作业",
+        "话术",
+    ]
+    .iter()
+    .any(|marker| text.contains(marker));
+    !has_business_answer || text.chars().count() < 120
+}
+
+fn is_direct_deliverable_only_task(task: &str, summary: &str) -> bool {
+    let task = task.trim();
+    if task.is_empty() || summary.trim().is_empty() {
+        return false;
+    }
+    let has_direct_boundary = [
+        "只输出",
+        "只要",
+        "不要整坨",
+        "不要解释",
+        "不要展开",
+        "别解释",
+        "直接给",
+    ]
+    .iter()
+    .any(|marker| task.contains(marker));
+    if !has_direct_boundary {
+        return false;
+    }
+    ["标题", "文案", "话术", "脚本", "开头", "卖点", "清单"]
+        .iter()
+        .any(|marker| task.contains(marker))
+}
+
 #[cfg(test)]
 mod tests {
     use super::{RoleWorkOutput, normalize_worker_role_output};
@@ -197,6 +287,94 @@ mod tests {
         assert!(output.evidence.is_empty());
         assert!(output.risks.is_empty());
         assert!(output.open_questions.is_empty());
+    }
+
+    #[test]
+    fn non_chat_role_replaces_material_gap_summary_with_role_answer_frame() {
+        let parsed = ParsedWorkerRoleOutput {
+            content: String::new(),
+            role_output: Some(RoleWorkOutput {
+                summary: "未收到可剖析的表格行数据：未命名表格，暂无法产出结果。".to_string(),
+                findings: vec![],
+                recommendations: vec![],
+                evidence: vec![],
+                risks: vec![
+                    "资料边界：表格资料分析没有产出可引用资料；本轮没有收到可解析的表格行或表格文本。"
+                        .to_string(),
+                ],
+                open_questions: vec![],
+            }),
+            evidence: vec![],
+            risks: vec![],
+            open_questions: vec![],
+            diagnostics: Vec::new(),
+        };
+        let task = Task {
+            id: "task-data".to_string(),
+            context: MessageContext::default(),
+            description: "请分析学生书包的转化率、主图点击率和标题卖点。".to_string(),
+            requester: AgentId("user-1".to_string()),
+            assignment: None,
+        };
+
+        let output = normalize_worker_role_output("data", &task, parsed);
+        let role_output = output.role_output.expect("role output should exist");
+        let combined = format!(
+            "{}\n{}\n{}\n{}",
+            role_output.summary,
+            role_output.findings.join("\n"),
+            role_output.recommendations.join("\n"),
+            role_output.risks.join("\n")
+        );
+
+        assert!(role_output.summary.contains("数据分析师"));
+        assert!(!role_output.summary.contains("暂无法产出结果"));
+        assert!(combined.contains("指标口径"));
+        assert!(combined.contains("先建一张基础表"));
+        assert!(combined.contains("资料边界"));
+        assert!(!combined.contains("skill:"));
+        assert!(!combined.contains("material_table_profiler"));
+    }
+
+    #[test]
+    fn direct_title_deliverable_does_not_append_default_role_policy_lines() {
+        let parsed = ParsedWorkerRoleOutput {
+            content: String::new(),
+            role_output: Some(RoleWorkOutput {
+                summary: "轻便耐用学生书包，减轻肩部负担。\n多功能学生书包，分区清楚。\n防水学生书包，保护课本。".to_string(),
+                findings: vec![],
+                recommendations: vec![],
+                evidence: vec![],
+                risks: vec![],
+                open_questions: vec![],
+            }),
+            evidence: vec![],
+            risks: vec![],
+            open_questions: vec![],
+            diagnostics: Vec::new(),
+        };
+        let task = Task {
+            id: "task-creative".to_string(),
+            context: MessageContext::default(),
+            description: "只输出5个学生书包标题，每个标题后写一句为什么能提高点击，不要整坨文字。"
+                .to_string(),
+            requester: AgentId("user-1".to_string()),
+            assignment: None,
+        };
+
+        let output = normalize_worker_role_output("creative", &task, parsed);
+        let role_output = output.role_output.expect("role output should exist");
+        let combined = format!(
+            "{}\n{}\n{}",
+            role_output.summary,
+            role_output.findings.join("\n"),
+            role_output.recommendations.join("\n")
+        );
+
+        assert!(combined.contains("轻便耐用学生书包"));
+        assert!(!combined.contains("创意岗位本轮负责"));
+        assert!(!combined.contains("A/B 测试"));
+        assert!(!combined.contains("点击率、停留、加购或付款"));
     }
 
     #[test]

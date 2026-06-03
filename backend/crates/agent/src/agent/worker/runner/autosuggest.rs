@@ -1,12 +1,12 @@
 pub(super) mod config;
-mod rules;
+pub(super) mod rules;
 
 use config::WorkerAutosuggestPolicy;
 pub(super) use config::load_autosuggest_policy;
 use rules::{configured_rule_requests, contains_any, render_template_value};
 
 use super::{
-    inference::{inference_text, search},
+    inference::{autosuggest_match_text, search},
     policy::worker_policies,
     types::ParsedSkillRequest,
 };
@@ -18,7 +18,8 @@ pub(super) fn autosuggest_skill_requests(
     existing_requests: &[ParsedSkillRequest],
 ) -> Vec<ParsedSkillRequest> {
     let policy = &worker_policies().autosuggest;
-    let text = inference_text(task);
+    let match_text = autosuggest_match_text(task);
+    let render_text = match_text.clone();
     let Some(route) = policy
         .role_routes
         .iter()
@@ -29,7 +30,7 @@ pub(super) fn autosuggest_skill_requests(
 
     let mut requests = Vec::new();
     if route.learning_first
-        && let Some(request) = learning_request(policy, &text, task)
+        && let Some(request) = learning_request(policy, &match_text, task)
     {
         requests.push(request);
         if route.mode != "requests" {
@@ -40,12 +41,13 @@ pub(super) fn autosuggest_skill_requests(
     match route.handler.as_str() {
         "chat" => {
             let request_count_before_chat = requests.len();
-            extend_optional(&mut requests, chat_request(policy, &text, task));
+            extend_optional(&mut requests, chat_request(policy, &match_text, task));
             if requests.len() == request_count_before_chat || route.mode == "requests" {
                 requests.extend(configured_rule_requests(
                     policy,
                     role_runtime,
-                    &text,
+                    &match_text,
+                    &render_text,
                     task,
                     &route.mode,
                 ));
@@ -54,14 +56,16 @@ pub(super) fn autosuggest_skill_requests(
         "search" => requests.extend(configured_rule_requests(
             policy,
             role_runtime,
-            &text,
+            &match_text,
+            &render_text,
             task,
             &route.mode,
         )),
         _ => requests.extend(configured_rule_requests(
             policy,
             role_runtime,
-            &text,
+            &match_text,
+            &render_text,
             task,
             &route.mode,
         )),
@@ -76,13 +80,14 @@ pub(super) fn autosuggest_skill_requests(
         requests.extend(configured_rule_requests(
             policy,
             "search",
-            &text,
+            &match_text,
+            &render_text,
             task,
             fallback_mode,
         ));
     }
 
-    normalize_search_strength(&mut requests, &text, task);
+    normalize_search_strength(&mut requests, &match_text, task);
     dedupe_new_requests(requests, existing_requests)
 }
 
@@ -195,7 +200,9 @@ mod tests {
     use super::autosuggest_skill_requests;
     use crate::{
         agent::worker::Task,
-        core::protocol::{AgentId, MessageContext},
+        core::protocol::{
+            AgentId, MessageContext, TaskGraphId, TaskId, TaskNodeId, WorkerAssignment, WorkerId,
+        },
     };
 
     fn task(description: &str) -> Task {
@@ -215,6 +222,30 @@ mod tests {
             response_mode.to_string(),
         );
         task
+    }
+
+    fn assignment_task(root_task: &str, objective: &str) -> Task {
+        Task {
+            id: "task-1".to_string(),
+            context: MessageContext::default(),
+            description: format!("{root_task}\n\n当前岗位任务：\n{objective}"),
+            requester: AgentId("commander".to_string()),
+            assignment: Some(WorkerAssignment {
+                graph_id: TaskGraphId("graph-1".to_string()),
+                node_id: TaskNodeId("data".to_string()),
+                task_id: TaskId("task-1".to_string()),
+                worker_id: WorkerId("worker.data".to_string()),
+                role: "data".to_string(),
+                attempt: 1,
+                root_task: root_task.to_string(),
+                objective: objective.to_string(),
+                llm_usage: None,
+                skill_autosuggest: None,
+                timeout_sec: None,
+                inputs: Vec::new(),
+                rework_instruction: None,
+            }),
+        }
     }
 
     fn skill_ids(role: &str, description: &str) -> Vec<String> {
@@ -305,6 +336,59 @@ mod tests {
         let skills = skill_ids("data", "请剖析上传的 Excel 表格字段和指标口径");
 
         assert_eq!(skills, vec!["material_table_profiler".to_string()]);
+    }
+
+    #[test]
+    fn requested_answer_table_does_not_trigger_material_table_profiler() {
+        let skills = skill_ids(
+            "data",
+            "现在切换成手动多智能体：数据、创意、运营一起给一个学生书包开学季小促销方案，要求有表格、有标题示例、有风险边界。",
+        );
+
+        assert!(
+            !skills.contains(&"material_table_profiler".to_string()),
+            "asking the answer to include a table must not be treated as uploaded table input: {skills:?}"
+        );
+    }
+
+    #[test]
+    fn graph_objective_table_words_do_not_trigger_material_table_profiler() {
+        let task = assignment_task(
+            "不上传任何表格，只要求你把学生书包的分析输出成表格：列出指标、怎么看、可能问题、下一步动作。",
+            "把用户问题转成可复盘数据口径。没有用户上传的表格、Excel、CSV 或附件时，不要说无法分析，不要等待附件，先按用户文字和已选商品给可执行口径。",
+        );
+        let skills = autosuggest_skill_requests("data", &task, &[])
+            .into_iter()
+            .map(|request| request.skill_id)
+            .collect::<Vec<_>>();
+
+        assert!(
+            !skills.contains(&"material_table_profiler".to_string()),
+            "internal graph objective table wording must not trigger table profiling: {skills:?}"
+        );
+    }
+
+    #[test]
+    fn graph_root_real_table_input_still_triggers_material_table_profiler() {
+        let task = assignment_task(
+            "请剖析上传的 Excel 表格字段和指标口径",
+            "没有用户上传的表格、Excel、CSV 或附件时，不要等待附件。",
+        );
+        let requests = autosuggest_skill_requests("data", &task, &[]);
+        let table_request = requests
+            .iter()
+            .find(|request| request.skill_id == "material_table_profiler")
+            .expect("real uploaded table request should still trigger table profiling");
+
+        assert_eq!(
+            table_request.input.get("user_question"),
+            Some(&serde_json::json!("请剖析上传的 Excel 表格字段和指标口径"))
+        );
+        assert!(
+            !table_request.input.to_string().contains("当前岗位任务"),
+            "skill input should not include internal graph objective: {:?}",
+            table_request.input
+        );
     }
 
     #[test]

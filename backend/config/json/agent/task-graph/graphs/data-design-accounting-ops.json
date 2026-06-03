@@ -1,7 +1,7 @@
 {
   "id": "data_design_accounting_ops",
   "description": "详情页、设计、预算、财务风险与转化率相关的数据驱动运营方案",
-  "priority": 650,
+  "priority": 520,
   "role_order": ["data", "design", "accounting", "creative", "ops"],
   "match": {
     "any_keywords": [
@@ -26,8 +26,7 @@
       "下单",
       "付款",
       "数据",
-      "转化率",
-      "指标"
+      "转化率"
     ],
     "all_keyword_groups": [
       ["分析", "诊断", "方案", "策略", "调整", "优化", "提升", "复盘", "评审", "看", "改"]

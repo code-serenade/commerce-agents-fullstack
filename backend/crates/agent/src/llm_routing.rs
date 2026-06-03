@@ -31,6 +31,10 @@ const ATTACHMENTS_IMAGE_SUMMARIES_JSON: &str = "attachments.image_summaries_json
 const REQUEST_ATTACHMENTS_IMAGE_SUMMARIES_JSON: &str = "request.attachments.image_summaries_json";
 pub const LLM_ACCESS_DENIED_MARKER: &str = "llm_access_denied";
 pub const LLM_PROVIDER_ERROR_MARKER: &str = "llm_provider_error";
+const MAX_RENDERED_FACT_CHARS: usize = 2200;
+const MAX_RENDERED_METADATA_VALUE_CHARS: usize = 320;
+const MAX_RENDERED_METADATA_TOTAL_CHARS: usize = 2400;
+const MAX_IMAGE_CONTEXT_CHARS: usize = 900;
 const LLM_ACCESS_DENIED_USER_MESSAGE: &str = r#"## 当前状态
 
 模型服务配置不可用，模型服务返回权限错误，所以本轮没有形成可靠回答。
@@ -423,6 +427,23 @@ where
                         last_failure = llm_access_denied_failure();
                         break;
                     }
+                    if is_llm_context_length_error_message(&err_text) {
+                        tracing::warn!(
+                            kind = ?self.kind,
+                            usage_name,
+                            model = model_name,
+                            attempt,
+                            "llm provider rejected overlong prompt; skip ineffective retry"
+                        );
+                        last_failure = CognitionFailure {
+                            reason: FailureReason::InternalError,
+                            description: format!(
+                                "LLM request failed on attempt {attempt}: {}",
+                                compact_provider_error(&err_text)
+                            ),
+                        };
+                        break;
+                    }
                     if is_llm_provider_error_message(&err_text) {
                         last_failure =
                             llm_provider_error_failure(attempt, usage_name, model_name, &err_text);
@@ -474,6 +495,17 @@ where
             match self.decoder.decode(&raw) {
                 Ok(output) => return CognitionResult::Success(output),
                 Err(failure) => {
+                    if matches!(self.kind, AgentCognitionKind::Commander)
+                        && let Some(output) = fallback_commander_output(&raw)
+                    {
+                        tracing::warn!(
+                            kind = ?self.kind,
+                            attempt,
+                            reason = %failure.description,
+                            "commander routing accepted schema-compatible fallback output"
+                        );
+                        return CognitionResult::Success(output);
+                    }
                     if matches!(
                         self.kind,
                         AgentCognitionKind::ChatWorker | AgentCognitionKind::Worker
@@ -742,6 +774,18 @@ pub fn is_llm_provider_error_message(message: &str) -> bool {
                 || lower.contains("gateway timeout")))
 }
 
+pub fn is_llm_context_length_error_message(message: &str) -> bool {
+    let lower = message.to_ascii_lowercase();
+    (lower.contains("maximum context length")
+        || lower.contains("max_model_len")
+        || lower.contains("input_tokens")
+        || lower.contains("context length"))
+        && (lower.contains("max_tokens")
+            || lower.contains("output tokens")
+            || lower.contains("prompt contains")
+            || lower.contains("please reduce"))
+}
+
 pub fn llm_provider_error_user_message() -> &'static str {
     LLM_PROVIDER_ERROR_USER_MESSAGE
 }
@@ -907,6 +951,31 @@ fn fallback_chat_output(raw: &str) -> Option<CognitionOutput> {
     build_fallback_chat_output(stripped)
 }
 
+fn fallback_commander_output(raw: &str) -> Option<CognitionOutput> {
+    let parsed = llm_json::parse_llm_json_value(raw).ok()?;
+    let decision = parsed.get("decision")?;
+    let kind = decision.get("kind").and_then(Value::as_str)?;
+    if !matches!(
+        kind,
+        "RouteTask"
+            | "ExecuteTaskGraph"
+            | "KeepCurrentAssignment"
+            | "AskForClarification"
+            | "NoRoute"
+            | "NoAction"
+            | "ActionIntent"
+            | "StateProposal"
+            | "StrategyHint"
+    ) {
+        return None;
+    }
+    if kind == "RouteTask" {
+        let route = decision.get("route")?;
+        route.get("target_agent_id").and_then(Value::as_str)?;
+    }
+    Some(parsed)
+}
+
 fn fallback_chat_output_from_json(json_text: &str) -> Option<CognitionOutput> {
     let value = llm_json::parse_llm_json_value(json_text).ok()?;
     let summary = value
@@ -959,7 +1028,9 @@ fn render_input(input: &CognitionInput, image_summaries: &[AgentImageSummaryInpu
             .map(|fact| {
                 format!(
                     "- source: {} | reliability: {} | content: {}",
-                    fact.source, fact.reliability, fact.content
+                    fact.source,
+                    fact.reliability,
+                    compact_render_text(&fact.content, fact_render_limit(&fact.source))
                 )
             })
             .collect::<Vec<_>>()
@@ -973,7 +1044,17 @@ fn render_input(input: &CognitionInput, image_summaries: &[AgentImageSummaryInpu
             .context
             .metadata
             .iter()
-            .map(|(key, value)| format!("- {}: {}", key, value))
+            .filter(|(key, _)| should_render_metadata_key(key))
+            .scan(0usize, |used, (key, value)| {
+                if *used >= MAX_RENDERED_METADATA_TOTAL_CHARS {
+                    return None;
+                }
+                let remaining = MAX_RENDERED_METADATA_TOTAL_CHARS.saturating_sub(*used);
+                let limit = remaining.min(metadata_render_limit(key));
+                let line = format!("- {}: {}", key, compact_render_text(value, limit));
+                *used += line.chars().count();
+                Some(line)
+            })
             .collect::<Vec<_>>()
             .join("\n")
     };
@@ -992,6 +1073,57 @@ fn render_input(input: &CognitionInput, image_summaries: &[AgentImageSummaryInpu
     )
 }
 
+fn should_render_metadata_key(key: &str) -> bool {
+    let key = key.trim();
+    if key.is_empty() {
+        return false;
+    }
+    if matches!(
+        key,
+        ATTACHMENTS_IMAGES_JSON
+            | REQUEST_ATTACHMENTS_IMAGES_JSON
+            | ATTACHMENTS_IMAGE_SUMMARIES_JSON
+            | REQUEST_ATTACHMENTS_IMAGE_SUMMARIES_JSON
+    ) {
+        return false;
+    }
+
+    let lower = key.to_ascii_lowercase();
+    if lower.ends_with(".items_json")
+        || lower.ends_with(".memory_summary_json")
+        || lower.ends_with(".images_json")
+        || lower.ends_with(".image_summaries_json")
+        || lower.contains("context.combined_summary")
+        || lower.contains("context.selected_summary")
+        || lower.contains("conversation.history_summary")
+        || lower.contains("workspacecontextpack.summary")
+        || lower.contains("workspacecontextpack.items")
+        || lower.contains("workspacecontext.summary")
+    {
+        return false;
+    }
+
+    true
+}
+
+fn fact_render_limit(source: &str) -> usize {
+    if source.contains("assignment.input") {
+        1600
+    } else if source.contains("context_pack") || source.contains("image_preprocess") {
+        1400
+    } else {
+        MAX_RENDERED_FACT_CHARS
+    }
+}
+
+fn metadata_render_limit(key: &str) -> usize {
+    if key.starts_with("request.strategy.") || key.starts_with("strategy.") {
+        160
+    } else {
+        MAX_RENDERED_METADATA_VALUE_CHARS
+    }
+}
+
 fn render_image_summary_context(image_summaries: &[AgentImageSummaryInput]) -> String {
     if image_summaries.is_empty() {
         return "Preprocessed image context:\n- (none)".to_string();
@@ -1007,14 +1139,9 @@ fn render_image_summary_context(image_summaries: &[AgentImageSummaryInput]) -> S
                 .filter(|value| !value.is_empty())
                 .unwrap_or(item.summary.trim());
             format!(
-                "- source_ref: {} | object_key: {} | analysis_id: {} | prompt_version: {} | \
-                 llm_name: {} | summary: {}",
+                "- source_ref: {} | summary: {}",
                 item.source_ref,
-                item.object_key,
-                item.analysis_id,
-                item.prompt_version.as_deref().unwrap_or("unknown"),
-                item.llm_name.as_deref().unwrap_or("unknown"),
-                context
+                compact_render_text(context, MAX_IMAGE_CONTEXT_CHARS)
             )
         })
         .collect::<Vec<_>>()
@@ -1025,6 +1152,26 @@ fn render_image_summary_context(image_summaries: &[AgentImageSummaryInput]) -> S
          grounding. Raw image inputs are reserved for system vision preprocess.",
         lines
     )
+}
+
+fn compact_render_text(value: &str, max_chars: usize) -> String {
+    let text = value
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n");
+    truncate_render_chars(&text, max_chars)
+}
+
+fn truncate_render_chars(value: &str, max_chars: usize) -> String {
+    let mut chars = value.chars();
+    let head = chars.by_ref().take(max_chars).collect::<String>();
+    if chars.next().is_some() {
+        format!("{head}...（已截断）")
+    } else {
+        head
+    }
 }
 
 #[cfg(test)]
@@ -1369,6 +1516,50 @@ mod tests {
                 .as_array()
                 .unwrap()
                 .is_empty()
+        );
+    }
+
+    #[test]
+    fn fallback_commander_output_accepts_route_task_without_clarification() {
+        let output = fallback_commander_output(
+            r#"{
+              "decision": {
+                "kind": "RouteTask",
+                "route": {
+                  "target_agent_id": "worker.chat",
+                  "task_summary": "解释三个指标",
+                  "goal": "生成结构清晰的教学回答",
+                  "constraints": ["分小标题"]
+                },
+                "handoff": {
+                  "why_this_agent": "chat can teach",
+                  "expected_output": "formatted answer"
+                }
+              },
+              "confidence": 0.9,
+              "rationale": {
+                "primary": "valid route",
+                "evidence": [],
+                "alternatives_considered": []
+              }
+            }"#,
+        )
+        .expect("commander route should tolerate missing optional clarification");
+
+        assert_eq!(output["decision"]["kind"], "RouteTask");
+        assert_eq!(
+            output["decision"]["route"]["target_agent_id"],
+            "worker.chat"
+        );
+    }
+
+    #[test]
+    fn fallback_commander_output_rejects_route_task_without_target() {
+        assert!(
+            fallback_commander_output(
+                r#"{"decision":{"kind":"RouteTask","route":{"task_summary":"x"}}}"#
+            )
+            .is_none()
         );
     }
 

@@ -85,30 +85,32 @@ impl Commander {
             self.manual_role_task_graph(&task_id, &current_task.description, role_route)
         {
             Some(graph)
-        } else if self.context_allows_direct_chat_graph(role_route) {
-            debug!(
-                task_id = %task_id.0,
-                routing_mode = self
-                    .current_context
-                    .metadata
-                    .get("strategy.routing_mode")
-                    .map(String::as_str)
-                    .unwrap_or("<missing>"),
-                "commander configured graph lookup allows direct chat graph"
-            );
-            plan_configured_task_graph(&task_id, &current_task.description, role_route)
         } else {
-            debug!(
-                task_id = %task_id.0,
-                routing_mode = self
-                    .current_context
-                    .metadata
-                    .get("strategy.routing_mode")
-                    .map(String::as_str)
-                    .unwrap_or("<missing>"),
-                "commander configured graph lookup requires non-chat graph"
-            );
-            plan_configured_non_chat_task_graph(&task_id, &current_task.description, role_route)
+            if self.context_allows_direct_chat_graph(role_route) {
+                debug!(
+                    task_id = %task_id.0,
+                    routing_mode = self
+                        .current_context
+                        .metadata
+                        .get("strategy.routing_mode")
+                        .map(String::as_str)
+                        .unwrap_or("<missing>"),
+                    "commander configured graph lookup allows direct chat graph"
+                );
+                plan_configured_task_graph(&task_id, &current_task.description, role_route)
+            } else {
+                debug!(
+                    task_id = %task_id.0,
+                    routing_mode = self
+                        .current_context
+                        .metadata
+                        .get("strategy.routing_mode")
+                        .map(String::as_str)
+                        .unwrap_or("<missing>"),
+                    "commander configured graph lookup requires non-chat graph"
+                );
+                plan_configured_non_chat_task_graph(&task_id, &current_task.description, role_route)
+            }
         };
         let Some(graph) = graph else {
             debug!(

@@ -33,6 +33,7 @@ pub(super) fn build_configured_task_graph(
     );
     specs.extend(dynamic_node_specs(task, route, rules, rule));
     dedupe_node_specs(&mut specs);
+    apply_configured_dynamic_role_dependencies(&mut specs, rule);
     let role_order = active_role_order(rule, rules);
     sort_node_specs(&mut specs, &role_order);
 
@@ -238,6 +239,27 @@ fn apply_dynamic_role_dependencies(
             continue;
         };
         *depends_on = dynamic_depends_on(role, &available, depends_on_roles);
+    }
+}
+
+fn apply_configured_dynamic_role_dependencies(
+    specs: &mut [TaskGraphNodeSpec],
+    rule: &TaskGraphRule,
+) {
+    let mut depends_on_roles = HashMap::<String, Vec<String>>::new();
+    for (role, upstream_roles) in &rule.dynamic_roles.from_explicit_request.depends_on_roles {
+        depends_on_roles.insert(role.clone(), upstream_roles.clone());
+    }
+    for (role, upstream_roles) in &rule.dynamic_roles.from_route.depends_on_roles {
+        let entry = depends_on_roles.entry(role.clone()).or_default();
+        for upstream_role in upstream_roles {
+            if !entry.contains(upstream_role) {
+                entry.push(upstream_role.clone());
+            }
+        }
+    }
+    if !depends_on_roles.is_empty() {
+        apply_dynamic_role_dependencies(specs, &depends_on_roles);
     }
 }
 

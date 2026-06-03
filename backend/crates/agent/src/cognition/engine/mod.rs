@@ -14,6 +14,10 @@ use crate::{
     agent_utils::prompt::Prompt,
 };
 
+const MAX_RENDERED_FACT_CHARS: usize = 2200;
+const MAX_RENDERED_METADATA_VALUE_CHARS: usize = 320;
+const MAX_RENDERED_METADATA_TOTAL_CHARS: usize = 2400;
+
 /// Cognition 引擎的最小结构：输入快照 -> 决策输出
 pub struct CognitionEngine<L: ?Sized, D: ?Sized> {
     llm: Arc<L>,
@@ -130,10 +134,14 @@ where
                 Ok(output) => output.get_content().to_string(),
                 Err(err) => {
                     crate::log_error!(err);
+                    let err_text = err.to_string();
                     last_failure = CognitionFailure {
                         reason: FailureReason::InternalError,
-                        description: format!("LLM request failed on attempt {attempt}: {err}"),
+                        description: format!("LLM request failed on attempt {attempt}: {err_text}"),
                     };
+                    if is_llm_context_length_error_message(&err_text) {
+                        break;
+                    }
                     if attempt < max_attempts && self.retry_policy.retry_llm_error {
                         messages = retry_messages(
                             &base_messages,
@@ -245,7 +253,9 @@ fn render_input(input: &CognitionInput) -> String {
             .map(|fact| {
                 format!(
                     "- source: {} | reliability: {} | content: {}",
-                    fact.source, fact.reliability, fact.content
+                    fact.source,
+                    fact.reliability,
+                    compact_render_text(&fact.content, fact_render_limit(&fact.source))
                 )
             })
             .collect::<Vec<_>>()
@@ -259,7 +269,17 @@ fn render_input(input: &CognitionInput) -> String {
             .context
             .metadata
             .iter()
-            .map(|(key, value)| format!("- {}: {}", key, value))
+            .filter(|(key, _)| should_render_metadata_key(key))
+            .scan(0usize, |used, (key, value)| {
+                if *used >= MAX_RENDERED_METADATA_TOTAL_CHARS {
+                    return None;
+                }
+                let remaining = MAX_RENDERED_METADATA_TOTAL_CHARS.saturating_sub(*used);
+                let limit = remaining.min(metadata_render_limit(key));
+                let line = format!("- {}: {}", key, compact_render_text(value, limit));
+                *used += line.chars().count();
+                Some(line)
+            })
             .collect::<Vec<_>>()
             .join("\n")
     };
@@ -269,6 +289,79 @@ fn render_input(input: &CognitionInput) -> String {
          metadata:\n{}",
         input.intent.id, input.intent.kind, input.intent.description, facts, metadata
     )
+}
+
+fn is_llm_context_length_error_message(message: &str) -> bool {
+    let lower = message.to_ascii_lowercase();
+    (lower.contains("maximum context length")
+        || lower.contains("max_model_len")
+        || lower.contains("input_tokens")
+        || lower.contains("context length"))
+        && (lower.contains("max_tokens")
+            || lower.contains("output tokens")
+            || lower.contains("prompt contains")
+            || lower.contains("please reduce"))
+}
+
+fn should_render_metadata_key(key: &str) -> bool {
+    let key = key.trim();
+    if key.is_empty() {
+        return false;
+    }
+    let lower = key.to_ascii_lowercase();
+    if lower.ends_with(".items_json")
+        || lower.ends_with(".memory_summary_json")
+        || lower.ends_with(".images_json")
+        || lower.ends_with(".image_summaries_json")
+        || lower.contains("context.combined_summary")
+        || lower.contains("context.selected_summary")
+        || lower.contains("conversation.history_summary")
+        || lower.contains("workspacecontextpack.summary")
+        || lower.contains("workspacecontextpack.items")
+        || lower.contains("workspacecontext.summary")
+    {
+        return false;
+    }
+
+    true
+}
+
+fn fact_render_limit(source: &str) -> usize {
+    if source.contains("assignment.input") {
+        1600
+    } else if source.contains("context_pack") || source.contains("image_preprocess") {
+        1400
+    } else {
+        MAX_RENDERED_FACT_CHARS
+    }
+}
+
+fn metadata_render_limit(key: &str) -> usize {
+    if key.starts_with("request.strategy.") || key.starts_with("strategy.") {
+        160
+    } else {
+        MAX_RENDERED_METADATA_VALUE_CHARS
+    }
+}
+
+fn compact_render_text(value: &str, max_chars: usize) -> String {
+    let text = value
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n");
+    truncate_render_chars(&text, max_chars)
+}
+
+fn truncate_render_chars(value: &str, max_chars: usize) -> String {
+    let mut chars = value.chars();
+    let head = chars.by_ref().take(max_chars).collect::<String>();
+    if chars.next().is_some() {
+        format!("{head}...（已截断）")
+    } else {
+        head
+    }
 }
 
 #[cfg(test)]

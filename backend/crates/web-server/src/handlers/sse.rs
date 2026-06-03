@@ -1059,7 +1059,7 @@ pub async fn stream_agent_session(
                 }
                 SessionEvent::Output { content, .. } => {
                     link_state.latest_output = Some(content.clone());
-                    yield Ok(json_event("delta", json!({ "content": content })));
+                    yield Ok(json_event("output", json!({ "content": content })));
                 }
                 SessionEvent::Failed { reason, .. } => {
                     if !link_state.completed {

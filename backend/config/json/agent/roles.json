@@ -17,7 +17,7 @@
       "runtime_role": "ops",
       "priority": 10,
       "domains": ["domain.general", "domain.ecommerce", "domain.education"],
-      "keywords": ["运营", "增长", "策略", "活动", "推广", "转化", "复盘", "营销", "获客", "拉新", "促活", "留存", "复购", "选品", "供应链", "履约", "库存", "商品规划", "类目", "开卖", "怎么卖", "优先级", "平台运营"],
+      "keywords": ["运营", "增长", "策略", "活动", "推广", "转化", "复盘", "营销", "获客", "拉新", "促活", "留存", "复购", "选品", "供应链", "履约", "库存", "商品", "产品", "商品规划", "类目", "开卖", "怎么卖", "优先级", "平台运营"],
       "preferred_actions": ["plan", "optimize", "execute"],
       "required_capabilities": ["ops.strategy", "campaign.orchestration"],
       "optional_capabilities": ["data.analysis", "creative.content", "service.workflow"]
@@ -39,7 +39,7 @@
       "runtime_role": "data",
       "priority": 20,
       "domains": ["domain.general", "domain.ecommerce", "domain.education"],
-      "keywords": ["数据", "分析", "报表", "指标", "预测", "漏斗", "归因", "A/B", "表格", "字段", "SKU", "sheet", "Excel", "CSV", "复盘字段", "能算什么", "缺什么字段"],
+      "keywords": ["数据", "分析", "报表", "指标", "预测", "漏斗", "归因", "A/B", "表格", "字段", "SKU", "sheet", "Excel", "CSV", "复盘字段", "能算什么", "缺什么字段", "商品分析", "销量", "评价", "价格", "点击率", "转化率", "加购率", "付款率", "退款率"],
       "preferred_actions": ["analyze", "query", "plan"],
       "required_capabilities": ["data.analysis", "metrics.diagnosis"],
       "optional_capabilities": ["forecast.demand", "attribution.modeling"]

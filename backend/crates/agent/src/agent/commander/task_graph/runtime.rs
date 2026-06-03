@@ -16,6 +16,9 @@ use crate::{
     roles::RoleRoute,
 };
 
+const MIN_MULTI_ROLE_FINAL_CHARS: usize = 220;
+const MIN_UPSTREAM_ENRICH_CHARS: usize = 120;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TaskNodeRuntimeState {
     Pending,
@@ -249,23 +252,90 @@ impl TaskGraphRuntime {
         if let Some(message) = self.llm_provider_error_message() {
             return message;
         }
-        self.final_node_output()
-            .or_else(|| {
-                self.graph
-                    .nodes
-                    .iter()
-                    .rev()
-                    .filter(|node| {
-                        matches!(
-                            self.states.get(&node.id),
-                            Some(TaskNodeRuntimeState::Passed)
-                        )
-                    })
-                    .filter_map(|node| self.reports.get(&node.id))
-                    .find_map(user_facing_report_text)
-            })
+        if let Some(final_output) = self.final_node_output() {
+            return self.enrich_thin_final_output(final_output);
+        }
+        if self.final_node_has_blocking_material_gap() {
+            return self.structured_fallback_with_upstream();
+        }
+        self.completed_role_sections()
             .or_else(|| self.execution_gap_message())
             .unwrap_or_else(no_user_facing_content_message)
+    }
+
+    fn enrich_thin_final_output(&self, final_output: String) -> String {
+        if self.graph.nodes.len() <= 1 {
+            return final_output;
+        }
+        if looks_like_blocking_material_gap_answer(&final_output)
+            || (task_requests_table(&self.graph.root_task)
+                && !contains_markdown_table(&final_output))
+        {
+            let fallback = fallback_structured_synthesis(&self.graph.root_task);
+            let Some(upstream_output) = self.completed_role_sections_excluding_final() else {
+                return fallback;
+            };
+            if looks_like_blocking_material_gap_answer(&upstream_output)
+                || upstream_output.chars().count() < MIN_UPSTREAM_ENRICH_CHARS
+            {
+                return fallback;
+            }
+            return sanitize_final_user_facing_text(&format!(
+                "{fallback}\n\n## 已有补充\n\n{upstream_output}"
+            ))
+            .unwrap_or(fallback);
+        }
+        if final_output.chars().count() >= MIN_MULTI_ROLE_FINAL_CHARS {
+            return final_output;
+        }
+
+        let Some(upstream_output) = self.completed_role_sections_excluding_final() else {
+            return final_output;
+        };
+        if upstream_output.chars().count() < MIN_UPSTREAM_ENRICH_CHARS {
+            return final_output;
+        }
+        if upstream_output.contains(final_output.trim()) {
+            return upstream_output;
+        }
+
+        sanitize_final_user_facing_text(&format!("{final_output}\n\n{upstream_output}"))
+            .unwrap_or(final_output)
+    }
+
+    fn completed_role_sections(&self) -> Option<String> {
+        self.completed_role_sections_with_filter(|_| true)
+    }
+
+    fn completed_role_sections_excluding_final(&self) -> Option<String> {
+        self.completed_role_sections_with_filter(|node| !looks_like_final_node(node))
+    }
+
+    fn completed_role_sections_with_filter(
+        &self,
+        mut keep_node: impl FnMut(&TaskNode) -> bool,
+    ) -> Option<String> {
+        let mut sections = Vec::new();
+        for node in &self.graph.nodes {
+            if !keep_node(node)
+                || !matches!(
+                    self.states.get(&node.id),
+                    Some(TaskNodeRuntimeState::Passed)
+                )
+            {
+                continue;
+            }
+            let Some(report) = self.reports.get(&node.id) else {
+                continue;
+            };
+            if let Some(text) = user_facing_report_text(report) {
+                push_unique_text(&mut sections, text);
+            }
+        }
+        if sections.is_empty() {
+            return None;
+        }
+        sanitize_final_user_facing_text(&sections.join("\n\n"))
     }
 
     fn llm_access_denied_message(&self) -> Option<String> {
@@ -311,6 +381,50 @@ impl TaskGraphRuntime {
 
         let report = self.reports.get(&final_node.id)?;
         user_facing_report_text(report)
+    }
+
+    fn final_node_has_blocking_material_gap(&self) -> bool {
+        self.terminal_final_node_report()
+            .is_some_and(report_contains_blocking_material_gap)
+    }
+
+    fn terminal_final_node_report(&self) -> Option<&WorkerReport> {
+        let final_nodes = self
+            .graph
+            .nodes
+            .iter()
+            .filter(|candidate| {
+                looks_like_final_node(candidate)
+                    && !candidate.input_refs.is_empty()
+                    && matches!(
+                        self.states.get(&candidate.id),
+                        Some(TaskNodeRuntimeState::Passed)
+                    )
+                    && !self
+                        .graph
+                        .nodes
+                        .iter()
+                        .any(|node| node.input_refs.iter().any(|input| input == &candidate.id))
+            })
+            .collect::<Vec<_>>();
+        let [final_node] = final_nodes.as_slice() else {
+            return None;
+        };
+        self.reports.get(&final_node.id)
+    }
+
+    fn structured_fallback_with_upstream(&self) -> String {
+        let fallback = fallback_structured_synthesis(&self.graph.root_task);
+        let Some(upstream_output) = self.completed_role_sections_excluding_final() else {
+            return fallback;
+        };
+        if looks_like_blocking_material_gap_answer(&upstream_output)
+            || upstream_output.chars().count() < MIN_UPSTREAM_ENRICH_CHARS
+        {
+            return fallback;
+        }
+        sanitize_final_user_facing_text(&format!("{fallback}\n\n## 已有补充\n\n{upstream_output}"))
+            .unwrap_or(fallback)
     }
 
     pub fn direct_chat_output(&self) -> Option<String> {
@@ -571,6 +685,14 @@ impl TaskGraphRuntime {
     }
 }
 
+fn push_unique_text(items: &mut Vec<String>, text: String) {
+    let text = text.trim();
+    if text.is_empty() || items.iter().any(|existing| existing == text) {
+        return;
+    }
+    items.push(text.to_string());
+}
+
 fn looks_like_final_node(node: &TaskNode) -> bool {
     let id = node.id.0.to_ascii_lowercase();
     id.contains("final")
@@ -579,6 +701,170 @@ fn looks_like_final_node(node: &TaskNode) -> bool {
         || node.title.contains("运营方案")
         || node.objective.contains("综合成")
         || node.objective.contains("形成可执行")
+}
+
+fn looks_like_blocking_material_gap_answer(text: &str) -> bool {
+    let text = text.trim();
+    if text.is_empty() {
+        return false;
+    }
+    let gap_hits = [
+        "等待用户提供附件或表格数据",
+        "等待用户提供",
+        "建议用户提供附件或表格数据",
+        "建议用户提供附件或表格",
+        "建议用户提供附件",
+        "建议用户提供表格",
+        "当前没有可用的附件或表格",
+        "没有可用的附件或表格",
+        "未提供附件或表格",
+        "未上传表格",
+        "没有上传表格",
+        "未上传任何表格",
+        "未提供具体商品信息",
+        "未提供销售数据",
+        "未提供库存情况",
+        "未提供平台规则",
+        "无法提供真实数据",
+        "无法提供真实数据或指标",
+        "由于未上传表格",
+        "由于未上传任何表格",
+        "用户未上传任何表格",
+        "用户是否上传了表格",
+        "是否上传了表格",
+        "未找到附件或表格数据",
+        "未找到可用的附件或表格数据",
+        "无法直接抽取",
+        "无法直接分析",
+        "无法直接分析数据",
+        "无法直接生成具体数据表格",
+        "无法直接生成表格",
+        "无法生成完整的促销方案",
+        "无法生成完整促销方案",
+        "无法进行进一步分析",
+        "无法提供具体的表格",
+        "缺少必要的数据",
+        "该岗位本轮未形成有效结论",
+    ]
+    .iter()
+    .filter(|marker| text.contains(*marker))
+    .count();
+    if gap_hits == 0 {
+        return false;
+    }
+    let actionable_hits = [
+        "可先",
+        "先按",
+        "建议",
+        "下一步",
+        "动作",
+        "清单",
+        "表格",
+        "风险边界",
+        "复核",
+        "验证",
+    ]
+    .iter()
+    .filter(|marker| text.contains(*marker))
+    .count();
+    gap_hits >= 2 || actionable_hits == 0 || text.chars().count() < 220
+}
+
+fn report_contains_blocking_material_gap(report: &WorkerReport) -> bool {
+    let mut parts = vec![report.content.as_str()];
+    if let Some(output) = report.role_output.as_ref() {
+        parts.push(output.summary.as_str());
+        parts.extend(output.findings.iter().map(String::as_str));
+        parts.extend(output.recommendations.iter().map(String::as_str));
+        parts.extend(output.risks.iter().map(String::as_str));
+        parts.extend(output.open_questions.iter().map(String::as_str));
+    }
+    looks_like_blocking_material_gap_answer(&parts.join("\n"))
+}
+
+fn fallback_structured_synthesis(task: &str) -> String {
+    let wants_table = task_requests_table(task);
+    let wants_metric_table =
+        task.contains("列出指标") || (task.contains("怎么看") && task.contains("下一步"));
+    let lead = if wants_table {
+        "先按当前问题、已选上下文和上游岗位输出给出可执行表格草案；表格里的真实销量、转化率、成本、库存、平台规则或实时来源，后续再用真实数据复核。"
+    } else {
+        "先按当前问题、已选上下文和上游岗位输出给出可执行草案；涉及真实销量、转化率、成本、库存、平台规则或实时来源的部分，后续再用真实数据复核。"
+    };
+    let mut sections = vec![
+        "## 当前可先交付".to_string(),
+        String::new(),
+        lead.to_string(),
+        String::new(),
+        "## 先做什么".to_string(),
+        String::new(),
+        "- 先明确分析对象、目标人群、目标动作和当前可用信息。".to_string(),
+        "- 把需要验证的判断拆成可观察字段，再用小样本、后台数据或后续上传资料复核。".to_string(),
+        "- 对缺少真实数据的部分只写成假设或待验证项，不写成确定事实。".to_string(),
+    ];
+    if wants_table {
+        sections.extend([String::new(), "## 执行表".to_string(), String::new()]);
+        if wants_metric_table {
+            sections.extend([
+                "| 指标 | 怎么看 | 可能问题 | 下一步动作 |".to_string(),
+                "| --- | --- | --- | --- |".to_string(),
+                "| 触达/点击 | 用户是否愿意进入详情或继续了解 | 入口表达不清、对象不准 | 同时测试 2-3 个入口表达 |".to_string(),
+                "| 意向/加购 | 用户看完后是否有进一步购买或咨询意愿 | 权益、规格、信任感不足 | 补清楚适用场景、权益和高频疑问 |".to_string(),
+                "| 转化/付款 | 用户是否完成目标动作 | 价格、库存、流程或承接卡住 | 小范围试跑一版低风险方案 |".to_string(),
+                "| 反馈/售后 | 负向反馈集中在哪些点 | 描述不清、承诺过满或预期不一致 | 把高频问题写进页面、话术或复盘字段 |".to_string(),
+            ]);
+        } else {
+            sections.extend([
+                "| 环节 | 当前可做 | 复核信息 | 风险边界 |".to_string(),
+                "| --- | --- | --- | --- |".to_string(),
+                "| 对象 | 明确本轮分析对象和适用场景 | 已选上下文、用户补充、历史记录 | 不借用无关对象的数据 |"
+                    .to_string(),
+                "| 方案 | 输出一版可试跑动作或内容草案 | 点击、咨询、加购、转化等反馈 | 不编造价格、销量、库存或规则 |"
+                    .to_string(),
+                "| 验证 | 每轮只改少量关键变量 | 前后对比、样本周期、异常反馈 | 样本不足时只做方向判断 |"
+                    .to_string(),
+                "| 复盘 | 记录本轮假设、结果和下轮动作 | 真实数据或后续上传资料 | 缺资料时保留待确认项 |"
+                    .to_string(),
+            ]);
+        }
+    }
+    sections.extend([
+        String::new(),
+        "## 风险边界".to_string(),
+        String::new(),
+        "- 没有真实资料时，不能编造销量、转化率、退款率、成本、库存、平台规则或实时搜索结论。"
+            .to_string(),
+        "- 如果后续上传 Excel、CSV、图片、活动或后台数据，再按真实字段重新复核结论。".to_string(),
+    ]);
+    sanitize_final_user_facing_text(&sections.join("\n")).unwrap_or_else(|| sections.join("\n"))
+}
+
+fn task_requests_table(task: &str) -> bool {
+    [
+        "有表格",
+        "输出表格",
+        "输出成表格",
+        "输出一个表格",
+        "表格形式",
+        "整理成表格",
+        "用表格",
+        "用表格输出",
+        "包含表格",
+        "做成表格",
+        "列出指标",
+    ]
+    .iter()
+    .any(|marker| task.contains(marker))
+}
+
+fn contains_markdown_table(text: &str) -> bool {
+    let lines = text.lines().collect::<Vec<_>>();
+    lines.windows(2).any(|pair| {
+        pair[0].trim().starts_with('|')
+            && pair[0].trim().ends_with('|')
+            && pair[1].trim().starts_with('|')
+            && pair[1].contains("---")
+    })
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -1563,6 +1849,34 @@ mod tests {
     }
 
     #[test]
+    fn forced_selected_roles_graph_uses_business_role_as_final_when_search_selected() {
+        let roles = vec!["search".to_string(), "ops".to_string()];
+        let graph = plan_forced_selected_roles_graph(
+            &TaskId("task-manual-search-ops".to_string()),
+            "手动指定 search 和 ops，搜索竞品后给运营建议。",
+            &roles,
+        );
+
+        let graph_roles = graph
+            .nodes
+            .iter()
+            .map(|node| node.role.as_str())
+            .collect::<Vec<_>>();
+
+        assert_eq!(graph_roles, vec!["search", "ops", "ops"]);
+        assert_eq!(graph.nodes[2].id.0, "ops_final");
+        assert_eq!(graph.nodes[0].skill_autosuggest, Some(true));
+        assert_eq!(
+            graph.nodes[2]
+                .input_refs
+                .iter()
+                .map(|input| input.0.as_str())
+                .collect::<Vec<_>>(),
+            vec!["search", "ops"]
+        );
+    }
+
+    #[test]
     fn task_graph_synthesis_prefers_terminal_final_node() {
         let data = node("data", "Data", "data");
         let mut ops = node("ops_final", "Final", "ops");
@@ -1589,6 +1903,162 @@ mod tests {
 
         assert_eq!(output, "final user plan");
         assert!(!output.contains("upstream draft"));
+    }
+
+    #[test]
+    fn task_graph_synthesis_replaces_material_gap_final_with_structured_answer() {
+        let data = node("data", "Data", "data");
+        let creative = {
+            let mut node = node("creative", "Creative", "creative");
+            node.input_refs = vec![TaskNodeId("data".to_string())];
+            node
+        };
+        let mut ops = node("ops_final", "Final", "ops");
+        ops.input_refs = vec![
+            TaskNodeId("data".to_string()),
+            TaskNodeId("creative".to_string()),
+        ];
+        let mut runtime = TaskGraphRuntime::new(TaskGraph {
+            graph_id: TaskGraphId("graph-material-gap-final".to_string()),
+            root_task: "学生书包开学季小促销方案，要求有表格、有标题示例、有风险边界。".to_string(),
+            nodes: vec![data.clone(), creative.clone(), ops.clone()],
+        });
+        runtime
+            .states
+            .insert(data.id.clone(), TaskNodeRuntimeState::Passed);
+        runtime
+            .states
+            .insert(creative.id.clone(), TaskNodeRuntimeState::Passed);
+        runtime
+            .states
+            .insert(ops.id.clone(), TaskNodeRuntimeState::Passed);
+        runtime.reports.insert(
+            data.id.clone(),
+            report("data", "先看点击、加购、付款和退款反馈。"),
+        );
+        runtime.reports.insert(
+            creative.id.clone(),
+            report(
+                "creative",
+                "标题先突出开学收纳、分区和减负，但不编材质规格。",
+            ),
+        );
+        runtime.reports.insert(
+            ops.id.clone(),
+            report(
+                "ops_final",
+                "该岗位本轮未形成有效结论。未找到可用的附件或表格数据。等待用户提供附件或表格数据。无法进行进一步分析，因为缺少必要的数据。",
+            ),
+        );
+
+        let output = runtime.synthesize();
+
+        assert!(output.contains("## 当前可先交付"));
+        assert!(output.contains("## 执行表"));
+        assert!(output.contains("| 环节 | 当前可做 | 复核信息 | 风险边界 |"));
+        assert!(output.contains("可执行表格草案"));
+        assert!(!output.contains("本轮没有可读取的上传表格或附件"));
+        assert!(!output.contains("等待用户提供附件或表格数据"));
+        assert!(!output.contains("未找到可用的附件或表格数据"));
+        assert!(!output.contains("无法进行进一步分析"));
+    }
+
+    #[test]
+    fn task_graph_synthesis_replaces_new_refusal_gap_with_markdown_table() {
+        let data = node("data", "Data", "data");
+        let creative = {
+            let mut node = node("creative", "Creative", "creative");
+            node.input_refs = vec![TaskNodeId("data".to_string())];
+            node
+        };
+        let mut ops = node("ops_final", "Final", "ops");
+        ops.input_refs = vec![
+            TaskNodeId("data".to_string()),
+            TaskNodeId("creative".to_string()),
+        ];
+        let mut runtime = TaskGraphRuntime::new(TaskGraph {
+            graph_id: TaskGraphId("graph-new-gap-final".to_string()),
+            root_task: "现在切换成手动多智能体：数据、创意、运营一起给一个学生书包开学季小促销方案，要求有表格、有标题示例、有风险边界。".to_string(),
+            nodes: vec![data.clone(), creative.clone(), ops.clone()],
+        });
+        runtime
+            .states
+            .insert(data.id.clone(), TaskNodeRuntimeState::Passed);
+        runtime
+            .states
+            .insert(creative.id.clone(), TaskNodeRuntimeState::Passed);
+        runtime
+            .states
+            .insert(ops.id.clone(), TaskNodeRuntimeState::Passed);
+        runtime.reports.insert(
+            data.id.clone(),
+            report("data", "先按曝光、点击、加购、付款和退款复核。"),
+        );
+        runtime.reports.insert(
+            creative.id.clone(),
+            report("creative", "标题示例：开学装书不乱，一包分区搞定。"),
+        );
+        runtime.reports.insert(
+            ops.id.clone(),
+            report(
+                "ops_final",
+                "未提供具体商品信息、销售数据、库存情况或平台规则，因此无法生成完整促销方案。建议用户提供附件或表格后再继续。",
+            ),
+        );
+
+        let output = runtime.synthesize();
+
+        assert!(output.contains("## 当前可先交付"), "{output}");
+        assert!(output.contains("## 执行表"), "{output}");
+        assert!(
+            output.contains("| 环节 | 当前可做 | 复核信息 | 风险边界 |"),
+            "{output}"
+        );
+        assert!(output.contains("可执行表格草案"), "{output}");
+        assert!(!output.contains("本轮没有可读取的上传表格或附件"));
+        assert!(!output.contains("无法生成完整促销方案"));
+        assert!(!output.contains("建议用户提供附件"));
+    }
+
+    #[test]
+    fn task_graph_synthesis_outputs_table_for_no_upload_table_format_request() {
+        let data = node("data", "Data", "data");
+        let mut ops = node("ops_final", "Final", "ops");
+        ops.input_refs = vec![TaskNodeId("data".to_string())];
+        let mut runtime = TaskGraphRuntime::new(TaskGraph {
+            graph_id: TaskGraphId("graph-format-table-gap".to_string()),
+            root_task: "不上传任何表格，只要求你把学生书包的分析输出成表格：列出指标、怎么看、可能问题、下一步动作。".to_string(),
+            nodes: vec![data.clone(), ops.clone()],
+        });
+        runtime
+            .states
+            .insert(data.id.clone(), TaskNodeRuntimeState::Passed);
+        runtime
+            .states
+            .insert(ops.id.clone(), TaskNodeRuntimeState::Passed);
+        runtime.reports.insert(
+            data.id.clone(),
+            report("data", "先用指标表说明怎么观察学生书包。"),
+        );
+        runtime.reports.insert(
+            ops.id.clone(),
+            report(
+                "ops_final",
+                "由于未上传任何表格、Excel、CSV 或附件，无法直接生成具体数据表格。用户是否上传了表格？",
+            ),
+        );
+
+        let output = runtime.synthesize();
+
+        assert!(output.contains("## 执行表"), "{output}");
+        assert!(
+            output.contains("| 指标 | 怎么看 | 可能问题 | 下一步动作 |"),
+            "{output}"
+        );
+        assert!(output.contains("可执行表格草案"), "{output}");
+        assert!(!output.contains("本轮没有可读取的上传表格或附件"));
+        assert!(!output.contains("由于未上传任何表格"));
+        assert!(!output.contains("用户是否上传了表格"));
     }
 
     #[test]
@@ -2085,6 +2555,105 @@ mod tests {
         );
         assert!(output.contains("运营上先做小范围试卖。"));
         assert!(output.contains("标题先突出低糖冷萃和校园场景。"));
+    }
+
+    #[test]
+    fn non_quick_graph_enriches_thin_final_with_upstream_role_outputs() {
+        let data = node("data", "数据诊断", "data");
+        let design = node("design", "主图诊断", "design");
+        let mut ops_final = node("ops_final", "运营总方案", "ops");
+        ops_final.input_refs = vec![data.id.clone(), design.id.clone()];
+        let mut runtime = TaskGraphRuntime::new(TaskGraph {
+            graph_id: TaskGraphId("graph-thin-final".to_string()),
+            root_task: "给出复盘：稳定部分、风险部分、下一步。".to_string(),
+            nodes: vec![data.clone(), design.clone(), ops_final.clone()],
+        })
+        .with_response_mode(Some("learning"));
+        for node in [&data, &design, &ops_final] {
+            runtime
+                .states
+                .insert(node.id.clone(), TaskNodeRuntimeState::Passed);
+        }
+        runtime.reports.insert(
+            data.id.clone(),
+            WorkerReport {
+                role_output: Some(RoleWorkOutput {
+                    summary: "已经稳定：销量、转化率、用户评价这三个观察指标已经明确。".to_string(),
+                    findings: vec![
+                        "数据风险：仍缺少真实曝光、点击、成交和退款数据，不能验证优化效果。"
+                            .to_string(),
+                    ],
+                    recommendations: vec![
+                        "下一步：先补齐一周样本数据，再按指标做对比复盘。".to_string(),
+                    ],
+                    ..RoleWorkOutput::default()
+                }),
+                ..report("data", "")
+            },
+        );
+        runtime.reports.insert(
+            design.id.clone(),
+            WorkerReport {
+                role_output: Some(RoleWorkOutput {
+                    summary: "主图已能看出商品和赠品，但礼盒感、文字大小仍需要核对。".to_string(),
+                    recommendations: vec!["下一步：用两版主图做点击率小测试。".to_string()],
+                    ..RoleWorkOutput::default()
+                }),
+                ..report("design", "")
+            },
+        );
+        runtime.reports.insert(
+            ops_final.id.clone(),
+            report("ops_final", "学生下一步：收集实际数据并验证优化效果。"),
+        );
+
+        let output = runtime.synthesize();
+
+        assert!(output.contains("学生下一步："), "{output}");
+        assert!(output.contains("收集实际数据并验证优化效果。"), "{output}");
+        assert!(output.contains("已经稳定：销量、转化率、用户评价这三个观察指标已经明确。"));
+        assert!(output.contains("数据风险："));
+        assert!(output.contains("仍缺少真实曝光、点击、成交和退款数据"));
+        assert!(output.contains("主图已能看出商品和赠品"));
+        assert!(output.contains("用两版主图做点击率小测试。"));
+        assert!(!output.contains("role_output"));
+        assert!(!output.contains("worker."));
+    }
+
+    #[test]
+    fn non_quick_graph_keeps_complete_final_without_upstream_duplication() {
+        let data = node("data", "数据诊断", "data");
+        let mut ops_final = node("ops_final", "运营总方案", "ops");
+        ops_final.input_refs = vec![data.id.clone()];
+        let mut runtime = TaskGraphRuntime::new(TaskGraph {
+            graph_id: TaskGraphId("graph-complete-final".to_string()),
+            root_task: "整理完整方案。".to_string(),
+            nodes: vec![data.clone(), ops_final.clone()],
+        })
+        .with_response_mode(Some("execution"));
+        for node in [&data, &ops_final] {
+            runtime
+                .states
+                .insert(node.id.clone(), TaskNodeRuntimeState::Passed);
+        }
+        runtime.reports.insert(
+            data.id.clone(),
+            report("data", "上游数据草稿不应重复出现在完整最终答案里。"),
+        );
+        runtime.reports.insert(
+            ops_final.id.clone(),
+            report(
+                "ops_final",
+                "## 已经稳定的部分\n\n商品指标、活动预算和目标已经明确，可以进入小范围验证。\n\n## 仍有风险的部分\n\n真实曝光、点击、成交、退款数据还不足，不能直接判断方案一定有效。\n\n## 学生下一步怎么做\n\n先补齐一周样本数据，再用两个版本主图和活动话术做对比测试，最后按销量、转化率和评价复盘。",
+            ),
+        );
+
+        let output = runtime.synthesize();
+
+        assert!(output.contains("## 已经稳定的部分"));
+        assert!(output.contains("## 仍有风险的部分"));
+        assert!(output.contains("## 学生下一步怎么做"));
+        assert!(!output.contains("上游数据草稿不应重复"));
     }
 
     fn node(id: &str, title: &str, role: &str) -> TaskNode {

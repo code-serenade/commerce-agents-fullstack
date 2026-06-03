@@ -652,12 +652,127 @@ mod tests {
             None,
             &rules,
         )
-        .expect("business analysis should still match a direct graph");
+        .expect("business analysis should still match a graph");
 
-        assert_eq!(graph.nodes.len(), 1);
-        assert_eq!(graph.nodes[0].role, "chat");
         assert_ne!(graph.graph_id.0, "direct_teacher_feedback_boundary");
-        assert_ne!(graph.nodes[0].title, "老师点评边界回答");
+        assert!(
+            graph.nodes.iter().any(|node| node.role == "data"),
+            "business analysis should keep commerce graph data role"
+        );
+        assert!(
+            graph.nodes.iter().any(|node| node.id.0 == "ops_final"),
+            "commerce graph should keep final synthesis node"
+        );
+        assert!(
+            graph
+                .nodes
+                .iter()
+                .all(|node| node.title != "老师点评边界回答"),
+            "business analysis should not be misrouted to teacher feedback"
+        );
+    }
+
+    #[test]
+    fn generic_product_analysis_routes_to_commerce_team_with_final_synthesis() {
+        let rules =
+            load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
+        let graph = plan_task_graph_from_rules(
+            &TaskId("task-product-analysis".to_string()),
+            "请分析这个商品，判断是否适合做电商实训选品。",
+            None,
+            &rules,
+        )
+        .expect("product analysis should match commerce team graph");
+
+        let roles = graph
+            .nodes
+            .iter()
+            .map(|node| node.role.as_str())
+            .collect::<Vec<_>>();
+        assert!(roles.contains(&"data"), "{roles:?}");
+        assert!(roles.contains(&"creative"), "{roles:?}");
+        assert!(
+            graph.nodes.iter().any(|node| node.id.0 == "ops_final"),
+            "commerce graph must schedule a distinct final synthesis node: {:#?}",
+            graph.nodes
+        );
+        assert!(
+            graph.nodes.iter().filter(|node| node.id.0 == "ops").count() <= 1,
+            "ops worker node must not collide with ops_final synthesis"
+        );
+    }
+
+    #[test]
+    fn default_product_metric_learning_routes_to_commerce_team_not_single_data() {
+        let rules =
+            load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
+        let route = RoleRoute {
+            primary_role: RoleId("role.data-analyst".to_string()),
+            primary_runtime_role: "data".to_string(),
+            support_roles: vec![RoleId("role.ops-strategist".to_string())],
+            support_runtime_roles: vec!["ops".to_string()],
+            scores: vec![
+                RoleScore {
+                    role_id: RoleId("role.data-analyst".to_string()),
+                    runtime_role: "data".to_string(),
+                    score: 6.5,
+                    keyword_hits: 3,
+                },
+                RoleScore {
+                    role_id: RoleId("role.ops-strategist".to_string()),
+                    runtime_role: "ops".to_string(),
+                    score: 2.5,
+                    keyword_hits: 1,
+                },
+            ],
+        };
+        let graph = plan_task_graph_from_rules(
+            &TaskId("task-product-metrics".to_string()),
+            "请用新手学生能懂的话，说明电商商品分析先看哪三个指标，并用学生书包举例，不要只给一句话。",
+            Some(&route),
+            &rules,
+        )
+        .expect("product metric learning task should match commerce team graph");
+
+        let roles = graph
+            .nodes
+            .iter()
+            .map(|node| node.role.as_str())
+            .collect::<Vec<_>>();
+        assert!(
+            roles.contains(&"data") && roles.contains(&"creative") && roles.contains(&"ops"),
+            "default product metric learning must use the commerce chain, got {roles:?}"
+        );
+        assert!(
+            graph.nodes.iter().any(|node| node.id.0 == "ops_final"),
+            "default product metric learning must include final synthesis: {:#?}",
+            graph.nodes
+        );
+        assert!(
+            graph.nodes.len() >= 3,
+            "default product metric learning must not collapse to single data node: {:#?}",
+            graph.nodes
+        );
+    }
+
+    #[test]
+    fn followup_homework_phrase_without_review_request_stays_business_graph() {
+        let rules =
+            load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
+        let graph = plan_task_graph_from_rules(
+            &TaskId("task-followup-business".to_string()),
+            "继续刚才三个指标，整理已经稳定的部分、仍有风险的部分和下次作业。",
+            None,
+            &rules,
+        );
+
+        assert!(
+            graph.as_ref().is_none_or(|graph| graph
+                .nodes
+                .iter()
+                .all(|node| node.title != "老师点评边界回答")),
+            "plain follow-up must not drift into teacher feedback graph: {graph:#?}"
+        );
     }
 
     #[test]
