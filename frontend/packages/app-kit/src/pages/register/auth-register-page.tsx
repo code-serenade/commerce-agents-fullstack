@@ -5,6 +5,7 @@ import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { registerApi } from "@workspace/services/api/auth"
+import { Alert } from "@workspace/ui-components/stable/alert"
 import { Button } from "@workspace/ui-components/stable/button"
 import {
   Field,
@@ -48,7 +49,8 @@ function createAuthRegisterSchema(t: Translate) {
       password: z
         .string()
         .trim()
-        .min(1, t("validation.required", { ns: "common" })),
+        .min(1, t("validation.required", { ns: "common" }))
+        .min(8, t("authRegister.error.passwordMinLength", { ns: "pages" })),
       confirmPassword: z
         .string()
         .trim()
@@ -226,6 +228,15 @@ export function AuthRegisterPage({
                     })}
                   />
                 )}
+              />
+              <Alert
+                variant="warning"
+                title={t("authRegister.form.password.helpTitle", {
+                  ns: "pages",
+                })}
+                description={t("authRegister.form.password.helpDescription", {
+                  ns: "pages",
+                })}
               />
               <FieldError>{errors.password?.message}</FieldError>
             </Field>
