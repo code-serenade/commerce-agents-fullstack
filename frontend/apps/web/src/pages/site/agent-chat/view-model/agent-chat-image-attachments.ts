@@ -1,4 +1,5 @@
 import type { UpdateConversationFileExtractionRequest } from "@/api"
+import type { AgentChatAttachmentItem } from "../types"
 
 export const MAX_VISION_IMAGE_ATTACHMENTS = 4
 
@@ -96,6 +97,28 @@ export function isVisionImageFile(file: File) {
     ["image/png", "image/jpeg", "image/webp"].includes(type) ||
     /\.(png|jpe?g|webp)$/i.test(file.name)
   )
+}
+
+export function createImageAttachments(
+  attachments: AgentChatAttachmentItem[],
+  contextRefs: string[]
+) {
+  return attachments
+    .filter(
+      (attachment) =>
+        attachment.status === "uploaded" &&
+        Boolean(attachment.fileId) &&
+        Boolean(attachment.imageDataUrl)
+    )
+    .filter((attachment) =>
+      contextRefs.includes(`conversation_file:${attachment.fileId}`)
+    )
+    .slice(0, MAX_VISION_IMAGE_ATTACHMENTS)
+    .map((attachment) => ({
+      detail: attachment.imageDetail ?? "auto",
+      sourceRef: `conversation_file:${attachment.fileId}`,
+      url: attachment.imageDataUrl!,
+    }))
 }
 
 function fileToDataUrl(file: File) {
