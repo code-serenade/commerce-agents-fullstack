@@ -317,6 +317,17 @@ mod tests {
         }
     }
 
+    fn assert_readable_answer_layout_objective(objective: &str) {
+        assert!(objective.contains("中文小标题"), "{objective}");
+        assert!(objective.contains("要点"), "{objective}");
+        assert!(objective.contains("不要只输出普通段落"), "{objective}");
+        assert!(!objective.contains("# 多智能体协作结论"), "{objective}");
+        assert!(
+            objective.contains("Markdown 管道表格") || objective.contains("Markdown 表格"),
+            "{objective}"
+        );
+    }
+
     #[test]
     fn image_content_question_routes_to_single_chat_graph() {
         let rules =
@@ -691,15 +702,56 @@ mod tests {
             .collect::<Vec<_>>();
         assert!(roles.contains(&"data"), "{roles:?}");
         assert!(roles.contains(&"creative"), "{roles:?}");
-        assert!(
-            graph.nodes.iter().any(|node| node.id.0 == "ops_final"),
-            "commerce graph must schedule a distinct final synthesis node: {:#?}",
-            graph.nodes
-        );
+        let final_node = graph
+            .nodes
+            .iter()
+            .find(|node| node.id.0 == "ops_final")
+            .expect("commerce graph must schedule a distinct final synthesis node");
+        assert_readable_answer_layout_objective(&final_node.objective);
         assert!(
             graph.nodes.iter().filter(|node| node.id.0 == "ops").count() <= 1,
             "ops worker node must not collide with ops_final synthesis"
         );
+    }
+
+    #[test]
+    fn explicit_requested_team_final_node_uses_readable_answer_layout() {
+        let rules =
+            load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
+        let graph = plan_task_graph_from_rules(
+            &TaskId("task-explicit-team-format".to_string()),
+            "只让运营、数据、创意三个岗位协作，给学生书包开学季活动方案。",
+            None,
+            &rules,
+        )
+        .expect("explicit team task should match a graph");
+
+        let final_node = graph
+            .nodes
+            .iter()
+            .find(|node| node.id.0 == "ops_final")
+            .expect("explicit team graph should have final synthesis node");
+        assert_readable_answer_layout_objective(&final_node.objective);
+    }
+
+    #[test]
+    fn search_business_synthesis_final_node_uses_readable_answer_layout() {
+        let rules =
+            load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
+        let graph = plan_task_graph_from_rules(
+            &TaskId("task-search-business-format".to_string()),
+            "请联网搜索校园冷萃咖啡竞品定价，并给我可执行定价建议和下一步动作。",
+            None,
+            &rules,
+        )
+        .expect("search plus business advice should match a graph");
+
+        let final_node = graph
+            .nodes
+            .iter()
+            .find(|node| node.id.0 == "ops_final")
+            .expect("search business graph should have final synthesis node");
+        assert_readable_answer_layout_objective(&final_node.objective);
     }
 
     #[test]
@@ -833,6 +885,7 @@ mod tests {
         );
         assert_eq!(final_node.llm_usage.as_deref(), Some("fast"));
         assert_eq!(final_node.skill_autosuggest, Some(false));
+        assert_readable_answer_layout_objective(&final_node.objective);
     }
 
     #[test]
@@ -871,6 +924,7 @@ mod tests {
             .collect::<Vec<_>>();
         assert!(input_refs.contains(&"accounting"));
         assert!(input_refs.contains(&"ops"));
+        assert_readable_answer_layout_objective(&final_node.objective);
     }
 
     #[test]

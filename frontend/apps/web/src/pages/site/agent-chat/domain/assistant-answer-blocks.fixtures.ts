@@ -108,3 +108,82 @@ export const lowPriceSnippet = textFromCodes([
   0x53ef, 0x4f5c, 0x4e3a, 0x4f4e, 0x4ef7, 0x5f15, 0x6d41,
   0x6cbb, 0x7406, 0x89c4, 0x5219, 0x6765, 0x6e90, 0x3002,
 ])
+export const tabTableHeading = textFromCodes([
+  24517, 22791, 37319, 38598, 23383, 27573, 65306,
+])
+export const tabTableHeadingText = tabTableHeading.slice(0, -1)
+export const tabTableHeaderCategory = textFromCodes([20998, 31867])
+export const tabTableHeaderFields = textFromCodes([
+  20855, 20307, 23383, 27573,
+])
+export const tabTableProductBase = textFromCodes([
+  21830, 21697, 22522, 30784,
+])
+export const tabTableProductFields = textFromCodes([
+  83, 75, 85, 32534, 30721, 12289, 21697, 31867, 12289, 21475,
+  21619, 12289, 35268, 26684,
+])
+export const tabTableTraffic = textFromCodes([
+  27969, 37327, 20132, 26131,
+])
+export const tabTableTrafficFields = textFromCodes([
+  26333, 20809, 37327, 12289, 28857, 20987, 37327, 12289, 21152,
+  36141, 37327, 12289, 20184, 27454, 37327,
+])
+export const plainCoffeeIntro = textFromCodes([
+  24403, 21069, 26080, 21654, 21857, 31867, 21830, 21697, 30340,
+  20855, 20307, 23454, 29289, 32032, 26448, 12289, 20132, 26131,
+  25968, 25454, 12289, 29992, 25143, 21453, 39304, 31561, 26377,
+  25928, 36164, 26009, 65292, 20165, 33021, 25552, 20379, 20302,
+  39118, 38505, 30340, 31867, 30446, 26041, 21521, 24314, 35758,
+  12290,
+])
+export const plainCoffeeObjectHeading = textFromCodes([
+  36816, 33829, 23545, 35937, 65288, 20248, 20808, 20302, 39118,
+  38505, 21697, 31867, 65289,
+])
+export const plainCoffeeObjectText = textFromCodes([
+  20248, 20808, 36873, 25321, 27491, 35268, 39044, 21253, 35013,
+  21654, 21857, 20316, 20026, 20998, 26512, 21644, 20869, 23481,
+  21019, 20316, 30340, 36733, 20307, 12290,
+])
+export const plainCoffeeChannelHeading = textFromCodes([
+  24179, 21488, 47, 28192, 36947, 36873, 25321,
+])
+export const plainCoffeeFirstStepHeading = textFromCodes([
+  31532, 19968, 27493, 25805, 20316,
+])
+export const plainCoffeeFirstStepText = textFromCodes([
+  20808, 26597, 35810, 30446, 26631, 20837, 39547, 24179, 21488,
+  30340, 39135, 21697, 31867, 20934, 20837, 35268, 21017, 12290,
+])
+export const plainCoffeeMaterialHeading = textFromCodes([
+  25512, 24191, 32032, 26448,
+])
+export const plainCoffeeTitleHeading = textFromCodes([
+  26631, 39064, 27169, 26495,
+])
+export const plainCoffeeDetailHeading = textFromCodes([
+  35814, 24773, 39029, 24320, 22836, 27169, 26495,
+])
+export const plainCoffeeDetailText = textFromCodes([
+  24215, 20869, 22312, 21806, 21654, 21857, 22343, 20026, 36817,
+  26399, 29983, 20135, 12290,
+])
+export const plainCoffeeRiskHeading = textFromCodes([
+  26680, 24515, 39118, 38505, 25552, 31034,
+])
+export const plainCoffeeRiskText = textFromCodes([
+  26080, 26377, 25928, 36164, 26009, 25903, 25745, 30340, 20998,
+  26512, 20250, 33073, 31163, 23454, 38469, 36816, 33829, 22330,
+  26223, 12290,
+])
+export const plainCoffeeMoreInfoHeading = textFromCodes([
+  21518, 32493, 21487, 34917, 20805, 20449, 24687,
+])
+export const plainCoffeeQuestion = textFromCodes([
+  26159, 21542, 26377, 20855, 20307, 26576, 27454, 21654, 21857,
+  30340, 23454, 29289, 32032, 26448, 12289, 20132, 26131, 25968,
+  25454, 25110, 29992, 25143, 21453, 39304, 36164, 26009, 21487,
+  29992, 20110, 36827, 19968, 27493, 20998, 26512, 65311,
+])
