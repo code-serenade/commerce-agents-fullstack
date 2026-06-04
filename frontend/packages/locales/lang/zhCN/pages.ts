@@ -14,6 +14,8 @@ const pages = {
       password: {
         label: "密码",
         placeholder: "请输入密码",
+        helpTitle: "密码必须至少 8 位",
+        helpDescription: "请设置 8 位或更长的密码，再提交注册。",
       },
       confirmPassword: {
         label: "确认密码",
@@ -40,6 +42,7 @@ const pages = {
     },
     error: {
       passwordMismatch: "两次输入的密码不一致。",
+      passwordMinLength: "密码至少需要 8 位。",
     },
   },
   profile: {
