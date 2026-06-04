@@ -33,6 +33,9 @@ default_topic = "general"
 default_days = 30
 default_max_results = 6
 
+[agent_runtime]
+worker_cognition_timeout_sec = 300
+
 [agent_llm_usage]
 default = "doubao-thinking"
 fast = "doubao-fast"
