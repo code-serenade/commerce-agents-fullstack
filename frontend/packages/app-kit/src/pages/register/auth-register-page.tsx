@@ -5,7 +5,6 @@ import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { registerApi } from "@workspace/services/api/auth"
-import { Alert } from "@workspace/ui-components/stable/alert"
 import { Button } from "@workspace/ui-components/stable/button"
 import {
   Field,
@@ -35,7 +34,10 @@ function createAuthRegisterSchema(t: Translate) {
       username: z
         .string()
         .trim()
-        .min(1, t("validation.required", { ns: "common" })),
+        .min(1, t("validation.required", { ns: "common" }))
+        .min(3, t("-10007", { ns: "errors" }))
+        .max(32, t("-10007", { ns: "errors" }))
+        .regex(/^[A-Za-z0-9_-]+$/, t("-10008", { ns: "errors" })),
       displayName: z.string(),
       email: z
         .string()
@@ -43,14 +45,15 @@ function createAuthRegisterSchema(t: Translate) {
         .refine(
           (value) => value === "" || emailValidator.safeParse(value).success,
           {
-            message: t("validation.emailInvalid", { ns: "common" }),
+            message: t("-10012", { ns: "errors" }),
           }
         ),
       password: z
         .string()
         .trim()
         .min(1, t("validation.required", { ns: "common" }))
-        .min(8, t("authRegister.error.passwordMinLength", { ns: "pages" })),
+        .min(8, t("-10011", { ns: "errors" }))
+        .max(128, t("-10011", { ns: "errors" })),
       confirmPassword: z
         .string()
         .trim()
@@ -228,15 +231,6 @@ export function AuthRegisterPage({
                     })}
                   />
                 )}
-              />
-              <Alert
-                variant="warning"
-                title={t("authRegister.form.password.helpTitle", {
-                  ns: "pages",
-                })}
-                description={t("authRegister.form.password.helpDescription", {
-                  ns: "pages",
-                })}
               />
               <FieldError>{errors.password?.message}</FieldError>
             </Field>

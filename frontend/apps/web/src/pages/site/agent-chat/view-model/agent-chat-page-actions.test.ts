@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest"
 import {
   resetAgentChatConversationContext,
   startNewAgentConversation,
+  stopAgentStreaming,
 } from "./agent-chat-page-actions"
 import type { AgentChatPageStateActions } from "./agent-chat-page-actions"
+import type { AgentChatMessage } from "../types"
 
 describe("agent chat page actions", () => {
   it("resets strategy and runtime context when starting a new conversation", () => {
@@ -28,6 +30,35 @@ describe("agent chat page actions", () => {
     })
 
     expect(calls).toEqual(["strategy:learning", "runtime:reset"])
+  })
+
+  it("marks partial streaming answers as stopped when stopping generation", () => {
+    const calls: string[] = []
+    const state = createPageState(calls)
+    let streaming = true
+    const messages: AgentChatMessage[] = [
+      {
+        content: "partial answer",
+        id: "assistant-1",
+        role: "assistant" as const,
+        status: "streaming" as const,
+      },
+    ]
+
+    state.setIsStreaming = (value) => {
+      streaming = typeof value === "function" ? value(streaming) : value
+    }
+    state.setMessages = (updater) => {
+      if (typeof updater === "function") {
+        messages.splice(0, messages.length, ...updater(messages))
+      }
+    }
+
+    stopAgentStreaming(state)
+
+    expect(state.abortRef.current).toBeNull()
+    expect(streaming).toBe(false)
+    expect(messages[0]?.status).toBe("stopped")
   })
 })
 

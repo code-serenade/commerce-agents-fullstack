@@ -80,7 +80,7 @@ export function stopAgentStreaming(state: AgentChatPageStateActions) {
   state.setMessages((current) =>
     current.map((message) =>
       message.status === "streaming"
-        ? { ...message, status: message.content ? undefined : "stopped" }
+        ? { ...message, status: "stopped" }
         : message
     )
   )
