@@ -22,7 +22,13 @@ import type {
   AgentChatConversationItem,
   AgentChatMessage,
 } from "../types"
-import { MAX_VISION_IMAGE_ATTACHMENTS } from "./agent-chat-image-attachments"
+import { createImageAttachments } from "./agent-chat-image-attachments"
+import {
+  markAssistantAnswerComplete,
+  replaceAssistantAnswerComplete,
+} from "./agent-chat-message-state"
+import { saveAssistantConversationMessage } from "./agent-chat-save-message"
+import { hasDisplayableAnswer, isAbortLikeStreamError } from "./agent-chat-stream-errors"
 
 interface SendAgentChatMessageInput {
   attachments: AgentChatAttachmentItem[]
@@ -74,10 +80,7 @@ export async function sendAgentChatMessage(
     ref: source.ref,
     title: source.title,
   }))
-  const imageAttachments = createImageAttachments(
-    input.attachments,
-    contextMeta.contextRefs
-  )
+  const imageAttachments = createImageAttachments(input.attachments, contextMeta.contextRefs)
   const contextSummary = createMessageContextSummary({
     ...contextMeta,
     collaborationMode: strategyMeta.collaborationMode,
@@ -109,8 +112,12 @@ export async function sendAgentChatMessage(
   const controller = new AbortController()
   input.onController(controller)
 
+  let assistantContent = ""
+  let assistantDone = false
+  let activeConversationId = input.conversationId
+  const runtimeEvents: AgentRuntimeEvent[] = []
+
   try {
-    let activeConversationId = input.conversationId
     if (!activeConversationId) {
       const detail = await agentChatData.createConversation({
         title: createConversationTitle(input.content),
@@ -138,9 +145,6 @@ export async function sendAgentChatMessage(
       learningLevel: strategyMeta.learningLevel,
     })
 
-    let assistantContent = ""
-    let assistantDone = false
-    const runtimeEvents: AgentRuntimeEvent[] = []
     await agentChatData.streamAgentSession(
       {
         input: input.content,
@@ -206,18 +210,12 @@ export async function sendAgentChatMessage(
             assistantContent,
             input.messageFormatCopy
           )
-          input.setMessages((current) =>
-            current.map((message) =>
-              message.id === assistantId
-                ? {
-                    ...message,
-                    content: displayContent,
-                    runtimeEvents: [...runtimeEvents],
-                    status: undefined,
-                  }
-                : message
-            )
-          )
+          replaceAssistantAnswerComplete({
+            assistantId,
+            content: displayContent,
+            runtimeEvents,
+            setMessages: input.setMessages,
+          })
           input.setIsStreaming(false)
         },
         onError: (message) => {
@@ -225,6 +223,25 @@ export async function sendAgentChatMessage(
             message,
             input.messageFormatCopy
           )
+          const displayContent = formatAgentUiMessage(
+            assistantContent,
+            input.messageFormatCopy
+          )
+          if (
+            hasDisplayableAnswer(displayContent) &&
+            isAbortLikeStreamError(message)
+          ) {
+            assistantDone = true
+            input.setRuntimeEvents([...runtimeEvents])
+            markAssistantAnswerComplete({
+              assistantId,
+              content: displayContent,
+              runtimeEvents,
+              setMessages: input.setMessages,
+            })
+            input.setIsStreaming(false)
+            return
+          }
           input.setError(displayMessage)
           input.setMessages((current) =>
             current.map((item) =>
@@ -246,16 +263,37 @@ export async function sendAgentChatMessage(
       input.messageFormatCopy
     )
     if (finalAssistantContent) {
-      await agentChatData.addConversationMessage(activeConversationId, {
-        role: "assistant",
-        contentText: finalAssistantContent,
-        contentJson: runtimeEvents.length ? { runtimeEvents } : null,
+      await saveAssistantConversationMessage({
+        content: finalAssistantContent,
+        conversationId: activeConversationId,
+        runtimeEvents,
       })
     }
     input.setIsStreaming(false)
   } catch (err) {
     if (controller.signal.aborted) return null
     input.setIsStreaming(false)
+    const displayContent = formatAgentUiMessage(
+      assistantContent,
+      input.messageFormatCopy
+    )
+    if (hasDisplayableAnswer(displayContent) && isAbortLikeStreamError(err)) {
+      input.setRuntimeEvents([...runtimeEvents])
+      markAssistantAnswerComplete({
+        assistantId,
+        content: displayContent,
+        runtimeEvents,
+        setMessages: input.setMessages,
+      })
+      if (activeConversationId) {
+        await saveAssistantConversationMessage({
+          content: displayContent,
+          conversationId: activeConversationId,
+          runtimeEvents,
+        })
+      }
+      return controller
+    }
     const message = formatAgentUiMessage(
       err instanceof Error ? err.message : input.tError,
       input.messageFormatCopy
@@ -275,26 +313,4 @@ export async function sendAgentChatMessage(
   }
 
   return controller
-}
-
-function createImageAttachments(
-  attachments: AgentChatAttachmentItem[],
-  contextRefs: string[]
-) {
-  return attachments
-    .filter(
-      (attachment) =>
-        attachment.status === "uploaded" &&
-        Boolean(attachment.fileId) &&
-        Boolean(attachment.imageDataUrl)
-    )
-    .filter((attachment) =>
-      contextRefs.includes(`conversation_file:${attachment.fileId}`)
-    )
-    .slice(0, MAX_VISION_IMAGE_ATTACHMENTS)
-    .map((attachment) => ({
-      detail: attachment.imageDetail ?? "auto",
-      sourceRef: `conversation_file:${attachment.fileId}`,
-      url: attachment.imageDataUrl!,
-    }))
 }
