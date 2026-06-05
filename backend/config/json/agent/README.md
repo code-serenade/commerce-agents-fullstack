@@ -29,6 +29,7 @@ agent 的职责分三层：
 | `worker-inference/` | 定义从用户文本里解析指标、别名、默认值、分类标签和搜索参数。 |
 | `worker-output-policy.json` | 定义 worker 输出缺省补全、角色默认 findings/recommendations/risks 和边界说明。 |
 | `worker-output-normalization-policy.json` | 定义输出清洗、风险降级、禁止伪造数据和文本替换策略。 |
+| `user-facing-normalization-policy.json` | 定义 commander 最终用户可见回答的清洗规则、内部术语替换、prompt 泄漏过滤和兜底文案。 |
 
 旧文件 `worker-autosuggest-policy.json` 和 `worker-inference-policy.json` 只作为兼容 fallback，新规则不要继续写进去。旧的 `task-graph-rules.json` 已删除，不再维护第二份 graph 配置。
 
@@ -188,6 +189,16 @@ worker-inference/index.json
 - 清理运行时错误噪音。
 - 将 skill failure 降级为可读边界。
 - 避免未选商品时输出具体商品身份。
+
+`user-facing-normalization-policy.json` 负责 commander 最终输出进入用户界面前的清洗。
+
+常见调整：
+
+- 内部 runtime、task graph、context、memory、skill trace 关键词过滤。
+- skill id 到用户可读名称的替换。
+- prompt 指令泄漏短语过滤。
+- 资料依据、实时搜索证据和无来源声明的用户可见边界。
+- 清洗后没有可展示内容时的兜底文案。
 
 ## 修改规则
 

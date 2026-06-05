@@ -36,6 +36,7 @@
 - `backend/config/json/agent/worker-inference/`
 - `backend/config/json/agent/worker-output-policy.json`
 - `backend/config/json/agent/worker-output-normalization-policy.json`
+- `backend/config/json/agent/user-facing-normalization-policy.json`
 - `backend/config/prompts/`
 - `backend/config/services.toml` 的 `[agent_runtime]`
 
@@ -144,8 +145,11 @@ Rust 只负责：
 
 - `backend/config/json/agent/worker-output-policy.json`
 - `backend/config/json/agent/worker-output-normalization-policy.json`
+- `backend/config/json/agent/user-facing-normalization-policy.json`
 
 回答风格、角色边界、教学深度和输出格式优先放在 prompt 或 output policy，不写进 runner。
+
+`user-facing-normalization-policy.json` 用于 commander 最终用户可见输出清洗。内部 runtime 术语、prompt 泄漏短语、skill id 展示名、资料/搜索边界文案和无可展示内容兜底文案必须优先写在该配置里；Rust 侧只保留通用匹配、替换、去重、布局修复和隐藏内部 ID 的执行逻辑。
 
 `worker-output-policy.json` 中的 `finding_rules`、`recommendation_rules` 和 `risk_rules` 是通用输出补全规则：
 

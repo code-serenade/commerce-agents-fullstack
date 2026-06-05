@@ -1,3 +1,7 @@
+use std::{collections::BTreeMap, fs, path::Path, sync::OnceLock};
+
+use serde::Deserialize;
+
 use crate::{
     core::protocol::WorkerReport,
     llm_routing::{
@@ -5,6 +9,119 @@ use crate::{
         llm_access_denied_user_message, llm_provider_error_user_message,
     },
 };
+
+const USER_FACING_NORMALIZATION_POLICY: &str =
+    include_str!("../../../../../config/json/agent/user-facing-normalization-policy.json");
+
+#[derive(Debug, Clone, Deserialize)]
+struct UserFacingNormalizationPolicy {
+    no_user_facing_content_message: Vec<String>,
+    #[serde(default)]
+    material_gap_markers: Vec<String>,
+    #[serde(default)]
+    material_gap_business_markers: Vec<String>,
+    live_search_default_success_message: String,
+    #[serde(default)]
+    live_search_degraded_lower_markers: Vec<String>,
+    #[serde(default)]
+    live_search_degraded_markers: Vec<String>,
+    #[serde(default)]
+    live_search_success_markers: Vec<String>,
+    #[serde(default)]
+    live_search_required_evidence_markers: Vec<String>,
+    #[serde(default)]
+    unverified_live_search_success_line_markers: Vec<String>,
+    #[serde(default)]
+    unverified_live_search_success_phrases: Vec<String>,
+    #[serde(default)]
+    no_source_claim_markers: Vec<String>,
+    #[serde(default)]
+    internal_context_markers: Vec<String>,
+    #[serde(default)]
+    internal_skill_name_replacements: BTreeMap<String, String>,
+    #[serde(default)]
+    business_phrase_replacements: Vec<[String; 2]>,
+    #[serde(default)]
+    unverified_live_search_availability_phrases: Vec<String>,
+    #[serde(default)]
+    memory_context_leak_markers: Vec<String>,
+    #[serde(default)]
+    internal_noise_lower_markers: Vec<String>,
+    #[serde(default)]
+    internal_noise_markers: Vec<String>,
+    #[serde(default)]
+    prompt_instruction_leak_markers: Vec<String>,
+}
+
+static USER_FACING_POLICY: OnceLock<UserFacingNormalizationPolicy> = OnceLock::new();
+
+fn user_facing_policy() -> &'static UserFacingNormalizationPolicy {
+    USER_FACING_POLICY.get_or_init(load_user_facing_policy)
+}
+
+fn load_user_facing_policy() -> UserFacingNormalizationPolicy {
+    load_user_facing_policy_from_path(Path::new(
+        "config/json/agent/user-facing-normalization-policy.json",
+    ))
+    .unwrap_or_else(|| {
+        serde_json::from_str(USER_FACING_NORMALIZATION_POLICY).unwrap_or_else(|err| {
+            tracing::warn!(
+                error = %err,
+                "failed to parse embedded user-facing normalization policy"
+            );
+            UserFacingNormalizationPolicy::fallback()
+        })
+    })
+}
+
+fn load_user_facing_policy_from_path(path: &Path) -> Option<UserFacingNormalizationPolicy> {
+    let content = fs::read_to_string(path).ok()?;
+    match serde_json::from_str(&content) {
+        Ok(policy) => Some(policy),
+        Err(err) => {
+            tracing::warn!(
+                path = %path.display(),
+                error = %err,
+                "failed to load user-facing normalization policy; using embedded policy"
+            );
+            None
+        }
+    }
+}
+
+impl UserFacingNormalizationPolicy {
+    fn fallback() -> Self {
+        Self {
+            no_user_facing_content_message: vec![
+                "## 当前状态".to_string(),
+                String::new(),
+                "这次没有拿到可直接展示的完整内容。".to_string(),
+                String::new(),
+                "## 下一步".to_string(),
+                String::new(),
+                "- 可以补充更明确的问题、商品、活动或关键材料。".to_string(),
+            ],
+            material_gap_markers: Vec::new(),
+            material_gap_business_markers: Vec::new(),
+            live_search_default_success_message: "本轮已通过外部搜索取得实时来源。".to_string(),
+            live_search_degraded_lower_markers: Vec::new(),
+            live_search_degraded_markers: Vec::new(),
+            live_search_success_markers: Vec::new(),
+            live_search_required_evidence_markers: Vec::new(),
+            unverified_live_search_success_line_markers: Vec::new(),
+            unverified_live_search_success_phrases: Vec::new(),
+            no_source_claim_markers: Vec::new(),
+            internal_context_markers: Vec::new(),
+            internal_skill_name_replacements: BTreeMap::new(),
+            business_phrase_replacements: Vec::new(),
+            unverified_live_search_availability_phrases: Vec::new(),
+            memory_context_leak_markers: Vec::new(),
+            internal_noise_lower_markers: Vec::new(),
+            internal_noise_markers: Vec::new(),
+            prompt_instruction_leak_markers: Vec::new(),
+        }
+    }
+}
 
 pub(crate) fn user_facing_report_text(report: &WorkerReport) -> Option<String> {
     if report_has_llm_access_denied(report) {
@@ -231,44 +348,18 @@ fn looks_like_blocking_material_gap(item: &str) -> bool {
     if looks_like_material_boundary(text) {
         return false;
     }
-    let has_gap_marker = [
-        "等待用户提供附件或表格数据",
-        "等待用户提供",
-        "建议用户提供商品或服务内容",
-        "是否提供了附件或表格数据",
-        "是否提供了商品或服务内容",
-        "无法进行字段",
-        "无法进行后续",
-        "无法进行主图",
-        "无法产出",
-        "无法直接抽取",
-        "无法提供具体的表格",
-        "无法进行进一步分析",
-        "未提供附件或表格",
-        "未找到附件或表格数据",
-        "未找到可用的附件或表格数据",
-        "缺少必要的数据",
-    ]
-    .iter()
-    .any(|marker| text.contains(marker));
+    let policy = user_facing_policy();
+    let has_gap_marker = policy
+        .material_gap_markers
+        .iter()
+        .any(|marker| text.contains(marker));
     if !has_gap_marker {
         return false;
     }
-    let has_business_content = [
-        "可先",
-        "先按",
-        "建议先",
-        "标题",
-        "卖点",
-        "促销",
-        "方案",
-        "动作",
-        "清单",
-        "复盘",
-        "风险边界",
-    ]
-    .iter()
-    .any(|marker| text.contains(marker));
+    let has_business_content = policy
+        .material_gap_business_markers
+        .iter()
+        .any(|marker| text.contains(marker));
     !has_business_content || text.chars().count() < 160
 }
 
@@ -342,7 +433,11 @@ fn live_search_user_facing_text(output: &crate::core::protocol::RoleWorkOutput) 
     {
         sections.push(summary);
     } else {
-        sections.push("本轮已通过外部搜索取得实时来源。".to_string());
+        sections.push(
+            user_facing_policy()
+                .live_search_default_success_message
+                .clone(),
+        );
     }
     sections.extend(live_evidence);
 
@@ -374,25 +469,27 @@ fn has_reliable_live_search_evidence(output: &crate::core::protocol::RoleWorkOut
 fn looks_like_live_search_evidence(item: &str) -> bool {
     let item = item.trim();
     let lower = item.to_ascii_lowercase();
-    if lower.contains("search_evidence_packet")
-        || lower.contains("search_evidence_trace")
-        || lower.contains("adapter_status=degraded")
-        || lower.contains("\"adapter_status\":\"degraded\"")
-        || lower.contains("adapter_status=adapter_required")
-        || lower.contains("\"adapter_status\":\"adapter_required\"")
-        || lower.contains("no_reliable_sources")
-        || item.contains("没有可采信实时来源")
-        || item.contains("没有可采信公开来源")
-        || item.contains("不能当作实时搜索结论")
-        || item.contains("当前结果只能作为降级状态")
-        || item.contains("0 个可采信来源")
-        || item.contains("0个可采信来源")
+    let policy = user_facing_policy();
+    if policy
+        .live_search_degraded_lower_markers
+        .iter()
+        .any(|marker| lower.contains(marker))
+        || policy
+            .live_search_degraded_markers
+            .iter()
+            .any(|marker| item.contains(marker))
     {
         return false;
     }
 
-    item.contains("实时搜索来源")
-        && (item.contains("可采信来源") || item.contains("http://") || item.contains("https://"))
+    policy
+        .live_search_success_markers
+        .iter()
+        .any(|marker| item.contains(marker))
+        && policy
+            .live_search_required_evidence_markers
+            .iter()
+            .any(|marker| item.contains(marker))
 }
 
 fn remove_unverified_live_search_success_claims(text: &str, has_live_search: bool) -> String {
@@ -409,29 +506,17 @@ fn remove_unverified_live_search_success_claims(text: &str, has_live_search: boo
 
 fn strip_unverified_live_search_success_claim_line(line: &str) -> Option<String> {
     let lower = line.to_ascii_lowercase();
-    if [
-        "外部搜索虽可用但暂未完成",
-        "外部搜索可用但暂未完成",
-        "外部搜索可用",
-        "实时搜索可用",
-        "live search is available",
-        "search is available",
-    ]
-    .iter()
-    .any(|marker| lower.contains(marker))
+    let policy = user_facing_policy();
+    if policy
+        .unverified_live_search_success_line_markers
+        .iter()
+        .any(|marker| lower.contains(marker))
     {
         return None;
     }
 
     let mut text = line.to_string();
-    for phrase in [
-        "本轮已通过外部搜索取得实时来源。",
-        "本轮已通过外部搜索取得实时来源",
-        "已通过外部搜索取得实时来源。",
-        "已通过外部搜索取得实时来源",
-        "本轮已取得实时来源。",
-        "本轮已取得实时来源",
-    ] {
+    for phrase in &policy.unverified_live_search_success_phrases {
         text = text.replace(phrase, "");
     }
 
@@ -440,23 +525,14 @@ fn strip_unverified_live_search_success_claim_line(line: &str) -> Option<String>
 }
 
 fn looks_like_no_source_claim(item: &str) -> bool {
-    [
-        "本轮未拿到",
-        "未拿到实时来源",
-        "没有可引用的实时外部来源",
-        "没有可引用的实时来源",
-        "无实时外部来源",
-        "没有可采信实时来源",
-        "缺少官方发布",
-        "缺少抖音电商官方发布",
-        "无法给出具体的合规要求细则和对应来源信息",
-        "不能直接给出对应规则明细",
-    ]
-    .iter()
-    .any(|marker| item.contains(marker))
+    user_facing_policy()
+        .no_source_claim_markers
+        .iter()
+        .any(|marker| item.contains(marker))
 }
 
 pub(crate) fn sanitize_user_facing_text(raw: &str) -> Option<String> {
+    let raw = normalize_escaped_newlines(raw);
     let raw = raw.trim();
     if raw.is_empty() {
         return None;
@@ -483,6 +559,28 @@ pub(crate) fn sanitize_user_facing_text(raw: &str) -> Option<String> {
     (!output.is_empty() && !is_internal_noise_line(&output)).then_some(output)
 }
 
+fn normalize_escaped_newlines(raw: &str) -> String {
+    let mut output = String::new();
+    let chars = raw.chars().collect::<Vec<_>>();
+    let mut index = 0;
+    while index < chars.len() {
+        if chars[index] == '\\' {
+            let mut next = index + 1;
+            while next < chars.len() && chars[next].is_whitespace() {
+                next += 1;
+            }
+            if next < chars.len() && chars[next] == 'n' {
+                output.push('\n');
+                index = next + 1;
+                continue;
+            }
+        }
+        output.push(chars[index]);
+        index += 1;
+    }
+    output
+}
+
 pub(crate) fn sanitize_final_user_facing_text(raw: &str) -> Option<String> {
     let output = sanitize_user_facing_text(raw)?;
     let output = restore_readable_answer_layout(&output);
@@ -494,23 +592,9 @@ pub(crate) fn sanitize_final_user_facing_text(raw: &str) -> Option<String> {
 }
 
 pub(crate) fn no_user_facing_content_message() -> String {
-    [
-        "## 当前状态",
-        "",
-        "这次没有拿到可直接展示的完整内容。",
-        "",
-        "## 可能原因",
-        "",
-        "- 问题目标还不够明确。",
-        "- 本轮选择的商品、活动或资料不足以形成可靠结论。",
-        "- 协作步骤没有产出可直接展示的结果。",
-        "",
-        "## 下一步",
-        "",
-        "- 可以补充更明确的问题、商品、活动或关键材料。",
-        "- 也可以换成普通问答或只指定一个岗位继续问。",
-    ]
-    .join("\n")
+    user_facing_policy()
+        .no_user_facing_content_message
+        .join("\n")
 }
 
 fn clean_user_facing_line(line: &str) -> String {
@@ -550,35 +634,7 @@ fn trim_internal_context_fragment(line: &str) -> Option<String> {
         return None;
     }
 
-    for marker in [
-        "commerce product context resolved",
-        "同一会话历史上下文",
-        "当前用户请求：",
-        "current user request:",
-        "use these facts when relevant",
-        "relevant, cite product",
-        "do not invent missing product details",
-        "product source product:",
-        "knowledge source product_knowledge:",
-        "requested context refs:",
-        "当前岗位任务",
-        "user:",
-        "assistant:",
-        "local commerce rag context",
-        "local commerce rag retrieval",
-        "retrieval query terms:",
-        "retrieved knowledge source",
-        "product_knowledge:",
-        "campaign_knowledge:",
-        "conversation_file:",
-        "no matching local product knowledge",
-        "context.combined_summary",
-        "commerce.selected_product_context",
-        "productcontextsummary",
-        "workspacecontext.summary",
-        "workspacecontextpack.summary",
-        "| title=",
-    ] {
+    for marker in &user_facing_policy().internal_context_markers {
         if let Some(index) = lower.find(marker) {
             keep_end = keep_end.min(index);
         }
@@ -595,82 +651,23 @@ fn trim_internal_context_fragment(line: &str) -> Option<String> {
 
 fn rewrite_internal_skill_names(line: &str) -> String {
     let mut text = line.to_string();
-    for (from, to) in [
-        ("material_table_profiler", "表格资料分析"),
-        ("material_file_understanding", "文件资料理解"),
-        ("material_image_diagnosis", "图片资料分析"),
-        ("material_multi_file_compare", "多资料对比分析"),
-        ("search_platform_policy", "平台规则搜索"),
-        ("search_competitor", "竞品搜索"),
-        ("search_trends", "趋势搜索"),
-        ("search_market_info", "市场信息搜索"),
-        ("search_industry_benchmarks", "行业基准搜索"),
-        ("search_product_reviews", "用户评价搜索"),
-        ("service_ticket_handler", "客服工单处理"),
-        ("service_escalation_flow", "客服升级处理"),
-        ("service_return_handler", "退换货处理"),
-        ("service_query_product", "商品资料查询"),
-        ("service_sentiment_analyzer", "客服情绪判断"),
-        ("accounting_profit_analysis", "利润分析"),
-        ("accounting_budget_plan", "预算规划"),
-        ("accounting_cost_calc", "成本核算"),
-        ("engineering_arch_review", "技术链路检查"),
-        ("engineering_system_check", "系统检查"),
-        ("douyin_ads_plan_structure", "投放结构规划"),
-        ("douyin_ads_budget_pacing", "预算节奏分析"),
-        ("creative_ip_branding", "内容卖点梳理"),
-        ("creative_live_script", "直播脚本梳理"),
-        ("web_seo_optimize", "搜索优化"),
-        ("web_keyword_research", "关键词研究"),
-        ("web_title_generator", "标题优化"),
-        ("web_product_description", "商品描述优化"),
-        ("web_page_conversion", "页面转化优化"),
-    ] {
+    for (from, to) in &user_facing_policy().internal_skill_name_replacements {
         text = text.replace(from, to);
     }
     text
 }
 
 fn rewrite_business_phrases(line: &str) -> String {
-    line.replace("并非点击率不足", "点击率不是主要矛盾")
-        .replace("并不是点击率不足", "点击率不是主要矛盾")
-        .replace("不是点击率不足", "点击率不是主要矛盾")
-        .replace(
-            "不要沿用保温杯、温显、防漏、礼盒定位",
-            "不要沿用其他商品的历史卖点",
-        )
-        .replace(
-            "不适合用保温杯、温显、防漏等卖点",
-            "不适合沿用其他商品的历史卖点",
-        )
-        .replace(
-            "不要沿用保温杯、温显、防漏等卖点",
-            "不要沿用其他商品的历史卖点",
-        )
+    let mut text = line.to_string();
+    for [from, to] in &user_facing_policy().business_phrase_replacements {
+        text = text.replace(from, to);
+    }
+    text
 }
 
 fn remove_unverified_live_search_availability_claims_from_line(line: &str) -> String {
     let mut text = line.to_string();
-    for phrase in [
-        "外部搜索虽可用但暂未完成，",
-        "外部搜索虽可用但暂未完成。",
-        "外部搜索虽可用但暂未完成",
-        "外部搜索可用但暂未完成，",
-        "外部搜索可用但暂未完成。",
-        "外部搜索可用但暂未完成",
-        "外部搜索可用，",
-        "外部搜索可用。",
-        "外部搜索可用",
-        "实时搜索可用，",
-        "实时搜索可用。",
-        "实时搜索可用",
-        "live search is available,",
-        "live search is available.",
-        "live search is available",
-        "search is available,",
-        "search is available.",
-        "search is available",
-    ] {
+    for phrase in &user_facing_policy().unverified_live_search_availability_phrases {
         text = text.replace(phrase, "");
     }
     text.trim_start_matches(['，', ',', '。', '.', '；', ';', ' '])
@@ -2304,75 +2301,16 @@ fn is_internal_noise_line(line: &str) -> bool {
         return true;
     }
     let lower = line.to_ascii_lowercase();
+    let policy = user_facing_policy();
 
-    [
-        "task graph completed",
-        "passed worker reports",
-        "incomplete nodes",
-        "task graph",
-        "role_output",
-        "final_report",
-        "同一会话历史上下文",
-        "当前用户请求：",
-        "current user request:",
-        "基于上游数据、设计、预算或创意结果，形成可执行运营调整方案",
-        "cognition failure",
-        "json template validation failed",
-        "missing key",
-        "worker reported failed status",
-        "worker_unavailable",
-        "llm_provider_error",
-        "failure_kind",
-        "search_evidence_packet:",
-        "search_evidence_trace:",
-        "support role",
-        "support worker",
-        "support_workers",
-        "task_id",
-        "data role should provide",
-        "service role output lacks",
-        "engineering role output lacks",
-        "skill:",
-        "skill=",
-        "adapter_status",
-        "requested context refs",
-        "当前岗位任务",
-        "user:",
-        "assistant:",
-        "product source product:",
-        "knowledge source product_knowledge:",
-        "product_knowledge:",
-        "campaign_knowledge:",
-        "conversation_file:",
-        "commerce product context resolved",
-        "local commerce rag context",
-        "local commerce rag retrieval",
-        "retrieved knowledge source",
-        "context.combined_summary",
-        "commerce.selected_product_context",
-        "productcontextsummary",
-        "same conversation structured memory",
-        "rolling summary",
-        "recent user facts",
-        "no older compressed history",
-        "confidence=",
-        "raw=",
-        "fast-route",
-    ]
-    .iter()
-    .any(|marker| lower.contains(marker))
-        || line.contains("任务图")
-        || line.contains("岗位报告")
-        || line.contains("本轮没有形成完整回答")
-        || line.contains("部分岗位没有成功执行")
-        || line.contains("服务端没有可用的该岗位执行器")
-        || line.contains("上游依赖岗位未成功完成")
-        || line.contains("岗位执行失败")
-        || line.contains("请检查服务端岗位配置")
-        || line.contains("当前服务端没有注册可用")
-        || line.contains("Product source product")
-        || line.contains("Knowledge source product_knowledge")
-        || line.contains("已选商品 已选商品")
+    policy
+        .internal_noise_lower_markers
+        .iter()
+        .any(|marker| lower.contains(marker))
+        || policy
+            .internal_noise_markers
+            .iter()
+            .any(|marker| line.contains(marker))
         || looks_like_task_objective_shell(line)
         || line.starts_with("任务已完成")
         || line.starts_with("支持角色已完成")
@@ -2402,15 +2340,10 @@ fn is_internal_noise_line(line: &str) -> bool {
 }
 
 fn looks_like_memory_context_leak(lower: &str) -> bool {
-    [
-        "same conversation structured memory",
-        "rolling summary",
-        "recent user facts",
-        "no older compressed history",
-        "conversation structured memory",
-    ]
-    .iter()
-    .any(|marker| lower.contains(marker))
+    user_facing_policy()
+        .memory_context_leak_markers
+        .iter()
+        .any(|marker| lower.contains(marker))
 }
 
 fn looks_like_task_objective_shell(line: &str) -> bool {
@@ -2457,29 +2390,10 @@ fn looks_like_history_as_material_evidence(line: &str) -> bool {
 }
 
 fn looks_like_prompt_instruction_leak(line: &str) -> bool {
-    [
-        "按用户任务输出可 A/B 测试",
-        "按用户任务输出可A/B测试",
-        "不要固定堆同一套内容形态",
-        "每组内容都绑定一个验证指标",
-        "避免只看播放量",
-        "先写清目标、周期、预算和成功指标",
-        "如果用户只要局部交付，先完成局部交付",
-        "不把短任务展开成完整方案",
-        "把数据、创意、投放和客服输入合并成一张行动清单",
-        "谁做、今天做什么、明天看什么数据",
-        "保留清晰的复盘口径",
-        "表现明显低于本轮其他方向或本店上一轮基准时再调整",
-        "缺资料时先给当前问题能用的版本",
-        "等用户补齐商品、平台、价格、预算或表格后再精修",
-        "先把这类商品当成一个小项目来做",
-        "明确用户真正要解决的问题",
-        "避免一开始就做大预算",
-        "同时改动过多变量会导致复盘无法归因",
-        "每轮只改最影响判断的少量变量",
-    ]
-    .iter()
-    .any(|marker| line.contains(marker))
+    user_facing_policy()
+        .prompt_instruction_leak_markers
+        .iter()
+        .any(|marker| line.contains(marker))
 }
 
 fn looks_like_historical_product_material(body: &str) -> bool {
