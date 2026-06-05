@@ -456,7 +456,8 @@ impl Commander {
                     .clarification
                     .map(|question| format!("还需要补充一点信息：{question}"))
                     .unwrap_or_else(|| {
-                        "我还不能从这句话里确定要处理的电商任务。请补充要分析的商品、活动、资料或希望输出的结果。"
+                        "我还不能从这句话里确定要处理的电商任务。请补充要分析的商品、活动、\
+                         资料或希望输出的结果。"
                             .to_string()
                     });
                 let _ = self.sender.send(Message::new_with_context(
@@ -486,9 +487,9 @@ impl Commander {
                     self.id.clone(),
                     self.host_id.clone(),
                     Payload::Text {
-                        content:
-                            "我会沿用当前对话里的任务继续处理。请直接补充新的要求或下一步目标。"
-                                .to_string(),
+                        content: "我会沿用当前对话里的任务继续处理。\
+                                  请直接补充新的要求或下一步目标。"
+                            .to_string(),
                     },
                 ));
             }

@@ -787,9 +787,11 @@ fn fallback_structured_synthesis(task: &str) -> String {
     let wants_metric_table =
         task.contains("列出指标") || (task.contains("怎么看") && task.contains("下一步"));
     let lead = if wants_table {
-        "先按当前问题、已选上下文和上游岗位输出给出可执行表格草案；表格里的真实销量、转化率、成本、库存、平台规则或实时来源，后续再用真实数据复核。"
+        "先按当前问题、已选上下文和上游岗位输出给出可执行表格草案；表格里的真实销量、转化率、成本、\
+         库存、平台规则或实时来源，后续再用真实数据复核。"
     } else {
-        "先按当前问题、已选上下文和上游岗位输出给出可执行草案；涉及真实销量、转化率、成本、库存、平台规则或实时来源的部分，后续再用真实数据复核。"
+        "先按当前问题、已选上下文和上游岗位输出给出可执行草案；涉及真实销量、转化率、成本、库存、\
+         平台规则或实时来源的部分，后续再用真实数据复核。"
     };
     let mut sections = vec![
         "## 当前可先交付".to_string(),
@@ -808,22 +810,34 @@ fn fallback_structured_synthesis(task: &str) -> String {
             sections.extend([
                 "| 指标 | 怎么看 | 可能问题 | 下一步动作 |".to_string(),
                 "| --- | --- | --- | --- |".to_string(),
-                "| 触达/点击 | 用户是否愿意进入详情或继续了解 | 入口表达不清、对象不准 | 同时测试 2-3 个入口表达 |".to_string(),
-                "| 意向/加购 | 用户看完后是否有进一步购买或咨询意愿 | 权益、规格、信任感不足 | 补清楚适用场景、权益和高频疑问 |".to_string(),
-                "| 转化/付款 | 用户是否完成目标动作 | 价格、库存、流程或承接卡住 | 小范围试跑一版低风险方案 |".to_string(),
-                "| 反馈/售后 | 负向反馈集中在哪些点 | 描述不清、承诺过满或预期不一致 | 把高频问题写进页面、话术或复盘字段 |".to_string(),
+                "| 触达/点击 | 用户是否愿意进入详情或继续了解 | 入口表达不清、对象不准 | 同时测试 \
+                 2-3 个入口表达 |"
+                    .to_string(),
+                "| 意向/加购 | 用户看完后是否有进一步购买或咨询意愿 | 权益、规格、信任感不足 | \
+                 补清楚适用场景、权益和高频疑问 |"
+                    .to_string(),
+                "| 转化/付款 | 用户是否完成目标动作 | 价格、库存、流程或承接卡住 | \
+                 小范围试跑一版低风险方案 |"
+                    .to_string(),
+                "| 反馈/售后 | 负向反馈集中在哪些点 | 描述不清、承诺过满或预期不一致 | \
+                 把高频问题写进页面、话术或复盘字段 |"
+                    .to_string(),
             ]);
         } else {
             sections.extend([
                 "| 环节 | 当前可做 | 复核信息 | 风险边界 |".to_string(),
                 "| --- | --- | --- | --- |".to_string(),
-                "| 对象 | 明确本轮分析对象和适用场景 | 已选上下文、用户补充、历史记录 | 不借用无关对象的数据 |"
+                "| 对象 | 明确本轮分析对象和适用场景 | 已选上下文、用户补充、历史记录 | \
+                 不借用无关对象的数据 |"
                     .to_string(),
-                "| 方案 | 输出一版可试跑动作或内容草案 | 点击、咨询、加购、转化等反馈 | 不编造价格、销量、库存或规则 |"
+                "| 方案 | 输出一版可试跑动作或内容草案 | 点击、咨询、加购、转化等反馈 | \
+                 不编造价格、销量、库存或规则 |"
                     .to_string(),
-                "| 验证 | 每轮只改少量关键变量 | 前后对比、样本周期、异常反馈 | 样本不足时只做方向判断 |"
+                "| 验证 | 每轮只改少量关键变量 | 前后对比、样本周期、异常反馈 | \
+                 样本不足时只做方向判断 |"
                     .to_string(),
-                "| 复盘 | 记录本轮假设、结果和下轮动作 | 真实数据或后续上传资料 | 缺资料时保留待确认项 |"
+                "| 复盘 | 记录本轮假设、结果和下轮动作 | 真实数据或后续上传资料 | \
+                 缺资料时保留待确认项 |"
                     .to_string(),
             ]);
         }
@@ -1251,7 +1265,7 @@ fn looks_like_internal_runtime_label(value: &str) -> bool {
 fn contains_cjk(value: &str) -> bool {
     value
         .chars()
-        .any(|ch| ('\u{4e00}'..='\u{9fff}').contains(&ch))
+        .any(|ch| ('\u{4e00}' ..= '\u{9fff}').contains(&ch))
 }
 
 fn context_pack_failure_check_item(
@@ -1718,7 +1732,9 @@ mod tests {
         runtime.states.insert(
             data.id.clone(),
             TaskNodeRuntimeState::Failed(
-                "worker reported failed status; llm provider error: upstream model service unavailable; structured role output is missing".to_string(),
+                "worker reported failed status; llm provider error: upstream model service \
+                 unavailable; structured role output is missing"
+                    .to_string(),
             ),
         );
         runtime.states.insert(
@@ -1955,7 +1971,8 @@ mod tests {
             ops.id.clone(),
             report(
                 "ops_final",
-                "该岗位本轮未形成有效结论。未找到可用的附件或表格数据。等待用户提供附件或表格数据。无法进行进一步分析，因为缺少必要的数据。",
+                "该岗位本轮未形成有效结论。未找到可用的附件或表格数据。\
+                 等待用户提供附件或表格数据。无法进行进一步分析，因为缺少必要的数据。",
             ),
         );
 
@@ -1986,7 +2003,10 @@ mod tests {
         ];
         let mut runtime = TaskGraphRuntime::new(TaskGraph {
             graph_id: TaskGraphId("graph-new-gap-final".to_string()),
-            root_task: "现在切换成手动多智能体：数据、创意、运营一起给一个学生书包开学季小促销方案，要求有表格、有标题示例、有风险边界。".to_string(),
+            root_task: "现在切换成手动多智能体：数据、创意、\
+                        运营一起给一个学生书包开学季小促销方案，要求有表格、有标题示例、\
+                        有风险边界。"
+                .to_string(),
             nodes: vec![data.clone(), creative.clone(), ops.clone()],
             adaptive_hint: None,
         });
@@ -2011,7 +2031,8 @@ mod tests {
             ops.id.clone(),
             report(
                 "ops_final",
-                "未提供具体商品信息、销售数据、库存情况或平台规则，因此无法生成完整促销方案。建议用户提供附件或表格后再继续。",
+                "未提供具体商品信息、销售数据、库存情况或平台规则，因此无法生成完整促销方案。\
+                 建议用户提供附件或表格后再继续。",
             ),
         );
 
@@ -2036,7 +2057,9 @@ mod tests {
         ops.input_refs = vec![TaskNodeId("data".to_string())];
         let mut runtime = TaskGraphRuntime::new(TaskGraph {
             graph_id: TaskGraphId("graph-format-table-gap".to_string()),
-            root_task: "不上传任何表格，只要求你把学生书包的分析输出成表格：列出指标、怎么看、可能问题、下一步动作。".to_string(),
+            root_task: "不上传任何表格，只要求你把学生书包的分析输出成表格：列出指标、怎么看、\
+                        可能问题、下一步动作。"
+                .to_string(),
             nodes: vec![data.clone(), ops.clone()],
             adaptive_hint: None,
         });
@@ -2054,7 +2077,8 @@ mod tests {
             ops.id.clone(),
             report(
                 "ops_final",
-                "由于未上传任何表格、Excel、CSV 或附件，无法直接生成具体数据表格。用户是否上传了表格？",
+                "由于未上传任何表格、Excel、CSV \
+                 或附件，无法直接生成具体数据表格。用户是否上传了表格？",
             ),
         );
 

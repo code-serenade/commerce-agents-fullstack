@@ -70,11 +70,12 @@ pub(super) fn extend_runtime_strategy_facts(
     });
     facts.push(Fact {
         source: "runtime.user_visible_boundary".to_string(),
-        content: "展示边界：最终回答必须写给普通学生或商家看。可以使用系统提供的商品、资料、\
-                  RAG 和工作区上下文做判断，但不得原样展示 context.selected_summary、\
-                  context.combined_summary、Product source product、Knowledge source、\
-                  Requested context refs、product:UUID、workspaceContext、内部 skill id、\
-                  worker id 或其它变量名；要改写成自然中文事实和业务判断。"
+        content: "展示边界：最终回答必须写给普通学生或商家看。可以使用系统提供的商品、资料、RAG \
+                  和工作区上下文做判断，但不得原样展示 \
+                  context.selected_summary、context.combined_summary、Product source \
+                  product、Knowledge source、Requested context \
+                  refs、product:UUID、workspaceContext、内部 skill id、worker id \
+                  或其它变量名；要改写成自然中文事实和业务判断。"
             .to_string(),
         reliability: 1.0,
     });
@@ -128,17 +129,17 @@ pub(super) fn extend_context_facts(
         .filter(|value| !value.is_empty())
     {
         let instruction = if has_selected_product_context {
-            "conversation.history：同一会话历史上下文如下。它只能用于理解追问背景、用户偏好和前后文。\
-             本轮已经存在用户手动选择的商品/知识上下文时，回答“这个商品”“该商品”、单品分析、\
-             选品、定价、运营或创意建议，必须以本轮手动选择的商品为准；不得把历史里的商品、\
-             价格、数据或结论当成本轮当前商品。"
+            "conversation.history：同一会话历史上下文如下。它只能用于理解追问背景、\
+             用户偏好和前后文。本轮已经存在用户手动选择的商品/知识上下文时，\
+             回答“这个商品”“该商品”、单品分析、选品、定价、运营或创意建议，\
+             必须以本轮手动选择的商品为准；不得把历史里的商品、价格、数据或结论当成本轮当前商品。"
         } else {
-            "conversation.history：同一会话历史上下文如下。回答追问、补充、继续、\
-             按前面数据、上一轮、这些、同一个等明显延续问题时，必须优先结合这段历史；\
-             不要要求用户重复已经在这里提供的信息。若当前问题明确说“新话题”“换个问题”\
-             “不引用任何商品/活动/资料”“不要沿用前面”，或本轮没有显式选择商品、活动、文件、\
-             图片等引用且问题本身是独立泛问，历史只能作为背景，不能把历史商品、活动、文件数据\
-             或上一轮结论当成本轮当前对象。"
+            "conversation.history：同一会话历史上下文如下。回答追问、补充、继续、按前面数据、\
+             上一轮、这些、同一个等明显延续问题时，必须优先结合这段历史；\
+             不要要求用户重复已经在这里提供的信息。\
+             若当前问题明确说“新话题”“换个问题”“不引用任何商品/活动/资料”“不要沿用前面”，\
+             或本轮没有显式选择商品、活动、文件、图片等引用且问题本身是独立泛问，历史只能作为背景，\
+             不能把历史商品、活动、文件数据或上一轮结论当成本轮当前对象。"
         };
 
         facts.push(Fact {
@@ -153,8 +154,8 @@ pub(super) fn extend_context_facts(
         "context.selected_summary",
         "commerce.selected_product_context",
         "用户本轮手动选择的商品/知识上下文如下；只有存在这段事实时，才可按指定商品回答。\
-         凡是用户说“这个商品”“该商品”“引用的商品”或要求单品分析，都必须优先以这里的商品为当前对象；\
-         同会话历史只能补充背景，不能覆盖本轮手动选择。\n",
+         凡是用户说“这个商品”“该商品”“引用的商品”或要求单品分析，\
+         都必须优先以这里的商品为当前对象；同会话历史只能补充背景，不能覆盖本轮手动选择。\n",
     );
     if metadata
         .get("context.selected_summary")
@@ -228,8 +229,8 @@ fn extend_selected_product_priority_fact(
         source: "commerce.selected_product_priority".to_string(),
         content: format!(
             "本轮手动选择的商品/知识上下文优先于同会话历史。先据此识别当前商品，\
-             再使用历史做辅助背景。若这里的商品与历史中的商品不一致，以这里为准；若这里缺少某项指标，\
-             只能说明该指标缺失，不能借用历史商品的数据。\n{visible}"
+             再使用历史做辅助背景。若这里的商品与历史中的商品不一致，以这里为准；\
+             若这里缺少某项指标，只能说明该指标缺失，不能借用历史商品的数据。\n{visible}"
         ),
         reliability: 1.0,
     });

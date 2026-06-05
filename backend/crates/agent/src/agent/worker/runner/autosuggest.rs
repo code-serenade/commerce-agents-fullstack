@@ -294,7 +294,9 @@ mod tests {
     fn accounting_budget_boundary_uses_finance_skills_before_material_profiler() {
         let skills = skill_ids(
             "accounting",
-            "作为财务分析师，评估预算、毛利、CPA/ROI 止损口径和放量风险；资料不足时给可补数的成本结构表和公式，不能给固定止损阈值：基于选中商品和活动，输出一份执行方案，包含卖点、预算边界、客服承接和复盘指标。",
+            "作为财务分析师，评估预算、毛利、CPA/ROI \
+             止损口径和放量风险；资料不足时给可补数的成本结构表和公式，不能给固定止损阈值：\
+             基于选中商品和活动，输出一份执行方案，包含卖点、预算边界、客服承接和复盘指标。",
         );
 
         assert!(
@@ -342,20 +344,24 @@ mod tests {
     fn requested_answer_table_does_not_trigger_material_table_profiler() {
         let skills = skill_ids(
             "data",
-            "现在切换成手动多智能体：数据、创意、运营一起给一个学生书包开学季小促销方案，要求有表格、有标题示例、有风险边界。",
+            "现在切换成手动多智能体：数据、创意、运营一起给一个学生书包开学季小促销方案，\
+             要求有表格、有标题示例、有风险边界。",
         );
 
         assert!(
             !skills.contains(&"material_table_profiler".to_string()),
-            "asking the answer to include a table must not be treated as uploaded table input: {skills:?}"
+            "asking the answer to include a table must not be treated as uploaded table input: \
+             {skills:?}"
         );
     }
 
     #[test]
     fn graph_objective_table_words_do_not_trigger_material_table_profiler() {
         let task = assignment_task(
-            "不上传任何表格，只要求你把学生书包的分析输出成表格：列出指标、怎么看、可能问题、下一步动作。",
-            "把用户问题转成可复盘数据口径。没有用户上传的表格、Excel、CSV 或附件时，不要说无法分析，不要等待附件，先按用户文字和已选商品给可执行口径。",
+            "不上传任何表格，只要求你把学生书包的分析输出成表格：列出指标、怎么看、可能问题、\
+             下一步动作。",
+            "把用户问题转成可复盘数据口径。没有用户上传的表格、Excel、CSV \
+             或附件时，不要说无法分析，不要等待附件，先按用户文字和已选商品给可执行口径。",
         );
         let skills = autosuggest_skill_requests("data", &task, &[])
             .into_iter()

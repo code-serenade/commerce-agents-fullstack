@@ -1112,7 +1112,8 @@ fn format_incomplete_material_skill_boundary(result: &SkillExecutionResult) -> O
         _ => "本轮资料内容不足，不能当作已完整读取",
     };
     Some(format!(
-        "资料边界：{label}没有产出可引用资料；{detail}。以下业务判断只能先按用户文字和已进入上下文的信息给出，等补齐资料后再复核。"
+        "资料边界：{label}没有产出可引用资料；{detail}。\
+         以下业务判断只能先按用户文字和已进入上下文的信息给出，等补齐资料后再复核。"
     ))
 }
 

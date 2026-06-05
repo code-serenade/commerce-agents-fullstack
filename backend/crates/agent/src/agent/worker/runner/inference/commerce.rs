@@ -206,7 +206,7 @@ fn extract_last_metric_value<T: AsRef<str>>(text: &str, aliases: &[T]) -> Option
             continue;
         };
         let start = index + alias_lower.len();
-        if let Some(value) = super::metrics::parse_metric_number_after_alias(&text[start..]) {
+        if let Some(value) = super::metrics::parse_metric_number_after_alias(&text[start ..]) {
             return Some(value);
         }
     }

@@ -251,7 +251,7 @@ fn parse_rows_param(value: Option<&Value>, max_rows: usize) -> Option<ParsedTabl
             .map(|(index, cell)| normalize_header(&cell_to_string(cell), index))
             .collect::<Vec<_>>()
     } else {
-        (0..width)
+        (0 .. width)
             .map(|index| format!("字段{}", index + 1))
             .collect()
     };
@@ -313,7 +313,7 @@ fn parse_table_text(text: &str, max_rows: usize) -> Option<ParsedTable> {
             .collect::<Vec<_>>()
     } else {
         rows.insert(0, first);
-        (0..width)
+        (0 .. width)
             .map(|index| format!("字段{}", index + 1))
             .collect()
     };

@@ -780,7 +780,8 @@ mod tests {
         };
         let graph = plan_task_graph_from_rules(
             &TaskId("task-product-metrics".to_string()),
-            "请用新手学生能懂的话，说明电商商品分析先看哪三个指标，并用学生书包举例，不要只给一句话。",
+            "请用新手学生能懂的话，说明电商商品分析先看哪三个指标，并用学生书包举例，\
+             不要只给一句话。",
             Some(&route),
             &rules,
         )

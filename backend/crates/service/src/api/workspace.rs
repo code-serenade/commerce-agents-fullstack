@@ -5737,7 +5737,7 @@ fn select_table_profile_columns(header: &[String], query: Option<&str>) -> Vec<u
         .take(TABLE_PROFILE_MAX_COLUMNS)
         .map(|(index, _)| *index)
         .collect::<Vec<_>>();
-    for index in 0..header.len().min(TABLE_PROFILE_MAX_COLUMNS) {
+    for index in 0 .. header.len().min(TABLE_PROFILE_MAX_COLUMNS) {
         if selected.len() >= TABLE_PROFILE_MAX_COLUMNS {
             break;
         }
@@ -5816,7 +5816,7 @@ fn select_table_profile_sample_rows(rows: &[Vec<String>], query: Option<&str>) -
                 .map(|(index, _)| index),
         );
     }
-    for index in 0..rows.len().min(TABLE_PROFILE_MAX_ROWS) {
+    for index in 0 .. rows.len().min(TABLE_PROFILE_MAX_ROWS) {
         if selected.len() >= TABLE_PROFILE_MAX_ROWS {
             break;
         }
@@ -10622,7 +10622,7 @@ mod tests {
 
     #[test]
     fn explicit_workspace_context_refs_reject_too_many_refs() {
-        let refs = (0..21).map(|index| format!("artifact:{index}")).collect();
+        let refs = (0 .. 21).map(|index| format!("artifact:{index}")).collect();
         let err = explicit_workspace_context_refs(refs).expect_err("too many refs should fail");
 
         assert_eq!(err.code(), app_error::WORKSPACE_REQUEST_INVALID);
@@ -10849,7 +10849,7 @@ mod tests {
 
     #[test]
     fn context_pack_profiles_large_json_instead_of_inlining_full_payload() {
-        let orders = (0..90)
+        let orders = (0 .. 90)
             .map(|index| {
                 json!({
                     "order_id": format!("O-{index}"),
@@ -10939,7 +10939,7 @@ mod tests {
 
     #[test]
     fn context_pack_profiles_jsonl_sources() {
-        let jsonl_text = (0..40)
+        let jsonl_text = (0 .. 40)
             .map(|index| {
                 json!({
                     "event": "order_update",

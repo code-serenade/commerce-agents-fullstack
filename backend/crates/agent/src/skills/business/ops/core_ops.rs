@@ -551,7 +551,7 @@ fn differentiation_score(selling_points: &[String], review_pain_score: f64) -> f
         0 => 45.0,
         1 => 58.0,
         2 => 68.0,
-        3..=4 => 78.0,
+        3 ..= 4 => 78.0,
         _ => 82.0,
     };
     if review_pain_score > 0.0 {
@@ -1358,7 +1358,7 @@ fn experiment_groups(
     } else {
         channels
     };
-    (0..3)
+    (0 .. 3)
         .map(|idx| {
             json!({
                 "实验组": format!("G{}", idx + 1),

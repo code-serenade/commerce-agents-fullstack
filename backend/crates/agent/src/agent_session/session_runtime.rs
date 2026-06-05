@@ -552,7 +552,8 @@ impl SessionRuntime {
 
         format!(
             "同一会话历史上下文（这是同一用户同一会话内此前消息，用于理解“继续、刚才、按前面、\
-             补充后、沿用这些数据”等追问；这不代表用户选择了任何预设商品）：\n{history}\n\n当前用户请求：\n{}",
+             补充后、沿用这些数据”等追问；这不代表用户选择了任何预设商品）：\n{history}\n\\
+             n当前用户请求：\n{}",
             self.task_description
         )
     }
@@ -1214,8 +1215,8 @@ fn dispatch_adaptive_student_summary(
         _ => "上下文较轻",
     };
     let mut summary = format!(
-        "本轮被判断为{difficulty}任务，{route_summary}；计划 {role_count} 个岗位、\
-         {step_count} 个步骤、{skill_count} 个候选 Skill，{pressure_summary}"
+        "本轮被判断为{difficulty}任务，{route_summary}；计划 {role_count} 个岗位、{step_count} \
+         个步骤、{skill_count} 个候选 Skill，{pressure_summary}"
     );
 
     if context_budget.history_truncated {
@@ -1399,7 +1400,11 @@ mod tests {
 
     #[test]
     fn session_final_output_restores_readable_answer_layout() {
-        let raw = "同学们好，基于当前你手动引用的QA矩阵智能保温杯资料，结论如下：【核心业务结论与定价判断】这款商品当前129元的售价符合定价安全线，适合先做选品和卖点拆解。【100%确定、可直接落地的适合实训环节】选品定位练习：围绕温显、防漏、礼盒卖点做客群判断。内容合规练习：避免学生党低价定位。【依据说明】支撑来源是QA矩阵智能保温杯商品锚点，置信度0.96。";
+        let raw = "同学们好，基于当前你手动引用的QA矩阵智能保温杯资料，结论如下：\
+                   【核心业务结论与定价判断】这款商品当前129元的售价符合定价安全线，\
+                   适合先做选品和卖点拆解。【100%确定、可直接落地的适合实训环节】选品定位练习：\
+                   围绕温显、防漏、礼盒卖点做客群判断。内容合规练习：避免学生党低价定位。\
+                   【依据说明】支撑来源是QA矩阵智能保温杯商品锚点，置信度0.96。";
 
         let output = sanitize_session_final_output(raw);
         let lower = output.to_ascii_lowercase();

@@ -1,6 +1,5 @@
-use utils::llm_json;
-
 use futures::future::join_all;
+use utils::llm_json;
 
 use super::{
     autosuggest::{autosuggest_skill_requests, rules::looks_like_material_table_input_task},

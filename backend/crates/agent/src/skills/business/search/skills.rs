@@ -1,6 +1,7 @@
+use std::time::Duration;
+
 use async_trait::async_trait;
 use serde_json::Value;
-use std::time::Duration;
 
 use super::{
     config::SearchAdapterConfig,

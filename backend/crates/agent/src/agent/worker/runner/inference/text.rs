@@ -97,7 +97,7 @@ fn current_user_request_text(value: &str) -> String {
         "current user request:",
     ] {
         if let Some(index) = text.rfind(marker) {
-            let request = text[index + marker.len()..].trim();
+            let request = text[index + marker.len() ..].trim();
             if !request.is_empty() {
                 return request.to_string();
             }

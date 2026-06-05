@@ -309,7 +309,7 @@ fn parse_optional_status(value: Option<String>) -> BizResult<Option<ProductKnowl
 }
 
 fn normalize_confidence(value: f64) -> BizResult<f64> {
-    if !value.is_finite() || !(0.0..=1.0).contains(&value) {
+    if !value.is_finite() || !(0.0 ..= 1.0).contains(&value) {
         return Err(BizError::new(
             app_error::PRODUCT_KNOWLEDGE_REQUEST_INVALID,
             "confidence must be between 0 and 1".to_string(),

@@ -185,7 +185,7 @@ fn parse_refund_item_segment(segment: &str) -> Option<serde_json::Value> {
 fn refund_item_name<'a>(segment: &'a str, aliases: &[String]) -> Option<&'a str> {
     for alias in aliases {
         if let Some(index) = segment.find(alias) {
-            let name = segment[..index]
+            let name = segment[.. index]
                 .trim()
                 .trim_matches(['：', ':', '-', '，', ',', '；', ';', ' ']);
             return if name.is_empty() { None } else { Some(name) };
@@ -206,7 +206,7 @@ fn segment_after_label(text: &str, label: &str, labels: &[String]) -> Option<Str
             continue;
         }
         let other_lower = other.to_ascii_lowercase();
-        if let Some(offset) = lower[start..].find(&other_lower) {
+        if let Some(offset) = lower[start ..].find(&other_lower) {
             let candidate = start + offset;
             if candidate > start && candidate < end {
                 end = candidate;
@@ -214,7 +214,7 @@ fn segment_after_label(text: &str, label: &str, labels: &[String]) -> Option<Str
         }
     }
 
-    Some(text[start..end].trim().to_string())
+    Some(text[start .. end].trim().to_string())
 }
 
 fn canonical_channel_name(label: &str) -> String {

@@ -63,8 +63,8 @@ pub(super) fn plan_selected_roles_graph(
         &format!("{primary_role}_final"),
         &format!(
             "把本轮用户手动指定的岗位输入合成一份自然可读的最终回答：{task}。\
-             只能整合实际执行的已选岗位，不补写未选择岗位，不展示 worker report、任务图、\
-             role_output、context 字段、岗位失败诊断或变量名。"
+             只能整合实际执行的已选岗位，不补写未选择岗位，不展示 worker \
+             report、任务图、role_output、context 字段、岗位失败诊断或变量名。"
         ),
         roles.clone(),
         false,

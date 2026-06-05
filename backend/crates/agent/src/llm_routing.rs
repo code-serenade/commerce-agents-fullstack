@@ -394,7 +394,7 @@ where
             description: "LLM cognition did not run".to_string(),
         };
 
-        for attempt in 1..=max_attempts {
+        for attempt in 1 ..= max_attempts {
             attempts_run = attempt;
             tracing::debug!(
                 kind = ?self.kind,
@@ -820,7 +820,8 @@ fn llm_provider_error_failure(
     CognitionFailure {
         reason: FailureReason::InternalError,
         description: format!(
-            "{LLM_PROVIDER_ERROR_MARKER}: attempt={attempt}; llm_usage={usage_name}; model={model_name}; error={}",
+            "{LLM_PROVIDER_ERROR_MARKER}: attempt={attempt}; llm_usage={usage_name}; \
+             model={model_name}; error={}",
             compact_provider_error(err_text)
         ),
     }

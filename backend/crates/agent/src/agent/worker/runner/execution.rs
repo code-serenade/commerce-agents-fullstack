@@ -767,7 +767,10 @@ mod tests {
         async fn evaluate(&self, _input: CognitionInput) -> CognitionResult {
             CognitionResult::Failure(CognitionFailure {
                 reason: FailureReason::InternalError,
-                description: "llm_provider_error: attempt=3; llm_usage=doubao-thinking; model=DouBao-Seed-2.0; error=api error: status=500, body=Internal Server Error".to_string(),
+                description: "llm_provider_error: attempt=3; llm_usage=doubao-thinking; \
+                              model=DouBao-Seed-2.0; error=api error: status=500, body=Internal \
+                              Server Error"
+                    .to_string(),
             })
         }
     }
@@ -815,7 +818,7 @@ mod tests {
             .expect("worker should accept assignment");
 
         let mut timed_out = None;
-        for _ in 0..3 {
+        for _ in 0 .. 3 {
             let message = tokio::time::timeout(Duration::from_secs(1), commander_rx.recv())
                 .await
                 .expect("worker should report before test timeout")
@@ -902,7 +905,7 @@ mod tests {
             .expect("worker should accept assignment");
 
         let mut report = None;
-        for _ in 0..3 {
+        for _ in 0 .. 3 {
             let message = tokio::time::timeout(Duration::from_secs(2), commander_rx.recv())
                 .await
                 .expect("worker should report before test timeout")
@@ -966,7 +969,7 @@ mod tests {
             .expect("worker should accept assignment");
 
         let mut report = None;
-        for _ in 0..3 {
+        for _ in 0 .. 3 {
             let message = tokio::time::timeout(Duration::from_secs(1), commander_rx.recv())
                 .await
                 .expect("worker should report before test timeout")
@@ -1057,7 +1060,7 @@ mod tests {
             .expect("worker should accept assignment");
 
         let mut report = None;
-        for _ in 0..3 {
+        for _ in 0 .. 3 {
             let message = tokio::time::timeout(Duration::from_secs(1), commander_rx.recv())
                 .await
                 .expect("worker should report before test timeout")
@@ -1184,7 +1187,7 @@ mod tests {
             .expect("worker should accept assignment");
 
         let mut report = None;
-        for _ in 0..3 {
+        for _ in 0 .. 3 {
             let message = tokio::time::timeout(Duration::from_secs(1), commander_rx.recv())
                 .await
                 .expect("worker should report before test timeout")

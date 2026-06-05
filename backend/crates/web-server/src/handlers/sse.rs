@@ -1095,78 +1095,8 @@ pub async fn stream_agent_session(
                         }),
                     ));
                     if !link_state.completed {
-                        let response = workspace_api
-                            .complete_agent_run(CompleteAgentWorkspaceRunRequest {
-                                user_id: link_state.user_id.clone(),
-                                workspace_id: link_state.workspace_id.clone(),
-                                run_id: link_state.run_id.clone(),
-                                output: link_state.latest_output.clone().unwrap_or_default(),
-                            })
-                            .await;
-                        match response {
-                            Ok(value) => {
-                                link_state.completed = true;
-                                yield Ok(typed_camel_json_event(
-                                    "workspace_run_completed",
-                                    serde_json::to_value(value.run)
-                                        .unwrap_or_else(|_| json!({ "type": "workspace_run_completed" })),
-                                ));
-                                let artifact_id = value.artifact.as_ref().map(|artifact| artifact.id.clone());
-                                if let Some(artifact) = value.artifact {
-                                    yield Ok(typed_camel_json_event(
-                                        "workspace_artifact_created",
-                                        serde_json::to_value(artifact)
-                                            .unwrap_or_else(|_| json!({ "type": "workspace_artifact_created" })),
-                                    ));
-                                }
-                                let quality_response = workspace_api
-                                    .evaluate_agent_run(EvaluateAgentWorkspaceRunRequest {
-                                        user_id: link_state.user_id.clone(),
-                                        workspace_id: link_state.workspace_id.clone(),
-                                        run_id: link_state.run_id.clone(),
-                                        artifact_id,
-                                        output: link_state.latest_output.clone(),
-                                    })
-                                    .await;
-                                match quality_response {
-                                    Ok(value) => yield Ok(typed_camel_json_event(
-                                        "quality_checked",
-                                        serde_json::to_value(value)
-                                            .unwrap_or_else(|_| json!({ "type": "quality_checked" })),
-                                    )),
-                                    Err(err) => yield Ok(persistence_error_event("evaluate_agent_run", err)),
-                                }
-                                if let Some(conversation_id) = link_state.conversation_id.clone()
-                                    && let Some(memory) =
-                                        build_completed_conversation_memory(&link_state)
-                                {
-                                    let response = ConversationApi::new(get_app_ctx())
-                                        .update_conversation_memory(
-                                            service::dto::conversation::UpdateConversationMemoryRequest {
-                                                user_id: link_state.user_id.clone(),
-                                                conversation_id,
-                                                memory,
-                                            },
-                                        )
-                                        .await;
-                                    match response {
-                                        Ok(value) => yield Ok(typed_camel_json_event(
-                                            "conversation_memory_updated",
-                                            serde_json::to_value(value).unwrap_or_else(
-                                                |_| json!({ "type": "conversation_memory_updated" }),
-                                            ),
-                                        )),
-                                        Err(err) => {
-                                            yield Ok(persistence_error_event(
-                                                "update_conversation_memory",
-                                                err,
-                                            ));
-                                        }
-                                    }
-                                }
-                            }
-                            Err(err) => yield Ok(persistence_error_event("complete_agent_run", err)),
-                        }
+                        tokio::spawn(finalize_completed_agent_run(link_state.clone()));
+                        link_state.completed = true;
                     }
                     yield Ok(json_event("done", json!({})));
                     return;
@@ -1274,6 +1204,78 @@ fn persistence_error_event(action: &'static str, err: db_core::error::BizError) 
             "message": err.message(),
         }),
     )
+}
+
+async fn finalize_completed_agent_run(link_state: AgentWorkspaceLinkState) {
+    let workspace_api = WorkspaceApi::new(get_app_ctx());
+    let response = workspace_api
+        .complete_agent_run(CompleteAgentWorkspaceRunRequest {
+            user_id: link_state.user_id.clone(),
+            workspace_id: link_state.workspace_id.clone(),
+            run_id: link_state.run_id.clone(),
+            output: link_state.latest_output.clone().unwrap_or_default(),
+        })
+        .await;
+    let completed = match response {
+        Ok(value) => value,
+        Err(err) => {
+            tracing::warn!(
+                action = "complete_agent_run",
+                code = %err.code(),
+                message = %err.message(),
+                run_id = %link_state.run_id,
+                session_id = %link_state.session_id,
+                "agent sse post-stream persistence failed"
+            );
+            return;
+        }
+    };
+
+    let artifact_id = completed
+        .artifact
+        .as_ref()
+        .map(|artifact| artifact.id.clone());
+    if let Err(err) = workspace_api
+        .evaluate_agent_run(EvaluateAgentWorkspaceRunRequest {
+            user_id: link_state.user_id.clone(),
+            workspace_id: link_state.workspace_id.clone(),
+            run_id: link_state.run_id.clone(),
+            artifact_id,
+            output: link_state.latest_output.clone(),
+        })
+        .await
+    {
+        tracing::warn!(
+            action = "evaluate_agent_run",
+            code = %err.code(),
+            message = %err.message(),
+            run_id = %link_state.run_id,
+            session_id = %link_state.session_id,
+            "agent sse post-stream persistence failed"
+        );
+    }
+
+    if let Some(conversation_id) = link_state.conversation_id.clone()
+        && let Some(memory) = build_completed_conversation_memory(&link_state)
+        && let Err(err) = ConversationApi::new(get_app_ctx())
+            .update_conversation_memory(
+                service::dto::conversation::UpdateConversationMemoryRequest {
+                    user_id: link_state.user_id.clone(),
+                    conversation_id,
+                    memory,
+                },
+            )
+            .await
+    {
+        tracing::warn!(
+            action = "update_conversation_memory",
+            code = %err.code(),
+            message = %err.message(),
+            run_id = %link_state.run_id,
+            session_id = %link_state.session_id,
+            "agent sse post-stream persistence failed"
+        );
+    }
 }
 
 fn build_completed_conversation_memory(link_state: &AgentWorkspaceLinkState) -> Option<Value> {
@@ -1444,7 +1446,7 @@ fn compact_key_part(value: &str, max_chars: usize) -> String {
     value
         .chars()
         .map(|ch| match ch {
-            'a'..='z' | 'A'..='Z' | '0'..='9' | '-' | '_' | '.' => ch,
+            'a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '-' | '_' | '.' => ch,
             _ => '-',
         })
         .take(max_chars)
@@ -1782,9 +1784,9 @@ pub(crate) fn build_conversation_history_summary(
     let total_message_count = candidates.len();
     let truncated = total_message_count > CONVERSATION_HISTORY_RECENT_MESSAGES;
     let recent_start = total_message_count.saturating_sub(CONVERSATION_HISTORY_RECENT_MESSAGES);
-    let older_summary = build_older_conversation_summary(&candidates[..recent_start]);
+    let older_summary = build_older_conversation_summary(&candidates[.. recent_start]);
     let relevant_older =
-        select_relevant_older_conversation_messages(&candidates[..recent_start], &current_input);
+        select_relevant_older_conversation_messages(&candidates[.. recent_start], &current_input);
     let memory = build_conversation_memory_summary(&candidates, &older_summary, previous_memory);
 
     let selected = candidates
@@ -1933,9 +1935,9 @@ fn push_history_query_term(terms: &mut Vec<String>, term: String) {
 }
 
 fn is_cjk(ch: char) -> bool {
-    ('\u{4e00}'..='\u{9fff}').contains(&ch)
-        || ('\u{3400}'..='\u{4dbf}').contains(&ch)
-        || ('\u{f900}'..='\u{faff}').contains(&ch)
+    ('\u{4e00}' ..= '\u{9fff}').contains(&ch)
+        || ('\u{3400}' ..= '\u{4dbf}').contains(&ch)
+        || ('\u{f900}' ..= '\u{faff}').contains(&ch)
 }
 
 fn build_conversation_memory_summary(
@@ -3274,7 +3276,7 @@ mod tests {
     #[test]
     fn conversation_history_keeps_recent_window_and_summarizes_older_messages() {
         let mut messages = Vec::new();
-        for index in 1..=18 {
+        for index in 1 ..= 18 {
             let role = if index % 2 == 0 { "assistant" } else { "user" };
             messages.push(conversation_message(
                 index,

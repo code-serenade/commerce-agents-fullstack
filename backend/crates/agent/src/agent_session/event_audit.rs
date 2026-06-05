@@ -770,7 +770,7 @@ fn legacy_search_diagnostics(report: &WorkerReport) -> Vec<SessionEventSearchDia
     for item in &items {
         if let Some(trace) = item
             .find("search_evidence_trace:")
-            .map(|index| &item[index + "search_evidence_trace:".len()..])
+            .map(|index| &item[index + "search_evidence_trace:".len() ..])
             && let Some(diagnostic) = legacy_search_trace_diagnostic(report, trace)
         {
             push_unique_search_diagnostic(&mut traces, diagnostic);
@@ -784,7 +784,7 @@ fn legacy_search_diagnostics(report: &WorkerReport) -> Vec<SessionEventSearchDia
     for item in &items {
         if let Some(packet) = item
             .find("search_evidence_packet:")
-            .map(|index| &item[index + "search_evidence_packet:".len()..])
+            .map(|index| &item[index + "search_evidence_packet:".len() ..])
             && let Some(diagnostic) = legacy_search_packet_diagnostic(report, packet)
         {
             push_unique_search_diagnostic(&mut packets, diagnostic);

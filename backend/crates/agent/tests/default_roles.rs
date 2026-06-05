@@ -115,7 +115,9 @@ impl Cognition for DecodeFailingCommanderCognition {
     async fn evaluate(&self, _input: CognitionInput) -> CognitionResult {
         CognitionResult::Failure(CognitionFailure {
             reason: FailureReason::InternalError,
-            description: "decode failed on attempt 3/3: json template validation failed at $.decision: missing key 'clarification'".to_string(),
+            description: "decode failed on attempt 3/3: json template validation failed at \
+                          $.decision: missing key 'clarification'"
+                .to_string(),
         })
     }
 }
@@ -1544,7 +1546,8 @@ async fn manual_selected_search_ops_preempts_generic_commerce_graph() {
             workspace_id: None,
             agent_id: AgentId("role-agent".to_string()),
             session_id: SessionId("role-session-manual-search-commerce".to_string()),
-            input: "手动指定资料搜索员和运营一起协作：如果能搜索就核对二手教材竞品价格和平台规则，再给这个618返场活动的低风险动作；没有实时来源就明确说边界，不要假装搜索成功。"
+            input: "手动指定资料搜索员和运营一起协作：如果能搜索就核对二手教材竞品价格和平台规则，\
+                    再给这个618返场活动的低风险动作；没有实时来源就明确说边界，不要假装搜索成功。"
                 .to_string(),
             metadata,
         })
@@ -3862,7 +3865,8 @@ async fn selected_product_context_overrides_conflicting_history_in_worker_contex
     );
     metadata.insert(
         "context.selected_summary".to_string(),
-        "Product source product:222 | name=QA矩阵智能保温杯 | category=智能保温杯 | brand=QA矩阵品牌"
+        "Product source product:222 | name=QA矩阵智能保温杯 | category=智能保温杯 | \
+         brand=QA矩阵品牌"
             .to_string(),
     );
 

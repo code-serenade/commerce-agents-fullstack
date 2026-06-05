@@ -299,7 +299,8 @@ mod tests {
                 recommendations: vec![],
                 evidence: vec![],
                 risks: vec![
-                    "资料边界：表格资料分析没有产出可引用资料；本轮没有收到可解析的表格行或表格文本。"
+                    "资料边界：表格资料分析没有产出可引用资料；\
+                     本轮没有收到可解析的表格行或表格文本。"
                         .to_string(),
                 ],
                 open_questions: vec![],
@@ -341,7 +342,9 @@ mod tests {
         let parsed = ParsedWorkerRoleOutput {
             content: String::new(),
             role_output: Some(RoleWorkOutput {
-                summary: "轻便耐用学生书包，减轻肩部负担。\n多功能学生书包，分区清楚。\n防水学生书包，保护课本。".to_string(),
+                summary: "轻便耐用学生书包，减轻肩部负担。\n多功能学生书包，分区清楚。\\
+                          n防水学生书包，保护课本。"
+                    .to_string(),
                 findings: vec![],
                 recommendations: vec![],
                 evidence: vec![],

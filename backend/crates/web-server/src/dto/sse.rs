@@ -525,7 +525,7 @@ mod tests {
             context: Some(AgentStreamContextMetadata {
                 campaign_ids: Vec::new(),
                 conversation_id: None,
-                product_ids: (0..6).map(|index| format!("product-{index}")).collect(),
+                product_ids: (0 .. 6).map(|index| format!("product-{index}")).collect(),
                 context_refs: Vec::new(),
             }),
             strategy: None,

@@ -7,7 +7,8 @@ pub(crate) fn user_visible_selected_product_context(raw: &str) -> Option<String>
     }
 
     Some(format!(
-        "当前手动引用的商品资料如下；回答“这个商品”“该商品”或单品分析时，以这些资料为准。不要向用户展示商品ID、资料来源ID或内部字段。\n{}",
+        "当前手动引用的商品资料如下；回答“这个商品”“该商品”或单品分析时，以这些资料为准。\
+         不要向用户展示商品ID、资料来源ID或内部字段。\n{}",
         sections.join("\n")
     ))
 }
@@ -193,8 +194,12 @@ mod tests {
     fn selected_product_context_becomes_student_readable() {
         let raw = "\
 Commerce product context resolved from current user's backend data.
-Product source product:222 | name=QA矩阵智能保温杯 | platform=抖音 | category=智能保温杯 | brand=QA矩阵品牌 | price=129 CNY | status=active | description=面向办公室女性的中高端礼盒款
-Knowledge source product_knowledge:333 | product=222 | title=QA矩阵商品知识 | type=selling_points | source=manual | confidence=0.96 | content=商品锚点：首屏必须包含温显、防漏、礼盒三个卖点";
+Product source product:222 | name=QA矩阵智能保温杯 | platform=抖音 | category=智能保温杯 | \
+                   brand=QA矩阵品牌 | price=129 CNY | status=active | \
+                   description=面向办公室女性的中高端礼盒款
+Knowledge source product_knowledge:333 | product=222 | title=QA矩阵商品知识 | type=selling_points \
+                   | source=manual | confidence=0.96 | \
+                   content=商品锚点：首屏必须包含温显、防漏、礼盒三个卖点";
 
         let output = user_visible_selected_product_context(raw).expect("context");
 
@@ -214,7 +219,8 @@ Knowledge source product_knowledge:333 | product=222 | title=QA矩阵商品知�
 Same conversation history context:
 用户前面问过校园冷萃咖啡。
 Product source product:222 | name=QA矩阵智能保温杯 | category=智能保温杯 | brand=QA矩阵品牌
-Knowledge source product_knowledge:333 | product=222 | title=卖点素材 | type=selling_points | source=manual | confidence=0.96 | content=资料锚点：温显、防漏、礼盒";
+Knowledge source product_knowledge:333 | product=222 | title=卖点素材 | type=selling_points | \
+                   source=manual | confidence=0.96 | content=资料锚点：温显、防漏、礼盒";
 
         let output = user_visible_context_summary(raw).expect("context");
 
