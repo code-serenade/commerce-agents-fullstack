@@ -192,17 +192,20 @@ async function makeRequest({
   const token = localStorage.getItem("token")
 
   const finalUrl = resolveUrl(url, group)
+  const isBlobBody = data instanceof Blob
 
   return fetch(finalUrl, {
     method,
     headers: {
-      "Content-Type": "application/json",
+      ...(isBlobBody ? {} : { "Content-Type": "application/json" }),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body:
       method === "GET" || method === "DELETE"
         ? undefined
-        : JSON.stringify(data),
+        : isBlobBody
+          ? data
+          : JSON.stringify(data),
     signal: controller.signal,
   })
 }

@@ -75,20 +75,16 @@ export {
 } from "./conversation"
 
 export {
-  calculateFileSha256,
-  createUploadSignQuery,
   deleteWithSignedUrlApi,
   getAccessSignApi,
   getDeleteSignApi,
-  getUploadAvatarSignApi,
-  getUploadDocumentSignApi,
-  getUploadImageSignApi,
-  uploadWithSignedUrlApi,
+  uploadAvatarToFileServiceApi,
+  uploadDocumentToFileServiceApi,
+  uploadImageToFileServiceApi,
   type AccessSignQuery,
   type DeleteSignQuery,
   type DeleteSignResponse,
   type DownloadSignResponse,
-  type UploadExtQuery,
-  type UploadSignQuery,
+  type ServerUploadResponse,
   type UploadSignResponse,
 } from "@workspace/services/api/file"

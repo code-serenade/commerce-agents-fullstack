@@ -32,6 +32,14 @@ export interface UploadSignResponse {
   headers: SignedUploadHeaders
 }
 
+export interface ServerUploadResponse {
+  key: string
+  url: string
+  sha256: string
+  size: number
+  already_uploaded: boolean
+}
+
 export interface DownloadSignResponse {
   method: "GET"
   download_url: string
@@ -101,6 +109,24 @@ export const getUploadImageSignApi = async (
   })
 }
 
+export const uploadAvatarToFileServiceApi = async (
+  file: File
+): Promise<ServerUploadResponse> => {
+  return uploadToFileServiceApi("/file/sign/upload/avatar", file)
+}
+
+export const uploadDocumentToFileServiceApi = async (
+  file: File
+): Promise<ServerUploadResponse> => {
+  return uploadToFileServiceApi("/file/sign/upload/document", file)
+}
+
+export const uploadImageToFileServiceApi = async (
+  file: File
+): Promise<ServerUploadResponse> => {
+  return uploadToFileServiceApi("/file/sign/upload/image", file)
+}
+
 export const uploadWithSignedUrlApi = async (
   file: File,
   sign: UploadSignResponse,
@@ -167,6 +193,20 @@ export async function calculateFileSha256(file: File): Promise<string> {
   return Array.from(new Uint8Array(digest))
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("")
+}
+
+async function uploadToFileServiceApi(
+  url: string,
+  file: File
+): Promise<ServerUploadResponse> {
+  const query = new URLSearchParams({ ext: getFileExtension(file) })
+
+  return request<Blob, ServerUploadResponse>({
+    method: "PUT",
+    url: `${url}?${query.toString()}`,
+    body: file,
+    group: "file",
+  })
 }
 
 function getFileExtension(file: File): string {

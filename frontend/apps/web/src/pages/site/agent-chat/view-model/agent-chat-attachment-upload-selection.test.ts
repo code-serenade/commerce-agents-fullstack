@@ -6,31 +6,22 @@ import type { AgentChatAttachmentItem } from "../types"
 vi.mock("../agent-chat-data", () => ({
   AGENT_ID: "web-agent",
   agentChatData: {
-    getUploadDocumentSign: vi.fn(),
     registerConversationFile: vi.fn(),
     updateConversationFileExtraction: vi.fn(),
-    uploadWithSignedUrl: vi.fn(),
+    uploadDocument: vi.fn(),
   },
 }))
 
 describe("uploadAgentChatAttachments", () => {
   it("returns uploaded conversation file ids so new files can be selected for this turn", async () => {
     const attachments: AgentChatAttachmentItem[] = []
-    vi.mocked(agentChatData.getUploadDocumentSign).mockResolvedValue({
-      headers: {
-        "Content-Type": "text/plain",
-        authorization: "signed",
-        "x-amz-content-sha256": "unsigned-payload",
-        "x-amz-date": "20260526T080000Z",
-      },
-      key: "chat/user/conversation/note.txt",
-      method: "PUT",
-      upload_url: "https://upload.test/note.txt",
+    vi.mocked(agentChatData.uploadDocument).mockResolvedValue({
       already_uploaded: false,
+      key: "users/user-scope/docs/file-sha.txt",
+      sha256: "file-sha",
+      size: 12,
+      url: "https://upload.test/file-sha.txt",
     })
-    vi.mocked(agentChatData.uploadWithSignedUrl).mockResolvedValue(
-      new Response(null, { status: 200 })
-    )
     vi.mocked(agentChatData.registerConversationFile).mockResolvedValue({
       bucket: "private",
       conversationId: "conversation-upload",
@@ -41,8 +32,8 @@ describe("uploadAgentChatAttachments", () => {
       messageId: null,
       metadata: {},
       mimeType: "text/plain",
-      objectKey: "chat/user/conversation/note.txt",
-      sha256: null,
+      objectKey: "users/user-scope/docs/file-sha.txt",
+      sha256: "file-sha",
       status: "active",
     })
     vi.mocked(agentChatData.updateConversationFileExtraction).mockResolvedValue({
@@ -55,8 +46,8 @@ describe("uploadAgentChatAttachments", () => {
       messageId: null,
       metadata: { extractionStatus: "extracted" },
       mimeType: "text/plain",
-      objectKey: "chat/user/conversation/note.txt",
-      sha256: null,
+      objectKey: "users/user-scope/docs/file-sha.txt",
+      sha256: "file-sha",
       status: "active",
     })
 

@@ -192,9 +192,9 @@ private bucket:
 
 `userScope` 由 file-server 根据 JWT 当前用户生成。客户端不得自行拼接 S3 key。
 
-### 7.1 获取图片上传签名
+### 7.1 服务端上传图片
 
-- 方法：`GET`
+- 方法：`PUT`
 - 路径：`/file/sign/upload/image`
 - 鉴权：需要 JWT
 
@@ -203,35 +203,36 @@ Query：
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
 | `ext` | `string` | 是 | 文件扩展名，不含点号，例如 `png` |
-| `filename` | `string` | 是 | 文件内容 SHA-256 十六进制摘要，前端由 `File` 内容计算 |
+
+请求体：原始文件 bytes。前端不计算 SHA-256，不直传对象存储。
 
 成功响应 `data`：
 
 ```json
 {
-  "method": "PUT",
-  "upload_url": "https://object-storage.example/private/users/{userScope}/images/{sha256}.png",
   "key": "users/{userScope}/images/{sha256}.png",
-  "already_uploaded": false,
-  "headers": {
-    "authorization": "AWS4-HMAC-SHA256 ...",
-    "x-amz-date": "20260521T000000Z",
-    "x-amz-content-sha256": "UNSIGNED-PAYLOAD",
-    "Content-Type": "image/png",
-    "Content-Disposition": "inline"
-  }
+  "url": "https://object-storage.example/private/users/{userScope}/images/{sha256}.png",
+  "sha256": "{serverCalculatedSha256}",
+  "size": 12345,
+  "already_uploaded": false
 }
 ```
 
-如果 `already_uploaded=true`，前端应跳过对象存储 `PUT`，直接使用返回的 `key`。
+file-service 会校验文件大小、扩展名和图片文件头，计算 SHA-256，并写入对象存储。如果 `already_uploaded=true`，表示相同内容对象已存在，服务端跳过对象存储写入并直接返回对象信息。
 
-### 7.2 获取文档上传签名
+### 7.2 服务端上传文档
 
-- 方法：`GET`
+- 方法：`PUT`
 - 路径：`/file/sign/upload/document`
 - 鉴权：需要 JWT
 
-Query 与响应结构同“获取图片上传签名”。
+Query：
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `ext` | `string` | 是 | 文件扩展名，不含点号，例如 `pdf`、`docx`、`txt`、`md` |
+
+请求体和响应结构同“服务端上传图片”。file-service 会校验文档扩展名和文件头或 UTF-8 文本内容。
 
 文档 key 示例：
 
@@ -240,3 +241,7 @@ Query 与响应结构同“获取图片上传签名”。
   "key": "users/{userScope}/docs/{sha256}.pdf"
 }
 ```
+
+### 7.3 兼容旧上传签名
+
+旧的 `GET /file/sign/upload/image` 和 `GET /file/sign/upload/document` 签名直传接口仍可兼容保留，但 Web 前端上传业务文件应优先使用上面的服务端上传接口，由 file-service 负责 SHA-256 计算、文件校验和对象存储写入。

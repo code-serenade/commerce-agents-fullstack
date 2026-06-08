@@ -3,9 +3,8 @@ import type { Area, Point } from "react-easy-crop"
 import { ImageUp } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import {
-  getUploadAvatarSignApi,
-  uploadWithSignedUrlApi,
-  type UploadSignResponse,
+  uploadAvatarToFileServiceApi,
+  type ServerUploadResponse,
 } from "@workspace/services/api/file"
 import { Button } from "@workspace/ui-components"
 import { createCroppedImageFile } from "./image-crop"
@@ -13,9 +12,8 @@ import { ImageCropperModal } from "./image-cropper-modal"
 
 export interface AvatarUploadResult {
   key: string
-  uploadUrl: string
   file: File
-  sign: UploadSignResponse
+  upload: ServerUploadResponse
 }
 
 export interface AvatarUploadTriggerState {
@@ -31,8 +29,7 @@ export interface AvatarUploadFieldProps {
   disabled?: boolean
   accept?: string
   outputSize?: number
-  getSign?: (file: File) => Promise<UploadSignResponse>
-  upload?: (file: File, sign: UploadSignResponse) => Promise<Response>
+  upload?: (file: File) => Promise<ServerUploadResponse>
   onUploaded?: (result: AvatarUploadResult) => void | Promise<void>
   onError?: (error: Error) => void
   renderTrigger?: (state: AvatarUploadTriggerState) => ReactNode
@@ -45,12 +42,7 @@ export function AvatarUploadField({
   disabled = false,
   accept = "image/*",
   outputSize = 512,
-  getSign = () => getUploadAvatarSignApi(),
-  upload = (file, sign) =>
-    uploadWithSignedUrlApi(file, sign, {
-      contentType: file.type || "image/png",
-      contentDisposition: false,
-    }),
+  upload = uploadAvatarToFileServiceApi,
   onUploaded,
   onError,
   renderTrigger,
@@ -129,13 +121,11 @@ export function AvatarUploadField({
           fileName: `avatar-${Date.now()}.png`,
         }
       )
-      const sign = await getSign(avatarFile)
-      await upload(avatarFile, sign)
+      const uploadResult = await upload(avatarFile)
       await onUploaded?.({
-        key: sign.key,
-        uploadUrl: sign.upload_url,
+        key: uploadResult.key,
         file: avatarFile,
-        sign,
+        upload: uploadResult,
       })
       closeCropModal()
     } catch (err) {

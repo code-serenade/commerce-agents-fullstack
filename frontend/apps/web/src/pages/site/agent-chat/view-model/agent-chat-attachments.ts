@@ -127,19 +127,16 @@ async function uploadOneAttachment(
   }
 ) {
   try {
-    const sign = isUploadImageFile(file)
-      ? await agentChatData.getUploadImageSign(file)
-      : await agentChatData.getUploadDocumentSign(file)
-    logAttachmentUploadSign(file, sign.upload_url)
-    await agentChatData.uploadWithSignedUrl(file, sign, {
-      contentType: file.type || sign.headers["Content-Type"] || "application/octet-stream",
-    })
+    const upload = isUploadImageFile(file)
+      ? await agentChatData.uploadImage(file)
+      : await agentChatData.uploadDocument(file)
+    logAttachmentUploadResult(file, upload)
     const registered = await agentChatData.registerConversationFile(conversationId, {
-      fileName: file.name || sign.key.split("/").at(-1),
-      fileSize: file.size,
-      mimeType: file.type || sign.headers["Content-Type"] || "application/octet-stream",
-      objectKey: sign.key,
-      sha256: sign.key.split("/").at(-1)?.split(".").at(0),
+      fileName: file.name || upload.key.split("/").at(-1),
+      fileSize: upload.size || file.size,
+      mimeType: file.type || "application/octet-stream",
+      objectKey: upload.key,
+      sha256: upload.sha256,
     })
     const extraction = await createBrowserExtractionRequest(file)
     const extractionUpdated = extraction.request
@@ -221,12 +218,17 @@ async function triggerServerExtractionStatus(fileId: string) {
   }
 }
 
-function logAttachmentUploadSign(file: File, uploadUrl: string) {
-  console.info("[agent-chat] attachment upload signed", {
+function logAttachmentUploadResult(
+  file: File,
+  upload: { already_uploaded: boolean; key: string; sha256: string; size: number }
+) {
+  console.info("[agent-chat] attachment uploaded through file-service", {
+    alreadyUploaded: upload.already_uploaded,
     fileName: file.name,
-    fileSize: file.size,
+    fileSize: upload.size || file.size,
     fileType: file.type || null,
-    uploadTarget: safeUploadTarget(uploadUrl),
+    objectKey: upload.key,
+    sha256: upload.sha256,
   })
 }
 
@@ -237,13 +239,4 @@ function logAttachmentUploadFailure(file: File, error: unknown) {
     fileSize: file.size,
     fileType: file.type || null,
   })
-}
-
-function safeUploadTarget(uploadUrl: string) {
-  try {
-    const url = new URL(uploadUrl)
-    return `${url.origin}${url.pathname}`
-  } catch {
-    return "invalid-upload-url"
-  }
 }

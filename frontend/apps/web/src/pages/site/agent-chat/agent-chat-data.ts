@@ -9,8 +9,6 @@ import {
   getAgentRuntimeOptionsApi,
   getConversationFileExtractionApi,
   getConversationApi,
-  getUploadDocumentSignApi,
-  getUploadImageSignApi,
   listCommerceAgentPlaybooksApi,
   listCampaignsApi,
   listUserFilesApi,
@@ -22,7 +20,8 @@ import {
   triggerConversationFileExtractionJobApi,
   updateConversationApi,
   updateConversationFileExtractionApi,
-  uploadWithSignedUrlApi,
+  uploadDocumentToFileServiceApi,
+  uploadImageToFileServiceApi,
 } from "@/api"
 
 export type { AgentRunFeedbackResponse, AgentRuntimeEvent } from "@/api"
@@ -45,13 +44,12 @@ export const agentChatData = {
   listPlaybooks: listCommerceAgentPlaybooksApi,
   listProducts: listProductsApi,
   listConversations: listConversationsApi,
-  getUploadDocumentSign: getUploadDocumentSignApi,
-  getUploadImageSign: getUploadImageSignApi,
   registerConversationFile: registerConversationFileApi,
   streamAgentSession: streamAgentSessionApi,
   submitRunFeedback: submitAgentRunFeedbackApi,
   triggerConversationFileExtractionJob: triggerConversationFileExtractionJobApi,
   updateConversation: updateConversationApi,
   updateConversationFileExtraction: updateConversationFileExtractionApi,
-  uploadWithSignedUrl: uploadWithSignedUrlApi,
+  uploadDocument: uploadDocumentToFileServiceApi,
+  uploadImage: uploadImageToFileServiceApi,
 }
