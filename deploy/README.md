@@ -28,6 +28,14 @@
 5. 生成 output/commerce-agents-offline.tar.gz
 ```
 
+只重新构建 Web 前端镜像：
+
+```bash
+./deploy/build-web-image.sh
+```
+
+这个脚本只会重新编译 `frontend/apps/web/dist`，然后构建 `${IMAGE_PREFIX:-commerce-agents}-web:local` 镜像。适合只修改 Web 前端代码或 `deploy/frontend/default.conf.template` 后快速更新 web 容器。
+
 本机测试启动：
 
 ```bash

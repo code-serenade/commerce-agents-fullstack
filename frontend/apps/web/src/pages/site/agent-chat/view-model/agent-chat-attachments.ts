@@ -130,6 +130,7 @@ async function uploadOneAttachment(
     const sign = isUploadImageFile(file)
       ? await agentChatData.getUploadImageSign(file)
       : await agentChatData.getUploadDocumentSign(file)
+    logAttachmentUploadSign(file, sign.upload_url)
     await agentChatData.uploadWithSignedUrl(file, sign, {
       contentType: file.type || sign.headers["Content-Type"] || "application/octet-stream",
     })
@@ -177,7 +178,8 @@ async function uploadOneAttachment(
       )
     )
     return registered.id
-  } catch {
+  } catch (error) {
+    logAttachmentUploadFailure(file, error)
     setAttachments((current) =>
       current.map((item) =>
         item.id === localId ? { ...item, status: "failed" } : item
@@ -194,7 +196,12 @@ async function updateRegisteredFileExtraction(
   try {
     await agentChatData.updateConversationFileExtraction(fileId, request)
     return true
-  } catch {
+  } catch (error) {
+    console.warn("[agent-chat] attachment extraction update failed", {
+      error,
+      fileId,
+      status: request.status,
+    })
     return false
   }
 }
@@ -205,7 +212,38 @@ async function triggerServerExtractionStatus(fileId: string) {
       mode: "auto",
       force: false,
     })
-  } catch {
+  } catch (error) {
+    console.warn("[agent-chat] attachment server extraction job failed", {
+      error,
+      fileId,
+    })
     return null
+  }
+}
+
+function logAttachmentUploadSign(file: File, uploadUrl: string) {
+  console.info("[agent-chat] attachment upload signed", {
+    fileName: file.name,
+    fileSize: file.size,
+    fileType: file.type || null,
+    uploadTarget: safeUploadTarget(uploadUrl),
+  })
+}
+
+function logAttachmentUploadFailure(file: File, error: unknown) {
+  console.error("[agent-chat] attachment upload failed", {
+    error,
+    fileName: file.name,
+    fileSize: file.size,
+    fileType: file.type || null,
+  })
+}
+
+function safeUploadTarget(uploadUrl: string) {
+  try {
+    const url = new URL(uploadUrl)
+    return `${url.origin}${url.pathname}`
+  } catch {
+    return "invalid-upload-url"
   }
 }
