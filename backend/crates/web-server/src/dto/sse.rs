@@ -3,10 +3,13 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
 
+use crate::dto::app::{CreateCampaignFormDraftRequest, CreateProductDraftRequest};
+
 const MAX_IMAGE_ATTACHMENTS: usize = 4;
 const MAX_IMAGE_URL_LEN: usize = 4096;
 const MAX_IMAGE_DATA_URL_LEN: usize = 8 * 1024 * 1024;
 const MAX_CONTEXT_REFS: usize = 20;
+const MAX_SELECTED_RUNTIME_ROLES: usize = 8;
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
@@ -25,6 +28,17 @@ pub struct AgentStreamRequest {
 
     #[serde(default)]
     pub metadata: AgentStreamMetadata,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct FormDraftStreamRequest {
+    #[validate(length(min = 1, max = 32))]
+    pub form_type: String,
+
+    pub product: Option<CreateProductDraftRequest>,
+
+    pub campaign: Option<CreateCampaignFormDraftRequest>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -149,8 +163,11 @@ impl AgentStreamMetadata {
             {
                 metadata.insert("strategy.primary_role".to_string(), primary_role);
             }
-            let selected_roles =
-                validate_strategy_values("strategy.selectedRoles", &strategy.selected_roles, 6)?;
+            let selected_roles = validate_strategy_values(
+                "strategy.selectedRoles",
+                &strategy.selected_roles,
+                MAX_SELECTED_RUNTIME_ROLES,
+            )?;
             if !selected_roles.is_empty() {
                 metadata.insert(
                     "strategy.selected_roles".to_string(),
@@ -525,7 +542,7 @@ mod tests {
             context: Some(AgentStreamContextMetadata {
                 campaign_ids: Vec::new(),
                 conversation_id: None,
-                product_ids: (0 .. 6).map(|index| format!("product-{index}")).collect(),
+                product_ids: (0..6).map(|index| format!("product-{index}")).collect(),
                 context_refs: Vec::new(),
             }),
             strategy: None,
@@ -536,6 +553,82 @@ mod tests {
             .expect_err("too many product ids should fail");
 
         assert!(err.contains("context.productIds"));
+    }
+
+    #[test]
+    fn metadata_accepts_eight_selected_runtime_roles() {
+        let roles = [
+            "data",
+            "ops",
+            "creative",
+            "search",
+            "service",
+            "accounting",
+            "engineering",
+            "web",
+        ]
+        .into_iter()
+        .map(str::to_string)
+        .collect::<Vec<_>>();
+        let metadata = AgentStreamMetadata {
+            attachments: None,
+            context: None,
+            strategy: Some(AgentStreamStrategyMetadata {
+                id: None,
+                response_mode: None,
+                routing_mode: None,
+                collaboration_mode: Some("manual".to_string()),
+                learning_level: None,
+                primary_role: Some("data".to_string()),
+                selected_roles: roles.clone(),
+            }),
+        };
+
+        let (agent_metadata, _) = metadata.into_parts().expect("8 roles should parse");
+
+        assert_eq!(
+            agent_metadata
+                .get("strategy.selected_roles")
+                .map(String::as_str),
+            Some(roles.join(",").as_str())
+        );
+    }
+
+    #[test]
+    fn metadata_rejects_more_than_eight_selected_runtime_roles() {
+        let metadata = AgentStreamMetadata {
+            attachments: None,
+            context: None,
+            strategy: Some(AgentStreamStrategyMetadata {
+                id: None,
+                response_mode: None,
+                routing_mode: None,
+                collaboration_mode: Some("manual".to_string()),
+                learning_level: None,
+                primary_role: Some("data".to_string()),
+                selected_roles: [
+                    "data",
+                    "ops",
+                    "creative",
+                    "search",
+                    "service",
+                    "accounting",
+                    "engineering",
+                    "web",
+                    "inventory",
+                ]
+                .into_iter()
+                .map(str::to_string)
+                .collect(),
+            }),
+        };
+
+        let err = metadata
+            .into_parts()
+            .expect_err("9 roles should exceed backend SSE limit");
+
+        assert!(err.contains("strategy.selectedRoles"));
+        assert!(err.contains("8"));
     }
 
     #[test]

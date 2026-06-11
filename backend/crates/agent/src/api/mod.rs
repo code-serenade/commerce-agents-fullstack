@@ -45,6 +45,10 @@ pub use crate::{
         adapter_kinds_for_spec, execution_mode_for_spec, risk_level_for_spec,
         run_search_provider_smoke,
     },
+    system_agents::form_draft::{
+        CampaignFormDraftOutput, FormDraftAgent, FormDraftAgentConfig, FormDraftInput,
+        FormDraftKind, FormDraftMessagePlan, FormDraftResult, ProductFormDraftOutput,
+    },
     system_agents::vision_preprocess::{
         VisionPreprocessAgent, VisionPreprocessAgentConfig, VisionPreprocessInput,
         VisionPreprocessOutput, VisionPreprocessResult,

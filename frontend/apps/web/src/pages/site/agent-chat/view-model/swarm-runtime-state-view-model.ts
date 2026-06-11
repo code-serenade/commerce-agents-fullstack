@@ -1,4 +1,5 @@
 import type { AgentRuntimeEvent, AgentWorkerReport } from "@/api"
+import { getWorkspaceContextPackReadableCount } from "./agent-workspace-context-pack-counts"
 import {
   readRuntimeNodeId,
   resolveWorkerNodeId,
@@ -83,7 +84,8 @@ export function getRuntimeNodeStates(runtimeEvents: AgentRuntimeEvent[]) {
         (event.type === "conversation_context_loaded" && event.readiness === "empty") ||
         (event.type === "workspace_context_loaded" && event.readiness === "empty") ||
         (event.type === "workspace_context_pack_loaded" &&
-          (event.readiness === "empty" || !(event.items ?? []).some((item) => Boolean(item.text))))
+          (event.readiness === "empty" ||
+            getWorkspaceContextPackReadableCount(event) === 0))
       ensureNode("ops").state = degraded ? "reworking" : "working"
     } else if (event.type === "task_node_ready") {
       ensureNode(readRuntimeNodeId(event)).state = "queued"

@@ -52,6 +52,51 @@ describe("getDispatchFacts search audit", () => {
     })
   })
 
+  it("shows executed search skills from safe output summaries", () => {
+    const events: AgentRuntimeEvent[] = [
+      {
+        type: "dispatch_planned",
+        difficulty: "normal",
+        planned_steps: [],
+        primary_runtime_role: "search",
+        reasoning_summary: "",
+        route_mode: "task_graph",
+        selected_skills: ["search_competitor"],
+        student_visible_explanation: "",
+        support_runtime_roles: [],
+      },
+      {
+        type: "skill_result",
+        outputAvailable: true,
+        outputSummary: {
+          adapterStatus: "live",
+          available: true,
+          evidencePacket: {
+            available: true,
+            confidence: 0.72,
+            gaps: 0,
+            searchStrength: "standard",
+            sources: 1,
+            usableClaims: 1,
+          },
+          kind: "object",
+        },
+        request_id: "req-1",
+        role: "search",
+        skill_id: "search_competitor",
+        status: "success",
+        summary: "found competitor prices",
+      },
+    ]
+
+    expect(getDispatchFacts(events, t)).toContainEqual({
+      detail: dispatchFactTestLabels.searchAuditDetail,
+      label: dispatchFactTestLabels.searchAuditLabel,
+      tone: "success",
+    })
+    expect(JSON.stringify(events)).not.toContain("evidence_packet")
+  })
+
   it("warns when search is only requested but no result is returned yet", () => {
     const events: AgentRuntimeEvent[] = [
       {

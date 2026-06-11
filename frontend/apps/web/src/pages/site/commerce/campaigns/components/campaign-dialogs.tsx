@@ -5,6 +5,17 @@ import {
   type SimpleField,
   type SimpleFormValues,
 } from "../../components/commerce-ui"
+import {
+  buildSimpleFormAuxiliaryActions,
+  type SimpleFormDraftAction,
+  type SimpleFormDraftResult,
+  type SimpleFormSampleAction,
+} from "../../components/commerce-form-actions"
+import {
+  mergeDraftProcessResult,
+  processEventDraftResult,
+} from "../../components/commerce-form-draft-state"
+import { buildFormDraftProcessNotice } from "../../components/commerce-form-draft-process"
 import type { CommerceTranslate } from "../../components/commerce-types"
 import type { CampaignsPageState } from "../use-campaigns-page"
 
@@ -20,6 +31,41 @@ export function CampaignDialogs({ page }: { page: CampaignsPageState }) {
           initialValues={{
             campaignType: "promotion",
             status: "draft",
+          }}
+          isSubmitting={page.createCampaignPending}
+          notice={t("commerce.common.smartFillReviewNotice")}
+          sampleAction={{
+            label: t("commerce.common.fillSample"),
+            values: campaignSampleValues(t),
+          }}
+          smartFillAction={{
+            disabled: page.createCampaignFormDraftPending,
+            label: t("commerce.common.templateSmartFill"),
+            onClick: async (values) => {
+              const result = await page.createCampaignFormDraft({ values })
+              return {
+                agentContext: result.agentContext,
+                generationMode: result.generationMode,
+                values: campaignDraftValues(result.draft),
+              }
+            },
+          }}
+          agentSmartFillAction={{
+            disabled: page.createCampaignFormDraftPending,
+            label: t("commerce.common.agentSmartFill"),
+            onClick: async (values, onProcess) => {
+              const result = await page.createCampaignFormDraftStream({
+                onProcess: (event) =>
+                  onProcess?.(processEventDraftResult(event)),
+                values,
+              })
+              return {
+                agentContext: result.agentContext,
+                generationMode: result.generationMode,
+                stages: ["form_draft_output_validation_passed"],
+                values: campaignDraftValues(result.draft),
+              }
+            },
           }}
           onClose={() => page.setDialog(null)}
           onSubmit={page.createCampaign}
@@ -55,23 +101,49 @@ export function CampaignDialogs({ page }: { page: CampaignsPageState }) {
 function CampaignDialog({
   fields,
   initialValues,
+  isSubmitting,
+  notice,
   onClose,
   onSubmit,
+  sampleAction,
+  agentSmartFillAction,
+  smartFillAction,
   title,
 }: {
   fields: SimpleField[]
   initialValues: SimpleFormValues
+  isSubmitting?: boolean
+  notice?: string
   onClose: () => void
   onSubmit: (values: SimpleFormValues) => void
+  sampleAction?: SimpleFormSampleAction
+  agentSmartFillAction?: SimpleFormDraftAction
+  smartFillAction?: SimpleFormDraftAction
   title: string
 }) {
+  const { t } = useTranslation()
+  const [draftResult, setDraftResult] = useState<SimpleFormDraftResult | null>(null)
   const [values, setValues] = useState<SimpleFormValues>(initialValues)
+  const updateDraftResult = (result: SimpleFormDraftResult | null) => {
+    setDraftResult((current) => mergeDraftProcessResult(current, result))
+  }
 
   return (
     <SimpleFormDialog
       open
       title={title}
+      auxiliaryActions={buildSimpleFormAuxiliaryActions({
+        agentSmartFillAction,
+        onDraftResult: updateDraftResult,
+        sampleAction,
+        setValues,
+        smartFillAction,
+        values,
+      })}
       fields={fields}
+      isSubmitting={isSubmitting}
+      notice={notice}
+      processNotice={buildFormDraftProcessNotice(draftResult, t)}
       values={values}
       setValues={setValues}
       onOpenChange={(nextOpen) => {
@@ -80,6 +152,38 @@ function CampaignDialog({
       onSubmit={() => onSubmit(values)}
     />
   )
+}
+
+function campaignDraftValues(
+  draft: Awaited<
+    ReturnType<CampaignsPageState["createCampaignFormDraft"]>
+  >["draft"]
+): SimpleFormValues {
+  return {
+    budget: draft.budget == null ? "" : String(draft.budget),
+    campaignType: draft.campaignType ?? "",
+    description: draft.description ?? "",
+    endDate: draft.endDate ?? "",
+    name: draft.name,
+    productId: draft.productId ?? "",
+    startDate: draft.startDate ?? "",
+    status: draft.status,
+  }
+}
+
+function campaignSampleValues(
+  t: ReturnType<typeof useTranslation>["t"]
+): SimpleFormValues {
+  return {
+    budget: "3000",
+    campaignType: "promotion",
+    description: t("commerce.campaigns.samples.campaign.description"),
+    endDate: "2026-06-30",
+    name: t("commerce.campaigns.samples.campaign.name"),
+    productId: "",
+    startDate: "2026-06-24",
+    status: "draft",
+  }
 }
 
 function campaignFields(t: CommerceTranslate): SimpleField[] {

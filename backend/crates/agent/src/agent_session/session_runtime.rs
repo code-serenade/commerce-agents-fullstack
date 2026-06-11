@@ -244,6 +244,11 @@ impl SessionRuntime {
             .extensions()
             .with::<MemoryBundle, _>(MemoryBundle::kind_names)
             .unwrap_or_default();
+        let memory_records = self
+            .session_context
+            .extensions()
+            .with::<MemoryBundle, _>(MemoryBundle::record_summaries)
+            .unwrap_or_default();
         let memory_count = self
             .session_context
             .extensions()
@@ -253,6 +258,7 @@ impl SessionRuntime {
             session_id: self.session_id.clone(),
             count: memory_count,
             kinds: memory_kinds,
+            records: memory_records,
         })
         .await;
         if let Some(event) = context_loaded_event(&self.session_id, &self.context) {
@@ -597,12 +603,8 @@ impl SessionRuntime {
             self.memory_record_count(),
             &self.task_description,
         );
-        let difficulty = dispatch_difficulty(
-            route_mode,
-            dispatch_runtime_role_count(primary_runtime_role.as_deref(), &support_runtime_roles),
-            &context_budget,
-        )
-        .to_string();
+        let difficulty =
+            dispatch_difficulty(route_mode, graph.nodes.len(), &context_budget).to_string();
         let difficulty = dispatch_effective_difficulty(&difficulty, graph);
         let planned_steps = dispatch_steps_from_graph(route_mode, graph, &context_budget);
         let student_visible_explanation = dispatch_student_explanation_with_context(

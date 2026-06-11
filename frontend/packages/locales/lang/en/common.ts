@@ -9,6 +9,7 @@ const common = {
   validation: {
     required: "This field is required",
     emailInvalid: "Please enter a valid email address",
+    maxLength: "Use at most {{max}} characters",
   },
 } as const
 

@@ -13,6 +13,7 @@ const messages = {
         agentSection: "Training outputs",
         home: "Data diagnosis guidance",
         products: "Product selection analysis",
+        materials: "Upload file library",
         campaigns: "Campaign planning practice",
         workspaces: "Training tasks and deliverables",
         platformConnect: "Platform data",
@@ -60,6 +61,26 @@ const messages = {
       snooze: "Snooze",
       markRead: "Mark read",
       search: "Search",
+      fillSample: "Fill sample",
+      smartFill: "Smart fill",
+      templateSmartFill: "Template fill",
+      agentSmartFill: "Agent fill",
+      smartFillReviewNotice:
+        "Smart fill only writes a draft into this form and does not save it. Review the fields, then save to create the record.",
+      smartFillProcess: {
+        agentRoute: "Draft generated through the system agent",
+        templateRoute: "Draft generated through template rules",
+        reviewRequired: "Human review is required before saving",
+        invalidJsonRejected: "Invalid model JSON is rejected before form fill",
+        streamStarted: "Form draft generation started",
+        streamInputPreflighted: "Input fields prepared",
+        streamAgentStarted: "The system agent is organizing fields",
+        streamValidationStarted: "Model output is being validated",
+        streamValidationPassed: "Output validation passed",
+        streamReviewReady: "Draft is ready for human review",
+        streamFailed: "Draft generation failed; the form was not filled",
+        separator: "; ",
+      },
       loading: "Loading",
       status: "Status",
       actions: "Actions",
@@ -219,6 +240,15 @@ const messages = {
         description:
           "Review products, product knowledge, file assets, material versions, competitors, and changes as context for selection analysis and AI training questions.",
       },
+      files: {
+        eyebrow: "Upload File Library",
+        title: "Upload file library",
+        description:
+          "Manage chat-uploaded files and files uploaded in the upload file library that the AI can read and that can be selected for the current turn before students ask a question.",
+        boundaryTitle: "Upload file usage boundary",
+        boundaryDescription:
+          "The upload file library only manages uploaded files and current-turn selection. It does not publish content or modify platform data.",
+      },
       campaigns: {
         eyebrow: "Campaign Practice",
         title: "Campaign planning practice",
@@ -316,8 +346,17 @@ const messages = {
         approval: "Risk reminder",
       },
     },
-    products: {
-      metrics: {
+      products: {
+        samples: {
+          product: {
+            brand: "Galaxy Cup",
+            category: "smart thermos",
+            description:
+              "A temperature-display thermos for students and office commuters, focused on leak prevention, temperature reminders, and carry use.",
+            name: "Galaxy Cup temperature-display thermos",
+          },
+        },
+        metrics: {
         active: "Active products",
         activeTail: "{{total}} total, {{archived}} archived",
         knowledge: "Knowledge items",
@@ -407,10 +446,18 @@ const messages = {
         competitorUpdated: "Competitor updated",
         competitorArchived: "Competitor archived",
         changeCreated: "Competitor change recorded",
+        draftFilled: "Product draft filled into the form. Review before saving.",
       },
     },
-    campaigns: {
-      metrics: {
+      campaigns: {
+        samples: {
+          campaign: {
+            description:
+              "Run a 7-day short-video validation around temperature display, leak prevention, and commuting scenes. Track click rate, saves, and add-to-cart rate.",
+            name: "Temperature thermos 7-day validation campaign",
+          },
+        },
+        metrics: {
         total: "Campaigns",
         totalTail: "Current query scope",
         active: "Active",
@@ -448,6 +495,7 @@ const messages = {
         created: "Campaign created",
         updated: "Campaign updated",
         archived: "Campaign archived",
+        draftFilled: "Campaign draft filled into the form. Review before saving.",
       },
     },
     workspaces: {
@@ -765,6 +813,176 @@ const messages = {
         alertsClosed: "Alerts dismissed in bulk",
       },
     },
+    files: {
+      errorTitle: "Failed to load upload file library",
+      panelTitle: "Upload file library",
+      panelDescription:
+        "Check upload read status and usage state, then choose which files should support this AI turn.",
+      searchPlaceholder: "Search file name, type, object key, or status",
+      deleteSelected: "Delete {{count}} file(s)",
+      clearSelection: "Clear selection",
+      clearFilters: "Clear filters",
+      uploadingAction: "Uploading",
+      uploadAction: "Upload files",
+      emptyTitle: "No material files yet",
+      empty:
+        "Upload files from chat attachments or the upload file library, then review read status and choose what the AI should use this turn.",
+      emptyAction: "Upload files",
+      noFilterResultTitle: "No materials match these filters",
+      noFilterResult:
+        "Adjust the keyword, file type, read status, or usage state and try again.",
+      summary: {
+        total: {
+          label: "Total materials",
+          value: "{{count}} file(s)",
+        },
+        readable: {
+          label: "AI readable",
+          value: "{{count}} file(s)",
+        },
+        attached: {
+          label: "Attached to chat",
+          value: "{{count}} file(s)",
+        },
+        selectedForTurn: {
+          label: "Selected this turn",
+          value: "{{count}} file(s)",
+        },
+      },
+      turnSelection: {
+        title: "AI will read {{count}} material file(s) this turn",
+        files: "{{names}}{{hiddenText}}",
+        hiddenSuffix: " and {{count}} more",
+        empty: "No material files are selected for this turn.",
+        action: "Show turn materials",
+        clearAction: "Clear turn selection",
+      },
+      filters: {
+        kind: {
+          all: "All types",
+          image: "Images",
+          pdf: "PDF",
+          word: "Word documents",
+          sheet: "Spreadsheets",
+          text: "Text",
+          other: "Other",
+        },
+        readStatus: {
+          all: "All read statuses",
+          readable: "AI readable",
+          pending: "Pending parse",
+          failed: "Parse failed",
+          unsupported: "Unsupported",
+        },
+        usage: {
+          all: "All usage states",
+          available: "Unused",
+          attached: "Attached to chat",
+          selectedForTurn: "Selected this turn",
+        },
+      },
+      filterSummary: {
+        all: "{{total}} material file(s)",
+        filtered: "{{filtered}} / {{total}} material file(s) shown",
+      },
+      table: {
+        name: "File",
+        status: "Read status",
+        useStateHeader: "Usage state",
+        size: "Size",
+        createdAt: "Uploaded at",
+        actions: "Actions",
+        detail: "Details",
+        using: "Processing",
+        useState: {
+          available: "Add to turn",
+          attached: "Add to turn",
+          selectedForTurn: "Remove from turn",
+        },
+      },
+      status: {
+        readable: "AI readable",
+        pending: "Pending parse",
+        failed: "Parse failed",
+        unsupported: "Unsupported",
+      },
+      deleteDialog: {
+        title: "Delete material files",
+        description: "Delete the selected {{count}} material file(s)?",
+        impactTitle: "Deletion impact",
+        impactSummary:
+          "This will delete {{total}} file(s), including {{readable}} AI-readable file(s), {{attached}} chat-attached file(s), and {{selectedForTurn}} file(s) selected for this turn.",
+        targetNames: "Target files: {{names}}{{hiddenText}}",
+        hiddenSuffix: " and {{count}} more",
+        cancel: "Cancel",
+        confirm: "Delete",
+      },
+      detailDialog: {
+        title: "Material details",
+        description:
+          "Review file source, storage information, extraction summary, and current-turn usage state.",
+        sections: {
+          file: "File information",
+          storage: "Storage information",
+          reading: "Extraction result",
+          usage: "Usage state",
+          metadata: "Metadata",
+        },
+        fields: {
+          displayName: "Display name",
+          type: "File type",
+          mimeType: "MIME type",
+          size: "File size",
+          recordStatus: "Record status",
+          createdAt: "Uploaded at",
+          fileId: "File ID",
+          conversationId: "Conversation ID",
+          messageId: "Message ID",
+          bucket: "Bucket",
+          objectKey: "Object key",
+          objectRef: "Object reference",
+          sha256: "SHA-256",
+          readStatus: "Read status",
+          summary: "Extraction summary",
+          failureReason: "Failure reason",
+          textChars: "Text characters",
+          parser: "Parser",
+          contentKind: "Content type",
+          truncated: "Truncated",
+          usageState: "Usage state",
+          aiReadableThisTurn: "AI reads this turn",
+        },
+        yes: "Yes",
+        no: "No",
+        close: "Close",
+        usageState: {
+          available: "Unused",
+          attached: "Attached to chat",
+          selectedForTurn: "Selected this turn",
+        },
+        usageHint: {
+          available:
+            "This file is not included in the current turn. Select it before sending if the AI should use it.",
+          attached:
+            "This file is already available in chat materials and can be selected for this turn.",
+          selectedForTurn:
+            "This file will support the next AI answer and can be removed before sending.",
+        },
+        metadata: {
+          description:
+            "Raw metadata helps inspect extraction, source, and storage state.",
+          copy: "Copy metadata",
+        },
+      },
+      readSummary: {
+        textChars: "{{count}} chars",
+        parser: "Parser: {{parser}}",
+        contentKind: "Content: {{kind}}",
+        truncated: "Truncated",
+        summary: "Summary: {{summary}}",
+        failure: "Failed: {{reason}}",
+      },
+    },
   },
   home: {
     welcome: "Welcome back",
@@ -866,7 +1084,7 @@ const messages = {
       action: "Sign in",
     },
     sidebar: {
-      newChat: "New task",
+      newChat: "New chat",
       search: "Search history",
       recents: "Recents",
       chat: "AI training assistant",
@@ -897,6 +1115,7 @@ const messages = {
         capabilities: "Capability and usage guide",
         smartOps: "Multi-agent training assistant",
         productBoard: "Product selection analysis",
+        materials: "Upload file library",
         campaigns: "Campaign planning practice",
         platform: "Platform data",
         marketResearch: "Data diagnosis guidance",
@@ -949,6 +1168,79 @@ const messages = {
         "Add the file or data constraints here, for example: product price, budget, inventory, target audience, current conversion rate, and platform account status.",
       agentTitle: "Choose collaborating agents",
       agentName: "AI training assistant",
+      contextPreview: {
+        compactLabel: "Preview",
+        compactTitle: "Preview turn context",
+        panelTitle: "Context preview before sending",
+        panelHint:
+          "Reads materials and long-term memory summaries without running the model.",
+        loading: "Previewing context",
+        error: "Context preview failed",
+        empty:
+          "Enter a question to preview the materials and memory read for this turn.",
+        run: "Preview context",
+        refresh: "Refresh preview",
+        counts: {
+          included: "Full text",
+          metadataOnly: "Metadata",
+          omitted: "Omitted",
+          memory: "Memory",
+        },
+        refsTitle: "Material reading",
+        refsEmpty: "No material references selected for this turn.",
+        moreRefs: "{{count}} more reference(s) hidden",
+        refStatus: {
+          included: "Full text",
+          metadataOnly: "Metadata",
+          omitted: "Omitted",
+        },
+        memoryTitle: "Long-term memory",
+        memoryEmpty: "No long-term memory summary recalled.",
+        charCount: "{{count}} chars",
+        truncated: " / truncated",
+        warningTitle: "Warnings",
+        audit: {
+          title: "Context audit",
+          history: {
+            label: "Conversation history",
+            value: "{{count}} / {{total}} messages",
+            detail:
+              "History {{chars}} chars, memory {{memory}} chars, older relevant {{older}}, {{truncated}}",
+            truncated: "truncated",
+            complete: "not truncated",
+          },
+          memory: {
+            label: "Structured memory",
+            value:
+              "Facts {{facts}}, decisions {{decisions}}, constraints {{constraints}}, questions {{questions}}",
+            detail: "{{summary}}, about {{chars}} chars",
+            summaryReady: "summary available",
+            summaryEmpty: "no summary",
+          },
+          workspace: {
+            label: "Workspace materials",
+            value: "{{count}} source(s), {{readiness}}",
+            detail: "{{missing}} missing, {{warnings}} warning(s)",
+          },
+          pack: {
+            label: "Readable pack",
+            value: "{{count}} / {{total}} readable",
+            detail:
+              "{{readiness}}, about {{chars}} chars, {{omitted}} omitted, {{warnings}} warning(s)",
+          },
+          budget: {
+            label: "Character budget",
+            value: "About {{count}} context chars",
+            detail: "{{input}} input chars",
+          },
+          readiness: {
+            ready: "ready",
+            partial: "partially ready",
+            empty: "no usable material",
+            unknown: "unknown status",
+          },
+        },
+      },
       productContext: {
         label: "Products for this turn",
         compactLabel: "Product",
@@ -970,7 +1262,9 @@ const messages = {
           "This turn references only the selected product materials.",
         selectedCount: "{{count}} product selected",
         moreCount: "{{count}} more",
+        showMore: "Show {{count}} more product(s)",
         noSearchResult: "No matching product",
+        addProduct: "Add product",
         status: {
           active: "Active",
           draft: "Draft",
@@ -1000,6 +1294,7 @@ const messages = {
           "This turn will read the selected campaigns' goals, budget, dates, status, and saved outputs.",
         selectedCount: "{{count}} campaign selected",
         budget: "Budget {{value}}",
+        showMore: "Show {{count}} more campaign(s)",
         noSearchResult: "No matching campaign",
         status: {
           active: "Active",
@@ -1011,11 +1306,11 @@ const messages = {
         },
       },
       sourceContext: {
-        compactLabel: "Upload sources",
-        noneCompactLabel: "No sources",
-        compactTitle: "Choose sources for this turn",
+        compactLabel: "Upload file library",
+        noneCompactLabel: "No upload files",
+        compactTitle: "Choose upload files for this turn",
         compactReadinessTitle: "{{status}}",
-        noneSelected: "No source selected",
+        noneSelected: "No upload file selected",
         selectedCount: "{{count}} source selected",
         availableCount: "{{count}} available",
         readableCount: "{{count}} readable",
@@ -1040,24 +1335,24 @@ const messages = {
           unsupported: "{{count}} unsupported",
           metadataOnly: "{{count}} metadata only",
         },
-        panelTitle: "Turn sources",
+        panelTitle: "Turn upload files",
         panelHint:
-          "Select current files or attach library files for this answer.",
+          "Select current files or attach upload file library files for this answer.",
         upload: "Upload",
-        manageLibrary: "Manage library",
+        manageLibrary: "Manage upload file library",
         currentSection: "Current conversation files",
         currentSectionHint: "Only selected files are read",
         currentSearch: "Search current files",
         currentNoSearchResult: "No current file matches the search.",
         showMoreCurrent: "Show {{count}} more current file(s)",
-        librarySection: "File library",
+        librarySection: "Upload file library",
         libraryHint: "Attach existing files before selecting them.",
-        librarySearch: "Search library files",
-        libraryLoading: "Loading library",
-        libraryNoSearchResult: "No library file matches the search.",
-        showMoreLibrary: "Show {{count}} more library file(s)",
-        libraryEmpty: "No saved library files yet.",
-        libraryEmptyAction: "Open file library",
+        librarySearch: "Search upload file library files",
+        libraryLoading: "Loading upload file library",
+        libraryNoSearchResult: "No upload file library file matches the search.",
+        showMoreLibrary: "Show {{count}} more upload file library file(s)",
+        libraryEmpty: "No saved upload file library files yet.",
+        libraryEmptyAction: "Open upload file library",
         libraryAttach: "Attach",
         libraryAttached: "Attached",
         libraryStatus: {
@@ -1143,7 +1438,7 @@ const messages = {
         autoRolesHint:
           "The system decides whether this turn needs one or multiple agents.",
         manualRolesHint:
-          "Choose one lead agent for synthesis, then select supporting agents.",
+          "Choose one lead agent for synthesis, then select supporting agents. Up to {{max}} agents; selecting more makes the response slower.",
         roleModeHint:
           "Choose how this turn calls agents: automatic dispatch, one selected agent, or selected multi-agent collaboration.",
         learningLevels: {
@@ -1673,6 +1968,9 @@ const messages = {
           memory: {
             label: "History memory",
             detail: "Loaded {{count}} records, kinds {{kinds}}",
+            detailWithRecords: "Loaded {{count}} records, kinds {{kinds}}; summaries {{records}}",
+            recordChars: "{{count}} chars",
+            recordTruncated: "truncated",
           },
           conversationContext: {
             label: "Conversation context",
@@ -2656,6 +2954,16 @@ const messages = {
     },
     error: {
       passwordMismatch: "Passwords do not match.",
+    },
+    profile: {
+      schoolName: {
+        label: "School (optional)",
+        placeholder: "Enter school name",
+      },
+      teamName: {
+        label: "Team name (optional)",
+        placeholder: "Enter team name",
+      },
     },
   },
 } as const

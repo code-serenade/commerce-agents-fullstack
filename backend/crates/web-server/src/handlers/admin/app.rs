@@ -27,6 +27,8 @@ fn map_app_user_response(app_user: service::dto::app::AppUserResponse) -> AppUse
         user_id: app_user.user_id,
         display_id: app_user.display_id,
         display_name: app_user.display_name,
+        school_name: app_user.school_name,
+        team_name: app_user.team_name,
         remark: app_user.remark,
         status: match app_user.status {
             service::dto::app::AppUserStatus::Enabled => AppUserStatus::Enabled,

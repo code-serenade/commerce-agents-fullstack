@@ -123,7 +123,15 @@
     "conversation_file:",
     "no matching local product knowledge",
     "context.combined_summary",
+    "worker.assignment.input",
+    "assignment.input",
     "commerce.selected_product_context",
+    "conversation.memorysummaryjson",
+    "conversation.memory_summary_json",
+    "memorysummaryjson",
+    "memorybudget",
+    "memory_budget",
+    "sourcemap",
     "productcontextsummary",
     "workspacecontext.summary",
     "workspacecontextpack.summary",
@@ -226,6 +234,8 @@
     "skill=",
     "adapter_status",
     "requested context refs",
+    "worker.assignment.input",
+    "assignment.input",
     "当前岗位任务",
     "user:",
     "assistant:",
@@ -240,6 +250,12 @@
     "retrieved knowledge source",
     "context.combined_summary",
     "commerce.selected_product_context",
+    "conversation.memorysummaryjson",
+    "conversation.memory_summary_json",
+    "memorysummaryjson",
+    "memorybudget",
+    "memory_budget",
+    "sourcemap",
     "productcontextsummary",
     "same conversation structured memory",
     "rolling summary",
@@ -283,5 +299,86 @@
     "避免一开始就做大预算",
     "同时改动过多变量会导致复盘无法归因",
     "每轮只改最影响判断的少量变量"
+  ],
+  "answer_structure_rules": [
+    {
+      "text_any": [
+        "复盘",
+        "直播数据",
+        "整改",
+        "下次复盘",
+        "成交转化率",
+        "退款率",
+        "GMV",
+        "ROAS"
+      ],
+      "sections": [
+        {
+          "heading": "结论摘要",
+          "aliases": [
+            "结论",
+            "复盘结论",
+            "总结",
+            "总判断",
+            "核心结论",
+            "整体结论"
+          ]
+        },
+        {
+          "heading": "直播数据结论",
+          "aliases": [
+            "数据结论",
+            "直播数据",
+            "关键数据",
+            "经营数据",
+            "数据表现",
+            "指标结论"
+          ]
+        },
+        {
+          "heading": "经营问题诊断",
+          "aliases": [
+            "问题诊断",
+            "经营诊断",
+            "问题",
+            "核心问题",
+            "原因诊断",
+            "问题分析"
+          ]
+        },
+        {
+          "heading": "整改优先级",
+          "aliases": [
+            "优先级",
+            "整改顺序",
+            "处理优先级",
+            "优化优先级",
+            "整改重点"
+          ]
+        },
+        {
+          "heading": "落地优化建议",
+          "aliases": [
+            "优化建议",
+            "落地建议",
+            "行动建议",
+            "执行建议",
+            "改进动作",
+            "下一步动作"
+          ]
+        },
+        {
+          "heading": "下次复盘字段",
+          "aliases": [
+            "复盘字段",
+            "下次记录字段",
+            "下轮复盘字段",
+            "下一次复盘字段",
+            "需要补充字段",
+            "下次看什么"
+          ]
+        }
+      ]
+    }
   ]
 }

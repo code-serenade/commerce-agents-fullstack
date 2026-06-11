@@ -5,8 +5,9 @@ use std::{
 };
 
 use agent::api::{
-    AgentId, AgentLlmUsageCfg, AgentManager, AgentRequest, AgentRuntimeCfg, SessionEventRx,
-    SessionId, UserId, VisionPreprocessAgent, VisionPreprocessAgentConfig, VisionPreprocessInput,
+    AgentId, AgentLlmUsageCfg, AgentManager, AgentRequest, AgentRuntimeCfg, FormDraftAgent,
+    FormDraftAgentConfig, FormDraftInput, FormDraftResult, MemoryBundle, SessionEventRx, SessionId,
+    UserId, VisionPreprocessAgent, VisionPreprocessAgentConfig, VisionPreprocessInput,
     VisionPreprocessResult, WorkspaceId, build_agent_manager,
 };
 use uuid::Uuid;
@@ -59,9 +60,19 @@ pub fn agent_runtime_llm_usage() -> Result<AgentLlmUsageCfg> {
     Ok(registry.llm_usage.clone())
 }
 
+pub fn load_memory_bundle_preview(request: &AgentRequest) -> Result<MemoryBundle> {
+    let registry = registry()?;
+    Ok(registry.manager.load_memory_bundle_preview(request))
+}
+
 pub fn vision_preprocess_config() -> Result<VisionPreprocessAgentConfig> {
     VisionPreprocessAgentConfig::load_default()
         .map_err(|err| Error::Custom(format!("vision preprocess config failed: {err}")))
+}
+
+pub fn form_draft_config() -> Result<FormDraftAgentConfig> {
+    FormDraftAgentConfig::load_default()
+        .map_err(|err| Error::Custom(format!("form draft config failed: {err}")))
 }
 
 pub async fn run_vision_preprocess(input: VisionPreprocessInput) -> Result<VisionPreprocessResult> {
@@ -92,6 +103,38 @@ pub async fn run_vision_preprocess(input: VisionPreprocessInput) -> Result<Visio
         llm_model = ?result.llm_model,
         summary_chars = result.summary.chars().count(),
         "vision preprocess runtime finished"
+    );
+    Ok(result)
+}
+
+#[allow(dead_code)]
+pub async fn run_form_draft(input: FormDraftInput) -> Result<FormDraftResult> {
+    let registry = registry()?;
+    let config = form_draft_config()?;
+    let draft_kind = input.kind.as_str();
+    let prompt_key = config.prompt_for_kind(input.kind).to_string();
+    tracing::debug!(
+        system_agent_id = %config.id,
+        analysis_kind = %config.analysis_kind,
+        prompt = %prompt_key,
+        prompt_version = %config.prompt_version,
+        draft_kind = %draft_kind,
+        "form draft runtime initializing"
+    );
+    let agent = FormDraftAgent::new(config, &registry.config.llm, &registry.config.llm_usage)
+        .map_err(|err| Error::Custom(format!("form draft init failed: {err}")))?;
+    let result = agent
+        .run(input)
+        .await
+        .map_err(|err| Error::Custom(format!("form draft failed: {err}")))?;
+    tracing::debug!(
+        analysis_kind = %result.analysis_kind,
+        prompt_key = %result.prompt_key,
+        prompt_version = %result.prompt_version,
+        llm_name = %result.llm_name,
+        llm_model = ?result.llm_model,
+        draft_kind = %draft_kind,
+        "form draft runtime finished"
     );
     Ok(result)
 }
@@ -205,9 +248,9 @@ fn new_session_id() -> String {
 
 #[cfg(test)]
 mod tests {
-    use agent::api::{AgentLlmCfg, AgentLlmUsageCfg, AgentRuntimeCfg};
+    use agent::api::{AgentLlmCfg, AgentLlmUsageCfg, AgentRuntimeCfg, FormDraftKind};
 
-    use super::resolve_llm_usage;
+    use super::{form_draft_config, resolve_llm_usage};
 
     fn llm(name: &str, model: &str) -> AgentLlmCfg {
         AgentLlmCfg {
@@ -262,5 +305,29 @@ mod tests {
         assert_eq!(usage.default.as_deref(), Some("first-llm"));
         assert_eq!(usage.fast.as_deref(), Some("second-llm"));
         assert_eq!(usage.thinking.as_deref(), Some("first-llm"));
+    }
+
+    #[test]
+    fn form_draft_config_loads_system_agent_boundary() {
+        let config = form_draft_config().expect("form draft config should load");
+        let usage = AgentLlmUsageCfg {
+            default: Some("default-llm".to_string()),
+            fast: Some("fast-llm".to_string()),
+            thinking: Some("thinking-llm".to_string()),
+            vision: None,
+        };
+
+        assert_eq!(config.id, "form_draft_generator");
+        assert_eq!(config.analysis_kind, "form_draft");
+        assert_eq!(config.llm_usage, "fast");
+        assert_eq!(config.usage_name(&usage).unwrap(), "fast-llm");
+        assert_eq!(
+            config.prompt_for_kind(FormDraftKind::Product),
+            "zh/form_drafts/product_form_draft.md"
+        );
+        assert_eq!(
+            config.prompt_for_kind(FormDraftKind::Campaign),
+            "zh/form_drafts/campaign_form_draft.md"
+        );
     }
 }

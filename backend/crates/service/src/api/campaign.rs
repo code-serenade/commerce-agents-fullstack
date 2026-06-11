@@ -12,18 +12,23 @@ use repo::table::{
     workspace_artifacts::{WorkspaceArtifact, WorkspaceArtifactService, WorkspaceArtifactStatus},
     workspaces::{Workspace, WorkspaceService, WorkspaceStatus},
 };
+use serde::Deserialize;
 use serde_json::{Value, json};
+use utils::llm_json::parse_llm_json;
 use uuid::Uuid;
 
 use crate::dto::campaign::{
-    CampaignDraftResponse, CampaignDraftSourceResponse, CampaignListResponse, CampaignResponse,
-    CreateCampaignDraftRequest, CreateCampaignRequest, DeleteCampaignRequest, GetCampaignRequest,
-    ListCampaignsRequest, UpdateCampaignRequest,
+    CampaignDraftResponse, CampaignDraftSourceResponse, CampaignFormDraftResponse,
+    CampaignFormDraftValues, CampaignListResponse, CampaignResponse,
+    CampaignTemplateImportResponse, CampaignTemplateResponse, CreateCampaignDraftRequest,
+    CreateCampaignFormDraftRequest, CreateCampaignRequest, DeleteCampaignRequest,
+    GetCampaignRequest, ImportCampaignTemplateRequest, ListCampaignsRequest, UpdateCampaignRequest,
 };
 
 const DEFAULT_PAGE: u64 = 1;
 const DEFAULT_PAGE_SIZE: u64 = 20;
 const MAX_PAGE_SIZE: u64 = 100;
+const CAMPAIGN_TEMPLATE_LIMIT: u64 = 500;
 
 pub struct CampaignApi {
     app_user_svc: AppUserService,
@@ -134,6 +139,95 @@ impl CampaignApi {
             .await?;
 
         Self::map_campaign(campaign)
+    }
+
+    pub async fn list_templates(
+        &self,
+        user_id: String,
+    ) -> BizResult<Vec<CampaignTemplateResponse>> {
+        let user_id = parse_user_id(&user_id)?;
+        self.ensure_app_user_enabled(user_id).await?;
+
+        Ok(campaign_templates()
+            .into_iter()
+            .map(campaign_template_response)
+            .collect())
+    }
+
+    pub async fn import_template(
+        &self,
+        req: ImportCampaignTemplateRequest,
+    ) -> BizResult<CampaignTemplateImportResponse> {
+        let user_id = parse_user_id(&req.user_id)?;
+        self.ensure_app_user_enabled(user_id).await?;
+        let product_id = parse_optional_uuid(req.product_id, "product_id")?;
+        if let Some(product_id) = product_id {
+            self.ensure_active_product_owner(user_id, product_id)
+                .await?;
+        }
+        let template = find_campaign_template(&req.template_id)?;
+
+        if let Some(existing) = self
+            .find_imported_template_campaign(user_id, template.id, product_id)
+            .await?
+        {
+            return Ok(CampaignTemplateImportResponse {
+                campaign: Self::map_campaign(existing)?,
+                created: false,
+                template_id: template.id.to_string(),
+            });
+        }
+
+        let campaign = self
+            .campaign_svc
+            .create(CreateCampaign {
+                id: Uuid::new_v4(),
+                user_id,
+                product_id,
+                name: template.name.to_string(),
+                campaign_type: Some(template.campaign_type.to_string()),
+                description: Some(template.description.to_string()),
+                budget: template.budget,
+                start_date: Some(template.start_date.to_string()),
+                end_date: Some(template.end_date.to_string()),
+                status: CampaignStatus::Draft,
+                metadata: json!({
+                    "source": "demo_template",
+                    "templateId": template.id,
+                    "importedAt": now_rfc3339(),
+                }),
+                output: json!({
+                    "templateId": template.id,
+                    "checkpoints": template.checkpoints,
+                }),
+                action_metadata: json!({
+                    "action": "import_campaign_template",
+                    "executionStatus": "not_submitted",
+                    "requiresApproval": true,
+                }),
+            })
+            .await?;
+
+        Ok(CampaignTemplateImportResponse {
+            campaign: Self::map_campaign(campaign)?,
+            created: true,
+            template_id: template.id.to_string(),
+        })
+    }
+
+    pub async fn create_form_draft(
+        &self,
+        req: CreateCampaignFormDraftRequest,
+    ) -> BizResult<CampaignFormDraftResponse> {
+        let user_id = parse_user_id(&req.user_id)?;
+        self.ensure_app_user_enabled(user_id).await?;
+        let product_id = parse_optional_uuid(req.product_id.clone(), "product_id")?;
+        if let Some(product_id) = product_id {
+            self.ensure_active_product_owner(user_id, product_id)
+                .await?;
+        }
+
+        Ok(build_campaign_form_draft(req))
     }
 
     pub async fn create_campaign_draft(
@@ -415,6 +509,30 @@ impl CampaignApi {
         Ok(campaign)
     }
 
+    async fn find_imported_template_campaign(
+        &self,
+        user_id: Uuid,
+        template_id: &str,
+        product_id: Option<Uuid>,
+    ) -> BizResult<Option<Campaign>> {
+        let campaigns = self
+            .campaign_svc
+            .list(CampaignFilter {
+                user_id,
+                product_id,
+                status: None,
+                campaign_type: None,
+                keyword: None,
+                limit: Some(CAMPAIGN_TEMPLATE_LIMIT),
+                offset: None,
+            })
+            .await?;
+
+        Ok(campaigns
+            .into_iter()
+            .find(|campaign| campaign.metadata["templateId"].as_str() == Some(template_id)))
+    }
+
     async fn ensure_workspace_owner(
         &self,
         user_id: Uuid,
@@ -506,6 +624,255 @@ impl CampaignApi {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+struct CampaignTemplate {
+    id: &'static str,
+    name: &'static str,
+    campaign_type: &'static str,
+    description: &'static str,
+    budget: f64,
+    start_date: &'static str,
+    end_date: &'static str,
+    checkpoints: &'static [&'static str],
+}
+
+fn campaign_templates() -> Vec<CampaignTemplate> {
+    vec![
+        CampaignTemplate {
+            id: "seven-day-short-video-test",
+            name: "7天短视频测款活动",
+            campaign_type: "promotion",
+            description: "围绕核心卖点连续发布短视频内容，验证点击率、收藏率、加购率和评论反馈。",
+            budget: 3000.0,
+            start_date: "2026-06-24",
+            end_date: "2026-06-30",
+            checkpoints: &["首日素材点击率", "第3天加购率", "第7天转化与复盘"],
+        },
+        CampaignTemplate {
+            id: "live-room-cold-start",
+            name: "直播间冷启动活动",
+            campaign_type: "launch",
+            description: "用小预算测试直播间承接，围绕进房率、停留、互动和成交话术做分阶段复盘。",
+            budget: 5000.0,
+            start_date: "2026-07-01",
+            end_date: "2026-07-07",
+            checkpoints: &["直播首场停留", "话术转化", "投放 ROI"],
+        },
+        CampaignTemplate {
+            id: "private-domain-repeat-purchase",
+            name: "老客复购唤醒活动",
+            campaign_type: "promotion",
+            description: "通过优惠券、组合装和内容提醒唤醒老客复购，重点跟踪触达率、领取率和复购率。",
+            budget: 2000.0,
+            start_date: "2026-07-08",
+            end_date: "2026-07-14",
+            checkpoints: &["老客触达率", "券领取率", "复购 GMV"],
+        },
+    ]
+}
+
+fn find_campaign_template(template_id: &str) -> BizResult<CampaignTemplate> {
+    let template_id = normalize_required(template_id.to_string(), "template_id")?;
+    campaign_templates()
+        .into_iter()
+        .find(|template| template.id == template_id)
+        .ok_or_else(|| {
+            BizError::new(
+                app_error::CAMPAIGN_REQUEST_INVALID,
+                format!("unknown campaign template: {template_id}"),
+            )
+        })
+}
+
+fn campaign_template_response(template: CampaignTemplate) -> CampaignTemplateResponse {
+    CampaignTemplateResponse {
+        id: template.id.to_string(),
+        name: template.name.to_string(),
+        campaign_type: Some(template.campaign_type.to_string()),
+        description: Some(template.description.to_string()),
+        budget: Some(template.budget),
+        start_date: Some(template.start_date.to_string()),
+        end_date: Some(template.end_date.to_string()),
+    }
+}
+
+fn build_campaign_form_draft(req: CreateCampaignFormDraftRequest) -> CampaignFormDraftResponse {
+    let product_id = normalize_optional(req.product_id);
+    let goal = normalize_optional(req.goal);
+    let target_audience = normalize_optional(req.target_audience);
+    let channels = normalize_string_vec(req.channels);
+    let prompt = normalize_optional(req.prompt);
+    let name = normalize_optional(req.name)
+        .or_else(|| {
+            goal.as_ref()
+                .map(|goal| format!("{}活动", truncate_chars(goal, 18)))
+        })
+        .unwrap_or_else(|| "电商实训活动草稿".to_string());
+    let campaign_type = normalize_optional(req.campaign_type)
+        .unwrap_or_else(|| infer_campaign_type(goal.as_deref(), prompt.as_deref()));
+    let budget = req.budget.or_else(|| infer_campaign_budget(&campaign_type));
+    let description = normalize_optional(req.description).unwrap_or_else(|| {
+        campaign_form_draft_description(
+            &name,
+            &campaign_type,
+            goal.as_deref(),
+            target_audience.as_deref(),
+            &channels,
+            prompt.as_deref(),
+        )
+    });
+    let mut warnings = Vec::new();
+    if product_id.is_none() {
+        warnings.push("missing_product_review_before_save".to_string());
+    }
+    if prompt.is_none() && goal.is_none() {
+        warnings.push("missing_prompt_used_template_draft".to_string());
+    }
+
+    CampaignFormDraftResponse {
+        draft: CampaignFormDraftValues {
+            product_id,
+            name,
+            campaign_type: Some(campaign_type),
+            description: Some(description),
+            budget,
+            start_date: normalize_optional(req.start_date)
+                .or_else(|| Some("2026-06-24".to_string())),
+            end_date: normalize_optional(req.end_date).or_else(|| Some("2026-06-30".to_string())),
+            status: "draft".to_string(),
+        },
+        warnings,
+        generation_mode: "template_smart_fill".to_string(),
+        agent_context: json!({
+            "type": "campaign_form_draft",
+            "generationSource": "deterministic_template",
+            "directWrite": false,
+            "requiresUserReview": true,
+            "llm": {
+                "used": false,
+                "futureRoute": "agent_session_sse"
+            },
+            "draftQuality": {
+                "schema": "campaign_form_draft_v1",
+                "fieldNormalization": "trim_empty_to_default",
+                "invalidModelJsonPolicy": "reject_before_form_fill",
+                "manualReviewRequired": true
+            },
+            "saveBoundary": {
+                "directWrite": false,
+                "requiresUserReview": true,
+                "persistenceEndpoint": "POST /api/app/campaigns"
+            }
+        }),
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(not(test), allow(dead_code))]
+#[serde(rename_all = "camelCase")]
+struct CampaignFormDraftLlmCandidate {
+    product_id: Option<String>,
+    name: Option<String>,
+    campaign_type: Option<String>,
+    description: Option<String>,
+    budget: Option<f64>,
+    start_date: Option<String>,
+    end_date: Option<String>,
+    status: Option<String>,
+}
+
+#[cfg_attr(not(test), allow(dead_code))]
+pub(crate) fn parse_campaign_form_draft_from_llm(raw: &str) -> BizResult<CampaignFormDraftValues> {
+    let candidate = parse_llm_json::<CampaignFormDraftLlmCandidate>(raw).map_err(|err| {
+        BizError::new(
+            app_error::CAMPAIGN_REQUEST_INVALID,
+            format!("invalid campaign form draft JSON: {err}"),
+        )
+    })?;
+
+    if let Some(status) = normalize_optional(candidate.status) {
+        let status = parse_status(status)?;
+        if status != CampaignStatus::Draft {
+            return Err(BizError::new(
+                app_error::CAMPAIGN_REQUEST_INVALID,
+                "campaign form draft status must be draft".to_string(),
+            ));
+        }
+    }
+
+    let product_id =
+        parse_optional_uuid(candidate.product_id, "product_id")?.map(|value| value.to_string());
+    let name = normalize_optional(candidate.name).ok_or_else(|| {
+        BizError::new(
+            app_error::CAMPAIGN_REQUEST_INVALID,
+            "campaign form draft name cannot be empty".to_string(),
+        )
+    })?;
+
+    Ok(CampaignFormDraftValues {
+        product_id,
+        name,
+        campaign_type: normalize_optional(candidate.campaign_type),
+        description: normalize_optional(candidate.description),
+        budget: candidate.budget,
+        start_date: normalize_optional(candidate.start_date),
+        end_date: normalize_optional(candidate.end_date),
+        status: CampaignStatus::Draft.as_str().to_string(),
+    })
+}
+
+fn infer_campaign_type(goal: Option<&str>, prompt: Option<&str>) -> String {
+    let text = [goal, prompt]
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>()
+        .join(" ");
+    if text.contains("直播") || text.to_ascii_lowercase().contains("live") {
+        "launch".to_string()
+    } else if text.contains("复盘") || text.contains("数据") {
+        "ad_review".to_string()
+    } else {
+        "promotion".to_string()
+    }
+}
+
+fn infer_campaign_budget(campaign_type: &str) -> Option<f64> {
+    Some(match campaign_type {
+        "launch" => 5000.0,
+        "ad_review" => 1000.0,
+        _ => 3000.0,
+    })
+}
+
+fn campaign_form_draft_description(
+    name: &str,
+    campaign_type: &str,
+    goal: Option<&str>,
+    target_audience: Option<&str>,
+    channels: &[String],
+    prompt: Option<&str>,
+) -> String {
+    let goal = goal.unwrap_or("验证商品卖点和转化表现");
+    let audience = target_audience.unwrap_or("目标消费人群");
+    let channels = if channels.is_empty() {
+        "短视频、直播和私域触达".to_string()
+    } else {
+        channels.join("、")
+    };
+    let prompt_hint = prompt
+        .map(|value| format!(" 补充要求：{}。", truncate_chars(value, 120)))
+        .unwrap_or_default();
+    format!(
+        "{name} 是一个 {campaign_type} 类型的电商实训活动草稿，目标是{goal}，面向{audience}，建议优先覆盖{channels}，并跟踪曝光、点击、加购、成交和复盘结论。{prompt_hint}"
+    )
+}
+
+fn now_rfc3339() -> String {
+    time::OffsetDateTime::now_utc()
+        .format(&time::format_description::well_known::Rfc3339)
+        .unwrap_or_else(|_| "1970-01-01T00:00:00Z".to_string())
+}
+
 struct CampaignDraftPlanningInput {
     goal: Option<String>,
     target_audience: Option<String>,
@@ -557,18 +924,22 @@ fn parse_optional_uuid(value: Option<String>, label: &str) -> BizResult<Option<U
 fn parse_optional_status(value: Option<String>) -> BizResult<Option<CampaignStatus>> {
     value
         .and_then(normalize_string)
-        .map(|value| match value.as_str() {
-            "draft" => Ok(CampaignStatus::Draft),
-            "active" => Ok(CampaignStatus::Active),
-            "paused" => Ok(CampaignStatus::Paused),
-            "ended" => Ok(CampaignStatus::Ended),
-            "archived" => Ok(CampaignStatus::Archived),
-            _ => Err(BizError::new(
-                app_error::CAMPAIGN_REQUEST_INVALID,
-                format!("invalid campaign status: {value}"),
-            )),
-        })
+        .map(parse_status)
         .transpose()
+}
+
+fn parse_status(value: String) -> BizResult<CampaignStatus> {
+    match value.as_str() {
+        "draft" => Ok(CampaignStatus::Draft),
+        "active" => Ok(CampaignStatus::Active),
+        "paused" => Ok(CampaignStatus::Paused),
+        "ended" => Ok(CampaignStatus::Ended),
+        "archived" => Ok(CampaignStatus::Archived),
+        _ => Err(BizError::new(
+            app_error::CAMPAIGN_REQUEST_INVALID,
+            format!("invalid campaign status: {value}"),
+        )),
+    }
 }
 
 fn normalize_required(value: String, label: &str) -> BizResult<String> {
@@ -597,6 +968,10 @@ fn normalize_string_vec(value: Option<Vec<String>>) -> Vec<String> {
         .into_iter()
         .filter_map(normalize_string)
         .collect()
+}
+
+fn truncate_chars(value: &str, max_chars: usize) -> String {
+    value.chars().take(max_chars).collect()
 }
 
 fn default_campaign_draft_type(source_type: &Option<String>) -> &'static str {
@@ -819,6 +1194,109 @@ mod tests {
             docs.warnings
                 .iter()
                 .any(|item| item.contains("source artifact"))
+        );
+    }
+
+    #[test]
+    fn campaign_form_draft_does_not_create_persisted_campaign_shape() {
+        let draft = build_campaign_form_draft(CreateCampaignFormDraftRequest {
+            user_id: "11111111-1111-1111-1111-111111111111".to_string(),
+            product_id: None,
+            name: Some("咖啡直播测款".to_string()),
+            campaign_type: None,
+            description: None,
+            budget: None,
+            start_date: None,
+            end_date: None,
+            goal: Some("验证直播转化".to_string()),
+            target_audience: Some("办公室咖啡用户".to_string()),
+            channels: Some(vec!["douyin".to_string()]),
+            prompt: Some("重点关注停留和加购".to_string()),
+        });
+
+        assert_eq!(draft.draft.name, "咖啡直播测款");
+        assert_eq!(draft.draft.campaign_type.as_deref(), Some("launch"));
+        assert_eq!(draft.draft.status, "draft");
+        assert_eq!(draft.generation_mode, "template_smart_fill");
+        assert_eq!(
+            draft.agent_context["requiresUserReview"].as_bool(),
+            Some(true)
+        );
+        assert_eq!(
+            draft.agent_context["generationSource"].as_str(),
+            Some("deterministic_template")
+        );
+        assert_eq!(draft.agent_context["llm"]["used"].as_bool(), Some(false));
+        assert_eq!(
+            draft.agent_context["draftQuality"]["schema"].as_str(),
+            Some("campaign_form_draft_v1")
+        );
+        assert_eq!(
+            draft.agent_context["draftQuality"]["fieldNormalization"].as_str(),
+            Some("trim_empty_to_default")
+        );
+        assert_eq!(
+            draft.agent_context["draftQuality"]["invalidModelJsonPolicy"].as_str(),
+            Some("reject_before_form_fill")
+        );
+        assert_eq!(
+            draft.agent_context["saveBoundary"]["persistenceEndpoint"].as_str(),
+            Some("POST /api/app/campaigns")
+        );
+    }
+
+    #[test]
+    fn campaign_form_draft_llm_json_accepts_fenced_json_and_server_status() {
+        let draft = parse_campaign_form_draft_from_llm(
+            "```json\n{\"productId\":\"11111111-1111-1111-1111-111111111111\",\"name\":\" 咖啡直播测款 \",\"campaignType\":\"launch\",\"status\":\"draft\",\"budget\":5000}\n```",
+        )
+        .expect("draft parsed");
+
+        assert_eq!(
+            draft.product_id.as_deref(),
+            Some("11111111-1111-1111-1111-111111111111")
+        );
+        assert_eq!(draft.name, "咖啡直播测款");
+        assert_eq!(draft.campaign_type.as_deref(), Some("launch"));
+        assert_eq!(draft.budget, Some(5000.0));
+        assert_eq!(draft.status, "draft");
+    }
+
+    #[test]
+    fn campaign_form_draft_llm_json_rejects_invalid_status_before_fill() {
+        let err = parse_campaign_form_draft_from_llm(
+            r#"{"name":"咖啡直播测款","status":"active","budget":5000}"#,
+        )
+        .unwrap_err();
+
+        assert_eq!(err.code(), app_error::CAMPAIGN_REQUEST_INVALID);
+    }
+
+    #[test]
+    fn campaign_form_draft_llm_json_rejects_bad_json_before_fill() {
+        let err = parse_campaign_form_draft_from_llm("活动名：咖啡直播测款").unwrap_err();
+
+        assert_eq!(err.code(), app_error::CAMPAIGN_REQUEST_INVALID);
+    }
+
+    #[test]
+    fn campaign_form_draft_llm_json_rejects_invalid_product_id() {
+        let err =
+            parse_campaign_form_draft_from_llm(r#"{"productId":"bad-id","name":"咖啡直播测款"}"#)
+                .unwrap_err();
+
+        assert_eq!(err.code(), app_error::CAMPAIGN_REQUEST_INVALID);
+    }
+
+    #[test]
+    fn campaign_templates_are_exported_for_low_cost_onboarding() {
+        let templates = campaign_templates();
+
+        assert!(templates.len() >= 3);
+        assert!(
+            templates
+                .iter()
+                .any(|template| template.id == "live-room-cold-start")
         );
     }
 }

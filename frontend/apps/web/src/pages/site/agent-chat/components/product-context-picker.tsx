@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react"
+import { useNavigate } from "react-router"
 import { useTranslation } from "react-i18next"
 import { Badge, SearchInput } from "@workspace/ui-components"
 import type { AgentChatProductContextSelection } from "../domain/agent-chat-context-selection"
@@ -26,6 +27,7 @@ export function ProductContextPicker({
   selectedProducts: AgentChatProductContextSelection[]
 }) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [query, setQuery] = useState("")
   const [visibleCount, setVisibleCount] = useState(PRODUCT_PAGE_SIZE)
   const filteredProducts = useMemo(
@@ -113,6 +115,7 @@ export function ProductContextPicker({
           disabled={disabled}
           isLoadingProducts={isLoadingProducts}
           onToggleProductContext={onToggleProductContext}
+          onAddProduct={() => navigate("/products")}
           query={query}
           selectedProducts={selectedProducts}
         />

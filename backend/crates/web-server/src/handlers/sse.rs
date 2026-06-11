@@ -3,7 +3,7 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-use agent::api::{SessionEvent, WorkerReportStatus};
+use agent::api::{FormDraftInput, FormDraftResult, SessionEvent, WorkerReportStatus};
 use axum::{
     Extension, Json,
     response::{
@@ -25,20 +25,21 @@ use service::{
             AgentContextSource, AgentRetrievalContextResponse, BuildAgentProductContextRequest,
             BuildAgentRetrievalContextRequest,
         },
-        approval_audit::{CreateAuditLogRequest, CreateToolApprovalRequest},
-        briefing_ops::CreateAlertRequest,
+        approval_audit::{CreateAuditLogRequest, CreateToolApprovalRequest, ToolApprovalResponse},
+        briefing_ops::{AlertResponse, CreateAlertRequest},
         conversation::ConversationMessageResponse,
         workspace::{
-            AgentWorkspaceTaskNode, BuildAgentLearningContextRequest,
-            CompleteAgentWorkspaceRunRequest, EvaluateAgentWorkspaceRunRequest,
-            FailAgentWorkspaceRunRequest, LinkAgentWorkspaceRunRequest,
-            LinkAgentWorkspaceTasksRequest, MarkAgentWorkspaceTaskStartedRequest,
-            MaterializeAgentCampaignDraftRequest, MaterializeAgentContentArtifactRequest,
-            MaterializeAgentWorkspaceTaskRequest, RecordAgentSearchEvidenceRequest,
-            RecordAgentSkillRequestedRequest, RecordAgentSkillResultRequest,
-            RecordAgentWorkspaceTaskEvaluationRequest, RecordAgentWorkspaceTaskReportRequest,
+            AgentLearningRecordResponse, AgentQualityEvaluationResponse, AgentWorkspaceTaskNode,
+            BuildAgentLearningContextRequest, CompleteAgentWorkspaceRunRequest,
+            EvaluateAgentWorkspaceRunRequest, FailAgentWorkspaceRunRequest,
+            LinkAgentWorkspaceRunRequest, LinkAgentWorkspaceTasksRequest,
+            MarkAgentWorkspaceTaskStartedRequest, MaterializeAgentCampaignDraftRequest,
+            MaterializeAgentContentArtifactRequest, MaterializeAgentWorkspaceTaskRequest,
+            RecordAgentSearchEvidenceRequest, RecordAgentSkillRequestedRequest,
+            RecordAgentSkillResultRequest, RecordAgentWorkspaceTaskEvaluationRequest,
+            RecordAgentWorkspaceTaskReportRequest, WorkspaceArtifactResponse,
             WorkspaceContextPackResponse, WorkspaceContextSourceResponse,
-            WorkspaceContextSummaryResponse,
+            WorkspaceContextSummaryResponse, WorkspaceRunResponse, WorkspaceRunTaskResponse,
         },
     },
 };
@@ -48,10 +49,16 @@ use uuid::Uuid;
 use validator::Validate;
 
 use crate::{
-    dto::sse::{AgentStreamContextSelection, AgentStreamRequest},
+    dto::sse::{AgentStreamContextSelection, AgentStreamRequest, FormDraftStreamRequest},
     error::{Error, from_biz_error},
+    handlers::app::form_draft::{
+        FORM_DRAFT_AGENT_FAILURE_MESSAGE, FormDraftGenerationMode, campaign_form_draft_input,
+        map_agent_campaign_form_draft, map_agent_product_form_draft,
+        parse_form_draft_generation_mode, product_form_draft_input,
+    },
     statics::{
-        agent_manager::run_agent_stream, db_manager::get_app_ctx,
+        agent_manager::{run_agent_stream, run_form_draft},
+        db_manager::get_app_ctx,
         external_search::get_external_search_config,
     },
 };
@@ -104,6 +111,35 @@ fn has_explicit_turn_context(context: &AgentStreamContextSelection) -> bool {
         || !context.context_refs.is_empty()
         || context.first_product_ref_id().is_some()
         || !context.campaign_context_refs().is_empty()
+}
+
+fn merge_agent_stream_context_selection_metadata(
+    metadata: &mut std::collections::BTreeMap<String, String>,
+    context: &AgentStreamContextSelection,
+) {
+    if !context.product_ids.is_empty() {
+        metadata.insert(
+            "context.product_ids".to_string(),
+            context.product_ids.join(","),
+        );
+    }
+    if !context.campaign_ids.is_empty() {
+        metadata.insert(
+            "context.campaign_ids".to_string(),
+            context.campaign_ids.join(","),
+        );
+    }
+    if !context.context_refs.is_empty() {
+        append_context_refs(metadata, &context.context_refs);
+    }
+    let campaign_refs = context.campaign_context_refs();
+    if !campaign_refs.is_empty() {
+        append_context_refs(metadata, &campaign_refs);
+    }
+    let product_refs = context.product_context_refs();
+    if !product_refs.is_empty() {
+        append_context_refs(metadata, &product_refs);
+    }
 }
 
 fn input_requests_independent_context(input: &str) -> bool {
@@ -329,6 +365,83 @@ struct AgentVisionImageSummaryAttachment {
     llm_name: Option<String>,
 }
 
+pub async fn stream_form_draft(
+    Extension(_auth_user): Extension<AuthUser>,
+    Json(req): Json<FormDraftStreamRequest>,
+) -> Result<Sse<impl Stream<Item = Result<Event, Infallible>>>, ApiError> {
+    req.validate().map_err(Error::from)?;
+    let target = form_draft_stream_target(req).map_err(bad_request)?;
+    let kind = target.kind;
+    let form_type = kind.form_type().to_string();
+    let input = target.input;
+
+    let stream = async_stream::stream! {
+        yield Ok(typed_camel_json_event(
+            "form_draft_started",
+            form_draft_started_payload(&form_type),
+        ));
+        yield Ok(typed_camel_json_event(
+            "form_draft_input_preflighted",
+            form_draft_input_preflighted_payload(&form_type, &input),
+        ));
+        yield Ok(typed_camel_json_event(
+            "form_draft_agent_started",
+            form_draft_agent_started_payload(&form_type),
+        ));
+        yield Ok(typed_camel_json_event(
+            "form_draft_output_validation_started",
+            form_draft_output_validation_started_payload(&form_type),
+        ));
+
+        match run_form_draft(input).await {
+            Ok(result) => {
+                yield Ok(typed_camel_json_event(
+                    "form_draft_output_validation_passed",
+                    form_draft_output_validation_passed_payload(&form_type),
+                ));
+                match form_draft_response_value(kind, result) {
+                    Ok(response) => {
+                        for (event, payload) in form_draft_mapped_success_events(&form_type, response) {
+                            yield Ok(typed_camel_json_event(event, payload));
+                        }
+                        yield Ok(json_event("done", json!({})));
+                    }
+                    Err(err) => {
+                        tracing::warn!(error = %err, "form draft response serialization failed");
+                        yield Ok(typed_camel_json_event(
+                            "form_draft_failed",
+                            form_draft_failed_payload(&form_type, "response_mapping_failed"),
+                        ));
+                        yield Ok(json_event(
+                            "error",
+                            json!({ "message": FORM_DRAFT_AGENT_FAILURE_MESSAGE }),
+                        ));
+                        yield Ok(json_event("done", json!({})));
+                    }
+                }
+            }
+            Err(err) => {
+                tracing::warn!(error = %err, "form draft stream failed before form fill");
+                yield Ok(typed_camel_json_event(
+                    "form_draft_failed",
+                    form_draft_failed_payload(&form_type, "agent_run_failed"),
+                ));
+                yield Ok(json_event(
+                    "error",
+                    json!({ "message": FORM_DRAFT_AGENT_FAILURE_MESSAGE }),
+                ));
+                yield Ok(json_event("done", json!({})));
+            }
+        }
+    };
+
+    Ok(Sse::new(stream).keep_alive(
+        KeepAlive::new()
+            .interval(Duration::from_secs(15))
+            .text("keep-alive"),
+    ))
+}
+
 pub async fn stream_agent_session(
     Extension(auth_user): Extension<AuthUser>,
     Json(req): Json<AgentStreamRequest>,
@@ -355,6 +468,7 @@ pub async fn stream_agent_session(
             reason.to_string(),
         );
     }
+    merge_agent_stream_context_selection_metadata(&mut metadata, &context_selection);
     let conversation_id = context_selection.conversation_id.clone();
     let mut conversation_memory_summary: Option<Value> = None;
     let mut conversation_context_loaded: Option<Value> = None;
@@ -583,23 +697,19 @@ pub async fn stream_agent_session(
         }
         yield Ok(typed_camel_json_event(
             "workspace_context_loaded",
-            serde_json::to_value(&workspace_context)
-                .unwrap_or_else(|_| json!({ "type": "workspace_context_loaded" })),
+            workspace_context_loaded_public_payload(&workspace_context),
         ));
         yield Ok(typed_camel_json_event(
             "workspace_context_pack_loaded",
-            serde_json::to_value(&workspace_context_pack)
-                .unwrap_or_else(|_| json!({ "type": "workspace_context_pack_loaded" })),
+            workspace_context_pack_loaded_public_payload(&workspace_context_pack),
         ));
         yield Ok(typed_camel_json_event(
             "rag_context_loaded",
-            serde_json::to_value(&retrieval_context)
-                .unwrap_or_else(|_| json!({ "type": "rag_context_loaded" })),
+            rag_context_loaded_public_payload(&retrieval_context),
         ));
         while let Some(event) = events.recv().await {
             let event_name = event.event_name();
-            let event_value = serde_json::to_value(&event)
-                .unwrap_or_else(|_| json!({ "type": event_name }));
+            let event_value = agent_session_event_public_payload(&event);
             yield Ok(json_event(event_name, event_value));
 
             match &event {
@@ -662,8 +772,7 @@ pub async fn stream_agent_session(
                     match response {
                         Ok(value) => yield Ok(typed_camel_json_event(
                             "workspace_run_task_updated",
-                            serde_json::to_value(value)
-                                .unwrap_or_else(|_| json!({ "type": "workspace_run_task_updated" })),
+                            workspace_run_task_updated_public_payload(&value),
                         )),
                         Err(err) => yield Ok(persistence_error_event("mark_agent_task_started", err)),
                     }
@@ -700,8 +809,7 @@ pub async fn stream_agent_session(
                     match response {
                         Ok(value) => yield Ok(typed_camel_json_event(
                             "workspace_run_task_updated",
-                            serde_json::to_value(value)
-                                .unwrap_or_else(|_| json!({ "type": "workspace_run_task_updated" })),
+                            workspace_run_task_updated_public_payload(&value),
                         )),
                         Err(err) => yield Ok(persistence_error_event("record_agent_task_report", err)),
                     }
@@ -727,8 +835,7 @@ pub async fn stream_agent_session(
                     match response {
                         Ok(value) => yield Ok(typed_camel_json_event(
                             "workspace_run_task_updated",
-                            serde_json::to_value(value)
-                                .unwrap_or_else(|_| json!({ "type": "workspace_run_task_updated" })),
+                            workspace_run_task_updated_public_payload(&value),
                         )),
                         Err(err) => yield Ok(persistence_error_event("record_agent_task_evaluation", err)),
                     }
@@ -840,9 +947,7 @@ pub async fn stream_agent_session(
                     match memory_materialize_response {
                         Ok(Some(record)) => yield Ok(typed_camel_json_event(
                             "agent_learning_record_created",
-                            serde_json::to_value(record).unwrap_or_else(
-                                |_| json!({ "type": "agent_learning_record_created" }),
-                            ),
+                            agent_learning_record_created_public_payload(&record),
                         )),
                         Ok(None) => {}
                         Err(err) => {
@@ -873,9 +978,7 @@ pub async fn stream_agent_session(
                             if let Some(artifact) = value.artifact {
                                 yield Ok(typed_camel_json_event(
                                     "workspace_artifact_created",
-                                    serde_json::to_value(artifact).unwrap_or_else(
-                                        |_| json!({ "type": "workspace_artifact_created" }),
-                                    ),
+                                    workspace_artifact_created_public_payload(&artifact),
                                 ));
                             }
                         }
@@ -901,8 +1004,7 @@ pub async fn stream_agent_session(
                     match content_artifact_response {
                         Ok(Some(artifact)) => yield Ok(typed_camel_json_event(
                             "workspace_artifact_created",
-                            serde_json::to_value(artifact)
-                                .unwrap_or_else(|_| json!({ "type": "workspace_artifact_created" })),
+                            workspace_artifact_created_public_payload(&artifact),
                         )),
                         Ok(None) => {}
                         Err(err) => {
@@ -930,8 +1032,7 @@ pub async fn stream_agent_session(
                         match response {
                             Ok(Some(artifact)) => yield Ok(typed_camel_json_event(
                                 "workspace_artifact_created",
-                                serde_json::to_value(artifact)
-                                    .unwrap_or_else(|_| json!({ "type": "workspace_artifact_created" })),
+                                workspace_artifact_created_public_payload(&artifact),
                             )),
                             Ok(None) => {}
                             Err(err) => {
@@ -1039,15 +1140,17 @@ pub async fn stream_agent_session(
 
                                 yield Ok(typed_camel_json_event(
                                     "approval_required",
-                                    json!({
-                                        "approval": approval,
-                                        "alert": alert,
-                                        "skillId": skill_id,
-                                        "requestId": request_id,
-                                        "role": role,
-                                        "riskLevel": risk_level,
-                                        "reason": reason,
-                                    }),
+                                    approval_required_public_payload(
+                                        &approval,
+                                        alert.as_ref(),
+                                        ApprovalRequiredPublicPayloadRef {
+                                            skill_id,
+                                            request_id,
+                                            role,
+                                            risk_level: &risk_level,
+                                            reason: &reason,
+                                        },
+                                    ),
                                 ));
                             }
                             Err(err) => yield Ok(persistence_error_event("create_tool_approval", err)),
@@ -1076,8 +1179,7 @@ pub async fn stream_agent_session(
                                 link_state.completed = true;
                                 yield Ok(typed_camel_json_event(
                                     "workspace_run_failed",
-                                    serde_json::to_value(value)
-                                        .unwrap_or_else(|_| json!({ "type": "workspace_run_failed" })),
+                                    workspace_run_public_payload(&value),
                                 ));
                             }
                             Err(err) => yield Ok(persistence_error_event("fail_agent_run", err)),
@@ -1095,7 +1197,31 @@ pub async fn stream_agent_session(
                         }),
                     ));
                     if !link_state.completed {
-                        tokio::spawn(finalize_completed_agent_run(link_state.clone()));
+                        let completion = finalize_completed_agent_run(link_state.clone()).await;
+                        if let Some(run) = completion.run {
+                            yield Ok(typed_camel_json_event(
+                                "workspace_run_completed",
+                                run,
+                            ));
+                        }
+                        if let Some(artifact) = completion.artifact {
+                            yield Ok(typed_camel_json_event(
+                                "workspace_artifact_created",
+                                artifact,
+                            ));
+                        }
+                        if let Some(quality) = completion.quality {
+                            yield Ok(typed_camel_json_event("quality_checked", quality));
+                        }
+                        if let Some(memory) = completion.memory {
+                            yield Ok(typed_camel_json_event(
+                                "conversation_memory_updated",
+                                memory,
+                            ));
+                        }
+                        for error in completion.persistence_errors {
+                            yield Ok(typed_json_event("workspace_run_persistence_error", error));
+                        }
                         link_state.completed = true;
                     }
                     yield Ok(json_event("done", json!({})));
@@ -1141,6 +1267,221 @@ struct ApprovalSkillResultRef<'a> {
 
 fn json_event(event: &'static str, value: serde_json::Value) -> Event {
     Event::default().event(event).data(value.to_string())
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum FormDraftStreamKind {
+    Product,
+    Campaign,
+}
+
+#[derive(Debug)]
+struct FormDraftStreamTarget {
+    kind: FormDraftStreamKind,
+    input: FormDraftInput,
+}
+
+impl FormDraftStreamKind {
+    fn form_type(self) -> &'static str {
+        match self {
+            Self::Product => "product",
+            Self::Campaign => "campaign",
+        }
+    }
+}
+
+fn form_draft_stream_target(req: FormDraftStreamRequest) -> Result<FormDraftStreamTarget, String> {
+    match req.form_type.trim() {
+        "product" => {
+            if req.campaign.is_some() {
+                return Err("formType=product must not include campaign payload".to_string());
+            }
+            let product = req
+                .product
+                .ok_or_else(|| "formType=product requires product payload".to_string())?;
+            product.validate().map_err(|err| err.to_string())?;
+            validate_agent_generation_mode(product.generation_mode.as_deref())?;
+            Ok(FormDraftStreamTarget {
+                kind: FormDraftStreamKind::Product,
+                input: product_form_draft_input(&product),
+            })
+        }
+        "campaign" => {
+            if req.product.is_some() {
+                return Err("formType=campaign must not include product payload".to_string());
+            }
+            let campaign = req
+                .campaign
+                .ok_or_else(|| "formType=campaign requires campaign payload".to_string())?;
+            campaign.validate().map_err(|err| err.to_string())?;
+            validate_agent_generation_mode(campaign.generation_mode.as_deref())?;
+            Ok(FormDraftStreamTarget {
+                kind: FormDraftStreamKind::Campaign,
+                input: campaign_form_draft_input(&campaign),
+            })
+        }
+        _ => Err("formType must be product or campaign".to_string()),
+    }
+}
+
+fn validate_agent_generation_mode(value: Option<&str>) -> Result<(), String> {
+    match parse_form_draft_generation_mode(value)? {
+        FormDraftGenerationMode::AgentLlm => Ok(()),
+        FormDraftGenerationMode::TemplateSmartFill => {
+            Err("form draft SSE requires generationMode=agent_llm".to_string())
+        }
+    }
+}
+
+fn form_draft_response_value(
+    kind: FormDraftStreamKind,
+    result: FormDraftResult,
+) -> Result<Value, serde_json::Error> {
+    match kind {
+        FormDraftStreamKind::Product => serde_json::to_value(map_agent_product_form_draft(result)),
+        FormDraftStreamKind::Campaign => {
+            serde_json::to_value(map_agent_campaign_form_draft(result))
+        }
+    }
+}
+
+fn form_draft_started_payload(form_type: &str) -> Value {
+    json!({
+        "formType": form_type,
+        "generationMode": "agent_llm",
+        "directWrite": false,
+        "requiresUserReview": true,
+    })
+}
+
+fn form_draft_input_preflighted_payload(form_type: &str, input: &FormDraftInput) -> Value {
+    let context_summary_available = input
+        .context_summary
+        .as_deref()
+        .map(str::trim)
+        .is_some_and(|value| !value.is_empty());
+    let existing_field_count = count_existing_form_values(&input.existing_values);
+
+    json!({
+        "formType": form_type,
+        "generationMode": "agent_llm",
+        "directWrite": false,
+        "requiresUserReview": true,
+        "inputSummary": {
+            "existingFieldCount": existing_field_count,
+            "userInputAvailable": existing_field_count > 0 || context_summary_available,
+            "contextSummaryAvailable": context_summary_available
+        }
+    })
+}
+
+fn count_existing_form_values(value: &Value) -> usize {
+    match value {
+        Value::Object(object) => object
+            .values()
+            .filter(|value| form_draft_value_present(value))
+            .count(),
+        value => usize::from(form_draft_value_present(value)),
+    }
+}
+
+fn form_draft_value_present(value: &Value) -> bool {
+    match value {
+        Value::Null => false,
+        Value::Bool(_) | Value::Number(_) => true,
+        Value::String(value) => !value.trim().is_empty(),
+        Value::Array(items) => items.iter().any(form_draft_value_present),
+        Value::Object(object) => object.values().any(form_draft_value_present),
+    }
+}
+
+fn form_draft_agent_started_payload(form_type: &str) -> Value {
+    json!({
+        "formType": form_type,
+        "systemAgentId": "form_draft_generator",
+        "route": "web_server_agent_manager",
+        "llm": {
+            "used": true,
+            "route": "web_server_agent_manager"
+        }
+    })
+}
+
+fn form_draft_output_validation_started_payload(form_type: &str) -> Value {
+    json!({
+        "formType": form_type,
+        "draftQuality": {
+            "invalidModelJsonPolicy": "reject_before_form_fill"
+        }
+    })
+}
+
+fn form_draft_output_validation_passed_payload(form_type: &str) -> Value {
+    json!({
+        "formType": form_type,
+        "draftQuality": {
+            "invalidModelJsonPolicy": "reject_before_form_fill",
+            "validated": true
+        }
+    })
+}
+
+fn form_draft_review_ready_payload(form_type: &str) -> Value {
+    json!({
+        "formType": form_type,
+        "generationMode": "agent_llm",
+        "directWrite": false,
+        "requiresUserReview": true,
+        "saveBoundary": {
+            "directWrite": false,
+            "requiresUserReview": true
+        }
+    })
+}
+
+fn form_draft_completed_payload(form_type: &str, response: Value) -> Value {
+    json!({
+        "formType": form_type,
+        "generationMode": "agent_llm",
+        "directWrite": false,
+        "requiresUserReview": true,
+        "response": response,
+    })
+}
+
+fn form_draft_mapped_success_events(
+    form_type: &str,
+    response: Value,
+) -> Vec<(&'static str, Value)> {
+    vec![
+        (
+            "form_draft_review_ready",
+            form_draft_review_ready_payload(form_type),
+        ),
+        (
+            "form_draft_completed",
+            form_draft_completed_payload(form_type, response),
+        ),
+    ]
+}
+
+fn form_draft_failed_payload(form_type: &str, failure_kind: &'static str) -> Value {
+    json!({
+        "formType": form_type,
+        "generationMode": "agent_llm",
+        "failureKind": failure_kind,
+        "messageAvailable": true,
+        "directWrite": false,
+        "requiresUserReview": true,
+        "draftQuality": {
+            "invalidModelJsonPolicy": "reject_before_form_fill",
+            "validated": false
+        },
+        "saveBoundary": {
+            "directWrite": false,
+            "requiresUserReview": true
+        }
+    })
 }
 
 fn typed_json_event(event: &'static str, value: Value) -> Event {
@@ -1198,16 +1539,565 @@ fn snake_key_to_camel(key: &str) -> String {
 fn persistence_error_event(action: &'static str, err: db_core::error::BizError) -> Event {
     typed_json_event(
         "workspace_run_persistence_error",
-        json!({
-            "action": action,
-            "code": err.code(),
-            "message": err.message(),
-        }),
+        persistence_error_payload(action, &err),
     )
 }
 
-async fn finalize_completed_agent_run(link_state: AgentWorkspaceLinkState) {
+fn persistence_error_payload(action: &'static str, err: &db_core::error::BizError) -> Value {
+    json!({
+        "action": action,
+        "code": err.code(),
+        "message": err.message(),
+    })
+}
+
+fn log_post_stream_persistence_error(
+    action: &'static str,
+    err: &db_core::error::BizError,
+    link_state: &AgentWorkspaceLinkState,
+) {
+    tracing::warn!(
+        action = action,
+        code = %err.code(),
+        message = %err.message(),
+        run_id = %link_state.run_id,
+        session_id = %link_state.session_id,
+        "agent sse post-stream persistence failed"
+    );
+}
+
+fn typed_persistence_error_payload(
+    action: &'static str,
+    err: db_core::error::BizError,
+    link_state: &AgentWorkspaceLinkState,
+) -> Value {
+    log_post_stream_persistence_error(action, &err, link_state);
+    persistence_error_payload(action, &err)
+}
+
+fn agent_session_event_public_payload(event: &SessionEvent) -> Value {
+    match event {
+        SessionEvent::ContextLoaded {
+            session_id,
+            product_ids,
+            refs,
+            product_count,
+            knowledge_count,
+            source_count,
+            summary,
+            sources_json,
+        } => context_loaded_public_payload(ContextLoadedPublicPayloadRef {
+            session_id: &session_id.0,
+            product_ids,
+            refs,
+            product_count: *product_count,
+            knowledge_count: *knowledge_count,
+            source_count: *source_count,
+            summary: summary.as_deref(),
+            sources_json: sources_json.as_deref(),
+        }),
+        SessionEvent::SkillResult {
+            session_id,
+            worker_id,
+            task_id,
+            request_id,
+            skill_id,
+            role,
+            status,
+            summary,
+            error,
+            output,
+            execution_mode,
+            risk_level,
+            approval_required,
+        } => skill_result_public_payload(SkillResultPublicPayloadRef {
+            session_id: &session_id.0,
+            worker_id: &worker_id.0,
+            task_id: &task_id.0,
+            request_id,
+            skill_id,
+            role,
+            status,
+            summary: summary.as_deref(),
+            error: error.as_deref(),
+            output: output.as_ref(),
+            execution_mode: execution_mode.as_deref(),
+            risk_level: risk_level.as_deref(),
+            approval_required: *approval_required,
+        }),
+        SessionEvent::TaskNodeReported {
+            session_id,
+            graph_id,
+            node_id,
+            worker_id,
+            report,
+        } => {
+            let role_output = report.role_output.as_ref().map(|role_output| {
+                json!({
+                    "summary_available": !role_output.summary.trim().is_empty(),
+                    "finding_count": role_output.findings.len(),
+                    "recommendation_count": role_output.recommendations.len(),
+                    "evidence_count": role_output.evidence.len(),
+                    "risk_count": role_output.risks.len(),
+                    "open_question_count": role_output.open_questions.len(),
+                })
+            });
+            let diagnostic_kinds = report
+                .diagnostics
+                .iter()
+                .map(|diagnostic| diagnostic.kind.clone())
+                .collect::<Vec<_>>();
+            task_node_reported_public_payload(TaskNodeReportedPublicPayloadRef {
+                session_id: &session_id.0,
+                graph_id: &graph_id.0,
+                node_id: &node_id.0,
+                worker_id: &worker_id.0,
+                task_id: &report.task_id.0,
+                role: &report.role,
+                status: worker_report_status_code(&report.status),
+                content_available: !report.content.trim().is_empty(),
+                role_output,
+                evidence_count: report.evidence.len(),
+                risk_count: report.risks.len(),
+                open_question_count: report.open_questions.len(),
+                diagnostic_count: report.diagnostics.len(),
+                diagnostic_kinds,
+            })
+        }
+        _ => {
+            let event_name = event.event_name();
+            serde_json::to_value(event).unwrap_or_else(|_| json!({ "type": event_name }))
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct ContextLoadedPublicPayloadRef<'a> {
+    session_id: &'a str,
+    product_ids: &'a [String],
+    refs: &'a [String],
+    product_count: usize,
+    knowledge_count: usize,
+    source_count: usize,
+    summary: Option<&'a str>,
+    sources_json: Option<&'a str>,
+}
+
+fn context_loaded_public_payload(payload: ContextLoadedPublicPayloadRef<'_>) -> Value {
+    json!({
+        "type": "context_loaded",
+        "session_id": payload.session_id,
+        "product_ids": payload.product_ids,
+        "refs": payload.refs,
+        "product_count": payload.product_count,
+        "knowledge_count": payload.knowledge_count,
+        "source_count": payload.source_count,
+        "summary_available": payload
+            .summary
+            .is_some_and(|value| !value.trim().is_empty()),
+        "sources_available": payload
+            .sources_json
+            .is_some_and(|value| !value.trim().is_empty()),
+    })
+}
+
+#[derive(Debug, Clone, Copy)]
+struct SkillResultPublicPayloadRef<'a> {
+    session_id: &'a str,
+    worker_id: &'a str,
+    task_id: &'a str,
+    request_id: &'a str,
+    skill_id: &'a str,
+    role: &'a str,
+    status: &'a str,
+    summary: Option<&'a str>,
+    error: Option<&'a str>,
+    output: Option<&'a Value>,
+    execution_mode: Option<&'a str>,
+    risk_level: Option<&'a str>,
+    approval_required: Option<bool>,
+}
+
+fn skill_result_public_payload(payload: SkillResultPublicPayloadRef<'_>) -> Value {
+    json!({
+        "type": "skill_result",
+        "session_id": payload.session_id,
+        "worker_id": payload.worker_id,
+        "task_id": payload.task_id,
+        "request_id": payload.request_id,
+        "skill_id": payload.skill_id,
+        "role": payload.role,
+        "status": payload.status,
+        "summary": payload.summary,
+        "error": payload.error,
+        "output_available": payload.output.is_some(),
+        "output_summary": skill_output_public_summary(payload.output),
+        "execution_mode": payload.execution_mode,
+        "risk_level": payload.risk_level,
+        "approval_required": payload.approval_required,
+    })
+}
+
+#[derive(Debug)]
+struct TaskNodeReportedPublicPayloadRef<'a> {
+    session_id: &'a str,
+    graph_id: &'a str,
+    node_id: &'a str,
+    worker_id: &'a str,
+    task_id: &'a str,
+    role: &'a str,
+    status: &'a str,
+    content_available: bool,
+    role_output: Option<Value>,
+    evidence_count: usize,
+    risk_count: usize,
+    open_question_count: usize,
+    diagnostic_count: usize,
+    diagnostic_kinds: Vec<String>,
+}
+
+fn task_node_reported_public_payload(payload: TaskNodeReportedPublicPayloadRef<'_>) -> Value {
+    json!({
+        "type": "task_node_reported",
+        "session_id": payload.session_id,
+        "graph_id": payload.graph_id,
+        "node_id": payload.node_id,
+        "worker_id": payload.worker_id,
+        "report": {
+            "graph_id": payload.graph_id,
+            "node_id": payload.node_id,
+            "task_id": payload.task_id,
+            "worker_id": payload.worker_id,
+            "role": payload.role,
+            "status": payload.status,
+            "content_available": payload.content_available,
+            "role_output": payload.role_output,
+            "evidence_count": payload.evidence_count,
+            "risk_count": payload.risk_count,
+            "open_question_count": payload.open_question_count,
+            "diagnostic_count": payload.diagnostic_count,
+            "diagnostic_kinds": payload.diagnostic_kinds,
+        },
+    })
+}
+
+fn skill_output_public_summary(output: Option<&Value>) -> Value {
+    let Some(output) = output else {
+        return json!({
+            "kind": "none",
+            "available": false,
+        });
+    };
+
+    let object = output.as_object();
+    let evidence_packet = object.and_then(|object| {
+        object
+            .get("evidence_packet")
+            .or_else(|| object.get("evidencePacket"))
+    });
+    json!({
+        "kind": output_kind(output),
+        "available": true,
+        "top_level_key_count": object.map_or(0, serde_json::Map::len),
+        "status": output_string_field(output, &["status"]),
+        "adapter_status": output_string_field(output, &["adapter_status", "adapterStatus"]),
+        "data_readiness": output_string_field(output, &["data_readiness", "dataReadiness"]),
+        "evidence_packet": evidence_packet_public_summary(evidence_packet),
+    })
+}
+
+fn evidence_packet_public_summary(packet: Option<&Value>) -> Value {
+    let Some(packet) = packet else {
+        return json!({
+            "available": false,
+        });
+    };
+    json!({
+        "available": true,
+        "sources": value_array_len(packet, &["sources"]),
+        "usable_claims": value_array_len(packet, &["usable_claims", "usableClaims"]),
+        "gaps": value_array_len(packet, &["gaps"]),
+        "confidence": packet.get("confidence").and_then(Value::as_f64),
+        "search_strength": output_string_field(packet, &["search_strength", "searchStrength"]),
+        "source_state": output_string_field(packet, &["source_state", "sourceState"]),
+    })
+}
+
+fn output_kind(value: &Value) -> &'static str {
+    if value.is_object() {
+        "object"
+    } else if value.is_array() {
+        "array"
+    } else if value.is_string() {
+        "string"
+    } else if value.is_number() {
+        "number"
+    } else if value.is_boolean() {
+        "boolean"
+    } else {
+        "null"
+    }
+}
+
+fn output_string_field(value: &Value, keys: &[&str]) -> Option<String> {
+    keys.iter()
+        .find_map(|key| value.get(*key).and_then(Value::as_str))
+        .map(ToString::to_string)
+}
+
+fn value_array_len(value: &Value, keys: &[&str]) -> usize {
+    keys.iter()
+        .find_map(|key| value.get(*key).and_then(Value::as_array))
+        .map_or(0, Vec::len)
+}
+
+fn worker_report_status_code(status: &WorkerReportStatus) -> &'static str {
+    match status {
+        WorkerReportStatus::Completed => "completed",
+        WorkerReportStatus::Failed => "failed",
+        WorkerReportStatus::TimedOut => "timed_out",
+    }
+}
+
+fn workspace_run_task_updated_public_payload(task: &WorkspaceRunTaskResponse) -> Value {
+    json!({
+        "id": task.id,
+        "run_id": task.run_id,
+        "workspace_id": task.workspace_id,
+        "workspace_task_id": task.workspace_task_id,
+        "seq": task.seq,
+        "owner_role": task.owner_role,
+        "status": task.status,
+        "attempts": task.attempts,
+        "acceptance_score": task.acceptance_score,
+        "acceptance_passed": task.acceptance_passed,
+        "acceptance_notes_available": task
+            .acceptance_notes
+            .as_ref()
+            .is_some_and(|value| !value.trim().is_empty()),
+        "execution_notes_available": task
+            .execution_notes
+            .as_ref()
+            .is_some_and(|value| !value.trim().is_empty()),
+        "metadata_available": object_has_fields(&task.metadata),
+        "created_at": task.created_at,
+        "updated_at": task.updated_at,
+    })
+}
+
+fn workspace_run_public_payload(run: &WorkspaceRunResponse) -> Value {
+    json!({
+        "id": run.id,
+        "workspace_id": run.workspace_id,
+        "status": run.status,
+        "source": run.source,
+        "summary_available": run
+            .summary
+            .as_ref()
+            .is_some_and(|value| !value.trim().is_empty()),
+        "report_available": object_has_fields(&run.report),
+        "metadata_available": object_has_fields(&run.metadata),
+        "created_at": run.created_at,
+        "updated_at": run.updated_at,
+    })
+}
+
+fn workspace_artifact_created_public_payload(artifact: &WorkspaceArtifactResponse) -> Value {
+    json!({
+        "id": artifact.id,
+        "workspace_id": artifact.workspace_id,
+        "run_id": artifact.run_id,
+        "workspace_task_id": artifact.workspace_task_id,
+        "run_task_id": artifact.run_task_id,
+        "artifact_type": artifact.artifact_type,
+        "title": artifact.title,
+        "content_available": artifact
+            .content
+            .as_ref()
+            .is_some_and(|value| !value.trim().is_empty()),
+        "preview_available": artifact
+            .preview
+            .as_ref()
+            .is_some_and(|value| !value.trim().is_empty()),
+        "mime_type": artifact.mime_type,
+        "format": artifact.format,
+        "storage_kind": artifact.storage_kind,
+        "file_name": artifact.file_name,
+        "file_size": artifact.file_size,
+        "source": artifact.source,
+        "status": artifact.status,
+        "validation_status": artifact.validation_status,
+        "validation_report_available": object_has_fields(&artifact.validation_report),
+        "metadata_available": object_has_fields(&artifact.metadata),
+        "created_at": artifact.created_at,
+        "updated_at": artifact.updated_at,
+    })
+}
+
+fn quality_checked_public_payload(evaluation: &AgentQualityEvaluationResponse) -> Value {
+    let quality = &evaluation.quality_check;
+    let trust = &evaluation.trust_update;
+    json!({
+        "quality_check": {
+            "id": quality.id,
+            "workspace_id": quality.workspace_id,
+            "run_id": quality.run_id,
+            "artifact_id": quality.artifact_id,
+            "role": quality.role,
+            "score": quality.score,
+            "passed": quality.passed,
+            "source": quality.source,
+            "dimension_count": value_array_or_object_len(&quality.dimensions),
+            "issue_count": value_array_or_object_len(&quality.issues),
+            "suggestion_count": value_array_or_object_len(&quality.suggestions),
+            "dimensions_available": object_has_fields(&quality.dimensions),
+            "issues_available": value_has_items(&quality.issues),
+            "suggestions_available": value_has_items(&quality.suggestions),
+            "metadata_available": object_has_fields(&quality.metadata),
+            "created_at": quality.created_at,
+        },
+        "trust_update": {
+            "role": trust.role,
+            "skill_id": trust.skill_id,
+            "previous_score": trust.previous_score,
+            "new_score": trust.new_score,
+            "previous_level": trust.previous_level,
+            "new_level": trust.new_level,
+            "delta": trust.delta,
+            "reason_available": !trust.reason.trim().is_empty(),
+        },
+        "learning_record_count": evaluation.learning_records.len(),
+        "learning_records_available": !evaluation.learning_records.is_empty(),
+    })
+}
+
+fn agent_learning_record_created_public_payload(record: &AgentLearningRecordResponse) -> Value {
+    json!({
+        "id": record.id,
+        "workspace_id": record.workspace_id,
+        "run_id": record.run_id,
+        "quality_check_id": record.quality_check_id,
+        "role": record.role,
+        "category": record.category,
+        "content_available": !record.content.trim().is_empty(),
+        "confidence": record.confidence,
+        "source_action": record.source_action,
+        "feedback_rating": record.feedback_rating,
+        "feedback_comment_available": record
+            .feedback_comment
+            .as_ref()
+            .is_some_and(|value| !value.trim().is_empty()),
+        "status": record.status,
+        "metadata_available": object_has_fields(&record.metadata),
+        "created_at": record.created_at,
+        "updated_at": record.updated_at,
+    })
+}
+
+fn object_has_fields(value: &Value) -> bool {
+    value.as_object().is_some_and(|object| !object.is_empty())
+}
+
+fn value_has_items(value: &Value) -> bool {
+    match value {
+        Value::Array(items) => !items.is_empty(),
+        Value::Object(object) => !object.is_empty(),
+        Value::String(value) => !value.trim().is_empty(),
+        Value::Null => false,
+        _ => true,
+    }
+}
+
+fn value_array_or_object_len(value: &Value) -> usize {
+    value
+        .as_array()
+        .map(Vec::len)
+        .or_else(|| value.as_object().map(serde_json::Map::len))
+        .unwrap_or_default()
+}
+
+#[derive(Debug, Clone, Copy)]
+struct ApprovalRequiredPublicPayloadRef<'a> {
+    skill_id: &'a str,
+    request_id: &'a str,
+    role: &'a str,
+    risk_level: &'a str,
+    reason: &'a str,
+}
+
+fn approval_required_public_payload(
+    approval: &ToolApprovalResponse,
+    alert: Option<&AlertResponse>,
+    payload: ApprovalRequiredPublicPayloadRef<'_>,
+) -> Value {
+    json!({
+        "skill_id": payload.skill_id,
+        "request_id": payload.request_id,
+        "role": payload.role,
+        "risk_level": payload.risk_level,
+        "reason": payload.reason,
+        "approval": {
+            "id": approval.id,
+            "workspace_id": approval.workspace_id,
+            "run_id": approval.run_id,
+            "request_role": approval.request_role,
+            "skill_name": approval.skill_name,
+            "tool_call_id": approval.tool_call_id,
+            "risk_level": approval.risk_level,
+            "status": approval.status,
+            "reason": approval.reason,
+            "args_available": object_has_fields(&approval.args),
+            "result_available": object_has_fields(&approval.result),
+            "created_at": approval.created_at,
+            "updated_at": approval.updated_at,
+        },
+        "alert": alert.map(|alert| {
+            json!({
+                "id": alert.id,
+                "workspace_id": alert.workspace_id,
+                "run_id": alert.run_id,
+                "alert_type": alert.alert_type,
+                "severity": alert.severity,
+                "message": alert.message,
+                "role": alert.role,
+                "status": alert.status,
+                "payload_available": object_has_fields(&alert.payload),
+                "created_at": alert.created_at,
+                "updated_at": alert.updated_at,
+            })
+        }),
+    })
+}
+
+fn rag_context_loaded_public_payload(context: &AgentRetrievalContextResponse) -> Value {
+    json!({
+        "mode": context.mode,
+        "query_terms": context.query_terms,
+        "product_ids": context.product_ids,
+        "knowledge_count": context.knowledge_count,
+        "source_count": context.source_count,
+        "summary_available": !context.summary.trim().is_empty(),
+        "sources_available": !context.sources.is_empty(),
+        "degraded": context.degraded,
+        "degraded_reason": context.degraded_reason,
+        "external_search_available": context.external_search_available,
+    })
+}
+
+#[derive(Debug)]
+struct CompletedAgentRunPublicPayloads {
+    run: Option<Value>,
+    artifact: Option<Value>,
+    quality: Option<Value>,
+    memory: Option<Value>,
+    persistence_errors: Vec<Value>,
+}
+
+async fn finalize_completed_agent_run(
+    link_state: AgentWorkspaceLinkState,
+) -> CompletedAgentRunPublicPayloads {
     let workspace_api = WorkspaceApi::new(get_app_ctx());
+    let mut persistence_errors = Vec::new();
     let response = workspace_api
         .complete_agent_run(CompleteAgentWorkspaceRunRequest {
             user_id: link_state.user_id.clone(),
@@ -1219,23 +2109,31 @@ async fn finalize_completed_agent_run(link_state: AgentWorkspaceLinkState) {
     let completed = match response {
         Ok(value) => value,
         Err(err) => {
-            tracing::warn!(
-                action = "complete_agent_run",
-                code = %err.code(),
-                message = %err.message(),
-                run_id = %link_state.run_id,
-                session_id = %link_state.session_id,
-                "agent sse post-stream persistence failed"
-            );
-            return;
+            persistence_errors.push(typed_persistence_error_payload(
+                "complete_agent_run",
+                err,
+                &link_state,
+            ));
+            return CompletedAgentRunPublicPayloads {
+                run: None,
+                artifact: None,
+                quality: None,
+                memory: None,
+                persistence_errors,
+            };
         }
     };
 
+    let run_payload = Some(workspace_run_public_payload(&completed.run));
+    let artifact_payload = completed
+        .artifact
+        .as_ref()
+        .map(workspace_artifact_created_public_payload);
     let artifact_id = completed
         .artifact
         .as_ref()
         .map(|artifact| artifact.id.clone());
-    if let Err(err) = workspace_api
+    let quality_payload = match workspace_api
         .evaluate_agent_run(EvaluateAgentWorkspaceRunRequest {
             user_id: link_state.user_id.clone(),
             workspace_id: link_state.workspace_id.clone(),
@@ -1245,36 +2143,55 @@ async fn finalize_completed_agent_run(link_state: AgentWorkspaceLinkState) {
         })
         .await
     {
-        tracing::warn!(
-            action = "evaluate_agent_run",
-            code = %err.code(),
-            message = %err.message(),
-            run_id = %link_state.run_id,
-            session_id = %link_state.session_id,
-            "agent sse post-stream persistence failed"
-        );
-    }
+        Ok(value) => Some(quality_checked_public_payload(&value)),
+        Err(err) => {
+            persistence_errors.push(typed_persistence_error_payload(
+                "evaluate_agent_run",
+                err,
+                &link_state,
+            ));
+            None
+        }
+    };
 
-    if let Some(conversation_id) = link_state.conversation_id.clone()
-        && let Some(memory) = build_completed_conversation_memory(&link_state)
-        && let Err(err) = ConversationApi::new(get_app_ctx())
-            .update_conversation_memory(
-                service::dto::conversation::UpdateConversationMemoryRequest {
-                    user_id: link_state.user_id.clone(),
-                    conversation_id,
-                    memory,
-                },
-            )
-            .await
-    {
-        tracing::warn!(
-            action = "update_conversation_memory",
-            code = %err.code(),
-            message = %err.message(),
-            run_id = %link_state.run_id,
-            session_id = %link_state.session_id,
-            "agent sse post-stream persistence failed"
-        );
+    let memory_payload = if let Some(conversation_id) = link_state.conversation_id.clone() {
+        if let Some(memory) = build_completed_conversation_memory(&link_state) {
+            match ConversationApi::new(get_app_ctx())
+                .update_conversation_memory(
+                    service::dto::conversation::UpdateConversationMemoryRequest {
+                        user_id: link_state.user_id.clone(),
+                        conversation_id: conversation_id.clone(),
+                        memory: memory.clone(),
+                    },
+                )
+                .await
+            {
+                Ok(_) => Some(conversation_memory_updated_public_payload(
+                    &conversation_id,
+                    &memory,
+                )),
+                Err(err) => {
+                    persistence_errors.push(typed_persistence_error_payload(
+                        "update_conversation_memory",
+                        err,
+                        &link_state,
+                    ));
+                    None
+                }
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    CompletedAgentRunPublicPayloads {
+        run: run_payload,
+        artifact: artifact_payload,
+        quality: quality_payload,
+        memory: memory_payload,
+        persistence_errors,
     }
 }
 
@@ -1344,6 +2261,57 @@ fn build_completed_conversation_memory(link_state: &AgentWorkspaceLinkState) -> 
         }
     }
     Some(compact_conversation_memory_json(memory))
+}
+
+fn conversation_memory_updated_public_payload(conversation_id: &str, memory: &Value) -> Value {
+    let last_user_input_available =
+        memory_string_available(memory, "lastUserInput", "last_user_input");
+    let last_assistant_output_available =
+        memory_string_available(memory, "lastAssistantOutput", "last_assistant_output");
+    json!({
+        "conversation_id": conversation_id,
+        "persisted": true,
+        "memory_summary": {
+            "kind": memory
+                .get("kind")
+                .or_else(|| memory.get("type"))
+                .and_then(Value::as_str)
+                .unwrap_or("conversation_memory_summary"),
+            "rolling_summary_available": memory_string_available(
+                memory,
+                "rollingSummary",
+                "rolling_summary",
+            ),
+            "fact_count": memory_array_len(memory, "facts", "facts"),
+            "decision_count": memory_array_len(memory, "decisions", "decisions"),
+            "constraint_count": memory_array_len(memory, "constraints", "constraints"),
+            "open_question_count": memory_array_len(memory, "openQuestions", "open_questions"),
+            "last_turn_available": last_user_input_available || last_assistant_output_available,
+            "last_user_input_available": last_user_input_available,
+            "last_assistant_output_available": last_assistant_output_available,
+            "source_map_available": memory
+                .get("sourceMap")
+                .or_else(|| memory.get("source_map"))
+                .is_some_and(Value::is_object),
+        }
+    })
+}
+
+fn memory_string_available(memory: &Value, camel_key: &str, snake_key: &str) -> bool {
+    memory
+        .get(camel_key)
+        .or_else(|| memory.get(snake_key))
+        .and_then(Value::as_str)
+        .is_some_and(|value| !value.trim().is_empty())
+}
+
+fn memory_array_len(memory: &Value, camel_key: &str, snake_key: &str) -> usize {
+    memory
+        .get(camel_key)
+        .or_else(|| memory.get(snake_key))
+        .and_then(Value::as_array)
+        .map(Vec::len)
+        .unwrap_or_default()
 }
 
 fn upsert_memory_array_item(
@@ -1446,7 +2414,7 @@ fn compact_key_part(value: &str, max_chars: usize) -> String {
     value
         .chars()
         .map(|ch| match ch {
-            'a' ..= 'z' | 'A' ..= 'Z' | '0' ..= '9' | '-' | '_' | '.' => ch,
+            'a'..='z' | 'A'..='Z' | '0'..='9' | '-' | '_' | '.' => ch,
             _ => '-',
         })
         .take(max_chars)
@@ -1697,30 +2665,19 @@ fn build_conversation_context_loaded_event(
         "summary": build_conversation_context_loaded_summary(summary, previous_memory_available),
         "memory": {
             "kind": summary.memory_json.get("kind").cloned().unwrap_or(Value::Null),
-            "rollingSummary": summary.memory_json
-                .get("rollingSummary")
-                .and_then(Value::as_str)
-                .map(|value| truncate_chars(value, 500)),
-            "factCount": summary.memory_json
-                .get("facts")
-                .and_then(Value::as_array)
-                .map(Vec::len)
-                .unwrap_or_default(),
-            "decisionCount": summary.memory_json
-                .get("decisions")
-                .and_then(Value::as_array)
-                .map(Vec::len)
-                .unwrap_or_default(),
-            "constraintCount": summary.memory_json
-                .get("constraints")
-                .and_then(Value::as_array)
-                .map(Vec::len)
-                .unwrap_or_default(),
-            "openQuestionCount": summary.memory_json
-                .get("openQuestions")
-                .and_then(Value::as_array)
-                .map(Vec::len)
-                .unwrap_or_default(),
+            "rollingSummaryAvailable": memory_string_available(
+                &summary.memory_json,
+                "rollingSummary",
+                "rolling_summary",
+            ),
+            "factCount": memory_array_len(&summary.memory_json, "facts", "facts"),
+            "decisionCount": memory_array_len(&summary.memory_json, "decisions", "decisions"),
+            "constraintCount": memory_array_len(&summary.memory_json, "constraints", "constraints"),
+            "openQuestionCount": memory_array_len(
+                &summary.memory_json,
+                "openQuestions",
+                "open_questions",
+            ),
         }
     })
 }
@@ -1784,9 +2741,9 @@ pub(crate) fn build_conversation_history_summary(
     let total_message_count = candidates.len();
     let truncated = total_message_count > CONVERSATION_HISTORY_RECENT_MESSAGES;
     let recent_start = total_message_count.saturating_sub(CONVERSATION_HISTORY_RECENT_MESSAGES);
-    let older_summary = build_older_conversation_summary(&candidates[.. recent_start]);
+    let older_summary = build_older_conversation_summary(&candidates[..recent_start]);
     let relevant_older =
-        select_relevant_older_conversation_messages(&candidates[.. recent_start], &current_input);
+        select_relevant_older_conversation_messages(&candidates[..recent_start], &current_input);
     let memory = build_conversation_memory_summary(&candidates, &older_summary, previous_memory);
 
     let selected = candidates
@@ -1935,9 +2892,9 @@ fn push_history_query_term(terms: &mut Vec<String>, term: String) {
 }
 
 fn is_cjk(ch: char) -> bool {
-    ('\u{4e00}' ..= '\u{9fff}').contains(&ch)
-        || ('\u{3400}' ..= '\u{4dbf}').contains(&ch)
-        || ('\u{f900}' ..= '\u{faff}').contains(&ch)
+    ('\u{4e00}'..='\u{9fff}').contains(&ch)
+        || ('\u{3400}'..='\u{4dbf}').contains(&ch)
+        || ('\u{f900}'..='\u{faff}').contains(&ch)
 }
 
 fn build_conversation_memory_summary(
@@ -2519,6 +3476,20 @@ fn merge_workspace_context_metadata(
     Ok(())
 }
 
+fn workspace_context_loaded_public_payload(context: &WorkspaceContextSummaryResponse) -> Value {
+    json!({
+        "workspace_id": context.workspace_id,
+        "conversation_id": context.conversation_id,
+        "product_id": context.product_id,
+        "run_id": context.run_id,
+        "readiness": context.readiness,
+        "counts": context.counts,
+        "missing": context.missing,
+        "warnings": context.warnings,
+        "source_count": workspace_context_sources(context).len(),
+    })
+}
+
 async fn merge_conversation_file_image_attachments(
     metadata: &mut std::collections::BTreeMap<String, String>,
     user_id: &str,
@@ -2737,6 +3708,47 @@ fn merge_workspace_context_pack_metadata(
     Ok(())
 }
 
+fn workspace_context_pack_loaded_public_payload(context: &WorkspaceContextPackResponse) -> Value {
+    let readable_item_count = context
+        .items
+        .iter()
+        .filter(|item| {
+            item.text_chars > 0 || item.text.as_deref().is_some_and(|text| !text.is_empty())
+        })
+        .count();
+    let text_chars = context
+        .items
+        .iter()
+        .map(|item| item.text_chars)
+        .sum::<usize>();
+    let omitted_details = context
+        .omitted_details
+        .iter()
+        .map(|item| {
+            json!({
+                "ref_key": item.ref_key,
+                "reason": item.reason,
+                "source_type": item.source_type,
+            })
+        })
+        .collect::<Vec<_>>();
+
+    json!({
+        "workspace_id": context.workspace_id,
+        "conversation_id": context.conversation_id,
+        "product_id": context.product_id,
+        "run_id": context.run_id,
+        "readiness": context.readiness,
+        "counts": context.counts,
+        "item_count": context.items.len(),
+        "readable_item_count": readable_item_count,
+        "text_chars": text_chars,
+        "omitted": context.omitted,
+        "omitted_details": omitted_details,
+        "warnings": context.warnings,
+    })
+}
+
 fn append_context_injection_budget(
     metadata: &mut std::collections::BTreeMap<String, String>,
     context: &WorkspaceContextPackResponse,
@@ -2944,6 +3956,169 @@ fn format_workspace_context_source(source: &WorkspaceContextSourceResponse) -> S
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::dto::app::CreateProductDraftRequest;
+
+    fn product_request(mode: Option<&str>) -> FormDraftStreamRequest {
+        FormDraftStreamRequest {
+            form_type: "product".to_string(),
+            product: Some(CreateProductDraftRequest {
+                name: Some("温显杯".to_string()),
+                platform: Some("douyin".to_string()),
+                category: None,
+                brand: None,
+                description: Some("防漏温显".to_string()),
+                price: None,
+                currency: None,
+                prompt: None,
+                generation_mode: mode.map(str::to_string),
+            }),
+            campaign: None,
+        }
+    }
+
+    #[test]
+    fn form_draft_stream_requires_agent_mode() {
+        let err = form_draft_stream_target(product_request(None))
+            .expect_err("template mode must not enter SSE");
+
+        assert!(err.contains("generationMode=agent_llm"));
+    }
+
+    #[test]
+    fn form_draft_stream_builds_agent_input_without_extra_payload() {
+        let target = form_draft_stream_target(product_request(Some("agent_llm")))
+            .expect("agent mode should parse");
+
+        assert_eq!(target.kind, FormDraftStreamKind::Product);
+        assert_eq!(target.input.kind.as_str(), "product");
+        assert!(target.input.user_input.contains("温显杯"));
+    }
+
+    #[test]
+    fn form_draft_process_payload_hides_model_details() {
+        let payload = form_draft_agent_started_payload("product");
+        let text = payload.to_string();
+
+        assert_eq!(
+            payload["systemAgentId"].as_str(),
+            Some("form_draft_generator")
+        );
+        assert!(!text.contains("base_url"));
+        assert!(!text.contains("api_key"));
+        assert!(!text.contains("prompt"));
+        assert!(!text.contains("model"));
+    }
+
+    #[test]
+    fn form_draft_input_preflight_payload_uses_safe_summary_only() {
+        let mut req = product_request(Some("agent_llm"));
+        req.product.as_mut().expect("product payload").prompt = Some(
+            "provider raw error model=hidden-model base_url=http://127.0.0.1:11434 prompt=zh/form_drafts/product_form_draft.md"
+                .to_string(),
+        );
+        let target = form_draft_stream_target(req).expect("agent mode should parse");
+        let payload = form_draft_input_preflighted_payload("product", &target.input);
+        let text = payload.to_string();
+
+        assert_eq!(payload["formType"].as_str(), Some("product"));
+        assert_eq!(payload["generationMode"].as_str(), Some("agent_llm"));
+        assert_eq!(payload["directWrite"].as_bool(), Some(false));
+        assert_eq!(payload["requiresUserReview"].as_bool(), Some(true));
+        assert_eq!(
+            payload["inputSummary"]["existingFieldCount"].as_u64(),
+            Some(3)
+        );
+        assert_eq!(
+            payload["inputSummary"]["userInputAvailable"].as_bool(),
+            Some(true)
+        );
+        assert_eq!(
+            payload["inputSummary"]["contextSummaryAvailable"].as_bool(),
+            Some(true)
+        );
+        assert!(!text.contains("温显杯"));
+        assert!(!text.contains("防漏温显"));
+        assert!(!text.contains("douyin"));
+        assert!(!text.contains("hidden-model"));
+        assert!(!text.contains("127.0.0.1"));
+        assert!(!text.contains("product_form_draft"));
+        assert!(!text.contains("prompt"));
+        assert!(!text.contains("base_url"));
+        assert!(!text.contains("api_key"));
+        assert!(!text.contains("provider"));
+        assert!(!text.contains("model"));
+    }
+
+    #[test]
+    fn form_draft_failed_payload_keeps_safe_failure_summary() {
+        let payload = form_draft_failed_payload("campaign", "agent_run_failed");
+        let text = payload.to_string();
+
+        assert_eq!(payload["formType"].as_str(), Some("campaign"));
+        assert_eq!(payload["failureKind"].as_str(), Some("agent_run_failed"));
+        assert_eq!(payload["messageAvailable"].as_bool(), Some(true));
+        assert_eq!(payload["directWrite"].as_bool(), Some(false));
+        assert_eq!(payload["requiresUserReview"].as_bool(), Some(true));
+        assert_eq!(
+            payload["draftQuality"]["invalidModelJsonPolicy"].as_str(),
+            Some("reject_before_form_fill")
+        );
+        assert_eq!(payload["draftQuality"]["validated"].as_bool(), Some(false));
+        assert!(!text.contains("base_url"));
+        assert!(!text.contains("api_key"));
+        assert!(!text.contains("prompt"));
+        assert!(!text.contains("provider"));
+        assert!(!text.contains("model"));
+    }
+
+    #[test]
+    fn form_draft_review_ready_payload_keeps_user_review_boundary() {
+        let payload = form_draft_review_ready_payload("product");
+        let text = payload.to_string();
+
+        assert_eq!(payload["formType"].as_str(), Some("product"));
+        assert_eq!(payload["generationMode"].as_str(), Some("agent_llm"));
+        assert_eq!(payload["directWrite"].as_bool(), Some(false));
+        assert_eq!(payload["requiresUserReview"].as_bool(), Some(true));
+        assert_eq!(
+            payload["saveBoundary"]["directWrite"].as_bool(),
+            Some(false)
+        );
+        assert_eq!(
+            payload["saveBoundary"]["requiresUserReview"].as_bool(),
+            Some(true)
+        );
+        assert!(!text.contains("base_url"));
+        assert!(!text.contains("api_key"));
+        assert!(!text.contains("prompt"));
+        assert!(!text.contains("provider"));
+        assert!(!text.contains("model"));
+        assert!(!text.contains("draft"));
+    }
+
+    #[test]
+    fn form_draft_mapped_success_events_emit_review_ready_before_completed() {
+        let events = form_draft_mapped_success_events(
+            "product",
+            json!({
+                "draft": {
+                    "name": "raw-ready-draft"
+                },
+                "generationMode": "agent_llm"
+            }),
+        );
+
+        assert_eq!(events.len(), 2);
+        assert_eq!(events[0].0, "form_draft_review_ready");
+        assert_eq!(events[1].0, "form_draft_completed");
+        assert!(events[1].1["response"]["draft"]["name"].as_str().is_some());
+
+        let review_ready_text = events[0].1.to_string();
+        assert!(!review_ready_text.contains("raw-ready-draft"));
+        assert!(!review_ready_text.contains("draft"));
+        assert_eq!(events[0].1["requiresUserReview"].as_bool(), Some(true));
+        assert_eq!(events[0].1["directWrite"].as_bool(), Some(false));
+    }
 
     #[test]
     fn implicit_conversation_files_are_disabled_for_independent_turns() {
@@ -3085,6 +4260,56 @@ mod tests {
             effective.context_refs,
             vec!["product:product-1", "conversation_file:file-1"]
         );
+    }
+
+    #[test]
+    fn context_selection_metadata_includes_campaign_ids_and_refs() {
+        let context = AgentStreamContextSelection {
+            product_ids: vec!["product-1".to_string()],
+            campaign_ids: vec!["campaign-1".to_string()],
+            context_refs: vec![
+                "product:product-1".to_string(),
+                "campaign:campaign-1".to_string(),
+                "conversation_file:file-1".to_string(),
+            ],
+            ..AgentStreamContextSelection::default()
+        };
+        let mut metadata = std::collections::BTreeMap::new();
+
+        merge_agent_stream_context_selection_metadata(&mut metadata, &context);
+
+        assert_eq!(metadata["context.product_ids"], "product-1");
+        assert_eq!(metadata["context.campaign_ids"], "campaign-1");
+        assert_eq!(
+            metadata["context.combined_refs"],
+            "product:product-1,campaign:campaign-1,conversation_file:file-1"
+        );
+    }
+
+    #[test]
+    fn context_selection_metadata_stays_empty_after_generic_context_clear() {
+        let context = AgentStreamContextSelection {
+            product_ids: vec!["product-1".to_string()],
+            campaign_ids: vec!["campaign-1".to_string()],
+            context_refs: vec![
+                "product:product-1".to_string(),
+                "campaign:campaign-1".to_string(),
+            ],
+            ..AgentStreamContextSelection::default()
+        };
+
+        let (effective, reason) =
+            effective_context_selection_for_input("各类商品都能怎么做推广？", context);
+        let mut metadata = std::collections::BTreeMap::new();
+        merge_agent_stream_context_selection_metadata(&mut metadata, &effective);
+
+        assert_eq!(
+            reason,
+            Some("generic_category_question_without_selected_context_request")
+        );
+        assert!(!metadata.contains_key("context.product_ids"));
+        assert!(!metadata.contains_key("context.campaign_ids"));
+        assert!(!metadata.contains_key("context.combined_refs"));
     }
 
     #[test]
@@ -3276,7 +4501,7 @@ mod tests {
     #[test]
     fn conversation_history_keeps_recent_window_and_summarizes_older_messages() {
         let mut messages = Vec::new();
-        for index in 1 ..= 18 {
+        for index in 1..=18 {
             let role = if index % 2 == 0 { "assistant" } else { "user" };
             messages.push(conversation_message(
                 index,
@@ -3349,6 +4574,49 @@ mod tests {
                     .unwrap_or_default()
                     .contains("不能超过"))
         );
+    }
+
+    #[test]
+    fn conversation_context_loaded_event_hides_memory_text() {
+        let hidden_summary = "隐藏的滚动摘要：用户强调预算和利润率。";
+        let hidden_fact = "隐藏事实：预算不能超过 3000";
+        let hidden_last_turn = "隐藏上一轮输出";
+        let messages = vec![conversation_message(
+            1,
+            "user",
+            "本轮补充：预算不能超过 3000",
+        )];
+        let previous_memory = json!({
+            "kind": "conversation_memory_summary",
+            "rollingSummary": hidden_summary,
+            "facts": [
+                {
+                    "source": "conversation_message:old",
+                    "text": hidden_fact,
+                    "confidence": "explicit"
+                }
+            ],
+            "decisions": [],
+            "constraints": [],
+            "openQuestions": [],
+            "lastAssistantOutput": hidden_last_turn,
+            "sourceMap": {
+                "previousMemoryAvailable": true
+            }
+        });
+
+        let summary = build_conversation_history_summary(&messages, "继续", Some(&previous_memory));
+        let event = build_conversation_context_loaded_event("conversation-1", &summary, true);
+        let serialized = event.to_string();
+
+        assert_eq!(event["memory"]["rollingSummaryAvailable"], true);
+        assert_eq!(event["memory"]["factCount"], 2);
+        assert!(!serialized.contains(hidden_summary));
+        assert!(!serialized.contains(hidden_fact));
+        assert!(!serialized.contains(hidden_last_turn));
+        assert!(!serialized.contains("\"rollingSummary\""));
+        assert!(!serialized.contains("\"facts\""));
+        assert!(!serialized.contains("\"sourceMap\""));
     }
 
     #[test]
@@ -3466,6 +4734,92 @@ mod tests {
         );
         assert_eq!(memory["sourceMap"]["lastSessionId"], "session-1");
         assert_eq!(memory["sourceMap"]["persisted"], true);
+    }
+
+    #[test]
+    fn conversation_memory_updated_public_payload_hides_raw_memory() {
+        let memory = json!({
+            "kind": "conversation_memory_summary",
+            "rollingSummary": "隐藏的滚动摘要",
+            "facts": [
+                {
+                    "source": "conversation_message:1",
+                    "text": "隐藏事实：预算不能超过 3000",
+                    "confidence": "explicit"
+                }
+            ],
+            "decisions": [
+                {
+                    "source": "agent_session:session-1",
+                    "text": "隐藏决策：保留利润率判断",
+                    "confidence": "generated"
+                }
+            ],
+            "constraints": [
+                {
+                    "source": "conversation_message:2",
+                    "text": "隐藏约束：不能降价",
+                    "confidence": "explicit"
+                }
+            ],
+            "openQuestions": [
+                {
+                    "source": "conversation_message:3",
+                    "text": "隐藏问题：是否拆渠道",
+                    "confidence": "open"
+                }
+            ],
+            "lastUserInput": "隐藏最后输入",
+            "lastAssistantOutput": "隐藏最后输出",
+            "sourceMap": {
+                "lastSessionId": "session-1",
+                "persisted": true,
+                "memoryBudget": {
+                    "memoryTextMaxChars": 2400
+                }
+            }
+        });
+
+        let payload = camelize_json_keys(conversation_memory_updated_public_payload(
+            "conversation-1",
+            &memory,
+        ));
+        let serialized = payload.to_string();
+
+        assert_eq!(payload["conversationId"], "conversation-1");
+        assert_eq!(payload["persisted"], true);
+        assert_eq!(
+            payload["memorySummary"]["kind"],
+            "conversation_memory_summary"
+        );
+        assert_eq!(payload["memorySummary"]["rollingSummaryAvailable"], true);
+        assert_eq!(payload["memorySummary"]["factCount"], 1);
+        assert_eq!(payload["memorySummary"]["decisionCount"], 1);
+        assert_eq!(payload["memorySummary"]["constraintCount"], 1);
+        assert_eq!(payload["memorySummary"]["openQuestionCount"], 1);
+        assert_eq!(payload["memorySummary"]["lastTurnAvailable"], true);
+        assert_eq!(payload["memorySummary"]["lastUserInputAvailable"], true);
+        assert_eq!(
+            payload["memorySummary"]["lastAssistantOutputAvailable"],
+            true
+        );
+        assert_eq!(payload["memorySummary"]["sourceMapAvailable"], true);
+        assert!(!serialized.contains("隐藏的滚动摘要"));
+        assert!(!serialized.contains("隐藏事实"));
+        assert!(!serialized.contains("隐藏决策"));
+        assert!(!serialized.contains("隐藏约束"));
+        assert!(!serialized.contains("隐藏问题"));
+        assert!(!serialized.contains("隐藏最后输入"));
+        assert!(!serialized.contains("隐藏最后输出"));
+        assert!(!serialized.contains("\"rollingSummary\""));
+        assert!(!serialized.contains("\"facts\""));
+        assert!(!serialized.contains("\"decisions\""));
+        assert!(!serialized.contains("\"constraints\""));
+        assert!(!serialized.contains("\"openQuestions\""));
+        assert!(!serialized.contains("\"lastUserInput\""));
+        assert!(!serialized.contains("\"lastAssistantOutput\""));
+        assert!(!serialized.contains("\"sourceMap\""));
+        assert!(!serialized.contains("\"memoryBudget\""));
     }
 
     #[test]
@@ -3654,6 +5008,160 @@ mod tests {
     }
 
     #[test]
+    fn workspace_context_loaded_public_payload_hides_raw_sources() {
+        let context = WorkspaceContextSummaryResponse {
+            workspace_id: "workspace-1".to_string(),
+            conversation_id: Some("conversation-1".to_string()),
+            product_id: Some("product-1".to_string()),
+            run_id: None,
+            readiness: "ready".to_string(),
+            summary: "Hidden workspace summary body.".to_string(),
+            counts: service::dto::workspace::WorkspaceContextSummaryCounts {
+                campaigns: 1,
+                conversation_files: 1,
+                product_assets: 0,
+                product_materials: 0,
+                workspace_artifacts: 0,
+            },
+            attachment_sources: vec![WorkspaceContextSourceResponse {
+                source_type: "conversation_file".to_string(),
+                id: "file-1".to_string(),
+                title: Some("hidden source title".to_string()),
+                mime_type: Some("application/pdf".to_string()),
+                file_size: Some(1024),
+                status: "active".to_string(),
+                ref_key: "conversation_file:file-1".to_string(),
+                preview: Some("hidden source preview".to_string()),
+                metadata: json!({"objectKey": "hidden/object/key.pdf"}),
+            }],
+            campaign_sources: vec![WorkspaceContextSourceResponse {
+                source_type: "campaign".to_string(),
+                id: "campaign-1".to_string(),
+                title: Some("hidden campaign title".to_string()),
+                mime_type: None,
+                file_size: None,
+                status: "active".to_string(),
+                ref_key: "campaign:campaign-1".to_string(),
+                preview: Some("hidden campaign preview".to_string()),
+                metadata: json!({"secret": "hidden campaign metadata"}),
+            }],
+            product_asset_sources: Vec::new(),
+            product_material_sources: Vec::new(),
+            artifact_sources: Vec::new(),
+            missing: vec!["product_material:missing".to_string()],
+            warnings: vec!["1 source missing".to_string()],
+            agent_context: json!({
+                "kind": "workspace_context_summary",
+                "refs": ["conversation_file:file-1"],
+                "secret": "hidden agent context",
+            }),
+        };
+
+        let value = typed_camel_event_value_for_test(
+            "workspace_context_loaded",
+            workspace_context_loaded_public_payload(&context),
+        );
+        let serialized = value.to_string();
+
+        assert_eq!(value.get("sourceCount").and_then(Value::as_u64), Some(2));
+        assert!(serialized.contains("product_material:missing"));
+        assert!(!serialized.contains("Hidden workspace summary body"));
+        assert!(!serialized.contains("hidden source title"));
+        assert!(!serialized.contains("hidden source preview"));
+        assert!(!serialized.contains("hidden/object/key"));
+        assert!(!serialized.contains("hidden agent context"));
+        assert!(value.get("agentContext").is_none());
+        assert!(value.get("attachmentSources").is_none());
+        assert!(value.get("campaignSources").is_none());
+    }
+
+    #[test]
+    fn context_loaded_public_payload_hides_summary_and_sources_json() {
+        let hidden_summary = "hidden selected product summary with margin and supplier details";
+        let hidden_source_title = "hidden source title";
+        let hidden_sources_json = json!([
+            {
+                "source_type": "product_knowledge",
+                "id": "knowledge-1",
+                "product_id": "product-1",
+                "title": hidden_source_title
+            }
+        ])
+        .to_string();
+        let event = SessionEvent::ContextLoaded {
+            session_id: agent::api::SessionId("session-1".to_string()),
+            product_ids: vec!["product-1".to_string()],
+            refs: vec!["product:product-1".to_string()],
+            product_count: 1,
+            knowledge_count: 2,
+            source_count: 3,
+            summary: Some(hidden_summary.to_string()),
+            sources_json: Some(hidden_sources_json),
+        };
+
+        let value = camelize_json_keys(agent_session_event_public_payload(&event));
+        let serialized = value.to_string();
+
+        assert_eq!(value["type"], "context_loaded");
+        assert_eq!(value["sessionId"], "session-1");
+        assert_eq!(value["productIds"].as_array().map(Vec::len), Some(1));
+        assert_eq!(value["refs"].as_array().map(Vec::len), Some(1));
+        assert_eq!(value["productCount"], 1);
+        assert_eq!(value["knowledgeCount"], 2);
+        assert_eq!(value["sourceCount"], 3);
+        assert_eq!(value["summaryAvailable"], true);
+        assert_eq!(value["sourcesAvailable"], true);
+        assert!(!serialized.contains(hidden_summary));
+        assert!(!serialized.contains(hidden_source_title));
+        assert!(!serialized.contains("sourcesJson"));
+        assert!(value.get("summary").is_none());
+        assert!(value.get("sourcesJson").is_none());
+    }
+
+    #[test]
+    fn rag_context_loaded_public_payload_hides_summary_and_source_titles() {
+        let hidden_summary = "hidden rag summary with product knowledge details";
+        let hidden_title = "hidden knowledge title";
+        let context = AgentRetrievalContextResponse {
+            mode: "local_product_knowledge".to_string(),
+            query_terms: vec!["咖啡".to_string(), "转化".to_string()],
+            product_ids: vec!["product-1".to_string()],
+            knowledge_count: 2,
+            source_count: 2,
+            summary: hidden_summary.to_string(),
+            sources: vec![AgentContextSource {
+                source_type: "product_knowledge".to_string(),
+                id: "knowledge-1".to_string(),
+                product_id: Some("product-1".to_string()),
+                title: hidden_title.to_string(),
+            }],
+            degraded: false,
+            degraded_reason: None,
+            external_search_available: true,
+        };
+
+        let value = typed_camel_event_value_for_test(
+            "rag_context_loaded",
+            rag_context_loaded_public_payload(&context),
+        );
+        let serialized = value.to_string();
+
+        assert_eq!(value["type"], "rag_context_loaded");
+        assert_eq!(value["mode"], "local_product_knowledge");
+        assert_eq!(value["queryTerms"].as_array().map(Vec::len), Some(2));
+        assert_eq!(value["productIds"].as_array().map(Vec::len), Some(1));
+        assert_eq!(value["knowledgeCount"], 2);
+        assert_eq!(value["sourceCount"], 2);
+        assert_eq!(value["summaryAvailable"], true);
+        assert_eq!(value["sourcesAvailable"], true);
+        assert_eq!(value["externalSearchAvailable"], true);
+        assert!(!serialized.contains(hidden_summary));
+        assert!(!serialized.contains(hidden_title));
+        assert!(value.get("summary").is_none());
+        assert!(value.get("sources").is_none());
+    }
+
+    #[test]
     fn supported_vision_image_mime_allows_common_web_images_only() {
         assert!(is_supported_vision_image_mime("image/png"));
         assert!(is_supported_vision_image_mime("IMAGE/JPEG"));
@@ -3810,46 +5318,520 @@ mod tests {
     }
 
     #[test]
-    fn skill_result_output_is_camelized_for_sse_consumers() {
+    fn workspace_context_pack_loaded_public_payload_hides_raw_item_bodies() {
+        let context = WorkspaceContextPackResponse {
+            workspace_id: "workspace-1".to_string(),
+            conversation_id: Some("conversation-1".to_string()),
+            product_id: Some("product-1".to_string()),
+            run_id: None,
+            readiness: "partial".to_string(),
+            summary: "Hidden workspace pack summary.".to_string(),
+            counts: service::dto::workspace::WorkspaceContextSummaryCounts {
+                campaigns: 0,
+                conversation_files: 1,
+                product_assets: 0,
+                product_materials: 1,
+                workspace_artifacts: 0,
+            },
+            items: vec![
+                service::dto::workspace::WorkspaceContextPackItemResponse {
+                    source_type: "product_material".to_string(),
+                    id: "material-1".to_string(),
+                    title: Some("hidden item title".to_string()),
+                    ref_key: "product_material:material-1".to_string(),
+                    content_kind: "content".to_string(),
+                    text: Some("hidden pack readable text".to_string()),
+                    text_chars: 25,
+                    truncated: false,
+                    metadata: json!({"secret": "hidden item metadata"}),
+                },
+                service::dto::workspace::WorkspaceContextPackItemResponse {
+                    source_type: "conversation_file".to_string(),
+                    id: "file-1".to_string(),
+                    title: Some("hidden metadata only title".to_string()),
+                    ref_key: "conversation_file:file-1".to_string(),
+                    content_kind: "metadata_only".to_string(),
+                    text: None,
+                    text_chars: 0,
+                    truncated: false,
+                    metadata: json!({"objectKey": "hidden/file.pdf"}),
+                },
+            ],
+            omitted: vec!["conversation_file:file-2".to_string()],
+            omitted_details: vec![
+                service::dto::workspace::WorkspaceContextPackOmittedResponse {
+                    ref_key: "conversation_file:file-2".to_string(),
+                    reason: "extraction_pending".to_string(),
+                    source_type: "conversation_file".to_string(),
+                    title: Some("hidden omitted title".to_string()),
+                },
+            ],
+            warnings: vec!["1 conversation file is pending extraction".to_string()],
+            agent_context: json!({
+                "kind": "workspace_context_pack",
+                "refs": ["product_material:material-1"],
+                "secret": "hidden pack agent context",
+            }),
+        };
+
+        let value = typed_camel_event_value_for_test(
+            "workspace_context_pack_loaded",
+            workspace_context_pack_loaded_public_payload(&context),
+        );
+        let serialized = value.to_string();
+
+        assert_eq!(value.get("itemCount").and_then(Value::as_u64), Some(2));
+        assert_eq!(
+            value.get("readableItemCount").and_then(Value::as_u64),
+            Some(1)
+        );
+        assert_eq!(value.get("textChars").and_then(Value::as_u64), Some(25));
+        assert!(serialized.contains("conversation_file:file-2"));
+        assert!(serialized.contains("extraction_pending"));
+        assert!(!serialized.contains("Hidden workspace pack summary"));
+        assert!(!serialized.contains("hidden pack readable text"));
+        assert!(!serialized.contains("hidden item title"));
+        assert!(!serialized.contains("hidden item metadata"));
+        assert!(!serialized.contains("hidden omitted title"));
+        assert!(!serialized.contains("hidden pack agent context"));
+        assert!(value.get("items").is_none());
+        assert!(value.get("agentContext").is_none());
+    }
+
+    #[test]
+    fn skill_result_public_payload_hides_raw_output_but_keeps_safe_counts() {
         let value = typed_camel_event_value_for_test(
             "skill_result",
-            json!({
-                "type": "skill_result",
-                "skill_id": "search_competitor",
-                "execution_mode": "adapter",
-                "approval_required": false,
-                "output": {
+            skill_result_public_payload(SkillResultPublicPayloadRef {
+                session_id: "session-1",
+                worker_id: "worker.search",
+                task_id: "task-1",
+                request_id: "request-1",
+                skill_id: "search_competitor",
+                role: "search",
+                status: "success",
+                summary: Some("search completed"),
+                error: None,
+                output: Some(&json!({
                     "adapter_status": "live",
-                    "planned_query": "冷萃咖啡 竞品",
+                    "planned_query": "hidden search query",
+                    "sources": [{"title": "hidden source title"}],
+                    "evidence_packet": {
+                        "confidence": 0.72,
+                        "search_strength": "standard",
+                        "sources": [{"title": "hidden packet source"}],
+                        "usable_claims": ["hidden claim"],
+                        "gaps": ["hidden gap"]
+                    },
                     "data": {
                         "items": [
                             {"published_at": "2026-05-10T00:00:00Z"}
                         ]
                     }
-                }
+                })),
+                execution_mode: Some("adapter"),
+                risk_level: Some("low"),
+                approval_required: Some(false),
             }),
         );
+        let serialized = value.to_string();
 
-        assert_eq!(
-            value.get("skillId").and_then(Value::as_str),
-            Some("search_competitor")
+        assert_eq!(value["skillId"], "search_competitor");
+        assert_eq!(value["outputAvailable"], true);
+        assert_eq!(value["outputSummary"]["adapterStatus"], "live");
+        assert_eq!(value["outputSummary"]["evidencePacket"]["sources"], 1);
+        assert_eq!(value["outputSummary"]["evidencePacket"]["usableClaims"], 1);
+        assert_eq!(value["outputSummary"]["evidencePacket"]["gaps"], 1);
+        assert_eq!(value["outputSummary"]["evidencePacket"]["confidence"], 0.72);
+        assert!(value.get("output").is_none());
+        assert!(!serialized.contains("hidden search query"));
+        assert!(!serialized.contains("hidden source title"));
+        assert!(!serialized.contains("hidden packet source"));
+        assert!(!serialized.contains("hidden claim"));
+        assert!(!serialized.contains("publishedAt"));
+    }
+
+    #[test]
+    fn task_node_reported_public_payload_hides_raw_report_text_and_diagnostics() {
+        let role_output = Some(json!({
+            "summary_available": true,
+            "finding_count": 2,
+            "recommendation_count": 1,
+            "evidence_count": 1,
+            "risk_count": 1,
+            "open_question_count": 1,
+        }));
+        let value = typed_camel_event_value_for_test(
+            "task_node_reported",
+            task_node_reported_public_payload(TaskNodeReportedPublicPayloadRef {
+                session_id: "session-1",
+                graph_id: "graph-1",
+                node_id: "node-1",
+                worker_id: "worker.data",
+                task_id: "task-1",
+                role: "data",
+                status: "completed",
+                content_available: true,
+                role_output,
+                evidence_count: 3,
+                risk_count: 1,
+                open_question_count: 2,
+                diagnostic_count: 1,
+                diagnostic_kinds: vec!["search_evidence".to_string()],
+            }),
         );
-        assert_eq!(
-            value
-                .pointer("/output/adapterStatus")
-                .and_then(Value::as_str),
-            Some("live")
+        let serialized = value.to_string();
+
+        assert_eq!(value["report"]["role"], "data");
+        assert_eq!(value["report"]["contentAvailable"], true);
+        assert_eq!(value["report"]["evidenceCount"], 3);
+        assert_eq!(value["report"]["diagnosticKinds"][0], "search_evidence");
+        assert!(value["report"].get("content").is_none());
+        assert!(value["report"].get("evidence").is_none());
+        assert!(value["report"].get("risks").is_none());
+        assert!(value["report"].get("diagnostics").is_none());
+        assert!(!serialized.contains("hidden report body"));
+        assert!(!serialized.contains("hidden diagnostic reason"));
+    }
+
+    #[test]
+    fn workspace_persistence_public_payloads_hide_raw_content_and_metadata() {
+        let now = time::OffsetDateTime::UNIX_EPOCH;
+        let task = WorkspaceRunTaskResponse {
+            id: "run-task-1".to_string(),
+            run_id: "run-1".to_string(),
+            workspace_id: "workspace-1".to_string(),
+            workspace_task_id: Some("workspace-task-1".to_string()),
+            user_id: "user-1".to_string(),
+            seq: 1,
+            owner_role: Some("data".to_string()),
+            status: "succeeded".to_string(),
+            attempts: 1,
+            acceptance_score: 0.8,
+            acceptance_passed: true,
+            acceptance_notes: Some("hidden acceptance notes".to_string()),
+            execution_notes: Some("hidden execution notes".to_string()),
+            metadata: json!({
+                "report": {
+                    "content": "hidden persisted report body",
+                    "roleOutput": {"summary": "hidden role summary"}
+                }
+            }),
+            created_at: now,
+            updated_at: now,
+        };
+        let artifact = WorkspaceArtifactResponse {
+            id: "artifact-1".to_string(),
+            workspace_id: "workspace-1".to_string(),
+            run_id: Some("run-1".to_string()),
+            workspace_task_id: None,
+            run_task_id: Some("run-task-1".to_string()),
+            user_id: "user-1".to_string(),
+            artifact_type: "search_evidence".to_string(),
+            title: "Search evidence".to_string(),
+            content: Some("hidden artifact content".to_string()),
+            preview: Some("hidden artifact preview".to_string()),
+            mime_type: Some("application/json".to_string()),
+            format: "json".to_string(),
+            storage_kind: "inline".to_string(),
+            bucket: Some("hidden-bucket".to_string()),
+            object_key: Some("hidden/object/key.json".to_string()),
+            file_name: Some("evidence.json".to_string()),
+            file_size: Some(128),
+            sha256: Some("hidden-sha".to_string()),
+            source: "agent_skill_result".to_string(),
+            status: "active".to_string(),
+            validation_status: "unchecked".to_string(),
+            validation_report: json!({"secret": "hidden validation report"}),
+            metadata: json!({"secret": "hidden artifact metadata"}),
+            created_at: now,
+            updated_at: now,
+        };
+        let record = AgentLearningRecordResponse {
+            id: "learning-1".to_string(),
+            user_id: "user-1".to_string(),
+            workspace_id: Some("workspace-1".to_string()),
+            run_id: Some("run-1".to_string()),
+            quality_check_id: None,
+            role: "ops".to_string(),
+            category: "decision".to_string(),
+            content: "hidden learning content".to_string(),
+            confidence: 0.88,
+            source_action: "coordination_save_memory".to_string(),
+            feedback_rating: None,
+            feedback_comment: Some("hidden feedback".to_string()),
+            status: "active".to_string(),
+            metadata: json!({"secret": "hidden learning metadata"}),
+            created_at: now,
+            updated_at: now,
+        };
+
+        let task_value = typed_camel_event_value_for_test(
+            "workspace_run_task_updated",
+            workspace_run_task_updated_public_payload(&task),
         );
-        assert_eq!(
-            value
-                .pointer("/output/data/items/0/publishedAt")
-                .and_then(Value::as_str),
-            Some("2026-05-10T00:00:00Z")
+        let artifact_value = typed_camel_event_value_for_test(
+            "workspace_artifact_created",
+            workspace_artifact_created_public_payload(&artifact),
         );
+        let record_value = typed_camel_event_value_for_test(
+            "agent_learning_record_created",
+            agent_learning_record_created_public_payload(&record),
+        );
+        let serialized = json!([task_value, artifact_value, record_value]).to_string();
+
+        assert_eq!(artifact_value["contentAvailable"], true);
+        assert_eq!(artifact_value["metadataAvailable"], true);
+        assert_eq!(record_value["contentAvailable"], true);
+        assert_eq!(task_value["metadataAvailable"], true);
+        assert!(!serialized.contains("hidden persisted report body"));
+        assert!(!serialized.contains("hidden acceptance notes"));
+        assert!(!serialized.contains("hidden execution notes"));
+        assert!(!serialized.contains("hidden artifact content"));
+        assert!(!serialized.contains("hidden artifact preview"));
+        assert!(!serialized.contains("hidden/object/key"));
+        assert!(!serialized.contains("hidden validation report"));
+        assert!(!serialized.contains("hidden artifact metadata"));
+        assert!(!serialized.contains("hidden learning content"));
+        assert!(!serialized.contains("hidden learning metadata"));
+        assert!(artifact_value.get("objectKey").is_none());
+        assert!(artifact_value.get("bucket").is_none());
+        assert!(artifact_value.get("content").is_none());
+        assert!(artifact_value.get("metadata").is_none());
+        assert!(record_value.get("content").is_none());
+        assert!(record_value.get("metadata").is_none());
+        assert!(task_value.get("metadata").is_none());
+    }
+
+    #[test]
+    fn completion_and_quality_public_payloads_hide_raw_report_and_quality_details() {
+        let now = time::OffsetDateTime::UNIX_EPOCH;
+        let run = WorkspaceRunResponse {
+            id: "run-1".to_string(),
+            workspace_id: "workspace-1".to_string(),
+            user_id: "user-1".to_string(),
+            goal: "hidden run goal".to_string(),
+            requirements: json!({"input": "hidden user input"}),
+            status: "succeeded".to_string(),
+            source: "agent_session".to_string(),
+            summary: Some("hidden final summary".to_string()),
+            report: json!({
+                "output": "hidden final answer",
+                "tasks": [{"content": "hidden task report"}],
+            }),
+            metadata: json!({"artifactId": "artifact-1", "hidden": "run metadata"}),
+            created_at: now,
+            updated_at: now,
+        };
+        let quality = AgentQualityEvaluationResponse {
+            quality_check: service::dto::workspace::AgentQualityCheckResponse {
+                id: "quality-1".to_string(),
+                workspace_id: "workspace-1".to_string(),
+                run_id: "run-1".to_string(),
+                artifact_id: Some("artifact-1".to_string()),
+                user_id: "user-1".to_string(),
+                role: "agent".to_string(),
+                score: 0.82,
+                passed: false,
+                dimensions: json!({"clarity": 0.8, "grounding": 0.7}),
+                issues: json!(["hidden quality issue"]),
+                suggestions: json!(["hidden quality suggestion"]),
+                source: "agent_session".to_string(),
+                metadata: json!({"hidden": "quality metadata"}),
+                created_at: now,
+            },
+            trust_update: service::dto::workspace::AgentTrustUpdateResponse {
+                role: "agent".to_string(),
+                skill_id: None,
+                previous_score: 0.5,
+                new_score: 0.66,
+                previous_level: "moderate".to_string(),
+                new_level: "moderate".to_string(),
+                delta: 0.16,
+                reason: "hidden trust reason".to_string(),
+            },
+            learning_records: vec![AgentLearningRecordResponse {
+                id: "learning-1".to_string(),
+                user_id: "user-1".to_string(),
+                workspace_id: Some("workspace-1".to_string()),
+                run_id: Some("run-1".to_string()),
+                quality_check_id: Some("quality-1".to_string()),
+                role: "agent".to_string(),
+                category: "quality_issue".to_string(),
+                content: "hidden learning content".to_string(),
+                confidence: 0.72,
+                source_action: "agent_quality_check".to_string(),
+                feedback_rating: None,
+                feedback_comment: Some("hidden feedback comment".to_string()),
+                status: "active".to_string(),
+                metadata: json!({"hidden": "learning metadata"}),
+                created_at: now,
+                updated_at: now,
+            }],
+        };
+
+        let run_value = typed_camel_event_value_for_test(
+            "workspace_run_completed",
+            workspace_run_public_payload(&run),
+        );
+        let quality_value = typed_camel_event_value_for_test(
+            "quality_checked",
+            quality_checked_public_payload(&quality),
+        );
+        let run_serialized = run_value.to_string();
+        let quality_serialized = quality_value.to_string();
+
+        assert_eq!(run_value["type"], "workspace_run_completed");
+        assert_eq!(run_value["summaryAvailable"], true);
+        assert_eq!(run_value["reportAvailable"], true);
+        assert_eq!(run_value["metadataAvailable"], true);
+        assert!(run_value.get("summary").is_none());
+        assert!(run_value.get("report").is_none());
+        assert!(run_value.get("requirements").is_none());
+        assert!(!run_serialized.contains("hidden final answer"));
+        assert!(!run_serialized.contains("hidden final summary"));
+        assert!(!run_serialized.contains("hidden user input"));
+        assert!(!run_serialized.contains("hidden task report"));
+        assert!(!run_serialized.contains("run metadata"));
+
+        assert_eq!(quality_value["type"], "quality_checked");
+        assert_eq!(quality_value["qualityCheck"]["score"], 0.82);
+        assert_eq!(quality_value["qualityCheck"]["passed"], false);
+        assert_eq!(quality_value["qualityCheck"]["dimensionCount"], 2);
+        assert_eq!(quality_value["qualityCheck"]["issueCount"], 1);
+        assert_eq!(quality_value["qualityCheck"]["suggestionCount"], 1);
+        assert_eq!(quality_value["qualityCheck"]["dimensionsAvailable"], true);
+        assert_eq!(quality_value["qualityCheck"]["issuesAvailable"], true);
+        assert_eq!(quality_value["qualityCheck"]["suggestionsAvailable"], true);
+        assert_eq!(quality_value["qualityCheck"]["metadataAvailable"], true);
+        assert_eq!(quality_value["trustUpdate"]["reasonAvailable"], true);
+        assert_eq!(quality_value["learningRecordCount"], 1);
+        assert_eq!(quality_value["learningRecordsAvailable"], true);
+        assert!(quality_value["qualityCheck"].get("dimensions").is_none());
+        assert!(quality_value["qualityCheck"].get("issues").is_none());
+        assert!(quality_value["qualityCheck"].get("suggestions").is_none());
+        assert!(quality_value["qualityCheck"].get("metadata").is_none());
+        assert!(quality_value["trustUpdate"].get("reason").is_none());
+        assert!(quality_value.get("learningRecords").is_none());
+        assert!(!quality_serialized.contains("hidden quality issue"));
+        assert!(!quality_serialized.contains("hidden quality suggestion"));
+        assert!(!quality_serialized.contains("quality metadata"));
+        assert!(!quality_serialized.contains("hidden trust reason"));
+        assert!(!quality_serialized.contains("hidden learning content"));
+        assert!(!quality_serialized.contains("hidden feedback comment"));
+        assert!(!quality_serialized.contains("learning metadata"));
+    }
+
+    #[test]
+    fn approval_required_public_payload_hides_raw_args_output() {
+        let now = time::OffsetDateTime::UNIX_EPOCH;
+        let approval = ToolApprovalResponse {
+            id: "approval-1".to_string(),
+            user_id: "user-1".to_string(),
+            workspace_id: Some("workspace-1".to_string()),
+            run_id: Some("run-1".to_string()),
+            conversation_id: None,
+            request_role: Some("ops".to_string()),
+            skill_name: "platform_update_price".to_string(),
+            tool_call_id: Some("request-1".to_string()),
+            risk_level: "L3".to_string(),
+            args: json!({
+                "output": {
+                    "secret": "hidden approval raw output"
+                },
+                "normalizedInputs": {
+                    "price": 159
+                }
+            }),
+            status: "pending".to_string(),
+            reason: Some("needs approval".to_string()),
+            action_key: Some("hidden-action-key".to_string()),
+            result: json!({"executionReadiness": {"secret": "hidden result"}}),
+            approved_by: None,
+            approved_at: None,
+            executed_at: None,
+            created_at: now,
+            updated_at: now,
+        };
+        let alert = AlertResponse {
+            id: "alert-1".to_string(),
+            user_id: "user-1".to_string(),
+            workspace_id: Some("workspace-1".to_string()),
+            run_id: Some("run-1".to_string()),
+            alert_type: "agent_approval_required".to_string(),
+            severity: "warning".to_string(),
+            message: "approval required".to_string(),
+            role: Some("ops".to_string()),
+            status: "active".to_string(),
+            dedup_key: Some("hidden-dedup-key".to_string()),
+            snoozed_until: None,
+            payload: json!({"secret": "hidden alert payload"}),
+            acted_at: None,
+            dismissed_at: None,
+            created_at: now,
+            updated_at: now,
+        };
+        let value = typed_camel_event_value_for_test(
+            "approval_required",
+            approval_required_public_payload(
+                &approval,
+                Some(&alert),
+                ApprovalRequiredPublicPayloadRef {
+                    skill_id: "platform_update_price",
+                    request_id: "request-1",
+                    role: "ops",
+                    risk_level: "L3",
+                    reason: "needs approval",
+                },
+            ),
+        );
+        let serialized = value.to_string();
+
+        assert_eq!(value["approval"]["argsAvailable"], true);
+        assert_eq!(value["approval"]["resultAvailable"], true);
+        assert_eq!(value["alert"]["payloadAvailable"], true);
+        assert!(value["approval"].get("args").is_none());
+        assert!(value["approval"].get("result").is_none());
+        assert!(value["approval"].get("actionKey").is_none());
+        assert!(value["alert"].get("payload").is_none());
+        assert!(value["alert"].get("dedupKey").is_none());
+        assert!(!serialized.contains("hidden approval raw output"));
+        assert!(!serialized.contains("hidden result"));
+        assert!(!serialized.contains("hidden-action-key"));
+        assert!(!serialized.contains("hidden-dedup-key"));
+        assert!(!serialized.contains("hidden alert payload"));
+    }
+
+    #[test]
+    fn persistence_error_public_payload_keeps_only_safe_error_fields() {
+        let err = db_core::error::BizError::new(
+            error_code::app::WORKSPACE_REQUEST_INVALID,
+            "quality check persistence failed".to_string(),
+        );
+        let value = typed_json_event_value_for_test(
+            "workspace_run_persistence_error",
+            persistence_error_payload("evaluate_agent_run", &err),
+        );
+
+        assert_eq!(value["type"], "workspace_run_persistence_error");
+        assert_eq!(value["action"], "evaluate_agent_run");
+        assert_eq!(
+            value["code"],
+            i64::from(error_code::app::WORKSPACE_REQUEST_INVALID)
+        );
+        assert_eq!(value["message"], "quality check persistence failed");
+        assert!(value.get("runId").is_none());
+        assert!(value.get("sessionId").is_none());
+        assert!(value.get("workspaceId").is_none());
+        assert!(value.get("metadata").is_none());
     }
 
     fn typed_camel_event_value_for_test(event: &'static str, value: Value) -> Value {
         ensure_event_type(event, camelize_json_keys(value))
+    }
+
+    fn typed_json_event_value_for_test(event: &'static str, value: Value) -> Value {
+        ensure_event_type(event, value)
     }
 
     fn conversation_message(

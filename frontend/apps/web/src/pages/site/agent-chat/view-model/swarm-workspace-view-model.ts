@@ -95,6 +95,7 @@ export function getWorkspacePersistenceCard(
     const quality = qualityChecked.qualityCheck ?? qualityChecked.quality_check
     const trust = qualityChecked.trustUpdate ?? qualityChecked.trust_update
     const records = qualityChecked.learningRecords ?? qualityChecked.learning_records ?? []
+    const recordCount = qualityChecked.learningRecordCount ?? records.length
     return {
       id: "workspace-quality-checked",
       title: t("agentChat.swarm.cards.workspace.qualityCheckedTitle"),
@@ -112,7 +113,7 @@ export function getWorkspacePersistenceCard(
           score: Math.round((trust?.newScore ?? trust?.new_score ?? 0) * 100),
         }),
         t("agentChat.swarm.cards.workspace.learningRecordLine", {
-          count: records.length,
+          count: recordCount,
         }),
       ],
       state: quality?.passed ? "done" : "reworking",

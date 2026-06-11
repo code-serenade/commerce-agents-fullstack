@@ -88,6 +88,7 @@ export default function AgentChatPage() {
             availableProducts={chat.availableProducts}
             availableSources={chat.availableSources}
             canSend={chat.canSend}
+            contextPreview={chat.contextPreview}
             error={chat.error}
             input={chat.input}
             focusVersion={

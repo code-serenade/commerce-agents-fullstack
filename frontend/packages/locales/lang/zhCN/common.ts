@@ -9,6 +9,7 @@ const common = {
   validation: {
     required: "此项必填",
     emailInvalid: "请输入有效邮箱地址",
+    maxLength: "最多 {{max}} 个字符",
   },
 } as const
 

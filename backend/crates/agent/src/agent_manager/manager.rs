@@ -9,8 +9,9 @@ use tokio::sync::mpsc;
 use crate::{
     agent_error::{Result, SettingsError},
     agent_session::{
-        AgentSession, AgentSessionConfig, AgentSessionScope, CognitionFactory, MemoryStore,
-        NoopMemoryStore, RoleCognitionFactory, SessionEventRx, SessionResult, SessionRuntimeConfig,
+        AgentSession, AgentSessionConfig, AgentSessionScope, CognitionFactory, MemoryBundle,
+        MemoryQuery, MemoryScope, MemoryStore, NoopMemoryStore, RoleCognitionFactory,
+        SessionEventRx, SessionResult, SessionRuntimeConfig, agent_memory_query_text,
     },
     core::protocol::{AgentId, SessionEvent, SessionId, UserId, WorkspaceId},
     roles::{RoleCatalog, RoleProfile},
@@ -116,6 +117,20 @@ impl AgentManager {
             .lock()
             .map(|sessions| sessions.len())
             .unwrap_or(0)
+    }
+
+    pub fn load_memory_bundle_preview(&self, request: &AgentRequest) -> MemoryBundle {
+        let scope = MemoryScope {
+            user_id: request.user_id.clone(),
+            workspace_id: request.workspace_id.clone(),
+            agent_id: Some(request.agent_id.clone()),
+            session_id: None,
+            task_id: None,
+        };
+        self.config.memory_store.load_bundle(
+            MemoryQuery::scoped(scope)
+                .for_text(agent_memory_query_text(&request.input, &request.metadata)),
+        )
     }
 
     fn create_session(&self, request: &AgentRequest) -> AgentSession {

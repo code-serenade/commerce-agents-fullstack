@@ -11,6 +11,8 @@ pub struct Model {
     #[sea_orm(unique)]
     pub display_id: String,
     pub display_name: String,
+    pub school_name: Option<String>,
+    pub team_name: Option<String>,
     pub remark: Option<String>,
     pub status: String,
     pub created_at: TimeDateTimeWithTimeZone,

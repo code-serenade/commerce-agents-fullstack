@@ -24,8 +24,9 @@ const pages = {
       submit: "注册",
       submitting: "注册中...",
       username: {
-        label: "用户名",
-        placeholder: "请输入用户名",
+        label: "账号",
+        placeholder: "请输入账号",
+        help: "仅支持英文字母、数字、下划线和连字符，长度 3-32 位。",
       },
       displayName: {
         label: "显示名称（可选）",

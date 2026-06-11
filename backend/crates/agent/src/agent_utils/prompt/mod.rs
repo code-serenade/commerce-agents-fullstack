@@ -56,7 +56,7 @@ impl Prompt {
             err
         })?;
 
-        let schema_region = &self.content[start + marker.len() ..];
+        let schema_region = &self.content[start + marker.len()..];
         let schema_text = llm_json::extract_json_value(schema_region).ok_or_else(|| {
             let err = PromptError::internal("failed to extract JSON schema from prompt");
             log_error!(err);
@@ -109,5 +109,40 @@ Footer
         let schema = prompt.extract_json_schema().expect("schema should parse");
         assert_eq!(schema["route"]["agent"], "");
         assert_eq!(schema["route"]["message"], "");
+    }
+
+    #[test]
+    fn product_form_draft_prompt_schema_matches_service_parser_contract() {
+        let prompt = Prompt::load_from_repo("config/prompts/zh/form_drafts/product_form_draft.md")
+            .expect("product form draft prompt should load");
+        let schema = prompt.extract_json_schema().expect("schema should parse");
+
+        assert_eq!(schema["status"], "active");
+        assert!(
+            schema
+                .get("name")
+                .and_then(|value| value.as_str())
+                .is_some()
+        );
+        assert!(schema.get("externalId").is_some());
+        assert!(schema.get("currency").is_some());
+        assert!(prompt.content.contains("只输出 JSON"));
+        assert!(prompt.content.contains("人工审核"));
+        assert!(prompt.content.contains("不写数据库"));
+    }
+
+    #[test]
+    fn campaign_form_draft_prompt_schema_matches_service_parser_contract() {
+        let prompt = Prompt::load_from_repo("config/prompts/zh/form_drafts/campaign_form_draft.md")
+            .expect("campaign form draft prompt should load");
+        let schema = prompt.extract_json_schema().expect("schema should parse");
+
+        assert_eq!(schema["status"], "draft");
+        assert!(schema.get("productId").is_some());
+        assert!(schema.get("campaignType").is_some());
+        assert!(schema.get("budget").is_some());
+        assert!(prompt.content.contains("只输出 JSON"));
+        assert!(prompt.content.contains("人工审核"));
+        assert!(prompt.content.contains("不写数据库"));
     }
 }

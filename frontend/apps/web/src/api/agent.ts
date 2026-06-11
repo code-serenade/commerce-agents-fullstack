@@ -1,3 +1,5 @@
+import { request } from "@workspace/services/api/base"
+
 const AGENT_STREAM_URL = "/api/sse/agent/session/stream"
 const AGENT_STREAM_IDLE_TIMEOUT_MS = 240_000
 const AGENT_AUTH_REFRESH_TIMEOUT_MS = 10_000
@@ -37,6 +39,38 @@ export interface AgentStreamImageAttachment {
   url: string
 }
 
+export interface AgentContextPreviewRequest {
+  contextRefs?: string[]
+  conversationId?: string
+  input: string
+  maxChars?: number
+  maxItems?: number
+  productId?: string
+  workspaceId?: string
+}
+
+export interface AgentContextPreviewMemoryRecord {
+  charCount?: number
+  char_count?: number
+  key?: string | null
+  kind: string
+  tags: string[]
+  truncated: boolean
+}
+
+export interface AgentContextPreviewResponse {
+  budget: Record<string, unknown>
+  conversationHistory?: Record<string, unknown> | null
+  conversationMemory?: Record<string, unknown> | null
+  includedRefs: string[]
+  memoryRecords: AgentContextPreviewMemoryRecord[]
+  metadataOnlyRefs: string[]
+  omittedRefs: string[]
+  warnings: string[]
+  workspaceContext: AgentWorkspaceContextLoaded
+  workspacePack: AgentWorkspaceContextPackLoaded
+}
+
 export interface AgentStreamHandlers {
   onDelta: (content: string) => void
   onDone: () => void
@@ -52,7 +86,20 @@ interface SseMessage {
 
 export type AgentRuntimeEvent =
   | { type: "started"; session_id?: string }
-  | { type: "memory_loaded"; count?: number; kinds?: string[]; session_id?: string }
+  | {
+      type: "memory_loaded"
+      count?: number
+      kinds?: string[]
+      records?: Array<{
+        char_count?: number
+        charCount?: number
+        key?: string | null
+        kind?: string
+        tags?: string[]
+        truncated?: boolean
+      }>
+      session_id?: string
+    }
   | {
       type: "context_loaded"
       contextRefs?: string[]
@@ -64,9 +111,14 @@ export type AgentRuntimeEvent =
       session_id?: string
       source_count?: number
       sources_json?: string | null
+      sourcesAvailable?: boolean
+      sources_available?: boolean
       summary?: string | null
+      summaryAvailable?: boolean
+      summary_available?: boolean
     }
   | ({ type: "conversation_context_loaded" } & AgentConversationContextLoaded)
+  | ({ type: "conversation_memory_updated" } & AgentConversationMemoryUpdated)
   | ({ type: "rag_context_loaded" } & AgentRagContextLoaded)
   | ({ type: "workspace_context_loaded" } & AgentWorkspaceContextLoaded)
   | ({ type: "workspace_context_pack_loaded" } & AgentWorkspaceContextPackLoaded)
@@ -154,6 +206,10 @@ export type AgentRuntimeEvent =
       summary?: string | null
       error?: string | null
       output?: unknown | null
+      outputAvailable?: boolean
+      outputSummary?: AgentSkillOutputSummary | null
+      output_available?: boolean
+      output_summary?: AgentSkillOutputSummary | null
       execution_mode?: string | null
       risk_level?: string | null
       approval_required?: boolean | null
@@ -274,6 +330,7 @@ const AGENT_RUNTIME_EVENT_TYPES = new Set<string>([
   "memory_loaded",
   "context_loaded",
   "conversation_context_loaded",
+  "conversation_memory_updated",
   "rag_context_loaded",
   "workspace_context_loaded",
   "workspace_context_pack_loaded",
@@ -336,29 +393,92 @@ export interface AgentWorkerReport {
   task_id: AgentWrappedId
   worker_id: AgentWrappedId
   role: string
-  content: string
+  content?: string
+  contentAvailable?: boolean
+  content_available?: boolean
   role_output?: {
-    summary: string
-    findings: string[]
-    recommendations: string[]
-    evidence: string[]
-    risks: string[]
-    open_questions: string[]
+    evidence?: string[]
+    evidence_count?: number
+    evidenceCount?: number
+    finding_count?: number
+    findingCount?: number
+    findings?: string[]
+    open_question_count?: number
+    openQuestionCount?: number
+    open_questions?: string[]
+    recommendation_count?: number
+    recommendationCount?: number
+    recommendations?: string[]
+    risk_count?: number
+    riskCount?: number
+    risks?: string[]
+    summary?: string
+    summary_available?: boolean
+    summaryAvailable?: boolean
   } | null
   roleOutput?: {
-    summary: string
-    findings: string[]
-    recommendations: string[]
-    evidence: string[]
-    risks: string[]
+    evidence?: string[]
+    evidenceCount?: number
+    evidence_count?: number
+    findingCount?: number
+    finding_count?: number
+    findings?: string[]
+    openQuestionCount?: number
+    open_question_count?: number
     openQuestions?: string[]
     open_questions?: string[]
+    recommendationCount?: number
+    recommendation_count?: number
+    recommendations?: string[]
+    riskCount?: number
+    risk_count?: number
+    risks?: string[]
+    summary?: string
+    summaryAvailable?: boolean
+    summary_available?: boolean
   } | null
-  evidence: string[]
-  risks: string[]
-  open_questions: string[]
+  diagnosticCount?: number
+  diagnosticKinds?: string[]
+  diagnostic_count?: number
+  diagnostic_kinds?: string[]
+  evidence?: string[]
+  evidenceCount?: number
+  evidence_count?: number
+  risks?: string[]
+  riskCount?: number
+  risk_count?: number
+  open_questions?: string[]
   openQuestions?: string[]
+  openQuestionCount?: number
+  open_question_count?: number
   status: string
+}
+
+export interface AgentSkillOutputSummary {
+  adapterStatus?: string | null
+  adapter_status?: string | null
+  available?: boolean
+  dataReadiness?: string | null
+  data_readiness?: string | null
+  evidencePacket?: AgentSkillEvidencePacketSummary | null
+  evidence_packet?: AgentSkillEvidencePacketSummary | null
+  kind?: string
+  status?: string | null
+  topLevelKeyCount?: number
+  top_level_key_count?: number
+}
+
+export interface AgentSkillEvidencePacketSummary {
+  available?: boolean
+  confidence?: number | null
+  gaps?: number
+  searchStrength?: string | null
+  search_strength?: string | null
+  sourceState?: string | null
+  source_state?: string | null
+  sources?: number
+  usableClaims?: number
+  usable_claims?: number
 }
 
 export interface AgentDispatchPlannedStep {
@@ -443,11 +563,17 @@ export interface AgentWorkspaceRun {
   goal?: string
   id: string
   metadata?: Record<string, unknown>
+  metadataAvailable?: boolean
+  metadata_available?: boolean
   report?: Record<string, unknown>
+  reportAvailable?: boolean
+  report_available?: boolean
   requirements?: unknown
   source?: string
   status: string
   summary?: string | null
+  summaryAvailable?: boolean
+  summary_available?: boolean
   updatedAt?: string
   updated_at?: string
   userId?: string
@@ -458,8 +584,10 @@ export interface AgentWorkspaceRun {
 
 export interface AgentWorkspaceRunTask {
   acceptanceNotes?: string | null
+  acceptanceNotesAvailable?: boolean
   acceptancePassed?: boolean
   acceptanceScore?: number
+  acceptance_notes_available?: boolean
   acceptance_notes?: string | null
   acceptance_passed?: boolean
   acceptance_score?: number
@@ -467,9 +595,13 @@ export interface AgentWorkspaceRunTask {
   createdAt?: string
   created_at?: string
   executionNotes?: string | null
+  executionNotesAvailable?: boolean
   execution_notes?: string | null
+  execution_notes_available?: boolean
   id: string
   metadata?: Record<string, unknown>
+  metadataAvailable?: boolean
+  metadata_available?: boolean
   ownerRole?: string | null
   owner_role?: string | null
   runId?: string
@@ -491,6 +623,8 @@ export interface AgentWorkspaceArtifact {
   artifact_type?: string
   bucket?: string | null
   content?: string | null
+  contentAvailable?: boolean
+  content_available?: boolean
   createdAt?: string
   created_at?: string
   fileName?: string | null
@@ -500,11 +634,15 @@ export interface AgentWorkspaceArtifact {
   format?: string
   id: string
   metadata?: Record<string, unknown>
+  metadataAvailable?: boolean
+  metadata_available?: boolean
   mimeType?: string | null
   mime_type?: string | null
   objectKey?: string | null
   object_key?: string | null
   preview?: string | null
+  previewAvailable?: boolean
+  preview_available?: boolean
   runId?: string | null
   runTaskId?: string | null
   run_id?: string | null
@@ -520,7 +658,9 @@ export interface AgentWorkspaceArtifact {
   userId?: string
   user_id?: string
   validationReport?: Record<string, unknown>
+  validationReportAvailable?: boolean
   validationStatus?: string
+  validation_report_available?: boolean
   validation_report?: Record<string, unknown>
   validation_status?: string
   workspaceId?: string
@@ -530,6 +670,10 @@ export interface AgentWorkspaceArtifact {
 }
 
 export interface AgentQualityEvaluation {
+  learningRecordCount?: number
+  learning_record_count?: number
+  learningRecordsAvailable?: boolean
+  learning_records_available?: boolean
   learningRecords?: AgentLearningRecord[]
   learning_records?: AgentLearningRecord[]
   qualityCheck?: AgentQualityCheck
@@ -543,17 +687,31 @@ export interface AgentQualityCheck {
   artifact_id?: string | null
   createdAt?: string
   created_at?: string
+  dimensionCount?: number
+  dimension_count?: number
+  dimensionsAvailable?: boolean
   dimensions?: Record<string, unknown>
+  dimensions_available?: boolean
   id: string
+  issueCount?: number
+  issue_count?: number
+  issuesAvailable?: boolean
   issues?: string[]
+  issues_available?: boolean
   metadata?: Record<string, unknown>
+  metadataAvailable?: boolean
+  metadata_available?: boolean
   passed: boolean
   role: string
   runId?: string
   run_id?: string
   score: number
   source?: string
+  suggestionCount?: number
+  suggestion_count?: number
+  suggestionsAvailable?: boolean
   suggestions?: string[]
+  suggestions_available?: boolean
   userId?: string
   user_id?: string
   workspaceId?: string
@@ -571,6 +729,8 @@ export interface AgentTrustUpdate {
   previous_level?: string
   previous_score?: number
   reason?: string
+  reasonAvailable?: boolean
+  reason_available?: boolean
   role: string
   skillId?: string | null
   skill_id?: string | null
@@ -579,15 +739,21 @@ export interface AgentTrustUpdate {
 export interface AgentLearningRecord {
   category: string
   confidence: number
-  content: string
+  content?: string
+  contentAvailable?: boolean
+  content_available?: boolean
   createdAt?: string
   created_at?: string
+  feedbackCommentAvailable?: boolean
   feedbackComment?: string | null
   feedbackRating?: number | null
+  feedback_comment_available?: boolean
   feedback_comment?: string | null
   feedback_rating?: number | null
   id: string
   metadata?: Record<string, unknown>
+  metadataAvailable?: boolean
+  metadata_available?: boolean
   qualityCheckId?: string | null
   quality_check_id?: string | null
   role: string
@@ -620,7 +786,11 @@ export interface AgentRagContextLoaded {
   sourceCount?: number
   source_count?: number
   sources?: AgentRagContextSource[]
+  sourcesAvailable?: boolean
+  sources_available?: boolean
   summary?: string | null
+  summaryAvailable?: boolean
+  summary_available?: boolean
 }
 
 export interface AgentConversationContextLoaded {
@@ -638,6 +808,8 @@ export interface AgentConversationContextLoaded {
     kind?: string | null
     openQuestionCount?: number
     open_question_count?: number
+    rollingSummaryAvailable?: boolean
+    rolling_summary_available?: boolean
     rollingSummary?: string | null
     rolling_summary?: string | null
   }
@@ -658,6 +830,36 @@ export interface AgentConversationContextLoaded {
   totalMessageCount?: number
   total_message_count?: number
   truncated?: boolean
+}
+
+export interface AgentConversationMemoryUpdated {
+  conversationId?: string | null
+  conversation_id?: string | null
+  memorySummary?: AgentConversationMemoryUpdatedSummary
+  memory_summary?: AgentConversationMemoryUpdatedSummary
+  persisted?: boolean
+}
+
+export interface AgentConversationMemoryUpdatedSummary {
+  constraintCount?: number
+  constraint_count?: number
+  decisionCount?: number
+  decision_count?: number
+  factCount?: number
+  fact_count?: number
+  kind?: string | null
+  lastAssistantOutputAvailable?: boolean
+  last_assistant_output_available?: boolean
+  lastTurnAvailable?: boolean
+  last_turn_available?: boolean
+  lastUserInputAvailable?: boolean
+  last_user_input_available?: boolean
+  openQuestionCount?: number
+  open_question_count?: number
+  rollingSummaryAvailable?: boolean
+  rolling_summary_available?: boolean
+  sourceMapAvailable?: boolean
+  source_map_available?: boolean
 }
 
 export interface AgentRagContextSource {
@@ -701,6 +903,8 @@ export interface AgentWorkspaceContextLoaded {
   readiness?: string
   runId?: string | null
   run_id?: string | null
+  sourceCount?: number
+  source_count?: number
   summary?: string | null
   warnings?: string[]
   workspaceId?: string
@@ -738,6 +942,8 @@ export interface AgentWorkspaceContextPackLoaded {
     workspaceArtifacts?: number
     workspace_artifacts?: number
   }
+  itemCount?: number
+  item_count?: number
   items?: AgentWorkspaceContextPackItem[]
   omitted?: string[]
   omittedDetails?: AgentWorkspaceContextPackOmitted[]
@@ -745,9 +951,13 @@ export interface AgentWorkspaceContextPackLoaded {
   productId?: string | null
   product_id?: string | null
   readiness?: string
+  readableItemCount?: number
+  readable_item_count?: number
   runId?: string | null
   run_id?: string | null
   summary?: string | null
+  textChars?: number
+  text_chars?: number
   warnings?: string[]
   workspaceId?: string
   workspace_id?: string
@@ -794,12 +1004,16 @@ export interface AgentApprovalRequired {
 export interface AgentToolApproval {
   actionKey?: string | null
   action_key?: string | null
+  argsAvailable?: boolean
+  args_available?: boolean
   id: string
   reason?: string | null
   requestRole?: string | null
   request_role?: string | null
   riskLevel?: string | null
   risk_level?: string | null
+  resultAvailable?: boolean
+  result_available?: boolean
   skillName?: string
   skill_name?: string
   status: string
@@ -814,9 +1028,46 @@ export interface AgentAlert {
   dedup_key?: string | null
   id: string
   message?: string
+  payloadAvailable?: boolean
+  payload_available?: boolean
   role?: string | null
   severity?: string
   status?: string
+}
+
+export async function previewAgentContextApi(
+  body: AgentContextPreviewRequest
+): Promise<AgentContextPreviewResponse> {
+  return request<AgentContextPreviewRequest, AgentContextPreviewResponse>({
+    method: "POST",
+    url: "/api/app/agent/context-preview",
+    body,
+  })
+}
+
+export function buildMemoryLoadedEventFromContextPreview(
+  preview: Pick<AgentContextPreviewResponse, "memoryRecords">
+): Extract<AgentRuntimeEvent, { type: "memory_loaded" }> {
+  const kinds = Array.from(
+    new Set(
+      preview.memoryRecords
+        .map((record) => record.kind.trim())
+        .filter(Boolean)
+    )
+  )
+
+  return {
+    type: "memory_loaded",
+    count: preview.memoryRecords.length,
+    kinds,
+    records: preview.memoryRecords.map((record) => ({
+      charCount: record.charCount ?? record.char_count ?? 0,
+      key: record.key,
+      kind: record.kind,
+      tags: record.tags,
+      truncated: record.truncated,
+    })),
+  }
 }
 
 export async function streamAgentSessionApi(
@@ -1152,14 +1403,10 @@ function mergeFallbackOutput(current: string, next: string): string {
 function readAgentRuntimeFallbackOutput(event: AgentRuntimeEvent | null): string {
   if (!event) return ""
 
-  if (event.type === "workspace_run_completed") {
-    const reportOutput = readStringValue(event.report?.output)
-    return reportOutput || readStringValue(event.summary)
-  }
-
   if (event.type === "workspace_artifact_created") {
     const artifactType = event.artifactType ?? event.artifact_type
     if (artifactType && artifactType !== "final_report") return ""
+    if (event.contentAvailable ?? event.content_available) return ""
     return readStringValue(event.content) || readStringValue(event.preview)
   }
 
@@ -1216,6 +1463,20 @@ function normalizeAgentRuntimeEvent(event: AgentRuntimeEvent): AgentRuntimeEvent
   copyIfMissing(normalized, raw, "supportWorkerIds", "support_worker_ids")
   copyIfMissing(normalized, raw, "productIds", "product_ids")
   copyIfMissing(normalized, raw, "contextRefs", "refs")
+  copyIfMissing(normalized, raw, "outputAvailable", "output_available")
+  copyIfMissing(normalized, raw, "outputSummary", "output_summary")
+  normalizeSkillOutputSummary(normalized.outputSummary)
+  normalizeWorkerReport(normalized.report)
+  copyIfMissing(normalized, raw, "sourcesAvailable", "sources_available")
+  copyIfMissing(normalized, raw, "summaryAvailable", "summary_available")
+  copyIfMissing(normalized, raw, "reportAvailable", "report_available")
+  copyIfMissing(normalized, raw, "metadataAvailable", "metadata_available")
+  copyIfMissing(normalized, raw, "contentAvailable", "content_available")
+  copyIfMissing(normalized, raw, "previewAvailable", "preview_available")
+  copyIfMissing(normalized, raw, "validationReportAvailable", "validation_report_available")
+  copyIfMissing(normalized, raw, "acceptanceNotesAvailable", "acceptance_notes_available")
+  copyIfMissing(normalized, raw, "executionNotesAvailable", "execution_notes_available")
+  copyIfMissing(normalized, raw, "feedbackCommentAvailable", "feedback_comment_available")
   copyIfMissing(normalized, raw, "workspaceId", "workspace_id")
   copyIfMissing(normalized, raw, "workspaceTaskId", "workspace_task_id")
   copyIfMissing(normalized, raw, "runId", "run_id")
@@ -1237,6 +1498,9 @@ function normalizeAgentRuntimeEvent(event: AgentRuntimeEvent): AgentRuntimeEvent
   copyIfMissing(normalized, raw, "qualityCheck", "quality_check")
   copyIfMissing(normalized, raw, "trustUpdate", "trust_update")
   copyIfMissing(normalized, raw, "learningRecords", "learning_records")
+  copyIfMissing(normalized, raw, "learningRecordCount", "learning_record_count")
+  copyIfMissing(normalized, raw, "learningRecordsAvailable", "learning_records_available")
+  normalizeQualityChecked(normalized)
   copyIfMissing(normalized, raw, "queryTerms", "query_terms")
   copyIfMissing(normalized, raw, "knowledgeCount", "knowledge_count")
   copyIfMissing(normalized, raw, "sourceCount", "source_count")
@@ -1247,6 +1511,7 @@ function normalizeAgentRuntimeEvent(event: AgentRuntimeEvent): AgentRuntimeEvent
   copyIfMissing(normalized, raw, "attachmentSources", "attachment_sources")
   copyIfMissing(normalized, raw, "campaignSources", "campaign_sources")
   copyIfMissing(normalized, raw, "conversationId", "conversation_id")
+  copyIfMissing(normalized, raw, "memorySummary", "memory_summary")
   copyIfMissing(normalized, raw, "productAssetSources", "product_asset_sources")
   copyIfMissing(normalized, raw, "productMaterialSources", "product_material_sources")
   copyIfMissing(normalized, raw, "productId", "product_id")
@@ -1255,8 +1520,100 @@ function normalizeAgentRuntimeEvent(event: AgentRuntimeEvent): AgentRuntimeEvent
   copyIfMissing(normalized, raw, "riskLevel", "risk_level")
   copyIfMissing(normalized, raw, "createdAt", "created_at")
   copyIfMissing(normalized, raw, "updatedAt", "updated_at")
+  normalizeApprovalRequired(normalized)
 
   return normalized
+}
+
+function normalizeQualityChecked(event: Record<string, unknown>) {
+  if (event.type !== "quality_checked") return
+  const quality = event.qualityCheck ?? event.quality_check
+  if (quality && typeof quality === "object") {
+    const qualityRecord = quality as Record<string, unknown>
+    copyIfMissing(qualityRecord, qualityRecord, "artifactId", "artifact_id")
+    copyIfMissing(qualityRecord, qualityRecord, "createdAt", "created_at")
+    copyIfMissing(qualityRecord, qualityRecord, "dimensionCount", "dimension_count")
+    copyIfMissing(qualityRecord, qualityRecord, "dimensionsAvailable", "dimensions_available")
+    copyIfMissing(qualityRecord, qualityRecord, "issueCount", "issue_count")
+    copyIfMissing(qualityRecord, qualityRecord, "issuesAvailable", "issues_available")
+    copyIfMissing(qualityRecord, qualityRecord, "metadataAvailable", "metadata_available")
+    copyIfMissing(qualityRecord, qualityRecord, "runId", "run_id")
+    copyIfMissing(qualityRecord, qualityRecord, "suggestionCount", "suggestion_count")
+    copyIfMissing(qualityRecord, qualityRecord, "suggestionsAvailable", "suggestions_available")
+    copyIfMissing(qualityRecord, qualityRecord, "workspaceId", "workspace_id")
+  }
+  const trust = event.trustUpdate ?? event.trust_update
+  if (trust && typeof trust === "object") {
+    const trustRecord = trust as Record<string, unknown>
+    copyIfMissing(trustRecord, trustRecord, "newLevel", "new_level")
+    copyIfMissing(trustRecord, trustRecord, "newScore", "new_score")
+    copyIfMissing(trustRecord, trustRecord, "previousLevel", "previous_level")
+    copyIfMissing(trustRecord, trustRecord, "previousScore", "previous_score")
+    copyIfMissing(trustRecord, trustRecord, "reasonAvailable", "reason_available")
+    copyIfMissing(trustRecord, trustRecord, "skillId", "skill_id")
+  }
+}
+
+function normalizeSkillOutputSummary(value: unknown) {
+  if (!value || typeof value !== "object") return
+  const summary = value as Record<string, unknown>
+  copyIfMissing(summary, summary, "adapterStatus", "adapter_status")
+  copyIfMissing(summary, summary, "dataReadiness", "data_readiness")
+  copyIfMissing(summary, summary, "evidencePacket", "evidence_packet")
+  copyIfMissing(summary, summary, "topLevelKeyCount", "top_level_key_count")
+  const packet = summary.evidencePacket
+  if (!packet || typeof packet !== "object") return
+  const packetRecord = packet as Record<string, unknown>
+  copyIfMissing(packetRecord, packetRecord, "searchStrength", "search_strength")
+  copyIfMissing(packetRecord, packetRecord, "sourceState", "source_state")
+  copyIfMissing(packetRecord, packetRecord, "usableClaims", "usable_claims")
+}
+
+function normalizeWorkerReport(value: unknown) {
+  if (!value || typeof value !== "object") return
+  const report = value as Record<string, unknown>
+  copyIfMissing(report, report, "contentAvailable", "content_available")
+  copyIfMissing(report, report, "diagnosticCount", "diagnostic_count")
+  copyIfMissing(report, report, "diagnosticKinds", "diagnostic_kinds")
+  copyIfMissing(report, report, "evidenceCount", "evidence_count")
+  copyIfMissing(report, report, "openQuestionCount", "open_question_count")
+  copyIfMissing(report, report, "openQuestions", "open_questions")
+  copyIfMissing(report, report, "riskCount", "risk_count")
+  copyIfMissing(report, report, "roleOutput", "role_output")
+  normalizeRoleOutput(report.roleOutput)
+  normalizeRoleOutput(report.role_output)
+}
+
+function normalizeRoleOutput(value: unknown) {
+  if (!value || typeof value !== "object") return
+  const output = value as Record<string, unknown>
+  copyIfMissing(output, output, "evidenceCount", "evidence_count")
+  copyIfMissing(output, output, "findingCount", "finding_count")
+  copyIfMissing(output, output, "openQuestionCount", "open_question_count")
+  copyIfMissing(output, output, "openQuestions", "open_questions")
+  copyIfMissing(output, output, "recommendationCount", "recommendation_count")
+  copyIfMissing(output, output, "riskCount", "risk_count")
+  copyIfMissing(output, output, "summaryAvailable", "summary_available")
+}
+
+function normalizeApprovalRequired(event: Record<string, unknown>) {
+  if (event.type !== "approval_required") return
+  const approval = event.approval
+  if (approval && typeof approval === "object") {
+    const approvalRecord = approval as Record<string, unknown>
+    copyIfMissing(approvalRecord, approvalRecord, "argsAvailable", "args_available")
+    copyIfMissing(approvalRecord, approvalRecord, "requestRole", "request_role")
+    copyIfMissing(approvalRecord, approvalRecord, "resultAvailable", "result_available")
+    copyIfMissing(approvalRecord, approvalRecord, "riskLevel", "risk_level")
+    copyIfMissing(approvalRecord, approvalRecord, "skillName", "skill_name")
+    copyIfMissing(approvalRecord, approvalRecord, "toolCallId", "tool_call_id")
+  }
+  const alert = event.alert
+  if (alert && typeof alert === "object") {
+    const alertRecord = alert as Record<string, unknown>
+    copyIfMissing(alertRecord, alertRecord, "alertType", "alert_type")
+    copyIfMissing(alertRecord, alertRecord, "payloadAvailable", "payload_available")
+  }
 }
 
 function normalizeDispatchContextBudget(event: Record<string, unknown>) {

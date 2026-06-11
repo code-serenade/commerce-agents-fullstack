@@ -26,6 +26,14 @@ pub(crate) fn user_visible_context_summary(raw: &str) -> Option<String> {
     (!lines.is_empty()).then(|| lines.join("\n"))
 }
 
+pub(crate) fn user_visible_conversation_history(raw: &str) -> Option<String> {
+    let lines = raw
+        .lines()
+        .filter_map(clean_context_line)
+        .collect::<Vec<_>>();
+    (!lines.is_empty()).then(|| lines.join("\n"))
+}
+
 fn user_visible_context_sections(raw: &str) -> Vec<String> {
     raw.lines()
         .filter_map(|line| {
@@ -150,10 +158,19 @@ fn clean_text_value(value: &str) -> Option<String> {
     for marker in [
         "confidence=",
         "source=",
+        "sourcemap",
+        "source_map",
+        "memorybudget",
+        "memory_budget",
         "product source product:",
         "knowledge source product_knowledge:",
         "requested context refs:",
         "context.selected_summary",
+        "context.combined_summary",
+        "conversation.memorysummaryjson",
+        "conversation.memory_summary_json",
+        "worker.assignment.input",
+        "assignment.input",
     ] {
         if let Some(index) = lower.find(marker) {
             text.truncate(index);
@@ -178,8 +195,17 @@ fn is_internal_context_line(line: &str) -> bool {
         "requested context refs:",
         "product source product:",
         "knowledge source product_knowledge:",
+        "worker.assignment.input",
+        "assignment.input",
         "context.selected_summary",
         "context.combined_summary",
+        "conversation.memorysummaryjson",
+        "conversation.memory_summary_json",
+        "memorysummaryjson",
+        "memorybudget",
+        "memory_budget",
+        "sourcemap",
+        "source_map",
         "workspacecontext.",
     ]
     .iter()
@@ -188,7 +214,10 @@ fn is_internal_context_line(line: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{user_visible_context_summary, user_visible_selected_product_context};
+    use super::{
+        user_visible_context_summary, user_visible_conversation_history,
+        user_visible_selected_product_context,
+    };
 
     #[test]
     fn selected_product_context_becomes_student_readable() {
@@ -230,5 +259,27 @@ Knowledge source product_knowledge:333 | product=222 | title=卖点素材 | type
         assert!(!output.contains("Product source"));
         assert!(!output.contains("confidence"));
         assert!(!output.contains("资料锚点"));
+    }
+
+    #[test]
+    fn conversation_history_filters_memory_and_source_debug_lines() {
+        let raw = "\
+User: 上一轮直播间曝光8000、点击640、付款72。
+conversation.memorySummaryJson={\"rolling_summary\":\"internal\"}
+sourceMap={\"conversation\":\"debug\"}
+worker.assignment.input={\"context\":{\"selected_summary\":\"商品A\"}}
+Assistant: 已经判断主要问题是成交承接弱。
+下次复盘字段：曝光、点击、加购、付款、退款率。";
+
+        let output = user_visible_conversation_history(raw).expect("history");
+        let lower = output.to_ascii_lowercase();
+
+        assert!(output.contains("上一轮直播间曝光8000"));
+        assert!(output.contains("成交承接弱"));
+        assert!(output.contains("下次复盘字段"));
+        assert!(!lower.contains("memorysummaryjson"));
+        assert!(!lower.contains("sourcemap"));
+        assert!(!lower.contains("worker.assignment.input"));
+        assert!(!lower.contains("selected_summary"));
     }
 }

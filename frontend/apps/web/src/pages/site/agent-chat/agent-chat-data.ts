@@ -14,6 +14,7 @@ import {
   listUserFilesApi,
   listProductsApi,
   listConversationsApi,
+  previewAgentContextApi,
   registerConversationFileApi,
   streamAgentSessionApi,
   submitAgentRunFeedbackApi,
@@ -24,7 +25,11 @@ import {
   uploadImageToFileServiceApi,
 } from "@/api"
 
-export type { AgentRunFeedbackResponse, AgentRuntimeEvent } from "@/api"
+export type {
+  AgentContextPreviewResponse,
+  AgentRunFeedbackResponse,
+  AgentRuntimeEvent,
+} from "@/api"
 
 export const AGENT_ID = "web-agent"
 
@@ -44,6 +49,7 @@ export const agentChatData = {
   listPlaybooks: listCommerceAgentPlaybooksApi,
   listProducts: listProductsApi,
   listConversations: listConversationsApi,
+  previewAgentContext: previewAgentContextApi,
   registerConversationFile: registerConversationFileApi,
   streamAgentSession: streamAgentSessionApi,
   submitRunFeedback: submitAgentRunFeedbackApi,

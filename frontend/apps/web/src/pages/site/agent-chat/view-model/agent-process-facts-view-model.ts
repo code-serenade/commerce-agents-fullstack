@@ -161,13 +161,42 @@ function appendMemoryFact(
   if (!memory) return
 
   facts.push({
-    detail: t("agentChat.thread.dispatchFacts.memory.detail", {
-      count: memory.count ?? 0,
-      kinds: (memory.kinds ?? []).join(", ") || "-",
-    }),
+    detail: t(
+      memory.records?.length
+        ? "agentChat.thread.dispatchFacts.memory.detailWithRecords"
+        : "agentChat.thread.dispatchFacts.memory.detail",
+      {
+        count: memory.count ?? 0,
+        kinds: (memory.kinds ?? []).join(", ") || "-",
+        records: formatMemoryRecordSummaries(memory.records, t),
+      }
+    ),
     label: t("agentChat.thread.dispatchFacts.memory.label"),
     tone: "success",
   })
+}
+
+function formatMemoryRecordSummaries(
+  records: Extract<AgentRuntimeEvent, { type: "memory_loaded" }>["records"],
+  t: TFunction
+) {
+  if (!records?.length) return "-"
+
+  return records
+    .slice(0, 3)
+    .map((record) => {
+      const name = record.key || record.kind || "-"
+      const tags = (record.tags ?? []).slice(0, 2).join(", ") || "-"
+      const chars = record.char_count ?? record.charCount ?? 0
+      const charLabel = t("agentChat.thread.dispatchFacts.memory.recordChars", {
+        count: chars,
+      })
+      const truncated = record.truncated
+        ? ` ${t("agentChat.thread.dispatchFacts.memory.recordTruncated")}`
+        : ""
+      return `${name} [${tags}] ${charLabel}${truncated}`
+    })
+    .join("; ")
 }
 
 function appendContextFact(

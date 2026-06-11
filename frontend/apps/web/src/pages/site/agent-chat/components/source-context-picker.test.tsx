@@ -116,7 +116,7 @@ describe("SourceContextPicker", () => {
     expect(manageSources).toHaveBeenCalledTimes(1)
   })
 
-  it("shows a library manager action when recent library files are empty", async () => {
+  it("shows a library manager action when recent upload file library files are empty", async () => {
     const i18n = await createAgentChatTestI18n()
     const manageSources = vi.fn()
 

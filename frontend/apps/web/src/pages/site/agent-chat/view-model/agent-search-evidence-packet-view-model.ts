@@ -7,6 +7,9 @@ export interface SearchEvidencePacketSummary {
 }
 
 export function summarizeSearchEvidencePacket(output: unknown): SearchEvidencePacketSummary | null {
+  const safeSummary = summarizeSafeSearchEvidencePacket(output)
+  if (safeSummary) return safeSummary
+
   const packet = readRecord(output)?.evidence_packet
   const record = readRecord(packet)
   if (!record) return null
@@ -18,6 +21,15 @@ export function summarizeSearchEvidencePacket(output: unknown): SearchEvidencePa
     sources: readArray(record.sources).length,
     strength: readString(record.search_strength),
   }
+}
+
+export function summarizeSkillOutputEvidence(value: {
+  output?: unknown
+  outputSummary?: unknown
+  output_summary?: unknown
+}): SearchEvidencePacketSummary | null {
+  return summarizeSearchEvidencePacket(value.outputSummary ?? value.output_summary) ??
+    summarizeSearchEvidencePacket(value.output)
 }
 
 export function mergeSearchEvidencePacketSummaries(
@@ -57,6 +69,28 @@ function readNumber(value: unknown) {
 
 function readString(value: unknown) {
   return typeof value === "string" && value.trim() ? value : null
+}
+
+function summarizeSafeSearchEvidencePacket(outputSummary: unknown) {
+  const packet =
+    readRecord(outputSummary)?.evidencePacket ??
+    readRecord(outputSummary)?.evidence_packet
+  const record = readRecord(packet)
+  if (!record || record.available === false) return null
+
+  return {
+    claims: readCount(record.usableClaims ?? record.usable_claims),
+    confidence: readNumber(record.confidence),
+    gaps: readCount(record.gaps),
+    sources: readCount(record.sources),
+    strength: readString(record.searchStrength ?? record.search_strength),
+  }
+}
+
+function readCount(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.max(0, Math.trunc(value))
+    : readArray(value).length
 }
 
 function strongestSearchStrength(values: Array<string | null>) {

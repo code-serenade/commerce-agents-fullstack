@@ -61,6 +61,10 @@ pub struct RegisterAppUserRequest {
     pub display_id: String,
     #[validate(length(min = 1, max = 64))]
     pub display_name: String,
+    #[validate(length(min = 1, max = 128))]
+    pub school_name: Option<String>,
+    #[validate(length(min = 1, max = 128))]
+    pub team_name: Option<String>,
     #[validate(length(min = 1, max = 255))]
     pub remark: Option<String>,
 }
@@ -79,6 +83,8 @@ pub struct AppUserResponse {
     pub user_id: String,
     pub display_id: String,
     pub display_name: String,
+    pub school_name: Option<String>,
+    pub team_name: Option<String>,
     pub remark: Option<String>,
     pub status: AppUserStatus,
     #[serde(with = "time::serde::rfc3339")]
@@ -511,6 +517,36 @@ pub struct CreateProductRequest {
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
+pub struct CreateProductDraftRequest {
+    #[validate(length(max = 255))]
+    pub name: Option<String>,
+    #[validate(length(max = 64))]
+    pub platform: Option<String>,
+    #[validate(length(max = 128))]
+    pub category: Option<String>,
+    #[validate(length(max = 128))]
+    pub brand: Option<String>,
+    #[validate(length(max = 20000))]
+    pub description: Option<String>,
+    #[validate(length(max = 64))]
+    pub price: Option<String>,
+    #[validate(length(max = 16))]
+    pub currency: Option<String>,
+    #[validate(length(max = 2000))]
+    pub prompt: Option<String>,
+    #[validate(length(max = 64))]
+    pub generation_mode: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportProductTemplateRequest {
+    #[validate(length(min = 1, max = 64))]
+    pub template_id: String,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
 pub struct UpdateProductRequest {
     #[validate(length(max = 255))]
     pub name: Option<String>,
@@ -580,6 +616,9 @@ pub struct ProductDashboardResponse {
 
 pub type ProductLifecycleOptionsResponse = service::dto::product::ProductLifecycleOptionsResponse;
 pub type ProductLifecycleResponse = service::dto::product::ProductLifecycleResponse;
+pub type ProductDraftResponse = service::dto::product::ProductDraftResponse;
+pub type ProductTemplateResponse = service::dto::product::ProductTemplateResponse;
+pub type ProductTemplateImportResponse = service::dto::product::ProductTemplateImportResponse;
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
@@ -620,6 +659,44 @@ pub struct CreateCampaignRequest {
     pub metadata: Option<Value>,
     pub output: Option<Value>,
     pub action_metadata: Option<Value>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateCampaignFormDraftRequest {
+    #[validate(length(max = 64))]
+    pub product_id: Option<String>,
+    #[validate(length(max = 255))]
+    pub name: Option<String>,
+    #[validate(length(max = 64))]
+    pub campaign_type: Option<String>,
+    #[validate(length(max = 20000))]
+    pub description: Option<String>,
+    #[validate(range(min = 0.0))]
+    pub budget: Option<f64>,
+    #[validate(length(max = 32))]
+    pub start_date: Option<String>,
+    #[validate(length(max = 32))]
+    pub end_date: Option<String>,
+    #[validate(length(max = 2000))]
+    pub goal: Option<String>,
+    #[validate(length(max = 1000))]
+    pub target_audience: Option<String>,
+    #[validate(length(max = 16))]
+    pub channels: Option<Vec<String>>,
+    #[validate(length(max = 2000))]
+    pub prompt: Option<String>,
+    #[validate(length(max = 64))]
+    pub generation_mode: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportCampaignTemplateRequest {
+    #[validate(length(min = 1, max = 64))]
+    pub template_id: String,
+    #[validate(length(max = 64))]
+    pub product_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Validate)]
@@ -734,6 +811,10 @@ pub struct CampaignResponse {
     #[serde(with = "time::serde::rfc3339")]
     pub updated_at: OffsetDateTime,
 }
+
+pub type CampaignFormDraftResponse = service::dto::campaign::CampaignFormDraftResponse;
+pub type CampaignTemplateResponse = service::dto::campaign::CampaignTemplateResponse;
+pub type CampaignTemplateImportResponse = service::dto::campaign::CampaignTemplateImportResponse;
 
 #[derive(Debug, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
@@ -1604,15 +1685,78 @@ pub struct AgentContextPreviewRequest {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentContextPreviewResponse {
-    pub workspace_context: WorkspaceContextSummaryResponse,
-    pub workspace_pack: WorkspaceContextPackResponse,
-    pub conversation_history: Option<Value>,
-    pub conversation_memory: Option<Value>,
+    pub workspace_context: AgentContextPreviewWorkspaceContextResponse,
+    pub workspace_pack: AgentContextPreviewWorkspacePackResponse,
+    pub conversation_history: Option<AgentContextPreviewConversationHistoryResponse>,
+    pub conversation_memory: Option<AgentContextPreviewConversationMemoryResponse>,
+    pub memory_records: Vec<AgentContextPreviewMemoryRecordResponse>,
     pub budget: Value,
     pub included_refs: Vec<String>,
     pub metadata_only_refs: Vec<String>,
     pub omitted_refs: Vec<String>,
     pub warnings: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentContextPreviewWorkspaceContextResponse {
+    pub workspace_id: String,
+    pub conversation_id: Option<String>,
+    pub product_id: Option<String>,
+    pub run_id: Option<String>,
+    pub readiness: String,
+    pub counts: service::dto::workspace::WorkspaceContextSummaryCounts,
+    pub missing: Vec<String>,
+    pub warnings: Vec<String>,
+    pub source_count: usize,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentContextPreviewWorkspacePackResponse {
+    pub workspace_id: String,
+    pub conversation_id: Option<String>,
+    pub product_id: Option<String>,
+    pub run_id: Option<String>,
+    pub readiness: String,
+    pub counts: service::dto::workspace::WorkspaceContextSummaryCounts,
+    pub item_count: usize,
+    pub readable_item_count: usize,
+    pub text_chars: usize,
+    pub omitted: Vec<String>,
+    pub omitted_details: Vec<service::dto::workspace::WorkspaceContextPackOmittedResponse>,
+    pub warnings: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentContextPreviewConversationHistoryResponse {
+    pub conversation_id: Option<String>,
+    pub message_count: usize,
+    pub total_message_count: usize,
+    pub truncated: bool,
+    pub relevant_older_count: usize,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentContextPreviewConversationMemoryResponse {
+    pub kind: String,
+    pub rolling_summary_available: bool,
+    pub fact_count: usize,
+    pub decision_count: usize,
+    pub constraint_count: usize,
+    pub open_question_count: usize,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AgentContextPreviewMemoryRecordResponse {
+    pub kind: String,
+    pub key: Option<String>,
+    pub tags: Vec<String>,
+    pub char_count: usize,
+    pub truncated: bool,
 }
 
 #[derive(Debug, Serialize)]

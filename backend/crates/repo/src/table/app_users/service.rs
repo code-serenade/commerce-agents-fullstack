@@ -34,6 +34,8 @@ impl AppUserService {
             user_id: Set(input.user_id),
             display_id: Set(input.display_id),
             display_name: Set(input.display_name),
+            school_name: Set(input.school_name),
+            team_name: Set(input.team_name),
             remark: Set(input.remark),
             status: Set(input.status.as_str().to_owned()),
             ..Default::default()
@@ -139,6 +141,8 @@ impl AppUserService {
             user_id: model.user_id,
             display_id: model.display_id,
             display_name: model.display_name,
+            school_name: model.school_name,
+            team_name: model.team_name,
             remark: model.remark,
             status: AppUserStatus::try_from(model.status)?,
             created_at: model.created_at,
@@ -154,6 +158,8 @@ impl AppUserService {
             let mut keyword_condition = Condition::any()
                 .add(app_users::Column::DisplayId.contains(keyword.clone()))
                 .add(app_users::Column::DisplayName.contains(keyword.clone()))
+                .add(app_users::Column::SchoolName.contains(keyword.clone()))
+                .add(app_users::Column::TeamName.contains(keyword.clone()))
                 .add(app_users::Column::Remark.contains(keyword));
 
             if let Some(user_id) = filter.keyword_user_id {

@@ -69,6 +69,7 @@ async fn main() {
             .agent_runtime
             .worker_cognition_timeout_sec
             .unwrap_or(45),
+        memory_path = ?settings.agent_runtime.memory_path,
         "agent runtime config loaded"
     );
     init_agent_manager(agent::api::AgentRuntimeCfg {
@@ -79,6 +80,7 @@ async fn main() {
             .agent_runtime
             .worker_cognition_timeout_sec
             .unwrap_or(45),
+        memory_path: settings.agent_runtime.memory_path.clone(),
     })
     .expect("Agent manager initialization failed");
     init_external_search(settings.external_search.clone())

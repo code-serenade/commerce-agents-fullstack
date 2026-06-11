@@ -1,5 +1,10 @@
 import type { AgentRuntimeEvent } from "@/api"
 
+const textFromCodes = (codes: number[]) =>
+  String.fromCharCode(...codes)
+
+const thermosEntity = textFromCodes([20415, 25658, 20445, 28201, 26479])
+
 export const dispatchFactTestLabels = {
   contextBudgetDetail: "12 history 3 materials",
   contextBudgetLabel: "Context budget",
@@ -21,6 +26,9 @@ export const dispatchFactTestLabels = {
   skillAuditPending:
     "planned ops_inventory_plan requested ops_inventory_plan succeeded - failed - pending ops_inventory_plan(no_result)",
   materialAuditLabel: "Material audit",
+  memoryDetailWithRecords:
+    `loaded 2 kinds conversation_fact records memory_card:facts [memory_card, entity:${thermosEntity}] 86 chars; memory_card:decisions [memory_card, decision] 42 chars truncated`,
+  memoryLabel: "History memory",
   workspaceDetail: "partial 1/3",
   workspaceLabel: "Workspace materials",
   workspaceOmittedDetail: "2 omitted file-b, file-c",
@@ -133,6 +141,18 @@ export const t = ((key: string, params?: Record<string, unknown>) => {
   }
   if (key === "agentChat.thread.dispatchFacts.materialAudit.summary.warnings") {
     return `${materialAuditSummaries.warnings} ${params?.warnings}`
+  }
+  if (key === "agentChat.thread.dispatchFacts.memory.label") {
+    return dispatchFactTestLabels.memoryLabel
+  }
+  if (key === "agentChat.thread.dispatchFacts.memory.detailWithRecords") {
+    return `loaded ${params?.count} kinds ${params?.kinds} records ${params?.records}`
+  }
+  if (key === "agentChat.thread.dispatchFacts.memory.recordChars") {
+    return `${params?.count} chars`
+  }
+  if (key === "agentChat.thread.dispatchFacts.memory.recordTruncated") {
+    return "truncated"
   }
   if (key === "agentChat.thread.dispatchPanel.preview.fact") {
     return `${params?.label}: ${params?.detail}`

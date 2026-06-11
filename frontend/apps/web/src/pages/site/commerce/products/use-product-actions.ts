@@ -5,6 +5,7 @@ import {
   archiveProductKnowledgeApi,
   archiveProductMaterialApi,
   archiveProductApi,
+  createProductFormDraftApi,
   createProductApi,
   createProductKnowledgeApi,
   createProductMaterialApi,
@@ -13,6 +14,7 @@ import {
   updateProductMaterialApi,
   updateProductApi,
   type ProductAssetResponse,
+  type FormDraftGenerationMode,
   type ProductKnowledgeResponse,
   type ProductMaterialResponse,
   type ProductResponse,
@@ -29,6 +31,17 @@ import { productsQueryKey } from "./use-product-queries"
 import { createAssetRecord } from "./product-asset-action"
 import { useProductCompetitorActions } from "./use-product-competitor-actions"
 import { syncProductCache } from "./product-cache"
+import {
+  knowledgePayload,
+  productDraftPayload,
+  productPayload,
+} from "./product-form-payloads"
+import { useProductDraftStream } from "./use-product-draft-stream"
+
+interface ProductDraftInput {
+  values: SimpleFormValues
+  generationMode?: FormDraftGenerationMode
+}
 
 export function useProductActions({
   assetFile,
@@ -77,6 +90,14 @@ export function useProductActions({
       await invalidateProducts()
     },
   })
+  const createProductDraft = useMutation({
+    mutationFn: ({ values, generationMode }: ProductDraftInput) =>
+      createProductFormDraftApi(productDraftPayload(values, generationMode)),
+    onSuccess: () => {
+      notifySuccess(t("commerce.products.notify.draftFilled"))
+    },
+  })
+  const createProductDraftStream = useProductDraftStream(t)
   const updateProduct = useMutation({
     mutationFn: ({
       target,
@@ -256,37 +277,19 @@ export function useProductActions({
     createCompetitor,
     createCompetitorChange,
     createKnowledge: createKnowledge.mutate,
+    createKnowledgePending: createKnowledge.isPending,
     createMaterial: createMaterial.mutate,
+    createMaterialPending: createMaterial.isPending,
     createProduct: createProduct.mutate,
+    createProductDraft: createProductDraft.mutateAsync,
+    createProductDraftPending:
+      createProductDraft.isPending || createProductDraftStream.isPending,
+    createProductDraftStream: createProductDraftStream.mutateAsync,
+    createProductPending: createProduct.isPending,
     updateAsset: updateAsset.mutate,
     updateCompetitor,
     updateKnowledge: updateKnowledge.mutate,
     updateMaterial: updateMaterial.mutate,
     updateProduct: updateProduct.mutate,
-  }
-}
-
-function productPayload(values: SimpleFormValues) {
-  return {
-    name: values.name,
-    platform: toOptionalString(values.platform),
-    externalId: toOptionalString(values.externalId),
-    category: toOptionalString(values.category),
-    brand: toOptionalString(values.brand),
-    description: toOptionalString(values.description),
-    price: toOptionalString(values.price),
-    currency: values.currency || "CNY",
-    metadata: {},
-  }
-}
-
-function knowledgePayload(values: SimpleFormValues) {
-  return {
-    confidence: toNumberOrNull(values.confidence) ?? 0.8,
-    content: values.content,
-    contentType: values.contentType || "text",
-    metadata: {},
-    sourceType: values.sourceType || "manual",
-    title: toOptionalString(values.title),
   }
 }

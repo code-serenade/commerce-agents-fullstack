@@ -2954,12 +2954,28 @@ async fn manual_learning_three_roles_uses_task_graph_for_phone_case_plan() {
         )
     }));
     assert!(events.iter().any(|event| {
-        matches!(
-            event,
-            SessionEvent::TaskGraphPlanned { graph, .. }
-                if graph.nodes.iter().map(|node| node.role.as_str()).collect::<Vec<_>>()
-                    == vec!["data", "creative", "ops", "ops"]
-        )
+        let SessionEvent::TaskGraphPlanned { graph, .. } = event else {
+            return false;
+        };
+        let roles = graph
+            .nodes
+            .iter()
+            .map(|node| node.role.as_str())
+            .collect::<Vec<_>>();
+        let Some(final_node) = graph.nodes.iter().find(|node| node.id.0 == "ops_final") else {
+            return false;
+        };
+        let final_refs = final_node
+            .input_refs
+            .iter()
+            .map(|input| input.0.as_str())
+            .collect::<Vec<_>>();
+        roles.contains(&"data")
+            && roles.contains(&"creative")
+            && roles.iter().filter(|role| **role == "ops").count() >= 2
+            && final_refs.contains(&"data")
+            && final_refs.contains(&"creative")
+            && final_refs.contains(&"ops")
     }));
     assert!(!events.iter().any(|event| {
         matches!(

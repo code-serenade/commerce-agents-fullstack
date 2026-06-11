@@ -25,6 +25,56 @@ export interface ProductResponse extends JsonRecord {
   updatedAt?: string
 }
 
+export interface ProductDraftValues extends JsonRecord {
+  name: string
+  platform?: string | null
+  externalId?: string | null
+  category?: string | null
+  brand?: string | null
+  status: string
+  description?: string | null
+  price?: string | null
+  currency?: string | null
+}
+
+export interface ProductDraftResponse extends JsonRecord {
+  draft: ProductDraftValues
+  warnings: string[]
+  generationMode: string
+  agentContext: JsonRecord
+}
+
+export type FormDraftGenerationMode = "template_smart_fill" | "agent_llm"
+
+export interface ProductFormDraftRequest extends JsonRecord {
+  name?: string | null
+  platform?: string | null
+  category?: string | null
+  brand?: string | null
+  description?: string | null
+  price?: string | null
+  currency?: string | null
+  prompt?: string | null
+  generationMode?: FormDraftGenerationMode
+}
+
+export interface ProductTemplateResponse extends JsonRecord {
+  id: string
+  name: string
+  platform?: string | null
+  category?: string | null
+  brand?: string | null
+  description?: string | null
+  price?: string | null
+  currency?: string | null
+}
+
+export interface ProductTemplateImportResponse extends JsonRecord {
+  product: ProductResponse
+  created: boolean
+  templateId: string
+}
+
 interface ProductDetailResponse extends JsonRecord {
   product: ProductResponse
 }
@@ -221,6 +271,55 @@ export interface CampaignResponse extends JsonRecord {
   status: string
   createdAt?: string
   updatedAt?: string
+}
+
+export interface CampaignFormDraftValues extends JsonRecord {
+  productId?: string | null
+  name: string
+  campaignType?: string | null
+  description?: string | null
+  budget?: number | null
+  startDate?: string | null
+  endDate?: string | null
+  status: string
+}
+
+export interface CampaignFormDraftResponse extends JsonRecord {
+  draft: CampaignFormDraftValues
+  warnings: string[]
+  generationMode: string
+  agentContext: JsonRecord
+}
+
+export interface CampaignFormDraftRequest extends JsonRecord {
+  productId?: string | null
+  name?: string | null
+  campaignType?: string | null
+  description?: string | null
+  budget?: number | null
+  startDate?: string | null
+  endDate?: string | null
+  goal?: string | null
+  targetAudience?: string | null
+  channels?: string[] | null
+  prompt?: string | null
+  generationMode?: FormDraftGenerationMode
+}
+
+export interface CampaignTemplateResponse extends JsonRecord {
+  id: string
+  name: string
+  campaignType?: string | null
+  description?: string | null
+  budget?: number | null
+  startDate?: string | null
+  endDate?: string | null
+}
+
+export interface CampaignTemplateImportResponse extends JsonRecord {
+  campaign: CampaignResponse
+  created: boolean
+  templateId: string
 }
 
 export interface CampaignListResponse extends JsonRecord {
@@ -918,6 +1017,32 @@ export const createProductApi = async (
     body,
   })
 
+export const listProductTemplatesApi = async (): Promise<
+  ProductTemplateResponse[]
+> =>
+  request<undefined, ProductTemplateResponse[]>({
+    method: "GET",
+    url: "/api/app/products/templates",
+  })
+
+export const importProductTemplateApi = async (
+  body: JsonRecord
+): Promise<ProductTemplateImportResponse> =>
+  request<JsonRecord, ProductTemplateImportResponse>({
+    method: "POST",
+    url: "/api/app/products/templates/import",
+    body,
+  })
+
+export const createProductFormDraftApi = async (
+  body: ProductFormDraftRequest
+): Promise<ProductDraftResponse> =>
+  request<ProductFormDraftRequest, ProductDraftResponse>({
+    method: "POST",
+    url: "/api/app/products/form-draft",
+    body,
+  })
+
 export const updateProductApi = async (
   productId: string,
   body: JsonRecord
@@ -1245,6 +1370,32 @@ export const createCampaignDraftApi = async (
   request<JsonRecord, CampaignDraftResponse>({
     method: "POST",
     url: "/api/app/campaigns/draft",
+    body,
+  })
+
+export const listCampaignTemplatesApi = async (): Promise<
+  CampaignTemplateResponse[]
+> =>
+  request<undefined, CampaignTemplateResponse[]>({
+    method: "GET",
+    url: "/api/app/campaigns/templates",
+  })
+
+export const importCampaignTemplateApi = async (
+  body: JsonRecord
+): Promise<CampaignTemplateImportResponse> =>
+  request<JsonRecord, CampaignTemplateImportResponse>({
+    method: "POST",
+    url: "/api/app/campaigns/templates/import",
+    body,
+  })
+
+export const createCampaignFormDraftApi = async (
+  body: CampaignFormDraftRequest
+): Promise<CampaignFormDraftResponse> =>
+  request<CampaignFormDraftRequest, CampaignFormDraftResponse>({
+    method: "POST",
+    url: "/api/app/campaigns/form-draft",
     body,
   })
 

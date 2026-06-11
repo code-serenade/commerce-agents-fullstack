@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use agent::api::{AgentLlmCfg, AgentLlmUsageCfg, SearchAdapterConfig};
 use db_core::DatabaseConfig;
 use serde::Deserialize;
@@ -26,6 +28,12 @@ pub struct Settings {
 pub struct AgentRuntimeSettings {
     #[serde(default)]
     pub worker_cognition_timeout_sec: Option<u64>,
+    #[serde(default = "default_agent_memory_path")]
+    pub memory_path: PathBuf,
+}
+
+fn default_agent_memory_path() -> PathBuf {
+    PathBuf::from("data/agent-memory.json")
 }
 
 #[derive(Debug, Deserialize)]

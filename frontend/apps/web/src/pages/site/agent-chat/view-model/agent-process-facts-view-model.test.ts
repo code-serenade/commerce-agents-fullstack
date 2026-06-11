@@ -8,6 +8,14 @@ import {
   t,
 } from "./agent-process-facts-test-helpers"
 
+const textFromCodes = (codes: number[]) =>
+  String.fromCharCode(...codes)
+
+const thermosEntity = textFromCodes([20415, 25658, 20445, 28201, 26479])
+const retainedBundleDecision = textFromCodes([
+  23458, 25143, 20915, 23450, 20445, 30041, 39640, 27611, 21033, 22871, 39184,
+])
+
 describe("getDispatchFacts", () => {
   it("shows truncated conversation history window from backend dispatch budget", () => {
     const events: AgentRuntimeEvent[] = [
@@ -128,6 +136,37 @@ describe("getDispatchFacts", () => {
     })
   })
 
+  it("uses safe workspace pack counts without requiring item bodies", () => {
+    const hiddenPackSummary = "hidden pack summary"
+    const events: AgentRuntimeEvent[] = [
+      {
+        type: "context_loaded",
+        contextRefs: ["conversation_file:file-a", "product_material:material-a"],
+        knowledge_count: 0,
+        product_count: 0,
+        source_count: 2,
+      },
+      {
+        type: "workspace_context_pack_loaded",
+        itemCount: 2,
+        readableItemCount: 2,
+        readiness: "ready",
+        summary: hiddenPackSummary,
+      },
+    ]
+
+    const facts = getDispatchFacts(events, t)
+
+    expect(facts).toContainEqual({
+      detail:
+        "ready selected 2 packed 2 readable 2 missing 0 omitted 0 unreadable 0 warnings 0 readiness ready",
+      label: dispatchFactTestLabels.materialAuditLabel,
+      tone: "success",
+    })
+    const serialized = JSON.stringify(facts)
+    expect(serialized).not.toContain(hiddenPackSummary)
+  })
+
   it("warns when selected material refs have not reached the workspace pack", () => {
     const events: AgentRuntimeEvent[] = [
       {
@@ -171,6 +210,40 @@ describe("getDispatchFacts", () => {
       label: dispatchFactTestLabels.materialAuditLabel,
       tone: "warning",
     })
+  })
+
+  it("shows memory record summaries without memory content", () => {
+    const events: AgentRuntimeEvent[] = [
+      {
+        type: "memory_loaded",
+        count: 2,
+        kinds: ["conversation_fact"],
+        records: [
+          {
+            char_count: 86,
+            key: "memory_card:facts",
+            kind: "conversation_fact",
+            tags: ["memory_card", `entity:${thermosEntity}`],
+          },
+          {
+            charCount: 42,
+            key: "memory_card:decisions",
+            kind: "conversation_fact",
+            tags: ["memory_card", "decision"],
+            truncated: true,
+          },
+        ],
+      },
+    ]
+
+    const facts = getDispatchFacts(events, t)
+
+    expect(facts).toContainEqual({
+      detail: dispatchFactTestLabels.memoryDetailWithRecords,
+      label: dispatchFactTestLabels.memoryLabel,
+      tone: "success",
+    })
+    expect(JSON.stringify(facts)).not.toContain(retainedBundleDecision)
   })
 
   it("shows planned and executed role coverage for task graph events", () => {

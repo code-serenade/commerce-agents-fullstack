@@ -2,6 +2,7 @@ import { useCallback, useState } from "react"
 
 export type AgentChatComposerPanelId =
   | "campaign"
+  | "contextPreview"
   | "product"
   | "settings"
   | "source"
@@ -34,6 +35,10 @@ export function useAgentChatPanelState({
     setActivePanel(open ? "source" : null)
   }, [])
 
+  const setContextPreviewOpen = useCallback((open: boolean) => {
+    setActivePanel(open ? "contextPreview" : null)
+  }, [])
+
   const toggleSettingsPanel = useCallback(() => {
     setActivePanel((current) => (current === "settings" ? null : "settings"))
   }, [])
@@ -41,8 +46,10 @@ export function useAgentChatPanelState({
   return {
     campaignContextOpen: activePanel === "campaign",
     closePanels,
+    contextPreviewOpen: activePanel === "contextPreview",
     productContextOpen: activePanel === "product",
     setCampaignContextOpen,
+    setContextPreviewOpen,
     setProductContextOpen,
     setSourceContextOpen,
     settingsOpen: activePanel === "settings",

@@ -28,37 +28,39 @@ use crate::{
         ActAlertRequest, AddConversationMessageRequest, AlertListResponse, AlertResponse,
         AlertSummaryResponse, AppUserResponse, AuditLogListResponse, AuditLogResponse,
         BackgroundEventListResponse, BackgroundEventResponse, BatchUpdateResponse,
-        CampaignDraftResponse, CampaignDraftSourceResponse, CampaignListResponse, CampaignResponse,
-        CancelLongTaskRequest, ChannelCatalogResponse, ChannelConnectionListResponse,
-        ChannelConnectionResponse, CompetitorChangeResponse, ConsumeBackgroundEventsRequest,
-        ConversationDetailResponse, ConversationFileAccessResponse, ConversationFileResponse,
-        ConversationMessageResponse, ConversationResponse, CreateAlertRequest,
-        CreateAuditLogRequest, CreateBackgroundEventRequest, CreateCampaignDraftRequest,
-        CreateCampaignRequest, CreateCompetitorChangeRequest, CreateConversationRequest,
-        CreateExecutionQueueRequest, CreateLongTaskRequest, CreateProductCompetitorRequest,
-        CreateProductKnowledgeRequest, CreateProductMaterialRequest, CreateProductRequest,
-        CreateToolApprovalRequest, CreateWorkspaceRequest, CreateWorkspaceRunRequest,
-        CreateWorkspaceRunTaskRequest, CreateWorkspaceTaskRequest, CurrentUserPermissionsResponse,
-        DailyBriefingListResponse, DailyBriefingQuery, DailyBriefingResponse,
-        DailyBriefingSummaryResponse, DecideExecutionQueueRequest, DecideToolApprovalRequest,
-        DismissAlertRequest, DismissAllAlertsRequest, ExecutionQueueListResponse,
-        ExecutionQueueResponse, ListAlertsQuery, ListAuditLogsQuery, ListBackgroundEventsQuery,
-        ListCampaignsQuery, ListChannelConnectionsQuery, ListCompetitorChangesQuery,
-        ListDailyBriefingRecordsQuery, ListExecutionQueueQuery, ListLongTasksQuery,
-        ListPackageCatalogQuery, ListPackageHistoryQuery, ListPlatformConnectionsQuery,
-        ListProductAssetsQuery, ListProductCompetitorsQuery, ListProductKnowledgeQuery,
-        ListProductMaterialsQuery, ListProductsQuery, ListStoreMetricsQuery,
-        ListToolApprovalsQuery, ListWorkspaceRunTasksQuery, ListWorkspaceRunsQuery,
-        ListWorkspaceTasksQuery, ListWorkspacesQuery, LongTaskListResponse, LongTaskResponse,
-        PackageCatalogResponse, PackageHistoryListResponse, PackageLockDriftResponse,
-        PackageLockListResponse, PackageResponse, PackageStatusChangeRequest,
-        PackageValidationResponse, PlatformCatalogResponse, PlatformConnectionListResponse,
-        PlatformConnectionResponse, PlatformSummaryResponse, PlatformSyncStatusListResponse,
-        PresignConversationFileUploadRequest, PresignConversationFileUploadResponse,
-        PresignProductAssetUploadRequest, PresignProductAssetUploadResponse,
-        ProductAssetAccessResponse, ProductAssetResponse, ProductCompetitorResponse,
-        ProductDashboardResponse, ProductDetailResponse, ProductKnowledgeResponse,
-        ProductMaterialResponse, ProductResponse, RegisterAppUserRequest,
+        CampaignDraftResponse, CampaignDraftSourceResponse, CampaignFormDraftResponse,
+        CampaignListResponse, CampaignResponse, CampaignTemplateImportResponse,
+        CampaignTemplateResponse, CancelLongTaskRequest, ChannelCatalogResponse,
+        ChannelConnectionListResponse, ChannelConnectionResponse, CompetitorChangeResponse,
+        ConsumeBackgroundEventsRequest, ConversationDetailResponse, ConversationFileAccessResponse,
+        ConversationFileResponse, ConversationMessageResponse, ConversationResponse,
+        CreateAlertRequest, CreateAuditLogRequest, CreateBackgroundEventRequest,
+        CreateCampaignDraftRequest, CreateCampaignFormDraftRequest, CreateCampaignRequest,
+        CreateCompetitorChangeRequest, CreateConversationRequest, CreateExecutionQueueRequest,
+        CreateLongTaskRequest, CreateProductCompetitorRequest, CreateProductKnowledgeRequest,
+        CreateProductMaterialRequest, CreateProductRequest, CreateToolApprovalRequest,
+        CreateWorkspaceRequest, CreateWorkspaceRunRequest, CreateWorkspaceRunTaskRequest,
+        CreateWorkspaceTaskRequest, CurrentUserPermissionsResponse, DailyBriefingListResponse,
+        DailyBriefingQuery, DailyBriefingResponse, DailyBriefingSummaryResponse,
+        DecideExecutionQueueRequest, DecideToolApprovalRequest, DismissAlertRequest,
+        DismissAllAlertsRequest, ExecutionQueueListResponse, ExecutionQueueResponse,
+        ImportCampaignTemplateRequest, ListAlertsQuery, ListAuditLogsQuery,
+        ListBackgroundEventsQuery, ListCampaignsQuery, ListChannelConnectionsQuery,
+        ListCompetitorChangesQuery, ListDailyBriefingRecordsQuery, ListExecutionQueueQuery,
+        ListLongTasksQuery, ListPackageCatalogQuery, ListPackageHistoryQuery,
+        ListPlatformConnectionsQuery, ListProductAssetsQuery, ListProductCompetitorsQuery,
+        ListProductKnowledgeQuery, ListProductMaterialsQuery, ListProductsQuery,
+        ListStoreMetricsQuery, ListToolApprovalsQuery, ListWorkspaceRunTasksQuery,
+        ListWorkspaceRunsQuery, ListWorkspaceTasksQuery, ListWorkspacesQuery, LongTaskListResponse,
+        LongTaskResponse, PackageCatalogResponse, PackageHistoryListResponse,
+        PackageLockDriftResponse, PackageLockListResponse, PackageResponse,
+        PackageStatusChangeRequest, PackageValidationResponse, PlatformCatalogResponse,
+        PlatformConnectionListResponse, PlatformConnectionResponse, PlatformSummaryResponse,
+        PlatformSyncStatusListResponse, PresignConversationFileUploadRequest,
+        PresignConversationFileUploadResponse, PresignProductAssetUploadRequest,
+        PresignProductAssetUploadResponse, ProductAssetAccessResponse, ProductAssetResponse,
+        ProductCompetitorResponse, ProductDashboardResponse, ProductDetailResponse,
+        ProductKnowledgeResponse, ProductMaterialResponse, ProductResponse, RegisterAppUserRequest,
         RegisterConversationFileRequest, RegisterProductAssetRequest, SaveChannelConnectionRequest,
         SavePackageLocksRequest, SavePlatformConnectionRequest, SaveStoreMetricRequest,
         SnoozeAlertRequest, StoreMetricListResponse, StoreMetricResponse, ToolApprovalListResponse,
@@ -72,7 +74,13 @@ use crate::{
         WorkspaceRunTaskResponse, WorkspaceTaskListResponse, WorkspaceTaskResponse,
     },
     error::{Error, from_biz_error},
-    statics::{db_manager::get_app_ctx, storage_manager::get_storage},
+    handlers::app::form_draft::{
+        FormDraftGenerationMode, campaign_form_draft_input, form_draft_agent_failure_error,
+        map_agent_campaign_form_draft, parse_form_draft_generation_mode,
+    },
+    statics::{
+        agent_manager::run_form_draft, db_manager::get_app_ctx, storage_manager::get_storage,
+    },
 };
 
 pub async fn list_campaigns(
@@ -126,6 +134,74 @@ pub async fn create_campaign(
     Ok(map_campaign_response(campaign)
         .into_common_response()
         .to_json())
+}
+
+pub async fn list_campaign_templates(
+    Extension(auth_user): Extension<AuthUser>,
+) -> ResponseResult<Vec<CampaignTemplateResponse>> {
+    let api = CampaignApi::new(get_app_ctx());
+    let templates = api
+        .list_templates(auth_user.user_id)
+        .await
+        .map_err(from_biz_error)?;
+
+    Ok(templates.into_common_response().to_json())
+}
+
+pub async fn import_campaign_template(
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<ImportCampaignTemplateRequest>,
+) -> ResponseResult<CampaignTemplateImportResponse> {
+    req.validate().map_err(Error::from)?;
+    let api = CampaignApi::new(get_app_ctx());
+    let imported = api
+        .import_template(service::dto::campaign::ImportCampaignTemplateRequest {
+            user_id: auth_user.user_id,
+            template_id: req.template_id,
+            product_id: req.product_id,
+        })
+        .await
+        .map_err(from_biz_error)?;
+
+    Ok(imported.into_common_response().to_json())
+}
+
+pub async fn create_campaign_form_draft(
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<CreateCampaignFormDraftRequest>,
+) -> ResponseResult<CampaignFormDraftResponse> {
+    req.validate().map_err(Error::from)?;
+    let generation_mode =
+        parse_form_draft_generation_mode(req.generation_mode.as_deref()).map_err(Error::Custom)?;
+    if generation_mode == FormDraftGenerationMode::AgentLlm {
+        let result = run_form_draft(campaign_form_draft_input(&req))
+            .await
+            .map_err(form_draft_agent_failure_error)?;
+        return Ok(map_agent_campaign_form_draft(result)
+            .into_common_response()
+            .to_json());
+    }
+
+    let api = CampaignApi::new(get_app_ctx());
+    let draft = api
+        .create_form_draft(service::dto::campaign::CreateCampaignFormDraftRequest {
+            user_id: auth_user.user_id,
+            product_id: req.product_id,
+            name: req.name,
+            campaign_type: req.campaign_type,
+            description: req.description,
+            budget: req.budget,
+            start_date: req.start_date,
+            end_date: req.end_date,
+            goal: req.goal,
+            target_audience: req.target_audience,
+            channels: req.channels,
+            prompt: req.prompt,
+        })
+        .await
+        .map_err(from_biz_error)?;
+
+    Ok(draft.into_common_response().to_json())
 }
 
 pub async fn create_campaign_draft(
@@ -278,5 +354,17 @@ fn map_campaign_draft_response(
         },
         warnings: item.warnings,
         agent_context: item.agent_context,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn campaign_form_draft_rejects_unknown_generation_mode() {
+        let err = parse_form_draft_generation_mode(Some("llm")).unwrap_err();
+
+        assert!(err.contains("unsupported form draft generationMode"));
     }
 }

@@ -2,6 +2,10 @@ import type { TFunction } from "i18next"
 import type { AgentRuntimeEvent } from "@/api"
 import type { AgentProcessKind } from "./agent-process-kind-view-model"
 import {
+  getWorkspaceContextPackItemCount,
+  getWorkspaceContextPackReadableCount,
+} from "./agent-workspace-context-pack-counts"
+import {
   getDispatchPlanSteps,
   getLatestGraphNodes,
   getLatestDispatchPlan,
@@ -99,10 +103,10 @@ function getContextStepDetail(runtimeEvents: AgentRuntimeEvent[], t: TFunction) 
     (event) => event.type === "workspace_context_pack_loaded"
   )
   if (workspace) {
-    const readable = (workspace.items ?? []).filter((item) => Boolean(item.text)).length
+    const readable = getWorkspaceContextPackReadableCount(workspace)
     return t("agentChat.thread.steps.workspaceContext", {
       readable,
-      total: workspace.items?.length ?? 0,
+      total: getWorkspaceContextPackItemCount(workspace),
     })
   }
 

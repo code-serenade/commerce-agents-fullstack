@@ -13,6 +13,7 @@ const messages = {
         agentSection: "实训成果",
         home: "数据诊断建议",
         products: "选品与商品分析",
+        materials: "上传文件资料库",
         campaigns: "活动策划训练",
         workspaces: "实训任务与交付",
         platformConnect: "平台数据连接",
@@ -60,6 +61,26 @@ const messages = {
       snooze: "暂停",
       markRead: "已读",
       search: "搜索",
+      fillSample: "填入样例",
+      smartFill: "智能补全",
+      templateSmartFill: "模板补全",
+      agentSmartFill: "智能体补全",
+      smartFillReviewNotice:
+        "智能补全只会把草稿填入表单，不会直接保存；请核对字段后再点击保存写入记录。",
+      smartFillProcess: {
+        agentRoute: "已通过系统智能体生成草稿",
+        templateRoute: "已通过模板规则生成草稿",
+        reviewRequired: "保存前必须人工审核",
+        invalidJsonRejected: "模型 JSON 不合规会在填表前拒绝",
+        streamStarted: "已开始生成表单草稿",
+        streamInputPreflighted: "已整理输入字段",
+        streamAgentStarted: "系统智能体正在整理字段",
+        streamValidationStarted: "正在校验模型输出",
+        streamValidationPassed: "输出校验已通过",
+        streamReviewReady: "草稿已准备，等待人工审核",
+        streamFailed: "草稿生成失败，未回填表单",
+        separator: "；",
+      },
       loading: "加载中",
       status: "状态",
       actions: "操作",
@@ -218,6 +239,15 @@ const messages = {
         description:
           "围绕实训任务查看商品资料、商品知识、素材版本、竞品和变化记录，作为选品分析和 AI 问答上下文。",
       },
+      files: {
+        eyebrow: "Upload File Library",
+        title: "上传文件资料库",
+        description:
+          "集中管理对话上传和在上传文件资料库中上传、可被 AI 读取、可选入本轮问答的文件资料，方便学生在提问前确认上下文。",
+        boundaryTitle: "上传文件使用边界",
+        boundaryDescription:
+          "上传文件资料库只管理当前账号已上传文件和本轮选用状态，不会自动发布内容，也不会替你修改平台数据。",
+      },
       campaigns: {
         eyebrow: "Campaign Practice",
         title: "活动策划训练",
@@ -310,8 +340,17 @@ const messages = {
         approval: "风险提醒",
       },
     },
-    products: {
-      metrics: {
+      products: {
+        samples: {
+          product: {
+            brand: "星河杯",
+            category: "智能保温杯",
+            description:
+              "面向学生和办公室人群的温显保温杯，主打防漏、温度提醒和通勤携带。",
+            name: "星河杯温显保温杯",
+          },
+        },
+        metrics: {
         active: "有效商品",
         activeTail: "全部 {{total}}，归档 {{archived}}",
         knowledge: "知识条目",
@@ -395,10 +434,18 @@ const messages = {
         competitorUpdated: "竞品已更新",
         competitorArchived: "竞品已归档",
         changeCreated: "竞品变化已记录",
+        draftFilled: "商品草稿已填入表单，请确认后保存",
       },
     },
-    campaigns: {
-      metrics: {
+      campaigns: {
+        samples: {
+          campaign: {
+            description:
+              "围绕温显、防漏和通勤场景做7天短视频测款，目标验证点击率、收藏率和加购率。",
+            name: "温显保温杯7天测款活动",
+          },
+        },
+        metrics: {
         total: "活动数",
         totalTail: "当前查询范围",
         active: "执行中",
@@ -436,6 +483,7 @@ const messages = {
         created: "活动方案已创建",
         updated: "活动方案已更新",
         archived: "活动方案已归档",
+        draftFilled: "活动草稿已填入表单，请确认后保存",
       },
     },
     workspaces: {
@@ -738,6 +786,170 @@ const messages = {
         alertsClosed: "告警已批量关闭",
       },
     },
+    files: {
+      errorTitle: "上传文件资料库读取失败",
+      panelTitle: "上传文件资料库",
+      panelDescription:
+        "查看上传文件的读取状态、使用状态，并选择哪些资料参与本轮 AI 问答。",
+      searchPlaceholder: "搜索文件名、类型、对象 Key 或状态",
+      deleteSelected: "删除 {{count}} 个文件",
+      clearSelection: "清空勾选",
+      clearFilters: "清除筛选",
+      uploadingAction: "上传中",
+      uploadAction: "上传文件",
+      emptyTitle: "还没有资料文件",
+      empty:
+        "从对话附件或上传文件资料库上传文件后，可以在这里统一查看读取状态并选择本轮要使用的资料。",
+      emptyAction: "上传文件",
+      noFilterResultTitle: "没有符合筛选条件的资料",
+      noFilterResult: "调整搜索词、文件类型、读取状态或使用状态后再试。",
+      summary: {
+        total: {
+          label: "资料总数",
+          value: "{{count}} 个文件",
+        },
+        readable: {
+          label: "AI 可读",
+          value: "{{count}} 个文件",
+        },
+        attached: {
+          label: "已关联对话",
+          value: "{{count}} 个文件",
+        },
+        selectedForTurn: {
+          label: "本轮已选",
+          value: "{{count}} 个文件",
+        },
+      },
+      turnSelection: {
+        title: "本轮 AI 将读取 {{count}} 个资料文件",
+        files: "{{names}}{{hiddenText}}",
+        hiddenSuffix: "，另有 {{count}} 个",
+        empty: "当前还没有为本轮问答选择资料。",
+        action: "只看本轮资料",
+        clearAction: "清空本轮选择",
+      },
+      filters: {
+        kind: {
+          all: "全部类型",
+          image: "图片",
+          pdf: "PDF",
+          word: "Word 文档",
+          sheet: "表格",
+          text: "文本",
+          other: "其他",
+        },
+        readStatus: {
+          all: "全部读取状态",
+          readable: "AI 可读",
+          pending: "待解析",
+          failed: "解析失败",
+          unsupported: "暂不支持",
+        },
+        usage: {
+          all: "全部使用状态",
+          available: "未使用",
+          attached: "已在对话中",
+          selectedForTurn: "本轮已选",
+        },
+      },
+      filterSummary: {
+        all: "共 {{total}} 个资料文件",
+        filtered: "已筛出 {{filtered}} / {{total}} 个资料文件",
+      },
+      table: {
+        name: "文件",
+        status: "读取状态",
+        useStateHeader: "使用状态",
+        size: "大小",
+        createdAt: "上传时间",
+        actions: "操作",
+        detail: "详情",
+        using: "处理中",
+        useState: {
+          available: "加入本轮",
+          attached: "加入本轮",
+          selectedForTurn: "移出本轮",
+        },
+      },
+      status: {
+        readable: "AI 可读",
+        pending: "待解析",
+        failed: "解析失败",
+        unsupported: "暂不支持",
+      },
+      deleteDialog: {
+        title: "删除资料文件",
+        description: "确定要删除已勾选的 {{count}} 个资料文件吗？",
+        impactTitle: "删除影响",
+        impactSummary:
+          "本次将删除 {{total}} 个文件，其中 {{readable}} 个已可被 AI 读取，{{attached}} 个已关联对话，{{selectedForTurn}} 个正在本轮选择中。",
+        targetNames: "目标文件：{{names}}{{hiddenText}}",
+        hiddenSuffix: "，另有 {{count}} 个",
+        cancel: "取消",
+        confirm: "确认删除",
+      },
+      detailDialog: {
+        title: "资料详情",
+        description: "查看文件来源、存储信息、解析摘要和本轮使用状态。",
+        sections: {
+          file: "文件信息",
+          storage: "存储信息",
+          reading: "解析结果",
+          usage: "使用状态",
+          metadata: "元数据",
+        },
+        fields: {
+          displayName: "显示名称",
+          type: "文件类型",
+          mimeType: "MIME 类型",
+          size: "文件大小",
+          recordStatus: "记录状态",
+          createdAt: "上传时间",
+          fileId: "文件 ID",
+          conversationId: "会话 ID",
+          messageId: "消息 ID",
+          bucket: "存储桶",
+          objectKey: "对象 Key",
+          objectRef: "对象引用",
+          sha256: "SHA-256",
+          readStatus: "读取状态",
+          summary: "解析摘要",
+          failureReason: "失败原因",
+          textChars: "文本字符数",
+          parser: "解析器",
+          contentKind: "内容类型",
+          truncated: "是否截断",
+          usageState: "使用状态",
+          aiReadableThisTurn: "本轮 AI 读取",
+        },
+        yes: "是",
+        no: "否",
+        close: "关闭",
+        usageState: {
+          available: "未使用",
+          attached: "已在对话中",
+          selectedForTurn: "本轮已选",
+        },
+        usageHint: {
+          available: "这个文件当前未加入本轮问答，需要手动选择后才会作为 AI 上下文。",
+          attached: "这个文件已存在于对话资料中，可加入本轮让 AI 明确读取。",
+          selectedForTurn: "这个文件会参与本轮 AI 回答，可在发送前移出。",
+        },
+        metadata: {
+          description: "原始元数据用于排查解析、来源和存储状态。",
+          copy: "复制元数据",
+        },
+      },
+      readSummary: {
+        textChars: "{{count}} 字符",
+        parser: "解析器：{{parser}}",
+        contentKind: "内容：{{kind}}",
+        truncated: "已截断",
+        summary: "摘要：{{summary}}",
+        failure: "失败：{{reason}}",
+      },
+    },
   },
   home: {
     welcome: "欢迎回来",
@@ -837,7 +1049,7 @@ const messages = {
       action: "去登录",
     },
     sidebar: {
-      newChat: "新任务",
+      newChat: "新建对话",
       search: "搜索历史记录",
       recents: "最近",
       chat: "多智能体实训助手",
@@ -868,6 +1080,7 @@ const messages = {
         capabilities: "能力与使用指南",
         smartOps: "多智能体实训助手",
         productBoard: "选品与商品分析",
+        materials: "上传文件资料库",
         campaigns: "活动策划训练",
         platform: "平台数据连接",
         marketResearch: "数据诊断建议",
@@ -919,6 +1132,74 @@ const messages = {
         "请在这里补充文件或数据约束，例如商品价格、预算、库存、目标人群、当前转化率和平台账号状态。",
       agentTitle: "选择协作智能体",
       agentName: "多智能体实训助手",
+      contextPreview: {
+        compactLabel: "预览",
+        compactTitle: "预览本轮上下文",
+        panelTitle: "发送前上下文预览",
+        panelHint: "只读取资料和长期记忆摘要，不触发模型回答。",
+        loading: "正在预览上下文",
+        error: "上下文预览失败",
+        empty: "输入问题后可预览本轮会读取的资料和记忆。",
+        run: "预览上下文",
+        refresh: "刷新预览",
+        counts: {
+          included: "正文",
+          metadataOnly: "元数据",
+          omitted: "未进入",
+          memory: "长期记忆",
+        },
+        refsTitle: "资料读取",
+        refsEmpty: "本轮没有指定资料引用。",
+        moreRefs: "另有 {{count}} 条引用未显示",
+        refStatus: {
+          included: "正文",
+          metadataOnly: "元数据",
+          omitted: "未进入",
+        },
+        memoryTitle: "长期记忆",
+        memoryEmpty: "未召回长期记忆摘要。",
+        charCount: "{{count}} 字",
+        truncated: " / 已截断",
+        warningTitle: "提示",
+        audit: {
+          title: "上下文审计",
+          history: {
+            label: "历史对话",
+            value: "{{count}} / {{total}} 条",
+            detail: "历史 {{chars}} 字，记忆 {{memory}} 字，早期相关 {{older}} 条，{{truncated}}",
+            truncated: "已截断",
+            complete: "未截断",
+          },
+          memory: {
+            label: "结构化记忆",
+            value: "事实 {{facts}}，决策 {{decisions}}，约束 {{constraints}}，问题 {{questions}}",
+            detail: "{{summary}}，约 {{chars}} 字",
+            summaryReady: "摘要可用",
+            summaryEmpty: "无摘要",
+          },
+          workspace: {
+            label: "工作区资料",
+            value: "{{count}} 个来源，{{readiness}}",
+            detail: "缺失 {{missing}} 项，提示 {{warnings}} 条",
+          },
+          pack: {
+            label: "可读资料包",
+            value: "{{count}} / {{total}} 项可读",
+            detail: "{{readiness}}，约 {{chars}} 字，遗漏 {{omitted}} 项，提示 {{warnings}} 条",
+          },
+          budget: {
+            label: "字符预算",
+            value: "上下文约 {{count}} 字",
+            detail: "用户输入 {{input}} 字",
+          },
+          readiness: {
+            ready: "已就绪",
+            partial: "部分就绪",
+            empty: "无可用资料",
+            unknown: "状态未知",
+          },
+        },
+      },
       productContext: {
         label: "本轮引用商品",
         compactLabel: "商品",
@@ -936,7 +1217,9 @@ const messages = {
         selectedHint: "本轮只引用已勾选商品的资料。",
         selectedCount: "已指定 {{count}} 个商品",
         moreCount: "另有 {{count}} 个",
+        showMore: "再显示 {{count}} 个商品",
         noSearchResult: "没有匹配的商品",
+        addProduct: "添加商品",
         status: {
           active: "在售",
           draft: "草稿",
@@ -964,6 +1247,7 @@ const messages = {
           "本轮将读取已勾选活动的目标、预算、时间、状态和沉淀输出。",
         selectedCount: "已引用 {{count}} 个活动",
         budget: "预算 {{value}}",
+        showMore: "再显示 {{count}} 个活动",
         noSearchResult: "没有匹配的活动",
         status: {
           active: "进行中",
@@ -975,7 +1259,7 @@ const messages = {
         },
       },
       sourceContext: {
-        compactLabel: "上传资料",
+        compactLabel: "上传文件资料库",
         noneCompactLabel: "未选资料",
         compactTitle: "选择本轮引用资料",
         compactReadinessTitle: "{{status}}",
@@ -1003,22 +1287,22 @@ const messages = {
           metadataOnly: "{{count}} 份仅元数据",
         },
         panelTitle: "本轮资料",
-        panelHint: "选择当前文件或挂载资料库文件，供本轮回答读取。",
+        panelHint: "选择当前文件或挂载上传文件资料库文件，供本轮回答读取。",
         upload: "上传",
-        manageLibrary: "管理资料库",
+        manageLibrary: "管理上传文件资料库",
         currentSection: "当前会话文件",
         currentSectionHint: "只有已选文件会被读取",
         currentSearch: "搜索当前文件",
         currentNoSearchResult: "没有匹配的当前文件。",
         showMoreCurrent: "再显示 {{count}} 份当前文件",
-        librarySection: "资料库文件",
+        librarySection: "上传文件资料库文件",
         libraryHint: "先挂载已有文件，再选择进入本轮回答。",
-        librarySearch: "搜索资料库文件",
-        libraryLoading: "正在读取资料库",
-        libraryNoSearchResult: "没有匹配的资料库文件。",
-        showMoreLibrary: "再显示 {{count}} 份资料库文件",
-        libraryEmpty: "资料库还没有保存的文件。",
-        libraryEmptyAction: "打开资料库",
+        librarySearch: "搜索上传文件资料库文件",
+        libraryLoading: "正在读取上传文件资料库",
+        libraryNoSearchResult: "没有匹配的上传文件资料库文件。",
+        showMoreLibrary: "再显示 {{count}} 份上传文件资料库文件",
+        libraryEmpty: "上传文件资料库还没有保存的文件。",
+        libraryEmptyAction: "打开上传文件资料库",
         libraryAttach: "挂载",
         libraryAttached: "已挂载",
         libraryStatus: {
@@ -1101,7 +1385,8 @@ const messages = {
         explanationDepth: "讲解深度",
         autoRolesHint:
           "系统会根据本轮问题自动判断需要一个还是多个智能体参与。",
-        manualRolesHint: "选择一个主导智能体负责汇总，再勾选需要参与协作的智能体。",
+        manualRolesHint:
+          "选择一个主导智能体负责汇总，再勾选需要参与协作的智能体；最多 {{max}} 个，选择越多响应越慢。",
         roleModeHint:
           "这里决定本轮如何调用智能体：系统自动分配、指定一个智能体，或指定多个智能体协作。",
         learningLevels: {
@@ -1601,6 +1886,9 @@ const messages = {
           memory: {
             label: "历史记忆",
             detail: "读取 {{count}} 条，类型 {{kinds}}",
+            detailWithRecords: "读取 {{count}} 条，类型 {{kinds}}；摘要 {{records}}",
+            recordChars: "{{count}} 字",
+            recordTruncated: "已截断",
           },
           conversationContext: {
             label: "同会话上下文",
@@ -2522,6 +2810,16 @@ const messages = {
     },
     error: {
       passwordMismatch: "两次输入的密码不一致。",
+    },
+    profile: {
+      schoolName: {
+        label: "院校（可选）",
+        placeholder: "请输入所在院校",
+      },
+      teamName: {
+        label: "队伍名（可选）",
+        placeholder: "请输入队伍名",
+      },
     },
   },
 } as const

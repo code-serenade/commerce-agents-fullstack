@@ -1,4 +1,4 @@
-import { Check, PackageSearch } from "lucide-react"
+import { Check, PackageSearch, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type { AgentChatProductContextSelection } from "../domain/agent-chat-context-selection"
 import { productStatusTranslationKey } from "./product-context-picker-helpers"
@@ -8,6 +8,7 @@ export function ProductPickerContent({
   disabled,
   isLoadingProducts,
   onToggleProductContext,
+  onAddProduct,
   query,
   selectedProducts,
 }: {
@@ -15,6 +16,7 @@ export function ProductPickerContent({
   disabled: boolean
   isLoadingProducts: boolean
   onToggleProductContext: (product: AgentChatProductContextSelection) => void
+  onAddProduct: () => void
   query: string
   selectedProducts: AgentChatProductContextSelection[]
 }) {
@@ -30,10 +32,21 @@ export function ProductPickerContent({
 
   if (!availableProducts.length) {
     return (
-      <div className="col-span-full rounded-lg border border-dashed border-border bg-background/60 p-3 text-xs text-muted-foreground">
-        {query.trim()
-          ? t("agentChat.composer.productContext.noSearchResult")
-          : t("agentChat.composer.productContext.empty")}
+      <div className="col-span-full flex items-center justify-between gap-3 rounded-lg border border-dashed border-border bg-background/60 p-3 text-xs text-muted-foreground">
+        <span>
+          {query.trim()
+            ? t("agentChat.composer.productContext.noSearchResult")
+            : t("agentChat.composer.productContext.empty")}
+        </span>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={onAddProduct}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Plus className="size-3.5" aria-hidden="true" />
+          <span>{t("agentChat.composer.productContext.addProduct")}</span>
+        </button>
       </div>
     )
   }

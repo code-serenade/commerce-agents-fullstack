@@ -21,17 +21,25 @@ export {
   ensureCurrentAppUserPermissions,
   getCurrentAppUserPermissionsApi,
   registerAppUserApi,
+  savePendingRegistrationProfile,
   type AppRoleResponse,
   type CurrentAppUserPermissionsResponse,
   type AppUserResponse,
   type AppUserStatus,
+  type PendingRegistrationProfile,
   type RegisterAppUserRequest,
 } from "./app"
 
 export * from "./commerce"
+export * from "./form-draft-stream"
 
 export {
+  buildMemoryLoadedEventFromContextPreview,
+  previewAgentContextApi,
   streamAgentSessionApi,
+  type AgentContextPreviewMemoryRecord,
+  type AgentContextPreviewRequest,
+  type AgentContextPreviewResponse,
   type AgentRuntimeEvent,
   type AgentStreamHandlers,
   type AgentStreamRequest,

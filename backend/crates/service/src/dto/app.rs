@@ -37,6 +37,8 @@ pub struct RegisterAppUserRequest {
     pub user_id: String,
     pub display_id: String,
     pub display_name: String,
+    pub school_name: Option<String>,
+    pub team_name: Option<String>,
     pub remark: Option<String>,
 }
 
@@ -54,6 +56,8 @@ pub struct AppUserResponse {
     pub user_id: String,
     pub display_id: String,
     pub display_name: String,
+    pub school_name: Option<String>,
+    pub team_name: Option<String>,
     pub remark: Option<String>,
     pub status: AppUserStatus,
     #[serde(with = "time::serde::rfc3339")]

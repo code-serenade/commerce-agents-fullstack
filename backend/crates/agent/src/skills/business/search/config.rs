@@ -16,8 +16,7 @@ pub(super) const SEARCH_PROVIDER_EMPTY_REASON: &str =
     "External search provider returned no normalized sources; live sources were not accepted.";
 pub(super) const SEARCH_PROVIDER_STALE_REASON: &str =
     "External search provider returned only sources outside the requested freshness window.";
-pub(super) const SEARCH_PROVIDER_UNRELIABLE_REASON: &str =
-    "External search provider returned sources, but none passed traceability, freshness, or \
+pub(super) const SEARCH_PROVIDER_UNRELIABLE_REASON: &str = "External search provider returned sources, but none passed traceability, freshness, or \
      deduplication filters.";
 pub(super) const VALID_TOPICS: &[&str] = &["general", "news", "finance"];
 pub(super) const MAX_DAYS: i64 = 365;

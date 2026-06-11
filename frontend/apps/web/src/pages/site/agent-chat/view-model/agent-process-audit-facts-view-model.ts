@@ -14,7 +14,7 @@ import {
 import type { AgentDispatchFact } from "./agent-process-kind-view-model"
 import {
   mergeSearchEvidencePacketSummaries,
-  summarizeSearchEvidencePacket,
+  summarizeSkillOutputEvidence,
 } from "./agent-search-evidence-packet-view-model"
 import { readInlineId } from "./thread-inline-node-states"
 
@@ -70,7 +70,7 @@ function appendSearchAuditFact(
   const executedSkills = uniqueStrings(executedResults.map((event) => event.skill_id))
   const evidenceSummary = mergeSearchEvidencePacketSummaries(
     executedResults
-      .map((event) => summarizeSearchEvidencePacket(event.output))
+      .map((event) => summarizeSkillOutputEvidence(event))
       .filter((summary) => summary !== null)
   )
   const attemptedSkills = uniqueStrings([

@@ -19,6 +19,12 @@ export function FilesTurnSelectionSummary({
 }: FilesTurnSelectionSummaryProps) {
   const hasSelectedFiles = summary.total > 0
   const selectedNames = summary.selectedNames.join(" / ")
+  const hiddenText =
+    summary.hiddenNames > 0
+      ? t("commerce.files.turnSelection.hiddenSuffix", {
+          count: summary.hiddenNames,
+        })
+      : ""
 
   return (
     <div className="flex min-w-0 flex-col gap-2 rounded-lg border border-(--app-border) bg-muted/40 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
@@ -33,7 +39,7 @@ export function FilesTurnSelectionSummary({
           <p className="truncate text-xs text-muted-foreground">
             {hasSelectedFiles
               ? t("commerce.files.turnSelection.files", {
-                  hidden: summary.hiddenNames,
+                  hiddenText,
                   names: selectedNames,
                 })
               : t("commerce.files.turnSelection.empty")}

@@ -4,6 +4,7 @@ mod briefing;
 mod campaign;
 mod commerce_playbook;
 mod conversation;
+pub(crate) mod form_draft;
 mod long_task;
 mod package_governance;
 mod platform_connect;

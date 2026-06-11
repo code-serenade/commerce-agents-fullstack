@@ -65,7 +65,7 @@ describe("SourceContextPicker search and paging", () => {
     )
   })
 
-  it("filters and expands library files inside the upload materials panel", async () => {
+  it("filters and expands upload file library files inside the upload file panel", async () => {
     const i18n = await createAgentChatTestI18n()
 
     render(

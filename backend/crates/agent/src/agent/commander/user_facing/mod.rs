@@ -2,7 +2,7 @@ mod layout;
 mod policy;
 
 use layout::restore_readable_answer_layout;
-use policy::user_facing_policy;
+use policy::{UserFacingAnswerStructureRule, user_facing_policy};
 
 use crate::{
     core::protocol::WorkerReport,
@@ -473,11 +473,207 @@ fn normalize_escaped_newlines(raw: &str) -> String {
 pub(crate) fn sanitize_final_user_facing_text(raw: &str) -> Option<String> {
     let output = sanitize_user_facing_text(raw)?;
     let output = restore_readable_answer_layout(&output);
+    let output = apply_answer_structure_rules(&output);
     let lines = output.lines().map(str::to_string).collect::<Vec<_>>();
     let lines = drop_historical_evidence_quote_blocks(lines);
     let lines = truncate_tail_historical_answer_quotes(lines);
     let output = normalize_blank_lines(lines);
     (!output.is_empty() && !is_internal_noise_line(&output)).then_some(output)
+}
+
+fn apply_answer_structure_rules(text: &str) -> String {
+    for rule in &user_facing_policy().answer_structure_rules {
+        if !answer_structure_rule_matches(rule, text) {
+            continue;
+        }
+        if let Some(output) = structure_answer_by_rule(text, rule) {
+            return output;
+        }
+    }
+    text.to_string()
+}
+
+fn answer_structure_rule_matches(rule: &UserFacingAnswerStructureRule, text: &str) -> bool {
+    !rule.sections.is_empty()
+        && (rule.text_any.is_empty() || rule.text_any.iter().any(|marker| text.contains(marker)))
+}
+
+struct AnswerStructureBucket {
+    heading: String,
+    lines: Vec<String>,
+    seen: bool,
+}
+
+fn structure_answer_by_rule(text: &str, rule: &UserFacingAnswerStructureRule) -> Option<String> {
+    let mut buckets = rule
+        .sections
+        .iter()
+        .map(|section| AnswerStructureBucket {
+            heading: section.heading.clone(),
+            lines: Vec::new(),
+            seen: false,
+        })
+        .collect::<Vec<_>>();
+    let mut preamble = Vec::new();
+    let mut current_section = None;
+    let mut matched_sections = 0;
+
+    for raw_line in text.lines() {
+        if let Some((section_index, body)) = answer_structure_heading_match(raw_line, rule) {
+            current_section = Some(section_index);
+            if !buckets[section_index].seen {
+                buckets[section_index].seen = true;
+                matched_sections += 1;
+            }
+            if let Some(body) = body.filter(|body| !body.trim().is_empty()) {
+                buckets[section_index].lines.push(body);
+            }
+            continue;
+        }
+
+        let target = current_section
+            .map(|index| &mut buckets[index].lines)
+            .unwrap_or(&mut preamble);
+        target.push(raw_line.to_string());
+    }
+
+    if matched_sections < 2 {
+        return None;
+    }
+
+    let mut output = trim_answer_structure_lines(&preamble);
+    let mut emitted_sections = 0;
+    if !output.is_empty() {
+        output.push(String::new());
+    }
+
+    for bucket in buckets {
+        let lines = trim_answer_structure_lines(&bucket.lines);
+        if !bucket.seen || lines.is_empty() {
+            continue;
+        }
+        output.push(format!("## {}", bucket.heading));
+        output.push(String::new());
+        output.extend(lines);
+        output.push(String::new());
+        emitted_sections += 1;
+    }
+
+    (emitted_sections >= 2).then(|| normalize_blank_lines(output))
+}
+
+fn answer_structure_heading_match(
+    line: &str,
+    rule: &UserFacingAnswerStructureRule,
+) -> Option<(usize, Option<String>)> {
+    let candidate = strip_answer_heading_markup(line);
+    if candidate.is_empty() {
+        return None;
+    }
+
+    if let Some((heading, body)) = split_answer_heading_body(candidate)
+        && let Some(index) = answer_structure_section_index(rule, heading)
+    {
+        return Some((index, Some(body.to_string())));
+    }
+
+    let heading = normalize_answer_heading(candidate);
+    answer_structure_section_index(rule, &heading).map(|index| (index, None))
+}
+
+fn strip_answer_heading_markup(line: &str) -> &str {
+    let mut text = line.trim();
+    if text.starts_with('#') {
+        text = text.trim_start_matches('#').trim_start();
+    }
+    text = strip_unordered_list_prefix(text);
+    strip_ordered_list_prefix(text)
+}
+
+fn strip_unordered_list_prefix(text: &str) -> &str {
+    ["- ", "* ", "• "]
+        .iter()
+        .find_map(|prefix| text.strip_prefix(prefix))
+        .unwrap_or(text)
+}
+
+fn strip_ordered_list_prefix(text: &str) -> &str {
+    let mut digit_end = 0;
+    for (index, ch) in text.char_indices() {
+        if !ch.is_ascii_digit() {
+            break;
+        }
+        digit_end = index + ch.len_utf8();
+    }
+    if digit_end == 0 || digit_end > 3 {
+        return text;
+    }
+
+    let rest = &text[digit_end..];
+    let Some(delimiter) = rest.chars().next() else {
+        return text;
+    };
+    if !matches!(delimiter, '.' | '、' | ')' | '）') {
+        return text;
+    }
+
+    let rest = &rest[delimiter.len_utf8()..];
+    if !rest.chars().next().is_some_and(char::is_whitespace) {
+        return text;
+    }
+    rest.trim_start()
+}
+
+fn split_answer_heading_body(candidate: &str) -> Option<(&str, &str)> {
+    let (colon_index, colon_width) = first_colon(candidate)?;
+    let heading = candidate[..colon_index].trim();
+    let body = candidate[colon_index + colon_width..].trim();
+    if heading.is_empty() || body.is_empty() {
+        return None;
+    }
+    Some((heading, body))
+}
+
+fn normalize_answer_heading(candidate: &str) -> String {
+    candidate
+        .trim()
+        .trim_matches(['#', ':', '：', '。', '.', ' '])
+        .trim()
+        .to_string()
+}
+
+fn answer_structure_section_index(
+    rule: &UserFacingAnswerStructureRule,
+    heading: &str,
+) -> Option<usize> {
+    let heading = answer_heading_key(heading);
+    rule.sections.iter().position(|section| {
+        answer_heading_key(&section.heading) == heading
+            || section
+                .aliases
+                .iter()
+                .any(|alias| answer_heading_key(alias) == heading)
+    })
+}
+
+fn answer_heading_key(value: &str) -> String {
+    normalize_answer_heading(value)
+        .chars()
+        .filter(|ch| !ch.is_whitespace())
+        .collect::<String>()
+        .to_ascii_lowercase()
+}
+
+fn trim_answer_structure_lines(lines: &[String]) -> Vec<String> {
+    let mut start = 0;
+    let mut end = lines.len();
+    while start < end && lines[start].trim().is_empty() {
+        start += 1;
+    }
+    while end > start && lines[end - 1].trim().is_empty() {
+        end -= 1;
+    }
+    lines[start..end].to_vec()
 }
 
 pub(crate) fn no_user_facing_content_message() -> String {
@@ -534,7 +730,7 @@ fn trim_internal_context_fragment(line: &str) -> Option<String> {
         keep_end = keep_end.min(index);
     }
 
-    let candidate = line[.. keep_end].trim_end();
+    let candidate = line[..keep_end].trim_end();
     (!candidate.trim().is_empty()).then(|| candidate.to_string())
 }
 
@@ -592,14 +788,14 @@ fn replace_uuid_like_tokens(input: &str) -> String {
             && input.is_char_boundary(index + 36)
             && is_uuid_boundary(input, index, true)
             && is_uuid_boundary(input, index + 36, false)
-            && is_uuid_like(&input[index .. index + 36])
+            && is_uuid_like(&input[index..index + 36])
         {
             output.push_str("已选商品");
             index += 36;
             continue;
         }
 
-        let Some(ch) = input[index ..].chars().next() else {
+        let Some(ch) = input[index..].chars().next() else {
             break;
         };
         output.push(ch);
@@ -611,9 +807,9 @@ fn replace_uuid_like_tokens(input: &str) -> String {
 
 fn is_uuid_boundary(input: &str, index: usize, before: bool) -> bool {
     let ch = if before {
-        input[.. index].chars().next_back()
+        input[..index].chars().next_back()
     } else {
-        input[index ..].chars().next()
+        input[index..].chars().next()
     };
     ch.is_none_or(|ch| !ch.is_ascii_hexdigit() && ch != '-')
 }
@@ -636,14 +832,14 @@ fn replace_placeholder_pairs(input: &str, open: char, close: char) -> String {
     let mut rest = input;
 
     while let Some(start) = rest.find(open) {
-        output.push_str(&rest[.. start]);
+        output.push_str(&rest[..start]);
         let segment_start = start + open.len_utf8();
-        let Some(end) = rest[segment_start ..].find(close) else {
-            output.push_str(&rest[start ..]);
+        let Some(end) = rest[segment_start..].find(close) else {
+            output.push_str(&rest[start..]);
             return output;
         };
         let segment_end = segment_start + end;
-        let segment = &rest[segment_start .. segment_end];
+        let segment = &rest[segment_start..segment_end];
         if placeholder_segment(segment) {
             if let Some(replacement) = placeholder_replacement(segment) {
                 output.push_str(&replacement);
@@ -653,7 +849,7 @@ fn replace_placeholder_pairs(input: &str, open: char, close: char) -> String {
             output.push_str(segment);
             output.push(close);
         }
-        rest = &rest[segment_end + close.len_utf8() ..];
+        rest = &rest[segment_end + close.len_utf8()..];
     }
 
     output.push_str(rest);
@@ -821,15 +1017,15 @@ fn rewrite_chinese_confidence_phrases(line: &str) -> String {
     let mut output = String::new();
     let mut rest = line;
     while let Some(index) = rest.find("置信度") {
-        output.push_str(&rest[.. index]);
-        let after_marker = &rest[index + "置信度".len() ..];
+        output.push_str(&rest[..index]);
+        let after_marker = &rest[index + "置信度".len()..];
         let consumed = trim_confidence_value(after_marker);
         if consumed == 0 {
             output.push_str("资料来源");
         } else {
             output.push_str("资料来源较明确");
         }
-        rest = &after_marker[consumed ..];
+        rest = &after_marker[consumed..];
     }
     output.push_str(rest);
     output
@@ -844,15 +1040,15 @@ fn rewrite_ascii_confidence_phrases(line: &str) -> String {
             output.push_str(rest);
             break;
         };
-        output.push_str(&rest[.. index]);
-        let after_marker = &rest[index + "confidence".len() ..];
+        output.push_str(&rest[..index]);
+        let after_marker = &rest[index + "confidence".len()..];
         let consumed = trim_confidence_value(after_marker);
         if consumed == 0 {
             output.push_str("资料来源");
         } else {
             output.push_str("资料来源较明确");
         }
-        rest = &after_marker[consumed ..];
+        rest = &after_marker[consumed..];
     }
     output
 }
@@ -869,7 +1065,7 @@ fn trim_confidence_value(input: &str) -> usize {
 
     let value_start = consumed;
     let mut has_digit = false;
-    for ch in input[value_start ..].chars() {
+    for ch in input[value_start..].chars() {
         if ch.is_ascii_digit() || matches!(ch, '.' | '%' | '％') {
             has_digit = true;
             consumed += ch.len_utf8();
@@ -879,7 +1075,7 @@ fn trim_confidence_value(input: &str) -> usize {
     }
 
     if has_digit {
-        for ch in input[consumed ..].chars() {
+        for ch in input[consumed..].chars() {
             if ch.is_whitespace() {
                 consumed += ch.len_utf8();
                 continue;
@@ -907,7 +1103,7 @@ fn rewrite_selected_product_source_line(line: &str) -> String {
         return line.to_string();
     };
 
-    let mut product = line[index + marker.len() ..].trim().to_string();
+    let mut product = line[index + marker.len()..].trim().to_string();
     for delimiter in ["（", "(", "，来源", ", source", "来源"] {
         if let Some(delimiter_index) = product.find(delimiter) {
             product.truncate(delimiter_index);
@@ -926,17 +1122,14 @@ fn strip_role_prefix(line: &str) -> String {
     let Some((colon_index, colon_width)) = first_colon(body) else {
         return line.trim().to_string();
     };
-    let label = body[.. colon_index].trim();
+    let label = body[..colon_index].trim();
     if !looks_like_internal_role_label(label) {
         return line.trim().to_string();
     }
 
-    format!(
-        "{prefix}{}",
-        body[colon_index + colon_width ..].trim_start()
-    )
-    .trim()
-    .to_string()
+    format!("{prefix}{}", body[colon_index + colon_width..].trim_start())
+        .trim()
+        .to_string()
 }
 
 fn split_list_prefix(line: &str) -> (&str, &str) {
@@ -970,10 +1163,10 @@ fn looks_like_internal_role_label(label: &str) -> bool {
     let Some(start) = label.find('(') else {
         return false;
     };
-    let Some(end) = label[start + 1 ..].find(')') else {
+    let Some(end) = label[start + 1..].find(')') else {
         return false;
     };
-    let role = &label[start + 1 .. start + 1 + end];
+    let role = &label[start + 1..start + 1 + end];
     !role.is_empty()
         && role.chars().all(|ch| {
             ch.is_ascii_lowercase() || ch.is_ascii_digit() || matches!(ch, '_' | '-' | '.')
@@ -1078,12 +1271,12 @@ fn drop_historical_evidence_quote_blocks(lines: Vec<String>) -> Vec<String> {
 }
 
 fn truncate_tail_historical_answer_quotes(lines: Vec<String>) -> Vec<String> {
-    for index in 0 .. lines.len() {
-        if !has_substantial_answer_before(&lines[.. index]) {
+    for index in 0..lines.len() {
+        if !has_substantial_answer_before(&lines[..index]) {
             continue;
         }
         if looks_like_tail_historical_answer_quote_start(&lines, index) {
-            return lines[.. index].to_vec();
+            return lines[..index].to_vec();
         }
     }
     lines
@@ -1234,7 +1427,7 @@ fn collapse_repeated_blocks(lines: Vec<String>) -> Vec<String> {
     blocks = collapse_duplicate_blocks(blocks);
     if blocks.len().is_multiple_of(2) {
         let half = blocks.len() / 2;
-        if blocks[.. half] == blocks[half ..] {
+        if blocks[..half] == blocks[half..] {
             blocks.truncate(half);
         }
     }
@@ -1256,7 +1449,7 @@ fn collapse_non_adjacent_repeated_line_runs(lines: Vec<String>) -> Vec<String> {
     let mut output = Vec::new();
     let mut cursor = 0;
     while cursor < lines.len() {
-        if let Some(run_len) = longest_seen_line_run(&output, &lines[cursor ..]) {
+        if let Some(run_len) = longest_seen_line_run(&output, &lines[cursor..]) {
             cursor += run_len;
             continue;
         }
@@ -1268,16 +1461,16 @@ fn collapse_non_adjacent_repeated_line_runs(lines: Vec<String>) -> Vec<String> {
 
 fn longest_seen_line_run(seen: &[String], remaining: &[String]) -> Option<usize> {
     let max_len = remaining.len().min(seen.len());
-    (2 ..= max_len).rev().find(|run_len| {
+    (2..=max_len).rev().find(|run_len| {
         seen.windows(*run_len)
-            .any(|window| window == &remaining[.. *run_len])
+            .any(|window| window == &remaining[..*run_len])
     })
 }
 
 fn collapse_repeated_line_sequence(mut lines: Vec<String>) -> Vec<String> {
     loop {
         let len = lines.len();
-        if len <= 1 || !len.is_multiple_of(2) || lines[.. len / 2] != lines[len / 2 ..] {
+        if len <= 1 || !len.is_multiple_of(2) || lines[..len / 2] != lines[len / 2..] {
             break;
         }
         lines.truncate(len / 2);
@@ -1456,11 +1649,11 @@ fn contains_uuid_like(line: &str) -> bool {
     while index + 36 <= line.len() {
         if line.is_char_boundary(index)
             && line.is_char_boundary(index + 36)
-            && is_uuid_like(&line[index .. index + 36])
+            && is_uuid_like(&line[index..index + 36])
         {
             return true;
         }
-        let Some(ch) = line[index ..].chars().next() else {
+        let Some(ch) = line[index..].chars().next() else {
             break;
         };
         index += ch.len_utf8();

@@ -1,5 +1,7 @@
 use super::DEFAULT_NODE_ACCEPTANCE;
-use crate::core::protocol::{TaskGraph, TaskGraphId, TaskId, TaskNode, TaskNodeId, WorkerId};
+use crate::core::protocol::{
+    TaskGraph, TaskGraphAdaptiveHint, TaskGraphId, TaskId, TaskNode, TaskNodeId, WorkerId,
+};
 
 pub(super) fn plan_single_chat_graph(task_id: &TaskId, task: &str, role: &str) -> TaskGraph {
     let role = if role.trim().is_empty() { "chat" } else { role };
@@ -74,7 +76,13 @@ pub(super) fn plan_selected_roles_graph(
         graph_id: TaskGraphId(format!("graph-{}", task_id.0)),
         root_task: task.to_string(),
         nodes,
-        adaptive_hint: None,
+        adaptive_hint: Some(TaskGraphAdaptiveHint {
+            min_level: Some("complex".to_string()),
+            reason: Some(
+                "用户手动选择多个非 chat 岗位时，按显式协作任务处理，避免降级为单岗或短答。"
+                    .to_string(),
+            ),
+        }),
     }
 }
 

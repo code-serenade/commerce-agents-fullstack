@@ -47,6 +47,25 @@ fn filters_internal_task_graph_lines() {
 }
 
 #[test]
+fn filters_internal_assignment_context_keys_from_final_answer() {
+    let raw = "worker.assignment.input: {\"context\":{\"selected_summary\":\"已选商品\"},\
+               \"sourceMap\":{},\"memoryBudget\":4096}\n\
+               conversation.memorySummaryJson={\"rolling_summary\":\"上一轮历史\"}\n\
+               真正建议：先补商品价格带，再做3个卖点小样本测试。";
+
+    let output = sanitize_final_user_facing_text(raw).expect("business suggestion should remain");
+    let lower = output.to_ascii_lowercase();
+
+    assert!(output.contains("真正建议"));
+    assert!(output.contains("先补商品价格带，再做3个卖点小样本测试。"));
+    assert!(!lower.contains("worker.assignment.input"));
+    assert!(!lower.contains("selected_summary"));
+    assert!(!lower.contains("sourcemap"));
+    assert!(!lower.contains("memorybudget"));
+    assert!(!lower.contains("memorysummaryjson"));
+}
+
+#[test]
 fn failed_report_surfaces_llm_access_denied_user_message() {
     let report = WorkerReport {
         graph_id: TaskGraphId("graph-llm".to_string()),
@@ -107,10 +126,10 @@ fn includes_live_search_evidence_in_user_facing_text() {
         role_output: Some(RoleWorkOutput {
             summary: "本轮未拿到实时来源，不能直接给出对应规则明细。".to_string(),
             evidence: vec![
-                    "实时搜索来源（search_platform_policy）：1 个可采信来源\n\
+                "实时搜索来源（search_platform_policy）：1 个可采信来源\n\
                      1. 官方公告 | 2026-05-20 | https://example.com/policy | 风险点：价格合规"
-                        .to_string(),
-                ],
+                    .to_string(),
+            ],
             ..RoleWorkOutput::default()
         }),
         evidence: Vec::new(),
@@ -140,17 +159,17 @@ fn filters_internal_search_evidence_trace_and_packet_from_user_answer() {
         role_output: Some(RoleWorkOutput {
             summary: "本轮已核对竞品价格，建议先用 12-19 元价格带做小样本测试。".to_string(),
             evidence: vec![
-                    "实时搜索来源（search_competitor）：1 个可采信来源\n\
+                "实时搜索来源（search_competitor）：1 个可采信来源\n\
                      1. 冷萃咖啡竞品价格参考 | 2026-05-20 | \
                      https://example.com/cold-brew-price | 竞品价格集中在 12-19 元。"
-                        .to_string(),
-                    "search_evidence_packet:{\"sources\":[{\"url\":\"https://example.com/raw\"}]}"
-                        .to_string(),
-                    "search_evidence_trace: skill=search_competitor status=success \
+                    .to_string(),
+                "search_evidence_packet:{\"sources\":[{\"url\":\"https://example.com/raw\"}]}"
+                    .to_string(),
+                "search_evidence_trace: skill=search_competitor status=success \
                      adapter_status=live intent=competitor_price_or_benchmark sources=1 \
                      usable_claims=1 gaps=0 confidence=0.72 query=\"冷萃咖啡 竞品价格\""
-                        .to_string(),
-                ],
+                    .to_string(),
+            ],
             ..RoleWorkOutput::default()
         }),
         evidence: Vec::new(),
@@ -231,10 +250,10 @@ fn non_search_role_keeps_business_answer_before_live_search_evidence() {
             summary: "建议先用校园内小范围试卖验证冷萃咖啡价格带，再按毛利和复购反馈调整。"
                 .to_string(),
             evidence: vec![
-                    "实时搜索来源（search_competitor）：1 个可采信来源\n\
+                "实时搜索来源（search_competitor）：1 个可采信来源\n\
                      1. 竞品价格参考 | 2026-05-20 | https://example.com/price | 价格区间"
-                        .to_string(),
-                ],
+                    .to_string(),
+            ],
             ..RoleWorkOutput::default()
         }),
         evidence: Vec::new(),
@@ -778,8 +797,7 @@ fn final_sanitizing_filters_worker_output_policy_lines() {
 
 #[test]
 fn final_sanitizing_filters_bracketed_history_evidence_prefix() {
-    let raw =
-        "优先级动作\n- 今天：补全618返场投放素材的版本核验、书况标签、成套配齐核心卖点元素。\\
+    let raw = "优先级动作\n- 今天：补全618返场投放素材的版本核验、书况标签、成套配齐核心卖点元素。\\
              n- 明天：把版本核对流程更新到商品详情页首屏。\n\n资料依据：【判断依据】1. \
          天然场景：开学季大学生必买教材，不用教育用户需求 2. 低门槛：客单价59元，试错成本低。";
 
@@ -970,4 +988,43 @@ fn filters_runtime_skill_event_lines_from_answer() {
     assert!(!lower.contains("skill:"));
     assert!(!lower.contains("status="));
     assert!(!lower.contains("context.selected_summary"));
+}
+
+#[test]
+fn final_sanitizing_structures_review_answers_by_configured_sections() {
+    let raw = "优化建议：先把讲解脚本改成痛点、证据、权益三段，并把客服问题提前写进直播间贴片。\n\
+               数据表现：GMV 18000 元，成交转化率 4.5%，退款率 8%，直播数据需要继续按同口径记录。\n\
+               复盘结论：这场直播可以小步放量，但不能直接翻倍预算。\n\
+               sourceMap={\"internal\":\"debug\"}\n\
+               复盘字段：曝光、点击、停留、咨询、加购、成交、GMV、退款率、差评原因。\n\
+               问题诊断：主要问题不是流量不足，而是讲解后半段成交承接弱。\n\
+               优先级：P0 先降退款，P1 优化成交话术，P2 再测试新素材。";
+
+    let output = sanitize_final_user_facing_text(raw).expect("review answer should remain");
+    let lower = output.to_ascii_lowercase();
+
+    let expected_order = [
+        "## 结论摘要",
+        "## 直播数据结论",
+        "## 经营问题诊断",
+        "## 整改优先级",
+        "## 落地优化建议",
+        "## 下次复盘字段",
+    ];
+    let mut cursor = 0;
+    for heading in expected_order {
+        let index = output[cursor..]
+            .find(heading)
+            .unwrap_or_else(|| panic!("missing heading {heading}: {output}"));
+        cursor += index + heading.len();
+    }
+
+    assert!(output.contains("这场直播可以小步放量"));
+    assert!(output.contains("GMV 18000 元"));
+    assert!(output.contains("成交承接弱"));
+    assert!(output.contains("P0 先降退款"));
+    assert!(output.contains("讲解脚本"));
+    assert!(output.contains("曝光、点击、停留"));
+    assert!(!lower.contains("sourcemap"));
+    assert!(!lower.contains("internal"));
 }

@@ -18,6 +18,7 @@ import { useAgentChatCampaignContext } from "./view-model/use-agent-chat-campaig
 import { useAgentChatProductContext } from "./view-model/use-agent-chat-product-context"
 import { useAgentRuntimeOptions } from "./view-model/use-agent-runtime-options"
 import { useAgentRunFeedback } from "./view-model/use-agent-run-feedback"
+import { useAgentChatContextPreview } from "./view-model/use-agent-chat-context-preview"
 import { useAgentChatSend } from "./view-model/use-agent-chat-send"
 import { useAgentChatSourceContext } from "./view-model/use-agent-chat-source-context"
 import { useAgentChatSourceActions } from "./view-model/use-agent-chat-source-actions"
@@ -138,6 +139,11 @@ export function useAgentChatPage() {
     sessionIdRef,
     setAttachments, setConversationId, setConversations, setError,
   })
+  const contextPreview = useAgentChatContextPreview({
+    conversationId, inputValue: input, isLoggedIn, isStreaming,
+    selectedCampaigns: campaignContext.selectedCampaigns, selectedProducts: productContext.selectedProducts, selectedSources: sourceContext.selectedSources,
+    tError: t("agentChat.composer.contextPreview.error"),
+  })
 
   const sendMessage = useAgentChatSend({
     abortRef,
@@ -165,12 +171,8 @@ export function useAgentChatPage() {
     availableProducts: productContext.availableProducts,
     availableSources: sourceContext.availableSources,
     canSend,
-    clearSelectedCampaigns: campaignContext.clearSelectedCampaigns,
-    clearSelectedProducts: productContext.clearSelectedProducts,
-    clearSelectedSources: sourceContext.clearSelectedSources,
-    conversationId,
-    conversations,
-    commands,
+    clearSelectedCampaigns: campaignContext.clearSelectedCampaigns, clearSelectedProducts: productContext.clearSelectedProducts, clearSelectedSources: sourceContext.clearSelectedSources,
+    conversationId, conversations, contextPreview, commands,
     error,
     feedback,
     input,

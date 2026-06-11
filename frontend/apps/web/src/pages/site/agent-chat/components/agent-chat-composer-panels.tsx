@@ -10,6 +10,8 @@ import type {
   AgentRuntimeOptions,
 } from "../domain/agent-runtime-options"
 import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
+import type { AgentChatContextPreviewState } from "../view-model/use-agent-chat-context-preview"
+import { AgentChatContextPreviewPanel } from "./agent-chat-context-preview-panel"
 import { AgentChatComposerPanelShell } from "./agent-chat-composer-panel-shell"
 import { AgentChatCampaignContextBar } from "./agent-chat-campaign-context-bar"
 import { AgentChatProductContextBar } from "./agent-chat-product-context-bar"
@@ -20,6 +22,8 @@ export function AgentChatComposerPanels({
   availableCampaigns,
   availableProducts,
   availableSources,
+  contextPreview,
+  contextPreviewOpen,
   isLoadingCampaigns,
   isLoadingPlaybooks,
   isLoadingProducts,
@@ -43,6 +47,7 @@ export function AgentChatComposerPanels({
   onToggleRuntimeRole,
   onUploadClick,
   onAttachExistingSource,
+  onClosePanels,
   panelMaxHeight,
   playbooks,
   campaignContextOpen,
@@ -61,6 +66,8 @@ export function AgentChatComposerPanels({
   availableCampaigns: AgentChatCampaignContextSelection[]
   availableProducts: AgentChatProductContextSelection[]
   availableSources: AgentChatSourceContextSelection[]
+  contextPreview: AgentChatContextPreviewState
+  contextPreviewOpen: boolean
   isLoadingCampaigns: boolean
   isLoadingPlaybooks: boolean
   isLoadingProducts: boolean
@@ -85,6 +92,7 @@ export function AgentChatComposerPanels({
   onToggleRuntimeRole: (value: string) => void
   onUploadClick: () => void
   onAttachExistingSource: (fileId: string) => void
+  onClosePanels: () => void
   panelMaxHeight: number
   playbooks: AgentChatPlaybookSelection[]
   campaignContextOpen: boolean
@@ -102,8 +110,26 @@ export function AgentChatComposerPanels({
 }) {
   return (
     <>
+      {contextPreviewOpen ? (
+        <AgentChatComposerPanelShell
+          maxHeight={panelMaxHeight}
+          onClose={onClosePanels}
+          size="wide"
+        >
+          <AgentChatContextPreviewPanel
+            canPreview={contextPreview.canPreviewContext}
+            error={contextPreview.previewContextError}
+            isPreviewing={contextPreview.isPreviewingContext}
+            onPreview={contextPreview.previewContext}
+            preview={contextPreview.previewContextResult}
+          />
+        </AgentChatComposerPanelShell>
+      ) : null}
       {productContextOpen ? (
-        <AgentChatComposerPanelShell maxHeight={panelMaxHeight}>
+        <AgentChatComposerPanelShell
+          maxHeight={panelMaxHeight}
+          onClose={onClosePanels}
+        >
           <AgentChatProductContextBar
             availableProducts={availableProducts}
             disabled={isStreaming}
@@ -116,7 +142,10 @@ export function AgentChatComposerPanels({
         </AgentChatComposerPanelShell>
       ) : null}
       {campaignContextOpen ? (
-        <AgentChatComposerPanelShell maxHeight={panelMaxHeight}>
+        <AgentChatComposerPanelShell
+          maxHeight={panelMaxHeight}
+          onClose={onClosePanels}
+        >
           <AgentChatCampaignContextBar
             availableCampaigns={availableCampaigns}
             disabled={isStreaming}
@@ -129,7 +158,11 @@ export function AgentChatComposerPanels({
         </AgentChatComposerPanelShell>
       ) : null}
       {sourceContextOpen ? (
-        <AgentChatComposerPanelShell maxHeight={panelMaxHeight} size="wide">
+        <AgentChatComposerPanelShell
+          maxHeight={panelMaxHeight}
+          onClose={onClosePanels}
+          size="wide"
+        >
           <AgentChatSourceContextBar
             availableSources={availableSources}
             disabled={isStreaming}
@@ -148,7 +181,11 @@ export function AgentChatComposerPanels({
         </AgentChatComposerPanelShell>
       ) : null}
       {settingsOpen ? (
-        <AgentChatComposerPanelShell maxHeight={panelMaxHeight} size="wide">
+        <AgentChatComposerPanelShell
+          maxHeight={panelMaxHeight}
+          onClose={onClosePanels}
+          size="wide"
+        >
           <AgentChatSettingsPanel
             isLoadingPlaybooks={isLoadingPlaybooks}
             isLoadingRuntimeOptions={isLoadingRuntimeOptions}

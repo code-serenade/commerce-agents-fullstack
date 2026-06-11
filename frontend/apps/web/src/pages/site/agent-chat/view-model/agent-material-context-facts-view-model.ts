@@ -1,6 +1,12 @@
 import type { TFunction } from "i18next"
 import type { AgentRuntimeEvent } from "@/api"
 import type { AgentDispatchFact } from "./agent-process-kind-view-model"
+import {
+  getWorkspaceContextPackItemCount,
+  getWorkspaceContextPackReadableCount,
+  getWorkspaceContextPackUnreadableCount,
+  hasWorkspaceContextPackItemRefs,
+} from "./agent-workspace-context-pack-counts"
 
 const MATERIAL_REF_PREFIXES = [
   "conversation_file:",
@@ -18,16 +24,19 @@ export function appendMaterialContextFacts(
   const workspace = getLatestWorkspacePackEvent(runtimeEvents)
   const selectedRefs = context ? getSelectedMaterialRefs(context) : []
   const selected = selectedRefs.length
-  const packed = workspace?.items?.length ?? 0
-  const readable = workspace ? getReadableItemCount(workspace) : 0
+  const packed = workspace ? getWorkspaceContextPackItemCount(workspace) : 0
+  const readable = workspace ? getWorkspaceContextPackReadableCount(workspace) : 0
   const packedRefs = workspace ? getPackedMaterialRefs(workspace) : []
   const omitted = workspace ? getOmittedRefs(workspace) : []
   const warnings = workspace?.warnings ?? []
   const readiness = workspace?.readiness ?? (selected > 0 ? "pending" : "empty")
+  const packedRefsAvailable = workspace ? hasWorkspaceContextPackItemRefs(workspace) : false
   const missingSelected = workspace
-    ? getMissingSelectedRefs(selectedRefs, packedRefs, omitted).length
+    ? packedRefsAvailable
+      ? getMissingSelectedRefs(selectedRefs, packedRefs, omitted).length
+      : 0
     : selected
-  const unreadablePacked = Math.max(packed - readable, 0)
+  const unreadablePacked = workspace ? getWorkspaceContextPackUnreadableCount(workspace) : 0
   const summary = getMaterialAuditSummary(
     {
       missingSelected,
@@ -132,15 +141,10 @@ function getSelectedMaterialRefs(
   )
 }
 
-function getReadableItemCount(
-  event: Extract<AgentRuntimeEvent, { type: "workspace_context_pack_loaded" }>
-) {
-  return (event.items ?? []).filter((item) => Boolean(item.text)).length
-}
-
 function getPackedMaterialRefs(
   event: Extract<AgentRuntimeEvent, { type: "workspace_context_pack_loaded" }>
 ) {
+  if (!hasWorkspaceContextPackItemRefs(event)) return []
   return uniqueStrings(
     (event.items ?? []).map((item) => item.refKey ?? item.ref_key ?? item.id)
   )

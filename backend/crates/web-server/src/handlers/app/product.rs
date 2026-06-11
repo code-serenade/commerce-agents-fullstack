@@ -35,30 +35,32 @@ use crate::{
         CreateAlertRequest, CreateAuditLogRequest, CreateBackgroundEventRequest,
         CreateCampaignRequest, CreateCompetitorChangeRequest, CreateConversationRequest,
         CreateExecutionQueueRequest, CreateLongTaskRequest, CreateProductCompetitorRequest,
-        CreateProductKnowledgeRequest, CreateProductMaterialRequest, CreateProductRequest,
-        CreateToolApprovalRequest, CreateWorkspaceRequest, CreateWorkspaceRunRequest,
-        CreateWorkspaceRunTaskRequest, CreateWorkspaceTaskRequest, CurrentUserPermissionsResponse,
-        DailyBriefingListResponse, DailyBriefingQuery, DailyBriefingResponse,
-        DailyBriefingSummaryResponse, DecideExecutionQueueRequest, DecideToolApprovalRequest,
-        DismissAlertRequest, DismissAllAlertsRequest, ExecutionQueueListResponse,
-        ExecutionQueueResponse, ListAlertsQuery, ListAuditLogsQuery, ListBackgroundEventsQuery,
-        ListCampaignsQuery, ListChannelConnectionsQuery, ListCompetitorChangesQuery,
-        ListDailyBriefingRecordsQuery, ListExecutionQueueQuery, ListLongTasksQuery,
-        ListPackageCatalogQuery, ListPackageHistoryQuery, ListPlatformConnectionsQuery,
-        ListProductAssetsQuery, ListProductCompetitorsQuery, ListProductKnowledgeQuery,
-        ListProductMaterialsQuery, ListProductsQuery, ListStoreMetricsQuery,
-        ListToolApprovalsQuery, ListWorkspaceRunTasksQuery, ListWorkspaceRunsQuery,
-        ListWorkspaceTasksQuery, ListWorkspacesQuery, LongTaskListResponse, LongTaskResponse,
-        PackageCatalogResponse, PackageHistoryListResponse, PackageLockDriftResponse,
-        PackageLockListResponse, PackageResponse, PackageStatusChangeRequest,
-        PackageValidationResponse, PlatformCatalogResponse, PlatformConnectionListResponse,
-        PlatformConnectionResponse, PlatformSummaryResponse, PlatformSyncStatusListResponse,
+        CreateProductDraftRequest, CreateProductKnowledgeRequest, CreateProductMaterialRequest,
+        CreateProductRequest, CreateToolApprovalRequest, CreateWorkspaceRequest,
+        CreateWorkspaceRunRequest, CreateWorkspaceRunTaskRequest, CreateWorkspaceTaskRequest,
+        CurrentUserPermissionsResponse, DailyBriefingListResponse, DailyBriefingQuery,
+        DailyBriefingResponse, DailyBriefingSummaryResponse, DecideExecutionQueueRequest,
+        DecideToolApprovalRequest, DismissAlertRequest, DismissAllAlertsRequest,
+        ExecutionQueueListResponse, ExecutionQueueResponse, ImportProductTemplateRequest,
+        ListAlertsQuery, ListAuditLogsQuery, ListBackgroundEventsQuery, ListCampaignsQuery,
+        ListChannelConnectionsQuery, ListCompetitorChangesQuery, ListDailyBriefingRecordsQuery,
+        ListExecutionQueueQuery, ListLongTasksQuery, ListPackageCatalogQuery,
+        ListPackageHistoryQuery, ListPlatformConnectionsQuery, ListProductAssetsQuery,
+        ListProductCompetitorsQuery, ListProductKnowledgeQuery, ListProductMaterialsQuery,
+        ListProductsQuery, ListStoreMetricsQuery, ListToolApprovalsQuery,
+        ListWorkspaceRunTasksQuery, ListWorkspaceRunsQuery, ListWorkspaceTasksQuery,
+        ListWorkspacesQuery, LongTaskListResponse, LongTaskResponse, PackageCatalogResponse,
+        PackageHistoryListResponse, PackageLockDriftResponse, PackageLockListResponse,
+        PackageResponse, PackageStatusChangeRequest, PackageValidationResponse,
+        PlatformCatalogResponse, PlatformConnectionListResponse, PlatformConnectionResponse,
+        PlatformSummaryResponse, PlatformSyncStatusListResponse,
         PresignConversationFileUploadRequest, PresignConversationFileUploadResponse,
         PresignProductAssetUploadRequest, PresignProductAssetUploadResponse,
         ProductAssetAccessResponse, ProductAssetResponse, ProductCompetitorResponse,
-        ProductDashboardResponse, ProductDetailResponse, ProductKnowledgeResponse,
-        ProductLifecycleOptionsResponse, ProductLifecycleResponse, ProductMaterialResponse,
-        ProductResponse, RegisterAppUserRequest, RegisterConversationFileRequest,
+        ProductDashboardResponse, ProductDetailResponse, ProductDraftResponse,
+        ProductKnowledgeResponse, ProductLifecycleOptionsResponse, ProductLifecycleResponse,
+        ProductMaterialResponse, ProductResponse, ProductTemplateImportResponse,
+        ProductTemplateResponse, RegisterAppUserRequest, RegisterConversationFileRequest,
         RegisterProductAssetRequest, SaveChannelConnectionRequest, SavePackageLocksRequest,
         SavePlatformConnectionRequest, SaveStoreMetricRequest, SnoozeAlertRequest,
         StoreMetricListResponse, StoreMetricResponse, ToolApprovalListResponse,
@@ -73,7 +75,13 @@ use crate::{
         WorkspaceRunTaskResponse, WorkspaceTaskListResponse, WorkspaceTaskResponse,
     },
     error::{Error, from_biz_error},
-    statics::{db_manager::get_app_ctx, storage_manager::get_storage},
+    handlers::app::form_draft::{
+        FormDraftGenerationMode, form_draft_agent_failure_error, map_agent_product_form_draft,
+        parse_form_draft_generation_mode, product_form_draft_input,
+    },
+    statics::{
+        agent_manager::run_form_draft, db_manager::get_app_ctx, storage_manager::get_storage,
+    },
 };
 
 pub async fn list_products(
@@ -123,6 +131,70 @@ pub async fn create_product(
     Ok(map_product_response(product)
         .into_common_response()
         .to_json())
+}
+
+pub async fn list_product_templates(
+    Extension(auth_user): Extension<AuthUser>,
+) -> ResponseResult<Vec<ProductTemplateResponse>> {
+    let api = ProductApi::new(get_app_ctx());
+    let templates = api
+        .list_templates(auth_user.user_id)
+        .await
+        .map_err(from_biz_error)?;
+
+    Ok(templates.into_common_response().to_json())
+}
+
+pub async fn import_product_template(
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<ImportProductTemplateRequest>,
+) -> ResponseResult<ProductTemplateImportResponse> {
+    req.validate().map_err(Error::from)?;
+    let api = ProductApi::new(get_app_ctx());
+    let imported = api
+        .import_template(service::dto::product::ImportProductTemplateRequest {
+            user_id: auth_user.user_id,
+            template_id: req.template_id,
+        })
+        .await
+        .map_err(from_biz_error)?;
+
+    Ok(imported.into_common_response().to_json())
+}
+
+pub async fn create_product_draft(
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<CreateProductDraftRequest>,
+) -> ResponseResult<ProductDraftResponse> {
+    req.validate().map_err(Error::from)?;
+    let generation_mode =
+        parse_form_draft_generation_mode(req.generation_mode.as_deref()).map_err(Error::Custom)?;
+    if generation_mode == FormDraftGenerationMode::AgentLlm {
+        let result = run_form_draft(product_form_draft_input(&req))
+            .await
+            .map_err(form_draft_agent_failure_error)?;
+        return Ok(map_agent_product_form_draft(result)
+            .into_common_response()
+            .to_json());
+    }
+
+    let api = ProductApi::new(get_app_ctx());
+    let draft = api
+        .create_draft(service::dto::product::CreateProductDraftRequest {
+            user_id: auth_user.user_id,
+            name: req.name,
+            platform: req.platform,
+            category: req.category,
+            brand: req.brand,
+            description: req.description,
+            price: req.price,
+            currency: req.currency,
+            prompt: req.prompt,
+        })
+        .await
+        .map_err(from_biz_error)?;
+
+    Ok(draft.into_common_response().to_json())
 }
 
 pub async fn get_product(
@@ -274,5 +346,18 @@ fn map_product_response(item: service::dto::product::ProductResponse) -> Product
         metadata: item.metadata,
         created_at: item.created_at,
         updated_at: item.updated_at,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn product_form_draft_defaults_to_template_mode() {
+        assert_eq!(
+            parse_form_draft_generation_mode(None).unwrap(),
+            FormDraftGenerationMode::TemplateSmartFill
+        );
     }
 }

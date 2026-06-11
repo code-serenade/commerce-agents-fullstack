@@ -1265,7 +1265,7 @@ fn looks_like_internal_runtime_label(value: &str) -> bool {
 fn contains_cjk(value: &str) -> bool {
     value
         .chars()
-        .any(|ch| ('\u{4e00}' ..= '\u{9fff}').contains(&ch))
+        .any(|ch| ('\u{4e00}'..='\u{9fff}').contains(&ch))
 }
 
 fn context_pack_failure_check_item(

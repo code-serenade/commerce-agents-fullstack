@@ -20,6 +20,10 @@
       "不要机械罗列岗位报告"
     ]
   },
+  "adaptive_hint": {
+    "min_level": "complex",
+    "reason": "用户手动选择多个非 chat 岗位时，按显式协作任务处理，避免降级为单岗或短答。"
+  },
   "dynamic_roles": {
     "from_route": {
       "enabled": true,

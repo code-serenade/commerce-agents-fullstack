@@ -681,12 +681,8 @@ impl Commander {
                 .map(|task| task.description.as_str())
                 .unwrap_or_default(),
         );
-        let difficulty = dispatch_difficulty(
-            route_mode,
-            dispatch_runtime_role_count(primary_runtime_role.as_deref(), &support_runtime_roles),
-            &context_budget,
-        )
-        .to_string();
+        let difficulty =
+            dispatch_difficulty(route_mode, graph.nodes.len(), &context_budget).to_string();
         let difficulty = dispatch_effective_difficulty(&difficulty, graph);
         let planned_steps = dispatch_steps_from_graph(route_mode, graph, &context_budget);
         let student_visible_explanation = dispatch_student_explanation_with_context(

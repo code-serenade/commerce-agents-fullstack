@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next"
+import type { ReactNode } from "react"
 import {
   Button,
   Dialog,
@@ -24,20 +25,36 @@ export interface SimpleField {
 
 export type SimpleFormValues = Record<string, string>
 
+export interface SimpleFormAuxiliaryAction {
+  label: string
+  onClick: () => void | Promise<void>
+  disabled?: boolean
+}
+
 export function SimpleFormDialog({
+  auxiliaryAction,
+  auxiliaryActions,
   fields,
+  isSubmitting = false,
+  notice,
   onOpenChange,
   onSubmit,
   open,
+  processNotice,
   submitLabel,
   title,
   values,
   setValues,
 }: {
+  auxiliaryAction?: SimpleFormAuxiliaryAction
+  auxiliaryActions?: SimpleFormAuxiliaryAction[]
   fields: SimpleField[]
+  isSubmitting?: boolean
+  notice?: ReactNode
   onOpenChange: (open: boolean) => void
   onSubmit: () => void
   open: boolean
+  processNotice?: ReactNode
   submitLabel?: string
   title: string
   values: SimpleFormValues
@@ -50,6 +67,10 @@ export function SimpleFormDialog({
   const missingRequired = fields.some(
     (field) => field.required && !values[field.key]?.trim()
   )
+  const footerAuxiliaryActions = [
+    ...(auxiliaryAction ? [auxiliaryAction] : []),
+    ...(auxiliaryActions ?? []),
+  ]
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -61,6 +82,16 @@ export function SimpleFormDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="min-h-0 max-h-[calc(100vh-16rem)] space-y-3 overflow-y-auto pr-1 [scrollbar-gutter:stable]">
+          {notice ? (
+            <div className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-2 text-xs/5 text-muted-foreground">
+              {notice}
+            </div>
+          ) : null}
+          {processNotice ? (
+            <div className="rounded-md border border-border bg-background px-3 py-2 text-xs/5 text-muted-foreground">
+              {processNotice}
+            </div>
+          ) : null}
           {fields.map((field) => (
             <label key={field.key} className="block space-y-1.5">
               <span className="text-sm font-medium text-foreground">
@@ -92,10 +123,27 @@ export function SimpleFormDialog({
           ))}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          {footerAuxiliaryActions.map((action) => (
+            <Button
+              key={action.label}
+              variant="outline"
+              disabled={isSubmitting || action.disabled}
+              onClick={action.onClick}
+            >
+              {action.label}
+            </Button>
+          ))}
+          <Button
+            variant="outline"
+            disabled={isSubmitting}
+            onClick={() => onOpenChange(false)}
+          >
             {t("commerce.common.cancel")}
           </Button>
-          <Button disabled={missingRequired} onClick={onSubmit}>
+          <Button
+            disabled={missingRequired || isSubmitting}
+            onClick={onSubmit}
+          >
             {submitLabel ?? t("commerce.common.save")}
           </Button>
         </DialogFooter>

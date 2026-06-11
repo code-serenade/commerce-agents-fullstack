@@ -7,6 +7,7 @@ import { AgentChatComposerStatus } from "./agent-chat-composer-status"
 import { AgentChatComposerToolbar } from "./agent-chat-composer-toolbar"
 import { useAgentChatComposerEvents } from "../view-model/use-agent-chat-composer-events"
 import { useAgentChatComposerPanelMaxHeight } from "../view-model/use-agent-chat-composer-panel-layout"
+import { useAgentChatPanelOutsideClose } from "../view-model/use-agent-chat-panel-outside-close"
 import { useAgentChatPanelState } from "../view-model/use-agent-chat-panel-state"
 
 export function AgentChatComposer({
@@ -15,6 +16,7 @@ export function AgentChatComposer({
   availableProducts,
   availableSources,
   canSend,
+  contextPreview,
   error,
   focusVersion,
   requestedPanel,
@@ -68,8 +70,10 @@ export function AgentChatComposer({
   const {
     campaignContextOpen,
     closePanels,
+    contextPreviewOpen,
     productContextOpen,
     setCampaignContextOpen,
+    setContextPreviewOpen,
     setProductContextOpen,
     setSourceContextOpen,
     settingsOpen,
@@ -84,34 +88,16 @@ export function AgentChatComposer({
     onUploadAttachments,
     textareaRef,
   })
-
-  useEffect(() => {
-    if (!campaignContextOpen && !productContextOpen && !sourceContextOpen && !settingsOpen) return
-
-    const closePanelsOnOutsideEvent = (event: Event) => {
-      const target = event.target
-      if (!(target instanceof Node)) return
-      if (composerRootRef.current?.contains(target)) return
-      closePanels()
-    }
-
-    document.addEventListener("pointerdown", closePanelsOnOutsideEvent, true)
-    document.addEventListener("click", closePanelsOnOutsideEvent, true)
-    return () => {
-      document.removeEventListener(
-        "pointerdown",
-        closePanelsOnOutsideEvent,
-        true
-      )
-      document.removeEventListener("click", closePanelsOnOutsideEvent, true)
-    }
-  }, [
+  useAgentChatPanelOutsideClose({
     closePanels,
-    campaignContextOpen,
-    productContextOpen,
-    settingsOpen,
-    sourceContextOpen,
-  ])
+    composerRootRef,
+    hasOpenPanel:
+      campaignContextOpen ||
+      contextPreviewOpen ||
+      productContextOpen ||
+      sourceContextOpen ||
+      settingsOpen,
+  })
 
   useEffect(() => {
     const textarea = textareaRef.current
@@ -138,6 +124,8 @@ export function AgentChatComposer({
             availableCampaigns={availableCampaigns}
             availableProducts={availableProducts}
             availableSources={availableSources}
+            contextPreview={contextPreview}
+            contextPreviewOpen={contextPreviewOpen}
             isLoadingCampaigns={isLoadingCampaigns}
             isLoadingPlaybooks={isLoadingPlaybooks}
             isLoadingProducts={isLoadingProducts}
@@ -160,6 +148,7 @@ export function AgentChatComposer({
             onUploadClick={composerEvents.openUploadFilePicker}
             onDeleteSelectedSources={onDeleteSelectedSources}
             onAttachExistingSource={onAttachExistingSource}
+            onClosePanels={closePanels}
             onManageSources={composerEvents.manageSources}
             onToggleRuntimeRole={onToggleRuntimeRole}
             panelMaxHeight={panelMaxHeight}
@@ -205,7 +194,9 @@ export function AgentChatComposer({
               availableProducts={availableProducts}
               availableSources={availableSources}
               canSend={canSend}
+              contextPreviewOpen={contextPreviewOpen}
               isLoggedIn={isLoggedIn}
+              isPreviewingContext={contextPreview.isPreviewingContext}
               isLoadingCampaigns={isLoadingCampaigns}
               isLoadingPlaybooks={isLoadingPlaybooks}
               isLoadingProducts={isLoadingProducts}
@@ -227,6 +218,8 @@ export function AgentChatComposer({
               onClearSourceContext={onClearSourceContext}
               onToggleCampaignContext={onToggleCampaignContext}
               onToggleCampaignPanel={setCampaignContextOpen}
+              onToggleContextPreviewPanel={setContextPreviewOpen}
+              onPreviewContext={contextPreview.previewContext}
               onToggleProductContext={onToggleProductContext}
               onToggleProductPanel={setProductContextOpen}
               onToggleSourceContext={onToggleSourceContext}

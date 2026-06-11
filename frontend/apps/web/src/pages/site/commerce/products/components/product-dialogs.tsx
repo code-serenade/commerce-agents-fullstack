@@ -4,7 +4,22 @@ import {
   SimpleFormDialog,
   type SimpleFormValues,
 } from "../../components/commerce-ui"
+import {
+  buildSimpleFormAuxiliaryActions,
+  type SimpleFormDraftAction,
+  type SimpleFormDraftResult,
+  type SimpleFormSampleAction,
+} from "../../components/commerce-form-actions"
+import {
+  mergeDraftProcessResult,
+  processEventDraftResult,
+} from "../../components/commerce-form-draft-state"
+import { buildFormDraftProcessNotice } from "../../components/commerce-form-draft-process"
 import type { ProductsPageState } from "../use-products-page"
+import {
+  productDraftValues,
+  productSampleValues,
+} from "../product-form-payloads"
 import { ProductAssetDialog } from "./product-asset-dialog"
 import {
   assetInitialValues,
@@ -30,6 +45,41 @@ export function ProductDialogs({ page }: { page: ProductsPageState }) {
           title={t("commerce.products.dialogs.create")}
           fields={productFields(t)}
           initialValues={{ currency: "CNY" }}
+          isSubmitting={page.createProductPending}
+          notice={t("commerce.common.smartFillReviewNotice")}
+          sampleAction={{
+            label: t("commerce.common.fillSample"),
+            values: productSampleValues(t),
+          }}
+          smartFillAction={{
+            disabled: page.createProductDraftPending,
+            label: t("commerce.common.templateSmartFill"),
+            onClick: async (values) => {
+              const result = await page.createProductDraft({ values })
+              return {
+                agentContext: result.agentContext,
+                generationMode: result.generationMode,
+                values: productDraftValues(result.draft),
+              }
+            },
+          }}
+          agentSmartFillAction={{
+            disabled: page.createProductDraftPending,
+            label: t("commerce.common.agentSmartFill"),
+            onClick: async (values, onProcess) => {
+              const result = await page.createProductDraftStream({
+                onProcess: (event) =>
+                  onProcess?.(processEventDraftResult(event)),
+                values,
+              })
+              return {
+                agentContext: result.agentContext,
+                generationMode: result.generationMode,
+                stages: ["form_draft_output_validation_passed"],
+                values: productDraftValues(result.draft),
+              }
+            },
+          }}
           onClose={() => page.setDialog(null)}
           onSubmit={page.createProduct}
         />
@@ -55,6 +105,7 @@ export function ProductDialogs({ page }: { page: ProductsPageState }) {
             contentType: "selling_point",
             sourceType: "manual",
           }}
+          isSubmitting={page.createKnowledgePending}
           onClose={() => page.setDialog(null)}
           onSubmit={page.createKnowledge}
         />
@@ -91,6 +142,7 @@ export function ProductDialogs({ page }: { page: ProductsPageState }) {
           title={t("commerce.products.dialogs.material")}
           fields={materialFields(t)}
           initialValues={{ materialType: "copy" }}
+          isSubmitting={page.createMaterialPending}
           onClose={() => page.setDialog(null)}
           onSubmit={page.createMaterial}
         />
@@ -144,23 +196,49 @@ export function ProductDialogs({ page }: { page: ProductsPageState }) {
 function ControlledSimpleDialog({
   fields,
   initialValues,
+  isSubmitting,
+  notice,
   onClose,
   onSubmit,
+  sampleAction,
+  agentSmartFillAction,
+  smartFillAction,
   title,
 }: {
   fields: Parameters<typeof SimpleFormDialog>[0]["fields"]
   initialValues: SimpleFormValues
+  isSubmitting?: boolean
+  notice?: string
   onClose: () => void
   onSubmit: (values: SimpleFormValues) => void
+  sampleAction?: SimpleFormSampleAction
+  agentSmartFillAction?: SimpleFormDraftAction
+  smartFillAction?: SimpleFormDraftAction
   title: string
 }) {
+  const { t } = useTranslation()
+  const [draftResult, setDraftResult] = useState<SimpleFormDraftResult | null>(null)
   const [values, setValues] = useState<SimpleFormValues>(initialValues)
+  const updateDraftResult = (result: SimpleFormDraftResult | null) => {
+    setDraftResult((current) => mergeDraftProcessResult(current, result))
+  }
 
   return (
     <SimpleFormDialog
       open
       title={title}
+      auxiliaryActions={buildSimpleFormAuxiliaryActions({
+        agentSmartFillAction,
+        onDraftResult: updateDraftResult,
+        sampleAction,
+        setValues,
+        smartFillAction,
+        values,
+      })}
       fields={fields}
+      isSubmitting={isSubmitting}
+      notice={notice}
+      processNotice={buildFormDraftProcessNotice(draftResult, t)}
       values={values}
       setValues={setValues}
       onOpenChange={(nextOpen) => {

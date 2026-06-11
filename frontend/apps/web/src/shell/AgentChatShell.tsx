@@ -4,6 +4,7 @@ import {
   Edit3,
   FileText,
   GitBranch,
+  Library,
   LogIn,
   Megaphone,
   MoreHorizontal,
@@ -60,6 +61,7 @@ const FUNCTION_NAV_ROUTE_PATHS = [
   "/commerce",
   "/campaigns",
   "/agent-output",
+  "/materials",
   "/operations",
   "/overview",
   "/platform-connect",
@@ -172,21 +174,17 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     chat.conversations.length - recentConversations.length,
     0
   )
+  const newConversationItem = {
+    key: "new-chat",
+    icon: <Edit3 />,
+    label: t("agentChat.sidebar.newChat"),
+    active: !chat.conversationId && isRouteActive("/commerce"),
+    onSelect: openNewConversation,
+  }
   const sections: SidebarShellSection[] = [
     {
       key: "recents",
       label: t("agentChat.shell.sections.recents"),
-      action: (
-        <button
-          type="button"
-          title={t("agentChat.sidebar.newChat")}
-          aria-label={t("agentChat.sidebar.newChat")}
-          onClick={openNewConversation}
-          className="flex size-7 items-center justify-center rounded-md text-sidebar-foreground/70 ring-sidebar-ring outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2"
-        >
-          <Edit3 className="size-4" />
-        </button>
-      ),
       collapsible: true,
       maxContentHeight: "md",
       open: historyOpen,
@@ -196,6 +194,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       onOpenChange: setHistoryOpen,
       items: recentConversations.length
         ? [
+            newConversationItem,
             ...recentConversations.map((conversation) => ({
               key: conversation.id,
               icon: <MessageSquareText />,
@@ -240,6 +239,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
                 : []),
           ]
         : [
+            newConversationItem,
             {
               key: "empty-recents",
               icon: <MessageSquareText />,
@@ -278,6 +278,13 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           label: t("agentChat.shell.navigation.productBoard"),
           active: isRouteActive("/products"),
           onSelect: () => navigateTo("/products"),
+        },
+        {
+          key: "materials",
+          icon: <Library />,
+          label: t("agentChat.shell.navigation.materials"),
+          active: isRouteActive("/materials"),
+          onSelect: () => navigateTo("/materials"),
         },
         {
           key: "campaigns",
@@ -346,6 +353,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
         isRouteActive("/agent-capabilities") ||
         isRouteActive("/commerce") ||
         isRouteActive("/products") ||
+        isRouteActive("/materials") ||
         isRouteActive("/campaigns") ||
         isRouteActive("/overview") ||
         isRouteActive("/operations"),
@@ -370,6 +378,13 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           href: "/products",
           active: isRouteActive("/products"),
           onSelect: () => navigateTo("/products"),
+        },
+        {
+          key: "materials",
+          label: t("agentChat.shell.navigation.materials"),
+          href: "/materials",
+          active: isRouteActive("/materials"),
+          onSelect: () => navigateTo("/materials"),
         },
         {
           key: "campaigns",
@@ -514,6 +529,9 @@ function getRouteTitleKey(pathname: string) {
   }
   if (pathname === "/products") {
     return "agentChat.shell.navigation.productBoard"
+  }
+  if (pathname === "/materials") {
+    return "agentChat.shell.navigation.materials"
   }
   if (pathname === "/campaigns") {
     return "agentChat.shell.navigation.campaigns"

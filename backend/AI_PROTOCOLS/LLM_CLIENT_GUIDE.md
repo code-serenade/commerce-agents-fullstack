@@ -74,14 +74,17 @@ task graph 节点和动态角色配置可以用 `llm_usage` 覆盖默认 worker 
 
 轻量协作图还可以在节点或动态角色配置里设置 `skill_autosuggest = false`，用于跳过自动技能建议，减少没有外部资料或工具适配器时的无效调用。
 
-`[agent_runtime]` 可配置交互式 worker 单节点 LLM 思考超时：
+`[agent_runtime]` 可配置交互式 worker 单节点 LLM 思考超时和长期 memory store 路径：
 
 ```toml
 [agent_runtime]
 worker_cognition_timeout_sec = 45
+memory_path = "data/agent-memory.json"
 ```
 
 该值统一限制单个 worker 等待 LLM cognition 的时间。task graph 节点、动态角色和最终节点不配置单独超时；超时后 worker 必须返回结构化 `WorkerReportStatus::TimedOut`，Commander 继续发出 `task_node_failed`、`task_graph_finished` 和过程缺口，不能让 SSE 一直等待到整轮 session 超时。
+
+`memory_path` 指向服务端本地 JSON memory store，用于正式 Agent session 的结构化长期记忆持久化、召回和 context-preview 预览；该文件只保存服务端运行时数据，不进入 git，也不作为前端可见接口直接返回。
 
 模型用途路由必须在 `agent` crate 内处理，web-server 不维护第二套 LLM registry，也不在 handler 中创建模型 client。`vision` 未配置时，带图片输入的请求必须返回明确错误，不允许降级成文本模型假装看图。
 

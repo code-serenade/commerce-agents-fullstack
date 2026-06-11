@@ -111,7 +111,7 @@ export function AgentChatSourceContextBar({
       <button
         type="button"
         onClick={toggleOpen}
-        className={`flex h-7 max-w-36 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition-colors ${
+        className={`flex h-7 max-w-44 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition-colors sm:max-w-48 ${
           open
             ? "border-amber-400/80 bg-amber-50 text-amber-800 dark:bg-amber-500/15 dark:text-amber-100"
             : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"

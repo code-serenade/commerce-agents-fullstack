@@ -28,8 +28,9 @@ const pages = {
       submit: "Register",
       submitting: "Registering...",
       username: {
-        label: "Username",
-        placeholder: "Enter username",
+        label: "Account",
+        placeholder: "Enter account",
+        help: "Use 3-32 letters, numbers, underscores, or hyphens.",
       },
       displayName: {
         label: "Display name (optional)",

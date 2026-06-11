@@ -5,6 +5,7 @@ import {
   Boxes,
   ClipboardCheck,
   FileText,
+  Library,
   LayoutDashboard,
   Megaphone,
   PlugZap,
@@ -48,6 +49,12 @@ export const webNavigationSections: WebNavigationSectionConfig[] = [
         labelKey: "web.shell.navigation.products",
         path: "/products",
         icon: <ShoppingBag />,
+      },
+      {
+        id: "materials",
+        labelKey: "web.shell.navigation.materials",
+        path: "/materials",
+        icon: <Library />,
       },
       {
         id: "campaigns",

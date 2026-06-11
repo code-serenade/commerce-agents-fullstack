@@ -1,5 +1,8 @@
 #![allow(unused_imports)]
 
+use std::collections::BTreeMap;
+
+use agent::api::{AgentId, AgentRequest, SessionId, UserId, WorkspaceId};
 use axum::{
     Extension, Json,
     extract::{Path, Query},
@@ -34,9 +37,13 @@ use validator::Validate;
 
 use crate::{
     dto::app::{
-        ActAlertRequest, AddConversationMessageRequest, AgentContextPreviewRequest,
-        AgentContextPreviewResponse, AlertListResponse, AlertResponse, AlertSummaryResponse,
-        AppUserResponse, AttachConversationFileRequest, AuditLogListResponse, AuditLogResponse,
+        ActAlertRequest, AddConversationMessageRequest,
+        AgentContextPreviewConversationHistoryResponse,
+        AgentContextPreviewConversationMemoryResponse, AgentContextPreviewMemoryRecordResponse,
+        AgentContextPreviewRequest, AgentContextPreviewResponse,
+        AgentContextPreviewWorkspaceContextResponse, AgentContextPreviewWorkspacePackResponse,
+        AlertListResponse, AlertResponse, AlertSummaryResponse, AppUserResponse,
+        AttachConversationFileRequest, AuditLogListResponse, AuditLogResponse,
         BackgroundEventListResponse, BackgroundEventResponse, BatchUpdateResponse,
         BulkDeleteUserFilesRequest, CampaignListResponse, CampaignResponse, CancelLongTaskRequest,
         ChannelCatalogResponse, ChannelConnectionListResponse, ChannelConnectionResponse,
@@ -86,7 +93,10 @@ use crate::{
     error::{Error, from_biz_error},
     handlers::sse::build_conversation_history_summary,
     statics::{
-        agent_manager::{agent_runtime_llm_usage, run_vision_preprocess, vision_preprocess_config},
+        agent_manager::{
+            agent_runtime_llm_usage, load_memory_bundle_preview, run_vision_preprocess,
+            vision_preprocess_config,
+        },
         db_manager::get_app_ctx,
         storage_manager::get_storage,
     },
@@ -482,14 +492,14 @@ pub async fn preview_agent_context(
         .map_err(from_biz_error)?;
     let workspace_pack = workspace_api
         .context_pack(service::dto::workspace::GetWorkspaceContextPackRequest {
-            user_id,
+            user_id: user_id.clone(),
             workspace_id: workspace_context.workspace_id.clone(),
             conversation_id: workspace_context.conversation_id.clone(),
             product_id: workspace_context.product_id.clone(),
             include_workspace_product_context: true,
             include_implicit_conversation_files: true,
             run_id: None,
-            context_refs: normalize_preview_context_refs(req.context_refs),
+            context_refs: normalize_preview_context_refs(req.context_refs.clone()),
             max_items: req.max_items,
             max_chars: req.max_chars,
             query: Some(req.input.clone()),
@@ -546,26 +556,27 @@ pub async fn preview_agent_context(
         "omittedRefs": omitted_refs.len(),
         "strategy": "recent_history_plus_structured_memory_plus_workspace_pack",
     });
-    let conversation_history = conversation_preview.as_ref().map(|summary| {
-        serde_json::json!({
-            "conversationId": workspace_context.conversation_id.clone(),
-            "messageCount": summary.message_count,
-            "totalMessageCount": summary.total_message_count,
-            "truncated": summary.truncated,
-            "relevantOlderCount": summary.relevant_older_count,
-            "olderSummary": summary.older_summary.clone(),
-            "text": summary.text.clone(),
-        })
-    });
+    let conversation_history = conversation_preview
+        .as_ref()
+        .map(|summary| map_context_preview_conversation_history(&workspace_context, summary));
     let conversation_memory = conversation_preview
         .as_ref()
-        .map(|summary| summary.memory_json.clone());
+        .map(|summary| map_context_preview_conversation_memory(&summary.memory_json));
+    let memory_records = preview_memory_records(
+        &user_id,
+        &workspace_context.workspace_id,
+        &req,
+        &workspace_context,
+        &workspace_pack,
+    )
+    .map_err(|err| Error::Custom(format!("agent memory preview failed: {err}")))?;
 
     Ok(AgentContextPreviewResponse {
-        workspace_context,
-        workspace_pack,
+        workspace_context: map_context_preview_workspace_context(workspace_context),
+        workspace_pack: map_context_preview_workspace_pack(workspace_pack),
         conversation_history,
         conversation_memory,
+        memory_records,
         budget,
         included_refs,
         metadata_only_refs,
@@ -588,6 +599,571 @@ fn normalize_preview_context_refs(values: Vec<String>) -> Vec<String> {
         }
     }
     refs
+}
+
+fn map_context_preview_workspace_context(
+    context: service::dto::workspace::WorkspaceContextSummaryResponse,
+) -> AgentContextPreviewWorkspaceContextResponse {
+    let source_count = preview_workspace_context_sources(&context).len();
+    AgentContextPreviewWorkspaceContextResponse {
+        workspace_id: context.workspace_id,
+        conversation_id: context.conversation_id,
+        product_id: context.product_id,
+        run_id: context.run_id,
+        readiness: context.readiness,
+        counts: context.counts,
+        missing: context.missing,
+        warnings: context.warnings,
+        source_count,
+    }
+}
+
+fn map_context_preview_workspace_pack(
+    pack: service::dto::workspace::WorkspaceContextPackResponse,
+) -> AgentContextPreviewWorkspacePackResponse {
+    let item_count = pack.items.len();
+    let readable_item_count = pack
+        .items
+        .iter()
+        .filter(|item| {
+            item.text_chars > 0 || item.text.as_deref().is_some_and(|text| !text.is_empty())
+        })
+        .count();
+    let text_chars = pack.items.iter().map(|item| item.text_chars).sum::<usize>();
+    AgentContextPreviewWorkspacePackResponse {
+        workspace_id: pack.workspace_id,
+        conversation_id: pack.conversation_id,
+        product_id: pack.product_id,
+        run_id: pack.run_id,
+        readiness: pack.readiness,
+        counts: pack.counts,
+        item_count,
+        readable_item_count,
+        text_chars,
+        omitted: pack.omitted,
+        omitted_details: pack.omitted_details,
+        warnings: pack.warnings,
+    }
+}
+
+fn map_context_preview_conversation_history(
+    context: &service::dto::workspace::WorkspaceContextSummaryResponse,
+    summary: &crate::handlers::sse::ConversationHistorySummary,
+) -> AgentContextPreviewConversationHistoryResponse {
+    AgentContextPreviewConversationHistoryResponse {
+        conversation_id: context.conversation_id.clone(),
+        message_count: summary.message_count,
+        total_message_count: summary.total_message_count,
+        truncated: summary.truncated,
+        relevant_older_count: summary.relevant_older_count,
+    }
+}
+
+fn map_context_preview_conversation_memory(
+    memory: &serde_json::Value,
+) -> AgentContextPreviewConversationMemoryResponse {
+    AgentContextPreviewConversationMemoryResponse {
+        kind: memory
+            .get("kind")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or("conversation_memory_summary")
+            .to_string(),
+        rolling_summary_available: memory
+            .get("rollingSummary")
+            .or_else(|| memory.get("rolling_summary"))
+            .and_then(serde_json::Value::as_str)
+            .is_some_and(|value| !value.trim().is_empty()),
+        fact_count: json_array_len(memory, "facts"),
+        decision_count: json_array_len(memory, "decisions"),
+        constraint_count: json_array_len(memory, "constraints"),
+        open_question_count: memory
+            .get("openQuestions")
+            .or_else(|| memory.get("open_questions"))
+            .and_then(serde_json::Value::as_array)
+            .map(Vec::len)
+            .unwrap_or_default(),
+    }
+}
+
+fn json_array_len(value: &serde_json::Value, key: &str) -> usize {
+    value
+        .get(key)
+        .and_then(serde_json::Value::as_array)
+        .map(Vec::len)
+        .unwrap_or_default()
+}
+
+fn preview_memory_records(
+    user_id: &str,
+    workspace_id: &str,
+    req: &AgentContextPreviewRequest,
+    workspace_context: &service::dto::workspace::WorkspaceContextSummaryResponse,
+    workspace_pack: &service::dto::workspace::WorkspaceContextPackResponse,
+) -> crate::error::Result<Vec<AgentContextPreviewMemoryRecordResponse>> {
+    let metadata = preview_memory_metadata(workspace_context, workspace_pack)
+        .map_err(|err| Error::Custom(format!("agent memory preview metadata failed: {err}")))?;
+    let memory_bundle = load_memory_bundle_preview(&AgentRequest {
+        user_id: Some(UserId(user_id.to_string())),
+        workspace_id: Some(WorkspaceId(workspace_id.to_string())),
+        agent_id: AgentId("web-agent".to_string()),
+        session_id: SessionId(
+            req.conversation_id
+                .clone()
+                .unwrap_or_else(|| "context-preview".to_string()),
+        ),
+        input: req.input.clone(),
+        metadata,
+    })?;
+
+    Ok(memory_bundle
+        .record_summaries()
+        .into_iter()
+        .map(|record| AgentContextPreviewMemoryRecordResponse {
+            kind: record.kind,
+            key: record.key,
+            tags: record.tags,
+            char_count: record.char_count,
+            truncated: record.truncated,
+        })
+        .collect())
+}
+
+fn preview_memory_metadata(
+    workspace_context: &service::dto::workspace::WorkspaceContextSummaryResponse,
+    workspace_pack: &service::dto::workspace::WorkspaceContextPackResponse,
+) -> Result<BTreeMap<String, String>, serde_json::Error> {
+    let mut metadata = BTreeMap::new();
+    merge_preview_workspace_context_metadata(&mut metadata, workspace_context)?;
+    merge_preview_workspace_context_pack_metadata(&mut metadata, workspace_pack);
+    Ok(metadata)
+}
+
+fn merge_preview_workspace_context_metadata(
+    metadata: &mut BTreeMap<String, String>,
+    context: &service::dto::workspace::WorkspaceContextSummaryResponse,
+) -> Result<(), serde_json::Error> {
+    metadata.insert(
+        "workspaceContext.readiness".to_string(),
+        context.readiness.clone(),
+    );
+    metadata.insert(
+        "workspaceContext.summary".to_string(),
+        context.summary.clone(),
+    );
+    let refs = preview_workspace_context_refs(context);
+    metadata.insert("workspaceContext.refs".to_string(), refs.join(","));
+    if !refs.is_empty() {
+        metadata.insert("context.refs".to_string(), refs.join(","));
+    }
+    let sources = preview_workspace_context_sources(context);
+    metadata.insert(
+        "context.source_titles".to_string(),
+        sources
+            .iter()
+            .map(preview_format_workspace_context_source)
+            .collect::<Vec<_>>()
+            .join(" | "),
+    );
+    metadata.insert(
+        "workspaceContext.sources_json".to_string(),
+        serde_json::to_string(&sources)?,
+    );
+    Ok(())
+}
+
+fn merge_preview_workspace_context_pack_metadata(
+    metadata: &mut BTreeMap<String, String>,
+    context: &service::dto::workspace::WorkspaceContextPackResponse,
+) {
+    metadata.insert(
+        "workspaceContextPack.readiness".to_string(),
+        context.readiness.clone(),
+    );
+    metadata.insert(
+        "workspaceContextPack.summary".to_string(),
+        context.summary.clone(),
+    );
+    let refs = context
+        .items
+        .iter()
+        .map(|item| item.ref_key.clone())
+        .collect::<Vec<_>>();
+    metadata.insert("workspaceContextPack.refs".to_string(), refs.join(","));
+    if !refs.is_empty() {
+        metadata.insert("context.combined_refs".to_string(), refs.join(","));
+    }
+}
+
+fn preview_workspace_context_refs(
+    context: &service::dto::workspace::WorkspaceContextSummaryResponse,
+) -> Vec<String> {
+    context
+        .agent_context
+        .get("refs")
+        .and_then(serde_json::Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(serde_json::Value::as_str)
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_else(|| {
+            preview_workspace_context_sources(context)
+                .into_iter()
+                .map(|source| source.ref_key.clone())
+                .collect()
+        })
+}
+
+fn preview_workspace_context_sources(
+    context: &service::dto::workspace::WorkspaceContextSummaryResponse,
+) -> Vec<service::dto::workspace::WorkspaceContextSourceResponse> {
+    context
+        .attachment_sources
+        .iter()
+        .chain(context.campaign_sources.iter())
+        .chain(context.product_asset_sources.iter())
+        .chain(context.product_material_sources.iter())
+        .chain(context.artifact_sources.iter())
+        .cloned()
+        .collect()
+}
+
+fn preview_format_workspace_context_source(
+    source: &service::dto::workspace::WorkspaceContextSourceResponse,
+) -> String {
+    let title = source.title.as_deref().unwrap_or("-");
+    format!("{}:{} title={}", source.source_type, source.id, title)
+}
+
+#[cfg(test)]
+mod context_preview_tests {
+    use super::*;
+    use service::dto::workspace::{
+        WorkspaceContextPackItemResponse, WorkspaceContextPackOmittedResponse,
+        WorkspaceContextPackResponse, WorkspaceContextSourceResponse,
+        WorkspaceContextSummaryCounts, WorkspaceContextSummaryResponse,
+    };
+
+    #[test]
+    fn preview_memory_metadata_includes_refs_and_safe_source_summaries() {
+        let workspace_context = WorkspaceContextSummaryResponse {
+            workspace_id: "workspace-1".to_string(),
+            conversation_id: Some("conversation-1".to_string()),
+            product_id: Some("product-1".to_string()),
+            run_id: None,
+            readiness: "ready".to_string(),
+            summary: "context summary".to_string(),
+            counts: WorkspaceContextSummaryCounts {
+                conversation_files: 1,
+                product_assets: 1,
+                ..Default::default()
+            },
+            attachment_sources: vec![context_source(
+                "conversation_file",
+                "file-1",
+                "file:one",
+                Some("brief"),
+            )],
+            campaign_sources: Vec::new(),
+            product_asset_sources: vec![context_source(
+                "product_asset",
+                "asset-1",
+                "asset:one",
+                None,
+            )],
+            product_material_sources: Vec::new(),
+            artifact_sources: Vec::new(),
+            missing: Vec::new(),
+            warnings: Vec::new(),
+            agent_context: serde_json::json!({
+                "refs": ["explicit:product", "explicit:file"]
+            }),
+        };
+        let workspace_pack = WorkspaceContextPackResponse {
+            workspace_id: "workspace-1".to_string(),
+            conversation_id: Some("conversation-1".to_string()),
+            product_id: Some("product-1".to_string()),
+            run_id: None,
+            readiness: "partial".to_string(),
+            summary: "pack summary".to_string(),
+            counts: WorkspaceContextSummaryCounts {
+                conversation_files: 1,
+                ..Default::default()
+            },
+            items: vec![WorkspaceContextPackItemResponse {
+                source_type: "conversation_file".to_string(),
+                id: "file-1".to_string(),
+                title: Some("brief".to_string()),
+                ref_key: "file:one".to_string(),
+                content_kind: "text".to_string(),
+                text: Some("pack text should not be copied into preview metadata".to_string()),
+                text_chars: 64,
+                truncated: false,
+                metadata: serde_json::json!({ "objectKey": "private/path.txt" }),
+            }],
+            omitted: Vec::new(),
+            omitted_details: Vec::new(),
+            warnings: Vec::new(),
+            agent_context: serde_json::json!({}),
+        };
+
+        let metadata = preview_memory_metadata(&workspace_context, &workspace_pack).unwrap();
+
+        assert_eq!(
+            metadata.get("context.refs").map(String::as_str),
+            Some("explicit:product,explicit:file")
+        );
+        assert_eq!(
+            metadata
+                .get("workspaceContextPack.refs")
+                .map(String::as_str),
+            Some("file:one")
+        );
+        assert_eq!(
+            metadata.get("context.combined_refs").map(String::as_str),
+            Some("file:one")
+        );
+        assert_eq!(
+            metadata
+                .get("workspaceContextPack.readiness")
+                .map(String::as_str),
+            Some("partial")
+        );
+        assert!(
+            metadata
+                .get("context.source_titles")
+                .is_some_and(|value| value.contains("conversation_file:file-1 title=brief"))
+        );
+        assert!(
+            metadata
+                .get("workspaceContext.sources_json")
+                .is_some_and(|value| value.contains("\"refKey\":\"file:one\""))
+        );
+        assert!(
+            metadata
+                .values()
+                .all(|value| !value.contains("private/path.txt"))
+        );
+    }
+
+    #[test]
+    fn context_preview_safe_workspace_response_hides_raw_context_bodies() {
+        let workspace_context = WorkspaceContextSummaryResponse {
+            workspace_id: "workspace-1".to_string(),
+            conversation_id: Some("conversation-1".to_string()),
+            product_id: Some("product-1".to_string()),
+            run_id: Some("run-1".to_string()),
+            readiness: "ready".to_string(),
+            summary: "hidden workspace summary".to_string(),
+            counts: WorkspaceContextSummaryCounts {
+                conversation_files: 1,
+                product_materials: 1,
+                ..Default::default()
+            },
+            attachment_sources: vec![WorkspaceContextSourceResponse {
+                source_type: "conversation_file".to_string(),
+                id: "file-1".to_string(),
+                title: Some("orders.csv".to_string()),
+                mime_type: Some("text/csv".to_string()),
+                file_size: Some(128),
+                status: "ready".to_string(),
+                ref_key: "conversation_file:file-1".to_string(),
+                preview: Some("hidden source preview".to_string()),
+                metadata: serde_json::json!({ "objectKey": "private/context-source.csv" }),
+            }],
+            campaign_sources: Vec::new(),
+            product_asset_sources: Vec::new(),
+            product_material_sources: vec![context_source(
+                "product_material",
+                "material-1",
+                "product_material:material-1",
+                Some("material"),
+            )],
+            artifact_sources: Vec::new(),
+            missing: vec!["campaign:missing".to_string()],
+            warnings: vec!["workspace warning".to_string()],
+            agent_context: serde_json::json!({
+                "refs": ["conversation_file:file-1"],
+                "summary": "hidden agent context"
+            }),
+        };
+        let workspace_pack = WorkspaceContextPackResponse {
+            workspace_id: "workspace-1".to_string(),
+            conversation_id: Some("conversation-1".to_string()),
+            product_id: Some("product-1".to_string()),
+            run_id: Some("run-1".to_string()),
+            readiness: "partial".to_string(),
+            summary: "hidden workspace pack summary".to_string(),
+            counts: WorkspaceContextSummaryCounts {
+                conversation_files: 1,
+                ..Default::default()
+            },
+            items: vec![
+                WorkspaceContextPackItemResponse {
+                    source_type: "conversation_file".to_string(),
+                    id: "file-1".to_string(),
+                    title: Some("orders.csv".to_string()),
+                    ref_key: "conversation_file:file-1".to_string(),
+                    content_kind: "text".to_string(),
+                    text: Some("hidden workspace pack text".to_string()),
+                    text_chars: 64,
+                    truncated: false,
+                    metadata: serde_json::json!({ "objectKey": "private/pack-item.csv" }),
+                },
+                WorkspaceContextPackItemResponse {
+                    source_type: "conversation_file".to_string(),
+                    id: "file-2".to_string(),
+                    title: Some("empty.csv".to_string()),
+                    ref_key: "conversation_file:file-2".to_string(),
+                    content_kind: "text".to_string(),
+                    text: None,
+                    text_chars: 0,
+                    truncated: false,
+                    metadata: serde_json::json!({ "objectKey": "private/empty.csv" }),
+                },
+            ],
+            omitted: vec!["conversation_file:file-3".to_string()],
+            omitted_details: vec![WorkspaceContextPackOmittedResponse {
+                ref_key: "conversation_file:file-3".to_string(),
+                reason: "max_chars_exceeded".to_string(),
+                source_type: "conversation_file".to_string(),
+                title: Some("omitted.csv".to_string()),
+            }],
+            warnings: vec!["pack warning".to_string()],
+            agent_context: serde_json::json!({
+                "summary": "hidden pack agent context"
+            }),
+        };
+
+        let safe_context = map_context_preview_workspace_context(workspace_context);
+        let safe_pack = map_context_preview_workspace_pack(workspace_pack);
+        assert_eq!(safe_context.source_count, 2);
+        assert_eq!(safe_pack.item_count, 2);
+        assert_eq!(safe_pack.readable_item_count, 1);
+        assert_eq!(safe_pack.text_chars, 64);
+
+        let serialized = serde_json::to_string(&(safe_context, safe_pack)).unwrap();
+        for hidden in [
+            "hidden workspace summary",
+            "hidden source preview",
+            "hidden agent context",
+            "hidden workspace pack summary",
+            "hidden workspace pack text",
+            "hidden pack agent context",
+            "private/context-source.csv",
+            "private/pack-item.csv",
+            "private/empty.csv",
+            "objectKey",
+            "agentContext",
+            "\"items\"",
+            "\"text\"",
+            "\"metadata\"",
+            "\"summary\"",
+        ] {
+            assert!(!serialized.contains(hidden), "leaked {hidden}");
+        }
+    }
+
+    #[test]
+    fn context_preview_safe_conversation_response_hides_raw_history_and_memory() {
+        let workspace_context = WorkspaceContextSummaryResponse {
+            workspace_id: "workspace-1".to_string(),
+            conversation_id: Some("conversation-1".to_string()),
+            product_id: None,
+            run_id: None,
+            readiness: "ready".to_string(),
+            summary: "workspace summary".to_string(),
+            counts: WorkspaceContextSummaryCounts::default(),
+            attachment_sources: Vec::new(),
+            campaign_sources: Vec::new(),
+            product_asset_sources: Vec::new(),
+            product_material_sources: Vec::new(),
+            artifact_sources: Vec::new(),
+            missing: Vec::new(),
+            warnings: Vec::new(),
+            agent_context: serde_json::json!({}),
+        };
+        let summary = crate::handlers::sse::ConversationHistorySummary {
+            message_count: 3,
+            total_message_count: 9,
+            truncated: true,
+            relevant_older_count: 2,
+            older_summary: "hidden older summary".to_string(),
+            memory_json: serde_json::json!({
+                "kind": "conversation_memory_summary",
+                "rollingSummary": "hidden rolling summary",
+                "facts": [{ "text": "hidden fact" }],
+                "decisions": [{ "text": "hidden decision" }],
+                "constraints": [{ "text": "hidden constraint" }],
+                "openQuestions": [{ "text": "hidden question" }],
+                "lastUserInput": "hidden last user input",
+                "lastAssistantOutput": "hidden last assistant output",
+                "sourceMap": {
+                    "secret": "hidden source map value"
+                }
+            }),
+            memory_text: "hidden memory text".to_string(),
+            text: "hidden conversation history text".to_string(),
+        };
+
+        let safe_history = map_context_preview_conversation_history(&workspace_context, &summary);
+        let safe_memory = map_context_preview_conversation_memory(&summary.memory_json);
+        assert_eq!(safe_history.message_count, 3);
+        assert_eq!(safe_history.total_message_count, 9);
+        assert!(safe_history.truncated);
+        assert_eq!(safe_history.relevant_older_count, 2);
+        assert_eq!(safe_memory.fact_count, 1);
+        assert_eq!(safe_memory.decision_count, 1);
+        assert_eq!(safe_memory.constraint_count, 1);
+        assert_eq!(safe_memory.open_question_count, 1);
+        assert!(safe_memory.rolling_summary_available);
+
+        let serialized = serde_json::to_string(&(safe_history, safe_memory)).unwrap();
+        for hidden in [
+            "hidden older summary",
+            "hidden rolling summary",
+            "hidden fact",
+            "hidden decision",
+            "hidden constraint",
+            "hidden question",
+            "hidden last user input",
+            "hidden last assistant output",
+            "hidden source map value",
+            "hidden memory text",
+            "hidden conversation history text",
+            "\"olderSummary\"",
+            "\"rollingSummary\"",
+            "\"sourceMap\"",
+            "\"facts\"",
+            "\"decisions\"",
+            "\"constraints\"",
+            "\"openQuestions\"",
+            "\"text\"",
+        ] {
+            assert!(!serialized.contains(hidden), "leaked {hidden}");
+        }
+    }
+
+    fn context_source(
+        source_type: &str,
+        id: &str,
+        ref_key: &str,
+        title: Option<&str>,
+    ) -> WorkspaceContextSourceResponse {
+        WorkspaceContextSourceResponse {
+            source_type: source_type.to_string(),
+            id: id.to_string(),
+            title: title.map(ToString::to_string),
+            mime_type: None,
+            file_size: None,
+            status: "ready".to_string(),
+            ref_key: ref_key.to_string(),
+            preview: None,
+            metadata: serde_json::json!({}),
+        }
+    }
 }
 
 fn map_conversation_detail_response(

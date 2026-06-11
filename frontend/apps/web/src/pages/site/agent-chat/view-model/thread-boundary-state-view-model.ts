@@ -144,9 +144,9 @@ export function isBoundaryReport(report: AgentWorkerReport) {
   const roleOutput = report.role_output ?? report.roleOutput
   return containsBoundaryMarker(
     [
-      report.content,
-      ...report.evidence,
-      ...report.risks,
+      report.content ?? "",
+      ...(report.evidence ?? []),
+      ...(report.risks ?? []),
       ...readOpenQuestions(report),
       roleOutput?.summary,
       ...(roleOutput?.evidence ?? []),
@@ -175,7 +175,13 @@ export function isNonBlockingSkillGap(
   if (!["failed", "not_found", "validation_error", "deferred"].includes(event.status)) {
     return false
   }
-  const text = `${event.skill_id} ${event.summary ?? ""} ${event.error ?? ""} ${stringifyUnknown(event.output)}`
+  const text = [
+    event.skill_id,
+    event.summary ?? "",
+    event.error ?? "",
+    stringifyUnknown(event.outputSummary ?? event.output_summary),
+    stringifyUnknown(event.output),
+  ].join(" ")
   if (containsBoundaryMarker(text)) return true
   return isLegacyCategoryLevelProductGap(text, runtimeEvents)
 }
@@ -215,9 +221,9 @@ function isLegacyCategoryLevelProductGap(
 function isReportWithCategoryProductGap(report: AgentWorkerReport) {
   const roleOutput = report.role_output ?? report.roleOutput
   const text = [
-    report.content,
-    ...report.evidence,
-    ...report.risks,
+    report.content ?? "",
+    ...(report.evidence ?? []),
+    ...(report.risks ?? []),
     ...readOpenQuestions(report),
     roleOutput?.summary,
     ...(roleOutput?.findings ?? []),

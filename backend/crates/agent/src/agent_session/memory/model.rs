@@ -197,12 +197,29 @@ impl MemoryQuery {
             budget: MemoryBudget::default(),
         }
     }
+
+    pub fn for_text(mut self, text: impl Into<String>) -> Self {
+        let text = text.into();
+        if !text.trim().is_empty() {
+            self.text = Some(text);
+        }
+        self
+    }
 }
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct MemoryBundle {
     pub records: Vec<MemoryRecord>,
     pub summary: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct MemoryRecordSummary {
+    pub kind: String,
+    pub key: Option<String>,
+    pub tags: Vec<String>,
+    pub char_count: usize,
+    pub truncated: bool,
 }
 
 impl MemoryBundle {
@@ -216,7 +233,33 @@ impl MemoryBundle {
         names.dedup();
         names
     }
+
+    pub fn record_summaries(&self) -> Vec<MemoryRecordSummary> {
+        self.records
+            .iter()
+            .take(12)
+            .map(|record| MemoryRecordSummary {
+                kind: record.kind.as_str().to_string(),
+                key: record.key.clone(),
+                tags: record
+                    .tags
+                    .iter()
+                    .filter(|tag| tag.as_str() != MEMORY_TRUNCATED_TAG)
+                    .filter(|tag| !tag.trim().is_empty())
+                    .take(8)
+                    .cloned()
+                    .collect(),
+                char_count: record.content.chars().count(),
+                truncated: record
+                    .tags
+                    .iter()
+                    .any(|tag| tag.as_str() == MEMORY_TRUNCATED_TAG),
+            })
+            .collect()
+    }
 }
+
+pub(crate) const MEMORY_TRUNCATED_TAG: &str = "memory_truncated";
 
 pub(crate) fn scope_query_matches(query: &MemoryScope, record: &MemoryScope) -> bool {
     field_matches(&query.user_id, &record.user_id)

@@ -39,11 +39,12 @@ pub(crate) use agent_session::{
     AgentSession, AgentSessionConfig, AgentSessionScope, CognitionFactory,
     DeterministicMemoryCompactor, EndpointDirectory, FileMemoryStore, FileMemoryStoreError,
     InMemoryMemoryStore, MemoryBudget, MemoryBundle, MemoryCompactionPolicy, MemoryCompactionStats,
-    MemoryCompactor, MemoryId, MemoryKind, MemoryQuery, MemoryRecord, MemoryScope, MemorySource,
-    MemoryStore, MemoryWriteOutcome, NoopMemoryStore, RoleCognitionFactory, RoleMemorySummary,
-    SessionBlackboard, SessionContext, SessionEventRx, SessionEventTx, SessionExtensions,
-    SessionResult, SessionRuntime, SessionRuntimeConfig, SessionRuntimeInput, SessionSnapshot,
-    TaskGraphMemorySummary, WorkerCatalog, WorkerDetail, context,
+    MemoryCompactor, MemoryId, MemoryKind, MemoryQuery, MemoryRecord, MemoryRecordSummary,
+    MemoryScope, MemorySource, MemoryStore, MemoryWriteOutcome, NoopMemoryStore,
+    RoleCognitionFactory, RoleMemorySummary, SessionBlackboard, SessionContext, SessionEventRx,
+    SessionEventTx, SessionExtensions, SessionResult, SessionRuntime, SessionRuntimeConfig,
+    SessionRuntimeInput, SessionSnapshot, TaskGraphMemorySummary, WorkerCatalog, WorkerDetail,
+    context,
 };
 pub(crate) use cognition::{
     Cognition, CognitionDecoder, CognitionEngine, CognitionFailure, CognitionInput,

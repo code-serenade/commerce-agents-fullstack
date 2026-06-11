@@ -2,6 +2,10 @@ import { FolderSearch, SearchCheck, TriangleAlert } from "lucide-react"
 import type { TFunction } from "i18next"
 import type { AgentRuntimeEvent } from "@/api"
 import type { ComputerCard } from "./swarm-panel-view-model"
+import {
+  getWorkspaceContextPackItemCount,
+  getWorkspaceContextPackReadableCount,
+} from "./agent-workspace-context-pack-counts"
 
 export function getContextCard(
   runtimeEvents: AgentRuntimeEvent[],
@@ -32,14 +36,6 @@ export function getContextCard(
     const sourceCount = ragEvent.sourceCount ?? ragEvent.source_count ?? 0
     const knowledgeCount = ragEvent.knowledgeCount ?? ragEvent.knowledge_count ?? 0
     const reason = ragEvent.degradedReason ?? ragEvent.degraded_reason
-    const sourceLines = (ragEvent.sources ?? [])
-      .slice(0, 2)
-      .map((source) =>
-        t("agentChat.swarm.cards.ragContext.sourceLine", {
-          title: source.title,
-          type: source.sourceType ?? source.source_type ?? "source",
-        })
-      )
     const queryTerms = ragEvent.queryTerms ?? ragEvent.query_terms ?? []
     return {
       id: "rag-context-loaded",
@@ -74,7 +70,6 @@ export function getContextCard(
               }),
             ]
           : []),
-        ...sourceLines,
         ...(reason
           ? [
               t("agentChat.swarm.cards.ragContext.fallbackLine", {
@@ -82,7 +77,6 @@ export function getContextCard(
               }),
             ]
           : []),
-        ...(ragEvent.summary ? [ragEvent.summary] : []),
       ].slice(0, 4),
       state: ragEvent.degraded ? "reworking" : "done",
     }
@@ -90,16 +84,17 @@ export function getContextCard(
 
   if (workspacePackEvent) {
     const readableCount = getWorkspaceContextPackReadableCount(workspacePackEvent)
+    const totalCount = getWorkspaceContextPackItemCount(workspacePackEvent)
     const warnings = workspacePackEvent.warnings ?? []
     const omitted = workspacePackEvent.omitted ?? []
-    const omittedDetails = workspacePackEvent.omittedDetails ?? workspacePackEvent.omitted_details ?? []
+    const omittedDetails =
+      workspacePackEvent.omittedDetails ?? workspacePackEvent.omitted_details ?? []
     const readiness = workspacePackEvent.readiness ?? "empty"
-    const itemLines = (workspacePackEvent.items ?? []).map((item) =>
-      t("agentChat.swarm.cards.workspaceContext.packItemLine", {
-        kind: item.contentKind ?? item.content_kind ?? "metadata",
-        title: item.title ?? item.refKey ?? item.ref_key ?? item.id,
-      })
-    )
+    const countLines = [
+      t("agentChat.swarm.cards.workspaceContext.readableLine", {
+        count: readableCount,
+      }),
+    ]
     const warningLines = warnings.slice(0, 1).map((warning) =>
       t("agentChat.swarm.cards.workspaceContext.warningLine", {
         warning,
@@ -115,38 +110,25 @@ export function getContextCard(
         ref,
       })
     )
-    const detailLines = [...warningLines, ...omittedLines]
-    const visibleItemCount = Math.max(1, 4 - detailLines.length)
+    const detailLines = [...countLines, ...warningLines, ...omittedLines]
     return {
       id: "workspace-context-pack-loaded",
       title: t("agentChat.swarm.cards.workspaceContext.packTitle"),
       meta: t("agentChat.swarm.cards.workspaceContext.packMeta", {
         readable: readableCount,
-        total: workspacePackEvent.items?.length ?? 0,
+        total: totalCount,
       }),
       description:
         readableCount > 0
           ? t("agentChat.swarm.cards.workspaceContext.packReadyDescription")
           : t("agentChat.swarm.cards.workspaceContext.packPartialDescription"),
       icon: readiness === "empty" || readableCount === 0 ? TriangleAlert : FolderSearch,
-      lines: [
-        ...itemLines.slice(0, visibleItemCount),
-        ...detailLines,
-        ...(workspacePackEvent.summary ? [workspacePackEvent.summary] : []),
-      ].slice(0, 4),
+      lines: detailLines.slice(0, 4),
       state: readiness === "empty" || readableCount === 0 ? "reworking" : "done",
     }
   }
 
   if (workspaceEvent) {
-    const sourceLines = getWorkspaceContextSources(workspaceEvent)
-      .slice(0, 3)
-      .map((source) =>
-        t("agentChat.swarm.cards.workspaceContext.sourceLine", {
-          title: source.title ?? source.preview ?? source.id,
-          type: source.sourceType ?? source.source_type ?? "source",
-        })
-      )
     const warnings = workspaceEvent.warnings ?? []
     const readiness = workspaceEvent.readiness ?? "empty"
     return {
@@ -164,13 +146,14 @@ export function getContextCard(
             : t("agentChat.swarm.cards.workspaceContext.emptyDescription"),
       icon: readiness === "empty" ? TriangleAlert : FolderSearch,
       lines: [
-        ...sourceLines,
+        t("agentChat.swarm.cards.workspaceContext.compactLine", {
+          total: getWorkspaceContextTotal(workspaceEvent),
+        }),
         ...warnings.slice(0, 1).map((warning) =>
           t("agentChat.swarm.cards.workspaceContext.warningLine", {
             warning,
           })
         ),
-        ...(workspaceEvent.summary ? [workspaceEvent.summary] : []),
       ].slice(0, 4),
       state: readiness === "empty" ? "reworking" : "done",
     }
@@ -196,16 +179,9 @@ export function getContextCard(
       ...(event.productIds ?? event.product_ids ?? []).slice(0, 3).map((id) =>
         t("agentChat.swarm.cards.contextLoaded.productLine", { id })
       ),
-      ...(event.summary ? [event.summary] : []),
     ].slice(0, 4),
     state: "done",
   }
-}
-
-function getWorkspaceContextPackReadableCount(
-  event: Extract<AgentRuntimeEvent, { type: "workspace_context_pack_loaded" }>
-) {
-  return (event.items ?? []).filter((item) => Boolean(item.text)).length
 }
 
 function getWorkspaceContextSources(
@@ -222,10 +198,13 @@ function getWorkspaceContextSources(
 function getWorkspaceContextTotal(
   event: Extract<AgentRuntimeEvent, { type: "workspace_context_loaded" }>
 ) {
+  const explicitCount = event.sourceCount ?? event.source_count
+  if (explicitCount !== undefined) return Math.max(explicitCount, 0)
   const counts = event.counts
   if (!counts) return getWorkspaceContextSources(event).length
   return (
     (counts.conversationFiles ?? counts.conversation_files ?? 0) +
+    (counts.campaigns ?? 0) +
     (counts.productAssets ?? counts.product_assets ?? 0) +
     (counts.productMaterials ?? counts.product_materials ?? 0) +
     (counts.workspaceArtifacts ?? counts.workspace_artifacts ?? 0)

@@ -59,8 +59,8 @@ fn contains_benchmark_number_claim(value: &str) -> bool {
         .iter()
         .any(|term| {
             value.find(term).is_some_and(|index| {
-                let after = &value[index ..];
-                let before = &value[.. index];
+                let after = &value[index..];
+                let before = &value[..index];
                 segment_after_contains_percent_or_range(after)
                     || segment_before_contains_percent_or_range(before)
             })

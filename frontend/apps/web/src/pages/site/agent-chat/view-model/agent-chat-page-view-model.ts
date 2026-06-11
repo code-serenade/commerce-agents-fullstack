@@ -20,6 +20,7 @@ import type {
   AgentChatStrategyId,
 } from "../domain/agent-chat-strategy"
 import type { AgentRunFeedbackState } from "./use-agent-run-feedback"
+import type { AgentChatContextPreviewState } from "./use-agent-chat-context-preview"
 
 export interface AgentChatPageViewModelInput {
   attachments: AgentChatAttachmentItem[]
@@ -29,6 +30,7 @@ export interface AgentChatPageViewModelInput {
   canSend: boolean
   conversationId: string | null
   conversations: AgentChatConversationItem[]
+  contextPreview: AgentChatContextPreviewState
   commands: {
     deleteConversation: (targetConversationId: string) => Promise<void>
     renameConversation: (
@@ -94,6 +96,7 @@ export function createAgentChatPageViewModel(input: AgentChatPageViewModelInput)
     clearSelectedSources: input.clearSelectedSources,
     conversationId: input.conversationId,
     conversations: input.conversations,
+    contextPreview: input.contextPreview,
     deleteConversation: input.commands.deleteConversation,
     deleteSelectedSources: input.deleteSelectedSources,
     error: input.error,

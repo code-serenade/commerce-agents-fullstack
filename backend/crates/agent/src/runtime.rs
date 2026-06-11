@@ -1,12 +1,12 @@
-use std::{sync::Arc, time::Duration};
+use std::{path::PathBuf, sync::Arc, time::Duration};
 
 use serde::Deserialize;
 
 use crate::{
     agent_error::Result,
     api::{
-        AgentManager, AgentManagerConfig, Cognition, RoleCognitionFactory, RoleProfile,
-        RolePromptBuilder,
+        AgentManager, AgentManagerConfig, Cognition, FileMemoryStore, RoleCognitionFactory,
+        RoleProfile, RolePromptBuilder,
     },
     llm_routing::{
         AgentCognitionKind, AgentLlmCfg, AgentLlmRegistry, AgentLlmUsageCfg, RoutingCognitionEngine,
@@ -24,6 +24,8 @@ pub struct AgentRuntimeCfg {
     pub search: SearchAdapterConfig,
     #[serde(default = "default_worker_cognition_timeout_sec")]
     pub worker_cognition_timeout_sec: u64,
+    #[serde(default = "default_memory_path")]
+    pub memory_path: PathBuf,
 }
 
 impl AgentRuntimeCfg {
@@ -33,12 +35,17 @@ impl AgentRuntimeCfg {
             llm_usage: AgentLlmUsageCfg::default(),
             search: SearchAdapterConfig::default(),
             worker_cognition_timeout_sec: default_worker_cognition_timeout_sec(),
+            memory_path: default_memory_path(),
         }
     }
 }
 
 fn default_worker_cognition_timeout_sec() -> u64 {
     45
+}
+
+fn default_memory_path() -> PathBuf {
+    PathBuf::from("data/agent-memory.json")
 }
 
 pub fn build_agent_manager(config: AgentRuntimeCfg) -> Result<AgentManager> {
@@ -80,6 +87,7 @@ pub fn build_agent_manager(config: AgentRuntimeCfg) -> Result<AgentManager> {
     manager_config.runtime.commander_fast_route = true;
     manager_config.runtime.commander_fast_route_min_score = 2.0;
     manager_config.runtime.search = search;
+    manager_config.memory_store = Arc::new(FileMemoryStore::open(&config.memory_path)?);
 
     Ok(AgentManager::new(manager_config))
 }

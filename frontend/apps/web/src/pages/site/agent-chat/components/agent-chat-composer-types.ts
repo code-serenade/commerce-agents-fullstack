@@ -11,6 +11,7 @@ import type {
   AgentRuntimeOptions,
 } from "../domain/agent-runtime-options"
 import type { AgentChatAttachmentItem } from "../types"
+import type { AgentChatContextPreviewState } from "../view-model/use-agent-chat-context-preview"
 import type { AgentChatComposerPanelId } from "../view-model/use-agent-chat-panel-state"
 
 export interface AgentChatComposerProps {
@@ -19,6 +20,7 @@ export interface AgentChatComposerProps {
   availableCampaigns: AgentChatCampaignContextSelection[]
   availableSources: AgentChatSourceContextSelection[]
   canSend: boolean
+  contextPreview: AgentChatContextPreviewState
   error: string | null
   focusVersion?: number
   requestedPanel?: AgentChatComposerPanelId | null

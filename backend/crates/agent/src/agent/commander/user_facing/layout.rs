@@ -59,7 +59,7 @@ fn insert_breaks_after_bracket_headings(text: &str) -> String {
         output.push(ch);
         if ch == '】' {
             let heading_start = output.rfind('【').unwrap_or(output.len());
-            let heading = &output[heading_start ..];
+            let heading = &output[heading_start..];
             if looks_like_complete_bracket_heading(heading)
                 && chars.peek().is_some_and(|next| *next != '\n')
             {
@@ -95,7 +95,7 @@ fn insert_breaks_around_inline_colon_headings(text: &str) -> String {
         let Some(start) = inline_colon_heading_start(&chars, index) else {
             continue;
         };
-        let heading = chars[start .. index].iter().collect::<String>();
+        let heading = chars[start..index].iter().collect::<String>();
         if !looks_like_inline_colon_heading(&heading) {
             continue;
         }
@@ -151,7 +151,7 @@ fn is_sentence_boundary(ch: char) -> bool {
 fn looks_like_inline_colon_heading(heading: &str) -> bool {
     let heading = heading.trim();
     let char_count = heading.chars().count();
-    (2 ..= 28).contains(&char_count)
+    (2..=28).contains(&char_count)
         && heading.chars().any(is_cjk)
         && heading
             .chars()
@@ -226,7 +226,7 @@ fn heading_core_without_trailing_note(heading: &str) -> &str {
         let Some(index) = heading.rfind(open) else {
             continue;
         };
-        let core = heading[.. index].trim();
+        let core = heading[..index].trim();
         if !core.is_empty() {
             return core;
         }
@@ -247,7 +247,7 @@ fn split_inline_markdown_heading_line(line: &str) -> Vec<String> {
         return vec![line.to_string()];
     };
     let hash_count = trimmed.chars().take_while(|ch| *ch == '#').count();
-    if !(1 ..= 6).contains(&hash_count) {
+    if !(1..=6).contains(&hash_count) {
         return vec![line.to_string()];
     }
     let content = rest.trim_start_matches('#').trim_start();
@@ -269,8 +269,8 @@ fn split_heading_content(content: &str) -> Option<(&str, &str)> {
         if !ch.is_whitespace() {
             continue;
         }
-        let heading = content[.. index].trim();
-        let body = content[index ..].trim();
+        let heading = content[..index].trim();
+        let body = content[index..].trim();
         if body.is_empty() {
             return None;
         }
@@ -283,7 +283,7 @@ fn split_heading_content(content: &str) -> Option<(&str, &str)> {
 
 fn looks_like_markdown_heading_fragment(heading: &str) -> bool {
     let char_count = heading.chars().count();
-    (2 ..= 18).contains(&char_count)
+    (2..=18).contains(&char_count)
         && heading.chars().any(is_cjk)
         && heading
             .chars()
@@ -373,7 +373,7 @@ fn heading_should_remain_key_value(heading: &str, lines: &[&str], index: usize) 
 }
 
 fn previous_non_blank_line<'a>(lines: &'a [&str], index: usize) -> Option<&'a str> {
-    lines[.. index]
+    lines[..index]
         .iter()
         .rev()
         .copied()
@@ -467,7 +467,7 @@ fn has_ordered_list_prefix(line: &str) -> bool {
     let Some(first) = chars.next() else {
         return false;
     };
-    if matches!(first, '①' ..= '⑳') {
+    if matches!(first, '①'..='⑳') {
         return true;
     }
     first.is_ascii_digit()
@@ -480,8 +480,8 @@ fn looks_like_business_key_value_line(line: &str) -> bool {
     let Some((colon_index, colon_width)) = first_colon(line) else {
         return false;
     };
-    let label = line[.. colon_index].trim();
-    let body = line[colon_index + colon_width ..].trim();
+    let label = line[..colon_index].trim();
+    let body = line[colon_index + colon_width..].trim();
     if label.is_empty() || body.is_empty() {
         return false;
     }
@@ -490,7 +490,7 @@ fn looks_like_business_key_value_line(line: &str) -> bool {
 
 fn looks_like_business_key_value_label(label: &str) -> bool {
     let label_chars = label.chars().count();
-    (2 ..= 14).contains(&label_chars)
+    (2..=14).contains(&label_chars)
         && label.chars().any(is_cjk)
         && !matches!(
             label,
@@ -500,7 +500,7 @@ fn looks_like_business_key_value_label(label: &str) -> bool {
 
 fn looks_like_short_list_line(line: &str) -> bool {
     let char_count = line.chars().count();
-    (6 ..= 56).contains(&char_count)
+    (6..=56).contains(&char_count)
         && line.chars().any(is_cjk)
         && !line.contains("。")
         && !line.contains("；")
@@ -564,8 +564,8 @@ fn split_inline_markdown_table_line(line: &str) -> Vec<String> {
     let Some(table_start) = find_inline_markdown_table_start(line) else {
         return vec![line.to_string()];
     };
-    let prefix = line[.. table_start].trim();
-    let table_text = line[table_start ..].trim();
+    let prefix = line[..table_start].trim();
+    let table_text = line[table_start..].trim();
     let rows = split_inline_table_rows(table_text);
     if !rows_have_markdown_table_shape(&rows) {
         return vec![line.to_string()];
@@ -584,7 +584,7 @@ fn find_inline_markdown_table_start(line: &str) -> Option<usize> {
         return None;
     }
     line.char_indices().find_map(|(index, ch)| {
-        (ch == '|' && line[index ..].matches('|').count() >= 6).then_some(index)
+        (ch == '|' && line[index..].matches('|').count() >= 6).then_some(index)
     })
 }
 
@@ -750,7 +750,7 @@ fn looks_like_plain_section_heading(line: &str, next_line: Option<&str>) -> bool
         return false;
     }
     let char_count = line.chars().count();
-    (2 ..= 18).contains(&char_count)
+    (2..=18).contains(&char_count)
         && line.chars().any(is_cjk)
         && heading_has_section_suffix(line)
         && next_line.is_some_and(|next| {
@@ -780,7 +780,7 @@ fn should_break_before_inline_numbered_item(chars: &[char], index: usize) -> boo
 }
 
 fn index_is_inside_markdown_table_line(chars: &[char], index: usize) -> bool {
-    let line_start = chars[.. index]
+    let line_start = chars[..index]
         .iter()
         .rposition(|ch| *ch == '\n')
         .map_or(0, |position| position + 1);
@@ -792,7 +792,7 @@ fn index_is_inside_markdown_table_line(chars: &[char], index: usize) -> bool {
 }
 
 fn has_inline_numbered_item_marker(chars: &[char], index: usize) -> bool {
-    if matches!(chars[index], '①' ..= '⑳') {
+    if matches!(chars[index], '①'..='⑳') {
         return true;
     }
     chars[index].is_ascii_digit()
@@ -805,7 +805,7 @@ fn has_inline_numbered_item_marker(chars: &[char], index: usize) -> bool {
 }
 
 fn previous_context_allows_inline_numbered_break(chars: &[char], index: usize) -> bool {
-    let previous = chars[.. index]
+    let previous = chars[..index]
         .iter()
         .rev()
         .find(|ch| !ch.is_whitespace())
@@ -817,7 +817,7 @@ fn previous_context_allows_inline_numbered_break(chars: &[char], index: usize) -
 }
 
 fn following_text_looks_like_list_item(chars: &[char], index: usize) -> bool {
-    let mut cursor = if matches!(chars[index], '①' ..= '⑳') {
+    let mut cursor = if matches!(chars[index], '①'..='⑳') {
         index + 1
     } else {
         index + 2

@@ -47,6 +47,8 @@ pub struct AppUser {
     pub user_id: Uuid,
     pub display_id: String,
     pub display_name: String,
+    pub school_name: Option<String>,
+    pub team_name: Option<String>,
     pub remark: Option<String>,
     pub status: AppUserStatus,
     #[serde(with = "time::serde::rfc3339")]
@@ -92,6 +94,8 @@ pub struct CreateAppUser {
     pub user_id: Uuid,
     pub display_id: String,
     pub display_name: String,
+    pub school_name: Option<String>,
+    pub team_name: Option<String>,
     pub remark: Option<String>,
     pub status: AppUserStatus,
 }

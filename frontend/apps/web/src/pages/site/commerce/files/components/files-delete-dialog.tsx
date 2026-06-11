@@ -27,6 +27,12 @@ export function FilesDeleteDialog({
   t: (key: string, values?: Record<string, number | string>) => string
 }) {
   const targetNames = deleteImpact.targetNames.join(" / ")
+  const hiddenText =
+    deleteImpact.hiddenNames > 0
+      ? t("commerce.files.deleteDialog.hiddenSuffix", {
+          count: deleteImpact.hiddenNames,
+        })
+      : ""
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -54,7 +60,7 @@ export function FilesDeleteDialog({
           {targetNames ? (
             <p>
               {t("commerce.files.deleteDialog.targetNames", {
-                hidden: deleteImpact.hiddenNames,
+                hiddenText,
                 names: targetNames,
               })}
             </p>

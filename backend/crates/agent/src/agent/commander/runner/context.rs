@@ -127,6 +127,7 @@ pub(super) fn extend_context_facts(
         .get("conversation.history_summary")
         .map(|value| value.trim())
         .filter(|value| !value.is_empty())
+        .and_then(context_text::user_visible_conversation_history)
     {
         let instruction = if has_selected_product_context {
             "conversation.history：同一会话历史上下文如下。它只能用于理解追问背景、\

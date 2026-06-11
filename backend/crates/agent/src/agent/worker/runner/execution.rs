@@ -818,7 +818,7 @@ mod tests {
             .expect("worker should accept assignment");
 
         let mut timed_out = None;
-        for _ in 0 .. 3 {
+        for _ in 0..3 {
             let message = tokio::time::timeout(Duration::from_secs(1), commander_rx.recv())
                 .await
                 .expect("worker should report before test timeout")
@@ -905,7 +905,7 @@ mod tests {
             .expect("worker should accept assignment");
 
         let mut report = None;
-        for _ in 0 .. 3 {
+        for _ in 0..3 {
             let message = tokio::time::timeout(Duration::from_secs(2), commander_rx.recv())
                 .await
                 .expect("worker should report before test timeout")
@@ -969,7 +969,7 @@ mod tests {
             .expect("worker should accept assignment");
 
         let mut report = None;
-        for _ in 0 .. 3 {
+        for _ in 0..3 {
             let message = tokio::time::timeout(Duration::from_secs(1), commander_rx.recv())
                 .await
                 .expect("worker should report before test timeout")
@@ -1060,7 +1060,7 @@ mod tests {
             .expect("worker should accept assignment");
 
         let mut report = None;
-        for _ in 0 .. 3 {
+        for _ in 0..3 {
             let message = tokio::time::timeout(Duration::from_secs(1), commander_rx.recv())
                 .await
                 .expect("worker should report before test timeout")
@@ -1187,7 +1187,7 @@ mod tests {
             .expect("worker should accept assignment");
 
         let mut report = None;
-        for _ in 0 .. 3 {
+        for _ in 0..3 {
             let message = tokio::time::timeout(Duration::from_secs(1), commander_rx.recv())
                 .await
                 .expect("worker should report before test timeout")

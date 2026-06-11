@@ -48,6 +48,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "utils",
+ "uuid",
 ]
 
 [[package]]
@@ -4251,6 +4252,7 @@ dependencies = [
  "thiserror",
  "time",
  "tracing",
+ "utils",
  "uuid",
 ]
 

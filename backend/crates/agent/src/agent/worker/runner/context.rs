@@ -289,6 +289,9 @@ fn extend_conversation_history_fact(
     else {
         return;
     };
+    let Some(value) = context_text::user_visible_conversation_history(value) else {
+        return;
+    };
 
     let instruction = if has_selected_product_context {
         "conversation.history：同一会话历史上下文如下。它只能用于理解追问背景、用户偏好和前后文。\
@@ -307,7 +310,7 @@ fn extend_conversation_history_fact(
         source: "conversation.history".to_string(),
         content: format!(
             "{instruction}\n{}",
-            compact_text(value, MAX_HISTORY_CONTEXT_CHARS)
+            compact_text(&value, MAX_HISTORY_CONTEXT_CHARS)
         ),
         reliability: 1.0,
     });
@@ -957,5 +960,60 @@ mod tests {
         assert!(history.content.contains("不引用任何商品"));
         assert!(history.content.contains("历史只能作为背景"));
         assert!(history.content.contains("不能把历史商品"));
+    }
+
+    #[test]
+    fn history_fact_filters_internal_memory_and_source_debug_lines() {
+        let mut context = MessageContext::default();
+        context.metadata.insert(
+            "conversation.history_summary".to_string(),
+            "User: 上一轮直播间曝光8000、点击640、付款72。\n\
+             sourceMap={\"conversation\":\"debug\"}\n\
+             memoryBudget=4096\n\
+             worker.assignment.input={\"context\":{\"selected_summary\":\"商品A\"}}\n\
+             Assistant: 已经判断主要问题是成交承接弱。"
+                .to_string(),
+        );
+        let task = Task {
+            id: "task-history-clean".to_string(),
+            context,
+            description: "继续刚才的直播复盘，给今天的整改动作。".to_string(),
+            requester: AgentId("commander".to_string()),
+            assignment: None,
+        };
+        let role = RoleProfile {
+            id: RoleId("role.chat".to_string()),
+            name: "Chat".to_string(),
+            runtime_role: "chat".to_string(),
+            priority: 1,
+            domains: Vec::new(),
+            keywords: Vec::new(),
+            preferred_actions: Vec::new(),
+            required_capabilities: Vec::new(),
+            optional_capabilities: Vec::new(),
+        };
+
+        let input = build_cognition_input(
+            AgentId("worker.chat".to_string()),
+            WorkerPhase::Thinking,
+            &TaskMemory::default(),
+            &role,
+            &task,
+        );
+        let history = input
+            .context
+            .facts
+            .iter()
+            .find(|fact| fact.source == "conversation.history")
+            .expect("history fact should be injected");
+        let lower = history.content.to_ascii_lowercase();
+
+        assert!(history.content.contains("曝光8000"));
+        assert!(history.content.contains("成交承接弱"));
+        assert!(history.content.contains("不要要求用户重复"));
+        assert!(!lower.contains("sourcemap"));
+        assert!(!lower.contains("memorybudget"));
+        assert!(!lower.contains("worker.assignment.input"));
+        assert!(!lower.contains("selected_summary"));
     }
 }

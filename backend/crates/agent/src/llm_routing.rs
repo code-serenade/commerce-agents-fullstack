@@ -394,7 +394,7 @@ where
             description: "LLM cognition did not run".to_string(),
         };
 
-        for attempt in 1 ..= max_attempts {
+        for attempt in 1..=max_attempts {
             attempts_run = attempt;
             tracing::debug!(
                 kind = ?self.kind,

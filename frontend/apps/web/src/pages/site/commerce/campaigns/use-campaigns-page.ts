@@ -4,11 +4,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { MetricCardsItem } from "@workspace/app-kit"
 import {
   archiveCampaignApi,
+  createCampaignFormDraftApi,
   createCampaignApi,
   getCampaignApi,
   listCampaignsApi,
   updateCampaignApi,
   type CampaignResponse,
+  type FormDraftGenerationMode,
 } from "@/api"
 import {
   notifySuccess,
@@ -16,8 +18,15 @@ import {
   toOptionalString,
   type SimpleFormValues,
 } from "../components/commerce-ui"
+import { campaignFormDraftPayload } from "./campaign-form-payloads"
+import { useCampaignFormDraftStream } from "./use-campaign-form-draft-stream"
 
 const campaignsQueryKey = ["commerce", "campaigns"]
+
+interface CampaignFormDraftInput {
+  values: SimpleFormValues
+  generationMode?: FormDraftGenerationMode
+}
 
 export function useCampaignsPage() {
   const { t } = useTranslation()
@@ -56,6 +65,16 @@ export function useCampaignsPage() {
       await invalidateCampaigns()
     },
   })
+  const createCampaignFormDraft = useMutation({
+    mutationFn: ({ values, generationMode }: CampaignFormDraftInput) =>
+      createCampaignFormDraftApi(
+        campaignFormDraftPayload(values, generationMode)
+      ),
+    onSuccess: () => {
+      notifySuccess(t("commerce.campaigns.notify.draftFilled"))
+    },
+  })
+  const createCampaignFormDraftStream = useCampaignFormDraftStream(t)
   const updateCampaign = useMutation({
     mutationFn: ({
       campaign,
@@ -90,6 +109,11 @@ export function useCampaignsPage() {
     archiveCampaign: archiveCampaign.mutate,
     campaigns,
     createCampaign: createCampaign.mutate,
+    createCampaignFormDraft: createCampaignFormDraft.mutateAsync,
+    createCampaignFormDraftPending:
+      createCampaignFormDraft.isPending || createCampaignFormDraftStream.isPending,
+    createCampaignFormDraftStream: createCampaignFormDraftStream.mutateAsync,
+    createCampaignPending: createCampaign.isPending,
     dialog,
     editingCampaign: editingCampaignDetail,
     keyword,

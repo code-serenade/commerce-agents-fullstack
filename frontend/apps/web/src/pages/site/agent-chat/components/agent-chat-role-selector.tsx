@@ -74,6 +74,11 @@ export function RoleSelector({
               />
             )
           })}
+          <p className="px-2 text-xs/5 text-muted-foreground">
+            {t("agentChat.composer.runtime.manualRolesHint", {
+              max: MAX_SELECTED_RUNTIME_ROLES,
+            })}
+          </p>
         </div>
       </SettingsRow>
     )

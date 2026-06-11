@@ -84,7 +84,7 @@ export function AgentProcessDrawer({
             </button>
           </div>
         </div>
-        <div className="pointer-events-auto min-h-0 w-full max-w-full min-w-0 flex-1 overflow-hidden rounded-lg border border-border bg-background shadow-xl">
+        <div className="pointer-events-auto min-h-0 w-full max-w-full min-w-0 flex-1 overflow-hidden rounded-lg border border-border bg-background text-[13px] leading-relaxed shadow-xl [&_.text-\\[10px\\]]:text-[11px] [&_.text-\\[11px\\]]:text-xs [&_.text-xs]:text-sm">
           <AgentChatSwarmPanel
             feedback={chat.feedback}
             isStreaming={isStreaming}

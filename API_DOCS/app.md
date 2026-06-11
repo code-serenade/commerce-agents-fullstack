@@ -26,15 +26,35 @@
 {
   "displayId": "u_10001",
   "displayName": "App User",
+  "schoolName": "示例院校",
+  "teamName": "第一小队",
   "remark": "optional note"
 }
 ```
 
 成功响应 `data`：`AppUserResponse`。
 
+响应字段补充：
+
+```json
+{
+  "userId": "1b1f4e1d-5b4f-4d25-ae07-520f587f8d13",
+  "displayId": "u_10001",
+  "displayName": "App User",
+  "schoolName": "示例院校",
+  "teamName": "第一小队",
+  "remark": "optional note",
+  "status": "enabled",
+  "createdAt": "2026-06-08T08:00:00Z",
+  "updatedAt": "2026-06-08T08:00:00Z",
+  "roles": []
+}
+```
+
 补充说明：
 
 - `userId` 由服务端从 JWT 当前用户中读取，前端不得传入或伪造
+- `schoolName`、`teamName` 为可选注册资料，最长 128 字符；已有用户保持 `null`
 - 首次注册会创建 `enabled` 状态 App 用户
 - 首次注册会自动绑定默认 App 角色 `free`
 - 如果默认 App 角色 `free` 不存在，服务端会自动创建；初始化脚本 `scripts/init_app_permissions.sh` 也会写入该角色
@@ -923,6 +943,158 @@
 - `status` 可选：`draft`、`listing`、`active`、`archived`；不传时默认 `active`，用于兼容已有商品页
 - `price` 当前按字符串保存，避免前端浮点精度问题；后续如需财务级金额计算，可单独迁移为金额规范
 - `metadata` 不传时默认 `{}`，用于承接旧产品里的扩展业务字段
+
+## 13.1 查询商品导入模板
+
+- 方法：`GET`
+- 路径：`/api/app/products/templates`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`ProductTemplateResponse[]`。
+
+```json
+[
+  {
+    "id": "thermos-student",
+    "name": "星河杯温显保温杯",
+    "platform": "douyin",
+    "category": "智能保温杯",
+    "brand": "星河杯",
+    "description": "面向学生和办公室人群的温显保温杯，主打防漏、温度提醒、通勤携带和礼品场景。",
+    "price": "69",
+    "currency": "CNY"
+  }
+]
+```
+
+补充说明：
+
+- 模板为服务端内置低成本实训样例，用于空库快速开始。
+- 该接口只返回模板定义，不创建商品记录。
+
+## 13.2 导入商品模板
+
+- 方法：`POST`
+- 路径：`/api/app/products/templates/import`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "templateId": "thermos-student"
+}
+```
+
+成功响应 `data`：
+
+```json
+{
+  "product": {
+    "id": "product-uuid",
+    "userId": "user-uuid",
+    "name": "星河杯温显保温杯",
+    "platform": "douyin",
+    "externalId": "demo-thermos-student",
+    "category": "智能保温杯",
+    "brand": "星河杯",
+    "status": "active",
+    "description": "面向学生和办公室人群的温显保温杯，主打防漏、温度提醒、通勤携带和礼品场景。",
+    "price": "69",
+    "currency": "CNY",
+    "metadata": {
+      "source": "demo_template",
+      "templateId": "thermos-student",
+      "importedAt": "2026-06-08T08:00:00Z"
+    },
+    "createdAt": "2026-06-08T08:00:00Z",
+    "updatedAt": "2026-06-08T08:00:00Z"
+  },
+  "created": true,
+  "templateId": "thermos-student"
+}
+```
+
+补充说明：
+
+- 导入按当前用户和 `templateId` 幂等；重复导入返回已有商品，`created=false`。
+- 导入会创建当前用户自己的普通商品记录，后续可编辑、归档和作为聊天上下文选择。
+- 未知 `templateId` 返回商品请求参数错误。
+
+## 13.3 生成商品表单草稿
+
+- 方法：`POST`
+- 路径：`/api/app/products/form-draft`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "name": "温显杯",
+  "platform": "douyin",
+  "category": "",
+  "brand": "",
+  "description": "",
+  "price": "",
+  "currency": "CNY",
+  "prompt": "面向学生，突出防漏和温度显示",
+  "generationMode": "template_smart_fill"
+}
+```
+
+成功响应 `data`：
+
+```json
+{
+  "draft": {
+    "name": "温显杯",
+    "platform": "douyin",
+    "externalId": null,
+    "category": "智能水杯",
+    "brand": "温显杯",
+    "status": "active",
+    "description": "围绕温显杯整理智能水杯商品资料，突出面向学生，突出防漏和温度显示。",
+    "price": "69",
+    "currency": "CNY"
+  },
+  "warnings": [],
+  "generationMode": "template_smart_fill",
+  "agentContext": {
+    "type": "product_form_draft",
+    "generationSource": "deterministic_template",
+    "directWrite": false,
+    "requiresUserReview": true,
+    "llm": {
+      "used": false,
+      "futureRoute": "agent_session_sse"
+    },
+    "draftQuality": {
+      "schema": "product_form_draft_v1",
+      "fieldNormalization": "trim_empty_to_default",
+      "invalidModelJsonPolicy": "reject_before_form_fill",
+      "manualReviewRequired": true
+    },
+    "saveBoundary": {
+      "directWrite": false,
+      "requiresUserReview": true,
+      "persistenceEndpoint": "POST /api/app/products"
+    }
+  }
+}
+```
+
+补充说明：
+
+- 本接口只返回表单草稿，不创建、不更新商品；前端必须让学生审核后再调用创建或更新接口保存。
+- 请求体 `generationMode` 可选，稳定枚举值为 `template_smart_fill` 或 `agent_llm`；不传时默认 `template_smart_fill`。
+- `generationMode=template_smart_fill` 为低成本确定性草稿补全，不消耗真实 LLM token。
+- `generationMode=agent_llm` 会通过服务端 `statics::agent_manager` 运行系统 agent `form_draft_generator`，由 agent crate 内部调用 LLM；web-server handler 不直接创建 LLM client。模型选择仍只由服务端 `services.toml` 的 `[agent_llm_usage]` 决定，成功响应不会暴露模型名、base URL、API key 或 prompt 路径。
+- `agentContext.generationSource=deterministic_template` 与 `agentContext.llm.used=false` 表示当前响应没有调用模型；`agentContext.generationSource=agent_llm` 与 `agentContext.llm.used=true` 表示响应来自系统 agent 草稿生成。
+- `agentContext.directWrite=false`、`agentContext.requiresUserReview=true` 是前端审核边界，不能绕过。
+- `agentContext.draftQuality` 记录草稿 schema、字段规整策略和未来真实模型 JSON 失败策略；`invalidModelJsonPolicy=reject_before_form_fill` 表示模型返回非法 JSON 时应在填表前拒绝，而不是把不完整字段写入表单。
+- `status` 由服务端生成，前端表单可忽略；保存时仍以创建商品接口的规则为准。
+- 传入未知 `generationMode` 会返回错误；`agent_llm` 模式下模型服务、prompt 配置或 JSON 解析失败会返回错误，不会降级伪装成已生成草稿。普通 POST 失败响应只返回通用安全 message：`Form draft generation failed before form fill.`，不会暴露模型名、base URL、API key、prompt 路径、provider request id 或 provider 原始错误。
 
 ## 14. 查询商品详情
 
@@ -1877,6 +2049,164 @@
 - `status` 不传时默认 `draft`
 - `metadata`、`output`、`actionMetadata` 不传时默认 `{}`
 - 本阶段只存储活动记录、生成结果和建议动作，不触发 Agent 自动生成或平台执行
+
+## 43.0 查询营销活动导入模板
+
+- 方法：`GET`
+- 路径：`/api/app/campaigns/templates`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：`CampaignTemplateResponse[]`。
+
+```json
+[
+  {
+    "id": "seven-day-short-video-test",
+    "name": "7天短视频测款活动",
+    "campaignType": "promotion",
+    "description": "围绕核心卖点连续发布短视频内容，验证点击率、收藏率、加购率和评论反馈。",
+    "budget": 3000,
+    "startDate": "2026-06-24",
+    "endDate": "2026-06-30"
+  }
+]
+```
+
+补充说明：
+
+- 模板为服务端内置低成本实训样例，用于空活动库快速开始。
+- 该接口只返回模板定义，不创建活动记录。
+
+## 43.0.1 导入营销活动模板
+
+- 方法：`POST`
+- 路径：`/api/app/campaigns/templates/import`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "templateId": "seven-day-short-video-test",
+  "productId": "product-uuid"
+}
+```
+
+成功响应 `data`：
+
+```json
+{
+  "campaign": {
+    "id": "campaign-uuid",
+    "userId": "user-uuid",
+    "productId": "product-uuid",
+    "name": "7天短视频测款活动",
+    "campaignType": "promotion",
+    "description": "围绕核心卖点连续发布短视频内容，验证点击率、收藏率、加购率和评论反馈。",
+    "budget": 3000,
+    "startDate": "2026-06-24",
+    "endDate": "2026-06-30",
+    "status": "draft",
+    "metadata": {
+      "source": "demo_template",
+      "templateId": "seven-day-short-video-test",
+      "importedAt": "2026-06-08T08:00:00Z",
+      "checkpoints": ["首日素材点击率", "第3天加购率", "第7天转化与复盘"]
+    },
+    "output": {},
+    "actionMetadata": {},
+    "createdAt": "2026-06-08T08:00:00Z",
+    "updatedAt": "2026-06-08T08:00:00Z"
+  },
+  "created": true,
+  "templateId": "seven-day-short-video-test"
+}
+```
+
+补充说明：
+
+- 导入按当前用户、`templateId` 和可选 `productId` 幂等；重复导入返回已有活动，`created=false`。
+- `productId` 可为空；不为空时必须属于当前用户且商品未归档。
+- 导入会创建 `draft` 状态活动，不触发 Agent 自动生成或平台执行。
+- 未知 `templateId` 返回活动请求参数错误。
+
+## 43.0.2 生成营销活动表单草稿
+
+- 方法：`POST`
+- 路径：`/api/app/campaigns/form-draft`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "productId": "product-uuid",
+  "name": "咖啡直播测款",
+  "campaignType": "",
+  "description": "",
+  "budget": null,
+  "startDate": "",
+  "endDate": "",
+  "goal": "验证直播转化",
+  "targetAudience": "办公室咖啡用户",
+  "channels": ["douyin"],
+  "prompt": "重点关注停留和加购",
+  "generationMode": "template_smart_fill"
+}
+```
+
+成功响应 `data`：
+
+```json
+{
+  "draft": {
+    "productId": "product-uuid",
+    "name": "咖啡直播测款",
+    "campaignType": "launch",
+    "description": "围绕咖啡直播测款组织 launch 活动，目标是验证直播转化。",
+    "budget": 5000,
+    "startDate": "2026-06-24",
+    "endDate": "2026-06-30",
+    "status": "draft"
+  },
+  "warnings": [],
+  "generationMode": "template_smart_fill",
+  "agentContext": {
+    "type": "campaign_form_draft",
+    "generationSource": "deterministic_template",
+    "directWrite": false,
+    "requiresUserReview": true,
+    "llm": {
+      "used": false,
+      "futureRoute": "agent_session_sse"
+    },
+    "draftQuality": {
+      "schema": "campaign_form_draft_v1",
+      "fieldNormalization": "trim_empty_to_default",
+      "invalidModelJsonPolicy": "reject_before_form_fill",
+      "manualReviewRequired": true
+    },
+    "saveBoundary": {
+      "directWrite": false,
+      "requiresUserReview": true,
+      "persistenceEndpoint": "POST /api/app/campaigns"
+    }
+  }
+}
+```
+
+补充说明：
+
+- 本接口只返回表单草稿，不创建、不更新活动；前端必须让学生审核后再调用创建或更新接口保存。
+- 请求体 `generationMode` 可选，稳定枚举值为 `template_smart_fill` 或 `agent_llm`；不传时默认 `template_smart_fill`。
+- `generationMode=template_smart_fill` 为低成本确定性草稿补全，不消耗真实 LLM token。
+- `generationMode=agent_llm` 会通过服务端 `statics::agent_manager` 运行系统 agent `form_draft_generator`，由 agent crate 内部调用 LLM；web-server handler 不直接创建 LLM client。模型选择仍只由服务端 `services.toml` 的 `[agent_llm_usage]` 决定，成功响应不会暴露模型名、base URL、API key 或 prompt 路径。
+- `agentContext.generationSource=deterministic_template` 与 `agentContext.llm.used=false` 表示当前响应没有调用模型；`agentContext.generationSource=agent_llm` 与 `agentContext.llm.used=true` 表示响应来自系统 agent 草稿生成。
+- `agentContext.directWrite=false`、`agentContext.requiresUserReview=true` 是前端审核边界，不能绕过。
+- `agentContext.draftQuality` 记录草稿 schema、字段规整策略和未来真实模型 JSON 失败策略；`invalidModelJsonPolicy=reject_before_form_fill` 表示模型返回非法 JSON 时应在填表前拒绝，而不是把不完整字段写入表单。
+- `productId` 可为空；不为空时必须属于当前用户且商品未归档。
+- `status` 固定为 `draft`，保存时仍以创建营销活动接口的规则为准。
+- 传入未知 `generationMode` 会返回错误；`agent_llm` 模式下模型服务、prompt 配置或 JSON 解析失败会返回错误，不会降级伪装成已生成草稿。普通 POST 失败响应只返回通用安全 message：`Form draft generation failed before form fill.`，不会暴露模型名、base URL、API key、prompt 路径、provider request id 或 provider 原始错误。
 
 ## 43.1 创建营销活动草稿
 
@@ -4593,11 +4923,17 @@
 {
   "workspaceContext": {
     "readiness": "ready",
-    "counts": {}
+    "counts": {},
+    "missing": [],
+    "warnings": [],
+    "sourceCount": 2
   },
   "workspacePack": {
     "readiness": "partial",
-    "items": [],
+    "counts": {},
+    "itemCount": 3,
+    "readableItemCount": 2,
+    "textChars": 2400,
     "omitted": [],
     "omittedDetails": [
       {
@@ -4614,34 +4950,25 @@
     "messageCount": 8,
     "totalMessageCount": 16,
     "truncated": true,
-    "relevantOlderCount": 2,
-    "olderSummary": "User: 之前确认目标是提升利润...",
-    "text": "Earlier summary: ...\nUser: 请分析这份订单表..."
+    "relevantOlderCount": 2
   },
   "conversationMemory": {
     "kind": "conversation_memory_summary",
-    "rollingSummary": "用户正在围绕订单利润分析连续追问。",
-    "facts": [],
-    "decisions": [],
-    "constraints": [],
-    "openQuestions": [],
-    "sourceMap": {
-      "messageCount": 16,
-      "recentWindow": 12,
-      "previousMemoryAvailable": true,
-      "memoryBudget": {
-        "rollingSummaryMaxChars": 1400,
-        "itemMaxChars": 260,
-        "factsMaxItems": 10,
-        "decisionsMaxItems": 6,
-        "constraintsMaxItems": 8,
-        "openQuestionsMaxItems": 5,
-        "lastUserInputMaxChars": 500,
-        "lastAssistantOutputMaxChars": 700,
-        "memoryTextMaxChars": 2400
-      }
-    }
+    "rollingSummaryAvailable": true,
+    "factCount": 5,
+    "decisionCount": 2,
+    "constraintCount": 3,
+    "openQuestionCount": 1
   },
+  "memoryRecords": [
+    {
+      "kind": "conversation_fact",
+      "key": "memory_card:facts",
+      "tags": ["memory_card", "entity:product-uuid"],
+      "charCount": 86,
+      "truncated": false
+    }
+  ],
   "budget": {
     "inputChars": 14,
     "conversationHistoryChars": 2200,
@@ -4666,8 +4993,11 @@
 补充说明：
 
 - 该接口复用正式 SSE 前的 `workspace_context` 与 `workspace_context_pack` 构建逻辑。
-- 当传入 `conversationId` 时，该接口会按当前 JWT 用户权限读取同会话历史和 `conversations.metadata.memorySummary`，返回 `conversationHistory` 与 `conversationMemory`，用于预览本轮是否会参考历史；长会话会保留最近窗口，并从更早历史中按本轮问题挑选少量相关原文片段；预览本身不会写回 memory。
-- `conversationMemory` 与正式 SSE 使用同一套轻量压缩和预算治理：`rollingSummary` 最多 1400 字符，facts 最多 10 条，decisions 最多 6 条，constraints 最多 8 条，openQuestions 最多 5 条，单条记忆文本最多 260 字符，注入模型的 memory 文本最多 2400 字符；重复、空值、超长和无关嵌套字段会被清洗，预算值会出现在 `sourceMap.memoryBudget`。
+- 响应为安全摘要形态，用于让前端说明“会带入多少上下文”，不把原始上下文正文下发到浏览器。`workspaceContext` 只返回工作区/会话/商品/运行标识、`readiness`、`counts`、`missing`、`warnings` 和 `sourceCount`；不会返回 `summary`、各类 `sources`、`agentContext`、source preview 或 source metadata。
+- `workspacePack` 只返回工作区/会话/商品/运行标识、`readiness`、`counts`、`itemCount`、`readableItemCount`、`textChars`、`omitted`、`omittedDetails` 和 `warnings`；不会返回 `items[]`、item `text`、item `metadata`、pack `summary` 或 `agentContext`。
+- 当传入 `conversationId` 时，该接口会按当前 JWT 用户权限读取同会话历史和 `conversations.metadata.memorySummary`，但 `conversationHistory` 只返回 `conversationId`、消息计数、总消息数、是否截断、相关更早消息数量；不会返回历史拼接 `text` 或 `olderSummary`。预览本身不会写回 memory。
+- `conversationMemory` 与正式 SSE 使用同一套轻量压缩和预算治理，但预览响应只返回 `kind`、`rollingSummaryAvailable`、`factCount`、`decisionCount`、`constraintCount` 和 `openQuestionCount`；不会返回 `rollingSummary`、facts/decisions/constraints/openQuestions 的文本、last turn 内容、`sourceMap`、模型信息或内部调试字段。
+- `memoryRecords[]` 来自正式 Agent memory store 的同口径召回预览，只暴露 `kind`、`key`、少量 `tags`、`charCount` 和 `truncated`，用于核对本轮会带入哪类长期记忆；不返回记忆正文、source map、命中分数、模型信息或内部调试字段。预览只读 memory，不触发模型调用，也不写入新 memory。
 - CSV/TSV/XLSX 等表格型资料不会默认整表塞入模型上下文；当前会优先生成 schema、列名、行数、基础数值统计和样例行 profile；带本轮问题时，样例行会优先选择命中问题关键词的行，再用表头附近行补足。
 - `workspacePack.omittedDetails` 给出具体省略原因，前端应优先展示给用户，避免“上传成功”等同于“模型已读取”的误解。
 

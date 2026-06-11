@@ -30,6 +30,29 @@ pub struct CreateCampaignRequest {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct CreateCampaignFormDraftRequest {
+    pub user_id: String,
+    pub product_id: Option<String>,
+    pub name: Option<String>,
+    pub campaign_type: Option<String>,
+    pub description: Option<String>,
+    pub budget: Option<f64>,
+    pub start_date: Option<String>,
+    pub end_date: Option<String>,
+    pub goal: Option<String>,
+    pub target_audience: Option<String>,
+    pub channels: Option<Vec<String>>,
+    pub prompt: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ImportCampaignTemplateRequest {
+    pub user_id: String,
+    pub template_id: String,
+    pub product_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct CreateCampaignDraftRequest {
     pub user_id: String,
     pub product_id: Option<String>,
@@ -105,6 +128,48 @@ pub struct CampaignDraftSourceResponse {
     pub source_artifact_id: Option<String>,
     pub source_summary: Option<String>,
     pub ref_keys: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CampaignFormDraftValues {
+    pub product_id: Option<String>,
+    pub name: String,
+    pub campaign_type: Option<String>,
+    pub description: Option<String>,
+    pub budget: Option<f64>,
+    pub start_date: Option<String>,
+    pub end_date: Option<String>,
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CampaignFormDraftResponse {
+    pub draft: CampaignFormDraftValues,
+    pub warnings: Vec<String>,
+    pub generation_mode: String,
+    pub agent_context: Value,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CampaignTemplateResponse {
+    pub id: String,
+    pub name: String,
+    pub campaign_type: Option<String>,
+    pub description: Option<String>,
+    pub budget: Option<f64>,
+    pub start_date: Option<String>,
+    pub end_date: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CampaignTemplateImportResponse {
+    pub campaign: CampaignResponse,
+    pub created: bool,
+    pub template_id: String,
 }
 
 #[derive(Debug, Clone, Serialize)]

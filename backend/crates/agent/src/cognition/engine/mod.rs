@@ -129,7 +129,7 @@ where
             description: "LLM cognition did not run".to_string(),
         };
 
-        for attempt in 1 ..= max_attempts {
+        for attempt in 1..=max_attempts {
             let raw = match self.llm.chat_once(LlmInput { messages }).await {
                 Ok(output) => output.get_content().to_string(),
                 Err(err) => {

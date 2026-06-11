@@ -1,5 +1,9 @@
 import type { TFunction } from "i18next"
 import type { AgentRuntimeEvent } from "@/api"
+import {
+  getWorkspaceContextPackItemCount,
+  getWorkspaceContextPackReadableCount,
+} from "./agent-workspace-context-pack-counts"
 import { readRuntimeNodeId, resolveWorkerNodeId } from "./agent-runtime-event-mapping"
 import {
   isNonBlockingNodeFailure,
@@ -69,11 +73,11 @@ export function formatTimelineEvent(
     }
   }
   if (event.type === "workspace_context_pack_loaded") {
-    const readable = (event.items ?? []).filter((item) => Boolean(item.text)).length
+    const readable = getWorkspaceContextPackReadableCount(event)
     return {
       label: t("agentChat.swarm.timeline.events.workspaceContextPackLoaded", {
         readable,
-        total: event.items?.length ?? 0,
+        total: getWorkspaceContextPackItemCount(event),
       }),
       tone: readable === 0 ? "warning" as const : "success" as const,
     }
@@ -280,9 +284,8 @@ function isBoundaryWorkspaceTaskUpdate(
   })
 }
 
-function getTimelineAgentName(nodeId: string, agents: SwarmAgent[]) {
-  return agents.find((agent) => agent.nodeId === nodeId)?.name ?? nodeId
-}
+const getTimelineAgentName = (nodeId: string, agents: SwarmAgent[]) =>
+  agents.find((agent) => agent.nodeId === nodeId)?.name ?? nodeId
 
 function readApprovalSkill(event: Extract<AgentRuntimeEvent, { type: "approval_required" }>) {
   return event.skillId ?? event.skill_id ?? event.approval?.skillName ?? event.approval?.skill_name ?? "-"
@@ -302,15 +305,12 @@ function stringifyUnknown(value: unknown) {
   }
 }
 
-function getWorkspaceContextSourceCount(
-  event: Extract<AgentRuntimeEvent, { type: "workspace_context_loaded" }>
-) {
+function getWorkspaceContextSourceCount(event: Extract<AgentRuntimeEvent, { type: "workspace_context_loaded" }>) {
+  const explicitCount = event.sourceCount ?? event.source_count
+  if (explicitCount !== undefined) return Math.max(explicitCount, 0)
   const counts = event.counts
   if (!counts) return 0
-  return (
-    (counts.conversationFiles ?? counts.conversation_files ?? 0) +
-    (counts.productAssets ?? counts.product_assets ?? 0) +
-    (counts.productMaterials ?? counts.product_materials ?? 0) +
+  return (counts.conversationFiles ?? counts.conversation_files ?? 0) + (counts.campaigns ?? 0) +
+    (counts.productAssets ?? counts.product_assets ?? 0) + (counts.productMaterials ?? counts.product_materials ?? 0) +
     (counts.workspaceArtifacts ?? counts.workspace_artifacts ?? 0)
-  )
 }

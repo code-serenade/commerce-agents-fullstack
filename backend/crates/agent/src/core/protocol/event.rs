@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::MemoryRecordSummary;
 use crate::protocol::{
     AdaptiveDispatchProfile, DispatchContextBudget, DispatchPlannedStep, Evaluation, SessionId,
     TaskGraph, TaskGraphId, TaskGraphProcessSummary, TaskId, TaskNodeId, WorkerId, WorkerReport,
@@ -16,6 +17,8 @@ pub enum SessionEvent {
         session_id: SessionId,
         count: usize,
         kinds: Vec<String>,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        records: Vec<MemoryRecordSummary>,
     },
     MemoryPersisted {
         session_id: SessionId,

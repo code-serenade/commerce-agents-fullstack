@@ -88,6 +88,8 @@ fn map_app_user_response(app_user: service::dto::app::AppUserResponse) -> AppUse
         user_id: app_user.user_id,
         display_id: app_user.display_id,
         display_name: app_user.display_name,
+        school_name: app_user.school_name,
+        team_name: app_user.team_name,
         remark: app_user.remark,
         status: match app_user.status {
             service::dto::app::AppUserStatus::Enabled => crate::dto::app::AppUserStatus::Enabled,
@@ -110,6 +112,8 @@ pub async fn register_app_user(
             user_id: auth_user.user_id,
             display_id: req.display_id,
             display_name: req.display_name,
+            school_name: req.school_name,
+            team_name: req.team_name,
             remark: req.remark,
         })
         .await

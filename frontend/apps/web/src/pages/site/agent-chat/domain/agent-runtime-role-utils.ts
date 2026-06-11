@@ -1,4 +1,4 @@
-export const MAX_SELECTED_RUNTIME_ROLES = 6
+export const MAX_SELECTED_RUNTIME_ROLES = 8
 
 export function preferredRuntimePrimaryRole(roles: string[]) {
   const nonChatRoles = roles.filter((role) => role !== "chat")

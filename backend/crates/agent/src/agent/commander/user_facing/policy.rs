@@ -43,6 +43,23 @@ pub(super) struct UserFacingNormalizationPolicy {
     pub(super) internal_noise_markers: Vec<String>,
     #[serde(default)]
     pub(super) prompt_instruction_leak_markers: Vec<String>,
+    #[serde(default)]
+    pub(super) answer_structure_rules: Vec<UserFacingAnswerStructureRule>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub(super) struct UserFacingAnswerStructureRule {
+    #[serde(default)]
+    pub(super) text_any: Vec<String>,
+    #[serde(default)]
+    pub(super) sections: Vec<UserFacingAnswerStructureSection>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub(super) struct UserFacingAnswerStructureSection {
+    pub(super) heading: String,
+    #[serde(default)]
+    pub(super) aliases: Vec<String>,
 }
 
 static USER_FACING_POLICY: OnceLock<UserFacingNormalizationPolicy> = OnceLock::new();
@@ -111,6 +128,7 @@ impl UserFacingNormalizationPolicy {
             internal_noise_lower_markers: Vec::new(),
             internal_noise_markers: Vec::new(),
             prompt_instruction_leak_markers: Vec::new(),
+            answer_structure_rules: Vec::new(),
         }
     }
 }

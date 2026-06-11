@@ -27,25 +27,29 @@ describe("agent runtime option role limits", () => {
             "service",
             "engineering",
             "accounting",
+            "search",
+            "web",
           ],
         },
-        "search"
+        "ads"
       )
     ).toEqual({
       ...manualSelection,
-      primaryRole: "search",
+      primaryRole: "ads",
       selectedRoles: [
-        "search",
+        "ads",
         "ops",
         "data",
         "creative",
         "service",
         "engineering",
+        "accounting",
+        "search",
       ],
     })
   })
 
-  it("ignores the seventh manual support role so SSE metadata stays valid", () => {
+  it("ignores the ninth manual support role so SSE metadata stays valid", () => {
     expect(
       toggleRuntimeRole(
         {
@@ -57,9 +61,11 @@ describe("agent runtime option role limits", () => {
             "service",
             "engineering",
             "accounting",
+            "search",
+            "web",
           ],
         },
-        "search"
+        "ads"
       )
     ).toEqual({
       ...manualSelection,
@@ -70,6 +76,8 @@ describe("agent runtime option role limits", () => {
         "service",
         "engineering",
         "accounting",
+        "search",
+        "web",
       ],
     })
   })
@@ -86,6 +94,8 @@ describe("agent runtime option role limits", () => {
           "engineering",
           "accounting",
           "search",
+          "web",
+          "ads",
         ],
       }).selectedRoles
     ).toEqual([
@@ -95,6 +105,8 @@ describe("agent runtime option role limits", () => {
       "service",
       "engineering",
       "accounting",
+      "search",
+      "web",
     ])
   })
 })

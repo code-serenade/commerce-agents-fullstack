@@ -71,6 +71,12 @@ impl From<std::io::Error> for Error {
     }
 }
 
+impl From<crate::agent_session::FileMemoryStoreError> for Error {
+    fn from(value: crate::agent_session::FileMemoryStoreError) -> Self {
+        Self::Settings(settings::SettingsError::invalid(value.to_string()))
+    }
+}
+
 /// Result type alias using Error.
 pub type Result<T> = std::result::Result<T, Error>;
 

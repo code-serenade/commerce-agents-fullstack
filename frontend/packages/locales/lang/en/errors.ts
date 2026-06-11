@@ -8,9 +8,9 @@ const error = {
   "-10004": "password hash failed",
   "-10005": "password hash parse failed",
   "-10006": "invalid password",
-  "-10007": "username length must be between 3 and 32",
+  "-10007": "account length must be between 3 and 32",
   "-10008":
-    "username may only contain letters, numbers, underscores, and hyphens",
+    "account may only contain letters, numbers, underscores, and hyphens",
   "-10009": "display name length must be between 1 and 64",
   "-10010": "avatar must be a valid URL",
   "-10011": "password length must be between 8 and 128",

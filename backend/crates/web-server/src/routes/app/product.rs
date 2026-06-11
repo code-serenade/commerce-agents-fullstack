@@ -4,12 +4,13 @@ use axum::{
 };
 
 use crate::handlers::app::{
-    create_competitor_change, create_product, create_product_competitor, create_product_knowledge,
-    create_product_material, delete_product, delete_product_asset, delete_product_competitor,
-    delete_product_knowledge, delete_product_material, get_product, get_product_asset_access,
-    get_product_competitor, get_product_competitor_analysis, get_product_lifecycle,
-    get_product_material, list_competitor_changes, list_product_assets, list_product_competitors,
-    list_product_knowledge, list_product_material_versions, list_product_materials, list_products,
+    create_competitor_change, create_product, create_product_competitor, create_product_draft,
+    create_product_knowledge, create_product_material, delete_product, delete_product_asset,
+    delete_product_competitor, delete_product_knowledge, delete_product_material, get_product,
+    get_product_asset_access, get_product_competitor, get_product_competitor_analysis,
+    get_product_lifecycle, get_product_material, import_product_template, list_competitor_changes,
+    list_product_assets, list_product_competitors, list_product_knowledge,
+    list_product_material_versions, list_product_materials, list_product_templates, list_products,
     presign_product_asset_upload, product_dashboard, product_lifecycle_options,
     register_product_asset, transition_product_lifecycle, update_product, update_product_asset,
     update_product_competitor, update_product_knowledge, update_product_material,
@@ -19,6 +20,9 @@ pub fn product_routes() -> Router {
     Router::new()
         .route("/products", get(list_products).post(create_product))
         .route("/products/dashboard", get(product_dashboard))
+        .route("/products/templates", get(list_product_templates))
+        .route("/products/templates/import", post(import_product_template))
+        .route("/products/form-draft", post(create_product_draft))
         .route(
             "/products/lifecycle/options",
             get(product_lifecycle_options),

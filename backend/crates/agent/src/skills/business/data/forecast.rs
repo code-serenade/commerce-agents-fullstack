@@ -74,7 +74,7 @@ pub(super) fn seasonal_decompose(input: &Value) -> Value {
         .unwrap_or(*series.last().unwrap_or(&series[0]));
     let trend_growth = pct(trend_end - trend_start, trend_start);
     let mut indices = Vec::new();
-    for p in 0 .. period {
+    for p in 0..period {
         let vals = series
             .iter()
             .enumerate()
@@ -161,7 +161,7 @@ pub(super) fn demand_forecast(input: &Value) -> Value {
     let mut best_mape = f64::INFINITY;
     for alpha in alphas {
         let preds = ses_fitted(&values, alpha);
-        let score = mape(&values[1 ..], &preds);
+        let score = mape(&values[1..], &preds);
         if score < best_mape {
             best_mape = score;
             best_alpha = alpha;

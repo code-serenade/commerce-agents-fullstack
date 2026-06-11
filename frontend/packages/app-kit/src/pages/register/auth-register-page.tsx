@@ -13,7 +13,10 @@ import {
   FieldLabel,
 } from "@workspace/ui-components/stable/field"
 import { Input } from "@workspace/ui-components/stable/input"
-import type { AuthRegisterPageProps } from "./types"
+import type {
+  AuthRegisterExtraFieldDefinition,
+  AuthRegisterPageProps,
+} from "./types"
 
 type Translate = (key: string, options?: Record<string, unknown>) => string
 
@@ -26,7 +29,10 @@ const authFooterClassName = "mt-6 text-sm text-(--app-muted-text)"
 const authLinkClassName =
   "font-medium text-(--app-text) underline-offset-4 transition hover:underline"
 
-function createAuthRegisterSchema(t: Translate) {
+function createAuthRegisterSchema(
+  t: Translate,
+  extraFields: AuthRegisterExtraFieldDefinition[]
+) {
   const emailValidator = z.email()
 
   return z
@@ -58,6 +64,28 @@ function createAuthRegisterSchema(t: Translate) {
         .string()
         .trim()
         .min(1, t("validation.required", { ns: "common" })),
+      extraFields: z.record(z.string(), z.string()).superRefine((values, ctx) => {
+        extraFields.forEach((field) => {
+          const value = values[field.name]?.trim() ?? ""
+          if (field.required && !value) {
+            ctx.addIssue({
+              code: "custom",
+              path: [field.name],
+              message: t("validation.required", { ns: "common" }),
+            })
+          }
+          if (field.maxLength && value.length > field.maxLength) {
+            ctx.addIssue({
+              code: "custom",
+              path: [field.name],
+              message: t("validation.maxLength", {
+                max: field.maxLength,
+                ns: "common",
+              }),
+            })
+          }
+        })
+      }),
     })
     .refine((value) => value.password === value.confirmPassword, {
       path: ["confirmPassword"],
@@ -67,13 +95,25 @@ function createAuthRegisterSchema(t: Translate) {
 
 export function AuthRegisterPage({
   brandLogo,
+  extraFields = [],
   loginPath = "/login",
   onRegistered,
 }: AuthRegisterPageProps) {
-  const { t } = useTranslation(["pages", "common"])
+  const { t } = useTranslation(["pages", "common", "errors"])
   const navigate = useNavigate()
-  const registerSchema = useMemo(() => createAuthRegisterSchema(t), [t])
+  const registerSchema = useMemo(
+    () => createAuthRegisterSchema(t, extraFields),
+    [extraFields, t]
+  )
   type RegisterFormValues = z.infer<typeof registerSchema>
+  const extraFieldDefaultValues = useMemo(
+    () =>
+      Object.fromEntries(extraFields.map((field) => [field.name, ""])) as Record<
+        string,
+        string
+      >,
+    [extraFields]
+  )
   const {
     control,
     handleSubmit,
@@ -86,6 +126,7 @@ export function AuthRegisterPage({
       email: "",
       password: "",
       confirmPassword: "",
+      extraFields: extraFieldDefaultValues,
     },
   })
 
@@ -99,7 +140,12 @@ export function AuthRegisterPage({
 
     try {
       await registerApi(payload)
-      await onRegistered?.()
+      await onRegistered?.({
+        username: payload.username,
+        displayName: values.displayName.trim(),
+        email: values.email.trim(),
+        extraFields: normalizeExtraFieldValues(values.extraFields),
+      })
       navigate(loginPath, { replace: true })
     } catch (err) {
       console.error("Register failed:", err)
@@ -153,7 +199,7 @@ export function AuthRegisterPage({
           <FieldGroup>
             <Field>
               <FieldLabel>
-              {t("authRegister.form.username.label", { ns: "pages" })}
+                {t("authRegister.form.username.label", { ns: "pages" })}
               </FieldLabel>
               <Controller
                 control={control}
@@ -169,12 +215,15 @@ export function AuthRegisterPage({
                   />
                 )}
               />
+              <p className="text-[11px] text-(--app-muted-text)">
+                {t("authRegister.form.username.help", { ns: "pages" })}
+              </p>
               <FieldError>{errors.username?.message}</FieldError>
             </Field>
 
             <Field>
               <FieldLabel>
-              {t("authRegister.form.displayName.label", { ns: "pages" })}
+                {t("authRegister.form.displayName.label", { ns: "pages" })}
               </FieldLabel>
               <Controller
                 control={control}
@@ -195,7 +244,7 @@ export function AuthRegisterPage({
 
             <Field>
               <FieldLabel>
-              {t("authRegister.form.email.label", { ns: "pages" })}
+                {t("authRegister.form.email.label", { ns: "pages" })}
               </FieldLabel>
               <Controller
                 control={control}
@@ -214,9 +263,35 @@ export function AuthRegisterPage({
               <FieldError>{errors.email?.message}</FieldError>
             </Field>
 
+            {extraFields.map((extraField) => (
+              <Field key={extraField.name}>
+                <FieldLabel>{extraField.label}</FieldLabel>
+                <Controller
+                  control={control}
+                  name={`extraFields.${extraField.name}`}
+                  render={({ field }) => (
+                    <Input
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      type="text"
+                      placeholder={extraField.placeholder}
+                    />
+                  )}
+                />
+                {extraField.helpText ? (
+                  <p className="text-[11px] text-(--app-muted-text)">
+                    {extraField.helpText}
+                  </p>
+                ) : null}
+                <FieldError>
+                  {errors.extraFields?.[extraField.name]?.message}
+                </FieldError>
+              </Field>
+            ))}
+
             <Field>
               <FieldLabel>
-              {t("authRegister.form.password.label", { ns: "pages" })}
+                {t("authRegister.form.password.label", { ns: "pages" })}
               </FieldLabel>
               <Controller
                 control={control}
@@ -237,7 +312,7 @@ export function AuthRegisterPage({
 
             <Field>
               <FieldLabel>
-              {t("authRegister.form.confirmPassword.label", { ns: "pages" })}
+                {t("authRegister.form.confirmPassword.label", { ns: "pages" })}
               </FieldLabel>
               <Controller
                 control={control}
@@ -273,5 +348,11 @@ export function AuthRegisterPage({
         </p>
       </section>
     </div>
+  )
+}
+
+function normalizeExtraFieldValues(values: Record<string, string>) {
+  return Object.fromEntries(
+    Object.entries(values).map(([key, value]) => [key, value.trim()])
   )
 }
