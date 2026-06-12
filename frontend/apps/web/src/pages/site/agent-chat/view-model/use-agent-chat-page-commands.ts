@@ -25,7 +25,7 @@ export function useAgentChatPageCommands(input: {
   isLoggedIn: boolean
   isStreaming: boolean
   setInput: Dispatch<SetStateAction<string>>
-  setStrategyId: Dispatch<SetStateAction<AgentChatStrategyId>>
+  setStrategyId: (value: AgentChatStrategyId) => void
 }) {
   const {
     actionState,

@@ -1,67 +1,36 @@
-import type { Dispatch, MutableRefObject, SetStateAction } from "react"
 import { AGENT_ID, agentChatData, type AgentRuntimeEvent } from "../agent-chat-data"
 import {
   createConversationTitle,
   createMessageId,
   formatAgentUiMessage,
   mapConversationItem,
-  type AgentChatMessageFormatCopy,
 } from "../domain/agent-chat-message-mapping"
 import { createMessageContextSummary } from "../domain/agent-chat-message-context-summary"
 import { sourceReadinessKey } from "../domain/agent-chat-source-readiness"
-import {
-  createContextRefs,
-  type AgentChatCampaignContextSelection,
-  type AgentChatProductContextSelection,
-  type AgentChatSourceContextSelection,
-} from "../domain/agent-chat-context-selection"
-import type { AgentChatRuntimeSelection } from "../domain/agent-runtime-options"
-import type { AgentChatStrategy } from "../domain/agent-chat-strategy"
-import type {
-  AgentChatAttachmentItem,
-  AgentChatConversationItem,
-  AgentChatMessage,
-} from "../types"
+import { createContextRefs } from "../domain/agent-chat-context-selection"
 import { createImageAttachments } from "./agent-chat-image-attachments"
 import {
   markAssistantAnswerComplete,
   replaceAssistantAnswerComplete,
 } from "./agent-chat-message-state"
 import { saveAssistantConversationMessage } from "./agent-chat-save-message"
+import type { SendAgentChatMessageInput } from "./agent-chat-send-message-types"
 import { hasDisplayableAnswer, isAbortLikeStreamError } from "./agent-chat-stream-errors"
-
-interface SendAgentChatMessageInput {
-  attachments: AgentChatAttachmentItem[]
-  content: string
-  conversationId: string | null
-  fallbackConversationTitle: string
-  messageFormatCopy: AgentChatMessageFormatCopy
-  onController: (controller: AbortController) => void
-  sessionIdRef: MutableRefObject<string>
-  setConversationId: Dispatch<SetStateAction<string | null>>
-  setConversations: Dispatch<SetStateAction<AgentChatConversationItem[]>>
-  setError: Dispatch<SetStateAction<string | null>>
-  setInput: Dispatch<SetStateAction<string>>
-  setIsStreaming: Dispatch<SetStateAction<boolean>>
-  setMessages: Dispatch<SetStateAction<AgentChatMessage[]>>
-  setRuntimeEvents: Dispatch<SetStateAction<AgentRuntimeEvent[]>>
-  selectedCampaigns: AgentChatCampaignContextSelection[]
-  selectedProducts: AgentChatProductContextSelection[]
-  selectedSources: AgentChatSourceContextSelection[]
-  runtimeSelection: AgentChatRuntimeSelection
-  strategy: AgentChatStrategy
-  tError: string
-}
+import { formatStreamErrorMessage } from "./agent-chat-stream-error-message"
 
 export async function sendAgentChatMessage(
   input: SendAgentChatMessageInput
 ): Promise<AbortController | null> {
   const assistantId = createMessageId("assistant")
+  const routingMode =
+    input.strategy.id === "quick" ? "fast" : input.runtimeSelection.routingMode
+  const collaborationMode =
+    input.strategy.id === "quick" ? "auto" : input.runtimeSelection.collaborationMode
   const strategyMeta = {
     strategyId: input.strategy.id,
     responseMode: input.strategy.responseMode,
-    routingMode: input.runtimeSelection.routingMode,
-    collaborationMode: input.runtimeSelection.collaborationMode,
+    routingMode,
+    collaborationMode,
     learningLevel: input.runtimeSelection.learningLevel,
     primaryRole: input.runtimeSelection.primaryRole,
     selectedRoles: input.runtimeSelection.selectedRoles,
@@ -114,8 +83,19 @@ export async function sendAgentChatMessage(
 
   let assistantContent = ""
   let assistantDone = false
+  let assistantMessageSaved = false
   let activeConversationId = input.conversationId
   const runtimeEvents: AgentRuntimeEvent[] = []
+
+  async function saveAssistantIfReady(content: string) {
+    if (!activeConversationId || !content || assistantMessageSaved) return
+    await saveAssistantConversationMessage({
+      content,
+      conversationId: activeConversationId,
+      runtimeEvents,
+    })
+    assistantMessageSaved = true
+  }
 
   try {
     if (!activeConversationId) {
@@ -156,8 +136,8 @@ export async function sendAgentChatMessage(
           strategy: {
             id: input.strategy.id,
             responseMode: input.strategy.responseMode,
-            routingMode: input.runtimeSelection.routingMode,
-            collaborationMode: input.runtimeSelection.collaborationMode,
+            routingMode,
+            collaborationMode,
             outputFormat: "structured_markdown",
             learningLevel: input.runtimeSelection.learningLevel,
             primaryRole: input.runtimeSelection.primaryRole,
@@ -219,10 +199,10 @@ export async function sendAgentChatMessage(
           input.setIsStreaming(false)
         },
         onError: (message) => {
-          const displayMessage = formatAgentUiMessage(
-            message,
-            input.messageFormatCopy
-          )
+          if (assistantDone) {
+            input.setIsStreaming(false)
+            return
+          }
           const displayContent = formatAgentUiMessage(
             assistantContent,
             input.messageFormatCopy
@@ -242,6 +222,7 @@ export async function sendAgentChatMessage(
             input.setIsStreaming(false)
             return
           }
+          const displayMessage = formatStreamErrorMessage(message, input)
           input.setError(displayMessage)
           input.setMessages((current) =>
             current.map((item) =>
@@ -262,16 +243,23 @@ export async function sendAgentChatMessage(
       assistantContent,
       input.messageFormatCopy
     )
-    if (finalAssistantContent) {
-      await saveAssistantConversationMessage({
-        content: finalAssistantContent,
-        conversationId: activeConversationId,
-        runtimeEvents,
-      })
-    }
+    await saveAssistantIfReady(finalAssistantContent)
     input.setIsStreaming(false)
   } catch (err) {
     if (controller.signal.aborted) return null
+    if (assistantDone) {
+      input.setIsStreaming(false)
+      const displayContent = formatAgentUiMessage(
+        assistantContent,
+        input.messageFormatCopy
+      )
+      try {
+        await saveAssistantIfReady(displayContent)
+      } catch {
+        // The visible answer is already complete; do not convert it to a reply failure.
+      }
+      return controller
+    }
     input.setIsStreaming(false)
     const displayContent = formatAgentUiMessage(
       assistantContent,
@@ -285,19 +273,10 @@ export async function sendAgentChatMessage(
         runtimeEvents,
         setMessages: input.setMessages,
       })
-      if (activeConversationId) {
-        await saveAssistantConversationMessage({
-          content: displayContent,
-          conversationId: activeConversationId,
-          runtimeEvents,
-        })
-      }
+      await saveAssistantIfReady(displayContent)
       return controller
     }
-    const message = formatAgentUiMessage(
-      err instanceof Error ? err.message : input.tError,
-      input.messageFormatCopy
-    )
+    const message = formatStreamErrorMessage(err, input)
     input.setError(message)
     input.setMessages((current) =>
       current.map((item) =>

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use tracing::{debug, info, warn};
 
@@ -64,6 +64,7 @@ pub struct CommanderChannels {
 pub struct CommanderOptions {
     pub fast_route_enabled: bool,
     pub fast_route_min_score: f32,
+    pub task_graph_node_timeout: Duration,
 }
 
 pub struct Commander {
@@ -88,6 +89,7 @@ pub struct Commander {
     completed_support_workers: Vec<WorkerId>,
     collaboration_outputs: HashMap<WorkerId, RoleContribution>,
     active_task_graph: Option<TaskGraphRuntime>,
+    task_graph_node_timeout: Duration,
 }
 
 impl Commander {
@@ -122,12 +124,27 @@ impl Commander {
             completed_support_workers: Vec::new(),
             collaboration_outputs: HashMap::new(),
             active_task_graph: None,
+            task_graph_node_timeout: options.task_graph_node_timeout,
         }
     }
 
     pub async fn run(&mut self) {
         while self.state != CommanderState::Shutdown {
-            let Some(message) = self.receiver.recv().await else {
+            let message = if self.active_task_graph.is_some() {
+                let wait = self
+                    .active_task_graph_timeout_after()
+                    .unwrap_or(self.task_graph_node_timeout);
+                match tokio::time::timeout(wait, self.receiver.recv()).await {
+                    Ok(message) => message,
+                    Err(_) => {
+                        self.handle_task_graph_timeout().await;
+                        continue;
+                    }
+                }
+            } else {
+                self.receiver.recv().await
+            };
+            let Some(message) = message else {
                 break;
             };
             self.handle_message(message).await;
@@ -946,5 +963,332 @@ impl Commander {
         let support = normalized.into_iter().skip(1).collect::<Vec<_>>();
 
         self.role_router.route_for_runtime_roles(&primary, &support)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{
+        collections::HashMap,
+        sync::{Arc, Mutex},
+        time::Duration,
+    };
+
+    use async_trait::async_trait;
+    use serde_json::json;
+    use tokio::sync::mpsc;
+
+    use super::{Commander, CommanderChannels, CommanderOptions, CommanderSessionContext};
+    use crate::{
+        agent::commander::runner::output::next_message_id,
+        agent_session::{MemoryRecord, TaskGraphMemorySummary},
+        cognition::{Cognition, CognitionInput, CognitionResult},
+        core::{
+            messaging::MessageTx,
+            protocol::{
+                AgentId, Message, MessageContext, Payload, SessionEvent, SessionId, TaskGraphId,
+                TaskId, TaskSpec, WorkerId, WorkerProfile,
+            },
+        },
+        roles::{RoleCatalog, RoleRouter},
+    };
+
+    struct GraphCommanderCognition;
+
+    #[async_trait]
+    impl Cognition for GraphCommanderCognition {
+        async fn evaluate(&self, _input: CognitionInput) -> CognitionResult {
+            CognitionResult::Success(json!({
+                "decision": {
+                    "kind": "ExecuteTaskGraph",
+                    "graph": {
+                        "graph_id": "graph-stalled",
+                        "root_task": "stalled graph",
+                        "nodes": [
+                            {
+                                "id": "data",
+                                "role": "data",
+                                "worker_id": "worker.data",
+                                "title": "数据诊断",
+                                "objective": "输出数据诊断",
+                                "input_refs": [],
+                                "acceptance": ["输出数据诊断"],
+                                "max_attempts": 1
+                            }
+                        ]
+                    }
+                }
+            }))
+        }
+    }
+
+    struct DeadlockedGraphCommanderCognition;
+
+    #[async_trait]
+    impl Cognition for DeadlockedGraphCommanderCognition {
+        async fn evaluate(&self, _input: CognitionInput) -> CognitionResult {
+            CognitionResult::Success(json!({
+                "decision": {
+                    "kind": "ExecuteTaskGraph",
+                    "graph": {
+                        "graph_id": "graph-deadlocked",
+                        "root_task": "deadlocked graph",
+                        "nodes": [
+                            {
+                                "id": "ops",
+                                "role": "ops",
+                                "worker_id": "worker.ops",
+                                "title": "运营方案",
+                                "objective": "输出运营方案",
+                                "input_refs": ["missing-upstream"],
+                                "acceptance": ["输出运营方案"],
+                                "max_attempts": 1
+                            }
+                        ]
+                    }
+                }
+            }))
+        }
+    }
+
+    #[derive(Default)]
+    struct TestSessionContext {
+        worker_txs: HashMap<WorkerId, MessageTx>,
+        memories: Mutex<Vec<TaskGraphMemorySummary>>,
+    }
+
+    impl TestSessionContext {
+        fn with_worker(worker_id: WorkerId, tx: MessageTx) -> Self {
+            Self {
+                worker_txs: HashMap::from([(worker_id, tx)]),
+                memories: Mutex::new(Vec::new()),
+            }
+        }
+    }
+
+    impl CommanderSessionContext for TestSessionContext {
+        fn get_worker_tx(&self, worker_id: &WorkerId) -> Option<MessageTx> {
+            self.worker_txs.get(worker_id).cloned()
+        }
+
+        fn list_worker_profiles(&self) -> Vec<WorkerProfile> {
+            self.worker_txs
+                .keys()
+                .map(|worker_id| WorkerProfile {
+                    worker_id: worker_id.clone(),
+                    agent_id: worker_id.0.clone(),
+                    name: worker_id.0.clone(),
+                    description: "test worker".to_string(),
+                    capabilities: Vec::new(),
+                    constraints: Vec::new(),
+                    status: "ready".to_string(),
+                })
+                .collect()
+        }
+
+        fn memory_records(&self) -> Vec<MemoryRecord> {
+            Vec::new()
+        }
+
+        fn record_task_graph_memory(&self, summary: TaskGraphMemorySummary) {
+            self.memories
+                .lock()
+                .expect("memory lock should be available")
+                .push(summary);
+        }
+    }
+
+    #[tokio::test]
+    async fn commander_finishes_task_graph_when_worker_never_reports() {
+        let (commander_tx, commander_rx) = mpsc::unbounded_channel();
+        let (_worker_tx, _worker_rx) = mpsc::unbounded_channel();
+        let (response_tx, mut response_rx) = mpsc::unbounded_channel();
+        let (event_tx, mut event_rx) = mpsc::channel(32);
+        let session_context = Arc::new(TestSessionContext::with_worker(
+            WorkerId("worker.data".to_string()),
+            _worker_tx,
+        ));
+        let mut commander = Commander::new(
+            AgentId("commander".to_string()),
+            AgentId("external-host".to_string()),
+            Box::new(GraphCommanderCognition),
+            CommanderChannels {
+                receiver: commander_rx,
+                sender: response_tx,
+                event_tx: Some(event_tx),
+            },
+            session_context,
+            RoleRouter::new(RoleCatalog::builtin()),
+            CommanderOptions {
+                fast_route_enabled: false,
+                fast_route_min_score: 2.0,
+                task_graph_node_timeout: Duration::from_millis(30),
+            },
+        );
+        let commander_loop = tokio::spawn(async move {
+            commander.run().await;
+        });
+
+        let mut context = MessageContext {
+            session_id: Some(SessionId("session-stalled".to_string())),
+            ..MessageContext::default()
+        };
+        context
+            .metadata
+            .insert("strategy.response_mode".to_string(), "learning".to_string());
+        commander_tx
+            .send(Message::new_with_context(
+                next_message_id(),
+                context,
+                AgentId("external-host".to_string()),
+                AgentId("commander".to_string()),
+                Payload::HumanCommand {
+                    task: TaskSpec {
+                        id: TaskId("task-stalled".to_string()),
+                        description: "unmatched coordinator stall smoke".to_string(),
+                    },
+                },
+            ))
+            .expect("commander should accept task");
+
+        let response = tokio::time::timeout(Duration::from_secs(1), response_rx.recv())
+            .await
+            .expect("commander should synthesize stalled graph before test timeout")
+            .expect("response channel should remain open");
+        let Payload::Text { content } = response.payload else {
+            panic!("expected text response from stalled graph");
+        };
+        assert!(content.contains("没有形成完整答案"), "{content}");
+        assert!(content.contains("协作步骤没有全部完成"), "{content}");
+        assert!(!content.contains("failure_kind"), "{content}");
+        assert!(!content.contains("worker."), "{content}");
+
+        let mut events = Vec::new();
+        while let Ok(Some(event)) =
+            tokio::time::timeout(Duration::from_millis(50), event_rx.recv()).await
+        {
+            events.push(event);
+        }
+        assert!(events.iter().any(|event| {
+            matches!(
+                event,
+                SessionEvent::TaskNodeFailed { reason, .. }
+                    if reason == "协作步骤执行超时"
+            )
+        }));
+        assert!(events.iter().any(|event| {
+            matches!(
+                event,
+                SessionEvent::TaskGraphFinished {
+                    graph_id,
+                    process,
+                    ..
+                } if graph_id == &TaskGraphId("graph-stalled".to_string())
+                    && process.incomplete.iter().any(|gap| {
+                        gap.state == "failed" && gap.reason == "协作步骤执行超时"
+                    })
+            )
+        }));
+
+        drop(commander_tx);
+        tokio::time::timeout(Duration::from_secs(1), commander_loop)
+            .await
+            .expect("commander loop should stop")
+            .expect("commander loop should not panic");
+    }
+
+    #[tokio::test]
+    async fn commander_finishes_task_graph_with_no_schedulable_nodes() {
+        let (commander_tx, commander_rx) = mpsc::unbounded_channel();
+        let (response_tx, mut response_rx) = mpsc::unbounded_channel();
+        let (event_tx, mut event_rx) = mpsc::channel(32);
+        let mut commander = Commander::new(
+            AgentId("commander".to_string()),
+            AgentId("external-host".to_string()),
+            Box::new(DeadlockedGraphCommanderCognition),
+            CommanderChannels {
+                receiver: commander_rx,
+                sender: response_tx,
+                event_tx: Some(event_tx),
+            },
+            Arc::new(TestSessionContext::default()),
+            RoleRouter::new(RoleCatalog::builtin()),
+            CommanderOptions {
+                fast_route_enabled: false,
+                fast_route_min_score: 2.0,
+                task_graph_node_timeout: Duration::from_millis(30),
+            },
+        );
+        let commander_loop = tokio::spawn(async move {
+            commander.run().await;
+        });
+
+        let mut context = MessageContext {
+            session_id: Some(SessionId("session-deadlocked".to_string())),
+            ..MessageContext::default()
+        };
+        context
+            .metadata
+            .insert("strategy.response_mode".to_string(), "learning".to_string());
+        commander_tx
+            .send(Message::new_with_context(
+                next_message_id(),
+                context,
+                AgentId("external-host".to_string()),
+                AgentId("commander".to_string()),
+                Payload::HumanCommand {
+                    task: TaskSpec {
+                        id: TaskId("task-deadlocked".to_string()),
+                        description: "deadlocked graph smoke".to_string(),
+                    },
+                },
+            ))
+            .expect("commander should accept task");
+
+        let response = tokio::time::timeout(Duration::from_secs(1), response_rx.recv())
+            .await
+            .expect("commander should synthesize deadlocked graph before test timeout")
+            .expect("response channel should remain open");
+        let Payload::Text { content } = response.payload else {
+            panic!("expected text response from deadlocked graph");
+        };
+        assert!(content.contains("没有形成完整答案"), "{content}");
+        assert!(content.contains("协作步骤没有全部完成"), "{content}");
+        assert!(!content.contains("task_graph_stalled"), "{content}");
+        assert!(!content.contains("worker."), "{content}");
+
+        let mut events = Vec::new();
+        while let Ok(Some(event)) =
+            tokio::time::timeout(Duration::from_millis(50), event_rx.recv()).await
+        {
+            events.push(event);
+        }
+        assert!(events.iter().any(|event| {
+            matches!(
+                event,
+                SessionEvent::TaskNodeFailed { reason, .. }
+                    if reason == "协作流程没有找到可继续执行的步骤"
+            )
+        }));
+        assert!(events.iter().any(|event| {
+            matches!(
+                event,
+                SessionEvent::TaskGraphFinished {
+                    graph_id,
+                    process,
+                    ..
+                } if graph_id == &TaskGraphId("graph-deadlocked".to_string())
+                    && process.incomplete.iter().any(|gap| {
+                        gap.state == "failed"
+                            && gap.reason == "协作流程没有找到可继续执行的步骤"
+                    })
+            )
+        }));
+
+        drop(commander_tx);
+        tokio::time::timeout(Duration::from_secs(1), commander_loop)
+            .await
+            .expect("commander loop should stop")
+            .expect("commander loop should not panic");
     }
 }

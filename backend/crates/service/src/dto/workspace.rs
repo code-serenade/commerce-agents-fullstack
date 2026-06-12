@@ -305,6 +305,12 @@ pub struct GetWorkspaceContextPackRequest {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct EnsureAgentWorkspaceRequest {
+    pub user_id: String,
+    pub requested_workspace_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct ListExecutionQueueRequest {
     pub user_id: String,
     pub workspace_id: Option<String>,

@@ -192,9 +192,9 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
         ? t("agentChat.sidebar.collapseHistory")
         : t("agentChat.sidebar.expandHistory"),
       onOpenChange: setHistoryOpen,
+      leadingItems: [newConversationItem],
       items: recentConversations.length
         ? [
-            newConversationItem,
             ...recentConversations.map((conversation) => ({
               key: conversation.id,
               icon: <MessageSquareText />,
@@ -239,7 +239,6 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
                 : []),
           ]
         : [
-            newConversationItem,
             {
               key: "empty-recents",
               icon: <MessageSquareText />,

@@ -54,7 +54,7 @@ const httpClient = {
       const json = await safeJson(res)
 
       if (!res.ok) {
-        throw new HttpError("HTTP error", {
+        throw new HttpError(readHttpErrorMessage(json) ?? "HTTP error", {
           data: json,
           status: res.status,
         })
@@ -148,6 +148,14 @@ export default httpClient
 
 function isAbortError(error: unknown) {
   return error instanceof DOMException && error.name === "AbortError"
+}
+
+function readHttpErrorMessage(data: unknown): string | null {
+  if (!data || typeof data !== "object") return null
+  const message = (data as { message?: unknown }).message
+  return typeof message === "string" && message.trim().length > 0
+    ? message
+    : null
 }
 
 function processBuffer(

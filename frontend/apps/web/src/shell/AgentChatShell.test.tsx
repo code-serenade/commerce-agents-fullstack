@@ -89,9 +89,22 @@ describe("AgentChatShell", () => {
       )
     ).toHaveLength(0)
 
-    const newChatText = screen.getAllByText(
+    const newChatButton = screen
+      .getAllByRole("button", {
+        name: i18n.t("agentChat.sidebar.newChat"),
+      })
+      .find((button) =>
+        Boolean(
+          button.compareDocumentPosition(historyToggle) &
+            Node.DOCUMENT_POSITION_FOLLOWING
+        )
+      )
+    expect(newChatButton).toBeDefined()
+    expect(newChatButton?.getAttribute("data-size")).toBe("sm")
+
+    const newChatText = within(newChatButton as HTMLButtonElement).getByText(
       i18n.t("agentChat.sidebar.newChat")
-    )[0]
+    )
     await user.click(newChatText.closest("button") as HTMLButtonElement)
     expect(chatState.startNewConversation).toHaveBeenCalledTimes(1)
 

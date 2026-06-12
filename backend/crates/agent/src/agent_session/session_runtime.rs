@@ -93,6 +93,7 @@ pub struct SessionRuntime {
     commander_loop: tokio::task::JoinHandle<()>,
     worker_loops: Vec<tokio::task::JoinHandle<()>>,
     response_timeout: Duration,
+    worker_cognition_timeout: Duration,
     commander_fast_route: bool,
     event_tx: Option<SessionEventTx>,
 }
@@ -174,6 +175,7 @@ impl SessionRuntime {
             CommanderOptions {
                 fast_route_enabled: input.config.commander_fast_route,
                 fast_route_min_score: input.config.commander_fast_route_min_score,
+                task_graph_node_timeout: input.config.worker_cognition_timeout,
             },
         );
 
@@ -193,6 +195,7 @@ impl SessionRuntime {
             commander_loop,
             worker_loops,
             response_timeout: input.config.response_timeout,
+            worker_cognition_timeout: input.config.worker_cognition_timeout,
             commander_fast_route: input.config.commander_fast_route,
             event_tx: input.event_tx,
         })
@@ -329,7 +332,14 @@ impl SessionRuntime {
         let Some(mut response_rx) = self.response_rx.take() else {
             return Err(SettingsError::invalid("session response receiver already used").into());
         };
-        let timeout = self.response_timeout;
+        let timeout = self.effective_response_timeout();
+        tracing::debug!(
+            session_id = %self.session_id.0,
+            timeout_sec = timeout.as_secs_f64(),
+            worker_cognition_timeout_sec = self.worker_cognition_timeout.as_secs_f64(),
+            response_timeout_sec = self.response_timeout.as_secs_f64(),
+            "agent session waiting for final response"
+        );
         let received = match tokio::time::timeout(timeout, response_rx.recv()).await {
             Ok(Some(message)) => message,
             Ok(None) => {
@@ -337,8 +347,20 @@ impl SessionRuntime {
                 return Err(SettingsError::invalid(reason).into());
             }
             Err(_) => {
-                let reason = "session response timed out".to_string();
-                return Err(SettingsError::invalid(reason).into());
+                tracing::warn!(
+                    session_id = %self.session_id.0,
+                    timeout_sec = timeout.as_secs_f64(),
+                    "agent session final response timed out; returning user-facing fallback"
+                );
+                Message::new_with_context(
+                    MessageId(next_id("msg")),
+                    self.context.clone(),
+                    AgentId("session-runtime".to_string()),
+                    AgentId("external-host".to_string()),
+                    Payload::Text {
+                        content: session_response_timeout_message(timeout),
+                    },
+                )
             }
         };
 
@@ -539,6 +561,10 @@ impl SessionRuntime {
         }
         let task_for_worker = self.task_description_with_conversation_history();
         Some(chat_graph_with_task_context(graph, &task_for_worker))
+    }
+
+    fn effective_response_timeout(&self) -> Duration {
+        effective_response_timeout(self.response_timeout, self.worker_cognition_timeout)
     }
 
     fn task_description_with_conversation_history(&self) -> String {
@@ -1396,9 +1422,63 @@ fn sanitize_session_final_output(output: &str) -> String {
     sanitize_final_user_facing_text(output).unwrap_or_else(no_user_facing_content_message)
 }
 
+fn normalize_timeout(timeout: Duration) -> Duration {
+    if timeout.is_zero() {
+        Duration::from_millis(1)
+    } else {
+        timeout
+    }
+}
+
+fn format_duration(duration: Duration) -> String {
+    if duration.as_secs() > 0 {
+        format!("{}s", duration.as_secs())
+    } else {
+        format!("{}ms", duration.as_millis())
+    }
+}
+
+fn session_response_timeout_message(timeout: Duration) -> String {
+    [
+        "## 当前状态".to_string(),
+        String::new(),
+        format!(
+            "当前 AI 协作在 {} 内没有返回完整结果，本轮先给出稳定状态提示。",
+            format_duration(timeout)
+        ),
+        String::new(),
+        "## 对本轮回答的影响".to_string(),
+        String::new(),
+        "- 已收到你的问题和本轮选择的资料。".to_string(),
+        "- 本轮没有形成可验证的完整业务结论，不能把它当作正式方案。".to_string(),
+        "- 这不代表商品、活动或资料本身不可用，只代表本轮协作没有按时收敛。".to_string(),
+        String::new(),
+        "## 下一步".to_string(),
+        String::new(),
+        "- 可以稍后重试同一个问题。".to_string(),
+        "- 如果问题很急，可以先切到快速回答，或减少协作角色后继续问。".to_string(),
+    ]
+    .join("\n")
+}
+
+fn effective_response_timeout(
+    response_timeout: Duration,
+    worker_cognition_timeout: Duration,
+) -> Duration {
+    let worker_timeout = normalize_timeout(worker_cognition_timeout);
+    let guarded_timeout = worker_timeout
+        .saturating_mul(3)
+        .max(Duration::from_secs(30));
+    response_timeout.min(guarded_timeout)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::sanitize_session_final_output;
+    use std::time::Duration;
+
+    use super::{
+        effective_response_timeout, sanitize_session_final_output, session_response_timeout_message,
+    };
 
     #[test]
     fn session_final_output_restores_readable_answer_layout() {
@@ -1418,5 +1498,34 @@ mod tests {
         assert!(!output.contains("商品锚点"));
         assert!(!output.contains("置信度"));
         assert!(!lower.contains("confidence"));
+    }
+
+    #[test]
+    fn effective_response_timeout_stays_ahead_of_client_abort_window() {
+        assert_eq!(
+            effective_response_timeout(Duration::from_secs(300), Duration::from_secs(45)),
+            Duration::from_secs(135)
+        );
+        assert_eq!(
+            effective_response_timeout(Duration::from_secs(10), Duration::from_secs(45)),
+            Duration::from_secs(10)
+        );
+        assert_eq!(
+            effective_response_timeout(Duration::from_secs(300), Duration::ZERO),
+            Duration::from_secs(30)
+        );
+    }
+
+    #[test]
+    fn session_response_timeout_message_is_user_facing() {
+        let output = session_response_timeout_message(Duration::from_secs(135));
+        let lower = output.to_ascii_lowercase();
+
+        assert!(output.contains("当前 AI 协作在 135s 内没有返回完整结果"));
+        assert!(output.contains("本轮没有形成可验证的完整业务结论"));
+        assert!(output.contains("可以先切到快速回答"));
+        assert!(!lower.contains("session response timed out"));
+        assert!(!lower.contains("worker."));
+        assert!(!lower.contains("failure_kind"));
     }
 }

@@ -23,6 +23,7 @@ import { useAgentChatSend } from "./view-model/use-agent-chat-send"
 import { useAgentChatSourceContext } from "./view-model/use-agent-chat-source-context"
 import { useAgentChatSourceActions } from "./view-model/use-agent-chat-source-actions"
 import { useAgentChatSourceLibrary } from "./view-model/use-agent-chat-source-library"
+import { useAgentChatStrategyRuntime } from "./view-model/use-agent-chat-strategy-runtime"
 
 export function useAgentChatPage() {
   const { t } = useTranslation()
@@ -61,11 +62,7 @@ export function useAgentChatPage() {
   const { isLoadingSourceLibrary, sourceLibrary, sourceLibraryError } = useAgentChatSourceLibrary({ availableSources: sourceContext.availableSources, enabled: isLoggedIn })
   const playbookContext = useAgentChatPlaybooks({ enabled: isLoggedIn })
   const runtimeContext = useAgentRuntimeOptions({ enabled: isLoggedIn })
-  const feedback = useAgentRunFeedback({
-    isLoggedIn: Boolean(user),
-    isStreaming,
-    runtimeEvents,
-  })
+  const feedback = useAgentRunFeedback({ isLoggedIn: Boolean(user), isStreaming, runtimeEvents })
   const { actionState } = useAgentChatActionState({
     abortRef,
     clearSelectedCampaigns: campaignContext.clearSelectedCampaigns,
@@ -109,13 +106,18 @@ export function useAgentChatPage() {
   const canSend = input.trim().length > 0 && !isStreaming
   const selectedStrategy = useMemo(() => getAgentChatStrategy(strategyId), [strategyId])
   const selectedRuntime = useMemo(() => runtimeSelectionForStrategy(runtimeContext.runtimeSelection), [runtimeContext.runtimeSelection])
+  const setStrategyAndRuntime = useAgentChatStrategyRuntime({
+    runtimeSelection: runtimeContext.runtimeSelection,
+    setRoutingMode: runtimeContext.setRoutingMode,
+    setStrategyId,
+  })
   const commands = useAgentChatPageCommands({
     actionState,
     conversationId,
     isLoggedIn,
     isStreaming,
     setInput,
-    setStrategyId,
+    setStrategyId: setStrategyAndRuntime,
   })
   const uploadAttachments = useAgentChatAttachmentUploads({
     conversationId,
@@ -200,7 +202,7 @@ export function useAgentChatPage() {
     setRuntimeLearningLevel: runtimeContext.setLearningLevel,
     setRuntimePrimaryRole: runtimeContext.setPrimaryRole,
     setRuntimeRoutingMode: runtimeContext.setRoutingMode,
-    setStrategyId,
+    setStrategyId: setStrategyAndRuntime,
     strategyId,
     toggleProductContext: productContext.toggleProductContext,
     toggleCampaignContext: campaignContext.toggleCampaignContext,

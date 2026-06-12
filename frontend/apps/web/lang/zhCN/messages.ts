@@ -1311,6 +1311,7 @@ const messages = {
           readable: "可读",
           unsupported: "不支持",
           uploaded: "已上传",
+          visionReady: "可读图片",
         },
         sourceStatus: {
           failed: "失败",

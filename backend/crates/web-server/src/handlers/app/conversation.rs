@@ -477,10 +477,17 @@ pub async fn preview_agent_context(
         None
     };
     let workspace_api = WorkspaceApi::new(get_app_ctx());
+    let workspace = workspace_api
+        .ensure_agent_workspace_for_user(service::dto::workspace::EnsureAgentWorkspaceRequest {
+            user_id: user_id.clone(),
+            requested_workspace_id: req.workspace_id.clone(),
+        })
+        .await
+        .map_err(from_biz_error)?;
     let workspace_context = workspace_api
         .context_summary(service::dto::workspace::GetWorkspaceContextSummaryRequest {
             user_id: user_id.clone(),
-            workspace_id: req.workspace_id.clone().unwrap_or_default(),
+            workspace_id: workspace.id.clone(),
             conversation_id: req.conversation_id.clone(),
             product_id: req.product_id.clone(),
             include_workspace_product_context: true,
@@ -493,7 +500,7 @@ pub async fn preview_agent_context(
     let workspace_pack = workspace_api
         .context_pack(service::dto::workspace::GetWorkspaceContextPackRequest {
             user_id: user_id.clone(),
-            workspace_id: workspace_context.workspace_id.clone(),
+            workspace_id: workspace.id.clone(),
             conversation_id: workspace_context.conversation_id.clone(),
             product_id: workspace_context.product_id.clone(),
             include_workspace_product_context: true,

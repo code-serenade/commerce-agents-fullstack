@@ -1373,6 +1373,18 @@ impl WorkspaceApi {
         })
     }
 
+    pub async fn ensure_agent_workspace_for_user(
+        &self,
+        req: EnsureAgentWorkspaceRequest,
+    ) -> BizResult<WorkspaceResponse> {
+        let user_id = parse_user_id(&req.user_id)?;
+        self.ensure_app_user_enabled(user_id).await?;
+        let (workspace, _) = self
+            .ensure_agent_workspace(user_id, req.requested_workspace_id)
+            .await?;
+        Ok(Self::map_workspace(workspace))
+    }
+
     async fn context_pack_conversation_file_candidate(
         &self,
         item: ConversationFile,

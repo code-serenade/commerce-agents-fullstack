@@ -1361,6 +1361,7 @@ const messages = {
           readable: "Readable",
           unsupported: "Unsupported",
           uploaded: "Uploaded",
+          visionReady: "Vision ready",
         },
         sourceStatus: {
           failed: "Failed",

@@ -83,6 +83,7 @@ impl AgentSession {
         event_tx: Option<tokio::sync::mpsc::Sender<crate::core::protocol::SessionEvent>>,
     ) -> Result<SessionResult> {
         let event_tx_for_persist = event_tx.clone();
+        let event_tx_for_cancel = event_tx.clone();
         let input = input.into();
         let commander_cognition = (self.config.commander_cognition)()?;
         let selected_roles = select_roles_for_task(
@@ -121,7 +122,18 @@ impl AgentSession {
             event_tx,
         })?;
 
-        let result = runtime.run_until_complete().await;
+        let result = if let Some(cancel_tx) = event_tx_for_cancel {
+            tokio::select! {
+                result = runtime.run_until_complete() => result,
+                _ = cancel_tx.closed() => {
+                    Err(crate::agent_error::SettingsError::invalid(
+                        "session stream disconnected before completion",
+                    ).into())
+                }
+            }
+        } else {
+            runtime.run_until_complete().await
+        };
         let blackboard = runtime.session_context().blackboard().snapshot();
         runtime.shutdown().await;
         let memory_outcome = self.persist_if_ok(&result, blackboard);

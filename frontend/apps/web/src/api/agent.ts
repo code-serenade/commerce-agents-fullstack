@@ -1155,7 +1155,7 @@ export async function streamAgentSessionApi(
           settled = true
           return
         }
-        if (result.uiCompleted) {
+        if (result.uiCompleted && (receivedDelta || fallbackOutput)) {
           completeUi()
         }
       }
@@ -1173,7 +1173,7 @@ export async function streamAgentSessionApi(
         settled = true
         return
       }
-      if (result.uiCompleted) {
+      if (result.uiCompleted && (receivedDelta || fallbackOutput)) {
         completeUi()
       }
     }
@@ -1342,13 +1342,14 @@ function handleSseMessage(
     const event = readAgentRuntimeEvent(message.data)
     if (event) handlers.onAgentEvent?.(event)
     const fallbackOutput = readJsonField(message.data, "content")
+    const hasFallbackOutput = Boolean(fallbackOutput)
     return {
-      activity: Boolean(event) || Boolean(fallbackOutput),
+      activity: Boolean(event) || hasFallbackOutput,
       completed: false,
       fallbackOutput,
       finished: false,
       receivedDelta: false,
-      uiCompleted: false,
+      uiCompleted: hasFallbackOutput,
     }
   }
 

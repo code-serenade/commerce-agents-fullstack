@@ -64,6 +64,7 @@ use crate::{
 };
 
 const MAX_AUTO_VISION_IMAGES: usize = 4;
+const AGENT_STREAM_STARTUP_TIMEOUT: Duration = Duration::from_secs(60);
 
 fn should_include_implicit_conversation_files(
     input: &str,
@@ -707,12 +708,49 @@ pub async fn stream_agent_session(
             "rag_context_loaded",
             rag_context_loaded_public_payload(&retrieval_context),
         ));
-        while let Some(event) = events.recv().await {
+        let mut agent_started = false;
+        loop {
+            let event = match tokio::time::timeout(AGENT_STREAM_STARTUP_TIMEOUT, events.recv()).await {
+                Ok(Some(event)) => event,
+                Ok(None) => break,
+                Err(_) if !agent_started => {
+                    let reason = agent_stream_startup_timeout_message(AGENT_STREAM_STARTUP_TIMEOUT);
+                    if !link_state.completed {
+                        let response = workspace_api
+                            .fail_agent_run(FailAgentWorkspaceRunRequest {
+                                user_id: link_state.user_id.clone(),
+                                workspace_id: link_state.workspace_id.clone(),
+                                run_id: link_state.run_id.clone(),
+                                reason: "agent stream startup timed out".to_string(),
+                            })
+                            .await;
+                        match response {
+                            Ok(value) => {
+                                link_state.completed = true;
+                                yield Ok(typed_camel_json_event(
+                                    "workspace_run_failed",
+                                    workspace_run_public_payload(&value),
+                                ));
+                            }
+                            Err(err) => yield Ok(persistence_error_event("fail_agent_run", err)),
+                        }
+                    }
+                    yield Ok(json_event("output", json!({ "content": reason })));
+                    yield Ok(json_event("done", json!({})));
+                    return;
+                }
+                Err(_) => {
+                    continue;
+                }
+            };
             let event_name = event.event_name();
             let event_value = agent_session_event_public_payload(&event);
             yield Ok(json_event(event_name, event_value));
 
             match &event {
+                SessionEvent::Started { .. } => {
+                    agent_started = true;
+                }
                 SessionEvent::TaskGraphPlanned { graph, .. } => {
                     let response = workspace_api
                         .link_agent_tasks(LinkAgentWorkspaceTasksRequest {
@@ -1267,6 +1305,27 @@ struct ApprovalSkillResultRef<'a> {
 
 fn json_event(event: &'static str, value: serde_json::Value) -> Event {
     Event::default().event(event).data(value.to_string())
+}
+
+fn agent_stream_startup_timeout_message(timeout: Duration) -> String {
+    let seconds = timeout.as_secs().max(1);
+    [
+        "## 当前状态".to_string(),
+        String::new(),
+        format!("当前 AI 会话在 {seconds}s 内没有成功进入执行阶段，本轮先结束等待。"),
+        String::new(),
+        "## 对本轮回答的影响".to_string(),
+        String::new(),
+        "- 已收到你的问题和本轮选择的资料。".to_string(),
+        "- 本轮没有开始可靠的智能体协作，所以不能把它当作业务判断结果。".to_string(),
+        "- 这通常是模型服务繁忙或上一个会话仍在排队导致的运行问题。".to_string(),
+        String::new(),
+        "## 下一步".to_string(),
+        String::new(),
+        "- 可以稍后重试同一个问题。".to_string(),
+        "- 如果问题很急，可以先减少资料或协作角色，或切到快速回答继续问。".to_string(),
+    ]
+    .join("\n")
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -5116,6 +5175,19 @@ mod tests {
         assert!(!serialized.contains("sourcesJson"));
         assert!(value.get("summary").is_none());
         assert!(value.get("sourcesJson").is_none());
+    }
+
+    #[test]
+    fn agent_stream_startup_timeout_message_is_user_facing() {
+        let message = agent_stream_startup_timeout_message(Duration::from_secs(60));
+        let lower = message.to_ascii_lowercase();
+
+        assert!(message.contains("当前 AI 会话在 60s 内没有成功进入执行阶段"));
+        assert!(message.contains("本轮没有开始可靠的智能体协作"));
+        assert!(message.contains("可以稍后重试同一个问题"));
+        assert!(!lower.contains("agent stream startup timed out"));
+        assert!(!lower.contains("workspace_run"));
+        assert!(!lower.contains("session_id"));
     }
 
     #[test]

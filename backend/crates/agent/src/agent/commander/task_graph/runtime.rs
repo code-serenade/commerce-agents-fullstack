@@ -1,4 +1,7 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    time::{Duration, Instant},
+};
 
 use super::{chat, planner};
 use crate::{
@@ -36,6 +39,7 @@ pub struct TaskGraphRuntime {
     pub reports: HashMap<TaskNodeId, WorkerReport>,
     pub rework_instructions: HashMap<TaskNodeId, String>,
     pub evaluations: Vec<Evaluation>,
+    running_since: HashMap<TaskNodeId, Instant>,
     response_mode: Option<String>,
     learning_depth: Option<String>,
 }
@@ -55,6 +59,7 @@ impl TaskGraphRuntime {
             reports: HashMap::new(),
             rework_instructions: HashMap::new(),
             evaluations: Vec::new(),
+            running_since: HashMap::new(),
             response_mode: None,
             learning_depth: None,
         }
@@ -143,9 +148,12 @@ impl TaskGraphRuntime {
             .insert(assignment.node_id.clone(), assignment.attempt);
         self.states
             .insert(assignment.node_id.clone(), TaskNodeRuntimeState::Running);
+        self.running_since
+            .insert(assignment.node_id.clone(), Instant::now());
     }
 
     pub fn apply_report(&mut self, report: WorkerReport) -> EvaluationOutcome {
+        self.running_since.remove(&report.node_id);
         let node = self
             .graph
             .nodes
@@ -192,6 +200,80 @@ impl TaskGraphRuntime {
             .insert(node.id.clone(), TaskNodeRuntimeState::Failed(reason));
         self.skip_blocked_descendants();
         EvaluationOutcome::Failed(evaluation)
+    }
+
+    pub fn next_running_timeout_after(&self, timeout: Duration) -> Option<Duration> {
+        let timeout = normalize_timeout(timeout);
+        let now = Instant::now();
+
+        self.graph
+            .nodes
+            .iter()
+            .filter(|node| {
+                matches!(
+                    self.states.get(&node.id),
+                    Some(TaskNodeRuntimeState::Running)
+                )
+            })
+            .map(|node| {
+                self.running_since
+                    .get(&node.id)
+                    .map(|started| timeout.saturating_sub(now.saturating_duration_since(*started)))
+                    .unwrap_or(Duration::ZERO)
+            })
+            .min()
+    }
+
+    pub fn stalled_running_assignments(&self, timeout: Duration) -> Vec<WorkerAssignment> {
+        let timeout = normalize_timeout(timeout);
+        let now = Instant::now();
+
+        self.graph
+            .nodes
+            .iter()
+            .filter(|node| {
+                matches!(
+                    self.states.get(&node.id),
+                    Some(TaskNodeRuntimeState::Running)
+                )
+            })
+            .filter(|node| {
+                self.running_since
+                    .get(&node.id)
+                    .is_none_or(|started| now.saturating_duration_since(*started) >= timeout)
+            })
+            .map(|node| {
+                let mut assignment = self.build_assignment(node);
+                assignment.attempt = self.attempts.get(&node.id).copied().unwrap_or(1);
+                assignment
+            })
+            .collect()
+    }
+
+    pub fn has_running_nodes(&self) -> bool {
+        self.states
+            .values()
+            .any(|state| matches!(state, TaskNodeRuntimeState::Running))
+    }
+
+    pub fn first_pending_assignment(&self) -> Option<WorkerAssignment> {
+        self.graph
+            .nodes
+            .iter()
+            .find(|node| {
+                matches!(
+                    self.states.get(&node.id),
+                    Some(TaskNodeRuntimeState::Pending)
+                )
+            })
+            .map(|node| self.build_assignment(node))
+    }
+
+    pub fn exhaust_attempts(&mut self, node_id: &TaskNodeId, attempt: u8) {
+        if let Some(node) = self.graph.nodes.iter().find(|node| &node.id == node_id) {
+            self.attempts
+                .insert(node_id.clone(), node.max_attempts.max(attempt));
+        }
     }
 
     pub fn is_finished(&self) -> bool {
@@ -685,6 +767,14 @@ impl TaskGraphRuntime {
     }
 }
 
+fn normalize_timeout(timeout: Duration) -> Duration {
+    if timeout.is_zero() {
+        Duration::from_millis(1)
+    } else {
+        timeout
+    }
+}
+
 fn push_unique_text(items: &mut Vec<String>, text: String) {
     let text = text.trim();
     if text.is_empty() || items.iter().any(|existing| existing == text) {
@@ -966,6 +1056,11 @@ fn evaluate_report(
         || report_has_evidence_marker(report, "failure_kind:worker_unavailable")
     {
         reasons.push("worker unavailable: no registered executor for selected role".to_string());
+    }
+    if report_has_failure_diagnostic(report, "task_graph_stalled")
+        || report_has_evidence_marker(report, "failure_kind:task_graph_stalled")
+    {
+        reasons.push("task graph stalled: no schedulable node".to_string());
     }
     if report.content.trim().is_empty()
         && report
@@ -1422,6 +1517,11 @@ pub(crate) fn user_facing_gap_reason(reason: &str) -> String {
         || reason.contains("没有注册可用")
     {
         "协作步骤没有成功启动".to_string()
+    } else if lower.contains("task_graph_stalled")
+        || lower.contains("task graph stalled")
+        || lower.contains("no schedulable node")
+    {
+        "协作流程没有找到可继续执行的步骤".to_string()
     } else if lower.contains("worker reported failed status") {
         "协作步骤没有成功完成".to_string()
     } else if lower.contains("llm access denied") || lower.contains("llm_access_denied") {

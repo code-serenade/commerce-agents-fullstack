@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use tracing::{debug, warn};
 
 use super::{Commander, CommanderPhase, CommanderState, next_message_id, primary_route_score};
@@ -21,6 +23,66 @@ use crate::{
 };
 
 impl Commander {
+    pub(super) fn active_task_graph_timeout_after(&self) -> Option<Duration> {
+        self.active_task_graph
+            .as_ref()
+            .and_then(|runtime| runtime.next_running_timeout_after(self.task_graph_node_timeout))
+    }
+
+    pub(super) async fn handle_task_graph_timeout(&mut self) {
+        let Some(mut runtime) = self.active_task_graph.take() else {
+            return;
+        };
+        let stalled_assignments = runtime.stalled_running_assignments(self.task_graph_node_timeout);
+        if stalled_assignments.is_empty() && runtime.has_running_nodes() {
+            self.active_task_graph = Some(runtime);
+            return;
+        }
+        if stalled_assignments.is_empty() {
+            self.handle_task_graph_stalled(runtime).await;
+            return;
+        }
+
+        warn!(
+            graph_id = %runtime.graph.graph_id.0,
+            stalled_nodes = ?stalled_assignments
+                .iter()
+                .map(|assignment| assignment.node_id.0.as_str())
+                .collect::<Vec<_>>(),
+            timeout_sec = self.task_graph_node_timeout.as_secs_f64(),
+            "commander task graph node wait timed out"
+        );
+
+        let context = self.current_context.clone();
+        for assignment in stalled_assignments {
+            runtime.exhaust_attempts(&assignment.node_id, assignment.attempt);
+            let report = worker_stalled_report(&assignment, self.task_graph_node_timeout);
+            self.emit_and_apply_task_graph_report(&mut runtime, report, &context);
+        }
+
+        self.schedule_task_graph_runtime(runtime).await;
+    }
+
+    async fn handle_task_graph_stalled(&mut self, mut runtime: TaskGraphRuntime) {
+        let Some(assignment) = runtime.first_pending_assignment() else {
+            self.active_task_graph = Some(runtime);
+            return;
+        };
+
+        warn!(
+            graph_id = %runtime.graph.graph_id.0,
+            node_id = %assignment.node_id.0,
+            timeout_sec = self.task_graph_node_timeout.as_secs_f64(),
+            "commander task graph had no running or schedulable node"
+        );
+
+        runtime.exhaust_attempts(&assignment.node_id, assignment.attempt);
+        let context = self.current_context.clone();
+        let report = task_graph_stalled_report(&assignment);
+        self.emit_and_apply_task_graph_report(&mut runtime, report, &context);
+        self.schedule_task_graph_runtime(runtime).await;
+    }
+
     pub(super) fn dispatch_assignment_to_worker(&self, assignment: WorkerAssignment) -> bool {
         let worker_profiles = self.session_context.list_worker_profiles();
         let Some(worker_tx) = self.session_context.get_worker_tx(&assignment.worker_id) else {
@@ -523,6 +585,129 @@ fn worker_unavailable_report(assignment: &WorkerAssignment) -> WorkerReport {
         open_questions: vec![open_question],
         diagnostics: vec![worker_unavailable_diagnostic(assignment, failure_kind)],
         status: WorkerReportStatus::Failed,
+    }
+}
+
+fn worker_stalled_report(assignment: &WorkerAssignment, timeout: Duration) -> WorkerReport {
+    let failure_kind = "timeout";
+    let timeout_label = format_duration(timeout);
+    let summary = format!(
+        "本轮有一个协作步骤在 {timeout_label} 内没有返回结果，不能把本轮结果当成完整协作结论。"
+    );
+    let risk = "部分协作步骤没有按时完成，最终回答只能代表已完成步骤的阶段性结果。".to_string();
+    let open_question =
+        "请稍后重试；如果问题很急，可以先切到普通问答或只指定一个角色继续问。".to_string();
+    WorkerReport {
+        graph_id: assignment.graph_id.clone(),
+        node_id: assignment.node_id.clone(),
+        task_id: assignment.task_id.clone(),
+        worker_id: assignment.worker_id.clone(),
+        role: assignment.role.clone(),
+        content: summary.clone(),
+        role_output: Some(RoleWorkOutput {
+            summary,
+            findings: Vec::new(),
+            recommendations: Vec::new(),
+            evidence: vec!["failure_kind:timeout".to_string()],
+            risks: vec![risk.clone()],
+            open_questions: vec![open_question.clone()],
+        }),
+        evidence: vec![format!("failure_kind:{failure_kind}")],
+        risks: vec![risk],
+        open_questions: vec![open_question],
+        diagnostics: vec![worker_stalled_diagnostic(
+            assignment,
+            failure_kind,
+            &timeout_label,
+        )],
+        status: WorkerReportStatus::TimedOut,
+    }
+}
+
+fn task_graph_stalled_report(assignment: &WorkerAssignment) -> WorkerReport {
+    let failure_kind = "task_graph_stalled";
+    let summary =
+        "本轮协作流程没有找到可继续执行的步骤，不能把本轮结果当成完整协作结论。".to_string();
+    let risk =
+        "部分协作步骤没有形成可验证结果，最终回答只能代表已完成步骤的阶段性结果。".to_string();
+    let open_question =
+        "请稍后重试；如果问题很急，可以先切到普通问答或只指定一个角色继续问。".to_string();
+    WorkerReport {
+        graph_id: assignment.graph_id.clone(),
+        node_id: assignment.node_id.clone(),
+        task_id: assignment.task_id.clone(),
+        worker_id: assignment.worker_id.clone(),
+        role: assignment.role.clone(),
+        content: summary.clone(),
+        role_output: Some(RoleWorkOutput {
+            summary,
+            findings: Vec::new(),
+            recommendations: Vec::new(),
+            evidence: vec![format!("failure_kind:{failure_kind}")],
+            risks: vec![risk.clone()],
+            open_questions: vec![open_question.clone()],
+        }),
+        evidence: vec![format!("failure_kind:{failure_kind}")],
+        risks: vec![risk],
+        open_questions: vec![open_question],
+        diagnostics: vec![task_graph_stalled_diagnostic(assignment, failure_kind)],
+        status: WorkerReportStatus::Failed,
+    }
+}
+
+fn task_graph_stalled_diagnostic(
+    assignment: &WorkerAssignment,
+    failure_kind: &str,
+) -> WorkerDiagnostic {
+    let mut fields = std::collections::BTreeMap::new();
+    fields.insert("failure_kind".to_string(), failure_kind.to_string());
+    fields.insert("status".to_string(), "failed".to_string());
+    fields.insert("role".to_string(), assignment.role.clone());
+    fields.insert("node_id".to_string(), assignment.node_id.0.clone());
+    fields.insert("graph_id".to_string(), assignment.graph_id.0.clone());
+    fields.insert("worker_id".to_string(), assignment.worker_id.0.clone());
+    fields.insert(
+        "reason".to_string(),
+        "task graph had pending nodes but no running or schedulable assignment".to_string(),
+    );
+
+    WorkerDiagnostic {
+        kind: "failure".to_string(),
+        source: failure_kind.to_string(),
+        fields,
+    }
+}
+
+fn worker_stalled_diagnostic(
+    assignment: &WorkerAssignment,
+    failure_kind: &str,
+    timeout_label: &str,
+) -> WorkerDiagnostic {
+    let mut fields = std::collections::BTreeMap::new();
+    fields.insert("failure_kind".to_string(), failure_kind.to_string());
+    fields.insert("status".to_string(), "timed_out".to_string());
+    fields.insert("role".to_string(), assignment.role.clone());
+    fields.insert("node_id".to_string(), assignment.node_id.0.clone());
+    fields.insert("graph_id".to_string(), assignment.graph_id.0.clone());
+    fields.insert("worker_id".to_string(), assignment.worker_id.0.clone());
+    fields.insert("timeout".to_string(), timeout_label.to_string());
+    fields.insert(
+        "reason".to_string(),
+        "worker did not return a report before commander task graph timeout".to_string(),
+    );
+
+    WorkerDiagnostic {
+        kind: "failure".to_string(),
+        source: failure_kind.to_string(),
+        fields,
+    }
+}
+
+fn format_duration(duration: Duration) -> String {
+    if duration.as_secs() > 0 {
+        format!("{}s", duration.as_secs())
+    } else {
+        format!("{}ms", duration.as_millis())
     }
 }
 

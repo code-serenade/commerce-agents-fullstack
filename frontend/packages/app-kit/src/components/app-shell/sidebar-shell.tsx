@@ -56,6 +56,7 @@ export interface SidebarShellSection {
   key?: string
   label: ReactNode
   action?: ReactNode
+  leadingItems?: SidebarShellNavEntry[]
   items: SidebarShellNavEntry[]
   collapsible?: boolean
   defaultOpen?: boolean
@@ -233,6 +234,19 @@ function SidebarSectionGroup({ section }: { section: SidebarShellSection }) {
 
   return (
     <SidebarGroup>
+      {section.leadingItems?.length ? (
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {section.leadingItems.map((item) => (
+              <SidebarNavRow
+                key={item.key ?? item.href ?? String(item.label)}
+                item={item}
+                size="sm"
+              />
+            ))}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      ) : null}
       {section.collapsible ? (
         <div className="flex min-w-0 items-center gap-1 group-data-[collapsible=icon]:hidden">
           <button
@@ -296,7 +310,13 @@ function getSectionContentClassName(
   return classNames.join(" ")
 }
 
-function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
+function SidebarNavRow({
+  item,
+  size = "default",
+}: {
+  item: SidebarShellNavEntry
+  size?: "default" | "sm"
+}) {
   const { state } = useSidebar()
   const hasSubItems = Boolean(item.subItems?.length)
 
@@ -308,6 +328,7 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
             <div className="min-w-0 flex-1">
               <SidebarMenuButton
                 active={item.active}
+                size={size}
                 variant="primary"
                 tooltip={typeof item.label === "string" ? item.label : undefined}
                 onClick={item.onSelect}
@@ -325,6 +346,7 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
         ) : (
           <SidebarMenuButton
             active={item.active}
+            size={size}
             variant="primary"
             tooltip={typeof item.label === "string" ? item.label : undefined}
             onClick={item.onSelect}
@@ -353,6 +375,7 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
       <SidebarMenuButton
         active={item.active}
         activeGroup={hasActiveChild}
+        size={size}
         variant="primary"
         disclosure
         disclosureOpen={open}

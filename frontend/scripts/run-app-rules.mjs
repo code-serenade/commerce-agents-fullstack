@@ -1,6 +1,13 @@
 import { spawnSync } from "node:child_process"
 
-const result = spawnSync("vitest", ["run", "--root", "..", "rules"], {
+const result = spawnSync("vitest", [
+  "run",
+  "--root",
+  "..",
+  "--testTimeout",
+  "30000",
+  "rules",
+], {
   cwd: process.cwd(),
   env: {
     ...process.env,

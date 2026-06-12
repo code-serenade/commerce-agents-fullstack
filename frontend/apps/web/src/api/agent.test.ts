@@ -52,6 +52,108 @@ describe("streamAgentSessionApi", () => {
     expect(onDone).toHaveBeenCalledTimes(1)
   })
 
+  it("uses event-name output as chat text even when the payload has no type", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          streamFromSse([
+            'event: output\ndata: {"content":"Startup fallback body"}\n\n',
+            "event: done\ndata: {}\n\n",
+          ]),
+          {
+            status: 200,
+            headers: { "Content-Type": "text/event-stream" },
+          }
+        )
+      )
+    )
+
+    const deltas: string[] = []
+    const onDone = vi.fn()
+    await streamAgentSessionApi(
+      { input: "diagnose a livestream funnel" },
+      {
+        onDelta: (content) => deltas.push(content),
+        onDone,
+        onError: (message) => {
+          throw new Error(message)
+        },
+      }
+    )
+
+    expect(deltas).toEqual(["Startup fallback body"])
+    expect(onDone).toHaveBeenCalledTimes(1)
+  })
+
+  it("waits for output after a workspace failure event before completing the chat UI", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          streamFromSse([
+            'event: workspace_run_failed\ndata: {"type":"workspace_run_failed","id":"run-1","status":"failed"}\n\n',
+            'event: output\ndata: {"content":"Startup fallback body"}\n\n',
+            "event: done\ndata: {}\n\n",
+          ]),
+          {
+            status: 200,
+            headers: { "Content-Type": "text/event-stream" },
+          }
+        )
+      )
+    )
+
+    const deltas: string[] = []
+    const onDone = vi.fn()
+    await streamAgentSessionApi(
+      { input: "diagnose a livestream funnel" },
+      {
+        onDelta: (content) => deltas.push(content),
+        onDone,
+        onError: (message) => {
+          throw new Error(message)
+        },
+      }
+    )
+
+    expect(deltas).toEqual(["Startup fallback body"])
+    expect(onDone).toHaveBeenCalledTimes(1)
+  })
+
+  it("releases the chat UI when the final output event arrives without a done event", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          streamFromSse([
+            'event: output\ndata: {"type":"output","content":"Final answer body"}\n\n',
+          ]),
+          {
+            status: 200,
+            headers: { "Content-Type": "text/event-stream" },
+          }
+        )
+      )
+    )
+
+    const deltas: string[] = []
+    const onDone = vi.fn()
+    await streamAgentSessionApi(
+      { input: "diagnose a livestream funnel" },
+      {
+        onDelta: (content) => deltas.push(content),
+        onDone,
+        onError: (message) => {
+          throw new Error(message)
+        },
+      }
+    )
+
+    expect(deltas).toEqual(["Final answer body"])
+    expect(onDone).toHaveBeenCalledTimes(1)
+  })
+
   it("deduplicates workspace run and final report artifact fallback output", async () => {
     vi.stubGlobal(
       "fetch",
