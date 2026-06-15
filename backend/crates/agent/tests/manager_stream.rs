@@ -1,8 +1,8 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use agent::api::{
     AgentId, AgentManager, AgentManagerConfig, AgentRequest, Cognition, CognitionInput,
-    CognitionResult, SessionEvent, SessionId, UserId,
+    CognitionResult, RoleCognitionFactory, SessionEvent, SessionId, UserId,
 };
 use async_trait::async_trait;
 use serde_json::json;
@@ -52,6 +52,19 @@ impl Cognition for TestWorkerCognition {
     }
 }
 
+struct SlowConstructedWorkerCognition;
+
+#[async_trait]
+impl Cognition for SlowConstructedWorkerCognition {
+    async fn evaluate(&self, _input: CognitionInput) -> CognitionResult {
+        CognitionResult::Success(json!({
+            "decision": {
+                "kind": "NoAction"
+            }
+        }))
+    }
+}
+
 #[tokio::test]
 async fn manager_stream_finishes_and_cleans_active_session() {
     let manager = AgentManager::new(AgentManagerConfig::new(
@@ -90,4 +103,34 @@ async fn manager_stream_finishes_and_cleans_active_session() {
     );
     assert!(matches!(events.last(), Some(SessionEvent::Finished { .. })));
     assert_eq!(manager.active_session_count(), 0);
+}
+
+#[tokio::test]
+async fn manager_stream_emits_started_before_slow_worker_construction() {
+    let worker_factory: RoleCognitionFactory = Arc::new(|_| {
+        std::thread::sleep(Duration::from_millis(250));
+        Ok(Box::new(SlowConstructedWorkerCognition))
+    });
+    let manager = AgentManager::new(AgentManagerConfig::new_role_aware(
+        Arc::new(|| Ok(Box::new(TestCommanderCognition))),
+        worker_factory,
+    ));
+
+    let mut rx = manager
+        .run_stream(AgentRequest {
+            user_id: Some(UserId("test-user".to_string())),
+            workspace_id: None,
+            agent_id: AgentId("test-agent".to_string()),
+            session_id: SessionId("test-slow-startup".to_string()),
+            input: "hi".to_string(),
+            metadata: Default::default(),
+        })
+        .expect("stream should start");
+
+    let first = tokio::time::timeout(Duration::from_millis(100), rx.recv())
+        .await
+        .expect("started should be emitted before worker cognition construction completes")
+        .expect("stream should stay open");
+
+    assert!(matches!(first, SessionEvent::Started { .. }));
 }

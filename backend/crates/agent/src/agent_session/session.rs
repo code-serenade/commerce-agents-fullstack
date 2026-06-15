@@ -46,7 +46,7 @@ impl AgentSession {
     }
 
     pub async fn run_once(&self, input: impl Into<String>) -> Result<SessionResult> {
-        self.run_once_with_events(input, None).await
+        self.run_once_with_events(input, None, true).await
     }
 
     pub fn run_stream(self, input: impl Into<String>) -> Result<SessionEventRx> {
@@ -56,7 +56,7 @@ impl AgentSession {
 
         tokio::spawn(async move {
             let result = self
-                .run_once_with_events(input, Some(event_tx.clone()))
+                .run_once_with_events(input, Some(event_tx.clone()), true)
                 .await;
             match result {
                 Ok(_) => {
@@ -81,6 +81,7 @@ impl AgentSession {
         &self,
         input: impl Into<String>,
         event_tx: Option<tokio::sync::mpsc::Sender<crate::core::protocol::SessionEvent>>,
+        emit_started_event: bool,
     ) -> Result<SessionResult> {
         let event_tx_for_persist = event_tx.clone();
         let event_tx_for_cancel = event_tx.clone();
@@ -120,6 +121,7 @@ impl AgentSession {
             workers,
             config: self.config.runtime.clone(),
             event_tx,
+            emit_started_event,
         })?;
 
         let result = if let Some(cancel_tx) = event_tx_for_cancel {

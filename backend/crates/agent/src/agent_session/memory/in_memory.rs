@@ -442,30 +442,49 @@ fn sort_records_for_query(records: &mut [MemoryRecord], query_text: Option<&str>
         records.sort_by(compare_updated_at_desc);
         return;
     }
-    records.sort_by(|left, right| {
-        let left_score = memory_query_score(left, &query_terms);
-        let right_score = memory_query_score(right, &query_terms);
-        let left_ref_score = memory_query_context_ref_score(left, &query_terms);
-        let right_ref_score = memory_query_context_ref_score(right, &query_terms);
-
-        right_ref_score
-            .cmp(&left_ref_score)
-            .then_with(|| right_score.cmp(&left_score))
+    let mut scored = records
+        .iter()
+        .cloned()
+        .map(|record| {
+            let score = memory_query_score(&record, &query_terms);
+            let ref_score = memory_query_context_ref_score(&record, &query_terms);
+            ScoredMemoryRecord {
+                record,
+                score,
+                ref_score,
+            }
+        })
+        .collect::<Vec<_>>();
+    scored.sort_by(|left, right| {
+        right
+            .ref_score
+            .cmp(&left.ref_score)
+            .then_with(|| right.score.cmp(&left.score))
             .then_with(|| {
-                if left_ref_score == 0
-                    && right_ref_score == 0
-                    && left_score == 0
-                    && right_score == 0
+                if left.ref_score == 0
+                    && right.ref_score == 0
+                    && left.score == 0
+                    && right.score == 0
                 {
-                    return compare_updated_at_desc(left, right);
+                    return compare_updated_at_desc(&left.record, &right.record);
                 }
                 right
+                    .record
                     .confidence
-                    .partial_cmp(&left.confidence)
+                    .partial_cmp(&left.record.confidence)
                     .unwrap_or(Ordering::Equal)
             })
-            .then_with(|| compare_updated_at_desc(left, right))
+            .then_with(|| compare_updated_at_desc(&left.record, &right.record))
     });
+    for (target, scored) in records.iter_mut().zip(scored.into_iter()) {
+        *target = scored.record;
+    }
+}
+
+struct ScoredMemoryRecord {
+    record: MemoryRecord,
+    score: usize,
+    ref_score: usize,
 }
 
 fn memory_query_context_ref_score(record: &MemoryRecord, query_terms: &[String]) -> usize {

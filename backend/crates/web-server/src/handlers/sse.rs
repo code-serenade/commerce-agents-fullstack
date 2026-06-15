@@ -708,12 +708,12 @@ pub async fn stream_agent_session(
             "rag_context_loaded",
             rag_context_loaded_public_payload(&retrieval_context),
         ));
-        let mut agent_started = false;
+        let mut runtime_started = false;
         loop {
             let event = match tokio::time::timeout(AGENT_STREAM_STARTUP_TIMEOUT, events.recv()).await {
                 Ok(Some(event)) => event,
                 Ok(None) => break,
-                Err(_) if !agent_started => {
+                Err(_) if !runtime_started => {
                     let reason = agent_stream_startup_timeout_message(AGENT_STREAM_STARTUP_TIMEOUT);
                     if !link_state.completed {
                         let response = workspace_api
@@ -748,10 +748,13 @@ pub async fn stream_agent_session(
             yield Ok(json_event(event_name, event_value));
 
             match &event {
-                SessionEvent::Started { .. } => {
-                    agent_started = true;
-                }
+                SessionEvent::MemoryLoaded { .. }
+                | SessionEvent::ContextLoaded { .. }
+                | SessionEvent::CommanderThinking { .. }
+                | SessionEvent::RouteDecided { .. }
+                | SessionEvent::DispatchPlanned { .. } => runtime_started = true,
                 SessionEvent::TaskGraphPlanned { graph, .. } => {
+                    runtime_started = true;
                     let response = workspace_api
                         .link_agent_tasks(LinkAgentWorkspaceTasksRequest {
                             user_id: link_state.user_id.clone(),

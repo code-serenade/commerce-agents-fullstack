@@ -809,6 +809,76 @@ mod tests {
     }
 
     #[test]
+    fn quick_field_analysis_routes_to_stable_single_chat() {
+        let rules =
+            load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
+        let route = RoleRoute {
+            primary_role: RoleId("role.data-analyst".to_string()),
+            primary_runtime_role: "data".to_string(),
+            support_roles: Vec::new(),
+            support_runtime_roles: Vec::new(),
+            scores: vec![
+                RoleScore {
+                    role_id: RoleId("role.data-analyst".to_string()),
+                    runtime_role: "data".to_string(),
+                    score: 4.5,
+                    keyword_hits: 2,
+                },
+                RoleScore {
+                    role_id: RoleId("role.ops-strategist".to_string()),
+                    runtime_role: "ops".to_string(),
+                    score: 2.5,
+                    keyword_hits: 1,
+                },
+                RoleScore {
+                    role_id: RoleId("role.creative-studio".to_string()),
+                    runtime_role: "creative".to_string(),
+                    score: 2.5,
+                    keyword_hits: 1,
+                },
+                RoleScore {
+                    role_id: RoleId("role.design-core".to_string()),
+                    runtime_role: "design".to_string(),
+                    score: 2.5,
+                    keyword_hits: 1,
+                },
+            ],
+        };
+        let graph = plan_task_graph_from_rules(
+            &TaskId("task-quick-phone-case-fields".to_string()),
+            "连续追问测试B：我想卖手机壳，请简短分析标题、主图、价格、库存和售后风险。",
+            Some(&route),
+            &rules,
+        )
+        .expect("quick field analysis should match stable direct chat graph");
+
+        assert_eq!(graph.nodes.len(), 1, "{:#?}", graph.nodes);
+        assert_eq!(graph.nodes[0].role, "chat");
+        assert_eq!(graph.nodes[0].llm_usage.as_deref(), Some("fast"));
+        assert_eq!(graph.nodes[0].skill_autosuggest, Some(false));
+    }
+
+    #[test]
+    fn followup_format_transform_routes_to_stable_single_chat() {
+        let rules =
+            load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
+        let route = manual_route("data", &["creative", "design"]);
+        let graph = plan_task_graph_from_rules(
+            &TaskId("task-followup-format-transform".to_string()),
+            "基于你刚才的回答，整理成一张对照表，要简单。",
+            Some(&route),
+            &rules,
+        )
+        .expect("follow-up format transform should match stable direct chat graph");
+
+        assert_eq!(graph.nodes.len(), 1, "{:#?}", graph.nodes);
+        assert_eq!(graph.nodes[0].role, "chat");
+        assert_eq!(graph.nodes[0].llm_usage.as_deref(), Some("fast"));
+        assert_eq!(graph.nodes[0].skill_autosuggest, Some(false));
+        assert!(graph.nodes[0].objective.contains("上一轮用户材料"));
+    }
+
+    #[test]
     fn followup_homework_phrase_without_review_request_stays_business_graph() {
         let rules =
             load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");

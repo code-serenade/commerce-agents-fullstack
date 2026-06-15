@@ -68,6 +68,7 @@ pub struct SessionRuntimeInput {
     pub workers: Vec<SessionRuntimeWorkerInput>,
     pub config: SessionRuntimeConfig,
     pub event_tx: Option<SessionEventTx>,
+    pub emit_started_event: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -96,6 +97,7 @@ pub struct SessionRuntime {
     worker_cognition_timeout: Duration,
     commander_fast_route: bool,
     event_tx: Option<SessionEventTx>,
+    emit_started_event: bool,
 }
 
 impl SessionRuntime {
@@ -198,6 +200,7 @@ impl SessionRuntime {
             worker_cognition_timeout: input.config.worker_cognition_timeout,
             commander_fast_route: input.config.commander_fast_route,
             event_tx: input.event_tx,
+            emit_started_event: input.emit_started_event,
         })
     }
 
@@ -237,10 +240,12 @@ impl SessionRuntime {
             commander_fast_route = self.commander_fast_route,
             "agent session runtime started"
         );
-        self.emit_event(SessionEvent::Started {
-            session_id: self.session_id.clone(),
-        })
-        .await;
+        if self.emit_started_event {
+            self.emit_event(SessionEvent::Started {
+                session_id: self.session_id.clone(),
+            })
+            .await;
+        }
 
         let memory_kinds = self
             .session_context
@@ -582,12 +587,7 @@ impl SessionRuntime {
             return self.task_description.clone();
         }
 
-        format!(
-            "同一会话历史上下文（这是同一用户同一会话内此前消息，用于理解“继续、刚才、按前面、\
-             补充后、沿用这些数据”等追问；这不代表用户选择了任何预设商品）：\n{history}\n\\
-             n当前用户请求：\n{}",
-            self.task_description
-        )
+        task_description_with_history_text(&self.task_description, history)
     }
 
     async fn emit_route_decided(&self, route_mode: &str, roles: Option<Vec<String>>) {
@@ -1461,6 +1461,17 @@ fn session_response_timeout_message(timeout: Duration) -> String {
     .join("\n")
 }
 
+fn task_description_with_history_text(task_description: &str, history: &str) -> String {
+    format!(
+        concat!(
+            "同一会话历史上下文（这是同一用户同一会话内此前消息，用于理解“继续、刚才、按前面、",
+            "补充后、沿用这些数据”等追问；这不代表用户选择了任何预设商品）：\n",
+            "{}\n\n当前用户请求：\n{}"
+        ),
+        history, task_description
+    )
+}
+
 fn effective_response_timeout(
     response_timeout: Duration,
     worker_cognition_timeout: Duration,
@@ -1477,7 +1488,8 @@ mod tests {
     use std::time::Duration;
 
     use super::{
-        effective_response_timeout, sanitize_session_final_output, session_response_timeout_message,
+        effective_response_timeout, sanitize_session_final_output,
+        session_response_timeout_message, task_description_with_history_text,
     };
 
     #[test]
@@ -1514,6 +1526,20 @@ mod tests {
             effective_response_timeout(Duration::from_secs(300), Duration::ZERO),
             Duration::from_secs(30)
         );
+    }
+
+    #[test]
+    fn task_description_with_history_separates_current_request_cleanly() {
+        let output = task_description_with_history_text(
+            "直接基于你的回答归纳，做成简单知识点手册形式。",
+            "User: 请分析二手教材。\nAssistant: 要看页面、成本、库存和售后。",
+        );
+
+        assert!(output.contains("同一会话历史上下文"));
+        assert!(output.contains("Assistant: 要看页面、成本、库存和售后。"));
+        assert!(output.contains("\n\n当前用户请求：\n直接基于你的回答归纳"));
+        assert!(!output.contains("\\n当前用户请求"));
+        assert!(!output.contains("n当前用户请求"));
     }
 
     #[test]

@@ -87,11 +87,14 @@ impl AgentManager {
         let input = request.input.clone();
         let session = self.create_session(&request);
         let (event_tx, event_rx) = mpsc::channel(self.config.runtime.event_buffer);
+        let _ = event_tx.try_send(SessionEvent::Started {
+            session_id: session_id.clone(),
+        });
         let active_sessions = self.active_sessions.clone();
 
         tokio::spawn(async move {
             let result = session
-                .run_once_with_events(input, Some(event_tx.clone()))
+                .run_once_with_events(input, Some(event_tx.clone()), false)
                 .await;
             remove_session_from(&active_sessions, &session_id);
             match result {
