@@ -54,7 +54,7 @@
 补充说明：
 
 - `userId` 由服务端从 JWT 当前用户中读取，前端不得传入或伪造
-- `schoolName`、`teamName` 为可选注册资料，最长 128 字符；已有用户保持 `null`
+- `schoolName`、`teamName` 为必填注册资料，最长 128 字符；历史已有用户可能保持 `null`
 - 首次注册会创建 `enabled` 状态 App 用户
 - 首次注册会自动绑定默认 App 角色 `free`
 - 如果默认 App 角色 `free` 不存在，服务端会自动创建；初始化脚本 `scripts/init_app_permissions.sh` 也会写入该角色

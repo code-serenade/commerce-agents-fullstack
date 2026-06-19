@@ -27,6 +27,8 @@ function mapAppUserRow(
     user_id: appUser.userId,
     display_id: appUser.displayId?.trim() || appUser.userId,
     display_name: appUser.displayName?.trim() || fallbackDisplayName,
+    school_name: appUser.schoolName?.trim() || null,
+    team_name: appUser.teamName?.trim() || null,
     remark: appUser.remark ?? null,
     status: appUser.status,
     createdAt: appUser.createdAt ?? null,

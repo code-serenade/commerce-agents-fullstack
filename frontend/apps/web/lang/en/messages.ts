@@ -2958,11 +2958,11 @@ const messages = {
     },
     profile: {
       schoolName: {
-        label: "School (optional)",
+        label: "School",
         placeholder: "Enter school name",
       },
       teamName: {
-        label: "Team name (optional)",
+        label: "Team name",
         placeholder: "Enter team name",
       },
     },

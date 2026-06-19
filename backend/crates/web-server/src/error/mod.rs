@@ -110,7 +110,10 @@ pub fn from_biz_error(err: BizError) -> ApiError {
         | app_error::EXTERNAL_SEARCH_REQUEST_INVALID
         | app_error::APPROVAL_AUDIT_REQUEST_INVALID
         | app_error::BRIEFING_OPS_REQUEST_INVALID
-        | app_error::PACKAGE_REQUEST_INVALID => StatusCode::BAD_REQUEST,
+        | app_error::PACKAGE_REQUEST_INVALID
+        | app_error::TEAM_USAGE_REQUEST_INVALID => StatusCode::BAD_REQUEST,
+        app_error::TEAM_USAGE_QUOTA_EXCEEDED => StatusCode::TOO_MANY_REQUESTS,
+        app_error::TEAM_USAGE_DISABLED => StatusCode::FORBIDDEN,
         app_error::PACKAGE_VALIDATION_FAILED => StatusCode::CONFLICT,
         agent_error::AGENT_PROMPT_ERROR | agent_error::AGENT_SETTINGS_ERROR => {
             StatusCode::INTERNAL_SERVER_ERROR
@@ -123,7 +126,10 @@ pub fn from_biz_error(err: BizError) -> ApiError {
         | admin_error::ADMIN_USER_DISABLED
         | admin_error::ADMIN_PERMISSION_DENIED
         | admin_error::ADMIN_ROLE_RESERVED => StatusCode::FORBIDDEN,
-        admin_error::ADMIN_AUTH_USER_NOT_FOUND => StatusCode::NOT_FOUND,
+        admin_error::ADMIN_AUTH_USER_NOT_FOUND | admin_error::ADMIN_USAGE_TEAM_NOT_FOUND => {
+            StatusCode::NOT_FOUND
+        }
+        admin_error::ADMIN_USAGE_REQUEST_INVALID => StatusCode::BAD_REQUEST,
         _ => StatusCode::BAD_REQUEST,
     };
 

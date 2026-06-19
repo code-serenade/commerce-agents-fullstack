@@ -513,8 +513,8 @@ impl AppApi {
                     user_id,
                     display_id: req.display_id,
                     display_name: req.display_name,
-                    school_name: normalize_optional_string(req.school_name),
-                    team_name: normalize_optional_string(req.team_name),
+                    school_name: normalize_optional_string(Some(req.school_name)),
+                    team_name: normalize_optional_string(Some(req.team_name)),
                     remark: req.remark,
                     status: AppUserStatus::Enabled,
                 })

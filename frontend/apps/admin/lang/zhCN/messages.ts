@@ -11,6 +11,8 @@ const messages = {
       rolePermissions: "角色授权",
       appRoles: "App 角色",
       appRolePermissions: "App 角色授权",
+      usageManagement: "用量管理",
+      teamUsage: "队伍用量",
     },
     authLayout: {
         eyebrow: "Workspace Admin",
@@ -197,12 +199,16 @@ const messages = {
           columns: {
             id: "ID",
             displayName: "显示名称",
+            schoolName: "学校",
+            teamName: "队伍",
             remark: "备注",
             status: "状态",
             roles: "角色",
             roleCount: "角色数",
           },
           empty: {
+            schoolName: "未填写学校",
+            teamName: "未填写队伍",
             remark: "无备注",
             roles: "未分配角色",
           },
@@ -291,6 +297,8 @@ const messages = {
           fields: {
             id: "ID",
             displayName: "显示名称",
+            schoolName: "学校",
+            teamName: "队伍",
             remark: "备注",
           },
           remarkPlaceholder: "输入备注",
@@ -400,6 +408,99 @@ const messages = {
           reset: "重置",
           save: "保存角色",
           success: "用户角色已更新",
+        },
+      },
+    },
+    usage: {
+      teamUsage: {
+        metrics: {
+          all: {
+            label: "队伍总数",
+            tail: "服务端分页查询返回的全部队伍数量。",
+          },
+          questionUsed: {
+            label: "当前页问答数",
+            tail: "当前页队伍已记录的问答消耗总和。",
+          },
+          exhausted: {
+            label: "当前页已耗尽",
+            tail: "当前页剩余额度为 0 的启用队伍。",
+          },
+          disabled: {
+            label: "当前页停用",
+            tail: "当前页已被后台停用的队伍。",
+          },
+        },
+        table: {
+          columns: {
+            schoolName: "学校",
+            teamName: "队伍",
+            memberCount: "成员",
+            questionUsed: "已问答",
+            questionLimit: "问答上限",
+            questionRemaining: "剩余",
+            questionProgress: "进度",
+            tokenUsed: "Token 已用",
+            tokenLimit: "Token 上限",
+            status: "状态",
+            remark: "备注",
+            lastUsedAt: "最近使用",
+          },
+          empty: {
+            remark: "无备注",
+          },
+          status: {
+            enabled: "启用",
+            disabled: "停用",
+          },
+          query: {
+            keyword: {
+              label: "关键字",
+              placeholder: "搜索学校、队伍或备注",
+            },
+            status: {
+              label: "状态",
+              placeholder: "状态",
+            },
+          },
+          actions: {
+            edit: {
+              label: "编辑额度",
+              title: "编辑队伍额度 {{team}}",
+              description: "调整问答上限、Token 上限、状态和备注。",
+              success: "队伍额度已更新",
+            },
+            toggle: {
+              enable: "启用",
+              disable: "停用",
+              enabledSuccess: "队伍已启用",
+              disabledSuccess: "队伍已停用",
+            },
+            members: "查看成员",
+          },
+        },
+        edit: {
+          fields: {
+            schoolName: "学校",
+            teamName: "队伍",
+            questionLimit: "问答上限",
+            tokenLimit: "Token 上限",
+            status: "状态",
+            remark: "备注",
+          },
+          tokenLimitPlaceholder: "留空表示暂不限制 Token",
+          remarkPlaceholder: "输入后台备注",
+        },
+        members: {
+          title: "队伍成员 {{team}}",
+          description: "学校：{{school}}",
+          loading: "成员加载中。",
+          empty: "暂无成员。",
+          columns: {
+            displayId: "ID",
+            displayName: "显示名称",
+            status: "状态",
+          },
         },
       },
     },

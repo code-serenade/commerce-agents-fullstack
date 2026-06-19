@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import {
+  Gauge,
   LayoutDashboard,
   ShieldCheck,
   UsersRound,
@@ -95,6 +96,20 @@ export const navigationSections: NavigationSectionConfig[] = [
             href: "/access/app-role-permissions",
             matcher: (pathname) =>
               pathname.startsWith("/access/app-role-permissions"),
+          },
+        ],
+      },
+      {
+        id: "usage-management",
+        labelKey: "admin.navigation.usageManagement",
+        icon: <Gauge />,
+        subItems: [
+          {
+            id: "team-usage",
+            permissionCode: "usage:team_usage",
+            labelKey: "admin.navigation.teamUsage",
+            href: "/usage/team-usage",
+            matcher: (pathname) => pathname.startsWith("/usage/team-usage"),
           },
         ],
       },

@@ -12,12 +12,14 @@ export function useRegisterPage() {
         label: t("register.profile.schoolName.label"),
         placeholder: t("register.profile.schoolName.placeholder"),
         maxLength: 128,
+        required: true,
       },
       {
         name: "teamName",
         label: t("register.profile.teamName.label"),
         placeholder: t("register.profile.teamName.placeholder"),
         maxLength: 128,
+        required: true,
       },
     ],
     [t]

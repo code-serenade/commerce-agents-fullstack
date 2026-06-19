@@ -31,6 +31,32 @@ export function buildAppUserColumns(
       ),
     },
     {
+      key: "school_name",
+      header: t("admin.accounts.appUsers.table.columns.schoolName"),
+      width: 160,
+      renderCell: (row) =>
+        row.school_name ? (
+          row.school_name
+        ) : (
+          <span className="text-sm text-(--app-muted-text)">
+            {t("admin.accounts.appUsers.table.empty.schoolName")}
+          </span>
+        ),
+    },
+    {
+      key: "team_name",
+      header: t("admin.accounts.appUsers.table.columns.teamName"),
+      width: 160,
+      renderCell: (row) =>
+        row.team_name ? (
+          row.team_name
+        ) : (
+          <span className="text-sm text-(--app-muted-text)">
+            {t("admin.accounts.appUsers.table.empty.teamName")}
+          </span>
+        ),
+    },
+    {
       key: "remark",
       header: t("admin.accounts.appUsers.table.columns.remark"),
       width: 220,

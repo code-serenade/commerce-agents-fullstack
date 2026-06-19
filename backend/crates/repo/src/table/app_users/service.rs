@@ -4,7 +4,7 @@ use db_core::{
 };
 use sea_orm::{
     ActiveValue::{Set, Unchanged},
-    ColumnTrait, Condition, PaginatorTrait, QueryFilter, QueryOrder,
+    ColumnTrait, Condition, FromQueryResult, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect,
 };
 use uuid::Uuid;
 
@@ -20,6 +20,13 @@ db_core::impl_repository!(AppUserRepo, app_users::Entity, app_users::Model);
 
 pub struct AppUserService {
     repo: AppUserRepo,
+}
+
+#[derive(Debug, FromQueryResult)]
+struct AppUserTeamMemberCountRow {
+    school_name: Option<String>,
+    team_name: Option<String>,
+    member_count: i64,
 }
 
 impl AppUserService {
@@ -52,6 +59,49 @@ impl AppUserService {
             .into_iter()
             .map(Self::from_model)
             .collect()
+    }
+
+    pub async fn list_by_team(
+        &self,
+        school_name: &str,
+        team_name: &str,
+    ) -> BizResult<Vec<AppUser>> {
+        let query = self
+            .repo
+            .query()
+            .filter(app_users::Column::SchoolName.eq(school_name.to_owned()))
+            .filter(app_users::Column::TeamName.eq(team_name.to_owned()))
+            .order_by_asc(app_users::Column::DisplayId);
+
+        self.repo
+            .select_all(query)
+            .await?
+            .into_iter()
+            .map(Self::from_model)
+            .collect()
+    }
+
+    pub async fn count_members_by_team(
+        &self,
+    ) -> BizResult<Vec<(Option<String>, Option<String>, i64)>> {
+        let rows = self
+            .repo
+            .query()
+            .select_only()
+            .column(app_users::Column::SchoolName)
+            .column(app_users::Column::TeamName)
+            .column_as(app_users::Column::UserId.count(), "member_count")
+            .group_by(app_users::Column::SchoolName)
+            .group_by(app_users::Column::TeamName)
+            .into_model::<AppUserTeamMemberCountRow>()
+            .all(self.repo.db())
+            .await
+            .map_err(Error::from)?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| (row.school_name, row.team_name, row.member_count))
+            .collect())
     }
 
     pub async fn metrics(&self) -> BizResult<AppUserMetrics> {

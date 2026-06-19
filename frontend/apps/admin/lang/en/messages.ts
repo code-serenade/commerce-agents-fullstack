@@ -11,6 +11,8 @@ const messages = {
       rolePermissions: "Role Permissions",
       appRoles: "App Roles",
       appRolePermissions: "App Role Permissions",
+      usageManagement: "Usage",
+      teamUsage: "Team Usage",
     },
     authLayout: {
         eyebrow: "Workspace Admin",
@@ -202,12 +204,16 @@ const messages = {
           columns: {
             id: "ID",
             displayName: "Display Name",
+            schoolName: "School",
+            teamName: "Team",
             remark: "Remark",
             status: "Status",
             roles: "Roles",
             roleCount: "Role Count",
           },
           empty: {
+            schoolName: "No school",
+            teamName: "No team",
             remark: "No remark",
             roles: "No roles assigned",
           },
@@ -296,6 +302,8 @@ const messages = {
           fields: {
             id: "ID",
             displayName: "Display Name",
+            schoolName: "School",
+            teamName: "Team",
             remark: "Remark",
           },
           remarkPlaceholder: "Enter remark",
@@ -405,6 +413,100 @@ const messages = {
           reset: "Reset",
           save: "Save Roles",
           success: "User roles updated",
+        },
+      },
+    },
+    usage: {
+      teamUsage: {
+        metrics: {
+          all: {
+            label: "Teams",
+            tail: "Total teams returned by the server query.",
+          },
+          questionUsed: {
+            label: "Current page questions",
+            tail: "Recorded question usage across teams on this page.",
+          },
+          exhausted: {
+            label: "Exhausted on page",
+            tail: "Enabled teams on this page with no remaining questions.",
+          },
+          disabled: {
+            label: "Disabled on page",
+            tail: "Teams disabled by admins on this page.",
+          },
+        },
+        table: {
+          columns: {
+            schoolName: "School",
+            teamName: "Team",
+            memberCount: "Members",
+            questionUsed: "Questions Used",
+            questionLimit: "Question Limit",
+            questionRemaining: "Remaining",
+            questionProgress: "Progress",
+            tokenUsed: "Tokens Used",
+            tokenLimit: "Token Limit",
+            status: "Status",
+            remark: "Remark",
+            lastUsedAt: "Last Used",
+          },
+          empty: {
+            remark: "No remark",
+          },
+          status: {
+            enabled: "Enabled",
+            disabled: "Disabled",
+          },
+          query: {
+            keyword: {
+              label: "Keyword",
+              placeholder: "Search school, team, or remark",
+            },
+            status: {
+              label: "Status",
+              placeholder: "Status",
+            },
+          },
+          actions: {
+            edit: {
+              label: "Edit quota",
+              title: "Edit team quota {{team}}",
+              description:
+                "Adjust question limit, token limit, status, and remark.",
+              success: "Team quota updated",
+            },
+            toggle: {
+              enable: "Enable",
+              disable: "Disable",
+              enabledSuccess: "Team enabled",
+              disabledSuccess: "Team disabled",
+            },
+            members: "View members",
+          },
+        },
+        edit: {
+          fields: {
+            schoolName: "School",
+            teamName: "Team",
+            questionLimit: "Question Limit",
+            tokenLimit: "Token Limit",
+            status: "Status",
+            remark: "Remark",
+          },
+          tokenLimitPlaceholder: "Leave empty for no token limit",
+          remarkPlaceholder: "Enter admin remark",
+        },
+        members: {
+          title: "Team members {{team}}",
+          description: "School: {{school}}",
+          loading: "Loading members.",
+          empty: "No members.",
+          columns: {
+            displayId: "ID",
+            displayName: "Display Name",
+            status: "Status",
+          },
         },
       },
     },

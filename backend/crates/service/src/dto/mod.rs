@@ -13,4 +13,5 @@ pub mod product_asset;
 pub mod product_competitor;
 pub mod product_knowledge;
 pub mod product_material;
+pub mod team_usage;
 pub mod workspace;

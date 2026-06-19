@@ -17,7 +17,7 @@ use serde_json::{Value, json};
 use service::{
     api::{
         agent_context::AgentContextApi, app::AppApi, approval_audit::ApprovalAuditApi,
-        briefing_ops::BriefingOpsApi, conversation::ConversationApi,
+        briefing_ops::BriefingOpsApi, conversation::ConversationApi, team_usage::TeamUsageApi,
         vision_preprocess_manager::VisionPreprocessManager, workspace::WorkspaceApi,
     },
     dto::{
@@ -28,6 +28,7 @@ use service::{
         approval_audit::{CreateAuditLogRequest, CreateToolApprovalRequest, ToolApprovalResponse},
         briefing_ops::{AlertResponse, CreateAlertRequest},
         conversation::ConversationMessageResponse,
+        team_usage::{AgentQuestionPreflightRequest, RecordAgentQuestionStartedRequest},
         workspace::{
             AgentLearningRecordResponse, AgentQualityEvaluationResponse, AgentWorkspaceTaskNode,
             BuildAgentLearningContextRequest, CompleteAgentWorkspaceRunRequest,
@@ -504,6 +505,16 @@ pub async fn stream_agent_session(
     api.get_current_user_permissions(user_id.clone())
         .await
         .map_err(from_biz_error)?;
+    let team_usage_api = TeamUsageApi::new(get_app_ctx());
+    let team_usage_preflight = team_usage_api
+        .preflight_agent_question(AgentQuestionPreflightRequest {
+            user_id: user_id.clone(),
+            conversation_id: conversation_id.clone(),
+            session_id: session_id.clone(),
+            agent_id: agent_id.clone(),
+        })
+        .await
+        .map_err(from_biz_error)?;
     if let Some(conversation_id) = conversation_id.as_ref() {
         let conversation_api = ConversationApi::new(get_app_ctx());
         let conversation = conversation_api
@@ -584,6 +595,14 @@ pub async fn stream_agent_session(
         "workspace.run_id".to_string(),
         linked_workspace.run.id.clone(),
     );
+    team_usage_api
+        .record_agent_question_started(RecordAgentQuestionStartedRequest {
+            preflight: team_usage_preflight,
+            workspace_id: Some(linked_workspace.workspace.id.clone()),
+            run_id: Some(linked_workspace.run.id.clone()),
+        })
+        .await
+        .map_err(from_biz_error)?;
     metadata.insert("workspace.source".to_string(), "agent_session".to_string());
     metadata.insert(
         "workspaceContext.includeImplicitConversationFiles".to_string(),

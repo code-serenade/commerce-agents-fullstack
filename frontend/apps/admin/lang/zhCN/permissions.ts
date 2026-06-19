@@ -26,6 +26,12 @@ const permissions = {
       label: "App 角色授权",
     },
   },
+  usage: {
+    label: "用量管理",
+    team_usage: {
+      label: "队伍用量",
+    },
+  },
   profile: {
     label: "个人中心",
     view: {

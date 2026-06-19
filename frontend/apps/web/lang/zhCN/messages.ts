@@ -2814,11 +2814,11 @@ const messages = {
     },
     profile: {
       schoolName: {
-        label: "院校（可选）",
+        label: "院校",
         placeholder: "请输入所在院校",
       },
       teamName: {
-        label: "队伍名（可选）",
+        label: "队伍名",
         placeholder: "请输入队伍名",
       },
     },

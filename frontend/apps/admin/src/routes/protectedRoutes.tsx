@@ -12,6 +12,7 @@ import {
   ProfilePage,
   RolePermissionsPage,
   RolesPage,
+  TeamUsagePage,
 } from "@/routes/lazy/protectedPages"
 
 function withSuspense(node: ReactNode) {
@@ -34,6 +35,10 @@ export const protectedRoutes: RouteObject = {
     {
       path: "accounts",
       element: <Navigate to="/accounts/admin-users" replace />,
+    },
+    {
+      path: "usage",
+      element: <Navigate to="/usage/team-usage" replace />,
     },
     {
       path: "accounts/admin-users",
@@ -62,6 +67,10 @@ export const protectedRoutes: RouteObject = {
     {
       path: "access/app-role-permissions",
       element: withSuspense(<AppRolePermissionsPage />),
+    },
+    {
+      path: "usage/team-usage",
+      element: withSuspense(<TeamUsagePage />),
     },
   ],
 }

@@ -26,6 +26,12 @@ const permissions = {
       label: "App Role Permissions",
     },
   },
+  usage: {
+    label: "Usage",
+    team_usage: {
+      label: "Team Usage",
+    },
+  },
   profile: {
     label: "Profile",
     view: {

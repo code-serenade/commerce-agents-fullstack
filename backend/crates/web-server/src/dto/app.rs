@@ -62,9 +62,9 @@ pub struct RegisterAppUserRequest {
     #[validate(length(min = 1, max = 64))]
     pub display_name: String,
     #[validate(length(min = 1, max = 128))]
-    pub school_name: Option<String>,
+    pub school_name: String,
     #[validate(length(min = 1, max = 128))]
-    pub team_name: Option<String>,
+    pub team_name: String,
     #[validate(length(min = 1, max = 255))]
     pub remark: Option<String>,
 }

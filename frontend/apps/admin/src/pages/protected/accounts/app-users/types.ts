@@ -11,6 +11,8 @@ export interface AppUserRow {
   user_id: string
   display_id: string
   display_name: string
+  school_name: string | null
+  team_name: string | null
   remark: string | null
   status: ApiAppUserStatus
   createdAt: string | null

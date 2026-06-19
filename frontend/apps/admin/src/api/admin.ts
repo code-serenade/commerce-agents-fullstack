@@ -4,6 +4,13 @@ export type AdminUserStatus = "enabled" | "disabled"
 export type AppUserStatus = "enabled" | "disabled"
 export type AppUserSortBy = "createdAt" | "updatedAt"
 export type SortOrder = "asc" | "desc"
+export type TeamUsageStatus = "enabled" | "disabled"
+export type TeamUsageSortBy =
+  | "updatedAt"
+  | "questionUsed"
+  | "questionRemaining"
+  | "memberCount"
+  | "lastUsedAt"
 
 export interface AdminUserResponse {
   displayId?: string
@@ -19,6 +26,8 @@ export interface AppUserResponse {
   displayId?: string
   userId: string
   displayName?: string
+  schoolName?: string | null
+  teamName?: string | null
   remark?: string | null
   status: AppUserStatus
   createdAt?: string | null
@@ -41,6 +50,50 @@ export interface PaginatedResponse<T> {
   totalPages: number
   hasNext: boolean
   hasPrev: boolean
+}
+
+export interface TeamUsageResponse {
+  id: string
+  schoolName: string
+  teamName: string
+  memberCount: number
+  questionLimit: number
+  questionUsed: number
+  questionRemaining: number
+  tokenLimit?: number | null
+  tokenUsed: number
+  status: TeamUsageStatus
+  remark?: string | null
+  lastUsedAt?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface TeamUsageMemberResponse {
+  userId: string
+  displayId: string
+  displayName: string
+  schoolName?: string | null
+  teamName?: string | null
+  status: AppUserStatus
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ListTeamUsagesRequest {
+  page?: number
+  pageSize?: number
+  keyword?: string
+  status?: TeamUsageStatus
+  sortBy?: TeamUsageSortBy
+  sortOrder?: SortOrder
+}
+
+export interface UpdateTeamUsageQuotaRequest {
+  questionLimit: number
+  tokenLimit?: number | null
+  status: TeamUsageStatus
+  remark?: string | null
 }
 
 export interface CreateAdminUserRequest {
@@ -191,6 +244,45 @@ export const listAppUserMetricsApi =
       url: "/api/admin/account/app-users/metrics",
     })
   }
+
+export const listTeamUsagesApi = async (
+  params: ListTeamUsagesRequest = {}
+): Promise<PaginatedResponse<TeamUsageResponse>> => {
+  return request<ListTeamUsagesRequest, PaginatedResponse<TeamUsageResponse>>({
+    method: "GET",
+    url: "/api/admin/usage/teams",
+    body: params,
+  })
+}
+
+export const getTeamUsageApi = async (
+  teamId: string
+): Promise<TeamUsageResponse> => {
+  return request<undefined, TeamUsageResponse>({
+    method: "GET",
+    url: `/api/admin/usage/teams/${encodeURIComponent(teamId)}`,
+  })
+}
+
+export const updateTeamUsageQuotaApi = async (
+  teamId: string,
+  body: UpdateTeamUsageQuotaRequest
+): Promise<TeamUsageResponse> => {
+  return request<UpdateTeamUsageQuotaRequest, TeamUsageResponse>({
+    method: "PATCH",
+    url: `/api/admin/usage/teams/${encodeURIComponent(teamId)}/quota`,
+    body,
+  })
+}
+
+export const listTeamUsageMembersApi = async (
+  teamId: string
+): Promise<TeamUsageMemberResponse[]> => {
+  return request<undefined, TeamUsageMemberResponse[]>({
+    method: "GET",
+    url: `/api/admin/usage/teams/${encodeURIComponent(teamId)}/members`,
+  })
+}
 
 export const updateAppUserApi = async (
   userId: string,

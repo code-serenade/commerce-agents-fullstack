@@ -37,6 +37,26 @@ export const EditAppUserDialogContent =
             </span>
             <span className="text-sm text-foreground">{row.display_name}</span>
           </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <span className="text-sm font-medium">
+                {t("admin.accounts.appUsers.edit.fields.schoolName")}
+              </span>
+              <span className="text-sm text-foreground">
+                {row.school_name ??
+                  t("admin.accounts.appUsers.table.empty.schoolName")}
+              </span>
+            </div>
+            <div className="grid gap-2">
+              <span className="text-sm font-medium">
+                {t("admin.accounts.appUsers.edit.fields.teamName")}
+              </span>
+              <span className="text-sm text-foreground">
+                {row.team_name ??
+                  t("admin.accounts.appUsers.table.empty.teamName")}
+              </span>
+            </div>
+          </div>
           <div className="grid gap-2">
             <span className="text-sm font-medium">
               {t("admin.accounts.appUsers.edit.fields.remark")}
