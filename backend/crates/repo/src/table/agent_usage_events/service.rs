@@ -6,7 +6,9 @@ use sea_orm::{ActiveValue::Set, ColumnTrait, FromQueryResult, QueryFilter, Query
 
 use crate::{
     entity::agent_usage_events,
-    table::agent_usage_events::dto::{AgentUsageEvent, CreateAgentUsageEvent, TeamUsageEventStats},
+    table::agent_usage_events::dto::{
+        AgentUsageEvent, CreateAgentUsageEvent, TeamUsageEventStats, UserUsageEventStats,
+    },
 };
 
 db_core::impl_repository!(
@@ -23,6 +25,14 @@ pub struct AgentUsageEventService {
 struct TeamUsageEventStatsRow {
     school_name: String,
     team_name: String,
+    question_used: Option<i64>,
+    token_used: Option<i64>,
+    last_used_at: Option<time::OffsetDateTime>,
+}
+
+#[derive(Debug, FromQueryResult)]
+struct UserUsageEventStatsRow {
+    user_id: uuid::Uuid,
     question_used: Option<i64>,
     token_used: Option<i64>,
     last_used_at: Option<time::OffsetDateTime>,
@@ -105,6 +115,41 @@ impl AgentUsageEventService {
             token_used: 0,
             last_used_at: None,
         }))
+    }
+
+    pub async fn user_stats_by_team(
+        &self,
+        school_name: &str,
+        team_name: &str,
+    ) -> BizResult<Vec<UserUsageEventStats>> {
+        let rows = self
+            .repo
+            .query()
+            .select_only()
+            .column(agent_usage_events::Column::UserId)
+            .column_as(
+                agent_usage_events::Column::QuestionCount.sum(),
+                "question_used",
+            )
+            .column_as(agent_usage_events::Column::TotalTokens.sum(), "token_used")
+            .column_as(agent_usage_events::Column::CreatedAt.max(), "last_used_at")
+            .filter(agent_usage_events::Column::SchoolName.eq(school_name.to_owned()))
+            .filter(agent_usage_events::Column::TeamName.eq(team_name.to_owned()))
+            .group_by(agent_usage_events::Column::UserId)
+            .into_model::<UserUsageEventStatsRow>()
+            .all(self.repo.db())
+            .await
+            .map_err(Error::from)?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| UserUsageEventStats {
+                user_id: row.user_id,
+                question_used: row.question_used.unwrap_or(0),
+                token_used: row.token_used.unwrap_or(0),
+                last_used_at: row.last_used_at,
+            })
+            .collect())
     }
 
     async fn team_stats_filtered(

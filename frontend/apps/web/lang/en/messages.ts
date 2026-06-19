@@ -1083,6 +1083,18 @@ const messages = {
       inline: "Sign in to run the cloud agent and save history",
       action: "Sign in",
     },
+    quota: {
+      loading: "Loading team question quota...",
+      availableBadge: "Quota available",
+      exhaustedBadge: "No questions left",
+      disabledBadge: "Paused",
+      usage: "{{used}} / {{limit}} used, {{remaining}} remaining",
+      team: "{{school}} / {{team}}",
+      exhaustedHint:
+        "This team's AI question quota has been used up. Contact the event or platform administrator to add quota.",
+      disabledHint:
+        "This team's AI questions are paused. Contact an administrator.",
+    },
     sidebar: {
       newChat: "New chat",
       search: "Search history",

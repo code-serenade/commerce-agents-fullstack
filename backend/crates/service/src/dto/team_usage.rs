@@ -34,7 +34,6 @@ pub struct ListTeamUsagesRequest {
 pub struct UpdateTeamUsageQuotaRequest {
     pub team_id: String,
     pub question_limit: i32,
-    pub token_limit: Option<i32>,
     pub status: TeamUsageQuotaStatus,
     pub remark: Option<String>,
 }
@@ -48,7 +47,6 @@ pub struct TeamUsageResponse {
     pub question_limit: i32,
     pub question_used: i64,
     pub question_remaining: i64,
-    pub token_limit: Option<i32>,
     pub token_used: i64,
     pub status: TeamUsageQuotaStatus,
     pub remark: Option<String>,
@@ -65,6 +63,9 @@ pub struct TeamUsageMemberResponse {
     pub school_name: Option<String>,
     pub team_name: Option<String>,
     pub status: TeamUsageMemberStatus,
+    pub question_used: i64,
+    pub token_used: i64,
+    pub last_used_at: Option<OffsetDateTime>,
     pub created_at: OffsetDateTime,
     pub updated_at: OffsetDateTime,
 }
@@ -100,4 +101,31 @@ pub struct RecordAgentQuestionStartedRequest {
     pub preflight: AgentQuestionPreflight,
     pub workspace_id: Option<String>,
     pub run_id: Option<String>,
+    pub input: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct RecordAgentQuestionOutputRequest {
+    pub preflight: AgentQuestionPreflight,
+    pub workspace_id: Option<String>,
+    pub run_id: Option<String>,
+    pub output: Option<String>,
+    pub status: AgentQuestionOutputStatus,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum AgentQuestionOutputStatus {
+    Completed,
+    Failed,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CurrentTeamUsageQuotaResponse {
+    pub school_name: String,
+    pub team_name: String,
+    pub question_limit: i32,
+    pub question_used: i64,
+    pub question_remaining: i64,
+    pub status: TeamUsageQuotaStatus,
+    pub policy_text: String,
 }

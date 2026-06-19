@@ -4,6 +4,8 @@ const AGENT_STREAM_URL = "/api/sse/agent/session/stream"
 const AGENT_STREAM_IDLE_TIMEOUT_MS = 240_000
 const AGENT_AUTH_REFRESH_TIMEOUT_MS = 10_000
 const AUTH_REFRESH_URL = "/auth/session/refresh_token"
+const TEAM_USAGE_QUOTA_EXCEEDED_CODE = -12068
+const TEAM_USAGE_DISABLED_CODE = -12069
 
 export interface AgentStreamRequest {
   input: string
@@ -1122,7 +1124,7 @@ export async function streamAgentSessionApi(
 
   if (!response.ok || !response.body) {
     clearIdleTimeout()
-    handlers.onError(`Agent stream failed: ${response.status}`)
+    handlers.onError(await formatAgentStreamHttpError(response))
     return
   }
 
@@ -1211,6 +1213,46 @@ function fetchAgentStream(body: AgentStreamRequest, signal?: AbortSignal) {
     body: JSON.stringify(body),
     signal,
   })
+}
+
+async function formatAgentStreamHttpError(response: Response) {
+  const payload = await readAgentStreamErrorPayload(response)
+  const code =
+    typeof payload?.code === "number"
+      ? payload.code
+      : typeof payload?.error_code === "number"
+        ? payload.error_code
+        : null
+
+  if (code === TEAM_USAGE_QUOTA_EXCEEDED_CODE) {
+    return "TEAM_USAGE_QUOTA_EXCEEDED"
+  }
+  if (code === TEAM_USAGE_DISABLED_CODE) {
+    return "TEAM_USAGE_DISABLED"
+  }
+
+  const message =
+    typeof payload?.message === "string" && payload.message.trim()
+      ? payload.message
+      : null
+
+  return message || `Agent stream failed: ${response.status}`
+}
+
+async function readAgentStreamErrorPayload(response: Response): Promise<{
+  code?: unknown
+  error_code?: unknown
+  message?: unknown
+} | null> {
+  try {
+    return (await response.clone().json()) as {
+      code?: unknown
+      error_code?: unknown
+      message?: unknown
+    }
+  } catch {
+    return null
+  }
 }
 
 async function refreshAgentStreamToken(): Promise<boolean> {

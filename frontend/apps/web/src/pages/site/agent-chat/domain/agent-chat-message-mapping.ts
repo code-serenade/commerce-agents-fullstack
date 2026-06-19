@@ -25,6 +25,8 @@ export interface AgentChatMessageFormatCopy {
   boundaryNotice: string
   missingStructuredOutput: string
   streamTimedOut: string
+  teamUsageDisabled?: string
+  teamUsageQuotaExceeded?: string
 }
 
 export function mapConversationItem(
@@ -67,6 +69,12 @@ export function formatAgentUiMessage(
   }
   if (/Agent stream timed out without backend events/i.test(text)) {
     return copy.streamTimedOut
+  }
+  if (text === "TEAM_USAGE_QUOTA_EXCEEDED") {
+    return copy.teamUsageQuotaExceeded ?? text
+  }
+  if (text === "TEAM_USAGE_DISABLED") {
+    return copy.teamUsageDisabled ?? text
   }
   return sanitizeAgentUiMessage(text, copy)
 }

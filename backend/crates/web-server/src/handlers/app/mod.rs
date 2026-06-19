@@ -13,6 +13,7 @@ mod product_asset;
 mod product_competitor;
 mod product_knowledge;
 mod product_material;
+mod usage;
 mod workspace;
 
 pub use account::*;
@@ -29,4 +30,5 @@ pub use product_asset::*;
 pub use product_competitor::*;
 pub use product_knowledge::*;
 pub use product_material::*;
+pub use usage::*;
 pub use workspace::*;

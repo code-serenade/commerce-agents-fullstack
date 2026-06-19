@@ -22,7 +22,6 @@ function mapTeamUsageRow(row: TeamUsageResponse): TeamUsageRow {
     question_limit: row.questionLimit,
     question_used: row.questionUsed,
     question_remaining: row.questionRemaining,
-    token_limit: row.tokenLimit ?? null,
     token_used: row.tokenUsed,
     status: row.status,
     remark: row.remark ?? null,

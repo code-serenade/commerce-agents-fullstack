@@ -60,7 +60,6 @@ export interface TeamUsageResponse {
   questionLimit: number
   questionUsed: number
   questionRemaining: number
-  tokenLimit?: number | null
   tokenUsed: number
   status: TeamUsageStatus
   remark?: string | null
@@ -76,6 +75,9 @@ export interface TeamUsageMemberResponse {
   schoolName?: string | null
   teamName?: string | null
   status: AppUserStatus
+  questionUsed: number
+  tokenUsed: number
+  lastUsedAt?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -91,7 +93,6 @@ export interface ListTeamUsagesRequest {
 
 export interface UpdateTeamUsageQuotaRequest {
   questionLimit: number
-  tokenLimit?: number | null
   status: TeamUsageStatus
   remark?: string | null
 }

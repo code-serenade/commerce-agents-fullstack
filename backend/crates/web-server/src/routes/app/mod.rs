@@ -6,6 +6,7 @@ mod commerce_playbook;
 mod package_governance;
 mod platform_connect;
 mod product;
+mod usage;
 mod workspace;
 
 use axum::{Router, middleware::from_fn};
@@ -24,6 +25,7 @@ pub fn app_routes() -> Router {
             .merge(briefing::briefing_routes())
             .merge(package_governance::package_governance_routes())
             .merge(platform_connect::platform_connect_routes())
+            .merge(usage::usage_routes())
             .route_layer(from_fn(auth::<VerifyJwt>)),
     )
 }

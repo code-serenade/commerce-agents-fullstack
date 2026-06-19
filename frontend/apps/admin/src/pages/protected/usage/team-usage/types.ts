@@ -10,7 +10,6 @@ export interface TeamUsageRow {
   question_limit: number
   question_used: number
   question_remaining: number
-  token_limit: number | null
   token_used: number
   status: ApiTeamUsageStatus
   remark: string | null

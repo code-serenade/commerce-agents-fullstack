@@ -24,6 +24,7 @@ import { useAgentChatSourceContext } from "./view-model/use-agent-chat-source-co
 import { useAgentChatSourceActions } from "./view-model/use-agent-chat-source-actions"
 import { useAgentChatSourceLibrary } from "./view-model/use-agent-chat-source-library"
 import { useAgentChatStrategyRuntime } from "./view-model/use-agent-chat-strategy-runtime"
+import { useAgentChatQuota } from "./view-model/use-agent-chat-quota"
 
 export function useAgentChatPage() {
   const { t } = useTranslation()
@@ -34,6 +35,8 @@ export function useAgentChatPage() {
       boundaryNotice: t("agentChat.boundaryNotice"),
       missingStructuredOutput: t("agentChat.missingStructuredOutput"),
       streamTimedOut: t("agentChat.streamTimedOut"),
+      teamUsageDisabled: t("agentChat.quota.disabledHint"),
+      teamUsageQuotaExceeded: t("agentChat.quota.exhaustedHint"),
     }),
     [t]
   )
@@ -62,6 +65,7 @@ export function useAgentChatPage() {
   const { isLoadingSourceLibrary, sourceLibrary, sourceLibraryError } = useAgentChatSourceLibrary({ availableSources: sourceContext.availableSources, enabled: isLoggedIn })
   const playbookContext = useAgentChatPlaybooks({ enabled: isLoggedIn })
   const runtimeContext = useAgentRuntimeOptions({ enabled: isLoggedIn })
+  const quotaContext = useAgentChatQuota({ enabled: isLoggedIn })
   const feedback = useAgentRunFeedback({ isLoggedIn: Boolean(user), isStreaming, runtimeEvents })
   const { actionState } = useAgentChatActionState({
     abortRef,
@@ -98,9 +102,7 @@ export function useAgentChatPage() {
       void loadLatestAgentConversation(latestActionState, () => cancelled)
     }
 
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [userBootstrapKey])
 
   const canSend = input.trim().length > 0 && !isStreaming
@@ -183,18 +185,18 @@ export function useAgentChatPage() {
     isLoadingPlaybooks: playbookContext.isLoadingPlaybooks,
     isLoadingProducts: productContext.isLoadingProducts,
     isLoadingRuntimeOptions: runtimeContext.isLoadingRuntimeOptions,
-    isLoadingSourceLibrary,
-    isStreaming,
-    messages,
+    isLoadingSourceLibrary, isLoadingQuota: quotaContext.isLoadingQuota,
+    isStreaming, messages,
     playbooks: playbookContext.playbooks,
     runtimeOptions: runtimeContext.runtimeOptions,
     runtimeSelection: selectedRuntime,
     runtimeEvents,
+    quota: quotaContext.quota,
     selectedProducts: productContext.selectedProducts,
     selectedCampaigns: campaignContext.selectedCampaigns,
     selectedStrategy,
     selectedSources: sourceContext.selectedSources,
-    sendMessage,
+    sendMessage: () => quotaContext.refreshQuotaAfter(sendMessage),
     sourceLibrary,
     sourceLibraryError,
     setInput,

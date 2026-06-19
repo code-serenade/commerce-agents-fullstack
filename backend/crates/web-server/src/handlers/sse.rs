@@ -11,6 +11,7 @@ use axum::{
         sse::{Event, KeepAlive},
     },
 };
+use db_core::error::BizResult;
 use futures_util::Stream;
 use serde::Serialize;
 use serde_json::{Value, json};
@@ -28,7 +29,10 @@ use service::{
         approval_audit::{CreateAuditLogRequest, CreateToolApprovalRequest, ToolApprovalResponse},
         briefing_ops::{AlertResponse, CreateAlertRequest},
         conversation::ConversationMessageResponse,
-        team_usage::{AgentQuestionPreflightRequest, RecordAgentQuestionStartedRequest},
+        team_usage::{
+            AgentQuestionOutputStatus, AgentQuestionPreflight, AgentQuestionPreflightRequest,
+            RecordAgentQuestionOutputRequest, RecordAgentQuestionStartedRequest,
+        },
         workspace::{
             AgentLearningRecordResponse, AgentQualityEvaluationResponse, AgentWorkspaceTaskNode,
             BuildAgentLearningContextRequest, CompleteAgentWorkspaceRunRequest,
@@ -597,9 +601,10 @@ pub async fn stream_agent_session(
     );
     team_usage_api
         .record_agent_question_started(RecordAgentQuestionStartedRequest {
-            preflight: team_usage_preflight,
+            preflight: team_usage_preflight.clone(),
             workspace_id: Some(linked_workspace.workspace.id.clone()),
             run_id: Some(linked_workspace.run.id.clone()),
+            input: input.clone(),
         })
         .await
         .map_err(from_biz_error)?;
@@ -696,6 +701,7 @@ pub async fn stream_agent_session(
         conversation_id,
         input: input_for_memory,
         conversation_memory_summary,
+        team_usage_preflight,
     };
 
     let stream = async_stream::stream! {
@@ -1225,6 +1231,15 @@ pub async fn stream_agent_session(
                     yield Ok(json_event("output", json!({ "content": content })));
                 }
                 SessionEvent::Failed { reason, .. } => {
+                    if let Err(err) = record_agent_question_output_usage(
+                        &link_state,
+                        Some(reason.clone()),
+                        AgentQuestionOutputStatus::Failed,
+                    )
+                    .await
+                    {
+                        yield Ok(persistence_error_event("record_agent_question_output", err));
+                    }
                     if !link_state.completed {
                         let response = workspace_api
                             .fail_agent_run(FailAgentWorkspaceRunRequest {
@@ -1249,6 +1264,15 @@ pub async fn stream_agent_session(
                     return;
                 }
                 SessionEvent::Finished { .. } => {
+                    if let Err(err) = record_agent_question_output_usage(
+                        &link_state,
+                        link_state.latest_output.clone(),
+                        AgentQuestionOutputStatus::Completed,
+                    )
+                    .await
+                    {
+                        yield Ok(persistence_error_event("record_agent_question_output", err));
+                    }
                     yield Ok(json_event(
                         "finished",
                         json!({
@@ -1310,6 +1334,23 @@ struct AgentWorkspaceLinkState {
     conversation_id: Option<String>,
     input: String,
     conversation_memory_summary: Option<Value>,
+    team_usage_preflight: AgentQuestionPreflight,
+}
+
+async fn record_agent_question_output_usage(
+    link_state: &AgentWorkspaceLinkState,
+    output: Option<String>,
+    status: AgentQuestionOutputStatus,
+) -> BizResult<()> {
+    TeamUsageApi::new(get_app_ctx())
+        .record_agent_question_output(RecordAgentQuestionOutputRequest {
+            preflight: link_state.team_usage_preflight.clone(),
+            workspace_id: Some(link_state.workspace_id.clone()),
+            run_id: Some(link_state.run_id.clone()),
+            output,
+            status,
+        })
+        .await
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -4039,6 +4080,19 @@ mod tests {
     use super::*;
     use crate::dto::app::CreateProductDraftRequest;
 
+    fn test_team_usage_preflight() -> AgentQuestionPreflight {
+        AgentQuestionPreflight {
+            user_id: Uuid::nil(),
+            school_name: "测试学校".to_string(),
+            team_name: "测试队伍".to_string(),
+            question_limit: 50,
+            question_used: 0,
+            session_id: "session-1".to_string(),
+            agent_id: Some("web-agent".to_string()),
+            conversation_id: None,
+        }
+    }
+
     fn product_request(mode: Option<&str>) -> FormDraftStreamRequest {
         FormDraftStreamRequest {
             form_type: "product".to_string(),
@@ -4802,6 +4856,7 @@ mod tests {
                 "openQuestions": [],
                 "sourceMap": {}
             })),
+            team_usage_preflight: test_team_usage_preflight(),
         };
 
         let memory = build_completed_conversation_memory(&link_state).unwrap();
@@ -4924,6 +4979,7 @@ mod tests {
                 "openQuestions": [],
                 "sourceMap": {}
             })),
+            team_usage_preflight: test_team_usage_preflight(),
         };
 
         let memory = build_completed_conversation_memory(&link_state).unwrap();

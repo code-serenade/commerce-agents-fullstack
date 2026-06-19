@@ -66,7 +66,6 @@ pub async fn update_team_quota(
             service::dto::team_usage::UpdateTeamUsageQuotaRequest {
                 team_id,
                 question_limit: req.question_limit,
-                token_limit: req.token_limit,
                 status: map_status_to_service(req.status),
                 remark: req.remark,
             },
@@ -106,7 +105,6 @@ fn map_team_usage_response(row: service::dto::team_usage::TeamUsageResponse) -> 
         question_limit: row.question_limit,
         question_used: row.question_used,
         question_remaining: row.question_remaining,
-        token_limit: row.token_limit,
         token_used: row.token_used,
         status: map_status_from_service(row.status),
         remark: row.remark,
@@ -129,6 +127,9 @@ fn map_team_usage_member_response(
             service::dto::team_usage::TeamUsageMemberStatus::Enabled => AppUserStatus::Enabled,
             service::dto::team_usage::TeamUsageMemberStatus::Disabled => AppUserStatus::Disabled,
         },
+        question_used: member.question_used,
+        token_used: member.token_used,
+        last_used_at: member.last_used_at,
         created_at: member.created_at,
         updated_at: member.updated_at,
     }

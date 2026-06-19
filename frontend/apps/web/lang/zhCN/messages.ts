@@ -1048,6 +1048,16 @@ const messages = {
       inline: "登录后使用多智能体实训助手并保存历史",
       action: "去登录",
     },
+    quota: {
+      loading: "正在读取队伍问答额度...",
+      availableBadge: "额度可用",
+      exhaustedBadge: "次数已用完",
+      disabledBadge: "已暂停",
+      usage: "已用 {{used}} / {{limit}} 次，剩余 {{remaining}} 次",
+      team: "{{school}} / {{team}}",
+      exhaustedHint: "本队伍 AI 问答次数已用完，请联系赛事或平台管理员增加额度。",
+      disabledHint: "本队伍 AI 问答已暂停，请联系管理员。",
+    },
     sidebar: {
       newChat: "新建对话",
       search: "搜索历史记录",

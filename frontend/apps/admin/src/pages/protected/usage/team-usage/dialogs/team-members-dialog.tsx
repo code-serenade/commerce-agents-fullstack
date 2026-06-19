@@ -29,6 +29,14 @@ function statusVariant(status: string): BadgeProps["variant"] {
   return status === "enabled" ? "default" : "outline"
 }
 
+function formatDateTime(value?: string | null) {
+  if (!value) return "-"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return "-"
+
+  return date.toLocaleString()
+}
+
 export function TeamMembersDialog({
   open,
   row,
@@ -74,12 +82,21 @@ export function TeamMembersDialog({
                 <TableHead>
                   {t("admin.usage.teamUsage.members.columns.status")}
                 </TableHead>
+                <TableHead>
+                  {t("admin.usage.teamUsage.members.columns.questionUsed")}
+                </TableHead>
+                <TableHead>
+                  {t("admin.usage.teamUsage.members.columns.tokenUsed")}
+                </TableHead>
+                <TableHead>
+                  {t("admin.usage.teamUsage.members.columns.lastUsedAt")}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {membersQuery.isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={3}>
+                  <TableCell colSpan={6}>
                     {t("admin.usage.teamUsage.members.loading")}
                   </TableCell>
                 </TableRow>
@@ -87,7 +104,7 @@ export function TeamMembersDialog({
               {!membersQuery.isLoading &&
               (membersQuery.data?.length ?? 0) === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={3}>
+                  <TableCell colSpan={6}>
                     {t("admin.usage.teamUsage.members.empty")}
                   </TableCell>
                 </TableRow>
@@ -107,6 +124,9 @@ export function TeamMembersDialog({
                       )}
                     </Badge>
                   </TableCell>
+                  <TableCell>{member.questionUsed.toLocaleString()}</TableCell>
+                  <TableCell>{member.tokenUsed.toLocaleString()}</TableCell>
+                  <TableCell>{formatDateTime(member.lastUsedAt)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

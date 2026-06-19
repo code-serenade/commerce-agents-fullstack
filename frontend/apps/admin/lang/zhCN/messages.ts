@@ -441,7 +441,6 @@ const messages = {
             questionRemaining: "剩余",
             questionProgress: "进度",
             tokenUsed: "Token 已用",
-            tokenLimit: "Token 上限",
             status: "状态",
             remark: "备注",
             lastUsedAt: "最近使用",
@@ -467,7 +466,7 @@ const messages = {
             edit: {
               label: "编辑额度",
               title: "编辑队伍额度 {{team}}",
-              description: "调整问答上限、Token 上限、状态和备注。",
+              description: "调整问答上限、状态和备注。",
               success: "队伍额度已更新",
             },
             toggle: {
@@ -484,11 +483,9 @@ const messages = {
             schoolName: "学校",
             teamName: "队伍",
             questionLimit: "问答上限",
-            tokenLimit: "Token 上限",
             status: "状态",
             remark: "备注",
           },
-          tokenLimitPlaceholder: "留空表示暂不限制 Token",
           remarkPlaceholder: "输入后台备注",
         },
         members: {
@@ -500,6 +497,9 @@ const messages = {
             displayId: "ID",
             displayName: "显示名称",
             status: "状态",
+            questionUsed: "问答次数",
+            tokenUsed: "Token 消耗",
+            lastUsedAt: "最近使用",
           },
         },
       },

@@ -39,6 +39,18 @@ export interface CurrentAppUserPermissionsResponse {
   permissionCodes: string[]
 }
 
+export type TeamUsageQuotaStatus = "enabled" | "disabled"
+
+export interface CurrentTeamUsageQuotaResponse {
+  schoolName: string
+  teamName: string
+  questionLimit: number
+  questionUsed: number
+  questionRemaining: number
+  status: TeamUsageQuotaStatus
+  policyText: string
+}
+
 export const registerAppUserApi = async (
   body: RegisterAppUserRequest
 ): Promise<AppUserResponse> => {
@@ -56,6 +68,17 @@ export const getCurrentAppUserPermissionsApi =
     return request<undefined, CurrentAppUserPermissionsResponse>({
       method: "GET",
       url: "/api/app/me/permissions",
+      suppressGlobalError: options?.suppressGlobalError,
+    })
+  }
+
+export const getCurrentTeamUsageQuotaApi =
+  async (options?: {
+    suppressGlobalError?: boolean
+  }): Promise<CurrentTeamUsageQuotaResponse> => {
+    return request<undefined, CurrentTeamUsageQuotaResponse>({
+      method: "GET",
+      url: "/api/app/usage/quota",
       suppressGlobalError: options?.suppressGlobalError,
     })
   }

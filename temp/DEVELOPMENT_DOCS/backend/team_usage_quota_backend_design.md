@@ -19,7 +19,7 @@
    - `school_name = 未填写学校`
    - `team_name = 未填写队伍`
 5. 默认队伍问答上限为 50 次。
-6. 后台可按队伍修改问答上限、启用/停用限流。
+6. 后台可按队伍修改问答次数上限、启用/停用限流。
 7. 限流拦截点在 `POST /api/sse/agent/session/stream` 后端入口，不依赖前端禁用按钮。
 8. 每次通过限流并启动 Agent SSE 后，记录一条 usage event。当前版本以“启动一次 Agent 问答”为计数单位。
 9. token 先记录与展示，不做 token 上限拦截。
@@ -36,7 +36,7 @@
 | `school_name` | varchar(128) | not null | 学校名，归一化后保存 |
 | `team_name` | varchar(128) | not null | 队伍名，归一化后保存 |
 | `question_limit` | integer | not null, default 50 | 队伍总问答次数上限 |
-| `token_limit` | integer | nullable | 预留 token 上限，本期不拦截 |
+| `token_limit` | integer | nullable | 历史预留字段，本期不作为接口配置项，不参与拦截 |
 | `status` | varchar(32) | not null, default `enabled` | `enabled` / `disabled` |
 | `remark` | varchar(255) | nullable | 后台备注 |
 | `created_at` | timestamptz | not null | 创建时间 |
@@ -96,7 +96,7 @@ Indexes:
   - 聚合队伍成员数、已用次数、token 和配额。
 - `update_team_quota(current_admin_user_id, team_id, request)`
   - 需要后台权限 `usage:team_usage`。
-  - 修改上限、状态、备注。
+  - 修改问答次数上限、状态、备注。
 - `list_team_members(current_admin_user_id, team_id)`
   - 需要后台权限 `usage:team_usage`。
 

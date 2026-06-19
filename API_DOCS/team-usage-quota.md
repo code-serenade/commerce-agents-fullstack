@@ -11,6 +11,13 @@
 
 Agent 问答限流由 `POST /api/sse/agent/session/stream` 在服务端入口强制执行。
 
+当前版本的限流依据只使用问答次数：
+
+- 学生端只展示问答次数额度、已用次数和剩余次数。
+- 后台按队伍问答次数配置上限、启用或停用。
+- token 只作为后台运营统计信息，不参与限流。
+- 当前 agent runtime 尚未暴露模型精确 token usage，`tokenUsed` 先按输入和输出文本估算统计。
+
 ## Data Model
 
 ### TeamUsageResponse
@@ -24,7 +31,6 @@ Agent 问答限流由 `POST /api/sse/agent/session/stream` 在服务端入口强
   "questionLimit": 50,
   "questionUsed": 12,
   "questionRemaining": 38,
-  "tokenLimit": null,
   "tokenUsed": 0,
   "status": "enabled",
   "remark": null,
@@ -45,8 +51,7 @@ Agent 问答限流由 `POST /api/sse/agent/session/stream` 在服务端入口强
 | `questionLimit` | number | 队伍问答次数上限 |
 | `questionUsed` | number | 已记录的 Agent 问答次数 |
 | `questionRemaining` | number | 剩余次数，最低为 0 |
-| `tokenLimit` | number \| null | 预留 token 上限；当前不用于拦截 |
-| `tokenUsed` | number | 已记录 token 合计；当前可能为 0 |
+| `tokenUsed` | number | 后台统计 token 合计；当前为估算值，不用于限流 |
 | `status` | string | `enabled` / `disabled` |
 | `remark` | string \| null | 后台备注 |
 | `lastUsedAt` | string \| null | 最近一次 Agent 问答时间 |
@@ -110,7 +115,6 @@ Request:
 ```json
 {
   "questionLimit": 100,
-  "tokenLimit": null,
   "status": "enabled",
   "remark": "比赛队伍手动调整"
 }
@@ -121,7 +125,6 @@ Request:
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
 | `questionLimit` | number | 是 | `0..=1000000`；为 0 时表示不允许继续问答 |
-| `tokenLimit` | number \| null | 否 | 预留字段，本期不拦截 |
 | `status` | string | 是 | `enabled` / `disabled` |
 | `remark` | string \| null | 否 | 最长 255 |
 
@@ -150,13 +153,58 @@ Response `data`:
     "schoolName": "示例院校",
     "teamName": "第一小队",
     "status": "enabled",
+    "questionUsed": 12,
+    "tokenUsed": 3200,
+    "lastUsedAt": "2026-06-19T03:00:00Z",
     "createdAt": "2026-06-19T03:00:00Z",
     "updatedAt": "2026-06-19T03:00:00Z"
   }
 ]
 ```
 
-## 5. Agent Stream Quota Errors
+字段说明：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `questionUsed` | number | 该账号在当前队伍下已记录的 Agent 问答次数 |
+| `tokenUsed` | number | 该账号在当前队伍下估算 token 消耗 |
+| `lastUsedAt` | string \| null | 该账号最近一次 Agent 问答记录时间 |
+
+## 5. Get Current Team Usage Quota
+
+- Method: `GET`
+- Path: `/api/app/usage/quota`
+- JWT: required
+
+学生端当前登录用户查看自己所属队伍的次数额度。该接口不返回 token。
+
+Response `data`:
+
+```json
+{
+  "schoolName": "示例院校",
+  "teamName": "第一小队",
+  "questionLimit": 50,
+  "questionUsed": 12,
+  "questionRemaining": 38,
+  "status": "enabled",
+  "policyText": "本队伍前 50 次 AI 问答可使用"
+}
+```
+
+字段说明：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `schoolName` | string | 当前用户所属学校 |
+| `teamName` | string | 当前用户所属队伍 |
+| `questionLimit` | number | 队伍问答次数上限 |
+| `questionUsed` | number | 队伍已用问答次数 |
+| `questionRemaining` | number | 队伍剩余问答次数，最低为 0 |
+| `status` | string | `enabled` / `disabled` |
+| `policyText` | string | 学生端展示的次数额度说明 |
+
+## 6. Agent Stream Quota Errors
 
 `POST /api/sse/agent/session/stream` 在启动 Agent 前检查队伍配额。
 

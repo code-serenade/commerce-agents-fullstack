@@ -5,10 +5,6 @@ import type { TFunction } from "i18next"
 import { mapApiStatusToLabel } from "./status"
 import type { TeamUsageRow } from "../types"
 
-function formatOptionalNumber(value: number | null) {
-  return typeof value === "number" ? value.toLocaleString() : "-"
-}
-
 function formatDateTime(value: string | null) {
   if (!value) return "-"
   const date = new Date(value)
@@ -106,12 +102,6 @@ export function buildTeamUsageColumns(
       header: t("admin.usage.teamUsage.table.columns.tokenUsed"),
       width: 120,
       renderCell: (row) => row.token_used.toLocaleString(),
-    },
-    {
-      key: "token_limit",
-      header: t("admin.usage.teamUsage.table.columns.tokenLimit"),
-      width: 120,
-      renderCell: (row) => formatOptionalNumber(row.token_limit),
     },
     {
       key: "status",

@@ -50,7 +50,6 @@ export function useTeamUsageRowActions(
 
           await updateTeamUsageQuotaApi(row.id, {
             questionLimit: value?.questionLimit ?? row.question_limit,
-            tokenLimit: value?.tokenLimit ?? row.token_limit,
             status: value?.status ?? row.status,
             remark: value?.remark ?? row.remark,
           })
@@ -71,7 +70,6 @@ export function useTeamUsageRowActions(
 
             await updateTeamUsageQuotaApi(row.id, {
               questionLimit: row.question_limit,
-              tokenLimit: row.token_limit,
               status: nextStatus,
               remark: row.remark,
             })

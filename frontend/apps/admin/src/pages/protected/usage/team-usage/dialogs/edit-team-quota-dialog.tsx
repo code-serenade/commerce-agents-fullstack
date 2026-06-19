@@ -6,7 +6,6 @@ import type { TeamUsageRow } from "../types"
 
 export interface EditTeamQuotaDialogContentValue {
   questionLimit: number
-  tokenLimit: number | null
   status: TeamUsageStatus
   remark: string | null
 }
@@ -31,9 +30,6 @@ export const EditTeamQuotaDialogContent =
       const [questionLimit, setQuestionLimit] = useState(
         String(row.question_limit)
       )
-      const [tokenLimit, setTokenLimit] = useState(
-        row.token_limit === null ? "" : String(row.token_limit)
-      )
       const [status, setStatus] = useState<TeamUsageStatus>(row.status)
       const [remark, setRemark] = useState(row.remark ?? "")
 
@@ -45,14 +41,11 @@ export const EditTeamQuotaDialogContent =
               questionLimit,
               row.question_limit
             ),
-            tokenLimit: tokenLimit.trim()
-              ? parseNonNegativeInt(tokenLimit, row.token_limit ?? 0)
-              : null,
             status,
             remark: remark.trim() || null,
           }),
         }),
-        [questionLimit, remark, row.question_limit, row.token_limit, status, tokenLimit]
+        [questionLimit, remark, row.question_limit, status]
       )
 
       return (
@@ -72,30 +65,15 @@ export const EditTeamQuotaDialogContent =
             </div>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <span className="text-sm font-medium">
-                {t("admin.usage.teamUsage.edit.fields.questionLimit")}
-              </span>
-              <Input
-                type="number"
-                value={questionLimit}
-                onValueChange={setQuestionLimit}
-              />
-            </div>
-            <div className="grid gap-2">
-              <span className="text-sm font-medium">
-                {t("admin.usage.teamUsage.edit.fields.tokenLimit")}
-              </span>
-              <Input
-                placeholder={t(
-                  "admin.usage.teamUsage.edit.tokenLimitPlaceholder"
-                )}
-                type="number"
-                value={tokenLimit}
-                onValueChange={setTokenLimit}
-              />
-            </div>
+          <div className="grid gap-2">
+            <span className="text-sm font-medium">
+              {t("admin.usage.teamUsage.edit.fields.questionLimit")}
+            </span>
+            <Input
+              type="number"
+              value={questionLimit}
+              onValueChange={setQuestionLimit}
+            />
           </div>
 
           <div className="grid gap-2">

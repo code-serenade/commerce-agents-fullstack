@@ -6,7 +6,9 @@ use db_core::{
 };
 use error_code::{admin as admin_error, app as app_error};
 use repo::table::{
-    agent_usage_events::{AgentUsageEventService, CreateAgentUsageEvent, TeamUsageEventStats},
+    agent_usage_events::{
+        AgentUsageEventService, CreateAgentUsageEvent, TeamUsageEventStats, UserUsageEventStats,
+    },
     app_users::{AppUser, AppUserService, AppUserStatus},
     team_usage_quotas::{
         CreateTeamUsageQuota, TeamUsageQuota, TeamUsageQuotaService, TeamUsageQuotaStatus,
@@ -19,7 +21,8 @@ use uuid::Uuid;
 use crate::{
     api::admin::AdminApi,
     dto::team_usage::{
-        AgentQuestionPreflight, AgentQuestionPreflightRequest, ListTeamUsagesRequest,
+        AgentQuestionOutputStatus, AgentQuestionPreflight, AgentQuestionPreflightRequest,
+        CurrentTeamUsageQuotaResponse, ListTeamUsagesRequest, RecordAgentQuestionOutputRequest,
         RecordAgentQuestionStartedRequest, SortOrder, TeamUsageMemberResponse,
         TeamUsageMemberStatus, TeamUsageResponse, TeamUsageSortBy, UpdateTeamUsageQuotaRequest,
     },
@@ -29,6 +32,7 @@ const PERM_TEAM_USAGE: &str = "usage:team_usage";
 const DEFAULT_QUESTION_LIMIT: i32 = 50;
 const DEFAULT_UNKNOWN_SCHOOL: &str = "未填写学校";
 const DEFAULT_UNKNOWN_TEAM: &str = "未填写队伍";
+const TOKEN_ESTIMATION_CHARS_PER_TOKEN: usize = 4;
 
 pub struct TeamUsageApi {
     admin_api: AdminApi,
@@ -133,15 +137,93 @@ impl TeamUsageApi {
                 session_id: req.preflight.session_id,
                 agent_id: req.preflight.agent_id,
                 question_count: 1,
-                prompt_tokens: None,
+                prompt_tokens: Some(estimate_tokens(&req.input)),
                 completion_tokens: None,
-                total_tokens: None,
+                total_tokens: Some(estimate_tokens(&req.input)),
                 status: "started".to_string(),
-                metadata: json!({}),
+                metadata: json!({
+                    "tokenSource": "estimated",
+                    "tokenScope": "input"
+                }),
             })
             .await?;
 
         Ok(())
+    }
+
+    pub async fn record_agent_question_output(
+        &self,
+        req: RecordAgentQuestionOutputRequest,
+    ) -> BizResult<()> {
+        let workspace_id = req
+            .workspace_id
+            .as_deref()
+            .map(|value| parse_uuid(value, "workspace_id", app_error::TEAM_USAGE_REQUEST_INVALID))
+            .transpose()?;
+        let run_id = req
+            .run_id
+            .as_deref()
+            .map(|value| parse_uuid(value, "run_id", app_error::TEAM_USAGE_REQUEST_INVALID))
+            .transpose()?;
+        let completion_tokens = req.output.as_deref().map(estimate_tokens);
+        let status = match req.status {
+            AgentQuestionOutputStatus::Completed => "completed",
+            AgentQuestionOutputStatus::Failed => "failed",
+        };
+
+        self.usage_event_svc
+            .create(CreateAgentUsageEvent {
+                id: Uuid::new_v4(),
+                user_id: req.preflight.user_id,
+                school_name: req.preflight.school_name,
+                team_name: req.preflight.team_name,
+                conversation_id: req.preflight.conversation_id,
+                workspace_id,
+                run_id,
+                session_id: req.preflight.session_id,
+                agent_id: req.preflight.agent_id,
+                question_count: 0,
+                prompt_tokens: None,
+                completion_tokens,
+                total_tokens: completion_tokens,
+                status: status.to_string(),
+                metadata: json!({
+                    "tokenSource": "estimated",
+                    "tokenScope": "output"
+                }),
+            })
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn get_current_team_usage_quota(
+        &self,
+        current_user_id: String,
+    ) -> BizResult<CurrentTeamUsageQuotaResponse> {
+        let user_id = parse_uuid(
+            &current_user_id,
+            "user_id",
+            app_error::TEAM_USAGE_REQUEST_INVALID,
+        )?;
+        let app_user = self.ensure_app_user_enabled(user_id).await?;
+        let team_key = team_key_from_app_user(&app_user);
+        let quota = self.ensure_quota(&team_key).await?;
+        let stats = self
+            .usage_event_svc
+            .team_stats_by_team(&team_key.school_name, &team_key.team_name)
+            .await?;
+        let question_remaining = (i64::from(quota.question_limit) - stats.question_used).max(0);
+
+        Ok(CurrentTeamUsageQuotaResponse {
+            school_name: quota.school_name,
+            team_name: quota.team_name,
+            question_limit: quota.question_limit,
+            question_used: stats.question_used,
+            question_remaining,
+            status: quota.status,
+            policy_text: format!("本队伍前 {} 次 AI 问答可使用", quota.question_limit),
+        })
     }
 
     pub async fn list_team_usages(
@@ -199,22 +281,13 @@ impl TeamUsageApi {
                 "question_limit must be between 0 and 1000000".to_string(),
             ));
         }
-        if let Some(token_limit) = req.token_limit
-            && !(0..=1_000_000_000).contains(&token_limit)
-        {
-            return Err(BizError::new(
-                admin_error::ADMIN_USAGE_REQUEST_INVALID,
-                "token_limit must be between 0 and 1000000000".to_string(),
-            ));
-        }
-
         let quota = self.ensure_quota_exists(&req.team_id).await?;
         let updated = self
             .quota_svc
             .update(UpdateTeamUsageQuota {
                 id: quota.id,
                 question_limit: req.question_limit,
-                token_limit: req.token_limit,
+                token_limit: quota.token_limit,
                 status: req.status,
                 remark: normalize_optional(req.remark),
             })
@@ -235,8 +308,21 @@ impl TeamUsageApi {
             team_name: quota.team_name,
         };
         let members = self.list_members_by_normalized_team(&team_key).await?;
+        let stats_by_user_id = self
+            .usage_event_svc
+            .user_stats_by_team(&team_key.school_name, &team_key.team_name)
+            .await?
+            .into_iter()
+            .map(|stats| (stats.user_id, stats))
+            .collect::<HashMap<_, _>>();
 
-        Ok(members.into_iter().map(map_member_response).collect())
+        Ok(members
+            .into_iter()
+            .map(|member| {
+                let stats = stats_by_user_id.get(&member.user_id);
+                map_member_response(member, stats)
+            })
+            .collect())
     }
 
     async fn build_team_usage_rows(&self) -> BizResult<Vec<TeamUsageResponse>> {
@@ -418,7 +504,6 @@ fn map_team_usage_response(
         question_limit: quota.question_limit,
         question_used: stats.question_used,
         question_remaining,
-        token_limit: quota.token_limit,
         token_used: stats.token_used,
         status: quota.status,
         remark: quota.remark,
@@ -428,7 +513,10 @@ fn map_team_usage_response(
     }
 }
 
-fn map_member_response(app_user: AppUser) -> TeamUsageMemberResponse {
+fn map_member_response(
+    app_user: AppUser,
+    stats: Option<&UserUsageEventStats>,
+) -> TeamUsageMemberResponse {
     TeamUsageMemberResponse {
         user_id: app_user.user_id.to_string(),
         display_id: app_user.display_id,
@@ -439,6 +527,9 @@ fn map_member_response(app_user: AppUser) -> TeamUsageMemberResponse {
             AppUserStatus::Enabled => TeamUsageMemberStatus::Enabled,
             AppUserStatus::Disabled => TeamUsageMemberStatus::Disabled,
         },
+        question_used: stats.map(|stats| stats.question_used).unwrap_or(0),
+        token_used: stats.map(|stats| stats.token_used).unwrap_or(0),
+        last_used_at: stats.and_then(|stats| stats.last_used_at),
         created_at: app_user.created_at,
         updated_at: app_user.updated_at,
     }
@@ -523,4 +614,14 @@ fn normalize_optional(value: Option<String>) -> Option<String> {
     value
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
+}
+
+fn estimate_tokens(value: &str) -> i32 {
+    let char_count = value.chars().count();
+    if char_count == 0 {
+        return 0;
+    }
+
+    let estimated = char_count.div_ceil(TOKEN_ESTIMATION_CHARS_PER_TOKEN);
+    estimated.min(i32::MAX as usize) as i32
 }

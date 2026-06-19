@@ -4,6 +4,7 @@ import type { AgentRuntimeEvent } from "./agent-chat-data"
 import { AgentChatComposer } from "./components/agent-chat-composer"
 import { AgentProcessDrawer } from "./components/agent-process-drawer"
 import { AgentChatStatus } from "./components/agent-chat-status"
+import { AgentChatQuotaStatus } from "./components/agent-chat-quota-status"
 import { AgentChatThread } from "./components/agent-chat-thread"
 import { useAgentChatContext } from "./context/use-agent-chat-context"
 import {
@@ -69,6 +70,12 @@ export default function AgentChatPage() {
         loginRequired={!chat.isLoggedIn}
         onLogin={() => navigate("/login", { state: { from: { pathname: "/commerce" } } })}
       />
+      {chat.isLoggedIn ? (
+        <AgentChatQuotaStatus
+          isLoading={chat.isLoadingQuota}
+          quota={chat.quota}
+        />
+      ) : null}
       <div className={layoutClassName}>
         <section className={chatPanelClassName}>
           <AgentChatThread

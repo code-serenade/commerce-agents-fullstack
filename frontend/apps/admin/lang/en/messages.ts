@@ -446,7 +446,6 @@ const messages = {
             questionRemaining: "Remaining",
             questionProgress: "Progress",
             tokenUsed: "Tokens Used",
-            tokenLimit: "Token Limit",
             status: "Status",
             remark: "Remark",
             lastUsedAt: "Last Used",
@@ -472,8 +471,7 @@ const messages = {
             edit: {
               label: "Edit quota",
               title: "Edit team quota {{team}}",
-              description:
-                "Adjust question limit, token limit, status, and remark.",
+              description: "Adjust question limit, status, and remark.",
               success: "Team quota updated",
             },
             toggle: {
@@ -490,11 +488,9 @@ const messages = {
             schoolName: "School",
             teamName: "Team",
             questionLimit: "Question Limit",
-            tokenLimit: "Token Limit",
             status: "Status",
             remark: "Remark",
           },
-          tokenLimitPlaceholder: "Leave empty for no token limit",
           remarkPlaceholder: "Enter admin remark",
         },
         members: {
@@ -506,6 +502,9 @@ const messages = {
             displayId: "ID",
             displayName: "Display Name",
             status: "Status",
+            questionUsed: "Questions",
+            tokenUsed: "Tokens",
+            lastUsedAt: "Last used",
           },
         },
       },

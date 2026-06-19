@@ -1,4 +1,5 @@
 import type { AgentRuntimeEvent } from "../agent-chat-data"
+import type { CurrentTeamUsageQuotaResponse } from "@/api"
 import type {
   AgentChatAttachmentItem,
   AgentChatConversationItem,
@@ -49,12 +50,14 @@ export interface AgentChatPageViewModelInput {
   isLoadingCampaigns: boolean
   isLoadingPlaybooks: boolean
   isLoadingProducts: boolean
+  isLoadingQuota: boolean
   isLoadingRuntimeOptions: boolean
   isLoadingSourceLibrary: boolean
   isStreaming: boolean
   messages: AgentChatMessage[]
   playbooks: AgentChatPlaybookSelection[]
   runtimeEvents: AgentRuntimeEvent[]
+  quota: CurrentTeamUsageQuotaResponse | null
   runtimeOptions: AgentRuntimeOptions | null
   runtimeSelection: AgentChatRuntimeSelection
   selectedCampaigns: AgentChatCampaignContextSelection[]
@@ -106,12 +109,14 @@ export function createAgentChatPageViewModel(input: AgentChatPageViewModelInput)
     isLoadingCampaigns: input.isLoadingCampaigns,
     isLoadingPlaybooks: input.isLoadingPlaybooks,
     isLoadingProducts: input.isLoadingProducts,
+    isLoadingQuota: input.isLoadingQuota,
     isLoadingRuntimeOptions: input.isLoadingRuntimeOptions,
     isLoadingSourceLibrary: input.isLoadingSourceLibrary,
     isStreaming: input.isStreaming,
     messages: input.messages,
     playbooks: input.playbooks,
     renameConversation: input.commands.renameConversation,
+    quota: input.quota,
     runtimeEvents: input.runtimeEvents,
     runtimeOptions: input.runtimeOptions,
     runtimeSelection: input.runtimeSelection,
