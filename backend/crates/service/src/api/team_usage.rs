@@ -213,6 +213,12 @@ impl TeamUsageApi {
             .await?;
         let question_remaining = (i64::from(quota.question_limit) - stats.question_used).max(0);
 
+        let policy_text = if quota.question_limit <= 0 {
+            "当前账号 AI 问答次数已用完".to_string()
+        } else {
+            format!("当前账号前 {} 次 AI 问答可使用", quota.question_limit)
+        };
+
         Ok(CurrentTeamUsageQuotaResponse {
             user_id: app_user.user_id.to_string(),
             display_id: app_user.display_id,
@@ -223,7 +229,7 @@ impl TeamUsageApi {
             question_used: stats.question_used,
             question_remaining,
             status: quota.status,
-            policy_text: format!("当前账号前 {} 次 AI 问答可使用", quota.question_limit),
+            policy_text,
         })
     }
 
