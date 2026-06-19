@@ -2,6 +2,7 @@ import type {
   DataTableFetchResult,
   DataTableSortState,
 } from "@workspace/app-kit"
+import { useCallback, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { teamUsageInitialQuery, teamUsagePageSizeOptions } from "../constants"
 import {
@@ -28,22 +29,37 @@ export function useTeamUsageTable(
     invalidateTeamUsage,
     onViewMembers
   )
+  const columns = useMemo(() => buildTeamUsageColumns(t), [t])
+  const builtInFields = useMemo(
+    () => buildTeamUsageBuiltInQueryFields(t),
+    [t]
+  )
+  const fields = useMemo(() => buildTeamUsageQueryFields(t), [t])
+  const getRowId = useCallback((row: TeamUsageRow) => row.id, [])
+  const initialSort = useMemo(
+    () => ({
+      columnKey: "updatedAt",
+      direction: "desc" as const,
+    }),
+    []
+  )
+  const query = useMemo(
+    () => ({
+      builtInFields,
+      fields,
+      audit: false,
+    }),
+    [builtInFields, fields]
+  )
 
   return {
-    columns: buildTeamUsageColumns(t),
+    columns,
     fetchData,
-    getRowId: (row: TeamUsageRow) => row.id,
+    getRowId,
     initialPageSize: 10,
-    initialSort: {
-      columnKey: "updatedAt",
-      direction: "desc",
-    },
+    initialSort,
     initialQuery: teamUsageInitialQuery,
-    query: {
-      builtInFields: buildTeamUsageBuiltInQueryFields(t),
-      fields: buildTeamUsageQueryFields(t),
-      audit: false,
-    },
+    query,
     pageSizeOptions: teamUsagePageSizeOptions,
     rowActions,
     bulkDelete: false,

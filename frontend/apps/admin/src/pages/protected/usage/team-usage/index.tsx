@@ -13,12 +13,13 @@ export default function TeamUsagePage() {
   const handleViewMembers = useCallback((row: TeamUsageRow) => {
     setMembersDialogRow(row)
   }, [])
+  const handleInvalidateTeamUsage = useCallback(async () => {
+    await invalidateTeamUsage()
+    setTableRefreshKey((current) => current + 1)
+  }, [invalidateTeamUsage])
   const table = useTeamUsageTable(
     fetchData,
-    async () => {
-      await invalidateTeamUsage()
-      setTableRefreshKey((current) => current + 1)
-    },
+    handleInvalidateTeamUsage,
     handleViewMembers
   )
 
