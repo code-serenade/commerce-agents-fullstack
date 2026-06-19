@@ -16,9 +16,11 @@ import type { TeamUsageRow, TeamUsageTableQuery } from "./types"
 function mapTeamUsageRow(row: TeamUsageResponse): TeamUsageRow {
   return {
     id: row.id,
+    user_id: row.userId,
+    display_id: row.displayId,
+    display_name: row.displayName,
     school_name: row.schoolName,
     team_name: row.teamName,
-    member_count: row.memberCount,
     question_limit: row.questionLimit,
     question_used: row.questionUsed,
     question_remaining: row.questionRemaining,
@@ -33,8 +35,8 @@ function mapTeamUsageRow(row: TeamUsageResponse): TeamUsageRow {
 
 function mapSortColumn(columnKey: string): ListTeamUsagesRequest["sortBy"] {
   switch (columnKey) {
-    case "member_count":
-      return "memberCount"
+    case "display_id":
+      return "displayId"
     case "question_used":
       return "questionUsed"
     case "question_remaining":

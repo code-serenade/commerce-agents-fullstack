@@ -29,7 +29,7 @@ const permissions = {
   usage: {
     label: "用量管理",
     team_usage: {
-      label: "队伍用量",
+      label: "账号用量",
     },
   },
   profile: {

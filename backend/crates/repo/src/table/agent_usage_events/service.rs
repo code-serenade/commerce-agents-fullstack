@@ -152,6 +152,72 @@ impl AgentUsageEventService {
             .collect())
     }
 
+    pub async fn user_stats(&self) -> BizResult<Vec<UserUsageEventStats>> {
+        let rows = self
+            .repo
+            .query()
+            .select_only()
+            .column(agent_usage_events::Column::UserId)
+            .column_as(
+                agent_usage_events::Column::QuestionCount.sum(),
+                "question_used",
+            )
+            .column_as(agent_usage_events::Column::TotalTokens.sum(), "token_used")
+            .column_as(agent_usage_events::Column::CreatedAt.max(), "last_used_at")
+            .group_by(agent_usage_events::Column::UserId)
+            .into_model::<UserUsageEventStatsRow>()
+            .all(self.repo.db())
+            .await
+            .map_err(Error::from)?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| UserUsageEventStats {
+                user_id: row.user_id,
+                question_used: row.question_used.unwrap_or(0),
+                token_used: row.token_used.unwrap_or(0),
+                last_used_at: row.last_used_at,
+            })
+            .collect())
+    }
+
+    pub async fn user_stats_by_user_id(
+        &self,
+        user_id: uuid::Uuid,
+    ) -> BizResult<UserUsageEventStats> {
+        let row = self
+            .repo
+            .query()
+            .select_only()
+            .column(agent_usage_events::Column::UserId)
+            .column_as(
+                agent_usage_events::Column::QuestionCount.sum(),
+                "question_used",
+            )
+            .column_as(agent_usage_events::Column::TotalTokens.sum(), "token_used")
+            .column_as(agent_usage_events::Column::CreatedAt.max(), "last_used_at")
+            .filter(agent_usage_events::Column::UserId.eq(user_id))
+            .group_by(agent_usage_events::Column::UserId)
+            .into_model::<UserUsageEventStatsRow>()
+            .one(self.repo.db())
+            .await
+            .map_err(Error::from)?;
+
+        Ok(row
+            .map(|row| UserUsageEventStats {
+                user_id: row.user_id,
+                question_used: row.question_used.unwrap_or(0),
+                token_used: row.token_used.unwrap_or(0),
+                last_used_at: row.last_used_at,
+            })
+            .unwrap_or(UserUsageEventStats {
+                user_id,
+                question_used: 0,
+                token_used: 0,
+                last_used_at: None,
+            }))
+    }
+
     async fn team_stats_filtered(
         &self,
         school_name: Option<&str>,

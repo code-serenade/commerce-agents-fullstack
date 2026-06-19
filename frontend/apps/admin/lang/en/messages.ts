@@ -12,7 +12,7 @@ const messages = {
       appRoles: "App Roles",
       appRolePermissions: "App Role Permissions",
       usageManagement: "Usage",
-      teamUsage: "Team Usage",
+      teamUsage: "Account Usage",
     },
     authLayout: {
         eyebrow: "Workspace Admin",
@@ -420,27 +420,28 @@ const messages = {
       teamUsage: {
         metrics: {
           all: {
-            label: "Teams",
-            tail: "Total teams returned by the server query.",
+            label: "Accounts",
+            tail: "Total accounts returned by the server query.",
           },
           questionUsed: {
             label: "Current page questions",
-            tail: "Recorded question usage across teams on this page.",
+            tail: "Recorded question usage across accounts on this page.",
           },
           exhausted: {
             label: "Exhausted on page",
-            tail: "Enabled teams on this page with no remaining questions.",
+            tail: "Enabled accounts on this page with no remaining questions.",
           },
           disabled: {
             label: "Disabled on page",
-            tail: "Teams disabled by admins on this page.",
+            tail: "Accounts disabled by admins on this page.",
           },
         },
         table: {
           columns: {
+            displayId: "Account ID",
+            displayName: "Display Name",
             schoolName: "School",
             teamName: "Team",
-            memberCount: "Members",
             questionUsed: "Questions Used",
             questionLimit: "Question Limit",
             questionRemaining: "Remaining",
@@ -460,7 +461,7 @@ const messages = {
           query: {
             keyword: {
               label: "Keyword",
-              placeholder: "Search school, team, or remark",
+              placeholder: "Search account, school, team, or remark",
             },
             status: {
               label: "Status",
@@ -470,21 +471,21 @@ const messages = {
           actions: {
             edit: {
               label: "Edit quota",
-              title: "Edit team quota {{team}}",
-              description: "Adjust question limit, status, and remark.",
-              success: "Team quota updated",
+              title: "Edit account quota {{account}}",
+              description: "Adjust this account's question limit, status, and remark.",
+              success: "Account quota updated",
             },
             toggle: {
               enable: "Enable",
               disable: "Disable",
-              enabledSuccess: "Team enabled",
-              disabledSuccess: "Team disabled",
+              enabledSuccess: "Account questions enabled",
+              disabledSuccess: "Account questions disabled",
             },
-            members: "View members",
           },
         },
         edit: {
           fields: {
+            account: "Account",
             schoolName: "School",
             teamName: "Team",
             questionLimit: "Question Limit",
@@ -492,20 +493,6 @@ const messages = {
             remark: "Remark",
           },
           remarkPlaceholder: "Enter admin remark",
-        },
-        members: {
-          title: "Team members {{team}}",
-          description: "School: {{school}}",
-          loading: "Loading members.",
-          empty: "No members.",
-          columns: {
-            displayId: "ID",
-            displayName: "Display Name",
-            status: "Status",
-            questionUsed: "Questions",
-            tokenUsed: "Tokens",
-            lastUsedAt: "Last used",
-          },
         },
       },
     },

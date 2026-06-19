@@ -26,6 +26,25 @@ export function buildTeamUsageColumns(
 ): DataTableColumn<TeamUsageRow>[] {
   return [
     {
+      key: "display_id",
+      header: t("admin.usage.teamUsage.table.columns.displayId"),
+      width: 180,
+      sortable: true,
+      renderCell: (row) => (
+        <CopyableText value={row.display_id || row.user_id} textClassName="text-sm">
+          {row.display_id || row.user_id}
+        </CopyableText>
+      ),
+    },
+    {
+      key: "display_name",
+      header: t("admin.usage.teamUsage.table.columns.displayName"),
+      width: 160,
+      renderCell: (row) => (
+        <span className="font-medium">{row.display_name}</span>
+      ),
+    },
+    {
       key: "school_name",
       header: t("admin.usage.teamUsage.table.columns.schoolName"),
       width: 180,
@@ -40,15 +59,8 @@ export function buildTeamUsageColumns(
       header: t("admin.usage.teamUsage.table.columns.teamName"),
       width: 180,
       renderCell: (row) => (
-        <span className="font-medium">{row.team_name}</span>
+        <span>{row.team_name}</span>
       ),
-    },
-    {
-      key: "member_count",
-      header: t("admin.usage.teamUsage.table.columns.memberCount"),
-      width: 96,
-      sortable: true,
-      renderCell: (row) => row.member_count.toLocaleString(),
     },
     {
       key: "question_used",

@@ -21,14 +21,10 @@ export function useTeamUsageTable(
     signal: AbortSignal
     sort: DataTableSortState | null
   }) => Promise<DataTableFetchResult<TeamUsageRow>>,
-  invalidateTeamUsage: () => Promise<unknown>,
-  onViewMembers: (row: TeamUsageRow) => void
+  invalidateTeamUsage: () => Promise<unknown>
 ) {
   const { t } = useTranslation()
-  const rowActions = useTeamUsageRowActions(
-    invalidateTeamUsage,
-    onViewMembers
-  )
+  const rowActions = useTeamUsageRowActions(invalidateTeamUsage)
   const columns = useMemo(() => buildTeamUsageColumns(t), [t])
   const builtInFields = useMemo(
     () => buildTeamUsageBuiltInQueryFields(t),

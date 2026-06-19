@@ -25,6 +25,7 @@ mod m20260522_140000_storage_objects_sha256_identity;
 mod m20260525_090000_add_conversation_message_strategy_enums;
 mod m20260608_160000_add_app_user_registration_profile;
 mod m20260619_090000_create_team_usage_quota;
+mod m20260619_110000_create_account_usage_quota;
 
 pub struct Migrator;
 
@@ -57,6 +58,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260525_090000_add_conversation_message_strategy_enums::Migration),
             Box::new(m20260608_160000_add_app_user_registration_profile::Migration),
             Box::new(m20260619_090000_create_team_usage_quota::Migration),
+            Box::new(m20260619_110000_create_account_usage_quota::Migration),
         ]
     }
 }

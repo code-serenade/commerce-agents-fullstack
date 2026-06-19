@@ -3,7 +3,7 @@ import { getCurrentTeamUsageQuotaApi } from "@/api"
 
 export function useAgentChatQuota({ enabled }: { enabled: boolean }) {
   const quotaQuery = useQuery({
-    queryKey: ["web", "agent-chat", "team-usage-quota"],
+    queryKey: ["web", "agent-chat", "account-usage-quota"],
     queryFn: () =>
       getCurrentTeamUsageQuotaApi({
         suppressGlobalError: true,

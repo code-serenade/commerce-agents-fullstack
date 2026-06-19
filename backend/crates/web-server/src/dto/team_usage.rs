@@ -13,9 +13,9 @@ pub enum TeamUsageStatus {
 #[serde(rename_all = "camelCase")]
 pub enum TeamUsageSortBy {
     UpdatedAt,
+    DisplayId,
     QuestionUsed,
     QuestionRemaining,
-    MemberCount,
     LastUsedAt,
 }
 
@@ -54,9 +54,11 @@ pub struct UpdateTeamUsageQuotaRequest {
 #[serde(rename_all = "camelCase")]
 pub struct TeamUsageResponse {
     pub id: String,
+    pub user_id: String,
+    pub display_id: String,
+    pub display_name: String,
     pub school_name: String,
     pub team_name: String,
-    pub member_count: u64,
     pub question_limit: i32,
     pub question_used: i64,
     pub question_remaining: i64,
@@ -73,26 +75,10 @@ pub struct TeamUsageResponse {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct TeamUsageMemberResponse {
+pub struct CurrentTeamUsageQuotaResponse {
     pub user_id: String,
     pub display_id: String,
     pub display_name: String,
-    pub school_name: Option<String>,
-    pub team_name: Option<String>,
-    pub status: AppUserStatus,
-    pub question_used: i64,
-    pub token_used: i64,
-    #[serde(with = "time::serde::rfc3339::option")]
-    pub last_used_at: Option<OffsetDateTime>,
-    #[serde(with = "time::serde::rfc3339")]
-    pub created_at: OffsetDateTime,
-    #[serde(with = "time::serde::rfc3339")]
-    pub updated_at: OffsetDateTime,
-}
-
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CurrentTeamUsageQuotaResponse {
     pub school_name: String,
     pub team_name: String,
     pub question_limit: i32,
@@ -100,13 +86,6 @@ pub struct CurrentTeamUsageQuotaResponse {
     pub question_remaining: i64,
     pub status: TeamUsageStatus,
     pub policy_text: String,
-}
-
-#[derive(Debug, Clone, Copy, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum AppUserStatus {
-    Enabled,
-    Disabled,
 }
 
 fn default_page() -> u64 {

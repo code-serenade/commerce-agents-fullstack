@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use db_core::{
     DbContext, PaginatedResponse, PaginationParams,
@@ -6,14 +6,12 @@ use db_core::{
 };
 use error_code::{admin as admin_error, app as app_error};
 use repo::table::{
-    agent_usage_events::{
-        AgentUsageEventService, CreateAgentUsageEvent, TeamUsageEventStats, UserUsageEventStats,
+    account_usage_quotas::{
+        AccountUsageQuota, AccountUsageQuotaService, AccountUsageQuotaStatus,
+        CreateAccountUsageQuota, UpdateAccountUsageQuota,
     },
+    agent_usage_events::{AgentUsageEventService, CreateAgentUsageEvent, UserUsageEventStats},
     app_users::{AppUser, AppUserService, AppUserStatus},
-    team_usage_quotas::{
-        CreateTeamUsageQuota, TeamUsageQuota, TeamUsageQuotaService, TeamUsageQuotaStatus,
-        UpdateTeamUsageQuota,
-    },
 };
 use serde_json::json;
 use uuid::Uuid;
@@ -23,8 +21,8 @@ use crate::{
     dto::team_usage::{
         AgentQuestionOutputStatus, AgentQuestionPreflight, AgentQuestionPreflightRequest,
         CurrentTeamUsageQuotaResponse, ListTeamUsagesRequest, RecordAgentQuestionOutputRequest,
-        RecordAgentQuestionStartedRequest, SortOrder, TeamUsageMemberResponse,
-        TeamUsageMemberStatus, TeamUsageResponse, TeamUsageSortBy, UpdateTeamUsageQuotaRequest,
+        RecordAgentQuestionStartedRequest, SortOrder, TeamUsageResponse, TeamUsageSortBy,
+        UpdateTeamUsageQuotaRequest,
     },
 };
 
@@ -37,7 +35,7 @@ const TOKEN_ESTIMATION_CHARS_PER_TOKEN: usize = 4;
 pub struct TeamUsageApi {
     admin_api: AdminApi,
     app_user_svc: AppUserService,
-    quota_svc: TeamUsageQuotaService,
+    quota_svc: AccountUsageQuotaService,
     usage_event_svc: AgentUsageEventService,
 }
 
@@ -52,7 +50,7 @@ impl TeamUsageApi {
         Self {
             admin_api: AdminApi::new(db.clone()),
             app_user_svc: AppUserService::new(db.clone()),
-            quota_svc: TeamUsageQuotaService::new(db.clone()),
+            quota_svc: AccountUsageQuotaService::new(db.clone()),
             usage_event_svc: AgentUsageEventService::new(db),
         }
     }
@@ -68,23 +66,23 @@ impl TeamUsageApi {
         )?;
         let app_user = self.ensure_app_user_enabled(user_id).await?;
         let team_key = team_key_from_app_user(&app_user);
-        let quota = self.ensure_quota(&team_key).await?;
+        let quota = self.ensure_quota_for_app_user(&app_user).await?;
 
-        if quota.status == TeamUsageQuotaStatus::Disabled {
+        if quota.status == AccountUsageQuotaStatus::Disabled {
             return Err(BizError::new(
                 app_error::TEAM_USAGE_DISABLED,
-                "team usage is disabled".to_string(),
+                "account usage is disabled".to_string(),
             ));
         }
 
         let stats = self
             .usage_event_svc
-            .team_stats_by_team(&team_key.school_name, &team_key.team_name)
+            .user_stats_by_user_id(app_user.user_id)
             .await?;
         if stats.question_used >= i64::from(quota.question_limit) {
             return Err(BizError::new(
                 app_error::TEAM_USAGE_QUOTA_EXCEEDED,
-                "team question quota exceeded".to_string(),
+                "account question quota exceeded".to_string(),
             ));
         }
 
@@ -208,21 +206,24 @@ impl TeamUsageApi {
         )?;
         let app_user = self.ensure_app_user_enabled(user_id).await?;
         let team_key = team_key_from_app_user(&app_user);
-        let quota = self.ensure_quota(&team_key).await?;
+        let quota = self.ensure_quota_for_app_user(&app_user).await?;
         let stats = self
             .usage_event_svc
-            .team_stats_by_team(&team_key.school_name, &team_key.team_name)
+            .user_stats_by_user_id(app_user.user_id)
             .await?;
         let question_remaining = (i64::from(quota.question_limit) - stats.question_used).max(0);
 
         Ok(CurrentTeamUsageQuotaResponse {
-            school_name: quota.school_name,
-            team_name: quota.team_name,
+            user_id: app_user.user_id.to_string(),
+            display_id: app_user.display_id,
+            display_name: app_user.display_name,
+            school_name: team_key.school_name,
+            team_name: team_key.team_name,
             question_limit: quota.question_limit,
             question_used: stats.question_used,
             question_remaining,
             status: quota.status,
-            policy_text: format!("本队伍前 {} 次 AI 问答可使用", quota.question_limit),
+            policy_text: format!("当前账号前 {} 次 AI 问答可使用", quota.question_limit),
         })
     }
 
@@ -237,7 +238,10 @@ impl TeamUsageApi {
         if let Some(keyword) = normalize_optional(req.keyword) {
             let keyword = keyword.to_ascii_lowercase();
             rows.retain(|row| {
-                row.school_name.to_ascii_lowercase().contains(&keyword)
+                row.user_id.to_ascii_lowercase().contains(&keyword)
+                    || row.display_id.to_ascii_lowercase().contains(&keyword)
+                    || row.display_name.to_ascii_lowercase().contains(&keyword)
+                    || row.school_name.to_ascii_lowercase().contains(&keyword)
                     || row.team_name.to_ascii_lowercase().contains(&keyword)
                     || row
                         .remark
@@ -262,10 +266,10 @@ impl TeamUsageApi {
     pub async fn get_team_usage(
         &self,
         current_admin_user_id: String,
-        team_id: String,
+        usage_id: String,
     ) -> BizResult<TeamUsageResponse> {
         self.ensure_admin_permission(current_admin_user_id).await?;
-        let quota = self.ensure_quota_exists(&team_id).await?;
+        let quota = self.ensure_quota_exists(&usage_id).await?;
         self.map_quota_to_response(quota).await
     }
 
@@ -281,13 +285,12 @@ impl TeamUsageApi {
                 "question_limit must be between 0 and 1000000".to_string(),
             ));
         }
-        let quota = self.ensure_quota_exists(&req.team_id).await?;
+        let quota = self.ensure_quota_exists(&req.usage_id).await?;
         let updated = self
             .quota_svc
-            .update(UpdateTeamUsageQuota {
+            .update(UpdateAccountUsageQuota {
                 id: quota.id,
                 question_limit: req.question_limit,
-                token_limit: quota.token_limit,
                 status: req.status,
                 remark: normalize_optional(req.remark),
             })
@@ -296,167 +299,83 @@ impl TeamUsageApi {
         self.map_quota_to_response(updated).await
     }
 
-    pub async fn list_team_members(
-        &self,
-        current_admin_user_id: String,
-        team_id: String,
-    ) -> BizResult<Vec<TeamUsageMemberResponse>> {
-        self.ensure_admin_permission(current_admin_user_id).await?;
-        let quota = self.ensure_quota_exists(&team_id).await?;
-        let team_key = TeamKey {
-            school_name: quota.school_name,
-            team_name: quota.team_name,
-        };
-        let members = self.list_members_by_normalized_team(&team_key).await?;
-        let stats_by_user_id = self
-            .usage_event_svc
-            .user_stats_by_team(&team_key.school_name, &team_key.team_name)
-            .await?
-            .into_iter()
-            .map(|stats| (stats.user_id, stats))
-            .collect::<HashMap<_, _>>();
-
-        Ok(members
-            .into_iter()
-            .map(|member| {
-                let stats = stats_by_user_id.get(&member.user_id);
-                map_member_response(member, stats)
-            })
-            .collect())
-    }
-
     async fn build_team_usage_rows(&self) -> BizResult<Vec<TeamUsageResponse>> {
         let app_users = self.app_user_svc.list_all().await?;
         let quotas = self.quota_svc.list_all().await?;
-        let stats = self.usage_event_svc.team_stats().await?;
-        let member_counts = self.app_user_svc.count_members_by_team().await?;
+        let stats = self.usage_event_svc.user_stats().await?;
 
-        let mut team_keys = HashSet::<TeamKey>::new();
-        for app_user in &app_users {
-            team_keys.insert(team_key_from_app_user(app_user));
-        }
-        for quota in &quotas {
-            team_keys.insert(TeamKey {
-                school_name: quota.school_name.clone(),
-                team_name: quota.team_name.clone(),
-            });
-        }
-        for stat in &stats {
-            team_keys.insert(TeamKey {
-                school_name: stat.school_name.clone(),
-                team_name: stat.team_name.clone(),
-            });
-        }
-
-        let mut quotas_by_team = quotas
+        let mut quotas_by_user_id = quotas
             .into_iter()
-            .map(|quota| {
-                (
-                    TeamKey {
-                        school_name: quota.school_name.clone(),
-                        team_name: quota.team_name.clone(),
-                    },
-                    quota,
-                )
-            })
+            .map(|quota| (quota.user_id, quota))
             .collect::<HashMap<_, _>>();
-        let stats_by_team = stats
+        let stats_by_user_id = stats
             .into_iter()
-            .map(|stat| {
-                (
-                    TeamKey {
-                        school_name: stat.school_name.clone(),
-                        team_name: stat.team_name.clone(),
-                    },
-                    stat,
-                )
-            })
-            .collect::<HashMap<_, _>>();
-        let member_counts_by_team = member_counts
-            .into_iter()
-            .map(|(school_name, team_name, count)| {
-                (
-                    normalize_team_key(school_name.as_deref(), team_name.as_deref()),
-                    count,
-                )
-            })
+            .map(|stat| (stat.user_id, stat))
             .collect::<HashMap<_, _>>();
 
         let mut rows = Vec::new();
-        for team_key in team_keys {
-            let quota = match quotas_by_team.remove(&team_key) {
+        for app_user in app_users {
+            let quota = match quotas_by_user_id.remove(&app_user.user_id) {
                 Some(quota) => quota,
-                None => self.ensure_quota(&team_key).await?,
+                None => self.ensure_quota_for_app_user(&app_user).await?,
             };
-            let stats = stats_by_team
-                .get(&team_key)
+            let stats = stats_by_user_id
+                .get(&app_user.user_id)
                 .cloned()
-                .unwrap_or_else(|| empty_stats(&team_key));
-            rows.push(map_team_usage_response(
-                quota,
-                member_counts_by_team
-                    .get(&team_key)
-                    .copied()
-                    .unwrap_or_default()
-                    .max(0) as u64,
-                stats,
-            ));
+                .unwrap_or_else(|| empty_user_stats(app_user.user_id));
+            rows.push(map_team_usage_response(quota, app_user, stats));
         }
 
         Ok(rows)
     }
 
-    async fn map_quota_to_response(&self, quota: TeamUsageQuota) -> BizResult<TeamUsageResponse> {
+    async fn map_quota_to_response(
+        &self,
+        quota: AccountUsageQuota,
+    ) -> BizResult<TeamUsageResponse> {
+        let app_user = self
+            .app_user_svc
+            .get_by_user_id(quota.user_id)
+            .await?
+            .ok_or_else(|| {
+                BizError::new(
+                    admin_error::ADMIN_USAGE_ACCOUNT_NOT_FOUND,
+                    "account usage quota user not found".to_string(),
+                )
+            })?;
         let stats = self
             .usage_event_svc
-            .team_stats_by_team(&quota.school_name, &quota.team_name)
+            .user_stats_by_user_id(quota.user_id)
             .await?;
-        let member_count = self
-            .list_members_by_normalized_team(&TeamKey {
-                school_name: quota.school_name.clone(),
-                team_name: quota.team_name.clone(),
-            })
-            .await?
-            .len() as u64;
-        Ok(map_team_usage_response(quota, member_count, stats))
+        Ok(map_team_usage_response(quota, app_user, stats))
     }
 
-    async fn list_members_by_normalized_team(&self, team_key: &TeamKey) -> BizResult<Vec<AppUser>> {
-        let members = self.app_user_svc.list_all().await?;
-        Ok(members
-            .into_iter()
-            .filter(|member| team_key_from_app_user(member) == *team_key)
-            .collect())
-    }
-
-    async fn ensure_quota(&self, team_key: &TeamKey) -> BizResult<TeamUsageQuota> {
-        if let Some(quota) = self
-            .quota_svc
-            .get_by_team(&team_key.school_name, &team_key.team_name)
-            .await?
-        {
+    async fn ensure_quota_for_app_user(&self, app_user: &AppUser) -> BizResult<AccountUsageQuota> {
+        if let Some(quota) = self.quota_svc.get_by_user_id(app_user.user_id).await? {
             return Ok(quota);
         }
 
         self.quota_svc
-            .create(CreateTeamUsageQuota {
+            .create(CreateAccountUsageQuota {
                 id: Uuid::new_v4(),
-                school_name: team_key.school_name.clone(),
-                team_name: team_key.team_name.clone(),
+                user_id: app_user.user_id,
                 question_limit: DEFAULT_QUESTION_LIMIT,
-                token_limit: None,
-                status: TeamUsageQuotaStatus::Enabled,
+                status: AccountUsageQuotaStatus::Enabled,
                 remark: None,
             })
             .await
     }
 
-    async fn ensure_quota_exists(&self, team_id: &str) -> BizResult<TeamUsageQuota> {
-        let team_id = parse_uuid(team_id, "team_id", admin_error::ADMIN_USAGE_REQUEST_INVALID)?;
-        self.quota_svc.get_by_id(team_id).await?.ok_or_else(|| {
+    async fn ensure_quota_exists(&self, usage_id: &str) -> BizResult<AccountUsageQuota> {
+        let usage_id = parse_uuid(
+            usage_id,
+            "usage_id",
+            admin_error::ADMIN_USAGE_REQUEST_INVALID,
+        )?;
+        self.quota_svc.get_by_id(usage_id).await?.ok_or_else(|| {
             BizError::new(
-                admin_error::ADMIN_USAGE_TEAM_NOT_FOUND,
-                "team usage quota not found".to_string(),
+                admin_error::ADMIN_USAGE_ACCOUNT_NOT_FOUND,
+                "account usage quota not found".to_string(),
             )
         })
     }
@@ -490,17 +409,20 @@ impl TeamUsageApi {
 }
 
 fn map_team_usage_response(
-    quota: TeamUsageQuota,
-    member_count: u64,
-    stats: TeamUsageEventStats,
+    quota: AccountUsageQuota,
+    app_user: AppUser,
+    stats: UserUsageEventStats,
 ) -> TeamUsageResponse {
     let question_remaining = (i64::from(quota.question_limit) - stats.question_used).max(0);
+    let team_key = team_key_from_app_user(&app_user);
 
     TeamUsageResponse {
         id: quota.id.to_string(),
-        school_name: quota.school_name,
-        team_name: quota.team_name,
-        member_count,
+        user_id: app_user.user_id.to_string(),
+        display_id: app_user.display_id,
+        display_name: app_user.display_name,
+        school_name: team_key.school_name,
+        team_name: team_key.team_name,
         question_limit: quota.question_limit,
         question_used: stats.question_used,
         question_remaining,
@@ -513,32 +435,9 @@ fn map_team_usage_response(
     }
 }
 
-fn map_member_response(
-    app_user: AppUser,
-    stats: Option<&UserUsageEventStats>,
-) -> TeamUsageMemberResponse {
-    TeamUsageMemberResponse {
-        user_id: app_user.user_id.to_string(),
-        display_id: app_user.display_id,
-        display_name: app_user.display_name,
-        school_name: app_user.school_name,
-        team_name: app_user.team_name,
-        status: match app_user.status {
-            AppUserStatus::Enabled => TeamUsageMemberStatus::Enabled,
-            AppUserStatus::Disabled => TeamUsageMemberStatus::Disabled,
-        },
-        question_used: stats.map(|stats| stats.question_used).unwrap_or(0),
-        token_used: stats.map(|stats| stats.token_used).unwrap_or(0),
-        last_used_at: stats.and_then(|stats| stats.last_used_at),
-        created_at: app_user.created_at,
-        updated_at: app_user.updated_at,
-    }
-}
-
-fn empty_stats(team_key: &TeamKey) -> TeamUsageEventStats {
-    TeamUsageEventStats {
-        school_name: team_key.school_name.clone(),
-        team_name: team_key.team_name.clone(),
+fn empty_user_stats(user_id: Uuid) -> UserUsageEventStats {
+    UserUsageEventStats {
+        user_id,
         question_used: 0,
         token_used: 0,
         last_used_at: None,
@@ -568,9 +467,9 @@ fn sort_team_usage_rows(
 ) {
     match sort_by.unwrap_or(TeamUsageSortBy::UpdatedAt) {
         TeamUsageSortBy::UpdatedAt => rows.sort_by_key(|row| row.updated_at),
+        TeamUsageSortBy::DisplayId => rows.sort_by_key(|row| row.display_id.clone()),
         TeamUsageSortBy::QuestionUsed => rows.sort_by_key(|row| row.question_used),
         TeamUsageSortBy::QuestionRemaining => rows.sort_by_key(|row| row.question_remaining),
-        TeamUsageSortBy::MemberCount => rows.sort_by_key(|row| row.member_count),
         TeamUsageSortBy::LastUsedAt => rows.sort_by_key(|row| row.last_used_at),
     }
 

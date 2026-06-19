@@ -29,7 +29,7 @@ const permissions = {
   usage: {
     label: "Usage",
     team_usage: {
-      label: "Team Usage",
+      label: "Account Usage",
     },
   },
   profile: {

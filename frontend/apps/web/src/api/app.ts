@@ -42,6 +42,9 @@ export interface CurrentAppUserPermissionsResponse {
 export type TeamUsageQuotaStatus = "enabled" | "disabled"
 
 export interface CurrentTeamUsageQuotaResponse {
+  userId: string
+  displayId: string
+  displayName: string
   schoolName: string
   teamName: string
   questionLimit: number

@@ -1,27 +1,17 @@
 import { useCallback, useState } from "react"
 import { DataTable, MetricCards } from "@workspace/app-kit"
-import { TeamMembersDialog } from "./dialogs/team-members-dialog"
 import { useTeamUsageData } from "./team-usage-data"
 import { useTeamUsageTable } from "./table"
 import type { TeamUsageRow, TeamUsageTableQuery } from "./types"
 
 export default function TeamUsagePage() {
-  const [membersDialogRow, setMembersDialogRow] =
-    useState<TeamUsageRow | null>(null)
   const [tableRefreshKey, setTableRefreshKey] = useState(0)
   const { metricCards, fetchData, invalidateTeamUsage } = useTeamUsageData()
-  const handleViewMembers = useCallback((row: TeamUsageRow) => {
-    setMembersDialogRow(row)
-  }, [])
   const handleInvalidateTeamUsage = useCallback(async () => {
     await invalidateTeamUsage()
     setTableRefreshKey((current) => current + 1)
   }, [invalidateTeamUsage])
-  const table = useTeamUsageTable(
-    fetchData,
-    handleInvalidateTeamUsage,
-    handleViewMembers
-  )
+  const table = useTeamUsageTable(fetchData, handleInvalidateTeamUsage)
 
   return (
     <div className="w-full min-w-0 space-y-4">
@@ -47,16 +37,6 @@ export default function TeamUsagePage() {
           fillWidth={table.fillWidth}
         />
       </div>
-
-      <TeamMembersDialog
-        open={Boolean(membersDialogRow)}
-        row={membersDialogRow}
-        onOpenChange={(open) => {
-          if (!open) {
-            setMembersDialogRow(null)
-          }
-        }}
-      />
     </div>
   )
 }

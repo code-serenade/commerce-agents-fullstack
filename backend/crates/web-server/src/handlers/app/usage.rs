@@ -26,6 +26,9 @@ fn map_current_team_usage_quota_response(
     quota: service::dto::team_usage::CurrentTeamUsageQuotaResponse,
 ) -> CurrentTeamUsageQuotaResponse {
     CurrentTeamUsageQuotaResponse {
+        user_id: quota.user_id,
+        display_id: quota.display_id,
+        display_name: quota.display_name,
         school_name: quota.school_name,
         team_name: quota.team_name,
         question_limit: quota.question_limit,

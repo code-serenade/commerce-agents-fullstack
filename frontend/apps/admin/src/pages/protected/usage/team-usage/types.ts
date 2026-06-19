@@ -4,9 +4,11 @@ export type TeamUsageStatusFilter = ApiTeamUsageStatus
 
 export interface TeamUsageRow {
   id: string
+  user_id: string
+  display_id: string
+  display_name: string
   school_name: string
   team_name: string
-  member_count: number
   question_limit: number
   question_used: number
   question_remaining: number

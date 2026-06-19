@@ -40,11 +40,11 @@ pub async fn list_team_usages(
 
 pub async fn get_team_usage(
     Extension(auth_user): Extension<AuthUser>,
-    Path(team_id): Path<String>,
+    Path(usage_id): Path<String>,
 ) -> ResponseResult<TeamUsageResponse> {
     let api = TeamUsageApi::new(get_app_ctx());
     let row = api
-        .get_team_usage(auth_user.user_id, team_id)
+        .get_team_usage(auth_user.user_id, usage_id)
         .await
         .map_err(from_biz_error)?;
 
@@ -55,7 +55,7 @@ pub async fn get_team_usage(
 
 pub async fn update_team_quota(
     Extension(auth_user): Extension<AuthUser>,
-    Path(team_id): Path<String>,
+    Path(usage_id): Path<String>,
     Json(req): Json<UpdateTeamUsageQuotaRequest>,
 ) -> ResponseResult<TeamUsageResponse> {
     req.validate().map_err(Error::from)?;
@@ -64,7 +64,7 @@ pub async fn update_team_quota(
         .update_team_quota(
             auth_user.user_id,
             service::dto::team_usage::UpdateTeamUsageQuotaRequest {
-                team_id,
+                usage_id,
                 question_limit: req.question_limit,
                 status: map_status_to_service(req.status),
                 remark: req.remark,
@@ -78,30 +78,14 @@ pub async fn update_team_quota(
         .to_json())
 }
 
-pub async fn list_team_members(
-    Extension(auth_user): Extension<AuthUser>,
-    Path(team_id): Path<String>,
-) -> ResponseResult<Vec<TeamUsageMemberResponse>> {
-    let api = TeamUsageApi::new(get_app_ctx());
-    let members = api
-        .list_team_members(auth_user.user_id, team_id)
-        .await
-        .map_err(from_biz_error)?;
-
-    Ok(members
-        .into_iter()
-        .map(map_team_usage_member_response)
-        .collect::<Vec<_>>()
-        .into_common_response()
-        .to_json())
-}
-
 fn map_team_usage_response(row: service::dto::team_usage::TeamUsageResponse) -> TeamUsageResponse {
     TeamUsageResponse {
         id: row.id,
+        user_id: row.user_id,
+        display_id: row.display_id,
+        display_name: row.display_name,
         school_name: row.school_name,
         team_name: row.team_name,
-        member_count: row.member_count,
         question_limit: row.question_limit,
         question_used: row.question_used,
         question_remaining: row.question_remaining,
@@ -111,27 +95,6 @@ fn map_team_usage_response(row: service::dto::team_usage::TeamUsageResponse) -> 
         last_used_at: row.last_used_at,
         created_at: row.created_at,
         updated_at: row.updated_at,
-    }
-}
-
-fn map_team_usage_member_response(
-    member: service::dto::team_usage::TeamUsageMemberResponse,
-) -> TeamUsageMemberResponse {
-    TeamUsageMemberResponse {
-        user_id: member.user_id,
-        display_id: member.display_id,
-        display_name: member.display_name,
-        school_name: member.school_name,
-        team_name: member.team_name,
-        status: match member.status {
-            service::dto::team_usage::TeamUsageMemberStatus::Enabled => AppUserStatus::Enabled,
-            service::dto::team_usage::TeamUsageMemberStatus::Disabled => AppUserStatus::Disabled,
-        },
-        question_used: member.question_used,
-        token_used: member.token_used,
-        last_used_at: member.last_used_at,
-        created_at: member.created_at,
-        updated_at: member.updated_at,
     }
 }
 
@@ -156,11 +119,11 @@ fn map_status_from_service(
 fn map_sort_by_to_service(sort_by: TeamUsageSortBy) -> service::dto::team_usage::TeamUsageSortBy {
     match sort_by {
         TeamUsageSortBy::UpdatedAt => service::dto::team_usage::TeamUsageSortBy::UpdatedAt,
+        TeamUsageSortBy::DisplayId => service::dto::team_usage::TeamUsageSortBy::DisplayId,
         TeamUsageSortBy::QuestionUsed => service::dto::team_usage::TeamUsageSortBy::QuestionUsed,
         TeamUsageSortBy::QuestionRemaining => {
             service::dto::team_usage::TeamUsageSortBy::QuestionRemaining
         }
-        TeamUsageSortBy::MemberCount => service::dto::team_usage::TeamUsageSortBy::MemberCount,
         TeamUsageSortBy::LastUsedAt => service::dto::team_usage::TeamUsageSortBy::LastUsedAt,
     }
 }

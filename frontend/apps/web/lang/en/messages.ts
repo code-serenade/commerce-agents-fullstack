@@ -1084,16 +1084,17 @@ const messages = {
       action: "Sign in",
     },
     quota: {
-      loading: "Loading team question quota...",
+      loading: "Loading account question quota...",
       availableBadge: "Quota available",
       exhaustedBadge: "No questions left",
       disabledBadge: "Paused",
       usage: "{{used}} / {{limit}} used, {{remaining}} remaining",
-      team: "{{school}} / {{team}}",
+      account: "Account: {{account}}",
+      profile: "Stats profile: {{school}} / {{team}}",
       exhaustedHint:
-        "This team's AI question quota has been used up. Contact the event or platform administrator to add quota.",
+        "This account's AI question quota has been used up. Contact the event or platform administrator to add quota.",
       disabledHint:
-        "This team's AI questions are paused. Contact an administrator.",
+        "This account's AI questions are paused. Contact an administrator.",
     },
     sidebar: {
       newChat: "New chat",

@@ -12,7 +12,7 @@ const messages = {
       appRoles: "App 角色",
       appRolePermissions: "App 角色授权",
       usageManagement: "用量管理",
-      teamUsage: "队伍用量",
+      teamUsage: "账号用量",
     },
     authLayout: {
         eyebrow: "Workspace Admin",
@@ -415,27 +415,28 @@ const messages = {
       teamUsage: {
         metrics: {
           all: {
-            label: "队伍总数",
-            tail: "服务端分页查询返回的全部队伍数量。",
+            label: "账号总数",
+            tail: "服务端分页查询返回的全部账号数量。",
           },
           questionUsed: {
             label: "当前页问答数",
-            tail: "当前页队伍已记录的问答消耗总和。",
+            tail: "当前页账号已记录的问答消耗总和。",
           },
           exhausted: {
             label: "当前页已耗尽",
-            tail: "当前页剩余额度为 0 的启用队伍。",
+            tail: "当前页剩余额度为 0 的启用账号。",
           },
           disabled: {
             label: "当前页停用",
-            tail: "当前页已被后台停用的队伍。",
+            tail: "当前页已被后台停用的账号。",
           },
         },
         table: {
           columns: {
+            displayId: "账号 ID",
+            displayName: "显示名称",
             schoolName: "学校",
             teamName: "队伍",
-            memberCount: "成员",
             questionUsed: "已问答",
             questionLimit: "问答上限",
             questionRemaining: "剩余",
@@ -455,7 +456,7 @@ const messages = {
           query: {
             keyword: {
               label: "关键字",
-              placeholder: "搜索学校、队伍或备注",
+              placeholder: "搜索账号、学校、队伍或备注",
             },
             status: {
               label: "状态",
@@ -465,21 +466,21 @@ const messages = {
           actions: {
             edit: {
               label: "编辑额度",
-              title: "编辑队伍额度 {{team}}",
-              description: "调整问答上限、状态和备注。",
-              success: "队伍额度已更新",
+              title: "编辑账号额度 {{account}}",
+              description: "调整该账号的问答上限、状态和备注。",
+              success: "账号额度已更新",
             },
             toggle: {
               enable: "启用",
               disable: "停用",
-              enabledSuccess: "队伍已启用",
-              disabledSuccess: "队伍已停用",
+              enabledSuccess: "账号问答已启用",
+              disabledSuccess: "账号问答已停用",
             },
-            members: "查看成员",
           },
         },
         edit: {
           fields: {
+            account: "账号",
             schoolName: "学校",
             teamName: "队伍",
             questionLimit: "问答上限",
@@ -487,20 +488,6 @@ const messages = {
             remark: "备注",
           },
           remarkPlaceholder: "输入后台备注",
-        },
-        members: {
-          title: "队伍成员 {{team}}",
-          description: "学校：{{school}}",
-          loading: "成员加载中。",
-          empty: "暂无成员。",
-          columns: {
-            displayId: "ID",
-            displayName: "显示名称",
-            status: "状态",
-            questionUsed: "问答次数",
-            tokenUsed: "Token 消耗",
-            lastUsedAt: "最近使用",
-          },
         },
       },
     },

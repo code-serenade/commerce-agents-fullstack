@@ -44,7 +44,12 @@ export function AgentChatQuotaStatus({
         })}
       </span>
       <span>
-        {t("agentChat.quota.team", {
+        {t("agentChat.quota.account", {
+          account: quota.displayId || quota.displayName || quota.userId,
+        })}
+      </span>
+      <span>
+        {t("agentChat.quota.profile", {
           school: quota.schoolName,
           team: quota.teamName,
         })}

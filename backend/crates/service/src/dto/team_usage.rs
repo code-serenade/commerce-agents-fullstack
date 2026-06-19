@@ -1,15 +1,15 @@
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 
-pub use repo::table::team_usage_quotas::TeamUsageQuotaStatus;
+pub use repo::table::account_usage_quotas::AccountUsageQuotaStatus as TeamUsageQuotaStatus;
 
 #[derive(Debug, Clone, Copy, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum TeamUsageSortBy {
     UpdatedAt,
+    DisplayId,
     QuestionUsed,
     QuestionRemaining,
-    MemberCount,
     LastUsedAt,
 }
 
@@ -32,7 +32,7 @@ pub struct ListTeamUsagesRequest {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct UpdateTeamUsageQuotaRequest {
-    pub team_id: String,
+    pub usage_id: String,
     pub question_limit: i32,
     pub status: TeamUsageQuotaStatus,
     pub remark: Option<String>,
@@ -41,9 +41,11 @@ pub struct UpdateTeamUsageQuotaRequest {
 #[derive(Debug, Clone, Serialize)]
 pub struct TeamUsageResponse {
     pub id: String,
+    pub user_id: String,
+    pub display_id: String,
+    pub display_name: String,
     pub school_name: String,
     pub team_name: String,
-    pub member_count: u64,
     pub question_limit: i32,
     pub question_used: i64,
     pub question_remaining: i64,
@@ -53,27 +55,6 @@ pub struct TeamUsageResponse {
     pub last_used_at: Option<OffsetDateTime>,
     pub created_at: OffsetDateTime,
     pub updated_at: OffsetDateTime,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct TeamUsageMemberResponse {
-    pub user_id: String,
-    pub display_id: String,
-    pub display_name: String,
-    pub school_name: Option<String>,
-    pub team_name: Option<String>,
-    pub status: TeamUsageMemberStatus,
-    pub question_used: i64,
-    pub token_used: i64,
-    pub last_used_at: Option<OffsetDateTime>,
-    pub created_at: OffsetDateTime,
-    pub updated_at: OffsetDateTime,
-}
-
-#[derive(Debug, Clone, Copy, Serialize)]
-pub enum TeamUsageMemberStatus {
-    Enabled,
-    Disabled,
 }
 
 #[derive(Debug, Clone)]
@@ -121,6 +102,9 @@ pub enum AgentQuestionOutputStatus {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct CurrentTeamUsageQuotaResponse {
+    pub user_id: String,
+    pub display_id: String,
+    pub display_name: String,
     pub school_name: String,
     pub team_name: String,
     pub question_limit: i32,

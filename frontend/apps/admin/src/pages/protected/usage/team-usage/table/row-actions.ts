@@ -10,8 +10,7 @@ import {
 import type { TeamUsageRow } from "../types"
 
 export function useTeamUsageRowActions(
-  invalidateTeamUsage: () => Promise<unknown>,
-  onViewMembers: (row: TeamUsageRow) => void
+  invalidateTeamUsage: () => Promise<unknown>
 ): DataTableRowActionsConfig<TeamUsageRow> {
   const { t } = useTranslation()
   const editDialogHandlesRef = useRef(
@@ -20,24 +19,24 @@ export function useTeamUsageRowActions(
 
   return useMemo(() => {
     const setEditDialogHandle = (
-      teamId: string,
+      usageId: string,
       handle: EditTeamQuotaDialogContentHandle | null
     ) => {
       if (handle) {
-        editDialogHandlesRef.current.set(teamId, handle)
+        editDialogHandlesRef.current.set(usageId, handle)
         return
       }
 
-      editDialogHandlesRef.current.delete(teamId)
+      editDialogHandlesRef.current.delete(usageId)
     }
 
     return {
-      columnWidth: 118,
+      columnWidth: 92,
       edit: {
         label: t("admin.usage.teamUsage.table.actions.edit.label"),
         title: (row) =>
           t("admin.usage.teamUsage.table.actions.edit.title", {
-            team: row.team_name,
+            account: row.display_id || row.display_name || row.user_id,
           }),
         description: t("admin.usage.teamUsage.table.actions.edit.description"),
         renderContent: ({ row }) =>
@@ -85,12 +84,7 @@ export function useTeamUsageRowActions(
             )
           },
         },
-        {
-          key: "members",
-          label: t("admin.usage.teamUsage.table.actions.members"),
-          onClick: onViewMembers,
-        },
       ],
     }
-  }, [invalidateTeamUsage, onViewMembers, t])
+  }, [invalidateTeamUsage, t])
 }

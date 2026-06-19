@@ -50,7 +50,15 @@ export const EditTeamQuotaDialogContent =
 
       return (
         <div className="grid gap-4 py-2">
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2 sm:grid-cols-3">
+            <div className="grid gap-2">
+              <span className="text-sm font-medium">
+                {t("admin.usage.teamUsage.edit.fields.account")}
+              </span>
+              <span className="text-sm text-foreground">
+                {row.display_id || row.user_id}
+              </span>
+            </div>
             <div className="grid gap-2">
               <span className="text-sm font-medium">
                 {t("admin.usage.teamUsage.edit.fields.schoolName")}

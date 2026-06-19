@@ -126,7 +126,7 @@ pub fn from_biz_error(err: BizError) -> ApiError {
         | admin_error::ADMIN_USER_DISABLED
         | admin_error::ADMIN_PERMISSION_DENIED
         | admin_error::ADMIN_ROLE_RESERVED => StatusCode::FORBIDDEN,
-        admin_error::ADMIN_AUTH_USER_NOT_FOUND | admin_error::ADMIN_USAGE_TEAM_NOT_FOUND => {
+        admin_error::ADMIN_AUTH_USER_NOT_FOUND | admin_error::ADMIN_USAGE_ACCOUNT_NOT_FOUND => {
             StatusCode::NOT_FOUND
         }
         admin_error::ADMIN_USAGE_REQUEST_INVALID => StatusCode::BAD_REQUEST,

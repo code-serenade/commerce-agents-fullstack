@@ -7,9 +7,9 @@ export type SortOrder = "asc" | "desc"
 export type TeamUsageStatus = "enabled" | "disabled"
 export type TeamUsageSortBy =
   | "updatedAt"
+  | "displayId"
   | "questionUsed"
   | "questionRemaining"
-  | "memberCount"
   | "lastUsedAt"
 
 export interface AdminUserResponse {
@@ -54,29 +54,17 @@ export interface PaginatedResponse<T> {
 
 export interface TeamUsageResponse {
   id: string
+  userId: string
+  displayId: string
+  displayName: string
   schoolName: string
   teamName: string
-  memberCount: number
   questionLimit: number
   questionUsed: number
   questionRemaining: number
   tokenUsed: number
   status: TeamUsageStatus
   remark?: string | null
-  lastUsedAt?: string | null
-  createdAt: string
-  updatedAt: string
-}
-
-export interface TeamUsageMemberResponse {
-  userId: string
-  displayId: string
-  displayName: string
-  schoolName?: string | null
-  teamName?: string | null
-  status: AppUserStatus
-  questionUsed: number
-  tokenUsed: number
   lastUsedAt?: string | null
   createdAt: string
   updatedAt: string
@@ -251,37 +239,28 @@ export const listTeamUsagesApi = async (
 ): Promise<PaginatedResponse<TeamUsageResponse>> => {
   return request<ListTeamUsagesRequest, PaginatedResponse<TeamUsageResponse>>({
     method: "GET",
-    url: "/api/admin/usage/teams",
+    url: "/api/admin/usage/accounts",
     body: params,
   })
 }
 
 export const getTeamUsageApi = async (
-  teamId: string
+  usageId: string
 ): Promise<TeamUsageResponse> => {
   return request<undefined, TeamUsageResponse>({
     method: "GET",
-    url: `/api/admin/usage/teams/${encodeURIComponent(teamId)}`,
+    url: `/api/admin/usage/accounts/${encodeURIComponent(usageId)}`,
   })
 }
 
 export const updateTeamUsageQuotaApi = async (
-  teamId: string,
+  usageId: string,
   body: UpdateTeamUsageQuotaRequest
 ): Promise<TeamUsageResponse> => {
   return request<UpdateTeamUsageQuotaRequest, TeamUsageResponse>({
     method: "PATCH",
-    url: `/api/admin/usage/teams/${encodeURIComponent(teamId)}/quota`,
+    url: `/api/admin/usage/accounts/${encodeURIComponent(usageId)}/quota`,
     body,
-  })
-}
-
-export const listTeamUsageMembersApi = async (
-  teamId: string
-): Promise<TeamUsageMemberResponse[]> => {
-  return request<undefined, TeamUsageMemberResponse[]>({
-    method: "GET",
-    url: `/api/admin/usage/teams/${encodeURIComponent(teamId)}/members`,
   })
 }
 
