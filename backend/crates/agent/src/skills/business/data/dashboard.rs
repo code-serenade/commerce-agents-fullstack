@@ -97,7 +97,7 @@ pub(super) fn data_dashboard(input: &Value) -> Value {
         "has_data": has_user_metrics,
         "data_readiness": data_readiness,
         "adapter_status": if has_user_metrics { "manual_input" } else { "store_metrics_required" },
-        "数据来源": if has_user_metrics { "用户提供指标" } else { "未接入 store_metrics adapter；以下为样例基线，仅用于展示看板结构和诊断口径" },
+        "数据来源": if has_user_metrics { "用户提供指标" } else { "未接入 store_metrics adapter；以下为样例基线，仅用于展示看板结构和诊断方法" },
         "商品引用": empty_string_as_null(product_ref),
         "周期": format!("{days}天"),
         "平台": platform,
@@ -116,7 +116,7 @@ pub(super) fn data_dashboard(input: &Value) -> Value {
         "经营健康度": {
             "总分": score,
             "等级": if score >= 80 { "健康" } else if score >= 60 { "需关注" } else { "风险" },
-            "评分口径": "GMV动能、转化、ROI、退款、毛利和目标完成率的确定性规则评分"
+            "评分方式": "GMV动能、转化、ROI、退款、毛利和目标完成率的确定性规则评分"
         },
         "看板分区": [
             {"section": "增长", "metrics": ["GMV", "订单数", "访客数"], "summary": growth_summary(gmv_growth, order_growth, visitor_growth)},
@@ -374,7 +374,7 @@ pub(super) fn product_metric_actions(
         actions.push("收缩低ROI商品投放计划，检查素材疲劳和关键词/人群匹配");
     }
     if refund_rate > 6.0 {
-        actions.push("拆解退款原因，检查商品描述、规格、物流和售后口径是否一致");
+        actions.push("拆解退款原因，检查商品描述、规格、物流和售后说明是否一致");
     }
     if inventory > 0.0 && inventory < 10.0 {
         actions.push("低库存商品暂停大额加码，先确认补货周期和安全库存");
@@ -460,7 +460,7 @@ pub(super) fn campaign_metric_actions(
         actions.push("按计划/素材/人群拆ROAS，保留高产出单元，暂停低效单元");
     }
     if refund_rate > 8.0 {
-        actions.push("把活动订单按SKU和退款原因拆解，避免用高退款活动继续放量");
+        actions.push("把活动订单按款式和退款原因拆解，避免用高退款活动继续放量");
     }
     if actions.is_empty() {
         actions.push("活动指标未见明显高危信号，下一轮继续按预算消耗、ROAS和转化率复盘");

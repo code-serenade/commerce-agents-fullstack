@@ -379,7 +379,7 @@ fn difference_points(
                 "presentIn": titles,
                 "missingIn": missing_sources,
                 "evidence": items.iter().take(3).map(|item| signal_json(item)).collect::<Vec<_>>(),
-                "summary": format!("{label} 只出现在部分资料中，需确认是否是口径差异、资料缺失或版本差异。")
+                "summary": format!("{label} 只出现在部分资料中，需确认是否是算法差异、资料缺失或版本差异。")
             }))
         })
         .take(max_points)
@@ -409,7 +409,7 @@ fn conflict_points(signals: &[MaterialSignal], max_points: usize) -> Vec<Value> 
             "topic": label,
             "conflictType": if numeric_conflict { "numeric_or_metric_gap" } else { "opposite_polarity" },
             "sources": items.iter().take(4).map(|item| signal_json(item)).collect::<Vec<_>>(),
-            "risk": "不同资料对同一主题给出的数字或判断不一致，最终回答需要先标注口径假设并回到原资料核对。"
+            "risk": "不同资料对同一主题给出的数字或判断不一致，最终回答需要先标注计算假设并回到原资料核对。"
         }));
         if conflicts.len() >= max_points {
             break;
@@ -467,7 +467,7 @@ fn mergeable_conclusions(
     }
     if !conflict_points.is_empty() {
         conclusions.push(
-            "存在冲突点时，应先核对版本、时间范围、统计口径或文件来源，再给最终结论。".to_owned(),
+            "存在冲突点时，应先核对版本、时间范围、统计方式或文件来源，再给最终结论。".to_owned(),
         );
     }
     if conclusions.is_empty() {
@@ -506,7 +506,7 @@ fn missing_info(materials: &[MaterialDoc], conflicts: &[Value], terms: &[String]
     }
     if !conflicts.is_empty() {
         missing
-            .push("存在冲突点，需要补充版本、时间范围、统计口径或原始表格后再定结论。".to_owned());
+            .push("存在冲突点，需要补充版本、时间范围、统计方式或原始表格后再定结论。".to_owned());
     }
     if materials.len() < 3 {
         missing.push("当前只有两份资料，只能做两两对比，不能判断更广泛的共性。".to_owned());
@@ -577,7 +577,7 @@ fn next_actions(materials: &[MaterialDoc]) -> Vec<String> {
         .any(|material| material.material_type.contains("excel"))
     {
         actions.push(
-            "涉及 Excel/表格资料时，继续调用表格剖析或数据/财务 Skill 校验字段口径。".to_owned(),
+            "涉及 Excel/表格资料时，继续调用表格剖析或数据/财务 Skill 校验字段含义。".to_owned(),
         );
     }
     if materials

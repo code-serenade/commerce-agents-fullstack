@@ -57,7 +57,7 @@ impl Skill for CreativeContentCalendar {
             "每周发布数量": weekly_posts,
             "排期": schedule,
             "选题原则": ["首条给痛点或结果", "中段做测评和对比", "末段承接直播/私域/客服问题", "每周复盘标题CTR和完播率"],
-            "复盘字段": ["发布时间", "平台", "选题", "内容形式", "曝光", "点击", "完播", "加购", "评论问题"]
+            "复盘时要看的数据": ["发布时间", "平台", "选题", "内容形式", "曝光", "点击", "完播", "加购", "评论问题"]
         });
         normalize_creative_output("creative_content_calendar", &params, &mut output);
         Ok(SkillOutcome::new(output).with_summary("内容排期已生成"))

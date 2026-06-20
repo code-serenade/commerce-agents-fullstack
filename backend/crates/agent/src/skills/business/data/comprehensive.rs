@@ -133,7 +133,7 @@ pub(super) fn comprehensive_diagnosis(input: &Value) -> Value {
         "商品引用": empty_string_as_null(product_ref),
         "分析天数": days,
         "重点方向": focus,
-        "分析口径": focus_instruction(&focus),
+        "分析方法": focus_instruction(&focus),
         "数据来源": "基于本次用户显式输入和新产品 Rust Agent 数据 skill 编排；未直连淘宝、抖音、千川或数仓实时数据",
         "诊断覆盖": {
             "成功分项": success_count,
@@ -144,7 +144,7 @@ pub(super) fn comprehensive_diagnosis(input: &Value) -> Value {
         "整体健康评分": {
             "总分": health_score,
             "等级": grade,
-            "评分口径": "优先采用经营看板评分；无完整看板时按真实分项覆盖、风险数量和缺失数据进行规则评分"
+            "评分方式": "优先采用经营看板评分；无完整看板时按真实分项覆盖、风险数量和缺失数据进行规则评分"
         },
         "综合诊断报告": build_diagnosis_report(DiagnosisReportDraft {
             days,

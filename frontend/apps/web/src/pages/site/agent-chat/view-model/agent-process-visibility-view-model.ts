@@ -51,11 +51,20 @@ export function findPreviousUserTask(
   messages: AgentChatMessage[],
   fromIndex: number
 ) {
+  return findPreviousUserContent(messages, fromIndex) ?? ""
+}
+
+export function findPreviousUserContent(
+  messages: AgentChatMessage[],
+  fromIndex: number
+) {
   for (let index = fromIndex - 1; index >= 0; index -= 1) {
     const message = messages[index]
-    if (message?.role === "user") return message.content
+    if (message?.role === "user" && message.content.trim()) {
+      return message.content
+    }
   }
-  return ""
+  return undefined
 }
 
 export function findTurnLabel(messages: AgentChatMessage[], fromIndex: number) {

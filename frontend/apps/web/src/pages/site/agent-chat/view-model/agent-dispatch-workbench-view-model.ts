@@ -18,6 +18,7 @@ import {
   hasFinished,
   normalizeRuntimeRole,
 } from "./agent-process-runtime-view-model"
+import { buildDispatchPreviewLines } from "./agent-dispatch-preview-lines-view-model"
 import type { SwarmState } from "./swarm-panel-view-model"
 
 export interface DispatchWorkbenchStep {
@@ -103,7 +104,7 @@ export function getDispatchWorkbenchModel(
     filename: t(`agentChat.thread.dispatchPanel.previewFiles.${kind}`),
     kind,
     modeLabel,
-    previewLines: buildPreviewLines({
+    previewLines: buildDispatchPreviewLines({
       adaptiveSummary,
       facts,
       modeLabel,
@@ -249,47 +250,4 @@ function hasFailed(runtimeEvents: AgentRuntimeEvent[]) {
       event.type === "workspace_run_failed" ||
       event.type === "task_node_failed"
   )
-}
-
-function buildPreviewLines(input: {
-  adaptiveSummary?: string
-  facts: AgentDispatchFact[]
-  modeLabel: string
-  progress: AgentProcessProgress
-  request: string
-  steps: DispatchWorkbenchStep[]
-  summary: string
-  t: TFunction
-}) {
-  const { adaptiveSummary, facts, modeLabel, progress, request, steps, summary, t } = input
-  return [
-    t("agentChat.thread.dispatchPanel.preview.heading", { mode: modeLabel }),
-    t("agentChat.thread.dispatchPanel.preview.request", { request }),
-    t("agentChat.thread.dispatchPanel.preview.summary", { summary }),
-    ...(adaptiveSummary
-      ? [
-          t("agentChat.thread.dispatchPanel.preview.adaptive", {
-            summary: adaptiveSummary,
-          }),
-        ]
-      : []),
-    t("agentChat.thread.dispatchPanel.preview.progress", {
-      completed: progress.completed,
-      stage: progress.stage,
-      total: progress.total,
-    }),
-    ...steps.map((step) =>
-      t("agentChat.thread.dispatchPanel.preview.step", {
-        detail: step.detail,
-        index: String(step.index + 1).padStart(2, "0"),
-        title: step.title,
-      })
-    ),
-    ...facts.map((fact) =>
-      t("agentChat.thread.dispatchPanel.preview.fact", {
-        detail: fact.detail,
-        label: fact.label,
-      })
-    ),
-  ]
 }

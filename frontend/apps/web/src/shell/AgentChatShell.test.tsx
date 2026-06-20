@@ -98,9 +98,14 @@ describe("AgentChatShell", () => {
           button.compareDocumentPosition(historyToggle) &
             Node.DOCUMENT_POSITION_FOLLOWING
         )
-      )
+    )
     expect(newChatButton).toBeDefined()
-    expect(newChatButton?.getAttribute("data-size")).toBe("sm")
+    const firstHistoryButton = screen.getByRole("button", {
+      name: chatState.conversationTitles[0],
+    })
+    expect(newChatButton?.getAttribute("data-size")).toBe(
+      firstHistoryButton.getAttribute("data-size")
+    )
 
     const newChatText = within(newChatButton as HTMLButtonElement).getByText(
       i18n.t("agentChat.sidebar.newChat")

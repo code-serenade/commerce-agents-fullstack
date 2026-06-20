@@ -7,19 +7,26 @@ pub(super) fn extend_runtime_strategy_facts(
     facts: &mut Vec<Fact>,
 ) {
     let mode = runtime_response_mode(metadata);
-    let answer_style = match mode {
-        "quick" => {
-            "回答模式：快速简答。优先给直接结论、关键理由和最多 3 \
+    let force_rich = metadata_requires_rich_delivery(metadata);
+    let answer_style = if force_rich {
+        "回答模式：强制丰富交付。用户明确要求基于现有资料、不要再补资料、深入研究或给干货；\
+         即使界面当前是快速模式，也必须给结构化、有判断、有可执行动作和风险边界的完整回答，\
+         缺资料只能后置为待复核边界，不能缩成短答或请用户补资料。"
+    } else {
+        match mode {
+            "quick" => {
+                "回答模式：快速简答。优先给直接结论、关键理由和最多 3 \
              个下一步动作；减少铺垫、过程展开和长篇教学，除非用户明确要求详细推导。"
-        }
-        "execution" => {
-            "回答模式：丰富执行。按用户要的交付物决定展开程度；用户要完整方案时给可执行动作、\
+            }
+            "execution" => {
+                "回答模式：丰富执行。按用户要的交付物决定展开程度；用户要完整方案时给可执行动作、\
              风险边界和复盘字段；用户只要标题、话术、字段或短判断时仍直接交付，不强制岗位报告、\
              表格或完整方案。"
-        }
-        _ => {
-            "回答模式：教学模式。默认面向电商学生和新手，先给可用结论，再用通俗语言解释概念、\
+            }
+            _ => {
+                "回答模式：教学模式。先给可用结论，再用通俗语言解释概念、\
              判断过程、为什么这么做和下一步怎么练。"
+            }
         }
     };
     facts.push(Fact {
@@ -34,10 +41,10 @@ pub(super) fn extend_runtime_strategy_facts(
              ROI、转化率、漏斗、客单价等专业词要用白话解释，并给简单例子。"
         }
         "professional" => {
-            "讲解深度：高。保留关键指标、推导路径、约束假设、风险边界和可复核口径，\
+            "讲解深度：高。保留关键指标、推导路径、约束假设、风险边界和可复核依据，\
              适合汇报和专业复盘。"
         }
-        _ => "讲解深度：中。按电商岗位应用口径解释，术语不过度展开，但关键概念和动作口径要说清楚。",
+        _ => "讲解深度：中。按真实电商场景解释，术语不过度展开，但关键概念和动作方式要说清楚。",
     };
     facts.push(Fact {
         source: "runtime.explanation_depth".to_string(),
@@ -103,6 +110,40 @@ pub(super) fn runtime_response_mode(metadata: &std::collections::BTreeMap<String
         return "execution";
     }
     "learning"
+}
+
+pub(super) fn metadata_requires_rich_delivery(
+    metadata: &std::collections::BTreeMap<String, String>,
+) -> bool {
+    metadata
+        .values()
+        .any(|value| text_requires_rich_delivery(value))
+}
+
+fn text_requires_rich_delivery(value: &str) -> bool {
+    [
+        "不补资料",
+        "不再补资料",
+        "不会提供任何其他信息",
+        "不会给你提供任何其他信息",
+        "不提供任何其他信息",
+        "不要让我再提供资料",
+        "必须根据我所给资料",
+        "必须根据现有资料",
+        "必须根据我刚才所给资料",
+        "基于我刚才所给资料",
+        "基于当前已知资料",
+        "丰富回答",
+        "丰富一点",
+        "详细回答",
+        "深入研究",
+        "给干货",
+        "要有干货",
+        "不能只回答几句",
+        "不要只回答几句",
+    ]
+    .iter()
+    .any(|marker| value.contains(marker))
 }
 
 fn runtime_learning_level(metadata: &std::collections::BTreeMap<String, String>) -> &str {

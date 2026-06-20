@@ -245,7 +245,8 @@ fn next_actions(has_content: bool, material_type: &str) -> Vec<String> {
     ];
     if matches!(material_type, "excel" | "csv" | "xlsx" | "xls") {
         actions.push(
-            "继续调用表格剖析或 data_* Skill，识别字段、指标口径、异常值和可计算指标。".to_owned(),
+            "继续调用表格剖析或 data_* Skill，识别字段含义、指标算法、异常值和可计算指标。"
+                .to_owned(),
         );
     }
     if matches!(material_type, "image" | "png" | "jpg" | "jpeg") {

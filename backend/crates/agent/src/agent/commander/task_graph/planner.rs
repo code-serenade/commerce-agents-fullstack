@@ -879,6 +879,28 @@ mod tests {
     }
 
     #[test]
+    fn rich_followup_delivery_routes_to_thinking_chat() {
+        let rules =
+            load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
+        let route = manual_route("data", &["creative", "design"]);
+        let graph = plan_task_graph_from_rules(
+            &TaskId("task-rich-followup-delivery".to_string()),
+            "我不会给你提供任何其他信息，但是你必须根据我刚才所给资料和你的回答进行丰富回答，要有干货。",
+            Some(&route),
+            &rules,
+        )
+        .expect("rich follow-up should match forced delivery graph");
+
+        assert_eq!(graph.nodes.len(), 1, "{:#?}", graph.nodes);
+        assert_eq!(graph.nodes[0].role, "chat");
+        assert_eq!(graph.nodes[0].title, "强制丰富交付");
+        assert_eq!(graph.nodes[0].llm_usage.as_deref(), Some("thinking"));
+        assert_eq!(graph.nodes[0].skill_autosuggest, Some(false));
+        assert!(graph.nodes[0].objective.contains("不要再补资料"));
+        assert!(graph.nodes[0].objective.contains("丰富回答"));
+    }
+
+    #[test]
     fn followup_homework_phrase_without_review_request_stays_business_graph() {
         let rules =
             load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");

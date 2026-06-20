@@ -49,7 +49,7 @@ pub fn specs() -> Vec<SkillSpec> {
         spec(
             "query_product_metrics",
             "查询商品指标",
-            "查询单个商品或SKU经营指标；支持本轮显式指标输入，未接数据源时明确降级",
+            "查询单个商品或款式经营指标；支持本轮显式指标输入，未接数据源时明确降级",
             SkillPriority::High,
             vec![
                 field(

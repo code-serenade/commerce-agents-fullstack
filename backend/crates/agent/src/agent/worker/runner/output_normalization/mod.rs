@@ -19,7 +19,20 @@ use super::{
     types::ParsedWorkerRoleOutput,
     util::push_unique,
 };
-use crate::{agent::worker::Task, core::protocol::RoleWorkOutput, skills::SkillExecutionResult};
+use crate::{
+    agent::{
+        context_text,
+        forced_rich_delivery::{
+            forced_rich_answer_is_too_thin, format_forced_rich_delivery_fallback,
+            text_requires_rich_delivery,
+        },
+        worker::Task,
+    },
+    core::protocol::RoleWorkOutput,
+    skills::SkillExecutionResult,
+};
+
+const MAX_FORCED_RICH_KNOWN_MATERIAL_CHARS: usize = 900;
 
 pub(super) fn finalize_worker_role_output(
     role: &str,
@@ -53,6 +66,9 @@ fn normalize_worker_role_output(
     }
 
     if role == "chat" {
+        if let Some(summary) = forced_rich_chat_fallback(task, &output.summary) {
+            output.summary = summary;
+        }
         output.findings.clear();
         output.recommendations.clear();
         output.evidence.clear();
@@ -165,6 +181,128 @@ fn normalize_worker_role_output(
     parsed
 }
 
+fn forced_rich_chat_fallback(task: &Task, summary: &str) -> Option<String> {
+    if !task_requires_forced_rich_delivery(task) || !is_thin_forced_rich_summary(summary) {
+        return None;
+    }
+
+    let known_material = forced_rich_known_material(task, summary);
+    Some(format_forced_rich_delivery_fallback(&known_material))
+}
+
+fn task_requires_forced_rich_delivery(task: &Task) -> bool {
+    let mut texts = vec![task.description.as_str()];
+    if let Some(assignment) = &task.assignment {
+        texts.push(assignment.root_task.as_str());
+        texts.push(assignment.objective.as_str());
+    }
+
+    texts.iter().any(|text| text_requires_rich_delivery(text))
+}
+
+fn is_thin_forced_rich_summary(summary: &str) -> bool {
+    forced_rich_answer_is_too_thin(summary)
+}
+
+fn forced_rich_known_material(task: &Task, summary: &str) -> String {
+    let mut parts = Vec::new();
+
+    push_context_material(
+        &mut parts,
+        task.context
+            .metadata
+            .get("conversation.history_summary")
+            .and_then(|value| context_text::user_visible_conversation_history(value)),
+    );
+    push_context_material(
+        &mut parts,
+        task.context
+            .metadata
+            .get("context.selected_summary")
+            .and_then(|value| context_text::user_visible_selected_product_context(value)),
+    );
+    push_context_material(
+        &mut parts,
+        task.context
+            .metadata
+            .get("context.combined_summary")
+            .and_then(|value| context_text::user_visible_context_summary(value)),
+    );
+
+    if let Some(assignment) = &task.assignment {
+        push_context_material(&mut parts, Some(assignment.root_task.clone()));
+        push_context_material(&mut parts, Some(task.description.clone()));
+    } else {
+        push_context_material(&mut parts, Some(task.description.clone()));
+    }
+    push_context_material(&mut parts, Some(summary.to_string()));
+
+    compact_known_material(&parts.join("\n"))
+}
+
+fn push_context_material(parts: &mut Vec<String>, value: Option<String>) {
+    let Some(value) = value else {
+        return;
+    };
+    for line in value.lines().filter_map(clean_known_material_line) {
+        if !parts.iter().any(|existing| existing == &line) {
+            parts.push(line);
+        }
+    }
+}
+
+fn clean_known_material_line(line: &str) -> Option<String> {
+    let mut line = line.trim();
+    if line.is_empty() || is_unhelpful_forced_rich_material(line) {
+        return None;
+    }
+    for prefix in ["User:", "Assistant:", "用户：", "助手：", "- "] {
+        if let Some(rest) = line.strip_prefix(prefix) {
+            line = rest.trim();
+        }
+    }
+    if line.is_empty() || is_unhelpful_forced_rich_material(line) {
+        return None;
+    }
+    Some(line.to_string())
+}
+
+fn is_unhelpful_forced_rich_material(line: &str) -> bool {
+    [
+        "这次没有拿到可直接展示的完整内容",
+        "问题目标还不够明确",
+        "协作步骤没有产出可直接展示的结果",
+        "可以补充更明确的问题",
+        "也可以换成普通问答",
+        "请直接补充新的要求",
+        "下一步目标",
+        "重新提供资料",
+        "无法根据现有资料回答",
+        "无法整理",
+    ]
+    .iter()
+    .any(|marker| line.contains(marker))
+}
+
+fn compact_known_material(value: &str) -> String {
+    let text = value
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n");
+    let mut chars = text.chars();
+    let head = chars
+        .by_ref()
+        .take(MAX_FORCED_RICH_KNOWN_MATERIAL_CHARS)
+        .collect::<String>();
+    if chars.next().is_some() {
+        format!("{head}...")
+    } else {
+        head
+    }
+}
+
 fn is_material_gap_dominant_summary(value: &str) -> bool {
     let text = value.trim();
     if text.is_empty() {
@@ -245,7 +383,10 @@ fn is_direct_deliverable_only_task(task: &str, summary: &str) -> bool {
 mod tests {
     use super::{RoleWorkOutput, normalize_worker_role_output};
     use crate::{
-        agent::worker::{Task, runner::types::ParsedWorkerRoleOutput},
+        agent::{
+            forced_rich_delivery::MIN_FORCED_RICH_DELIVERY_CHARS,
+            worker::{Task, runner::types::ParsedWorkerRoleOutput},
+        },
         core::protocol::{AgentId, MessageContext},
     };
 
@@ -287,6 +428,81 @@ mod tests {
         assert!(output.evidence.is_empty());
         assert!(output.risks.is_empty());
         assert!(output.open_questions.is_empty());
+    }
+
+    #[test]
+    fn chat_role_expands_thin_forced_rich_followup() {
+        let parsed = ParsedWorkerRoleOutput {
+            content: String::new(),
+            role_output: Some(RoleWorkOutput {
+                summary: "基于现有资料，可以直接做一套二手教材运营方案。".to_string(),
+                ..RoleWorkOutput::default()
+            }),
+            evidence: vec![],
+            risks: vec![],
+            open_questions: vec![],
+            diagnostics: Vec::new(),
+        };
+        let mut task = Task {
+            id: "task-rich".to_string(),
+            context: MessageContext::default(),
+            description:
+                "我不会给你提供任何其他信息，但是你必须根据我刚才所给资料和你的回答进行丰富回答，要有干货。"
+                    .to_string(),
+            requester: AgentId("user-1".to_string()),
+            assignment: None,
+        };
+        task.context.metadata.insert(
+            "conversation.history_summary".to_string(),
+            "User: 我准备卖二手教材，手里有高数、英语、专业课三类书。\n\
+             Assistant: 二手教材要看版本、ISBN、书况、收书成本、库存和退换。"
+                .to_string(),
+        );
+
+        let output = normalize_worker_role_output("chat", &task, parsed);
+
+        assert!(output.content.chars().count() >= MIN_FORCED_RICH_DELIVERY_CHARS);
+        assert!(output.content.contains("当前结论"));
+        assert!(output.content.contains("三类教材先这样拆"));
+        assert!(output.content.contains("今天就能执行的动作"));
+        assert!(output.content.contains("高数"));
+        assert!(output.content.contains("英语"));
+        assert!(output.content.contains("专业课"));
+        assert!(output.content.contains("版本"));
+        assert!(output.content.contains("ISBN"));
+        assert!(output.content.contains("退换"));
+        assert!(!output.content.contains("请补资料"));
+        assert!(!output.content.contains("下一步目标"));
+    }
+
+    #[test]
+    fn chat_role_does_not_expand_normal_short_answer() {
+        let parsed = ParsedWorkerRoleOutput {
+            content: String::new(),
+            role_output: Some(RoleWorkOutput {
+                summary: "先看版本、ISBN、书况和成本，避免卖错教材或售后纠纷。".to_string(),
+                ..RoleWorkOutput::default()
+            }),
+            evidence: vec![],
+            risks: vec![],
+            open_questions: vec![],
+            diagnostics: Vec::new(),
+        };
+        let task = Task {
+            id: "task-short".to_string(),
+            context: MessageContext::default(),
+            description: "我准备卖二手教材，请简短回答。".to_string(),
+            requester: AgentId("user-1".to_string()),
+            assignment: None,
+        };
+
+        let output = normalize_worker_role_output("chat", &task, parsed);
+
+        assert_eq!(
+            output.content,
+            "先看版本、ISBN、书况和成本，避免卖错教材或售后纠纷。"
+        );
+        assert!(!output.content.contains("## 可直接执行表"));
     }
 
     #[test]

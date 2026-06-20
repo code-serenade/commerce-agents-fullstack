@@ -11,9 +11,11 @@ import {
   restoreThreadScroll,
   type ThreadScrollSnapshot,
 } from "../view-model/thread-scroll-preservation"
+import { findPreviousUserContent } from "../view-model/agent-process-visibility-view-model"
 import {
   AgentProgressCard,
   AgentStoppedCard,
+  AgentErrorActions,
   StrategyStatusPill,
   MessageActions,
   StudentNextActions,
@@ -158,6 +160,7 @@ export function AgentChatThread({
             onOpenProcessPanel={handleOpenProcessPanel}
             renderMessage={(targetMessage) => (
               <ThreadMessage
+                errorRetryPrompt={findPreviousUserContent(messages, index)}
                 message={targetMessage}
                 onExamplePromptSelect={onExamplePromptSelect}
               />
@@ -173,9 +176,11 @@ export function AgentChatThread({
 }
 
 function ThreadMessage({
+  errorRetryPrompt,
   message,
   onExamplePromptSelect,
 }: {
+  errorRetryPrompt?: string
   message: AgentChatMessage
   onExamplePromptSelect?: (prompt: string) => void
 }) {
@@ -219,9 +224,10 @@ function ThreadMessage({
           ) : null}
           {message.status === "stopped" ? <AgentStoppedCard /> : null}
           {message.status === "error" ? (
-            <p className="mt-2 text-xs font-medium text-destructive">
-              {t("agentChat.errorBadge")}
-            </p>
+            <AgentErrorActions
+              fallbackPrompt={errorRetryPrompt}
+              onSelectPrompt={onExamplePromptSelect}
+            />
           ) : null}
           {!isUser && message.content && !isWelcome ? (
             <MessageActions content={message.content} />

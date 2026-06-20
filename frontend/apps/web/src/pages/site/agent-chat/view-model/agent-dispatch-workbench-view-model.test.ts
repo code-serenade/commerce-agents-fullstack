@@ -138,4 +138,42 @@ describe("getDispatchWorkbenchModel", () => {
     expect(model.steps).toHaveLength(roleIds.length)
     expect(model.previewLines).toContain(`08 ${finalStepTitle}: design objective`)
   })
+
+  it("does not expose i18n keys in the preview document", () => {
+    const testT = t as unknown as (
+      key: string,
+      params?: Record<string, unknown>
+    ) => string
+    const incompleteT = ((key: string, params?: Record<string, unknown>) => {
+      if (key === "agentChat.thread.dispatchFacts.materialAudit.label") return key
+      if (key === "agentChat.thread.dispatchFacts.materialAudit.detail") return key
+      if (key === "agentChat.thread.dispatchFacts.materialAudit.summary.empty") {
+        return "no material"
+      }
+      if (key === "agentChat.thread.dispatchPanel.preview.fact") {
+        return `${params?.label}: ${params?.detail}`
+      }
+      if (key === "agentChat.thread.dispatchPanel.preview.fallbackFactLabel") {
+        return "Task materials"
+      }
+      if (key === "agentChat.thread.dispatchPanel.preview.fallbackFactDetail") {
+        return "Task material status synced"
+      }
+      return testT(key, params)
+    }) as never
+    const events: AgentRuntimeEvent[] = [
+      {
+        readiness: "empty",
+        type: "workspace_context_pack_loaded",
+      },
+    ]
+
+    const model = getDispatchWorkbenchModel(
+      { isStreaming: false, runtimeEvents: events, task },
+      incompleteT
+    )
+
+    expect(model.previewLines.join("\n")).not.toContain("agentChat.")
+    expect(model.previewLines).toContain("Task materials: Task material status synced")
+  })
 })

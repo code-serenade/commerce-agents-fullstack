@@ -12,7 +12,6 @@ import type {
 } from "../domain/agent-runtime-options"
 import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
 import { AgentChatCampaignContextBar } from "./agent-chat-campaign-context-bar"
-import { AgentChatContextPreviewButton } from "./agent-chat-context-preview-button"
 import { AgentChatProductContextBar } from "./agent-chat-product-context-bar"
 import { AgentChatSettingsPanel } from "./agent-chat-settings-panel"
 import { AgentChatSourceContextBar } from "./agent-chat-source-context-bar"
@@ -22,9 +21,7 @@ export function AgentChatComposerToolbar({
   availableProducts,
   availableSources,
   canSend,
-  contextPreviewOpen,
   isLoggedIn,
-  isPreviewingContext,
   isLoadingCampaigns,
   isLoadingPlaybooks,
   isLoadingProducts,
@@ -43,8 +40,6 @@ export function AgentChatComposerToolbar({
   onClearSourceContext,
   onToggleCampaignContext,
   onToggleCampaignPanel,
-  onToggleContextPreviewPanel,
-  onPreviewContext,
   onToggleProductContext,
   onToggleProductPanel,
   onToggleSourceContext,
@@ -67,9 +62,7 @@ export function AgentChatComposerToolbar({
   availableProducts: AgentChatProductContextSelection[]
   availableSources: AgentChatSourceContextSelection[]
   canSend: boolean
-  contextPreviewOpen: boolean
   isLoggedIn: boolean
-  isPreviewingContext: boolean
   isLoadingCampaigns: boolean
   isLoadingPlaybooks: boolean
   isLoadingProducts: boolean
@@ -88,8 +81,6 @@ export function AgentChatComposerToolbar({
   onClearSourceContext: () => void
   onToggleCampaignContext: (campaign: AgentChatCampaignContextSelection) => void
   onToggleCampaignPanel: (open: boolean) => void
-  onToggleContextPreviewPanel: (open: boolean) => void
-  onPreviewContext: () => Promise<void>
   onToggleProductContext: (product: AgentChatProductContextSelection) => void
   onToggleProductPanel: (open: boolean) => void
   onToggleSourceContext: (source: AgentChatSourceContextSelection) => void
@@ -161,15 +152,6 @@ export function AgentChatComposerToolbar({
           runtimeSelection={runtimeSelection}
           strategyId={strategyId}
           variant="compact"
-        />
-        <AgentChatContextPreviewButton
-          canSend={canSend}
-          isLoggedIn={isLoggedIn}
-          isOpen={contextPreviewOpen}
-          isPreviewing={isPreviewingContext}
-          isStreaming={isStreaming}
-          onOpenChange={onToggleContextPreviewPanel}
-          onPreview={onPreviewContext}
         />
       </div>
       <div className="sm:hidden">

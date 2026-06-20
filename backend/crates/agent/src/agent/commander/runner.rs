@@ -9,6 +9,7 @@ mod output;
 mod route;
 
 use context::{extend_context_facts, extend_runtime_strategy_facts, runtime_response_mode};
+pub(crate) use output::final_text_with_forced_rich_fallback;
 use output::{final_worker_message, next_message_id};
 use route::{
     normalize_requested_runtime_roles, primary_route_score, primary_worker_id,
@@ -498,17 +499,46 @@ impl Commander {
                 ));
             }
             DecisionIntent::KeepCurrentTask => {
-                let _ = self.sender.send(Message::new_with_context(
-                    next_message_id(),
-                    self.current_context.clone(),
-                    self.id.clone(),
-                    self.host_id.clone(),
-                    Payload::Text {
-                        content: "我会沿用当前对话里的任务继续处理。\
-                                  请直接补充新的要求或下一步目标。"
-                            .to_string(),
-                    },
-                ));
+                let Some(current_task) = self.current_task.clone() else {
+                    let _ = self.sender.send(Message::new_with_context(
+                        next_message_id(),
+                        self.current_context.clone(),
+                        self.id.clone(),
+                        self.host_id.clone(),
+                        Payload::Text {
+                            content: "我还不能从这句话里确定要处理的电商任务。请补充要分析的商品、活动、资料或希望输出的结果。"
+                                .to_string(),
+                        },
+                    ));
+                    self.phase = CommanderPhase::Idle;
+                    self.state = CommanderState::Idle;
+                    return;
+                };
+                if self.try_task_graph_route(role_route.as_ref()).await {
+                    debug!("commander kept current assignment and continued via task graph");
+                    self.phase = CommanderPhase::Idle;
+                    self.state = CommanderState::Idle;
+                    return;
+                }
+                let task = TaskSpec {
+                    id: TaskId(current_task.id),
+                    description: current_task.description,
+                };
+                let target_worker = routed
+                    .target_worker_id
+                    .or_else(|| role_route.as_ref().map(primary_worker_id));
+                self.prepare_collaboration(role_route.as_ref(), target_worker.as_ref());
+                if !self.dispatch_task_to_worker(task, target_worker) {
+                    let _ = self.sender.send(Message::new_with_context(
+                        next_message_id(),
+                        self.current_context.clone(),
+                        self.id.clone(),
+                        self.host_id.clone(),
+                        Payload::Text {
+                            content: "任务分发失败：未找到可用 worker".to_string(),
+                        },
+                    ));
+                }
             }
             DecisionIntent::ReplaceCurrentTask { task } => {
                 let _ = self.sender.send(Message::new_with_context(
@@ -1051,6 +1081,26 @@ mod tests {
         }
     }
 
+    struct KeepCurrentCommanderCognition;
+
+    #[async_trait]
+    impl Cognition for KeepCurrentCommanderCognition {
+        async fn evaluate(&self, _input: CognitionInput) -> CognitionResult {
+            CognitionResult::Success(json!({
+                "decision": {
+                    "kind": "KeepCurrentAssignment",
+                    "route": {
+                        "target_agent_id": "worker.chat",
+                        "task_summary": "沿用现有资料继续回答",
+                        "goal": "给出丰富干货回答",
+                        "constraints": []
+                    }
+                },
+                "confidence": 0.82
+            }))
+        }
+    }
+
     #[derive(Default)]
     struct TestSessionContext {
         worker_txs: HashMap<WorkerId, MessageTx>,
@@ -1096,6 +1146,75 @@ mod tests {
                 .expect("memory lock should be available")
                 .push(summary);
         }
+    }
+
+    #[tokio::test]
+    async fn commander_keep_current_assignment_continues_instead_of_prompting_for_next_goal() {
+        let (commander_tx, commander_rx) = mpsc::unbounded_channel();
+        let (response_tx, mut response_rx) = mpsc::unbounded_channel();
+        let mut commander = Commander::new(
+            AgentId("commander".to_string()),
+            AgentId("external-host".to_string()),
+            Box::new(KeepCurrentCommanderCognition),
+            CommanderChannels {
+                receiver: commander_rx,
+                sender: response_tx,
+                event_tx: None,
+            },
+            Arc::new(TestSessionContext::default()),
+            RoleRouter::new(RoleCatalog::builtin()),
+            CommanderOptions {
+                fast_route_enabled: false,
+                fast_route_min_score: 2.0,
+                task_graph_node_timeout: Duration::from_millis(30),
+            },
+        );
+        let commander_loop = tokio::spawn(async move {
+            commander.run().await;
+        });
+
+        let mut context = MessageContext {
+            session_id: Some(SessionId("session-keep-current".to_string())),
+            ..MessageContext::default()
+        };
+        context
+            .metadata
+            .insert("strategy.response_mode".to_string(), "learning".to_string());
+        commander_tx
+            .send(Message::new_with_context(
+                next_message_id(),
+                context,
+                AgentId("external-host".to_string()),
+                AgentId("commander".to_string()),
+                Payload::HumanCommand {
+                    task: TaskSpec {
+                        id: TaskId("task-keep-current".to_string()),
+                        description:
+                            "我不会给你提供任何其他信息，但是你必须根据我所给资料进行丰富回答"
+                                .to_string(),
+                    },
+                },
+            ))
+            .expect("commander should accept task");
+
+        let response = tokio::time::timeout(Duration::from_secs(1), response_rx.recv())
+            .await
+            .expect("commander should continue current assignment before test timeout")
+            .expect("response channel should remain open");
+        let Payload::Text { content } = response.payload else {
+            panic!("expected text response from keep-current fallback");
+        };
+        assert!(content.contains("## 当前可先交付"), "{content}");
+        assert!(content.contains("## 本轮边界"), "{content}");
+        assert!(content.contains("可执行草案"), "{content}");
+        assert!(!content.contains("请直接补充新的要求"), "{content}");
+        assert!(!content.contains("下一步目标"), "{content}");
+
+        drop(commander_tx);
+        tokio::time::timeout(Duration::from_secs(1), commander_loop)
+            .await
+            .expect("commander loop should stop")
+            .expect("commander loop should not panic");
     }
 
     #[tokio::test]
@@ -1158,8 +1277,13 @@ mod tests {
         let Payload::Text { content } = response.payload else {
             panic!("expected text response from stalled graph");
         };
-        assert!(content.contains("没有形成完整答案"), "{content}");
-        assert!(content.contains("协作步骤没有全部完成"), "{content}");
+        assert!(content.contains("## 当前可先交付"), "{content}");
+        assert!(content.contains("## 本轮边界"), "{content}");
+        assert!(
+            content.contains("部分协作步骤没有形成可用结果"),
+            "{content}"
+        );
+        assert!(!content.contains("没有形成完整答案"), "{content}");
         assert!(!content.contains("failure_kind"), "{content}");
         assert!(!content.contains("worker."), "{content}");
 
@@ -1252,8 +1376,13 @@ mod tests {
         let Payload::Text { content } = response.payload else {
             panic!("expected text response from deadlocked graph");
         };
-        assert!(content.contains("没有形成完整答案"), "{content}");
-        assert!(content.contains("协作步骤没有全部完成"), "{content}");
+        assert!(content.contains("## 当前可先交付"), "{content}");
+        assert!(content.contains("## 本轮边界"), "{content}");
+        assert!(
+            content.contains("部分协作步骤没有形成可用结果"),
+            "{content}"
+        );
+        assert!(!content.contains("没有形成完整答案"), "{content}");
         assert!(!content.contains("task_graph_stalled"), "{content}");
         assert!(!content.contains("worker."), "{content}");
 

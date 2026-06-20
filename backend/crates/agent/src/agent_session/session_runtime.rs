@@ -8,8 +8,8 @@ use crate::{
     agent::{
         commander::{
             Commander, CommanderChannels, CommanderOptions, CommanderSessionContext,
-            TaskGraphRuntime, no_user_facing_content_message, plan_forced_chat_graph,
-            plan_quick_chat_graph, sanitize_final_user_facing_text,
+            TaskGraphRuntime, final_text_with_forced_rich_fallback, no_user_facing_content_message,
+            plan_forced_chat_graph, plan_quick_chat_graph,
         },
         worker::{Worker, WorkerRuntimeConfig},
     },
@@ -416,7 +416,8 @@ impl SessionRuntime {
             }
             _ => "session returned non-text response".to_string(),
         };
-        let output = sanitize_session_final_output(&output);
+        let output =
+            sanitize_session_final_output(&output, &self.context, Some(&self.task_description));
 
         self.emit_event(SessionEvent::Output {
             session_id: self.session_id.clone(),
@@ -1418,8 +1419,12 @@ fn compact_event_text(value: &str, max_chars: usize) -> String {
     output
 }
 
-fn sanitize_session_final_output(output: &str) -> String {
-    sanitize_final_user_facing_text(output).unwrap_or_else(no_user_facing_content_message)
+fn sanitize_session_final_output(
+    output: &str,
+    context: &MessageContext,
+    task_input: Option<&str>,
+) -> String {
+    final_text_with_forced_rich_fallback(output, context, task_input)
 }
 
 fn normalize_timeout(timeout: Duration) -> Duration {
@@ -1488,7 +1493,7 @@ mod tests {
     use std::time::Duration;
 
     use super::{
-        effective_response_timeout, sanitize_session_final_output,
+        MessageContext, effective_response_timeout, sanitize_session_final_output,
         session_response_timeout_message, task_description_with_history_text,
     };
 
@@ -1500,7 +1505,7 @@ mod tests {
                    围绕温显、防漏、礼盒卖点做客群判断。内容合规练习：避免学生党低价定位。\
                    【依据说明】支撑来源是QA矩阵智能保温杯商品锚点，置信度0.96。";
 
-        let output = sanitize_session_final_output(raw);
+        let output = sanitize_session_final_output(raw, &MessageContext::default(), None);
         let lower = output.to_ascii_lowercase();
 
         assert!(output.contains("结论如下：\n\n【核心业务结论与定价判断】\n\n这款商品"));
@@ -1510,6 +1515,33 @@ mod tests {
         assert!(!output.contains("商品锚点"));
         assert!(!output.contains("置信度"));
         assert!(!lower.contains("confidence"));
+    }
+
+    #[test]
+    fn session_final_output_replaces_empty_fallback_for_forced_rich_followup() {
+        let raw = "## 当前状态\n\n这次没有拿到可直接展示的完整内容。\n\n## 可能原因\n\n- 问题目标还不够明确。\n\n## 下一步\n\n- 可以补充更明确的问题、商品、活动或关键材料。";
+        let mut context = MessageContext::default();
+        context.metadata.insert(
+            "conversation.history_summary".to_string(),
+            "User: 我准备卖二手教材，手里有高数、英语、专业课三类书。\n\
+             Assistant: 先看版本、ISBN、书况、成本、库存和退换。"
+                .to_string(),
+        );
+
+        let output = sanitize_session_final_output(
+            raw,
+            &context,
+            Some("不行，必须根据我所给资料进行回答研究，不要让我再提供资料。"),
+        );
+
+        assert!(!output.contains("这次没有拿到可直接展示的完整内容"));
+        assert!(output.contains("## 当前结论"), "{output}");
+        assert!(output.contains("高数"), "{output}");
+        assert!(output.contains("英语"), "{output}");
+        assert!(output.contains("专业课"), "{output}");
+        assert!(output.contains("三类教材先这样拆"), "{output}");
+        assert!(output.contains("今天就能执行的动作"), "{output}");
+        assert!(output.contains("可直接复用的话术"), "{output}");
     }
 
     #[test]

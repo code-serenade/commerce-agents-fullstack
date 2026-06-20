@@ -573,7 +573,7 @@ fn next_actions(candidates: &[EvidenceCandidate]) -> Vec<String> {
     ];
     if candidates.iter().any(|item| item.evidence_type == "metric") {
         actions.push(
-            "涉及指标或金额时，继续调用表格/数据/财务 Skill 校验字段口径和计算假设。".to_owned(),
+            "涉及指标或金额时，继续调用表格/数据/财务 Skill 校验字段含义和计算假设。".to_owned(),
         );
     }
     if candidates.iter().any(|item| item.evidence_type == "rule") {
@@ -586,7 +586,7 @@ fn next_actions(candidates: &[EvidenceCandidate]) -> Vec<String> {
 
 fn usage_note(candidate: &EvidenceCandidate) -> &'static str {
     match candidate.evidence_type {
-        "metric" => "可作为指标、测算或经营判断的资料内依据；使用前需确认口径和时间范围。",
+        "metric" => "可作为指标、测算或经营判断的资料内依据；使用前需确认怎么算和时间范围。",
         "risk" => "可作为问题诊断或风险提示依据；不要直接外推到全部业务。",
         "rule" => "可作为资料内规则线索；如需最新平台规则必须再走搜索或人工复核。",
         "customer_feedback" => "可作为用户声音或客服问题线索；需要样本量和渠道信息辅助判断。",

@@ -71,7 +71,7 @@ impl Skill for ServiceEscalationFlow {
                     "处理完成后回填根因，避免同类问题重复发生"
                 ],
                 "需审批/复核": requires_review,
-                "政策边界": "赔付金额、平台投诉口径和特殊类目售后规则需要后续 search_platform_policy / shop_policy adapter 校验。"
+                "政策边界": "赔付金额、平台投诉规则和特殊类目售后规则需要后续 search_platform_policy / shop_policy adapter 校验。"
             }),
             "客服升级处理流程已生成",
         )

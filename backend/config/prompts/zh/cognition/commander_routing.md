@@ -13,7 +13,7 @@ JSON schema:
 
 ## 交接要求
 - `task_summary` 用一句话重述用户当前任务，保留商品、品类、平台、服务、表格/附件和否定句。
-- `goal` 写执行期望达成的用户可见交付物，例如标题、客服话术、字段整理、利润口径、课堂反馈、平台来源边界或完整方案。
+- `goal` 写执行期望达成的用户可见交付物，例如标题、客服话术、字段整理、利润怎么算、课堂反馈、平台来源边界或完整方案。
 - `constraints` 只写用户或 Context 明确给出的约束，例如不要编数字、不要逐行、不要客服回复、不要判断最赚钱、没有实时来源、只改标题。
 - `handoff.expected_output` 要提醒目标 worker 按当前交付形态输出，守住 JSON、证据、实时来源、附件材料和半成品清洗边界。
 - `rationale.evidence` 只引用 role route、目标 worker 存在性和任务关键词；直接采纳 role route 时 `alternatives_considered=[]`。

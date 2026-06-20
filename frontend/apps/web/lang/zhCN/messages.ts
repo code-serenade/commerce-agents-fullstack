@@ -346,7 +346,7 @@ const messages = {
             brand: "星河杯",
             category: "智能保温杯",
             description:
-              "面向学生和办公室人群的温显保温杯，主打防漏、温度提醒和通勤携带。",
+              "适合学生和办公室人群的温显保温杯，主打防漏、温度提醒和通勤携带。",
             name: "星河杯温显保温杯",
           },
         },
@@ -1021,11 +1021,12 @@ const messages = {
     },
   },
   agentChat: {
-    welcomeMessage:
-      "你好，我是多智能体实训助手。你可以直接输入实训任务，比如选品、活动策划、数据异常或复盘报告。我会先识别需求，再分配多个智能体协作，并把过程、结论和可交付材料同步出来。",
+    welcomeMessage: "任务卡片 + 推荐问题",
     answer: {
       sectionLabels: {
+        direct: "可用内容",
         final: "结论",
+        reason: "原因",
         team: "团队",
         action: "行动",
       },
@@ -1111,7 +1112,7 @@ const messages = {
       options: {
         learning: {
           label: "边学边做",
-          hint: "面向学生和新手，讲清概念、判断逻辑和可执行动作",
+          hint: "用好懂的话讲清概念、判断逻辑和可执行动作",
           shortHint: "教学",
         },
         quick: {
@@ -1135,7 +1136,8 @@ const messages = {
       send: "发送",
       stop: "停止",
       status: {
-        sending: "多智能体实训助手正在分析，可随时停止本轮回答。",
+        sending: "正在完成本轮任务，可随时停止。",
+        retry: "重试",
       },
       attachTitle: "上传附件",
       attachShort: "上传",
@@ -1408,7 +1410,7 @@ const messages = {
           },
           higher_vocational: {
             label: "实训",
-            description: "按电商岗位实训口径解释",
+            description: "按真实电商场景解释",
           },
           professional: {
             label: "专业",
@@ -1507,7 +1509,7 @@ const messages = {
           label: "咖啡商品组",
           title: "把商品资料加入问题",
           prompt:
-            "商品资料：请考虑咖啡 SKU 组合、价格带、卖点、库存、毛利、商品知识和竞品线索。",
+            "商品资料：请考虑咖啡款式组合、价格带、卖点、库存、毛利、商品知识和竞品线索。",
         },
         campaign: {
           label: "五一营销活动",
@@ -1559,7 +1561,7 @@ const messages = {
           "平台连接提供抖音、千川等同步状态",
           "预算评估、投放优化、创意产出并行处理",
           "运营方案汇总预算、素材、投放节奏",
-          "交付资料沉淀方案、清单和复盘口径",
+          "交付资料沉淀方案、清单和复盘方法",
           "预警中心沉淀预算、投放和转化异常规则",
           "每日简报汇总重点进展和待办事项",
         ],
@@ -1589,12 +1591,12 @@ const messages = {
     },
     thread: {
       agentName: "多智能体实训助手",
-      welcomeCapabilities: ["先提任务或补资料", "系统自动判断流程", "跟着下一步交付"],
-      startHere: "直接从一个学习任务开始",
+      welcomeCapabilities: ["任务卡", "示例提问", "下一步"],
+      startHere: "推荐问题",
       examplePrompts: [
-        "我是第一次使用，请先告诉我该怎样开始一个电商实训任务",
-        "帮我判断一个商品适不适合做实训选品，需要我补哪些资料",
-        "根据 3000 元预算做一份活动策划、执行清单和复盘指标",
+        "示例：帮我判断这个商品能不能做实训选品",
+        "示例：按 3000 元预算生成活动策划和执行清单",
+        "示例：把这次回答整理成可提交的复盘报告",
       ],
       studentFlow: {
         title: "第一次使用就按这条线走",
@@ -1635,76 +1637,83 @@ const messages = {
         },
       },
       studentTaskEntries: {
-        title: "不知道怎么问时，先选一种任务",
-        subtitle: "这些入口会直接填入输入框，学生不用先理解所有功能菜单。",
+        title: "任务卡片",
+        subtitle: "选择后直接填入输入框。",
         start: {
-          title: "我刚开始用",
-          detail: "让系统先说明需要准备哪些资料，以及第一轮怎么问最清楚。",
-          prompt: "我是第一次使用，请带我开始一个电商实训任务，并告诉我需要准备哪些资料",
+          title: "开始任务",
+          detail: "示例：说目标、商品和作业要求。",
+          prompt: "示例：我是第一次使用，请帮我开始一个电商实训任务",
         },
         analyze: {
-          title: "判断商品或数据",
-          detail: "适合选品、预算、转化漏斗、风险判断这类需要分析的问题。",
-          prompt: "请判断这个商品或数据是否适合继续做实训，并说明还缺哪些关键资料",
+          title: "判断分析",
+          detail: "示例：判断选品、预算、数据异常和风险。",
+          prompt: "示例：请判断这个商品是否适合做实训选品",
         },
         plan: {
-          title: "生成执行方案",
-          detail: "适合活动策划、上架执行、内容脚本、客服承接和复盘指标。",
-          prompt: "请把我的目标拆成活动策划、执行清单、岗位分工和复盘指标",
+          title: "生成方案",
+          detail: "示例：生成策划、清单、分工和指标。",
+          prompt: "示例：请把我的目标拆成活动策划、执行清单和复盘指标",
         },
         review: {
-          title: "整理作业或复盘",
-          detail: "适合把回答整理成课堂作业、实训报告、复盘材料或下一步清单。",
-          prompt: "请把上面的结论整理成学生可提交的实训复盘报告",
+          title: "整理交付",
+          detail: "示例：整理成作业、报告或下一步清单。",
+          prompt: "示例：请把上面的结论整理成可提交的实训复盘报告",
         },
       },
-      receivingOutput: "正在接收多智能体输出",
-      waitingEvents: "正在等待智能体过程事件",
-      stopped: "本轮回答已停止，没有继续调用 AI 模型。",
+      receivingOutput: "正在整理可用回答",
+      waitingEvents: "正在启动任务步骤",
+      stopped: "本轮已停止，可重新发送或换个问法。",
+      errorActions: {
+        title: "本轮未完成",
+        retry: "重新填入",
+        simplify: "换个问法",
+        retryPrompt: "请重新完成刚才这个任务，先给结论，再给可直接使用内容",
+        shorterPrompt: "请用更短的问题重新回答：先给结论、可直接使用内容和下一步",
+      },
       completedTasks: "{{completed}}/{{total}} 个步骤完成",
       planning: "正在规划智能体分工",
       historyNotExecuted: "历史消息未记录过程",
       executionTitle: "多智能体协作流程",
       processKinds: {
         waiting: {
-          title: "等待后端调度",
-          badge: "即将生成",
-          progress: "调度事件同步中",
-          summary: "本轮回答已开始，正在等待后端返回真实路线、上下文和步骤事件。",
+          title: "准备本轮任务",
+          badge: "准备中",
+          progress: "正在建立步骤",
+          summary: "正在确认问题、资料和回答路线。",
         },
         quick_dispatch: {
-          title: "快速调度过程",
-          badge: "轻量流程",
-          progress: "{{completed}}/{{total}} 个调度步骤",
-          summary: "调度中心判断本轮适合由 {{role}} 直接处理：{{task}}",
-          stageRunning: "正在快速读取上下文并组织回答",
-          stageFinished: "快速调度已完成，可查看真实判断链路",
-          stageSynced: "已同步本轮快速调度链路",
+          title: "快速回答任务",
+          badge: "轻量",
+          progress: "{{completed}}/{{total}} 步",
+          summary: "{{role}} 正在直接处理：{{task}}",
+          stageRunning: "正在读取资料并组织回答",
+          stageFinished: "快速回答已完成",
+          stageSynced: "快速回答已完成",
         },
         single_agent: {
-          title: "单智能体处理过程",
-          badge: "单岗处理",
-          progress: "{{completed}}/{{total}} 个岗位完成",
-          summary: "调度中心选择 {{role}} 主处理：{{task}}",
-          stageRunning: "主智能体正在处理本轮任务",
-          stageFinished: "主智能体已完成，可查看处理链路",
-          stageSynced: "已同步本轮单智能体处理链路",
+          title: "单角色任务",
+          badge: "单角色",
+          progress: "{{completed}}/{{total}} 步",
+          summary: "{{role}} 正在处理：{{task}}",
+          stageRunning: "正在处理本轮任务",
+          stageFinished: "本轮任务已完成",
+          stageSynced: "本轮任务已完成",
         },
         multi_agent: {
-          title: "多智能体协作流程",
-          badge: "岗位协作",
-          progress: "{{completed}}/{{total}} 个岗位完成",
-          summary: "调度中心已拆分岗位协作：{{task}}",
-          stageRunning: "多智能体协作中",
-          stageFinished: "多智能体已汇总，可查看过程和业务落点",
-          stageSynced: "可展开查看本轮智能体过程",
+          title: "多角色任务",
+          badge: "协作中",
+          progress: "{{completed}}/{{total}} 步",
+          summary: "正在分工完成：{{task}}",
+          stageRunning: "正在协作生成答案",
+          stageFinished: "结果已汇总",
+          stageSynced: "结果已汇总",
         },
       },
       statuses: {
-        executing: "智能体协作中",
+        executing: "任务进行中",
         synced: "",
-        planning: "正在分工",
-        waiting: "等待新一轮协作",
+        planning: "正在安排步骤",
+        waiting: "等待新任务",
       },
       artifactsTitle: "阶段资料",
       artifacts: {
@@ -1716,9 +1725,9 @@ const messages = {
         searchEvidence: "系统已保存真实外部搜索证据。",
         waitingBackend: "等待系统生成复盘材料或搜索证据。",
       },
-      currentProgress: "智能体进度 {{completed}}/{{total}}",
-      collapseProcess: "折叠智能体过程",
-      expandProcess: "展开智能体过程",
+      currentProgress: "任务进度 {{completed}}/{{total}}",
+      collapseProcess: "折叠任务过程",
+      expandProcess: "展开任务过程",
       openWorkbench: "查看任务过程",
       openWorkbenchForTurn: "查看任务过程",
       closeWorkbench: "收起任务过程",
@@ -1754,7 +1763,7 @@ const messages = {
         },
         accounting: {
           name: "预算评估",
-          summary: "核算预算、SKU 和风险边界",
+          summary: "核算预算、款式和风险边界",
         },
         douyinAds: {
           name: "千川投放",
@@ -1776,25 +1785,25 @@ const messages = {
       steps: {
         readTarget: "识别实训目标",
         planReady: "执行计划已生成",
-        readingRules: "正在读取电商问题与业务规则",
-        targetRules: "电商问题与业务规则",
-        assignTask: "分配智能体",
-        dispatchJudge: "判断处理难度",
+        readingRules: "确认问题和约束",
+        targetRules: "问题和约束",
+        assignTask: "安排处理步骤",
+        dispatchJudge: "判断任务复杂度",
         dispatchRoute: "{{mode}}，主处理 {{role}}",
-        dispatchWaiting: "等待调度结果",
+        dispatchWaiting: "等待任务安排",
         runtimeAction: "执行必要动作",
-        answerReady: "形成回答",
-        answerFinished: "回答和过程已同步完成",
+        answerReady: "整理结论",
+        answerFinished: "回答已完成",
         answerStreaming: "正在生成回答",
         answerSynced: "回答已生成",
         workspaceContext: "读取到 {{readable}}/{{total}} 份可用资料",
         contextLoaded: "商品 {{products}} 个，知识 {{knowledge}} 条",
-        memoryLoaded: "读取 {{count}} 条运行记忆",
-        skillRequested: "已请求 {{count}} 个 Skill，最新 {{skill}}",
-        skillResult: "已返回 {{count}} 个 Skill，最新 {{skill}} / {{status}}",
-        modelRunning: "模型正在组织输出",
-        noExtraSkill: "本轮无需额外 Skill",
-        singleAgentRoute: "由 {{role}} 单岗处理",
+        memoryLoaded: "参考 {{count}} 条历史记录",
+        skillRequested: "正在使用 {{skill}} 等能力",
+        skillResult: "{{skill}} 已返回 {{status}}",
+        modelRunning: "正在组织输出",
+        noExtraSkill: "本轮无需额外工具",
+        singleAgentRoute: "由 {{role}} 处理",
         taskRunning: "任务正在执行",
         waitingSync: "等待执行状态同步",
         checkingConstraints: "检查模型、预算与投放约束",
@@ -1823,7 +1832,7 @@ const messages = {
         dataStatus: "数据诊断、指标归因、平台场景资料",
         adsStatus: "千川计划结构、人群包、预算节奏",
         deliveryFile: "运营全流程执行方案.docx",
-        deliveryStatus: "最终方案、执行清单、复盘口径",
+        deliveryStatus: "最终方案、执行清单、复盘方法",
       },
       handoff: {
           context: {
@@ -1872,19 +1881,19 @@ const messages = {
       },
       dispatchFacts: {
         plan: {
-          label: "后端调度计划",
+          label: "任务安排",
           detail: "{{difficulty}} 难度，路线 {{mode}}",
         },
         adaptive: {
-          label: "自适应调度",
+          label: "任务匹配",
           detail:
             "{{level}} / {{pressure}} 上下文，{{roles}} 个岗位，{{steps}} 个步骤，{{skills}} 个计划 Skill，置信度 {{confidence}}",
         },
         reasoning: {
-          label: "调度理由",
+          label: "处理理由",
         },
         plannedSkills: {
-          label: "计划 Skill",
+          label: "计划能力",
         },
         contextBudget: {
           label: "上下文预算",
@@ -1928,12 +1937,12 @@ const messages = {
           detail: "{{count}} 个来源被省略：{{refs}}",
         },
         route: {
-          label: "调度判断",
+          label: "处理判断",
           detail: "{{mode}}，主处理 {{role}}，策略 {{strategy}}",
         },
         skill: {
-          label: "Skill 调用",
-          detail: "本轮已有 {{count}} 个真实 Skill 事件",
+          label: "能力调用",
+          detail: "本轮已有 {{count}} 个真实能力事件",
         },
         output: {
           label: "输出完成",
@@ -1945,16 +1954,16 @@ const messages = {
         },
       },
       dispatchPanel: {
-        title: "本轮真实调度链路",
+        title: "本轮任务过程",
         workbenchTitle: "任务过程",
-        steps: "处理步骤",
-        routeType: "处理路线",
-        studentReadTitle: "本轮为什么这样处理",
+        steps: "任务步骤",
+        routeType: "处理方式",
+        studentReadTitle: "本轮任务说明",
         emptyTask: "等待本轮任务输入",
-        waitingStepTitle: "等待调度事件",
-        waitingStepDetail: "后端同步路线、上下文和步骤后会显示在这里",
+        waitingStepTitle: "准备任务步骤",
+        waitingStepDetail: "确认问题、资料和步骤后会显示在这里",
         compactedStepDetail:
-          "系统已读取本轮问题、同会话历史和可用资料，并按当前路线组织回答；详细内部上下文不在学生端展开。",
+          "已读取本轮问题、历史和可用资料，并按当前方式组织回答。",
         routeModes: {
           chat_bypass: "快速回答路线",
           task_graph: "多步骤任务路线",
@@ -1968,23 +1977,30 @@ const messages = {
         preview: {
           heading: "# {{mode}}",
           request: "业务输入：{{request}}",
-          summary: "调度说明：{{summary}}",
-          adaptive: "自适应调度：{{summary}}",
+          summary: "任务说明：{{summary}}",
+          adaptive: "任务匹配：{{summary}}",
           progress: "进度：{{completed}}/{{total}} | {{stage}}",
           step: "{{index}} {{title}}：{{detail}}",
           fact: "{{label}}：{{detail}}",
+          fallbackMode: "任务过程",
+          fallbackFactLabel: "任务资料",
+          fallbackFactDetail: "已同步任务资料状态",
+          fallbackStage: "正在处理任务",
+          fallbackStepTitle: "任务步骤",
+          fallbackStepDetail: "正在同步步骤状态",
+          fallbackSummary: "正在按本轮问题整理回答",
         },
         stableDetail:
           "无论问题简单还是复杂，系统都会先规划过程；区别只是步骤数量、岗位数量和 Skill 数量不同。",
-        studentUseTitle: "学生应该怎么看",
+        studentUseTitle: "怎么看",
         studentUseDetail:
-          "先看路线和上下文预算，确认系统有没有读到你的历史、商品和资料；再看步骤和 Skill，判断结果是快速回答、单岗分析还是多智能体协作。",
+          "先看处理方式和资料，再看步骤完成情况。",
         difficultyTitle: "为什么有的流程短、有的流程长",
         difficultyDetail:
-          "调度中心会按本轮问题、所选模式和同会话历史判断难度。简单问题通常只需要读取上下文和快速回答；复杂任务会增加岗位、Skill 和汇总步骤。",
+          "简单问题步骤少，复杂任务会增加分工、资料核对和汇总。",
         realnessTitle: "为什么不显示一整排岗位",
         realnessDetail:
-          "本轮后端没有规划多岗位任务图，所以这里只展示真实 route/context/skill/output 事件；复杂任务才显示多岗位协作。",
+          "只有需要多角色协作的任务才显示完整分工。",
       },
       nextActions: {
         title: "下一步可以这样继续",
@@ -2095,8 +2111,8 @@ const messages = {
         },
         accounting: {
           name: "预算评估",
-          summary: "评估成本、预算、SKU 和经营风险",
-          objective: "基于数据诊断评估活动成本、引流 SKU、投流预算和风险",
+          summary: "评估成本、预算、款式和经营风险",
+          objective: "基于数据诊断评估活动成本、引流款式、投流预算和风险",
         },
         douyinAds: {
           name: "千川投放优化",
@@ -2496,7 +2512,7 @@ const messages = {
     },
     steps: {
       sku: {
-        title: "引流 SKU",
+        title: "引流款式",
         owner: "运营",
         timing: "4 月 24 日前",
         detail:
@@ -2526,7 +2542,7 @@ const messages = {
     },
     actions: {
       inventory:
-        "今天先确认咖啡品类、客单价和库存，避免引流 SKU 拉低整体毛利。",
+        "今天先确认咖啡品类、客单价和库存，避免引流款式拉低整体毛利。",
       benefit: "把直播间首屏福利统一成一句话：五一囤咖啡，今天拍 3 件立减 20。",
       hook: "短视频前三秒只讲场景钩子，不先讲品牌，例如“五一爬山景区咖啡 30 一杯，我带这个 3 元一杯”。",
       comment:
@@ -2539,7 +2555,7 @@ const messages = {
         content:
           "五一前不要只做泛折扣，核心是用低价尝鲜装承接抖音节日流量，再用直播间组合购提升客单。先用 10 条场景短视频测出高完播素材，再把预算集中到能带来直播间点击和下单的内容上。",
         bullets: [
-          "引流款占整体 SKU 不超过 15%，避免利润被低价款吃掉。",
+          "引流款占整体款式不超过 15%，避免利润被低价款吃掉。",
           "直播间主推组合购，单品尝鲜只负责拉新。",
           "每 2 小时复盘转化率、ROI、退货率，低于阈值立刻回滚。",
         ],
@@ -2647,7 +2663,7 @@ const messages = {
         {
           title: "教学模式",
           description:
-            "适合边学边做，回答会补充判断依据、操作步骤和复盘口径。",
+            "适合边学边做，回答会补充判断依据、操作步骤和复盘方法。",
         },
         {
           title: "简要回答",
@@ -2679,7 +2695,7 @@ const messages = {
         {
           question: "什么时候需要引用商品或活动？",
           answer:
-            "当问题涉及某个 SKU、卖点、素材、活动预算、节奏或复盘指标时，应先选择对应资料再提问。",
+            "当问题涉及某个款式、卖点、素材、活动预算、节奏或复盘指标时，应先选择对应资料再提问。",
         },
         {
           question: "回答能不能直接当最终作业？",

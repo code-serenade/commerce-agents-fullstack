@@ -96,7 +96,7 @@ pub(super) fn live_funnel_diagnosis(input: &Value) -> Value {
         "待补字段": missing_funnel_fields(input),
         "风险提示": [
             "只有曝光和点击时只能判断前链路点击效率，不能直接判断直播成交承接",
-            "GMV和消耗口径未扣除退款、佣金和履约成本时，不能当作利润ROI"
+            "GMV和消耗没有扣除退款、佣金和履约成本时，不能当作利润ROI"
         ]
     })
 }

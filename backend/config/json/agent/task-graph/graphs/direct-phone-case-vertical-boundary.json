@@ -1,6 +1,6 @@
 {
   "id": "direct_phone_case_vertical_boundary",
-  "description": "手机壳垂直判断压力题，避免停留在成本低需求大或泛品类口径",
+  "description": "手机壳垂直判断压力题，避免停留在成本低需求大或泛品类判断",
   "priority": 1405,
   "match": {
     "any_keywords": [
@@ -36,7 +36,7 @@
       "max_attempts": 1,
       "skill_autosuggest": false,
       "acceptance": [
-        "必须覆盖手机壳垂直字段，不得只给泛品类成本口径。",
+        "必须覆盖手机壳垂直字段，不得只给泛品类成本判断。",
         "不得编造价格、款数、渠道、平台、销量、周期或利润率。",
         "不得套通用低成本/需求大话术。"
       ]

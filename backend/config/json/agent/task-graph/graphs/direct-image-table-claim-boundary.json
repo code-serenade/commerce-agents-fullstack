@@ -1,6 +1,6 @@
 {
   "id": "direct_image_table_claim_boundary",
-  "description": "主图 OCR 与反馈表合并判断时，直接给页面改法和数据复盘口径，禁止把截图词当商品事实",
+  "description": "主图 OCR 与反馈表合并判断时，直接给页面改法和复盘时要看的数据，禁止把截图词当商品事实",
   "priority": 1505,
   "match": {
     "any_keywords": [

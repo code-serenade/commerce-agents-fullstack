@@ -156,7 +156,7 @@ pub(in crate::skills::business::accounting) fn financial_narrative(input: &Value
         "改善路径": [
             "优先跟踪GMV、毛利率、广告ROI、退款率四项日指标",
             "将广告预算向ROI前40%的计划集中，低效素材48小时内下线",
-            "复盘高退款SKU并同步调整详情页承诺、客服话术和质检标准"
+            "复盘退款偏高的款式，并同步调整详情页承诺、客服话术和质检标准"
         ],
     })
 }

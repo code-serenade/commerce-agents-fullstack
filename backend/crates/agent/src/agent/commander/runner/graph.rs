@@ -12,8 +12,11 @@ use crate::{
             log_assignment_dispatch, log_task_graph_planned, log_task_node_failed,
             log_worker_report,
         },
-        runner::{output::direct_chat_report_output, route::primary_graph_role},
-        sanitize_final_user_facing_text, user_facing_gap_reason,
+        runner::{
+            output::{direct_chat_report_output, final_text_with_forced_rich_fallback},
+            route::primary_graph_role,
+        },
+        user_facing_gap_reason,
     },
     core::protocol::{
         AgentId, Message, MessageContext, Payload, RoleWorkOutput, SessionEvent, TaskGraph,
@@ -372,7 +375,13 @@ impl Commander {
         });
         let Some(mut runtime) = self.active_task_graph.take() else {
             if report.role == "chat" {
-                let content = direct_chat_report_output(&report);
+                let content = direct_chat_report_output(
+                    &report,
+                    context,
+                    self.current_task
+                        .as_ref()
+                        .map(|task| task.description.as_str()),
+                );
                 let _ = self.sender.send(Message::new_with_context(
                     next_message_id(),
                     context.clone(),
@@ -536,8 +545,13 @@ impl Commander {
         let raw_content = runtime
             .direct_chat_output()
             .unwrap_or_else(|| runtime.synthesize());
-        let content = sanitize_final_user_facing_text(&raw_content)
-            .unwrap_or_else(no_user_facing_content_message);
+        let content = final_text_with_forced_rich_fallback(
+            &raw_content,
+            &self.current_context,
+            self.current_task
+                .as_ref()
+                .map(|task| task.description.as_str()),
+        );
         let process = runtime.process_summary();
         self.session_context
             .record_task_graph_memory(runtime.memory_summary());

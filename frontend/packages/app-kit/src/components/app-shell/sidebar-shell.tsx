@@ -241,7 +241,6 @@ function SidebarSectionGroup({ section }: { section: SidebarShellSection }) {
               <SidebarNavRow
                 key={item.key ?? item.href ?? String(item.label)}
                 item={item}
-                size="sm"
               />
             ))}
           </SidebarMenu>
@@ -310,13 +309,7 @@ function getSectionContentClassName(
   return classNames.join(" ")
 }
 
-function SidebarNavRow({
-  item,
-  size = "default",
-}: {
-  item: SidebarShellNavEntry
-  size?: "default" | "sm"
-}) {
+function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
   const { state } = useSidebar()
   const hasSubItems = Boolean(item.subItems?.length)
 
@@ -328,7 +321,6 @@ function SidebarNavRow({
             <div className="min-w-0 flex-1">
               <SidebarMenuButton
                 active={item.active}
-                size={size}
                 variant="primary"
                 tooltip={typeof item.label === "string" ? item.label : undefined}
                 onClick={item.onSelect}
@@ -346,7 +338,6 @@ function SidebarNavRow({
         ) : (
           <SidebarMenuButton
             active={item.active}
-            size={size}
             variant="primary"
             tooltip={typeof item.label === "string" ? item.label : undefined}
             onClick={item.onSelect}
@@ -375,7 +366,6 @@ function SidebarNavRow({
       <SidebarMenuButton
         active={item.active}
         activeGroup={hasActiveChild}
-        size={size}
         variant="primary"
         disclosure
         disclosureOpen={open}

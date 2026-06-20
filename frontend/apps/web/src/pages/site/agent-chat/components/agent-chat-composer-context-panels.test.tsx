@@ -20,6 +20,22 @@ import {
 } from "./agent-chat-composer-test-fixtures"
 
 describe("AgentChatComposer context panels", () => {
+  it("does not expose the context preview action in the composer toolbar", async () => {
+    const i18n = await createAgentChatTestI18n()
+
+    render(
+      <TestProviders i18n={i18n}>
+        <AgentChatComposerToolbar {...baseToolbarProps()} />
+      </TestProviders>
+    )
+
+    expect(
+      screen.queryByRole("button", {
+        name: i18n.t("agentChat.composer.contextPreview.compactTitle"),
+      })
+    ).not.toBeInTheDocument()
+  })
+
   it("opens upload file library, toggles sources, and closes the panel", async () => {
     const i18n = await createAgentChatTestI18n()
     const user = userEvent.setup()

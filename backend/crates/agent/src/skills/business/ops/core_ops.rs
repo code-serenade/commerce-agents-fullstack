@@ -250,7 +250,7 @@ pub(super) fn product_market_fit_diagnosis(input: &Value) -> Value {
         "不匹配风险": market_fit_risks(&target_audience, &selling_points, &resolved_channels, &use_scenarios, price, &competitor_prices, &risk_signals),
         "验证问题": market_fit_validation_questions(&resolved_audiences, &resolved_channels, &selling_points),
         "MVP验证建议": [
-            {"验证对象": "人群", "动作": "用同一卖点分别面向2-3个候选人群投放或社群测试", "通过标准": "至少一个人群点击率/询单率明显高于其它人群"},
+            {"验证对象": "人群", "动作": "用同一卖点分别测试2-3个候选人群", "通过标准": "至少一个人群点击率/询单率明显高于其它人群"},
             {"验证对象": "渠道", "动作": "同一商品素材在内容种草、搜索承接和私域/社群中做小样本测试", "通过标准": "找到一个获客成本可控且能产生成交线索的主渠道"},
             {"验证对象": "卖点", "动作": "把核心卖点拆成标题、主图、短视频开头或客服话术版本", "通过标准": "高点击卖点能继续带来加购、咨询或成交，而不是只带来浏览"}
         ],
@@ -1137,7 +1137,7 @@ fn market_fit_matrix(
                 "卖点": point,
                 "匹配人群": audiences.get(idx % audiences.len()).cloned().unwrap_or_default(),
                 "首选渠道": channels.get(idx % channels.len()).cloned().unwrap_or_default(),
-                "测试表达": format!("面向{}，用「{}」作为首屏或开头卖点", audiences.get(idx % audiences.len()).cloned().unwrap_or_default(), point)
+                "测试表达": format!("给{}看时，用「{}」作为首屏或开头卖点", audiences.get(idx % audiences.len()).cloned().unwrap_or_default(), point)
             })
         })
         .collect()
@@ -1284,7 +1284,7 @@ fn experiment_stop_loss(budget: f64, price: f64, cost: f64) -> Value {
     json!({
         "预算止损": format!("任一实验组连续2天消耗超过{}且无有效咨询/加购，暂停该组", currency(daily_loss)),
         "转化止损": "点击或触达足量后仍无咨询/加购，先改卖点或人群，不继续加预算",
-        "利润止损": format!("若成交后毛利口径低于预期或履约风险高，即使有销量也不放量；当前毛利参考：{min_margin}"),
+        "利润止损": format!("若成交后毛利低于预期或履约风险高，即使有销量也不放量；当前毛利参考：{min_margin}"),
         "体验止损": "出现集中退款、差评、发货或质量问题时，先暂停测试并排查履约"
     })
 }
@@ -2006,7 +2006,7 @@ fn experiment_review_thresholds(
         .map(|group| winner.score - group.score)
         .unwrap_or(winner.score);
     let custom_metrics = if success_metrics.is_empty() {
-        json!("未提供自定义成功指标，使用点击、咨询/加购、成交、毛利和风险的默认复盘口径")
+        json!("未提供自定义成功指标，默认看点击、咨询/加购、成交、毛利和风险")
     } else {
         json!(success_metrics)
     };
@@ -2065,7 +2065,7 @@ fn experiment_review_next_actions(kind: &str, winner: &ExperimentReviewGroup) ->
         "scale" => vec![
             json!({"动作": "小步放量", "说明": format!("保留 {} / {} / {} 组合，单日预算先扩大到当前的1.5倍以内", winner.audience, winner.channel, winner.selling_point)}),
             json!({"动作": "保留对照", "说明": "至少保留一个低预算对照组，避免放量后误判渠道或素材自然波动"}),
-            json!({"动作": "复核利润", "说明": "同步调用定价或财务口径核算，确认毛利、优惠、履约和售后成本"}),
+            json!({"动作": "复核利润", "说明": "同步调用定价或财务测算，确认毛利、优惠、履约和售后成本"}),
         ],
         "adjust_retest" => vec![
             json!({"动作": "保留赢家方向", "说明": format!("继续使用 {} / {} 方向，但重写卖点表达或转化承接", winner.audience, winner.channel)}),
@@ -2318,7 +2318,7 @@ pub(super) fn listing_copy(input: &Value) -> Value {
         }).collect::<Vec<_>>(),
         "关键词矩阵": keywords,
         "常见问答": [
-            {"问": "适合什么场景？", "答": "适合日常使用、礼赠和新手入门，具体以商品规格为准。"},
+            {"问": "适合什么场景？", "答": "适合日常使用、礼赠和初次尝试，具体以商品规格为准。"},
             {"问": "发货和售后如何保障？", "答": "建议在详情页明确发货时效、退换规则和质保承诺。"}
         ],
     })
@@ -2339,17 +2339,17 @@ pub(super) fn assortment_planning(input: &Value) -> Value {
         "商品引用": if product_ref.is_empty() { Value::Null } else { json!(product_ref) },
         "选品预算": currency(budget),
         "商品组合": [
-            {"角色": "引流款", "预算": currency(hero), "SKU数": 2, "目标": "获取曝光与搜索权重", "毛利要求": "15%-25%"},
-            {"角色": "测品款", "预算": currency(test), "SKU数": 4, "目标": "验证卖点/价格带", "毛利要求": "25%-35%"},
-            {"角色": "利润款", "预算": currency(profit), "SKU数": 2, "目标": "承接复购和套装", "毛利要求": "35%+"},
-            {"角色": "清仓/备用", "预算": currency(clearance), "SKU数": 1, "目标": "应对活动和库存风险", "毛利要求": "不低于现金成本"}
+            {"角色": "引流款", "预算": currency(hero), "款式数": 2, "目标": "获取曝光与搜索权重", "毛利要求": "15%-25%"},
+            {"角色": "测品款", "预算": currency(test), "款式数": 4, "目标": "验证卖点/价格带", "毛利要求": "25%-35%"},
+            {"角色": "利润款", "预算": currency(profit), "款式数": 2, "目标": "承接复购和套装", "毛利要求": "35%+"},
+            {"角色": "清仓/备用", "预算": currency(clearance), "款式数": 1, "目标": "应对活动和库存风险", "毛利要求": "不低于现金成本"}
         ],
         "测品规则": {
-            "单SKU首批采购": currency(round2(test / 4.0)),
+            "单个款式首批采购": currency(round2(test / 4.0)),
             "放量门槛": "7天点击率>行业均值且转化率>2.5%",
             "淘汰门槛": "连续7天无加购或退款率>10%",
         },
-        "风险提醒": ["避免同价格带SKU过密", "首批采购不超过预算30%", "优先选择可补货周期小于14天的供应商"],
+        "风险提醒": ["避免同价格带款式过密", "首批采购不超过预算30%", "优先选择可补货周期小于14天的供应商"],
     })
 }
 
@@ -2364,7 +2364,7 @@ pub(super) fn execution_plan(input: &Value) -> Value {
         "阶段": stage,
         "商品引用": if product_ref.is_empty() { Value::Null } else { json!(product_ref) },
         "30天执行计划": [
-            {"周期": "第1周", "主题": "诊断与基线", "行动": ["确认GMV/转化/ROI基线", "梳理主推SKU和库存", "搭建日更看板"], "交付物": "基线表+问题清单"},
+            {"周期": "第1周", "主题": "诊断与基线", "行动": ["确认GMV/转化/ROI基线", "梳理主推款式和库存", "搭建日更看板"], "交付物": "基线表+问题清单"},
             {"周期": "第2周", "主题": "素材与流量测试", "行动": ["上线3组价格/利益点测试", "投放小预算渠道实验", "优化标题和详情首屏"], "交付物": "测试结论+预算调整表"},
             {"周期": "第3周", "主题": "放量与转化", "行动": ["放大ROI达标渠道", "配置优惠券/满减", "跟进客服转化话术"], "交付物": "放量计划+库存预警"},
             {"周期": "第4周", "主题": "复盘与固化", "行动": ["复盘活动ROI", "固化高转化素材", "制定下月预算"], "交付物": "复盘报告+下月计划"}

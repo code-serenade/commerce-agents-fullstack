@@ -19,7 +19,9 @@ export function AssistantAnswer({ content }: { content: string }) {
   const blocks = parseAnswerBlocks(content)
   const sectionLabels = {
     action: t("agentChat.answer.sectionLabels.action"),
+    direct: t("agentChat.answer.sectionLabels.direct"),
     final: t("agentChat.answer.sectionLabels.final"),
+    reason: t("agentChat.answer.sectionLabels.reason"),
     team: t("agentChat.answer.sectionLabels.team"),
   }
 
@@ -38,7 +40,9 @@ export function AssistantAnswer({ content }: { content: string }) {
 
 type SectionLabels = {
   action: string
+  direct: string
   final: string
+  reason: string
   team: string
 }
 
@@ -171,25 +175,29 @@ function TableBlock({
 }
 
 function resolveSectionTone(text: string) {
-  if (/^(综合回答|综合结论|直接结论|最终建议|多智能体协作结论)/.test(text)) {
+  if (/^(结论|结论摘要|综合回答|综合结论|直接结论|最终建议|多智能体协作结论)/.test(text)) {
     return "rounded-lg border border-primary/25 bg-primary/5 px-3 py-2 text-primary"
   }
   if (/^(各岗位独立输出|虚拟员工分工|协作回答|岗位协作|各岗位|分工)/.test(text)) {
     return "rounded-lg border border-border bg-muted/35 px-3 py-2 text-foreground"
   }
-  if (/^(主岗汇总方案|主岗综合方案|团队执行稿|丰富执行方案)/.test(text)) {
+  if (/^(可直接使用内容|可直接使用|直接可用|交付内容|主岗汇总方案|主岗综合方案|团队执行稿|丰富执行方案)/.test(text)) {
     return "rounded-lg border border-foreground/15 bg-card px-3 py-2"
   }
-  if (/^(教学讲解|执行清单|下一步|交付物|可沉淀交付物)/.test(text)) {
+  if (/^(简短原因|原因|为什么|教学讲解|执行清单|下一步|交付物|可沉淀交付物)/.test(text)) {
     return "border-l-2 border-primary/40 pl-3"
   }
   return ""
 }
 
 function resolveSectionLabel(text: string, labels: SectionLabels) {
-  if (/^(综合回答|综合结论|直接结论|多智能体协作结论)/.test(text)) {
+  if (/^(结论|结论摘要|综合回答|综合结论|直接结论|多智能体协作结论)/.test(text)) {
     return labels.final
   }
+  if (/^(可直接使用内容|可直接使用|直接可用|交付内容)/.test(text)) {
+    return labels.direct
+  }
+  if (/^(简短原因|原因|为什么)/.test(text)) return labels.reason
   if (/^(各岗位独立输出|虚拟员工分工|岗位协作|协作回答|各岗位)/.test(text)) {
     return labels.team
   }

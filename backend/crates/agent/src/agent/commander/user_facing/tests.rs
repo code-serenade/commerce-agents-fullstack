@@ -66,6 +66,97 @@ fn filters_internal_assignment_context_keys_from_final_answer() {
 }
 
 #[test]
+fn final_sanitizing_rewrites_mechanical_beginner_and_jargon_phrases() {
+    let raw = "面向电商新手的千乐咖啡单品可复盘数据分析口径如下\n\n\
+               基础可落地分析字段（适配咖啡品类）\n\n\
+               单品唯一标识字段\n\n\
+               商品ID/款号，粒度为单SKU维度\n\n\
+               交易核心字段\n\n\
+               售价、单位成本、平台扣点、物流成本、退款金额，可直接计算单品毛利、毛利率\n\n\
+               流量转化字段";
+
+    let output = sanitize_final_user_facing_text(raw).expect("answer should remain readable");
+
+    assert!(output.contains("千乐咖啡这款商品复盘时，先看这些数据"));
+    assert!(output.contains("先看这些基础数据"));
+    assert!(output.contains("先记录商品或款式编号"));
+    assert!(output.contains("商品编号或款号，按每个款式记录"));
+    assert!(output.contains("成交和成本数据"));
+    assert!(output.contains("浏览到成交的数据"));
+    assert!(!output.contains("面向电商新手"));
+    assert!(!output.contains("分析口径"));
+    assert!(!output.contains("单品唯一标识字段"));
+    assert!(!output.contains("粒度"));
+    assert!(!output.contains("SKU维度"));
+}
+
+#[test]
+fn final_sanitizing_preserves_plain_sku_when_it_is_not_jargon_framing() {
+    let raw = "库存表里保留 SKU、色号、入库、出库和剩余库存，方便和售后表关联。";
+
+    let output = sanitize_final_user_facing_text(raw).expect("answer should remain readable");
+
+    assert!(output.contains("SKU"));
+    assert!(output.contains("色号"));
+    assert!(!output.contains("SKU维度"));
+    assert!(!output.contains("粒度"));
+}
+
+#[test]
+fn final_sanitizing_rewrites_more_beginner_jargon_and_sku_label_variants() {
+    let raw = "面向小白用户的利润复盘说明：给入门用户的服务收费口径如下。\n\
+               新手入门时先看评分口径、诊断口径、处理口径和平台投诉口径。\n\
+               库存表输出 SKU库存优化明细、SKU数、SKU数量、分析SKU总数、高价值SKU、单SKU首批采购。\n\
+               普通 SKU 字段仍可保留。";
+
+    let output = sanitize_final_user_facing_text(raw).expect("answer should remain readable");
+
+    assert!(output.contains("利润复盘说明"));
+    assert!(output.contains("可直接使用的服务收费方式如下"));
+    assert!(output.contains("初次尝试时先看评分方式、诊断方法、处理说明和平台投诉规则。"));
+    assert!(output.contains(
+        "库存表输出 库存优化明细、款式数、款式数量、分析款式总数、高价值款式、单个款式首批采购。"
+    ));
+    assert!(output.contains("普通 SKU 字段仍可保留。"));
+    assert!(!output.contains("面向小白用户"));
+    assert!(!output.contains("给入门用户"));
+    assert!(!output.contains("新手入门"));
+    assert!(!output.contains("服务收费口径"));
+    assert!(!output.contains("评分口径"));
+    assert!(!output.contains("诊断口径"));
+    assert!(!output.contains("处理口径"));
+    assert!(!output.contains("平台投诉口径"));
+    assert!(!output.contains("SKU数"));
+    assert!(!output.contains("SKU数量"));
+    assert!(!output.contains("高价值SKU"));
+    assert!(!output.contains("单SKU"));
+}
+
+#[test]
+fn final_sanitizing_rewrites_dynamic_beginner_audience_phrases() {
+    let raw = "面向第一次做抖音咖啡活动的新手用户的千乐咖啡复盘建议如下。\n\
+               给刚接触校园二手教材的小白商家的复盘字段：成本、库存、售后。\n\
+               适合刚开店的入门用户的标题优化建议如下。\n\
+               请分析这个商品应该主打什么卖点？回答给做电商作业的入门学生看\n\
+               入门款咖啡机可以按真实参数、售后边界和成本记录。";
+
+    let output = sanitize_final_user_facing_text(raw).expect("answer should remain readable");
+
+    assert!(output.contains("千乐咖啡复盘建议如下。"));
+    assert!(output.contains("可直接使用的复盘时要看的数据"));
+    assert!(output.contains("可直接使用的标题优化建议如下。"));
+    assert!(output.contains("成本、库存、售后。"));
+    assert!(output.contains("用好懂的话回答"));
+    assert!(output.contains("入门款咖啡机"));
+    assert!(!output.contains("面向"));
+    assert!(!output.contains("小白"));
+    assert!(!output.contains("新手"));
+    assert!(!output.contains("入门用户"));
+    assert!(!output.contains("入门学生"));
+    assert!(!output.contains("回答给"));
+}
+
+#[test]
 fn failed_report_surfaces_llm_access_denied_user_message() {
     let report = WorkerReport {
         graph_id: TaskGraphId("graph-llm".to_string()),
@@ -725,7 +816,8 @@ fn final_sanitizing_formats_short_copy_lines_and_drops_empty_evidence_heading() 
 
     let output = sanitize_final_user_facing_text(raw).expect("answer should remain readable");
 
-    assert!(output.contains("给新手学生的三条短视频开头文案："));
+    assert!(output.contains("可直接使用的三条短视频开头文案："));
+    assert!(!output.contains("给新手学生"));
     assert!(output.contains("- 开学季高数英语经济学教材一次配齐，版本可核对48小时发"));
     assert!(output.contains("- 成套二手教材包，版本对得上才发货，48小时就能收到"));
     assert!(output.contains("- 开学教材不用挨个找，成套版本可查48小时发出"));
@@ -1003,14 +1095,7 @@ fn final_sanitizing_structures_review_answers_by_configured_sections() {
     let output = sanitize_final_user_facing_text(raw).expect("review answer should remain");
     let lower = output.to_ascii_lowercase();
 
-    let expected_order = [
-        "## 结论摘要",
-        "## 直播数据结论",
-        "## 经营问题诊断",
-        "## 整改优先级",
-        "## 落地优化建议",
-        "## 下次复盘字段",
-    ];
+    let expected_order = ["## 结论", "## 可直接使用内容", "## 简短原因", "## 下一步"];
     let mut cursor = 0;
     for heading in expected_order {
         let index = output[cursor..]

@@ -219,7 +219,7 @@ pub(super) fn risks(has_content: bool, material_type: &str, truncated: bool) -> 
     }
     if matches!(material_type, "excel" | "csv" | "xlsx" | "xls") {
         risks.push(
-            "表格资料的字段类型、异常值和聚合口径需要表格剖析 Skill 或数据 Skill 继续核验。"
+            "表格资料的字段类型、异常值和汇总方式需要表格剖析 Skill 或数据 Skill 继续核验。"
                 .to_owned(),
         );
     }

@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 import { AgentChatTestI18nProvider } from "@/test/AgentChatTestI18nProvider"
 import { createAgentChatTestI18n } from "@/test/create-agent-chat-test-i18n"
-import { StudentNextActions, WelcomeCard } from "./thread-message-blocks"
+import { AgentErrorActions, StudentNextActions, WelcomeCard } from "./thread-message-blocks"
 
 describe("WelcomeCard", () => {
   it("lets students choose an example prompt to start", async () => {
@@ -29,7 +29,7 @@ describe("WelcomeCard", () => {
     expect(onSelectExamplePrompt).toHaveBeenCalledWith(prompt)
   })
 
-  it("shows a simple student workflow in the welcome card", async () => {
+  it("shows task cards and suggested questions without long onboarding blocks", async () => {
     const i18n = await createAgentChatTestI18n()
 
     render(
@@ -39,26 +39,21 @@ describe("WelcomeCard", () => {
     )
 
     expect(
-      screen.getByText(i18n.t("agentChat.thread.studentFlow.ask.title"))
+      screen.getByText(i18n.t("agentChat.thread.studentTaskEntries.title"))
     ).toBeInTheDocument()
     expect(
-      screen.getByText(i18n.t("agentChat.thread.studentFlow.watch.title"))
+      screen.getByText(i18n.t("agentChat.thread.startHere"))
     ).toBeInTheDocument()
     expect(
-      screen.getByText(i18n.t("agentChat.thread.studentFlow.deliver.title"))
-    ).toBeInTheDocument()
+      screen.queryByText(i18n.t("agentChat.thread.studentFlow.title"))
+    ).not.toBeInTheDocument()
     expect(
-      screen.getByText(i18n.t("agentChat.thread.studentFlow.title"))
-    ).toBeInTheDocument()
+      screen.queryByText(i18n.t("agentChat.thread.processPromise"))
+    ).not.toBeInTheDocument()
     expect(
-      screen.getByText(i18n.t("agentChat.thread.processPromise"))
-    ).toBeInTheDocument()
-    expect(
-      screen.getByText(i18n.t("agentChat.thread.studentPromptRecipe.title"))
-    ).toBeInTheDocument()
-    expect(
-      screen.getByText(i18n.t("agentChat.thread.studentPromptRecipe.goal.label"))
-    ).toBeInTheDocument()
+      screen.queryByText(i18n.t("agentChat.thread.studentPromptRecipe.title"))
+    ).not.toBeInTheDocument()
+    expect(screen.queryByText(i18n.t("agentChat.welcomeMessage"))).not.toBeInTheDocument()
   })
 
   it("lets students start from task-type entries", async () => {
@@ -83,6 +78,42 @@ describe("WelcomeCard", () => {
     await user.click(screen.getByText(prompt))
 
     expect(onSelectExamplePrompt).toHaveBeenCalledWith(prompt)
+  })
+})
+
+describe("AgentErrorActions", () => {
+  it("turns reply errors into action buttons", async () => {
+    const user = userEvent.setup()
+    const onSelectPrompt = vi.fn()
+    const i18n = await createAgentChatTestI18n()
+    const retryPrompt = "Retry this product analysis"
+
+    render(
+      <AgentChatTestI18nProvider i18n={i18n}>
+        <AgentErrorActions
+          fallbackPrompt={retryPrompt}
+          onSelectPrompt={onSelectPrompt}
+        />
+      </AgentChatTestI18nProvider>
+    )
+
+    await user.click(
+      screen.getByRole("button", {
+        name: i18n.t("agentChat.thread.errorActions.retry"),
+      })
+    )
+
+    expect(onSelectPrompt).toHaveBeenCalledWith(retryPrompt)
+
+    await user.click(
+      screen.getByRole("button", {
+        name: i18n.t("agentChat.thread.errorActions.simplify"),
+      })
+    )
+
+    expect(
+      onSelectPrompt
+    ).toHaveBeenLastCalledWith(i18n.t("agentChat.thread.errorActions.shorterPrompt"))
   })
 })
 

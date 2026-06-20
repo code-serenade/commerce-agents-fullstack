@@ -44,7 +44,10 @@ pub fn decision_intent_from_json(
             clarification: None,
         },
         Some("KeepCurrentAssignment") => RoutedDecision {
-            intent: DecisionIntent::KeepCurrentTask,
+            intent: current_task
+                .map(task_to_spec)
+                .map(|task| DecisionIntent::ExecuteTask { task })
+                .unwrap_or(DecisionIntent::Ignore),
             target_worker_id: parse_target_worker_id(decision),
             task_graph: None,
             clarification: None,
@@ -91,7 +94,10 @@ pub fn decision_intent_from_json(
                     .map(|task| DecisionIntent::ReplaceCurrentTask { task })
                     .unwrap_or(DecisionIntent::Ignore)
             } else {
-                DecisionIntent::KeepCurrentTask
+                current_task
+                    .map(task_to_spec)
+                    .map(|task| DecisionIntent::ExecuteTask { task })
+                    .unwrap_or(DecisionIntent::Ignore)
             };
 
             RoutedDecision {
@@ -329,5 +335,39 @@ mod tests {
             decision.clarification.as_deref(),
             Some("需要先确认目标环境")
         );
+    }
+
+    #[test]
+    fn keep_current_assignment_executes_current_user_request() {
+        let output: CognitionOutput = json!({
+            "decision": {
+                "kind": "KeepCurrentAssignment",
+                "route": {
+                    "target_agent_id": "worker.chat",
+                    "task_summary": "沿用现有资料继续回答",
+                    "goal": "给出丰富干货回答",
+                    "constraints": []
+                }
+            },
+            "confidence": 0.8
+        });
+
+        let decision = decision_intent_from_json(
+            &output,
+            Some(CommanderTask {
+                id: "task-rich-followup".to_string(),
+                description: "我不会给你提供任何其他信息，但是你必须根据我所给资料进行丰富回答"
+                    .to_string(),
+            }),
+        );
+
+        match decision.intent {
+            crate::core::protocol::DecisionIntent::ExecuteTask { task } => {
+                assert_eq!(task.id.0, "task-rich-followup");
+                assert!(task.description.contains("丰富回答"));
+            }
+            other => panic!("expected current request to execute, got {other:?}"),
+        }
+        assert_eq!(decision.target_worker_id.unwrap().0, "worker.chat");
     }
 }

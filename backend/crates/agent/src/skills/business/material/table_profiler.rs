@@ -179,7 +179,7 @@ impl Skill for MaterialTableProfiler {
             "下一步建议": next_actions(&profiles),
             "治理说明": [
                 "本 skill 只做表格结构剖析和轻量字段质量判断，不替代财务测算、归因建模或完整数据仓库校验。",
-                "如果字段画像显示缺失、口径不清或异常值，后续岗位回答必须先标注假设和数据风险。",
+                "如果字段画像显示缺失、含义不清或异常值，后续岗位回答必须先标注假设和数据风险。",
                 "如果用户要求真实店铺后台或最新外部行业指标，应调用 data_* 或 search_*，不能把样本表格伪造成实时数据。"
             ]
         });
@@ -529,7 +529,7 @@ fn quality_issues(
         }
     }
     if issues.is_empty() {
-        issues.push("未发现明显缺失或异常；仍需结合业务口径确认字段含义。".to_owned());
+        issues.push("未发现明显缺失或异常；仍需结合业务场景确认字段含义。".to_owned());
     }
     issues
 }
@@ -563,7 +563,7 @@ fn downstream_skill_suggestions(profiles: &[ColumnProfile], question: &str) -> V
 fn next_actions(profiles: &[ColumnProfile]) -> Vec<String> {
     let mut actions = Vec::new();
     actions.push(
-        "先让用户确认字段口径，尤其是金额是否含税、成本是否含物流/投放、时间粒度是日/周/月。"
+        "先让用户确认字段含义，尤其是金额是否含税、成本是否含物流/投放、时间范围是日/周/月。"
             .to_owned(),
     );
     if profiles.iter().any(|profile| profile.missing_count > 0) {
@@ -633,7 +633,7 @@ fn push_metric_if(
             "metric": metric,
             "label": label,
             "field": field,
-            "formula_hint": "直接字段或后续按业务口径聚合",
+            "formula_hint": "直接字段或后续按业务规则汇总",
             "next_skill": "data_comprehensive_diagnosis"
         }));
     }
@@ -708,7 +708,7 @@ fn column_quality_flags(
         ) && min > 0.0
             && max / min > 100.0
         {
-            flags.push("最大最小差异超过 100 倍，可能存在异常值或混合口径".to_owned());
+            flags.push("最大最小差异超过 100 倍，可能存在异常值或混合算法".to_owned());
         }
     }
     flags

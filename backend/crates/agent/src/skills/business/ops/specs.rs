@@ -357,12 +357,12 @@ pub fn specs() -> Vec<SkillSpec> {
         spec(
             "ops_inventory_optimizer",
             "库存优化计算",
-            "按SKU计算EOQ、安全库存、再订货点、库存健康和ABC分类",
+            "按商品或款式计算EOQ、安全库存、再订货点、库存健康和ABC分类",
             vec![
                 field(
                     "skus",
                     "array<object>",
-                    "SKU列表：{name, monthly_sales, cost, stock_qty}",
+                    "商品或款式列表：{name, monthly_sales, cost, stock_qty}",
                     false,
                 ),
                 field("ordering_cost", "number", "单次订货成本，默认200", false),
@@ -412,11 +412,11 @@ pub fn specs() -> Vec<SkillSpec> {
                 field(
                     "skus",
                     "array<object>",
-                    "SKU列表：{sku_id, gmv, sales_history:[...]}",
+                    "商品或款式列表：{sku_id, gmv, sales_history:[...]}",
                     false,
                 ),
                 field("platform", "string", "平台，默认淘宝", false),
-                field("top_n", "integer", "展示前N个高价值SKU，默认20", false),
+                field("top_n", "integer", "展示前N个高价值款式，默认20", false),
                 field(
                     "product_ref",
                     "string",

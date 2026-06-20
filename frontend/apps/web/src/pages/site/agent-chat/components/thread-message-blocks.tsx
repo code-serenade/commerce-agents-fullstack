@@ -2,6 +2,7 @@ import {
   BrainCircuit,
   Copy,
   CircleStop,
+  RotateCcw,
   ListChecks,
   Loader2,
   Sparkles,
@@ -12,13 +13,10 @@ import type { AgentChatMessage } from "../types"
 import {
   getStudentNextActionMeta,
   getStudentNextActionPrompts,
-  getStudentStartFlowSteps,
   getStudentTaskEntries,
 } from "../view-model/student-next-actions-view-model"
-import { StudentPromptRecipe } from "./student-prompt-recipe"
 
 export function WelcomeCard({
-  content,
   onSelectExamplePrompt,
 }: {
   content: string
@@ -31,7 +29,6 @@ export function WelcomeCard({
   const examplePrompts = t("agentChat.thread.examplePrompts", {
     returnObjects: true,
   }) as string[]
-  const startFlowSteps = getStudentStartFlowSteps(t)
   const taskEntries = getStudentTaskEntries(t)
 
   return (
@@ -44,41 +41,41 @@ export function WelcomeCard({
           <p className="text-base font-semibold">
             {t("agentChat.thread.agentName")}
           </p>
-          <p className="mt-1 text-sm/6 text-muted-foreground">{content}</p>
         </div>
       </div>
-      <div className="mt-4 rounded-lg border border-border bg-background">
-        <div className="border-b border-border px-3 py-2">
-          <p className="text-xs font-semibold text-foreground">
-            {t("agentChat.thread.studentTaskEntries.title")}
-          </p>
-          <p className="mt-1 text-[11px]/5 text-muted-foreground">
-            {t("agentChat.thread.studentTaskEntries.subtitle")}
-          </p>
-        </div>
-        <div className="grid gap-2 p-3 sm:grid-cols-2">
-          {taskEntries.map((entry) => (
-            <button
-              key={entry.title}
-              type="button"
-              className="group min-h-20 rounded-md border border-border bg-card px-3 py-2 text-left transition hover:border-foreground/30 hover:bg-muted"
-              onClick={() => onSelectExamplePrompt?.(entry.prompt)}
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        {taskEntries.map((entry) => (
+          <button
+            key={entry.title}
+            type="button"
+            className="group min-h-24 rounded-md border border-border bg-background p-3 text-left transition hover:border-foreground/30 hover:bg-muted"
+            onClick={() => onSelectExamplePrompt?.(entry.prompt)}
+          >
+            <span className="flex items-center gap-2 text-xs font-semibold text-foreground">
+              <ListChecks className="size-3.5 shrink-0 text-blue-500" />
+              {entry.title}
+            </span>
+            <span className="mt-2 block text-[11px]/5 text-muted-foreground">
+              {entry.detail}
+            </span>
+            <span className="mt-2 line-clamp-2 block text-[11px]/5 text-blue-600 group-hover:text-blue-700">
+              {entry.prompt}
+            </span>
+          </button>
+        ))}
+      </div>
+      <div className="mt-4 rounded-lg border border-border bg-background p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {capabilities.map((item, index) => (
+            <span
+              key={`${index}-${item}`}
+              className="rounded-full bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground"
             >
-              <span className="block text-xs font-semibold text-foreground">
-                {entry.title}
-              </span>
-              <span className="mt-1 block text-[11px]/5 text-muted-foreground">
-                {entry.detail}
-              </span>
-              <span className="mt-2 line-clamp-2 block text-[11px]/5 text-blue-600 group-hover:text-blue-700">
-                {entry.prompt}
-              </span>
-            </button>
+              {item}
+            </span>
           ))}
         </div>
-      </div>
-      <div className="mt-4">
-        <p className="text-xs font-medium text-muted-foreground">
+        <p className="mt-3 text-xs font-medium text-muted-foreground">
           {t("agentChat.thread.startHere")}
         </p>
         <div className="mt-2 grid gap-2">
@@ -86,7 +83,7 @@ export function WelcomeCard({
             <button
               key={prompt}
               type="button"
-              className="group flex min-h-10 items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-left text-xs/5 text-foreground transition hover:border-foreground/30 hover:bg-muted"
+              className="group flex min-h-10 items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-left text-xs/5 text-foreground transition hover:border-foreground/30 hover:bg-muted"
               onClick={() => onSelectExamplePrompt?.(prompt)}
             >
               <Sparkles className="size-3.5 shrink-0 text-blue-500" />
@@ -95,48 +92,6 @@ export function WelcomeCard({
           ))}
         </div>
       </div>
-      <div className="mt-4 grid gap-2 sm:grid-cols-3">
-        {capabilities.map((item, index) => (
-          <div
-            key={`${index}-${item}`}
-            className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground"
-          >
-            <ListChecks className="size-3.5" />
-            {item}
-          </div>
-        ))}
-      </div>
-      <div className="mt-4 rounded-lg border border-border bg-background">
-        <div className="border-b border-border px-3 py-2">
-          <p className="text-xs font-semibold text-foreground">
-            {t("agentChat.thread.studentFlow.title")}
-          </p>
-          <p className="mt-1 text-[11px]/5 text-muted-foreground">
-            {t("agentChat.thread.studentFlow.subtitle")}
-          </p>
-        </div>
-        <div className="grid gap-0 sm:grid-cols-3">
-          {startFlowSteps.map((step, index) => (
-            <div
-              key={step.title}
-              className={`p-3 ${
-                index > 0 ? "border-t border-border sm:border-t-0 sm:border-l" : ""
-              }`}
-            >
-              <p className="text-xs font-semibold text-foreground">
-                {step.title}
-              </p>
-              <p className="mt-1 text-[11px]/5 text-muted-foreground">
-                {step.detail}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="mt-3 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs/5 text-muted-foreground">
-        {t("agentChat.thread.processPromise")}
-      </div>
-      <StudentPromptRecipe />
     </div>
   )
 }
@@ -163,6 +118,46 @@ export function AgentStoppedCard() {
     <div className="mt-4 flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs text-muted-foreground">
       <CircleStop className="size-4" />
       <span>{t("agentChat.thread.stopped")}</span>
+    </div>
+  )
+}
+
+export function AgentErrorActions({
+  fallbackPrompt,
+  onSelectPrompt,
+}: {
+  fallbackPrompt?: string
+  onSelectPrompt?: (prompt: string) => void
+}) {
+  const { t } = useTranslation()
+  const retryPrompt =
+    fallbackPrompt?.trim() || t("agentChat.thread.errorActions.retryPrompt")
+  const shorterPrompt = t("agentChat.thread.errorActions.shorterPrompt")
+
+  return (
+    <div className="mt-3 rounded-lg border border-destructive/25 bg-destructive/5 p-3 text-xs text-destructive">
+      <div className="flex min-w-0 items-center gap-2 font-medium">
+        <CircleStop className="size-3.5 shrink-0" />
+        <span>{t("agentChat.thread.errorActions.title")}</span>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => onSelectPrompt?.(retryPrompt)}
+          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-destructive/25 bg-background px-3 text-[11px] font-medium transition hover:bg-destructive/10"
+        >
+          <RotateCcw className="size-3" />
+          {t("agentChat.thread.errorActions.retry")}
+        </button>
+        <button
+          type="button"
+          onClick={() => onSelectPrompt?.(shorterPrompt)}
+          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-destructive/25 bg-background px-3 text-[11px] font-medium transition hover:bg-destructive/10"
+        >
+          <Sparkles className="size-3" />
+          {t("agentChat.thread.errorActions.simplify")}
+        </button>
+      </div>
     </div>
   )
 }

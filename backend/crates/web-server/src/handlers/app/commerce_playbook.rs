@@ -58,7 +58,7 @@ pub async fn get_agent_runtime_options(
             (
                 "learning",
                 "教学模式",
-                "面向学生和新手讲清概念、判断过程和可执行动作。",
+                "用好懂的话讲清概念、判断过程和可执行动作。",
                 true,
             ),
             (
@@ -78,7 +78,7 @@ pub async fn get_agent_runtime_options(
             (
                 "learning",
                 "教学模式",
-                "面向学生和新手讲清概念、判断过程和可执行动作。",
+                "用好懂的话讲清概念、判断过程和可执行动作。",
                 true,
             ),
             (
@@ -110,7 +110,7 @@ pub async fn get_agent_runtime_options(
         ]),
         learning_levels: runtime_choices(&[
             ("beginner", "低", "减少术语，强调操作顺序。", false),
-            ("higher_vocational", "中", "按电商岗位应用口径解释。", true),
+            ("higher_vocational", "中", "按真实电商场景解释。", true),
             (
                 "professional",
                 "高",
@@ -361,7 +361,7 @@ mod tests {
             (
                 "learning",
                 "教学模式",
-                "面向学生和新手讲清概念、判断过程和可执行动作。",
+                "用好懂的话讲清概念、判断过程和可执行动作。",
                 true,
             ),
             (
@@ -379,7 +379,7 @@ mod tests {
         ]);
         let learning_levels = runtime_choices(&[
             ("beginner", "低", "减少术语，强调操作顺序。", false),
-            ("higher_vocational", "中", "按电商岗位应用口径解释。", true),
+            ("higher_vocational", "中", "按真实电商场景解释。", true),
             (
                 "professional",
                 "高",

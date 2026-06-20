@@ -199,7 +199,7 @@ pub(super) fn query_product_metrics(input: &Value) -> Value {
                 "stockout_count"
             ],
             "next_actions": [
-                "在本轮输入中提供商品或SKU经营指标",
+                "在本轮输入中提供商品或款式经营指标",
                 "或先通过前端引用商品并由后续 service adapter 注入真实商品指标",
                 "前端展示为缺商品指标状态，不要当作已读取平台实时商品数据"
             ],

@@ -70,10 +70,8 @@ export function AgentChatComposer({
   const {
     campaignContextOpen,
     closePanels,
-    contextPreviewOpen,
     productContextOpen,
     setCampaignContextOpen,
-    setContextPreviewOpen,
     setProductContextOpen,
     setSourceContextOpen,
     settingsOpen,
@@ -93,7 +91,6 @@ export function AgentChatComposer({
     composerRootRef,
     hasOpenPanel:
       campaignContextOpen ||
-      contextPreviewOpen ||
       productContextOpen ||
       sourceContextOpen ||
       settingsOpen,
@@ -125,7 +122,7 @@ export function AgentChatComposer({
             availableProducts={availableProducts}
             availableSources={availableSources}
             contextPreview={contextPreview}
-            contextPreviewOpen={contextPreviewOpen}
+            contextPreviewOpen={false}
             isLoadingCampaigns={isLoadingCampaigns}
             isLoadingPlaybooks={isLoadingPlaybooks}
             isLoadingProducts={isLoadingProducts}
@@ -169,9 +166,11 @@ export function AgentChatComposer({
 
           <div className="grid gap-1 rounded-lg bg-background p-1.5 shadow-sm">
             <AgentChatComposerStatus
+              canRetry={canSend}
               error={error}
               isLoggedIn={isLoggedIn}
               isStreaming={isStreaming}
+              onRetry={composerEvents.sendAndClosePanels}
             />
 
             <AgentChatComposerInput
@@ -194,9 +193,7 @@ export function AgentChatComposer({
               availableProducts={availableProducts}
               availableSources={availableSources}
               canSend={canSend}
-              contextPreviewOpen={contextPreviewOpen}
               isLoggedIn={isLoggedIn}
-              isPreviewingContext={contextPreview.isPreviewingContext}
               isLoadingCampaigns={isLoadingCampaigns}
               isLoadingPlaybooks={isLoadingPlaybooks}
               isLoadingProducts={isLoadingProducts}
@@ -218,8 +215,6 @@ export function AgentChatComposer({
               onClearSourceContext={onClearSourceContext}
               onToggleCampaignContext={onToggleCampaignContext}
               onToggleCampaignPanel={setCampaignContextOpen}
-              onToggleContextPreviewPanel={setContextPreviewOpen}
-              onPreviewContext={contextPreview.previewContext}
               onToggleProductContext={onToggleProductContext}
               onToggleProductPanel={setProductContextOpen}
               onToggleSourceContext={onToggleSourceContext}

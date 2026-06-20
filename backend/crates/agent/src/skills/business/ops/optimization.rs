@@ -268,11 +268,11 @@ pub(super) fn inventory_optimizer(input: &Value) -> Value {
         "商品引用": if product_ref.is_empty() { Value::Null } else { json!(product_ref) },
         "服务水平": service_level,
         "供应商交货期": format!("{}天", lead_time.round()),
-        "SKU库存优化明细": sku_results,
+        "库存优化明细": sku_results,
         "ABC分类汇总": [
-            {"分类": "A", "SKU数": counts.0, "价值占比": 80, "策略": "重点保障，不允许缺货"},
-            {"分类": "B", "SKU数": counts.1, "价值占比": 15, "策略": "正常补货，EOQ控制"},
-            {"分类": "C", "SKU数": counts.2, "价值占比": 5, "策略": "缩减库存，清库促销"},
+            {"分类": "A", "款式数": counts.0, "价值占比": 80, "策略": "重点保障，不允许缺货"},
+            {"分类": "B", "款式数": counts.1, "价值占比": 15, "策略": "正常补货，EOQ控制"},
+            {"分类": "C", "款式数": counts.2, "价值占比": 5, "策略": "缩减库存，清库促销"},
         ],
         "ABC分类明细": abc_result.into_iter().take(10).collect::<Vec<_>>(),
         "整体库存健康": {
@@ -467,7 +467,7 @@ pub(super) fn abc_xyz_classifier(input: &Value) -> Value {
             (
                 cell.clone(),
                 json!({
-                    "SKU数量": count,
+                    "款式数量": count,
                     "GMV贡献": percent(*gmv / total_gmv * 100.0, 1),
                     "策略": matrix_strategy(cell).0,
                     "库存倍率": matrix_strategy(cell).1,
@@ -500,10 +500,10 @@ pub(super) fn abc_xyz_classifier(input: &Value) -> Value {
         "数据来源": "用户输入",
         "平台": platform,
         "商品引用": if product_ref.is_empty() { Value::Null } else { json!(product_ref) },
-        "分析SKU总数": classified.len(),
+        "分析款式总数": classified.len(),
         "9格矩阵": matrix_display,
         "矩阵说明": "ABC: A=前80%GMV / B=80-95% / C=尾部; XYZ: X=CV<0.2稳定 / Y=CV0.2-0.5 / Z=CV>0.5高波动",
-        format!("高价值SKU(前{}个)", top_display.len()): top_display,
+        format!("高价值款式(前{}个)", top_display.len()): top_display,
         "关键洞察": {
             "AX稳定高价值": matrix.get("AX").map(|v| v.0).unwrap_or(0),
             "AZ高价值高波动": matrix.get("AZ").map(|v| v.0).unwrap_or(0),

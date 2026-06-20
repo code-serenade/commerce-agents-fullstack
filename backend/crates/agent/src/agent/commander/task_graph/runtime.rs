@@ -533,22 +533,18 @@ impl TaskGraphRuntime {
             return None;
         }
 
-        let lines = [
-            "## 当前状态".to_string(),
+        let fallback = fallback_structured_synthesis(&self.graph.root_task);
+        let mut lines = vec![
+            fallback,
             String::new(),
-            "这次没有形成完整答案，协作步骤没有全部完成，所以不能把结果当成可靠结论。".to_string(),
+            "## 本轮边界".to_string(),
             String::new(),
-            "## 对本轮回答的影响".to_string(),
-            String::new(),
-            "- 已收到你的问题和本轮选择的资料。".to_string(),
-            "- 部分分析步骤没有形成可用结果。".to_string(),
-            "- 当前内容不能作为完整的商品、活动或资料判断。".to_string(),
-            String::new(),
-            "## 下一步".to_string(),
-            String::new(),
-            "- 可以稍后重试同一个问题。".to_string(),
-            "- 如果问题很急，可以先切到普通问答或只指定一个岗位继续问。".to_string(),
+            "- 部分协作步骤没有形成可用结果，所以具体销量、转化率、成本、库存、平台规则或实时来源不能写成确定事实。".to_string(),
+            "- 上面的内容是基于当前问题和已进入上下文的信息整理出的低风险可执行版本，后续可以用真实资料继续复核。".to_string(),
         ];
+        if gaps.len() > 1 {
+            lines.push("- 本轮有多个协作步骤未完成，最终答案已避免暴露内部失败细节。".to_string());
+        }
 
         sanitize_final_user_facing_text(&lines.join("\n")).or_else(|| Some(lines.join("\n")))
     }
@@ -1927,18 +1923,53 @@ mod tests {
 
         let output = runtime.synthesize();
 
-        assert!(output.contains("没有形成完整答案"));
-        assert!(output.contains("## 当前状态"));
-        assert!(output.contains("## 对本轮回答的影响"));
-        assert!(output.contains("## 下一步"));
-        assert!(output.contains("- 部分分析步骤没有形成可用结果。"));
-        assert!(output.contains("协作步骤没有全部完成"));
+        assert!(output.contains("## 当前可先交付"));
+        assert!(output.contains("## 先做什么"));
+        assert!(output.contains("## 本轮边界"));
+        assert!(output.contains("低风险可执行版本"));
+        assert!(output.contains("部分协作步骤没有形成可用结果"));
+        assert!(!output.contains("没有形成完整答案"));
         assert!(!output.contains("data"));
         assert!(!output.contains("服务端没有可用的该岗位执行器"));
         assert!(!output.contains("ops"));
         assert!(!output.contains("上游依赖岗位未成功完成"));
         assert!(!output.contains("没有拿到可直接展示的完整内容"));
         assert!(!output.contains("failure_kind"));
+    }
+
+    #[test]
+    fn task_graph_gap_message_still_gives_actionable_draft_for_rich_followup() {
+        let data = node("data", "资料整理", "data");
+        let mut ops = node("ops_final", "运营总方案", "ops");
+        ops.input_refs = vec![TaskNodeId("data".to_string())];
+        let mut runtime = TaskGraphRuntime::new(TaskGraph {
+            graph_id: TaskGraphId("graph-rich-followup-gap".to_string()),
+            root_task: "我不会给你提供任何其他信息，但是你必须根据我所给资料进行丰富回答"
+                .to_string(),
+            nodes: vec![data.clone(), ops.clone()],
+            adaptive_hint: None,
+        });
+        runtime.states.insert(
+            data.id.clone(),
+            TaskNodeRuntimeState::Failed("worker cognition timed out".to_string()),
+        );
+        runtime.states.insert(
+            ops.id.clone(),
+            TaskNodeRuntimeState::Skipped("dependency did not pass".to_string()),
+        );
+
+        let output = runtime.synthesize();
+
+        assert!(output.contains("## 当前可先交付"), "{output}");
+        assert!(output.contains("## 先做什么"), "{output}");
+        assert!(output.contains("## 风险边界"), "{output}");
+        assert!(output.contains("## 本轮边界"), "{output}");
+        assert!(output.contains("可执行草案"), "{output}");
+        assert!(output.contains("真实资料"), "{output}");
+        assert!(!output.contains("请直接补充新的要求"), "{output}");
+        assert!(!output.contains("没有形成完整答案"), "{output}");
+        assert!(!output.contains("dependency did not pass"), "{output}");
+        assert!(!output.contains("worker cognition timed out"), "{output}");
     }
 
     #[test]

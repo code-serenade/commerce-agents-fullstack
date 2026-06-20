@@ -27,11 +27,13 @@ describe("DispatchWorkbenchContent", () => {
 
     const request = screen.getByText(longRequest)
     const stepDetail = screen.getByText(longStepDetail)
+    const previewPanel = screen.getByText(filename).closest(".rounded-md")
 
     expect(request).toHaveClass("wrap-break-word")
     expect(request).not.toHaveClass("line-clamp-2")
     expect(stepDetail).toHaveClass("wrap-break-word")
     expect(stepDetail).not.toHaveClass("line-clamp-1")
+    expect(previewPanel?.querySelector(".overflow-y-auto")).toHaveClass("text-base/7")
   })
 })
 
@@ -49,7 +51,11 @@ function createWorkbenchModel(): DispatchWorkbenchModel {
     filename,
     kind: "multi_agent",
     modeLabel,
-    previewLines: [],
+    previewLines: [
+      "Quick answer task",
+      "Business input: analyze this product",
+      "Progress: 2/4 | Reading materials and preparing the answer",
+    ],
     progress: {
       completed: 1,
       label: progressLabel,

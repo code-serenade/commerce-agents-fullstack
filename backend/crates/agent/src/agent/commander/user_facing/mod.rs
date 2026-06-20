@@ -743,11 +743,111 @@ fn rewrite_internal_skill_names(line: &str) -> String {
 }
 
 fn rewrite_business_phrases(line: &str) -> String {
-    let mut text = line.to_string();
+    let mut text = rewrite_dynamic_beginner_audience_phrases(line);
     for [from, to] in &user_facing_policy().business_phrase_replacements {
         text = text.replace(from, to);
     }
-    text
+    rewrite_dynamic_beginner_audience_phrases(&text)
+}
+
+fn rewrite_dynamic_beginner_audience_phrases(line: &str) -> String {
+    let text = rewrite_answer_for_beginner_reader(line);
+    let text = rewrite_beginner_audience_prefix(&text, "面向", "");
+    let text = rewrite_beginner_audience_prefix(&text, "给", "可直接使用的");
+    rewrite_beginner_audience_prefix(&text, "适合", "可直接使用的")
+}
+
+fn rewrite_answer_for_beginner_reader(input: &str) -> String {
+    let marker = "回答给";
+    let mut output = String::with_capacity(input.len());
+    let mut cursor = 0;
+
+    while let Some(relative_start) = input[cursor..].find(marker) {
+        let start = cursor + relative_start;
+        output.push_str(&input[cursor..start]);
+
+        let after_marker = start + marker.len();
+        if let Some(relative_end) = input[after_marker..].find('看') {
+            let end = after_marker + relative_end + '看'.len_utf8();
+            let segment = &input[start..end];
+            if beginner_audience_segment(segment) {
+                output.push_str("用好懂的话回答");
+                cursor = end;
+                continue;
+            }
+        }
+
+        output.push_str(marker);
+        cursor = after_marker;
+    }
+
+    output.push_str(&input[cursor..]);
+    output
+}
+
+fn rewrite_beginner_audience_prefix(input: &str, marker: &str, replacement: &str) -> String {
+    let mut output = String::with_capacity(input.len());
+    let mut cursor = 0;
+
+    while let Some(relative_start) = input[cursor..].find(marker) {
+        let start = cursor + relative_start;
+        output.push_str(&input[cursor..start]);
+
+        let after_marker = start + marker.len();
+        if let Some(end) = beginner_audience_prefix_end(input, start, after_marker) {
+            output.push_str(replacement);
+            cursor = end;
+            continue;
+        }
+
+        output.push_str(marker);
+        cursor = after_marker;
+    }
+
+    output.push_str(&input[cursor..]);
+    output
+}
+
+fn beginner_audience_prefix_end(input: &str, start: usize, after_marker: usize) -> Option<usize> {
+    for (relative_index, ch) in input[after_marker..].char_indices() {
+        if ch == '\n' {
+            return None;
+        }
+
+        let end = after_marker + relative_index + ch.len_utf8();
+        let segment = &input[start..end];
+        if segment.chars().count() > 36 {
+            return None;
+        }
+        if ch == '的' && beginner_audience_segment(segment) {
+            return Some(end);
+        }
+    }
+    None
+}
+
+fn beginner_audience_segment(segment: &str) -> bool {
+    let has_direct_beginner_label = ["新手", "小白", "零基础", "初学"]
+        .iter()
+        .any(|marker| segment.contains(marker));
+    let has_entry_level_person_label = segment.contains("入门")
+        && [
+            "用户",
+            "学生",
+            "商家",
+            "卖家",
+            "团队",
+            "读者",
+            "同学",
+            "人群",
+            "操作者",
+        ]
+        .iter()
+        .any(|marker| segment.contains(marker));
+
+    segment.chars().count() <= 36
+        && !segment.contains('\n')
+        && (has_direct_beginner_label || has_entry_level_person_label)
 }
 
 fn remove_unverified_live_search_availability_claims_from_line(line: &str) -> String {
@@ -1382,7 +1482,7 @@ fn looks_like_material_evidence_history_replay_line(line: &str) -> bool {
     line.starts_with("运营对象&平台")
         || line.starts_with("素材&页面落地规则")
         || line.starts_with("主图要求")
-        || (line.contains("复盘字段")
+        || ((line.contains("复盘字段") || line.contains("复盘时要看的数据"))
             && (line.contains("活动期间统计")
                 || line.contains("咨询top问题")
                 || line.contains("库存剩余量")

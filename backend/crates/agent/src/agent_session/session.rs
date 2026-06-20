@@ -1,8 +1,8 @@
 use std::{collections::BTreeMap, sync::Arc};
 
 use crate::{
-    MemoryQuery, MemoryScope, MemoryStore, SessionEventRx, SessionResult, SessionRuntime,
-    SessionRuntimeConfig, SessionRuntimeInput, SessionSnapshot,
+    MemoryBundle, MemoryKind, MemoryQuery, MemoryScope, MemoryStore, SessionEventRx, SessionResult,
+    SessionRuntime, SessionRuntimeConfig, SessionRuntimeInput, SessionSnapshot,
     agent::commander::plan_configured_non_chat_task_graph,
     agent_error::Result,
     cognition::Cognition,
@@ -104,18 +104,22 @@ impl AgentSession {
                 })
             })
             .collect::<Result<Vec<_>>>()?;
-        let context = self.message_context();
-        let mut memory_scope = self.memory_scope(None);
-        memory_scope.session_id = None;
+        let memory_scope = self.memory_scope(None);
         let memory_bundle = self.config.memory_store.load_bundle(
             MemoryQuery::scoped(memory_scope)
                 .for_text(agent_memory_query_text(&input, &self.scope.metadata)),
+        );
+        let mut context = self.message_context();
+        inject_session_memory_history(
+            &mut context.metadata,
+            &memory_bundle,
+            &self.scope.session_id,
         );
 
         let mut runtime = SessionRuntime::start(SessionRuntimeInput {
             session_id: self.scope.session_id.clone(),
             context,
-            task_description: input,
+            task_description: input.clone(),
             memory_bundle,
             commander_cognition,
             workers,
@@ -138,7 +142,7 @@ impl AgentSession {
         };
         let blackboard = runtime.session_context().blackboard().snapshot();
         runtime.shutdown().await;
-        let memory_outcome = self.persist_if_ok(&result, blackboard);
+        let memory_outcome = self.persist_if_ok(&result, blackboard, &input);
         if memory_outcome.written > 0
             && let Some(event_tx) = event_tx_for_persist
             && let Ok(result) = &result
@@ -197,12 +201,14 @@ impl AgentSession {
         &self,
         result: &Result<SessionResult>,
         blackboard: std::collections::HashMap<String, String>,
+        input: &str,
     ) -> crate::MemoryWriteOutcome {
         if let Ok(result) = result {
+            let session_summary = session_memory_summary(input, &result.output);
             return self.config.memory_store.persist_session(
                 &self.memory_scope(Some(result.session_id.clone())),
                 SessionSnapshot {
-                    summary: result.output.clone(),
+                    summary: session_summary,
                     final_output: result.output.clone(),
                     blackboard: blackboard.into_iter().collect::<BTreeMap<_, _>>(),
                     task_graphs: result.task_graphs.clone(),
@@ -215,6 +221,112 @@ impl AgentSession {
             );
         }
         crate::MemoryWriteOutcome::default()
+    }
+}
+
+const MAX_SESSION_MEMORY_HISTORY_CHARS: usize = 2_400;
+const MAX_SESSION_SNAPSHOT_SUMMARY_CHARS: usize = 6_000;
+
+fn session_memory_summary(input: &str, output: &str) -> String {
+    let input = compact_memory_history_text(input, MAX_SESSION_SNAPSHOT_SUMMARY_CHARS / 3);
+    let output = compact_memory_history_text(output, MAX_SESSION_SNAPSHOT_SUMMARY_CHARS);
+    match (input.is_empty(), output.is_empty()) {
+        (true, true) => String::new(),
+        (true, false) => format!("Assistant: {output}"),
+        (false, true) => format!("User: {input}"),
+        (false, false) => truncate_memory_history_text(
+            &format!("User: {input}\nAssistant: {output}"),
+            MAX_SESSION_SNAPSHOT_SUMMARY_CHARS,
+        ),
+    }
+}
+
+fn inject_session_memory_history(
+    metadata: &mut BTreeMap<String, String>,
+    memory_bundle: &MemoryBundle,
+    session_id: &SessionId,
+) {
+    if metadata
+        .get("conversation.history_summary")
+        .is_some_and(|value| !value.trim().is_empty())
+    {
+        return;
+    }
+
+    let Some(history) = same_session_memory_history(memory_bundle, session_id) else {
+        return;
+    };
+
+    metadata.insert("conversation.history_summary".to_string(), history);
+    metadata
+        .entry("conversation.history_message_count".to_string())
+        .or_insert_with(|| "1".to_string());
+    metadata
+        .entry("conversation.history_total_message_count".to_string())
+        .or_insert_with(|| "1".to_string());
+    metadata
+        .entry("conversation.history_truncated".to_string())
+        .or_insert_with(|| "false".to_string());
+    metadata
+        .entry("conversation.history_grounding_enabled".to_string())
+        .or_insert_with(|| "true".to_string());
+}
+
+fn same_session_memory_history(
+    memory_bundle: &MemoryBundle,
+    session_id: &SessionId,
+) -> Option<String> {
+    let mut remaining = MAX_SESSION_MEMORY_HISTORY_CHARS;
+    let lines = memory_bundle
+        .records
+        .iter()
+        .filter(|record| record.kind == MemoryKind::SessionSummary)
+        .filter(|record| record.scope.session_id.as_ref() == Some(session_id))
+        .filter_map(|record| {
+            if remaining == 0 {
+                return None;
+            }
+            let content = compact_memory_history_text(&record.content, remaining);
+            if content.is_empty() {
+                return None;
+            }
+            let line = memory_history_line(&content);
+            remaining = remaining.saturating_sub(line.chars().count());
+            Some(line)
+        })
+        .collect::<Vec<_>>();
+
+    (!lines.is_empty()).then(|| lines.join("\n\n"))
+}
+
+fn memory_history_line(content: &str) -> String {
+    if content.starts_with("User:") || content.starts_with("Assistant:") {
+        content.to_string()
+    } else {
+        format!("Assistant: {content}")
+    }
+}
+
+fn compact_memory_history_text(value: &str, max_chars: usize) -> String {
+    if max_chars == 0 {
+        return String::new();
+    }
+    let text = value
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n");
+    truncate_memory_history_text(&text, max_chars)
+}
+
+fn truncate_memory_history_text(value: &str, max_chars: usize) -> String {
+    let mut chars = value.chars();
+    let head = chars.by_ref().take(max_chars).collect::<String>();
+    if chars.next().is_some() {
+        format!("{head}...")
+    } else {
+        head
     }
 }
 
@@ -896,10 +1008,180 @@ fn truncate_query_part(value: &str, max_chars: usize) -> String {
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::BTreeMap, time::Duration};
+    use std::{
+        collections::BTreeMap,
+        time::{Duration, SystemTime},
+    };
 
-    use super::{agent_memory_query_text, select_roles_for_task, session_worker_roles};
-    use crate::{RoleCatalog, SessionRuntimeConfig};
+    use super::{
+        agent_memory_query_text, inject_session_memory_history, same_session_memory_history,
+        select_roles_for_task, session_memory_summary, session_worker_roles,
+    };
+    use crate::{
+        AgentSession, AgentSessionConfig, AgentSessionScope, MemoryBundle, MemoryId, MemoryKind,
+        MemoryRecord, MemoryScope, MemorySource, RoleCatalog, SessionRuntimeConfig,
+    };
+
+    fn session_summary_record(session_id: &str, content: &str) -> MemoryRecord {
+        MemoryRecord {
+            id: MemoryId(format!("mem-{session_id}")),
+            scope: MemoryScope {
+                user_id: None,
+                workspace_id: None,
+                agent_id: None,
+                session_id: Some(crate::SessionId(session_id.to_string())),
+                task_id: None,
+            },
+            kind: MemoryKind::SessionSummary,
+            key: Some(session_id.to_string()),
+            content: content.to_string(),
+            confidence: 1.0,
+            tags: vec!["session".to_string()],
+            source: MemorySource::session_result(),
+            created_at: SystemTime::now(),
+            updated_at: SystemTime::now(),
+        }
+    }
+
+    #[test]
+    fn same_session_memory_history_uses_previous_answer_for_followup_context() {
+        let bundle = MemoryBundle {
+            records: vec![
+                session_summary_record(
+                    "session-current",
+                    "手机壳上一轮结论：标题要突出防摔和适配机型，主图要展示上手机效果，价格要核对成本，库存和售后要防止缺货与退换争议。",
+                ),
+                session_summary_record("session-other", "其它会话分析了冷萃咖啡。"),
+            ],
+            summary: None,
+        };
+
+        let history =
+            same_session_memory_history(&bundle, &crate::SessionId("session-current".to_string()))
+                .expect("same-session history should be available");
+
+        assert!(history.contains("Assistant: 手机壳上一轮结论"));
+        assert!(history.contains("标题要突出防摔"));
+        assert!(history.contains("库存和售后"));
+        assert!(!history.contains("冷萃咖啡"));
+    }
+
+    #[test]
+    fn session_memory_summary_preserves_user_material_for_rich_followups() {
+        let summary = session_memory_summary(
+            "我准备卖二手教材，手里有高数、英语、专业课三类书。",
+            "二手教材要看版本、ISBN、书况、收书成本、库存和退换。",
+        );
+
+        assert!(summary.contains("User: 我准备卖二手教材"));
+        assert!(summary.contains("高数"));
+        assert!(summary.contains("英语"));
+        assert!(summary.contains("专业课"));
+        assert!(summary.contains("Assistant: 二手教材要看版本"));
+    }
+
+    #[test]
+    fn same_session_memory_history_keeps_stored_user_and_assistant_turn() {
+        let bundle = MemoryBundle {
+            records: vec![session_summary_record(
+                "session-current",
+                "User: 我准备卖二手教材，手里有高数、英语、专业课三类书。\nAssistant: 二手教材要看版本、ISBN、书况、收书成本、库存和退换。",
+            )],
+            summary: None,
+        };
+
+        let history =
+            same_session_memory_history(&bundle, &crate::SessionId("session-current".to_string()))
+                .expect("same-session history should be available");
+
+        assert!(history.contains("User: 我准备卖二手教材"));
+        assert!(history.contains("高数"));
+        assert!(history.contains("专业课"));
+        assert!(history.contains("Assistant: 二手教材要看版本"));
+        assert!(!history.contains("Assistant: User:"));
+    }
+
+    #[test]
+    fn inject_session_memory_history_does_not_override_frontend_history() {
+        let bundle = MemoryBundle {
+            records: vec![session_summary_record(
+                "session-current",
+                "手机壳上一轮结论：标题、主图、价格、库存、售后。",
+            )],
+            summary: None,
+        };
+        let mut metadata = BTreeMap::from([(
+            "conversation.history_summary".to_string(),
+            "User: 前端传入的真实历史。".to_string(),
+        )]);
+
+        inject_session_memory_history(
+            &mut metadata,
+            &bundle,
+            &crate::SessionId("session-current".to_string()),
+        );
+
+        assert_eq!(
+            metadata
+                .get("conversation.history_summary")
+                .map(String::as_str),
+            Some("User: 前端传入的真实历史。")
+        );
+    }
+
+    #[test]
+    fn inject_session_memory_history_skips_other_session_records() {
+        let bundle = MemoryBundle {
+            records: vec![session_summary_record(
+                "session-other",
+                "其它会话分析了冷萃咖啡。",
+            )],
+            summary: None,
+        };
+        let mut metadata = BTreeMap::new();
+
+        inject_session_memory_history(
+            &mut metadata,
+            &bundle,
+            &crate::SessionId("session-current".to_string()),
+        );
+
+        assert!(!metadata.contains_key("conversation.history_summary"));
+    }
+
+    #[test]
+    fn session_memory_scope_keeps_current_session_for_followups() {
+        let session = AgentSession::new(
+            AgentSessionScope {
+                user_id: None,
+                workspace_id: None,
+                agent_id: crate::AgentId("web-agent".to_string()),
+                session_id: crate::SessionId("session-current".to_string()),
+                metadata: BTreeMap::new(),
+            },
+            AgentSessionConfig {
+                runtime: SessionRuntimeConfig::default(),
+                roles: RoleCatalog::builtin(),
+                commander_cognition: std::sync::Arc::new(|| {
+                    Err(crate::agent_error::SettingsError::invalid("not used").into())
+                }),
+                worker_cognition: std::sync::Arc::new(|_| {
+                    Err(crate::agent_error::SettingsError::invalid("not used").into())
+                }),
+                memory_store: std::sync::Arc::new(crate::NoopMemoryStore),
+            },
+        );
+
+        let scope = session.memory_scope(None);
+
+        assert_eq!(
+            scope
+                .session_id
+                .as_ref()
+                .map(|session_id| session_id.0.as_str()),
+            Some("session-current")
+        );
+    }
 
     #[test]
     fn memory_query_text_includes_explicit_context_metadata() {

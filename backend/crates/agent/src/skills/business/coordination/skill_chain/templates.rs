@@ -124,7 +124,7 @@ pub(super) fn skill_chain_template(
         || goal.contains("库存矩阵")
     {
         return vec![
-            ("query_store_metrics", "加载SKU销量、库存和波动数据"),
+            ("query_store_metrics", "加载商品或款式销量、库存和波动数据"),
             ("ops_abc_xyz_classifier", "生成ABC-XYZ双维分类矩阵"),
             (
                 "ops_inventory_optimizer",
@@ -268,7 +268,7 @@ pub(super) fn skill_chain_template(
         return vec![
             ("query_store_metrics", "加载退款率、评价和客服相关指标"),
             ("service_sentiment_analyzer", "分析评价和投诉情绪强度"),
-            ("service_faq_playbook", "生成标准化FAQ和应答口径"),
+            ("service_faq_playbook", "生成标准化FAQ和应答说明"),
             ("service_dsr_improvement", "输出DSR改善方案"),
         ];
     }
