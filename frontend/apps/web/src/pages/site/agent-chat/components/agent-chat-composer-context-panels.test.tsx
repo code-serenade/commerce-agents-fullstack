@@ -36,6 +36,55 @@ describe("AgentChatComposer context panels", () => {
     ).not.toBeInTheDocument()
   })
 
+  it("keeps product and campaign controls hidden until context is available", async () => {
+    const i18n = await createAgentChatTestI18n()
+    const { rerender } = render(
+      <TestProviders i18n={i18n}>
+        <AgentChatComposerToolbar {...baseToolbarProps()} />
+      </TestProviders>
+    )
+
+    expect(
+      screen.queryByRole("button", {
+        name: new RegExp(
+          i18n.t("agentChat.composer.productContext.compactTitle")
+        ),
+      })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
+        name: new RegExp(
+          i18n.t("agentChat.composer.campaignContext.compactTitle")
+        ),
+      })
+    ).not.toBeInTheDocument()
+
+    rerender(
+      <TestProviders i18n={i18n}>
+        <AgentChatComposerToolbar
+          {...baseToolbarProps()}
+          availableProducts={[product]}
+          selectedCampaigns={[campaign]}
+        />
+      </TestProviders>
+    )
+
+    expect(
+      screen.getByRole("button", {
+        name: new RegExp(
+          i18n.t("agentChat.composer.productContext.compactTitle")
+        ),
+      })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", {
+        name: new RegExp(
+          i18n.t("agentChat.composer.campaignContext.compactTitle")
+        ),
+      })
+    ).toBeInTheDocument()
+  })
+
   it("opens upload file library, toggles sources, and closes the panel", async () => {
     const i18n = await createAgentChatTestI18n()
     const user = userEvent.setup()

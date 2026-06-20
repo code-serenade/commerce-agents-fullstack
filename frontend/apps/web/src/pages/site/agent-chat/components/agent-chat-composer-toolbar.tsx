@@ -99,6 +99,17 @@ export function AgentChatComposerToolbar({
   sourceContextOpen: boolean
   strategyId: AgentChatStrategyId
 }) {
+  const shouldShowProductContext =
+    productContextOpen ||
+    isLoadingProducts ||
+    availableProducts.length > 0 ||
+    selectedProducts.length > 0
+  const shouldShowCampaignContext =
+    campaignContextOpen ||
+    isLoadingCampaigns ||
+    availableCampaigns.length > 0 ||
+    selectedCampaigns.length > 0
+
   return (
     <div className="flex min-w-0 items-center justify-between gap-2">
       <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto overflow-y-hidden pb-1 [scrollbar-gutter:stable] sm:overflow-hidden sm:pb-0">
@@ -112,28 +123,32 @@ export function AgentChatComposerToolbar({
           selectedSources={selectedSources}
           variant="compact"
         />
-        <AgentChatProductContextBar
-          availableProducts={availableProducts}
-          disabled={isStreaming}
-          isLoadingProducts={isLoadingProducts}
-          isOpen={productContextOpen}
-          onClearProductContext={onClearProductContext}
-          onOpenChange={onToggleProductPanel}
-          onToggleProductContext={onToggleProductContext}
-          selectedProducts={selectedProducts}
-          variant="compact"
-        />
-        <AgentChatCampaignContextBar
-          availableCampaigns={availableCampaigns}
-          disabled={isStreaming}
-          isLoadingCampaigns={isLoadingCampaigns}
-          isOpen={campaignContextOpen}
-          onClearCampaignContext={onClearCampaignContext}
-          onOpenChange={onToggleCampaignPanel}
-          onToggleCampaignContext={onToggleCampaignContext}
-          selectedCampaigns={selectedCampaigns}
-          variant="compact"
-        />
+        {shouldShowProductContext ? (
+          <AgentChatProductContextBar
+            availableProducts={availableProducts}
+            disabled={isStreaming}
+            isLoadingProducts={isLoadingProducts}
+            isOpen={productContextOpen}
+            onClearProductContext={onClearProductContext}
+            onOpenChange={onToggleProductPanel}
+            onToggleProductContext={onToggleProductContext}
+            selectedProducts={selectedProducts}
+            variant="compact"
+          />
+        ) : null}
+        {shouldShowCampaignContext ? (
+          <AgentChatCampaignContextBar
+            availableCampaigns={availableCampaigns}
+            disabled={isStreaming}
+            isLoadingCampaigns={isLoadingCampaigns}
+            isOpen={campaignContextOpen}
+            onClearCampaignContext={onClearCampaignContext}
+            onOpenChange={onToggleCampaignPanel}
+            onToggleCampaignContext={onToggleCampaignContext}
+            selectedCampaigns={selectedCampaigns}
+            variant="compact"
+          />
+        ) : null}
         <AgentChatSettingsPanel
           isLoadingPlaybooks={isLoadingPlaybooks}
           isLoadingRuntimeOptions={isLoadingRuntimeOptions}
