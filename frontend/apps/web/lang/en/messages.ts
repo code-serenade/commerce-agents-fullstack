@@ -1415,7 +1415,7 @@ const messages = {
         hideSelection: "Hide",
         showSelection: "Show current preferences",
         autoRolesSummary: "I will choose",
-        multiAgentSummary: "{{count}} angles",
+        multiAgentSummary: "Multiple checks",
       },
       runtime: {
         label: "Reference angles",
@@ -1775,13 +1775,19 @@ const messages = {
           stageSynced: "Judgment completed",
         },
         multi_agent: {
-          title: "Multiple reference angles",
-          badge: "Combining",
+          title: "Multiple checks",
+          badge: "Organizing",
           progress: "{{completed}}/{{total}} steps",
-          summary: "Combining useful angles for: {{task}}",
-          stageRunning: "Preparing a usable answer",
+          summary: "Checking a few useful signals for: {{task}}",
+          stageRunning: "Organizing a usable judgment",
           stageFinished: "Judgment summarized",
           stageSynced: "Judgment summarized",
+        },
+        sanitized: {
+          dispatchCollaboration:
+            "I will check a few useful signals this turn. It may take a bit longer, but I will aim for a more complete judgment.",
+          multiCheck: "multiple checks",
+          multiReference: "multiple references",
         },
       },
       statuses: {
@@ -1818,8 +1824,8 @@ const messages = {
         sourceNone: "No files",
         sourceCount: "{{count}} files",
         strategy: "Mode: {{strategy}}",
-        autoRoles: "Angles: I will choose",
-        roles: "Angles: focus {{role}} / {{count}} total",
+        autoRoles: "References: I will choose",
+        roles: "References: focus {{role}} / {{count}} total",
         model: "Model: {{model}}",
         details: "Context details",
         productDetails: "Referenced products",
@@ -1888,7 +1894,7 @@ const messages = {
         enrichMaterial: "Retrieve sources and evidence",
         enrichByTask: "Enrich platform materials by task",
         enrichFallback: "Enrich industry and platform context",
-        directAnswer: "Simple questions get a direct answer; complex questions combine reference angles",
+        directAnswer: "Simple questions get a direct answer; complex questions check a few useful signals",
         callModel: "Organize answer",
         singleAgentAnswer: "Organize the answer around the main angle",
         savedToReport: "Save the answer as reviewable material",
@@ -1936,7 +1942,7 @@ const messages = {
           "Handling is blocked. Expand judgment notes to inspect action items.",
         finished: "Judgment summarized. Review notes and business links.",
         saved: "Judgment summarized. Review notes and business links.",
-        running: "Combining reference angles",
+        running: "Checking the useful signals",
         planning: "Organizing the reasoning path",
         synced: "Expand to review this turn's judgment notes",
         history: "Historical chat. Expand to review this turn's judgment notes.",
@@ -2073,16 +2079,16 @@ const messages = {
           fallbackSummary: "Preparing the answer for this task",
         },
         stableDetail:
-          "Simple or complex, I organize the reasoning first; only the number of steps, reference angles, and tool references changes.",
+          "Simple or complex, I organize the reasoning first; only the number of checks and tool references changes.",
         studentUseTitle: "How to read it",
         studentUseDetail:
           "Check the method and materials first, then review step progress.",
         difficultyTitle: "Why some flows are short and others are long",
         difficultyDetail:
-          "Simple questions use fewer steps. Complex questions add material checks, reference angles, and summary.",
+          "Simple questions use fewer steps. Complex questions add material checks and summary.",
         realnessTitle: "Why not every angle is shown",
         realnessDetail:
-          "More handling details appear only when the question actually needs multiple reference angles.",
+          "More handling details appear only when the question actually needs multiple checks.",
       },
       nextActions: {
         title: "Useful next steps",

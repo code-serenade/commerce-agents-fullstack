@@ -65,7 +65,7 @@ export function AgentChatCampaignContextBar({
       <button
         type="button"
         onClick={toggleOpen}
-        className={`flex h-7 max-w-36 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition-colors ${
+        className={`flex h-7 max-w-28 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition-colors sm:max-w-36 ${
           open
             ? "border-sky-400/80 bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-100"
             : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"

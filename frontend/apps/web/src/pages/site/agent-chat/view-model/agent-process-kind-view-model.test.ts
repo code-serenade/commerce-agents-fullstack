@@ -7,6 +7,8 @@ import {
   getProcessStepRows,
 } from "./agent-process-kind-view-model"
 
+const softenedDispatchExplanation = "softened dispatch explanation"
+
 const t = ((key: string, params?: Record<string, unknown>) => {
   if (key === "agentChat.thread.processKinds.quick_dispatch.progress") {
     return `${params?.completed}/${params?.total} dispatch`
@@ -19,6 +21,17 @@ const t = ((key: string, params?: Record<string, unknown>) => {
   }
   if (key === "agentChat.thread.processKinds.multi_agent.stageRunning") {
     return "multi running"
+  }
+  if (
+    key === "agentChat.thread.processKinds.sanitized.dispatchCollaboration"
+  ) {
+    return softenedDispatchExplanation
+  }
+  if (key === "agentChat.thread.processKinds.sanitized.multiCheck") {
+    return "multiple checks"
+  }
+  if (key === "agentChat.thread.processKinds.sanitized.multiReference") {
+    return "multiple references"
   }
   if (key === "agentChat.thread.steps.readTarget") return "read target"
   if (key === "agentChat.thread.steps.contextLoaded") {
@@ -201,5 +214,34 @@ describe("agent process kind", () => {
       [readContextTitle, readSelectedMaterialsDetail],
       [dataTitle, dataObjective],
     ])
+  })
+
+  it("softens backend dispatch explanations before showing them", () => {
+    const backendExplanation = [
+      ...[
+        36825, 20010, 38382, 39064, 20250, 25286, 32473, 32, 52, 32, 20010,
+        23703, 20301, 47, 27493, 39588, 21327, 20316, 65292, 36807, 31243,
+        26356, 38271, 20294, 32467, 26524, 20250, 26356, 23436, 25972, 12290,
+      ],
+    ]
+      .map((code) => String.fromCharCode(code))
+      .join("")
+    const events: AgentRuntimeEvent[] = [
+      {
+        type: "dispatch_planned",
+        difficulty: "complex",
+        planned_steps: [],
+        primary_runtime_role: "data",
+        reasoning_summary: planFromBackendReason,
+        route_mode: "task_graph",
+        selected_skills: [],
+        student_visible_explanation: backendExplanation,
+        support_runtime_roles: ["ops"],
+      },
+    ]
+
+    expect(getAgentProcessSummary(events, "task", t)).toBe(
+      softenedDispatchExplanation
+    )
   })
 })

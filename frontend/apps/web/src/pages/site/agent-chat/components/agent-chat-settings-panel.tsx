@@ -125,7 +125,7 @@ export function AgentChatSettingsPanel({
           type="button"
           disabled={isStreaming}
           onClick={onToggleOpen}
-          className={`flex h-7 max-w-36 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+          className={`flex h-7 max-w-28 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:max-w-36 ${
             isOpen
               ? "border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-700/70 dark:bg-blue-950/40 dark:text-blue-100"
               : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"

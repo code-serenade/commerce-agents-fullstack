@@ -2,6 +2,7 @@ import { useMemo, useState } from "react"
 import { useNavigate } from "react-router"
 import type { AgentRuntimeEvent } from "./agent-chat-data"
 import { AgentChatComposer } from "./components/agent-chat-composer"
+import { AgentChatDocumentTitle } from "./components/agent-chat-document-title"
 import { AgentProcessDrawer } from "./components/agent-process-drawer"
 import { AgentChatStatus } from "./components/agent-chat-status"
 import { AgentChatQuotaStatus } from "./components/agent-chat-quota-status"
@@ -57,14 +58,9 @@ export default function AgentChatPage() {
     setComposerFocusVersion((current) => current + 1)
   }
 
-  const layoutClassName = "relative flex min-h-0 w-full flex-1 overflow-hidden p-2 sm:p-3"
-
-  const chatPanelClassName = [
-    "mx-auto flex h-full min-h-0 w-full max-w-5xl min-w-0 flex-col overflow-hidden rounded-lg bg-background",
-  ].join(" ")
-
   return (
     <div className="flex max-h-full min-h-0 size-full flex-1 flex-col overflow-hidden bg-background text-foreground">
+      <AgentChatDocumentTitle />
       <AgentChatStatus
         error={chat.error}
         loginRequired={!chat.isLoggedIn}
@@ -76,8 +72,8 @@ export default function AgentChatPage() {
           quota={chat.quota}
         />
       ) : null}
-      <div className={layoutClassName}>
-        <section className={chatPanelClassName}>
+      <div className="relative flex min-h-0 w-full flex-1 overflow-hidden p-2 sm:p-3">
+        <section className="mx-auto flex size-full min-h-0 max-w-5xl min-w-0 flex-col overflow-hidden rounded-lg bg-background">
           <AgentChatThread
             activeProcessMessageId={activeProcessMessage?.id ?? null}
             isStreaming={chat.isStreaming}

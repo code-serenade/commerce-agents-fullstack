@@ -109,7 +109,8 @@ export function getAgentProcessSummary(
   const plan = getLatestDispatchPlan(runtimeEvents)
   if (plan) {
     const explanation = getDispatchPlanStudentExplanation(plan)
-    if (explanation.trim()) return explanation
+    const readableExplanation = formatStudentVisibleExplanation(explanation, t)
+    if (readableExplanation) return readableExplanation
   }
   const route = getLatestRouteEvent(runtimeEvents)
   if (kind === "quick_dispatch") {
@@ -244,4 +245,23 @@ function getQuickDispatchCompletedCount(runtimeEvents: AgentRuntimeEvent[]) {
     ),
   ]
   return Math.max(1, milestones.filter(Boolean).length)
+}
+
+function formatStudentVisibleExplanation(explanation: string, t: TFunction) {
+  const trimmed = explanation.trim()
+  if (!trimmed) return ""
+
+  return trimmed
+    .replace(
+      /这个问题会拆给\s*\d+\s*个岗位\/步骤协作，过程更长但结果会更完整。?/g,
+      t("agentChat.thread.processKinds.sanitized.dispatchCollaboration")
+    )
+    .replace(
+      /岗位\/步骤协作|岗位协作/g,
+      t("agentChat.thread.processKinds.sanitized.multiCheck")
+    )
+    .replace(
+      /多个参考视角/g,
+      t("agentChat.thread.processKinds.sanitized.multiReference")
+    )
 }

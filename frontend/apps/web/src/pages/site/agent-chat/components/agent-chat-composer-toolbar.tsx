@@ -111,8 +111,8 @@ export function AgentChatComposerToolbar({
     selectedCampaigns.length > 0
 
   return (
-    <div className="flex min-w-0 items-center justify-between gap-2">
-      <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto overflow-y-hidden pb-1 [scrollbar-gutter:stable] sm:overflow-hidden sm:pb-0">
+    <div className="flex min-w-0 items-start justify-between gap-2 sm:items-center">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5 overflow-visible pb-0 sm:flex-nowrap sm:overflow-hidden">
         <AgentChatSourceContextBar
           availableSources={availableSources}
           disabled={isStreaming || !isLoggedIn}
