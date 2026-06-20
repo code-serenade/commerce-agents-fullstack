@@ -19,7 +19,7 @@ const messages = {
         platformConnect: "Platform data",
         approvals: "Teacher review records",
         operations: "Business result tracking",
-        agent: "Multi-agent training assistant",
+        agent: "AI ecommerce partner",
         agentOutput: "Review report",
         profile: "Profile",
       },
@@ -1056,7 +1056,8 @@ const messages = {
     },
   },
   agentChat: {
-    welcomeMessage: "Task cards + suggested questions",
+    welcomeMessage:
+      "Send the product, title, customer issue, or assignment you are stuck on. It does not need to be complete; I will first help you judge the direction, then ask for the one or two details that matter most.",
     answer: {
       sectionLabels: {
         direct: "Usable",
@@ -1101,7 +1102,7 @@ const messages = {
       newChat: "New chat",
       search: "Search history",
       recents: "Recents",
-      chat: "AI training assistant",
+      chat: "AI ecommerce partner",
       more: "More",
       less: "Collapse",
       moreHistory: "Show {{count}} more",
@@ -1145,30 +1146,30 @@ const messages = {
       },
     },
     strategy: {
-      current: "Agent work mode",
+      current: "How to talk",
       options: {
         learning: {
-          label: "Teaching mode",
-          hint: "For students and beginners: explain terms, reasoning, and actionable steps",
-          shortHint: "Teaching",
+          label: "Think together",
+          hint: "Work through the issue like a partner, explain the useful judgment, then give the next move",
+          shortHint: "Together",
         },
         quick: {
-          label: "Quick answer",
-          hint: "Best for fast judgment: direct conclusion, key reason, and next steps without a long process",
-          shortHint: "Short",
+          label: "Be direct",
+          hint: "Best for quick direction: judgment, key reason, and next step",
+          shortHint: "Direct",
         },
         execution: {
-          label: "Rich execution",
-          hint: "Best for reports and delivery: full plan, role split, tables, risks, and acceptance checks",
-          shortHint: "Full plan",
+          label: "Go deeper",
+          hint: "Best for plans or assignments: path, risks, checklist, and review checks",
+          shortHint: "Detailed",
         },
       },
     },
     composer: {
       placeholder:
-        "Enter a training task. For example: judge whether this product can run a campaign, then give product, planning, data, and review steps...",
+        "Say what you want to handle, for example: can this product sell, improve this title, or how should I reply when a customer says it is expensive...",
       loginPlaceholder:
-        "Draft your training question here. Sign in when you are ready to use the AI training assistant...",
+        "Draft the question here; after sign-in, I can keep helping and save the conversation.",
       hint: "Business context connected",
       send: "Send",
       stop: "Stop",
@@ -1180,8 +1181,8 @@ const messages = {
       attachShort: "Upload",
       attachPrompt:
         "Add the file or data constraints here, for example: product price, budget, inventory, target audience, current conversion rate, and platform account status.",
-      agentTitle: "Choose collaborating agents",
-      agentName: "AI training assistant",
+      agentTitle: "Choose reference angles",
+      agentName: "AI ecommerce partner",
       contextPreview: {
         compactLabel: "Preview",
         compactTitle: "Preview turn context",
@@ -1403,59 +1404,59 @@ const messages = {
         empty: "No scenarios",
       },
       settings: {
-        compactLabel: "Mode",
-        compactTitle: "Adjust answer mode, agent collaboration, and model",
-        toggle: "Task settings",
-        panelTitle: "Answer settings",
-        panelHint: "Current mode: {{mode}}; {{summary}}",
-        rolesCount: "{{count}} agents",
-        depthSummary: "Depth: {{depth}}",
-        selectedPrefix: "Selected",
+        compactLabel: "Answer style",
+        compactTitle: "Adjust answer style and reference angles",
+        toggle: "Answer style",
+        panelTitle: "How should we handle this turn",
+        panelHint: "Current style: {{mode}}; {{summary}}",
+        rolesCount: "{{count}} angles",
+        depthSummary: "Detail: {{depth}}",
+        selectedPrefix: "Current",
         hideSelection: "Hide",
-        showSelection: "Show selected mode",
-        autoRolesSummary: "System auto",
-        multiAgentSummary: "{{count}} agents collaborating",
+        showSelection: "Show current style",
+        autoRolesSummary: "I will choose",
+        multiAgentSummary: "{{count}} angles",
       },
       runtime: {
-        label: "Collaborating agents",
+        label: "Reference angles",
         loading: "Loading runtime",
         model: "Model",
         modelSettings: "Model settings",
         modelHint:
           "The configured Doubao model is used by default. If it is not configured, only available models are shown.",
-        learning: "Explanation level",
-        collaboration: "Agent collaboration",
-        routingMode: "Processing path",
-        roleMode: "Collaboration mode",
-        roles: "Collaborating agents",
-        singleRole: "Selected agent",
-        primary: "Lead agent",
-        leadRole: "Lead agent",
-        supportRoles: "Supporting agents",
-        selectedRoles: "Select collaborating agents",
-        roleColumn: "Agent",
-        primaryShort: "Main answer",
+        learning: "Detail level",
+        collaboration: "Reference style",
+        routingMode: "Handling style",
+        roleMode: "Reference style",
+        roles: "Reference angles",
+        singleRole: "Selected angle",
+        primary: "Main angle",
+        leadRole: "Main angle",
+        supportRoles: "Supporting angles",
+        selectedRoles: "Select reference angles",
+        roleColumn: "Angle",
+        primaryShort: "Main angle",
         supportShort: "Support",
         singleRoleHint:
-          "Click one agent card to let that agent lead this answer.",
+          "Click one angle to focus this answer from that direction.",
         leadRoleHint:
-          "Click an agent card to switch the lead agent. The lead owns synthesis and the final plan.",
+          "Click an angle card to switch the main focus. The visible answer still reads like one natural recommendation.",
         supportRolesHint:
-          "Select supporting agents to add evidence, risks, materials, and action suggestions.",
-        answerRoleBadge: "Current agent",
-        primaryBadge: "Lead answer",
+          "Select supporting angles to add useful evidence, risks, materials, and action suggestions.",
+        answerRoleBadge: "Current angle",
+        primaryBadge: "Main angle",
         supportBadge: "Support",
-        currentLead: "Current lead agent",
-        currentSupport: "Supporting agents: {{roles}}",
-        noSupportRoles: "No supporting agent selected",
+        currentLead: "Current main angle",
+        currentSupport: "Supporting angles: {{roles}}",
+        noSupportRoles: "No supporting angle selected",
         advanced: "More settings",
         explanationDepth: "Explanation depth",
         autoRolesHint:
-          "The system decides whether this turn needs one or multiple agents.",
+          "I will decide which angles are useful for this turn.",
         manualRolesHint:
-          "Choose one lead agent for synthesis, then select supporting agents. Up to {{max}} agents; selecting more makes the response slower.",
+          "Choose one main angle, then select supporting angles. Up to {{max}} angles; selecting more makes the response slower.",
         roleModeHint:
-          "Choose how this turn calls agents: automatic dispatch, one selected agent, or selected multi-agent collaboration.",
+          "Choose which angles to use this turn: let me decide, focus on one angle, or combine multiple supporting angles.",
         learningLevels: {
           beginner: {
             label: "Basic",
@@ -1515,16 +1516,16 @@ const messages = {
         },
         roleModes: {
           auto: {
-            label: "Auto dispatch",
-            description: "Backend decides",
+            label: "I will choose",
+            description: "Auto angles",
           },
           single: {
-            label: "Single agent",
-            description: "One agent",
+            label: "One focus",
+            description: "One direction",
           },
           manual: {
-            label: "Multi-agent",
-            description: "Collaborative output",
+            label: "Multiple angles",
+            description: "Combined view",
           },
         },
         routingModes: {
@@ -1539,11 +1540,11 @@ const messages = {
         },
         strategyNotes: {
           learning:
-            "Teaching mode: keep the substance while explaining terms, reasoning, and next steps.",
+            "Think together: keep the substance while explaining useful judgment and next steps.",
           quick:
             "Best for fast judgment: conclusion, key reason, and only a few next actions.",
           execution:
-            "Best for reports, reviews, and plans: use tables and checklists for agent split, steps, risks, and acceptance checks.",
+            "Best for reports, reviews, and plans: use tables and checklists for steps, risks, and checks.",
         },
       },
       samples: {
@@ -1646,40 +1647,40 @@ const messages = {
       },
     },
     thread: {
-      agentName: "AI training assistant",
-      welcomeCapabilities: ["Task cards", "Prompt examples", "Next steps"],
-      startHere: "Suggested questions",
+      agentName: "AI ecommerce partner",
+      welcomeCapabilities: ["Catch the issue", "Ask less", "Move forward"],
+      startHere: "You can also ask like this",
       examplePrompts: [
-        "Example: judge whether this product fits a training selection task",
-        "Example: create a campaign plan and checklist for a 3000 budget",
-        "Example: turn this answer into a submit-ready review report",
+        "Can this product sell? I only have a rough idea right now.",
+        "Help make this title something customers are more likely to click.",
+        "A customer says it is expensive. How can I reply naturally?",
       ],
       studentFlow: {
-        title: "Follow this path on first use",
+        title: "You can start naturally the first time",
         subtitle:
-          "State the task, watch how the system dispatches it, then turn the result into training material.",
+          "Say the issue in front of you, and I will help move it one step forward.",
         ask: {
-          title: "1. State the task",
+          title: "1. Say the thing",
           detail:
-            "Start with the goal. If unsure, mention the product, budget, platform, and assignment you need.",
+            "Product, title, customer issue, or assignment requirements are all enough to start.",
         },
         watch: {
-          title: "2. Watch the process",
+          title: "2. Get direction first",
           detail:
-            "Every answer shows a dispatch process. Simple tasks are short; complex work expands into roles and Skills.",
+            "I will give a useful judgment first, then ask for the few details that matter.",
         },
         deliver: {
-          title: "3. Use the result",
+          title: "3. Keep moving",
           detail:
-            "Continue with more materials, or turn the answer into task steps, a campaign plan, or a review report.",
+            "When needed, continue into a plan, reply, table, or review material.",
         },
       },
       processPromise:
-        "The process panel reflects real backend dispatch: the dispatcher reads this question and same-conversation history, then chooses quick answer, single role, or multi-agent collaboration.",
+        "If you want to see how the judgment was made, expand the process panel; by default, the answer stays first.",
       studentPromptRecipe: {
-        title: "When unsure how to describe it, use these four parts",
+        title: "When unsure how to describe it, say it like this",
         subtitle:
-          "Students do not need to learn the menus first. State the task clearly, and the dispatcher chooses the right flow.",
+          "You do not need to learn the menus or provide everything at once.",
         goal: {
           label: "Goal",
           value: "What to judge, create, improve, or review",
@@ -1698,31 +1699,31 @@ const messages = {
         },
       },
       studentTaskEntries: {
-        title: "Task cards",
-        subtitle: "Choose one to fill the input.",
+        title: "Start here",
+        subtitle: "Choose one to put it into the input.",
         start: {
-          title: "Start task",
-          detail: "Example: state the goal, product, and assignment.",
+          title: "Check if this product can sell",
+          detail: "Incomplete information is fine; start with margin, demand, and service risk.",
           prompt:
-            "Example: I am using this for the first time. Help me start an ecommerce training task",
+            "I have a product I want to sell, but the materials are incomplete. First help me judge whether it can work and what key detail is still missing.",
         },
         analyze: {
-          title: "Judge or analyze",
-          detail: "Example: judge product, budget, data anomaly, and risk.",
+          title: "Improve title or selling points",
+          detail: "Make the click reason and buying reason clearer.",
           prompt:
-            "Example: judge whether this product fits a training product-selection task",
+            "Help me see why this product title and selling points are not attractive enough, then rewrite one natural version.",
         },
         plan: {
-          title: "Create plan",
-          detail: "Example: build the plan, checklist, roles, and metrics.",
+          title: "Write a customer reply",
+          detail: "Keep it natural without promising what the shop cannot prove.",
           prompt:
-            "Example: break my goal into a campaign plan, checklist, and review metrics",
+            "A customer says the price is expensive. Help me write a natural reply that does not overpromise.",
         },
         review: {
-          title: "Prepare output",
-          detail: "Example: turn the answer into coursework or next steps.",
+          title: "Make the plan more convincing",
+          detail: "Useful for assignments, presentations, or teacher feedback.",
           prompt:
-            "Example: turn the conclusion above into a submit-ready training review report",
+            "My teacher said my plan is too empty. Help me make it more evidence-based and executable.",
         },
       },
       receivingOutput: "Preparing the usable answer",

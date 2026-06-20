@@ -19,7 +19,7 @@ export const AGENT_CHAT_STRATEGIES = [
     hintKey: "agentChat.strategy.options.learning.hint",
     shortHintKey: "agentChat.strategy.options.learning.shortHint",
     intent:
-      "Explain the reasoning in simple student-friendly steps and produce an actionable ecommerce training answer.",
+      "Answer like an equal ecommerce partner: first respond to what the user already gave, explain only the useful reasoning in plain language, and end with one practical next move.",
   },
   {
     id: "quick",
@@ -28,7 +28,7 @@ export const AGENT_CHAT_STRATEGIES = [
     hintKey: "agentChat.strategy.options.quick.hint",
     shortHintKey: "agentChat.strategy.options.quick.shortHint",
     intent:
-      "Give a concise answer with the direct conclusion, key reason, and a short next-step list.",
+      "Give a concise partner-style answer with the direct judgment, key reason, and one or two next steps.",
   },
   {
     id: "execution",
@@ -37,7 +37,7 @@ export const AGENT_CHAT_STRATEGIES = [
     hintKey: "agentChat.strategy.options.execution.hint",
     shortHintKey: "agentChat.strategy.options.execution.shortHint",
     intent:
-      "Produce a complete training task plan with specialist agent findings, tables, next actions, risks, and submission checks.",
+      "Produce a complete but user-facing action plan with clear judgment, concrete actions, risks, and checks, without sounding like an internal agent report.",
   },
 ] as const satisfies readonly AgentChatStrategy[]
 
@@ -73,15 +73,17 @@ export function buildAgentStrategyInput(
   if (isQuickChatInput(content)) return content
 
   return [
-    "Answer as an ecommerce AI training assistant for students.",
+    "Answer as a calm, equal ecommerce partner who helps the user move one step forward.",
     `Response strategy: ${strategy.id}.`,
     `Response mode: ${strategy.responseMode}.`,
     `Strategy instruction: ${strategy.intent}`,
-    "Relevant specialist agents include product selection, data diagnosis, customer understanding, content, ads, operations, budget, supply chain, deliverables, and final review report.",
-    "For teaching mode, explain the reasoning path in plain student-friendly language while keeping the answer actionable.",
+    "The backend may use specialist roles, but the visible answer should feel like one coherent partner speaking to the user, not a role-by-role report.",
+    "If the user's information is incomplete, first give a useful low-risk judgment or direction from what is available, then ask at most one or two key follow-up questions.",
+    "Use warm, practical language: avoid lecturing, grading, or forcing the user to understand internal agent concepts.",
+    "For teaching mode, explain the reasoning path in plain language while keeping the answer actionable.",
     "For quick answer mode, keep the answer short: conclusion, key reason, and next steps only.",
-    "For rich execution mode, start with the business answer, then provide multi-agent role findings, tables, concrete actions, risks, and submission checks.",
-    "When the runtime selects multiple roles, explicitly show which specialist agents contributed before synthesizing one final recommendation.",
+    "For rich execution mode, start with the business answer, then provide concrete actions, risks, and checks.",
+    "When the runtime selects multiple roles, synthesize them into user-facing angles such as cost, title, service risk, data, and next action; do not list internal agents unless the user asks.",
     "Use markdown tables for comparisons, funnels, agent role findings, or action plans when they make the answer easier to scan.",
     "Keep the answer centered on the user's question. Do not claim external platform execution or dynamic tool calls unless runtime events prove them.",
     "User question:",

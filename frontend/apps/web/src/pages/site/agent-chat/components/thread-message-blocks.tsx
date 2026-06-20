@@ -17,6 +17,7 @@ import {
 } from "../view-model/student-next-actions-view-model"
 
 export function WelcomeCard({
+  content,
   onSelectExamplePrompt,
 }: {
   content: string
@@ -41,18 +42,29 @@ export function WelcomeCard({
           <p className="text-base font-semibold">
             {t("agentChat.thread.agentName")}
           </p>
+          <p className="mt-1 text-sm/6 text-muted-foreground">
+            {content}
+          </p>
         </div>
       </div>
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+      <div className="mt-4">
+        <p className="text-xs font-semibold text-foreground">
+          {t("agentChat.thread.studentTaskEntries.title")}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {t("agentChat.thread.studentTaskEntries.subtitle")}
+        </p>
+      </div>
+      <div className="mt-2 grid gap-2 sm:grid-cols-2">
         {taskEntries.map((entry) => (
           <button
             key={entry.title}
             type="button"
-            className="group min-h-24 rounded-md border border-border bg-background p-3 text-left transition hover:border-foreground/30 hover:bg-muted"
+            className="group min-h-20 rounded-md border border-border bg-background p-3 text-left transition hover:border-foreground/30 hover:bg-muted"
             onClick={() => onSelectExamplePrompt?.(entry.prompt)}
           >
             <span className="flex items-center gap-2 text-xs font-semibold text-foreground">
-              <ListChecks className="size-3.5 shrink-0 text-blue-500" />
+              <Sparkles className="size-3.5 shrink-0 text-blue-500" />
               {entry.title}
             </span>
             <span className="mt-2 block text-[11px]/5 text-muted-foreground">

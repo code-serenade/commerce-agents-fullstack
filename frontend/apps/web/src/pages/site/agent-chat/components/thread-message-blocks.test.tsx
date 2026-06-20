@@ -3,7 +3,11 @@ import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 import { AgentChatTestI18nProvider } from "@/test/AgentChatTestI18nProvider"
 import { createAgentChatTestI18n } from "@/test/create-agent-chat-test-i18n"
-import { AgentErrorActions, StudentNextActions, WelcomeCard } from "./thread-message-blocks"
+import {
+  AgentErrorActions,
+  StudentNextActions,
+  WelcomeCard,
+} from "./thread-message-blocks"
 
 describe("WelcomeCard", () => {
   it("lets students choose an example prompt to start", async () => {
@@ -18,7 +22,7 @@ describe("WelcomeCard", () => {
     render(
       <AgentChatTestI18nProvider i18n={i18n}>
         <WelcomeCard
-          content={i18n.t("agentChat.thread.agentName")}
+          content={i18n.t("agentChat.welcomeMessage")}
           onSelectExamplePrompt={onSelectExamplePrompt}
         />
       </AgentChatTestI18nProvider>
@@ -34,7 +38,7 @@ describe("WelcomeCard", () => {
 
     render(
       <AgentChatTestI18nProvider i18n={i18n}>
-        <WelcomeCard content={i18n.t("agentChat.thread.agentName")} />
+        <WelcomeCard content={i18n.t("agentChat.welcomeMessage")} />
       </AgentChatTestI18nProvider>
     )
 
@@ -53,7 +57,9 @@ describe("WelcomeCard", () => {
     expect(
       screen.queryByText(i18n.t("agentChat.thread.studentPromptRecipe.title"))
     ).not.toBeInTheDocument()
-    expect(screen.queryByText(i18n.t("agentChat.welcomeMessage"))).not.toBeInTheDocument()
+    expect(
+      screen.getByText(i18n.t("agentChat.welcomeMessage"))
+    ).toBeInTheDocument()
   })
 
   it("lets students start from task-type entries", async () => {
@@ -65,7 +71,7 @@ describe("WelcomeCard", () => {
     render(
       <AgentChatTestI18nProvider i18n={i18n}>
         <WelcomeCard
-          content={i18n.t("agentChat.thread.agentName")}
+          content={i18n.t("agentChat.welcomeMessage")}
           onSelectExamplePrompt={onSelectExamplePrompt}
         />
       </AgentChatTestI18nProvider>
@@ -111,9 +117,9 @@ describe("AgentErrorActions", () => {
       })
     )
 
-    expect(
-      onSelectPrompt
-    ).toHaveBeenLastCalledWith(i18n.t("agentChat.thread.errorActions.shorterPrompt"))
+    expect(onSelectPrompt).toHaveBeenLastCalledWith(
+      i18n.t("agentChat.thread.errorActions.shorterPrompt")
+    )
   })
 })
 
