@@ -1181,7 +1181,7 @@ const messages = {
       attachShort: "Upload",
       attachPrompt:
         "Add the file or data constraints here, for example: product price, budget, inventory, target audience, current conversion rate, and platform account status.",
-      agentTitle: "Reference angles for this turn",
+      agentTitle: "References for this turn",
       agentName: "AI ecommerce partner",
       contextPreview: {
         compactLabel: "Check first",
@@ -1409,7 +1409,7 @@ const messages = {
         toggle: "Answer preferences",
         panelTitle: "How should we handle this turn",
         panelHint: "Current preference: {{mode}}; {{summary}}",
-        rolesCount: "{{count}} angles",
+        rolesCount: "{{count}} references",
         depthSummary: "Detail: {{depth}}",
         selectedPrefix: "Current",
         hideSelection: "Hide",
@@ -1418,7 +1418,7 @@ const messages = {
         multiAgentSummary: "Multiple checks",
       },
       runtime: {
-        label: "Reference angles",
+        label: "References",
         loading: "Loading answer preferences",
         model: "Model",
         modelSettings: "Model preference",
@@ -1428,7 +1428,7 @@ const messages = {
         collaboration: "Reference style",
         routingMode: "Handling style",
         roleMode: "Reference style",
-        roles: "Reference angles",
+        roles: "Reference focus",
         singleRole: "Main focus",
         primary: "Main focus",
         leadRole: "Main focus",
@@ -1452,7 +1452,7 @@ const messages = {
         advanced: "More preferences",
         explanationDepth: "Explanation depth",
         autoRolesHint:
-          "I will decide which angles are useful for this turn.",
+          "I will decide which references are useful for this turn.",
         manualRolesHint:
           "Pick one main direction, then add references only when useful. Up to {{max}}; more references can slow the reply.",
         roleModeHint:
@@ -1973,7 +1973,7 @@ const messages = {
         adaptive: {
           label: "Task match",
           detail:
-            "{{level}} / {{pressure}}, {{roles}} reference angle(s), {{steps}} handling step(s), {{skills}} reference(s)",
+            "{{level}} / {{pressure}}, {{roles}} reference(s), {{steps}} organizing step(s), {{skills}} tool reference(s)",
         },
         reasoning: {
           label: "Reason",
@@ -2564,7 +2564,7 @@ const messages = {
         failed:
           "This turn is temporarily blocked, usually because the model service, tools, or upstream dependencies were unavailable.",
         boundary:
-          "This reference angle was limited by no selected product, missing live metrics, or unavailable external data, so it produced a stage conclusion and missing-data list.",
+          "This check was limited by no selected product, missing live metrics, or unavailable external data, so it produced a stage conclusion and missing-data list.",
         reworking:
           "The result needs another pass and is being adjusted from feedback.",
         working:

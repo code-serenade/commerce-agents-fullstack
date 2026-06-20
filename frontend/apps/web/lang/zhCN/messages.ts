@@ -1144,7 +1144,7 @@ const messages = {
       attachShort: "上传",
       attachPrompt:
         "请在这里补充文件或数据约束，例如商品价格、预算、库存、目标人群、当前转化率和平台账号状态。",
-      agentTitle: "本轮参考视角",
+      agentTitle: "本轮参考",
       agentName: "AI 电商搭档",
       contextPreview: {
         compactLabel: "发送前看看",
@@ -1358,7 +1358,7 @@ const messages = {
         toggle: "回答偏好",
         panelTitle: "这次想怎么聊",
         panelHint: "当前偏好：{{mode}}；{{summary}}",
-        rolesCount: "{{count}} 个视角",
+        rolesCount: "{{count}} 处参考",
         depthSummary: "展开程度：{{depth}}",
         selectedPrefix: "当前",
         hideSelection: "隐藏",
@@ -1367,7 +1367,7 @@ const messages = {
         multiAgentSummary: "多处参考",
       },
       runtime: {
-        label: "参考视角",
+        label: "参考内容",
         loading: "正在读取回答偏好",
         model: "模型",
         modelSettings: "模型偏好",
@@ -1376,7 +1376,7 @@ const messages = {
         collaboration: "参考方式",
         routingMode: "处理方式",
         roleMode: "参考方式",
-        roles: "参考视角",
+        roles: "参考方向",
         singleRole: "重点看哪里",
         primary: "重点方向",
         leadRole: "重点方向",
@@ -1899,7 +1899,7 @@ const messages = {
         adaptive: {
           label: "任务匹配",
           detail:
-            "{{level}} / {{pressure}}，{{roles}} 个参考视角，{{steps}} 个处理步骤，{{skills}} 项参考",
+            "{{level}} / {{pressure}}，{{roles}} 处参考，{{steps}} 个整理步骤，{{skills}} 项参考",
         },
         reasoning: {
           label: "处理理由",
@@ -2003,7 +2003,7 @@ const messages = {
           fallbackSummary: "正在按本轮问题整理回答",
         },
         stableDetail:
-          "无论问题简单还是复杂，我都会先整理判断依据；区别只是步骤数量、参考视角和工具参考多少不同。",
+          "无论问题简单还是复杂，我都会先整理判断依据；区别只是整理步骤、参考内容和工具参考多少不同。",
         studentUseTitle: "怎么看",
         studentUseDetail:
           "先看处理方式和资料，再看步骤完成情况。",
@@ -2441,7 +2441,7 @@ const messages = {
       fallbackResponse: {
         failed: "本轮处理暂时受阻，通常是模型服务、工具或上游依赖不可用导致。",
         boundary:
-          "这个参考视角受限于未选商品、缺少实时数据或外部接口未接入，已先给出阶段结论和待补数据清单。",
+          "这次核对受限于未选商品、缺少实时数据或外部接口未接入，已先给出阶段结论和待补数据清单。",
         reworking: "结果还需要重新整理，正在按反馈调整。",
         working: "{{agent}} 正在整理，结果会在这里更新。",
         done: "{{agent}} 已完成阶段整理，等待最终汇总。",

@@ -22,8 +22,8 @@ const t = ((key: string, values?: Record<string, unknown>) => {
     "agentChat.composer.runtime.routingModes.commander.label":
       "Training route",
     "agentChat.composer.settings.autoRolesSummary": "Backend auto",
-    "agentChat.composer.settings.multiAgentSummary": `${values?.count ?? 0} agents collaborating`,
-    "agentChat.composer.settings.rolesCount": `${values?.count ?? 0} roles`,
+    "agentChat.composer.settings.multiAgentSummary": `${values?.count ?? 0} references`,
+    "agentChat.composer.settings.rolesCount": `${values?.count ?? 0} references`,
   }
   return copy[key] ?? key
 }) as TFunction
@@ -131,7 +131,7 @@ describe("agent chat runtime summary view model", () => {
         runtimeSelection: selection,
         t,
       })
-    ).toBe("3 agents collaborating")
+    ).toBe("3 references")
   })
 
   it("uses locale copy for fallback runtime options without showing internal ids", () => {
@@ -150,6 +150,6 @@ describe("agent chat runtime summary view model", () => {
         strategyId: "learning",
         t,
       })
-    ).toBe("Teaching / Training route / Multi-agent / Applied / 3 agents collaborating")
+    ).toBe("Teaching / Training route / Multi-agent / Applied / 3 references")
   })
 })
