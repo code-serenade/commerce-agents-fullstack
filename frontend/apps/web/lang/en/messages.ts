@@ -1746,7 +1746,7 @@ const messages = {
       },
       completedTasks: "{{completed}}/{{total}} steps completed",
       planning: "Organizing the reasoning path",
-      historyNotExecuted: "Historical message has no live process",
+      historyNotExecuted: "Historical message has no reasoning thread",
       executionTitle: "Judgment notes for this turn",
       processKinds: {
         waiting: {
@@ -1792,7 +1792,7 @@ const messages = {
       },
       artifactsTitle: "Stage files",
       artifacts: {
-        updating: "Updates with execution",
+        updating: "Updates with handling",
         preparing: "Preparing",
         pending: "Pending",
         backendCreated: "System created {{type}}, status: {{status}}",
@@ -1877,11 +1877,11 @@ const messages = {
         workspaceContext: "Read {{readable}}/{{total}} usable materials",
         contextLoaded: "{{products}} products, {{knowledge}} knowledge records",
         memoryLoaded: "Referenced {{count}} history records",
-        skillRequested: "Using {{skill}} and related capabilities",
-        skillResult: "{{skill}} returned {{status}}",
+        skillRequested: "Referencing {{skill}} and related tools",
+        skillResult: "{{skill}} has a result: {{status}}",
         modelRunning: "Organizing output",
         noExtraSkill: "No extra tool needed for this turn",
-        singleAgentRoute: "{{role}} handles this",
+        singleAgentRoute: "Focus on {{role}}",
         taskRunning: "Working",
         waitingSync: "Waiting for status sync",
         checkingConstraints: "Checking model, budget, and ads constraints",
@@ -1967,13 +1967,13 @@ const messages = {
         adaptive: {
           label: "Task match",
           detail:
-            "{{level}} / {{pressure}} context, {{roles}} reference angle(s), {{steps}} step(s), {{skills}} planned capability call(s), confidence {{confidence}}",
+            "{{level}} / {{pressure}} context, {{roles}} reference angle(s), {{steps}} step(s), {{skills}} tool reference(s), confidence {{confidence}}",
         },
         reasoning: {
           label: "Reason",
         },
         plannedSkills: {
-          label: "Planned abilities",
+          label: "Reference tools",
         },
         contextBudget: {
           label: "Context budget",
@@ -2023,8 +2023,8 @@ const messages = {
           detail: "{{mode}}, lead {{role}}, strategy {{strategy}}",
         },
         skill: {
-          label: "Ability calls",
-          detail: "{{count}} real ability events in this turn",
+          label: "Reference tools",
+          detail: "{{count}} tool reference event(s) in this turn",
         },
         output: {
           label: "Output complete",
@@ -2073,14 +2073,14 @@ const messages = {
           fallbackSummary: "Preparing the answer for this task",
         },
         stableDetail:
-          "Simple or complex, I organize the reasoning first; only the number of steps, reference angles, and capability calls changes.",
+          "Simple or complex, I organize the reasoning first; only the number of steps, reference angles, and tool references changes.",
         studentUseTitle: "How to read it",
         studentUseDetail:
           "Check the method and materials first, then review step progress.",
         difficultyTitle: "Why some flows are short and others are long",
         difficultyDetail:
           "Simple questions use fewer steps. Complex questions add material checks, reference angles, and summary.",
-        realnessTitle: "Why a full role row is not shown",
+        realnessTitle: "Why not every angle is shown",
         realnessDetail:
           "More handling details appear only when the question actually needs multiple reference angles.",
       },
@@ -2323,17 +2323,17 @@ const messages = {
           routeDecided:
             "Question type identified. Using {{strategy}} style, reference mode {{mode}}, focus angle {{role}}.",
           graphPlanned: "Planned {{count}} handling steps.",
-          nodeStarted: "{{agent}} started handling attempt {{attempt}}.",
-          nodeRework: "{{agent}} entered retry: {{instruction}}",
-          nodePassed: "{{agent}} passed acceptance.",
+          nodeStarted: "{{agent}} started pass {{attempt}}.",
+          nodeRework: "{{agent}} is reorganizing: {{instruction}}",
+          nodePassed: "{{agent}} finished the check.",
           nodeBoundary:
-            "{{agent}} completed category-level boundary output without blocking the final answer.",
-          nodeFailed: "{{agent}} failed: {{reason}}",
-          skillRequested: "{{role}} called capability {{skill}}.",
-          skillResult: "Capability {{skill}} returned status: {{status}}.",
+            "{{agent}} completed a category-level note without blocking the final answer.",
+          nodeFailed: "{{agent}} was blocked: {{reason}}",
+          skillRequested: "{{role}} is referencing {{skill}}.",
+          skillResult: "{{skill}} returned status: {{status}}.",
           approvalRequired: "Approval created: {{skill}}, risk {{risk}}.",
-          workerStarted: "{{agent}} started processing.",
-            workerFinished: "{{agent}} finished processing.",
+          workerStarted: "{{agent}} started organizing.",
+            workerFinished: "{{agent}} finished organizing.",
             contextLoaded:
               "Loaded {{products}} product(s) and {{knowledge}} product knowledge record(s).",
             conversationContextLoaded:
@@ -2352,7 +2352,7 @@ const messages = {
             "Training task recorded as boundary review: {{status}}.",
           workspaceRunCompleted: "Final answer saved to the submission record.",
           workspaceArtifactCreated: "Review material created: {{title}}.",
-          agentLearningRecordCreated: "Training memory saved: {{category}}.",
+          agentLearningRecordCreated: "Review note saved: {{category}}.",
           qualityChecked: "Quality check complete: {{score}}, {{status}}.",
           qualityPassed: "passed",
           qualityNeedsWork: "needs work",
@@ -2360,7 +2360,7 @@ const messages = {
           workspacePersistenceError:
             "Training record persistence failed: {{action}}.",
           finished: "This answer finished.",
-          failed: "This answer failed: {{reason}}",
+          failed: "This answer was blocked: {{reason}}",
           graphFinished: "Reasoning path finished and summary output started.",
         },
       },
@@ -2437,15 +2437,15 @@ const messages = {
           omittedLine: "Not in context: {{ref}}",
         },
         skill: {
-          title: "Capability call",
+          title: "Reference tool",
           statusLine: "Status: {{status}}",
           requested:
-            "The system received a capability request and is executing it or waiting for external data.",
-          completed: "The capability call returned a result.",
+            "The tool reference was received and is being handled or waiting for external data.",
+          completed: "The reference tool returned a result.",
           deferred:
-            "This capability needs external data and has been explicitly deferred.",
+            "This tool needs external data, so it is deferred for now.",
           approvalRequired:
-            "This capability is high-risk or writes to a platform, so approval is required before execution.",
+            "This tool is high-risk or writes to a platform, so approval is required before it continues.",
         },
         rework: {
           title: "Recheck",
@@ -2456,12 +2456,12 @@ const messages = {
           title: "Needs data",
           description:
             "This step lacks a selected product or connected external data, and does not block the final answer.",
-          line: "Handled as a category-level boundary: keep missing data, risks, and next steps without showing it as execution failure.",
+          line: "Handled as a category-level boundary: keep missing data, risks, and next steps without showing it as an answer failure.",
         },
         failed: {
           title: "Handling blocked",
           description:
-            "The current step failed. Check model service or upstream dependencies.",
+            "The current step is temporarily blocked. Check model service or upstream dependencies if needed.",
         },
         workspace: {
           linkedTitle: "Training task linked",
@@ -2523,30 +2523,30 @@ const messages = {
         deliveryFilename: "operation.execution.plan.docx",
       },
       runtimeDescriptions: {
-        started: "{{agent}} started handling attempt {{attempt}}.",
+        started: "{{agent}} started pass {{attempt}}.",
         reported:
-          "{{agent}} submitted a report and is waiting for acceptance or summary.",
-        passed: "{{agent}} passed acceptance.",
+          "{{agent}} organized a stage result and is waiting for summary.",
+        passed: "{{agent}} finished the check.",
         boundary:
-          "{{agent}} produced a category-level boundary for the primary role to summarize.",
-        failed: "{{agent}} handling failed.",
+          "{{agent}} produced a category-level boundary for summary.",
+        failed: "{{agent}} was blocked.",
         reworking: "{{agent}} is reorganizing output from feedback.",
-        skillRequested: "Requested capability {{skill}}.",
-        skillResult: "Capability {{skill}} returned {{status}}.",
+        skillRequested: "Referencing {{skill}}.",
+        skillResult: "{{skill}} returned {{status}}.",
       },
       runtimeActions: {
         commanderThinking: "Breaking down task",
         graphPlanned: "Reasoning path generated",
-        nodeReady: "Task queued",
+        nodeReady: "Step queued",
         nodeStarted: "Started handling",
-        nodeReported: "Task reported",
+        nodeReported: "Stage result returned",
         nodeEvaluated: "Result reviewed",
-        nodeRework: "Rework triggered",
-        nodePassed: "Accepted",
+        nodeRework: "Recheck started",
+        nodePassed: "Check complete",
         nodeBoundary: "Needs data",
         nodeFailed: "Handling blocked",
-        skillRequested: "Capability requested",
-        skillResult: "Capability returned",
+        skillRequested: "Tool referenced",
+        skillResult: "Tool returned",
         graphFinished: "Reasoning path finished",
         synced: "State synced",
       },
@@ -2556,15 +2556,15 @@ const messages = {
       },
       fallbackResponse: {
         failed:
-          "This task failed, usually because the model service, tools, or upstream dependencies were unavailable.",
+          "This turn is temporarily blocked, usually because the model service, tools, or upstream dependencies were unavailable.",
         boundary:
-          "This agent was limited by no selected product, missing live metrics, or unavailable external data, so it produced a stage conclusion and missing-data list.",
+          "This reference angle was limited by no selected product, missing live metrics, or unavailable external data, so it produced a stage conclusion and missing-data list.",
         reworking:
-          "Acceptance failed. The task output is being reorganized from feedback.",
+          "The result needs another pass and is being adjusted from feedback.",
         working:
-          "{{agent}} is processing the request. Results will update here.",
-        done: "{{agent}} is complete and waiting for final summary.",
-        idle: "After the task starts, this area shows the request, processing result, and review material summary.",
+          "{{agent}} is organizing the request. Results will update here.",
+        done: "{{agent}} finished the stage and is waiting for final summary.",
+        idle: "After the turn starts, this area shows the question, handling result, and material summary.",
       },
     },
   },
