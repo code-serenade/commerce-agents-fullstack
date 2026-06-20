@@ -1473,31 +1473,31 @@ const messages = {
         },
         roleLabels: {
           chat: {
-            name: "General assistant",
+            name: "General angle",
           },
           ops: {
-            name: "Operations strategist",
+            name: "Operations angle",
           },
           data: {
-            name: "Data analyst",
+            name: "Data angle",
           },
           creative: {
-            name: "Creative planner",
+            name: "Creative angle",
           },
           service: {
-            name: "Customer experience specialist",
+            name: "Service angle",
           },
           douyin_ads: {
-            name: "Ads optimizer",
+            name: "Ads angle",
           },
           accounting: {
-            name: "Finance analyst",
+            name: "Finance angle",
           },
           search: {
-            name: "Platform researcher",
+            name: "Source-check angle",
           },
           engineering: {
-            name: "Technical support",
+            name: "Technical angle",
           },
         },
         capabilityLabels: {

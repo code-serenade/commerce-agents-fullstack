@@ -1420,31 +1420,31 @@ const messages = {
         },
         roleLabels: {
           chat: {
-            name: "通用助手",
+            name: "通用视角",
           },
           ops: {
-            name: "运营策略师",
+            name: "运营视角",
           },
           data: {
-            name: "数据分析师",
+            name: "数据视角",
           },
           creative: {
-            name: "创意策划师",
+            name: "创意视角",
           },
           service: {
-            name: "客服体验师",
+            name: "客服视角",
           },
           douyin_ads: {
-            name: "投放优化师",
+            name: "投放视角",
           },
           accounting: {
-            name: "财务测算师",
+            name: "财务视角",
           },
           search: {
-            name: "平台检索师",
+            name: "资料核验视角",
           },
           engineering: {
-            name: "技术支持师",
+            name: "技术视角",
           },
         },
         capabilityLabels: {
