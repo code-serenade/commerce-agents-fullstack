@@ -1429,34 +1429,34 @@ const messages = {
         routingMode: "Handling style",
         roleMode: "Reference style",
         roles: "Reference angles",
-        singleRole: "Selected angle",
-        primary: "Main angle",
-        leadRole: "Main angle",
-        supportRoles: "Supporting angles",
-        selectedRoles: "Reference angles for this turn",
-        roleColumn: "Angle",
-        primaryShort: "Main angle",
-        supportShort: "Support",
+        singleRole: "Main focus",
+        primary: "Main focus",
+        leadRole: "Main focus",
+        supportRoles: "Extra references",
+        selectedRoles: "How to reference this turn",
+        roleColumn: "Reference direction",
+        primaryShort: "Focus",
+        supportShort: "Ref",
         singleRoleHint:
-          "Click one angle to focus this answer from that direction.",
+          "Pick one direction and I will focus the answer around it.",
         leadRoleHint:
-          "Click an angle card to switch the main focus. The visible answer still reads like one natural recommendation.",
+          "Click a direction card to switch the focus. The visible answer still reads like one natural recommendation.",
         supportRolesHint:
-          "Select supporting angles to add useful evidence, risks, materials, and action suggestions.",
-        answerRoleBadge: "Current angle",
-        primaryBadge: "Main angle",
-        supportBadge: "Support",
-        currentLead: "Current main angle",
-        currentSupport: "Supporting angles: {{roles}}",
-        noSupportRoles: "No supporting angle selected",
+          "Add references when useful, and I will pull in evidence, risks, materials, and next actions.",
+        answerRoleBadge: "Current reference",
+        primaryBadge: "Focus",
+        supportBadge: "Ref",
+        currentLead: "Current focus",
+        currentSupport: "Extra references: {{roles}}",
+        noSupportRoles: "No extra references selected",
         advanced: "More preferences",
         explanationDepth: "Explanation depth",
         autoRolesHint:
           "I will decide which angles are useful for this turn.",
         manualRolesHint:
-          "Pick one main angle, and optionally add supporting angles. Up to {{max}}; more angles make the response slower.",
+          "Pick one main direction, then add references only when useful. Up to {{max}}; more references can slow the reply.",
         roleModeHint:
-          "For this turn, I can decide, focus on one angle, or add a few supporting angles.",
+          "For this turn, I can decide, focus on one direction, or add a few references.",
         learningLevels: {
           beginner: {
             label: "Basic",
@@ -1517,15 +1517,15 @@ const messages = {
         roleModes: {
           auto: {
             label: "I will choose",
-            description: "Auto angles",
+            description: "I will pick useful references",
           },
           single: {
-            label: "One focus",
-            description: "One direction",
+            label: "Focus on one",
+            description: "Answer around one direction",
           },
           manual: {
-            label: "Multiple angles",
-            description: "Combined view",
+            label: "Add references",
+            description: "Bring a few directions together",
           },
         },
         routingModes: {

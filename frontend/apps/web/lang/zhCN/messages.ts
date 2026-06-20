@@ -1377,33 +1377,33 @@ const messages = {
         routingMode: "处理方式",
         roleMode: "参考方式",
         roles: "参考视角",
-        singleRole: "指定视角",
-        primary: "主视角",
-        leadRole: "主视角",
-        supportRoles: "补充视角",
-        selectedRoles: "本轮参考视角",
-        roleColumn: "视角",
-        primaryShort: "主视角",
-        supportShort: "补充",
-        singleRoleHint: "点哪个视角，本轮就重点从哪个方向帮你看。",
+        singleRole: "重点看哪里",
+        primary: "重点方向",
+        leadRole: "重点方向",
+        supportRoles: "补充参考",
+        selectedRoles: "本轮怎么参考",
+        roleColumn: "参考方向",
+        primaryShort: "重点",
+        supportShort: "参考",
+        singleRoleHint: "点一个方向，本轮就围绕它帮你判断。",
         leadRoleHint:
-          "点视角卡片即可切换重点方向；最终回答仍会整合成一段自然建议。",
+          "点方向卡片即可切换重点；最终回答仍会整合成自然建议。",
         supportRolesHint:
-          "勾选补充视角，我会从证据、风险、素材和动作建议里挑有用的部分。",
-        answerRoleBadge: "当前视角",
-        primaryBadge: "主视角",
-        supportBadge: "补充",
-        currentLead: "当前主视角",
-        currentSupport: "补充视角：{{roles}}",
-        noSupportRoles: "暂未选择补充视角",
+          "勾选补充参考，我会从证据、风险、素材和动作建议里挑有用的部分。",
+        answerRoleBadge: "当前参考",
+        primaryBadge: "重点",
+        supportBadge: "参考",
+        currentLead: "当前重点",
+        currentSupport: "补充参考：{{roles}}",
+        noSupportRoles: "暂不补充其它参考",
         advanced: "更多偏好",
         explanationDepth: "讲解深度",
         autoRolesHint:
           "我会根据本轮问题自动判断该从哪些角度帮你看。",
         manualRolesHint:
-          "点一个重点视角，也可以加几个补充视角；最多 {{max}} 个，越多响应越慢。",
+          "选一个重点方向，需要时再加补充参考；最多 {{max}} 个，加得越多回答会慢一点。",
         roleModeHint:
-          "本轮可以由我判断，也可以指定一个重点视角，或加几个补充视角。",
+          "本轮可以由我判断，也可以指定一个重点方向，或加几个补充参考。",
         learningLevels: {
           beginner: {
             label: "基础",
@@ -1464,15 +1464,15 @@ const messages = {
         roleModes: {
           auto: {
             label: "我来判断",
-            description: "自动选视角",
+            description: "我会自己挑有用参考",
           },
           single: {
-            label: "一个重点",
-            description: "只看一个方向",
+            label: "重点看一处",
+            description: "围绕一个方向回答",
           },
           manual: {
-            label: "多个视角",
-            description: "综合判断",
+            label: "多补几处",
+            description: "把几个方向合起来看",
           },
         },
         routingModes: {
