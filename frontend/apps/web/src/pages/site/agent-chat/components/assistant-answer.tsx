@@ -24,6 +24,12 @@ export function AssistantAnswer({ content }: { content: string }) {
     reason: t("agentChat.answer.sectionLabels.reason"),
     team: t("agentChat.answer.sectionLabels.team"),
   }
+  const safeHeadings = {
+    action: t("agentChat.answer.safeHeadings.action"),
+    explanation: t("agentChat.answer.safeHeadings.explanation"),
+    final: t("agentChat.answer.safeHeadings.final"),
+    references: t("agentChat.answer.safeHeadings.references"),
+  }
 
   return (
     <div className="space-y-4 text-sm/7 text-foreground">
@@ -31,6 +37,7 @@ export function AssistantAnswer({ content }: { content: string }) {
         <AnswerBlockView
           block={block}
           key={`${index}-${block.kind}`}
+          safeHeadings={safeHeadings}
           sectionLabels={sectionLabels}
         />
       ))}
@@ -46,15 +53,30 @@ type SectionLabels = {
   team: string
 }
 
+type SafeHeadings = {
+  action: string
+  explanation: string
+  final: string
+  references: string
+}
+
 function AnswerBlockView({
   block,
+  safeHeadings,
   sectionLabels,
 }: {
   block: AssistantAnswerBlock
+  safeHeadings: SafeHeadings
   sectionLabels: SectionLabels
 }) {
   if (block.kind === "heading") {
-    return <HeadingBlock block={block} sectionLabels={sectionLabels} />
+    return (
+      <HeadingBlock
+        block={block}
+        safeHeadings={safeHeadings}
+        sectionLabels={sectionLabels}
+      />
+    )
   }
   if (block.kind === "list") return <ListBlock block={block} />
   if (block.kind === "quote") return <QuoteBlock text={block.text} />
@@ -71,14 +93,17 @@ function AnswerBlockView({
 
 function HeadingBlock({
   block,
+  safeHeadings,
   sectionLabels,
 }: {
   block: Extract<AssistantAnswerBlock, { kind: "heading" }>
+  safeHeadings: SafeHeadings
   sectionLabels: SectionLabels
 }) {
   const isPrimary = block.depth <= 2
   const sectionTone = resolveSectionTone(block.text)
   const headingLabel = resolveSectionLabel(block.text, sectionLabels)
+  const displayHeading = resolveDisplayHeading(block.text, safeHeadings)
 
   return (
     <div
@@ -96,7 +121,7 @@ function HeadingBlock({
             {headingLabel}
           </span>
         ) : null}
-        {renderInlineMarkdown(block.text)}
+        {renderInlineMarkdown(displayHeading)}
       </h3>
     </div>
   )
@@ -206,4 +231,26 @@ function resolveSectionLabel(text: string, labels: SectionLabels) {
   }
   if (/^(教学讲解)/.test(text)) return labels.team
   return ""
+}
+
+function resolveDisplayHeading(text: string, headings: SafeHeadings) {
+  if (/^(多智能体协作结论)(?:\s|$|[：:])/.test(text)) {
+    return headings.final
+  }
+  if (
+    /^(各岗位独立输出|虚拟员工分工|岗位协作|协作回答|各岗位|分工)(?:\s|$|[：:])/.test(
+      text
+    )
+  ) {
+    return headings.references
+  }
+  if (/^(教学讲解)(?:\s|$|[：:])/.test(text)) {
+    return headings.explanation
+  }
+  if (
+    /^(主岗汇总方案|主岗综合方案|团队执行稿)(?:\s|$|[：:])/.test(text)
+  ) {
+    return headings.action
+  }
+  return text
 }
