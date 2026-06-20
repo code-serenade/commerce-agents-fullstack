@@ -1530,12 +1530,12 @@ const messages = {
         },
         routingModes: {
           commander: {
-            label: "Full planning",
-            description: "Analyze the task before arranging steps",
+            label: "More careful",
+            description: "Understand the question first, then organize usable steps",
           },
           fast: {
-            label: "Fast handling",
-            description: "Prefer an existing processing path",
+            label: "Faster",
+            description: "Give a usable direction first, then add the key caveat",
           },
         },
         strategyNotes: {

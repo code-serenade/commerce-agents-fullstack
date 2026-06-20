@@ -1477,12 +1477,12 @@ const messages = {
         },
         routingModes: {
           commander: {
-            label: "完整规划",
-            description: "先分析任务，再安排处理步骤",
+            label: "稳一点",
+            description: "先把问题看清楚，再整理可执行步骤",
           },
           fast: {
-            label: "快速处理",
-            description: "优先匹配已有处理路线",
+            label: "快一点",
+            description: "先给能用的方向，再补关键提醒",
           },
         },
         strategyNotes: {
