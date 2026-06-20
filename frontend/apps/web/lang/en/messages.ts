@@ -1068,21 +1068,21 @@ const messages = {
       },
     },
     streaming: "Thinking...",
-    error: "Agent reply failed. Please try again later.",
+    error: "The AI partner could not finish the reply. Please try again later.",
     errorBadge: "Reply failed",
     boundaryNotice:
-      "Note: some roles hit a no-selected-product or missing-live-metrics boundary. The interface treats these internal checks as reviewable business boundaries, not user-facing failures.",
+      "Note: this turn is missing a selected product or live metrics in a few places. I still gave the useful judgment first and marked what can be added later.",
     missingStructuredOutput:
-      "The previous run did not produce complete structured output. Send the task again and I will rebuild the execution plan and sync the process to the task process panel.",
+      "The previous turn did not produce a complete result. Send it again and I will rebuild the reasoning notes and sync this turn's thread to the side panel.",
     streamTimedOut:
-      "This run timed out and the process has been collapsed. Review the partial result or send the task again to continue.",
+      "This reply took longer than expected, so I collapsed the reasoning notes for now. Review the partial result or send it again to continue.",
     loginRequired: {
-      title: "Sign in to run the cloud agent",
+      title: "Sign in to keep using your AI commerce partner",
       description:
         "You can draft the ecommerce question and choose a strategy first. Sign in when you are ready to call the cloud model and save the conversation.",
       message:
-        "Sign in to call the cloud agent and save the conversation. You can still draft the question and choose a strategy here.",
-      inline: "Sign in to run the cloud agent and save history",
+        "Sign in to continue the analysis and save the conversation. You can still draft the question and choose a style here.",
+      inline: "Sign in to continue and save history",
       action: "Sign in",
     },
     quota: {
@@ -1419,11 +1419,11 @@ const messages = {
       },
       runtime: {
         label: "Reference angles",
-        loading: "Loading runtime",
+        loading: "Loading answer preferences",
         model: "Model",
         modelSettings: "Model settings",
         modelHint:
-          "The configured Doubao model is used by default. If it is not configured, only available models are shown.",
+          "The currently available Doubao model is preferred by default. If it is not available, only usable models are shown.",
         learning: "Detail level",
         collaboration: "Reference style",
         routingMode: "Handling style",
@@ -1551,7 +1551,7 @@ const messages = {
         coffee: {
           label: "May Day coffee conversion",
           prompt:
-            "I run coffee operations and mainly market on Douyin. May Day is coming soon. Please write an operations plan to improve conversion rate, including Qianchuan ads, budget, creative, and execution plan.",
+            "I run coffee operations and mainly market on Douyin. May Day is coming soon. Please write an operations plan to improve conversion rate, including Qianchuan ads, budget, creative, and action steps.",
         },
         qianchuan: {
           label: "Qianchuan ads review",
