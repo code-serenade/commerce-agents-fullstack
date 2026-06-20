@@ -1072,8 +1072,8 @@ const messages = {
       lessHistory: "收起到最近 5 个",
       expandHistory: "展开历史会话",
       collapseHistory: "收起历史会话",
-      expandFunctionNav: "展开实训导航",
-      collapseFunctionNav: "收起实训导航",
+      expandFunctionNav: "展开常用入口",
+      collapseFunctionNav: "收起常用入口",
       empty: "还没有历史对话",
     },
     shell: {
@@ -1084,7 +1084,7 @@ const messages = {
       topbarMeta: "AI 电商搭档 · 自然语言入口",
       sections: {
         create: "",
-        workspace: "实训导航",
+        workspace: "常用入口",
         governance: "管理与复盘",
         recents: "历史会话",
       },

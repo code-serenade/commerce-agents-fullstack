@@ -1109,8 +1109,8 @@ const messages = {
       lessHistory: "Collapse to latest 5",
       expandHistory: "Expand history",
       collapseHistory: "Collapse history",
-      expandFunctionNav: "Expand training navigation",
-      collapseFunctionNav: "Collapse training navigation",
+      expandFunctionNav: "Expand common entries",
+      collapseFunctionNav: "Collapse common entries",
       empty: "No conversations yet",
     },
     shell: {
@@ -1121,7 +1121,7 @@ const messages = {
       topbarMeta: "AI ecommerce partner · natural language entry",
       sections: {
         create: "",
-        workspace: "Training navigation",
+        workspace: "Common entries",
         governance: "Manage and review",
         recents: "History",
       },
