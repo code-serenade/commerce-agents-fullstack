@@ -1114,11 +1114,11 @@ const messages = {
       empty: "No conversations yet",
     },
     shell: {
-      brandEyebrow: "电商多智能体",
-      brandTitle: "电商多智能体",
-      brandDescription: "Ecommerce AI training workspace",
-      topbarTitle: "Enter a training question",
-      topbarMeta: "电商多智能体 · AI training collaboration",
+      brandEyebrow: "AI ecommerce partner",
+      brandTitle: "AI ecommerce partner",
+      brandDescription: "Say the question directly and we will work through it",
+      topbarTitle: "Say your ecommerce question",
+      topbarMeta: "AI ecommerce partner · natural language entry",
       sections: {
         create: "",
         workspace: "Training navigation",
@@ -1128,7 +1128,7 @@ const messages = {
       navigation: {
         newChat: "New chat",
         capabilities: "Capability and usage guide",
-        smartOps: "Multi-agent training assistant",
+        smartOps: "AI ecommerce partner",
         productBoard: "Product selection analysis",
         materials: "Upload file library",
         campaigns: "Campaign planning practice",

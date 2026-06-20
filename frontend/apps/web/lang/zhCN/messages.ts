@@ -1077,11 +1077,11 @@ const messages = {
       empty: "还没有历史对话",
     },
     shell: {
-      brandEyebrow: "电商多智能体",
-      brandTitle: "电商多智能体",
-      brandDescription: "电商 AI 实训工作台",
-      topbarTitle: "输入实训问题",
-      topbarMeta: "电商多智能体 · 电商 AI 实训",
+      brandEyebrow: "AI 电商搭档",
+      brandTitle: "AI 电商搭档",
+      brandDescription: "直接说问题，我们一起往下看",
+      topbarTitle: "直接说你的电商问题",
+      topbarMeta: "AI 电商搭档 · 自然语言入口",
       sections: {
         create: "",
         workspace: "实训导航",
@@ -1091,7 +1091,7 @@ const messages = {
       navigation: {
         newChat: "新建会话",
         capabilities: "能力与使用指南",
-        smartOps: "多智能体实训助手",
+        smartOps: "AI 电商搭档",
         productBoard: "选品与商品分析",
         materials: "上传文件资料库",
         campaigns: "活动策划训练",
