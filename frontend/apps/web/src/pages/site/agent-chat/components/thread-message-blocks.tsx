@@ -24,12 +24,6 @@ export function WelcomeCard({
   onSelectExamplePrompt?: (prompt: string) => void
 }) {
   const { t } = useTranslation()
-  const capabilities = t("agentChat.thread.welcomeCapabilities", {
-    returnObjects: true,
-  }) as string[]
-  const examplePrompts = t("agentChat.thread.examplePrompts", {
-    returnObjects: true,
-  }) as string[]
   const taskEntries = getStudentTaskEntries(t)
 
   return (
@@ -75,34 +69,6 @@ export function WelcomeCard({
             </span>
           </button>
         ))}
-      </div>
-      <div className="mt-4 rounded-lg border border-border bg-background p-3">
-        <div className="flex flex-wrap items-center gap-2">
-          {capabilities.map((item, index) => (
-            <span
-              key={`${index}-${item}`}
-              className="rounded-full bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground"
-            >
-              {item}
-            </span>
-          ))}
-        </div>
-        <p className="mt-3 text-xs font-medium text-muted-foreground">
-          {t("agentChat.thread.startHere")}
-        </p>
-        <div className="mt-2 grid gap-2">
-          {examplePrompts.map((prompt) => (
-            <button
-              key={prompt}
-              type="button"
-              className="group flex min-h-10 items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-left text-xs/5 text-foreground transition hover:border-foreground/30 hover:bg-muted"
-              onClick={() => onSelectExamplePrompt?.(prompt)}
-            >
-              <Sparkles className="size-3.5 shrink-0 text-blue-500" />
-              <span className="min-w-0 flex-1">{prompt}</span>
-            </button>
-          ))}
-        </div>
       </div>
     </div>
   )

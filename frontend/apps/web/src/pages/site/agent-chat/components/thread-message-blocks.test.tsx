@@ -10,14 +10,11 @@ import {
 } from "./thread-message-blocks"
 
 describe("WelcomeCard", () => {
-  it("lets students choose an example prompt to start", async () => {
+  it("lets students choose a task prompt to start", async () => {
     const user = userEvent.setup()
     const onSelectExamplePrompt = vi.fn()
     const i18n = await createAgentChatTestI18n()
-    const prompts = i18n.t("agentChat.thread.examplePrompts", {
-      returnObjects: true,
-    }) as string[]
-    const prompt = prompts[0]!
+    const prompt = i18n.t("agentChat.thread.studentTaskEntries.start.prompt")
 
     render(
       <AgentChatTestI18nProvider i18n={i18n}>
@@ -33,8 +30,14 @@ describe("WelcomeCard", () => {
     expect(onSelectExamplePrompt).toHaveBeenCalledWith(prompt)
   })
 
-  it("shows task cards and suggested questions without long onboarding blocks", async () => {
+  it("shows task cards without long onboarding blocks", async () => {
     const i18n = await createAgentChatTestI18n()
+    const examplePrompts = i18n.t("agentChat.thread.examplePrompts", {
+      returnObjects: true,
+    }) as string[]
+    const capabilities = i18n.t("agentChat.thread.welcomeCapabilities", {
+      returnObjects: true,
+    }) as string[]
 
     render(
       <AgentChatTestI18nProvider i18n={i18n}>
@@ -44,9 +47,6 @@ describe("WelcomeCard", () => {
 
     expect(
       screen.getByText(i18n.t("agentChat.thread.studentTaskEntries.title"))
-    ).toBeInTheDocument()
-    expect(
-      screen.getByText(i18n.t("agentChat.thread.startHere"))
     ).toBeInTheDocument()
     expect(
       screen.getByText(i18n.t("agentChat.thread.studentTaskEntries.data.title"))
@@ -60,6 +60,11 @@ describe("WelcomeCard", () => {
     expect(
       screen.queryByText(i18n.t("agentChat.thread.studentPromptRecipe.title"))
     ).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(i18n.t("agentChat.thread.startHere"))
+    ).not.toBeInTheDocument()
+    expect(screen.queryByText(examplePrompts[0]!)).not.toBeInTheDocument()
+    expect(screen.queryByText(capabilities[0]!)).not.toBeInTheDocument()
     expect(
       screen.getByText(i18n.t("agentChat.welcomeMessage"))
     ).toBeInTheDocument()

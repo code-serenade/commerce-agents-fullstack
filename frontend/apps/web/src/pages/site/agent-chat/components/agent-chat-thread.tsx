@@ -143,7 +143,7 @@ export function AgentChatThread({
       className="min-h-0 flex-1 overflow-y-auto bg-background px-4 py-5 sm:px-6"
     >
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-        {messages.length <= 1 ? (
+        {messages.length <= 1 && !hasOnlyWelcomeMessage ? (
           <div className="flex justify-center">
             <StrategyStatusPill strategy={selectedStrategy} />
           </div>
