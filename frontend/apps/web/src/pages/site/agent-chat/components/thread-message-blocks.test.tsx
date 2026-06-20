@@ -49,6 +49,9 @@ describe("WelcomeCard", () => {
       screen.getByText(i18n.t("agentChat.thread.startHere"))
     ).toBeInTheDocument()
     expect(
+      screen.getByText(i18n.t("agentChat.thread.studentTaskEntries.data.title"))
+    ).toBeInTheDocument()
+    expect(
       screen.queryByText(i18n.t("agentChat.thread.studentFlow.title"))
     ).not.toBeInTheDocument()
     expect(
@@ -80,6 +83,26 @@ describe("WelcomeCard", () => {
     expect(
       screen.getByText(i18n.t("agentChat.thread.studentTaskEntries.title"))
     ).toBeInTheDocument()
+
+    await user.click(screen.getByText(prompt))
+
+    expect(onSelectExamplePrompt).toHaveBeenCalledWith(prompt)
+  })
+
+  it("lets students start from the data review entry", async () => {
+    const user = userEvent.setup()
+    const onSelectExamplePrompt = vi.fn()
+    const i18n = await createAgentChatTestI18n()
+    const prompt = i18n.t("agentChat.thread.studentTaskEntries.data.prompt")
+
+    render(
+      <AgentChatTestI18nProvider i18n={i18n}>
+        <WelcomeCard
+          content={i18n.t("agentChat.welcomeMessage")}
+          onSelectExamplePrompt={onSelectExamplePrompt}
+        />
+      </AgentChatTestI18nProvider>
+    )
 
     await user.click(screen.getByText(prompt))
 

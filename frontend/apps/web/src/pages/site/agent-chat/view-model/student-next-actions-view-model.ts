@@ -154,6 +154,11 @@ export function getStudentTaskEntries(t: TFunction): StudentTaskEntry[] {
       title: t("agentChat.thread.studentTaskEntries.plan.title"),
     },
     {
+      detail: t("agentChat.thread.studentTaskEntries.data.detail"),
+      prompt: t("agentChat.thread.studentTaskEntries.data.prompt"),
+      title: t("agentChat.thread.studentTaskEntries.data.title"),
+    },
+    {
       detail: t("agentChat.thread.studentTaskEntries.review.detail"),
       prompt: t("agentChat.thread.studentTaskEntries.review.prompt"),
       title: t("agentChat.thread.studentTaskEntries.review.title"),
