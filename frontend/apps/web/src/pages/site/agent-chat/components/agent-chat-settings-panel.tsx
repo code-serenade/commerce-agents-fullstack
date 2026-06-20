@@ -1,12 +1,10 @@
 import { ChevronsUpDown, SlidersHorizontal } from "lucide-react"
-import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import type {
   AgentChatRuntimeSelection,
   AgentRuntimeOptions,
 } from "../domain/agent-runtime-options"
 import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
-import { buildCompactRuntimeSummary } from "../view-model/agent-chat-runtime-summary-view-model"
 import { AgentChatSettingsControls } from "./agent-chat-settings-controls"
 
 export interface AgentChatSettingsPanelProps {
@@ -46,7 +44,6 @@ export function AgentChatSettingsPanel({
   variant = "bar",
 }: AgentChatSettingsPanelProps) {
   const { t } = useTranslation()
-  const [summaryVisible, setSummaryVisible] = useState(true)
   const activeStrategyLabel = t(`agentChat.strategy.options.${strategyId}.label`)
   const depthChoice = runtimeOptions?.learningLevels.find(
     (level) => level.id === runtimeSelection.learningLevel
@@ -79,13 +76,6 @@ export function AgentChatSettingsPanel({
   ]
     .filter(Boolean)
     .join(" · ")
-  const compactSummary = buildCompactRuntimeSummary({
-    runtimeOptions,
-    runtimeSelection,
-    strategyId,
-    t,
-  })
-
   if (variant === "panel") {
     return (
       <>
@@ -150,33 +140,6 @@ export function AgentChatSettingsPanel({
           </span>
           <ChevronIndicator open={isOpen} />
         </button>
-        {summaryVisible ? (
-          <div className="hidden min-w-0 flex-1 items-center gap-1 overflow-hidden text-xs text-muted-foreground sm:flex">
-            <span className="min-w-0 flex-1 truncate">
-              <span className="text-[11px] text-muted-foreground/75">
-                {t("agentChat.composer.settings.selectedPrefix")}
-              </span>
-              <span className="ml-1 text-foreground/85">{compactSummary}</span>
-            </span>
-            <button
-              type="button"
-              className="shrink-0 text-[11px] text-muted-foreground/75 underline-offset-2 transition-colors hover:text-foreground hover:underline"
-              onClick={() => setSummaryVisible(false)}
-              title={t("agentChat.composer.settings.hideSelection")}
-            >
-              {t("agentChat.composer.settings.hideSelection")}
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            className="shrink-0 text-[11px] text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline"
-            onClick={() => setSummaryVisible(true)}
-            title={compactSummary}
-          >
-            {t("agentChat.composer.settings.showSelection")}
-          </button>
-        )}
       </div>
     )
   }

@@ -6,12 +6,43 @@ import { describe, expect, it, vi } from "vitest"
 import { AgentChatTestI18nProvider } from "@/test/AgentChatTestI18nProvider"
 import { createAgentChatTestI18n } from "@/test/create-agent-chat-test-i18n"
 import { AgentChatComposerPanels } from "./agent-chat-composer-panels"
+import { AgentChatComposerToolbar } from "./agent-chat-composer-toolbar"
 import {
+  baseToolbarProps,
   basePanelProps,
   runtimeSelection,
 } from "./agent-chat-composer-test-fixtures"
 
 describe("AgentChatComposer settings panel", () => {
+  it("keeps the compact toolbar free of default runtime summary clutter", async () => {
+    const i18n = await createAgentChatTestI18n()
+
+    render(
+      <TestProviders i18n={i18n}>
+        <AgentChatComposerToolbar {...baseToolbarProps()} />
+      </TestProviders>
+    )
+
+    expect(
+      screen.queryByText(i18n.t("agentChat.composer.settings.selectedPrefix"))
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
+        name: i18n.t("agentChat.composer.settings.hideSelection"),
+      })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
+        name: i18n.t("agentChat.composer.settings.showSelection"),
+      })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole("button", {
+        name: new RegExp(i18n.t("agentChat.strategy.options.learning.label")),
+      })
+    ).toBeInTheDocument()
+  })
+
   it("switches answer strategy, routing mode, collaboration mode, and roles", async () => {
     const i18n = await createAgentChatTestI18n()
     const user = userEvent.setup()
