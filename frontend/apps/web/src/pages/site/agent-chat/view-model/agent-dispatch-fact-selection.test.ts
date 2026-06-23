@@ -109,8 +109,7 @@ describe("selectDispatchFacts", () => {
       tone: "success",
     })
     expect(facts).toContainEqual({
-      detail:
-        "planned ops_pricing_strategy requested - succeeded ops_pricing_strategy failed - pending -",
+      detail: "planned 1 requested 0 succeeded 1 failed 0 pending 0",
       label: dispatchFactTestLabels.skillAuditLabel,
       tone: "success",
     })

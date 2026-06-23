@@ -1,10 +1,57 @@
 import { describe, expect, it } from "vitest"
+import type { AgentWorkerReport } from "@/api"
 import {
   compactPreviewLines,
   isInternalRuntimeLine,
+  readReportLines,
 } from "./swarm-report-lines-view-model"
 
+const t = ((key: string, params?: Record<string, unknown>) => {
+  if (key === "agentChat.swarm.reportLines.question") {
+    return `question: ${String(params?.question)}`
+  }
+  if (key === "agentChat.swarm.reportLines.risk") {
+    return `risk: ${String(params?.risk)}`
+  }
+  return key
+}) as never
+
 describe("swarm report lines view model", () => {
+  it("reads camelCase role output without exposing internal lines", () => {
+    const report = {
+      content: "",
+      evidence: [],
+      graph_id: "graph-1",
+      node_id: "creative",
+      openQuestions: ["How should the title avoid overpromising?"],
+      risks: ["Avoid unsupported benchmark claims."],
+      role: "creative",
+      roleOutput: {
+        evidence: ["Compared the title against the available selling points."],
+        findings: [
+          "The current title has a clear benefit but lacks a concrete usage scenario.",
+          "json template validation failed at $: missing key 'role_output'",
+        ],
+        openQuestions: [],
+        recommendations: ["Add one scenario phrase before the main benefit."],
+        risks: [],
+        summary: "The title direction is usable after one specificity pass.",
+      },
+      status: "completed",
+      task_id: "task-1",
+      worker_id: "worker.creative",
+    } satisfies AgentWorkerReport
+
+    const lines = readReportLines(report, t)
+    const visibleText = lines.join("\n")
+
+    expect(visibleText).toContain("The title direction is usable")
+    expect(visibleText).toContain("Add one scenario phrase")
+    expect(visibleText).toContain("question: How should the title avoid overpromising?")
+    expect(visibleText).not.toContain("json template validation")
+    expect(visibleText).not.toContain("role_output")
+  })
+
   it("filters internal runtime rules from process previews", () => {
     const title = textFromCodes([35, 32, 25968, 25454, 35786, 26029])
     const runtimeRule = textFromCodes([39564, 35777, 35268, 21017, 32, 49, 65306, 99, 111, 110, 116, 101, 110, 116, 32, 109, 117, 115, 116, 32, 98, 101, 32, 115, 112, 101, 99, 105, 102, 105, 99, 32, 97, 110, 100, 32, 110, 111, 110, 45, 101, 109, 112, 116, 121])

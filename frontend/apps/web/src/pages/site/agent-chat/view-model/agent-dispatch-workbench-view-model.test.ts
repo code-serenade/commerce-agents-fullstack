@@ -14,6 +14,8 @@ const searchClaimText = "competitor is discounting"
 const searchSourceTitle = "source"
 const graphId = "graph-1"
 const finalStepTitle = "design reviewer"
+const internalWorkerTitle = "worker.design"
+const machineStepTitle = "task_node_started"
 
 describe("getDispatchWorkbenchModel", () => {
   it("keeps every selected audit fact in the preview document", () => {
@@ -136,7 +138,9 @@ describe("getDispatchWorkbenchModel", () => {
     )
 
     expect(model.steps).toHaveLength(roleIds.length)
-    expect(model.previewLines).toContain(`08 ${finalStepTitle}: design objective`)
+    expect(model.previewLines).toContain(
+      "08 presentation advice: design objective"
+    )
   })
 
   it("does not expose i18n keys in the preview document", () => {
@@ -175,5 +179,73 @@ describe("getDispatchWorkbenchModel", () => {
 
     expect(model.previewLines.join("\n")).not.toContain("agentChat.")
     expect(model.previewLines).toContain("Task materials: Task material status synced")
+  })
+
+  it("does not expose internal runtime terms in the preview document", () => {
+    const events: AgentRuntimeEvent[] = [
+      {
+        type: "dispatch_planned",
+        difficulty: "complex",
+        planned_steps: [
+          {
+            detail: "worker.design should use task_graph selected_skills",
+            id: "worker-design",
+            title: internalWorkerTitle,
+          },
+        ],
+        primary_runtime_role: "design",
+        reasoning_summary: "route_mode task_graph selected_skills",
+        route_mode: "task_graph",
+        selected_skills: ["design_material_spec"],
+        student_visible_explanation: "",
+        support_runtime_roles: ["design"],
+      },
+    ]
+
+    const model = getDispatchWorkbenchModel(
+      { isStreaming: false, runtimeEvents: events, task },
+      t
+    )
+    const preview = model.previewLines.join("\n").toLowerCase()
+
+    expect(preview).not.toContain("worker")
+    expect(preview).not.toContain("selected_skills")
+    expect(preview).not.toContain("route_mode")
+    expect(preview).not.toContain("task_graph")
+  })
+
+  it("compacts machine status and event names in the preview document", () => {
+    const events: AgentRuntimeEvent[] = [
+      {
+        type: "dispatch_planned",
+        difficulty: "complex",
+        planned_steps: [
+          {
+            detail: "validation_error mark_agent_task_started request_id=req-1",
+            id: "internal-step",
+            title: machineStepTitle,
+          },
+        ],
+        primary_runtime_role: "design",
+        reasoning_summary: "failure_kind=json_template_validation",
+        route_mode: "task_graph",
+        selected_skills: ["design_material_spec"],
+        student_visible_explanation: "",
+        support_runtime_roles: ["design"],
+      },
+    ]
+
+    const model = getDispatchWorkbenchModel(
+      { isStreaming: false, runtimeEvents: events, task },
+      t
+    )
+    const preview = model.previewLines.join("\n").toLowerCase()
+
+    expect(preview).not.toContain("validation_error")
+    expect(preview).not.toContain("mark_agent_task_started")
+    expect(preview).not.toContain("request_id")
+    expect(preview).not.toContain("task_node_started")
+    expect(preview).not.toContain("failure_kind")
+    expect(preview).not.toContain("json_template_validation")
   })
 })

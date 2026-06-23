@@ -13,6 +13,8 @@ import {
   getRuntimeActionLabel,
 } from "./swarm-runtime-event-label-view-model"
 import { formatUserFacingRuntimeReason } from "./swarm-runtime-reason-view-model"
+import { formatTimelineDynamicText } from "./swarm-timeline-user-facing-text"
+import { formatUserFacingTaskTitle } from "./swarm-timeline-user-facing-text"
 import {
   compactPreviewLines,
   isInternalRuntimeLine,
@@ -26,13 +28,13 @@ import {
   getDockStateLabel,
   getFallbackResponse,
   getPlannedGraph,
-  getAgentName,
   readId,
   type ComputerCard,
   type ComputerScreenContext,
   type RuntimeNodeSnapshot,
   type SwarmAgent,
 } from "./swarm-panel-view-model"
+import { hasFinished } from "./agent-process-runtime-view-model"
 
 export function getComputerCards(input: {
   activeAgent: SwarmAgent
@@ -57,10 +59,10 @@ export function getComputerCards(input: {
     cards.push({
       id: "rework",
       title: t("agentChat.swarm.cards.rework.title"),
-      meta: getAgentName(readRuntimeNodeId(reworkEvent), agents),
+      meta: t("agentChat.swarm.cards.rework.meta"),
       description: t("agentChat.swarm.cards.rework.description"),
       icon: SearchCheck,
-      lines: [reworkEvent.instruction],
+      lines: [formatTimelineDynamicText(reworkEvent.instruction, t)],
       state: "reworking",
     })
   }
@@ -69,7 +71,7 @@ export function getComputerCards(input: {
     cards.push({
       id: "boundary",
       title: t("agentChat.swarm.cards.boundary.title"),
-      meta: getAgentName(boundaryEvent.nodeId, agents),
+      meta: t("agentChat.swarm.cards.boundary.meta"),
       description: t("agentChat.swarm.cards.boundary.description"),
       icon: SearchCheck,
       lines: [t("agentChat.swarm.cards.boundary.line")],
@@ -81,7 +83,6 @@ export function getComputerCards(input: {
     cards.push({
       id: "failed",
       title: t("agentChat.swarm.cards.failed.title"),
-      meta: getAgentName(readRuntimeNodeId(failedEvent), agents),
       description: t("agentChat.swarm.cards.failed.description"),
       icon: TerminalSquare,
       lines: [formatUserFacingRuntimeReason(failedEvent.reason, t)],
@@ -103,9 +104,13 @@ export function getComputerScreenContext(
   const graphNode = getPlannedGraph(runtimeEvents)?.nodes.find(
     (node) => readId(node.id) === activeAgent.nodeId
   )
-  const request = graphNode?.objective ?? activeAgent.objective
+  const request = formatTimelineDynamicText(
+    graphNode?.objective ?? activeAgent.objective,
+    t
+  )
   const acceptanceLines =
     graphNode?.acceptance
+      .map((item) => formatTimelineDynamicText(item, t))
       .filter((item) => !isInternalRuntimeLine(item))
       .map((item, index) =>
         t("agentChat.swarm.screen.acceptanceLine", { index: index + 1, item })
@@ -162,10 +167,15 @@ function getTaskCard(
     }),
     icon: FileText,
     lines: [
-      graphEvent.graph.root_task,
+      formatTimelineDynamicText(graphEvent.graph.root_task, t),
       ...graphEvent.graph.nodes
         .slice(0, 3)
-        .map((node) => `${node.title}: ${node.objective}`),
+        .map((node) =>
+          `${formatUserFacingTaskTitle(node.title, t)}: ${formatTimelineDynamicText(
+            node.objective,
+            t
+          )}`
+        ),
     ],
     state: "done",
   }
@@ -234,6 +244,7 @@ function findLatestReworkEvent(runtimeEvents: AgentRuntimeEvent[]) {
 }
 
 function findLatestFailedEvent(runtimeEvents: AgentRuntimeEvent[]) {
+  if (hasFinished(runtimeEvents)) return null
   return [...runtimeEvents]
     .reverse()
     .find(

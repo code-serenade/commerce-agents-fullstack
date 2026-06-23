@@ -6,6 +6,7 @@ import type {
 import type {
   DispatchWorkbenchStep,
 } from "./agent-dispatch-workbench-view-model"
+import { isInternalRuntimeText } from "./agent-user-facing-runtime-text"
 
 type PreviewFallbackKey =
   | "fallbackFactDetail"
@@ -121,7 +122,9 @@ function fallbackTranslation(t: TFunction, key: PreviewFallbackKey) {
 
 function sanitizePreviewText(value: string, fallback: string) {
   const trimmed = value.trim()
-  if (!trimmed || isI18nKeyLeak(trimmed)) return fallback
+  if (!trimmed || isI18nKeyLeak(trimmed) || isInternalRuntimeText(trimmed)) {
+    return fallback
+  }
   return trimmed
 }
 

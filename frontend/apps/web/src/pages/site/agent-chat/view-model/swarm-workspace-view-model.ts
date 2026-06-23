@@ -6,6 +6,10 @@ import {
   isNonBlockingNodeFailure,
   isNonBlockingWorkspaceFailure,
 } from "./thread-boundary-state-view-model"
+import {
+  formatTimelineDynamicText,
+  formatUserFacingTaskStatus,
+} from "./swarm-timeline-user-facing-text"
 
 export function getWorkspacePersistenceCard(
   runtimeEvents: AgentRuntimeEvent[],
@@ -25,10 +29,10 @@ export function getWorkspacePersistenceCard(
     return {
       id: "workspace-persistence-error",
       title: t("agentChat.swarm.cards.workspace.errorTitle"),
-      meta: persistenceError.action,
+      meta: formatTimelineDynamicText(persistenceError.action, t),
       description: t("agentChat.swarm.cards.workspace.errorDescription"),
       icon: TriangleAlert,
-      lines: [persistenceError.message],
+      lines: [formatTimelineDynamicText(persistenceError.message, t)],
       state: "failed",
     }
   }
@@ -53,12 +57,6 @@ export function getWorkspacePersistenceCard(
   if (approvalRequired) {
     const approval = approvalRequired.approval
     const alert = approvalRequired.alert
-    const skill =
-      approvalRequired.skillId ??
-      approvalRequired.skill_id ??
-      approval?.skillName ??
-      approval?.skill_name ??
-      "-"
     const risk =
       approvalRequired.riskLevel ??
       approvalRequired.risk_level ??
@@ -70,21 +68,24 @@ export function getWorkspacePersistenceCard(
       title: t("agentChat.swarm.cards.workspace.approvalRequiredTitle"),
       meta: t("agentChat.swarm.cards.workspace.approvalRequiredMeta", {
         risk,
-        status: approval?.status ?? "pending",
+        status: formatUserFacingTaskStatus(approval?.status ?? "pending", t),
       }),
       description: t("agentChat.swarm.cards.workspace.approvalRequiredDescription"),
       icon: ShieldAlert,
       lines: [
-        t("agentChat.swarm.cards.workspace.approvalSkillLine", { skill }),
+        t("agentChat.swarm.cards.workspace.approvalSkillLine"),
         t("agentChat.swarm.cards.workspace.approvalLine", {
           id: approval?.id?.slice(0, 8) ?? "-",
-          status: approval?.status ?? "pending",
+          status: formatUserFacingTaskStatus(approval?.status ?? "pending", t),
         }),
         t("agentChat.swarm.cards.workspace.approvalReasonLine", {
-          reason: approvalRequired.reason ?? approval?.reason ?? "-",
+          reason: formatTimelineDynamicText(
+            approvalRequired.reason ?? approval?.reason,
+            t
+          ),
         }),
         t("agentChat.swarm.cards.workspace.approvalAlertLine", {
-          message: alert?.message ?? "-",
+          message: formatTimelineDynamicText(alert?.message, t),
         }),
       ],
       state: "reworking",
@@ -124,15 +125,23 @@ export function getWorkspacePersistenceCard(
     return {
       id: "workspace-artifact-created",
       title: t("agentChat.swarm.cards.workspace.artifactCreatedTitle"),
-      meta: artifactCreated.artifactType ?? artifactCreated.artifact_type ?? "artifact",
+      meta: formatTimelineDynamicText(
+        artifactCreated.artifactType ?? artifactCreated.artifact_type,
+        t
+      ),
       description: t("agentChat.swarm.cards.workspace.artifactCreatedDescription"),
       icon: FileCheck2,
       lines: [
         t("agentChat.swarm.cards.workspace.artifactLine", {
           id: artifactCreated.id.slice(0, 8),
-          title: artifactCreated.title,
+          title: formatTimelineDynamicText(artifactCreated.title, t),
         }),
-        artifactCreated.preview ?? artifactCreated.fileName ?? t("agentChat.swarm.cards.workspace.savedReportLine"),
+        formatTimelineDynamicText(
+          artifactCreated.preview ??
+            artifactCreated.fileName ??
+            t("agentChat.swarm.cards.workspace.savedReportLine"),
+          t
+        ),
       ],
       state: "done",
     }
@@ -152,12 +161,13 @@ export function getWorkspacePersistenceCard(
 
   if (taskUpdate) {
     const boundary = isBoundaryWorkspaceTaskUpdate(taskUpdate, runtimeEvents)
+    const status = formatUserFacingTaskStatus(taskUpdate.status, t)
     return {
       id: "workspace-task-updated",
       title: boundary
         ? t("agentChat.swarm.cards.workspace.taskBoundaryTitle")
         : t("agentChat.swarm.cards.workspace.taskUpdatedTitle"),
-      meta: taskUpdate.status,
+      meta: status,
       description: boundary
         ? t("agentChat.swarm.cards.workspace.taskBoundaryDescription")
         : t("agentChat.swarm.cards.workspace.taskUpdatedDescription"),
@@ -165,7 +175,7 @@ export function getWorkspacePersistenceCard(
       lines: [
         t("agentChat.swarm.cards.workspace.runTaskLine", {
           id: taskUpdate.id,
-          status: taskUpdate.status,
+          status,
         }),
       ],
       state: boundary ? "boundary" : taskUpdate.status === "failed" ? "failed" : "working",
@@ -186,7 +196,7 @@ export function getWorkspacePersistenceCard(
         .map((task) =>
           t("agentChat.swarm.cards.workspace.runTaskLine", {
             id: task.id,
-            status: task.status,
+            status: formatUserFacingTaskStatus(task.status, t),
           })
         ),
       state: "working",
@@ -204,10 +214,10 @@ export function getWorkspacePersistenceCard(
     description: t("agentChat.swarm.cards.workspace.linkedDescription"),
     icon: Database,
     lines: [
-      linked.workspace.title,
+      formatTimelineDynamicText(linked.workspace.title, t),
       t("agentChat.swarm.cards.workspace.runLine", {
         id: linked.run.id,
-        status: linked.run.status,
+        status: formatUserFacingTaskStatus(linked.run.status, t),
       }),
     ],
     state: "working",
@@ -234,9 +244,12 @@ function readWorkspaceRunLines(
   return [
     t("agentChat.swarm.cards.workspace.runLine", {
       id: run.id,
-      status: run.status,
+      status: formatUserFacingTaskStatus(run.status, t),
     }),
-    run.summary ?? t("agentChat.swarm.cards.workspace.savedReportLine"),
+    formatTimelineDynamicText(
+      run.summary ?? t("agentChat.swarm.cards.workspace.savedReportLine"),
+      t
+    ),
   ]
 }
 

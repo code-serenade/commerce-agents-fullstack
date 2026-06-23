@@ -151,6 +151,21 @@ fn role_output_business_text(output: &crate::core::protocol::RoleWorkOutput) -> 
         .iter()
         .chain(output.findings.iter())
         .any(|item| looks_like_material_evidence(item));
+    let summary_text = sanitize_user_facing_text(&output.summary)
+        .map(|text| {
+            remove_unverified_live_search_success_claims(
+                &text,
+                has_reliable_live_search_evidence(output),
+            )
+        })
+        .filter(|text| !text.trim().is_empty());
+    if let Some(summary) = summary_text.as_ref() {
+        let is_blocking_gap = (has_material_evidence && looks_like_no_source_claim(summary))
+            || looks_like_blocking_material_gap(summary);
+        if !is_blocking_gap && looks_like_complete_role_summary(summary) {
+            return Some(append_material_evidence_once(summary, output));
+        }
+    }
     let sections = std::iter::once(output.summary.as_str())
         .chain(output.findings.iter().map(String::as_str))
         .chain(output.recommendations.iter().map(String::as_str))
@@ -177,6 +192,37 @@ fn role_output_business_text(output: &crate::core::protocol::RoleWorkOutput) -> 
         sections.join("\n\n")
     };
     Some(append_material_evidence_once(&text, output))
+}
+
+fn looks_like_complete_role_summary(text: &str) -> bool {
+    let content_chars = text.chars().filter(|ch| !ch.is_whitespace()).count();
+    if content_chars < 180 {
+        return false;
+    }
+    count_answer_like_sections(text) >= 3
+}
+
+fn count_answer_like_sections(text: &str) -> usize {
+    text.lines()
+        .filter(|line| looks_like_answer_section_heading(line))
+        .count()
+}
+
+fn looks_like_answer_section_heading(line: &str) -> bool {
+    let heading = line.trim().trim_start_matches('#').trim();
+    if heading.is_empty()
+        || heading.starts_with('-')
+        || heading.starts_with('*')
+        || heading.starts_with('|')
+        || heading.contains('|')
+        || heading.ends_with('。')
+        || heading.ends_with('.')
+    {
+        return false;
+    }
+    let heading = heading.trim_end_matches([':', '：']);
+    let char_count = heading.chars().count();
+    (2..=18).contains(&char_count)
 }
 
 fn push_unique_section(sections: &mut Vec<String>, text: String) {
@@ -477,6 +523,7 @@ pub(crate) fn sanitize_final_user_facing_text(raw: &str) -> Option<String> {
     let lines = output.lines().map(str::to_string).collect::<Vec<_>>();
     let lines = drop_historical_evidence_quote_blocks(lines);
     let lines = truncate_tail_historical_answer_quotes(lines);
+    let lines = truncate_tail_role_output_stitching(lines);
     let output = normalize_blank_lines(lines);
     (!output.is_empty() && !is_internal_noise_line(&output)).then_some(output)
 }
@@ -1382,6 +1429,76 @@ fn truncate_tail_historical_answer_quotes(lines: Vec<String>) -> Vec<String> {
     lines
 }
 
+fn truncate_tail_role_output_stitching(lines: Vec<String>) -> Vec<String> {
+    let Some(closing_step_index) = closing_step_answer_index(&lines) else {
+        return lines;
+    };
+    if !has_substantial_structured_answer_before(&lines, closing_step_index) {
+        return lines;
+    }
+
+    let next_heading_index = lines
+        .iter()
+        .enumerate()
+        .skip(closing_step_index + 1)
+        .find_map(|(index, line)| is_answer_markdown_heading(line).then_some(index));
+    let heading_index = next_heading_index.unwrap_or(lines.len());
+    if next_step_section_has_content(&lines, closing_step_index + 1, heading_index)
+        && ((next_heading_index
+            .is_some_and(|index| looks_like_tail_role_output_heading(&lines[index])))
+            || next_step_section_has_overlong_tail_bullets(
+                &lines,
+                closing_step_index,
+                heading_index,
+            )
+            || tail_role_output_stitching_start_before_heading(
+                &lines,
+                closing_step_index,
+                heading_index,
+            )
+            .is_some())
+    {
+        let truncated_at_bullets = truncate_overlong_next_step_before_tail_heading(
+            &lines,
+            closing_step_index,
+            heading_index,
+        );
+        let truncated_at_tail = tail_role_output_stitching_start_before_heading(
+            &lines,
+            closing_step_index,
+            heading_index,
+        );
+        let truncated_at = [truncated_at_bullets, truncated_at_tail, Some(heading_index)]
+            .into_iter()
+            .flatten()
+            .min()
+            .unwrap_or(heading_index);
+        return trim_trailing_blank_lines(lines[..truncated_at].to_vec());
+    }
+
+    lines
+}
+
+fn has_substantial_structured_answer_before(lines: &[String], index: usize) -> bool {
+    let heading_count = lines[..index]
+        .iter()
+        .filter(|line| is_answer_markdown_heading(line))
+        .count();
+    let chars = lines[..index]
+        .iter()
+        .filter(|line| !line.trim().is_empty())
+        .map(|line| line.chars().count())
+        .sum::<usize>();
+    let non_blank = lines[..index]
+        .iter()
+        .filter(|line| !line.trim().is_empty())
+        .count();
+    if heading_count >= 2 {
+        return chars >= 120 && non_blank >= 5;
+    }
+    heading_count >= 1 && chars >= 520 && non_blank >= 10
+}
+
 fn has_substantial_answer_before(lines: &[String]) -> bool {
     let chars = lines
         .iter()
@@ -1390,6 +1507,228 @@ fn has_substantial_answer_before(lines: &[String]) -> bool {
         .sum::<usize>();
     let non_blank = lines.iter().filter(|line| !line.trim().is_empty()).count();
     chars >= 240 && non_blank >= 5
+}
+
+fn is_answer_markdown_heading(line: &str) -> bool {
+    let line = line.trim();
+    line.starts_with("## ") && !line.starts_with("### ")
+}
+
+fn is_closing_step_answer_heading(line: &str) -> bool {
+    answer_markdown_heading_text(line).is_some_and(|heading| {
+        heading == "下一步"
+            || heading == "下一步动作"
+            || heading == "后续动作"
+            || (heading.starts_with("下一步")
+                && (heading.contains("步骤")
+                    || heading.contains("动作")
+                    || heading.contains("方向")
+                    || heading.contains("练习")
+                    || heading.contains("小提示")))
+            || (heading.contains("后续")
+                && (heading.contains("步骤")
+                    || heading.contains("动作")
+                    || heading.contains("优化")
+                    || heading.contains("练习")
+                    || heading.contains("小提示")))
+    })
+}
+
+fn closing_step_answer_index(lines: &[String]) -> Option<usize> {
+    if let Some(index) = lines
+        .iter()
+        .position(|line| is_closing_step_answer_heading(line))
+    {
+        return Some(index);
+    }
+
+    lines.iter().enumerate().position(|(index, line)| {
+        is_plain_closing_step_line(line) && has_substantial_structured_answer_before(lines, index)
+    })
+}
+
+fn is_plain_closing_step_line(line: &str) -> bool {
+    let line = line.trim();
+    if line.is_empty() || is_answer_markdown_heading(line) || is_unordered_list_line(line) {
+        return false;
+    }
+    let char_count = line.chars().count();
+    if !(6..=36).contains(&char_count) {
+        return false;
+    }
+    (line.contains("后续") || line.contains("接下来") || line.contains("下一步"))
+        && (line.contains("验证")
+            || line.contains("测试")
+            || line.contains("复盘")
+            || line.contains("优化")
+            || line.contains("动作")
+            || line.contains("效果"))
+}
+
+fn answer_markdown_heading_text(line: &str) -> Option<&str> {
+    let line = line.trim();
+    is_answer_markdown_heading(line).then(|| line.trim_start_matches('#').trim())
+}
+
+fn next_step_section_has_content(lines: &[String], start: usize, end: usize) -> bool {
+    lines
+        .iter()
+        .take(end)
+        .skip(start)
+        .any(|line| !line.trim().is_empty())
+}
+
+fn looks_like_tail_role_output_heading(line: &str) -> bool {
+    let Some(heading) = answer_markdown_heading_text(line) else {
+        return false;
+    };
+    let has_gap_or_risk = ["缺少", "无法", "不确定", "风险", "边界"]
+        .iter()
+        .any(|marker| heading.contains(marker));
+    let has_fact_scope = ["数据", "资料", "信息", "结论", "转化", "效果", "验证"]
+        .iter()
+        .any(|marker| heading.contains(marker));
+    has_gap_or_risk && has_fact_scope
+}
+
+fn next_step_section_has_overlong_tail_bullets(
+    lines: &[String],
+    next_step_index: usize,
+    heading_index: usize,
+) -> bool {
+    unordered_list_line_indices(lines, next_step_index, heading_index).len() >= 5
+}
+
+fn truncate_overlong_next_step_before_tail_heading(
+    lines: &[String],
+    next_step_index: usize,
+    heading_index: usize,
+) -> Option<usize> {
+    let bullet_indices = unordered_list_line_indices(lines, next_step_index, heading_index);
+    if bullet_indices.len() >= 5 {
+        let first_content_index = non_blank_line_indices(lines, next_step_index, heading_index)
+            .into_iter()
+            .next();
+        if first_content_index.is_some_and(|index| !is_unordered_list_line(&lines[index])) {
+            let leading_questions = bullet_indices
+                .iter()
+                .take_while(|index| looks_like_user_question_tail_line(&lines[**index]))
+                .count();
+            if leading_questions >= 2 {
+                return bullet_indices.get(leading_questions.min(3)).copied();
+            }
+            return bullet_indices.first().copied();
+        }
+        return bullet_indices.get(2).copied();
+    }
+    None
+}
+
+fn tail_role_output_stitching_start_before_heading(
+    lines: &[String],
+    closing_step_index: usize,
+    heading_index: usize,
+) -> Option<usize> {
+    let content_indices = non_blank_line_indices(lines, closing_step_index, heading_index);
+    if content_indices.len() < 5 {
+        return None;
+    }
+
+    let keep_count = if is_unordered_list_line(&lines[content_indices[0]]) {
+        2
+    } else {
+        1
+    };
+    let tail_indices = content_indices
+        .iter()
+        .copied()
+        .skip(keep_count)
+        .collect::<Vec<_>>();
+    let leading_questions = tail_indices
+        .iter()
+        .take_while(|index| looks_like_user_question_tail_line(&lines[**index]))
+        .count();
+    let candidate = *content_indices.get(keep_count + leading_questions.min(3))?;
+    let plain_tail_items = tail_indices
+        .iter()
+        .skip(leading_questions.min(3))
+        .filter(|index| looks_like_plain_tail_role_output_item(&lines[**index]))
+        .count();
+    let question_lines = tail_indices
+        .iter()
+        .skip(leading_questions.min(3))
+        .filter(|index| looks_like_user_question_tail_line(&lines[**index]))
+        .count();
+
+    (plain_tail_items >= 3 || question_lines >= 2).then_some(candidate)
+}
+
+fn non_blank_line_indices(
+    lines: &[String],
+    next_step_index: usize,
+    heading_index: usize,
+) -> Vec<usize> {
+    lines
+        .iter()
+        .enumerate()
+        .take(heading_index)
+        .skip(next_step_index + 1)
+        .filter_map(|(index, line)| (!line.trim().is_empty()).then_some(index))
+        .collect()
+}
+
+fn looks_like_plain_tail_role_output_item(line: &str) -> bool {
+    let line = line.trim();
+    if line.is_empty()
+        || is_answer_markdown_heading(line)
+        || is_unordered_list_line(line)
+        || line.starts_with('|')
+    {
+        return false;
+    }
+    let char_count = line.chars().count();
+    if !(12..=140).contains(&char_count) {
+        return false;
+    }
+    let lead_markers = [
+        "当前", "如果", "若", "按", "先", "后续", "优先", "避免", "不能", "需要", "缺少", "没有",
+        "标题", "数据", "测试", "统计",
+    ];
+    let has_tail_lead = lead_markers.iter().any(|marker| line.starts_with(marker));
+    let ends_like_list_item =
+        !line.ends_with('。') && !line.ends_with('！') && !line.ends_with('；');
+    has_tail_lead || ends_like_list_item || looks_like_user_question_tail_line(line)
+}
+
+fn looks_like_user_question_tail_line(line: &str) -> bool {
+    let line = strip_unordered_list_prefix(line.trim());
+    (line.ends_with('？') || line.ends_with('?')) && line.chars().count() <= 80
+}
+
+fn unordered_list_line_indices(
+    lines: &[String],
+    next_step_index: usize,
+    heading_index: usize,
+) -> Vec<usize> {
+    lines
+        .iter()
+        .enumerate()
+        .take(heading_index)
+        .skip(next_step_index + 1)
+        .filter_map(|(index, line)| is_unordered_list_line(line).then_some(index))
+        .collect()
+}
+
+fn is_unordered_list_line(line: &str) -> bool {
+    let line = line.trim_start();
+    line.starts_with("- ") || line.starts_with("* ") || line.starts_with("• ")
+}
+
+fn trim_trailing_blank_lines(mut lines: Vec<String>) -> Vec<String> {
+    while lines.last().is_some_and(|line| line.trim().is_empty()) {
+        lines.pop();
+    }
+    lines
 }
 
 fn looks_like_tail_historical_answer_quote_start(lines: &[String], index: usize) -> bool {

@@ -1,6 +1,13 @@
 use super::{RoleWorkOutput, util::contains_any, worker_policies};
 
-pub(super) fn sanitize_unsupported_benchmark_claims(output: &mut RoleWorkOutput) -> bool {
+pub(super) fn sanitize_unsupported_benchmark_claims(
+    task: &str,
+    output: &mut RoleWorkOutput,
+) -> bool {
+    if !task_allows_unsupported_benchmark_boundary(task) {
+        return false;
+    }
+
     let mut removed = false;
     if is_unsupported_benchmark_claim(&output.summary) {
         output.summary = worker_policies()
@@ -16,6 +23,18 @@ pub(super) fn sanitize_unsupported_benchmark_claims(output: &mut RoleWorkOutput)
     removed |= retain_supported_benchmark_items(&mut output.open_questions);
     removed |= retain_supported_benchmark_items(&mut output.evidence);
     removed
+}
+
+fn task_allows_unsupported_benchmark_boundary(task: &str) -> bool {
+    let policy = worker_policies()
+        .output_normalization
+        .unsupported_benchmark();
+
+    if !policy.task_none().is_empty() && contains_any(task, policy.task_none()) {
+        return false;
+    }
+
+    policy.task_any().is_empty() || contains_any(task, policy.task_any())
 }
 
 fn retain_supported_benchmark_items(items: &mut Vec<String>) -> bool {

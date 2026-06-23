@@ -15,6 +15,12 @@ import {
   hasFinished,
 } from "./agent-process-runtime-view-model"
 import { formatRuntimeRole } from "./agent-process-kind-view-model"
+import {
+  formatUserFacingRouteMode,
+  formatUserFacingSkillStatus,
+  formatUserFacingStepDetail,
+  formatUserFacingStepTitle,
+} from "./agent-user-facing-runtime-text"
 
 export function getProcessStepRows(
   runtimeEvents: AgentRuntimeEvent[],
@@ -26,7 +32,10 @@ export function getProcessStepRows(
   if (plan) {
     const plannedSteps = getDispatchPlanSteps(plan)
     if (plannedSteps.length > 0) {
-      return plannedSteps.slice(0, 8).map((step) => [step.title, step.detail])
+      return plannedSteps.slice(0, 8).map((step) => [
+        formatUserFacingStepTitle(step.title, t),
+        formatUserFacingStepDetail(step.detail, t),
+      ])
     }
   }
 
@@ -37,8 +46,11 @@ export function getProcessStepRows(
   const graphNodes = getLatestGraphNodes(runtimeEvents)
   if (graphNodes.length > 0) {
     return graphNodes.slice(0, 8).map((node) => [
-      node.title || formatRuntimeRole(node.role, t),
-      node.objective || t("agentChat.thread.steps.graphNodeReady"),
+      formatUserFacingStepTitle(node.title || formatRuntimeRole(node.role, t), t),
+      formatUserFacingStepDetail(
+        node.objective || t("agentChat.thread.steps.graphNodeReady"),
+        t
+      ),
     ])
   }
 
@@ -78,7 +90,7 @@ function getQuickDispatchStepRows(
       t("agentChat.thread.steps.dispatchJudge"),
       route
         ? t("agentChat.thread.steps.dispatchRoute", {
-            mode: getRouteMode(route),
+            mode: formatUserFacingRouteMode(getRouteMode(route), t),
             role,
           })
         : t("agentChat.thread.steps.dispatchWaiting"),
@@ -134,8 +146,7 @@ function getSkillStepDetail(runtimeEvents: AgentRuntimeEvent[], t: TFunction) {
     const latest = skillResults.at(-1)
     return t("agentChat.thread.steps.skillResult", {
       count: skillResults.length,
-      skill: latest?.skill_id ?? "-",
-      status: latest?.status ?? "-",
+      status: formatUserFacingSkillStatus(latest?.status, t),
     })
   }
 
@@ -143,7 +154,6 @@ function getSkillStepDetail(runtimeEvents: AgentRuntimeEvent[], t: TFunction) {
   if (skillRequests.length > 0) {
     return t("agentChat.thread.steps.skillRequested", {
       count: skillRequests.length,
-      skill: skillRequests.at(-1)?.skill_id ?? "-",
     })
   }
 

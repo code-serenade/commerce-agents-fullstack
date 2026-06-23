@@ -169,11 +169,16 @@ export function getRuntimeNodeStates(runtimeEvents: AgentRuntimeEvent[]) {
         evaluationReasons: [event.reason],
         state: "failed",
       })
-    } else if (event.type === "finished") {
-      markWorkingNodesDone(states)
+    } else if (isDeliverableCompletionEvent(event)) {
+      markDeliverableNodesDone(states)
       ensureNode("delivery").state = "done"
     }
   })
+
+  if (runtimeEvents.some(isDeliverableCompletionEvent)) {
+    markDeliverableNodesDone(states)
+    ensureNode("delivery").state = "done"
+  }
 
   return states
 }
@@ -234,12 +239,24 @@ function upsertSkillResult(
   snapshot.skillResults.push(result)
 }
 
-function markWorkingNodesDone(states: Map<string, RuntimeNodeSnapshot>) {
+function markDeliverableNodesDone(states: Map<string, RuntimeNodeSnapshot>) {
   states.forEach((snapshot) => {
-    if (snapshot.state === "working" || snapshot.state === "queued") {
+    if (snapshot.state === "failed") {
+      snapshot.state = "boundary"
+    } else if (snapshot.state === "working" || snapshot.state === "queued") {
       snapshot.state = "done"
     }
   })
+}
+
+function isDeliverableCompletionEvent(event: AgentRuntimeEvent) {
+  return (
+    event.type === "output" ||
+    event.type === "finished" ||
+    event.type === "task_graph_finished" ||
+    event.type === "workspace_run_completed" ||
+    event.type === "workspace_artifact_created"
+  )
 }
 
 function readRuntimeId(value: string | [string] | { 0: string }) {

@@ -36,7 +36,7 @@ export function readReportLines(
   t: TFunction
 ) {
   if (!report) return []
-  const roleOutput = report.role_output
+  const roleOutput = report.role_output ?? report.roleOutput
   return [
     roleOutput?.summary,
     ...(roleOutput?.findings ?? []),
@@ -45,7 +45,7 @@ export function readReportLines(
     ...(report.risks ?? []).map((risk) =>
       t("agentChat.swarm.reportLines.risk", { risk })
     ),
-    ...(report.open_questions ?? []).map((question) =>
+    ...readOpenQuestions(report).map((question) =>
       t("agentChat.swarm.reportLines.question", { question })
     ),
   ].flatMap((line) => {
@@ -81,4 +81,8 @@ export function isInternalRuntimeLine(value: string) {
     "raw=",
     "missing key",
   ].some((term) => text.toLowerCase().includes(term))
+}
+
+function readOpenQuestions(report: AgentWorkerReport) {
+  return report.open_questions ?? report.openQuestions ?? []
 }

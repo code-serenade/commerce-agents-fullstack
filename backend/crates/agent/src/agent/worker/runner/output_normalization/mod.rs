@@ -137,7 +137,7 @@ fn normalize_worker_role_output(
             .retain(|item| !is_category_runtime_noise(item));
     }
 
-    if sanitize_unsupported_benchmark_claims(output) {
+    if sanitize_unsupported_benchmark_claims(&task.description, output) {
         push_unique(
             &mut output.risks,
             normalization_policy
@@ -703,5 +703,95 @@ mod tests {
         assert!(!combined.contains("放量、调整重测、暂停停止或样本不足"));
         assert!(!combined.contains("实验复盘需要明确当前相对赢家组合"));
         assert!(!combined.contains("不能编造曝光、点击、成交、GMV、ROAS 或风险率"));
+    }
+
+    #[test]
+    fn selected_material_analysis_does_not_trigger_benchmark_boundary() {
+        let parsed = ParsedWorkerRoleOutput {
+            content: String::new(),
+            role_output: Some(RoleWorkOutput {
+                summary: "这张主打「超市SUPER专享 精选好货5折起」的促销横幅，核心信息清晰，适合先做活动信息对齐和小流量验证。".to_string(),
+                findings: vec![
+                    "促销横幅核心信息明确，视觉风格适配电商、线下多类促销引流场景。".to_string(),
+                ],
+                recommendations: vec![
+                    "核对海报展示的品类和实际活动商品清单是否一致。".to_string(),
+                    "确认活动页或门店入口能承接「5折起」信息。".to_string(),
+                    "记录咨询、点击和下单反馈，判断用户是否看懂优惠。".to_string(),
+                ],
+                evidence: vec!["苏宁营销设计.jpeg：超市SUPER专享，精选好货5折起。".to_string()],
+                risks: vec![],
+                open_questions: vec![],
+            }),
+            evidence: vec![],
+            risks: vec![],
+            open_questions: vec![],
+            diagnostics: Vec::new(),
+        };
+        let task = Task {
+            id: "task-selected-material".to_string(),
+            context: MessageContext::default(),
+            description:
+                "请再分析一次这个商品和这些资料，先用一句话说最关键判断，再给3个验证动作，不要只说缺数据。"
+                    .to_string(),
+            requester: AgentId("user-1".to_string()),
+            assignment: None,
+        };
+
+        let output = normalize_worker_role_output("ops", &task, parsed);
+        let role_output = output.role_output.expect("role output should exist");
+        let combined = format!(
+            "{}\n{}\n{}\n{}",
+            role_output.summary,
+            role_output.findings.join("\n"),
+            role_output.recommendations.join("\n"),
+            role_output.risks.join("\n")
+        );
+
+        assert!(combined.contains("超市SUPER专享"));
+        assert!(combined.contains("精选好货5折起"));
+        assert!(combined.contains("核对海报展示的品类"));
+        assert!(!combined.contains("本轮没有可引用的实时外部来源"));
+        assert!(!combined.contains("平均数、排名或确定性对标"));
+    }
+
+    #[test]
+    fn benchmark_request_still_gets_no_source_boundary() {
+        let parsed = ParsedWorkerRoleOutput {
+            content: String::new(),
+            role_output: Some(RoleWorkOutput {
+                summary: "这张促销横幅已经处于行业常规水平，可以直接对标多数同类商品。".to_string(),
+                findings: vec!["同类商品整体常见水平较好。".to_string()],
+                recommendations: vec!["继续按这个方向放量。".to_string()],
+                evidence: vec![],
+                risks: vec![],
+                open_questions: vec![],
+            }),
+            evidence: vec![],
+            risks: vec![],
+            open_questions: vec![],
+            diagnostics: Vec::new(),
+        };
+        let task = Task {
+            id: "task-benchmark".to_string(),
+            context: MessageContext::default(),
+            description: "请把这个促销素材和行业平均水平做对标，说明排名是否正常。".to_string(),
+            requester: AgentId("user-1".to_string()),
+            assignment: None,
+        };
+
+        let output = normalize_worker_role_output("ops", &task, parsed);
+        let role_output = output.role_output.expect("role output should exist");
+        let combined = format!(
+            "{}\n{}\n{}",
+            role_output.summary,
+            role_output.findings.join("\n"),
+            role_output.risks.join("\n")
+        );
+
+        assert!(role_output.summary.contains("本轮没有可引用的实时外部来源"));
+        assert!(combined.contains("不输出平均数、排名或确定性对标"));
+        assert!(!combined.contains("处于行业常规水平"));
+        assert!(!combined.contains("同类商品整体常见水平较好"));
     }
 }

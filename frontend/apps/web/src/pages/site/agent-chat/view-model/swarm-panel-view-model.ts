@@ -3,6 +3,10 @@ import type { TFunction } from "i18next"
 import type { ComponentType, SVGProps } from "react"
 import type { AgentRuntimeEvent, AgentTaskNode } from "@/api"
 import { formatTimelineEvent } from "./swarm-timeline-view-model"
+import {
+  formatTimelineDynamicText,
+  formatUserFacingTaskTitle,
+} from "./swarm-timeline-user-facing-text"
 export { resolveWorkerNodeId } from "./agent-runtime-event-mapping"
 export {
   getCompletedCount,
@@ -86,14 +90,15 @@ export function getAgents(graphNodes: AgentTaskNode[], t: TFunction): SwarmAgent
     ...graphNodes.map((node) => {
       const nodeId = readId(node.id)
       const preset = presets.find((agent) => agent.nodeId === nodeId)
+      const objective = formatTimelineDynamicText(node.objective, t)
       return {
         nodeId,
-        name: node.title,
+        name: preset?.name ?? formatUserFacingTaskTitle(node.title, t),
         role: node.role,
-        summary: preset?.summary ?? node.objective,
+        summary: preset?.summary ?? objective,
         icon: preset?.icon ?? Bot,
         tone: preset?.tone ?? "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
-        objective: node.objective,
+        objective,
         dependsOn: node.input_refs.map(readId),
       }
     }),
@@ -114,9 +119,9 @@ export function getPhases(graphNodes: AgentTaskNode[], t: TFunction) {
       nodeId: readId(node.id),
       title: t("agentChat.swarm.phases.dynamicTitle", {
         index: index + 1,
-        title: node.title,
+        title: formatUserFacingTaskTitle(node.title, t),
       }),
-      detail: node.objective,
+      detail: formatTimelineDynamicText(node.objective, t),
     })),
     {
       nodeId: "delivery",
@@ -144,11 +149,11 @@ export function getStageLabel(
     return isStreaming ? t("agentChat.swarm.stage.planning") : t("agentChat.swarm.stage.historyWaiting")
   }
   const failedAgent = agents.find((agent) => runtimeNodeStates.get(agent.nodeId)?.state === "failed")
-  if (failedAgent) return t("agentChat.swarm.stage.failedAgent", { agent: failedAgent.name })
+  if (failedAgent) return t("agentChat.swarm.stage.failedAgent")
   const reworkingAgent = agents.find((agent) => runtimeNodeStates.get(agent.nodeId)?.state === "reworking")
-  if (reworkingAgent) return t("agentChat.swarm.stage.reworkingAgent", { agent: reworkingAgent.name })
+  if (reworkingAgent) return t("agentChat.swarm.stage.reworkingAgent")
   const workingAgent = agents.find((agent) => runtimeNodeStates.get(agent.nodeId)?.state === "working")
-  if (workingAgent) return t("agentChat.swarm.stage.workingAgent", { agent: workingAgent.name })
+  if (workingAgent) return t("agentChat.swarm.stage.workingAgent")
   return isStreaming ? t("agentChat.swarm.stage.multiTasking") : t("agentChat.swarm.stage.finished")
 }
 

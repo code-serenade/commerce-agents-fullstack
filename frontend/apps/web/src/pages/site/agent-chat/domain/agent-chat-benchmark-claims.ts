@@ -84,6 +84,14 @@ const SOURCE_EVIDENCE_TERMS = terms([
   [24050, 20445, 23384, 30495, 23454, 22806, 37096, 25628, 32034, 35777, 25454],
 ])
 
+const TITLE_ADVICE_TERMS = terms([
+  [26631, 39064],
+  [26680, 24515, 38656, 27714, 35789],
+  [21069, 32622],
+  [25918, 22312, 26631, 39064, 26368, 21069, 38754],
+  [29992, 25143, 25628],
+])
+
 const BENCHMARK_CLAIM_TERMS = terms([
   [31526, 21512],
   [22788, 20110],
@@ -117,6 +125,7 @@ export function isUnsupportedBenchmarkClaim(value: string) {
   if (!text) return false
   if (
     containsAnyTerm(text, SOURCE_EVIDENCE_TERMS) ||
+    containsTitleAdvice(text) ||
     /search_evidence|https?:\/\//.test(text)
   ) {
     return false
@@ -148,6 +157,10 @@ function containsPercentOrRange(value: string) {
 
 function containsAnyTerm(value: string, termsToFind: string[]) {
   return termsToFind.some((term) => value.includes(term))
+}
+
+function containsTitleAdvice(value: string) {
+  return TITLE_ADVICE_TERMS.filter((term) => value.includes(term)).length >= 2
 }
 
 function terms(codePointGroups: number[][]) {

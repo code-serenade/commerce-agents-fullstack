@@ -92,6 +92,41 @@ describe("agent chat answer sanitizer", () => {
     expect(formatAgentUiMessage(formattedAnswer, copy)).toBe(formattedAnswer)
   })
 
+  it("renames legacy fallback headings in persisted assistant answers", () => {
+    const oldDeliverableHeading = textFromCodes([
+      24403, 21069, 21487, 20808, 20132, 20184,
+    ])
+    const oldActionHeading = textFromCodes([20808, 20570, 20160, 20040])
+    const oldBoundaryHeading = textFromCodes([26412, 36718, 36793, 30028])
+    const newDeliverableHeading = textFromCodes([
+      20808, 32473, 20320, 19968, 29256, 21487, 29992, 21028, 26029,
+    ])
+    const newActionHeading = textFromCodes([25509, 19979, 26469, 24590, 20040, 20570])
+    const newBoundaryHeading = textFromCodes([36824, 35201, 27880, 24847])
+    const formattedAnswer = [
+      `## ${oldDeliverableHeading}`,
+      "",
+      textFromCodes([20808, 25353, 24403, 21069, 36164, 26009, 25972, 29702, 12290]),
+      "",
+      `## ${oldActionHeading}`,
+      "",
+      `- ${textFromCodes([20808, 30475, 24403, 21069, 21487, 29992, 20449, 24687, 12290])}`,
+      "",
+      `## ${oldBoundaryHeading}`,
+      "",
+      `- ${textFromCodes([19981, 32534, 36896, 30495, 23454, 25968, 25454, 12290])}`,
+    ].join("\n")
+
+    const formatted = formatAgentUiMessage(formattedAnswer, copy)
+
+    expect(formatted).toContain(`## ${newDeliverableHeading}`)
+    expect(formatted).toContain(`## ${newActionHeading}`)
+    expect(formatted).toContain(`## ${newBoundaryHeading}`)
+    expect(formatted).not.toContain(`## ${oldDeliverableHeading}`)
+    expect(formatted).not.toContain(`## ${oldActionHeading}`)
+    expect(formatted).not.toContain(`## ${oldBoundaryHeading}`)
+  })
+
   it("restores legacy one-paragraph fallback formatting", () => {
     const formatted = formatAgentUiMessage(legacyModelUnavailableFallback, copy)
 
@@ -270,6 +305,7 @@ describe("agent chat answer sanitizer", () => {
       isUnsupportedBenchmarkClaim(textFromCodes([26469, 28304, 65306, 20844, 24320, 25253, 21578, 26174, 31034, 34892, 19994, 53, 45, 49, 48, 37, 21306, 38388]))
     ).toBe(false)
   })
+
 })
 
 function textFromCodes(codes: number[]) {

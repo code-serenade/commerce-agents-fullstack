@@ -1,6 +1,6 @@
 const pages = {
   authRegister: {
-    brand: "电商多智能体",
+    brand: "电商小参谋",
     hero: {
       titleLine1: "创建账号，",
       titleLine2: "进入电商虚拟员工工作区。",
@@ -9,7 +9,7 @@ const pages = {
     },
     welcome: "创建新账号",
     title: "注册你的账号",
-    subtitle: "创建账号后即可进入电商多智能体，开始管理你的电商任务。",
+    subtitle: "创建账号后即可进入电商小参谋，开始管理你的电商任务。",
     form: {
       password: {
         label: "密码",

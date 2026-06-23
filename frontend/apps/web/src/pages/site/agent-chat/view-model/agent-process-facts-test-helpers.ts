@@ -1,33 +1,28 @@
 import type { AgentRuntimeEvent } from "@/api"
 
-const textFromCodes = (codes: number[]) =>
-  String.fromCharCode(...codes)
-
-const thermosEntity = textFromCodes([20415, 25658, 20445, 28201, 26479])
-
 export const dispatchFactTestLabels = {
   contextBudgetDetail: "12 history 3 materials",
   contextBudgetLabel: "Context budget",
   historyWindowDetail: "recent 12 total 18",
   historyWindowLabel: "History window",
-  planDetail: "complex task_graph",
+  planDetail: "complex task graph",
   planLabel: "Plan",
   roleAuditDetail: "planned Data, Ops executed Data, Ops",
   roleAuditLabel: "Role audit",
   roleAuditWarning: "missing Ops extra - planned Data, Ops executed Data",
   searchAuditDetail:
-    "planned search_competitor executed search_competitor sources 1 claims 1 gaps 0 confidence 72% strength standard",
+    "planned 1 executed 1 sources 1 claims 1 gaps 0 confidence 72% strength standard",
   searchAuditLabel: "Search audit",
   searchAuditPending:
-    "planned search_platform_policy requested search_platform_policy",
+    "planned 1 requested 1",
   skillAuditDetail:
-    "planned ops_pricing_strategy requested ops_pricing_strategy succeeded ops_pricing_strategy failed - pending -",
+    "planned 1 requested 1 succeeded 1 failed 0 pending 0",
   skillAuditLabel: "Skill audit",
   skillAuditPending:
-    "planned ops_inventory_plan requested ops_inventory_plan succeeded - failed - pending ops_inventory_plan(no_result)",
+    "planned 1 requested 1 succeeded 0 failed 0 pending 1",
   materialAuditLabel: "Material audit",
   memoryDetailWithRecords:
-    `loaded 2 kinds conversation_fact records memory_card:facts [memory_card, entity:${thermosEntity}] 86 chars; memory_card:decisions [memory_card, decision] 42 chars truncated`,
+    "loaded 2 kinds conversation_fact records record 1: 86 chars; record 2: 42 chars truncated",
   memoryLabel: "History memory",
   workspaceDetail: "partial 1/3",
   workspaceLabel: "Workspace materials",
@@ -54,6 +49,18 @@ export const t = ((key: string, params?: Record<string, unknown>) => {
   }
   if (key === "agentChat.thread.dispatchFacts.plan.detail") {
     return `${params?.difficulty} ${params?.mode}`
+  }
+  if (key === "agentChat.thread.dispatchPanel.routeModes.task_graph") {
+    return "task graph"
+  }
+  if (key === "agentChat.thread.dispatchPanel.routeModes.single_agent") {
+    return "single angle"
+  }
+  if (key === "agentChat.thread.dispatchPanel.routeModes.chat_bypass") {
+    return "quick answer"
+  }
+  if (key === "agentChat.thread.runtimeText.routeFallback") {
+    return "current method"
   }
   if (key === "agentChat.thread.dispatchFacts.contextBudget.label") {
     return dispatchFactTestLabels.contextBudgetLabel
@@ -112,6 +119,42 @@ export const t = ((key: string, params?: Record<string, unknown>) => {
   if (key === "agentChat.thread.dispatchFacts.skillAudit.detail") {
     return `planned ${params?.planned} requested ${params?.requested} succeeded ${params?.succeeded} failed ${params?.failed} pending ${params?.pending}`
   }
+  if (key === "agentChat.thread.dispatchFacts.plannedSkills.detail") {
+    return `prepared ${params?.count} references`
+  }
+  if (key === "agentChat.thread.dispatchFacts.rag.degraded") {
+    return "reference not available"
+  }
+  if (key === "agentChat.thread.steps.userFacingDetail") {
+    return "user facing detail"
+  }
+  if (key === "agentChat.thread.steps.userFacingTitles.data") {
+    return "check available info"
+  }
+  if (key === "agentChat.thread.steps.userFacingTitles.creative") {
+    return "usable wording"
+  }
+  if (key === "agentChat.thread.steps.userFacingTitles.design") {
+    return "presentation advice"
+  }
+  if (key === "agentChat.thread.steps.userFacingTitles.ops") {
+    return "executable advice"
+  }
+  if (key === "agentChat.thread.steps.userFacingTitles.search") {
+    return "external references"
+  }
+  if (key === "agentChat.thread.steps.userFacingTitles.generic") {
+    return "organize judgment"
+  }
+  if (key === "agentChat.thread.dispatchFacts.route.label") {
+    return "Task decision"
+  }
+  if (key === "agentChat.thread.dispatchFacts.route.detail") {
+    return `${params?.mode} focus ${params?.role}`
+  }
+  if (key === "agentChat.thread.runtimeText.genericProgress") {
+    return "generic progress"
+  }
   if (key === "agentChat.thread.dispatchFacts.materialAudit.label") {
     return dispatchFactTestLabels.materialAuditLabel
   }
@@ -148,8 +191,14 @@ export const t = ((key: string, params?: Record<string, unknown>) => {
   if (key === "agentChat.thread.dispatchFacts.memory.detailWithRecords") {
     return `loaded ${params?.count} kinds ${params?.kinds} records ${params?.records}`
   }
+  if (key === "agentChat.thread.dispatchFacts.memory.kindFallback") {
+    return "history records"
+  }
   if (key === "agentChat.thread.dispatchFacts.memory.recordChars") {
     return `${params?.count} chars`
+  }
+  if (key === "agentChat.thread.dispatchFacts.memory.recordSummary") {
+    return `record ${params?.index}: ${params?.chars}${params?.truncated}`
   }
   if (key === "agentChat.thread.dispatchFacts.memory.recordTruncated") {
     return "truncated"
@@ -175,9 +224,6 @@ export const t = ((key: string, params?: Record<string, unknown>) => {
   if (key === "agentChat.thread.dispatchPanel.emptyTask") return "empty task"
   if (key === "agentChat.thread.dispatchPanel.previewFiles.multi_agent") {
     return "multi.agent.process.md"
-  }
-  if (key === "agentChat.thread.dispatchPanel.routeModes.task_graph") {
-    return "task graph"
   }
   return key
 }) as never

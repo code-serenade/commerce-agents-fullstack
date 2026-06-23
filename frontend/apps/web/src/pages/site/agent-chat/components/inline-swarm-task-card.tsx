@@ -23,6 +23,7 @@ import {
   getInlineAgents,
   getInlineSteps,
 } from "../view-model/thread-inline-view-model"
+import { hasFinished } from "../view-model/agent-process-runtime-view-model"
 import { InlineArtifactsPanel } from "./inline-artifacts-panel"
 import {
   InlineAgentGrid,
@@ -52,13 +53,7 @@ export function InlineSwarmTaskCard({
   task: string
 }) {
   const { t } = useTranslation()
-  const isComplete = !isStreaming && runtimeEvents.some((event) =>
-    event.type === "task_graph_finished" ||
-    event.type === "workspace_run_completed" ||
-    event.type === "workspace_run_failed" ||
-    event.type === "failed" ||
-    event.type === "finished"
-  )
+  const isComplete = !isStreaming && hasFinished(runtimeEvents)
   const [open, setOpen] = useState(false)
   const processKind = getAgentProcessKind(runtimeEvents)
   const agents = getInlineAgents(runtimeEvents, isStreaming, t)
@@ -68,12 +63,6 @@ export function InlineSwarmTaskCard({
   ).length
   const hasRuntime = runtimeEvents.length > 0
   const hasFailedAgent = agents.some((agent) => agent.state === "failed")
-  const activeAgent = agents.find(
-    (agent) =>
-      agent.state === "working" ||
-      agent.state === "reworking" ||
-      agent.state === "failed"
-  )
   const artifacts = getInlineArtifactsFromRuntime(runtimeEvents, t)
   const handoffItems = getCommerceHandoffItems(t)
   const processProgress = getAgentProcessProgress(
@@ -96,11 +85,7 @@ export function InlineSwarmTaskCard({
     ? processProgress.label
     : t("agentChat.thread.processKinds.waiting.progress")
   const processDetail = hasRuntime
-    ? processKind === "quick_dispatch"
-      ? processSummary
-      : activeAgent
-        ? `${activeAgent.name} ${activeAgent.status}: ${task}`
-        : processSummary
+    ? processSummary
     : t("agentChat.thread.processKinds.waiting.summary")
   const showAgentGrid = shouldShowProcessAgentGrid(processKind)
   const dispatchFacts = getDispatchFacts(runtimeEvents, t)

@@ -13,7 +13,9 @@ export function InlineProcessStatusNode({
 }) {
   const { t } = useTranslation()
   const agents = getInlineAgents(runtimeEvents, isStreaming, t)
-  const completedCount = agents.filter((agent) => agent.state === "done").length
+  const completedCount = agents.filter((agent) =>
+    agent.state === "done" || agent.state === "boundary"
+  ).length
   const processProgress = getAgentProcessProgress(
     {
       completedCount,

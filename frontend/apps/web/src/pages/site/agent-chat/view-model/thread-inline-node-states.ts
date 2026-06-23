@@ -75,11 +75,16 @@ export function getInlineNodeStates(runtimeEvents: AgentRuntimeEvent[]) {
       )
     } else if (event.type === "failed") {
       states.set("ops", "failed")
-    } else if (event.type === "finished") {
-      markWorkingNodesDone(states)
+    } else if (isDeliverableCompletionEvent(event)) {
+      markDeliverableNodesDone(states)
       states.set("delivery", "done")
     }
   })
+
+  if (runtimeEvents.some(isDeliverableCompletionEvent)) {
+    markDeliverableNodesDone(states)
+    states.set("delivery", "done")
+  }
 
   return states
 }
@@ -113,12 +118,24 @@ function setDoneUnlessBoundary(
   if (states.get(nodeId) !== "boundary") states.set(nodeId, "done")
 }
 
-function markWorkingNodesDone(states: Map<string, InlineAgentState>) {
+function markDeliverableNodesDone(states: Map<string, InlineAgentState>) {
   states.forEach((state, nodeId) => {
-    if (state === "working" || state === "queued") {
+    if (state === "failed") {
+      states.set(nodeId, "boundary")
+    } else if (state === "working" || state === "queued") {
       states.set(nodeId, "done")
     }
   })
+}
+
+function isDeliverableCompletionEvent(event: AgentRuntimeEvent) {
+  return (
+    event.type === "output" ||
+    event.type === "finished" ||
+    event.type === "task_graph_finished" ||
+    event.type === "workspace_run_completed" ||
+    event.type === "workspace_artifact_created"
+  )
 }
 
 function setEvaluationState(

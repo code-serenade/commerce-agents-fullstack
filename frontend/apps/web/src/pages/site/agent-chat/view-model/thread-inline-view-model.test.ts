@@ -8,9 +8,18 @@ import {
 } from "./thread-inline-view-model"
 import { getRuntimeNodeStates } from "./swarm-runtime-state-view-model"
 
+const reviewMeta = "review"
+const referenceMeta = "reference"
+
 const t = ((key: string, params?: Record<string, unknown>) => {
   if (key === "agentChat.thread.artifacts.searchEvidence") {
     return "search evidence"
+  }
+  if (key === "agentChat.thread.artifacts.finalReportMeta") {
+    return reviewMeta
+  }
+  if (key === "agentChat.thread.artifacts.searchEvidenceMeta") {
+    return referenceMeta
   }
   if (key === "agentChat.thread.artifacts.backendCreated") {
     return `${String(params?.type)}:${String(params?.status)}`
@@ -113,24 +122,18 @@ describe("getInlineArtifactsFromRuntime", () => {
 
     const artifacts = getInlineArtifactsFromRuntime(events, t)
 
-    expect(artifacts).toEqual([
-      {
-        filename: finalReportTitle,
-        id: "artifact-1",
-        meta: finalReportType,
-        nodeId: "delivery",
-        status: finalReportBody,
-        state: "done",
-      },
-      {
-        filename: searchEvidenceTitle,
-        id: "artifact-2",
-        meta: searchEvidenceType,
-        nodeId: "delivery",
-        status: searchEvidenceStatus,
-        state: "done",
-      },
-    ])
+    expect(artifacts[0]?.filename).toBe(finalReportTitle)
+    expect(artifacts[0]?.id).toBe("artifact-1")
+    expect(artifacts[0]?.meta).toBe(reviewMeta)
+    expect(artifacts[0]?.nodeId).toBe("delivery")
+    expect(artifacts[0]?.status).toBe(finalReportBody)
+    expect(artifacts[0]?.state).toBe("done")
+    expect(artifacts[1]?.filename).toBe(searchEvidenceTitle)
+    expect(artifacts[1]?.id).toBe("artifact-2")
+    expect(artifacts[1]?.meta).toBe(referenceMeta)
+    expect(artifacts[1]?.nodeId).toBe("delivery")
+    expect(artifacts[1]?.status).toBe(searchEvidenceStatus)
+    expect(artifacts[1]?.state).toBe("done")
   })
 
   it("returns an empty list when backend has not created artifacts", () => {

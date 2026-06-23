@@ -1204,9 +1204,13 @@ mod tests {
         let Payload::Text { content } = response.payload else {
             panic!("expected text response from keep-current fallback");
         };
-        assert!(content.contains("## 当前可先交付"), "{content}");
-        assert!(content.contains("## 本轮边界"), "{content}");
-        assert!(content.contains("可执行草案"), "{content}");
+        assert!(content.contains("## 当前结论"), "{content}");
+        assert!(content.contains("## 可直接执行表"), "{content}");
+        assert!(content.contains("## 哪些结论待复核"), "{content}");
+        assert!(
+            content.contains("不能再把“缺资料”当成主体回答"),
+            "{content}"
+        );
         assert!(!content.contains("请直接补充新的要求"), "{content}");
         assert!(!content.contains("下一步目标"), "{content}");
 
@@ -1277,10 +1281,10 @@ mod tests {
         let Payload::Text { content } = response.payload else {
             panic!("expected text response from stalled graph");
         };
-        assert!(content.contains("## 当前可先交付"), "{content}");
-        assert!(content.contains("## 本轮边界"), "{content}");
+        assert!(content.contains("## 先给你一版可用判断"), "{content}");
+        assert!(content.contains("## 还要注意"), "{content}");
         assert!(
-            content.contains("部分协作步骤没有形成可用结果"),
+            content.contains("部分处理步骤没有形成可用结果"),
             "{content}"
         );
         assert!(!content.contains("没有形成完整答案"), "{content}");
@@ -1376,10 +1380,10 @@ mod tests {
         let Payload::Text { content } = response.payload else {
             panic!("expected text response from deadlocked graph");
         };
-        assert!(content.contains("## 当前可先交付"), "{content}");
-        assert!(content.contains("## 本轮边界"), "{content}");
+        assert!(content.contains("## 先给你一版可用判断"), "{content}");
+        assert!(content.contains("## 还要注意"), "{content}");
         assert!(
-            content.contains("部分协作步骤没有形成可用结果"),
+            content.contains("部分处理步骤没有形成可用结果"),
             "{content}"
         );
         assert!(!content.contains("没有形成完整答案"), "{content}");

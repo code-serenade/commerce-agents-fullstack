@@ -442,6 +442,66 @@ fn role_output_keeps_findings_recommendations_and_risks_in_user_answer() {
 }
 
 #[test]
+fn complete_role_summary_does_not_append_raw_structured_tail() {
+    let report = WorkerReport {
+        graph_id: TaskGraphId("graph-complete-summary".to_string()),
+        node_id: TaskNodeId("ops_final".to_string()),
+        task_id: TaskId("task-complete-summary".to_string()),
+        worker_id: WorkerId("worker.ops".to_string()),
+        role: "ops".to_string(),
+        content: String::new(),
+        role_output: Some(RoleWorkOutput {
+            summary: [
+                "综合回答",
+                "当前可以先按已有商品、资料和主图做低风险判断，不把缺失数据写成确定结论。",
+                "",
+                "关键判断",
+                "最该先改的是标题前半段，把用户第一眼会搜的品类词、场景词和核心卖点放到前面。",
+                "",
+                "执行方案",
+                "参考标题：夏季透气防晒衣 户外通勤轻薄遮阳外套 日常好搭款。",
+                "",
+                "风险边界",
+                "没有真实后台曝光、点击、成交和售后数据时，不能承诺点击率一定提升。",
+                "",
+                "下一步",
+                "先只换标题，记录同一渠道曝光和点击，再对比旧标题表现。",
+            ]
+            .join("\n"),
+            findings: vec![
+                "当前仅能获取标题、价格、主图三类有限输入，无该商品历史曝光点击明细、行业对标数据、商品具体属性信息。"
+                    .to_string(),
+            ],
+            recommendations: vec![
+                "优先把用户高频搜索的防晒功能关键词放到标题前半段，替换掉冗余无效的描述。"
+                    .to_string(),
+            ],
+            risks: vec![
+                "因缺少商品真实材质、版型、适用人群等信息，参考标题不能完全匹配商品独有属性。"
+                    .to_string(),
+            ],
+            open_questions: vec!["当前原标题的完整内容是怎样的？".to_string()],
+            evidence: Vec::new(),
+        }),
+        evidence: Vec::new(),
+        risks: Vec::new(),
+        open_questions: Vec::new(),
+        diagnostics: Vec::new(),
+        status: WorkerReportStatus::Completed,
+    };
+
+    let output = user_facing_report_text(&report).expect("complete summary should be visible");
+
+    assert!(output.contains("综合回答"));
+    assert!(output.contains("参考标题：夏季透气防晒衣"));
+    assert!(output.contains("先只换标题"));
+    assert!(!output.contains("当前仅能获取标题、价格、主图三类有限输入"));
+    assert!(!output.contains("优先把用户高频搜索的防晒功能关键词"));
+    assert!(!output.contains("因缺少商品真实材质"));
+    assert!(!output.contains("当前原标题的完整内容"));
+}
+
+#[test]
 fn material_boundary_filters_blocking_wait_and_unable_lines() {
     let report = WorkerReport {
         graph_id: TaskGraphId("graph-material-boundary".to_string()),
@@ -855,6 +915,135 @@ fn final_sanitizing_truncates_tail_history_answer_quotes() {
 }
 
 #[test]
+fn final_sanitizing_truncates_tail_role_output_stitching_after_next_step() {
+    let raw = "综合回答\n你这款商品标题点击率低，核心问题是标题缺失用户搜索时最关心的高需求关键词，\
+               用户扫一眼就划走。以下是可直接用的优化方案和验证方法。\n\n## 关键判断\n\
+               用户搜索这类商品时，优先关注核心效果、使用场景和适配人群，标题把这些信息放前面，\
+               用户一眼就能判断是否符合需求，点击率更容易提升。\n\n## 可直接使用内容\n\n\
+               | 事项 | 动作 | 验收 | 风险边界 |\n| ---- | ---- | ---- | ---- |\n| \
+               效果验证 | 保持同一主图、价格、投放渠道，记录新旧标题的曝光量、点击量 | \
+               单条标题攒够1000次曝光后计算点击率 | 曝光太少数据偶然性高，不能提前下结论 |\n\n\
+               ## 风险边界\n- 当前无真实参数、原标题、过往曝光点击数据，通用标题需根据实际情况调整\n\
+               - 若后续发现商品无标题中提到的属性，直接使用会出现信息不符问题\n\n## 下一步\n\n\
+               - 补充实际适配人群、专属场景、真实参数和原标题内容，可优化出更精准的标题\n\
+               - 按上述方法记录7天数据，若新标题点击率比旧标题更高，说明优化有效\n\
+               - 标题缺失用户搜索核心关键词\n- 缺少真实商品参数、原标题、过往曝光点击数据\n\
+               - 标题包含核心关键词可提升用户点击率\n- 建立数据记录方案，对比原标题与新标题的点击率效果\n\
+               ## 缺少真实数据时无法输出确定性转化结论\n标题优化效果需通过数据验证，存在不确定性\n\
+               你这个商品的具体品类、实际参数和原标题是什么？";
+
+    let output = sanitize_final_user_facing_text(raw).expect("answer should remain readable");
+
+    assert!(output.contains("## 下一步"));
+    assert!(output.contains("补充实际适配人群"));
+    assert!(output.contains("按上述方法记录7天数据"));
+    assert!(!output.contains("标题缺失用户搜索核心关键词"));
+    assert!(!output.contains("缺少真实商品参数、原标题"));
+    assert!(!output.contains("## 缺少真实数据时无法输出确定性转化结论"));
+    assert!(!output.contains("具体品类、实际参数和原标题"));
+}
+
+#[test]
+fn final_sanitizing_truncates_plain_tail_role_output_before_second_answer() {
+    let raw = "先帮你判断当前最该改的地方\n你现在只有标题、价格和一张主图，点击率低最优先排查这两个点：\n\
+               标题里没把用户搜防晒衣时最关心的核心信息放前面，包括穿着场景、基础体感、适配人群，\
+               用户扫一眼抓不到自己想要的点，就不会点进来\n- 标题和主图的信息没呼应，包括主图拍了户外穿的效果，\
+               但标题没提骑行、出游这类场景，用户看到图和文字对不上，也会划走\n\
+               - 你后续可以自己记录的基础数据方法\n不用复杂工具，先把这几个字段记下来就能判断优化效果：\n\
+               - 记录字段：曝光量、点击量、当前标题内容、主图核心画面、对应价格\n\
+               - 统计范围：按7天为一个周期记录，避开大促、平台流量波动的特殊时段\n\
+               - 指标计算：点击率=点击量÷曝光量×100%，不用额外算复杂指标，只看改标题前后同流量层级下的点击率变化就行\n\
+               - 样本边界：只统计自然搜索来的曝光点击，把付费流量、推荐流量分开看，避免不同流量来源干扰判断\n\
+               缺失说明：\n现在没有历史点击率基线、同品类竞品标题数据，没法直接对标行业均值，\
+               你先跑7天数据就能拿到自己的基准值\n## 给你一版自然好懂的参考标题\n\
+               - 「夏季透气防晒衣 男女户外骑行出游薄款外套 日常穿不闷汗」\n\
+               - 这个标题把用户常搜的场景、体感都放前面，和主图的穿着场景也能呼应，不会太生硬堆砌关键词\n\
+               ## 下一步练习方向\n你可以先把旧标题和新标题分两个时段各跑3-7天，\
+               记录对应的曝光点击，就能自己看出哪版更适配你的流量人群。\n\
+               - 现有资料仅包含标题、价格、单张主图，无历史曝光点击数据、竞品标题样本、主图细节标注信息\n\
+               - 当前点击率低的核心可优化点集中在标题核心信息前置、标题与主图信息呼应两个方向\n\
+               如果没有真实漏斗和渠道数据，只能输出判断框架，不能编造转化率或行业排名。\n\
+               - 优先调整标题内容，把用户搜索防晒衣时高频关注的场景、体感信息放在标题前半段\n\
+               - 按7天周期记录曝光量、点击量、标题内容、主图画面、价格字段，计算对应时段的点击率\n\
+               - 当前使用的旧标题完整内容是什么\n- 主图的核心画面是室内展示、户外场景还是细节特写\n\n\
+               ## 最该改的核心问题\n标题没把用户搜防晒衣时最关心的核心信息放前面。\n\
+               ## 可直接用的自然参考标题\n- 「夏季透气防晒衣 男女户外骑行出游薄款外套 日常穿不闷汗」";
+
+    let output = sanitize_final_user_facing_text(raw).expect("answer should remain readable");
+
+    assert!(output.contains("## 给你一版自然好懂的参考标题"));
+    assert!(output.contains("夏季透气防晒衣 男女户外骑行出游薄款外套"));
+    assert!(output.contains("## 下一步练习方向"));
+    assert!(output.contains("旧标题和新标题分两个时段各跑3-7天"));
+    assert!(!output.contains("当前仅能获取标题、价格、单张主图"));
+    assert!(!output.contains("现有资料仅包含标题、价格、单张主图"));
+    assert!(!output.contains("当前使用的旧标题完整内容是什么"));
+    assert!(!output.contains("## 最该改的核心问题"));
+    assert_eq!(
+        output
+            .matches("夏季透气防晒衣 男女户外骑行出游薄款外套")
+            .count(),
+        1
+    );
+}
+
+#[test]
+fn final_sanitizing_truncates_overlong_next_step_tail_without_second_heading() {
+    let raw = "综合回答\n咱们先从商品标题的核心问题入手，给你一套能直接上手的优化方案。\n\
+               ## 关键判断\n这次标题点击率低，核心是没抓准用户搜索时最关心的点。\n\n\
+               ## 可直接使用内容\n参考标题：夏季冰丝防晒衣女款 轻薄透气防紫外线 户外骑行开车不闷汗\n\
+               ## 风险边界\n目前没有这款商品的具体数据，先按通用场景给低风险版本。\n\n## 下一步\n\n\
+               你可以补充这几个信息，后续能做更精准的标题优化：\n\
+               - 这款商品的核心卖点是什么？\n- 现有标题的具体内容是什么？\n- 主图的核心展示点是什么？\n\
+               - 标题点击率低的核心常见原因是未匹配用户搜索核心需求，缺乏吸引力\n\
+               - 当前无具体商品数据，仅能依托通用电商场景给出优化方向\n\
+               优先优化标题，加入用户搜索时的核心关心点；后续补充商品核心卖点、现有标题关键词、主图展示点，可做更精准的标题诊断\n\
+               - 无具体数据支撑，优化建议可能与该款商品的实际用户需求匹配度不足\n\
+               - 未补充商品具体信息前，无法做精准的点击率数据诊断\n\
+               - 你这款商品的核心卖点是什么？\n- 现有标题的具体内容是什么？";
+
+    let output = sanitize_final_user_facing_text(raw).expect("answer should remain readable");
+
+    assert!(output.contains("参考标题："), "{output}");
+    assert!(output.contains("夏季冰丝防晒衣"), "{output}");
+    assert!(output.contains("## 下一步"));
+    assert!(output.contains("你可以补充这几个信息"));
+    assert!(output.contains("这款商品的核心卖点是什么？"), "{output}");
+    assert!(output.contains("现有标题的具体内容是什么？"));
+    assert!(!output.contains("标题点击率低的核心常见原因"));
+    assert!(!output.contains("当前无具体商品数据，仅能依托"));
+    assert!(!output.contains("优先优化标题，加入用户搜索时"));
+    assert_eq!(output.matches("现有标题的具体内容是什么？").count(), 1);
+}
+
+#[test]
+fn final_sanitizing_truncates_tail_after_plain_followup_section() {
+    let raw = "咱们先从防晒衣标题的核心问题入手，基于通用电商场景给你一套能直接上手的优化方案。\n\
+               ## 关键判断\n这次标题点击率低，核心是没抓准用户搜防晒衣时最关心的点。\n\
+               ## 优化后的自然标题\n【UPF50+高倍防晒】\n\n轻薄透气防晒衣 户外骑行/日常通勤防紫外线外套\n\
+               后续怎么验证效果、越测越好\n你接下来可以先把这个标题换上跑1-2周，同时记录曝光量和点击量。\n\
+               - 当前无具体表格/附件数据，仅能基于通用电商防晒衣场景判断\n\
+               防晒衣标题点击率低的核心原因是未匹配用户核心搜索需求\n\
+               现有信息仅含标题、价格、主图，缺少曝光点击等验证数据\n\
+               后续补充商品的曝光量、点击量数据，可更精准分析标题优化效果\n\
+               是否有该防晒衣的具体曝光、点击量数据？\n\
+               是否有该防晒衣的目标用户画像或搜索关键词数据？\n\n\
+               ## 最该改的3个核心地方\n没把用户搜防晒衣第一关心的防晒力点透。\n\
+               ## 直接可用的自然优化标题\nUPF50+高倍防晒衣 轻薄透气不闷汗";
+
+    let output = sanitize_final_user_facing_text(raw).expect("answer should remain readable");
+
+    assert!(output.contains("## 优化后的自然标题"));
+    assert!(output.contains("轻薄透气防晒衣"));
+    assert!(output.contains("后续怎么验证效果、越测越好"));
+    assert!(output.contains("记录曝光量和点击量"));
+    assert!(!output.contains("当前无具体表格/附件数据"));
+    assert!(!output.contains("防晒衣标题点击率低的核心原因"));
+    assert!(!output.contains("是否有该防晒衣的具体曝光、点击量数据"));
+    assert!(!output.contains("## 最该改的3个核心地方"));
+}
+
+#[test]
 fn final_sanitizing_filters_worker_output_policy_lines() {
     let raw = "动作优先级排序\n- 今天：完成商品首屏ISBN核对流程上线\n- \
                明天：完成校园社群、短视频两个核心渠道的ROAS分渠道复盘\n- \
@@ -1006,11 +1195,9 @@ fn final_sanitizing_splits_inline_markdown_tables() {
     assert!(output.contains(
         "\n|今日|核对教材库存|库存岗|库存盘点准确率|账实一致|库存不足时关闭超库存下单通道|"
     ));
-    assert!(
-        output.contains(
-            "\n|明日|监控ROAS和退款|数据岗|ROAS/退款率|ROAS不低于目标|低转化渠道暂停投放|"
-        )
-    );
+    assert!(output.contains(
+        "\n|明日|监控ROAS和退款|数据分析|ROAS/退款率|ROAS不低于目标|低转化渠道暂停投放|"
+    ));
 }
 
 #[test]
@@ -1048,6 +1235,19 @@ fn removes_unverified_live_search_availability_claims() {
     assert!(output.contains("二手教材包价格"));
     assert!(!output.contains("外部搜索虽可用"));
     assert!(!output.contains("外部搜索可用"));
+}
+
+#[test]
+fn rewrites_unavailable_live_search_tool_as_user_evidence_boundary() {
+    let raw = "外部实时搜索工具当前不可用，本轮的判断全部基于防晒衣品类通用的用户搜索习惯，\
+               不是平台最新的实时搜索结论，后续你可以去自己店铺的后台搜索词报表里核对。";
+
+    let output = sanitize_final_user_facing_text(raw).expect("answer should remain readable");
+
+    assert!(output.contains("本轮没有拿到可核验的实时公开来源"));
+    assert!(output.contains("自己店铺的后台搜索词报表"));
+    assert!(!output.contains("外部实时搜索工具"));
+    assert!(!output.contains("搜索工具当前不可用"));
 }
 
 #[test]

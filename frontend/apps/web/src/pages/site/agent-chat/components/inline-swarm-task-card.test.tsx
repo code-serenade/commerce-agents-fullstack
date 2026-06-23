@@ -39,7 +39,9 @@ describe("InlineSwarmTaskCard", () => {
 
     await user.click(screen.getByTitle(i18n.t("agentChat.thread.expandProcess")))
 
-    expect(screen.getAllByText(dataRole).length).toBeGreaterThan(0)
+    expect(
+      screen.getAllByText(i18n.t("agentChat.thread.agents.data.name")).length
+    ).toBeGreaterThan(0)
     expect(
       screen.getByText(i18n.t("agentChat.thread.dispatchFacts.roleAudit.label"))
     ).toBeInTheDocument()
@@ -49,6 +51,38 @@ describe("InlineSwarmTaskCard", () => {
     expect(
       screen.getByText(i18n.t("agentChat.thread.dispatchFacts.materialAudit.label"))
     ).toBeInTheDocument()
+  })
+
+  it("shows completed badge after final output instead of in-progress wording", async () => {
+    const i18n = await createAgentChatTestI18n()
+
+    render(
+      <AgentChatTestI18nProvider i18n={i18n}>
+        <InlineSwarmTaskCard
+          isStreaming={false}
+          messageId="message-1"
+          onCloseProcessPanel={vi.fn()}
+          onOpenProcessPanel={vi.fn()}
+          processPanelOpen={false}
+          runtimeEvents={[
+            ...createMultiAgentAuditEvents(),
+            {
+              type: "output",
+              content: "final answer",
+            },
+          ]}
+          showProcessPanelAction={false}
+          task={task}
+        />
+      </AgentChatTestI18nProvider>
+    )
+
+    expect(
+      screen.getByText(i18n.t("agentChat.thread.processKinds.completed.badge"))
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText(i18n.t("agentChat.thread.processKinds.multi_agent.badge"))
+    ).not.toBeInTheDocument()
   })
 })
 

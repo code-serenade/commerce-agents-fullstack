@@ -1228,7 +1228,6 @@ pub async fn stream_agent_session(
                 }
                 SessionEvent::Output { content, .. } => {
                     link_state.latest_output = Some(content.clone());
-                    yield Ok(json_event("output", json!({ "content": content })));
                 }
                 SessionEvent::Failed { reason, .. } => {
                     if let Err(err) = record_agent_question_output_usage(
@@ -5253,6 +5252,23 @@ mod tests {
         assert!(!serialized.contains("sourcesJson"));
         assert!(value.get("summary").is_none());
         assert!(value.get("sourcesJson").is_none());
+    }
+
+    #[test]
+    fn agent_output_public_payload_is_the_single_final_output_event_body() {
+        let event = SessionEvent::Output {
+            session_id: agent::api::SessionId("session-1".to_string()),
+            content: "final answer".to_string(),
+        };
+
+        let value = typed_json_event_value_for_test(
+            event.event_name(),
+            agent_session_event_public_payload(&event),
+        );
+
+        assert_eq!(event.event_name(), "output");
+        assert_eq!(value["type"], "output");
+        assert_eq!(value["content"], "final answer");
     }
 
     #[test]

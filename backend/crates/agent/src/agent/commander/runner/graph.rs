@@ -575,8 +575,8 @@ impl Commander {
 
 fn worker_unavailable_report(assignment: &WorkerAssignment) -> WorkerReport {
     let failure_kind = "worker_unavailable";
-    let summary = "本轮有一个协作步骤没有成功启动，不能把结果当成完整协作结论。".to_string();
-    let risk = "部分协作步骤没有实际完成，最终回答不能代表完整协作结果。".to_string();
+    let summary = "本轮有一个处理步骤没有成功启动，不能把结果当成完整判断。".to_string();
+    let risk = "部分处理步骤没有实际完成，最终回答只能代表当前可用结果。".to_string();
     let open_question =
         "请稍后重试；如果问题很急，可以先切到普通问答或只指定一个角色继续问。".to_string();
     WorkerReport {
@@ -606,9 +606,9 @@ fn worker_stalled_report(assignment: &WorkerAssignment, timeout: Duration) -> Wo
     let failure_kind = "timeout";
     let timeout_label = format_duration(timeout);
     let summary = format!(
-        "本轮有一个协作步骤在 {timeout_label} 内没有返回结果，不能把本轮结果当成完整协作结论。"
+        "本轮有一个处理步骤在 {timeout_label} 内没有返回结果，不能把本轮结果当成完整判断。"
     );
-    let risk = "部分协作步骤没有按时完成，最终回答只能代表已完成步骤的阶段性结果。".to_string();
+    let risk = "部分处理步骤没有按时完成，最终回答只能代表已完成步骤的阶段性结果。".to_string();
     let open_question =
         "请稍后重试；如果问题很急，可以先切到普通问答或只指定一个角色继续问。".to_string();
     WorkerReport {
@@ -640,10 +640,9 @@ fn worker_stalled_report(assignment: &WorkerAssignment, timeout: Duration) -> Wo
 
 fn task_graph_stalled_report(assignment: &WorkerAssignment) -> WorkerReport {
     let failure_kind = "task_graph_stalled";
-    let summary =
-        "本轮协作流程没有找到可继续执行的步骤，不能把本轮结果当成完整协作结论。".to_string();
+    let summary = "本轮处理流程没有找到可继续执行的步骤，不能把本轮结果当成完整判断。".to_string();
     let risk =
-        "部分协作步骤没有形成可验证结果，最终回答只能代表已完成步骤的阶段性结果。".to_string();
+        "部分处理步骤没有形成可验证结果，最终回答只能代表已完成步骤的阶段性结果。".to_string();
     let open_question =
         "请稍后重试；如果问题很急，可以先切到普通问答或只指定一个角色继续问。".to_string();
     WorkerReport {

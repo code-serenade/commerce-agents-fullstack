@@ -5,6 +5,7 @@
   "role_defaults_file": "role-defaults.json",
   "files": [
     "graphs/direct-rich-followup-delivery.json",
+    "graphs/direct-selected-context-analysis.json",
     "graphs/direct-stable-business-answer.json",
     "graphs/vision-direct-answer.json",
     "graphs/direct-chat-short-answer.json",

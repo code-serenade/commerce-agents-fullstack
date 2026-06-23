@@ -62,6 +62,48 @@ describe("swarm runtime reason view model", () => {
     expect(formatted).toBe(collaborationIncomplete)
   })
 
+  it("maps internal role quality checks to a collaboration result gap", () => {
+    const formatted = formatUserFacingRuntimeReason(
+      "design role output lacks design-specific content",
+      t
+    )
+
+    expect(formatted).toBe(collaborationIncomplete)
+    expect(formatted).not.toContain("design role")
+  })
+
+  it("maps route, skill, search evidence, and adapter internals to a collaboration result gap", () => {
+    const reason = [
+      "route_mode=task_graph",
+      "selected_skills=search_trends",
+      "search_evidence_trace missing",
+      "adapter request failed https://internal.example/search",
+    ].join("; ")
+    const formatted = formatUserFacingRuntimeReason(reason, t)
+
+    expect(formatted).toBe(collaborationIncomplete)
+    expect(formatted).not.toContain("route_mode")
+    expect(formatted).not.toContain("task_graph")
+    expect(formatted).not.toContain("selected_skills")
+    expect(formatted).not.toContain("search_evidence")
+    expect(formatted).not.toContain("adapter")
+    expect(formatted).not.toContain("https://")
+    expect(isInternalRuntimeReason(reason)).toBe(true)
+  })
+
+  it("maps raw worker and skill permission internals to a collaboration result gap", () => {
+    const reason =
+      "worker.data failed because skill 'coordination_create_task' is not allowed for role 'engineering'"
+    const formatted = formatUserFacingRuntimeReason(reason, t)
+
+    expect(formatted).toBe(collaborationIncomplete)
+    expect(formatted).not.toContain("worker.data")
+    expect(formatted).not.toContain("skill")
+    expect(formatted).not.toContain("coordination_create_task")
+    expect(formatted).not.toContain("engineering")
+    expect(isInternalRuntimeReason(reason)).toBe(true)
+  })
+
   it("keeps already user-facing reasons", () => {
     expect(formatUserFacingRuntimeReason(modelUnavailableShort, t)).toBe(
       modelUnavailableShort

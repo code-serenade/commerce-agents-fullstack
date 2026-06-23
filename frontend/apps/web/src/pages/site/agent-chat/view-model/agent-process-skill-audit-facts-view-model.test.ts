@@ -102,7 +102,7 @@ describe("getDispatchFacts skill audit", () => {
       })
     )
     expect(getDispatchFacts(events, t)).toContainEqual({
-      detail: "planned search_competitor requested search_competitor",
+      detail: "planned 1 requested 1",
       label: dispatchFactTestLabels.searchAuditLabel,
       tone: "warning",
     })

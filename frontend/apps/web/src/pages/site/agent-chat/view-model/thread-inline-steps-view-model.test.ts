@@ -8,6 +8,24 @@ const t = ((key: string) => {
   if (key === "agentChat.thread.steps.assignTask") return "assign task"
   if (key === "agentChat.thread.steps.dispatchJudge") return "dispatch judge"
   if (key === "agentChat.thread.steps.dispatchRoute") return "chat_bypass direct answer"
+  if (key === "agentChat.thread.dispatchPanel.routeModes.chat_bypass") {
+    return "quick answer"
+  }
+  if (key === "agentChat.thread.runtimeText.routeFallback") {
+    return "current method"
+  }
+  if (key === "agentChat.thread.steps.userFacingTitles.data") {
+    return "Check available information"
+  }
+  if (key === "agentChat.thread.steps.userFacingTitles.ops") {
+    return "Summarize executable advice"
+  }
+  if (key === "agentChat.thread.steps.userFacingTitles.generic") {
+    return "Organize judgment"
+  }
+  if (key === "agentChat.thread.steps.userFacingDetail") {
+    return "Organizing into user-facing advice"
+  }
   if (key === "agentChat.thread.steps.noExtraSkill") return "no extra skill"
   if (key === "agentChat.thread.steps.readTarget") return "read target"
   if (key === "agentChat.thread.steps.runtimeAction") return "runtime action"
@@ -60,8 +78,8 @@ describe("getInlineSteps", () => {
     ]
 
     expect(getInlineSteps(events, false, t)).toEqual([
-      [dataTitle, dataObjective],
-      [opsTitle, opsObjective],
+      ["Check available information", dataObjective],
+      ["Summarize executable advice", opsObjective],
     ])
   })
 

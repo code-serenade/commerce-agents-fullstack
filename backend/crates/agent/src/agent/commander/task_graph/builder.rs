@@ -154,6 +154,9 @@ fn dynamic_node_specs(
         apply_dynamic_role_dependencies(
             &mut specs,
             &rule.dynamic_roles.from_explicit_request.depends_on_roles,
+            rule.dynamic_roles
+                .from_explicit_request
+                .default_data_dependency,
         );
     }
 
@@ -193,6 +196,7 @@ fn dynamic_node_specs(
         apply_dynamic_role_dependencies(
             &mut specs,
             &rule.dynamic_roles.from_route.depends_on_roles,
+            rule.dynamic_roles.from_route.default_data_dependency,
         );
     }
     specs
@@ -235,6 +239,7 @@ fn explicit_roles_from_aliases(task: &str, rules: &TaskGraphRuleSet) -> Vec<Stri
 fn apply_dynamic_role_dependencies(
     specs: &mut [TaskGraphNodeSpec],
     depends_on_roles: &HashMap<String, Vec<String>>,
+    default_data_dependency: bool,
 ) {
     let available = specs
         .iter()
@@ -247,7 +252,8 @@ fn apply_dynamic_role_dependencies(
         else {
             continue;
         };
-        *depends_on = dynamic_depends_on(role, &available, depends_on_roles);
+        *depends_on =
+            dynamic_depends_on(role, &available, depends_on_roles, default_data_dependency);
     }
 }
 
@@ -268,7 +274,12 @@ fn apply_configured_dynamic_role_dependencies(
         }
     }
     if !depends_on_roles.is_empty() {
-        apply_dynamic_role_dependencies(specs, &depends_on_roles);
+        let default_data_dependency = rule
+            .dynamic_roles
+            .from_explicit_request
+            .default_data_dependency
+            && rule.dynamic_roles.from_route.default_data_dependency;
+        apply_dynamic_role_dependencies(specs, &depends_on_roles, default_data_dependency);
     }
 }
 
@@ -276,6 +287,7 @@ fn dynamic_depends_on(
     role: &str,
     available: &[(String, String)],
     depends_on_roles: &HashMap<String, Vec<String>>,
+    default_data_dependency: bool,
 ) -> Vec<String> {
     let mut depends_on = depends_on_roles
         .get(role)
@@ -289,7 +301,8 @@ fn dynamic_depends_on(
         })
         .filter(|id| id != role)
         .collect::<Vec<_>>();
-    if depends_on.is_empty()
+    if default_data_dependency
+        && depends_on.is_empty()
         && role != "data"
         && !is_configured_upstream_role(role, depends_on_roles)
         && let Some((data_id, _)) = available

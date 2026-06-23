@@ -1,11 +1,8 @@
 import type { TFunction } from "i18next"
 import type { AgentRuntimeEvent } from "@/api"
-import { readRuntimeNodeId } from "./agent-runtime-event-mapping"
-import {
-  getAgentName,
-  type SwarmAgent,
-} from "./swarm-panel-view-model"
+import type { SwarmAgent } from "./swarm-panel-view-model"
 import { isNonBlockingNodeFailure } from "./thread-boundary-state-view-model"
+import { formatUserFacingSkillStatus } from "./agent-user-facing-runtime-text"
 
 export type RuntimeNodeEvent = Extract<
   AgentRuntimeEvent,
@@ -41,50 +38,36 @@ export function findLatestNodeEvent(runtimeEvents: AgentRuntimeEvent[]) {
 
 export function formatRuntimeEventDescription(
   event: RuntimeNodeEvent,
-  agents: SwarmAgent[],
+  _agents: SwarmAgent[],
   runtimeEvents: AgentRuntimeEvent[],
   t: TFunction
 ) {
   if (event.type === "task_node_started") {
     return t("agentChat.swarm.runtimeDescriptions.started", {
-      agent: getAgentName(readRuntimeNodeId(event), agents),
       attempt: event.attempt,
     })
   }
   if (event.type === "task_node_reported") {
-    return t("agentChat.swarm.runtimeDescriptions.reported", {
-      agent: getAgentName(readRuntimeNodeId(event), agents),
-    })
+    return t("agentChat.swarm.runtimeDescriptions.reported")
   }
   if (event.type === "task_node_passed") {
-    return t("agentChat.swarm.runtimeDescriptions.passed", {
-      agent: getAgentName(readRuntimeNodeId(event), agents),
-    })
+    return t("agentChat.swarm.runtimeDescriptions.passed")
   }
   if (event.type === "task_node_failed") {
     if (isNonBlockingNodeFailure(event, runtimeEvents)) {
-      return t("agentChat.swarm.runtimeDescriptions.boundary", {
-        agent: getAgentName(readRuntimeNodeId(event), agents),
-      })
+      return t("agentChat.swarm.runtimeDescriptions.boundary")
     }
-    return t("agentChat.swarm.runtimeDescriptions.failed", {
-      agent: getAgentName(readRuntimeNodeId(event), agents),
-    })
+    return t("agentChat.swarm.runtimeDescriptions.failed")
   }
   if (event.type === "skill_requested") {
-    return t("agentChat.swarm.runtimeDescriptions.skillRequested", {
-      skill: event.skill_id,
-    })
+    return t("agentChat.swarm.runtimeDescriptions.skillRequested")
   }
   if (event.type === "skill_result") {
     return t("agentChat.swarm.runtimeDescriptions.skillResult", {
-      skill: event.skill_id,
-      status: event.status,
+      status: formatUserFacingSkillStatus(event.status, t),
     })
   }
-  return t("agentChat.swarm.runtimeDescriptions.reworking", {
-    agent: getAgentName(readRuntimeNodeId(event), agents),
-  })
+  return t("agentChat.swarm.runtimeDescriptions.reworking")
 }
 
 export function getRuntimeActionLabel(

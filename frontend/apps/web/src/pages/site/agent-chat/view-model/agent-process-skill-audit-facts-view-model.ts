@@ -23,7 +23,7 @@ export function appendSkillAuditFact(
     resultEvents.filter(isSuccessfulSkillResult).map((event) => event.skill_id)
   )
   const failedSkills = uniqueStrings(
-    resultEvents.filter(isFailedSkillResult).map(formatSkillStatus)
+    resultEvents.filter(isFailedSkillResult).map((event) => event.skill_id)
   )
   const pendingSkills = getPendingSkillStatuses(plannedSkills, requestedSkills, resultEvents)
 
@@ -37,11 +37,11 @@ export function appendSkillAuditFact(
 
   facts.push({
     detail: t("agentChat.thread.dispatchFacts.skillAudit.detail", {
-      failed: formatSkillList(failedSkills),
-      pending: formatSkillList(pendingSkills),
-      planned: formatSkillList(plannedSkills),
-      requested: formatSkillList(requestedSkills),
-      succeeded: formatSkillList(succeededSkills),
+      failed: failedSkills.length,
+      pending: pendingSkills.length,
+      planned: plannedSkills.length,
+      requested: requestedSkills.length,
+      succeeded: succeededSkills.length,
     }),
     label: t("agentChat.thread.dispatchFacts.skillAudit.label"),
     tone: failedSkills.length > 0 || pendingSkills.length > 0 ? "warning" : "success",
@@ -62,27 +62,19 @@ function getPendingSkillStatuses(
   const returnedSkills = uniqueStrings(resultEvents.map((event) => event.skill_id))
   const pendingFromResults = resultEvents
     .filter((event) => !isSuccessfulSkillResult(event) && !isFailedSkillResult(event))
-    .map(formatSkillStatus)
+    .map((event) => event.skill_id)
   const plannedButNotRequested = plannedSkills
     .filter((skill) => !requestedSkills.includes(skill) && !returnedSkills.includes(skill))
-    .map((skill) => `${skill}(not_requested)`)
+    .map((skill) => skill)
   const requestedButNotReturned = requestedSkills
     .filter((skill) => !returnedSkills.includes(skill))
-    .map((skill) => `${skill}(no_result)`)
+    .map((skill) => skill)
 
   return uniqueStrings([
     ...pendingFromResults,
     ...plannedButNotRequested,
     ...requestedButNotReturned,
   ])
-}
-
-function formatSkillStatus(event: SkillResultEvent) {
-  return `${event.skill_id}(${event.status || "unknown"})`
-}
-
-function formatSkillList(skills: string[]) {
-  return skills.length > 0 ? skills.join(", ") : "-"
 }
 
 function isBusinessSkill(skillId: string) {

@@ -93,6 +93,9 @@ export function getAgentProcessBadge(
   runtimeEvents: AgentRuntimeEvent[],
   t: TFunction
 ) {
+  if (hasFinished(runtimeEvents)) {
+    return t("agentChat.thread.processKinds.completed.badge")
+  }
   return t(`agentChat.thread.processKinds.${getAgentProcessKind(runtimeEvents)}.badge`)
 }
 
@@ -157,7 +160,9 @@ export function getAgentProcessProgress(
   }
 
   const total = Math.max(totalCount ?? 0, 1)
-  const completed = Math.min(completedCount ?? 0, total)
+  const completed = hasFinished(runtimeEvents)
+    ? total
+    : Math.min(completedCount ?? 0, total)
   return {
     completed,
     label: t(`agentChat.thread.processKinds.${kind}.progress`, {
@@ -194,6 +199,9 @@ function getProcessStage(
   kind: AgentProcessKind,
   t: TFunction
 ) {
+  if (hasFinished(runtimeEvents)) {
+    return t(`agentChat.thread.processKinds.${kind}.stageFinished`)
+  }
   if (getInlineProcessFailureState(runtimeEvents) === "failed") {
     return t("agentChat.thread.processStage.failed")
   }
@@ -205,17 +213,6 @@ function getProcessStage(
     )
   ) {
     return t("agentChat.thread.processStage.failed")
-  }
-  if (
-    runtimeEvents.some(
-      (event) =>
-        event.type === "finished" ||
-        event.type === "task_graph_finished" ||
-        event.type === "workspace_run_completed" ||
-        event.type === "workspace_artifact_created"
-    )
-  ) {
-    return t(`agentChat.thread.processKinds.${kind}.stageFinished`)
   }
   if (isStreaming) return t(`agentChat.thread.processKinds.${kind}.stageRunning`)
   return t(`agentChat.thread.processKinds.${kind}.stageSynced`)

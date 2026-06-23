@@ -366,6 +366,121 @@ mod tests {
     }
 
     #[test]
+    fn selected_context_analysis_routes_to_direct_chat_answer() {
+        let rules =
+            load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
+        let route = manual_route("data", &["ops"]);
+        let graph = plan_task_graph_from_rules(
+            &TaskId("task-selected-context-analysis".to_string()),
+            "请重新分析这个商品和这些资料，先告诉我最关键的判断，再说下一步怎么验证，不要只说缺数据。",
+            Some(&route),
+            &rules,
+        )
+        .expect("selected product and material analysis should match direct graph");
+
+        assert_eq!(graph.nodes.len(), 1);
+        assert_eq!(graph.nodes[0].id.0, "ops");
+        assert_eq!(graph.nodes[0].role, "ops");
+        assert_eq!(graph.nodes[0].title, "商品资料直答分析");
+        assert_eq!(graph.nodes[0].llm_usage.as_deref(), Some("fast"));
+        assert_eq!(graph.nodes[0].skill_autosuggest, Some(false));
+    }
+
+    #[test]
+    fn selected_context_analysis_allows_one_sentence_key_judgment_request() {
+        let rules =
+            load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
+        let route = manual_route("data", &["ops"]);
+        let graph = plan_task_graph_from_rules(
+            &TaskId("task-selected-context-one-sentence".to_string()),
+            "请再分析一次这个商品和这些资料，先用一句话说最关键判断，再给3个验证动作，不要只说缺数据。",
+            Some(&route),
+            &rules,
+        )
+        .expect("one-sentence key judgment request should still match direct graph");
+
+        assert_eq!(graph.nodes.len(), 1);
+        assert_eq!(graph.nodes[0].id.0, "ops");
+        assert_eq!(graph.nodes[0].role, "ops");
+        assert_eq!(graph.nodes[0].title, "商品资料直答分析");
+    }
+
+    #[test]
+    fn selected_context_analysis_matches_material_and_poster_wording() {
+        let rules =
+            load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
+        let route = manual_route("creative", &["ops"]);
+        let graph = plan_task_graph_from_rules(
+            &TaskId("task-selected-context-poster".to_string()),
+            "这张海报和这个素材怎么看，先给关键判断，再给3个验证动作。",
+            Some(&route),
+            &rules,
+        )
+        .expect("poster and material wording should match direct selected-context graph");
+
+        assert_eq!(graph.nodes.len(), 1);
+        assert_eq!(graph.nodes[0].id.0, "ops");
+        assert_eq!(graph.nodes[0].role, "ops");
+        assert_eq!(graph.nodes[0].title, "商品资料直答分析");
+    }
+
+    #[test]
+    fn selected_context_analysis_is_available_to_non_chat_graph_entrypoint() {
+        let rules =
+            load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
+        let route = manual_route("data", &["ops"]);
+        let graph = super::plan_task_graph_from_rules_matching(
+            &TaskId("task-selected-context-non-chat-entry".to_string()),
+            "请再分析一次这个商品和这些资料，先用一句话说最关键判断，再给3个验证动作，不要只说缺数据。",
+            Some(&route),
+            &rules,
+            super::graph_has_non_chat_role,
+        )
+        .expect("direct selected-context graph should not be filtered by non-chat entrypoint");
+
+        assert_eq!(graph.nodes.len(), 1);
+        assert_eq!(graph.nodes[0].id.0, "ops");
+        assert_eq!(graph.nodes[0].title, "商品资料直答分析");
+    }
+
+    #[test]
+    fn commerce_team_route_dynamic_roles_do_not_default_depend_on_data() {
+        let rules =
+            load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
+        let route = RoleRoute {
+            primary_role: RoleId("role.data".to_string()),
+            primary_runtime_role: "data".to_string(),
+            support_roles: vec![RoleId("role.ops".to_string())],
+            support_runtime_roles: vec!["ops".to_string()],
+            scores: vec![
+                manual_role_score("data", 88.0),
+                manual_role_score("ops", 70.0),
+            ],
+        };
+        let graph = plan_task_graph_from_rules(
+            &TaskId("task-commerce-team".to_string()),
+            "分析这个咖啡商品的转化问题，给我一个运营方案。",
+            Some(&route),
+            &rules,
+        )
+        .expect("commerce team graph should match");
+
+        let ops = graph
+            .nodes
+            .iter()
+            .find(|node| node.id.0 == "ops")
+            .expect("route support ops node should be planned");
+
+        assert!(
+            ops.input_refs.is_empty(),
+            "route support ops should be able to run even if data is slow: {:?}",
+            ops.input_refs
+        );
+        assert_eq!(ops.llm_usage.as_deref(), Some("fast"));
+        assert_eq!(ops.skill_autosuggest, Some(false));
+    }
+
+    #[test]
     fn explicit_source_search_routes_to_web_search_graph() {
         let rules =
             load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");

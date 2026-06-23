@@ -97,10 +97,10 @@ function appendSearchAuditFact(
       {
         claims: evidenceSummary?.claims ?? 0,
         confidence: formatConfidence(evidenceSummary?.confidence ?? null),
-        executed: executedSkills.join(", ") || "-",
+        executed: executedSkills.length,
         gaps: evidenceSummary?.gaps ?? 0,
-        planned: plannedSkills.join(", ") || "-",
-        requested: attemptedSkills.join(", ") || "-",
+        planned: plannedSkills.length,
+        requested: attemptedSkills.length,
         sources: evidenceSummary?.sources ?? 0,
         strength: evidenceSummary?.strength ?? "-",
       }

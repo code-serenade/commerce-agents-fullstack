@@ -16,6 +16,10 @@ import { appendAuditFacts } from "./agent-process-audit-facts-view-model"
 import { selectDispatchFacts } from "./agent-dispatch-fact-selection"
 import { appendMaterialContextFacts } from "./agent-material-context-facts-view-model"
 import { appendSkillAuditFact } from "./agent-process-skill-audit-facts-view-model"
+import {
+  formatUserFacingRouteMode,
+  sanitizeUserFacingProcessText,
+} from "./agent-user-facing-runtime-text"
 
 export function getDispatchFacts(
   runtimeEvents: AgentRuntimeEvent[],
@@ -55,7 +59,7 @@ function appendDispatchPlanFact(
   facts.push({
     detail: t("agentChat.thread.dispatchFacts.plan.detail", {
       difficulty: plan.difficulty,
-      mode: getDispatchPlanRouteMode(plan),
+      mode: formatUserFacingRouteMode(getDispatchPlanRouteMode(plan), t),
     }),
     label: t("agentChat.thread.dispatchFacts.plan.label"),
     tone: "success",
@@ -67,7 +71,7 @@ function appendDispatchPlanFact(
   const reasoning = getDispatchPlanReasoningSummary(plan)
   if (reasoning.trim()) {
     facts.push({
-      detail: reasoning,
+      detail: sanitizeUserFacingProcessText(reasoning, t),
       label: t("agentChat.thread.dispatchFacts.reasoning.label"),
       tone: "default",
     })
@@ -76,7 +80,9 @@ function appendDispatchPlanFact(
   const skills = getDispatchPlanSkills(plan)
   if (skills.length > 0) {
     facts.push({
-      detail: skills.join(", "),
+      detail: t("agentChat.thread.dispatchFacts.plannedSkills.detail", {
+        count: skills.length,
+      }),
       label: t("agentChat.thread.dispatchFacts.plannedSkills.label"),
       tone: "default",
     })
@@ -167,7 +173,7 @@ function appendMemoryFact(
         : "agentChat.thread.dispatchFacts.memory.detail",
       {
         count: memory.count ?? 0,
-        kinds: (memory.kinds ?? []).join(", ") || "-",
+        kinds: formatMemoryKinds(memory.kinds, t),
         records: formatMemoryRecordSummaries(memory.records, t),
       }
     ),
@@ -184,9 +190,7 @@ function formatMemoryRecordSummaries(
 
   return records
     .slice(0, 3)
-    .map((record) => {
-      const name = record.key || record.kind || "-"
-      const tags = (record.tags ?? []).slice(0, 2).join(", ") || "-"
+    .map((record, index) => {
       const chars = record.char_count ?? record.charCount ?? 0
       const charLabel = t("agentChat.thread.dispatchFacts.memory.recordChars", {
         count: chars,
@@ -194,9 +198,28 @@ function formatMemoryRecordSummaries(
       const truncated = record.truncated
         ? ` ${t("agentChat.thread.dispatchFacts.memory.recordTruncated")}`
         : ""
-      return `${name} [${tags}] ${charLabel}${truncated}`
+      return t("agentChat.thread.dispatchFacts.memory.recordSummary", {
+        chars: charLabel,
+        index: index + 1,
+        truncated,
+      })
     })
     .join("; ")
+}
+
+function formatMemoryKinds(kinds: string[] | undefined, t: TFunction) {
+  const visibleKinds = uniqueStrings(
+    (kinds ?? [])
+      .map((kind) => sanitizeUserFacingProcessText(kind, t))
+      .filter((kind) => kind !== t("agentChat.thread.runtimeText.genericProgress"))
+  )
+  return visibleKinds.length > 0
+    ? visibleKinds.join(", ")
+    : t("agentChat.thread.dispatchFacts.memory.kindFallback")
+}
+
+function uniqueStrings(values: string[]) {
+  return Array.from(new Set(values.filter((value) => value.trim().length > 0)))
 }
 
 function appendContextFact(
@@ -232,9 +255,7 @@ function appendRagFact(
 
   facts.push({
     detail: rag.degraded
-      ? t("agentChat.thread.dispatchFacts.rag.degraded", {
-          reason: rag.degradedReason ?? rag.degraded_reason ?? "-",
-        })
+      ? t("agentChat.thread.dispatchFacts.rag.degraded")
       : t("agentChat.thread.dispatchFacts.rag.detail", {
           sources: rag.sourceCount ?? rag.source_count ?? 0,
         }),
@@ -253,9 +274,8 @@ function appendRouteFact(
 
   facts.push({
     detail: t("agentChat.thread.dispatchFacts.route.detail", {
-      mode: getRouteMode(route),
+      mode: formatUserFacingRouteMode(getRouteMode(route), t),
       role: formatRuntimeRole(getRoutePrimaryRole(route), t),
-      strategy: route.strategyId ?? route.strategy_id ?? "-",
     }),
     label: t("agentChat.thread.dispatchFacts.route.label"),
     tone: getRouteMode(route) === "chat_bypass" ? "default" : "success",

@@ -123,6 +123,10 @@ pub(super) struct UnsupportedBenchmarkPolicy {
     summary_replacement: String,
     risk: String,
     #[serde(default)]
+    task_any: Vec<String>,
+    #[serde(default)]
+    task_none: Vec<String>,
+    #[serde(default)]
     allowed_source_markers: Vec<String>,
     #[serde(default)]
     assertive_comparison_terms: Vec<String>,
@@ -426,6 +430,14 @@ impl UnsupportedBenchmarkPolicy {
 
     pub(super) fn risk(&self) -> &str {
         &self.risk
+    }
+
+    pub(super) fn task_any(&self) -> &[String] {
+        &self.task_any
+    }
+
+    pub(super) fn task_none(&self) -> &[String] {
+        &self.task_none
     }
 
     pub(super) fn allowed_source_markers(&self) -> &[String] {

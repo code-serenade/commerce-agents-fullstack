@@ -72,6 +72,8 @@
       "acceptance": [
         "必须说明能算什么、缺什么字段、下一步如何用表格或后台数据复核；没有真实附件时仍要给先跑版本，不得把“缺表格”当成拒答理由。"
       ],
+      "llm_usage": "fast",
+      "skill_autosuggest": false,
       "depends_on": []
     },
     {
@@ -82,6 +84,8 @@
       "acceptance": [
         "必须按任务复杂度给出可直接改用的标题、脚本开头或话术，并标注要看哪个真实反馈。"
       ],
+      "llm_usage": "fast",
+      "skill_autosuggest": false,
       "depends_on": ["data"]
     }
   ],
@@ -168,7 +172,10 @@
       "enabled": true,
       "include_primary": true,
       "include_support": "when_requested_or_primary_data",
-      "exclude_roles": ["chat"]
+      "exclude_roles": ["chat"],
+      "llm_usage": "fast",
+      "skill_autosuggest": false,
+      "default_data_dependency": false
     }
   },
   "final_node": {
@@ -182,6 +189,8 @@
       "表格必须使用 Markdown 管道表格，不能用散乱的 tab 文本或普通段落假装表格。",
       "每个大标题下至少有一句用户可直接使用的业务内容，不能只写标题。"
     ],
+    "llm_usage": "fast",
+    "skill_autosuggest": false,
     "depends_on": "$all_non_final"
   }
 }

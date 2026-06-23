@@ -1,13 +1,12 @@
 import { describe, expect, it } from "vitest"
 import type { AgentRuntimeEvent } from "@/api"
 import {
+  getAgentProcessBadge,
   getAgentProcessSummary,
   getAgentProcessKind,
   getAgentProcessProgress,
   getProcessStepRows,
 } from "./agent-process-kind-view-model"
-
-const softenedDispatchExplanation = "softened dispatch explanation"
 
 const t = ((key: string, params?: Record<string, unknown>) => {
   if (key === "agentChat.thread.processKinds.quick_dispatch.progress") {
@@ -22,16 +21,14 @@ const t = ((key: string, params?: Record<string, unknown>) => {
   if (key === "agentChat.thread.processKinds.multi_agent.stageRunning") {
     return "multi running"
   }
-  if (
-    key === "agentChat.thread.processKinds.sanitized.dispatchCollaboration"
-  ) {
-    return softenedDispatchExplanation
+  if (key === "agentChat.thread.processKinds.multi_agent.stageFinished") {
+    return "multi finished"
   }
-  if (key === "agentChat.thread.processKinds.sanitized.multiCheck") {
-    return "multiple checks"
+  if (key === "agentChat.thread.processKinds.multi_agent.badge") {
+    return "organizing"
   }
-  if (key === "agentChat.thread.processKinds.sanitized.multiReference") {
-    return "multiple references"
+  if (key === "agentChat.thread.processKinds.completed.badge") {
+    return "done"
   }
   if (key === "agentChat.thread.steps.readTarget") return "read target"
   if (key === "agentChat.thread.steps.contextLoaded") {
@@ -41,9 +38,28 @@ const t = ((key: string, params?: Record<string, unknown>) => {
   if (key === "agentChat.thread.steps.dispatchRoute") {
     return `${params?.mode} ${params?.role}`
   }
+  if (key === "agentChat.thread.dispatchPanel.routeModes.chat_bypass") {
+    return "quick answer"
+  }
+  if (key === "agentChat.thread.dispatchPanel.routeModes.task_graph") {
+    return "multi-step"
+  }
+  if (key === "agentChat.thread.dispatchPanel.routeModes.single_agent") {
+    return "main angle"
+  }
+  if (key === "agentChat.thread.runtimeText.routeFallback") {
+    return "current method"
+  }
   if (key === "agentChat.thread.steps.runtimeAction") return "runtime action"
   if (key === "agentChat.thread.steps.skillResult") {
-    return `${params?.count} ${params?.skill} ${params?.status}`
+    return `${params?.count} references checked ${params?.status ?? ""}`.trim()
+  }
+  if (key === "agentChat.thread.runtimeText.referenceReady") return "ready"
+  if (key === "agentChat.thread.runtimeText.referenceLimited") return "limited"
+  if (key === "agentChat.thread.runtimeText.referencePending") return "pending"
+  if (key === "agentChat.thread.runtimeText.referenceSynced") return "synced"
+  if (key === "agentChat.thread.steps.userFacingTitles.data") {
+    return "check available info"
   }
   if (key === "agentChat.thread.steps.answerReady") return "answer ready"
   if (key === "agentChat.thread.steps.answerFinished") return "answer finished"
@@ -57,6 +73,9 @@ const opsObjective = ["Plan", "execution"].join(" ")
 const readContextTitle = ["Read", "context"].join(" ")
 const readSelectedMaterialsDetail = ["Read", "selected", "materials"].join(" ")
 const planFromBackendReason = ["Plan", "from", "backend"].join(" ")
+const improveProductTitleTask = ["improve", "product", "title"].join(" ")
+const graphNodeObjectiveSuffix = "check"
+const finalAnswerContent = ["Final", "answer", "body"].join(" ")
 
 describe("agent process kind", () => {
   it("keeps chat_bypass as quick dispatch with real route and skill steps", () => {
@@ -85,8 +104,8 @@ describe("agent process kind", () => {
     expect(getAgentProcessKind(events)).toBe("quick_dispatch")
     expect(getProcessStepRows(events, false, t)).toEqual([
       ["read target", "1 products 2 knowledge"],
-      ["dispatch judge", "chat_bypass direct answer"],
-      ["runtime action", "1 coordination_agent_handoff success"],
+      ["dispatch judge", "quick answer direct answer"],
+      ["runtime action", "1 references checked ready"],
       ["answer ready", "answer finished"],
     ])
     const quickDispatchProgressLabel = ["4/4", "dispatch"].join(" ")
@@ -212,36 +231,78 @@ describe("agent process kind", () => {
     expect(getAgentProcessSummary(events, "task", t)).toBe(studentExplanation)
     expect(getProcessStepRows(events, false, t)).toEqual([
       [readContextTitle, readSelectedMaterialsDetail],
-      [dataTitle, dataObjective],
+      ["check available info", dataObjective],
     ])
   })
 
-  it("softens backend dispatch explanations before showing them", () => {
-    const backendExplanation = [
-      ...[
-        36825, 20010, 38382, 39064, 20250, 25286, 32473, 32, 52, 32, 20010,
-        23703, 20301, 47, 27493, 39588, 21327, 20316, 65292, 36807, 31243,
-        26356, 38271, 20294, 32467, 26524, 20250, 26356, 23436, 25972, 12290,
-      ],
-    ]
-      .map((code) => String.fromCharCode(code))
-      .join("")
+  it("treats final output as completed even when a node failed before summary", () => {
+    const completedProgressLabel = ["5/5", "multi"].join(" ")
     const events: AgentRuntimeEvent[] = [
+      createFiveStepGraph(),
       {
-        type: "dispatch_planned",
-        difficulty: "complex",
-        planned_steps: [],
-        primary_runtime_role: "data",
-        reasoning_summary: planFromBackendReason,
-        route_mode: "task_graph",
-        selected_skills: [],
-        student_visible_explanation: backendExplanation,
-        support_runtime_roles: ["ops"],
+        type: "task_node_passed",
+        node_id: "data",
+      },
+      {
+        type: "task_node_passed",
+        node_id: "ops",
+      },
+      {
+        type: "task_node_failed",
+        node_id: "design",
+        reason: "design role output lacks design-specific content",
+      },
+      {
+        type: "output",
+        content: finalAnswerContent,
       },
     ]
 
-    expect(getAgentProcessSummary(events, "task", t)).toBe(
-      softenedDispatchExplanation
-    )
+    expect(getAgentProcessKind(events)).toBe("multi_agent")
+    expect(
+      getAgentProcessProgress({
+        completedCount: 4,
+        isStreaming: false,
+        runtimeEvents: events,
+        totalCount: 5,
+      }, t)
+    ).toEqual({
+      completed: 5,
+      label: completedProgressLabel,
+      percent: 100,
+      stage: "multi finished",
+      total: 5,
+    })
+    expect(getAgentProcessBadge(events, t)).toBe("done")
   })
+
+  it("keeps multi-agent badge as in-progress before final output", () => {
+    const events: AgentRuntimeEvent[] = [createFiveStepGraph()]
+
+    expect(getAgentProcessBadge(events, t)).toBe("organizing")
+  })
+
 })
+
+function createFiveStepGraph(): AgentRuntimeEvent {
+  return {
+    type: "task_graph_planned",
+    graph: {
+      graph_id: "graph-5",
+      root_task: improveProductTitleTask,
+      nodes: ["data", "ops", "creative", "design"].map((role) => {
+        const title = role
+        return {
+          id: role,
+          role,
+          worker_id: `worker.${role}`,
+          title,
+          objective: [role, graphNodeObjectiveSuffix].join(" "),
+          input_refs: [],
+          acceptance: [],
+          max_attempts: 1,
+        }
+      }),
+    },
+  }
+}

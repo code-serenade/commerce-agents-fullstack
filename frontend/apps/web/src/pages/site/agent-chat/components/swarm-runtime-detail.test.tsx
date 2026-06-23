@@ -36,6 +36,37 @@ describe("ComputerRuntimeDetail", () => {
     expect(activeObjective).toHaveClass("wrap-break-word")
     expect(activeObjective).not.toHaveClass("line-clamp-1")
   })
+
+  it("shows final-answer completion without an internal role failure card", async () => {
+    const i18n = await createAgentChatTestI18n()
+    const activeAgent = createAgent()
+
+    render(
+      <AgentChatTestI18nProvider i18n={i18n}>
+        <ComputerRuntimeDetail
+          activeAgent={activeAgent}
+          activeAgentIndex={0}
+          activeState="done"
+          agents={[activeAgent]}
+          runtimeEvents={[
+            {
+              type: "task_node_failed",
+              node_id: "design",
+              reason: "design role output lacks design-specific content",
+            },
+            {
+              type: "output",
+              content: "Final answer body",
+            },
+          ]}
+        />
+      </AgentChatTestI18nProvider>
+    )
+
+    expect(screen.queryByText("Handling blocked")).toBeNull()
+    expect(screen.queryByText("Experience design")).toBeNull()
+    expect(screen.getByText("Done")).not.toBeNull()
+  })
 })
 
 function createAgent(): SwarmAgent {

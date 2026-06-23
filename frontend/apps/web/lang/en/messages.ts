@@ -2,8 +2,8 @@ const messages = {
   web: {
     shell: {
       brand: {
-        eyebrow: "电商多智能体",
-        title: "电商多智能体",
+        eyebrow: "Commerce Copilot",
+        title: "Commerce Copilot",
         description: "Ecommerce AI training workspace",
       },
       navigation: {
@@ -19,7 +19,7 @@ const messages = {
         platformConnect: "Platform data",
         approvals: "Teacher review records",
         operations: "Business result tracking",
-        agent: "AI ecommerce partner",
+        agent: "Commerce Copilot",
         agentOutput: "Review report",
         profile: "Profile",
       },
@@ -1108,7 +1108,7 @@ const messages = {
       newChat: "New chat",
       search: "Search history",
       recents: "Recents",
-      chat: "AI ecommerce partner",
+      chat: "Commerce Copilot",
       more: "More",
       less: "Collapse",
       moreHistory: "Show {{count}} more",
@@ -1120,11 +1120,11 @@ const messages = {
       empty: "No conversations yet",
     },
     shell: {
-      brandEyebrow: "AI ecommerce partner",
-      brandTitle: "AI ecommerce partner",
-      brandDescription: "Say the question directly and we will work through it",
+      brandEyebrow: "Commerce Copilot",
+      brandTitle: "Commerce Copilot",
+      brandDescription: "Say the question directly; I will give the judgment and next step",
       topbarTitle: "Say your ecommerce question",
-      topbarMeta: "AI ecommerce partner · natural language entry",
+      topbarMeta: "Commerce Copilot · natural language entry",
       sections: {
         create: "",
         workspace: "Common entries",
@@ -1134,9 +1134,9 @@ const messages = {
       navigation: {
         newChat: "New chat",
         capabilities: "Question ideas",
-        smartOps: "AI ecommerce partner",
+        smartOps: "Commerce Copilot",
         productBoard: "Products",
-        materials: "Files",
+        materials: "Files and images",
         campaigns: "Campaigns",
         platform: "Platform data",
         marketResearch: "Data clues",
@@ -1152,20 +1152,20 @@ const messages = {
       },
     },
     strategy: {
-      current: "How to talk",
+      current: "Answer style",
       options: {
         learning: {
-          label: "Think together",
+          label: "Give suggestions",
           hint: "Work through the issue like a partner, explain the useful judgment, then give the next move",
-          shortHint: "Together",
+          shortHint: "Suggest",
         },
         quick: {
-          label: "Be direct",
+          label: "Give the conclusion",
           hint: "Best for quick direction: judgment, key reason, and next step",
-          shortHint: "Direct",
+          shortHint: "Conclusion",
         },
         execution: {
-          label: "Go deeper",
+          label: "Explain in detail",
           hint: "Best for plans or assignments: path, risks, checklist, and review checks",
           shortHint: "Detailed",
         },
@@ -1188,7 +1188,7 @@ const messages = {
       attachPrompt:
         "Add the file or data constraints here, for example: product price, budget, inventory, target audience, current conversion rate, and platform account status.",
       agentTitle: "References for this turn",
-      agentName: "AI ecommerce partner",
+      agentName: "Commerce Copilot",
       contextPreview: {
         compactLabel: "Check first",
         compactTitle: "Check what this turn will reference",
@@ -1265,7 +1265,7 @@ const messages = {
       productContext: {
         label: "Product references",
         compactLabel: "Product",
-        noneCompactLabel: "No product",
+        noneCompactLabel: "Product",
         compactTitle: "Product references for this turn",
         loading: "Loading products",
         empty: "No active products",
@@ -1297,7 +1297,7 @@ const messages = {
       campaignContext: {
         label: "Campaign references",
         compactLabel: "Campaign",
-        noneCompactLabel: "No campaign",
+        noneCompactLabel: "Campaign",
         compactTitle: "Campaign references for this turn",
         loading: "Loading campaigns",
         empty: "No available campaigns",
@@ -1327,21 +1327,21 @@ const messages = {
         },
       },
       sourceContext: {
-        compactLabel: "Files",
-        noneCompactLabel: "No files",
-        compactTitle: "File references for this turn",
+        compactLabel: "Files and images",
+        noneCompactLabel: "Files and images",
+        compactTitle: "Files and images for this turn",
         compactReadinessTitle: "{{status}}",
-        noneSelected: "No file reference",
-        selectedCount: "{{count}} file reference(s)",
+        noneSelected: "No file or image reference",
+        selectedCount: "{{count}} file/image reference(s)",
         availableCount: "{{count}} available",
         readableCount: "{{count}} readable",
-        clear: "Remove file references",
+        clear: "Remove file and image references",
         deleteSelected: "Delete selected",
         deleteConfirm:
-          "Delete {{count}} selected source(s): {{names}}{{hiddenText}}\n\nUse Remove file references if you only want to remove them from this turn.",
+          "Delete {{count}} selected file/image source(s): {{names}}{{hiddenText}}\n\nUse Remove file and image references if you only want to remove them from this turn.",
         deleteConfirmHidden: " and {{count}} more",
         empty:
-          "No uploaded files are available in this conversation. Upload a file first, then add it as a reference.",
+          "No uploaded files or images are available in this conversation. Upload an image, spreadsheet, or document first, then add it as a reference.",
         manualHint:
           "I reference these files only after you add them to this turn.",
         selectedHint:
@@ -1356,17 +1356,17 @@ const messages = {
           unsupported: "{{count}} unsupported",
           metadataOnly: "{{count}} metadata only",
         },
-        panelTitle: "File references for this turn",
+        panelTitle: "Files and images for this turn",
         panelHint:
-          "Add current files or library files for this answer to reference.",
+          "Add images, spreadsheets, documents, or library files for this answer to reference.",
         upload: "Upload",
         manageLibrary: "Browse file library",
-        currentSection: "Current conversation files",
+        currentSection: "Current conversation files and images",
         currentSectionHint: "Only added files are read",
         currentSearch: "Search current files",
         currentNoSearchResult: "No current file matches the search.",
         showMoreCurrent: "Show {{count}} more current file(s)",
-        librarySection: "File library",
+        librarySection: "File and image library",
         libraryHint: "Add existing files before using them as references.",
         librarySearch: "Search file library",
         libraryLoading: "Loading file library",
@@ -1413,56 +1413,56 @@ const messages = {
         compactLabel: "Answer style",
         compactTitle: "Adjust answer preferences",
         toggle: "Answer preferences",
-        panelTitle: "How should we handle this turn",
+        panelTitle: "How should this answer be written",
         panelHint: "Current preference: {{mode}}; {{summary}}",
-        rolesCount: "{{count}} references",
+        rolesCount: "{{count}} role agents",
         depthSummary: "Detail: {{depth}}",
         selectedPrefix: "Current",
         hideSelection: "Hide",
         showSelection: "Show current preferences",
-        autoRolesSummary: "I will choose",
-        multiAgentSummary: "Multiple checks",
+        autoRolesSummary: "System chooses agents",
+        multiAgentSummary: "{{count}} role agents",
       },
       runtime: {
-        label: "References",
+        label: "Agent settings",
         loading: "Loading answer preferences",
         model: "Model",
         modelSettings: "Model preference",
         modelHint:
           "The currently available Doubao model is preferred by default. If it is not available, only usable models are shown.",
         learning: "Detail level",
-        collaboration: "Reference style",
+        collaboration: "Agent mode",
         routingMode: "Handling style",
-        roleMode: "Reference style",
-        roles: "Reference focus",
-        singleRole: "Main focus",
-        primary: "Main focus",
-        leadRole: "Main focus",
-        supportRoles: "Extra references",
-        selectedRoles: "How to reference this turn",
-        roleColumn: "Reference direction",
-        primaryShort: "Focus",
-        supportShort: "Ref",
+        roleMode: "Agent mode",
+        roles: "Role agents",
+        singleRole: "Choose one agent",
+        primary: "Lead agent",
+        leadRole: "Lead agent",
+        supportRoles: "Participating agents",
+        selectedRoles: "Choose participating agents",
+        roleColumn: "Role agent",
+        primaryShort: "Lead",
+        supportShort: "Join",
         singleRoleHint:
-          "Pick one direction and I will focus the answer around it.",
+          "Choose one role agent to lead this turn.",
         leadRoleHint:
-          "Click a direction card to switch the focus. The visible answer still reads like one natural recommendation.",
+          "Click a role card to switch the lead agent. The final answer still reads like one natural recommendation.",
         supportRolesHint:
-          "Add references when useful, and I will pull in evidence, risks, materials, and next actions.",
-        answerRoleBadge: "Current reference",
-        primaryBadge: "Focus",
-        supportBadge: "Ref",
-        currentLead: "Current focus",
-        currentSupport: "Extra references: {{roles}}",
-        noSupportRoles: "No extra references selected",
+          "Select the role agents that should participate; multiple agents can add judgment together.",
+        answerRoleBadge: "Current agent",
+        primaryBadge: "Lead",
+        supportBadge: "Join",
+        currentLead: "Current lead",
+        currentSupport: "Participating agents: {{roles}}",
+        noSupportRoles: "No extra agents selected",
         advanced: "More preferences",
         explanationDepth: "Explanation depth",
         autoRolesHint:
-          "I will decide which references are useful for this turn.",
+          "The system will choose the role agents needed for this question.",
         manualRolesHint:
-          "Pick one main direction, then add references only when useful. Up to {{max}}; more references can slow the reply.",
+          "Choose the lead agent, then add participating agents. Up to {{max}}; more agents can slow the reply.",
         roleModeHint:
-          "For this turn, I can decide, focus on one direction, or add a few references.",
+          "Choose whether the system auto-dispatches, one agent leads, or multiple agents work together.",
         learningLevels: {
           beginner: {
             label: "Basic",
@@ -1522,16 +1522,16 @@ const messages = {
         },
         roleModes: {
           auto: {
-            label: "I will choose",
-            description: "I will pick useful references",
+            label: "Auto-select agents",
+            description: "System chooses role agents for the question",
           },
           single: {
-            label: "Focus on one",
-            description: "Answer around one direction",
+            label: "One agent",
+            description: "One role agent leads the answer",
           },
           manual: {
-            label: "Add references",
-            description: "Bring a few directions together",
+            label: "Multiple agents",
+            description: "You choose multiple role agents to work together",
           },
         },
         routingModes: {
@@ -1546,7 +1546,7 @@ const messages = {
         },
         strategyNotes: {
           learning:
-            "Think together: keep the substance while explaining useful judgment and next steps.",
+            "Give suggestions: keep the substance while explaining useful judgment and next steps.",
           quick:
             "Best for fast judgment: conclusion, key reason, and only a few next actions.",
           execution:
@@ -1653,7 +1653,7 @@ const messages = {
       },
     },
     thread: {
-      agentName: "AI ecommerce partner",
+      agentName: "Commerce Copilot",
       welcomeCapabilities: ["Catch the issue", "Ask less", "Move forward"],
       startHere: "You can also ask like this",
       examplePrompts: [
@@ -1762,6 +1762,9 @@ const messages = {
           summary:
             "Checking the question, materials, and answer route.",
         },
+        completed: {
+          badge: "Done",
+        },
         quick_dispatch: {
           title: "Quick judgment",
           badge: "Light",
@@ -1810,7 +1813,14 @@ const messages = {
         backendCreated: "System created {{type}}, status: {{status}}",
         empty:
           "No review materials yet. Demo files are not shown for this run.",
+        fileFallback: "Stage material",
+        finalReportMeta: "Review",
+        genericMeta: "Material",
         searchEvidence: "System saved real external search evidence.",
+        searchEvidenceMeta: "Reference",
+        statusLimited: "Needs context",
+        statusReady: "Synced",
+        statusSynced: "Syncing",
         waitingBackend: "Waiting for review materials or search evidence.",
       },
       currentProgress: "Task progress {{completed}}/{{total}}",
@@ -1824,19 +1834,28 @@ const messages = {
       processPanelActive: "Right panel open",
       contextSummary: {
         label: "Training materials for this turn",
-        productNone: "No product",
+        productNone: "Product",
         productCount: "{{count}} products",
         campaignCount: "{{count}} campaigns",
-        sourceNone: "No files",
-        sourceCount: "{{count}} files",
-        strategy: "Mode: {{strategy}}",
-        autoRoles: "References: I will choose",
-        roles: "References: focus {{role}} / {{count}} total",
+        sourceNone: "Files and images",
+        sourceCount: "{{count}} files and images",
+        sourceCountWithReadiness:
+          "{{count}} files/images, {{readable}} readable",
+        strategy: "Answer style: {{strategy}}",
+        autoRoles: "Agents: system auto-selects",
+        roles: "Agents: {{role}} leads / {{count}} total",
         model: "Model: {{model}}",
         details: "Context details",
         productDetails: "Referenced products",
         campaignDetails: "Referenced campaigns",
         sourceDetails: "Referenced files",
+        sourceReadiness: {
+          failed: "Failed",
+          metadataOnly: "Metadata only",
+          pending: "Parsing",
+          readable: "Readable",
+          unsupported: "Unsupported",
+        },
       },
       actions: {
         copy: "Copy",
@@ -1889,10 +1908,10 @@ const messages = {
         workspaceContext: "Read {{readable}}/{{total}} usable materials",
         contextLoaded: "{{products}} products, {{knowledge}} knowledge records",
         memoryLoaded: "Referenced {{count}} history records",
-        skillRequested: "Checking {{skill}} as a reference",
-        skillResult: "{{skill}} reference result: {{status}}",
+        skillRequested: "Checking a few more references",
+        skillResult: "{{count}} reference check(s) completed; latest is {{status}}",
         modelRunning: "Organizing output",
-        noExtraSkill: "No extra tool needed for this turn",
+        noExtraSkill: "Organizing the answer directly",
         singleAgentRoute: "Focus on {{role}}",
         taskRunning: "Working",
         waitingSync: "Waiting for status sync",
@@ -1905,6 +1924,16 @@ const messages = {
         singleAgentAnswer: "Organize the answer around the main angle",
         savedToReport: "Save the answer as reviewable material",
         graphNodeReady: "Reference step prepared for this question",
+        userFacingDetail:
+          "Organizing the available information into advice the user can act on.",
+        userFacingTitles: {
+          data: "Check available information",
+          creative: "Prepare usable wording",
+          design: "Add presentation and conversion suggestions",
+          generic: "Organize judgment",
+          ops: "Summarize executable advice",
+          search: "Check external references",
+        },
       },
       roleFallbackTitles: {
         chat: "Direct answer",
@@ -1974,7 +2003,7 @@ const messages = {
       dispatchFacts: {
         plan: {
           label: "Task plan",
-          detail: "{{difficulty}} difficulty, route {{mode}}",
+          detail: "{{difficulty}} difficulty, handled as {{mode}}",
         },
         adaptive: {
           label: "Task match",
@@ -1986,6 +2015,7 @@ const messages = {
         },
         plannedSkills: {
           label: "References for this turn",
+          detail: "Preparing {{count}} reference check(s)",
         },
         contextBudget: {
           label: "Context budget",
@@ -2001,7 +2031,9 @@ const messages = {
             label: "History memory",
             detail: "Loaded {{count}} records, kinds {{kinds}}",
             detailWithRecords: "Loaded {{count}} records, kinds {{kinds}}; summaries {{records}}",
+            kindFallback: "history records",
             recordChars: "{{count}} chars",
+            recordSummary: "Record {{index}}: {{chars}}{{truncated}}",
             recordTruncated: "truncated",
           },
           conversationContext: {
@@ -2016,7 +2048,8 @@ const messages = {
         rag: {
           label: "Knowledge retrieval",
           detail: "Matched {{sources}} local sources",
-          degraded: "Retrieval degraded: {{reason}}",
+          degraded:
+            "This reference is not available yet, so the answer uses the materials already available",
         },
         workspace: {
           label: "Workspace materials",
@@ -2032,15 +2065,15 @@ const messages = {
         },
         route: {
           label: "Task decision",
-          detail: "{{mode}}, lead {{role}}, strategy {{strategy}}",
+          detail: "{{mode}}, first focusing on {{role}}",
         },
         skill: {
-          label: "Reference tools",
-          detail: "{{count}} tool reference event(s) in this turn",
+          label: "Reference checks",
+          detail: "{{count}} reference check(s) in this turn",
         },
         output: {
           label: "Output complete",
-          detail: "Answer and workspace persistence events returned",
+          detail: "The answer is ready to review and continue from",
         },
         empty: {
           label: "Waiting for events",
@@ -2095,6 +2128,14 @@ const messages = {
         realnessTitle: "Why not every angle is shown",
         realnessDetail:
           "More handling details appear only when the question actually needs multiple checks.",
+      },
+      runtimeText: {
+        genericProgress: "Organized the user question into usable judgment",
+        referenceLimited: "this reference is not available yet",
+        referencePending: "checking",
+        referenceReady: "checked",
+        referenceSynced: "synced",
+        routeFallback: "current method",
       },
       nextActions: {
         title: "Useful next steps",
@@ -2309,9 +2350,9 @@ const messages = {
         waitingInput: "Waiting for task input",
         planning: "Organizing the reasoning path",
         historyWaiting: "Historical chat, waiting for a new task",
-        failedAgent: "Handling blocked: {{agent}}",
-        reworkingAgent: "Retrying: {{agent}}",
-        workingAgent: "Working: {{agent}}",
+        failedAgent: "One step is blocked. Expand notes for action items.",
+        reworkingAgent: "Reworking this step",
+        workingAgent: "Organizing a usable judgment",
         multiTasking: "Handling multiple items",
         finished: "Judgment summarized",
       },
@@ -2333,26 +2374,27 @@ const messages = {
           commanderThinking:
             "Analyzing the question and preparing the reasoning path.",
           routeDecided:
-            "Question type identified. Using {{strategy}} style, reference mode {{mode}}, focus angle {{role}}.",
+            "Question type identified. Handling it as {{mode}}, first focusing on {{role}}.",
           graphPlanned: "Prepared {{count}} handling steps.",
-          nodeStarted: "{{agent}} started pass {{attempt}}.",
-          nodeRework: "{{agent}} is reorganizing: {{instruction}}",
-          nodePassed: "{{agent}} finished the check.",
+          nodeStarted: "One step started pass {{attempt}}.",
+          nodeRework: "One step is being reorganized: {{instruction}}",
+          nodePassed: "One step finished the check.",
           nodeBoundary:
-            "{{agent}} completed a category-level note without blocking the final answer.",
-          nodeFailed: "{{agent}} was blocked: {{reason}}",
-          skillRequested: "{{role}} is checking {{skill}}.",
-          skillResult: "{{skill}} reference result: {{status}}.",
-          approvalRequired: "Approval created: {{skill}}, risk {{risk}}.",
-          workerStarted: "{{agent}} started organizing.",
-            workerFinished: "{{agent}} finished organizing.",
+            "One step produced a category-level note without blocking the final answer.",
+          nodeFailed: "One step is blocked: {{reason}}",
+          skillRequested: "Checking a few more references.",
+          skillResult: "Reference check: {{status}}.",
+          approvalRequired: "A high-risk action needs confirmation, risk {{risk}}.",
+          workerStarted: "One step started organizing.",
+            workerFinished: "One step finished organizing.",
             contextLoaded:
               "Loaded {{products}} product(s) and {{knowledge}} product knowledge record(s).",
             conversationContextLoaded:
               "Same-conversation context loaded: latest {{recent}}/{{total}} history messages.",
             ragContextLoaded:
               "Knowledge retrieval complete: {{sources}} source(s).",
-          ragContextDegraded: "Knowledge retrieval degraded: {{reason}}",
+          ragContextDegraded:
+            "This external reference is not available yet, so the answer uses the materials already available.",
           workspaceContextLoaded:
             "Training materials loaded: {{sources}} source(s), {{readiness}}.",
           workspaceContextPackLoaded:
@@ -2391,7 +2433,7 @@ const messages = {
           meta: "Waiting arrangement",
           description:
             "Preparing processing steps, dependencies, and acceptance rules.",
-          currentTask: "Current task: {{agent}}",
+          currentTask: "Current task: organizing this turn's judgment",
           stateLine: "Handling state: {{state}}",
           latestAction: "Latest action: {{action}}",
           latestPlanning: "Latest action: breaking down task",
@@ -2449,23 +2491,26 @@ const messages = {
           omittedLine: "Not in context: {{ref}}",
         },
         skill: {
-          title: "Reference tool",
+          title: "Reference check",
+          meta: "Background check",
           statusLine: "Status: {{status}}",
           requested:
-            "The tool reference was received and is being handled or waiting for external data.",
-          completed: "The reference tool returned a result.",
+            "The reference check was received and is being handled or waiting for external data.",
+          completed: "Reference check returned a result.",
           deferred:
-            "This tool needs external data, so it is deferred for now.",
+            "This reference needs external data, so it is deferred for now.",
           approvalRequired:
-            "This tool is high-risk or writes to a platform, so approval is required before it continues.",
+            "This action is high-risk or writes to a platform, so confirmation is required before it continues.",
         },
         rework: {
           title: "Recheck",
+          meta: "Status update",
           description:
             "Acceptance failed and the system triggered a rework instruction.",
         },
         boundary: {
           title: "Needs data",
+          meta: "Missing data",
           description:
             "This step lacks a selected product or connected external data, and does not block the final answer.",
           line: "Handled as a category-level boundary: keep missing data, risks, and next steps without showing it as an answer failure.",
@@ -2502,7 +2547,7 @@ const messages = {
           approvalRequiredDescription:
             "The high-risk platform action has entered review and will not execute automatically.",
           approvalLine: "Approval {{id}}: {{status}}",
-          approvalSkillLine: "Capability: {{skill}}",
+          approvalSkillLine: "Action: confirmation required",
           approvalReasonLine: "Reason: {{reason}}",
           approvalAlertLine: "Alert: {{message}}",
           qualityCheckedTitle: "Quality checked",
@@ -2535,16 +2580,16 @@ const messages = {
         deliveryFilename: "operation.execution.plan.docx",
       },
       runtimeDescriptions: {
-        started: "{{agent}} started pass {{attempt}}.",
+        started: "One step started pass {{attempt}}.",
         reported:
-          "{{agent}} organized a stage result and is waiting for summary.",
-        passed: "{{agent}} finished the check.",
+          "A stage result is ready and waiting for summary.",
+        passed: "This step finished the check.",
         boundary:
-          "{{agent}} produced a category-level boundary for summary.",
-        failed: "{{agent}} was blocked.",
-        reworking: "{{agent}} is reorganizing output from feedback.",
-        skillRequested: "Checking {{skill}}.",
-        skillResult: "{{skill}} reference result: {{status}}.",
+          "This step produced a category-level boundary for summary.",
+        failed: "This step is blocked.",
+        reworking: "Reorganizing output from feedback.",
+        skillRequested: "Checking a few more references.",
+        skillResult: "Reference check: {{status}}.",
       },
       runtimeActions: {
         commanderThinking: "Breaking down task",
@@ -2562,6 +2607,18 @@ const messages = {
         graphFinished: "Judgment path finished",
         synced: "State synced",
       },
+      runtimeReasons: {
+        modelUnavailable:
+          "The model service is temporarily unavailable, so one step did not produce a usable result.",
+        modelConfigUnavailable:
+          "The model service configuration is temporarily unavailable, so one step did not produce a usable result.",
+        workerUnavailable:
+          "One step did not start successfully, so the available judgment was kept first.",
+        timedOut:
+          "This step timed out, so the currently usable judgment was kept first.",
+        collaborationIncomplete:
+          "This step needs more specific business information.",
+      },
       reportLines: {
         risk: "Risk: {{risk}}",
         question: "Open question: {{question}}",
@@ -2574,8 +2631,8 @@ const messages = {
         reworking:
           "The result needs another pass and is being adjusted from feedback.",
         working:
-          "{{agent}} is organizing the request. Results will update here.",
-        done: "{{agent}} finished the stage and is waiting for final summary.",
+          "The request is being organized. Results will update here.",
+        done: "This step finished the stage and is waiting for final summary.",
         idle: "After the turn starts, this area shows the question, handling result, and material summary.",
       },
     },
@@ -2906,7 +2963,7 @@ const messages = {
     },
   },
   login: {
-    brand: "电商多智能体",
+    brand: "Commerce Copilot",
     hero: {
       titleLine1: "Enter ecommerce AI training,",
       titleLine2: "finish selection, planning, and review.",
@@ -2950,7 +3007,7 @@ const messages = {
     },
   },
   register: {
-    brand: "电商多智能体",
+    brand: "Commerce Copilot",
     hero: {
       titleLine1: "Create your account,",
       titleLine2: "start ecommerce AI training.",
@@ -2962,7 +3019,7 @@ const messages = {
     welcome: "CREATE ACCOUNT",
     title: "Register your training account",
     subtitle:
-      "Create an account to enter 电商多智能体 and start your ecommerce AI training task.",
+      "Create an account to enter Commerce Copilot and start your ecommerce AI training task.",
     form: {
       password: {
         label: "Password",

@@ -6,7 +6,13 @@ import {
   getInlineProcessFailureState,
   readInlineId,
 } from "./thread-inline-node-states"
-import { getProcessStepRows } from "./agent-process-kind-view-model"
+import { formatRuntimeRole, getProcessStepRows } from "./agent-process-kind-view-model"
+import { hasFinished, normalizeRuntimeRole } from "./agent-process-runtime-view-model"
+import {
+  formatUserFacingStepDetail,
+  formatUserFacingStepTitle,
+  isInternalRuntimeText,
+} from "./agent-user-facing-runtime-text"
 
 export type InlineAgentState =
   | "idle"
@@ -101,6 +107,9 @@ export function getInlineProcessStage(
   if (getInlineProcessFailureState(runtimeEvents) === "failed") {
     return t("agentChat.thread.processStage.failed")
   }
+  if (hasFinished(runtimeEvents)) {
+    return t("agentChat.thread.processStage.finished")
+  }
   if (
     runtimeEvents.some(
       (event) => event.type === "workspace_artifact_created" || event.type === "workspace_run_completed"
@@ -185,14 +194,30 @@ function mapGraphNodeToInlineAgent(
   t: TFunction
 ): InlineAgent {
   const nodeId = readInlineId(node.id)
-  const preset = presets.find((agent) => agent.nodeId === nodeId)
+  const role = normalizeRuntimeRole(node.role || nodeId)
+  const preset =
+    presets.find((agent) => agent.nodeId === nodeId) ||
+    presets.find((agent) => agent.nodeId === role)
   return {
     nodeId,
-    name: node.title || preset?.name || node.role,
-    summary: preset?.summary || node.objective,
+    name: preset?.name || formatUserFacingNodeTitle(node.title || node.role, t),
+    summary:
+      preset?.summary ||
+      formatUserFacingStepDetail(
+        node.objective || formatRuntimeRole(node.role, t),
+        t
+      ),
     status: t("agentChat.thread.inlineState.queued"),
     state: "queued",
   }
+}
+
+function formatUserFacingNodeTitle(title: string, t: TFunction) {
+  const trimmed = title.trim()
+  if (!trimmed || isInternalRuntimeText(trimmed)) {
+    return t("agentChat.thread.steps.userFacingTitles.generic")
+  }
+  return formatUserFacingStepTitle(trimmed, t)
 }
 
 function getFallbackInlineState(index: number, isStreaming: boolean): InlineAgentState {

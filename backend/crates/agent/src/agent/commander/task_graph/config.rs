@@ -196,6 +196,8 @@ pub(super) struct ExplicitRequestRoles {
     pub(super) skill_autosuggest_by_role: HashMap<String, bool>,
     #[serde(default)]
     pub(super) depends_on_roles: HashMap<String, Vec<String>>,
+    #[serde(default = "default_true")]
+    pub(super) default_data_dependency: bool,
 }
 
 #[derive(Debug, Clone, Default, serde::Deserialize)]
@@ -216,6 +218,8 @@ pub(super) struct RouteRoles {
     pub(super) skill_autosuggest_by_role: HashMap<String, bool>,
     #[serde(default)]
     pub(super) depends_on_roles: HashMap<String, Vec<String>>,
+    #[serde(default = "default_true")]
+    pub(super) default_data_dependency: bool,
 }
 
 #[derive(Debug, Clone, Default, serde::Deserialize, PartialEq, Eq)]
@@ -266,6 +270,10 @@ impl TaskGraphRuleSet {
 
 fn default_task_graph_schema_version() -> u32 {
     1
+}
+
+fn default_true() -> bool {
+    true
 }
 
 pub(super) fn configured_task_graph_rules_path() -> Option<PathBuf> {

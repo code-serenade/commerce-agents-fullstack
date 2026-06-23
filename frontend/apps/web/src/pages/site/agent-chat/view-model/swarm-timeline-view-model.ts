@@ -4,18 +4,27 @@ import {
   getWorkspaceContextPackItemCount,
   getWorkspaceContextPackReadableCount,
 } from "./agent-workspace-context-pack-counts"
-import { readRuntimeNodeId, resolveWorkerNodeId } from "./agent-runtime-event-mapping"
+import { readRuntimeNodeId } from "./agent-runtime-event-mapping"
 import {
   isNonBlockingNodeFailure,
   isNonBlockingWorkspaceFailure,
   isNonBlockingSkillGap,
 } from "./thread-boundary-state-view-model"
 import { formatUserFacingRuntimeReason } from "./swarm-runtime-reason-view-model"
+import {
+  formatUserFacingRouteMode,
+  formatUserFacingSkillStatus,
+} from "./agent-user-facing-runtime-text"
+import { formatRuntimeRole } from "./agent-process-kind-view-model"
+import {
+  formatTimelineDynamicText,
+  formatUserFacingTaskStatus,
+} from "./swarm-timeline-user-facing-text"
 import type { SwarmAgent } from "./swarm-panel-view-model"
 
 export function formatTimelineEvent(
   event: AgentRuntimeEvent,
-  agents: SwarmAgent[],
+  _agents: SwarmAgent[],
   runtimeEvents: AgentRuntimeEvent[],
   t: TFunction
 ) {
@@ -23,13 +32,16 @@ export function formatTimelineEvent(
     return { label: t("agentChat.swarm.timeline.events.commanderThinking"), tone: "default" as const }
   }
   if (event.type === "route_decided") {
+    const routeMode = event.routeMode ?? event.route_mode
     return {
       label: t("agentChat.swarm.timeline.events.routeDecided", {
-        mode: event.route_mode,
-        role: event.primary_runtime_role ?? "chat",
-        strategy: event.strategy_id ?? "default",
+        mode: formatUserFacingRouteMode(routeMode, t),
+        role: formatRuntimeRole(
+          event.primaryRuntimeRole ?? event.primary_runtime_role ?? "chat",
+          t
+        ),
       }),
-      tone: event.route_mode === "task_graph" ? "success" as const : "default" as const,
+      tone: routeMode === "task_graph" ? "success" as const : "default" as const,
     }
   }
   if (event.type === "context_loaded") {
@@ -51,12 +63,9 @@ export function formatTimelineEvent(
     }
   }
   if (event.type === "rag_context_loaded") {
-    const reason = event.degradedReason ?? event.degraded_reason
     return {
       label: event.degraded
-        ? t("agentChat.swarm.timeline.events.ragContextDegraded", {
-            reason: reason ?? "-",
-          })
+        ? t("agentChat.swarm.timeline.events.ragContextDegraded")
         : t("agentChat.swarm.timeline.events.ragContextLoaded", {
             sources: event.sourceCount ?? event.source_count ?? 0,
           }),
@@ -88,7 +97,7 @@ export function formatTimelineEvent(
   if (event.type === "workspace_run_linked") {
     return {
       label: t("agentChat.swarm.timeline.events.workspaceRunLinked", {
-        title: event.workspace.title,
+        title: formatTimelineDynamicText(event.workspace.title, t),
       }),
       tone: "success" as const,
     }
@@ -106,10 +115,10 @@ export function formatTimelineEvent(
     return {
       label: boundary
         ? t("agentChat.swarm.timeline.events.workspaceTaskBoundary", {
-            status: event.status,
+            status: formatUserFacingTaskStatus(event.status, t),
           })
         : t("agentChat.swarm.timeline.events.workspaceTaskUpdated", {
-            status: event.status,
+            status: formatUserFacingTaskStatus(event.status, t),
           }),
       tone: boundary
         ? "warning" as const
@@ -127,7 +136,7 @@ export function formatTimelineEvent(
   if (event.type === "workspace_artifact_created") {
     return {
       label: t("agentChat.swarm.timeline.events.workspaceArtifactCreated", {
-        title: event.title,
+        title: formatTimelineDynamicText(event.title, t),
       }),
       tone: "success" as const,
     }
@@ -135,7 +144,7 @@ export function formatTimelineEvent(
   if (event.type === "agent_learning_record_created") {
     return {
       label: t("agentChat.swarm.timeline.events.agentLearningRecordCreated", {
-        category: event.category,
+        category: formatTimelineDynamicText(event.category, t),
       }),
       tone: "success" as const,
     }
@@ -155,8 +164,7 @@ export function formatTimelineEvent(
   if (event.type === "approval_required") {
     return {
       label: t("agentChat.swarm.timeline.events.approvalRequired", {
-        risk: readApprovalRisk(event),
-        skill: readApprovalSkill(event),
+        risk: formatTimelineDynamicText(readApprovalRisk(event), t),
       }),
       tone: "warning" as const,
     }
@@ -165,7 +173,7 @@ export function formatTimelineEvent(
     if (isNonBlockingWorkspaceFailure(event, runtimeEvents)) {
       return {
         label: t("agentChat.swarm.timeline.events.workspaceTaskBoundary", {
-          status: event.status,
+          status: formatUserFacingTaskStatus(event.status, t),
         }),
         tone: "warning" as const,
       }
@@ -178,27 +186,31 @@ export function formatTimelineEvent(
   if (event.type === "workspace_run_persistence_error") {
     return {
       label: t("agentChat.swarm.timeline.events.workspacePersistenceError", {
-        action: event.action,
+        action: formatTimelineDynamicText(event.action, t),
       }),
       tone: "warning" as const,
     }
   }
   if (event.type === "task_node_started") {
-    return { label: t("agentChat.swarm.timeline.events.nodeStarted", { agent: getTimelineAgentName(readRuntimeNodeId(event), agents), attempt: event.attempt }), tone: "default" as const }
+    return { label: t("agentChat.swarm.timeline.events.nodeStarted", { attempt: event.attempt }), tone: "default" as const }
   }
   if (event.type === "task_node_rework_requested") {
-    return { label: t("agentChat.swarm.timeline.events.nodeRework", { agent: getTimelineAgentName(readRuntimeNodeId(event), agents), instruction: event.instruction }), tone: "warning" as const }
+    return {
+      label: t("agentChat.swarm.timeline.events.nodeRework", {
+        instruction: formatTimelineDynamicText(event.instruction, t),
+      }),
+      tone: "warning" as const,
+    }
   }
   if (event.type === "task_node_passed") {
-    return { label: t("agentChat.swarm.timeline.events.nodePassed", { agent: getTimelineAgentName(readRuntimeNodeId(event), agents) }), tone: "success" as const }
+    return { label: t("agentChat.swarm.timeline.events.nodePassed"), tone: "success" as const }
   }
   if (event.type === "task_node_failed") {
     if (isNonBlockingNodeFailure(event, runtimeEvents)) {
-      return { label: t("agentChat.swarm.timeline.events.nodeBoundary", { agent: getTimelineAgentName(readRuntimeNodeId(event), agents) }), tone: "warning" as const }
+      return { label: t("agentChat.swarm.timeline.events.nodeBoundary"), tone: "warning" as const }
     }
     return {
       label: t("agentChat.swarm.timeline.events.nodeFailed", {
-        agent: getTimelineAgentName(readRuntimeNodeId(event), agents),
         reason: formatUserFacingRuntimeReason(event.reason, t),
       }),
       tone: "error" as const,
@@ -206,35 +218,27 @@ export function formatTimelineEvent(
   }
   if (event.type === "skill_requested") {
     return {
-      label: t("agentChat.swarm.timeline.events.skillRequested", {
-        role: getTimelineAgentName(resolveWorkerNodeId(event), agents),
-        skill: event.skill_id,
-      }),
+      label: t("agentChat.swarm.timeline.events.skillRequested"),
       tone: "default" as const,
     }
   }
   if (event.type === "skill_result") {
     return {
       label: t("agentChat.swarm.timeline.events.skillResult", {
-        skill: event.skill_id,
-        status: event.status,
+        status: formatUserFacingSkillStatus(event.status, t),
       }),
       tone: getSkillResultTone(event, runtimeEvents),
     }
   }
   if (event.type === "worker_started") {
     return {
-      label: t("agentChat.swarm.timeline.events.workerStarted", {
-        agent: getTimelineAgentName(resolveWorkerNodeId(event), agents),
-      }),
+      label: t("agentChat.swarm.timeline.events.workerStarted"),
       tone: "default" as const,
     }
   }
   if (event.type === "worker_finished") {
     return {
-      label: t("agentChat.swarm.timeline.events.workerFinished", {
-        agent: getTimelineAgentName(resolveWorkerNodeId(event), agents),
-      }),
+      label: t("agentChat.swarm.timeline.events.workerFinished"),
       tone: "success" as const,
     }
   }
@@ -282,13 +286,6 @@ function isBoundaryWorkspaceTaskUpdate(
     if (!isNonBlockingNodeFailure(item, runtimeEvents)) return false
     return ownerRole ? readRuntimeNodeId(item) === ownerRole : true
   })
-}
-
-const getTimelineAgentName = (nodeId: string, agents: SwarmAgent[]) =>
-  agents.find((agent) => agent.nodeId === nodeId)?.name ?? nodeId
-
-function readApprovalSkill(event: Extract<AgentRuntimeEvent, { type: "approval_required" }>) {
-  return event.skillId ?? event.skill_id ?? event.approval?.skillName ?? event.approval?.skill_name ?? "-"
 }
 
 function readApprovalRisk(event: Extract<AgentRuntimeEvent, { type: "approval_required" }>) {

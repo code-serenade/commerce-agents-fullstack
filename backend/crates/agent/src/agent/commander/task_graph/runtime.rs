@@ -362,10 +362,7 @@ impl TaskGraphRuntime {
             {
                 return fallback;
             }
-            return sanitize_final_user_facing_text(&format!(
-                "{fallback}\n\n## 已有补充\n\n{upstream_output}"
-            ))
-            .unwrap_or(fallback);
+            return upstream_first_synthesis(&self.graph.root_task, &upstream_output);
         }
         if final_output.chars().count() >= MIN_MULTI_ROLE_FINAL_CHARS {
             return final_output;
@@ -505,8 +502,7 @@ impl TaskGraphRuntime {
         {
             return fallback;
         }
-        sanitize_final_user_facing_text(&format!("{fallback}\n\n## 已有补充\n\n{upstream_output}"))
-            .unwrap_or(fallback)
+        upstream_first_synthesis(&self.graph.root_task, &upstream_output)
     }
 
     pub fn direct_chat_output(&self) -> Option<String> {
@@ -537,13 +533,16 @@ impl TaskGraphRuntime {
         let mut lines = vec![
             fallback,
             String::new(),
-            "## 本轮边界".to_string(),
+            "## 还要注意".to_string(),
             String::new(),
-            "- 部分协作步骤没有形成可用结果，所以具体销量、转化率、成本、库存、平台规则或实时来源不能写成确定事实。".to_string(),
+            "- 当前资料还不足以把具体销量、转化率、成本、库存、平台规则或实时来源写成确定事实。".to_string(),
             "- 上面的内容是基于当前问题和已进入上下文的信息整理出的低风险可执行版本，后续可以用真实资料继续复核。".to_string(),
         ];
         if gaps.len() > 1 {
-            lines.push("- 本轮有多个协作步骤未完成，最终答案已避免暴露内部失败细节。".to_string());
+            lines.push(
+                "- 如果后续补充后台数据、活动规则或素材文件，可以继续把判断收敛到更明确的动作。"
+                    .to_string(),
+            );
         }
 
         sanitize_final_user_facing_text(&lines.join("\n")).or_else(|| Some(lines.join("\n")))
@@ -868,23 +867,39 @@ fn report_contains_blocking_material_gap(report: &WorkerReport) -> bool {
     looks_like_blocking_material_gap_answer(&parts.join("\n"))
 }
 
+fn upstream_first_synthesis(task: &str, upstream_output: &str) -> String {
+    let mut sections = vec![upstream_output.trim().to_string()];
+    sections.extend([
+        String::new(),
+        "## 还要注意".to_string(),
+        String::new(),
+        fallback_boundary_note(task),
+    ]);
+    sanitize_final_user_facing_text(&sections.join("\n")).unwrap_or_else(|| sections.join("\n"))
+}
+
+fn fallback_boundary_note(_task: &str) -> String {
+    "这版先按当前已选商品、资料和活动整理；没有真实后台数据的销量、转化率、成本、库存和平台规则，不能写成确定结论。"
+        .to_string()
+}
+
 fn fallback_structured_synthesis(task: &str) -> String {
     let wants_table = task_requests_table(task);
     let wants_metric_table =
         task.contains("列出指标") || (task.contains("怎么看") && task.contains("下一步"));
     let lead = if wants_table {
-        "先按当前问题、已选上下文和上游岗位输出给出可执行表格草案；表格里的真实销量、转化率、成本、\
+        "先按当前问题、已选上下文和已有信息给出可执行表格草案；表格里的真实销量、转化率、成本、\
          库存、平台规则或实时来源，后续再用真实数据复核。"
     } else {
-        "先按当前问题、已选上下文和上游岗位输出给出可执行草案；涉及真实销量、转化率、成本、库存、\
+        "先按当前问题、已选上下文和已有信息给出可执行草案；涉及真实销量、转化率、成本、库存、\
          平台规则或实时来源的部分，后续再用真实数据复核。"
     };
     let mut sections = vec![
-        "## 当前可先交付".to_string(),
+        "## 先给你一版可用判断".to_string(),
         String::new(),
         lead.to_string(),
         String::new(),
-        "## 先做什么".to_string(),
+        "## 接下来怎么做".to_string(),
         String::new(),
         "- 先明确分析对象、目标人群、目标动作和当前可用信息。".to_string(),
         "- 把需要验证的判断拆成可观察字段，再用小样本、后台数据或后续上传资料复核。".to_string(),
@@ -1322,7 +1337,7 @@ fn process_node_label(node: &TaskNode) -> String {
     if !title.is_empty() && contains_cjk(title) && !looks_like_internal_runtime_label(title) {
         return title.to_string();
     }
-    "协作步骤".to_string()
+    "处理步骤".to_string()
 }
 
 fn user_facing_gap_label(gap: &TaskGraphProcessGap, index: usize) -> String {
@@ -1330,7 +1345,7 @@ fn user_facing_gap_label(gap: &TaskGraphProcessGap, index: usize) -> String {
     if !label.is_empty() && !looks_like_internal_runtime_label(label) {
         return format!("{label} ");
     }
-    format!("协作步骤{} ", index + 1)
+    format!("处理步骤{} ", index + 1)
 }
 
 fn looks_like_internal_runtime_label(value: &str) -> bool {
@@ -1753,11 +1768,11 @@ mod tests {
 
         let output = runtime.synthesize();
 
-        assert!(output.contains("没有拿到可直接展示的完整内容"));
+        assert!(output.contains("这次还没有整理出可以直接交付给你的内容。"));
         assert!(output.contains("## 当前状态"));
         assert!(output.contains("## 可能原因"));
         assert!(output.contains("## 下一步"));
-        assert!(output.contains("- 问题目标还不够明确。"));
+        assert!(output.contains("- 问题里还缺少最关键的对象或目标。"));
         assert!(!output.contains("none"));
         assert!(!output.contains("Passed worker reports"));
     }
@@ -1923,12 +1938,14 @@ mod tests {
 
         let output = runtime.synthesize();
 
-        assert!(output.contains("## 当前可先交付"));
-        assert!(output.contains("## 先做什么"));
-        assert!(output.contains("## 本轮边界"));
+        assert!(output.contains("## 先给你一版可用判断"));
+        assert!(output.contains("## 接下来怎么做"));
+        assert!(output.contains("## 还要注意"));
         assert!(output.contains("低风险可执行版本"));
-        assert!(output.contains("部分协作步骤没有形成可用结果"));
+        assert!(output.contains("当前资料还不足以"));
         assert!(!output.contains("没有形成完整答案"));
+        assert!(!output.contains("内部失败细节"));
+        assert!(!output.contains("部分处理步骤没有形成可用结果"));
         assert!(!output.contains("data"));
         assert!(!output.contains("服务端没有可用的该岗位执行器"));
         assert!(!output.contains("ops"));
@@ -1960,16 +1977,49 @@ mod tests {
 
         let output = runtime.synthesize();
 
-        assert!(output.contains("## 当前可先交付"), "{output}");
-        assert!(output.contains("## 先做什么"), "{output}");
+        assert!(output.contains("## 先给你一版可用判断"), "{output}");
+        assert!(output.contains("## 接下来怎么做"), "{output}");
         assert!(output.contains("## 风险边界"), "{output}");
-        assert!(output.contains("## 本轮边界"), "{output}");
+        assert!(output.contains("## 还要注意"), "{output}");
         assert!(output.contains("可执行草案"), "{output}");
         assert!(output.contains("真实资料"), "{output}");
         assert!(!output.contains("请直接补充新的要求"), "{output}");
         assert!(!output.contains("没有形成完整答案"), "{output}");
         assert!(!output.contains("dependency did not pass"), "{output}");
         assert!(!output.contains("worker cognition timed out"), "{output}");
+    }
+
+    #[test]
+    fn task_graph_gap_message_keeps_generic_fallback_without_internal_failure() {
+        let creative = node("creative", "标题优化", "creative");
+        let mut final_node = node("creative_final", "最终标题建议", "creative");
+        final_node.input_refs = vec![TaskNodeId("creative".to_string())];
+        let mut runtime = TaskGraphRuntime::new(TaskGraph {
+            graph_id: TaskGraphId("graph-title-ctr-gap".to_string()),
+            root_task: "我这个防晒衣标题点击率低，只有标题、价格和一张主图，不完整也没关系。\
+                        你先像伙伴一样帮我判断哪里最该改，并给我一版自然标题。"
+                .to_string(),
+            nodes: vec![creative.clone(), final_node.clone()],
+            adaptive_hint: None,
+        });
+        runtime.states.insert(
+            creative.id.clone(),
+            TaskNodeRuntimeState::Failed("worker cognition timed out".to_string()),
+        );
+        runtime.states.insert(
+            final_node.id.clone(),
+            TaskNodeRuntimeState::Skipped("dependency did not pass".to_string()),
+        );
+
+        let output = runtime.synthesize();
+
+        assert!(output.contains("## 先给你一版可用判断"), "{output}");
+        assert!(output.contains("## 接下来怎么做"), "{output}");
+        assert!(output.contains("## 还要注意"), "{output}");
+        assert!(output.contains("低风险可执行版本"), "{output}");
+        assert!(!output.contains("参考标题：防晒衣"), "{output}");
+        assert!(!output.contains("worker cognition timed out"), "{output}");
+        assert!(!output.contains("dependency did not pass"), "{output}");
     }
 
     #[test]
@@ -2060,7 +2110,7 @@ mod tests {
     }
 
     #[test]
-    fn task_graph_synthesis_replaces_material_gap_final_with_structured_answer() {
+    fn task_graph_synthesis_prefers_business_outputs_when_final_has_material_gap() {
         let data = node("data", "Data", "data");
         let creative = {
             let mut node = node("creative", "Creative", "creative");
@@ -2089,13 +2139,18 @@ mod tests {
             .insert(ops.id.clone(), TaskNodeRuntimeState::Passed);
         runtime.reports.insert(
             data.id.clone(),
-            report("data", "先看点击、加购、付款和退款反馈。"),
+            report(
+                "data",
+                "数据岗先按当前资料做低风险复盘：重点看曝光、点击、加购、付款和退款反馈。\
+                 如果这些字段暂时没有真实后台数据，就先把它们列成待补字段，不能把转化率、销量或库存写成确定结论。",
+            ),
         );
         runtime.reports.insert(
             creative.id.clone(),
             report(
                 "creative",
-                "标题先突出开学收纳、分区和减负，但不编材质规格。",
+                "创意岗先给内容方向：标题突出开学收纳、分区和减负，主图文案强调孩子每天背起来轻松、家长整理更省心。\
+                 没有实拍细节时，不编材质、容量和功能参数，只把卖点写成待验证表达。",
             ),
         );
         runtime.reports.insert(
@@ -2109,10 +2164,16 @@ mod tests {
 
         let output = runtime.synthesize();
 
-        assert!(output.contains("## 当前可先交付"));
-        assert!(output.contains("## 执行表"));
-        assert!(output.contains("| 环节 | 当前可做 | 复核信息 | 风险边界 |"));
-        assert!(output.contains("可执行表格草案"));
+        assert!(
+            output.starts_with("数据分析先按当前资料做低风险复盘"),
+            "{output}"
+        );
+        assert!(output.contains("重点看曝光、点击、加购、付款和退款反馈。"));
+        assert!(output.contains("标题突出开学收纳、分区和减负"));
+        assert!(output.contains("## 还要注意"));
+        assert!(!output.contains("## 先给你一版可用判断"));
+        assert!(!output.contains("## 已有补充"));
+        assert!(!output.contains("| 环节 | 当前可做 | 复核信息 | 风险边界 |"));
         assert!(!output.contains("本轮没有可读取的上传表格或附件"));
         assert!(!output.contains("等待用户提供附件或表格数据"));
         assert!(!output.contains("未找到可用的附件或表格数据"));
@@ -2120,7 +2181,7 @@ mod tests {
     }
 
     #[test]
-    fn task_graph_synthesis_replaces_new_refusal_gap_with_markdown_table() {
+    fn task_graph_synthesis_keeps_upstream_plan_before_refusal_gap() {
         let data = node("data", "Data", "data");
         let creative = {
             let mut node = node("creative", "Creative", "creative");
@@ -2152,11 +2213,19 @@ mod tests {
             .insert(ops.id.clone(), TaskNodeRuntimeState::Passed);
         runtime.reports.insert(
             data.id.clone(),
-            report("data", "先按曝光、点击、加购、付款和退款复核。"),
+            report(
+                "data",
+                "数据岗建议先把本轮促销拆成四个观察点：曝光有没有进来、点击是否愿意看详情、加购是否说明权益有吸引力、付款和退款是否暴露价格或承接问题。\
+                 这些字段先做复核表，不把缺失数据包装成确定结果。",
+            ),
         );
         runtime.reports.insert(
             creative.id.clone(),
-            report("creative", "标题示例：开学装书不乱，一包分区搞定。"),
+            report(
+                "creative",
+                "创意岗可先给一版轻量表达：标题示例：开学装书不乱，一包分区搞定。\
+                 海报文案先围绕分区、耐用、背负舒服和开学场景展开，具体材质、容量和优惠力度等信息等商品资料确认后再落字。",
+            ),
         );
         runtime.reports.insert(
             ops.id.clone(),
@@ -2169,13 +2238,21 @@ mod tests {
 
         let output = runtime.synthesize();
 
-        assert!(output.contains("## 当前可先交付"), "{output}");
-        assert!(output.contains("## 执行表"), "{output}");
         assert!(
-            output.contains("| 环节 | 当前可做 | 复核信息 | 风险边界 |"),
+            output.starts_with("数据分析建议先把本轮促销拆成四个观察点"),
             "{output}"
         );
-        assert!(output.contains("可执行表格草案"), "{output}");
+        assert!(
+            output.contains("标题示例：开学装书不乱，一包分区搞定。"),
+            "{output}"
+        );
+        assert!(output.contains("## 还要注意"), "{output}");
+        assert!(!output.contains("## 先给你一版可用判断"), "{output}");
+        assert!(!output.contains("## 已有补充"), "{output}");
+        assert!(
+            !output.contains("| 环节 | 当前可做 | 复核信息 | 风险边界 |"),
+            "{output}"
+        );
         assert!(!output.contains("本轮没有可读取的上传表格或附件"));
         assert!(!output.contains("无法生成完整促销方案"));
         assert!(!output.contains("建议用户提供附件"));

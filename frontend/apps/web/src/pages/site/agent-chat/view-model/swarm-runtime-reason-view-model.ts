@@ -22,16 +22,45 @@ const WORKER_UNAVAILABLE_MARKERS = [
 ]
 
 const COLLABORATION_INCOMPLETE_MARKERS = [
+  "adapter",
+  "accounting role output lacks",
+  "accounting role should provide",
+  "creative role output lacks",
+  "creative role should provide",
+  "data role should provide",
+  "design role output lacks",
+  "design role should provide",
+  "engineering role output lacks",
+  "engineering role should provide",
+  "ops role should provide",
+  "service role output lacks",
+  "service role should provide",
   "worker reported failed status",
+  "web role output lacks",
+  "web role should provide",
   "structured role output is missing",
   "content must be specific and non-empty",
   "json template validation",
   "decode failed",
   "cognition failure",
+  "external search provider",
   "raw=",
   "missing key",
   "failure_kind",
+  "graph_id",
   "role_output",
+  "route_mode",
+  "search_evidence",
+  "search_trends",
+  "selected_skills",
+  "skill '",
+  'skill "',
+  "skill_id",
+  "not allowed for role",
+  "strategy",
+  "task_graph",
+  "worker.",
+  "worker_id",
 ]
 
 const TIMEOUT_MARKERS = [
@@ -69,6 +98,7 @@ export function formatUserFacingRuntimeReason(
 export function isInternalRuntimeReason(value: string) {
   const lower = value.trim().toLowerCase()
   if (!lower) return false
+  if (lower.includes("http://") || lower.includes("https://")) return true
   return containsAny(lower, [
     ...MODEL_UNAVAILABLE_MARKERS,
     ...MODEL_CONFIG_MARKERS,

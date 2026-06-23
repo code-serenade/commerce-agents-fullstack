@@ -36,7 +36,7 @@ describe("AgentChatComposer context panels", () => {
     ).not.toBeInTheDocument()
   })
 
-  it("keeps product and campaign controls hidden until context is available", async () => {
+  it("keeps product and campaign entry points visible before context is selected", async () => {
     const i18n = await createAgentChatTestI18n()
     const { rerender } = render(
       <TestProviders i18n={i18n}>
@@ -45,19 +45,25 @@ describe("AgentChatComposer context panels", () => {
     )
 
     expect(
-      screen.queryByRole("button", {
+      screen.getByRole("button", {
         name: new RegExp(
           i18n.t("agentChat.composer.productContext.compactTitle")
         ),
       })
-    ).not.toBeInTheDocument()
+    ).toBeInTheDocument()
     expect(
-      screen.queryByRole("button", {
+      screen.getByRole("button", {
         name: new RegExp(
           i18n.t("agentChat.composer.campaignContext.compactTitle")
         ),
       })
-    ).not.toBeInTheDocument()
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(i18n.t("agentChat.composer.productContext.compactLabel"))
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(i18n.t("agentChat.composer.campaignContext.compactLabel"))
+    ).toBeInTheDocument()
 
     rerender(
       <TestProviders i18n={i18n}>

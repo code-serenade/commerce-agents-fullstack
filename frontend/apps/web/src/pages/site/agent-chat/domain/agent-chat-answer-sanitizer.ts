@@ -1,6 +1,7 @@
 import { normalizeUserFacingAnswer } from "./agent-chat-user-facing-normalizer"
 import { restoreLegacyFallbackLayout } from "./agent-chat-legacy-fallback-layout"
 import { isUnsupportedBenchmarkClaim } from "./agent-chat-benchmark-claims"
+import { removeRepeatedUserFacingContent } from "./agent-chat-answer-dedupe"
 
 export { isUnsupportedBenchmarkClaim } from "./agent-chat-benchmark-claims"
 
@@ -53,6 +54,21 @@ const BOUNDARY_NOTICE_TERMS = terms([
   [19981, 27880, 20837, 40664, 35748, 21830, 21697],
 ])
 
+const LEGACY_FALLBACK_HEADING_REPLACEMENTS = [
+  {
+    from: cjk(24403, 21069, 21487, 20808, 20132, 20184),
+    to: cjk(20808, 32473, 20320, 19968, 29256, 21487, 29992, 21028, 26029),
+  },
+  {
+    from: cjk(20808, 20570, 20160, 20040),
+    to: cjk(25509, 19979, 26469, 24590, 20040, 20570),
+  },
+  {
+    from: cjk(26412, 36718, 36793, 30028),
+    to: cjk(36824, 35201, 27880, 24847),
+  },
+]
+
 export interface AgentAnswerSanitizerCopy {
   boundaryNotice: string
 }
@@ -81,9 +97,19 @@ export function sanitizeAgentAnswerContent(
     .join("\n")
     .replaceAll(PRESERVED_BLANK_LINE, "")
 
-  return normalizeUserFacingAnswer(cleaned)
+  return normalizeLegacyFallbackHeadings(
+    removeRepeatedUserFacingContent(normalizeUserFacingAnswer(cleaned))
+  )
     .replace(/\n{3,}/g, "\n\n")
     .trim()
+}
+
+function normalizeLegacyFallbackHeadings(content: string) {
+  return LEGACY_FALLBACK_HEADING_REPLACEMENTS.reduce(
+    (current, replacement) =>
+      current.replaceAll(`## ${replacement.from}`, `## ${replacement.to}`),
+    content
+  )
 }
 
 function removeInternalFailureBlock(

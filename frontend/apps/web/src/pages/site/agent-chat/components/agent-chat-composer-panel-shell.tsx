@@ -24,7 +24,7 @@ export function AgentChatComposerPanelShell({
       data-agent-chat-composer-panel-size={size}
       style={{ maxHeight }}
     >
-      <div className="relative min-h-0" style={{ maxHeight }}>
+      <div className="relative flex min-h-0 flex-col" style={{ maxHeight }}>
         {onClose ? (
           <button
             type="button"
@@ -37,8 +37,9 @@ export function AgentChatComposerPanelShell({
           </button>
         ) : null}
         <div
-          className="min-h-0 overflow-y-auto overscroll-contain p-2.5 pt-3 pr-12 [scrollbar-gutter:stable] sm:p-3 sm:pr-12"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2.5 pt-3 pr-12 pb-16 [scrollbar-gutter:stable] sm:p-3 sm:pr-12 sm:pb-14"
           data-agent-chat-composer-panel-scroll="true"
+          style={{ maxHeight }}
         >
           {children}
         </div>

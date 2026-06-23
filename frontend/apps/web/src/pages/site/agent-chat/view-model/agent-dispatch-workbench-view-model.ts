@@ -203,10 +203,10 @@ function resolveCompletedCount(
   rawCompleted = 0
 ) {
   if (total <= 0) return 0
+  if (hasFinished(runtimeEvents)) return total
   if (hasFailed(runtimeEvents)) {
     return Math.max(1, Math.min(total, rawCompleted || 1))
   }
-  if (hasFinished(runtimeEvents)) return total
   if (isStreaming) {
     return Math.max(1, Math.min(total, rawCompleted || 1))
   }
@@ -223,6 +223,7 @@ function resolveStepState(
   runtimeEvents: AgentRuntimeEvent[],
   isStreaming: boolean
 ): SwarmState {
+  if (hasFinished(runtimeEvents)) return "done"
   if (hasFailed(runtimeEvents) && index === Math.max(completed - 1, 0)) {
     return "failed"
   }

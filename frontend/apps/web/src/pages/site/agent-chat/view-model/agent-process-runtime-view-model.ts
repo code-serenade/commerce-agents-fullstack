@@ -46,6 +46,7 @@ export function getRouteSupportRoles(
 export function hasFinished(runtimeEvents: AgentRuntimeEvent[]) {
   return runtimeEvents.some(
     (event) =>
+      event.type === "output" ||
       event.type === "finished" ||
       event.type === "task_graph_finished" ||
       event.type === "workspace_run_completed" ||

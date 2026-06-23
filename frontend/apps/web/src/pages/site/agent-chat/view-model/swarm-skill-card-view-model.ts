@@ -3,6 +3,8 @@ import type { TFunction } from "i18next"
 import type { AgentSkillRuntimeResult } from "./swarm-runtime-state-view-model"
 import type { ComputerCard } from "./swarm-panel-view-model"
 import type { RuntimeNodeSnapshot } from "./swarm-runtime-state-view-model"
+import { formatUserFacingSkillStatus } from "./agent-user-facing-runtime-text"
+import { formatTimelineDynamicText } from "./swarm-timeline-user-facing-text"
 
 export function getSkillCard(
   activeNode: RuntimeNodeSnapshot | undefined,
@@ -14,14 +16,17 @@ export function getSkillCard(
   return {
     id: `skill-${latestSkill.skillId}`,
     title: t("agentChat.swarm.cards.skill.title"),
-    meta: latestSkill.skillId,
+    meta: t("agentChat.swarm.cards.skill.meta"),
     description: formatSkillDescription(latestSkill, t),
     icon: Wrench,
     lines: [
       t("agentChat.swarm.cards.skill.statusLine", {
-        status: latestSkill.status,
+        status: formatUserFacingSkillStatus(latestSkill.status, t),
       }),
-      latestSkill.summary ?? latestSkill.error ?? latestSkill.reason ?? "",
+      formatTimelineDynamicText(
+        latestSkill.summary ?? latestSkill.error ?? latestSkill.reason,
+        t
+      ),
     ].filter(Boolean),
     state: skillState(latestSkill.status, latestSkill.boundary),
   }
@@ -38,13 +43,17 @@ function formatSkillDescription(
     return t("agentChat.swarm.cards.skill.approvalRequired")
   }
   if (skill.boundary) {
-    return skill.summary ?? t("agentChat.swarm.cards.skill.completed")
+    return skill.summary
+      ? formatTimelineDynamicText(skill.summary, t)
+      : t("agentChat.swarm.cards.skill.completed")
   }
   if (skill.status === "deferred") {
     return t("agentChat.swarm.cards.skill.deferred")
   }
-  if (skill.error) return skill.error
-  return skill.summary ?? t("agentChat.swarm.cards.skill.completed")
+  if (skill.error) return formatTimelineDynamicText(skill.error, t)
+  return skill.summary
+    ? formatTimelineDynamicText(skill.summary, t)
+    : t("agentChat.swarm.cards.skill.completed")
 }
 
 function skillState(status: string, boundary?: boolean) {

@@ -30,6 +30,12 @@ const ROLE_EXECUTOR_UNAVAILABLE = cjk(26381, 21153, 31471, 27809, 26377, 21487, 
 const UPSTREAM_ROLE_INCOMPLETE = cjk(19978, 28216, 20381, 36182, 23703, 20301, 26410, 25104, 21151, 23436, 25104)
 const CHECK_SERVER_ROLE_CONFIG = cjk(35831, 26816, 26597, 26381, 21153, 31471, 23703, 20301, 37197, 32622)
 const ROLE_EXECUTION_FAILED = cjk(23703, 20301, 25191, 34892, 22833, 36133)
+const UPSTREAM_ROLE_OUTPUT = cjk(19978, 28216, 23703, 20301, 36755, 20986)
+const EXISTING_INFO = cjk(24050, 26377, 20449, 24687)
+const COLLABORATION_STEP = cjk(21327, 20316, 27493, 39588)
+const PROCESS_STEP = cjk(22788, 29702, 27493, 39588)
+const INTERNAL_FAILURE_DETAIL = cjk(20869, 37096, 22833, 36133, 32454, 33410)
+const INTERNAL_FAILURE_EXPOSURE_AVOIDED = cjk(24050, 36991, 20813, 26292, 38706, 20869, 37096, 22833, 36133, 32454, 33410)
 
 const PLACEHOLDER_PHRASES = [
   cjk(65288, 21344, 20301, 31526, 38656, 26367, 25442, 20026, 30495, 23454, 20449, 24687, 65289),
@@ -61,7 +67,10 @@ function cleanUserFacingLine(line: string) {
   const withoutPlaceholders = removePlaceholderPhrases(
     removePlaceholderBrackets(withoutRole)
   )
-  const rewrittenNote = withoutPlaceholders
+  const rewrittenInternalTerms = withoutPlaceholders
+    .replaceAll(UPSTREAM_ROLE_OUTPUT, EXISTING_INFO)
+    .replaceAll(COLLABORATION_STEP, PROCESS_STEP)
+  const rewrittenNote = rewrittenInternalTerms
     .replaceAll(NOTE_PREFIX, EXPLANATION_PREFIX)
     .replaceAll(NOTE_ASCII_PREFIX, EXPLANATION_PREFIX)
   const compacted = compactLineSpacing(rewrittenNote)
@@ -264,6 +273,8 @@ function isInternalNoiseLine(line: string) {
     line.includes(UPSTREAM_ROLE_INCOMPLETE) ||
     line.includes(CHECK_SERVER_ROLE_CONFIG) ||
     line.includes(ROLE_EXECUTION_FAILED) ||
+    line.includes(INTERNAL_FAILURE_DETAIL) ||
+    line.includes(INTERNAL_FAILURE_EXPOSURE_AVOIDED) ||
     line.startsWith(TASK_DONE) ||
     line.startsWith(SUPPORT_DONE) ||
     line.includes(THINKING) ||
