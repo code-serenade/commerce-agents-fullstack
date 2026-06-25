@@ -8,7 +8,7 @@
 - `db-init`: 一次性数据库初始化镜像，包含 `migration` 和 `xtask`，由安装脚本通过 `docker compose run --rm db-init` 执行，不保留容器。
 - `backend`: Rust `web-server` 服务，监听 `19878`。
 - `web`: Vite `apps/web` 构建产物，由 nginx 托管，宿主端口 `8080`。
-- `admin`: Vite `apps/admin` 构建产物，由 nginx 托管，宿主端口 `8081`。
+- `admin`: Vite `apps/admin` 构建产物，由 nginx 托管，宿主端口 `29203`。
 
 ## 启动
 
@@ -83,7 +83,7 @@ CARGO_CACHE_DIR=/path/to/cargo-cache ./deploy/build-backend-in-alpine.sh
 访问：
 
 - Web: http://localhost:8080
-- Admin: http://localhost:8081
+- Admin: http://localhost:29203
 
 `backend` 和 `postgres` 默认不映射到宿主机端口，只在 Docker Compose 内部网络中访问。
 

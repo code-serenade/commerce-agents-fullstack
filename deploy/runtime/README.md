@@ -25,7 +25,7 @@
 
 ```text
 Web:   http://服务器IP:8080
-Admin: http://服务器IP:8081
+Admin: http://服务器IP:29203
 ```
 
 ## 配置
