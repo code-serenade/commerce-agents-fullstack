@@ -1,10 +1,14 @@
 const messages = {
   web: {
+    loading: {
+      app: "Loading Commerce Multi-Agent Platform",
+      route: "Preparing page",
+    },
     shell: {
       brand: {
-        eyebrow: "Commerce Copilot",
-        title: "Commerce Copilot",
-        description: "Ecommerce AI training workspace",
+        eyebrow: "Commerce Multi-Agent Platform",
+        title: "Commerce Multi-Agent Platform",
+        description: "Commerce Multi-Agent Platform",
       },
       navigation: {
         mobileLabel: "Primary navigation",
@@ -19,8 +23,8 @@ const messages = {
         platformConnect: "Platform data",
         approvals: "Teacher review records",
         operations: "Business result tracking",
-        agent: "Commerce Copilot",
-        agentOutput: "Review report",
+        agent: "Commerce Multi-Agent Platform",
+        agentOutput: "Conversation report",
         profile: "Profile",
       },
       topbar: {
@@ -268,7 +272,7 @@ const messages = {
         eyebrow: "Platform Data",
         title: "Platform data",
         description:
-          "Check whether Douyin, Qianchuan, and other platform data are connected so clicks, conversion, ROI, and other metrics can support training analysis.",
+          "Check whether ecommerce platform and paid advertising data are connected so clicks, conversion, ROI, and other metrics can support training analysis.",
         boundaryTitle: "Data note",
         boundaryDescription:
           "This area is mainly for reading and checking data sources. Real platform writes or publishing actions require review.",
@@ -315,7 +319,7 @@ const messages = {
           "Store AI output, checklists, and revisions as deliverables teachers can inspect.",
         platform: "Check platform data",
         platformDesc:
-          "Check Douyin, Qianchuan, and other metrics for diagnosis and review.",
+          "Check platform and paid advertising metrics for diagnosis and review.",
         governance: "Check risk reminders",
         governanceDesc:
           "Check anomaly reminders, execution queue items, and missing training materials.",
@@ -534,6 +538,9 @@ const messages = {
         createSnapshot: "Create snapshot",
         createExecution: "Add improvement suggestion",
         artifactFormat: "Format",
+        artifactWorkspace: "Training task",
+        artifactSource: "Source",
+        artifactValidation: "Check state",
         artifactStorage: "Storage",
         artifactFile: "File",
         artifactRun: "Run",
@@ -824,6 +831,11 @@ const messages = {
       clearFilters: "Clear filters",
       uploadingAction: "Uploading",
       uploadAction: "Upload files",
+      chatContextUnavailable: {
+        title: "Browsing the material library only",
+        description:
+          "You can still review, filter, and manage materials here. To upload new files or select files for the current AI turn, return to the chat page first.",
+      },
       emptyTitle: "No material files yet",
       empty:
         "Upload files from chat attachments or the upload file library, then review read status and choose what the AI should use this turn.",
@@ -987,7 +999,7 @@ const messages = {
   home: {
     welcome: "Welcome back",
     publicWelcome: "Welcome",
-    publicTitle: "Ecommerce AI training workspace",
+    publicTitle: "Commerce Multi-Agent Platform",
     publicSubtitle:
       "Complete one training task through product selection, campaign planning, data diagnosis, submission, and review report.",
     fallbackName: "Member",
@@ -1048,6 +1060,29 @@ const messages = {
       title: "Profile settings",
       description:
         "Update your display name, avatar, email, and password from your profile page.",
+      appProfile: {
+        title: "School and team",
+        description:
+          "These details identify your training group and affect your AI question quota.",
+        loading: "Loading school and team...",
+        loadFailed: "Failed to load school and team.",
+        missingAppUser:
+          "This account has not initialized its training profile yet. Open the Q&A page once, then come back to add school and team.",
+        saveFailed: "Failed to save school and team.",
+        schoolName: "School",
+        schoolPlaceholder: "Enter school name",
+        teamName: "Team",
+        teamPlaceholder: "Enter team name",
+        fieldHelp:
+          "You can leave them blank for now. Both fields are required to complete binding.",
+        save: "Save school and team",
+        saving: "Saving...",
+        saved: "School and team saved",
+        boundStatus: "Bound",
+        unboundStatus: "Not bound",
+        quotaRule:
+          "You can use 100 AI questions without binding. After adding both school and team, the total quota becomes 150.",
+      },
     },
     publicProfile: {
       title: "Personal training records",
@@ -1083,7 +1118,7 @@ const messages = {
     streamTimedOut:
       "This reply took longer than expected, so I collapsed the reasoning notes for now. Review the partial result or send it again to continue.",
     loginRequired: {
-      title: "Sign in to keep using your AI commerce partner",
+      title: "Sign in to keep using Commerce Multi-Agent Platform",
       description:
         "You can draft the ecommerce question and choose a strategy first. Sign in when you are ready to call the cloud model and save the conversation.",
       message:
@@ -1097,18 +1132,31 @@ const messages = {
       exhaustedBadge: "No questions left",
       disabledBadge: "Paused",
       usage: "{{used}} / {{limit}} used, {{remaining}} remaining",
+      compactUsage: "{{remaining}} / {{limit}} remaining",
       account: "Account: {{account}}",
       profile: "Stats profile: {{school}} / {{team}}",
+      boundCompact: "School and team bound, {{limit}} total",
+      unboundCompact: "{{base}} without binding; {{limit}} after binding",
+      unboundUpgrade: "Add info",
       exhaustedHint:
         "This account's AI question quota has been used up. Contact the event or platform administrator to add quota.",
       disabledHint:
         "This account's AI questions are paused. Contact an administrator.",
     },
+    homeRoleCluster: {
+      eyebrow: "Commerce multi-agent roles",
+      title: "Ask first; roles check it together",
+      ariaLabel: "Commerce multi-agent role preview",
+      summary:
+        "They split work by question and show who is checking what during an answer",
+      footer:
+        "Different questions use different roles. You do not need to understand roles first; just ask the ecommerce question.",
+    },
     sidebar: {
       newChat: "New chat",
       search: "Search history",
       recents: "Recents",
-      chat: "Commerce Copilot",
+      chat: "Commerce Multi-Agent Platform",
       more: "More",
       less: "Collapse",
       moreHistory: "Show {{count}} more",
@@ -1120,11 +1168,11 @@ const messages = {
       empty: "No conversations yet",
     },
     shell: {
-      brandEyebrow: "Commerce Copilot",
-      brandTitle: "Commerce Copilot",
+      brandEyebrow: "Commerce Multi-Agent Platform",
+      brandTitle: "Commerce Multi-Agent Platform",
       brandDescription: "Say the question directly; I will give the judgment and next step",
       topbarTitle: "Say your ecommerce question",
-      topbarMeta: "Commerce Copilot · natural language entry",
+      topbarMeta: "Commerce Multi-Agent Platform · natural language entry",
       sections: {
         create: "",
         workspace: "Common entries",
@@ -1133,14 +1181,13 @@ const messages = {
       },
       navigation: {
         newChat: "New chat",
-        capabilities: "Question ideas",
-        smartOps: "Commerce Copilot",
+        capabilities: "Usage guide",
+        questionIdeas: "Question ideas",
+        smartOps: "Commerce Multi-Agent Platform",
         productBoard: "Products",
         materials: "Files and images",
         campaigns: "Campaigns",
         platform: "Platform data",
-        marketResearch: "Data clues",
-        operations: "Business feedback",
         briefing: "Daily briefing",
         alerts: "Alerts",
         deliverables: "Review report",
@@ -1188,7 +1235,7 @@ const messages = {
       attachPrompt:
         "Add the file or data constraints here, for example: product price, budget, inventory, target audience, current conversion rate, and platform account status.",
       agentTitle: "References for this turn",
-      agentName: "Commerce Copilot",
+      agentName: "Commerce Multi-Agent Platform",
       contextPreview: {
         compactLabel: "Check first",
         compactTitle: "Check what this turn will reference",
@@ -1479,46 +1526,61 @@ const messages = {
         },
         roleLabels: {
           chat: {
-            name: "General angle",
+            name: "Chat assistant",
           },
           ops: {
-            name: "Operations angle",
+            name: "Operations strategist",
           },
           data: {
-            name: "Data angle",
+            name: "Data analyst",
           },
           creative: {
-            name: "Creative angle",
+            name: "Content creative",
           },
           service: {
-            name: "Service angle",
+            name: "Customer success specialist",
           },
           douyin_ads: {
-            name: "Ads angle",
+            name: "Operations strategist",
           },
           accounting: {
-            name: "Finance angle",
+            name: "Finance analyst",
           },
           search: {
-            name: "Source-check angle",
+            name: "Source researcher",
           },
           engineering: {
-            name: "Technical angle",
+            name: "Technical architect",
+          },
+          design: {
+            name: "Designer",
+          },
+          web: {
+            name: "SEO specialist",
           },
         },
         capabilityLabels: {
           "ops.strategy": "Operations strategy",
           "campaign.orchestration": "Campaign orchestration",
+          "search.evidence": "Source research",
+          "source.verification": "Source verification",
           "data.analysis": "Data analysis",
           "metrics.diagnosis": "Metric diagnosis",
           "creative.content": "Creative content",
           "creative.copywriting": "Copywriting",
           "service.workflow": "Service workflow",
           "service.sentiment": "Customer sentiment",
+          "engineering.architecture": "Technical architecture",
+          "engineering.reliability": "System reliability",
           "ads.optimization": "Ads optimization",
           "roi.control": "ROI control",
           "finance.profitability": "Profitability",
+          "finance.cashflow": "Cash flow",
           "budget.planning": "Budget planning",
+          "design.visual": "Visual design",
+          "design.layout": "Layout conversion",
+          "seo.optimization": "SEO optimization",
+          "web.content": "Web content",
         },
         roleModes: {
           auto: {
@@ -1557,12 +1619,12 @@ const messages = {
         coffee: {
           label: "May Day coffee conversion",
           prompt:
-            "I run coffee operations and mainly market on Douyin. May Day is coming soon. Please write an operations plan to improve conversion rate, including Qianchuan ads, budget, creative, and action steps.",
+            "I run coffee operations and mainly market on short-video platforms. May Day is coming soon. Please write an operations plan to improve conversion rate, including paid advertising, budget, creative, and action steps.",
         },
-        qianchuan: {
-          label: "Qianchuan ads review",
+        paidAds: {
+          label: "Paid ads review",
           prompt:
-            "Help me review a Douyin live room Qianchuan ads issue: click-through rate is fine but order conversion is low. Split it into data diagnosis, budget, creative, ads, and operations tasks.",
+            "Help me review a live-room paid ads issue: click-through rate is fine but order conversion is low. Split it into data diagnosis, budget, creative, and operations tasks.",
         },
       },
       chips: {
@@ -1579,19 +1641,19 @@ const messages = {
             "Campaign context: May Day campaign goal, budget, schedule, creative direction, live room execution, and review metrics should be considered.",
         },
         platform: {
-          label: "Douyin/Qianchuan data",
+          label: "Platform/ads data",
           title: "Add platform data context to the question.",
           prompt:
-            "Platform data context: Douyin live room funnel, Qianchuan click-through rate, conversion rate, ROI, audience package, budget pace, and anomaly signals should be considered.",
+            "Platform data context: live-room funnel, ad click-through rate, conversion rate, ROI, audience package, budget pace, and anomaly signals should be considered.",
         },
       },
     },
     workbench: {
-      title: "Judgment notes",
-      expand: "Expand judgment notes",
-      collapse: "Collapse judgment notes",
-      close: "Close judgment notes",
-      closePanel: "Collapse notes panel",
+      title: "Task process",
+      expand: "Expand task process",
+      collapse: "Collapse task process",
+      close: "Close task process",
+      closePanel: "Collapse process panel",
       progress: "Progress",
       activity: "Run activity",
       adaptiveDispatch: "Adaptive dispatch",
@@ -1609,7 +1671,7 @@ const messages = {
         planningDescription:
           "Input received. Matching products, campaigns, data, and delivery steps.",
         historyDescription:
-          "Judgment notes only show this turn's reasoning path; historical messages are not counted in progress.",
+          "Task process only shows this turn's work path; historical messages are not counted in progress.",
         waitingDescription:
           "After you enter an ecommerce question, it will organize products, campaigns, platform data, alerts, and deliverables.",
         loopTitle: "01 | Operating loop",
@@ -1620,8 +1682,8 @@ const messages = {
           "Data diagnosis identifies metrics, attribution, and operating constraints",
           "Product selection analysis provides product knowledge, selling points, and competitor clues",
           "Campaigns carry planning, execution cadence, and review results",
-          "Platform connections sync Douyin and Qianchuan status",
-          "Budget, ads optimization, and creative work run in parallel",
+          "Platform connections sync store and paid advertising status",
+          "Budget review, operations launch judgment, and creative work run in parallel",
           "Operations plan summarizes budget, creative, and launch cadence",
           "Deliverables store plans, checklists, and review language",
           "Alerts store budget, delivery, and conversion anomaly rules",
@@ -1637,6 +1699,7 @@ const messages = {
       submitted: "Submitted",
       noTarget: "Waiting for run",
       target: "Target: {{target}}",
+      linked: "Linked to this answer",
       ratingLabel: "Run answer rating",
       ratingTitle: "{{rating}} stars",
       placeholder: "Optional: what worked, what should improve",
@@ -1653,7 +1716,7 @@ const messages = {
       },
     },
     thread: {
-      agentName: "Commerce Copilot",
+      agentName: "Commerce Multi-Agent Platform",
       welcomeCapabilities: ["Catch the issue", "Ask less", "Move forward"],
       startHere: "You can also ask like this",
       examplePrompts: [
@@ -1707,6 +1770,7 @@ const messages = {
       studentTaskEntries: {
         title: "Start here",
         subtitle: "Choose one to put it into the input.",
+        openIdeas: "More question ideas",
         start: {
           title: "Check if this product can sell",
           detail: "Incomplete information is fine; start with margin, demand, and service risk.",
@@ -1739,7 +1803,7 @@ const messages = {
         },
       },
       receivingOutput: "Preparing the usable answer",
-      waitingEvents: "Organizing judgment notes",
+      waitingEvents: "Organizing task process",
       stopped: "This turn stopped. Send again or try a shorter question.",
       errorActions: {
         title: "Turn not completed",
@@ -1753,7 +1817,7 @@ const messages = {
       completedTasks: "{{completed}}/{{total}} steps completed",
       planning: "Organizing the reasoning path",
       historyNotExecuted: "Historical message has no reasoning thread",
-      executionTitle: "Judgment notes for this turn",
+      executionTitle: "Task process for this turn",
       processKinds: {
         waiting: {
           title: "Preparing task",
@@ -1805,7 +1869,7 @@ const messages = {
         planning: "Arranging steps",
         waiting: "Waiting for a new task",
       },
-      artifactsTitle: "Stage files",
+      artifactsTitle: "Process materials",
       artifacts: {
         updating: "Updates with handling",
         preparing: "Preparing",
@@ -1813,7 +1877,7 @@ const messages = {
         backendCreated: "System created {{type}}, status: {{status}}",
         empty:
           "No review materials yet. Demo files are not shown for this run.",
-        fileFallback: "Stage material",
+        fileFallback: "Process material",
         finalReportMeta: "Review",
         genericMeta: "Material",
         searchEvidence: "System saved real external search evidence.",
@@ -1821,15 +1885,15 @@ const messages = {
         statusLimited: "Needs context",
         statusReady: "Synced",
         statusSynced: "Syncing",
-        waitingBackend: "Waiting for review materials or search evidence.",
+        waitingBackend: "Waiting for this turn's process material.",
       },
       currentProgress: "Task progress {{completed}}/{{total}}",
-      collapseProcess: "Collapse judgment notes",
-      expandProcess: "Expand judgment notes",
-      openWorkbench: "View judgment notes",
-      openWorkbenchForTurn: "View judgment notes",
-      closeWorkbench: "Hide judgment notes",
-      currentAnswerProcess: "Current judgment notes",
+      collapseProcess: "Collapse task process",
+      expandProcess: "Expand task process",
+      openWorkbench: "View task process",
+      openWorkbenchForTurn: "View task process",
+      closeWorkbench: "Hide task process",
+      currentAnswerProcess: "Current task process",
       processLinkedToAnswer: "Linked to this answer",
       processPanelActive: "Right panel open",
       contextSummary: {
@@ -1862,29 +1926,59 @@ const messages = {
         useful: "Useful",
         useless: "Not useful",
       },
+      assistantAvatar: {
+        name: "Commerce copilot",
+        summary: "Catches the question first, then breaks down the next step",
+        ariaLabel: "Commerce copilot is replying",
+        ariaLabelReady: "Commerce copilot reply is ready",
+        ariaLabelWorking: "Commerce copilot is replying",
+        title: "Commerce copilot",
+      },
       agents: {
         standby: "Standby",
         data: {
-          name: "Data diagnosis",
+          name: "Data analyst",
           summary:
-            "Identify metrics, attribution, and operating constraints first",
+            "Check metrics, funnels, attribution, and missing fields",
         },
         accounting: {
-          name: "Budget review",
-          summary: "Check budget, SKU, and risk boundaries",
+          name: "Finance analyst",
+          summary: "Calculate costs, margin, cash flow, and ROI boundaries",
         },
         douyinAds: {
-          name: "Qianchuan ads",
-          summary: "Break down plan structure, audiences, and ROI stop-loss",
+          name: "Operations strategist",
+          summary:
+            "Judge ads, budget, and campaign cadence inside the operations plan",
         },
         creative: {
-          name: "Creative output",
+          name: "Content creative",
           summary:
-            "Generate short-video, live, and campaign content directions",
+            "Draft short videos, live scripts, titles, and seeding content",
+        },
+        service: {
+          name: "Customer success specialist",
+          summary:
+            "Read customer sentiment, service flow, and response boundaries",
         },
         ops: {
-          name: "Ops plan",
-          summary: "Combine upstream findings into an execution cadence",
+          name: "Operations strategist",
+          summary: "Plan strategy, campaign cadence, assortment, and priorities",
+        },
+        search: {
+          name: "Source researcher",
+          summary: "Check platform rules, public sources, and competitor material",
+        },
+        engineering: {
+          name: "Technical architect",
+          summary: "Check APIs, uploads, OCR, tracking, and system feasibility",
+        },
+        design: {
+          name: "Designer",
+          summary: "Review main images, detail pages, layout, and visual conversion",
+        },
+        web: {
+          name: "SEO specialist",
+          summary: "Check keywords, organic traffic, indexing, and page titles",
         },
         delivery: {
           name: "Deliverable doc",
@@ -1892,6 +1986,7 @@ const messages = {
         },
       },
       steps: {
+        stepNumber: "Step {{index}}",
         readTarget: "Identify training goal",
         planReady: "Reasoning path generated",
         readingRules: "Check question and constraints",
@@ -1944,13 +2039,13 @@ const messages = {
         accounting: "Budget review",
         engineering: "Engineering judgment",
         web: "Web/SEO plan",
-        douyin_ads: "Qianchuan ads optimization",
+        douyin_ads: "Operations plan",
         ops: "Operations plan",
       },
       artifactSpecs: {
         dataStatus: "Data diagnosis, metric attribution, platform context",
         adsStatus:
-          "Qianchuan plan structure, audience packages, budget cadence",
+          "Ad plan structure, audience packages, budget cadence",
         deliveryFile: "operation.execution.plan.docx",
         deliveryStatus: "Final plan, checklist, and review language",
       },
@@ -1974,18 +2069,18 @@ const messages = {
       },
       processStage: {
         failed:
-          "Handling is blocked. Expand judgment notes to inspect action items.",
+          "Handling is blocked. Expand task process to inspect action items.",
         finished: "Judgment summarized. Review notes and business links.",
         saved: "Judgment summarized. Review notes and business links.",
         running: "Checking the useful signals",
         planning: "Organizing the reasoning path",
-        synced: "Expand to review this turn's judgment notes",
-        history: "Historical chat. Expand to review this turn's judgment notes.",
-        direct: "Handled as direct answer. Expand to inspect the need decision.",
+        synced: "Expand to review this turn's task process",
+        history: "Historical chat. Expand to review this turn's task process.",
+        direct: "Handled as direct answer. Expand to review the task process.",
       },
       artifactState: {
         done: "Generated",
-        boundary: "Needs data",
+        boundary: "Stage result",
         working: "Generating",
         failed: "Blocked",
         queued: "Queued",
@@ -1993,17 +2088,66 @@ const messages = {
       },
       inlineState: {
         done: "Done",
-        boundary: "Needs data",
+        boundary: "Stage result",
         working: "Processing",
         reworking: "Retrying",
         failed: "Failed",
         queued: "Queued",
         idle: "Standby",
       },
+      roleClusterActivity: {
+        title: "Role collaboration progress this turn",
+        ariaLabel: "Commerce multi-agent collaboration progress",
+        participants: "Participating roles",
+        summary: {
+          active: "{{active}} role(s) checking, {{total}} involved",
+          blocked: "Some partner work needs more material, {{total}} involved",
+          done: "{{total}} role(s) finished this turn",
+          waiting: "{{total}} role(s) waiting for this turn",
+        },
+        actions: {
+          idle: "Standing by",
+          queued: "Waiting turn",
+          working: "Working",
+          reworking: "Reworking",
+          done: "Passed forward",
+          boundary: "Needs material",
+          failed: "Needs attention",
+        },
+        working: {
+          accounting: "Checking margin and budget",
+          box: "Sorting provided clues",
+          creative: "Refining titles and content",
+          data: "Checking metrics and funnel",
+          delivery: "Preparing delivery checklist",
+          design: "Reviewing image and layout",
+          engineering: "Checking material-read feasibility",
+          ops: "Planning operating cadence",
+          search: "Verifying rules and sources",
+          service: "Checking service and after-sales scripts",
+          web: "Checking keywords and page handoff",
+        },
+        contribution: {
+          accounting: "Clarifies cost, margin, and budget boundaries",
+          box: "Organizes provided information into usable clues",
+          creative: "Turns judgment into titles, scripts, and content wording",
+          data: "Finds the issue location through metrics and funnels",
+          delivery: "Turns the work into a submit-ready review checklist",
+          design: "Reviews conversion from image, detail page, and visual handoff",
+          engineering: "Checks material reading, image recognition, and feasibility",
+          ops: "Translates judgment into campaign cadence and priorities",
+          search: "Checks rules, public material, and competitor clues",
+          service: "Checks scripts from user sentiment and after-sales boundaries",
+          web: "Looks for opportunities in keywords, page handoff, and organic traffic",
+        },
+      },
       dispatchFacts: {
+        userFacingFallback: {
+          label: "Process check",
+        },
         plan: {
           label: "Task plan",
-          detail: "{{difficulty}} difficulty, handled as {{mode}}",
+          detail: "{{mode}} selected; steps are organized from the question and available materials",
         },
         adaptive: {
           label: "Task match",
@@ -2016,6 +2160,38 @@ const messages = {
         plannedSkills: {
           label: "References for this turn",
           detail: "Preparing {{count}} reference check(s)",
+        },
+        roleAudit: {
+          label: "Role check",
+          detail: "Planned {{planned}}; finished {{executed}}",
+          warning:
+            "Planned {{planned}}; finished {{executed}}; waiting for {{missing}}; extra {{extra}}",
+        },
+        searchAudit: {
+          label: "Source check",
+          detail:
+            "Planned {{planned}}, completed {{executed}}, {{sources}} source(s), {{claims}} usable clue(s), confidence {{confidence}}, strength {{strength}}",
+          pending: "Planned {{planned}}, waiting on {{requested}} source check(s)",
+        },
+        skillAudit: {
+          label: "Capability check",
+          detail:
+            "Planned {{planned}}, requested {{requested}}, completed {{succeeded}}, limited {{failed}}, pending {{pending}}",
+        },
+        materialAudit: {
+          label: "Material check",
+          detail:
+            "{{summary}}; selected {{selected}}, loaded {{packed}}, readable {{readable}}, missing {{missing}}, omitted {{omitted}}, unreadable {{unreadable}}, notes {{warnings}}, state {{readiness}}",
+          summary: {
+            empty: "No extra material used this turn",
+            missingPack: "{{missing}} selected material(s) have not loaded yet",
+            notReady: "Material state is {{readiness}}",
+            omitted: "{{omitted}} material(s) were not included",
+            pendingPack: "Waiting for selected materials to load",
+            ready: "Selected materials are readable",
+            unreadablePacked: "{{unreadable}} loaded material(s) are not readable",
+            warnings: "{{warnings}} material note(s)",
+          },
         },
         contextBudget: {
           label: "Context budget",
@@ -2081,11 +2257,14 @@ const messages = {
         },
       },
       dispatchPanel: {
-        title: "Judgment notes for this turn",
-        workbenchTitle: "Judgment notes",
+        title: "Task process for this turn",
+        workbenchTitle: "Task process",
         steps: "Reasoning path",
         routeType: "Method",
-        studentReadTitle: "Judgment note",
+        studentReadTitle: "Task summary",
+        roleClusterTitle: "Roles working on this turn",
+        roleClusterSummary:
+          "These roles split the checks, add missing context, and organize the answer when useful.",
         emptyTask: "Waiting for this turn's task",
         waitingStepTitle: "Preparing reasoning steps",
         waitingStepDetail: "The question, materials, and steps will appear here.",
@@ -2097,9 +2276,9 @@ const messages = {
           single_agent: "main-angle route",
         },
         previewFiles: {
-          quick_dispatch: "quick.dispatch.process.md",
-          single_agent: "single.agent.process.md",
-          multi_agent: "multi.agent.process.md",
+          quick_dispatch: "Quick answer process",
+          single_agent: "Single-role process",
+          multi_agent: "Multi-role process",
         },
         preview: {
           heading: "# {{mode}}",
@@ -2109,9 +2288,15 @@ const messages = {
           progress: "Progress: {{completed}}/{{total}} | {{stage}}",
           step: "{{index}} {{title}}: {{detail}}",
           fact: "{{label}}: {{detail}}",
-          fallbackMode: "Judgment notes",
+          fallbackMode: "Task process",
           fallbackFactLabel: "Turn materials",
           fallbackFactDetail: "Turn material status synced",
+          fallbackRoleFactLabel: "Role check",
+          fallbackRoleFactDetail: "Role status synced",
+          fallbackSearchFactLabel: "Source check",
+          fallbackSearchFactDetail: "Source status synced",
+          fallbackSkillFactLabel: "Capability check",
+          fallbackSkillFactDetail: "Capability status synced",
           fallbackStage: "Working",
           fallbackStepTitle: "Reasoning step",
           fallbackStepDetail: "Step status syncing",
@@ -2152,6 +2337,10 @@ const messages = {
             label: "Product context",
             detail: "This answer uses selected product context, so you can continue with selling points, audience, risks, or campaign direction.",
           },
+          productFollowup: {
+            label: "Product follow-up",
+            detail: "This answer is about a product, image, title, or price question, so continue with the key judgment.",
+          },
           productNoMaterial: {
             label: "Needs product info",
             detail: "This question needs more product information; add materials first, then review the judgment.",
@@ -2179,6 +2368,28 @@ const messages = {
           "Continue with a campaign plan, budget, and execution checklist",
           "Turn this answer into a review report",
         ],
+        contextualProductFollowup: {
+          mainImage:
+            "For {{subject}}, list the 3 most important fixes for {{issue}}",
+          title: "Give me a natural {{subject}} title for {{audience}}",
+          value:
+            "Judge whether {{subject}} deserves a small test by {{price}}, selling points, and {{audience}}",
+          validation: "What data should I record next to validate {{subject}}?",
+        },
+        contextFallback: {
+          audience: "the target audience",
+          issue: "the entry expression",
+          price: "the current price",
+          subject: "this product",
+        },
+        contextIssue: {
+          audience: "audience fit",
+          competition: "competitor comparison",
+          mainImage: "main image expression",
+          price: "price and value proof",
+          title: "title expression",
+          validation: "small-test validation",
+        },
         groups: {
           default: [
             "Turn this conclusion into the 3 things I should do next",
@@ -2197,6 +2408,12 @@ const messages = {
             "Turn the product conclusion into a selection analysis table",
             "Continue with campaign directions for this product",
             "List product materials still needed",
+          ],
+          productFollowup: [
+            "List the 3 most important main image fixes first",
+            "Give me a natural title for the target audience",
+            "Judge whether this product deserves a small test by price, selling points, and audience",
+            "List the data I should record next to validate the direction",
           ],
           productNoMaterial: [
             "Tell me what product materials are needed before judging",
@@ -2253,11 +2470,11 @@ const messages = {
             "Review campaign cost, traffic SKU, ads budget, and risk from the data diagnosis",
         },
         douyinAds: {
-          name: "Qianchuan optimization",
+          name: "Operations execution judgment",
           summary:
-            "Plan structure, audiences, budget cadence, and ROI stop-loss",
+            "Fold platform ads, budget cadence, and handoff actions into operations judgment",
           objective:
-            "Break down Qianchuan plan structure, audience packages, bids, budget, ROI stop-loss, and live or short-video handoff",
+            "Combine platform ads, budget cadence, ROI boundaries, and live or short-video handoff into an operations execution judgment",
         },
         creative: {
           name: "Creative output",
@@ -2268,9 +2485,9 @@ const messages = {
         ops: {
           name: "Ops plan",
           summary:
-            "Combine finance, Qianchuan, and creative output into an executable plan",
+            "Combine finance, paid advertising, and creative output into an executable plan",
           objective:
-            "Combine finance, Qianchuan, and creative output into an executable operations plan",
+            "Combine finance, paid advertising, and creative output into an executable operations plan",
         },
         delivery: {
           name: "Deliverable doc",
@@ -2288,7 +2505,8 @@ const messages = {
         },
         parallel: {
           title: "Phase 2: Parallel work",
-          detail: "Finance, Qianchuan ads, and creative tasks run in parallel",
+          detail:
+            "Finance, operations ads judgment, and creative tasks run in parallel",
         },
         ops: {
           title: "Phase 3: Cross-check",
@@ -2328,7 +2546,7 @@ const messages = {
       },
       statePill: {
         done: "Done",
-        boundary: "Needs data",
+        boundary: "Stage result",
         working: "Working",
         queued: "Queued",
         failed: "Failed",
@@ -2338,7 +2556,7 @@ const messages = {
       },
       dockState: {
         done: "Done",
-        boundary: "Needs data",
+        boundary: "Stage result ready",
         working: "Reasoning",
         reworking: "Retrying",
         failed: "Failed",
@@ -2359,7 +2577,7 @@ const messages = {
       timeline: {
         planning: [
           "Question received. Organizing the reasoning path.",
-          "Steps, material boundaries, and key checks will sync to the judgment notes.",
+          "Steps, material boundaries, and key checks will sync to the task process.",
         ],
         history: [
           "This is a historical conversation and the current run has not started.",
@@ -2446,7 +2664,7 @@ const messages = {
             "After output starts, this switches to real summary, evidence, and risks.",
           fallbackLines: [
             "Coffee conversion",
-            "Qianchuan ads review",
+            "Paid ads review",
             "Ops budget and launch cadence",
           ],
         },
@@ -2509,11 +2727,11 @@ const messages = {
             "Acceptance failed and the system triggered a rework instruction.",
         },
         boundary: {
-          title: "Needs data",
+          title: "Stage result",
           meta: "Missing data",
           description:
-            "This step lacks a selected product or connected external data, and does not block the final answer.",
-          line: "Handled as a category-level boundary: keep missing data, risks, and next steps without showing it as an answer failure.",
+            "This step produced a stage result from available material and kept missing data separate without blocking the final answer.",
+          line: "Missing data, risks, and next steps are kept as review notes instead of being shown as a program failure.",
         },
         failed: {
           title: "Handling blocked",
@@ -2533,7 +2751,7 @@ const messages = {
           taskUpdatedTitle: "Task snapshot updated",
           taskUpdatedDescription:
             "AI training analysis status was saved.",
-          taskBoundaryTitle: "Needs data",
+          taskBoundaryTitle: "Task stage result",
           taskBoundaryDescription:
             "This node is a category-level data boundary without a selected product. It is saved but does not block answer synthesis.",
           completedTitle: "Report saved",
@@ -2546,7 +2764,7 @@ const messages = {
           approvalRequiredMeta: "{{status}} / {{risk}}",
           approvalRequiredDescription:
             "The high-risk platform action has entered review and will not execute automatically.",
-          approvalLine: "Approval {{id}}: {{status}}",
+          approvalLine: "Approval status: {{status}}",
           approvalSkillLine: "Action: confirmation required",
           approvalReasonLine: "Reason: {{reason}}",
           approvalAlertLine: "Alert: {{message}}",
@@ -2563,9 +2781,10 @@ const messages = {
           errorTitle: "Persistence issue",
           errorDescription:
             "The AI answer continues, but this training record needs inspection.",
-          runLine: "Run {{id}}: {{status}}",
-          runTaskLine: "Task {{id}}: {{status}}",
-          artifactLine: "Review material {{id}}: {{title}}",
+          runMeta: "This turn's training record",
+          runLine: "Record status: {{status}}",
+          runTaskLine: "Task status: {{status}}",
+          artifactLine: "Review material: {{title}}",
           savedReportLine:
             "Final report saved and available after refreshing the training task.",
         },
@@ -2577,7 +2796,17 @@ const messages = {
         reviewLine: "Review note: {{reason}}",
         reportMode: "Report",
         taskMode: "Task",
-        deliveryFilename: "operation.execution.plan.docx",
+        dataFilename: "Data and evidence check",
+        accountingFilename: "Cost and risk check",
+        creativeFilename: "Content expression draft",
+        opsFilename: "Operations action plan",
+        deliveryFilename: "Conversation review material",
+        designFilename: "Visual conversion advice",
+        engineeringFilename: "Technical and material flow check",
+        searchFilename: "External source check",
+        serviceFilename: "Customer service advice",
+        webFilename: "Public page and search advice",
+        defaultFilename: "Role output summary",
       },
       runtimeDescriptions: {
         started: "One step started pass {{attempt}}.",
@@ -2600,7 +2829,7 @@ const messages = {
         nodeEvaluated: "Result reviewed",
         nodeRework: "Recheck started",
         nodePassed: "Check complete",
-        nodeBoundary: "Needs data",
+        nodeBoundary: "Stage result",
         nodeFailed: "Handling blocked",
         skillRequested: "Reference checked",
         skillResult: "Reference result",
@@ -2616,6 +2845,8 @@ const messages = {
           "One step did not start successfully, so the available judgment was kept first.",
         timedOut:
           "This step timed out, so the currently usable judgment was kept first.",
+        externalDataUnavailable:
+          "External data is unavailable, so the answer uses the material already available.",
         collaborationIncomplete:
           "This step needs more specific business information.",
       },
@@ -2642,36 +2873,78 @@ const messages = {
       "I run coffee operations. My main marketing platform is Douyin, and May Day is coming soon. Can you help me write an operations plan to improve conversion rate?",
     sectionsNavigation: "Reading guide",
     backend: {
-      eyebrow: "Review Materials",
-      title: "Review report materials",
+      eyebrow: "Conversation archive",
+      title: "Conversation reports",
       description:
-        "This page gathers plans, checklists, and review materials generated by the AI training assistant so students can inspect, copy, download, and submit them.",
+        "This page gathers raw conversation exports, organized reports, and reference records generated by the commerce multi-agent platform for review, download, and archiving.",
       refresh: "Refresh",
-      loading: "Loading review materials",
-      listTitle: "Review material list",
-      listDesc: "{{artifacts}} material(s) / {{workspaces}} training task(s)",
-      emptyTitle: "No review materials yet",
+      loading: "Loading conversation reports",
+      listTitle: "Conversation report list",
+      listDesc: "{{artifacts}} report(s) / {{workspaces}} training task(s)",
+      emptyTitle: "No conversation reports yet",
       emptyDescription:
-        "Return to the multi-agent training assistant and send a training question. Generated plans or reports will appear here.",
-      errorTitle: "Failed to load review materials",
+        "Return to the Q&A entry and send an ecommerce question. Generate a report or raw export when you need to keep it, and it will appear here.",
+      errorTitle: "Failed to load conversation reports",
       noSelectionTitle: "No material selected",
       noSelectionDescription:
         "Select a material to inspect content, source training task, and export metadata.",
       noContent: "No content or preview saved.",
       copy: "Copy",
       download: "Download",
+      downloadFileName: "conversation-report",
       meta: {
         workspace: "Training task",
-        artifactId: "Material ID",
-        runId: "Submission ID",
+        source: "Source",
         format: "Format",
-        storage: "Storage",
-        size: "Chars/size",
+        validation: "Check state",
+        size: "Content length",
+      },
+      display: {
+        contentLength: {
+          chars: "About {{count}} chars",
+          thousands: "About {{count}}k chars",
+        },
+        notice: {
+          generic: "No extra explanation was available. Refresh and try again.",
+          technical:
+            "The report could not be fully loaded yet. Confirm the conversation on the Q&A page, then refresh this page later.",
+        },
+        format: {
+          docx: "Word document",
+          json: "Structured record",
+          markdown: "Markdown document",
+          text: "Text",
+        },
+        source: {
+          agentSession: "Generated from Q&A",
+          agentSkillResult: "Reference check",
+        },
+        status: {
+          active: "Ready to view",
+          archived: "Archived",
+          failed: "Generation blocked",
+          pending: "Generating",
+        },
+        storage: {
+          file: "Saved as file",
+          inline: "Saved body",
+        },
+        type: {
+          finalReport: "Conversation report",
+          learningMaterial: "Learning material",
+          report: "Report",
+          searchEvidence: "Reference check record",
+        },
+        validation: {
+          failed: "Needs review",
+          passed: "Checked",
+          unchecked: "To check",
+        },
       },
     },
     hero: {
       badges: {
-        output: "Agent output page",
+        output: "Conversation report",
         category: "Coffee operations",
         platform: "Douyin May Day conversion",
       },
@@ -2693,7 +2966,7 @@ const messages = {
       budget: {
         label: "Budget",
         value: "18k",
-        description: "Short-video boost plus Qianchuan test spend",
+        description: "Short-video boost plus paid ads test spend",
       },
       period: {
         label: "Timeline",
@@ -2797,13 +3070,43 @@ const messages = {
       },
     },
   },
+  questionIdeas: {
+    header: {
+      eyebrow: "Question Ideas",
+      title: "Question ideas",
+      description:
+        "When students do not know where to start, choose a real ecommerce question. Selecting an item sends it back to the Q&A input.",
+      action: "Back to Q&A",
+    },
+    principle: {
+      title: "Do not memorize prompts; explain the ecommerce problem",
+      description:
+        "Students only need to state the goal, available materials, constraints, and desired output. The AI gives a usable judgment first, then asks for the key missing details.",
+    },
+    tasks: {
+      title: "Ask like this",
+      description:
+        "These examples cover product selection, title and selling points, customer replies, data review, and plan revision for first-time use.",
+    },
+    recipe: {
+      title: "What a good question usually contains",
+      description:
+        "Incomplete information is still enough to start. These parts help the AI answer closer to the assignment and practical ecommerce work.",
+    },
+    agents: {
+      title: "How ecommerce roles look at a question together",
+      description:
+        "Different roles split the work by question. During real answers, the execution queue appears with the message and does not block the prompt area.",
+      action: "Ask now",
+    },
+  },
   agentCapabilities: {
     header: {
-      eyebrow: "Training Guide",
-      title: "AI training capability and usage guide",
+      eyebrow: "Usage guide",
+      title: "Commerce Multi-Agent Platform usage guide",
       description:
         "This page explains how students use AI Q&A, product analysis, campaign planning, data diagnosis, and review reports around one ecommerce training task.",
-      action: "Open multi-agent training assistant",
+      action: "Open Q&A entry",
     },
     principle: {
       title: "How students use it",
@@ -2963,12 +3266,12 @@ const messages = {
     },
   },
   login: {
-    brand: "Commerce Copilot",
+    brand: "Commerce Multi-Agent Platform",
     hero: {
       titleLine1: "Enter ecommerce AI training,",
       titleLine2: "finish selection, planning, and review.",
       desc1:
-        "First open the multi-agent training assistant and state the ecommerce training problem you want to solve.",
+        "First open the Q&A entry and state the ecommerce problem you want to solve.",
       desc2:
         "Then use product selection materials, campaign planning, data diagnosis, training tasks, and review reports as needed.",
       desc3:
@@ -2977,7 +3280,7 @@ const messages = {
     welcome: "WELCOME BACK",
     title: "Sign in to your training account",
     subtitle:
-      "Use your account and password to enter the ecommerce AI training workspace.",
+      "Use your account and password to enter Commerce Multi-Agent Platform.",
     form: {
       password: {
         label: "Password",
@@ -3001,13 +3304,38 @@ const messages = {
       authUnavailable:
         "The account service is temporarily unavailable. Confirm the auth service network is reachable, then sign in again.",
       backendUnavailable:
-        "Your account was verified, but the local business backend did not respond. Start the 19878 backend service and 15432 database, then sign in again.",
+        "Your account was verified, but Commerce Multi-Agent Platform permissions were not restored. Confirm the local business backend, database, and account initialization are available, then sign in again.",
       workspaceUnavailable:
-        "Your account was verified, but training workspace permissions were not restored. Confirm this account is initialized for this product, or try again later.",
+        "Your account was verified, but Commerce Multi-Agent Platform permissions were not restored. Confirm this account is initialized for this product, or try again later.",
+    },
+  },
+  profile: {
+    appProfile: {
+      title: "School and team",
+      description:
+        "These details identify your training group and affect your AI question quota.",
+      loading: "Loading school and team...",
+      loadFailed: "Failed to load school and team.",
+      missingAppUser:
+        "This account has not initialized its training profile yet. Open the Q&A page once, then come back to add school and team.",
+      saveFailed: "Failed to save school and team.",
+      schoolName: "School",
+      schoolPlaceholder: "Enter school name",
+      teamName: "Team",
+      teamPlaceholder: "Enter team name",
+      fieldHelp:
+        "You can leave them blank for now. Both fields are required to complete binding.",
+      save: "Save school and team",
+      saving: "Saving...",
+      saved: "School and team saved",
+      boundStatus: "Bound",
+      unboundStatus: "Not bound",
+      quotaRule:
+        "You can use 100 AI questions without binding. After adding both school and team, the total quota becomes 150.",
     },
   },
   register: {
-    brand: "Commerce Copilot",
+    brand: "Commerce Multi-Agent Platform",
     hero: {
       titleLine1: "Create your account,",
       titleLine2: "start ecommerce AI training.",
@@ -3019,7 +3347,7 @@ const messages = {
     welcome: "CREATE ACCOUNT",
     title: "Register your training account",
     subtitle:
-      "Create an account to enter Commerce Copilot and start your ecommerce AI training task.",
+      "Create an account to enter Commerce Multi-Agent Platform and start your ecommerce AI training task.",
     form: {
       password: {
         label: "Password",
@@ -3055,10 +3383,12 @@ const messages = {
       schoolName: {
         label: "School",
         placeholder: "Enter school name",
+        help: "Optional now. Add both school and team to raise the quota from 100 to 150.",
       },
       teamName: {
         label: "Team name",
         placeholder: "Enter team name",
+        help: "Together with school, this completes binding. You can still start with 100 questions.",
       },
     },
   },

@@ -122,14 +122,50 @@ describe("AgentChatShell", () => {
     },
     15000
   )
+
+  it(
+    "keeps history visible on function pages so conversations are not hidden",
+    async () => {
+      const i18n = await createAgentChatTestI18n()
+
+      render(
+        <TestProviders i18n={i18n} initialEntries={["/question-ideas"]}>
+          <AgentChatShell>
+            <main>Question ideas content</main>
+          </AgentChatShell>
+        </TestProviders>
+      )
+
+      expect(
+        screen.getByRole("button", {
+          name: i18n.t("agentChat.sidebar.collapseHistory"),
+        })
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole("button", {
+          name: i18n.t("agentChat.sidebar.newChat"),
+        })
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole("button", { name: chatState.conversationTitles[0] })
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole("button", { name: chatState.conversationTitles[1] })
+      ).toBeInTheDocument()
+      expect(screen.getByText("Question ideas content")).toBeInTheDocument()
+    },
+    15000
+  )
 })
 
 function TestProviders({
   children,
   i18n,
+  initialEntries = ["/commerce"],
 }: {
   children: ReactNode
   i18n: Parameters<typeof AgentChatTestI18nProvider>[0]["i18n"]
+  initialEntries?: string[]
 }) {
   const store = configureStore({
     reducer: {
@@ -140,7 +176,7 @@ function TestProviders({
   })
 
   return (
-    <MemoryRouter initialEntries={["/commerce"]}>
+    <MemoryRouter initialEntries={initialEntries}>
       <Provider store={store}>
         <AgentChatTestI18nProvider i18n={i18n}>
           {children}
