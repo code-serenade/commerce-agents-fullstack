@@ -2,14 +2,13 @@ import { type MouseEvent, type ReactNode, useState } from "react"
 import {
   Bot,
   Edit3,
-  FileText,
   GitBranch,
   Library,
   LogIn,
   Megaphone,
   MoreHorizontal,
   MessageSquareText,
-  Search,
+  Sparkles,
   ShoppingBag,
   Trash2,
   UserPlus,
@@ -58,12 +57,11 @@ const FUNCTION_NAV_ROUTE_PATHS = [
   "/",
   "/agent",
   "/agent-capabilities",
+  "/question-ideas",
   "/commerce",
   "/campaigns",
   "/agent-output",
   "/materials",
-  "/operations",
-  "/overview",
   "/platform-connect",
   "/products",
   "/workspaces",
@@ -111,7 +109,6 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   const functionNavOpen = functionNavRouteActive
     ? functionNavCollapsedPath !== location.pathname
     : functionNavManualOpen
-
   const handleLogout = () => {
     localStorage.removeItem("token")
     localStorage.removeItem("refreshToken")
@@ -272,6 +269,13 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           onSelect: () => navigateTo("/agent-capabilities"),
         },
         {
+          key: "question-ideas",
+          icon: <Sparkles />,
+          label: t("agentChat.shell.navigation.questionIdeas"),
+          active: isRouteActive("/question-ideas"),
+          onSelect: () => navigateTo("/question-ideas"),
+        },
+        {
           key: "product-board",
           icon: <ShoppingBag />,
           label: t("agentChat.shell.navigation.productBoard"),
@@ -291,20 +295,6 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           label: t("agentChat.shell.navigation.campaigns"),
           active: isRouteActive("/campaigns"),
           onSelect: () => navigateTo("/campaigns"),
-        },
-        {
-          key: "market-research",
-          icon: <Search />,
-          label: t("agentChat.shell.navigation.marketResearch"),
-          active: isRouteActive("/overview"),
-          onSelect: () => navigateTo("/overview"),
-        },
-        {
-          key: "operations",
-          icon: <FileText />,
-          label: t("agentChat.shell.navigation.operations"),
-          active: isRouteActive("/operations"),
-          onSelect: () => navigateTo("/operations"),
         },
       ],
     },
@@ -350,12 +340,11 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       label: t("agentChat.shell.sections.workspace"),
       active:
         isRouteActive("/agent-capabilities") ||
+        isRouteActive("/question-ideas") ||
         isRouteActive("/commerce") ||
         isRouteActive("/products") ||
         isRouteActive("/materials") ||
-        isRouteActive("/campaigns") ||
-        isRouteActive("/overview") ||
-        isRouteActive("/operations"),
+        isRouteActive("/campaigns"),
       subItems: [
         {
           key: "smart-ops",
@@ -370,6 +359,13 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           href: "/agent-capabilities",
           active: isRouteActive("/agent-capabilities"),
           onSelect: () => navigateTo("/agent-capabilities"),
+        },
+        {
+          key: "question-ideas",
+          label: t("agentChat.shell.navigation.questionIdeas"),
+          href: "/question-ideas",
+          active: isRouteActive("/question-ideas"),
+          onSelect: () => navigateTo("/question-ideas"),
         },
         {
           key: "product-board",
@@ -391,20 +387,6 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           href: "/campaigns",
           active: isRouteActive("/campaigns"),
           onSelect: () => navigateTo("/campaigns"),
-        },
-        {
-          key: "market-research",
-          label: t("agentChat.shell.navigation.marketResearch"),
-          href: "/overview",
-          active: isRouteActive("/overview"),
-          onSelect: () => navigateTo("/overview"),
-        },
-        {
-          key: "operations",
-          label: t("agentChat.shell.navigation.operations"),
-          href: "/operations",
-          active: isRouteActive("/operations"),
-          onSelect: () => navigateTo("/operations"),
         },
       ],
     },
@@ -526,6 +508,9 @@ function getRouteTitleKey(pathname: string) {
   if (pathname === "/agent-capabilities") {
     return "agentChat.shell.navigation.capabilities"
   }
+  if (pathname === "/question-ideas") {
+    return "agentChat.shell.navigation.questionIdeas"
+  }
   if (pathname === "/products") {
     return "agentChat.shell.navigation.productBoard"
   }
@@ -539,10 +524,10 @@ function getRouteTitleKey(pathname: string) {
     return "agentChat.shell.navigation.platform"
   }
   if (pathname === "/overview") {
-    return "agentChat.shell.navigation.marketResearch"
+    return "commerce.pages.overview.title"
   }
   if (pathname === "/operations") {
-    return "agentChat.shell.navigation.operations"
+    return "commerce.pages.operations.title"
   }
   if (pathname === "/agent-output") {
     return "agentChat.shell.navigation.deliverables"
