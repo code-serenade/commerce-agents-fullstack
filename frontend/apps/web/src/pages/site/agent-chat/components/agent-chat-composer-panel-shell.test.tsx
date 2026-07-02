@@ -24,13 +24,19 @@ describe("AgentChatComposerPanelShell", () => {
     const scroll = screen
       .getByText("Panel content")
       .closest("[data-agent-chat-composer-panel-scroll='true']")
+    const content = screen
+      .getByText("Panel content")
+      .closest("[data-agent-chat-composer-panel-content='true']")
 
     expect(shell).not.toBeNull()
     expect(scroll).not.toBeNull()
+    expect(content).not.toBeNull()
     expect(shell).toHaveStyle({ maxHeight: "240px" })
     expect(scroll).toHaveStyle({ maxHeight: "240px" })
+    expect(shell).toBe(scroll)
     expect(scroll).toHaveClass("overflow-y-auto")
-    expect(scroll).toHaveClass("pb-16")
+    expect(scroll).toHaveClass("overflow-x-hidden")
+    expect(content).toHaveClass("pb-16")
   })
 })
 

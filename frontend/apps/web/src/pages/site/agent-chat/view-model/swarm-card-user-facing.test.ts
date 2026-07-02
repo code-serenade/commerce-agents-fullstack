@@ -39,19 +39,32 @@ const t = ((key: string, options?: Record<string, unknown>) => {
     "agentChat.swarm.cards.workspace.artifactCreatedDescription": "artifact",
     "agentChat.swarm.cards.workspace.artifactCreatedTitle": "artifact card",
     "agentChat.swarm.cards.workspace.artifactLine": `artifact ${String(options?.title)}`,
+    "agentChat.swarm.cards.workspace.completedDescription": "completed",
+    "agentChat.swarm.cards.workspace.completedTitle": "completed card",
     "agentChat.swarm.cards.workspace.errorDescription": "persist failed",
     "agentChat.swarm.cards.workspace.errorTitle": "workspace error",
     "agentChat.swarm.cards.workspace.linkedDescription": "linked",
     "agentChat.swarm.cards.workspace.linkedTitle": "linked card",
     "agentChat.swarm.cards.workspace.reusedMeta": "reused",
     "agentChat.swarm.cards.workspace.runLine": `run ${String(options?.status)}`,
+    "agentChat.swarm.cards.workspace.runMeta": "training record",
     "agentChat.swarm.cards.workspace.savedReportLine": "saved report",
     "agentChat.swarm.phases.dynamicTitle": `phase ${String(options?.index)} ${String(options?.title)}`,
+    "agentChat.swarm.screen.accountingFilename": "Cost and risk check",
     "agentChat.swarm.screen.acceptanceLine": `accept ${String(options?.item)}`,
-    "agentChat.swarm.screen.deliveryFilename": "delivery.md",
+    "agentChat.swarm.screen.creativeFilename": "Content expression draft",
+    "agentChat.swarm.screen.dataFilename": "Data and evidence check",
+    "agentChat.swarm.screen.defaultFilename": "Role output summary",
+    "agentChat.swarm.screen.deliveryFilename": "Conversation review material",
+    "agentChat.swarm.screen.designFilename": "Visual conversion advice",
+    "agentChat.swarm.screen.engineeringFilename": "Technical and material flow check",
     "agentChat.swarm.screen.objectiveLine": `objective ${String(options?.request)}`,
+    "agentChat.swarm.screen.opsFilename": "Operations action plan",
     "agentChat.swarm.screen.responsibilityLine": `summary ${String(options?.summary)}`,
+    "agentChat.swarm.screen.searchFilename": "External source check",
+    "agentChat.swarm.screen.serviceFilename": "Customer service advice",
     "agentChat.swarm.screen.taskMode": "task mode",
+    "agentChat.swarm.screen.webFilename": "Public page and search advice",
     "agentChat.swarm.runtimeReasons.collaborationIncomplete": genericProgress,
     "agentChat.thread.inlineState.working": "working",
     "agentChat.thread.runtimeText.genericProgress": genericProgress,
@@ -253,5 +266,19 @@ describe("swarm user-facing cards", () => {
     expect(text).not.toContain("route_mode")
     expect(text).not.toContain("task_graph")
     expect(text).not.toContain("selected_skills")
+  })
+
+  it("uses user-facing screen names instead of internal report filenames", () => {
+    const screen = getComputerScreenContext(
+      {
+        activeAgent,
+        runtimeEvents: [],
+      },
+      t
+    )
+
+    expect(screen.filename).toBe("Operations action plan")
+    expect(screen.filename).not.toContain(".agent.output")
+    expect(screen.filename).not.toContain(".md")
   })
 })

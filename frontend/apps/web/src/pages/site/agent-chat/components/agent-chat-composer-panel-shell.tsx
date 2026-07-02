@@ -18,8 +18,9 @@ export function AgentChatComposerPanelShell({
 
   return (
     <div
-      className="absolute inset-x-0 bottom-[calc(100%+1.25rem)] z-50 overflow-hidden rounded-lg border border-border bg-background shadow-2xl shadow-black/15"
+      className="absolute inset-x-0 bottom-[calc(100%+1.25rem)] z-50 overflow-x-hidden overflow-y-auto overscroll-contain rounded-lg border border-border bg-background shadow-2xl shadow-black/15 [scrollbar-gutter:stable]"
       data-composer-interactive="true"
+      data-agent-chat-composer-panel-scroll="true"
       data-agent-chat-composer-panel-shell="true"
       data-agent-chat-composer-panel-size={size}
       style={{ maxHeight }}
@@ -37,9 +38,8 @@ export function AgentChatComposerPanelShell({
           </button>
         ) : null}
         <div
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2.5 pt-3 pr-12 pb-16 [scrollbar-gutter:stable] sm:p-3 sm:pr-12 sm:pb-14"
-          data-agent-chat-composer-panel-scroll="true"
-          style={{ maxHeight }}
+          className="min-h-0 flex-1 p-2.5 pt-3 pr-12 pb-16 sm:p-3 sm:pr-12 sm:pb-14"
+          data-agent-chat-composer-panel-content="true"
         >
           {children}
         </div>

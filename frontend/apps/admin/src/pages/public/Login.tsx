@@ -1,14 +1,16 @@
 import { useLocation, useNavigate } from "react-router"
 import { useDispatch } from "react-redux"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   AuthLoginView,
   type AuthLoginSubmitValues,
   type AuthLoginViewLabels,
 } from "@workspace/app-kit/login"
+import { toRequestError } from "@workspace/services/errors/request-error"
 import { getCurrentUserPermissionsApi, loginApi, meApi } from "@/api"
-import { setAccess } from "@/store/accessSlice"
-import { loginSuccess } from "@/store/authSlice"
+import { resetAccess, setAccess } from "@/store/accessSlice"
+import { loginSuccess, logout } from "@/store/authSlice"
 
 function createLoginLabels(
   t: ReturnType<typeof useTranslation>["t"]
@@ -35,9 +37,11 @@ export default function LoginPage() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
-  const from = location.state?.from?.pathname ?? "/"
+  const from = readLoginRedirectTarget(location.state)
+  const [loginError, setLoginError] = useState<string | null>(null)
 
   const handleLogin = async (values: AuthLoginSubmitValues) => {
+    setLoginError(null)
     try {
       const res = await loginApi(values)
       const token = res.accessToken
@@ -61,18 +65,66 @@ export default function LoginPage() {
 
       navigate(from, { replace: true })
     } catch (err) {
-      console.error("Login failed:", err)
+      const requestError = toRequestError(err)
+      console.error("Login failed:", requestError)
+      localStorage.removeItem("token")
+      localStorage.removeItem("refreshToken")
+      dispatch(logout())
+      dispatch(resetAccess())
+      setLoginError(t(readAdminLoginErrorCopyKey(requestError)))
     }
   }
 
   return (
     <AuthLoginView
       labels={createLoginLabels(t)}
-      notice={{
-        title: t("login.notice.title"),
-        description: t("login.notice.description"),
-      }}
+      notice={
+        loginError
+          ? {
+              title: t("login.error.title"),
+              description: loginError,
+            }
+          : {
+              title: t("login.notice.title"),
+              description: t("login.notice.description"),
+            }
+      }
       onSubmit={handleLogin}
     />
   )
+}
+
+function readAdminLoginErrorCopyKey(
+  error: ReturnType<typeof toRequestError>
+) {
+  const status = error.status
+  if (status === 400 || status === 401 || status === 403) {
+    return "login.error.invalidCredentials"
+  }
+
+  if (
+    error.kind === "network" ||
+    status === 502 ||
+    status === 503 ||
+    status === 504
+  ) {
+    return "login.error.serviceUnavailable"
+  }
+
+  return "login.error.permissionUnavailable"
+}
+
+function readLoginRedirectTarget(state: unknown) {
+  if (!isLoginRedirectState(state)) return "/"
+  const { pathname, search = "", hash = "" } = state.from
+  return `${pathname}${search}${hash}`
+}
+
+function isLoginRedirectState(state: unknown): state is {
+  from: { hash?: string; pathname: string; search?: string }
+} {
+  if (!state || typeof state !== "object") return false
+  const from = (state as { from?: unknown }).from
+  if (!from || typeof from !== "object") return false
+  return typeof (from as { pathname?: unknown }).pathname === "string"
 }

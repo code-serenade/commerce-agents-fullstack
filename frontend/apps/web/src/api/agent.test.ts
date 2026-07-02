@@ -272,6 +272,32 @@ describe("streamAgentSessionApi", () => {
     expect(JSON.stringify(events)).not.toContain('"sourceMap":')
   })
 
+  it("keeps stored tokens when stream auth refresh is temporarily unavailable", async () => {
+    localStorage.setItem("token", "active-token")
+    localStorage.setItem("refreshToken", "active-refresh")
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response(null, { status: 503 }))
+    vi.stubGlobal("fetch", fetchMock)
+
+    const onError = vi.fn()
+    await streamAgentSessionApi(
+      { input: "continue the review" },
+      {
+        onDelta: vi.fn(),
+        onDone: vi.fn(),
+        onError,
+      }
+    )
+
+    expect(onError).toHaveBeenCalledWith(
+      "Agent auth refresh temporarily unavailable."
+    )
+    expect(localStorage.getItem("token")).toBe("active-token")
+    expect(localStorage.getItem("refreshToken")).toBe("active-refresh")
+  })
+
   it("accepts safe context and rag context events", async () => {
     vi.stubGlobal(
       "fetch",

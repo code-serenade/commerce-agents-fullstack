@@ -2,7 +2,9 @@ import { ListTree, PanelRightClose, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type { AgentRuntimeEvent } from "../agent-chat-data"
 import { useAgentChatContext } from "../context/use-agent-chat-context"
+import { getWorkbenchAgents } from "../view-model/agent-dispatch-workbench-agents-view-model"
 import { AgentChatSwarmPanel } from "./agent-chat-swarm-panel"
+import { AgentRoleClusterPanel } from "./agent-role-cluster-panel"
 
 export function AgentProcessDrawer({
   anchorLabel,
@@ -25,6 +27,7 @@ export function AgentProcessDrawer({
   const answerLabel = messageId
     ? t("agentChat.thread.processLinkedToAnswer")
     : t("agentChat.thread.currentAnswerProcess")
+  const agents = getWorkbenchAgents(runtimeEvents, isStreaming, t)
 
   return (
     <div
@@ -84,15 +87,28 @@ export function AgentProcessDrawer({
             </button>
           </div>
         </div>
-        <div className="pointer-events-auto min-h-0 w-full max-w-full min-w-0 flex-1 overflow-hidden rounded-lg border border-border bg-background text-[13px] leading-relaxed shadow-xl [&_.text-\\[10px\\]]:text-[11px] [&_.text-\\[11px\\]]:text-xs [&_.text-xs]:text-sm">
-          <AgentChatSwarmPanel
-            feedback={chat.feedback}
-            isStreaming={isStreaming}
-            messages={chat.messages}
-            onCollapse={onClose}
-            runtimeEvents={runtimeEvents}
-            task={task}
-          />
+        <div className="agent-process-drawer__panel pointer-events-auto min-h-0 w-full max-w-full min-w-0 flex-1 overflow-hidden rounded-lg border border-border bg-background text-[13px] leading-relaxed shadow-xl [&_.text-\[10px\]]:text-[11px] [&_.text-\[11px\]]:text-xs [&_.text-xs]:text-sm">
+          <div className="flex h-full min-h-0 flex-col">
+            <div className="shrink-0 border-b border-border bg-muted/20 p-2.5">
+              <AgentRoleClusterPanel
+                agents={agents}
+                animatePortraits={isStreaming}
+                itemDetail="summary"
+                title={t("agentChat.thread.dispatchPanel.roleClusterTitle")}
+                variant="compact"
+              />
+            </div>
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <AgentChatSwarmPanel
+                feedback={chat.feedback}
+                isStreaming={isStreaming}
+                messages={chat.messages}
+                onCollapse={onClose}
+                runtimeEvents={runtimeEvents}
+                task={task}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>

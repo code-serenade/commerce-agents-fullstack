@@ -32,6 +32,23 @@ const INTERNAL_FAILURE_PATTERNS = [
 
 const PRESERVED_BLANK_LINE = "__AGENT_CHAT_PRESERVED_BLANK_LINE__"
 
+const INTERNAL_JSON_METADATA_KEYS = [
+  "agentContext",
+  "analysisId",
+  "contentJson",
+  "llmName",
+  "modelName",
+  "primary_runtime_role",
+  "promptVersion",
+  "route_mode",
+  "runtimeEvents",
+  "selectedCampaigns",
+  "selectedProducts",
+  "selectedSources",
+  "selected_skills",
+  "support_runtime_roles",
+]
+
 const INTERNAL_FAILURE_HEADINGS = terms([
   [26410, 23436, 25104, 33410, 28857],
   [26410, 23436, 25104, 25110, 38656, 22797, 26680],
@@ -79,12 +96,14 @@ export function sanitizeAgentAnswerContent(
 ) {
   const restoredFallback = restoreLegacyFallbackLayout(content)
   if (restoredFallback) return restoredFallback
+  const withoutInternalJsonMetadata = removeInternalJsonMetadata(content)
 
-  const lines = content
+  const lines = withoutInternalJsonMetadata
     .split("\n")
     .map((line) => {
       const wasBlankLine = !line.trim()
       const trimmedLine = line.trim()
+      if (isInternalJsonMetadataLine(trimmedLine)) return ""
       if (/^skill:[^\n]+/i.test(trimmedLine)) return ""
       const cleanedLine = line
         .replace(/[;；]?\s*skill:[^\n。；;]+(?:[。.;])?/gi, "")
@@ -102,6 +121,47 @@ export function sanitizeAgentAnswerContent(
   )
     .replace(/\n{3,}/g, "\n\n")
     .trim()
+}
+
+function removeInternalJsonMetadata(content: string) {
+  return INTERNAL_JSON_METADATA_KEYS.reduce((current, key) => {
+    const pattern = new RegExp(
+      `,?\\s*"${key}"\\s*:\\s*(?:"(?:\\\\.|[^"\\\\])*"|\\[[^\\]]*\\]|\\{[^}]*\\}|[^,}\\]]+)`,
+      "gi"
+    )
+    return current.replace(pattern, "")
+  }, content)
+    .split("\n")
+    .map((line) =>
+      hadInternalJsonMetadata(line)
+        ? trimJsonFragmentPunctuation(line)
+        : line
+    )
+    .join("\n")
+}
+
+function trimJsonFragmentPunctuation(line: string) {
+  return line
+    .trim()
+    .replace(/^[\s,{"}]+/, "")
+    .replace(/^[[]+/, "")
+    .replace(/^\]+/, "")
+    .replace(/[\s,{"}]+$/, "")
+    .replace(/[[]+$/, "")
+    .replace(/\]+$/, "")
+    .trimEnd()
+}
+
+function hadInternalJsonMetadata(line: string) {
+  return INTERNAL_JSON_METADATA_KEYS.some((key) =>
+    new RegExp(`"${key}"\\s*:`, "i").test(line)
+  )
+}
+
+function isInternalJsonMetadataLine(value: string) {
+  if (!value) return false
+  if (hadInternalJsonMetadata(value)) return true
+  return !trimJsonFragmentPunctuation(value)
 }
 
 function normalizeLegacyFallbackHeadings(content: string) {

@@ -322,4 +322,30 @@ mod tests {
         assert!(prompt.contains("MVP实验复盘报告已生成"));
         assert!(!prompt.contains("worker.ops"));
     }
+
+    #[test]
+    fn final_synthesis_prompt_keeps_partner_value_and_role_depth_contract() {
+        let prompt = RolePromptBuilder::build_final_synthesis_prompt(&FinalSynthesisPromptInput {
+            task_id: TaskId("task-partner-tone".to_string()),
+            task: "判断学生宿舍桌面收纳盒是否可以小测".to_string(),
+            support_workers: "worker.ops".to_string(),
+            contributions: vec![RoleContribution {
+                role_id: RoleId("role.ops-strategist".to_string()),
+                runtime_role: "ops".to_string(),
+                worker_id: WorkerId("worker.ops".to_string()),
+                task_id: TaskId("task-partner-tone".to_string()),
+                content: "可以小测，但要先验证主图点击和客服咨询顾虑。".to_string(),
+                confidence: None,
+                needs_follow_up: false,
+            }],
+        });
+
+        assert!(prompt.contains("情绪价值和专业价值要同时出现"));
+        assert!(prompt.contains("先接住用户当前的处境、限制或不确定感"));
+        assert!(prompt.contains("今天能做的一个动作"));
+        assert!(prompt.contains("角色深度要体现在业务判断里"));
+        assert!(prompt.contains("不要只把岗位名换成普通建议"));
+        assert!(prompt.contains("不要像老师批改、专家训话或系统报告"));
+        assert!(!prompt.contains("worker.ops"));
+    }
 }

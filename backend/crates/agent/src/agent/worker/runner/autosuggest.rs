@@ -275,6 +275,21 @@ mod tests {
     }
 
     #[test]
+    fn no_search_request_disables_search_autosuggest_even_with_market_keywords() {
+        let prompt = "我想卖一款学生宿舍用桌面收纳盒，售价39元，只有普通白底图，没有销量数据。请先判断能不能小测，再给主图、标题、验证数据三个方向，不要联网，不要搜索，不要编造销量。";
+
+        for role in ["search", "data", "ops", "creative", "design"] {
+            let skills = skill_ids(role, prompt);
+            assert!(
+                skills
+                    .iter()
+                    .all(|skill_id| !skill_id.starts_with("search_")),
+                "role {role} should not trigger search skills for no-search request: {skills:?}"
+            );
+        }
+    }
+
+    #[test]
     fn business_roles_do_not_fallback_search_for_attachment_only_profit() {
         let skills = skill_ids("accounting", "只看附件里的 Excel 表，帮我算一下毛利和利润");
 

@@ -674,14 +674,14 @@ fn filters_conversation_history_wrappers_from_final_answer() {
 #[test]
 fn filters_generic_task_objective_shell_from_final_answer() {
     let raw = "给新手学生的三条618返场短视频开头文案：\n\n1. \
-               办公室姐妹看过来，温显防漏保温杯返场了。\n\n整合财务、千川投放和创意结果，\
+               办公室姐妹看过来，温显防漏保温杯返场了。\n\n整合财务、运营投放判断和创意结果，\
                形成可执行运营方案。\n\n落地注意：每天看退款率，超过8%就调整素材。";
 
     let output = sanitize_final_user_facing_text(raw).expect("answer should remain readable");
 
     assert!(output.contains("办公室姐妹看过来"));
     assert!(output.contains("落地注意"));
-    assert!(!output.contains("整合财务、千川投放和创意结果"));
+    assert!(!output.contains("整合财务、运营投放判断和创意结果"));
 }
 
 #[test]

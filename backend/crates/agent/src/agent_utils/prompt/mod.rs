@@ -145,4 +145,45 @@ Footer
         assert!(prompt.content.contains("人工审核"));
         assert!(prompt.content.contains("不写数据库"));
     }
+
+    #[test]
+    fn cognition_worker_prompts_keep_partner_value_contract() {
+        for path in [
+            "config/prompts/zh/cognition/chat_worker.md",
+            "config/prompts/zh/cognition/worker_execution.md",
+        ] {
+            let prompt = Prompt::load_from_repo(path).expect("cognition prompt should load");
+
+            assert!(
+                prompt.content.contains("情绪价值和专业价值要同时出现"),
+                "{path} should require emotional and professional value"
+            );
+            assert!(
+                prompt
+                    .content
+                    .contains("先接住用户当前的处境、限制或不确定感"),
+                "{path} should require acknowledging the user's situation first"
+            );
+            assert!(
+                prompt.content.contains("今天能做的一个动作"),
+                "{path} should require an immediately actionable step"
+            );
+            assert!(
+                prompt.content.contains("角色深度"),
+                "{path} should require role depth"
+            );
+            assert!(
+                prompt
+                    .content
+                    .contains("为什么影响成交、退换、库存、毛利或规则风险")
+                    || prompt.content.contains("成本、毛利和止损边界"),
+                "{path} should tie advice back to commerce consequences"
+            );
+            assert!(
+                prompt.content.contains("不要像老师批改")
+                    || prompt.content.contains("不像老师批改"),
+                "{path} should forbid scolding teacher tone"
+            );
+        }
+    }
 }

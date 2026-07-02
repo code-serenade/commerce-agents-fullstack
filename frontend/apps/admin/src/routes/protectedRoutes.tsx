@@ -1,10 +1,11 @@
 import { Suspense, type ReactNode } from "react"
 import type { RouteObject } from "react-router"
 import { Navigate } from "react-router"
-import { PageLoading, RouteErrorBoundary } from "@workspace/app-kit"
+import { RouteErrorBoundary } from "@workspace/app-kit"
 import AppLayout from "@/layouts/AppLayout"
 import {
   AdminUsersPage,
+  AccessAnalyticsPage,
   AppRolePermissionsPage,
   AppRolesPage,
   AppUsersPage,
@@ -14,9 +15,10 @@ import {
   RolesPage,
   TeamUsagePage,
 } from "@/routes/lazy/protectedPages"
+import { RouteLoadingFallback } from "@/routes/RouteLoadingFallback"
 
 function withSuspense(node: ReactNode) {
-  return <Suspense fallback={<PageLoading />}>{node}</Suspense>
+  return <Suspense fallback={<RouteLoadingFallback />}>{node}</Suspense>
 }
 
 export const protectedRoutes: RouteObject = {
@@ -39,6 +41,10 @@ export const protectedRoutes: RouteObject = {
     {
       path: "usage",
       element: <Navigate to="/usage/team-usage" replace />,
+    },
+    {
+      path: "analytics",
+      element: <Navigate to="/analytics/access" replace />,
     },
     {
       path: "accounts/admin-users",
@@ -71,6 +77,10 @@ export const protectedRoutes: RouteObject = {
     {
       path: "usage/team-usage",
       element: withSuspense(<TeamUsagePage />),
+    },
+    {
+      path: "analytics/access",
+      element: withSuspense(<AccessAnalyticsPage />),
     },
   ],
 }

@@ -38,8 +38,8 @@ pub use execution::{
     risk_level_for_spec,
 };
 pub use search::{
-    SearchAdapterConfig, SearchProviderSmokeContractCheck, SearchProviderSmokeReport,
-    SearchProviderSmokeRequest, run_search_provider_smoke,
+    SearchAdapterConfig, SearchAdapterHealthStatus, SearchProviderSmokeContractCheck,
+    SearchProviderSmokeReport, SearchProviderSmokeRequest, run_search_provider_smoke,
 };
 
 /// Specs that have been ported into Rust but are intentionally not registered

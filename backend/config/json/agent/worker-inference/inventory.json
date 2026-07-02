@@ -53,7 +53,7 @@
     }
   ],
   "platforms": {
-    "ad_fatigue_labels": ["抖音", "douyin", "tiktok", "淘宝", "taobao", "天猫", "tmall", "京东", "jd", "拼多多", "pdd", "小红书", "xiaohongshu", "快手", "kuaishou", "直通车", "千川"],
+    "ad_fatigue_labels": ["抖音", "douyin", "tiktok", "淘宝", "taobao", "天猫", "tmall", "京东", "jd", "拼多多", "pdd", "小红书", "xiaohongshu", "快手", "kuaishou", "直通车", "广告投放"],
     "canonical_channels": [
       {
         "label": "抖音",
@@ -88,8 +88,8 @@
         "aliases": ["直通车"]
       },
       {
-        "label": "千川",
-        "aliases": ["千川"]
+        "label": "广告投放",
+        "aliases": ["广告投放", "平台投放"]
       }
     ],
     "unknown_channel": "其他"

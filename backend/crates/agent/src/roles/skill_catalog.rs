@@ -70,7 +70,6 @@ pub fn role_can_use_skill(runtime_role: &str, spec: &SkillSpec) -> bool {
                 | "web"
                 | "design"
                 | "accounting"
-                | "douyin_ads"
                 | "engineering"
         );
     }
@@ -86,7 +85,6 @@ pub fn role_can_use_skill(runtime_role: &str, spec: &SkillSpec) -> bool {
                 | "web"
                 | "design"
                 | "accounting"
-                | "douyin_ads"
                 | "engineering"
         );
     }
@@ -120,6 +118,10 @@ pub fn role_can_use_skill(runtime_role: &str, spec: &SkillSpec) -> bool {
                 || spec.id == "search_product_reviews"
                 || spec.id == "search_platform_policy"
                 || spec.id == "search_industry_benchmarks"
+                || spec.id == "douyin_ads_plan_structure"
+                || spec.id == "douyin_ads_audience_package"
+                || spec.id == "douyin_ads_budget_pacing"
+                || spec.id == "douyin_ads_live_funnel_diagnosis"
         }
         "data" => {
             spec.id.starts_with("search_industry_")
@@ -159,12 +161,6 @@ pub fn role_can_use_skill(runtime_role: &str, spec: &SkillSpec) -> bool {
                 || spec.id == "query_product_metrics"
                 || spec.id == "query_campaign_metrics"
                 || spec.id == "search_market_info"
-                || spec.id == "search_industry_benchmarks"
-        }
-        "douyin_ads" => {
-            spec.id == "search_trends"
-                || spec.id == "search_market_info"
-                || spec.id == "search_platform_policy"
                 || spec.id == "search_industry_benchmarks"
         }
         "engineering" => spec.id == "coordination_status_query" || spec.id == "search_market_info",
@@ -229,7 +225,6 @@ mod tests {
         assert!(catalog.can_role_use_skill(&role("chat"), "learning_teaching_explain"));
         assert!(catalog.can_role_use_skill(&role("ops"), "learning_teaching_explain"));
         assert!(catalog.can_role_use_skill(&role("data"), "learning_teaching_explain"));
-        assert!(catalog.can_role_use_skill(&role("douyin_ads"), "learning_teaching_explain"));
         assert!(catalog.can_role_use_skill(&role("chat"), "material_file_understanding"));
         assert!(catalog.can_role_use_skill(&role("ops"), "material_file_understanding"));
         assert!(catalog.can_role_use_skill(&role("data"), "material_file_understanding"));
@@ -258,10 +253,9 @@ mod tests {
         assert!(catalog.can_role_use_skill(&role("service"), "material_file_understanding"));
         assert!(catalog.can_role_use_skill(&role("service"), "search_industry_benchmarks"));
         assert!(catalog.can_role_use_skill(&role("ops"), "search_product_reviews"));
-        assert!(catalog.can_role_use_skill(&role("douyin_ads"), "douyin_ads_plan_structure"));
-        assert!(catalog.can_role_use_skill(&role("douyin_ads"), "douyin_ads_budget_pacing"));
-        assert!(catalog.can_role_use_skill(&role("douyin_ads"), "search_platform_policy"));
-        assert!(catalog.can_role_use_skill(&role("douyin_ads"), "search_industry_benchmarks"));
-        assert!(!catalog.can_role_use_skill(&role("douyin_ads"), "creative_video_script"));
+        assert!(catalog.can_role_use_skill(&role("ops"), "douyin_ads_plan_structure"));
+        assert!(catalog.can_role_use_skill(&role("ops"), "douyin_ads_budget_pacing"));
+        assert!(catalog.can_role_use_skill(&role("ops"), "search_platform_policy"));
+        assert!(catalog.can_role_use_skill(&role("ops"), "search_industry_benchmarks"));
     }
 }

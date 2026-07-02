@@ -106,3 +106,10 @@ pub struct UpdateAppUser {
     pub remark: Option<String>,
     pub status: AppUserStatus,
 }
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct UpdateAppUserProfile {
+    pub user_id: Uuid,
+    pub school_name: Option<String>,
+    pub team_name: Option<String>,
+}

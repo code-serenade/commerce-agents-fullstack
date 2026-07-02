@@ -73,7 +73,7 @@ pub(super) fn live_funnel_diagnosis(input: &Value) -> Value {
         "adapter_status": "manual_input",
         "data_readiness": if has_any(input, &["live_room_entries", "product_clicks", "orders", "payments", "ad_spend", "gmv"]) { "user_provided" } else { "partial_user_input" },
         "summary": "直播间投放漏斗诊断已生成",
-        "数据来源": "用户显式输入 + 新产品 Rust Agent 千川投放 deterministic skill；未读取抖音直播间或千川后台实时漏斗数据",
+        "数据来源": "用户显式输入 + 新产品 Rust Agent 广告投放 deterministic skill；未读取直播间或广告后台实时漏斗数据",
         "商品引用": empty_string_as_null(&product_ref),
         "漏斗指标": {
             "曝光": round0(impressions),

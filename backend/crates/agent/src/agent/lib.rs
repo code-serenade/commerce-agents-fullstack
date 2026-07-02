@@ -7,4 +7,5 @@
 pub mod commander;
 pub(crate) mod context_text;
 pub(crate) mod forced_rich_delivery;
+pub(crate) mod product_judgment_answer;
 pub mod worker;

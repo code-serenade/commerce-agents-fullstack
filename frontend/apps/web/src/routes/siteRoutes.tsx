@@ -1,6 +1,6 @@
 import { Suspense, type ReactNode } from "react"
 import type { RouteObject } from "react-router"
-import { PageLoading, RouteErrorBoundary } from "@workspace/app-kit"
+import { RouteErrorBoundary } from "@workspace/app-kit"
 import AppLayout from "@/layouts/AppLayout"
 import {
   AgentCapabilitiesPage,
@@ -14,13 +14,15 @@ import {
   OperationsPage,
   PlatformConnectPage,
   ProductsPage,
+  QuestionIdeasPage,
   ProfilePage,
   WorkspacesPage,
 } from "@/routes/lazy/sitePages"
 import { RequireAuth } from "@/routes/RequireAuth"
+import { RouteLoadingFallback } from "@/routes/RouteLoadingFallback"
 
 function withSuspense(node: ReactNode) {
-  return <Suspense fallback={<PageLoading />}>{node}</Suspense>
+  return <Suspense fallback={<RouteLoadingFallback />}>{node}</Suspense>
 }
 
 export const siteRoutes: RouteObject = {
@@ -47,6 +49,10 @@ export const siteRoutes: RouteObject = {
     {
       path: "agent-capabilities",
       element: withSuspense(<AgentCapabilitiesPage />),
+    },
+    {
+      path: "question-ideas",
+      element: withSuspense(<QuestionIdeasPage />),
     },
     {
       element: <RequireAuth />,

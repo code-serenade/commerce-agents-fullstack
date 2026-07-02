@@ -31,6 +31,9 @@ const MAX_RETRIEVAL_SUMMARY_CHARS: usize = 5000;
 const LOCAL_RAG_MODE: &str = "local_product_knowledge";
 const EXTERNAL_SEARCH_UNAVAILABLE_REASON: &str =
     "No matching local product knowledge was found; external search adapter is not configured.";
+const EXTERNAL_SEARCH_CONFIGURED_UNUSABLE_REASON: &str = "No matching local product knowledge was found; external search adapter is configured but \
+     is currently unavailable; search skills must degrade unless a same-run search returns live \
+     sources.";
 const EXTERNAL_SEARCH_AVAILABLE_REASON: &str = "No matching local product knowledge was found; external search adapter is configured and \
      search skills may request live sources when the task needs real-time market data.";
 
@@ -220,6 +223,21 @@ impl AgentContextApi {
         let source_count = sources.len();
         let degraded = source_count == 0;
         let external_search_available = req.external_search_available;
+        let external_search_configured =
+            req.external_search_configured || req.external_search_available;
+        let external_search_status = req
+            .external_search_status
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .unwrap_or(if external_search_available {
+                "configured"
+            } else if external_search_configured {
+                "cooldown"
+            } else {
+                "disabled"
+            })
+            .to_string();
 
         Ok(AgentRetrievalContextResponse {
             mode: LOCAL_RAG_MODE.to_string(),
@@ -233,8 +251,12 @@ impl AgentContextApi {
             summary,
             sources,
             degraded,
-            degraded_reason: degraded.then(|| retrieval_degraded_reason(external_search_available)),
+            degraded_reason: degraded.then(|| {
+                retrieval_degraded_reason(external_search_available, external_search_configured)
+            }),
             external_search_available,
+            external_search_configured,
+            external_search_status,
         })
     }
 
@@ -500,9 +522,14 @@ fn build_retrieval_summary(
     compact_text(&lines.join("\n"), MAX_RETRIEVAL_SUMMARY_CHARS)
 }
 
-fn retrieval_degraded_reason(external_search_available: bool) -> String {
+fn retrieval_degraded_reason(
+    external_search_available: bool,
+    external_search_configured: bool,
+) -> String {
     if external_search_available {
         EXTERNAL_SEARCH_AVAILABLE_REASON.to_string()
+    } else if external_search_configured {
+        EXTERNAL_SEARCH_CONFIGURED_UNUSABLE_REASON.to_string()
     } else {
         EXTERNAL_SEARCH_UNAVAILABLE_REASON.to_string()
     }
@@ -556,7 +583,7 @@ const COMMERCE_QUERY_TERMS: &[&str] = &[
     "促销",
     "投放",
     "广告",
-    "千川",
+    "广告投放",
     "抖音",
     "小红书",
     "淘宝",
@@ -665,6 +692,12 @@ fn push_unique_product(items: &mut Vec<Product>, product: Product) {
 fn push_unique_knowledge(items: &mut Vec<ProductKnowledge>, knowledge: ProductKnowledge) {
     if !items.iter().any(|item| item.id == knowledge.id) {
         items.push(knowledge);
+    }
+}
+
+fn push_unique_uuid(items: &mut Vec<Uuid>, value: Uuid) {
+    if !items.contains(&value) {
+        items.push(value);
     }
 }
 
@@ -814,17 +847,14 @@ mod tests {
 
     #[test]
     fn degraded_reason_reflects_external_search_availability() {
-        let unavailable = retrieval_degraded_reason(false);
-        let available = retrieval_degraded_reason(true);
+        let unavailable = retrieval_degraded_reason(false, false);
+        let configured_unusable = retrieval_degraded_reason(false, true);
+        let available = retrieval_degraded_reason(true, true);
 
         assert!(unavailable.contains("not configured"));
+        assert!(configured_unusable.contains("configured"));
+        assert!(configured_unusable.contains("currently unavailable"));
         assert!(available.contains("configured"));
         assert!(available.contains("search skills may request live sources"));
-    }
-}
-
-fn push_unique_uuid(items: &mut Vec<Uuid>, value: Uuid) {
-    if !items.contains(&value) {
-        items.push(value);
     }
 }

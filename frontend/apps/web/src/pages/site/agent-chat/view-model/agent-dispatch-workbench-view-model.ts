@@ -18,8 +18,11 @@ import {
   hasFinished,
   normalizeRuntimeRole,
 } from "./agent-process-runtime-view-model"
+import { getWorkbenchAgents } from "./agent-dispatch-workbench-agents-view-model"
 import { buildDispatchPreviewLines } from "./agent-dispatch-preview-lines-view-model"
+import { sanitizeUserFacingProcessText } from "./agent-user-facing-runtime-text"
 import type { SwarmState } from "./swarm-panel-view-model"
+import type { InlineAgent } from "./thread-inline-view-model"
 
 export interface DispatchWorkbenchStep {
   detail: string
@@ -32,6 +35,7 @@ export interface DispatchWorkbenchStep {
 export interface DispatchWorkbenchModel {
   activeStep: DispatchWorkbenchStep
   activeStepIndex: number
+  agents: InlineAgent[]
   facts: AgentDispatchFact[]
   filename: string
   kind: AgentProcessKind
@@ -96,10 +100,12 @@ export function getDispatchWorkbenchModel(
     ? getDispatchPlanAdaptiveProfile(adaptiveProfile)?.studentSummary ??
       getDispatchPlanAdaptiveProfile(adaptiveProfile)?.student_summary
     : undefined
+  const agents = getWorkbenchAgents(runtimeEvents, isStreaming, t)
 
   return {
     activeStep,
     activeStepIndex,
+    agents,
     facts,
     filename: t(`agentChat.thread.dispatchPanel.previewFiles.${kind}`),
     kind,
@@ -130,10 +136,14 @@ function formatStepTitle(title: string, t: TFunction) {
 }
 
 function formatStepDetail(detail: string, t: TFunction) {
-  if (isInternalOrOverlongStepDetail(detail)) {
+  const sanitized = sanitizeUserFacingProcessText(detail, t)
+  if (
+    sanitized === t("agentChat.thread.runtimeText.genericProgress") ||
+    isInternalOrOverlongStepDetail(detail)
+  ) {
     return t("agentChat.thread.dispatchPanel.compactedStepDetail")
   }
-  return formatKnownRuntimeTerms(detail, t)
+  return formatKnownRuntimeTerms(sanitized, t)
 }
 
 function isInternalOrOverlongStepDetail(detail: string) {
@@ -142,11 +152,23 @@ function isInternalOrOverlongStepDetail(detail: string) {
     detail.length > 180 ||
     normalized.includes("assistant:") ||
     normalized.includes("chat_worker") ||
+    normalized.includes("complex") ||
     normalized.includes("final_synthesis") ||
+    normalized.includes("no active workspace") ||
+    normalized.includes("selected route") ||
     normalized.includes("system prompt") ||
+    normalized.includes(CURRENT_ROLE_TASK) ||
+    normalized.includes(CAPABILITY_CHECK) ||
+    normalized.includes(TASK_PLAN_LABEL) ||
+    normalized.includes(CONTEXT_READ_HINT) ||
     normalized.includes("user:")
   )
 }
+
+const CURRENT_ROLE_TASK = cjk(24403, 21069, 23703, 20301, 20219, 21153)
+const CAPABILITY_CHECK = cjk(33021, 21147, 26680, 23545)
+const TASK_PLAN_LABEL = cjk(20219, 21153, 23433, 25490)
+const CONTEXT_READ_HINT = cjk(36164, 26009, 35835, 21462, 25552, 31034)
 
 function formatKnownRuntimeTerms(detail: string, t: TFunction) {
   return detail
@@ -161,7 +183,6 @@ const KNOWN_ROLE_IDS = new Set([
   "creative",
   "data",
   "design",
-  "douyin_ads",
   "engineering",
   "search",
   "ops",
@@ -251,4 +272,8 @@ function hasFailed(runtimeEvents: AgentRuntimeEvent[]) {
       event.type === "workspace_run_failed" ||
       event.type === "task_node_failed"
   )
+}
+
+function cjk(...codes: number[]) {
+  return String.fromCodePoint(...codes)
 }

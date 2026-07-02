@@ -5,8 +5,8 @@ pub fn specs() -> Vec<SkillSpec> {
     vec![
         spec(
             "douyin_ads_plan_structure",
-            "千川计划结构",
-            "根据目标、预算、阶段和商品上下文生成巨量千川计划结构、预算拆分、冷启动赛马和止损规则",
+            "广告投放结构",
+            "根据目标、预算、阶段和商品上下文生成广告投放结构、预算拆分、冷启动赛马和止损规则",
             vec![
                 field(
                     "goal",
@@ -15,7 +15,7 @@ pub fn specs() -> Vec<SkillSpec> {
                     false,
                 ),
                 field("budget", "number", "投放总预算（元）", false),
-                field("platform", "string", "平台，默认抖音", false),
+                field("platform", "string", "广告投放平台或渠道", false),
                 field(
                     "product_name",
                     "string",
@@ -35,8 +35,8 @@ pub fn specs() -> Vec<SkillSpec> {
         ),
         spec(
             "douyin_ads_audience_package",
-            "千川人群包设计",
-            "根据商品、人群、类目和预算生成千川人群包矩阵、排除规则、再营销池和测试顺序",
+            "广告人群包设计",
+            "根据商品、人群、类目和预算生成广告人群包矩阵、排除规则、再营销池和测试顺序",
             vec![
                 field("target_audience", "string", "目标人群描述", false),
                 field(
@@ -58,7 +58,7 @@ pub fn specs() -> Vec<SkillSpec> {
         ),
         spec(
             "douyin_ads_budget_pacing",
-            "千川预算节奏",
+            "广告预算节奏",
             "根据预算、消耗、GMV或ROAS计算日预算节奏、放量/收缩判断和ROI止损线",
             vec![
                 field("budget", "number", "投放总预算（元）", false),
@@ -83,7 +83,7 @@ pub fn specs() -> Vec<SkillSpec> {
         spec(
             "douyin_ads_live_funnel_diagnosis",
             "直播间投放漏斗诊断",
-            "基于曝光、点击、进房、商品点击、下单、付款和GMV诊断直播间千川投放漏斗瓶颈",
+            "基于曝光、点击、进房、商品点击、下单、付款和GMV诊断直播间广告投放漏斗瓶颈",
             vec![
                 field("impressions", "number", "曝光量", false),
                 field("clicks", "number", "广告点击数", false),

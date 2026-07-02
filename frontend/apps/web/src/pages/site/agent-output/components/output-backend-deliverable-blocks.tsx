@@ -22,7 +22,7 @@ export function ArtifactMeta({ label, value }: { label: string; value: string })
   return (
     <div className="min-w-0 rounded-md bg-muted/30 px-2 py-1.5">
       <div className="text-[11px] text-muted-foreground">{label}</div>
-      <div className="truncate font-mono text-xs text-foreground">{value}</div>
+      <div className="truncate text-xs font-medium text-foreground">{value}</div>
     </div>
   )
 }

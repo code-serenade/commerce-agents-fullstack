@@ -4,6 +4,7 @@ export const AgentChatPage = lazy(() => import("@/pages/site/agent-chat"))
 export const AgentCapabilitiesPage = lazy(
   () => import("@/pages/site/agent-capabilities")
 )
+export const QuestionIdeasPage = lazy(() => import("@/pages/site/question-ideas"))
 export const AgentOutputPage = lazy(() => import("@/pages/site/agent-output"))
 export const ApprovalsPage = lazy(() => import("@/pages/site/commerce/approvals"))
 export const CampaignsPage = lazy(() => import("@/pages/site/commerce/campaigns"))
@@ -18,8 +19,4 @@ export const PlatformConnectPage = lazy(
 export const ProductsPage = lazy(() => import("@/pages/site/commerce/products"))
 export const WorkspacesPage = lazy(() => import("@/pages/site/commerce/workspaces"))
 export const HomePage = lazy(() => import("@/pages/site/home"))
-export const ProfilePage = lazy(() =>
-  import("@/pages/site/shared-pages").then((module) => ({
-    default: module.ProfilePage,
-  }))
-)
+export const ProfilePage = lazy(() => import("@/pages/site/profile"))

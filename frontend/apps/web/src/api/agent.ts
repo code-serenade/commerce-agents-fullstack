@@ -6,6 +6,7 @@ const AGENT_AUTH_REFRESH_TIMEOUT_MS = 10_000
 const AUTH_REFRESH_URL = "/auth/session/refresh_token"
 const TEAM_USAGE_QUOTA_EXCEEDED_CODE = -12068
 const TEAM_USAGE_DISABLED_CODE = -12069
+type AgentStreamTokenRefreshResult = "refreshed" | "invalid" | "unavailable"
 
 export interface AgentStreamRequest {
   input: string
@@ -1118,8 +1119,15 @@ export async function streamAgentSessionApi(
   }
 
   let response = await fetchAgentStream(body, handlers.signal)
-  if (response.status === 401 && (await refreshAgentStreamToken())) {
-    response = await fetchAgentStream(body, handlers.signal)
+  if (response.status === 401) {
+    const refreshResult = await refreshAgentStreamToken()
+    if (refreshResult === "refreshed") {
+      response = await fetchAgentStream(body, handlers.signal)
+    } else if (refreshResult === "unavailable") {
+      clearIdleTimeout()
+      handlers.onError("Agent auth refresh temporarily unavailable.")
+      return
+    }
   }
 
   if (!response.ok || !response.body) {
@@ -1255,9 +1263,9 @@ async function readAgentStreamErrorPayload(response: Response): Promise<{
   }
 }
 
-async function refreshAgentStreamToken(): Promise<boolean> {
+async function refreshAgentStreamToken(): Promise<AgentStreamTokenRefreshResult> {
   const refreshToken = localStorage.getItem("refreshToken")
-  if (!refreshToken) return false
+  if (!refreshToken) return "invalid"
   const controller = new AbortController()
   const timer = window.setTimeout(
     () => controller.abort(),
@@ -1272,19 +1280,23 @@ async function refreshAgentStreamToken(): Promise<boolean> {
   }).catch(() => null)
   window.clearTimeout(timer)
   if (!response?.ok) {
-    localStorage.removeItem("token")
-    localStorage.removeItem("refreshToken")
-    return false
+    return response && isInvalidAgentAuthRefreshStatus(response.status)
+      ? "invalid"
+      : "unavailable"
   }
 
   const json = (await response.json().catch(() => ({}))) as {
     data?: { accessToken?: string; access_token?: string }
   }
   const token = json.data?.accessToken ?? json.data?.access_token
-  if (!token) return false
+  if (!token) return "unavailable"
 
   localStorage.setItem("token", token)
-  return true
+  return "refreshed"
+}
+
+function isInvalidAgentAuthRefreshStatus(status: number) {
+  return status === 400 || status === 401 || status === 403
 }
 
 function parseSseMessage(block: string): SseMessage {

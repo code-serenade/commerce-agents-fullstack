@@ -11,6 +11,7 @@ use crate::{
             forced_rich_answer_is_too_thin, format_forced_rich_delivery_fallback,
             text_requires_rich_delivery,
         },
+        product_judgment_answer::repair_product_judgment_answer,
     },
     core::protocol::{MessageContext, MessageId, TaskId},
     roles::{RoleAssignment, RoleContribution},
@@ -38,12 +39,15 @@ pub(crate) fn final_text_with_forced_rich_fallback(
     context: &MessageContext,
     task_input: Option<&str>,
 ) -> String {
-    sanitize_final_user_facing_text(raw_content)
+    let output = sanitize_final_user_facing_text(raw_content)
         .filter(|text| !should_replace_with_forced_rich_fallback(text, context, task_input))
         .unwrap_or_else(|| {
             forced_rich_fallback_from_context(context, task_input)
                 .unwrap_or_else(no_user_facing_content_message)
-        })
+        });
+    task_input
+        .and_then(|task| repair_product_judgment_answer(task, &output))
+        .unwrap_or(output)
 }
 
 fn should_replace_with_forced_rich_fallback(
@@ -368,6 +372,40 @@ mod tests {
         assert!(output.contains("三类教材先这样拆"), "{output}");
         assert!(output.contains("今天就能执行的动作"), "{output}");
         assert!(output.contains("可直接复用的话术"), "{output}");
+    }
+
+    #[test]
+    fn final_text_repairs_generic_product_judgment_answer() {
+        let task = "我想卖一款夏季防晒衣，价格129元，面向大学生，主图比较普通。\
+                    请像平等伙伴一样先判断能不能做，并给出三步优化方向，不要编造销量数据。";
+        let raw_content = "## 先给你一版可用判断\n\n\
+                           先明确分析对象、目标人群、目标动作和当前可用信息。\
+                           把需要验证的判断拆成可观察字段。";
+
+        let output = final_text_with_forced_rich_fallback(
+            raw_content,
+            &MessageContext::default(),
+            Some(task),
+        );
+
+        assert!(output.contains("可以做"), "{output}");
+        assert!(output.contains("先按小测处理"), "{output}");
+        assert!(output.contains("不建议直接重投入"), "{output}");
+        assert!(output.contains("夏季防晒衣"), "{output}");
+        assert!(output.contains("129元"), "{output}");
+        assert!(output.contains("大学生"), "{output}");
+        assert!(output.contains("主图比较普通"), "{output}");
+        assert!(output.contains("你担心判断不准是对的"), "{output}");
+        assert!(output.contains("## 三个优化方向"), "{output}");
+        assert!(output.contains("主图首屏先改"), "{output}");
+        assert!(output.contains("标题和卖点重排"), "{output}");
+        assert!(output.contains("小范围验证反馈"), "{output}");
+        assert!(output.contains("标题"), "{output}");
+        assert!(output.contains("不编造销量数据"), "{output}");
+        assert!(!output.contains("先明确分析对象"), "{output}");
+        assert!(!output.contains("第一步"), "{output}");
+        assert!(!output.contains("第二步"), "{output}");
+        assert!(!output.contains("第三步"), "{output}");
     }
 
     #[test]

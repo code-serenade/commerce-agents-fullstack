@@ -21,7 +21,7 @@ pub(super) fn configured_rule_requests(
     let mut requests = Vec::new();
     let mut fallbacks = Vec::new();
     for rule in &policy.rules {
-        if !rule_matches(rule, role_runtime, match_text, &requests) {
+        if !rule_matches(rule, policy, role_runtime, match_text, &requests) {
             continue;
         }
 
@@ -57,6 +57,7 @@ pub(super) fn contains_any(text: &str, needles: &[String]) -> bool {
 
 fn rule_matches(
     rule: &AutosuggestRule,
+    policy: &WorkerAutosuggestPolicy,
     role_runtime: &str,
     text: &str,
     current_requests: &[ParsedSkillRequest],
@@ -71,6 +72,8 @@ fn rule_matches(
             .all_keywords
             .iter()
             .all(|keyword| contains_keyword(text, keyword))
+        && !(rule.skill_id.starts_with("search_")
+            && contains_any(text, &policy.global_none_keywords))
         && !contains_any(text, &rule.r#match.none_keywords)
         && (rule.r#match.requires_any_skill_ids.is_empty()
             || current_requests.iter().any(|request| {

@@ -26,11 +26,21 @@
 {
   "displayId": "u_10001",
   "displayName": "App User",
-  "schoolName": "示例院校",
-  "teamName": "第一小队",
+  "schoolName": null,
+  "teamName": null,
   "remark": "optional note"
 }
 ```
+
+请求字段：
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `displayId` | string | 是 | 1..64 |
+| `displayName` | string | 是 | 1..64 |
+| `schoolName` | string \| null | 否 | 最长 128 字符；空值表示暂不绑定学校 |
+| `teamName` | string \| null | 否 | 最长 128 字符；空值表示暂不绑定团队 |
+| `remark` | string \| null | 否 | 最长 255 字符 |
 
 成功响应 `data`：`AppUserResponse`。
 
@@ -54,11 +64,13 @@
 补充说明：
 
 - `userId` 由服务端从 JWT 当前用户中读取，前端不得传入或伪造
-- `schoolName`、`teamName` 为必填注册资料，最长 128 字符；历史已有用户可能保持 `null`
+- `schoolName`、`teamName` 为可选注册资料；两者都填写后视为完成学校团队绑定
+- 未绑定学校团队的账号默认 AI 问答额度为 100 次；绑定后默认总额度为 150 次
 - 首次注册会创建 `enabled` 状态 App 用户
 - 首次注册会自动绑定默认 App 角色 `free`
 - 如果默认 App 角色 `free` 不存在，服务端会自动创建；初始化脚本 `scripts/init_app_permissions.sh` 也会写入该角色
 - 同一个 `userId` 重复注册时返回已有用户信息
+- 同一个 `userId` 重复注册不会覆盖已有学校和团队资料
 - 该接口用于登录后的业务 App 用户初始化；前端应先查询 `/api/app/me/permissions`，仅当当前 Auth 用户尚未初始化为 App 用户时再调用本接口
 
 ## 2. 查询当前 App 用户权限
@@ -89,6 +101,73 @@
 - 返回权限码来自该用户绑定的 App 角色
 - 如果当前 Auth 用户尚未初始化为 App 用户，返回 `404`，错误码为 `-12000`
 - 如果当前 App 用户已被禁用，返回 `403`，错误码为 `-12001`
+
+## 1.1 查询当前 App 用户资料
+
+- 方法：`GET`
+- 路径：`/api/app/me/profile`
+- 鉴权：有效 App 用户 JWT
+
+成功响应 `data`：
+
+```json
+{
+  "userId": "1b1f4e1d-5b4f-4d25-ae07-520f587f8d13",
+  "displayId": "u_10001",
+  "displayName": "App User",
+  "schoolName": "示例院校",
+  "teamName": "第一小队",
+  "isSchoolTeamBound": true
+}
+```
+
+字段说明：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `userId` | string | 当前 App 用户 ID |
+| `displayId` | string | 展示 ID |
+| `displayName` | string | 展示名 |
+| `schoolName` | string \| null | 学校 |
+| `teamName` | string \| null | 团队 |
+| `isSchoolTeamBound` | boolean | 学校和团队是否均已填写 |
+
+补充说明：
+
+- 当前用户必须存在于 `app_users`，且状态为 `enabled`
+- 如果当前 Auth 用户尚未初始化为 App 用户，返回 `404`，错误码为 `-12000`
+- 如果当前 App 用户已被禁用，返回 `403`，错误码为 `-12001`
+
+## 1.2 更新当前 App 用户资料
+
+- 方法：`PATCH`
+- 路径：`/api/app/me/profile`
+- 鉴权：有效 App 用户 JWT
+
+请求体：
+
+```json
+{
+  "schoolName": "示例院校",
+  "teamName": "第一小队"
+}
+```
+
+请求字段：
+
+| 字段 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| `schoolName` | string \| null | 否 | 最长 128 字符；空字符串按未填写处理 |
+| `teamName` | string \| null | 否 | 最长 128 字符；空字符串按未填写处理 |
+
+成功响应 `data`：同 `GET /api/app/me/profile`。
+
+补充说明：
+
+- 学校和团队均非空时视为完成绑定
+- 完成绑定后，系统默认额度从 100 提升为 150；提升不重置已用次数
+- 如果用户清空学校或团队，且当前额度仍是系统默认 150，则回落到系统默认 100
+- 后台手动设置的特殊额度不会被普通用户资料更新覆盖
 
 ## 2.1 查询电商智能体场景 Playbook
 
@@ -357,7 +436,7 @@
 - `[external_search]` 只作为 Agent runtime 的 search adapter 配置读取。
 - 前端不得直接调用外部搜索 provider，也不得通过 App API 绕过 Agent skill。
 - 搜索类 skill 的输出契约、降级语义和来源证据见 `API_DOCS/sse.md` 的 `skill_result` 说明。
-- 未配置或 provider 未返回可信来源时，Agent search skill 必须降级，不能伪造实时来源。
+- 未配置、provider 请求失败/超时、进入健康保护 cooldown 或 provider 未返回可信来源时，Agent search skill 必须降级，不能伪造实时来源。配置完整只表示后端可以尝试请求 provider，不等于本轮已经取得 live 来源。
 
 ## 3. 查询我的会话列表
 
@@ -2804,7 +2883,7 @@
 
 ## 工作区交付物接口
 
-工作区交付物用于保存 Agent 运行或人工流程产生的最终报告、岗位交付件、文件引用等结果。Agent SSE 正常完成时会自动创建一个 `artifactType=final_report`、`storageKind=inline`、`format=markdown` 的交付物；当搜索类 `search_*` skill 返回真实 live 来源时，还会自动创建 `artifactType=search_evidence`、`storageKind=inline`、`format=json` 的搜索证据交付物；当部分 creative / design / data / accounting / service / ops / douyin_ads / web / engineering / learning 内容类 skill 返回真实成功结果时，还会自动创建对应 markdown 内容交付物。普通 HTTP 接口可用于查询、人工登记、更新或归档交付物。
+工作区交付物用于保存 Agent 运行或人工流程产生的最终报告、岗位交付件、文件引用等结果。Agent SSE 正常完成时会自动创建一个 `artifactType=final_report`、`storageKind=inline`、`format=markdown` 的交付物；当搜索类 `search_*` skill 返回真实 live 来源时，还会自动创建 `artifactType=search_evidence`、`storageKind=inline`、`format=json` 的搜索证据交付物；当部分 creative / design / data / accounting / service / ops / web / engineering / learning 内容类 skill 返回真实成功结果时，还会自动创建对应 markdown 内容交付物。普通 HTTP 接口可用于查询、人工登记、更新或归档交付物。
 
 ### 查询工作区交付物列表
 
@@ -2879,7 +2958,7 @@
 - `content` 是后端将对应 creative、design、data、accounting、service、ops、web 或 engineering skill 成功输出包装成 markdown 的结果
 - `preview` 是后端从 skill 输出摘要或正文中截取的预览
 - `metadata.kind = agent_generated_content`
-- `metadata.contentCategory = creative`、`design`、`data`、`accounting`、`service`、`ops`、`douyin_ads`、`web`、`engineering` 或 `learning`
+- `metadata.contentCategory = creative`、`design`、`data`、`accounting`、`service`、`ops`、`web`、`engineering` 或 `learning`
 - `metadata` 还包含 `artifactType`、`skillId`、`requestId`、`role`、`summary`
 - `creative_video_script`、`creative_seeding_copy`、`creative_ip_branding`、`creative_content_calendar`、`creative_live_script`、`creative_product_article`、`creative_trend_catch`、`creative_title_ctr_scorer` 成功输出会分别创建脚本、种草文案、IP定位、内容排期、直播脚本、产品软文、趋势报告和标题CTR评分交付物；使用默认商品/排期/直播参数时会以 `data_readiness=calculated_from_defaults` 明示，缺少必填参数时返回 validation error，不会创建假创意交付物
 - 创意岗位的直播脚本和产品软文在用户明确要求最新、实时、联网、公开来源、直播间玩法、热门直播间、爆款文章或公众号热门风格时，会先创建对应 native 内容交付物，再通过 `search_trends` 产生独立搜索证据；搜索 provider 未配置、失败或没有可信 URL 来源时仍按搜索降级处理，不创建假 live 搜索证据。
@@ -2901,7 +2980,7 @@
 - `ops_promo_plan`、`ops_product_opportunity_report`、`ops_product_market_fit_report`、`ops_experiment_mvp_plan`、`ops_experiment_review_report`、`ops_pricing_strategy`、`ops_channel_strategy`、`ops_inventory_plan`、`ops_listing_copy`、`ops_assortment_plan` 和 `ops_execution_plan` 来自运营岗位核心计划类 skill 的真实成功输出；商品机会评分只基于本轮显式商品、卖点、成本售价、竞品价、预算和风险线索，商品市场匹配诊断只基于本轮显式商品、人群、场景、渠道、卖点和价格带，MVP实验计划只基于本轮显式商品、卖点、人群、渠道、预算、周期和上游评分生成实验假设、分组、成功线与止损线，MVP实验复盘只基于本轮显式传入的实验组结果、基线、售价、成本和约束判断是否放量、调整重测、暂停或补样本；这些运营交付物不联网、不读取实时平台后台，缺少必要用户输入时后端返回 `deferred`，不会创建假运营交付物，也不会声称实验已经发生
 - 运营上架文案在用户明确要求最新标题规则、上架 / 发布 / 内容规范、搜索量、标题趋势、买家痛点或真实评价时，Agent SSE 可能同时产生 `ops_listing_copy` 内容交付物和 `artifactType=search_evidence` 搜索证据交付物。上架内容交付物只来自 `ops_listing_copy` 的真实成功输出；标题 / 发布规则搜索证据只来自 `search_platform_policy(policy_type=content)` 的 live 可信来源；买家痛点 / 真实评价只来自 `search_product_reviews` 的 live 可信来源；标题趋势 / 搜索量只来自 `search_market_info` 的 live 可信来源。adapter 未配置或无可信来源时不会伪造平台规则、买家评价或热搜数据。
 - `ops_smart_pricing_report`、`ops_inventory_optimization_report`、`ops_ad_fatigue_report` 和 `ops_abc_xyz_report` 来自运营岗位高级分析类 skill 的真实成功输出；智能定价缺少竞品价格或 ABC-XYZ 使用演示 SKU 时会以 `data_readiness=calculated_from_defaults` 明示，库存优化和广告疲劳检测缺少必要 SKU/渠道输入时返回 `deferred`，不会创建假高级运营交付物
-- `douyin_ads_plan_structure`、`douyin_ads_audience_package`、`douyin_ads_budget_pacing` 和 `douyin_ads_live_funnel_report` 来自千川投放岗位 native skill 的真实成功输出；计划结构和人群包可基于确定性默认策略生成并以 `data_readiness=calculated_from_defaults` 明示，预算节奏缺少预算或 ROAS / GMV / 消耗时返回 `deferred`，直播漏斗缺少曝光和点击时返回 `deferred`。这些交付物只基于本轮用户显式输入和显式选品上下文，不读取或伪造巨量千川、抖音罗盘、直播间或广告后台实时数据。
+- `douyin_ads_plan_structure`、`douyin_ads_audience_package`、`douyin_ads_budget_pacing` 和 `douyin_ads_live_funnel_report` 来自运营策略师下的广告投放判断 native skill 的真实成功输出；`douyin_ads_*` 是历史内部 skill id，不代表独立岗位或平台绑定。计划结构和人群包可基于确定性默认策略生成并以 `data_readiness=calculated_from_defaults` 明示，预算节奏缺少预算或 ROAS / GMV / 消耗时返回 `deferred`，直播漏斗缺少曝光和点击时返回 `deferred`。这些交付物只基于本轮用户显式输入和显式选品上下文，不读取或伪造广告后台、平台后台或直播间实时数据。
 - `web_seo_plan`、`web_title_candidates`、`web_conversion_plan`、`web_store_design_brief`、`web_keyword_matrix`、`web_product_description` 和 `web_title_seo_score` 来自 Web 增长岗位 skill 的真实成功输出；使用平台规则、通用主推商品或页面基准默认值时会以 `data_readiness=calculated_from_defaults` 明示，缺少必填参数时返回 validation error，不会创建假 Web 增长交付物
 - Web 标题生成和详情文案在用户明确要求最新标题规则、标题规范、热搜词、高点击趋势、详情页趋势、高转化卖点、买家痛点或真实评价时，Agent SSE 可能同时产生 `web_title_candidates` / `web_product_description` 内容交付物和 `artifactType=search_evidence` 搜索证据交付物。标题 / 内容规则搜索证据来自 `search_platform_policy(policy_type=content)`；标题趋势 / 搜索量 / 详情页趋势来自 `search_market_info`；买家痛点 / 真实评价来自 `search_product_reviews`。普通标题或详情生成没有实时资料诉求时不会自动触发搜索；未显式选择商品时不会把历史商品或预设商品写入搜索证据。
 - `engineering_arch_review_report`、`engineering_bug_analysis_report`、`engineering_perf_plan`、`engineering_tech_selection_report` 和 `engineering_sla_report` 来自工程岗位 skill 的真实成功输出；当前基于用户输入和内置工程规则生成，不读取真实代码仓库、日志、APM、监控系统或实时外部 benchmark，缺少关键上下文时会以 `data_readiness=calculated_from_defaults` 明示；`engineering_system_check` 可由平台 API 连通性 / 接口健康 / 授权 / 同步状态问法触发，但仍需平台 adapter 和审批，真实测试连接时返回 `pending_approval`，不会创建假健康检查交付物
@@ -2921,7 +3000,7 @@
   "workspaceTaskId": null,
   "runTaskId": null,
   "artifactType": "role_report",
-  "title": "投放岗位分析报告",
+  "title": "运营投放判断报告",
   "content": "报告正文",
   "preview": "报告摘要",
   "mimeType": "text/markdown",

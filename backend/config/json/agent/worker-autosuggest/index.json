@@ -43,11 +43,6 @@
       "mode": "requests"
     },
     {
-      "role": "douyin_ads",
-      "handler": "douyin_ads",
-      "mode": "requests"
-    },
-    {
       "role": "engineering",
       "handler": "engineering",
       "mode": "requests"
@@ -57,6 +52,23 @@
       "handler": "search",
       "mode": "requests"
     }
+  ],
+  "global_none_keywords": [
+    "不要联网",
+    "不联网",
+    "不要搜索",
+    "不用搜索",
+    "无需搜索",
+    "不要查外部",
+    "不用查外部",
+    "不查外部",
+    "不要外部资料",
+    "不用外部资料",
+    "不需要外部资料",
+    "不要实时",
+    "不需要实时",
+    "不要公开来源",
+    "不用公开来源"
   ],
   "files": [
     "chat.json",

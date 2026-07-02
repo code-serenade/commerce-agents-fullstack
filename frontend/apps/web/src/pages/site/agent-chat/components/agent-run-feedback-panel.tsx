@@ -14,7 +14,7 @@ export function AgentRunFeedbackPanel({
 }) {
   const { t } = useTranslation()
   const targetLabel = feedback.target
-    ? feedback.target.workspaceTitle ?? feedback.target.workspaceId.slice(0, 8)
+    ? feedback.target.workspaceTitle ?? t("agentChat.feedback.linked")
     : t("agentChat.feedback.noTarget")
 
   if (compact) {
@@ -88,8 +88,8 @@ export function AgentRunFeedbackPanel({
           {t("agentChat.feedback.target", { target: targetLabel })}
         </span>
         {feedback.target ? (
-          <span className="rounded-full bg-muted px-2 py-1 font-mono text-[11px] text-muted-foreground">
-            {feedback.target.runId.slice(0, 8)}
+          <span className="rounded-full bg-muted px-2 py-1 text-[11px] text-muted-foreground">
+            {t("agentChat.feedback.linked")}
           </span>
         ) : null}
       </div>

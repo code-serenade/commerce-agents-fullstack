@@ -15,6 +15,7 @@ import {
 import type { CommerceColumn } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
 import type { WorkspacesPageState } from "../use-workspaces-page"
+import { getWorkspaceArtifactDisplay } from "../view-model/workspace-artifact-display-view-model"
 
 export function createWorkspaceColumns(
   page: WorkspacesPageState,
@@ -170,30 +171,36 @@ export function createArtifactColumns(
     {
       key: "artifact",
       header: t("commerce.workspaces.columns.artifact"),
-      render: (item) => (
-        <button
-          type="button"
-          className="block min-w-0 text-left"
-          onClick={() => page.setSelectedArtifactId(item.id)}
-        >
-          <span className="block truncate font-medium">{item.title}</span>
-          <MutedText>{item.preview || item.fileName || item.id}</MutedText>
-        </button>
-      ),
+      render: (item) => {
+        const display = getWorkspaceArtifactDisplay(t, item)
+        return (
+          <button
+            type="button"
+            className="block min-w-0 text-left"
+            onClick={() => page.setSelectedArtifactId(item.id)}
+          >
+            <span className="block truncate font-medium">{display.title}</span>
+            <MutedText>{item.preview || display.source}</MutedText>
+          </button>
+        )
+      },
     },
     {
       key: "type",
       header: t("commerce.common.type"),
-      render: (item) => item.artifactType,
+      render: (item) => getWorkspaceArtifactDisplay(t, item).type,
     },
     {
       key: "validation",
       header: t("commerce.workspaces.columns.validation"),
-      render: (item) => (
-        <StatusBadge tone={toneForStatus(item.validationStatus)}>
-          {item.validationStatus}
-        </StatusBadge>
-      ),
+      render: (item) => {
+        const display = getWorkspaceArtifactDisplay(t, item)
+        return (
+          <StatusBadge tone={toneForStatus(item.validationStatus)}>
+            {display.validationStatus}
+          </StatusBadge>
+        )
+      },
     },
   ]
 }

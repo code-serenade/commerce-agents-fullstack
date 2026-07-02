@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router"
 import { Button } from "@workspace/ui-components"
-import { useAgentChatContext } from "../agent-chat/context/use-agent-chat-context"
+import { useOptionalAgentChatContext } from "../agent-chat/context/use-agent-chat-context"
 import {
   CommerceBody,
   CommercePageHeader,
@@ -17,7 +17,7 @@ import {
 
 export default function AgentCapabilitiesPage() {
   const { t } = useTranslation()
-  const chat = useAgentChatContext()
+  const chat = useOptionalAgentChatContext()
   const navigate = useNavigate()
   const capabilities = t("agentCapabilities.capabilities.items", {
     returnObjects: true,
@@ -35,7 +35,7 @@ export default function AgentCapabilitiesPage() {
     returnObjects: true,
   }) as Array<{ question: string; answer: string }>
   const startNewConversation = () => {
-    chat.startNewConversation()
+    chat?.startNewConversation()
     navigate("/commerce")
   }
 

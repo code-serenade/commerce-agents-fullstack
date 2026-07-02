@@ -6,7 +6,7 @@ mod skills;
 mod smoke;
 mod specs;
 
-pub use config::SearchAdapterConfig;
+pub use config::{SearchAdapterConfig, SearchAdapterHealthStatus};
 pub use skills::{
     SearchCompetitor, SearchIndustryBenchmarks, SearchMarketInfo, SearchPlatformPolicy,
     SearchProductReviews, SearchTrends,

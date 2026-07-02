@@ -167,7 +167,7 @@
   "default_evidence": "本轮用户任务和会话/工作区上下文",
   "selected_product_evidence_template": "用户本轮手动选择的商品资料：{{product_name}}（{{product_ref}}）。",
   "unselected_product_evidence": "本轮没有手动选择具体商品；只按用户文本、会话历史和工作区上下文理解问题。",
-  "upstream_evidence_template": "worker.assignment.input.{{node_id}}：引用上游{{role}}岗位产物，作为本岗位判断依据。",
+  "upstream_evidence_template": "worker.assignment.input.{{node_id}}：引用上游{{role}}岗位产物，作为本岗位任务资料。",
   "runtime_evidence_keep_markers": [
     "worker.assignment.input"
   ],

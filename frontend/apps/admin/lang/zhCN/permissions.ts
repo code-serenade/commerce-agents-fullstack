@@ -8,7 +8,7 @@ const permissions = {
       label: "后台账号",
     },
     app_users: {
-      label: "App 用户",
+      label: "产品用户",
     },
   },
   access_control: {
@@ -20,16 +20,28 @@ const permissions = {
       label: "角色授权",
     },
     app_roles: {
-      label: "App 角色",
+      label: "用户角色",
     },
     app_role_permissions: {
-      label: "App 角色授权",
+      label: "用户角色授权",
     },
   },
   usage: {
     label: "用量管理",
     team_usage: {
       label: "账号用量",
+    },
+  },
+  analytics: {
+    label: "数据统计",
+    overview: {
+      label: "访问统计总览",
+    },
+    accounts: {
+      label: "账号访问统计",
+    },
+    school_teams: {
+      label: "学校/队伍统计",
     },
   },
   profile: {

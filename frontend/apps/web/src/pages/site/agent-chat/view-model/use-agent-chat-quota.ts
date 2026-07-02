@@ -1,9 +1,12 @@
 import { useQuery } from "@tanstack/react-query"
-import { getCurrentTeamUsageQuotaApi } from "@/api"
+import {
+  currentTeamUsageQuotaQueryKey,
+  getCurrentTeamUsageQuotaApi,
+} from "@/api"
 
 export function useAgentChatQuota({ enabled }: { enabled: boolean }) {
   const quotaQuery = useQuery({
-    queryKey: ["web", "agent-chat", "account-usage-quota"],
+    queryKey: currentTeamUsageQuotaQueryKey,
     queryFn: () =>
       getCurrentTeamUsageQuotaApi({
         suppressGlobalError: true,

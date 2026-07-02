@@ -17,6 +17,8 @@ pub(in crate::agent::worker::runner) struct WorkerAutosuggestPolicy {
     #[serde(default)]
     pub(super) role_routes: Vec<RoleAutosuggestRoute>,
     #[serde(default)]
+    pub(super) global_none_keywords: Vec<String>,
+    #[serde(default)]
     pub(super) chat: ChatAutosuggestPolicy,
     #[serde(default)]
     pub(super) learning: LearningAutosuggestPolicy,
@@ -129,6 +131,8 @@ pub(super) struct AutosuggestRuleMatch {
 struct AutosuggestIndex {
     #[serde(default)]
     role_routes: Vec<RoleAutosuggestRoute>,
+    #[serde(default)]
+    global_none_keywords: Vec<String>,
     #[serde(default)]
     files: Vec<String>,
 }
@@ -247,6 +251,7 @@ fn load_autosuggest_directory(directory: &Path) -> Result<WorkerAutosuggestPolic
     )?;
     let mut policy = WorkerAutosuggestPolicy {
         role_routes: index.role_routes,
+        global_none_keywords: index.global_none_keywords,
         ..WorkerAutosuggestPolicy::default()
     };
 

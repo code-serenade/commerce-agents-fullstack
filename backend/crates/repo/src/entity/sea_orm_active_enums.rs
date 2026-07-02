@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(
-    rs_type = "String",
+    rs_type = "Enum",
     db_type = "Enum",
     enum_name = "conversation_collaboration_mode"
 )]
@@ -19,7 +19,7 @@ pub enum ConversationCollaborationMode {
 }
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(
-    rs_type = "String",
+    rs_type = "Enum",
     db_type = "Enum",
     enum_name = "conversation_learning_level"
 )]
@@ -33,7 +33,7 @@ pub enum ConversationLearningLevel {
 }
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(
-    rs_type = "String",
+    rs_type = "Enum",
     db_type = "Enum",
     enum_name = "conversation_response_mode"
 )]
@@ -47,7 +47,7 @@ pub enum ConversationResponseMode {
 }
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(
-    rs_type = "String",
+    rs_type = "Enum",
     db_type = "Enum",
     enum_name = "conversation_routing_mode"
 )]
@@ -59,7 +59,7 @@ pub enum ConversationRoutingMode {
 }
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
 #[sea_orm(
-    rs_type = "String",
+    rs_type = "Enum",
     db_type = "Enum",
     enum_name = "conversation_strategy_id"
 )]

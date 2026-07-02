@@ -61,12 +61,32 @@ pub struct RegisterAppUserRequest {
     pub display_id: String,
     #[validate(length(min = 1, max = 64))]
     pub display_name: String,
-    #[validate(length(min = 1, max = 128))]
-    pub school_name: String,
-    #[validate(length(min = 1, max = 128))]
-    pub team_name: String,
+    #[validate(length(max = 128))]
+    pub school_name: Option<String>,
+    #[validate(length(max = 128))]
+    pub team_name: Option<String>,
     #[validate(length(min = 1, max = 255))]
     pub remark: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateCurrentAppUserProfileRequest {
+    #[validate(length(max = 128))]
+    pub school_name: Option<String>,
+    #[validate(length(max = 128))]
+    pub team_name: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CurrentAppUserProfileResponse {
+    pub user_id: String,
+    pub display_id: String,
+    pub display_name: String,
+    pub school_name: Option<String>,
+    pub team_name: Option<String>,
+    pub is_school_team_bound: bool,
 }
 
 #[derive(Debug, Deserialize, Validate)]

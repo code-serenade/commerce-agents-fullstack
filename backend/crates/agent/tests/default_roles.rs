@@ -1925,11 +1925,11 @@ async fn explicit_manual_search_extended_selected_roles_receive_evidence_without
         "data",
         "creative",
         "design",
-        "douyin_ads",
+        "accounting",
         "web",
     ];
-    let downstream_roles = ["data", "creative", "design", "douyin_ads", "web"];
-    let unselected_roles = ["service", "accounting", "engineering", "chat"];
+    let downstream_roles = ["data", "creative", "design", "accounting", "web"];
+    let unselected_roles = ["service", "engineering", "chat"];
 
     let events = run_manual_search_extended_roles_with_state_packet(
         packet,
@@ -2323,7 +2323,7 @@ async fn run_manual_search_extended_roles_with_state_packet(
             agent_id: AgentId("role-agent".to_string()),
             session_id: SessionId(format!("role-session-search-extended-{case_name}")),
             input: format!(
-                "请指定运营、资料搜索员、数据、创意、视觉设计、抖音投放和网页岗位一起协作，\
+                "请指定运营、资料搜索员、数据、创意、视觉设计和网页岗位一起协作，\
                  搜索校园冷萃咖啡竞品价格后判断数据口径、内容方向、设计表达、投放风险和页面承接。\
                  case={case_name}"
             ),
@@ -2851,7 +2851,7 @@ async fn manual_strategy_metadata_routes_requested_roles() {
                 && route_mode == "task_graph"
                 && primary_runtime_role.as_deref() == Some("creative")
                 && support_runtime_roles == &vec!["data".to_string(), "ops".to_string()]
-                && context_budget.history_summary_available == false
+                && !context_budget.history_summary_available
                 && context_budget.recent_history_message_count == 0
                 && context_budget.history_total_message_count == 0
                 && !context_budget.history_truncated

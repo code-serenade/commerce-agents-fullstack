@@ -1,4 +1,5 @@
 mod account;
+mod analytics;
 mod approval_audit;
 mod briefing;
 mod campaign;
@@ -17,6 +18,7 @@ mod usage;
 mod workspace;
 
 pub use account::*;
+pub use analytics::*;
 pub use approval_audit::*;
 pub use briefing::*;
 pub use campaign::*;

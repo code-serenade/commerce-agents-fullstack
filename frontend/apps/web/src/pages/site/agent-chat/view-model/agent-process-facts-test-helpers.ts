@@ -5,7 +5,7 @@ export const dispatchFactTestLabels = {
   contextBudgetLabel: "Context budget",
   historyWindowDetail: "recent 12 total 18",
   historyWindowLabel: "History window",
-  planDetail: "complex task graph",
+  planDetail: "plan multi-step route",
   planLabel: "Plan",
   roleAuditDetail: "planned Data, Ops executed Data, Ops",
   roleAuditLabel: "Role audit",
@@ -48,10 +48,10 @@ export const t = ((key: string, params?: Record<string, unknown>) => {
     return dispatchFactTestLabels.planLabel
   }
   if (key === "agentChat.thread.dispatchFacts.plan.detail") {
-    return `${params?.difficulty} ${params?.mode}`
+    return `plan ${params?.mode}`
   }
   if (key === "agentChat.thread.dispatchPanel.routeModes.task_graph") {
-    return "task graph"
+    return "multi-step route"
   }
   if (key === "agentChat.thread.dispatchPanel.routeModes.single_agent") {
     return "single angle"
@@ -154,6 +154,9 @@ export const t = ((key: string, params?: Record<string, unknown>) => {
   }
   if (key === "agentChat.thread.runtimeText.genericProgress") {
     return "generic progress"
+  }
+  if (key === "agentChat.thread.dispatchFacts.userFacingFallback.label") {
+    return "Process check"
   }
   if (key === "agentChat.thread.dispatchFacts.materialAudit.label") {
     return dispatchFactTestLabels.materialAuditLabel

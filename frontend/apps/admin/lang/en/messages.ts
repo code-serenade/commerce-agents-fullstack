@@ -5,14 +5,20 @@ const messages = {
       dashboard: "Dashboard",
       accountManagement: "Accounts",
       adminUsers: "Admin Users",
-      appUsers: "App Users",
+      appUsers: "Product Users",
       accessControl: "Access Control",
       roles: "Roles",
       rolePermissions: "Role Permissions",
-      appRoles: "App Roles",
-      appRolePermissions: "App Role Permissions",
+      appRoles: "User Roles",
+      appRolePermissions: "User Role Permissions",
+      analytics: "Analytics",
+      accessAnalytics: "Access Analytics",
       usageManagement: "Usage",
       teamUsage: "Account Usage",
+    },
+    loading: {
+      app: "Loading Commerce Multi-Agent Admin",
+      route: "Preparing admin page",
     },
     authLayout: {
         eyebrow: "Workspace Admin",
@@ -80,101 +86,102 @@ const messages = {
       heading: {
         title: "Dashboard",
         description:
-          "Today’s operating metrics, business trends, and system status.",
+          "Product traffic and AI usage from {{from}} to {{to}}. Data status: {{status}}.",
+        loading: "loading",
+        ready: "updated",
       },
       metrics: {
-        revenue: "Today Revenue",
-        newUsers: "New Members",
-        pendingTickets: "Pending Tickets",
-        availability: "Availability",
-      },
-      days: {
-        mon: "Mon",
-        tue: "Tue",
-        wed: "Wed",
-        thu: "Thu",
-        fri: "Fri",
-        sat: "Sat",
-        sun: "Sun",
+        pv: {
+          label: "Product Visits",
+          tail: "{{sessions}} visit sessions in this range.",
+        },
+        questions: {
+          label: "AI Questions",
+          tail: "About {{tokens}} tokens used in this range.",
+        },
+        accounts: {
+          label: "Product Accounts",
+          tail: "{{enabled}} accounts are enabled.",
+        },
+        teams: {
+          label: "Schools / Teams",
+          tail: "{{active}} accounts were active in this range.",
+        },
       },
       charts: {
-        revenueTrend: {
-          title: "Revenue Trend",
-          description: "Revenue and order volume over the last 7 days.",
+        trafficTrend: {
+          title: "Daily Visits and Questions",
+          description: "Product visits, visitors, and AI questions by day.",
         },
-        userSegments: {
-          title: "User Segments",
-          description: "Member activity status distribution.",
-        },
-        channels: {
-          title: "Channel Revenue",
-          description: "This week’s contribution by channel.",
+        productMix: {
+          title: "Product Usage Summary",
+          description: "A quick view of whether users are actively using the product.",
         },
         series: {
-          revenue: "Revenue",
-          orders: "Orders",
-          channelShare: "Share",
+          pv: "Visits",
+          uv: "Visitors",
+          questions: "AI Questions",
         },
       },
-      channels: {
-        directStore: "Direct Store",
-        partner: "Partners",
-        miniProgram: "Mini Program",
-        offline: "Offline Stores",
+      productMix: {
+        activeAccounts: "Active Accounts",
+        avgSession: "Average Session",
+        bounceRate: "Bounce Rate",
+        errors: "Frontend / API Errors",
       },
-      userSegments: {
-        new: "New Users",
-        active: "Active Users",
-        silent: "Inactive Users",
-      },
-      orders: {
-        title: "Latest Orders",
-        description: "A real-time view of high-frequency business activity.",
+      topPages: {
+        title: "Popular Product Pages",
+        description: "The product pages managers should watch most closely.",
         columns: {
-          id: "Order ID",
-          source: "Source",
-          status: "Status",
-          amount: "Amount",
+          page: "Page",
+          path: "Raw Path",
+          pv: "Visits",
+          uv: "Visitors",
         },
       },
-      orderSources: {
-        eastChina: "East China",
-        directStore: "Direct Store",
-        partner: "Partners",
-        miniProgram: "Mini Program Store",
+      schoolTeams: {
+        title: "School / Team Activity",
+        description: "Visits, active accounts, and AI questions by school and team.",
+        rowDetail: "{{accounts}} active accounts, {{questions}} AI questions",
+        empty: "No school or team traffic yet.",
       },
-      orderStatuses: {
-        reviewing: "Reviewing",
-        shipped: "Shipped",
-        pendingPayment: "Pending Payment",
-        completed: "Completed",
-      },
-      riskMonitor: {
-        title: "Risk Monitor",
-        description: "Common backlog and risk indicators for admin systems.",
-      },
-      risks: {
-        refundBacklog: "Refund Backlog",
-        permissionReview: "Permission Review",
-        inventoryDelay: "Inventory Sync Delay",
-      },
-      servicesPanel: {
-        title: "Service Status",
-        description: "Health status of core services.",
+      usageAlerts: {
+        title: "Question Quota",
+        description: "Accounts with less remaining quota are shown first.",
         columns: {
-          service: "Service",
-          status: "Status",
-          metric: "Metric",
+          account: "Account",
+          schoolTeam: "School / Team",
+          used: "Questions Used",
+          remaining: "Remaining",
         },
       },
-      services: {
-        apiGateway: "API Gateway",
-        jobQueue: "Job Queue",
-        notifications: "Notifications",
+      dataStatus: {
+        title: "Data Connection Status",
+        description: "Shows which real admin data modules are loaded.",
+        columns: {
+          name: "Data Module",
+          status: "Status",
+          detail: "Details",
+        },
       },
-      serviceStatuses: {
-        normal: "Normal",
-        watching: "Watching",
+      statusRows: {
+        ready: "Loaded",
+        loading: "Loading",
+        analytics: {
+          name: "Access Analytics",
+          detail: "From product visits, sources, pages, and daily traffic APIs.",
+        },
+        accounts: {
+          name: "Account Statistics",
+          detail: "From product account and status metrics APIs.",
+        },
+        usage: {
+          name: "School / Team and Quota",
+          detail: "From school/team analytics and account quota APIs.",
+        },
+      },
+      empty: {
+        schoolTeam: "No school / team",
       },
     },
     accounts: {
@@ -327,12 +334,12 @@ const messages = {
         },
         metrics: {
           all: {
-            label: "App Users",
-            tail: "Total App users returned by the server.",
+            label: "Product Users",
+            tail: "Total product user accounts.",
           },
           enabled: {
             label: "Enabled",
-            tail: "Accounts with active App access.",
+            tail: "Accounts with active product access.",
           },
           disabled: {
             label: "Disabled",
@@ -347,12 +354,16 @@ const messages = {
           columns: {
             id: "ID",
             displayName: "Display Name",
+            schoolName: "School",
+            teamName: "Team",
             remark: "Remark",
             status: "Status",
             roles: "Roles",
             roleCount: "Role Count",
           },
           empty: {
+            schoolName: "No school",
+            teamName: "No team",
             remark: "No remark",
             roles: "No roles assigned",
           },
@@ -373,23 +384,23 @@ const messages = {
           actions: {
             edit: {
               label: "Edit",
-              title: "Edit App user {{id}}",
+              title: "Edit product user {{id}}",
               description: "Only the remark can be edited here.",
-              success: "App user updated",
+              success: "Product user updated",
             },
             delete: {
               label: "Delete",
-              title: "Delete App user {{id}}",
+              title: "Delete product user {{id}}",
               description:
-                "Delete App user {{name}} ({{id}})? This account will no longer be able to use App permissions.",
+                "Delete product user {{name}} ({{id}})? This account will no longer be able to use product features.",
               confirm: "Delete",
-              success: "App user deleted",
+              success: "Product user deleted",
             },
             toggle: {
               enable: "Enable",
               disable: "Disable",
-              enabledSuccess: "App user enabled",
-              disabledSuccess: "App user disabled",
+              enabledSuccess: "Product user enabled",
+              disabledSuccess: "Product user disabled",
             },
             editRoles: "Edit roles",
           },
@@ -398,6 +409,8 @@ const messages = {
           fields: {
             id: "ID",
             displayName: "Display Name",
+            schoolName: "School",
+            teamName: "Team",
             remark: "Remark",
           },
           remarkPlaceholder: "Enter remark",
@@ -496,6 +509,233 @@ const messages = {
         },
       },
     },
+    analytics: {
+      heading: {
+        title: "Access Analytics",
+        description:
+          "Review product traffic, sources, daily flow, accounts, schools, and team usage.",
+      },
+      filters: {
+        from: "Start date",
+        to: "End date",
+        rangePlaceholder: "Choose analytics date range",
+        rangeSummary: "Current range: {{from}} to {{to}}",
+        rangeHint:
+          "The selected range applies to overview, accounts, and school/team tabs.",
+        refresh: "Refresh",
+        presets: {
+          label: "Quick analytics range",
+          today: "Today",
+          last7Days: "Last 7 days",
+          last30Days: "Last 30 days",
+        },
+      },
+      tabs: {
+        overview: "Overview",
+        accounts: "Accounts",
+        schoolTeams: "Schools / Teams",
+      },
+      metrics: {
+        pv: {
+          label: "PV",
+          tail: "Page views in the selected range.",
+        },
+        uv: {
+          label: "UV",
+          tail: "Deduplicated anonymous visitors and signed-in accounts.",
+        },
+        questions: {
+          label: "AI Questions",
+          tail: "Estimated tokens {{tokens}}.",
+        },
+        quality: {
+          label: "Avg Session",
+          tail: "Bounce {{bounce}}, errors {{errors}}.",
+        },
+      },
+      charts: {
+        traffic: {
+          title: "Daily Traffic",
+          description: "PV, UV, and AI questions by day.",
+        },
+        sources: {
+          title: "Source Types",
+          description: "Page views grouped by source type.",
+        },
+        pages: {
+          title: "Top Pages",
+          description: "Product pages with the most traffic.",
+        },
+        series: {
+          pv: "PV",
+          uv: "UV",
+          sessions: "Sessions",
+          questions: "AI Questions",
+        },
+      },
+      sources: {
+        kinds: {
+          direct: "Direct",
+          search: "Search",
+          referral: "Referral",
+          social: "Social",
+          ad: "Ads / Campaigns",
+          internal: "Internal",
+          unknown: "Unknown",
+        },
+      },
+      guides: {
+        accounts: {
+          title: "How to read account analytics",
+          description:
+            "Each row summarizes one product account: visits, sessions, active days, AI questions, and frequently used pages.",
+        },
+        schoolTeams: {
+          title: "How to read school / team analytics",
+          description:
+            "Accounts under the same school and team are aggregated so managers can compare overall activity and AI usage.",
+        },
+      },
+      routes: {
+        unknown: {
+          label: "Unknown Page",
+          description:
+            "No manager-friendly description is configured for this path yet. Use the raw path for traceability.",
+        },
+        known: {
+          commerce: {
+            label: "Commerce Copilot Workspace",
+            description:
+              "Main product page for commerce analysis and AI conversations.",
+          },
+          login: {
+            label: "Sign-in Page",
+            description: "Page where users enter account credentials.",
+          },
+          register: {
+            label: "Registration Page",
+            description: "Page where new users create product accounts.",
+          },
+          home: {
+            label: "Home",
+            description: "Product home or default entry page.",
+          },
+          overview: {
+            label: "Business Overview",
+            description: "Overview page for commerce operating metrics.",
+          },
+          materials: {
+            label: "Materials Center",
+            description: "Page for images, videos, copy, and commerce assets.",
+          },
+          products: {
+            label: "Product Management",
+            description: "Page for product data, selling points, and knowledge.",
+          },
+          campaigns: {
+            label: "Campaigns",
+            description: "Page for marketing activities and growth plans.",
+          },
+          workspaces: {
+            label: "Workspaces",
+            description: "Page for AI outputs, task materials, and artifacts.",
+          },
+          platformConnect: {
+            label: "Platform Connections",
+            description: "Page for commerce platform authorization status.",
+          },
+          approvals: {
+            label: "Approvals",
+            description: "Page for tool, publishing, or business action approvals.",
+          },
+          operations: {
+            label: "Operations",
+            description: "Page for operating tasks, todos, and results.",
+          },
+          agentOutput: {
+            label: "AI Outputs",
+            description: "Page for generated plans, reports, and reusable content.",
+          },
+          agentCapabilities: {
+            label: "AI Capabilities",
+            description: "Page explaining what the commerce agents can handle.",
+          },
+          questionIdeas: {
+            label: "Question Ideas",
+            description: "Business question examples users can ask the AI.",
+          },
+          profile: {
+            label: "Profile",
+            description: "Page where users view or edit personal information.",
+          },
+        },
+      },
+      tables: {
+        common: {
+          pv: "PV",
+          uv: "UV",
+          sessions: "Sessions",
+          agentQuestions: "AI Questions",
+          tokenUsed: "Tokens",
+          lastSeenAt: "Last Seen",
+        },
+        pages: {
+          title: "Page Details",
+          description: "Entry, exit, duration, and error metrics by page.",
+          columns: {
+            pageLabel: "Page Name / Description",
+            routePath: "Raw Path",
+            avgDuration: "Avg Duration",
+            entryCount: "Entries",
+            exitCount: "Exits",
+            errors: "Errors",
+          },
+        },
+        accounts: {
+          topPagePv: "{{pv}} visits",
+          columns: {
+            displayId: "Account ID",
+            displayName: "Display Name",
+            schoolName: "School",
+            teamName: "Team",
+            activeDays: "Active Days",
+            topPages: "Top Pages",
+          },
+          query: {
+            keyword: {
+              label: "Keyword",
+              placeholder: "Search account, name, school, or team",
+            },
+            schoolName: {
+              label: "School",
+              placeholder: "Filter by school",
+            },
+            teamName: {
+              label: "Team",
+              placeholder: "Filter by team",
+            },
+          },
+        },
+        schoolTeams: {
+          columns: {
+            schoolName: "School",
+            teamName: "Team",
+            accountCount: "Accounts",
+            activeAccounts: "Active Accounts",
+          },
+          query: {
+            schoolName: {
+              label: "School",
+              placeholder: "Filter by school",
+            },
+            teamName: {
+              label: "Team",
+              placeholder: "Filter by team",
+            },
+          },
+        },
+      },
+    },
     access: {
       roles: {
         table: {
@@ -566,19 +806,19 @@ const messages = {
           actions: {
             delete: {
               label: "Delete",
-              title: "Delete App role {{name}}",
+              title: "Delete user role {{name}}",
               description:
-                "Delete App role {{name}} ({{code}})? Make sure no users or permissions are still linked to it.",
+                "Delete user role {{name}} ({{code}})? Make sure no users or permissions are still linked to it.",
               confirm: "Delete",
-              success: "App role deleted",
+              success: "User role deleted",
             },
           },
         },
         create: {
-          label: "New App Role",
-          title: "Create App Role",
+          label: "New User Role",
+          title: "Create User Role",
           description:
-            "The code is the unique App role identifier. Configure permissions on the App Role Permissions page after creating it.",
+            "The code is the unique product user role identifier. Configure permissions on the User Role Permissions page after creating it.",
           fields: {
             name: {
               label: "Role Name",
@@ -593,14 +833,14 @@ const messages = {
             nameRequired: "Enter a role name.",
             codeRequired: "Enter a role code.",
           },
-          success: "App role created",
+          success: "User role created",
         },
         note: {
-          title: "App Role Creation Notes",
+          title: "User Role Creation Notes",
           line1:
-            "Create App roles such as Member or Content Author. The code is a unique identifier used by the system to store and distinguish roles.",
+            "Create product user roles such as Standard User or School Admin. The code is a unique identifier used by the system to distinguish roles.",
           line2:
-            "New roles have no permissions by default. Grant permissions on the App Role Permissions page before the role takes effect.",
+            "New roles have no permissions by default. Grant permissions on the User Role Permissions page before the role takes effect.",
         },
       },
       rolePermissions: {
@@ -630,18 +870,18 @@ const messages = {
         empty: {
           title: "No Roles Available",
           description:
-            "Create App roles, then configure their permission coverage here.",
+            "Create user roles, then configure their product feature permissions here.",
         },
         editor: {
           codePrefix: "Code: ",
           descriptionSuffix:
             ". The server returns the full permission tree and marks the nodes already granted to this role.",
           reset: "Reset Selection",
-          save: "Save App Role Permissions",
+          save: "Save User Role Permissions",
           searchPlaceholder: "Search permissions",
           loading: "Loading permission tree.",
           empty: "No matching permissions.",
-          success: "App role permissions saved",
+          success: "User role permissions saved",
         },
         summary: {
           group: "Groups",
@@ -668,6 +908,12 @@ const messages = {
       title: "Local Backend Ready",
       description:
         "When the local backend is running, login, session restore, and admin permission APIs are forwarded through the dev proxy.",
+    },
+    error: {
+      title: "Sign-in failed",
+      invalidCredentials: "The account or password is incorrect. Please try again.",
+      serviceUnavailable: "The admin auth service is temporarily unavailable. Please try again later.",
+      permissionUnavailable: "Admin permissions could not be loaded. Please try again or contact an administrator.",
     },
     form: {
       password: {

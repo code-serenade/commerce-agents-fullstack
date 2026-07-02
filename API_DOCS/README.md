@@ -7,6 +7,7 @@
 - `common.md`: 通用约定，包括鉴权、agent LLM 配置、统一响应格式、错误码
 - `admin.md`: 后台 RBAC 相关接口
 - `app.md`: 普通客户端接口
+- `analytics.md`: 产品内部访问统计、账号级统计和后台统计查询接口
 - `sse.md`: Agent session SSE 事件流协议
 - `ws.md`: WebSocket 连接与小铃铛通知推送协议
 
@@ -16,6 +17,8 @@
 - 后台账号管理接口前缀：`/api/admin/account`
 - 后台权限中心接口前缀：`/api/admin/access`
 - App 用户接口前缀：`/api/app`
+- 产品内部统计匿名上报前缀：`/api/analytics`
+- 产品内部统计后台查询前缀：`/api/admin/analytics`
 - SSE 流式接口前缀：`/api/sse`
 - WebSocket 连接路径：`/api/ws`
 
@@ -51,6 +54,11 @@
 26. `GET /api/admin/access/app-permissions`
 27. `GET /api/admin/access/app-roles/{roleId}/permissions`
 28. `PUT /api/admin/access/app-roles/{roleId}/permissions`
+29. `GET /api/admin/analytics/overview`
+30. `GET /api/admin/analytics/sources`
+31. `GET /api/admin/analytics/pages`
+32. `GET /api/admin/analytics/accounts`
+33. `GET /api/admin/analytics/school-teams`
 
 ### App
 
@@ -66,6 +74,11 @@
 10. `POST /api/app/conversations/{conversationId}/files`
 11. `GET /api/app/conversation-files/{fileId}/access`
 12. `DELETE /api/app/conversation-files/{fileId}`
+13. `POST /api/app/analytics/events`
+
+### Analytics
+
+1. `POST /api/analytics/events`
 
 ### SSE
 

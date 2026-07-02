@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import {
+  BarChart3,
   Gauge,
   LayoutDashboard,
   ShieldCheck,
@@ -96,6 +97,20 @@ export const navigationSections: NavigationSectionConfig[] = [
             href: "/access/app-role-permissions",
             matcher: (pathname) =>
               pathname.startsWith("/access/app-role-permissions"),
+          },
+        ],
+      },
+      {
+        id: "analytics",
+        labelKey: "admin.navigation.analytics",
+        icon: <BarChart3 />,
+        subItems: [
+          {
+            id: "access-analytics",
+            permissionCode: "analytics:overview",
+            labelKey: "admin.navigation.accessAnalytics",
+            href: "/analytics/access",
+            matcher: (pathname) => pathname.startsWith("/analytics/access"),
           },
         ],
       },

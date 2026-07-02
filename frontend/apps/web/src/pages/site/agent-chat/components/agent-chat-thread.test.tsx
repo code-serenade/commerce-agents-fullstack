@@ -1,16 +1,22 @@
 import { render, screen } from "@testing-library/react"
-import { describe, expect, it, vi } from "vitest"
+import type { ReactNode } from "react"
+import { MemoryRouter } from "react-router"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { AgentChatTestI18nProvider } from "@/test/AgentChatTestI18nProvider"
 import { createAgentChatTestI18n } from "@/test/create-agent-chat-test-i18n"
 import { getAgentChatStrategy } from "../domain/agent-chat-strategy"
 import { AgentChatThread } from "./agent-chat-thread"
 
 describe("AgentChatThread", () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it("does not show the strategy pill before the user starts chatting", async () => {
     const i18n = await createAgentChatTestI18n()
 
     render(
-      <AgentChatTestI18nProvider i18n={i18n}>
+      <AgentChatThreadTestShell i18n={i18n}>
         <AgentChatThread
           activeProcessMessageId={null}
           isStreaming={false}
@@ -27,7 +33,7 @@ describe("AgentChatThread", () => {
           selectedStrategy={getAgentChatStrategy("learning")}
           showProcessPanelAction
         />
-      </AgentChatTestI18nProvider>
+      </AgentChatThreadTestShell>
     )
 
     expect(
@@ -66,7 +72,7 @@ describe("AgentChatThread", () => {
     )
 
     render(
-      <AgentChatTestI18nProvider i18n={i18n}>
+      <AgentChatThreadTestShell i18n={i18n}>
         <AgentChatThread
           activeProcessMessageId={null}
           isStreaming={false}
@@ -84,7 +90,7 @@ describe("AgentChatThread", () => {
           selectedStrategy={getAgentChatStrategy("learning")}
           showProcessPanelAction
         />
-      </AgentChatTestI18nProvider>
+      </AgentChatThreadTestShell>
     )
 
     expect(
@@ -100,4 +106,105 @@ describe("AgentChatThread", () => {
     expect(screen.queryByText(legacyReferenceHeading)).not.toBeInTheDocument()
     expect(screen.queryByText(legacyActionHeading)).not.toBeInTheDocument()
   })
+
+  it("returns to the top when switching back to the welcome thread", async () => {
+    const i18n = await createAgentChatTestI18n()
+    const scrollTo = vi.fn()
+    const originalScrollTo = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      "scrollTo"
+    )
+    Object.defineProperty(HTMLElement.prototype, "scrollTo", {
+      configurable: true,
+      value: scrollTo,
+    })
+
+    try {
+      const { rerender } = render(
+        <AgentChatThreadTestShell i18n={i18n}>
+          <AgentChatThread
+            activeProcessMessageId={null}
+            isStreaming={false}
+            messages={[
+              {
+                content: "previous user question",
+                id: "user-1",
+                role: "user",
+              },
+              {
+                content: "previous answer",
+                id: "assistant-1",
+                role: "assistant",
+              },
+            ]}
+            onCloseProcessPanel={vi.fn()}
+            onOpenProcessPanel={vi.fn()}
+            runtimeEvents={[]}
+            selectedStrategy={getAgentChatStrategy("learning")}
+            showProcessPanelAction
+          />
+        </AgentChatThreadTestShell>
+      )
+
+      await waitForAnimationFrame()
+      scrollTo.mockClear()
+
+      rerender(
+        <AgentChatThreadTestShell i18n={i18n}>
+          <AgentChatThread
+            activeProcessMessageId={null}
+            isStreaming={false}
+            messages={[
+              {
+                content: i18n.t("agentChat.welcomeMessage"),
+                id: "welcome",
+                role: "assistant",
+              },
+            ]}
+            onCloseProcessPanel={vi.fn()}
+            onOpenProcessPanel={vi.fn()}
+            runtimeEvents={[]}
+            selectedStrategy={getAgentChatStrategy("learning")}
+            showProcessPanelAction
+          />
+        </AgentChatThreadTestShell>
+      )
+
+      await waitForAnimationFrame()
+
+      expect(scrollTo).toHaveBeenCalledWith({ behavior: "auto", top: 0 })
+    } finally {
+      if (originalScrollTo) {
+        Object.defineProperty(
+          HTMLElement.prototype,
+          "scrollTo",
+          originalScrollTo
+        )
+      } else {
+        Reflect.deleteProperty(HTMLElement.prototype, "scrollTo")
+      }
+    }
+  })
 })
+
+function waitForAnimationFrame() {
+  return new Promise<void>((resolve) => {
+    requestAnimationFrame(() => resolve())
+  })
+}
+
+function AgentChatThreadTestShell({
+  children,
+  i18n,
+}: {
+  children: ReactNode
+  i18n: Parameters<typeof AgentChatTestI18nProvider>[0]["i18n"]
+}) {
+  return (
+    <MemoryRouter>
+      <AgentChatTestI18nProvider i18n={i18n}>
+        {children}
+      </AgentChatTestI18nProvider>
+    </MemoryRouter>
+  )
+}

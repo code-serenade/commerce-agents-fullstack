@@ -134,7 +134,7 @@ pub(super) fn comprehensive_diagnosis(input: &Value) -> Value {
         "分析天数": days,
         "重点方向": focus,
         "分析方法": focus_instruction(&focus),
-        "数据来源": "基于本次用户显式输入和新产品 Rust Agent 数据 skill 编排；未直连淘宝、抖音、千川或数仓实时数据",
+        "数据来源": "基于本次用户显式输入和新产品 Rust Agent 数据 skill 编排；未直连淘宝、抖音或数仓实时数据",
         "诊断覆盖": {
             "成功分项": success_count,
             "真实输入成功分项": user_success_count,

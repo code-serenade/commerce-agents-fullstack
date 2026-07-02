@@ -295,7 +295,7 @@ pub(super) fn query_product_metrics(input: &Value) -> Value {
         },
         "summary": format!("商品指标已从本轮显式输入汇总，GMV={}，订单={}", round2(gmv), round2(orders)),
         "side_effects": "none",
-        "说明": "本结果只基于本轮明确提供的商品指标，不代表已读取淘宝、抖音、千川或其它平台实时商品数据。"
+        "说明": "本结果只基于本轮明确提供的商品指标，不代表已读取淘宝、抖音或其它平台实时商品数据。"
     })
 }
 
@@ -461,6 +461,6 @@ pub(super) fn query_campaign_metrics(input: &Value) -> Value {
         },
         "summary": format!("活动指标已从本轮显式输入汇总，GMV={}，花费={}", round2(gmv), round2(spend)),
         "side_effects": "none",
-        "说明": "本结果只基于本轮明确提供的活动指标，不代表已读取淘宝、抖音、千川或其它平台实时活动数据。"
+        "说明": "本结果只基于本轮明确提供的活动指标，不代表已读取淘宝、抖音或其它平台实时活动数据。"
     })
 }

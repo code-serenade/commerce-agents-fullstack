@@ -7,9 +7,19 @@ const EXPERIENCE_DESIGN = cjk(20307, 39564, 35774, 35745)
 const OPS_FINAL = cjk(36816, 33829, 32508, 21512, 26041, 26696)
 const AS_ROLE = cjk(20316, 20026)
 const ROLE_POST = cjk(23703, 20301)
+const DIFFICULTY_LABEL = cjk(38590, 24230)
+const CURRENT_ROLE_TASK = cjk(24403, 21069, 23703, 20301, 20219, 21153)
+const CAPABILITY_CHECK = cjk(33021, 21147, 26680, 23545)
+const CONTEXT_READ_HINT = cjk(36164, 26009, 35835, 21462, 25552, 31034)
+const WORKSPACE_CONTEXT_PACK = cjk(36164, 26009, 19978, 19979, 25991, 21253)
 
 const INTERNAL_MARKERS = [
   "adapter",
+  "adapter_not_implemented",
+  "assignment.",
+  "complex difficulty",
+  `complex ${DIFFICULTY_LABEL}`,
+  "current worker",
   "external search provider",
   "failure_kind",
   "graph_id",
@@ -47,6 +57,20 @@ const INTERNAL_MARKERS = [
   "worker_id",
   "worker_unavailable",
   "workspace_run_",
+  "agentchat.",
+  "no enabled platform",
+  "no active workspace",
+  "l3 blocked",
+  "blocked",
+  "process.check",
+  "selected route",
+  "selected_skills",
+  "task graph",
+  "task_node",
+  CURRENT_ROLE_TASK,
+  CAPABILITY_CHECK,
+  CONTEXT_READ_HINT,
+  WORKSPACE_CONTEXT_PACK,
 ]
 
 export function sanitizeUserFacingProcessText(value: string, t: TFunction) {

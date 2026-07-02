@@ -1,4 +1,5 @@
 pub mod admin;
+pub mod analytics;
 pub mod app;
 pub mod common;
 pub mod sse;

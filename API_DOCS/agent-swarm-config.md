@@ -77,21 +77,18 @@ Example:
 
 ```json
 {
-  "id": "role.douyin-ads",
-  "name": "千川投放专员",
-  "runtime_role": "douyin_ads",
-  "keywords": ["千川", "投流", "巨量千川", "ROI", "人群包"],
-  "required_capabilities": [
+  "id": "role.ops-strategist",
+  "name": "运营策略师",
+  "runtime_role": "ops",
+  "keywords": ["运营", "广告投放", "投放", "ROI", "人群包"],
+  "required_capabilities": ["ops.strategy", "campaign.orchestration"],
+  "optional_capabilities": [
+    "data.analysis",
+    "creative.content",
     "ads.optimization",
     "roi.control",
     "audience.segmentation",
     "campaign.pacing"
-  ],
-  "optional_capabilities": [
-    "data.analysis",
-    "creative.content",
-    "budget.planning",
-    "conversion.optimization"
   ]
 }
 ```
@@ -108,7 +105,7 @@ data
   -> creative
   -> service
   -> engineering
-  -> douyin_ads/accounting/design/web when matched
+  -> ops(accounting/design/web when matched)
 all non-final nodes
   -> ops
 ```
@@ -146,7 +143,7 @@ Use role prompts to define:
 - What to do when required data is missing.
 - How to populate `role_output.summary`, `findings`, `recommendations`, `evidence`, `risks`, and `open_questions`.
 
-For the Douyin role, see `backend/config/prompts/zh/roles/douyin_ads.md`.
+For the operations ads-judgment prompt, see `backend/config/prompts/zh/roles/douyin_ads.md`.
 
 ## Frontend Event Flow
 

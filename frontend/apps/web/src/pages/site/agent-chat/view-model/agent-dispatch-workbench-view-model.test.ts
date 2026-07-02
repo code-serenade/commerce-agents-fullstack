@@ -141,6 +141,9 @@ describe("getDispatchWorkbenchModel", () => {
     expect(model.previewLines).toContain(
       "08 presentation advice: design objective"
     )
+    expect(model.agents.map((agent) => agent.nodeId)).toContain("data")
+    expect(model.agents.map((agent) => agent.nodeId)).toContain("ops")
+    expect(model.agents.at(-1)?.nodeId).toBe("delivery")
   })
 
   it("does not expose i18n keys in the preview document", () => {
@@ -207,11 +210,15 @@ describe("getDispatchWorkbenchModel", () => {
       t
     )
     const preview = model.previewLines.join("\n").toLowerCase()
+    const steps = JSON.stringify(model.steps).toLowerCase()
 
     expect(preview).not.toContain("worker")
     expect(preview).not.toContain("selected_skills")
     expect(preview).not.toContain("route_mode")
     expect(preview).not.toContain("task_graph")
+    expect(steps).not.toContain("worker")
+    expect(steps).not.toContain("selected_skills")
+    expect(steps).not.toContain("task_graph")
   })
 
   it("compacts machine status and event names in the preview document", () => {
@@ -240,6 +247,7 @@ describe("getDispatchWorkbenchModel", () => {
       t
     )
     const preview = model.previewLines.join("\n").toLowerCase()
+    const steps = JSON.stringify(model.steps).toLowerCase()
 
     expect(preview).not.toContain("validation_error")
     expect(preview).not.toContain("mark_agent_task_started")
@@ -247,5 +255,29 @@ describe("getDispatchWorkbenchModel", () => {
     expect(preview).not.toContain("task_node_started")
     expect(preview).not.toContain("failure_kind")
     expect(preview).not.toContain("json_template_validation")
+    expect(steps).not.toContain("validation_error")
+    expect(steps).not.toContain("request_id")
+  })
+
+  it("shows only the relevant role in quick dispatch instead of every preset agent", () => {
+    const events: AgentRuntimeEvent[] = [
+      {
+        type: "route_decided",
+        primary_runtime_role: "chat",
+        route_mode: "chat_bypass",
+        support_runtime_roles: [],
+      },
+      {
+        content: "answer",
+        type: "output",
+      },
+    ]
+
+    const model = getDispatchWorkbenchModel(
+      { isStreaming: false, runtimeEvents: events, task },
+      t
+    )
+
+    expect(model.agents.map((agent) => agent.nodeId)).toEqual(["ops"])
   })
 })

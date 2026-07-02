@@ -2,7 +2,8 @@ import { useCallback, useMemo, useState } from "react"
 import { useSelector } from "react-redux"
 import { useQueryClient } from "@tanstack/react-query"
 import type { RootState } from "@/store"
-import { useAgentChatContext } from "@/pages/site/agent-chat/context/use-agent-chat-context"
+import { useOptionalAgentChatContext } from "@/pages/site/agent-chat/context/use-agent-chat-context"
+import type { AgentChatSourceContextSelection } from "@/pages/site/agent-chat/domain/agent-chat-context-selection"
 import {
   fileConversationUseState,
   fileDisplayName,
@@ -16,21 +17,23 @@ import { useFilesData } from "./files-data"
 import { useFilesPageActions } from "./view-model/use-files-page-actions"
 import { useFilesPageFilters } from "./view-model/use-files-page-filters"
 
+const EMPTY_SOURCES: AgentChatSourceContextSelection[] = []
+
 export function useFilesPage() {
   const user = useSelector((state: RootState) => state.auth.user)
   const queryClient = useQueryClient()
-  const chat = useAgentChatContext()
-  const {
-    attachExistingSource,
-    availableSources,
-    clearSelectedSources,
-    isLoggedIn,
-    isStreaming,
-    removeSourcesByObjects,
-    selectedSources,
-    toggleSourceContext,
-    uploadAttachments,
-  } = chat
+  const chat = useOptionalAgentChatContext()
+  const chatContextAvailable = Boolean(chat)
+  const availableSources = chat?.availableSources ?? EMPTY_SOURCES
+  const selectedSources = chat?.selectedSources ?? EMPTY_SOURCES
+  const isLoggedIn = chat?.isLoggedIn ?? Boolean(user)
+  const isStreaming = chat?.isStreaming ?? false
+  const attachExistingSource =
+    chat?.attachExistingSource ?? noopAsyncWithFileId
+  const clearSelectedSources = chat?.clearSelectedSources ?? noop
+  const removeSourcesByObjects = chat?.removeSourcesByObjects ?? noop
+  const toggleSourceContext = chat?.toggleSourceContext ?? noop
+  const uploadAttachments = chat?.uploadAttachments ?? noopAsyncWithFiles
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [detailFileId, setDetailFileId] = useState<string | null>(null)
   const [selectedFileIds, setSelectedFileIds] = useState<string[]>([])
@@ -140,6 +143,7 @@ export function useFilesPage() {
 
   return {
     attachedObjectKeys,
+    chatContextAvailable,
     clearFilters: filters.clearFilters,
     clearSelection,
     dataFileCount: data.files.length,
@@ -153,8 +157,13 @@ export function useFilesPage() {
     files,
     hasActiveFilters: filters.hasActiveFilters,
     canUploadFiles:
-      isLoggedIn && !isStreaming && !actions.deleting && !actions.uploading,
-    canClearSelectedForTurn: !isStreaming && selectedSources.length > 0,
+      chatContextAvailable &&
+      isLoggedIn &&
+      !isStreaming &&
+      !actions.deleting &&
+      !actions.uploading,
+    canClearSelectedForTurn:
+      chatContextAvailable && !isStreaming && selectedSources.length > 0,
     clearSelectedForTurn: clearSelectedSources,
     getFileConversationUseState: (file: (typeof files)[number]) =>
       fileConversationUseState({
@@ -189,3 +198,9 @@ export function useFilesPage() {
     toggleFileForCurrentTurn: actions.toggleFileForCurrentTurn,
   }
 }
+
+function noop() {}
+
+async function noopAsyncWithFileId() {}
+
+async function noopAsyncWithFiles() {}

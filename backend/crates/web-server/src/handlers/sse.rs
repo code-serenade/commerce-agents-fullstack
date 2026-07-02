@@ -549,7 +549,10 @@ pub async fn stream_agent_session(
         }
     }
     let context_api = AgentContextApi::new(get_app_ctx());
-    let external_search_available = get_external_search_config().is_configured();
+    let external_search_config = get_external_search_config();
+    let external_search_health = external_search_config.health_status();
+    let external_search_configured = external_search_health.configured;
+    let external_search_available = external_search_health.usable;
     if context_selection.has_product_context() {
         let context = context_api
             .build_product_context(BuildAgentProductContextRequest {
@@ -570,6 +573,8 @@ pub async fn stream_agent_session(
             context_refs: product_context_refs,
             allow_implicit_products: false,
             external_search_available,
+            external_search_configured,
+            external_search_status: Some(external_search_health.status.clone()),
             limit: Some(8),
         })
         .await
@@ -2202,6 +2207,9 @@ fn rag_context_loaded_public_payload(context: &AgentRetrievalContextResponse) ->
         "degraded": context.degraded,
         "degraded_reason": context.degraded_reason,
         "external_search_available": context.external_search_available,
+        "external_search_configured": context.external_search_configured,
+        "external_search_usable": context.external_search_available,
+        "external_search_status": context.external_search_status,
     })
 }
 
@@ -2630,6 +2638,18 @@ fn merge_agent_retrieval_metadata(
     metadata.insert(
         "rag.external_search_available".to_string(),
         context.external_search_available.to_string(),
+    );
+    metadata.insert(
+        "rag.external_search_configured".to_string(),
+        context.external_search_configured.to_string(),
+    );
+    metadata.insert(
+        "rag.external_search_usable".to_string(),
+        context.external_search_available.to_string(),
+    );
+    metadata.insert(
+        "rag.external_search_status".to_string(),
+        context.external_search_status.clone(),
     );
     if let Some(reason) = &context.degraded_reason {
         metadata.insert("rag.degraded_reason".to_string(), reason.clone());
@@ -4084,7 +4104,7 @@ mod tests {
             user_id: Uuid::nil(),
             school_name: "测试学校".to_string(),
             team_name: "测试队伍".to_string(),
-            question_limit: 50,
+            question_limit: 100,
             question_used: 0,
             session_id: "session-1".to_string(),
             agent_id: Some("web-agent".to_string()),
@@ -4536,6 +4556,8 @@ mod tests {
             degraded: false,
             degraded_reason: None,
             external_search_available: true,
+            external_search_configured: true,
+            external_search_status: "configured".to_string(),
         };
 
         merge_agent_retrieval_metadata(&mut metadata, &context).expect("metadata should merge");
@@ -4544,6 +4566,9 @@ mod tests {
         assert!(metadata["context.combined_summary"].contains("RAG summary."));
         assert_eq!(metadata["rag.source_count"], "1");
         assert_eq!(metadata["rag.external_search_available"], "true");
+        assert_eq!(metadata["rag.external_search_configured"], "true");
+        assert_eq!(metadata["rag.external_search_usable"], "true");
+        assert_eq!(metadata["rag.external_search_status"], "configured");
         assert_eq!(metadata["context.source_count"], "1");
     }
 
@@ -4565,6 +4590,8 @@ mod tests {
                     .to_string(),
             ),
             external_search_available: false,
+            external_search_configured: false,
+            external_search_status: "disabled".to_string(),
         };
 
         merge_agent_retrieval_metadata(&mut metadata, &context)
@@ -4576,6 +4603,9 @@ mod tests {
         );
         assert_eq!(metadata["rag.degraded"], "true");
         assert_eq!(metadata["rag.external_search_available"], "false");
+        assert_eq!(metadata["rag.external_search_configured"], "false");
+        assert_eq!(metadata["rag.external_search_usable"], "false");
+        assert_eq!(metadata["rag.external_search_status"], "disabled");
     }
 
     #[test]
@@ -4597,6 +4627,8 @@ mod tests {
                     .to_string(),
             ),
             external_search_available: true,
+            external_search_configured: true,
+            external_search_status: "configured".to_string(),
         };
 
         merge_agent_retrieval_metadata(&mut metadata, &context)
@@ -4606,6 +4638,40 @@ mod tests {
         assert!(
             metadata["context.combined_summary"]
                 .contains("unless a same-run search skill returns live sources")
+        );
+    }
+
+    #[test]
+    fn degraded_retrieval_metadata_distinguishes_configured_but_unusable_search() {
+        let mut metadata = std::collections::BTreeMap::new();
+        let context = AgentRetrievalContextResponse {
+            mode: "local_product_knowledge".to_string(),
+            query_terms: vec!["竞品".to_string()],
+            product_ids: Vec::new(),
+            knowledge_count: 0,
+            source_count: 0,
+            summary: String::new(),
+            sources: Vec::new(),
+            degraded: true,
+            degraded_reason: Some(
+                "No matching local product knowledge was found; external search adapter is \
+                 configured but is currently unavailable."
+                    .to_string(),
+            ),
+            external_search_available: false,
+            external_search_configured: true,
+            external_search_status: "cooldown".to_string(),
+        };
+
+        merge_agent_retrieval_metadata(&mut metadata, &context)
+            .expect("degraded metadata should merge");
+
+        assert_eq!(metadata["rag.external_search_available"], "false");
+        assert_eq!(metadata["rag.external_search_configured"], "true");
+        assert_eq!(metadata["rag.external_search_usable"], "false");
+        assert_eq!(metadata["rag.external_search_status"], "cooldown");
+        assert!(
+            metadata["context.combined_summary"].contains("Do not cite external search results")
         );
     }
 
@@ -5304,6 +5370,8 @@ mod tests {
             degraded: false,
             degraded_reason: None,
             external_search_available: true,
+            external_search_configured: true,
+            external_search_status: "configured".to_string(),
         };
 
         let value = typed_camel_event_value_for_test(
@@ -5321,6 +5389,9 @@ mod tests {
         assert_eq!(value["summaryAvailable"], true);
         assert_eq!(value["sourcesAvailable"], true);
         assert_eq!(value["externalSearchAvailable"], true);
+        assert_eq!(value["externalSearchConfigured"], true);
+        assert_eq!(value["externalSearchUsable"], true);
+        assert_eq!(value["externalSearchStatus"], "configured");
         assert!(!serialized.contains(hidden_summary));
         assert!(!serialized.contains(hidden_title));
         assert!(value.get("summary").is_none());

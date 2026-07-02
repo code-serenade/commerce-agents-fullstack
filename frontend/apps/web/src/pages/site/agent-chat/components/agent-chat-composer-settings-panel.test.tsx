@@ -17,7 +17,7 @@ import {
 describe("AgentChatComposer settings panel", () => {
   const copy = {
     activity: textFromCodes(27963, 21160),
-    agentBrand: textFromCodes(30005, 21830, 23567, 21442, 35851),
+    agentBrand: textFromCodes(30005, 21830, 22810, 26234, 33021, 20307, 24179, 21488),
     answerStyle: textFromCodes(22238, 31572, 26041, 24335),
     filesAndImages: textFromCodes(36164, 26009, 21644, 22270, 29255),
     multiAgentMode: textFromCodes(26234, 33021, 20307, 35843, 29992, 26041, 24335),
@@ -26,7 +26,7 @@ describe("AgentChatComposer settings panel", () => {
     joinProductReference: textFromCodes(21152, 20837, 21830, 21697, 21442, 32771),
     manualMultipleAgents: textFromCodes(25351, 23450, 22810, 20010, 23703, 20301),
     manualSingleAgent: textFromCodes(25351, 23450, 19968, 20010, 23703, 20301),
-    oldAgentBrand: textFromCodes(65, 73, 32, 30005, 21830, 25645, 26723),
+    oldAgentBrand: textFromCodes(30005, 21830, 23567, 21442, 35851),
     oldAutoJudge: textFromCodes(25105, 26469, 21028, 26029),
     oldFocusOneReference: textFromCodes(37325, 28857, 30475, 19968, 22788),
     oldFocusPerspective: textFromCodes(37325, 28857, 35270, 35282),

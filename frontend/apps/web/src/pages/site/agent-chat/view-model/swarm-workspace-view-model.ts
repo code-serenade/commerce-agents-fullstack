@@ -44,7 +44,7 @@ export function getWorkspacePersistenceCard(
       title: boundary
         ? t("agentChat.swarm.cards.workspace.taskBoundaryTitle")
         : t("agentChat.swarm.cards.workspace.failedTitle"),
-      meta: readWorkspaceRunId(failed),
+      meta: t("agentChat.swarm.cards.workspace.runMeta"),
       description: boundary
         ? t("agentChat.swarm.cards.workspace.taskBoundaryDescription")
         : t("agentChat.swarm.cards.workspace.failedDescription"),
@@ -75,7 +75,6 @@ export function getWorkspacePersistenceCard(
       lines: [
         t("agentChat.swarm.cards.workspace.approvalSkillLine"),
         t("agentChat.swarm.cards.workspace.approvalLine", {
-          id: approval?.id?.slice(0, 8) ?? "-",
           status: formatUserFacingTaskStatus(approval?.status ?? "pending", t),
         }),
         t("agentChat.swarm.cards.workspace.approvalReasonLine", {
@@ -133,7 +132,6 @@ export function getWorkspacePersistenceCard(
       icon: FileCheck2,
       lines: [
         t("agentChat.swarm.cards.workspace.artifactLine", {
-          id: artifactCreated.id.slice(0, 8),
           title: formatTimelineDynamicText(artifactCreated.title, t),
         }),
         formatTimelineDynamicText(
@@ -151,7 +149,7 @@ export function getWorkspacePersistenceCard(
     return {
       id: "workspace-run-completed",
       title: t("agentChat.swarm.cards.workspace.completedTitle"),
-      meta: readWorkspaceRunId(completed),
+      meta: t("agentChat.swarm.cards.workspace.runMeta"),
       description: t("agentChat.swarm.cards.workspace.completedDescription"),
       icon: CheckCircle2,
       lines: readWorkspaceRunLines(completed, t),
@@ -174,7 +172,6 @@ export function getWorkspacePersistenceCard(
       icon: FileText,
       lines: [
         t("agentChat.swarm.cards.workspace.runTaskLine", {
-          id: taskUpdate.id,
           status,
         }),
       ],
@@ -195,7 +192,6 @@ export function getWorkspacePersistenceCard(
         .slice(0, 2)
         .map((task) =>
           t("agentChat.swarm.cards.workspace.runTaskLine", {
-            id: task.id,
             status: formatUserFacingTaskStatus(task.status, t),
           })
         ),
@@ -216,7 +212,6 @@ export function getWorkspacePersistenceCard(
     lines: [
       formatTimelineDynamicText(linked.workspace.title, t),
       t("agentChat.swarm.cards.workspace.runLine", {
-        id: linked.run.id,
         status: formatUserFacingTaskStatus(linked.run.status, t),
       }),
     ],
@@ -243,7 +238,6 @@ function readWorkspaceRunLines(
 ) {
   return [
     t("agentChat.swarm.cards.workspace.runLine", {
-      id: run.id,
       status: formatUserFacingTaskStatus(run.status, t),
     }),
     formatTimelineDynamicText(
@@ -251,10 +245,6 @@ function readWorkspaceRunLines(
       t
     ),
   ]
-}
-
-function readWorkspaceRunId(run: { id: string }) {
-  return run.id.slice(0, 8)
 }
 
 function isBoundaryWorkspaceTaskUpdate(

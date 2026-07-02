@@ -1356,6 +1356,8 @@ fn planned_skills_for_role(role: &str) -> &'static [&'static str] {
             "coordination_skill_chain_planner",
             "coordination_create_task",
             "query_campaign_metrics",
+            "douyin_ads_plan_structure",
+            "douyin_ads_budget_pacing",
         ],
         "creative" => &["creative_title_ctr_scorer", "creative_video_script"],
         "web" => &[
@@ -1365,7 +1367,6 @@ fn planned_skills_for_role(role: &str) -> &'static [&'static str] {
         ],
         "service" => &["service_ticket_handler", "service_sentiment_analyzer"],
         "accounting" => &["accounting_roi_calc", "accounting_profit_analysis"],
-        "douyin_ads" => &["douyin_ads_plan_structure", "douyin_ads_budget_pacing"],
         "design" => &["design_material_spec", "creative_title_ctr_scorer"],
         "engineering" => &[
             "engineering_system_check",

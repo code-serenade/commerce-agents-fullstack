@@ -288,7 +288,7 @@
           "家居",
           "直播",
           "抖音",
-          "千川",
+          "广告投放",
           "投放",
           "转化",
           "运营",
@@ -356,7 +356,7 @@
       "id": "search.light_market_context.creative_douyin",
       "roles": [
         "creative",
-        "douyin_ads"
+        "ops"
       ],
       "fallback": true,
       "match": {
@@ -378,7 +378,7 @@
           "短视频",
           "直播",
           "抖音",
-          "千川",
+          "广告投放",
           "投放",
           "素材",
           "卖点",

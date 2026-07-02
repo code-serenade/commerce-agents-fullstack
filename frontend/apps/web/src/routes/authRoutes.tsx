@@ -1,11 +1,12 @@
 import { Suspense, type ReactNode } from "react"
 import type { RouteObject } from "react-router"
-import { PageLoading, RouteErrorBoundary } from "@workspace/app-kit"
+import { RouteErrorBoundary } from "@workspace/app-kit"
 import AuthLayout from "@/layouts/AuthLayout"
 import { LoginPage, RegisterPage } from "@/routes/lazy/authPages"
+import { RouteLoadingFallback } from "@/routes/RouteLoadingFallback"
 
 function withSuspense(node: ReactNode) {
-  return <Suspense fallback={<PageLoading />}>{node}</Suspense>
+  return <Suspense fallback={<RouteLoadingFallback />}>{node}</Suspense>
 }
 
 export const authRoutes: RouteObject = {

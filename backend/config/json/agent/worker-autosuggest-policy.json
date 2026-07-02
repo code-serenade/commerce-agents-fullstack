@@ -43,11 +43,6 @@
       "mode": "requests"
     },
     {
-      "role": "douyin_ads",
-      "handler": "douyin_ads",
-      "mode": "requests"
-    },
-    {
       "role": "engineering",
       "handler": "engineering",
       "mode": "requests"
@@ -542,7 +537,7 @@
     },
     {
       "id": "douyin_ads.plan_structure",
-      "roles": ["douyin_ads"],
+      "roles": ["ops"],
       "match": { "any_keywords": ["计划结构", "计划", "冷启动", "赛马", "投放结构"] },
       "skill_id": "douyin_ads_plan_structure",
       "input": {
@@ -553,7 +548,7 @@
     },
     {
       "id": "douyin_ads.audience_package",
-      "roles": ["douyin_ads"],
+      "roles": ["ops"],
       "match": { "any_keywords": ["人群", "人群包", "定向", "达人相似", "莱卡"] },
       "skill_id": "douyin_ads_audience_package",
       "input": {
@@ -564,7 +559,7 @@
     },
     {
       "id": "douyin_ads.budget_pacing",
-      "roles": ["douyin_ads"],
+      "roles": ["ops"],
       "match": { "any_keywords": ["预算", "节奏", "放量", "止损", "roi", "ROI", "roas", "ROAS", "消耗"] },
       "skill_id": "douyin_ads_budget_pacing",
       "input": {
@@ -574,7 +569,7 @@
     },
     {
       "id": "douyin_ads.live_funnel",
-      "roles": ["douyin_ads"],
+      "roles": ["ops"],
       "match": { "any_keywords": ["直播间", "漏斗", "进房", "商品点击", "付款", "转化"] },
       "skill_id": "douyin_ads_live_funnel_diagnosis",
       "input": {

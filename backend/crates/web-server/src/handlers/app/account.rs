@@ -62,12 +62,13 @@ use crate::{
         SavePackageLocksRequest, SavePlatformConnectionRequest, SaveStoreMetricRequest,
         SnoozeAlertRequest, StoreMetricListResponse, StoreMetricResponse, ToolApprovalListResponse,
         ToolApprovalResponse, UpdateCampaignRequest, UpdateChannelConnectionRequest,
-        UpdateConversationRequest, UpdateLongTaskRequest, UpdatePackageRequest,
-        UpdatePlatformConnectionRequest, UpdateProductAssetRequest, UpdateProductCompetitorRequest,
-        UpdateProductKnowledgeRequest, UpdateProductMaterialRequest, UpdateProductRequest,
-        UpdateWorkspaceRequest, UpdateWorkspaceRunRequest, UpdateWorkspaceRunTaskRequest,
-        UpdateWorkspaceTaskRequest, UpsertDailyBriefingRecordRequest, UpsertPackageRequest,
-        WorkspaceListResponse, WorkspaceResponse, WorkspaceRunListResponse, WorkspaceRunResponse,
+        UpdateConversationRequest, UpdateCurrentAppUserProfileRequest, UpdateLongTaskRequest,
+        UpdatePackageRequest, UpdatePlatformConnectionRequest, UpdateProductAssetRequest,
+        UpdateProductCompetitorRequest, UpdateProductKnowledgeRequest,
+        UpdateProductMaterialRequest, UpdateProductRequest, UpdateWorkspaceRequest,
+        UpdateWorkspaceRunRequest, UpdateWorkspaceRunTaskRequest, UpdateWorkspaceTaskRequest,
+        UpsertDailyBriefingRecordRequest, UpsertPackageRequest, WorkspaceListResponse,
+        WorkspaceResponse, WorkspaceRunListResponse, WorkspaceRunResponse,
         WorkspaceRunTaskResponse, WorkspaceTaskListResponse, WorkspaceTaskResponse,
     },
     error::{Error, from_biz_error},
@@ -98,6 +99,19 @@ fn map_app_user_response(app_user: service::dto::app::AppUserResponse) -> AppUse
         created_at: app_user.created_at,
         updated_at: app_user.updated_at,
         roles: app_user.roles.into_iter().map(map_role_response).collect(),
+    }
+}
+
+fn map_current_app_user_profile_response(
+    profile: service::dto::app::CurrentAppUserProfileResponse,
+) -> crate::dto::app::CurrentAppUserProfileResponse {
+    crate::dto::app::CurrentAppUserProfileResponse {
+        user_id: profile.user_id,
+        display_id: profile.display_id,
+        display_name: profile.display_name,
+        school_name: profile.school_name,
+        team_name: profile.team_name,
+        is_school_team_bound: profile.is_school_team_bound,
     }
 }
 
@@ -140,4 +154,38 @@ pub async fn current_user_permissions(
     }
     .into_common_response()
     .to_json())
+}
+
+pub async fn get_current_app_user_profile(
+    Extension(auth_user): Extension<AuthUser>,
+) -> ResponseResult<crate::dto::app::CurrentAppUserProfileResponse> {
+    let api = AppApi::new(get_app_ctx());
+    let profile = api
+        .get_current_app_user_profile(auth_user.user_id)
+        .await
+        .map_err(from_biz_error)?;
+
+    Ok(map_current_app_user_profile_response(profile)
+        .into_common_response()
+        .to_json())
+}
+
+pub async fn update_current_app_user_profile(
+    Extension(auth_user): Extension<AuthUser>,
+    Json(req): Json<UpdateCurrentAppUserProfileRequest>,
+) -> ResponseResult<crate::dto::app::CurrentAppUserProfileResponse> {
+    req.validate().map_err(Error::from)?;
+    let api = AppApi::new(get_app_ctx());
+    let profile = api
+        .update_current_app_user_profile(service::dto::app::UpdateCurrentAppUserProfileRequest {
+            user_id: auth_user.user_id,
+            school_name: req.school_name,
+            team_name: req.team_name,
+        })
+        .await
+        .map_err(from_biz_error)?;
+
+    Ok(map_current_app_user_profile_response(profile)
+        .into_common_response()
+        .to_json())
 }

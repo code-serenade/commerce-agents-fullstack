@@ -27,7 +27,10 @@ use crate::{
 };
 
 const PERM_TEAM_USAGE: &str = "usage:team_usage";
-const DEFAULT_QUESTION_LIMIT: i32 = 50;
+const LEGACY_QUESTION_LIMIT: i32 = 50;
+const UNBOUND_QUESTION_LIMIT: i32 = 100;
+const SCHOOL_TEAM_BONUS_LIMIT: i32 = 50;
+const BOUND_QUESTION_LIMIT: i32 = UNBOUND_QUESTION_LIMIT + SCHOOL_TEAM_BONUS_LIMIT;
 const DEFAULT_UNKNOWN_SCHOOL: &str = "未填写学校";
 const DEFAULT_UNKNOWN_TEAM: &str = "未填写队伍";
 const TOKEN_ESTIMATION_CHARS_PER_TOKEN: usize = 4;
@@ -206,6 +209,7 @@ impl TeamUsageApi {
         )?;
         let app_user = self.ensure_app_user_enabled(user_id).await?;
         let team_key = team_key_from_app_user(&app_user);
+        let is_school_team_bound = is_school_team_bound(&app_user);
         let quota = self.ensure_quota_for_app_user(&app_user).await?;
         let stats = self
             .usage_event_svc
@@ -215,8 +219,16 @@ impl TeamUsageApi {
 
         let policy_text = if quota.question_limit <= 0 {
             "当前账号 AI 问答次数已用完".to_string()
+        } else if is_school_team_bound {
+            format!(
+                "已绑定学校和团队，本账号共 {} 次 AI 问答额度",
+                quota.question_limit
+            )
         } else {
-            format!("当前账号前 {} 次 AI 问答可使用", quota.question_limit)
+            format!(
+                "未绑定学校和团队，本账号可用 {} 次 AI 问答；补充后可提升到 {} 次",
+                UNBOUND_QUESTION_LIMIT, BOUND_QUESTION_LIMIT
+            )
         };
 
         Ok(CurrentTeamUsageQuotaResponse {
@@ -225,6 +237,9 @@ impl TeamUsageApi {
             display_name: app_user.display_name,
             school_name: team_key.school_name,
             team_name: team_key.team_name,
+            is_school_team_bound,
+            base_question_limit: UNBOUND_QUESTION_LIMIT,
+            school_team_bonus_limit: SCHOOL_TEAM_BONUS_LIMIT,
             question_limit: quota.question_limit,
             question_used: stats.question_used,
             question_remaining,
@@ -358,16 +373,40 @@ impl TeamUsageApi {
 
     async fn ensure_quota_for_app_user(&self, app_user: &AppUser) -> BizResult<AccountUsageQuota> {
         if let Some(quota) = self.quota_svc.get_by_user_id(app_user.user_id).await? {
-            return Ok(quota);
+            return self.sync_quota_for_app_user(app_user, quota).await;
         }
 
         self.quota_svc
             .create(CreateAccountUsageQuota {
                 id: Uuid::new_v4(),
                 user_id: app_user.user_id,
-                question_limit: DEFAULT_QUESTION_LIMIT,
+                question_limit: default_question_limit_for_app_user(app_user),
                 status: AccountUsageQuotaStatus::Enabled,
                 remark: None,
+            })
+            .await
+    }
+
+    async fn sync_quota_for_app_user(
+        &self,
+        app_user: &AppUser,
+        quota: AccountUsageQuota,
+    ) -> BizResult<AccountUsageQuota> {
+        let target_limit = default_question_limit_for_app_user(app_user);
+        if quota.question_limit == target_limit {
+            return Ok(quota);
+        }
+
+        if !is_system_managed_quota(&quota) {
+            return Ok(quota);
+        }
+
+        self.quota_svc
+            .update(UpdateAccountUsageQuota {
+                id: quota.id,
+                question_limit: target_limit,
+                status: quota.status,
+                remark: quota.remark,
             })
             .await
     }
@@ -455,6 +494,32 @@ fn team_key_from_app_user(app_user: &AppUser) -> TeamKey {
         app_user.school_name.as_deref(),
         app_user.team_name.as_deref(),
     )
+}
+
+fn is_school_team_bound(app_user: &AppUser) -> bool {
+    normalize_optional(app_user.school_name.clone()).is_some()
+        && normalize_optional(app_user.team_name.clone()).is_some()
+}
+
+fn default_question_limit_for_app_user(app_user: &AppUser) -> i32 {
+    if is_school_team_bound(app_user) {
+        BOUND_QUESTION_LIMIT
+    } else {
+        UNBOUND_QUESTION_LIMIT
+    }
+}
+
+fn is_system_managed_quota(quota: &AccountUsageQuota) -> bool {
+    quota
+        .remark
+        .as_deref()
+        .unwrap_or_default()
+        .trim()
+        .is_empty()
+        && matches!(
+            quota.question_limit,
+            LEGACY_QUESTION_LIMIT | UNBOUND_QUESTION_LIMIT | BOUND_QUESTION_LIMIT
+        )
 }
 
 fn normalize_team_key(school_name: Option<&str>, team_name: Option<&str>) -> TeamKey {

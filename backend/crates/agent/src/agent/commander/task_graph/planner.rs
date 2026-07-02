@@ -500,6 +500,33 @@ mod tests {
     }
 
     #[test]
+    fn no_search_request_does_not_plan_search_graph_or_search_role() {
+        let rules =
+            load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
+        let route = manual_route("data", &["creative", "search", "ops"]);
+        let graph = plan_task_graph_from_rules(
+            &TaskId("task-no-search-product-test".to_string()),
+            "我想卖一款学生宿舍用桌面收纳盒，售价39元，只有普通白底图，没有销量数据。请先判断能不能小测，再给主图、标题、验证数据三个方向，不要联网，不要搜索，不要编造销量。",
+            Some(&route),
+            &rules,
+        )
+        .expect("no-search business question should still get a non-search answer graph");
+
+        assert_ne!(graph.graph_id.0, "search_evidence_business_synthesis");
+        assert_ne!(graph.graph_id.0, "direct_search_source_evidence");
+        assert!(
+            graph.nodes.iter().all(|node| node.role != "search"),
+            "no-search request must not schedule a search role: {:#?}",
+            graph.nodes
+        );
+        assert!(
+            graph.nodes.iter().all(|node| node.role != "web"),
+            "no-search request must not be routed to SEO search wording: {:#?}",
+            graph.nodes
+        );
+    }
+
+    #[test]
     fn search_plus_business_advice_routes_to_search_then_final_synthesis() {
         let rules =
             load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
@@ -648,8 +675,8 @@ mod tests {
             load_task_graph_rules(configured_rules_path()).expect("task graph rules should load");
         let graph = plan_task_graph_from_rules(
             &TaskId("task-explicit-search-data-creative-team".to_string()),
-            "请指定运营、资料搜索员、数据、创意、视觉设计、抖音投放和网页岗位一起协作，\
-             搜索校园冷萃咖啡竞品价格后判断数据口径、内容方向、设计表达、投放风险和页面承接。",
+            "请指定运营、资料搜索员、数据、创意、视觉设计、财务和网页岗位一起协作，\
+             搜索校园冷萃咖啡竞品价格后判断数据口径、内容方向、设计表达、预算风险和页面承接。",
             None,
             &rules,
         )
@@ -667,7 +694,7 @@ mod tests {
             search.input_refs
         );
 
-        for role in ["data", "creative", "design", "douyin_ads", "web"] {
+        for role in ["data", "creative", "design", "accounting", "web"] {
             let node = graph
                 .nodes
                 .iter()

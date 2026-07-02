@@ -10,7 +10,8 @@ const longRequest =
 const longStepDetail =
   "Read selected roles, uploaded materials, search requirements, learning level, response mode, and verify whether every planned agent produced a matching runtime event."
 const activeStepTitle = "Context and routing check"
-const filename = "multi.agent.process.md"
+const filename = "Multi-role process"
+const internalFilename = "multi.agent.process.md"
 const modeLabel = "Multi-agent collaboration process"
 const progressLabel = "1/3 roles completed"
 const progressStage = "Checking context and routing"
@@ -34,6 +35,7 @@ describe("DispatchWorkbenchContent", () => {
     expect(stepDetail).toHaveClass("wrap-break-word")
     expect(stepDetail).not.toHaveClass("line-clamp-1")
     expect(previewPanel?.querySelector(".overflow-y-auto")).toHaveClass("text-base/7")
+    expect(screen.queryByText(internalFilename)).not.toBeInTheDocument()
   })
 })
 
@@ -47,6 +49,15 @@ function createWorkbenchModel(): DispatchWorkbenchModel {
       title: activeStepTitle,
     },
     activeStepIndex: 0,
+    agents: [
+      {
+        name: "Data analyst",
+        nodeId: "data",
+        state: "working",
+        status: "Working",
+        summary: "Checks metrics and context",
+      },
+    ],
     facts: [],
     filename,
     kind: "multi_agent",

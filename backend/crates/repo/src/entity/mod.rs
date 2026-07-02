@@ -16,6 +16,8 @@ pub mod agent_skill_runs;
 pub mod agent_trust_scores;
 pub mod agent_usage_events;
 pub mod alerts;
+pub mod analytics_events;
+pub mod analytics_sessions;
 pub mod app_permissions;
 pub mod app_role_permissions;
 pub mod app_roles;

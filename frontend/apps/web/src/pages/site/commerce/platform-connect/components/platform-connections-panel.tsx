@@ -72,6 +72,7 @@ function platformConnectionColumns(
           <MutedText>{item.shopName || item.shopId || "-"}</MutedText>
         </div>
       ),
+      minWidth: "12rem",
     },
     {
       key: "status",
@@ -81,6 +82,7 @@ function platformConnectionColumns(
           {item.enabled ? item.status : "disabled"}
         </StatusBadge>
       ),
+      width: "8rem",
     },
     {
       key: "actions",
@@ -94,6 +96,8 @@ function platformConnectionColumns(
           {t("commerce.common.disable")}
         </Button>
       ),
+      sticky: "right",
+      width: "7rem",
     },
   ]
 }
@@ -112,6 +116,7 @@ function channelConnectionColumns(
           <MutedText>{item.lastError || "-"}</MutedText>
         </div>
       ),
+      minWidth: "12rem",
     },
     {
       key: "status",
@@ -121,6 +126,7 @@ function channelConnectionColumns(
           {item.enabled ? item.status || "active" : "disabled"}
         </StatusBadge>
       ),
+      width: "8rem",
     },
     {
       key: "actions",
@@ -134,6 +140,8 @@ function channelConnectionColumns(
           {t("commerce.common.disable")}
         </Button>
       ),
+      sticky: "right",
+      width: "7rem",
     },
   ]
 }

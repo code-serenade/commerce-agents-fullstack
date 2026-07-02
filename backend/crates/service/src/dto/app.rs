@@ -37,9 +37,28 @@ pub struct RegisterAppUserRequest {
     pub user_id: String,
     pub display_id: String,
     pub display_name: String,
-    pub school_name: String,
-    pub team_name: String,
+    pub school_name: Option<String>,
+    pub team_name: Option<String>,
     pub remark: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateCurrentAppUserProfileRequest {
+    pub user_id: String,
+    pub school_name: Option<String>,
+    pub team_name: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CurrentAppUserProfileResponse {
+    pub user_id: String,
+    pub display_id: String,
+    pub display_name: String,
+    pub school_name: Option<String>,
+    pub team_name: Option<String>,
+    pub is_school_team_bound: bool,
 }
 
 #[derive(Debug, Clone, Deserialize)]

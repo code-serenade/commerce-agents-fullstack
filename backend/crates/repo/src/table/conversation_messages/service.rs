@@ -2,7 +2,7 @@ use db_core::{
     DbContext, Repository,
     error::{BizResult, Error},
 };
-use sea_orm::{ActiveEnum, ActiveValue::Set, ColumnTrait, PaginatorTrait, QueryFilter, QueryOrder};
+use sea_orm::{ActiveValue::Set, ColumnTrait, PaginatorTrait, QueryFilter, QueryOrder};
 use uuid::Uuid;
 
 use crate::{
@@ -97,11 +97,11 @@ impl ConversationMessageService {
             sequence: model.sequence,
             token_count: model.token_count,
             metadata: model.metadata,
-            strategy_id: model.strategy_id.map(|value| value.to_value()),
-            response_mode: model.response_mode.map(|value| value.to_value()),
-            routing_mode: model.routing_mode.map(|value| value.to_value()),
-            collaboration_mode: model.collaboration_mode.map(|value| value.to_value()),
-            learning_level: model.learning_level.map(|value| value.to_value()),
+            strategy_id: model.strategy_id.map(strategy_id_to_string),
+            response_mode: model.response_mode.map(response_mode_to_string),
+            routing_mode: model.routing_mode.map(routing_mode_to_string),
+            collaboration_mode: model.collaboration_mode.map(collaboration_mode_to_string),
+            learning_level: model.learning_level.map(learning_level_to_string),
             created_at: model.created_at,
             updated_at: model.updated_at,
         }
@@ -117,6 +117,15 @@ fn strategy_id_from_string(value: String) -> ConversationStrategyId {
     }
 }
 
+fn strategy_id_to_string(value: ConversationStrategyId) -> String {
+    match value {
+        ConversationStrategyId::Learning => "learning",
+        ConversationStrategyId::Quick => "quick",
+        ConversationStrategyId::Execution => "execution",
+    }
+    .to_owned()
+}
+
 fn response_mode_from_string(value: String) -> ConversationResponseMode {
     match value.as_str() {
         "learning" => ConversationResponseMode::Learning,
@@ -126,12 +135,29 @@ fn response_mode_from_string(value: String) -> ConversationResponseMode {
     }
 }
 
+fn response_mode_to_string(value: ConversationResponseMode) -> String {
+    match value {
+        ConversationResponseMode::Learning => "learning",
+        ConversationResponseMode::Quick => "quick",
+        ConversationResponseMode::Execution => "execution",
+    }
+    .to_owned()
+}
+
 fn routing_mode_from_string(value: String) -> ConversationRoutingMode {
     match value.as_str() {
         "commander" => ConversationRoutingMode::Commander,
         "fast" => ConversationRoutingMode::Fast,
         _ => unreachable!("routing_mode is validated before repo insert"),
     }
+}
+
+fn routing_mode_to_string(value: ConversationRoutingMode) -> String {
+    match value {
+        ConversationRoutingMode::Commander => "commander",
+        ConversationRoutingMode::Fast => "fast",
+    }
+    .to_owned()
 }
 
 fn collaboration_mode_from_string(value: String) -> ConversationCollaborationMode {
@@ -143,6 +169,15 @@ fn collaboration_mode_from_string(value: String) -> ConversationCollaborationMod
     }
 }
 
+fn collaboration_mode_to_string(value: ConversationCollaborationMode) -> String {
+    match value {
+        ConversationCollaborationMode::Auto => "auto",
+        ConversationCollaborationMode::Single => "single",
+        ConversationCollaborationMode::Manual => "manual",
+    }
+    .to_owned()
+}
+
 fn learning_level_from_string(value: String) -> ConversationLearningLevel {
     match value.as_str() {
         "beginner" => ConversationLearningLevel::Beginner,
@@ -150,4 +185,13 @@ fn learning_level_from_string(value: String) -> ConversationLearningLevel {
         "professional" => ConversationLearningLevel::Professional,
         _ => unreachable!("learning_level is validated before repo insert"),
     }
+}
+
+fn learning_level_to_string(value: ConversationLearningLevel) -> String {
+    match value {
+        ConversationLearningLevel::Beginner => "beginner",
+        ConversationLearningLevel::HigherVocational => "higher_vocational",
+        ConversationLearningLevel::Professional => "professional",
+    }
+    .to_owned()
 }

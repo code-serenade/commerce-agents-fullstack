@@ -11,6 +11,19 @@ export type TeamUsageSortBy =
   | "questionUsed"
   | "questionRemaining"
   | "lastUsedAt"
+export type AnalyticsGranularity = "day" | "week"
+export type AnalyticsAccountSortBy =
+  | "lastSeenAt"
+  | "pv"
+  | "sessions"
+  | "agentQuestions"
+  | "activeDays"
+export type AnalyticsSchoolTeamSortBy =
+  | "activeAccounts"
+  | "pv"
+  | "sessions"
+  | "agentQuestions"
+  | "lastSeenAt"
 
 export interface AdminUserResponse {
   displayId?: string
@@ -68,6 +81,124 @@ export interface TeamUsageResponse {
   lastUsedAt?: string | null
   createdAt: string
   updatedAt: string
+}
+
+export interface AnalyticsRangeRequest {
+  from?: string
+  to?: string
+  granularity?: AnalyticsGranularity
+}
+
+export interface AnalyticsSummary {
+  pv: number
+  uv: number
+  sessions: number
+  activeAccounts: number
+  agentQuestions: number
+  tokenUsed: number
+  avgSessionDurationSec: number
+  bounceRate: number
+  frontendErrors: number
+  apiErrors: number
+}
+
+export type AnalyticsDateValue = string | [number, number] | [number, number, number]
+
+export interface AnalyticsDailyTraffic {
+  date: AnalyticsDateValue
+  pv: number
+  uv: number
+  sessions: number
+  activeAccounts: number
+  agentQuestions: number
+  tokenUsed: number
+  errors: number
+}
+
+export interface AnalyticsOverviewResponse {
+  summary: AnalyticsSummary
+  dailyTraffic: AnalyticsDailyTraffic[]
+}
+
+export interface AnalyticsSourceMetric {
+  key: string
+  pv: number
+  uv: number
+  sessions: number
+  agentQuestions: number
+}
+
+export interface AnalyticsSourcesResponse {
+  sourceKinds: AnalyticsSourceMetric[]
+  sourceHosts: AnalyticsSourceMetric[]
+  campaigns: AnalyticsSourceMetric[]
+}
+
+export interface AnalyticsPageMetric {
+  routePath: string
+  pv: number
+  uv: number
+  sessions: number
+  avgSessionDurationSec: number
+  entryCount: number
+  exitCount: number
+  errors: number
+}
+
+export interface AnalyticsPagesResponse {
+  items: AnalyticsPageMetric[]
+}
+
+export interface AnalyticsTopPage {
+  routePath: string
+  pv: number
+}
+
+export interface AnalyticsAccountRowResponse {
+  userId: string
+  displayId: string
+  displayName: string
+  schoolName: string
+  teamName: string
+  pv: number
+  sessions: number
+  activeDays: number
+  agentQuestions: number
+  tokenUsed: number
+  lastSeenAt?: string | null
+  topPages: AnalyticsTopPage[]
+}
+
+export interface AnalyticsSchoolTeamRowResponse {
+  schoolName: string
+  teamName: string
+  accountCount: number
+  activeAccounts: number
+  pv: number
+  uv: number
+  sessions: number
+  agentQuestions: number
+  tokenUsed: number
+  lastSeenAt?: string | null
+}
+
+export interface ListAnalyticsAccountsRequest extends AnalyticsRangeRequest {
+  page?: number
+  pageSize?: number
+  keyword?: string
+  schoolName?: string
+  teamName?: string
+  sortBy?: AnalyticsAccountSortBy
+  sortOrder?: SortOrder
+}
+
+export interface ListAnalyticsSchoolTeamsRequest extends AnalyticsRangeRequest {
+  page?: number
+  pageSize?: number
+  schoolName?: string
+  teamName?: string
+  sortBy?: AnalyticsSchoolTeamSortBy
+  sortOrder?: SortOrder
 }
 
 export interface ListTeamUsagesRequest {
@@ -261,6 +392,62 @@ export const updateTeamUsageQuotaApi = async (
     method: "PATCH",
     url: `/api/admin/usage/accounts/${encodeURIComponent(usageId)}/quota`,
     body,
+  })
+}
+
+export const getAnalyticsOverviewApi = async (
+  params: AnalyticsRangeRequest = {}
+): Promise<AnalyticsOverviewResponse> => {
+  return request<AnalyticsRangeRequest, AnalyticsOverviewResponse>({
+    method: "GET",
+    url: "/api/admin/analytics/overview",
+    body: params,
+  })
+}
+
+export const getAnalyticsSourcesApi = async (
+  params: AnalyticsRangeRequest = {}
+): Promise<AnalyticsSourcesResponse> => {
+  return request<AnalyticsRangeRequest, AnalyticsSourcesResponse>({
+    method: "GET",
+    url: "/api/admin/analytics/sources",
+    body: params,
+  })
+}
+
+export const getAnalyticsPagesApi = async (
+  params: AnalyticsRangeRequest = {}
+): Promise<AnalyticsPagesResponse> => {
+  return request<AnalyticsRangeRequest, AnalyticsPagesResponse>({
+    method: "GET",
+    url: "/api/admin/analytics/pages",
+    body: params,
+  })
+}
+
+export const listAnalyticsAccountsApi = async (
+  params: ListAnalyticsAccountsRequest = {}
+): Promise<PaginatedResponse<AnalyticsAccountRowResponse>> => {
+  return request<
+    ListAnalyticsAccountsRequest,
+    PaginatedResponse<AnalyticsAccountRowResponse>
+  >({
+    method: "GET",
+    url: "/api/admin/analytics/accounts",
+    body: params,
+  })
+}
+
+export const listAnalyticsSchoolTeamsApi = async (
+  params: ListAnalyticsSchoolTeamsRequest = {}
+): Promise<PaginatedResponse<AnalyticsSchoolTeamRowResponse>> => {
+  return request<
+    ListAnalyticsSchoolTeamsRequest,
+    PaginatedResponse<AnalyticsSchoolTeamRowResponse>
+  >({
+    method: "GET",
+    url: "/api/admin/analytics/school-teams",
+    body: params,
   })
 }
 

@@ -111,7 +111,8 @@ pub fn from_biz_error(err: BizError) -> ApiError {
         | app_error::APPROVAL_AUDIT_REQUEST_INVALID
         | app_error::BRIEFING_OPS_REQUEST_INVALID
         | app_error::PACKAGE_REQUEST_INVALID
-        | app_error::TEAM_USAGE_REQUEST_INVALID => StatusCode::BAD_REQUEST,
+        | app_error::TEAM_USAGE_REQUEST_INVALID
+        | app_error::ANALYTICS_REQUEST_INVALID => StatusCode::BAD_REQUEST,
         app_error::TEAM_USAGE_QUOTA_EXCEEDED => StatusCode::TOO_MANY_REQUESTS,
         app_error::TEAM_USAGE_DISABLED => StatusCode::FORBIDDEN,
         app_error::PACKAGE_VALIDATION_FAILED => StatusCode::CONFLICT,

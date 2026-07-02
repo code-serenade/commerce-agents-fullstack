@@ -6,6 +6,12 @@ import {
   StatusBadge,
   toneForStatus,
 } from "@/pages/site/commerce/components/commerce-ui"
+import {
+  formatContentLength,
+  formatArtifactFormat,
+  getOutputArtifactDisplay,
+  formatOutputBackendNotice,
+} from "../view-model/output-artifact-display-view-model"
 import type { AgentOutputBackendState } from "../use-agent-output-page"
 import { ArtifactMeta, EmptyState, LoadingState } from "./output-backend-deliverable-blocks"
 
@@ -23,6 +29,9 @@ export function OutputBackendDeliverables({
     selectedArtifact?.preview ||
     ""
   const selectedId = selectedArtifact?.id ?? backend.selectedArtifactId ?? ""
+  const selectedDisplay = selectedArtifact
+    ? getOutputArtifactDisplay(t, selectedArtifact)
+    : null
 
   const copyExport = () => {
     if (!content) return
@@ -40,7 +49,7 @@ export function OutputBackendDeliverables({
     anchor.download =
       artifactExport?.fileName ||
       selectedArtifact?.fileName ||
-      `${selectedArtifact?.title ?? "artifact"}.txt`
+      `${selectedDisplay?.downloadBaseName ?? t("agentOutput.backend.downloadFileName")}.txt`
     anchor.click()
     URL.revokeObjectURL(url)
   }
@@ -88,14 +97,14 @@ export function OutputBackendDeliverables({
           ) : backend.errorMessage ? (
             <EmptyState
               title={t("agentOutput.backend.errorTitle")}
-              detail={backend.errorMessage}
+              detail={formatOutputBackendNotice(t, backend.errorMessage)}
             />
           ) : backend.deliverables.length ? (
             <div className="space-y-3">
               <NativeSelect
                 value={selectedId}
                 options={backend.deliverables.map((artifact) => ({
-                  label: artifact.title,
+                  label: getOutputArtifactDisplay(t, artifact).title,
                   value: artifact.id,
                 }))}
                 onValueChange={backend.setSelectedArtifactId}
@@ -103,6 +112,7 @@ export function OutputBackendDeliverables({
               <div className="max-h-128 space-y-2 overflow-y-auto pr-1">
                 {backend.deliverables.map((artifact) => {
                   const active = artifact.id === selectedId
+                  const display = getOutputArtifactDisplay(t, artifact)
 
                   return (
                     <button
@@ -116,17 +126,17 @@ export function OutputBackendDeliverables({
                       onClick={() => backend.setSelectedArtifactId(artifact.id)}
                     >
                       <span className="block truncate text-sm font-medium">
-                        {artifact.title}
+                        {display.title}
                       </span>
                       <span className="mt-1 block truncate text-xs text-muted-foreground">
                         {artifact.workspace.title}
                       </span>
                       <span className="mt-2 flex flex-wrap items-center gap-2">
                         <StatusBadge tone={toneForStatus(artifact.validationStatus)}>
-                          {artifact.validationStatus}
+                          {display.validationStatus}
                         </StatusBadge>
                         <span className="truncate text-xs text-muted-foreground">
-                          {artifact.artifactType} / {artifact.format}
+                          {display.type} / {display.format}
                         </span>
                       </span>
                     </button>
@@ -143,22 +153,22 @@ export function OutputBackendDeliverables({
         </div>
 
         <div className="min-w-0 rounded-lg border border-(--app-border) bg-background p-3">
-          {selectedArtifact ? (
+          {selectedArtifact && selectedDisplay ? (
             <div className="space-y-4">
               <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0">
                   <h2 className="truncate text-lg font-semibold">
-                    {selectedArtifact.title}
+                    {selectedDisplay.title}
                   </h2>
                   <div className="mt-1 flex flex-wrap items-center gap-2">
                     <StatusBadge tone={toneForStatus(selectedArtifact.status)}>
-                      {selectedArtifact.status}
+                      {selectedDisplay.status}
                     </StatusBadge>
                     <StatusBadge tone={toneForStatus(selectedArtifact.validationStatus)}>
-                      {selectedArtifact.validationStatus}
+                      {selectedDisplay.validationStatus}
                     </StatusBadge>
                     <MutedText>
-                      {selectedArtifact.artifactType} / {selectedArtifact.source}
+                      {selectedDisplay.type} / {selectedDisplay.source}
                     </MutedText>
                   </div>
                 </div>
@@ -192,39 +202,39 @@ export function OutputBackendDeliverables({
                   value={selectedArtifact.workspace.title}
                 />
                 <ArtifactMeta
-                  label={t("agentOutput.backend.meta.artifactId")}
-                  value={selectedArtifact.id}
-                />
-                <ArtifactMeta
-                  label={t("agentOutput.backend.meta.runId")}
-                  value={selectedArtifact.runId || "-"}
+                  label={t("agentOutput.backend.meta.source")}
+                  value={selectedDisplay.source}
                 />
                 <ArtifactMeta
                   label={t("agentOutput.backend.meta.format")}
-                  value={artifactExport?.format || selectedArtifact.format}
+                  value={formatArtifactFormat(
+                    t,
+                    artifactExport?.format || selectedArtifact.format
+                  )}
                 />
                 <ArtifactMeta
-                  label={t("agentOutput.backend.meta.storage")}
-                  value={selectedArtifact.storageKind}
+                  label={t("agentOutput.backend.meta.validation")}
+                  value={selectedDisplay.validationStatus}
                 />
                 <ArtifactMeta
                   label={t("agentOutput.backend.meta.size")}
-                  value={String(
-                    artifactExport?.contentChars ??
-                      selectedArtifact.fileSize ??
-                      content.length
+                  value={formatContentLength(
+                    t,
+                    artifactExport?.contentChars ?? content.length
                   )}
                 />
               </div>
 
               {artifactExport?.warnings?.length ? (
                 <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-100">
-                  {artifactExport.warnings.join(" / ")}
+                  {artifactExport.warnings
+                    .map((warning) => formatOutputBackendNotice(t, warning))
+                    .join(" / ")}
                 </div>
               ) : null}
 
               <div className="max-h-136 overflow-auto rounded-lg border border-(--app-border) bg-muted/30 p-3">
-                <pre className="whitespace-pre-wrap wrap-break-word text-sm/6 text-foreground">
+                <pre className="wrap-break-word whitespace-pre-wrap text-sm/6 text-foreground">
                   {content || t("agentOutput.backend.noContent")}
                 </pre>
               </div>

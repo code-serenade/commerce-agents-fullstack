@@ -1,5 +1,7 @@
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
+import type { ReactNode } from "react"
+import { MemoryRouter } from "react-router"
 import { describe, expect, it, vi } from "vitest"
 import { AgentChatTestI18nProvider } from "@/test/AgentChatTestI18nProvider"
 import { createAgentChatTestI18n } from "@/test/create-agent-chat-test-i18n"
@@ -17,12 +19,12 @@ describe("WelcomeCard", () => {
     const prompt = i18n.t("agentChat.thread.studentTaskEntries.start.prompt")
 
     render(
-      <AgentChatTestI18nProvider i18n={i18n}>
+      <WelcomeCardTestShell i18n={i18n}>
         <WelcomeCard
           content={i18n.t("agentChat.welcomeMessage")}
           onSelectExamplePrompt={onSelectExamplePrompt}
         />
-      </AgentChatTestI18nProvider>
+      </WelcomeCardTestShell>
     )
 
     await user.click(screen.getByText(prompt))
@@ -40,14 +42,19 @@ describe("WelcomeCard", () => {
     }) as string[]
 
     render(
-      <AgentChatTestI18nProvider i18n={i18n}>
+      <WelcomeCardTestShell i18n={i18n}>
         <WelcomeCard content={i18n.t("agentChat.welcomeMessage")} />
-      </AgentChatTestI18nProvider>
+      </WelcomeCardTestShell>
     )
 
     expect(
       screen.getByText(i18n.t("agentChat.thread.studentTaskEntries.title"))
     ).toBeInTheDocument()
+    expect(
+      screen.getByRole("link", {
+        name: i18n.t("agentChat.thread.studentTaskEntries.openIdeas"),
+      })
+    ).toHaveAttribute("href", "/question-ideas")
     expect(
       screen.getByText(i18n.t("agentChat.thread.studentTaskEntries.data.title"))
     ).toBeInTheDocument()
@@ -68,6 +75,21 @@ describe("WelcomeCard", () => {
     expect(
       screen.getByText(i18n.t("agentChat.welcomeMessage"))
     ).toBeInTheDocument()
+    expect(
+      document.querySelector("[data-agent-portrait-asset='ops-portrait']")
+    ).not.toHaveClass("agent-role-portrait__sprite--working")
+    expect(
+      document.querySelector("[data-agent-portrait-asset='ops-portrait']")
+    ).toHaveAttribute("data-agent-portrait-source", "static")
+    expect(
+      document.querySelector("[data-agent-portrait-asset='design-portrait']")
+    ).not.toHaveClass("agent-role-portrait__sprite--working")
+    expect(
+      document.querySelector("[data-agent-portrait-asset='design-portrait']")
+    ).toHaveAttribute("data-agent-portrait-source", "static")
+    expect(
+      document.querySelector("[data-agent-portrait-asset='engineering-portrait']")
+    ).not.toBeInTheDocument()
   })
 
   it("lets students start from task-type entries", async () => {
@@ -77,12 +99,12 @@ describe("WelcomeCard", () => {
     const prompt = i18n.t("agentChat.thread.studentTaskEntries.plan.prompt")
 
     render(
-      <AgentChatTestI18nProvider i18n={i18n}>
+      <WelcomeCardTestShell i18n={i18n}>
         <WelcomeCard
           content={i18n.t("agentChat.welcomeMessage")}
           onSelectExamplePrompt={onSelectExamplePrompt}
         />
-      </AgentChatTestI18nProvider>
+      </WelcomeCardTestShell>
     )
 
     expect(
@@ -101,12 +123,12 @@ describe("WelcomeCard", () => {
     const prompt = i18n.t("agentChat.thread.studentTaskEntries.data.prompt")
 
     render(
-      <AgentChatTestI18nProvider i18n={i18n}>
+      <WelcomeCardTestShell i18n={i18n}>
         <WelcomeCard
           content={i18n.t("agentChat.welcomeMessage")}
           onSelectExamplePrompt={onSelectExamplePrompt}
         />
-      </AgentChatTestI18nProvider>
+      </WelcomeCardTestShell>
     )
 
     await user.click(screen.getByText(prompt))
@@ -114,6 +136,20 @@ describe("WelcomeCard", () => {
     expect(onSelectExamplePrompt).toHaveBeenCalledWith(prompt)
   })
 })
+
+function WelcomeCardTestShell({
+  children,
+  i18n,
+}: {
+  children: ReactNode
+  i18n: Parameters<typeof AgentChatTestI18nProvider>[0]["i18n"]
+}) {
+  return (
+    <MemoryRouter>
+      <AgentChatTestI18nProvider i18n={i18n}>{children}</AgentChatTestI18nProvider>
+    </MemoryRouter>
+  )
+}
 
 describe("AgentErrorActions", () => {
   it("turns reply errors into action buttons", async () => {
@@ -174,12 +210,9 @@ describe("StudentNextActions", () => {
 
   it("changes suggested next steps from the assistant answer context", async () => {
     const i18n = await createAgentChatTestI18n()
-    const productPrompts = i18n.t(
-      "agentChat.thread.nextActions.groups.product",
-      {
-        returnObjects: true,
-      }
-    ) as string[]
+    const productPrompts = i18n.t("agentChat.thread.nextActions.groups.product", {
+      returnObjects: true,
+    }) as string[]
     const dataPrompts = i18n.t("agentChat.thread.nextActions.groups.data", {
       returnObjects: true,
     }) as string[]

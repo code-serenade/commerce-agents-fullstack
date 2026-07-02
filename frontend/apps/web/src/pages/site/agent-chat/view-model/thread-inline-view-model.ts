@@ -32,11 +32,15 @@ export interface InlineAgent {
 }
 
 const INLINE_AGENT_PRESETS = [
-  ["data", "data"],
-  ["accounting", "accounting"],
-  ["douyin_ads", "douyinAds"],
-  ["creative", "creative"],
   ["ops", "ops"],
+  ["search", "search"],
+  ["data", "data"],
+  ["service", "service"],
+  ["creative", "creative"],
+  ["engineering", "engineering"],
+  ["accounting", "accounting"],
+  ["design", "design"],
+  ["web", "web"],
   ["delivery", "delivery"],
 ] as const
 

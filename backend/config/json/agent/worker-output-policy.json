@@ -512,7 +512,7 @@
       ]
     },
     "douyin_ads": {
-      "display_name": "千川投放专员",
+      "display_name": "运营策略师",
       "required_findings": 1,
       "required_recommendations": 1,
       "default_findings": [
@@ -543,7 +543,7 @@
         "搜索证据不能直接等同于平台最新政策或竞品最终价格，需要用户按来源时间和适用范围复核。"
       ],
       "category_findings": [
-        "外部公开证据只作为判断依据，不把来源摘要直接扩写成完整运营方案。"
+        "外部公开证据只作为任务资料，不把来源摘要直接扩写成完整运营方案。"
       ],
       "category_recommendations": [
         "如果问题只要求来源，输出来源清单；如果问题需要方案，把来源作为证据交给最终综合节点引用。"

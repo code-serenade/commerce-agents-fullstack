@@ -175,14 +175,14 @@ mod tests {
             r#"{
               "roles": [
                 {
-                  "id": "role.douyin-ads",
-                  "name": "千川投放专员",
-                  "runtime_role": "douyin_ads",
-                  "priority": 25,
+                  "id": "role.ops-strategist",
+                  "name": "运营策略师",
+                  "runtime_role": "ops",
+                  "priority": 10,
                   "domains": ["domain.ecommerce"],
-                  "keywords": ["千川", "投流", "roi", "cpc", "人群包"],
+                  "keywords": ["运营", "广告投放", "投流", "roi", "cpc", "人群包"],
                   "preferred_actions": ["analyze", "optimize", "execute"],
-                  "required_capabilities": ["ads.optimization", "roi.control"],
+                  "required_capabilities": ["ops.strategy", "ads.optimization", "roi.control"],
                   "optional_capabilities": ["data.analysis", "creative.content"]
                 }
               ]
@@ -195,9 +195,9 @@ mod tests {
         let role = catalog
             .roles()
             .iter()
-            .find(|role| role.runtime_role == "douyin_ads")
+            .find(|role| role.runtime_role == "ops")
             .expect("configured role should be present");
-        assert_eq!(role.name, "千川投放专员");
+        assert_eq!(role.name, "运营策略师");
         assert!(
             role.required_capabilities
                 .contains(&"ads.optimization".to_string())

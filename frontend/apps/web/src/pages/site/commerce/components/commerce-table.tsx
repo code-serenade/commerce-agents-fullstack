@@ -1,21 +1,19 @@
-import type { ReactNode } from "react"
+import type { CSSProperties, ReactNode } from "react"
 import { useTranslation } from "react-i18next"
-import {
-  Spinner,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@workspace/ui-components"
+import { Spinner } from "@workspace/ui-components"
 
 export interface CommerceColumn<T> {
   key: string
   header: ReactNode
   render: (item: T) => ReactNode
+  minWidth?: string
+  sticky?: "left" | "right"
   width?: string
 }
+
+const DEFAULT_COLUMN_WIDTH = "10rem"
+const STICKY_LEFT_OFFSET = "0px"
+const STICKY_RIGHT_OFFSET = "0px"
 
 export function CommerceTable<T>({
   columns,
@@ -49,33 +47,107 @@ export function CommerceTable<T>({
     )
   }
 
+  const resolvedColumns = columns.map((column) => ({
+    ...column,
+    sticky:
+      column.sticky ??
+      (column.key === "selection"
+        ? "left"
+        : column.key === "actions"
+          ? "right"
+          : undefined),
+  }))
+  const tableMinWidth = `max(100%, calc(${resolvedColumns
+    .map((column) => column.width ?? column.minWidth ?? DEFAULT_COLUMN_WIDTH)
+    .join(" + ")}))`
+
   return (
-    <div className="overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {columns.map((column) => (
-              <TableHead key={column.key} scope="col">
-                <span
-                  className={column.width ? "block" : undefined}
-                  style={column.width ? { width: column.width } : undefined}
+    <div className="max-w-full overflow-x-auto">
+      <div style={{ minWidth: tableMinWidth }}>
+        <table className="w-full caption-bottom text-sm">
+          <thead className="[&_tr]:border-b">
+            <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+              {resolvedColumns.map((column) => (
+                <th
+                  key={column.key}
+                  scope="col"
+                  className={getHeadClassName(column.sticky)}
+                  style={getColumnStyle(column)}
                 >
-                  {column.header}
-                </span>
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {items.map((item, index) => (
-            <TableRow key={getRowId(item, index)}>
-              {columns.map((column) => (
-                <TableCell key={column.key}>{column.render(item)}</TableCell>
+                  <span
+                    className={column.width ? "block" : undefined}
+                    style={column.width ? { width: column.width } : undefined}
+                  >
+                    {column.header}
+                  </span>
+                </th>
               ))}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+            </tr>
+          </thead>
+          <tbody className="[&_tr:last-child]:border-0">
+            {items.map((item, index) => (
+              <tr
+                key={getRowId(item, index)}
+                className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
+              >
+                {resolvedColumns.map((column) => (
+                  <td
+                    key={column.key}
+                    className={getCellClassName(column.sticky)}
+                    style={getColumnStyle(column)}
+                  >
+                    {column.render(item)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
+}
+
+function getColumnStyle<T>(column: CommerceColumn<T>): CSSProperties {
+  const minWidth = column.minWidth ?? column.width ?? DEFAULT_COLUMN_WIDTH
+
+  return {
+    minWidth,
+    ...(column.width ? { width: column.width } : null),
+    ...(column.sticky === "left" ? { left: STICKY_LEFT_OFFSET } : null),
+    ...(column.sticky === "right" ? { right: STICKY_RIGHT_OFFSET } : null),
+  }
+}
+
+function getHeadClassName(sticky: CommerceColumn<unknown>["sticky"]) {
+  return cx(
+    "h-10 whitespace-nowrap px-2 text-left align-middle font-medium text-foreground",
+    sticky ? getStickyCellClassName(sticky, "head") : undefined
+  )
+}
+
+function getCellClassName(sticky: CommerceColumn<unknown>["sticky"]) {
+  return cx(
+    "whitespace-nowrap p-2 align-middle",
+    sticky ? getStickyCellClassName(sticky, "cell") : undefined
+  )
+}
+
+function getStickyCellClassName(
+  sticky: CommerceColumn<unknown>["sticky"],
+  kind: "cell" | "head"
+) {
+  if (!sticky) return undefined
+
+  return cx(
+    "sticky",
+    sticky === "left"
+      ? "left-0 shadow-[inset_-1px_0_0_var(--border)]"
+      : "right-0 shadow-[inset_1px_0_0_var(--border)]",
+    kind === "head" ? "z-20 bg-(--surface)" : "z-10 bg-background"
+  )
+}
+
+function cx(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(" ")
 }

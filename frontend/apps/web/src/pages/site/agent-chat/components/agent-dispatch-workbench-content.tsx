@@ -10,6 +10,7 @@ import {
   StepStateIcon,
 } from "./agent-dispatch-workbench-parts"
 import { StatePill } from "./swarm-state-pill"
+import { AgentRoleClusterPanel } from "./agent-role-cluster-panel"
 
 export function DispatchWorkbenchContent({
   model,
@@ -46,6 +47,19 @@ export function DispatchWorkbenchContent({
             <p className="mt-1 wrap-break-word text-sm/6 text-foreground">
               {model.request}
             </p>
+          </div>
+
+          <div className="border-t border-border bg-background p-2.5 min-[1500px]:p-3">
+            <AgentRoleClusterPanel
+              agents={model.agents}
+              animatePortraits={model.agents.some((agent) =>
+                agent.state === "working" || agent.state === "reworking"
+              )}
+              itemDetail="summary"
+              title={t("agentChat.thread.dispatchPanel.roleClusterTitle")}
+              summary={t("agentChat.thread.dispatchPanel.roleClusterSummary")}
+              variant="compact"
+            />
           </div>
 
           <DispatchPreviewDocument

@@ -39,6 +39,7 @@ export default function AppUsersPage() {
           bulkUpdate={table.bulkUpdate}
           pageSizeOptions={table.pageSizeOptions}
           rowActions={table.rowActions}
+          stickyColumns={{ left: 1 }}
           compactColumns={table.compactColumns}
           compactRows={table.compactRows}
           fillWidth={table.fillWidth}

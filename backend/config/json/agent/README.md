@@ -157,7 +157,7 @@ worker-inference/index.json
 - `inventory.json`：库存与补货参数。
 - `search.json`：搜索 query、行业、平台、topic、days 等。
 - `context.json`：上下文和已选商品相关配置。
-- `douyin-ads.json`：抖音投放指标别名和默认值。
+- `douyin-ads.json`：广告投放指标别名和默认值；文件名保留历史内部 skill id，不代表独立平台岗位。
 - `memory-task.json`：记忆和任务协同解析。
 - `numbers.json`：数字解析默认值和限制。
 

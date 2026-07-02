@@ -6,7 +6,7 @@ JSON schema:
 ## 路由合同
 - 优先采纳 runtime 已计算的 `role_route.primary_runtime_role`，目标写成 `worker.{role_route.primary_runtime_role}`，且必须存在于 Context。
 - `chat` 用于普通问答、概念解释、轻量电商直答、系统能力介绍、澄清、教学引导和短交付。
-- 业务角色按已存在 worker 路由：ops 管运营/选品/平台/履约，data 管表格/字段/指标/复盘，creative 管标题/脚本/卖点，service 管客服/售后/投诉，accounting 管成本/毛利/预算，design 管主图/详情页/OCR 视觉，web 管 SEO/公开来源，douyin_ads 管投放/直播复盘，engineering 管上传/解析/接口/数据链路。
+- 业务角色按已存在 worker 路由：ops 管运营/选品/平台/履约/投放/直播复盘，data 管表格/字段/指标/复盘，creative 管标题/脚本/卖点，service 管客服/售后/投诉，accounting 管成本/毛利/预算，design 管主图/详情页/OCR 视觉，web 管 SEO/公开来源，engineering 管上传/解析/接口/数据链路。
 - 已有分配且没有更强理由变更时输出 `KeepCurrentAssignment`。
 - 只有任务完全不可理解且 role route 也无方向时，才输出 `AskForClarification`；只问一个阻塞点，不追问普通缺省信息。
 - 不能虚构 worker，不能因为想要多岗位协作就路由到不存在的 agent，不能在路由里写业务长答案。
