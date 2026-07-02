@@ -7,12 +7,18 @@ export interface PermissionLabelSource {
 
 const permissionCodeByName: Record<string, string> = {
   "Access Control": "access_control",
+  "Access Analytics": "analytics:overview",
   "Admin Users": "accounts:admin_users",
+  "Analytics Accounts": "analytics:accounts",
+  "Analytics Overview": "analytics:overview",
+  "Analytics School Teams": "analytics:school_teams",
   "App Role Permissions": "access_control:app_role_permissions",
   "App Roles": "access_control:app_roles",
   "App Users": "accounts:app_users",
+  "Account Usage": "usage:team_usage",
   "Role Permissions": "access_control:role_permissions",
   Accounts: "accounts",
+  Analytics: "analytics",
   Dashboard: "dashboard",
   Roles: "access_control:roles",
   Profile: "profile",

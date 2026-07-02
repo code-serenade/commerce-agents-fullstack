@@ -1,4 +1,4 @@
-// App route business error codes: -12000..-12067
+// App route business error codes: -12000..-12071
 pub const APP_USER_NOT_FOUND: i16 = -12000;
 pub const APP_USER_DISABLED: i16 = -12001;
 pub const CONVERSATION_NOT_FOUND: i16 = -12002;
@@ -70,3 +70,4 @@ pub const EXTERNAL_SEARCH_REQUEST_INVALID: i16 = -12067;
 pub const TEAM_USAGE_QUOTA_EXCEEDED: i16 = -12068;
 pub const TEAM_USAGE_DISABLED: i16 = -12069;
 pub const TEAM_USAGE_REQUEST_INVALID: i16 = -12070;
+pub const ANALYTICS_REQUEST_INVALID: i16 = -12071;

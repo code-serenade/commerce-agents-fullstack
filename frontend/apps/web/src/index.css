@@ -1,2 +1,39 @@
 @import "@workspace/ui-components/styles.css";
 @import "@workspace/ui-theme/styles.css";
+
+.agent-role-portrait__sprite {
+  display: block;
+  object-fit: contain;
+}
+
+.agent-role-portrait__sprite--working {
+  animation: agent-role-portrait-working 1.2s steps(2, end) infinite;
+  transform-origin: 50% 100%;
+}
+
+@keyframes agent-role-portrait-working {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agent-role-portrait__sprite--working {
+    animation: none;
+  }
+}
+
+.agent-process-drawer__panel .text-\[10px\] {
+  font-size: 11px;
+}
+
+.agent-process-drawer__panel .text-\[11px\],
+.agent-process-drawer__panel .text-xs {
+  font-size: var(--text-xs);
+  line-height: var(--tw-leading, var(--text-xs--line-height));
+}

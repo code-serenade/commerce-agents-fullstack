@@ -59,6 +59,16 @@ macro_rules! deferred_search_skill {
                         adapter,
                     ));
                 }
+                if let Some(reason) = adapter.provider_cooldown_reason() {
+                    return Ok(degraded_search_output(
+                        &self.spec.id,
+                        required_value,
+                        plan,
+                        adapter,
+                        reason,
+                        SearchSourceFilterStats::default(),
+                    ));
+                }
 
                 let provider_timeout =
                     Duration::from_secs(adapter.effective_timeout_sec().saturating_add(2));
@@ -66,8 +76,12 @@ macro_rules! deferred_search_skill {
                     match tokio::time::timeout(provider_timeout, query_provider(adapter, &plan))
                         .await
                     {
-                        Ok(Ok(payload)) => payload,
+                        Ok(Ok(payload)) => {
+                            adapter.record_provider_success();
+                            payload
+                        }
                         Ok(Err(reason)) => {
+                            adapter.record_provider_failure(&reason);
                             return Ok(degraded_search_output(
                                 &self.spec.id,
                                 required_value,
@@ -78,15 +92,17 @@ macro_rules! deferred_search_skill {
                             ));
                         }
                         Err(_) => {
+                            let reason = format!(
+                                "external search provider request timed out after {} seconds",
+                                provider_timeout.as_secs()
+                            );
+                            adapter.record_provider_failure(&reason);
                             return Ok(degraded_search_output(
                                 &self.spec.id,
                                 required_value,
                                 plan,
                                 adapter,
-                                format!(
-                                    "external search provider request timed out after {} seconds",
-                                    provider_timeout.as_secs()
-                                ),
+                                reason,
                                 SearchSourceFilterStats::default(),
                             ));
                         }

@@ -8,6 +8,7 @@ import {
   Sparkles,
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { Link } from "react-router"
 import type { AgentChatStrategy } from "../domain/agent-chat-strategy"
 import type { AgentChatMessage } from "../types"
 import {
@@ -15,6 +16,7 @@ import {
   getStudentNextActionPrompts,
   getStudentTaskEntries,
 } from "../view-model/student-next-actions-view-model"
+import { AgentRoleClusterHomePanel } from "./agent-role-cluster-home-panel"
 
 export function WelcomeCard({
   content,
@@ -42,9 +44,21 @@ export function WelcomeCard({
         </div>
       </div>
       <div className="mt-4">
-        <p className="text-xs font-semibold text-foreground">
-          {t("agentChat.thread.studentTaskEntries.title")}
-        </p>
+        <AgentRoleClusterHomePanel />
+      </div>
+      <div className="mt-4">
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-semibold text-foreground">
+            {t("agentChat.thread.studentTaskEntries.title")}
+          </p>
+          <Link
+            to="/question-ideas"
+            className="inline-flex min-h-7 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-[11px] font-medium text-foreground transition hover:border-foreground/30 hover:bg-muted"
+          >
+            <Sparkles className="size-3.5 shrink-0 text-blue-500" />
+            {t("agentChat.thread.studentTaskEntries.openIdeas")}
+          </Link>
+        </div>
         <p className="mt-1 text-xs text-muted-foreground">
           {t("agentChat.thread.studentTaskEntries.subtitle")}
         </p>
@@ -181,13 +195,15 @@ export function MessageActions({ content }: { content: string }) {
 export function StudentNextActions({
   message,
   onSelectPrompt,
+  previousUserContent,
 }: {
   message?: AgentChatMessage
   onSelectPrompt?: (prompt: string) => void
+  previousUserContent?: string
 }) {
   const { t } = useTranslation()
-  const prompts = getStudentNextActionPrompts(t, message)
-  const meta = getStudentNextActionMeta(t, message)
+  const prompts = getStudentNextActionPrompts(t, message, previousUserContent)
+  const meta = getStudentNextActionMeta(t, message, previousUserContent)
 
   return (
     <div className="mt-3 rounded-lg border border-border bg-card p-3 shadow-sm">

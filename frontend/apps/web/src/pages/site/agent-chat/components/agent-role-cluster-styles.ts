@@ -1,0 +1,45 @@
+import type { AgentRoleKey } from "../view-model/agent-role-cluster-view-model"
+import type { InlineAgentState } from "../view-model/thread-inline-view-model"
+
+export type AgentRoleClusterVariant = "compact" | "showcase" | "timeline"
+
+export const panelClassNames: Record<InlineAgentState, string> = {
+  boundary:
+    "border-amber-200 bg-amber-50/70 dark:border-amber-900/60 dark:bg-amber-950/20",
+  done: "border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/60 dark:bg-emerald-950/20",
+  failed: "border-destructive/25 bg-destructive/10",
+  idle: "border-border bg-card",
+  queued: "border-sky-200 bg-sky-50/70 dark:border-sky-900/60 dark:bg-sky-950/20",
+  reworking:
+    "border-violet-200 bg-violet-50/70 dark:border-violet-900/60 dark:bg-violet-950/20",
+  working: "border-primary/30 bg-primary/5",
+}
+
+export const roleAccentClassNames: Record<AgentRoleKey, string> = {
+  accounting: "border-t-emerald-500",
+  box: "border-t-slate-500",
+  creative: "border-t-violet-500",
+  data: "border-t-teal-600",
+  delivery: "border-t-blue-500",
+  design: "border-t-fuchsia-500",
+  engineering: "border-t-slate-700",
+  ops: "border-t-blue-600",
+  search: "border-t-cyan-500",
+  service: "border-t-sky-500",
+  web: "border-t-indigo-500",
+}
+
+export const roleDotClassNames: Record<AgentRoleKey, string> = {
+  accounting: "bg-emerald-500",
+  box: "bg-slate-500",
+  creative: "bg-violet-500",
+  data: "bg-teal-600",
+  delivery: "bg-blue-500",
+  design: "bg-fuchsia-500",
+  engineering: "bg-slate-700",
+  ops: "bg-blue-600",
+  search: "bg-cyan-500",
+  service: "bg-sky-500",
+  web: "bg-indigo-500",
+}
+

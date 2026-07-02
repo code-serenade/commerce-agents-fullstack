@@ -3,7 +3,12 @@ import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { Provider } from "react-redux"
 import { configureStore } from "@reduxjs/toolkit"
-import { createMemoryRouter, RouterProvider } from "react-router"
+import {
+  createMemoryRouter,
+  RouterProvider,
+  type InitialEntry,
+} from "react-router"
+import accessReducer from "@/store/accessSlice"
 import authReducer from "@/store/authSlice"
 import LoginPage from "@/pages/public/Login"
 
@@ -34,9 +39,10 @@ vi.mock("react-i18next", async (importOriginal) => {
   }
 })
 
-function renderLoginPage() {
+function renderLoginPage(initialEntries: InitialEntry[] = ["/login"]) {
   const store = configureStore({
     reducer: {
+      access: accessReducer,
       auth: authReducer,
     },
   })
@@ -45,8 +51,9 @@ function renderLoginPage() {
     [
       { path: "/login", element: <LoginPage /> },
       { path: "/", element: <div>HOME_PAGE</div> },
+      { path: "/usage/team-usage", element: <div>TEAM_USAGE_PAGE</div> },
     ],
-    { initialEntries: ["/login"] }
+    { initialEntries }
   )
 
   render(
@@ -111,5 +118,61 @@ describe("LoginPage", () => {
       expect(store.getState().auth.isLogin).toBe(true)
       expect(store.getState().auth.user?.name).toBe("Tester")
     })
+  })
+
+  it("returns to the requested admin page after login", async () => {
+    const user = userEvent.setup()
+    renderLoginPage([
+      {
+        pathname: "/login",
+        state: {
+          from: {
+            hash: "",
+            pathname: "/usage/team-usage",
+            search: "",
+          },
+        },
+      },
+    ])
+
+    await user.type(
+      screen.getByPlaceholderText("login.form.identifier.placeholder"),
+      "tester"
+    )
+    await user.type(
+      screen.getByPlaceholderText("login.form.password.placeholder"),
+      "12345678"
+    )
+    await user.click(screen.getByRole("button", { name: "login.form.submit" }))
+
+    expect(await screen.findByText("TEAM_USAGE_PAGE")).toBeInTheDocument()
+  })
+
+  it("shows an error and clears partial session when admin permissions fail", async () => {
+    const user = userEvent.setup()
+    getCurrentUserPermissionsApiMock.mockRejectedValueOnce(
+      Object.assign(new Error("permission service unavailable"), {
+        response: { status: 503 },
+      })
+    )
+    const { store } = renderLoginPage()
+
+    await user.type(
+      screen.getByPlaceholderText("login.form.identifier.placeholder"),
+      "tester"
+    )
+    await user.type(
+      screen.getByPlaceholderText("login.form.password.placeholder"),
+      "12345678"
+    )
+    await user.click(screen.getByRole("button", { name: "login.form.submit" }))
+
+    expect(
+      await screen.findByText("login.error.serviceUnavailable")
+    ).toBeInTheDocument()
+    expect(localStorage.getItem("token")).toBeNull()
+    expect(localStorage.getItem("refreshToken")).toBeNull()
+    expect(store.getState().auth.isLogin).toBe(false)
+    expect(store.getState().access.permissionCodes).toEqual([])
   })
 })

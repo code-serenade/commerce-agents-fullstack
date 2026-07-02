@@ -8,7 +8,7 @@ const permissions = {
       label: "Admin Users",
     },
     app_users: {
-      label: "App Users",
+      label: "Product Users",
     },
   },
   access_control: {
@@ -20,16 +20,28 @@ const permissions = {
       label: "Role Permissions",
     },
     app_roles: {
-      label: "App Roles",
+      label: "User Roles",
     },
     app_role_permissions: {
-      label: "App Role Permissions",
+      label: "User Role Permissions",
     },
   },
   usage: {
     label: "Usage",
     team_usage: {
       label: "Account Usage",
+    },
+  },
+  analytics: {
+    label: "Analytics",
+    overview: {
+      label: "Access Overview",
+    },
+    accounts: {
+      label: "Account Analytics",
+    },
+    school_teams: {
+      label: "School / Team Analytics",
     },
   },
   profile: {

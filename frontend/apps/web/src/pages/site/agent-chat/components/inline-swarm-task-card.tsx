@@ -10,21 +10,22 @@ import { useTranslation } from "react-i18next"
 import type { AgentRuntimeEvent } from "@/api"
 import {
   getAgentProcessBadge,
-  getAgentProcessKind,
   getAgentProcessProgress,
   getAgentProcessSummary,
   getAgentProcessTitle,
   getDispatchFacts,
-  shouldShowProcessAgentGrid,
 } from "../view-model/agent-process-kind-view-model"
+import { getWorkbenchAgents } from "../view-model/agent-dispatch-workbench-agents-view-model"
+import { getAgentRoleActivities } from "../view-model/agent-role-cluster-view-model"
+import { hasFinished } from "../view-model/agent-process-runtime-view-model"
 import { getInlineArtifactsFromRuntime } from "../view-model/thread-artifacts-view-model"
 import {
   getCommerceHandoffItems,
-  getInlineAgents,
   getInlineSteps,
 } from "../view-model/thread-inline-view-model"
-import { hasFinished } from "../view-model/agent-process-runtime-view-model"
+import { AgentRoleClusterPanel } from "./agent-role-cluster-panel"
 import { InlineArtifactsPanel } from "./inline-artifacts-panel"
+import { InlineRoleParticipantStrip } from "./inline-role-participant-strip"
 import {
   InlineAgentGrid,
   InlineDispatchFactGrid,
@@ -54,9 +55,9 @@ export function InlineSwarmTaskCard({
 }) {
   const { t } = useTranslation()
   const isComplete = !isStreaming && hasFinished(runtimeEvents)
-  const [open, setOpen] = useState(false)
-  const processKind = getAgentProcessKind(runtimeEvents)
-  const agents = getInlineAgents(runtimeEvents, isStreaming, t)
+  const [manualOpen, setManualOpen] = useState<boolean | null>(null)
+  const open = manualOpen ?? isStreaming
+  const agents = getWorkbenchAgents(runtimeEvents, isStreaming, t)
   const steps = getInlineSteps(runtimeEvents, isStreaming, t)
   const completedCount = agents.filter((agent) =>
     agent.state === "done" || agent.state === "boundary"
@@ -87,8 +88,9 @@ export function InlineSwarmTaskCard({
   const processDetail = hasRuntime
     ? processSummary
     : t("agentChat.thread.processKinds.waiting.summary")
-  const showAgentGrid = shouldShowProcessAgentGrid(processKind)
+  const showAgentGrid = agents.length > 0
   const dispatchFacts = getDispatchFacts(runtimeEvents, t)
+  const roleActivities = showAgentGrid ? getAgentRoleActivities(agents, t) : []
 
   return (
     <article className="flex justify-start gap-3" data-process-message-id={messageId}>
@@ -123,6 +125,13 @@ export function InlineSwarmTaskCard({
               <p className="mt-1.5 line-clamp-1 text-xs/5 text-muted-foreground">
                 {processDetail}
               </p>
+              {roleActivities.length > 0 ? (
+                <InlineRoleParticipantStrip
+                  animatePortraits={isStreaming}
+                  activities={roleActivities}
+                  label={t("agentChat.thread.roleClusterActivity.participants")}
+                />
+              ) : null}
             </div>
             <div className="flex shrink-0 flex-wrap items-center justify-start gap-2 sm:justify-end">
               <InlineRuntimeBadge
@@ -160,7 +169,7 @@ export function InlineSwarmTaskCard({
               ) : null}
               <button
                 type="button"
-                onClick={() => setOpen((current) => !current)}
+                onClick={() => setManualOpen((current) => !(current ?? isStreaming))}
                 className="flex size-7 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 aria-expanded={open}
                 title={
@@ -178,6 +187,12 @@ export function InlineSwarmTaskCard({
           {open ? (
             <div className="mt-2 max-h-[min(24rem,46vh)] overflow-y-auto pr-1 [scrollbar-gutter:stable]">
               <div className="mt-2 grid gap-2">
+                {showAgentGrid ? (
+                  <AgentRoleClusterPanel
+                    agents={agents}
+                    animatePortraits={isStreaming}
+                  />
+                ) : null}
                 <InlineProgressSummary
                   completedCount={processProgress.completed}
                   hasFailedAgent={hasFailedAgent}

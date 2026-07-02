@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import type { AuthRegisterPageProps } from "@workspace/app-kit/register"
+import { trackProductEvent } from "@/analytics/product-analytics"
 import { savePendingRegistrationProfile } from "@/api"
 
 export function useRegisterPage() {
@@ -11,21 +12,27 @@ export function useRegisterPage() {
         name: "schoolName",
         label: t("register.profile.schoolName.label"),
         placeholder: t("register.profile.schoolName.placeholder"),
+        helpText: t("register.profile.schoolName.help"),
         maxLength: 128,
-        required: true,
+        required: false,
       },
       {
         name: "teamName",
         label: t("register.profile.teamName.label"),
         placeholder: t("register.profile.teamName.placeholder"),
+        helpText: t("register.profile.teamName.help"),
         maxLength: 128,
-        required: true,
+        required: false,
       },
     ],
     [t]
   )
 
   const onRegistered: AuthRegisterPageProps["onRegistered"] = (values) => {
+    trackProductEvent({
+      eventType: "register_success",
+      featureKey: "auth.register.success",
+    })
     savePendingRegistrationProfile({
       username: values.username,
       displayName: values.displayName,

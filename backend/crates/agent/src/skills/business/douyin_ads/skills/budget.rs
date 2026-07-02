@@ -17,7 +17,7 @@ pub(super) fn budget_pacing(input: &Value) -> Value {
     if budget.is_none() || current_roas.is_none() {
         return deferred(
             "douyin_ads_budget_pacing",
-            "千川预算节奏需要投放总预算，并提供 current_roas，或同时提供 spend 与 gmv。",
+            "广告预算节奏需要投放总预算，并提供 current_roas，或同时提供 spend 与 gmv。",
             &[
                 "budget",
                 "current_roas 或 spend + gmv",
@@ -53,8 +53,8 @@ pub(super) fn budget_pacing(input: &Value) -> Value {
         "has_data": true,
         "adapter_status": "manual_input",
         "data_readiness": "user_provided",
-        "summary": "千川预算节奏已计算",
-        "数据来源": "用户显式输入 + 新产品 Rust Agent 千川投放 deterministic skill；未读取巨量千川实时消耗或转化数据",
+        "summary": "广告预算节奏已计算",
+        "数据来源": "用户显式输入 + 新产品 Rust Agent 广告投放 deterministic skill；未读取广告后台实时消耗或转化数据",
         "商品引用": empty_string_as_null(&product_ref),
         "预算": {
             "总预算": currency(budget),
@@ -79,7 +79,7 @@ pub(super) fn budget_pacing(input: &Value) -> Value {
             "跨天保留稳定计划，不在短窗口内频繁重置学习"
         ],
         "风险提示": [
-            "本结果只基于本轮显式输入，不代表已读取千川后台实时数据",
+            "本结果只基于本轮显式输入，不代表已读取广告后台实时数据",
             "如果GMV未剔除退款、佣金、赠品和履约成本，ROAS不能等同利润ROI"
         ]
     })

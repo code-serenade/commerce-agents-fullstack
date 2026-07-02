@@ -24,11 +24,13 @@ export function FilesTable({
   getFileName,
   hasActiveFilters,
   loading,
+  canUploadEmpty = true,
   onClearFilters,
   onUploadEmpty,
   onOpenFileDetail,
   onToggleCurrentTurn,
   onToggleFileSelection,
+  turnActionsEnabled,
   selectedFileIds,
   usingFileIds,
 }: {
@@ -41,11 +43,13 @@ export function FilesTable({
   getFileName: (file: TrainingFileItem) => string
   hasActiveFilters: boolean
   loading: boolean
+  canUploadEmpty?: boolean
   onClearFilters: () => void
   onUploadEmpty?: () => void
   onOpenFileDetail: (file: TrainingFileItem) => void
   onToggleCurrentTurn: (file: TrainingFileItem) => void
   onToggleFileSelection: (fileId: string) => void
+  turnActionsEnabled: boolean
   selectedFileIds: Set<string>
   usingFileIds: Set<string>
 }) {
@@ -60,6 +64,7 @@ export function FilesTable({
           onCheckedChange={() => onToggleFileSelection(file.id)}
         />
       ),
+      sticky: "left",
       width: "2.25rem",
     },
     {
@@ -68,6 +73,7 @@ export function FilesTable({
       render: (file) => (
         <FilesNameCell file={file} getFileName={getFileName} t={t} />
       ),
+      minWidth: "18rem",
     },
     {
       key: "status",
@@ -114,7 +120,7 @@ export function FilesTable({
         const isSelectedForTurn = state === "selectedForTurn"
         const isUsing = usingFileIds.has(file.id)
         return (
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-nowrap items-center justify-end gap-2">
             <Button
               size="sm"
               variant="outline"
@@ -126,7 +132,7 @@ export function FilesTable({
             <Button
               size="sm"
               variant={isSelectedForTurn ? "outline" : "default"}
-              disabled={isUsing}
+              disabled={isUsing || !turnActionsEnabled}
               onClick={() => onToggleCurrentTurn(file)}
             >
               {isUsing ? (
@@ -145,6 +151,7 @@ export function FilesTable({
           </div>
         )
       },
+      sticky: "right",
       width: "13rem",
     },
   ]
@@ -178,7 +185,11 @@ export function FilesTable({
             {t("commerce.files.empty")}
           </p>
         </div>
-        <Button size="sm" onClick={onUploadEmpty ?? onClearFilters}>
+        <Button
+          size="sm"
+          disabled={!canUploadEmpty}
+          onClick={onUploadEmpty ?? onClearFilters}
+        >
           <Plus className="size-4" />
           {t("commerce.files.emptyAction")}
         </Button>

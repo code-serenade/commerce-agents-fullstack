@@ -7,6 +7,7 @@ export interface RequestParams<T = Record<string, unknown>> {
   body?: T
   group?: UrlGroup
   suppressGlobalError?: boolean
+  token?: string | null
 }
 
 interface SuccessResponse<T> {
@@ -21,6 +22,7 @@ export async function request<T = unknown, R = unknown>({
   body,
   group = "api",
   suppressGlobalError = false,
+  token,
 }: RequestParams<T>): Promise<R> {
   let finalUrl = url
 
@@ -49,6 +51,7 @@ export async function request<T = unknown, R = unknown>({
     data: ["POST", "PUT", "PATCH"].includes(method) ? body : undefined,
     group,
     suppressGlobalError,
+    token,
   })
 
   return response.data.data

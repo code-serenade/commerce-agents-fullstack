@@ -2,8 +2,8 @@
 
 本文件记录 Agent 问答次数额度、用量统计和后台管理接口。历史文件名与部分前端目录仍保留 `team-usage`，但当前业务口径已经调整为：
 
-- `schoolName` 和 `teamName` 只作为账号注册资料与统计维度。
-- 默认 50 次问答额度按账号限制，唯一限流主体是 `app_users.user_id`。
+- `schoolName` 和 `teamName` 只作为账号注册资料、绑定状态与统计维度。
+- 默认问答额度按账号限制，唯一限流主体是 `app_users.user_id`；未绑定学校团队默认 100 次，绑定后默认 150 次。
 - 后台运营管理按账号查看和调整额度，同时展示学校、队伍用于筛选和统计。
 - `tokenUsed` 只作为运营统计信息，不参与限流。
 
@@ -35,9 +35,9 @@ Agent 问答限流由 `POST /api/sse/agent/session/stream` 在服务端入口强
   "displayName": "学生 01",
   "schoolName": "示例院校",
   "teamName": "第一小队",
-  "questionLimit": 50,
+  "questionLimit": 100,
   "questionUsed": 12,
-  "questionRemaining": 38,
+  "questionRemaining": 88,
   "tokenUsed": 3200,
   "status": "enabled",
   "remark": null,
@@ -166,11 +166,14 @@ Response `data`:
   "displayName": "学生 01",
   "schoolName": "示例院校",
   "teamName": "第一小队",
-  "questionLimit": 50,
-  "questionUsed": 12,
-  "questionRemaining": 38,
+  "isSchoolTeamBound": true,
+  "baseQuestionLimit": 100,
+  "schoolTeamBonusLimit": 50,
+  "questionLimit": 150,
+  "questionUsed": 52,
+  "questionRemaining": 98,
   "status": "enabled",
-  "policyText": "当前账号前 50 次 AI 问答可使用"
+  "policyText": "已绑定学校和团队，本账号共 150 次 AI 问答额度"
 }
 ```
 
@@ -183,11 +186,22 @@ Response `data`:
 | `displayName` | string | 当前账号展示名称 |
 | `schoolName` | string | 当前账号学校，统计维度 |
 | `teamName` | string | 当前账号队伍，统计维度 |
+| `isSchoolTeamBound` | boolean | 学校和团队是否均已填写 |
+| `baseQuestionLimit` | number | 未绑定学校团队时的系统默认额度，当前为 100 |
+| `schoolTeamBonusLimit` | number | 绑定学校团队后的系统加赠额度，当前为 50 |
 | `questionLimit` | number | 当前账号问答次数上限 |
 | `questionUsed` | number | 当前账号已用问答次数 |
 | `questionRemaining` | number | 当前账号剩余问答次数，最低为 0 |
 | `status` | string | `enabled` / `disabled` |
 | `policyText` | string | 用户端展示的次数额度说明 |
+
+补充说明：
+
+- 学校和团队均非空时视为绑定，系统默认额度为 150。
+- 学校或团队任一为空时视为未绑定，系统默认额度为 100。
+- 从未绑定补充为已绑定时，只提升总额度，不重置已用次数。
+- 如果用户清空学校或团队，且当前额度仍是系统默认 150，则回落到系统默认 100。
+- 后台手动设置的特殊额度不会被普通用户资料更新覆盖。
 
 ## 5. Agent Stream Quota Errors
 

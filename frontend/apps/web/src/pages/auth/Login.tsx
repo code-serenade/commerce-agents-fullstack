@@ -16,6 +16,7 @@ import {
 import { resetAccess, setAccess } from "@/store/accessSlice"
 import { loginSuccess, logout } from "@/store/authSlice"
 import { CommerceAgentLogo } from "@/components/brand"
+import { trackProductEvent } from "@/analytics/product-analytics"
 import { loginErrorCopyKey, type LoginStage } from "./login-error-copy"
 
 const authLinkClassName =
@@ -55,6 +56,10 @@ export default function LoginPage() {
 
   const handleLogin = async (values: AuthLoginSubmitValues) => {
     setLoginError(null)
+    trackProductEvent({
+      eventType: "login_click",
+      featureKey: "auth.login.submit",
+    })
     let loginStage: LoginStage = "credentials"
     try {
       const res = await loginApi(values)
@@ -76,6 +81,10 @@ export default function LoginPage() {
           permissionCodes: access.permissionCodes,
         })
       )
+      trackProductEvent({
+        eventType: "login_success",
+        featureKey: "auth.login.success",
+      })
 
       navigate(from, { replace: true })
     } catch (err) {

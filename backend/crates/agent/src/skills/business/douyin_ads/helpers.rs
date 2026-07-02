@@ -11,7 +11,7 @@ pub(super) fn deferred(skill: &str, reason: &str, required_fields: &[&str]) -> V
         "summary": reason,
         "skill": skill,
         "required_fields": required_fields,
-        "说明": "当前不会伪造巨量千川、抖音罗盘、直播间或广告后台实时数据；请补充本轮显式指标，或后续接入平台 adapter。"
+        "说明": "当前不会伪造平台、直播间或广告后台实时数据；请补充本轮显式指标，或后续接入平台 adapter。"
     })
 }
 

@@ -12,7 +12,7 @@ use crate::{
     entity::app_users,
     table::app_users::dto::{
         AppUser, AppUserFilter, AppUserMetrics, AppUserSortBy, AppUserStatus, CreateAppUser,
-        SortOrder, UpdateAppUser,
+        SortOrder, UpdateAppUser, UpdateAppUserProfile,
     },
 };
 
@@ -176,6 +176,17 @@ impl AppUserService {
             user_id: Unchanged(input.user_id),
             remark: Set(input.remark),
             status: Set(input.status.as_str().to_owned()),
+            ..Default::default()
+        };
+
+        Self::from_model(self.repo.update(model).await?)
+    }
+
+    pub async fn update_profile(&self, input: UpdateAppUserProfile) -> BizResult<AppUser> {
+        let model = app_users::ActiveModel {
+            user_id: Unchanged(input.user_id),
+            school_name: Set(input.school_name),
+            team_name: Set(input.team_name),
             ..Default::default()
         };
 

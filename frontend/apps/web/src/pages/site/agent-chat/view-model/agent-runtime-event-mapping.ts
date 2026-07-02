@@ -41,8 +41,12 @@ function runtimeRoleToNodeId(value: string) {
   if (rawWorkerId.includes("search")) return "search"
   if (rawWorkerId.includes("web") || rawWorkerId.includes("seo")) return "web"
   if (rawWorkerId.includes("account")) return "accounting"
-  if (rawWorkerId.includes("ads") || rawWorkerId.includes("douyin")) {
-    return "douyin_ads"
+  if (
+    rawWorkerId.includes("ads") ||
+    rawWorkerId.includes("douyin") ||
+    rawWorkerId.includes("qianchuan")
+  ) {
+    return "ops"
   }
   if (rawWorkerId.includes("creative")) return "creative"
   return "ops"

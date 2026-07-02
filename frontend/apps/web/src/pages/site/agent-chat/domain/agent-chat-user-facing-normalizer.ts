@@ -1,3 +1,5 @@
+import { normalizeLegacyProcessCopyLine } from "./agent-chat-legacy-process-copy"
+
 const NOTE_PREFIX = cjk(22791, 27880, 65306)
 const NOTE_ASCII_PREFIX = cjk(22791, 27880, 58)
 const EXPLANATION_PREFIX = cjk(35828, 26126, 65306)
@@ -54,6 +56,7 @@ export function normalizeUserFacingAnswer(content: string) {
   return content
     .split("\n")
     .map(cleanUserFacingLine)
+    .map(normalizeLegacyProcessCopyLine)
     .filter((line) => {
       const trimmedLine = line.trim()
       return line === "" || (Boolean(trimmedLine) && !isInternalNoiseLine(trimmedLine))
@@ -130,7 +133,6 @@ function isInternalRuntimeRoleLabel(label: string) {
     "design",
     "web",
     "search",
-    "douyin_ads",
   ].includes(normalized)
 }
 

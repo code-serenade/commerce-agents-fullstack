@@ -53,18 +53,18 @@ export const DEFAULT_AGENT_RUNTIME_OPTIONS: AgentRuntimeOptions = {
       runtimeRole: "ops",
     },
     {
+      capabilities: ["search.evidence", "source.verification"],
+      id: "role-search",
+      isDefault: false,
+      name: runtimeCopyFallback,
+      runtimeRole: "search",
+    },
+    {
       capabilities: ["data.analysis", "metrics.diagnosis"],
       id: "role-data",
       isDefault: true,
       name: runtimeCopyFallback,
       runtimeRole: "data",
-    },
-    {
-      capabilities: ["creative.content", "creative.copywriting"],
-      id: "role-creative",
-      isDefault: true,
-      name: runtimeCopyFallback,
-      runtimeRole: "creative",
     },
     {
       capabilities: ["service.workflow", "service.sentiment"],
@@ -74,11 +74,18 @@ export const DEFAULT_AGENT_RUNTIME_OPTIONS: AgentRuntimeOptions = {
       runtimeRole: "service",
     },
     {
-      capabilities: ["ads.optimization", "roi.control"],
-      id: "role-douyin-ads",
+      capabilities: ["creative.content", "creative.copywriting"],
+      id: "role-creative",
+      isDefault: true,
+      name: runtimeCopyFallback,
+      runtimeRole: "creative",
+    },
+    {
+      capabilities: ["engineering.architecture", "engineering.reliability"],
+      id: "role-engineering",
       isDefault: false,
       name: runtimeCopyFallback,
-      runtimeRole: "douyin_ads",
+      runtimeRole: "engineering",
     },
     {
       capabilities: ["finance.profitability", "budget.planning"],
@@ -86,6 +93,20 @@ export const DEFAULT_AGENT_RUNTIME_OPTIONS: AgentRuntimeOptions = {
       isDefault: false,
       name: runtimeCopyFallback,
       runtimeRole: "accounting",
+    },
+    {
+      capabilities: ["design.visual", "design.layout"],
+      id: "role-design",
+      isDefault: false,
+      name: runtimeCopyFallback,
+      runtimeRole: "design",
+    },
+    {
+      capabilities: ["seo.optimization", "web.content"],
+      id: "role-web",
+      isDefault: false,
+      name: runtimeCopyFallback,
+      runtimeRole: "web",
     },
   ],
   routingModes: [

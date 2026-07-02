@@ -1,4 +1,5 @@
 import { resolveUrl, type UrlGroup } from "./url"
+import { RequestError } from "./errors/request-error"
 
 const DEFAULT_TIMEOUT = 10000
 const REFRESH_TIMEOUT = 10000
@@ -6,6 +7,7 @@ const REFRESH_TIMEOUT = 10000
 interface FetchOptions extends RequestInit {
   data?: unknown
   timeout?: number
+  token?: string | null
   url: string
   method: string
   group?: UrlGroup
@@ -22,6 +24,7 @@ class HttpError extends Error {
 }
 
 type HttpClientErrorHandler = (error: unknown) => void
+type TokenRefreshResult = "refreshed" | "invalid" | "unavailable"
 
 let globalHttpClientErrorHandler: HttpClientErrorHandler | null = null
 
@@ -37,17 +40,36 @@ const httpClient = {
     method,
     data,
     timeout = DEFAULT_TIMEOUT,
+    token,
     group = "api",
     suppressGlobalError = false,
   }: FetchOptions): Promise<{ data: T }> {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), timeout)
+    const hasExplicitToken = token !== undefined
 
     try {
-      let res = await makeRequest({ url, method, data, controller, group })
+      let res = await makeRequest({
+        url,
+        method,
+        data,
+        controller,
+        token,
+        group,
+      })
 
-      if (res.status === 401 && (await tryRefreshToken())) {
-        res = await makeRequest({ url, method, data, controller, group })
+      if (res.status === 401 && !hasExplicitToken) {
+        const refreshResult = await tryRefreshToken()
+        if (refreshResult === "refreshed") {
+          res = await makeRequest({ url, method, data, controller, group })
+        } else if (refreshResult === "invalid") {
+          redirectToLogin("Refresh token invalid")
+        } else {
+          throw new HttpError("Token refresh service unavailable", {
+            data: { message: "Token refresh service unavailable" },
+            status: 503,
+          })
+        }
       }
 
       clearTimeout(timer)
@@ -63,10 +85,11 @@ const httpClient = {
       return { data: json }
     } catch (err) {
       clearTimeout(timer)
-      if (!isAbortError(err) && !suppressGlobalError) {
-        globalHttpClientErrorHandler?.(err)
+      const error = isAbortError(err) ? createRequestTimeoutError(err) : err
+      if (!suppressGlobalError) {
+        globalHttpClientErrorHandler?.(error)
       }
-      throw err
+      throw error
     }
   },
 
@@ -150,6 +173,13 @@ function isAbortError(error: unknown) {
   return error instanceof DOMException && error.name === "AbortError"
 }
 
+function createRequestTimeoutError(cause: unknown) {
+  return new RequestError("Request timed out", {
+    kind: "network",
+    cause,
+  })
+}
+
 function readHttpErrorMessage(data: unknown): string | null {
   if (!data || typeof data !== "object") return null
   const message = (data as { message?: unknown }).message
@@ -189,15 +219,17 @@ async function makeRequest({
   method,
   data,
   controller,
+  token,
   group = "api",
 }: {
   url: string
   method: string
   data?: unknown
   controller: AbortController
+  token?: string | null
   group?: UrlGroup
 }): Promise<Response> {
-  const token = localStorage.getItem("token")
+  const authToken = token === undefined ? localStorage.getItem("token") : token
 
   const finalUrl = resolveUrl(url, group)
   const isBlobBody = data instanceof Blob
@@ -206,7 +238,7 @@ async function makeRequest({
     method,
     headers: {
       ...(isBlobBody ? {} : { "Content-Type": "application/json" }),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
     },
     body:
       method === "GET" || method === "DELETE"
@@ -218,11 +250,10 @@ async function makeRequest({
   })
 }
 
-async function tryRefreshToken(): Promise<boolean> {
+async function tryRefreshToken(): Promise<TokenRefreshResult> {
   const refresh = localStorage.getItem("refreshToken")
   if (!refresh) {
-    redirectToLogin("No refresh token")
-    return false
+    return "invalid"
   }
 
   const finalUrl = resolveUrl("/auth/session/refresh_token", "auth")
@@ -243,8 +274,11 @@ async function tryRefreshToken(): Promise<boolean> {
         newTokenData.data?.accessToken ?? newTokenData.data?.access_token
       if (token) {
         localStorage.setItem("token", token)
-        return true
+        return "refreshed"
       }
+    }
+    if (isInvalidRefreshTokenStatus(res.status)) {
+      return "invalid"
     }
   } catch (error) {
     if (!isAbortError(error)) {
@@ -254,8 +288,7 @@ async function tryRefreshToken(): Promise<boolean> {
     clearTimeout(timer)
   }
 
-  redirectToLogin("Refresh token expired")
-  return false
+  return "unavailable"
 }
 
 function redirectToLogin(reason: string) {
@@ -263,6 +296,10 @@ function redirectToLogin(reason: string) {
   localStorage.removeItem("token")
   localStorage.removeItem("refreshToken")
   window.location.href = "/login"
+}
+
+function isInvalidRefreshTokenStatus(status: number) {
+  return status === 400 || status === 401 || status === 403
 }
 
 async function safeJson(res: Response): Promise<any> {

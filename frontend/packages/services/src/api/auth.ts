@@ -115,23 +115,12 @@ function isResolvedAvatarUrl(value: string): boolean {
 export const getAuthUserProfileApi = async (
   accessToken: string
 ): Promise<MeResponse> => {
-  const response = await fetch("/auth/user/me", {
+  return request<undefined, MeResponse>({
     method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-    },
+    url: "/auth/user/me",
+    group: "auth",
+    token: accessToken,
   })
-
-  const json = (await response.json().catch(() => ({}))) as {
-    data?: MeResponse
-  }
-
-  if (!response.ok || !json.data) {
-    throw new Error("failed to fetch auth user profile")
-  }
-
-  return json.data
 }
 
 interface UpdateProfileRequestBody {

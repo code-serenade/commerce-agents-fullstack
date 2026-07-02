@@ -17,10 +17,10 @@
       "runtime_role": "ops",
       "priority": 10,
       "domains": ["domain.general", "domain.ecommerce", "domain.education"],
-      "keywords": ["运营", "增长", "策略", "活动", "推广", "转化", "复盘", "营销", "获客", "拉新", "促活", "留存", "复购", "选品", "供应链", "履约", "库存", "商品", "产品", "商品规划", "类目", "开卖", "怎么卖", "优先级", "平台运营"],
+      "keywords": ["运营", "增长", "策略", "活动", "推广", "转化", "复盘", "营销", "获客", "拉新", "促活", "留存", "复购", "选品", "供应链", "履约", "库存", "商品", "产品", "商品规划", "类目", "开卖", "怎么卖", "优先级", "平台运营", "广告投放", "平台投放", "投流", "投放", "ROAS", "CPC", "CPA", "计划", "人群包", "短视频引流", "直播间转化", "直播投放", "素材消耗", "预算消耗"],
       "preferred_actions": ["plan", "optimize", "execute"],
       "required_capabilities": ["ops.strategy", "campaign.orchestration"],
-      "optional_capabilities": ["data.analysis", "creative.content", "service.workflow"]
+      "optional_capabilities": ["data.analysis", "creative.content", "service.workflow", "ads.optimization", "roi.control", "audience.segmentation", "campaign.pacing"]
     },
     {
       "id": "role.search-evidence",
@@ -109,17 +109,6 @@
       "preferred_actions": ["analyze", "optimize", "create"],
       "required_capabilities": ["seo.optimization", "web.content"],
       "optional_capabilities": ["creative.copywriting", "data.analysis"]
-    },
-    {
-      "id": "role.douyin-ads",
-      "name": "千川投放专员",
-      "runtime_role": "douyin_ads",
-      "priority": 25,
-      "domains": ["domain.ecommerce"],
-      "keywords": ["千川", "投流", "投放", "巨量千川", "ROI", "ROAS", "CPC", "CPA", "计划", "人群包", "短视频引流", "直播间转化", "直播投放", "素材消耗", "预算消耗"],
-      "preferred_actions": ["analyze", "optimize", "execute"],
-      "required_capabilities": ["ads.optimization", "roi.control", "audience.segmentation", "campaign.pacing"],
-      "optional_capabilities": ["data.analysis", "creative.content", "budget.planning", "conversion.optimization"]
     }
   ]
 }

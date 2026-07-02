@@ -1,10 +1,6 @@
-import { Bot, UserRound } from "lucide-react"
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react"
-import { useTranslation } from "react-i18next"
 import type { AgentRuntimeEvent } from "@/api"
 import type { AgentChatMessage } from "../types"
-import { MessageContextSummary } from "./message-context-summary"
-import { AssistantAnswer } from "./assistant-answer"
 import { AgentChatThreadTurn } from "./agent-chat-thread-turn"
 import {
   createThreadScrollSnapshot,
@@ -12,17 +8,9 @@ import {
   type ThreadScrollSnapshot,
 } from "../view-model/thread-scroll-preservation"
 import { findPreviousUserContent } from "../view-model/agent-process-visibility-view-model"
-import {
-  AgentProgressCard,
-  AgentStoppedCard,
-  AgentErrorActions,
-  StrategyStatusPill,
-  MessageActions,
-  StudentNextActions,
-  WelcomeCard,
-} from "./thread-message-blocks"
+import { AgentChatThreadMessage } from "./agent-chat-thread-message"
+import { StrategyStatusPill } from "./thread-message-blocks"
 import type { AgentChatStrategy } from "../domain/agent-chat-strategy"
-import { shouldShowStudentNextActions } from "../view-model/student-next-actions-view-model"
 
 export interface AgentChatThreadProps {
   activeProcessMessageId: string | null
@@ -82,13 +70,23 @@ export function AgentChatThread({
     })
   }, [])
 
+  const scrollToStart = useCallback(() => {
+    ignoreScrollUntilRef.current = Date.now() + 350
+    requestAnimationFrame(() => {
+      scrollRootRef.current?.scrollTo({ behavior: "auto", top: 0 })
+    })
+  }, [])
+
   useEffect(() => {
     if (messageIdentityKey === previousMessageIdentityRef.current) return
     previousMessageIdentityRef.current = messageIdentityKey
-    if (hasOnlyWelcomeMessage) return
+    if (hasOnlyWelcomeMessage) {
+      scrollToStart()
+      return
+    }
     followStreamingRef.current = true
     scrollToEnd("auto")
-  }, [hasOnlyWelcomeMessage, messageIdentityKey, scrollToEnd])
+  }, [hasOnlyWelcomeMessage, messageIdentityKey, scrollToEnd, scrollToStart])
 
   useEffect(() => {
     if (hasOnlyWelcomeMessage) return
@@ -159,10 +157,11 @@ export function AgentChatThread({
             onCloseProcessPanel={handleCloseProcessPanel}
             onOpenProcessPanel={handleOpenProcessPanel}
             renderMessage={(targetMessage) => (
-              <ThreadMessage
+              <AgentChatThreadMessage
                 errorRetryPrompt={findPreviousUserContent(messages, index)}
                 message={targetMessage}
                 onExamplePromptSelect={onExamplePromptSelect}
+                previousUserContent={findPreviousUserContent(messages, index)}
               />
             )}
             runtimeEvents={runtimeEvents}
@@ -172,83 +171,6 @@ export function AgentChatThread({
         <div ref={endRef} />
       </div>
     </section>
-  )
-}
-
-function ThreadMessage({
-  errorRetryPrompt,
-  message,
-  onExamplePromptSelect,
-}: {
-  errorRetryPrompt?: string
-  message: AgentChatMessage
-  onExamplePromptSelect?: (prompt: string) => void
-}) {
-  const { t } = useTranslation()
-  const isUser = message.role === "user"
-  const isWelcome = message.id === "welcome" && !isUser
-
-  return (
-    <article className={`flex gap-3 ${isUser ? "justify-end" : "justify-start"}`}>
-      {!isUser ? (
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-card text-foreground">
-          <Bot className="size-5" />
-        </div>
-      ) : null}
-      <div className="flex max-w-[min(43rem,88%)] min-w-0 flex-col items-end">
-        <div
-          className={`min-w-0 text-sm/6 ${
-            isUser
-              ? "rounded-2xl bg-foreground px-4 py-3 text-background"
-              : "text-foreground"
-          }`}
-        >
-          {isWelcome ? (
-            <WelcomeCard
-              content={message.content}
-              onSelectExamplePrompt={onExamplePromptSelect}
-            />
-          ) : message.content && isUser ? (
-            <p className="wrap-break-word whitespace-pre-wrap">
-              {message.content}
-            </p>
-          ) : message.content ? (
-            <AssistantAnswer content={message.content} />
-          ) : (
-            <p className="text-muted-foreground">
-              {t("agentChat.streaming")}
-            </p>
-          )}
-          {message.status === "streaming" && !message.content ? (
-            <AgentProgressCard content={message.content} />
-          ) : null}
-          {message.status === "stopped" ? <AgentStoppedCard /> : null}
-          {message.status === "error" ? (
-            <AgentErrorActions
-              fallbackPrompt={errorRetryPrompt}
-              onSelectPrompt={onExamplePromptSelect}
-            />
-          ) : null}
-          {!isUser && message.content && !isWelcome ? (
-            <MessageActions content={message.content} />
-          ) : null}
-          {shouldShowStudentNextActions(message) ? (
-            <StudentNextActions
-              message={message}
-              onSelectPrompt={onExamplePromptSelect}
-            />
-          ) : null}
-        </div>
-        {isUser ? (
-          <MessageContextSummary summary={message.contextSummary} />
-        ) : null}
-      </div>
-      {isUser ? (
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-card text-muted-foreground">
-          <UserRound className="size-5" />
-        </div>
-      ) : null}
-    </article>
   )
 }
 

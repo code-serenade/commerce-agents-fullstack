@@ -6,12 +6,17 @@ use db_core::{
 };
 use error_code::{admin as admin_error, app as app_error};
 use repo::table::{
+    account_usage_quotas::{
+        AccountUsageQuota, AccountUsageQuotaService, AccountUsageQuotaStatus,
+        CreateAccountUsageQuota, UpdateAccountUsageQuota,
+    },
     app_permissions::{Permission, PermissionService},
     app_role_permissions::{CreateRolePermission, RolePermissionService},
     app_roles::{CreateRole, Role, RoleService},
     app_user_roles::{CreateUserRole, UserRoleService},
     app_users::{
         AppUser, AppUserFilter, AppUserService, AppUserStatus, CreateAppUser, UpdateAppUser,
+        UpdateAppUserProfile,
     },
 };
 use time::{OffsetDateTime, format_description::well_known::Rfc3339};
@@ -21,15 +26,18 @@ use crate::{
     api::admin::AdminApi,
     dto::app::{
         AppUserMetricsResponse, AppUserResponse, AppUserSortBy, CreateRoleRequest,
-        CurrentUserPermissionsResponse, ListAppUsersRequest, PermissionTreeNode,
-        RegisterAppUserRequest, RolePermissionTreeNode, RoleResponse, SortOrder,
-        UpdateAppUserRequest, UpdateRolePermissionsRequest, UpdateUserRolesRequest,
-        UserRoleOptionResponse,
+        CurrentAppUserProfileResponse, CurrentUserPermissionsResponse, ListAppUsersRequest,
+        PermissionTreeNode, RegisterAppUserRequest, RolePermissionTreeNode, RoleResponse,
+        SortOrder, UpdateAppUserRequest, UpdateCurrentAppUserProfileRequest,
+        UpdateRolePermissionsRequest, UpdateUserRolesRequest, UserRoleOptionResponse,
     },
 };
 
 const DEFAULT_APP_ROLE_NAME: &str = "免费";
 const DEFAULT_APP_ROLE_CODE: &str = "free";
+const LEGACY_QUESTION_LIMIT: i32 = 50;
+const UNBOUND_QUESTION_LIMIT: i32 = 100;
+const BOUND_QUESTION_LIMIT: i32 = 150;
 const PERM_APP_USERS: &str = "accounts:app_users";
 const PERM_APP_ROLES: &str = "access_control:app_roles";
 const PERM_APP_ROLE_PERMISSIONS: &str = "access_control:app_role_permissions";
@@ -42,6 +50,7 @@ pub struct AppApi {
     permission_svc: PermissionService,
     user_role_svc: UserRoleService,
     role_permission_svc: RolePermissionService,
+    quota_svc: AccountUsageQuotaService,
 }
 
 impl AppApi {
@@ -53,7 +62,8 @@ impl AppApi {
             role_svc: RoleService::new(db.clone()),
             permission_svc: PermissionService::new(db.clone()),
             user_role_svc: UserRoleService::new(db.clone()),
-            role_permission_svc: RolePermissionService::new(db),
+            role_permission_svc: RolePermissionService::new(db.clone()),
+            quota_svc: AccountUsageQuotaService::new(db),
         }
     }
 
@@ -185,6 +195,30 @@ impl AppApi {
         let roles = self.list_roles_by_user_id(user_id).await?;
 
         Ok(Self::map_app_user(app_user, roles))
+    }
+
+    pub async fn get_current_app_user_profile(
+        &self,
+        user_id: String,
+    ) -> BizResult<CurrentAppUserProfileResponse> {
+        let user_id = parse_user_id(&user_id)?;
+        let app_user = self.ensure_app_user_enabled_by_uuid(user_id).await?;
+
+        Ok(Self::map_current_app_user_profile(app_user))
+    }
+
+    pub async fn update_current_app_user_profile(
+        &self,
+        req: UpdateCurrentAppUserProfileRequest,
+    ) -> BizResult<CurrentAppUserProfileResponse> {
+        let user_id = parse_user_id(&req.user_id)?;
+        let tx = self.db.begin().await?;
+        let result = AppApi::new(tx.clone())
+            .update_current_app_user_profile_in_tx(user_id, req)
+            .await;
+        let app_user = commit_or_rollback(tx, result).await?;
+
+        Ok(Self::map_current_app_user_profile(app_user))
     }
 
     pub async fn delete_app_user(
@@ -427,13 +461,7 @@ impl AppApi {
 
     async fn ensure_app_user(&self, user_id: &str) -> BizResult<AppAccess> {
         let parsed_user_id = parse_user_id(user_id)?;
-        let app_user = self.ensure_app_user_exists(parsed_user_id).await?;
-        if app_user.status != AppUserStatus::Enabled {
-            return Err(BizError::new(
-                app_error::APP_USER_DISABLED,
-                format!("app user is disabled: {user_id}"),
-            ));
-        }
+        self.ensure_app_user_enabled_by_uuid(parsed_user_id).await?;
 
         let user_roles = self.user_role_svc.list_by_user_id(parsed_user_id).await?;
         let role_ids: Vec<i64> = user_roles.into_iter().map(|item| item.role_id).collect();
@@ -513,8 +541,8 @@ impl AppApi {
                     user_id,
                     display_id: req.display_id,
                     display_name: req.display_name,
-                    school_name: normalize_optional_string(Some(req.school_name)),
-                    team_name: normalize_optional_string(Some(req.team_name)),
+                    school_name: normalize_optional_string(req.school_name),
+                    team_name: normalize_optional_string(req.team_name),
                     remark: req.remark,
                     status: AppUserStatus::Enabled,
                 })
@@ -536,6 +564,62 @@ impl AppApi {
         Ok(app_user)
     }
 
+    async fn update_current_app_user_profile_in_tx(
+        &self,
+        user_id: Uuid,
+        req: UpdateCurrentAppUserProfileRequest,
+    ) -> BizResult<AppUser> {
+        self.ensure_app_user_enabled_by_uuid(user_id).await?;
+        let app_user = self
+            .app_user_svc
+            .update_profile(UpdateAppUserProfile {
+                user_id,
+                school_name: normalize_optional_string(req.school_name),
+                team_name: normalize_optional_string(req.team_name),
+            })
+            .await?;
+
+        self.sync_default_quota_for_app_user(&app_user).await?;
+
+        Ok(app_user)
+    }
+
+    async fn sync_default_quota_for_app_user(
+        &self,
+        app_user: &AppUser,
+    ) -> BizResult<AccountUsageQuota> {
+        let target_limit = default_question_limit_for_app_user(app_user);
+        let Some(quota) = self.quota_svc.get_by_user_id(app_user.user_id).await? else {
+            return self
+                .quota_svc
+                .create(CreateAccountUsageQuota {
+                    id: Uuid::new_v4(),
+                    user_id: app_user.user_id,
+                    question_limit: target_limit,
+                    status: AccountUsageQuotaStatus::Enabled,
+                    remark: None,
+                })
+                .await;
+        };
+
+        if quota.question_limit == target_limit {
+            return Ok(quota);
+        }
+
+        if !is_system_managed_quota(&quota) {
+            return Ok(quota);
+        }
+
+        self.quota_svc
+            .update(UpdateAccountUsageQuota {
+                id: quota.id,
+                question_limit: target_limit,
+                status: quota.status,
+                remark: quota.remark,
+            })
+            .await
+    }
+
     async fn ensure_app_user_exists(&self, user_id: Uuid) -> BizResult<AppUser> {
         self.app_user_svc
             .get_by_user_id(user_id)
@@ -546,6 +630,18 @@ impl AppApi {
                     format!("app user not found: {user_id}"),
                 )
             })
+    }
+
+    async fn ensure_app_user_enabled_by_uuid(&self, user_id: Uuid) -> BizResult<AppUser> {
+        let app_user = self.ensure_app_user_exists(user_id).await?;
+        if app_user.status != AppUserStatus::Enabled {
+            return Err(BizError::new(
+                app_error::APP_USER_DISABLED,
+                format!("app user is disabled: {user_id}"),
+            ));
+        }
+
+        Ok(app_user)
     }
 
     async fn ensure_role_exists(&self, role_id: i64) -> BizResult<Role> {
@@ -709,6 +805,22 @@ impl AppApi {
             roles,
         }
     }
+
+    fn map_current_app_user_profile(app_user: AppUser) -> CurrentAppUserProfileResponse {
+        let is_school_team_bound = is_school_team_bound(
+            app_user.school_name.as_deref(),
+            app_user.team_name.as_deref(),
+        );
+
+        CurrentAppUserProfileResponse {
+            user_id: app_user.user_id.to_string(),
+            display_id: app_user.display_id,
+            display_name: app_user.display_name,
+            school_name: app_user.school_name,
+            team_name: app_user.team_name,
+            is_school_team_bound,
+        }
+    }
 }
 
 fn parse_user_id(user_id: &str) -> BizResult<Uuid> {
@@ -720,6 +832,35 @@ fn normalize_optional_string(value: Option<String>) -> Option<String> {
     value
         .map(|value| value.trim().to_owned())
         .filter(|value| !value.is_empty())
+}
+
+fn is_school_team_bound(school_name: Option<&str>, team_name: Option<&str>) -> bool {
+    normalize_optional_string(school_name.map(ToOwned::to_owned)).is_some()
+        && normalize_optional_string(team_name.map(ToOwned::to_owned)).is_some()
+}
+
+fn default_question_limit_for_app_user(app_user: &AppUser) -> i32 {
+    if is_school_team_bound(
+        app_user.school_name.as_deref(),
+        app_user.team_name.as_deref(),
+    ) {
+        BOUND_QUESTION_LIMIT
+    } else {
+        UNBOUND_QUESTION_LIMIT
+    }
+}
+
+fn is_system_managed_quota(quota: &AccountUsageQuota) -> bool {
+    quota
+        .remark
+        .as_deref()
+        .unwrap_or_default()
+        .trim()
+        .is_empty()
+        && matches!(
+            quota.question_limit,
+            LEGACY_QUESTION_LIMIT | UNBOUND_QUESTION_LIMIT | BOUND_QUESTION_LIMIT
+        )
 }
 
 fn parse_optional_rfc3339(value: Option<String>) -> BizResult<Option<OffsetDateTime>> {

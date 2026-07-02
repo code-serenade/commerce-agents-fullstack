@@ -21,6 +21,57 @@ const WORKER_UNAVAILABLE_MARKERS = [
   "no worker",
 ]
 
+const EXTERNAL_INTERFACE_NOT_CONNECTED = cjk(
+  22806,
+  37096,
+  25509,
+  21475,
+  26410,
+  25509,
+  20837
+)
+const EXTERNAL_DATA_NOT_CONNECTED = cjk(
+  22806,
+  37096,
+  25968,
+  25454,
+  26410,
+  25509,
+  20837
+)
+const EXTERNAL_DATA_UNAVAILABLE = cjk(
+  22806,
+  37096,
+  25968,
+  25454,
+  26242,
+  19981,
+  21487,
+  29992
+)
+const COLLABORATION_STEP_TIMED_OUT = cjk(
+  21327,
+  20316,
+  27493,
+  39588,
+  25191,
+  34892,
+  36229,
+  26102
+)
+const STEP_TIMED_OUT = cjk(27493, 39588, 25191, 34892, 36229, 26102)
+const PROCESS_TIMED_OUT = cjk(22788, 29702, 36229, 26102)
+
+const EXTERNAL_DATA_UNAVAILABLE_MARKERS = [
+  "external data unavailable",
+  "external data not connected",
+  "external api unavailable",
+  "external service unavailable",
+  EXTERNAL_INTERFACE_NOT_CONNECTED,
+  EXTERNAL_DATA_NOT_CONNECTED,
+  EXTERNAL_DATA_UNAVAILABLE,
+]
+
 const COLLABORATION_INCOMPLETE_MARKERS = [
   "adapter",
   "accounting role output lacks",
@@ -66,6 +117,9 @@ const COLLABORATION_INCOMPLETE_MARKERS = [
 const TIMEOUT_MARKERS = [
   "timed out",
   "timeout",
+  COLLABORATION_STEP_TIMED_OUT,
+  STEP_TIMED_OUT,
+  PROCESS_TIMED_OUT,
 ]
 
 export function formatUserFacingRuntimeReason(
@@ -88,6 +142,9 @@ export function formatUserFacingRuntimeReason(
   if (containsAny(lower, TIMEOUT_MARKERS)) {
     return t("agentChat.swarm.runtimeReasons.timedOut")
   }
+  if (containsAny(lower, EXTERNAL_DATA_UNAVAILABLE_MARKERS)) {
+    return t("agentChat.swarm.runtimeReasons.externalDataUnavailable")
+  }
   if (isInternalRuntimeReason(text)) {
     return t("agentChat.swarm.runtimeReasons.collaborationIncomplete")
   }
@@ -103,10 +160,16 @@ export function isInternalRuntimeReason(value: string) {
     ...MODEL_UNAVAILABLE_MARKERS,
     ...MODEL_CONFIG_MARKERS,
     ...WORKER_UNAVAILABLE_MARKERS,
+    ...EXTERNAL_DATA_UNAVAILABLE_MARKERS,
     ...COLLABORATION_INCOMPLETE_MARKERS,
+    ...TIMEOUT_MARKERS,
   ])
 }
 
 function containsAny(value: string, markers: string[]) {
   return markers.some((marker) => value.includes(marker))
+}
+
+function cjk(...codes: number[]) {
+  return String.fromCodePoint(...codes)
 }

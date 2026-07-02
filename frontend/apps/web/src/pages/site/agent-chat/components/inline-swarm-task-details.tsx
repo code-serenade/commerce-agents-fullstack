@@ -35,7 +35,10 @@ export function InlineProgressSummary({
   const { t } = useTranslation()
 
   return (
-    <div className="rounded-md border border-border bg-background px-3 py-2">
+    <div
+      className="rounded-md border border-border bg-background px-3 py-2"
+      data-agent-process-progress="true"
+    >
       <div className="flex min-w-0 items-center gap-2 text-xs">
         <CheckCircle2
           className={`size-4 shrink-0 text-emerald-600 ${
@@ -66,6 +69,8 @@ export function InlineProgressSummary({
 }
 
 export function InlineStepStrip({ steps }: { steps: string[][] }) {
+  const { t } = useTranslation()
+
   return (
     <div className="flex min-w-0 flex-wrap gap-1.5">
       {steps.map(([label, detail], index) => {
@@ -75,7 +80,7 @@ export function InlineStepStrip({ steps }: { steps: string[][] }) {
             className="flex min-w-0 max-w-full items-center gap-2 rounded-md border border-border bg-card px-2.5 py-1.5"
           >
             <span className="shrink-0 font-mono text-[11px] font-semibold text-muted-foreground">
-              {String(index + 1).padStart(2, "0")}
+              {t("agentChat.thread.steps.stepNumber", { index: index + 1 })}
             </span>
             <p className="truncate text-xs font-medium">{label}</p>
             <span className="hidden min-w-0 truncate text-xs text-muted-foreground sm:inline">

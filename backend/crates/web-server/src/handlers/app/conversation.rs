@@ -845,6 +845,7 @@ fn preview_format_workspace_context_source(
 }
 
 #[cfg(test)]
+#[allow(clippy::items_after_test_module)]
 mod context_preview_tests {
     use super::*;
     use service::dto::workspace::{

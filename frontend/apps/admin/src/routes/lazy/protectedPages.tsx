@@ -12,6 +12,9 @@ export const AppRolesPage = lazy(
 export const AppUsersPage = lazy(
   () => import("@/pages/protected/accounts/app-users")
 )
+export const AccessAnalyticsPage = lazy(
+  () => import("@/pages/protected/analytics/access-analytics")
+)
 export const DashboardPage = lazy(() => import("@/pages/protected/dashboard"))
 export const ProfilePage = lazy(() =>
   import("@/pages/protected/shared-pages").then((module) => ({

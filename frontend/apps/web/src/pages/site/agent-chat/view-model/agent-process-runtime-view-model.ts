@@ -147,8 +147,12 @@ export function normalizeRuntimeRole(role: string) {
   const normalized = role.trim().toLowerCase()
   if (!normalized) return "chat"
   if (normalized.includes("chat")) return "chat"
-  if (normalized.includes("douyin") || normalized.includes("ads")) {
-    return "douyin_ads"
+  if (
+    normalized.includes("douyin") ||
+    normalized.includes("qianchuan") ||
+    normalized.includes("ads")
+  ) {
+    return "ops"
   }
   if (normalized.includes("account")) return "accounting"
   if (normalized.includes("creative")) return "creative"

@@ -73,7 +73,6 @@
         "service": true,
         "engineering": true,
         "accounting": true,
-        "douyin_ads": true,
         "web": true,
         "search": true
       },
@@ -85,7 +84,6 @@
         "service": ["search"],
         "engineering": ["search"],
         "accounting": ["search"],
-        "douyin_ads": ["search"],
         "web": ["search"]
       }
     }

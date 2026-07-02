@@ -11,16 +11,18 @@ pub struct Model {
     #[sea_orm(unique)]
     pub display_id: String,
     pub display_name: String,
-    pub school_name: Option<String>,
-    pub team_name: Option<String>,
     pub remark: Option<String>,
     pub status: String,
     pub created_at: TimeDateTimeWithTimeZone,
     pub updated_at: TimeDateTimeWithTimeZone,
+    pub school_name: Option<String>,
+    pub team_name: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(has_one = "super::account_usage_quotas::Entity")]
+    AccountUsageQuotas,
     #[sea_orm(has_many = "super::agent_learning_records::Entity")]
     AgentLearningRecords,
     #[sea_orm(has_many = "super::agent_memories::Entity")]
@@ -31,6 +33,8 @@ pub enum Relation {
     AgentSkillRuns,
     #[sea_orm(has_many = "super::agent_trust_scores::Entity")]
     AgentTrustScores,
+    #[sea_orm(has_many = "super::agent_usage_events::Entity")]
+    AgentUsageEvents,
     #[sea_orm(has_many = "super::alerts::Entity")]
     Alerts,
     #[sea_orm(has_many = "super::app_user_roles::Entity")]
@@ -85,6 +89,12 @@ pub enum Relation {
     Workspaces,
 }
 
+impl Related<super::account_usage_quotas::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::AccountUsageQuotas.def()
+    }
+}
+
 impl Related<super::agent_learning_records::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::AgentLearningRecords.def()
@@ -112,6 +122,12 @@ impl Related<super::agent_skill_runs::Entity> for Entity {
 impl Related<super::agent_trust_scores::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::AgentTrustScores.def()
+    }
+}
+
+impl Related<super::agent_usage_events::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::AgentUsageEvents.def()
     }
 }
 

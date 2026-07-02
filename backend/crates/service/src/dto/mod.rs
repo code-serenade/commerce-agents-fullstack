@@ -1,5 +1,6 @@
 pub mod admin;
 pub mod agent_context;
+pub mod analytics;
 pub mod app;
 pub mod approval_audit;
 pub mod briefing_ops;

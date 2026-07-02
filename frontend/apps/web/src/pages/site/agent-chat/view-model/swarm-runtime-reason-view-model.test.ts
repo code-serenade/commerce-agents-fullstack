@@ -25,6 +25,17 @@ const collaborationIncomplete = textFromCodes([
   21327, 20316, 27493, 39588, 27809, 26377, 24418, 25104, 21487, 29992,
   32467, 26524, 12290,
 ])
+const externalDataUnavailable = textFromCodes([
+  22806, 37096, 25968, 25454, 26242, 19981, 21487, 29992, 65292, 24050,
+  20808, 25353, 24050, 26377, 36164, 26009, 25972, 29702, 21487, 29992,
+  32467, 35770, 12290,
+])
+const rawCollaborationTimedOut = textFromCodes([
+  21327, 20316, 27493, 39588, 25191, 34892, 36229, 26102,
+])
+const rawExternalInterfaceNotConnected = textFromCodes([
+  22806, 37096, 25509, 21475, 26410, 25509, 20837,
+])
 const modelUnavailableShort = textFromCodes([
   27169, 22411, 26381, 21153, 20020, 26102, 19981, 21487, 29992,
 ])
@@ -36,6 +47,8 @@ const t = ((key: string) => {
       modelConfigUnavailable,
     "agentChat.swarm.runtimeReasons.workerUnavailable": workerUnavailable,
     "agentChat.swarm.runtimeReasons.timedOut": timedOut,
+    "agentChat.swarm.runtimeReasons.externalDataUnavailable":
+      externalDataUnavailable,
     "agentChat.swarm.runtimeReasons.collaborationIncomplete":
       collaborationIncomplete,
   }
@@ -102,6 +115,17 @@ describe("swarm runtime reason view model", () => {
     expect(formatted).not.toContain("coordination_create_task")
     expect(formatted).not.toContain("engineering")
     expect(isInternalRuntimeReason(reason)).toBe(true)
+  })
+
+  it("maps Chinese timeout and external-data reasons to user-facing copy", () => {
+    expect(formatUserFacingRuntimeReason(rawCollaborationTimedOut, t)).toBe(
+      timedOut
+    )
+    expect(
+      formatUserFacingRuntimeReason(rawExternalInterfaceNotConnected, t)
+    ).toBe(externalDataUnavailable)
+    expect(isInternalRuntimeReason(rawCollaborationTimedOut)).toBe(true)
+    expect(isInternalRuntimeReason(rawExternalInterfaceNotConnected)).toBe(true)
   })
 
   it("keeps already user-facing reasons", () => {

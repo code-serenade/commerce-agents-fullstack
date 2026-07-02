@@ -110,6 +110,7 @@ export function localizedRoleOption(
   role: AgentRuntimeRoleOption,
   t: (key: string) => string
 ): AgentRuntimeRoleOption {
+  const displayRuntimeRole = normalizeRoleLabelRuntimeRole(role.runtimeRole)
   return {
     ...role,
     capabilities: role.capabilities.map((capability) =>
@@ -121,10 +122,18 @@ export function localizedRoleOption(
     ),
     name: translateOrFallback(
       t,
-      `agentChat.composer.runtime.roleLabels.${role.runtimeRole}.name`,
+      `agentChat.composer.runtime.roleLabels.${displayRuntimeRole}.name`,
       role.name
     ),
   }
+}
+
+function normalizeRoleLabelRuntimeRole(runtimeRole: string) {
+  const normalized = runtimeRole.toLowerCase()
+  if (normalized.includes("douyin") || normalized.includes("qianchuan")) {
+    return "ops"
+  }
+  return runtimeRole
 }
 
 function translateOrFallback(

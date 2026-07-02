@@ -7765,28 +7765,28 @@ fn build_content_artifact_from_skill_output(
             "ops ABC-XYZ classification artifact generated",
         ),
         "douyin_ads_plan_structure" => (
-            "douyin_ads",
+            "ops",
             "douyin_ads_plan_structure",
-            "Douyin ads plan structure",
-            "Douyin ads plan structure artifact generated",
+            "Paid ads plan structure",
+            "Paid ads plan structure artifact generated",
         ),
         "douyin_ads_audience_package" => (
-            "douyin_ads",
+            "ops",
             "douyin_ads_audience_package",
-            "Douyin ads audience package",
-            "Douyin ads audience package artifact generated",
+            "Paid ads audience package",
+            "Paid ads audience package artifact generated",
         ),
         "douyin_ads_budget_pacing" => (
-            "douyin_ads",
+            "ops",
             "douyin_ads_budget_pacing",
-            "Douyin ads budget pacing",
-            "Douyin ads budget pacing artifact generated",
+            "Paid ads budget pacing",
+            "Paid ads budget pacing artifact generated",
         ),
         "douyin_ads_live_funnel_diagnosis" => (
-            "douyin_ads",
+            "ops",
             "douyin_ads_live_funnel_report",
-            "Douyin ads live funnel report",
-            "Douyin ads live funnel diagnosis artifact generated",
+            "Paid ads live funnel report",
+            "Paid ads live funnel diagnosis artifact generated",
         ),
         "web_seo_optimize" => (
             "web",
@@ -10160,27 +10160,27 @@ mod tests {
     }
 
     #[test]
-    fn content_artifact_builds_from_douyin_ads_skill_output() {
+    fn content_artifact_builds_from_ops_ads_judgment_skill_output() {
         let output = json!({
             "status": "success",
             "has_data": true,
             "adapter_status": "manual_input",
             "data_readiness": "user_provided",
-            "summary": "千川计划结构已生成",
+            "summary": "广告投放结构已生成",
             "计划结构": [
                 {"层级": "冷启动赛马", "建议预算": "¥6000.00"}
             ]
         });
 
         let draft = build_content_artifact_from_skill_output("douyin_ads_plan_structure", &output)
-            .expect("douyin ads output should be materializable");
+            .expect("ops ads judgment output should be materializable");
 
-        assert_eq!(draft.content_category, "douyin_ads");
+        assert_eq!(draft.content_category, "ops");
         assert_eq!(draft.artifact_type, "douyin_ads_plan_structure");
-        assert_eq!(draft.title, "Douyin ads plan structure");
+        assert_eq!(draft.title, "Paid ads plan structure");
         assert_eq!(draft.file_name, "douyin_ads_plan_structure.md");
-        assert!(draft.preview.contains("千川计划结构已生成"));
-        assert!(draft.content.contains("# Douyin ads plan structure"));
+        assert!(draft.preview.contains("广告投放结构已生成"));
+        assert!(draft.content.contains("# Paid ads plan structure"));
     }
 
     #[test]
@@ -10575,7 +10575,7 @@ mod tests {
     #[test]
     fn context_pack_search_evidence_falls_back_to_preview_when_json_invalid() {
         let mut artifact = test_artifact(WorkspaceArtifactDraft {
-            title: "Search evidence - invalid".into(),
+            title: "Search evidence - invalid",
             content: Some("{not json"),
             preview: Some("Query: fallback preview\nSources: 1"),
             format: "json",

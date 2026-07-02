@@ -31,13 +31,13 @@ describe("agent runtime option role limits", () => {
             "web",
           ],
         },
-        "ads"
+        "design"
       )
     ).toEqual({
       ...manualSelection,
-      primaryRole: "ads",
+      primaryRole: "design",
       selectedRoles: [
-        "ads",
+        "design",
         "ops",
         "data",
         "creative",
@@ -65,7 +65,7 @@ describe("agent runtime option role limits", () => {
             "web",
           ],
         },
-        "ads"
+        "design"
       )
     ).toEqual({
       ...manualSelection,
@@ -95,7 +95,7 @@ describe("agent runtime option role limits", () => {
           "accounting",
           "search",
           "web",
-          "ads",
+          "design",
         ],
       }).selectedRoles
     ).toEqual([

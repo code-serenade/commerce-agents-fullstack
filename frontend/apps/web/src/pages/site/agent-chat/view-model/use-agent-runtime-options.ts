@@ -7,6 +7,7 @@ import type {
 } from "../domain/agent-runtime-options"
 import {
   defaultRuntimeSelection,
+  normalizeRuntimeOptions,
   normalizeRuntimeSelection,
   restoreRuntimeSelection,
   setRuntimeCollaborationMode,
@@ -104,9 +105,10 @@ function loadAgentRuntimeOptions(
     .getRuntimeOptions()
     .then((options) => {
       if (isCancelled()) return
-      state.setRuntimeOptions(options)
+      const normalizedOptions = normalizeRuntimeOptions(options) ?? options
+      state.setRuntimeOptions(normalizedOptions)
       state.setRuntimeSelection((current) =>
-        normalizeRuntimeSelection(current, options)
+        normalizeRuntimeSelection(current, normalizedOptions)
       )
     })
     .catch(() => {

@@ -33,6 +33,20 @@ export interface RegisterAppUserRequest {
   remark?: string | null
 }
 
+export interface CurrentAppProfileResponse {
+  userId: string
+  displayId: string
+  displayName: string
+  schoolName?: string | null
+  teamName?: string | null
+  isSchoolTeamBound: boolean
+}
+
+export interface UpdateCurrentAppProfileRequest {
+  schoolName?: string | null
+  teamName?: string | null
+}
+
 export interface CurrentAppUserPermissionsResponse {
   userId: string
   roleCodes: string[]
@@ -47,12 +61,20 @@ export interface CurrentTeamUsageQuotaResponse {
   displayName: string
   schoolName: string
   teamName: string
+  isSchoolTeamBound: boolean
+  baseQuestionLimit: number
+  schoolTeamBonusLimit: number
   questionLimit: number
   questionUsed: number
   questionRemaining: number
   status: TeamUsageQuotaStatus
   policyText: string
 }
+
+export const currentTeamUsageQuotaQueryKey = [
+  "web",
+  "account-usage-quota",
+] as const
 
 export const registerAppUserApi = async (
   body: RegisterAppUserRequest
@@ -74,6 +96,26 @@ export const getCurrentAppUserPermissionsApi =
       suppressGlobalError: options?.suppressGlobalError,
     })
   }
+
+export const getCurrentAppProfileApi = async (options?: {
+  suppressGlobalError?: boolean
+}): Promise<CurrentAppProfileResponse> => {
+  return request<undefined, CurrentAppProfileResponse>({
+    method: "GET",
+    url: "/api/app/me/profile",
+    suppressGlobalError: options?.suppressGlobalError,
+  })
+}
+
+export const updateCurrentAppProfileApi = async (
+  body: UpdateCurrentAppProfileRequest
+): Promise<CurrentAppProfileResponse> => {
+  return request<UpdateCurrentAppProfileRequest, CurrentAppProfileResponse>({
+    method: "PATCH",
+    url: "/api/app/me/profile",
+    body,
+  })
+}
 
 export const getCurrentTeamUsageQuotaApi =
   async (options?: {

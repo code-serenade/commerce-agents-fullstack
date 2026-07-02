@@ -10,6 +10,9 @@ use crate::{
         report_has_llm_access_denied, report_has_llm_provider_error,
         sanitize_final_user_facing_text, user_facing_report_text,
     },
+    agent::product_judgment_answer::{
+        format_product_judgment_fallback, repair_product_judgment_answer,
+    },
     agent_session::{RoleMemorySummary, TaskGraphMemorySummary, WorkerDetail},
     core::protocol::{
         Evaluation, RoleWorkOutput, TaskGraph, TaskGraphHandoff, TaskGraphProcessGap,
@@ -288,42 +291,48 @@ impl TaskGraphRuntime {
     }
 
     pub fn synthesize(&self) -> String {
-        if let Some(message) = self.llm_access_denied_message() {
-            return message;
-        }
-        if let Some(message) = self.llm_provider_error_message() {
-            return message;
-        }
-        if self.response_mode.as_deref() != Some("quick") && self.graph.nodes.len() > 1 {
-            return self.learning_synthesis();
-        }
-        if let Some(final_output) = self.final_node_output() {
-            return final_output;
-        }
-
-        let mut sections = Vec::new();
-
-        for node in &self.graph.nodes {
-            if !matches!(
-                self.states.get(&node.id),
-                Some(TaskNodeRuntimeState::Passed)
-            ) {
-                continue;
-            }
-            let Some(report) = self.reports.get(&node.id) else {
-                continue;
-            };
-            if let Some(summary) = user_facing_report_text(report) {
-                sections.push(summary);
-            }
-        }
-
-        if sections.is_empty() {
-            self.execution_gap_message()
-                .unwrap_or_else(no_user_facing_content_message)
+        let output = if let Some(message) = self.llm_access_denied_message() {
+            message
+        } else if let Some(message) = self.llm_provider_error_message() {
+            message
+        } else if self.response_mode.as_deref() != Some("quick") && self.graph.nodes.len() > 1 {
+            self.learning_synthesis()
+        } else if let Some(final_output) = self.final_node_output() {
+            final_output
         } else {
-            sanitize_final_user_facing_text(&sections.join("\n\n"))
-                .unwrap_or_else(no_user_facing_content_message)
+            let mut sections = Vec::new();
+
+            for node in &self.graph.nodes {
+                if !matches!(
+                    self.states.get(&node.id),
+                    Some(TaskNodeRuntimeState::Passed)
+                ) {
+                    continue;
+                }
+                let Some(report) = self.reports.get(&node.id) else {
+                    continue;
+                };
+                if let Some(summary) = user_facing_report_text(report) {
+                    sections.push(summary);
+                }
+            }
+
+            if sections.is_empty() {
+                self.execution_gap_message()
+                    .unwrap_or_else(no_user_facing_content_message)
+            } else {
+                sanitize_final_user_facing_text(&sections.join("\n\n"))
+                    .unwrap_or_else(no_user_facing_content_message)
+            }
+        };
+        self.repair_final_answer(output)
+    }
+
+    fn repair_final_answer(&self, output: String) -> String {
+        if let Some(repaired) = repair_product_judgment_answer(&self.graph.root_task, &output) {
+            repaired
+        } else {
+            output
         }
     }
 
@@ -530,14 +539,17 @@ impl TaskGraphRuntime {
         }
 
         let fallback = fallback_structured_synthesis(&self.graph.root_task);
-        let mut lines = vec![
-            fallback,
-            String::new(),
-            "## 还要注意".to_string(),
-            String::new(),
+        let mut lines = vec![fallback, String::new()];
+        if !lines
+            .first()
+            .is_some_and(|section| section.contains("## 还要注意"))
+        {
+            lines.extend(["## 还要注意".to_string(), String::new()]);
+        }
+        lines.extend([
             "- 当前资料还不足以把具体销量、转化率、成本、库存、平台规则或实时来源写成确定事实。".to_string(),
             "- 上面的内容是基于当前问题和已进入上下文的信息整理出的低风险可执行版本，后续可以用真实资料继续复核。".to_string(),
-        ];
+        ]);
         if gaps.len() > 1 {
             lines.push(
                 "- 如果后续补充后台数据、活动规则或素材文件，可以继续把判断收敛到更明确的动作。"
@@ -884,26 +896,37 @@ fn fallback_boundary_note(_task: &str) -> String {
 }
 
 fn fallback_structured_synthesis(task: &str) -> String {
+    if let Some(answer) = format_product_judgment_fallback(task) {
+        return sanitize_final_user_facing_text(&answer).unwrap_or(answer);
+    }
+
     let wants_table = task_requests_table(task);
     let wants_metric_table =
         task.contains("列出指标") || (task.contains("怎么看") && task.contains("下一步"));
+    let focus = fallback_task_focus(task);
     let lead = if wants_table {
-        "先按当前问题、已选上下文和已有信息给出可执行表格草案；表格里的真实销量、转化率、成本、\
-         库存、平台规则或实时来源，后续再用真实数据复核。"
+        format!(
+            "先按当前问题、已选上下文和已有信息给出可执行表格草案；本轮先围绕{}整理，表格里的真实销量、转化率、成本、\
+             库存、平台规则或实时来源，后续再用真实数据复核。",
+            focus.summary
+        )
     } else {
-        "先按当前问题、已选上下文和已有信息给出可执行草案；涉及真实销量、转化率、成本、库存、\
-         平台规则或实时来源的部分，后续再用真实数据复核。"
+        format!(
+            "按你这次的问题，先围绕{}给一版低风险可执行草案：可以先小范围验证，\
+             但在没有真实后台数据前，不把销量、转化率、成本、库存、平台规则或实时来源写成确定结论。",
+            focus.summary
+        )
     };
     let mut sections = vec![
         "## 先给你一版可用判断".to_string(),
         String::new(),
-        lead.to_string(),
+        lead,
         String::new(),
         "## 接下来怎么做".to_string(),
         String::new(),
-        "- 先明确分析对象、目标人群、目标动作和当前可用信息。".to_string(),
-        "- 把需要验证的判断拆成可观察字段，再用小样本、后台数据或后续上传资料复核。".to_string(),
-        "- 对缺少真实数据的部分只写成假设或待验证项，不写成确定事实。".to_string(),
+        fallback_entry_action(&focus),
+        fallback_value_action(&focus),
+        fallback_validation_action(&focus),
     ];
     if wants_table {
         sections.extend([String::new(), "## 执行表".to_string(), String::new()]);
@@ -952,6 +975,192 @@ fn fallback_structured_synthesis(task: &str) -> String {
         "- 如果后续上传 Excel、CSV、图片、活动或后台数据，再按真实字段重新复核结论。".to_string(),
     ]);
     sanitize_final_user_facing_text(&sections.join("\n")).unwrap_or_else(|| sections.join("\n"))
+}
+
+#[derive(Debug, Clone)]
+struct FallbackTaskFocus {
+    summary: String,
+    subject: Option<String>,
+    audience: Option<String>,
+    price: Option<String>,
+    problem: Option<String>,
+}
+
+fn fallback_task_focus(task: &str) -> FallbackTaskFocus {
+    let subject = extract_task_value(
+        task,
+        &["一款", "这个", "该"],
+        &[
+            "，",
+            "。",
+            ",",
+            ".",
+            "价格",
+            "面向",
+            "主图",
+            "标题",
+            "请",
+            "怎么",
+            "能不能",
+            "是否",
+        ],
+        28,
+    )
+    .filter(|value| !matches!(value.as_str(), "商品" | "产品" | "东西"));
+    let price = extract_task_value(
+        task,
+        &["价格", "售价", "定价"],
+        &["，", "。", ",", ".", "面向", "主图", "标题", "请"],
+        16,
+    );
+    let audience = extract_task_value(
+        task,
+        &["面向", "给", "针对"],
+        &["，", "。", ",", ".", "价格", "主图", "标题", "请"],
+        24,
+    );
+    let problem = fallback_problem(task);
+
+    let mut parts = Vec::new();
+    if let Some(subject) = subject.as_ref() {
+        parts.push(format!("商品：{subject}"));
+    }
+    if let Some(price) = price.as_ref() {
+        parts.push(format!("价格：{price}"));
+    }
+    if let Some(audience) = audience.as_ref() {
+        parts.push(format!("人群：{audience}"));
+    }
+    if let Some(problem) = problem.as_ref() {
+        parts.push(format!("当前问题：{problem}"));
+    }
+    if parts.is_empty() {
+        parts.push(short_task_snapshot(task));
+    }
+
+    FallbackTaskFocus {
+        summary: parts.join("，"),
+        subject,
+        audience,
+        price,
+        problem,
+    }
+}
+
+fn extract_task_value(
+    task: &str,
+    markers: &[&str],
+    stops: &[&str],
+    max_chars: usize,
+) -> Option<String> {
+    markers
+        .iter()
+        .find_map(|marker| {
+            let start = task.find(marker)? + marker.len();
+            let tail = &task[start..];
+            let end = stops
+                .iter()
+                .filter_map(|stop| tail.find(stop))
+                .min()
+                .unwrap_or(tail.len());
+            normalize_task_value(&tail[..end], max_chars)
+        })
+        .filter(|value| !value.is_empty())
+}
+
+fn normalize_task_value(value: &str, max_chars: usize) -> Option<String> {
+    let cleaned = value
+        .trim()
+        .trim_matches(|ch: char| {
+            matches!(
+                ch,
+                '：' | ':' | '是' | '的' | '、' | '，' | ',' | '。' | '.' | ' ' | '\n' | '\r'
+            )
+        })
+        .chars()
+        .take(max_chars)
+        .collect::<String>();
+    (!cleaned.trim().is_empty()).then(|| cleaned.trim().to_string())
+}
+
+fn fallback_problem(task: &str) -> Option<String> {
+    if task.contains("主图") && task.contains("普通") {
+        return Some("主图比较普通".to_string());
+    }
+    if task.contains("主图") {
+        return Some("主图需要优化".to_string());
+    }
+    if task.contains("标题") && (task.contains("点击率低") || task.contains("低")) {
+        return Some("标题点击率低".to_string());
+    }
+    if task.contains("标题") {
+        return Some("标题需要优化".to_string());
+    }
+    if task.contains("价格") || task.contains("定价") || task.contains("售价") {
+        return Some("价格和卖点需要核对".to_string());
+    }
+    None
+}
+
+fn short_task_snapshot(task: &str) -> String {
+    let compact = task
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .trim()
+        .chars()
+        .take(80)
+        .collect::<String>();
+    if compact.is_empty() {
+        "当前问题".to_string()
+    } else {
+        format!("「{compact}」")
+    }
+}
+
+fn fallback_entry_action(focus: &FallbackTaskFocus) -> String {
+    let entry = if focus
+        .problem
+        .as_deref()
+        .is_some_and(|problem| problem.contains("主图"))
+    {
+        "主图"
+    } else if focus
+        .problem
+        .as_deref()
+        .is_some_and(|problem| problem.contains("标题"))
+    {
+        "标题"
+    } else {
+        "用户第一眼看到的入口表达"
+    };
+    let audience = focus
+        .audience
+        .as_deref()
+        .map(|value| format!("{value}会在意的"))
+        .unwrap_or_else(|| "目标用户会在意的".to_string());
+    format!(
+        "- {entry}先改首屏：把{audience}场景、功能和信任点放到最前面，让用户一眼知道适合谁、解决什么问题、为什么值得继续看。"
+    )
+}
+
+fn fallback_value_action(focus: &FallbackTaskFocus) -> String {
+    let subject = focus.subject.as_deref().unwrap_or("这款商品");
+    let price = focus
+        .price
+        .as_deref()
+        .map(|value| value.to_string())
+        .unwrap_or_else(|| "当前价格".to_string());
+    format!(
+        "- 核对{price}是否站得住：把{subject}的核心卖点、使用场景、材质/规格或服务承诺列出来，只保留真实能证明的点。"
+    )
+}
+
+fn fallback_validation_action(focus: &FallbackTaskFocus) -> String {
+    let subject = focus.subject.as_deref().unwrap_or("这个方案");
+    format!(
+        "- 小范围验证{subject}：先看点击、咨询、加购、收藏和用户追问集中在哪里；样本不足时只判断方向，不编造销量数据。"
+    )
 }
 
 fn task_requests_table(task: &str) -> bool {
@@ -1977,12 +2186,16 @@ mod tests {
 
         let output = runtime.synthesize();
 
-        assert!(output.contains("## 先给你一版可用判断"), "{output}");
+        assert!(output.contains("## 先说判断"), "{output}");
         assert!(output.contains("## 接下来怎么做"), "{output}");
         assert!(output.contains("## 风险边界"), "{output}");
         assert!(output.contains("## 还要注意"), "{output}");
-        assert!(output.contains("可执行草案"), "{output}");
+        assert!(output.contains("低风险可执行草案"), "{output}");
         assert!(output.contains("真实资料"), "{output}");
+        assert!(
+            !output.contains("先明确分析对象、目标人群、目标动作"),
+            "{output}"
+        );
         assert!(!output.contains("请直接补充新的要求"), "{output}");
         assert!(!output.contains("没有形成完整答案"), "{output}");
         assert!(!output.contains("dependency did not pass"), "{output}");
@@ -1990,14 +2203,14 @@ mod tests {
     }
 
     #[test]
-    fn task_graph_gap_message_keeps_generic_fallback_without_internal_failure() {
+    fn task_graph_gap_message_uses_user_context_without_internal_failure() {
         let creative = node("creative", "标题优化", "creative");
         let mut final_node = node("creative_final", "最终标题建议", "creative");
         final_node.input_refs = vec![TaskNodeId("creative".to_string())];
         let mut runtime = TaskGraphRuntime::new(TaskGraph {
             graph_id: TaskGraphId("graph-title-ctr-gap".to_string()),
-            root_task: "我这个防晒衣标题点击率低，只有标题、价格和一张主图，不完整也没关系。\
-                        你先像伙伴一样帮我判断哪里最该改，并给我一版自然标题。"
+            root_task: "我想卖一款夏季防晒衣，价格129元，面向大学生，主图比较普通。\
+                        请像平等伙伴一样先判断能不能做，并给出三步优化方向，不要编造销量数据。"
                 .to_string(),
             nodes: vec![creative.clone(), final_node.clone()],
             adaptive_hint: None,
@@ -2013,11 +2226,31 @@ mod tests {
 
         let output = runtime.synthesize();
 
-        assert!(output.contains("## 先给你一版可用判断"), "{output}");
-        assert!(output.contains("## 接下来怎么做"), "{output}");
+        assert!(output.contains("## 先说判断"), "{output}");
+        assert!(output.contains("## 三个优化方向"), "{output}");
         assert!(output.contains("## 还要注意"), "{output}");
+        assert!(output.contains("可以做"), "{output}");
+        assert!(output.contains("先按小测处理"), "{output}");
+        assert!(output.contains("不建议直接重投入"), "{output}");
+        assert!(output.contains("夏季防晒衣"), "{output}");
+        assert!(output.contains("129元"), "{output}");
+        assert!(output.contains("大学生"), "{output}");
+        assert!(output.contains("主图比较普通"), "{output}");
         assert!(output.contains("低风险可执行版本"), "{output}");
-        assert!(!output.contains("参考标题：防晒衣"), "{output}");
+        assert!(output.contains("你担心判断不准是对的"), "{output}");
+        assert!(output.contains("主图首屏先改"), "{output}");
+        assert!(output.contains("标题和卖点重排"), "{output}");
+        assert!(output.contains("小范围验证反馈"), "{output}");
+        assert!(output.contains("标题"), "{output}");
+        assert!(output.contains("不编造销量数据"), "{output}");
+        assert!(output.contains("小范围验证"), "{output}");
+        assert!(
+            !output.contains("先明确分析对象、目标人群、目标动作"),
+            "{output}"
+        );
+        assert!(!output.contains("第一步"), "{output}");
+        assert!(!output.contains("第二步"), "{output}");
+        assert!(!output.contains("第三步"), "{output}");
         assert!(!output.contains("worker cognition timed out"), "{output}");
         assert!(!output.contains("dependency did not pass"), "{output}");
     }

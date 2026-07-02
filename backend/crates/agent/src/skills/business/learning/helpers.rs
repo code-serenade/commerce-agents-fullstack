@@ -15,7 +15,7 @@ pub(super) fn infer_learning_level(topic: &str) -> &'static str {
 }
 
 pub(super) fn infer_scenario(topic: &str) -> &'static str {
-    if contains_any(topic, &["投放", "广告", "roi", "ROAS", "roas", "千川"]) {
+    if contains_any(topic, &["投放", "广告", "广告投放", "roi", "ROAS", "roas"]) {
         "电商投放复盘"
     } else if contains_any(topic, &["客服", "售后", "退款", "DSR", "nps", "NPS"]) {
         "客服售后分析"

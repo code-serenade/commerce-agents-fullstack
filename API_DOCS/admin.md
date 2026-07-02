@@ -17,6 +17,10 @@
 | `access_control:role_permissions`     | Role Permissions 二级菜单；后台权限树、菜单、后台角色权限配置       |
 | `access_control:app_roles`            | App Roles 二级菜单；普通用户角色管理                                |
 | `access_control:app_role_permissions` | App Role Permissions 二级菜单；普通用户权限树、普通用户角色权限配置 |
+| `analytics`                           | Analytics 一级菜单；产品内部访问统计                                |
+| `analytics:overview`                  | Analytics Overview 二级菜单；整体、每日、来源、页面统计查询         |
+| `analytics:accounts`                  | Analytics Accounts 二级菜单；账号级访问和 AI 问答使用统计查询       |
+| `analytics:school_teams`              | Analytics School Teams 二级菜单；学校/队伍维度使用统计查询          |
 
 `GET /api/admin/me/permissions` 和 `GET /api/admin/me/menus` 不要求单独权限码，但要求当前用户本身是有效后台用户。
 

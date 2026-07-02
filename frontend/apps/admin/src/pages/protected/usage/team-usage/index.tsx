@@ -32,6 +32,7 @@ export default function TeamUsagePage() {
           bulkUpdate={table.bulkUpdate}
           pageSizeOptions={table.pageSizeOptions}
           rowActions={table.rowActions}
+          stickyColumns={{ left: 1 }}
           compactColumns={table.compactColumns}
           compactRows={table.compactRows}
           fillWidth={table.fillWidth}

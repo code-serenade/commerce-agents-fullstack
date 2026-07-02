@@ -1,4 +1,5 @@
 mod admin;
+mod analytics;
 mod app;
 mod sse;
 mod ws;
@@ -6,6 +7,7 @@ mod ws;
 use std::sync::Arc;
 
 use admin::admin_routes;
+use analytics::analytics_routes;
 use app::app_routes;
 use axum::{Extension, Router};
 use sse::sse_routes;
@@ -16,6 +18,7 @@ use ws::ws_routes;
 pub fn create_routes(jwt: Arc<VerifyJwt>) -> Router {
     let cors = create_cors();
     let api_routes = Router::new()
+        .nest("/analytics", analytics_routes())
         .nest("/admin", admin_routes())
         .nest("/app", app_routes())
         .nest("/sse", sse_routes())

@@ -7,7 +7,8 @@ use sea_orm::{ActiveValue::Set, ColumnTrait, FromQueryResult, QueryFilter, Query
 use crate::{
     entity::agent_usage_events,
     table::agent_usage_events::dto::{
-        AgentUsageEvent, CreateAgentUsageEvent, TeamUsageEventStats, UserUsageEventStats,
+        AgentUsageEvent, AgentUsageEventStats, CreateAgentUsageEvent, TeamUsageEventStats,
+        UserUsageEventStats,
     },
 };
 
@@ -33,6 +34,16 @@ struct TeamUsageEventStatsRow {
 #[derive(Debug, FromQueryResult)]
 struct UserUsageEventStatsRow {
     user_id: uuid::Uuid,
+    question_used: Option<i64>,
+    token_used: Option<i64>,
+    last_used_at: Option<time::OffsetDateTime>,
+}
+
+#[derive(Debug, FromQueryResult)]
+struct AgentUsageEventStatsRow {
+    user_id: uuid::Uuid,
+    school_name: String,
+    team_name: String,
     question_used: Option<i64>,
     token_used: Option<i64>,
     last_used_at: Option<time::OffsetDateTime>,
@@ -174,6 +185,47 @@ impl AgentUsageEventService {
             .into_iter()
             .map(|row| UserUsageEventStats {
                 user_id: row.user_id,
+                question_used: row.question_used.unwrap_or(0),
+                token_used: row.token_used.unwrap_or(0),
+                last_used_at: row.last_used_at,
+            })
+            .collect())
+    }
+
+    pub async fn stats_between(
+        &self,
+        from: time::OffsetDateTime,
+        to: time::OffsetDateTime,
+    ) -> BizResult<Vec<AgentUsageEventStats>> {
+        let rows = self
+            .repo
+            .query()
+            .select_only()
+            .column(agent_usage_events::Column::UserId)
+            .column(agent_usage_events::Column::SchoolName)
+            .column(agent_usage_events::Column::TeamName)
+            .column_as(
+                agent_usage_events::Column::QuestionCount.sum(),
+                "question_used",
+            )
+            .column_as(agent_usage_events::Column::TotalTokens.sum(), "token_used")
+            .column_as(agent_usage_events::Column::CreatedAt.max(), "last_used_at")
+            .filter(agent_usage_events::Column::CreatedAt.gte(from))
+            .filter(agent_usage_events::Column::CreatedAt.lte(to))
+            .group_by(agent_usage_events::Column::UserId)
+            .group_by(agent_usage_events::Column::SchoolName)
+            .group_by(agent_usage_events::Column::TeamName)
+            .into_model::<AgentUsageEventStatsRow>()
+            .all(self.repo.db())
+            .await
+            .map_err(Error::from)?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| AgentUsageEventStats {
+                user_id: row.user_id,
+                school_name: row.school_name,
+                team_name: row.team_name,
                 question_used: row.question_used.unwrap_or(0),
                 token_used: row.token_used.unwrap_or(0),
                 last_used_at: row.last_used_at,

@@ -7,16 +7,20 @@ use crate::handlers::app::{
     add_conversation_message, attach_conversation_file, bulk_delete_user_files,
     create_conversation, current_user_permissions, delete_conversation, delete_conversation_file,
     delete_user_file, get_conversation, get_conversation_file_access,
-    get_conversation_file_extraction, list_conversations, list_user_files,
-    presign_conversation_file_upload, preview_agent_context, register_app_user,
+    get_conversation_file_extraction, get_current_app_user_profile, list_conversations,
+    list_user_files, presign_conversation_file_upload, preview_agent_context, register_app_user,
     register_conversation_file, trigger_conversation_file_extraction_job, update_conversation,
-    update_conversation_file_extraction,
+    update_conversation_file_extraction, update_current_app_user_profile,
 };
 
 pub fn account_routes() -> Router {
     Router::new()
         .route("/register", post(register_app_user))
         .route("/me/permissions", get(current_user_permissions))
+        .route(
+            "/me/profile",
+            get(get_current_app_user_profile).patch(update_current_app_user_profile),
+        )
         .route(
             "/conversations",
             get(list_conversations).post(create_conversation),

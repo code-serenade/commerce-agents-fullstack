@@ -15,6 +15,8 @@ pub struct BuildAgentRetrievalContextRequest {
     pub context_refs: Vec<String>,
     pub allow_implicit_products: bool,
     pub external_search_available: bool,
+    pub external_search_configured: bool,
+    pub external_search_status: Option<String>,
     pub limit: Option<usize>,
 }
 
@@ -48,4 +50,6 @@ pub struct AgentRetrievalContextResponse {
     pub degraded: bool,
     pub degraded_reason: Option<String>,
     pub external_search_available: bool,
+    pub external_search_configured: bool,
+    pub external_search_status: String,
 }

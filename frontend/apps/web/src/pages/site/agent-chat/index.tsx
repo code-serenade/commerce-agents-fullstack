@@ -1,6 +1,5 @@
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { useNavigate } from "react-router"
-import type { AgentRuntimeEvent } from "./agent-chat-data"
 import { AgentChatComposer } from "./components/agent-chat-composer"
 import { AgentChatDocumentTitle } from "./components/agent-chat-document-title"
 import { AgentProcessDrawer } from "./components/agent-process-drawer"
@@ -8,49 +7,37 @@ import { AgentChatStatus } from "./components/agent-chat-status"
 import { AgentChatQuotaStatus } from "./components/agent-chat-quota-status"
 import { AgentChatThread } from "./components/agent-chat-thread"
 import { useAgentChatContext } from "./context/use-agent-chat-context"
-import {
-  findLatestProcessTarget,
-  type AgentProcessTarget,
-} from "./view-model/agent-process-visibility-view-model"
 import { useAgentChatRequestedComposerPanel } from "./view-model/use-agent-chat-requested-composer-panel"
-
-type ActiveProcessTarget = AgentProcessTarget
+import { useAgentChatAnalytics } from "./view-model/use-agent-chat-analytics"
+import { useAgentProcessPanel } from "./view-model/use-agent-process-panel"
 
 export default function AgentChatPage() {
   const chat = useAgentChatContext()
   const navigate = useNavigate()
   const [composerFocusVersion, setComposerFocusVersion] = useState(0)
   const requestedComposerPanel = useAgentChatRequestedComposerPanel()
-  const [activeProcessTarget, setActiveProcessTarget] =
-    useState<ActiveProcessTarget | null>(null)
-  const latestProcessTarget = useMemo(
-    () => findLatestProcessTarget(chat.messages, chat.runtimeEvents),
-    [chat.messages, chat.runtimeEvents]
-  )
-  const visibleProcessTarget = activeProcessTarget
-  const activeProcessMessage = visibleProcessTarget
-    ? chat.messages.find((message) => message.id === visibleProcessTarget.messageId)
-    : null
-  const activeRuntimeEvents: AgentRuntimeEvent[] =
-    activeProcessMessage?.runtimeEvents?.length
-      ? activeProcessMessage.runtimeEvents
-      : activeProcessMessage?.id === latestProcessTarget?.messageId
-        ? chat.runtimeEvents
-        : []
-  const shouldShowProcessPanel =
-    Boolean(activeProcessMessage && activeRuntimeEvents.length > 0)
-
-  const closeProcessPanel = () => {
-    setActiveProcessTarget(null)
-  }
-
-  const openProcessPanel = (target: ActiveProcessTarget) => {
-    setActiveProcessTarget(target)
-  }
+  const analytics = useAgentChatAnalytics({
+    attachments: chat.attachments,
+    selectedCampaigns: chat.selectedCampaigns,
+    selectedProducts: chat.selectedProducts,
+    selectedSources: chat.selectedSources,
+    strategyId: chat.strategyId,
+  })
+  const processPanel = useAgentProcessPanel({
+    messages: chat.messages,
+    onOpen: analytics.trackProcessPanelOpen,
+    runtimeEvents: chat.runtimeEvents,
+  })
 
   const sendMessage = () => {
-    setActiveProcessTarget(null)
+    analytics.trackQuestionSubmit()
+    processPanel.closeProcessPanel()
     void chat.sendMessage()
+  }
+
+  const uploadAttachments = (files: File[]) => {
+    analytics.trackFileUpload(files)
+    void chat.uploadAttachments(files)
   }
 
   const selectExamplePrompt = (prompt: string) => {
@@ -75,12 +62,12 @@ export default function AgentChatPage() {
       <div className="relative flex min-h-0 w-full flex-1 overflow-hidden p-2 sm:p-3">
         <section className="mx-auto flex size-full min-h-0 max-w-5xl min-w-0 flex-col overflow-hidden rounded-lg bg-background">
           <AgentChatThread
-            activeProcessMessageId={activeProcessMessage?.id ?? null}
+            activeProcessMessageId={processPanel.activeProcessMessage?.id ?? null}
             isStreaming={chat.isStreaming}
             messages={chat.messages}
-            onCloseProcessPanel={closeProcessPanel}
+            onCloseProcessPanel={processPanel.closeProcessPanel}
             onExamplePromptSelect={selectExamplePrompt}
-            onOpenProcessPanel={openProcessPanel}
+            onOpenProcessPanel={processPanel.openProcessPanel}
             runtimeEvents={chat.runtimeEvents}
             selectedStrategy={chat.selectedStrategy}
             showProcessPanelAction
@@ -126,7 +113,7 @@ export default function AgentChatPage() {
             onAttachExistingSource={(fileId) =>
               void chat.attachExistingSource(fileId)
             }
-            onUploadAttachments={chat.uploadAttachments}
+            onUploadAttachments={uploadAttachments}
             selectedCampaigns={chat.selectedCampaigns}
             selectedProducts={chat.selectedProducts}
             selectedSources={chat.selectedSources}
@@ -139,14 +126,17 @@ export default function AgentChatPage() {
           />
         </section>
       </div>
-      {shouldShowProcessPanel ? (
+      {processPanel.shouldShowProcessPanel ? (
         <AgentProcessDrawer
-          anchorLabel={visibleProcessTarget?.anchorLabel}
-          isStreaming={activeProcessMessage?.status === "streaming" && chat.isStreaming}
-          messageId={activeProcessMessage?.id}
-          onClose={closeProcessPanel}
-          runtimeEvents={activeRuntimeEvents}
-          task={visibleProcessTarget?.task}
+          anchorLabel={processPanel.visibleProcessTarget?.anchorLabel}
+          isStreaming={
+            processPanel.activeProcessMessage?.status === "streaming" &&
+            chat.isStreaming
+          }
+          messageId={processPanel.activeProcessMessage?.id}
+          onClose={processPanel.closeProcessPanel}
+          runtimeEvents={processPanel.activeRuntimeEvents}
+          task={processPanel.visibleProcessTarget?.task}
         />
       ) : null}
     </div>

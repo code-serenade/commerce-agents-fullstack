@@ -7,6 +7,7 @@ import {
   selectedSupportRoleCount,
   uniqueRuntimeRoles,
 } from "./agent-runtime-role-utils"
+import { normalizeRuntimeOptions } from "./agent-runtime-option-normalization"
 import type {
   AgentChatRuntimeSelection,
   AgentChatRuntimeSelectionRestore,
@@ -21,21 +22,23 @@ export type {
   AgentRuntimeOptions,
   AgentRuntimeRoleOption,
 } from "./agent-runtime-types"
+export { normalizeRuntimeOptions } from "./agent-runtime-option-normalization"
 
 export function defaultRuntimeSelection(options: AgentRuntimeOptions | null): AgentChatRuntimeSelection {
+  const normalizedOptions = normalizeRuntimeOptions(options)
   const models = options?.models ?? []
-  const routingModes = options?.routingModes ?? []
+  const routingModes = normalizedOptions?.routingModes ?? []
   const defaultModel =
     options?.defaultModelName ??
     models.find((model) => model.isDefault)?.name ??
     models[0]?.name
   const defaultCollaboration =
-    options?.collaborationModes.find((mode) => mode.id === "auto")?.id ??
-    options?.collaborationModes.find((mode) => mode.isDefault)?.id ??
-    options?.collaborationModes.find((mode) => mode.id === "manual")?.id ??
+    normalizedOptions?.collaborationModes.find((mode) => mode.id === "auto")?.id ??
+    normalizedOptions?.collaborationModes.find((mode) => mode.isDefault)?.id ??
+    normalizedOptions?.collaborationModes.find((mode) => mode.id === "manual")?.id ??
     "auto"
   const defaultLearning =
-    options?.learningLevels.find((level) => level.isDefault)?.id ??
+    normalizedOptions?.learningLevels.find((level) => level.isDefault)?.id ??
     "higher_vocational"
   const defaultRouting =
     routingModes.find((mode) => mode.id === "commander")?.id ??
@@ -43,7 +46,7 @@ export function defaultRuntimeSelection(options: AgentRuntimeOptions | null): Ag
     routingModes[0]?.id ??
     "commander"
   const defaultRoles = orderDefaultCommerceTeamRoles(
-    options?.roles
+    normalizedOptions?.roles
       .filter((role) => role.runtimeRole !== "chat")
       .map((role) => role.runtimeRole) ?? ["ops", "data", "creative"]
   )
@@ -62,15 +65,16 @@ export function normalizeRuntimeSelection(
   current: AgentChatRuntimeSelection,
   options: AgentRuntimeOptions | null
 ): AgentChatRuntimeSelection {
-  if (!options) return current
-  const modelNames = new Set((options.models ?? []).map((model) => model.name))
-  const roleNames = new Set(options.roles.map((role) => role.runtimeRole))
+  const normalizedOptions = normalizeRuntimeOptions(options)
+  if (!normalizedOptions) return current
+  const modelNames = new Set((normalizedOptions.models ?? []).map((model) => model.name))
+  const roleNames = new Set(normalizedOptions.roles.map((role) => role.runtimeRole))
   const collaborationModes = new Set(
-    options.collaborationModes.map((mode) => mode.id)
+    normalizedOptions.collaborationModes.map((mode) => mode.id)
   )
-  const learningLevels = new Set(options.learningLevels.map((level) => level.id))
-  const routingModes = new Set((options.routingModes ?? []).map((mode) => mode.id))
-  const fallback = defaultRuntimeSelection(options)
+  const learningLevels = new Set(normalizedOptions.learningLevels.map((level) => level.id))
+  const routingModes = new Set((normalizedOptions.routingModes ?? []).map((mode) => mode.id))
+  const fallback = defaultRuntimeSelection(normalizedOptions)
   const selectedRoles = limitRuntimeRoles(
     current.selectedRoles.filter((role) => roleNames.has(role))
   )
@@ -310,8 +314,5 @@ export function setRuntimeRoutingMode(
   selection: AgentChatRuntimeSelection,
   routingMode: string
 ): AgentChatRuntimeSelection {
-  return {
-    ...selection,
-    routingMode,
-  }
+  return { ...selection, routingMode }
 }

@@ -58,7 +58,6 @@ function appendDispatchPlanFact(
 
   facts.push({
     detail: t("agentChat.thread.dispatchFacts.plan.detail", {
-      difficulty: plan.difficulty,
       mode: formatUserFacingRouteMode(getDispatchPlanRouteMode(plan), t),
     }),
     label: t("agentChat.thread.dispatchFacts.plan.label"),

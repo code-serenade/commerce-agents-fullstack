@@ -3,7 +3,7 @@
     {
       "id": "douyin_ads.plan_structure",
       "roles": [
-        "douyin_ads"
+        "ops"
       ],
       "match": {
         "any_keywords": [
@@ -30,7 +30,7 @@
     {
       "id": "douyin_ads.audience_package",
       "roles": [
-        "douyin_ads"
+        "ops"
       ],
       "match": {
         "any_keywords": [
@@ -64,7 +64,7 @@
     {
       "id": "douyin_ads.budget_pacing",
       "roles": [
-        "douyin_ads"
+        "ops"
       ],
       "match": {
         "any_keywords": [
@@ -94,7 +94,7 @@
     {
       "id": "douyin_ads.live_funnel",
       "roles": [
-        "douyin_ads"
+        "ops"
       ],
       "match": {
         "any_keywords": [
@@ -123,7 +123,7 @@
     {
       "id": "douyin_ads.fallback_plan_structure",
       "roles": [
-        "douyin_ads"
+        "ops"
       ],
       "fallback": true,
       "skill_id": "douyin_ads_plan_structure",
@@ -142,12 +142,12 @@
     {
       "id": "douyin_ads.platform_policy_search",
       "roles": [
-        "douyin_ads"
+        "ops"
       ],
       "match": {
         "any_keywords": [
           "最新投放规则",
-          "千川规则",
+          "投放规则",
           "平台规则",
           "流量规则",
           "审核规则"
@@ -171,7 +171,7 @@
     {
       "id": "douyin_ads.benchmark_search",
       "roles": [
-        "douyin_ads"
+        "ops"
       ],
       "match": {
         "any_keywords": [
@@ -206,7 +206,7 @@
     {
       "id": "douyin_ads.audience_trend_search",
       "roles": [
-        "douyin_ads"
+        "ops"
       ],
       "match": {
         "any_keywords": [
@@ -222,7 +222,7 @@
       "skill_id": "search_trends",
       "input": {
         "query": "{{search_query}}",
-        "platform": "抖音",
+        "platform": "电商广告平台",
         "days": 30,
         "_needs_fresh_data": true,
         "product_ref": "{{selected_product_ref}}",
@@ -234,7 +234,7 @@
     {
       "id": "douyin_ads.market_search",
       "roles": [
-        "douyin_ads"
+        "ops"
       ],
       "match": {
         "any_keywords": [

@@ -1,4 +1,4 @@
-import { BarChart3, Bot, FileText, Megaphone, MonitorCog, PenLine, WalletCards } from "lucide-react"
+import { BarChart3, Bot, FileText, MonitorCog, PenLine, WalletCards } from "lucide-react"
 import type { TFunction } from "i18next"
 import type { ComponentType, SVGProps } from "react"
 import type { AgentRuntimeEvent, AgentTaskNode } from "@/api"
@@ -65,9 +65,8 @@ export const WORKSPACE_LANES = [
 const AGENTS = [
   ["data", "data", BarChart3, "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-200", []],
   ["accounting", "accounting", WalletCards, "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-200", ["data"]],
-  ["douyin_ads", "douyinAds", Megaphone, "bg-cyan-50 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-200", ["data"]],
   ["creative", "creative", PenLine, "bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-200", ["data"]],
-  ["ops", "ops", MonitorCog, "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200", ["accounting", "douyin_ads", "creative"]],
+  ["ops", "ops", MonitorCog, "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200", ["accounting", "creative"]],
   ["delivery", "delivery", FileText, "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200", ["ops"]],
 ] as const
 

@@ -5,7 +5,7 @@ use super::super::helpers::{currency, empty_string_as_null, has_any, int, num, r
 pub(super) fn plan_structure(input: &Value) -> Value {
     let goal = string(input, "goal", "直播间成交与商品转化");
     let budget = num(input, "budget", 10_000.0).max(0.0);
-    let platform = string(input, "platform", "抖音");
+    let platform = string(input, "platform", "电商广告平台");
     let product_name = string(input, "product_name", "未指定商品");
     let product_ref = string(input, "product_ref", "");
     let stage = string(input, "stage", "冷启动");
@@ -18,8 +18,8 @@ pub(super) fn plan_structure(input: &Value) -> Value {
         "has_data": true,
         "adapter_status": "manual_input",
         "data_readiness": if has_any(input, &["budget", "goal", "product_name", "product_ref", "target_roas"]) { "user_provided" } else { "calculated_from_defaults" },
-        "summary": "千川计划结构已生成",
-        "数据来源": "用户显式输入 + 新产品 Rust Agent 千川投放 deterministic skill；未直连巨量千川、抖音罗盘或广告后台实时数据",
+        "summary": "广告投放结构已生成",
+        "数据来源": "用户显式输入 + 新产品 Rust Agent 广告投放 deterministic skill；未直连广告后台或平台实时数据",
         "平台": platform,
         "商品": product_name,
         "商品引用": empty_string_as_null(&product_ref),
@@ -66,7 +66,7 @@ pub(super) fn plan_structure(input: &Value) -> Value {
             "直播承接检查": "点击正常但成交弱时优先排查进房、停留、商品点击和逼单话术"
         },
         "风险提示": [
-            "本结果不是千川后台读取结果，只能作为计划结构和预算规则建议",
+            "本结果不是广告后台读取结果，只能作为计划结构和预算规则建议",
             "放量前必须补齐消耗、GMV、点击、进房、商品点击、下单和付款指标",
             "平台规则、审核政策和行业基准需要通过 search/platform adapter 单独取得真实来源"
         ]

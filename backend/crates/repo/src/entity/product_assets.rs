@@ -8,13 +8,12 @@ use serde::{Deserialize, Serialize};
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    #[sea_orm(unique_key = "idx_product_assets_user_object_key")]
     pub user_id: Uuid,
     #[sea_orm(unique_key = "uk_product_assets_active_object")]
     pub product_id: Uuid,
     #[sea_orm(unique_key = "uk_product_assets_active_object")]
     pub bucket: String,
-    #[sea_orm(unique_key = "idx_product_assets_user_object_key")]
+    #[sea_orm(unique_key = "uk_product_assets_active_object")]
     pub object_key: String,
     pub asset_type: String,
     pub file_name: Option<String>,

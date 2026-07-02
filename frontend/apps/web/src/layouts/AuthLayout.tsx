@@ -1,5 +1,6 @@
 import { Outlet } from "react-router"
 import { LanguageSwitch, ThemeToggle } from "@workspace/app-kit"
+import { ProductAnalyticsTracker } from "@/analytics/ProductAnalyticsTracker"
 
 export default function AuthLayout() {
   return (
@@ -12,6 +13,7 @@ export default function AuthLayout() {
         <LanguageSwitch />
       </div>
 
+      <ProductAnalyticsTracker />
       <Outlet />
     </div>
   )

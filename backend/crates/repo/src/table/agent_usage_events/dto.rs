@@ -59,3 +59,13 @@ pub struct UserUsageEventStats {
     pub token_used: i64,
     pub last_used_at: Option<OffsetDateTime>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentUsageEventStats {
+    pub user_id: Uuid,
+    pub school_name: String,
+    pub team_name: String,
+    pub question_used: i64,
+    pub token_used: i64,
+    pub last_used_at: Option<OffsetDateTime>,
+}

@@ -95,11 +95,13 @@ function approvalColumns(
           <IdText>{item.id}</IdText>
         </div>
       ),
+      minWidth: "14rem",
     },
     {
       key: "risk",
       header: t("commerce.approvals.columns.risk"),
       render: (item) => item.riskLevel || "L1",
+      width: "6rem",
     },
     {
       key: "status",
@@ -107,6 +109,7 @@ function approvalColumns(
       render: (item) => (
         <StatusBadge tone={toneForStatus(item.status)}>{item.status}</StatusBadge>
       ),
+      width: "8rem",
     },
     {
       key: "reason",
@@ -117,17 +120,19 @@ function approvalColumns(
           <ApprovalReadiness result={item.result} />
         </div>
       ),
+      minWidth: "18rem",
     },
     {
       key: "execution",
       header: t("commerce.approvals.columns.execution"),
       render: (item) => <ApprovalExecutionOutcome result={item.result} />,
+      minWidth: "16rem",
     },
     {
       key: "actions",
       header: t("commerce.common.decision"),
       render: (item) => (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-nowrap justify-end gap-2">
           <Button
             size="xs"
             variant="outline"
@@ -146,6 +151,8 @@ function approvalColumns(
           </Button>
         </div>
       ),
+      sticky: "right",
+      width: "9rem",
     },
   ]
 }

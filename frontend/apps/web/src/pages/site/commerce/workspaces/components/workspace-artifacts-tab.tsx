@@ -9,12 +9,17 @@ import {
 } from "../../components/commerce-ui"
 import type { WorkspacesPageState } from "../use-workspaces-page"
 import { createArtifactColumns } from "./workspace-table-columns"
+import {
+  formatWorkspaceArtifactNotice,
+  getWorkspaceArtifactDisplay,
+} from "../view-model/workspace-artifact-display-view-model"
 
 export function WorkspaceArtifactsTab({ page }: { page: WorkspacesPageState }) {
   const { t } = useTranslation()
   const artifact = page.selectedArtifact
   const artifactExport = page.artifactExport
   const content = artifactExport?.content || artifact?.content || artifact?.preview
+  const display = getWorkspaceArtifactDisplay(t, artifact, artifactExport)
   const copyExport = () => {
     if (!artifactExport?.content) return
     void navigator.clipboard?.writeText(artifactExport.content)
@@ -27,7 +32,7 @@ export function WorkspaceArtifactsTab({ page }: { page: WorkspacesPageState }) {
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement("a")
     anchor.href = url
-    anchor.download = artifactExport.fileName
+    anchor.download = display.downloadFileName
     anchor.click()
     URL.revokeObjectURL(url)
   }
@@ -50,14 +55,14 @@ export function WorkspaceArtifactsTab({ page }: { page: WorkspacesPageState }) {
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
                   <h3 className="truncate text-sm font-semibold">
-                    {artifact.title}
+                    {display.title}
                   </h3>
                   <MutedText>
-                    {artifact.artifactType} / {artifact.source}
+                    {display.type} / {display.source}
                   </MutedText>
                 </div>
                 <StatusBadge tone={toneForStatus(artifact.validationStatus)}>
-                  {artifact.validationStatus}
+                  {display.validationStatus}
                 </StatusBadge>
               </div>
               <ArtifactMetaGrid page={page} />
@@ -83,7 +88,11 @@ export function WorkspaceArtifactsTab({ page }: { page: WorkspacesPageState }) {
                   {t("commerce.workspaces.actions.downloadExport")}
                 </Button>
                 {artifactExport?.warnings?.length ? (
-                  <MutedText>{artifactExport.warnings.join(" / ")}</MutedText>
+                  <MutedText>
+                    {artifactExport.warnings
+                      .map((warning) => formatWorkspaceArtifactNotice(t, warning))
+                      .join(" / ")}
+                  </MutedText>
                 ) : null}
               </div>
               <div className="max-h-112 overflow-auto rounded-lg border border-(--app-border) bg-muted/30 p-3">
@@ -106,34 +115,31 @@ export function WorkspaceArtifactsTab({ page }: { page: WorkspacesPageState }) {
 function ArtifactMetaGrid({ page }: { page: WorkspacesPageState }) {
   const { t } = useTranslation()
   const artifact = page.selectedArtifact
+  const display = getWorkspaceArtifactDisplay(t, artifact, page.artifactExport)
 
   if (!artifact) return null
 
   return (
     <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
       <ArtifactMeta
+        label={t("commerce.workspaces.panels.artifactWorkspace")}
+        value={page.selectedWorkspace?.title ?? "-"}
+      />
+      <ArtifactMeta
+        label={t("commerce.workspaces.panels.artifactSource")}
+        value={display.source}
+      />
+      <ArtifactMeta
         label={t("commerce.workspaces.panels.artifactFormat")}
-        value={artifact.format}
+        value={display.format}
       />
       <ArtifactMeta
-        label={t("commerce.workspaces.panels.artifactStorage")}
-        value={artifact.storageKind}
-      />
-      <ArtifactMeta
-        label={t("commerce.workspaces.panels.artifactFile")}
-        value={page.artifactExport?.fileName || artifact.fileName || artifact.mimeType || "-"}
-      />
-      <ArtifactMeta
-        label={t("commerce.workspaces.panels.artifactRun")}
-        value={artifact.runId || "-"}
-      />
-      <ArtifactMeta
-        label={t("commerce.workspaces.panels.artifactExport")}
-        value={page.artifactExport?.format || "-"}
+        label={t("commerce.workspaces.panels.artifactValidation")}
+        value={display.validationStatus}
       />
       <ArtifactMeta
         label={t("commerce.workspaces.panels.artifactExportSize")}
-        value={String(page.artifactExport?.contentChars ?? "-")}
+        value={display.contentLength}
       />
     </div>
   )

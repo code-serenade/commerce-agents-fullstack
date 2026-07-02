@@ -55,11 +55,17 @@ function platformSpecColumns(
           <MutedText>{item.platform}</MutedText>
         </div>
       ),
+      minWidth: "12rem",
     },
     {
       key: "doc",
       header: t("commerce.common.document"),
-      render: (item) => item.docUrl || "-",
+      render: (item) => (
+        <span className="block max-w-80 truncate" title={item.docUrl || undefined}>
+          {item.docUrl || "-"}
+        </span>
+      ),
+      minWidth: "18rem",
     },
   ]
 }
@@ -77,11 +83,17 @@ function channelSpecColumns(
           <MutedText>{item.channel}</MutedText>
         </div>
       ),
+      minWidth: "12rem",
     },
     {
       key: "doc",
       header: t("commerce.common.document"),
-      render: (item) => item.docUrl || "-",
+      render: (item) => (
+        <span className="block max-w-80 truncate" title={item.docUrl || undefined}>
+          {item.docUrl || "-"}
+        </span>
+      ),
+      minWidth: "18rem",
     },
   ]
 }

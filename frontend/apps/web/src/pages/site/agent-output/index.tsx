@@ -1,3 +1,5 @@
+import { useEffect } from "react"
+import { trackProductEvent } from "@/analytics/product-analytics"
 import { OutputHero } from "./components/output-hero"
 import { OutputBackendDeliverables } from "./components/output-backend-deliverables"
 import { OutputMetrics } from "./components/output-metrics"
@@ -7,6 +9,13 @@ import { useAgentOutputPage } from "./use-agent-output-page"
 
 export default function AgentOutputPage() {
   const page = useAgentOutputPage()
+
+  useEffect(() => {
+    trackProductEvent({
+      eventType: "report_view",
+      featureKey: "agent_output.view",
+    })
+  }, [])
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-5">

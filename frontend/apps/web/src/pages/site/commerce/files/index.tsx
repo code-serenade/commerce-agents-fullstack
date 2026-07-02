@@ -53,6 +53,13 @@ export default function FilesPage() {
             description={page.error}
           />
         ) : null}
+        {!page.chatContextAvailable ? (
+          <InlineAlert
+            variant="warning"
+            title={t("commerce.files.chatContextUnavailable.title")}
+            description={t("commerce.files.chatContextUnavailable.description")}
+          />
+        ) : null}
         <CommercePanel
           title={t("commerce.files.panelTitle")}
           description={t("commerce.files.panelDescription")}
@@ -97,6 +104,7 @@ export default function FilesPage() {
             />
             <FilesFilterSummary summary={page.filterSummary} t={t} />
             <FilesTable
+              canUploadEmpty={page.canUploadFiles}
               dataFileCount={page.dataFileCount}
               files={page.files}
               formatFileSize={page.formatFileSize}
@@ -112,6 +120,7 @@ export default function FilesPage() {
               }
               onToggleFileSelection={page.toggleFileSelection}
               selectedFileIds={page.selectedFileIds}
+              turnActionsEnabled={page.chatContextAvailable}
               usingFileIds={page.usingFileIds}
             />
           </div>

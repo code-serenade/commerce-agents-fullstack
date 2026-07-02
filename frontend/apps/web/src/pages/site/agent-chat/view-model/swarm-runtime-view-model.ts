@@ -267,13 +267,18 @@ function findLatestBoundaryEvent(runtimeEvents: AgentRuntimeEvent[]) {
 }
 
 function getComputerFilename(agent: SwarmAgent, t: TFunction) {
-  if (agent.nodeId === "data") return "research.dimension.report.md"
-  if (agent.nodeId === "accounting") return "budget.risk.assessment.xlsx"
-  if (agent.nodeId === "douyin_ads") return "douyin.ads.launch.plan.xlsx"
-  if (agent.nodeId === "creative") return "content.script.matrix.md"
-  if (agent.nodeId === "ops") return "operation.execution.plan.md"
-  if (agent.nodeId === "delivery") {
-    return t("agentChat.swarm.screen.deliveryFilename")
+  const keyByNodeId: Record<string, string> = {
+    accounting: "accountingFilename",
+    creative: "creativeFilename",
+    data: "dataFilename",
+    delivery: "deliveryFilename",
+    design: "designFilename",
+    engineering: "engineeringFilename",
+    ops: "opsFilename",
+    search: "searchFilename",
+    service: "serviceFilename",
+    web: "webFilename",
   }
-  return `${agent.role}.agent.output.md`
+  const key = keyByNodeId[agent.nodeId] ?? "defaultFilename"
+  return t(`agentChat.swarm.screen.${key}`)
 }

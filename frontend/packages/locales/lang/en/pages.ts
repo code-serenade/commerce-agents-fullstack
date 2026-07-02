@@ -1,6 +1,6 @@
 const pages = {
   authRegister: {
-    brand: "Commerce Copilot",
+    brand: "Commerce Multi-Agent Platform",
     hero: {
       titleLine1: "Create your account,",
       titleLine2: "enter the commerce workspace.",
@@ -12,7 +12,7 @@ const pages = {
     welcome: "CREATE ACCOUNT",
     title: "Register your account",
     subtitle:
-      "Create an account to enter Commerce Copilot and manage your commerce tasks.",
+      "Create an account to enter Commerce Multi-Agent Platform and manage your commerce tasks.",
     form: {
       password: {
         label: "Password",
