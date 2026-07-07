@@ -46,11 +46,7 @@ export default function AgentChatPage() {
   }
 
   return (
-    <div className="relative flex size-full max-h-full min-h-0 flex-1 flex-col overflow-hidden bg-(--agent-chat-page-background) text-foreground">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[image:var(--agent-chat-page-ambient)]"
-      />
+    <div className="relative flex size-full max-h-full min-h-0 flex-1 flex-col overflow-hidden text-foreground">
       <AgentChatDocumentTitle />
       <AgentChatStatus
         error={chat.error}

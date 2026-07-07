@@ -463,7 +463,15 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
               ],
         }}
       >
-        {children}
+        <div className="relative flex size-full min-h-0 flex-1 bg-(--agent-chat-page-background) text-foreground">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 bg-[image:var(--agent-chat-page-ambient)]"
+          />
+          <div className="relative z-10 flex size-full min-h-0 flex-1">
+            {children}
+          </div>
+        </div>
       </SidebarShell>
       <Dialog open={Boolean(renameTarget)} onOpenChange={closeRenameDialog}>
         <DialogContent>
