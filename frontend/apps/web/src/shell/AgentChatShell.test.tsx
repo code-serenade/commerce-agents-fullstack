@@ -67,95 +67,88 @@ describe("AgentChatShell", () => {
     })
   })
 
-  it(
-    "shows new chat as a full row above history and keeps history entries selectable",
-    async () => {
-      const i18n = await createAgentChatTestI18n()
-      const user = userEvent.setup()
+  it("shows function entries above history and keeps history entries selectable", async () => {
+    const i18n = await createAgentChatTestI18n()
+    const user = userEvent.setup()
 
-      render(
-        <TestProviders i18n={i18n}>
-          <AgentChatShell>
-            <main>Shell content</main>
-          </AgentChatShell>
-        </TestProviders>
+    render(
+      <TestProviders i18n={i18n}>
+        <AgentChatShell>
+          <main>Shell content</main>
+        </AgentChatShell>
+      </TestProviders>
+    )
+
+    const historyToggle = screen.getByRole("button", {
+      name: i18n.t("agentChat.sidebar.collapseHistory"),
+    })
+
+    const newChatButton = screen
+      .getAllByRole("button", {
+        name: i18n.t("agentChat.sidebar.newChat"),
+      })
+      .find((button) =>
+        Boolean(
+          button.compareDocumentPosition(historyToggle) &
+          Node.DOCUMENT_POSITION_FOLLOWING
+        )
       )
+    expect(newChatButton).toBeDefined()
+    if (!newChatButton) {
+      throw new Error("Expected new chat button above history")
+    }
+    expect(
+      newChatButton.compareDocumentPosition(historyToggle) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+    const firstHistoryButton = screen.getByRole("button", {
+      name: chatState.conversationTitles[0],
+    })
+    expect(newChatButton.getAttribute("data-size")).toBe(
+      firstHistoryButton.getAttribute("data-size")
+    )
 
-      const historyToggle = screen.getByRole("button", {
+    const newChatText = within(newChatButton).getByText(
+      i18n.t("agentChat.sidebar.newChat")
+    )
+    await user.click(newChatText.closest("button") as HTMLButtonElement)
+    expect(chatState.startNewConversation).toHaveBeenCalledTimes(1)
+
+    await user.click(
+      screen.getByRole("button", { name: chatState.conversationTitles[1] })
+    )
+    expect(chatState.selectConversation).toHaveBeenCalledWith("conversation-2")
+  }, 15000)
+
+  it("keeps history visible on function pages so conversations are not hidden", async () => {
+    const i18n = await createAgentChatTestI18n()
+
+    render(
+      <TestProviders i18n={i18n} initialEntries={["/question-ideas"]}>
+        <AgentChatShell>
+          <main>Question ideas content</main>
+        </AgentChatShell>
+      </TestProviders>
+    )
+
+    expect(
+      screen.getByRole("button", {
         name: i18n.t("agentChat.sidebar.collapseHistory"),
       })
-      expect(
-        within(historyToggle.parentElement as HTMLElement).queryAllByRole(
-          "button",
-          { name: i18n.t("agentChat.sidebar.newChat") }
-        )
-      ).toHaveLength(0)
-
-      const newChatButton = screen
-        .getAllByRole("button", {
-          name: i18n.t("agentChat.sidebar.newChat"),
-        })
-        .find((button) =>
-          Boolean(
-            button.compareDocumentPosition(historyToggle) &
-              Node.DOCUMENT_POSITION_FOLLOWING
-          )
-        )
-      expect(newChatButton).toBeDefined()
-      const firstHistoryButton = screen.getByRole("button", {
-        name: chatState.conversationTitles[0],
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", {
+        name: i18n.t("agentChat.sidebar.newChat"),
       })
-      expect(newChatButton?.getAttribute("data-size")).toBe(
-        firstHistoryButton.getAttribute("data-size")
-      )
-
-      const newChatText = within(newChatButton as HTMLButtonElement).getByText(
-        i18n.t("agentChat.sidebar.newChat")
-      )
-      await user.click(newChatText.closest("button") as HTMLButtonElement)
-      expect(chatState.startNewConversation).toHaveBeenCalledTimes(1)
-
-      await user.click(
-        screen.getByRole("button", { name: chatState.conversationTitles[1] })
-      )
-      expect(chatState.selectConversation).toHaveBeenCalledWith("conversation-2")
-    },
-    15000
-  )
-
-  it(
-    "keeps history visible on function pages so conversations are not hidden",
-    async () => {
-      const i18n = await createAgentChatTestI18n()
-
-      render(
-        <TestProviders i18n={i18n} initialEntries={["/question-ideas"]}>
-          <AgentChatShell>
-            <main>Question ideas content</main>
-          </AgentChatShell>
-        </TestProviders>
-      )
-
-      expect(
-        screen.getByRole("button", {
-          name: i18n.t("agentChat.sidebar.collapseHistory"),
-        })
-      ).toBeInTheDocument()
-      expect(
-        screen.getByRole("button", {
-          name: i18n.t("agentChat.sidebar.newChat"),
-        })
-      ).toBeInTheDocument()
-      expect(
-        screen.getByRole("button", { name: chatState.conversationTitles[0] })
-      ).toBeInTheDocument()
-      expect(
-        screen.getByRole("button", { name: chatState.conversationTitles[1] })
-      ).toBeInTheDocument()
-      expect(screen.getByText("Question ideas content")).toBeInTheDocument()
-    },
-    15000
-  )
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: chatState.conversationTitles[0] })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: chatState.conversationTitles[1] })
+    ).toBeInTheDocument()
+    expect(screen.getByText("Question ideas content")).toBeInTheDocument()
+  }, 15000)
 })
 
 function TestProviders({

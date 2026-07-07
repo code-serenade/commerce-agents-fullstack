@@ -2,10 +2,10 @@ import { type MouseEvent, type ReactNode, useState } from "react"
 import {
   Bot,
   Edit3,
-  GitBranch,
   Library,
   LogIn,
   Megaphone,
+  MonitorCog,
   MoreHorizontal,
   MessageSquareText,
   Sparkles,
@@ -180,6 +180,62 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   }
   const sections: SidebarShellSection[] = [
     {
+      key: "workspace",
+      label: t("agentChat.shell.sections.workspace"),
+      collapsible: true,
+      maxContentHeight: "lg",
+      open: functionNavOpen,
+      toggleLabel: functionNavOpen
+        ? t("agentChat.sidebar.collapseFunctionNav")
+        : t("agentChat.sidebar.expandFunctionNav"),
+      onOpenChange: setFunctionNavOpen,
+      leadingItems: [newConversationItem],
+      items: [
+        {
+          key: "smart-ops",
+          icon: <MonitorCog />,
+          label: t("agentChat.shell.navigation.smartOps"),
+          active: !chat.conversationId && isRouteActive("/commerce"),
+          onSelect: () => navigateTo("/commerce"),
+        },
+        {
+          key: "capabilities",
+          icon: <Bot />,
+          label: t("agentChat.shell.navigation.capabilities"),
+          active: isRouteActive("/agent-capabilities"),
+          onSelect: () => navigateTo("/agent-capabilities"),
+        },
+        {
+          key: "question-ideas",
+          icon: <Sparkles />,
+          label: t("agentChat.shell.navigation.questionIdeas"),
+          active: isRouteActive("/question-ideas"),
+          onSelect: () => navigateTo("/question-ideas"),
+        },
+        {
+          key: "product-board",
+          icon: <ShoppingBag />,
+          label: t("agentChat.shell.navigation.productBoard"),
+          active: isRouteActive("/products"),
+          onSelect: () => navigateTo("/products"),
+        },
+        {
+          key: "materials",
+          icon: <Library />,
+          label: t("agentChat.shell.navigation.materials"),
+          active: isRouteActive("/materials"),
+          onSelect: () => navigateTo("/materials"),
+        },
+        {
+          key: "campaigns",
+          icon: <Megaphone />,
+          label: t("agentChat.shell.navigation.campaigns"),
+          active: isRouteActive("/campaigns"),
+          onSelect: () => navigateTo("/campaigns"),
+        },
+      ],
+    },
+    {
       key: "recents",
       label: t("agentChat.shell.sections.recents"),
       collapsible: true,
@@ -189,7 +245,6 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
         ? t("agentChat.sidebar.collapseHistory")
         : t("agentChat.sidebar.expandHistory"),
       onOpenChange: setHistoryOpen,
-      leadingItems: [newConversationItem],
       items: recentConversations.length
         ? [
             ...recentConversations.map((conversation) => ({
@@ -243,61 +298,6 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
             },
           ],
     },
-    {
-      key: "workspace",
-      label: t("agentChat.shell.sections.workspace"),
-      collapsible: true,
-      maxContentHeight: "lg",
-      open: functionNavOpen,
-      toggleLabel: functionNavOpen
-        ? t("agentChat.sidebar.collapseFunctionNav")
-        : t("agentChat.sidebar.expandFunctionNav"),
-      onOpenChange: setFunctionNavOpen,
-      items: [
-        {
-          key: "smart-ops",
-          icon: <GitBranch />,
-          label: t("agentChat.shell.navigation.smartOps"),
-          active: isRouteActive("/commerce"),
-          onSelect: () => navigateTo("/commerce"),
-        },
-        {
-          key: "capabilities",
-          icon: <Bot />,
-          label: t("agentChat.shell.navigation.capabilities"),
-          active: isRouteActive("/agent-capabilities"),
-          onSelect: () => navigateTo("/agent-capabilities"),
-        },
-        {
-          key: "question-ideas",
-          icon: <Sparkles />,
-          label: t("agentChat.shell.navigation.questionIdeas"),
-          active: isRouteActive("/question-ideas"),
-          onSelect: () => navigateTo("/question-ideas"),
-        },
-        {
-          key: "product-board",
-          icon: <ShoppingBag />,
-          label: t("agentChat.shell.navigation.productBoard"),
-          active: isRouteActive("/products"),
-          onSelect: () => navigateTo("/products"),
-        },
-        {
-          key: "materials",
-          icon: <Library />,
-          label: t("agentChat.shell.navigation.materials"),
-          active: isRouteActive("/materials"),
-          onSelect: () => navigateTo("/materials"),
-        },
-        {
-          key: "campaigns",
-          icon: <Megaphone />,
-          label: t("agentChat.shell.navigation.campaigns"),
-          active: isRouteActive("/campaigns"),
-          onSelect: () => navigateTo("/campaigns"),
-        },
-      ],
-    },
   ]
   const mobileConversationItems = chat.conversations
     .slice(0, 5)
@@ -341,7 +341,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       active:
         isRouteActive("/agent-capabilities") ||
         isRouteActive("/question-ideas") ||
-        isRouteActive("/commerce") ||
+        (!chat.conversationId && isRouteActive("/commerce")) ||
         isRouteActive("/products") ||
         isRouteActive("/materials") ||
         isRouteActive("/campaigns"),
@@ -350,7 +350,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           key: "smart-ops",
           label: t("agentChat.shell.navigation.smartOps"),
           href: "/commerce",
-          active: isRouteActive("/commerce"),
+          active: !chat.conversationId && isRouteActive("/commerce"),
           onSelect: () => navigateTo("/commerce"),
         },
         {
@@ -397,10 +397,9 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       <SidebarShell
         defaultSidebarOpen
         contentScroll={isQuestionRoute ? "hidden" : "auto"}
+        contentPadding="none"
         brandLogo={<CommerceAgentLogo />}
-        brandEyebrow={t("agentChat.shell.brandEyebrow")}
         brandTitle={t("agentChat.shell.brandTitle")}
-        brandDescription={t("agentChat.shell.brandDescription")}
         sections={sections}
         mobileNavigation={{
           label: t("web.shell.navigation.mobileLabel"),
