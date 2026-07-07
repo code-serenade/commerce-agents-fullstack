@@ -67,7 +67,10 @@ export function MessageContextSummary({
     })
   }
 
-  if (summary.collaborationMode === "auto" && summary.selectedRoles.length === 0) {
+  if (
+    summary.collaborationMode === "auto" &&
+    summary.selectedRoles.length === 0
+  ) {
     chips.push({
       icon: <UsersRound className="size-3.5" />,
       label: t("agentChat.thread.contextSummary.autoRoles"),
@@ -86,16 +89,16 @@ export function MessageContextSummary({
 
   return (
     <div
-      className="mt-1 flex max-w-full flex-col items-end gap-1 text-[11px] text-muted-foreground"
+      className="mt-1.5 flex max-w-full flex-col items-end gap-1.5 text-[11px] text-muted-foreground"
       aria-label={t("agentChat.thread.contextSummary.label")}
     >
-      <div className="flex max-w-full flex-wrap justify-end gap-1.5">
+      <div className="flex max-w-full flex-wrap justify-end gap-2">
         {chips.map((chip) => (
           <span
             key={chip.label}
-            className="inline-flex max-w-full items-center gap-1 rounded-full border border-border bg-card px-2 py-1 shadow-sm"
+            className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) px-2.5 py-1 text-(--agent-chat-accent-foreground) shadow-sm backdrop-blur-md"
           >
-            <span className="shrink-0">{chip.icon}</span>
+            <span className="shrink-0 text-primary">{chip.icon}</span>
             <span className="truncate">{chip.label}</span>
           </span>
         ))}
@@ -104,11 +107,11 @@ export function MessageContextSummary({
       summary.campaigns.length > 0 ||
       summary.sources.length > 0 ? (
         <details className="group max-w-full">
-          <summary className="flex cursor-pointer list-none items-center gap-1 rounded-full border border-border bg-card px-2 py-1 shadow-sm transition-colors hover:bg-muted hover:text-foreground [&::-webkit-details-marker]:hidden">
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-full border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) px-2.5 py-1 text-(--agent-chat-accent-foreground) shadow-sm backdrop-blur-md transition-colors hover:bg-(--agent-chat-accent-soft) hover:text-primary [&::-webkit-details-marker]:hidden">
             <span>{t("agentChat.thread.contextSummary.details")}</span>
             <ChevronDown className="size-3.5 transition-transform group-open:rotate-180" />
           </summary>
-          <div className="mt-1 max-h-36 w-72 max-w-[min(72vw,18rem)] overflow-y-auto rounded-lg border border-border bg-card p-2 text-left shadow-sm">
+          <div className="mt-1.5 max-h-36 w-72 max-w-[min(72vw,18rem)] overflow-y-auto rounded-2xl border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) p-2 text-left shadow-[var(--agent-chat-card-shadow)] backdrop-blur-xl">
             <ContextReferenceGroup
               icon={<ShoppingBag className="size-3.5" />}
               items={summary.products}
@@ -123,7 +126,9 @@ export function MessageContextSummary({
               icon={<FileText className="size-3.5" />}
               items={summary.sources}
               readinessLabel={(readiness) =>
-                t(`agentChat.thread.contextSummary.sourceReadiness.${readiness}`)
+                t(
+                  `agentChat.thread.contextSummary.sourceReadiness.${readiness}`
+                )
               }
               title={t("agentChat.thread.contextSummary.sourceDetails")}
             />
@@ -157,7 +162,7 @@ function ContextReferenceGroup({
         {items.map((item) => (
           <div
             key={item.id}
-            className="rounded-md bg-muted px-2 py-1 text-muted-foreground"
+            className="rounded-xl bg-(--agent-chat-subtle-surface) px-2 py-1 text-muted-foreground"
             title={item.id}
           >
             <div className="truncate text-foreground">

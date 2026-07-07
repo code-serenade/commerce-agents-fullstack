@@ -61,8 +61,7 @@ export function AgentChatComposer({
   const composerRootRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const panelMaxHeight =
-    useAgentChatComposerPanelMaxHeight(composerRootRef)
+  const panelMaxHeight = useAgentChatComposerPanelMaxHeight(composerRootRef)
   const panels = useAgentChatPanelState({
     requestedPanel,
     requestedPanelVersion,
@@ -109,11 +108,11 @@ export function AgentChatComposer({
   }, [focusVersion, isStreaming])
 
   return (
-    <footer className="relative z-30 shrink-0 bg-linear-to-t from-background via-background/95 to-background/70 px-3 pb-3 pt-2 sm:px-5">
+    <footer className="relative z-30 shrink-0 px-4 pt-3 pb-5 sm:px-7">
       <div
         ref={composerRootRef}
         data-agent-chat-composer-root="true"
-        className="mx-auto flex w-full max-w-4xl flex-col gap-2 rounded-xl border border-muted-foreground/35 bg-background p-1 shadow-lg shadow-black/10 transition-colors focus-within:border-foreground/40 focus-within:ring-2 focus-within:ring-ring/15 dark:bg-card"
+        className="mx-auto flex w-full max-w-4xl flex-col gap-2 rounded-[26px] border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) p-2 shadow-[var(--agent-chat-floating-shadow)] backdrop-blur-xl transition-colors focus-within:border-primary/35 focus-within:shadow-[var(--agent-chat-focus-shadow)] dark:bg-card"
         onMouseDown={composerEvents.focusComposer}
       >
         <div className="relative">
@@ -164,7 +163,7 @@ export function AgentChatComposer({
             strategyId={strategyId}
           />
 
-          <div className="grid gap-1 rounded-lg bg-background p-1.5 shadow-sm">
+          <div className="grid gap-1 rounded-[20px] bg-(--agent-chat-elevated-strong) p-1.5">
             <AgentChatComposerStatus
               canRetry={canSend}
               error={error}
@@ -199,7 +198,9 @@ export function AgentChatComposer({
               isLoadingProducts={isLoadingProducts}
               isLoadingRuntimeOptions={isLoadingRuntimeOptions}
               isStreaming={isStreaming}
-              onRuntimeCollaborationModeChange={onRuntimeCollaborationModeChange}
+              onRuntimeCollaborationModeChange={
+                onRuntimeCollaborationModeChange
+              }
               onRuntimeLearningLevelChange={onRuntimeLearningLevelChange}
               onRuntimePrimaryRoleChange={onRuntimePrimaryRoleChange}
               onRuntimeRoutingModeChange={onRuntimeRoutingModeChange}

@@ -99,7 +99,7 @@ export function AvatarDropdown({
         {triggerVariant === "sidebar" ? (
           <button
             type="button"
-            className="flex w-full items-center gap-2.5 overflow-hidden rounded-xl bg-[var(--surface)] px-2.5 py-2 text-left outline-hidden transition hover:bg-[var(--surface-hover)] focus-visible:ring-2 focus-visible:ring-(--app-primary) group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:rounded-full group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-0"
+            className="flex w-full cursor-pointer items-center gap-2.5 overflow-hidden rounded-xl bg-transparent px-2.5 py-2 text-left outline-hidden transition group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:rounded-full group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-0 focus-visible:ring-2 focus-visible:ring-(--app-primary)"
             aria-label={openAccountMenuLabel}
           >
             <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#0f1724]">

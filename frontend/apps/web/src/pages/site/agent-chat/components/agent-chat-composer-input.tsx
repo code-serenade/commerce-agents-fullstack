@@ -61,7 +61,7 @@ export function AgentChatComposerInput({
           )}
           disabled={isStreaming}
           rows={1}
-          className="max-h-44 min-h-10 w-full resize-none border-0 bg-transparent px-3 py-2 text-sm/6 outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60"
+          className="max-h-44 min-h-10 w-full resize-none border-0 bg-transparent px-3 py-2 text-sm/6 text-foreground outline-none placeholder:text-(--agent-chat-placeholder) disabled:cursor-not-allowed disabled:opacity-60"
         />
         <div className="hidden min-h-10 items-center sm:flex">
           <AgentChatComposerSendButton

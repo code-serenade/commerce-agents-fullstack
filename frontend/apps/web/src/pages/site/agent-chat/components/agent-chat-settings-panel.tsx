@@ -44,7 +44,9 @@ export function AgentChatSettingsPanel({
   variant = "bar",
 }: AgentChatSettingsPanelProps) {
   const { t } = useTranslation()
-  const activeStrategyLabel = t(`agentChat.strategy.options.${strategyId}.label`)
+  const activeStrategyLabel = t(
+    `agentChat.strategy.options.${strategyId}.label`
+  )
   const depthChoice = runtimeOptions?.learningLevels.find(
     (level) => level.id === runtimeSelection.learningLevel
   )
@@ -127,8 +129,8 @@ export function AgentChatSettingsPanel({
           onClick={onToggleOpen}
           className={`flex h-7 max-w-28 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:max-w-36 ${
             isOpen
-              ? "border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-700/70 dark:bg-blue-950/40 dark:text-blue-100"
-              : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+              ? "border-primary/30 bg-(--agent-chat-accent-soft) text-(--agent-chat-accent-foreground) shadow-sm"
+              : "border-(--agent-chat-soft-border) bg-(--agent-chat-muted-control) text-muted-foreground hover:bg-(--agent-chat-accent-soft) hover:text-(--agent-chat-accent-foreground)"
           }`}
           aria-expanded={isOpen}
           aria-label={compactTitle}

@@ -4,7 +4,7 @@ export const sidebarWrapperClassName =
   "group/sidebar-wrapper flex min-h-svh w-full has-data-[variant=inset]:bg-sidebar"
 
 export const sidebarStaticClassName =
-  "flex h-full w-(--sidebar-width) flex-col bg-[var(--surface)] text-sidebar-foreground"
+  "flex h-full w-(--sidebar-width) flex-col bg-sidebar text-sidebar-foreground"
 
 export const sidebarGapVariants = cva(
   "relative w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear group-data-[collapsible=offcanvas]:w-0 group-data-[side=right]:rotate-180",
@@ -72,7 +72,7 @@ export const sidebarMenuClassName = "flex w-full min-w-0 flex-col gap-0"
 export const sidebarMenuItemClassName = "group/menu-item relative"
 
 export const sidebarMenuButtonVariants = cva(
-  "peer/menu-button group/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm ring-sidebar-ring outline-hidden transition-[width,height,padding] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:w-8! group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-2! group-data-[collapsible=icon]:py-2! hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 group-data-[collapsible=icon]:data-[active-group=true]:bg-sidebar-accent group-data-[collapsible=icon]:data-[active-group=true]:text-sidebar-primary data-[active-group=true]:data-[disclosure-open=false]:bg-sidebar-accent data-[active-group=true]:data-[disclosure-open=false]:text-sidebar-primary data-open:hover:bg-sidebar-accent data-open:hover:text-sidebar-accent-foreground data-active:bg-sidebar-accent data-active:font-medium data-active:text-sidebar-accent-foreground [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate",
+  "peer/menu-button group/menu-button flex w-full items-center gap-2 overflow-hidden rounded-xl p-2 text-left text-sm ring-sidebar-ring outline-hidden transition-[width,height,padding,background-color,color,box-shadow] group-has-data-[sidebar=menu-action]/menu-item:pr-8 group-data-[collapsible=icon]:w-8! group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-2! group-data-[collapsible=icon]:py-2! hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 group-data-[collapsible=icon]:data-[active-group=true]:bg-sidebar-accent group-data-[collapsible=icon]:data-[active-group=true]:text-sidebar-primary data-[active-group=true]:data-[disclosure-open=false]:bg-sidebar-accent data-[active-group=true]:data-[disclosure-open=false]:text-sidebar-primary data-open:hover:bg-sidebar-accent data-open:hover:text-sidebar-accent-foreground data-active:bg-sidebar-accent data-active:font-semibold data-active:text-sidebar-primary data-active:shadow-[var(--shell-sidebar-shadow)] [&_svg]:size-4 [&_svg]:shrink-0 [&>span:last-child]:truncate",
   {
     variants: {
       variant: {
@@ -147,12 +147,12 @@ export const sidebarMenuSubButtonVariants = cva(
 
 export const sidebarClassNames = {
   slot1:
-    "w-(--sidebar-width) bg-[var(--surface)] p-0 text-sidebar-foreground [&>button]:hidden",
+    "w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden",
   slot2: "sr-only",
   slot3: "flex h-full w-full flex-col",
   slot4: "group peer hidden text-sidebar-foreground md:block",
   slot5:
-    "flex size-full flex-col border border-[var(--border)] bg-[var(--surface)] group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:shadow-sm group-data-[variant=floating]:ring-1 group-data-[variant=floating]:ring-sidebar-border",
+    "flex size-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:shadow-sm group-data-[variant=floating]:ring-1 group-data-[variant=floating]:ring-sidebar-border",
   slot6: "size-4 rounded-md",
   slot7: "h-4 max-w-(--skeleton-width) flex-1",
 } as const

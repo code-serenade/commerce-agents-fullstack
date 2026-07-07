@@ -18,7 +18,7 @@ export function AgentChatComposerPanelShell({
 
   return (
     <div
-      className="absolute inset-x-0 bottom-[calc(100%+1.25rem)] z-50 overflow-x-hidden overflow-y-auto overscroll-contain rounded-lg border border-border bg-background shadow-2xl shadow-black/15 [scrollbar-gutter:stable]"
+      className="absolute inset-x-0 bottom-[calc(100%+1.25rem)] z-50 overflow-x-hidden overflow-y-auto overscroll-contain rounded-2xl border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) shadow-[var(--agent-chat-card-shadow)] backdrop-blur-xl [scrollbar-gutter:stable]"
       data-composer-interactive="true"
       data-agent-chat-composer-panel-scroll="true"
       data-agent-chat-composer-panel-shell="true"
@@ -32,7 +32,7 @@ export function AgentChatComposerPanelShell({
             aria-label={closeLabel}
             title={closeLabel}
             onClick={onClose}
-            className="absolute right-3 top-3 z-10 inline-flex size-8 items-center justify-center rounded-md border border-border bg-background/95 text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden"
+            className="absolute top-3 right-3 z-10 inline-flex size-8 items-center justify-center rounded-xl border border-border bg-(--agent-chat-elevated-strong) text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden"
           >
             <X className="size-4" aria-hidden="true" />
           </button>

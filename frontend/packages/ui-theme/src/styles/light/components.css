@@ -1,19 +1,27 @@
 :root {
   /* Component-level tokens */
-  --input: oklch(0.9 0.012 250);
-  --ring: oklch(0.62 0.18 258);
+  --input: oklch(0.895 0.024 252);
+  --ring: oklch(0.62 0.2 268);
   --chart-1: oklch(0.63 0.2 258);
   --chart-2: oklch(0.72 0.16 200);
   --chart-3: oklch(0.69 0.18 145);
   --chart-4: oklch(0.73 0.17 85);
   --chart-5: oklch(0.65 0.2 20);
   --radius: 0.625rem;
-  --sidebar: oklch(0.975 0.006 250);
-  --sidebar-foreground: oklch(0.27 0.02 256);
-  --sidebar-primary: oklch(0.57 0.19 258);
+  --sidebar: oklch(0.985 0.012 252);
+  --sidebar-foreground: oklch(0.25 0.035 257);
+  --sidebar-primary: oklch(0.58 0.24 271);
   --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.94 0.015 250);
-  --sidebar-accent-foreground: oklch(0.31 0.02 256);
-  --sidebar-border: oklch(0.89 0.01 250);
-  --sidebar-ring: oklch(0.62 0.18 258);
+  --sidebar-accent: oklch(0.935 0.05 265);
+  --sidebar-accent-foreground: oklch(0.49 0.24 266);
+  --sidebar-border: oklch(0.88 0.026 252 / 82%);
+  --sidebar-ring: oklch(0.62 0.2 268);
+  --shell-topbar-background: oklch(1 0 0 / 78%);
+  --shell-topbar-shadow: 0 1px 0 oklch(0.9 0.025 252 / 62%);
+  --shell-sidebar-trigger-background: oklch(1 0 0);
+  --shell-sidebar-shadow:
+    18px 0 46px oklch(0.5 0.08 258 / 8%), 1px 0 0 oklch(0.88 0.026 252 / 62%);
+  --shell-logo-background: var(--primary);
+  --shell-logo-shadow: 0 12px 26px oklch(0.55 0.22 268 / 30%);
+  --shell-logo-ring: oklch(1 0 0 / 60%);
 }

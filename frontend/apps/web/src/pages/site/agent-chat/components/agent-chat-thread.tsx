@@ -108,13 +108,16 @@ export function AgentChatThread({
     restoreThreadScroll(pendingScrollRestoreRef.current)
   }, [activeProcessMessageId])
 
-  const preserveThreadScroll = useCallback((messageId: string | null, action: () => void) => {
-    const root = scrollRootRef.current
-    const snapshot = createThreadScrollSnapshot(root, messageId)
-    pendingScrollRestoreRef.current = snapshot
-    action()
-    restoreThreadScroll(snapshot)
-  }, [])
+  const preserveThreadScroll = useCallback(
+    (messageId: string | null, action: () => void) => {
+      const root = scrollRootRef.current
+      const snapshot = createThreadScrollSnapshot(root, messageId)
+      pendingScrollRestoreRef.current = snapshot
+      action()
+      restoreThreadScroll(snapshot)
+    },
+    []
+  )
 
   const handleOpenProcessPanel = (target: {
     anchorLabel: string
@@ -138,9 +141,9 @@ export function AgentChatThread({
       ref={scrollRootRef}
       data-agent-chat-thread-scroll-root="true"
       onScroll={handleScroll}
-      className="min-h-0 flex-1 overflow-y-auto bg-background px-4 py-5 sm:px-6"
+      className="no-scrollbar min-h-0 flex-1 overflow-y-auto bg-transparent px-4 py-6 sm:px-6 sm:py-7"
     >
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+      <div className="mx-auto flex w-full max-w-[48rem] flex-col gap-6">
         {messages.length <= 1 && !hasOnlyWelcomeMessage ? (
           <div className="flex justify-center">
             <StrategyStatusPill strategy={selectedStrategy} />

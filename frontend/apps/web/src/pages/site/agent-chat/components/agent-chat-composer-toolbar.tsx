@@ -188,7 +188,7 @@ export function AgentChatComposerSendButton({
         type="button"
         onClick={onStop}
         aria-label={t("agentChat.composer.stop")}
-        className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        className="flex size-9 shrink-0 items-center justify-center rounded-2xl border border-border bg-(--agent-chat-muted-control) text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground"
         title={t("agentChat.composer.stop")}
       >
         <Square className="size-4" />
@@ -202,7 +202,7 @@ export function AgentChatComposerSendButton({
       disabled={!canSend}
       onClick={onSend}
       aria-label={t("agentChat.composer.send")}
-      className="flex size-8 shrink-0 items-center justify-center rounded-full bg-foreground text-background transition-colors hover:bg-foreground/90 disabled:cursor-not-allowed disabled:opacity-45"
+      className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-(--agent-chat-primary-gradient) text-primary-foreground shadow-[var(--agent-chat-button-shadow)] transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:scale-100"
       title={t("agentChat.composer.send")}
     >
       {canSend ? (

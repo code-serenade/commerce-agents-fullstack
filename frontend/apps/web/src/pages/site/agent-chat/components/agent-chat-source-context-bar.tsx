@@ -113,8 +113,8 @@ export function AgentChatSourceContextBar({
         onClick={toggleOpen}
         className={`flex h-7 max-w-28 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition-colors sm:max-w-48 ${
           open
-            ? "border-amber-400/80 bg-amber-50 text-amber-800 dark:bg-amber-500/15 dark:text-amber-100"
-            : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+            ? "border-primary/30 bg-(--agent-chat-accent-soft) text-(--agent-chat-accent-foreground) shadow-sm"
+            : "border-(--agent-chat-soft-border) bg-(--agent-chat-muted-control) text-muted-foreground hover:bg-(--agent-chat-accent-soft) hover:text-(--agent-chat-accent-foreground)"
         }`}
         aria-expanded={open}
         aria-label={title}

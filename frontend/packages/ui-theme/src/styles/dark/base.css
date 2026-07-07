@@ -26,4 +26,36 @@ html[data-theme="dark"],
   --success: color(display-p3 0.3954 0.7694 0.4);
   --warning: color(display-p3 0.9404 0.5755 0.2617);
   --error: color(display-p3 0.9209 0.2964 0.2741);
+
+  --app-surface: var(--surface);
+  --app-panel: var(--card);
+  --app-text: var(--foreground);
+  --app-muted-text: var(--muted-foreground);
+  --app-border: var(--border);
+  --app-primary: var(--primary);
+  --app-active-bg: var(--accent);
+
+  --agent-chat-page-background: var(--background);
+  --agent-chat-page-ambient: none;
+  --agent-chat-content-surface: var(--background);
+  --agent-chat-elevated-surface: var(--card);
+  --agent-chat-elevated-strong: var(--card);
+  --agent-chat-subtle-surface: var(--background);
+  --agent-chat-soft-border: var(--border);
+  --agent-chat-strong-border: var(--border);
+  --agent-chat-card-header: none;
+  --agent-chat-card-background: linear-gradient(var(--card), var(--card));
+  --agent-chat-primary-gradient: var(--primary);
+  --agent-chat-user-message-background: var(--primary);
+  --agent-chat-user-message-foreground: var(--primary-foreground);
+  --agent-chat-floating-shadow: 0 10px 30px oklch(0 0 0 / 10%);
+  --agent-chat-card-shadow: 0 10px 30px oklch(0 0 0 / 15%);
+  --agent-chat-avatar-shadow: none;
+  --agent-chat-button-shadow: none;
+  --agent-chat-focus-shadow: 0 0 0 2px oklch(0.69 0.15 258 / 15%);
+  --agent-chat-inset-shadow: none;
+  --agent-chat-accent-soft: var(--muted);
+  --agent-chat-accent-foreground: var(--accent-foreground);
+  --agent-chat-muted-control: var(--card);
+  --agent-chat-placeholder: var(--muted-foreground);
 }

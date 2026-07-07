@@ -68,8 +68,8 @@ export function AgentChatProductContextBar({
           onClick={toggleOpen}
           className={`flex h-7 max-w-28 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition-colors sm:max-w-36 ${
             open
-              ? "border-emerald-400/70 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200"
-              : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+              ? "border-primary/30 bg-(--agent-chat-accent-soft) text-(--agent-chat-accent-foreground) shadow-sm"
+              : "border-(--agent-chat-soft-border) bg-(--agent-chat-muted-control) text-muted-foreground hover:bg-(--agent-chat-accent-soft) hover:text-(--agent-chat-accent-foreground)"
           }`}
           aria-expanded={open}
           aria-label={title}
@@ -111,7 +111,7 @@ export function AgentChatProductContextBar({
               <span
                 className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
                   selectedProducts.length
-                    ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200"
+                    ? "bg-(--agent-chat-accent-soft) text-(--agent-chat-accent-foreground)"
                     : "bg-muted text-muted-foreground"
                 }`}
               >
