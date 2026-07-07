@@ -46,12 +46,18 @@ export default function AgentChatPage() {
   }
 
   return (
-    <div className="flex max-h-full min-h-0 size-full flex-1 flex-col overflow-hidden bg-background text-foreground">
+    <div className="relative flex size-full max-h-full min-h-0 flex-1 flex-col overflow-hidden bg-(--agent-chat-page-background) text-foreground">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[image:var(--agent-chat-page-ambient)]"
+      />
       <AgentChatDocumentTitle />
       <AgentChatStatus
         error={chat.error}
         loginRequired={!chat.isLoggedIn}
-        onLogin={() => navigate("/login", { state: { from: { pathname: "/commerce" } } })}
+        onLogin={() =>
+          navigate("/login", { state: { from: { pathname: "/commerce" } } })
+        }
       />
       {chat.isLoggedIn ? (
         <AgentChatQuotaStatus
@@ -59,10 +65,12 @@ export default function AgentChatPage() {
           quota={chat.quota}
         />
       ) : null}
-      <div className="relative flex min-h-0 w-full flex-1 overflow-hidden p-2 sm:p-3">
-        <section className="mx-auto flex size-full min-h-0 max-w-5xl min-w-0 flex-col overflow-hidden rounded-lg bg-background">
+      <div className="relative z-10 flex min-h-0 w-full flex-1 overflow-hidden px-3 py-5 sm:px-7 sm:py-8">
+        <section className="mx-auto flex size-full min-h-0 max-w-5xl min-w-0 flex-col overflow-hidden">
           <AgentChatThread
-            activeProcessMessageId={processPanel.activeProcessMessage?.id ?? null}
+            activeProcessMessageId={
+              processPanel.activeProcessMessage?.id ?? null
+            }
             isStreaming={chat.isStreaming}
             messages={chat.messages}
             onCloseProcessPanel={processPanel.closeProcessPanel}
