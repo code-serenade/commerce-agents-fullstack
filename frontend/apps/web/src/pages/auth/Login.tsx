@@ -8,11 +8,7 @@ import {
   type AuthLoginSubmitValues,
   type AuthLoginViewLabels,
 } from "@workspace/app-kit/login"
-import {
-  ensureCurrentAppUserPermissions,
-  loginApi,
-  meApi,
-} from "@/api"
+import { ensureCurrentAppUserPermissions, loginApi, meApi } from "@/api"
 import { resetAccess, setAccess } from "@/store/accessSlice"
 import { loginSuccess, logout } from "@/store/authSlice"
 import { CommerceAgentLogo } from "@/components/brand"
@@ -20,7 +16,7 @@ import { trackProductEvent } from "@/analytics/product-analytics"
 import { loginErrorCopyKey, type LoginStage } from "./login-error-copy"
 
 const authLinkClassName =
-  "font-medium text-(--app-text) underline-offset-4 transition hover:underline"
+  "font-bold text-[#2758ff] underline-offset-4 transition hover:underline dark:text-[#76a2ff]"
 
 function createLoginLabels(
   t: ReturnType<typeof useTranslation>["t"]
@@ -102,6 +98,7 @@ export default function LoginPage() {
     <AuthLoginView
       labels={createLoginLabels(t)}
       brandLogo={<CommerceAgentLogo size="lg" />}
+      variant="minimal"
       notice={
         loginError
           ? {

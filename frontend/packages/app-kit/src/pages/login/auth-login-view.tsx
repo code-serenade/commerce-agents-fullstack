@@ -1,9 +1,10 @@
 import type { ReactNode } from "react"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
+import { Eye, EyeOff } from "lucide-react"
 import { Button } from "@workspace/ui-components/stable/button"
 import {
   Field,
@@ -50,6 +51,7 @@ export interface AuthLoginViewProps {
   brandLogo?: ReactNode
   footerLink?: AuthLoginFooterLink
   notice?: AuthLoginNotice
+  variant?: "split" | "minimal"
   onSubmit: (values: AuthLoginSubmitValues) => void | Promise<void>
 }
 
@@ -65,9 +67,11 @@ export function AuthLoginView({
   brandLogo,
   footerLink,
   notice,
+  variant = "split",
   onSubmit,
 }: AuthLoginViewProps) {
   const { t } = useTranslation(["common"])
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const loginSchema = useMemo(() => createAuthLoginSchema(t), [t])
   type LoginFormValues = z.infer<typeof loginSchema>
   const {
@@ -83,6 +87,113 @@ export function AuthLoginView({
   })
 
   const handleLogin = handleSubmit(onSubmit)
+
+  if (variant === "minimal") {
+    return (
+      <section className="relative z-10 mx-auto mt-[-10px] w-full max-w-[420px]">
+        <div className="mb-[18px] flex items-center justify-center gap-3">
+          {brandLogo ? <div className="shrink-0">{brandLogo}</div> : null}
+          <p className="m-0 text-[22px] font-bold tracking-normal text-[#111936] drop-shadow-[0_14px_36px_rgba(73,102,255,0.14)] dark:text-[#f7faff] dark:drop-shadow-[0_14px_36px_rgba(73,102,255,0.36)]">
+            {labels.brand}
+          </p>
+        </div>
+
+        <header className="mb-[34px] text-center">
+          <p className="mx-auto my-0 max-w-[360px] text-[15px] leading-[1.8] text-[#65738d] dark:text-[#93a4c1]">
+            {labels.subtitle}
+          </p>
+        </header>
+
+        {notice ? (
+          <div className="mb-5 rounded-2xl border border-[#dce6f7] bg-white/80 p-4 text-left shadow-[0_18px_42px_rgba(38,76,160,0.1)] backdrop-blur-xl dark:border-[rgba(159,179,217,0.24)] dark:bg-[rgba(11,18,38,0.78)] dark:shadow-[0_22px_54px_rgba(0,0,0,0.28)]">
+            <p className="text-sm font-medium text-[#111936] dark:text-[#f7faff]">
+              {notice.title}
+            </p>
+            <p className="mt-1 text-sm text-[#65738d] dark:text-[#93a4c1]">
+              {notice.description}
+            </p>
+          </div>
+        ) : null}
+
+        <form onSubmit={handleLogin} className="px-0.5 pt-1">
+          <div className="grid gap-[19px]">
+            <label className="block">
+              <span className="mb-[9px] block text-sm font-bold text-[#344054] dark:text-[#d8e4ff]">
+                {labels.identifierLabel}
+              </span>
+              <Controller
+                control={control}
+                name="identifier"
+                render={({ field }) => (
+                  <input
+                    value={field.value}
+                    onChange={(event) => field.onChange(event.target.value)}
+                    type="text"
+                    placeholder={labels.identifierPlaceholder}
+                    className="h-12 w-full rounded-xl border border-[#dce6f7] bg-white/90 px-3.5 text-[15px] text-[#101828] shadow-[0_10px_26px_rgba(31,74,145,0.04),inset_0_1px_0_rgba(255,255,255,0.92)] transition outline-none focus:border-[rgba(53,92,255,0.72)] focus:shadow-[0_0_0_4px_rgba(53,92,255,0.08),inset_0_1px_0_rgba(255,255,255,0.9)] dark:border-[rgba(155,176,214,0.22)] dark:bg-[linear-gradient(180deg,rgba(16,25,50,0.9),rgba(11,18,38,0.74))] dark:text-[#eef4ff] dark:shadow-[0_16px_36px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08)] dark:focus:border-[rgba(118,162,255,0.72)] dark:focus:shadow-[0_0_0_4px_rgba(49,93,255,0.14),0_18px_38px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)]"
+                  />
+                )}
+              />
+              <FieldError>{errors.identifier?.message}</FieldError>
+            </label>
+
+            <label className="block">
+              <span className="mb-[9px] block text-sm font-bold text-[#344054] dark:text-[#d8e4ff]">
+                {labels.passwordLabel}
+              </span>
+              <Controller
+                control={control}
+                name="password"
+                render={({ field }) => (
+                  <div className="relative">
+                    <input
+                      value={field.value}
+                      onChange={(event) => field.onChange(event.target.value)}
+                      type={isPasswordVisible ? "text" : "password"}
+                      placeholder={labels.passwordPlaceholder}
+                      className="h-12 w-full rounded-xl border border-[#dce6f7] bg-white/90 px-3.5 pr-12 text-[15px] text-[#101828] shadow-[0_10px_26px_rgba(31,74,145,0.04),inset_0_1px_0_rgba(255,255,255,0.92)] transition outline-none focus:border-[rgba(53,92,255,0.72)] focus:shadow-[0_0_0_4px_rgba(53,92,255,0.08),inset_0_1px_0_rgba(255,255,255,0.9)] dark:border-[rgba(155,176,214,0.22)] dark:bg-[linear-gradient(180deg,rgba(16,25,50,0.9),rgba(11,18,38,0.74))] dark:text-[#eef4ff] dark:shadow-[0_16px_36px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08)] dark:focus:border-[rgba(118,162,255,0.72)] dark:focus:shadow-[0_0_0_4px_rgba(49,93,255,0.14),0_18px_38px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)]"
+                    />
+                    <button
+                      type="button"
+                      className="absolute top-1/2 right-3 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#65738d] transition hover:bg-[#eef4ff] hover:text-[#2758ff] focus-visible:ring-2 focus-visible:ring-[rgba(53,92,255,0.24)] focus-visible:outline-none dark:text-[#93a4c1] dark:hover:bg-[rgba(118,162,255,0.12)] dark:hover:text-[#d8e4ff]"
+                      aria-label={
+                        isPasswordVisible ? "Hide password" : "Show password"
+                      }
+                      aria-pressed={isPasswordVisible}
+                      onClick={() =>
+                        setIsPasswordVisible((visible) => !visible)
+                      }
+                    >
+                      {isPasswordVisible ? (
+                        <EyeOff aria-hidden="true" className="size-4.5" />
+                      ) : (
+                        <Eye aria-hidden="true" className="size-4.5" />
+                      )}
+                    </button>
+                  </div>
+                )}
+              />
+              <FieldError>{errors.password?.message}</FieldError>
+            </label>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="mt-[26px] h-12 w-full rounded-xl border-0 bg-[linear-gradient(135deg,#8b3dff,#2758ff)] text-base font-bold text-white shadow-[0_16px_34px_rgba(67,77,255,0.28)] transition disabled:cursor-not-allowed disabled:opacity-65 dark:shadow-[0_18px_42px_rgba(61,88,255,0.36),inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+          >
+            {isSubmitting ? labels.submitting : labels.submit}
+          </button>
+        </form>
+
+        {footerLink ? (
+          <p className="mt-6 flex justify-center gap-2 text-sm text-[#65738d] dark:text-[#93a4c1]">
+            {footerLink.prefix} {footerLink.action}
+          </p>
+        ) : null}
+      </section>
+    )
+  }
 
   return (
     <div className={authShellClassName}>

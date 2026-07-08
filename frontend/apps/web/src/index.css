@@ -22,8 +22,120 @@
   }
 }
 
+.login-auth-bg {
+  animation: login-auth-bg-flow 13s ease-in-out infinite alternate;
+  background-size:
+    160% 160%,
+    150% 150%,
+    100% 100%;
+}
+
+.login-auth-flow {
+  animation: login-auth-flow-sweep 9s ease-in-out infinite alternate;
+  background-size:
+    140% 140%,
+    140% 140%,
+    220% 220%;
+}
+
+.login-auth-grid {
+  animation: login-auth-grid-drift 10s linear infinite;
+}
+
+.login-auth-vignette {
+  animation: login-auth-vignette-breathe 10s ease-in-out infinite alternate;
+}
+
+@keyframes login-auth-bg-flow {
+  0% {
+    background-position:
+      42% 8%,
+      26% 58%,
+      0% 50%;
+  }
+
+  50% {
+    background-position:
+      72% 26%,
+      18% 42%,
+      48% 50%;
+  }
+
+  100% {
+    background-position:
+      48% 18%,
+      54% 52%,
+      100% 50%;
+  }
+}
+
+@keyframes login-auth-flow-sweep {
+  0% {
+    background-position:
+      18% 28%,
+      78% 34%,
+      0% 50%;
+    opacity: 0.38;
+    transform: translate3d(-2.5%, -1.5%, 0) scale(1);
+  }
+
+  50% {
+    background-position:
+      34% 42%,
+      64% 28%,
+      56% 50%;
+    opacity: 0.58;
+  }
+
+  100% {
+    background-position:
+      48% 26%,
+      58% 52%,
+      100% 50%;
+    opacity: 0.44;
+    transform: translate3d(2.5%, 1.5%, 0) scale(1.04);
+  }
+}
+
+@keyframes login-auth-grid-drift {
+  0% {
+    background-position:
+      0 0,
+      0 0;
+    opacity: 0.58;
+  }
+
+  50% {
+    opacity: 0.98;
+  }
+
+  100% {
+    background-position:
+      112px 56px,
+      56px 112px;
+    opacity: 0.58;
+  }
+}
+
+@keyframes login-auth-vignette-breathe {
+  0% {
+    opacity: 0.72;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .agent-role-portrait__sprite--working {
+    animation: none;
+  }
+
+  .login-auth-bg,
+  .login-auth-flow,
+  .login-auth-grid,
+  .login-auth-vignette {
     animation: none;
   }
 }
