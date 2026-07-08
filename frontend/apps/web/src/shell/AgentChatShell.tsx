@@ -67,6 +67,9 @@ const FUNCTION_NAV_ROUTE_PATHS = [
   "/workspaces",
 ] as const
 
+const SIDEBAR_SECTION_TOGGLE_CLASS_NAME =
+  "cursor-pointer hover:bg-transparent hover:text-sidebar-foreground"
+
 export function AgentChatShell({ children }: AgentChatShellProps) {
   return (
     <AgentChatProvider>
@@ -188,6 +191,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       toggleLabel: functionNavOpen
         ? t("agentChat.sidebar.collapseFunctionNav")
         : t("agentChat.sidebar.expandFunctionNav"),
+      toggleClassName: SIDEBAR_SECTION_TOGGLE_CLASS_NAME,
       onOpenChange: setFunctionNavOpen,
       leadingItems: [newConversationItem],
       items: [
@@ -244,6 +248,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       toggleLabel: historyOpen
         ? t("agentChat.sidebar.collapseHistory")
         : t("agentChat.sidebar.expandHistory"),
+      toggleClassName: SIDEBAR_SECTION_TOGGLE_CLASS_NAME,
       onOpenChange: setHistoryOpen,
       items: recentConversations.length
         ? [

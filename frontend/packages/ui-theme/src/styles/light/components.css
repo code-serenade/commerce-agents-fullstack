@@ -21,6 +21,7 @@
   --shell-sidebar-trigger-background: oklch(1 0 0);
   --shell-sidebar-shadow:
     18px 0 46px oklch(0.5 0.08 258 / 8%), 1px 0 0 oklch(0.88 0.026 252 / 62%);
+  --shell-brand-description-foreground: #999;
   --shell-logo-background: var(--primary);
   --shell-logo-shadow: 0 12px 26px oklch(0.55 0.22 268 / 30%);
   --shell-logo-ring: oklch(1 0 0 / 60%);

@@ -21,6 +21,7 @@ html[data-theme="dark"],
   --shell-topbar-shadow: none;
   --shell-sidebar-trigger-background: var(--background);
   --shell-sidebar-shadow: none;
+  --shell-brand-description-foreground: var(--muted-foreground);
   --shell-logo-background: var(--app-surface);
   --shell-logo-shadow: 0 1px 2px oklch(0 0 0 / 18%);
   --shell-logo-ring: var(--app-border);

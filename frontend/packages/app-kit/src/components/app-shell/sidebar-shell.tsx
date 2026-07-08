@@ -60,6 +60,7 @@ export interface SidebarShellSection {
   maxContentHeight?: "sm" | "md" | "lg"
   open?: boolean
   toggleLabel?: string
+  toggleClassName?: string
   onOpenChange?: (open: boolean) => void
 }
 
@@ -144,7 +145,9 @@ export function SidebarShell({
                     <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
                       <div>{brandTitle}</div>
                       {(brandDescription ?? brandEyebrow) ? (
-                        <div>{brandDescription ?? brandEyebrow}</div>
+                        <div className="text-[12px] text-(--shell-brand-description-foreground)">
+                          {brandDescription ?? brandEyebrow}
+                        </div>
                       ) : null}
                     </div>
                   </div>
@@ -255,7 +258,12 @@ function SidebarSectionGroup({ section }: { section: SidebarShellSection }) {
             type="button"
             aria-expanded={open}
             aria-label={section.toggleLabel}
-            className="flex h-8 min-w-0 flex-1 shrink-0 items-center gap-2 rounded-lg px-2 text-xs font-medium text-sidebar-foreground/70 ring-sidebar-ring outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2"
+            className={[
+              "flex h-8 min-w-0 flex-1 shrink-0 items-center gap-2 rounded-lg px-2 text-xs font-medium text-sidebar-foreground/70 ring-sidebar-ring outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2",
+              section.toggleClassName,
+            ]
+              .filter(Boolean)
+              .join(" ")}
             onClick={() => setOpen(!open)}
           >
             <span className="min-w-0 flex-1 truncate text-left">
