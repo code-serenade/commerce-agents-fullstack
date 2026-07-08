@@ -76,7 +76,7 @@
       78% 34%,
       0% 50%;
     opacity: 0.38;
-    transform: translate3d(-2.5%, -1.5%, 0) scale(1);
+    transform: translate3d(-2.5%, -1.5%, 0) scale(1.18);
   }
 
   50% {
@@ -93,7 +93,7 @@
       58% 52%,
       100% 50%;
     opacity: 0.44;
-    transform: translate3d(2.5%, 1.5%, 0) scale(1.04);
+    transform: translate3d(2.5%, 1.5%, 0) scale(1.24);
   }
 }
 

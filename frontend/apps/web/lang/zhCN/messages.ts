@@ -308,11 +308,14 @@ const messages = {
       },
       panels: {
         productContext: "先做选品分析",
-        productContextDesc: "查看商品资料、卖点、素材和竞品，确定这次实训适合分析哪个商品。",
+        productContextDesc:
+          "查看商品资料、卖点、素材和竞品，确定这次实训适合分析哪个商品。",
         campaigns: "再做活动策划",
-        campaignsDesc: "填写活动目标、预算、周期和产出内容，形成可提交的策划方案。",
+        campaignsDesc:
+          "填写活动目标、预算、周期和产出内容，形成可提交的策划方案。",
         workspaces: "提交实训任务",
-        workspacesDesc: "把 AI 输出、执行清单和修改记录沉淀成老师能检查的实训交付。",
+        workspacesDesc:
+          "把 AI 输出、执行清单和修改记录沉淀成老师能检查的实训交付。",
         platform: "查看平台数据",
         platformDesc: "核对平台和广告投放指标，为数据诊断和复盘提供依据。",
         governance: "查看风险提醒",
@@ -344,17 +347,17 @@ const messages = {
         approval: "风险提醒",
       },
     },
-      products: {
-        samples: {
-          product: {
-            brand: "星河杯",
-            category: "智能保温杯",
-            description:
-              "适合学生和办公室人群的温显保温杯，主打防漏、温度提醒和通勤携带。",
-            name: "星河杯温显保温杯",
-          },
+    products: {
+      samples: {
+        product: {
+          brand: "星河杯",
+          category: "智能保温杯",
+          description:
+            "适合学生和办公室人群的温显保温杯，主打防漏、温度提醒和通勤携带。",
+          name: "星河杯温显保温杯",
         },
-        metrics: {
+      },
+      metrics: {
         active: "有效商品",
         activeTail: "全部 {{total}}，归档 {{archived}}",
         knowledge: "知识条目",
@@ -366,7 +369,8 @@ const messages = {
       },
       panels: {
         list: "可分析商品",
-        listDesc: "先选一个商品，再查看卖点、素材、价格带和竞品，形成选品判断。",
+        listDesc:
+          "先选一个商品，再查看卖点、素材、价格带和竞品，形成选品判断。",
         create: "添加实训商品",
         search: "搜索商品、平台、类目、品牌",
         empty: "还没有商品资料，先添加一个用于实训分析的商品。",
@@ -384,10 +388,12 @@ const messages = {
         registerAsset: "上传文件资料",
         createMaterial: "新增营销素材",
         materialVersions: "素材版本",
-        materialVersionsDesc: "查看同一商品下不同版本的素材，方便比较哪版更适合活动。",
+        materialVersionsDesc:
+          "查看同一商品下不同版本的素材，方便比较哪版更适合活动。",
         createCompetitor: "新增竞品",
         competitorChanges: "竞品变化",
-        competitorChangesDesc: "记录竞品价格、销量、评价或策略变化，作为选品参考材料。",
+        competitorChangesDesc:
+          "记录竞品价格、销量、评价或策略变化，作为选品参考材料。",
         recordChange: "记录变化",
       },
       columns: {
@@ -441,15 +447,15 @@ const messages = {
         draftFilled: "商品草稿已填入表单，请确认后保存",
       },
     },
-      campaigns: {
-        samples: {
-          campaign: {
-            description:
-              "围绕温显、防漏和通勤场景做7天短视频测款，目标验证点击率、收藏率和加购率。",
-            name: "温显保温杯7天测款活动",
-          },
+    campaigns: {
+      samples: {
+        campaign: {
+          description:
+            "围绕温显、防漏和通勤场景做7天短视频测款，目标验证点击率、收藏率和加购率。",
+          name: "温显保温杯7天测款活动",
         },
-        metrics: {
+      },
+      metrics: {
         total: "活动数",
         totalTail: "当前查询范围",
         active: "执行中",
@@ -503,7 +509,8 @@ const messages = {
       },
       panels: {
         master: "实训任务列表",
-        masterDesc: "每个实训任务都可以绑定商品和活动，并沉淀提交记录、复盘材料和改进建议。",
+        masterDesc:
+          "每个实训任务都可以绑定商品和活动，并沉淀提交记录、复盘材料和改进建议。",
         createWorkspace: "新建实训任务",
         search: "搜索实训任务标题或类型",
         empty: "还没有实训任务，先从 AI 实训助手生成或新建一个任务。",
@@ -533,8 +540,7 @@ const messages = {
         artifactExport: "导出格式",
         artifactExportSize: "导出字数",
         skillRuns: "AI 分析记录",
-        skillRunsDesc:
-          "查看本次实训中 AI 曾经做过哪些分析，方便学生复盘过程。",
+        skillRunsDesc: "查看本次实训中 AI 曾经做过哪些分析，方便学生复盘过程。",
         qualityLoop: "质量与复盘闭环",
         qualityLoopDesc:
           "查看回答质量、学习记录和复盘沉淀，帮助学生改进下一次提交。",
@@ -944,7 +950,8 @@ const messages = {
           selectedForTurn: "本轮已选",
         },
         usageHint: {
-          available: "这个文件当前未加入本轮问答，需要手动选择后才会作为 AI 上下文。",
+          available:
+            "这个文件当前未加入本轮问答，需要手动选择后才会作为 AI 上下文。",
           attached: "这个文件已存在于对话资料中，可加入本轮让 AI 明确读取。",
           selectedForTurn: "这个文件会参与本轮 AI 回答，可在发送前移出。",
         },
@@ -995,20 +1002,17 @@ const messages = {
         },
         campaigns: {
           title: "做活动策划",
-          description:
-            "围绕预算、节奏、脚本和投放目标整理可执行的活动方案。",
+          description: "围绕预算、节奏、脚本和投放目标整理可执行的活动方案。",
           action: "做策划",
         },
         tasks: {
           title: "提交实训任务",
-          description:
-            "把 AI 输出沉淀成任务、运行记录和可检查的交付材料。",
+          description: "把 AI 输出沉淀成任务、运行记录和可检查的交付材料。",
           action: "看任务",
         },
         reports: {
           title: "生成复盘报告",
-          description:
-            "把结论、过程、清单和改进建议整理成最终复盘材料。",
+          description: "把结论、过程、清单和改进建议整理成最终复盘材料。",
           action: "看复盘",
         },
       },
@@ -1044,7 +1048,8 @@ const messages = {
         saved: "学校与团队已保存",
         boundStatus: "已绑定",
         unboundStatus: "未绑定",
-        quotaRule: "不绑定也可使用 100 次 AI 问答；补充学校和团队后，总额度提升到 150 次。",
+        quotaRule:
+          "不绑定也可使用 100 次 AI 问答；补充学校和团队后，总额度提升到 150 次。",
       },
     },
     publicProfile: {
@@ -1100,17 +1105,16 @@ const messages = {
       boundCompact: "已绑定学校和团队，共 {{limit}} 次",
       unboundCompact: "未绑定 {{base}} 次，补充后 {{limit}} 次",
       unboundUpgrade: "去补充",
-      exhaustedHint: "当前账号 AI 问答次数已用完，请联系赛事或平台管理员增加额度。",
+      exhaustedHint:
+        "当前账号 AI 问答次数已用完，请联系赛事或平台管理员增加额度。",
       disabledHint: "当前账号 AI 问答已暂停，请联系管理员。",
     },
     homeRoleCluster: {
       eyebrow: "电商多岗位协作",
       title: "先说问题，搭档们会一起看",
       ariaLabel: "电商岗位搭档预览",
-      summary:
-        "按问题自动分工，回答时会显示谁正在帮你核对",
-      footer:
-        "不同问题会启用不同搭档；你不用先懂岗位，直接说电商问题就可以。",
+      summary: "按问题自动分工，回答时会显示谁正在帮你核对",
+      footer: "不同问题会启用不同搭档；你不用先懂岗位，直接说电商问题就可以。",
     },
     sidebar: {
       newChat: "新建对话",
@@ -1230,13 +1234,15 @@ const messages = {
           history: {
             label: "历史对话",
             value: "{{count}} / {{total}} 条",
-            detail: "历史 {{chars}} 字，记忆 {{memory}} 字，早期相关 {{older}} 条，{{truncated}}",
+            detail:
+              "历史 {{chars}} 字，记忆 {{memory}} 字，早期相关 {{older}} 条，{{truncated}}",
             truncated: "已截断",
             complete: "未截断",
           },
           memory: {
             label: "结构化记忆",
-            value: "事实 {{facts}}，决策 {{decisions}}，约束 {{constraints}}，问题 {{questions}}",
+            value:
+              "事实 {{facts}}，决策 {{decisions}}，约束 {{constraints}}，问题 {{questions}}",
             detail: "{{summary}}，约 {{chars}} 字",
             summaryReady: "摘要可用",
             summaryEmpty: "无摘要",
@@ -1249,7 +1255,8 @@ const messages = {
           pack: {
             label: "可读资料包",
             value: "{{count}} / {{total}} 项可读",
-            detail: "{{readiness}}，约 {{chars}} 字，遗漏 {{omitted}} 项，提示 {{warnings}} 条",
+            detail:
+              "{{readiness}}，约 {{chars}} 字，遗漏 {{omitted}} 项，提示 {{warnings}} 条",
           },
           budget: {
             label: "字符预算",
@@ -1421,7 +1428,8 @@ const messages = {
         loading: "正在读取回答偏好",
         model: "模型",
         modelSettings: "模型偏好",
-        modelHint: "默认优先使用当前可用的豆包模型；如果暂时不可用，只显示能正常使用的模型。",
+        modelHint:
+          "默认优先使用当前可用的豆包模型；如果暂时不可用，只显示能正常使用的模型。",
         learning: "展开程度",
         collaboration: "智能体调用方式",
         routingMode: "处理方式",
@@ -1438,8 +1446,7 @@ const messages = {
         singleRoleHint: "选择一个岗位智能体，本轮由它主导回答。",
         leadRoleHint:
           "点岗位卡片即可切换主导岗位；最终回答仍会整合成自然建议。",
-        supportRolesHint:
-          "勾选需要参与的岗位智能体，多岗位会一起补充结论。",
+        supportRolesHint: "勾选需要参与的岗位智能体，多岗位会一起补充结论。",
         answerRoleBadge: "当前岗位",
         primaryBadge: "主导",
         supportBadge: "参与",
@@ -1448,8 +1455,7 @@ const messages = {
         noSupportRoles: "暂不增加其它岗位",
         advanced: "更多偏好",
         explanationDepth: "讲解深度",
-        autoRolesHint:
-          "系统会根据本轮问题自动选择需要参与的岗位智能体。",
+        autoRolesHint: "系统会根据本轮问题自动选择需要参与的岗位智能体。",
         manualRolesHint:
           "先选主导岗位，再勾选其它参与岗位；最多 {{max}} 个，岗位越多回答可能越慢。",
         roleModeHint:
@@ -1551,8 +1557,7 @@ const messages = {
           },
         },
         strategyNotes: {
-          learning:
-            "给我建议：保留干货，同时把关键结论和下一步讲清楚。",
+          learning: "给我建议：保留干货，同时把关键结论和下一步讲清楚。",
           quick: "适合快速处理：只给结论、关键理由和最多几个下一步动作。",
           execution:
             "适合汇报、复盘和方案输出：用表格和清单讲清步骤、风险和检查项。",
@@ -1710,27 +1715,32 @@ const messages = {
         start: {
           title: "看看这个商品能不能卖",
           detail: "信息不完整也可以先聊，先看毛利、需求和售后风险。",
-          prompt: "我现在有一个商品想卖，但资料还不完整。先帮我看它能不能做，以及最关键还差什么。",
+          prompt:
+            "我现在有一个商品想卖，但资料还不完整。先帮我看它能不能做，以及最关键还差什么。",
         },
         analyze: {
           title: "帮我改标题/卖点",
           detail: "先把用户为什么会点、为什么会买说清楚。",
-          prompt: "帮我看看这个商品标题和卖点哪里不够吸引人，并直接改一版更自然的。",
+          prompt:
+            "帮我看看这个商品标题和卖点哪里不够吸引人，并直接改一版更自然的。",
         },
         plan: {
           title: "帮我写客服回复",
           detail: "语气自然，但不替店铺承诺没有证据的结果。",
-          prompt: "客户觉得价格贵，我想回复得自然一点。帮我写一段不生硬、也不乱承诺的客服话术。",
+          prompt:
+            "客户觉得价格贵，我想回复得自然一点。帮我写一段不生硬、也不乱承诺的客服话术。",
         },
         data: {
           title: "帮我复盘数据",
           detail: "不用先懂指标，我会帮你看哪里最影响结果。",
-          prompt: "我有一些浏览、点击、加购、成交或退款数据。请先帮我看问题可能卡在哪里，以及下一步最该看什么。",
+          prompt:
+            "我有一些浏览、点击、加购、成交或退款数据。请先帮我看问题可能卡在哪里，以及下一步最该看什么。",
         },
         review: {
           title: "把方案说得更靠谱",
           detail: "适合作业、汇报或老师反馈后继续修改。",
-          prompt: "老师说我的方案太空。请帮我把它改得更有证据、更像能执行的电商方案。",
+          prompt:
+            "老师说我的方案太空。请帮我把它改得更有证据、更像能执行的电商方案。",
         },
       },
       receivingOutput: "正在整理可用回答",
@@ -1741,7 +1751,8 @@ const messages = {
         retry: "重新填入",
         simplify: "换个问法",
         retryPrompt: "请重新完成刚才这个任务，先给结论，再给可直接使用内容",
-        shorterPrompt: "请用更短的问题重新回答：先给结论、可直接使用内容和下一步",
+        shorterPrompt:
+          "请用更短的问题重新回答：先给结论、可直接使用内容和下一步",
       },
       completedTasks: "{{completed}}/{{total}} 个步骤完成",
       planning: "正在整理处理步骤",
@@ -1830,8 +1841,7 @@ const messages = {
         campaignCount: "{{count}} 个活动",
         sourceNone: "资料和图片",
         sourceCount: "{{count}} 份资料和图片",
-        sourceCountWithReadiness:
-          "{{count}} 份资料和图片，{{readable}} 份可读",
+        sourceCountWithReadiness: "{{count}} 份资料和图片，{{readable}} 份可读",
         strategy: "回答方式：{{strategy}}",
         autoRoles: "智能体：系统自动选岗位",
         roles: "智能体：{{role}} 主导 / 共 {{count}} 个岗位",
@@ -1971,14 +1981,14 @@ const messages = {
         deliveryStatus: "最终方案、执行清单、复盘方法",
       },
       handoff: {
-          context: {
-            label: "上下文",
-            detail: "选品与商品分析、平台连接、数据诊断建议",
-          },
-          execution: {
-            label: "执行",
-            detail: "活动策划训练、执行清单、实训任务",
-          },
+        context: {
+          label: "上下文",
+          detail: "选品与商品分析、平台连接、数据诊断建议",
+        },
+        execution: {
+          label: "执行",
+          detail: "活动策划训练、执行清单、实训任务",
+        },
         delivery: {
           label: "交付",
           detail: "交付资料、每日简报、复盘历史",
@@ -2084,7 +2094,8 @@ const messages = {
         roleAudit: {
           label: "岗位核对",
           detail: "计划 {{planned}}；已完成 {{executed}}",
-          warning: "计划 {{planned}}；已完成 {{executed}}；待补 {{missing}}；额外 {{extra}}",
+          warning:
+            "计划 {{planned}}；已完成 {{executed}}；待补 {{missing}}；额外 {{extra}}",
         },
         searchAudit: {
           label: "来源核对",
@@ -2119,24 +2130,28 @@ const messages = {
         historyWindow: {
           label: "历史窗口",
           full: "本轮读取了全部 {{total}} 条同会话历史。",
-          truncated: "本轮读取最近 {{recent}}/{{total}} 条历史，并纳入早期压缩摘要。",
+          truncated:
+            "本轮读取最近 {{recent}}/{{total}} 条历史，并纳入早期压缩摘要。",
         },
-          memory: {
-            label: "历史记忆",
-            detail: "读取 {{count}} 条，类型 {{kinds}}",
-            detailWithRecords: "读取 {{count}} 条，类型 {{kinds}}；摘要 {{records}}",
-            kindFallback: "历史记录",
-            recordChars: "{{count}} 字",
-            recordSummary: "第 {{index}} 条：{{chars}}{{truncated}}",
-            recordTruncated: "已截断",
-          },
-          conversationContext: {
-            label: "同会话上下文",
-            detail: "读取最近 {{recent}}/{{total}} 条历史，回捞 {{relevantOlder}} 条早期相关消息",
-          },
-          context: {
-            label: "资料上下文",
-            detail: "商品 {{products}} 个，知识 {{knowledge}} 条，来源 {{sources}} 个",
+        memory: {
+          label: "历史记忆",
+          detail: "读取 {{count}} 条，类型 {{kinds}}",
+          detailWithRecords:
+            "读取 {{count}} 条，类型 {{kinds}}；摘要 {{records}}",
+          kindFallback: "历史记录",
+          recordChars: "{{count}} 字",
+          recordSummary: "第 {{index}} 条：{{chars}}{{truncated}}",
+          recordTruncated: "已截断",
+        },
+        conversationContext: {
+          label: "同会话上下文",
+          detail:
+            "读取最近 {{recent}}/{{total}} 条历史，回捞 {{relevantOlder}} 条早期相关消息",
+        },
+        context: {
+          label: "资料上下文",
+          detail:
+            "商品 {{products}} 个，知识 {{knowledge}} 条，来源 {{sources}} 个",
         },
         rag: {
           label: "知识检索",
@@ -2220,14 +2235,11 @@ const messages = {
         stableDetail:
           "无论问题简单还是复杂，我都会先整理任务过程；区别只是步骤、参考内容和工具参考多少不同。",
         studentUseTitle: "怎么看",
-        studentUseDetail:
-          "先看处理方式和资料，再看步骤完成情况。",
+        studentUseDetail: "先看处理方式和资料，再看步骤完成情况。",
         difficultyTitle: "为什么有的流程短、有的流程长",
-        difficultyDetail:
-          "简单问题步骤少，复杂问题会增加资料核对和最终整理。",
+        difficultyDetail: "简单问题步骤少，复杂问题会增加资料核对和最终整理。",
         realnessTitle: "为什么不展示很多视角",
-        realnessDetail:
-          "只有确实需要多处核对时，才展示更多处理脉络。",
+        realnessDetail: "只有确实需要多处核对时，才展示更多处理脉络。",
       },
       runtimeText: {
         genericProgress: "已按用户问题整理成可用结论",
@@ -2250,11 +2262,13 @@ const messages = {
           },
           product: {
             label: "商品语境",
-            detail: "当前回答围绕已选商品，可继续补卖点、人群、风险或活动方向。",
+            detail:
+              "当前回答围绕已选商品，可继续补卖点、人群、风险或活动方向。",
           },
           productFollowup: {
             label: "商品追问",
-            detail: "当前回答在处理商品、主图、标题或价格问题，可以继续把关键判断问细。",
+            detail:
+              "当前回答在处理商品、主图、标题或价格问题，可以继续把关键判断问细。",
           },
           productNoMaterial: {
             label: "缺商品资料",
@@ -2262,19 +2276,23 @@ const messages = {
           },
           campaign: {
             label: "活动语境",
-            detail: "当前回答围绕活动方案，可继续拆目标、预算、节奏和执行清单。",
+            detail:
+              "当前回答围绕活动方案，可继续拆目标、预算、节奏和执行清单。",
           },
           data: {
             label: "数据语境",
-            detail: "当前回答围绕指标和异常，可继续补数据、查原因和列验证办法。",
+            detail:
+              "当前回答围绕指标和异常，可继续补数据、查原因和列验证办法。",
           },
           task: {
             label: "任务语境",
-            detail: "当前回答适合沉淀为任务，可以继续整理步骤、清单和提交要求。",
+            detail:
+              "当前回答适合沉淀为任务，可以继续整理步骤、清单和提交要求。",
           },
           report: {
             label: "复盘报告建议",
-            detail: "当前回答适合整理成复盘材料，可以继续补过程、参考材料和改进建议。",
+            detail:
+              "当前回答适合整理成复盘材料，可以继续补过程、参考材料和改进建议。",
           },
         },
         prompts: [
@@ -2486,8 +2504,7 @@ const messages = {
         ],
         events: {
           commanderThinking: "正在分析问题并准备处理步骤。",
-          routeDecided:
-            "已识别问题类型，按 {{mode}} 处理，重点先看 {{role}}。",
+          routeDecided: "已识别问题类型，按 {{mode}} 处理，重点先看 {{role}}。",
           graphPlanned: "已整理 {{count}} 个处理步骤。",
           nodeStarted: "有一步开始第 {{attempt}} 次整理。",
           nodeRework: "有一步正在重新整理：{{instruction}}",
@@ -2498,12 +2515,14 @@ const messages = {
           skillResult: "参考核对：{{status}}。",
           approvalRequired: "有一项高风险动作需要确认，风险 {{risk}}。",
           workerStarted: "有一步开始整理。",
-            workerFinished: "有一步已完成整理。",
-            contextLoaded: "已读取 {{products}} 个商品和 {{knowledge}} 条商品知识。",
-            conversationContextLoaded:
-              "同会话上下文已读取：最近 {{recent}}/{{total}} 条历史。",
-            ragContextLoaded: "知识检索完成：{{sources}} 个来源。",
-          ragContextDegraded: "这部分外部参考暂时没核到，先按已有资料给出结论。",
+          workerFinished: "有一步已完成整理。",
+          contextLoaded:
+            "已读取 {{products}} 个商品和 {{knowledge}} 条商品知识。",
+          conversationContextLoaded:
+            "同会话上下文已读取：最近 {{recent}}/{{total}} 条历史。",
+          ragContextLoaded: "知识检索完成：{{sources}} 个来源。",
+          ragContextDegraded:
+            "这部分外部参考暂时没核到，先按已有资料给出结论。",
           workspaceContextLoaded:
             "实训资料已加载：{{sources}} 个来源，状态 {{readiness}}。",
           workspaceContextPackLoaded:
@@ -2547,8 +2566,7 @@ const messages = {
           reportTitle: "回答输出",
           materialTitle: "补充资料",
           materialMeta: "补充行业与平台场景资料",
-          description:
-            "开始输出后，这里会切换为真实的摘要、证据和风险。",
+          description: "开始输出后，这里会切换为真实的摘要、证据和风险。",
           fallbackLines: ["咖啡转化", "广告投放复盘", "运营预算与投放节奏"],
         },
         contextLoaded: {
@@ -2557,9 +2575,9 @@ const messages = {
           description: "已在回答前读取当前用户自己的商品事实。",
           productLine: "商品 ID：{{id}}",
         },
-          ragContext: {
-            title: "知识检索",
-            meta: "{{sources}} 个来源 / {{knowledge}} 条知识",
+        ragContext: {
+          title: "知识检索",
+          meta: "{{sources}} 个来源 / {{knowledge}} 条知识",
           description: "已从商品知识中检索可引用来源。",
           degradedDescription: "本地知识未命中，外部搜索数据未接入。",
           sourceLine: "{{type}}：{{title}}",
@@ -2572,9 +2590,9 @@ const messages = {
           packTitle: "可用于回答的资料",
           packMeta: "{{readable}}/{{total}} 个来源可读",
           readyDescription: "已把附件、素材和复盘材料作为本轮回答资料。",
-          partialDescription:
-            "已读取部分附件、素材或复盘材料，仍有资料缺失。",
-          emptyDescription: "当前实训任务没有可用于问答的附件、素材或复盘材料。",
+          partialDescription: "已读取部分附件、素材或复盘材料，仍有资料缺失。",
+          emptyDescription:
+            "当前实训任务没有可用于问答的附件、素材或复盘材料。",
           packReadyDescription:
             "已把已有素材正文、复盘材料正文和附件文本用于本轮回答。",
           packPartialDescription:
@@ -2593,7 +2611,8 @@ const messages = {
           requested: "已收到参考核对请求，正在处理或等待外部数据。",
           completed: "参考核对已返回结果。",
           deferred: "这处参考需要外部数据，当前先延后。",
-          approvalRequired: "这个动作涉及高风险或平台写操作，需要确认后才能继续。",
+          approvalRequired:
+            "这个动作涉及高风险或平台写操作，需要确认后才能继续。",
         },
         rework: {
           title: "重新检查",
@@ -2703,10 +2722,12 @@ const messages = {
       },
       runtimeReasons: {
         modelUnavailable: "模型服务暂时不可用，本轮有一步没有形成可用结果。",
-        modelConfigUnavailable: "模型服务配置暂时不可用，本轮有一步没有形成可用结果。",
+        modelConfigUnavailable:
+          "模型服务配置暂时不可用，本轮有一步没有形成可用结果。",
         workerUnavailable: "有一步暂时没有成功启动，已保留可用结论。",
         timedOut: "这一步处理超时，已先保留当前可用结论。",
-        externalDataUnavailable: "外部数据暂不可用，已先按已有资料整理可用结论。",
+        externalDataUnavailable:
+          "外部数据暂不可用，已先按已有资料整理可用结论。",
         collaborationIncomplete: "这一步需要补充更具体的业务资料。",
       },
       reportLines: {
@@ -2870,8 +2891,7 @@ const messages = {
       },
     },
     actions: {
-      inventory:
-        "今天先确认咖啡品类、客单价和库存，避免引流款式拉低整体毛利。",
+      inventory: "今天先确认咖啡品类、客单价和库存，避免引流款式拉低整体毛利。",
       benefit: "把直播间首屏福利统一成一句话：五一囤咖啡，今天拍 3 件立减 20。",
       hook: "短视频前三秒只讲场景钩子，不先讲品牌，例如“五一爬山景区咖啡 30 一杯，我带这个 3 元一杯”。",
       comment:
@@ -2930,7 +2950,7 @@ const messages = {
       title: "提问灵感",
       description:
         "不知道怎么开始时，先从一个真实电商问题切入。点选下面的问题，会自动带回问答输入框。",
-      action: "回到问答",
+      action: "进入问答入口",
     },
     principle: {
       title: "不是背提示词，而是把电商问题说清楚",
@@ -3021,8 +3041,7 @@ const messages = {
       items: [
         {
           title: "教学模式",
-          description:
-            "适合边学边做，回答会补充关键参考、操作步骤和复盘方法。",
+          description: "适合边学边做，回答会补充关键参考、操作步骤和复盘方法。",
         },
         {
           title: "简要回答",
@@ -3043,8 +3062,7 @@ const messages = {
     },
     qa: {
       title: "常见使用问题",
-      description:
-        "这些问题帮助学生理解什么时候该补资料、什么时候该继续追问。",
+      description: "这些问题帮助学生理解什么时候该补资料、什么时候该继续追问。",
       items: [
         {
           question: "没有选择商品时能不能问？",
@@ -3094,7 +3112,8 @@ const messages = {
         },
         {
           title: "活动策划训练、数据诊断建议、经营结果跟踪",
-          description: "承接活动策划、指标归因、过程记录、日报、告警和来源边界。",
+          description:
+            "承接活动策划、指标归因、过程记录、日报、告警和来源边界。",
         },
         {
           title: "实训任务与交付、审核与复盘报告",
@@ -3118,8 +3137,7 @@ const messages = {
     hero: {
       titleLine1: "进入电商多智能体平台，",
       titleLine2: "完成选品、策划和复盘。",
-      desc1:
-        "第一步先进入问答入口，直接说你要解决的电商问题。",
+      desc1: "第一步先进入问答入口，直接说你要解决的电商问题。",
       desc2:
         "第二步按需要进入选品资料、活动策划、数据诊断、实训任务和复盘报告页面。",
       desc3:
@@ -3128,6 +3146,14 @@ const messages = {
     welcome: "欢迎回来",
     title: "登录实训账号",
     subtitle: "请输入账号和密码，进入电商多智能体平台。",
+    help: {
+      label: "使用说明",
+      steps: [
+        "第一步先进入问答入口，直接说你要解决的电商问题。",
+        "第二步按需要进入选品资料、活动策划、数据诊断、实训任务和复盘报告页面。",
+        "登录后可保存历史会话、引用商品资料、提交任务，并查看老师审核和复盘材料。",
+      ],
+    },
     form: {
       password: {
         label: "密码",
@@ -3147,8 +3173,7 @@ const messages = {
     error: {
       title: "登录没有完成",
       invalidCredentials: "登录失败，请检查账号和密码。",
-      authUnavailable:
-        "账号服务暂时不可用，请确认认证服务网络正常后再登录。",
+      authUnavailable: "账号服务暂时不可用，请确认认证服务网络正常后再登录。",
       backendUnavailable:
         "账号已验证，但电商多智能体平台权限恢复没有完成。请确认本地业务后端、数据库和当前账号初始化状态正常后再登录。",
       workspaceUnavailable:
