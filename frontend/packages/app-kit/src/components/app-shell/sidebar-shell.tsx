@@ -43,6 +43,7 @@ export interface SidebarShellNavEntry {
   label: ReactNode
   href?: string
   active?: boolean
+  buttonClassName?: string
   icon?: ReactNode
   onSelect?: () => void
   action?: ReactNode
@@ -54,6 +55,7 @@ export interface SidebarShellSection {
   label: ReactNode
   action?: ReactNode
   leadingItems?: SidebarShellNavEntry[]
+  leadingItemsFixed?: boolean
   items: SidebarShellNavEntry[]
   collapsible?: boolean
   defaultOpen?: boolean
@@ -123,6 +125,10 @@ export function SidebarShell({
     "flex min-h-0 min-w-0 flex-1 overflow-hidden p-0 pb-[calc(4.25rem+env(safe-area-inset-bottom))]",
     contentPadding === "default" ? "md:p-3" : "md:p-0",
   ].join(" ")
+  const brandSecondaryText = getDistinctBrandSecondaryText(
+    brandTitle,
+    brandDescription ?? brandEyebrow
+  )
 
   return (
     <div className="h-svh overflow-hidden [&_[data-sidebar=trigger]]:max-md:hidden">
@@ -144,9 +150,9 @@ export function SidebarShell({
                     )}
                     <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
                       <div>{brandTitle}</div>
-                      {(brandDescription ?? brandEyebrow) ? (
+                      {brandSecondaryText ? (
                         <div className="text-[12px] text-(--shell-brand-description-foreground)">
-                          {brandDescription ?? brandEyebrow}
+                          {brandSecondaryText}
                         </div>
                       ) : null}
                     </div>
@@ -162,11 +168,13 @@ export function SidebarShell({
               <div aria-hidden="true" className="h-px bg-sidebar-border" />
 
               <SidebarContent>
+                <FixedLeadingItems sections={sections} />
                 <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto pr-1 [scrollbar-gutter:stable] group-data-[collapsible=icon]:overflow-hidden group-data-[collapsible=icon]:pr-0">
                   {sections.map((section) => (
                     <SidebarSectionGroup
                       key={section.key ?? String(section.label)}
                       section={section}
+                      showLeadingItems={!section.leadingItemsFixed}
                     />
                   ))}
                 </div>
@@ -225,7 +233,51 @@ export function SidebarShell({
   )
 }
 
-function SidebarSectionGroup({ section }: { section: SidebarShellSection }) {
+function FixedLeadingItems({ sections }: { sections: SidebarShellSection[] }) {
+  const fixedItems = sections.flatMap((section) =>
+    section.leadingItemsFixed ? (section.leadingItems ?? []) : []
+  )
+
+  if (!fixedItems.length) return null
+
+  return (
+    <SidebarGroup>
+      <SidebarGroupContent>
+        <SidebarMenu className="gap-1">
+          {fixedItems.map((item) => (
+            <SidebarNavRow
+              key={item.key ?? item.href ?? String(item.label)}
+              item={item}
+            />
+          ))}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  )
+}
+
+function getDistinctBrandSecondaryText(
+  brandTitle: ReactNode,
+  brandSecondary: ReactNode
+) {
+  if (!brandSecondary) return null
+  if (
+    typeof brandTitle === "string" &&
+    typeof brandSecondary === "string" &&
+    brandTitle.trim() === brandSecondary.trim()
+  ) {
+    return null
+  }
+  return brandSecondary
+}
+
+function SidebarSectionGroup({
+  section,
+  showLeadingItems = true,
+}: {
+  section: SidebarShellSection
+  showLeadingItems?: boolean
+}) {
   const [uncontrolledOpen, setUncontrolledOpen] = useState(
     section.defaultOpen ?? true
   )
@@ -240,9 +292,9 @@ function SidebarSectionGroup({ section }: { section: SidebarShellSection }) {
 
   return (
     <SidebarGroup>
-      {section.leadingItems?.length ? (
+      {showLeadingItems && section.leadingItems?.length ? (
         <SidebarGroupContent>
-          <SidebarMenu>
+          <SidebarMenu className="gap-1">
             {section.leadingItems.map((item) => (
               <SidebarNavRow
                 key={item.key ?? item.href ?? String(item.label)}
@@ -289,7 +341,7 @@ function SidebarSectionGroup({ section }: { section: SidebarShellSection }) {
       {open ? (
         <SidebarGroupContent>
           <div className={getSectionContentClassName(section.maxContentHeight)}>
-            <SidebarMenu>
+            <SidebarMenu className="gap-1">
               {section.items.map((item) => (
                 <SidebarNavRow
                   key={item.key ?? item.href ?? String(item.label)}
@@ -336,6 +388,12 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
   const hasSubItems = Boolean(item.subItems?.length)
   const isExpandedActionRow = state !== "collapsed"
   const shouldHighlightActionRow = item.active && isExpandedActionRow
+  const navButtonClassName = [
+    "hover:bg-(--shell-sidebar-item-hover-background) hover:text-sidebar-foreground active:bg-(--shell-sidebar-item-hover-background) active:text-sidebar-foreground",
+    item.buttonClassName,
+  ]
+    .filter(Boolean)
+    .join(" ")
 
   if (!hasSubItems) {
     return (
@@ -345,7 +403,7 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
             className={[
               "group/item flex min-w-0 items-center gap-1 rounded-xl transition-colors",
               isExpandedActionRow
-                ? "hover:bg-sidebar-accent [&_[data-sidebar=menu-button]]:hover:bg-transparent [&_[data-sidebar=menu-button]]:active:bg-transparent [&_[data-sidebar=menu-button][data-active=true]]:bg-transparent [&_[data-sidebar=menu-button][data-active=true]]:shadow-none"
+                ? "hover:bg-(--shell-sidebar-item-hover-background) [&_[data-sidebar=menu-button]]:hover:bg-transparent [&_[data-sidebar=menu-button]]:hover:text-sidebar-foreground [&_[data-sidebar=menu-button]]:active:bg-transparent [&_[data-sidebar=menu-button]]:active:text-sidebar-foreground [&_[data-sidebar=menu-button][data-active=true]]:bg-transparent [&_[data-sidebar=menu-button][data-active=true]]:shadow-none"
                 : "",
               shouldHighlightActionRow ? "bg-sidebar-accent" : "",
             ]
@@ -356,6 +414,7 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
               <SidebarMenuButton
                 active={item.active}
                 variant="primary"
+                className={navButtonClassName}
                 tooltip={
                   typeof item.label === "string" ? item.label : undefined
                 }
@@ -382,6 +441,7 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
           <SidebarMenuButton
             active={item.active}
             variant="primary"
+            className={navButtonClassName}
             tooltip={typeof item.label === "string" ? item.label : undefined}
             onClick={item.onSelect}
           >
@@ -411,6 +471,7 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
         active={item.active}
         activeGroup={hasActiveChild}
         variant="primary"
+        className={navButtonClassName}
         disclosure
         disclosureOpen={open}
         tooltip={typeof item.label === "string" ? item.label : undefined}

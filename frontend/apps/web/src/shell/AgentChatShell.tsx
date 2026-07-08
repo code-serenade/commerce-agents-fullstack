@@ -1,10 +1,10 @@
 import { type MouseEvent, type ReactNode, useState } from "react"
 import {
   Bot,
-  Edit3,
   Library,
   LogIn,
   Megaphone,
+  MessageCircleMore,
   MonitorCog,
   MoreHorizontal,
   MessageSquareText,
@@ -109,6 +109,8 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     (conversation) => conversation.id === chat.conversationId
   )
   const routeTitleKey = getRouteTitleKey(location.pathname)
+  const routeDescriptionKey = getRouteDescriptionKey(location.pathname)
+  const useInnerPageScroll = isCommercePageLayoutRoute(location.pathname)
   const functionNavOpen = functionNavRouteActive
     ? functionNavCollapsedPath !== location.pathname
     : functionNavManualOpen
@@ -176,7 +178,9 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   )
   const newConversationItem = {
     key: "new-chat",
-    icon: <Edit3 />,
+    buttonClassName:
+      "h-10 cursor-pointer rounded-lg border border-primary bg-primary/10 text-sm font-bold text-primary hover:border-primary hover:bg-primary/15 hover:text-primary data-[active=true]:border-primary data-[active=true]:bg-primary/10 data-[active=true]:text-primary",
+    icon: <MessageCircleMore />,
     label: t("agentChat.sidebar.newChat"),
     active: !chat.conversationId && isRouteActive("/commerce"),
     onSelect: openNewConversation,
@@ -194,6 +198,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       toggleClassName: SIDEBAR_SECTION_TOGGLE_CLASS_NAME,
       onOpenChange: setFunctionNavOpen,
       leadingItems: [newConversationItem],
+      leadingItemsFixed: true,
       items: [
         {
           key: "smart-ops",
@@ -401,7 +406,9 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     <>
       <SidebarShell
         defaultSidebarOpen
-        contentScroll={isQuestionRoute ? "hidden" : "auto"}
+        contentScroll={
+          isQuestionRoute || useInnerPageScroll ? "hidden" : "auto"
+        }
         contentPadding="none"
         brandLogo={<CommerceAgentLogo />}
         brandTitle={t("agentChat.shell.brandTitle")}
@@ -421,7 +428,11 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
                   ? t(routeTitleKey)
                   : t("agentChat.shell.topbarTitle")
             }
-            meta={t("agentChat.shell.topbarMeta")}
+            meta={
+              routeDescriptionKey
+                ? t(routeDescriptionKey)
+                : t("agentChat.shell.topbarMeta")
+            }
             showSidebarTrigger={false}
             trailing={trailing}
           />
@@ -551,6 +562,58 @@ function getRouteTitleKey(pathname: string) {
     return "agentChat.shell.navigation.taskBoard"
   }
   return null
+}
+
+function getRouteDescriptionKey(pathname: string) {
+  if (pathname === "/agent-capabilities") {
+    return "agentCapabilities.header.description"
+  }
+  if (pathname === "/question-ideas") {
+    return "questionIdeas.header.description"
+  }
+  if (pathname === "/products") {
+    return "commerce.pages.products.description"
+  }
+  if (pathname === "/materials") {
+    return "commerce.pages.files.description"
+  }
+  if (pathname === "/campaigns") {
+    return "commerce.pages.campaigns.description"
+  }
+  if (pathname === "/platform-connect") {
+    return "commerce.pages.platform.description"
+  }
+  if (pathname === "/overview") {
+    return "commerce.pages.overview.description"
+  }
+  if (pathname === "/operations") {
+    return "commerce.pages.operations.description"
+  }
+  if (pathname === "/agent-output") {
+    return "agentOutput.header.description"
+  }
+  if (pathname === "/approvals") {
+    return "commerce.pages.approvals.description"
+  }
+  if (pathname === "/workspaces") {
+    return "commerce.pages.workspaces.description"
+  }
+  return null
+}
+
+function isCommercePageLayoutRoute(pathname: string) {
+  return [
+    "/agent-capabilities",
+    "/question-ideas",
+    "/overview",
+    "/materials",
+    "/products",
+    "/campaigns",
+    "/workspaces",
+    "/platform-connect",
+    "/approvals",
+    "/operations",
+  ].some((path) => isAgentChatRouteActive(pathname, path))
 }
 
 function ConversationActionMenu({

@@ -105,6 +105,7 @@ export interface SidebarGroupContentProps {
 
 export interface SidebarMenuProps {
   children: ReactNode
+  className?: string
 }
 
 export interface SidebarMenuItemProps {
@@ -115,6 +116,7 @@ export interface SidebarMenuButtonProps {
   children: ReactNode
   active?: boolean
   activeGroup?: boolean
+  className?: string
   disabled?: boolean
   disclosure?: boolean
   disclosureOpen?: boolean
@@ -278,8 +280,8 @@ export function SidebarGroupContent({ children }: SidebarGroupContentProps) {
   return <CoreSidebarGroupContent>{children}</CoreSidebarGroupContent>
 }
 
-export function SidebarMenu({ children }: SidebarMenuProps) {
-  return <CoreSidebarMenu>{children}</CoreSidebarMenu>
+export function SidebarMenu({ children, className }: SidebarMenuProps) {
+  return <CoreSidebarMenu className={className}>{children}</CoreSidebarMenu>
 }
 
 export function SidebarMenuItem({ children }: SidebarMenuItemProps) {
@@ -290,6 +292,7 @@ export function SidebarMenuButton({
   children,
   active = false,
   activeGroup = false,
+  className,
   disabled = false,
   disclosure = false,
   disclosureOpen = false,
@@ -308,6 +311,7 @@ export function SidebarMenuButton({
       tooltip={tooltip}
       variant={variant}
       size={size}
+      className={className}
       onClick={onClick}
     >
       {children}

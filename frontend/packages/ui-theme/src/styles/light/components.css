@@ -19,6 +19,7 @@
   --shell-topbar-background: oklch(1 0 0 / 78%);
   --shell-topbar-shadow: 0 1px 0 oklch(0.9 0.025 252 / 62%);
   --shell-sidebar-trigger-background: oklch(1 0 0);
+  --shell-sidebar-item-hover-background: oklch(0.94 0.008 252 / 72%);
   --shell-sidebar-shadow:
     18px 0 46px oklch(0.5 0.08 258 / 8%), 1px 0 0 oklch(0.88 0.026 252 / 62%);
   --shell-brand-description-foreground: #999;

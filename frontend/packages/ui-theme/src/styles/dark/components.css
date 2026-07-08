@@ -20,6 +20,7 @@ html[data-theme="dark"],
   --shell-topbar-background: var(--surface);
   --shell-topbar-shadow: none;
   --shell-sidebar-trigger-background: var(--background);
+  --shell-sidebar-item-hover-background: oklch(0.35 0.014 255 / 52%);
   --shell-sidebar-shadow: none;
   --shell-brand-description-foreground: var(--muted-foreground);
   --shell-logo-background: var(--app-surface);
