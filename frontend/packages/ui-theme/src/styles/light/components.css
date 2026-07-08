@@ -26,4 +26,32 @@
   --shell-logo-background: var(--primary);
   --shell-logo-shadow: 0 12px 26px oklch(0.55 0.22 268 / 30%);
   --shell-logo-ring: oklch(1 0 0 / 60%);
+  --document-card-background: linear-gradient(
+    145deg,
+    oklch(1 0 0 / 96%) 0%,
+    oklch(0.985 0.008 252 / 92%) 100%
+  );
+  --document-card-border: oklch(0.88 0.026 252 / 76%);
+  --document-card-shadow:
+    0 18px 42px oklch(0.55 0.1 255 / 8%), inset 0 1px 0 oklch(1 0 0 / 78%);
+  --document-intro-card-background: linear-gradient(
+    112deg,
+    oklch(1 0 0 / 98%) 0%,
+    oklch(0.99 0.006 252 / 94%) 44%,
+    oklch(0.96 0.03 255 / 88%) 100%
+  );
+  --document-intro-card-border: oklch(0.86 0.028 252 / 78%);
+  --document-intro-card-shadow:
+    0 22px 52px oklch(0.55 0.11 255 / 10%), inset 0 1px 0 oklch(1 0 0 / 88%);
+  --document-intro-card-decoration:
+    radial-gradient(
+      circle at 100% 50%,
+      oklch(0.72 0.13 258 / 22%) 0 1px,
+      transparent 1.5px
+    ),
+    repeating-radial-gradient(
+      ellipse at 100% 50%,
+      oklch(0.66 0.14 258 / 18%) 0 1px,
+      transparent 1px 18px
+    );
 }

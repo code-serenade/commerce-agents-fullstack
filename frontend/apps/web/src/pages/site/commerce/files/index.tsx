@@ -1,13 +1,17 @@
 import { useRef } from "react"
+import { FolderOpen, Library } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import {
   CommerceBody,
   CommercePageHeader,
-  CommercePanel,
   CommerceSurface,
   CommerceToolbar,
   InlineAlert,
 } from "../components/commerce-ui"
+import {
+  DocumentIntroCard,
+  DocumentSection,
+} from "../components/document-section"
 import { FilesTable } from "./components/files-table"
 import { FilesBulkSelectionActions } from "./components/files-bulk-selection-actions"
 import { FilesFilters } from "./components/files-filters"
@@ -41,10 +45,11 @@ export default function FilesPage() {
           />
         }
       />
-      <CommerceBody>
-        <InlineAlert
+      <CommerceBody className="min-[1200px]:px-8">
+        <DocumentIntroCard
           title={t("commerce.pages.files.boundaryTitle")}
           description={t("commerce.pages.files.boundaryDescription")}
+          icon={<Library className="size-4" />}
         />
         {page.error ? (
           <InlineAlert
@@ -60,9 +65,10 @@ export default function FilesPage() {
             description={t("commerce.files.chatContextUnavailable.description")}
           />
         ) : null}
-        <CommercePanel
+        <DocumentSection
           title={t("commerce.files.panelTitle")}
           description={t("commerce.files.panelDescription")}
+          icon={<FolderOpen className="size-4" />}
         >
           <div className="grid gap-3">
             <FilesUsageSummary summary={page.usageSummary} t={t} />
@@ -124,7 +130,7 @@ export default function FilesPage() {
               usingFileIds={page.usingFileIds}
             />
           </div>
-        </CommercePanel>
+        </DocumentSection>
       </CommerceBody>
       <FilesDeleteDialog
         deleteImpact={page.deleteImpact}

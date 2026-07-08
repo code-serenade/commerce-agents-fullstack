@@ -1,10 +1,13 @@
-import { ArrowRight, Sparkles } from "lucide-react"
+import { ArrowRight, ListChecks, Sparkles } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type {
   StudentPromptRecipeItem,
   StudentTaskEntry,
 } from "../../agent-chat/view-model/student-next-actions-view-model"
-import { CommercePanel } from "../../commerce/components/commerce-ui"
+import {
+  DocumentCard,
+  DocumentSection,
+} from "../../commerce/components/document-section"
 
 export function QuestionIdeasTaskPanel({
   items,
@@ -16,20 +19,21 @@ export function QuestionIdeasTaskPanel({
   const { t } = useTranslation()
 
   return (
-    <CommercePanel
+    <DocumentSection
       title={t("questionIdeas.tasks.title")}
       description={t("questionIdeas.tasks.description")}
+      icon={<Sparkles className="size-4" />}
     >
       <div className="grid gap-3">
         {items.map((item) => (
           <button
             key={item.title}
             type="button"
-            className="group min-w-0 rounded-md border border-(--app-border) bg-background p-3 text-left transition hover:border-foreground/30 hover:bg-muted"
+            className="group min-w-0 rounded-lg border border-(--app-border) bg-[image:var(--document-card-background)] p-4 text-left shadow-[var(--document-card-shadow)] backdrop-blur-md transition-colors hover:bg-(--shell-sidebar-item-hover-background)"
             onClick={() => onSelectPrompt(item.prompt)}
           >
             <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-foreground">
-              <Sparkles className="size-4 shrink-0 text-blue-500" />
+              <Sparkles className="size-4 shrink-0 text-primary" />
               <span className="min-w-0 flex-1">{item.title}</span>
               <ArrowRight className="size-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-foreground" />
             </span>
@@ -42,7 +46,7 @@ export function QuestionIdeasTaskPanel({
           </button>
         ))}
       </div>
-    </CommercePanel>
+    </DocumentSection>
   )
 }
 
@@ -54,21 +58,21 @@ export function QuestionIdeasRecipePanel({
   const { t } = useTranslation()
 
   return (
-    <CommercePanel
+    <DocumentSection
       title={t("questionIdeas.recipe.title")}
       description={t("questionIdeas.recipe.description")}
+      icon={<ListChecks className="size-4" />}
     >
       <div className="grid gap-3">
         {items.map((item) => (
-          <div
-            key={item.label}
-            className="min-w-0 rounded-md border border-(--app-border) bg-background p-3"
-          >
-            <p className="text-xs font-semibold text-foreground">{item.label}</p>
+          <DocumentCard key={item.label}>
+            <p className="text-xs font-semibold text-foreground">
+              {item.label}
+            </p>
             <p className="mt-1 text-sm/6 text-muted-foreground">{item.value}</p>
-          </div>
+          </DocumentCard>
         ))}
       </div>
-    </CommercePanel>
+    </DocumentSection>
   )
 }
