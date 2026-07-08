@@ -12,34 +12,40 @@ export function InlineRoleParticipantStrip({
 }) {
   return (
     <div
-      className="mt-2 flex min-w-0 items-center gap-2"
+      className="mt-2 flex min-w-0 items-start gap-2"
       data-agent-role-participant-strip="true"
     >
-      <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
+      <span className="mt-1 shrink-0 text-[11px] font-medium text-muted-foreground">
         {label}
       </span>
-      <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto pb-1 [scrollbar-gutter:stable]">
-        {activities.map((activity) => (
+      <div className="flex min-w-0 flex-1 flex-wrap gap-2">
+        {activities.slice(0, 4).map((activity) => (
           <div
             key={`${activity.agent.nodeId}-${activity.role}`}
-            className="flex max-w-56 shrink-0 items-center gap-1.5 rounded-md border border-border bg-background/80 py-1 pl-1 pr-2 text-xs text-foreground shadow-xs"
+            className="w-28 shrink-0 overflow-hidden rounded-xl border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) text-foreground"
             data-agent-role-participant={activity.role}
             title={`${activity.agent.name} - ${activity.contribution}`}
           >
             <AgentRolePortrait
               activity={activity}
               animate={animatePortraits}
-              size="xs"
+              size="card"
             />
-            <span className="min-w-0 truncate">
-              {activity.agent.name}
-              <span className="text-muted-foreground">
-                {" · "}
+            <div className="px-2 py-1.5">
+              <div className="truncate text-xs font-semibold text-foreground">
+                {activity.agent.name}
+              </div>
+              <p className="mt-0.5 line-clamp-2 min-h-8 text-[11px]/4 text-muted-foreground">
                 {activity.contribution}
-              </span>
-            </span>
+              </p>
+            </div>
           </div>
         ))}
+        {activities.length > 4 ? (
+          <span className="inline-flex h-7 shrink-0 items-center rounded-full border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) px-2 text-xs font-medium text-muted-foreground">
+            +{activities.length - 4}
+          </span>
+        ) : null}
       </div>
     </div>
   )

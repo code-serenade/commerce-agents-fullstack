@@ -110,24 +110,21 @@ function AgentRoleTimelineItem({
 }) {
   return (
     <div
-      className={`grid shrink-0 gap-2 rounded-md border border-t-2 text-center ${panelClassNames[activity.state]} ${roleAccentClassNames[activity.role]} ${
-        isCompact ? "w-28 p-2" : "w-36 p-2.5"
+      className={`flex min-w-0 items-center gap-2.5 rounded-lg border px-3 py-2 text-left ${panelClassNames[activity.state]} ${roleAccentClassNames[activity.role]} ${
+        isCompact ? "min-h-14" : "min-h-16"
       }`}
       data-agent-role-card={activity.role}
     >
-      <div className="flex items-center justify-between gap-2 text-[10px] font-semibold text-muted-foreground">
-        <span className="rounded-full bg-background/80 px-1.5 py-0.5">
-          {String(index + 1).padStart(2, "0")}
-        </span>
-        <span className="truncate">{activity.agent.status}</span>
-      </div>
       <AgentRolePortrait
         activity={activity}
         animate={animatePortraits}
-        size={isCompact ? "sm" : "md"}
+        size="xs"
       />
-      <div className="min-w-0">
-        <div className="flex min-w-0 items-center justify-center gap-1">
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="shrink-0 font-mono text-[11px] font-semibold text-muted-foreground">
+            {String(index + 1).padStart(2, "0")}
+          </span>
           <span
             className={`size-1.5 shrink-0 rounded-full ${roleDotClassNames[activity.role]}`}
             aria-hidden="true"
@@ -135,15 +132,20 @@ function AgentRoleTimelineItem({
           <p className="truncate text-xs font-semibold text-foreground">
             {activity.agent.name}
           </p>
+          <span className="ml-auto hidden shrink-0 text-[11px] font-medium text-muted-foreground sm:inline">
+            {activity.agent.status}
+          </span>
         </div>
-        <p className="mt-0.5 line-clamp-2 text-[11px]/4 text-muted-foreground">
+        <p className="mt-0.5 text-[11px]/4 wrap-break-word text-muted-foreground">
           {detail}
         </p>
-        <p className="mt-1 line-clamp-2 text-[10px]/4 text-muted-foreground">
+        <p className="mt-0.5 text-[10px]/4 wrap-break-word text-muted-foreground">
           {activity.contribution}
         </p>
       </div>
-      <AgentRoleActivityMeter state={activity.state} />
+      <div className="hidden w-20 shrink-0 sm:block">
+        <AgentRoleActivityMeter state={activity.state} />
+      </div>
     </div>
   )
 }
