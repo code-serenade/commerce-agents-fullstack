@@ -3,47 +3,57 @@ import { useTranslation } from "react-i18next"
 import { Alert, Button, SearchInput } from "@workspace/ui-components"
 
 export interface CommercePageHeaderProps {
+  className?: string
   eyebrow: string
   title: string
   description: string
   actions?: ReactNode
 }
 
+function cx(...inputs: Array<string | false | null | undefined>) {
+  return inputs.filter(Boolean).join(" ")
+}
+
 export function CommercePageHeader({
   actions,
-  description,
-  eyebrow,
-  title,
+  className,
 }: CommercePageHeaderProps) {
+  if (!actions) return null
+
   return (
-    <div className="flex min-w-0 flex-col gap-2 border-b border-(--app-border) bg-(--app-bg) px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-      <div className="min-w-0">
-        <p className="text-[11px] font-medium tracking-normal text-muted-foreground">
-          {eyebrow}
-        </p>
-        <h1 className="mt-0.5 text-xl/tight font-semibold text-foreground">
-          {title}
-        </h1>
-        <p className="mt-0.5 max-w-3xl text-xs/5 text-muted-foreground sm:text-sm/5">
-          {description}
-        </p>
-      </div>
-      {actions ? <div className="shrink-0">{actions}</div> : null}
+    <div
+      className={cx(
+        "flex justify-end p-4 pb-0 [&_a]:h-10 [&_a]:border-primary [&_a]:bg-primary [&_a]:text-primary-foreground dark:[&_a]:border-[var(--primary-outline,var(--primary))] dark:[&_a]:bg-[var(--surface)] dark:[&_a]:text-[var(--primary-outline,var(--primary))] [&_button]:h-10 [&_button]:border-primary [&_button]:bg-primary [&_button]:text-primary-foreground dark:[&_button]:border-[var(--primary-outline,var(--primary))] dark:[&_button]:bg-[var(--surface)] dark:[&_button]:text-[var(--primary-outline,var(--primary))]",
+        className
+      )}
+    >
+      {actions}
     </div>
   )
 }
 
 export function CommerceSurface({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto flex max-h-full min-h-0 w-full max-w-7xl flex-1 flex-col overflow-hidden rounded-lg border border-(--app-border) bg-background">
+    <div className="flex max-h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-transparent">
       {children}
     </div>
   )
 }
 
-export function CommerceBody({ children }: { children: ReactNode }) {
+export function CommerceBody({
+  children,
+  className,
+}: {
+  children: ReactNode
+  className?: string
+}) {
   return (
-    <div className="min-h-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto p-4 pr-3 [scrollbar-gutter:stable] sm:p-5 sm:pr-4">
+    <div
+      className={cx(
+        "min-h-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto p-4 [scrollbar-gutter:stable]",
+        className
+      )}
+    >
       {children}
     </div>
   )
