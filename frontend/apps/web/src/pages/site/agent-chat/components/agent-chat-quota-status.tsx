@@ -16,7 +16,7 @@ export function AgentChatQuotaStatus({
 
   if (isLoading) {
     return (
-      <div className="mx-3 mt-3 inline-flex w-fit rounded-full border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) px-3 py-1.5 text-xs font-medium text-foreground shadow-sm backdrop-blur-md">
+      <div className="inline-flex w-fit rounded-full border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) px-3 py-1.5 text-xs font-medium text-foreground shadow-sm backdrop-blur-md">
         {t("agentChat.quota.loading")}
       </div>
     )
@@ -42,7 +42,7 @@ export function AgentChatQuotaStatus({
       })
 
   return (
-    <div className="mx-3 mt-3 flex min-h-7 w-fit max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-x-1.5 gap-y-1 rounded-full border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) px-3 py-1 text-[11px] font-medium text-foreground shadow-sm backdrop-blur-md">
+    <div className="flex min-h-7 w-fit max-w-full flex-wrap items-center gap-x-1.5 gap-y-1 rounded-full border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) px-3 py-1 text-[11px] font-medium text-foreground shadow-sm backdrop-blur-md">
       <Badge variant={badgeVariant}>
         {isDisabled
           ? t("agentChat.quota.disabledBadge")

@@ -141,7 +141,7 @@ export function AgentChatThread({
       ref={scrollRootRef}
       data-agent-chat-thread-scroll-root="true"
       onScroll={handleScroll}
-      className="no-scrollbar min-h-0 flex-1 overflow-y-auto bg-transparent px-4 py-6 sm:px-6 sm:py-7"
+      className="no-scrollbar min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-transparent px-4 pt-20 pb-6 sm:px-7 sm:pt-24 sm:pb-7"
     >
       <div className="mx-auto flex w-full max-w-[48rem] flex-col gap-6">
         {messages.length <= 1 && !hasOnlyWelcomeMessage ? (

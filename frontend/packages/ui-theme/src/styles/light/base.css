@@ -85,7 +85,7 @@
   --agent-chat-focus-shadow: 0 0 0 4px oklch(0.62 0.2 268 / 14%);
   --agent-chat-inset-shadow: inset 0 1px 8px oklch(0.82 0.035 252 / 26%);
   --agent-chat-accent-soft: oklch(0.942 0.045 260 / 86%);
-  --agent-chat-accent-foreground: oklch(0.5 0.22 266);
+  --agent-chat-accent-foreground: oklch(0.38 0.032 257);
   --agent-chat-muted-control: oklch(1 0 0 / 92%);
   --agent-chat-placeholder: oklch(0.64 0.06 257);
 }
