@@ -140,7 +140,7 @@ export function InlineSwarmTaskCard({
                   onClick={
                     processPanelOpen ? onCloseProcessPanel : onOpenProcessPanel
                   }
-                  className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border px-3 text-sm font-medium shadow-sm transition-colors ${
+                  className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium shadow-sm transition-colors ${
                     processPanelOpen
                       ? "border-primary/60 bg-primary/10 text-primary"
                       : "border-primary/30 bg-(--agent-chat-elevated-strong) text-foreground hover:border-primary/60 hover:bg-(--agent-chat-accent-soft) hover:text-primary"
@@ -154,9 +154,9 @@ export function InlineSwarmTaskCard({
                   title={t("agentChat.thread.processLinkedToAnswer")}
                 >
                   {processPanelOpen ? (
-                    <PanelRightClose className="size-4" />
+                    <PanelRightClose className="size-3.5" />
                   ) : (
-                    <PanelRight className="size-4" />
+                    <PanelRight className="size-3.5" />
                   )}
                   <span>
                     {processPanelOpen
