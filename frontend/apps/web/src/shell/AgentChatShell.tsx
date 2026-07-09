@@ -67,9 +67,6 @@ const FUNCTION_NAV_ROUTE_PATHS = [
   "/workspaces",
 ] as const
 
-const SIDEBAR_SECTION_TOGGLE_CLASS_NAME =
-  "cursor-pointer hover:bg-transparent hover:text-sidebar-foreground"
-
 export function AgentChatShell({ children }: AgentChatShellProps) {
   return (
     <AgentChatProvider>
@@ -178,8 +175,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   )
   const newConversationItem = {
     key: "new-chat",
-    buttonClassName:
-      "h-10 cursor-pointer rounded-lg border border-primary bg-primary/10 text-sm font-bold text-primary hover:border-primary hover:bg-primary/15 hover:text-primary data-[active=true]:border-primary data-[active=true]:bg-primary/10 data-[active=true]:text-primary",
+    variant: "primaryAction" as const,
     icon: <MessageCircleMore />,
     label: t("agentChat.sidebar.newChat"),
     active: !chat.conversationId && isRouteActive("/commerce"),
@@ -195,7 +191,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       toggleLabel: functionNavOpen
         ? t("agentChat.sidebar.collapseFunctionNav")
         : t("agentChat.sidebar.expandFunctionNav"),
-      toggleClassName: SIDEBAR_SECTION_TOGGLE_CLASS_NAME,
+      toggleHoverTone: "transparent",
       onOpenChange: setFunctionNavOpen,
       leadingItems: [newConversationItem],
       leadingItemsFixed: true,
@@ -253,7 +249,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       toggleLabel: historyOpen
         ? t("agentChat.sidebar.collapseHistory")
         : t("agentChat.sidebar.expandHistory"),
-      toggleClassName: SIDEBAR_SECTION_TOGGLE_CLASS_NAME,
+      toggleHoverTone: "transparent",
       onOpenChange: setHistoryOpen,
       items: recentConversations.length
         ? [

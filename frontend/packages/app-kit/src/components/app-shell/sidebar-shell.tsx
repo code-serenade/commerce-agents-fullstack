@@ -43,7 +43,7 @@ export interface SidebarShellNavEntry {
   label: ReactNode
   href?: string
   active?: boolean
-  buttonClassName?: string
+  variant?: "default" | "primaryAction"
   icon?: ReactNode
   onSelect?: () => void
   action?: ReactNode
@@ -62,7 +62,7 @@ export interface SidebarShellSection {
   maxContentHeight?: "sm" | "md" | "lg"
   open?: boolean
   toggleLabel?: string
-  toggleClassName?: string
+  toggleHoverTone?: "default" | "transparent"
   onOpenChange?: (open: boolean) => void
 }
 
@@ -98,6 +98,14 @@ export interface SidebarShellProps {
   }
   children: ReactNode
 }
+
+const sidebarMenuSpacingClassName = "[&_[data-sidebar=menu]]:gap-1"
+
+const sidebarMenuButtonBaseClassName =
+  "[&_[data-sidebar=menu-button]]:hover:bg-(--shell-sidebar-item-hover-background) [&_[data-sidebar=menu-button]]:hover:text-sidebar-foreground [&_[data-sidebar=menu-button]]:active:bg-(--shell-sidebar-item-hover-background) [&_[data-sidebar=menu-button]]:active:text-sidebar-foreground"
+
+const sidebarPrimaryActionButtonClassName =
+  "[&_[data-sidebar=menu-button]]:h-10 [&_[data-sidebar=menu-button]]:cursor-pointer [&_[data-sidebar=menu-button]]:rounded-lg [&_[data-sidebar=menu-button]]:border [&_[data-sidebar=menu-button]]:border-primary [&_[data-sidebar=menu-button]]:bg-primary/10 [&_[data-sidebar=menu-button]]:text-sm [&_[data-sidebar=menu-button]]:font-bold [&_[data-sidebar=menu-button]]:text-primary [&_[data-sidebar=menu-button]]:hover:border-primary [&_[data-sidebar=menu-button]]:hover:bg-primary/15 [&_[data-sidebar=menu-button]]:hover:text-primary [&_[data-sidebar=menu-button][data-active=true]]:border-primary [&_[data-sidebar=menu-button][data-active=true]]:bg-primary/10 [&_[data-sidebar=menu-button][data-active=true]]:text-primary"
 
 export function SidebarShell({
   brandEyebrow,
@@ -243,14 +251,16 @@ function FixedLeadingItems({ sections }: { sections: SidebarShellSection[] }) {
   return (
     <SidebarGroup>
       <SidebarGroupContent>
-        <SidebarMenu className="gap-1">
-          {fixedItems.map((item) => (
-            <SidebarNavRow
-              key={item.key ?? item.href ?? String(item.label)}
-              item={item}
-            />
-          ))}
-        </SidebarMenu>
+        <div className={sidebarMenuSpacingClassName}>
+          <SidebarMenu>
+            {fixedItems.map((item) => (
+              <SidebarNavRow
+                key={item.key ?? item.href ?? String(item.label)}
+                item={item}
+              />
+            ))}
+          </SidebarMenu>
+        </div>
       </SidebarGroupContent>
     </SidebarGroup>
   )
@@ -294,14 +304,16 @@ function SidebarSectionGroup({
     <SidebarGroup>
       {showLeadingItems && section.leadingItems?.length ? (
         <SidebarGroupContent>
-          <SidebarMenu className="gap-1">
-            {section.leadingItems.map((item) => (
-              <SidebarNavRow
-                key={item.key ?? item.href ?? String(item.label)}
-                item={item}
-              />
-            ))}
-          </SidebarMenu>
+          <div className={sidebarMenuSpacingClassName}>
+            <SidebarMenu>
+              {section.leadingItems.map((item) => (
+                <SidebarNavRow
+                  key={item.key ?? item.href ?? String(item.label)}
+                  item={item}
+                />
+              ))}
+            </SidebarMenu>
+          </div>
         </SidebarGroupContent>
       ) : null}
       {section.collapsible ? (
@@ -312,7 +324,9 @@ function SidebarSectionGroup({
             aria-label={section.toggleLabel}
             className={[
               "flex h-8 min-w-0 flex-1 shrink-0 items-center gap-2 rounded-lg px-2 text-xs font-medium text-sidebar-foreground/70 ring-sidebar-ring outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2",
-              section.toggleClassName,
+              section.toggleHoverTone === "transparent"
+                ? "cursor-pointer hover:bg-transparent hover:text-sidebar-foreground"
+                : "",
             ]
               .filter(Boolean)
               .join(" ")}
@@ -341,14 +355,16 @@ function SidebarSectionGroup({
       {open ? (
         <SidebarGroupContent>
           <div className={getSectionContentClassName(section.maxContentHeight)}>
-            <SidebarMenu className="gap-1">
-              {section.items.map((item) => (
-                <SidebarNavRow
-                  key={item.key ?? item.href ?? String(item.label)}
-                  item={item}
-                />
-              ))}
-            </SidebarMenu>
+            <div className={sidebarMenuSpacingClassName}>
+              <SidebarMenu>
+                {section.items.map((item) => (
+                  <SidebarNavRow
+                    key={item.key ?? item.href ?? String(item.label)}
+                    item={item}
+                  />
+                ))}
+              </SidebarMenu>
+            </div>
           </div>
         </SidebarGroupContent>
       ) : null}
@@ -388,9 +404,9 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
   const hasSubItems = Boolean(item.subItems?.length)
   const isExpandedActionRow = state !== "collapsed"
   const shouldHighlightActionRow = item.active && isExpandedActionRow
-  const navButtonClassName = [
-    "hover:bg-(--shell-sidebar-item-hover-background) hover:text-sidebar-foreground active:bg-(--shell-sidebar-item-hover-background) active:text-sidebar-foreground",
-    item.buttonClassName,
+  const navButtonWrapperClassName = [
+    sidebarMenuButtonBaseClassName,
+    item.variant === "primaryAction" ? sidebarPrimaryActionButtonClassName : "",
   ]
     .filter(Boolean)
     .join(" ")
@@ -399,57 +415,59 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
     return (
       <SidebarMenuItem>
         {item.action ? (
-          <div
-            className={[
-              "group/item flex min-w-0 items-center gap-1 rounded-xl transition-colors",
-              isExpandedActionRow
-                ? "hover:bg-(--shell-sidebar-item-hover-background) [&_[data-sidebar=menu-button]]:hover:bg-transparent [&_[data-sidebar=menu-button]]:hover:text-sidebar-foreground [&_[data-sidebar=menu-button]]:active:bg-transparent [&_[data-sidebar=menu-button]]:active:text-sidebar-foreground [&_[data-sidebar=menu-button][data-active=true]]:bg-transparent [&_[data-sidebar=menu-button][data-active=true]]:shadow-none"
-                : "",
-              shouldHighlightActionRow ? "bg-sidebar-accent" : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          >
-            <div className="min-w-0 flex-1">
-              <SidebarMenuButton
-                active={item.active}
-                variant="primary"
-                className={navButtonClassName}
-                tooltip={
-                  typeof item.label === "string" ? item.label : undefined
-                }
-                onClick={item.onSelect}
-              >
-                {item.icon}
-                <span className="truncate group-data-[collapsible=icon]:hidden">
-                  {item.label}
-                </span>
-              </SidebarMenuButton>
-            </div>
+          <div className={navButtonWrapperClassName}>
             <div
               className={[
-                "shrink-0 transition-opacity group-hover/item:opacity-100 group-data-[collapsible=icon]:hidden focus-within:opacity-100",
-                shouldHighlightActionRow ? "opacity-100" : "opacity-0",
+                "group/item flex min-w-0 items-center gap-1 rounded-xl transition-colors",
+                isExpandedActionRow
+                  ? "hover:bg-(--shell-sidebar-item-hover-background) [&_[data-sidebar=menu-button]]:hover:bg-transparent [&_[data-sidebar=menu-button]]:hover:text-sidebar-foreground [&_[data-sidebar=menu-button]]:active:bg-transparent [&_[data-sidebar=menu-button]]:active:text-sidebar-foreground [&_[data-sidebar=menu-button][data-active=true]]:bg-transparent [&_[data-sidebar=menu-button][data-active=true]]:shadow-none"
+                  : "",
+                shouldHighlightActionRow ? "bg-sidebar-accent" : "",
               ]
                 .filter(Boolean)
                 .join(" ")}
             >
-              {item.action}
+              <div className="min-w-0 flex-1">
+                <SidebarMenuButton
+                  active={item.active}
+                  variant="primary"
+                  tooltip={
+                    typeof item.label === "string" ? item.label : undefined
+                  }
+                  onClick={item.onSelect}
+                >
+                  {item.icon}
+                  <span className="truncate group-data-[collapsible=icon]:hidden">
+                    {item.label}
+                  </span>
+                </SidebarMenuButton>
+              </div>
+              <div
+                className={[
+                  "shrink-0 transition-opacity group-hover/item:opacity-100 group-data-[collapsible=icon]:hidden focus-within:opacity-100",
+                  shouldHighlightActionRow ? "opacity-100" : "opacity-0",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                {item.action}
+              </div>
             </div>
           </div>
         ) : (
-          <SidebarMenuButton
-            active={item.active}
-            variant="primary"
-            className={navButtonClassName}
-            tooltip={typeof item.label === "string" ? item.label : undefined}
-            onClick={item.onSelect}
-          >
-            {item.icon}
-            <span className="truncate group-data-[collapsible=icon]:hidden">
-              {item.label}
-            </span>
-          </SidebarMenuButton>
+          <div className={navButtonWrapperClassName}>
+            <SidebarMenuButton
+              active={item.active}
+              variant="primary"
+              tooltip={typeof item.label === "string" ? item.label : undefined}
+              onClick={item.onSelect}
+            >
+              {item.icon}
+              <span className="truncate group-data-[collapsible=icon]:hidden">
+                {item.label}
+              </span>
+            </SidebarMenuButton>
+          </div>
         )}
       </SidebarMenuItem>
     )
@@ -467,32 +485,33 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
 
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton
-        active={item.active}
-        activeGroup={hasActiveChild}
-        variant="primary"
-        className={navButtonClassName}
-        disclosure
-        disclosureOpen={open}
-        tooltip={typeof item.label === "string" ? item.label : undefined}
-        onClick={() => {
-          if (state === "collapsed") {
-            if (hasActiveChild) {
+      <div className={navButtonWrapperClassName}>
+        <SidebarMenuButton
+          active={item.active}
+          activeGroup={hasActiveChild}
+          variant="primary"
+          disclosure
+          disclosureOpen={open}
+          tooltip={typeof item.label === "string" ? item.label : undefined}
+          onClick={() => {
+            if (state === "collapsed") {
+              if (hasActiveChild) {
+                return
+              }
+
+              item.subItems?.[0]?.onSelect?.()
               return
             }
 
-            item.subItems?.[0]?.onSelect?.()
-            return
-          }
-
-          setOpen((current) => !current)
-        }}
-      >
-        {item.icon}
-        <span className="truncate group-data-[collapsible=icon]:hidden">
-          {item.label}
-        </span>
-      </SidebarMenuButton>
+            setOpen((current) => !current)
+          }}
+        >
+          {item.icon}
+          <span className="truncate group-data-[collapsible=icon]:hidden">
+            {item.label}
+          </span>
+        </SidebarMenuButton>
+      </div>
 
       {open ? (
         <SidebarMenuSub>
