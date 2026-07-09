@@ -643,9 +643,18 @@ function ConversationActionMenu({
       >
         <MoreHorizontal className="size-4" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent>
-        <DropdownMenuItem onSelect={onRename}>{renameLabel}</DropdownMenuItem>
-        <DropdownMenuItem variant="destructive" onSelect={onDelete}>
+      <DropdownMenuContent className="bg-white text-left dark:bg-popover">
+        <DropdownMenuItem
+          className="justify-start text-left"
+          onSelect={onRename}
+        >
+          {renameLabel}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="justify-start text-left"
+          variant="destructive"
+          onSelect={onDelete}
+        >
           <Trash2 className="size-4" />
           {deleteLabel}
         </DropdownMenuItem>
