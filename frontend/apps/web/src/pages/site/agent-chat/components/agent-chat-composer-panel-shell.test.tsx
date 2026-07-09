@@ -1,10 +1,11 @@
-import { render, screen } from "@testing-library/react"
+import { act, render, screen } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { MemoryRouter } from "react-router"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { AgentChatTestI18nProvider } from "@/test/AgentChatTestI18nProvider"
 import { createAgentChatTestI18n } from "@/test/create-agent-chat-test-i18n"
 import { AgentChatComposerPanelShell } from "./agent-chat-composer-panel-shell"
+import { ComposerPanelHeader } from "./composer-panel-layout"
 
 describe("AgentChatComposerPanelShell", () => {
   it("keeps panel content scrollable with bottom breathing room", async () => {
@@ -12,7 +13,7 @@ describe("AgentChatComposerPanelShell", () => {
 
     render(
       <TestProviders i18n={i18n}>
-        <AgentChatComposerPanelShell maxHeight={240}>
+        <AgentChatComposerPanelShell maxHeight={240} open>
           <div>Panel content</div>
         </AgentChatComposerPanelShell>
       </TestProviders>
@@ -36,7 +37,71 @@ describe("AgentChatComposerPanelShell", () => {
     expect(shell).toBe(scroll)
     expect(scroll).toHaveClass("overflow-y-auto")
     expect(scroll).toHaveClass("overflow-x-hidden")
-    expect(content).toHaveClass("pb-16")
+    expect(content).toHaveClass("px-3")
+    expect(content).toHaveClass("pb-12")
+  })
+
+  it("renders close action inside the panel header area", async () => {
+    const i18n = await createAgentChatTestI18n()
+    const onClose = vi.fn()
+
+    render(
+      <TestProviders i18n={i18n}>
+        <AgentChatComposerPanelShell
+          maxHeight={240}
+          onClose={onClose}
+          open
+        >
+          <ComposerPanelHeader
+            title="Panel title"
+            description="Panel description"
+          />
+        </AgentChatComposerPanelShell>
+      </TestProviders>
+    )
+
+    const closeButton = screen.getByRole("button", {
+      name: i18n.t("actions.close", { ns: "common" }),
+    })
+    const content = screen
+      .getByText("Panel title")
+      .closest("[data-agent-chat-composer-panel-content='true']")
+
+    expect(content).toContainElement(closeButton)
+  })
+
+  it("keeps content mounted briefly while the panel collapses", async () => {
+    vi.useFakeTimers()
+    const i18n = await createAgentChatTestI18n()
+
+    const { rerender } = render(
+      <TestProviders i18n={i18n}>
+        <AgentChatComposerPanelShell maxHeight={240} open>
+          <div>Panel content</div>
+        </AgentChatComposerPanelShell>
+      </TestProviders>
+    )
+
+    rerender(
+      <TestProviders i18n={i18n}>
+        <AgentChatComposerPanelShell maxHeight={240} open={false}>
+          <div>Panel content</div>
+        </AgentChatComposerPanelShell>
+      </TestProviders>
+    )
+
+    const shell = screen
+      .getByText("Panel content")
+      .closest("[data-agent-chat-composer-panel-shell='true']")
+
+    expect(shell).toHaveAttribute("aria-hidden", "true")
+    expect(shell).toHaveClass("opacity-0")
+
+    act(() => {
+      vi.runAllTimers()
+    })
+    expect(screen.queryByText("Panel content")).not.toBeInTheDocument()
+    vi.useRealTimers()
   })
 })
 

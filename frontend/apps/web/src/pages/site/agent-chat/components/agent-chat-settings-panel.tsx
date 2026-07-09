@@ -6,6 +6,7 @@ import type {
 } from "../domain/agent-runtime-options"
 import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
 import { AgentChatSettingsControls } from "./agent-chat-settings-controls"
+import { ComposerPanelFrame } from "./composer-panel-layout"
 
 export interface AgentChatSettingsPanelProps {
   isLoadingPlaybooks?: boolean
@@ -80,18 +81,13 @@ export function AgentChatSettingsPanel({
     .join(" · ")
   if (variant === "panel") {
     return (
-      <>
-        <div className="flex min-w-0 flex-col gap-0.5 rounded-lg border border-border bg-muted/25 px-2.5 py-2 sm:px-3">
-          <p className="text-xs/5 font-semibold text-foreground">
-            {t("agentChat.composer.settings.panelTitle")}
-          </p>
-          <p className="text-[11px]/4 text-muted-foreground">
-            {t("agentChat.composer.settings.panelHint", {
-              mode: activeStrategyLabel,
-              summary: runtimeLabel,
-            })}
-          </p>
-        </div>
+      <ComposerPanelFrame
+        title={t("agentChat.composer.settings.panelTitle")}
+        description={t("agentChat.composer.settings.panelHint", {
+          mode: activeStrategyLabel,
+          summary: runtimeLabel,
+        })}
+      >
         <AgentChatSettingsControls
           isLoadingRuntimeOptions={isLoadingRuntimeOptions}
           isStreaming={isStreaming}
@@ -103,9 +99,10 @@ export function AgentChatSettingsPanel({
           onToggleRole={onToggleRole}
           runtimeOptions={runtimeOptions}
           runtimeSelection={runtimeSelection}
+          size="compact"
           strategyId={strategyId}
         />
-      </>
+      </ComposerPanelFrame>
     )
   }
 

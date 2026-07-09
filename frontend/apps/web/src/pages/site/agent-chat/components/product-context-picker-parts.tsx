@@ -2,6 +2,10 @@ import { Check, PackageSearch, Plus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import type { AgentChatProductContextSelection } from "../domain/agent-chat-context-selection"
 import { productStatusTranslationKey } from "./product-context-picker-helpers"
+import {
+  ComposerPanelEmptyState,
+  composerPanelSecondaryButtonClassName,
+} from "./composer-panel-layout"
 
 export function ProductPickerContent({
   availableProducts,
@@ -24,7 +28,7 @@ export function ProductPickerContent({
 
   if (isLoadingProducts) {
     return (
-      <span className="rounded-full border border-border bg-background/70 px-3 py-1.5 text-xs text-muted-foreground">
+      <span className="rounded-full border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) px-3 py-1.5 text-xs text-muted-foreground">
         {t("agentChat.composer.productContext.loading")}
       </span>
     )
@@ -32,32 +36,32 @@ export function ProductPickerContent({
 
   if (!availableProducts.length) {
     return (
-      <div className="col-span-full flex items-center justify-between gap-3 rounded-lg border border-dashed border-border bg-background/60 p-3 text-xs text-muted-foreground">
-        <span>
+      <ComposerPanelEmptyState
+        action={
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={onAddProduct}
+            className={composerPanelSecondaryButtonClassName}
+          >
+            <Plus className="size-3.5" aria-hidden="true" />
+            <span>{t("agentChat.composer.productContext.addProduct")}</span>
+          </button>
+        }
+      >
           {query.trim()
             ? t("agentChat.composer.productContext.noSearchResult")
             : t("agentChat.composer.productContext.empty")}
-        </span>
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={onAddProduct}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <Plus className="size-3.5" aria-hidden="true" />
-          <span>{t("agentChat.composer.productContext.addProduct")}</span>
-        </button>
-      </div>
+      </ComposerPanelEmptyState>
     )
   }
 
   return (
     <>
       {selectedProducts.length === 0 ? (
-        <div className="col-span-full flex items-start gap-2 rounded-lg border border-dashed border-border bg-background/60 p-3 text-xs text-muted-foreground">
-          <PackageSearch className="mt-0.5 size-4 shrink-0" />
-          <span>{t("agentChat.composer.productContext.noneHint")}</span>
-        </div>
+        <ComposerPanelEmptyState icon={<PackageSearch className="size-4" />}>
+          {t("agentChat.composer.productContext.noneHint")}
+        </ComposerPanelEmptyState>
       ) : null}
       {availableProducts.map((product) => (
         <ProductContextButton
@@ -91,19 +95,19 @@ export function ProductContextButton({
       disabled={disabled}
       onClick={() => onToggleProductContext(product)}
       aria-pressed={selected}
-      className={`flex min-w-0 items-start gap-2 rounded-md border px-2.5 py-1.5 text-left text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+      className={`flex min-w-0 items-start gap-2 rounded-lg border px-3 py-2 text-left text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
         selected
-          ? "border-emerald-500/70 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-200"
-          : "border-border bg-background/70 text-muted-foreground hover:bg-muted hover:text-foreground"
+          ? "border-primary/50 bg-primary/10 text-primary"
+          : "border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) text-muted-foreground hover:bg-(--agent-chat-accent-soft) hover:text-foreground"
       }`}
       title={product.name}
     >
       {selected ? (
-        <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-emerald-500 bg-emerald-500 text-white">
+        <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-primary bg-primary text-primary-foreground">
           <Check className="size-3" />
         </span>
       ) : (
-        <span className="mt-0.5 size-4 shrink-0 rounded-[4px] border border-border bg-background shadow-inner" />
+        <span className="mt-0.5 size-4 shrink-0 rounded-[4px] border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) shadow-inner" />
       )}
       <span className="min-w-0">
         <span className="block truncate font-medium text-foreground">
@@ -113,7 +117,7 @@ export function ProductContextButton({
           {readProductMeta(product, t).map((item) => (
             <span
               key={item}
-              className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
+              className="rounded-full bg-(--agent-chat-subtle-surface) px-1.5 py-0.5 text-[10px] text-muted-foreground"
             >
               {item}
             </span>

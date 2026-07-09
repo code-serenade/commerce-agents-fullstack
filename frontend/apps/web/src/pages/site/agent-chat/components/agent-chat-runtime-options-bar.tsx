@@ -24,6 +24,7 @@ export interface AgentChatRuntimeOptionsBarProps {
   onToggleRole: (value: string) => void
   runtimeOptions: AgentRuntimeOptions | null
   runtimeSelection: AgentChatRuntimeSelection
+  size?: "default" | "compact"
   strategyId?: AgentChatStrategyId
 }
 
@@ -37,6 +38,7 @@ export function AgentChatRuntimeOptionsBar({
   onToggleRole,
   runtimeOptions,
   runtimeSelection,
+  size = "default",
 }: AgentChatRuntimeOptionsBarProps) {
   const { t } = useTranslation()
 
@@ -45,9 +47,9 @@ export function AgentChatRuntimeOptionsBar({
   const controlDisabled = disabled || isLoadingRuntimeOptions
   const roleModes = sortRoleModes(runtimeOptions?.collaborationModes ?? [])
   const routingModes = runtimeOptions?.routingModes ?? []
-  const specialistRoles = (runtimeOptions?.roles ?? []).filter(
-    (role) => role.runtimeRole !== "chat"
-  ).map((role) => localizedRoleOption(role, t))
+  const specialistRoles = (runtimeOptions?.roles ?? [])
+    .filter((role) => role.runtimeRole !== "chat")
+    .map((role) => localizedRoleOption(role, t))
 
   return (
     <section className="grid gap-2">
@@ -63,6 +65,7 @@ export function AgentChatRuntimeOptionsBar({
             learningLevels={runtimeOptions.learningLevels}
             onLearningLevelChange={onLearningLevelChange}
             runtimeSelection={runtimeSelection}
+            size={size}
           />
           <OptionSegment
             disabled={controlDisabled}
@@ -72,6 +75,7 @@ export function AgentChatRuntimeOptionsBar({
             options={routingModes.map((choice) =>
               choiceToOption(choice, t, "routingModes")
             )}
+            size={size}
             value={runtimeSelection.routingMode ?? "commander"}
           />
           <OptionSegment
@@ -79,6 +83,7 @@ export function AgentChatRuntimeOptionsBar({
             label={t("agentChat.composer.runtime.roleMode")}
             onValueChange={onCollaborationModeChange}
             options={roleModes.map((mode) => roleModeToOption(mode, t))}
+            size={size}
             value={runtimeSelection.collaborationMode}
           />
           {runtimeSelection.collaborationMode === "auto" ? (
@@ -92,6 +97,7 @@ export function AgentChatRuntimeOptionsBar({
               onToggleRole={onToggleRole}
               roles={specialistRoles}
               runtimeSelection={runtimeSelection}
+              size={size}
             />
           )}
         </>

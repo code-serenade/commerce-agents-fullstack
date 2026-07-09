@@ -1,24 +1,49 @@
-import type { ReactNode } from "react"
-import { X } from "lucide-react"
+import { useEffect, useState, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
+import { ComposerPanelCloseProvider } from "./composer-panel-layout"
+
+const PANEL_EXIT_DURATION_MS = 180
 
 export function AgentChatComposerPanelShell({
   children,
   maxHeight,
   onClose,
+  open,
   size = "default",
 }: {
   children: ReactNode
   maxHeight: number
   onClose?: () => void
+  open: boolean
   size?: "default" | "wide"
 }) {
   const { t } = useTranslation()
   const closeLabel = t("actions.close", { ns: "common" })
+  const [shouldRender, setShouldRender] = useState(open)
+
+  useEffect(() => {
+    if (open) {
+      setShouldRender(true)
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setShouldRender(false)
+    }, PANEL_EXIT_DURATION_MS)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [open])
+
+  if (!shouldRender) return null
 
   return (
     <div
-      className="absolute inset-x-0 bottom-[calc(100%+1.25rem)] z-50 overflow-x-hidden overflow-y-auto overscroll-contain rounded-2xl border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) shadow-[var(--agent-chat-card-shadow)] backdrop-blur-xl [scrollbar-gutter:stable]"
+      aria-hidden={!open}
+      className={`absolute inset-x-0 bottom-[calc(100%+1.25rem)] z-50 origin-bottom overflow-x-hidden overflow-y-auto overscroll-contain rounded-2xl border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) bg-[image:var(--agent-chat-card-background)] shadow-[var(--agent-chat-card-shadow)] backdrop-blur-xl transition-[opacity,transform] duration-200 ease-out [scrollbar-gutter:stable] ${
+        open
+          ? "translate-y-0 scale-100 opacity-100"
+          : "pointer-events-none translate-y-3 scale-[0.97] opacity-0"
+      }`}
       data-composer-interactive="true"
       data-agent-chat-composer-panel-scroll="true"
       data-agent-chat-composer-panel-shell="true"
@@ -26,22 +51,17 @@ export function AgentChatComposerPanelShell({
       style={{ maxHeight }}
     >
       <div className="relative flex min-h-0 flex-col" style={{ maxHeight }}>
-        {onClose ? (
-          <button
-            type="button"
-            aria-label={closeLabel}
-            title={closeLabel}
-            onClick={onClose}
-            className="absolute top-3 right-3 z-10 inline-flex size-8 items-center justify-center rounded-xl border border-border bg-(--agent-chat-elevated-strong) text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden"
-          >
-            <X className="size-4" aria-hidden="true" />
-          </button>
-        ) : null}
         <div
-          className="min-h-0 flex-1 p-2.5 pt-3 pr-12 pb-16 sm:p-3 sm:pr-12 sm:pb-14"
+          className="min-h-0 flex-1 px-3 pt-3 pb-12"
           data-agent-chat-composer-panel-content="true"
         >
-          {children}
+          {onClose ? (
+            <ComposerPanelCloseProvider label={closeLabel} onClose={onClose}>
+              {children}
+            </ComposerPanelCloseProvider>
+          ) : (
+            children
+          )}
         </div>
       </div>
     </div>

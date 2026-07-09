@@ -2,6 +2,7 @@ import { Check, Megaphone } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { campaignStatusTranslationKey } from "../domain/agent-chat-campaign-context"
 import type { AgentChatCampaignContextSelection } from "../domain/agent-chat-context-selection"
+import { ComposerPanelEmptyState } from "./composer-panel-layout"
 
 export function CampaignPickerContent({
   availableCampaigns,
@@ -22,7 +23,7 @@ export function CampaignPickerContent({
 
   if (isLoadingCampaigns) {
     return (
-      <span className="rounded-full border border-border bg-background/70 px-3 py-1.5 text-xs text-muted-foreground">
+      <span className="rounded-full border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) px-3 py-1.5 text-xs text-muted-foreground">
         {t("agentChat.composer.campaignContext.loading")}
       </span>
     )
@@ -30,21 +31,20 @@ export function CampaignPickerContent({
 
   if (!availableCampaigns.length) {
     return (
-      <div className="col-span-full rounded-lg border border-dashed border-border bg-background/60 p-3 text-xs text-muted-foreground">
+      <ComposerPanelEmptyState>
         {query.trim()
           ? t("agentChat.composer.campaignContext.noSearchResult")
           : t("agentChat.composer.campaignContext.empty")}
-      </div>
+      </ComposerPanelEmptyState>
     )
   }
 
   return (
     <>
       {selectedCampaigns.length === 0 ? (
-        <div className="col-span-full flex items-start gap-2 rounded-lg border border-dashed border-border bg-background/60 p-3 text-xs text-muted-foreground">
-          <Megaphone className="mt-0.5 size-4 shrink-0" />
-          <span>{t("agentChat.composer.campaignContext.noneHint")}</span>
-        </div>
+        <ComposerPanelEmptyState icon={<Megaphone className="size-4" />}>
+          {t("agentChat.composer.campaignContext.noneHint")}
+        </ComposerPanelEmptyState>
       ) : null}
       {availableCampaigns.map((campaign) => (
         <CampaignContextButton
@@ -78,19 +78,19 @@ export function CampaignContextButton({
       disabled={disabled}
       onClick={() => onToggleCampaignContext(campaign)}
       aria-pressed={selected}
-      className={`flex min-w-0 items-start gap-2 rounded-md border px-2.5 py-1.5 text-left text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+      className={`flex min-w-0 items-start gap-2 rounded-lg border px-3 py-2 text-left text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
         selected
-          ? "border-sky-500/70 bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-100"
-          : "border-border bg-background/70 text-muted-foreground hover:bg-muted hover:text-foreground"
+          ? "border-primary/50 bg-primary/10 text-primary"
+          : "border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) text-muted-foreground hover:bg-(--agent-chat-accent-soft) hover:text-foreground"
       }`}
       title={campaign.name}
     >
       {selected ? (
-        <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-sky-500 bg-sky-500 text-white">
+        <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-[4px] border border-primary bg-primary text-primary-foreground">
           <Check className="size-3" />
         </span>
       ) : (
-        <span className="mt-0.5 size-4 shrink-0 rounded-[4px] border border-border bg-background shadow-inner" />
+        <span className="mt-0.5 size-4 shrink-0 rounded-[4px] border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) shadow-inner" />
       )}
       <span className="min-w-0">
         <span className="block truncate font-medium text-foreground">
@@ -100,7 +100,7 @@ export function CampaignContextButton({
           {readCampaignMeta(campaign, t).map((item) => (
             <span
               key={item}
-              className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
+              className="rounded-full bg-(--agent-chat-subtle-surface) px-1.5 py-0.5 text-[10px] text-muted-foreground"
             >
               {item}
             </span>

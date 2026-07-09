@@ -11,11 +11,13 @@ export function AdvancedRuntimeOptions({
   learningLevels,
   onLearningLevelChange,
   runtimeSelection,
+  size = "default",
 }: {
   disabled: boolean
   learningLevels: AgentRuntimeChoice[]
   onLearningLevelChange: (value: string) => void
   runtimeSelection: AgentChatRuntimeSelection
+  size?: "default" | "compact"
 }) {
   const { t } = useTranslation()
 
@@ -27,6 +29,7 @@ export function AdvancedRuntimeOptions({
       options={learningLevels.map((choice) =>
         choiceToOption(choice, t, "learningLevels")
       )}
+      size={size}
       value={runtimeSelection.learningLevel}
     />
   )

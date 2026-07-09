@@ -9,6 +9,13 @@ import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { SearchInput } from "@workspace/ui-components"
 import type { AgentChatSourceLibraryItem } from "../domain/agent-chat-context-selection"
+import {
+  ComposerPanelEmptyState,
+  ComposerPanelSection,
+  composerPanelListClassName,
+  composerPanelSecondaryButtonClassName,
+  composerPanelTinyButtonClassName,
+} from "./composer-panel-layout"
 
 const LIBRARY_PAGE_SIZE = 6
 
@@ -45,15 +52,11 @@ export function SourceContextLibrarySection({
   if (!visible) return null
 
   return (
-    <div className="grid min-w-0 gap-2 border-t border-border pt-3">
-      <div className="min-w-0">
-        <p className="text-[11px] font-semibold text-foreground">
-          {t("agentChat.composer.sourceContext.librarySection")}
-        </p>
-        <p className="mt-0.5 text-[11px] text-muted-foreground">
-          {t("agentChat.composer.sourceContext.libraryHint")}
-        </p>
-      </div>
+    <ComposerPanelSection
+      className="mt-4 border-t border-(--agent-chat-soft-border) pt-4"
+      title={t("agentChat.composer.sourceContext.librarySection")}
+      description={t("agentChat.composer.sourceContext.libraryHint")}
+    >
       {sourceLibrary.length ? (
         <SearchInput
           disabled={disabled}
@@ -66,18 +69,18 @@ export function SourceContextLibrarySection({
         />
       ) : null}
       {sourceLibraryError ? (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
+        <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
           {sourceLibraryError}
         </div>
       ) : null}
       {isLoading ? (
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-background/60 p-3 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 rounded-xl border border-(--agent-chat-soft-border) bg-(--agent-chat-subtle-surface) p-3 text-xs text-muted-foreground">
           <Loader2 className="size-4 animate-spin" />
           <span>{t("agentChat.composer.sourceContext.libraryLoading")}</span>
         </div>
       ) : null}
       {!isLoading && sourceLibrary.length && filteredLibrary.length ? (
-        <div className="grid min-w-0 gap-2 sm:grid-cols-2">
+        <div className={composerPanelListClassName}>
           {visibleLibrary.map((source) => (
             <SourceLibraryButton
               key={source.id}
@@ -89,9 +92,9 @@ export function SourceContextLibrarySection({
         </div>
       ) : null}
       {!isLoading && sourceLibrary.length && !filteredLibrary.length ? (
-        <div className="rounded-lg border border-dashed border-border bg-background/60 p-3 text-xs text-muted-foreground">
+        <ComposerPanelEmptyState>
           {t("agentChat.composer.sourceContext.libraryNoSearchResult")}
-        </div>
+        </ComposerPanelEmptyState>
       ) : null}
       {!isLoading && hiddenCount > 0 ? (
         <div className="flex justify-center">
@@ -101,7 +104,7 @@ export function SourceContextLibrarySection({
             onClick={() =>
               setVisibleCount((current) => current + LIBRARY_PAGE_SIZE)
             }
-            className="rounded-full border border-border bg-background px-3 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            className={composerPanelTinyButtonClassName}
           >
             {t("agentChat.composer.sourceContext.showMoreLibrary", {
               count: Math.min(hiddenCount, LIBRARY_PAGE_SIZE),
@@ -110,25 +113,24 @@ export function SourceContextLibrarySection({
         </div>
       ) : null}
       {!isLoading && !sourceLibraryError && sourceLibrary.length === 0 ? (
-        <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-border bg-background/60 p-3 text-xs text-muted-foreground">
-          <div className="flex min-w-0 items-start gap-2">
-            <FolderOpen className="mt-0.5 size-4 shrink-0" />
-            <span className="min-w-0">
-              {t("agentChat.composer.sourceContext.libraryEmpty")}
-            </span>
-          </div>
-          <button
-            type="button"
-            disabled={disabled || !onManageSources}
-            onClick={onManageSources}
-            className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border border-border bg-background px-2.5 text-[11px] font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <FolderOpen className="size-3.5" />
-            {t("agentChat.composer.sourceContext.libraryEmptyAction")}
-          </button>
-        </div>
+        <ComposerPanelEmptyState
+          icon={<FolderOpen className="size-4" />}
+          action={
+            <button
+              type="button"
+              disabled={disabled || !onManageSources}
+              onClick={onManageSources}
+              className={composerPanelSecondaryButtonClassName}
+            >
+              <FolderOpen className="size-3.5" />
+              {t("agentChat.composer.sourceContext.libraryEmptyAction")}
+            </button>
+          }
+        >
+          {t("agentChat.composer.sourceContext.libraryEmpty")}
+        </ComposerPanelEmptyState>
       ) : null}
-    </div>
+    </ComposerPanelSection>
   )
 }
 
@@ -176,16 +178,16 @@ function SourceLibraryButton({
       onClick={() => onAttachExistingSource?.(source.id)}
       className={`flex min-w-0 items-start gap-2 rounded-lg border px-3 py-2 text-left text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
         source.attached
-          ? "border-emerald-400/50 bg-emerald-50 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-100"
-          : "border-border bg-background/70 text-muted-foreground hover:bg-muted hover:text-foreground"
+          ? "border-primary/45 bg-primary/10 text-primary"
+          : "border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) text-muted-foreground hover:bg-(--agent-chat-accent-soft) hover:text-foreground"
       }`}
       title={source.title}
     >
       <span
         className={`mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-[4px] border ${
           source.attached
-            ? "border-emerald-500 bg-emerald-500 text-white"
-            : "border-border bg-background text-muted-foreground"
+            ? "border-primary bg-primary text-primary-foreground"
+            : "border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) text-muted-foreground"
         }`}
       >
         {source.attached ? (
@@ -202,10 +204,10 @@ function SourceLibraryButton({
           </span>
         </span>
         <span className="mt-1 flex min-w-0 flex-wrap gap-1.5">
-          <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+          <span className="rounded-full bg-(--agent-chat-subtle-surface) px-1.5 py-0.5 text-[10px] text-muted-foreground">
             {t(`agentChat.composer.sourceContext.libraryStatus.${statusKey}`)}
           </span>
-          <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+          <span className="rounded-full bg-(--agent-chat-subtle-surface) px-1.5 py-0.5 text-[10px] text-muted-foreground">
             {source.attached
               ? t("agentChat.composer.sourceContext.libraryAttached")
               : t("agentChat.composer.sourceContext.libraryAttach")}
