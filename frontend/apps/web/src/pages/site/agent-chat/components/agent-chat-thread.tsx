@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react"
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react"
 import type { AgentRuntimeEvent } from "@/api"
 import type { AgentChatMessage } from "../types"
 import { AgentChatThreadTurn } from "./agent-chat-thread-turn"
@@ -8,6 +8,11 @@ import {
   type ThreadScrollSnapshot,
 } from "../view-model/thread-scroll-preservation"
 import { findPreviousUserContent } from "../view-model/agent-process-visibility-view-model"
+import {
+  getThreadMessageIdentityKey,
+  getVisibleThreadMessageEntries,
+} from "../view-model/agent-chat-thread-view-model"
+import { useAgentChatThreadViewportHeight } from "../view-model/use-agent-chat-thread-viewport-height"
 import { AgentChatThreadMessage } from "./agent-chat-thread-message"
 import { StrategyStatusPill } from "./thread-message-blocks"
 import type { AgentChatStrategy } from "../domain/agent-chat-strategy"
@@ -49,16 +54,15 @@ export function AgentChatThread({
     (message) => message.status === "streaming"
   )
   const inlineIsStreaming = isStreaming || hasStreamingMessage
-  const messageIdentityKey = useMemo(
-    () => messages.map((message) => message.id).join("|"),
-    [messages]
-  )
+  const messageIdentityKey = getThreadMessageIdentityKey(messages)
   const lastMessage = messages.at(-1)
   const lastMessageContentLength = lastMessage?.content.length ?? 0
   const previousMessageIdentityRef = useRef("")
   const pendingScrollRestoreRef = useRef<ThreadScrollSnapshot | null>(null)
   const hasOnlyWelcomeMessage =
     messages.length === 1 && messages[0]?.id === "welcome"
+  const visibleMessages = getVisibleThreadMessageEntries(messages)
+  useAgentChatThreadViewportHeight(scrollRootRef)
 
   const scrollToEnd = useCallback((behavior: ScrollBehavior) => {
     ignoreScrollUntilRef.current = Date.now() + 350
@@ -110,26 +114,6 @@ export function AgentChatThread({
     restoreThreadScroll(pendingScrollRestoreRef.current)
   }, [activeProcessMessageId])
 
-  useLayoutEffect(() => {
-    const root = scrollRootRef.current
-    if (!root) return
-
-    const syncThreadViewportHeight = () => {
-      root.style.setProperty(
-        "--agent-chat-thread-viewport-height",
-        `${root.clientHeight}px`
-      )
-    }
-
-    syncThreadViewportHeight()
-
-    if (typeof ResizeObserver === "undefined") return
-
-    const observer = new ResizeObserver(syncThreadViewportHeight)
-    observer.observe(root)
-    return () => observer.disconnect()
-  }, [])
-
   const preserveThreadScroll = useCallback(
     (messageId: string | null, action: () => void) => {
       const root = scrollRootRef.current
@@ -171,7 +155,7 @@ export function AgentChatThread({
             <StrategyStatusPill strategy={selectedStrategy} />
           </div>
         ) : null}
-        {messages.map((message, index) => (
+        {visibleMessages.map(({ index, message }) => (
           <AgentChatThreadTurn
             key={message.id}
             activeProcessMessageId={activeProcessMessageId}
