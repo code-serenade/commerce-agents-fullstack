@@ -208,7 +208,7 @@ export function StudentNextActions({
   const meta = getStudentNextActionMeta(t, message, previousUserContent)
 
   return (
-    <div className="mt-3 rounded-2xl border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-surface) bg-[image:var(--agent-chat-card-background)] p-3 shadow-[var(--agent-chat-card-shadow)] backdrop-blur-xl">
+    <div className="mt-3 w-full">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
@@ -229,7 +229,7 @@ export function StudentNextActions({
             key={prompt}
             type="button"
             onClick={() => onSelectPrompt?.(prompt)}
-            className="group flex w-fit max-w-full min-w-0 items-start gap-2 rounded-lg bg-(--agent-chat-subtle-surface) px-2 py-1.5 text-left text-xs/5 text-foreground transition-colors hover:bg-(--agent-chat-accent-soft) hover:text-primary"
+            className="group flex w-fit max-w-full min-w-0 cursor-pointer items-start gap-2 rounded-lg bg-(--agent-chat-elevated-strong) px-2.5 py-1.5 text-left text-xs/5 text-foreground shadow-sm ring-1 ring-(--agent-chat-soft-border) transition-colors hover:bg-(--agent-chat-accent-soft) hover:text-primary"
           >
             <Sparkles className="mt-0.5 size-3.5 shrink-0 text-primary" />
             <span className="min-w-0 flex-1">{prompt}</span>

@@ -18,6 +18,7 @@ export interface AgentChatThreadProps {
   messages: AgentChatMessage[]
   onCloseProcessPanel: () => void
   onExamplePromptSelect?: (prompt: string) => void
+  onNextActionPromptSubmit?: (prompt: string) => void
   onOpenProcessPanel: (target: {
     anchorLabel: string
     messageId: string
@@ -34,6 +35,7 @@ export function AgentChatThread({
   messages,
   onCloseProcessPanel,
   onExamplePromptSelect,
+  onNextActionPromptSubmit,
   onOpenProcessPanel,
   runtimeEvents,
   selectedStrategy,
@@ -184,6 +186,7 @@ export function AgentChatThread({
                 errorRetryPrompt={findPreviousUserContent(messages, index)}
                 message={targetMessage}
                 onExamplePromptSelect={onExamplePromptSelect}
+                onNextActionPromptSubmit={onNextActionPromptSubmit}
                 previousUserContent={findPreviousUserContent(messages, index)}
               />
             )}

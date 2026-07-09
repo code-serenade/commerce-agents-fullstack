@@ -19,11 +19,13 @@ export function AgentChatThreadMessage({
   errorRetryPrompt,
   message,
   onExamplePromptSelect,
+  onNextActionPromptSubmit,
   previousUserContent,
 }: {
   errorRetryPrompt?: string
   message: AgentChatMessage
   onExamplePromptSelect?: (prompt: string) => void
+  onNextActionPromptSubmit?: (prompt: string) => void
   previousUserContent?: string
 }) {
   const { t } = useTranslation()
@@ -56,7 +58,11 @@ export function AgentChatThreadMessage({
           />
         </div>
       ) : null}
-      <div className="flex max-w-[min(45rem,88%)] min-w-0 flex-col items-end">
+      <div
+        className={`flex w-full max-w-[min(45rem,88%)] min-w-0 flex-col ${
+          isUser ? "items-end" : "items-start"
+        }`}
+      >
         <div
           className={`min-w-0 text-sm/6 ${
             isUser
@@ -94,7 +100,7 @@ export function AgentChatThreadMessage({
           {shouldShowStudentNextActions(message) ? (
             <StudentNextActions
               message={message}
-              onSelectPrompt={onExamplePromptSelect}
+              onSelectPrompt={onNextActionPromptSubmit}
               previousUserContent={previousUserContent}
             />
           ) : null}

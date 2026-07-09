@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useNavigate } from "react-router"
 import { AgentChatComposer } from "./components/agent-chat-composer"
 import { AgentChatDocumentTitle } from "./components/agent-chat-document-title"
@@ -13,6 +13,8 @@ import { useAgentProcessPanel } from "./view-model/use-agent-process-panel"
 
 export default function AgentChatPage() {
   const chat = useAgentChatContext()
+  const chatRef = useRef(chat)
+  chatRef.current = chat
   const navigate = useNavigate()
   const [composerFocusVersion, setComposerFocusVersion] = useState(0)
   const requestedComposerPanel = useAgentChatRequestedComposerPanel()
@@ -32,7 +34,7 @@ export default function AgentChatPage() {
   const sendMessage = () => {
     analytics.trackQuestionSubmit()
     processPanel.closeProcessPanel()
-    void chat.sendMessage()
+    void chatRef.current.sendMessage()
   }
 
   const uploadAttachments = (files: File[]) => {
@@ -43,6 +45,11 @@ export default function AgentChatPage() {
   const selectExamplePrompt = (prompt: string) => {
     chat.setInput(prompt)
     setComposerFocusVersion((current) => current + 1)
+  }
+
+  const submitNextActionPrompt = (prompt: string) => {
+    chat.setInput(prompt)
+    window.setTimeout(sendMessage, 0)
   }
 
   return (
@@ -72,6 +79,7 @@ export default function AgentChatPage() {
           messages={chat.messages}
           onCloseProcessPanel={processPanel.closeProcessPanel}
           onExamplePromptSelect={selectExamplePrompt}
+          onNextActionPromptSubmit={submitNextActionPrompt}
           onOpenProcessPanel={processPanel.openProcessPanel}
           runtimeEvents={chat.runtimeEvents}
           selectedStrategy={chat.selectedStrategy}
