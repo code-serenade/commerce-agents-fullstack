@@ -110,11 +110,14 @@ function AgentRoleTimelineItem({
 }) {
   return (
     <div
-      className={`flex min-w-0 items-center gap-2.5 rounded-lg border px-3 py-2 text-left ${panelClassNames[activity.state]} ${roleAccentClassNames[activity.role]} ${
+      className={`relative flex min-w-0 items-center gap-2.5 rounded-lg border px-3 py-2 pr-26 text-left ${panelClassNames[activity.state]} ${
         isCompact ? "min-h-14" : "min-h-16"
       }`}
       data-agent-role-card={activity.role}
     >
+      <span className="absolute top-2 right-3 text-[11px] font-medium text-muted-foreground">
+        {activity.agent.status}
+      </span>
       <AgentRolePortrait
         activity={activity}
         animate={animatePortraits}
@@ -132,9 +135,6 @@ function AgentRoleTimelineItem({
           <p className="truncate text-xs font-semibold text-foreground">
             {activity.agent.name}
           </p>
-          <span className="ml-auto hidden shrink-0 text-[11px] font-medium text-muted-foreground sm:inline">
-            {activity.agent.status}
-          </span>
         </div>
         <p className="mt-0.5 text-[11px]/4 wrap-break-word text-muted-foreground">
           {detail}

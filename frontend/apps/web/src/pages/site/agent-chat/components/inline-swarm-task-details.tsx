@@ -72,23 +72,39 @@ export function InlineStepStrip({ steps }: { steps: string[][] }) {
   const { t } = useTranslation()
 
   return (
-    <div className="grid min-w-0 gap-1.5">
+    <div className="grid min-w-0 gap-0.5 rounded-xl bg-(--agent-chat-subtle-surface) px-2.5 py-2">
       {steps.map(([label, detail], index) => {
+        const isLast = index === steps.length - 1
+
         return (
           <div
             key={`${index}-${label}`}
-            className="grid min-w-0 grid-cols-[1.75rem_minmax(0,1fr)] gap-2 rounded-lg bg-(--agent-chat-subtle-surface) px-2.5 py-1.5"
+            className="grid min-w-0 grid-cols-[1.75rem_minmax(0,1fr)] gap-2"
           >
-            <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-(--agent-chat-elevated-strong) font-mono text-[10px] font-semibold text-primary">
-              {index + 1}
-            </span>
-            <p className="min-w-0 text-xs/5">
-              <span className="font-medium text-foreground">
-                {t("agentChat.thread.steps.stepNumber", { index: index + 1 })}
+            <span className="relative flex justify-center pt-1">
+              <span className="relative z-10 flex size-5 shrink-0 items-center justify-center rounded-full border border-primary/25 bg-(--agent-chat-elevated-strong) font-mono text-xs font-semibold text-primary shadow-sm">
+                {index + 1}
               </span>
-              <span className="ml-1 font-medium text-foreground">{label}</span>
-              <span className="ml-2 text-muted-foreground">{detail}</span>
-            </p>
+              {!isLast ? (
+                <span
+                  aria-hidden="true"
+                  className="absolute top-6 bottom-[-0.75rem] left-1/2 w-px -translate-x-1/2 bg-[linear-gradient(180deg,var(--primary),var(--agent-chat-soft-border))] opacity-35"
+                />
+              ) : null}
+            </span>
+            <div className="min-w-0 rounded-lg px-1 py-1.5">
+              <p className="min-w-0 text-xs/5 font-semibold text-foreground">
+                <span>
+                  {t("agentChat.thread.steps.stepNumber", {
+                    index: index + 1,
+                  })}
+                </span>
+                <span className="ml-1">{label}</span>
+              </p>
+              <p className="mt-0.5 text-xs/5 wrap-break-word text-muted-foreground">
+                {detail}
+              </p>
+            </div>
           </div>
         )
       })}

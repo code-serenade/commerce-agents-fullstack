@@ -105,7 +105,7 @@ export function InlineSwarmTaskCard({
         data-agent-process-card-frame="true"
       >
         <div
-          className={`min-w-0 rounded-2xl border bg-(--agent-chat-elevated-surface) bg-[image:var(--agent-chat-card-background)] p-3 shadow-[var(--agent-chat-card-shadow)] backdrop-blur-xl ${
+          className={`min-w-0 rounded-2xl border bg-(--agent-chat-elevated-surface) bg-(image:--agent-chat-card-background) p-3 shadow-(--agent-chat-card-shadow) backdrop-blur-xl ${
             processPanelOpen
               ? "border-primary/60 ring-1 ring-primary/25"
               : "border-(--agent-chat-soft-border)"

@@ -46,7 +46,7 @@ function AgentPortraitImage({
     size === "card"
       ? "aspect-square w-full"
       : size === "xs"
-        ? "size-10"
+        ? "size-12"
         : size === "sm"
           ? "size-16"
           : "size-20"
