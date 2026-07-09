@@ -11,13 +11,15 @@ export function PageLoading({
 }: PageLoadingProps) {
   return (
     <div
-      className={`flex items-center justify-center ${
-        fullscreen ? "min-h-svh w-full" : "w-full py-12"
+      className={`flex items-center justify-center px-4 ${
+        fullscreen ? "min-h-svh w-full" : "min-h-72 w-full py-12"
       }`}
     >
-      <div className="flex items-center gap-3 rounded-full border border-(--app-border) bg-(--app-surface) px-4 py-2 text-sm text-(--app-muted-text) shadow-[var(--ui-shadow-soft)]">
-        <Spinner size="sm" />
-        <span>{label}</span>
+      <div className="grid justify-items-center gap-3 text-center">
+        <div className="flex size-12 items-center justify-center text-(--app-primary)">
+          <Spinner size="lg" />
+        </div>
+        <p className="text-sm font-semibold text-(--app-text)">{label}</p>
       </div>
     </div>
   )
