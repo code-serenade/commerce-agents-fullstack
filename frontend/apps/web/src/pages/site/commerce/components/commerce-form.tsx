@@ -74,14 +74,14 @@ export function SimpleFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
+      <DialogContent className="flex max-h-[calc(100vh-4rem)] flex-col gap-0 overflow-hidden p-0">
+        <DialogHeader className="px-4 pt-4 pb-3">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
             {t("commerce.common.dialogDescription")}
           </DialogDescription>
         </DialogHeader>
-        <div className="min-h-0 max-h-[calc(100vh-16rem)] space-y-3 overflow-y-auto pr-1 [scrollbar-gutter:stable]">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 pb-4 [scrollbar-gutter:stable]">
           {notice ? (
             <div className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-2 text-xs/5 text-muted-foreground">
               {notice}
@@ -122,7 +122,7 @@ export function SimpleFormDialog({
             </label>
           ))}
         </div>
-        <DialogFooter>
+        <DialogFooter className="m-0 flex shrink-0 flex-wrap justify-start gap-2 rounded-none rounded-b-xl border-t border-border bg-popover/95 p-4 sm:justify-start">
           {footerAuxiliaryActions.map((action) => (
             <Button
               key={action.label}
@@ -140,10 +140,7 @@ export function SimpleFormDialog({
           >
             {t("commerce.common.cancel")}
           </Button>
-          <Button
-            disabled={missingRequired || isSubmitting}
-            onClick={onSubmit}
-          >
+          <Button disabled={missingRequired || isSubmitting} onClick={onSubmit}>
             {submitLabel ?? t("commerce.common.save")}
           </Button>
         </DialogFooter>

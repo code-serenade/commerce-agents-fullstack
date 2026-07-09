@@ -28,7 +28,12 @@ export function FilesPageActions({
         type="file"
         onChange={onUploadChange}
       />
-      <Button size="sm" disabled={!canUploadFiles} onClick={onUploadClick}>
+      <Button
+        size="sm"
+        disabled={!canUploadFiles}
+        className="disabled:border-primary/35 disabled:bg-(--agent-chat-accent-soft) disabled:text-(--agent-chat-accent-foreground) disabled:opacity-70"
+        onClick={onUploadClick}
+      >
         {uploading ? (
           <Loader2 className="size-4 animate-spin" />
         ) : (

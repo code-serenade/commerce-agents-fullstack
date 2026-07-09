@@ -17,6 +17,7 @@ export type ButtonType = "button" | "submit" | "reset"
 
 export interface ButtonProps {
   children: ReactNode
+  className?: string
   variant?: ButtonVariant
   size?: ButtonSize
   fullWidth?: boolean
@@ -27,6 +28,7 @@ export interface ButtonProps {
 
 export function Button({
   children,
+  className,
   variant = "default",
   size = "default",
   fullWidth = false,
@@ -38,7 +40,7 @@ export function Button({
     <CoreButton
       variant={variant}
       size={size}
-      className={cn(fullWidth && "w-full")}
+      className={cn(fullWidth && "w-full", className)}
       type={type}
       disabled={disabled}
       onClick={onClick}

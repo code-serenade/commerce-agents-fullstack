@@ -30,14 +30,17 @@ export interface DialogOverlayProps {}
 
 export interface DialogContentProps {
   children: ReactNode
+  className?: string
 }
 
 export interface DialogHeaderProps {
   children: ReactNode
+  className?: string
 }
 
 export interface DialogFooterProps {
   children: ReactNode
+  className?: string
 }
 
 export interface DialogTitleProps {
@@ -72,16 +75,16 @@ export function DialogOverlay(_: DialogOverlayProps) {
   return <CoreDialogOverlay />
 }
 
-export function DialogContent({ children }: DialogContentProps) {
-  return <CoreDialogContent>{children}</CoreDialogContent>
+export function DialogContent({ children, className }: DialogContentProps) {
+  return <CoreDialogContent className={className}>{children}</CoreDialogContent>
 }
 
-export function DialogHeader({ children }: DialogHeaderProps) {
-  return <CoreDialogHeader>{children}</CoreDialogHeader>
+export function DialogHeader({ children, className }: DialogHeaderProps) {
+  return <CoreDialogHeader className={className}>{children}</CoreDialogHeader>
 }
 
-export function DialogFooter({ children }: DialogFooterProps) {
-  return <CoreDialogFooter>{children}</CoreDialogFooter>
+export function DialogFooter({ children, className }: DialogFooterProps) {
+  return <CoreDialogFooter className={className}>{children}</CoreDialogFooter>
 }
 
 export function DialogTitle({ children }: DialogTitleProps) {

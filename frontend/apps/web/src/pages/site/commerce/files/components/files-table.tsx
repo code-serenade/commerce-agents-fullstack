@@ -1,13 +1,10 @@
-import {
-  Eye,
-  FileCheck2,
-  MinusCircle,
-  Plus,
-  RefreshCw,
-} from "lucide-react"
+import { Eye, FileCheck2, MinusCircle, Plus, RefreshCw } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Badge, Button, Checkbox } from "@workspace/ui-components"
-import { CommerceTable, type CommerceColumn } from "../../components/commerce-ui"
+import {
+  CommerceTable,
+  type CommerceColumn,
+} from "../../components/commerce-ui"
 import {
   fileReadableState,
   type FileConversationUseState,
@@ -85,10 +82,7 @@ export function FilesTable({
       key: "use-state",
       header: t("commerce.files.table.useStateHeader"),
       render: (file) => (
-        <FilesUseStateBadge
-          state={getFileConversationUseState(file)}
-          t={t}
-        />
+        <FilesUseStateBadge state={getFileConversationUseState(file)} t={t} />
       ),
       width: "7.5rem",
     },
@@ -188,6 +182,7 @@ export function FilesTable({
         <Button
           size="sm"
           disabled={!canUploadEmpty}
+          className="disabled:border-primary/35 disabled:bg-(--agent-chat-accent-soft) disabled:text-(--agent-chat-accent-foreground) disabled:opacity-70"
           onClick={onUploadEmpty ?? onClearFilters}
         >
           <Plus className="size-4" />
@@ -216,9 +211,5 @@ function ReadableBadge({
   const { t } = useTranslation()
   const variant = state === "failed" ? "destructive" : "secondary"
 
-  return (
-    <Badge variant={variant}>
-      {t(`commerce.files.status.${state}`)}
-    </Badge>
-  )
+  return <Badge variant={variant}>{t(`commerce.files.status.${state}`)}</Badge>
 }

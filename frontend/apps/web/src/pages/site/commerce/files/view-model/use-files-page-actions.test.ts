@@ -4,6 +4,33 @@ import { useFilesPageActions } from "./use-files-page-actions"
 import { file } from "../domain/test-helpers"
 
 describe("useFilesPageActions", () => {
+  it("allows uploading library files while the chat stream is busy", async () => {
+    const uploadAttachments = vi.fn(() => Promise.resolve())
+    const refreshFileViews = vi.fn(() => Promise.resolve())
+    const { result } = renderHook(() =>
+      useFilesPageActions({
+        attachExistingSource: vi.fn(),
+        availableSources: [],
+        bulkDeleteFiles: vi.fn(),
+        isLoggedIn: true,
+        isStreaming: true,
+        refreshFileViews,
+        removeSourcesByObjects: vi.fn(),
+        selectedFiles: [],
+        setSelectedFileIds: vi.fn(),
+        toggleSourceContext: vi.fn(),
+        uploadAttachments,
+      })
+    )
+
+    await act(async () => {
+      await result.current.uploadFiles([new File(["demo"], "demo.txt")])
+    })
+
+    expect(uploadAttachments).toHaveBeenCalledTimes(1)
+    expect(refreshFileViews).toHaveBeenCalledTimes(1)
+  })
+
   it("tracks row-level material use state and prevents duplicate attach clicks", async () => {
     let resolveAttach: (() => void) | undefined
     const attachExistingSource = vi.fn(
