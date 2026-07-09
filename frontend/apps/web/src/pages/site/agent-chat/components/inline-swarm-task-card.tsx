@@ -100,9 +100,12 @@ export function InlineSwarmTaskCard({
       <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) text-primary">
         <GitBranch className="size-5" />
       </div>
-      <div className="max-w-[min(43rem,92%)] min-w-0 space-y-3">
+      <div
+        className="w-full max-w-[min(43rem,92%)] min-w-0 space-y-3"
+        data-agent-process-card-frame="true"
+      >
         <div
-          className={`rounded-2xl border bg-(--agent-chat-elevated-surface) bg-[image:var(--agent-chat-card-background)] p-3 shadow-[var(--agent-chat-card-shadow)] backdrop-blur-xl ${
+          className={`min-w-0 rounded-2xl border bg-(--agent-chat-elevated-surface) bg-[image:var(--agent-chat-card-background)] p-3 shadow-[var(--agent-chat-card-shadow)] backdrop-blur-xl ${
             processPanelOpen
               ? "border-primary/60 ring-1 ring-primary/25"
               : "border-(--agent-chat-soft-border)"
@@ -194,7 +197,10 @@ export function InlineSwarmTaskCard({
             ) : null}
           </div>
           {open ? (
-            <div className="mt-3 grid gap-2">
+            <div
+              className="mt-3 grid max-h-[calc(var(--agent-chat-thread-viewport-height,70vh)-8rem)] gap-2 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]"
+              data-agent-process-expanded-content="true"
+            >
               <div className="grid gap-2">
                 {showAgentGrid ? (
                   <AgentRoleClusterPanel

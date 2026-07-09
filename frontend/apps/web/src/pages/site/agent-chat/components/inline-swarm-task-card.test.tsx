@@ -34,18 +34,32 @@ describe("InlineSwarmTaskCard", () => {
     )
 
     expect(
-      screen.getByText(i18n.t("agentChat.thread.roleClusterActivity.participants"))
+      screen.getByText(
+        i18n.t("agentChat.thread.roleClusterActivity.participants")
+      )
     ).toBeInTheDocument()
-    expect(document.querySelector("[data-agent-role-participant='ops']")).not.toBeNull()
+    expect(
+      document.querySelector("[data-agent-role-participant='ops']")
+    ).not.toBeNull()
+    expect(
+      document
+        .querySelector("[data-process-message-id='message-quick']")
+        ?.querySelector("[data-agent-process-card-frame='true']")
+    ).toHaveClass("w-full")
     expect(
       document.querySelector("[data-agent-portrait-asset='ops-portrait']")
     ).not.toBeNull()
 
-    await user.click(screen.getByTitle(i18n.t("agentChat.thread.expandProcess")))
+    await user.click(
+      screen.getByTitle(i18n.t("agentChat.thread.expandProcess"))
+    )
 
     expect(
       screen.getByText(i18n.t("agentChat.thread.roleClusterActivity.title"))
     ).toBeInTheDocument()
+    expect(
+      document.querySelector("[data-agent-process-expanded-content='true']")
+    ).toHaveClass("overflow-y-auto")
     expect(
       document.querySelector("[data-agent-role-card='ops']")
     ).not.toBeNull()
@@ -75,10 +89,16 @@ describe("InlineSwarmTaskCard", () => {
     )
 
     expect(
-      screen.getByText(i18n.t("agentChat.thread.roleClusterActivity.participants"))
+      screen.getByText(
+        i18n.t("agentChat.thread.roleClusterActivity.participants")
+      )
     ).toBeInTheDocument()
-    expect(document.querySelector("[data-agent-role-participant='data']")).not.toBeNull()
-    expect(document.querySelector("[data-agent-role-participant='ops']")).not.toBeNull()
+    expect(
+      document.querySelector("[data-agent-role-participant='data']")
+    ).not.toBeNull()
+    expect(
+      document.querySelector("[data-agent-role-participant='ops']")
+    ).not.toBeNull()
     expect(
       document.querySelector("[data-agent-role-participant='search']")
     ).not.toBeNull()
@@ -101,16 +121,22 @@ describe("InlineSwarmTaskCard", () => {
     ).not.toBeNull()
     expect(
       screen.getByText(
-        new RegExp(i18n.t("agentChat.thread.roleClusterActivity.contribution.data"))
+        new RegExp(
+          i18n.t("agentChat.thread.roleClusterActivity.contribution.data")
+        )
       )
     ).toBeInTheDocument()
     expect(
       screen.getByText(
-        new RegExp(i18n.t("agentChat.thread.roleClusterActivity.contribution.ops"))
+        new RegExp(
+          i18n.t("agentChat.thread.roleClusterActivity.contribution.ops")
+        )
       )
     ).toBeInTheDocument()
 
-    await user.click(screen.getByTitle(i18n.t("agentChat.thread.expandProcess")))
+    await user.click(
+      screen.getByTitle(i18n.t("agentChat.thread.expandProcess"))
+    )
 
     expect(
       screen.getAllByText(i18n.t("agentChat.thread.agents.data.name")).length
@@ -119,7 +145,9 @@ describe("InlineSwarmTaskCard", () => {
       screen.getByText(i18n.t("agentChat.thread.roleClusterActivity.title"))
     ).toBeInTheDocument()
     const roleCluster = document.querySelector("[data-agent-role-cluster]")
-    const progressBlock = document.querySelector("[data-agent-process-progress]")
+    const progressBlock = document.querySelector(
+      "[data-agent-process-progress]"
+    )
     expect(roleCluster).not.toBeNull()
     expect(progressBlock).not.toBeNull()
     expect(
@@ -128,16 +156,22 @@ describe("InlineSwarmTaskCard", () => {
     ).toBeTruthy()
     expect(screen.getByText("Step 1")).toBeInTheDocument()
     expect(
-      screen.getByText(i18n.t("agentChat.thread.roleClusterActivity.working.search"))
+      screen.getByText(
+        i18n.t("agentChat.thread.roleClusterActivity.working.search")
+      )
     ).toBeInTheDocument()
     expect(
       screen.getByText(i18n.t("agentChat.thread.dispatchFacts.roleAudit.label"))
     ).toBeInTheDocument()
     expect(
-      screen.getByText(i18n.t("agentChat.thread.dispatchFacts.searchAudit.label"))
+      screen.getByText(
+        i18n.t("agentChat.thread.dispatchFacts.searchAudit.label")
+      )
     ).toBeInTheDocument()
     expect(
-      screen.getByText(i18n.t("agentChat.thread.dispatchFacts.materialAudit.label"))
+      screen.getByText(
+        i18n.t("agentChat.thread.dispatchFacts.materialAudit.label")
+      )
     ).toBeInTheDocument()
   })
 
@@ -198,7 +232,9 @@ describe("InlineSwarmTaskCard", () => {
       screen.getByText(i18n.t("agentChat.thread.processKinds.completed.badge"))
     ).toBeInTheDocument()
     expect(
-      screen.queryByText(i18n.t("agentChat.thread.processKinds.multi_agent.badge"))
+      screen.queryByText(
+        i18n.t("agentChat.thread.processKinds.multi_agent.badge")
+      )
     ).not.toBeInTheDocument()
   })
 })
