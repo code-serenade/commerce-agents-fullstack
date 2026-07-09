@@ -34,44 +34,44 @@
   --app-primary: var(--primary);
   --app-active-bg: var(--accent);
 
-  --agent-chat-page-background: oklch(0.996 0.003 250);
+  --agent-chat-page-background: oklch(0.998 0.002 240);
   --agent-chat-page-ambient:
     radial-gradient(
       ellipse 56% 72% at 100% 48%,
-      oklch(0.9 0.055 262 / 38%) 0%,
-      oklch(0.94 0.028 258 / 22%) 42%,
+      oklch(0.972 0.018 245 / 38%) 0%,
+      oklch(0.988 0.01 245 / 20%) 42%,
       transparent 76%
     ),
     radial-gradient(
       ellipse 48% 78% at 0% 62%,
-      oklch(0.9 0.052 222 / 30%) 0%,
-      oklch(0.95 0.024 232 / 18%) 46%,
+      oklch(0.976 0.018 228 / 32%) 0%,
+      oklch(0.99 0.009 232 / 18%) 46%,
       transparent 78%
     ),
     linear-gradient(
       90deg,
-      oklch(0.965 0.022 231 / 58%) 0%,
-      oklch(1 0 0 / 94%) 32%,
-      oklch(1 0 0 / 96%) 58%,
-      oklch(0.945 0.032 260 / 42%) 100%
+      oklch(0.99 0.008 232 / 52%) 0%,
+      oklch(1 0 0 / 96%) 32%,
+      oklch(1 0 0 / 98%) 58%,
+      oklch(0.986 0.012 248 / 42%) 100%
     );
   --agent-chat-content-surface: oklch(1 0 0 / 18%);
   --agent-chat-elevated-surface: oklch(1 0 0 / 86%);
   --agent-chat-elevated-strong: oklch(1 0 0 / 96%);
-  --agent-chat-subtle-surface: oklch(0.995 0.004 250 / 78%);
+  --agent-chat-subtle-surface: oklch(0.998 0.003 245 / 82%);
   --agent-chat-soft-border: oklch(0.88 0.032 254 / 76%);
   --agent-chat-strong-border: oklch(1 0 0 / 86%);
   --agent-chat-card-header: linear-gradient(
     135deg,
     oklch(1 0 0 / 96%) 0%,
-    oklch(0.975 0.032 292 / 94%) 46%,
-    oklch(0.955 0.04 252 / 96%) 100%
+    oklch(0.992 0.012 268 / 94%) 46%,
+    oklch(0.984 0.016 244 / 96%) 100%
   );
   --agent-chat-card-background: linear-gradient(
     145deg,
-    oklch(1 0 0 / 94%) 0%,
-    oklch(0.985 0.018 285 / 90%) 46%,
-    oklch(0.955 0.036 248 / 92%) 100%
+    oklch(1 0 0 / 96%) 0%,
+    oklch(0.994 0.008 268 / 92%) 48%,
+    oklch(0.982 0.016 244 / 88%) 100%
   );
   --agent-chat-primary-gradient: var(--primary);
   --agent-chat-user-message-background: var(--primary);
