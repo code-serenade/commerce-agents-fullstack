@@ -61,6 +61,23 @@ const authAsideClassName =
   "relative hidden flex-col justify-between border-r border-(--app-border) bg-[linear-gradient(155deg,var(--app-active-bg)_0%,var(--app-surface)_65%)] p-10 text-(--app-text) sm:flex"
 const authContentClassName = "p-8 sm:p-10"
 const authFooterClassName = "text-sm text-(--app-muted-text)"
+const minimalBrandClassName =
+  "m-0 text-[22px] font-bold tracking-normal text-(--auth-minimal-heading-foreground) drop-shadow-[var(--auth-minimal-brand-shadow)]"
+const minimalSubtitleClassName =
+  "mx-auto my-0 max-w-[360px] text-[15px] leading-[1.8] text-(--auth-minimal-muted-foreground)"
+const minimalNoticeClassName =
+  "mb-5 rounded-2xl border border-(--auth-minimal-notice-border) bg-(--auth-minimal-notice-background) p-4 text-left shadow-[var(--auth-minimal-notice-shadow)] backdrop-blur-xl"
+const minimalLabelClassName =
+  "mb-[9px] block text-sm font-bold text-(--auth-minimal-label-foreground)"
+const minimalInputClassName =
+  "h-12 w-full rounded-xl border border-(--auth-minimal-field-border) [background:var(--auth-minimal-field-background)] px-3.5 text-[15px] text-(--auth-minimal-field-foreground) shadow-[var(--auth-minimal-field-shadow)] transition outline-none focus:border-(--auth-minimal-field-focus-border) focus:shadow-[var(--auth-minimal-field-focus-shadow)]"
+const minimalPasswordInputClassName = `${minimalInputClassName} pr-12`
+const minimalIconButtonClassName =
+  "absolute top-1/2 right-3 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-lg text-(--auth-minimal-muted-foreground) transition hover:bg-(--auth-minimal-icon-hover-background) hover:text-(--auth-minimal-action-foreground) focus-visible:ring-2 focus-visible:ring-ring/25 focus-visible:outline-none"
+const minimalSubmitClassName =
+  "mt-[26px] h-12 w-full rounded-xl border-0 bg-[image:var(--auth-minimal-submit-background)] text-base font-bold text-(--auth-minimal-submit-foreground) shadow-[var(--auth-minimal-submit-shadow)] transition disabled:cursor-not-allowed disabled:opacity-65"
+const minimalFooterClassName =
+  "mt-6 flex justify-center gap-2 text-sm text-(--auth-minimal-muted-foreground)"
 
 export function AuthLoginView({
   labels,
@@ -70,7 +87,7 @@ export function AuthLoginView({
   variant = "split",
   onSubmit,
 }: AuthLoginViewProps) {
-  const { t } = useTranslation(["common"])
+  const { t } = useTranslation(["common", "components"])
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const loginSchema = useMemo(() => createAuthLoginSchema(t), [t])
   type LoginFormValues = z.infer<typeof loginSchema>
@@ -93,23 +110,23 @@ export function AuthLoginView({
       <section className="relative z-10 mx-auto mt-[-10px] w-full max-w-[420px]">
         <div className="mb-[18px] flex items-center justify-center gap-3">
           {brandLogo ? <div className="shrink-0">{brandLogo}</div> : null}
-          <p className="m-0 text-[22px] font-bold tracking-normal text-[#111936] drop-shadow-[0_14px_36px_rgba(73,102,255,0.14)] dark:text-[#f7faff] dark:drop-shadow-[0_14px_36px_rgba(73,102,255,0.36)]">
+          <p className={minimalBrandClassName}>
             {labels.brand}
           </p>
         </div>
 
         <header className="mb-[34px] text-center">
-          <p className="mx-auto my-0 max-w-[360px] text-[15px] leading-[1.8] text-[#65738d] dark:text-[#93a4c1]">
+          <p className={minimalSubtitleClassName}>
             {labels.subtitle}
           </p>
         </header>
 
         {notice ? (
-          <div className="mb-5 rounded-2xl border border-[#dce6f7] bg-white/80 p-4 text-left shadow-[0_18px_42px_rgba(38,76,160,0.1)] backdrop-blur-xl dark:border-[rgba(159,179,217,0.24)] dark:bg-[rgba(11,18,38,0.78)] dark:shadow-[0_22px_54px_rgba(0,0,0,0.28)]">
-            <p className="text-sm font-medium text-[#111936] dark:text-[#f7faff]">
+          <div className={minimalNoticeClassName}>
+            <p className="text-sm font-medium text-(--auth-minimal-heading-foreground)">
               {notice.title}
             </p>
-            <p className="mt-1 text-sm text-[#65738d] dark:text-[#93a4c1]">
+            <p className="mt-1 text-sm text-(--auth-minimal-muted-foreground)">
               {notice.description}
             </p>
           </div>
@@ -118,7 +135,7 @@ export function AuthLoginView({
         <form onSubmit={handleLogin} className="px-0.5 pt-1">
           <div className="grid gap-[19px]">
             <label className="block">
-              <span className="mb-[9px] block text-sm font-bold text-[#344054] dark:text-[#d8e4ff]">
+              <span className={minimalLabelClassName}>
                 {labels.identifierLabel}
               </span>
               <Controller
@@ -130,7 +147,7 @@ export function AuthLoginView({
                     onChange={(event) => field.onChange(event.target.value)}
                     type="text"
                     placeholder={labels.identifierPlaceholder}
-                    className="h-12 w-full rounded-xl border border-[#dce6f7] bg-white/90 px-3.5 text-[15px] text-[#101828] shadow-[0_10px_26px_rgba(31,74,145,0.04),inset_0_1px_0_rgba(255,255,255,0.92)] transition outline-none focus:border-[rgba(53,92,255,0.72)] focus:shadow-[0_0_0_4px_rgba(53,92,255,0.08),inset_0_1px_0_rgba(255,255,255,0.9)] dark:border-[rgba(155,176,214,0.22)] dark:bg-[linear-gradient(180deg,rgba(16,25,50,0.9),rgba(11,18,38,0.74))] dark:text-[#eef4ff] dark:shadow-[0_16px_36px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08)] dark:focus:border-[rgba(118,162,255,0.72)] dark:focus:shadow-[0_0_0_4px_rgba(49,93,255,0.14),0_18px_38px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)]"
+                    className={minimalInputClassName}
                   />
                 )}
               />
@@ -138,7 +155,7 @@ export function AuthLoginView({
             </label>
 
             <label className="block">
-              <span className="mb-[9px] block text-sm font-bold text-[#344054] dark:text-[#d8e4ff]">
+              <span className={minimalLabelClassName}>
                 {labels.passwordLabel}
               </span>
               <Controller
@@ -151,13 +168,19 @@ export function AuthLoginView({
                       onChange={(event) => field.onChange(event.target.value)}
                       type={isPasswordVisible ? "text" : "password"}
                       placeholder={labels.passwordPlaceholder}
-                      className="h-12 w-full rounded-xl border border-[#dce6f7] bg-white/90 px-3.5 pr-12 text-[15px] text-[#101828] shadow-[0_10px_26px_rgba(31,74,145,0.04),inset_0_1px_0_rgba(255,255,255,0.92)] transition outline-none focus:border-[rgba(53,92,255,0.72)] focus:shadow-[0_0_0_4px_rgba(53,92,255,0.08),inset_0_1px_0_rgba(255,255,255,0.9)] dark:border-[rgba(155,176,214,0.22)] dark:bg-[linear-gradient(180deg,rgba(16,25,50,0.9),rgba(11,18,38,0.74))] dark:text-[#eef4ff] dark:shadow-[0_16px_36px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.08)] dark:focus:border-[rgba(118,162,255,0.72)] dark:focus:shadow-[0_0_0_4px_rgba(49,93,255,0.14),0_18px_38px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)]"
+                      className={minimalPasswordInputClassName}
                     />
                     <button
                       type="button"
-                      className="absolute top-1/2 right-3 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#65738d] transition hover:bg-[#eef4ff] hover:text-[#2758ff] focus-visible:ring-2 focus-visible:ring-[rgba(53,92,255,0.24)] focus-visible:outline-none dark:text-[#93a4c1] dark:hover:bg-[rgba(118,162,255,0.12)] dark:hover:text-[#d8e4ff]"
+                      className={minimalIconButtonClassName}
                       aria-label={
-                        isPasswordVisible ? "Hide password" : "Show password"
+                        isPasswordVisible
+                          ? t("auth.passwordVisibility.hidePassword", {
+                              ns: "components",
+                            })
+                          : t("auth.passwordVisibility.showPassword", {
+                              ns: "components",
+                            })
                       }
                       aria-pressed={isPasswordVisible}
                       onClick={() =>
@@ -180,14 +203,14 @@ export function AuthLoginView({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="mt-[26px] h-12 w-full rounded-xl border-0 bg-[linear-gradient(135deg,#8b3dff,#2758ff)] text-base font-bold text-white shadow-[0_16px_34px_rgba(67,77,255,0.28)] transition disabled:cursor-not-allowed disabled:opacity-65 dark:shadow-[0_18px_42px_rgba(61,88,255,0.36),inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+            className={minimalSubmitClassName}
           >
             {isSubmitting ? labels.submitting : labels.submit}
           </button>
         </form>
 
         {footerLink ? (
-          <p className="mt-6 flex justify-center gap-2 text-sm text-[#65738d] dark:text-[#93a4c1]">
+          <p className={minimalFooterClassName}>
             {footerLink.prefix} {footerLink.action}
           </p>
         ) : null}
