@@ -9,22 +9,51 @@ import {
 } from "lucide-react"
 import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
+import { Link } from "react-router"
 import {
   DocumentCard,
   DocumentSection,
 } from "../../commerce/components/document-section"
 import { capabilityIcons, laneIcons } from "./agent-capability-icons"
 
-function CapabilityItemCard({ children }: { children: ReactNode }) {
+function CapabilityItemCard({
+  children,
+  onSelect,
+  to,
+}: {
+  children: ReactNode
+  onSelect?: () => void
+  to?: string
+}) {
+  const cardClassName = to
+    ? "h-full cursor-pointer transition group-hover:-translate-y-0.5 group-hover:border-primary/40 group-hover:shadow-(--ui-shadow-soft)"
+    : undefined
+
+  if (to) {
+    return (
+      <Link
+        to={to}
+        className="group block text-current no-underline focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:outline-none"
+        onClick={onSelect}
+      >
+        <DocumentCard className={cardClassName}>{children}</DocumentCard>
+      </Link>
+    )
+  }
+
   return <DocumentCard>{children}</DocumentCard>
 }
 
 export function AgentCapabilityCorePanel({
   descriptionKey = "agentCapabilities.capabilities.description",
+  itemLinks,
+  itemSelectHandlers,
   items,
   titleKey = "agentCapabilities.capabilities.title",
 }: {
   descriptionKey?: string
+  itemLinks?: string[]
+  itemSelectHandlers?: Array<(() => void) | undefined>
   items: Array<{ title: string; description: string }>
   titleKey?: string
 }) {
@@ -47,7 +76,11 @@ export function AgentCapabilityCorePanel({
           const Icon = capabilityIcons[index % capabilityIcons.length]
 
           return (
-            <CapabilityItemCard key={item.title}>
+            <CapabilityItemCard
+              key={item.title}
+              to={itemLinks?.[index]}
+              onSelect={itemSelectHandlers?.[index]}
+            >
               <div className="flex min-w-0 gap-3">
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
                   <Icon className="size-4" />

@@ -17,6 +17,17 @@ import {
   AgentCapabilityQaPanel,
 } from "./components/agent-capability-panels"
 
+const capabilityEntryLinks = [
+  "/commerce",
+  "/products",
+  "/campaigns",
+  "/operations",
+  "/operations",
+  "/workspaces",
+  "/agent-output",
+  "/approvals",
+]
+
 export default function AgentCapabilitiesPage() {
   const { t } = useTranslation()
   const chat = useOptionalAgentChatContext()
@@ -36,10 +47,14 @@ export default function AgentCapabilitiesPage() {
   const qa = t("agentCapabilities.qa.items", {
     returnObjects: true,
   }) as Array<{ question: string; answer: string }>
-  const startNewConversation = () => {
+  const resetConversation = () => {
     chat?.startNewConversation()
+  }
+  const startNewConversation = () => {
+    resetConversation()
     navigate("/commerce")
   }
+  const capabilityEntryHandlers = [resetConversation]
 
   return (
     <CommerceSurface>
@@ -62,7 +77,11 @@ export default function AgentCapabilitiesPage() {
         />
 
         <div className="space-y-6 [&>section+section]:border-t [&>section+section]:border-(--app-border)/60 [&>section+section]:pt-6">
-          <AgentCapabilityCorePanel items={capabilities} />
+          <AgentCapabilityCorePanel
+            itemLinks={capabilityEntryLinks}
+            itemSelectHandlers={capabilityEntryHandlers}
+            items={capabilities}
+          />
           <AgentCapabilityFlowPanel items={flow} />
           <AgentCapabilityCorePanel
             descriptionKey="agentCapabilities.modes.description"

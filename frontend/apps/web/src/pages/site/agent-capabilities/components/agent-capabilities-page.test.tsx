@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type { ReactNode } from "react"
 import { MemoryRouter, Route, Routes } from "react-router"
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { AgentChatTestI18nProvider } from "@/test/AgentChatTestI18nProvider"
 import { createAgentChatTestI18n } from "@/test/create-agent-chat-test-i18n"
 import {
@@ -16,6 +16,10 @@ const chatState = vi.hoisted(() => ({
 }))
 
 describe("AgentCapabilitiesPage", () => {
+  beforeEach(() => {
+    chatState.startNewConversation.mockReset()
+  })
+
   it("starts a fresh chat from the capability page when chat context exists", async () => {
     const i18n = await createAgentChatTestI18n()
     const user = userEvent.setup()
@@ -23,7 +27,10 @@ describe("AgentCapabilitiesPage", () => {
     render(
       <TestShell i18n={i18n} withChatContext>
         <Routes>
-          <Route path="/agent-capabilities" element={<AgentCapabilitiesPage />} />
+          <Route
+            path="/agent-capabilities"
+            element={<AgentCapabilitiesPage />}
+          />
           <Route path="/commerce" element={<div>Q&A page</div>} />
         </Routes>
       </TestShell>
@@ -46,7 +53,10 @@ describe("AgentCapabilitiesPage", () => {
     render(
       <TestShell i18n={i18n}>
         <Routes>
-          <Route path="/agent-capabilities" element={<AgentCapabilitiesPage />} />
+          <Route
+            path="/agent-capabilities"
+            element={<AgentCapabilitiesPage />}
+          />
           <Route path="/commerce" element={<div>Q&A page</div>} />
         </Routes>
       </TestShell>
@@ -65,6 +75,71 @@ describe("AgentCapabilitiesPage", () => {
     )
 
     expect(screen.getByText("Q&A page")).toBeInTheDocument()
+  })
+
+  it("starts a fresh chat from the Q&A entry card", async () => {
+    const i18n = await createAgentChatTestI18n()
+    const user = userEvent.setup()
+    const capabilities = i18n.t("agentCapabilities.capabilities.items", {
+      returnObjects: true,
+    }) as Array<{ title: string }>
+
+    render(
+      <TestShell i18n={i18n} withChatContext>
+        <Routes>
+          <Route
+            path="/agent-capabilities"
+            element={<AgentCapabilitiesPage />}
+          />
+          <Route path="/commerce" element={<div>Q&A page</div>} />
+        </Routes>
+      </TestShell>
+    )
+
+    await user.click(
+      screen.getByRole("link", {
+        name: new RegExp(capabilities[0].title),
+      })
+    )
+
+    expect(chatState.startNewConversation).toHaveBeenCalledTimes(1)
+    expect(screen.getByText("Q&A page")).toBeInTheDocument()
+  })
+
+  it("links core feature entry cards to their target pages", async () => {
+    const i18n = await createAgentChatTestI18n()
+    const capabilities = i18n.t("agentCapabilities.capabilities.items", {
+      returnObjects: true,
+    }) as Array<{ title: string }>
+    const expectedLinks = [
+      "/commerce",
+      "/products",
+      "/campaigns",
+      "/operations",
+      "/operations",
+      "/workspaces",
+      "/agent-output",
+      "/approvals",
+    ]
+
+    render(
+      <TestShell i18n={i18n}>
+        <Routes>
+          <Route
+            path="/agent-capabilities"
+            element={<AgentCapabilitiesPage />}
+          />
+        </Routes>
+      </TestShell>
+    )
+
+    expectedLinks.forEach((href, index) => {
+      expect(
+        screen.getByRole("link", {
+          name: new RegExp(capabilities[index].title),
+        })
+      ).toHaveAttribute("href", href)
+    })
   })
 })
 
@@ -87,9 +162,11 @@ function TestShell({
     <MemoryRouter initialEntries={["/agent-capabilities"]}>
       {withChatContext ? (
         <AgentChatContext.Provider
-          value={{
-            startNewConversation: chatState.startNewConversation,
-          } as unknown as AgentChatContextValue}
+          value={
+            {
+              startNewConversation: chatState.startNewConversation,
+            } as unknown as AgentChatContextValue
+          }
         >
           {content}
         </AgentChatContext.Provider>
