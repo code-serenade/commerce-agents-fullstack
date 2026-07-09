@@ -1,11 +1,10 @@
 import { useRef, useState } from "react"
 import { useNavigate } from "react-router"
-import { AgentChatComposer } from "./components/agent-chat-composer"
+import { AgentChatConversationArea } from "./components/agent-chat-conversation-area"
 import { AgentChatDocumentTitle } from "./components/agent-chat-document-title"
 import { AgentProcessDrawer } from "./components/agent-process-drawer"
 import { AgentChatStatus } from "./components/agent-chat-status"
 import { AgentChatQuotaStatus } from "./components/agent-chat-quota-status"
-import { AgentChatThread } from "./components/agent-chat-thread"
 import { useAgentChatContext } from "./context/use-agent-chat-context"
 import { useAgentChatRequestedComposerPanel } from "./view-model/use-agent-chat-requested-composer-panel"
 import { useAgentChatAnalytics } from "./view-model/use-agent-chat-analytics"
@@ -72,72 +71,16 @@ export default function AgentChatPage() {
           </div>
         </div>
       ) : null}
-      <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col overflow-hidden">
-        <AgentChatThread
-          activeProcessMessageId={processPanel.activeProcessMessage?.id ?? null}
-          isStreaming={chat.isStreaming}
-          messages={chat.messages}
-          onCloseProcessPanel={processPanel.closeProcessPanel}
-          onExamplePromptSelect={selectExamplePrompt}
-          onNextActionPromptSubmit={submitNextActionPrompt}
-          onOpenProcessPanel={processPanel.openProcessPanel}
-          runtimeEvents={chat.runtimeEvents}
-          selectedStrategy={chat.selectedStrategy}
-          showProcessPanelAction
-        />
-        <AgentChatComposer
-          attachments={chat.attachments}
-          availableCampaigns={chat.availableCampaigns}
-          availableProducts={chat.availableProducts}
-          availableSources={chat.availableSources}
-          canSend={chat.canSend}
-          contextPreview={chat.contextPreview}
-          error={chat.error}
-          input={chat.input}
-          focusVersion={
-            composerFocusVersion + requestedComposerPanel.focusVersion
-          }
-          requestedPanel={requestedComposerPanel.panel}
-          requestedPanelVersion={requestedComposerPanel.version}
-          isLoggedIn={chat.isLoggedIn}
-          isLoadingCampaigns={chat.isLoadingCampaigns}
-          isLoadingPlaybooks={chat.isLoadingPlaybooks}
-          isLoadingProducts={chat.isLoadingProducts}
-          isLoadingRuntimeOptions={chat.isLoadingRuntimeOptions}
-          isLoadingSourceLibrary={chat.isLoadingSourceLibrary}
-          isStreaming={chat.isStreaming}
-          onInputChange={chat.setInput}
-          onRuntimeCollaborationModeChange={chat.setRuntimeCollaborationMode}
-          onRuntimeLearningLevelChange={chat.setRuntimeLearningLevel}
-          onRuntimePrimaryRoleChange={chat.setRuntimePrimaryRole}
-          onRuntimeRoutingModeChange={chat.setRuntimeRoutingMode}
-          onToggleRuntimeRole={chat.toggleRuntimeRole}
-          onSelectPlaybook={chat.selectPlaybook}
-          onSend={sendMessage}
-          onStop={chat.stopStreaming}
-          onStrategyChange={chat.setStrategyId}
-          onClearCampaignContext={chat.clearSelectedCampaigns}
-          onClearProductContext={chat.clearSelectedProducts}
-          onClearSourceContext={chat.clearSelectedSources}
-          onToggleCampaignContext={chat.toggleCampaignContext}
-          onToggleProductContext={chat.toggleProductContext}
-          onToggleSourceContext={chat.toggleSourceContext}
-          onDeleteSelectedSources={() => void chat.deleteSelectedSources()}
-          onAttachExistingSource={(fileId) =>
-            void chat.attachExistingSource(fileId)
-          }
-          onUploadAttachments={uploadAttachments}
-          selectedCampaigns={chat.selectedCampaigns}
-          selectedProducts={chat.selectedProducts}
-          selectedSources={chat.selectedSources}
-          sourceLibrary={chat.sourceLibrary}
-          sourceLibraryError={chat.sourceLibraryError}
-          playbooks={chat.playbooks}
-          runtimeOptions={chat.runtimeOptions}
-          runtimeSelection={chat.runtimeSelection}
-          strategyId={chat.strategyId}
-        />
-      </div>
+      <AgentChatConversationArea
+        chat={chat}
+        composerFocusVersion={composerFocusVersion}
+        onExamplePromptSelect={selectExamplePrompt}
+        onNextActionPromptSubmit={submitNextActionPrompt}
+        onSendMessage={sendMessage}
+        onUploadAttachments={uploadAttachments}
+        processPanel={processPanel}
+        requestedComposerPanel={requestedComposerPanel}
+      />
       {processPanel.shouldShowProcessPanel ? (
         <AgentProcessDrawer
           anchorLabel={processPanel.visibleProcessTarget?.anchorLabel}

@@ -16,9 +16,11 @@ export function AgentChatComposer({
   availableProducts,
   availableSources,
   canSend,
+  children,
   contextPreview,
   error,
   focusVersion,
+  heading,
   requestedPanel,
   requestedPanelVersion,
   input,
@@ -29,6 +31,8 @@ export function AgentChatComposer({
   isLoadingRuntimeOptions,
   isLoadingSourceLibrary,
   isStreaming,
+  placement = "bottom",
+  placeholder,
   onInputChange,
   onRuntimeCollaborationModeChange,
   onRuntimeLearningLevelChange,
@@ -94,21 +98,27 @@ export function AgentChatComposer({
       sourceContextOpen ||
       settingsOpen,
   })
-
+  const isWelcomePlacement = placement === "welcome"
   useEffect(() => {
     const textarea = textareaRef.current
     if (!textarea) return
+    const minHeight = isWelcomePlacement ? 72 : 40
     textarea.style.height = "auto"
-    textarea.style.height = `${Math.min(textarea.scrollHeight, 180)}px`
-  }, [input])
-
+    textarea.style.height = `${Math.min(Math.max(textarea.scrollHeight, minHeight), 180)}px`
+  }, [input, isWelcomePlacement])
   useEffect(() => {
     if (!focusVersion || isStreaming) return
     textareaRef.current?.focus()
   }, [focusVersion, isStreaming])
-
+  const footerClassName = isWelcomePlacement
+    ? "relative z-30 w-full shrink-0"
+    : "relative z-30 shrink-0 px-4 pt-3 pb-5 sm:px-7"
+  const headingClassName = isWelcomePlacement
+    ? "mx-auto mb-8 w-full max-w-4xl text-center text-2xl font-semibold text-foreground sm:text-3xl 2xl:text-[32px]"
+    : "mx-auto mb-4 w-full max-w-4xl text-center text-xl font-semibold text-foreground sm:text-2xl"
   return (
-    <footer className="relative z-30 shrink-0 px-4 pt-3 pb-5 sm:px-7">
+    <footer className={footerClassName}>
+      {heading ? <div className={headingClassName}>{heading}</div> : null}
       <div
         ref={composerRootRef}
         data-agent-chat-composer-root="true"
@@ -162,7 +172,6 @@ export function AgentChatComposer({
             sourceContextOpen={sourceContextOpen}
             strategyId={strategyId}
           />
-
           <div className="grid gap-1 rounded-[20px] bg-(--agent-chat-elevated-strong) p-1.5">
             <AgentChatComposerStatus
               canRetry={canSend}
@@ -171,7 +180,6 @@ export function AgentChatComposer({
               isStreaming={isStreaming}
               onRetry={composerEvents.sendAndClosePanels}
             />
-
             <AgentChatComposerInput
               canSend={canSend}
               fileInputRef={fileInputRef}
@@ -182,11 +190,11 @@ export function AgentChatComposer({
               onInputChange={onInputChange}
               onSend={composerEvents.sendAndClosePanels}
               onStop={onStop}
+              placeholder={placeholder}
+              size={isWelcomePlacement ? "welcome" : "default"}
               textareaRef={textareaRef}
             />
-
             <AgentChatAttachmentStrip attachments={attachments} />
-
             <AgentChatComposerToolbar
               availableCampaigns={availableCampaigns}
               availableProducts={availableProducts}
@@ -237,6 +245,9 @@ export function AgentChatComposer({
           </div>
         </div>
       </div>
+      {children ? (
+        <div className="mx-auto w-full max-w-4xl">{children}</div>
+      ) : null}
     </footer>
   )
 }

@@ -1232,6 +1232,9 @@ const messages = {
     composer: {
       placeholder:
         "Say what you want to handle, for example: can this product sell, improve this title, or how should I reply when a customer says it is expensive...",
+      welcomePlaceholder:
+        "Paste a product, title, customer question, or assignment requirement. It does not need to be complete; I will give a conclusion and point out what is missing.",
+      welcomeHeading: "How can I help?",
       loginPlaceholder:
         "Draft the question here; after sign-in, I can keep helping and save the conversation.",
       hint: "Business context connected",

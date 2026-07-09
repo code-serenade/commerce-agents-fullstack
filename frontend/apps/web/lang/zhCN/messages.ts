@@ -1185,6 +1185,9 @@ const messages = {
     composer: {
       placeholder:
         "直接说你现在想处理的事，例如：这个商品能不能卖、帮我改标题、客户嫌贵怎么回...",
+      welcomePlaceholder:
+        "直接粘贴商品、标题、客户问题或作业要求，无需完整，即刻给出结论并点明缺漏要点",
+      welcomeHeading: "有什么我能帮你的吗？",
       loginPlaceholder:
         "可以先把问题写在这里；登录后我会继续帮你分析并保存对话。",
       hint: "已连接实训资料",

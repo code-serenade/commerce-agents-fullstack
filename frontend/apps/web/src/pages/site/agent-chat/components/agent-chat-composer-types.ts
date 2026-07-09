@@ -13,6 +13,7 @@ import type {
 import type { AgentChatAttachmentItem } from "../types"
 import type { AgentChatContextPreviewState } from "../view-model/use-agent-chat-context-preview"
 import type { AgentChatComposerPanelId } from "../view-model/use-agent-chat-panel-state"
+import type { ReactNode } from "react"
 
 export interface AgentChatComposerProps {
   attachments: AgentChatAttachmentItem[]
@@ -20,9 +21,11 @@ export interface AgentChatComposerProps {
   availableCampaigns: AgentChatCampaignContextSelection[]
   availableSources: AgentChatSourceContextSelection[]
   canSend: boolean
+  children?: ReactNode
   contextPreview: AgentChatContextPreviewState
   error: string | null
   focusVersion?: number
+  heading?: ReactNode
   requestedPanel?: AgentChatComposerPanelId | null
   requestedPanelVersion?: number
   input: string
@@ -33,6 +36,8 @@ export interface AgentChatComposerProps {
   isLoadingRuntimeOptions: boolean
   isLoadingSourceLibrary: boolean
   isStreaming: boolean
+  placement?: "bottom" | "welcome"
+  placeholder?: string
   onInputChange: (value: string) => void
   onRuntimeCollaborationModeChange: (value: string) => void
   onRuntimeLearningLevelChange: (value: string) => void

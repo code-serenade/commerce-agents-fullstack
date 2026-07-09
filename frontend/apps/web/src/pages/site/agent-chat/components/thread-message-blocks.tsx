@@ -8,15 +8,13 @@ import {
   Sparkles,
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { Link } from "react-router"
 import type { AgentChatStrategy } from "../domain/agent-chat-strategy"
 import type { AgentChatMessage } from "../types"
 import {
   getStudentNextActionMeta,
   getStudentNextActionPrompts,
-  getStudentTaskEntries,
 } from "../view-model/student-next-actions-view-model"
-import { AgentRoleClusterHomePanel } from "./agent-role-cluster-home-panel"
+import { AgentChatWelcomeContent } from "./agent-chat-welcome-content"
 
 export function WelcomeCard({
   content,
@@ -26,7 +24,6 @@ export function WelcomeCard({
   onSelectExamplePrompt?: (prompt: string) => void
 }) {
   const { t } = useTranslation()
-  const taskEntries = getStudentTaskEntries(t)
 
   return (
     <div className="overflow-hidden rounded-[28px] border border-(--agent-chat-strong-border) bg-(--agent-chat-elevated-surface) bg-[image:var(--agent-chat-card-background)] shadow-[var(--agent-chat-card-shadow)] ring-1 ring-(--agent-chat-soft-border) backdrop-blur-xl">
@@ -44,47 +41,10 @@ export function WelcomeCard({
         </div>
       </div>
       <div className="px-6 py-5">
-        <div className="rounded-2xl border border-(--agent-chat-soft-border) bg-(--agent-chat-subtle-surface) p-4 shadow-[var(--agent-chat-inset-shadow)]">
-          <AgentRoleClusterHomePanel />
-        </div>
-        <div className="mt-5">
-          <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
-            <p className="text-xs font-semibold text-foreground">
-              {t("agentChat.thread.studentTaskEntries.title")}
-            </p>
-            <Link
-              to="/question-ideas"
-              className="inline-flex min-h-7 items-center gap-1.5 rounded-lg border border-(--agent-chat-soft-border) bg-(--agent-chat-accent-soft) px-2.5 text-[11px] font-medium text-(--agent-chat-accent-foreground) transition hover:border-primary/30 hover:bg-accent"
-            >
-              <Sparkles className="size-3.5 shrink-0 text-primary" />
-              {t("agentChat.thread.studentTaskEntries.openIdeas")}
-            </Link>
-          </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {t("agentChat.thread.studentTaskEntries.subtitle")}
-          </p>
-        </div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          {taskEntries.map((entry) => (
-            <button
-              key={entry.title}
-              type="button"
-              className="group min-h-20 rounded-2xl border border-(--agent-chat-soft-border) bg-(--agent-chat-subtle-surface) p-3 text-left shadow-sm transition hover:border-primary/30 hover:bg-accent"
-              onClick={() => onSelectExamplePrompt?.(entry.prompt)}
-            >
-              <span className="flex items-center gap-2 text-xs font-semibold text-foreground">
-                <Sparkles className="size-3.5 shrink-0 text-primary" />
-                {entry.title}
-              </span>
-              <span className="mt-2 block text-[11px]/5 text-muted-foreground">
-                {entry.detail}
-              </span>
-              <span className="mt-2 line-clamp-2 block text-[11px]/5 text-(--agent-chat-accent-foreground) group-hover:text-primary">
-                {entry.prompt}
-              </span>
-            </button>
-          ))}
-        </div>
+        <AgentChatWelcomeContent
+          onSelectExamplePrompt={onSelectExamplePrompt}
+          surface="card"
+        />
       </div>
     </div>
   )
@@ -223,13 +183,13 @@ export function StudentNextActions({
           {meta.label}
         </span>
       </div>
-      <div className="mt-2 flex flex-col gap-0.5">
+      <div className="mt-2 flex flex-col gap-2">
         {prompts.map((prompt) => (
           <button
             key={prompt}
             type="button"
             onClick={() => onSelectPrompt?.(prompt)}
-            className="group flex w-fit max-w-full min-w-0 cursor-pointer items-start gap-2 rounded-lg bg-(--agent-chat-elevated-strong) px-2.5 py-1.5 text-left text-xs/5 text-foreground shadow-sm ring-1 ring-(--agent-chat-soft-border) transition-colors hover:bg-(--agent-chat-accent-soft) hover:text-primary"
+            className="group flex w-fit max-w-full min-w-0 cursor-pointer items-start gap-2 rounded-lg bg-(--agent-chat-accent-soft) px-2.5 py-1.5 text-left text-xs/5 text-foreground transition-colors hover:bg-(--agent-chat-accent-soft) hover:text-primary"
           >
             <Sparkles className="mt-0.5 size-3.5 shrink-0 text-primary" />
             <span className="min-w-0 flex-1">{prompt}</span>

@@ -51,11 +51,6 @@ describe("WelcomeCard", () => {
       screen.getByText(i18n.t("agentChat.thread.studentTaskEntries.title"))
     ).toBeInTheDocument()
     expect(
-      screen.getByRole("link", {
-        name: i18n.t("agentChat.thread.studentTaskEntries.openIdeas"),
-      })
-    ).toHaveAttribute("href", "/question-ideas")
-    expect(
       screen.getByText(i18n.t("agentChat.thread.studentTaskEntries.data.title"))
     ).toBeInTheDocument()
     expect(
@@ -88,7 +83,9 @@ describe("WelcomeCard", () => {
       document.querySelector("[data-agent-portrait-asset='design-portrait']")
     ).toHaveAttribute("data-agent-portrait-source", "static")
     expect(
-      document.querySelector("[data-agent-portrait-asset='engineering-portrait']")
+      document.querySelector(
+        "[data-agent-portrait-asset='engineering-portrait']"
+      )
     ).not.toBeInTheDocument()
   })
 
@@ -146,7 +143,9 @@ function WelcomeCardTestShell({
 }) {
   return (
     <MemoryRouter>
-      <AgentChatTestI18nProvider i18n={i18n}>{children}</AgentChatTestI18nProvider>
+      <AgentChatTestI18nProvider i18n={i18n}>
+        {children}
+      </AgentChatTestI18nProvider>
     </MemoryRouter>
   )
 }
@@ -210,9 +209,12 @@ describe("StudentNextActions", () => {
 
   it("changes suggested next steps from the assistant answer context", async () => {
     const i18n = await createAgentChatTestI18n()
-    const productPrompts = i18n.t("agentChat.thread.nextActions.groups.product", {
-      returnObjects: true,
-    }) as string[]
+    const productPrompts = i18n.t(
+      "agentChat.thread.nextActions.groups.product",
+      {
+        returnObjects: true,
+      }
+    ) as string[]
     const dataPrompts = i18n.t("agentChat.thread.nextActions.groups.data", {
       returnObjects: true,
     }) as string[]
