@@ -72,7 +72,7 @@ export function OptionSegment({
               type="button"
               disabled={disabled}
               onClick={() => onValueChange(option.value)}
-              className={`flex min-h-8 min-w-0 items-center justify-center rounded-lg border px-2 py-1 text-center transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+              className={`flex min-h-8 min-w-0 cursor-pointer items-center justify-center rounded-lg border px-2 py-1 text-center transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                 active
                   ? "border-primary/60 bg-primary/10 text-primary ring-1 ring-primary/10"
                   : "border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) text-muted-foreground hover:bg-(--agent-chat-accent-soft) hover:text-foreground"
