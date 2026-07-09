@@ -18,6 +18,23 @@
   --sidebar-ring: oklch(0.62 0.2 268);
   --shell-topbar-background: oklch(1 0 0 / 78%);
   --shell-topbar-shadow: 0 1px 0 oklch(0.9 0.025 252 / 62%);
+  --shell-sidebar-background:
+    radial-gradient(
+      circle at 14% 8%,
+      oklch(0.9 0.055 286 / 42%) 0,
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 92% 18%,
+      oklch(0.91 0.048 226 / 36%) 0,
+      transparent 36%
+    ),
+    linear-gradient(
+      155deg,
+      oklch(0.985 0.018 252) 0%,
+      oklch(0.965 0.028 258) 58%,
+      oklch(0.99 0.01 238) 100%
+    );
   --shell-sidebar-trigger-background: oklch(1 0 0);
   --shell-sidebar-item-hover-background: oklch(0.94 0.008 252 / 72%);
   --shell-sidebar-shadow:
@@ -39,7 +56,11 @@
     0 0 0 4px oklch(0.62 0.21 266 / 8%), inset 0 1px 0 oklch(1 0 0 / 90%);
   --auth-minimal-icon-hover-background: oklch(0.96 0.025 255);
   --auth-minimal-action-foreground: oklch(0.55 0.24 266);
-  --auth-minimal-submit-background: linear-gradient(135deg, oklch(0.58 0.26 292), oklch(0.55 0.24 266));
+  --auth-minimal-submit-background: linear-gradient(
+    135deg,
+    oklch(0.58 0.26 292),
+    oklch(0.55 0.24 266)
+  );
   --auth-minimal-submit-foreground: oklch(1 0 0);
   --auth-minimal-submit-shadow: 0 16px 34px oklch(0.54 0.2 270 / 28%);
   --auth-minimal-notice-background: oklch(1 0 0 / 80%);
