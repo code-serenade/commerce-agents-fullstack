@@ -8,7 +8,6 @@ import {
   MonitorCog,
   MoreHorizontal,
   MessageSquareText,
-  Sparkles,
   ShoppingBag,
   Trash2,
   UserPlus,
@@ -57,7 +56,6 @@ const FUNCTION_NAV_ROUTE_PATHS = [
   "/",
   "/agent",
   "/agent-capabilities",
-  "/question-ideas",
   "/commerce",
   "/campaigns",
   "/agent-output",
@@ -211,13 +209,6 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           onSelect: () => navigateTo("/agent-capabilities"),
         },
         {
-          key: "question-ideas",
-          icon: <Sparkles />,
-          label: t("agentChat.shell.navigation.questionIdeas"),
-          active: isRouteActive("/question-ideas"),
-          onSelect: () => navigateTo("/question-ideas"),
-        },
-        {
           key: "product-board",
           icon: <ShoppingBag />,
           label: t("agentChat.shell.navigation.productBoard"),
@@ -346,7 +337,6 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       label: t("agentChat.shell.sections.workspace"),
       active:
         isRouteActive("/agent-capabilities") ||
-        isRouteActive("/question-ideas") ||
         (!chat.conversationId && isRouteActive("/commerce")) ||
         isRouteActive("/products") ||
         isRouteActive("/materials") ||
@@ -365,13 +355,6 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           href: "/agent-capabilities",
           active: isRouteActive("/agent-capabilities"),
           onSelect: () => navigateTo("/agent-capabilities"),
-        },
-        {
-          key: "question-ideas",
-          label: t("agentChat.shell.navigation.questionIdeas"),
-          href: "/question-ideas",
-          active: isRouteActive("/question-ideas"),
-          onSelect: () => navigateTo("/question-ideas"),
         },
         {
           key: "product-board",

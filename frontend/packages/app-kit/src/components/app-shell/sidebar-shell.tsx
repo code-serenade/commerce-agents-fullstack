@@ -102,7 +102,7 @@ export interface SidebarShellProps {
 const sidebarMenuSpacingClassName = "[&_[data-sidebar=menu]]:gap-1"
 
 const sidebarMenuButtonBaseClassName =
-  "[&_[data-sidebar=menu-button]]:hover:bg-(--shell-sidebar-item-hover-background) [&_[data-sidebar=menu-button]]:hover:text-sidebar-foreground [&_[data-sidebar=menu-button]]:active:bg-(--shell-sidebar-item-hover-background) [&_[data-sidebar=menu-button]]:active:text-sidebar-foreground"
+  "[&_[data-sidebar=menu-button]]:cursor-pointer [&_[data-sidebar=menu-button]]:hover:bg-(--shell-sidebar-item-hover-background) [&_[data-sidebar=menu-button]]:hover:text-sidebar-foreground [&_[data-sidebar=menu-button]]:active:bg-(--shell-sidebar-item-hover-background) [&_[data-sidebar=menu-button]]:active:text-sidebar-foreground"
 
 const sidebarPrimaryActionButtonClassName =
   "[&_[data-sidebar=menu-button]]:h-10 [&_[data-sidebar=menu-button]]:cursor-pointer [&_[data-sidebar=menu-button]]:rounded-lg [&_[data-sidebar=menu-button]]:border [&_[data-sidebar=menu-button]]:border-primary [&_[data-sidebar=menu-button]]:bg-primary/10 [&_[data-sidebar=menu-button]]:text-sm [&_[data-sidebar=menu-button]]:font-bold [&_[data-sidebar=menu-button]]:text-primary [&_[data-sidebar=menu-button]]:hover:border-primary [&_[data-sidebar=menu-button]]:hover:bg-primary/15 [&_[data-sidebar=menu-button]]:hover:text-primary [&_[data-sidebar=menu-button][data-active=true]]:border-primary [&_[data-sidebar=menu-button][data-active=true]]:bg-primary/10 [&_[data-sidebar=menu-button][data-active=true]]:text-primary"

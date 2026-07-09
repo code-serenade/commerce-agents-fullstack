@@ -104,6 +104,11 @@ describe("AgentChatShell", () => {
     const firstHistoryButton = screen.getByRole("button", {
       name: chatState.conversationTitles[0],
     })
+    expect(
+      screen.queryByRole("button", {
+        name: i18n.t("agentChat.shell.navigation.questionIdeas"),
+      })
+    ).not.toBeInTheDocument()
     expect(newChatButton.getAttribute("data-size")).toBe(
       firstHistoryButton.getAttribute("data-size")
     )
