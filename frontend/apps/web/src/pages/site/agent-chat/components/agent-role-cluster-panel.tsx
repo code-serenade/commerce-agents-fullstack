@@ -1,4 +1,3 @@
-import { UsersRound } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import {
   getAgentRoleActivities,
@@ -16,6 +15,7 @@ export function AgentRoleClusterPanel({
   footer,
   itemDetail = "action",
   summary,
+  surface = "card",
   title,
   variant = "timeline",
 }: {
@@ -26,6 +26,7 @@ export function AgentRoleClusterPanel({
   footer?: string
   itemDetail?: "action" | "summary"
   summary?: string
+  surface?: "card" | "plain"
   title?: string
   variant?: AgentRoleClusterVariant
 }) {
@@ -34,12 +35,15 @@ export function AgentRoleClusterPanel({
 
   if (activities.length === 0) return null
   const isShowcase = variant === "showcase"
+  const isPlain = surface === "plain"
 
   return (
     <section
       className={
         isShowcase
-          ? "relative max-w-full min-w-0 overflow-hidden rounded-lg border border-border bg-muted/30 p-3 shadow-xs"
+          ? isPlain
+            ? "relative max-w-full min-w-0 overflow-hidden"
+            : "relative max-w-full min-w-0 overflow-hidden rounded-lg border border-border bg-muted/30 p-3 shadow-xs"
           : "max-w-full min-w-0 overflow-hidden rounded-xl border border-(--agent-chat-soft-border) bg-(--agent-chat-subtle-surface) px-3 py-2"
       }
       aria-label={
@@ -49,20 +53,37 @@ export function AgentRoleClusterPanel({
     >
       <div
         className={
-          isShowcase
-            ? "flex min-w-0 flex-wrap items-end justify-between gap-2"
-            : "flex min-w-0 items-center gap-2 text-xs"
+          isShowcase && isPlain
+            ? "mb-3 flex min-w-0 flex-wrap items-start justify-between gap-2"
+            : isShowcase
+              ? "flex min-w-0 flex-wrap items-end justify-between gap-2"
+              : "flex min-w-0 items-center gap-2 text-xs"
         }
       >
-        <div className="flex min-w-0 items-center gap-2">
-          <UsersRound className="size-4 shrink-0 text-primary" />
+        <div
+          className={`flex min-w-0 ${
+            isShowcase && isPlain ? "items-start" : "items-center gap-2"
+          }`}
+        >
           <div className="min-w-0">
             {eyebrow ? (
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase">
+              <p
+                className={
+                  isShowcase && isPlain
+                    ? "text-base font-bold text-foreground"
+                    : "text-[10px] font-semibold text-muted-foreground uppercase"
+                }
+              >
                 {eyebrow}
               </p>
             ) : null}
-            <p className="truncate text-xs font-medium text-foreground">
+            <p
+              className={
+                isShowcase && isPlain
+                  ? "mt-0.5 truncate text-xs text-muted-foreground"
+                  : "truncate text-xs font-medium text-foreground"
+              }
+            >
               {title ?? t("agentChat.thread.roleClusterActivity.title")}
             </p>
           </div>
@@ -80,7 +101,9 @@ export function AgentRoleClusterPanel({
       <div
         className={
           isShowcase
-            ? "mt-3 max-w-full overflow-x-auto pb-1 [scrollbar-gutter:stable]"
+            ? isPlain
+              ? "max-w-full overflow-x-auto pb-1 [scrollbar-gutter:stable]"
+              : "mt-3 max-w-full overflow-x-auto pb-1 [scrollbar-gutter:stable]"
             : "mt-2 max-w-full"
         }
       >
@@ -98,6 +121,7 @@ export function AgentRoleClusterPanel({
               activity={activity}
               index={index}
               itemDetail={itemDetail}
+              showStatus={!isPlain}
               variant={variant}
             />
           ))}

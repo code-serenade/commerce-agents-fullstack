@@ -1,6 +1,13 @@
 @import "@workspace/ui-components/styles.css";
 @import "@workspace/ui-theme/styles.css";
 
+:root {
+  --agent-chat-role-card-scrim: rgb(15 23 42 / 0.9);
+  --agent-chat-role-card-scrim-soft: rgb(15 23 42 / 0.58);
+  --agent-chat-role-card-foreground: rgb(248 250 252);
+  --agent-chat-role-card-muted: rgb(226 232 240 / 0.92);
+}
+
 .agent-role-portrait__sprite {
   display: block;
   object-fit: contain;
