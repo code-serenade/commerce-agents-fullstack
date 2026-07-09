@@ -78,7 +78,7 @@ export function AgentCapabilityFlowPanel({ items }: { items: string[] }) {
       description={t("agentCapabilities.flow.description")}
       icon={<Route className="size-4" />}
     >
-      <ol className="relative grid gap-5 before:absolute before:top-4 before:bottom-4 before:left-3.5 before:w-px before:bg-primary/30">
+      <ol className="relative grid gap-5 before:absolute before:inset-y-4 before:left-3.5 before:w-px before:bg-primary/30">
         {items.map((item, index) => (
           <li key={item} className="relative flex min-w-0 items-start gap-4">
             <span className="z-10 flex size-7 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-background text-[11px] font-semibold text-primary shadow-none ring-4 ring-primary/10">

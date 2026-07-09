@@ -29,7 +29,7 @@ export function QuestionIdeasTaskPanel({
           <button
             key={item.title}
             type="button"
-            className="group min-w-0 rounded-lg border border-(--app-border) bg-[image:var(--document-card-background)] p-4 text-left shadow-[var(--document-card-shadow)] backdrop-blur-md transition-colors hover:bg-(--shell-sidebar-item-hover-background)"
+            className="group min-w-0 rounded-lg border border-(--document-card-border) bg-(image:--document-card-background) p-4 text-left shadow-(--document-card-shadow) backdrop-blur-md transition-colors hover:bg-(--shell-sidebar-item-hover-background)"
             onClick={() => onSelectPrompt(item.prompt)}
           >
             <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-foreground">

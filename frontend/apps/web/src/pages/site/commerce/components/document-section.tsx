@@ -49,7 +49,7 @@ export function DocumentIntroCard({
   title: ReactNode
 }) {
   return (
-    <div className="relative overflow-hidden rounded-lg border border-(--app-border) bg-[image:var(--document-intro-card-background)] px-4 py-3 shadow-[var(--document-intro-card-shadow)] backdrop-blur-md before:pointer-events-none before:absolute before:inset-y-0 before:right-0 before:w-1/3 before:bg-[image:var(--document-intro-card-decoration)] before:bg-[size:18px_18px,260px_120px] before:bg-[position:right_center,right_center] before:opacity-80">
+    <div className="relative overflow-hidden rounded-lg border border-(--document-intro-card-border) bg-(image:--document-intro-card-background) px-4 py-3 shadow-(--document-intro-card-shadow) backdrop-blur-md before:pointer-events-none before:absolute before:inset-y-0 before:right-0 before:w-1/3 before:bg-(image:--document-intro-card-decoration) before:bg-size-[18px_18px,260px_120px] before:bg-position-[right_center,right_center] before:opacity-80">
       <div className="relative z-10 flex min-w-0 gap-3">
         <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 p-1 text-primary">
           {icon}
@@ -75,7 +75,7 @@ export function DocumentCard({
   return (
     <div
       className={cx(
-        "min-w-0 rounded-lg border border-(--app-border) bg-[image:var(--document-card-background)] p-4 shadow-[var(--document-card-shadow)] backdrop-blur-md",
+        "min-w-0 rounded-lg border border-(--document-card-border) bg-(image:--document-card-background) p-4 shadow-(--document-card-shadow) backdrop-blur-md",
         className
       )}
     >
