@@ -44,17 +44,17 @@ describe("AgentChatComposerPanelShell", () => {
   it("renders close action inside the panel header area", async () => {
     const i18n = await createAgentChatTestI18n()
     const onClose = vi.fn()
+    const panelTitle = i18n.t("agentChat.composer.sourceContext.panelTitle")
+    const panelDescription = i18n.t(
+      "agentChat.composer.sourceContext.panelHint"
+    )
 
     render(
       <TestProviders i18n={i18n}>
-        <AgentChatComposerPanelShell
-          maxHeight={240}
-          onClose={onClose}
-          open
-        >
+        <AgentChatComposerPanelShell maxHeight={240} onClose={onClose} open>
           <ComposerPanelHeader
-            title="Panel title"
-            description="Panel description"
+            title={panelTitle}
+            description={panelDescription}
           />
         </AgentChatComposerPanelShell>
       </TestProviders>
@@ -64,7 +64,7 @@ describe("AgentChatComposerPanelShell", () => {
       name: i18n.t("actions.close", { ns: "common" }),
     })
     const content = screen
-      .getByText("Panel title")
+      .getByText(panelTitle)
       .closest("[data-agent-chat-composer-panel-content='true']")
 
     expect(content).toContainElement(closeButton)
