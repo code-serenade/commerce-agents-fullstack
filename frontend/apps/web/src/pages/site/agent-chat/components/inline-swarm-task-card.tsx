@@ -75,7 +75,9 @@ export function InlineSwarmTaskCard({
     },
     t
   )
-  const processSummary = getAgentProcessSummary(runtimeEvents, task, t)
+  const processSummary = hasRuntime
+    ? getAgentProcessSummary(runtimeEvents, task, t)
+    : t("agentChat.thread.processKinds.waiting.summary")
   const processTitle = hasRuntime
     ? getAgentProcessTitle(runtimeEvents, t)
     : t("agentChat.thread.processKinds.waiting.title")
@@ -85,13 +87,12 @@ export function InlineSwarmTaskCard({
   const processLabel = hasRuntime
     ? processProgress.label
     : t("agentChat.thread.processKinds.waiting.progress")
-  const processDetail = hasRuntime
-    ? processSummary
-    : t("agentChat.thread.processKinds.waiting.summary")
-  const showAgentGrid = agents.length > 0
+  const handleProcessPanelToggle = processPanelOpen
+    ? onCloseProcessPanel
+    : onOpenProcessPanel
   const dispatchFacts = getDispatchFacts(runtimeEvents, t)
-  const roleActivities = showAgentGrid ? getAgentRoleActivities(agents, t) : []
-
+  const roleActivities =
+    agents.length > 0 ? getAgentRoleActivities(agents, t) : []
   return (
     <article
       className="flex justify-start gap-3"
@@ -129,7 +130,7 @@ export function InlineSwarmTaskCard({
                 ) : null}
               </div>
               <p className="mt-1.5 text-xs/5 text-muted-foreground">
-                {processDetail}
+                {processSummary}
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap items-center justify-start gap-2 sm:justify-end">
@@ -140,10 +141,8 @@ export function InlineSwarmTaskCard({
               {showProcessPanelAction ? (
                 <button
                   type="button"
-                  onClick={
-                    processPanelOpen ? onCloseProcessPanel : onOpenProcessPanel
-                  }
-                  className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium shadow-sm transition-colors ${
+                  onClick={handleProcessPanelToggle}
+                  className={`inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium shadow-sm transition-colors ${
                     processPanelOpen
                       ? "border-primary/60 bg-primary/10 text-primary"
                       : "border-primary/30 bg-(--agent-chat-elevated-strong) text-foreground hover:border-primary/60 hover:bg-(--agent-chat-accent-soft) hover:text-primary"
@@ -173,7 +172,7 @@ export function InlineSwarmTaskCard({
                 onClick={() =>
                   setManualOpen((current) => !(current ?? isStreaming))
                 }
-                className="flex size-8 items-center justify-center rounded-lg border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) text-muted-foreground transition-colors hover:bg-(--agent-chat-accent-soft) hover:text-foreground"
+                className="flex size-8 cursor-pointer items-center justify-center rounded-lg border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) text-muted-foreground transition-colors hover:bg-(--agent-chat-accent-soft) hover:text-foreground"
                 aria-expanded={open}
                 title={
                   open
@@ -202,7 +201,7 @@ export function InlineSwarmTaskCard({
               data-agent-process-expanded-content="true"
             >
               <div className="grid gap-2">
-                {showAgentGrid ? (
+                {agents.length > 0 ? (
                   <AgentRoleClusterPanel
                     agents={agents}
                     animatePortraits={isStreaming}
@@ -217,7 +216,7 @@ export function InlineSwarmTaskCard({
                   runtimeEvents={runtimeEvents}
                   totalCount={processProgress.total}
                 />
-                {showAgentGrid ? (
+                {agents.length > 0 ? (
                   <>
                     <InlineAgentGrid agents={agents} compact={isComplete} />
                     <InlineDispatchFactGrid facts={dispatchFacts} />

@@ -75,7 +75,6 @@ export function InlineStepStrip({ steps }: { steps: string[][] }) {
     <div className="grid min-w-0 gap-0.5 rounded-xl bg-(--agent-chat-subtle-surface) px-2.5 py-2">
       {steps.map(([label, detail], index) => {
         const isLast = index === steps.length - 1
-
         return (
           <div
             key={`${index}-${label}`}
@@ -88,7 +87,7 @@ export function InlineStepStrip({ steps }: { steps: string[][] }) {
               {!isLast ? (
                 <span
                   aria-hidden="true"
-                  className="absolute top-6 bottom-[-0.75rem] left-1/2 w-px -translate-x-1/2 bg-[linear-gradient(180deg,var(--primary),var(--agent-chat-soft-border))] opacity-35"
+                  className="absolute top-6 -bottom-3 left-1/2 w-px -translate-x-1/2 bg-[linear-gradient(180deg,var(--primary),var(--agent-chat-soft-border))] opacity-35"
                 />
               ) : null}
             </span>
