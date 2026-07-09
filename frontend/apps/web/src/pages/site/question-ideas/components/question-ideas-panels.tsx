@@ -4,10 +4,7 @@ import type {
   StudentPromptRecipeItem,
   StudentTaskEntry,
 } from "../../agent-chat/view-model/student-next-actions-view-model"
-import {
-  DocumentCard,
-  DocumentSection,
-} from "../../commerce/components/document-section"
+import { DocumentSection } from "../../commerce/components/document-section"
 
 export function QuestionIdeasTaskPanel({
   items,
@@ -63,14 +60,24 @@ export function QuestionIdeasRecipePanel({
       description={t("questionIdeas.recipe.description")}
       icon={<ListChecks className="size-4" />}
     >
-      <div className="grid gap-3">
-        {items.map((item) => (
-          <DocumentCard key={item.label}>
-            <p className="text-xs font-semibold text-foreground">
-              {item.label}
-            </p>
-            <p className="mt-1 text-sm/6 text-muted-foreground">{item.value}</p>
-          </DocumentCard>
+      <div className="grid max-w-5xl gap-3 md:grid-cols-2">
+        {items.map((item, index) => (
+          <div
+            key={item.label}
+            className="group grid min-h-24 min-w-0 grid-cols-[2.25rem_minmax(0,1fr)] gap-3 rounded-lg border border-(--document-card-border) bg-(image:--document-card-background) p-4 shadow-(--document-card-shadow) backdrop-blur-md transition-colors hover:border-primary/30 hover:bg-(--shell-sidebar-item-hover-background)"
+          >
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-semibold text-primary">
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm/5 font-semibold text-foreground">
+                {item.label}
+              </span>
+              <span className="mt-1.5 block text-sm/6 text-muted-foreground">
+                {item.value}
+              </span>
+            </span>
+          </div>
         ))}
       </div>
     </DocumentSection>
