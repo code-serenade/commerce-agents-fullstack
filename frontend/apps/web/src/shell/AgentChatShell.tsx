@@ -44,6 +44,7 @@ import { CommerceAgentLogo } from "@/components/brand"
 import { webNavigationSections } from "@/navigation"
 import { AgentChatProvider } from "@/pages/site/agent-chat/components/agent-chat-provider"
 import { useAgentChatContext } from "@/pages/site/agent-chat/context/use-agent-chat-context"
+import { useAuthDialog } from "@/components/auth/AuthDialogProvider"
 
 export interface AgentChatShellProps {
   children: ReactNode
@@ -76,6 +77,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   const [navigationMode, setNavigationMode] =
     useState<SidebarNavigationMode>("chat")
   const user = useSelector((state: RootState) => state.auth.user)
+  const { requestLogin } = useAuthDialog()
   const isLoggedIn = Boolean(user)
   const displayName = user?.name || t("web.shell.account.loginCta")
   const displayId = user
@@ -101,6 +103,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   }
 
   const navigateTo = (path: string) => {
+    if (!user && ["/products", "/materials", "/campaigns"].includes(path)) { requestLogin({ pathname: path }); return }
     navigate(path)
   }
 
@@ -132,9 +135,9 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   const trailing = [<LanguageSwitch key="lang" />, <ThemeToggle key="theme" />]
   const newConversationItem = {
     key: "new-chat",
-    variant: "primaryAction" as const,
     icon: <MessageCircleMore />,
     label: t("agentChat.sidebar.newChat"),
+    textSize: "lg" as const,
     active: !chat.conversationId && isRouteActive("/commerce"),
     onSelect: openNewConversation,
   }
@@ -144,6 +147,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       path: "/agent-capabilities",
       icon: <Bot />,
       label: t("agentChat.shell.navigation.capabilities"),
+      textSize: "lg" as const,
       active: isRouteActive("/agent-capabilities"),
       onSelect: () => navigateTo("/agent-capabilities"),
     },
@@ -152,6 +156,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       path: "/question-ideas",
       icon: <Sparkles />,
       label: t("agentChat.shell.navigation.questionIdeas"),
+      textSize: "lg" as const,
       active: isRouteActive("/question-ideas"),
       onSelect: () => navigateTo("/question-ideas"),
     },
@@ -160,6 +165,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       path: "/products",
       icon: <ShoppingBag />,
       label: t("agentChat.shell.navigation.productBoard"),
+      textSize: "lg" as const,
       active: isRouteActive("/products"),
       onSelect: () => navigateTo("/products"),
     },
@@ -168,6 +174,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       path: "/materials",
       icon: <Library />,
       label: t("agentChat.shell.navigation.materials"),
+      textSize: "lg" as const,
       active: isRouteActive("/materials"),
       onSelect: () => navigateTo("/materials"),
     },
@@ -176,27 +183,28 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       path: "/campaigns",
       icon: <Megaphone />,
       label: t("agentChat.shell.navigation.campaigns"),
+      textSize: "lg" as const,
       active: isRouteActive("/campaigns"),
       onSelect: () => navigateTo("/campaigns"),
     },
   ]
+  const visibleFunctionNavigationItems = isLoggedIn
+    ? functionNavigationItems
+    : functionNavigationItems.filter(
+        (item) =>
+          !["product-board", "materials", "campaigns"].includes(item.key)
+      )
   const workspaceSection: SidebarShellSection = {
     key: "workspace",
     label: t("agentChat.shell.sections.workspace"),
+    hideLabel: true,
     maxContentHeight: "lg",
     itemOverflow: {
       maxVisibleItems: 4,
       moreLabel: t("agentChat.sidebar.more"),
       lessLabel: t("agentChat.sidebar.less"),
     },
-    leadingItems: [newConversationItem],
-    leadingItemsFixed: true,
-    items: isLoggedIn
-      ? functionNavigationItems
-      : functionNavigationItems.filter(
-          (item) =>
-            !["product-board", "materials", "campaigns"].includes(item.key)
-        ),
+    items: [newConversationItem, ...visibleFunctionNavigationItems],
   }
   const recentsSection: SidebarShellSection = {
     key: "recents",
@@ -207,6 +215,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       ? [
           ...chat.conversations.map((conversation) => ({
             key: conversation.id,
+            iconTone: "muted" as const,
             icon: <MessageSquareText />,
             label: conversation.title,
             active: isQuestionRoute && conversation.id === chat.conversationId,
@@ -226,6 +235,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       : [
           {
             key: "empty-recents",
+            iconTone: "muted" as const,
             icon: <MessageSquareText />,
             label: t("agentChat.sidebar.empty"),
           },
@@ -236,11 +246,9 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     items: section.items.filter((item) => item.id !== "home"),
   }))
   const trainingSections: SidebarShellSection[] = trainingNavigationSections.map(
-    (section, index) => ({
+    (section) => ({
       key: section.id,
       label: t(section.labelKey),
-      leadingItems: index === 0 ? [newConversationItem] : undefined,
-      leadingItemsFixed: index === 0,
       items: section.items.map((item) => ({
         key: item.id,
         icon: item.icon,
@@ -274,12 +282,6 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       active: isQuestionRoute && conversation.id === chat.conversationId,
       onSelect: () => openConversation(conversation.id),
     }))
-  const visibleFunctionNavigationItems = isLoggedIn
-    ? functionNavigationItems
-    : functionNavigationItems.filter(
-        (item) =>
-          !["product-board", "materials", "campaigns"].includes(item.key)
-      )
   const mobileFunctionSubItems = visibleFunctionNavigationItems.map((item) => ({
     key: item.key,
     label: item.label,
@@ -404,7 +406,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           ) : (
             <span className="block truncate">{displayId}</span>
           ),
-          onSelect: user ? undefined : () => navigate("/login"),
+          onSelect: user ? undefined : () => requestLogin(),
           logout: user
             ? {
                 label: t("web.shell.account.logout"),

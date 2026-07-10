@@ -24,6 +24,10 @@ const chatState = vi.hoisted(() => ({
   deleteConversation: vi.fn(),
 }))
 
+const authDialogState = vi.hoisted(() => ({
+  requestLogin: vi.fn(),
+}))
+
 vi.mock("@/pages/site/agent-chat/use-agent-chat-page", () => ({
   useAgentChatPage: () =>
     ({
@@ -48,10 +52,17 @@ vi.mock("@/pages/site/agent-chat/use-agent-chat-page", () => ({
     }) as unknown as AgentChatContextValue,
 }))
 
+vi.mock("@/components/auth/AuthDialogProvider", () => ({
+  useAuthDialog: () => ({
+    requestLogin: authDialogState.requestLogin,
+  }),
+}))
+
 describe("AgentChatShell", () => {
   beforeEach(() => {
     chatState.startNewConversation.mockClear()
     chatState.selectConversation.mockClear()
+    authDialogState.requestLogin.mockClear()
     Object.defineProperty(window, "matchMedia", {
       configurable: true,
       value: vi.fn().mockImplementation((query: string) => ({
@@ -200,7 +211,7 @@ describe("AgentChatShell", () => {
     expect(screen.getByText("Guest content")).toBeInTheDocument()
   }, 15000)
 
-  it("navigates guests to login directly from the footer account entry", async () => {
+  it("requests login directly from the guest footer account entry", async () => {
     const i18n = await createAgentChatTestI18n()
     const user = userEvent.setup()
     const locationSpy = vi.fn()
@@ -221,7 +232,8 @@ describe("AgentChatShell", () => {
     const loginEntry = screen.getByText(i18n.t("web.shell.account.loginCta"))
     await user.click(loginEntry.closest("button") as HTMLButtonElement)
 
-    expect(locationSpy).toHaveBeenLastCalledWith("/login")
+    expect(authDialogState.requestLogin).toHaveBeenCalledTimes(1)
+    expect(locationSpy).toHaveBeenLastCalledWith("/commerce")
     expect(
       screen.queryByRole("menuitem", {
         name: i18n.t("web.shell.account.login"),
@@ -248,12 +260,12 @@ describe("AgentChatShell", () => {
 
     expect(
       screen.getByRole("button", {
-        name: i18n.t("agentChat.shell.navigation.productBoard"),
+        name: i18n.t("agentChat.shell.navigation.questionIdeas"),
       })
     ).toBeInTheDocument()
     expect(
       screen.queryByRole("button", {
-        name: i18n.t("agentChat.shell.navigation.materials"),
+        name: i18n.t("agentChat.shell.navigation.productBoard"),
       })
     ).not.toBeInTheDocument()
 
@@ -264,6 +276,11 @@ describe("AgentChatShell", () => {
     expect(
       screen.getByRole("button", {
         name: i18n.t("agentChat.sidebar.less"),
+      })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", {
+        name: i18n.t("agentChat.shell.navigation.productBoard"),
       })
     ).toBeInTheDocument()
     expect(
@@ -300,6 +317,11 @@ describe("AgentChatShell", () => {
       })
     )
 
+    expect(
+      screen.queryByRole("button", {
+        name: i18n.t("agentChat.sidebar.newChat"),
+      })
+    ).not.toBeInTheDocument()
     expect(
       screen.getByRole("button", {
         name: i18n.t("web.shell.navigation.approvals"),

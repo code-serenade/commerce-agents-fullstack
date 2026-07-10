@@ -43,7 +43,9 @@ export interface SidebarShellNavEntry {
   label: ReactNode
   href?: string
   active?: boolean
+  iconTone?: "default" | "muted"
   tone?: "default" | "muted"
+  textSize?: "default" | "lg"
   variant?: "default" | "primaryAction"
   icon?: ReactNode
   onSelect?: () => void
@@ -61,6 +63,7 @@ export interface SidebarShellItemOverflowConfig {
 export interface SidebarShellSection {
   key?: string
   label: ReactNode
+  hideLabel?: boolean
   action?: ReactNode
   leadingItems?: SidebarShellNavEntry[]
   leadingItemsFixed?: boolean
@@ -193,18 +196,20 @@ export function SidebarShell({
               <div aria-hidden="true" className="h-px bg-sidebar-border" />
 
               <SidebarContent>
-                <FixedLeadingItems sections={sections} />
                 {navigationHeader ? (
                   <div className="px-2 pt-1 group-data-[collapsible=icon]:hidden">
                     {navigationHeader}
                   </div>
                 ) : null}
+                <FixedLeadingItems sections={sections} />
                 <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto pr-1 [scrollbar-gutter:stable] group-data-[collapsible=icon]:overflow-hidden group-data-[collapsible=icon]:pr-0">
                   {sections.map((section) => (
                     <SidebarSectionGroup
                       key={section.key ?? String(section.label)}
                       section={section}
-                      showLeadingItems={!section.leadingItemsFixed}
+                      showLeadingItems={
+                        !section.leadingItemsFixed || section.hideLabel
+                      }
                     />
                   ))}
                 </div>
@@ -298,7 +303,9 @@ function BrandContent({
 
 function FixedLeadingItems({ sections }: { sections: SidebarShellSection[] }) {
   const fixedItems = sections.flatMap((section) =>
-    section.leadingItemsFixed ? (section.leadingItems ?? []) : []
+    section.leadingItemsFixed && !section.hideLabel
+      ? (section.leadingItems ?? [])
+      : []
   )
 
   if (!fixedItems.length) return null
@@ -412,7 +419,7 @@ function SidebarSectionGroup({
             <div className="shrink-0">{section.action}</div>
           ) : null}
         </div>
-      ) : (
+      ) : section.hideLabel ? null : (
         <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
       )}
       {open ? (
@@ -532,11 +539,23 @@ function SidebarOverflowControlRow({
 }) {
   const { state } = useSidebar()
   const isExpandedSidebar = state !== "collapsed"
+  const textSize = overflowItems.some((item) => item.textSize === "lg")
+    ? "lg"
+    : "default"
 
   return (
     <SidebarMenuItem>
       <div className="group/overflow relative">
-        <div className={sidebarMenuButtonBaseClassName}>
+        <div
+          className={[
+            sidebarMenuButtonBaseClassName,
+            textSize === "lg"
+              ? "[&_[data-sidebar=menu-button]]:text-base"
+              : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
           <SidebarMenuButton
             active={false}
             disclosure={!expanded}
@@ -606,6 +625,12 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
     item.variant === "primaryAction" ? sidebarPrimaryActionButtonClassName : "",
     item.tone === "muted"
       ? "[&_[data-sidebar=menu-button]]:text-sidebar-foreground/55 [&_[data-sidebar=menu-button]_svg]:text-sidebar-foreground/45"
+      : "",
+    item.iconTone === "muted"
+      ? "[&_[data-sidebar=menu-button]_svg]:text-sidebar-foreground/55"
+      : "",
+    item.textSize === "lg"
+      ? "[&_[data-sidebar=menu-button]]:text-base"
       : "",
   ]
     .filter(Boolean)
