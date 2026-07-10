@@ -135,7 +135,7 @@ function AgentRoleSceneItem({
         {asset ? (
           <img
             alt=""
-            className="agent-role-portrait__sprite absolute inset-0 size-full object-cover opacity-95 transition-transform duration-300 group-hover:scale-[1.03]"
+            className="agent-role-portrait__sprite absolute inset-0 w-full object-cover opacity-95 transition-transform duration-300 group-hover:scale-[1.03] mt-[8%]"
             data-agent-portrait-asset={asset.key}
             data-agent-portrait-state={activity.state}
             data-agent-portrait-source="static"
@@ -152,7 +152,7 @@ function AgentRoleSceneItem({
           {activity.agent.name}
         </p>
       </div>
-      <div className="absolute inset-x-0 bottom-0 z-10 flex min-h-[42%] flex-col justify-end bg-[image:linear-gradient(180deg,transparent_0%,rgb(0_0_0/0.12)_24%,rgb(0_0_0/0.56)_54%,rgb(var(--agent-role-card-scrim-accent)/0.48)_100%)] px-3 pt-10 pb-3">
+      <div className="absolute inset-x-0 bottom-0 z-10 flex min-h-[42%] flex-col justify-end bg-[image:linear-gradient(180deg,transparent_0%,rgb(0_0_0/0.12)_12%,rgb(var(--agent-role-card-scrim-accent)/0.48)_44%,rgb(var(--agent-role-card-scrim-accent)/0.88)_100%)] px-3 pt-10 pb-3">
         <p
           className="line-clamp-2 min-h-8 text-[11px]/4 text-(--agent-chat-role-card-muted)"
           title={description}
