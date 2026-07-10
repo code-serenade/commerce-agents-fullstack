@@ -1,6 +1,7 @@
 import { ChevronDown, Files, TriangleAlert } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+import { Button } from "@workspace/ui-components"
 import type {
   AgentChatSourceContextSelection,
   AgentChatSourceLibraryItem,
@@ -108,9 +109,10 @@ export function AgentChatSourceContextBar({
 
   return (
     <div className="relative shrink-0" data-composer-interactive="true">
-      <button
+      <Button
         type="button"
         onClick={toggleOpen}
+        classNameMode="replace"
         className={`flex h-7 max-w-28 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition-colors sm:max-w-48 ${
           open
             ? "border-primary/30 bg-(--agent-chat-accent-soft) text-(--agent-chat-accent-foreground) shadow-sm"
@@ -140,7 +142,7 @@ export function AgentChatSourceContextBar({
             open ? "rotate-180" : ""
           }`}
         />
-      </button>
+      </Button>
     </div>
   )
 }

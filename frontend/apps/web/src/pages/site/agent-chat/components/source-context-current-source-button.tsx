@@ -1,5 +1,6 @@
 import { Check, Eye, FileText } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { Button } from "@workspace/ui-components"
 import type { AgentChatSourceContextSelection } from "../domain/agent-chat-context-selection"
 
 export function SourceContextButton({
@@ -17,11 +18,12 @@ export function SourceContextButton({
   const readStatus = getSourceReadStatus(source)
 
   return (
-    <button
+    <Button
       type="button"
       disabled={disabled}
       onClick={() => onToggleSourceContext(source)}
       aria-pressed={selected}
+      classNameMode="replace"
       className={`flex min-w-0 items-start gap-2 rounded-md border px-2.5 py-1.5 text-left text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
         selected
           ? "border-amber-400/80 bg-amber-50 text-amber-800 dark:bg-amber-500/15 dark:text-amber-100"
@@ -60,7 +62,7 @@ export function SourceContextButton({
           </span>
         </span>
       </span>
-    </button>
+    </Button>
   )
 }
 

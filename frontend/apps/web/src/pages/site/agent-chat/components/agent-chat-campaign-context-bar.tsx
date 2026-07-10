@@ -1,6 +1,7 @@
 import { ChevronDown, Megaphone } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+import { Button } from "@workspace/ui-components"
 import type { AgentChatCampaignContextSelection } from "../domain/agent-chat-context-selection"
 import { CampaignContextPicker } from "./campaign-context-picker"
 
@@ -64,9 +65,10 @@ export function AgentChatCampaignContextBar({
 
   return (
     <div className="relative shrink-0" data-composer-interactive="true">
-      <button
+      <Button
         type="button"
         onClick={toggleOpen}
+        classNameMode="replace"
         className={`flex h-7 max-w-28 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition-colors sm:max-w-36 ${
           open
             ? "border-primary/30 bg-(--agent-chat-accent-soft) text-(--agent-chat-accent-foreground) shadow-sm"
@@ -92,7 +94,7 @@ export function AgentChatCampaignContextBar({
             open ? "rotate-180" : ""
           }`}
         />
-      </button>
+      </Button>
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { ChevronDown, ShoppingBag } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+import { Button } from "@workspace/ui-components"
 import type { AgentChatProductContextSelection } from "../domain/agent-chat-context-selection"
 import { ProductContextPicker } from "./product-context-picker"
 
@@ -63,9 +64,10 @@ export function AgentChatProductContextBar({
   if (variant === "compact") {
     return (
       <div className="relative shrink-0" data-composer-interactive="true">
-        <button
+        <Button
           type="button"
           onClick={toggleOpen}
+          classNameMode="replace"
           className={`flex h-7 max-w-28 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition-colors sm:max-w-36 ${
             open
               ? "border-primary/30 bg-(--agent-chat-accent-soft) text-(--agent-chat-accent-foreground) shadow-sm"
@@ -91,7 +93,7 @@ export function AgentChatProductContextBar({
               open ? "rotate-180" : ""
             }`}
           />
-        </button>
+        </Button>
       </div>
     )
   }
@@ -125,9 +127,10 @@ export function AgentChatProductContextBar({
             </p>
           </div>
         </div>
-        <button
+        <Button
           type="button"
           onClick={toggleOpen}
+          classNameMode="replace"
           className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           aria-expanded={open}
         >
@@ -137,7 +140,7 @@ export function AgentChatProductContextBar({
           <ChevronDown
             className={`size-3.5 transition-transform ${open ? "rotate-180" : ""}`}
           />
-        </button>
+        </Button>
       </div>
       {open ? (
         <div className="mt-2 border-t border-border pt-2">

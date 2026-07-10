@@ -1,5 +1,6 @@
 import { LockKeyhole, Send, Square } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { Button } from "@workspace/ui-components"
 import type {
   AgentChatCampaignContextSelection,
   AgentChatProductContextSelection,
@@ -184,24 +185,26 @@ export function AgentChatComposerSendButton({
 
   if (isStreaming) {
     return (
-      <button
+      <Button
         type="button"
         onClick={onStop}
         aria-label={t("agentChat.composer.stop")}
+        classNameMode="replace"
         className="flex size-9 shrink-0 items-center justify-center rounded-2xl border border-border bg-(--agent-chat-muted-control) text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground"
         title={t("agentChat.composer.stop")}
       >
         <Square className="size-4" />
-      </button>
+      </Button>
     )
   }
 
   return (
-    <button
+    <Button
       type="button"
       disabled={!canSend}
       onClick={onSend}
       aria-label={t("agentChat.composer.send")}
+      classNameMode="replace"
       className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-(--agent-chat-primary-gradient) text-primary-foreground shadow-[var(--agent-chat-button-shadow)] transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:scale-100"
       title={t("agentChat.composer.send")}
     >
@@ -214,6 +217,6 @@ export function AgentChatComposerSendButton({
       ) : (
         <Send className="size-4" />
       )}
-    </button>
+    </Button>
   )
 }

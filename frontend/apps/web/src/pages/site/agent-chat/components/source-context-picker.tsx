@@ -1,7 +1,7 @@
 import { FolderOpen, Info, Upload } from "lucide-react"
 import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { SearchInput } from "@workspace/ui-components"
+import { Button, SearchInput } from "@workspace/ui-components"
 import type {
   AgentChatSourceContextSelection,
   AgentChatSourceLibraryItem,
@@ -15,7 +15,7 @@ import {
   ComposerPanelSection,
   composerPanelActionButtonClassName,
   composerPanelListClassName,
-  composerPanelSecondaryButtonClassName,
+  composerPanelTextButtonClassName,
   composerPanelTinyButtonClassName,
 } from "./composer-panel-layout"
 
@@ -99,24 +99,26 @@ export function SourceContextPicker({
         description={t("agentChat.composer.sourceContext.panelHint")}
         actions={
           <>
-            <button
+            <Button
+              type="button"
+              disabled={!onManageSources}
+              onClick={onManageSources}
+              classNameMode="replace"
+              className={composerPanelTextButtonClassName}
+            >
+              <FolderOpen className="size-3.5" />
+              {t("agentChat.composer.sourceContext.manageLibrary")}
+            </Button>
+            <Button
               type="button"
               disabled={disabled || !onUploadClick}
               onClick={onUploadClick}
+              classNameMode="replace"
               className={composerPanelActionButtonClassName}
             >
               <Upload className="size-3.5" />
               {t("agentChat.composer.sourceContext.upload")}
-            </button>
-            <button
-              type="button"
-              disabled={!onManageSources}
-              onClick={onManageSources}
-              className={composerPanelSecondaryButtonClassName}
-            >
-              <FolderOpen className="size-3.5" />
-              {t("agentChat.composer.sourceContext.manageLibrary")}
-            </button>
+            </Button>
           </>
         }
       >
@@ -177,7 +179,7 @@ export function SourceContextPicker({
             </div>
             {hiddenCurrentCount > 0 ? (
               <div className="flex justify-center">
-                <button
+                <Button
                   type="button"
                   disabled={disabled}
                   onClick={() =>
@@ -185,6 +187,7 @@ export function SourceContextPicker({
                       (current) => current + CURRENT_SOURCE_PAGE_SIZE
                     )
                   }
+                  classNameMode="replace"
                   className={composerPanelTinyButtonClassName}
                 >
                   {t("agentChat.composer.sourceContext.showMoreCurrent", {
@@ -193,7 +196,7 @@ export function SourceContextPicker({
                       CURRENT_SOURCE_PAGE_SIZE
                     ),
                   })}
-                </button>
+                </Button>
               </div>
             ) : null}
           </ComposerPanelSection>
