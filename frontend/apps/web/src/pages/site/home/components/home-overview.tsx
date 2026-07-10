@@ -1,72 +1,51 @@
 import {
   ArrowRight,
   BrainCircuit,
-  ClipboardCheck,
-  FileText,
   LogIn,
-  Megaphone,
-  PackageSearch,
   ShieldCheck,
   UserRound,
-  type LucideIcon,
 } from "lucide-react"
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router"
 import { Avatar } from "@workspace/ui-components/stable/avatar"
 import { Button } from "@workspace/ui-components/stable/button"
 import type { UserInfo } from "@/models/userModel"
+import { HomeStudentPath } from "./home-student-path"
+import { useAuthDialog } from "@/components/auth/AuthDialogProvider"
 
-interface StudentPathItem {
-  icon: LucideIcon
-  titleKey: string
-  descriptionKey: string
-  actionKey: string
-  path: string
-  requiresLogin: boolean
+const homeGlassPanelStyle: CSSProperties = {
+  background:
+    "linear-gradient(112deg, color-mix(in oklch, var(--background) 97%, var(--primary) 3%) 0%, color-mix(in oklch, var(--background) 93%, var(--primary) 7%) 54%, color-mix(in oklch, var(--background) 95%, var(--primary-outline, var(--primary)) 5%) 100%)",
+  borderColor: "color-mix(in oklch, var(--background) 98%, transparent)",
+  boxShadow:
+    "0 22px 64px color-mix(in oklch, var(--primary) 9%, transparent), inset 0 1px 0 color-mix(in oklch, var(--background) 98%, transparent)",
 }
 
-const studentPathItems: StudentPathItem[] = [
-  {
-    icon: BrainCircuit,
-    titleKey: "home.studentPath.steps.assistant.title",
-    descriptionKey: "home.studentPath.steps.assistant.description",
-    actionKey: "home.studentPath.steps.assistant.action",
-    path: "/commerce",
-    requiresLogin: false,
-  },
-  {
-    icon: PackageSearch,
-    titleKey: "home.studentPath.steps.products.title",
-    descriptionKey: "home.studentPath.steps.products.description",
-    actionKey: "home.studentPath.steps.products.action",
-    path: "/products",
-    requiresLogin: true,
-  },
-  {
-    icon: Megaphone,
-    titleKey: "home.studentPath.steps.campaigns.title",
-    descriptionKey: "home.studentPath.steps.campaigns.description",
-    actionKey: "home.studentPath.steps.campaigns.action",
-    path: "/campaigns",
-    requiresLogin: true,
-  },
-  {
-    icon: ClipboardCheck,
-    titleKey: "home.studentPath.steps.tasks.title",
-    descriptionKey: "home.studentPath.steps.tasks.description",
-    actionKey: "home.studentPath.steps.tasks.action",
-    path: "/workspaces",
-    requiresLogin: true,
-  },
-  {
-    icon: FileText,
-    titleKey: "home.studentPath.steps.reports.title",
-    descriptionKey: "home.studentPath.steps.reports.description",
-    actionKey: "home.studentPath.steps.reports.action",
-    path: "/agent-output",
-    requiresLogin: true,
-  },
-]
+const homeSoftButtonStyle: CSSProperties = {
+  background:
+    "linear-gradient(135deg, color-mix(in oklch, var(--background) 96%, var(--primary) 4%) 0%, color-mix(in oklch, var(--background) 88%, var(--primary) 12%) 100%)",
+  borderColor: "color-mix(in oklch, var(--background) 96%, transparent)",
+  boxShadow:
+    "0 10px 24px color-mix(in oklch, var(--primary) 8%, transparent), inset 0 1px 0 color-mix(in oklch, var(--background) 96%, transparent)",
+}
+
+const homePrimaryButtonStyle: CSSProperties = {
+  background:
+    "linear-gradient(135deg, color-mix(in oklch, var(--background) 90%, var(--primary) 10%) 0%, color-mix(in oklch, var(--background) 70%, var(--primary) 30%) 100%)",
+  borderColor: "color-mix(in oklch, var(--background) 82%, var(--primary))",
+  boxShadow:
+    "0 12px 28px color-mix(in oklch, var(--primary) 14%, transparent), inset 0 1px 0 color-mix(in oklch, var(--background) 82%, transparent)",
+  color: "var(--primary-outline, var(--primary))",
+}
+
+const homeEntryCardStyle: CSSProperties = {
+  background:
+    "linear-gradient(135deg, color-mix(in oklch, var(--background) 96%, var(--primary) 4%) 0%, color-mix(in oklch, var(--background) 88%, var(--primary) 12%) 100%)",
+  borderColor: "color-mix(in oklch, var(--background) 98%, transparent)",
+  boxShadow:
+    "0 18px 44px color-mix(in oklch, var(--primary) 8%, transparent), inset 0 1px 0 color-mix(in oklch, var(--background) 98%, transparent)",
+}
 
 export interface HomeOverviewProps {
   user: UserInfo | null
@@ -83,10 +62,11 @@ export function HomeOverview({
 }: HomeOverviewProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { requestLogin } = useAuthDialog()
   const isLogin = Boolean(user)
   const navigateToPath = (path: string, requiresLogin = false) => {
     if (requiresLogin && !isLogin) {
-      navigate("/login", { state: { from: { pathname: path } } })
+      requestLogin({ pathname: path })
       return
     }
 
@@ -94,9 +74,17 @@ export function HomeOverview({
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-      <section className="rounded-lg border border-(--app-border) bg-(--app-surface) p-6 shadow-(--ui-shadow-soft) sm:p-8">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+    <div className="relative flex min-h-[calc(100vh-73px)] w-full flex-col gap-4 overflow-hidden px-5 pt-3 pb-4 sm:px-8 lg:px-10">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_48%,color-mix(in_oklch,var(--primary)_10%,transparent)_0,color-mix(in_oklch,var(--primary)_4%,transparent)_30%,transparent_58%),radial-gradient(circle_at_82%_30%,color-mix(in_oklch,var(--primary-outline,var(--primary))_5%,transparent)_0,color-mix(in_oklch,var(--primary-outline,var(--primary))_2%,transparent)_30%,transparent_58%),linear-gradient(135deg,color-mix(in_oklch,var(--background)_98%,var(--primary)_2%)_0%,var(--background)_46%,color-mix(in_oklch,var(--background)_97%,var(--primary)_3%)_100%)]"
+      />
+
+      <section
+        className="mx-auto w-full max-w-[760px] rounded-xl border border-[color-mix(in_oklch,var(--background)_98%,transparent)] bg-[linear-gradient(112deg,color-mix(in_oklch,var(--background)_97%,var(--primary)_3%)_0%,color-mix(in_oklch,var(--background)_93%,var(--primary)_7%)_54%,color-mix(in_oklch,var(--background)_95%,var(--primary-outline,var(--primary))_5%)_100%)] px-5 py-4 shadow-[0_22px_64px_color-mix(in_oklch,var(--primary)_9%,transparent),inset_0_1px_0_color-mix(in_oklch,var(--background)_98%,transparent)] backdrop-blur-xl"
+        style={homeGlassPanelStyle}
+      >
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-4">
             <Avatar
               src={user?.avatar}
@@ -104,36 +92,58 @@ export function HomeOverview({
               fallback={avatarFallback}
             />
             <div className="min-w-0 space-y-1">
-              <p className="text-sm font-medium text-(--app-muted-text)">
+              <p className="text-xs font-medium text-(--app-muted-text)">
                 {t(isLogin ? "home.welcome" : "home.publicWelcome")}
               </p>
-              <h1 className="truncate text-2xl font-semibold text-(--app-text) sm:text-3xl">
-                {isLogin ? displayName || t("home.fallbackName") : t("home.publicTitle")}
+              <h1 className="truncate text-xl font-semibold text-(--app-text)">
+                {isLogin
+                  ? displayName || t("home.fallbackName")
+                  : t("home.publicTitle")}
               </h1>
               {isLogin ? (
-                <p className="truncate text-sm text-(--app-muted-text)">
+                <p className="truncate text-xs text-(--app-muted-text)">
                   {displayId}
                 </p>
               ) : (
-                <p className="text-sm text-(--app-muted-text)">
+                <p className="text-xs text-(--app-muted-text)">
                   {t("home.publicSubtitle")}
                 </p>
               )}
             </div>
           </div>
 
-          <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
-            <Button onClick={() => navigateToPath("/commerce")}>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <Button
+              classNameMode="replace"
+              className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-[color-mix(in_oklch,var(--background)_96%,transparent)] bg-[linear-gradient(135deg,color-mix(in_oklch,var(--background)_96%,var(--primary)_4%)_0%,color-mix(in_oklch,var(--background)_88%,var(--primary)_12%)_100%)] px-3 text-xs font-semibold text-(--app-text) shadow-[0_10px_24px_color-mix(in_oklch,var(--primary)_8%,transparent),inset_0_1px_0_color-mix(in_oklch,var(--background)_96%,transparent)] transition hover:border-[color-mix(in_oklch,var(--background)_82%,var(--primary))]"
+              size="sm"
+              style={homeSoftButtonStyle}
+              onClick={() => navigateToPath("/commerce")}
+            >
               <BrainCircuit className="size-4" />
               {t("home.actions.assistant")}
             </Button>
             {isLogin ? (
-              <Button variant="outline" onClick={() => navigate("/profile")}>
+              <Button
+                classNameMode="replace"
+                className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-[color-mix(in_oklch,var(--background)_82%,var(--primary))] bg-[linear-gradient(135deg,color-mix(in_oklch,var(--background)_90%,var(--primary)_10%)_0%,color-mix(in_oklch,var(--background)_70%,var(--primary)_30%)_100%)] px-3 text-xs font-semibold text-primary shadow-[0_12px_28px_color-mix(in_oklch,var(--primary)_14%,transparent),inset_0_1px_0_color-mix(in_oklch,var(--background)_82%,transparent)] transition hover:border-[color-mix(in_oklch,var(--background)_70%,var(--primary))]"
+                variant="outline"
+                size="sm"
+                style={homePrimaryButtonStyle}
+                onClick={() => navigate("/profile")}
+              >
                 <UserRound className="size-4" />
                 {t("home.actions.profile")}
               </Button>
             ) : (
-              <Button variant="outline" onClick={() => navigate("/login")}>
+              <Button
+                classNameMode="replace"
+                className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-[color-mix(in_oklch,var(--background)_82%,var(--primary))] bg-[linear-gradient(135deg,color-mix(in_oklch,var(--background)_90%,var(--primary)_10%)_0%,color-mix(in_oklch,var(--background)_70%,var(--primary)_30%)_100%)] px-3 text-xs font-semibold text-primary shadow-[0_12px_28px_color-mix(in_oklch,var(--primary)_14%,transparent),inset_0_1px_0_color-mix(in_oklch,var(--background)_82%,transparent)] transition hover:border-[color-mix(in_oklch,var(--background)_70%,var(--primary))]"
+                variant="outline"
+                size="sm"
+                style={homePrimaryButtonStyle}
+                onClick={() => requestLogin()}
+              >
                 <LogIn className="size-4" />
                 {t("home.actions.login")}
               </Button>
@@ -142,66 +152,28 @@ export function HomeOverview({
         </div>
       </section>
 
-      <section className="space-y-4">
-        <div className="max-w-3xl space-y-2">
-          <p className="text-sm font-medium text-(--app-muted-text)">
-            {t("home.studentPath.eyebrow")}
-          </p>
-          <h2 className="text-xl font-semibold text-(--app-text)">
-            {t("home.studentPath.title")}
-          </h2>
-          <p className="text-sm/6 text-(--app-muted-text)">
-            {t("home.studentPath.description")}
-          </p>
-        </div>
+      <HomeStudentPath t={t} navigateToPath={navigateToPath} />
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {studentPathItems.map((item, index) => {
-            const StepIcon = item.icon
-            return (
-              <button
-                key={item.path}
-                type="button"
-                className="group flex min-h-44 flex-col justify-between rounded-lg border border-(--app-border) bg-(--app-surface) p-4 text-left transition hover:border-ring/60 hover:bg-(--app-panel)"
-                onClick={() => navigateToPath(item.path, item.requiresLogin)}
-              >
-                <span className="space-y-3">
-                  <span className="flex items-center justify-between gap-2">
-                    <span className="flex size-9 items-center justify-center rounded-md bg-(--app-active-bg) text-(--app-active-text)">
-                      <StepIcon className="size-4" />
-                    </span>
-                    <span className="text-xs font-semibold text-(--app-muted-text)">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                  </span>
-                  <span className="block text-sm font-semibold text-(--app-text)">
-                    {t(item.titleKey)}
-                  </span>
-                  <span className="block text-xs/5 text-(--app-muted-text)">
-                    {t(item.descriptionKey)}
-                  </span>
-                </span>
-                <span className="mt-4 flex items-center gap-1 text-xs font-medium text-(--app-text)">
-                  {t(item.actionKey)}
-                  <ArrowRight className="size-3.5 transition group-hover:translate-x-0.5" />
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      </section>
-
-      <section className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-lg border border-(--app-border) bg-(--app-surface) p-5">
+      <section className="mx-auto grid w-full max-w-[760px] gap-4 sm:grid-cols-2">
+        <button
+          type="button"
+          className="group cursor-pointer rounded-xl border border-[color-mix(in_oklch,var(--background)_98%,transparent)] bg-[linear-gradient(135deg,color-mix(in_oklch,var(--background)_96%,var(--primary)_4%)_0%,color-mix(in_oklch,var(--background)_88%,var(--primary)_12%)_100%)] p-4 text-left shadow-[0_18px_44px_color-mix(in_oklch,var(--primary)_8%,transparent),inset_0_1px_0_color-mix(in_oklch,var(--background)_98%,transparent)] backdrop-blur-xl transition hover:border-[color-mix(in_oklch,var(--background)_82%,var(--primary))]"
+          style={homeEntryCardStyle}
+          onClick={() =>
+            isLogin
+              ? navigateToPath("/workspaces")
+              : requestLogin({ pathname: "/workspaces" })
+          }
+        >
           <div className="flex items-start gap-3">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-(--app-active-bg) text-(--app-active-text)">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-(--app-active-bg) text-(--app-active-text)">
               <ShieldCheck className="size-5" />
             </div>
-            <div className="min-w-0 space-y-2">
-              <h2 className="text-base font-semibold text-(--app-text)">
+            <div className="min-w-0 space-y-1">
+              <h2 className="text-sm font-semibold text-(--app-text)">
                 {t(isLogin ? "home.account.title" : "home.publicAccount.title")}
               </h2>
-              <p className="text-sm/6 text-(--app-muted-text)">
+              <p className="text-xs/5 text-(--app-muted-text)">
                 {t(
                   isLogin
                     ? "home.account.description"
@@ -209,16 +181,29 @@ export function HomeOverview({
                 )}
               </p>
             </div>
+            <ArrowRight className="mt-1 size-4 shrink-0 text-(--app-muted-text) transition group-hover:translate-x-0.5" />
           </div>
-        </div>
+        </button>
 
-        <div className="rounded-lg border border-(--app-border) bg-(--app-surface) p-5">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-2">
-              <h2 className="text-base font-semibold text-(--app-text)">
+        <button
+          type="button"
+          className="group cursor-pointer rounded-xl border border-[color-mix(in_oklch,var(--background)_98%,transparent)] bg-[linear-gradient(135deg,color-mix(in_oklch,var(--background)_96%,var(--primary)_4%)_0%,color-mix(in_oklch,var(--background)_88%,var(--primary)_12%)_100%)] p-4 text-left shadow-[0_18px_44px_color-mix(in_oklch,var(--primary)_8%,transparent),inset_0_1px_0_color-mix(in_oklch,var(--background)_98%,transparent)] backdrop-blur-xl transition hover:border-[color-mix(in_oklch,var(--background)_82%,var(--primary))]"
+          style={homeEntryCardStyle}
+          onClick={() =>
+            isLogin
+              ? navigate("/profile")
+              : requestLogin({ pathname: "/profile" })
+          }
+        >
+          <div className="flex items-start gap-3">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-(--app-active-bg) text-(--app-active-text)">
+              <UserRound className="size-5" />
+            </div>
+            <div className="min-w-0 space-y-1">
+              <h2 className="text-sm font-semibold text-(--app-text)">
                 {t(isLogin ? "home.profile.title" : "home.publicProfile.title")}
               </h2>
-              <p className="text-sm/6 text-(--app-muted-text)">
+              <p className="text-xs/5 text-(--app-muted-text)">
                 {t(
                   isLogin
                     ? "home.profile.description"
@@ -226,15 +211,9 @@ export function HomeOverview({
                 )}
               </p>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate(isLogin ? "/profile" : "/login")}
-            >
-              <ArrowRight className="size-4" />
-            </Button>
+            <ArrowRight className="mt-1 size-4 shrink-0 text-(--app-muted-text) transition group-hover:translate-x-0.5" />
           </div>
-        </div>
+        </button>
       </section>
     </div>
   )
