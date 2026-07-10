@@ -25,10 +25,10 @@ export function ProfileEmailSection({
     profile.emailInput.trim() !== profile.email
 
   return (
-    <section className="min-w-0 border-t border-(--app-border) py-5">
-      <div className="flex items-start justify-between gap-4">
+    <section className="min-w-0 rounded-xl border border-(--document-card-border) bg-(image:--document-card-background) p-4 shadow-(--document-card-shadow) backdrop-blur-md">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-4">
-          <span className="mt-1 flex size-5 shrink-0 items-center justify-center text-(--app-muted-text)">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
             <Mail className="size-5" />
           </span>
           <div className="min-w-0 space-y-1">
@@ -42,6 +42,7 @@ export function ProfileEmailSection({
         <Button
           type="button"
           variant="default"
+          className="self-start"
           onClick={() => setExpanded((current) => !current)}
         >
           {expanded
@@ -53,7 +54,7 @@ export function ProfileEmailSection({
       </div>
 
       {expanded ? (
-        <div className="mt-6 max-w-xl pl-9">
+        <div className="mt-6 max-w-xl sm:pl-13">
           <FieldGroup>
             <Field>
               <FieldLabel>{labels.email}</FieldLabel>

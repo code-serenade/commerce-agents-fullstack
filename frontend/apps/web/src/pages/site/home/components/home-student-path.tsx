@@ -101,11 +101,6 @@ const homeStepCardStyle: CSSProperties = {
     "0 22px 52px color-mix(in oklch, var(--primary) 9%, transparent), inset 0 1px 0 color-mix(in oklch, var(--background) 98%, transparent)",
 }
 
-const homeStepImageStyle: CSSProperties = {
-  background:
-    "linear-gradient(180deg, color-mix(in oklch, var(--background) 94%, var(--primary) 6%) 0%, color-mix(in oklch, var(--background) 98%, transparent) 100%)",
-}
-
 export interface HomeStudentPathProps {
   t: TFunction
   navigateToPath: (path: string, requiresLogin?: boolean) => void
@@ -157,9 +152,7 @@ export function HomeStudentPath({ t, navigateToPath }: HomeStudentPathProps) {
               <span className="pointer-events-none absolute top-2.5 left-2.5 z-10 text-2xl leading-none font-semibold text-(--app-muted-text)/58 italic">
                 {String(index + 1).padStart(2, "0")}
               </span>
-              <span
-                className="block h-[126px] w-full overflow-hidden"
-              >
+              <span className="block h-[126px] w-full overflow-hidden">
                 <img
                   src={item.imageSrc}
                   alt=""
