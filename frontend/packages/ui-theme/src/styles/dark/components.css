@@ -59,6 +59,8 @@ html[data-theme="dark"],
   --auth-minimal-popover-background: oklch(0.19 0.026 255 / 92%);
   --auth-minimal-popover-shadow: 0 16px 36px oklch(0 0 0 / 28%);
   --auth-minimal-brand-shadow: 0 14px 36px oklch(0.55 0.18 270 / 36%);
+  --document-page-background: var(--background);
+  --document-page-ambient: none;
   --document-card-background: linear-gradient(
     145deg,
     oklch(0.3 0.014 255 / 88%) 0%,

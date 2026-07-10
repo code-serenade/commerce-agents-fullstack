@@ -2,9 +2,10 @@ import {
   CommerceBody,
   CommercePageHeader,
   CommerceSurface,
-  InlineAlert,
 } from "../components/commerce-ui"
+import { Activity } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { DocumentIntroCard } from "../components/document-section"
 import {
   OverviewGovernanceLists,
   OverviewMetrics,
@@ -24,10 +25,10 @@ export default function CommerceOverviewPage() {
         description={t("commerce.pages.overview.description")}
       />
       <CommerceBody>
-        <InlineAlert
-          variant="warning"
+        <DocumentIntroCard
           title={t("commerce.pages.overview.boundaryTitle")}
           description={t("commerce.pages.overview.boundaryDescription")}
+          icon={<Activity className="size-4" />}
         />
         <OverviewMetrics items={page.metricCards} />
         <OverviewPrimaryLists

@@ -69,6 +69,26 @@
   --auth-minimal-popover-background: oklch(1 0 0 / 95%);
   --auth-minimal-popover-shadow: 0 16px 36px oklch(0.43 0.1 255 / 12%);
   --auth-minimal-brand-shadow: 0 14px 36px oklch(0.55 0.18 270 / 14%);
+  --document-page-background: oklch(0.996 0.006 246);
+  --document-page-ambient:
+    radial-gradient(
+      ellipse 60% 68% at 100% 16%,
+      oklch(0.965 0.026 246 / 46%) 0%,
+      oklch(0.986 0.012 246 / 22%) 42%,
+      transparent 74%
+    ),
+    radial-gradient(
+      ellipse 52% 72% at 0% 76%,
+      oklch(0.97 0.024 226 / 34%) 0%,
+      oklch(0.99 0.01 232 / 16%) 46%,
+      transparent 78%
+    ),
+    linear-gradient(
+      112deg,
+      oklch(0.992 0.01 238 / 74%) 0%,
+      oklch(1 0 0 / 94%) 42%,
+      oklch(0.982 0.016 252 / 50%) 100%
+    );
   --document-card-background: linear-gradient(
     145deg,
     oklch(1 0 0 / 96%) 0%,

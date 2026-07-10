@@ -51,7 +51,7 @@ export function DocumentIntroCard({
   return (
     <div className="relative overflow-hidden rounded-lg border border-(--document-intro-card-border) bg-(image:--document-intro-card-background) px-4 py-3 shadow-(--document-intro-card-shadow) backdrop-blur-md before:pointer-events-none before:absolute before:inset-y-0 before:right-0 before:w-1/3 before:bg-(image:--document-intro-card-decoration) before:bg-size-[18px_18px,260px_120px] before:bg-position-[right_center,right_center] before:opacity-80">
       <div className="relative z-10 flex min-w-0 gap-3">
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary/10 p-1 text-primary">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 p-2 text-primary [&>svg]:size-5">
           {icon}
         </span>
         <div className="min-w-0">
