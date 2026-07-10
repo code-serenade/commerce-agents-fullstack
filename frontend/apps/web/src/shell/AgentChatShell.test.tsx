@@ -108,7 +108,7 @@ describe("AgentChatShell", () => {
       screen.queryByRole("button", {
         name: i18n.t("agentChat.shell.navigation.questionIdeas"),
       })
-    ).not.toBeInTheDocument()
+    ).toBeInTheDocument()
     expect(newChatButton.getAttribute("data-size")).toBe(
       firstHistoryButton.getAttribute("data-size")
     )
@@ -154,22 +154,113 @@ describe("AgentChatShell", () => {
     ).toBeInTheDocument()
     expect(screen.getByText("Question ideas content")).toBeInTheDocument()
   }, 15000)
+
+  it("hides history and training navigation tabs for guests", async () => {
+    const i18n = await createAgentChatTestI18n()
+
+    render(
+      <TestProviders i18n={i18n} loggedIn={false}>
+        <AgentChatShell>
+          <main>Guest content</main>
+        </AgentChatShell>
+      </TestProviders>
+    )
+
+    expect(
+      screen.getByRole("button", {
+        name: i18n.t("agentChat.sidebar.newChat"),
+      })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", {
+        name: i18n.t("agentChat.shell.navigation.questionIdeas"),
+      })
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
+        name: i18n.t("agentChat.shell.tabs.chat"),
+      })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
+        name: i18n.t("agentChat.sidebar.collapseHistory"),
+      })
+    ).not.toBeInTheDocument()
+    expect(screen.getByText("Guest content")).toBeInTheDocument()
+  }, 15000)
+
+  it("switches logged-in users between chat and training navigation", async () => {
+    const i18n = await createAgentChatTestI18n()
+    const user = userEvent.setup()
+
+    render(
+      <TestProviders i18n={i18n}>
+        <AgentChatShell>
+          <main>Training tab content</main>
+        </AgentChatShell>
+      </TestProviders>
+    )
+
+    expect(
+      screen.getByRole("button", {
+        name: i18n.t("agentChat.sidebar.collapseHistory"),
+      })
+    ).toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole("button", {
+        name: i18n.t("agentChat.shell.tabs.training"),
+      })
+    )
+
+    expect(
+      screen.getByRole("button", {
+        name: i18n.t("web.shell.navigation.approvals"),
+      })
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
+        name: i18n.t("agentChat.sidebar.collapseHistory"),
+      })
+    ).not.toBeInTheDocument()
+  }, 15000)
 })
 
 function TestProviders({
   children,
   i18n,
   initialEntries = ["/commerce"],
+  loggedIn = true,
 }: {
   children: ReactNode
   i18n: Parameters<typeof AgentChatTestI18nProvider>[0]["i18n"]
   initialEntries?: string[]
+  loggedIn?: boolean
 }) {
   const store = configureStore({
     reducer: {
       auth: authReducer,
       webAccess: accessReducer,
       requestError: requestErrorReducer,
+    },
+    preloadedState: {
+      auth: loggedIn
+        ? {
+            isLogin: true,
+            token: "test-token",
+            user: {
+              avatar: "",
+              display_id: "test-user",
+              email: "test@example.com",
+              id: "user-1",
+              name: "Test User",
+            },
+          }
+        : {
+            isLogin: false,
+            token: null,
+            user: null,
+          },
     },
   })
 

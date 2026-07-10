@@ -1143,6 +1143,10 @@ const messages = {
         governance: "管理与复盘",
         recents: "历史会话",
       },
+      tabs: {
+        chat: "聊天对话",
+        training: "实训导航",
+      },
       navigation: {
         newChat: "新建会话",
         capabilities: "使用说明",

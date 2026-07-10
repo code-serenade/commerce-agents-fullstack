@@ -1190,6 +1190,10 @@ const messages = {
         governance: "Manage and review",
         recents: "History",
       },
+      tabs: {
+        chat: "Chat",
+        training: "Training nav",
+      },
       navigation: {
         newChat: "New chat",
         capabilities: "Usage guide",

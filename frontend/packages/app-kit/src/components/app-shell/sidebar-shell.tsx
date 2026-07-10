@@ -81,6 +81,7 @@ export interface SidebarShellProps {
     label?: string
     items: MobileBottomNavItem[]
   }
+  navigationHeader?: ReactNode
   footerAccount?: {
     avatarSrc?: string
     avatarAlt: string
@@ -119,6 +120,7 @@ export function SidebarShell({
   contentScroll = "auto",
   contentPadding = "default",
   mobileNavigation,
+  navigationHeader,
   footerAccount,
   children,
 }: SidebarShellProps) {
@@ -177,6 +179,11 @@ export function SidebarShell({
 
               <SidebarContent>
                 <FixedLeadingItems sections={sections} />
+                {navigationHeader ? (
+                  <div className="px-2 pt-1 group-data-[collapsible=icon]:hidden">
+                    {navigationHeader}
+                  </div>
+                ) : null}
                 <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto pr-1 [scrollbar-gutter:stable] group-data-[collapsible=icon]:overflow-hidden group-data-[collapsible=icon]:pr-0">
                   {sections.map((section) => (
                     <SidebarSectionGroup
