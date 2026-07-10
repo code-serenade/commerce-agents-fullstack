@@ -24,6 +24,7 @@ export function useAgentChatPageCommands(input: {
   conversationId: string | null
   isLoggedIn: boolean
   isStreaming: boolean
+  onActiveConversationDeleted?: () => void
   setInput: Dispatch<SetStateAction<string>>
   setStrategyId: (value: AgentChatStrategyId) => void
 }) {
@@ -32,6 +33,7 @@ export function useAgentChatPageCommands(input: {
     conversationId,
     isLoggedIn,
     isStreaming,
+    onActiveConversationDeleted,
     setInput,
     setStrategyId,
   } = input
@@ -60,13 +62,22 @@ export function useAgentChatPageCommands(input: {
   const deleteConversation = useCallback(
     async (targetConversationId: string) => {
       if (!isLoggedIn || isStreaming) return
-      await deleteAgentConversation(
+      const deleted = await deleteAgentConversation(
         targetConversationId,
         conversationId,
         actionState
       )
+      if (deleted && targetConversationId === conversationId) {
+        onActiveConversationDeleted?.()
+      }
     },
-    [actionState, conversationId, isLoggedIn, isStreaming]
+    [
+      actionState,
+      conversationId,
+      isLoggedIn,
+      isStreaming,
+      onActiveConversationDeleted,
+    ]
   )
 
   const stopStreaming = useCallback(() => {

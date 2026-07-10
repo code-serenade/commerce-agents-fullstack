@@ -155,7 +155,7 @@ export async function deleteAgentConversation(
   targetConversationId: string,
   activeConversationId: string | null,
   state: ConversationActionState
-) {
+): Promise<boolean> {
   state.setError(null)
   try {
     await agentChatData.deleteConversation(targetConversationId)
@@ -166,8 +166,11 @@ export async function deleteAgentConversation(
     if (targetConversationId === activeConversationId) {
       resetActiveConversation(state)
     }
+
+    return true
   } catch (err) {
     state.setError(formatActionError(err, state))
+    return false
   }
 }
 

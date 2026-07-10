@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useSelector } from "react-redux"
 import { useLocation, useNavigate, useParams } from "react-router"
@@ -117,22 +117,27 @@ export function useAgentChatPage() {
     } else {
       void (async () => {
         try {
-          await loadAgentConversationList(latestActionState, () => cancelled)
           if (cancelled || !isAgentChatRoute) return
 
           if (routeConversationId) {
             if (routeConversationId === conversationIdRef.current) {
+              await loadAgentConversationList(latestActionState, () => cancelled)
               return
             }
 
-            await loadAgentConversationById(
-              routeConversationId,
-              latestActionState,
-              () => cancelled
-            )
+            await Promise.all([
+              loadAgentConversationList(latestActionState, () => cancelled),
+              loadAgentConversationById(
+                routeConversationId,
+                latestActionState,
+                () => cancelled
+              ),
+            ])
             return
           }
 
+          await loadAgentConversationList(latestActionState, () => cancelled)
+          if (cancelled) return
           resetActiveConversation(latestActionState)
         } catch (err) {
           if (cancelled) return
@@ -146,10 +151,15 @@ export function useAgentChatPage() {
     return () => { cancelled = true }
   }, [isAgentChatRoute, routeConversationId, t, userBootstrapKey])
 
-  const syncConversationRoute = (nextConversationId: string) => {
+  const syncConversationRoute = useCallback((nextConversationId: string) => {
     if (!isAgentChatRoute) return
     navigate(`/commerce/${nextConversationId}`, { replace: true })
-  }
+  }, [isAgentChatRoute, navigate])
+
+  const replaceWithNewConversationRoute = useCallback(() => {
+    if (!isAgentChatRoute) return
+    navigate("/commerce", { replace: true })
+  }, [isAgentChatRoute, navigate])
 
   const canSend = input.trim().length > 0 && !isStreaming
   const selectedStrategy = useMemo(() => getAgentChatStrategy(strategyId), [strategyId])
@@ -164,6 +174,7 @@ export function useAgentChatPage() {
     conversationId,
     isLoggedIn,
     isStreaming,
+    onActiveConversationDeleted: replaceWithNewConversationRoute,
     setInput,
     setStrategyId: setStrategyAndRuntime,
   })
