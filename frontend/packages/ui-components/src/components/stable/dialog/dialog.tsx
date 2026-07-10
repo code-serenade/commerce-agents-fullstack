@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import type { CSSProperties, ReactNode } from "react"
 import {
   Dialog as CoreDialog,
   DialogClose as CoreDialogClose,
@@ -31,6 +31,8 @@ export interface DialogOverlayProps {}
 export interface DialogContentProps {
   children: ReactNode
   className?: string
+  showCloseButton?: boolean
+  style?: CSSProperties
 }
 
 export interface DialogHeaderProps {
@@ -53,6 +55,8 @@ export interface DialogDescriptionProps {
 
 export interface DialogCloseProps {
   children: ReactNode
+  asChild?: boolean
+  className?: string
 }
 
 export function Dialog({ open, onOpenChange, children }: DialogProps) {
@@ -75,8 +79,21 @@ export function DialogOverlay(_: DialogOverlayProps) {
   return <CoreDialogOverlay />
 }
 
-export function DialogContent({ children, className }: DialogContentProps) {
-  return <CoreDialogContent className={className}>{children}</CoreDialogContent>
+export function DialogContent({
+  children,
+  className,
+  showCloseButton,
+  style,
+}: DialogContentProps) {
+  return (
+    <CoreDialogContent
+      className={className}
+      showCloseButton={showCloseButton}
+      style={style}
+    >
+      {children}
+    </CoreDialogContent>
+  )
 }
 
 export function DialogHeader({ children, className }: DialogHeaderProps) {
@@ -95,6 +112,10 @@ export function DialogDescription({ children }: DialogDescriptionProps) {
   return <CoreDialogDescription>{children}</CoreDialogDescription>
 }
 
-export function DialogClose({ children }: DialogCloseProps) {
-  return <CoreDialogClose>{children}</CoreDialogClose>
+export function DialogClose({ asChild, children, className }: DialogCloseProps) {
+  return (
+    <CoreDialogClose asChild={asChild} className={className}>
+      {children}
+    </CoreDialogClose>
+  )
 }
