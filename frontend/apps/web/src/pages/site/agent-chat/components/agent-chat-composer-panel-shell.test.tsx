@@ -5,7 +5,10 @@ import { describe, expect, it, vi } from "vitest"
 import { AgentChatTestI18nProvider } from "@/test/AgentChatTestI18nProvider"
 import { createAgentChatTestI18n } from "@/test/create-agent-chat-test-i18n"
 import { AgentChatComposerPanelShell } from "./agent-chat-composer-panel-shell"
-import { ComposerPanelHeader } from "./composer-panel-layout"
+import {
+  ComposerPanelFrame,
+  ComposerPanelHeader,
+} from "./composer-panel-layout"
 
 describe("AgentChatComposerPanelShell", () => {
   it("keeps panel content scrollable with bottom breathing room", async () => {
@@ -14,7 +17,12 @@ describe("AgentChatComposerPanelShell", () => {
     render(
       <TestProviders i18n={i18n}>
         <AgentChatComposerPanelShell maxHeight={240} open>
-          <div>Panel content</div>
+          <ComposerPanelFrame
+            title={i18n.t("agentChat.composer.sourceContext.panelTitle")}
+            description={i18n.t("agentChat.composer.sourceContext.panelHint")}
+          >
+            <div>Panel content</div>
+          </ComposerPanelFrame>
         </AgentChatComposerPanelShell>
       </TestProviders>
     )
@@ -33,12 +41,15 @@ describe("AgentChatComposerPanelShell", () => {
     expect(scroll).not.toBeNull()
     expect(content).not.toBeNull()
     expect(shell).toHaveStyle({ maxHeight: "240px" })
-    expect(scroll).toHaveStyle({ maxHeight: "240px" })
-    expect(shell).toBe(scroll)
+    expect(shell).toHaveStyle({
+      "--agent-chat-composer-panel-max-height": "240px",
+    })
+    expect(shell).not.toBe(scroll)
+    expect(shell).toHaveClass("overflow-hidden")
     expect(scroll).toHaveClass("overflow-y-auto")
     expect(scroll).toHaveClass("overflow-x-hidden")
     expect(content).toHaveClass("px-3")
-    expect(content).toHaveClass("pb-12")
+    expect(content).toHaveClass("pb-3")
   })
 
   it("renders close action inside the panel header area", async () => {

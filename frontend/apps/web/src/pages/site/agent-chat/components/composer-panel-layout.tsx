@@ -1,5 +1,6 @@
 import { X } from "lucide-react"
 import { createContext, useContext, type ReactNode } from "react"
+import { Button } from "@workspace/ui-components"
 
 interface ComposerPanelCloseContextValue {
   label: string
@@ -33,6 +34,9 @@ export const composerPanelActionButtonClassName =
 export const composerPanelSecondaryButtonClassName =
   "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) px-3 text-xs font-medium text-muted-foreground transition-colors hover:bg-(--agent-chat-accent-soft) hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
 
+export const composerPanelTextButtonClassName =
+  "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-transparent px-1 text-xs font-medium text-primary transition-colors hover:text-primary/80 disabled:cursor-not-allowed disabled:opacity-50"
+
 export const composerPanelTinyButtonClassName =
   "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) px-2.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-(--agent-chat-accent-soft) hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
 
@@ -64,15 +68,16 @@ export function ComposerPanelHeader({
         <div className="flex shrink-0 flex-wrap items-center gap-1.5">
           {actions}
           {closeAction ? (
-            <button
+            <Button
               type="button"
               aria-label={closeAction.label}
               title={closeAction.label}
               onClick={closeAction.onClose}
+              classNameMode="replace"
               className="inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) text-muted-foreground shadow-sm transition-colors hover:bg-(--agent-chat-accent-soft) hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-hidden"
             >
               <X className="size-4" aria-hidden="true" />
-            </button>
+            </Button>
           ) : null}
         </div>
       ) : null}
@@ -92,14 +97,19 @@ export function ComposerPanelFrame({
   title: ReactNode
 }) {
   return (
-    <>
+    <div className="flex max-h-full min-h-0 flex-col">
       <ComposerPanelHeader
         actions={actions}
         description={description}
         title={title}
       />
-      {children}
-    </>
+      <div
+        className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain pr-1 pb-9 [scrollbar-gutter:stable]"
+        data-agent-chat-composer-panel-scroll="true"
+      >
+        {children}
+      </div>
+    </div>
   )
 }
 
