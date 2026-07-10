@@ -10,6 +10,7 @@ import type {
   AgentRuntimeOptions,
 } from "../domain/agent-runtime-options"
 import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
+import type { AgentChatComposerPanelPlacement } from "../view-model/use-agent-chat-composer-panel-layout"
 import type { AgentChatContextPreviewState } from "../view-model/use-agent-chat-context-preview"
 import { AgentChatContextPreviewPanel } from "./agent-chat-context-preview-panel"
 import { AgentChatComposerPanelShell } from "./agent-chat-composer-panel-shell"
@@ -49,6 +50,7 @@ export function AgentChatComposerPanels({
   onAttachExistingSource,
   onClosePanels,
   panelMaxHeight,
+  panelPlacement,
   playbooks,
   campaignContextOpen,
   productContextOpen,
@@ -94,6 +96,7 @@ export function AgentChatComposerPanels({
   onAttachExistingSource: (fileId: string) => void
   onClosePanels: () => void
   panelMaxHeight: number
+  panelPlacement: AgentChatComposerPanelPlacement
   playbooks: AgentChatPlaybookSelection[]
   campaignContextOpen: boolean
   productContextOpen: boolean
@@ -114,6 +117,7 @@ export function AgentChatComposerPanels({
         maxHeight={panelMaxHeight}
         onClose={onClosePanels}
         open={contextPreviewOpen}
+        placement={panelPlacement}
         size="wide"
       >
         <AgentChatContextPreviewPanel
@@ -128,6 +132,7 @@ export function AgentChatComposerPanels({
         maxHeight={panelMaxHeight}
         onClose={onClosePanels}
         open={productContextOpen}
+        placement={panelPlacement}
       >
         <AgentChatProductContextBar
           availableProducts={availableProducts}
@@ -143,6 +148,7 @@ export function AgentChatComposerPanels({
         maxHeight={panelMaxHeight}
         onClose={onClosePanels}
         open={campaignContextOpen}
+        placement={panelPlacement}
       >
         <AgentChatCampaignContextBar
           availableCampaigns={availableCampaigns}
@@ -158,6 +164,7 @@ export function AgentChatComposerPanels({
         maxHeight={panelMaxHeight}
         onClose={onClosePanels}
         open={sourceContextOpen}
+        placement={panelPlacement}
         size="wide"
       >
         <AgentChatSourceContextBar
@@ -180,6 +187,7 @@ export function AgentChatComposerPanels({
         maxHeight={panelMaxHeight}
         onClose={onClosePanels}
         open={settingsOpen}
+        placement={panelPlacement}
         size="wide"
       >
         <AgentChatSettingsPanel

@@ -1,5 +1,4 @@
 import { useRef, useState } from "react"
-import { useNavigate } from "react-router"
 import { AgentChatConversationArea } from "./components/agent-chat-conversation-area"
 import { AgentChatDocumentTitle } from "./components/agent-chat-document-title"
 import { AgentProcessDrawer } from "./components/agent-process-drawer"
@@ -9,12 +8,13 @@ import { useAgentChatContext } from "./context/use-agent-chat-context"
 import { useAgentChatRequestedComposerPanel } from "./view-model/use-agent-chat-requested-composer-panel"
 import { useAgentChatAnalytics } from "./view-model/use-agent-chat-analytics"
 import { useAgentProcessPanel } from "./view-model/use-agent-process-panel"
+import { useAuthDialog } from "@/components/auth/AuthDialogProvider"
 
 export default function AgentChatPage() {
   const chat = useAgentChatContext()
   const chatRef = useRef(chat)
   chatRef.current = chat
-  const navigate = useNavigate()
+  const { requestLogin } = useAuthDialog()
   const [composerFocusVersion, setComposerFocusVersion] = useState(0)
   const requestedComposerPanel = useAgentChatRequestedComposerPanel()
   const analytics = useAgentChatAnalytics({
@@ -31,6 +31,7 @@ export default function AgentChatPage() {
   })
 
   const sendMessage = () => {
+    if (!chatRef.current.isLoggedIn) { requestLogin(); return }
     analytics.trackQuestionSubmit()
     processPanel.closeProcessPanel()
     void chatRef.current.sendMessage()
@@ -57,9 +58,7 @@ export default function AgentChatPage() {
       <AgentChatStatus
         error={chat.error}
         loginRequired={!chat.isLoggedIn}
-        onLogin={() =>
-          navigate("/login", { state: { from: { pathname: "/commerce" } } })
-        }
+        onLogin={requestLogin}
       />
       {chat.isLoggedIn ? (
         <div className="pointer-events-none absolute top-3 left-3 z-30 max-w-[calc(100%-1.5rem)] sm:top-5 sm:left-7 sm:max-w-[calc(100%-3.5rem)]">

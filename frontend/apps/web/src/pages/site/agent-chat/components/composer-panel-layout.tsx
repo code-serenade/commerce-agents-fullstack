@@ -97,7 +97,7 @@ export function ComposerPanelFrame({
   title: ReactNode
 }) {
   return (
-    <div className="flex max-h-full min-h-0 flex-col">
+    <div className="flex h-full max-h-full min-h-0 flex-1 flex-col overflow-hidden">
       <ComposerPanelHeader
         actions={actions}
         description={description}

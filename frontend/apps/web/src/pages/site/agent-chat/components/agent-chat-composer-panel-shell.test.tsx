@@ -46,10 +46,41 @@ describe("AgentChatComposerPanelShell", () => {
     })
     expect(shell).not.toBe(scroll)
     expect(shell).toHaveClass("overflow-hidden")
+    expect(content).toHaveClass("flex")
+    expect(content).toHaveClass("flex-col")
+    expect(content).toHaveClass("overflow-hidden")
+    expect(content).toHaveClass("min-h-0")
     expect(scroll).toHaveClass("overflow-y-auto")
     expect(scroll).toHaveClass("overflow-x-hidden")
-    expect(content).toHaveClass("px-3")
-    expect(content).toHaveClass("pb-3")
+    expect(content).toHaveClass("p-3")
+  })
+
+  it("can render below the composer when the caller selects bottom placement", async () => {
+    const i18n = await createAgentChatTestI18n()
+
+    render(
+      <TestProviders i18n={i18n}>
+        <AgentChatComposerPanelShell
+          maxHeight={240}
+          open
+          placement="bottom"
+        >
+          <div>Bottom panel content</div>
+        </AgentChatComposerPanelShell>
+      </TestProviders>
+    )
+
+    const shell = screen
+      .getByText("Bottom panel content")
+      .closest("[data-agent-chat-composer-panel-shell='true']")
+
+    expect(shell).toHaveAttribute(
+      "data-agent-chat-composer-panel-placement",
+      "bottom"
+    )
+    expect(shell).toHaveClass("top-[calc(100%+1.25rem)]")
+    expect(shell).toHaveClass("origin-top")
+    expect(shell).not.toHaveClass("bottom-[calc(100%+1.25rem)]")
   })
 
   it("renders close action inside the panel header area", async () => {
