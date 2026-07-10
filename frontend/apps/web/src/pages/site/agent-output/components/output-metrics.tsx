@@ -10,7 +10,7 @@ export function OutputMetrics({ metrics }: OutputMetricsProps) {
       {metrics.map((metric) => (
         <article
           key={metric.label}
-          className="rounded-lg border border-(--app-border) bg-(--app-surface) p-4"
+          className="rounded-lg border border-(--document-card-border) bg-(image:--document-card-background) p-4 shadow-(--document-card-shadow) backdrop-blur-md"
         >
           <p className="text-sm text-(--app-muted-text)">{metric.label}</p>
           <p className="mt-2 text-2xl font-semibold text-(--app-text)">

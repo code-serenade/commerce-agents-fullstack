@@ -11,7 +11,7 @@ export function OutputHero({ prompt }: OutputHeroProps) {
   const { t } = useTranslation()
 
   return (
-    <section className="grid gap-4 border-b border-(--app-border) bg-(--app-surface) p-5 lg:grid-cols-[1fr_18rem]">
+    <section className="grid gap-4 rounded-t-lg border-b border-(--document-intro-card-border) bg-(image:--document-intro-card-background) p-5 lg:grid-cols-[1fr_18rem]">
       <div className="min-w-0 space-y-4">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary">{t("agentOutput.hero.badges.output")}</Badge>
@@ -26,7 +26,7 @@ export function OutputHero({ prompt }: OutputHeroProps) {
             {t("agentOutput.hero.description")}
           </p>
         </div>
-        <div className="rounded-lg border border-(--app-border) bg-(--app-bg) p-4">
+        <div className="rounded-lg border border-(--document-card-border) bg-(image:--document-card-background) p-4 shadow-(--document-card-shadow) backdrop-blur-md">
           <div className="mb-2 flex items-center gap-2 text-sm font-medium text-(--app-muted-text)">
             <Sparkles className="size-4" />
             {t("agentOutput.hero.promptLabel")}
@@ -34,7 +34,7 @@ export function OutputHero({ prompt }: OutputHeroProps) {
           <p className="text-sm/6 text-(--app-text)">{prompt}</p>
         </div>
       </div>
-      <aside className="flex flex-col justify-between gap-4 rounded-lg border border-(--app-border) bg-(--app-bg) p-4">
+      <aside className="flex flex-col justify-between gap-4 rounded-lg border border-(--document-card-border) bg-(image:--document-card-background) p-4 shadow-(--document-card-shadow) backdrop-blur-md">
         <div className="space-y-3">
           <div className="flex size-10 items-center justify-center rounded-md bg-(--app-active-bg) text-(--app-active-text)">
             <Bot className="size-5" />

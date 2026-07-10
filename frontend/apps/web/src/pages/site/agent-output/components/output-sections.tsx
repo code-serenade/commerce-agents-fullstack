@@ -10,7 +10,7 @@ export function OutputSections({ sections }: OutputSectionsProps) {
 
   return (
     <section className="grid gap-4 lg:grid-cols-[16rem_1fr]">
-      <nav className="rounded-lg border border-(--app-border) bg-(--app-surface) p-4 lg:sticky lg:top-4 lg:self-start">
+      <nav className="rounded-lg border border-(--document-card-border) bg-(image:--document-card-background) p-4 shadow-(--document-card-shadow) backdrop-blur-md lg:sticky lg:top-4 lg:z-20 lg:self-start">
         <p className="text-sm font-medium text-(--app-muted-text)">
           {t("agentOutput.sectionsNavigation")}
         </p>
@@ -19,7 +19,7 @@ export function OutputSections({ sections }: OutputSectionsProps) {
             <a
               key={section.id}
               href={`#${section.id}`}
-              className="rounded-md px-3 py-2 text-sm text-(--app-muted-text) hover:bg-(--app-active-bg) hover:text-(--app-active-text)"
+              className="rounded-md px-3 py-2 text-sm text-(--app-muted-text) transition-colors hover:bg-(--shell-sidebar-item-hover-background) hover:text-primary"
             >
               {index + 1}. {section.title}
             </a>
@@ -32,7 +32,7 @@ export function OutputSections({ sections }: OutputSectionsProps) {
           <article
             key={section.id}
             id={section.id}
-            className="scroll-mt-4 rounded-lg border border-(--app-border) bg-(--app-surface) p-5"
+            className="scroll-mt-4 rounded-lg border border-(--document-card-border) bg-(image:--document-card-background) p-5 shadow-(--document-card-shadow) backdrop-blur-md"
           >
             <p className="text-sm font-medium text-(--app-muted-text)">
               {section.eyebrow}
@@ -47,7 +47,7 @@ export function OutputSections({ sections }: OutputSectionsProps) {
               {section.bullets.map((bullet) => (
                 <li
                   key={bullet}
-                  className="rounded-md border border-(--app-border) bg-(--app-bg) px-3 py-2 text-sm/6 text-(--app-muted-text)"
+                  className="rounded-md border border-(--document-card-border) bg-muted/45 px-3 py-2 text-sm/6 text-(--app-muted-text)"
                 >
                   {bullet}
                 </li>

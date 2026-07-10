@@ -55,8 +55,8 @@ export function OutputBackendDeliverables({
   }
 
   return (
-    <section className="overflow-hidden rounded-lg border border-(--app-border) bg-(--app-surface) shadow-[0_18px_44px_color-mix(in_oklch,var(--app-muted-text)_10%,transparent)]">
-      <div className="flex min-w-0 flex-col gap-3 border-b border-(--app-border) bg-[linear-gradient(180deg,color-mix(in_oklch,var(--app-surface)_92%,var(--app-active-bg))_0%,var(--app-surface)_100%)] p-4 lg:flex-row lg:items-start lg:justify-between">
+    <section className="overflow-hidden rounded-lg border border-(--document-intro-card-border) bg-(image:--document-intro-card-background) shadow-(--document-intro-card-shadow) backdrop-blur-md">
+      <div className="flex min-w-0 flex-col gap-3 border-b border-(--document-intro-card-border) p-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 space-y-1">
           <p className="text-xs font-semibold tracking-normal text-(--app-active-text)">
             {t("agentOutput.backend.eyebrow")}
@@ -76,8 +76,8 @@ export function OutputBackendDeliverables({
         </div>
       </div>
 
-      <div className="grid gap-4 bg-muted/25 p-4 xl:grid-cols-[minmax(21rem,0.74fr)_minmax(0,1.26fr)]">
-        <div className="min-w-0 overflow-hidden rounded-lg border border-(--app-border) bg-(--app-bg) shadow-sm">
+      <div className="grid gap-4 bg-muted/20 p-4 xl:grid-cols-[minmax(21rem,0.74fr)_minmax(0,1.26fr)]">
+        <div className="min-w-0 overflow-hidden rounded-lg border border-(--document-card-border) bg-(image:--document-card-background) shadow-(--document-card-shadow) backdrop-blur-md">
           <div className="mb-3 flex min-w-0 items-center justify-between gap-2">
             <div className="min-w-0 px-3 pt-3">
               <h2 className="truncate text-base font-semibold">
@@ -105,7 +105,7 @@ export function OutputBackendDeliverables({
             </div>
           ) : backend.deliverables.length ? (
             <div className="space-y-3 px-3 pb-3">
-              <div className="rounded-lg border border-(--app-border) bg-(--app-surface) p-1.5">
+              <div className="rounded-lg border border-(--document-card-border) bg-muted/35 p-1.5">
                 <NativeSelect
                   value={selectedId}
                   options={backend.deliverables.map((artifact) => ({
@@ -115,7 +115,7 @@ export function OutputBackendDeliverables({
                   onValueChange={backend.setSelectedArtifactId}
                 />
               </div>
-              <div className="max-h-128 space-y-2 overflow-y-auto pr-1 [scrollbar-gutter:stable]">
+              <div className="h-[min(41rem,calc(100svh-18rem))] min-h-80 space-y-2 overflow-y-auto pr-1 [scrollbar-gutter:stable]">
                 {backend.deliverables.map((artifact) => {
                   const active = artifact.id === selectedId
                   const display = getOutputArtifactDisplay(t, artifact)
@@ -127,7 +127,7 @@ export function OutputBackendDeliverables({
                       className={`group block w-full min-w-0 rounded-lg border p-3 text-left shadow-sm transition ${
                         active
                           ? "border-primary/45 bg-[color-mix(in_oklch,var(--app-active-bg)_34%,var(--app-surface))] text-foreground shadow-[inset_3px_0_0_var(--app-active-text)]"
-                          : "border-(--app-border) bg-(--app-surface) hover:border-primary/25 hover:bg-muted/45"
+                          : "border-(--document-card-border) bg-muted/30 hover:border-primary/25 hover:bg-(--shell-sidebar-item-hover-background)"
                       }`}
                       onClick={() => backend.setSelectedArtifactId(artifact.id)}
                     >
@@ -136,7 +136,7 @@ export function OutputBackendDeliverables({
                           className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border ${
                             active
                               ? "border-primary/35 bg-(--app-active-bg) text-(--app-active-text)"
-                              : "border-(--app-border) bg-muted/30 text-muted-foreground group-hover:text-foreground"
+                              : "border-(--document-card-border) bg-muted/30 text-muted-foreground group-hover:text-foreground"
                           }`}
                         >
                           <FileText className="size-4" />
@@ -173,10 +173,10 @@ export function OutputBackendDeliverables({
           )}
         </div>
 
-        <div className="min-w-0 overflow-hidden rounded-lg border border-(--app-border) bg-(--app-bg) shadow-sm">
+        <div className="min-w-0 overflow-hidden rounded-lg border border-(--document-card-border) bg-(image:--document-card-background) shadow-(--document-card-shadow) backdrop-blur-md">
           {selectedArtifact && selectedDisplay ? (
             <article className="min-w-0">
-              <div className="flex min-w-0 flex-col gap-3 border-b border-(--app-border) bg-(--app-surface) p-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="flex min-w-0 flex-col gap-3 border-b border-(--document-card-border) bg-muted/30 p-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0">
                   <h2 className="truncate text-xl font-semibold text-foreground">
                     {selectedDisplay.title}
@@ -217,7 +217,7 @@ export function OutputBackendDeliverables({
                 </div>
               </div>
 
-              <div className="grid gap-2 border-b border-(--app-border) bg-muted/20 p-4 text-xs text-muted-foreground sm:grid-cols-2 xl:grid-cols-5">
+              <div className="grid gap-2 border-b border-(--document-card-border) bg-muted/25 p-4 text-xs text-muted-foreground sm:grid-cols-2 xl:grid-cols-5">
                 <ArtifactMeta
                   label={t("agentOutput.backend.meta.workspace")}
                   value={selectedArtifact.workspace.title}
@@ -256,9 +256,9 @@ export function OutputBackendDeliverables({
                 </div>
               ) : null}
 
-              <div className="bg-[linear-gradient(180deg,var(--app-bg)_0%,color-mix(in_oklch,var(--app-surface)_70%,var(--app-bg))_100%)] p-4">
-                <div className="max-h-150 overflow-auto rounded-lg border border-(--app-border) bg-(--app-surface) shadow-[0_14px_34px_color-mix(in_oklch,var(--app-muted-text)_8%,transparent)] [scrollbar-gutter:stable]">
-                  <div className="border-b border-(--app-border) px-5 py-3">
+              <div className="bg-muted/15 p-4">
+                <div className="min-h-150 max-h-150 overflow-auto rounded-lg border border-(--document-card-border) bg-(image:--document-card-background) shadow-(--document-card-shadow) [scrollbar-gutter:stable]">
+                  <div className="border-b border-(--document-card-border) px-5 py-3">
                     <p className="text-xs font-semibold text-muted-foreground">
                       {selectedDisplay.format}
                     </p>

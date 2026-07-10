@@ -20,7 +20,7 @@ export default function AgentOutputPage() {
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-5">
       <OutputBackendDeliverables backend={page.backend} />
-      <div className="overflow-hidden rounded-lg border border-(--app-border) bg-(--app-bg)">
+      <div className="overflow-visible rounded-lg border border-(--document-card-border) bg-(image:--document-card-background) shadow-(--document-card-shadow) backdrop-blur-md">
         <OutputHero prompt={page.prompt} />
         <div className="space-y-5 p-5">
           <OutputMetrics metrics={page.metrics} />
