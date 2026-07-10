@@ -21,6 +21,7 @@ export interface SendAgentChatMessageInput {
   fallbackConversationTitle: string
   messageFormatCopy: AgentChatMessageFormatCopy
   onController: (controller: AbortController) => void
+  onConversationCreated?: (conversationId: string) => void
   sessionIdRef: MutableRefObject<string>
   setConversationId: Dispatch<SetStateAction<string | null>>
   setConversations: Dispatch<SetStateAction<AgentChatConversationItem[]>>

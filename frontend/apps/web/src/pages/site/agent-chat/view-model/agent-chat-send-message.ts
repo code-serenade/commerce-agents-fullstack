@@ -105,6 +105,7 @@ export async function sendAgentChatMessage(
       })
       activeConversationId = detail.conversation.id
       input.setConversationId(activeConversationId)
+      input.onConversationCreated?.(activeConversationId)
       input.setConversations((current) => [
         mapConversationItem(detail.conversation, input.fallbackConversationTitle),
         ...current.filter((item) => item.id !== detail.conversation.id),
