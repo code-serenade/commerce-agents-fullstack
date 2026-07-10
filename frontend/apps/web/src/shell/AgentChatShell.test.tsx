@@ -81,9 +81,10 @@ describe("AgentChatShell", () => {
   it("shows function entries above history and keeps history entries selectable", async () => {
     const i18n = await createAgentChatTestI18n()
     const user = userEvent.setup()
+    const locationSpy = vi.fn()
 
     render(
-      <TestProviders i18n={i18n}>
+      <TestProviders i18n={i18n} onLocationChange={locationSpy}>
         <AgentChatShell>
           <main>Shell content</main>
         </AgentChatShell>
@@ -133,7 +134,7 @@ describe("AgentChatShell", () => {
     await user.click(
       screen.getByRole("button", { name: chatState.conversationTitles[1] })
     )
-    expect(chatState.selectConversation).toHaveBeenCalledWith("conversation-2")
+    expect(locationSpy).toHaveBeenLastCalledWith("/commerce/conversation-2")
   }, 15000)
 
   it("keeps history visible on function pages so conversations are not hidden", async () => {

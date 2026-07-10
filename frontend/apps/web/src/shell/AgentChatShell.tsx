@@ -118,8 +118,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   }
 
   const openConversation = (conversationId: string) => {
-    void chat.selectConversation(conversationId)
-    navigateTo("/commerce")
+    navigateTo(`/commerce/${conversationId}`)
   }
 
   const isRouteActive = (path: string) => {
@@ -282,7 +281,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     .map((conversation) => ({
       key: conversation.id,
       label: conversation.title,
-      href: "/commerce",
+      href: `/commerce/${conversation.id}`,
       active: isQuestionRoute && conversation.id === chat.conversationId,
       onSelect: () => openConversation(conversation.id),
     }))
@@ -432,7 +431,9 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
             useDocumentPageSurface
               ? "bg-(--document-page-background)"
               : "bg-(--agent-chat-page-background)",
-            "flex size-full min-h-0 flex-1",
+            useFixedContentViewport
+              ? "flex size-full min-h-0 flex-1"
+              : "min-h-full w-full",
           ].join(" ")}
         >
           <div
@@ -444,7 +445,14 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
                 : "bg-(image:--agent-chat-page-ambient)",
             ].join(" ")}
           />
-          <div className="relative z-10 flex size-full min-h-0 flex-1">
+          <div
+            className={[
+              "relative z-10",
+              useFixedContentViewport
+                ? "flex size-full min-h-0 flex-1"
+                : "min-h-full w-full",
+            ].join(" ")}
+          >
             {children}
           </div>
         </div>
@@ -481,7 +489,12 @@ function isAnyRouteActive(pathname: string, paths: readonly string[]) {
 
 function isAgentChatRouteActive(pathname: string, path: string) {
   if (path === "/commerce") {
-    return pathname === "/" || pathname === "/commerce" || pathname === "/agent"
+    return (
+      pathname === "/" ||
+      pathname === "/commerce" ||
+      pathname.startsWith("/commerce/") ||
+      pathname === "/agent"
+    )
   }
 
   return pathname === path

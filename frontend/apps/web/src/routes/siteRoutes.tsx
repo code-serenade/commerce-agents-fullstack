@@ -43,6 +43,10 @@ export const siteRoutes: RouteObject = {
       element: withSuspense(<AgentChatPage />),
     },
     {
+      path: "commerce/:conversationId",
+      element: withSuspense(<AgentChatPage />),
+    },
+    {
       path: "agent",
       element: withSuspense(<AgentChatPage />),
     },
