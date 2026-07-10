@@ -78,6 +78,7 @@ function executionAdapterColumns(
           <MutedText>{item.platform}</MutedText>
         </div>
       ),
+      minWidth: "10rem",
     },
     {
       key: "action",
@@ -89,12 +90,13 @@ function executionAdapterColumns(
           <MutedText>{item.description}</MutedText>
         </div>
       ),
+      minWidth: "20rem",
     },
     {
       key: "connection",
       header: t("commerce.platform.columns.connection"),
       render: (item) => (
-        <div className="space-y-1">
+        <div className="flex flex-wrap items-center gap-2">
           <StatusBadge tone={toneForStatus(item.connectionStatus)}>
             {item.connectionStatus}
           </StatusBadge>
@@ -105,36 +107,39 @@ function executionAdapterColumns(
           </MutedText>
         </div>
       ),
+      minWidth: "13rem",
     },
     {
       key: "adapter",
       header: t("commerce.platform.columns.adapter"),
       render: (item) => (
-        <div className="space-y-1">
+        <div className="flex flex-wrap items-center gap-2">
           <StatusBadge tone={toneForStatus(item.adapterStatus)}>
             {item.adapterStatus}
           </StatusBadge>
           <MutedText>{item.executionMode} / {item.riskLevel}</MutedText>
         </div>
       ),
+      minWidth: "15rem",
     },
     {
       key: "readiness",
       header: t("commerce.platform.columns.readiness"),
       render: (item) => (
-        <div className="max-w-80 space-y-1">
+        <div className="flex max-w-88 flex-wrap items-center gap-2">
           <StatusBadge tone={toneForStatus(item.readiness)}>
             {item.readiness}
           </StatusBadge>
           <MutedText>{item.readinessMessage}</MutedText>
         </div>
       ),
+      minWidth: "24rem",
     },
     {
       key: "params",
       header: t("commerce.fields.params"),
       render: (item) => (
-        <div className="max-w-64 space-y-1">
+        <div className="max-w-104 space-y-1">
           <MutedText>
             {t("commerce.platform.labels.requiredParams")}:{" "}
             {item.requiredParams.join(", ") || "-"}
@@ -150,6 +155,7 @@ function executionAdapterColumns(
           </MutedText>
         </div>
       ),
+      minWidth: "28rem",
     },
   ]
 }
