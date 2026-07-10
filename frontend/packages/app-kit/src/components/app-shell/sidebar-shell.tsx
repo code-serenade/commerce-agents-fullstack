@@ -372,72 +372,74 @@ function SidebarSectionGroup({
   return (
     <div className={sectionClassName}>
       <SidebarGroup>
-      {showLeadingItems && section.leadingItems?.length ? (
-        <SidebarGroupContent>
-          <div className={sidebarMenuSpacingClassName}>
-            <SidebarMenu>
-              {section.leadingItems.map((item) => (
-                <SidebarNavRow
-                  key={item.key ?? item.href ?? String(item.label)}
-                  item={item}
-                />
-              ))}
-            </SidebarMenu>
-          </div>
-        </SidebarGroupContent>
-      ) : null}
-      {section.collapsible ? (
-        <div className="flex min-w-0 items-center gap-1 group-data-[collapsible=icon]:hidden">
-          <button
-            type="button"
-            aria-expanded={open}
-            aria-label={section.toggleLabel}
-            className={[
-              "flex h-8 min-w-0 flex-1 shrink-0 items-center gap-2 rounded-lg px-2 text-xs font-medium text-sidebar-foreground/70 ring-sidebar-ring outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2",
-              section.toggleHoverTone === "transparent"
-                ? "cursor-pointer hover:bg-transparent hover:text-sidebar-foreground"
-                : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-            onClick={() => setOpen(!open)}
-          >
-            <span className="min-w-0 flex-1 truncate text-left">
-              {section.label}
-            </span>
-            <ChevronRight
+        {showLeadingItems && section.leadingItems?.length ? (
+          <SidebarGroupContent>
+            <div className={sidebarMenuSpacingClassName}>
+              <SidebarMenu>
+                {section.leadingItems.map((item) => (
+                  <SidebarNavRow
+                    key={item.key ?? item.href ?? String(item.label)}
+                    item={item}
+                  />
+                ))}
+              </SidebarMenu>
+            </div>
+          </SidebarGroupContent>
+        ) : null}
+        {section.collapsible ? (
+          <div className="flex min-w-0 items-center gap-1 group-data-[collapsible=icon]:hidden">
+            <button
+              type="button"
+              aria-expanded={open}
+              aria-label={section.toggleLabel}
               className={[
-                "size-3.5 shrink-0 transition-transform",
-                open ? "rotate-90" : "",
+                "flex h-8 min-w-0 flex-1 shrink-0 items-center gap-2 rounded-lg px-2 text-xs font-medium text-sidebar-foreground/70 ring-sidebar-ring outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2",
+                section.toggleHoverTone === "transparent"
+                  ? "cursor-pointer hover:bg-transparent hover:text-sidebar-foreground"
+                  : "",
               ]
                 .filter(Boolean)
                 .join(" ")}
-              aria-hidden="true"
-            />
-          </button>
-          {section.action ? (
-            <div className="shrink-0">{section.action}</div>
-          ) : null}
-        </div>
-      ) : section.hideLabel ? null : (
-        <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
-      )}
-      {open ? (
-        <SidebarGroupContent>
-          <div className={getSectionContentClassName(section.maxContentHeight)}>
-            <div className={sidebarMenuSpacingClassName}>
-              <SidebarMenu>
-                <SidebarSectionItems
-                  items={section.items}
-                  itemOverflow={section.itemOverflow}
-                  itemOverflowOpen={itemOverflowOpen}
-                  onItemOverflowOpenChange={setItemOverflowOpen}
-                />
-              </SidebarMenu>
-            </div>
+              onClick={() => setOpen(!open)}
+            >
+              <span className="min-w-0 flex-1 truncate text-left">
+                {section.label}
+              </span>
+              <ChevronRight
+                className={[
+                  "size-3.5 shrink-0 transition-transform",
+                  open ? "rotate-90" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+                aria-hidden="true"
+              />
+            </button>
+            {section.action ? (
+              <div className="shrink-0">{section.action}</div>
+            ) : null}
           </div>
-        </SidebarGroupContent>
-      ) : null}
+        ) : section.hideLabel ? null : (
+          <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
+        )}
+        {open ? (
+          <SidebarGroupContent>
+            <div
+              className={getSectionContentClassName(section.maxContentHeight)}
+            >
+              <div className={sidebarMenuSpacingClassName}>
+                <SidebarMenu>
+                  <SidebarSectionItems
+                    items={section.items}
+                    itemOverflow={section.itemOverflow}
+                    itemOverflowOpen={itemOverflowOpen}
+                    onItemOverflowOpenChange={setItemOverflowOpen}
+                  />
+                </SidebarMenu>
+              </div>
+            </div>
+          </SidebarGroupContent>
+        ) : null}
       </SidebarGroup>
     </div>
   )
@@ -483,14 +485,20 @@ function SidebarSectionItems({
 }) {
   if (!itemOverflow) {
     return items.map((item) => (
-      <SidebarNavRow key={item.key ?? item.href ?? String(item.label)} item={item} />
+      <SidebarNavRow
+        key={item.key ?? item.href ?? String(item.label)}
+        item={item}
+      />
     ))
   }
 
   const maxVisibleItems = Math.max(3, itemOverflow.maxVisibleItems)
   if (items.length <= maxVisibleItems) {
     return items.map((item) => (
-      <SidebarNavRow key={item.key ?? item.href ?? String(item.label)} item={item} />
+      <SidebarNavRow
+        key={item.key ?? item.href ?? String(item.label)}
+        item={item}
+      />
     ))
   }
 
@@ -549,9 +557,7 @@ function SidebarOverflowControlRow({
         <div
           className={[
             sidebarMenuButtonBaseClassName,
-            textSize === "lg"
-              ? "[&_[data-sidebar=menu-button]]:text-base"
-              : "",
+            textSize === "lg" ? "[&_[data-sidebar=menu-button]]:text-sm" : "",
           ]
             .filter(Boolean)
             .join(" ")}
@@ -588,7 +594,7 @@ function SidebarOverflowControlRow({
         {!expanded && isExpandedSidebar ? (
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute top-0 left-[calc(100%+0.5rem)] z-50 hidden min-w-40 rounded-lg border border-sidebar-border bg-sidebar p-1.5 text-sidebar-foreground shadow-xl group-hover/overflow:block group-focus-within/overflow:block"
+            className="pointer-events-none absolute top-0 left-[calc(100%+0.5rem)] z-50 hidden min-w-40 rounded-lg border border-sidebar-border bg-sidebar p-1.5 text-sidebar-foreground shadow-xl group-focus-within/overflow:block group-hover/overflow:block"
           >
             <div className="grid gap-1">
               {overflowItems.map((item) => (
@@ -629,9 +635,7 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
     item.iconTone === "muted"
       ? "[&_[data-sidebar=menu-button]_svg]:text-sidebar-foreground/55"
       : "",
-    item.textSize === "lg"
-      ? "[&_[data-sidebar=menu-button]]:text-base"
-      : "",
+    item.textSize === "lg" ? "[&_[data-sidebar=menu-button]]:text-sm" : "",
   ]
     .filter(Boolean)
     .join(" ")

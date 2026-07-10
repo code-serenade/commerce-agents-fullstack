@@ -89,6 +89,8 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   const routeTitleKey = getRouteTitleKey(location.pathname)
   const routeDescriptionKey = getRouteDescriptionKey(location.pathname)
   const useInnerPageScroll = isCommercePageLayoutRoute(location.pathname)
+  const useFixedContentViewport = isQuestionRoute || useInnerPageScroll
+  const useDocumentPageSurface = isDocumentPageSurfaceRoute(location.pathname)
   const handleLogout = () => {
     localStorage.removeItem("token")
     localStorage.removeItem("refreshToken")
@@ -103,7 +105,10 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   }
 
   const navigateTo = (path: string) => {
-    if (!user && ["/products", "/materials", "/campaigns"].includes(path)) { requestLogin({ pathname: path }); return }
+    if (!user && ["/products", "/materials", "/campaigns"].includes(path)) {
+      requestLogin({ pathname: path })
+      return
+    }
     navigate(path)
   }
 
@@ -245,8 +250,8 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     ...section,
     items: section.items.filter((item) => item.id !== "home"),
   }))
-  const trainingSections: SidebarShellSection[] = trainingNavigationSections.map(
-    (section) => ({
+  const trainingSections: SidebarShellSection[] =
+    trainingNavigationSections.map((section) => ({
       key: section.id,
       label: t(section.labelKey),
       items: section.items.map((item) => ({
@@ -258,8 +263,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           : isRouteActive(item.path),
         onSelect: () => navigateTo(item.path),
       })),
-    })
-  )
+    }))
   const sections: SidebarShellSection[] = !isLoggedIn
     ? [workspaceSection]
     : navigationMode === "chat"
@@ -289,8 +293,8 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     active: item.active,
     onSelect: item.onSelect,
   }))
-  const mobileTrainingItems: MobileBottomNavItem[] = trainingNavigationSections.map(
-    (section) => ({
+  const mobileTrainingItems: MobileBottomNavItem[] =
+    trainingNavigationSections.map((section) => ({
       key: `training-${section.id}`,
       icon: section.items[0]?.icon,
       label: t(section.labelKey),
@@ -308,8 +312,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           : isRouteActive(item.path),
         onSelect: () => navigateTo(item.path),
       })),
-    })
-  )
+    }))
   const mobileNavigationItems: MobileBottomNavItem[] = [
     {
       key: "workspace",
@@ -360,9 +363,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     <>
       <SidebarShell
         defaultSidebarOpen
-        contentScroll={
-          isQuestionRoute || useInnerPageScroll ? "hidden" : "auto"
-        }
+        contentScroll={useFixedContentViewport ? "hidden" : "auto"}
         contentPadding="none"
         brandLogo={<CommerceAgentLogo />}
         brandTitle={t("agentChat.shell.brandTitle")}
@@ -425,10 +426,23 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
         }}
         onBrandSelect={() => navigate("/home")}
       >
-        <div className="relative flex size-full min-h-0 flex-1 bg-(--agent-chat-page-background) text-foreground">
+        <div
+          className={[
+            "relative text-foreground",
+            useDocumentPageSurface
+              ? "bg-(--document-page-background)"
+              : "bg-(--agent-chat-page-background)",
+            "flex size-full min-h-0 flex-1",
+          ].join(" ")}
+        >
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 bg-(image:--agent-chat-page-ambient)"
+            className={[
+              "pointer-events-none absolute inset-0",
+              useDocumentPageSurface
+                ? "bg-(image:--document-page-ambient)"
+                : "bg-(image:--agent-chat-page-ambient)",
+            ].join(" ")}
           />
           <div className="relative z-10 flex size-full min-h-0 flex-1">
             {children}
@@ -562,6 +576,22 @@ function isCommercePageLayoutRoute(pathname: string) {
     "/platform-connect",
     "/approvals",
     "/operations",
+  ].some((path) => isAgentChatRouteActive(pathname, path))
+}
+
+function isDocumentPageSurfaceRoute(pathname: string) {
+  return [
+    "/agent-capabilities",
+    "/question-ideas",
+    "/overview",
+    "/materials",
+    "/products",
+    "/campaigns",
+    "/workspaces",
+    "/platform-connect",
+    "/approvals",
+    "/operations",
+    "/agent-output",
   ].some((path) => isAgentChatRouteActive(pathname, path))
 }
 

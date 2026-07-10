@@ -14,7 +14,7 @@ export const buttonVariants = cva(
         destructive:
           "bg-[var(--destructive)] text-[var(--destructive-foreground,var(--primary-foreground,var(--background)))] hover:bg-[var(--destructive-hover,var(--destructive))] focus-visible:border-destructive/40 focus-visible:ring-destructive/20 disabled:bg-[var(--destructive-disabled,var(--destructive))]",
         outline:
-          "border-[var(--primary-outline,var(--primary))] bg-[var(--surface)] text-[var(--primary-outline,var(--primary))] hover:bg-[var(--surface-hover,var(--surface))]",
+          "border-[var(--primary-outline,var(--primary))] bg-white text-[var(--primary-outline,var(--primary))] hover:bg-[color-mix(in_oklab,var(--surface-hover,var(--surface))_30%,transparent)] dark:bg-[var(--surface)] dark:hover:bg-[color-mix(in_oklab,var(--surface-hover,var(--surface))_30%,transparent)]",
         ghost:
           "bg-[var(--background)] text-[var(--foreground)] hover:bg-[var(--surface)] hover:text-[var(--foreground)] aria-expanded:bg-[var(--surface)] aria-expanded:text-[var(--foreground)]",
         link: "h-auto bg-transparent p-0 text-[var(--foreground)] underline-offset-4 hover:text-[var(--foreground)] hover:underline active:text-[var(--foreground)]",
