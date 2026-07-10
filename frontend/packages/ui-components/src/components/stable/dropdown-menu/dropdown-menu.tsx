@@ -137,6 +137,7 @@ export function DropdownMenuTrigger({
       onClick={onClick}
       className={cn(
         "inline-flex items-center justify-center gap-2 rounded-md transition-colors outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 data-[state=open]:bg-accent data-[state=open]:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "cursor-pointer",
         variant === "default" &&
           "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground",
         variant === "muted" &&

@@ -3,7 +3,7 @@ import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type { ReactNode } from "react"
 import { Provider } from "react-redux"
-import { MemoryRouter } from "react-router"
+import { MemoryRouter, useLocation } from "react-router"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { AgentChatTestI18nProvider } from "@/test/AgentChatTestI18nProvider"
 import { createAgentChatTestI18n } from "@/test/create-agent-chat-test-i18n"
@@ -79,9 +79,9 @@ describe("AgentChatShell", () => {
       </TestProviders>
     )
 
-    const historyToggle = screen.getByRole("button", {
-      name: i18n.t("agentChat.sidebar.collapseHistory"),
-    })
+    const historyLabel = screen.getAllByText(
+      i18n.t("agentChat.shell.sections.recents")
+    )[0]
 
     const newChatButton = screen
       .getAllByRole("button", {
@@ -89,7 +89,7 @@ describe("AgentChatShell", () => {
       })
       .find((button) =>
         Boolean(
-          button.compareDocumentPosition(historyToggle) &
+          button.compareDocumentPosition(historyLabel) &
           Node.DOCUMENT_POSITION_FOLLOWING
         )
       )
@@ -98,7 +98,7 @@ describe("AgentChatShell", () => {
       throw new Error("Expected new chat button above history")
     }
     expect(
-      newChatButton.compareDocumentPosition(historyToggle) &
+      newChatButton.compareDocumentPosition(historyLabel) &
         Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy()
     const firstHistoryButton = screen.getByRole("button", {
@@ -137,10 +137,8 @@ describe("AgentChatShell", () => {
     )
 
     expect(
-      screen.getByRole("button", {
-        name: i18n.t("agentChat.sidebar.collapseHistory"),
-      })
-    ).toBeInTheDocument()
+      screen.getAllByText(i18n.t("agentChat.shell.sections.recents")).length
+    ).toBeGreaterThan(0)
     expect(
       screen.getByRole("button", {
         name: i18n.t("agentChat.sidebar.newChat"),
@@ -178,15 +176,106 @@ describe("AgentChatShell", () => {
     ).toBeInTheDocument()
     expect(
       screen.queryByRole("button", {
-        name: i18n.t("agentChat.shell.tabs.chat"),
+        name: i18n.t("agentChat.shell.navigation.productBoard"),
       })
     ).not.toBeInTheDocument()
     expect(
       screen.queryByRole("button", {
-        name: i18n.t("agentChat.sidebar.collapseHistory"),
+        name: i18n.t("agentChat.shell.navigation.materials"),
       })
     ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
+        name: i18n.t("agentChat.shell.navigation.campaigns"),
+      })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
+        name: i18n.t("agentChat.shell.tabs.chat"),
+      })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryAllByText(i18n.t("agentChat.shell.sections.recents"))
+    ).toHaveLength(0)
     expect(screen.getByText("Guest content")).toBeInTheDocument()
+  }, 15000)
+
+  it("navigates guests to login directly from the footer account entry", async () => {
+    const i18n = await createAgentChatTestI18n()
+    const user = userEvent.setup()
+    const locationSpy = vi.fn()
+
+    render(
+      <TestProviders
+        i18n={i18n}
+        initialEntries={["/commerce"]}
+        loggedIn={false}
+        onLocationChange={locationSpy}
+      >
+        <AgentChatShell>
+          <main>Guest footer content</main>
+        </AgentChatShell>
+      </TestProviders>
+    )
+
+    const loginEntry = screen.getByText(i18n.t("web.shell.account.loginCta"))
+    await user.click(loginEntry.closest("button") as HTMLButtonElement)
+
+    expect(locationSpy).toHaveBeenLastCalledWith("/login")
+    expect(
+      screen.queryByRole("menuitem", {
+        name: i18n.t("web.shell.account.login"),
+      })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("menuitem", {
+        name: i18n.t("web.shell.account.register"),
+      })
+    ).not.toBeInTheDocument()
+  }, 15000)
+
+  it("folds common entries after the configured visible count", async () => {
+    const i18n = await createAgentChatTestI18n()
+    const user = userEvent.setup()
+
+    render(
+      <TestProviders i18n={i18n}>
+        <AgentChatShell>
+          <main>Overflow content</main>
+        </AgentChatShell>
+      </TestProviders>
+    )
+
+    expect(
+      screen.getByRole("button", {
+        name: i18n.t("agentChat.shell.navigation.productBoard"),
+      })
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", {
+        name: i18n.t("agentChat.shell.navigation.materials"),
+      })
+    ).not.toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole("button", { name: i18n.t("agentChat.sidebar.more") })
+    )
+
+    expect(
+      screen.getByRole("button", {
+        name: i18n.t("agentChat.sidebar.less"),
+      })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", {
+        name: i18n.t("agentChat.shell.navigation.materials"),
+      })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", {
+        name: i18n.t("agentChat.shell.navigation.campaigns"),
+      })
+    ).toBeInTheDocument()
   }, 15000)
 
   it("switches logged-in users between chat and training navigation", async () => {
@@ -202,10 +291,8 @@ describe("AgentChatShell", () => {
     )
 
     expect(
-      screen.getByRole("button", {
-        name: i18n.t("agentChat.sidebar.collapseHistory"),
-      })
-    ).toBeInTheDocument()
+      screen.getAllByText(i18n.t("agentChat.shell.sections.recents")).length
+    ).toBeGreaterThan(0)
 
     await user.click(
       screen.getByRole("button", {
@@ -218,11 +305,54 @@ describe("AgentChatShell", () => {
         name: i18n.t("web.shell.navigation.approvals"),
       })
     ).toBeInTheDocument()
+  }, 15000)
+
+  it("opens the training submenu instead of common entries on mobile", async () => {
+    const i18n = await createAgentChatTestI18n()
+    const user = userEvent.setup()
+
+    render(
+      <TestProviders i18n={i18n}>
+        <AgentChatShell>
+          <main>Mobile navigation content</main>
+        </AgentChatShell>
+      </TestProviders>
+    )
+
+    await user.click(
+      screen.getByRole("button", {
+        name: i18n.t("web.shell.navigation.workspace"),
+      })
+    )
+
     expect(
-      screen.queryByRole("button", {
-        name: i18n.t("agentChat.sidebar.collapseHistory"),
+      screen.getByRole("link", {
+        name: i18n.t("web.shell.navigation.products"),
+      })
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("link", {
+        name: i18n.t("agentChat.sidebar.newChat"),
       })
     ).not.toBeInTheDocument()
+  }, 15000)
+
+  it("only highlights mobile history while a conversation route is active", async () => {
+    const i18n = await createAgentChatTestI18n()
+
+    render(
+      <TestProviders i18n={i18n} initialEntries={["/products"]}>
+        <AgentChatShell>
+          <main>Products content</main>
+        </AgentChatShell>
+      </TestProviders>
+    )
+
+    expect(
+      screen.getByRole("button", {
+        name: i18n.t("agentChat.shell.sections.recents"),
+      })
+    ).not.toHaveAttribute("aria-current", "page")
   }, 15000)
 })
 
@@ -231,11 +361,13 @@ function TestProviders({
   i18n,
   initialEntries = ["/commerce"],
   loggedIn = true,
+  onLocationChange,
 }: {
   children: ReactNode
   i18n: Parameters<typeof AgentChatTestI18nProvider>[0]["i18n"]
   initialEntries?: string[]
   loggedIn?: boolean
+  onLocationChange?: (pathname: string) => void
 }) {
   const store = configureStore({
     reducer: {
@@ -268,9 +400,22 @@ function TestProviders({
     <MemoryRouter initialEntries={initialEntries}>
       <Provider store={store}>
         <AgentChatTestI18nProvider i18n={i18n}>
+          {onLocationChange ? (
+            <LocationProbe onLocationChange={onLocationChange} />
+          ) : null}
           {children}
         </AgentChatTestI18nProvider>
       </Provider>
     </MemoryRouter>
   )
+}
+
+function LocationProbe({
+  onLocationChange,
+}: {
+  onLocationChange: (pathname: string) => void
+}) {
+  const location = useLocation()
+  onLocationChange(location.pathname)
+  return null
 }

@@ -121,6 +121,7 @@ export function WebAppShell({ children }: WebAppShellProps) {
       brandEyebrow={t("web.shell.brand.eyebrow")}
       brandTitle={t("web.shell.brand.title")}
       brandDescription={t("web.shell.brand.description")}
+      onBrandSelect={() => navigate("/home")}
       sections={sections}
       mobileNavigation={
         mobileNavigationItems.length

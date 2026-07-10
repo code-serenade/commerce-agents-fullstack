@@ -32,6 +32,7 @@ export interface AvatarDropdownProps {
   displayId: ReactNode
   children?: ReactNode
   logout?: AvatarDropdownAction
+  onTriggerSelect?: () => void
   triggerVariant?: "icon" | "sidebar"
 }
 
@@ -87,67 +88,78 @@ export function AvatarDropdown({
   displayId,
   children,
   logout,
+  onTriggerSelect,
   triggerVariant = "icon",
 }: AvatarDropdownProps) {
   const { t } = useTranslation("components")
   const openAccountMenuLabel = t("header.common.openAccountMenu")
   const logoutLabel = t("header.me.logout")
 
+  const trigger = triggerVariant === "sidebar" ? (
+    <button
+      type="button"
+      className="flex w-full cursor-pointer items-center gap-2.5 overflow-hidden rounded-xl bg-transparent px-2.5 py-2 text-left outline-hidden transition group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:rounded-full group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-0 focus-visible:ring-2 focus-visible:ring-(--app-primary)"
+      aria-label={openAccountMenuLabel}
+      onClick={onTriggerSelect}
+    >
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#0f1724]">
+        {avatarSrc ? (
+          <img
+            src={avatarSrc}
+            alt={avatarAlt}
+            className="block h-9 w-9 rounded-full object-cover"
+          />
+        ) : null}
+        {!avatarSrc ? (
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1c2431] text-[13px] font-semibold text-white">
+            {avatarFallback}
+          </span>
+        ) : null}
+      </span>
+      <span className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
+        <span className="block truncate text-sm font-semibold text-foreground">
+          {displayName}
+        </span>
+        <span className="block min-w-0 text-xs text-muted-foreground">
+          {displayId}
+        </span>
+      </span>
+      {onTriggerSelect ? null : (
+        <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
+      )}
+    </button>
+  ) : (
+    <button
+      type="button"
+      className="relative z-10 flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/35 bg-[#121821] p-0.5 outline-hidden transition hover:border-white/55 focus-visible:ring-2 focus-visible:ring-(--app-primary)"
+      aria-label={openAccountMenuLabel}
+      onClick={onTriggerSelect}
+    >
+      <span className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full bg-[#0f1724]">
+        {avatarSrc ? (
+          <img
+            src={avatarSrc}
+            alt={avatarAlt}
+            className="block h-6 w-6 rounded-full object-cover"
+          />
+        ) : null}
+        {!avatarSrc ? (
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#1c2431] text-[10px] font-semibold text-white">
+            {avatarFallback}
+          </span>
+        ) : null}
+      </span>
+    </button>
+  )
+
+  if (onTriggerSelect) {
+    return trigger
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        {triggerVariant === "sidebar" ? (
-          <button
-            type="button"
-            className="flex w-full cursor-pointer items-center gap-2.5 overflow-hidden rounded-xl bg-transparent px-2.5 py-2 text-left outline-hidden transition group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:rounded-full group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-0 focus-visible:ring-2 focus-visible:ring-(--app-primary)"
-            aria-label={openAccountMenuLabel}
-          >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#0f1724]">
-              {avatarSrc ? (
-                <img
-                  src={avatarSrc}
-                  alt={avatarAlt}
-                  className="block h-9 w-9 rounded-full object-cover"
-                />
-              ) : null}
-              {!avatarSrc ? (
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1c2431] text-[13px] font-semibold text-white">
-                  {avatarFallback}
-                </span>
-              ) : null}
-            </span>
-            <span className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-              <span className="block truncate text-sm font-semibold text-foreground">
-                {displayName}
-              </span>
-              <span className="block min-w-0 text-xs text-muted-foreground">
-                {displayId}
-              </span>
-            </span>
-            <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="relative z-10 flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/35 bg-[#121821] p-0.5 outline-hidden transition hover:border-white/55 focus-visible:ring-2 focus-visible:ring-(--app-primary)"
-            aria-label={openAccountMenuLabel}
-          >
-            <span className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full bg-[#0f1724]">
-              {avatarSrc ? (
-                <img
-                  src={avatarSrc}
-                  alt={avatarAlt}
-                  className="block h-6 w-6 rounded-full object-cover"
-                />
-              ) : null}
-              {!avatarSrc ? (
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#1c2431] text-[10px] font-semibold text-white">
-                  {avatarFallback}
-                </span>
-              ) : null}
-            </span>
-          </button>
-        )}
+        {trigger}
       </DropdownMenuTrigger>
 
       <DropdownMenuContent

@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react"
-import { ChevronRight } from "lucide-react"
+import { ChevronRight, MoreHorizontal } from "lucide-react"
 import {
   AvatarDropdown,
   AvatarDropdownItem,
@@ -43,11 +43,19 @@ export interface SidebarShellNavEntry {
   label: ReactNode
   href?: string
   active?: boolean
+  tone?: "default" | "muted"
   variant?: "default" | "primaryAction"
   icon?: ReactNode
   onSelect?: () => void
   action?: ReactNode
   subItems?: SidebarShellSubEntry[]
+}
+
+export interface SidebarShellItemOverflowConfig {
+  maxVisibleItems: number
+  defaultOpen?: boolean
+  moreLabel: ReactNode
+  lessLabel: ReactNode
 }
 
 export interface SidebarShellSection {
@@ -57,6 +65,7 @@ export interface SidebarShellSection {
   leadingItems?: SidebarShellNavEntry[]
   leadingItemsFixed?: boolean
   items: SidebarShellNavEntry[]
+  hideWhenSidebarCollapsed?: boolean
   collapsible?: boolean
   defaultOpen?: boolean
   maxContentHeight?: "sm" | "md" | "lg"
@@ -64,6 +73,7 @@ export interface SidebarShellSection {
   toggleLabel?: string
   toggleHoverTone?: "default" | "transparent"
   onOpenChange?: (open: boolean) => void
+  itemOverflow?: SidebarShellItemOverflowConfig
 }
 
 export interface SidebarShellProps {
@@ -71,6 +81,7 @@ export interface SidebarShellProps {
   brandLogo?: ReactNode
   brandTitle: ReactNode
   brandDescription?: ReactNode
+  onBrandSelect?: () => void
   defaultSidebarOpen?: boolean
   sections: SidebarShellSection[]
   header?: ReactNode
@@ -88,6 +99,7 @@ export interface SidebarShellProps {
     avatarFallback: ReactNode
     displayName: ReactNode
     displayId: ReactNode
+    onSelect?: () => void
     actions?: Array<{
       icon?: ReactNode
       label: ReactNode
@@ -113,6 +125,7 @@ export function SidebarShell({
   brandLogo,
   brandTitle,
   brandDescription,
+  onBrandSelect,
   defaultSidebarOpen = true,
   sections,
   header,
@@ -148,25 +161,27 @@ export function SidebarShell({
             <Sidebar collapsible="icon">
               <SidebarHeader>
                 <div className="mb-1 flex min-h-10 items-center gap-2 group-data-[collapsible=icon]:min-h-20 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:justify-center">
-                  <div className="flex min-w-0 flex-1 items-center gap-2 group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:justify-center">
-                    {brandLogo ? (
-                      <div className="shrink-0">{brandLogo}</div>
-                    ) : (
-                      <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground">
-                        {typeof brandTitle === "string"
-                          ? brandTitle.charAt(0).toUpperCase()
-                          : "W"}
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-                      <div>{brandTitle}</div>
-                      {brandSecondaryText ? (
-                        <div className="text-[12px] text-(--shell-brand-description-foreground)">
-                          {brandSecondaryText}
-                        </div>
-                      ) : null}
+                  {onBrandSelect ? (
+                    <button
+                      type="button"
+                      className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-lg text-left outline-hidden transition-colors group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:justify-center focus-visible:ring-2 focus-visible:ring-(--app-primary)"
+                      onClick={onBrandSelect}
+                    >
+                      <BrandContent
+                        brandLogo={brandLogo}
+                        brandSecondaryText={brandSecondaryText}
+                        brandTitle={brandTitle}
+                      />
+                    </button>
+                  ) : (
+                    <div className="flex min-w-0 flex-1 items-center gap-2 group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:justify-center">
+                      <BrandContent
+                        brandLogo={brandLogo}
+                        brandSecondaryText={brandSecondaryText}
+                        brandTitle={brandTitle}
+                      />
                     </div>
-                  </div>
+                  )}
                   <div className="shrink-0 rounded-lg border border-sidebar-border bg-(--shell-sidebar-trigger-background) shadow-sm transition-colors hover:bg-sidebar-accent [&_[data-sidebar=trigger]]:size-8">
                     <SidebarTrigger
                       ariaLabel={t("header.common.toggleSidebar")}
@@ -206,6 +221,7 @@ export function SidebarShell({
                       avatarFallback={footerAccount.avatarFallback}
                       displayName={footerAccount.displayName}
                       displayId={footerAccount.displayId}
+                      onTriggerSelect={footerAccount.onSelect}
                       logout={footerAccount.logout}
                     >
                       {footerAccount.actions?.map((action, index) => (
@@ -245,6 +261,38 @@ export function SidebarShell({
         </SidebarProvider>
       </TooltipProvider>
     </div>
+  )
+}
+
+function BrandContent({
+  brandLogo,
+  brandSecondaryText,
+  brandTitle,
+}: {
+  brandLogo?: ReactNode
+  brandSecondaryText: ReactNode
+  brandTitle: ReactNode
+}) {
+  return (
+    <>
+      {brandLogo ? (
+        <div className="shrink-0">{brandLogo}</div>
+      ) : (
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground">
+          {typeof brandTitle === "string"
+            ? brandTitle.charAt(0).toUpperCase()
+            : "W"}
+        </div>
+      )}
+      <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
+        <div>{brandTitle}</div>
+        {brandSecondaryText ? (
+          <div className="text-[12px] text-(--shell-brand-description-foreground)">
+            {brandSecondaryText}
+          </div>
+        ) : null}
+      </div>
+    </>
   )
 }
 
@@ -298,6 +346,9 @@ function SidebarSectionGroup({
   const [uncontrolledOpen, setUncontrolledOpen] = useState(
     section.defaultOpen ?? true
   )
+  const [itemOverflowOpen, setItemOverflowOpen] = useState(
+    section.itemOverflow?.defaultOpen ?? false
+  )
   const open = section.collapsible ? (section.open ?? uncontrolledOpen) : true
 
   const setOpen = (nextOpen: boolean) => {
@@ -307,8 +358,13 @@ function SidebarSectionGroup({
     section.onOpenChange?.(nextOpen)
   }
 
+  const sectionClassName = section.hideWhenSidebarCollapsed
+    ? "group-data-[collapsible=icon]:hidden"
+    : undefined
+
   return (
-    <SidebarGroup>
+    <div className={sectionClassName}>
+      <SidebarGroup>
       {showLeadingItems && section.leadingItems?.length ? (
         <SidebarGroupContent>
           <div className={sidebarMenuSpacingClassName}>
@@ -364,18 +420,19 @@ function SidebarSectionGroup({
           <div className={getSectionContentClassName(section.maxContentHeight)}>
             <div className={sidebarMenuSpacingClassName}>
               <SidebarMenu>
-                {section.items.map((item) => (
-                  <SidebarNavRow
-                    key={item.key ?? item.href ?? String(item.label)}
-                    item={item}
-                  />
-                ))}
+                <SidebarSectionItems
+                  items={section.items}
+                  itemOverflow={section.itemOverflow}
+                  itemOverflowOpen={itemOverflowOpen}
+                  onItemOverflowOpenChange={setItemOverflowOpen}
+                />
               </SidebarMenu>
             </div>
           </div>
         </SidebarGroupContent>
       ) : null}
-    </SidebarGroup>
+      </SidebarGroup>
+    </div>
   )
 }
 
@@ -406,6 +463,139 @@ function getSectionContentClassName(
   return classNames.join(" ")
 }
 
+function SidebarSectionItems({
+  items,
+  itemOverflow,
+  itemOverflowOpen,
+  onItemOverflowOpenChange,
+}: {
+  items: SidebarShellNavEntry[]
+  itemOverflow?: SidebarShellItemOverflowConfig
+  itemOverflowOpen: boolean
+  onItemOverflowOpenChange: (open: boolean) => void
+}) {
+  if (!itemOverflow) {
+    return items.map((item) => (
+      <SidebarNavRow key={item.key ?? item.href ?? String(item.label)} item={item} />
+    ))
+  }
+
+  const maxVisibleItems = Math.max(3, itemOverflow.maxVisibleItems)
+  if (items.length <= maxVisibleItems) {
+    return items.map((item) => (
+      <SidebarNavRow key={item.key ?? item.href ?? String(item.label)} item={item} />
+    ))
+  }
+
+  const pinnedItems = items.slice(0, maxVisibleItems - 1)
+  const overflowItems = items.slice(maxVisibleItems - 1)
+
+  return (
+    <>
+      {pinnedItems.map((item) => (
+        <SidebarNavRow
+          key={item.key ?? item.href ?? String(item.label)}
+          item={item}
+        />
+      ))}
+      <SidebarOverflowControlRow
+        expanded={itemOverflowOpen}
+        lessLabel={itemOverflow.lessLabel}
+        moreLabel={itemOverflow.moreLabel}
+        overflowItems={overflowItems}
+        onExpandedChange={onItemOverflowOpenChange}
+      />
+      {itemOverflowOpen
+        ? overflowItems.map((item) => (
+            <SidebarNavRow
+              key={item.key ?? item.href ?? String(item.label)}
+              item={item}
+            />
+          ))
+        : null}
+    </>
+  )
+}
+
+function SidebarOverflowControlRow({
+  expanded,
+  lessLabel,
+  moreLabel,
+  overflowItems,
+  onExpandedChange,
+}: {
+  expanded: boolean
+  lessLabel: ReactNode
+  moreLabel: ReactNode
+  overflowItems: SidebarShellNavEntry[]
+  onExpandedChange: (expanded: boolean) => void
+}) {
+  const { state } = useSidebar()
+  const isExpandedSidebar = state !== "collapsed"
+
+  return (
+    <SidebarMenuItem>
+      <div className="group/overflow relative">
+        <div className={sidebarMenuButtonBaseClassName}>
+          <SidebarMenuButton
+            active={false}
+            disclosure={!expanded}
+            disclosureOpen={false}
+            variant="primary"
+            tooltip={typeof moreLabel === "string" ? moreLabel : undefined}
+            onClick={() => onExpandedChange(!expanded)}
+          >
+            <MoreHorizontal
+              className={[
+                "size-4 shrink-0",
+                expanded ? "text-sidebar-foreground/55" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            />
+            <span
+              className={[
+                "truncate group-data-[collapsible=icon]:hidden",
+                expanded ? "text-sidebar-foreground/55" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              {expanded ? lessLabel : moreLabel}
+            </span>
+          </SidebarMenuButton>
+        </div>
+
+        {!expanded && isExpandedSidebar ? (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute top-0 left-[calc(100%+0.5rem)] z-50 hidden min-w-40 rounded-lg border border-sidebar-border bg-sidebar p-1.5 text-sidebar-foreground shadow-xl group-hover/overflow:block group-focus-within/overflow:block"
+          >
+            <div className="grid gap-1">
+              {overflowItems.map((item) => (
+                <div
+                  key={item.key ?? item.href ?? String(item.label)}
+                  className={[
+                    "flex min-h-9 min-w-0 items-center gap-2 rounded-md px-2 text-left text-sm",
+                    item.active
+                      ? "bg-sidebar-accent font-medium text-sidebar-primary"
+                      : "text-sidebar-foreground",
+                  ].join(" ")}
+                >
+                  <span className="flex size-4 shrink-0 items-center justify-center [&_svg]:size-4">
+                    {item.icon}
+                  </span>
+                  <span className="min-w-0 truncate">{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </SidebarMenuItem>
+  )
+}
+
 function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
   const { state } = useSidebar()
   const hasSubItems = Boolean(item.subItems?.length)
@@ -414,6 +604,9 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
   const navButtonWrapperClassName = [
     sidebarMenuButtonBaseClassName,
     item.variant === "primaryAction" ? sidebarPrimaryActionButtonClassName : "",
+    item.tone === "muted"
+      ? "[&_[data-sidebar=menu-button]]:text-sidebar-foreground/55 [&_[data-sidebar=menu-button]_svg]:text-sidebar-foreground/45"
+      : "",
   ]
     .filter(Boolean)
     .join(" ")

@@ -37,6 +37,7 @@ const messages = {
         guestId: "游客访问",
         guestFallback: "未",
         login: "登录",
+        loginCta: "去登录",
         register: "注册",
         logout: "退出登录",
         actions: {

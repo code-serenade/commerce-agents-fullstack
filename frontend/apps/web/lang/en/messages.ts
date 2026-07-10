@@ -37,6 +37,7 @@ const messages = {
         guestId: "Not signed in",
         guestFallback: "G",
         login: "Sign in",
+        loginCta: "Sign in",
         register: "Register",
         logout: "Log out",
         actions: {

@@ -2,16 +2,13 @@ import { type MouseEvent, type ReactNode, useState } from "react"
 import {
   Bot,
   Library,
-  LogIn,
   Megaphone,
   MessageCircleMore,
-  MonitorCog,
   MoreHorizontal,
   MessageSquareText,
   ShoppingBag,
   Sparkles,
   Trash2,
-  UserPlus,
   UserRound,
 } from "lucide-react"
 import { useTranslation } from "react-i18next"
@@ -54,20 +51,6 @@ export interface AgentChatShellProps {
 
 const CHAT_ROUTE_PATHS = ["/", "/commerce", "/agent"] as const
 
-const FUNCTION_NAV_ROUTE_PATHS = [
-  "/",
-  "/agent",
-  "/agent-capabilities",
-  "/question-ideas",
-  "/commerce",
-  "/campaigns",
-  "/agent-output",
-  "/materials",
-  "/platform-connect",
-  "/products",
-  "/workspaces",
-] as const
-
 type SidebarNavigationMode = "chat" | "training"
 
 export function AgentChatShell({ children }: AgentChatShellProps) {
@@ -84,27 +67,17 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   const location = useLocation()
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const functionNavRouteActive = isAnyRouteActive(
-    location.pathname,
-    FUNCTION_NAV_ROUTE_PATHS
-  )
   const isQuestionRoute = isAnyRouteActive(location.pathname, CHAT_ROUTE_PATHS)
   const [renameTarget, setRenameTarget] = useState<{
     id: string
     title: string
   } | null>(null)
   const [renameValue, setRenameValue] = useState("")
-  const [visibleConversationCount, setVisibleConversationCount] = useState(5)
-  const [historyOpen, setHistoryOpen] = useState(true)
-  const [functionNavCollapsedPath, setFunctionNavCollapsedPath] = useState<
-    string | null
-  >(null)
-  const [functionNavManualOpen, setFunctionNavManualOpen] = useState(false)
   const [navigationMode, setNavigationMode] =
     useState<SidebarNavigationMode>("chat")
   const user = useSelector((state: RootState) => state.auth.user)
   const isLoggedIn = Boolean(user)
-  const displayName = user?.name || t("web.shell.account.guestName")
+  const displayName = user?.name || t("web.shell.account.loginCta")
   const displayId = user
     ? user.display_id || user.email || t("web.shell.account.defaultId")
     : t("web.shell.account.guestId")
@@ -114,9 +87,6 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   const routeTitleKey = getRouteTitleKey(location.pathname)
   const routeDescriptionKey = getRouteDescriptionKey(location.pathname)
   const useInnerPageScroll = isCommercePageLayoutRoute(location.pathname)
-  const functionNavOpen = functionNavRouteActive
-    ? functionNavCollapsedPath !== location.pathname
-    : functionNavManualOpen
   const handleLogout = () => {
     localStorage.removeItem("token")
     localStorage.removeItem("refreshToken")
@@ -130,18 +100,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     setRenameValue(conversation.title)
   }
 
-  const setFunctionNavOpen = (nextOpen: boolean) => {
-    if (functionNavRouteActive) {
-      setFunctionNavCollapsedPath(nextOpen ? null : location.pathname)
-    } else {
-      setFunctionNavManualOpen(nextOpen)
-    }
-  }
-
   const navigateTo = (path: string) => {
-    if (isAnyRouteActive(path, FUNCTION_NAV_ROUTE_PATHS)) {
-      setFunctionNavCollapsedPath(null)
-    }
     navigate(path)
   }
 
@@ -171,14 +130,6 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   }
 
   const trailing = [<LanguageSwitch key="lang" />, <ThemeToggle key="theme" />]
-  const recentConversations = chat.conversations.slice(
-    0,
-    visibleConversationCount
-  )
-  const hiddenConversationCount = Math.max(
-    chat.conversations.length - recentConversations.length,
-    0
-  )
   const newConversationItem = {
     key: "new-chat",
     variant: "primaryAction" as const,
@@ -188,14 +139,6 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     onSelect: openNewConversation,
   }
   const functionNavigationItems = [
-    {
-      key: "smart-ops",
-      path: "/commerce",
-      icon: <MonitorCog />,
-      label: t("agentChat.shell.navigation.smartOps"),
-      active: !chat.conversationId && isRouteActive("/commerce"),
-      onSelect: () => navigateTo("/commerce"),
-    },
     {
       key: "capabilities",
       path: "/agent-capabilities",
@@ -240,32 +183,29 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
   const workspaceSection: SidebarShellSection = {
     key: "workspace",
     label: t("agentChat.shell.sections.workspace"),
-    collapsible: true,
     maxContentHeight: "lg",
-    open: functionNavOpen,
-    toggleLabel: functionNavOpen
-      ? t("agentChat.sidebar.collapseFunctionNav")
-      : t("agentChat.sidebar.expandFunctionNav"),
-    toggleHoverTone: "transparent",
-    onOpenChange: setFunctionNavOpen,
+    itemOverflow: {
+      maxVisibleItems: 4,
+      moreLabel: t("agentChat.sidebar.more"),
+      lessLabel: t("agentChat.sidebar.less"),
+    },
     leadingItems: [newConversationItem],
     leadingItemsFixed: true,
-    items: functionNavigationItems,
+    items: isLoggedIn
+      ? functionNavigationItems
+      : functionNavigationItems.filter(
+          (item) =>
+            !["product-board", "materials", "campaigns"].includes(item.key)
+        ),
   }
   const recentsSection: SidebarShellSection = {
     key: "recents",
     label: t("agentChat.shell.sections.recents"),
-    collapsible: true,
+    hideWhenSidebarCollapsed: true,
     maxContentHeight: "md",
-    open: historyOpen,
-    toggleLabel: historyOpen
-      ? t("agentChat.sidebar.collapseHistory")
-      : t("agentChat.sidebar.expandHistory"),
-    toggleHoverTone: "transparent",
-    onOpenChange: setHistoryOpen,
-    items: recentConversations.length
+    items: chat.conversations.length
       ? [
-          ...recentConversations.map((conversation) => ({
+          ...chat.conversations.map((conversation) => ({
             key: conversation.id,
             icon: <MessageSquareText />,
             label: conversation.title,
@@ -282,30 +222,6 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
               />
             ),
           })),
-          ...(hiddenConversationCount > 0
-            ? [
-                {
-                  key: "more-recents",
-                  icon: <MoreHorizontal />,
-                  label: t("agentChat.sidebar.moreHistory", {
-                    count: Math.min(5, hiddenConversationCount),
-                  }),
-                  onSelect: () =>
-                    setVisibleConversationCount((current) =>
-                      Math.min(current + 5, chat.conversations.length)
-                    ),
-                },
-              ]
-            : visibleConversationCount > 5 && chat.conversations.length > 5
-              ? [
-                  {
-                    key: "less-recents",
-                    icon: <MoreHorizontal />,
-                    label: t("agentChat.sidebar.lessHistory"),
-                    onSelect: () => setVisibleConversationCount(5),
-                  },
-                ]
-              : []),
         ]
       : [
           {
@@ -315,7 +231,11 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           },
         ],
   }
-  const trainingSections: SidebarShellSection[] = webNavigationSections.map(
+  const trainingNavigationSections = webNavigationSections.map((section) => ({
+    ...section,
+    items: section.items.filter((item) => item.id !== "home"),
+  }))
+  const trainingSections: SidebarShellSection[] = trainingNavigationSections.map(
     (section, index) => ({
       key: section.id,
       label: t(section.labelKey),
@@ -354,20 +274,28 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       active: isQuestionRoute && conversation.id === chat.conversationId,
       onSelect: () => openConversation(conversation.id),
     }))
-  const mobileFunctionSubItems = functionNavigationItems.map((item) => ({
+  const visibleFunctionNavigationItems = isLoggedIn
+    ? functionNavigationItems
+    : functionNavigationItems.filter(
+        (item) =>
+          !["product-board", "materials", "campaigns"].includes(item.key)
+      )
+  const mobileFunctionSubItems = visibleFunctionNavigationItems.map((item) => ({
     key: item.key,
     label: item.label,
     href: item.path,
     active: item.active,
     onSelect: item.onSelect,
   }))
-  const mobileTrainingItems: MobileBottomNavItem[] = webNavigationSections.map(
+  const mobileTrainingItems: MobileBottomNavItem[] = trainingNavigationSections.map(
     (section) => ({
-      key: section.id,
+      key: `training-${section.id}`,
       icon: section.items[0]?.icon,
       label: t(section.labelKey),
       active: section.items.some((item) =>
-        item.matcher ? item.matcher(location.pathname) : isRouteActive(item.path)
+        item.matcher
+          ? item.matcher(location.pathname)
+          : isRouteActive(item.path)
       ),
       subItems: section.items.map((item) => ({
         key: item.id,
@@ -409,7 +337,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
             key: "recents",
             icon: <MessageSquareText />,
             label: t("agentChat.shell.sections.recents"),
-            active: chat.conversationId !== null,
+            active: isQuestionRoute && chat.conversationId !== null,
             subItems: mobileConversationItems.length
               ? mobileConversationItems
               : [
@@ -476,6 +404,7 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
           ) : (
             <span className="block truncate">{displayId}</span>
           ),
+          onSelect: user ? undefined : () => navigate("/login"),
           logout: user
             ? {
                 label: t("web.shell.account.logout"),
@@ -490,19 +419,9 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
                   onSelect: () => navigate("/profile"),
                 },
               ]
-            : [
-                {
-                  icon: <LogIn />,
-                  label: t("web.shell.account.login"),
-                  onSelect: () => navigate("/login"),
-                },
-                {
-                  icon: <UserPlus />,
-                  label: t("web.shell.account.register"),
-                  onSelect: () => navigate("/register"),
-                },
-              ],
+            : undefined,
         }}
+        onBrandSelect={() => navigate("/home")}
       >
         <div className="relative flex size-full min-h-0 flex-1 bg-(--agent-chat-page-background) text-foreground">
           <div
@@ -661,7 +580,7 @@ function SidebarNavigationModeTabs({
   ]
 
   return (
-    <div className="grid grid-cols-2 gap-1 rounded-lg border border-sidebar-border bg-sidebar-accent/35 p-1">
+    <div className="grid grid-cols-2 gap-1 rounded-xl border border-sidebar-primary/25 bg-sidebar-primary/10 p-1 shadow-inner">
       {tabs.map((tab) => {
         const active = activeMode === tab.key
 
@@ -670,10 +589,10 @@ function SidebarNavigationModeTabs({
             key={tab.key}
             type="button"
             className={[
-              "h-8 rounded-md px-2 text-xs font-semibold transition-colors",
+              "h-8 cursor-pointer rounded-lg px-2 text-xs font-semibold ring-sidebar-ring transition-colors focus-visible:ring-2 focus-visible:outline-none",
               active
-                ? "bg-sidebar text-sidebar-foreground shadow-sm"
-                : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-md ring-1 ring-sidebar-primary/45"
+                : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground",
             ]
               .filter(Boolean)
               .join(" ")}
@@ -721,13 +640,13 @@ function ConversationActionMenu({
       </DropdownMenuTrigger>
       <DropdownMenuContent className="bg-white text-left dark:bg-popover">
         <DropdownMenuItem
-          className="justify-start text-left"
+          className="cursor-pointer justify-start text-left"
           onSelect={onRename}
         >
           {renameLabel}
         </DropdownMenuItem>
         <DropdownMenuItem
-          className="justify-start text-left"
+          className="cursor-pointer justify-start text-left"
           variant="destructive"
           onSelect={onDelete}
         >
