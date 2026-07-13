@@ -314,15 +314,13 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
       onModeChange={setNavigationMode}
     />
   ) : undefined
-  const mobileConversationItems = chat.conversations
-    .slice(0, 5)
-    .map((conversation) => ({
-      key: conversation.id,
-      label: conversation.title,
-      href: `/commerce/${conversation.id}`,
-      active: isQuestionRoute && conversation.id === chat.conversationId,
-      onSelect: () => openConversation(conversation.id),
-    }))
+  const mobileConversationItems = chat.conversations.map((conversation) => ({
+    key: conversation.id,
+    label: conversation.title,
+    href: `/commerce/${conversation.id}`,
+    active: isQuestionRoute && conversation.id === chat.conversationId,
+    onSelect: () => openConversation(conversation.id),
+  }))
   const mobileFunctionSubItems = visibleFunctionNavigationItems.map((item) => ({
     key: item.key,
     label: item.label,
@@ -523,6 +521,8 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
 
 function isAnyRouteActive(pathname: string, paths: readonly string[]) {
   return paths.some((path) => isAgentChatRouteActive(pathname, path))
+}
+
 function getInitialSidebarNavigationMode(
   pathname: string
 ): SidebarNavigationMode {
@@ -582,8 +582,6 @@ function storeSidebarNavigationMode(mode: SidebarNavigationMode) {
   }
 }
 
-}
-
 function isAgentChatRouteActive(pathname: string, path: string) {
   if (path === "/commerce") {
     return (
@@ -591,10 +589,10 @@ function isAgentChatRouteActive(pathname: string, path: string) {
       pathname === "/commerce" ||
       pathname.startsWith("/commerce/") ||
       pathname === "/agent"
+    )
+  }
   if (path === "/workspaces") {
     return isWorkspacesRoute(pathname)
-  }
-    )
   }
 
   return pathname === path
@@ -676,12 +674,12 @@ function getRouteDescriptionKey(pathname: string) {
   }
   return null
 }
+
+function isCommercePageLayoutRoute(pathname: string) {
   if (isWorkspacesRoute(pathname)) {
     return true
   }
 
-
-function isCommercePageLayoutRoute(pathname: string) {
   return [
     "/agent-capabilities",
     "/question-ideas",
@@ -695,12 +693,12 @@ function isCommercePageLayoutRoute(pathname: string) {
     "/operations",
   ].some((path) => isAgentChatRouteActive(pathname, path))
 }
+
+function isDocumentPageSurfaceRoute(pathname: string) {
   if (isWorkspacesRoute(pathname)) {
     return true
   }
 
-
-function isDocumentPageSurfaceRoute(pathname: string) {
   return [
     "/agent-capabilities",
     "/question-ideas",
@@ -714,10 +712,10 @@ function isDocumentPageSurfaceRoute(pathname: string) {
     "/operations",
     "/agent-output",
   ].some((path) => isAgentChatRouteActive(pathname, path))
-function isWorkspacesRoute(pathname: string) {
-  return pathname === "/workspaces" || pathname.startsWith("/workspaces/")
 }
 
+function isWorkspacesRoute(pathname: string) {
+  return pathname === "/workspaces" || pathname.startsWith("/workspaces/")
 }
 
 function SidebarNavigationModeTabs({

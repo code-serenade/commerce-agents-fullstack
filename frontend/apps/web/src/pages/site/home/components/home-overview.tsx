@@ -86,11 +86,13 @@ export function HomeOverview({
       >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-4">
-            <Avatar
-              src={user?.avatar}
-              alt={displayName}
-              fallback={avatarFallback}
-            />
+            <div className="[&_[data-slot=avatar-fallback]]:text-base sm:[&_[data-slot=avatar-fallback]]:text-sm [&_[data-slot=avatar]]:size-12 sm:[&_[data-slot=avatar]]:size-8">
+              <Avatar
+                src={user?.avatar}
+                alt={displayName}
+                fallback={avatarFallback}
+              />
+            </div>
             <div className="min-w-0 space-y-1">
               <p className="text-xs font-medium text-(--app-muted-text)">
                 {t(isLogin ? "home.welcome" : "home.publicWelcome")}

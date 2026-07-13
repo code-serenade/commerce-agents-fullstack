@@ -145,23 +145,23 @@ export function HomeStudentPath({ t, navigateToPath }: HomeStudentPathProps) {
             <button
               key={item.path}
               type="button"
-              className="group relative z-10 flex min-h-[260px] cursor-pointer flex-col overflow-hidden rounded-lg border border-[color-mix(in_oklch,var(--background)_98%,transparent)] bg-[linear-gradient(180deg,color-mix(in_oklch,var(--background)_98%,var(--primary)_2%)_0%,color-mix(in_oklch,var(--background)_94%,var(--primary)_6%)_54%,color-mix(in_oklch,var(--background)_90%,var(--primary)_10%)_100%)] text-left shadow-[0_22px_52px_color-mix(in_oklch,var(--primary)_9%,transparent),inset_0_1px_0_color-mix(in_oklch,var(--background)_98%,transparent)] backdrop-blur-xl transition hover:border-[color-mix(in_oklch,var(--background)_82%,var(--primary))]"
+              className="group relative z-10 flex min-h-[150px] cursor-pointer flex-row overflow-hidden rounded-lg border border-[color-mix(in_oklch,var(--background)_98%,transparent)] bg-[linear-gradient(180deg,color-mix(in_oklch,var(--background)_98%,var(--primary)_2%)_0%,color-mix(in_oklch,var(--background)_94%,var(--primary)_6%)_54%,color-mix(in_oklch,var(--background)_90%,var(--primary)_10%)_100%)] text-left shadow-[0_22px_52px_color-mix(in_oklch,var(--primary)_9%,transparent),inset_0_1px_0_color-mix(in_oklch,var(--background)_98%,transparent)] backdrop-blur-xl transition hover:border-[color-mix(in_oklch,var(--background)_82%,var(--primary))] sm:min-h-[260px] sm:flex-col"
               style={homeStepCardStyle}
               onClick={() => navigateToPath(item.path, item.requiresLogin)}
             >
-              <span className="pointer-events-none absolute top-2.5 left-2.5 z-10 text-2xl leading-none font-semibold text-(--app-muted-text)/58 italic">
+              <span className="pointer-events-none absolute top-2.5 left-2.5 z-10 text-xl leading-none font-semibold text-(--app-muted-text)/58 italic sm:text-2xl">
                 {String(index + 1).padStart(2, "0")}
               </span>
-              <span className="block h-[126px] w-full overflow-hidden">
+              <span className="flex w-[42%] max-w-36 shrink-0 items-center justify-center overflow-hidden pt-5 sm:block sm:h-[126px] sm:w-full sm:max-w-none sm:pt-0">
                 <img
                   src={item.imageSrc}
                   alt=""
                   aria-hidden="true"
-                  className="size-full object-contain p-3 pb-0"
+                  className="h-full max-h-30 w-full object-contain p-3 sm:size-full sm:max-h-none sm:pb-0"
                   loading="lazy"
                 />
               </span>
-              <span className="flex flex-1 flex-col px-3.5 pt-3 pb-3.5">
+              <span className="flex min-w-0 flex-1 flex-col px-3.5 pt-8 pb-3.5 sm:pt-3">
                 <span className="block text-xs font-semibold text-(--app-text)">
                   {t(item.titleKey)}
                 </span>
