@@ -7,7 +7,7 @@ export default function RegisterPage() {
 
   return (
     <AuthRegisterPage
-      brandLogo={<CommerceAgentLogo size="lg" />}
+      brandLogo={<CommerceAgentLogo className="size-18" size="lg" />}
       extraFields={page.extraFields}
       variant="minimal"
       onRegistered={page.onRegistered}

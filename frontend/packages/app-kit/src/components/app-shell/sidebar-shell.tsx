@@ -290,7 +290,9 @@ function BrandContent({
         </div>
       )}
       <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-        <div>{brandTitle}</div>
+        <div className="auth-login-brand-title text-base leading-tight font-bold">
+          {brandTitle}
+        </div>
         {brandSecondaryText ? (
           <div className="text-[12px] text-(--shell-brand-description-foreground)">
             {brandSecondaryText}

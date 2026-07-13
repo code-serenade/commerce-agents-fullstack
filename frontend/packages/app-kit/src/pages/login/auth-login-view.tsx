@@ -62,7 +62,7 @@ const authAsideClassName =
 const authContentClassName = "p-8 sm:p-10"
 const authFooterClassName = "text-sm text-(--app-muted-text)"
 const minimalBrandClassName =
-  "m-0 text-[22px] font-bold tracking-normal text-(--auth-minimal-heading-foreground) drop-shadow-[var(--auth-minimal-brand-shadow)]"
+  "auth-login-brand-title m-0 text-[32px] leading-tight font-bold tracking-normal text-(--auth-minimal-heading-foreground) drop-shadow-[var(--auth-minimal-brand-shadow)]"
 const minimalSubtitleClassName =
   "mx-auto my-0 max-w-[360px] text-[15px] leading-[1.8] text-(--auth-minimal-muted-foreground)"
 const minimalNoticeClassName =
@@ -108,17 +108,13 @@ export function AuthLoginView({
   if (variant === "minimal") {
     return (
       <section className="relative z-10 mx-auto mt-[-10px] w-full max-w-[420px]">
-        <div className="mb-[18px] flex items-center justify-center gap-3">
+        <div className="mb-[18px] flex flex-col items-center justify-center gap-3 text-center">
           {brandLogo ? <div className="shrink-0">{brandLogo}</div> : null}
-          <p className={minimalBrandClassName}>
-            {labels.brand}
-          </p>
+          <p className={minimalBrandClassName}>{labels.brand}</p>
         </div>
 
         <header className="mb-[34px] text-center">
-          <p className={minimalSubtitleClassName}>
-            {labels.subtitle}
-          </p>
+          <p className={minimalSubtitleClassName}>{labels.subtitle}</p>
         </header>
 
         {notice ? (

@@ -30,7 +30,7 @@ const authFooterClassName = "mt-6 text-sm text-(--app-muted-text)"
 const authLinkClassName =
   "font-medium text-(--app-text) underline-offset-4 transition hover:underline"
 const minimalBrandClassName =
-  "m-0 text-[22px] font-bold tracking-normal text-(--auth-minimal-heading-foreground) drop-shadow-[var(--auth-minimal-brand-shadow)]"
+  "auth-login-brand-title m-0 text-[32px] leading-tight font-bold tracking-normal text-(--auth-minimal-heading-foreground) drop-shadow-[var(--auth-minimal-brand-shadow)]"
 const minimalSubtitleClassName =
   "mx-auto my-0 max-w-[440px] text-[15px] leading-[1.8] text-(--auth-minimal-muted-foreground)"
 const minimalInputClassName =
@@ -181,7 +181,7 @@ export function AuthRegisterPage({
   if (variant === "minimal") {
     return (
       <section className="relative z-10 mx-auto mt-[-4px] w-full max-w-[680px]">
-        <div className="mb-[18px] flex items-center justify-center gap-3">
+        <div className="mb-[18px] flex flex-col items-center justify-center gap-3 text-center">
           {brandLogo ? <div className="shrink-0">{brandLogo}</div> : null}
           <p className={minimalBrandClassName}>
             {t("authRegister.brand", { ns: "pages" })}
@@ -432,10 +432,7 @@ export function AuthRegisterPage({
 
         <p className={minimalFooterClassName}>
           {t("authRegister.footer.toLoginPrefix", { ns: "pages" })}{" "}
-          <Link
-            to={loginPath}
-            className={minimalFooterLinkClassName}
-          >
+          <Link to={loginPath} className={minimalFooterLinkClassName}>
             {t("authRegister.footer.toLoginAction", { ns: "pages" })}
           </Link>
         </p>

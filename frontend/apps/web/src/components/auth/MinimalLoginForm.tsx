@@ -51,7 +51,7 @@ export function MinimalLoginForm({
   return (
     <AuthLoginView
       labels={createLoginLabels(t)}
-      brandLogo={<CommerceAgentLogo size="lg" />}
+      brandLogo={<CommerceAgentLogo className="size-18" size="lg" />}
       variant="minimal"
       notice={notice}
       footerLink={{

@@ -8,6 +8,18 @@
   --agent-chat-role-card-muted: rgb(226 232 240 / 0.92);
 }
 
+@font-face {
+  font-display: swap;
+  font-family: "AlimamaShuHeiTi";
+  font-style: normal;
+  font-weight: 700;
+  src: url("/fonts/ALIMAMASHUHEITI-BOLD.TTF") format("truetype");
+}
+
+.auth-login-brand-title {
+  font-family: "AlimamaShuHeiTi", var(--font-sans);
+}
+
 .agent-role-portrait__sprite {
   display: block;
   object-fit: contain;

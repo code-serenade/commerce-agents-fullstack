@@ -19,7 +19,7 @@ export function CommerceAgentLogo({
     <div
       aria-hidden="true"
       className={[
-        "flex shrink-0 items-center justify-center overflow-hidden bg-(--shell-logo-background) shadow-[var(--shell-logo-shadow)] ring-1 ring-(--shell-logo-ring)",
+        "flex shrink-0 items-center justify-center overflow-hidden",
         sizeClassNames[size],
         className,
       ]
@@ -28,9 +28,9 @@ export function CommerceAgentLogo({
       {...props}
     >
       <img
-        src="/favicon.svg"
+        src="/brand/commerce-agent-logo.png"
         alt=""
-        className="size-full object-cover"
+        className="size-full object-contain"
         draggable={false}
       />
     </div>
