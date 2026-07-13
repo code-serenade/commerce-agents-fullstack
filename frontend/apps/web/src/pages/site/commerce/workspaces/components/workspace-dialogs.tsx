@@ -1,25 +1,88 @@
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+import { useQuery } from "@tanstack/react-query"
+import {
+  listCampaignsApi,
+  listProductsApi,
+  type CampaignResponse,
+  type ProductResponse,
+} from "@/api"
 import {
   SimpleFormDialog,
   type SimpleField,
   type SimpleFormValues,
 } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
+import {
+  workspaceRunStatusOptions,
+  workspaceRunTaskStatusOptions,
+  workspaceTaskStatusOptions,
+} from "../../domain/status-options"
+import {
+  DEFAULT_WORKSPACE_TYPE,
+  workspaceTypeOptions,
+} from "../../domain/workspace-types"
 import type { WorkspacesPageState } from "../use-workspaces-page"
 
 export function WorkspaceDialogs({ page }: { page: WorkspacesPageState }) {
   const { t } = useTranslation()
+  const isWorkspaceDialog =
+    page.dialog === "create-workspace" || page.dialog === "edit-workspace"
+  const productsQuery = useQuery({
+    enabled: isWorkspaceDialog,
+    queryKey: ["commerce", "workspaces", "binding-products"],
+    queryFn: () => listProductsApi({ pageSize: 100 }),
+  })
+  const campaignsQuery = useQuery({
+    enabled: isWorkspaceDialog,
+    queryKey: ["commerce", "workspaces", "binding-campaigns"],
+    queryFn: () => listCampaignsApi({ pageSize: 100 }),
+  })
+  const products = productsQuery.data ?? []
+  const campaigns = campaignsQuery.data?.campaigns ?? []
 
   return (
     <>
       {page.dialog === "create-workspace" ? (
         <ControlledDialog
           title={t("commerce.workspaces.dialogs.workspace")}
-          fields={workspaceFields(t)}
-          initialValues={{ workspaceType: "general" }}
+          fields={workspaceFields(t, {
+            campaigns,
+            includeWorkspaceType: true,
+            products,
+          })}
+          initialValues={{ workspaceType: DEFAULT_WORKSPACE_TYPE }}
           onClose={() => page.setDialog(null)}
           onSubmit={page.createWorkspace}
+        />
+      ) : null}
+      {page.dialog === "edit-workspace" && page.editingWorkspace ? (
+        <ControlledDialog
+          key={page.editingWorkspace.id}
+          title={t("commerce.workspaces.dialogs.editWorkspace")}
+          fields={workspaceFields(t, {
+            campaigns,
+            includeWorkspaceType: false,
+            products,
+            selectedCampaignId: page.editingWorkspace.campaignId ?? "",
+            selectedProductId: page.editingWorkspace.productId ?? "",
+          })}
+          initialValues={{
+            campaignId: page.editingWorkspace.campaignId ?? "",
+            productId: page.editingWorkspace.productId ?? "",
+            title: page.editingWorkspace.title,
+          }}
+          notice={t("commerce.workspaces.dialogs.workspaceTypeLocked")}
+          onClose={() => {
+            page.setDialog(null)
+            page.setEditingWorkspace(null)
+          }}
+          onSubmit={(values) =>
+            page.updateWorkspace({
+              values,
+              workspaceId: page.editingWorkspace!.id,
+            })
+          }
         />
       ) : null}
       {page.dialog === "create-task" ? (
@@ -70,12 +133,14 @@ export function WorkspaceDialogs({ page }: { page: WorkspacesPageState }) {
 function ControlledDialog({
   fields,
   initialValues,
+  notice,
   onClose,
   onSubmit,
   title,
 }: {
   fields: SimpleField[]
   initialValues: SimpleFormValues
+  notice?: string
   onClose: () => void
   onSubmit: (values: SimpleFormValues) => void
   title: string
@@ -88,6 +153,7 @@ function ControlledDialog({
       title={title}
       fields={fields}
       values={values}
+      notice={notice}
       setValues={setValues}
       onOpenChange={(nextOpen) => {
         if (!nextOpen) onClose()
@@ -97,17 +163,126 @@ function ControlledDialog({
   )
 }
 
-function workspaceFields(t: CommerceTranslate): SimpleField[] {
-  return [
+function workspaceFields(
+  t: CommerceTranslate,
+  {
+    campaigns,
+    includeWorkspaceType,
+    products,
+    selectedCampaignId = "",
+    selectedProductId = "",
+  }: {
+    campaigns: CampaignResponse[]
+    includeWorkspaceType: boolean
+    products: ProductResponse[]
+    selectedCampaignId?: string
+    selectedProductId?: string
+  }
+): SimpleField[] {
+  const fields: SimpleField[] = [
     {
       key: "title",
       label: t("commerce.fields.workspaceTitle"),
       required: true,
     },
-    { key: "workspaceType", label: t("commerce.fields.workspaceType") },
-    { key: "productId", label: t("commerce.fields.productId") },
-    { key: "campaignId", label: t("commerce.fields.campaignId") },
   ]
+
+  if (includeWorkspaceType) {
+    fields.push({
+      key: "workspaceType",
+      label: t("commerce.fields.workspaceType"),
+      options: workspaceTypeOptions(t),
+      type: "select",
+    })
+  }
+
+  fields.push(
+    {
+      key: "productId",
+      label: t("commerce.workspaces.dialogs.productBinding"),
+      options: productOptions(t, products, selectedProductId),
+      type: "select",
+    },
+    {
+      key: "campaignId",
+      label: t("commerce.workspaces.dialogs.campaignBinding"),
+      options: campaignOptions(t, campaigns, selectedCampaignId),
+      type: "select",
+    }
+  )
+
+  return fields
+}
+
+function productOptions(
+  t: CommerceTranslate,
+  products: ProductResponse[],
+  selectedProductId: string
+) {
+  const options = [
+    { label: t("commerce.common.none"), value: "" },
+    ...products.map((product) => ({
+      label: compactLabel([
+        product.name,
+        product.platform,
+        product.externalId,
+        product.id,
+      ]),
+      value: product.id,
+    })),
+  ]
+  return appendMissingSelectedOption(
+    options,
+    selectedProductId,
+    t("commerce.workspaces.dialogs.productBinding")
+  )
+}
+
+function campaignOptions(
+  t: CommerceTranslate,
+  campaigns: CampaignResponse[],
+  selectedCampaignId: string
+) {
+  const options = [
+    { label: t("commerce.common.none"), value: "" },
+    ...campaigns.map((campaign) => ({
+      label: compactLabel([
+        campaign.name,
+        campaign.campaignType,
+        campaign.status,
+        campaign.id,
+      ]),
+      value: campaign.id,
+    })),
+  ]
+  return appendMissingSelectedOption(
+    options,
+    selectedCampaignId,
+    t("commerce.workspaces.dialogs.campaignBinding")
+  )
+}
+
+function appendMissingSelectedOption(
+  options: Array<{ label: string; value: string }>,
+  selectedValue: string,
+  fallbackLabel: string
+) {
+  if (!selectedValue || options.some((option) => option.value === selectedValue)) {
+    return options
+  }
+  return [
+    ...options,
+    {
+      label: `${fallbackLabel}: ${selectedValue}`,
+      value: selectedValue,
+    },
+  ]
+}
+
+function compactLabel(parts: Array<string | null | undefined>) {
+  const [primary, ...rest] = parts
+  const suffix = rest.filter(Boolean).join(" / ")
+  return suffix ? `${primary} (${suffix})` : (primary ?? "-")
 }
 
 function taskFields(t: CommerceTranslate): SimpleField[] {
@@ -117,7 +292,7 @@ function taskFields(t: CommerceTranslate): SimpleField[] {
     {
       key: "status",
       label: t("commerce.common.status"),
-      options: taskStatusOptions,
+      options: workspaceTaskStatusOptions(t),
       type: "select",
     },
     { key: "priority", label: t("commerce.fields.priority"), type: "number" },
@@ -140,7 +315,7 @@ function runFields(t: CommerceTranslate): SimpleField[] {
     {
       key: "status",
       label: t("commerce.common.status"),
-      options: runStatusOptions,
+      options: workspaceRunStatusOptions(t),
       type: "select",
     },
     { key: "source", label: t("commerce.common.source") },
@@ -161,7 +336,7 @@ function runTaskFields(t: CommerceTranslate): SimpleField[] {
     {
       key: "status",
       label: t("commerce.common.status"),
-      options: runTaskStatusOptions,
+      options: workspaceRunTaskStatusOptions(t),
       type: "select",
     },
     { key: "attempts", label: t("commerce.fields.attempts"), type: "number" },
@@ -207,31 +382,6 @@ function executionFields(t: CommerceTranslate): SimpleField[] {
     },
   ]
 }
-
-const taskStatusOptions = [
-  { label: String("pending"), value: "pending" },
-  { label: String("in_progress"), value: "in_progress" },
-  { label: String("done"), value: "done" },
-  { label: String("blocked"), value: "blocked" },
-  { label: String("cancelled"), value: "cancelled" },
-]
-
-const runStatusOptions = [
-  { label: String("planned"), value: "planned" },
-  { label: String("running"), value: "running" },
-  { label: String("succeeded"), value: "succeeded" },
-  { label: String("failed"), value: "failed" },
-  { label: String("cancelled"), value: "cancelled" },
-]
-
-const runTaskStatusOptions = [
-  { label: String("pending"), value: "pending" },
-  { label: String("running"), value: "running" },
-  { label: String("succeeded"), value: "succeeded" },
-  { label: String("failed"), value: "failed" },
-  { label: String("skipped"), value: "skipped" },
-  { label: String("cancelled"), value: "cancelled" },
-]
 
 const booleanOptions = [
   { label: String("false"), value: "false" },

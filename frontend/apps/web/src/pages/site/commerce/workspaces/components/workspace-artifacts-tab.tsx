@@ -13,8 +13,41 @@ import {
   formatWorkspaceArtifactNotice,
   getWorkspaceArtifactDisplay,
 } from "../view-model/workspace-artifact-display-view-model"
+import { WorkspaceDetailDrawer } from "./workspace-detail-drawer"
 
 export function WorkspaceArtifactsTab({ page }: { page: WorkspacesPageState }) {
+  const { t } = useTranslation()
+  const artifact = page.selectedArtifact
+  const display = getWorkspaceArtifactDisplay(t, artifact, page.artifactExport)
+
+  return (
+    <TabsContent value="artifacts">
+      <div className="min-w-0">
+        <CommerceTable
+          loading={page.loading}
+          items={page.artifacts}
+          emptyText={t("commerce.workspaces.empty.artifacts")}
+          getRowId={(item) => item.id}
+          columns={createArtifactColumns(page, t)}
+        />
+      </div>
+      <WorkspaceDetailDrawer
+        open={page.detailDrawer === "artifact"}
+        title={display.title}
+        description={
+          artifact
+            ? `${display.type} / ${display.source}`
+            : t("commerce.workspaces.empty.artifactDetail")
+        }
+        onClose={page.closeDetailDrawer}
+      >
+        <ArtifactDetailContent page={page} />
+      </WorkspaceDetailDrawer>
+    </TabsContent>
+  )
+}
+
+function ArtifactDetailContent({ page }: { page: WorkspacesPageState }) {
   const { t } = useTranslation()
   const artifact = page.selectedArtifact
   const artifactExport = page.artifactExport
@@ -38,77 +71,64 @@ export function WorkspaceArtifactsTab({ page }: { page: WorkspacesPageState }) {
   }
 
   return (
-    <TabsContent value="artifacts">
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.85fr)]">
-        <div className="min-w-0">
-          <CommerceTable
-            loading={page.loading}
-            items={page.artifacts}
-            emptyText={t("commerce.workspaces.empty.artifacts")}
-            getRowId={(item) => item.id}
-            columns={createArtifactColumns(page, t)}
-          />
-        </div>
-        <div className="min-w-0 rounded-lg border border-(--app-border) p-3">
-          {artifact ? (
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <h3 className="truncate text-sm font-semibold">
-                    {display.title}
-                  </h3>
-                  <MutedText>
-                    {display.type} / {display.source}
-                  </MutedText>
-                </div>
-                <StatusBadge tone={toneForStatus(artifact.validationStatus)}>
-                  {display.validationStatus}
-                </StatusBadge>
-              </div>
-              <ArtifactMetaGrid page={page} />
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={!artifactExport?.content}
-                  onClick={copyExport}
-                >
-                  <Copy className="size-4" />
-                  {t("commerce.workspaces.actions.copyExport")}
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={!artifactExport?.content}
-                  onClick={downloadExport}
-                >
-                  <Download className="size-4" />
-                  {t("commerce.workspaces.actions.downloadExport")}
-                </Button>
-                {artifactExport?.warnings?.length ? (
-                  <MutedText>
-                    {artifactExport.warnings
-                      .map((warning) => formatWorkspaceArtifactNotice(t, warning))
-                      .join(" / ")}
-                  </MutedText>
-                ) : null}
-              </div>
-              <div className="max-h-112 overflow-auto rounded-lg border border-(--app-border) bg-muted/30 p-3">
-                <pre className="whitespace-pre-wrap wrap-break-word text-sm/6 text-foreground">
-                  {content || t("commerce.workspaces.empty.artifactContent")}
-                </pre>
-              </div>
+    <div className="min-w-0">
+      {artifact ? (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div className="min-w-0">
+              <h3 className="truncate text-sm font-semibold">
+                {display.title}
+              </h3>
+              <MutedText>
+                {display.type} / {display.source}
+              </MutedText>
             </div>
-          ) : (
-            <div className="flex min-h-40 items-center justify-center rounded-lg border border-dashed border-(--app-border) px-4 text-center text-sm text-muted-foreground">
-              {t("commerce.workspaces.empty.artifactDetail")}
-            </div>
-          )}
+            <StatusBadge tone={toneForStatus(artifact.validationStatus)}>
+              {display.validationStatus}
+            </StatusBadge>
+          </div>
+          <ArtifactMetaGrid page={page} />
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={!artifactExport?.content}
+              onClick={copyExport}
+            >
+              <Copy className="size-4" />
+              {t("commerce.workspaces.actions.copyExport")}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={!artifactExport?.content}
+              onClick={downloadExport}
+            >
+              <Download className="size-4" />
+              {t("commerce.workspaces.actions.downloadExport")}
+            </Button>
+            {artifactExport?.warnings?.length ? (
+              <MutedText>
+                {artifactExport.warnings
+                  .map((warning) => formatWorkspaceArtifactNotice(t, warning))
+                  .join(" / ")}
+              </MutedText>
+            ) : null}
+          </div>
+          <div className="max-h-112 overflow-auto rounded-lg border border-(--app-border) bg-muted/30 p-3">
+            <pre className="whitespace-pre-wrap wrap-break-word text-sm/6 text-foreground">
+              {content || t("commerce.workspaces.empty.artifactContent")}
+            </pre>
+          </div>
         </div>
-      </div>
-    </TabsContent>
+      ) : (
+        <div className="flex min-h-40 items-center justify-center rounded-lg border border-dashed border-(--app-border) px-4 text-center text-sm text-muted-foreground">
+          {t("commerce.workspaces.empty.artifactDetail")}
+        </div>
+      )}
+    </div>
   )
 }
 

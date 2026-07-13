@@ -1,6 +1,12 @@
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Button, Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui-components"
+import {
+  Button,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@workspace/ui-components"
 import {
   CommercePanel,
   CommerceTable,
@@ -15,6 +21,9 @@ import {
   createTaskColumns,
 } from "./workspace-table-columns"
 import { WorkspaceArtifactsTab } from "./workspace-artifacts-tab"
+import { WorkspaceDetailDrawer } from "./workspace-detail-drawer"
+import { WorkspaceQualityContent } from "./workspace-quality-panel"
+import { WorkspaceSkillRunsContent } from "./workspace-skill-runs-panel"
 
 export function WorkspaceDetailPanel({ page }: { page: WorkspacesPageState }) {
   const { t } = useTranslation()
@@ -34,19 +43,7 @@ export function WorkspaceDetailPanel({ page }: { page: WorkspacesPageState }) {
   }
 
   return (
-    <CommercePanel
-      title={page.selectedWorkspace.title}
-      description={t("commerce.workspaces.panels.selectedDesc")}
-      actions={
-        <Button
-          size="sm"
-          variant="destructive"
-          onClick={() => page.archiveWorkspace(page.selectedWorkspace!.id)}
-        >
-          {t("commerce.workspaces.panels.archiveWorkspace")}
-        </Button>
-      }
-    >
+    <CommercePanel>
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
           <TabsTrigger value="tasks">
@@ -77,6 +74,7 @@ function WorkspaceTasksTab({ page }: { page: WorkspacesPageState }) {
   return (
     <TabsContent value="tasks">
       <SubPanelAction
+        buttonSize="default"
         label={t("commerce.workspaces.panels.createTask")}
         onClick={() => page.setDialog("create-task")}
       />
@@ -96,33 +94,63 @@ function WorkspaceRunsTab({ page }: { page: WorkspacesPageState }) {
 
   return (
     <TabsContent value="runs">
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.8fr)]">
-        <div className="min-w-0">
-          <SubPanelAction
-            label={t("commerce.workspaces.panels.createRun")}
-            onClick={() => page.setDialog("create-run")}
-          />
-          <CommerceTable
-            loading={page.loading}
-            items={page.runs}
-            emptyText={t("commerce.workspaces.empty.runs")}
-            getRowId={(item) => item.id}
-            columns={createRunColumns(page, t)}
-          />
-        </div>
-        <div className="min-w-0 rounded-lg border border-(--app-border) p-3">
-          <div className="mb-3 flex items-center justify-between gap-2">
+      <div className="min-w-0">
+        <SubPanelAction
+          label={t("commerce.workspaces.panels.createRun")}
+          onClick={() => page.setDialog("create-run")}
+        />
+        <CommerceTable
+          loading={page.loading}
+          items={page.runs}
+          emptyText={t("commerce.workspaces.empty.runs")}
+          getRowId={(item) => item.id}
+          columns={createRunColumns(page, t)}
+        />
+      </div>
+      <WorkspaceDetailDrawer
+        open={page.detailDrawer === "run"}
+        title={
+          page.selectedRun?.goal ?? t("commerce.workspaces.panels.runSnapshot")
+        }
+        description={t("commerce.workspaces.panels.runSnapshotDesc")}
+        onClose={page.closeDetailDrawer}
+      >
+        <RunSnapshotDetail page={page} />
+      </WorkspaceDetailDrawer>
+    </TabsContent>
+  )
+}
+
+function RunSnapshotDetail({ page }: { page: WorkspacesPageState }) {
+  const { t } = useTranslation()
+  const [activeTab, setActiveTab] = useState("snapshot")
+
+  return (
+    <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <TabsList>
+        <TabsTrigger value="snapshot">
+          {t("commerce.workspaces.panels.runSnapshot")}
+        </TabsTrigger>
+        <TabsTrigger value="skill-runs">
+          {t("commerce.workspaces.panels.skillRuns")}
+        </TabsTrigger>
+        <TabsTrigger value="quality">
+          {t("commerce.workspaces.panels.qualityLoop")}
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="snapshot">
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="min-w-0">
               <h3 className="truncate text-sm font-semibold">
-                {page.selectedRun?.goal ??
-                  t("commerce.workspaces.panels.runSnapshot")}
+                {t("commerce.workspaces.panels.runSnapshot")}
               </h3>
               <MutedText>
                 {t("commerce.workspaces.panels.runSnapshotDesc")}
               </MutedText>
             </div>
             <Button
-              size="sm"
+              size="default"
               variant="outline"
               disabled={!page.selectedRun}
               onClick={() => page.setDialog("create-run-task")}
@@ -138,8 +166,32 @@ function WorkspaceRunsTab({ page }: { page: WorkspacesPageState }) {
             columns={createRunTaskColumns(page, t)}
           />
         </div>
-      </div>
-    </TabsContent>
+      </TabsContent>
+      <TabsContent value="skill-runs">
+        <div className="space-y-3">
+          <div>
+            <h3 className="text-sm font-semibold">
+              {t("commerce.workspaces.panels.skillRuns")}
+            </h3>
+            <MutedText>{t("commerce.workspaces.panels.skillRunsDesc")}</MutedText>
+          </div>
+          <WorkspaceSkillRunsContent page={page} />
+        </div>
+      </TabsContent>
+      <TabsContent value="quality">
+        <div className="space-y-3">
+          <div>
+            <h3 className="text-sm font-semibold">
+              {t("commerce.workspaces.panels.qualityLoop")}
+            </h3>
+            <MutedText>
+              {t("commerce.workspaces.panels.qualityLoopDesc")}
+            </MutedText>
+          </div>
+          <WorkspaceQualityContent page={page} />
+        </div>
+      </TabsContent>
+    </Tabs>
   )
 }
 

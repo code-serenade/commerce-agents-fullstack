@@ -50,6 +50,7 @@ const messages = {
     common: {
       all: "All",
       archive: "Archive",
+      delete: "Delete",
       approve: "Approve",
       reject: "Reject",
       edit: "Edit",
@@ -461,6 +462,25 @@ const messages = {
         change: "Record competitor change",
         uploadFile: "Upload file",
       },
+      knowledgeContentTypes: {
+        sellingPoint: "Selling point",
+        text: "General text",
+        spec: "Specs",
+        faq: "FAQ",
+        competitive: "Competitive comparison",
+      },
+      knowledgeSourceTypes: {
+        manual: "Manual entry",
+        agentGenerated: "Agent generated",
+        platformSync: "Platform sync",
+        imported: "File import",
+      },
+      knowledgeConfidence: {
+        label: "Confidence level",
+        low: "Low (confidence 0.5)",
+        medium: "Medium (confidence 0.8)",
+        high: "High (confidence 0.95)",
+      },
       notify: {
         created: "Product created",
         updated: "Product updated",
@@ -643,13 +663,23 @@ const messages = {
       },
       dialogs: {
         workspace: "Create workspace",
+        editWorkspace: "Edit training task",
+        productBinding: "Bound product",
+        campaignBinding: "Bound campaign",
+        workspaceTypeLocked:
+          "Training task type is fixed after creation. Editing it may make existing task items, submissions, and review materials inconsistent, so only the title and bindings can be changed here.",
         task: "Create task",
         run: "Create run record",
         runTask: "Create run task snapshot",
         execution: "Create execution suggestion",
       },
+      confirm: {
+        deleteWorkspace:
+          'Delete training task "{{title}}"? This will archive the task and hide it from the list.',
+      },
       notify: {
         workspaceCreated: "Workspace created",
+        workspaceUpdated: "Workspace updated",
         workspaceArchived: "Workspace archived",
         taskCreated: "Task created",
         taskUpdated: "Task status updated",

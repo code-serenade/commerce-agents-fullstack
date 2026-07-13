@@ -17,6 +17,7 @@ import {
   QuestionIdeasPage,
   ProfilePage,
   WorkspacesPage,
+  WorkspacesDetailPage,
 } from "@/routes/lazy/sitePages"
 import { RequireAuth } from "@/routes/RequireAuth"
 import { RouteLoadingFallback } from "@/routes/RouteLoadingFallback"
@@ -80,6 +81,10 @@ export const siteRoutes: RouteObject = {
         {
           path: "workspaces",
           element: withSuspense(<WorkspacesPage />),
+        },
+        {
+          path: "workspaces/:workspaceId",
+          element: withSuspense(<WorkspacesDetailPage />),
         },
         {
           path: "platform-connect",

@@ -45,14 +45,14 @@ export function useWorkspaceQueries({
     [workspacesQuery.data?.workspaces]
   )
   const selectedWorkspaceSnapshot = useMemo(() => {
-    if (!workspaces.length) return null
+    if (!selectedWorkspaceId) return null
 
     return (
       workspaces.find((workspace) => workspace.id === selectedWorkspaceId) ??
-      workspaces[0]
+      null
     )
   }, [selectedWorkspaceId, workspaces])
-  const workspaceId = selectedWorkspaceSnapshot?.id
+  const workspaceId = selectedWorkspaceId ?? selectedWorkspaceSnapshot?.id
   const workspaceDetailQuery = useQuery({
     queryKey: [...workspacesQueryKey, workspaceId, "detail"],
     enabled: Boolean(workspaceId),
@@ -78,23 +78,32 @@ export function useWorkspaceQueries({
         workspaceId: workspaceId || undefined,
       }),
   })
-  const runs = useMemo(
-    () => runsQuery.data?.runs ?? [],
-    [runsQuery.data?.runs]
-  )
+  const runs = useMemo(() => runsQuery.data?.runs ?? [], [runsQuery.data?.runs])
   const selectedRunSnapshot = useMemo(() => {
     if (!runs.length) return null
 
     return runs.find((run) => run.id === selectedRunId) ?? runs[0]
   }, [runs, selectedRunId])
   const runDetailQuery = useQuery({
-    queryKey: [...workspacesQueryKey, workspaceId, "runs", selectedRunSnapshot?.id, "detail"],
+    queryKey: [
+      ...workspacesQueryKey,
+      workspaceId,
+      "runs",
+      selectedRunSnapshot?.id,
+      "detail",
+    ],
     enabled: Boolean(workspaceId && selectedRunSnapshot?.id),
     queryFn: () => getWorkspaceRunApi(workspaceId!, selectedRunSnapshot!.id),
   })
   const selectedRun = runDetailQuery.data ?? selectedRunSnapshot
   const runTasksQuery = useQuery({
-    queryKey: [...workspacesQueryKey, workspaceId, "runs", selectedRun?.id, "tasks"],
+    queryKey: [
+      ...workspacesQueryKey,
+      workspaceId,
+      "runs",
+      selectedRun?.id,
+      "tasks",
+    ],
     enabled: Boolean(workspaceId && selectedRun?.id),
     queryFn: () => listWorkspaceRunTasksApi(workspaceId!, selectedRun!.id),
   })
@@ -125,7 +134,12 @@ export function useWorkspaceQueries({
       }),
   })
   const learningRecordsQuery = useQuery({
-    queryKey: [...workspacesQueryKey, workspaceId, selectedRun?.id, "learnings"],
+    queryKey: [
+      ...workspacesQueryKey,
+      workspaceId,
+      selectedRun?.id,
+      "learnings",
+    ],
     enabled: Boolean(workspaceId),
     queryFn: () =>
       listAgentLearningRecordsApi(workspaceId!, {
@@ -170,8 +184,7 @@ export function useWorkspaceQueries({
     queryFn: () =>
       getWorkspaceArtifactApi(workspaceId!, selectedArtifactSnapshot!.id),
   })
-  const selectedArtifact =
-    artifactDetailQuery.data ?? selectedArtifactSnapshot
+  const selectedArtifact = artifactDetailQuery.data ?? selectedArtifactSnapshot
   const artifactExportQuery = useQuery({
     queryKey: [
       ...workspacesQueryKey,
@@ -205,8 +218,7 @@ export function useWorkspaceQueries({
     artifacts,
     artifactExport: artifactExportQuery.data ?? null,
     executionQueue: executionQueueQuery.data?.items ?? [],
-    focusedExecution:
-      executionDetailQuery.data ?? selectedExecutionSnapshot,
+    focusedExecution: executionDetailQuery.data ?? selectedExecutionSnapshot,
     loading:
       workspacesQuery.isLoading ||
       workspaceDetailQuery.isLoading ||

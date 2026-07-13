@@ -6,6 +6,7 @@ import {
 } from "../../components/commerce-ui"
 import type { CommerceColumn } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
+import { getCommerceStatusLabel } from "../../domain/status-options"
 
 export function createSkillRunColumns(
   t: CommerceTranslate
@@ -26,7 +27,7 @@ export function createSkillRunColumns(
       header: t("commerce.common.status"),
       render: (item) => (
         <StatusBadge tone={toneForStatus(item.status)}>
-          {item.status}
+          {getCommerceStatusLabel(t, item.status)}
         </StatusBadge>
       ),
     },

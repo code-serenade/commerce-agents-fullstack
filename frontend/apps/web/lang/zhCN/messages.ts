@@ -50,6 +50,7 @@ const messages = {
     common: {
       all: "全部",
       archive: "归档",
+      delete: "删除",
       approve: "通过",
       reject: "拒绝",
       edit: "编辑",
@@ -450,6 +451,25 @@ const messages = {
         change: "记录竞品变化",
         uploadFile: "上传文件",
       },
+      knowledgeContentTypes: {
+        sellingPoint: "商品卖点",
+        text: "通用文本",
+        spec: "规格参数",
+        faq: "常见问答",
+        competitive: "竞品对比",
+      },
+      knowledgeSourceTypes: {
+        manual: "人工登记",
+        agentGenerated: "智能体生成",
+        platformSync: "平台同步",
+        imported: "文件导入",
+      },
+      knowledgeConfidence: {
+        label: "可信程度",
+        low: "低（置信度 0.5）",
+        medium: "中（置信度 0.8）",
+        high: "高（置信度 0.95）",
+      },
       notify: {
         created: "商品已创建",
         updated: "商品已更新",
@@ -624,13 +644,23 @@ const messages = {
       },
       dialogs: {
         workspace: "新建实训任务",
+        editWorkspace: "编辑实训任务",
+        productBinding: "绑定商品",
+        campaignBinding: "绑定活动",
+        workspaceTypeLocked:
+          "实训任务类型创建后固定。修改类型可能导致已有任务项、提交记录和复盘材料的语义不一致，因此这里仅允许修改标题和绑定关系。",
         task: "新增任务项",
         run: "新增提交记录",
         runTask: "新增任务快照",
         execution: "新增改进建议",
       },
+      confirm: {
+        deleteWorkspace:
+          '确定删除实训任务“{{title}}”吗？该操作会归档任务并从列表中隐藏。',
+      },
       notify: {
         workspaceCreated: "实训任务已创建",
+        workspaceUpdated: "实训任务已更新",
         workspaceArchived: "实训任务已归档",
         taskCreated: "任务项已创建",
         taskUpdated: "任务状态已更新",
