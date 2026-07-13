@@ -14,12 +14,12 @@ export function AgentRunFeedbackPanel({
 }) {
   const { t } = useTranslation()
   const targetLabel = feedback.target
-    ? feedback.target.workspaceTitle ?? t("agentChat.feedback.linked")
+    ? (feedback.target.workspaceTitle ?? t("agentChat.feedback.linked"))
     : t("agentChat.feedback.noTarget")
 
   if (compact) {
     return (
-      <div className="rounded-lg border border-border bg-background p-2 shadow-sm">
+      <div className="rounded-lg bg-(--agent-chat-elevated-strong)/70 p-2.5">
         <div className="flex min-w-0 items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-1.5 text-xs font-medium">
             <MessageSquareText className="size-4 shrink-0 text-muted-foreground" />
@@ -94,7 +94,10 @@ export function AgentRunFeedbackPanel({
         ) : null}
       </div>
 
-      <div className="mt-3 flex items-center gap-1.5" aria-label={t("agentChat.feedback.ratingLabel")}>
+      <div
+        className="mt-3 flex items-center gap-1.5"
+        aria-label={t("agentChat.feedback.ratingLabel")}
+      >
         {RATINGS.map((rating) => {
           const active = rating <= feedback.rating
           return (

@@ -1,4 +1,5 @@
 import { Activity, GitBranch, PanelRightClose, MonitorCog } from "lucide-react"
+import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import type { AgentRuntimeEvent } from "@/api"
 import type { AgentChatMessage } from "../types"
@@ -30,6 +31,7 @@ import { AgentDispatchProcessPanel } from "./agent-dispatch-process-panel"
 
 interface AgentChatSwarmPanelProps {
   feedback: AgentRunFeedbackState
+  headerAddon?: ReactNode
   isStreaming: boolean
   messages: AgentChatMessage[]
   onCollapse: () => void
@@ -39,6 +41,7 @@ interface AgentChatSwarmPanelProps {
 
 export function AgentChatSwarmPanel({
   feedback,
+  headerAddon,
   isStreaming,
   messages,
   onCollapse,
@@ -66,18 +69,24 @@ export function AgentChatSwarmPanel({
   const graphNodes = getPlannedGraph(runtimeEvents)?.nodes ?? []
   const runtimeNodeStates = getRuntimeNodeStates(runtimeEvents)
   const agents = getAgents(graphNodes, t)
-  const doneAgents = agents.filter(
-    (agent) => {
-      const state = runtimeNodeStates.get(agent.nodeId)?.state
-      return state === "done" || state === "boundary"
-    }
-  )
+  const doneAgents = agents.filter((agent) => {
+    const state = runtimeNodeStates.get(agent.nodeId)?.state
+    return state === "done" || state === "boundary"
+  })
   const activeAgent =
-    agents.find((agent) => runtimeNodeStates.get(agent.nodeId)?.state === "working") ??
-    agents.find((agent) => runtimeNodeStates.get(agent.nodeId)?.state === "reworking") ??
-    agents.find((agent) => runtimeNodeStates.get(agent.nodeId)?.state === "boundary") ??
+    agents.find(
+      (agent) => runtimeNodeStates.get(agent.nodeId)?.state === "working"
+    ) ??
+    agents.find(
+      (agent) => runtimeNodeStates.get(agent.nodeId)?.state === "reworking"
+    ) ??
+    agents.find(
+      (agent) => runtimeNodeStates.get(agent.nodeId)?.state === "boundary"
+    ) ??
     doneAgents.at(-1) ??
-    agents.find((agent) => runtimeNodeStates.get(agent.nodeId)?.state === "failed") ??
+    agents.find(
+      (agent) => runtimeNodeStates.get(agent.nodeId)?.state === "failed"
+    ) ??
     agents[0]
   const activeAgentIndex = agents.indexOf(activeAgent)
   const activeState = getAgentState({
@@ -100,12 +109,12 @@ export function AgentChatSwarmPanel({
     .map((fact) => `${fact.label}: ${fact.detail}`)
 
   return (
-    <aside className="h-full min-h-0 min-w-0 overflow-hidden bg-background">
-      <div className="flex h-full min-h-0 flex-col overflow-hidden bg-background">
-        <header className="sticky top-0 z-10 shrink-0 border-b border-border bg-background/95 px-4 py-3 backdrop-blur">
+    <aside className="h-full min-h-0 min-w-0 overflow-hidden bg-transparent">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden bg-transparent">
+        <header className="sticky top-0 z-10 shrink-0 border-b border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong)/90 px-4 py-3 backdrop-blur-xl">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-card text-foreground">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-(--agent-chat-soft-border) bg-(--agent-chat-subtle-surface) text-primary">
                 <MonitorCog className="size-4" />
               </div>
               <div className="min-w-0">
@@ -132,11 +141,11 @@ export function AgentChatSwarmPanel({
                 </div>
               </div>
             </div>
-            <div className="rounded-md border border-border bg-card p-1">
+            <div className="cursor-pointer rounded-lg border border-(--agent-chat-soft-border) bg-(--agent-chat-subtle-surface) p-1">
               <button
                 type="button"
                 onClick={onCollapse}
-                className="flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                 title={t("agentChat.workbench.collapse")}
                 aria-label={t("agentChat.workbench.collapse")}
               >
@@ -145,6 +154,12 @@ export function AgentChatSwarmPanel({
             </div>
           </div>
         </header>
+
+        {headerAddon ? (
+          <div className="shrink-0 border-b border-(--agent-chat-soft-border) bg-(--agent-chat-subtle-surface)/70 p-2.5">
+            {headerAddon}
+          </div>
+        ) : null}
 
         <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-3 [scrollbar-gutter:stable]">
           {hasRuntime ? (
@@ -165,27 +180,33 @@ export function AgentChatSwarmPanel({
             />
           )}
 
-          <section className="mt-3 grid gap-2 min-[1500px]:grid-cols-4">
-            <CompactInfoBlock
-              icon={GitBranch}
-              title={t("agentChat.workbench.adaptiveDispatch")}
-              items={dispatchFactItems}
-              maxItems={4}
-            />
-            <WorkspaceHandoffRail compact />
-            <AgentRunFeedbackPanel compact feedback={feedback} />
-            <CompactInfoBlock
-              icon={Activity}
-              title={t("agentChat.workbench.activity")}
-              items={[
-                ...timeline.slice(0, 2).map((item) => item.label),
-                ...phases.slice(0, 1).map((phase) => phase.title),
-              ]}
-            />
+          <section className="mt-3 rounded-xl bg-(--agent-chat-subtle-surface)/45 p-2.5">
+            <div className="mb-2 flex items-center gap-2 px-1 text-sm font-semibold text-foreground">
+              <span className="size-1.5 rounded-full bg-primary" />
+              <span>{t("agentChat.workbench.summary", "协作摘要")}</span>
+            </div>
+            <div className="grid gap-2 pl-4">
+              <CompactInfoBlock
+                icon={GitBranch}
+                title={t("agentChat.workbench.adaptiveDispatch")}
+                items={dispatchFactItems}
+                maxItems={4}
+              />
+              <WorkspaceHandoffRail compact />
+              <AgentRunFeedbackPanel compact feedback={feedback} />
+              <CompactInfoBlock
+                icon={Activity}
+                title={t("agentChat.workbench.activity")}
+                items={[
+                  ...timeline.slice(0, 2).map((item) => item.label),
+                  ...phases.slice(0, 1).map((phase) => phase.title),
+                ]}
+              />
+            </div>
           </section>
         </div>
 
-        <div className="max-h-40 shrink-0 overflow-x-hidden overflow-y-auto border-t border-border [scrollbar-gutter:stable]">
+        <div className="max-h-40 shrink-0 overflow-x-hidden overflow-y-auto border-t border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong)/70 [scrollbar-gutter:stable]">
           <AgentDock
             activeNodeId={activeAgent.nodeId}
             agents={agents}

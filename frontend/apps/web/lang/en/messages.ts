@@ -2297,6 +2297,10 @@ const messages = {
         routeType: "Method",
         studentReadTitle: "Task summary",
         roleClusterTitle: "Roles working on this turn",
+        expandRoleCluster: "Expand",
+        collapseRoleCluster: "Collapse",
+        expandRoleClusterCards: "Expand role cards",
+        collapseRoleClusterCards: "Collapse role cards",
         roleClusterSummary:
           "These roles split the checks, add missing context, and organize the answer when useful.",
         emptyTask: "Waiting for this turn's task",
