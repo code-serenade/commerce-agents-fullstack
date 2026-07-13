@@ -34,6 +34,7 @@ export function LanguageSwitch({ className }: LanguageSwitchProps) {
       <DropdownMenuTrigger
         className={cn(
           "inline-flex size-9 items-center justify-center rounded-full border border-transparent bg-transparent text-[var(--info)] shadow-none transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--info)] data-[state=open]:bg-[var(--surface-hover)]",
+          "cursor-pointer",
           className
         )}
         aria-label={label}
@@ -71,12 +72,14 @@ export function LanguageSwitch({ className }: LanguageSwitchProps) {
               mode="primitive"
               value={option.value}
               className={cn(
-                "flex min-h-7 cursor-default items-center rounded-md px-2 py-0.5 pr-8 text-left text-sm outline-hidden transition hover:bg-[var(--select-item-hover)] hover:text-[var(--select-item-hover-foreground)] focus:bg-[var(--select-item-hover)] focus:text-[var(--select-item-hover-foreground)] data-[highlighted]:bg-[var(--select-item-hover)] data-[highlighted]:text-[var(--select-item-hover-foreground)]",
+                "flex min-h-7 cursor-pointer items-center rounded-md px-2 py-0.5 pr-8 text-left text-sm outline-hidden transition hover:bg-[var(--select-item-hover)] hover:text-[var(--select-item-hover-foreground)] focus:bg-[var(--select-item-hover)] focus:text-[var(--select-item-hover-foreground)] data-[highlighted]:bg-[var(--select-item-hover)] data-[highlighted]:text-[var(--select-item-hover-foreground)]",
                 currentValue.value === option.value &&
                   "bg-[var(--select-item-hover)] text-[var(--select-item-hover-foreground)]"
               )}
             >
-              <span className="block flex-1 text-left">{option.nativeLabel}</span>
+              <span className="block flex-1 text-left">
+                {option.nativeLabel}
+              </span>
               {currentValue.value === option.value ? (
                 <Check
                   aria-hidden="true"
