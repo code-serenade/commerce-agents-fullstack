@@ -137,7 +137,7 @@ export function HomeStudentPath({ t, navigateToPath }: HomeStudentPathProps) {
               style={style}
             />
           ))}
-          <span className="absolute top-[calc(45.5%+6px)] right-[-1%] hidden size-4 rotate-45 border-t-[3px] border-r-[3px] border-[color-mix(in_oklch,var(--primary)_26%,transparent)] lg:block" />
+          <span className="absolute top-[calc(45.5%+6px)] right-[-1%] hidden size-4 rotate-45 lg:block" />
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 lg:gap-9">
