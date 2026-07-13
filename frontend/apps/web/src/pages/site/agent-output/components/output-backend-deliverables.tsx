@@ -13,7 +13,12 @@ import {
   formatOutputBackendNotice,
 } from "../view-model/output-artifact-display-view-model"
 import type { AgentOutputBackendState } from "../use-agent-output-page"
-import { ArtifactMeta, EmptyState, LoadingState } from "./output-backend-deliverable-blocks"
+import {
+  ArtifactMeta,
+  EmptyState,
+  LoadingState,
+} from "./output-backend-deliverable-blocks"
+import { OutputMarkdownContent } from "./output-markdown-content"
 
 export function OutputBackendDeliverables({
   backend,
@@ -32,6 +37,10 @@ export function OutputBackendDeliverables({
   const selectedDisplay = selectedArtifact
     ? getOutputArtifactDisplay(t, selectedArtifact)
     : null
+  const isMarkdownContent = isMarkdownArtifact(
+    artifactExport?.format || selectedArtifact?.format,
+    artifactExport?.mimeType || selectedArtifact?.mimeType
+  )
 
   const copyExport = () => {
     if (!content) return
@@ -41,7 +50,10 @@ export function OutputBackendDeliverables({
   const downloadExport = () => {
     if (!content) return
     const blob = new Blob([content], {
-      type: artifactExport?.mimeType || selectedArtifact?.mimeType || "text/plain;charset=utf-8",
+      type:
+        artifactExport?.mimeType ||
+        selectedArtifact?.mimeType ||
+        "text/plain;charset=utf-8",
     })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement("a")
@@ -69,7 +81,12 @@ export function OutputBackendDeliverables({
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={backend.refetch}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={backend.refetch}
+          >
             <RefreshCcw className="size-4" />
             {t("agentOutput.backend.refresh")}
           </Button>
@@ -151,7 +168,9 @@ export function OutputBackendDeliverables({
                         </span>
                       </span>
                       <span className="mt-2 flex flex-wrap items-center gap-2">
-                        <StatusBadge tone={toneForStatus(artifact.validationStatus)}>
+                        <StatusBadge
+                          tone={toneForStatus(artifact.validationStatus)}
+                        >
                           {display.validationStatus}
                         </StatusBadge>
                         <span className="truncate text-xs text-muted-foreground">
@@ -185,7 +204,9 @@ export function OutputBackendDeliverables({
                     <StatusBadge tone={toneForStatus(selectedArtifact.status)}>
                       {selectedDisplay.status}
                     </StatusBadge>
-                    <StatusBadge tone={toneForStatus(selectedArtifact.validationStatus)}>
+                    <StatusBadge
+                      tone={toneForStatus(selectedArtifact.validationStatus)}
+                    >
                       {selectedDisplay.validationStatus}
                     </StatusBadge>
                     <MutedText>
@@ -257,15 +278,25 @@ export function OutputBackendDeliverables({
               ) : null}
 
               <div className="bg-muted/15 p-4">
-                <div className="min-h-150 max-h-150 overflow-auto rounded-lg border border-(--document-card-border) bg-(image:--document-card-background) shadow-(--document-card-shadow) [scrollbar-gutter:stable]">
+                <div className="max-h-150 min-h-150 overflow-auto rounded-lg border border-(--document-card-border) bg-(image:--document-card-background) shadow-(--document-card-shadow) [scrollbar-gutter:stable]">
                   <div className="border-b border-(--document-card-border) px-5 py-3">
                     <p className="text-xs font-semibold text-muted-foreground">
                       {selectedDisplay.format}
                     </p>
                   </div>
-                  <div className="wrap-break-word whitespace-pre-wrap p-5 text-sm/7 text-foreground">
-                    {content || t("agentOutput.backend.noContent")}
-                  </div>
+                  {content ? (
+                    isMarkdownContent ? (
+                      <OutputMarkdownContent content={content} />
+                    ) : (
+                      <div className="p-5 text-sm/7 wrap-break-word whitespace-pre-wrap text-foreground">
+                        {content}
+                      </div>
+                    )
+                  ) : (
+                    <div className="p-5 text-sm/7 wrap-break-word text-muted-foreground">
+                      {t("agentOutput.backend.noContent")}
+                    </div>
+                  )}
                 </div>
               </div>
             </article>
@@ -280,5 +311,21 @@ export function OutputBackendDeliverables({
         </div>
       </div>
     </section>
+  )
+}
+
+function isMarkdownArtifact(format?: string | null, mimeType?: string | null) {
+  const normalizedFormat = String(format ?? "")
+    .trim()
+    .toLowerCase()
+  const normalizedMimeType = String(mimeType ?? "")
+    .trim()
+    .toLowerCase()
+
+  return (
+    normalizedFormat === "markdown" ||
+    normalizedFormat === "md" ||
+    normalizedMimeType === "text/markdown" ||
+    normalizedMimeType === "application/markdown"
   )
 }
