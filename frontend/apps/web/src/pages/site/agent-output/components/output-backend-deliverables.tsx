@@ -141,9 +141,9 @@ export function OutputBackendDeliverables({
                     <button
                       key={artifact.id}
                       type="button"
-                      className={`group block w-full min-w-0 rounded-lg border p-3 text-left shadow-sm transition ${
+                      className={`group block w-full min-w-0 cursor-pointer rounded-lg border p-3 text-left shadow-sm transition ${
                         active
-                          ? "border-primary/45 bg-[color-mix(in_oklch,var(--app-active-bg)_34%,var(--app-surface))] text-foreground shadow-[inset_3px_0_0_var(--app-active-text)]"
+                          ? "border-[color-mix(in_oklch,var(--primary)_42%,var(--document-card-border))] bg-[linear-gradient(135deg,color-mix(in_oklch,var(--app-active-bg)_72%,var(--app-surface))_0%,color-mix(in_oklch,var(--app-surface)_86%,var(--primary)_14%)_100%)] text-foreground shadow-[0_12px_28px_color-mix(in_oklch,var(--primary)_10%,transparent),inset_3px_0_0_var(--primary)]"
                           : "border-(--document-card-border) bg-muted/30 hover:border-primary/25 hover:bg-(--shell-sidebar-item-hover-background)"
                       }`}
                       onClick={() => backend.setSelectedArtifactId(artifact.id)}
@@ -152,14 +152,18 @@ export function OutputBackendDeliverables({
                         <span
                           className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border ${
                             active
-                              ? "border-primary/35 bg-(--app-active-bg) text-(--app-active-text)"
+                              ? "border-[color-mix(in_oklch,var(--primary)_45%,var(--document-card-border))] bg-[linear-gradient(135deg,var(--app-active-bg)_0%,color-mix(in_oklch,var(--app-active-bg)_72%,var(--primary))_100%)] text-(--app-active-text) shadow-[0_8px_18px_color-mix(in_oklch,var(--primary)_16%,transparent)]"
                               : "border-(--document-card-border) bg-muted/30 text-muted-foreground group-hover:text-foreground"
                           }`}
                         >
                           <FileText className="size-4" />
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold">
+                          <span
+                            className={`block truncate text-sm font-semibold ${
+                              active ? "text-(--app-text)" : ""
+                            }`}
+                          >
                             {display.title}
                           </span>
                           <span className="mt-1 block truncate text-xs text-muted-foreground">
