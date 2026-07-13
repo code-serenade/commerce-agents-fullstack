@@ -118,6 +118,28 @@ const messages = {
       countDone: "{{count}} done",
       driftCount: "{{count}} drift items found",
     },
+    statusOptions: {
+      active: "Active",
+      archived: "Archived",
+      approved: "Approved",
+      blocked: "Blocked",
+      cancelled: "Cancelled",
+      completed: "Completed",
+      configured: "Configured",
+      disabled: "Disabled",
+      done: "Done",
+      enabled: "Enabled",
+      executed: "Executed",
+      failed: "Failed",
+      inProgress: "In progress",
+      pending: "Pending",
+      planned: "Planned",
+      ready: "Ready",
+      rejected: "Rejected",
+      running: "Running",
+      skipped: "Skipped",
+      succeeded: "Succeeded",
+    },
     fields: {
       productName: "Product name",
       platformProductId: "Platform product ID",
@@ -512,6 +534,13 @@ const messages = {
       },
     },
     workspaces: {
+      typeOptions: {
+        general: "General training",
+        agentChat: "AI chat generated",
+        productAnalysis: "Product selection analysis",
+        campaignPlanning: "Campaign planning practice",
+        dataDiagnosis: "Data diagnosis analysis",
+      },
       metrics: {
         workspaces: "Training tasks",
         workspacesTail: "Student submissions and revisions",
@@ -527,6 +556,8 @@ const messages = {
         masterDesc:
           "Each training task can bind products and campaigns, then store submission records, review materials, and improvement suggestions.",
         createWorkspace: "Create training task",
+        viewDetail: "View detail",
+        backToList: "Back to list",
         search: "Search training task title or type",
         empty:
           "No training task yet. Generate or create one from the AI training assistant.",

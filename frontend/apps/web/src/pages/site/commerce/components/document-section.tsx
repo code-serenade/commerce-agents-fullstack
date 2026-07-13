@@ -40,26 +40,33 @@ export function DocumentSection({
 }
 
 export function DocumentIntroCard({
+  actions,
   description,
   icon,
   title,
 }: {
+  actions?: ReactNode
   description: ReactNode
   icon: ReactNode
   title: ReactNode
 }) {
   return (
     <div className="relative overflow-hidden rounded-lg border border-(--document-intro-card-border) bg-(image:--document-intro-card-background) px-4 py-3 shadow-(--document-intro-card-shadow) backdrop-blur-md before:pointer-events-none before:absolute before:inset-y-0 before:right-0 before:w-1/3 before:bg-(image:--document-intro-card-decoration) before:bg-size-[18px_18px,260px_120px] before:bg-position-[right_center,right_center] before:opacity-80">
-      <div className="relative z-10 flex min-w-0 gap-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 p-2 text-primary [&>svg]:size-5">
-          {icon}
-        </span>
-        <div className="min-w-0">
-          <h2 className="text-sm/5 font-semibold text-foreground">{title}</h2>
-          <p className="mt-1 max-w-5xl text-sm/6 text-muted-foreground">
-            {description}
-          </p>
+      <div className="relative z-10 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 p-2 text-primary [&>svg]:size-5">
+            {icon}
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-sm/5 font-semibold text-foreground">
+              {title}
+            </h2>
+            <p className="mt-1 max-w-5xl text-sm/6 text-muted-foreground">
+              {description}
+            </p>
+          </div>
         </div>
+        {actions ? <div className="shrink-0 self-start sm:self-center">{actions}</div> : null}
       </div>
     </div>
   )

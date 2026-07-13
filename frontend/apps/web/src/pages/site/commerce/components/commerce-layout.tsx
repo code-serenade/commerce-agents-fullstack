@@ -1,6 +1,11 @@
 import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
-import { Alert, Button, SearchInput } from "@workspace/ui-components"
+import {
+  Alert,
+  Button,
+  type ButtonProps,
+  SearchInput,
+} from "@workspace/ui-components"
 
 export interface CommercePageHeaderProps {
   className?: string
@@ -68,21 +73,29 @@ export function CommercePanel({
   actions?: ReactNode
   children: ReactNode
   description?: string
-  title: string
+  title?: string
 }) {
+  const hasHeader = Boolean(title || description || actions)
+
   return (
     <section className="min-w-0 rounded-lg border border-(--app-border) bg-(--app-bg)">
-      <div className="flex min-w-0 flex-col gap-2 border-b border-(--app-border) px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <h2 className="text-base font-semibold text-foreground">{title}</h2>
-          {description ? (
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              {description}
-            </p>
-          ) : null}
+      {hasHeader ? (
+        <div className="flex min-w-0 flex-col gap-2 border-b border-(--app-border) px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            {title ? (
+              <h2 className="text-base font-semibold text-foreground">
+                {title}
+              </h2>
+            ) : null}
+            {description ? (
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {description}
+              </p>
+            ) : null}
+          </div>
+          {actions ? <div className="shrink-0">{actions}</div> : null}
         </div>
-        {actions ? <div className="shrink-0">{actions}</div> : null}
-      </div>
+      ) : null}
       <div className="p-4">{children}</div>
     </section>
   )
@@ -134,15 +147,17 @@ export function InlineAlert({
 }
 
 export function SubPanelAction({
+  buttonSize = "sm",
   label,
   onClick,
 }: {
+  buttonSize?: ButtonProps["size"]
   label: string
   onClick: () => void
 }) {
   return (
     <div className="mb-3 flex justify-end">
-      <Button size="sm" variant="outline" onClick={onClick}>
+      <Button size={buttonSize} variant="outline" onClick={onClick}>
         {label}
       </Button>
     </div>

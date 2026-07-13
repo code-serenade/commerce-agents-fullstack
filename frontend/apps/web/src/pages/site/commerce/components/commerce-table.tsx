@@ -63,8 +63,8 @@ export function CommerceTable<T>({
 
   return (
     <div className="max-w-full overflow-x-auto">
-      <div style={{ minWidth: tableMinWidth }}>
-        <table className="w-full caption-bottom text-sm">
+      <div style={{ minWidth: tableMinWidth, width: "100%" }}>
+        <table className="w-full table-fixed caption-bottom text-sm">
           <thead className="[&_tr]:border-b">
             <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
               {resolvedColumns.map((column) => (
@@ -114,6 +114,7 @@ function getColumnStyle<T>(column: CommerceColumn<T>): CSSProperties {
   return {
     minWidth,
     ...(column.width ? { width: column.width } : null),
+    ...(column.width ? { maxWidth: column.width } : null),
     ...(column.sticky === "left" ? { left: STICKY_LEFT_OFFSET } : null),
     ...(column.sticky === "right" ? { right: STICKY_RIGHT_OFFSET } : null),
   }
