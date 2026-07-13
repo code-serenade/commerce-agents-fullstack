@@ -38,19 +38,23 @@ export function productFields(t: CommerceTranslate): SimpleField[] {
   ]
 }
 
-export function knowledgeFields(t: CommerceTranslate): SimpleField[] {
-  return [
+export function knowledgeFields(
+  t: CommerceTranslate,
+  { includeSourceType = true }: { includeSourceType?: boolean } = {}
+): SimpleField[] {
+  const fields: SimpleField[] = [
     { key: "title", label: t("commerce.fields.title") },
     {
       key: "contentType",
       label: t("commerce.fields.contentType"),
-      required: true,
+      type: "select",
+      options: knowledgeContentTypeOptions(t),
     },
-    { key: "sourceType", label: t("commerce.fields.sourceType") },
     {
       key: "confidence",
-      label: t("commerce.fields.confidence"),
-      type: "number",
+      label: t("commerce.products.knowledgeConfidence.label"),
+      type: "select",
+      options: knowledgeConfidenceOptions(t),
     },
     {
       key: "content",
@@ -59,6 +63,94 @@ export function knowledgeFields(t: CommerceTranslate): SimpleField[] {
       type: "textarea",
     },
   ]
+
+  if (includeSourceType) {
+    fields.splice(2, 0, {
+      key: "sourceType",
+      label: t("commerce.fields.sourceType"),
+      type: "select",
+      options: knowledgeSourceTypeOptions(t),
+    })
+  }
+
+  return fields
+}
+
+export function knowledgeContentTypeOptions(t: CommerceTranslate) {
+  return [
+    {
+      label: t("commerce.products.knowledgeContentTypes.sellingPoint"),
+      value: "selling_point",
+    },
+    { label: t("commerce.products.knowledgeContentTypes.text"), value: "text" },
+    { label: t("commerce.products.knowledgeContentTypes.spec"), value: "spec" },
+    { label: t("commerce.products.knowledgeContentTypes.faq"), value: "faq" },
+    {
+      label: t("commerce.products.knowledgeContentTypes.competitive"),
+      value: "competitive",
+    },
+  ]
+}
+
+export function knowledgeSourceTypeOptions(t: CommerceTranslate) {
+  return [
+    { label: t("commerce.products.knowledgeSourceTypes.manual"), value: "manual" },
+    {
+      label: t("commerce.products.knowledgeSourceTypes.agentGenerated"),
+      value: "agent_generated",
+    },
+    {
+      label: t("commerce.products.knowledgeSourceTypes.platformSync"),
+      value: "platform_sync",
+    },
+    {
+      label: t("commerce.products.knowledgeSourceTypes.imported"),
+      value: "imported",
+    },
+  ]
+}
+
+export function knowledgeConfidenceOptions(t: CommerceTranslate) {
+  return [
+    { label: t("commerce.products.knowledgeConfidence.low"), value: "0.5" },
+    { label: t("commerce.products.knowledgeConfidence.medium"), value: "0.8" },
+    { label: t("commerce.products.knowledgeConfidence.high"), value: "0.95" },
+  ]
+}
+
+export function knowledgeContentTypeLabel(
+  t: CommerceTranslate,
+  contentType: string
+) {
+  return (
+    knowledgeContentTypeOptions(t).find((option) => option.value === contentType)
+      ?.label ?? contentType
+  )
+}
+
+export function knowledgeConfidenceLabel(
+  t: CommerceTranslate,
+  confidence?: number | null
+) {
+  if (confidence == null) return "-"
+  const normalizedConfidence = String(confidence)
+
+  return (
+    knowledgeConfidenceOptions(t).find(
+      (option) => Number(option.value) === confidence
+    )?.label ?? normalizedConfidence
+  )
+}
+
+export function knowledgeSourceTypeLabel(
+  t: CommerceTranslate,
+  sourceType?: string | null
+) {
+  if (!sourceType) return t("commerce.products.knowledgeSourceTypes.manual")
+  return (
+    knowledgeSourceTypeOptions(t).find((option) => option.value === sourceType)
+      ?.label ?? sourceType
+  )
 }
 
 export function knowledgeInitialValues(

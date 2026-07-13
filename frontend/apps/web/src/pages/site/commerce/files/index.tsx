@@ -34,22 +34,22 @@ export default function FilesPage() {
         eyebrow={t("commerce.pages.files.eyebrow")}
         title={t("commerce.pages.files.title")}
         description={t("commerce.pages.files.description")}
-        actions={
-          <FilesPageActions
-            canUploadFiles={page.canUploadFiles}
-            onUploadChange={page.handleUploadChange}
-            onUploadClick={() => uploadInputRef.current?.click()}
-            t={t}
-            uploadInputRef={uploadInputRef}
-            uploading={page.uploading}
-          />
-        }
       />
       <CommerceBody className="min-[1200px]:px-8">
         <DocumentIntroCard
           title={t("commerce.pages.files.boundaryTitle")}
           description={t("commerce.pages.files.boundaryDescription")}
           icon={<Library className="size-4" />}
+          actions={
+            <FilesPageActions
+              canUploadFiles={page.canUploadFiles}
+              onUploadChange={page.handleUploadChange}
+              onUploadClick={() => uploadInputRef.current?.click()}
+              t={t}
+              uploadInputRef={uploadInputRef}
+              uploading={page.uploading}
+            />
+          }
         />
         {page.error ? (
           <InlineAlert

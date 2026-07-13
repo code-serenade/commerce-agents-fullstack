@@ -122,14 +122,14 @@ function getColumnStyle<T>(column: CommerceColumn<T>): CSSProperties {
 
 function getHeadClassName(sticky: CommerceColumn<unknown>["sticky"]) {
   return cx(
-    "h-10 whitespace-nowrap px-2 text-left align-middle font-medium text-foreground",
+    "h-10 overflow-hidden whitespace-nowrap px-2 text-left align-middle font-medium text-foreground",
     sticky ? getStickyCellClassName(sticky, "head") : undefined
   )
 }
 
 function getCellClassName(sticky: CommerceColumn<unknown>["sticky"]) {
   return cx(
-    "whitespace-normal p-2 align-top wrap-anywhere",
+    "overflow-hidden whitespace-normal p-2 align-top wrap-anywhere [&>*]:max-w-full",
     sticky ? getStickyCellClassName(sticky, "cell") : undefined
   )
 }

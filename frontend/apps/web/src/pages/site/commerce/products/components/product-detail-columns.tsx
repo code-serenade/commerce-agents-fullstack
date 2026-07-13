@@ -11,6 +11,11 @@ import type { CommerceColumn } from "../../components/commerce-ui"
 import type { CommerceTranslate } from "../../components/commerce-types"
 import type { ProductsPageState } from "../use-products-page"
 import type { ProductDialogName } from "../use-products-page"
+import {
+  knowledgeConfidenceLabel,
+  knowledgeContentTypeLabel,
+  knowledgeSourceTypeLabel,
+} from "./product-dialog-fields"
 
 export function createKnowledgeColumns(
   page: ProductsPageState,
@@ -23,7 +28,7 @@ export function createKnowledgeColumns(
       render: (item) => (
         <div className="min-w-0">
           <div className="truncate font-medium">
-            {item.title || item.contentType}
+            {item.title || knowledgeContentTypeLabel(t, item.contentType)}
           </div>
           <MutedText>{item.content.slice(0, 64)}</MutedText>
         </div>
@@ -32,12 +37,12 @@ export function createKnowledgeColumns(
     {
       key: "type",
       header: t("commerce.common.type"),
-      render: (item) => item.contentType,
+      render: (item) => knowledgeContentTypeLabel(t, item.contentType),
     },
     {
       key: "confidence",
       header: t("commerce.products.columns.confidence"),
-      render: (item) => item.confidence ?? "-",
+      render: (item) => knowledgeConfidenceLabel(t, item.confidence),
     },
     {
       key: "actions",
@@ -232,7 +237,7 @@ export function createChangeColumns(
     {
       key: "source",
       header: t("commerce.common.source"),
-      render: (item) => item.sourceType || "manual",
+      render: (item) => knowledgeSourceTypeLabel(t, item.sourceType),
     },
   ]
 }
