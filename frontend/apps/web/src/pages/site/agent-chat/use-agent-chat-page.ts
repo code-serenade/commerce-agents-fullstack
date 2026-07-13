@@ -5,9 +5,17 @@ import { useLocation, useNavigate, useParams } from "react-router"
 import type { RootState } from "@/store"
 import type { AgentRuntimeEvent } from "./agent-chat-data"
 import { createSessionId } from "./domain/agent-chat-message-mapping"
-import { DEFAULT_AGENT_CHAT_STRATEGY_ID, getAgentChatStrategy, type AgentChatStrategyId } from "./domain/agent-chat-strategy"
+import {
+  DEFAULT_AGENT_CHAT_STRATEGY_ID,
+  getAgentChatStrategy,
+  type AgentChatStrategyId,
+} from "./domain/agent-chat-strategy"
 import { runtimeSelectionForStrategy } from "./domain/agent-runtime-options"
-import type { AgentChatAttachmentItem, AgentChatConversationItem, AgentChatMessage } from "./types"
+import type {
+  AgentChatAttachmentItem,
+  AgentChatConversationItem,
+  AgentChatMessage,
+} from "./types"
 import {
   loadAgentConversationById,
   loadAgentConversationList,
@@ -52,7 +60,9 @@ export function useAgentChatPage() {
   )
   const user = useSelector((state: RootState) => state.auth.user)
   const [input, setInput] = useState("")
-  const [strategyId, setStrategyId] = useState<AgentChatStrategyId>(DEFAULT_AGENT_CHAT_STRATEGY_ID)
+  const [strategyId, setStrategyId] = useState<AgentChatStrategyId>(
+    DEFAULT_AGENT_CHAT_STRATEGY_ID
+  )
   const [messages, setMessages] = useState<AgentChatMessage[]>(() => [
     {
       id: "welcome",
@@ -61,7 +71,9 @@ export function useAgentChatPage() {
     },
   ])
   const [conversationId, setConversationId] = useState<string | null>(null)
-  const [conversations, setConversations] = useState<AgentChatConversationItem[]>([])
+  const [conversations, setConversations] = useState<
+    AgentChatConversationItem[]
+  >([])
   const [attachments, setAttachments] = useState<AgentChatAttachmentItem[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [runtimeEvents, setRuntimeEvents] = useState<AgentRuntimeEvent[]>([])
@@ -69,14 +81,28 @@ export function useAgentChatPage() {
   const abortRef = useRef<AbortController | null>(null)
   const sessionIdRef = useRef(createSessionId())
   const isLoggedIn = Boolean(user)
-  const productContext = useAgentChatProductContext({ enabled: isLoggedIn, isStreaming })
-  const campaignContext = useAgentChatCampaignContext({ enabled: isLoggedIn, isStreaming })
+  const productContext = useAgentChatProductContext({
+    enabled: isLoggedIn,
+    isStreaming,
+  })
+  const campaignContext = useAgentChatCampaignContext({
+    enabled: isLoggedIn,
+    isStreaming,
+  })
   const sourceContext = useAgentChatSourceContext({ attachments, isStreaming })
-  const { isLoadingSourceLibrary, sourceLibrary, sourceLibraryError } = useAgentChatSourceLibrary({ availableSources: sourceContext.availableSources, enabled: isLoggedIn })
+  const { isLoadingSourceLibrary, sourceLibrary, sourceLibraryError } =
+    useAgentChatSourceLibrary({
+      availableSources: sourceContext.availableSources,
+      enabled: isLoggedIn,
+    })
   const playbookContext = useAgentChatPlaybooks({ enabled: isLoggedIn })
   const runtimeContext = useAgentRuntimeOptions({ enabled: isLoggedIn })
   const quotaContext = useAgentChatQuota({ enabled: isLoggedIn })
-  const feedback = useAgentRunFeedback({ isLoggedIn: Boolean(user), isStreaming, runtimeEvents })
+  const feedback = useAgentRunFeedback({
+    isLoggedIn: Boolean(user),
+    isStreaming,
+    runtimeEvents,
+  })
   const { actionState } = useAgentChatActionState({
     abortRef,
     clearSelectedCampaigns: campaignContext.clearSelectedCampaigns,
@@ -90,8 +116,15 @@ export function useAgentChatPage() {
     restoreSelectedProducts: productContext.restoreSelectedProducts,
     restoreSelectedSources: sourceContext.restoreSelectedSources,
     sessionIdRef,
-    setAttachments, setConversationId, setConversations, setError, setInput,
-    setIsStreaming, setMessages, setRuntimeEvents, setStrategyId,
+    setAttachments,
+    setConversationId,
+    setConversations,
+    setError,
+    setInput,
+    setIsStreaming,
+    setMessages,
+    setRuntimeEvents,
+    setStrategyId,
     tError: t("agentChat.error"),
     welcomeMessage: t("agentChat.welcomeMessage"),
   })
@@ -117,11 +150,19 @@ export function useAgentChatPage() {
     } else {
       void (async () => {
         try {
-          if (cancelled || !isAgentChatRoute) return
+          if (cancelled) return
+
+          if (!isAgentChatRoute) {
+            await loadAgentConversationList(latestActionState, () => cancelled)
+            return
+          }
 
           if (routeConversationId) {
             if (routeConversationId === conversationIdRef.current) {
-              await loadAgentConversationList(latestActionState, () => cancelled)
+              await loadAgentConversationList(
+                latestActionState,
+                () => cancelled
+              )
               return
             }
 
@@ -148,13 +189,18 @@ export function useAgentChatPage() {
       })()
     }
 
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [isAgentChatRoute, routeConversationId, t, userBootstrapKey])
 
-  const syncConversationRoute = useCallback((nextConversationId: string) => {
-    if (!isAgentChatRoute) return
-    navigate(`/commerce/${nextConversationId}`, { replace: true })
-  }, [isAgentChatRoute, navigate])
+  const syncConversationRoute = useCallback(
+    (nextConversationId: string) => {
+      if (!isAgentChatRoute) return
+      navigate(`/commerce/${nextConversationId}`, { replace: true })
+    },
+    [isAgentChatRoute, navigate]
+  )
 
   const replaceWithNewConversationRoute = useCallback(() => {
     if (!isAgentChatRoute) return
@@ -162,8 +208,14 @@ export function useAgentChatPage() {
   }, [isAgentChatRoute, navigate])
 
   const canSend = input.trim().length > 0 && !isStreaming
-  const selectedStrategy = useMemo(() => getAgentChatStrategy(strategyId), [strategyId])
-  const selectedRuntime = useMemo(() => runtimeSelectionForStrategy(runtimeContext.runtimeSelection), [runtimeContext.runtimeSelection])
+  const selectedStrategy = useMemo(
+    () => getAgentChatStrategy(strategyId),
+    [strategyId]
+  )
+  const selectedRuntime = useMemo(
+    () => runtimeSelectionForStrategy(runtimeContext.runtimeSelection),
+    [runtimeContext.runtimeSelection]
+  )
   const setStrategyAndRuntime = useAgentChatStrategyRuntime({
     runtimeSelection: runtimeContext.runtimeSelection,
     setRoutingMode: runtimeContext.setRoutingMode,
@@ -188,7 +240,10 @@ export function useAgentChatPage() {
     restoreSelectedSources: sourceContext.restoreSelectedSources,
     selectedSources: sourceContext.selectedSources,
     sessionIdRef,
-    setAttachments, setConversationId, setConversations, setError,
+    setAttachments,
+    setConversationId,
+    setConversations,
+    setError,
     tError: t("agentChat.error"),
   })
   const sourceActions = useAgentChatSourceActions({
@@ -200,11 +255,19 @@ export function useAgentChatPage() {
     onConversationCreated: syncConversationRoute,
     selectedSources: sourceContext.selectedSources,
     sessionIdRef,
-    setAttachments, setConversationId, setConversations, setError,
+    setAttachments,
+    setConversationId,
+    setConversations,
+    setError,
   })
   const contextPreview = useAgentChatContextPreview({
-    conversationId, inputValue: input, isLoggedIn, isStreaming,
-    selectedCampaigns: campaignContext.selectedCampaigns, selectedProducts: productContext.selectedProducts, selectedSources: sourceContext.selectedSources,
+    conversationId,
+    inputValue: input,
+    isLoggedIn,
+    isStreaming,
+    selectedCampaigns: campaignContext.selectedCampaigns,
+    selectedProducts: productContext.selectedProducts,
+    selectedSources: sourceContext.selectedSources,
     tError: t("agentChat.composer.contextPreview.error"),
   })
 
@@ -224,8 +287,13 @@ export function useAgentChatPage() {
     selectedProducts: productContext.selectedProducts,
     selectedSources: sourceContext.selectedSources,
     sessionIdRef,
-    setConversationId, setConversations, setError, setInput, setIsStreaming,
-    setMessages, setRuntimeEvents,
+    setConversationId,
+    setConversations,
+    setError,
+    setInput,
+    setIsStreaming,
+    setMessages,
+    setRuntimeEvents,
     strategy: selectedStrategy,
     tError: t("agentChat.error"),
   })
@@ -235,8 +303,13 @@ export function useAgentChatPage() {
     availableProducts: productContext.availableProducts,
     availableSources: sourceContext.availableSources,
     canSend,
-    clearSelectedCampaigns: campaignContext.clearSelectedCampaigns, clearSelectedProducts: productContext.clearSelectedProducts, clearSelectedSources: sourceContext.clearSelectedSources,
-    conversationId, conversations, contextPreview, commands,
+    clearSelectedCampaigns: campaignContext.clearSelectedCampaigns,
+    clearSelectedProducts: productContext.clearSelectedProducts,
+    clearSelectedSources: sourceContext.clearSelectedSources,
+    conversationId,
+    conversations,
+    contextPreview,
+    commands,
     error,
     feedback,
     input,
@@ -245,8 +318,10 @@ export function useAgentChatPage() {
     isLoadingPlaybooks: playbookContext.isLoadingPlaybooks,
     isLoadingProducts: productContext.isLoadingProducts,
     isLoadingRuntimeOptions: runtimeContext.isLoadingRuntimeOptions,
-    isLoadingSourceLibrary, isLoadingQuota: quotaContext.isLoadingQuota,
-    isStreaming, messages,
+    isLoadingSourceLibrary,
+    isLoadingQuota: quotaContext.isLoadingQuota,
+    isStreaming,
+    messages,
     playbooks: playbookContext.playbooks,
     runtimeOptions: runtimeContext.runtimeOptions,
     runtimeSelection: selectedRuntime,

@@ -98,7 +98,7 @@ export function InlineSwarmTaskCard({
       className="flex justify-start gap-3"
       data-process-message-id={messageId}
     >
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) text-primary">
+      <div className="hidden size-9 shrink-0 items-center justify-center rounded-xl border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) text-primary md:flex">
         <GitBranch className="size-5" />
       </div>
       <div

@@ -18,7 +18,8 @@ import type { SendAgentChatMessageInput } from "./agent-chat-send-message-types"
 import { hasDisplayableAnswer, isAbortLikeStreamError } from "./agent-chat-stream-errors"
 import { formatStreamErrorMessage } from "./agent-chat-stream-error-message"
 
-const STREAM_MESSAGE_FLUSH_INTERVAL_MS = 50
+const STREAM_MESSAGE_REVEAL_INTERVAL_MS = 28
+const STREAM_MESSAGE_REVEAL_CHARS = 12
 
 export async function sendAgentChatMessage(
   input: SendAgentChatMessageInput
@@ -87,11 +88,22 @@ export async function sendAgentChatMessage(
   let assistantDone = false
   let assistantMessageSaved = false
   let activeConversationId = input.conversationId
-  let pendingAssistantFlush: ReturnType<typeof setTimeout> | null = null
+  let visibleAssistantContent = ""
+  let pendingAssistantText = ""
+  let pendingAssistantReveal: ReturnType<typeof setTimeout> | null = null
+  const assistantRevealResolvers: Array<() => void> = []
   const runtimeEvents: AgentRuntimeEvent[] = []
 
-  function renderAssistantContent() {
-    return formatAgentUiMessage(assistantContent, input.messageFormatCopy)
+  function renderAssistantContent(content: string) {
+    return formatAgentUiMessage(content, input.messageFormatCopy)
+  }
+
+  function renderVisibleAssistantContent() {
+    return renderAssistantContent(visibleAssistantContent)
+  }
+
+  function renderFullAssistantContent() {
+    return renderAssistantContent(assistantContent)
   }
 
   function setAssistantContent(content: string) {
@@ -102,23 +114,70 @@ export async function sendAgentChatMessage(
     )
   }
 
-  function cancelAssistantFlush() {
-    if (!pendingAssistantFlush) return
-    clearTimeout(pendingAssistantFlush)
-    pendingAssistantFlush = null
+  function resolveAssistantRevealIdle() {
+    if (pendingAssistantText || pendingAssistantReveal) return
+    const resolvers = assistantRevealResolvers.splice(0)
+    for (const resolve of resolvers) resolve()
+  }
+
+  function cancelAssistantReveal() {
+    if (!pendingAssistantReveal) return
+    clearTimeout(pendingAssistantReveal)
+    pendingAssistantReveal = null
+  }
+
+  function takeNextAssistantRevealChunk() {
+    return Array.from(pendingAssistantText)
+      .slice(0, STREAM_MESSAGE_REVEAL_CHARS)
+      .join("")
+  }
+
+  function revealNextAssistantChunk() {
+    pendingAssistantReveal = null
+    if (!pendingAssistantText) {
+      resolveAssistantRevealIdle()
+      return
+    }
+    const chunk = takeNextAssistantRevealChunk()
+    visibleAssistantContent += chunk
+    pendingAssistantText = pendingAssistantText.slice(chunk.length)
+    setAssistantContent(renderVisibleAssistantContent())
+    if (pendingAssistantText) {
+      scheduleAssistantReveal()
+      return
+    }
+    resolveAssistantRevealIdle()
+  }
+
+  function scheduleAssistantReveal() {
+    if (!pendingAssistantText || pendingAssistantReveal) return
+    pendingAssistantReveal = setTimeout(
+      revealNextAssistantChunk,
+      STREAM_MESSAGE_REVEAL_INTERVAL_MS
+    )
+  }
+
+  function queueAssistantContent(chunk: string) {
+    assistantContent += chunk
+    pendingAssistantText += chunk
+    scheduleAssistantReveal()
   }
 
   function flushAssistantContent() {
-    cancelAssistantFlush()
-    setAssistantContent(renderAssistantContent())
+    cancelAssistantReveal()
+    if (pendingAssistantText) {
+      visibleAssistantContent += pendingAssistantText
+      pendingAssistantText = ""
+      setAssistantContent(renderVisibleAssistantContent())
+    }
+    resolveAssistantRevealIdle()
   }
 
-  function scheduleAssistantFlush() {
-    if (pendingAssistantFlush) return
-    pendingAssistantFlush = setTimeout(() => {
-      pendingAssistantFlush = null
-      setAssistantContent(renderAssistantContent())
-    }, STREAM_MESSAGE_FLUSH_INTERVAL_MS)
+  function waitForAssistantReveal() {
+    if (!pendingAssistantText && !pendingAssistantReveal) return Promise.resolve()
+    return new Promise<void>((resolve) => {
+      assistantRevealResolvers.push(resolve)
+    })
   }
 
   async function saveAssistantIfReady(content: string) {
@@ -188,8 +247,7 @@ export async function sendAgentChatMessage(
       {
         signal: controller.signal,
         onDelta: (chunk) => {
-          assistantContent += chunk
-          scheduleAssistantFlush()
+          queueAssistantContent(chunk)
         },
         onAgentEvent: (event) => {
           runtimeEvents.push(event)
@@ -210,24 +268,15 @@ export async function sendAgentChatMessage(
         onDone: () => {
           if (assistantDone) return
           assistantDone = true
-          cancelAssistantFlush()
           input.setRuntimeEvents([...runtimeEvents])
-          const displayContent = renderAssistantContent()
-          replaceAssistantAnswerComplete({
-            assistantId,
-            content: displayContent,
-            runtimeEvents,
-            setMessages: input.setMessages,
-          })
-          input.setIsStreaming(false)
         },
         onError: (message) => {
-          cancelAssistantFlush()
+          flushAssistantContent()
           if (assistantDone) {
             input.setIsStreaming(false)
             return
           }
-          const displayContent = renderAssistantContent()
+          const displayContent = renderVisibleAssistantContent()
           if (
             hasDisplayableAnswer(displayContent) &&
             isAbortLikeStreamError(message)
@@ -260,18 +309,25 @@ export async function sendAgentChatMessage(
         },
       }
     )
-    if (pendingAssistantFlush) {
-      flushAssistantContent()
+    await waitForAssistantReveal()
+    if (assistantDone) {
+      input.setRuntimeEvents([...runtimeEvents])
+      replaceAssistantAnswerComplete({
+        assistantId,
+        content: renderVisibleAssistantContent(),
+        runtimeEvents,
+        setMessages: input.setMessages,
+      })
     }
-    const finalAssistantContent = renderAssistantContent()
+    const finalAssistantContent = renderFullAssistantContent()
     await saveAssistantIfReady(finalAssistantContent)
     input.setIsStreaming(false)
   } catch (err) {
-    cancelAssistantFlush()
+    flushAssistantContent()
     if (controller.signal.aborted) return null
     if (assistantDone) {
       input.setIsStreaming(false)
-      const displayContent = renderAssistantContent()
+      const displayContent = renderVisibleAssistantContent()
       try {
         await saveAssistantIfReady(displayContent)
       } catch {
@@ -280,7 +336,7 @@ export async function sendAgentChatMessage(
       return controller
     }
     input.setIsStreaming(false)
-    const displayContent = renderAssistantContent()
+    const displayContent = renderVisibleAssistantContent()
     if (hasDisplayableAnswer(displayContent) && isAbortLikeStreamError(err)) {
       input.setRuntimeEvents([...runtimeEvents])
       markAssistantAnswerComplete({
