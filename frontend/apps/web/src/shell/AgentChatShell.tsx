@@ -6,6 +6,7 @@ import {
   MessageCircleMore,
   MoreHorizontal,
   MessageSquareText,
+  Pencil,
   ShoppingBag,
   Sparkles,
   Trash2,
@@ -688,6 +689,7 @@ function ConversationActionMenu({
           className="cursor-pointer justify-start text-left"
           onSelect={onRename}
         >
+          <Pencil className="size-4" />
           {renameLabel}
         </DropdownMenuItem>
         <DropdownMenuItem
