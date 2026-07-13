@@ -1,4 +1,4 @@
-import { type MouseEvent, type ReactNode, useState } from "react"
+import { type MouseEvent, type ReactNode, useEffect, useState } from "react"
 import {
   Bot,
   Library,
@@ -52,8 +52,26 @@ export interface AgentChatShellProps {
 }
 
 const CHAT_ROUTE_PATHS = ["/", "/commerce", "/agent"] as const
+const CHAT_NAVIGATION_ROUTE_PATHS = [
+  "/",
+  "/commerce",
+  "/agent",
+  "/agent-capabilities",
+  "/question-ideas",
+] as const
+const AMBIGUOUS_NAVIGATION_ROUTE_PATHS = [
+  "/products",
+  "/materials",
+  "/campaigns",
+] as const
+const SIDEBAR_NAVIGATION_MODE_STORAGE_KEY =
+  "agentChat.sidebar.navigationMode"
 
 type SidebarNavigationMode = "chat" | "training"
+type SidebarNavigationModeState = {
+  mode: SidebarNavigationMode
+  pathname: string
+}
 
 export function AgentChatShell({ children }: AgentChatShellProps) {
   return (
@@ -75,8 +93,16 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     title: string
   } | null>(null)
   const [renameValue, setRenameValue] = useState("")
-  const [navigationMode, setNavigationMode] =
-    useState<SidebarNavigationMode>("chat")
+  const [navigationModeState, setNavigationModeState] =
+    useState<SidebarNavigationModeState>(() => ({
+      mode: getInitialSidebarNavigationMode(location.pathname),
+      pathname: location.pathname,
+    }))
+  const navigationMode =
+    navigationModeState.pathname === location.pathname
+      ? navigationModeState.mode
+      : (getSidebarNavigationModeFromPath(location.pathname) ??
+        navigationModeState.mode)
   const user = useSelector((state: RootState) => state.auth.user)
   const { requestLogin } = useAuthDialog()
   const isLoggedIn = Boolean(user)
@@ -98,6 +124,17 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
     dispatch(resetAccess())
     dispatch(logout())
     navigate("/home", { replace: true })
+  }
+
+  useEffect(() => {
+    storeSidebarNavigationMode(navigationMode)
+  }, [navigationMode])
+
+  const setNavigationMode = (mode: SidebarNavigationMode) => {
+    setNavigationModeState({
+      mode,
+      pathname: location.pathname,
+    })
   }
 
   const openRenameDialog = (conversation: { id: string; title: string }) => {
@@ -486,6 +523,65 @@ function AgentChatShellContent({ children }: AgentChatShellProps) {
 
 function isAnyRouteActive(pathname: string, paths: readonly string[]) {
   return paths.some((path) => isAgentChatRouteActive(pathname, path))
+function getInitialSidebarNavigationMode(
+  pathname: string
+): SidebarNavigationMode {
+  return (
+    getSidebarNavigationModeFromPath(pathname) ??
+    getStoredSidebarNavigationMode() ??
+    "chat"
+  )
+}
+
+function getSidebarNavigationModeFromPath(
+  pathname: string
+): SidebarNavigationMode | null {
+  if (isAnyRouteActive(pathname, CHAT_NAVIGATION_ROUTE_PATHS)) {
+    return "chat"
+  }
+  if (isAnyRouteActive(pathname, AMBIGUOUS_NAVIGATION_ROUTE_PATHS)) {
+    return null
+  }
+  if (
+    webNavigationSections.some((section) =>
+      section.items.some(
+        (item) =>
+          item.id !== "home" &&
+          (item.matcher
+            ? item.matcher(pathname)
+            : isAgentChatRouteActive(pathname, item.path))
+      )
+    )
+  ) {
+    return "training"
+  }
+
+  return null
+}
+
+function getStoredSidebarNavigationMode(): SidebarNavigationMode | null {
+  if (typeof window === "undefined") return null
+
+  let mode: string | null = null
+  try {
+    mode = window.sessionStorage.getItem(SIDEBAR_NAVIGATION_MODE_STORAGE_KEY)
+  } catch {
+    return null
+  }
+
+  return mode === "chat" || mode === "training" ? mode : null
+}
+
+function storeSidebarNavigationMode(mode: SidebarNavigationMode) {
+  if (typeof window === "undefined") return
+
+  try {
+    window.sessionStorage.setItem(SIDEBAR_NAVIGATION_MODE_STORAGE_KEY, mode)
+  } catch {
+    // Ignore storage failures; route-based tab restoration still works.
+  }
+}
+
 }
 
 function isAgentChatRouteActive(pathname: string, path: string) {
@@ -495,6 +591,9 @@ function isAgentChatRouteActive(pathname: string, path: string) {
       pathname === "/commerce" ||
       pathname.startsWith("/commerce/") ||
       pathname === "/agent"
+  if (path === "/workspaces") {
+    return isWorkspacesRoute(pathname)
+  }
     )
   }
 
@@ -532,7 +631,7 @@ function getRouteTitleKey(pathname: string) {
   if (pathname === "/approvals") {
     return "agentChat.shell.navigation.approvals"
   }
-  if (pathname === "/workspaces") {
+  if (isWorkspacesRoute(pathname)) {
     return "agentChat.shell.navigation.taskBoard"
   }
   if (pathname === "/profile") {
@@ -572,11 +671,15 @@ function getRouteDescriptionKey(pathname: string) {
   if (pathname === "/approvals") {
     return "commerce.pages.approvals.description"
   }
-  if (pathname === "/workspaces") {
+  if (isWorkspacesRoute(pathname)) {
     return "commerce.pages.workspaces.description"
   }
   return null
 }
+  if (isWorkspacesRoute(pathname)) {
+    return true
+  }
+
 
 function isCommercePageLayoutRoute(pathname: string) {
   return [
@@ -592,6 +695,10 @@ function isCommercePageLayoutRoute(pathname: string) {
     "/operations",
   ].some((path) => isAgentChatRouteActive(pathname, path))
 }
+  if (isWorkspacesRoute(pathname)) {
+    return true
+  }
+
 
 function isDocumentPageSurfaceRoute(pathname: string) {
   return [
@@ -607,6 +714,10 @@ function isDocumentPageSurfaceRoute(pathname: string) {
     "/operations",
     "/agent-output",
   ].some((path) => isAgentChatRouteActive(pathname, path))
+function isWorkspacesRoute(pathname: string) {
+  return pathname === "/workspaces" || pathname.startsWith("/workspaces/")
+}
+
 }
 
 function SidebarNavigationModeTabs({

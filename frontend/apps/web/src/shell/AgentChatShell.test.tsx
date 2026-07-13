@@ -28,6 +28,9 @@ const authDialogState = vi.hoisted(() => ({
   requestLogin: vi.fn(),
 }))
 
+const SIDEBAR_NAVIGATION_MODE_STORAGE_KEY =
+  "agentChat.sidebar.navigationMode"
+
 vi.mock("@/pages/site/agent-chat/use-agent-chat-page", () => ({
   useAgentChatPage: () =>
     ({
@@ -63,6 +66,7 @@ describe("AgentChatShell", () => {
     chatState.startNewConversation.mockClear()
     chatState.selectConversation.mockClear()
     authDialogState.requestLogin.mockClear()
+    window.sessionStorage.removeItem(SIDEBAR_NAVIGATION_MODE_STORAGE_KEY)
     Object.defineProperty(window, "matchMedia", {
       configurable: true,
       value: vi.fn().mockImplementation((query: string) => ({
@@ -326,6 +330,66 @@ describe("AgentChatShell", () => {
     expect(
       screen.getByRole("button", {
         name: i18n.t("web.shell.navigation.approvals"),
+      })
+    ).toBeInTheDocument()
+  }, 15000)
+
+  it("opens the training navigation tab when refreshing a training route", async () => {
+    const i18n = await createAgentChatTestI18n()
+
+    render(
+      <TestProviders i18n={i18n} initialEntries={["/workspaces/workspace-1"]}>
+        <AgentChatShell>
+          <main>Workspace detail content</main>
+        </AgentChatShell>
+      </TestProviders>
+    )
+
+    expect(
+      screen.getByRole("button", {
+        name: i18n.t("agentChat.shell.tabs.training"),
+      })
+    ).toHaveAttribute("aria-pressed", "true")
+    expect(
+      screen.queryByRole("button", {
+        name: i18n.t("agentChat.sidebar.newChat"),
+      })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole("button", {
+        name: i18n.t("web.shell.navigation.workspaces"),
+      })
+    ).toBeInTheDocument()
+  }, 15000)
+
+  it("restores the training navigation tab on refresh for shared routes", async () => {
+    const i18n = await createAgentChatTestI18n()
+    window.sessionStorage.setItem(
+      SIDEBAR_NAVIGATION_MODE_STORAGE_KEY,
+      "training"
+    )
+
+    render(
+      <TestProviders i18n={i18n} initialEntries={["/products"]}>
+        <AgentChatShell>
+          <main>Products content</main>
+        </AgentChatShell>
+      </TestProviders>
+    )
+
+    expect(
+      screen.getByRole("button", {
+        name: i18n.t("agentChat.shell.tabs.training"),
+      })
+    ).toHaveAttribute("aria-pressed", "true")
+    expect(
+      screen.queryByRole("button", {
+        name: i18n.t("agentChat.sidebar.newChat"),
+      })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole("button", {
+        name: i18n.t("web.shell.navigation.products"),
       })
     ).toBeInTheDocument()
   }, 15000)
