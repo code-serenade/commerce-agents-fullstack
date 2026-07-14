@@ -50,4 +50,4 @@ services:
     depends_on:
       - backend
     ports:
-      - "${ADMIN_PORT:-8081}:80"
+      - "${ADMIN_PORT:-29203}:80"

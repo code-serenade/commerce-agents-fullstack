@@ -43,4 +43,4 @@ compose up -d
 
 echo "安装完成"
 echo "Web:   http://localhost:${WEB_PORT:-8080}"
-echo "Admin: http://localhost:${ADMIN_PORT:-8081}"
+echo "Admin: http://localhost:${ADMIN_PORT:-29203}"
