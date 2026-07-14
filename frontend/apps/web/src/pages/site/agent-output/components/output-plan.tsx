@@ -12,7 +12,7 @@ export function OutputPlan({ actions, steps }: OutputPlanProps) {
 
   return (
     <section className="grid gap-4 xl:grid-cols-[1fr_20rem]">
-      <div className="rounded-lg border border-(--app-border) bg-(--app-surface) p-5">
+      <div className="rounded-lg border border-(--document-card-border) bg-(image:--document-card-background) p-5 shadow-(--document-card-shadow) backdrop-blur-md">
         <div className="mb-5">
           <p className="text-sm font-medium text-(--app-muted-text)">
             {t("agentOutput.plan.eyebrow")}
@@ -25,7 +25,7 @@ export function OutputPlan({ actions, steps }: OutputPlanProps) {
           {steps.map((step, index) => (
             <article
               key={step.title}
-              className="rounded-lg border border-(--app-border) bg-(--app-bg) p-4"
+              className="rounded-lg border border-(--document-card-border) bg-muted/35 p-4"
             >
               <div className="flex items-start gap-3">
                 <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-(--app-active-bg) text-sm font-semibold text-(--app-active-text)">
@@ -48,7 +48,7 @@ export function OutputPlan({ actions, steps }: OutputPlanProps) {
         </div>
       </div>
 
-      <aside className="rounded-lg border border-(--app-border) bg-(--app-surface) p-5">
+      <aside className="rounded-lg border border-(--document-card-border) bg-(image:--document-card-background) p-5 shadow-(--document-card-shadow) backdrop-blur-md">
         <p className="text-sm font-medium text-(--app-muted-text)">
           {t("agentOutput.plan.actionsTitle")}
         </p>

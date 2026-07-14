@@ -19,11 +19,13 @@ export function AgentChatThreadMessage({
   errorRetryPrompt,
   message,
   onExamplePromptSelect,
+  onNextActionPromptSubmit,
   previousUserContent,
 }: {
   errorRetryPrompt?: string
   message: AgentChatMessage
   onExamplePromptSelect?: (prompt: string) => void
+  onNextActionPromptSubmit?: (prompt: string) => void
   previousUserContent?: string
 }) {
   const { t } = useTranslation()
@@ -40,10 +42,12 @@ export function AgentChatThreadMessage({
       : t("agentChat.thread.assistantAvatar.ariaLabelReady")
 
   return (
-    <article className={`flex gap-3 ${isUser ? "justify-end" : "justify-start"}`}>
+    <article
+      className={`flex gap-3 ${isUser ? "justify-end" : "justify-start"}`}
+    >
       {!isUser ? (
         <div
-          className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-card text-foreground"
+          className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-(--agent-chat-strong-border) bg-(--agent-chat-elevated-strong) text-foreground shadow-[var(--agent-chat-avatar-shadow)]"
           aria-label={assistantAvatarLabel}
           title={t("agentChat.thread.assistantAvatar.title")}
         >
@@ -54,11 +58,15 @@ export function AgentChatThreadMessage({
           />
         </div>
       ) : null}
-      <div className="flex max-w-[min(43rem,88%)] min-w-0 flex-col items-end">
+      <div
+        className={`flex w-full max-w-[min(45rem,88%)] min-w-0 flex-col ${
+          isUser ? "items-end" : "items-start"
+        }`}
+      >
         <div
           className={`min-w-0 text-sm/6 ${
             isUser
-              ? "rounded-2xl bg-foreground px-4 py-3 text-background"
+              ? "rounded-2xl bg-(--agent-chat-user-message-background) px-4 py-3 text-(--agent-chat-user-message-foreground) shadow-[var(--agent-chat-button-shadow)]"
               : "text-foreground"
           }`}
         >
@@ -74,9 +82,7 @@ export function AgentChatThreadMessage({
           ) : message.content ? (
             <AssistantAnswer content={message.content} />
           ) : (
-            <p className="text-muted-foreground">
-              {t("agentChat.streaming")}
-            </p>
+            <p className="text-muted-foreground">{t("agentChat.streaming")}</p>
           )}
           {message.status === "streaming" && !message.content ? (
             <AgentProgressCard content={message.content} />
@@ -94,7 +100,7 @@ export function AgentChatThreadMessage({
           {shouldShowStudentNextActions(message) ? (
             <StudentNextActions
               message={message}
-              onSelectPrompt={onExamplePromptSelect}
+              onSelectPrompt={onNextActionPromptSubmit}
               previousUserContent={previousUserContent}
             />
           ) : null}
@@ -104,7 +110,7 @@ export function AgentChatThreadMessage({
         ) : null}
       </div>
       {isUser ? (
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-card text-muted-foreground">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-(--agent-chat-strong-border) bg-(--agent-chat-elevated-strong) text-muted-foreground shadow-[var(--agent-chat-avatar-shadow)]">
           <UserRound className="size-5" />
         </div>
       ) : null}

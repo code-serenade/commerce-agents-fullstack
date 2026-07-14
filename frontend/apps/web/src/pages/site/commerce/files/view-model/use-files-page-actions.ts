@@ -22,7 +22,9 @@ export function useFilesPageActions({
   isLoggedIn: boolean
   isStreaming: boolean
   refreshFileViews: () => Promise<void>
-  removeSourcesByObjects: (objects: Array<{ bucket: string; objectKey: string }>) => void
+  removeSourcesByObjects: (
+    objects: Array<{ bucket: string; objectKey: string }>
+  ) => void
   selectedFiles: TrainingFileItem[]
   setSelectedFileIds: (updater: (current: string[]) => string[]) => void
   toggleSourceContext: (source: AgentChatSourceContextSelection) => void
@@ -32,10 +34,7 @@ export function useFilesPageActions({
   const [uploading, setUploading] = useState(false)
   const [usingFileIds, setUsingFileIds] = useState<string[]>([])
   const usingFileIdsRef = useRef(new Set<string>())
-  const usingFileIdSet = useMemo(
-    () => new Set(usingFileIds),
-    [usingFileIds]
-  )
+  const usingFileIdSet = useMemo(() => new Set(usingFileIds), [usingFileIds])
 
   const setFileUsing = useCallback((fileId: string, using: boolean) => {
     const next = new Set(usingFileIdsRef.current)
@@ -51,7 +50,7 @@ export function useFilesPageActions({
 
   const uploadFiles = useCallback(
     async (files: File[]) => {
-      if (!files.length || uploading || isStreaming || !isLoggedIn) return
+      if (!files.length || uploading || !isLoggedIn) return
       setUploading(true)
       try {
         await uploadAttachments(files)
@@ -60,7 +59,7 @@ export function useFilesPageActions({
         setUploading(false)
       }
     },
-    [isLoggedIn, isStreaming, refreshFileViews, uploadAttachments, uploading]
+    [isLoggedIn, refreshFileViews, uploadAttachments, uploading]
   )
 
   const handleUploadChange = useCallback(

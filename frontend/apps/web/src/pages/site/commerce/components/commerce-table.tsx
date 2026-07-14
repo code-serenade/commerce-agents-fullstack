@@ -128,7 +128,7 @@ function getHeadClassName(sticky: CommerceColumn<unknown>["sticky"]) {
 
 function getCellClassName(sticky: CommerceColumn<unknown>["sticky"]) {
   return cx(
-    "whitespace-nowrap p-2 align-middle",
+    "whitespace-normal p-2 align-top wrap-anywhere",
     sticky ? getStickyCellClassName(sticky, "cell") : undefined
   )
 }

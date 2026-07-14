@@ -20,5 +20,6 @@ export interface AuthRegisterPageProps {
   brandLogo?: ReactNode
   extraFields?: AuthRegisterExtraFieldDefinition[]
   loginPath?: string
+  variant?: "split" | "minimal"
   onRegistered?: (values: AuthRegisterCompletedValues) => void | Promise<void>
 }

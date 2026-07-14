@@ -18,6 +18,8 @@ import type { SendAgentChatMessageInput } from "./agent-chat-send-message-types"
 import { hasDisplayableAnswer, isAbortLikeStreamError } from "./agent-chat-stream-errors"
 import { formatStreamErrorMessage } from "./agent-chat-stream-error-message"
 
+const STREAM_MESSAGE_FLUSH_INTERVAL_MS = 50
+
 export async function sendAgentChatMessage(
   input: SendAgentChatMessageInput
 ): Promise<AbortController | null> {
@@ -85,7 +87,39 @@ export async function sendAgentChatMessage(
   let assistantDone = false
   let assistantMessageSaved = false
   let activeConversationId = input.conversationId
+  let pendingAssistantFlush: ReturnType<typeof setTimeout> | null = null
   const runtimeEvents: AgentRuntimeEvent[] = []
+
+  function renderAssistantContent() {
+    return formatAgentUiMessage(assistantContent, input.messageFormatCopy)
+  }
+
+  function setAssistantContent(content: string) {
+    input.setMessages((current) =>
+      current.map((message) =>
+        message.id === assistantId ? { ...message, content } : message
+      )
+    )
+  }
+
+  function cancelAssistantFlush() {
+    if (!pendingAssistantFlush) return
+    clearTimeout(pendingAssistantFlush)
+    pendingAssistantFlush = null
+  }
+
+  function flushAssistantContent() {
+    cancelAssistantFlush()
+    setAssistantContent(renderAssistantContent())
+  }
+
+  function scheduleAssistantFlush() {
+    if (pendingAssistantFlush) return
+    pendingAssistantFlush = setTimeout(() => {
+      pendingAssistantFlush = null
+      setAssistantContent(renderAssistantContent())
+    }, STREAM_MESSAGE_FLUSH_INTERVAL_MS)
+  }
 
   async function saveAssistantIfReady(content: string) {
     if (!activeConversationId || !content || assistantMessageSaved) return
@@ -105,6 +139,7 @@ export async function sendAgentChatMessage(
       })
       activeConversationId = detail.conversation.id
       input.setConversationId(activeConversationId)
+      input.onConversationCreated?.(activeConversationId)
       input.setConversations((current) => [
         mapConversationItem(detail.conversation, input.fallbackConversationTitle),
         ...current.filter((item) => item.id !== detail.conversation.id),
@@ -154,17 +189,7 @@ export async function sendAgentChatMessage(
         signal: controller.signal,
         onDelta: (chunk) => {
           assistantContent += chunk
-          const displayContent = formatAgentUiMessage(
-            assistantContent,
-            input.messageFormatCopy
-          )
-          input.setMessages((current) =>
-            current.map((message) =>
-              message.id === assistantId
-                ? { ...message, content: displayContent }
-                : message
-            )
-          )
+          scheduleAssistantFlush()
         },
         onAgentEvent: (event) => {
           runtimeEvents.push(event)
@@ -185,11 +210,9 @@ export async function sendAgentChatMessage(
         onDone: () => {
           if (assistantDone) return
           assistantDone = true
+          cancelAssistantFlush()
           input.setRuntimeEvents([...runtimeEvents])
-          const displayContent = formatAgentUiMessage(
-            assistantContent,
-            input.messageFormatCopy
-          )
+          const displayContent = renderAssistantContent()
           replaceAssistantAnswerComplete({
             assistantId,
             content: displayContent,
@@ -199,14 +222,12 @@ export async function sendAgentChatMessage(
           input.setIsStreaming(false)
         },
         onError: (message) => {
+          cancelAssistantFlush()
           if (assistantDone) {
             input.setIsStreaming(false)
             return
           }
-          const displayContent = formatAgentUiMessage(
-            assistantContent,
-            input.messageFormatCopy
-          )
+          const displayContent = renderAssistantContent()
           if (
             hasDisplayableAnswer(displayContent) &&
             isAbortLikeStreamError(message)
@@ -239,20 +260,18 @@ export async function sendAgentChatMessage(
         },
       }
     )
-    const finalAssistantContent = formatAgentUiMessage(
-      assistantContent,
-      input.messageFormatCopy
-    )
+    if (pendingAssistantFlush) {
+      flushAssistantContent()
+    }
+    const finalAssistantContent = renderAssistantContent()
     await saveAssistantIfReady(finalAssistantContent)
     input.setIsStreaming(false)
   } catch (err) {
+    cancelAssistantFlush()
     if (controller.signal.aborted) return null
     if (assistantDone) {
       input.setIsStreaming(false)
-      const displayContent = formatAgentUiMessage(
-        assistantContent,
-        input.messageFormatCopy
-      )
+      const displayContent = renderAssistantContent()
       try {
         await saveAssistantIfReady(displayContent)
       } catch {
@@ -261,10 +280,7 @@ export async function sendAgentChatMessage(
       return controller
     }
     input.setIsStreaming(false)
-    const displayContent = formatAgentUiMessage(
-      assistantContent,
-      input.messageFormatCopy
-    )
+    const displayContent = renderAssistantContent()
     if (hasDisplayableAnswer(displayContent) && isAbortLikeStreamError(err)) {
       input.setRuntimeEvents([...runtimeEvents])
       markAssistantAnswerComplete({

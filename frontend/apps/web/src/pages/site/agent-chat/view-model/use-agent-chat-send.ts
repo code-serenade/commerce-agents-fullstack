@@ -26,6 +26,7 @@ export function useAgentChatSend(input: {
   isStreaming: boolean
   loginRequiredMessage: string
   messageFormatCopy: AgentChatMessageFormatCopy
+  onConversationCreated?: (conversationId: string) => void
   runtimeSelection: AgentChatRuntimeSelection
   selectedCampaigns: AgentChatCampaignContextSelection[]
   selectedProducts: AgentChatProductContextSelection[]
@@ -51,6 +52,7 @@ export function useAgentChatSend(input: {
     isStreaming,
     loginRequiredMessage,
     messageFormatCopy,
+    onConversationCreated,
     runtimeSelection,
     selectedCampaigns,
     selectedProducts,
@@ -83,6 +85,7 @@ export function useAgentChatSend(input: {
       onController: (controller) => {
         abortRef.current = controller
       },
+      onConversationCreated,
       attachments,
       runtimeSelection,
       selectedCampaigns,
@@ -113,6 +116,7 @@ export function useAgentChatSend(input: {
     isStreaming,
     loginRequiredMessage,
     messageFormatCopy,
+    onConversationCreated,
     runtimeSelection,
     selectedCampaigns,
     selectedProducts,

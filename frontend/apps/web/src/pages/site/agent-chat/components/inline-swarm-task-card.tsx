@@ -59,8 +59,8 @@ export function InlineSwarmTaskCard({
   const open = manualOpen ?? isStreaming
   const agents = getWorkbenchAgents(runtimeEvents, isStreaming, t)
   const steps = getInlineSteps(runtimeEvents, isStreaming, t)
-  const completedCount = agents.filter((agent) =>
-    agent.state === "done" || agent.state === "boundary"
+  const completedCount = agents.filter(
+    (agent) => agent.state === "done" || agent.state === "boundary"
   ).length
   const hasRuntime = runtimeEvents.length > 0
   const hasFailedAgent = agents.some((agent) => agent.state === "failed")
@@ -75,7 +75,9 @@ export function InlineSwarmTaskCard({
     },
     t
   )
-  const processSummary = getAgentProcessSummary(runtimeEvents, task, t)
+  const processSummary = hasRuntime
+    ? getAgentProcessSummary(runtimeEvents, task, t)
+    : t("agentChat.thread.processKinds.waiting.summary")
   const processTitle = hasRuntime
     ? getAgentProcessTitle(runtimeEvents, t)
     : t("agentChat.thread.processKinds.waiting.title")
@@ -85,27 +87,32 @@ export function InlineSwarmTaskCard({
   const processLabel = hasRuntime
     ? processProgress.label
     : t("agentChat.thread.processKinds.waiting.progress")
-  const processDetail = hasRuntime
-    ? processSummary
-    : t("agentChat.thread.processKinds.waiting.summary")
-  const showAgentGrid = agents.length > 0
+  const handleProcessPanelToggle = processPanelOpen
+    ? onCloseProcessPanel
+    : onOpenProcessPanel
   const dispatchFacts = getDispatchFacts(runtimeEvents, t)
-  const roleActivities = showAgentGrid ? getAgentRoleActivities(agents, t) : []
-
+  const roleActivities =
+    agents.length > 0 ? getAgentRoleActivities(agents, t) : []
   return (
-    <article className="flex justify-start gap-3" data-process-message-id={messageId}>
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-card text-primary">
+    <article
+      className="flex justify-start gap-3"
+      data-process-message-id={messageId}
+    >
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) text-primary">
         <GitBranch className="size-5" />
       </div>
-      <div className="max-w-[min(43rem,92%)] min-w-0 space-y-3">
+      <div
+        className="w-full max-w-[min(43rem,92%)] min-w-0 space-y-3"
+        data-agent-process-card-frame="true"
+      >
         <div
-          className={`rounded-lg border p-3 shadow-sm dark:bg-card ${
+          className={`min-w-0 rounded-2xl border bg-(--agent-chat-elevated-surface) bg-(image:--agent-chat-card-background) p-3 shadow-(--agent-chat-card-shadow) backdrop-blur-xl ${
             processPanelOpen
-              ? "border-primary/60 bg-primary/5 ring-1 ring-primary/25"
-              : "border-border bg-card"
+              ? "border-primary/60 ring-1 ring-primary/25"
+              : "border-(--agent-chat-soft-border)"
           }`}
         >
-          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 text-sm font-semibold">
                 <Activity className="size-4 text-primary" />
@@ -122,16 +129,9 @@ export function InlineSwarmTaskCard({
                   </span>
                 ) : null}
               </div>
-              <p className="mt-1.5 line-clamp-1 text-xs/5 text-muted-foreground">
-                {processDetail}
+              <p className="mt-1.5 text-xs/5 text-muted-foreground">
+                {processSummary}
               </p>
-              {roleActivities.length > 0 ? (
-                <InlineRoleParticipantStrip
-                  animatePortraits={isStreaming}
-                  activities={roleActivities}
-                  label={t("agentChat.thread.roleClusterActivity.participants")}
-                />
-              ) : null}
             </div>
             <div className="flex shrink-0 flex-wrap items-center justify-start gap-2 sm:justify-end">
               <InlineRuntimeBadge
@@ -141,11 +141,11 @@ export function InlineSwarmTaskCard({
               {showProcessPanelAction ? (
                 <button
                   type="button"
-                  onClick={processPanelOpen ? onCloseProcessPanel : onOpenProcessPanel}
-                  className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border px-3 text-sm font-medium shadow-sm transition-colors ${
+                  onClick={handleProcessPanelToggle}
+                  className={`inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium shadow-sm transition-colors ${
                     processPanelOpen
                       ? "border-primary/60 bg-primary/10 text-primary"
-                      : "border-primary/30 bg-background text-foreground hover:border-primary/60 hover:bg-primary/5 hover:text-primary"
+                      : "border-primary/30 bg-(--agent-chat-elevated-strong) text-foreground hover:border-primary/60 hover:bg-(--agent-chat-accent-soft) hover:text-primary"
                   }`}
                   aria-pressed={processPanelOpen}
                   aria-label={
@@ -156,9 +156,9 @@ export function InlineSwarmTaskCard({
                   title={t("agentChat.thread.processLinkedToAnswer")}
                 >
                   {processPanelOpen ? (
-                    <PanelRightClose className="size-4" />
+                    <PanelRightClose className="size-3.5" />
                   ) : (
-                    <PanelRight className="size-4" />
+                    <PanelRight className="size-3.5" />
                   )}
                   <span>
                     {processPanelOpen
@@ -169,8 +169,10 @@ export function InlineSwarmTaskCard({
               ) : null}
               <button
                 type="button"
-                onClick={() => setManualOpen((current) => !(current ?? isStreaming))}
-                className="flex size-7 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                onClick={() =>
+                  setManualOpen((current) => !(current ?? isStreaming))
+                }
+                className="flex size-8 cursor-pointer items-center justify-center rounded-lg border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) text-muted-foreground transition-colors hover:bg-(--agent-chat-accent-soft) hover:text-foreground"
                 aria-expanded={open}
                 title={
                   open
@@ -183,11 +185,23 @@ export function InlineSwarmTaskCard({
                 />
               </button>
             </div>
+            {roleActivities.length > 0 ? (
+              <div className="min-w-0 sm:col-span-2">
+                <InlineRoleParticipantStrip
+                  animatePortraits={isStreaming}
+                  activities={roleActivities}
+                  label={t("agentChat.thread.roleClusterActivity.participants")}
+                />
+              </div>
+            ) : null}
           </div>
           {open ? (
-            <div className="mt-2 max-h-[min(24rem,46vh)] overflow-y-auto pr-1 [scrollbar-gutter:stable]">
-              <div className="mt-2 grid gap-2">
-                {showAgentGrid ? (
+            <div
+              className="mt-3 grid max-h-[calc(var(--agent-chat-thread-viewport-height,70vh)-8rem)] gap-2 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]"
+              data-agent-process-expanded-content="true"
+            >
+              <div className="grid gap-2">
+                {agents.length > 0 ? (
                   <AgentRoleClusterPanel
                     agents={agents}
                     animatePortraits={isStreaming}
@@ -202,7 +216,7 @@ export function InlineSwarmTaskCard({
                   runtimeEvents={runtimeEvents}
                   totalCount={processProgress.total}
                 />
-                {showAgentGrid ? (
+                {agents.length > 0 ? (
                   <>
                     <InlineAgentGrid agents={agents} compact={isComplete} />
                     <InlineDispatchFactGrid facts={dispatchFacts} />
@@ -225,7 +239,7 @@ export function InlineSwarmTaskCard({
                   return (
                     <div
                       key={`${index}-${item.label}`}
-                      className="flex min-w-0 items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-xs text-muted-foreground"
+                      className="flex min-w-0 items-center gap-2 rounded-lg border border-(--agent-chat-soft-border) bg-(--agent-chat-subtle-surface) px-3 py-2 text-xs text-muted-foreground"
                     >
                       <Icon className="size-3.5 shrink-0" />
                       <span className="shrink-0 font-medium text-foreground">

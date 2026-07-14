@@ -8,12 +8,14 @@ import { OptionSegment } from "./agent-chat-runtime-shared"
 export interface AgentChatStrategyBarProps {
   disabled: boolean
   onStrategyChange: (strategyId: AgentChatStrategyId) => void
+  size?: "default" | "compact"
   strategyId: AgentChatStrategyId
 }
 
 export function AgentChatStrategyBar({
   disabled,
   onStrategyChange,
+  size = "default",
   strategyId,
 }: AgentChatStrategyBarProps) {
   const { t } = useTranslation()
@@ -28,6 +30,7 @@ export function AgentChatStrategyBar({
         label: t(strategy.labelKey),
         value: strategy.id,
       }))}
+      size={size}
       value={strategyId}
     />
   )

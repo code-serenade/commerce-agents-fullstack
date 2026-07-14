@@ -12,6 +12,8 @@ export function AgentChatComposerInput({
   onInputChange,
   onSend,
   onStop,
+  placeholder,
+  size = "default",
   fileInputRef,
   textareaRef,
 }: {
@@ -23,6 +25,8 @@ export function AgentChatComposerInput({
   onInputChange: (value: string) => void
   onSend: () => void
   onStop: () => void
+  placeholder?: string
+  size?: "default" | "welcome"
   fileInputRef: RefObject<HTMLInputElement | null>
   textareaRef: RefObject<HTMLTextAreaElement | null>
 }) {
@@ -48,22 +52,35 @@ export function AgentChatComposerInput({
         type="file"
         onChange={onAttachmentChange}
       />
-      <div className="grid min-h-10 grid-cols-1 gap-1 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+      <div
+        className={`grid grid-cols-1 gap-1 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end ${
+          size === "welcome" ? "min-h-18" : "min-h-10"
+        }`}
+      >
         <textarea
           ref={textareaRef}
           value={input}
           onChange={(event) => onInputChange(event.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={t(
-            !isLoggedIn
-              ? "agentChat.composer.loginPlaceholder"
-              : "agentChat.composer.placeholder"
-          )}
+          placeholder={
+            placeholder ??
+            t(
+              !isLoggedIn
+                ? "agentChat.composer.loginPlaceholder"
+                : "agentChat.composer.placeholder"
+            )
+          }
           disabled={isStreaming}
           rows={1}
-          className="max-h-44 min-h-10 w-full resize-none border-0 bg-transparent px-3 py-2 text-sm/6 outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-60"
+          className={`max-h-44 w-full resize-none border-0 bg-transparent px-3 text-sm/6 text-foreground outline-none placeholder:text-(--agent-chat-placeholder) disabled:cursor-not-allowed disabled:opacity-60 ${
+            size === "welcome" ? "min-h-18 py-3" : "min-h-10 py-2"
+          }`}
         />
-        <div className="hidden min-h-10 items-center sm:flex">
+        <div
+          className={`hidden items-center sm:flex ${
+            size === "welcome" ? "min-h-18" : "min-h-10"
+          }`}
+        >
           <AgentChatComposerSendButton
             canSend={canSend}
             isLoggedIn={isLoggedIn}

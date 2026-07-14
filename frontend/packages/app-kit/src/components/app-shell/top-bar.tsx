@@ -20,8 +20,8 @@ export function TopBar({
   const { t } = useTranslation("components")
 
   return (
-    <header className="sticky top-0 z-30 w-full min-w-0 shrink-0 bg-[var(--surface)] text-[var(--surface-foreground)]">
-      <div className="flex min-w-0 items-center justify-between gap-4 px-4 py-1">
+    <header className="sticky top-0 z-30 w-full min-w-0 shrink-0 border-b border-border/55 bg-(--shell-topbar-background) text-(--surface-foreground) shadow-[var(--shell-topbar-shadow)] backdrop-blur-xl">
+      <div className="flex min-h-16 min-w-0 items-center justify-between gap-4 px-6 py-3">
         <div className="flex min-w-0 items-center gap-3">
           {showSidebarTrigger ? (
             <SidebarTrigger ariaLabel={t("header.common.toggleSidebar")} />

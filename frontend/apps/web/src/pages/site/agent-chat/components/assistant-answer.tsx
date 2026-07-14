@@ -117,7 +117,7 @@ function HeadingBlock({
         }`}
       >
         {headingLabel ? (
-          <span className="shrink-0 rounded-full border border-border bg-background px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+          <span className="shrink-0 rounded-full border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) px-2 py-0.5 text-[11px] font-medium text-(--agent-chat-accent-foreground)">
             {headingLabel}
           </span>
         ) : null}
@@ -170,7 +170,7 @@ function TableBlock({
   block: Extract<AssistantAnswerBlock, { kind: "table" }>
 }) {
   return (
-    <div className="max-w-full overflow-x-auto rounded-lg border border-foreground/40 bg-background shadow-sm ring-1 ring-foreground/15 [&_table]:border-collapse [&_tbody_tr:nth-child(even)]:bg-muted/30 [&_td]:border [&_td]:border-foreground/20 [&_td]:px-3 [&_td]:py-2.5 [&_td]:align-top [&_th]:border [&_th]:border-foreground/25 [&_th]:bg-muted [&_th]:px-3 [&_th]:py-2.5 [&_th]:font-semibold [&_th]:text-foreground [&_thead]:border-b [&_thead]:border-foreground/30">
+    <div className="max-w-full overflow-x-auto rounded-2xl border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) shadow-[var(--agent-chat-card-shadow)] backdrop-blur-xl [&_table]:border-separate [&_table]:border-spacing-0 [&_tbody_tr:last-child_td]:border-b-0 [&_tbody_tr:nth-child(even)]:bg-(--agent-chat-subtle-surface) [&_td]:border-r [&_td]:border-b [&_td]:border-(--agent-chat-soft-border) [&_td]:px-4 [&_td]:py-3.5 [&_td]:align-top [&_td]:text-sm/7 [&_td:last-child]:border-r-0 [&_th]:border-r [&_th]:border-b [&_th]:border-(--agent-chat-soft-border) [&_th]:bg-(--agent-chat-accent-soft) [&_th]:px-4 [&_th]:py-3 [&_th]:text-left [&_th]:text-sm/6 [&_th]:font-semibold [&_th]:text-(--agent-chat-accent-foreground) [&_th:first-child]:rounded-tl-2xl [&_th:last-child]:rounded-tr-2xl [&_th:last-child]:border-r-0">
       <Table>
         <TableHeader>
           <TableRow>
@@ -207,7 +207,7 @@ function resolveSectionTone(text: string) {
     return "rounded-lg border border-border bg-muted/35 px-3 py-2 text-foreground"
   }
   if (/^(可直接使用内容|可直接使用|直接可用|交付内容|主岗汇总方案|主岗综合方案|团队执行稿|丰富执行方案)/.test(text)) {
-    return "rounded-lg border border-foreground/15 bg-card px-3 py-2"
+    return "rounded-xl border border-(--agent-chat-soft-border) bg-(--agent-chat-subtle-surface) px-3 py-2 shadow-none [&_h3]:border-l-2 [&_h3]:border-primary/50 [&_h3]:pl-2"
   }
   if (/^(简短原因|原因|为什么|教学讲解|执行清单|下一步|交付物|可沉淀交付物)/.test(text)) {
     return "border-l-2 border-primary/40 pl-3"

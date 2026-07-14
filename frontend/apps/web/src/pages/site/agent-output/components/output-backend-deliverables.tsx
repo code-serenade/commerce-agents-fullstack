@@ -1,4 +1,4 @@
-import { Copy, Download, RefreshCcw } from "lucide-react"
+import { Copy, Download, FileText, RefreshCcw } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Button, NativeSelect } from "@workspace/ui-components"
 import {
@@ -55,16 +55,16 @@ export function OutputBackendDeliverables({
   }
 
   return (
-    <section className="rounded-lg border border-(--app-border) bg-(--app-surface)">
-      <div className="flex min-w-0 flex-col gap-3 border-b border-(--app-border) p-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
-          <p className="text-xs font-medium tracking-normal text-muted-foreground">
+    <section className="overflow-hidden rounded-lg border border-(--document-intro-card-border) bg-(image:--document-intro-card-background) shadow-(--document-intro-card-shadow) backdrop-blur-md">
+      <div className="flex min-w-0 flex-col gap-3 border-b border-(--document-intro-card-border) p-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 space-y-1">
+          <p className="text-xs font-semibold tracking-normal text-(--app-active-text)">
             {t("agentOutput.backend.eyebrow")}
           </p>
-          <h1 className="mt-1 text-2xl/tight font-semibold text-foreground">
+          <h1 className="text-2xl/tight font-semibold text-foreground">
             {t("agentOutput.backend.title")}
           </h1>
-          <p className="mt-1 max-w-3xl text-sm/6 text-muted-foreground">
+          <p className="max-w-3xl text-sm/6 text-muted-foreground">
             {t("agentOutput.backend.description")}
           </p>
         </div>
@@ -76,10 +76,10 @@ export function OutputBackendDeliverables({
         </div>
       </div>
 
-      <div className="grid gap-4 p-4 xl:grid-cols-[minmax(20rem,0.82fr)_minmax(0,1.18fr)]">
-        <div className="min-w-0 rounded-lg border border-(--app-border) bg-background p-3">
+      <div className="grid gap-4 bg-muted/20 p-4 xl:grid-cols-[minmax(21rem,0.74fr)_minmax(0,1.26fr)]">
+        <div className="min-w-0 overflow-hidden rounded-lg border border-(--document-card-border) bg-(image:--document-card-background) shadow-(--document-card-shadow) backdrop-blur-md">
           <div className="mb-3 flex min-w-0 items-center justify-between gap-2">
-            <div className="min-w-0">
+            <div className="min-w-0 px-3 pt-3">
               <h2 className="truncate text-base font-semibold">
                 {t("agentOutput.backend.listTitle")}
               </h2>
@@ -93,23 +93,29 @@ export function OutputBackendDeliverables({
           </div>
 
           {backend.loading ? (
-            <LoadingState label={t("agentOutput.backend.loading")} />
+            <div className="px-3 pb-3">
+              <LoadingState label={t("agentOutput.backend.loading")} />
+            </div>
           ) : backend.errorMessage ? (
-            <EmptyState
-              title={t("agentOutput.backend.errorTitle")}
-              detail={formatOutputBackendNotice(t, backend.errorMessage)}
-            />
-          ) : backend.deliverables.length ? (
-            <div className="space-y-3">
-              <NativeSelect
-                value={selectedId}
-                options={backend.deliverables.map((artifact) => ({
-                  label: getOutputArtifactDisplay(t, artifact).title,
-                  value: artifact.id,
-                }))}
-                onValueChange={backend.setSelectedArtifactId}
+            <div className="px-3 pb-3">
+              <EmptyState
+                title={t("agentOutput.backend.errorTitle")}
+                detail={formatOutputBackendNotice(t, backend.errorMessage)}
               />
-              <div className="max-h-128 space-y-2 overflow-y-auto pr-1">
+            </div>
+          ) : backend.deliverables.length ? (
+            <div className="space-y-3 px-3 pb-3">
+              <div className="rounded-lg border border-(--document-card-border) bg-muted/35 p-1.5">
+                <NativeSelect
+                  value={selectedId}
+                  options={backend.deliverables.map((artifact) => ({
+                    label: getOutputArtifactDisplay(t, artifact).title,
+                    value: artifact.id,
+                  }))}
+                  onValueChange={backend.setSelectedArtifactId}
+                />
+              </div>
+              <div className="h-[min(41rem,calc(100svh-18rem))] min-h-80 space-y-2 overflow-y-auto pr-1 [scrollbar-gutter:stable]">
                 {backend.deliverables.map((artifact) => {
                   const active = artifact.id === selectedId
                   const display = getOutputArtifactDisplay(t, artifact)
@@ -118,18 +124,31 @@ export function OutputBackendDeliverables({
                     <button
                       key={artifact.id}
                       type="button"
-                      className={`block w-full min-w-0 rounded-lg border px-3 py-2 text-left transition-colors ${
+                      className={`group block w-full min-w-0 rounded-lg border p-3 text-left shadow-sm transition ${
                         active
-                          ? "border-blue-300 bg-blue-50 text-blue-950 dark:border-blue-700 dark:bg-blue-950/35 dark:text-blue-50"
-                          : "border-(--app-border) bg-card hover:bg-muted"
+                          ? "border-primary/45 bg-[color-mix(in_oklch,var(--app-active-bg)_34%,var(--app-surface))] text-foreground shadow-[inset_3px_0_0_var(--app-active-text)]"
+                          : "border-(--document-card-border) bg-muted/30 hover:border-primary/25 hover:bg-(--shell-sidebar-item-hover-background)"
                       }`}
                       onClick={() => backend.setSelectedArtifactId(artifact.id)}
                     >
-                      <span className="block truncate text-sm font-medium">
-                        {display.title}
-                      </span>
-                      <span className="mt-1 block truncate text-xs text-muted-foreground">
-                        {artifact.workspace.title}
+                      <span className="flex min-w-0 items-start gap-2">
+                        <span
+                          className={`mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md border ${
+                            active
+                              ? "border-primary/35 bg-(--app-active-bg) text-(--app-active-text)"
+                              : "border-(--document-card-border) bg-muted/30 text-muted-foreground group-hover:text-foreground"
+                          }`}
+                        >
+                          <FileText className="size-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-semibold">
+                            {display.title}
+                          </span>
+                          <span className="mt-1 block truncate text-xs text-muted-foreground">
+                            {artifact.workspace.title}
+                          </span>
+                        </span>
                       </span>
                       <span className="mt-2 flex flex-wrap items-center gap-2">
                         <StatusBadge tone={toneForStatus(artifact.validationStatus)}>
@@ -145,19 +164,21 @@ export function OutputBackendDeliverables({
               </div>
             </div>
           ) : (
-            <EmptyState
-              title={t("agentOutput.backend.emptyTitle")}
-              detail={t("agentOutput.backend.emptyDescription")}
-            />
+            <div className="px-3 pb-3">
+              <EmptyState
+                title={t("agentOutput.backend.emptyTitle")}
+                detail={t("agentOutput.backend.emptyDescription")}
+              />
+            </div>
           )}
         </div>
 
-        <div className="min-w-0 rounded-lg border border-(--app-border) bg-background p-3">
+        <div className="min-w-0 overflow-hidden rounded-lg border border-(--document-card-border) bg-(image:--document-card-background) shadow-(--document-card-shadow) backdrop-blur-md">
           {selectedArtifact && selectedDisplay ? (
-            <div className="space-y-4">
-              <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <article className="min-w-0">
+              <div className="flex min-w-0 flex-col gap-3 border-b border-(--document-card-border) bg-muted/30 p-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0">
-                  <h2 className="truncate text-lg font-semibold">
+                  <h2 className="truncate text-xl font-semibold text-foreground">
                     {selectedDisplay.title}
                   </h2>
                   <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -196,7 +217,7 @@ export function OutputBackendDeliverables({
                 </div>
               </div>
 
-              <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-2 border-b border-(--document-card-border) bg-muted/25 p-4 text-xs text-muted-foreground sm:grid-cols-2 xl:grid-cols-5">
                 <ArtifactMeta
                   label={t("agentOutput.backend.meta.workspace")}
                   value={selectedArtifact.workspace.title}
@@ -226,24 +247,35 @@ export function OutputBackendDeliverables({
               </div>
 
               {artifactExport?.warnings?.length ? (
-                <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-100">
-                  {artifactExport.warnings
-                    .map((warning) => formatOutputBackendNotice(t, warning))
-                    .join(" / ")}
+                <div className="px-4 pt-4">
+                  <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-100">
+                    {artifactExport.warnings
+                      .map((warning) => formatOutputBackendNotice(t, warning))
+                      .join(" / ")}
+                  </div>
                 </div>
               ) : null}
 
-              <div className="max-h-136 overflow-auto rounded-lg border border-(--app-border) bg-muted/30 p-3">
-                <pre className="wrap-break-word whitespace-pre-wrap text-sm/6 text-foreground">
-                  {content || t("agentOutput.backend.noContent")}
-                </pre>
+              <div className="bg-muted/15 p-4">
+                <div className="min-h-150 max-h-150 overflow-auto rounded-lg border border-(--document-card-border) bg-(image:--document-card-background) shadow-(--document-card-shadow) [scrollbar-gutter:stable]">
+                  <div className="border-b border-(--document-card-border) px-5 py-3">
+                    <p className="text-xs font-semibold text-muted-foreground">
+                      {selectedDisplay.format}
+                    </p>
+                  </div>
+                  <div className="wrap-break-word whitespace-pre-wrap p-5 text-sm/7 text-foreground">
+                    {content || t("agentOutput.backend.noContent")}
+                  </div>
+                </div>
               </div>
-            </div>
+            </article>
           ) : (
-            <EmptyState
-              title={t("agentOutput.backend.noSelectionTitle")}
-              detail={t("agentOutput.backend.noSelectionDescription")}
-            />
+            <div className="p-3">
+              <EmptyState
+                title={t("agentOutput.backend.noSelectionTitle")}
+                detail={t("agentOutput.backend.noSelectionDescription")}
+              />
+            </div>
           )}
         </div>
       </div>

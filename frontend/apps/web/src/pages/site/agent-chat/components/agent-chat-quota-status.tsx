@@ -16,7 +16,7 @@ export function AgentChatQuotaStatus({
 
   if (isLoading) {
     return (
-      <div className="border-b px-3 py-1.5 text-xs text-muted-foreground">
+      <div className="inline-flex w-fit rounded-full border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) px-3 py-1.5 text-xs font-medium text-foreground shadow-sm backdrop-blur-md">
         {t("agentChat.quota.loading")}
       </div>
     )
@@ -42,7 +42,7 @@ export function AgentChatQuotaStatus({
       })
 
   return (
-    <div className="flex min-h-7 flex-wrap items-center gap-x-1.5 gap-y-1 border-b px-3 py-1 text-[11px] text-muted-foreground">
+    <div className="flex min-h-7 w-fit max-w-full flex-wrap items-center gap-x-1.5 gap-y-1 rounded-full border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) px-3 py-1 text-[11px] font-medium text-foreground shadow-sm backdrop-blur-md">
       <Badge variant={badgeVariant}>
         {isDisabled
           ? t("agentChat.quota.disabledBadge")
@@ -56,11 +56,13 @@ export function AgentChatQuotaStatus({
           limit: quota.questionLimit.toLocaleString(),
         })}
       </span>
-      <span className="hidden sm:inline">{quotaPolicyText}</span>
+      <span className="hidden text-muted-foreground sm:inline">
+        {quotaPolicyText}
+      </span>
       {!isSchoolTeamBound ? (
         <Link
           to="/profile"
-          className="font-medium text-foreground underline-offset-4 hover:underline"
+          className="cursor-pointer font-semibold text-primary underline-offset-4 hover:underline"
         >
           {t("agentChat.quota.unboundUpgrade")}
         </Link>

@@ -37,6 +37,7 @@ const messages = {
         guestId: "Not signed in",
         guestFallback: "G",
         login: "Sign in",
+        loginCta: "Sign in",
         register: "Register",
         logout: "Log out",
         actions: {
@@ -299,7 +300,8 @@ const messages = {
     overview: {
       metrics: {
         products: "Products",
-        productsTail: "Start with product materials, selling points, and competitors",
+        productsTail:
+          "Start with product materials, selling points, and competitors",
         campaigns: "Campaigns",
         campaignsTail: "Then plan goals, budgets, and cadence",
         workspaces: "Training tasks",
@@ -339,9 +341,12 @@ const messages = {
         item: "Item",
       },
       empty: {
-        products: "No product materials yet. Add one product for training analysis first.",
-        campaigns: "No campaign plan yet. Create a campaign planning exercise first.",
-        workspaces: "No training task yet. Generate or submit one from the AI training assistant.",
+        products:
+          "No product materials yet. Add one product for training analysis first.",
+        campaigns:
+          "No campaign plan yet. Create a campaign planning exercise first.",
+        workspaces:
+          "No training task yet. Generate or submit one from the AI training assistant.",
         platforms: "No platform data yet. Connect data before diagnosis.",
         governance: "No risk reminder or pending item right now.",
       },
@@ -350,17 +355,17 @@ const messages = {
         approval: "Risk reminder",
       },
     },
-      products: {
-        samples: {
-          product: {
-            brand: "Galaxy Cup",
-            category: "smart thermos",
-            description:
-              "A temperature-display thermos for students and office commuters, focused on leak prevention, temperature reminders, and carry use.",
-            name: "Galaxy Cup temperature-display thermos",
-          },
+    products: {
+      samples: {
+        product: {
+          brand: "Galaxy Cup",
+          category: "smart thermos",
+          description:
+            "A temperature-display thermos for students and office commuters, focused on leak prevention, temperature reminders, and carry use.",
+          name: "Galaxy Cup temperature-display thermos",
         },
-        metrics: {
+      },
+      metrics: {
         active: "Active products",
         activeTail: "{{total}} total, {{archived}} archived",
         knowledge: "Knowledge items",
@@ -377,7 +382,8 @@ const messages = {
           "Choose one product, then review selling points, assets, price band, and competitors to form a product-selection judgment.",
         create: "Add training product",
         search: "Search products, platform, category, or brand",
-        empty: "No product materials yet. Add one product for training analysis first.",
+        empty:
+          "No product materials yet. Add one product for training analysis first.",
         detail: "Product analysis materials",
         detailDesc:
           "Select a product to review selling points, assets, knowledge, and competitor clues.",
@@ -450,18 +456,19 @@ const messages = {
         competitorUpdated: "Competitor updated",
         competitorArchived: "Competitor archived",
         changeCreated: "Competitor change recorded",
-        draftFilled: "Product draft filled into the form. Review before saving.",
+        draftFilled:
+          "Product draft filled into the form. Review before saving.",
       },
     },
-      campaigns: {
-        samples: {
-          campaign: {
-            description:
-              "Run a 7-day short-video validation around temperature display, leak prevention, and commuting scenes. Track click rate, saves, and add-to-cart rate.",
-            name: "Temperature thermos 7-day validation campaign",
-          },
+    campaigns: {
+      samples: {
+        campaign: {
+          description:
+            "Run a 7-day short-video validation around temperature display, leak prevention, and commuting scenes. Track click rate, saves, and add-to-cart rate.",
+          name: "Temperature thermos 7-day validation campaign",
         },
-        metrics: {
+      },
+      metrics: {
         total: "Campaigns",
         totalTail: "Current query scope",
         active: "Active",
@@ -477,7 +484,8 @@ const messages = {
           "Fill the training goal, campaign budget, period, creative direction, and review metrics to form a submittable campaign plan.",
         create: "Create campaign plan",
         search: "Search campaign name, type, or description",
-        empty: "No campaign plan yet. Create a campaign planning exercise first.",
+        empty:
+          "No campaign plan yet. Create a campaign planning exercise first.",
       },
       columns: {
         campaign: "Campaign",
@@ -499,7 +507,8 @@ const messages = {
         created: "Campaign created",
         updated: "Campaign updated",
         archived: "Campaign archived",
-        draftFilled: "Campaign draft filled into the form. Review before saving.",
+        draftFilled:
+          "Campaign draft filled into the form. Review before saving.",
       },
     },
     workspaces: {
@@ -519,7 +528,8 @@ const messages = {
           "Each training task can bind products and campaigns, then store submission records, review materials, and improvement suggestions.",
         createWorkspace: "Create training task",
         search: "Search training task title or type",
-        empty: "No training task yet. Generate or create one from the AI training assistant.",
+        empty:
+          "No training task yet. Generate or create one from the AI training assistant.",
         detail: "Training task detail",
         detailDesc:
           "Select a training task to maintain task items, submission records, and review materials.",
@@ -534,7 +544,8 @@ const messages = {
         createTask: "Add task item",
         createRun: "Add submission record",
         runSnapshot: "Submission task snapshot",
-        runSnapshotDesc: "Stores each task item's completion state at submission time.",
+        runSnapshotDesc:
+          "Stores each task item's completion state at submission time.",
         createSnapshot: "Create snapshot",
         createExecution: "Add improvement suggestion",
         artifactFormat: "Format",
@@ -1170,7 +1181,8 @@ const messages = {
     shell: {
       brandEyebrow: "Commerce Multi-Agent Platform",
       brandTitle: "Commerce Multi-Agent Platform",
-      brandDescription: "Say the question directly; I will give the judgment and next step",
+      brandDescription:
+        "Say the question directly; I will give the judgment and next step",
       topbarTitle: "Say your ecommerce question",
       topbarMeta: "Commerce Multi-Agent Platform · natural language entry",
       sections: {
@@ -1178,6 +1190,10 @@ const messages = {
         workspace: "Common entries",
         governance: "Manage and review",
         recents: "History",
+      },
+      tabs: {
+        chat: "Chat",
+        training: "Training nav",
       },
       navigation: {
         newChat: "New chat",
@@ -1221,6 +1237,9 @@ const messages = {
     composer: {
       placeholder:
         "Say what you want to handle, for example: can this product sell, improve this title, or how should I reply when a customer says it is expensive...",
+      welcomePlaceholder:
+        "Paste a product, title, customer question, or assignment requirement. It does not need to be complete; I will give a conclusion and point out what is missing.",
+      welcomeHeading: "How can I help?",
       loginPlaceholder:
         "Draft the question here; after sign-in, I can keep helping and save the conversation.",
       hint: "Business context connected",
@@ -1326,8 +1345,7 @@ const messages = {
           "I reference product materials only after you add a saved product.",
         searchPlaceholder:
           "Search product name, brand, category, platform, or status",
-        selectedHint:
-          "This turn will reference the added product materials.",
+        selectedHint: "This turn will reference the added product materials.",
         selectedCount: "{{count}} product reference(s)",
         moreCount: "{{count}} more",
         showMore: "Show {{count}} more product(s)",
@@ -1490,8 +1508,7 @@ const messages = {
         roleColumn: "Role agent",
         primaryShort: "Lead",
         supportShort: "Join",
-        singleRoleHint:
-          "Choose one role agent to lead this turn.",
+        singleRoleHint: "Choose one role agent to lead this turn.",
         leadRoleHint:
           "Click a role card to switch the lead agent. The final answer still reads like one natural recommendation.",
         supportRolesHint:
@@ -1599,11 +1616,13 @@ const messages = {
         routingModes: {
           commander: {
             label: "More careful",
-            description: "Understand the question first, then organize usable steps",
+            description:
+              "Understand the question first, then organize usable steps",
           },
           fast: {
             label: "Faster",
-            description: "Give a usable direction first, then add the key caveat",
+            description:
+              "Give a usable direction first, then add the key caveat",
           },
         },
         strategyNotes: {
@@ -1773,7 +1792,8 @@ const messages = {
         openIdeas: "More question ideas",
         start: {
           title: "Check if this product can sell",
-          detail: "Incomplete information is fine; start with margin, demand, and service risk.",
+          detail:
+            "Incomplete information is fine; start with margin, demand, and service risk.",
           prompt:
             "I have a product I want to sell, but the materials are incomplete. First help me judge whether it can work and what key detail is still missing.",
         },
@@ -1785,13 +1805,15 @@ const messages = {
         },
         plan: {
           title: "Write a customer reply",
-          detail: "Keep it natural without promising what the shop cannot prove.",
+          detail:
+            "Keep it natural without promising what the shop cannot prove.",
           prompt:
             "A customer says the price is expensive. Help me write a natural reply that does not overpromise.",
         },
         data: {
           title: "Review my data",
-          detail: "You do not need to know the metrics first; I will help find what affects the result most.",
+          detail:
+            "You do not need to know the metrics first; I will help find what affects the result most.",
           prompt:
             "I have some browse, click, add-to-cart, purchase, or refund data. First help me judge where the issue may be stuck and what I should check next.",
         },
@@ -1823,8 +1845,7 @@ const messages = {
           title: "Preparing task",
           badge: "Preparing",
           progress: "Building steps",
-          summary:
-            "Checking the question, materials, and answer route.",
+          summary: "Checking the question, materials, and answer route.",
         },
         completed: {
           badge: "Done",
@@ -1938,8 +1959,7 @@ const messages = {
         standby: "Standby",
         data: {
           name: "Data analyst",
-          summary:
-            "Check metrics, funnels, attribution, and missing fields",
+          summary: "Check metrics, funnels, attribution, and missing fields",
         },
         accounting: {
           name: "Finance analyst",
@@ -1962,11 +1982,13 @@ const messages = {
         },
         ops: {
           name: "Operations strategist",
-          summary: "Plan strategy, campaign cadence, assortment, and priorities",
+          summary:
+            "Plan strategy, campaign cadence, assortment, and priorities",
         },
         search: {
           name: "Source researcher",
-          summary: "Check platform rules, public sources, and competitor material",
+          summary:
+            "Check platform rules, public sources, and competitor material",
         },
         engineering: {
           name: "Technical architect",
@@ -1974,7 +1996,8 @@ const messages = {
         },
         design: {
           name: "Designer",
-          summary: "Review main images, detail pages, layout, and visual conversion",
+          summary:
+            "Review main images, detail pages, layout, and visual conversion",
         },
         web: {
           name: "SEO specialist",
@@ -2004,7 +2027,8 @@ const messages = {
         contextLoaded: "{{products}} products, {{knowledge}} knowledge records",
         memoryLoaded: "Referenced {{count}} history records",
         skillRequested: "Checking a few more references",
-        skillResult: "{{count}} reference check(s) completed; latest is {{status}}",
+        skillResult:
+          "{{count}} reference check(s) completed; latest is {{status}}",
         modelRunning: "Organizing output",
         noExtraSkill: "Organizing the answer directly",
         singleAgentRoute: "Focus on {{role}}",
@@ -2014,7 +2038,8 @@ const messages = {
         enrichMaterial: "Retrieve sources and evidence",
         enrichByTask: "Enrich platform materials by task",
         enrichFallback: "Enrich industry and platform context",
-        directAnswer: "Simple questions get a direct answer; complex questions check a few useful signals",
+        directAnswer:
+          "Simple questions get a direct answer; complex questions check a few useful signals",
         callModel: "Organize answer",
         singleAgentAnswer: "Organize the answer around the main angle",
         savedToReport: "Save the answer as reviewable material",
@@ -2044,15 +2069,15 @@ const messages = {
       },
       artifactSpecs: {
         dataStatus: "Data diagnosis, metric attribution, platform context",
-        adsStatus:
-          "Ad plan structure, audience packages, budget cadence",
+        adsStatus: "Ad plan structure, audience packages, budget cadence",
         deliveryFile: "operation.execution.plan.docx",
         deliveryStatus: "Final plan, checklist, and review language",
       },
       handoff: {
         context: {
           label: "Context",
-          detail: "Product selection analysis, platform connections, diagnosis guidance",
+          detail:
+            "Product selection analysis, platform connections, diagnosis guidance",
         },
         execution: {
           label: "Execution",
@@ -2133,11 +2158,14 @@ const messages = {
           creative: "Turns judgment into titles, scripts, and content wording",
           data: "Finds the issue location through metrics and funnels",
           delivery: "Turns the work into a submit-ready review checklist",
-          design: "Reviews conversion from image, detail page, and visual handoff",
-          engineering: "Checks material reading, image recognition, and feasibility",
+          design:
+            "Reviews conversion from image, detail page, and visual handoff",
+          engineering:
+            "Checks material reading, image recognition, and feasibility",
           ops: "Translates judgment into campaign cadence and priorities",
           search: "Checks rules, public material, and competitor clues",
-          service: "Checks scripts from user sentiment and after-sales boundaries",
+          service:
+            "Checks scripts from user sentiment and after-sales boundaries",
           web: "Looks for opportunities in keywords, page handoff, and organic traffic",
         },
       },
@@ -2147,7 +2175,8 @@ const messages = {
         },
         plan: {
           label: "Task plan",
-          detail: "{{mode}} selected; steps are organized from the question and available materials",
+          detail:
+            "{{mode}} selected; steps are organized from the question and available materials",
         },
         adaptive: {
           label: "Task match",
@@ -2171,7 +2200,8 @@ const messages = {
           label: "Source check",
           detail:
             "Planned {{planned}}, completed {{executed}}, {{sources}} source(s), {{claims}} usable clue(s), confidence {{confidence}}, strength {{strength}}",
-          pending: "Planned {{planned}}, waiting on {{requested}} source check(s)",
+          pending:
+            "Planned {{planned}}, waiting on {{requested}} source check(s)",
         },
         skillAudit: {
           label: "Capability check",
@@ -2189,13 +2219,15 @@ const messages = {
             omitted: "{{omitted}} material(s) were not included",
             pendingPack: "Waiting for selected materials to load",
             ready: "Selected materials are readable",
-            unreadablePacked: "{{unreadable}} loaded material(s) are not readable",
+            unreadablePacked:
+              "{{unreadable}} loaded material(s) are not readable",
             warnings: "{{warnings}} material note(s)",
           },
         },
         contextBudget: {
           label: "Context budget",
-          detail: "{{history}} history messages, {{materials}} selected material signals",
+          detail:
+            "{{history}} history messages, {{materials}} selected material signals",
         },
         historyWindow: {
           label: "History window",
@@ -2203,23 +2235,25 @@ const messages = {
           truncated:
             "This turn read the latest {{recent}}/{{total}} history messages and included an older compressed summary.",
         },
-          memory: {
-            label: "History memory",
-            detail: "Loaded {{count}} records, kinds {{kinds}}",
-            detailWithRecords: "Loaded {{count}} records, kinds {{kinds}}; summaries {{records}}",
-            kindFallback: "history records",
-            recordChars: "{{count}} chars",
-            recordSummary: "Record {{index}}: {{chars}}{{truncated}}",
-            recordTruncated: "truncated",
-          },
-          conversationContext: {
-            label: "Conversation context",
-            detail:
-              "Read latest {{recent}}/{{total}} history messages and recovered {{relevantOlder}} older relevant message(s)",
-          },
-          context: {
-            label: "Context",
-            detail: "{{products}} products, {{knowledge}} knowledge records, {{sources}} sources",
+        memory: {
+          label: "History memory",
+          detail: "Loaded {{count}} records, kinds {{kinds}}",
+          detailWithRecords:
+            "Loaded {{count}} records, kinds {{kinds}}; summaries {{records}}",
+          kindFallback: "history records",
+          recordChars: "{{count}} chars",
+          recordSummary: "Record {{index}}: {{chars}}{{truncated}}",
+          recordTruncated: "truncated",
+        },
+        conversationContext: {
+          label: "Conversation context",
+          detail:
+            "Read latest {{recent}}/{{total}} history messages and recovered {{relevantOlder}} older relevant message(s)",
+        },
+        context: {
+          label: "Context",
+          detail:
+            "{{products}} products, {{knowledge}} knowledge records, {{sources}} sources",
         },
         rag: {
           label: "Knowledge retrieval",
@@ -2267,7 +2301,8 @@ const messages = {
           "These roles split the checks, add missing context, and organize the answer when useful.",
         emptyTask: "Waiting for this turn's task",
         waitingStepTitle: "Preparing reasoning steps",
-        waitingStepDetail: "The question, materials, and steps will appear here.",
+        waitingStepDetail:
+          "The question, materials, and steps will appear here.",
         compactedStepDetail:
           "Read the question, history, and available materials, then organized the answer.",
         routeModes: {
@@ -2327,39 +2362,48 @@ const messages = {
         meta: {
           default: {
             label: "Current answer",
-            detail: "These suggestions change with the current answer instead of staying as a fixed template.",
+            detail:
+              "These suggestions change with the current answer instead of staying as a fixed template.",
           },
           quick: {
             label: "Quick answer",
-            detail: "This answer is concise, so you can continue with steps, evidence, or risks.",
+            detail:
+              "This answer is concise, so you can continue with steps, evidence, or risks.",
           },
           product: {
             label: "Product context",
-            detail: "This answer uses selected product context, so you can continue with selling points, audience, risks, or campaign direction.",
+            detail:
+              "This answer uses selected product context, so you can continue with selling points, audience, risks, or campaign direction.",
           },
           productFollowup: {
             label: "Product follow-up",
-            detail: "This answer is about a product, image, title, or price question, so continue with the key judgment.",
+            detail:
+              "This answer is about a product, image, title, or price question, so continue with the key judgment.",
           },
           productNoMaterial: {
             label: "Needs product info",
-            detail: "This question needs more product information; add materials first, then review the judgment.",
+            detail:
+              "This question needs more product information; add materials first, then review the judgment.",
           },
           campaign: {
             label: "Campaign context",
-            detail: "This answer is about campaign planning, so you can continue with goals, budget, rhythm, and an execution checklist.",
+            detail:
+              "This answer is about campaign planning, so you can continue with goals, budget, rhythm, and an execution checklist.",
           },
           data: {
             label: "Data context",
-            detail: "This answer is about metrics or anomalies, so you can add data, check causes, and list validation steps.",
+            detail:
+              "This answer is about metrics or anomalies, so you can add data, check causes, and list validation steps.",
           },
           task: {
             label: "Task context",
-            detail: "This answer can become a task, so you can organize steps, checklists, and submission requirements.",
+            detail:
+              "This answer can become a task, so you can organize steps, checklists, and submission requirements.",
           },
           report: {
             label: "Report context",
-            detail: "This answer can become review material, so you can add process, evidence, and improvement suggestions.",
+            detail:
+              "This answer can become review material, so you can add process, evidence, and improvement suggestions.",
           },
         },
         prompts: [
@@ -2530,8 +2574,7 @@ const messages = {
         },
         execution: {
           title: "Execution",
-          detail:
-            "Campaigns, task board, and training tasks carry the actions",
+          detail: "Campaigns, task board, and training tasks carry the actions",
         },
         delivery: {
           title: "Delivery",
@@ -2602,15 +2645,16 @@ const messages = {
           nodeFailed: "One step is blocked: {{reason}}",
           skillRequested: "Checking a few more references.",
           skillResult: "Reference check: {{status}}.",
-          approvalRequired: "A high-risk action needs confirmation, risk {{risk}}.",
+          approvalRequired:
+            "A high-risk action needs confirmation, risk {{risk}}.",
           workerStarted: "One step started organizing.",
-            workerFinished: "One step finished organizing.",
-            contextLoaded:
-              "Loaded {{products}} product(s) and {{knowledge}} product knowledge record(s).",
-            conversationContextLoaded:
-              "Same-conversation context loaded: latest {{recent}}/{{total}} history messages.",
-            ragContextLoaded:
-              "Knowledge retrieval complete: {{sources}} source(s).",
+          workerFinished: "One step finished organizing.",
+          contextLoaded:
+            "Loaded {{products}} product(s) and {{knowledge}} product knowledge record(s).",
+          conversationContextLoaded:
+            "Same-conversation context loaded: latest {{recent}}/{{total}} history messages.",
+          ragContextLoaded:
+            "Knowledge retrieval complete: {{sources}} source(s).",
           ragContextDegraded:
             "This external reference is not available yet, so the answer uses the materials already available.",
           workspaceContextLoaded:
@@ -2749,8 +2793,7 @@ const messages = {
           tasksLinkedDescription:
             "Processing steps were written as training task snapshots.",
           taskUpdatedTitle: "Task snapshot updated",
-          taskUpdatedDescription:
-            "AI training analysis status was saved.",
+          taskUpdatedDescription: "AI training analysis status was saved.",
           taskBoundaryTitle: "Task stage result",
           taskBoundaryDescription:
             "This node is a category-level data boundary without a selected product. It is saved but does not block answer synthesis.",
@@ -2810,11 +2853,9 @@ const messages = {
       },
       runtimeDescriptions: {
         started: "One step started pass {{attempt}}.",
-        reported:
-          "A stage result is ready and waiting for summary.",
+        reported: "A stage result is ready and waiting for summary.",
         passed: "This step finished the check.",
-        boundary:
-          "This step produced a category-level boundary for summary.",
+        boundary: "This step produced a category-level boundary for summary.",
         failed: "This step is blocked.",
         reworking: "Reorganizing output from feedback.",
         skillRequested: "Checking a few more references.",
@@ -2861,8 +2902,7 @@ const messages = {
           "This check was limited by no selected product, missing live metrics, or unavailable external data, so it produced a stage conclusion and missing-data list.",
         reworking:
           "The result needs another pass and is being adjusted from feedback.",
-        working:
-          "The request is being organized. Results will update here.",
+        working: "The request is being organized. Results will update here.",
         done: "This step finished the stage and is waiting for final summary.",
         idle: "After the turn starts, this area shows the question, handling result, and material summary.",
       },
@@ -3076,7 +3116,7 @@ const messages = {
       title: "Question ideas",
       description:
         "When students do not know where to start, choose a real ecommerce question. Selecting an item sends it back to the Q&A input.",
-      action: "Back to Q&A",
+      action: "Open Q&A entry",
     },
     principle: {
       title: "Do not memorize prompts; explain the ecommerce problem",
@@ -3242,7 +3282,8 @@ const messages = {
             "Manages products, materials, knowledge, competitors, and manually selected task context.",
         },
         {
-          title: "Campaign planning practice, data diagnosis guidance, business result tracking",
+          title:
+            "Campaign planning practice, data diagnosis guidance, business result tracking",
           description:
             "Connects campaign planning, metric attribution, process records, briefings, alerts, and source boundaries.",
         },
@@ -3281,6 +3322,14 @@ const messages = {
     title: "Sign in to your training account",
     subtitle:
       "Use your account and password to enter Commerce Multi-Agent Platform.",
+    help: {
+      label: "Usage guide",
+      steps: [
+        "First open the Q&A entry and state the ecommerce problem you want to solve.",
+        "Then use product selection materials, campaign planning, data diagnosis, training tasks, and review reports as needed.",
+        "After signing in, you can save conversations, reference product materials, submit tasks, and review teacher feedback and review materials.",
+      ],
+    },
     form: {
       password: {
         label: "Password",

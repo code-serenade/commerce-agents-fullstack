@@ -53,14 +53,8 @@ export async function loadLatestAgentConversation(
   isCancelled: () => boolean
 ) {
   try {
-    const conversations = await agentChatData.listConversations()
+    const conversations = await loadAgentConversationList(state, isCancelled)
     if (isCancelled()) return
-
-    state.setConversations(
-      conversations.map((conversation) =>
-        mapConversationItem(conversation, state.fallbackConversationTitle)
-      )
-    )
     const latest = conversations[0]
     if (!latest) {
       resetActiveConversation(state)
@@ -86,6 +80,38 @@ export async function loadLatestAgentConversation(
   }
 }
 
+export async function loadAgentConversationList(
+  state: ConversationActionState,
+  isCancelled: () => boolean
+) {
+  const conversations = await agentChatData.listConversations()
+  if (isCancelled()) return []
+
+  state.setConversations(
+    conversations.map((conversation) =>
+      mapConversationItem(conversation, state.fallbackConversationTitle)
+    )
+  )
+
+  return conversations
+}
+
+export async function loadAgentConversationById(
+  targetConversationId: string,
+  state: ConversationActionState,
+  isCancelled: () => boolean
+) {
+  try {
+    const detail = await agentChatData.getConversation(targetConversationId)
+    if (isCancelled()) return
+    restoreActiveConversation(detail, state)
+  } catch (err) {
+    if (isCancelled()) return
+    resetActiveConversation(state)
+    state.setError(formatActionError(err, state))
+  }
+}
+
 export async function selectAgentConversation(
   nextConversationId: string,
   state: ConversationActionState
@@ -93,17 +119,7 @@ export async function selectAgentConversation(
   state.setError(null)
   try {
     const detail = await agentChatData.getConversation(nextConversationId)
-    state.setConversationId(detail.conversation.id)
-    state.sessionIdRef.current = detail.conversation.id
-    state.setMessages(
-      mapConversationMessages(
-        detail,
-        state.createWelcomeMessage(),
-        state.messageFormatCopy
-      )
-    )
-    state.setRuntimeEvents(readConversationRuntimeEvents(detail))
-    restoreConversationContext(detail, state)
+    restoreActiveConversation(detail, state)
   } catch (err) {
     state.setError(formatActionError(err, state))
   }
@@ -139,7 +155,7 @@ export async function deleteAgentConversation(
   targetConversationId: string,
   activeConversationId: string | null,
   state: ConversationActionState
-) {
+): Promise<boolean> {
   state.setError(null)
   try {
     await agentChatData.deleteConversation(targetConversationId)
@@ -150,12 +166,15 @@ export async function deleteAgentConversation(
     if (targetConversationId === activeConversationId) {
       resetActiveConversation(state)
     }
+
+    return true
   } catch (err) {
     state.setError(formatActionError(err, state))
+    return false
   }
 }
 
-function resetActiveConversation(state: ConversationActionState) {
+export function resetActiveConversation(state: ConversationActionState) {
   state.setConversationId(null)
   state.sessionIdRef.current = createSessionId()
   state.setMessages([state.createWelcomeMessage()])
@@ -165,6 +184,24 @@ function resetActiveConversation(state: ConversationActionState) {
   state.clearSelectedProducts?.()
   state.clearSelectedSources?.()
   resetAgentChatConversationContext(state)
+}
+
+function restoreActiveConversation(
+  detail: ConversationDetailResponse,
+  state: ConversationActionState
+) {
+  state.setError(null)
+  state.setConversationId(detail.conversation.id)
+  state.sessionIdRef.current = detail.conversation.id
+  state.setMessages(
+    mapConversationMessages(
+      detail,
+      state.createWelcomeMessage(),
+      state.messageFormatCopy
+    )
+  )
+  state.setRuntimeEvents(readConversationRuntimeEvents(detail))
+  restoreConversationContext(detail, state)
 }
 
 function restoreConversationContext(

@@ -17,6 +17,7 @@ import { logout } from "@/store/authSlice"
 import { resetAccess } from "@/store/accessSlice"
 import { webNavigationSections } from "@/navigation"
 import { CommerceAgentLogo } from "@/components/brand"
+import { useAuthDialog } from "@/components/auth/AuthDialogProvider"
 
 export interface WebAppShellProps {
   children: ReactNode
@@ -28,6 +29,11 @@ export function WebAppShell({ children }: WebAppShellProps) {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const user = useSelector((state: RootState) => state.auth.user)
+  const { requestLogin } = useAuthDialog()
+  const navigateTo = (path: string) => {
+    if (!user && path !== "/commerce" && path !== "/home") { requestLogin({ pathname: path }); return }
+    navigate(path)
+  }
 
   const sections = useMemo(
     () =>
@@ -45,7 +51,7 @@ export function WebAppShell({ children }: WebAppShellProps) {
             href: item.path,
             active,
             icon: item.icon,
-            onSelect: () => navigate(item.path),
+            onSelect: () => navigateTo(item.path),
           }
         }),
       })),
@@ -65,7 +71,7 @@ export function WebAppShell({ children }: WebAppShellProps) {
             href: item.path,
             active,
             icon: item.icon,
-            onSelect: () => navigate(item.path),
+            onSelect: () => navigateTo(item.path),
           }
         })
       ),
@@ -104,7 +110,7 @@ export function WebAppShell({ children }: WebAppShellProps) {
     <LanguageSwitch key="lang" />,
     <ThemeToggle key="theme" />,
     user ? null : (
-      <Button key="login" variant="outline" size="sm" onClick={() => navigate("/login")}>
+      <Button key="login" variant="outline" size="sm" onClick={() => requestLogin()}>
         {t("web.shell.account.login")}
       </Button>
     ),
@@ -121,6 +127,7 @@ export function WebAppShell({ children }: WebAppShellProps) {
       brandEyebrow={t("web.shell.brand.eyebrow")}
       brandTitle={t("web.shell.brand.title")}
       brandDescription={t("web.shell.brand.description")}
+      onBrandSelect={() => navigateTo("/home")}
       sections={sections}
       mobileNavigation={
         mobileNavigationItems.length
@@ -173,7 +180,7 @@ export function WebAppShell({ children }: WebAppShellProps) {
                 {
                   icon: <LogIn />,
                   label: t("web.shell.account.login"),
-                  onSelect: () => navigate("/login"),
+                  onSelect: () => requestLogin(),
                 },
                 {
                   icon: <UserPlus />,

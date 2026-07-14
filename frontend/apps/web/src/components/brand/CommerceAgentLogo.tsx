@@ -19,7 +19,7 @@ export function CommerceAgentLogo({
     <div
       aria-hidden="true"
       className={[
-        "flex shrink-0 items-center justify-center overflow-hidden bg-(--app-surface) shadow-sm ring-1 ring-(--app-border)",
+        "flex shrink-0 items-center justify-center overflow-hidden bg-(--shell-logo-background) shadow-[var(--shell-logo-shadow)] ring-1 ring-(--shell-logo-ring)",
         sizeClassNames[size],
         className,
       ]

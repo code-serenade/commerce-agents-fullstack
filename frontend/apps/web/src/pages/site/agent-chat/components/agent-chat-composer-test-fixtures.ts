@@ -145,6 +145,7 @@ export function basePanelProps(): ComponentProps<typeof AgentChatComposerPanels>
     onToggleSourceContext: noop,
     onUploadClick: noop,
     panelMaxHeight: 420,
+    panelPlacement: "top",
     playbooks: [],
     productContextOpen: false,
     runtimeOptions,

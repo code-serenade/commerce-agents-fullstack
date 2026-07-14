@@ -24,6 +24,7 @@ export function useAgentChatSourceActions({
   setConversationId,
   setConversations,
   setError,
+  onConversationCreated,
   restoreSelectedSources,
 }: {
   conversationId: string | null
@@ -36,6 +37,7 @@ export function useAgentChatSourceActions({
   setConversationId: Dispatch<SetStateAction<string | null>>
   setConversations: Dispatch<SetStateAction<AgentChatConversationItem[]>>
   setError: Dispatch<SetStateAction<string | null>>
+  onConversationCreated?: (conversationId: string) => void
   restoreSelectedSources: (sourceRefs: string[]) => void
 }) {
   const queryClient = useQueryClient()
@@ -100,6 +102,7 @@ export function useAgentChatSourceActions({
           activeConversationId = detail.conversation.id
           sessionIdRef.current = activeConversationId
           setConversationId(activeConversationId)
+          onConversationCreated?.(activeConversationId)
           setConversations((current) => [
             mapConversationItem(detail.conversation, fallbackConversationTitle),
             ...current.filter((item) => item.id !== detail.conversation.id),
@@ -132,6 +135,7 @@ export function useAgentChatSourceActions({
       setConversationId,
       setConversations,
       setError,
+      onConversationCreated,
       sessionIdRef,
     ]
   )

@@ -2,9 +2,10 @@ import {
   CommerceBody,
   CommercePageHeader,
   CommerceSurface,
-  InlineAlert,
 } from "../components/commerce-ui"
+import { ClipboardList } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { DocumentIntroCard } from "../components/document-section"
 import { WorkspaceDialogs } from "./components/workspace-dialogs"
 import {
   WorkspaceDetailPanel,
@@ -27,10 +28,10 @@ export default function WorkspacesPage() {
         description={t("commerce.pages.workspaces.description")}
       />
       <CommerceBody>
-        <InlineAlert
-          variant="default"
+        <DocumentIntroCard
           title={t("commerce.pages.workspaces.boundaryTitle")}
           description={t("commerce.pages.workspaces.boundaryDescription")}
+          icon={<ClipboardList className="size-4" />}
         />
         <WorkspaceMetrics items={page.metricCards} />
         <div className="grid gap-4 xl:grid-cols-[minmax(22rem,0.85fr)_minmax(0,1.65fr)]">

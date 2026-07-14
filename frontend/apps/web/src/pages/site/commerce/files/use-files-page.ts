@@ -28,8 +28,7 @@ export function useFilesPage() {
   const selectedSources = chat?.selectedSources ?? EMPTY_SOURCES
   const isLoggedIn = chat?.isLoggedIn ?? Boolean(user)
   const isStreaming = chat?.isStreaming ?? false
-  const attachExistingSource =
-    chat?.attachExistingSource ?? noopAsyncWithFileId
+  const attachExistingSource = chat?.attachExistingSource ?? noopAsyncWithFileId
   const clearSelectedSources = chat?.clearSelectedSources ?? noop
   const removeSourcesByObjects = chat?.removeSourcesByObjects ?? noop
   const toggleSourceContext = chat?.toggleSourceContext ?? noop
@@ -156,12 +155,7 @@ export function useFilesPage() {
     filterSummary: filters.filterSummary,
     files,
     hasActiveFilters: filters.hasActiveFilters,
-    canUploadFiles:
-      chatContextAvailable &&
-      isLoggedIn &&
-      !isStreaming &&
-      !actions.deleting &&
-      !actions.uploading,
+    canUploadFiles: isLoggedIn && !actions.deleting && !actions.uploading,
     canClearSelectedForTurn:
       chatContextAvailable && !isStreaming && selectedSources.length > 0,
     clearSelectedForTurn: clearSelectedSources,

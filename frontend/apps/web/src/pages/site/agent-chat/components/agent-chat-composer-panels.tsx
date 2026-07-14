@@ -10,6 +10,7 @@ import type {
   AgentRuntimeOptions,
 } from "../domain/agent-runtime-options"
 import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
+import type { AgentChatComposerPanelPlacement } from "../view-model/use-agent-chat-composer-panel-layout"
 import type { AgentChatContextPreviewState } from "../view-model/use-agent-chat-context-preview"
 import { AgentChatContextPreviewPanel } from "./agent-chat-context-preview-panel"
 import { AgentChatComposerPanelShell } from "./agent-chat-composer-panel-shell"
@@ -49,6 +50,7 @@ export function AgentChatComposerPanels({
   onAttachExistingSource,
   onClosePanels,
   panelMaxHeight,
+  panelPlacement,
   playbooks,
   campaignContextOpen,
   productContextOpen,
@@ -94,6 +96,7 @@ export function AgentChatComposerPanels({
   onAttachExistingSource: (fileId: string) => void
   onClosePanels: () => void
   panelMaxHeight: number
+  panelPlacement: AgentChatComposerPanelPlacement
   playbooks: AgentChatPlaybookSelection[]
   campaignContextOpen: boolean
   productContextOpen: boolean
@@ -110,103 +113,103 @@ export function AgentChatComposerPanels({
 }) {
   return (
     <>
-      {contextPreviewOpen ? (
-        <AgentChatComposerPanelShell
-          maxHeight={panelMaxHeight}
-          onClose={onClosePanels}
-          size="wide"
-        >
-          <AgentChatContextPreviewPanel
-            canPreview={contextPreview.canPreviewContext}
-            error={contextPreview.previewContextError}
-            isPreviewing={contextPreview.isPreviewingContext}
-            onPreview={contextPreview.previewContext}
-            preview={contextPreview.previewContextResult}
-          />
-        </AgentChatComposerPanelShell>
-      ) : null}
-      {productContextOpen ? (
-        <AgentChatComposerPanelShell
-          maxHeight={panelMaxHeight}
-          onClose={onClosePanels}
-        >
-          <AgentChatProductContextBar
-            availableProducts={availableProducts}
-            disabled={isStreaming}
-            isLoadingProducts={isLoadingProducts}
-            onClearProductContext={onClearProductContext}
-            onToggleProductContext={onToggleProductContext}
-            selectedProducts={selectedProducts}
-            variant="panel"
-          />
-        </AgentChatComposerPanelShell>
-      ) : null}
-      {campaignContextOpen ? (
-        <AgentChatComposerPanelShell
-          maxHeight={panelMaxHeight}
-          onClose={onClosePanels}
-        >
-          <AgentChatCampaignContextBar
-            availableCampaigns={availableCampaigns}
-            disabled={isStreaming}
-            isLoadingCampaigns={isLoadingCampaigns}
-            onClearCampaignContext={onClearCampaignContext}
-            onToggleCampaignContext={onToggleCampaignContext}
-            selectedCampaigns={selectedCampaigns}
-            variant="panel"
-          />
-        </AgentChatComposerPanelShell>
-      ) : null}
-      {sourceContextOpen ? (
-        <AgentChatComposerPanelShell
-          maxHeight={panelMaxHeight}
-          onClose={onClosePanels}
-          size="wide"
-        >
-          <AgentChatSourceContextBar
-            availableSources={availableSources}
-            disabled={isStreaming}
-            isLoadingSourceLibrary={isLoadingSourceLibrary}
-            sourceLibrary={sourceLibrary}
-            sourceLibraryError={sourceLibraryError}
-            onDeleteSelectedSources={onDeleteSelectedSources}
-            onAttachExistingSource={onAttachExistingSource}
-            onManageSources={onManageSources}
-            onUploadClick={onUploadClick}
-            onClearSourceContext={onClearSourceContext}
-            onToggleSourceContext={onToggleSourceContext}
-            selectedSources={selectedSources}
-            variant="panel"
-          />
-        </AgentChatComposerPanelShell>
-      ) : null}
-      {settingsOpen ? (
-        <AgentChatComposerPanelShell
-          maxHeight={panelMaxHeight}
-          onClose={onClosePanels}
-          size="wide"
-        >
-          <AgentChatSettingsPanel
-            isLoadingPlaybooks={isLoadingPlaybooks}
-            isLoadingRuntimeOptions={isLoadingRuntimeOptions}
-            isOpen
-            isStreaming={isStreaming}
-            onCollaborationModeChange={onRuntimeCollaborationModeChange}
-            onLearningLevelChange={onRuntimeLearningLevelChange}
-            onPrimaryRoleChange={onRuntimePrimaryRoleChange}
-            onRoutingModeChange={onRuntimeRoutingModeChange}
-            onSelectPlaybook={onSelectPlaybook}
-            onStrategyChange={onStrategyChange}
-            onToggleOpen={() => undefined}
-            onToggleRole={onToggleRuntimeRole}
-            playbooks={playbooks}
-            runtimeOptions={runtimeOptions}
-            runtimeSelection={runtimeSelection}
-            strategyId={strategyId}
-            variant="panel"
-          />
-        </AgentChatComposerPanelShell>
-      ) : null}
+      <AgentChatComposerPanelShell
+        maxHeight={panelMaxHeight}
+        onClose={onClosePanels}
+        open={contextPreviewOpen}
+        placement={panelPlacement}
+        size="wide"
+      >
+        <AgentChatContextPreviewPanel
+          canPreview={contextPreview.canPreviewContext}
+          error={contextPreview.previewContextError}
+          isPreviewing={contextPreview.isPreviewingContext}
+          onPreview={contextPreview.previewContext}
+          preview={contextPreview.previewContextResult}
+        />
+      </AgentChatComposerPanelShell>
+      <AgentChatComposerPanelShell
+        maxHeight={panelMaxHeight}
+        onClose={onClosePanels}
+        open={productContextOpen}
+        placement={panelPlacement}
+      >
+        <AgentChatProductContextBar
+          availableProducts={availableProducts}
+          disabled={isStreaming}
+          isLoadingProducts={isLoadingProducts}
+          onClearProductContext={onClearProductContext}
+          onToggleProductContext={onToggleProductContext}
+          selectedProducts={selectedProducts}
+          variant="panel"
+        />
+      </AgentChatComposerPanelShell>
+      <AgentChatComposerPanelShell
+        maxHeight={panelMaxHeight}
+        onClose={onClosePanels}
+        open={campaignContextOpen}
+        placement={panelPlacement}
+      >
+        <AgentChatCampaignContextBar
+          availableCampaigns={availableCampaigns}
+          disabled={isStreaming}
+          isLoadingCampaigns={isLoadingCampaigns}
+          onClearCampaignContext={onClearCampaignContext}
+          onToggleCampaignContext={onToggleCampaignContext}
+          selectedCampaigns={selectedCampaigns}
+          variant="panel"
+        />
+      </AgentChatComposerPanelShell>
+      <AgentChatComposerPanelShell
+        maxHeight={panelMaxHeight}
+        onClose={onClosePanels}
+        open={sourceContextOpen}
+        placement={panelPlacement}
+        size="wide"
+      >
+        <AgentChatSourceContextBar
+          availableSources={availableSources}
+          disabled={isStreaming}
+          isLoadingSourceLibrary={isLoadingSourceLibrary}
+          sourceLibrary={sourceLibrary}
+          sourceLibraryError={sourceLibraryError}
+          onDeleteSelectedSources={onDeleteSelectedSources}
+          onAttachExistingSource={onAttachExistingSource}
+          onManageSources={onManageSources}
+          onUploadClick={onUploadClick}
+          onClearSourceContext={onClearSourceContext}
+          onToggleSourceContext={onToggleSourceContext}
+          selectedSources={selectedSources}
+          variant="panel"
+        />
+      </AgentChatComposerPanelShell>
+      <AgentChatComposerPanelShell
+        maxHeight={panelMaxHeight}
+        onClose={onClosePanels}
+        open={settingsOpen}
+        placement={panelPlacement}
+        size="wide"
+      >
+        <AgentChatSettingsPanel
+          isLoadingPlaybooks={isLoadingPlaybooks}
+          isLoadingRuntimeOptions={isLoadingRuntimeOptions}
+          isOpen={settingsOpen}
+          isStreaming={isStreaming}
+          onCollaborationModeChange={onRuntimeCollaborationModeChange}
+          onLearningLevelChange={onRuntimeLearningLevelChange}
+          onPrimaryRoleChange={onRuntimePrimaryRoleChange}
+          onRoutingModeChange={onRuntimeRoutingModeChange}
+          onSelectPlaybook={onSelectPlaybook}
+          onStrategyChange={onStrategyChange}
+          onToggleOpen={() => undefined}
+          onToggleRole={onToggleRuntimeRole}
+          playbooks={playbooks}
+          runtimeOptions={runtimeOptions}
+          runtimeSelection={runtimeSelection}
+          strategyId={strategyId}
+          variant="panel"
+        />
+      </AgentChatComposerPanelShell>
     </>
   )
 }

@@ -29,20 +29,20 @@ export function AuthProfilePage(props: AuthProfilePageProps) {
 export function AuthProfileView({ profile, labels }: AuthProfileViewProps) {
   return (
     <main className="w-full px-4 py-5 text-(--app-text) sm:px-6 lg:px-8">
-      <div className="mx-auto w-full max-w-6xl">
-        <header className="border-b border-(--app-border) pb-4">
-          <h1 className="text-2xl font-semibold tracking-normal">
+      <div className="mx-auto w-full max-w-4xl">
+        <header className="border-b border-(--app-border)/70 pb-4">
+          <h1 className="text-2xl/8 font-semibold tracking-normal">
             {labels.title}
           </h1>
         </header>
 
-        <div className="grid gap-10 py-6 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
-          <div className="space-y-8">
+        <div className="grid gap-6 py-6 lg:grid-cols-[minmax(0,1fr)_17rem] lg:items-start">
+          <ProfileAvatarSection profile={profile} labels={labels} />
+          <div className="space-y-8 lg:order-1">
             <ProfileNameSection profile={profile} labels={labels} />
             <ProfileEmailSection profile={profile} labels={labels} />
             <ProfilePasswordSection profile={profile} labels={labels} />
           </div>
-          <ProfileAvatarSection profile={profile} labels={labels} />
         </div>
       </div>
     </main>

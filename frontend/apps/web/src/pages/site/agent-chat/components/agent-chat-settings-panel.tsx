@@ -1,11 +1,13 @@
 import { ChevronsUpDown, SlidersHorizontal } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { Button } from "@workspace/ui-components"
 import type {
   AgentChatRuntimeSelection,
   AgentRuntimeOptions,
 } from "../domain/agent-runtime-options"
 import type { AgentChatStrategyId } from "../domain/agent-chat-strategy"
 import { AgentChatSettingsControls } from "./agent-chat-settings-controls"
+import { ComposerPanelFrame } from "./composer-panel-layout"
 
 export interface AgentChatSettingsPanelProps {
   isLoadingPlaybooks?: boolean
@@ -44,7 +46,9 @@ export function AgentChatSettingsPanel({
   variant = "bar",
 }: AgentChatSettingsPanelProps) {
   const { t } = useTranslation()
-  const activeStrategyLabel = t(`agentChat.strategy.options.${strategyId}.label`)
+  const activeStrategyLabel = t(
+    `agentChat.strategy.options.${strategyId}.label`
+  )
   const depthChoice = runtimeOptions?.learningLevels.find(
     (level) => level.id === runtimeSelection.learningLevel
   )
@@ -78,18 +82,13 @@ export function AgentChatSettingsPanel({
     .join(" · ")
   if (variant === "panel") {
     return (
-      <>
-        <div className="flex min-w-0 flex-col gap-0.5 rounded-lg border border-border bg-muted/25 px-2.5 py-2 sm:px-3">
-          <p className="text-xs/5 font-semibold text-foreground">
-            {t("agentChat.composer.settings.panelTitle")}
-          </p>
-          <p className="text-[11px]/4 text-muted-foreground">
-            {t("agentChat.composer.settings.panelHint", {
-              mode: activeStrategyLabel,
-              summary: runtimeLabel,
-            })}
-          </p>
-        </div>
+      <ComposerPanelFrame
+        title={t("agentChat.composer.settings.panelTitle")}
+        description={t("agentChat.composer.settings.panelHint", {
+          mode: activeStrategyLabel,
+          summary: runtimeLabel,
+        })}
+      >
         <AgentChatSettingsControls
           isLoadingRuntimeOptions={isLoadingRuntimeOptions}
           isStreaming={isStreaming}
@@ -101,9 +100,10 @@ export function AgentChatSettingsPanel({
           onToggleRole={onToggleRole}
           runtimeOptions={runtimeOptions}
           runtimeSelection={runtimeSelection}
+          size="compact"
           strategyId={strategyId}
         />
-      </>
+      </ComposerPanelFrame>
     )
   }
 
@@ -121,14 +121,15 @@ export function AgentChatSettingsPanel({
         className="flex min-w-0 shrink-0 items-center gap-1.5 overflow-hidden sm:flex-1"
         data-composer-interactive="true"
       >
-        <button
+        <Button
           type="button"
           disabled={isStreaming}
           onClick={onToggleOpen}
+          classNameMode="replace"
           className={`flex h-7 max-w-28 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:max-w-36 ${
             isOpen
-              ? "border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-700/70 dark:bg-blue-950/40 dark:text-blue-100"
-              : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+              ? "border-primary/30 bg-(--agent-chat-accent-soft) text-(--agent-chat-accent-foreground) shadow-sm"
+              : "border-(--agent-chat-soft-border) bg-(--agent-chat-muted-control) text-muted-foreground hover:bg-(--agent-chat-accent-soft) hover:text-(--agent-chat-accent-foreground)"
           }`}
           aria-expanded={isOpen}
           aria-label={compactTitle}
@@ -139,7 +140,7 @@ export function AgentChatSettingsPanel({
             {t("agentChat.composer.settings.compactLabel")}
           </span>
           <ChevronIndicator open={isOpen} />
-        </button>
+        </Button>
       </div>
     )
   }
@@ -158,16 +159,17 @@ export function AgentChatSettingsPanel({
             </>
           ) : null}
         </div>
-        <button
+        <Button
           type="button"
           disabled={isStreaming}
           onClick={onToggleOpen}
+          classNameMode="replace"
           className="flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
           aria-expanded={isOpen}
         >
           <ChevronsUpDown className="size-3.5" />
           {t("agentChat.composer.settings.toggle")}
-        </button>
+        </Button>
       </div>
       {isOpen ? (
         <div className="grid gap-2 rounded-xl border border-border bg-background/80 p-2">

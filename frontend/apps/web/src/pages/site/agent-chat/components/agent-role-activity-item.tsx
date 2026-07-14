@@ -1,3 +1,4 @@
+import { getAgentPortraitAsset } from "../assets/agent-portraits/agent-portrait-assets"
 import type { AgentRoleActivity } from "../view-model/agent-role-cluster-view-model"
 import type { InlineAgentState } from "../view-model/thread-inline-view-model"
 import { AgentRolePortrait } from "./agent-role-portrait"
@@ -5,20 +6,24 @@ import {
   panelClassNames,
   roleAccentClassNames,
   roleDotClassNames,
+  roleScrimAccentColors,
   type AgentRoleClusterVariant,
 } from "./agent-role-cluster-styles"
+import type { CSSProperties } from "react"
 
 export function AgentRoleActivityItem({
   animatePortraits,
   activity,
   index,
   itemDetail,
+  showStatus = true,
   variant,
 }: {
   animatePortraits?: boolean
   activity: AgentRoleActivity
   index: number
   itemDetail: "action" | "summary"
+  showStatus?: boolean
   variant: AgentRoleClusterVariant
 }) {
   const detail =
@@ -30,6 +35,7 @@ export function AgentRoleActivityItem({
         animatePortraits={animatePortraits}
         activity={activity}
         detail={detail}
+        showStatus={showStatus}
       />
     )
   }
@@ -49,11 +55,17 @@ function AgentRoleShowcaseItem({
   animatePortraits,
   activity,
   detail,
+  showStatus,
 }: {
   animatePortraits?: boolean
   activity: AgentRoleActivity
   detail: string
+  showStatus: boolean
 }) {
+  if (!showStatus) {
+    return <AgentRoleSceneItem activity={activity} detail={detail} />
+  }
+
   return (
     <div
       className={`group relative grid min-h-40 grid-rows-[auto_minmax(0,1fr)] overflow-hidden rounded-md border border-t-2 bg-background/90 p-3 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md ${panelClassNames[activity.state]} ${roleAccentClassNames[activity.role]}`}
@@ -95,6 +107,63 @@ function AgentRoleShowcaseItem({
   )
 }
 
+function AgentRoleSceneItem({
+  activity,
+  detail,
+}: {
+  activity: AgentRoleActivity
+  detail: string
+}) {
+  const asset = getAgentPortraitAsset(activity.role)
+  const description = `${detail} ${activity.contribution}`
+  const cardStyle = {
+    "--agent-role-card-scrim-accent": roleScrimAccentColors[activity.role],
+  } as CSSProperties
+
+  return (
+    <div
+      className="group relative aspect-[3/4] overflow-hidden rounded-lg border border-(--agent-chat-soft-border) bg-(--agent-chat-elevated-strong) shadow-[var(--agent-chat-card-shadow)] transition hover:border-primary/40 hover:shadow-[var(--agent-chat-focus-shadow)]"
+      data-agent-role-card={activity.role}
+      style={cardStyle}
+      title={description}
+    >
+      <div
+        className="absolute inset-0 overflow-hidden"
+        data-agent-portrait-frame="rect"
+      >
+        <div className="absolute inset-0 bg-[image:linear-gradient(135deg,var(--agent-chat-elevated-strong),var(--agent-chat-accent-soft)_48%,var(--agent-chat-subtle-surface))]" />
+        {asset ? (
+          <img
+            alt=""
+            className="agent-role-portrait__sprite absolute inset-0 w-full object-cover opacity-95 transition-transform duration-300 group-hover:scale-[1.03] mt-[8%]"
+            data-agent-portrait-asset={asset.key}
+            data-agent-portrait-state={activity.state}
+            data-agent-portrait-source="static"
+            src={asset.src}
+          />
+        ) : (
+          <div className="absolute inset-x-6 top-5">
+            <AgentRolePortrait activity={activity} size="card" />
+          </div>
+        )}
+      </div>
+      <div className="absolute inset-x-0 top-0 z-10 bg-[image:linear-gradient(175deg,rgb(var(--agent-role-card-scrim-accent)/0.56)_0%,rgb(var(--agent-role-card-scrim-accent)/0.46)_32%,rgb(var(--agent-role-card-scrim-accent)/0.14)_58%,transparent_84%)] px-3 pt-2 pb-5 pr-10">
+        <p className="truncate text-sm font-semibold text-(--agent-chat-role-card-foreground)">
+          {activity.agent.name}
+        </p>
+      </div>
+      <div className="absolute inset-x-0 bottom-0 z-10 flex min-h-[42%] flex-col justify-end bg-[image:linear-gradient(180deg,transparent_0%,rgb(0_0_0/0.12)_12%,rgb(var(--agent-role-card-scrim-accent)/0.48)_44%,rgb(var(--agent-role-card-scrim-accent)/0.88)_100%)] px-3 pt-10 pb-3">
+        <p
+          className="line-clamp-2 min-h-8 text-[11px]/4 text-(--agent-chat-role-card-muted)"
+          title={description}
+        >
+          {description}
+        </p>
+      </div>
+    </div>
+  )
+}
+
 function AgentRoleTimelineItem({
   animatePortraits,
   activity,
@@ -110,24 +179,24 @@ function AgentRoleTimelineItem({
 }) {
   return (
     <div
-      className={`grid shrink-0 gap-2 rounded-md border border-t-2 text-center ${panelClassNames[activity.state]} ${roleAccentClassNames[activity.role]} ${
-        isCompact ? "w-28 p-2" : "w-36 p-2.5"
+      className={`relative flex min-w-0 items-center gap-2.5 rounded-lg border px-3 py-2 pr-26 text-left ${panelClassNames[activity.state]} ${
+        isCompact ? "min-h-14" : "min-h-16"
       }`}
       data-agent-role-card={activity.role}
     >
-      <div className="flex items-center justify-between gap-2 text-[10px] font-semibold text-muted-foreground">
-        <span className="rounded-full bg-background/80 px-1.5 py-0.5">
-          {String(index + 1).padStart(2, "0")}
-        </span>
-        <span className="truncate">{activity.agent.status}</span>
-      </div>
+      <span className="absolute top-2 right-3 text-[11px] font-medium text-muted-foreground">
+        {activity.agent.status}
+      </span>
       <AgentRolePortrait
         activity={activity}
         animate={animatePortraits}
-        size={isCompact ? "sm" : "md"}
+        size="xs"
       />
-      <div className="min-w-0">
-        <div className="flex min-w-0 items-center justify-center gap-1">
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="shrink-0 font-mono text-[11px] font-semibold text-muted-foreground">
+            {String(index + 1).padStart(2, "0")}
+          </span>
           <span
             className={`size-1.5 shrink-0 rounded-full ${roleDotClassNames[activity.role]}`}
             aria-hidden="true"
@@ -136,14 +205,16 @@ function AgentRoleTimelineItem({
             {activity.agent.name}
           </p>
         </div>
-        <p className="mt-0.5 line-clamp-2 text-[11px]/4 text-muted-foreground">
+        <p className="mt-0.5 text-[11px]/4 wrap-break-word text-muted-foreground">
           {detail}
         </p>
-        <p className="mt-1 line-clamp-2 text-[10px]/4 text-muted-foreground">
+        <p className="mt-0.5 text-[10px]/4 wrap-break-word text-muted-foreground">
           {activity.contribution}
         </p>
       </div>
-      <AgentRoleActivityMeter state={activity.state} />
+      <div className="hidden w-20 shrink-0 sm:block">
+        <AgentRoleActivityMeter state={activity.state} />
+      </div>
     </div>
   )
 }

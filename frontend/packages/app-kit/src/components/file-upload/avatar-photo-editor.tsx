@@ -22,7 +22,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@workspace/ui-core/components/dropdown-menu"
-import { AvatarUploadField, type AvatarUploadResult } from "./avatar-upload-field"
+import {
+  AvatarUploadField,
+  type AvatarUploadResult,
+} from "./avatar-upload-field"
 
 export interface AvatarPhotoEditorLabels {
   edit: ReactNode
@@ -59,9 +62,9 @@ export function AvatarPhotoEditor({
 
   return (
     <div className="relative w-fit">
-      <Avatar className="size-48 bg-[#0f1724] ring-1 ring-(--app-border) sm:size-56">
+      <Avatar className="size-40 bg-(--app-active-bg) ring-1 ring-(--app-border) sm:size-48">
         {value ? <AvatarImage src={value} alt={alt} /> : null}
-        <AvatarFallback className="bg-[#1c2431] text-6xl font-semibold text-white">
+        <AvatarFallback className="bg-(--app-active-bg) text-5xl font-semibold text-(--app-active-text)">
           {fallback}
         </AvatarFallback>
       </Avatar>
@@ -83,7 +86,7 @@ export function AvatarPhotoEditor({
                 variant="default"
                 size="lg"
                 disabled={disabled}
-                className="absolute right-3 bottom-4 shadow-(--ui-shadow-soft)"
+                className="absolute right-2 bottom-3 shadow-(--ui-shadow-soft)"
               >
                 <Camera className="size-4" />
                 {labels.edit}
@@ -115,10 +118,7 @@ export function AvatarPhotoEditor({
         )}
       />
 
-      <AlertDialog
-        open={removeConfirmOpen}
-        onOpenChange={setRemoveConfirmOpen}
-      >
+      <AlertDialog open={removeConfirmOpen} onOpenChange={setRemoveConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{labels.removeConfirmTitle}</AlertDialogTitle>

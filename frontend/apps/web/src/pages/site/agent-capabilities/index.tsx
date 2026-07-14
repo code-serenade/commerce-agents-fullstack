@@ -1,3 +1,4 @@
+import { GraduationCap } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router"
 import { Button } from "@workspace/ui-components"
@@ -6,14 +7,26 @@ import {
   CommerceBody,
   CommercePageHeader,
   CommerceSurface,
-  InlineAlert,
 } from "../commerce/components/commerce-ui"
+import { DocumentIntroCard } from "../commerce/components/document-section"
 import {
   AgentCapabilityBoundaryPanel,
   AgentCapabilityCorePanel,
   AgentCapabilityFlowPanel,
   AgentCapabilityLanePanel,
+  AgentCapabilityQaPanel,
 } from "./components/agent-capability-panels"
+
+const capabilityEntryLinks = [
+  "/commerce",
+  "/products",
+  "/campaigns",
+  "/operations",
+  "/operations",
+  "/workspaces",
+  "/agent-output",
+  "/approvals",
+]
 
 export default function AgentCapabilitiesPage() {
   const { t } = useTranslation()
@@ -34,14 +47,19 @@ export default function AgentCapabilitiesPage() {
   const qa = t("agentCapabilities.qa.items", {
     returnObjects: true,
   }) as Array<{ question: string; answer: string }>
-  const startNewConversation = () => {
+  const resetConversation = () => {
     chat?.startNewConversation()
+  }
+  const startNewConversation = () => {
+    resetConversation()
     navigate("/commerce")
   }
+  const capabilityEntryHandlers = [resetConversation]
 
   return (
     <CommerceSurface>
       <CommercePageHeader
+        className="min-[1200px]:px-8"
         eyebrow={t("agentCapabilities.header.eyebrow")}
         title={t("agentCapabilities.header.title")}
         description={t("agentCapabilities.header.description")}
@@ -51,36 +69,34 @@ export default function AgentCapabilitiesPage() {
           </Button>
         }
       />
-      <CommerceBody>
-        <InlineAlert
-          variant="success"
+      <CommerceBody className="min-[1200px]:px-8">
+        <DocumentIntroCard
           title={t("agentCapabilities.principle.title")}
           description={t("agentCapabilities.principle.description")}
+          icon={<GraduationCap className="size-4" />}
         />
 
-        <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
-          <AgentCapabilityCorePanel items={capabilities} />
+        <div className="space-y-6 [&>section+section]:border-t [&>section+section]:border-(--app-border)/60 [&>section+section]:pt-6">
+          <AgentCapabilityCorePanel
+            itemLinks={capabilityEntryLinks}
+            itemSelectHandlers={capabilityEntryHandlers}
+            items={capabilities}
+          />
           <AgentCapabilityFlowPanel items={flow} />
-        </div>
-
-        <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
           <AgentCapabilityCorePanel
             descriptionKey="agentCapabilities.modes.description"
             items={modes}
             titleKey="agentCapabilities.modes.title"
           />
-          <AgentCapabilityCorePanel
-            descriptionKey="agentCapabilities.qa.description"
+          <AgentCapabilityQaPanel
             items={qa.map((item) => ({
               title: item.question,
               description: item.answer,
             }))}
-            titleKey="agentCapabilities.qa.title"
           />
+          <AgentCapabilityLanePanel items={lanes} />
+          <AgentCapabilityBoundaryPanel />
         </div>
-
-        <AgentCapabilityLanePanel items={lanes} />
-        <AgentCapabilityBoundaryPanel />
       </CommerceBody>
     </CommerceSurface>
   )

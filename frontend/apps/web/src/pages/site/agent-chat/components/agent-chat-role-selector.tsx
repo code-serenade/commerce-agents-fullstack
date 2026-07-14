@@ -16,17 +16,20 @@ export function RoleSelector({
   onToggleRole,
   roles,
   runtimeSelection,
+  size = "default",
 }: {
   disabled: boolean
   onPrimaryRoleChange: (value: string) => void
   onToggleRole: (value: string) => void
   roles: AgentRuntimeRoleOption[]
   runtimeSelection: AgentChatRuntimeSelection
+  size?: "default" | "compact"
 }) {
   const { t } = useTranslation()
   const isAuto = runtimeSelection.collaborationMode === "auto"
   const isManual = runtimeSelection.collaborationMode === "manual"
-  const primaryRole = runtimeSelection.primaryRole ?? roles[0]?.runtimeRole ?? ""
+  const primaryRole =
+    runtimeSelection.primaryRole ?? roles[0]?.runtimeRole ?? ""
 
   if (isAuto) {
     return null
@@ -40,6 +43,7 @@ export function RoleSelector({
       <SettingsRow
         align="start"
         label={t("agentChat.composer.runtime.selectedRoles")}
+        size={size}
       >
         <div className="grid min-w-0 gap-1.5">
           <div className="grid grid-cols-[minmax(0,1fr)_6rem_5rem] items-center gap-1.5 px-2 text-xs font-medium text-muted-foreground">
@@ -89,6 +93,7 @@ export function RoleSelector({
       <SettingsRow
         align="start"
         label={t("agentChat.composer.runtime.singleRole")}
+        size={size}
       >
         <div className="grid min-w-0 gap-1.5 sm:grid-cols-2 xl:grid-cols-3">
           {roles.map((role) => {

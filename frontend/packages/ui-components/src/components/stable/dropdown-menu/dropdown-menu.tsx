@@ -46,6 +46,7 @@ export interface DropdownMenuPortalProps {
 
 export interface DropdownMenuContentProps {
   children: ReactNode
+  className?: string
 }
 
 export interface DropdownMenuGroupProps {
@@ -59,6 +60,7 @@ export interface DropdownMenuLabelProps {
 
 export interface DropdownMenuItemProps {
   children: ReactNode
+  className?: string
   disabled?: boolean
   inset?: boolean
   variant?: DropdownMenuItemVariant
@@ -107,7 +109,11 @@ export interface DropdownMenuSubContentProps {
   children: ReactNode
 }
 
-export function DropdownMenu({ open, onOpenChange, children }: DropdownMenuProps) {
+export function DropdownMenu({
+  open,
+  onOpenChange,
+  children,
+}: DropdownMenuProps) {
   return (
     <CoreDropdownMenu open={open} onOpenChange={onOpenChange}>
       {children}
@@ -130,7 +136,8 @@ export function DropdownMenuTrigger({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-md outline-none transition-colors focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 data-[state=open]:bg-accent data-[state=open]:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "inline-flex items-center justify-center gap-2 rounded-md transition-colors outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 data-[state=open]:bg-accent data-[state=open]:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "cursor-pointer",
         variant === "default" &&
           "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground",
         variant === "muted" &&
@@ -151,8 +158,15 @@ export function DropdownMenuPortal({ children }: DropdownMenuPortalProps) {
   return <CoreDropdownMenuPortal>{children}</CoreDropdownMenuPortal>
 }
 
-export function DropdownMenuContent({ children }: DropdownMenuContentProps) {
-  return <CoreDropdownMenuContent>{children}</CoreDropdownMenuContent>
+export function DropdownMenuContent({
+  children,
+  className,
+}: DropdownMenuContentProps) {
+  return (
+    <CoreDropdownMenuContent className={className}>
+      {children}
+    </CoreDropdownMenuContent>
+  )
 }
 
 export function DropdownMenuGroup({ children }: DropdownMenuGroupProps) {
@@ -168,6 +182,7 @@ export function DropdownMenuLabel({
 
 export function DropdownMenuItem({
   children,
+  className,
   disabled = false,
   inset = false,
   variant = "default",
@@ -178,6 +193,7 @@ export function DropdownMenuItem({
       disabled={disabled}
       inset={inset}
       variant={variant}
+      className={className}
       onSelect={onSelect}
     >
       {children}
@@ -255,9 +271,15 @@ export function DropdownMenuSubTrigger({
   children,
   inset = false,
 }: DropdownMenuSubTriggerProps) {
-  return <CoreDropdownMenuSubTrigger inset={inset}>{children}</CoreDropdownMenuSubTrigger>
+  return (
+    <CoreDropdownMenuSubTrigger inset={inset}>
+      {children}
+    </CoreDropdownMenuSubTrigger>
+  )
 }
 
-export function DropdownMenuSubContent({ children }: DropdownMenuSubContentProps) {
+export function DropdownMenuSubContent({
+  children,
+}: DropdownMenuSubContentProps) {
   return <CoreDropdownMenuSubContent>{children}</CoreDropdownMenuSubContent>
 }

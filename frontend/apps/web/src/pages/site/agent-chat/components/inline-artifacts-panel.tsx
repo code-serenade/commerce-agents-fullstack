@@ -15,7 +15,7 @@ export function InlineArtifactsPanel({
   const { t } = useTranslation()
 
   return (
-    <div className="mt-3 rounded-lg border border-border bg-background/80 p-3">
+    <div className="rounded-xl border border-(--agent-chat-soft-border) bg-(--agent-chat-subtle-surface) p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2 text-sm font-medium">
           <FileText className="size-4 shrink-0 text-muted-foreground" />
@@ -36,10 +36,7 @@ export function InlineArtifactsPanel({
       {artifacts.length ? (
         <div className="mt-3 grid gap-2">
           {artifacts.map((artifact) => (
-            <InlineArtifactCard
-              key={artifact.id}
-              artifact={artifact}
-            />
+            <InlineArtifactCard key={artifact.id} artifact={artifact} />
           ))}
         </div>
       ) : (

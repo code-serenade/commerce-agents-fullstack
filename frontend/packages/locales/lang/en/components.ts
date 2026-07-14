@@ -116,6 +116,14 @@ const components = {
     clearLabel: "Clear time",
     ariaLabel: "Time",
   },
+  auth: {
+    passwordVisibility: {
+      showPassword: "Show password",
+      hidePassword: "Hide password",
+      showConfirmPassword: "Show confirm password",
+      hideConfirmPassword: "Hide confirm password",
+    },
+  },
 } as const
 
 export default components

@@ -17,6 +17,7 @@ export function AgentChatSettingsControls({
   onToggleRole,
   runtimeOptions,
   runtimeSelection,
+  size = "default",
   strategyId,
 }: {
   isLoadingRuntimeOptions: boolean
@@ -29,13 +30,15 @@ export function AgentChatSettingsControls({
   onToggleRole: (value: string) => void
   runtimeOptions: AgentRuntimeOptions | null
   runtimeSelection: AgentChatRuntimeSelection
+  size?: "default" | "compact"
   strategyId: AgentChatStrategyId
 }) {
   return (
-    <div className="grid gap-2 rounded-lg border border-border bg-background p-2.5">
+    <div className="grid gap-2 rounded-xl border border-(--agent-chat-soft-border) bg-(--agent-chat-subtle-surface) p-2.5">
       <AgentChatStrategyBar
         disabled={isStreaming}
         onStrategyChange={onStrategyChange}
+        size={size}
         strategyId={strategyId}
       />
       <AgentChatRuntimeOptionsBar
@@ -48,6 +51,7 @@ export function AgentChatSettingsControls({
         onToggleRole={onToggleRole}
         runtimeOptions={runtimeOptions}
         runtimeSelection={runtimeSelection}
+        size={size}
         strategyId={strategyId}
       />
     </div>

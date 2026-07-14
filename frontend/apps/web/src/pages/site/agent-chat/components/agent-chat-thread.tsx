@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react"
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react"
 import type { AgentRuntimeEvent } from "@/api"
 import type { AgentChatMessage } from "../types"
 import { AgentChatThreadTurn } from "./agent-chat-thread-turn"
@@ -8,6 +8,11 @@ import {
   type ThreadScrollSnapshot,
 } from "../view-model/thread-scroll-preservation"
 import { findPreviousUserContent } from "../view-model/agent-process-visibility-view-model"
+import {
+  getThreadMessageIdentityKey,
+  getVisibleThreadMessageEntries,
+} from "../view-model/agent-chat-thread-view-model"
+import { useAgentChatThreadViewportHeight } from "../view-model/use-agent-chat-thread-viewport-height"
 import { AgentChatThreadMessage } from "./agent-chat-thread-message"
 import { StrategyStatusPill } from "./thread-message-blocks"
 import type { AgentChatStrategy } from "../domain/agent-chat-strategy"
@@ -18,6 +23,7 @@ export interface AgentChatThreadProps {
   messages: AgentChatMessage[]
   onCloseProcessPanel: () => void
   onExamplePromptSelect?: (prompt: string) => void
+  onNextActionPromptSubmit?: (prompt: string) => void
   onOpenProcessPanel: (target: {
     anchorLabel: string
     messageId: string
@@ -34,6 +40,7 @@ export function AgentChatThread({
   messages,
   onCloseProcessPanel,
   onExamplePromptSelect,
+  onNextActionPromptSubmit,
   onOpenProcessPanel,
   runtimeEvents,
   selectedStrategy,
@@ -47,16 +54,15 @@ export function AgentChatThread({
     (message) => message.status === "streaming"
   )
   const inlineIsStreaming = isStreaming || hasStreamingMessage
-  const messageIdentityKey = useMemo(
-    () => messages.map((message) => message.id).join("|"),
-    [messages]
-  )
+  const messageIdentityKey = getThreadMessageIdentityKey(messages)
   const lastMessage = messages.at(-1)
   const lastMessageContentLength = lastMessage?.content.length ?? 0
   const previousMessageIdentityRef = useRef("")
   const pendingScrollRestoreRef = useRef<ThreadScrollSnapshot | null>(null)
   const hasOnlyWelcomeMessage =
     messages.length === 1 && messages[0]?.id === "welcome"
+  const visibleMessages = getVisibleThreadMessageEntries(messages)
+  useAgentChatThreadViewportHeight(scrollRootRef)
 
   const scrollToEnd = useCallback((behavior: ScrollBehavior) => {
     ignoreScrollUntilRef.current = Date.now() + 350
@@ -108,13 +114,16 @@ export function AgentChatThread({
     restoreThreadScroll(pendingScrollRestoreRef.current)
   }, [activeProcessMessageId])
 
-  const preserveThreadScroll = useCallback((messageId: string | null, action: () => void) => {
-    const root = scrollRootRef.current
-    const snapshot = createThreadScrollSnapshot(root, messageId)
-    pendingScrollRestoreRef.current = snapshot
-    action()
-    restoreThreadScroll(snapshot)
-  }, [])
+  const preserveThreadScroll = useCallback(
+    (messageId: string | null, action: () => void) => {
+      const root = scrollRootRef.current
+      const snapshot = createThreadScrollSnapshot(root, messageId)
+      pendingScrollRestoreRef.current = snapshot
+      action()
+      restoreThreadScroll(snapshot)
+    },
+    []
+  )
 
   const handleOpenProcessPanel = (target: {
     anchorLabel: string
@@ -138,15 +147,15 @@ export function AgentChatThread({
       ref={scrollRootRef}
       data-agent-chat-thread-scroll-root="true"
       onScroll={handleScroll}
-      className="min-h-0 flex-1 overflow-y-auto bg-background px-4 py-5 sm:px-6"
+      className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-transparent px-4 pt-20 pb-6 [scrollbar-gutter:stable] sm:px-7 sm:pt-24 sm:pb-7"
     >
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+      <div className="mx-auto flex w-full max-w-[48rem] flex-col gap-6">
         {messages.length <= 1 && !hasOnlyWelcomeMessage ? (
           <div className="flex justify-center">
             <StrategyStatusPill strategy={selectedStrategy} />
           </div>
         ) : null}
-        {messages.map((message, index) => (
+        {visibleMessages.map(({ index, message }) => (
           <AgentChatThreadTurn
             key={message.id}
             activeProcessMessageId={activeProcessMessageId}
@@ -161,6 +170,7 @@ export function AgentChatThread({
                 errorRetryPrompt={findPreviousUserContent(messages, index)}
                 message={targetMessage}
                 onExamplePromptSelect={onExamplePromptSelect}
+                onNextActionPromptSubmit={onNextActionPromptSubmit}
                 previousUserContent={findPreviousUserContent(messages, index)}
               />
             )}

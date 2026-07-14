@@ -1,8 +1,11 @@
 import { useTranslation } from "react-i18next"
 import type { ReactNode } from "react"
+import type { CSSProperties } from "react"
+import { X } from "lucide-react"
 import {
   Button,
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -41,6 +44,8 @@ export function SimpleFormDialog({
   onSubmit,
   open,
   processNotice,
+  description,
+  dialogWidth = "640px",
   submitLabel,
   title,
   values,
@@ -55,12 +60,15 @@ export function SimpleFormDialog({
   onSubmit: () => void
   open: boolean
   processNotice?: ReactNode
+  description?: ReactNode
+  dialogWidth?: string
   submitLabel?: string
   title: string
   values: SimpleFormValues
   setValues: (values: SimpleFormValues) => void
 }) {
   const { t } = useTranslation()
+  const resolvedDescription = description ?? t("commerce.common.dialogDescription")
   const updateValue = (key: string, value: string) => {
     setValues({ ...values, [key]: value })
   }
@@ -74,14 +82,34 @@ export function SimpleFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
-            {t("commerce.common.dialogDescription")}
-          </DialogDescription>
+      <DialogContent
+        showCloseButton={false}
+        className="flex max-h-[98vh] w-[min(var(--commerce-form-dialog-width),98vw)] max-w-[98vw] flex-col gap-0 overflow-hidden bg-white p-0 sm:max-w-[98vw] dark:bg-popover"
+        style={
+          {
+            "--commerce-form-dialog-width": dialogWidth,
+          } as CSSProperties
+        }
+      >
+        <DialogHeader className="shrink-0 border-b border-border bg-white px-4 pt-4 pb-3 dark:bg-popover">
+          <div className="flex min-w-0 items-start justify-between gap-3">
+            <div className="min-w-0 space-y-2">
+              <DialogTitle>{title}</DialogTitle>
+              <DialogDescription>{resolvedDescription}</DialogDescription>
+            </div>
+            <DialogClose asChild>
+              <Button
+                aria-label={t("commerce.common.close")}
+                className="-mt-2 -mr-2"
+                size="icon"
+                variant="ghost"
+              >
+                <X className="size-4" />
+              </Button>
+            </DialogClose>
+          </div>
         </DialogHeader>
-        <div className="min-h-0 max-h-[calc(100vh-16rem)] space-y-3 overflow-y-auto pr-1 [scrollbar-gutter:stable]">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto bg-white p-4 [scrollbar-gutter:stable] dark:bg-popover">
           {notice ? (
             <div className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-2 text-xs/5 text-muted-foreground">
               {notice}
@@ -122,7 +150,7 @@ export function SimpleFormDialog({
             </label>
           ))}
         </div>
-        <DialogFooter>
+        <DialogFooter className="m-0 flex shrink-0 flex-row flex-wrap justify-center gap-2 rounded-none rounded-b-xl border-t border-border bg-white p-4 min-[769px]:justify-end dark:bg-popover">
           {footerAuxiliaryActions.map((action) => (
             <Button
               key={action.label}
@@ -140,10 +168,7 @@ export function SimpleFormDialog({
           >
             {t("commerce.common.cancel")}
           </Button>
-          <Button
-            disabled={missingRequired || isSubmitting}
-            onClick={onSubmit}
-          >
+          <Button disabled={missingRequired || isSubmitting} onClick={onSubmit}>
             {submitLabel ?? t("commerce.common.save")}
           </Button>
         </DialogFooter>

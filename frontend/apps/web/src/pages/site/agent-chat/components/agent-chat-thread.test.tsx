@@ -12,7 +12,7 @@ describe("AgentChatThread", () => {
     vi.restoreAllMocks()
   })
 
-  it("does not show the strategy pill before the user starts chatting", async () => {
+  it("does not show onboarding content before the user starts chatting", async () => {
     const i18n = await createAgentChatTestI18n()
 
     render(
@@ -40,8 +40,8 @@ describe("AgentChatThread", () => {
       screen.queryByText(i18n.t("agentChat.strategy.current"))
     ).not.toBeInTheDocument()
     expect(
-      screen.getByText(i18n.t("agentChat.welcomeMessage"))
-    ).toBeInTheDocument()
+      screen.queryByText(i18n.t("agentChat.welcomeMessage"))
+    ).not.toBeInTheDocument()
   })
 
   it("softens internal answer headings from legacy assistant output", async () => {
@@ -78,8 +78,7 @@ describe("AgentChatThread", () => {
           isStreaming={false}
           messages={[
             {
-              content:
-                `## ${legacyFinalHeading}\nLegacy final content.\n\n## ${legacyReferenceHeading}\nLegacy reference content.\n\n## ${legacyActionHeading}\nLegacy action content.`,
+              content: `## ${legacyFinalHeading}\nLegacy final content.\n\n## ${legacyReferenceHeading}\nLegacy reference content.\n\n## ${legacyActionHeading}\nLegacy action content.`,
               id: "assistant-legacy-headings",
               role: "assistant",
             },

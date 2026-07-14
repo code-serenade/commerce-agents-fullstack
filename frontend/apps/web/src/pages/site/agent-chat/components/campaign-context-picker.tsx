@@ -11,6 +11,12 @@ import {
   CampaignContextButton,
   CampaignPickerContent,
 } from "./campaign-context-picker-parts"
+import {
+  ComposerPanelFrame,
+  composerPanelListClassName,
+  composerPanelSelectedAreaClassName,
+  composerPanelTinyButtonClassName,
+} from "./composer-panel-layout"
 
 const CAMPAIGN_PAGE_SIZE = 6
 
@@ -48,96 +54,98 @@ export function CampaignContextPicker({
 
   return (
     <>
-      <div className="mb-3 grid gap-2">
-        <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
-          <div className="min-w-0">
-            <p className="text-xs font-medium text-foreground">
-              {selectedCampaigns.length
-                ? t("agentChat.composer.campaignContext.selectedCount", {
-                    count: selectedCampaigns.length,
-                  })
-                : t("agentChat.composer.campaignContext.noneSelected")}
-            </p>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">
-              {selectedCampaigns.length
-                ? t("agentChat.composer.campaignContext.selectedHint")
-                : t("agentChat.composer.campaignContext.manualHint")}
-            </p>
-          </div>
-          <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+      <ComposerPanelFrame
+        title={
+          selectedCampaigns.length
+            ? t("agentChat.composer.campaignContext.selectedCount", {
+                count: selectedCampaigns.length,
+              })
+            : t("agentChat.composer.campaignContext.noneSelected")
+        }
+        description={
+          selectedCampaigns.length
+            ? t("agentChat.composer.campaignContext.selectedHint")
+            : t("agentChat.composer.campaignContext.manualHint")
+        }
+        actions={
+          <>
             {statusSummary.map(({ count, status }) => (
               <Badge key={status} variant="outline">
                 {t(campaignStatusTranslationKey(status))}
                 {count}
               </Badge>
             ))}
-          </div>
-        </div>
-        <SearchInput
-          value={query}
-          onValueChange={(value) => {
-            setQuery(value)
-            setVisibleCount(CAMPAIGN_PAGE_SIZE)
-          }}
-          placeholder={t("agentChat.composer.campaignContext.searchPlaceholder")}
-          disabled={disabled || isLoadingCampaigns}
-        />
-        {selectedCampaigns.length ? (
-          <div className="grid gap-2 rounded-lg border border-border bg-muted/25 p-2">
-            <div className="flex min-w-0 items-center justify-between gap-2">
-              <p className="text-[11px] font-semibold text-foreground">
-                {t("agentChat.composer.campaignContext.selectedSection")}
-              </p>
-              <button
-                type="button"
-                disabled={disabled}
-                onClick={onClearCampaignContext}
-                className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {t("agentChat.composer.campaignContext.clear")}
-              </button>
-            </div>
-            <div className="grid min-w-0 gap-1.5 sm:grid-cols-2">
-              {selectedCampaigns.map((campaign) => (
-                <CampaignContextButton
-                  key={campaign.id}
-                  campaign={campaign}
+          </>
+        }
+      >
+        <div className="mb-3 grid gap-0">
+          <SearchInput
+            value={query}
+            onValueChange={(value) => {
+              setQuery(value)
+              setVisibleCount(CAMPAIGN_PAGE_SIZE)
+            }}
+            placeholder={t(
+              "agentChat.composer.campaignContext.searchPlaceholder"
+            )}
+            disabled={disabled || isLoadingCampaigns}
+          />
+          {selectedCampaigns.length ? (
+            <div className={composerPanelSelectedAreaClassName}>
+              <div className="flex min-w-0 items-center justify-between gap-2">
+                <p className="text-[11px] font-semibold text-foreground">
+                  {t("agentChat.composer.campaignContext.selectedSection")}
+                </p>
+                <button
+                  type="button"
                   disabled={disabled}
-                  onToggleCampaignContext={onToggleCampaignContext}
-                  selected
-                />
-              ))}
+                  onClick={onClearCampaignContext}
+                  className={composerPanelTinyButtonClassName}
+                >
+                  {t("agentChat.composer.campaignContext.clear")}
+                </button>
+              </div>
+              <div className={composerPanelListClassName}>
+                {selectedCampaigns.map((campaign) => (
+                  <CampaignContextButton
+                    key={campaign.id}
+                    campaign={campaign}
+                    disabled={disabled}
+                    onToggleCampaignContext={onToggleCampaignContext}
+                    selected
+                  />
+                ))}
+              </div>
             </div>
+          ) : null}
+        </div>
+        <div className={composerPanelListClassName}>
+          <CampaignPickerContent
+            availableCampaigns={visibleCampaigns}
+            disabled={disabled}
+            isLoadingCampaigns={isLoadingCampaigns}
+            onToggleCampaignContext={onToggleCampaignContext}
+            query={query}
+            selectedCampaigns={selectedCampaigns}
+          />
+        </div>
+        {hiddenCampaignCount > 0 ? (
+          <div className="mt-2 flex justify-center">
+            <button
+              type="button"
+              disabled={disabled || isLoadingCampaigns}
+              onClick={() =>
+                setVisibleCount((current) => current + CAMPAIGN_PAGE_SIZE)
+              }
+              className={composerPanelTinyButtonClassName}
+            >
+              {t("agentChat.composer.campaignContext.showMore", {
+                count: Math.min(hiddenCampaignCount, CAMPAIGN_PAGE_SIZE),
+              })}
+            </button>
           </div>
         ) : null}
-      </div>
-      <div className="grid min-w-0 gap-2 sm:grid-cols-2">
-        <CampaignPickerContent
-          availableCampaigns={visibleCampaigns}
-          disabled={disabled}
-          isLoadingCampaigns={isLoadingCampaigns}
-          onToggleCampaignContext={onToggleCampaignContext}
-          query={query}
-          selectedCampaigns={selectedCampaigns}
-        />
-      </div>
-      {hiddenCampaignCount > 0 ? (
-        <div className="mt-2 flex justify-center">
-          <button
-            type="button"
-            disabled={disabled || isLoadingCampaigns}
-            onClick={() =>
-              setVisibleCount((current) => current + CAMPAIGN_PAGE_SIZE)
-            }
-            className="rounded-full border border-border bg-background px-3 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {t("agentChat.composer.campaignContext.showMore", {
-              count: Math.min(hiddenCampaignCount, CAMPAIGN_PAGE_SIZE),
-            })}
-          </button>
-        </div>
-      ) : null}
+      </ComposerPanelFrame>
     </>
   )
 }
-

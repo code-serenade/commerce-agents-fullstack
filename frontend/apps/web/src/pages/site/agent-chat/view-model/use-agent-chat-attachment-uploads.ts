@@ -17,6 +17,7 @@ export function useAgentChatAttachmentUploads(input: {
   isLoggedIn: boolean
   isStreaming: boolean
   messageFormatCopy: AgentChatMessageFormatCopy
+  onConversationCreated?: (conversationId: string) => void
   sessionIdRef: MutableRefObject<string>
   restoreSelectedSources: (sourceRefs: string[]) => void
   selectedSources: AgentChatSourceContextSelection[]
@@ -32,6 +33,7 @@ export function useAgentChatAttachmentUploads(input: {
     isLoggedIn,
     isStreaming,
     messageFormatCopy,
+    onConversationCreated,
     restoreSelectedSources,
     selectedSources,
     sessionIdRef,
@@ -57,6 +59,9 @@ export function useAgentChatAttachmentUploads(input: {
         })
         if (result.conversationId) {
           sessionIdRef.current = result.conversationId
+          if (!conversationId) {
+            onConversationCreated?.(result.conversationId)
+          }
         }
         if (result.fileIds.length) {
           const sourceRefs = [
@@ -80,6 +85,7 @@ export function useAgentChatAttachmentUploads(input: {
       isLoggedIn,
       isStreaming,
       messageFormatCopy,
+      onConversationCreated,
       restoreSelectedSources,
       selectedSources,
       sessionIdRef,

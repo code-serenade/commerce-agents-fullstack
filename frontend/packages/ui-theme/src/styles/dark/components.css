@@ -17,4 +17,76 @@ html[data-theme="dark"],
   --sidebar-accent-foreground: oklch(0.95 0.008 250);
   --sidebar-border: oklch(0.38 0.01 252 / 65%);
   --sidebar-ring: oklch(0.69 0.15 258);
+  --shell-topbar-background: var(--surface);
+  --shell-topbar-shadow: none;
+  --shell-sidebar-background: linear-gradient(var(--sidebar), var(--sidebar));
+  --shell-sidebar-trigger-background: var(--background);
+  --shell-sidebar-item-hover-background: oklch(0.35 0.014 255 / 52%);
+  --shell-sidebar-shadow: none;
+  --shell-brand-description-foreground: var(--muted-foreground);
+  --shell-logo-background: var(--app-surface);
+  --shell-logo-shadow: 0 1px 2px oklch(0 0 0 / 18%);
+  --shell-logo-ring: var(--app-border);
+  --auth-minimal-heading-foreground: oklch(0.98 0.008 250);
+  --auth-minimal-muted-foreground: oklch(0.72 0.035 255);
+  --auth-minimal-label-foreground: oklch(0.9 0.026 255);
+  --auth-minimal-field-foreground: oklch(0.96 0.02 255);
+  --auth-minimal-field-background: linear-gradient(
+    180deg,
+    oklch(0.24 0.03 255 / 90%),
+    oklch(0.19 0.026 255 / 74%)
+  );
+  --auth-minimal-field-border: oklch(0.76 0.035 255 / 22%);
+  --auth-minimal-field-shadow:
+    0 16px 36px oklch(0 0 0 / 20%), inset 0 1px 0 oklch(1 0 0 / 8%);
+  --auth-minimal-field-focus-border: oklch(0.73 0.14 258 / 72%);
+  --auth-minimal-field-focus-shadow:
+    0 0 0 4px oklch(0.54 0.2 266 / 14%), 0 18px 38px oklch(0 0 0 / 22%),
+    inset 0 1px 0 oklch(1 0 0 / 8%);
+  --auth-minimal-icon-hover-background: oklch(0.73 0.14 258 / 12%);
+  --auth-minimal-action-foreground: oklch(0.77 0.13 258);
+  --auth-minimal-submit-background: linear-gradient(
+    135deg,
+    oklch(0.58 0.26 292),
+    oklch(0.55 0.24 266)
+  );
+  --auth-minimal-submit-foreground: oklch(1 0 0);
+  --auth-minimal-submit-shadow:
+    0 18px 42px oklch(0.54 0.2 266 / 36%), inset 0 0 0 1px oklch(1 0 0 / 8%);
+  --auth-minimal-notice-background: oklch(0.19 0.026 255 / 78%);
+  --auth-minimal-notice-border: oklch(0.76 0.035 255 / 24%);
+  --auth-minimal-notice-shadow: 0 22px 54px oklch(0 0 0 / 28%);
+  --auth-minimal-popover-background: oklch(0.19 0.026 255 / 92%);
+  --auth-minimal-popover-shadow: 0 16px 36px oklch(0 0 0 / 28%);
+  --auth-minimal-brand-shadow: 0 14px 36px oklch(0.55 0.18 270 / 36%);
+  --document-page-background: var(--background);
+  --document-page-ambient: none;
+  --document-card-background: linear-gradient(
+    145deg,
+    oklch(0.3 0.014 255 / 88%) 0%,
+    oklch(0.24 0.012 255 / 82%) 100%
+  );
+  --document-card-border: oklch(0.54 0.018 255 / 36%);
+  --document-card-shadow:
+    0 18px 42px oklch(0 0 0 / 22%), inset 0 1px 0 oklch(1 0 0 / 8%);
+  --document-intro-card-background: linear-gradient(
+    112deg,
+    oklch(0.3 0.018 255 / 90%) 0%,
+    oklch(0.24 0.014 255 / 84%) 46%,
+    oklch(0.36 0.03 258 / 74%) 100%
+  );
+  --document-intro-card-border: oklch(0.64 0.018 255 / 32%);
+  --document-intro-card-shadow:
+    0 22px 52px oklch(0 0 0 / 28%), inset 0 1px 0 oklch(1 0 0 / 10%);
+  --document-intro-card-decoration:
+    radial-gradient(
+      circle at 100% 50%,
+      oklch(0.78 0.12 258 / 20%) 0 1px,
+      transparent 1.5px
+    ),
+    repeating-radial-gradient(
+      ellipse at 100% 50%,
+      oklch(0.78 0.12 258 / 14%) 0 1px,
+      transparent 1px 18px
+    );
 }

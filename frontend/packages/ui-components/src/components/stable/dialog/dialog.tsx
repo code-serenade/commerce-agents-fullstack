@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import type { CSSProperties, ReactNode } from "react"
 import {
   Dialog as CoreDialog,
   DialogClose as CoreDialogClose,
@@ -30,14 +30,19 @@ export interface DialogOverlayProps {}
 
 export interface DialogContentProps {
   children: ReactNode
+  className?: string
+  showCloseButton?: boolean
+  style?: CSSProperties
 }
 
 export interface DialogHeaderProps {
   children: ReactNode
+  className?: string
 }
 
 export interface DialogFooterProps {
   children: ReactNode
+  className?: string
 }
 
 export interface DialogTitleProps {
@@ -50,6 +55,8 @@ export interface DialogDescriptionProps {
 
 export interface DialogCloseProps {
   children: ReactNode
+  asChild?: boolean
+  className?: string
 }
 
 export function Dialog({ open, onOpenChange, children }: DialogProps) {
@@ -72,16 +79,29 @@ export function DialogOverlay(_: DialogOverlayProps) {
   return <CoreDialogOverlay />
 }
 
-export function DialogContent({ children }: DialogContentProps) {
-  return <CoreDialogContent>{children}</CoreDialogContent>
+export function DialogContent({
+  children,
+  className,
+  showCloseButton,
+  style,
+}: DialogContentProps) {
+  return (
+    <CoreDialogContent
+      className={className}
+      showCloseButton={showCloseButton}
+      style={style}
+    >
+      {children}
+    </CoreDialogContent>
+  )
 }
 
-export function DialogHeader({ children }: DialogHeaderProps) {
-  return <CoreDialogHeader>{children}</CoreDialogHeader>
+export function DialogHeader({ children, className }: DialogHeaderProps) {
+  return <CoreDialogHeader className={className}>{children}</CoreDialogHeader>
 }
 
-export function DialogFooter({ children }: DialogFooterProps) {
-  return <CoreDialogFooter>{children}</CoreDialogFooter>
+export function DialogFooter({ children, className }: DialogFooterProps) {
+  return <CoreDialogFooter className={className}>{children}</CoreDialogFooter>
 }
 
 export function DialogTitle({ children }: DialogTitleProps) {
@@ -92,6 +112,10 @@ export function DialogDescription({ children }: DialogDescriptionProps) {
   return <CoreDialogDescription>{children}</CoreDialogDescription>
 }
 
-export function DialogClose({ children }: DialogCloseProps) {
-  return <CoreDialogClose>{children}</CoreDialogClose>
+export function DialogClose({ asChild, children, className }: DialogCloseProps) {
+  return (
+    <CoreDialogClose asChild={asChild} className={className}>
+      {children}
+    </CoreDialogClose>
+  )
 }

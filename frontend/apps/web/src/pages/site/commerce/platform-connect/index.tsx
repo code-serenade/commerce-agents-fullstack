@@ -2,9 +2,10 @@ import {
   CommerceBody,
   CommercePageHeader,
   CommerceSurface,
-  InlineAlert,
 } from "../components/commerce-ui"
+import { DatabaseZap } from "lucide-react"
 import { useTranslation } from "react-i18next"
+import { DocumentIntroCard } from "../components/document-section"
 import { PlatformDialogs } from "./components/platform-dialogs"
 import {
   PlatformConnectionsPanel,
@@ -28,10 +29,10 @@ export default function PlatformConnectPage() {
         description={t("commerce.pages.platform.description")}
       />
       <CommerceBody>
-        <InlineAlert
-          variant="default"
+        <DocumentIntroCard
           title={t("commerce.pages.platform.boundaryTitle")}
           description={t("commerce.pages.platform.boundaryDescription")}
+          icon={<DatabaseZap className="size-4" />}
         />
         <PlatformMetrics items={page.metricCards} />
         <PlatformSupportPanel page={page} />

@@ -9,7 +9,8 @@ export const panelClassNames: Record<InlineAgentState, string> = {
   done: "border-emerald-200 bg-emerald-50/70 dark:border-emerald-900/60 dark:bg-emerald-950/20",
   failed: "border-destructive/25 bg-destructive/10",
   idle: "border-border bg-card",
-  queued: "border-sky-200 bg-sky-50/70 dark:border-sky-900/60 dark:bg-sky-950/20",
+  queued:
+    "border-sky-200 bg-sky-50/70 dark:border-sky-900/60 dark:bg-sky-950/20",
   reworking:
     "border-violet-200 bg-violet-50/70 dark:border-violet-900/60 dark:bg-violet-950/20",
   working: "border-primary/30 bg-primary/5",
@@ -43,3 +44,16 @@ export const roleDotClassNames: Record<AgentRoleKey, string> = {
   web: "bg-indigo-500",
 }
 
+export const roleScrimAccentColors: Record<AgentRoleKey, string> = {
+  accounting: "16 185 129",
+  box: "100 116 139",
+  creative: "139 92 246",
+  data: "13 148 136",
+  delivery: "59 130 246",
+  design: "217 70 239",
+  engineering: "51 65 85",
+  ops: "37 99 235",
+  search: "6 182 212",
+  service: "14 165 233",
+  web: "99 102 241",
+}

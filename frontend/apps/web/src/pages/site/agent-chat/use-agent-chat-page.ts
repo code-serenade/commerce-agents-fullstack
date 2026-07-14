@@ -1,13 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useSelector } from "react-redux"
+import { useLocation, useNavigate, useParams } from "react-router"
 import type { RootState } from "@/store"
 import type { AgentRuntimeEvent } from "./agent-chat-data"
 import { createSessionId } from "./domain/agent-chat-message-mapping"
 import { DEFAULT_AGENT_CHAT_STRATEGY_ID, getAgentChatStrategy, type AgentChatStrategyId } from "./domain/agent-chat-strategy"
 import { runtimeSelectionForStrategy } from "./domain/agent-runtime-options"
 import type { AgentChatAttachmentItem, AgentChatConversationItem, AgentChatMessage } from "./types"
-import { loadLatestAgentConversation } from "./view-model/agent-chat-conversation-actions"
+import {
+  loadAgentConversationById,
+  loadAgentConversationList,
+  resetActiveConversation,
+} from "./view-model/agent-chat-conversation-actions"
 import { resetGuestAgentChatState } from "./view-model/agent-chat-page-actions"
 import { useAgentChatAttachmentUploads } from "./view-model/use-agent-chat-attachment-uploads"
 import { createAgentChatPageViewModel } from "./view-model/agent-chat-page-view-model"
@@ -28,6 +33,11 @@ import { useAgentChatQuota } from "./view-model/use-agent-chat-quota"
 
 export function useAgentChatPage() {
   const { t } = useTranslation()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const { conversationId: routeConversationId } = useParams<{
+    conversationId?: string
+  }>()
   const fallbackConversationTitle = t("agentChat.sidebar.newChat")
   const loginRequiredMessage = t("agentChat.loginRequired.message")
   const messageFormatCopy = useMemo(
@@ -86,11 +96,17 @@ export function useAgentChatPage() {
     welcomeMessage: t("agentChat.welcomeMessage"),
   })
   const actionStateRef = useRef(actionState)
+  const conversationIdRef = useRef(conversationId)
   const userBootstrapKey = user?.id ?? null
+  const isAgentChatRoute = isAgentChatPath(location.pathname)
 
   useEffect(() => {
     actionStateRef.current = actionState
   }, [actionState])
+
+  useEffect(() => {
+    conversationIdRef.current = conversationId
+  }, [conversationId])
 
   useEffect(() => {
     let cancelled = false
@@ -99,11 +115,51 @@ export function useAgentChatPage() {
     if (!userBootstrapKey) {
       resetGuestAgentChatState(latestActionState, () => cancelled)
     } else {
-      void loadLatestAgentConversation(latestActionState, () => cancelled)
+      void (async () => {
+        try {
+          if (cancelled || !isAgentChatRoute) return
+
+          if (routeConversationId) {
+            if (routeConversationId === conversationIdRef.current) {
+              await loadAgentConversationList(latestActionState, () => cancelled)
+              return
+            }
+
+            await Promise.all([
+              loadAgentConversationList(latestActionState, () => cancelled),
+              loadAgentConversationById(
+                routeConversationId,
+                latestActionState,
+                () => cancelled
+              ),
+            ])
+            return
+          }
+
+          await loadAgentConversationList(latestActionState, () => cancelled)
+          if (cancelled) return
+          resetActiveConversation(latestActionState)
+        } catch (err) {
+          if (cancelled) return
+          latestActionState.setError(
+            err instanceof Error ? err.message : t("agentChat.error")
+          )
+        }
+      })()
     }
 
     return () => { cancelled = true }
-  }, [userBootstrapKey])
+  }, [isAgentChatRoute, routeConversationId, t, userBootstrapKey])
+
+  const syncConversationRoute = useCallback((nextConversationId: string) => {
+    if (!isAgentChatRoute) return
+    navigate(`/commerce/${nextConversationId}`, { replace: true })
+  }, [isAgentChatRoute, navigate])
+
+  const replaceWithNewConversationRoute = useCallback(() => {
+    if (!isAgentChatRoute) return
+    navigate("/commerce", { replace: true })
+  }, [isAgentChatRoute, navigate])
 
   const canSend = input.trim().length > 0 && !isStreaming
   const selectedStrategy = useMemo(() => getAgentChatStrategy(strategyId), [strategyId])
@@ -118,6 +174,7 @@ export function useAgentChatPage() {
     conversationId,
     isLoggedIn,
     isStreaming,
+    onActiveConversationDeleted: replaceWithNewConversationRoute,
     setInput,
     setStrategyId: setStrategyAndRuntime,
   })
@@ -127,6 +184,7 @@ export function useAgentChatPage() {
     isLoggedIn,
     isStreaming,
     messageFormatCopy,
+    onConversationCreated: syncConversationRoute,
     restoreSelectedSources: sourceContext.restoreSelectedSources,
     selectedSources: sourceContext.selectedSources,
     sessionIdRef,
@@ -139,6 +197,7 @@ export function useAgentChatPage() {
     isLoggedIn,
     isStreaming,
     restoreSelectedSources: sourceContext.restoreSelectedSources,
+    onConversationCreated: syncConversationRoute,
     selectedSources: sourceContext.selectedSources,
     sessionIdRef,
     setAttachments, setConversationId, setConversations, setError,
@@ -159,6 +218,7 @@ export function useAgentChatPage() {
     isStreaming,
     loginRequiredMessage,
     messageFormatCopy,
+    onConversationCreated: syncConversationRoute,
     runtimeSelection: selectedRuntime,
     selectedCampaigns: campaignContext.selectedCampaigns,
     selectedProducts: productContext.selectedProducts,
@@ -215,4 +275,13 @@ export function useAgentChatPage() {
     removeSourcesByObjects: sourceActions.removeSourcesByObjects,
     uploadAttachments,
   })
+}
+
+function isAgentChatPath(pathname: string) {
+  return (
+    pathname === "/" ||
+    pathname === "/agent" ||
+    pathname === "/commerce" ||
+    pathname.startsWith("/commerce/")
+  )
 }

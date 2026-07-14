@@ -1,6 +1,7 @@
 import { ChevronDown, Megaphone } from "lucide-react"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+import { Button } from "@workspace/ui-components"
 import type { AgentChatCampaignContextSelection } from "../domain/agent-chat-context-selection"
 import { CampaignContextPicker } from "./campaign-context-picker"
 
@@ -30,7 +31,9 @@ export function AgentChatCampaignContextBar({
   const { t } = useTranslation()
   const [internalOpen, setInternalOpen] = useState(false)
   const open = isOpen ?? internalOpen
-  const selectedCampaignNames = selectedCampaigns.map((campaign) => campaign.name)
+  const selectedCampaignNames = selectedCampaigns.map(
+    (campaign) => campaign.name
+  )
   const selectedCampaignSummary =
     selectedCampaigns.length > 0
       ? t("agentChat.composer.campaignContext.selectedCount", {
@@ -62,13 +65,14 @@ export function AgentChatCampaignContextBar({
 
   return (
     <div className="relative shrink-0" data-composer-interactive="true">
-      <button
+      <Button
         type="button"
         onClick={toggleOpen}
-        className={`flex h-7 max-w-28 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition-colors sm:max-w-36 ${
+        classNameMode="replace"
+        className={`flex h-7 max-w-28 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-2.5 text-xs font-medium transition-colors sm:max-w-36 ${
           open
-            ? "border-sky-400/80 bg-sky-50 text-sky-700 dark:bg-sky-500/15 dark:text-sky-100"
-            : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
+            ? "border-primary/30 bg-(--agent-chat-accent-soft) text-(--agent-chat-accent-foreground) shadow-sm"
+            : "border-(--agent-chat-soft-border) bg-(--agent-chat-muted-control) text-muted-foreground hover:bg-(--agent-chat-accent-soft) hover:text-(--agent-chat-accent-foreground)"
         }`}
         aria-expanded={open}
         aria-label={title}
@@ -90,7 +94,7 @@ export function AgentChatCampaignContextBar({
             open ? "rotate-180" : ""
           }`}
         />
-      </button>
+      </Button>
     </div>
   )
 }

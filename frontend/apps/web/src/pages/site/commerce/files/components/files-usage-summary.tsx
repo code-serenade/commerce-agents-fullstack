@@ -33,9 +33,9 @@ export function FilesUsageSummary({ summary, t }: FilesUsageSummaryProps) {
         return (
           <div
             key={item.key}
-            className="flex min-w-0 items-center gap-2 rounded-lg border border-(--app-border) bg-background px-3 py-2"
+            className="flex h-24 min-w-0 items-center gap-2 rounded-lg border border-(--document-card-border) bg-(image:--document-card-background) px-3 shadow-(--document-card-shadow) backdrop-blur-md"
           >
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
               <Icon className="size-4" />
             </span>
             <span className="min-w-0">

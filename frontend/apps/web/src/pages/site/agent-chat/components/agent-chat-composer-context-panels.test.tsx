@@ -204,7 +204,9 @@ describe("AgentChatComposer context panels", () => {
     )
 
     await user.click(
-      screen.getByRole("button", { name: /7-day validation campaign/i })
+      await screen.findByRole("button", {
+        name: /7-day validation campaign/i,
+      })
     )
     expect(onToggleCampaignContext).toHaveBeenCalledWith(campaign)
   })

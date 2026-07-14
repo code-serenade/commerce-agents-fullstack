@@ -1,5 +1,6 @@
 const AGENT_SHELL_ROUTE_PATHS = new Set([
   "/",
+  "/home",
   "/commerce",
   "/agent",
   "/agent-capabilities",
@@ -13,6 +14,7 @@ const AGENT_SHELL_ROUTE_PATHS = new Set([
   "/approvals",
   "/operations",
   "/agent-output",
+  "/profile",
 ])
 
 export function isAgentShellRoute(pathname: string) {

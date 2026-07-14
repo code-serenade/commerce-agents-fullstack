@@ -9,20 +9,83 @@
   --card-foreground: oklch(0.27 0.02 256);
   --popover: color(display-p3 0.925 0.925 0.925);
   --popover-foreground: oklch(0.27 0.02 256);
-  --primary: color(display-p3 0.142 0.343 0.791);
-  --primary-outline: color(display-p3 0.151 0.394 0.652);
+  --primary: oklch(0.58 0.24 271);
+  --primary-outline: oklch(0.53 0.23 266);
   --primary-foreground: oklch(0.99 0 0);
   --secondary: color(display-p3 0.88 0.9 0.94);
   --secondary-foreground: color(display-p3 0.25 0.28 0.32);
-  --muted: oklch(0.96 0.008 247);
-  --muted-foreground: oklch(0.54 0.02 254);
-  --accent: oklch(0.94 0.015 250);
-  --accent-foreground: oklch(0.31 0.02 256);
-  --border: oklch(0.89 0.01 250);
+  --muted: oklch(0.955 0.018 252);
+  --muted-foreground: oklch(0.55 0.045 257);
+  --accent: oklch(0.935 0.035 262);
+  --accent-foreground: oklch(0.48 0.2 266);
+  --border: oklch(0.9 0.02 252);
   --destructive: oklch(0.62 0.22 28);
 
   --info: color(display-p3 0.3 0.52 0.9);
   --success: color(display-p3 0.42 0.7 0.35);
   --warning: color(display-p3 0.7 0.45 0.22);
   --error: color(display-p3 0.7 0.35 0.33);
+
+  --app-surface: var(--surface);
+  --app-panel: var(--card);
+  --app-text: var(--foreground);
+  --app-muted-text: var(--muted-foreground);
+  --app-border: var(--border);
+  --app-primary: var(--primary);
+  --app-active-bg: var(--accent);
+
+  --agent-chat-page-background: oklch(0.998 0.002 240);
+  --agent-chat-page-ambient:
+    radial-gradient(
+      ellipse 56% 72% at 100% 48%,
+      oklch(0.972 0.018 245 / 38%) 0%,
+      oklch(0.988 0.01 245 / 20%) 42%,
+      transparent 76%
+    ),
+    radial-gradient(
+      ellipse 48% 78% at 0% 62%,
+      oklch(0.976 0.018 228 / 32%) 0%,
+      oklch(0.99 0.009 232 / 18%) 46%,
+      transparent 78%
+    ),
+    linear-gradient(
+      90deg,
+      oklch(0.99 0.008 232 / 52%) 0%,
+      oklch(1 0 0 / 96%) 32%,
+      oklch(1 0 0 / 98%) 58%,
+      oklch(0.986 0.012 248 / 42%) 100%
+    );
+  --agent-chat-content-surface: oklch(1 0 0 / 18%);
+  --agent-chat-elevated-surface: oklch(1 0 0 / 86%);
+  --agent-chat-elevated-strong: oklch(1 0 0 / 96%);
+  --agent-chat-subtle-surface: oklch(0.998 0.003 245 / 82%);
+  --agent-chat-soft-border: oklch(0.88 0.032 254 / 76%);
+  --agent-chat-strong-border: oklch(1 0 0 / 86%);
+  --agent-chat-card-header: linear-gradient(
+    135deg,
+    oklch(1 0 0 / 96%) 0%,
+    oklch(0.992 0.012 268 / 94%) 46%,
+    oklch(0.984 0.016 244 / 96%) 100%
+  );
+  --agent-chat-card-background: linear-gradient(
+    145deg,
+    oklch(1 0 0 / 96%) 0%,
+    oklch(0.994 0.008 268 / 92%) 48%,
+    oklch(0.982 0.016 244 / 88%) 100%
+  );
+  --agent-chat-primary-gradient: var(--primary);
+  --agent-chat-user-message-background: var(--primary);
+  --agent-chat-user-message-foreground: var(--primary-foreground);
+  --agent-chat-floating-shadow:
+    0 10px 28px oklch(0.55 0.04 250 / 8%), 0 1px 2px oklch(0.42 0.02 250 / 8%);
+  --agent-chat-card-shadow:
+    0 22px 64px oklch(0.54 0.09 260 / 12%), 0 1px 2px oklch(0.42 0.04 250 / 10%);
+  --agent-chat-avatar-shadow: 0 12px 26px oklch(0.54 0.1 260 / 14%);
+  --agent-chat-button-shadow: 0 12px 28px oklch(0.55 0.22 268 / 32%);
+  --agent-chat-focus-shadow: 0 0 0 4px oklch(0.62 0.2 268 / 14%);
+  --agent-chat-inset-shadow: inset 0 1px 8px oklch(0.82 0.035 252 / 26%);
+  --agent-chat-accent-soft: oklch(0.942 0.045 260 / 86%);
+  --agent-chat-accent-foreground: oklch(0.38 0.032 257);
+  --agent-chat-muted-control: oklch(1 0 0 / 92%);
+  --agent-chat-placeholder: oklch(0.64 0.06 257);
 }
