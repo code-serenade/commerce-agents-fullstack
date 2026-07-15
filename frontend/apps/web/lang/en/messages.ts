@@ -3410,6 +3410,7 @@ const messages = {
     footer: {
       toRegisterPrefix: "Don't have an account?",
       toRegisterAction: "Register",
+      backToChat: "Back to chat",
     },
     error: {
       title: "Sign-in did not finish",

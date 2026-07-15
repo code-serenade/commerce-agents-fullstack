@@ -7,15 +7,17 @@ import {
   type AuthLoginViewLabels,
 } from "@workspace/app-kit/login"
 import { CommerceAgentLogo } from "@/components/brand"
+import { AuthBackToChatLink } from "./AuthBackToChatLink"
 
 export interface MinimalLoginFormProps {
   notice?: AuthLoginNotice
   onRegisterClick?: () => void
+  showBackToChat?: boolean
   onSubmit: (values: AuthLoginSubmitValues) => void | Promise<void>
 }
 
 const authLinkClassName =
-  "font-bold text-[#2758ff] underline-offset-4 transition hover:underline dark:text-[#76a2ff]"
+  "cursor-pointer border-0 bg-transparent p-0 font-bold text-[#2758ff] underline-offset-4 transition hover:underline dark:text-[#76a2ff]"
 
 function createLoginLabels(
   t: ReturnType<typeof useTranslation>["t"]
@@ -44,29 +46,37 @@ function createLoginLabels(
 export function MinimalLoginForm({
   notice,
   onRegisterClick,
+  showBackToChat = true,
   onSubmit,
 }: MinimalLoginFormProps) {
   const { t } = useTranslation()
 
   return (
-    <AuthLoginView
-      labels={createLoginLabels(t)}
-      brandLogo={<CommerceAgentLogo className="size-18" size="lg" />}
-      variant="minimal"
-      notice={notice}
-      footerLink={{
-        prefix: t("login.footer.toRegisterPrefix"),
-        action: (
-          <Link
-            to="/register"
-            className={authLinkClassName}
-            onClick={onRegisterClick}
-          >
-            {t("login.footer.toRegisterAction")}
-          </Link>
-        ),
-      }}
-      onSubmit={onSubmit}
-    />
+    <>
+      {showBackToChat ? <AuthBackToChatLink /> : null}
+      <AuthLoginView
+        labels={createLoginLabels(t)}
+        brandLogo={<CommerceAgentLogo className="size-18" size="lg" />}
+        variant="minimal"
+        notice={notice}
+        footerLink={{
+          prefix: t("login.footer.toRegisterPrefix"),
+          action: onRegisterClick ? (
+            <button
+              type="button"
+              className={authLinkClassName}
+              onClick={onRegisterClick}
+            >
+              {t("login.footer.toRegisterAction")}
+            </button>
+          ) : (
+            <Link to="/register" className={authLinkClassName}>
+              {t("login.footer.toRegisterAction")}
+            </Link>
+          ),
+        }}
+        onSubmit={onSubmit}
+      />
+    </>
   )
 }

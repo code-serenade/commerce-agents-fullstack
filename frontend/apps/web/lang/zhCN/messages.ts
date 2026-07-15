@@ -3242,6 +3242,7 @@ const messages = {
     footer: {
       toRegisterPrefix: "还没有账号？",
       toRegisterAction: "去注册",
+      backToChat: "返回对话",
     },
     error: {
       title: "登录没有完成",
