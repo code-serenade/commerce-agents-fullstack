@@ -657,7 +657,7 @@ const messages = {
       },
       confirm: {
         deleteWorkspace:
-          '确定删除实训任务“{{title}}”吗？该操作会归档任务并从列表中隐藏。',
+          "确定删除实训任务“{{title}}”吗？该操作会归档任务并从列表中隐藏。",
       },
       notify: {
         workspaceCreated: "实训任务已创建",
@@ -3436,7 +3436,8 @@ const messages = {
       title: "学校与团队",
       description: "这些信息用于识别实训归属，也会影响你的 AI 问答总次数。",
       summaryTitle: "队伍学校",
-      summaryDescription: "这里展示当前账号的实训归属信息，修改请进入队伍学校设置。",
+      summaryDescription:
+        "这里展示当前账号的实训归属信息，修改请进入队伍学校设置。",
       loading: "正在读取学校与团队信息...",
       loadFailed: "学校与团队信息读取失败。",
       missingAppUser:
@@ -3471,7 +3472,7 @@ const messages = {
     },
     welcome: "创建新账号",
     title: "注册实训账号",
-    subtitle: "创建账号后即可进入电商多智能体平台，开始你的电商实训任务。",
+    subtitle: "注册后即可进入平台，开始电商实训。",
     form: {
       password: {
         label: "密码",
