@@ -88,7 +88,7 @@ export function CommerceTable<T>({
             {items.map((item, index) => (
               <tr
                 key={getRowId(item, index)}
-                className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
+                className="group/commerce-table-row border-b"
               >
                 {resolvedColumns.map((column) => (
                   <td
@@ -122,14 +122,14 @@ function getColumnStyle<T>(column: CommerceColumn<T>): CSSProperties {
 
 function getHeadClassName(sticky: CommerceColumn<unknown>["sticky"]) {
   return cx(
-    "h-10 overflow-hidden whitespace-nowrap px-2 text-left align-middle font-medium text-foreground",
+    "h-10 overflow-hidden whitespace-nowrap bg-(--surface) px-2 text-left align-middle font-medium text-foreground",
     sticky ? getStickyCellClassName(sticky, "head") : undefined
   )
 }
 
 function getCellClassName(sticky: CommerceColumn<unknown>["sticky"]) {
   return cx(
-    "overflow-hidden whitespace-normal p-2 align-top wrap-anywhere [&>*]:max-w-full",
+    "overflow-hidden whitespace-normal bg-background p-2 align-top wrap-anywhere transition-colors duration-500 group-hover/commerce-table-row:bg-[color-mix(in_oklch,var(--background)_88%,var(--primary)_12%)] [&>*]:max-w-full",
     sticky ? getStickyCellClassName(sticky, "cell") : undefined
   )
 }

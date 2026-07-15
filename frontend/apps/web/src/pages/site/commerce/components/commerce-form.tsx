@@ -18,8 +18,11 @@ import {
 import type { NativeSelectOption } from "@workspace/ui-components"
 
 export interface SimpleField {
+  decimalScale?: number
   key: string
   label: string
+  layout?: "half"
+  nonNegative?: boolean
   placeholder?: string
   type?: "text" | "number" | "date" | "textarea" | "select"
   options?: NativeSelectOption[]
@@ -27,6 +30,34 @@ export interface SimpleField {
 }
 
 export type SimpleFormValues = Record<string, string>
+
+export function normalizeNumericInput(
+  value: string,
+  {
+    decimalScale,
+    nonNegative = false,
+  }: Pick<SimpleField, "decimalScale" | "nonNegative"> = {}
+) {
+  if (decimalScale == null) {
+    return nonNegative ? value.replace(/^-/, "") : value
+  }
+
+  const sign = value.startsWith("-") && !nonNegative ? "-" : ""
+  const unsignedValue = value.replace(/^-/, "")
+  const [integerPart = "", ...fractionParts] = unsignedValue.split(".")
+  const integerDigits = integerPart.replace(/\D/g, "")
+  const hasDecimalPoint = unsignedValue.includes(".")
+  const fractionDigits = fractionParts
+    .join("")
+    .replace(/\D/g, "")
+    .slice(0, decimalScale)
+
+  if (!integerDigits && !hasDecimalPoint) return ""
+
+  return `${sign}${integerDigits || "0"}${
+    hasDecimalPoint ? `.${fractionDigits}` : ""
+  }`
+}
 
 export interface SimpleFormAuxiliaryAction {
   label: string
@@ -38,7 +69,7 @@ const simpleFormDialogContentClassName =
   "flex max-h-[min(92vh,720px)] w-[min(var(--commerce-form-dialog-width),calc(100vw_-_2rem))] max-w-[calc(100vw_-_2rem)] flex-col gap-0 overflow-hidden rounded-2xl border border-(--document-card-border) bg-(image:--document-card-background) p-0 text-foreground shadow-[0_28px_80px_color-mix(in_oklch,var(--primary)_14%,transparent),0_1px_2px_color-mix(in_oklch,var(--foreground)_10%,transparent),inset_0_1px_0_color-mix(in_oklch,var(--background)_96%,transparent)] backdrop-blur-xl sm:max-w-[calc(100vw_-_2rem)]"
 
 const simpleFormDialogBodyClassName =
-  "min-h-0 flex-1 space-y-4 overflow-y-auto bg-[color-mix(in_oklch,var(--background)_88%,transparent)] px-5 py-4 [scrollbar-gutter:stable] [&_[data-slot=input]]:h-10 [&_[data-slot=input]]:rounded-lg [&_[data-slot=input]]:border-(--document-card-border) [&_[data-slot=input]]:bg-[color-mix(in_oklch,var(--background)_92%,transparent)] [&_[data-slot=native-select-wrapper]]:h-10 [&_[data-slot=native-select-wrapper]]:w-full [&_[data-slot=native-select-wrapper]]:min-w-0 [&_[data-slot=native-select]]:h-10 [&_[data-slot=native-select]]:rounded-lg [&_[data-slot=native-select]]:border-(--document-card-border) [&_[data-slot=native-select]]:bg-[color-mix(in_oklch,var(--background)_92%,transparent)] [&_[data-slot=textarea]]:rounded-lg [&_[data-slot=textarea]]:border-(--document-card-border) [&_[data-slot=textarea]]:bg-[color-mix(in_oklch,var(--background)_92%,transparent)]"
+  "grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto bg-[color-mix(in_oklch,var(--background)_88%,transparent)] px-5 py-4 [scrollbar-gutter:stable] sm:grid-cols-2 [&_[data-slot=input]]:h-10 [&_[data-slot=input]]:rounded-lg [&_[data-slot=input]]:border-(--document-card-border) [&_[data-slot=input]]:bg-[color-mix(in_oklch,var(--background)_92%,transparent)] [&_[data-slot=native-select-wrapper]]:h-10 [&_[data-slot=native-select-wrapper]]:w-full [&_[data-slot=native-select-wrapper]]:min-w-0 [&_[data-slot=native-select]]:h-10 [&_[data-slot=native-select]]:rounded-lg [&_[data-slot=native-select]]:border-(--document-card-border) [&_[data-slot=native-select]]:bg-[color-mix(in_oklch,var(--background)_92%,transparent)] [&_[data-slot=textarea]]:rounded-lg [&_[data-slot=textarea]]:border-(--document-card-border) [&_[data-slot=textarea]]:bg-[color-mix(in_oklch,var(--background)_92%,transparent)]"
 
 export function SimpleFormDialog({
   auxiliaryAction,
@@ -76,8 +107,14 @@ export function SimpleFormDialog({
   const { t } = useTranslation()
   const resolvedDescription =
     description ?? t("commerce.common.dialogDescription")
-  const updateValue = (key: string, value: string) => {
-    setValues({ ...values, [key]: value })
+  const updateValue = (field: SimpleField, value: string) => {
+    setValues({
+      ...values,
+      [field.key]:
+        field.type === "number"
+          ? normalizeNumericInput(value, field)
+          : value,
+    })
   }
   const missingRequired = fields.some(
     (field) => field.required && !values[field.key]?.trim()
@@ -124,17 +161,22 @@ export function SimpleFormDialog({
         </DialogHeader>
         <div className={simpleFormDialogBodyClassName}>
           {notice ? (
-            <div className="rounded-lg border border-dashed border-(--document-card-border) bg-[color-mix(in_oklch,var(--app-active-bg)_34%,transparent)] px-3 py-2 text-xs/5 text-muted-foreground">
+            <div className="rounded-lg border border-dashed border-(--document-card-border) bg-[color-mix(in_oklch,var(--app-active-bg)_34%,transparent)] px-3 py-2 text-xs/5 text-muted-foreground sm:col-span-2">
               {notice}
             </div>
           ) : null}
           {processNotice ? (
-            <div className="rounded-lg border border-(--document-card-border) bg-[color-mix(in_oklch,var(--background)_92%,transparent)] px-3 py-2 text-xs/5 text-muted-foreground">
+            <div className="rounded-lg border border-(--document-card-border) bg-[color-mix(in_oklch,var(--background)_92%,transparent)] px-3 py-2 text-xs/5 text-muted-foreground sm:col-span-2">
               {processNotice}
             </div>
           ) : null}
           {fields.map((field) => (
-            <label key={field.key} className="block space-y-2">
+            <label
+              key={field.key}
+              className={`block min-w-0 space-y-2 ${
+                field.layout === "half" ? "" : "sm:col-span-2"
+              }`}
+            >
               <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
                 {field.label}
                 {field.required ? (
@@ -148,21 +190,21 @@ export function SimpleFormDialog({
                   value={values[field.key] ?? ""}
                   rows={4}
                   placeholder={field.placeholder}
-                  onValueChange={(value) => updateValue(field.key, value)}
+                  onValueChange={(value) => updateValue(field, value)}
                 />
               ) : field.type === "select" ? (
                 <NativeSelect
                   value={values[field.key] ?? ""}
                   placeholder={field.placeholder}
                   options={field.options ?? []}
-                  onValueChange={(value) => updateValue(field.key, value)}
+                  onValueChange={(value) => updateValue(field, value)}
                 />
               ) : (
                 <Input
                   value={values[field.key] ?? ""}
                   type={field.type === "number" ? "number" : "text"}
                   placeholder={field.placeholder}
-                  onValueChange={(value) => updateValue(field.key, value)}
+                  onValueChange={(value) => updateValue(field, value)}
                 />
               )}
             </label>
