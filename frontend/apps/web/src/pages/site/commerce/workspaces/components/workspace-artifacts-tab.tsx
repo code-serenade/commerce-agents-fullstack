@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next"
 import { Copy, Download } from "lucide-react"
 import { Button, TabsContent } from "@workspace/ui-components"
 import {
+  CommerceDetailDrawer,
   CommerceTable,
   MutedText,
   StatusBadge,
@@ -13,7 +14,6 @@ import {
   formatWorkspaceArtifactNotice,
   getWorkspaceArtifactDisplay,
 } from "../view-model/workspace-artifact-display-view-model"
-import { WorkspaceDetailDrawer } from "./workspace-detail-drawer"
 
 export function WorkspaceArtifactsTab({ page }: { page: WorkspacesPageState }) {
   const { t } = useTranslation()
@@ -31,8 +31,9 @@ export function WorkspaceArtifactsTab({ page }: { page: WorkspacesPageState }) {
           columns={createArtifactColumns(page, t)}
         />
       </div>
-      <WorkspaceDetailDrawer
+      <CommerceDetailDrawer
         open={page.detailDrawer === "artifact"}
+        closeLabel={t("commerce.common.close")}
         title={display.title}
         description={
           artifact
@@ -42,7 +43,7 @@ export function WorkspaceArtifactsTab({ page }: { page: WorkspacesPageState }) {
         onClose={page.closeDetailDrawer}
       >
         <ArtifactDetailContent page={page} />
-      </WorkspaceDetailDrawer>
+      </CommerceDetailDrawer>
     </TabsContent>
   )
 }

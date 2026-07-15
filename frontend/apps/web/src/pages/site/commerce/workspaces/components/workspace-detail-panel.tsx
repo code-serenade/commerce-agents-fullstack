@@ -8,6 +8,7 @@ import {
   TabsTrigger,
 } from "@workspace/ui-components"
 import {
+  CommerceDetailDrawer,
   CommercePanel,
   CommerceTable,
   MutedText,
@@ -21,7 +22,6 @@ import {
   createTaskColumns,
 } from "./workspace-table-columns"
 import { WorkspaceArtifactsTab } from "./workspace-artifacts-tab"
-import { WorkspaceDetailDrawer } from "./workspace-detail-drawer"
 import { WorkspaceQualityContent } from "./workspace-quality-panel"
 import { WorkspaceSkillRunsContent } from "./workspace-skill-runs-panel"
 
@@ -107,8 +107,9 @@ function WorkspaceRunsTab({ page }: { page: WorkspacesPageState }) {
           columns={createRunColumns(page, t)}
         />
       </div>
-      <WorkspaceDetailDrawer
+      <CommerceDetailDrawer
         open={page.detailDrawer === "run"}
+        closeLabel={t("commerce.common.close")}
         title={
           page.selectedRun?.goal ?? t("commerce.workspaces.panels.runSnapshot")
         }
@@ -116,7 +117,7 @@ function WorkspaceRunsTab({ page }: { page: WorkspacesPageState }) {
         onClose={page.closeDetailDrawer}
       >
         <RunSnapshotDetail page={page} />
-      </WorkspaceDetailDrawer>
+      </CommerceDetailDrawer>
     </TabsContent>
   )
 }

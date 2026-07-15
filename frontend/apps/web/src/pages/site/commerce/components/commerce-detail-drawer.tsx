@@ -4,14 +4,16 @@ import { createPortal } from "react-dom"
 import { X } from "lucide-react"
 import { Button } from "@workspace/ui-components"
 
-export function WorkspaceDetailDrawer({
+export function CommerceDetailDrawer({
   children,
+  closeLabel,
   description,
   onClose,
   open,
   title,
 }: {
   children: ReactNode
+  closeLabel: string
   description?: ReactNode
   onClose: () => void
   open: boolean
@@ -35,7 +37,7 @@ export function WorkspaceDetailDrawer({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[1000] flex justify-end bg-background/45 backdrop-blur-[2px]"
+      className="fixed inset-0 z-40 flex justify-end bg-background/45 backdrop-blur-[2px]"
       onPointerDown={onClose}
       role="presentation"
     >
@@ -47,14 +49,14 @@ export function WorkspaceDetailDrawer({
         onPointerDown={(event) => event.stopPropagation()}
         role="dialog"
       >
-        <header className="flex items-start justify-between gap-3 border-b border-(--app-border) px-5 py-4">
+        <header className="flex items-start justify-between gap-4 border-b border-(--app-border) px-5 py-4">
           <div className="min-w-0">
             <h2 className="truncate text-base font-semibold" id={titleId}>
               {title}
             </h2>
             {description ? (
               <p
-                className="mt-1 text-sm text-muted-foreground"
+                className="mt-1 text-sm/6 text-muted-foreground"
                 id={descriptionId}
               >
                 {description}
@@ -62,7 +64,7 @@ export function WorkspaceDetailDrawer({
             ) : null}
           </div>
           <Button
-            aria-label="Close"
+            aria-label={closeLabel}
             size="sm"
             type="button"
             variant="ghost"
