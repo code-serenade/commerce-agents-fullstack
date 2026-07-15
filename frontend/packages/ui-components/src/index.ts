@@ -360,7 +360,7 @@ export { Pagination } from "./components/stable/pagination"
 export type { PaginationProps } from "./components/stable/pagination"
 
 export { Sheet } from "./components/stable/sheet"
-export type { SheetProps, SheetSide } from "./components/stable/sheet"
+export type { SheetProps, SheetSide, SheetSize } from "./components/stable/sheet"
 
 export { Toggle } from "./components/stable/toggle"
 export type { ToggleProps } from "./components/stable/toggle"

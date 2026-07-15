@@ -9,14 +9,16 @@ import {
 } from "@workspace/ui-core/components/sheet"
 
 export type SheetSide = "top" | "right" | "bottom" | "left"
+export type SheetSize = "default" | "wide"
 
 export interface SheetProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  triggerLabel: ReactNode
+  triggerLabel?: ReactNode
   title: ReactNode
   description?: ReactNode
   side?: SheetSide
+  size?: SheetSize
   children?: ReactNode
 }
 
@@ -27,12 +29,20 @@ export function Sheet({
   title,
   description,
   side = "right",
+  size = "default",
   children,
 }: SheetProps) {
   return (
     <CoreSheet open={open} onOpenChange={onOpenChange}>
-      <CoreSheetTrigger>{triggerLabel}</CoreSheetTrigger>
-      <CoreSheetContent side={side}>
+      {triggerLabel ? <CoreSheetTrigger>{triggerLabel}</CoreSheetTrigger> : null}
+      <CoreSheetContent
+        side={side}
+        className={
+          size === "wide"
+            ? "data-[side=left]:w-full data-[side=left]:sm:max-w-[min(46rem,calc(100vw-4rem))] data-[side=right]:w-full data-[side=right]:sm:max-w-[min(46rem,calc(100vw-4rem))]"
+            : undefined
+        }
+      >
         <CoreSheetHeader>
           <CoreSheetTitle>{title}</CoreSheetTitle>
           {description ? (
