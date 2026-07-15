@@ -1848,41 +1848,88 @@ const messages = {
         },
       },
       studentTaskEntries: {
-        title: "Start here",
+        title: "Try asking",
         subtitle: "Choose one to put it into the input.",
         openIdeas: "More question ideas",
         start: {
-          title: "Check if this product can sell",
+          title: "Judge product potential",
           detail:
             "Incomplete information is fine; start with margin, demand, and service risk.",
           prompt:
-            "I have a product I want to sell, but the materials are incomplete. First help me judge whether it can work and what key detail is still missing.",
+            "I want to sell a product, but the information is incomplete. Help me judge whether it is worth pursuing and what key information is missing.",
         },
         analyze: {
-          title: "Improve title or selling points",
+          title: "Improve title and benefits",
           detail: "Make the click reason and buying reason clearer.",
           prompt:
-            "Help me see why this product title and selling points are not attractive enough, then rewrite one natural version.",
+            "Improve this product's title and selling points, and give me three versions.",
+        },
+        campaign: {
+          title: "Create a campaign plan",
+          detail: "Clarify the goal, budget, schedule, and execution steps.",
+          prompt:
+            "Create a campaign plan with a goal, budget, schedule, and execution checklist.",
         },
         plan: {
           title: "Write a customer reply",
           detail:
             "Keep it natural without promising what the shop cannot prove.",
           prompt:
-            "A customer says the price is expensive. Help me write a natural reply that does not overpromise.",
+            "A customer raised a concern. Write a natural, compliant reply that does not overpromise.",
         },
         data: {
-          title: "Review my data",
+          title: "Diagnose business data",
           detail:
             "You do not need to know the metrics first; I will help find what affects the result most.",
           prompt:
-            "I have some browse, click, add-to-cart, purchase, or refund data. First help me judge where the issue may be stuck and what I should check next.",
+            "Use browse, click, add-to-cart, purchase, and refund data to find the main issue and recommend the next step.",
         },
         review: {
-          title: "Make the plan more convincing",
-          detail: "Useful for assignments, presentations, or teacher feedback.",
+          title: "Prepare a review report",
+          detail:
+            "Turn conclusions, process, issues, and improvements into a deliverable.",
           prompt:
-            "My teacher said my plan is too empty. Help me make it more evidence-based and executable.",
+            "Turn the conclusions, process, issues, and improvement ideas into a review report.",
+        },
+        competitor: {
+          title: "Compare competitors",
+          detail:
+            "Find opportunities across price, benefits, audience, and risk.",
+          prompt:
+            "Compare my product with competitors across price, benefits, audience, and risk.",
+        },
+        visual: {
+          title: "Create main image copy",
+          detail:
+            "Highlight verified benefits and the audience's main concern.",
+          prompt:
+            "Use the product benefits and target audience to create three main image copy options.",
+        },
+        live: {
+          title: "Improve a live script",
+          detail:
+            "Strengthen the opening, benefits, interaction, and conversion.",
+          prompt:
+            "Improve my live script with an opening, key benefits, interaction, and conversion guidance.",
+        },
+        budget: {
+          title: "Plan an ad budget",
+          detail: "Set the allocation, test pace, and loss limits.",
+          prompt:
+            "Use my budget and goal to plan ad allocation, test pace, and stop-loss limits.",
+        },
+        refund: {
+          title: "Analyze refund causes",
+          detail:
+            "Identify the main refund issues and prioritize improvements.",
+          prompt:
+            "Use refund reasons and amounts to find the main issues and prioritize improvements.",
+        },
+        execution: {
+          title: "Break down execution tasks",
+          detail: "Turn a plan into ordered tasks with owners and checks.",
+          prompt:
+            "Break this plan into execution tasks with an order, owners, and checkpoints.",
         },
       },
       receivingOutput: "Preparing the usable answer",
