@@ -46,7 +46,7 @@ export interface SidebarShellNavEntry {
   iconTone?: "default" | "muted"
   tone?: "default" | "muted"
   textSize?: "default" | "lg"
-  variant?: "default" | "primaryAction"
+  variant?: "default" | "primaryAction" | "prominentAction" | "plainText"
   icon?: ReactNode
   onSelect?: () => void
   action?: ReactNode
@@ -115,13 +115,16 @@ export interface SidebarShellProps {
   children: ReactNode
 }
 
-const sidebarMenuSpacingClassName = "[&_[data-sidebar=menu]]:gap-1"
+const sidebarMenuSpacingClassName = "[&_[data-sidebar=menu]]:gap-0"
 
 const sidebarMenuButtonBaseClassName =
-  "[&_[data-sidebar=menu-button]]:cursor-pointer [&_[data-sidebar=menu-button]]:hover:bg-(--shell-sidebar-item-hover-background) [&_[data-sidebar=menu-button]]:hover:text-sidebar-foreground [&_[data-sidebar=menu-button]]:active:bg-(--shell-sidebar-item-hover-background) [&_[data-sidebar=menu-button]]:active:text-sidebar-foreground"
+  "[&_[data-sidebar=menu-button]]:h-10 [&_[data-sidebar=menu-button]]:cursor-pointer [&_[data-sidebar=menu-button]]:rounded-lg [&_[data-sidebar=menu-button]]:px-3 [&_[data-sidebar=menu-button]]:shadow-none [&_[data-sidebar=menu-button]]:hover:bg-(--shell-sidebar-item-hover-background) [&_[data-sidebar=menu-button]]:hover:text-sidebar-foreground [&_[data-sidebar=menu-button]]:active:bg-(--shell-sidebar-item-hover-background) [&_[data-sidebar=menu-button]]:active:text-sidebar-foreground [&_[data-sidebar=menu-button][data-active=true]]:bg-white [&_[data-sidebar=menu-button][data-active=true]]:shadow-[0_1px_2px_rgba(15,23,42,0.04)] [&_[data-sidebar=menu-button][data-active=true]]:hover:bg-white dark:[&_[data-sidebar=menu-button][data-active=true]]:bg-black dark:[&_[data-sidebar=menu-button][data-active=true]]:shadow-[0_1px_2px_rgba(0,0,0,0.12)] dark:[&_[data-sidebar=menu-button][data-active=true]]:hover:bg-black"
 
 const sidebarPrimaryActionButtonClassName =
-  "[&_[data-sidebar=menu-button]]:h-10 [&_[data-sidebar=menu-button]]:cursor-pointer [&_[data-sidebar=menu-button]]:rounded-lg [&_[data-sidebar=menu-button]]:border [&_[data-sidebar=menu-button]]:border-primary [&_[data-sidebar=menu-button]]:bg-primary/10 [&_[data-sidebar=menu-button]]:text-sm [&_[data-sidebar=menu-button]]:font-bold [&_[data-sidebar=menu-button]]:text-primary [&_[data-sidebar=menu-button]]:hover:border-primary [&_[data-sidebar=menu-button]]:hover:bg-primary/15 [&_[data-sidebar=menu-button]]:hover:text-primary [&_[data-sidebar=menu-button][data-active=true]]:border-primary [&_[data-sidebar=menu-button][data-active=true]]:bg-primary/10 [&_[data-sidebar=menu-button][data-active=true]]:text-primary"
+  "[&_[data-sidebar=menu-button]]:h-10 [&_[data-sidebar=menu-button]]:cursor-pointer [&_[data-sidebar=menu-button]]:rounded-lg [&_[data-sidebar=menu-button]]:border [&_[data-sidebar=menu-button]]:border-primary [&_[data-sidebar=menu-button]]:bg-primary/10 [&_[data-sidebar=menu-button]]:text-sm [&_[data-sidebar=menu-button]]:font-bold [&_[data-sidebar=menu-button]]:text-primary [&_[data-sidebar=menu-button]]:shadow-none [&_[data-sidebar=menu-button]]:hover:border-primary [&_[data-sidebar=menu-button]]:hover:bg-primary/15 [&_[data-sidebar=menu-button]]:hover:text-primary [&_[data-sidebar=menu-button][data-active=true]]:border-primary [&_[data-sidebar=menu-button][data-active=true]]:bg-primary/10 [&_[data-sidebar=menu-button][data-active=true]]:text-primary [&_[data-sidebar=menu-button][data-active=true]]:shadow-[0_1px_2px_rgba(15,23,42,0.04)] [&_[data-sidebar=menu-button][data-active=true]]:hover:bg-primary/10 [&_[data-sidebar=menu-button][data-active=true]]:hover:text-primary"
+
+const sidebarProminentActionButtonClassName =
+  "[&_[data-sidebar=menu-button]]:!h-10 [&_[data-sidebar=menu-button]]:!rounded-lg [&_[data-sidebar=menu-button]]:border [&_[data-sidebar=menu-button]]:border-sidebar-border [&_[data-sidebar=menu-button]]:bg-background [&_[data-sidebar=menu-button]]:!px-3 [&_[data-sidebar=menu-button]]:text-sm [&_[data-sidebar=menu-button]]:font-medium [&_[data-sidebar=menu-button]]:text-sidebar-foreground [&_[data-sidebar=menu-button]]:shadow-none [&_[data-sidebar=menu-button]]:hover:border-sidebar-primary/35 [&_[data-sidebar=menu-button]]:hover:bg-background [&_[data-sidebar=menu-button]]:hover:text-sidebar-foreground dark:[&_[data-sidebar=menu-button]]:border-sidebar-border/80 dark:[&_[data-sidebar=menu-button]]:bg-sidebar-accent/55 dark:[&_[data-sidebar=menu-button]]:text-sidebar-foreground dark:[&_[data-sidebar=menu-button]]:shadow-none dark:[&_[data-sidebar=menu-button]]:hover:border-sidebar-primary/45 dark:[&_[data-sidebar=menu-button]]:hover:bg-sidebar-accent/75 dark:[&_[data-sidebar=menu-button][data-active=true]]:border-sidebar-primary/50 dark:[&_[data-sidebar=menu-button][data-active=true]]:bg-sidebar-accent/65 dark:[&_[data-sidebar=menu-button][data-active=true]]:text-sidebar-foreground dark:[&_[data-sidebar=menu-button][data-active=true]]:shadow-[0_1px_2px_rgba(0,0,0,0.12)] dark:[&_[data-sidebar=menu-button][data-active=true]]:hover:bg-sidebar-accent/65 [&_[data-sidebar=menu-button][data-active=true]]:border-sidebar-primary/40 [&_[data-sidebar=menu-button][data-active=true]]:bg-background [&_[data-sidebar=menu-button][data-active=true]]:text-sidebar-foreground [&_[data-sidebar=menu-button][data-active=true]]:shadow-[0_1px_2px_rgba(15,23,42,0.04)] [&_[data-sidebar=menu-button][data-active=true]]:hover:bg-background [&_[data-sidebar=menu-button][data-active=true]]:hover:text-sidebar-foreground [&_[data-sidebar=menu-button]_svg]:text-sidebar-foreground"
 
 export function SidebarShell({
   brandEyebrow,
@@ -163,7 +166,7 @@ export function SidebarShell({
           <div className="hidden md:contents">
             <Sidebar collapsible="icon">
               <SidebarHeader>
-                <div className="mb-1 flex min-h-10 items-center gap-2 group-data-[collapsible=icon]:min-h-20 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:justify-center">
+                <div className="flex h-12 items-center gap-2 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:justify-center">
                   {onBrandSelect ? (
                     <button
                       type="button"
@@ -193,8 +196,6 @@ export function SidebarShell({
                 </div>
               </SidebarHeader>
 
-              <div aria-hidden="true" className="h-px bg-sidebar-border" />
-
               <SidebarContent>
                 {navigationHeader ? (
                   <div className="px-2 pt-1 group-data-[collapsible=icon]:hidden">
@@ -202,14 +203,12 @@ export function SidebarShell({
                   </div>
                 ) : null}
                 <FixedLeadingItems sections={sections} />
-                <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto pr-1 [scrollbar-gutter:stable] group-data-[collapsible=icon]:overflow-hidden group-data-[collapsible=icon]:pr-0">
+                <div className="no-scrollbar flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto group-data-[collapsible=icon]:overflow-hidden">
                   {sections.map((section) => (
                     <SidebarSectionGroup
                       key={section.key ?? String(section.label)}
                       section={section}
-                      showLeadingItems={
-                        !section.leadingItemsFixed || section.hideLabel
-                      }
+                      showLeadingItems={!section.leadingItemsFixed}
                     />
                   ))}
                 </div>
@@ -305,9 +304,7 @@ function BrandContent({
 
 function FixedLeadingItems({ sections }: { sections: SidebarShellSection[] }) {
   const fixedItems = sections.flatMap((section) =>
-    section.leadingItemsFixed && !section.hideLabel
-      ? (section.leadingItems ?? [])
-      : []
+    section.leadingItemsFixed ? (section.leadingItems ?? []) : []
   )
 
   if (!fixedItems.length) return null
@@ -631,6 +628,9 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
   const navButtonWrapperClassName = [
     sidebarMenuButtonBaseClassName,
     item.variant === "primaryAction" ? sidebarPrimaryActionButtonClassName : "",
+    item.variant === "prominentAction"
+      ? sidebarProminentActionButtonClassName
+      : "",
     item.tone === "muted"
       ? "[&_[data-sidebar=menu-button]]:text-sidebar-foreground/55 [&_[data-sidebar=menu-button]_svg]:text-sidebar-foreground/45"
       : "",
@@ -642,6 +642,16 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
     .filter(Boolean)
     .join(" ")
 
+  if (item.variant === "plainText") {
+    return (
+      <SidebarMenuItem>
+        <div className="flex h-10 items-center px-3 text-sm text-sidebar-foreground/55 group-data-[collapsible=icon]:hidden">
+          <span className="block min-w-0 truncate">{item.label}</span>
+        </div>
+      </SidebarMenuItem>
+    )
+  }
+
   if (!hasSubItems) {
     return (
       <SidebarMenuItem>
@@ -649,11 +659,13 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
           <div className={navButtonWrapperClassName}>
             <div
               className={[
-                "group/item flex min-w-0 items-center gap-1 rounded-xl transition-colors",
+                "group/item relative flex min-w-0 items-center rounded-lg transition-colors",
                 isExpandedActionRow
-                  ? "hover:bg-(--shell-sidebar-item-hover-background) [&_[data-sidebar=menu-button]]:hover:bg-transparent [&_[data-sidebar=menu-button]]:hover:text-sidebar-foreground [&_[data-sidebar=menu-button]]:active:bg-transparent [&_[data-sidebar=menu-button]]:active:text-sidebar-foreground [&_[data-sidebar=menu-button][data-active=true]]:bg-transparent [&_[data-sidebar=menu-button][data-active=true]]:shadow-none"
+                  ? "hover:bg-(--shell-sidebar-item-hover-background) [&_[data-sidebar=menu-button]]:hover:bg-transparent [&_[data-sidebar=menu-button]]:hover:text-sidebar-foreground [&_[data-sidebar=menu-button]]:active:bg-transparent [&_[data-sidebar=menu-button]]:active:text-sidebar-foreground [&_[data-sidebar=menu-button][data-active=true]]:bg-transparent [&_[data-sidebar=menu-button][data-active=true]]:shadow-none [&_[data-sidebar=menu-button]]:group-hover/item:pr-10 [&_[data-sidebar=menu-button]]:group-focus-within/item:pr-10 [&_[data-sidebar=menu-button][data-active=true]]:pr-10"
                   : "",
-                shouldHighlightActionRow ? "bg-sidebar-accent" : "",
+                shouldHighlightActionRow
+                  ? "bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:bg-white dark:bg-black dark:shadow-[0_1px_2px_rgba(0,0,0,0.12)] dark:hover:bg-black"
+                  : "",
               ]
                 .filter(Boolean)
                 .join(" ")}
@@ -668,14 +680,14 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
                   onClick={item.onSelect}
                 >
                   {item.icon}
-                  <span className="truncate group-data-[collapsible=icon]:hidden">
+                  <span className="min-w-0 flex-1 truncate group-data-[collapsible=icon]:hidden">
                     {item.label}
                   </span>
                 </SidebarMenuButton>
               </div>
               <div
                 className={[
-                  "shrink-0 transition-opacity group-hover/item:opacity-100 group-data-[collapsible=icon]:hidden focus-within:opacity-100",
+                  "absolute top-1/2 right-1.5 -translate-y-1/2 bg-transparent transition-opacity group-hover/item:opacity-100 group-data-[collapsible=icon]:hidden group-focus-within/item:opacity-100",
                   shouldHighlightActionRow ? "opacity-100" : "opacity-0",
                 ]
                   .filter(Boolean)
@@ -694,7 +706,7 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
               onClick={item.onSelect}
             >
               {item.icon}
-              <span className="truncate group-data-[collapsible=icon]:hidden">
+              <span className="min-w-0 flex-1 truncate group-data-[collapsible=icon]:hidden">
                 {item.label}
               </span>
             </SidebarMenuButton>
@@ -738,7 +750,7 @@ function SidebarNavRow({ item }: { item: SidebarShellNavEntry }) {
           }}
         >
           {item.icon}
-          <span className="truncate group-data-[collapsible=icon]:hidden">
+          <span className="min-w-0 flex-1 truncate group-data-[collapsible=icon]:hidden">
             {item.label}
           </span>
         </SidebarMenuButton>

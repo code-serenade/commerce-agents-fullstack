@@ -32,6 +32,7 @@ export interface DropdownMenuProps {
 
 export interface DropdownMenuTriggerProps {
   children: ReactNode
+  className?: string
   disabled?: boolean
   label?: ReactNode
   size?: DropdownMenuTriggerSize
@@ -123,6 +124,7 @@ export function DropdownMenu({
 
 export function DropdownMenuTrigger({
   children,
+  className,
   disabled = false,
   label,
   size = "default",
@@ -145,7 +147,8 @@ export function DropdownMenuTrigger({
         size === "default" && "min-h-9 px-3 py-2 text-sm",
         size === "sm" && "min-h-8 px-2.5 py-1.5 text-sm",
         size === "icon" && "size-9 p-0",
-        size === "compactIcon" && "size-7 p-0"
+        size === "compactIcon" && "size-7 p-0",
+        className
       )}
     >
       {children}

@@ -53,7 +53,7 @@ function handleAction(action?: { href?: string; onSelect?: () => void }) {
 }
 
 function itemClassName() {
-  return "flex min-h-8 cursor-default items-center gap-2 rounded-md px-2 py-1.5 text-sm leading-none font-medium text-foreground outline-hidden transition data-[disabled]:pointer-events-none data-[disabled]:opacity-50 hover:bg-[var(--surface-hover)] hover:text-foreground focus:bg-[var(--surface-hover)] focus:text-foreground"
+  return "flex min-h-8 cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm leading-none font-medium text-foreground outline-hidden transition data-[disabled]:pointer-events-none data-[disabled]:opacity-50 hover:bg-(--shell-sidebar-item-hover-background) hover:text-foreground focus:bg-(--shell-sidebar-item-hover-background) focus:text-foreground"
 }
 
 export function AvatarDropdownItem({
@@ -98,7 +98,7 @@ export function AvatarDropdown({
   const trigger = triggerVariant === "sidebar" ? (
     <button
       type="button"
-      className="flex w-full cursor-pointer items-center gap-2.5 overflow-hidden rounded-xl bg-transparent px-2.5 py-2 text-left outline-hidden transition group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:rounded-full group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-0 focus-visible:ring-2 focus-visible:ring-(--app-primary)"
+      className="flex w-full cursor-pointer items-center gap-2.5 overflow-hidden rounded-xl bg-transparent px-2.5 py-2 text-left outline-hidden transition group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:rounded-full group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-0"
       aria-label={openAccountMenuLabel}
       onClick={onTriggerSelect}
     >
@@ -197,20 +197,22 @@ export function AvatarDropdown({
 
         {children ? (
           <>
-            <div className="p-1">{children}</div>
-            <Separator />
+            <div className="grid gap-1 bg-slate-50/80 p-1 dark:bg-white/[0.035]">
+              {children}
+            </div>
+            <div className="h-px bg-slate-50/80 dark:bg-white/[0.035]" />
           </>
         ) : null}
 
         {logout ? (
-          <div className="p-1">
+          <div className="bg-slate-50/80 p-1 dark:bg-white/[0.035]">
             <DropdownMenuItem
               mode="primitive"
-              className={itemClassName()}
+              className={`${itemClassName()} text-destructive! hover:text-destructive! focus:text-destructive! [&_svg]:text-destructive!`}
               onSelect={handleAction(logout)}
               disabled={logout.disabled}
             >
-              <LogOut className="size-5 shrink-0 text-muted-foreground" />
+              <LogOut className="size-5 shrink-0" />
               <span>{logout.label ?? logoutLabel}</span>
             </DropdownMenuItem>
           </div>
