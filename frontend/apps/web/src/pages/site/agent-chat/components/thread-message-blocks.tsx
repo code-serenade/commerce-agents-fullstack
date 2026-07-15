@@ -191,9 +191,8 @@ export function StudentNextActions({
             key={prompt}
             type="button"
             onClick={() => onSelectPrompt?.(prompt)}
-            className="group flex w-fit max-w-full min-w-0 cursor-pointer items-start gap-2 rounded-lg bg-(--agent-chat-suggestion-background) px-2.5 py-1.5 text-left text-xs/5 text-(--agent-chat-suggestion-foreground) transition-colors hover:bg-(--agent-chat-suggestion-hover-background) hover:text-(--agent-chat-suggestion-foreground)"
+            className="group flex w-fit max-w-full min-w-0 cursor-pointer items-start rounded-lg bg-(--agent-chat-suggestion-background) px-2.5 py-1.5 text-left text-xs/5 text-(--agent-chat-suggestion-foreground) transition-colors hover:bg-(--agent-chat-suggestion-hover-background) hover:text-(--agent-chat-suggestion-foreground)"
           >
-            <Sparkles className="mt-0.5 size-3.5 shrink-0 text-primary" />
             <span className="min-w-0 flex-1">{prompt}</span>
           </button>
         ))}
